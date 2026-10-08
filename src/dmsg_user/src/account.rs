@@ -18,8 +18,7 @@ pub(crate) fn create(
     nonzero(input.op_id.as_slice())?;
     expiry(now, input.expires_at, 5 * MINUTE)?;
     ensure_valid(
-        input.device.role == ControllerRole::Administrator
-            && input.device.capabilities.contains(&Capability::RootManage),
+        root_administrator(&input.device),
         "initial root administrator",
     )?;
     verify(
@@ -105,6 +104,14 @@ pub(crate) fn check_device<'a, T: serde::Serialize>(
     Ok(device)
 }
 
+/// An administrator that can manage and hold the content root: the initial
+/// device of an account and the replacement device of a recovery.
+pub(crate) fn root_administrator(device: &DeviceInput) -> bool {
+    device.role == ControllerRole::Administrator
+        && device.capabilities.contains(&Capability::RootManage)
+        && device.capabilities.contains(&Capability::VaultUnlock)
+}
+
 fn invalidate_approvals(s: &mut AccountState) {
     s.security_epoch = s
         .security_epoch
@@ -113,9 +120,12 @@ fn invalidate_approvals(s: &mut AccountState) {
     s.root_slot = None;
 }
 
-pub(crate) fn changed(s: &mut AccountState) {
+/// Invalidate approvals after a device or login change. When the root
+/// recipients now differ from `before`, a committed root must be replaced
+/// before vault writes resume; other changes leave it in use.
+pub(crate) fn changed(s: &mut AccountState, before: &[Hash]) {
     invalidate_approvals(s);
-    if s.current_root.is_some() {
+    if s.current_root.is_some() && s.root_recipients() != before {
         s.vault_write_state = VaultWriteState::RekeyRequired;
     }
 }
@@ -259,14 +269,14 @@ pub(crate) fn apply(
                     next_sequence: 0,
                 },
             );
-            changed(&mut next);
+            changed(&mut next, &s.root_recipients());
         }
         AccountCommand::RevokeDevice { device_id } => {
             let d = next.devices.get_mut(device_id).ok_or(Error::NotFound)?;
             ensure(d.revoked_at.is_none(), Error::DeviceNotApproved)?;
             d.revoked_at = Some(now);
             ensure_valid(has_administrator(&next), "last administrator")?;
-            changed(&mut next);
+            changed(&mut next, &s.root_recipients());
         }
         AccountCommand::SetDeviceCapabilities {
             device_id,
@@ -279,7 +289,7 @@ pub(crate) fn apply(
             input.validate()?;
             device.input = input;
             ensure_valid(has_administrator(&next), "last administrator")?;
-            changed(&mut next);
+            changed(&mut next, &s.root_recipients());
         }
         AccountCommand::BindAuth { principal, .. } => {
             authenticated(*principal)?;
@@ -289,7 +299,7 @@ pub(crate) fn apply(
                 Error::QuotaExceeded,
             )?;
             next.auth_bindings.push(*principal);
-            changed(&mut next);
+            changed(&mut next, &s.root_recipients());
         }
         AccountCommand::RemoveAuth { principal } => {
             ensure_valid(
@@ -300,7 +310,7 @@ pub(crate) fn apply(
             // A takeover rests on the login that requested it.
             next.pending_recovery
                 .take_if(|r| r.request.new_auth == *principal);
-            changed(&mut next);
+            changed(&mut next, &s.root_recipients());
         }
         AccountCommand::SetRecoveryDelay { delay_ms } => {
             // An old device cannot shorten or lengthen a recovery already pending.
@@ -364,12 +374,15 @@ pub(crate) fn apply(
                 Error::VersionConflict,
             )?;
             ensure(now < slot.expires_at, Error::Expired)?;
-            // The bundle must wrap the root to exactly the active devices and
-            // this generation's vetKD recovery identity.
+            // The bundle must wrap the root to exactly the devices holding
+            // VaultUnlock, the committing device among them, and to this
+            // generation's vetKD recovery identity.
+            let recipients = s.root_recipients();
             ensure(
                 root.suite == "dmsg-root-v2"
+                    && recipients.contains(&m.approval.device_id)
                     && root.recipients_digest
-                        == root_recipients_digest(&s.active_devices(), root.generation)
+                        == root_recipients_digest(&recipients, root.generation)
                     && root.bundle_digest
                         == root_bundle_digest(root.recipients_digest, root.body_digest),
                 Error::IntegrityFailed,

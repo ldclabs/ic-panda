@@ -47,9 +47,11 @@ flowchart LR
 | 发布     | `publish_principal`                                                                                                                                                                    | 任何人，幂等                                                                   |
 | 维护     | `prune_auth_bindings`、`prune_executions`、`prune_external_approvals`                                                                                                                  | 任何人，每次有界                                                               |
 | 公开查询 | `security_snapshot_batch`、`get_device_bundle`、`get_principal`、`my_account`、`user_stats`、`user_config`                                                                             | 任何人                                                                         |
-| 本人查询 | `get_account`、`get_operation`、`get_root_ref`、`get_execution`、`get_attestation`、`get_execution_receipt`、`get_execution_usage`、`get_execution_usage_certified`、`authentication_certificate`、`get_recovery_request`、`unlock_secret` | 账户的登录 Principal；`unlock_secret` 只对未撤销设备返回                      |
+| 本人查询 | `get_account`、`get_operation`、`get_root_ref`、`get_execution`、`get_attestation`、`get_execution_receipt`、`get_execution_usage`、`authentication_certificate`、`get_recovery_request`、`unlock_secret` | 账户的登录 Principal；`unlock_secret` 只对未撤销设备返回                      |
 
-唯一的管理入口是 `admin_set_account_limits(max_accounts, daily_new_accounts)`，接受 controller 和初始化固定的 `governance`，并有同参数的 `validate_admin_set_account_limits` 供 SNS 通用提案预演。controller 还负责安装和升级，升级可以替换全部授权逻辑，因此 controller 等同于全部账户的最终权限。
+唯一的管理入口是 `admin_set_account_limits(max_accounts, daily_new_accounts)`，接受 controller 和初始化固定的 `governance`，并有同参数的 `validate_admin_set_account_limits` 供 SNS 通用提案预演。controller 还负责安装和升级，升级可以替换全部授权逻辑，也能读出 `master_secret`，因此 controller 等同于全部账户的最终权限。
+
+`canister_inspect_message` 在执行前拒绝方法一定会拒绝的 ingress，避免由本 canister 支付：服务回调只接受对应的配置 canister（`verify_product_account` 只由产品 adapter 跨 canister 调用，拒绝全部 ingress），`admin_set_account_limits` 只接受 controller 和 governance，其余账户方法拒绝匿名 Principal；`prune_*` 与 `publish_principal` 对所有人开放。跨 canister 调用不经过 inspect，方法内的检查照常执行。
 
 ### 授权模型
 
@@ -61,7 +63,7 @@ flowchart LR
 | 能力                              | 用途                                                                                   |
 | --------------------------------- | -------------------------------------------------------------------------------------- |
 | `RootManage`（角色须为管理员）    | 除 `DisputeRecovery` 外的全部账户变更、根预留与提交                                    |
-| `VaultUnlock`                     | 云端据此放行账户密文读取（当前根、对象与文件块）；user 只记录，不影响根包接收者        |
+| `VaultUnlock`                     | 根包只封装给持有它的活跃设备；云端据此放行账户密文读取（当前根、对象与文件块）        |
 | `FormalApprove`                   | 文档与 AppAction 认证、第三方认证与应用批准                                            |
 | `PaymentOffer`                    | 签署收款报价                                                                           |
 | `ContentSign`                     | user 不检查此能力，由云端用于验证内容签名                                              |
@@ -70,11 +72,11 @@ flowchart LR
 
 | 命令                                                                            | 作用与约束                                                                                                 | `security_epoch` | 已有内容根时        |
 | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | :--------------: | ------------------- |
-| `AddDevice`                                                                     | 新设备对 `dmsg/add-device/v1` 自签 PoP；活跃设备最多 5 台，含已撤销最多 16 台，满时淘汰最早撤销的一台      |        +1        | 置 `RekeyRequired`  |
-| `RevokeDevice`                                                                  | 至少保留一台具备 `RootManage` 的管理员设备                                                                 |        +1        | 置 `RekeyRequired`  |
-| `SetDeviceCapabilities`                                                         | 只替换能力集，不改角色和密钥；同样须保留一台管理员                                                         |        +1        | 置 `RekeyRequired`  |
-| `BindAuth`                                                                      | 新 Principal 须先用 `begin_auth_binding` 登记同一 nonce                                                    |        +1        | 置 `RekeyRequired`  |
-| `RemoveAuth`                                                                    | 不能移除最后一个登录；被移除者的路由与它发起的待处理恢复同时删除                                           |        +1        | 置 `RekeyRequired`  |
+| `AddDevice`                                                                     | 新设备对 `dmsg/add-device/v1` 自签 PoP；活跃设备最多 5 台，含已撤销最多 16 台，满时淘汰最早撤销的一台      |        +1        | 新设备持有 `VaultUnlock` 时置 `RekeyRequired` |
+| `RevokeDevice`                                                                  | 至少保留一台具备 `RootManage` 的管理员设备                                                                 |        +1        | 被撤销设备持有 `VaultUnlock` 时置 `RekeyRequired` |
+| `SetDeviceCapabilities`                                                         | 只替换能力集，不改角色和密钥；同样须保留一台管理员                                                         |        +1        | `VaultUnlock` 增减时置 `RekeyRequired` |
+| `BindAuth`                                                                      | 新 Principal 须先用 `begin_auth_binding` 登记同一 nonce                                                    |        +1        | 不变                |
+| `RemoveAuth`                                                                    | 不能移除最后一个登录；被移除者的路由与它发起的待处理恢复同时删除                                           |        +1        | 不变                |
 | `SetRecoveryDelay`                                                              | 恢复等待期 1–7 天；存在待处理的恢复申请时拒绝                                                              |        +1        | 不变                |
 | `SetPolicy`                                                                     | 设置正式执行政策：允许的用途、每日次数、`frozen`                                                           | +1，并清除候选根槽 | 不变              |
 | `ReserveRoot`、`CommitRoot`                                                     | 内容根 CAS，见下文                                                                                         |       不变       | `CommitRoot` 置 `Ready` |
@@ -83,7 +85,7 @@ flowchart LR
 | `EnablePrincipal`、`RetireController`、`MarkControllerCompromised`、`RenameController` | 修改 Agent principal 记录                                                                           |       不变       | 不变                |
 | `RegisterController`                                                            | 附 controller 私钥对 `dmsg/controller-pop/v1` 的 PoP                                                       |       不变       | 不变                |
 
-`SensitivePolicy.frozen` 冻结正式认证、外部批准和付款报价，不影响账户变更，管理员可以用 `SetPolicy` 解冻。
+换根只在根包接收者（持有 `VaultUnlock` 的活跃设备）变化时才需要：登录身份不是接收者，其他能力也不影响根包。`SensitivePolicy.frozen` 冻结正式认证、外部批准和付款报价，不影响账户变更，管理员可以用 `SetPolicy` 解冻。
 
 ### 账户创建与登录绑定
 
@@ -91,7 +93,7 @@ flowchart LR
 
 - caller 已有路由时直接返回原账户，所以重试是安全的。
 - 受全局 `max_accounts` 和每 UTC 日 `daily_new_accounts` 限制。
-- 初始设备必须是具备 `RootManage` 的管理员，并对 `dmsg/create-account/v1`（home、caller、设备、`op_id`、期限）签名，期限最长 5 分钟。
+- 初始设备必须是同时具备 `RootManage` 与 `VaultUnlock` 的管理员，并对 `dmsg/create-account/v1`（home、caller、设备、`op_id`、期限）签名，期限最长 5 分钟。
 - `AccountId` 由持久化的 `XidGenerator` 分配，格式为 `秒级时间戳[4] ‖ 分配器指纹[5] ‖ 计数[3]`。指纹由 `(environment, issuer_namespace, 本 canister)` 派生；同一秒内或时钟回退时继续递增计数，计数耗尽时明确失败。
 - 账户、登录路由、日配额和分配器在同一消息内提交。
 
@@ -106,7 +108,7 @@ flowchart LR
 
 没有恢复码。绑定过的登录 Principal 加链上等待期是最终恢复权；登录身份和全部设备都丢失则不可恢复。
 
-1. **发起**：`request_recovery(account_id, request, device_proof)` 只能由 `request.new_auth` 调用，且 caller 必须已在 `auth_bindings` 中。新设备附 `dmsg/recovery-device/v1` PoP，且必须是具备 `RootManage` 的管理员。请求期限必须晚于 `now + recovery_delay_ms`，最长 14 天。重复提交同一请求沿用已存的期限；要提交另一请求，须等前一请求过期或被取消。
+1. **发起**：`request_recovery(account_id, request, device_proof)` 只能由 `request.new_auth` 调用，且 caller 必须已在 `auth_bindings` 中。新设备附 `dmsg/recovery-device/v1` PoP，且必须是同时具备 `RootManage` 与 `VaultUnlock` 的管理员。请求期限必须晚于 `now + recovery_delay_ms`，最长 14 天。重复提交同一请求沿用已存的期限；要提交另一请求，须等前一请求过期或被取消。
 2. **取消**：账户的任意未撤销设备提交 `DisputeRecovery { op_id }` 即删除申请。提出争议的设备在手，它可以直接走配对，不需要再确认流程。用 `RemoveAuth` 解除发起申请的登录同样删除申请，接管权随登录绑定一起失效。
 3. **完成**：等待期结束后，`new_auth` 调用 `complete_recovery(account_id, request_id)`：全部设备替换为请求中的新设备，全部登录替换为 `new_auth` 并删除旧路由，`security_epoch` +1，已有根时置 `RekeyRequired`，并记录 `recovered_device = (device_id, 当前根代次)`。账户保留最近一次完成回执，原 caller 用同一请求重试返回成功，不会重复执行。
 4. **取回内容根**：恢复设备取得 `unlock_secret` 后，用 `derive_root` 派生当前代根的 vetKey（见下文），解开根包的 IBE 恢复信封，然后换根。换根前可凭新的批准再次派生（计入每日执行次数）；换根后 `recovered_device` 清除，派生权消失。
@@ -115,17 +117,19 @@ flowchart LR
 
 ### 本机解锁秘密
 
-`unlock_secret(account_id, device_id)` 是认证 query：caller 必须是账户的登录 Principal，设备必须存在且未撤销，返回 `HKDF(master_secret, account_id, device_id)` 的 32 字节。`master_secret` 在 `init` / `post_upgrade` 的 timer 中由 `raw_rand` 生成一次（`user_stats.unlock_ready` 显示是否就绪），升级保留。客户端用它派生本机解锁钥封装本机数据密钥；撤销设备即停止发放。query 不做认证，恶意副本最多让解锁失败。
+`unlock_secret(account_id, device_id)` 是普通 query：caller 必须是账户的登录 Principal，设备必须存在且未撤销，返回 `digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，即带域分隔的 SHA-256。`master_secret` 在 `init` / `post_upgrade` 的 timer 中由 `raw_rand` 生成一次（`user_stats.unlock_ready` 显示是否就绪，安装后几个执行轮即就绪），升级保留。客户端用它派生本机解锁钥封装本机数据密钥；撤销设备即停止发放。
+
+能读到解锁秘密的不只是登录身份：子网节点运营者能读 canister 状态，controller 与 SNS 可以通过升级读出 `master_secret`，query 响应经 API 边界节点明文中转。它们还需要设备的本机密文副本才能解密。`master_secret` 没有轮换机制，派生域中的 `v1` 留作以后的版本；轮换需要新增秘密版本，并让每台设备在下次登录解锁时用新秘密重封本机数据密钥。
 
 ### 内容根
 
 账户保存当前根承诺 `current_root`（代次、套件 `dmsg-root-v2`、`bundle_digest`、`recipients_digest`、`body_digest`）和 `vault_write_state`（`Uninitialized`、`Ready`、`RekeyRequired`）。换根顺序：
 
 1. `ReserveRoot(expected_generation, op_id)` 预留 15 分钟的候选槽。代次来自单调计数器，过期的槽会留下代次间隙；未过期的槽会阻止新的预留。
-2. 管理员设备在本地生成随机根，按当前活跃设备各封装一份 HPKE 信封，再用 COSE 的内容根公钥封装一份该代的 IBE 恢复信封，上传不可变 RootBundle。
-3. `CommitRoot` 核对槽、代次、`security_epoch`、期限，并重算 `recipients_digest = digest("dmsg/root-recipients/1", (活跃设备 ID 升序, generation))` 与 `bundle_digest = digest("dmsg/root-bundle-digest/2", (recipients_digest, body_digest))`，两者都相符才提交，置 `Ready`。已撤销设备收不到新根，未批准的设备也无法被塞进根包。
+2. 管理员设备在本地生成随机根，按持有 `VaultUnlock` 的活跃设备各封装一份 HPKE 信封，再用 COSE 的内容根公钥封装一份该代的 IBE 恢复信封，上传不可变 RootBundle。
+3. `CommitRoot` 核对槽、代次、`security_epoch`、期限，要求批准设备本身是接收者，并重算 `recipients_digest = digest("dmsg/root-recipients/1", (接收者 ID 升序, generation))` 与 `bundle_digest = digest("dmsg/root-bundle-digest/2", (recipients_digest, body_digest))`，两者都相符才提交，置 `Ready`。已撤销或没有 `VaultUnlock` 的设备收不到新根，未批准的设备也无法被塞进根包。
 
-其他设备读取当前根时直接下载根包、解开自己的信封，不调用链上密钥。user 不根据 `vault_write_state` 拒绝请求，由云端和客户端在写入前检查。RootBundle 格式与客户端流程见[账户与根合同](../../docs/protocol/account_root_zh.md)。
+其他接收者读取当前根时直接下载根包、解开自己的信封，不调用链上密钥；没有 `VaultUnlock` 的设备没有信封。user 不根据 `vault_write_state` 拒绝请求，由云端和客户端在写入前检查。RootBundle 格式与客户端流程见[账户与根合同](../../docs/protocol/account_root_zh.md)。
 
 ### 正式执行
 
@@ -155,7 +159,7 @@ flowchart LR
 
 `reconcile_execution` 先查询 COSE。COSE 没有记录时重新发送原授权；查询本身的传输失败直接返回错误，不改写记录。
 
-每个账户最多保留 64 条执行（认证与派生共用）。未终结的执行一直占位；终态结果保留到批准期限后 1 天，之后在下次授权时清理，也可以调用 `prune_executions(account_id)` 清理。每日次数由 `SetPolicy` 的 `daily_executions`（默认 20，上限 100）限制，认证与派生共用；user 不另设 cycles 预算。派生的 cycles 由 COSE 按调用成本上界预留，返回终态后结算为 `cycles_charged`；COSE 没有执行的派生退回 user 的次数。
+每个账户最多保留 64 条执行（认证与派生共用）。未终结的执行一直占位；终态结果保留到批准期限后 1 天，之后在下次授权时清理，也可以调用 `prune_executions(account_id)` 清理。每日次数由 `SetPolicy` 的 `daily_executions`（默认 20，上限 64）限制，认证与派生共用；认证结果保留一天，上限因此与保留窗口相同；user 不另设 cycles 预算。派生的 cycles 由 COSE 按调用成本上界预留，返回终态后结算为 `cycles_charged`；COSE 没有执行的派生退回 user 的次数。
 
 ### 商业月账
 
@@ -166,7 +170,7 @@ flowchart LR
 - 执行到达终态时结算：`Failed` 释放预留，其他终态计入已扣。
 - `refresh_execution_entitlement` 无论缓存是否有效都重新获取权益，保留当月的预留和已扣。
 - 根派生、恢复与本机解锁不消耗商业单位。
-- `get_execution_usage` 和 `get_execution_usage_certified` 只允许账户本人调用。
+- `get_execution_usage` 只允许账户本人调用。月账不是认证数据：`refresh_execution_entitlement` 的 update 回复本身经子网认证，客户端以它为准。
 
 月账不删除，以便处理跨月结算。字节与验证规则见 [commerce 合同](../../docs/protocol/commerce_zh.md)。
 
@@ -197,12 +201,11 @@ flowchart LR
 | ----------------------------------------------- | ---------------------------------- | --------------------------------------------- |
 | 12 字节 `AccountId`                             | `SecuritySnapshot`（schema 4）     | `security_snapshot_batch`，任何人，每次 1–64 个 |
 | `execution/` ‖ 账户 ‖ `request_id`              | `ExecutionReceipt`（schema 2），仅认证 | `get_execution_receipt`，本人             |
-| `usage_key(账户, 月份)`                         | `ExecutionUsage`                   | `get_execution_usage_certified`，本人         |
 | `authentication/v1/` ‖ 账户 ‖ 操作 ID           | `AuthenticationResult`             | `authentication_certificate`，本人            |
 
 `SecuritySnapshot` 包含 issuer、home、`account_version`、`security_epoch`、`devices_root`（`digest("dmsg/devices/v1", devices)`）、恢复等待期、待恢复申请摘要、当前根代次与摘要、`vault_write_state` 和 principal 更新时间，不含登录 Principal。
 
-验证者须核对信任根、canister ID、证书时间（新鲜度 60 秒）和 witness。`get_account` 和 `get_device_bundle` 是普通 query，客户端要用认证快照中的 `account_version` 和 `devices_root` 核对它们返回的数据。
+验证者须核对信任根、canister ID、证书时间（新鲜度 60 秒）和 witness。认证值在查询时由记录重新生成，再与升级保留的叶哈希比对，编码一旦变化，所有已有叶的查询都会 trap；单元测试 `certified_value_encodings_are_pinned` 固定了 `SecuritySnapshot` 与 `ExecutionReceipt` 的编码摘要，改动编码前须先提供逐叶重认证。`get_account` 和 `get_device_bundle` 是普通 query，客户端要用认证快照中的 `account_version` 和 `devices_root` 核对它们返回的数据。
 
 ### 存储
 
@@ -216,7 +219,7 @@ flowchart LR
 |      3 | `BINDINGS`：Principal → 待绑定 `(AccountId, nonce, expires_at)`         |
 |      4 | 已停用，不再使用                                                        |
 |      5 | `EXECUTIONS`：`AccountId ‖ request_id` → 认证产物与回执，或派生授权与结果 |
-|      6 | `MONTHS`：`usage_key` → 月账                                            |
+|      6 | `MONTHS`：`usage_key` → 月账（不进入认证树）                            |
 |      7 | `EXTERNAL`：`AccountId` → 第三方认证与应用批准                          |
 |      8 | `PRINCIPALS`：`AccountId` → Agent principal 记录与 nonce                |
 |      9 | 认证 map 的叶子：key → 认证值哈希                                       |
@@ -231,28 +234,29 @@ flowchart LR
 | 限制                         | 值                                                      |
 | ---------------------------- | ------------------------------------------------------- |
 | 账户总数                     | `max_accounts`，初始化时 1–1,000,000                    |
-| 每 UTC 日新账户              | `daily_new_accounts`，1–10,000，全局共享                |
+| 每 UTC 日新账户              | `daily_new_accounts`，1–100,000，全局共享               |
 | 全局待绑定登录               | 1024 条，单条最长 5 分钟                                |
 | 每账户登录 / 活跃设备 / 设备 | 8 / 5 / 16                                              |
 | 设备批准期限                 | 5 分钟；名称意图 60 秒                                  |
-| 每账户执行保留               | 64 条                                                   |
+| 每账户执行保留               | 64 条；每日次数上限同为 64                              |
 | 单次执行                     | 派生 `max_cycles` ≤ 100B；签名输入 ≤ 64 KiB              |
 | 每账户外部批准               | 32 条未过期，每小时成功 60 次                           |
 
-以下为 2026-10-02 的 PocketIC 16.0.0 release 实测，只统计 user canister。当时认证树驻留 heap、升级整批重建，升级行反映的是旧的重建成本；认证树移入 stable memory 后升级不再随数据量增长，尚未重新实测：
+认证树存放在 stable memory，升级只重新发布根。2026-10-08 用 PocketIC 16.0.0 与 cargo release Wasm 测得，只统计 user canister：
 
-| 场景                                               | 结果                                                                    |
-| -------------------------------------------------- | ----------------------------------------------------------------------- |
-| 64 账户、768 条月账、2048 条认证叶的升级（`user_mixed_upgrade_profile`） | 重建 2,975,053,139 条指令；升级共 25,954,770,824 cycles；Wasm 内存高水位 4,456,448 字节；stable 50,397,184 字节 |
-| 首次文档签名（4 KiB，需刷新权益）                  | 64,276,174 cycles                                                       |
-| 文档签名（8 条历史，权益缓存有效）                 | 54,241,849 cycles                                                       |
-| 重取已完成签名                                     | 22,010,726 cycles                                                       |
-| AppAction（缓存有效）/ 已完成重放                  | 62,315,778 / 12,860,365 cycles                                          |
-| controller 注册                                    | 34,010,008 cycles                                                       |
+| 账户数 | `post_upgrade` 指令数 |
+| -----: | --------------------: |
+|      0 |             1,388,691 |
+|  1,000 |             1,382,622 |
+| 20,000 |             1,384,607 |
 
-上表为阈值签名时期的样本；认证改为设备签名后不再有跨 canister 调用，费用只剩本 canister 的消息处理，尚未重新实测。恢复派生的阈值费用由 COSE 支付：PocketIC 中一次 vetKD 派生的成本上界约 68.3B cycles，实际扣费 26.15B；客户端默认批准上限 `rootDerivationMaxCycles` 70B，预算在结果返回后结算到实际扣费。主网费用须部署时核对。
+- 一次“停止 → 升级 → 启动”约 84 亿 cycles，主要是模块安装，与账户数无关。
+- `create_account` 平均约 935 万 cycles（1,000 至 20,000 个账户区间）；每次写入只重算认证树的一条路径。
+- 安装后几个执行轮内 `master_secret` 就绪。
 
-以上样本远小于生产规模。目前没有验证升级指令数在多大账户量时触及 ICP 的升级指令上限，所以 `max_accounts` 必须按实测设定（见部署流程）。
+升级不再限制 `max_accounts`，它只用于控制运营规模，可随时由 `admin_set_account_limits` 调整。上述样本是新建账户，没有覆盖大量设备、执行和月账的组合，生产负载仍需单独验收。
+
+恢复派生的阈值费用由 COSE 支付：PocketIC 中一次 vetKD 派生的成本上界约 68.3B cycles，实际扣费 26.15B；客户端默认批准上限 `rootDerivationMaxCycles` 70B，预算在结果返回后结算到实际扣费。主网费用须部署时核对。
 
 ## 部署流程
 
@@ -275,9 +279,9 @@ flowchart LR
 | `membership_canister` | 共享的 `membership`，可以复用已核验的实例                                                                                                  |
 | `directory_canister`  | `dmsg_directory`，其 `user_homes` 包含本 canister，`principal_origin` 相同                                                                 |
 | `principal_origin`    | Agent principal ID 的 HTTPS origin，如 `https://id.dmsg.net`，永久不变                                                                     |
-| `max_accounts`        | 1–1,000,000。按目标规模的升级实测设定，并给升级指令数留出余量                                                                              |
+| `max_accounts`        | 1–1,000,000。升级成本与账户数无关，按运营预期设定，之后可用 `admin_set_account_limits` 调整                                               |
 | `governance`          | 固定的 SNS governance，与 controller 一起可调用 `admin_set_account_limits`                                                                 |
-| `daily_new_accounts`  | 1–10,000，每 UTC 日全局计数                                                                                                                |
+| `daily_new_accounts`  | 1–100,000，每 UTC 日全局计数；旧用户集中迁移时可临时调高                                                                                   |
 
 参数不合法时安装失败：canister 是匿名或管理 canister principal、命名空间或 origin 格式错误、配额越界。
 
@@ -291,15 +295,7 @@ flowchart LR
    POCKET_IC_BIN=/path/to/pocket-ic make test-dmsg
    ```
 
-2. 用目标规模测量升级成本，据此确定 `max_accounts`。现有的 `user_upgrade_profile` 和 `user_mixed_upgrade_profile` 只有 64 个账户，先把样本扩大到预期的账户数、月账月数和保留执行，再运行并读取日志中的 `instructions=`：
-
-   ```sh
-   DMSG_WASM_DIR=target/wasm32-unknown-unknown/release \
-     cargo test --locked -p dmsg_integration --features pocketic-tests \
-     --test control_plane user_mixed_upgrade_profile -- --ignored --nocapture
-   ```
-
-3. 创建 canister ID（`membership` 复用已有实例时跳过）：
+2. 创建 canister ID（`membership` 复用已有实例时跳过）：
 
    ```sh
    for c in dmsg_user dmsg_cose dmsg_handle dmsg_payment dmsg_commerce dmsg_directory; do
@@ -307,7 +303,7 @@ flowchart LR
    done
    ```
 
-4. 安装 `dmsg_user`：
+3. 安装 `dmsg_user`：
 
    ```sh
    cid() { dfx canister id "$1" --network ic; }
@@ -330,11 +326,11 @@ flowchart LR
 
    `dfx deploy` 按 dfx.json 以 `optimize: cycles` 和 gzip 构建。用 `dfx canister info` 记录实际模块哈希和 controllers，并保存本次安装参数。
 
-5. 按各自 README 安装其余 canister，所有指向 user 的字段都填 `$(cid dmsg_user)`。COSE 安装后由 controller 或 governance 调用 `initialize_keys`，`key_state` 显示 `Ready` 且公钥指纹与生产 key 一致后才能执行。见 [dmsg_cose](../dmsg_cose/README.md)、[dmsg_handle](../dmsg_handle/README.md)。
+4. 按各自 README 安装其余 canister，所有指向 user 的字段都填 `$(cid dmsg_user)`。COSE 安装后由 controller 或 governance 调用 `initialize_keys`，`key_state` 显示 `Ready` 且公钥指纹与生产 key 一致后才能执行。见 [dmsg_cose](../dmsg_cose/README.md)、[dmsg_handle](../dmsg_handle/README.md)。
 
-6. 由 commerce 治理登记应用与产品。第三方认证、应用批准和 AppAction 依赖这些登记；不需要这些功能时可以稍后登记。
+5. 由 commerce 治理登记应用与产品。第三方认证、应用批准和 AppAction 依赖这些登记；不需要这些功能时可以稍后登记。
 
-7. 设置 controllers 与 freezing threshold，建议不少于 90 天：
+6. 设置 controllers 与 freezing threshold，建议不少于 90 天：
 
    ```sh
    dfx canister update-settings dmsg_user --network ic \
@@ -342,9 +338,9 @@ flowchart LR
      --freezing-threshold 7776000
    ```
 
-8. 在 `dmsg_handle` 的 `registration_homes` 中加入本 canister（`admin_set_registration_homes`），再在 `src/dmsg_app/dmsg.config.json` 填写 `environment`、`principalOrigin` 和 `canisters.*`（可把本 canister 列入 `canisters.userHomes` 作为交叉核对），重新构建客户端，见 [dmsg_app](../dmsg_app/README.md)。
+7. 在 `dmsg_handle` 的 `registration_homes` 中加入本 canister（`admin_set_registration_homes`），再在 `src/dmsg_app/dmsg.config.json` 填写 `environment`、`principalOrigin` 和 `canisters.*`（可把本 canister 列入 `canisters.userHomes` 作为交叉核对），重新构建客户端，见 [dmsg_app](../dmsg_app/README.md)。
 
-9. 部署后用一个测试账户走完整链路，并在主网核对费用：
+8. 部署后用一个测试账户走完整链路，并在主网核对费用：
    1. 创建账户，取得 `unlock_secret` 完成本机绑定。
    2. `ReserveRoot` → 上传根包 → `CommitRoot`。
    3. 第二台设备 `AddDevice`、换根后打开当前根。
@@ -382,11 +378,11 @@ flowchart LR
 
 ## 当前限制
 
-- **容量**：月账不清理。认证树已移入 stable memory，升级不再整批重建；生产容量没有验收。
+- **容量**：月账不清理，只占 stable memory；升级与账户数无关（见“容量与成本”），生产负载没有验收。
 - **配置不可变**：除两个配额外，配置在安装后不可变。
-- **全局额度**：`daily_new_accounts` 和 1024 条待绑定都是全局额度。批量生成的 Principal 可以占满它们，暂时阻止新用户注册和新登录绑定。没有 `canister_inspect_message` 预过滤。
+- **全局额度**：`daily_new_accounts` 和 1024 条待绑定都是全局额度。`canister_inspect_message` 只拦下匿名和非服务方的 ingress，批量生成的非匿名 Principal 仍可以占满它们，暂时阻止新用户注册和新登录绑定；被刷时用 `admin_set_account_limits` 止损。
 - **多 home**：可以部署多个 user home，各服务按账户 ID 的分配器指纹把账户路由到所属 home。新 home 须在 COSE、handle、payment、commerce、directory 用 `admin_add_user_home` 登记（登记前用新 home 的 `user_config` 核对 environment、issuer_namespace 与各服务 canister），并加入 handle 的 `registration_homes` 才接收新账户。账户的 `home_user` 和 `home_cose` 不可迁移；同一登录 Principal 可以在不同 home 各建一个账户，跨 home 的唯一性和账户迁移都没有实现。
-- **本机解锁秘密**：`master_secret` 是 canister 持有的秘密，子网节点运营者可读；它只对持有设备本机密文副本的人有用。
+- **本机解锁秘密**：`master_secret` 由 canister 持有，节点运营者、controller / SNS 与 API 边界节点都可能读到（见“本机解锁秘密”），且没有轮换机制；它只对持有设备本机密文副本的人有用。
 - **未验收**：生产部署、主网费用、真实外部应用与产品、扩展端到端流程都没有验收。
 
 ## 实现
@@ -414,13 +410,13 @@ cargo test -p dmsg_user
 POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 ```
 
-单元测试覆盖：根 CAS 原子性、代次不复用与 recipients/bundle 摘要校验、设备能力与管理员约束、撤销与认证的先后顺序、登录恢复的申请/争议取消/完成与派生权、`unlock_secret` 权限、预算原子性、派生回调与并发变更、名称意图续期、Agent principal 单调性与 PoP、稳定编码 round-trip。
+单元测试覆盖：根 CAS 原子性、代次不复用与 recipients/bundle 摘要校验、根包只封装给持有 `VaultUnlock` 的设备且只在接收者变化时换根、认证值编码摘要、设备能力与管理员约束、撤销与认证的先后顺序、登录恢复的申请/争议取消/完成与派生权、`unlock_secret` 权限、预算原子性、派生回调与并发变更、名称意图续期、Agent principal 单调性与 PoP、稳定编码 round-trip。
 
 PocketIC 回归覆盖：
 
 - [control_plane.rs](../../tests/dmsg_integration/tests/control_plane.rs) `identity_roots_certification_attestation_recovery_and_upgrade`：根 CAS、认证与回执、登录恢复、派生与 IBE 往返、升级。
 - [user.rs](../../tests/dmsg_integration/tests/control_plane/user.rs)：认证按月计费一次并重放产物、名称意图续期、政策变更、清理后按原月份结算、商业回调期间的并发变更、登录路由删除、对账传输失败。
-- [user_review.rs](../../tests/dmsg_integration/tests/control_plane/user_review.rs)、[review_regressions.rs](../../tests/dmsg_integration/tests/control_plane/review_regressions.rs)：外部调用前拒绝非配置服务、恢复完成重试、待绑定容量回收、独立清理、文件声明认证、保留窗口与升级、登录恢复可见/争议/完成、无效传输公钥、已清理请求 ID 不可复用。
+- [user_review.rs](../../tests/dmsg_integration/tests/control_plane/user_review.rs)、[review_regressions.rs](../../tests/dmsg_integration/tests/control_plane/review_regressions.rs)：inspect 拒绝非服务方与匿名 ingress、外部调用前拒绝非配置服务、恢复完成重试、待绑定容量回收、独立清理、文件声明认证、保留窗口与升级、登录恢复可见/争议/完成、无效传输公钥、已清理请求 ID 不可复用。
 - [external_integration.rs](../../tests/dmsg_integration/tests/control_plane/external_integration.rs)、[agent.rs](../../tests/dmsg_integration/tests/control_plane/agent.rs)：外部批准的重试、暂停与升级，AppAction 准入与认证，自持 controller 的 PoP 注册、发布与本机签名。
 
 性能与容量 profile 默认忽略，需显式运行：
@@ -434,6 +430,6 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
   --test control_plane user_mixed_upgrade_profile -- --ignored --nocapture
 ```
 
-2026-10-07 按设备签名认证、登录恢复与根包 v2 更新本文档时，`cargo test --locked -p dmsg_user`（30 项）与 PocketIC `control_plane`、`directory` 套件在 PocketIC 16.0.0 release Wasm 上通过。profile 和本文部署命令本轮没有运行。部署命令沿用 [dmsg_handle](../dmsg_handle/README.md) 在 dfx 0.32.0 本地副本上实测过的格式。
+2026-10-08 按根包接收者、`canister_inspect_message` 与月账调整更新本文档时，完整运行 `scripts/test-dmsg.sh` 通过：Rust 单元测试（`dmsg_user` 34 项）、Clippy `-D warnings`、Wasm 与 Candid 比对、协议向量、PocketIC 16.0.0 上的 `control_plane` 119 项与 `directory` 4 项、SDK 26 项；`dmsg_app` 的类型检查与 171 项单元测试也通过。默认忽略的 profile 没有运行，“容量与成本”中的升级数据来自同日的临时 profile。部署命令沿用 [dmsg_handle](../dmsg_handle/README.md) 在 dfx 0.32.0 本地副本上实测过的格式。
 
 开发阶段使用新实例，不兼容此前的实验接口和稳定布局。

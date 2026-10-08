@@ -652,10 +652,6 @@ export interface _SERVICE {
     [Uint8Array | number[], number],
     Result_10
   >,
-  'get_execution_usage_certified' : ActorMethod<
-    [Uint8Array | number[], number],
-    Result_4
-  >,
   'get_operation' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
     Result_11

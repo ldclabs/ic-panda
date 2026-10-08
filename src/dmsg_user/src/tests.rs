@@ -129,10 +129,10 @@ fn apply(s: &mut AccountState, command: AccountCommand, time: u64) -> Result<Ope
     account::apply(s, p(1), &m, time, p(7))
 }
 
-/// A generation-`generation` root reference wrapped to the account's active
-/// devices and the vetKD identity, with an arbitrary body digest.
+/// A generation-`generation` root reference wrapped to the account's root
+/// recipients and the vetKD identity, with an arbitrary body digest.
 fn root_ref(s: &AccountState, generation: u64) -> ContentRootRef {
-    let recipients_digest = root_recipients_digest(&s.active_devices(), generation);
+    let recipients_digest = root_recipients_digest(&s.root_recipients(), generation);
     let body_digest = Hash::new([generation as u8; 32]);
     ContentRootRef {
         generation,
@@ -449,28 +449,31 @@ fn root_cas_errors_have_no_partial_writes_and_retry_is_idempotent() {
 }
 
 #[test]
-fn commit_root_binds_the_active_devices_and_vetkd_identity() {
+fn commit_root_binds_the_vault_devices_and_vetkd_identity() {
     let mut s = fixture();
-    s.devices.insert(
-        Hash::new([2; 32]),
-        Device {
-            input: device(2, false),
-            added_at: 1,
-            added_by: Some(Hash::new([1; 32])),
-            revoked_at: None,
-            next_sequence: 0,
-        },
-    );
-    s.devices.insert(
-        Hash::new([3; 32]),
-        Device {
-            input: device(3, false),
-            added_at: 1,
-            added_by: Some(Hash::new([1; 32])),
-            revoked_at: Some(2),
-            next_sequence: 0,
-        },
-    );
+    let enroll = |s: &mut TestAccount, input: DeviceInput, revoked_at: Option<u64>| {
+        s.devices.insert(
+            input.device_id,
+            Device {
+                input,
+                added_at: 1,
+                added_by: Some(Hash::new([1; 32])),
+                revoked_at,
+                next_sequence: 0,
+            },
+        );
+    };
+    let vault_member = |n: u8| DeviceInput {
+        capabilities: vec![Capability::ContentSign, Capability::VaultUnlock],
+        ..device(n, false)
+    };
+    enroll(&mut s, vault_member(2), None);
+    enroll(&mut s, vault_member(3), Some(2));
+    // An active device without VaultUnlock, and an administrator without it.
+    enroll(&mut s, device(4, false), None);
+    let mut admin = device(5, true);
+    admin.capabilities.retain(|c| *c != Capability::VaultUnlock);
+    enroll(&mut s, admin, None);
     apply(
         &mut s,
         AccountCommand::ReserveRoot {
@@ -507,17 +510,38 @@ fn commit_root_binds_the_active_devices_and_vetkd_identity() {
         }
     };
     let before = s.clone();
+    // An administrator outside the recipients cannot commit even the right root.
+    let foreign = mutation(
+        &s,
+        AccountCommand::CommitRoot {
+            expected_generation: 0,
+            op_id: Hash::new([5; 32]),
+            root: good.clone(),
+        },
+        5,
+        4,
+    );
+    assert_eq!(
+        account::apply(&mut s, p(1), &foreign, 4, p(7)),
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!(s, before);
     for bad in [
-        // A revoked device, a missing device, an unknown device, the wrong
-        // generation and the old suite are all refused.
+        // A revoked device, a device without VaultUnlock, a missing device, an
+        // unknown device, the wrong generation and the old suite are refused.
         rewrap(
             &[Hash::new([1; 32]), Hash::new([2; 32]), Hash::new([3; 32])],
             1,
             good.body_digest,
         ),
-        rewrap(&[Hash::new([1; 32])], 1, good.body_digest),
         rewrap(
             &[Hash::new([1; 32]), Hash::new([2; 32]), Hash::new([4; 32])],
+            1,
+            good.body_digest,
+        ),
+        rewrap(&[Hash::new([1; 32])], 1, good.body_digest),
+        rewrap(
+            &[Hash::new([1; 32]), Hash::new([2; 32]), Hash::new([6; 32])],
             1,
             good.body_digest,
         ),
@@ -1189,11 +1213,25 @@ fn existing_handle_intent_can_be_reapproved_at_capacity() {
 }
 
 #[test]
-fn device_capability_changes_are_administrator_only_atomic_and_require_rekey() {
+fn device_capability_changes_are_administrator_only_atomic_and_rekey_for_vault_access() {
     let mut s = fixture();
     committed(&mut s, 1);
     let device_id = Hash::new([1; 32]);
     let original = s.devices[&device_id].input.clone();
+    // Other capabilities leave the root recipients, and the root, unchanged.
+    let epoch = s.security_epoch;
+    apply(
+        &mut s,
+        AccountCommand::SetDeviceCapabilities {
+            device_id,
+            capabilities: vec![Capability::RootManage, Capability::VaultUnlock],
+        },
+        2,
+    )
+    .unwrap();
+    assert_eq!(s.security_epoch, epoch + 1);
+    assert_eq!(s.vault_write_state, VaultWriteState::Ready);
+    // Losing VaultUnlock drops the device from the recipients.
     let command = AccountCommand::SetDeviceCapabilities {
         device_id,
         capabilities: vec![Capability::RootManage, Capability::ContentSign],
@@ -1236,6 +1274,147 @@ fn device_capability_changes_are_administrator_only_atomic_and_require_rekey() {
     denied.expected_version = s.account_version;
     let before = s.clone();
     assert!(account::apply(&mut s, p(1), &denied, 4, p(7)).is_err());
+    assert_eq!(s, before);
+}
+
+/// Certified values are rebuilt from records at query time and checked against
+/// leaf hashes that upgrades keep, so a changed encoding traps every query of
+/// an existing leaf. These digests pin the encodings: changing one requires
+/// recertifying every stored leaf, not just new code.
+#[test]
+fn certified_value_encodings_are_pinned() {
+    let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let mut s = fixture();
+    committed(&mut s, 1);
+    s.pending_recovery = Some(PendingRecovery {
+        request: RecoveryRequest {
+            op_id: Hash::new([4; 32]),
+            new_auth: p(1),
+            device: device(4, true),
+            expires_at: 10 * DAY,
+        },
+        execute_after: 3 * DAY,
+    });
+    s.principal_updated_at = Some(5);
+    assert_eq!(
+        hex(sha256(&canonical(&s.snapshot(NAMESPACE))).as_slice()),
+        "79f84b8d778882c59562ce755f86e956b5ff94bc103809d700eca5491daee132"
+    );
+    let attestation = AuthorizedExecution {
+        account_id: s.account_id,
+        request_id: Hash::new([6; 32]),
+        command_digest: Hash::new([7; 32]),
+        record: ExecutionRecord::Attestation(Attestation {
+            device_id: Hash::new([1; 32]),
+            security_epoch: 2,
+            approved_at: 3,
+            expires_at: 4 + MINUTE,
+            origin: "https://example.com".into(),
+            to_be_signed_digest: Hash::new([8; 32]),
+            public_key_fingerprint: Hash::new([9; 32]),
+            signature_digest: Hash::new([10; 32]),
+            artifact: SignedArtifact {
+                cose_sign1: vec![1].into(),
+                cose_key: vec![2].into(),
+            },
+        }),
+    };
+    let receipt = execution::receipt(&attestation, NAMESPACE).unwrap();
+    assert_eq!(
+        hex(sha256(&canonical(&receipt)).as_slice()),
+        "2422dd5aaa43efbdd11e4e22a8d7963171ecf63518c68fd0ef1481e03edf85ff"
+    );
+}
+
+/// Enroll `input` with its own proof, approved by administrator 1.
+fn add_device(s: &mut AccountState, input: DeviceInput, time: u64) -> Result<OperationReceipt> {
+    let request_id = digest("test", &(s.account_version, 1u8));
+    let proof = SigningKey::from_bytes(&[input.device_id[0]; 32])
+        .sign(
+            digest(
+                "dmsg/add-device/v1",
+                &(
+                    s.home_user,
+                    &s.account_id,
+                    &input,
+                    s.account_version,
+                    request_id,
+                ),
+            )
+            .as_slice(),
+        )
+        .to_bytes()
+        .into();
+    apply(
+        s,
+        AccountCommand::AddDevice {
+            device: input,
+            proof,
+        },
+        time,
+    )
+}
+
+#[test]
+fn only_a_change_of_root_recipients_requires_a_rekey() {
+    let mut s = fixture();
+    committed(&mut s, 1);
+    // Logins are not recipients: binding or removing one keeps the root in use.
+    let epoch = s.security_epoch;
+    apply(
+        &mut s,
+        AccountCommand::BindAuth {
+            principal: p(4),
+            nonce: Hash::new([4; 32]),
+        },
+        3,
+    )
+    .unwrap();
+    apply(&mut s, AccountCommand::RemoveAuth { principal: p(4) }, 4).unwrap();
+    assert_eq!(s.security_epoch, epoch + 2);
+    assert_eq!(s.vault_write_state, VaultWriteState::Ready);
+    // A device without VaultUnlock never holds the root.
+    add_device(&mut s, device(2, false), 5).unwrap();
+    let removed = AccountCommand::RevokeDevice {
+        device_id: Hash::new([2; 32]),
+    };
+    apply(&mut s, removed, 6).unwrap();
+    assert_eq!(s.vault_write_state, VaultWriteState::Ready);
+    // A device holding VaultUnlock must receive the next root, and losing it rekeys again.
+    let vault = DeviceInput {
+        capabilities: vec![Capability::ContentSign, Capability::VaultUnlock],
+        ..device(3, false)
+    };
+    add_device(&mut s, vault, 7).unwrap();
+    assert_eq!(s.vault_write_state, VaultWriteState::RekeyRequired);
+    committed(&mut s, 8);
+    assert_eq!(s.vault_write_state, VaultWriteState::Ready);
+    let revoked = AccountCommand::RevokeDevice {
+        device_id: Hash::new([3; 32]),
+    };
+    apply(&mut s, revoked, 10).unwrap();
+    assert_eq!(s.vault_write_state, VaultWriteState::RekeyRequired);
+
+    // The initial and the recovered device must be able to hold the root.
+    let mut keyless = device(1, true);
+    keyless
+        .capabilities
+        .retain(|c| *c != Capability::VaultUnlock);
+    let create = CreateAccount {
+        device: keyless.clone(),
+        op_id: Hash::new([9; 32]),
+        expires_at: MINUTE,
+        proof: Default::default(),
+    };
+    assert!(account::create(p(5), p(6), AccountId([7; 12]), p(1), &create, 1).is_err());
+    let request = RecoveryRequest {
+        op_id: Hash::new([4; 32]),
+        new_auth: p(1),
+        device: keyless,
+        expires_at: 10 * DAY,
+    };
+    let before = s.clone();
+    assert!(recovery::begin_recovery(&mut s, p(1), &request, &[], 11).is_err());
     assert_eq!(s, before);
 }
 

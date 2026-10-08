@@ -7,7 +7,7 @@ use candid::Principal;
 use dmsg_protocol::*;
 use dmsg_types::{user::*, *};
 
-use crate::account::changed;
+use crate::account::{changed, root_administrator};
 
 pub(crate) fn begin_recovery(
     s: &mut AccountState,
@@ -24,11 +24,7 @@ pub(crate) fn begin_recovery(
     request.device.validate()?;
     nonzero(request.op_id.as_slice())?;
     ensure_valid(
-        request.device.role == ControllerRole::Administrator
-            && request
-                .device
-                .capabilities
-                .contains(&Capability::RootManage),
+        root_administrator(&request.device),
         "recovery administrator",
     )?;
     verify(
@@ -103,7 +99,9 @@ pub(crate) fn complete_recovery(
     });
     s.account_version += 1;
     s.sensitive_policy.frozen = false;
-    changed(s);
+    // Every replaced device may hold the root, so the recovered device rekeys
+    // even if it reuses a device ID.
+    changed(s, &[]);
     Ok(Some(removed))
 }
 

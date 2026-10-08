@@ -21,7 +21,7 @@ import {
   type SignatureRequest
 } from '../protocol/requests'
 import { decodeControl, encodeControl } from '../protocol/account'
-import { b64, canonical, decodeCanonical, digest, equal, hash, hex, unb64, unhex, utf8 } from '../protocol/codec'
+import { b64, canonical, decodeCanonical, equal, hash, hex, unb64, unhex, utf8 } from '../protocol/codec'
 import { xidBytes, xidText } from '../protocol/identity'
 import { statementPurpose } from '../protocol/statements'
 import { certifiedValue } from './certified'
@@ -66,18 +66,10 @@ export class SigningClient {
   }
   async usage(account: string) {
     const raw = xidBytes(account)
+    // An update reply is certified by the subnet; no separate usage proof exists.
     const usage = controlResult(await this.account.user.refresh_execution_entitlement(raw))
-    const proof = await certifiedValue(
-      controlResult(
-        await this.account.user.get_execution_usage_certified(raw, usage.month_utc)
-      ),
-      this.account.agent,
-      this.account.home.toText(),
-      digest('dmsg/commerce/usage-key/v1', [raw, usage.month_utc])
-    )
-    const value = decodeCanonical<Record<string, any>>(proof.value)
     ensure(
-      equal(canonical(value), canonical({ ...usage, account_id: raw })) &&
+      equal(Uint8Array.from(usage.account_id), raw) &&
         usage.valid_until_ms > BigInt(Date.now()) &&
         usage.held_units + usage.charged_units <= usage.allowed_units,
       'INTEGRITY_FAILED'

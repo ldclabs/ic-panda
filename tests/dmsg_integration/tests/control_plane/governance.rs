@@ -507,7 +507,7 @@ fn user_governance_adjusts_account_limits() {
     let limits =
         |max: u64, daily: u32| validate(&f, f.user, "admin_set_account_limits", (max, daily));
     assert!(limits(0, 10).is_err());
-    assert!(limits(1, 10_001).is_err());
+    assert!(limits(1, 100_001).is_err());
     assert!(limits(1, 10).unwrap().contains("existing accounts: 1"));
     govern(&f, f.user, f.sns, "admin_set_account_limits", (1u64, 10u32));
     let full: Result<AccountId> = update(

@@ -99,11 +99,14 @@ impl AccountState {
         }
     }
 
-    /// IDs of the devices that are not revoked.
-    pub fn active_devices(&self) -> Vec<Hash> {
+    /// IDs of the devices a root bundle is wrapped to: the active devices
+    /// holding `VaultUnlock`, in ascending order.
+    pub fn root_recipients(&self) -> Vec<Hash> {
         self.devices
             .iter()
-            .filter(|(_, d)| d.revoked_at.is_none())
+            .filter(|(_, d)| {
+                d.revoked_at.is_none() && d.input.capabilities.contains(&Capability::VaultUnlock)
+            })
             .map(|(id, _)| *id)
             .collect()
     }

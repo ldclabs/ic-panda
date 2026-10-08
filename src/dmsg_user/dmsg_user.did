@@ -1209,7 +1209,6 @@ service : (UserInit) -> {
   get_execution : (blob, blob) -> (Result_7) query;
   get_execution_receipt : (blob, blob) -> (Result_4) query;
   get_execution_usage : (blob, nat32) -> (Result_10) query;
-  get_execution_usage_certified : (blob, nat32) -> (Result_4) query;
   get_operation : (blob, blob) -> (Result_11) query;
   // Public principal state and publication progress.
   get_principal : (blob) -> (Result_12) query;

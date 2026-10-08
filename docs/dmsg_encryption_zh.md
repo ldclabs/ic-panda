@@ -47,7 +47,7 @@ AEAD 防止密文被无钥篡改，不能防止服务拒绝投递、隐藏记录
 
 | 密钥 | 来源与持有者 | 用途 |
 | --- | --- | --- |
-| `unlock_secret` | user home：`HKDF(master_secret, account_id, device_id)`，只按登录 Principal 对未撤销设备发放 | 派生本机解锁钥 |
+| `unlock_secret` | user home：`digest("dmsg/unlock-secret/v1", (master_secret, account_id, device_id))`，只按登录 Principal 对未撤销设备发放 | 派生本机解锁钥 |
 | 本地解锁钥 `LUK` | `HKDF(unlock_secret, ["dmsg/local-unlock/2", dbName])`；只在 Worker 内存 | 包装 LDK |
 | PRF 解锁钥 `K_prf` | `HKDF(prf_output, ["dmsg/local-unlock-prf/1", dbName])`；只在 Worker 内存 | 包装 LDK 的第二份封装（可选） |
 | 临时键 | 绑定账户前的随机 32 字节，明文保存在 IDB | 保护尚无内容的新设备密钥 |
@@ -79,7 +79,7 @@ flowchart LR
   F --> X[解密并验证文件块]
 ```
 
-`unlock_secret` 与旧版 `myIV` 一样是 canister 持有的秘密：子网节点运营者能读到它，但还需要设备的 IDB 副本才有用。它只按登录 Principal 发放，不按设备签名发放，否则偷到 IDB 的人用里面的设备 key 就能自己去取。
+`unlock_secret` 与旧版 `myIV` 一样是 canister 持有的秘密：子网节点运营者能读到它，controller 与 SNS 可以通过升级读出 `master_secret`，它作为普通 query 响应经 API 边界节点明文中转；这些方还需要设备的 IDB 副本才有用。`master_secret` 没有轮换机制。它只按登录 Principal 发放，不按设备签名发放，否则偷到 IDB 的人用里面的设备 key 就能自己去取。
 
 ## 4. 原语、编码与上下文
 
@@ -180,7 +180,7 @@ chunkDigest_i = SHA256(解码后的 COSE_Encrypt0 字节)
 
 ### 8.1 RootBundle v2
 
-每代根包封装给当前全部活跃设备和该代的 vetKD 恢复身份；精确字节见[账户与根合同](protocol/account_root_zh.md)：
+每代根包封装给持有 `VaultUnlock` 的活跃设备和该代的 vetKD 恢复身份；精确字节见[账户与根合同](protocol/account_root_zh.md)：
 
 ```text
 设备信封  = HPKE.Seal(device.hpke_pub, VRK_g, ["dmsg/device-root/1", environment, account, g, device_id])
@@ -189,7 +189,7 @@ previous  = E(VRK_g, VRK_{g-1}, ["dmsg/previous-root/1", account, g, g-1, previo
 commitment = SHA256(HKDF(VRK_g, ["dmsg/root-commitment/1"]))
 ```
 
-链上 `ContentRootRef` 绑定 `recipients_digest`（活跃设备 ID 升序 + 代次）、`body_digest` 与 `bundle_digest`；`CommitRoot` 用当前设备集合重算，已撤销设备收不到新根，未批准设备不能被塞进根包。换根只是一次上传加一次 CAS，不调用链上密钥。
+链上 `ContentRootRef` 绑定 `recipients_digest`（接收者 ID 升序 + 代次）、`body_digest` 与 `bundle_digest`；`CommitRoot` 用当前接收者集合重算，并要求批准设备本身是接收者，已撤销或没有 `VaultUnlock` 的设备收不到新根，未批准设备不能被塞进根包。换根只是一次上传加一次 CAS，不调用链上密钥。
 
 ### 8.2 恢复范围
 
@@ -208,7 +208,7 @@ commitment = SHA256(HKDF(VRK_g, ["dmsg/root-commitment/1"]))
 
 ## 9. 链上权限
 
-`dmsg_user` 核对实际 caller 的认证绑定，以及设备签名、设备状态、序号、security epoch、期限、角色和入口要求的 capability（`RootManage`、`FormalApprove`、`PaymentOffer`）；`ContentSign`、`VaultUnlock` 由云端分别用于放行账户密文的写入与读取，内容根仍封装给全部活跃设备。`changed()` 递增 security_epoch、清除候选根；有已提交根时置 `RekeyRequired`，触发不限于撤销设备，也包括新增设备和认证绑定变化。链上状态变化本身不会重加密客户端历史。
+`dmsg_user` 核对实际 caller 的认证绑定，以及设备签名、设备状态、序号、security epoch、期限、角色和入口要求的 capability（`RootManage`、`FormalApprove`、`PaymentOffer`）；`ContentSign`、`VaultUnlock` 由云端分别用于放行账户密文的写入与读取，内容根也只封装给持有 `VaultUnlock` 的活跃设备，所以撤销这项能力在密码学上同样生效。设备和认证绑定的变化都会递增 security_epoch、清除候选根；只有根包接收者变化（持有 `VaultUnlock` 的设备增减）和登录恢复会让已提交的根置为 `RekeyRequired`，认证绑定与其他能力的变化不需要换根。链上状态变化本身不会重加密客户端历史。
 
 账户安全证据以认证值为准：`SecuritySnapshot` schema 4，认证叶路径为单段原始 AccountId；`devices_root` 是完整设备 map 的 `digest("dmsg/devices/v1", devices)`；另含 `recovery_delay_ms`、`pending_recovery_digest`、根代次与摘要、`vault_write_state`、`principal_updated_at`。使用设备公钥前须把设备记录与该承诺匹配。证书时间不在未来且当前时刻小于证书时间 +60 秒。
 

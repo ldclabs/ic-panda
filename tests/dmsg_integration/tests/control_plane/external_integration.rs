@@ -345,14 +345,13 @@ fn external_project_approval_never_infers_beneficiary_from_dmsg_account() {
         verified.unwrap().approval_hash,
         application_approval_hash(&application)
     );
-    let wrong_caller: Result<ApplicationAuthorization> = update(
+    assert_refused(
         &f.ic,
         f.user,
         person(2),
         "verify_application_authorization",
         (id, application.clone()),
     );
-    assert_eq!(wrong_caller, Err(Error::Forbidden));
     let mut other = application;
     other.actor = person(3);
     let substituted: Result<ApplicationAuthorization> = update(

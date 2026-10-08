@@ -39,7 +39,7 @@ prfWrapped  = E(K_prf, LDK, ["dmsg/local-key-prf/1", dbName])        // 可选
     format: "dmsg-root-bundle/2",
     context: { account, environment, generation, opId, securityEpoch },
     commitment: hex(SHA256(HKDF(VRK, ["dmsg/root-commitment/1"]))),
-    envelopes: [ { device, enc, ciphertext } ... ],      // 按 device 升序，每台活跃设备一项
+    envelopes: [ { device, enc, ciphertext } ... ],      // 按 device 升序，每台持有 VaultUnlock 的活跃设备一项
     recoveryKey: { homeCose, keyName, publicKey },        // COSE 内容根 vetKD 公钥
     recovery: base64url(IbeCiphertext),                   // IBE 到身份 CBOR([AccountId, generation])
     previous: null | { digest, uploadId, generation, envelope },
@@ -53,14 +53,14 @@ prfWrapped  = E(K_prf, LDK, ["dmsg/local-key-prf/1", dbName])        // 可选
 - 设备信封：`HPKE.Seal(device.hpke_pub, VRK, info = aad = CBOR(["dmsg/device-root/1", environment, account, generation, device_id]))`，复用频道 epoch 密钥的 RFC 9180 X25519/HKDF-SHA256/AES-256-GCM 原语。读取方解开后核对 `commitment`，保证所有设备拿到同一个根。
 - 恢复信封：`@dfinity/vetkeys` 的 `IbeCiphertext.encrypt(dpk, identity, VRK, seed)`，`dpk` 是 COSE `root_public_key(account_id, generation)` 返回的 96 字节派生公钥（所有账户共享同一 context 公钥），`identity = CBOR([AccountId bytes12, generation])`。客户端核对描述中的 home、环境、代次、账户、`SHA256(public_key)` 指纹、生产 key 名，以及可选的构建 pin `coseRootPublicKey`。
 - `previous.envelope` 以新 VRK 包装上一代 VRK，AAD 为 `["dmsg/previous-root/1", account, generation, previous.generation, previous.digest]`。`previous.digest` 是上一份 bundle **字节**的 SHA-256（即云端 manifest digest），`uploadId` 定位它；读者验证摘要并要求代次严格递减，至多读取 256 代。
-- 链上 `ContentRootRef { generation, suite: "dmsg-root-v2", recipients_digest, body_digest, bundle_digest }`：`recipients_digest = digest("dmsg/root-recipients/1", [sorted device_id bytes, generation])`，`body_digest = SHA256(CBOR(body))`，`bundle_digest = digest("dmsg/root-bundle-digest/2", [recipients_digest, body_digest])`。`CommitRoot` 用当前活跃设备集合重算 `recipients_digest`，两者都不符则拒绝，因此已撤销设备收不到新根，未批准设备也不能被塞进根包。
+- 链上 `ContentRootRef { generation, suite: "dmsg-root-v2", recipients_digest, body_digest, bundle_digest }`：`recipients_digest = digest("dmsg/root-recipients/1", [sorted device_id bytes, generation])`，`body_digest = SHA256(CBOR(body))`，`bundle_digest = digest("dmsg/root-bundle-digest/2", [recipients_digest, body_digest])`。`CommitRoot` 用持有 `VaultUnlock` 的当前活跃设备集合重算 `recipients_digest`，并要求批准设备本身在其中，任一不符则拒绝，因此已撤销或没有 `VaultUnlock` 的设备收不到新根，未批准设备也不能被塞进根包。
 
 单份 bundle 最多 64,000 字节。通过 cloud upload 的 `kind=root` 保存：manifest 是原始 bundle 字节；必须存在的一块为确定性 CBOR 空数组 `0x80`。云端 ObjectRef 的 digest 等于 manifest SHA-256，客户端据此下载并按链上 `bundle_digest` 验证。
 
 ## 初始化与换根顺序
 
 1. 验证账户与设备能力；用单独 op_id 预留根代次（`ReserveRoot`）。丢弃/过期预留可能产生代次间隙。
-2. 本地生成随机 VRK（候选记录用 LDK 加密保存在 `local_private`，重试复用），按认证设备表封装给每台活跃设备，查询并核对 COSE 恢复公钥后生成 IBE 恢复信封，生成唯一 bundle 字节。
+2. 本地生成随机 VRK（候选记录用 LDK 加密保存在 `local_private`，重试复用），按认证设备表封装给每台持有 `VaultUnlock` 的活跃设备，查询并核对 COSE 恢复公钥后生成 IBE 恢复信封，生成唯一 bundle 字节。
 3. 上传计划与 upload_id 持久化；重试查询同一上传，复用计划和密文。上传并 finalize 后，下载 manifest 再核对 SHA-256。
 4. 执行唯一的 user `CommitRoot` CAS。上传成功不能替代链上提交成功。
 5. 读回认证承诺后启用工作区（`activateAccountRoot`）：首次绑定把 `subjectId` 改为账户 Xid（此前没有内容），换根时把旧根并入加密的历史根索引。

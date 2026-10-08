@@ -1,5 +1,5 @@
 use crate::store;
-use dmsg_protocol::{billing::*, canonical, digest};
+use dmsg_protocol::{billing::*, digest};
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_types::{billing::*, *};
 use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
@@ -23,10 +23,11 @@ fn load(id: &AccountId, month: u32) -> Option<Month> {
     MONTHS.with_borrow(|t| t.load(usage_key(id, month).as_slice()))
 }
 
+/// Months are not certified data; the owner gets a certified copy as the
+/// `refresh_execution_entitlement` update reply.
 pub(crate) fn save(m: &Month) {
     let key = usage_key(&m.usage.account_id, m.usage.month_utc);
     MONTHS.with_borrow_mut(|t| t.put(key.as_slice(), m));
-    store::CERT.with_borrow_mut(|c| c.insert(key.to_vec(), &canonical(&m.usage)));
 }
 
 pub fn usage(id: &AccountId, month: u32) -> Result<ExecutionUsage> {

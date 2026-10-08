@@ -16,5 +16,6 @@ pub use calls::{call, call_classified, CallFailure};
 /// Retained executions (attestations and recovery derivations) per account.
 pub const WINDOW: usize = 64;
 /// Daily attestation ceiling a user home may record for one account; an
-/// account policy may choose less.
-pub const FORMAL_DAILY_EXECUTIONS: u32 = 100;
+/// account policy may choose less. Results stay retained for a day, so the
+/// window already bounds a day's executions.
+pub const FORMAL_DAILY_EXECUTIONS: u32 = WINDOW as u32;

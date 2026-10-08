@@ -1,4 +1,4 @@
-import type { DeriveRootRequest, ExecutionResult } from '../canisters/generated/user'
+import type { DeriveRootRequest, Device, ExecutionResult } from '../canisters/generated/user'
 import type { _SERVICE as CoseService, KeyDescriptor } from '../canisters/generated/cose'
 import { b64, canonical, equal, hash, hex, id, unb64, unhex } from '../protocol/codec'
 import { decodeControl, encodeControl } from '../protocol/account'
@@ -46,6 +46,9 @@ function completedDerivation(result: ExecutionResult, requestId: Uint8Array | nu
   )
   return result.outcome.Completed
 }
+/** Root bundles are wrapped only to devices holding VaultUnlock. */
+const holdsVault = (device: Device) =>
+  device.input.capabilities.some((c) => 'VaultUnlock' in c)
 /** Every retry preserves the original reservation, request and bundle bytes. */
 export class AccountRootClient {
   constructor(
@@ -230,6 +233,11 @@ export class AccountRootClient {
   async openCurrent(accountId: string): Promise<RootJob> {
     let state = await this.account.refresh(accountId)
     ensure(state.info.current_root[0] && state.device && !state.device.revoked_at.length, 'DeviceNotApproved')
+    ensure(
+      holdsVault(state.device),
+      'Forbidden',
+      '此设备没有 VaultUnlock 能力，根包不会封装给它。'
+    )
     state = await this.settleStaleJob(accountId, state)
     const { current, bundles, expected, uploadId } = await this.fetchBundles(accountId, state)
     await this.account.crypto.call('openAccountRoot', current.body.context, bundles, expected)
@@ -410,6 +418,12 @@ export class AccountRootClient {
       }
     }
     if (!job.context) {
+      // The committing device must be a recipient of the bundle it wraps.
+      ensure(
+        state.device && holdsVault(state.device),
+        'Forbidden',
+        '此设备没有 VaultUnlock 能力，不能封装或提交内容根。'
+      )
       progress('reserve')
       let slot = state.info.root_slot[0]
       if (slot && slot.expires_at <= BigInt(state.verified.certifiedAt)) slot = undefined
@@ -445,10 +459,10 @@ export class AccountRootClient {
     )
     if (!job.bytes) {
       progress('wrap')
-      // The recipients are the certified active devices of the reserved epoch;
-      // the commit rejects any other set.
+      // The recipients are the certified active devices holding VaultUnlock in
+      // the reserved epoch; the commit rejects any other set.
       const recipients = state.info.devices
-        .filter(([, device]) => !device.revoked_at.length)
+        .filter(([, device]) => !device.revoked_at.length && holdsVault(device))
         .map(([key, device]) => ({
           deviceId: hex(Uint8Array.from(key)),
           hpkePublic: b64(Uint8Array.from(device.input.hpke_pub))

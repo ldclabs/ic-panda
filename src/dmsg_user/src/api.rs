@@ -115,9 +115,39 @@ fn post_upgrade() {
 
 fn check_limits(max_accounts: u64, daily_new_accounts: u32) -> Result<()> {
     ensure_valid(
-        (1..=1_000_000).contains(&max_accounts) && (1..=10_000).contains(&daily_new_accounts),
+        (1..=1_000_000).contains(&max_accounts) && (1..=100_000).contains(&daily_new_accounts),
         "account limits",
     )
+}
+
+/// Refuse, before execution, ingress that the method would reject: service
+/// callbacks from anyone but their configured canister, account limits from
+/// anyone but a controller or governance, and account methods from the
+/// anonymous Principal. Maintenance stays open to everyone.
+#[ic_cdk::inspect_message]
+fn inspect_message() {
+    let caller = ic_cdk::api::msg_caller();
+    let init = config().init;
+    let allowed = match ic_cdk::api::msg_method_name().as_str() {
+        "consume_handle_authorization" | "consume_handle_transfer_authorizations" => {
+            caller == init.handle_canister
+        }
+        "verify_payment_offer" => caller == init.payment_canister,
+        "verify_application_authorization" | "authorize_product_billing" => {
+            caller == init.commerce_canister || caller == init.membership_canister
+        }
+        // Only a registered product adapter, always a canister, calls it.
+        "verify_product_account" => false,
+        "admin_set_account_limits" => admin::check_admin(caller, init.governance).is_ok(),
+        "prune_auth_bindings"
+        | "prune_executions"
+        | "prune_external_approvals"
+        | "publish_principal" => true,
+        _ => authenticated(caller).is_ok(),
+    };
+    if allowed {
+        ic_cdk::api::accept_message();
+    }
 }
 
 /// Set the account capacity and the daily new-account quota. A capacity below
@@ -849,22 +879,6 @@ fn get_execution_receipt(account_id: AccountId, request_id: OpId) -> Result<Cert
 fn get_execution_usage(account_id: AccountId, month_utc: u32) -> Result<ExecutionUsage> {
     own(&account_id, ic_cdk::api::msg_caller())?;
     crate::commerce::usage(&account_id, month_utc)
-}
-
-#[ic_cdk::query]
-fn get_execution_usage_certified(account_id: AccountId, month_utc: u32) -> Result<CertifiedBatch> {
-    own(&account_id, ic_cdk::api::msg_caller())?;
-    CERT.with_borrow(|c| {
-        c.batch(
-            ic_cdk::api::canister_self(),
-            vec![dmsg_protocol::billing::usage_key(&account_id, month_utc).to_vec()],
-            |_| {
-                crate::commerce::usage(&account_id, month_utc)
-                    .ok()
-                    .map(|u| canonical(&u))
-            },
-        )
-    })
 }
 
 #[ic_cdk::update]

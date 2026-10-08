@@ -26,10 +26,19 @@ fn untrusted_service_is_rejected_before_commerce() {
         expires_at_ms: time(&f.ic) + MINUTE,
     };
     f.ic.stop_canister(f.commerce, None).unwrap();
-    let denied: Result<ApplicationAuthorization> = update(
+    // Ingress from outside the configured services never runs.
+    assert_refused(
         &f.ic,
         f.user,
         Principal::anonymous(),
+        "verify_application_authorization",
+        (Hash::new([4; 32]), expected.clone()),
+    );
+    // A configured service other than the purpose's is refused before commerce.
+    let denied: Result<ApplicationAuthorization> = update(
+        &f.ic,
+        f.user,
+        f.membership,
         "verify_application_authorization",
         (Hash::new([4; 32]), expected.clone()),
     );
@@ -38,11 +47,47 @@ fn untrusted_service_is_rejected_before_commerce() {
     let reached: Result<ApplicationAuthorization> = update(
         &f.ic,
         f.user,
-        Principal::anonymous(),
+        f.commerce,
         "verify_application_authorization",
         (Hash::new([4; 32]), expected),
     );
     assert_eq!(reached, Err(Error::Forbidden));
+}
+
+#[test]
+fn inspect_refuses_product_ingress_and_anonymous_accounts_but_not_maintenance() {
+    let f = Fixture::new();
+    let beneficiary = dmsg_types::membership::Beneficiary {
+        authority_canister: f.user,
+        product_id: "sample".into(),
+        subject_schema: "dmsg-account-v1".into(),
+        subject_bytes: vec![1; 12].into(),
+    };
+    for caller in [person(1), f.commerce] {
+        assert_refused(
+            &f.ic,
+            f.user,
+            caller,
+            "verify_product_account",
+            ("sample".to_string(), beneficiary.clone()),
+        );
+    }
+    assert_refused(
+        &f.ic,
+        f.user,
+        Principal::anonymous(),
+        "create_account",
+        (f.create_input(1),),
+    );
+    let id = f.create(1);
+    let pruned: Result<u32> = update(
+        &f.ic,
+        f.user,
+        Principal::anonymous(),
+        "prune_executions",
+        (&id,),
+    );
+    assert_eq!(pruned, Ok(0));
 }
 
 #[test]

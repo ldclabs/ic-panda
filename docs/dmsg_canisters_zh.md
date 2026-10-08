@@ -203,3 +203,9 @@ directory 新增 `canister_inspect_message`：只接受已登记 home 的 `publi
 完整记录上限从 10 万提高到 100 万，累计操作上限从 100 万提高到 1,000 万。`PandaServiceConfig` 新增 `authorizations_per_minute` 与 `product_calls_per_minute`，取代代码中固定的每分钟 200 次；激活另有与授权同样大小的预算，报价不会挤占已接受申请的激活。新增 `membership_stats`（占用数、完整记录、tombstone、稳定内存页、cycles）。`sweep_panda_commitments` 返回释放与压缩之和，维护任务调用到返回 0。`cancel_panda_application` 写入取消后总是返回视图；仍在进行的预留返回后自行释放已取消的申请，其他未完成的释放由 `reconcile_panda_claim` 重试。客户端承诺面板对 `Active`、`Terminated` 以外的申请都调用对账，可以重试这类释放。
 
 新增主机构建镜像的容量 profile：10 万与 100 万条 `Active` 申请分别占 520 MB 与 4.7 GB 稳定内存，升级约 130 万条指令且与规模无关；一次刷新从 2,195 万增加到 2,337 万 cycles，一次 sweep（释放 32、压缩 32）从 2.4 亿增加到 3.0 亿 cycles，见 [membership README](../src/membership/README.md)。稳定布局：membership schema 4，保存的 `PandaServiceConfig` 新增两个必填字段；开发实例须重装。
+
+## 2026-10-08 user 上线准备
+
+内容根只封装给持有 `VaultUnlock` 的活跃设备：`CommitRoot` 按这一集合重算 `recipients_digest`，并要求批准设备本身是接收者；账户的初始设备和登录恢复的替换设备必须同时持有 `RootManage` 与 `VaultUnlock`。换根只在接收者变化时需要，也就是持有 `VaultUnlock` 的设备增减，以及登录恢复；认证绑定和其他能力的变化只递增 security epoch，不再让已提交的根进入 `RekeyRequired`。客户端按同一规则选择接收者，没有该能力的设备不再尝试打开根。
+
+user 新增 `canister_inspect_message`：服务回调只接受对应的配置 canister，`verify_product_account` 拒绝全部 ingress，`admin_set_account_limits` 只接受 controller 与 governance，其余账户方法拒绝匿名 Principal，`prune_*` 与 `publish_principal` 保持开放。月账不再进入认证树，`get_execution_usage_certified` 删除，客户端以 `refresh_execution_entitlement` 的 update 回复为准。每日执行次数上限从 100 改为与保留窗口相同的 64；每日新账户的硬上限从 1 万提高到 10 万，实际值仍由 `admin_set_account_limits` 设置。单元测试固定了 `SecuritySnapshot` 与 `ExecutionReceipt` 的编码摘要，认证值的编码变化会在 CI 中暴露。实测 0、1,000、20,000 个账户的升级约 138 万条指令，与规模无关；数据见 [user README](../src/dmsg_user/README.md)。稳定布局仍为 schema 13，开发实例升级后旧的月账叶留在认证树中，不影响查询。

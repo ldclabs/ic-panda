@@ -207,21 +207,7 @@ fn pruned_attestations_keep_their_charge_and_leave_an_absence_proof() {
         )
         .unwrap();
     }
-    let month = dmsg_protocol::billing::month_utc(time(&f.ic)).unwrap();
-    let certified: Result<CertifiedBatch> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage_certified",
-        (&id, month),
-    );
-    let leaf: dmsg_types::billing::ExecutionUsage = cbor2::from_slice(&certified_value(
-        &f,
-        certified.unwrap(),
-        dmsg_protocol::billing::usage_key(&id, month).as_slice(),
-    ))
-    .unwrap();
-    assert_eq!(leaf, before);
+    assert_eq!(usage(&f, &id), before);
 }
 
 #[test]
@@ -319,21 +305,16 @@ pub(super) fn measure_user_upgrade(f: &Fixture, accounts: &[(u8, AccountId)], mo
     let wasm_bytes = memory.wasm_memory_size;
     let month = dmsg_protocol::billing::month_utc(time(&f.ic)).unwrap();
     let (owner, id) = accounts.last().unwrap();
-    let certified: Result<CertifiedBatch> = query(
+    let kept: Result<dmsg_types::billing::ExecutionUsage> = query(
         &f.ic,
         f.user,
         person(*owner),
-        "get_execution_usage_certified",
+        "get_execution_usage",
         (id, month),
     );
-    let leaf: dmsg_types::billing::ExecutionUsage = cbor2::from_slice(&certified_value(
-        f,
-        certified.unwrap(),
-        dmsg_protocol::billing::usage_key(id, month).as_slice(),
-    ))
-    .unwrap();
-    assert_eq!(leaf.account_id, *id);
-    assert_eq!(leaf.month_utc, month);
+    let kept = kept.unwrap();
+    assert_eq!(kept.account_id, *id);
+    assert_eq!(kept.month_utc, month);
     println!(
         "user_upgrade accounts={} month_rows={} cycles={cycles} stable_bytes={stable_bytes} wasm_bytes={wasm_bytes}",
         accounts.len(),

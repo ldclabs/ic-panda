@@ -12,7 +12,11 @@ fn account() -> AccountState {
         signing_pub: sk.verifying_key().to_bytes().into(),
         hpke_pub: Hash::new([8; 32]),
         role: ControllerRole::Administrator,
-        capabilities: vec![Capability::RootManage, Capability::FormalApprove],
+        capabilities: vec![
+            Capability::RootManage,
+            Capability::FormalApprove,
+            Capability::VaultUnlock,
+        ],
     };
     let caller = fixtures::principal(9);
     let home = fixtures::principal(1);

@@ -689,11 +689,6 @@ export const idlFactory = ({ IDL }) => {
         [Result_10],
         ['query'],
       ),
-    'get_execution_usage_certified' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Nat32],
-        [Result_4],
-        ['query'],
-      ),
     'get_operation' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
         [Result_11],

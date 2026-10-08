@@ -18,7 +18,7 @@ fn user_cycles_profile() {
     let f = Fixture::new();
     let id = f.create(1);
     let policy = SensitivePolicy {
-        daily_executions: 100,
+        daily_executions: dmsg_runtime::WINDOW as u32,
         ..SensitivePolicy::default()
     };
     f.mutate(
@@ -149,7 +149,7 @@ fn user_execution_retention_survives_a_full_window_and_upgrade() {
         &id,
         AccountCommand::SetPolicy {
             policy: SensitivePolicy {
-                daily_executions: 100,
+                daily_executions: dmsg_runtime::WINDOW as u32,
                 ..SensitivePolicy::default()
             },
         },

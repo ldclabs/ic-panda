@@ -1061,14 +1061,13 @@ fn handle_batched_transfer_checks_both_approvals_and_commits_once() {
     );
     assert_eq!(expired, Err(Error::Expired));
     authorize(&f, 1, &from);
-    let forbidden: Result<()> = update(
+    assert_refused(
         &f.ic,
         f.user,
         person(1),
         "consume_handle_transfer_authorizations",
         (&from, &accept),
     );
-    assert_eq!(forbidden, Err(Error::Forbidden));
     let calls: Vec<_> = (0..2)
         .map(|_| {
             f.ic.submit_call(

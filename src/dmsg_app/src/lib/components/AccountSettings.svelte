@@ -115,7 +115,7 @@
         }
       })
       await refresh()
-    }, '能力已登记。每次敏感动作仍需明确批准；请完成账户要求的换根。')
+    }, '能力已登记。每次敏感动作仍需明确批准。')
   }
   function reviewPacket() {
     if (!client) return
@@ -234,7 +234,9 @@
   {#if approved}
     <section class="settings-section">
       <h2>内容根</h2>
-      <p>换根把新根封装给当前全部有效设备；添加或撤销设备后必须换根，内容写入才会恢复。</p>
+      <p>
+        换根把新根封装给持有 VaultUnlock 的有效设备；这些设备增减后必须换根，内容写入才会恢复。
+      </p>
       {#if currentDigest && session.meta?.account?.rootDigest !== currentDigest}
         <p role="alert">链上当前根比本机新。请读取当前根后再继续。</p>
         <button class="primary" disabled={session.busy || !config.relayOrigin} onclick={openCurrent}
@@ -363,7 +365,7 @@
         >
       </div>
       <p class="caption">
-        能力变更会使旧账户证据失效，并要求换根后继续内容写入。不会自动签名或收款。
+        能力变更会使旧账户证据失效，但不需要换根。不会自动签名或收款。
       </p>{/if}
     {#if accountState}
       {#each accountState.info.devices as [key, device]}<div class="settings-row">
@@ -417,7 +419,10 @@
         >核对待批准内容</button
       >
       {#if reviewed}<pre class="hash">{reviewed}</pre>
-        <p>请与另一设备当面核对公钥和角色；批准后需要换根，新设备才能读到根。</p>
+        <p>
+          请与另一设备当面核对公钥、角色和能力；持有 VaultUnlock
+          的设备在批准后需要换根才能读到根。
+        </p>
         <button
           class="primary"
           disabled={session.busy}
