@@ -242,7 +242,7 @@ pub(crate) fn reserve_call(at: u64, kind: CallBudget) -> Result<()> {
         };
         ensure(budget.calls < global, Error::QuotaExceeded)?;
         let used = budget.callers.entry(caller).or_default();
-        ensure(*used < per_caller.min(global), Error::QuotaExceeded)?;
+        ensure(*used < per_caller, Error::QuotaExceeded)?;
         *used += 1;
         budget.calls += 1;
         Ok(())
@@ -310,8 +310,8 @@ pub(crate) fn payer_index_key(payer: Principal, id: &Hash) -> Vec<u8> {
     [payer_prefix(payer).as_slice(), id.as_slice()].concat()
 }
 
-/// Escrows of `payer` still waiting for a funds decision; at most
-/// `max_open_per_payer` of them.
+/// Escrows of `payer` still waiting for a funds decision, at most
+/// `MAX_OPEN_PER_PAYER`: lowering the limit keeps those already open.
 pub(crate) fn open_escrows(payer: Principal) -> Vec<Hash> {
     let prefix = payer_prefix(payer);
     OPEN.with_borrow(|t| {

@@ -333,9 +333,14 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     ensure(at.abs_diff(observed_at) <= MINUTE, Error::PolicyStale)?;
     // The guard holds this payer and quote exclusively until commit. Other
     // messages can release the payer's slots, but cannot open another order.
-    // Recheck mutable fees, enablement, deadlines and revocation. Other payers
-    // can consume the daily admission budget while verification is pending.
+    // Recheck the slots against limits governance may have lowered, and
+    // mutable fees, enablement, deadlines and revocation. Other payers can
+    // consume the daily admission budget while verification is pending.
     config = with_cfg(|c| c.init.clone());
+    ensure(
+        open_slots(who, at) < config.limits.max_open_per_payer,
+        Error::QuotaExceeded,
+    )?;
     model::quote_current(
         &config,
         &current_fee_policy(at),

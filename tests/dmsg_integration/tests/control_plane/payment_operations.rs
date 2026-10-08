@@ -166,6 +166,42 @@ fn expired_undecided_escrows_release_their_payer_slots_on_the_next_open() {
 }
 
 #[test]
+fn a_payer_limit_lowered_during_offer_verification_refuses_that_order() {
+    let f = Fixture::new();
+    let governance = Principal::from_slice(&[90]);
+    let recipient = f.create(2);
+    open(&f, &recipient, 1).unwrap();
+    let lowered = PaymentLimits {
+        max_open_per_payer: 1,
+        ..limits(&f)
+    };
+    // The order passes the payer check, then governance lowers the limit
+    // while the home verifies the offer.
+    let opening =
+        f.ic.submit_call(
+            f.payment,
+            person(40),
+            "open_escrow",
+            candid::encode_args((f.order(&recipient, 2, 2),)).unwrap(),
+        )
+        .unwrap();
+    let lowering =
+        f.ic.submit_call(
+            f.payment,
+            governance,
+            "admin_set_limits",
+            candid::encode_args((&lowered,)).unwrap(),
+        )
+        .unwrap();
+    let opened: Result<EscrowInfo> =
+        candid::decode_one(&f.ic.await_call(opening).unwrap()).unwrap();
+    let set: Result<()> = candid::decode_one(&f.ic.await_call(lowering).unwrap()).unwrap();
+    set.unwrap();
+    assert_eq!(opened, Err(Error::QuotaExceeded));
+    assert_eq!(stats(&f).open_escrows, 1);
+}
+
+#[test]
 fn pending_transfers_page_settlement_payouts_until_they_succeed() {
     let f = Fixture::new();
     let recipient = f.create(2);

@@ -40,7 +40,7 @@ COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保
 - 四个 canister 的稳定布局使用独立 compact representation：结构字段以显式 CBOR 整数 map key 保存，稀疏可选字段省略；标量、tuple 和原始字节索引保持原编码。该 representation 只存在于 `dmsg_runtime::stable_types` 和各 canister 私有 `stable_codec.rs`，不改变 `dmsg_types` 的公共 CBOR、签名摘要、认证叶或 Candid。`dmsg_user` schema 7 进一步采用有界执行保留索引，普通账户操作不扫描历史执行载荷；实测及容量限制见其 README。
 - 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 为设备公钥指纹，只支持 Ed25519。浏览器消息合同为 `dmsg-extension/4`。
 - 付费投递的 Quote/AdmissionReceipt 位于公开的 `profiles::delivery`，它们不是所有签名实现必须支持的基础类型。
-- payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。有界配置和预算在 heap 中更新，初始化及 `pre_upgrade` 写入 StableCell，因此升级不可跳过该 hook；资金记录仍直接保存到稳定表。容量上限、多实例与部署流程见 [payment README](../src/dmsg_payment/README.md)。
+- payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。有界配置和预算在 heap 中更新：管理配置修改时即写入 StableCell，`pre_upgrade` 补写当分钟的调用计数和当日开单数，跳过该 hook 的升级只丢失这两项；资金记录仍直接保存到稳定表。容量上限、多实例与部署流程见 [payment README](../src/dmsg_payment/README.md)。
 
 ## 构建与验证
 

@@ -63,7 +63,7 @@ flowchart LR
    - 报价：签名属于未撤销且在有效区间内的 signer epoch，`home_payment` 是本 canister，账本、平台账户与配置一致，费率版本是当前生效版本且服务费按它计算，`max_network_fee == max_fee`，预留在允许区间内，金额拆分正确，期限符合上述固定值，`max_bytes ≤ 8192`，保留期 1–365 天；
    - offer 与报价的收款人、净额、范围和摘要一致；按收款账户 ID 内嵌的分配器指纹找到它的 home（不在 `user_homes` 中返回 `NotFound`，不消耗授权额度），再调用该 home 的 `verify_payment_offer`。
 
-   调用返回后，用新读取的时间重新检查开关、期限、signer 撤销、费率版本和容量，并要求 home 返回的观察时间与本地时间相差不超过 60 秒，然后才写入订单。
+   调用返回后，用新读取的时间和配置重新检查付款方未结订单数、开关、期限、signer 撤销、费率版本和容量，并要求 home 返回的观察时间与本地时间相差不超过 60 秒，然后才写入订单。
 2. **付款**：付款方从 `quote.payer` 账户向 `(本 canister, escrow.subaccount)` 转账，子账户为 `digest(本 canister, escrow_id)`。
 3. **入金** `check_funding(escrow_id, block)`：从账本读取该区块，核对收款方是订单子账户，每个区块只能被认领一次。同时满足以下条件的第一笔入金成为主入金（`funding_ref`）：订单还没有资金决定、账本提交时间早于 `fund_by`、来源恰好是 `quote.payer`、金额不少于 `quote.amount`。主入金超出 `quote.amount` 的部分可以退回。少付、迟到、来源不同和重复的入金全额归实际出资账户。
 4. **结算** `finalize_receipt(SignedReceipt)`：要求订单已有主入金、还没有资金决定、`now < accept_by`。先做本地字段检查再验签：收据须绑定本订单、本 canister、报价摘要、密文摘要、signer epoch 和两个期限，`0 < size ≤ max_bytes`，`retain_until ≥ stored_at + retain_ms`，`stored_at` 落在 signer 有效区间内。成功后资金决定变为 `SettlementCommitted`，同时准备收件人和平台两条出金腿；服务费为 0 时只有收件人一条。结算不再查账，资金已由 `check_funding` 确认。
@@ -111,7 +111,7 @@ flowchart LR
 
 `created_at_time` 在生成时固定，所以出金腿必须在账本去重窗口内派发（DFINITY ICRC 账本为 24 小时）。`InFlight` 和 `Unknown` 也要在窗口内重试，才能靠账本去重得到确定结果，超出窗口后只能凭实际区块对账。
 
-本 canister 没有定时器。付款方客户端在 `finalize_receipt` 成功后立即派发收件人和平台出金，失败不影响受理结果。客户端没有发出或结果未知的出金，由派发任务兜底：`list_pending_transfers(after)` 按 `created_at_time` 从旧到新列出所有尚未成功或被取代的出金腿，每页 32 条，游标是上一页最后一条的 `(created_at_time, escrow_id, leg_id)`。见[运维](#运维)。
+本 canister 没有定时器。付款方客户端在 `finalize_receipt` 成功后立即派发收件人和平台出金，失败不影响受理结果。客户端没有发出或结果未知的出金，由派发任务兜底：`list_pending_transfers(after)` 按 `created_at_time` 从旧到新列出所有尚未成功或被取代的出金腿，每页 32 条，游标是上一页最后一条的 `(created_at_time, escrow_id, leg_id)`。列表也包含派发任务完成不了的腿：`FeeBlocked` 和因 `TooOld` 被拒绝的腿要等付款 Principal 或收款 owner 修订，超出窗口仍是 `InFlight` 或 `Unknown` 的腿只能凭实际区块对账。它们排在最前，修订或对账之前一直留在列表中。见[运维](#运维)。
 
 ### 并发与外部调用
 
@@ -171,7 +171,7 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 
 ### 上限
 
-`PaymentLimits` 由 governance 用 `admin_set_limits` 整体替换，`payment_config` 查询当前值。限额只拒绝新订单和新的外部调用，已有订单的入金、退款、出金和查询不受影响。
+`PaymentLimits` 由 governance 用 `admin_set_limits` 整体替换，`payment_config` 查询当前值。订单限额只拒绝新订单；账本额度用尽时，已有订单的查账、对账和出金也返回 `QuotaExceeded`，下一分钟可以重试。资金决定、退款领取、查询和资金归属不受限额影响。
 
 | `PaymentLimits` 字段        | 含义                                                         | 取值范围        |
 | --------------------------- | ------------------------------------------------------------ | --------------: |
@@ -353,15 +353,16 @@ payment 没有定时器，以下任务都需要外部调用：
 
 | 任务           | 方法                                                     | 调用方                         | 要求                                                                                                   |
 | -------------- | -------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| 派发出金       | `list_pending_transfers` 分页，逐条 `process_transfer`   | 运维 principal 或中继          | 至少每小时运行一次，保证每条腿在 24 小时内派发，`InFlight`、`Unknown` 也在窗口内重试。客户端在结算后会先派发一次。派发 principal 每分钟最多发 `ledger_calls_per_caller` 笔，按订单量调整 |
+| 派发出金       | `list_pending_transfers` 分页，逐条 `process_transfer`   | 运维 principal 或中继          | 至少每小时运行一次，在 `created_at_time` 之后 24 小时内派发 `Pending`、`InFlight`、`Unknown` 和临时拒绝的腿。`FeeBlocked`、因 `TooOld` 被拒绝和超出窗口的腿重发不会成功，还会消耗出金额度，应跳过并单独告警。客户端在结算后会先派发一次。派发 principal 每分钟最多发 `ledger_calls_per_caller` 笔，按订单量调整 |
 | 修订被拒的出金 | `revise_rejected_transfer` 后 `process_transfer`         | 付款 Principal 或收款 owner    | 超过 24 小时未派发的腿会返回 `TooOld`，须修订                                                          |
-| 到期退款       | `expiry_refund`，再 `claim_refund` 与 `process_transfer` | 任何人                         | `accept_by` 之后；同时释放付款方的未结订单名额                                                         |
+| 到期退款       | `expiry_refund`                                          | 任何人                         | `accept_by` 之后；同时释放付款方的未结订单名额                                                         |
+| 领取退款       | `claim_refund`，再 `process_transfer`                    | 付款方或出资账户 owner         | 到期退款、多付或其他入金之后；一次合并同一出资账户的余额。`process_transfer` 任何人都可以派发          |
 | 网络费变化     | `set_ledger_fee(fee)`                                    | controller 或 governance       | 不超过 `max_fee`；只影响之后生成的出金腿，已准备的腿保留原 fee，遇到 `BadFee` 时修订                    |
 | signer 轮换    | `rotate_receipt_signer(signer)`                          | controller 或 governance       | 在当前 signer 的 `valid_until` 之前，epoch 须递增；旧 epoch 继续用于其有效区间内的报价，中继同步切换     |
 | 费率调整       | `schedule_fee_policy(policy)`                            | controller 或 governance       | 至少提前 30 天，版本和生效时间都递增；生效时刻中继改用新版本，跨越生效时刻的报价开单返回 `PolicyStale` |
 | 新增 user home | `admin_add_user_home(home)`                              | controller 或 governance       | 新 home 须以本 canister 为 `payment_canister`，并与本 canister 使用相同的 `environment` 和 `issuer_namespace`；本 canister 无法在链上核对这些。已有 home 不能移除 |
 | 调整限额       | `admin_set_limits(limits)`                               | controller 或 governance       | 一次替换全部限额，`validate_admin_set_limits` 显示当前值；只影响新订单和新的外部调用                    |
-| 监控           | `payment_stats`、`list_pending_transfers`                | 任何人（query）                | 订单数接近 `max_escrows` 的 60% 时扩容或让新的 user home 指向新实例；`pending_transfers` 持续增长或最旧一条接近 24 小时说明派发跟不上；另看 cycles 和 stable 页数 |
+| 监控           | `payment_stats`、`list_pending_transfers`                | 任何人（query）                | 订单数接近 `max_escrows` 的 60% 时扩容或让新的 user home 指向新实例；窗口内可派发的腿持续增长，或其中最旧一条接近 24 小时，说明派发跟不上；派发任务跳过的腿要通知付款方或收款方修订，或凭区块对账；另看 cycles 和 stable 页数 |
 
 **signer 泄露**：先调用 `revoke_receipt_signer(epoch)`，它同时关闭新订单；再轮换到新 epoch，中继改用新密钥后调用 `set_orders_enabled(true)`。用已撤销 epoch 签的未决订单不能再结算，到期后退款。入金、退款、出金和查询不受影响。
 
@@ -410,7 +411,7 @@ home 路由与配置校验在 [dmsg_protocol::agent](../dmsg_protocol/src/agent.
 cargo test --locked -p dmsg_payment
 ```
 
-真实 Wasm 的 PocketIC 回归在 [tests/dmsg_integration/tests/control_plane](../../tests/dmsg_integration/tests/control_plane)：`payment_regressions.rs`、`payment_optimization.rs`、`payment_review.rs`、`payment_operations.rs`，另有 `control_plane.rs`、`review_regressions.rs` 与 `governance.rs` 中的支付用例。它们覆盖并发开单、查账与对账的去重，升级打断的出金只发一次，费率边界与证书，手续费维护，各类额度的隔离与升级保留，同源合并退款与分页，最后一个容量名额的并发竞争，治理限额及跳过 `pre_upgrade` 的升级后配置仍在，过期订单释放付款方名额，待派发出金分页，以及 ingress 预过滤：
+真实 Wasm 的 PocketIC 回归在 [tests/dmsg_integration/tests/control_plane](../../tests/dmsg_integration/tests/control_plane)：`payment_regressions.rs`、`payment_optimization.rs`、`payment_review.rs`、`payment_operations.rs`，另有 `control_plane.rs`、`review_regressions.rs` 与 `governance.rs` 中的支付用例。它们覆盖并发开单、查账与对账的去重，升级打断的出金只发一次，费率边界与证书，手续费维护，各类额度的隔离与升级保留，同源合并退款与分页，最后一个容量名额的并发竞争，治理限额及跳过 `pre_upgrade` 的升级后配置仍在，核验 offer 期间调低的付款方名额仍然生效，过期订单释放付款方名额，待派发出金分页，以及 ingress 预过滤：
 
 ```sh
 cargo build --locked --release --target wasm32-unknown-unknown -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_directory -p dmsg_payment -p membership -p dmsg_commerce -p dmsg_test_ledger -p dmsg_test_sns -p dmsg_account_product
