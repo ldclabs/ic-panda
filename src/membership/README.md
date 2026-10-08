@@ -72,7 +72,7 @@ stateDiagram-v2
 5. **交付**：回执 `Applied` 使申请变为 `Active`，`committed_until_ms` 固定为 offer 的 E；回执 `Rejected` 证明没有交付权益。没有回执时保持 `Applying`：`reconcile_panda_claim`、`refresh_panda_claim` 或再次调用 `advance_panda_claim`，都先用 `get_product_decision` 取原回执，取不到才用同一决定重发 Apply。`Applying` 不会因超时被释放。
 6. **持有**：`Active` 期间，产品通过 `refresh_panda_claim` 续租资格（见“资格与租约”）。累计 7 天已知不合格变为 `Terminated`：权益永久结束，但神经元仍占用到 E。到达 E 后，`sweep_panda_commitments`、`refresh_panda_claim` 或下一次占用检查会把申请改为 `Released`。
 
-没有提前关闭、替换、升级、买断或解除占用的接口。`cancel_panda_application` 只在 `Checking`/`CoolingDown` 有效，并释放产品预留。取消写入后总是返回视图；释放没有完成（例如预留调用仍在进行）时，由 `reconcile_panda_claim` 重试，预留最晚在申请截止时过期。`set_admission_pause(true)` 停止新的报价、申请和激活；已准备的 Apply、恢复、资格刷新和到期照常进行。
+没有提前关闭、替换、升级、买断或解除占用的接口。`cancel_panda_application` 只在 `Checking`/`CoolingDown` 有效，并释放产品预留。取消写入后总是返回视图。预留调用仍在进行时，该调用返回后自行释放；其他没有完成的释放（例如产品 adapter 暂不可用）由 `reconcile_panda_claim` 重试，预留最晚在申请截止时过期。`set_admission_pause(true)` 停止新的报价、申请和激活；已准备的 Apply、恢复、资格刷新和到期照常进行。
 
 ### 资格与租约
 
@@ -152,7 +152,7 @@ governance 模块不固定。主网 PANDA SNS 开启了 `automatically_advance_t
 
 ### 存储
 
-稳定布局为开发 schema 3，`post_upgrade` 遇到其他 schema 直接失败，不迁移旧布局。`MemoryManager` 使用 8 MiB 分配桶，可寻址 256 GiB。
+稳定布局为开发 schema 4，`post_upgrade` 遇到其他 schema 直接失败，不迁移旧布局。`MemoryManager` 使用 8 MiB 分配桶，可寻址 256 GiB。
 
 | Memory | 内容                                                                     |
 | -----: | ------------------------------------------------------------------------ |
@@ -386,7 +386,7 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_WASM_DIR=$PWD/target/wasm32-unknown-unknow
 
 - [commerce.rs](../../tests/dmsg_integration/tests/control_plane/commerce.rs)：冷却与再次批准、不能提前退出、观察复用、跨产品独占、相邻两期、Apply 回执丢失后跨升级对账、`Terminated` 的权益、到期释放、取消后恢复容量、membership 合并请求或调用失败时 commerce 保留租约、10 分钟窗口内续期。
 - PANDA 用例的 `neuron` 辅助函数构造 NNS dapp 形态的神经元：所有者持有 0–10 全部权限，`actor` 只是 `SubmitProposal` + `Vote` 热键。
-- [membership_review.rs](../../tests/dmsg_integration/tests/control_plane/membership_review.rs)：预留暂时失败的重试与限流、预留期间的重入取消（返回视图，释放留给对账）、冷却刚结束前的观察须重新读取、并发 SNS 核验合并为一次及失败后重试、费率重试与已剪除版本跨升级保持、终态压缩跨升级。
+- [membership_review.rs](../../tests/dmsg_integration/tests/control_plane/membership_review.rs)：预留暂时失败的重试与限流、预留期间的重入取消（返回视图，预留调用返回后释放）、冷却刚结束前的观察须重新读取、读取神经元期间 SNS 核验过期不签发租约、并发 SNS 核验合并为一次及失败后重试、费率重试与已剪除版本跨升级保持、终态压缩跨升级。
 - [governance.rs](../../tests/dmsg_integration/tests/control_plane/governance.rs)：全部管理方法与 `validate_*`，包括 `commerce_homes` 校验。
 
 本地 SNS、测试账本与测试身份都不能证明主网钱包兼容。
@@ -419,7 +419,7 @@ DMSG_MEMBERSHIP_IMAGE_DIR=/tmp/membership-images POCKET_IC_BIN=/path/to/pocket-i
 cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane membership_verification_profile -- --ignored --nocapture
 ```
 
-2026-10-08 在本次改动上完整运行 `scripts/test-dmsg.sh` 通过（PocketIC 16.0.0）：Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、PocketIC `control_plane` 117 项与 `directory` 4 项、SDK 26 项；`dmsg_app` 的类型检查与 171 项单元测试也通过。`membership_capacity_profile` 按上文在 10 万与 100 万条两种规模运行通过；`history_profile` 与 `membership_verification_profile` 本轮未运行。主网部署、真实神经元与私有云端端到端未运行。
+2026-10-08 审查修复后完整运行 `scripts/test-dmsg.sh` 通过（PocketIC 16.0.0）：Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、PocketIC `control_plane` 118 项与 `directory` 4 项、SDK 26 项；`dmsg_app` 的类型检查与 171 项单元测试也通过。`membership_capacity_profile` 的数据来自修复前一轮在 10 万与 100 万条两种规模上的运行；修复没有改动升级、刷新与 sweep 的路径，本轮未重跑。`history_profile` 与 `membership_verification_profile` 本轮未运行。主网部署、真实神经元与私有云端端到端未运行。
 
 ## 设计对齐
 

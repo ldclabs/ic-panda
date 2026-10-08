@@ -304,9 +304,9 @@ fn cancellation_during_reservation_ignores_late_errors_and_unlocks_recovery() {
     );
     assert_eq!(result.unwrap().status, PandaClaimStatus::Cancelled);
     // The reentrant cancellation returned its durable view; the release it could
-    // not make beside the in-flight reservation waits for reconciliation.
+    // not make beside the in-flight reservation follows once that call returns.
     assert!(!counters(&f).2);
-    assert_eq!(counters(&f).1, 0);
+    assert_eq!(counters(&f).1, 1);
     let recovered: Result<PandaClaimView> = update(
         &f.ic,
         f.membership,
@@ -443,6 +443,72 @@ fn concurrent_sns_configuration_checks_share_one_call_and_retry_after_failure() 
         .iter()
         .all(|r| r.is_ok() || *r == Err(Error::Pending)));
     assert_eq!(counters(&f).3, start + 3);
+}
+
+#[test]
+fn a_neuron_read_returning_after_the_sns_verification_expired_issues_no_lease() {
+    let f = Fixture::commercial();
+    let account = f.create(1);
+    neuron(&f, 100_000_000_000_100);
+    // Verify at a known time, then apply two minutes before that verification expires.
+    f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS + 1));
+    let verified: Result<()> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "verify_sns_configuration",
+        (),
+    );
+    verified.unwrap();
+    f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS - 2 * MINUTE));
+    let bill = offer(&f, &account, 230);
+    let terms: Result<PandaApplicationTerms> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "quote_panda_subscription",
+        (bill.clone(), f.user, account, Hash::new([44; 32])),
+    );
+    let terms = terms.unwrap();
+    let authorization = approve(
+        &f,
+        &account,
+        &bill,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        231,
+    );
+    void(&f.ic, f.sns, person(1), "delay_neuron_read", (6u8,));
+    let reads = counters(&f).4;
+    let pending =
+        f.ic.submit_call(
+            f.membership,
+            person(1),
+            "request_panda_claim",
+            candid::encode_args((PandaClaimRequest {
+                terms,
+                authorization,
+            },))
+            .unwrap(),
+        )
+        .unwrap();
+    for _ in 0..100 {
+        if counters(&f).4 > reads {
+            break;
+        }
+        f.ic.tick();
+    }
+    // The read started under a fresh verification; it returns after the verification expired.
+    assert_eq!(counters(&f).4, reads + 1);
+    f.ic.advance_time(Duration::from_millis(3 * MINUTE));
+    let claim =
+        candid::decode_one::<Result<PandaClaimView>>(&f.ic.await_call(pending).unwrap()).unwrap();
+    let claim = claim.unwrap();
+    assert_eq!(claim.status, PandaClaimStatus::Checking);
+    assert_eq!(claim.eligibility, Eligibility::Unverifiable);
+    assert!(claim.cooling_until_ms.is_none());
+    assert!(claim.valid_until_ms <= time(&f.ic));
 }
 
 #[test]

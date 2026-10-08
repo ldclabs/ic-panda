@@ -194,7 +194,7 @@ async fn reserve_product(id: Hash, at: u64) -> Result<u64> {
     if old.product_reserved || !old.holds() {
         return Ok(at);
     }
-    let _guard = store::product_call(id, old.view.terms.actor, at)?;
+    let guard = store::product_call(id, old.view.terms.actor, at)?;
     let answer: Result<Result<()>> = call(
         old.view.terms.offer.adapter,
         "reserve_product_billing",
@@ -206,7 +206,14 @@ async fn reserve_product(id: Hash, at: u64) -> Result<u64> {
     .await;
     let at = nanos_to_millis(ic_cdk::api::time());
     let mut current = load(id)?;
-    if current.holds() && !current.product_reserved {
+    if !current.holds() {
+        // Cancelled or expired during the call, whose guard kept that release out:
+        // release whatever the adapter may now hold for the dead claim.
+        drop(guard);
+        release_product(id, at).await?;
+        return Ok(nanos_to_millis(ic_cdk::api::time()));
+    }
+    if !current.product_reserved {
         match answer {
             Ok(Ok(())) => current.product_reserved = true,
             Ok(Err(
@@ -433,8 +440,8 @@ async fn cancel_panda_application(id: Hash) -> Result<PandaClaimView> {
     actor(&c, ic_cdk::api::msg_caller())?;
     c.cancel()?;
     save(&mut c, at);
-    // The cancellation is already durable. A release this call cannot finish, such as
-    // one waiting for an in-flight reservation, is retried by `reconcile_panda_claim`.
+    // The cancellation is already durable. An in-flight reservation releases once it
+    // returns; any other release this call cannot finish is retried by `reconcile_panda_claim`.
     let _ = release_product(id, at).await;
     Ok(load(id)?.view)
 }

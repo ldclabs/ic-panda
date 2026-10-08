@@ -207,9 +207,9 @@
           disabled={session.busy}
           onclick={() =>
             session.run(async () => {
-              const r = ['Checking', 'CoolingDown', 'Applying'].includes(row.status)
-                ? await api!.membership!.reconcile_panda_claim(row.claim_id)
-                : await api!.membership!.refresh_panda_claim(row.claim_id)
+              const r = ['Active', 'Terminated'].includes(row.status)
+                ? await api!.membership!.refresh_panda_claim(row.claim_id)
+                : await api!.membership!.reconcile_panda_claim(row.claim_id)
               controlResult(r)
               await loadClaims()
             })}>对账原申请 / 刷新资格</button
@@ -228,7 +228,7 @@
       onclick={() =>
         session.run(async () => {
           const count = controlResult(await api!.membership!.sweep_panda_commitments())
-          notice = `已检查 ${count} 项到期承诺。`
+          notice = `已释放或压缩 ${count} 项到期记录；不为 0 时可再次处理。`
           await loadClaims()
         })}>处理已到期承诺</button
     >{/if}

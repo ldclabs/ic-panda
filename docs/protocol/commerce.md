@@ -183,6 +183,8 @@ Qualification leases last at most one hour and never pass E. Known ineligibility
 stops new rights and starts a seven-day repair clock; `Unverifiable` pauses that
 clock and never extends an old lease. Repair expiry permanently terminates
 rights while retaining the commitment until E. A terminated term never revives.
+A neuron read that returns after its SNS configuration verification expired
+(after one hour) or failed issues no lease and clears no commitment.
 `refresh_panda_claim`/`reconcile_panda_claim` preserve the original claim/decision;
 only initial/new post-cooling approval can create a new device approval.
 
