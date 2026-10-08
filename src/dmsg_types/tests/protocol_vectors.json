@@ -836,5 +836,35 @@
     "sha256_hex": "9f932dc02833a488e4cd8ef5f96a4e08183e6380f92a1180b5c074c4394a778f",
     "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
     "signature_over_sha256_hex": "d21868f50fb19e9f249a42de8bc91b55908e31387d8125e6258ceab749bc981fff74ee619926534d0eb64065ae43b11a7377465a6136cbff4adfb3f7742dd309"
+  },
+  {
+    "name": "account_admission_v1",
+    "value": {
+      "array": [
+        {
+          "uint": "1"
+        },
+        {
+          "text": "dmsg/account-admission/v1"
+        },
+        {
+          "array": [
+            {
+              "bytes": "000101"
+            },
+            {
+              "bytes": "ddb2930f382c6d619658655ec7e8d15360e322009042e8907bbd608102"
+            },
+            {
+              "uint": "1760000300000"
+            }
+          ]
+        }
+      ]
+    },
+    "cbor_hex": "83017819646d73672f6163636f756e742d61646d697373696f6e2f76318343000101581dddb2930f382c6d619658655ec7e8d15360e322009042e8907bbd6081021b00000199c83153e0",
+    "sha256_hex": "afde7858db711fc8fb78092a7320cc41553b88adf78cd136541f47eb39d2ac5a",
+    "ed25519_public_hex": "ea4a6c63e29c520abef5507b132ec5f9954776aebebe7b92421eea691446d22c",
+    "signature_over_sha256_hex": "d1ca9784c1ff62543c65c8ad57f6dfb737f4bfd9a109c6207442f6dbbbe2388ba5914d60c73bd7a9aaec49545353ee013b39245d152a15b40ee1531e2ec6d807"
   }
 ]

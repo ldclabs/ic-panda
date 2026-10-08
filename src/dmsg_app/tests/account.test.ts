@@ -18,7 +18,7 @@ import {
   rootRecipientsDigest
 } from '../src/lib/protocol/account'
 import { b64, canonical, equal, hash, hex, unhex, random } from '../src/lib/protocol/codec'
-import { xidText } from '../src/lib/protocol/identity'
+import { xidBytes, xidText } from '../src/lib/protocol/identity'
 import { ed25519, hpkePublic } from '../src/lib/crypto/primitives'
 import {
   bundleDigests,
@@ -32,6 +32,7 @@ import {
   type RecoveryKey
 } from '../src/lib/crypto/root'
 import type { AccountMutation } from '../src/lib/canisters/generated/user'
+import { AccountClient } from '../src/lib/services/account'
 import { boundEngine } from './support/engine'
 
 const home = Principal.fromUint8Array(new Uint8Array([1])),
@@ -254,5 +255,103 @@ describe('account authorization and encrypted local state', () => {
       recoverRoot(material, { ...recoveryKey(), keyName: 'test_key_1' }, new Uint8Array(192), [bytes], expected)
     ).rejects.toThrow('恢复公钥')
     expect(await wrapRoot({ ...material, bytes: b64(bytes) }, [], recoveryKey(), { deviceId: '', seed }, null)).toEqual(bytes)
+  })
+
+  it('asks for an admission ticket only when the home requires one', async () => {
+    const { engine, meta } = await boundEngine(account, home.toText())
+    const crypto = {
+      call: (method: string, ...args: unknown[]) => (engine as any)[method](...args)
+    }
+    for (const key of [[], [new Uint8Array(32).fill(3)]] as const) {
+      const calls: unknown[][] = []
+      const admitted: Uint8Array[][] = []
+      const user = {
+        my_account: async () => [],
+        user_config: async () => ({ admission_key: key }),
+        create_account: async (...args: unknown[]) => {
+          calls.push(args)
+          return { Err: { Forbidden: null } }
+        }
+      }
+      const client = new AccountClient(
+        user as any,
+        {} as any,
+        caller,
+        crypto as any,
+        meta,
+        home.toText()
+      )
+      await expect(
+        client.create(async (h, p) => {
+          admitted.push([h, p])
+          return { expires_at: 9n, signature: new Uint8Array(64).fill(4) }
+        })
+      ).rejects.toThrow('Forbidden')
+      const input = calls[0]![0] as { admission: unknown[] }
+      if (key.length) {
+        expect(admitted).toEqual([[home.toUint8Array(), caller.toUint8Array()]])
+        expect(input.admission).toEqual([
+          { expires_at: 9n, signature: new Uint8Array(64).fill(4) }
+        ])
+      } else {
+        expect(admitted).toEqual([])
+        expect(input.admission).toEqual([])
+      }
+      // The rejected creation leaves no pending journal for the next attempt.
+      expect(await client.pending()).toBeNull()
+    }
+    const user = {
+      my_account: async () => [],
+      user_config: async () => ({ admission_key: [new Uint8Array(32)] })
+    }
+    const client = new AccountClient(
+      user as any,
+      {} as any,
+      caller,
+      crypto as any,
+      meta,
+      home.toText()
+    )
+    await expect(client.create()).rejects.toMatchObject({ code: 'UNAVAILABLE' })
+  })
+  it('accepts a binding only with the nonce of its own request', async () => {
+    const { engine, meta } = await boundEngine(account, home.toText())
+    const crypto = {
+      call: (method: string, ...args: unknown[]) => (engine as any)[method](...args)
+    }
+    const accepted: unknown[][] = []
+    const user = {
+      accept_auth_binding: async (...args: unknown[]) => {
+        accepted.push(args)
+        return { Err: { NotFound: null } }
+      }
+    }
+    const client = new AccountClient(
+      user as any,
+      {} as any,
+      caller,
+      crypto as any,
+      meta,
+      home.toText()
+    )
+    await expect(client.acceptBinding(account)).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    const packet = JSON.parse(await client.bindingRequest(account))
+    expect(packet).toMatchObject({
+      format: 'dmsg-auth-request/1',
+      account,
+      principal: caller.toText()
+    })
+    // Another login cannot accept with this request's nonce.
+    const other = new AccountClient(
+      user as any,
+      {} as any,
+      home,
+      crypto as any,
+      meta,
+      home.toText()
+    )
+    await expect(other.acceptBinding(account)).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(client.acceptBinding(account)).rejects.toThrow('NotFound')
+    expect(accepted).toEqual([[xidBytes(account), unhex(packet.nonce)]])
   })
 })

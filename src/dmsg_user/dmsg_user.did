@@ -54,11 +54,13 @@ type AccountCommand = variant {
     // Controller generation to retire.
     generation : nat32;
   };
-  // Bind another proven login Principal.
+  // Approve binding another login Principal. It is bound when that
+  // Principal calls `accept_auth_binding` with the same nonce within ten
+  // minutes; any security-epoch change withdraws the approval.
   BindAuth : record {
-    // Login Principal to bind or remove.
+    // Login Principal to bind.
     "principal" : principal;
-    // One-time challenge binding the login Principal authorization.
+    // One-time challenge from the new login's binding request.
     nonce : blob;
   };
   // Reserve the next content-root generation using compare-and-swap.
@@ -252,6 +254,15 @@ type ActionValue = variant {
   Principal : principal;
   // One option value declared by the schema.
   Choice : text;
+};
+// Anti-abuse admission of one caller's account creation, signed by the home's
+// configured issuer over the `dmsg/account-admission/v1` digest of
+// `(home, caller, expires_at)`. It grants no account or device authority.
+type AdmissionTicket = record {
+  // Issuer Ed25519 signature over the admission digest.
+  signature : blob;
+  // Exclusive deadline in Unix milliseconds, at most ten minutes ahead.
+  expires_at : nat64;
 };
 // Full application decision, separate from portable document statements.
 // All timestamps are Unix milliseconds. No field is a caller-supplied display summary.
@@ -562,6 +573,8 @@ type CreateAccount = record {
   op_id : blob;
   // Initial administrator device with its keys and requested capabilities.
   device : DeviceInput;
+  // Issuer ticket; required when the home has an `admission_key`.
+  admission : opt AdmissionTicket;
   // Initial device Ed25519 proof over the account-creation digest.
   proof : blob;
   // Exclusive deadline in Unix milliseconds (`now < expires_at`).
@@ -734,7 +747,7 @@ type ExecutionResult = record {
   // Execution state with any available output or error.
   outcome : ExecutionOutcome;
 };
-// Monthly execution counters; retrying an existing operation must not reserve again.
+// Monthly execution counters of one account; retrying an attestation does not charge again.
 type ExecutionUsage = record {
   // Stable 12-byte dMsg account identity.
   account_id : blob;
@@ -742,13 +755,11 @@ type ExecutionUsage = record {
   business_revision : nat64;
   // Exclusive validity deadline in Unix milliseconds.
   valid_until_ms : nat64;
-  // Units reserved by nonterminal executions.
-  held_units : nat64;
   // Monotonic projection/lease revision, including refreshes.
   lease_revision : nat64;
   // Total monthly units, rounding down once after summing weighted durations.
   allowed_units : nat64;
-  // Units charged to completed executions.
+  // Units charged to attestations; each is charged when it commits.
   charged_units : nat64;
   // Execution weight version used for this accounting.
   weight_policy_version : nat64;
@@ -977,10 +988,9 @@ type Result_11 = variant { Ok : OperationReceipt; Err : Error };
 type Result_12 = variant { Ok : PrincipalInfo; Err : Error };
 type Result_13 = variant { Ok : opt PendingRecovery; Err : Error };
 type Result_14 = variant { Ok : opt ContentRootRef; Err : Error };
-type Result_15 = variant { Ok : nat32; Err : Error };
-type Result_16 = variant { Ok : nat64; Err : Error };
-type Result_17 = variant { Ok : text; Err : text };
-type Result_18 = variant { Ok : ApplicationAuthorization; Err : Error };
+type Result_15 = variant { Ok : nat64; Err : Error };
+type Result_16 = variant { Ok : text; Err : text };
+type Result_17 = variant { Ok : ApplicationAuthorization; Err : Error };
 type Result_2 = variant { Ok : AuthenticationResult; Err : Error };
 type Result_3 = variant { Ok : SignedArtifact; Err : Error };
 type Result_4 = variant { Ok : CertifiedBatch; Err : Error };
@@ -1119,6 +1129,10 @@ type StatementContent = variant {
 type UserInit = record {
   // Name registry responsible for this operation/deployment.
   handle_canister : principal;
+  // Ed25519 public key of the account admission issuer. When set,
+  // `create_account` requires an [`AdmissionTicket`] signed by it; None
+  // admits any authenticated caller. Adjustable by governance.
+  admission_key : opt blob;
   // HTTPS origin of Agent Delegation principal IDs, such as `https://id.dmsg.net`.
   // Permanent: principal IDs never change.
   principal_origin : text;
@@ -1126,7 +1140,7 @@ type UserInit = record {
   home_cose : principal;
   // Fixed issuer URI prefix; ends in `/` or `:` with no query or fragment.
   issuer_namespace : text;
-  // Account creation limit per daily budget window (1..=10,000); adjustable by governance.
+  // Account creation limit per UTC day (1..=100,000); adjustable by governance.
   daily_new_accounts : nat32;
   // Configured escrow service.
   payment_canister : principal;
@@ -1134,9 +1148,11 @@ type UserInit = record {
   environment : Environment;
   // Fixed product commerce service, authoritative for resource leases.
   commerce_canister : principal;
-  // Fixed SNS governance caller allowed, besides controllers, to adjust account limits.
+  // Fixed SNS governance caller allowed, besides controllers, to adjust
+  // account limits and the admission key.
   governance : principal;
-  // Maximum accounts admitted by this deployment (1..=1,000,000); adjustable by governance.
+  // Maximum accounts admitted by this home (1..=21,000,000, [`MAX_HOME_ACCOUNTS`]);
+  // adjustable by governance.
   max_accounts : nat64;
   // Shared PANDA qualification service.
   membership_canister : principal;
@@ -1172,9 +1188,15 @@ type VaultWriteState = variant {
   Uninitialized;
 };
 service : (UserInit) -> {
+  // A new login accepts the binding an administrator approved for it with the
+  // nonce of its own request. Retrying after success returns Ok.
+  accept_auth_binding : (blob, blob) -> (Result);
   // Set the account capacity and the daily new-account quota. A capacity below
   // the current count only stops new accounts.
   admin_set_account_limits : (nat64, nat32) -> (Result);
+  // Set or clear the Ed25519 key whose tickets admit new accounts. Clearing it
+  // admits any authenticated caller, within the account limits.
+  admin_set_admission_key : (opt blob) -> (Result);
   approve_application : (ApplicationApproval, Approval) -> (Result_1);
   approve_authentication : (blob, AuthenticationRequest, Approval) -> (
       Result_2,
@@ -1188,9 +1210,6 @@ service : (UserInit) -> {
   authentication_certificate : (blob, blob) -> (Result_4) query;
   // Personal-account product consent. Project products use their own registered authority.
   authorize_product_billing : (ProductAuthorizationRequest) -> (Result_5);
-  // Only the new authentication principal may reserve its own binding. The
-  // existing account_id's administrator must separately approve the exact nonce.
-  begin_auth_binding : (blob, blob, nat64) -> (Result);
   complete_recovery : (blob, blob) -> (Result);
   consume_handle_authorization : (HandleIntent) -> (Result);
   consume_handle_transfer_authorizations : (HandleIntent, HandleIntent) -> (
@@ -1217,15 +1236,15 @@ service : (UserInit) -> {
   inspect_app_action : (blob, AppAction) -> (Result);
   mutate_account : (AccountMutation) -> (Result_11);
   my_account : () -> (opt blob) query;
-  prune_auth_bindings : (blob) -> (opt blob);
-  // Release expired terminal results for an account, without starting another execution.
-  // Public maintenance is safe: at most 64 retention entries are examined.
-  prune_executions : (blob) -> (Result_15);
+  // Release expired terminal results across accounts, one page of execution
+  // records after the cursor; anyone may run it. Start from an empty cursor and
+  // continue with the returned key until it returns None.
+  prune_executions : (blob) -> (opt blob);
   // Bounded public cleanup removes only expired authentication/approval records.
   prune_external_approvals : (blob) -> (opt blob);
   // Push the account's current principal state to the directory. Anyone may
   // retry a publication; it is idempotent and never rolls the document back.
-  publish_principal : (blob) -> (Result_16);
+  publish_principal : (blob) -> (Result_15);
   reconcile_execution : (blob, blob) -> (Result_7);
   refresh_execution_entitlement : (blob) -> (Result_10);
   // Begin a delayed takeover from a bound login: after the account's recovery
@@ -1242,10 +1261,11 @@ service : (UserInit) -> {
   // Account count, capacity, today's admissions, unlock readiness, stable
   // pages and the cycle balance.
   user_stats : () -> (UserStats) query;
-  validate_admin_set_account_limits : (nat64, nat32) -> (Result_17) query;
+  validate_admin_set_account_limits : (nat64, nat32) -> (Result_16) query;
+  validate_admin_set_admission_key : (opt blob) -> (Result_16) query;
   // Read-only revalidation by the fixed consumer. It creates no product order or claim.
-  verify_application_authorization : (blob, ApplicationApproval) -> (Result_18);
-  verify_payment_offer : (SignedOffer) -> (Result_16);
+  verify_application_authorization : (blob, ApplicationApproval) -> (Result_17);
+  verify_payment_offer : (SignedOffer) -> (Result_15);
   // A registered product may check whether its own account beneficiary still exists.
   verify_product_account : (text, Beneficiary) -> (Result);
 }

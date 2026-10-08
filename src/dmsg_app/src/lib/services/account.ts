@@ -5,6 +5,7 @@ import type {
   AccountCommand,
   AccountInfo,
   AccountMutation,
+  AdmissionTicket,
   CreateAccount,
   RecoveryRequest
 } from '../canisters/generated/user'
@@ -304,18 +305,27 @@ export class AccountClient {
     await this.dispatch(journal)
     return (await this.journal())!.account
   }
-  async create() {
+  /** Create this login's account. A home with an admission key needs a
+   * ticket from `admit`, which asks the cloud service for one. */
+  async create(admit?: (home: Uint8Array, principal: Uint8Array) => Promise<AdmissionTicket>) {
     ensure(!(await this.pending()), 'Pending', '先查询或继续上一个操作。')
     const existing = await this.connectedAccount()
     if (existing) {
       await this.refresh(existing)
       return existing
     }
+    const { admission_key } = await this.user.user_config()
+    let admission: [] | [AdmissionTicket] = []
+    if (admission_key.length) {
+      ensure(admit, 'UNAVAILABLE', '此账户服务需要云端准入票据，请先配置云端服务。')
+      admission = [await admit(this.home.toUint8Array(), this.caller.toUint8Array())]
+    }
     const input: CreateAccount = {
       device: deviceInput(this.meta),
       op_id: unhex(id()),
       expires_at: BigInt(Date.now() + 270000),
-      proof: new Uint8Array()
+      proof: new Uint8Array(),
+      admission
     }
     input.proof = await this.crypto.call(
       'deviceSign',
@@ -494,14 +504,18 @@ export class AccountClient {
     await this.save(journal)
     return this.dispatch(journal)
   }
-  async beginBinding(account: string) {
+  private bindingKey(account: string) {
+    return `binding:${account}`
+  }
+  /** This login's request for an administrator device to bind it. Nothing
+   * reaches the home until the login accepts the approval. */
+  async bindingRequest(account: string) {
     const nonce = id(),
       expires = Date.now() + 300000
-    await this.submit(
-      'begin_auth_binding',
-      account,
-      [xidBytes(account), unhex(nonce), BigInt(expires)],
-      nonce
+    await this.crypto.call(
+      'controlPut',
+      this.bindingKey(account),
+      JSON.stringify({ principal: this.caller.toText(), nonce })
     )
     return JSON.stringify({
       format: 'dmsg-auth-request/1',
@@ -526,6 +540,24 @@ export class AccountClient {
     Principal.fromText(packet.principal)
     ensure(unhex(packet.nonce).length === 32, 'INVALID_INPUT')
     return packet as { account: string; principal: string; nonce: string; expires: number }
+  }
+  /** Accept the binding an administrator approved for this login's request;
+   * the approval lapses ten minutes after it was given. */
+  async acceptBinding(account: string) {
+    const saved = await this.crypto.call('controlGet', this.bindingKey(account))
+    const request = saved ? (JSON.parse(saved) as { principal: string; nonce: string }) : null
+    ensure(
+      request && request.principal === this.caller.toText(),
+      'NOT_FOUND',
+      '请先用当前登录身份生成认证绑定请求。'
+    )
+    await this.submit(
+      'accept_auth_binding',
+      account,
+      [xidBytes(account), unhex(request.nonce)],
+      request.nonce
+    )
+    return this.refresh(account)
   }
   async approveBinding(account: string, text: string) {
     const request = this.inspectBinding(text)

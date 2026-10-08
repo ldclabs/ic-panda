@@ -132,6 +132,10 @@ export type ActionValue = { 'Nat' : bigint } |
   { 'Text' : string } |
   { 'Principal' : Principal } |
   { 'Choice' : string };
+export interface AdmissionTicket {
+  'signature' : Uint8Array | number[],
+  'expires_at' : bigint,
+}
 export interface AppAction {
   'files' : Array<ActionFile>,
   'actor' : Uint8Array | number[],
@@ -278,6 +282,7 @@ export type ControllerRole = { 'Administrator' : null } |
 export interface CreateAccount {
   'op_id' : Uint8Array | number[],
   'device' : DeviceInput,
+  'admission' : [] | [AdmissionTicket],
   'proof' : Uint8Array | number[],
   'expires_at' : bigint,
 }
@@ -359,7 +364,6 @@ export interface ExecutionUsage {
   'account_id' : Uint8Array | number[],
   'business_revision' : bigint,
   'valid_until_ms' : bigint,
-  'held_units' : bigint,
   'lease_revision' : bigint,
   'allowed_units' : bigint,
   'charged_units' : bigint,
@@ -485,13 +489,11 @@ export type Result_13 = { 'Ok' : [] | [PendingRecovery] } |
   { 'Err' : Error };
 export type Result_14 = { 'Ok' : [] | [ContentRootRef] } |
   { 'Err' : Error };
-export type Result_15 = { 'Ok' : number } |
+export type Result_15 = { 'Ok' : bigint } |
   { 'Err' : Error };
-export type Result_16 = { 'Ok' : bigint } |
-  { 'Err' : Error };
-export type Result_17 = { 'Ok' : string } |
+export type Result_16 = { 'Ok' : string } |
   { 'Err' : string };
-export type Result_18 = { 'Ok' : ApplicationAuthorization } |
+export type Result_17 = { 'Ok' : ApplicationAuthorization } |
   { 'Err' : Error };
 export type Result_2 = { 'Ok' : AuthenticationResult } |
   { 'Err' : Error };
@@ -574,6 +576,7 @@ export type StatementContent = { 'AppAction' : AppAction } |
   };
 export interface UserInit {
   'handle_canister' : Principal,
+  'admission_key' : [] | [Uint8Array | number[]],
   'principal_origin' : string,
   'home_cose' : Principal,
   'issuer_namespace' : string,
@@ -600,7 +603,15 @@ export type VaultWriteState = { 'RekeyRequired' : null } |
   { 'Ready' : null } |
   { 'Uninitialized' : null };
 export interface _SERVICE {
+  'accept_auth_binding' : ActorMethod<
+    [Uint8Array | number[], Uint8Array | number[]],
+    Result
+  >,
   'admin_set_account_limits' : ActorMethod<[bigint, number], Result>,
+  'admin_set_admission_key' : ActorMethod<
+    [[] | [Uint8Array | number[]]],
+    Result
+  >,
   'approve_application' : ActorMethod<
     [ApplicationApproval, Approval],
     Result_1
@@ -618,10 +629,6 @@ export interface _SERVICE {
   'authorize_product_billing' : ActorMethod<
     [ProductAuthorizationRequest],
     Result_5
-  >,
-  'begin_auth_binding' : ActorMethod<
-    [Uint8Array | number[], Uint8Array | number[], bigint],
-    Result
   >,
   'complete_recovery' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
@@ -665,16 +672,15 @@ export interface _SERVICE {
   >,
   'mutate_account' : ActorMethod<[AccountMutation], Result_11>,
   'my_account' : ActorMethod<[], [] | [Uint8Array | number[]]>,
-  'prune_auth_bindings' : ActorMethod<
+  'prune_executions' : ActorMethod<
     [Uint8Array | number[]],
     [] | [Uint8Array | number[]]
   >,
-  'prune_executions' : ActorMethod<[Uint8Array | number[]], Result_15>,
   'prune_external_approvals' : ActorMethod<
     [Uint8Array | number[]],
     [] | [Uint8Array | number[]]
   >,
-  'publish_principal' : ActorMethod<[Uint8Array | number[]], Result_16>,
+  'publish_principal' : ActorMethod<[Uint8Array | number[]], Result_15>,
   'reconcile_execution' : ActorMethod<
     [Uint8Array | number[], Uint8Array | number[]],
     Result_7
@@ -699,13 +705,17 @@ export interface _SERVICE {
   'user_stats' : ActorMethod<[], UserStats>,
   'validate_admin_set_account_limits' : ActorMethod<
     [bigint, number],
-    Result_17
+    Result_16
+  >,
+  'validate_admin_set_admission_key' : ActorMethod<
+    [[] | [Uint8Array | number[]]],
+    Result_16
   >,
   'verify_application_authorization' : ActorMethod<
     [Uint8Array | number[], ApplicationApproval],
-    Result_18
+    Result_17
   >,
-  'verify_payment_offer' : ActorMethod<[SignedOffer], Result_16>,
+  'verify_payment_offer' : ActorMethod<[SignedOffer], Result_15>,
   'verify_product_account' : ActorMethod<[string, Beneficiary], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;

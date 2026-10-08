@@ -5,13 +5,13 @@
 
 ## 账户控制
 
-`protocol/account.ts` 将生成的 Candid 参数映射为公开 Rust 协议的确定性 CBOR：Principal、AccountId 和固定字节字段为 byte string，unit variant 为文本。账户创建使用 `dmsg/create-account/v1`；账户变更使用 `dmsg/device-approval/v2`、`dmsg/account/v2` 和 `dmsg/account-operation/v2`；文档认证使用 `dmsg/attest/v1`，根派生使用 `dmsg/derive-root/v1`，恢复设备 PoP 使用 `dmsg/recovery-device/v1`，controller 注册 PoP 使用 `dmsg/controller-pop/v1`。签名覆盖实际 home/caller、账户、命令、版本、设备序号、请求 ID 和期限。
+`protocol/account.ts` 将生成的 Candid 参数映射为公开 Rust 协议的确定性 CBOR：Principal、AccountId 和固定字节字段为 byte string，unit variant 为文本。账户创建使用 `dmsg/create-account/v1`，home 配置了准入公钥时另附云端对 `dmsg/account-admission/v1`（home、caller、期限）签发的票据；账户变更使用 `dmsg/device-approval/v2`、`dmsg/account/v2` 和 `dmsg/account-operation/v2`；文档认证使用 `dmsg/attest/v1`，根派生使用 `dmsg/derive-root/v1`，恢复设备 PoP 使用 `dmsg/recovery-device/v1`，controller 注册 PoP 使用 `dmsg/controller-pop/v1`。签名覆盖实际 home/caller、账户、命令、版本、设备序号、请求 ID 和期限。
 
 user home 不再在构建配置中固定。客户端启动时读取 `dmsg_handle.get_handle_config()` 的 `user_homes`（权威列表，可与构建配置 `canisters.userHomes` 交叉核对）和 `registration_homes`（当前接收新账户的子集，随机选择一个注册）。登录后对列表中的每个 home 并行调用 `my_account`，命中即连接该 home；任一查询失败视为未知，不落到注册。账户的 `home_user` 随账户固定。
 
 `services/account.ts` 在联网前把完整 Candid 请求加密保存到当前工作区。响应丢失时通过 `my_account` / `get_operation` 查询原操作；不会把认证成功或返回账户 ID 当成设备批准。当前账户安全叶（schema 4）、完整设备 map、版本及根摘要先经 IC 证书校验；本机已经看到的更高版本和已安装根不得被旧响应覆盖。
 
-新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。根包只封装给持有 `VaultUnlock` 的活跃设备：新设备持有它时，管理员换根后它才能读到根；没有它的设备不在根包中，客户端也不尝试打开根。云端同样按 `VaultUnlock` 放行账户密文读取。账户的初始设备和登录恢复的替换设备必须同时持有 `RootManage` 与 `VaultUnlock`。认证绑定必须由新 Principal 先登记 nonce，再由现有管理员批准；两者不等同于设备授权。
+新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。根包只封装给持有 `VaultUnlock` 的活跃设备：新设备持有它时，管理员换根后它才能读到根；没有它的设备不在根包中，客户端也不尝试打开根。云端同样按 `VaultUnlock` 放行账户密文读取。账户的初始设备和登录恢复的替换设备必须同时持有 `RootManage` 与 `VaultUnlock`。认证绑定分三步：新登录在本机生成 nonce 并把请求（home、账户、Principal、nonce）交给管理员设备；管理员批准 `BindAuth { principal, nonce }`，账户内登记 10 分钟有效的待接受项；新登录用同一 nonce 调用 `accept_auth_binding` 后才绑定。登录身份不等同于设备授权。
 
 ## 本机解锁
 

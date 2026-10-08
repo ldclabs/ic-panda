@@ -11,19 +11,23 @@ use ic_stable_structures::{
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
-// Stable layout: config=0, accounts=1, permanent auth routes=2, pending bindings=3,
-// retired memory=4, execution records=5, monthly usage=6, external approvals=7,
-// principals=8, certified leaf hashes=9, certification nodes=10.
-type PendingBinding = (AccountId, Hash, u64); // account_id, nonce, expiry
+// Stable layout: config=0, accounts=1, permanent auth routes=2, hourly remote
+// calls=3, retired memory=4, execution records=5, monthly usage=6, external
+// approvals=7, principals=8, certified leaf hashes=9, certification nodes=10.
 type Memory = VirtualMemory<DefaultMemoryImpl>;
+type HourlyCalls = (u64, u32); // UTC hour, remote calls started in it
+// Instructions after which a public cleanup page stops at an account boundary.
+const PRUNE_INSTRUCTIONS: u64 = 20_000_000_000;
 
 pub(crate) fn memory(id: u8) -> Memory {
     MEMORY.with_borrow(|m| m.get(MemoryId::new(id)))
 }
 
 thread_local! {
+    // Stable memory itself; on the host a shared vector the capacity image exports.
+    pub(crate) static RAW: DefaultMemoryImpl = DefaultMemoryImpl::default();
     pub(crate) static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
-        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+        RefCell::new(MemoryManager::init(RAW.with(Clone::clone)));
     pub(crate) static CONFIG: RefCell<StableCell<CompactStored<Option<Config>>, Memory>> =
         RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
     pub(crate) static ACCOUNTS: RefCell<
@@ -31,7 +35,7 @@ thread_local! {
     > = RefCell::new(StableBTreeMap::init(memory(1)));
     pub(crate) static AUTH: RefCell<StableBTreeMap<Vec<u8>, Stored<AccountId>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(2)));
-    pub(crate) static BINDINGS: RefCell<StableBTreeMap<Vec<u8>, Stored<PendingBinding>, Memory>> =
+    static CALLS: RefCell<StableBTreeMap<Vec<u8>, Stored<HourlyCalls>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(3)));
     pub(crate) static EXECUTIONS: RefCell<
         StableBTreeMap<Vec<u8>, CompactStored<AuthorizedExecution>, Memory>,
@@ -124,6 +128,22 @@ pub(crate) fn remove_execution(account_id: &AccountId, request_id: &OpId) {
     CERT.with_borrow_mut(|c| c.remove(&execution_receipt_key(account_id, *request_id)));
 }
 
+/// Count a remote call an account's login starts, at most
+/// `MAX_HOURLY_ACCOUNT_CALLS` per UTC hour. The count commits before the call,
+/// so concurrent and failed calls are counted too.
+pub(crate) fn admit_call(id: &AccountId, at: u64) -> Result<()> {
+    let hour = at / (60 * MINUTE);
+    CALLS.with_borrow_mut(|t| {
+        let used = t
+            .load(id.as_slice())
+            .filter(|(h, _)| *h == hour)
+            .map_or(0, |(_, used)| used);
+        ensure(used < MAX_HOURLY_ACCOUNT_CALLS, Error::QuotaExceeded)?;
+        t.put(id.as_slice(), &(hour, used + 1));
+        Ok(())
+    })
+}
+
 /// Only terminal results whose retention deadline passed may be evicted.
 /// Sequences, receipts and monthly settlement counters remain unchanged.
 pub(crate) fn prune_account_executions(s: &mut AccountState, now: u64) -> u32 {
@@ -139,4 +159,34 @@ pub(crate) fn prune_account_executions(s: &mut AccountState, now: u64) -> u32 {
     expired.len() as u32
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 13;
+/// Prune the expired results of the accounts holding the 64 execution records
+/// after `after`, stopping at an account boundary once the page has used
+/// `PRUNE_INSTRUCTIONS`. Returns the last key visited; None when none remain.
+pub(crate) fn prune_executions(after: Vec<u8>, now: u64) -> Option<Vec<u8>> {
+    use std::ops::Bound::{Excluded, Unbounded};
+    let keys: Vec<Vec<u8>> = EXECUTIONS.with_borrow(|t| {
+        t.keys_range((Excluded(after), Unbounded))
+            .take(64)
+            .collect()
+    });
+    let mut cursor = None;
+    let mut visited: Option<AccountId> = None;
+    for key in keys {
+        let id = AccountId(key[..12].try_into().expect("execution key"));
+        if visited != Some(id) {
+            if ic_cdk::api::instruction_counter() > PRUNE_INSTRUCTIONS {
+                break;
+            }
+            if let Ok(mut s) = load(&id) {
+                if prune_account_executions(&mut s, now) > 0 {
+                    save_account(&s);
+                }
+            }
+            visited = Some(id);
+        }
+        cursor = Some(key);
+    }
+    cursor
+}
+
+pub(crate) const STABLE_SCHEMA: u16 = 14;

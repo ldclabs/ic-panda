@@ -127,8 +127,6 @@ pub struct MonthRepr {
     pub weight_policy_version: u64,
     #[cbor(key = 7)]
     pub allowed_units: u64,
-    #[cbor(key = 8)]
-    pub held_units: u64,
     #[cbor(key = 9)]
     pub charged_units: u64,
     #[cbor(key = 10)]
@@ -151,7 +149,6 @@ impl StableCodec for Month {
             lease_revision: self.usage.lease_revision,
             weight_policy_version: self.usage.weight_policy_version,
             allowed_units: self.usage.allowed_units,
-            held_units: self.usage.held_units,
             charged_units: self.usage.charged_units,
             valid_until_ms: self.usage.valid_until_ms,
             ed25519_units: self.weights.ed25519,
@@ -169,7 +166,6 @@ impl StableCodec for Month {
                 lease_revision: repr.lease_revision,
                 weight_policy_version: repr.weight_policy_version,
                 allowed_units: repr.allowed_units,
-                held_units: repr.held_units,
                 charged_units: repr.charged_units,
                 valid_until_ms: repr.valid_until_ms,
             },
@@ -193,6 +189,16 @@ pub struct RecoveryReceiptRepr {
     #[cbor(key = 4)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub root_generation: Option<u64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
+pub struct PendingBindingRepr {
+    #[cbor(key = 1)]
+    pub principal: candid::Principal,
+    #[cbor(key = 2)]
+    pub nonce: Hash,
+    #[cbor(key = 3)]
+    pub expires_at: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Cbor)]
@@ -249,6 +255,9 @@ pub struct AccountStateRepr {
     #[cbor(key = 28)]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completed_recovery: Option<RecoveryReceiptRepr>,
+    #[cbor(key = 29)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pending_bindings: Vec<PendingBindingRepr>,
 }
 
 impl StableCodec for AccountState {
@@ -261,6 +270,15 @@ impl StableCodec for AccountState {
             home_user: self.home_user,
             home_cose: self.home_cose,
             auth_bindings: self.auth_bindings.clone(),
+            pending_bindings: self
+                .pending_bindings
+                .iter()
+                .map(|b| PendingBindingRepr {
+                    principal: b.principal,
+                    nonce: b.nonce,
+                    expires_at: b.expires_at,
+                })
+                .collect(),
             account_version: self.account_version,
             security_epoch: self.security_epoch,
             devices: map_to_repr(&self.devices),
@@ -293,6 +311,15 @@ impl StableCodec for AccountState {
             home_user: repr.home_user,
             home_cose: repr.home_cose,
             auth_bindings: repr.auth_bindings,
+            pending_bindings: repr
+                .pending_bindings
+                .into_iter()
+                .map(|b| PendingBinding {
+                    principal: b.principal,
+                    nonce: b.nonce,
+                    expires_at: b.expires_at,
+                })
+                .collect(),
             account_version: repr.account_version,
             security_epoch: repr.security_epoch,
             devices: map_from_repr(repr.devices),
@@ -488,6 +515,7 @@ mod tests {
             home_user: p(5),
             home_cose: p(6),
             auth_bindings: vec![p(1)],
+            pending_bindings: vec![],
             account_version: 0,
             security_epoch: 0,
             devices: BTreeMap::from([(Hash::new([1; 32]), device(1))]),
@@ -510,6 +538,13 @@ mod tests {
             return state;
         }
         state.auth_bindings = (1..=8).map(p).collect();
+        state.pending_bindings = (0..MAX_PENDING_BINDINGS as u8)
+            .map(|n| PendingBinding {
+                principal: p(n + 20),
+                nonce: Hash::new([n + 120; 32]),
+                expires_at: 1_700_000_600_000,
+            })
+            .collect();
         state.devices = (1..=16).map(|n| (Hash::new([n; 32]), device(n))).collect();
         state.account_version = 1_000;
         state.security_epoch = 20;
@@ -545,7 +580,7 @@ mod tests {
         });
         state.vault_write_state = VaultWriteState::Ready;
         state.principal_updated_at = Some(1_700_000_200_000);
-        state.operations = (0..64)
+        state.operations = (0..MAX_OPERATION_RECEIPTS as u8)
             .map(|n| OperationReceipt {
                 id: Hash::new([n; 32]),
                 digest: Hash::new([n.wrapping_add(1); 32]),
@@ -624,10 +659,10 @@ mod tests {
 
         let full = account(true);
         let compact = compact_bytes(&full);
-        assert!(compact.len() > 17_000);
+        assert!(compact.len() > 14_000);
         assert_eq!(
             hex(&compact),
-            "28c64772d1afec1ac4cdf690c29f40f92011b8cb9c0c2bfdd1911abea3b6d7e7"
+            "2a5002d9b1af78b7abb38e2681dad52d0fc65f28a64df4e003aed28ee87b06d0"
         );
         let plain = cbor2::to_vec(&full).unwrap();
         assert_eq!(compact_from_bytes::<AccountState>(&compact), full);
@@ -636,7 +671,7 @@ mod tests {
             (1..=6)
                 .chain([8])
                 .chain(12..=23)
-                .chain([25, 27, 28])
+                .chain([25, 27, 28, 29])
                 .collect::<Vec<_>>()
         );
         // The retention index consists of raw IDs/timestamps in both encodings;
@@ -665,7 +700,6 @@ mod tests {
                 lease_revision: 13,
                 weight_policy_version: 14,
                 allowed_units: 200,
-                held_units: 7,
                 charged_units: 21,
                 valid_until_ms: 1_790_000_000_000,
             },
@@ -692,11 +726,12 @@ mod tests {
                 home_cose: p(2),
                 handle_canister: p(3),
                 payment_canister: p(4),
-                max_accounts: 1_000_000,
+                max_accounts: MAX_HOME_ACCOUNTS,
                 daily_new_accounts: 10_000,
                 principal_origin: "https://id.dmsg.example".into(),
                 directory_canister: p(5),
                 governance: p(6),
+                admission_key: Some(Hash::new([7; 32])),
             },
             allocator: XidGenerator::new([1, 2, 3, 4, 5]),
             allocator_namespace_digest: Hash::new([6; 32]),
@@ -707,6 +742,7 @@ mod tests {
         let decoded = compact_from_bytes::<Config>(&compact_bytes(&config));
         assert_eq!(decoded.schema, crate::store::STABLE_SCHEMA);
         assert_eq!(decoded.master_secret, config.master_secret);
+        assert_eq!(decoded.init, config.init);
 
         let state = account(false);
         let derivation = AuthorizedExecution {

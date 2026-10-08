@@ -104,7 +104,7 @@ const delegationType = field(field(commandType, 'RegisterController'), 'delegati
 export type ControlMethod =
   | 'create_account'
   | 'mutate_account'
-  | 'begin_auth_binding'
+  | 'accept_auth_binding'
   | 'request_recovery'
   | 'complete_recovery'
   | 'derive_root'
@@ -135,7 +135,7 @@ export function decodeControlResult(method: ControlMethod, encoded: string): unk
 export const createAccountMessage = (
   home: Principal,
   caller: Principal,
-  request: Omit<CreateAccount, 'proof'>
+  request: Pick<CreateAccount, 'device' | 'op_id' | 'expires_at'>
 ) =>
   digest('dmsg/create-account/v1', [
     home.toUint8Array(),

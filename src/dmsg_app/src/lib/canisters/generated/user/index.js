@@ -9,6 +9,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const UserInit = IDL.Record({
     'handle_canister' : IDL.Principal,
+    'admission_key' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'principal_origin' : IDL.Text,
     'home_cose' : IDL.Principal,
     'issuer_namespace' : IDL.Text,
@@ -332,9 +333,14 @@ export const idlFactory = ({ IDL }) => {
     'hpke_pub' : IDL.Vec(IDL.Nat8),
     'signing_pub' : IDL.Vec(IDL.Nat8),
   });
+  const AdmissionTicket = IDL.Record({
+    'signature' : IDL.Vec(IDL.Nat8),
+    'expires_at' : IDL.Nat64,
+  });
   const CreateAccount = IDL.Record({
     'op_id' : IDL.Vec(IDL.Nat8),
     'device' : DeviceInput,
+    'admission' : IDL.Opt(AdmissionTicket),
     'proof' : IDL.Vec(IDL.Nat8),
     'expires_at' : IDL.Nat64,
   });
@@ -467,7 +473,6 @@ export const idlFactory = ({ IDL }) => {
     'account_id' : IDL.Vec(IDL.Nat8),
     'business_revision' : IDL.Nat64,
     'valid_until_ms' : IDL.Nat64,
-    'held_units' : IDL.Nat64,
     'lease_revision' : IDL.Nat64,
     'allowed_units' : IDL.Nat64,
     'charged_units' : IDL.Nat64,
@@ -579,8 +584,7 @@ export const idlFactory = ({ IDL }) => {
     'approval' : Approval,
     'expected_version' : IDL.Nat64,
   });
-  const Result_15 = IDL.Variant({ 'Ok' : IDL.Nat32, 'Err' : Error });
-  const Result_16 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
+  const Result_15 = IDL.Variant({ 'Ok' : IDL.Nat64, 'Err' : Error });
   const UserStats = IDL.Record({
     'day' : IDL.Nat64,
     'unlock_ready' : IDL.Bool,
@@ -591,7 +595,7 @@ export const idlFactory = ({ IDL }) => {
     'max_accounts' : IDL.Nat64,
     'stable_pages' : IDL.Nat64,
   });
-  const Result_17 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
+  const Result_16 = IDL.Variant({ 'Ok' : IDL.Text, 'Err' : IDL.Text });
   const ApplicationAuthorization = IDL.Record({
     'approval_id' : IDL.Vec(IDL.Nat8),
     'valid_until_ms' : IDL.Nat64,
@@ -599,7 +603,7 @@ export const idlFactory = ({ IDL }) => {
     'verified_at_ms' : IDL.Nat64,
     'approval_hash' : IDL.Vec(IDL.Nat8),
   });
-  const Result_18 = IDL.Variant({
+  const Result_17 = IDL.Variant({
     'Ok' : ApplicationAuthorization,
     'Err' : Error,
   });
@@ -626,7 +630,17 @@ export const idlFactory = ({ IDL }) => {
     'offer' : PaymentOffer,
   });
   return IDL.Service({
+    'accept_auth_binding' : IDL.Func(
+        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
+        [Result],
+        [],
+      ),
     'admin_set_account_limits' : IDL.Func([IDL.Nat64, IDL.Nat32], [Result], []),
+    'admin_set_admission_key' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8))],
+        [Result],
+        [],
+      ),
     'approve_application' : IDL.Func(
         [ApplicationApproval, Approval],
         [Result_1],
@@ -647,11 +661,6 @@ export const idlFactory = ({ IDL }) => {
     'authorize_product_billing' : IDL.Func(
         [ProductAuthorizationRequest],
         [Result_5],
-        [],
-      ),
-    'begin_auth_binding' : IDL.Func(
-        [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8), IDL.Nat64],
-        [Result],
         [],
       ),
     'complete_recovery' : IDL.Func(
@@ -708,18 +717,17 @@ export const idlFactory = ({ IDL }) => {
       ),
     'mutate_account' : IDL.Func([AccountMutation], [Result_11], []),
     'my_account' : IDL.Func([], [IDL.Opt(IDL.Vec(IDL.Nat8))], ['query']),
-    'prune_auth_bindings' : IDL.Func(
+    'prune_executions' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [IDL.Opt(IDL.Vec(IDL.Nat8))],
         [],
       ),
-    'prune_executions' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_15], []),
     'prune_external_approvals' : IDL.Func(
         [IDL.Vec(IDL.Nat8)],
         [IDL.Opt(IDL.Vec(IDL.Nat8))],
         [],
       ),
-    'publish_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_16], []),
+    'publish_principal' : IDL.Func([IDL.Vec(IDL.Nat8)], [Result_15], []),
     'reconcile_execution' : IDL.Func(
         [IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Nat8)],
         [Result_7],
@@ -749,15 +757,20 @@ export const idlFactory = ({ IDL }) => {
     'user_stats' : IDL.Func([], [UserStats], ['query']),
     'validate_admin_set_account_limits' : IDL.Func(
         [IDL.Nat64, IDL.Nat32],
-        [Result_17],
+        [Result_16],
+        ['query'],
+      ),
+    'validate_admin_set_admission_key' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8))],
+        [Result_16],
         ['query'],
       ),
     'verify_application_authorization' : IDL.Func(
         [IDL.Vec(IDL.Nat8), ApplicationApproval],
-        [Result_18],
+        [Result_17],
         [],
       ),
-    'verify_payment_offer' : IDL.Func([SignedOffer], [Result_16], []),
+    'verify_payment_offer' : IDL.Func([SignedOffer], [Result_15], []),
     'verify_product_account' : IDL.Func([IDL.Text, Beneficiary], [Result], []),
   });
 };
@@ -769,6 +782,7 @@ export const init = ({ IDL }) => {
   });
   const UserInit = IDL.Record({
     'handle_canister' : IDL.Principal,
+    'admission_key' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'principal_origin' : IDL.Text,
     'home_cose' : IDL.Principal,
     'issuer_namespace' : IDL.Text,

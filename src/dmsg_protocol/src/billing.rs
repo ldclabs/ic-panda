@@ -38,11 +38,6 @@ pub fn catalog_key() -> Hash {
     digest("dmsg/commerce/catalog-key/v1", &"dmsg")
 }
 
-/// Single-segment certified execution-usage path; month is UTC YYYYMM.
-pub fn usage_key(account: &AccountId, month: u32) -> Hash {
-    digest("dmsg/commerce/usage-key/v1", &(account, month))
-}
-
 fn datetime(ms: u64) -> Result<chrono::DateTime<Utc>> {
     let n = i64::try_from(ms).map_err(|_| invalid("timestamp"))?;
     chrono::DateTime::from_timestamp_millis(n).ok_or_else(|| invalid("timestamp"))

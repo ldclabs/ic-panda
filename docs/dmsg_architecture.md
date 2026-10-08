@@ -2,7 +2,7 @@
 
 English | [简体中文](dmsg_architecture_zh.md)
 
-> Baseline: public repository `main` at commit `c707ade` (2026-10-08). This document gives an overview of the public implementation: its architecture, capacity, scaling and multi-instance deployment. Figures come from the measurements and code constants recorded in each canister README. Each README and `.did` file remains authoritative for interfaces, state machines and validation details; where either disagrees with this document, the code wins. The companion cloud service is not public and is described here only through its public contracts. This document does not certify a production deployment, mainnet capacity or a security audit.
+> Baseline: public repository `main` at commit `c707ade` (2026-10-08), with the user home's capacity, admission and binding parts updated for the 21-million-account change later that day. This document gives an overview of the public implementation: its architecture, capacity, scaling and multi-instance deployment. Figures come from the measurements and code constants recorded in each canister README. Each README and `.did` file remains authoritative for interfaces, state machines and validation details; where either disagrees with this document, the code wins. The companion cloud service is not public and is described here only through its public contracts. This document does not certify a production deployment, mainnet capacity or a security audit.
 
 ## 1. Design Principles
 
@@ -62,7 +62,7 @@ flowchart LR
 
 | Canister | Authoritative data | Instances | Main per-instance limit |
 | --- | --- | --- | --- |
-| [dmsg_user](../src/dmsg_user/README.md) | Login bindings, devices and capabilities, recovery requests, content-root commitments, attestation receipts, monthly execution ledger, device unlock secrets, Agent principal records | 1–64 per deployment (user homes) | `max_accounts` ≤ 1,000,000 |
+| [dmsg_user](../src/dmsg_user/README.md) | Login bindings, devices and capabilities, recovery requests, content-root commitments, attestation receipts, monthly execution ledger, device unlock secrets, Agent principal records | 1–64 per deployment (user homes) | `max_accounts` ≤ 21,000,000 |
 | [dmsg_handle](../src/dmsg_handle/README.md) | Canonical handle → `AccountId`, registration charges, legacy claims and transfers; the deployment's home list | 1 globally | 10 million active handles |
 | [dmsg_cose](../src/dmsg_cose/README.md) | Content-root vetKD public key, recovery-derivation deduplication and budgets | Usually 1, serving every home | 1 million accounts that have performed a recovery derivation |
 | [dmsg_directory](../src/dmsg_directory/README.md) | Published Agent Delegation principal documents | 1 globally | Not measured at scale |
@@ -77,7 +77,7 @@ Shared libraries: [dmsg_types](../src/dmsg_types/README.md) defines the public d
 ### 4.1 Registration and Account Lookup
 
 1. At startup the client reads `dmsg_handle.get_handle_config()`: `user_homes` is the deployment's authoritative home list and `registration_homes` the subset currently accepting new accounts. The build configuration's `canisters.userHomes` lists homes trusted at build time (a production build needs at least one), and handle's list must contain them; any other home is taken from handle.
-2. Registration calls `create_account` on a randomly chosen registration home. The account, login route, daily quota and ID allocator commit in one message, and a retry returns the original account.
+2. Registration calls `create_account` on a randomly chosen registration home; when that home has an admission key, the client first gets an admission ticket from the cloud bound to the home and the login Principal. The account, login route, daily quota and ID allocator commit in one message, and a retry returns the original account.
 3. Login queries `my_account` on every home in parallel and connects to the home that answers. Any failed query makes the result unknown; the client never falls back to registration.
 
 An account's `home_user` and `home_cose` are fixed for its lifetime.
@@ -128,14 +128,14 @@ Principal activation, controller registration and retirement commit in the accou
 - **Address space**: every canister's `MemoryManager` uses 128-page (8 MiB) buckets; 32,768 buckets address 256 GiB. That is address space, not business capacity; the platform's stable-memory limit and the subnet's storage headroom apply separately.
 - **Compact representation**: each canister's private `stable_codec.rs` stores records as CBOR maps with integer keys, without changing public Candid, signature digests or certified leaf encodings.
 - **Certification trees**: user, payment, commerce, membership and directory use `dmsg_runtime::cert_map`, a crit-bit Merkle prefix tree in stable memory that stores only keys, certified value hashes and fixed 201-byte internal-node slots. Certified values are regenerated from records at query time and checked against the certified hashes, and a write recomputes a single path. With one million keys, one write takes 167 stable reads instead of the 4,394 of the earlier B-tree node layout. handle uses `name_tree`, which splits names by hash into 2^20 buckets and stores node hashes in a fixed array, so a write recomputes one bucket and one path.
-- **Bounded collections**: each account holds at most 16 devices (5 active), 8 logins, 64 operation receipts and 64 retained executions; a certified batch response is at most 256 KiB. Ordinary account operations do not read past execution payloads.
+- **Bounded collections**: each account holds at most 16 devices (5 active), 8 logins, 4 pending bindings, 16 operation receipts and 64 retained executions; a certified batch response is at most 256 KiB. Ordinary account operations do not read past execution payloads.
 - **Upgrades**: the heap holds no business state; only payment's and commerce's `pre_upgrade` flush call counters (payment also flushes the day's order count). `post_upgrade` checks the schema and only publishes the root, and fails on any other schema. Development layouts are not migrated; once in production, any layout change needs an explicit migration.
 
 Measured `post_upgrade` cost (PocketIC 16.0.0, release Wasm; large samples were built on the host with each canister's own storage code and uploaded as stable-memory images):
 
 | Canister | Scale | `post_upgrade` instructions | Cycles per upgrade |
 | --- | --- | ---: | ---: |
-| dmsg_user | 0 / 1,000 / 20,000 accounts | ~1.38M | ~8.4B (stop, upgrade, start) |
+| dmsg_user | 10,000 / 1 million accounts | 1.38M / 1.40M | ~8.4B (stop, upgrade, start) |
 | dmsg_handle | 1,000 → 10 million handles | 1.15M → 1.16M | ~4.04B |
 | dmsg_payment | 100,000 / 1 million escrows | 1.54M / 1.62M | ~11.66B |
 | dmsg_commerce | 100,000 / 1 million paying subjects | ~1.84M | ~19.44B |
@@ -147,7 +147,7 @@ Upgrade cycles are dominated by installing the Wasm module and do not depend on 
 
 | Canister | Holds | Limit | Measured and estimated | First constraint |
 | --- | --- | --- | --- | --- |
-| dmsg_user | Accounts allocated by this home | `max_accounts` 1–1,000,000; new accounts per UTC day `daily_new_accounts` 1–100,000; both governable | Upgrade cost flat up to 20,000 accounts; `create_account` averages ~9.35M cycles | Combined load of many devices, executions and monthly ledgers not measured |
+| dmsg_user | Accounts allocated by this home | `max_accounts` 1–21,000,000; new accounts per UTC day `daily_new_accounts` 1–100,000; both governable | 1.77 GiB stable at 1 million accounts (one in five active), with writes costing only 4%–16% more cycles than at 10,000; ~0.8 KB per new account and ~2.7–4.1 KB per active one, so 40–86 GB extrapolated for 21 million | Registration admission must be configured before open registration; 21 million accounts and mainnet throughput not measured |
 | dmsg_handle | Active handles plus pending charges | 10 million | At 10 million handles: ~1.8 GB for the name table and tree alone, an estimated 6–7 GB with charge and event history; a transfer costs only ~13% more cycles than at 1,000 handles; a 64-handle certified response is ~81 KB | Larger scale needs new measurements or name sharding (not implemented) |
 | dmsg_cose | Accounts that have performed a recovery derivation | 1 million across all homes | Records appear only on recovery after losing every device | Network-wide vetKD throughput of about 18 per second |
 | dmsg_payment | Lifetime escrows, independent of registered users | 10 million | 3.25 GB at 1 million escrows, ~3.2 KB each; ~32 GB extrapolated for 10 million | Ledger call budget: ~100 escrows per minute when `ledger_writes_per_minute` is 200 |
@@ -155,7 +155,7 @@ Upgrade cycles are dominated by installing the Wasm module and do not depend on 
 | membership | PANDA waiver claims, independent of account count | 1 million complete records, 10 million lifetime operations | 4.7 GB at 1 million `Active` claims, ~4.7 KB each | SNS reads: the default 200 per minute supports about 10,000 active members; the PANDA SNS caps neurons at 200,000 |
 | dmsg_directory | Accounts with an enabled principal | No total constant; each document ≤ 64 KiB | Small samples only | Not measured at scale |
 
-Only handle has been measured beyond one million records (to 10 million); the other 10-million limits are extrapolated from per-record storage.
+Only handle has been measured beyond one million records (to 10 million); user's 21 million and the other services' 10-million limits are extrapolated from per-record storage, with the growth trend checked by measurements at one million.
 
 ## 8. Multiple Instances and Sharding
 
@@ -215,7 +215,7 @@ flowchart TB
   M --> C2
 ```
 
-Under the current code limits a deployment has at most 64 user homes and therefore at most 64 × 1 million accounts; active handles are separately capped at 10 million by handle. Separate commerce and payment instances such as partition B are supported at the canister level only; see 8.5 for the client limitation.
+Under the current code limits a deployment has at most 64 user homes and therefore at most 64 × 21 million accounts; active handles are separately capped at 10 million by handle. Separate commerce and payment instances such as partition B are supported at the canister level only; see 8.5 for the client limitation.
 
 ### 8.3 Adding a User Home
 
@@ -233,8 +233,8 @@ Each administrative call below accepts the controller or the SNS governance and 
 
 - **Monitoring**: `user_stats`, `cose_stats`, `payment_stats`, `commerce_stats`, `membership_stats` and `directory_stats` are public queries reporting record counts, configured limits, stable pages and cycle balances; handle's configuration and home list come from `get_handle_config`.
 - **Raise budgets first**: when usage nears 60% of a configured limit, raise the governed limit within the code bound: `admin_set_account_limits` on user, `admin_set_limits` on payment and commerce, `configure_panda_service` on membership.
-- **Then add instances**: when a home nears one million accounts, add a home and adjust the registration entry. When payment escrows, or commerce paying subjects or lifetime orders, near 10 million (or stable-memory headroom runs short), point new homes at new payment or commerce instances instead of raising the old instance's limit further.
-- **Throughput**: one canister executes its messages sequentially; several canisters run in parallel but share their subnet's resources. Before raising per-minute budgets, check subnet throughput and cycles at the target load on a test network; cross-subnet placement, chain-key and ledger throughput need separate measurement.
+- **Then add instances**: when a home nears 21 million accounts, add a home and adjust the registration entry. When payment escrows, or commerce paying subjects or lifetime orders, near 10 million (or stable-memory headroom runs short), point new homes at new payment or commerce instances instead of raising the old instance's limit further.
+- **Throughput**: one canister executes its messages sequentially; several canisters run in parallel but share their subnet's resources, so large deployments spread homes across subnets. Before raising per-minute budgets, check subnet throughput and cycles at the target load on a test network; cross-subnet placement, chain-key and ledger throughput need separate measurement.
 
 ### 8.5 Not Yet Supported
 
@@ -248,7 +248,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 
 | Service | Budgets | How to adjust |
 | --- | --- | --- |
-| dmsg_user | New accounts per UTC day; 1,024 pending login bindings globally; 60 external approvals per account per hour; at most 64 formal executions per account per day | `admin_set_account_limits` (account limit and daily new accounts); the rest are code constants or account policy |
+| dmsg_user | New accounts per UTC day; registration admission tickets (once an admission key is set); 4 pending bindings per account; 60 external approvals and 120 cross-canister calls per account per hour; at most 64 formal executions per account per day | `admin_set_account_limits` (account limit and daily new accounts), `admin_set_admission_key` (admission key); the rest are code constants or account policy |
 | dmsg_cose | Global derivations and cycles per day; per account 100 derivations and 1.1T cycles per day (a defensive bound; the user-side daily execution limit binds first) | `admin_set_daily_budget` for the global budget; the per-account budget is a code constant |
 | dmsg_handle | Global pending charges `max_pending` ≤ 10,000, one per account at a time | Installation argument |
 | dmsg_payment | Global per-minute budgets and per-caller shares for authorizations, ledger reads and ledger payouts; daily orders; at most 16 undecided escrows per payer | `admin_set_limits` |
@@ -256,7 +256,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 | membership | Per-minute budgets for authorizations, activations, product calls and qualification reads; at most 10,000 new claims per hour; `max_claims` | `configure_panda_service` |
 
 - user, cose, payment and directory use `canister_inspect_message` to reject, before execution, ingress the method would reject anyway, so the canister does not pay to receive it. It runs on a single replica and is not a security boundary; every method still checks its caller.
-- Global budgets affect availability only, never funds or ownership. Many non-anonymous Principals can exhaust a global budget quickly, for example the daily new-account quota; operators contain this with the corresponding administrative method.
+- Global budgets affect availability only, never funds or ownership. Many non-anonymous Principals can exhaust a global budget quickly; once a user home has an admission key, every new account needs a ticket the cloud issues under per-source rate limits, so mass registration cannot fill the daily quota or the account limit.
 - Inter-canister calls use bounded waits (except COSE's vetKD derivation). After every `await` the code rereads the time and state; unknown outcomes are reconciled with the original request and never re-signed or re-sent under a new ID.
 
 ## 10. Governance and Operations
@@ -266,7 +266,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 
 | Job | Entry point | Cadence |
 | --- | --- | --- |
-| user expiry cleanup | `prune_auth_bindings`, `prune_external_approvals`, `prune_executions` | As needed; ordinary writes already clean up lazily |
+| user expiry cleanup | `prune_executions(after)`, `prune_external_approvals(after)` | Periodically, paging to the end; account writes also clean up lazily |
 | COSE result cleanup | `prune_executions(after)`, or `src/dmsg_app/scripts/cose-prune.mjs` | Periodically, paging to the end |
 | payment payout dispatch | `list_pending_transfers`, then `process_transfer` per leg | At least hourly, within 24 hours of each leg's creation |
 | commerce price publication | `publish_settlement_price` | For every enabled asset before the previous price expires; validity is at most 30 minutes |

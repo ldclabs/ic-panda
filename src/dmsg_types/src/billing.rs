@@ -334,7 +334,7 @@ pub struct CommercialReservation {
     pub valid_until_ms: u64,
 }
 
-/// Monthly execution counters; retrying an existing operation must not reserve again.
+/// Monthly execution counters of one account; retrying an attestation does not charge again.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct ExecutionUsage {
     /// Stable 12-byte dMsg account identity.
@@ -351,9 +351,7 @@ pub struct ExecutionUsage {
     pub weight_policy_version: u64,
     /// Total monthly units, rounding down once after summing weighted durations.
     pub allowed_units: u64,
-    /// Units reserved by nonterminal executions.
-    pub held_units: u64,
-    /// Units charged to completed executions.
+    /// Units charged to attestations; each is charged when it commits.
     pub charged_units: u64,
     /// Exclusive validity deadline in Unix milliseconds.
     pub valid_until_ms: u64,

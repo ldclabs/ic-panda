@@ -80,7 +80,11 @@ pub fn verify(key: &Hash, message: &[u8], signature: &[u8]) -> Result<()> {
         .map_err(|_| Error::IntegrityFailed)
 }
 
-pub(crate) fn validate_ed25519_key(bytes: &[u8]) -> Result<()> {
+/// Check that `bytes` is a 32-byte, non-weak Ed25519 verification key.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for a malformed or weak key.
+pub fn validate_ed25519_key(bytes: &[u8]) -> Result<()> {
     let bytes = bytes.try_into().map_err(|_| Error::IntegrityFailed)?;
     let key = VerifyingKey::from_bytes(bytes).map_err(|_| Error::IntegrityFailed)?;
     ensure(!key.is_weak(), Error::IntegrityFailed)

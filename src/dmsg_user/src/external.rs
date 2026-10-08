@@ -236,6 +236,7 @@ async fn approve_authentication(
     precheck(&account, caller, &approval, AUTH_DOMAIN, &request, at)?;
     check_quota(&state, at)?;
     drop(state);
+    store::admit_call(&account_id, at)?;
     let (app, _) = configuration(request.app_id.clone(), None).await?;
     // Time, epoch, sequence and operation state are reread after the external call.
     let at = nanos_to_millis(ic_cdk::api::time());
@@ -338,6 +339,7 @@ async fn approve_application(application: ApplicationApproval, approval: Approva
     )?;
     check_quota(&state, at)?;
     drop(state);
+    store::admit_call(&id, at)?;
     let (app, product) = configuration(
         application.app_id.clone(),
         Some(application.beneficiary.product_id.clone()),

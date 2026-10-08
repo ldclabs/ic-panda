@@ -44,6 +44,7 @@ fn cloud_extension_gateway() {
             principal_origin: "https://id.dmsg.test".into(),
             directory_canister: peer,
             governance: peer,
+            admission_key: None,
         },))
         .unwrap(),
         None,
@@ -83,6 +84,7 @@ fn cloud_extension_gateway() {
                 op_id,
                 expires_at,
                 proof,
+                admission: None,
             },))
             .unwrap(),
         )

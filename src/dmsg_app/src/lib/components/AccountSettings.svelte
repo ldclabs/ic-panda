@@ -403,7 +403,7 @@
       disabled={session.busy}
       onclick={() =>
         session.run(async () => {
-          packet = await client!.beginBinding(account)
+          packet = await client!.bindingRequest(account)
         })}>生成本次认证绑定请求</button
     >
     {#if packet}<label
@@ -415,6 +415,14 @@
             new Blob([packet], { type: 'application/json' }),
             'dmsg-approval-request.json'
           )}>下载请求</button
+      ><button
+        class="secondary"
+        disabled={session.busy}
+        onclick={() =>
+          session.run(async () => {
+            accountState = await client!.acceptBinding(account)
+            packet = ''
+          }, '认证身份已绑定。')}>管理员批准后完成绑定</button
       >{/if}
     {#if admin}
       <label

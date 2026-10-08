@@ -39,6 +39,7 @@ fn account() -> AccountState {
             op_id: op,
             expires_at: expiry,
             proof: proof.to_bytes().into(),
+            admission: None,
         },
         fixtures::NOW,
     )

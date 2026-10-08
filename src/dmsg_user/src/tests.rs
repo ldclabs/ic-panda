@@ -38,6 +38,7 @@ fn test_init() -> UserInit {
         principal_origin: "https://id.dmsg.test".into(),
         directory_canister: p(9),
         governance: p(10),
+        admission_key: None,
     }
 }
 
@@ -87,6 +88,7 @@ fn fixture() -> TestAccount {
             )
             .to_bytes()
             .into(),
+        admission: None,
     };
     TestAccount {
         account: account::create(p(5), p(6), AccountId([8; 12]), p(1), &input, 1).unwrap(),
@@ -1370,6 +1372,7 @@ fn only_a_change_of_root_recipients_requires_a_rekey() {
         3,
     )
     .unwrap();
+    account::accept_binding(&mut s, p(4), Hash::new([4; 32]), 3).unwrap();
     apply(&mut s, AccountCommand::RemoveAuth { principal: p(4) }, 4).unwrap();
     assert_eq!(s.security_epoch, epoch + 2);
     assert_eq!(s.vault_write_state, VaultWriteState::Ready);
@@ -1405,6 +1408,7 @@ fn only_a_change_of_root_recipients_requires_a_rekey() {
         op_id: Hash::new([9; 32]),
         expires_at: MINUTE,
         proof: Default::default(),
+        admission: None,
     };
     assert!(account::create(p(5), p(6), AccountId([7; 12]), p(1), &create, 1).is_err());
     let request = RecoveryRequest {
@@ -1777,4 +1781,117 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
     )
     .unwrap();
     assert!(document.len() <= dmsg_protocol::agent::MAX_PRINCIPAL_DOCUMENT_BYTES);
+}
+
+#[test]
+fn admission_tickets_bind_the_home_the_caller_and_a_short_deadline() {
+    let issuer = sk(30);
+    let key: Hash = issuer.verifying_key().to_bytes().into();
+    let ticket = |home: Principal, caller: Principal, expires_at: u64| AdmissionTicket {
+        expires_at,
+        signature: issuer
+            .sign(account_admission_message(home, caller, expires_at).as_slice())
+            .to_bytes()
+            .into(),
+    };
+    let check = |t: Option<&AdmissionTicket>, now: u64| {
+        account::check_admission(Some(&key), p(5), p(1), t, now)
+    };
+    // Without a key any caller is admitted, with or without a ticket.
+    assert_eq!(account::check_admission(None, p(5), p(1), None, 1), Ok(()));
+    assert_eq!(check(Some(&ticket(p(5), p(1), MINUTE)), 1), Ok(()));
+    assert_eq!(check(None, 1), Err(Error::Forbidden));
+    // Another home's or another caller's ticket does not verify.
+    assert_eq!(
+        check(Some(&ticket(p(6), p(1), MINUTE)), 1),
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!(
+        check(Some(&ticket(p(5), p(2), MINUTE)), 1),
+        Err(Error::IntegrityFailed)
+    );
+    // Expired tickets and deadlines past the ten-minute limit are refused.
+    assert_eq!(
+        check(Some(&ticket(p(5), p(1), MINUTE)), MINUTE),
+        Err(Error::Expired)
+    );
+    assert_eq!(
+        check(Some(&ticket(p(5), p(1), MAX_ADMISSION_TTL_MS + 2)), 1),
+        Err(Error::Expired)
+    );
+}
+
+#[test]
+fn a_login_binds_only_by_accepting_a_live_approval() {
+    let mut s = fixture();
+    let nonce = Hash::new([4; 32]);
+    let approve = |s: &mut AccountState, principal: Principal, nonce: Hash, at: u64| {
+        apply(s, AccountCommand::BindAuth { principal, nonce }, at)
+    };
+    // The approval records the login without binding it or changing the epoch.
+    let epoch = s.security_epoch;
+    approve(&mut s, p(4), nonce, 10).unwrap();
+    assert!(!s.auth_bindings.contains(&p(4)));
+    assert_eq!(s.security_epoch, epoch);
+    assert_eq!(s.pending_bindings.len(), 1);
+    // Only the approved login with the approved nonce, before the deadline.
+    let before = s.clone();
+    assert_eq!(
+        account::accept_binding(&mut s, p(3), nonce, 11),
+        Err(Error::NotFound)
+    );
+    assert_eq!(
+        account::accept_binding(&mut s, p(4), Hash::new([5; 32]), 11),
+        Err(Error::NotFound)
+    );
+    assert_eq!(
+        account::accept_binding(&mut s, p(4), nonce, 10 + BINDING_ACCEPT_MS),
+        Err(Error::NotFound)
+    );
+    assert_eq!(s, before);
+    let version = s.account_version;
+    account::accept_binding(&mut s, p(4), nonce, 11).unwrap();
+    assert!(s.auth_bindings.contains(&p(4)));
+    assert_eq!(
+        (s.security_epoch, s.account_version),
+        (epoch + 1, version + 1)
+    );
+    assert!(s.pending_bindings.is_empty());
+
+    // Approving the same login again replaces it; the account holds at most
+    // MAX_PENDING_BINDINGS approvals.
+    for n in 0..MAX_PENDING_BINDINGS as u8 {
+        approve(&mut s, p(20 + n), nonce, 20).unwrap();
+    }
+    approve(&mut s, p(20), Hash::new([6; 32]), 21).unwrap();
+    assert_eq!(s.pending_bindings.len(), MAX_PENDING_BINDINGS);
+    assert_eq!(approve(&mut s, p(30), nonce, 22), Err(Error::QuotaExceeded));
+    // Expired approvals free their slots.
+    approve(&mut s, p(30), nonce, 21 + BINDING_ACCEPT_MS).unwrap();
+    assert_eq!(s.pending_bindings.len(), 1);
+    // Any security-epoch change withdraws every outstanding approval.
+    apply(
+        &mut s,
+        AccountCommand::SetPolicy {
+            policy: SensitivePolicy::default(),
+        },
+        30 + BINDING_ACCEPT_MS,
+    )
+    .unwrap();
+    assert!(s.pending_bindings.is_empty());
+    assert_eq!(
+        account::accept_binding(&mut s, p(30), nonce, 31 + BINDING_ACCEPT_MS),
+        Err(Error::NotFound)
+    );
+}
+
+#[test]
+fn accounts_keep_only_the_latest_operation_receipts() {
+    let mut s = fixture();
+    let mut receipts = vec![];
+    for at in 1..=MAX_OPERATION_RECEIPTS as u64 + 4 {
+        let policy = SensitivePolicy::default();
+        receipts.push(apply(&mut s, AccountCommand::SetPolicy { policy }, at).unwrap());
+    }
+    assert_eq!(s.operations, receipts[4..]);
 }

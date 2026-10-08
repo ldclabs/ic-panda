@@ -11,6 +11,15 @@ pub struct HandleAuthorization {
     pub expires_at: u64,
 }
 
+/// A login binding an administrator approved. The login accepts it with the
+/// nonce from its own request before `expires_at`.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PendingBinding {
+    pub principal: Principal,
+    pub nonce: Hash,
+    pub expires_at: u64,
+}
+
 /// The latest completed recovery, retained for exact completion retries and
 /// for the root derivations its device may request until it rekeys.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -30,6 +39,8 @@ pub struct AccountState {
     pub home_user: Principal,
     pub home_cose: Principal,
     pub auth_bindings: Vec<Principal>,
+    // Approved logins not yet accepted; withdrawn by any security-epoch change.
+    pub pending_bindings: Vec<PendingBinding>,
     pub account_version: u64,
     pub security_epoch: u64,
     pub devices: BTreeMap<Hash, Device>,

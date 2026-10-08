@@ -42,7 +42,7 @@ fn attestations_charge_the_month_once_and_replay_the_stored_artifact() {
     let artifact = artifact.unwrap();
     assert_eq!(verify_artifact(&artifact).unwrap(), first.statement);
     let charged = usage(&f, &id);
-    assert_eq!((charged.held_units, charged.charged_units), (0, 1));
+    assert_eq!(charged.charged_units, 1);
     let account = f.account_id(1, &id);
     // A replay returns the artifact without charging or consuming a sequence.
     let replay: Result<SignedArtifact> =
@@ -154,23 +154,17 @@ fn pruned_attestations_keep_their_charge_and_leave_an_absence_proof() {
     artifact.unwrap();
     let before = usage(&f, &id);
     assert_eq!(before.charged_units, 1);
-    let early: Result<u32> = update(
+    f.prune_executions();
+    let kept: Result<SignedArtifact> = query(
         &f.ic,
         f.user,
-        Principal::anonymous(),
-        "prune_executions",
-        (id,),
+        person(1),
+        "get_attestation",
+        (&id, request.approval.request_id),
     );
-    assert_eq!(early, Ok(0));
+    assert!(kept.is_ok());
     f.ic.advance_time(Duration::from_millis(2 * DAY));
-    let removed: Result<u32> = update(
-        &f.ic,
-        f.user,
-        Principal::anonymous(),
-        "prune_executions",
-        (id,),
-    );
-    assert_eq!(removed, Ok(1));
+    f.prune_executions();
     assert_eq!(usage(&f, &id), before);
     let gone: Result<SignedArtifact> = query(
         &f.ic,
@@ -250,7 +244,37 @@ fn entitlement_callback_rechecks_a_concurrent_policy_change() {
     );
     assert_eq!(missing, Err(Error::ResultExpired));
     let usage = usage(&f, &id);
-    assert_eq!((usage.held_units, usage.charged_units), (0, 0));
+    assert_eq!(usage.charged_units, 0);
+}
+
+#[test]
+fn month_ledgers_keep_the_current_and_previous_month() {
+    let f = Fixture::new();
+    let id = f.create(1);
+    let mut months = vec![];
+    for _ in 0..3 {
+        let usage: Result<dmsg_types::billing::ExecutionUsage> = update(
+            &f.ic,
+            f.user,
+            person(1),
+            "refresh_execution_entitlement",
+            (&id,),
+        );
+        months.push(usage.unwrap().month_utc);
+        f.ic.advance_time(Duration::from_millis(32 * DAY));
+    }
+    let row = |month: u32| -> Result<dmsg_types::billing::ExecutionUsage> {
+        query(
+            &f.ic,
+            f.user,
+            person(1),
+            "get_execution_usage",
+            (&id, month),
+        )
+    };
+    assert_eq!(row(months[0]).map(|u| u.month_utc), Err(Error::NotFound));
+    assert_eq!(row(months[1]).map(|u| u.month_utc), Ok(months[1]));
+    assert_eq!(row(months[2]).map(|u| u.month_utc), Ok(months[2]));
 }
 
 // Small reproducible growth samples, not a production capacity certification.
@@ -318,7 +342,7 @@ pub(super) fn measure_user_upgrade(f: &Fixture, accounts: &[(u8, AccountId)], mo
     println!(
         "user_upgrade accounts={} month_rows={} cycles={cycles} stable_bytes={stable_bytes} wasm_bytes={wasm_bytes}",
         accounts.len(),
-        accounts.len() * months
+        accounts.len() * months.min(2)
     );
     if let Some(log) =
         f.ic.fetch_canister_logs(f.user, Principal::anonymous())
@@ -333,26 +357,7 @@ pub(super) fn measure_user_upgrade(f: &Fixture, accounts: &[(u8, AccountId)], mo
 fn removed_and_recovered_logins_lose_their_routes() {
     let f = Fixture::new();
     let id = f.create(1);
-    let bind = |n: u8, nonce: u8| {
-        let nonce = Hash::new([nonce; 32]);
-        let begun: Result<()> = update(
-            &f.ic,
-            f.user,
-            person(n),
-            "begin_auth_binding",
-            (&id, nonce, time(&f.ic) + MINUTE),
-        );
-        begun.unwrap();
-        f.mutate(
-            1,
-            &id,
-            AccountCommand::BindAuth {
-                principal: person(n),
-                nonce,
-            },
-        )
-        .unwrap();
-    };
+    let bind = |n: u8, nonce: u8| f.bind(1, n, &id, Hash::new([nonce; 32]));
     bind(2, 21);
     let routed: Option<AccountId> = query(&f.ic, f.user, person(2), "my_account", ());
     assert_eq!(routed, Some(id));
@@ -476,4 +481,236 @@ fn reconcile_transport_failures_do_not_rewrite_the_execution() {
         (&id, request.approval.request_id),
     );
     assert_eq!(completed.unwrap().status(), ExecutionStatus::Completed);
+}
+
+// Loads the host images of dmsg_user::capacity (every fifth account active)
+// and measures the user canister alone. Two steps:
+//   1. run this test once; it prints the canister ID to build images for;
+//   2. DMSG_USER_IMAGE_DIR=<dir> DMSG_USER_IMAGE_CANISTER=<id> cargo test --release
+//      -p dmsg_user --lib capacity_image -- --ignored --nocapture
+//   then run this test again with DMSG_USER_IMAGE_DIR.
+#[test]
+#[ignore = "capacity profile over host-built dmsg_user images"]
+fn user_capacity_profile() {
+    // Matches dmsg_user::capacity.
+    let at = 1_800_000_000_000u64;
+    let login = |i: u64, n: u64| {
+        Principal::self_authenticating(digest("capacity login", &(i, n)).as_slice())
+    };
+    let device_key = |i: u64, n: u64| SigningKey::from_bytes(&digest("capacity device", &(i, n)));
+    let device_id = |i: u64, n: u64| digest("capacity device id", &(i, n));
+    let dir = std::env::var_os("DMSG_USER_IMAGE_DIR").map(PathBuf::from);
+    for accounts in [10_000u64, 1_000_000] {
+        // Compress before starting PocketIC: its server stops after a minute idle.
+        let image = dir
+            .as_ref()
+            .and_then(|d| std::fs::read(d.join(format!("user-{accounts}.bin"))).ok())
+            .map(|image| {
+                let mut gzip =
+                    flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+                std::io::Write::write_all(&mut gzip, &image).unwrap();
+                (image.len(), gzip.finish().unwrap())
+            });
+        let ic = PocketIcBuilder::new().with_application_subnet().build();
+        ic.set_time(pocket_ic::Time::from_nanos_since_unix_epoch(
+            millis_to_nanos(at + MINUTE).unwrap(),
+        ));
+        let user = ic.create_canister();
+        let Some((image_bytes, gzip)) = image else {
+            println!("user_capacity build images with DMSG_USER_IMAGE_CANISTER={user}");
+            continue;
+        };
+        ic.add_cycles(user, 100_000_000_000_000_000);
+        // An empty module has no hooks that could write over the image.
+        ic.install_canister(user, b"\0asm\x01\0\0\0".to_vec(), vec![], None);
+        ic.set_stable_memory(user, gzip, pocket_ic::common::rest::BlobCompression::Gzip);
+        let cycles = ic.cycle_balance(user);
+        ic.upgrade_canister(
+            user,
+            wasm("dmsg_user"),
+            candid::encode_args(()).unwrap(),
+            None,
+        )
+        .unwrap();
+        let upgrade_cycles = cycles - ic.cycle_balance(user);
+        let upgrade = ic
+            .fetch_canister_logs(user, Principal::anonymous())
+            .unwrap()
+            .into_iter()
+            .map(|l| String::from_utf8_lossy(&l.content).into_owned())
+            .find(|l| l.contains("dmsg_user upgrade"))
+            .unwrap();
+        let spent = |sender: Principal, method: &str, args: Vec<u8>| -> (u128, Vec<u8>) {
+            let cycles = ic.cycle_balance(user);
+            let reply = ic.update_call(user, sender, method, args).unwrap();
+            (cycles - ic.cycle_balance(user), reply)
+        };
+        // Active accounts sampled across the whole ID range.
+        let active: Vec<(u64, AccountId)> = (0..64)
+            .map(|k| {
+                let i = 5 * (k * (accounts / 5 / 64));
+                let id: Option<AccountId> = query(&ic, user, login(i, 0), "my_account", ());
+                (i, id.unwrap())
+            })
+            .collect();
+        let batch: Vec<AccountId> = active.iter().map(|(_, id)| *id).collect();
+        let began = std::time::Instant::now();
+        let certified: Result<CertifiedBatch> = query(
+            &ic,
+            user,
+            Principal::anonymous(),
+            "security_snapshot_batch",
+            (&batch,),
+        );
+        let query_ms = began.elapsed().as_millis();
+        assert!(certified.unwrap().entries.iter().all(|e| e.value.is_some()));
+        // Replicated, so its instructions are charged; inspect admits a login.
+        let (batch_cycles, _) = spent(
+            person(250),
+            "security_snapshot_batch",
+            candid::encode_args((&batch,)).unwrap(),
+        );
+
+        // A new account.
+        let new_login = Principal::self_authenticating([201; 32]);
+        let input = {
+            let expires = at + 2 * MINUTE;
+            let dev = DeviceInput {
+                device_id: Hash::new([201; 32]),
+                signing_pub: key(201).verifying_key().to_bytes().into(),
+                ..device(201)
+            };
+            let op = Hash::new([201; 32]);
+            let proof = key(201)
+                .sign(
+                    digest(
+                        "dmsg/create-account/v1",
+                        &(user, new_login, &dev, op, expires),
+                    )
+                    .as_slice(),
+                )
+                .to_bytes()
+                .into();
+            CreateAccount {
+                device: dev,
+                op_id: op,
+                expires_at: expires,
+                proof,
+                admission: None,
+            }
+        };
+        let (create_cycles, reply) = spent(
+            new_login,
+            "create_account",
+            candid::encode_args((input,)).unwrap(),
+        );
+        let created: Result<AccountId> = candid::decode_one(&reply).unwrap();
+        created.unwrap();
+
+        // A mutation and an attestation of an active account; the image's
+        // month lease is current, so neither leaves the canister.
+        let (i, id) = active[17];
+        let info = || -> AccountInfo {
+            let r: Result<AccountInfo> = query(&ic, user, login(i, 0), "get_account", (&id,));
+            r.unwrap()
+        };
+        let s = info();
+        let admin = device_id(i, 0);
+        let mut m = AccountMutation {
+            account_id: id,
+            expected_version: s.account_version,
+            command: AccountCommand::SetRecoveryDelay { delay_ms: 2 * DAY },
+            approval: Approval {
+                device_id: admin,
+                security_epoch: s.security_epoch,
+                sequence: s.devices[&admin].next_sequence,
+                request_id: digest("capacity mutation", &i),
+                expires_at: at + 2 * MINUTE,
+                signature: Default::default(),
+            },
+        };
+        m.approval.signature = device_key(i, 0)
+            .sign(
+                approval_message(
+                    user,
+                    &id,
+                    "dmsg/account/v2",
+                    &(&m.expected_version, &m.command),
+                    &m.approval,
+                )
+                .as_slice(),
+            )
+            .to_bytes()
+            .into();
+        let (mutate_cycles, reply) = spent(
+            login(i, 0),
+            "mutate_account",
+            candid::encode_args((m,)).unwrap(),
+        );
+        let mutated: Result<OperationReceipt> = candid::decode_one(&reply).unwrap();
+        mutated.unwrap();
+        let s = info();
+        let statement = Statement {
+            issuer: s.issuer.clone(),
+            subject: None,
+            issued_at: None,
+            content: StatementContent::Text("x".repeat(256)),
+        };
+        let key = device_key(i, 0);
+        let prepared =
+            prepare_attestation(&statement, &key.verifying_key().to_bytes().into()).unwrap();
+        let sequence = s.devices[&admin].next_sequence;
+        let mut request = AttestRequest {
+            account_id: id,
+            statement,
+            origin: "https://example.com".into(),
+            signature: key.sign(&prepared.to_be_signed).to_bytes().into(),
+            approval: Approval {
+                device_id: admin,
+                security_epoch: s.security_epoch,
+                sequence,
+                request_id: execution_request_id(&id, s.security_epoch, admin, sequence),
+                expires_at: at + 2 * MINUTE,
+                signature: Default::default(),
+            },
+        };
+        request.approval.signature = key
+            .sign(attest_approval(user, &request).as_slice())
+            .to_bytes()
+            .into();
+        let (attest_cycles, reply) = spent(
+            login(i, 0),
+            "attest",
+            candid::encode_args((request,)).unwrap(),
+        );
+        let attested: Result<SignedArtifact> = candid::decode_one(&reply).unwrap();
+        attested.unwrap();
+
+        // Public cleanup: the first pages of expired attestations.
+        let mut cursor = ByteBuf::new();
+        let mut prune_cycles = 0;
+        for _ in 0..10 {
+            let (cycles, reply) = spent(
+                Principal::anonymous(),
+                "prune_executions",
+                candid::encode_args((cursor,)).unwrap(),
+            );
+            prune_cycles += cycles;
+            cursor = candid::decode_one::<Option<ByteBuf>>(&reply)
+                .unwrap()
+                .unwrap();
+        }
+
+        let memory = ic.canister_status(user, None).unwrap().memory_metrics;
+        println!(
+            "user_capacity accounts={accounts} image_bytes={image_bytes} stable_bytes={} \
+             upgrade_cycles={upgrade_cycles} create_cycles={create_cycles} \
+             mutate_cycles={mutate_cycles} attest_cycles={attest_cycles} \
+             snapshot_batch64_cycles={batch_cycles} snapshot_batch64_query_ms={query_ms} \
+             prune_page_cycles={}",
+            memory.stable_memory_size,
+            prune_cycles / 10,
+        );
+        println!("{upgrade}");
+    }
 }

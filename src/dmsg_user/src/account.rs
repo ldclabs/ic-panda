@@ -36,6 +36,7 @@ pub(crate) fn create(
         home_user: id,
         home_cose: cose,
         auth_bindings: vec![caller],
+        pending_bindings: vec![],
         account_version: 0,
         security_epoch: 0,
         devices: BTreeMap::from([(
@@ -63,6 +64,27 @@ pub(crate) fn create(
         execution_expirations: BTreeMap::new(),
         principal_updated_at: None,
     })
+}
+
+/// With an admission key configured, account creation needs a ticket the key
+/// signed for this home, this caller and a deadline at most ten minutes ahead.
+pub(crate) fn check_admission(
+    key: Option<&Hash>,
+    home: Principal,
+    caller: Principal,
+    ticket: Option<&AdmissionTicket>,
+    now: u64,
+) -> Result<()> {
+    let Some(key) = key else {
+        return Ok(());
+    };
+    let ticket = ticket.ok_or(Error::Forbidden)?;
+    expiry(now, ticket.expires_at, MAX_ADMISSION_TTL_MS)?;
+    verify(
+        key,
+        account_admission_message(home, caller, ticket.expires_at).as_slice(),
+        ticket.signature.as_slice(),
+    )
 }
 
 pub(crate) fn check_device<'a, T: serde::Serialize>(
@@ -118,6 +140,7 @@ fn invalidate_approvals(s: &mut AccountState) {
         .checked_add(1)
         .expect("security epoch exhausted");
     s.root_slot = None;
+    s.pending_bindings.clear();
 }
 
 /// Invalidate approvals after a device or login change. When the root
@@ -142,10 +165,35 @@ pub(crate) fn finish(s: &mut AccountState, a: &Approval, fingerprint: Hash) -> O
         account_version: s.account_version,
     };
     s.operations.push(receipt.clone());
-    if s.operations.len() > WINDOW {
+    if s.operations.len() > MAX_OPERATION_RECEIPTS {
         s.operations.remove(0);
     }
     receipt
+}
+
+/// Bind `caller` under the approval an administrator recorded for it: the
+/// login's own call is its consent, and the nonce ties it to its request.
+pub(crate) fn accept_binding(
+    s: &mut AccountState,
+    caller: Principal,
+    nonce: Hash,
+    now: u64,
+) -> Result<()> {
+    let at = s
+        .pending_bindings
+        .iter()
+        .position(|b| b.principal == caller && b.nonce == nonce && now < b.expires_at)
+        .ok_or(Error::NotFound)?;
+    ensure(
+        s.auth_bindings.len() < MAX_AUTH_BINDINGS,
+        Error::QuotaExceeded,
+    )?;
+    s.pending_bindings.remove(at);
+    s.auth_bindings.push(caller);
+    s.account_version = s.account_version.checked_add(1).expect("version exhausted");
+    // Logins never receive root envelopes; only approvals are invalidated.
+    invalidate_approvals(s);
+    Ok(())
 }
 
 /// Outcome of the shared account-mutation checks.
@@ -291,15 +339,26 @@ pub(crate) fn apply(
             ensure_valid(has_administrator(&next), "last administrator")?;
             changed(&mut next, &s.root_recipients());
         }
-        AccountCommand::BindAuth { principal, .. } => {
+        AccountCommand::BindAuth { principal, nonce } => {
             authenticated(*principal)?;
+            nonzero(nonce.as_slice())?;
             ensure(
                 !next.auth_bindings.contains(principal)
                     && next.auth_bindings.len() < MAX_AUTH_BINDINGS,
                 Error::QuotaExceeded,
             )?;
-            next.auth_bindings.push(*principal);
-            changed(&mut next, &s.root_recipients());
+            // Approving the same login again replaces its nonce and deadline.
+            next.pending_bindings
+                .retain(|b| now < b.expires_at && b.principal != *principal);
+            ensure(
+                next.pending_bindings.len() < MAX_PENDING_BINDINGS,
+                Error::QuotaExceeded,
+            )?;
+            next.pending_bindings.push(PendingBinding {
+                principal: *principal,
+                nonce: *nonce,
+                expires_at: now + BINDING_ACCEPT_MS,
+            });
         }
         AccountCommand::RemoveAuth { principal } => {
             ensure_valid(

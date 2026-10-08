@@ -37,6 +37,20 @@
 
 `CloudClient` 提供证据提交、签名 GET/POST、密文块 PUT/GET、readiness 和 profile 写入。它限制响应大小、禁止重定向/携带 cookies，保留错误 code/retryable/request_id，不自动重试。资金和会员刷新等非命令 POST 的专用适配由后续客户端工作包接入，不能用 profile 方法替代。
 
+## 注册准入票据
+
+home 配置了 `admission_key` 时，`create_account` 须附带云端签发的 `AdmissionTicket`。客户端在创建账户前请求：
+
+```text
+POST /v1/account-admission
+content-type: application/cbor
+body: { home: bstr(user home Principal), principal: bstr(创建账户的登录 Principal) }
+
+200 { ok: true, data: { expires_at: <Unix 毫秒>, signature: <base64url> } }
+```
+
+签名是准入私钥对 `digest("dmsg/account-admission/v1", (home, principal, expires_at))` 的 Ed25519 签名，字节规则见协议向量 `account_admission_v1`。请求不带 PoP：票据绑定了 principal，只有该 principal 自己调用 `create_account` 才能使用，每个 principal 在一个 home 只能建一个账户。服务端只为配置的 user home 签发，按请求来源限流；限流耗尽返回 `QUOTA_EXCEEDED`。`expires_at` 不超过签发后 5 分钟，home 接受最长 10 分钟的剩余期限，余量覆盖时钟误差。票据不授予账户或设备权限，未使用的票据过期即作废。
+
 ## 账户证据
 
 `readCloudSecurity` 查询真实 `security_snapshot_batch` 与 `get_device_bundle`。必须验证固定 user canister、ICP BLS 根、certificate、时间、单段 AccountId 路径和 witness，再检查 issuer/home/account 及完整设备根。

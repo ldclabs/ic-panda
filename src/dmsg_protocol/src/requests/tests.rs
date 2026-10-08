@@ -334,6 +334,20 @@ fn controller_and_recovery_proofs_bind_every_component() {
 }
 
 #[test]
+fn admission_tickets_bind_home_caller_and_deadline() {
+    let home = Principal::from_slice(&[1]);
+    let caller = Principal::from_slice(&[2]);
+    let expected = account_admission_message(home, caller, 100);
+    assert_eq!(
+        expected,
+        digest("dmsg/account-admission/v1", &(home, caller, 100u64))
+    );
+    assert_ne!(account_admission_message(caller, caller, 100), expected);
+    assert_ne!(account_admission_message(home, home, 100), expected);
+    assert_ne!(account_admission_message(home, caller, 101), expected);
+}
+
+#[test]
 fn root_digests_sort_recipients_and_bind_generation_and_body() {
     let a = Hash::new([1; 32]);
     let b = Hash::new([2; 32]);

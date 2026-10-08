@@ -1,6 +1,8 @@
 //! Reference implementation; public records are defined by dmsg_types.
 mod account;
 mod api;
+#[cfg(test)]
+mod capacity;
 mod commerce;
 mod execution;
 mod external;

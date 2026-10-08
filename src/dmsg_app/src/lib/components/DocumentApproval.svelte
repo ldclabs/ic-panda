@@ -238,8 +238,8 @@
       >连接并核对签名服务</button
     >
     {#if review}<p>
-        本月正式执行额度：剩余 {review.usage.remaining} / {review.usage.allowed}；已预留 {review
-          .usage.held}。签名由本机设备密钥完成，账户服务记录认证回执并计费。
+        本月正式执行额度：剩余 {review.usage.remaining} / {review.usage
+          .allowed}。签名由本机设备密钥完成，账户服务记录认证回执并计费。
       </p>
       <dl class="evidence-list">
         <div>

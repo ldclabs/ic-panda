@@ -209,3 +209,15 @@ directory 新增 `canister_inspect_message`：只接受已登记 home 的 `publi
 内容根只封装给持有 `VaultUnlock` 的活跃设备：`CommitRoot` 按这一集合重算 `recipients_digest`，并要求批准设备本身是接收者；账户的初始设备和登录恢复的替换设备必须同时持有 `RootManage` 与 `VaultUnlock`。换根只在接收者变化时需要，也就是持有 `VaultUnlock` 的设备增减，以及登录恢复；认证绑定和其他能力的变化只递增 security epoch，不再让已提交的根进入 `RekeyRequired`。客户端按同一规则选择接收者，没有该能力的设备不再尝试打开根。
 
 user 新增 `canister_inspect_message`：服务回调只接受对应的配置 canister，`verify_product_account` 拒绝全部 ingress，`admin_set_account_limits` 只接受 controller 与 governance，其余账户方法拒绝匿名 Principal，`prune_*` 与 `publish_principal` 保持开放。月账不再进入认证树，`get_execution_usage_certified` 删除，客户端以 `refresh_execution_entitlement` 的 update 回复为准。每日执行次数上限从 100 改为与保留窗口相同的 64；每日新账户的硬上限从 1 万提高到 10 万，实际值仍由 `admin_set_account_limits` 设置。单元测试固定了 `SecuritySnapshot` 与 `ExecutionReceipt` 的编码摘要，认证值的编码变化会在 CI 中暴露。实测 0、1,000、20,000 个账户的升级约 138 万条指令，与规模无关；数据见 [user README](../src/dmsg_user/README.md)。稳定布局仍为 schema 13，开发实例升级后旧的月账叶留在认证树中，不影响查询。
+
+## 2026-10-08 user 容量 2,100 万与防滥用
+
+单个 home 的 `max_accounts` 硬上限从 100 万提高到 2,100 万（`MAX_HOME_ACCOUNTS`），一个部署最多 64 × 2,100 万个账户。依据是存储与对数增长：新账户约 0.8 KB、活跃账户约 2.7 KB，主机构建镜像加载到 PocketIC 后，100 万账户（五分之一活跃）占 1.77 GiB，写入 cycles 只比 1 万账户多 4%–16%，升级约 140 万条指令；推算 2,100 万账户 40–86 GB，在 256 GiB 地址空间内。2,100 万规模本身没有实测，见 [user README](../src/dmsg_user/README.md) 的“容量与成本”。
+
+- **注册准入**：`UserInit` 新增 `admission_key`，`CreateAccount` 新增 `admission: Option<AdmissionTicket>`。配置公钥后，新账户须附该密钥对 `dmsg/account-admission/v1`（home、caller、期限，期限 ≤ 10 分钟）的签名；云端按来源限流签发，合同见 [cloud_zh.md](protocol/cloud_zh.md)。`admin_set_admission_key` 与预演可轮换或清除公钥。`dmsg_protocol` 新增 `account_admission_message` 并公开 `validate_ed25519_key`，协议向量新增 `account_admission_v1`。
+- **登录绑定**：删除 `begin_auth_binding`、`prune_auth_bindings` 和全局 1,024 条待绑定表。管理员设备批准的 `BindAuth { principal, nonce }` 只在账户内登记待接受项（每账户 4 条、10 分钟），新登录调用 `accept_auth_binding(account_id, nonce)` 后才绑定；任何 security epoch 变化都会撤回未接受的批准。
+- **清理**：`prune_executions(after)` 改为按执行表游标跨账户分页（每页 64 条记录，20B 指令后在账户边界停止），停用账户留下的认证产物也能回收。月账改以 `AccountId ‖ YYYYMM` 为键，只保留当月与上月；认证在提交时直接扣费，`ExecutionUsage.held_units` 删除，`dmsg_protocol::billing::usage_key` 随之删除。
+- **有界成本**：操作回执窗口从 64 条降到 16 条（`MAX_OPERATION_RECEIPTS`），活跃账户记录从约 6.2 KB 降到约 2.2 KB。账户登录发起的跨 canister 调用每 UTC 小时最多 120 次（`MAX_HOURLY_ACCOUNT_CALLS`）。
+- **回滚**：升级前创建 canister 快照，问题时载入；PocketIC 回归验证载入后证书与记录一致。
+
+稳定布局升至 schema 14：memory 3 改为每账户的调用计数，开发实例须重装。客户端改为“生成绑定请求 → 管理员批准 → 新登录接受”，home 配置公钥时向云端取准入票据。

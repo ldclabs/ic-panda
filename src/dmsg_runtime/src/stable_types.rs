@@ -516,6 +516,8 @@ stable_struct!(UserInitRepr => UserInit {
     10 => principal_origin: String,
     11 => directory_canister: Principal,
     12 => governance: Principal,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    13 => admission_key: Option<Hash>,
 });
 
 stable_struct!(HostedControllerRepr => HostedController {

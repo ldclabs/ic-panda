@@ -203,6 +203,16 @@ pub fn recovery_device_message(home: Principal, account_id: &AccountId, request:
     digest("dmsg/recovery-device/v1", &(home, account_id, request))
 }
 
+/// Build the digest an admission issuer signs for one caller's account
+/// creation under `dmsg/account-admission/v1`.
+///
+/// Binds the user home, the creating login Principal and the ticket deadline.
+/// A caller holds at most one account per home, so the ticket is single-use
+/// without a nonce. This constructs bytes only; it checks nothing.
+pub fn account_admission_message(home: Principal, caller: Principal, expires_at: u64) -> Hash {
+    digest("dmsg/account-admission/v1", &(home, caller, expires_at))
+}
+
 /// Build the proof-of-possession digest a controller key signs for its
 /// registration under `dmsg/controller-pop/v1`.
 ///

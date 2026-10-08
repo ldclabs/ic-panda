@@ -71,14 +71,13 @@ export class SigningClient {
     ensure(
       equal(Uint8Array.from(usage.account_id), raw) &&
         usage.valid_until_ms > BigInt(Date.now()) &&
-        usage.held_units + usage.charged_units <= usage.allowed_units,
+        usage.charged_units <= usage.allowed_units,
       'INTEGRITY_FAILED'
     )
     return {
       allowed: usage.allowed_units.toString(),
-      held: usage.held_units.toString(),
       charged: usage.charged_units.toString(),
-      remaining: (usage.allowed_units - usage.held_units - usage.charged_units).toString(),
+      remaining: (usage.allowed_units - usage.charged_units).toString(),
       month: usage.month_utc
     }
   }

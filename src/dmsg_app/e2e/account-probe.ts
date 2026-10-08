@@ -1200,8 +1200,9 @@ const note = (title: string, body: string, at: number) => ({
       initialized,
       input.user
     )
-    const binding = await extraClient.beginBinding(account)
+    const binding = await extraClient.bindingRequest(account)
     await client.approveBinding(account, binding)
+    await extraClient.acceptBinding(account)
     if (
       !(await client.refresh(account)).info.auth_bindings.some(
         (p) => p.toText() === extraIdentity.getPrincipal().toText()

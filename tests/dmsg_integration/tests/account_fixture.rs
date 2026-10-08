@@ -63,6 +63,7 @@ fn account_extension_gateway() {
             principal_origin: "https://id.dmsg.test".into(),
             directory_canister: sns,
             governance: sns,
+            admission_key: None,
         },))
         .unwrap(),
         None,
@@ -557,6 +558,7 @@ fn certificate_queries_advance_without_account_writes() {
             principal_origin: "https://id.dmsg.test".into(),
             directory_canister: user,
             governance: user,
+            admission_key: None,
         })
         .unwrap(),
         None,

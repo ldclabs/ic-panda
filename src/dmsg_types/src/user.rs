@@ -15,6 +15,18 @@ pub const MAX_AUTH_BINDINGS: usize = 8;
 /// Recovery waiting period of a new account (72 hours); `SetRecoveryDelay`
 /// changes it within one to seven days.
 pub const DEFAULT_RECOVERY_DELAY_MS: u64 = 3 * DAY;
+/// Largest account capacity (`max_accounts`) one user home accepts (21,000,000).
+pub const MAX_HOME_ACCOUNTS: u64 = 21_000_000;
+/// Latest operation receipts an account keeps for idempotent replay (16).
+pub const MAX_OPERATION_RECEIPTS: usize = 16;
+/// Approved login bindings an account holds until the new login accepts them (4).
+pub const MAX_PENDING_BINDINGS: usize = 4;
+/// Time a new login has to accept an approved binding (ten minutes).
+pub const BINDING_ACCEPT_MS: u64 = 10 * MINUTE;
+/// Longest remaining lifetime of an account admission ticket (ten minutes).
+pub const MAX_ADMISSION_TTL_MS: u64 = 10 * MINUTE;
+/// Remote calls an account's logins may start per UTC hour (120).
+pub const MAX_HOURLY_ACCOUNT_CALLS: u32 = 120;
 
 /// Account device role, distinct from ICP canister controller privileges.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -232,17 +244,23 @@ pub struct UserInit {
     pub commerce_canister: Principal,
     /// Shared PANDA qualification service.
     pub membership_canister: Principal,
-    /// Maximum accounts admitted by this deployment (1..=1,000,000); adjustable by governance.
+    /// Maximum accounts admitted by this home (1..=21,000,000, [`MAX_HOME_ACCOUNTS`]);
+    /// adjustable by governance.
     pub max_accounts: u64,
-    /// Account creation limit per daily budget window (1..=10,000); adjustable by governance.
+    /// Account creation limit per UTC day (1..=100,000); adjustable by governance.
     pub daily_new_accounts: u32,
     /// HTTPS origin of Agent Delegation principal IDs, such as `https://id.dmsg.net`.
     /// Permanent: principal IDs never change.
     pub principal_origin: String,
     /// Directory canister that publishes principal documents.
     pub directory_canister: Principal,
-    /// Fixed SNS governance caller allowed, besides controllers, to adjust account limits.
+    /// Fixed SNS governance caller allowed, besides controllers, to adjust
+    /// account limits and the admission key.
     pub governance: Principal,
+    /// Ed25519 public key of the account admission issuer. When set,
+    /// `create_account` requires an [`AdmissionTicket`] signed by it; None
+    /// admits any authenticated caller. Adjustable by governance.
+    pub admission_key: Option<Hash>,
 }
 
 /// Operational counters of a user home.
@@ -266,6 +284,17 @@ pub struct UserStats {
     pub cycles: u128,
 }
 
+/// Anti-abuse admission of one caller's account creation, signed by the home's
+/// configured issuer over the `dmsg/account-admission/v1` digest of
+/// `(home, caller, expires_at)`. It grants no account or device authority.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AdmissionTicket {
+    /// Exclusive deadline in Unix milliseconds, at most ten minutes ahead.
+    pub expires_at: u64,
+    /// Issuer Ed25519 signature over the admission digest.
+    pub signature: Ed25519Signature,
+}
+
 /// Authenticated account creation with initial-device proof of possession.
 /// The user canister allocates the AccountId; clients do not choose it.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -278,6 +307,8 @@ pub struct CreateAccount {
     pub expires_at: u64,
     /// Initial device Ed25519 proof over the account-creation digest.
     pub proof: Ed25519Signature,
+    /// Issuer ticket; required when the home has an `admission_key`.
+    pub admission: Option<AdmissionTicket>,
 }
 
 /// Sensitive account mutation covered by an [`Approval`].
@@ -303,11 +334,13 @@ pub enum AccountCommand {
         /// Complete replacement capability set, subject to normal device validation.
         capabilities: Vec<Capability>,
     },
-    /// Bind another proven login Principal.
+    /// Approve binding another login Principal. It is bound when that
+    /// Principal calls `accept_auth_binding` with the same nonce within ten
+    /// minutes; any security-epoch change withdraws the approval.
     BindAuth {
-        /// Login Principal to bind or remove.
+        /// Login Principal to bind.
         principal: Principal,
-        /// One-time challenge binding the login Principal authorization.
+        /// One-time challenge from the new login's binding request.
         nonce: Hash,
     },
     /// Remove a login Principal binding.

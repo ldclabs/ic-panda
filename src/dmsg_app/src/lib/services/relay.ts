@@ -165,6 +165,22 @@ export class CloudClient {
     )
     return result
   }
+  /** An admission ticket for `principal` to create an account at `home`; the
+   * service rate-limits issuance. The home verifies the signature itself. */
+  async accountAdmission(home: Uint8Array, principal: Uint8Array) {
+    const result = (await this.exchange(
+      '/v1/account-admission',
+      'POST',
+      canonical({ home, principal })
+    )) as { expires_at: unknown; signature: unknown }
+    ensure(
+      Number.isSafeInteger(result.expires_at) && typeof result.signature === 'string',
+      'INTEGRITY_FAILED'
+    )
+    const signature = unb64(result.signature as string)
+    ensure(signature.length === 64, 'INTEGRITY_FAILED')
+    return { expires_at: BigInt(result.expires_at as number), signature }
+  }
   async publishSecurity(evidence: CloudSecurityEvidence) {
     const body = canonical(evidence)
     ensure(body.length <= MAX_SECURITY_EVIDENCE_BYTES, 'QUOTA_EXCEEDED')

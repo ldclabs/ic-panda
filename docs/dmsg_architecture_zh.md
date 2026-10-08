@@ -2,7 +2,7 @@
 
 [English](dmsg_architecture.md) | 简体中文
 
-> 核对基线：公开仓库 `main` 提交 `c707ade`（2026-10-08）。本文概述公开实现的整体架构、容量、扩容与多实例部署。数字取自各 canister README 记录的实测和代码常量，接口、状态机与验证细节以各自的 README 和 `.did` 为准；两者与本文不一致时以代码为准。配套云端的实现不公开，本文只按其公开合同描述。本文不证明生产部署、主网容量或安全审计已经完成。
+> 核对基线：公开仓库 `main` 提交 `c707ade`（2026-10-08），user home 的容量、准入与绑定部分已按其后同日的 2,100 万容量改动更新。本文概述公开实现的整体架构、容量、扩容与多实例部署。数字取自各 canister README 记录的实测和代码常量，接口、状态机与验证细节以各自的 README 和 `.did` 为准；两者与本文不一致时以代码为准。配套云端的实现不公开，本文只按其公开合同描述。本文不证明生产部署、主网容量或安全审计已经完成。
 
 ## 1. 设计原则
 
@@ -62,7 +62,7 @@ flowchart LR
 
 | Canister | 权威数据 | 部署数量 | 单实例主要上限 |
 | --- | --- | --- | --- |
-| [dmsg_user](../src/dmsg_user/README.md) | 登录绑定、设备与能力、恢复申请、内容根承诺、认证回执、执行月账、本机解锁秘密、Agent principal 记录 | 每部署 1–64 个（user home） | `max_accounts` ≤ 100 万 |
+| [dmsg_user](../src/dmsg_user/README.md) | 登录绑定、设备与能力、恢复申请、内容根承诺、认证回执、执行月账、本机解锁秘密、Agent principal 记录 | 每部署 1–64 个（user home） | `max_accounts` ≤ 2,100 万 |
 | [dmsg_handle](../src/dmsg_handle/README.md) | 规范化名称 → `AccountId`、注册收费、旧名认领与转移；部署的 home 列表 | 全局 1 个 | 1,000 万活跃名称 |
 | [dmsg_cose](../src/dmsg_cose/README.md) | 内容根 vetKD 公钥、恢复派生的去重与预算 | 通常 1 个，服务全部 home | 100 万个做过恢复派生的账户 |
 | [dmsg_directory](../src/dmsg_directory/README.md) | 已发布的 Agent Delegation principal 文档 | 全局 1 个 | 未在大规模下实测 |
@@ -77,7 +77,7 @@ flowchart LR
 ### 4.1 注册与定位账户
 
 1. 客户端启动时读取 `dmsg_handle.get_handle_config()`：`user_homes` 是部署的权威 home 列表，`registration_homes` 是当前接收新账户的子集。构建配置的 `canisters.userHomes` 是构建时固定信任的 home（生产构建至少一个），handle 返回的列表必须包含它们；其他 home 以 handle 为准。
-2. 注册时随机选择一个注册 home 调用 `create_account`。账户、登录路由、日配额和 ID 分配器在同一消息内提交，重试返回原账户。
+2. 注册时随机选择一个注册 home 调用 `create_account`；该 home 配置了准入公钥时，先向云端取一张绑定 home 与登录 Principal 的准入票据。账户、登录路由、日配额和 ID 分配器在同一消息内提交，重试返回原账户。
 3. 登录时对全部 home 并行调用 `my_account`，命中即连接该 home。任一查询失败视为结果未知，不会转去注册。
 
 账户的 `home_user` 和 `home_cose` 永久固定。
@@ -128,14 +128,14 @@ principal 的启用、controller 登记与退役在账户所在 home 提交，�
 - **地址空间**：各 canister 的 `MemoryManager` 使用 128 页（8 MiB）分配桶，32,768 个桶可寻址 256 GiB。这是地址容量，不是业务容量；平台的 stable memory 上限和子网存储余量另行约束。
 - **紧凑表示**：每个 canister 用私有的 `stable_codec.rs` 以 CBOR 整数 key 保存记录，不影响公开 Candid、签名摘要和认证叶编码。
 - **认证树**：user、payment、commerce、membership 和 directory 使用 `dmsg_runtime::cert_map`，一棵存在 stable memory 的 crit-bit Merkle 前缀树，只保存 key、认证值哈希和 201 字节定长的内部节点槽位。认证值在查询时由记录重新生成并与已认证的哈希核对，写入只重算一条路径。100 万个 key 时，一次写入的 stable 读从 B 树节点布局的 4,394 次降到 167 次。handle 使用按名称哈希分成 2^20 个桶的 `name_tree`，节点哈希存在定长数组中，写入只重算一个桶和一条路径。
-- **有界集合**：每个账户最多 16 台设备（5 台活跃）、8 个登录、64 条操作回执和 64 条执行保留；认证批量响应不超过 256 KiB。普通账户操作不读取历史执行载荷。
+- **有界集合**：每个账户最多 16 台设备（5 台活跃）、8 个登录、4 条待接受绑定、16 条操作回执和 64 条执行保留；认证批量响应不超过 256 KiB。普通账户操作不读取历史执行载荷。
 - **升级**：heap 不保存业务状态，只有 payment 和 commerce 的 `pre_upgrade` 补写调用计数（payment 另含当日开单数）；`post_upgrade` 校验 schema 后只发布根，遇到其他 schema 直接失败。开发阶段不迁移旧布局，上线后的布局变化须编写显式迁移。
 
 `post_upgrade` 实测（PocketIC 16.0.0、release Wasm；大规模样本由主机用各 canister 自己的存储代码构建 stable 镜像后上传）：
 
 | Canister | 规模 | `post_upgrade` 指令数 | 一次升级的 cycles |
 | --- | --- | ---: | ---: |
-| dmsg_user | 0 / 1,000 / 20,000 账户 | 约 138 万 | 约 8.4B（停止、升级、启动） |
+| dmsg_user | 1 万 / 100 万账户 | 138 万 / 140 万 | 约 8.4B（停止、升级、启动） |
 | dmsg_handle | 1,000 → 1,000 万名称 | 115 万 → 116 万 | 约 4.04B |
 | dmsg_payment | 10 万 / 100 万订单 | 154 万 / 162 万 | 约 11.66B |
 | dmsg_commerce | 10 万 / 100 万付费主体 | 约 184 万 | 约 19.44B |
@@ -147,7 +147,7 @@ principal 的启用、controller 登记与退役在账户所在 home 提交，�
 
 | Canister | 承载对象 | 上限 | 实测与估算 | 先遇到的约束 |
 | --- | --- | --- | --- | --- |
-| dmsg_user | 本 home 分配的账户 | `max_accounts` 1–100 万；每 UTC 日新账户 `daily_new_accounts` 1–10 万；两者可由治理调整 | 2 万账户内升级成本不变；`create_account` 平均约 935 万 cycles | 大量设备、执行和月账的组合负载没有实测 |
+| dmsg_user | 本 home 分配的账户 | `max_accounts` 1–2,100 万；每 UTC 日新账户 `daily_new_accounts` 1–10 万；两者可由治理调整 | 100 万账户（五分之一活跃）stable 1.77 GiB，写入 cycles 只比 1 万账户多 4%–16%；新账户约 0.8 KB、活跃账户约 2.7–4.1 KB，推算 2,100 万账户 40–86 GB | 开放注册前须配置注册准入；2,100 万规模与主网吞吐没有实测 |
 | dmsg_handle | 活跃名称加未决扣款 | 1,000 万 | 1,000 万名称：仅名称表与认证树约 1.8 GB，计入收费操作和事件历史估算 6–7 GB；一次转移的 cycles 只比 1,000 名称时多约 13%；64 名称的认证响应约 81 KB | 更大规模须重新实测或按名称分片（未实现） |
 | dmsg_cose | 做过恢复派生的账户 | 100 万，所有 home 合计 | 只在全设备丢失恢复时留下记录 | 全网 vetKD 吞吐约 18 次/秒 |
 | dmsg_payment | 终身订单，与注册用户数无关 | 1,000 万 | 100 万单 3.25 GB，约 3.2 KB/单；推算 1,000 万单约 32 GB | 账本调用额度：`ledger_writes_per_minute` 为 200 时约 100 单/分钟 |
@@ -155,7 +155,7 @@ principal 的启用、controller 登记与退役在账户所在 home 提交，�
 | membership | PANDA 抵扣申请，与账户数无关 | 完整记录 100 万，累计操作 1,000 万 | 100 万条 `Active` 申请 4.7 GB，每条约 4.7 KB | SNS 读取：默认每分钟 200 次约支撑 1 万名在用会员；PANDA SNS 神经元上限为 20 万 |
 | dmsg_directory | 启用 principal 的账户 | 没有总数常量；单文档 ≤ 64 KiB | 只有小样本 | 大规模没有实测 |
 
-超过 100 万的规模只有 handle 实测到 1,000 万；其他 1,000 万上限是按每单位存储推算的结果。
+超过 100 万的规模只有 handle 实测到 1,000 万；user 的 2,100 万和其他服务的 1,000 万上限按每单位存储推算，100 万档的实测验证了增长趋势。
 
 ## 8. 多实例与分片
 
@@ -215,7 +215,7 @@ flowchart TB
   M --> C2
 ```
 
-按当前代码上限，一个部署最多 64 个 user home，账户总数上限为 64 × 100 万；活跃名称另受 handle 的 1,000 万上限约束。分区 B 这类独立的 commerce/payment 实例目前只在 canister 层支持，客户端限制见 8.5。
+按当前代码上限，一个部署最多 64 个 user home，账户总数上限为 64 × 2,100 万；活跃名称另受 handle 的 1,000 万上限约束。分区 B 这类独立的 commerce/payment 实例目前只在 canister 层支持，客户端限制见 8.5。
 
 ### 8.3 新增 user home
 
@@ -233,8 +233,8 @@ flowchart TB
 
 - **监控**：`user_stats`、`cose_stats`、`payment_stats`、`commerce_stats`、`membership_stats` 和 `directory_stats` 都是公开 query，报告记录数、配置上限、stable 页数和 cycles 余额；handle 的配置与 home 列表用 `get_handle_config` 读取。
 - **先调额度**：用量接近配置上限的 60% 时，先在代码上限以内提高治理额度：user 的 `admin_set_account_limits`，payment 和 commerce 的 `admin_set_limits`，membership 的 `configure_panda_service`。
-- **再加实例**：home 的账户数接近 100 万时新增 home 并调整注册入口；payment 订单数或 commerce 的付费主体、累计订单接近 1,000 万（或 stable memory 余量不足）时，让新 home 指向新的 payment 或 commerce 实例，不继续提高旧实例的上限。
-- **吞吐**：单个 canister 顺序执行消息；多个 canister 可以并行，但同一子网的 canister 共享子网资源。提高每分钟额度前，按目标负载在测试网核对子网吞吐和 cycles；跨子网部署、链上密钥和账本的吞吐需要单独测量。
+- **再加实例**：home 的账户数接近 2,100 万时新增 home 并调整注册入口；payment 订单数或 commerce 的付费主体、累计订单接近 1,000 万（或 stable memory 余量不足）时，让新 home 指向新的 payment 或 commerce 实例，不继续提高旧实例的上限。
+- **吞吐**：单个 canister 顺序执行消息；多个 canister 可以并行，但同一子网的 canister 共享子网资源，大规模时把 home 分布到不同子网。提高每分钟额度前，按目标负载在测试网核对子网吞吐和 cycles；跨子网部署、链上密钥和账本的吞吐需要单独测量。
 
 ### 8.5 尚未支持
 
@@ -248,7 +248,7 @@ flowchart TB
 
 | 服务 | 额度 | 调整方式 |
 | --- | --- | --- |
-| dmsg_user | 每 UTC 日新账户；全局 1,024 条待绑定登录；每账户每小时 60 次外部批准；每账户每日正式执行 ≤ 64 次 | `admin_set_account_limits`（账户上限与每日新账户），其余为代码常量或账户政策 |
+| dmsg_user | 每 UTC 日新账户；注册准入票据（配置准入公钥后）；每账户 4 条待接受绑定；每账户每小时 60 次外部批准、120 次跨 canister 调用；每账户每日正式执行 ≤ 64 次 | `admin_set_account_limits`（账户上限与每日新账户）、`admin_set_admission_key`（准入公钥），其余为代码常量或账户政策 |
 | dmsg_cose | 全局每日派生次数与 cycles；单账户每日 100 次、1.1T cycles（防御性上界，user 侧的每日执行次数先到） | 全局用 `admin_set_daily_budget`，单账户为代码常量 |
 | dmsg_handle | 全局未决扣款 `max_pending` ≤ 1 万，每个账户同时 1 笔 | 安装参数 |
 | dmsg_payment | 授权、账本读取、账本出金的每分钟全局额度和每调用方份额；每日开单；每付款方未决订单 ≤ 16 | `admin_set_limits` |
@@ -256,7 +256,7 @@ flowchart TB
 | membership | 授权、激活、产品调用、资格读取的每分钟额度；每小时新申请 ≤ 1 万；`max_claims` | `configure_panda_service` |
 
 - user、cose、payment 和 directory 用 `canister_inspect_message` 在执行前拒绝方法必定拒绝的 ingress，canister 不为这些消息支付接收费。它只在单个副本上运行，不是安全边界，方法内仍各自检查调用者。
-- 全局额度只影响可用性，不影响资金或权属。大量非匿名 Principal 可以在短时间内耗尽全局额度，例如暂时占满每日新账户；运营方用对应的管理方法止损。
+- 全局额度只影响可用性，不影响资金或权属。大量非匿名 Principal 可以在短时间内耗尽全局额度；user home 配置准入公钥后，新账户须持有云端按来源限流签发的票据，批量建号无法占满每日新账户与账户上限。
 - 跨 canister 调用使用有界等待（COSE 的 vetKD 派生除外）。每次 `await` 返回后重新读取时间和状态；结果未知时用原请求对账，不换新 ID 重签或重发资金调用。
 
 ## 10. 治理与运维
@@ -266,7 +266,7 @@ flowchart TB
 
 | 任务 | 入口 | 节奏 |
 | --- | --- | --- |
-| user 过期数据清理 | `prune_auth_bindings`、`prune_external_approvals`、`prune_executions` | 按需；正常写入时已惰性清理 |
+| user 过期数据清理 | `prune_executions(after)`、`prune_external_approvals(after)` | 定期，分页直到结束；账户写入时也会惰性清理 |
 | COSE 结果清理 | `prune_executions(after)`，或 `src/dmsg_app/scripts/cose-prune.mjs` | 定期，分页直到结束 |
 | payment 出金派发 | `list_pending_transfers` 后逐条 `process_transfer` | 至少每小时，须在出金腿创建后 24 小时内 |
 | commerce 价格发布 | `publish_settlement_price` | 每个启用资产在上一价格过期前，有效期最长 30 分钟 |

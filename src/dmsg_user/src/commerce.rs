@@ -19,15 +19,35 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(store::memory(6)));
 }
 
+// Rows of one account are contiguous: account ID, then the YYYYMM month.
+fn key(id: &AccountId, month: u32) -> Vec<u8> {
+    [id.as_slice(), &month.to_be_bytes()].concat()
+}
+
 fn load(id: &AccountId, month: u32) -> Option<Month> {
-    MONTHS.with_borrow(|t| t.load(usage_key(id, month).as_slice()))
+    MONTHS.with_borrow(|t| t.load(&key(id, month)))
 }
 
 /// Months are not certified data; the owner gets a certified copy as the
 /// `refresh_execution_entitlement` update reply.
 pub(crate) fn save(m: &Month) {
-    let key = usage_key(&m.usage.account_id, m.usage.month_utc);
-    MONTHS.with_borrow_mut(|t| t.put(key.as_slice(), m));
+    MONTHS.with_borrow_mut(|t| t.put(&key(&m.usage.account_id, m.usage.month_utc), m));
+}
+
+/// Keep `month` and the month before it. Attestations are charged when they
+/// commit, so no older month can still receive a settlement.
+fn retain_recent(id: &AccountId, month: u32) {
+    let previous = if month % 100 == 1 {
+        month - 89
+    } else {
+        month - 1
+    };
+    MONTHS.with_borrow_mut(|t| {
+        let old: Vec<Vec<u8>> = t.keys_range(key(id, 0)..key(id, previous)).collect();
+        for k in old {
+            t.remove(&k);
+        }
+    });
 }
 
 pub fn usage(id: &AccountId, month: u32) -> Result<ExecutionUsage> {
@@ -95,12 +115,14 @@ pub async fn refresh(id: &AccountId, at: u64) -> Result<u64> {
         lease_revision: e.view.lease_revision,
         weight_policy_version: e.month.weights.version,
         allowed_units: e.month.allowed_units,
-        held_units: old.as_ref().map_or(0, |m| m.usage.held_units),
         charged_units: old.as_ref().map_or(0, |m| m.usage.charged_units),
         // Recheck business terms hourly even when the resource lease runs longer,
         // so an upgrade reaches the execution allowance without a manual refresh.
         valid_until_ms: e.view.valid_until_ms.min(now.saturating_add(60 * MINUTE)),
     };
+    if old.is_none() {
+        retain_recent(id, month);
+    }
     save(&Month {
         usage,
         weights: e.month.weights,
@@ -120,12 +142,7 @@ pub fn charge(id: &AccountId, now: u64) -> Result<()> {
         .charged_units
         .checked_add(m.weights.ed25519)
         .ok_or(Error::QuotaExceeded)?;
-    ensure(
-        charged
-            .checked_add(m.usage.held_units)
-            .is_some_and(|n| n <= m.usage.allowed_units),
-        Error::QuotaExceeded,
-    )?;
+    ensure(charged <= m.usage.allowed_units, Error::QuotaExceeded)?;
     m.usage.charged_units = charged;
     save(&m);
     Ok(())

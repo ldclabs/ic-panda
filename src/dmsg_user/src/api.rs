@@ -72,6 +72,7 @@ fn init(args: UserInit) {
     dmsg_protocol::agent::validate_principal_origin(&args.principal_origin)
         .expect("principal origin");
     check_limits(args.max_accounts, args.daily_new_accounts).expect("hard limits");
+    check_admission_key(args.admission_key.as_ref()).expect("admission key");
     CONFIG.with_borrow_mut(|t| {
         t.set(CompactStored::new(&Some(Config {
             schema: STABLE_SCHEMA,
@@ -115,9 +116,14 @@ fn post_upgrade() {
 
 fn check_limits(max_accounts: u64, daily_new_accounts: u32) -> Result<()> {
     ensure_valid(
-        (1..=1_000_000).contains(&max_accounts) && (1..=100_000).contains(&daily_new_accounts),
+        (1..=MAX_HOME_ACCOUNTS).contains(&max_accounts)
+            && (1..=100_000).contains(&daily_new_accounts),
         "account limits",
     )
+}
+
+fn check_admission_key(key: Option<&Hash>) -> Result<()> {
+    key.map_or(Ok(()), |k| validate_ed25519_key(k.as_slice()))
 }
 
 /// Refuse, before execution, ingress that the method would reject: service
@@ -138,11 +144,10 @@ fn inspect_message() {
         }
         // Only a registered product adapter, always a canister, calls it.
         "verify_product_account" => false,
-        "admin_set_account_limits" => admin::check_admin(caller, init.governance).is_ok(),
-        "prune_auth_bindings"
-        | "prune_executions"
-        | "prune_external_approvals"
-        | "publish_principal" => true,
+        "admin_set_account_limits" | "admin_set_admission_key" => {
+            admin::check_admin(caller, init.governance).is_ok()
+        }
+        "prune_executions" | "prune_external_approvals" | "publish_principal" => true,
         _ => authenticated(caller).is_ok(),
     };
     if allowed {
@@ -176,6 +181,36 @@ fn validate_admin_set_account_limits(max_accounts: u64, daily_new_accounts: u32)
                 (init.max_accounts, init.daily_new_accounts) != (max_accounts, daily_new_accounts),
                 "Same limits",
             ),
+        )
+    }))
+}
+
+/// Set or clear the Ed25519 key whose tickets admit new accounts. Clearing it
+/// admits any authenticated caller, within the account limits.
+#[ic_cdk::update]
+fn admin_set_admission_key(key: Option<Hash>) -> Result<()> {
+    let mut cfg = config();
+    admin::check_admin(ic_cdk::api::msg_caller(), cfg.init.governance)?;
+    check_admission_key(key.as_ref())?;
+    cfg.init.admission_key = key;
+    save_config(&cfg);
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_set_admission_key(key: Option<Hash>) -> Validation {
+    let current = config().init.admission_key;
+    let show = |k: &Option<Hash>| {
+        k.as_ref().map_or("none (open admission)".to_string(), |k| {
+            admin::hex(k.as_slice())
+        })
+    };
+    validation(check_admission_key(key.as_ref()).map(|()| {
+        format!(
+            "Set the account admission key to {} (currently {}).{}",
+            show(&key),
+            show(&current),
+            admin::unchanged(current != key, "Same key"),
         )
     }))
 }
@@ -217,6 +252,13 @@ fn create_account(input: CreateAccount) -> Result<AccountId> {
         return Ok(id);
     }
     let now = now();
+    account::check_admission(
+        cfg.init.admission_key.as_ref(),
+        canister_id,
+        who,
+        input.admission.as_ref(),
+        now,
+    )?;
     ensure(
         ACCOUNTS.with_borrow(|t| t.len()) < cfg.init.max_accounts,
         Error::QuotaExceeded,
@@ -267,54 +309,25 @@ fn unlock_secret(account_id: AccountId, device_id: Hash) -> Result<Hash> {
     crate::store::unlock_secret(&config(), &account_id, &device_id)
 }
 
-/// Only the new authentication principal may reserve its own binding. The
-/// existing account_id's administrator must separately approve the exact nonce.
+/// A new login accepts the binding an administrator approved for it with the
+/// nonce of its own request. Retrying after success returns Ok.
 #[ic_cdk::update]
-fn begin_auth_binding(account_id: AccountId, nonce: Hash, expires_at: u64) -> Result<()> {
+fn accept_auth_binding(account_id: AccountId, nonce: Hash) -> Result<()> {
     let caller = ic_cdk::api::msg_caller();
     authenticated(caller)?;
-    nonzero(nonce.as_slice())?;
-    let at = now();
-    expiry(at, expires_at, 5 * MINUTE)?;
+    let mut s = load(&account_id)?;
+    if s.auth_bindings.contains(&caller) {
+        return Ok(());
+    }
+    // A login routes to at most one account of this home.
     ensure(
-        ACCOUNTS.with_borrow(|t| t.contains(account_id.as_slice())),
-        Error::NotFound,
+        AUTH.with_borrow(|t| !t.contains(caller.as_slice())),
+        Error::IdempotencyConflict,
     )?;
-    if let Some(id) = AUTH.with_borrow(|t| t.load(caller.as_slice())) {
-        ensure(id == account_id, Error::IdempotencyConflict)?;
-    }
-    BINDINGS.with_borrow_mut(|t| {
-        if !t.contains(caller.as_slice()) && t.len() >= 1024 {
-            // The whole table is bounded at 1024 small entries. Reclaim on
-            // admission instead of depending on an external cleanup schedule.
-            let expired: Vec<_> = t
-                .iter()
-                .filter_map(|e| (at >= e.value().0 .2).then(|| e.key().clone()))
-                .collect();
-            for key in expired {
-                t.delete(&key);
-            }
-        }
-        ensure(
-            t.contains(caller.as_slice()) || t.len() < 1024,
-            Error::QuotaExceeded,
-        )
-    })?;
-    BINDINGS.with_borrow_mut(|t| t.put(caller.as_slice(), &(account_id, nonce, expires_at)));
+    account::accept_binding(&mut s, caller, nonce, now())?;
+    AUTH.with_borrow_mut(|t| t.put(caller.as_slice(), &account_id));
+    save(&s);
     Ok(())
-}
-
-#[ic_cdk::update]
-fn prune_auth_bindings(after: ByteBuf) -> Option<ByteBuf> {
-    let now = now();
-    let entries = BINDINGS.with_borrow(|t| t.page(after.to_vec(), 64));
-    let next = entries.last().map(|(key, _)| ByteBuf::from(key.clone()));
-    for (key, (_, _, expires_at)) in entries {
-        if now >= expires_at {
-            BINDINGS.with_borrow_mut(|t| t.delete(&key));
-        }
-    }
-    next
 }
 
 #[ic_cdk::update]
@@ -331,20 +344,6 @@ async fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
         .operations
         .iter()
         .any(|r| r.id == input.approval.request_id);
-    if let AccountCommand::BindAuth { principal, nonce } = &input.command {
-        if !replay {
-            let (account_id, n, e) = BINDINGS
-                .with_borrow(|t| t.load(principal.as_slice()))
-                .ok_or(Error::AuthRequired)?;
-            ensure(
-                account_id == s.account_id && n == *nonce && at < e,
-                Error::AuthRequired,
-            )?;
-            if let Some(id) = AUTH.with_borrow(|t| t.load(principal.as_slice())) {
-                ensure(id == account_id, Error::IdempotencyConflict)?;
-            }
-        }
-    }
     let r = account::apply(
         &mut s,
         ic_cdk::api::msg_caller(),
@@ -355,15 +354,8 @@ async fn mutate_account(input: AccountMutation) -> Result<OperationReceipt> {
     if replay {
         return Ok(r);
     }
-    match input.command {
-        AccountCommand::BindAuth { principal, .. } => {
-            AUTH.with_borrow_mut(|t| t.put(principal.as_slice(), &s.account_id));
-            BINDINGS.with_borrow_mut(|t| t.delete(principal.as_slice()));
-        }
-        AccountCommand::RemoveAuth { principal } => {
-            AUTH.with_borrow_mut(|t| t.delete(principal.as_slice()));
-        }
-        _ => {}
+    if let AccountCommand::RemoveAuth { principal } = input.command {
+        AUTH.with_borrow_mut(|t| t.delete(principal.as_slice()));
     }
     save(&s);
     Ok(r)
@@ -460,6 +452,7 @@ async fn inspect_app_action(
     let caller = ic_cdk::api::msg_caller();
     let account = own(&account_id, caller)?;
     ensure(!account.sensitive_policy.frozen, Error::Locked)?;
+    admit_call(&account_id, now())?;
     crate::external::authorize_action(&account_id, &action).await?;
     let account = own(&account_id, caller)?;
     ensure(!account.sensitive_policy.frozen, Error::Locked)
@@ -524,6 +517,7 @@ async fn attest_statement(
     };
     let mut checked = check(&s, at)?;
     if !crate::commerce::is_current(&account_id, at)? {
+        admit_call(&account_id, at)?;
         at = crate::commerce::refresh(&account_id, at).await?;
         s = own(&account_id, caller)?;
         if let Some(e) = load_execution(&account_id, &approval.request_id) {
@@ -532,6 +526,7 @@ async fn attest_statement(
         checked = check(&s, at)?;
     }
     if let Some(action) = &action {
+        admit_call(&account_id, at)?;
         crate::external::authorize_action(&account_id, action).await?;
         at = now();
         s = own(&account_id, caller)?;
@@ -568,9 +563,11 @@ async fn derive_root(input: DeriveRootRequest) -> Result<ExecutionResult> {
     let mut s = own(&input.account_id, caller)?;
     let fingerprint = digest("dmsg/derive-request/v1", &input);
     if let Some(e) = load_execution(&input.account_id, &input.approval.request_id) {
+        admit_call(&input.account_id, at)?;
         return execute_existing(e, fingerprint).await;
     }
     let budget = execution::check_derivation(&s, caller, &input, fingerprint, at)?;
+    admit_call(&input.account_id, at)?;
     let e = execution::commit_derivation(&mut s, input, fingerprint, budget, at);
     // All validation precedes writes, with no await until budget, sequence,
     // execution and certification have committed together.
@@ -684,6 +681,7 @@ async fn reconcile_execution(account_id: AccountId, request_id: Hash) -> Result<
     if result.is_terminal() {
         return Ok(result);
     }
+    admit_call(&account_id, now())?;
     // A failed query proves nothing about the execution; only COSE's answer is recorded.
     let response: Result<ExecutionResult> =
         stable::call(home_cose, "get_execution", (&account_id, request_id)).await?;
@@ -838,17 +836,12 @@ fn get_attestation(account_id: AccountId, request_id: Hash) -> Result<SignedArti
     }
 }
 
-/// Release expired terminal results for an account, without starting another execution.
-/// Public maintenance is safe: at most 64 retention entries are examined.
+/// Release expired terminal results across accounts, one page of execution
+/// records after the cursor; anyone may run it. Start from an empty cursor and
+/// continue with the returned key until it returns None.
 #[ic_cdk::update]
-fn prune_executions(account_id: AccountId) -> Result<u32> {
-    let at = now();
-    let mut s = load(&account_id)?;
-    let removed = prune_account_executions(&mut s, at);
-    if removed > 0 {
-        save_account(&s);
-    }
-    Ok(removed)
+fn prune_executions(after: ByteBuf) -> Option<ByteBuf> {
+    crate::store::prune_executions(after.into_vec(), now()).map(ByteBuf::from)
 }
 
 #[ic_cdk::query]
@@ -885,7 +878,9 @@ fn get_execution_usage(account_id: AccountId, month_utc: u32) -> Result<Executio
 async fn refresh_execution_entitlement(account_id: AccountId) -> Result<ExecutionUsage> {
     let caller = ic_cdk::api::msg_caller();
     own(&account_id, caller)?;
-    let at = crate::commerce::refresh(&account_id, now()).await?;
+    let at = now();
+    admit_call(&account_id, at)?;
+    let at = crate::commerce::refresh(&account_id, at).await?;
     own(&account_id, caller)?;
     crate::commerce::usage(&account_id, dmsg_protocol::billing::month_utc(at)?)
 }

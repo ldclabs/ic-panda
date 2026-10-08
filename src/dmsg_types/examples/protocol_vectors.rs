@@ -274,5 +274,16 @@ fn main() {
         controller_pop_message(home_user, &account, 2, &delegation, &[1], request_id)
     );
     values.push(vector("controller_pop_v1", pop));
+    let caller = Principal::self_authenticating([9; 32]);
+    let admission = canonical(&(
+        1u8,
+        "dmsg/account-admission/v1",
+        (home_user, caller, 1_760_000_300_000u64),
+    ));
+    assert_eq!(
+        sha256(&admission),
+        account_admission_message(home_user, caller, 1_760_000_300_000)
+    );
+    values.push(vector("account_admission_v1", admission));
     println!("{}", serde_json::to_string_pretty(&values).unwrap());
 }

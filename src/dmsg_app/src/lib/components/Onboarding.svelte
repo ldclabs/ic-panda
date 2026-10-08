@@ -129,7 +129,14 @@
       }
       const c = connection.account
       client = c
-      account = (await c.connectedAccount()) ?? (await c.create())
+      const cloud = config.relayOrigin
+        ? new CloudClient({ origin: config.relayOrigin, environment: config.environment })
+        : null
+      account =
+        (await c.connectedAccount()) ??
+        (await c.create(
+          cloud ? (home, principal) => cloud.accountAdmission(home, principal) : undefined
+        ))
       await bindAndOpen(c, connection.api.cose, false)
     }, '账户已绑定到这台设备。')
     await syncAfterLogin()

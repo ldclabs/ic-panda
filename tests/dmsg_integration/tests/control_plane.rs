@@ -301,6 +301,7 @@ impl Fixture {
                 principal_origin: PRINCIPAL_ORIGIN.into(),
                 directory_canister: directory,
                 governance: sns,
+                admission_key: None,
             },))
             .unwrap(),
             None,
@@ -636,6 +637,7 @@ impl Fixture {
             op_id: op,
             expires_at: expires,
             proof,
+            admission: None,
         }
     }
     fn create(&self, n: u8) -> AccountId {
@@ -691,6 +693,45 @@ impl Fixture {
             .to_bytes()
             .into();
         update(&self.ic, self.user, person(login), "mutate_account", (m,))
+    }
+    /// Administrator device `admin` approves login `login`, which accepts it.
+    fn bind(&self, admin: u8, login: u8, id: &AccountId, nonce: Hash) {
+        self.mutate(
+            admin,
+            id,
+            AccountCommand::BindAuth {
+                principal: person(login),
+                nonce,
+            },
+        )
+        .unwrap();
+        let accepted: Result<()> = update(
+            &self.ic,
+            self.user,
+            person(login),
+            "accept_auth_binding",
+            (id, nonce),
+        );
+        accepted.unwrap();
+    }
+    /// Run the public execution cleanup from an empty cursor to the end;
+    /// returns the number of pages.
+    fn prune_executions(&self) -> usize {
+        let mut cursor = ByteBuf::new();
+        for page in 1.. {
+            let next: Option<ByteBuf> = update(
+                &self.ic,
+                self.user,
+                Principal::anonymous(),
+                "prune_executions",
+                (cursor,),
+            );
+            match next {
+                Some(next) => cursor = next,
+                None => return page,
+            }
+        }
+        unreachable!()
     }
     /// The next root reference, wrapped to the account's active devices and
     /// the vetKD identity of `generation`, with an arbitrary body digest.
@@ -979,6 +1020,7 @@ fn install_user_home(f: &Fixture, commerce: Principal) -> Principal {
             principal_origin: PRINCIPAL_ORIGIN.into(),
             directory_canister: f.directory,
             governance: f.sns,
+            admission_key: None,
         },))
         .unwrap(),
         None,
