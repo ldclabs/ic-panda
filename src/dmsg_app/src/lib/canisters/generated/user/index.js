@@ -498,7 +498,6 @@ export const idlFactory = ({ IDL }) => {
     'invalid_from' : IDL.Opt(IDL.Nat64),
     'public_key' : IDL.Vec(IDL.Nat8),
     'delegation' : DelegationAuthority,
-    'supersedes' : IDL.Vec(IDL.Nat32),
     'name' : IDL.Opt(IDL.Text),
     'generation' : IDL.Nat32,
     'valid_from' : IDL.Nat64,
@@ -539,7 +538,6 @@ export const idlFactory = ({ IDL }) => {
     'RegisterController' : IDL.Record({
       'public_key' : IDL.Vec(IDL.Nat8),
       'delegation' : DelegationAuthority,
-      'supersedes' : IDL.Vec(IDL.Nat32),
       'name' : IDL.Opt(IDL.Text),
       'generation' : IDL.Nat32,
       'proof' : IDL.Vec(IDL.Nat8),

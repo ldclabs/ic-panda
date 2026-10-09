@@ -3,7 +3,7 @@ use agent_protocols::{delegation as sdk, identity as sdk_id};
 use dmsg_types::agent::*;
 use ic_http_certification::{HttpRequest, HttpResponse};
 
-const QUERY_URL: &str = "https://agents.dmsg.test/v1/delegations/query";
+const DELEGATION_SERVICE: &str = "https://agents.dmsg.test";
 
 impl Fixture {
     /// Register the self-held controller key `controller` at the next
@@ -14,22 +14,14 @@ impl Fixture {
         id: &AccountId,
         generation: u32,
         controller: u8,
-        supersedes: Vec<u32>,
     ) -> Result<OperationReceipt> {
         let s = self.account_id(n, id);
         let request_id = digest("test-operation", &(id, s.account_version));
         let delegation = restricted();
         let proof = key(controller)
             .sign(
-                controller_pop_message(
-                    self.user,
-                    id,
-                    generation,
-                    &delegation,
-                    &supersedes,
-                    request_id,
-                )
-                .as_slice(),
+                controller_pop_message(self.user, id, generation, &delegation, request_id)
+                    .as_slice(),
             )
             .to_bytes()
             .into();
@@ -41,7 +33,6 @@ impl Fixture {
                 public_key: key(controller).verifying_key().to_bytes().into(),
                 name: Some(format!("dMsg signer #{generation}")),
                 delegation,
-                supersedes,
                 proof,
             },
         )
@@ -175,7 +166,10 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
     let (document, _) = f.document(&id);
     assert!(document.controllers.is_empty());
     assert_eq!(document.kind.as_deref(), Some("person"));
-    assert_eq!(document.delegation_query_url.as_deref(), Some(QUERY_URL));
+    assert_eq!(
+        document.delegation_service.as_deref(),
+        Some(DELEGATION_SERVICE)
+    );
 
     // A key whose possession is not proven is never bound, and nothing is consumed.
     let before = f.account_id(1, &id);
@@ -188,7 +182,6 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
             public_key,
             name: None,
             delegation: restricted(),
-            supersedes: vec![],
             proof: key(21)
                 .sign(
                     controller_pop_message(
@@ -196,7 +189,6 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
                         &id,
                         1,
                         &restricted(),
-                        &[],
                         digest("test-operation", &(id, s.account_version)),
                     )
                     .as_slice(),
@@ -208,7 +200,7 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
     assert_eq!(wrong, Err(Error::IntegrityFailed));
     assert_eq!(f.account_id(1, &id), before);
     let before_cycles = f.ic.cycle_balance(f.user);
-    f.register_controller(1, &id, 1, 20, vec![]).unwrap();
+    f.register_controller(1, &id, 1, 20).unwrap();
     println!(
         "user_cycles method=register_controller cycles={}",
         before_cycles - f.ic.cycle_balance(f.user)
@@ -273,11 +265,18 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
         None,
     )
     .is_err());
+    let credential = sdk::materialize_delegation_credential(
+        &envelope,
+        sdk::DelegationStatus::Active,
+        time(&f.ic) as i64,
+        None,
+    )
+    .unwrap();
 
-    // Rotation registers a successor that supersedes the retired generation.
+    // Rotation retires generation 1 and registers generation 2 with the same ceiling.
     f.mutate(1, &id, AccountCommand::RetireController { generation: 1 })
         .unwrap();
-    f.register_controller(1, &id, 2, 21, vec![1]).unwrap();
+    f.register_controller(1, &id, 2, 21).unwrap();
     let (document, bytes) = f.document(&id);
     assert_eq!(document.controllers.len(), 1);
     assert_eq!(document.retired_controllers[0].id, actor);
@@ -290,6 +289,32 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
         None,
     )
     .is_err());
+    // Management follows the ceiling: the successor covers the credential the
+    // retired key issued, so it may revoke it without any recorded ownership.
+    f.ic.advance_time(Duration::from_millis(10));
+    let successor = sdk_id::AgentSigner::from_seed([21; 32]);
+    let revoke = successor
+        .sign_event(sdk_id::Event::new(
+            sdk::PROTOCOL,
+            sdk::DELEGATION_REVOKE,
+            successor.agent_id(),
+            time(&f.ic) as i64,
+            14,
+            sdk::DelegationPayload::Revoke(sdk::DelegationRevokePayload {
+                id: credential.id.clone(),
+                principal_id: principal_id.clone(),
+                reason: None,
+            }),
+        ))
+        .unwrap();
+    sdk::validate_delegation_acceptance(
+        &revoke,
+        &document,
+        &principal_id,
+        time(&f.ic) as i64,
+        Some(&credential),
+    )
+    .unwrap();
     let info = f.principal(&id);
     assert_eq!((info.state.version, info.published_version), (4, 4));
 

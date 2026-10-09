@@ -419,8 +419,6 @@ pub enum AccountCommand {
         name: Option<String>,
         /// Explicit delegation ceiling chosen by the owner.
         delegation: DelegationAuthority,
-        /// Earlier generations whose credentials this key may manage.
-        supersedes: Vec<u32>,
         /// Controller Ed25519 proof of possession over the registration digest.
         proof: Ed25519Signature,
     },

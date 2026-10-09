@@ -315,7 +315,7 @@ impl Fixture {
                 user_homes: vec![user],
                 principal_origin: PRINCIPAL_ORIGIN.into(),
                 controller_source: "https://dmsg.net".into(),
-                delegation_query_url: "https://agents.dmsg.test/v1/delegations/query".into(),
+                delegation_service: "https://agents.dmsg.test".into(),
                 profile_url_prefix: "https://dmsg.test/u/".into(),
                 custom_domains: vec!["id.dmsg.test".into()],
                 governance: sns,

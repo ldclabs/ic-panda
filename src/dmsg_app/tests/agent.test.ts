@@ -93,7 +93,6 @@ describe('agent delegation events', () => {
           delegation: {
             Restricted: { scopes: ['message.draft'], audiences: ['https://dmsg.net'] }
           },
-          supersedes: [1],
           proof: new Uint8Array(64).fill(8)
         }
       },
@@ -107,7 +106,7 @@ describe('agent delegation events', () => {
       }
     }
     expect(hex(accountApprovalMessage(home, request))).toBe(
-      'ae7310bf0af95efc4d2c74d6ea423d7e91d91fec725c448ffba5f96708975d3f'
+      '8124d3a5f7974f6735155e84f25efc1ca0dcc0608a9d273bb0f83569c1d1957b'
     )
     expect(
       hex(
@@ -116,15 +115,20 @@ describe('agent delegation events', () => {
           account,
           2,
           { Restricted: { scopes: ['message.draft'], audiences: ['https://dmsg.net'] } },
-          [1],
           new Uint8Array(32).fill(6)
         )
       )
-    ).toBe('c9162d454dbc36395e917294213c1e23a6b526c359244b0e0de19aa2d36d0ee0')
+    ).toBe('992ec6d7a7075d69c4c911aa4f218bbe884ca882d223d4e8f789d92c51089f31')
     expect(
       hex(
-        controllerPopMessage(home, account, 2, { Unrestricted: null }, [1], new Uint8Array(32).fill(6))
+        controllerPopMessage(
+          home,
+          account,
+          2,
+          { Unrestricted: null },
+          new Uint8Array(32).fill(6)
+        )
       )
-    ).not.toBe('c9162d454dbc36395e917294213c1e23a6b526c359244b0e0de19aa2d36d0ee0')
+    ).not.toBe('992ec6d7a7075d69c4c911aa4f218bbe884ca882d223d4e8f789d92c51089f31')
   })
 })

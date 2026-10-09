@@ -282,20 +282,19 @@ fn controller_and_recovery_proofs_bind_every_component() {
         scopes: vec!["message.draft".into()],
         audiences: vec!["https://dmsg.net".into()],
     };
-    let expected = controller_pop_message(home, &account, 2, &delegation, &[1], Hash::new([5; 32]));
+    let expected = controller_pop_message(home, &account, 2, &delegation, Hash::new([5; 32]));
     assert_ne!(
         controller_pop_message(
             Principal::from_slice(&[2]),
             &account,
             2,
             &delegation,
-            &[1],
             Hash::new([5; 32])
         ),
         expected
     );
     assert_ne!(
-        controller_pop_message(home, &account, 3, &delegation, &[1], Hash::new([5; 32])),
+        controller_pop_message(home, &account, 3, &delegation, Hash::new([5; 32])),
         expected
     );
     assert_ne!(
@@ -304,17 +303,12 @@ fn controller_and_recovery_proofs_bind_every_component() {
             &account,
             2,
             &DelegationAuthority::Unrestricted,
-            &[1],
             Hash::new([5; 32])
         ),
         expected
     );
     assert_ne!(
-        controller_pop_message(home, &account, 2, &delegation, &[], Hash::new([5; 32])),
-        expected
-    );
-    assert_ne!(
-        controller_pop_message(home, &account, 2, &delegation, &[1], Hash::new([6; 32])),
+        controller_pop_message(home, &account, 2, &delegation, Hash::new([6; 32])),
         expected
     );
     let request = RecoveryRequest {

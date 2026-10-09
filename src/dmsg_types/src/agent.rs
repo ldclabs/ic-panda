@@ -42,8 +42,9 @@ pub enum DelegationAuthority {
     /// `"*"`: any explicit scopes and audiences, and management of every credential
     /// of this principal. Always an explicit owner choice.
     Unrestricted,
-    /// Only the listed exact scopes and relying-party audiences, and only credentials
-    /// owned within this key's lineage. Both lists are nonempty.
+    /// Only the listed exact scopes and relying-party audiences, and management of
+    /// only the credentials whose scopes and audiences all fall within these lists.
+    /// Both lists are nonempty.
     Restricted {
         /// Exact scope strings; no wildcard, prefix or hierarchy.
         scopes: Vec<String>,
@@ -53,7 +54,7 @@ pub enum DelegationAuthority {
 }
 
 /// Controller record. The key is generated and held by the owner's client;
-/// key, `valid_from`, `delegation` and `supersedes` never change.
+/// key, `valid_from` and `delegation` never change.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HostedController {
     /// Positive controller generation, allocated once and never reused.
@@ -66,8 +67,6 @@ pub struct HostedController {
     pub valid_from: u64,
     /// Delegation ceiling of this key.
     pub delegation: DelegationAuthority,
-    /// Earlier generations of this principal whose credentials this key may manage.
-    pub supersedes: Vec<u32>,
     /// Binding end (exclusive) once retired; None while current.
     pub retired_at: Option<u64>,
     /// Earliest untrusted signature time after compromise; requires retirement.
@@ -115,8 +114,9 @@ pub struct DirectoryInit {
     pub principal_origin: String,
     /// Controller `source` origin, such as `https://dmsg.net`.
     pub controller_source: String,
-    /// Authoritative delegation query endpoint written into every document.
-    pub delegation_query_url: String,
+    /// Origin of the authoritative delegation service written into every
+    /// document, such as `https://agents.dmsg.net`.
+    pub delegation_service: String,
     /// Prefix of the public profile link, such as `https://dmsg.net/u/`.
     pub profile_url_prefix: String,
     /// Custom domains served at `/.well-known/ic-domains`.

@@ -267,11 +267,11 @@ fn main() {
     let pop = canonical(&(
         1u8,
         "dmsg/controller-pop/v1",
-        (home_user, &account, 2u32, &delegation, vec![1u32], request_id),
+        (home_user, &account, 2u32, &delegation, request_id),
     ));
     assert_eq!(
         sha256(&pop),
-        controller_pop_message(home_user, &account, 2, &delegation, &[1], request_id)
+        controller_pop_message(home_user, &account, 2, &delegation, request_id)
     );
     values.push(vector("controller_pop_v1", pop));
     let caller = Principal::self_authenticating([9; 32]);

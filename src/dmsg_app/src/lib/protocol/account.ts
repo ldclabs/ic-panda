@@ -221,7 +221,6 @@ export const controllerPopMessage = (
   accountId: Uint8Array,
   generation: number,
   delegation: DelegationAuthority,
-  supersedes: number[],
   requestId: Uint8Array
 ) =>
   digest('dmsg/controller-pop/v1', [
@@ -229,7 +228,6 @@ export const controllerPopMessage = (
     accountId,
     generation,
     candidValue(delegationType, delegation),
-    supersedes,
     requestId
   ])
 /** Recipients of a root bundle: active device IDs in ascending order plus the

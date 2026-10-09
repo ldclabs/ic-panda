@@ -13,7 +13,7 @@ use std::cell::RefCell;
 // certification nodes=3.
 pub(crate) type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub(crate) const STABLE_SCHEMA: u16 = 5;
+pub(crate) const STABLE_SCHEMA: u16 = 6;
 
 #[derive(Clone)]
 pub(crate) struct Config {

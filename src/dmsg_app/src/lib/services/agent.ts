@@ -98,10 +98,7 @@ export class AgentClient {
     return { publicKey, agentId: agentId(publicKey) }
   }
 
-  async register(
-    account: string,
-    input: { authority: Authority; name?: string; supersedes: number[] }
-  ) {
+  async register(account: string, input: { authority: Authority; name?: string }) {
     const principal = await this.principal(account)
     ensure(principal, 'NOT_FOUND', '请先启用 principal。')
     const generation = (principal.state.controllers.at(-1)?.generation ?? 0) + 1
@@ -121,7 +118,6 @@ export class AgentClient {
         public_key: publicKey,
         name: input.name ? [input.name] : [],
         delegation,
-        supersedes: input.supersedes,
         proof: (
           await this.account.crypto.call(
             'controllerKey',
@@ -133,7 +129,6 @@ export class AgentClient {
               xidBytes(account),
               generation,
               delegation,
-              input.supersedes,
               requestId
             )
           )

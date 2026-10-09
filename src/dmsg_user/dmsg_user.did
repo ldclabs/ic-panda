@@ -18,8 +18,6 @@ type AccountCommand = variant {
     public_key : blob;
     // Explicit delegation ceiling chosen by the owner.
     delegation : DelegationAuthority;
-    // Earlier generations whose credentials this key may manage.
-    supersedes : vec nat32;
     // Optional display label.
     name : opt text;
     // Next unused controller generation.
@@ -582,8 +580,9 @@ type CreateAccount = record {
 };
 // Delegation ceiling of a controller, immutable once published.
 type DelegationAuthority = variant {
-  // Only the listed exact scopes and relying-party audiences, and only credentials
-  // owned within this key's lineage. Both lists are nonempty.
+  // Only the listed exact scopes and relying-party audiences, and management of
+  // only the credentials whose scopes and audiences all fall within these lists.
+  // Both lists are nonempty.
   Restricted : record {
     // Exact scope strings; no wildcard, prefix or hierarchy.
     scopes : vec text;
@@ -811,7 +810,7 @@ type HandleIntent = record {
   terms_digest : blob;
 };
 // Controller record. The key is generated and held by the owner's client;
-// key, `valid_from`, `delegation` and `supersedes` never change.
+// key, `valid_from` and `delegation` never change.
 type HostedController = record {
   // Earliest untrusted signature time after compromise; requires retirement.
   invalid_from : opt nat64;
@@ -819,8 +818,6 @@ type HostedController = record {
   public_key : blob;
   // Delegation ceiling of this key.
   delegation : DelegationAuthority;
-  // Earlier generations of this principal whose credentials this key may manage.
-  supersedes : vec nat32;
   // Optional display label; the only field that may change.
   name : opt text;
   // Positive controller generation, allocated once and never reused.

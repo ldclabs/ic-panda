@@ -17,7 +17,6 @@ export type AccountCommand = {
     'RegisterController' : {
       'public_key' : Uint8Array | number[],
       'delegation' : DelegationAuthority,
-      'supersedes' : Uint32Array | number[],
       'name' : [] | [string],
       'generation' : number,
       'proof' : Uint8Array | number[],
@@ -395,7 +394,6 @@ export interface HostedController {
   'invalid_from' : [] | [bigint],
   'public_key' : Uint8Array | number[],
   'delegation' : DelegationAuthority,
-  'supersedes' : Uint32Array | number[],
   'name' : [] | [string],
   'generation' : number,
   'valid_from' : bigint,

@@ -24,7 +24,6 @@ fn controller(delegation: DelegationAuthority) -> HostedController {
         name: None,
         valid_from: NOW - DAY,
         delegation,
-        supersedes: vec![],
         retired_at: None,
         invalid_from: None,
     }
@@ -44,7 +43,7 @@ fn config() -> DirectoryInit {
         user_homes: vec![Principal::from_slice(&[1])],
         principal_origin: ORIGIN.into(),
         controller_source: "https://dmsg.net".into(),
-        delegation_query_url: "https://agents.dmsg.test/v1/delegations/query".into(),
+        delegation_service: "https://agents.dmsg.test".into(),
         profile_url_prefix: "https://dmsg.test/u/".into(),
         custom_domains: vec!["id.dmsg.test".into()],
         governance: Principal::from_slice(&[9]),
@@ -59,7 +58,6 @@ fn state() -> PrincipalState {
     second.generation = 2;
     second.public_key = public(2);
     second.valid_from = NOW;
-    second.supersedes = vec![1];
     PrincipalState {
         principal_type: PrincipalType::Person,
         controllers: vec![first, second],
@@ -82,22 +80,14 @@ fn rendered_document_passes_sdk_validation_and_is_jcs() {
         document.controllers[0].id.to_string(),
         sdk_id::AgentId::from_public_key(&public(2)).to_string()
     );
-    assert_eq!(
-        document.controllers[0].supersedes.as_deref(),
-        Some(&[document.retired_controllers[0].id.clone()][..])
-    );
     assert_eq!(document.retired_controllers[0].retired_at, Some(NOW as i64));
     assert_eq!(
-        document.delegation_query_url.as_deref(),
-        Some("https://agents.dmsg.test/v1/delegations/query")
+        document.delegation_service.as_deref(),
+        Some("https://agents.dmsg.test")
     );
     assert_eq!(
         document.links[0].url,
         format!("https://dmsg.test/u/{}", account())
-    );
-    assert_eq!(
-        sdk::controller_lineage(&document, &document.controllers[0].id).len(),
-        2
     );
 
     let empty = PrincipalState {
@@ -119,12 +109,6 @@ fn invalid_states_are_rejected() {
     cases.push(s);
     let mut s = state();
     s.controllers[1].public_key = s.controllers[0].public_key;
-    cases.push(s);
-    let mut s = state();
-    s.controllers[1].supersedes = vec![2];
-    cases.push(s);
-    let mut s = state();
-    s.controllers[1].valid_from = s.controllers[0].valid_from;
     cases.push(s);
     let mut s = state();
     s.controllers[1].invalid_from = Some(NOW);
@@ -172,6 +156,9 @@ fn directory_config_and_allocator_routing() {
     for edit in [
         |c: &mut DirectoryInit| c.principal_origin = "https://id.dmsg.test/".into(),
         |c: &mut DirectoryInit| c.controller_source = "http://dmsg.net".into(),
+        |c: &mut DirectoryInit| {
+            c.delegation_service = "https://agents.dmsg.test/v1/delegations/query".into()
+        },
         |c: &mut DirectoryInit| c.profile_url_prefix = "https://dmsg.test/u".into(),
         |c: &mut DirectoryInit| c.user_homes.push(c.user_homes[0]),
         |c: &mut DirectoryInit| c.custom_domains = vec!["ID.dmsg.test".into()],
@@ -237,8 +224,7 @@ fn directory_document_urls_are_bounded_and_need_no_json_escaping() {
             c.controller_source = format!("https://{}", "a".repeat(MAX_PRINCIPAL_ORIGIN_BYTES))
         },
         |c: &mut DirectoryInit| {
-            c.delegation_query_url =
-                format!("https://dmsg.test/{}", "a".repeat(MAX_DIRECTORY_URL_BYTES))
+            c.delegation_service = format!("https://{}", "a".repeat(MAX_PRINCIPAL_ORIGIN_BYTES))
         },
         |c: &mut DirectoryInit| {
             c.profile_url_prefix =
@@ -260,13 +246,10 @@ fn document_budget_covers_maximum_urls_and_later_safety_changes() {
     let mut config = config();
     config.principal_origin = format!("https://{}", "a".repeat(MAX_PRINCIPAL_ORIGIN_BYTES - 8));
     config.controller_source = config.principal_origin.clone();
+    config.delegation_service = config.principal_origin.clone();
     config.profile_url_prefix = format!(
         "https://dmsg.test/{}/",
         "p".repeat(MAX_DIRECTORY_URL_BYTES - "https://dmsg.test//".len())
-    );
-    config.delegation_query_url = format!(
-        "https://dmsg.test/{}",
-        "q".repeat(MAX_DIRECTORY_URL_BYTES - "https://dmsg.test/".len())
     );
     validate_directory_init(&config).unwrap();
     let mut state = PrincipalState {
@@ -294,7 +277,6 @@ fn document_budget_covers_maximum_urls_and_later_safety_changes() {
                         .map(|i| format!("https://{i}{}", "a".repeat(MAX_AUDIENCE_BYTES - 9)))
                         .collect(),
                 },
-                supersedes: (1..g).collect(),
                 retired_at: Some(g as u64 + 1),
                 invalid_from: None,
             });
@@ -321,15 +303,9 @@ fn document_budget_covers_maximum_urls_and_later_safety_changes() {
         }
         assert!(accepted > 0 && accepted < MAX_CONTROLLER_RECORDS);
     }
-    // Ordinary single-predecessor rotations can still use all 32 generations.
+    // Ordinary rotations can still use all 32 generations.
     for c in &mut state.controllers {
         c.delegation = DelegationAuthority::Unrestricted;
-        c.supersedes = c
-            .generation
-            .checked_sub(1)
-            .filter(|g| *g > 0)
-            .into_iter()
-            .collect();
     }
     while state.controllers.len() < MAX_CONTROLLER_RECORDS {
         let g = state.controllers.len() as u32 + 1;
@@ -338,7 +314,6 @@ fn document_budget_covers_maximum_urls_and_later_safety_changes() {
         c.public_key = public(g as u8);
         c.valid_from = g as u64;
         c.retired_at = Some(g as u64 + 1);
-        c.supersedes = vec![g - 1];
         state.controllers.push(c);
     }
     validate_principal_state(&state).unwrap();
@@ -363,7 +338,6 @@ fn register_controller_approval_digest_vector() {
             scopes: vec!["message.draft".into()],
             audiences: vec!["https://dmsg.net".into()],
         },
-        supersedes: vec![1],
         proof: [8; 64].into(),
     };
     let approval = Approval {
@@ -379,12 +353,11 @@ fn register_controller_approval_digest_vector() {
     let hex = |h: Hash| h.iter().map(|b| format!("{b:02x}")).collect::<String>();
     assert_eq!(
         hex(message),
-        "ae7310bf0af95efc4d2c74d6ea423d7e91d91fec725c448ffba5f96708975d3f"
+        "8124d3a5f7974f6735155e84f25efc1ca0dcc0608a9d273bb0f83569c1d1957b"
     );
     let AccountCommand::RegisterController {
         generation,
         delegation,
-        supersedes,
         ..
     } = &command
     else {
@@ -396,9 +369,8 @@ fn register_controller_approval_digest_vector() {
             &account,
             *generation,
             delegation,
-            supersedes,
             approval.request_id
         )),
-        "c9162d454dbc36395e917294213c1e23a6b526c359244b0e0de19aa2d36d0ee0"
+        "992ec6d7a7075d69c4c911aa4f218bbe884ca882d223d4e8f789d92c51089f31"
     );
 }

@@ -1491,7 +1491,6 @@ fn register(
     s: &AccountState,
     generation: u32,
     key: u8,
-    supersedes: Vec<u32>,
     delegation: dmsg_types::agent::DelegationAuthority,
     time: u64,
 ) -> AccountMutation {
@@ -1501,7 +1500,6 @@ fn register(
         public_key: sk(key).verifying_key().to_bytes().into(),
         name: Some(format!("dMsg signer #{generation}")),
         delegation: delegation.clone(),
-        supersedes: supersedes.clone(),
         proof: sk(key)
             .sign(
                 controller_pop_message(
@@ -1509,7 +1507,6 @@ fn register(
                     &s.account_id,
                     generation,
                     &delegation,
-                    &supersedes,
                     request_id,
                 )
                 .as_slice(),
@@ -1531,7 +1528,7 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
         principal_type: PrincipalType::Person,
     };
     let epoch = s.security_epoch;
-    let m = register(&s, 1, 20, vec![], restricted(), 10);
+    let m = register(&s, 1, 20, restricted(), 10);
     assert_eq!(
         crate::principal::apply(&mut s, &mut principal, p(1), &m, 10),
         Err(Error::NotFound)
@@ -1546,13 +1543,13 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
         Err(Error::VersionConflict)
     );
     // Generations are allocated in order; the same millisecond still advances time.
-    let m = register(&s, 2, 20, vec![], restricted(), 10);
+    let m = register(&s, 2, 20, restricted(), 10);
     assert_eq!(
         crate::principal::apply(&mut s, &mut principal, p(1), &m, 10),
         Err(Error::VersionConflict)
     );
     // The proof must come from the registered key and bind this approval.
-    let mut forged = register(&s, 1, 20, vec![], restricted(), 10);
+    let mut forged = register(&s, 1, 20, restricted(), 10);
     if let AccountCommand::RegisterController { proof, .. } = &mut forged.command {
         *proof = sk(21).sign(b"x").to_bytes().into();
     }
@@ -1575,7 +1572,7 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
         Err(Error::IntegrityFailed)
     );
     assert_eq!((s.clone(), principal.clone()), before);
-    let m = register(&s, 1, 20, vec![], restricted(), 10);
+    let m = register(&s, 1, 20, restricted(), 10);
     let receipt = crate::principal::apply(&mut s, &mut principal, p(1), &m, 10).unwrap();
     let before = (s.clone(), principal.clone());
     assert_eq!(
@@ -1583,7 +1580,7 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
         Ok(receipt)
     );
     assert_eq!((s.clone(), principal.clone()), before);
-    let m = register(&s, 2, 21, vec![1], restricted(), 10);
+    let m = register(&s, 2, 21, restricted(), 10);
     crate::principal::apply(&mut s, &mut principal, p(1), &m, 10).unwrap();
     let state = &principal.as_ref().unwrap().state;
     assert_eq!(
@@ -1595,13 +1592,9 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
         vec![11, 12]
     );
     assert_eq!((state.version, state.updated_at), (3, 12));
-    // A successor must name an earlier generation; a key appears once.
-    for m in [
-        register(&s, 3, 22, vec![3], restricted(), 12),
-        register(&s, 3, 21, vec![], restricted(), 12),
-    ] {
-        assert!(crate::principal::apply(&mut s, &mut principal, p(1), &m, 12).is_err());
-    }
+    // A key appears once.
+    let m = register(&s, 3, 21, restricted(), 12);
+    assert!(crate::principal::apply(&mut s, &mut principal, p(1), &m, 12).is_err());
 
     principal_apply(
         &mut s,
@@ -1669,17 +1662,17 @@ fn principal_changes_are_monotonic_bounded_and_epoch_neutral() {
     assert_eq!(s.principal_updated_at, Some(state.updated_at));
     assert_eq!(s.security_epoch, epoch);
     // The ordinary account path never applies principal commands.
-    let m = register(&s, 3, 22, vec![], restricted(), 40);
+    let m = register(&s, 3, 22, restricted(), 40);
     assert!(matches!(
         account::apply(&mut s, p(1), &m, 40, p(7)),
         Err(Error::InvalidInput(_))
     ));
     // At most eight current controllers.
     for generation in 3..=10 {
-        let m = register(&s, generation, generation as u8 + 30, vec![], restricted(), 40);
+        let m = register(&s, generation, generation as u8 + 30, restricted(), 40);
         crate::principal::apply(&mut s, &mut principal, p(1), &m, 40).unwrap();
     }
-    let m = register(&s, 11, 60, vec![], restricted(), 40);
+    let m = register(&s, 11, 60, restricted(), 40);
     assert_eq!(
         crate::principal::apply(&mut s, &mut principal, p(1), &m, 40),
         Err(Error::QuotaExceeded)
@@ -1719,14 +1712,7 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
             )
             .unwrap();
         }
-        let m = register(
-            &s,
-            generation,
-            generation as u8 + 20,
-            (1..generation).collect(),
-            wide.clone(),
-            10,
-        );
+        let m = register(&s, generation, generation as u8 + 20, wide.clone(), 10);
         let before = (s.clone(), principal.clone());
         if crate::principal::apply(&mut s, &mut principal, p(1), &m, 10)
             == Err(Error::QuotaExceeded)
@@ -1770,7 +1756,7 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
         user_homes: vec![p(1)],
         principal_origin: "https://id.dmsg.test".into(),
         controller_source: "https://dmsg.test".into(),
-        delegation_query_url: "https://agents.dmsg.test/query".into(),
+        delegation_service: "https://agents.dmsg.test".into(),
         profile_url_prefix: "https://dmsg.test/u/".into(),
         custom_domains: vec![],
         governance: p(9),

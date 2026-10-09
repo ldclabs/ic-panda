@@ -216,27 +216,19 @@ pub fn account_admission_message(home: Principal, caller: Principal, expires_at:
 /// Build the proof-of-possession digest a controller key signs for its
 /// registration under `dmsg/controller-pop/v1`.
 ///
-/// Binds the user home, account, generation, delegation ceiling, superseded
-/// generations and the approval's request ID. Sign the digest with the
-/// controller's private key, not a device key. This checks nothing.
+/// Binds the user home, account, generation, delegation ceiling and the
+/// approval's request ID. Sign the digest with the controller's private key,
+/// not a device key. This checks nothing.
 pub fn controller_pop_message(
     home: Principal,
     account_id: &AccountId,
     generation: u32,
     delegation: &DelegationAuthority,
-    supersedes: &[u32],
     request_id: OpId,
 ) -> Hash {
     digest(
         "dmsg/controller-pop/v1",
-        &(
-            home,
-            account_id,
-            generation,
-            delegation,
-            supersedes,
-            request_id,
-        ),
+        &(home, account_id, generation, delegation, request_id),
     )
 }
 

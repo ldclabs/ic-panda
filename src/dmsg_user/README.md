@@ -194,10 +194,10 @@ flowchart LR
 ### Agent Delegation principal
 
 - **启用**：`EnablePrincipal` 创建账户的 principal 记录，`principal_id = principal_origin + "/" + AccountId`。
-- **注册 controller**：`RegisterController` 附 controller 私钥对 `dmsg/controller-pop/v1`（home、账户、代次、授权范围、接管代次、批准请求 ID）的 Ed25519 签名，home 验签后提交；私钥由客户端保存在 vault 中。
+- **注册 controller**：`RegisterController` 附 controller 私钥对 `dmsg/controller-pop/v1`（home、账户、代次、授权范围、批准请求 ID）的 Ed25519 签名，home 验签后提交；私钥由客户端保存在 vault 中。
 - **修改**：controller 的退役、标记泄露和改名都会推进记录版本，但不改变 `security_epoch`。
 - **发布**：提交后立即向 directory 发布。发布失败不影响已提交的变更，任何人都可以用 `publish_principal` 重试，`published_version` 只增不减。
-- **签名**：事件由客户端用 vault 中的 controller key 在本机签名并提交到 delegation 服务，不经过 user home；范围与 lineage 由服务按认证文档检查。
+- **签名**：事件由客户端用 vault 中的 controller key 在本机签名并提交到 delegation 服务，不经过 user home；签发与管理凭证的权限上限由服务按认证文档检查。
 
 协议见 [Agent Delegation](../../docs/protocol/agent_zh.md)。
 

@@ -40,7 +40,6 @@
     ceilingScopes = $state(''),
     ceilingAudiences = $state('https://dmsg.net'),
     controllerName = $state(''),
-    supersedes = $state<number[]>([]),
     preview = $state<{ generation: number; agentId: string } | null>(null)
   // Grant.
   let signer = $state(0),
@@ -101,8 +100,7 @@
           : { kind: 'restricted', scopes: split(ceilingScopes), audiences: split(ceilingAudiences) }
       await client!.register(account(), {
         authority,
-        name: controllerName.trim() || undefined,
-        supersedes
+        name: controllerName.trim() || undefined
       })
       preview = null
       await load()
@@ -231,7 +229,7 @@
       </article>
     {/each}
     <h3>登记新的 controller</h3>
-    <p>权限一经发布不可修改；扩大权限需登记新 key 并在“接管”中选择旧 key。</p>
+    <p>权限一经发布不可修改；扩大权限需登记新 key。受限 key 只能替换或撤销 scope 与依赖方都在其上限内的凭证。</p>
     <label
       ><input type="radio" bind:group={authorityKind} value="restricted" /> 受限（明确的 scope 与依赖方）</label
     >
@@ -241,14 +239,6 @@
       <label>依赖方 origin 或 Agent ID<input bind:value={ceilingAudiences} /></label>
     {/if}
     <label>名称（可选）<input bind:value={controllerName} maxlength="64" /></label>
-    {#if principal.state.controllers.length}
-      <fieldset>
-        <legend>接管以下 key 的凭证管理（可选）</legend>
-        {#each principal.state.controllers as c (c.generation)}<label
-            ><input type="checkbox" bind:group={supersedes} value={c.generation} /> #{c.generation}</label
-          >{/each}
-      </fieldset>
-    {/if}
     <button class="secondary" disabled={session.busy} onclick={previewController}>预览 key</button>
     {#if preview}
       <p>

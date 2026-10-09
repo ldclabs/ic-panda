@@ -17,8 +17,8 @@ pub struct DirectoryInitRepr {
     pub principal_origin: String,
     #[cbor(key = 5)]
     pub controller_source: String,
-    #[cbor(key = 6)]
-    pub delegation_query_url: String,
+    #[cbor(key = 10)]
+    pub delegation_service: String,
     #[cbor(key = 7)]
     pub profile_url_prefix: String,
     #[cbor(key = 8)]
@@ -49,7 +49,7 @@ impl StableCodec for Config {
                 user_homes: init.user_homes.clone(),
                 principal_origin: init.principal_origin.clone(),
                 controller_source: init.controller_source.clone(),
-                delegation_query_url: init.delegation_query_url.clone(),
+                delegation_service: init.delegation_service.clone(),
                 profile_url_prefix: init.profile_url_prefix.clone(),
                 custom_domains: init.custom_domains.clone(),
                 governance: init.governance,
@@ -67,7 +67,7 @@ impl StableCodec for Config {
                 user_homes: init.user_homes,
                 principal_origin: init.principal_origin,
                 controller_source: init.controller_source,
-                delegation_query_url: init.delegation_query_url,
+                delegation_service: init.delegation_service,
                 profile_url_prefix: init.profile_url_prefix,
                 custom_domains: init.custom_domains,
                 governance: init.governance,
@@ -133,7 +133,7 @@ mod tests {
                 user_homes: vec![Principal::from_slice(&[1]), Principal::from_slice(&[2])],
                 principal_origin: "https://id.dmsg.test".into(),
                 controller_source: "https://dmsg.test".into(),
-                delegation_query_url: "https://agents.dmsg.test/query".into(),
+                delegation_service: "https://agents.dmsg.test".into(),
                 profile_url_prefix: "https://dmsg.test/u/".into(),
                 custom_domains: vec![],
                 governance: Principal::from_slice(&[3]),

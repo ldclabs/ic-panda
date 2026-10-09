@@ -46,7 +46,6 @@ function fixture() {
           name: [],
           valid_from: BigInt(NOW - 1000),
           delegation: { Unrestricted: null },
-          supersedes: [],
           retired_at: [],
           invalid_from: []
         }
@@ -180,16 +179,14 @@ describe('self-held controller signing', () => {
     const f = fixture()
     const generation = await f.client.register(accountId, {
       authority: { kind: 'restricted', scopes: ['message.draft'], audiences: ['https://dmsg.net'] },
-      name: 'second',
-      supersedes: [1]
+      name: 'second'
     })
     expect(generation).toBe(2)
     const command = await f.mutate.mock.results[0].value
     expect(command.RegisterController).toMatchObject({
       generation: 2,
       public_key: publicKey,
-      name: ['second'],
-      supersedes: [1]
+      name: ['second']
     })
     expect(
       ed25519.verify(
@@ -199,7 +196,6 @@ describe('self-held controller signing', () => {
           xidBytes(accountId),
           2,
           { Restricted: { scopes: ['message.draft'], audiences: ['https://dmsg.net'] } },
-          [1],
           new Uint8Array(32).fill(6)
         ),
         publicKey

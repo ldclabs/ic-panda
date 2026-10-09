@@ -111,7 +111,6 @@ pub(crate) fn prepare(
             public_key,
             name,
             delegation,
-            supersedes,
             proof,
         } => {
             let expected = next
@@ -128,7 +127,6 @@ pub(crate) fn prepare(
                     &s.account_id,
                     *generation,
                     delegation,
-                    supersedes,
                     m.approval.request_id,
                 )
                 .as_slice(),
@@ -140,7 +138,6 @@ pub(crate) fn prepare(
                 name: name.clone(),
                 valid_from: at,
                 delegation: delegation.clone(),
-                supersedes: supersedes.clone(),
                 retired_at: None,
                 invalid_from: None,
             });

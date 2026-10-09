@@ -1,7 +1,8 @@
 // Delegation ceiling of a controller, immutable once published.
 type DelegationAuthority = variant {
-  // Only the listed exact scopes and relying-party audiences, and only credentials
-  // owned within this key's lineage. Both lists are nonempty.
+  // Only the listed exact scopes and relying-party audiences, and management of
+  // only the credentials whose scopes and audiences all fall within these lists.
+  // Both lists are nonempty.
   Restricted : record {
     // Exact scope strings; no wildcard, prefix or hierarchy.
     scopes : vec text;
@@ -20,8 +21,9 @@ type DirectoryInit = record {
   custom_domains : vec text;
   // Prefix of the public profile link, such as `https://dmsg.net/u/`.
   profile_url_prefix : text;
-  // Authoritative delegation query endpoint written into every document.
-  delegation_query_url : text;
+  // Origin of the authoritative delegation service written into every
+  // document, such as `https://agents.dmsg.net`.
+  delegation_service : text;
   // HTTPS origin of principal IDs, such as `https://id.dmsg.net`.
   principal_origin : text;
   // Account issuer namespace shared by the user homes.
@@ -119,7 +121,7 @@ type Error = variant {
   Pending;
 };
 // Controller record. The key is generated and held by the owner's client;
-// key, `valid_from`, `delegation` and `supersedes` never change.
+// key, `valid_from` and `delegation` never change.
 type HostedController = record {
   // Earliest untrusted signature time after compromise; requires retirement.
   invalid_from : opt nat64;
@@ -127,8 +129,6 @@ type HostedController = record {
   public_key : blob;
   // Delegation ceiling of this key.
   delegation : DelegationAuthority;
-  // Earlier generations of this principal whose credentials this key may manage.
-  supersedes : vec nat32;
   // Optional display label; the only field that may change.
   name : opt text;
   // Positive controller generation, allocated once and never reused.

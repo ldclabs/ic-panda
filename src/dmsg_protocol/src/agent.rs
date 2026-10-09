@@ -20,9 +20,9 @@ pub const MAX_CEILING_AUDIENCES: usize = 4;
 pub const MAX_SCOPE_BYTES: usize = 64;
 /// Maximum bytes of one audience string (256).
 pub const MAX_AUDIENCE_BYTES: usize = 256;
-/// Maximum serialized principal or controller-source origin (512 bytes).
+/// Maximum serialized principal, controller-source or delegation-service origin (512 bytes).
 pub const MAX_PRINCIPAL_ORIGIN_BYTES: usize = 512;
-/// Maximum directory query URL or profile prefix (2 KiB).
+/// Maximum directory profile prefix (2 KiB).
 pub const MAX_DIRECTORY_URL_BYTES: usize = 2_048;
 /// Maximum principal document (64 KiB), including future retirement fields.
 pub const MAX_PRINCIPAL_DOCUMENT_BYTES: usize = 65_536;
@@ -105,8 +105,8 @@ pub fn validate_controller_name(name: &str) -> Result<()> {
 ///
 /// Generations are unique and ascending, record counts are bounded, a key
 /// appears once, current records carry no retirement fields, retirement and
-/// compromise intervals are ordered, every `supersedes` entry names an earlier
-/// record, and every timestamp is at or before `updated_at`.
+/// compromise intervals are ordered, and every timestamp is at or before
+/// `updated_at`.
 /// The document budget reserves the largest configured URLs, names and all
 /// retirement/compromise fields, so later safety changes always remain publishable.
 ///
@@ -150,16 +150,6 @@ pub fn validate_principal_state(state: &PrincipalState) -> Result<()> {
             )?,
             None => ensure_valid(c.invalid_from.is_none(), "current controller")?,
         }
-        let mut seen = BTreeSet::new();
-        for generation in &c.supersedes {
-            ensure_valid(
-                seen.insert(*generation)
-                    && state.controllers[..index]
-                        .iter()
-                        .any(|p| p.generation == *generation && p.valid_from < c.valid_from),
-                "supersedes",
-            )?;
-        }
     }
     ensure(
         principal_document_size_bound(state) <= MAX_PRINCIPAL_DOCUMENT_BYTES,
@@ -172,11 +162,9 @@ pub fn validate_principal_state(state: &PrincipalState) -> Result<()> {
 /// 512 bytes per controller covers syntax, Agent ID, a maximally escaped name
 /// and three full-width timestamps. Variable immutable fields are added below.
 fn principal_document_size_bound(state: &PrincipalState) -> usize {
-    let mut bytes = 1_024 + MAX_PRINCIPAL_ORIGIN_BYTES + 2 * MAX_DIRECTORY_URL_BYTES;
+    let mut bytes = 1_024 + 2 * MAX_PRINCIPAL_ORIGIN_BYTES + MAX_DIRECTORY_URL_BYTES;
     for c in &state.controllers {
         bytes += 512 + MAX_PRINCIPAL_ORIGIN_BYTES;
-        // A did:agent ID is 53 ASCII bytes, plus two quotes and a comma.
-        bytes += c.supersedes.len() * 56;
         if let DelegationAuthority::Restricted { scopes, audiences } = &c.delegation {
             for value in scopes.iter().chain(audiences) {
                 // Include the JSON quotes and separating comma without allocating.
@@ -208,7 +196,7 @@ fn principal_type(value: &PrincipalType) -> &'static str {
 ///
 /// The document names `principal_origin/<account_id>` as its `id`, lists
 /// current and retired hosted controllers with the configured `source`, the
-/// configured `delegation_query_url`, and one `profile` link. It is checked with
+/// configured `delegation_service` origin, and one `profile` link. It is checked with
 /// the SDK's `validate_principal_document` before the bytes are returned.
 ///
 /// # Errors
@@ -219,14 +207,6 @@ pub fn render_principal_document(
     state: &PrincipalState,
 ) -> Result<Vec<u8>> {
     validate_principal_state(state)?;
-    let key = |generation: u32| {
-        state
-            .controllers
-            .iter()
-            .find(|c| c.generation == generation)
-            .map(|c| sdk_id::AgentId::from_public_key(&c.public_key))
-            .ok_or_else(|| invalid("supersedes"))
-    };
     let mut controllers = Vec::new();
     let mut retired_controllers = Vec::new();
     for c in &state.controllers {
@@ -246,9 +226,6 @@ pub fn render_principal_document(
                     })
                 }
             }),
-            supersedes: (!c.supersedes.is_empty())
-                .then(|| c.supersedes.iter().map(|g| key(*g)).collect::<Result<_>>())
-                .transpose()?,
             retired_at: c.retired_at.map(millis).transpose()?,
             invalid_from: c.invalid_from.map(millis).transpose()?,
         };
@@ -273,7 +250,7 @@ pub fn render_principal_document(
         protocol: AGENT_DELEGATION_PROTOCOL.into(),
         controllers,
         retired_controllers,
-        delegation_query_url: Some(config.delegation_query_url.clone()),
+        delegation_service: Some(config.delegation_service.clone()),
         updated_at: millis(state.updated_at)?,
         extra: Default::default(),
     };
@@ -301,11 +278,11 @@ pub fn validate_custom_domains(domains: &[String]) -> Result<()> {
 ///
 /// Requires a valid issuer namespace, user homes accepted by
 /// [`validate_user_homes`], an authenticated governance Principal, HTTPS
-/// origins for principals and controller source, an HTTPS query URL, an HTTPS
-/// profile prefix ending in `/`, and domains accepted by
-/// [`validate_custom_domains`]. Origins are at most 512 bytes and the query
-/// URL/profile prefix at most 2 KiB, without JSON escape characters, matching
-/// the shared principal-document byte budget.
+/// origins for principals, controller source and the delegation service, an
+/// HTTPS profile prefix ending in `/`, and domains accepted by
+/// [`validate_custom_domains`]. Origins are at most 512 bytes and the profile
+/// prefix at most 2 KiB, without JSON escape characters, matching the shared
+/// principal-document byte budget.
 ///
 /// # Errors
 /// Invalid configuration returns `Error::InvalidInput`, `Error::AuthRequired`,
@@ -321,18 +298,18 @@ pub fn validate_directory_init(config: &DirectoryInit) -> Result<()> {
     authenticated(config.governance)?;
     validate_principal_origin(&config.principal_origin)?;
     validate_principal_origin(&config.controller_source)?;
-    for url in [&config.delegation_query_url, &config.profile_url_prefix] {
-        validate_document_url_bytes(url, MAX_DIRECTORY_URL_BYTES)?;
-        let parsed = url::Url::parse(url).map_err(|_| invalid("directory URL"))?;
-        ensure_valid(
-            parsed.scheme() == "https"
-                && parsed.as_str() == url.as_str()
-                && parsed.query().is_none()
-                && parsed.fragment().is_none(),
-            "directory URL",
-        )?;
-    }
-    ensure_valid(config.profile_url_prefix.ends_with('/'), "profile prefix")
+    validate_principal_origin(&config.delegation_service)?;
+    let url = &config.profile_url_prefix;
+    validate_document_url_bytes(url, MAX_DIRECTORY_URL_BYTES)?;
+    let parsed = url::Url::parse(url).map_err(|_| invalid("directory URL"))?;
+    ensure_valid(
+        parsed.scheme() == "https"
+            && parsed.as_str() == url.as_str()
+            && parsed.query().is_none()
+            && parsed.fragment().is_none()
+            && url.ends_with('/'),
+        "profile prefix",
+    )
 }
 
 /// Digest committing to an account-ID allocator's deployment namespace.

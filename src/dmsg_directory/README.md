@@ -23,7 +23,7 @@ flowchart LR
 | --- | --- |
 | `dmsg_directory` | 按账户保存已渲染的文档和发布版本，维护 HTTP 认证树，返回文档、404 和 `/.well-known/ic-domains` |
 | `dmsg_user` | 可有多个分片（user home）。账户的 principal 变更（启用、登记、退役、泄露标记、改名）在所属 home 提交，提交后立即推送；失败时任何人可用 `publish_principal` 重试，`get_principal` 的 `published_version` 显示已发布到哪个版本 |
-| delegation 服务 | `delegation_query_url` 所在服务。接收事件时现取文档，并用 home 认证快照中的 `principal_updated_at` 判断文档是否滞后 |
+| delegation 服务 | 文档 `delegation_service` 指向的源。接收事件时现取文档，并用 home 认证快照中的 `principal_updated_at` 判断文档是否滞后 |
 | ICP HTTP 网关 | 终止自定义域的 TLS，校验 canister 响应的认证后再交给客户端 |
 
 ### 接口与调用者
@@ -40,7 +40,7 @@ flowchart LR
 
 ### 权威与信任边界
 
-- **授权**：directory 只检查调用者是账户所属的 home、版本单调、状态自身合法（`validate_principal_state`）以及渲染结果通过 SDK 校验。相邻版本之间的约束（key、`valid_from`、权限上限和 `supersedes` 不变，退役记录不删除）由 home 保证，directory 不与旧状态比对。
+- **授权**：directory 只检查调用者是账户所属的 home、版本单调、状态自身合法（`validate_principal_state`）以及渲染结果通过 SDK 校验。相邻版本之间的约束（key、`valid_from` 和权限上限不变，退役记录不删除）由 home 保证，directory 不与旧状态比对。
 - **治理**：controller 和 governance 只能追加 home、替换自定义域。它们不能修改或删除已发布的文档，也不能把已发布的账户交给另一个 home：记录中的 `home_user` 固定，新 home 的分配器指纹不能与已有 home 相同。能升级代码的 controller（交给 SNS 后是 SNS root）则掌握全部文档的发布权，应与其他 dMsg canister 同级管控。
 - **HTTP 认证**：每个响应都带 v2 证书，网关验证失败就不返回内容，所以单个副本或节点无法伪造文档。验证在网关完成，最终客户端信任网关的结果。`<canister>.raw.icp0.io` 不做验证，不能用于解析 principal；经 `<canister>.icp0.io` 取到的文档，其 URL 不等于文档 `id`，依赖方应按协议拒绝。
 - **发布滞后**：发布晚于 home 提交。新 controller 在发布前不被 delegation 服务接受；退役在 home 提交后即生效；服务发现认证快照的 `principal_updated_at` 大于文档的 `updated_at` 时视为滞后，不按旧文档接收事件，见 [agent_zh.md](../../docs/protocol/agent_zh.md#安全快照)。文档响应允许缓存 30 秒。
@@ -59,7 +59,7 @@ flowchart LR
 
 ### 文档渲染
 
-[`render_principal_document`](../dmsg_protocol/src/agent.rs) 生成 JCS JSON：`id` 为 `principal_origin/<account_id>`；`type` 为小写类型名；当前与已退役的 controller 分列在 `controllers` 和 `retired_controllers`，`source` 为 `controller_source`；`delegation_query_url` 为配置值；另有一条指向 `profile_url_prefix + account_id` 的 `rel: "profile"` 链接。输出先经 `agent-protocols` SDK 的 `validate_principal_document` 校验。
+[`render_principal_document`](../dmsg_protocol/src/agent.rs) 生成 JCS JSON：`id` 为 `principal_origin/<account_id>`；`type` 为小写类型名；当前与已退役的 controller 分列在 `controllers` 和 `retired_controllers`，`source` 为 `controller_source`；`delegation_service` 为配置的服务源；另有一条指向 `profile_url_prefix + account_id` 的 `rel: "profile"` 链接。输出先经 `agent-protocols` SDK 的 `validate_principal_document` 校验。
 
 - directory 保存渲染后的确切字节，查询时不再渲染。渲染逻辑或 SDK 版本的变化只影响之后的发布，已有文档保持原样，直到 home 推送新版本。
 - directory 不保存 `PrincipalState`，不能自行重新渲染，所以写进文档的配置字段在安装后不可修改（见“初始化参数”）。
@@ -85,16 +85,16 @@ flowchart LR
 
 | memory | 内容 |
 | --- | --- |
-| 0 | `StableCell`：`schema = 5` 与 `DirectoryInit`，包括追加的 home 和当前域名 |
+| 0 | `StableCell`：`schema = 6` 与 `DirectoryInit`，包括追加的 home 和当前域名 |
 | 1 | `StableBTreeMap`：账户 ID（12 字节）→ `{home_user, version, updated_at, state_digest, document_digest, document}`，紧凑 CBOR |
 | 2 | 认证树的叶：第一段 → 子树哈希 |
 | 3 | 认证树的内部节点，201 字节定长槽位 |
 
-`post_upgrade` 要求 schema 等于 5，重新认证 404 和域名列表并设置根哈希。它不读参数、不改配置，也不访问文档。更早的开发期 schema 直接拒绝，没有迁移代码。
+`post_upgrade` 要求 schema 等于 6，重新认证 404 和域名列表并设置根哈希。它不读参数、不改配置，也不访问文档。更早的开发期 schema 直接拒绝，没有迁移代码。
 
 ### 配置与治理
 
-- 安装后不可修改：`environment`、`issuer_namespace`、`principal_origin`、`controller_source`、`delegation_query_url`、`profile_url_prefix` 和 `governance`。
+- 安装后不可修改：`environment`、`issuer_namespace`、`principal_origin`、`controller_source`、`delegation_service`、`profile_url_prefix` 和 `governance`。
 - `admin_add_user_home(home)`：只能追加，最多 64 个，分配器指纹互不相同；已列出的 home 返回 `Ok`，不做改动。directory 读不到新 home 的配置，提交前用新 home 的 `user_config` 核对它的 `environment`、`issuer_namespace`、`principal_origin` 和 `directory_canister`。
 - `admin_set_custom_domains(domains)`：整体替换，最多 8 个小写 DNS 名称，立即重新认证；与当前列表相同时不做改动。列表必须包含 `principal_origin` 的主机名，否则返回 `InvalidInput`；安装时同样检查。
 - 每个管理方法都有同参数的 `validate_*` query：按当前状态执行相同的检查，通过时返回给投票者看的说明（新 home 的分配器指纹，或当前与新的域名），失败时返回错误名。它们可以登记为 SNS 通用函数的验证方法。
@@ -106,15 +106,15 @@ flowchart LR
 - ingress 由 `canister_inspect_message` 预过滤，其他人发送的 ingress 不产生接收费。
 - `directory_stats` 返回已发布账户数、stable 页数和 cycles 余额。
 
-2026-10-08 在加入 ingress 过滤后的 release Wasm 上，用 PocketIC 16.0.0 运行 `directory_cost_and_rebuild_profile`。PocketIC 的 update 调用按 ingress 计费，下表数字包含 ingress 接收费（profile 以 controller 和已登记 home 的身份调用，能通过 ingress 过滤）：
+2026-10-09 在 agent-protocols 0.11.3（文档以 `delegation_service` 代替查询 URL，controller 不再列 `supersedes`）的 release Wasm 上，用 PocketIC 16.0.0 运行 `directory_cost_and_rebuild_profile`。PocketIC 的 update 调用按 ingress 计费，下表数字包含 ingress 接收费（profile 以 controller 和已登记 home 的身份调用，能通过 ingress 过滤）：
 
-| 测量（cycles） | 291 字节文档，0 个 controller | 35,360 字节文档，16 个 controller |
+| 测量（cycles） | 283 字节文档，0 个 controller | 28,407 字节文档，16 个 controller |
 | --- | ---: | ---: |
-| `get_publication` 以 update 调用 | 7,089,881 | 7,238,487 |
-| `http_request` 以 update 调用 | 8,063,387 | 10,151,371 |
-| 旧版本 `publish`（以 home 身份发送 ingress） | 7,910,109 | 61,800,647 |
+| `get_publication` 以 update 调用 | 7,088,215 | 7,218,402 |
+| `http_request` 以 update 调用 | 8,058,231 | 9,749,997 |
+| 旧版本 `publish`（以 home 身份发送 ingress） | 7,859,411 | 60,613,634 |
 
-35 KiB 旧版本 `publish` 的成本主要是按字节计的 ingress 接收费；生产中 home 以跨 canister 调用发布，这部分不由 directory 承担。130 条记录时升级消耗 3,169,473,517 cycles，升级后 Wasm 线性内存从 2,424,832 降到 1,441,792 字节。这些是本地小样本，不代表网关吞吐或最大容量。
+28 KiB 旧版本 `publish` 的成本主要是按字节计的 ingress 接收费；生产中 home 以跨 canister 调用发布，这部分不由 directory 承担。130 条记录时升级消耗 3,126,997,395 cycles，升级后 Wasm 线性内存从 2,228,224 降到 1,441,792 字节。这些是本地小样本，不代表网关吞吐或最大容量。
 
 ## 部署流程
 
@@ -131,7 +131,7 @@ flowchart LR
 | `user_homes` | 至少一个 `dmsg_user` canister ID；之后只能追加，最多 64 个，分配器指纹互不相同 |
 | `principal_origin` | principal ID 的 HTTPS origin，不含路径，最多 512 字节；计划值 `https://id.dmsg.net`。须等于每个 home 的 `UserInit.principal_origin` 和客户端的 `principalOrigin`；它的主机名须列入 `custom_domains`，并按下文指向本 canister |
 | `controller_source` | controller 的 `source` origin，最多 512 字节；计划值 `https://dmsg.net` |
-| `delegation_query_url` | delegation 服务的查询 URL：HTTPS，无 query 和 fragment，最多 2 KiB；计划值 `https://agents.dmsg.net/v1/delegations/query`。须与该服务实际使用的查询 URL 逐字一致 |
+| `delegation_service` | 权威 delegation 服务的 HTTPS origin，不含路径，最多 512 字节；计划值 `https://agents.dmsg.net`。须与该服务对外的 origin 逐字一致，客户端经该 origin 的发现文档定位查询与读取端点 |
 | `profile_url_prefix` | profile 链接前缀：HTTPS，以 `/` 结尾，最多 2 KiB；计划值 `https://dmsg.net/u/` |
 | `custom_domains` | `/.well-known/ic-domains` 列出的域名，必须包含 `principal_origin` 的主机名，生产为 `["id.dmsg.net"]`；之后用 `admin_set_custom_domains` 替换 |
 | `governance` | 生产为 SNS governance `dwv6s-6aaaa-aaaaq-aacta-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`）；本地可填部署者 principal |
@@ -166,7 +166,7 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
      user_homes = vec { principal \"$(dfx canister id dmsg_user --network ic)\" };
      principal_origin = \"https://id.dmsg.net\";
      controller_source = \"https://dmsg.net\";
-     delegation_query_url = \"https://agents.dmsg.net/v1/delegations/query\";
+     delegation_service = \"https://agents.dmsg.net\";
      profile_url_prefix = \"https://dmsg.net/u/\";
      custom_domains = vec { \"id.dmsg.net\" };
      governance = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\";
@@ -213,7 +213,7 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
    curl -sS "https://id.dmsg.net/$ACCOUNT" | tee principal.json | sha256sum
    ```
 
-   账户 ID 文本是 12 字节的小写 base32hex（无填充），第二行把它转成 Candid blob。`document_digest` 应等于正文的 SHA-256，`version` 和 `updated_at` 与 home 一致，文档 `id` 等于请求的 URL。再用这个 controller 签发一个 grant，确认 delegation 服务接受、经 `delegation_query_url` 能查到；退役该 controller 后确认文档随之更新。
+   账户 ID 文本是 12 字节的小写 base32hex（无填充），第二行把它转成 Candid blob。`document_digest` 应等于正文的 SHA-256，`version` 和 `updated_at` 与 home 一致，文档 `id` 等于请求的 URL。再用这个 controller 签发一个 grant，确认 delegation 服务接受、经 `delegation_service` 能查到；退役该 controller 后确认文档随之更新。
 
 9. 交给 SNS，见“交给 SNS”。
 
