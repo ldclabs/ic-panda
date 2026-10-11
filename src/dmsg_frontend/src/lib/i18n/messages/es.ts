@@ -688,5 +688,26 @@ export default {
   'Back': 'Volver',
   'Download file': 'Descargar archivo',
   'Show QR code': 'Mostrar código QR',
-  'Send message': 'Enviar mensaje'
+  'Send message': 'Enviar mensaje',
+  'Privacy Policy': 'Política de privacidad',
+  'Terms of Service': 'Términos del servicio',
+  'Support': 'Soporte',
+  'How dMsg handles your content, metadata, payments and device data, and the choices you have.':
+    'Cómo trata dMsg tu contenido, metadatos, pagos y datos del dispositivo, y qué opciones tienes.',
+  'The terms for using dMsg, including plans, payments and refunds, with the published digest of each version.':
+    'Los términos para usar dMsg, incluidos planes, pagos y reembolsos, con el resumen publicado de cada versión.',
+  'Where to get help with dMsg, what to include in a report and how to report a security issue.':
+    'Dónde obtener ayuda con dMsg, qué incluir en un informe y cómo informar de un problema de seguridad.',
+  'Policies and help': 'Políticas y ayuda',
+  'Version': 'Versión',
+  'Copied': 'Copiado',
+  'Copy SHA-256': 'Copiar SHA-256',
+  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:':
+    'dMsg commerce registra este resumen con cada compra. Para comprobarlo, descarga el texto en inglés y calcula su SHA-256:',
+  'Open the English text': 'Abrir el texto en inglés',
+  'Earlier versions': 'Versiones anteriores',
+  'This translation is provided for convenience. The English text of version {version} is binding.':
+    'Esta traducción se ofrece por comodidad. El texto en inglés de la versión {version} es el vinculante.',
+  'Could not load this page.': 'No se pudo cargar esta página.',
+  'On this page': 'En esta página'
 } satisfies Messages

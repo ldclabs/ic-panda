@@ -1,0 +1,104 @@
+# dMsg Terms of Service
+
+Version 1. Last updated: 2026-10-11.
+
+These terms govern your use of dMsg: the dmsg.net website, the legacy dMsg web app, the dMsg browser extension, the dMsg cloud service and the dMsg canisters on the Internet Computer (ICP). "dMsg", "we" and "us" mean the team that operates the dMsg service under the governance of ICPanda DAO. "You" means the person or organization using dMsg.
+
+The SHA-256 digest of this exact text is registered in the dMsg commerce canister. Every purchase you approve records the digest of the terms in effect at that moment, so anyone can check which text applied to it.
+
+## 1. Accepting these terms
+
+By creating a dMsg account, installing the extension or using any dMsg service, you agree to these terms and to the Privacy Policy at https://dmsg.net/_/privacy. If you do not agree, do not use dMsg.
+
+You must be old enough to use online services without parental consent where you live, and in any case at least 13 years old. If you use dMsg for an organization, you confirm that you may accept these terms on its behalf.
+
+## 2. The service
+
+dMsg is a private workspace and identity signing service. The extension encrypts and decrypts your notes, messages and files on devices you approve. The cloud service stores and delivers ciphertext and runs channels, contact rules and the inbox. Canisters on ICP hold account, device, recovery, handle, signing receipt, payment and entitlement state.
+
+dMsg is under active development. We may add, change, limit or remove features. Features described on the website may not be available yet. The legacy web app is read-only.
+
+## 3. Your account, devices and recovery
+
+You control your account through your login identity and the devices you approve. Keep them, your backups and any recovery materials safe. Anyone who controls them may be able to act as you.
+
+We do not hold your content keys and cannot reset them for you. Recovery follows the rules shown in the extension, which can include a waiting period during which your approved devices may cancel it. If you lose every device, your login identity and your recovery materials, we may be unable to restore your account or your content. Content that was never synced to the cloud is lost with the device that held it.
+
+## 4. Your content and conduct
+
+You keep ownership of your content. You allow us to store, copy and deliver it in encrypted form, and to process the related metadata, only as needed to run dMsg. You are responsible for the content you create or share and for having the right to share it. People you share content with can keep copies.
+
+Do not use dMsg to:
+
+- break the law or help others break it;
+- send spam, bulk unsolicited requests or deceptive content;
+- harass, threaten, defraud or exploit anyone, or impersonate a person or organization;
+- distribute malware or phishing;
+- infringe intellectual property or privacy rights;
+- interfere with, overload or attack the service, bypass rate limits or quotas, or abuse payment, refund or entitlement flows.
+
+Security research is welcome if you report what you find privately through https://dmsg.net/_/support and do not access other people's data.
+
+Because content is encrypted, we usually cannot see it. We may act on reports, metadata and other information available to us. We may refuse delivery, limit or suspend cloud features for an account, or close access to them. We cannot remove copies held on other people's devices, and we cannot erase records written on ICP.
+
+## 5. Handles, profiles and public records
+
+A handle is a public name recorded on ICP. Its price depends on its length, is paid in PANDA and is shown before you approve the registration. A handle has no renewal fee. It moves to another account only through a transfer that both accounts approve. A completed handle payment is not refundable.
+
+Handles, public profiles, directory documents and on-chain records are public. Others can read, copy and cache them, and we cannot erase them from ICP. Do not choose a handle or publish a profile that impersonates someone or infringes their rights.
+
+## 6. Signatures and connected applications
+
+An approval in the extension authorizes only the request you reviewed: its content, purpose, identity and requesting origin. A signature you make is your own act, can be verified by others and cannot be withdrawn once it is made. Connecting an application never gives it access to your vault or permission to sign automatically.
+
+Connected applications are run by their own operators. Their services, terms and decisions are their responsibility.
+
+## 7. Plans and payments
+
+dMsg offers a Free plan and paid plans. The plans, resource limits and prices are published in the certified catalog of the dMsg commerce canister and shown to you before you pay. Prices are set in US dollars.
+
+- Cash payments use the stablecoins listed at checkout, such as ckUSDC. The quote converts the US dollar price at a published settlement price and fixes the amount, the deposit account and the deadlines. Pay exactly the quoted amount to that account before the deadline.
+- You pay each order from your own wallet. dMsg never holds a standing permission to charge you, and plans do not renew automatically.
+- Paid plans run for one year. You can renew in the 30 days before your current term ends; the renewal starts when the current term ends. An upgrade charges the price difference for the rest of the current term. A storage add-on ends with the plan it belongs to.
+- Where offered, a qualifying PANDA neuron can waive the price of one plan term. You keep the neuron; dMsg does not take custody of it or of your tokens. The neuron must list the principal dMsg uses, and its stake and dissolve date must meet the requirements shown in the quote for the whole term. If the neuron stops qualifying, the waived benefits are paused and can end before the term ends. A waived term cannot be cancelled.
+- You pay the network fees of your own transactions and any taxes that apply to you.
+- A new catalog is scheduled at least 30 days before it takes effect. An existing order keeps the terms it was approved with.
+
+## 8. Cancellations and refunds
+
+- A paid term that has started is not refunded, except as stated in section 11 or where the law requires it.
+- A renewal that has not started can be cancelled. The amount paid for it is then refunded.
+- If an order is not delivered, or a payment is late, short, excessive, duplicated or sent after cancellation, the refundable amount is returned to the account the payment came from.
+- A refund transfer deducts the ledger fee for that transfer. Refunds never go to an address other than the paying account.
+
+## 9. Paid requests
+
+A recipient may require a delivery fee for new contact requests. The fee pays for eligible delivery only, not for a reply, contact status or any signing permission. Before you pay, the quote shows the amount, the service fee and the deadlines. If the cloud service accepts the request before the deadline, the payment settles to the recipient and the service fee to dMsg. Otherwise the payment is refunded to the account it came from.
+
+## 10. When a plan ends
+
+When a paid term ends and is not renewed, your account returns to the Free limits. Content you already stored is not withdrawn because the plan ended, and signatures you made stay valid. If your stored content exceeds the Free limits, new writes beyond those limits are restricted, while reading, deleting and exporting remain available for at least 30 days.
+
+## 11. Changes, interruptions and discontinuation
+
+We may change these terms by publishing a new version, with a new version number and digest, at https://dmsg.net/_/terms. A new version applies to purchases approved after it takes effect and to your continued use after we announce it. Purchases already approved keep the version they recorded. Earlier versions stay available.
+
+The service is provided as available and may be interrupted. If we discontinue a paid feature before the end of a term paid in cash, we will refund the unused part of that term and give you a reasonable period to export your content.
+
+## 12. Open source and third parties
+
+The public dMsg code is licensed under the Apache License 2.0 in the ICPanda repository. These terms do not limit your rights under that license. The dMsg cloud service is not open source.
+
+dMsg relies on third parties, including the Internet Computer, Internet Identity, token ledgers, wallets, Cloudflare and the Chrome Web Store. Their own terms apply to your use of them.
+
+## 13. Risks, disclaimers and liability
+
+Transactions on ICP ledgers are irreversible, and token prices can change. Software can contain defects, and canisters can be upgraded by their controller under ICPanda DAO governance.
+
+To the maximum extent permitted by law, dMsg is provided "as is" and "as available", without warranties of any kind. To the maximum extent permitted by law, we are not liable for indirect, incidental, special, consequential or punitive damages, or for loss of data, keys, tokens, profits or goodwill. Our total liability for any claim is limited to the amount you paid to dMsg in the 12 months before the claim.
+
+## 14. Language and contact
+
+These terms are written in English. Translations are provided for convenience; if a translation differs from this English text, this text prevails.
+
+For questions about these terms, see https://dmsg.net/_/support.

@@ -39,6 +39,7 @@ const invariantText = new Set([
   'release-brief.txt',
   'release-brief.txt · v1',
   '_____-_____-_____-_____-cai',
+  'SHA-256',
   'x'
 ])
 const labelAttributes = new Set([

@@ -141,7 +141,7 @@ flowchart LR
 - 目录固定 4 个套餐（Free 价格为 0），最多 16 个存储产品；同一目录内所有套餐的执行权重相同。
 - `schedule_policy` 只能安排至少 30 天后生效、版本和生效时间都递增的新目录；执行权重只能在 UTC 月初变化。最多保留 256 个目录。
 - 到达生效时间后，新目录自动用于报价和投影；认证叶 `get_catalog` 需要在生效后由任何人调用一次 `refresh_catalog` 更新，升级时也会刷新。
-- dMsg 报价的条款摘要取产品注册的 `terms_hash`，条款随注册更新生效，与目录排期无关；目录的 `terms_digest` 只描述该目录版本。
+- dMsg 报价的条款摘要取产品注册的 `terms_hash`，条款随注册更新生效，与目录排期无关；目录的 `terms_digest` 只描述该目录版本。两者都是服务条款英文原文的 SHA-256，见[部署步骤](#步骤)第 3 步。
 
 ### 限流与容量
 
@@ -256,6 +256,8 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
 
 3. 把初始化参数保存为 `commerce-init.did`，然后安装 commerce。下例使用默认目录的价格与额度，实际取值以治理批准的为准；`blob` 中每个字节写成 `\xx`：
 
+   `terms_digest` 填服务条款英文原文的 SHA-256。条款按版本发布在 dmsg.net 的 `/_/terms/v<N>.txt`（源文件在 [dmsg_frontend/static/_/terms](../dmsg_frontend/static/_/terms)），`node scripts/terms-digest.mjs --hex` 输出当前版本的摘要，套餐的 `terms_version` 取同一个 N：
+
    ```candid
    (record {
      environment = variant { Production };
@@ -305,7 +307,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
 
 5. 用 governance 身份按顺序完成配置。产品必须先于引用它的应用登记：
 
-   1. 登记 dMsg 产品。`quote_authority` 和 `adapter` 为 commerce，`beneficiary_authorities` 列出全部 user home，`terms_hash` 是条款摘要，报价使用它；`ledgers` 可以先只列出首发资产，以后再更新注册加入另一个：
+   1. 登记 dMsg 产品。`quote_authority` 和 `adapter` 为 commerce，`beneficiary_authorities` 列出全部 user home，`terms_hash` 与目录的 `terms_digest` 相同，报价使用它；`ledgers` 可以先只列出首发资产，以后再更新注册加入另一个：
 
       ```sh
       icp canister call -e ic dmsg_commerce register_integration_product '(record {
@@ -385,7 +387,8 @@ commerce 没有定时器，下列任务都需要外部调用：
 
 ### 治理变更
 
-- **目录**：用 `schedule_policy` 提前至少 30 天安排，生效时间到后自动使用。条款变化通过更新产品注册的 `terms_hash` 立即生效，不需要与目录同步。
+- **目录**：用 `schedule_policy` 提前至少 30 天安排，生效时间到后自动使用。
+- **条款**：登记后，该版本的条款文件不能再改；文件与 dmsg_frontend 的 `src/lib/legal/terms.json` 记录的摘要不一致时，前端构建会失败。修改条款时新增 `v<N+1>.txt`，运行 `node scripts/terms-digest.mjs --write` 更新清单，先部署前端，再把产品注册的 `terms_hash` 更新为新摘要。新条款随即用于报价，不需要与目录同步；下一份目录的 `terms_digest` 和 `terms_version` 随后跟进。
 - **注册**：每次更新须 `config_version + 1`。应用的 `app_id`、`environment`、`authentication_receiver`、`action_authority`，以及产品的 `product_id`、`environment`、`quote_authority`、`adapter`、`subject_schema`、`subject_size` 不可修改，`beneficiary_authorities` 只能在末尾追加。有 `SignAction` 能力的应用必须提供 `action_schema`（应用自己命令的 schema），可在新版本中修改；版本要求精确匹配，按旧版本准备的在途动作随之失效。现金报价包含完整的产品注册，注册变化后尚未开单的报价不能再开单，需要重新报价。商户账户在报价时冻结，修改只影响新订单。
 - **暂停**：`set_admission_pause(true)` 只停止新的现金报价和开单；对账、退款、出金、PANDA 和权益刷新照常进行。在注册中把应用或产品的 `paused` 设为 true，会同时停止现金和 PANDA 的新报价与批准。
 - **新增 user home**：依次调用 `admin_add_user_home`，把该 home 追加到 dMsg 产品登记的 `beneficiary_authorities`（`config_version + 1`），并在 membership 的 `configure_panda_service` 里追加 `{ user_home; commerce_canister }`。该 home 的账户随后即可购买。

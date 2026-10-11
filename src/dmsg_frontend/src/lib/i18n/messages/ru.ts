@@ -677,5 +677,26 @@ export default {
   'Back': 'Назад',
   'Download file': 'Скачать файл',
   'Show QR code': 'Показать QR-код',
-  'Send message': 'Отправить сообщение'
+  'Send message': 'Отправить сообщение',
+  'Privacy Policy': 'Политика конфиденциальности',
+  'Terms of Service': 'Условия использования',
+  'Support': 'Поддержка',
+  'How dMsg handles your content, metadata, payments and device data, and the choices you have.':
+    'Как dMsg обращается с вашим содержимым, метаданными, платежами и данными устройств и какой у вас есть выбор.',
+  'The terms for using dMsg, including plans, payments and refunds, with the published digest of each version.':
+    'Условия использования dMsg, включая тарифы, оплату и возвраты, с опубликованным хешем каждой версии.',
+  'Where to get help with dMsg, what to include in a report and how to report a security issue.':
+    'Где получить помощь по dMsg, что приложить к сообщению о проблеме и как сообщить о проблеме безопасности.',
+  'Policies and help': 'Правила и помощь',
+  'Version': 'Версия',
+  'Copied': 'Скопировано',
+  'Copy SHA-256': 'Скопировать SHA-256',
+  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:':
+    'dMsg commerce фиксирует этот хеш при каждой покупке. Чтобы проверить его, скачайте английский текст и вычислите его SHA-256:',
+  'Open the English text': 'Открыть английский текст',
+  'Earlier versions': 'Предыдущие версии',
+  'This translation is provided for convenience. The English text of version {version} is binding.':
+    'Перевод предоставлен для удобства. Юридическую силу имеет английский текст версии {version}.',
+  'Could not load this page.': 'Не удалось загрузить страницу.',
+  'On this page': 'На этой странице'
 } satisfies Messages

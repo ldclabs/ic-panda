@@ -73,7 +73,7 @@
   "name": "ic_message_frontend",
   "private": true,
   "scripts": {
-    "build": "tsc && vite build",
+    "build": "node ../../scripts/terms-digest.mjs --check && tsc && vite build",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss,svelte}\"",
     "ncu": "npx npm-check-updates -u",
     "preview": "vite preview",

@@ -476,7 +476,10 @@
           >ICPanda DAO</a
         ></span
       ><div class="footer-links"
-        ><a href="#privacy">{$t('Privacy')}</a><a href="#trust">{$t('Trust')}</a
+        ><a href="/_/privacy">{$t('Privacy Policy')}</a><a href="/_/terms"
+          >{$t('Terms of Service')}</a
+        ><a href="/_/support">{$t('Support')}</a><a href="#trust"
+          >{$t('Trust')}</a
         ><a
           href="https://github.com/ldclabs/ic-panda"
           target="_blank"

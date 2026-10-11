@@ -685,5 +685,26 @@ export default {
   'Back': 'Retour',
   'Download file': 'Télécharger le fichier',
   'Show QR code': 'Afficher le QR code',
-  'Send message': 'Envoyer le message'
+  'Send message': 'Envoyer le message',
+  'Privacy Policy': 'Politique de confidentialité',
+  'Terms of Service': 'Conditions d’utilisation',
+  'Support': 'Assistance',
+  'How dMsg handles your content, metadata, payments and device data, and the choices you have.':
+    'Comment dMsg traite votre contenu, vos métadonnées, vos paiements et les données de vos appareils, et quels choix s’offrent à vous.',
+  'The terms for using dMsg, including plans, payments and refunds, with the published digest of each version.':
+    'Les conditions d’utilisation de dMsg, y compris les formules, paiements et remboursements, avec l’empreinte publiée de chaque version.',
+  'Where to get help with dMsg, what to include in a report and how to report a security issue.':
+    'Où obtenir de l’aide pour dMsg, que joindre à un signalement et comment signaler un problème de sécurité.',
+  'Policies and help': 'Politiques et aide',
+  'Version': 'Version',
+  'Copied': 'Copié',
+  'Copy SHA-256': 'Copier le SHA-256',
+  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:':
+    'dMsg commerce enregistre cette empreinte avec chaque achat. Pour la vérifier, téléchargez le texte anglais et calculez son SHA-256 :',
+  'Open the English text': 'Ouvrir le texte anglais',
+  'Earlier versions': 'Versions antérieures',
+  'This translation is provided for convenience. The English text of version {version} is binding.':
+    'Cette traduction est fournie pour plus de commodité. Le texte anglais de la version {version} fait foi.',
+  'Could not load this page.': 'Impossible de charger cette page.',
+  'On this page': 'Sur cette page'
 } satisfies Messages

@@ -652,5 +652,26 @@ export default {
   'Back': '返回',
   'Download file': '下载文件',
   'Show QR code': '展示二维码',
-  'Send message': '发送消息'
+  'Send message': '发送消息',
+  'Privacy Policy': '隐私政策',
+  'Terms of Service': '服务条款',
+  'Support': '支持',
+  'How dMsg handles your content, metadata, payments and device data, and the choices you have.':
+    'dMsg 如何处理你的内容、元数据、付款和设备数据，以及你可以作出的选择。',
+  'The terms for using dMsg, including plans, payments and refunds, with the published digest of each version.':
+    '使用 dMsg 的条款，包括套餐、付款和退款，并公布每个版本的摘要。',
+  'Where to get help with dMsg, what to include in a report and how to report a security issue.':
+    '在哪里获取 dMsg 帮助、报告问题时应附上什么，以及如何报告安全问题。',
+  'Policies and help': '政策与帮助',
+  'Version': '版本',
+  'Copied': '已复制',
+  'Copy SHA-256': '复制 SHA-256',
+  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:':
+    'dMsg commerce 会在每笔购买中记录这个摘要。如需核对，请下载英文原文并计算其 SHA-256：',
+  'Open the English text': '打开英文原文',
+  'Earlier versions': '早期版本',
+  'This translation is provided for convenience. The English text of version {version} is binding.':
+    '本译本仅为方便阅读而提供。第 {version} 版的英文原文具有约束力。',
+  'Could not load this page.': '无法加载此页面。',
+  'On this page': '本页目录'
 } satisfies Messages
