@@ -10,7 +10,7 @@ import { idlFactory as message } from '$declarations/ic_message/ic_message.did.j
 import { idlFactory as channel } from '$declarations/ic_message_channel/ic_message_channel.did.js'
 import { idlFactory as profile } from '$declarations/ic_message_profile/ic_message_profile.did.js'
 import { idlFactory as cose } from '$declarations/ic_cose_canister/ic_cose_canister.did.js'
-import { idlFactory as bucket } from '$declarations/ic_oss_bucket_02/ic_oss_bucket_02.did.js'
+import { idlFactory as bucket } from '$declarations/ic_oss_bucket/ic_oss_bucket.did.js'
 import { dynAgent } from '$lib/utils/auth'
 
 // Deployment inventory observed 2026-09-22. A route change requires an explicit

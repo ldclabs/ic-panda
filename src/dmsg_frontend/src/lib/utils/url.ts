@@ -100,7 +100,7 @@ export function imageUrl(
 ) {
   if (canister instanceof Uint8Array) canister = Principal.from(canister)
   let url = IS_LOCAL
-    ? `http://${canister.toText()}.localhost:4943/f/${id}?inline`
+    ? `http://${canister.toText()}.localhost:8000/f/${id}?inline`
     : `https://${canister.toText()}.icp0.io/f/${id}?inline`
   if (token) url += `&token=${token}`
   return url + `&filename=${name}`
@@ -114,7 +114,7 @@ export function downloadUrl(
 ) {
   if (canister instanceof Uint8Array) canister = Principal.from(canister)
   let url = IS_LOCAL
-    ? `http://${canister.toText()}.localhost:4943/f/${id}?`
+    ? `http://${canister.toText()}.localhost:8000/f/${id}?`
     : `https://${canister.toText()}.icp0.io/f/${id}?`
   if (token) return url + `token=${token}&filename=${name}`
   return url + `filename=${name}`

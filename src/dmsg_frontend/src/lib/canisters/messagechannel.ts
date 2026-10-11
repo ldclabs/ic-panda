@@ -83,7 +83,7 @@ export class ChannelAPI {
   }
 
   async batch_get_channels(ids: number[]): Promise<ChannelBasicInfo[]> {
-    const res = await this.actor.batch_get_channels(ids)
+    const res = await this.actor.batch_get_channels(Uint32Array.from(ids))
     return unwrapResult(res, 'call batch_get_channels failed')
   }
 

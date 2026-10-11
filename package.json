@@ -27,5 +27,9 @@
         "@icp-sdk/core": "6"
       }
     }
+  },
+  "devDependencies": {
+    "@icp-sdk/bindgen": "^0.4.1",
+    "@icp-sdk/core": "^6.1.0"
   }
 }

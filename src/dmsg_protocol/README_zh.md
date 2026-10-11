@@ -197,7 +197,7 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 英文 README 作为 crate 文档，其 Rust 示例会执行 doctest。两版示例代码保持一致，只翻译注释。`missing_docs` 警告帮助维护 API 注释覆盖率。
 
-COSE 部署 pin 运行 `cargo run -p dmsg_protocol --features cose-pins --example cose_pins -- <canister-id> Production`，按主网 master 公钥离线派生并打印 `CoseInit` 的 `master` 字段与内容根公钥（第三个参数 `pocketic` 改用 PocketIC 与本地 dfx 的 key）。离线验签运行 `cargo run -p dmsg_protocol --example verify -- artifact.cbor`。输入是包含 cose_sign1 和 cose_key 字节串的 CBOR SignedArtifact 记录，不是单独的 COSE_Sign1 文件。输出只报告数学验证。性能基准使用 `cargo bench -p dmsg_protocol --bench validation --locked`，衡量宿主机 Rust 执行，不代表 canister 指令数或端到端延迟。真实 Wasm 联调使用 `POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh`。
+COSE 部署 pin 运行 `cargo run -p dmsg_protocol --features cose-pins --example cose_pins -- <canister-id> Production`，按主网 master 公钥离线派生并打印 `CoseInit` 的 `master` 字段与内容根公钥（第三个参数 `pocketic` 改用 PocketIC 与本地 icp 网络的 key）。离线验签运行 `cargo run -p dmsg_protocol --example verify -- artifact.cbor`。输入是包含 cose_sign1 和 cose_key 字节串的 CBOR SignedArtifact 记录，不是单独的 COSE_Sign1 文件。输出只报告数学验证。性能基准使用 `cargo bench -p dmsg_protocol --bench validation --locked`，衡量宿主机 Rust 执行，不代表 canister 指令数或端到端延迟。真实 Wasm 联调使用 `POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh`。
 
 ## 维护者发布说明
 

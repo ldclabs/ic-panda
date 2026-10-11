@@ -229,7 +229,7 @@ export class AuthAgent extends HttpAgent {
 export function createAgent(identity: Identity): AuthAgent {
   return new AuthAgent({
     identity,
-    host: IS_LOCAL ? 'http://localhost:4943/' : 'https://icp-api.io',
+    host: IS_LOCAL ? 'http://localhost:8000/' : 'https://icp-api.io',
     verifyQuerySignatures: false,
     shouldFetchRootKey: IS_LOCAL
   })

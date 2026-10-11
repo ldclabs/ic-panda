@@ -175,21 +175,22 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 ### 初始化参数
 
-| `HandleInit` 字段  | 要求                                                                                                                                                                                                                             |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `environment`      | 与各 `dmsg_user` 的 `UserInit.environment` 相同，生产为 `Production`。初始化后不可修改                                                                                                                                           |
-| `issuer_namespace` | 与各 `dmsg_user` 的 `UserInit.issuer_namespace` 相同。初始化后不可修改                                                                                                                                                           |
-| `user_homes`       | 至少一个 `dmsg_user` canister ID；之后只能用 `admin_add_user_home` 追加，最多 64 个，分配器指纹不能相同                                                                                                                          |
-| `ledger`           | PANDA 账本，须为支持 ICRC-2 与 ICRC-3 `icrc3_get_blocks` 的 DFINITY ICRC 账本；生产为 `druyg-tyaaa-aaaaq-aactq-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `ledger_canister_id`）。初始化后不可修改            |
-| `ledger_fee`       | 账本当前的 `icrc1_fee`（2026-10-06 主网 PANDA 账本为 10,000），必须小于 100 PANDA；之后用 `update_ledger_fee` 维护                                                                                                               |
-| `max_pending`      | 全局未决扣款上限，1–10,000                                                                                                                                                                                                       |
-| `governance`       | 除 controller 外可以执行管理方法的 SNS governance canister；生产为 `dwv6s-6aaaa-aaaaq-aacta-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`），本地可填部署者 principal。初始化后不可修改 |
+| `HandleInit` 字段    | 要求                                                                                                                                                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `environment`        | 与各 `dmsg_user` 的 `UserInit.environment` 相同，生产为 `Production`。初始化后不可修改                                                                                                                                           |
+| `issuer_namespace`   | 与各 `dmsg_user` 的 `UserInit.issuer_namespace` 相同。初始化后不可修改                                                                                                                                                           |
+| `user_homes`         | 至少一个 `dmsg_user` canister ID；之后只能用 `admin_add_user_home` 追加，最多 64 个，分配器指纹不能相同                                                                                                                          |
+| `registration_homes` | `user_homes` 中当前接收新账户的 home，客户端从中随机选择；之后由 controller 或 governance 用 `admin_set_registration_homes` 整体替换，空列表关闭注册                                                                             |
+| `ledger`             | PANDA 账本，须为支持 ICRC-2 与 ICRC-3 `icrc3_get_blocks` 的 DFINITY ICRC 账本；生产为 `druyg-tyaaa-aaaaq-aactq-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `ledger_canister_id`）。初始化后不可修改            |
+| `ledger_fee`         | 账本当前的 `icrc1_fee`（2026-10-06 主网 PANDA 账本为 10,000），必须小于 100 PANDA；之后用 `update_ledger_fee` 维护                                                                                                               |
+| `max_pending`        | 全局未决扣款上限，1–10,000                                                                                                                                                                                                       |
+| `governance`         | 除 controller 外可以执行管理方法的 SNS governance canister；生产为 `dwv6s-6aaaa-aaaaq-aacta-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`），本地可填部署者 principal。初始化后不可修改 |
 
 `user_homes`、`ledger` 和 `governance` 不能是匿名或管理 canister principal，`issuer_namespace` 须通过与 `dmsg_user` 相同的格式校验，参数不合法时安装失败。每个 `dmsg_user` 的 `UserInit.handle_canister` 都必须指向本 canister。两者互相引用，所以先创建 canister ID，再分别安装。
 
 ### 步骤
 
-以下命令在仓库根目录执行，以 `--network ic` 为例；本地开发去掉该参数。
+以下命令在仓库根目录执行，以主网环境 `-e ic` 为例（按 principal 调用其他 canister 时用 `-n ic`）；本地开发去掉该参数。
 
 1. 在待部署的提交上完成验证。脚本会构建 release Wasm，并核对 Candid、协议向量和 PocketIC 回归；工作区应没有未提交的改动：
 
@@ -200,45 +201,47 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 2. 创建 `dmsg_user`、`dmsg_handle`，以及 `UserInit` 引用的其他 canister ID：
 
    ```sh
-   dfx canister create dmsg_user --network ic
-   dfx canister create dmsg_handle --network ic
+   icp canister create dmsg_user -e ic
+   icp canister create dmsg_handle -e ic
    ```
 
-3. 以 `handle_canister = $(dfx canister id dmsg_handle --network ic)` 安装 `dmsg_user`，其他字段见 [dmsg_user](../dmsg_user/README.md)。
+3. 以 `handle_canister = $(icp canister status dmsg_handle -e ic --id-only)` 安装 `dmsg_user`，其他字段见 [dmsg_user](../dmsg_user/README.md)。
 
-4. 生产安装使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_handle.wasm.gz`，不用本地 `dfx deploy` 构建：两者的优化工具不同，模块哈希不一致，而交给 SNS 后投票者要按 release 产物核验升级。核对产物、查询账本手续费，然后安装：
+4. 生产安装使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_handle.wasm.gz`，不用本地 `icp deploy` 构建：本地构建虽然按 release.yml 的步骤进行，但工具版本和构建环境不同，模块哈希不一致，而交给 SNS 后投票者要按 release 产物核验升级。核对产物、查询账本手续费，然后安装：
 
    ```sh
    sha256sum dmsg_handle.wasm.gz
-   dfx canister call --network ic druyg-tyaaa-aaaaq-aactq-cai icrc1_fee --query
-   dfx canister install dmsg_handle --network ic --wasm dmsg_handle.wasm.gz --argument "(record {
+   icp canister call -n ic druyg-tyaaa-aaaaq-aactq-cai icrc1_fee '()' --query
+   USER_HOME=$(icp canister status dmsg_user -e ic --id-only)
+   icp canister install dmsg_handle -e ic --wasm dmsg_handle.wasm.gz --args "(record {
      environment = variant { Production };
      issuer_namespace = \"<与 dmsg_user 相同的 issuer_namespace>\";
-     user_homes = vec { principal \"$(dfx canister id dmsg_user --network ic)\" };
+     user_homes = vec { principal \"$USER_HOME\" };
+     registration_homes = vec { principal \"$USER_HOME\" };
      ledger = principal \"druyg-tyaaa-aaaaq-aactq-cai\";
      ledger_fee = <icrc1_fee> : nat;
      max_pending = 1000 : nat32;
      governance = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\";
    })"
-   dfx canister info dmsg_handle --network ic
+   icp canister status dmsg_handle -e ic
    ```
 
-   `sha256sum` 须与同一 release 的 `dmsg_handle.wasm.gz.<sha256>.txt` 一致；安装 gzip 产物后，`dfx canister info` 显示的模块哈希也是这个值。release 用 `gzip -n` 打包，同一 Wasm 重复打包得到相同哈希。记录模块哈希和 controllers。本地开发可继续用 `dfx deploy dmsg_handle --argument …`。
+   `sha256sum` 须与同一 release 的 `dmsg_handle.wasm.gz.<sha256>.txt` 一致；安装 gzip 产物后，`icp canister status` 显示的模块哈希也是这个值。release 用 `gzip -n` 打包，同一 Wasm 重复打包得到相同哈希。记录模块哈希和 controllers。本地开发可用 `icp deploy dmsg_handle --args …`。
 
 5. 由 controller 导入并封存旧名快照，步骤见下文“迁移流程”，在交给 SNS 之前完成。封存前注册返回 `LegacyWriteDisabled`、认领返回 `VersionConflict`。没有旧名的本地或测试部署也要封存一个空快照：
 
    ```sh
    ZERO=$(printf '\\00%.0s' $(seq 32))
    ID=$(printf '\\01%.0s' $(seq 32))
-   dfx canister call dmsg_handle begin_legacy_snapshot "(record {
-     source_canister = principal \"$(dfx identity get-principal)\";
+   icp canister call dmsg_handle begin_legacy_snapshot "(record {
+     source_canister = principal \"$(icp identity principal)\";
      snapshot_id = blob \"$ID\";
      freeze_version = 0 : nat64;
      event_tip = blob \"$ZERO\";
      count = 0 : nat64;
      entries_digest = blob \"$ZERO\";
    })"
-   dfx canister call dmsg_handle seal_legacy_snapshot
+   icp canister call dmsg_handle seal_legacy_snapshot '()'
    ```
 
    空快照的 `entries_digest` 必须是 32 个零字节；`snapshot_id` 任意非零，`source_canister` 可以是任意非匿名、非管理 canister 的 principal。
@@ -255,8 +258,8 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 迁移封存和主网验收完成后再交给 SNS。旧名约 200 条，一批即可导入，在交接前由 controller 完成，可以免去必须依次执行的提案。
 
-1. 把 SNS root（`d7wvo-iiaaa-aaaaq-aacsq-cai`，[sns_canister_ids.json](../../sns_canister_ids.json) 的 `root_canister_id`）加为 controller，再提交 `RegisterDappCanisters` 提案登记 handle，模板见 [proposal-467.sh](../../proposals/proposal-467.sh)。通过后用 `dfx canister info` 核对 controllers：SNS root 应是唯一的 controller；团队 controller 若仍在，用 `dfx canister update-settings dmsg_handle --network ic --remove-controller <principal>` 移除。
-2. 提交 `AddGenericNervousSystemFunction` 提案登记通用函数，目标和验证方法都在 handle canister 上。登记时须填写 `topic`；quill 不支持该字段，用 `dfx canister call` 调用 governance 的 `manage_neuron` 提交，模板见 [proposal-452.sh](../../proposals/proposal-452.sh)。建议的主题：
+1. 把 SNS root（`d7wvo-iiaaa-aaaaq-aacsq-cai`，[sns_canister_ids.json](../../sns_canister_ids.json) 的 `root_canister_id`）加为 controller，再提交 `RegisterDappCanisters` 提案登记 handle，模板见 [proposal-467.sh](../../proposals/proposal-467.sh)。通过后用 `icp canister status dmsg_handle -e ic` 核对 controllers：SNS root 应是唯一的 controller；团队 controller 若仍在，用 `icp canister settings update dmsg_handle -e ic --remove-controller <principal>` 移除。
+2. 提交 `AddGenericNervousSystemFunction` 提案登记通用函数，目标和验证方法都在 handle canister 上。登记时须填写 `topic`；quill 不支持该字段，用 `icp canister call -n ic` 调用 governance 的 `manage_neuron` 提交，参数模板见 [proposal-452.sh](../../proposals/proposal-452.sh)（当时用 dfx 提交）。建议的主题：
 
    | 目标方法                | 验证方法                         | 主题                                                   |
    | ----------------------- | -------------------------------- | ------------------------------------------------------ |
@@ -283,28 +286,28 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
   ```sh
   TREASURY='\f6\cc\24\dd\36\82\35\db\df\2b\3c\79\2e\39\9a\c1\0f\00\a0\00\33\73\de\6d\09\60\ae\55\ca\87\3e\bb'
-  dfx canister call --network ic dmsg_handle admin_collect_token \
+  icp canister call -e ic dmsg_handle admin_collect_token \
     "(record { owner = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\"; subaccount = opt blob \"$TREASURY\" }, <amount> : nat)"
   ```
 
 - 交给 SNS 前，由 controller 升级。升级要求 schema 不变。先停止 canister，让在途的账本回调完成，再用 release 产物升级、启动并查看日志：
 
   ```sh
-  dfx canister metadata dmsg_handle candid:service --network ic > deployed.did
+  icp canister metadata dmsg_handle candid:service -e ic > deployed.did
   didc check dmsg_handle.did deployed.did
-  dfx canister stop dmsg_handle --network ic
-  dfx canister install dmsg_handle --network ic --mode upgrade --wasm dmsg_handle.wasm.gz --argument-type raw --argument 4449444c0000 --yes
-  dfx canister start dmsg_handle --network ic
-  dfx canister logs dmsg_handle --network ic
+  icp canister stop dmsg_handle -e ic
+  icp canister install dmsg_handle -e ic --mode upgrade --wasm dmsg_handle.wasm.gz
+  icp canister start dmsg_handle -e ic
+  icp canister logs dmsg_handle -e ic
   ```
 
-  `dmsg_handle.did` 取自同一 release，`didc check` 确认新接口兼容已部署的接口。dfx 自带的兼容检查依赖本地 `dfx build` 生成的文件，直接安装 release 产物时找不到这些文件，会停下来要求确认，所以先用 `didc check` 核对，再加 `--yes` 跳过这一步。Candid 服务声明了 `HandleInit` 初始化参数，dfx 升级时不带参数会报错；`post_upgrade` 不读取参数，传空 Candid 参数 `()`（hex `4449444c0000`）即可。不要在升级时重新提供 `HandleInit`，它不会修改配置。日志中的 `handle_upgrade names=… instructions=…` 记录本次重建的名称数和指令数。若升级打断了扣款，操作停在 `Charging` 或 `ChargeUnknown`，由付款人 `commit_handle` 或任何人 `reconcile_handle_charge` 恢复。
+  `dmsg_handle.did` 取自同一 release，停止 canister 前先用 `didc check` 确认新接口兼容已部署的接口。`icp canister install` 升级前还会比较新 Wasm 内嵌的 `candid:service` 与已部署的接口，不兼容时停下，不要用 `--yes` 跳过。升级不传参数：`post_upgrade` 不读取参数，不要重新提供 `HandleInit`，它不会修改配置。日志中的 `handle_upgrade names=… instructions=…` 记录本次重建的名称数和指令数。若升级打断了扣款，操作停在 `Charging` 或 `ChargeUnknown`，由付款人 `commit_handle` 或任何人 `reconcile_handle_charge` 恢复。
 
 - 升级成本与名称数无关，实测约 4B cycles（主要是安装 Wasm），升级前确认余额。
 
 ## 迁移流程
 
-旧名称来自两个冻结后的旧 canister（ID 见 [canister_ids.json](../../canister_ids.json)，以盘点结果为准）：
+旧名称来自两个冻结后的旧 canister（ID 见 [ic.ids.json](../../.icp/data/mappings/ic.ids.json)，以盘点结果为准）：
 
 | 来源               | 快照范围      | 每行内容                                                                                            |
 | ------------------ | ------------- | --------------------------------------------------------------------------------------------------- |
@@ -347,7 +350,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 6. **提交**：按计划顺序逐条提交，每步后查询 `snapshot_progress`。controller 可直接调用，提交前可用对应的 `validate_*` 预演；由 SNS 管理时，每条调用作为一个通用函数提案，等前一条执行后再提交下一条（见“交给 SNS”）。
 
    ```sh
-   dfx canister call --network ic --type raw dmsg_handle <method> <candid_hex>
+   icp canister call -e ic dmsg_handle <method> <candid_hex> --args-format hex
    ```
 
    三个入口都可安全重试：同一快照重复 `begin` 返回成功；导入批次中位于已导入位置的条目必须与已存条目完全相同，作为重放跳过，新条目必须从当前位置开始并按名称递增；`offset` 超过当前进度的批次返回 `VersionConflict`，不会留下缺口；一批中任何条目校验失败则整批不写入；重复封存返回当前进度。一个实例只接受一个快照，已开始后提交不同快照返回 `IdempotencyConflict`，封存后不能再导入。
@@ -405,3 +408,5 @@ POCKET_IC_BIN=/path/to/pocket-ic \
 测试账本只模拟 allowance 校验与扣减、固定参数去重和 sender 时间窗口；`approve_test` 只用于测试设置，不模拟真实 approve 的手续费和事件。名称导入工具由 [legacy-snapshot.spec.ts](../dmsg_app/e2e/legacy-snapshot.spec.ts) 覆盖，需要 `DMSG_LEGACY_RELEASES` 指向已核对的旧发布工件。
 
 2026-10-06 在 schema 9（stable 认证树与多 user home）上完整运行 `scripts/test-dmsg.sh` 通过，包括 Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、106 项 PocketIC 回归（`control_plane` 102 项、`directory` 4 项）和 26 项 SDK 测试；`dmsg_app` 的类型检查与 172 项单元测试也通过，其中名称分桶与 Rust 的固定向量一致。`handle_active_name_capacity_profile` 以 release 模式单独运行通过（1,000–1,000 万名称）；`handle_scale_profile`、`handle_cycles_profile` 未在 schema 9 上运行。部署流程的命令已在隔离的 dfx 0.32.0 本地副本上实测：按 release.yml 的步骤（Candid 元数据、shrink、wasm-opt、gzip）打包后以新参数安装，模块哈希等于 gzip 产物的 SHA-256；空快照封存；`validate_admin_add_user_home` 预演与 `admin_add_user_home`；证书查询；国库子账户的收入提取命令（本地没有账本，返回 `Unavailable`）；`didc check` 后以 `--yes` 升级并输出 `post_upgrade` 日志。转账行为由 PocketIC 回归覆盖。主网部署、SNS 提案流程和名称导入工具的 e2e 未运行。
+
+2026-10-11 改用 icp-cli 后，在 icp 1.6.0 本地网络上重新演练了上述命令：以 `recipes/rust.hbs` 的构建产物带新参数（含 `registration_homes`）安装，模块哈希等于 gzip 产物的 SHA-256；空快照封存；hex 参数的查询；停止后不带参数升级，通过 icp 的 Candid 兼容检查并输出 `handle_upgrade` 日志；`icp deploy` 升级；快照创建与恢复。`admin_add_user_home`、证书查询和收入提取命令未在 icp 下重跑。

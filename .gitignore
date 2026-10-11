@@ -11,6 +11,9 @@
 .dfx/
 .claude
 
+# icp-cli cache; .icp/data holds the mainnet canister ID mappings and is committed
+.icp/cache/
+
 # generated files
 src/declarations
 

@@ -24,7 +24,7 @@ function initOISYWallet() {
 
       wallet = await IcrcWallet.connect({
         url: OISY_WALLET_HOST
-        // host: 'http://localhost:4943'
+        // host: 'http://localhost:8000'
       })
       const { allPermissionsGranted } =
         await wallet.requestPermissionsNotGranted()
@@ -55,7 +55,7 @@ function initOISYWallet() {
 
       wallet = await IcrcWallet.connect({
         url: OISY_WALLET_HOST
-        // host: 'http://localhost:4943'
+        // host: 'http://localhost:8000'
       })
 
       try {

@@ -55,7 +55,7 @@ pnpm --dir src/dmsg_app check
 pnpm --dir src/dmsg_app test
 ```
 
-`test-dmsg` 检查 Rust 测试、Clippy、Wasm、Candid 一致性、独立 Rust/JavaScript 协议向量与 PocketIC 调用。测试账本支持故障注入和公开 mint，仅用于测试，不在 dfx.json 中。详见 [集成测试说明](../tests/dmsg_integration/README.md)。
+`test-dmsg` 检查 Rust 测试、Clippy、Wasm、Candid 一致性、独立 Rust/JavaScript 协议向量与 PocketIC 调用。测试账本支持故障注入和公开 mint，仅用于测试，不在 icp.yaml 中。详见 [集成测试说明](../tests/dmsg_integration/README.md)。
 
 ## 状态与保证
 

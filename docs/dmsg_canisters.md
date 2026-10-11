@@ -55,7 +55,7 @@ pnpm --dir src/dmsg_app check
 pnpm --dir src/dmsg_app test
 ```
 
-`test-dmsg` verifies Rust tests, Clippy, Wasm compilation, Candid consistency, independent Rust/JavaScript protocol vectors, and PocketIC invocations. The test ledger supports fault injection and public minting for testing purposes only and is not in `dfx.json`. See [Integration Test Guide](../tests/dmsg_integration/README.md) for details.
+`test-dmsg` verifies Rust tests, Clippy, Wasm compilation, Candid consistency, independent Rust/JavaScript protocol vectors, and PocketIC invocations. The test ledger supports fault injection and public minting for testing purposes only and is not in `icp.yaml`. See [Integration Test Guide](../tests/dmsg_integration/README.md) for details.
 
 ## State and Guarantees
 

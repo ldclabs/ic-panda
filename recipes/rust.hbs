@@ -1,0 +1,16 @@
+{{! Builds a Rust canister the way .github/workflows/release.yml does: Candid metadata, shrink, wasm-opt -O3 and gzip -n. Keep the two in step. }}
+{{! The Cargo package is the canister name, and its Candid interface is src/<name>/<name>.did. }}
+
+build:
+  steps:
+    - type: script
+      commands:
+        - command -v ic-wasm >/dev/null 2>&1 || { echo >&2 'ic-wasm not found, run cargo install ic-wasm --locked'; exit 1; }
+        - command -v wasm-opt >/dev/null 2>&1 || { echo >&2 'wasm-opt not found, install binaryen'; exit 1; }
+        - cargo build --package {{ _.canister.name }} --target wasm32-unknown-unknown --release --locked
+        - TARGET_DIR=$(cargo metadata --format-version 1 --no-deps | sed -n 's/.*"target_directory":"\([^"]*\)".*/\1/p'); cp "${TARGET_DIR}/wasm32-unknown-unknown/release/{{ _.canister.name }}.wasm" "$ICP_WASM_OUTPUT_PATH"
+        - ic-wasm "$ICP_WASM_OUTPUT_PATH" -o "$ICP_WASM_OUTPUT_PATH" metadata candid:service -f 'src/{{ _.canister.name }}/{{ _.canister.name }}.did' -v public
+        - ic-wasm "$ICP_WASM_OUTPUT_PATH" -o "$ICP_WASM_OUTPUT_PATH" shrink
+        - wasm-opt -O3 --enable-mutable-globals --enable-nontrapping-float-to-int --enable-simd --enable-bulk-memory --enable-sign-ext --enable-reference-types --enable-memory64 --enable-multivalue --enable-tail-call --inline-functions-with-loops "$ICP_WASM_OUTPUT_PATH" -o "$ICP_WASM_OUTPUT_PATH"
+        - gzip --no-name "$ICP_WASM_OUTPUT_PATH"
+        - mv "${ICP_WASM_OUTPUT_PATH}.gz" "$ICP_WASM_OUTPUT_PATH"

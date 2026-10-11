@@ -19,7 +19,8 @@ def sha(path):
 
 
 files = {root / p for p in [
-    "Cargo.toml", "Cargo.lock", "dfx.json", "Makefile", "scripts/test-dmsg.sh",
+    "Cargo.toml", "Cargo.lock", "dfx.json", "icp.yaml", "recipes/rust.hbs", "Makefile",
+    "scripts/test-dmsg.sh",
     "scripts/verify-dmsg-vectors.mjs", "scripts/verify-commerce-vectors.mjs",
     "scripts/export-commerce-snapshot.py", "src/dmsg_app/scripts/bindings.mjs",
     "docs/protocol/README.md", "docs/protocol/commerce.md", "docs/protocol/commerce.cddl",

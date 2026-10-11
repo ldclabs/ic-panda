@@ -3,16 +3,8 @@
 import { sveltekit } from '@sveltejs/kit/vite'
 import tailwindcss from '@tailwindcss/vite'
 import { SvelteKitPWA } from '@vite-pwa/sveltekit'
-import dotenv from 'dotenv'
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
-import environment from 'vite-plugin-environment'
-
-dotenv.config({ path: '../../.env' })
-
-if (process.env.PUBLIC_DFX_NETWORK === 'ic') {
-  process.env.NODE_ENV === 'production'
-}
 
 export default defineConfig({
   define: {
@@ -32,14 +24,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:4943',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true
       }
     }
   },
   plugins: [
-    environment('all', { prefix: 'CANISTER_' }),
-    environment('all', { prefix: 'DFX_' }),
     tailwindcss(),
     sveltekit(),
     SvelteKitPWA({
@@ -104,7 +94,7 @@ export default defineConfig({
     ...(process.env.VITEST ? { conditions: ['browser'] } : {}),
     alias: {
       $src: resolve('./src'),
-      $declarations: resolve('./src/declarations')
+      $declarations: resolve('../declarations')
     }
   }
 })

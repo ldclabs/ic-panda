@@ -238,7 +238,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
 
 ### 步骤
 
-以下命令在仓库根目录执行，以 `--network ic` 为例，本地开发时去掉该参数。
+以下命令在仓库根目录执行，以主网环境 `-e ic` 为例（按 principal 调用时用 `-n ic`），本地开发时去掉该参数。
 
 1. 在待部署的提交上完成验证，工作区不能有未提交的改动：
 
@@ -249,9 +249,9 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
 2. 创建 canister ID：
 
    ```sh
-   dfx canister create dmsg_commerce --network ic
-   dfx canister create membership --network ic
-   dfx canister create dmsg_user --network ic
+   icp canister create dmsg_commerce -e ic
+   icp canister create membership -e ic
+   icp canister create dmsg_user -e ic
    ```
 
 3. 把初始化参数保存为 `commerce-init.did`，然后安装 commerce。下例使用默认目录的价格与额度，实际取值以治理批准的为准；`blob` 中每个字节写成 `\xx`：
@@ -292,11 +292,11 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
    ```
 
    ```sh
-   dfx deploy dmsg_commerce --network ic --argument-file commerce-init.did
-   dfx canister info dmsg_commerce --network ic
+   icp deploy dmsg_commerce -e ic --args-file commerce-init.did
+   icp canister status dmsg_commerce -e ic
    ```
 
-   `dfx deploy` 按 dfx.json 以 `optimize: cycles` 和 gzip 构建。用 `dfx canister info` 记录实际的模块哈希和 controllers。
+   `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建（与 release.yml 相同的 Candid 元数据、shrink、wasm-opt -O3 和 `gzip -n`），并写入环境变量 `PUBLIC_CANISTER_ID:<名称>`。用 `icp canister status` 记录实际的模块哈希和 controllers。
 
 4. 安装 `dmsg_user`，其中 `commerce_canister`、`membership_canister` 指向上面的 ID，其他字段见 [dmsg_user](../dmsg_user/README.md)。然后安装 `membership`，并由它的 governance 调用 `configure_panda_service`，其中 `commerce_homes` 列出 `{ user_home = <dmsg_user ID>; commerce_canister = <本 canister> }`，`qualifications_per_minute` 按活跃 PANDA 会员数设置（每会员每小时约一次 SNS 读取），见 [membership](../membership/README.md)。
 
@@ -305,7 +305,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
    1. 登记 dMsg 产品。`quote_authority` 和 `adapter` 为 commerce，`beneficiary_authorities` 列出全部 user home，`terms_hash` 是条款摘要，报价使用它；`ledgers` 可以先只列出首发资产，以后再更新注册加入另一个：
 
       ```sh
-      dfx canister call --network ic dmsg_commerce register_integration_product '(record {
+      icp canister call -e ic dmsg_commerce register_integration_product '(record {
         version = 2 : nat16; environment = variant { Production };
         product_id = "dmsg"; config_version = 1 : nat64;
         quote_authority = principal "<commerce ID>"; adapter = principal "<commerce ID>";
@@ -319,7 +319,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
    2. 登记 dMsg 应用。客户端以 `app_id = "dmsg"` 购买，要求应用具备 `Checkout` 能力，并且注册的环境与客户端配置一致（服务哪些 user home 由登记它的 commerce 决定）；`origins` 填扩展和网页的精确 origin：
 
       ```sh
-      dfx canister call --network ic dmsg_commerce register_integration_app '(record {
+      icp canister call -e ic dmsg_commerce register_integration_app '(record {
         version = 1 : nat16; environment = variant { Production };
         app_id = "dmsg"; config_version = 1 : nat64;
         origins = vec { "chrome-extension://<扩展 ID>" };
@@ -333,8 +333,8 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
    3. 登记结算资产。`network_fee_atomic` 取账本当前的 `icrc1_fee`，`max_network_fee_atomic` 不低于它且不超过 10,000,000；价格观测窗口最长 30 分钟：
 
       ```sh
-      dfx canister call --network ic xevnm-gaaaa-aaaar-qafnq-cai icrc1_fee --query
-      dfx canister call --network ic dmsg_commerce register_settlement_asset '(record {
+      icp canister call -n ic xevnm-gaaaa-aaaar-qafnq-cai icrc1_fee '()' --query
+      icp canister call -e ic dmsg_commerce register_settlement_asset '(record {
         version = 2 : nat16; policy_version = 1 : nat64; environment = variant { Production };
         ledger = principal "xevnm-gaaaa-aaaar-qafnq-cai"; asset = variant { CkUsdc };
         decimals = 6 : nat16; price_usd_micros = 1_000_000 : nat;
@@ -345,7 +345,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
    4. 验证账本。`sample_transfer` 为该账本上任意一笔普通转账的区块号；commerce 会核对小数位、fee、ICRC-1/ICRC-3 支持，并读取这个区块：
 
       ```sh
-      dfx canister call --network ic dmsg_commerce verify_settlement_asset \
+      icp canister call -e ic dmsg_commerce verify_settlement_asset \
         '(principal "xevnm-gaaaa-aaaar-qafnq-cai", opt (<区块号> : nat))'
       ```
 
@@ -358,7 +358,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
    - `settlement_assets` 显示 `ledger_verified = true`，价格在有效期内。
    - `integration_configuration_certificate("dmsg", opt "dmsg")`、`get_catalog` 的证书能通过客户端验证，`get_commerce_limits` 与安装参数一致，`commerce_stats` 显示 `certified_leaves = 3`（产品、应用、目录）和 `cycles`。
    - 用小额真实资金完成一次完整流程：报价、开单、付款、`check_checkout_funding` 后订单为 `Applied`，`get_entitlement_batch` 显示对应套餐；再向订单子账户多转一笔，完成 `claim_checkout_refund` 和 `process_checkout_transfer`；`collectable_checkouts` 列出该订单，服务期结束后 `collect_checkout_revenue` 归集并派发，`claim_checkout_fee_reserve` 退回准备金。
-   - 为 canister 设置冻结阈值和 cycles 余额告警，并把 `dfx canister status` 的 controllers 记录到部署记录。
+   - 为 canister 设置冻结阈值和 cycles 余额告警，并把 `icp canister status` 的 controllers 记录到部署记录。
 
 ### 运维
 
@@ -394,13 +394,13 @@ commerce 没有定时器，下列任务都需要外部调用：
 升级要求 schema 不变。先停止 canister，等在途的账本与产品回调完成，创建快照，再升级、启动：
 
 ```sh
-dfx canister stop dmsg_commerce --network ic
-dfx canister snapshot create dmsg_commerce --network ic
-dfx deploy dmsg_commerce --network ic --argument-type raw --argument 4449444c0000
-dfx canister start dmsg_commerce --network ic
+icp canister stop dmsg_commerce -e ic
+icp canister snapshot create dmsg_commerce -e ic
+icp deploy dmsg_commerce -e ic
+icp canister start dmsg_commerce -e ic
 ```
 
-Candid 服务声明了 `CommerceInit` 初始化参数，dfx 升级时不带参数会报错；`post_upgrade` 不读取参数，传空 Candid 参数 `()`（hex `4449444c0000`）即可，配置不会因此改变。`pre_upgrade` 保存调用计数，不能跳过。升级打断的出金腿停在 `InFlight`，用 `process_checkout_transfer` 以原参数重试；停在 `Reserving` 或 `Applying` 的订单用 `reconcile_checkout` 恢复。
+升级不传参数，`post_upgrade` 不读取参数，配置不会因此改变；`icp deploy` 安装前会比较新构建的接口与已部署的接口，不兼容时停下。`pre_upgrade` 保存调用计数，不能跳过。升级打断的出金腿停在 `InFlight`，用 `process_checkout_transfer` 以原参数重试；停在 `Reserving` 或 `Applying` 的订单用 `reconcile_checkout` 恢复。
 
 升级不重建认证树，成本不随订单和主体数量增长，见“容量与成本”。
 

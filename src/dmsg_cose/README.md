@@ -162,13 +162,13 @@ ICP 的阈值密钥还按调用者 canister ID 派生，所以内容根公钥由
 cargo run -p dmsg_protocol --features cose-pins --example cose_pins -- <COSE canister ID> Production
 ```
 
-第三个参数选 `mainnet`（默认）或 `pocketic`（本地 dfx 与 PocketIC），第四个参数是 key 名，默认 `key_1`。它从 DFINITY 密钥库内置的 master 公钥离线派生 `ic_vetkeys::MasterPublicKey::for_mainnet_key(key_1)` 依次 `derive_canister_key(cose_id)`、`derive_sub_key(context)` 后的 96 字节公钥，与管理 canister 的结果一致。客户端可把同一公钥的 base64url 填入构建配置 `coseRootPublicKey` 作为 pin。
+第三个参数选 `mainnet`（默认）或 `pocketic`（icp 本地网络与 PocketIC），第四个参数是 key 名，默认 `key_1`。它从 DFINITY 密钥库内置的 master 公钥离线派生 `ic_vetkeys::MasterPublicKey::for_mainnet_key(key_1)` 依次 `derive_canister_key(cose_id)`、`derive_sub_key(context)` 后的 96 字节公钥，与管理 canister 的结果一致。客户端可把同一公钥的 base64url 填入构建配置 `coseRootPublicKey` 作为 pin。
 
 PocketIC 回归 `cose_offline_pin_matches_the_initialized_production_key` 用 `pocketic` 来源计算的 pin 以 `Production` 安装 COSE，核对 `initialize_keys` 成功且指纹一致，篡改 pin 则返回 `IntegrityFailed`。
 
 ### 步骤
 
-以下命令在仓库根目录执行，以 `--network ic` 为例；本地开发去掉该参数，`environment` 改为 `Local`，pin 填全零。
+以下命令在仓库根目录执行，以主网环境 `-e ic` 为例；本地开发去掉该参数，`environment` 改为 `Local`，pin 填全零。
 
 1. 在待部署的提交上完成验证：
 
@@ -182,25 +182,25 @@ PocketIC 回归 `cose_offline_pin_matches_the_initialized_production_key` 用 `p
 
    ```sh
    sha256sum dmsg_cose.wasm.gz
-   dfx canister install dmsg_cose --network ic --wasm dmsg_cose.wasm.gz --argument "(record {
+   icp canister install dmsg_cose -e ic --wasm dmsg_cose.wasm.gz --args "(record {
      environment = variant { Production };
      issuer_namespace = \"<与 dmsg_user 相同>\";
-     executing_canister = principal \"$(dfx canister id dmsg_cose --network ic)\";
-     user_homes = vec { principal \"$(dfx canister id dmsg_user --network ic)\" };
+     executing_canister = principal \"$(icp canister status dmsg_cose -e ic --id-only)\";
+     user_homes = vec { principal \"$(icp canister status dmsg_user -e ic --id-only)\" };
      derivation_version = 2 : nat16;
      master = record { key_name = \"key_1\"; expected_fingerprint = blob \"<pin>\" };
      daily_executions = <次数> : nat32;
      daily_cycles = <cycles> : nat;
      governance = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\";
    })"
-   dfx canister info dmsg_cose --network ic
+   icp canister status dmsg_cose -e ic
    ```
 
 4. 初始化公钥，确认 `Ready` 且 `fingerprint` 与 pin 一致。未就绪时 `execute` 和 `root_public_key` 返回 `Unavailable`：
 
    ```sh
-   dfx canister call dmsg_cose initialize_keys --network ic
-   dfx canister call dmsg_cose key_state --network ic
+   icp canister call dmsg_cose initialize_keys '()' -e ic
+   icp canister call dmsg_cose key_state '()' -e ic --query
    ```
 
 5. 以 `home_cose = <COSE ID>` 安装 user home。
@@ -208,7 +208,7 @@ PocketIC 回归 `cose_offline_pin_matches_the_initialized_production_key` 用 `p
 6. 设置 cycles 与冻结阈值。COSE 用自己的余额支付全部派生费用，冻结阈值建议不少于 90 天：
 
    ```sh
-   dfx canister update-settings dmsg_cose --network ic --freezing-threshold 7776000
+   icp canister settings update dmsg_cose -e ic --freezing-threshold 90d
    ```
 
 7. 主网验收：用测试账户完成一次登录恢复与根派生；用离线派生核对 `root_public_key`；记录实际余额差与 `cycles_cost_upper_bound`。
@@ -233,11 +233,11 @@ PocketIC 回归 `cose_offline_pin_matches_the_initialized_production_key` 用 `p
 - **升级前必须停止 canister。** 派生是 unbounded wait 调用，停止会等待在途调用全部返回。升级要求 schema 不变：
 
   ```sh
-  dfx canister metadata dmsg_cose candid:service --network ic > deployed.did
+  icp canister metadata dmsg_cose candid:service -e ic > deployed.did
   didc check dmsg_cose.did deployed.did
-  dfx canister stop dmsg_cose --network ic
-  dfx canister install dmsg_cose --network ic --mode upgrade --wasm dmsg_cose.wasm.gz --argument-type raw --argument 4449444c0000 --yes
-  dfx canister start dmsg_cose --network ic
+  icp canister stop dmsg_cose -e ic
+  icp canister install dmsg_cose -e ic --mode upgrade --wasm dmsg_cose.wasm.gz
+  icp canister start dmsg_cose -e ic
   ```
 
 - **新增 user home**：先以相同的 `environment`、`issuer_namespace` 和本 COSE 安装新 `dmsg_user`，再调用 `admin_add_user_home(home)`。

@@ -24,9 +24,6 @@ const config = {
     alias: {
       $src: './src',
       $declarations: '../declarations'
-    },
-    env: {
-      dir: '../../.env'
     }
   }
 }

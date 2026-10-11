@@ -2,7 +2,7 @@ BUILD_ENV := rust
 DMSG_PACKAGES := -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_directory -p dmsg_payment -p membership -p dmsg_commerce
 DMSG_CARGO_WASM_DIR := $(or $(CARGO_TARGET_DIR),target)/wasm32-unknown-unknown/release
 
-.PHONY: build-wasm build-did build-dmsg test-dmsg
+.PHONY: build-wasm build-did build-declarations build-dmsg test-dmsg local-network
 
 lint:
 	@cargo fmt
@@ -36,4 +36,13 @@ build-did:
 	candid-extractor target/wasm32-unknown-unknown/release/ic_name_identity.wasm > src/ic_name_identity/ic_name_identity.did
 	candid-extractor target/wasm32-unknown-unknown/release/ic_panda_luckypool.wasm > src/ic_panda_luckypool/ic_panda_luckypool.did
 	candid-extractor target/wasm32-unknown-unknown/release/ic_signin_with.wasm > src/ic_signin_with/ic_signin_with.did
-	dfx generate
+	$(MAKE) build-declarations
+
+# Frontend bindings in src/declarations, from src/*/*.did and candid/*.did
+build-declarations:
+	node scripts/generate-declarations.mjs
+
+# A fresh local network with the canisters at their mainnet IDs
+local-network:
+	icp network start -d
+	node scripts/link-local-canisters.mjs

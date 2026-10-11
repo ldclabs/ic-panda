@@ -142,7 +142,7 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
 
 ### 步骤
 
-以下命令在仓库根目录执行，以 `--network ic` 为例；本地开发去掉该参数，`environment` 改为 `Local`。
+以下命令在仓库根目录执行，以主网环境 `-e ic` 为例（按 principal 调用时用 `-n ic`）；本地开发去掉该参数，`environment` 改为 `Local`。
 
 1. 在待部署的提交上完成验证，工作区应没有未提交的改动：
 
@@ -150,20 +150,20 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
    POCKET_IC_BIN=/path/to/pocket-ic make test-dmsg
    ```
 
-2. 与 user home 一起创建 canister ID。dfx 把 ID 写入 [canister_ids.json](../../canister_ids.json)，随部署记录提交：
+2. 与 user home 一起创建 canister ID。icp 把 ID 写入 [.icp/data/mappings/ic.ids.json](../../.icp/data/mappings/ic.ids.json)，随部署记录提交：
 
    ```sh
-   dfx canister create dmsg_directory --network ic
+   icp canister create dmsg_directory -e ic
    ```
 
-3. 使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_directory.wasm.gz` 安装，不用本地 `dfx deploy` 构建：交给 SNS 后，投票者要按 release 产物核验模块哈希（同 [dmsg_handle](../dmsg_handle/README.md#步骤)）。
+3. 使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_directory.wasm.gz` 安装，不用本地 `icp deploy` 构建：交给 SNS 后，投票者要按 release 产物核验模块哈希（同 [dmsg_handle](../dmsg_handle/README.md#步骤)）。
 
    ```sh
    sha256sum dmsg_directory.wasm.gz
-   dfx canister install dmsg_directory --network ic --wasm dmsg_directory.wasm.gz --argument "(record {
+   icp canister install dmsg_directory -e ic --wasm dmsg_directory.wasm.gz --args "(record {
      environment = variant { Production };
      issuer_namespace = \"<与 dmsg_user 相同的 issuer_namespace>\";
-     user_homes = vec { principal \"$(dfx canister id dmsg_user --network ic)\" };
+     user_homes = vec { principal \"$(icp canister status dmsg_user -e ic --id-only)\" };
      principal_origin = \"https://id.dmsg.net\";
      controller_source = \"https://dmsg.net\";
      delegation_service = \"https://agents.dmsg.net\";
@@ -171,25 +171,25 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
      custom_domains = vec { \"id.dmsg.net\" };
      governance = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\";
    })"
-   dfx canister info dmsg_directory --network ic
+   icp canister status dmsg_directory -e ic
    ```
 
-   `sha256sum` 须与同一 release 的 `dmsg_directory.wasm.gz.<sha256>.txt` 一致，`dfx canister info` 显示的模块哈希也是这个值。记录模块哈希、controllers 和安装参数。
+   `sha256sum` 须与同一 release 的 `dmsg_directory.wasm.gz.<sha256>.txt` 一致，`icp canister status` 显示的模块哈希也是这个值。记录模块哈希、controllers 和安装参数。
 
 4. 设置备用 controller 和不少于 90 天的 freezing threshold：
 
    ```sh
-   dfx canister update-settings dmsg_directory --network ic \
+   icp canister settings update dmsg_directory -e ic \
      --add-controller <备用 controller> \
-     --freezing-threshold 7776000
+     --freezing-threshold 90d
    ```
 
 5. 通过 canister 的默认域名核对。`icp0.io` 网关会验证认证，`raw.icp0.io` 不会：
 
    ```sh
-   ID=$(dfx canister id dmsg_directory --network ic)
-   dfx canister call --network ic dmsg_directory directory_config --query
-   dfx canister call --network ic dmsg_directory directory_stats --query
+   ID=$(icp canister status dmsg_directory -e ic --id-only)
+   icp canister call -e ic dmsg_directory directory_config '()' --query
+   icp canister call -e ic dmsg_directory directory_stats '()' --query
    curl -sS "https://$ID.icp0.io/.well-known/ic-domains"
    curl -sSI "https://$ID.icp0.io/not-found"
    ```
@@ -201,7 +201,7 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
 7. 用每个 `dmsg_user` 的 `user_config` 确认 `directory_canister` 是本 canister，`environment`、`issuer_namespace` 和 `principal_origin` 与本 canister 相同（见 [dmsg_user](../dmsg_user/README.md#初始化参数)）；客户端 `dmsg.config.json` 已填写 `principalOrigin` 和 `agentOrigin`。
 
    ```sh
-   dfx canister call --network ic dmsg_user user_config --query
+   icp canister call -e ic dmsg_user user_config '()' --query
    ```
 
 8. 主网验收：用测试账户在客户端启用 principal 并登记一个 controller，确认 home 的 `get_principal` 中 `published_version` 等于 `state.version`。然后核对 directory：
@@ -209,7 +209,7 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
    ```sh
    ACCOUNT=<账户 ID 文本>
    BLOB=$(python3 -c 'import base64,sys; print("".join("\\%02x" % b for b in base64.b32hexdecode(sys.argv[1].upper() + "====")))' "$ACCOUNT")
-   dfx canister call --network ic dmsg_directory get_publication "(blob \"$BLOB\")" --query
+   icp canister call -e ic dmsg_directory get_publication "(blob \"$BLOB\")" --query
    curl -sS "https://id.dmsg.net/$ACCOUNT" | tee principal.json | sha256sum
    ```
 
@@ -248,8 +248,8 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
 
 主网验收完成后，按 [dmsg_handle](../dmsg_handle/README.md#交给-sns) 的流程交给 SNS：
 
-1. 把 SNS root（`d7wvo-iiaaa-aaaaq-aacsq-cai`，[sns_canister_ids.json](../../sns_canister_ids.json) 的 `root_canister_id`）加为 controller，再提交 `RegisterDappCanisters` 提案登记 directory，模板见 [proposal-467.sh](../../proposals/proposal-467.sh)。通过后用 `dfx canister info` 确认 SNS root 是唯一的 controller，团队 controller 若仍在，用 `dfx canister update-settings dmsg_directory --network ic --remove-controller <principal>` 移除。
-2. 提交 `AddGenericNervousSystemFunction` 提案登记通用函数，目标和验证方法都在 directory 上。需要填写 `topic`，quill 不支持，用 `dfx canister call` 调用 governance 的 `manage_neuron`，模板见 [proposal-452.sh](../../proposals/proposal-452.sh)。两个方法分别决定谁能发布和文档在哪里可解析，建议都用关键主题：
+1. 把 SNS root（`d7wvo-iiaaa-aaaaq-aacsq-cai`，[sns_canister_ids.json](../../sns_canister_ids.json) 的 `root_canister_id`）加为 controller，再提交 `RegisterDappCanisters` 提案登记 directory，模板见 [proposal-467.sh](../../proposals/proposal-467.sh)。通过后用 `icp canister status dmsg_directory -e ic` 确认 SNS root 是唯一的 controller，团队 controller 若仍在，用 `icp canister settings update dmsg_directory -e ic --remove-controller <principal>` 移除。
+2. 提交 `AddGenericNervousSystemFunction` 提案登记通用函数，目标和验证方法都在 directory 上。需要填写 `topic`，quill 不支持，用 `icp canister call -n ic` 调用 governance 的 `manage_neuron`，参数模板见 [proposal-452.sh](../../proposals/proposal-452.sh)（当时用 dfx 提交）。两个方法分别决定谁能发布和文档在哪里可解析，建议都用关键主题：
 
    | 目标方法 | 验证方法 | 主题 |
    | --- | --- | --- |
@@ -261,20 +261,20 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
 
 ### 运维与升级
 
-- **新增 user home**：先以相同的 `environment`、`issuer_namespace`、`principal_origin` 和指向本 canister 的 `directory_canister` 安装新 home，用 `dfx canister call --network ic <home> user_config --query` 核对，再由 controller 或 governance 调用 `admin_add_user_home(home)`；`validate_admin_add_user_home` 显示新 home 的分配器指纹。handle、cose、payment 和 commerce 也要登记，见 [dmsg_canisters](../../docs/dmsg_canisters_zh.md)。登记前，该 home 的账户发布返回 `Forbidden`，登记后用 `publish_principal` 补发。已有 home 不能移除。
+- **新增 user home**：先以相同的 `environment`、`issuer_namespace`、`principal_origin` 和指向本 canister 的 `directory_canister` 安装新 home，用 `icp canister call -n ic <home> user_config '()' --query` 核对，再由 controller 或 governance 调用 `admin_add_user_home(home)`；`validate_admin_add_user_home` 显示新 home 的分配器指纹。handle、cose、payment 和 commerce 也要登记，见 [dmsg_canisters](../../docs/dmsg_canisters_zh.md)。登记前，该 home 的账户发布返回 `Forbidden`，登记后用 `publish_principal` 补发。已有 home 不能移除。
 - **cycles**：发布的执行和文档存储由本 canister 付费。用 `directory_stats` 监控已发布账户数、stable 页数和余额，交给 SNS 后也可以看 SNS root 的汇总。
 - **升级**：要求 schema 不变。用 release 产物升级；交给 SNS 之前，每次升级前留一个快照：
 
   ```sh
-  dfx canister metadata dmsg_directory candid:service --network ic > deployed.did
+  icp canister metadata dmsg_directory candid:service -e ic > deployed.did
   didc check dmsg_directory.did deployed.did
-  dfx canister stop dmsg_directory --network ic
-  dfx canister snapshot create dmsg_directory --network ic
-  dfx canister install dmsg_directory --network ic --mode upgrade --wasm dmsg_directory.wasm.gz --argument-type raw --argument 4449444c0000 --yes
-  dfx canister start dmsg_directory --network ic
+  icp canister stop dmsg_directory -e ic
+  icp canister snapshot create dmsg_directory -e ic
+  icp canister install dmsg_directory -e ic --mode upgrade --wasm dmsg_directory.wasm.gz
+  icp canister start dmsg_directory -e ic
   ```
 
-  `dmsg_directory.did` 取自同一 release，`didc check` 确认新接口兼容已部署的接口，之后用 `--yes` 跳过 dfx 自带的检查（原因见 [dmsg_handle](../dmsg_handle/README.md#运维与升级)）。Candid 服务声明了 `DirectoryInit` 初始化参数，dfx 升级时须带参数；`post_upgrade` 不读参数，传空 Candid 参数 `()`（hex `4449444c0000`），重新提供 `DirectoryInit` 也不会改变配置。directory 没有跨 canister 调用，停止会立即完成。升级后重复步骤 5，并查询一份已发布的文档；出现问题时，停止 canister 后用 `dfx canister snapshot load` 回到升级前的状态。
+  `dmsg_directory.did` 取自同一 release，`didc check` 确认新接口兼容已部署的接口；icp 安装前还会再检查一次，不要用 `--yes` 跳过（见 [dmsg_handle](../dmsg_handle/README.md#运维与升级)）。升级不传参数：`post_upgrade` 不读参数，重新提供 `DirectoryInit` 也不会改变配置。directory 没有跨 canister 调用，停止会立即完成。升级后重复步骤 5，并查询一份已发布的文档；出现问题时，停止 canister 后用 `icp canister snapshot restore` 回到升级前的状态。
 
 - **不要重装**：`reinstall` 会清空全部文档。directory 不保存 `PrincipalState`，home 也不会重发已标记为已发布的版本，文档无法恢复。修改文档响应头、认证表达式或稳定布局的版本，须先实现全部文档的重新认证或迁移。
 

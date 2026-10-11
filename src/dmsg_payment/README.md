@@ -250,7 +250,7 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 
 ### 步骤
 
-以下命令在仓库根目录执行，以 `--network ic` 为例；本地开发去掉该参数，`environment` 改为 `Local`。
+以下命令在仓库根目录执行，以主网环境 `-e ic` 为例（按 principal 调用时用 `-n ic`）；本地开发去掉该参数，`environment` 改为 `Local`。
 
 1. 在待部署的提交上完成验证。脚本会构建 release Wasm，核对 Candid、协议向量和 PocketIC 回归；工作区应没有未提交的改动：
 
@@ -262,20 +262,20 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 
    ```sh
    LEDGER=xevnm-gaaaa-aaaar-qafnq-cai
-   dfx canister call --network ic $LEDGER icrc1_fee --query
-   dfx canister call --network ic $LEDGER icrc1_supported_standards --query
+   icp canister call -n ic $LEDGER icrc1_fee '()' --query
+   icp canister call -n ic $LEDGER icrc1_supported_standards '()' --query
    ```
 
 3. 与 `dmsg_user` 一起创建 canister ID（见 [dmsg_user](../dmsg_user/README.md#步骤) 步骤 3）。
 
-4. 生产安装使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_payment.wasm.gz`，不要用本地 `dfx deploy` 构建，原因见 [dmsg_handle](../dmsg_handle/README.md#步骤)。核对产物哈希后安装，先保持订单关闭：
+4. 生产安装使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_payment.wasm.gz`，不要用本地 `icp deploy` 构建，原因见 [dmsg_handle](../dmsg_handle/README.md#步骤)。核对产物哈希后安装，先保持订单关闭：
 
    ```sh
    sha256sum dmsg_payment.wasm.gz
-   dfx canister install dmsg_payment --network ic --wasm dmsg_payment.wasm.gz --argument "(record {
+   icp canister install dmsg_payment -e ic --wasm dmsg_payment.wasm.gz --args "(record {
      environment = variant { Production };
      issuer_namespace = \"<与 dmsg_user 相同的 issuer_namespace>\";
-     user_homes = vec { principal \"$(dfx canister id dmsg_user --network ic)\" };
+     user_homes = vec { principal \"$(icp canister status dmsg_user -e ic --id-only)\" };
      ledger = principal \"$LEDGER\";
      platform = record { owner = principal \"<平台收款 owner>\"; subaccount = null };
      governance = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\";
@@ -294,17 +294,17 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
      };
      enabled = false;
    })"
-   dfx canister info dmsg_payment --network ic
+   icp canister status dmsg_payment -e ic
    ```
 
-   `sha256sum` 须与同一 release 的 `dmsg_payment.wasm.gz.<sha256>.txt` 一致，`dfx canister info` 显示的模块哈希也应是这个值。记录模块哈希、controllers 和本次安装参数。本地开发可以用 `dfx deploy dmsg_payment --argument …`。
+   `sha256sum` 须与同一 release 的 `dmsg_payment.wasm.gz.<sha256>.txt` 一致，`icp canister status` 显示的模块哈希也应是这个值。记录模块哈希、controllers 和本次安装参数。本地开发可以用 `icp deploy dmsg_payment --args …`。
 
-5. 确认每个 user home 都以 `payment_canister = $(dfx canister id dmsg_payment --network ic)` 安装（见 [dmsg_user](../dmsg_user/README.md#步骤) 步骤 4）。然后核对配置：
+5. 确认每个 user home 都以 `payment_canister = $(icp canister status dmsg_payment -e ic --id-only)` 安装（见 [dmsg_user](../dmsg_user/README.md#步骤) 步骤 4）。然后核对配置：
 
    ```sh
-   dfx canister call --network ic dmsg_payment get_fee_policy --query
-   dfx canister call --network ic dmsg_payment get_receipt_signer '(1 : nat64)' --query
-   dfx canister call --network ic dmsg_payment validate_admin_add_user_home "(principal \"$(dfx canister id dmsg_user --network ic)\")" --query
+   icp canister call -e ic dmsg_payment get_fee_policy '()' --query
+   icp canister call -e ic dmsg_payment get_receipt_signer '(1 : nat64)' --query
+   icp canister call -e ic dmsg_payment validate_admin_add_user_home "(principal \"$(icp canister status dmsg_user -e ic --id-only)\")" --query
    ```
 
    最后一条应提示该 home 已登记（`Already listed`）。`payment_config` 返回当前完整配置，可与安装参数逐项比对；客户端和私有中继应使用 `get_configuration_certified` 的证书核对。
@@ -314,9 +314,9 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 7. 设置备用 controller 和不少于 90 天的冻结阈值，并为 cycles 余额配置告警：
 
    ```sh
-   dfx canister update-settings dmsg_payment --network ic \
+   icp canister settings update dmsg_payment -e ic \
      --add-controller <备用 controller> \
-     --freezing-threshold 7776000
+     --freezing-threshold 90d
    ```
 
 8. 用小额真实资产在主网走完以下流程，每一步都用 `get_escrow_certified` 核对资金视图：
@@ -328,7 +328,7 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 9. 由 controller 或 governance 打开订单：
 
    ```sh
-   dfx canister call --network ic dmsg_payment set_orders_enabled '(true)'
+   icp canister call -e ic dmsg_payment set_orders_enabled '(true)'
    ```
 
 ### 交给 SNS
@@ -371,15 +371,15 @@ payment 没有定时器，以下任务都需要外部调用：
 升级要求 schema 不变。先停止 canister，等在途的账本和 user 调用完成，创建快照，再升级、启动：
 
 ```sh
-dfx canister metadata dmsg_payment candid:service --network ic > deployed.did
+icp canister metadata dmsg_payment candid:service -e ic > deployed.did
 didc check dmsg_payment.did deployed.did
-dfx canister stop dmsg_payment --network ic
-dfx canister snapshot create dmsg_payment --network ic
-dfx canister install dmsg_payment --network ic --mode upgrade --wasm dmsg_payment.wasm.gz --argument-type raw --argument 4449444c0000 --yes
-dfx canister start dmsg_payment --network ic
+icp canister stop dmsg_payment -e ic
+icp canister snapshot create dmsg_payment -e ic
+icp canister install dmsg_payment -e ic --mode upgrade --wasm dmsg_payment.wasm.gz
+icp canister start dmsg_payment -e ic
 ```
 
-`dmsg_payment.did` 取自同一 release，`didc check` 确认新接口与已部署的接口兼容，之后用 `--yes` 跳过 dfx 自带的检查。Candid 服务声明了 `PaymentInit`，dfx 升级时须带参数；`post_upgrade` 不读参数，传空 Candid 参数 `()`（hex `4449444c0000`）即可。`pre_upgrade` 只保存当分钟的调用计数和当日开单数，管理配置在修改时已经写入稳定内存。升级打断的出金腿停在 `InFlight`，由派发任务在 24 小时内用原参数重发。升级成本不随订单数增长，见[测量](#测量)。不要 `reinstall`：它会清空全部订单和托管账务，而资金仍留在各订单子账户中。
+`dmsg_payment.did` 取自同一 release，`didc check` 确认新接口与已部署的接口兼容；icp 安装前还会再检查一次，不要用 `--yes` 跳过。升级不传参数，`post_upgrade` 不读参数。`pre_upgrade` 只保存当分钟的调用计数和当日开单数，管理配置在修改时已经写入稳定内存。升级打断的出金腿停在 `InFlight`，由派发任务在 24 小时内用原参数重发。升级成本不随订单数增长，见[测量](#测量)。不要 `reinstall`：它会清空全部订单和托管账务，而资金仍留在各订单子账户中。
 
 ## 当前限制
 

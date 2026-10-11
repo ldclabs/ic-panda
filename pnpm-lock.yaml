@@ -6,7 +6,14 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@icp-sdk/bindgen':
+        specifier: ^0.4.1
+        version: 0.4.1
+      '@icp-sdk/core':
+        specifier: ^6.1.0
+        version: 6.1.0
 
   packages/dmsg-sdk:
     dependencies:
@@ -208,9 +215,6 @@ importers:
       cross-fetch:
         specifier: ^4.1.0
         version: 4.1.0
-      dotenv:
-        specifier: ^17.4.2
-        version: 17.4.2
       eslint:
         specifier: ^10.9.0
         version: 10.9.0(jiti@2.7.0)
@@ -277,9 +281,6 @@ importers:
       vite:
         specifier: ^8.2.2
         version: 8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1)
-      vite-plugin-environment:
-        specifier: ^1.1.3
-        version: 1.1.3(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1))
       vite-plugin-pwa:
         specifier: ^1.3.0
         version: 1.3.0(@vite-pwa/assets-generator@1.0.2)(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1))(workbox-build@7.4.1(@types/babel__core@7.20.5))(workbox-window@7.4.1)
@@ -432,9 +433,6 @@ importers:
       cross-fetch:
         specifier: ^4.1.0
         version: 4.1.0
-      dotenv:
-        specifier: ^17.4.2
-        version: 17.4.2
       eslint:
         specifier: ^10.9.0
         version: 10.9.0(jiti@2.7.0)
@@ -498,9 +496,6 @@ importers:
       vite:
         specifier: ^8.2.2
         version: 8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1)
-      vite-plugin-environment:
-        specifier: ^1.1.3
-        version: 1.1.3(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1))
       vitest:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@26.2.0)(jsdom@30.0.1(@noble/hashes@1.8.0))(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1))
@@ -1291,6 +1286,10 @@ packages:
     resolution: {integrity: sha512-HXndLoKt22+KTBye6l9wblMSqArhAALnPWfR8Zqv9h8UNLSznjtXYMDbQT4A0qd5xa5hEMfg1TCu5iQkMxyW1w==}
     peerDependencies:
       '@icp-sdk/core': ^5
+
+  '@icp-sdk/bindgen@0.4.1':
+    resolution: {integrity: sha512-n+bvWJ3sJ6V0jL3+mHV9tkLI18yzWXGYddYFrvkh2b1Xpo7sTiaSaWjP7+gctVGsTISGmWstsN5iTDJOlRpZBg==}
+    hasBin: true
 
   '@icp-sdk/canisters@3.1.0':
     resolution: {integrity: sha512-AsGBgXvTiwVdP+/NHbIAJLG2B/VpEEYay+JiqincjBOOyR/QmsyiGVVomYtxlGD2RnjCuNBwy86FL6VkfUxhEQ==}
@@ -2710,6 +2709,10 @@ packages:
   colorette@2.0.20:
     resolution: {integrity: sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w==}
 
+  commander@14.0.3:
+    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
+    engines: {node: '>=20'}
+
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
@@ -2875,10 +2878,6 @@ packages:
 
   dom-accessibility-api@0.6.3:
     resolution: {integrity: sha512-7ZgogeTnjuHbo+ct10G9Ffp0mif17idi0IyWNVA/wcwcm7NPOD/WEHVP3n7n3MhXqxoIYm8d6MuZohYWIZ4T3w==}
-
-  dotenv@17.4.2:
-    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
-    engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -4821,11 +4820,6 @@ packages:
   v8-compile-cache-lib@3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
 
-  vite-plugin-environment@1.1.3:
-    resolution: {integrity: sha512-9LBhB0lx+2lXVBEWxFZC+WO7PKEyE/ykJ7EPWCq95NEcCpblxamTbs5Dm3DLBGzwODpJMEnzQywJU8fw6XGGGA==}
-    peerDependencies:
-      vite: '>= 2.7'
-
   vite-plugin-pwa@1.3.0:
     resolution: {integrity: sha512-c5kMgN+ITrOtHXp8PAtk2uOIEea6XjP/unCGxOWWBzQ6qa65qj/awHg0wf+QF9E/2u9vh86LqxPwzEPNbM2r5A==}
     engines: {node: '>=16.0.0'}
@@ -6128,6 +6122,10 @@ snapshots:
       '@icp-sdk/signer': 5.6.3(@icp-sdk/core@6.1.0)
       idb: 7.1.1
 
+  '@icp-sdk/bindgen@0.4.1':
+    dependencies:
+      commander: 14.0.3
+
   '@icp-sdk/canisters@3.1.0(@dfinity/utils@4.0.3(@icp-sdk/core@6.1.0))(@icp-sdk/core@6.1.0)':
     dependencies:
       '@dfinity/utils': 4.0.3(@icp-sdk/core@6.1.0)
@@ -7395,6 +7393,8 @@ snapshots:
 
   colorette@2.0.20: {}
 
+  commander@14.0.3: {}
+
   commander@2.20.3: {}
 
   common-tags@1.8.2: {}
@@ -7549,8 +7549,6 @@ snapshots:
   dom-accessibility-api@0.5.16: {}
 
   dom-accessibility-api@0.6.3: {}
-
-  dotenv@17.4.2: {}
 
   dunder-proto@1.0.1:
     dependencies:
@@ -9712,10 +9710,6 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   v8-compile-cache-lib@3.0.1: {}
-
-  vite-plugin-environment@1.1.3(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1)):
-    dependencies:
-      vite: 8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1)
 
   vite-plugin-pwa@1.3.0(@vite-pwa/assets-generator@1.0.2)(vite@8.2.2(@types/node@26.2.0)(jiti@2.7.0)(terser@5.39.0)(yaml@2.7.1))(workbox-build@7.4.1(@types/babel__core@7.20.5))(workbox-window@7.4.1):
     dependencies:

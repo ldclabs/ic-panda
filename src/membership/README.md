@@ -228,7 +228,7 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
 
 ### 步骤
 
-以下命令在仓库根目录执行，以 `--network ic` 为例。
+以下命令在仓库根目录执行，以主网环境 `-e ic` 为例（按 principal 调用时用 `-n ic`）。
 
 1. 在待部署的提交上完成验证，工作区不能有未提交的改动：
 
@@ -239,14 +239,14 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
 2. 创建 canister ID（commerce 与 user 见 [dmsg_commerce](../dmsg_commerce/README.md#步骤)）：
 
    ```sh
-   dfx canister create membership --network ic
+   icp canister create membership -e ic
    ```
 
 3. 核对 PANDA SNS：root 列出的 governance 与 ledger 应与 [sns_canister_ids.json](../../sns_canister_ids.json) 一致，governance 的 controllers 应只有 SNS root。再用一个真实神经元确认 `get_neuron` 的回复能按 [sns.rs](src/sns.rs) 的投影解码：
 
    ```sh
-   dfx canister call d7wvo-iiaaa-aaaaq-aacsq-cai list_sns_canisters '(record {})' --network ic --query
-   dfx canister info dwv6s-6aaaa-aaaaq-aacta-cai --network ic
+   icp canister call -n ic d7wvo-iiaaa-aaaaq-aacsq-cai list_sns_canisters '(record {})' --query
+   icp canister status -n ic --public dwv6s-6aaaa-aaaaq-aacta-cai
    ```
 
 4. 把初始化参数保存为 `membership-init.did` 并安装：
@@ -261,19 +261,19 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
    ```
 
    ```sh
-   dfx deploy membership --network ic --argument-file membership-init.did
-   dfx canister info membership --network ic
-   dfx canister call membership verify_sns_configuration --network ic
+   icp deploy membership -e ic --args-file membership-init.did
+   icp canister status membership -e ic
+   icp canister call membership verify_sns_configuration '()' -e ic
    ```
 
-   `dfx deploy` 按 dfx.json 以 `optimize: cycles` 和 gzip 构建。`verify_sns_configuration` 返回 `(variant { Ok })` 后才接受申请。
+   `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建（与 release.yml 相同的 Candid 元数据、shrink、wasm-opt -O3 和 `gzip -n`），并写入环境变量 `PUBLIC_CANISTER_ID:<名称>`。`verify_sns_configuration` 返回 `(variant { Ok })` 后才接受申请。
 
 5. 安装 commerce 和 `dmsg_user`，其 `membership_canister` 指向本实例。
 
 6. 配置服务。下例为首发量级的取值，实际以治理批准的为准：
 
    ```sh
-   dfx canister call membership configure_panda_service --network ic '(record {
+   icp canister call membership configure_panda_service -e ic '(record {
      commerce_homes = vec { record { user_home = principal "<dmsg_user ID>"; commerce_canister = principal "<commerce ID>" } };
      max_claims = 10_000 : nat64;
      hourly_applications = 1_000 : nat64;
@@ -289,7 +289,7 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
 7. 至少在 PANDA 开放前 30 天发布第一份费率。`published_at_ms` 会被替换为执行时间，`r_num / r_den` 是每美元的 PANDA 数：
 
    ```sh
-   dfx canister call membership schedule_panda_rate --network ic '(record {
+   icp canister call membership schedule_panda_rate -e ic '(record {
      version = 2 : nat16; policy_version = 1 : nat64; environment = variant { Production };
      product_ids = vec { "dmsg" }; r_num = <PANDA 数> : nat; r_den = 1 : nat;
      published_at_ms = 0 : nat64; effective_at_ms = <执行时间 30 天之后的 Unix 毫秒> : nat64 })'
@@ -301,7 +301,7 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
 
    - `verify_sns_configuration` 返回 `Ok`；`validate_configure_panda_service` 以当前配置调用时显示 “no change”。
    - 用一个真实 PANDA 神经元完成一次完整流程：报价、申请、等待冷却、激活，最终为 `Active`；commerce 的 `get_entitlement_batch` 显示对应套餐，`panda_claim_certificate` 能通过客户端验证。另起一份申请在冷却期取消，确认产品预留已释放。
-   - 设置冻结阈值和 cycles 告警，把 `dfx canister status` 中的 controllers 记入部署记录。
+   - 设置冻结阈值和 cycles 告警，把 `icp canister status` 中的 controllers 记入部署记录。
 
 ### 交给 SNS
 
@@ -342,13 +342,13 @@ membership 没有定时器，下列任务都需要外部调用：
 升级要求 schema 不变。先停止 canister，等在途的 SNS 与产品调用完成（都是有界等待），创建快照，再升级、启动：
 
 ```sh
-dfx canister stop membership --network ic
-dfx canister snapshot create membership --network ic
-dfx deploy membership --network ic --argument-type raw --argument 4449444c0000
-dfx canister start membership --network ic
+icp canister stop membership -e ic
+icp canister snapshot create membership -e ic
+icp deploy membership -e ic
+icp canister start membership -e ic
 ```
 
-Candid 服务声明了 `MembershipInit` 初始化参数，dfx 升级时不带参数会报错；`post_upgrade` 不读取参数，传空 Candid 参数 `()`（hex `4449444c0000`）即可。升级会丢弃每分钟计数、产品调用 guard 和 SNS 核验的在途标记；停在 `Applying` 或预留未完成的申请，用 `reconcile_panda_claim` 恢复。
+升级不传参数，`post_upgrade` 不读取参数；`icp deploy` 安装前会比较新构建的接口与已部署的接口，不兼容时停下。升级会丢弃每分钟计数、产品调用 guard 和 SNS 核验的在途标记；停在 `Applying` 或预留未完成的申请，用 `reconcile_panda_claim` 恢复。
 
 ## 当前限制
 

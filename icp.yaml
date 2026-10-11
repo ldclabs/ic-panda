@@ -1,0 +1,149 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/dfinity/icp-cli/main/docs/schemas/icp-yaml-schema.json
+
+# Rust canisters build with recipes/rust.hbs, which follows .github/workflows/release.yml.
+canisters:
+  - name: ic_delegation_store
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: ic_dmsg_minter
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: ic_message
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: ic_message_channel
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: ic_message_profile
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: ic_name_identity
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: ic_signin_with
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: ic_panda_luckypool
+    recipe:
+      type: file://recipes/rust.hbs
+
+  # The frontends are built manually (pnpm build) before deploying; icp only
+  # uploads dist. Both run the legacy asset canister already deployed on mainnet.
+  - name: ic_panda_frontend
+    recipe:
+      type: "@dfinity/asset-canister@v2.3.0"
+      configuration:
+        dir: src/ic_panda_frontend/dist
+
+  - name: dmsg_frontend
+    recipe:
+      type: "@dfinity/asset-canister@v2.3.0"
+      configuration:
+        dir: src/dmsg_frontend/dist
+
+  - name: ic_message_channel_02
+    build:
+      steps:
+        - type: pre-built
+          url: https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.wasm.gz
+          sha256: 2be58cf30c8a09254f8922bed9dcc58bead18068e84f7b1a7ab64f146751879c
+
+  - name: ic_message_channel_03
+    build:
+      steps:
+        - type: pre-built
+          url: https://github.com/ldclabs/ic-panda/releases/download/v2.0.0/ic_message_channel.wasm.gz
+          sha256: 2be58cf30c8a09254f8922bed9dcc58bead18068e84f7b1a7ab64f146751879c
+
+  - name: ic_cose_canister
+    build:
+      steps:
+        - type: pre-built
+          url: https://github.com/ldclabs/ic-cose/releases/download/v0.9.1/ic_cose_canister.wasm.gz
+          sha256: 0e6d07d9069f37995afba54195de1804353bed1a455ba4b3972d4c8804884f56
+
+  - name: ic_oss_cluster
+    build:
+      steps:
+        - type: pre-built
+          url: https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_cluster.wasm.gz
+          sha256: a5e8d633d312ee452d124a1545f02225a9c54ca1f8b56dfddcd79633db5ee253
+
+  - name: ic_oss_bucket
+    build:
+      steps:
+        - type: pre-built
+          url: https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.wasm.gz
+          sha256: eb8c00c54eae1daf3bdb59426d7fa8f14f2bd14e03d21fe3ee51f2c120f91cd0
+
+  - name: ic_oss_bucket_02
+    build:
+      steps:
+        - type: pre-built
+          url: https://github.com/ldclabs/ic-oss/releases/download/v1.2.1/ic_oss_bucket.wasm.gz
+          sha256: eb8c00c54eae1daf3bdb59426d7fa8f14f2bd14e03d21fe3ee51f2c120f91cd0
+
+  # Local stand-in for the PANDA SNS ledger.
+  - name: icrc1_ledger_canister
+    build:
+      steps:
+        - type: pre-built
+          url: https://download.dfinity.systems/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/canisters/ic-icrc1-ledger.wasm.gz
+          sha256: 259ac2abe8f77f705f0de7c0fa8a0903bc12eb84ba2222116f6b4998b3c122d3
+
+  - name: dmsg_ledger_canister
+    build:
+      steps:
+        - type: pre-built
+          url: https://download.dfinity.systems/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/canisters/ic-icrc1-ledger.wasm.gz
+          sha256: 259ac2abe8f77f705f0de7c0fa8a0903bc12eb84ba2222116f6b4998b3c122d3
+
+  - name: dmsg_index_canister
+    build:
+      steps:
+        - type: pre-built
+          url: https://download.dfinity.systems/ic/f9085dbe8d86dcca77b05adaee93d608498dae0b/canisters/ic-icrc1-index-ng.wasm.gz
+          sha256: 787b14614fed045d8fd8d44e9dde334c20a759eaa007c8b16cc86ebbaa437e78
+
+  - name: dmsg_handle
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: dmsg_user
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: dmsg_cose
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: dmsg_directory
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: dmsg_payment
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: membership
+    recipe:
+      type: file://recipes/rust.hbs
+
+  - name: dmsg_commerce
+    recipe:
+      type: file://recipes/rust.hbs
+
+# The managed local network always runs the ICP ledger (ryjl3-tyaaa-aaaaa-aaaba-cai), and
+# `ii` adds Internet Identity. It starts empty on every `icp network start`; `make local-network`
+# recreates the canisters at their mainnet IDs, which the frontends hardcode.
+networks:
+  - name: local
+    mode: managed
+    ii: true

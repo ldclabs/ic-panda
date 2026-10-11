@@ -6,7 +6,7 @@
 
 ```sh
 node src/dmsg_app/scripts/legacy-inventory.mjs \
-  --ids canister_ids.json \
+  --ids .icp/data/mappings/ic.ids.json \
   --output misc/legacy-inventory/new-observation
 node --test src/dmsg_app/scripts/legacy-inventory.test.mjs
 ```
@@ -21,7 +21,7 @@ node --test src/dmsg_app/scripts/legacy-inventory.test.mjs
 - Channel/Profile 指向的 cluster/bucket、cluster 公布的 bucket 列表与部署摘要。部署参数 bytes 不写入报告。
 - 调用失败、字段缺失和采集时间范围。可选字段 null 表示不可得或被省略，不能当作链上没有该配置/密钥。
 
-认证 module hash 不等于已完成源码复现构建。若要关联发布版本，另行下载候选 release 工件核对其实际 bytes 哈希，记录 tag commit 和对应 Candid；不能直接以 dfx.json 的下载版本或当前 checkout 推断现网版本。
+认证 module hash 不等于已完成源码复现构建。若要关联发布版本，另行下载候选 release 工件核对其实际 bytes 哈希，记录 tag commit 和对应 Candid；不能直接以 icp.yaml 的下载版本或当前 checkout 推断现网版本。
 
 服务状态 query 是节点签名观察，不是所有用户数据的认证冻结快照；多实例采集也不是跨 canister 的原子快照。运行内存、cycles、稳定状态导出、完整 ACL、在途账务、未完成上传和用户解密能力仍需要各自的权限及验证。工具不会申请 token、执行 vetKD/ECDH、登录用户或导出用户内容。
 

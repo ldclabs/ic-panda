@@ -8,4 +8,4 @@
 cargo build --release --target wasm32-unknown-unknown -p dmsg_test_ledger
 ```
 
-余额、去重索引、区块和配置使用各自固定类型的稳定存储。由 [dmsg_integration](../dmsg_integration/README.md) 安装并控制，未加入 dfx.json 的部署列表。
+余额、去重索引、区块和配置使用各自固定类型的稳定存储。由 [dmsg_integration](../dmsg_integration/README.md) 安装并控制，未加入 icp.yaml 的部署列表。

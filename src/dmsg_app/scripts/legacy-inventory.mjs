@@ -387,7 +387,9 @@ export async function collect({ ids, host, output, maxCanisters = 64 }) {
   }
   for (const [name, value] of Object.entries(input)) {
     const kind = kindOf(name)
-    if (kind && value.ic) add(value.ic, kind, name, 'input canister_ids.json')
+    // icp's ic.ids.json maps names to IDs; dfx's canister_ids.json nests them under `ic`.
+    const id = typeof value === 'string' ? value : value.ic
+    if (kind && id) add(id, kind, name, 'input canister IDs')
   }
   if (!items.size) throw new Error('No known mainnet legacy canisters in the input')
   const agent = await HttpAgent.create({
@@ -474,7 +476,7 @@ async function main() {
   })
   if (!values.ids || !values.output)
     throw new Error(
-      'Usage: node legacy-inventory.mjs --ids canister_ids.json --output /private/ignored/new-directory'
+      'Usage: node legacy-inventory.mjs --ids .icp/data/mappings/ic.ids.json --output /private/ignored/new-directory'
     )
   const maximum = Number(values['max-canisters'])
   if (!Number.isSafeInteger(maximum) || maximum < 1 || maximum > 256)

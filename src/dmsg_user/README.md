@@ -307,7 +307,7 @@ flowchart LR
 
 ### 步骤
 
-以下命令在仓库根目录执行，以 `--network ic` 为例；本地开发去掉该参数，`environment` 改为 `Local`。
+以下命令在仓库根目录执行，以主网环境 `-e ic` 为例；本地开发去掉该参数，`environment` 改为 `Local`。
 
 1. 在待部署的提交上完成验证。脚本会构建 release Wasm，并核对 Candid、协议向量和 PocketIC 回归；工作区应没有未提交的改动：
 
@@ -319,15 +319,15 @@ flowchart LR
 
    ```sh
    for c in dmsg_user dmsg_cose dmsg_handle dmsg_payment dmsg_commerce dmsg_directory; do
-     dfx canister create "$c" --network ic
+     icp canister create "$c" -e ic
    done
    ```
 
 3. 安装 `dmsg_user`：
 
    ```sh
-   cid() { dfx canister id "$1" --network ic; }
-   dfx deploy dmsg_user --network ic --argument "(record {
+   cid() { icp canister status "$1" -e ic --id-only; }
+   icp deploy dmsg_user -e ic --args "(record {
      environment = variant { Production };
      issuer_namespace = \"<ISSUER_NAMESPACE>\";
      home_cose = principal \"$(cid dmsg_cose)\";
@@ -342,10 +342,10 @@ flowchart LR
      governance = principal \"<SNS_GOVERNANCE_ID>\";
      admission_key = opt blob \"<ADMISSION_PUBLIC_KEY_32_BYTES>\";
    })"
-   dfx canister info dmsg_user --network ic
+   icp canister status dmsg_user -e ic
    ```
 
-   `dfx deploy` 按 dfx.json 以 `optimize: cycles` 和 gzip 构建。用 `dfx canister info` 记录实际模块哈希和 controllers，并保存本次安装参数。
+   `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建，步骤与 release.yml 相同（Candid 元数据、shrink、wasm-opt -O3、`gzip -n`），本机需要 `ic-wasm` 和 binaryen 的 `wasm-opt`。它还会把环境中各 canister 的 ID 写入本 canister 的环境变量 `PUBLIC_CANISTER_ID:<名称>`。用 `icp canister status` 记录实际模块哈希和 controllers，并保存本次安装参数。
 
 4. 按各自 README 安装其余 canister，所有指向 user 的字段都填 `$(cid dmsg_user)`。COSE 安装后由 controller 或 governance 调用 `initialize_keys`，`key_state` 显示 `Ready` 且公钥指纹与生产 key 一致后才能执行。见 [dmsg_cose](../dmsg_cose/README.md)、[dmsg_handle](../dmsg_handle/README.md)。
 
@@ -354,9 +354,9 @@ flowchart LR
 6. 设置 controllers 与 freezing threshold，建议不少于 90 天：
 
    ```sh
-   dfx canister update-settings dmsg_user --network ic \
+   icp canister settings update dmsg_user -e ic \
      --add-controller <备用 controller> \
-     --freezing-threshold 7776000
+     --freezing-threshold 90d
    ```
 
 7. 在 `dmsg_handle` 的 `registration_homes` 中加入本 canister（`admin_set_registration_homes`），再在 `src/dmsg_app/dmsg.config.json` 填写 `environment`、`principalOrigin` 和 `canisters.*`（可把本 canister 列入 `canisters.userHomes` 作为交叉核对），重新构建客户端，见 [dmsg_app](../dmsg_app/README.md)。
@@ -376,8 +376,8 @@ flowchart LR
 - **清理**：过期数据在账户下次写入时惰性清理；停用账户留下的数据由公开的分页清理回收，应定期运行。从空游标开始，按返回的游标继续，返回 `null` 时结束：
 
   ```sh
-  dfx canister call dmsg_user prune_executions '(blob "")' --network ic
-  dfx canister call dmsg_user prune_external_approvals '(blob "")' --network ic
+  icp canister call dmsg_user prune_executions '(blob "")' -e ic
+  icp canister call dmsg_user prune_external_approvals '(blob "")' -e ic
   ```
 
   `prune_executions` 一页最多 64 条执行记录，用掉 20B 指令后在账户边界提前结束；100 万账户时一页约 1.7 亿 cycles。它只删除保留期已过的终态结果，不改动未终结执行、设备序号和月账。
@@ -385,27 +385,27 @@ flowchart LR
 - **升级**：要求 schema 不变。先停止 canister，让在途的跨 canister 调用完成（全部调用都是 bounded-wait，会在超时后返回），创建快照，再升级、启动并查看日志：
 
   ```sh
-  dfx canister stop dmsg_user --network ic
-  dfx canister snapshot create dmsg_user --network ic
-  dfx deploy dmsg_user --network ic --argument-type raw --argument 4449444c0000
-  dfx canister start dmsg_user --network ic
-  dfx canister logs dmsg_user --network ic
+  icp canister stop dmsg_user -e ic
+  icp canister snapshot create dmsg_user -e ic
+  icp deploy dmsg_user -e ic
+  icp canister start dmsg_user -e ic
+  icp canister logs dmsg_user -e ic
   ```
 
-  Candid 服务声明了 `UserInit` 初始化参数，dfx 升级时不带参数会报错。`post_upgrade` 不读取参数，所以传空 Candid 参数 `()`，即 hex `4449444c0000`；重新提供 `UserInit` 不会修改配置。
+  升级不传参数：`post_upgrade` 不读取参数，重新提供 `UserInit` 也不会修改配置。`icp deploy` 安装前会比较新构建的接口与已部署的接口，不兼容时停下。
 
   日志中的 `instructions=` 是 `post_upgrade` 的指令数。认证树不再重建，它不随账户和月账增长。
 
 - **回滚**：升级后发现问题时，载入升级前的快照：
 
   ```sh
-  dfx canister stop dmsg_user --network ic
-  dfx canister snapshot list dmsg_user --network ic
-  dfx canister snapshot load dmsg_user <SNAPSHOT_ID> --network ic
-  dfx canister start dmsg_user --network ic
+  icp canister stop dmsg_user -e ic
+  icp canister snapshot list dmsg_user -e ic
+  icp canister snapshot restore dmsg_user <SNAPSHOT_ID> -e ic
+  icp canister start dmsg_user -e ic
   ```
 
-  快照包含 Wasm、stable memory、heap 与认证数据，载入后证书与记录一致。快照之后的写入全部丢失：新账户、设备与登录变更、认证回执和月账扣费；handle、COSE 与云端可能已经引用这些状态，所以只在升级后立即发现问题时使用。回滚后新分配的账户 ID 以当前秒开头，不会与回滚前发出的 ID 重复。快照占用与 canister 状态同等的存储，确认升级无误后用 `dfx canister snapshot delete` 删除。PocketIC 回归 `a_snapshot_restores_accounts_and_their_certified_state` 演练了这一流程。
+  快照包含 Wasm、stable memory、heap 与认证数据，载入后证书与记录一致。快照之后的写入全部丢失：新账户、设备与登录变更、认证回执和月账扣费；handle、COSE 与云端可能已经引用这些状态，所以只在升级后立即发现问题时使用。回滚后新分配的账户 ID 以当前秒开头，不会与回滚前发出的 ID 重复。快照占用与 canister 状态同等的存储，确认升级无误后用 `icp canister snapshot delete` 删除。PocketIC 回归 `a_snapshot_restores_accounts_and_their_certified_state` 演练了这一流程。
 
 - **回调丢失**：未停止就升级，或调用结果未知时，执行会停在 `Authorized`、`Executing` 或 `Unknown`。客户端用 `reconcile_execution` 恢复，不能换新 ID 重签。
 
@@ -476,5 +476,7 @@ DMSG_USER_IMAGE_DIR=/path/to/images DMSG_WASM_DIR=/path/to/wasm cargo test --loc
 2026-10-08 按 2,100 万容量、注册准入、登录绑定、清理与月账调整更新本文档时，完整运行 `scripts/test-dmsg.sh` 通过：Rust 单元测试（`dmsg_user` 37 项）、Clippy `-D warnings`、Wasm 与 Candid 比对、协议向量（含新增的 `account_admission_v1`）、PocketIC 16.0.0 上的 `control_plane` 124 项与 `directory` 4 项、SDK 26 项；`dmsg_app` 的类型检查与 177 项单元测试也通过。默认忽略的 `user_capacity_profile` 单独运行，数据见“容量与成本”；真实扩展的端到端探针没有运行。部署命令沿用 [dmsg_handle](../dmsg_handle/README.md) 在 dfx 0.32.0 本地副本上实测过的格式，快照命令按 dfx 0.32.0 的命令行帮助编写，没有在本地副本上执行。
 
 同日加入 home 执行汇总与客户端月账归档后，再次完整运行 `scripts/test-dmsg.sh` 通过：`dmsg_user` 单元测试 38 项、Clippy、Wasm 与 Candid 比对、协议向量、`control_plane` 124 项与 `directory` 4 项、SDK 26 项；`dmsg_app` 类型检查与 179 项单元测试通过。设置页的月账列表没有在真实扩展中查看。
+
+2026-10-11 改用 icp-cli 命令后，`icp deploy` 不带参数升级、快照创建与恢复在 icp 1.6.0 本地网络上用 dmsg_handle 演练过；本 canister 的安装、清理和回滚命令没有在 icp 下运行。
 
 开发阶段使用新实例，不兼容此前的实验接口和稳定布局。

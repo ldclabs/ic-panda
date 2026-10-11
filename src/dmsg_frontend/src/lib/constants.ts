@@ -4,7 +4,7 @@ export const APP_VERSION = '3.0.0'
 export const IS_LOCAL = src.includes('localhost') || src.includes('127.0.0.1')
 export const ENV = IS_LOCAL ? 'local' : 'ic'
 export const APP_ORIGIN = IS_LOCAL
-  ? 'http://2fvu6-tqaaa-aaaap-akksa-cai.localhost:4943'
+  ? 'http://2fvu6-tqaaa-aaaap-akksa-cai.localhost:8000'
   : 'https://dmsg.net'
 
 export const INTERNET_IDENTITY_CANISTER_ID = 'rdmx6-jaaaa-aaaaa-aaadq-cai' // ic & local
