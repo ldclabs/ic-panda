@@ -7,7 +7,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Keep in step with rust-toolchain.toml; the Wasm hashes depend on it.
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -16,7 +16,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Build canisters
         run: |
-          rustup target add wasm32-unknown-unknown
           cargo install ic-wasm --version 0.11.1 --locked
           BINARYEN_VERSION="version_131"
           BINARYEN_ARCHIVE="binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz"
@@ -30,14 +29,14 @@ jobs:
           ic-wasm --version
           "$WASM_OPT" --version
           mkdir out
-          cargo build --target wasm32-unknown-unknown --release --locked -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_directory -p dmsg_payment -p ic_dmsg_minter -p ic_panda_luckypool -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity -p ic_delegation_store -p ic_signin_with
-          for CAN in dmsg_user dmsg_handle dmsg_cose dmsg_directory dmsg_payment ic_dmsg_minter ic_panda_luckypool ic_message ic_message_channel ic_message_profile ic_name_identity ic_delegation_store ic_signin_with
+          cargo build --target wasm32-unknown-unknown --release --locked -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_directory -p dmsg_payment -p membership -p dmsg_commerce -p ic_dmsg_minter -p ic_panda_luckypool -p ic_message -p ic_message_channel -p ic_message_profile -p ic_name_identity -p ic_delegation_store -p ic_signin_with
+          for CAN in dmsg_user dmsg_handle dmsg_cose dmsg_directory dmsg_payment membership dmsg_commerce ic_dmsg_minter ic_panda_luckypool ic_message ic_message_channel ic_message_profile ic_name_identity ic_delegation_store ic_signin_with
           do
             cp "target/wasm32-unknown-unknown/release/$CAN.wasm" out/
             cp "src/$CAN/$CAN.did" "out/$CAN.did"
             WASM="out/$CAN.wasm"
-            ic-wasm $WASM -o $WASM metadata candid:service -f "out/$CAN.did" -v public
-            ic-wasm $WASM -o $WASM shrink
+            ic-wasm "$WASM" -o "$WASM" metadata candid:service -f "out/$CAN.did" -v public
+            ic-wasm "$WASM" -o "$WASM" shrink
             "$WASM_OPT" \
               -O3 \
               --enable-mutable-globals \
@@ -52,12 +51,12 @@ jobs:
               --inline-functions-with-loops \
               "$WASM" -o "$WASM.optimized"
             mv "$WASM.optimized" "$WASM"
-            gzip -n $WASM
+            gzip -n "$WASM"
             SHA256="$(sha256sum < "out/$CAN.wasm.gz" | sed 's/ .*$//g')"
-            echo $SHA256 > "out/$CAN.wasm.gz.$SHA256.txt"
+            echo "$SHA256" > "out/$CAN.wasm.gz.$SHA256.txt"
           done
           ls -lah out
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: out/*
