@@ -301,7 +301,7 @@ pub fn validate_directory_init(config: &DirectoryInit) -> Result<()> {
     validate_principal_origin(&config.delegation_service)?;
     let url = &config.profile_url_prefix;
     validate_document_url_bytes(url, MAX_DIRECTORY_URL_BYTES)?;
-    let parsed = url::Url::parse(url).map_err(|_| invalid("directory URL"))?;
+    let parsed = url::Url::parse(url).map_err(|_| invalid("profile prefix"))?;
     ensure_valid(
         parsed.scheme() == "https"
             && parsed.as_str() == url.as_str()

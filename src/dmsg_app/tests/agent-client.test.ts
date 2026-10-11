@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Principal } from '@icp-sdk/core/principal'
-import type { _SERVICE, PrincipalInfo } from '../src/lib/canisters/generated/user'
+import type {
+  _SERVICE,
+  HostedController,
+  PrincipalInfo
+} from '../src/lib/canisters/generated/user'
 import type { AccountClient } from '../src/lib/services/account'
 import type { CloudSession } from '../src/lib/services/cloud-session'
-import { AgentClient, type Credential } from '../src/lib/services/agent'
+import { AgentClient, covers, type Credential } from '../src/lib/services/agent'
 import { ed25519 } from '../src/lib/crypto/primitives'
 import { controllerPopMessage } from '../src/lib/protocol/account'
 import { agentId, eventHash, eventText } from '../src/lib/protocol/agent'
@@ -237,5 +241,25 @@ describe('agent credential listing', () => {
     })
     f.get.mockRejectedValueOnce(new Error('offline'))
     await expect(f.client.credentials(accountId)).rejects.toThrow('offline')
+  })
+
+  it('lets only a key whose ceiling covers a credential manage it', () => {
+    const controller = (delegation: HostedController['delegation']): HostedController => ({
+      generation: 1,
+      public_key: publicKey,
+      name: [],
+      valid_from: BigInt(NOW),
+      delegation,
+      retired_at: [],
+      invalid_from: []
+    })
+    const restricted = (scopes: string[], audiences: string[]) =>
+      controller({ Restricted: { scopes, audiences } })
+    const credential = credentials[100]
+    const wider = restricted(['message.draft', 'inbox.screen'], ['https://dmsg.net'])
+    expect(covers(controller({ Unrestricted: null }), credential)).toBe(true)
+    expect(covers(wider, credential)).toBe(true)
+    expect(covers(restricted(['inbox.screen'], ['https://dmsg.net']), credential)).toBe(false)
+    expect(covers(restricted(['message.draft'], ['https://dmsg.app']), credential)).toBe(false)
   })
 })

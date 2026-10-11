@@ -6,6 +6,7 @@
   import { CloudSession } from '../services/cloud-session'
   import {
     AgentClient,
+    covers,
     isCurrent,
     type AgentJob,
     type Authority,
@@ -48,10 +49,19 @@
     audiences = $state(''),
     relationship = $state(''),
     days = $state(30),
-    review = $state<null | { kind: 'grant' } | { kind: 'revoke'; id: string }>(null)
+    review = $state<
+      null | { kind: 'grant' } | { kind: 'revoke'; id: string; generation: number }
+    >(null)
 
   const account = () => session.meta?.account?.id ?? ''
   const current = $derived(principal?.state.controllers.filter(isCurrent) ?? [])
+  // Only a current key whose ceiling covers the credential may revoke it;
+  // prefer the selected signer.
+  const revoker = (c: Credential) =>
+    (
+      current.find((k) => k.generation === signer && covers(k, c)) ??
+      current.find((k) => covers(k, c))
+    )?.generation
   const published = $derived(
     principal ? principal.published_version === principal.state.version : false
   )
@@ -127,7 +137,7 @@
     await session.run(async () => {
       const job =
         pending?.kind === 'revoke'
-          ? await client!.revoke(account(), signer, pending.id)
+          ? await client!.revoke(account(), pending.generation, pending.id)
           : await client!.grant(account(), signer, {
               id: delegationId(account()),
               subject: subject.trim(),
@@ -284,12 +294,17 @@
         <p>状态：{c.status}；scope：{c.scopes.join(', ')}；依赖方：{c.audiences.join(', ')}</p>
         <p><code>{c.subject}</code></p>
         {#if c.expires_at}<p>到期 {dateLabel(c.expires_at)}</p>{/if}
-        {#if c.status !== 'revoked' && current.length}
-          <button
-            class="secondary"
-            disabled={session.busy}
-            onclick={() => (review = { kind: 'revoke', id: c.id })}>撤销</button
-          >
+        {#if c.status !== 'revoked'}
+          {@const generation = revoker(c)}
+          {#if generation}
+            <button
+              class="secondary"
+              disabled={session.busy}
+              onclick={() => (review = { kind: 'revoke', id: c.id, generation })}>撤销</button
+            >
+          {:else}
+            <p>没有上限覆盖此凭证的当前 controller，无法撤销。</p>
+          {/if}
         {/if}
       </article>
     {/each}
@@ -312,7 +327,7 @@
       </div>
       <div>
         <dt>controller</dt>
-        <dd>#{signer}</dd>
+        <dd>#{review.kind === 'revoke' ? review.generation : signer}</dd>
       </div>
       {#if review.kind === 'grant'}
         <div>

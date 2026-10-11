@@ -192,6 +192,7 @@ fn device(n: u8) -> DeviceInput {
 }
 const NAMESPACE: &str = "https://dmsg.test/u/";
 const PRINCIPAL_ORIGIN: &str = "https://id.dmsg.test";
+const DELEGATION_SERVICE: &str = "https://agents.dmsg.test";
 
 /// An account ID carrying `home`'s allocator fingerprint in the test namespace.
 fn home_account(home: Principal, n: u8) -> AccountId {
@@ -315,7 +316,7 @@ impl Fixture {
                 user_homes: vec![user],
                 principal_origin: PRINCIPAL_ORIGIN.into(),
                 controller_source: "https://dmsg.net".into(),
-                delegation_service: "https://agents.dmsg.test".into(),
+                delegation_service: DELEGATION_SERVICE.into(),
                 profile_url_prefix: "https://dmsg.test/u/".into(),
                 custom_domains: vec!["id.dmsg.test".into()],
                 governance: sns,

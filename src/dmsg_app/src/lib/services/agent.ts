@@ -57,6 +57,22 @@ export interface Credential {
 export const isCurrent = (c: HostedController) => c.retired_at.length === 0
 
 /**
+ * Agent Delegation Section 5: `"*"` manages every credential of the principal,
+ * a restricted key only those whose scopes and audiences all fall within its ceiling.
+ */
+export function covers(
+  c: HostedController,
+  credential: Pick<Credential, 'scopes' | 'audiences'>
+) {
+  if ('Unrestricted' in c.delegation) return true
+  const { scopes, audiences } = c.delegation.Restricted
+  return (
+    credential.scopes.every((s) => scopes.includes(s)) &&
+    credential.audiences.every((a) => audiences.includes(a))
+  )
+}
+
+/**
  * Agent Delegation principal management for the unlocked settings page. The
  * controller keys are ordinary vault entries, so every device holding the
  * root can sign; registration proves possession to the user home, and every

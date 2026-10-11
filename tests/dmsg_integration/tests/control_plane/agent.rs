@@ -3,8 +3,6 @@ use agent_protocols::{delegation as sdk, identity as sdk_id};
 use dmsg_types::agent::*;
 use ic_http_certification::{HttpRequest, HttpResponse};
 
-const DELEGATION_SERVICE: &str = "https://agents.dmsg.test";
-
 impl Fixture {
     /// Register the self-held controller key `controller` at the next
     /// generation, proving possession inside the device-approved mutation.
