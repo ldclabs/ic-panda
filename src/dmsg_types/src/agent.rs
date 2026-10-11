@@ -117,7 +117,7 @@ pub struct DirectoryInit {
     /// Origin of the authoritative delegation service written into every
     /// document, such as `https://agents.dmsg.net`.
     pub delegation_service: String,
-    /// Prefix of the public profile link, such as `https://dmsg.net/u/`.
+    /// Prefix of the public profile link, such as `https://dmsg.net/`.
     pub profile_url_prefix: String,
     /// Custom domains served at `/.well-known/ic-domains`.
     pub custom_domains: Vec<String>,

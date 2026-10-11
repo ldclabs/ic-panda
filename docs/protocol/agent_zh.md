@@ -52,7 +52,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 ## 示例文档
 
 ```json
-{"controllers":[{"delegation":{"audiences":["https://dmsg.net"],"scopes":["message.draft"]},"id":"did:agent:<key>","name":"dMsg signer #1","source":"https://dmsg.net","valid_from":1790000000001}],"delegation_service":"https://agents.dmsg.net","id":"https://id.dmsg.net/<account_id>","links":[{"name":"dMsg","rel":"profile","url":"https://dmsg.net/u/<account_id>"}],"protocol":"agent-delegation/1.0","type":"person","updated_at":1790000000001}
+{"controllers":[{"delegation":{"audiences":["https://dmsg.net"],"scopes":["message.draft"]},"id":"did:agent:<key>","name":"dMsg signer #1","source":"https://dmsg.net","valid_from":1790000000001}],"delegation_service":"https://agents.dmsg.net","id":"https://id.dmsg.net/<account_id>","links":[{"name":"dMsg","rel":"profile","url":"https://dmsg.net/<account_id>"}],"protocol":"agent-delegation/1.0","type":"person","updated_at":1790000000001}
 ```
 
 ## 验证

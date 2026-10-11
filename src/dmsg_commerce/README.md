@@ -292,9 +292,12 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
    ```
 
    ```sh
-   icp deploy dmsg_commerce -e ic --args-file commerce-init.did
+   ARGS=$(didc encode -d src/dmsg_commerce/dmsg_commerce.did -t '(CommerceInit)' "$(cat commerce-init.did)")
+   icp deploy dmsg_commerce -e ic --args "$ARGS" --args-format hex
    icp canister status dmsg_commerce -e ic
    ```
+
+   icp 不按接口给安装参数定类型：直接用 `--args-file` 时，四个套餐的 `plan_id` 会被推断成同一种 variant，安装报 `catalog: NotFound`。所以先用 `didc` 按 `CommerceInit` 编码，再以 hex 传入。
 
    `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建（与 release.yml 相同的 Candid 元数据、shrink、wasm-opt -O3 和 `gzip -n`），并写入环境变量 `PUBLIC_CANISTER_ID:<名称>`。用 `icp canister status` 记录实际的模块哈希和 controllers。
 
