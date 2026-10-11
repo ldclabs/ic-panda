@@ -1,20 +1,11 @@
 //! dMsg namespace validation and error mapping for the shared Xid generator.
 //! The caller atomically commits the returned state alongside the new account.
+//! The fingerprint comes from `account_allocator_digest`, the digest the
+//! routing services use, so every allocated ID routes back to this home.
 use candid::Principal;
-use dmsg_protocol::digest;
+use dmsg_protocol::agent::account_allocator_digest;
 use dmsg_types::*;
 use ic_auth_types::{XidGenerator, XidGeneratorError};
-
-pub(crate) fn namespace_digest(
-    environment: &Environment,
-    namespace: &str,
-    canister: Principal,
-) -> Hash {
-    digest(
-        "dmsg/account-id-generator/v1",
-        &("dmsg", environment, namespace, canister),
-    )
-}
 
 pub(crate) fn validate(
     generator: &XidGenerator,
@@ -23,7 +14,7 @@ pub(crate) fn validate(
     namespace: &str,
     canister: Principal,
 ) -> Result<()> {
-    let expected = namespace_digest(environment, namespace, canister);
+    let expected = account_allocator_digest(environment, namespace, canister);
     ensure(
         generator.profile_version == 1
             && stored_namespace_digest == expected
@@ -49,7 +40,8 @@ mod tests {
     const NAMESPACE: &str = "https://dmsg.test/u/";
 
     fn generator() -> (Hash, XidGenerator) {
-        let digest = namespace_digest(&Environment::Local, NAMESPACE, Principal::from_slice(&[1]));
+        let digest =
+            account_allocator_digest(&Environment::Local, NAMESPACE, Principal::from_slice(&[1]));
         (digest, XidGenerator::new(digest[..5].try_into().unwrap()))
     }
 

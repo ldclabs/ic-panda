@@ -334,6 +334,9 @@ pub fn allocated_by(account_id: &AccountId, allocator_digest: &Hash) -> bool {
 }
 
 /// Maximum user homes one service routes accounts to (64).
+///
+/// A chosen bound, not a measured capacity: [`account_home`] computes one
+/// allocator digest per listed home on every call, so the list stays short.
 pub const MAX_USER_HOMES: usize = 64;
 
 /// Check that `home` may be appended to `homes`; false when it is already listed.

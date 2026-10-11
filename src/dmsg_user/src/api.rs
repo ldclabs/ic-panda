@@ -48,7 +48,7 @@ async fn draw_master_secret() {
 #[ic_cdk::init]
 fn init(args: UserInit) {
     validate_namespace(&args.issuer_namespace).expect("identity namespace");
-    let allocator_namespace_digest = xid::namespace_digest(
+    let allocator_namespace_digest = dmsg_protocol::agent::account_allocator_digest(
         &args.environment,
         &args.issuer_namespace,
         ic_cdk::api::canister_self(),

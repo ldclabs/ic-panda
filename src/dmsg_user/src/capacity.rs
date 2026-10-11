@@ -4,7 +4,7 @@
 //! Every fifth account is active: three devices, two logins, a committed root,
 //! a full receipt window, two month rows and one expired attestation for the
 //! public cleanup. The rest are fresh accounts with one device and one login.
-use crate::{commerce::Month, execution, state::*, store::*, xid};
+use crate::{commerce::Month, execution, state::*, store::*};
 use candid::Principal;
 use dmsg_protocol::{billing::month_utc, canonical, digest, execution_receipt_key};
 use dmsg_runtime::{cert_map::leaf_hash, storage::MapExt, Budget};
@@ -191,7 +191,8 @@ fn capacity_image() {
         governance: service(8),
         admission_key: None,
     };
-    let namespace_digest = xid::namespace_digest(&init.environment, NAMESPACE, home);
+    let namespace_digest =
+        dmsg_protocol::agent::account_allocator_digest(&init.environment, NAMESPACE, home);
     let mut allocator = XidGenerator::new(namespace_digest[..5].try_into().expect("fingerprint"));
     let current = month_utc(AT).expect("month");
     let previous = month_utc(AT - 31 * DAY).expect("month");
