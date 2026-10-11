@@ -91,9 +91,14 @@ mod tests {
             assert_ne!(differing, production);
         }
         assert_eq!(
-            content_root_public_key(KeySource::Mainnet, canister, &Environment::Production, "key_1")
-                .unwrap()
-                .len(),
+            content_root_public_key(
+                KeySource::Mainnet,
+                canister,
+                &Environment::Production,
+                "key_1"
+            )
+            .unwrap()
+            .len(),
             96
         );
         assert_eq!(

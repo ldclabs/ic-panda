@@ -10,14 +10,14 @@
 
 ## 获取与文档入口
 
-仓库中的包版本为 `0.2.0`。发布配置以 `Cargo.toml` 为准；启用发布不表示该版本已经上架 crates.io。开发时可使用路径依赖：
+仓库中的包版本为 `0.3.0`。发布配置以 `Cargo.toml` 为准；启用发布不表示该版本已经上架 crates.io。开发时可使用路径依赖：
 
 ```toml
 [dependencies]
 dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 ```
 
-路径相对于调用方的 `Cargo.toml`，按实际 checkout 位置调整。版本正式发布后可使用 `dmsg_types = "0.2"`；如需协议编码与验签，还要引入配套协议库。
+路径相对于调用方的 `Cargo.toml`，按实际 checkout 位置调整。版本正式发布后可使用 `dmsg_types = "0.3"`；如需协议编码与验签，还要引入配套协议库。
 
 - [公开协议与字节规则](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/README_zh.md)：独立语言实现的入口。
 - [声明 CDDL](https://github.com/ldclabs/ic-panda/blob/main/docs/protocol/statements.cddl)：COSE 文档结构。

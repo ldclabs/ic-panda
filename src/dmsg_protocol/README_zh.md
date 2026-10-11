@@ -22,13 +22,13 @@ dmsg_protocol = { path = "../ic-panda/src/dmsg_protocol" }
 
 ```toml
 [dependencies]
-dmsg_types = "0.2"
+dmsg_types = "0.3"
 dmsg_protocol = "0.3"
 ```
 
 正式依赖方向是 **dmsg_protocol → dmsg_types**。仓库中反方向的引用只是开发依赖，用于 dmsg_types 的合同测试和向量生成；仅使用类型的应用不会引入本协议库。使用方直接从 dmsg_types 导入公开 DTO 和错误类型。下文示例还使用 `ed25519-dalek = "3"`，批准示例另外使用 `candid = "0.10"`。
 
-发布配置不表示版本已经上架 crates.io。当前 checkout 中 dmsg_types 为 0.2.0，dmsg_protocol 为 0.3.0；发布顺序见文末说明。
+发布配置不表示版本已经上架 crates.io。当前 checkout 中 dmsg_types 与 dmsg_protocol 均为 0.3.0；发布顺序见文末说明。
 
 ## API 导航
 
@@ -201,7 +201,7 @@ COSE 部署 pin 运行 `cargo run -p dmsg_protocol --features cose-pins --exampl
 
 ## 维护者发布说明
 
-先发布 dmsg_types，再发布 dmsg_protocol。后者的依赖同时指定本地路径与版本 0.2.0；Cargo 在发布包中使用 registry 版本。应让版本约束与公开合同保持一致。
+先发布 dmsg_types，再发布 dmsg_protocol。后者的依赖同时指定本地路径与版本 0.3.0；Cargo 在发布包中使用 registry 版本。应让版本约束与公开合同保持一致。
 
 0.2.0 移除了 0.1.x 中没有生产代码使用的公开项。`finish_cose` 改为 `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`；`ExecuteRequestExt::approval_message` 改为调用 `approval_message`：文档证明用 `ATTEST_APPROVAL_DOMAIN` 和 `attest_approval_command`，根派生用 `DERIVE_APPROVAL_DOMAIN` 和 `derive_approval_command`；`ExecutionResult::output()` 改为匹配 `ExecutionOutcome::Completed`。`dmsg_types::handle::HandleInit` 新增必填字段 `governance`，并以 `environment`、`issuer_namespace` 和只能追加的 `user_homes` 取代 `home_user`，按账户 ID 的分配器指纹路由。新增的 `handle_bucket` 与 `HANDLE_BUCKET_BITS` 规定注册表在何处认证名称。`CoseInit` 以 `user_homes` 取代 `initial_home_user` 并新增 `governance`；`PaymentInit` 以 `environment`、`issuer_namespace` 和 `user_homes` 取代 `home_user`，`PaymentConfiguration` 改列 `user_homes`；`DirectoryInit` 新增 `governance`。新增的 `agent::check_user_home`、`validate_user_homes`、`account_home`、`is_account_home`、`validate_custom_domains` 和 `MAX_USER_HOMES`（64）让各服务使用同一套分配器指纹路由。`MIN_HANDLE_PRICE`（即 7–20 字节名称的 `price`）从 5,000 PANDA 改为 100 PANDA，与旧注册表的现行价格一致。 `ProductRegistration` 以只能追加的 `beneficiary_authorities` 取代 `beneficiary_authority`，`validate_subject` 要求主体的 authority 在列表中；`CommerceInit` 以 `limits: CommerceLimits` 取代 `max_subjects` 与 `daily_orders`。新增 `dmsg_types::integration::LEASE_RENEW_WINDOW_MS`（10 分钟），是 commerce 与 membership 共用的租约续期窗口。`CommerceLimits` 新增 `calls_per_caller`，新增的 `CommerceStats` 报告 commerce 的实时记录数；`PandaServiceConfig` 以只能追加的 `commerce_homes: Vec<CommerceHome>`（每个 user home 的 commerce）取代 `commerce_canister`，并新增 `qualifications_per_minute`。`ExecutionResult` 新增 `cycles_charged`，即返回的管理调用实际消耗的阈值费用，COSE 与 user 的预算都结算到它；新增的 `CoseStats` 报告 COSE 执行器的实时计数。`content_root_context` 构造 vetKD 内容根 context，可选 feature `cose-pins` 提供 `cose_pins::master_key_pin` 与 `cose_pins` 示例，用于离线计算 COSE master key pin。
 

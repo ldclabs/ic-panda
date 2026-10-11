@@ -7,8 +7,9 @@ use ic_cose_types::types::{
         CreateSettingInput, CreateSettingOutput, SettingInfo, SettingPath, UpdateSettingOutput,
         UpdateSettingPayloadInput,
     },
-    PublicKeyOutput, SchnorrAlgorithm,
+    PublicKeyOutput,
 };
+use ic_cdk_management_canister::SchnorrAlgorithm;
 use ic_message_types::{
     profile::{UpdateKVInput, UserInfo},
     NameBlock,

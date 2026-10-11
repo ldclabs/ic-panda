@@ -1,4 +1,4 @@
-/** Product-owned durable bridge session. Compile with dmsg-sdk 0.2.0 and DOM libs. */
+/** Product-owned durable bridge session. Compile with dmsg-sdk 0.3.0 and DOM libs. */
 import { canonical, decodeCanonical, type CheckoutRequest } from "dmsg-sdk";
 import {
   connectDmsg,

@@ -22,13 +22,13 @@ Once both versions are published, the corresponding registry dependencies are:
 
 ```toml
 [dependencies]
-dmsg_types = "0.2"
+dmsg_types = "0.3"
 dmsg_protocol = "0.3"
 ```
 
 The runtime dependency is **dmsg_protocol → dmsg_types**. The reverse reference in the repository is a development dependency used by dmsg_types contract tests and vector generation; applications using only the types do not pull in this protocol crate. Consumers import public DTOs and errors from dmsg_types directly. The examples below also use `ed25519-dalek = "3"` and, for the approval example, `candid = "0.10"`.
 
-Publication settings do not prove a version is already on crates.io. In this checkout dmsg_types is version 0.2.0 and dmsg_protocol 0.3.0; see the release notes below for publication order.
+Publication settings do not prove a version is already on crates.io. In this checkout dmsg_types and dmsg_protocol are both version 0.3.0; see the release notes below for publication order.
 
 ## API guide
 
@@ -201,7 +201,7 @@ For the COSE deployment pin, run `cargo run -p dmsg_protocol --features cose-pin
 
 ## Release notes for maintainers
 
-Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies both a local path and version 0.2.0; Cargo uses the registry version in a published package. Keep that version requirement aligned with the public contracts.
+Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies both a local path and version 0.3.0; Cargo uses the registry version in a published package. Keep that version requirement aligned with the public contracts.
 
 0.2.0 removes 0.1.x public items that no production code used. Replace `finish_cose` with `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`, `ExecuteRequestExt::approval_message` with `approval_message` over `ATTEST_APPROVAL_DOMAIN` and `attest_approval_command` for document attestations or `DERIVE_APPROVAL_DOMAIN` and `derive_approval_command` for root derivations, and `ExecutionResult::output()` with a match on `ExecutionOutcome::Completed`. `dmsg_types::handle::HandleInit` gains the required `governance` field and replaces `home_user` with `environment`, `issuer_namespace` and an append-only `user_homes`, routed by each account ID's allocator fingerprint. The new `handle_bucket` and `HANDLE_BUCKET_BITS` define where the registry certifies a handle. `CoseInit` replaces `initial_home_user` with `user_homes` and gains `governance`; `PaymentInit` replaces `home_user` with `environment`, `issuer_namespace` and `user_homes`, and `PaymentConfiguration` lists `user_homes`; `DirectoryInit` gains `governance`. The new `agent::check_user_home`, `validate_user_homes`, `account_home`, `is_account_home`, `validate_custom_domains` and `MAX_USER_HOMES` (64) give every service the same allocator-fingerprint routing. `MIN_HANDLE_PRICE`, and so `price` for 7–20-byte names, drops from 5,000 to 100 PANDA to match the live legacy registry. `ProductRegistration` replaces `beneficiary_authority` with an append-only `beneficiary_authorities` list, and `validate_subject` requires the subject's authority to be listed; `CommerceInit` replaces `max_subjects` and `daily_orders` with `limits: CommerceLimits`. `dmsg_types::integration::LEASE_RENEW_WINDOW_MS` (10 minutes) is the lease renewal window shared by commerce and membership. `CommerceLimits` gains `calls_per_caller`, and the new `CommerceStats` reports a commerce canister's live counts; `PandaServiceConfig` replaces `commerce_canister` with the append-only `commerce_homes: Vec<CommerceHome>`, the commerce canister of each user home, and gains `qualifications_per_minute`. `ExecutionResult` gains `cycles_charged`, the threshold fee a returned management call consumed, to which COSE and user budgets settle; the new `CoseStats` reports a COSE executor's live counters. `content_root_context` builds the vetKD content-root context, and the optional `cose-pins` feature adds `cose_pins::master_key_pin` and the `cose_pins` example for offline COSE master-key pins.
 

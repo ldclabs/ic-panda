@@ -1,4 +1,4 @@
-# dmsg-sdk 0.2.0
+# dmsg-sdk 0.3.0
 
 A standalone ESM client for dMsg authentication, document/action signing and
 subscription checkout. The package imports no Svelte, extension database,
