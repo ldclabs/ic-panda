@@ -30,6 +30,8 @@ use std::collections::BTreeMap;
 
 /// A home accepts approvals at most five minutes ahead; leave a skew margin.
 const APPROVAL_MS: u64 = 270_000;
+/// A name authorization at most one minute ahead.
+const HANDLE_APPROVAL_MS: u64 = 50_000;
 const JOURNAL: &str = "journal";
 const PAIRING: &str = "dmsg-device-request/2";
 
@@ -255,8 +257,10 @@ pub async fn user_homes(ic: &Ic, handle: Principal, pins: &[Principal]) -> Resul
     Ok(config)
 }
 
-/// Every canister a login delegation must reach: the registry, each user
-/// home and its COSE executor.
+/// Every canister a login delegation must reach: the registry and its
+/// ledger, each user home with its COSE executor, payment, commerce and
+/// membership canisters, and the ledgers those settle on, so the login's
+/// Principal can also pay as the wallet.
 ///
 /// # Errors
 /// Returns `Error::Unavailable` when a query fails and
@@ -264,13 +268,32 @@ pub async fn user_homes(ic: &Ic, handle: Principal, pins: &[Principal]) -> Resul
 pub async fn login_targets(config: &Config) -> Result<Vec<Principal>> {
     let ic = Ic::anonymous(config).await?;
     let homes = user_homes(&ic, config.handle, &config.user_homes).await?;
-    let mut targets = vec![config.handle];
+    let mut targets = vec![config.handle, homes.ledger];
+    let mut add = |canister: Principal| {
+        if !targets.contains(&canister) {
+            targets.push(canister);
+        }
+    };
     for home in homes.user_homes {
         let init: UserInit = ic.query(home, "user_config", ()).await?;
-        for canister in [home, init.home_cose] {
-            if !targets.contains(&canister) {
-                targets.push(canister);
-            }
+        for canister in [
+            home,
+            init.home_cose,
+            init.payment_canister,
+            init.commerce_canister,
+            init.membership_canister,
+        ] {
+            add(canister);
+        }
+        let payment: dmsg_types::payment::PaymentInit = ic
+            .query(init.payment_canister, "payment_config", ())
+            .await?;
+        add(payment.ledger);
+        let assets: Vec<dmsg_types::integration_billing::SettlementAssetView> = ic
+            .query(init.commerce_canister, "settlement_assets", ())
+            .await?;
+        for asset in assets {
+            add(asset.policy.ledger);
         }
     }
     ensure(
@@ -696,6 +719,10 @@ impl Client {
                         .contains(&dmsg_types::user::Capability::RootManage)),
             Error::Forbidden,
         )?;
+        let ttl = match command {
+            AccountCommand::AuthorizeHandle { .. } => HANDLE_APPROVAL_MS,
+            _ => APPROVAL_MS,
+        };
         let (request_id, version) =
             fixed.unwrap_or((Hash::new(random_id()), state.info.account_version));
         ensure(
@@ -711,7 +738,7 @@ impl Client {
                 security_epoch: state.info.security_epoch,
                 sequence: device.next_sequence,
                 request_id,
-                expires_at: now_ms() + APPROVAL_MS,
+                expires_at: now_ms() + ttl,
                 signature: Ed25519Signature::new([0; 64]),
             },
         };

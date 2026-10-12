@@ -1,6 +1,6 @@
 # dmsg-cloud/1 客户端互操作合同
 
-本文件描述客户端使用的 wire 合同与内容映射，不包含服务端实现。客户端实现在 `src/dmsg_client`（`cloud`、`upload`、`sync`、`connect` 模块）；已冻结的扩展 `src/dmsg_app/src/lib/protocol/cloud.ts` 是最初的参照实现。账户和执行证明继续使用现有公开 Rust 类型。
+本文件描述客户端使用的 wire 合同与内容映射，不包含服务端实现。客户端实现在 `src/dmsg_client`（`cloud`、`upload`、`sync`、`connect`、`evidence`、`channel_log`、`channel`、`inbox`、`payment` 模块）；已冻结的扩展 `src/dmsg_app/src/lib/protocol/cloud.ts` 是最初的参照实现。账户和执行证明继续使用现有公开 Rust 类型。
 
 ## 标识和编码
 

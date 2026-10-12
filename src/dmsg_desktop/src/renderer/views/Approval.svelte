@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { t, stateLabel } from '../i18n'
-  import { call, code, when } from '../rpc'
+  import { call, code, units, when } from '../rpc'
 
   let { id }: { id: string } = $props()
   let request = $state<any>(null)
@@ -44,7 +44,17 @@
   <p class="muted">{error || '…'}</p>
 {:else}
   <h1 data-testid="approval-title">
-    {request.type === 'connect' ? d.app_id : request.type === 'attest' ? t('newStatement') : request.type}
+    {request.type === 'connect'
+      ? d.app_id
+      : request.type === 'attest'
+        ? t('newStatement')
+        : request.type === 'checkout'
+          ? t('payPlan')
+          : request.type === 'letter'
+            ? t('payLetter')
+            : request.type === 'handle'
+              ? `${t('names')}: ${d.name}`
+              : request.type}
   </h1>
   <div class="card">
     <dl>
@@ -71,6 +81,46 @@
         <dd class="mono">{d.device_id}{d.this_device ? ` (${t('thisDevice')})` : ''}</dd>
         <dt>{t('capabilities')}</dt>
         <dd>{d.capabilities?.join(', ')}</dd>
+      {/if}
+      {#if request.type === 'checkout'}
+        <dt>{t('plan')}</dt>
+        <dd data-testid="approval-sku">{d.sku} · {d.origin}</dd>
+        <dt>{t('price')}</dt>
+        <dd>${units(d.amount_usd_micros, 6)}</dd>
+        {#if d.terms?.method === 'Cash'}
+          <dt>{t('pay')}</dt>
+          <dd data-testid="approval-amount">
+            {units(d.terms.amount, d.terms.decimals)} {d.terms.asset} + {t('fee')} {units(d.terms.fee_reserve, d.terms.decimals)}
+          </dd>
+          <dt>{t('ledger')}</dt>
+          <dd class="mono">{d.terms.ledger}</dd>
+          <dt>{t('deadline')}</dt>
+          <dd>{when(d.terms.funding_deadline_ms)}</dd>
+        {:else if d.terms}
+          <dt>{t('neuron')}</dt>
+          <dd class="mono">{d.terms.neuron}</dd>
+          <dt>{t('stake')}</dt>
+          <dd data-testid="approval-amount">{units(d.terms.required_stake_e8s, 8)} PANDA</dd>
+          <dt>{t('deadline')}</dt>
+          <dd>{when(d.terms.application_deadline_ms)}</dd>
+        {/if}
+        <dt>{t('payer')}</dt>
+        <dd class="mono">{d.actor}</dd>
+      {/if}
+      {#if request.type === 'letter'}
+        <dt>{t('recipient')}</dt>
+        <dd class="mono" data-testid="approval-recipient">{d.recipient}</dd>
+        <dt>{t('pay')}</dt>
+        <dd data-testid="approval-amount">{d.amount} ({t('baseUnits')})</dd>
+        <dt>{t('ledger')}</dt>
+        <dd class="mono">{d.ledger}</dd>
+      {/if}
+      {#if request.type === 'handle'}
+        <dt>{t('method')}</dt>
+        <dd>{d.action}</dd>
+        {#if d.total}<dt>{t('pay')}</dt><dd data-testid="approval-amount">{units(d.total, 8)} PANDA</dd>{/if}
+        <dt>{t('payer')}</dt>
+        <dd class="mono">{d.caller}</dd>
       {/if}
       {#if request.type === 'device_revoke'}
         <dt>{t('revoke')}</dt>

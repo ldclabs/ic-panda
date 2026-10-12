@@ -65,7 +65,7 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane -- hosted_principal_publishes external_action_authority_signature --test-threads=1 --nocapture
 ```
 
-## 桌面客户端验收（W1–W4b）
+## 桌面客户端验收（W1–W5）
 
 `tests/desktop.rs` 在同一个 PocketIC 部署（与扩展的 `account_fixture` 共用 `tests/support`）和私有中继（workerd）上启动两个 `dmsg daemon`，各用一个 `--home`，配置为 `secure_storage = "file"`，不触碰系统凭据库。测试扮演 dmsg.net 登录页：从 URL fragment 读出请求，用生成的 Ed25519 登录身份签发 delegation 链，再经 daemon 的回调页提交；daemon 没有测试专用路径。
 
@@ -75,6 +75,12 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
 - `desktop_web_connect`（W4a）：注册测试应用 `token-list`（`http://localhost:5173`）后，由无头桥接页（`src/dmsg_connect/scripts/headless.ts`，Node）扮演浏览器。B 邀请、桥接页提交候选，钓鱼页用伪造邀请提交的候选因 MAC 不符被设备排除、无法授予，未经人确认不签发 grant（DT18）；锁定的 A 经提示通道收到无内容提示，开启“后台在线”的 B 只取回密封信封，解锁后才显示来源与载荷（DT26）；页面先取消则批准失败（DT23）；A 离线时创建、B 批准，A 上线后标为“由其他设备处理”（DT22），页面确认后为 `returned`；两台设备同时批准只有一台执行（DT23）；第二个浏览器提交同一操作只产生一个审批，两边收到同一结果（DT31）；桥接页丢失记录后经 `read` 从设备取回快照，未知操作为 `NOT_FOUND`（DT29）；B 在授权后崩溃，重启对账不重复签名（DT24）；撤销 B 后，第二个浏览器（由 A 配对）看到 B 钉定的请求为 `failed` + `DEVICE_REVOKED`（DT30）；B 签发的配对失效，A 签发的仍可用（DT25）。DT19、DT32（中继替换密钥、伪造回复）由 Rust 与桥接页的向量测试覆盖。
 - `desktop_browser_connect`（W4b）：为本次部署构建桥接页（`src/dmsg_connect`，Local 配置内联 PocketIC 网关、根公钥与中继）和测试应用页（`src/dmsg_connect/e2e/app`），由 `scripts/serve.mjs` 按 `.ic-assets.json5` 的响应头与路径别名提供；`scripts/browser.ts` 经 Playwright 在 `DMSG_TEST_BROWSERS`（逗号分隔，默认 `chromium`）中逐个运行：核对 connect-v1 §2.2 的响应头；B 邀请后在浏览器打开配对页，设备看到的标签与浏览器一致，人确认后配对生效；未登记的 origin 握手被拒（DT20）；应用页在点击中打开桥接窗口、完成握手，签署文本声明，桥接窗口给出 `dmsg://connect/request` 链接，Safari（WebKit）先要求在窗口内点击“继续”（§4.1）；B 批准后页面取得结果并确认为 `returned`；关闭桥接窗口后页面调用返回 `DISCONNECTED`（DT27）。DT20 的其余情形（错误 source、opener 关闭或替换）与 DT21（篡改命令、连接与 nonce，nonce 重放与过期）由 `src/dmsg_connect/tests/page.test.ts` 覆盖。
 
+- `desktop_channels`（W5）：A 建频道（第一纪元即生效），邀请前发出文本与 vault 文件；B 接受邀请。纪元激活提交后回复丢失（`EXECUTION_UNKNOWN`），重试按请求 ID 对账后进入纪元 2；B 只读到纪元 2 的消息，纪元 1 由中继跳过，未授权的历史无法读取；A 的新消息经提示通道（WebSocket）由 B 的 daemon 自行读取；A 把纪元 1 的密钥封装给 B 的设备后，B 以 `--backfill` 读到历史并下载、校验附件；所有权在 A、B 之间转移并转回（提议、目标设备接受、原所有者提交），计费转给 B；B 的新设备 C 配对后只经账户的同步内容拿到频道记录与纪元密钥，下一纪元起可读写，中继异步完成计费迁移期间以 `VERSION_CONFLICT` 拒绝的消息用同一消息 ID 重试；C 撤销 B 的旧设备后新纪元排除它；移除 B 后新纪元隔离 B；C 的频道状态在 daemon 重启后保留。
+- `desktop_commerce`（W5）：登记应用 `dmsg`（origin `https://dmsg.net`，计划 D-19），PocketIC 转为实时后重新发布已过期的结算价格。登录身份 42 是有余额的钱包、神经元热键和旧名称 `legacy_probe` 的冻结所有者。ckUSDC 现金结账：商户开单回复丢失、账本转账回复丢失，每次重试先读服务再重发同一字节，钱包只付一次，订单 `Applied`、套餐变为 Plus；已应用订单不能取消（`FORBIDDEN`）。旧名称认领回复丢失，由认证所有者对账完成。另一个账户用同一身份的 PEM 钱包（`wallet use`）以 ckUSDT 付款。PANDA 会员由钱包的神经元担保：受理后处于冷却期（激活要等 65 分钟冷却，本测试不运行）。
+- `desktop_paid_letters`（W5）：收件人设备先经审批取得 `PaymentOffer`，发布付费联系策略，策略提交后回复丢失，重试找到生效的策略而不发布第二版；发件人写信得到中继报价，同一订单再次提交返回原状态；付款经审批中心执行，托管入金的账本回复与中继受理回复先后丢失，每次重试读回已提交的结果，钱包只付一次（扣款为金额加转账手续费），托管为 `SettlementCommitted`；收件人用同步的收件箱密钥读到来信。
+
+W5 用例在 daemon 与 IC 网关、中继之间各放一个原始 TCP 代理（`Proxy`），`lose_next(method, path)` 让下一个匹配请求照常转发、但在回复前断开连接，以制造“已执行、回复丢失”。中继的 `API_ORIGIN` 设为代理的 origin，因为请求证明的 audience 必须等于 `url.origin`。`DMSG_TEST_LOGS=1` 显示 daemon 的 stderr。
+
 ```sh
 make build-dmsg
 cargo build -p dmsg_cli
@@ -82,4 +88,4 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_CLOUD_DIR=/path/to/dmsg-cloud DMSG_WASM_DI
   cargo test -p dmsg_integration --features pocketic-tests --test desktop -- --ignored --nocapture --test-threads=1
 ```
 
-`DMSG_BIN` 可指定 `dmsg` 二进制，默认 `target/debug/dmsg`；release 构建（`cargo build --release -p dmsg_cli`）加解密 100 MiB 更快。中继由私有仓库的 `dmsg-core/scripts/extension-probe-server.mjs` 以 `client: "desktop"` 启动，只允许本次分配的桥接页 origin（`connect_origin`，也是 daemon 的 `connect_url`），按启动参数 `ttl_ms`（桌面用例 20 分钟）自行退出。`desktop_web_connect` 与 `desktop_browser_connect` 还需要 Node 与 `pnpm install`（`src/dmsg_connect` 及其依赖 `dmsg-sdk` 的构建）；后者还需要 Playwright 浏览器（`pnpm --dir src/dmsg_connect exec playwright install chromium webkit firefox`），`DMSG_TEST_CHROME` 可指向已安装的 Chrome for Testing。
+`DMSG_BIN` 可指定 `dmsg` 二进制，默认 `target/debug/dmsg`；release 构建（`cargo build --release -p dmsg_cli`）加解密 100 MiB 更快。中继由私有仓库的 `dmsg-core/scripts/extension-probe-server.mjs` 以 `client: "desktop"` 启动（W5 另传 `api_origin` 与 `paid_contacts`），只允许本次分配的桥接页 origin（`connect_origin`，也是 daemon 的 `connect_url`），按启动参数 `ttl_ms`（桌面用例 20 分钟）自行退出。`desktop_web_connect` 与 `desktop_browser_connect` 还需要 Node 与 `pnpm install`（`src/dmsg_connect` 及其依赖 `dmsg-sdk` 的构建）；后者还需要 Playwright 浏览器（`pnpm --dir src/dmsg_connect exec playwright install chromium webkit firefox`），`DMSG_TEST_CHROME` 可指向已安装的 Chrome for Testing。

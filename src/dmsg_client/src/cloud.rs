@@ -181,15 +181,124 @@ pub fn sign_command<P: Serialize>(
     )
 }
 
-#[derive(Serialize, Deserialize)]
+/// A device command as signed.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-struct SignedCommand<P> {
-    protocol: String,
-    action: String,
-    security_epoch: u64,
-    request_id: String,
-    deadline: u64,
-    payload: P,
+pub struct CommandBody<P> {
+    /// Always [`CLOUD_PROTOCOL`].
+    pub protocol: String,
+    /// The action, such as `dmsg/channel/control/v1`.
+    pub action: String,
+    /// Security epoch of the evidence the device signed with.
+    pub security_epoch: u64,
+    /// Request ID, hex.
+    pub request_id: String,
+    /// Submission deadline in Unix milliseconds.
+    pub deadline: u64,
+    /// The action's payload.
+    pub payload: P,
+}
+
+/// The parts of a tagged COSE_Sign1 command.
+struct Parsed {
+    protected: Vec<u8>,
+    payload: Vec<u8>,
+    signature: Vec<u8>,
+}
+
+fn parse_command(cose: &str) -> Result<Parsed> {
+    let bytes = unb64(cose)?;
+    ensure(
+        bytes.len() <= 262_144 && bytes.first() == Some(&0xd2),
+        Error::IntegrityFailed,
+    )?;
+    let Value::Array(items) = decode_value(&bytes[1..], 262_144)? else {
+        return Err(Error::IntegrityFailed);
+    };
+    let [Value::Bytes(protected), Value::Map(unprotected), Value::Bytes(payload), Value::Bytes(signature)] =
+        items.as_slice()
+    else {
+        return Err(Error::IntegrityFailed);
+    };
+    ensure(unprotected.is_empty(), Error::IntegrityFailed)?;
+    Ok(Parsed {
+        protected: protected.clone(),
+        payload: payload.clone(),
+        signature: signature.clone(),
+    })
+}
+
+/// The issuer and device a command claims, read without trusting them: the
+/// caller finds the device among the issuer's certified devices and then
+/// verifies the command with [`verify_command_body`].
+///
+/// # Errors
+/// A malformed command returns `Error::IntegrityFailed`.
+pub fn command_signer(cose: &str) -> Result<(String, Hash)> {
+    let parsed = parse_command(cose)?;
+    let header = decode_value(&parsed.protected, 4096)?;
+    let field = |key: i64| match &header {
+        Value::Map(entries) => entries
+            .iter()
+            .find(|(k, _)| *k == Value::from(key))
+            .map(|(_, v)| v),
+        _ => None,
+    };
+    let Some(Value::Bytes(kid)) = field(4) else {
+        return Err(Error::IntegrityFailed);
+    };
+    let issuer = match field(15) {
+        Some(Value::Map(claims)) => claims
+            .iter()
+            .find(|(k, _)| *k == Value::from(1))
+            .and_then(|(_, v)| v.as_text())
+            .ok_or(Error::IntegrityFailed)?,
+        _ => return Err(Error::IntegrityFailed),
+    };
+    let kid = Hash::new(
+        kid.as_slice()
+            .try_into()
+            .map_err(|_| Error::IntegrityFailed)?,
+    );
+    // The whole header must be the one this signer would produce.
+    ensure(
+        protected_header(kid.as_slice(), issuer, COMMAND_PROFILE) == parsed.protected,
+        Error::IntegrityFailed,
+    )?;
+    Ok((issuer.to_string(), kid))
+}
+
+/// Verify a command from the device `kid` of `issuer` with its signing key
+/// and return the whole body; `action`, when given, must be the command's.
+/// A historical command stays valid after its deadline; only submission
+/// checks freshness.
+///
+/// # Errors
+/// Another issuer, device or action, or a bad signature returns
+/// `Error::IntegrityFailed`.
+pub fn verify_command_body<P: DeserializeOwned + Serialize>(
+    cose: &str,
+    issuer: &str,
+    kid: &Hash,
+    signing_pub: &Hash,
+    action: Option<&str>,
+) -> Result<CommandBody<P>> {
+    let parsed = parse_command(cose)?;
+    ensure(
+        protected_header(kid.as_slice(), issuer, COMMAND_PROFILE) == parsed.protected,
+        Error::IntegrityFailed,
+    )?;
+    verify(
+        signing_pub,
+        &sig_structure(&parsed.protected, &parsed.payload),
+        &parsed.signature,
+    )?;
+    let body: CommandBody<P> = decode(&parsed.payload, 262_144)?;
+    ensure(
+        body.protocol == CLOUD_PROTOCOL && action.is_none_or(|a| body.action == a),
+        Error::IntegrityFailed,
+    )?;
+    Ok(body)
 }
 
 /// Verify a stored device command of `action` from one of the account's
@@ -218,35 +327,11 @@ pub fn verify_signed_command<P: DeserializeOwned + Serialize>(
     devices: &BTreeMap<Hash, Device>,
     action: &str,
 ) -> Result<(Hash, P)> {
-    let bytes = unb64(cose)?;
-    ensure(
-        bytes.len() <= 262_144 && bytes.first() == Some(&0xd2),
-        Error::IntegrityFailed,
-    )?;
-    let Value::Array(items) = decode_value(&bytes[1..], 262_144)? else {
-        return Err(Error::IntegrityFailed);
-    };
-    let [Value::Bytes(protected), Value::Map(unprotected), Value::Bytes(payload), Value::Bytes(signature)] =
-        items.as_slice()
-    else {
-        return Err(Error::IntegrityFailed);
-    };
-    let kid = devices
-        .keys()
-        .find(|id| protected_header(id.as_slice(), issuer, COMMAND_PROFILE) == *protected)
-        .ok_or(Error::IntegrityFailed)?;
-    ensure(unprotected.is_empty(), Error::IntegrityFailed)?;
-    verify(
-        &devices[kid].input.signing_pub,
-        &sig_structure(protected, payload),
-        signature,
-    )?;
-    let body: SignedCommand<P> = decode(payload, 262_144)?;
-    ensure(
-        body.protocol == CLOUD_PROTOCOL && body.action == action,
-        Error::IntegrityFailed,
-    )?;
-    Ok((*kid, body.payload))
+    let (claimed, kid) = command_signer(cose)?;
+    ensure(claimed == issuer, Error::IntegrityFailed)?;
+    let device = devices.get(&kid).ok_or(Error::IntegrityFailed)?;
+    let body = verify_command_body(cose, issuer, &kid, &device.input.signing_pub, Some(action))?;
+    Ok((kid, body.payload))
 }
 
 /// The `X-Dmsg-Pop` proof over the exact request bytes.
@@ -332,7 +417,7 @@ pub struct Presigned {
 }
 
 #[derive(Serialize)]
-struct CommandBody<'a> {
+struct WireBody<'a> {
     cose_sign1: &'a str,
     #[serde(skip_serializing_if = "Option::is_none")]
     sealed: Option<&'a Bytes>,
@@ -360,6 +445,15 @@ fn relay_error(code: &str, message: &str) -> Error {
         "PENDING" => Error::Pending,
         "LOCKED" => Error::Locked,
         "EXECUTION_UNKNOWN" => Error::ExecutionUnknown,
+        "DEVICE_NOT_APPROVED" => Error::DeviceNotApproved,
+        "FEE_BLOCKED" => Error::FeeBlocked,
+        "TOO_LARGE" => Error::QuotaExceeded,
+        "MEMBERSHIP_STALE" => Error::MembershipStale,
+        "MEMBERSHIP_CLOSING" => Error::MembershipClosing,
+        // The channel waits for a new epoch key before anything is published.
+        "EPOCH_ROTATING" => Error::RekeyRequired,
+        // The channel's head moved since the command was built.
+        "UNVERIFIED_HEAD" => Error::VersionConflict,
         "INVALID_INPUT" => Error::InvalidInput(message.into()),
         _ => Error::Unavailable(format!("relay {code}: {message}")),
     }
@@ -607,7 +701,7 @@ impl Cloud {
         let request_id = hex::encode(**request_id);
         let deadline = signer.deadline(now)?;
         let command = sign_command(signer, action, payload, &request_id, deadline);
-        let body = canonical(&CommandBody {
+        let body = canonical(&WireBody {
             cose_sign1: &command,
             sealed: sealed.map(Bytes::new),
         });
@@ -615,6 +709,70 @@ impl Cloud {
             body.len() <= if sealed.is_some() { MAX_BODY } else { 262_144 },
             Error::QuotaExceeded,
         )?;
+        let pop = sign_http(signer, &url, "POST", &body, &request_id, deadline)?;
+        self.exchange(
+            reqwest::Method::POST,
+            url,
+            Some((body, "application/cbor")),
+            Some(pop),
+            false,
+        )
+        .await?
+        .json()
+    }
+
+    /// Post a command signed earlier, such as one whose exact bytes another
+    /// account approved, with a fresh proof of possession.
+    ///
+    /// # Errors
+    /// Returns `Error::Expired` past the command's deadline; relay errors as
+    /// returned, a lost response is `Error::ExecutionUnknown`.
+    pub async fn post_signed(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        cose: &str,
+        request_id: &str,
+        deadline: u64,
+        now: u64,
+    ) -> Result<Json> {
+        ensure(now < deadline, Error::Expired)?;
+        let url = self.url(path)?;
+        let proof = signer.deadline(now)?.min(deadline);
+        let body = canonical(&WireBody {
+            cose_sign1: cose,
+            sealed: None,
+        });
+        ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
+        let pop = sign_http(signer, &url, "POST", &body, request_id, proof)?;
+        self.exchange(
+            reqwest::Method::POST,
+            url,
+            Some((body, "application/cbor")),
+            Some(pop),
+            false,
+        )
+        .await?
+        .json()
+    }
+
+    /// A POST of a canonical CBOR body that is not a command, such as a
+    /// payment proof, with a proof of possession.
+    ///
+    /// # Errors
+    /// Relay errors as returned; a lost response is `Error::ExecutionUnknown`.
+    pub async fn post_raw<B: Serialize>(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        body: &B,
+        now: u64,
+    ) -> Result<Json> {
+        let url = self.url(path)?;
+        let body = canonical(body);
+        ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
+        let request_id = hex::encode(crate::crypto::random_id());
+        let deadline = signer.deadline(now)?;
         let pop = sign_http(signer, &url, "POST", &body, &request_id, deadline)?;
         self.exchange(
             reqwest::Method::POST,
@@ -648,7 +806,7 @@ impl Cloud {
         let request_id = hex::encode(**request_id);
         let deadline = signer.deadline(now)?;
         let command = sign_command(signer, action, payload, &request_id, deadline);
-        let body = canonical(&CommandBody {
+        let body = canonical(&WireBody {
             cose_sign1: &command,
             sealed: None,
         });

@@ -6,7 +6,11 @@
  * sends it itself. `dmsg://` links only move the view (connect-v1 §8).
  */
 
-/** Methods any window may call; parameters pass through without `human`. */
+/**
+ * Methods any window may call; parameters pass through without `human`.
+ * Methods that name local files (`wallet/use`, `channel/send_file`,
+ * `channel/download`) and refunds to named blocks stay with the CLI.
+ */
 export const WINDOW_METHODS = new Set([
   'app/initialize',
   'daemon/status',
@@ -40,11 +44,57 @@ export const WINDOW_METHODS = new Set([
   'connect/pairings',
   'connect/revoke',
   'connect/sync',
-  'connect/status'
+  'connect/status',
+  'channel/list',
+  'channel/show',
+  'channel/create',
+  'channel/invite',
+  'channel/join',
+  'channel/control',
+  'channel/rotate',
+  'channel/send',
+  'channel/sync',
+  'channel/messages',
+  'channel/pending',
+  'channel/resume',
+  'inbox/policy',
+  'inbox/configure',
+  'inbox/send',
+  'inbox/order',
+  'inbox/outgoing',
+  'inbox/pay',
+  'inbox/escrow',
+  'inbox/refund',
+  'inbox/list',
+  'inbox/mark',
+  'wallet/balance',
+  'plan/catalog',
+  'plan/status',
+  'plan/assets',
+  'plan/quote',
+  'plan/checkout',
+  'plan/advance',
+  'plan/order',
+  'plan/checkouts',
+  'plan/cancel',
+  'plan/reconcile',
+  'handle/resolve',
+  'handle/price',
+  'handle/claim',
+  'handle/register'
 ])
 
 /** Methods whose requests the desktop marks as its own (`source: "gui"`). */
-const GUI_SOURCED = new Set(['attest/request', 'device/formal_approve', 'device/capabilities'])
+const GUI_SOURCED = new Set([
+  'attest/request',
+  'device/formal_approve',
+  'device/capabilities',
+  'inbox/pay',
+  'plan/checkout',
+  'plan/advance',
+  'handle/claim',
+  'handle/register'
+])
 
 /** The parameters a window's call reaches the daemon with. */
 export function windowParams(method: string, params: unknown): Record<string, unknown> {

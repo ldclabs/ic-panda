@@ -3,11 +3,23 @@ import { test } from 'node:test'
 import { externalAllowed, parseLink, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
 
 test('windows never decide or grant, and never send human', () => {
-  for (const method of ['approval/respond', 'connect/grant', 'daemon/stop', 'workspace/reset', 'session/login'])
+  for (const method of [
+    'approval/respond',
+    'connect/grant',
+    'daemon/stop',
+    'workspace/reset',
+    'session/login',
+    'wallet/use',
+    'channel/download',
+    'channel/send_file',
+    'plan/refund'
+  ])
     assert.equal(WINDOW_METHODS.has(method), false, method)
   assert.throws(() => windowParams('approval/respond', { id: 'x', human: true }), /FORBIDDEN/)
   assert.deepEqual(windowParams('vault/list', { trash: true, human: true }), { trash: true })
   assert.deepEqual(windowParams('attest/request', { source: 'cli', statement: {} }), { source: 'gui', statement: {} })
+  for (const method of ['inbox/pay', 'plan/checkout', 'plan/advance', 'handle/claim', 'handle/register'])
+    assert.equal(windowParams(method, { source: 'cli' }).source, 'gui', method)
 })
 
 test('dmsg links only navigate', () => {

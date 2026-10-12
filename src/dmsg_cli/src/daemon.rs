@@ -59,7 +59,7 @@ const CONNECT_POLL_MS: u64 = 30_000;
 const APP_PROTOCOL: &str = "dmsg-app/1";
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 50] = [
+const METHODS: [&str; 51] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -92,6 +92,7 @@ const METHODS: [&str; 50] = [
     "approval/show",
     "approval/respond",
     "approval/cancel",
+    "approval/reconcile",
     "attest/request",
     "attest/history",
     "attest/export",
@@ -221,6 +222,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     })?;
     tokio::spawn(background(daemon.clone()));
     tokio::spawn(crate::hints::run(daemon.clone()));
+    tokio::spawn(crate::channels::run(daemon.clone()));
     let app = Router::new()
         .route("/daemon/status", get(status))
         .route("/app/v1", post(rpc))
@@ -618,6 +620,11 @@ impl Daemon {
                     .await
             }
             "approval/cancel" => self.client.lock().await.approval_cancel(&text("id")?),
+            "approval/reconcile" => {
+                let mut client = self.client.lock().await;
+                client.approvals_reconcile().await?;
+                Ok(Value::Array(client.approvals(false)?))
+            }
             "attest/request" => {
                 let input: StatementInput = serde_json::from_value(params["statement"].clone())
                     .map_err(|e| Error::InvalidInput(format!("statement: {e}")))?;
@@ -728,7 +735,7 @@ impl Daemon {
                 }))
             }
             "hint/status" => Ok(to_json(&self.hints.lock().expect("hint state").clone())),
-            _ => Err(Error::NotFound),
+            _ => self.call_more(method, params).await,
         }
     }
 }
@@ -773,6 +780,7 @@ fn events_of(method: &str) -> &'static [&'static str] {
         "sync/run" => &["sync/changed", "vault/changed"],
         "approval/respond"
         | "approval/cancel"
+        | "approval/reconcile"
         | "attest/request"
         | "device/capabilities"
         | "device/formal_approve"
@@ -780,7 +788,7 @@ fn events_of(method: &str) -> &'static [&'static str] {
         | "connect/sync" => &["approval/changed"],
         "connect/grant" | "connect/revoke" => &["connect/changed"],
         "device/approve" => &["session/changed"],
-        _ => &[],
+        m => crate::methods::events_of(m),
     }
 }
 
@@ -859,7 +867,9 @@ impl Daemon {
         if request.jsonrpc != "2.0" {
             return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32600, "message": "invalid request"}});
         }
-        if !METHODS.contains(&request.method.as_str()) {
+        if !METHODS.contains(&request.method.as_str())
+            && !crate::methods::METHODS.contains(&request.method.as_str())
+        {
             return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32601, "message": "method not found"}});
         }
         if !matches!(

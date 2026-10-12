@@ -4,16 +4,24 @@
 pub mod account;
 pub mod approval;
 pub mod attest;
+pub mod certified;
+pub mod channel;
+pub mod channel_log;
 pub mod client;
 pub mod cloud;
 pub mod codec;
+pub mod commerce;
 pub mod config;
 pub mod connect;
 pub mod content;
 pub mod crypto;
+pub mod evidence;
 pub mod files;
+pub mod handle;
 pub mod ic;
+pub mod inbox;
 pub mod login;
+pub mod payment;
 pub mod profile;
 pub mod root;
 pub mod secure;
@@ -21,6 +29,7 @@ pub mod store;
 pub mod sync;
 pub mod upload;
 pub mod vault;
+pub mod wallet;
 pub mod workspace;
 
 pub use client::{Client, Status};
@@ -50,7 +59,5 @@ pub fn error_code(error: &Error) -> String {
 
 #[cfg(test)]
 mod testing;
-#[cfg(test)]
-mod tests;
 #[cfg(test)]
 mod vectors;

@@ -136,6 +136,11 @@ fn plan_of(record: &EncryptedObject, upload_id: String, generation: u64, now: u6
     }
 }
 
+/// The parent revision of a stored version.
+fn record_parent(row: &ObjectRow) -> Option<String> {
+    record(row).ok().and_then(|r| r.parent)
+}
+
 /// Local versions, parents before the versions that replace them.
 fn ordered(rows: Vec<ObjectRow>) -> Result<Vec<ObjectRow>> {
     let pending: BTreeSet<String> = rows.iter().map(|r| r.revision.clone()).collect();
@@ -488,7 +493,15 @@ impl Client {
         // Anything below changes what was signed, so the old submission must
         // be unable to commit: past its deadline, and not stored.
         let lapsed = job.dispatch.as_ref().is_none_or(|d| d.deadline <= now);
-        if record.generation != generation {
+        let parent_replaced = match &record.parent {
+            Some(parent) => self
+                .workspace
+                .store
+                .object(&format!("{}:{parent}", record.id))?
+                .is_some_and(|p| p.state == REPLACED),
+            None => false,
+        };
+        if record.generation != generation || parent_replaced {
             ensure(lapsed, Error::ExecutionUnknown)?;
             self.roots()?;
             for upload in job.file.iter().chain([&job.vault]) {
@@ -496,9 +509,20 @@ impl Client {
                     self.cancel_upload(&upload.plan.upload_id).await?;
                 }
             }
+            // Of a chain never sent, only its newest version is resealed:
+            // the others are replaced by it.
+            let child = self.workspace.store.objects_in(LOCAL)?.iter().any(|r| {
+                r.item == record.id && record_parent(r).as_deref() == Some(&record.revision)
+            });
+            if child {
+                self.workspace.store.set_object(&row.key, REPLACED, false)?;
+                self.workspace.store.delete_job(&row.key)?;
+                return Ok(true);
+            }
             let file = self.version_file(&record)?;
             let payload = record.open(self.environment(), self.roots()?)?;
-            let (replacement, _) = self.reseal(&row, &record, &payload, file.as_ref())?;
+            let parent = self.sent_ancestor(&record.id, record.parent.clone())?;
+            let (replacement, _) = self.reseal(&row, &record, parent, &payload, file.as_ref())?;
             row = self
                 .workspace
                 .store
@@ -585,8 +609,10 @@ impl Client {
                 }
                 client.workspace.store.set_job(key, &job)
             };
+            let base = self.base()?;
             match self
                 .upload(
+                    &base,
                     &upload.plan,
                     &upload.manifest,
                     upload.sent as usize,
@@ -624,12 +650,25 @@ impl Client {
         }
     }
 
-    /// Reseal a version written under an older root as a new version under
-    /// the current one, with the same payload and parent.
+    /// The nearest ancestor from `parent` on that was sent, skipping
+    /// versions replaced before they were.
+    fn sent_ancestor(&self, item: &str, mut parent: Option<String>) -> Result<Option<String>> {
+        while let Some(revision) = &parent {
+            match self.workspace.store.object(&format!("{item}:{revision}"))? {
+                Some(row) if row.state == REPLACED => parent = record(&row)?.parent,
+                _ => break,
+            }
+        }
+        Ok(parent)
+    }
+
+    /// Reseal a version as a new version under the current root, with the
+    /// same payload and `parent`, its nearest sent ancestor.
     fn reseal(
         &mut self,
         row: &ObjectRow,
         record: &EncryptedObject,
+        parent: Option<String>,
         payload: &[u8],
         file: Option<&FileManifest>,
     ) -> Result<(EncryptedObject, bool)> {
@@ -638,7 +677,7 @@ impl Client {
         self.workspace.store.delete_job(&row.key)?;
         // The replacement takes the replaced version's place as head.
         if head.as_deref() == Some(&record.revision) {
-            match &record.parent {
+            match &parent {
                 Some(parent) => self
                     .workspace
                     .store
@@ -649,7 +688,7 @@ impl Client {
         self.write(
             &record.kind,
             record.id.clone(),
-            record.parent.clone(),
+            parent,
             record.tombstone,
             payload,
             file,

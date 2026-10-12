@@ -4,6 +4,9 @@
   import Approvals from './views/Approvals.svelte'
   import Approval from './views/Approval.svelte'
   import Settings from './views/Settings.svelte'
+  import Channels from './views/Channels.svelte'
+  import Inbox from './views/Inbox.svelte'
+  import Account from './views/Account.svelte'
   import { t, lang } from './i18n'
   import { call } from './rpc'
 
@@ -52,6 +55,9 @@
     <nav>
       <div class="brand">dMsg</div>
       <button class:active={route.startsWith('/vault')} onclick={() => go('/vault')}>{t('vault')}</button>
+      <button class:active={route.startsWith('/channels')} onclick={() => go('/channels')}>{t('channels')}</button>
+      <button class:active={route.startsWith('/inbox')} onclick={() => go('/inbox')}>{t('inbox')}</button>
+      <button class:active={route.startsWith('/account')} onclick={() => go('/account')}>{t('planAndNames')}</button>
       <button class:active={route.startsWith('/approvals')} onclick={() => go('/approvals')}>
         {t('approvals')}
         {#if status?.approvals_waiting}<span class="badge" data-testid="waiting-count">{status.approvals_waiting}</span>{/if}
@@ -62,7 +68,13 @@
       </div>
     </nav>
     <main>
-      {#if route.startsWith('/approvals')}
+      {#if route.startsWith('/channels')}
+        <Channels {status} />
+      {:else if route.startsWith('/inbox')}
+        <Inbox {status} />
+      {:else if route.startsWith('/account')}
+        <Account {status} />
+      {:else if route.startsWith('/approvals')}
         <Approvals {status} />
       {:else if route.startsWith('/settings')}
         <Settings {status} {refresh} browsers={route === '/settings/browsers'} />

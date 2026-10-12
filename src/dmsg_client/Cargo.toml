@@ -19,8 +19,11 @@ ed25519-dalek.workspace = true
 getrandom = { workspace = true, features = ["sys_rng"] }
 hex.workspace = true
 hkdf = "0.13"
+ic-certification.workspace = true
+ic_auth_verifier.workspace = true
 hpke = { version = "0.14", default-features = false, features = ["alloc", "aes", "x25519"] }
 ic-agent.workspace = true
+icrc-ledger-types.workspace = true
 ic-vetkeys.workspace = true
 p256 = { version = "0.14", default-features = false, features = ["ecdsa", "std"] }
 reqwest = { version = "0.13", default-features = false, features = ["rustls"] }

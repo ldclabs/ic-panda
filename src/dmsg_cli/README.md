@@ -63,6 +63,21 @@ dmsg attest history | export <execution> -o <path> | verify <bundle> [--file F]
 dmsg device capabilities <id> --set a,b,c | formal-approve on|off | revoke <id>
 dmsg connect browsers add [--copy-link] | list | revoke <pairing>
 dmsg connect requests | sync
+dmsg channel list | show <id> | create <name> [--type direct|collaboration|distribution]
+dmsg channel invite <id> <account> [--role member|publisher] | accept <invitation>
+dmsg channel members <id> | role <id> <account> <role> | remove <id> <account> | leave <id> | archive <id>
+dmsg channel rotate <id> | reactivate <id> | history <id> <account> <from> <to>
+dmsg channel send <id> [text] [--file <item>] [--message-id M] | read <id> [--after N] [--backfill]
+dmsg channel download <id> <seq> --out <path> | pending <id> [--key K]
+dmsg channel transfer|sponsor propose <id> <account> | accept <packet> | commit <packet>
+dmsg inbox policy | configure closed|contacts|free|paid [--price P] [--payee P] [--allow A]...
+dmsg inbox send <recipient> <text> [--pay] [--invitation I] [--order O] | pay <recipient> <order>
+dmsg inbox order <recipient> <order> | outgoing | escrow <order> | refund <order>
+dmsg inbox list | mark <order> [--archive]
+dmsg wallet use [pem] | balance <ledger>
+dmsg plan catalog | status | quote <sku> <ledger|neuron> [--method cash|panda]
+dmsg plan checkout <id> | advance <id> | order <id> | list | cancel <id> | reconcile <id> | refund <id> [block]...
+dmsg handle resolve <name> | price <name> | claim <name> | register <name>
 ```
 
 `--json` prints one JSON value per line; errors are `{"error": {"code", "message"}}`.
@@ -95,6 +110,23 @@ label, the account and the payload. `attest verify` needs no daemon: it checks
 the signature, the receipt certificate under the configured root, their
 binding, the file when given, and the device's present status.
 
+Channels: `create` makes the first epoch at once; a membership change leaves
+the channel at `rotation_required` until a member with `can_rotate` runs
+`rotate` (the owner's `remove` does it itself). An invited account runs
+`accept` with the JSON `invite` printed, then reads from the next epoch;
+`history` gives it older ones. `read` prints what this device read; while
+unlocked the daemon also reads on the relay's hints. A command whose reply was
+lost is kept in `pending`, and running it again, or `pending --key`, settles it
+under the same request ID.
+
+Payments go through the approval center like signatures: `inbox pay`,
+`plan checkout|advance` and `handle claim|register` only create the request,
+which a person approves at the terminal or in the desktop's approval window,
+seeing the exact amount, ledger and payer. The payer is the login's Principal
+unless `wallet use <pem>` names an identity file; the dMsg account itself
+never holds funds. A paid letter is `inbox send --pay` (a quote), then
+`inbox pay`; a subscription is `plan quote`, then `plan checkout`.
+
 ## Daemon protocol
 
 The daemon listens on `127.0.0.1` only.
@@ -102,7 +134,8 @@ The daemon listens on `127.0.0.1` only.
 - `GET /daemon/status`, `POST /app/v1` (JSON-RPC 2.0) and `GET /ws/app/v1`
   (the same methods over a WebSocket, plus `event` notifications
   `{seq, type, data}`: `session/changed`, `vault/changed`, `sync/changed`,
-  `approval/changed`, `connect/changed`, `connect/hint`, `resync`) need
+  `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
+  `inbox/changed`, `resync`) need
   `Authorization: Bearer <owner token>`; any request with an `Origin` header
   is refused with 401. Errors carry `error.data.code` such as `AUTH_REQUIRED`,
   `LOCKED`, `VERSION_CONFLICT` or `EXECUTION_UNKNOWN`.
@@ -115,6 +148,12 @@ The daemon listens on `127.0.0.1` only.
   `profile/show|publish|resolve`, `approval/list|show|respond|cancel`,
   `attest/request|history|export|verify`,
   `connect/invite|candidates|grant|pairings|revoke|sync|status`,
+  `channel/list|show|create|invite|join|control|rotate|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
+  `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit`,
+  `inbox/policy|configure|send|order|outgoing|pay|escrow|refund|list|mark`,
+  `wallet/use|balance`,
+  `plan/catalog|status|assets|quote|checkout|advance|order|checkouts|cancel|reconcile|refund`,
+  `handle/resolve|price|claim|register`, `approval/reconcile`,
   `hint/status`, `workspace/reset`, `daemon/stop`.
 - `approval/respond` and `connect/grant` require `human: true`, which only
   the desktop approval window and an interactive terminal send; the daemon
@@ -134,3 +173,6 @@ The daemon listens on `127.0.0.1` only.
   mailbox (stored sealed while locked); without the device key the daemon only
   emits `connect/hint` for the desktop to notify. The mailbox is also polled
   every 30 seconds.
+- While unlocked, the daemon keeps one WebSocket per active channel; an
+  `available` hint, a new socket and a closed one each trigger a signed read.
+  A socket's ticket lasts about a minute, so it is renewed every 40 seconds.

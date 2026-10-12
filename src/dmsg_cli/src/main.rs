@@ -1,9 +1,12 @@
 //! `dmsg`: the dMsg command line client. `dmsg daemon` runs the daemon that
 //! holds every key and all state; every other command asks it over loopback.
 
+mod channels;
+mod commands;
 mod daemon;
 mod hints;
 mod home;
+mod methods;
 mod remote;
 mod secure;
 
@@ -96,6 +99,21 @@ enum Command {
     /// Web applications through dmsg-connect/1.
     #[command(subcommand)]
     Connect(ConnectCommand),
+    /// Formal channels: end-to-end encrypted group conversations.
+    #[command(subcommand)]
+    Channel(commands::ChannelCommand),
+    /// The inbox: contact policy and letters, free or paid.
+    #[command(subcommand)]
+    Inbox(commands::InboxCommand),
+    /// The wallet that pays: the login, or an identity PEM file.
+    #[command(subcommand)]
+    Wallet(commands::WalletCommand),
+    /// Plans and membership: catalog, status and checkouts.
+    #[command(subcommand)]
+    Plan(commands::PlanCommand),
+    /// Names: resolve, price, claim and register.
+    #[command(subcommand)]
+    Handle(commands::HandleCommand),
     /// The daemon's address and owner credential, for the desktop app.
     #[command(hide = true)]
     AppToken,
@@ -1082,6 +1100,11 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 )
             });
         }
+        Command::Channel(command) => commands::channel(&remote, json, command).await?,
+        Command::Inbox(command) => commands::inbox(&remote, json, command).await?,
+        Command::Wallet(command) => commands::wallet(&remote, json, command).await?,
+        Command::Plan(command) => commands::plan(&remote, json, command).await?,
+        Command::Handle(command) => commands::handle(&remote, json, command).await?,
         Command::Stop => {
             remote.call("daemon/stop", Value::Null).await?;
             print(json, &json!({"stopped": true}), |_| "stopped".into());

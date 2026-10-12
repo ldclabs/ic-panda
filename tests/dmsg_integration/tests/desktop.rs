@@ -102,11 +102,17 @@ impl Desktop {
 
     fn launch(&self) -> Child {
         let _ = std::fs::remove_file(self.home.join("daemon.json"));
+        // `DMSG_TEST_LOGS=1` shows the daemons' diagnostics.
+        let logs = std::env::var_os("DMSG_TEST_LOGS").is_some();
         Command::new(&self.bin)
             .arg("--home")
             .arg(&self.home)
             .arg("daemon")
-            .stderr(Stdio::null())
+            .stderr(if logs {
+                Stdio::inherit()
+            } else {
+                Stdio::null()
+            })
             .spawn()
             .unwrap()
     }
@@ -423,6 +429,159 @@ impl Drop for Headless {
     }
 }
 
+/// A loopback HTTP/1.1 forwarder in front of the relay or the IC gateway
+/// that can lose a reply: it forwards a matching request and then closes
+/// the connection without answering, as a network failure after the
+/// server committed would. WebSocket upgrades are tunneled as they are.
+struct Proxy {
+    origin: String,
+    /// `(method, path fragment)` of requests whose next reply is lost.
+    rules: std::sync::Arc<std::sync::Mutex<Vec<(String, String)>>>,
+}
+
+impl Proxy {
+    fn start(upstream: &str) -> Self {
+        let upstream = upstream
+            .trim_end_matches('/')
+            .trim_start_matches("http://")
+            .to_string();
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        let rules = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let shared = rules.clone();
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let (upstream, rules) = (upstream.clone(), shared.clone());
+                std::thread::spawn(move || {
+                    let _ = Self::serve(stream, &upstream, &rules);
+                });
+            }
+        });
+        Self { origin, rules }
+    }
+
+    /// Lose the reply to the next `method` request whose path contains `path`.
+    fn lose_next(&self, method: &str, path: &str) {
+        self.rules
+            .lock()
+            .unwrap()
+            .push((method.into(), path.into()));
+    }
+
+    /// Rules not used yet.
+    fn pending(&self) -> usize {
+        self.rules.lock().unwrap().len()
+    }
+
+    /// One request head and body, or `None` at the end of the stream.
+    fn read_message(
+        reader: &mut BufReader<std::net::TcpStream>,
+    ) -> std::io::Result<Option<(String, Vec<u8>)>> {
+        let mut head = String::new();
+        loop {
+            let mut line = String::new();
+            if reader.read_line(&mut line)? == 0 {
+                return Ok(None);
+            }
+            head.push_str(&line);
+            if line == "\r\n" {
+                break;
+            }
+        }
+        let header = |name: &str| {
+            head.lines()
+                .find(|l| l.to_ascii_lowercase().starts_with(&format!("{name}:")))
+                .map(|l| l.split_once(':').unwrap().1.trim().to_ascii_lowercase())
+        };
+        let mut body = Vec::new();
+        if header("transfer-encoding").is_some_and(|v| v.contains("chunked")) {
+            loop {
+                let mut size = String::new();
+                reader.read_line(&mut size)?;
+                body.extend_from_slice(size.as_bytes());
+                let n =
+                    usize::from_str_radix(size.trim().split(';').next().unwrap(), 16).unwrap_or(0);
+                let mut chunk = vec![0; n + 2];
+                reader.read_exact(&mut chunk)?;
+                body.extend_from_slice(&chunk);
+                if n == 0 {
+                    break;
+                }
+            }
+        } else if let Some(length) = header("content-length") {
+            body.resize(length.parse().unwrap_or(0), 0);
+            reader.read_exact(&mut body)?;
+        }
+        Ok(Some((head, body)))
+    }
+
+    /// `Connection: close` in place of any connection header.
+    fn closing(head: &str) -> String {
+        let mut lines: Vec<&str> = head
+            .trim_end()
+            .lines()
+            .filter(|l| !l.to_ascii_lowercase().starts_with("connection:"))
+            .collect();
+        lines.push("Connection: close");
+        format!("{}\r\n\r\n", lines.join("\r\n"))
+    }
+
+    fn serve(
+        client: std::net::TcpStream,
+        upstream: &str,
+        rules: &std::sync::Mutex<Vec<(String, String)>>,
+    ) -> std::io::Result<()> {
+        let mut reader = BufReader::new(client.try_clone()?);
+        let Some((head, body)) = Self::read_message(&mut reader)? else {
+            return Ok(());
+        };
+        let mut server = std::net::TcpStream::connect(upstream)?;
+        if head.to_ascii_lowercase().contains("upgrade: websocket") {
+            server.write_all(head.as_bytes())?;
+            let (mut up_read, mut client_write) = (server.try_clone()?, client.try_clone()?);
+            std::thread::spawn(move || std::io::copy(&mut up_read, &mut client_write));
+            let mut rest = reader.buffer().to_vec();
+            server.write_all(&rest)?;
+            rest.clear();
+            std::io::copy(&mut reader.into_inner(), &mut server)?;
+            return Ok(());
+        }
+        server.write_all(Self::closing(&head).as_bytes())?;
+        server.write_all(&body)?;
+        let mut response = BufReader::new(server);
+        let Some((reply_head, reply_body)) = Self::read_message(&mut response)? else {
+            return Ok(());
+        };
+        let line = head.lines().next().unwrap_or_default();
+        let (method, path) = line.split_once(' ').unwrap_or_default();
+        let lost = {
+            let mut rules = rules.lock().unwrap();
+            let found = rules.iter().position(|(m, p)| {
+                m == method && path.split(' ').next().unwrap_or("").contains(p.as_str())
+            });
+            found.map(|i| rules.remove(i)).is_some()
+        };
+        if lost {
+            // The server committed; the client never hears it.
+            return client.shutdown(std::net::Shutdown::Both);
+        }
+        let mut client = client;
+        client.write_all(Self::closing(&reply_head).as_bytes())?;
+        client.write_all(&reply_body)
+    }
+}
+
+/// What a test environment adds to the plain one.
+#[derive(Default)]
+struct Options {
+    /// Extra `config.toml` text for device B.
+    b_policy: &'static str,
+    /// Put fault-injecting proxies in front of the relay and the IC gateway.
+    proxies: bool,
+    /// Let the relay take paid letters.
+    paid_contacts: bool,
+}
+
 /// One deployment, one relay and two desktops, `a` and `b`.
 struct Env {
     dir: PathBuf,
@@ -435,11 +594,27 @@ struct Env {
     a: Desktop,
     b: Desktop,
     daemons: [usize; 2],
+    /// The daemons' `config.toml`, for more desktops.
+    config: String,
+    /// The proxy in front of the relay, if any.
+    relay_proxy: Option<Proxy>,
+    /// The proxy in front of the IC gateway, if any.
+    ic_proxy: Option<Proxy>,
 }
 
 impl Env {
     /// `b_policy` is extra `config.toml` text for device B.
-    fn start(name: &str, b_policy: &str) -> Self {
+    fn start(name: &str, b_policy: &'static str) -> Self {
+        Self::launch(
+            name,
+            Options {
+                b_policy,
+                ..Options::default()
+            },
+        )
+    }
+
+    fn launch(name: &str, options: Options) -> Self {
         let cloud = PathBuf::from(std::env::var_os("DMSG_CLOUD_DIR").expect("DMSG_CLOUD_DIR"));
         let bin = std::env::var_os("DMSG_BIN")
             .map(PathBuf::from)
@@ -462,6 +637,15 @@ impl Env {
         launch["ttl_ms"] = 1_200_000.into();
         let connect = format!("http://localhost:{}", free_port());
         launch["connect_origin"] = connect.clone().into();
+        launch["paid_contacts"] = options.paid_contacts.into();
+        // The proxy forwards to the relay's port; requests name the proxy.
+        let relay_port = launch["port"].as_u64().unwrap();
+        let relay_proxy = options
+            .proxies
+            .then(|| Proxy::start(&format!("http://127.0.0.1:{relay_port}")));
+        if let Some(proxy) = &relay_proxy {
+            launch["api_origin"] = proxy.origin.clone().into();
+        }
         std::fs::write(dir.join("cloud-launch.json"), launch.to_string()).unwrap();
         children.0.push(
             Command::new("node")
@@ -473,16 +657,23 @@ impl Env {
                 .spawn()
                 .unwrap(),
         );
-        let relay = wait_for(&dir.join("cloud-ready.json"), &mut children)["relay"]
+        let ready = wait_for(&dir.join("cloud-ready.json"), &mut children);
+        let relay = ready["api_origin"]
             .as_str()
+            .or(ready["relay"].as_str())
             .unwrap()
             .to_string();
+        let ic_proxy = options.proxies.then(|| Proxy::start(&deployment.gateway));
+        let ic_host = ic_proxy
+            .as_ref()
+            .map_or(deployment.gateway.trim_end_matches('/').to_string(), |p| {
+                p.origin.clone()
+            });
 
         // The owner credential stays in the home: tests never touch the
         // system credential store.
         let config = format!(
-            "environment = \"local\"\nic_host = \"{}\"\nrelay = \"{relay}\"\nconnect_url = \"{connect}\"\nhandle = \"{}\"\nuser_homes = [\"{}\"]\nroot_key = \"{}\"\nsecure_storage = \"file\"\n",
-            deployment.gateway.trim_end_matches('/'),
+            "environment = \"local\"\nic_host = \"{ic_host}\"\nrelay = \"{relay}\"\nconnect_url = \"{connect}\"\nhandle = \"{}\"\nuser_homes = [\"{}\"]\nroot_key = \"{}\"\nsecure_storage = \"file\"\n",
             deployment.handle,
             deployment.user,
             deployment.root_key_hex,
@@ -496,7 +687,7 @@ impl Env {
                 home,
             }
         };
-        let (a, b) = (desktop("a", ""), desktop("b", b_policy));
+        let (a, b) = (desktop("a", ""), desktop("b", options.b_policy));
         let daemons = [a.spawn(&mut children), b.spawn(&mut children)];
         let http = reqwest::blocking::Client::builder()
             .no_proxy()
@@ -512,7 +703,33 @@ impl Env {
             a,
             b,
             daemons,
+            config,
+            relay_proxy,
+            ic_proxy,
         }
+    }
+
+    /// Another desktop with its own home and running daemon, and the
+    /// daemon's index for [`Self::relaunch`].
+    fn desktop(&mut self, name: &str) -> (Desktop, usize) {
+        let home = self.dir.join(name);
+        std::fs::create_dir_all(&home).unwrap();
+        std::fs::write(home.join("config.toml"), &self.config).unwrap();
+        let desktop = Desktop {
+            bin: self.a.bin.clone(),
+            home,
+        };
+        let index = desktop.spawn(&mut self.children);
+        (desktop, index)
+    }
+
+    /// Kill the daemon at `index` and start `desktop`'s again in its place.
+    fn relaunch(&mut self, desktop: &Desktop, index: usize) {
+        let old = &mut self.children.0[index];
+        let _ = old.kill();
+        let _ = old.wait();
+        self.children.0[index] = desktop.launch();
+        wait_for(&desktop.home.join("daemon.json"), &mut self.children);
     }
 
     /// Build the bridge pages for this deployment and the test application,
@@ -1780,5 +1997,514 @@ fn desktop_browser_connect() {
         );
         let _ = browser.call(json!({"cmd": "quit"}));
     }
+    env.finish();
+}
+
+/// The texts of a channel's messages this device read.
+fn texts(messages: &Value) -> Vec<String> {
+    messages
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["text"].as_str().unwrap().to_string())
+        .collect()
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_channels() {
+    let mut env = Env::launch(
+        "channels",
+        Options {
+            proxies: true,
+            ..Options::default()
+        },
+    );
+    let http = env.http.clone();
+    let (a, b) = (&env.a, &env.b);
+    // Two accounts: A owns the channel, B joins it.
+    assert_eq!(a.login(&http, 41).unwrap()["state"], "no_account");
+    let owner = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(b.login(&http, 60).unwrap()["state"], "no_account");
+    let member = b.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // A channel, its first epoch, a message and a file before the invitation.
+    let created = a.run(&["channel", "create", "Real collaborative channel"]);
+    let id = created["id"].as_str().unwrap().to_string();
+    assert_eq!(created["ledger"]["epoch"], 1);
+    assert_eq!(created["ledger"]["status"], "active");
+    a.run(&["channel", "send", &id, "owner history before invitation"]);
+    let file = env.dir.join("channel-history.bin");
+    std::fs::write(&file, vec![73u8; 1024 * 1024 + 17]).unwrap();
+    let item = a.run(&["file", "import", file.to_str().unwrap()])["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let shared = a.run(&[
+        "channel",
+        "send",
+        &id,
+        "historical attachment",
+        "--file",
+        &item,
+    ]);
+    let attachment = shared["receipt"]["seq"].as_u64().unwrap();
+    let invitation = a.run(&["channel", "invite", &id, &member]);
+    assert_eq!(invitation["account"], member.as_str());
+    let joined = b.run(&["channel", "accept", &invitation.to_string()]);
+    assert_eq!(joined["status"], "rotation_required");
+    assert_eq!(joined["members"][&member]["joined_epoch"], 2);
+
+    // The epoch activation commits but its reply is lost: the retry
+    // settles it by request ID, and the second rotation opens epoch 2.
+    let relay_proxy = env.relay_proxy.as_ref().unwrap();
+    relay_proxy.lose_next("POST", "/rotation/activate");
+    assert_eq!(a.fail(&["channel", "rotate", &id]), "EXECUTION_UNKNOWN");
+    assert_eq!(relay_proxy.pending(), 0);
+    let rotated = a.run(&["channel", "rotate", &id]);
+    assert_eq!(rotated["ledger"]["epoch"], 2);
+    assert_eq!(rotated["readable_epochs"], json!([1, 2]));
+
+    // B reads from epoch 2 only: epoch-1 messages are skipped by the relay.
+    assert_eq!(
+        texts(&b.run(&["channel", "read", &id])),
+        Vec::<String>::new()
+    );
+    assert_eq!(b.run(&["channel", "show", &id])["message_cursor"], 2);
+    let out = env.dir.join("attachment-early.bin");
+    assert_eq!(
+        b.fail(&[
+            "channel",
+            "download",
+            &id,
+            &attachment.to_string(),
+            "-o",
+            out.to_str().unwrap()
+        ]),
+        "NOT_FOUND"
+    );
+    a.run(&["channel", "send", &id, "new shared epoch message"]);
+    // The hint socket lets B's daemon read it without being asked.
+    let seen = eventually(60, || {
+        let messages = b.rpc(&http, "channel/messages", json!({"id": id})).unwrap();
+        (!texts(&messages).is_empty()).then_some(messages)
+    });
+    assert_eq!(texts(&seen), ["new shared epoch message"]);
+    b.run(&["channel", "send", &id, "member reply"]);
+    assert!(texts(&a.run(&["channel", "read", &id])).contains(&"member reply".to_string()));
+
+    // History: A seals epoch 1 to B's devices; B reads it again.
+    let granted = a.run(&["channel", "history", &id, &member, "1", "1"]);
+    assert_eq!(granted["members"][&member]["history"], json!([[1, 1]]));
+    let backfilled = b.run(&["channel", "read", &id, "--backfill"]);
+    assert!(texts(&backfilled).contains(&"owner history before invitation".to_string()));
+    let out = env.dir.join("attachment.bin");
+    let downloaded = b.run(&[
+        "channel",
+        "download",
+        &id,
+        &attachment.to_string(),
+        "-o",
+        out.to_str().unwrap(),
+    ]);
+    assert_eq!(downloaded["size"], 1024 * 1024 + 17);
+    assert_eq!(std::fs::read(&out).unwrap(), vec![73u8; 1024 * 1024 + 17]);
+
+    // Ownership moves to B and back: proposed, accepted by the target
+    // device, committed by the owner.
+    let proposal = a.run(&["channel", "transfer", "propose", &id, &member]);
+    let accepted = b.run(&["channel", "transfer", "accept", &proposal.to_string()]);
+    let moved = a.run(&["channel", "transfer", "commit", &accepted.to_string()]);
+    assert_eq!(moved["owner"], member.as_str());
+    let back = b.run(&["channel", "transfer", "propose", &id, &owner]);
+    let accepted = a.run(&["channel", "transfer", "accept", &back.to_string()]);
+    let returned = b.run(&["channel", "transfer", "commit", &accepted.to_string()]);
+    assert_eq!(returned["owner"], owner.as_str());
+
+    // B pays for the channel from now on.
+    let proposal = a.run(&["channel", "sponsor", "propose", &id, &member]);
+    let accepted = b.run(&["channel", "sponsor", "accept", &proposal.to_string()]);
+    let billing = a.run(&["channel", "sponsor", "commit", &accepted.to_string()]);
+    assert_eq!(billing["billing_account"], member.as_str());
+
+    // B's new device C joins B's account; the synced channel record and the
+    // next epoch's envelope let it read and write.
+    let (c, c_daemon) = env.desktop("c");
+    let (a, b) = (&env.a, &env.b);
+    assert_eq!(c.login(&http, 60).unwrap()["state"], "pairing_required");
+    let request = c.run(&["device", "pair-request"]);
+    b.run(&[
+        "device",
+        "approve",
+        request["token"].as_str().unwrap(),
+        "--device",
+        request["device_id"].as_str().unwrap(),
+    ]);
+    assert_eq!(c.run(&["unlock"])["state"], "unlocked");
+    // No backups: B's channel record, epoch keys included, reaches C
+    // through the account's synced content.
+    b.run(&["sync"]);
+    c.run(&["sync"]);
+    let listed = c.run(&["channel", "list"]);
+    assert_eq!(listed[0]["id"], id.as_str());
+    let added = a.run(&["channel", "rotate", &id]);
+    assert_eq!(added["ledger"]["epoch"], 3);
+    // The relay finishes moving the billing in the background; until then
+    // it refuses new messages with VERSION_CONFLICT.
+    eventually(60, || {
+        let output = c
+            .command(&[
+                "channel",
+                "send",
+                &id,
+                "new approved device",
+                "--message-id",
+                &"5".repeat(64),
+            ])
+            .output()
+            .unwrap();
+        output.status.success().then_some(())
+    });
+
+    // C revokes B's first device; the next epoch excludes it.
+    let b_device = b.run(&["status"])["device_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let revoke = c.run(&["device", "revoke", &b_device]);
+    assert_eq!(c.decide(&http, &revoke, true).unwrap()["state"], "done");
+    let excluded = a.run(&["channel", "rotate", &id]);
+    assert_eq!(excluded["ledger"]["epoch"], 4);
+    assert_ne!(
+        b.fail(&["channel", "send", &id, "revoked device cannot send"]),
+        ""
+    );
+    c.run(&["channel", "read", &id]);
+
+    // Removing B: the relay refuses it at once, a new epoch isolates it.
+    a.run(&["channel", "remove", &id, &member]);
+    let removed = a.run(&["channel", "rotate", &id]);
+    assert_eq!(removed["ledger"]["epoch"], 5);
+    assert!(removed["ledger"]["members"].get(&member).is_none());
+    assert_ne!(
+        c.fail(&["channel", "send", &id, "removed member cannot send"]),
+        ""
+    );
+
+    // C's channel state stays on the device across a restart.
+    env.relaunch(&c, c_daemon);
+    assert_eq!(c.login(&http, 60).unwrap()["state"], "unlocked");
+    let offline = c.rpc(&http, "channel/messages", json!({"id": id})).unwrap();
+    assert!(texts(&offline).contains(&"new approved device".to_string()));
+    env.finish();
+}
+
+/// A PKCS#8 PEM of the Ed25519 seed `[seed; 32]`, as identity files hold it.
+fn ed25519_pem(seed: u8) -> String {
+    let mut der = hex::decode("302e020100300506032b657004220420").unwrap();
+    der.extend([seed; 32]);
+    use base64::engine::general_purpose::STANDARD;
+    format!(
+        "-----BEGIN PRIVATE KEY-----\n{}\n-----END PRIVATE KEY-----\n",
+        STANDARD.encode(der)
+    )
+}
+
+/// A balance as `wallet balance` reports it.
+fn balance(desktop: &Desktop, ledger: &Principal) -> u128 {
+    desktop.run(&["wallet", "balance", &ledger.to_text()])["balance"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap()
+}
+
+/// An approval request's state.
+fn approval_state(desktop: &Desktop, request: &Value) -> String {
+    desktop.run(&["approvals", "show", request["id"].as_str().unwrap()])["state"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_commerce() {
+    use dmsg_types::integration::{AppCapability, AppRegistration};
+    let mut env = Env::launch(
+        "commerce",
+        Options {
+            proxies: true,
+            ..Options::default()
+        },
+    );
+    let http = env.http.clone();
+    let d = &env.deployment;
+    // dMsg's own checkouts carry the origin https://dmsg.net (plan D-19).
+    d.register_app(&AppRegistration {
+        version: 1,
+        environment: dmsg_types::Environment::Local,
+        app_id: "dmsg".into(),
+        config_version: 1,
+        origins: vec!["https://dmsg.net".into()],
+        product_ids: vec!["dmsg".into()],
+        capabilities: vec![AppCapability::Checkout],
+        profiles: vec![],
+        authentication_receiver: d.user,
+        action_authority: d.user,
+        action_schema: None,
+        paused: false,
+    });
+    let (commerce, handle, ledger, ledger_usdt) = (d.commerce, d.handle, d.ledger, d.ledger_usdt);
+    // The prices registered at deployment lapsed when PocketIC went live.
+    for asset in [ledger, ledger_usdt] {
+        let reply =
+            d.ic.update_call(
+                commerce,
+                d.peer,
+                "publish_settlement_price",
+                candid::encode_args((asset, 1_000_000u128, 30 * dmsg_types::MINUTE)).unwrap(),
+            )
+            .unwrap();
+        candid::decode_one::<dmsg_types::Result<dmsg_types::integration_billing::SettlementAsset>>(
+            &reply,
+        )
+        .unwrap()
+        .unwrap();
+    }
+    let lose_ledger_reply = |ledger: Principal| {
+        d.ic.update_call(
+            ledger,
+            d.peer,
+            "lose_next_response",
+            candid::encode_args(()).unwrap(),
+        )
+        .unwrap();
+    };
+    let ic_proxy = env.ic_proxy.as_ref().unwrap();
+    let a = &env.a;
+    // The login 42 is the funded wallet, the neuron's hotkey and the
+    // legacy owner of `legacy_probe`.
+    assert_eq!(a.login(&http, 42).unwrap()["state"], "no_account");
+    let account = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let enable = a.run(&["device", "formal-approve", "on"]);
+    assert_eq!(a.decide(&http, &enable, true).unwrap()["state"], "done");
+    assert_eq!(a.run(&["plan", "status"])["plan"], "Free");
+
+    // Cash on ckUSDC. The merchant's reply to opening the order is lost,
+    // then the ledger's reply to the funding transfer: each retry reads the
+    // service and resends the same bytes, and the wallet pays once.
+    let quote = a.run(&["plan", "quote", "plus", &ledger.to_text()]);
+    let id = quote["id"].as_str().unwrap().to_string();
+    assert_eq!(quote["terms"]["method"], "Cash");
+    assert_eq!(quote["terms"]["asset"], "CkUsdc");
+    let before = balance(a, &ledger);
+    ic_proxy.lose_next("POST", &format!("/canister/{commerce}/call"));
+    let request = a.run(&["plan", "checkout", &id]);
+    assert_eq!(request["type"], "checkout");
+    assert_eq!(
+        request["detail"]["terms"]["amount"],
+        quote["terms"]["amount"]
+    );
+    assert_eq!(
+        a.decide(&http, &request, true),
+        Err("EXECUTION_UNKNOWN".into())
+    );
+    assert_eq!(ic_proxy.pending(), 0);
+    assert_eq!(a.run(&["plan", "order", &id])["status"], "AwaitingFunding");
+    lose_ledger_reply(ledger);
+    a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
+    assert_eq!(approval_state(a, &request), "unknown");
+    a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
+    assert_eq!(approval_state(a, &request), "done");
+    assert_eq!(a.run(&["plan", "order", &id])["status"], "Applied");
+    let charged = before - balance(a, &ledger);
+    let terms = &quote["terms"];
+    let number = |v: &Value| v.as_str().unwrap().parse::<u128>().unwrap();
+    assert_eq!(
+        charged,
+        number(&terms["amount"]) + number(&terms["fee_reserve"]) + number(&terms["network_fee"])
+    );
+    assert_eq!(a.run(&["plan", "status"])["plan"], "Plus");
+    // An applied order cannot be cancelled into a refund.
+    assert_eq!(a.fail(&["plan", "cancel", &id]), "FORBIDDEN");
+    assert_eq!(a.run(&["plan", "order", &id])["status"], "Applied");
+
+    // The legacy owner claims its name; the registry's reply is lost and
+    // the certified owner settles it.
+    ic_proxy.lose_next("POST", &format!("/canister/{handle}/call"));
+    let request = a.run(&["handle", "claim", "legacy_probe"]);
+    assert_eq!(request["type"], "handle");
+    assert_eq!(
+        a.decide(&http, &request, true),
+        Err("EXECUTION_UNKNOWN".into())
+    );
+    a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
+    assert_eq!(approval_state(a, &request), "done");
+    assert_eq!(
+        a.run(&["handle", "resolve", "legacy_probe"])["account"],
+        account.as_str()
+    );
+
+    // Another account pays for its plan on ckUSDT with the same funded
+    // identity, as a wallet file.
+    let pem = env.dir.join("wallet.pem");
+    std::fs::write(&pem, ed25519_pem(42)).unwrap();
+    let pem = pem.to_str().unwrap().to_string();
+    let b = &env.b;
+    assert_eq!(b.login(&http, 62).unwrap()["state"], "no_account");
+    b.run(&["account", "create"]);
+    let enable = b.run(&["device", "formal-approve", "on"]);
+    assert_eq!(b.decide(&http, &enable, true).unwrap()["state"], "done");
+    let wallet = b.run(&["wallet", "use", &pem]);
+    assert_eq!(wallet["source"], "pem");
+    let quote = b.run(&["plan", "quote", "plus", &ledger_usdt.to_text()]);
+    assert_eq!(quote["terms"]["asset"], "CkUsdt");
+    let request = b.run(&["plan", "checkout", quote["id"].as_str().unwrap()]);
+    assert_eq!(b.decide(&http, &request, true).unwrap()["state"], "done");
+    assert_eq!(
+        b.run(&["plan", "order", quote["id"].as_str().unwrap()])["status"],
+        "Applied"
+    );
+
+    // A PANDA membership backed by the wallet's neuron: accepted and
+    // cooling down (activation follows the 65-minute cooling period).
+    let (c, _) = env.desktop("c");
+    assert_eq!(c.login(&http, 61).unwrap()["state"], "no_account");
+    c.run(&["account", "create"]);
+    let enable = c.run(&["device", "formal-approve", "on"]);
+    assert_eq!(c.decide(&http, &enable, true).unwrap()["state"], "done");
+    c.run(&["wallet", "use", &pem]);
+    let quote = c.run(&[
+        "plan",
+        "quote",
+        "plus",
+        "--method",
+        "panda",
+        &"4d".repeat(32),
+    ]);
+    assert_eq!(quote["terms"]["method"], "Panda");
+    let request = c.run(&["plan", "checkout", quote["id"].as_str().unwrap()]);
+    assert_eq!(c.decide(&http, &request, true).unwrap()["state"], "done");
+    let order = c.run(&["plan", "order", quote["id"].as_str().unwrap()]);
+    assert_eq!(order["status"], "CoolingDown");
+    assert_eq!(order["eligibility"], "Eligible");
+    assert_eq!(order["neuron"], "4d".repeat(32));
+    env.finish();
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_paid_letters() {
+    let env = Env::launch(
+        "letters",
+        Options {
+            proxies: true,
+            paid_contacts: true,
+            ..Options::default()
+        },
+    );
+    let http = env.http.clone();
+    let d = &env.deployment;
+    let relay_proxy = env.relay_proxy.as_ref().unwrap();
+    let (a, b) = (&env.a, &env.b);
+
+    // The recipient charges strangers for a letter. Signing the payment
+    // offer needs PaymentOffer on this device, an account change.
+    assert_eq!(b.login(&http, 62).unwrap()["state"], "no_account");
+    let recipient = b.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let device = b.run(&["status"])["device_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let request = b.run(&[
+        "device",
+        "capabilities",
+        &device,
+        "--set",
+        "content_sign,vault_unlock,root_manage,payment_offer",
+    ]);
+    assert_eq!(b.decide(&http, &request, true).unwrap()["state"], "done");
+    // The policy commits but its reply is lost: the retry finds the policy
+    // in force and does not publish a second version.
+    relay_proxy.lose_next("POST", "/policy");
+    assert_eq!(
+        b.fail(&["inbox", "configure", "paid", "--price", "1000000"]),
+        "EXECUTION_UNKNOWN"
+    );
+    let policy = b.run(&["inbox", "configure", "paid", "--price", "1000000"]);
+    assert_eq!(policy["version"], 1);
+    assert_eq!(policy["mode"], "paid");
+
+    // The sender writes; the relay quotes. The same order again returns
+    // where it stands.
+    assert_eq!(a.login(&http, 42).unwrap()["state"], "no_account");
+    let sender = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let order = a.run(&["inbox", "send", &recipient, "Private paid contact", "--pay"]);
+    assert_eq!(order["state"], "quoted");
+    let order_id = order["order_id"].as_str().unwrap().to_string();
+    let resumed = a.run(&[
+        "inbox",
+        "send",
+        &recipient,
+        "Private paid contact",
+        "--pay",
+        "--order",
+        &order_id,
+    ]);
+    assert_eq!(resumed["order_id"], order["order_id"]);
+    assert_eq!(resumed["ciphertext"], order["ciphertext"]);
+
+    // Paying: the ledger's reply to the escrow funding is lost, then the
+    // relay's reply to the admission. Each retry reads back what committed;
+    // the wallet pays once and the escrow settles.
+    let before = balance(a, &d.ledger);
+    d.ic.update_call(
+        d.ledger,
+        d.peer,
+        "lose_next_response",
+        candid::encode_args(()).unwrap(),
+    )
+    .unwrap();
+    relay_proxy.lose_next("POST", "/admit");
+    let request = a.run(&["inbox", "pay", &recipient, &order_id]);
+    assert_eq!(request["type"], "letter");
+    assert_eq!(request["detail"]["amount"], order["quote"]["amount"]);
+    assert_eq!(
+        a.decide(&http, &request, true),
+        Err("EXECUTION_UNKNOWN".into())
+    );
+    a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
+    assert_eq!(approval_state(a, &request), "unknown");
+    assert_eq!(relay_proxy.pending(), 0);
+    a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
+    assert_eq!(approval_state(a, &request), "done");
+    let status = a.run(&["inbox", "order", &recipient, &order_id]);
+    assert_eq!(status["state"], "visible");
+    let escrow = a.run(&["inbox", "escrow", &order_id]);
+    assert_eq!(escrow["escrow"]["decision"], "SettlementCommitted");
+    let amount: u128 = order["quote"]["amount"].as_str().unwrap().parse().unwrap();
+    assert_eq!(before - balance(a, &d.ledger), amount + 10);
+
+    // The recipient opens it with the synced inbox key.
+    let letters = b.run(&["inbox", "list"]);
+    assert_eq!(letters[0]["text"], "Private paid contact");
+    assert_eq!(letters[0]["state"], "visible");
+    assert_eq!(letters[0]["sender"], sender.as_str());
     env.finish();
 }

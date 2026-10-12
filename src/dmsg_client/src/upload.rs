@@ -1,5 +1,5 @@
-//! Account uploads: a signed plan, ciphertext chunks, an encrypted manifest
-//! and a finalize command. A retry reuses the stored plan and resumes after
+//! Uploads of an account or a channel: a signed plan, ciphertext chunks, a
+//! manifest and a finalize command. A retry reuses the stored plan and resumes after
 //! the chunks already stored; an upload the relay already holds under the
 //! same ID must carry the same plan.
 
@@ -86,10 +86,11 @@ pub fn hex_id(text: &str) -> Result<Hash> {
 }
 
 impl Client {
-    /// Upload `plan`: its chunks come from the store by digest, starting
-    /// after the `sent` already stored, then `manifest`, then finalize.
-    /// `progress` records each stored chunk; an upload the relay already
-    /// committed under this plan returns at once.
+    /// Upload `plan` under `base` (`/v1/accounts/<id>` or
+    /// `/v1/channels/<id>`): its chunks come from the store by digest,
+    /// starting after the `sent` already stored, then `manifest`, then
+    /// finalize. `progress` records each stored chunk; an upload the relay
+    /// already committed under this plan returns at once.
     ///
     /// # Errors
     /// A different plan under the same ID returns `Error::IdempotencyConflict`;
@@ -97,12 +98,12 @@ impl Client {
     /// the caller replans it under a new ID.
     pub(crate) async fn upload(
         &mut self,
+        base: &str,
         plan: &UploadPlan,
         manifest: &[u8],
         mut sent: usize,
         mut progress: impl FnMut(&Self, usize) -> Result<()>,
     ) -> Result<()> {
-        let base = self.base()?;
         let path = format!("{base}/uploads/{}", plan.upload_id);
         let previous: Option<UploadStatus> = self
             .relay_find(&path)

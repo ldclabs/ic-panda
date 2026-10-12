@@ -1,7 +1,8 @@
 // Electron smoke test: the built app against a mock daemon, in a temporary
 // profile. Checks the main window, the approval window opened by a dmsg://
 // link, that only the approval window decides, and that it decides what it
-// showed. Run with `pnpm test:e2e`.
+// showed, and that the channel, inbox and plan views reach the daemon with
+// payments only as approval requests. Run with `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { createServer } from 'node:http'
@@ -47,6 +48,28 @@ const request = {
     }
   }
 }
+const peer = '0123456789abcdefghi0'
+const channel = {
+  id: '33'.repeat(32),
+  name: 'Smoke channel',
+  genesis: '44'.repeat(32),
+  ledger: {
+    channel_id: '33'.repeat(32),
+    type: 'collaboration',
+    owner: account,
+    epoch: 1,
+    status: 'active',
+    members: {
+      [account]: { account, role: 'owner', joined_epoch: 1, can_rotate: true, history: [] },
+      [peer]: { account: peer, role: 'member', joined_epoch: 1, can_rotate: false, history: [] }
+    }
+  },
+  message_cursor: 1,
+  readable_epochs: [1]
+}
+const messages = [{ seq: 1, account: peer, device: '55'.repeat(32), message_id: '66'.repeat(32), epoch: 1, created_at: Date.now(), stored_at: Date.now(), text: 'Hello channel', file: null }]
+const ledger = 'ryjl3-tyaaa-aaaaa-aaaba-cai'
+const checkouts = []
 const calls = []
 const requests = new Map([[request.id, request]])
 let sockets = []
@@ -95,7 +118,58 @@ const methods = {
   },
   'account/show': () => ({ devices: [{ current: true, capabilities: ['ContentSign', 'FormalApprove'] }] }),
   'connect/pairings': () => [],
-  'connect/sync': () => ({ fetched: 0 })
+  'connect/sync': () => ({ fetched: 0 }),
+  'channel/list': () => [channel],
+  'channel/show': () => channel,
+  'channel/messages': () => messages,
+  'channel/send': (p) => {
+    messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text })
+    return { seq: messages.length }
+  },
+  'inbox/list': () => [
+    { order_id: '77'.repeat(32), sender: peer, state: 'visible', text: 'A paid letter', created_at: Date.now(), read: false, archived: false }
+  ],
+  'inbox/outgoing': () => [],
+  'inbox/policy': () => ({ mode: 'paid', version: 1 }),
+  'plan/status': () => ({ plan: 'Free', storage_bytes: 1_000_000_000 }),
+  'plan/catalog': () => ({
+    version: 1,
+    plans: [
+      { plan: 'Free', price_cents: 0, storage_bytes: 1_000_000_000 },
+      { plan: 'Plus', price_cents: 500, storage_bytes: 50_000_000_000 }
+    ]
+  }),
+  'plan/assets': () => [{ ledger, asset: 'Icp', decimals: 8, network_fee: '10000' }],
+  'plan/checkouts': () => checkouts,
+  'plan/quote': (p) => {
+    assert.deepEqual(p, { sku: 'plus', method: 'cash', selection: ledger })
+    const job = {
+      id: '88'.repeat(32),
+      actor: 'aaaaa-aa',
+      origin: 'https://dmsg.net',
+      sku: 'plus',
+      amount_usd_micros: '5000000',
+      terms: { method: 'Cash', ledger, asset: 'Icp', amount: '500000000', fee_reserve: '20000', decimals: 8, funding_deadline_ms: Date.now() + 600_000 },
+      stage: 'review'
+    }
+    checkouts.push(job)
+    return job
+  },
+  'plan/checkout': (p) => {
+    assert.equal(p.source, 'gui')
+    const created = {
+      ...request,
+      id: '98'.repeat(32),
+      source: 'gui',
+      state: 'awaiting_user',
+      type: 'checkout',
+      kind: 'payment',
+      digest: '97'.repeat(32),
+      detail: { ...checkouts.find((c) => c.id === p.id), fresh: false }
+    }
+    requests.set(created.id, created)
+    return created
+  }
 }
 const server = createServer((_req, res) => res.writeHead(404).end())
 const wss = new WebSocketServer({ noServer: true })
@@ -172,6 +246,31 @@ try {
   await approval.waitForSelector('text=Signed from the desktop', { timeout: 20_000 })
   const created = calls.find((c) => c.method === 'attest/request')
   assert.equal(created.params.source, 'gui')
+
+  // Channels read and write through the daemon.
+  await main.click('nav >> text=/Channels|频道/')
+  await main.click('text=Smoke channel')
+  await main.waitForSelector('text=Hello channel')
+  await main.fill('[data-testid="channel-text"]', 'Reply from the desktop')
+  await main.click('button:has-text("Send"), button:has-text("发送")')
+  await main.waitForSelector('text=Reply from the desktop')
+  await main.screenshot({ path: join(shots, 'channels.png') })
+
+  await main.click('nav >> text=/Inbox|收件箱/')
+  await main.waitForSelector('text=A paid letter')
+  await main.screenshot({ path: join(shots, 'inbox.png') })
+
+  // A subscription is quoted, then paid only once the approval window agrees.
+  await main.click('nav >> text=/Plan & names|会员与名称/')
+  await main.waitForSelector('[data-testid="plan-name"]')
+  assert.equal(await main.textContent('[data-testid="plan-name"]'), 'Free')
+  await main.click('button:has-text("Subscribe"), button:has-text("订阅")')
+  await approval.waitForSelector('[data-testid="approval-sku"]', { timeout: 20_000 })
+  assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('5 Icp'))
+  await approval.waitForSelector('[data-testid="approve"]')
+  await approval.screenshot({ path: join(shots, 'checkout.png') })
+  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
+  await main.screenshot({ path: join(shots, 'account.png') })
   console.log('desktop smoke test passed')
 } finally {
   await app.close()

@@ -29,6 +29,15 @@ keys. The daemon in `src/dmsg_cli` owns one instance.
 | [`attest`] | Formal statements (text, digest, file) and application actions signed by this device, journaled before they are sent, reconciled by execution ID; portable bundles and their independent verification |
 | [`connect`] | dmsg-connect/1 on the device: browser pairing, the relay mailbox, the checks of §6.3, authorization by compare-and-swap, replies sealed with HPKE in auth mode, extra delivery channels, `read`/`open` answers, the hint token |
 | [`login`] | dmsg-login/1 on the client side: the session key, the login page URL and the callback check |
+| [`evidence`] | Commands of other accounts as the relay stored them: the certified security evidence checked at the relay's acceptance time, the signing device and its signature |
+| [`certified`] | Certified query answers: the certificate under the trusted root, its time, the canister's certified data, and one path proven present or absent |
+| [`channel_log`] | The formal channel's control contract: genesis, members, roles, invitations, history grants and epochs, replayed independently of the relay |
+| [`channel`] | Formal channels: the synced keyring, the verified control log, epoch rotation by a leased coordinator, messages and attachments, history grants, owner and sponsor transfers, reactivation, and journals reconciled by request ID |
+| [`inbox`] | The contact policy and its synced inbox key, sealed letters, the paid-letter quote, escrow, admission and refund, and the recipient's letters checked against the sender's evidence |
+| [`payment`] | The `dmsg_payment` escrow: certified terms and escrows, funding checks, decisions, payouts and refunds |
+| [`wallet`] | ICRC transfers and approvals by the login's Principal or a PEM wallet, journaled before they are sent; a lost reply resends the same bytes |
+| [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription |
+| [`handle`] | Names: certified resolution, legacy claims and registrations as account-authorized intents |
 
 The byte rules follow the [encryption design](../../docs/dmsg_encryption_zh.md),
 the [account and root contract](../../docs/protocol/account_root_zh.md), the
@@ -36,9 +45,7 @@ the [account and root contract](../../docs/protocol/account_root_zh.md), the
 [dmsg-login/1](../../docs/protocol/login-v1_zh.md) and
 [dmsg-connect/1](../../docs/protocol/connect-v1_zh.md). They are verified against
 the language-independent vectors in
-[tests/vectors/client](../../tests/vectors/client/README.md). Formats no
-module implements yet (channels, inbox) are read by the crate's `tests`
-module from the same vectors.
+[tests/vectors/client](../../tests/vectors/client/README.md).
 
 ## Sync
 
@@ -87,6 +94,33 @@ wins, nothing executes. Each state change is sealed to every page that asked
 for the operation, with HPKE in auth mode under the device key. Locked, the
 device only stores sealed envelopes, and the relay's hint channel, which needs
 no signing key, tells it that something waits.
+
+## Channels
+
+The account keeps one synced object per channel: its name, the genesis it
+trusts and every epoch key it holds, so a device added later reads the old
+epochs. The verified control log, received messages and the journals of
+operations in flight stay sealed on the device. Every control and every
+other account's command is checked against the security evidence the relay
+stored with it, at the time the relay accepted it, and the channel is
+replayed from the genesis with `channel_log`; a relay cannot invent a member
+or reorder the log. A membership change requires a new epoch: one member
+takes a lease, seals the new key to every current member device, and
+activates it with the recipients' digest and a key confirmation. An
+operation keeps its request ID across retries and is re-signed under the
+same ID only after its deadline, so a lost reply never becomes a second,
+different operation.
+
+## Payments
+
+The dMsg account never holds funds: the payer is the login's Principal or a
+PEM wallet the CLI names. Every ICRC transfer or approval is journaled with
+its exact arguments before it is sent; a lost reply sends the same bytes
+again and the ledger's deduplication returns the original block. Only a
+typed ledger rejection on a first attempt proves nothing was paid.
+Checkouts, paid letters and name operations are journals fixed at their
+quote: a person approves their digest in the approval center, then each step
+(open, fund, admit, settle) is reconciled by its order or operation ID.
 
 ## Locking
 

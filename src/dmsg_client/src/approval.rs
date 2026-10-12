@@ -115,6 +115,36 @@ pub enum Action {
         /// The operation's commitment.
         digest: Hash,
     },
+    /// Approve a quoted checkout for the wallet and pay it; with `fresh`,
+    /// approve a PANDA claim again after its cooling period.
+    Checkout {
+        /// Order or claim ID.
+        id: String,
+        /// The terms' commitment.
+        digest: Hash,
+        /// A post-cooling approval.
+        fresh: bool,
+    },
+    /// Pay for a quoted letter from the wallet.
+    Letter {
+        /// The recipient.
+        recipient: String,
+        /// Order ID.
+        order: String,
+        /// The quote's commitment.
+        digest: Hash,
+        /// What the wallet pays, fees and refundable reserve included.
+        amount: String,
+        /// The ledger.
+        ledger: String,
+    },
+    /// Authorize and run a name operation.
+    Handle {
+        /// Operation ID.
+        id: String,
+        /// The intent's commitment.
+        digest: Hash,
+    },
 }
 
 impl Action {
@@ -123,6 +153,7 @@ impl Action {
             Action::Attest { .. } => "attest",
             Action::DeviceCapabilities { .. } | Action::DeviceRevoke { .. } => "account",
             Action::Connect { .. } => "connect",
+            Action::Checkout { .. } | Action::Letter { .. } | Action::Handle { .. } => "payment",
         }
     }
 }
@@ -417,6 +448,42 @@ impl Client {
                 self.rotate_root().await.map(|_| ())
             }
             Action::Connect { operation, .. } => self.connect_approve(&operation, request).await,
+            Action::Checkout { id, digest, fresh } => {
+                ensure(
+                    self.plan_checkout(&id)?.digest() == digest,
+                    Error::IntegrityFailed,
+                )?;
+                request.started = true;
+                self.save_approval(request)?;
+                match fresh {
+                    true => self.plan_advance(&id).await.map(|_| ()),
+                    false => self.plan_execute(&id).await.map(|_| ()),
+                }
+            }
+            Action::Letter {
+                recipient,
+                order,
+                digest,
+                ..
+            } => {
+                let recipient = recipient.parse().map_err(|_| Error::IntegrityFailed)?;
+                ensure(
+                    self.letter_digest(&recipient, &order).await?.0 == digest,
+                    Error::IntegrityFailed,
+                )?;
+                request.started = true;
+                self.save_approval(request)?;
+                self.inbox_pay(&recipient, &order).await.map(|_| ())
+            }
+            Action::Handle { id, digest } => {
+                ensure(
+                    self.handle_operation(&id)?.digest() == digest,
+                    Error::IntegrityFailed,
+                )?;
+                request.started = true;
+                self.save_approval(request)?;
+                self.handle_execute(&id).await.map(|_| ())
+            }
         }
     }
 
@@ -425,9 +492,10 @@ impl Client {
         let result = match outcome {
             // An executor may settle the request itself, such as a web
             // request another device took first.
-            Ok(()) if request.state != State::Executing => Ok(()),
+            Ok(()) if !matches!(request.state, State::Executing | State::Unknown) => Ok(()),
             Ok(()) => {
                 request.state = State::Done;
+                request.error = None;
                 Ok(())
             }
             Err(Error::ExecutionUnknown) => {
@@ -481,11 +549,48 @@ impl Client {
                     let operation = operation.clone();
                     self.connect_reconcile(&operation).await
                 }
+                (Action::Checkout { id, fresh, .. }, _) => {
+                    let (id, fresh) = (id.clone(), *fresh);
+                    match fresh {
+                        true => self.plan_advance(&id).await.map(|_| ()),
+                        false => self.plan_execute(&id).await.map(|_| ()),
+                    }
+                }
+                (
+                    Action::Letter {
+                        recipient, order, ..
+                    },
+                    _,
+                ) => {
+                    let order = order.clone();
+                    match recipient.parse() {
+                        Ok(recipient) => self.inbox_pay(&recipient, &order).await.map(|_| ()),
+                        Err(_) => Err(Error::IntegrityFailed),
+                    }
+                }
+                (Action::Handle { id, .. }, _) => {
+                    let id = id.clone();
+                    self.handle_execute(&id).await.map(|_| ())
+                }
                 // Approved, but the attestation was never prepared.
                 (Action::Attest { .. }, None) => Err(Error::Expired),
             };
-            if outcome != Err(Error::ExecutionUnknown) {
-                let _ = self.finish_approval(&mut request, outcome);
+            // A step that could not run says nothing about the outcome:
+            // the request stays where it is for the next round.
+            match outcome {
+                Err(
+                    error @ (Error::ExecutionUnknown
+                    | Error::Unavailable(_)
+                    | Error::AuthRequired
+                    | Error::PolicyStale
+                    | Error::Locked),
+                ) => {
+                    request.error = Some(crate::error_code(&error));
+                    self.save_approval(&request)?;
+                }
+                outcome => {
+                    let _ = self.finish_approval(&mut request, outcome);
+                }
             }
         }
         Ok(())
@@ -571,6 +676,67 @@ impl Client {
             .await
     }
 
+    /// Ask to approve a quoted checkout and pay it from the wallet; with
+    /// `fresh`, to approve a PANDA claim again after cooling.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an unknown checkout.
+    pub fn checkout_request(&mut self, source: &str, id: &str, fresh: bool) -> Result<Json> {
+        let digest = self.plan_checkout(id)?.digest();
+        let request = self.approval_create(
+            source,
+            Action::Checkout {
+                id: id.into(),
+                digest,
+                fresh,
+            },
+            now_ms() + HIGH_RISK_TTL_MS,
+        )?;
+        self.approval_view(&request)
+    }
+
+    /// Ask to pay for a quoted letter from the wallet.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an order without a quote.
+    pub async fn letter_request(
+        &mut self,
+        source: &str,
+        recipient: &dmsg_types::AccountId,
+        order: &str,
+    ) -> Result<Json> {
+        let (digest, quote) = self.letter_digest(recipient, order).await?;
+        let request = self.approval_create(
+            source,
+            Action::Letter {
+                recipient: recipient.to_string(),
+                order: order.into(),
+                digest,
+                amount: quote.amount,
+                ledger: quote.ledger,
+            },
+            now_ms() + HIGH_RISK_TTL_MS,
+        )?;
+        self.approval_view(&request)
+    }
+
+    /// Ask to authorize and run a prepared name operation.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an unknown operation.
+    pub fn handle_request(&mut self, source: &str, id: &str) -> Result<Json> {
+        let digest = self.handle_operation(id)?.digest();
+        let request = self.approval_create(
+            source,
+            Action::Handle {
+                id: id.into(),
+                digest,
+            },
+            now_ms() + HIGH_RISK_TTL_MS,
+        )?;
+        self.approval_view(&request)
+    }
+
     /// The view a client renders: the request, its digest and a summary of
     /// what approving does.
     pub(crate) fn approval_view(&self, request: &Request) -> Result<Json> {
@@ -600,6 +766,21 @@ impl Client {
                 "this_device": *device_id == self.workspace.meta.device_id,
             }),
             Action::Connect { operation, .. } => self.connect_view(operation)?,
+            Action::Checkout { id, fresh, .. } => {
+                let mut view = self.plan_checkout(id)?.view();
+                view["fresh"] = (*fresh).into();
+                view
+            }
+            Action::Letter {
+                recipient,
+                order,
+                amount,
+                ledger,
+                ..
+            } => {
+                json!({"recipient": recipient, "order": order, "amount": amount, "ledger": ledger})
+            }
+            Action::Handle { id, .. } => self.handle_operation(id)?.view(),
         };
         Ok(json!({
             "id": request.id,
@@ -610,6 +791,9 @@ impl Client {
                 Action::DeviceCapabilities { .. } => "device_capabilities",
                 Action::DeviceRevoke { .. } => "device_revoke",
                 Action::Connect { .. } => "connect",
+                Action::Checkout { .. } => "checkout",
+                Action::Letter { .. } => "letter",
+                Action::Handle { .. } => "handle",
             },
             "state": request.state.name(),
             "created_at": request.created_at,

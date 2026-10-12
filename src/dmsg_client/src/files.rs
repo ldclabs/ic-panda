@@ -354,7 +354,19 @@ impl Client {
     /// for chunks not synced yet and `Error::IntegrityFailed` for anything
     /// changed.
     pub fn file_export(&self, id: &str, out: &Path) -> Result<FileManifest> {
-        let manifest = self.file_manifest(id)?;
+        self.export_manifest(&self.file_manifest(id)?, out)
+    }
+
+    /// Verify the file of `manifest`, whose chunks are in the store, and
+    /// write it to `out` as [`Self::file_export`] does.
+    ///
+    /// # Errors
+    /// As [`Self::file_export`].
+    pub(crate) fn export_manifest(
+        &self,
+        manifest: &FileManifest,
+        out: &Path,
+    ) -> Result<FileManifest> {
         ensure_valid(out.is_absolute() && !out.exists(), "out")?;
         let name = out
             .file_name()
@@ -367,7 +379,7 @@ impl Client {
                 .create_new(true)
                 .open(&partial)
                 .map_err(io)?;
-            self.read_file(&manifest, Some(&mut file))?;
+            self.read_file(manifest, Some(&mut file))?;
             file.sync_all().map_err(io)?;
             std::fs::rename(&partial, out).map_err(io)
         })();

@@ -825,7 +825,8 @@ impl Client {
         self.workspace
             .store
             .put_chunk(&plan.chunks[0].digest, &placeholder)?;
-        self.upload(&plan, &bytes, 0, |_, _| Ok(())).await?;
+        self.upload(&self.base()?, &plan, &bytes, 0, |_, _| Ok(()))
+            .await?;
         self.download(&plan.upload_id, "manifest", &plan.manifest_digest)
             .await?;
         self.mutate(

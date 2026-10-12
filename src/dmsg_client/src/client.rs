@@ -93,6 +93,12 @@ pub struct Client {
     pub(crate) security: Option<Security>,
     published: Option<u64>,
     pub(crate) located: Option<(Principal, AccountId)>,
+    /// The deployment's user homes, read once from the handle registry.
+    homes: Option<Vec<Principal>>,
+    /// The user home of each other account read so far.
+    peers: std::collections::BTreeMap<AccountId, Principal>,
+    /// The wallet loaded from a PEM file, until the device locks.
+    pub(crate) wallet: Option<(Principal, Ic)>,
 }
 
 impl Client {
@@ -130,6 +136,9 @@ impl Client {
             security: None,
             published: None,
             located: None,
+            homes: None,
+            peers: std::collections::BTreeMap::new(),
+            wallet: None,
         })
     }
 
@@ -355,6 +364,7 @@ impl Client {
         self.security = None;
         self.published = None;
         self.located = None;
+        self.wallet = None;
     }
 
     /// Drop everything, the resident key included, as the daemon exits.
@@ -566,6 +576,75 @@ impl Client {
 
     pub(crate) fn base(&self) -> Result<String> {
         Ok(format!("/v1/accounts/{}", self.account()?.id))
+    }
+
+    /// The deployment's user homes, checked against the configured pins.
+    pub(crate) async fn homes(&mut self) -> Result<Vec<Principal>> {
+        if let Some(homes) = &self.homes {
+            return Ok(homes.clone());
+        }
+        let ic = self.reader().await?;
+        let config =
+            crate::account::user_homes(&ic, self.config.handle, &self.config.user_homes).await?;
+        self.homes = Some(config.user_homes.clone());
+        Ok(config.user_homes)
+    }
+
+    /// What other accounts' relay evidence is checked against.
+    pub(crate) async fn trust(&mut self) -> Result<crate::evidence::Trust> {
+        let account = self.account()?.clone();
+        let namespace = account
+            .issuer
+            .strip_suffix(&account.id.to_string())
+            .ok_or(Error::IntegrityFailed)?
+            .to_string();
+        let homes = self.homes().await?;
+        let root_key = self.reader().await?.root_key();
+        Ok(crate::evidence::Trust {
+            homes,
+            namespace,
+            root_key,
+        })
+    }
+
+    /// Another account's certified security from its user home, with the
+    /// public queries; the relay is handed its evidence.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` when no user home knows the account.
+    pub(crate) async fn peer_security(
+        &mut self,
+        account: &AccountId,
+    ) -> Result<crate::account::Security> {
+        let ic = self.reader().await?;
+        let homes = match self.peers.get(account) {
+            Some(home) => vec![*home],
+            None => self.homes().await?,
+        };
+        for home in homes {
+            let bundle: Result<(
+                dmsg_types::user::SecuritySnapshot,
+                std::collections::BTreeMap<Hash, dmsg_types::user::Device>,
+            )> = ic.query(home, "get_device_bundle", (account,)).await?;
+            let Ok((_, devices)) = bundle else {
+                continue;
+            };
+            let batch: Result<dmsg_types::CertifiedBatch> = ic
+                .query(home, "security_snapshot_batch", (vec![*account],))
+                .await?;
+            let security = crate::account::verify_security(
+                home,
+                account,
+                &batch?,
+                devices,
+                &ic.root_key(),
+                now_ms(),
+            )?;
+            self.peers.insert(*account, home);
+            self.cloud.publish_security(&security.evidence).await?;
+            return Ok(security);
+        }
+        Err(Error::NotFound)
     }
 }
 

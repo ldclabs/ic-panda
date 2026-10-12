@@ -21,3 +21,11 @@ export function code(error: unknown): string {
 }
 
 export const when = (ms?: number | null) => (ms ? new Date(ms).toLocaleString() : '-')
+
+/** An amount in base units as a decimal with `decimals` places. */
+export function units(atomic: string, decimals: number): string {
+  const digits = atomic.padStart(decimals + 1, '0')
+  const whole = digits.slice(0, digits.length - decimals)
+  const fraction = digits.slice(digits.length - decimals).replace(/0+$/, '')
+  return fraction ? `${whole}.${fraction}` : whole
+}
