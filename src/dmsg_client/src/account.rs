@@ -33,20 +33,22 @@ const APPROVAL_MS: u64 = 270_000;
 const JOURNAL: &str = "journal";
 const PAIRING: &str = "dmsg-device-request/2";
 
-/// Account state proven by an IC certificate.
+/// An account's certified security leaf and complete device map: what the
+/// relay verifies before trusting a device. Both queries are public, so a
+/// device reads it without a login.
 #[derive(Clone, Debug)]
-pub struct AccountState {
-    /// The account as `get_account` returned it, checked against the leaf.
-    pub info: AccountInfo,
+pub struct Security {
     /// The certified security leaf.
     pub snapshot: SecuritySnapshot,
+    /// The device map the leaf commits to.
+    pub devices: BTreeMap<Hash, Device>,
     /// The same proof for the relay.
     pub evidence: Evidence,
     /// Certificate time in Unix milliseconds.
     pub certified_at: u64,
 }
 
-impl AccountState {
+impl Security {
     /// The certificate stops being fresh 60 seconds after its time.
     pub fn expires_at(&self) -> u64 {
         self.certified_at + 60_000
@@ -54,7 +56,7 @@ impl AccountState {
 
     /// A device of the account, revoked or not.
     pub fn device(&self, id: &Hash) -> Option<&Device> {
-        self.info.devices.get(id)
+        self.devices.get(id)
     }
 
     /// An active device.
@@ -66,6 +68,73 @@ impl AccountState {
             .filter(|d| d.revoked_at.is_none())
             .ok_or(Error::DeviceNotApproved)
     }
+}
+
+/// Account state proven by an IC certificate: the owner's `get_account`
+/// view checked against the certified [`Security`].
+#[derive(Clone, Debug)]
+pub struct AccountState {
+    /// The account as `get_account` returned it, checked against the leaf.
+    pub info: AccountInfo,
+    /// The certified leaf and devices.
+    pub security: Security,
+}
+
+impl AccountState {
+    /// A device of the account, revoked or not.
+    pub fn device(&self, id: &Hash) -> Option<&Device> {
+        self.security.device(id)
+    }
+
+    /// An active device.
+    ///
+    /// # Errors
+    /// Returns `Error::DeviceNotApproved` for a missing or revoked device.
+    pub fn active(&self, id: &Hash) -> Result<&Device> {
+        self.security.active(id)
+    }
+}
+
+/// Check the certified leaf of `account` and the device map it commits to.
+///
+/// # Errors
+/// Anything inconsistent returns `Error::IntegrityFailed`.
+pub fn verify_security(
+    home: Principal,
+    account: &AccountId,
+    batch: &CertifiedBatch,
+    devices: BTreeMap<Hash, Device>,
+    root_key: &[u8],
+    now: u64,
+) -> Result<Security> {
+    let (value, certified_at) =
+        verify_certified_leaf(batch, account.as_slice(), home, root_key, now)?;
+    let snapshot: SecuritySnapshot = decode(&value, MAX_RECORD)?;
+    ensure(
+        snapshot.schema == 4
+            && snapshot.account_id == *account
+            && snapshot.home_user == home
+            && snapshot.devices_root == digest("dmsg/devices/v1", &devices),
+        Error::IntegrityFailed,
+    )?;
+    let entry = &batch.entries[0];
+    let evidence = Evidence {
+        schema: 1,
+        canister: home.to_text(),
+        certificate: b64(&batch.certificate),
+        entries: vec![EvidenceEntry {
+            account_id: account.to_string(),
+            value: b64(&value),
+            witness: b64(&entry.witness),
+            devices: b64(&canonical(&devices)),
+        }],
+    };
+    Ok(Security {
+        snapshot,
+        devices,
+        evidence,
+        certified_at,
+    })
 }
 
 /// Check `get_account`, the certified leaf and the device map against each
@@ -91,20 +160,15 @@ pub fn verify_account(
         canonical(&info.devices) == canonical(&devices),
         Error::PolicyStale,
     )?;
-    let (value, certified_at) =
-        verify_certified_leaf(batch, account.as_slice(), home, root_key, now)?;
-    let snapshot: SecuritySnapshot = decode(&value, MAX_RECORD)?;
+    let security = verify_security(home, account, batch, devices, root_key, now)?;
+    let snapshot = &security.snapshot;
     let pending = info
         .pending_recovery
         .as_ref()
         .map(|p| digest("dmsg/pending-recovery/v1", p));
     ensure(
-        snapshot.schema == 4
-            && snapshot.issuer == info.issuer
-            && snapshot.account_id == *account
-            && snapshot.home_user == home
+        snapshot.issuer == info.issuer
             && snapshot.home_cose == info.home_cose
-            && snapshot.devices_root == digest("dmsg/devices/v1", &devices)
             && snapshot.account_version == info.account_version
             && snapshot.security_epoch == info.security_epoch
             && snapshot.vault_write_state == info.vault_write_state
@@ -115,24 +179,7 @@ pub fn verify_account(
             && snapshot.pending_recovery_digest == pending,
         Error::IntegrityFailed,
     )?;
-    let entry = &batch.entries[0];
-    let evidence = Evidence {
-        schema: 1,
-        canister: home.to_text(),
-        certificate: b64(&batch.certificate),
-        entries: vec![EvidenceEntry {
-            account_id: account.to_string(),
-            value: b64(&value),
-            witness: b64(&entry.witness),
-            devices: b64(&canonical(&devices)),
-        }],
-    };
-    Ok(AccountState {
-        info,
-        snapshot,
-        evidence,
-        certified_at,
-    })
+    Ok(AccountState { info, security })
 }
 
 /// One account update, journaled before dispatch.
@@ -274,15 +321,14 @@ pub struct AccountView {
 }
 
 impl Client {
-    /// The account's certified state, for display.
+    /// The account's certified state, for display; no login needed.
     ///
     /// # Errors
     /// Returns `Error::RecoveryIncomplete` before the device has an account.
     pub async fn account_view(&mut self) -> Result<AccountView> {
         let account = self.account()?.clone();
-        let state = self.refresh(account.home, &account.id).await?;
+        let state = self.refresh_security(account.home, &account.id).await?;
         let devices = state
-            .info
             .devices
             .iter()
             .map(|(id, d)| DeviceView {
@@ -300,14 +346,15 @@ impl Client {
                 current: *id == self.workspace.meta.device_id,
             })
             .collect();
+        let snapshot = &state.snapshot;
         Ok(AccountView {
             account: account.id.to_string(),
             home: account.home.to_text(),
-            issuer: state.info.issuer.clone(),
-            account_version: state.info.account_version,
-            security_epoch: state.info.security_epoch,
-            vault_write_state: format!("{:?}", state.info.vault_write_state),
-            root_generation: state.snapshot.content_root_generation,
+            issuer: snapshot.issuer.clone(),
+            account_version: snapshot.account_version,
+            security_epoch: snapshot.security_epoch,
+            vault_write_state: format!("{:?}", snapshot.vault_write_state),
+            root_generation: snapshot.content_root_generation,
             devices,
         })
     }
@@ -330,8 +377,8 @@ impl Client {
         Ok(None)
     }
 
-    /// Fetch and verify the account's current state, refusing anything older
-    /// than this device has already seen.
+    /// Fetch and verify the account's current state with the login,
+    /// refusing anything older than this device has already seen.
     ///
     /// # Errors
     /// As [`verify_account`]; an older answer returns `Error::PolicyStale`.
@@ -352,17 +399,46 @@ impl Client {
             &ic.root_key(),
             now_ms(),
         )?;
-        if let Some(own) = state.device(&self.workspace.meta.device_id) {
+        self.observe(account, &state.security)?;
+        Ok(state)
+    }
+
+    /// Fetch and verify the account's certified security with the public
+    /// queries; works with or without a login.
+    ///
+    /// # Errors
+    /// As [`verify_security`]; an older answer returns `Error::PolicyStale`.
+    pub async fn refresh_security(
+        &mut self,
+        home: Principal,
+        account: &AccountId,
+    ) -> Result<Security> {
+        let ic = self.reader().await?;
+        let batch: Result<CertifiedBatch> = ic
+            .query(home, "security_snapshot_batch", (vec![*account],))
+            .await?;
+        let bundle: Result<(SecuritySnapshot, BTreeMap<Hash, Device>)> =
+            ic.query(home, "get_device_bundle", (account,)).await?;
+        let security =
+            verify_security(home, account, &batch?, bundle?.1, &ic.root_key(), now_ms())?;
+        self.observe(account, &security)?;
+        Ok(security)
+    }
+
+    /// Check this device's keys and the high-water mark, then keep `security`.
+    fn observe(&mut self, account: &AccountId, security: &Security) -> Result<()> {
+        if let Some(own) = security.device(&self.workspace.meta.device_id) {
             ensure(
                 own.input.signing_pub == self.workspace.meta.signing_pub
                     && own.input.hpke_pub == self.workspace.meta.hpke_pub,
                 Error::IntegrityFailed,
             )?;
         }
+        let snapshot = &security.snapshot;
         let seen = (
-            state.info.account_version,
-            state.info.security_epoch,
-            state.snapshot.content_root_generation,
+            snapshot.account_version,
+            snapshot.security_epoch,
+            snapshot.content_root_generation,
         );
         let key = format!("observed:{account}");
         if let Some(previous) = self.workspace.store.meta::<(u64, u64, u64)>(&key)? {
@@ -372,8 +448,8 @@ impl Client {
             )?;
         }
         self.workspace.store.set_meta(&key, &seen)?;
-        self.state = Some(state.clone());
-        Ok(state)
+        self.security = Some(security.clone());
+        Ok(())
     }
 
     /// The pending journal entry, if the latest update is unsettled.
@@ -483,7 +559,7 @@ impl Client {
                         let device = state.device(&mutation.approval.device_id);
                         // A certified time past the deadline with the version and
                         // sequence unchanged proves the request can never apply.
-                        if state.certified_at >= mutation.approval.expires_at
+                        if state.security.certified_at >= mutation.approval.expires_at
                             && state.info.account_version == mutation.expected_version
                             && device.map(|d| d.next_sequence) == Some(mutation.approval.sequence)
                         {

@@ -10,6 +10,10 @@
 //! `name = "dmsg:" + environment + ":" + account + ":" + device`, and the
 //! provisional key is deleted. Every later unlock needs the user home's
 //! login-gated `unlock_secret`.
+//!
+//! Fast unlock seals a second copy of the LDK under a random key the
+//! operating system keeps (encryption design §5.2; plan D-6); it is refused
+//! seven days after the last unlock through a login.
 
 use crate::codec::{canonical, decode, MAX_RECORD};
 use crate::config::environment_name;
@@ -29,6 +33,7 @@ use zeroize::Zeroizing;
 const META: &str = "workspace";
 const PROVISIONAL: &str = "provisional";
 const LDK: &str = "ldk";
+const FAST_LDK: &str = "ldk-fast";
 const DEVICE: &str = "device";
 
 /// Plaintext facts about the workspace; nothing here is secret.
@@ -48,6 +53,8 @@ pub struct Meta {
     pub account: Option<AccountRef>,
     /// The latest unlock through a login, in Unix milliseconds.
     pub login_unlocked_at: Option<u64>,
+    /// When fast unlock was enabled, if it is.
+    pub fast_unlock: Option<u64>,
 }
 
 /// The account a workspace belongs to.
@@ -116,6 +123,7 @@ impl Workspace {
             created_at: now,
             account: None,
             login_unlocked_at: None,
+            fast_unlock: None,
         };
         let workspace = Self { store, meta };
         let keys = Keys { ldk, signing, hpke };
@@ -174,7 +182,7 @@ impl Workspace {
             .store
             .meta(PROVISIONAL)?
             .ok_or(Error::IntegrityFailed)?;
-        self.open_keys(&Zeroizing::new(*key), &self.provisional_context())
+        self.open_keys(&Zeroizing::new(*key), LDK, &self.provisional_context())
     }
 
     /// Unlock with the user home's unlock secret for this device.
@@ -184,11 +192,57 @@ impl Workspace {
     pub fn unlock(&self, secret: &Key) -> Result<Keys> {
         let name = self.name()?;
         let luk = crate::crypto::unlock_key(secret, &name);
-        self.open_keys(&luk, &("dmsg/local-key/2", name.as_str()))
+        self.open_keys(&luk, LDK, &("dmsg/local-key/2", name.as_str()))
     }
 
-    fn open_keys<C: Serialize>(&self, key: &Key, context: &C) -> Result<Keys> {
-        let sealed = self.store.sealed(LDK)?.ok_or(Error::IntegrityFailed)?;
+    fn fast_context(&self) -> Result<(&'static str, String)> {
+        Ok(("dmsg/local-key/2", format!("fast:{}", self.name()?)))
+    }
+
+    /// Seal a second copy of the LDK under `key`, which the caller keeps in
+    /// the operating system's credential store.
+    ///
+    /// # Errors
+    /// Returns `Error::RecoveryIncomplete` before the device has an account.
+    pub fn enable_fast(&mut self, keys: &Keys, key: &Key, now: u64) -> Result<()> {
+        let wrapped = seal(key, keys.ldk.as_slice(), &self.fast_context()?);
+        let mut meta = self.meta.clone();
+        meta.fast_unlock = Some(now);
+        self.store.atomic(|store| {
+            store.set_sealed(FAST_LDK, &wrapped)?;
+            store.set_meta(META, &meta)
+        })?;
+        self.meta = meta;
+        Ok(())
+    }
+
+    /// Unlock with the fast-unlock key.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` when fast unlock is off and
+    /// `Error::IntegrityFailed` for another key.
+    pub fn unlock_fast(&self, key: &Key) -> Result<Keys> {
+        ensure(self.meta.fast_unlock.is_some(), Error::NotFound)?;
+        self.open_keys(key, FAST_LDK, &self.fast_context()?)
+    }
+
+    /// Delete the fast-unlock copy of the LDK.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when storage fails.
+    pub fn disable_fast(&mut self) -> Result<()> {
+        let mut meta = self.meta.clone();
+        meta.fast_unlock = None;
+        self.store.atomic(|store| {
+            store.delete_sealed(FAST_LDK)?;
+            store.set_meta(META, &meta)
+        })?;
+        self.meta = meta;
+        Ok(())
+    }
+
+    fn open_keys<C: Serialize>(&self, key: &Key, record: &str, context: &C) -> Result<Keys> {
+        let sealed = self.store.sealed(record)?.ok_or(Error::IntegrityFailed)?;
         let ldk = open(key, &sealed, context)?;
         let ldk: Key = ldk
             .as_slice()

@@ -15,6 +15,7 @@ use std::sync::Arc;
 const MAX_RESPONSE: usize = 4 * 1024 * 1024;
 
 /// An agent bound to one identity.
+#[derive(Clone)]
 pub struct Ic {
     agent: Agent,
 }

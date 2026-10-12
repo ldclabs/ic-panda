@@ -4,8 +4,9 @@
 mod daemon;
 mod home;
 mod remote;
+mod secure;
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use home::Home;
 use remote::{Failure, Remote};
 use serde_json::{json, Value};
@@ -48,10 +49,17 @@ enum Command {
         #[arg(long)]
         no_browser: bool,
     },
-    /// Unlock with the current login.
-    Unlock,
+    /// Unlock with the current login, or with --fast without one.
+    Unlock {
+        /// Use fast unlock (up to seven days after a login unlock).
+        #[arg(long)]
+        fast: bool,
+    },
     /// Lock: forget the login and every key.
     Lock,
+    /// Fast unlock on this device, kept in the system credential store.
+    #[command(subcommand)]
+    FastUnlock(FastUnlockCommand),
     /// The account.
     #[command(subcommand)]
     Account(AccountCommand),
@@ -61,8 +69,85 @@ enum Command {
     /// The vault.
     #[command(subcommand)]
     Vault(VaultCommand),
-    /// Synchronize the vault with the relay.
-    Sync,
+    /// Encrypted files in the vault.
+    #[command(subcommand)]
+    File(FileCommand),
+    /// Synchronize with the relay, or show where sync stands.
+    Sync {
+        #[command(subcommand)]
+        command: Option<SyncCommand>,
+    },
+    /// The public profile.
+    #[command(subcommand)]
+    Profile(ProfileCommand),
+    /// Erase this device's workspace and start over as a new device.
+    Reset {
+        /// Confirm: unsynced versions are lost.
+        #[arg(long)]
+        yes: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum FastUnlockCommand {
+    /// Enable fast unlock while unlocked.
+    Enable,
+    /// Disable fast unlock and delete its key.
+    Disable,
+}
+
+#[derive(Subcommand)]
+enum SyncCommand {
+    /// Pending versions, conflicts and the latest sync.
+    Status,
+}
+
+#[derive(Subcommand)]
+enum FileCommand {
+    /// Encrypt a file (at most 100 MiB) into the vault; an interrupted
+    /// import of the same file resumes.
+    Import {
+        /// The file.
+        path: PathBuf,
+    },
+    /// List files.
+    List,
+    /// Verify a file and write it to a new path.
+    Get {
+        /// Item ID.
+        id: String,
+        /// Where to write it; must not exist.
+        #[arg(short, long)]
+        out: PathBuf,
+    },
+    /// Check every chunk of a file and its SHA-256.
+    Verify {
+        /// Item ID.
+        id: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum ProfileCommand {
+    /// The published profile of this account.
+    Show,
+    /// Publish exactly the given fields; anything left out is unpublished.
+    Publish {
+        /// Display name.
+        #[arg(long, default_value = "")]
+        name: String,
+        /// Bio.
+        #[arg(long, default_value = "")]
+        bio: String,
+        /// HTTPS links.
+        #[arg(long = "link")]
+        links: Vec<String>,
+    },
+    /// Another account's published profile, checked against its devices.
+    Resolve {
+        /// Account ID.
+        account: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -93,34 +178,66 @@ enum DeviceCommand {
     },
 }
 
+#[derive(Args)]
+struct ItemFields {
+    /// Title.
+    #[arg(long)]
+    title: Option<String>,
+    /// Body text.
+    #[arg(long)]
+    body: Option<String>,
+    /// Login name.
+    #[arg(long)]
+    username: Option<String>,
+    /// Related URL.
+    #[arg(long)]
+    url: Option<String>,
+    /// Tags; replaces the item's tags.
+    #[arg(long = "tag")]
+    tags: Vec<String>,
+    /// Read the secret field from standard input.
+    #[arg(long)]
+    secret_stdin: bool,
+}
+
 #[derive(Subcommand)]
 enum VaultCommand {
     /// Add an item; the secret is read from standard input with --secret-stdin.
     Add {
-        /// Title.
-        #[arg(long)]
-        title: String,
         /// note, login, api or key.
         #[arg(long = "type", default_value = "note")]
         kind: String,
-        /// Body text.
-        #[arg(long, default_value = "")]
-        body: String,
-        /// Login name.
-        #[arg(long, default_value = "")]
-        username: String,
-        /// Related URL.
-        #[arg(long, default_value = "")]
-        url: String,
-        /// Tags.
-        #[arg(long = "tag")]
-        tags: Vec<String>,
-        /// Read the secret field from standard input.
-        #[arg(long)]
-        secret_stdin: bool,
+        #[command(flatten)]
+        fields: ItemFields,
+    },
+    /// Edit an item; only the given fields change.
+    Edit {
+        /// Item ID.
+        id: String,
+        #[command(flatten)]
+        fields: ItemFields,
+    },
+    /// Move an item to the trash.
+    Rm {
+        /// Item ID.
+        id: String,
+    },
+    /// Restore an item from the trash.
+    Restore {
+        /// Item ID.
+        id: String,
     },
     /// List items; secrets stay hidden.
-    List,
+    List {
+        /// Deleted items instead.
+        #[arg(long)]
+        trash: bool,
+    },
+    /// Search titles, tags, bodies, user names and URLs on this device.
+    Search {
+        /// Text to find.
+        query: String,
+    },
     /// Show one item.
     Show {
         /// Item ID.
@@ -129,6 +246,87 @@ enum VaultCommand {
         #[arg(long)]
         reveal: bool,
     },
+    /// Conflict copies waiting for a decision.
+    Conflicts,
+    /// Settle a conflict copy: adopt it, or keep the current version.
+    Resolve {
+        /// The copy, as `id:revision`.
+        key: String,
+        /// Keep the current version instead.
+        #[arg(long)]
+        keep_current: bool,
+    },
+}
+
+/// The secret from standard input, without the final newline.
+fn read_secret() -> Result<String, Failure> {
+    let mut secret = String::new();
+    if std::io::stdin().is_terminal() {
+        eprintln!("Secret (end with Ctrl-D):");
+    }
+    std::io::stdin()
+        .read_to_string(&mut secret)
+        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+    Ok(secret.trim_end_matches(['\r', '\n']).to_string())
+}
+
+impl ItemFields {
+    /// The given fields as `vault/edit` changes.
+    fn changes(self) -> Result<Value, Failure> {
+        let mut changes = serde_json::Map::new();
+        for (name, value) in [
+            ("title", self.title),
+            ("body", self.body),
+            ("username", self.username),
+            ("url", self.url),
+        ] {
+            if let Some(value) = value {
+                changes.insert(name.into(), value.into());
+            }
+        }
+        if !self.tags.is_empty() {
+            changes.insert("tags".into(), json!(self.tags));
+        }
+        if self.secret_stdin {
+            changes.insert("secret".into(), read_secret()?.into());
+        }
+        Ok(Value::Object(changes))
+    }
+}
+
+fn entry_lines(list: &Value) -> String {
+    list.as_array()
+        .into_iter()
+        .flatten()
+        .map(|e| {
+            format!(
+                "{} {}{}{}",
+                e["id"].as_str().unwrap_or_default(),
+                e["item"]["title"].as_str().unwrap_or_default(),
+                if e["synced"] == true {
+                    ""
+                } else {
+                    " (not synced)"
+                },
+                if e["conflict"] == true {
+                    format!(
+                        " (conflict copy {})",
+                        e["revision"].as_str().unwrap_or_default()
+                    )
+                } else {
+                    String::new()
+                }
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// An absolute path for the daemon, which does not share this directory.
+fn absolute(path: PathBuf) -> Result<String, Failure> {
+    std::path::absolute(&path)
+        .map(|p| p.display().to_string())
+        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))
 }
 
 fn main() {
@@ -167,7 +365,7 @@ fn pretty(value: &Value) -> String {
 fn summary(status: &Value) -> String {
     let field = |name: &str| status[name].as_str().unwrap_or("-").to_string();
     format!(
-        "state: {}\naccount: {}\ndevice: {}\nlogin: {}\nroot generation: {}\npending sync: {}",
+        "state: {}\naccount: {}\ndevice: {}\nlogin: {}\nroot generation: {}\npending sync: {}\nconflicts: {}{}",
         field("state"),
         field("account"),
         field("device_id"),
@@ -175,7 +373,13 @@ fn summary(status: &Value) -> String {
         status["root_generation"]
             .as_u64()
             .map_or("-".into(), |g| g.to_string()),
-        status["pending_sync"]
+        status["pending_sync"],
+        status["conflicts"],
+        if status["resident"] == true {
+            "\nbackground online: the device key stays while locked"
+        } else {
+            ""
+        }
     )
 }
 
@@ -276,12 +480,32 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 break;
             }
         }
-        Command::Unlock => {
-            let status = remote.call("session/unlock", Value::Null).await?;
+        Command::Unlock { fast } => {
+            let status = remote.call("session/unlock", json!({"fast": fast})).await?;
             print(json, &status, summary);
         }
         Command::Lock => {
             let status = remote.call("session/lock", Value::Null).await?;
+            print(json, &status, summary);
+        }
+        Command::FastUnlock(command) => {
+            let enable = matches!(command, FastUnlockCommand::Enable);
+            let status = remote
+                .call("session/fast_unlock", json!({"enable": enable}))
+                .await?;
+            print(json, &status, summary);
+        }
+        Command::Reset { yes } => {
+            if !yes {
+                return Err(Failure::new(
+                    "INVALID_INPUT",
+                    "reset erases this device's workspace; confirm with --yes",
+                ));
+            }
+            let status = remote.status().await?;
+            let status = remote
+                .call("workspace/reset", json!({"device": status["device_id"]}))
+                .await?;
             print(json, &status, summary);
         }
         Command::Account(AccountCommand::Create) => {
@@ -358,29 +582,22 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 )
             });
         }
-        Command::Vault(VaultCommand::Add {
-            title,
-            kind,
-            body,
-            username,
-            url,
-            tags,
-            secret_stdin,
-        }) => {
-            let mut secret = String::new();
-            if secret_stdin {
-                if std::io::stdin().is_terminal() {
-                    eprintln!("Secret (end with Ctrl-D):");
-                }
-                std::io::stdin()
-                    .read_to_string(&mut secret)
-                    .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
-                secret = secret.trim_end_matches(['\r', '\n']).to_string();
-            }
+        Command::Vault(VaultCommand::Add { kind, fields }) => {
+            let title = fields
+                .title
+                .clone()
+                .ok_or_else(|| Failure::new("INVALID_INPUT", "--title is required"))?;
+            let secret = if fields.secret_stdin {
+                read_secret()?
+            } else {
+                String::new()
+            };
             let now = dmsg_client::now_ms();
             let item = json!({
-                "type": kind, "title": title, "tags": tags, "body": body,
-                "username": username, "secret": secret, "url": url,
+                "type": kind, "title": title, "tags": fields.tags,
+                "body": fields.body.unwrap_or_default(),
+                "username": fields.username.unwrap_or_default(), "secret": secret,
+                "url": fields.url.unwrap_or_default(),
                 "favorite": false, "createdAt": now, "updatedAt": now,
             });
             let entry = remote.call("vault/put", json!({"item": item})).await?;
@@ -388,17 +605,104 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 v["id"].as_str().unwrap_or_default().to_string()
             });
         }
-        Command::Vault(VaultCommand::List) => {
-            let entries = remote.call("vault/list", Value::Null).await?;
+        Command::Vault(VaultCommand::Edit { id, fields }) => {
+            let changes = fields.changes()?;
+            let entry = remote
+                .call("vault/edit", json!({"id": id, "changes": changes}))
+                .await?;
+            print(json, &entry, |v| {
+                let conflict = if v["conflict"] == true {
+                    " (kept as a conflict copy)"
+                } else {
+                    ""
+                };
+                format!("{}{conflict}", v["revision"].as_str().unwrap_or_default())
+            });
+        }
+        Command::Vault(VaultCommand::Rm { id }) => {
+            let entry = remote.call("vault/delete", json!({"id": id})).await?;
+            print(json, &entry, |_| "moved to the trash".into());
+        }
+        Command::Vault(VaultCommand::Restore { id }) => {
+            let entry = remote.call("vault/restore", json!({"id": id})).await?;
+            print(json, &entry, |_| "restored".into());
+        }
+        Command::Vault(VaultCommand::List { trash }) => {
+            let entries = remote.call("vault/list", json!({"trash": trash})).await?;
+            print(json, &entries, entry_lines);
+        }
+        Command::Vault(VaultCommand::Search { query }) => {
+            let entries = remote.call("vault/list", json!({"query": query})).await?;
+            print(json, &entries, entry_lines);
+        }
+        Command::Vault(VaultCommand::Show { id, reveal }) => {
+            let entry = remote
+                .call("vault/show", json!({"id": id, "reveal": reveal}))
+                .await?;
+            print(json, &entry, pretty);
+        }
+        Command::Vault(VaultCommand::Conflicts) => {
+            let entries = remote.call("vault/conflicts", Value::Null).await?;
             print(json, &entries, |list| {
                 list.as_array()
                     .into_iter()
                     .flatten()
                     .map(|e| {
                         format!(
-                            "{} {}{}",
+                            "{}:{} {}{}",
                             e["id"].as_str().unwrap_or_default(),
+                            e["revision"].as_str().unwrap_or_default(),
                             e["item"]["title"].as_str().unwrap_or_default(),
+                            if e["deleted"] == true {
+                                " (deleted)"
+                            } else {
+                                ""
+                            }
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            });
+        }
+        Command::Vault(VaultCommand::Resolve { key, keep_current }) => {
+            let keep = if keep_current { "current" } else { "theirs" };
+            let entry = remote
+                .call("vault/resolve", json!({"key": key, "keep": keep}))
+                .await?;
+            print(json, &entry, |v| {
+                format!(
+                    "resolved; head {}",
+                    v["revision"].as_str().unwrap_or_default()
+                )
+            });
+        }
+        Command::File(FileCommand::Import { path }) => {
+            let entry = remote
+                .call("file/import", json!({"path": absolute(path)?}))
+                .await?;
+            print(json, &entry, |v| {
+                v["id"].as_str().unwrap_or_default().to_string()
+            });
+        }
+        Command::File(FileCommand::List) => {
+            let entries = remote.call("vault/list", Value::Null).await?;
+            let files: Vec<Value> = entries
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|e| e["item"]["type"] == "file")
+                .cloned()
+                .collect();
+            print(json, &Value::Array(files), |list| {
+                list.as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|e| {
+                        format!(
+                            "{} {} {} bytes{}",
+                            e["id"].as_str().unwrap_or_default(),
+                            e["item"]["file"]["name"].as_str().unwrap_or_default(),
+                            e["item"]["file"]["size"],
                             if e["synced"] == true {
                                 ""
                             } else {
@@ -410,20 +714,66 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                     .join("\n")
             });
         }
-        Command::Vault(VaultCommand::Show { id, reveal }) => {
-            let entry = remote
-                .call("vault/show", json!({"id": id, "reveal": reveal}))
+        Command::File(FileCommand::Get { id, out }) => {
+            let manifest = remote
+                .call("file/export", json!({"id": id, "path": absolute(out)?}))
                 .await?;
-            print(json, &entry, pretty);
+            print(json, &manifest, |m| {
+                format!(
+                    "verified {} ({} bytes)",
+                    m["sha256"].as_str().unwrap_or_default(),
+                    m["size"]
+                )
+            });
         }
-        Command::Sync => {
+        Command::File(FileCommand::Verify { id }) => {
+            let manifest = remote.call("file/verify", json!({"id": id})).await?;
+            print(json, &manifest, |m| {
+                format!(
+                    "verified {} ({} bytes)",
+                    m["sha256"].as_str().unwrap_or_default(),
+                    m["size"]
+                )
+            });
+        }
+        Command::Sync { command: None } => {
             let report = remote.call("sync/run", Value::Null).await?;
             print(json, &report, |r| {
                 format!(
-                    "sent {}, {} revisions through {}",
-                    r["sent"], r["revisions"], r["through"]
+                    "sent {}, refused {}, {} revisions through {}; {} pending, {} conflicts",
+                    r["sent"],
+                    r["blocked"],
+                    r["revisions"],
+                    r["through"],
+                    r["pending"],
+                    r["conflicts"]
                 )
             });
+        }
+        Command::Sync {
+            command: Some(SyncCommand::Status),
+        } => {
+            let status = remote.call("sync/status", Value::Null).await?;
+            print(json, &status, pretty);
+        }
+        Command::Profile(ProfileCommand::Show) => {
+            let profile = remote.call("profile/show", Value::Null).await?;
+            print(json, &profile, pretty);
+        }
+        Command::Profile(ProfileCommand::Publish { name, bio, links }) => {
+            let profile = remote
+                .call(
+                    "profile/publish",
+                    json!({"display_name": name, "bio": bio, "links": links}),
+                )
+                .await?;
+            print(json, &profile, pretty);
+        }
+        Command::Profile(ProfileCommand::Resolve { account }) => {
+            let profile = remote
+                .call("profile/resolve", json!({"account": account}))
+                .await?;
+            print(json, &profile, pretty);
         }
     }
     Ok(())

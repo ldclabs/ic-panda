@@ -18,8 +18,12 @@ clap.workspace = true
 dmsg_client = { path = "../dmsg_client" }
 dmsg_types = { path = "../dmsg_types" }
 hex.workspace = true
+# Pinned as in anda-bot: credential-store initialization has regressed in
+# patch releases, so upgrades are validated explicitly.
+keyring = "=4.2.0"
 reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tokio = { workspace = true }
 toml = "1"
+zeroize = "1"

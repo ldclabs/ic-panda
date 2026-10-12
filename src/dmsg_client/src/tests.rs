@@ -1,15 +1,14 @@
 //! Readers of the exported formats no module implements yet: each test
 //! rebuilds the contexts and digests from record fields, then opens the
-//! ciphertexts. The tuples here are the byte rules the files (W2), channel and
-//! inbox (W5) modules take over; vault objects, root bundles and cloud
-//! commands are checked by their own modules.
+//! ciphertexts. The tuples here are the byte rules the channel and inbox (W5)
+//! modules take over; content, files, root bundles and cloud commands are
+//! checked by their own modules.
 
 use crate::codec::{b64, canonical, decode, decode_value, digest, sha256, unb64, MAX_RECORD};
-use crate::crypto::{derive, hpke_open, hpke_public, open, seal_with_nonce, HpkeEnvelope};
+use crate::crypto::{derive, hpke_open, hpke_public, open, HpkeEnvelope};
 use crate::vectors::{bytes, field, key, load, text, value};
 use serde::{Deserialize, Serialize};
 use serde_bytes::Bytes;
-use std::collections::BTreeMap;
 
 fn hex_sha256(bytes: &[u8]) -> String {
     hex::encode(sha256(bytes).as_slice())
@@ -17,124 +16,6 @@ fn hex_sha256(bytes: &[u8]) -> String {
 
 fn json<T: serde::de::DeserializeOwned>(value: &serde_json::Value) -> T {
     serde_json::from_value(value.clone()).unwrap()
-}
-
-fn chunk_nonce(index: u64) -> [u8; 12] {
-    let mut nonce = [0u8; 12];
-    nonce[..4].copy_from_slice(b"dMsg");
-    nonce[4..].copy_from_slice(&index.to_be_bytes());
-    nonce
-}
-
-#[test]
-fn reproduces_file_chunks() {
-    let vectors = load("content-v1.json");
-    let file = vectors["objects"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|o| o["name"] == "file entry")
-        .unwrap();
-    let manifest = field(&value(&file["payload"]), "file").clone();
-    let file_key: [u8; 32] = unb64(field(&manifest, "key").as_text().unwrap())
-        .unwrap()
-        .try_into()
-        .unwrap();
-    let refs = field(&manifest, "chunks").as_array().unwrap();
-    for case in vectors["file_chunks"].as_array().unwrap() {
-        let index = case["index"].as_u64().unwrap();
-        let size = field(&refs[index as usize], "size").as_integer().unwrap();
-        let aad = (
-            "dmsg/file-chunk/1",
-            field(&manifest, "id").as_text().unwrap(),
-            field(&manifest, "version").as_text().unwrap(),
-            index,
-            refs.len() as u64,
-            u64::try_from(size).unwrap(),
-        );
-        assert_eq!(canonical(&aad), bytes(&case["aad"]["hex"]));
-        assert_eq!(chunk_nonce(index).to_vec(), bytes(&case["nonce_hex"]));
-        let sealed = seal_with_nonce(
-            &file_key,
-            &bytes(&case["plaintext_hex"]),
-            &aad,
-            &chunk_nonce(index),
-        );
-        assert_eq!(sealed, text(&case["ciphertext"]));
-        assert_eq!(hex_sha256(&unb64(&sealed).unwrap()), text(&case["digest"]));
-    }
-    for case in vectors["chunk_rules"].as_array().unwrap() {
-        let index = case["index"].as_u64().unwrap();
-        let aad = (
-            "dmsg/file-chunk/1",
-            text(&case["file_id"]),
-            text(&case["version"]),
-            index,
-            case["count"].as_u64().unwrap(),
-            case["plaintext_length"].as_u64().unwrap(),
-        );
-        assert_eq!(canonical(&aad), bytes(&case["aad"]["hex"]));
-        assert_eq!(chunk_nonce(index).to_vec(), bytes(&case["nonce_hex"]));
-        let sealed = seal_with_nonce(
-            &key(&case["key_hex"]),
-            &bytes(&case["plaintext_hex"]),
-            &aad,
-            &chunk_nonce(index),
-        );
-        assert_eq!(sealed, text(&case["sealed"]));
-        assert_eq!(hex_sha256(&unb64(&sealed).unwrap()), text(&case["digest"]));
-    }
-    assert_eq!(
-        canonical(&BTreeMap::from([("format", "dmsg-cloud-empty-file/1")])),
-        bytes(&vectors["empty_file_hex"])
-    );
-}
-
-#[test]
-fn opens_upload_manifests() {
-    let vectors = load("content-v1.json");
-    let root = key(&vectors["root_hex"]);
-    let account = text(&vectors["account"]);
-    for case in vectors["uploads"].as_array().unwrap() {
-        let plan = &case["plan"];
-        let aad = (
-            "dmsg/cloud-manifest/1",
-            account,
-            text(&plan["upload_id"]),
-            text(&plan["object_id"]),
-            text(&plan["version_id"]),
-            text(&plan["kind"]),
-            plan["root_generation"].as_u64().unwrap(),
-        );
-        assert_eq!(
-            canonical(&aad),
-            bytes(&case["manifest_aad"]["hex"]),
-            "{}",
-            case["name"]
-        );
-        let manifest = unb64(text(&case["manifest"])).unwrap();
-        assert_eq!(hex_sha256(&manifest), text(&plan["manifest_digest"]));
-        assert_eq!(
-            manifest.len() as u64,
-            plan["manifest_size"].as_u64().unwrap()
-        );
-        let plaintext = open(&root, text(&case["manifest"]), &aad).unwrap();
-        assert_eq!(*plaintext, bytes(&case["manifest_plaintext_hex"]));
-        let body = decode_value(&plaintext, MAX_RECORD).unwrap();
-        assert_eq!(
-            field(&body, "format").as_text(),
-            Some("dmsg-cloud-manifest/1")
-        );
-        let content = field(&body, "content");
-        match case["content"].is_null() {
-            true => assert!(content.is_null()),
-            false => assert_eq!(canonical(content), canonical(&value(&case["content"]))),
-        }
-        if let Some(object) = case["object"].as_str() {
-            let object = unb64(object).unwrap();
-            assert_eq!(hex_sha256(&object), text(&plan["chunks"][0]["digest"]));
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize)]

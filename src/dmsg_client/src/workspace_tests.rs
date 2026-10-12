@@ -81,3 +81,29 @@ fn administrators_manage_the_root() {
         vec![Capability::ContentSign, Capability::VaultUnlock]
     );
 }
+
+#[test]
+fn fast_unlock_opens_a_second_copy() {
+    let mut ws = Workspace::load(Store::memory().unwrap(), &Environment::Local, 1).unwrap();
+    let keys = ws.unlock_provisional().unwrap();
+    assert_eq!(
+        ws.enable_fast(&keys, &[4; 32], 2).err(),
+        Some(Error::RecoveryIncomplete)
+    );
+    ws.bind(&keys, account(), &[9; 32]).unwrap();
+    assert_eq!(ws.unlock_fast(&[4; 32]).err(), Some(Error::NotFound));
+    ws.enable_fast(&keys, &[4; 32], 2).unwrap();
+    assert_eq!(ws.meta.fast_unlock, Some(2));
+    let fast = ws.unlock_fast(&[4; 32]).unwrap();
+    assert_eq!(*fast.signing, *keys.signing);
+    assert_eq!(fast.ldk.as_slice(), keys.ldk.as_slice());
+    assert!(matches!(
+        ws.unlock_fast(&[5; 32]),
+        Err(Error::IntegrityFailed)
+    ));
+    // The login path is untouched.
+    ws.unlock(&[9; 32]).unwrap();
+    ws.disable_fast().unwrap();
+    assert_eq!(ws.unlock_fast(&[4; 32]).err(), Some(Error::NotFound));
+    assert!(ws.store.sealed(FAST_LDK).unwrap().is_none());
+}

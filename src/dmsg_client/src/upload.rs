@@ -1,6 +1,7 @@
 //! Account uploads: a signed plan, ciphertext chunks, an encrypted manifest
-//! and a finalize command. A retry reuses the stored plan; an upload the
-//! relay already holds under the same ID must carry the same plan.
+//! and a finalize command. A retry reuses the stored plan and resumes after
+//! the chunks already stored; an upload the relay already holds under the
+//! same ID must carry the same plan.
 
 use crate::client::Client;
 use dmsg_types::{ensure, Error, Hash, Result};
@@ -48,12 +49,19 @@ pub struct UploadPlan {
 struct UploadStatus {
     status: String,
     plan: UploadPlan,
+    #[serde(default)]
+    quota_state: Option<String>,
+    #[serde(default)]
+    lease_expires_at: Option<u64>,
 }
 
 #[derive(Serialize)]
 struct UploadRef<'a> {
     upload_id: &'a str,
 }
+
+/// An unfinished upload must leave this much time to finish.
+const UPLOAD_MARGIN_MS: u64 = 300_000;
 
 /// A random nonzero ID as lowercase hex.
 pub fn random_hex() -> String {
@@ -78,19 +86,22 @@ pub fn hex_id(text: &str) -> Result<Hash> {
 }
 
 impl Client {
-    /// Upload `chunks` and `manifest` under `plan`, or confirm the relay
-    /// already committed exactly this plan.
+    /// Upload `plan`: its chunks come from the store by digest, starting
+    /// after the `sent` already stored, then `manifest`, then finalize.
+    /// `progress` records each stored chunk; an upload the relay already
+    /// committed under this plan returns at once.
     ///
     /// # Errors
     /// A different plan under the same ID returns `Error::IdempotencyConflict`;
-    /// an ended upload returns `Error::ResultExpired`.
+    /// an ended or nearly lapsed upload returns `Error::ResultExpired`, and
+    /// the caller replans it under a new ID.
     pub(crate) async fn upload(
         &mut self,
         plan: &UploadPlan,
-        chunks: &[Vec<u8>],
         manifest: &[u8],
+        mut sent: usize,
+        mut progress: impl FnMut(&Self, usize) -> Result<()>,
     ) -> Result<()> {
-        ensure(chunks.len() == plan.chunks.len(), Error::IntegrityFailed)?;
         let base = self.base()?;
         let path = format!("{base}/uploads/{}", plan.upload_id);
         let previous: Option<UploadStatus> = self
@@ -99,13 +110,34 @@ impl Client {
             .map(serde_json::from_value)
             .transpose()
             .map_err(|_| Error::IntegrityFailed)?;
-        if let Some(previous) = &previous {
-            ensure(previous.plan == *plan, Error::IdempotencyConflict)?;
-            if previous.status == "committed" {
-                return Ok(());
+        let now = crate::now_ms();
+        let reserve = match &previous {
+            Some(previous) => {
+                ensure(previous.plan == *plan, Error::IdempotencyConflict)?;
+                if previous.status == "committed" {
+                    return Ok(());
+                }
+                ensure(
+                    previous.status == "staging"
+                        && previous.quota_state.as_deref() != Some("released")
+                        && plan.expires_at > now + UPLOAD_MARGIN_MS
+                        && previous
+                            .lease_expires_at
+                            .is_none_or(|t| t > now + UPLOAD_MARGIN_MS),
+                    Error::ResultExpired,
+                )?;
+                previous.quota_state.as_deref() == Some("pending")
             }
-            ensure(previous.status == "staging", Error::ResultExpired)?;
-        } else {
+            None => {
+                ensure(
+                    plan.expires_at > now + UPLOAD_MARGIN_MS,
+                    Error::ResultExpired,
+                )?;
+                sent = 0;
+                true
+            }
+        };
+        if reserve {
             self.relay_post(
                 &format!("{base}/uploads"),
                 "dmsg/upload/reserve/v1",
@@ -114,9 +146,16 @@ impl Client {
             )
             .await?;
         }
-        for (index, chunk) in chunks.iter().enumerate() {
-            self.relay_put(&format!("{path}/chunks/{index}"), chunk)
+        for (index, chunk) in plan.chunks.iter().enumerate().skip(sent) {
+            let bytes = self
+                .workspace
+                .store
+                .chunk(&chunk.digest)?
+                .ok_or(Error::RecoveryIncomplete)?;
+            ensure(bytes.len() as u64 == chunk.size, Error::IntegrityFailed)?;
+            self.relay_put(&format!("{path}/chunks/{index}"), &bytes)
                 .await?;
+            progress(self, index + 1)?;
         }
         self.relay_put(&format!("{path}/chunks/manifest"), manifest)
             .await?;
@@ -132,12 +171,37 @@ impl Client {
             .await?;
         ensure(
             result["upload_id"] == plan.upload_id.as_str()
-                && result["digest"] == plan.manifest_digest.as_str(),
+                && result["digest"] == plan.manifest_digest.as_str()
+                && result["object_id"] == plan.object_id.as_str()
+                && result["version_id"] == plan.version_id.as_str(),
             Error::IntegrityFailed,
         )
     }
 
-    /// Download a committed upload's manifest and check its digest.
+    /// Cancel a staging upload that can no longer finish, so its quota
+    /// returns; an upload already ended stays as it is.
+    ///
+    /// # Errors
+    /// Relay errors other than an absent or ended upload.
+    pub(crate) async fn cancel_upload(&mut self, upload_id: &str) -> Result<()> {
+        let base = self.base()?;
+        let found = self
+            .relay_find(&format!("{base}/uploads/{upload_id}"))
+            .await?;
+        if found.is_some_and(|f| f["status"] == "staging") {
+            self.relay_post(
+                &format!("{base}/uploads/cancel"),
+                "dmsg/upload/cancel/v1",
+                &UploadRef { upload_id },
+                &Hash::new(crate::crypto::random_id()),
+            )
+            .await?;
+        }
+        Ok(())
+    }
+
+    /// Download one chunk or the manifest of a committed upload and check
+    /// its digest.
     ///
     /// # Errors
     /// A digest mismatch returns `Error::IntegrityFailed`.

@@ -557,7 +557,7 @@ impl Client {
         })
     }
 
-    fn save_root(&self, keys: &RootKeys) -> Result<()> {
+    pub(crate) fn save_root(&self, keys: &RootKeys) -> Result<()> {
         let record = RootRecord {
             generation: keys.generation,
             digest: keys.digest,
@@ -594,12 +594,12 @@ impl Client {
                     .collect(),
             });
         }
-        let account = self.account()?.clone();
-        let state = self.refresh(account.home, &account.id).await?;
-        match state.info.current_root {
-            Some(current)
+        let state = self.cloud_state().await?;
+        let snapshot = &state.snapshot;
+        match snapshot.content_root_digest {
+            Some(digest)
                 if self.root.as_ref().map(|r| (r.generation, r.digest))
-                    != Some((current.generation, current.bundle_digest)) =>
+                    != Some((snapshot.content_root_generation, digest)) =>
             {
                 self.open_current().await
             }
@@ -614,10 +614,10 @@ impl Client {
     pub async fn open_current(&mut self) -> Result<()> {
         let account = self.account()?.clone();
         let state = self.cloud_state().await?;
-        let current = state
-            .info
-            .current_root
-            .clone()
+        let generation = state.snapshot.content_root_generation;
+        let digest = state
+            .snapshot
+            .content_root_digest
             .ok_or(Error::RecoveryIncomplete)?;
         state.active(&self.workspace.meta.device_id).and_then(|d| {
             ensure(
@@ -630,7 +630,7 @@ impl Client {
             serde_json::from_value(value["root"].clone()).map_err(|_| Error::IntegrityFailed)?;
         hex_id(&pointer.upload_id)?;
         ensure(
-            pointer.root_generation == current.generation,
+            pointer.root_generation == generation,
             Error::IntegrityFailed,
         )?;
         let mut bundles = vec![
@@ -649,14 +649,14 @@ impl Client {
         let environment = crate::config::environment_name(&self.config.environment);
         let (root, history) = open_root(
             &bundles,
-            &current.bundle_digest,
-            (&account.id.to_string(), environment, current.generation),
+            &digest,
+            (&account.id.to_string(), environment, generation),
             &self.workspace.meta.device_id,
             &self.keys()?.hpke,
         )?;
         let keys = RootKeys {
-            generation: current.generation,
-            digest: current.bundle_digest,
+            generation,
+            digest,
             sha256: hex::encode(*sha256(&bundles[0])),
             upload_id: pointer.upload_id,
             root,
@@ -677,7 +677,7 @@ impl Client {
     /// current root yet.
     pub async fn rotate_root(&mut self) -> Result<u64> {
         let account = self.account()?.clone();
-        let mut state = self.cloud_state().await?;
+        let mut state = self.refresh(account.home, &account.id).await?;
         let current = state.info.current_root.clone();
         let mut job = match self.workspace.private::<RootJob>(self.keys()?, ROOT_JOB)? {
             Some(job) => job,
@@ -722,7 +722,7 @@ impl Client {
                 .info
                 .root_slot
                 .clone()
-                .filter(|s| s.expires_at > state.certified_at);
+                .filter(|s| s.expires_at > state.security.certified_at);
             let slot = match live {
                 Some(slot) => slot,
                 None => {
@@ -822,7 +822,10 @@ impl Client {
             })
             .clone();
         save(self, &job)?;
-        self.upload(&plan, &[placeholder], &bytes).await?;
+        self.workspace
+            .store
+            .put_chunk(&plan.chunks[0].digest, &placeholder)?;
+        self.upload(&plan, &bytes, 0, |_, _| Ok(())).await?;
         self.download(&plan.upload_id, "manifest", &plan.manifest_digest)
             .await?;
         self.mutate(

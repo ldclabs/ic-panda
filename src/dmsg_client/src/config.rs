@@ -26,6 +26,8 @@ pub struct Config {
     pub root_key: Option<Vec<u8>>,
     /// Login page; only a local deployment may replace [`LOGIN_URL`].
     pub login_url: String,
+    /// Keep the device signing key while locked ("后台在线", plan D-7).
+    pub background_online: bool,
 }
 
 impl Config {

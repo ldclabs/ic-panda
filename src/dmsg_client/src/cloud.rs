@@ -4,7 +4,9 @@
 //!
 //! Requests carry no `Origin` and no cookies, follow no redirects and bound
 //! every response. Nothing is retried here: callers reconcile mutations by
-//! their request ID.
+//! their request ID. A [`Presigned`] command carries its own proofs, so it
+//! can be submitted, and its outcome read, without the device key until its
+//! deadline.
 
 use crate::codec::{b64, canonical, decode, decode_value, sha256, unb64};
 use crate::crypto::{sign, Key};
@@ -12,7 +14,7 @@ use cbor2::Value;
 use dmsg_protocol::verify;
 use dmsg_types::{ensure, user::Device, Error, Hash, Result};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_bytes::Bytes;
+use serde_bytes::{ByteBuf, Bytes};
 use serde_json::Value as Json;
 use std::collections::BTreeMap;
 use std::time::Duration;
@@ -295,6 +297,32 @@ pub fn canonical_target(url: &Url) -> Result<String> {
     Ok(format!("{path}?{query}"))
 }
 
+/// A device command signed ahead together with the proofs to submit it and
+/// to read its operation; none of it is secret.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Presigned {
+    /// The request ID, hex.
+    pub request_id: String,
+    /// The deadline of the command and both proofs.
+    pub deadline: u64,
+    /// Path of the POST.
+    pub path: String,
+    /// Canonical CBOR `{cose_sign1}`.
+    pub body: ByteBuf,
+    /// Proof of the POST.
+    pub post: String,
+    /// Path of the operation the request creates.
+    pub status_path: String,
+    /// Proof of the GET of that operation.
+    pub status: String,
+}
+
+#[derive(Serialize)]
+struct CommandBody<'a> {
+    cose_sign1: &'a str,
+}
+
 /// The relay's error code mapped onto the client errors.
 fn relay_error(code: &str, message: &str) -> Error {
     match code {
@@ -453,6 +481,31 @@ impl Cloud {
         })
     }
 
+    /// A public, unauthenticated GET under `/public/`; `None` when absent.
+    ///
+    /// # Errors
+    /// Relay errors other than `NotFound`.
+    pub async fn public(&self, path: &str) -> Result<Option<Json>> {
+        ensure(
+            path.starts_with("/public/") && !path.contains("//") && !path.contains('\\'),
+            dmsg_types::invalid("path"),
+        )?;
+        let url = self
+            .origin
+            .join(path)
+            .map_err(|_| dmsg_types::invalid("path"))?;
+        ensure(url.origin() == self.origin.origin(), Error::Forbidden)?;
+        match self
+            .exchange(reqwest::Method::GET, url, None, None, false)
+            .await
+            .and_then(Reply::json)
+        {
+            Ok(value) => Ok(Some(value)),
+            Err(Error::NotFound) => Ok(None),
+            Err(error) => Err(error),
+        }
+    }
+
     /// Hand the relay certified account evidence.
     ///
     /// # Errors
@@ -516,11 +569,7 @@ impl Cloud {
         let request_id = hex::encode(**request_id);
         let deadline = signer.deadline(now)?;
         let command = sign_command(signer, action, payload, &request_id, deadline);
-        #[derive(Serialize)]
-        struct Body<'a> {
-            cose_sign1: &'a str,
-        }
-        let body = canonical(&Body {
+        let body = canonical(&CommandBody {
             cose_sign1: &command,
         });
         ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
@@ -530,6 +579,75 @@ impl Cloud {
             url,
             Some((body, "application/cbor")),
             Some(pop),
+            false,
+        )
+        .await?
+        .json()
+    }
+
+    /// Sign a command for `path` and the proofs to post it and to read its
+    /// operation at `status_path`, all valid until the same deadline.
+    ///
+    /// # Errors
+    /// Returns `Error::PolicyStale` when the evidence leaves no deadline.
+    #[allow(clippy::too_many_arguments)]
+    pub fn presign<P: Serialize>(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        action: &str,
+        payload: &P,
+        request_id: &Hash,
+        status_path: &str,
+        now: u64,
+    ) -> Result<Presigned> {
+        let url = self.url(path)?;
+        let status_url = self.url(status_path)?;
+        let request_id = hex::encode(**request_id);
+        let deadline = signer.deadline(now)?;
+        let command = sign_command(signer, action, payload, &request_id, deadline);
+        let body = canonical(&CommandBody {
+            cose_sign1: &command,
+        });
+        ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
+        Ok(Presigned {
+            post: sign_http(signer, &url, "POST", &body, &request_id, deadline)?,
+            status: sign_http(signer, &status_url, "GET", &[], &request_id, deadline)?,
+            request_id,
+            deadline,
+            path: path.into(),
+            body: ByteBuf::from(body),
+            status_path: status_path.into(),
+        })
+    }
+
+    /// The outcome of a presigned command: the stored operation's result,
+    /// or, when the relay has none, the result of posting it now.
+    ///
+    /// # Errors
+    /// Returns `Error::Expired` past the deadline; relay errors as returned,
+    /// a lost response is `Error::ExecutionUnknown`.
+    pub async fn submit(&self, presigned: &Presigned, now: u64) -> Result<Json> {
+        ensure(now < presigned.deadline, Error::Expired)?;
+        let status = self
+            .exchange(
+                reqwest::Method::GET,
+                self.url(&presigned.status_path)?,
+                None,
+                Some(presigned.status.clone()),
+                false,
+            )
+            .await;
+        match status.and_then(Reply::json) {
+            Ok(found) if found["found"] == true => return Ok(found["result"].clone()),
+            Ok(_) | Err(Error::NotFound) => {}
+            Err(error) => return Err(error),
+        }
+        self.exchange(
+            reqwest::Method::POST,
+            self.url(&presigned.path)?,
+            Some((presigned.body.to_vec(), "application/cbor")),
+            Some(presigned.post.clone()),
             false,
         )
         .await?

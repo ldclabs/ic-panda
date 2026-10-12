@@ -38,8 +38,11 @@ impl Remote {
                 "the dmsg daemon is not running; start it with `dmsg daemon`",
             )
         })?;
+        let settings = home
+            .settings()
+            .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
         let token = home
-            .owner_token(false)
+            .owner_token(&settings, false)
             .map_err(|e| Failure::new("AUTH_REQUIRED", e.to_string()))?;
         Ok(Self {
             base: format!("http://127.0.0.1:{}", discovery.port),

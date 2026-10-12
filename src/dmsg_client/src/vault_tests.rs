@@ -1,11 +1,12 @@
 use super::*;
-use crate::vectors::{bytes, key, load, text};
+use crate::store::LOCAL;
+use crate::testing::{unlocked, TempDir};
 
 fn item(title: &str) -> Item {
     Item {
         kind: "note".into(),
         title: title.into(),
-        tags: vec![],
+        tags: vec!["work".into()],
         body: "body".into(),
         username: String::new(),
         secret: "s3cret".into(),
@@ -13,116 +14,9 @@ fn item(title: &str) -> Item {
         favorite: false,
         created_at: 1,
         updated_at: 1,
+        file: None,
         resolved_conflicts: None,
     }
-}
-
-#[test]
-fn opens_exported_objects() {
-    let v = load("content-v1.json");
-    let environment = text(&v["environment"]);
-    let roots = RootKeys::single(v["root_generation"].as_u64().unwrap(), key(&v["root_hex"]));
-    for case in v["objects"].as_array().unwrap() {
-        let record: EncryptedObject = serde_json::from_value(case["record"].clone()).unwrap();
-        let plaintext = record.open(environment, &roots).unwrap();
-        assert_eq!(
-            *plaintext,
-            bytes(&case["plaintext_hex"]),
-            "{}",
-            case["name"]
-        );
-        assert_eq!(object_container(&record), bytes(&case["object_hex"]));
-        assert_eq!(read_container(&bytes(&case["object_hex"])).unwrap(), record);
-        if case["payload"]["map"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|e| e[0]["text"] != "file")
-        {
-            let item: Item = decode(&plaintext, MAX_OBJECT).unwrap();
-            assert_eq!(canonical(&item), *plaintext);
-        }
-        let mut changed = record.clone();
-        changed.tombstone = !changed.tombstone;
-        assert_eq!(
-            changed.open(environment, &roots).err(),
-            Some(Error::IntegrityFailed)
-        );
-        let other = RootKeys::single(record.generation + 1, [1; 32]);
-        assert_eq!(
-            record.open(environment, &other).err(),
-            Some(Error::RecoveryIncomplete)
-        );
-    }
-}
-
-#[test]
-fn opens_exported_vault_manifests() {
-    let v = load("content-v1.json");
-    let account = text(&v["account"]);
-    let root = key(&v["root_hex"]);
-    let mut opened = 0;
-    for case in v["uploads"].as_array().unwrap() {
-        let plan: UploadPlan = serde_json::from_value(case["plan"].clone()).unwrap();
-        if plan.kind != VAULT {
-            continue;
-        }
-        let manifest = unb64(text(&case["manifest"])).unwrap();
-        open_manifest(&root, account, &plan, &manifest).unwrap();
-        let object = unb64(text(&case["object"])).unwrap();
-        assert_eq!(hex::encode(*sha256(&object)), plan.chunks[0].digest);
-        read_container(&object).unwrap();
-        let mut moved = plan.clone();
-        moved.root_generation += 1;
-        assert!(open_manifest(&root, account, &moved, &manifest).is_err());
-        opened += 1;
-    }
-    assert_eq!(opened, 3);
-}
-
-#[test]
-fn seals_objects_and_manifests_that_open() {
-    let roots = RootKeys::single(2, [5; 32]);
-    let payload = canonical(&item("hello"));
-    let record = EncryptedObject::seal(
-        "local",
-        (2, &[5; 32]),
-        "040g2081040g2081040g",
-        &"07".repeat(32),
-        VAULT,
-        "ab".repeat(32),
-        None,
-        false,
-        &payload,
-        9,
-    );
-    assert_eq!(record.key, format!("{}:{}", record.id, record.revision));
-    assert_eq!(*record.open("local", &roots).unwrap(), payload);
-    assert_eq!(
-        record.open("staging", &roots).err(),
-        Some(Error::IntegrityFailed)
-    );
-
-    let object = object_container(&record);
-    let mut plan = UploadPlan {
-        upload_id: random_hex(),
-        object_id: record.id.clone(),
-        version_id: record.revision.clone(),
-        root_generation: 2,
-        epoch: 0,
-        control_head: None,
-        kind: VAULT.into(),
-        chunks: vec![ChunkRef {
-            digest: hex::encode(*sha256(&object)),
-            size: object.len() as u64,
-        }],
-        manifest_digest: String::new(),
-        manifest_size: 0,
-        expires_at: 1,
-    };
-    let manifest = seal_manifest(&[5; 32], "040g2081040g2081040g", &mut plan);
-    open_manifest(&[5; 32], "040g2081040g2081040g", &plan, &manifest).unwrap();
-    assert!(open_manifest(&[5; 32], "040g2081040g2081040g", &plan, &manifest[1..]).is_err());
 }
 
 #[test]
@@ -139,4 +33,130 @@ fn items_have_limits() {
     let mut kind = item("x");
     kind.kind = "file".into();
     assert!(kind.validate().is_err());
+}
+
+#[test]
+fn edits_deletes_and_restores_are_versions() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let first = client.vault_put(None, None, &item("alpha")).unwrap();
+    assert!(!first.synced && !first.conflict && !first.deleted);
+    let mut changed = item("alpha 2");
+    changed.secret = "new".into();
+    let second = client.vault_put(Some(&first.id), None, &changed).unwrap();
+    assert_eq!(second.id, first.id);
+    assert_ne!(second.revision, first.revision);
+    assert_eq!(client.vault_show(&first.id).unwrap().item.title, "alpha 2");
+
+    let found = client
+        .vault_list(&Filter {
+            query: Some("WORK".into()),
+            ..Filter::default()
+        })
+        .unwrap();
+    assert_eq!(found.len(), 1);
+    let none = client
+        .vault_list(&Filter {
+            query: Some("nothing".into()),
+            ..Filter::default()
+        })
+        .unwrap();
+    assert!(none.is_empty());
+
+    let deleted = client.vault_delete(&first.id).unwrap();
+    assert!(deleted.deleted);
+    assert!(client.vault_list(&Filter::default()).unwrap().is_empty());
+    let trash = client
+        .vault_list(&Filter {
+            trash: true,
+            ..Filter::default()
+        })
+        .unwrap();
+    assert_eq!(trash.len(), 1);
+    assert_eq!(client.vault_delete(&first.id).err(), Some(Error::NotFound));
+    assert_eq!(
+        client.vault_put(Some(&first.id), None, &item("x")).err(),
+        Some(Error::NotFound)
+    );
+
+    let restored = client.vault_restore(&first.id).unwrap();
+    assert!(!restored.deleted);
+    assert_eq!(restored.item.secret, "new");
+    assert_eq!(client.vault_list(&Filter::default()).unwrap().len(), 1);
+    // Every version waits for the relay, each with its job.
+    assert_eq!(client.workspace.store.count_in(LOCAL).unwrap(), 4);
+    let jobs: Vec<(String, crate::sync::ContentJob)> = client.workspace.store.jobs().unwrap();
+    assert_eq!(jobs.len(), 4);
+
+    let masked = restored.masked(false);
+    assert_eq!(masked.item.secret, "********");
+}
+
+#[test]
+fn a_stale_edit_is_a_conflict_copy() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let first = client.vault_put(None, None, &item("alpha")).unwrap();
+    let head = client
+        .vault_put(Some(&first.id), None, &item("ours"))
+        .unwrap();
+    let stale = client
+        .vault_put(Some(&first.id), Some(&first.revision), &item("theirs"))
+        .unwrap();
+    assert!(stale.conflict);
+    let key = format!("{}:{}", stale.id, stale.revision);
+    // A conflict copy is still sent, so the relay keeps it for every device.
+    let row = client.workspace.store.object(&key).unwrap().unwrap();
+    assert_eq!((row.state.as_str(), row.conflict), (LOCAL, true));
+    assert!(client
+        .workspace
+        .store
+        .job::<crate::sync::ContentJob>(&key)
+        .unwrap()
+        .is_some());
+    assert_eq!(
+        client.vault_show(&first.id).unwrap().revision,
+        head.revision
+    );
+    assert_eq!(client.vault_conflicts().unwrap().len(), 1);
+
+    let resolved = client.vault_resolve(&key, false).unwrap();
+    assert_eq!(resolved.item.title, "theirs");
+    assert_eq!(resolved.item.resolved_conflicts, Some(vec![key.clone()]));
+    assert!(client.vault_conflicts().unwrap().is_empty());
+    assert_eq!(
+        client.vault_resolve(&key, true).err(),
+        Some(Error::NotFound)
+    );
+    // Later edits keep the record of what was resolved.
+    let edited = client
+        .vault_put(Some(&first.id), None, &item("later"))
+        .unwrap();
+    assert_eq!(edited.item.resolved_conflicts, Some(vec![key]));
+}
+
+#[test]
+fn files_enter_only_by_import() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let path = dir.path("note.txt");
+    std::fs::write(&path, b"hello file").unwrap();
+    let entry = client.file_import(&path).unwrap();
+    let file = entry.item.file.clone().unwrap();
+    assert_eq!(entry.item.kind, "file");
+
+    let mut forged = item("forged");
+    forged.kind = "file".into();
+    forged.file = Some(file.clone());
+    assert!(client.vault_put(None, None, &forged).is_err());
+
+    // Editing a file item changes its fields, never its file.
+    let mut edit = entry.item.clone();
+    edit.title = "renamed".into();
+    edit.file = None;
+    let edited = client.vault_put(Some(&entry.id), None, &edit).unwrap();
+    assert_eq!(edited.item.file, Some(file.clone()));
+    assert_eq!(edited.item.title, "renamed");
+    let masked = edited.masked(true);
+    assert_eq!(masked.item.file.unwrap().key, "");
 }

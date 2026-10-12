@@ -10,7 +10,7 @@ test-only.
 | File | Content | Rust test |
 | --- | --- | --- |
 | `primitives-v1.json` | Canonical CBOR encodings and rejections, base64url, Xid, `D(K, C)`, the local unlock key, COSE_Encrypt0 seals and rejections, HPKE with a fixed ephemeral key, Ed25519 | `codec::tests`, `crypto::tests` |
-| `content-v1.json` | Encrypted objects (new, edited, tombstone, file entries), the cloud object container, file chunks and the chunk nonce rule, upload manifests | `vault::tests::opens_exported_objects`, `opens_exported_vault_manifests`; `tests::reproduces_file_chunks`, `opens_upload_manifests` |
+| `content-v1.json` | Encrypted objects (new, edited, tombstone, file entries), the cloud object container, file chunks and the chunk nonce rule, upload manifests | `content::tests::opens_exported_objects`, `opens_exported_manifests`; `files::tests::reproduces_file_chunks`, `reads_exported_files` |
 | `root-v2.json` | RootBundle v2 for two generations: device envelopes, signature, the three on-chain digests, commitment and previous-root link | `root::tests::opens_exported_bundles` |
 | `channel-v1.json` | One channel epoch: rotation envelopes and manifest, key confirmation, a message, a history grant and an attachment | `tests::opens_channel_*` |
 | `inbox-v1.json` | The inbox key object ID and a letter envelope | `tests::opens_inbox_letters` |

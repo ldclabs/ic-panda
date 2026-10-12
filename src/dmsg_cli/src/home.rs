@@ -2,11 +2,15 @@
 //! lock and discovery file, and one workspace directory per environment.
 //!
 //! Security settings live only in `config.toml`; nothing a running daemon
-//! receives can change them.
+//! receives can change them. Secrets that open the workspace live in the
+//! system credential store (`secure_storage = "system"`), never in the home;
+//! with `"file"` the owner credential is a file only its owner can read and
+//! fast unlock is unavailable.
 
 use candid::Principal;
 use dmsg_client::config::{parse_environment, Config, LOGIN_URL};
-use dmsg_types::{Error, Result};
+use dmsg_client::secure::SecureStorage;
+use dmsg_types::{Error, Result, MINUTE};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
@@ -24,6 +28,34 @@ struct ConfigFile {
     user_homes: Vec<String>,
     root_key: Option<String>,
     login_url: Option<String>,
+    #[serde(default)]
+    background_online: bool,
+    idle_lock_minutes: Option<u64>,
+    #[serde(default)]
+    sync_interval_minutes: u64,
+    secure_storage: Option<String>,
+}
+
+/// Where the home keeps the secrets that open it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Storage {
+    /// The system credential store.
+    System,
+    /// Owner-only files; no fast unlock.
+    File,
+}
+
+/// `config.toml`: the deployment and the daemon's policies.
+#[derive(Clone, Debug)]
+pub struct Settings {
+    /// The deployment.
+    pub config: Config,
+    /// Inactivity before the daemon locks.
+    pub idle_lock_ms: u64,
+    /// Interval of the background sync; 0 turns it off.
+    pub sync_interval_ms: u64,
+    /// Where secrets live.
+    pub storage: Storage,
 }
 
 /// Where the running daemon listens.
@@ -70,7 +102,7 @@ impl Home {
     ///
     /// # Errors
     /// Returns `Error::InvalidInput` naming a missing or invalid setting.
-    pub fn config(&self) -> Result<Config> {
+    pub fn settings(&self) -> Result<Settings> {
         let path = self.dir.join("config.toml");
         let text = fs::read_to_string(&path)
             .map_err(|e| Error::InvalidInput(format!("{}: {e}", path.display())))?;
@@ -91,9 +123,37 @@ impl Home {
                 .map(|k| hex::decode(k).map_err(|_| dmsg_types::invalid("root_key")))
                 .transpose()?,
             login_url: file.login_url.unwrap_or_else(|| LOGIN_URL.into()),
+            background_online: file.background_online,
         };
         config.validate()?;
-        Ok(config)
+        let idle = file.idle_lock_minutes.unwrap_or(15);
+        if !(1..=24 * 60).contains(&idle) {
+            return Err(dmsg_types::invalid("idle_lock_minutes"));
+        }
+        if file.sync_interval_minutes > 24 * 60 {
+            return Err(dmsg_types::invalid("sync_interval_minutes"));
+        }
+        let storage = match file.secure_storage.as_deref() {
+            Some("system") => Storage::System,
+            Some("file") => Storage::File,
+            None if cfg!(any(target_os = "macos", windows)) => Storage::System,
+            None => Storage::File,
+            Some(_) => return Err(dmsg_types::invalid("secure_storage")),
+        };
+        Ok(Settings {
+            config,
+            idle_lock_ms: idle * MINUTE,
+            sync_interval_ms: file.sync_interval_minutes * MINUTE,
+            storage,
+        })
+    }
+
+    /// The credential store of these settings, if it is the system one.
+    pub fn secure(settings: &Settings) -> Option<std::sync::Arc<dyn SecureStorage>> {
+        match settings.storage {
+            Storage::System => Some(std::sync::Arc::new(crate::secure::SystemStorage)),
+            Storage::File => None,
+        }
     }
 
     /// The workspace directory of an environment.
@@ -102,25 +162,43 @@ impl Home {
             .join(dmsg_client::config::environment_name(&config.environment))
     }
 
-    fn token_path(&self) -> PathBuf {
-        self.dir.join("owner.token")
-    }
-
-    /// The owner credential, created on first use; only the owner can read it.
+    /// The owner credential, created on first use: in the system
+    /// credential store, or a file only its owner can read.
     ///
     /// # Errors
-    /// Returns `Error::Unavailable` when the file cannot be written.
-    pub fn owner_token(&self, create: bool) -> Result<String> {
-        let path = self.token_path();
-        match fs::read_to_string(&path) {
-            Ok(token) => return Ok(token.trim().to_string()),
-            Err(e) if e.kind() != std::io::ErrorKind::NotFound || !create => return Err(io(e)),
-            Err(_) => {}
+    /// Returns `Error::Unavailable` when it cannot be read or written.
+    pub fn owner_token(&self, settings: &Settings, create: bool) -> Result<String> {
+        let existing = match settings.storage {
+            Storage::System => crate::secure::SystemStorage
+                .get(&self.owner_name()?)?
+                .map(|t| String::from_utf8_lossy(&t).into_owned()),
+            Storage::File => match fs::read_to_string(self.dir.join("owner.token")) {
+                Ok(token) => Some(token.trim().to_string()),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+                Err(e) => return Err(io(e)),
+            },
+        };
+        if let Some(token) = existing {
+            return Ok(token);
+        }
+        if !create {
+            return Err(Error::AuthRequired);
         }
         fs::create_dir_all(&self.dir).map_err(io)?;
         let token = hex::encode(dmsg_client::crypto::random_key());
-        write_private(&path, token.as_bytes())?;
+        match settings.storage {
+            Storage::System => {
+                crate::secure::SystemStorage.set(&self.owner_name()?, token.as_bytes())?
+            }
+            Storage::File => write_private(&self.dir.join("owner.token"), token.as_bytes())?,
+        }
         Ok(token)
+    }
+
+    /// The credential-store name of this home's owner credential.
+    fn owner_name(&self) -> Result<String> {
+        let dir = fs::canonicalize(&self.dir).map_err(io)?;
+        Ok(format!("owner:{}", dir.display()))
     }
 
     /// The daemon's discovery file, if a daemon runs.

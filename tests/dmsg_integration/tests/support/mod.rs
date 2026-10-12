@@ -21,12 +21,61 @@ pub struct Deployment {
     pub peer: Principal,
     pub gateway: String,
     pub root_key_hex: String,
+    /// Declared after `ic`, so the instance is deleted before the server stops.
+    _server: Server,
+}
+
+/// The PocketIC server process, stopped when dropped.
+struct Server(std::process::Child);
+
+impl Drop for Server {
+    fn drop(&mut self) {
+        let _ = self.0.kill();
+        let _ = self.0.wait();
+    }
+}
+
+/// A PocketIC server of its own. Requests through the HTTP gateway do not
+/// count as server activity, so the default 60-second idle TTL would stop
+/// the server while daemons and the relay still use the deployment.
+fn server() -> (Server, reqwest::Url) {
+    let bin = std::env::var_os("POCKET_IC_BIN").expect("POCKET_IC_BIN");
+    let port_file = std::env::temp_dir().join(format!(
+        "dmsg-pocket-ic-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let server = Server(
+        std::process::Command::new(bin)
+            .arg("--port-file")
+            .arg(&port_file)
+            .args(["--ttl", "600"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
+    let started = std::time::Instant::now();
+    loop {
+        let port = std::fs::read_to_string(&port_file).unwrap_or_default();
+        if let Ok(port) = port.trim().parse::<u16>() {
+            let _ = std::fs::remove_file(&port_file);
+            return (server, format!("http://127.0.0.1:{port}/").parse().unwrap());
+        }
+        assert!(started.elapsed().as_secs() < 30, "PocketIC did not start");
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
 }
 
 impl Deployment {
     /// Install and configure every canister, then open the HTTP gateway.
     pub fn start() -> Self {
+        let (server, url) = server();
         let mut ic = PocketIcBuilder::new()
+            .with_server_url(url)
             .with_nns_subnet()
             .with_application_subnet()
             .with_fiduciary_subnet()
@@ -168,8 +217,10 @@ impl Deployment {
         );
         let mut plans = dmsg_protocol::billing::default_plans(1);
         // Synthetic local catalog: a just-created account must have a nonzero
-        // prorated allowance at any point in the calendar month.
+        // prorated allowance at any point in the calendar month, and room for
+        // the desktop acceptance's 100 MiB file with its encryption overhead.
         plans[0].limits.monthly_execution_units = 1000;
+        plans[0].limits.storage_bytes = 1_073_741_824;
         ic.install_canister(
             commerce,
             std::fs::read(dir.join("dmsg_commerce.wasm")).unwrap(),
@@ -470,6 +521,7 @@ impl Deployment {
             peer,
             gateway,
             root_key_hex,
+            _server: server,
         }
     }
 

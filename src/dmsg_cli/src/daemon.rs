@@ -5,8 +5,13 @@
 //! an `Origin`, so web pages cannot even learn whether it runs. The login
 //! callback is open only while a login is pending, accepts one POST from its
 //! own loopback origin and then closes (`docs/protocol/login-v1_zh.md` §4).
+//!
+//! Idle for `idle_lock_minutes`, the daemon locks; versions already signed
+//! for submission are still sent by a keyless flush, and with
+//! `background_online` the device key stays for sending and fetching
+//! ciphertext. `sync_interval_minutes` adds a scheduled sync.
 
-use crate::home::{Discovery, Home};
+use crate::home::{Discovery, Home, Settings};
 use axum::{
     body::Bytes,
     extract::State,
@@ -17,12 +22,14 @@ use axum::{
 };
 use dmsg_client::{
     account::login_targets,
+    error_code,
     login::{LoginSession, DEFAULT_TTL_MS},
     now_ms,
-    vault::{Item, VaultEntry},
+    profile::ProfileFields,
+    vault::{Filter, Item, VaultEntry},
     Client,
 };
-use dmsg_types::{user::ControllerRole, Error, Result, MINUTE};
+use dmsg_types::{user::ControllerRole, AccountId, Error, Result};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::{
@@ -31,24 +38,38 @@ use std::sync::{
 };
 use tokio::sync::{Mutex, Notify};
 
-/// Inactivity after which the daemon locks.
-const IDLE_MS: u64 = 15 * MINUTE;
+/// How often presigned submissions are flushed.
+const FLUSH_MS: u64 = 10_000;
 
 /// The JSON-RPC methods of `/app/v1`.
-const METHODS: [&str; 14] = [
+const METHODS: [&str; 28] = [
     "session/status",
     "session/login",
     "session/login_result",
     "session/unlock",
     "session/lock",
+    "session/fast_unlock",
     "account/create",
     "account/show",
     "device/pair_request",
     "device/approve",
     "vault/put",
+    "vault/edit",
+    "vault/delete",
+    "vault/restore",
     "vault/list",
     "vault/show",
+    "vault/conflicts",
+    "vault/resolve",
+    "file/import",
+    "file/export",
+    "file/verify",
     "sync/run",
+    "sync/status",
+    "profile/show",
+    "profile/publish",
+    "profile/resolve",
+    "workspace/reset",
     "daemon/stop",
 ];
 
@@ -87,6 +108,7 @@ struct Daemon {
     token: String,
     instance: String,
     port: u16,
+    settings: Settings,
     client: Mutex<Client>,
     login: std::sync::Mutex<LoginState>,
     activity: AtomicU64,
@@ -102,28 +124,19 @@ struct RpcRequest {
     params: Value,
 }
 
-fn error_code(error: &Error) -> String {
-    let name = format!("{error:?}");
-    let name = name.split('(').next().unwrap_or_default();
-    let mut code = String::new();
-    for (i, c) in name.chars().enumerate() {
-        if c.is_uppercase() && i > 0 {
-            code.push('_');
-        }
-        code.push(c.to_ascii_uppercase());
-    }
-    code
-}
-
 /// Run the daemon in the foreground until stopped.
 ///
 /// # Errors
 /// Returns `Error::Locked` when another daemon serves this home.
 pub async fn run(home: Home, port: u16) -> Result<()> {
-    let config = home.config()?;
+    let settings = home.settings()?;
     let _lock = home.lock()?;
-    let token = home.owner_token(true)?;
-    let client = Client::open(config.clone(), &home.workspace(&config))?;
+    let token = home.owner_token(&settings, true)?;
+    let client = Client::open(
+        settings.config.clone(),
+        &home.workspace(&settings.config),
+        Home::secure(&settings),
+    )?;
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port))
         .await
         .map_err(|e| Error::Unavailable(format!("listen: {e}")))?;
@@ -135,6 +148,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         token,
         instance: hex::encode(&dmsg_client::crypto::random_id()[..8]),
         port,
+        settings,
         client: Mutex::new(client),
         login: std::sync::Mutex::new(LoginState::default()),
         activity: AtomicU64::new(now_ms()),
@@ -145,15 +159,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         pid: std::process::id(),
         instance: daemon.instance.clone(),
     })?;
-    let idle = daemon.clone();
-    tokio::spawn(async move {
-        loop {
-            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
-            if now_ms() > idle.activity.load(Ordering::Relaxed) + IDLE_MS {
-                idle.client.lock().await.lock();
-            }
-        }
-    });
+    tokio::spawn(background(daemon.clone()));
     let app = Router::new()
         .route("/daemon/status", get(status))
         .route("/app/v1", post(rpc))
@@ -170,9 +176,35 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
             }
         })
         .await;
-    daemon.client.lock().await.lock();
+    daemon.client.lock().await.shutdown();
     home.unpublish();
     served.map_err(|e| Error::Unavailable(format!("serve: {e}")))
+}
+
+/// Idle lock, the keyless flush of presigned submissions and the
+/// scheduled sync. Background work is not activity.
+async fn background(daemon: Arc<Daemon>) {
+    let mut synced = now_ms();
+    loop {
+        tokio::time::sleep(std::time::Duration::from_millis(FLUSH_MS)).await;
+        let now = now_ms();
+        let mut client = daemon.client.lock().await;
+        if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
+            client.lock();
+        }
+        let interval = daemon.settings.sync_interval_ms;
+        let status = client.status().ok();
+        let ready = status
+            .as_ref()
+            .is_some_and(|s| s.state == "unlocked" || s.resident);
+        if interval > 0 && now >= synced + interval && ready {
+            synced = now;
+            // Recorded in the status; a failure waits for the next round.
+            let _ = client.sync().await;
+        } else {
+            let _ = client.flush().await;
+        }
+    }
 }
 
 /// SIGTERM from a service manager; never on other platforms.
@@ -241,6 +273,13 @@ impl Daemon {
                 .map(str::to_string)
                 .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
         };
+        let path = |name: &str| {
+            let path = std::path::PathBuf::from(text(name)?);
+            match path.is_absolute() {
+                true => Ok(path),
+                false => Err(Error::InvalidInput(format!("{name} must be absolute"))),
+            }
+        };
         let reveal = params["reveal"].as_bool().unwrap_or(false);
         match method {
             "session/status" => self.status().await,
@@ -261,12 +300,29 @@ impl Daemon {
                 }))
             }
             "session/unlock" => {
-                let status = self.client.lock().await.unlock().await?;
+                let mut client = self.client.lock().await;
+                let status = match params["fast"].as_bool().unwrap_or(false) {
+                    true => client.unlock_fast().await?,
+                    false => client.unlock().await?,
+                };
                 Ok(to_json(&status))
             }
             "session/lock" => {
-                self.client.lock().await.lock();
+                let mut client = self.client.lock().await;
+                client.lock();
+                // Versions already signed for submission still go out.
+                let _ = client.flush().await;
+                drop(client);
                 self.status().await
+            }
+            "session/fast_unlock" => {
+                let mut client = self.client.lock().await;
+                let status = match params["enable"].as_bool() {
+                    Some(true) => client.enable_fast_unlock()?,
+                    Some(false) => client.disable_fast_unlock()?,
+                    None => return Err(Error::InvalidInput("missing enable".into())),
+                };
+                Ok(to_json(&status))
             }
             "account/create" => {
                 let mut client = self.client.lock().await;
@@ -305,23 +361,112 @@ impl Daemon {
             "vault/put" => {
                 let item: Item = serde_json::from_value(params["item"].clone())
                     .map_err(|e| Error::InvalidInput(format!("item: {e}")))?;
-                let id = params["id"].as_str();
-                let entry = self.client.lock().await.vault_put(id, &item)?;
-                Ok(to_json(&masked(entry, false)))
+                let entry = self.client.lock().await.vault_put(
+                    params["id"].as_str(),
+                    params["base"].as_str(),
+                    &item,
+                )?;
+                Ok(to_json(&entry.masked(false)))
+            }
+            "vault/edit" => {
+                let id = text("id")?;
+                let mut client = self.client.lock().await;
+                let mut item = client.vault_show(&id)?.item;
+                edit(&mut item, &params["changes"])?;
+                let entry = client.vault_put(Some(&id), params["base"].as_str(), &item)?;
+                Ok(to_json(&entry.masked(false)))
+            }
+            "vault/delete" => {
+                let entry = self.client.lock().await.vault_delete(&text("id")?)?;
+                Ok(to_json(&entry.masked(false)))
+            }
+            "vault/restore" => {
+                let entry = self.client.lock().await.vault_restore(&text("id")?)?;
+                Ok(to_json(&entry.masked(false)))
             }
             "vault/list" => {
-                let entries = self.client.lock().await.vault_list()?;
-                let entries: Vec<VaultEntry> =
-                    entries.into_iter().map(|e| masked(e, false)).collect();
-                Ok(to_json(&entries))
+                let filter = Filter {
+                    trash: params["trash"].as_bool().unwrap_or(false),
+                    query: params["query"].as_str().map(str::to_string),
+                };
+                let entries = self.client.lock().await.vault_list(&filter)?;
+                Ok(masked_all(entries))
             }
             "vault/show" => {
                 let entry = self.client.lock().await.vault_show(&text("id")?)?;
-                Ok(to_json(&masked(entry, reveal)))
+                Ok(to_json(&entry.masked(reveal)))
+            }
+            "vault/conflicts" => {
+                let entries = self.client.lock().await.vault_conflicts()?;
+                Ok(masked_all(entries))
+            }
+            "vault/resolve" => {
+                let keep = match params["keep"].as_str() {
+                    Some("current") => true,
+                    Some("theirs") => false,
+                    _ => return Err(Error::InvalidInput("keep: current or theirs".into())),
+                };
+                let entry = self
+                    .client
+                    .lock()
+                    .await
+                    .vault_resolve(&text("key")?, keep)?;
+                Ok(to_json(&entry.masked(false)))
+            }
+            "file/import" => {
+                let entry = self.client.lock().await.file_import(&path("path")?)?;
+                Ok(to_json(&entry.masked(false)))
+            }
+            "file/export" => {
+                let manifest = self
+                    .client
+                    .lock()
+                    .await
+                    .file_export(&text("id")?, &path("path")?)?;
+                Ok(to_json(&manifest))
+            }
+            "file/verify" => {
+                let manifest = self.client.lock().await.file_verify(&text("id")?)?;
+                Ok(to_json(&manifest))
             }
             "sync/run" => {
                 let report = self.client.lock().await.sync().await?;
                 Ok(to_json(&report))
+            }
+            "sync/status" => {
+                let client = self.client.lock().await;
+                let status = client.status()?;
+                Ok(json!({
+                    "pending": status.pending_sync,
+                    "conflicts": status.conflicts,
+                    "last_sync": status.last_sync,
+                    "resident": status.resident,
+                    "interval_ms": self.settings.sync_interval_ms,
+                }))
+            }
+            "profile/show" => {
+                let profile = self.client.lock().await.profile().await?;
+                Ok(to_json(&profile))
+            }
+            "profile/publish" => {
+                let fields: ProfileFields = serde_json::from_value(params.clone())
+                    .map_err(|e| Error::InvalidInput(format!("profile: {e}")))?;
+                let profile = self.client.lock().await.publish_profile(&fields).await?;
+                Ok(to_json(&profile))
+            }
+            "profile/resolve" => {
+                let account = <AccountId as std::str::FromStr>::from_str(&text("account")?)
+                    .map_err(|_| Error::InvalidInput("account".into()))?;
+                let profile = self.client.lock().await.profile_resolve(&account).await?;
+                Ok(to_json(&profile))
+            }
+            "workspace/reset" => {
+                let mut client = self.client.lock().await;
+                // The caller names this device, as shown in the status.
+                if text("device")? != client.status()?.device_id {
+                    return Err(Error::InvalidInput("device does not match".into()));
+                }
+                Ok(to_json(&client.reset()?))
             }
             "daemon/stop" => {
                 self.stop.notify_one();
@@ -332,12 +477,48 @@ impl Daemon {
     }
 }
 
-/// Secret fields leave the daemon only on explicit request.
-fn masked(mut entry: VaultEntry, reveal: bool) -> VaultEntry {
-    if !reveal && !entry.item.secret.is_empty() {
-        entry.item.secret = "********".into();
+/// Apply the fields present in `changes` to an item.
+fn edit(item: &mut Item, changes: &Value) -> Result<()> {
+    let changes = changes
+        .as_object()
+        .ok_or_else(|| Error::InvalidInput("changes".into()))?;
+    for (name, value) in changes {
+        let text = || {
+            value
+                .as_str()
+                .map(str::to_string)
+                .ok_or_else(|| Error::InvalidInput(name.clone()))
+        };
+        match name.as_str() {
+            "title" => item.title = text()?,
+            "body" => item.body = text()?,
+            "username" => item.username = text()?,
+            "secret" => item.secret = text()?,
+            "url" => item.url = text()?,
+            "favorite" => {
+                item.favorite = value
+                    .as_bool()
+                    .ok_or_else(|| Error::InvalidInput(name.clone()))?
+            }
+            "tags" => {
+                item.tags = serde_json::from_value(value.clone())
+                    .map_err(|_| Error::InvalidInput(name.clone()))?
+            }
+            _ => return Err(Error::InvalidInput(name.clone())),
+        }
     }
-    entry
+    item.updated_at = now_ms();
+    Ok(())
+}
+
+/// Entries as they leave the daemon: no secret, no file key.
+fn masked_all(entries: Vec<VaultEntry>) -> Value {
+    to_json(
+        &entries
+            .into_iter()
+            .map(|e| e.masked(false))
+            .collect::<Vec<_>>(),
+    )
 }
 
 fn to_json<T: serde::Serialize>(value: &T) -> Value {
