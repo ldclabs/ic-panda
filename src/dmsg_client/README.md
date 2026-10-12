@@ -39,7 +39,7 @@ keys. The daemon in `src/dmsg_cli` owns one instance.
 | [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription |
 | [`handle`] | Names: certified resolution, legacy claims and registrations as account-authorized intents |
 | [`agent`] | Agent Delegation with the account as principal: enabling it, controller keys kept as vault items, and grants and revocations signed here, journaled, then submitted to the delegation service |
-| [`agents`] | The Agent IDs this device hosts: keys as vault items, residency in the credential store, the credential an agent's MCP session presents, and the capabilities granted over the account |
+| [`agents`] | The Agent IDs this device hosts: keys as vault items, their mail keys sealed on the device, residency in the credential store, the credential an agent's MCP session presents, and the capabilities granted over the account |
 
 The byte rules follow the [encryption design](../../docs/dmsg_encryption_zh.md),
 the [account and root contract](../../docs/protocol/account_root_zh.md), the
@@ -146,7 +146,12 @@ the daemon signs with the vault copy; locked, only an Agent ID made resident,
 whose seed the credential store also keeps. Each Agent ID may have one
 credential for its MCP sessions, of which only a digest is kept. Capability
 grants are sealed under the LDK; without one an agent reads only public
-profiles.
+profiles. The Agent Mail decryption keys of an Agent ID's mailboxes come from
+its connector, which keeps none: they are sealed under the LDK and never
+synced, and a resident Agent ID keeps a copy beside its seed. Keys it makes
+while the device is locked live in that copy until the next unlocked call
+folds them in; turning residency off folds them in first, so it needs the
+device unlocked.
 
 ## Locking
 

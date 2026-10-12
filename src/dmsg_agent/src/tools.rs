@@ -1,5 +1,6 @@
-//! The MCP tool catalog `dmsg mcp` serves: the 23 standard Agent Protocols
-//! local connector tools and the `dmsg_*` tools over this account's data
+//! The MCP tool catalog `dmsg mcp` serves: the 33 standard Agent Protocols
+//! local connector tools, Agent Mail and Agent Knowledge among them, and the
+//! `dmsg_*` tools over this account's data
 //! (plan §6.8). A `dmsg_*` call needs a capability the owner granted the
 //! agent (§6.9); a sensitive one only creates an approval request, which
 //! no tool can answer.

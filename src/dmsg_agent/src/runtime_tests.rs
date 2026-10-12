@@ -1,4 +1,4 @@
-use crate::runtime::{Host, Runtime};
+use crate::runtime::{Host, Options, Runtime};
 use agent_protocols::{
     discourse::{
         build_server_record, discourse_event, event_type, room_create_event, MessageCreatePayload,
@@ -47,7 +47,12 @@ fn runtime(dir: &Temp) -> Runtime {
         label: Some("test".into()),
         profile_service: None,
     };
-    Runtime::new(&dir.0.join("agents.sqlite"), &[host], true).unwrap()
+    let options = Options {
+        hosts: vec![host],
+        local: true,
+        ..Options::default()
+    };
+    Runtime::new(&dir.0.join("agents.sqlite"), &options).unwrap()
 }
 
 fn block_on<F: std::future::Future>(future: F) -> F::Output {
@@ -162,7 +167,12 @@ fn seed(dir: &Temp, connector: &LocalConnector) {
 }
 
 async fn call(runtime: &Runtime, tool: &str, input: Value) -> Result<Value, crate::ToolError> {
-    runtime.call(signer(1), tool, input).await.unwrap()
+    let turn = runtime.turn().await;
+    runtime
+        .call(&turn, signer(1), None, tool, input)
+        .await
+        .unwrap()
+        .outcome
 }
 
 #[test]
@@ -200,9 +210,12 @@ fn only_configured_hosts_are_allowed() {
         .unwrap_err();
         assert_eq!(refused.code, "permission_denied");
         // No tool adds a host, and unknown tools are refused outright.
+        let turn = runtime.turn().await;
         assert!(runtime
             .call(
+                &turn,
                 signer(1),
+                None,
                 "agent_protocols_host_add",
                 json!({"host": "https://evil.example"})
             )
@@ -216,12 +229,30 @@ fn only_configured_hosts_are_allowed() {
         ("http://127.0.0.1:9", false),
         ("http://example.com", true),
     ] {
-        let host = Host {
-            host: host.into(),
-            label: None,
-            profile_service: None,
+        let options = Options {
+            hosts: vec![Host {
+                host: host.into(),
+                label: None,
+                profile_service: None,
+            }],
+            local,
+            ..Options::default()
         };
-        assert!(Runtime::new(&dir.0.join("x.sqlite"), &[host], local).is_err());
+        assert!(Runtime::new(&dir.0.join("x.sqlite"), &options).is_err());
+    }
+    // A trusted root belongs to a local deployment only, and a blocked
+    // sender must be an Agent ID.
+    for options in [
+        Options {
+            local_roots: vec![b"-----BEGIN CERTIFICATE-----".to_vec()],
+            ..Options::default()
+        },
+        Options {
+            blocked_senders: vec!["someone".into()],
+            ..Options::default()
+        },
+    ] {
+        assert!(Runtime::new(&dir.0.join("x.sqlite"), &options).is_err());
     }
 }
 

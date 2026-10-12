@@ -1,0 +1,1178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-protocols.dev/schemas/agent-knowledge/1.0.schema.json",
+  "title": "Agent Knowledge Protocol 1.0",
+  "description": "Structural definitions for signed Knowledge events, read requests and service responses. Signature verification, canonical encodings, strict JSON, parsed URLs, profile-digest uniqueness, same-origin discovery, text term rules, timestamp comparisons, cursor binding, complete enumeration, batch partitions, dependency resolution, target rules, lifecycle views and acceptance remain semantic checks. Profile data conformance is separate from core validity. Recommended service limits are not protocol validity limits.",
+  "$ref": "#/$defs/signedEnvelope",
+  "$defs": {
+    "agentId": {
+      "type": "string",
+      "pattern": "^did:agent:[A-Za-z0-9_-]{43}$(?![\\s\\S])"
+    },
+    "eventHash": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$(?![\\s\\S])"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$(?![\\s\\S])"
+    },
+    "timestampMs": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "nonce": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "httpsUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://[^/?#@]+(?:[/?#].*)?$(?![\\s\\S])",
+      "description": "Absolute HTTPS URL with host and no userinfo. Full URL parsing remains required."
+    },
+    "endpointUrl": {
+      "type": "string",
+      "pattern": "^https://[^/?#@]+(?:/[^?#]*)?$(?![\\s\\S])"
+    },
+    "httpsOrigin": {
+      "type": "string",
+      "pattern": "^https://[^/?#@\\s]+$(?![\\s\\S])",
+      "not": {
+        "pattern": ":443$(?![\\s\\S])"
+      },
+      "description": "Coarse HTTPS-origin shape that permits WHATWG host punctuation. Full canonical origin validation from Agent Identity remains required."
+    },
+    "extra": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "tag": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$(?![\\s\\S])"
+    },
+    "eventType": {
+      "enum": [
+        "knowledge.publish",
+        "knowledge.assess",
+        "knowledge.retract"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "question",
+        "hypothesis",
+        "definition",
+        "observation",
+        "inference",
+        "procedure",
+        "resource",
+        "negative_result",
+        "synthesis",
+        "collection"
+      ]
+    },
+    "relationKind": {
+      "enum": [
+        "derived_from",
+        "addresses",
+        "tests",
+        "extends",
+        "supports",
+        "contradicts",
+        "supersedes",
+        "contains"
+      ]
+    },
+    "verdict": {
+      "enum": [
+        "supports",
+        "challenges",
+        "reproduced",
+        "not_reproduced",
+        "applied",
+        "inconclusive"
+      ]
+    },
+    "context": {
+      "type": "object",
+      "required": [
+        "scope",
+        "conditions",
+        "limitations"
+      ],
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "reproduction": {
+      "type": "object",
+      "required": [
+        "environment",
+        "steps",
+        "expected"
+      ],
+      "properties": {
+        "environment": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "minItems": 1,
+          "uniqueItems": false
+        },
+        "expected": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "observed": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "url",
+        "description"
+      ],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/httpsUrl"
+        },
+        "description": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "digest": {
+          "$ref": "#/$defs/eventHash"
+        },
+        "media_type": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "role": {
+          "enum": [
+            "source",
+            "input",
+            "output",
+            "environment",
+            "validation"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "output"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "then": {
+            "required": [
+              "digest"
+            ]
+          }
+        }
+      ]
+    },
+    "relation": {
+      "type": "object",
+      "required": [
+        "relation",
+        "target"
+      ],
+      "properties": {
+        "relation": {
+          "$ref": "#/$defs/relationKind"
+        },
+        "target": {
+          "$ref": "#/$defs/eventHash"
+        }
+      },
+      "additionalProperties": false
+    },
+    "publishPayload": {
+      "type": "object",
+      "required": [
+        "license",
+        "kind",
+        "title",
+        "statement",
+        "language",
+        "context",
+        "basis"
+      ],
+      "properties": {
+        "license": {
+          "$ref": "#/$defs/httpsUrl"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "title": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "statement": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "language": {
+          "$ref": "#/$defs/language"
+        },
+        "context": {
+          "$ref": "#/$defs/context"
+        },
+        "basis": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "reproduction": {
+          "$ref": "#/$defs/reproduction"
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tag"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "extra": {
+          "$ref": "#/$defs/extra"
+        },
+        "profiles": {
+          "$ref": "#/$defs/profiles"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "resource"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "evidence"
+            ],
+            "properties": {
+              "evidence": {
+                "contains": {
+                  "properties": {
+                    "role": {
+                      "const": "output"
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "digest"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "collection"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "relations"
+            ],
+            "properties": {
+              "relations": {
+                "contains": {
+                  "properties": {
+                    "relation": {
+                      "const": "contains"
+                    }
+                  },
+                  "required": [
+                    "relation"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relations": {
+                "contains": {
+                  "properties": {
+                    "relation": {
+                      "const": "contains"
+                    }
+                  },
+                  "required": [
+                    "relation"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "relations"
+            ]
+          },
+          "then": {
+            "properties": {
+              "kind": {
+                "const": "collection"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "assessPayload": {
+      "type": "object",
+      "required": [
+        "license",
+        "target",
+        "verdict",
+        "summary",
+        "context",
+        "basis"
+      ],
+      "properties": {
+        "license": {
+          "$ref": "#/$defs/httpsUrl"
+        },
+        "target": {
+          "$ref": "#/$defs/eventHash"
+        },
+        "verdict": {
+          "$ref": "#/$defs/verdict"
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "context": {
+          "$ref": "#/$defs/context"
+        },
+        "basis": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "reproduction": {
+          "$ref": "#/$defs/reproduction"
+        },
+        "extra": {
+          "$ref": "#/$defs/extra"
+        },
+        "profiles": {
+          "$ref": "#/$defs/profiles"
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "enum": [
+                  "reproduced",
+                  "not_reproduced",
+                  "applied"
+                ]
+              }
+            },
+            "required": [
+              "verdict"
+            ]
+          },
+          "then": {
+            "required": [
+              "reproduction"
+            ],
+            "properties": {
+              "reproduction": {
+                "required": [
+                  "observed"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "retractPayload": {
+      "type": "object",
+      "required": [
+        "target",
+        "reason"
+      ],
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/eventHash"
+        },
+        "reason": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "extra": {
+          "$ref": "#/$defs/extra"
+        }
+      },
+      "additionalProperties": false
+    },
+    "publishEvent": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "type",
+        "actor",
+        "created_at",
+        "nonce",
+        "payload"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "agent-knowledge/1.0"
+        },
+        "type": {
+          "const": "knowledge.publish"
+        },
+        "actor": {
+          "$ref": "#/$defs/agentId"
+        },
+        "created_at": {
+          "$ref": "#/$defs/timestampMs"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "payload": {
+          "$ref": "#/$defs/publishPayload"
+        }
+      },
+      "additionalProperties": false
+    },
+    "assessEvent": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "type",
+        "actor",
+        "created_at",
+        "nonce",
+        "payload"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "agent-knowledge/1.0"
+        },
+        "type": {
+          "const": "knowledge.assess"
+        },
+        "actor": {
+          "$ref": "#/$defs/agentId"
+        },
+        "created_at": {
+          "$ref": "#/$defs/timestampMs"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "payload": {
+          "$ref": "#/$defs/assessPayload"
+        }
+      },
+      "additionalProperties": false
+    },
+    "retractEvent": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "type",
+        "actor",
+        "created_at",
+        "nonce",
+        "payload"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "agent-knowledge/1.0"
+        },
+        "type": {
+          "const": "knowledge.retract"
+        },
+        "actor": {
+          "$ref": "#/$defs/agentId"
+        },
+        "created_at": {
+          "$ref": "#/$defs/timestampMs"
+        },
+        "nonce": {
+          "$ref": "#/$defs/nonce"
+        },
+        "payload": {
+          "$ref": "#/$defs/retractPayload"
+        }
+      },
+      "additionalProperties": false
+    },
+    "knowledgeEvent": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/publishEvent"
+        },
+        {
+          "$ref": "#/$defs/assessEvent"
+        },
+        {
+          "$ref": "#/$defs/retractEvent"
+        }
+      ]
+    },
+    "signedEnvelope": {
+      "type": "object",
+      "required": [
+        "hash",
+        "event",
+        "signature"
+      ],
+      "properties": {
+        "hash": {
+          "$ref": "#/$defs/eventHash"
+        },
+        "event": {
+          "$ref": "#/$defs/knowledgeEvent"
+        },
+        "signature": {
+          "$ref": "#/$defs/signature"
+        }
+      },
+      "additionalProperties": false
+    },
+    "acceptanceRecord": {
+      "type": "object",
+      "required": [
+        "envelope",
+        "accepted_at",
+        "seq"
+      ],
+      "properties": {
+        "envelope": {
+          "$ref": "#/$defs/signedEnvelope"
+        },
+        "accepted_at": {
+          "$ref": "#/$defs/timestampMs"
+        },
+        "seq": {
+          "$ref": "#/$defs/nonce"
+        }
+      },
+      "additionalProperties": true
+    },
+    "discoveryDocument": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "service"
+      ],
+      "properties": {
+        "protocol": {
+          "const": "agent-knowledge/1.0"
+        },
+        "service": {
+          "$ref": "#/$defs/httpsOrigin"
+        },
+        "endpoints": {
+          "type": "object",
+          "properties": {
+            "events": {
+              "$ref": "#/$defs/endpointUrl"
+            },
+            "query": {
+              "$ref": "#/$defs/endpointUrl"
+            },
+            "batch": {
+              "$ref": "#/$defs/endpointUrl"
+            },
+            "search": {
+              "$ref": "#/$defs/endpointUrl"
+            }
+          },
+          "additionalProperties": true
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/nonce"
+          }
+        },
+        "search_modes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "contains": {
+            "const": "lexical"
+          }
+        },
+        "peers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/httpsOrigin"
+          },
+          "maxItems": 32,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "features"
+            ],
+            "properties": {
+              "features": {
+                "contains": {
+                  "const": "ranked-search"
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "endpoints",
+              "search_modes"
+            ],
+            "properties": {
+              "endpoints": {
+                "required": [
+                  "search"
+                ]
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "required": [
+                "search_modes"
+              ]
+            },
+            "properties": {
+              "endpoints": {
+                "not": {
+                  "required": [
+                    "search"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "profileReference": {
+      "type": "object",
+      "required": [
+        "url",
+        "digest"
+      ],
+      "properties": {
+        "url": {
+          "$ref": "#/$defs/httpsUrl"
+        },
+        "digest": {
+          "$ref": "#/$defs/eventHash"
+        }
+      },
+      "additionalProperties": false
+    },
+    "profileBinding": {
+      "type": "object",
+      "required": [
+        "profile",
+        "data"
+      ],
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/profileReference"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/profileBinding"
+      },
+      "minItems": 0,
+      "uniqueItems": true,
+      "description": "Bindings must additionally be unique by profile.digest (semantic check). Unknown profile data is preserved, not evaluated by this schema. Arrays within data may repeat."
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$(?![\\s\\S])"
+    },
+    "queryText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "Unicode scalar count, ASCII-whitespace tokenization and 1..16 lexical terms require semantic validation."
+    },
+    "searchMode": {
+      "enum": [
+        "lexical",
+        "semantic",
+        "hybrid"
+      ]
+    },
+    "searchFilters": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/agentId"
+        },
+        "type": {
+          "$ref": "#/$defs/eventType"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "target": {
+          "$ref": "#/$defs/eventHash"
+        },
+        "relation": {
+          "$ref": "#/$defs/relationKind"
+        },
+        "tag": {
+          "$ref": "#/$defs/tag"
+        },
+        "profile": {
+          "$ref": "#/$defs/eventHash"
+        },
+        "language": {
+          "$ref": "#/$defs/language"
+        },
+        "verdict": {
+          "$ref": "#/$defs/verdict"
+        },
+        "created_from": {
+          "$ref": "#/$defs/timestampMs"
+        },
+        "created_before": {
+          "$ref": "#/$defs/timestampMs"
+        }
+      },
+      "additionalProperties": false
+    },
+    "queryRequest": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/agentId"
+        },
+        "type": {
+          "$ref": "#/$defs/eventType"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "target": {
+          "$ref": "#/$defs/eventHash"
+        },
+        "relation": {
+          "$ref": "#/$defs/relationKind"
+        },
+        "tag": {
+          "$ref": "#/$defs/tag"
+        },
+        "profile": {
+          "$ref": "#/$defs/eventHash"
+        },
+        "language": {
+          "$ref": "#/$defs/language"
+        },
+        "verdict": {
+          "$ref": "#/$defs/verdict"
+        },
+        "created_from": {
+          "$ref": "#/$defs/timestampMs"
+        },
+        "created_before": {
+          "$ref": "#/$defs/timestampMs"
+        },
+        "after_seq": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "cursor": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Parsed core query; HTTP integers must first be parsed from decimal digits and duplicate parameters rejected. Timestamp ordering, text rules and cursor binding are additional checks."
+    },
+    "queryResponse": {
+      "type": "object",
+      "required": [
+        "result",
+        "service",
+        "checkpoint",
+        "as_of"
+      ],
+      "properties": {
+        "result": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/acceptanceRecord"
+          },
+          "maxItems": 1000
+        },
+        "service": {
+          "$ref": "#/$defs/httpsOrigin"
+        },
+        "checkpoint": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "as_of": {
+          "$ref": "#/$defs/timestampMs"
+        },
+        "next_cursor": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      },
+      "additionalProperties": true
+    },
+    "batchRequest": {
+      "type": "object",
+      "required": [
+        "hashes"
+      ],
+      "properties": {
+        "hashes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/eventHash"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "batchResponse": {
+      "type": "object",
+      "required": [
+        "result",
+        "missing",
+        "service",
+        "checkpoint",
+        "as_of"
+      ],
+      "properties": {
+        "result": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/acceptanceRecord"
+          },
+          "maxItems": 100
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/eventHash"
+          },
+          "maxItems": 100,
+          "uniqueItems": true
+        },
+        "service": {
+          "$ref": "#/$defs/httpsOrigin"
+        },
+        "checkpoint": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "as_of": {
+          "$ref": "#/$defs/timestampMs"
+        }
+      },
+      "additionalProperties": true,
+      "not": {
+        "required": [
+          "next_cursor"
+        ]
+      }
+    },
+    "searchRequest": {
+      "type": "object",
+      "required": [
+        "text",
+        "mode"
+      ],
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/queryText"
+        },
+        "mode": {
+          "$ref": "#/$defs/searchMode"
+        },
+        "filters": {
+          "$ref": "#/$defs/searchFilters"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      },
+      "additionalProperties": false
+    },
+    "searchHit": {
+      "type": "object",
+      "required": [
+        "record"
+      ],
+      "properties": {
+        "record": {
+          "$ref": "#/$defs/acceptanceRecord"
+        },
+        "explanation": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ranking": {
+      "type": "object",
+      "required": [
+        "mode",
+        "id"
+      ],
+      "properties": {
+        "mode": {
+          "$ref": "#/$defs/searchMode"
+        },
+        "id": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      },
+      "additionalProperties": true
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "exhaustive",
+        "reasons"
+      ],
+      "properties": {
+        "exhaustive": {
+          "type": "boolean"
+        },
+        "reasons": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "candidate_limit",
+              "index_lag",
+              "approximate",
+              "timeout"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "exhaustive": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reasons": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "reasons": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "searchResponse": {
+      "type": "object",
+      "required": [
+        "result",
+        "service",
+        "checkpoint",
+        "as_of",
+        "ranking",
+        "coverage"
+      ],
+      "properties": {
+        "result": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/searchHit"
+          },
+          "maxItems": 100
+        },
+        "service": {
+          "$ref": "#/$defs/httpsOrigin"
+        },
+        "checkpoint": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "as_of": {
+          "$ref": "#/$defs/timestampMs"
+        },
+        "ranking": {
+          "$ref": "#/$defs/ranking"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        }
+      },
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "ranking": {
+                "properties": {
+                  "mode": {
+                    "enum": [
+                      "semantic",
+                      "hybrid"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "coverage": {
+                "properties": {
+                  "exhaustive": {
+                    "const": false
+                  },
+                  "reasons": {
+                    "contains": {
+                      "const": "approximate"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "not": {
+        "required": [
+          "next_cursor"
+        ]
+      }
+    }
+  }
+}

@@ -205,10 +205,20 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         &home.workspace(&settings.config),
         Home::secure(&settings),
     )?;
+    let local_roots = match &settings.agent_ca {
+        Some(path) => {
+            vec![std::fs::read(path).map_err(|e| Error::InvalidInput(format!("agent_ca: {e}")))?]
+        }
+        None => Vec::new(),
+    };
     let agents = dmsg_agent::Runtime::new(
         &client.agent_runtime(),
-        &settings.agent_hosts,
-        settings.config.environment == dmsg_types::Environment::Local,
+        &dmsg_agent::Options {
+            hosts: settings.agent_hosts.clone(),
+            blocked_senders: settings.agent_blocked_senders.clone(),
+            local_roots,
+            local: settings.config.environment == dmsg_types::Environment::Local,
+        },
     )?;
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port))
         .await

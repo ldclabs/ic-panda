@@ -80,9 +80,9 @@ dependencies = [
 
 [[package]]
 name = "agent-protocols"
-version = "0.11.4"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "821b84adff6425af03e0cfe3761a0f0a3840eadf701a5fd3a01b954bf6eeb905"
+checksum = "ccc14c0f5d017700bd30cfd2099b74586fe65af64dc87e679d68064baa9fed44"
 dependencies = [
  "base64 0.23.1",
  "ed25519-dalek 3.0.0",
@@ -1525,8 +1525,10 @@ dependencies = [
  "agent-protocols",
  "base64 0.23.1",
  "dmsg_types",
+ "hpke",
  "reqwest",
  "rusqlite",
+ "rustls",
  "serde",
  "serde_json",
  "tokio",

@@ -20,3 +20,6 @@ url.workspace = true
 
 [dev-dependencies]
 base64.workspace = true
+# The SDK's Mail conformance tests open packets with it directly.
+hpke = { version = "0.14", default-features = false, features = ["alloc", "x25519", "chacha"] }
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std"] }

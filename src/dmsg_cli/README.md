@@ -35,12 +35,20 @@ agent_service = "http://127.0.0.1:8788"  # local only; default https://agents.dm
 agent_hosts = [                  # Agent Protocols hosts the hosted agents may sign for
   { host = "https://api.al.ink", label = "alink" },
   { host = "https://agents.example", profile_service = "https://profiles.example" },
+  { host = "https://mail.example", label = "mail" },           # an Agent Mail relay
+  { host = "https://knowledge.example", label = "knowledge" }, # an Agent Knowledge service
 ]
+agent_blocked_senders = ["did:agent:…"]  # mail from these is deleted unopened
+agent_ca = "/path/to/ca.pem"     # local only: replaces the system roots for agent_hosts
 ```
 
-Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url`/`agent_service` are refused.
+Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url`/`agent_service`/`agent_ca` are refused.
 `agent_hosts` is the only source of the host allowlist: no command, method or
 tool changes it, and a host must be an origin (loopback HTTP only in `local`).
+Mail relays and Knowledge services are hosts like any other, and HTTPS only:
+an agent fetches cards, delivers letters and submits or reads Knowledge only
+at them. `agent_blocked_senders` is likewise the only source of the mail
+sender policy. The connectors' requests follow no redirect.
 
 `secure_storage = "system"` keeps the owner credential and the fast-unlock key
 in the system credential store (Keychain, Credential Manager, Secret Service)
@@ -157,6 +165,10 @@ approval; `delegations` shows where each signed event stands and
 of the account brings the same Agent ID. `agent id use` picks the one `dmsg ap`
 runs as; `resident on` keeps its key in the system credential store so it
 signs while the device is locked (unavailable with `secure_storage = "file"`).
+The Agent Mail keys its mailboxes need are sealed on this device, never synced
+and never in the connector state; a resident Agent ID keeps a copy beside its
+key, and `resident off` folds the keys it made while locked back in, so it
+needs the device unlocked then.
 `agent id credential` prints, once, the credential an MCP client gives
 `dmsg mcp`; issuing a new one disables the old. `grants add` gives an agent
 capabilities over this account: `account.read`, `vault.list`,
@@ -166,7 +178,14 @@ grant an agent reads only public profiles (`profile.read`).
 
 `dmsg ap <tool> [input]` runs one MCP tool as an Agent ID with the same input
 and result; the tool name may leave out `agent_protocols_` or `dmsg_`, and
-`dmsg ap tools` lists them.
+`dmsg ap tools` lists them. For example:
+
+```sh
+dmsg ap --agent bob mail_mailbox_publish '{"routes":["https://mail.example"]}'
+dmsg ap --agent alice mail_send '{"to":"did:agent:…/mail/…?route=https://mail.example","text":"hello"}'
+dmsg ap --agent bob mail_sync
+dmsg ap --agent alice knowledge_query '{"service":"https://knowledge.example","tag":"caching"}'
+```
 
 ## MCP
 
@@ -180,8 +199,10 @@ Code, after `dmsg agent id create claude` and `dmsg agent id credential claude`:
 claude mcp add dmsg --env DMSG_AGENT_TOKEN=dmsg-agent-… -- dmsg mcp
 ```
 
-Tools: the 23 standard `agent_protocols_*` tools of the Agent Protocols
-local connector, as this Agent ID, against the configured hosts; and
+Tools: the 33 standard `agent_protocols_*` tools of the Agent Protocols
+local connector (`agent-protocols` 0.12: identity, delegation, rooms, inbox
+and drafts, profile, Agent Mail mailboxes and letters, Agent Knowledge
+submissions and reads), as this Agent ID, against the configured hosts; and
 `dmsg_account_status`, `dmsg_vault_list`, `dmsg_vault_read` (never the secret
 field), `dmsg_channel_list|read|publish`, `dmsg_inbox_list`,
 `dmsg_profile_read`, `dmsg_attest_request` (an approval request with source

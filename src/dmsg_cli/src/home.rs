@@ -33,6 +33,9 @@ struct ConfigFile {
     #[serde(default)]
     agent_hosts: Vec<dmsg_agent::Host>,
     #[serde(default)]
+    agent_blocked_senders: Vec<String>,
+    agent_ca: Option<PathBuf>,
+    #[serde(default)]
     background_online: bool,
     idle_lock_minutes: Option<u64>,
     #[serde(default)]
@@ -63,6 +66,11 @@ pub struct Settings {
     /// The Agent Protocols hosts the hosted agents may sign for; nothing
     /// else can add one (plan DT02).
     pub agent_hosts: Vec<dmsg_agent::Host>,
+    /// Agent IDs whose mail the hosted agents delete unopened.
+    pub agent_blocked_senders: Vec<String>,
+    /// A PEM file of the CA that replaces the system roots for the agent
+    /// hosts; a local deployment only.
+    pub agent_ca: Option<PathBuf>,
 }
 
 /// Where the running daemon listens.
@@ -142,6 +150,9 @@ impl Home {
         if file.sync_interval_minutes > 24 * 60 {
             return Err(dmsg_types::invalid("sync_interval_minutes"));
         }
+        if file.agent_ca.is_some() && config.environment != dmsg_types::Environment::Local {
+            return Err(dmsg_types::invalid("agent_ca"));
+        }
         let storage = match file.secure_storage.as_deref() {
             Some("system") => Storage::System,
             Some("file") => Storage::File,
@@ -155,6 +166,8 @@ impl Home {
             sync_interval_ms: file.sync_interval_minutes * MINUTE,
             storage,
             agent_hosts: file.agent_hosts,
+            agent_blocked_senders: file.agent_blocked_senders,
+            agent_ca: file.agent_ca,
         })
     }
 

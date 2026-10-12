@@ -1,6 +1,7 @@
 use crate::agent::{agent_id, controller_item, sign_delegation, DelegationKind, MAX_GRANT_DAYS};
 use crate::agents::{agent_item, covers, validate_capability};
 use crate::crypto::signing_public;
+use crate::secure::SecureStorage;
 use crate::testing::{account, unlocked, MemoryStorage, TempDir};
 use agent_protocols::delegation::{
     materialize_delegation_credential, validate_delegation_acceptance, DelegationStatus,
@@ -13,6 +14,7 @@ use dmsg_types::{
     agent::{DelegationAuthority, DirectoryInit, HostedController, PrincipalState, PrincipalType},
     Environment, Error, Hash, DAY,
 };
+use serde_json::json;
 use std::sync::Arc;
 
 const NOW: u64 = 1_790_000_000_000;
@@ -188,6 +190,78 @@ fn controller_and_agent_keys_live_in_the_vault() {
     assert_eq!(client.agent_signer("claude").err(), Some(Error::Locked));
     // A credential still names the Agent ID while locked.
     assert!(client.agent_by_credential(&rotated).unwrap().is_some());
+}
+
+#[test]
+fn mail_keys_are_sealed_and_a_resident_agent_keeps_a_copy() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    let agent = client.agent_create("mailer").unwrap().agent_id;
+    let keys = |pairs: &[(&str, &str)]| json!({"version": 1, "agent_id": agent, "keys": pairs.iter().copied().collect::<std::collections::BTreeMap<_, _>>()});
+    assert_eq!(client.agent_mail_keys("mailer").unwrap(), keys(&[]));
+    client
+        .agent_mail_keys_save("mailer", &keys(&[("pk1", "s1")]))
+        .unwrap();
+    assert_eq!(
+        client.agent_mail_keys(&agent).unwrap(),
+        keys(&[("pk1", "s1")])
+    );
+    // Another Agent ID's keys are refused.
+    let other = json!({"version": 1, "agent_id": "did:agent:other", "keys": {}});
+    assert_eq!(
+        client.agent_mail_keys_save("mailer", &other).unwrap_err(),
+        Error::IntegrityFailed
+    );
+
+    // Locked, only a resident Agent ID reads and writes its keys.
+    client.lock();
+    assert_eq!(client.agent_mail_keys("mailer").unwrap_err(), Error::Locked);
+    reopen(&mut client);
+    client.agent_resident("mailer", true).unwrap();
+    client.lock();
+    assert_eq!(
+        client.agent_mail_keys("mailer").unwrap(),
+        keys(&[("pk1", "s1")])
+    );
+    client
+        .agent_mail_keys_save("mailer", &keys(&[("pk1", "s1"), ("pk2", "s2")]))
+        .unwrap();
+    // Unlocked again, the keys made while locked join the sealed ones.
+    reopen(&mut client);
+    assert_eq!(
+        client.agent_mail_keys("mailer").unwrap(),
+        keys(&[("pk1", "s1"), ("pk2", "s2")])
+    );
+    client
+        .agent_mail_keys_save("mailer", &keys(&[("pk2", "s2")]))
+        .unwrap();
+    assert_eq!(
+        client.agent_mail_keys("mailer").unwrap(),
+        keys(&[("pk2", "s2")])
+    );
+
+    // Turning residency off folds a locked-time key into the sealed ones,
+    // which needs the device unlocked, then deletes the copy.
+    client.lock();
+    client
+        .agent_mail_keys_save("mailer", &keys(&[("pk2", "s2"), ("pk3", "s3")]))
+        .unwrap();
+    assert_eq!(
+        client.agent_resident("mailer", false).unwrap_err(),
+        Error::Locked
+    );
+    reopen(&mut client);
+    client.agent_resident("mailer", false).unwrap();
+    assert_eq!(
+        client.agent_mail_keys("mailer").unwrap(),
+        keys(&[("pk2", "s2"), ("pk3", "s3")])
+    );
+    let workspace = client.workspace.name().unwrap();
+    assert!(storage
+        .get(&format!("{workspace}:agent-mail:{agent}"))
+        .unwrap()
+        .is_none());
 }
 
 #[test]

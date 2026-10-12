@@ -250,9 +250,28 @@ impl Daemon {
     /// One tool call as `agent`: `{"result": …}` or `{"error": {code, message, data?}}`.
     async fn tool(&self, agent: &AgentEntry, tool: &str, input: Value) -> Result<Value> {
         if is_standard(tool) {
-            // The key leaves the client lock for the call only.
-            let signer = self.client().lock().await.agent_signer(&agent.agent_id)?;
-            return Ok(match self.agents().call(signer, tool, input).await? {
+            // The turn spans reading the mail keys to saving what the call
+            // left, so no other call sees or overwrites them in between; the
+            // keys leave the client lock for the call only.
+            let runtime = self.agents();
+            let turn = runtime.turn().await;
+            let (signer, mail_keys) = {
+                let mut client = self.client().lock().await;
+                (
+                    client.agent_signer(&agent.agent_id)?,
+                    client.agent_mail_keys(&agent.agent_id)?,
+                )
+            };
+            let called = runtime
+                .call(&turn, signer, Some(&mail_keys), tool, input)
+                .await?;
+            if called.mail_keys != mail_keys {
+                self.client()
+                    .lock()
+                    .await
+                    .agent_mail_keys_save(&agent.agent_id, &called.mail_keys)?;
+            }
+            return Ok(match called.outcome {
                 Ok(result) => json!({"result": result}),
                 Err(error) => json!({"error": error}),
             });

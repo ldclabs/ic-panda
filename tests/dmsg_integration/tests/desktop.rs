@@ -609,6 +609,10 @@ struct Options {
     /// names it, principal documents from the directory, and a Discourse
     /// host the daemons may sign for.
     agents: bool,
+    /// Serve Agent Mail and Agent Knowledge: the private `dmsg-mail` and
+    /// `dmsg-knowledge` Workers on local HTTPS, which the daemons trust
+    /// through `agent_ca`.
+    services: bool,
 }
 
 /// One deployment, one relay and two desktops, `a` and `b`.
@@ -633,6 +637,80 @@ struct Env {
     agent_proxy: Option<Proxy>,
     /// The Discourse host the daemons may sign for.
     adp: Option<adp::Adp>,
+    /// The Agent Mail relay and the Agent Knowledge service, if served.
+    services: Option<Services>,
+}
+
+/// The local HTTPS origins of `dmsg-mail` and `dmsg-knowledge`.
+struct Services {
+    mail: String,
+    knowledge: String,
+}
+
+/// PEM text of DER `bytes`.
+fn pem(label: &str, bytes: &[u8]) -> String {
+    use base64::engine::general_purpose::STANDARD;
+    let body = STANDARD.encode(bytes);
+    let lines: Vec<&str> = body
+        .as_bytes()
+        .chunks(64)
+        .map(|c| std::str::from_utf8(c).unwrap())
+        .collect();
+    format!(
+        "-----BEGIN {label}-----\n{}\n-----END {label}-----\n",
+        lines.join("\n")
+    )
+}
+
+/// Start `dmsg-mail` and `dmsg-knowledge` on local HTTPS with the public
+/// localhost test certificate, whose PEM file the daemons get as `agent_ca`.
+fn serve_services(cloud: &Path, dir: &Path, children: &mut Children) -> (Services, PathBuf) {
+    let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../fixtures/localhost-tls");
+    let cert = dir.join("localhost-cert.pem");
+    let key = dir.join("localhost-key.pem");
+    std::fs::write(
+        &cert,
+        pem(
+            "CERTIFICATE",
+            &std::fs::read(fixture.join("cert.der")).unwrap(),
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        &key,
+        pem(
+            "PRIVATE KEY",
+            &std::fs::read(fixture.join("key.der")).unwrap(),
+        ),
+    )
+    .unwrap();
+    let mut origins = vec![];
+    for package in ["dmsg-mail", "dmsg-knowledge"] {
+        let ready = dir.join(format!("{package}-ready.json"));
+        children.0.push(
+            Command::new("node")
+                .arg("scripts/probe-server.mjs")
+                .current_dir(cloud.join(package))
+                .env("PROBE_PORT", free_port().to_string())
+                .env("PROBE_CERT", &cert)
+                .env("PROBE_KEY", &key)
+                .env("PROBE_READY", &ready)
+                .env("PROBE_TTL_MS", "1200000")
+                .env("WRANGLER_SEND_METRICS", "false")
+                .stdout(Stdio::null())
+                .spawn()
+                .unwrap(),
+        );
+        origins.push(
+            wait_for(&ready, children)["origin"]
+                .as_str()
+                .unwrap()
+                .to_string(),
+        );
+    }
+    let knowledge = origins.pop().unwrap();
+    let mail = origins.pop().unwrap();
+    (Services { mail, knowledge }, cert)
 }
 
 impl Env {
@@ -716,6 +794,9 @@ impl Env {
             )
         });
         let adp = options.agents.then(adp::Adp::start);
+        let services = options
+            .services
+            .then(|| serve_services(&cloud, &dir, &mut children));
         // The owner credential stays in the home: tests never touch the
         // system credential store.
         let mut config = format!(
@@ -724,11 +805,24 @@ impl Env {
             deployment.user,
             deployment.root_key_hex,
         );
+        let mut hosts = vec![];
         if let (Some(proxy), Some(adp)) = (&agent_proxy, &adp) {
-            config.push_str(&format!(
-                "agent_service = \"{}\"\nagent_hosts = [{{ host = \"{}\", label = \"test\" }}]\n",
-                proxy.origin, adp.origin
+            config.push_str(&format!("agent_service = \"{}\"\n", proxy.origin));
+            hosts.push(format!("{{ host = \"{}\", label = \"test\" }}", adp.origin));
+        }
+        if let Some((services, cert)) = &services {
+            config.push_str(&format!("agent_ca = \"{}\"\n", cert.display()));
+            hosts.push(format!(
+                "{{ host = \"{}\", label = \"mail\" }}",
+                services.mail
             ));
+            hosts.push(format!(
+                "{{ host = \"{}\", label = \"knowledge\" }}",
+                services.knowledge
+            ));
+        }
+        if !hosts.is_empty() {
+            config.push_str(&format!("agent_hosts = [{}]\n", hosts.join(", ")));
         }
         let desktop = |name: &str, policy: &str| {
             let home = dir.join(name);
@@ -760,6 +854,7 @@ impl Env {
             ic_proxy,
             agent_proxy,
             adp,
+            services: services.map(|(services, _)| services),
         }
     }
 
@@ -2783,8 +2878,9 @@ fn desktop_agents() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names.len(), 33);
+    assert_eq!(names.len(), 43);
     assert!(names.contains(&"agent_protocols_room_join") && names.contains(&"dmsg_vault_list"));
+    assert!(names.contains(&"agent_protocols_mail_send"));
     let identity = mcp
         .tool("agent_protocols_identity_current", json!({}))
         .unwrap();
@@ -2993,5 +3089,193 @@ fn desktop_agents() {
     assert_eq!(verdict["usable"], false, "{verdict}");
     assert_eq!(a.run(&["agent", "credentials"])[0]["status"], "revoked");
     let _ = host_agent;
+    env.finish();
+}
+
+/// `dmsg ap --agent <agent> <tool> <input>` on `desktop`.
+fn ap(desktop: &Desktop, agent: &str, tool: &str, input: Value) -> Value {
+    desktop.run(&["ap", "--agent", agent, tool, &input.to_string()])
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC, the private relay and the Mail and Knowledge Workers (DMSG_CLOUD_DIR)"]
+fn desktop_mail_knowledge() {
+    let mut env = Env::launch(
+        "mail",
+        Options {
+            services: true,
+            ..Options::default()
+        },
+    );
+    let http = env.http.clone();
+    let services = env.services.as_ref().unwrap();
+    let (mail, knowledge) = (services.mail.clone(), services.knowledge.clone());
+    let a = &env.a;
+    assert_eq!(a.login(&http, 61).unwrap()["state"], "no_account");
+    a.run(&["account", "create"]);
+    let created = |label: &str| {
+        a.run(&["agent", "id", "create", label])["agent_id"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let (alice, bob) = (created("alice"), created("bob"));
+
+    // Bob opens a mailbox on the relay; Alice, an MCP client, opens one for
+    // replies and writes to Bob with its card attached. The relay (the
+    // TypeScript SDK) accepts the cards and packets the daemon's Rust SDK
+    // signs and seals (DT08).
+    let bob_box =
+        ap(a, "bob", "mail_mailbox_publish", json!({"routes": [mail]}))["mailbox"].clone();
+    assert_eq!(bob_box["status"], "open");
+    let credential = a.run(&["agent", "id", "credential", "alice"])["credential"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let mut mcp = McpClient::start(a, &credential);
+    let alice_box = mcp
+        .tool(
+            "agent_protocols_mail_mailbox_publish",
+            json!({"routes": [mail]}),
+        )
+        .unwrap()["mailbox"]
+        .clone();
+    let sent = mcp
+        .tool(
+            "agent_protocols_mail_send",
+            json!({
+                "to": bob_box["address"], "subject": "W7", "text": "Can you review the plan?",
+                "reply_mailbox_id": alice_box["mailbox_id"],
+            }),
+        )
+        .unwrap();
+    assert_eq!(sent["status"], "delivered", "{sent}");
+    let message_id = sent["message"]["message_id"].clone();
+
+    // Bob's sync opens the letter and wakes his inbox; he reads it and
+    // replies without an address, through Alice's reply card.
+    let synced = ap(a, "bob", "mail_sync", json!({}));
+    assert_eq!(synced["errors"], json!([]), "{synced}");
+    assert_eq!(
+        synced["received"][0]["parts"][0]["text"],
+        "Can you review the plan?"
+    );
+    let inbox = ap(a, "bob", "inbox_next", json!({"kinds": ["mail.received"]}));
+    assert_eq!(inbox["items"][0]["actor"], alice.as_str());
+    assert_eq!(inbox["items"][0]["message"]["summary"], "W7");
+    let read = ap(
+        a,
+        "bob",
+        "mail_list",
+        json!({"unread_only": true, "mark_read": true}),
+    );
+    assert_eq!(read["messages"][0]["reply_address"], alice_box["address"]);
+    assert_eq!(read["unread_count"], 0);
+    let reply = ap(
+        a,
+        "bob",
+        "mail_send",
+        json!({"in_reply_to": message_id, "text": "Looks good."}),
+    );
+    assert_eq!(reply["status"], "delivered");
+    let answer = mcp.tool("agent_protocols_mail_sync", json!({})).unwrap();
+    assert_eq!(answer["received"][0]["from"], bob.as_str());
+    assert_eq!(answer["received"][0]["in_reply_to"], message_id);
+    assert_eq!(
+        answer["received"][0]["thread_id"],
+        sent["message"]["thread_id"]
+    );
+
+    // A letter waits on the relay across a restart. The connector state
+    // holds no key; Bob's comes back from the sealed store with the login.
+    mcp.tool(
+        "agent_protocols_mail_send",
+        json!({"to": bob_box["address"], "text": "after the restart"}),
+    )
+    .unwrap();
+    drop(mcp);
+    env.restart(0);
+    let a = &env.a;
+    assert_eq!(a.login(&http, 61).unwrap()["state"], "unlocked");
+    let synced = ap(a, "bob", "mail_sync", json!({}));
+    let texts: Vec<&str> = synced["received"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["parts"][0]["text"].as_str().unwrap())
+        .collect();
+    assert_eq!(texts, ["after the restart"], "{synced}");
+
+    // Knowledge: Alice publishes; Bob finds the capsule, reads it by ID and
+    // checks its status; the service offers no ranked search; Alice's
+    // retraction withdraws it.
+    let published = ap(
+        a,
+        "alice",
+        "knowledge_submit",
+        json!({
+            "services": [knowledge], "type": "knowledge.publish",
+            "payload": {
+                "license": "https://creativecommons.org/licenses/by/4.0/",
+                "kind": "observation",
+                "title": "Mail keys stay on the device",
+                "statement": "A hosted Agent ID's mail keys are sealed on its device, never in the connector state.",
+                "language": "en",
+                "context": {"scope": "dMsg desktop W7.", "conditions": [], "limitations": []},
+                "basis": "The desktop acceptance test.",
+                "tags": ["dmsg"]
+            }
+        }),
+    );
+    let id = published["id"].as_str().unwrap().to_string();
+    assert_eq!(published["results"][0]["service"], knowledge.as_str());
+    let page = ap(
+        a,
+        "bob",
+        "knowledge_query",
+        json!({"service": knowledge, "actor": alice}),
+    );
+    assert_eq!(page["items"][0]["id"], id.as_str());
+    let got = ap(
+        a,
+        "bob",
+        "knowledge_get",
+        json!({"service": knowledge, "ids": [id]}),
+    );
+    assert_eq!(
+        got["items"][0]["payload"]["title"],
+        "Mail keys stay on the device"
+    );
+    assert_eq!(
+        a.fail(&[
+            "ap",
+            "--agent",
+            "bob",
+            "knowledge_search",
+            &json!({"service": knowledge, "text": "mail keys", "mode": "lexical"}).to_string(),
+        ]),
+        "unsupported_search_mode"
+    );
+    let status = ap(
+        a,
+        "bob",
+        "knowledge_status",
+        json!({"service": knowledge, "id": id}),
+    );
+    assert_eq!(status["status"], "active", "{status}");
+    let retraction = ap(
+        a,
+        "alice",
+        "knowledge_submit",
+        json!({"services": [knowledge], "type": "knowledge.retract", "payload": {"target": id, "reason": "Superseded by the W7 record."}}),
+    );
+    let status = ap(
+        a,
+        "bob",
+        "knowledge_status",
+        json!({"service": knowledge, "id": id}),
+    );
+    assert_eq!(status["status"], "retracted");
+    assert_eq!(status["retractions"], json!([retraction["id"]]));
     env.finish();
 }

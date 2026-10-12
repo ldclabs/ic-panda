@@ -9,6 +9,13 @@
 //! residency off deletes the copy. The list of hosted Agent IDs and the
 //! digests of their credentials are public; capability grants are sealed
 //! under the LDK and checked here, never synced.
+//!
+//! The Agent Mail decryption keys of an Agent ID's mailboxes (Agent Mail
+//! §4.3) come from its connector, which keeps none: they are sealed under
+//! the LDK on this device, like the connector state they belong to, and a
+//! resident Agent ID also keeps a copy beside its seed, which holds the
+//! keys it made while the device was locked until the next unlocked call
+//! folds them in.
 
 use crate::agent::agent_id;
 use crate::client::Client;
@@ -25,6 +32,8 @@ use zeroize::Zeroizing;
 
 const AGENTS: &str = "agents";
 const GRANTS: &str = "agent-grants";
+/// Sealed record of an Agent ID's mail keys, by `did:agent:`.
+const MAIL_KEYS: &str = "agent-mail-keys:";
 /// Most Agent IDs one device hosts.
 pub const MAX_AGENTS: usize = 16;
 /// Most capability grants kept, revoked ones included.
@@ -47,6 +56,9 @@ pub const CAPABILITIES: [&str; 8] = [
 
 /// What every agent may do without a grant.
 pub const DEFAULT_CAPABILITIES: [&str; 1] = ["profile.read"];
+
+/// Mail decryption keys: public key to secret, both base64url.
+type MailKeys = std::collections::BTreeMap<String, String>;
 
 /// An Agent ID this device hosts.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -163,6 +175,27 @@ impl Client {
         Ok(format!("{}:agent:{agent_id}", self.workspace.name()?))
     }
 
+    fn resident_mail_name(&self, agent_id: &str) -> Result<String> {
+        Ok(format!("{}:agent-mail:{agent_id}", self.workspace.name()?))
+    }
+
+    fn sealed_mail_keys(&self, agent_id: &str) -> Result<MailKeys> {
+        Ok(self
+            .workspace
+            .private(self.keys()?, &format!("{MAIL_KEYS}{agent_id}"))?
+            .unwrap_or_default())
+    }
+
+    fn resident_mail_keys(&self, agent_id: &str) -> Result<MailKeys> {
+        let Some(secure) = self.secure() else {
+            return Ok(MailKeys::new());
+        };
+        match secure.get(&self.resident_mail_name(agent_id)?)? {
+            Some(bytes) => serde_json::from_slice(&bytes).map_err(|_| Error::IntegrityFailed),
+            None => Ok(MailKeys::new()),
+        }
+    }
+
     /// The hosted Agent IDs and the active one; readable while locked.
     ///
     /// # Errors
@@ -276,10 +309,28 @@ impl Client {
             .secure()
             .ok_or_else(|| Error::Unavailable("no system credential store".into()))?;
         let slot = self.resident_name(&entry.agent_id)?;
+        let mail_slot = self.resident_mail_name(&entry.agent_id)?;
         if on {
             let seed = self.agent_vault_seed(&entry)?;
             secure.set(&slot, seed.as_slice())?;
+            let keys = self.sealed_mail_keys(&entry.agent_id)?;
+            secure.set(
+                &mail_slot,
+                &Zeroizing::new(serde_json::to_vec(&keys).expect("serializable")),
+            )?;
         } else {
+            // Keys made while locked live only in the copy: fold them in first.
+            let resident = self.resident_mail_keys(&entry.agent_id)?;
+            if !resident.is_empty() {
+                let mut keys = self.sealed_mail_keys(&entry.agent_id)?;
+                keys.extend(resident);
+                self.workspace.put_private(
+                    self.keys()?,
+                    &format!("{MAIL_KEYS}{}", entry.agent_id),
+                    &keys,
+                )?;
+            }
+            secure.delete(&mail_slot)?;
             secure.delete(&slot)?;
         }
         entry.resident = on;
@@ -354,6 +405,58 @@ impl Client {
             Error::IntegrityFailed,
         )?;
         Ok(signer)
+    }
+
+    /// The mail decryption keys of a hosted Agent ID's mailboxes, as its
+    /// connector restores them (`{version, agent_id, keys}`): the sealed
+    /// ones while unlocked, and a resident Agent ID's copy.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked for an Agent ID that is not resident.
+    pub fn agent_mail_keys(&mut self, agent: &str) -> Result<Json> {
+        let entry = self.agent_find(agent)?;
+        let mut keys = match (self.keys.is_some(), entry.resident) {
+            (true, _) => self.sealed_mail_keys(&entry.agent_id)?,
+            (false, true) => MailKeys::new(),
+            (false, false) => return Err(Error::Locked),
+        };
+        if entry.resident {
+            keys.extend(self.resident_mail_keys(&entry.agent_id)?);
+        }
+        Ok(json!({"version": 1, "agent_id": entry.agent_id, "keys": keys}))
+    }
+
+    /// Keep the mail keys a connector call left, which drop those of cards
+    /// past `receive_until`: sealed while unlocked, and in a resident Agent
+    /// ID's copy.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked for an Agent ID that is not
+    /// resident and `Error::IntegrityFailed` for keys of another Agent ID.
+    pub fn agent_mail_keys_save(&mut self, agent: &str, value: &Json) -> Result<()> {
+        let entry = self.agent_find(agent)?;
+        ensure(
+            value["version"] == 1 && value["agent_id"] == entry.agent_id.as_str(),
+            Error::IntegrityFailed,
+        )?;
+        let keys: MailKeys =
+            serde_json::from_value(value["keys"].clone()).map_err(|_| Error::IntegrityFailed)?;
+        ensure(self.keys.is_some() || entry.resident, Error::Locked)?;
+        if self.keys.is_some() {
+            self.workspace.put_private(
+                self.keys()?,
+                &format!("{MAIL_KEYS}{}", entry.agent_id),
+                &keys,
+            )?;
+        }
+        if entry.resident {
+            let secure = self.secure().ok_or(Error::Locked)?;
+            secure.set(
+                &self.resident_mail_name(&entry.agent_id)?,
+                &Zeroizing::new(serde_json::to_vec(&keys).expect("serializable")),
+            )?;
+        }
+        Ok(())
     }
 
     /// Every capability grant, revoked ones included.

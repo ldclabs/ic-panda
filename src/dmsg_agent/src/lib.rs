@@ -4,7 +4,7 @@
 pub mod runtime;
 pub mod tools;
 
-pub use runtime::{Host, Runtime, ToolError};
+pub use runtime::{Called, Host, Options, Runtime, ToolError, Turn};
 
 #[cfg(test)]
 mod runtime_tests;
