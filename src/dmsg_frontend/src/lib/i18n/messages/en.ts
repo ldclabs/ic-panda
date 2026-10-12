@@ -51,24 +51,24 @@ const en = {
   'Get PANDA from ICPswap': 'Get PANDA from ICPswap',
   'dMsg home': 'dMsg home',
   'dMsg — Your space. Your say.': 'dMsg — Your space. Your say.',
-  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available in read-only mode.':
-    'A private workspace for your secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available in read-only mode.',
+  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.':
+    'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.',
   'Skip to content': 'Skip to content',
   'Main navigation': 'Main navigation',
   'Workspace': 'Workspace',
   'Privacy': 'Privacy',
   'Developers': 'Developers',
-  'Coming to Chrome': 'Coming to Chrome',
+  'Coming to desktop': 'Coming to desktop',
   'Close navigation': 'Close navigation',
   'Open navigation': 'Open navigation',
-  'Private workspace / Chrome extension':
-    'Private workspace / Chrome extension',
+  'Private workspace / Desktop app':
+    'Private workspace / Desktop app',
   'Your space.': 'Your space.',
   'Your say.': 'Your say.',
   'Explore the workspace': 'Explore the workspace',
   'Open legacy app': 'Open legacy app',
-  'Chrome extension coming soon. Legacy app available read-only.':
-    'Chrome extension coming soon. Legacy app available read-only.',
+  'Desktop app coming soon. Legacy app available read-only.':
+    'Desktop app coming soon. Legacy app available read-only.',
   'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.':
     'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.',
   'Your public doorway': 'Your public doorway',
@@ -135,15 +135,15 @@ const en = {
   'For connected applications': 'For connected applications',
   'Your identity,': 'Your identity,',
   'beyond one app.': 'beyond one app.',
-  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate extension confirmation window.':
-    'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate extension confirmation window.',
+  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.':
+    'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.',
   'Walk through a request': 'Walk through a request',
   'App requests.': 'App requests.',
   'Bind a specific file version, purpose, identity, and requesting origin.':
     'Bind a specific file version, purpose, identity, and requesting origin.',
   'You review.': 'You review.',
-  'Inspect the actual request. Approve or reject it in the extension.':
-    'Inspect the actual request. Approve or reject it in the extension.',
+  'Inspect the actual request. Approve or reject it in the desktop app.':
+    'Inspect the actual request. Approve or reject it in the desktop app.',
   'App verifies.': 'App verifies.',
   'Receive the result and verify content, signature, and authorization separately.':
     'Receive the result and verify content, signature, and authorization separately.',
@@ -159,7 +159,7 @@ const en = {
   'Clear answers about availability, identity, private content, and your existing data.':
     'Clear answers about availability, identity, private content, and your existing data.',
   'In development': 'In development',
-  'Coming to Chrome.': 'Coming to Chrome.',
+  'Coming to desktop.': 'Coming to desktop.',
   'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.':
     'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.',
   'Follow development': 'Follow development',
@@ -193,8 +193,8 @@ const en = {
     'Purpose: confirm this example file version.',
   'No real release or approval is represented.':
     'No real release or approval is represented.',
-  'In the planned extension, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
-    'In the planned extension, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.',
+  'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
+    'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.',
   'Reject example': 'Reject example',
   'Simulate approval': 'Simulate approval',
   'Example approved': 'Example approved',
@@ -216,9 +216,9 @@ const en = {
   'No new contact from strangers.': 'No new contact from strangers.',
   'Closing stops new requests. Existing conversations keep their own permissions.':
     'Closing stops new requests. Existing conversations keep their own permissions.',
-  'Can I install dMsg for Chrome now?': 'Can I install dMsg for Chrome now?',
-  'Not yet. The Chrome extension is in development and is not listed in the Chrome Web Store. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
-    'Not yet. The Chrome extension is in development and is not listed in the Chrome Web Store. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.',
+  'Can I install the dMsg desktop app now?': 'Can I install the dMsg desktop app now?',
+  'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
+    'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.',
   'What can I do with the legacy app?': 'What can I do with the legacy app?',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
     'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.',
@@ -240,8 +240,8 @@ const en = {
     'No. The planned design encrypts private content on authorized devices and stores ciphertext in the cloud. ICP holds core identity, control, formal-signing, and payment state. Service metadata, cloud availability, client updates, and governance remain trust boundaries.',
   'Will the full workspace work on my phone?':
     'Will the full workspace work on my phone?',
-  'The initial full workspace is planned for desktop Chrome. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
-    'The initial full workspace is planned for desktop Chrome. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.',
+  'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
+    'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.',
   'Explore dMsg capabilities': 'Explore dMsg capabilities',
   'Workspace capabilities': 'Workspace capabilities',
   'Your personal vault': 'Your personal vault',
@@ -252,8 +252,8 @@ const en = {
   'The right content. The right people.':
     'The right content. The right people.',
   'Know exactly what you’re signing.': 'Know exactly what you’re signing.',
-  'Keep API keys, credentials, private notes, and files together. The planned extension puts your personal workspace first — no contacts or paid handle required.':
-    'Keep API keys, credentials, private notes, and files together. The planned extension puts your personal workspace first — no contacts or paid handle required.',
+  'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.':
+    'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.',
   'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.':
     'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.',
   'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.':
@@ -297,8 +297,8 @@ const en = {
   'Review example': 'Review example',
   'Walkthrough only. No identity connection or real signature.':
     'Walkthrough only. No identity connection or real signature.',
-  'Product preview · Chrome extension in development':
-    'Product preview · Chrome extension in development',
+  'Product preview · Desktop app in development':
+    'Product preview · Desktop app in development',
   'Examples run locally. Nothing is sent or signed.':
     'Examples run locally. Nothing is sent or signed.',
   'Useful on your own.': 'Useful on your own.',

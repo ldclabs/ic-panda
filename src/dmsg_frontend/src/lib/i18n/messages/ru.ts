@@ -52,24 +52,24 @@ export default {
   'Get PANDA from ICPswap': 'Купить PANDA на ICPswap',
   'dMsg home': 'Главная dMsg',
   'dMsg — Your space. Your say.': 'dMsg — Ваше пространство. Ваше решение.',
-  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available in read-only mode.':
-    'Личное пространство для секретов, выбранных коллег и осознанных подписей. Расширение Chrome в разработке. Старое приложение доступно только для чтения.',
+  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.':
+    'Личное пространство для секретов, выбранных коллег и осознанных подписей. Настольное приложение в разработке. Старое приложение доступно только для чтения.',
   'Skip to content': 'Перейти к содержимому',
   'Main navigation': 'Главная навигация',
   'Workspace': 'Рабочее пространство',
   'Privacy': 'Конфиденциальность',
   'Developers': 'Разработчикам',
-  'Coming to Chrome': 'Скоро в Chrome',
+  'Coming to desktop': 'Скоро на компьютерах',
   'Close navigation': 'Закрыть навигацию',
   'Open navigation': 'Открыть навигацию',
-  'Private workspace / Chrome extension':
-    'Личное пространство / Расширение Chrome',
+  'Private workspace / Desktop app':
+    'Личное пространство / Настольное приложение',
   'Your space.': 'Ваше пространство.',
   'Your say.': 'Ваше решение.',
   'Explore the workspace': 'Изучить пространство',
   'Open legacy app': 'Открыть старое приложение',
-  'Chrome extension coming soon. Legacy app available read-only.':
-    'Расширение Chrome скоро появится. Старое приложение доступно только для чтения.',
+  'Desktop app coming soon. Legacy app available read-only.':
+    'Настольное приложение скоро появится. Старое приложение доступно только для чтения.',
   'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.':
     'Личное пространство для ваших секретов, выбранных людей и запросов, которые вы решаете подписать.',
   'Your public doorway': 'Ваша публичная дверь',
@@ -136,15 +136,15 @@ export default {
   'For connected applications': 'Для подключённых приложений',
   'Your identity,': 'Ваша идентичность —',
   'beyond one app.': 'за пределами одного приложения.',
-  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate extension confirmation window.':
-    'Пусть приложение запросит одно конкретное действие. Проверьте источник, контент и последствия в отдельном окне подтверждения расширения.',
+  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.':
+    'Пусть приложение запросит одно конкретное действие. Проверьте источник, контент и последствия в отдельном окне подтверждения настольного приложения.',
   'Walk through a request': 'Пройти пример запроса',
   'App requests.': 'Приложение запрашивает.',
   'Bind a specific file version, purpose, identity, and requesting origin.':
     'Привяжите конкретную версию файла, цель, идентичность и источник запроса.',
   'You review.': 'Вы проверяете.',
-  'Inspect the actual request. Approve or reject it in the extension.':
-    'Изучите сам запрос. Одобрите или отклоните его в расширении.',
+  'Inspect the actual request. Approve or reject it in the desktop app.':
+    'Изучите сам запрос. Одобрите или отклоните его в настольном приложении.',
   'App verifies.': 'Приложение проверяет.',
   'Receive the result and verify content, signature, and authorization separately.':
     'Получите результат и отдельно проверьте контент, подпись и авторизацию.',
@@ -160,7 +160,7 @@ export default {
   'Clear answers about availability, identity, private content, and your existing data.':
     'Ясные ответы о доступности, идентичности, приватном контенте и существующих данных.',
   'In development': 'В разработке',
-  'Coming to Chrome.': 'Скоро в Chrome.',
+  'Coming to desktop.': 'Скоро на компьютерах.',
   'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.':
     'Полное пространство пока нельзя установить. Сначала мы создаём личное хранилище, затем приватную совместную работу и интеграции подписания с ограниченной областью.',
   'Follow development': 'Следить за разработкой',
@@ -194,8 +194,8 @@ export default {
     'Цель: подтвердить эту версию примера файла.',
   'No real release or approval is represented.':
     'Это не настоящий выпуск или одобрение.',
-  'In the planned extension, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
-    'В планируемом расширении одобрение разрешает только проверенные данные и цель. Оно не открывает хранилище и не одобряет будущие запросы.',
+  'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
+    'В планируемом настольном приложении одобрение разрешает только проверенные данные и цель. Оно не открывает хранилище и не одобряет будущие запросы.',
   'Reject example': 'Отклонить пример',
   'Simulate approval': 'Имитировать одобрение',
   'Example approved': 'Пример одобрен',
@@ -218,10 +218,10 @@ export default {
   'No new contact from strangers.': 'Без новых обращений от незнакомцев.',
   'Closing stops new requests. Existing conversations keep their own permissions.':
     'Закрытие останавливает новые запросы. Права существующих бесед сохраняются.',
-  'Can I install dMsg for Chrome now?':
-    'Можно ли уже установить dMsg для Chrome?',
-  'Not yet. The Chrome extension is in development and is not listed in the Chrome Web Store. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
-    'Пока нет. Расширение в разработке и отсутствует в Chrome Web Store. Примеры объясняют планируемый опыт, а не работающий сервис хранилища, сообщений или подписей.',
+  'Can I install the dMsg desktop app now?':
+    'Можно ли уже установить настольное приложение dMsg?',
+  'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
+    'Пока нет. Настольное приложение в разработке и ещё не выпущено публично. Примеры объясняют планируемый опыт, а не работающий сервис хранилища, сообщений или подписей.',
   'What can I do with the legacy app?': 'Что можно делать в старом приложении?',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
     'Войдите прежней идентичностью, чтобы читать старые беседы и скачивать доступные вложения. Новые сообщения, загрузки, изменения профиля и регистрация отключены. Сохраните исходный браузер и локальные данные, особенно при режиме Local key. Новая миграция пока недоступна.',
@@ -242,8 +242,8 @@ export default {
     'Нет. Контент шифруется на авторизованных устройствах, шифротекст хранится в облаке. ICP хранит основную идентичность, управление, формальные подписи и платежи. Метаданные сервиса, доступность облака, обновления клиента и управление остаются границами доверия.',
   'Will the full workspace work on my phone?':
     'Будет ли полное пространство работать на телефоне?',
-  'The initial full workspace is planned for desktop Chrome. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
-    'Полное пространство сначала планируется для настольного Chrome. Этот сайт предоставляет информацию и доступ к старому приложению; адаптивная страница не обещает полноценного мобильного хранилища или мессенджера.',
+  'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
+    'Полное пространство сначала планируется как настольное приложение. Этот сайт предоставляет информацию и доступ к старому приложению; адаптивная страница не обещает полноценного мобильного хранилища или мессенджера.',
   'Explore dMsg capabilities': 'Изучить возможности dMsg',
   'Workspace capabilities': 'Возможности пространства',
   'Your personal vault': 'Ваше личное хранилище',
@@ -253,8 +253,8 @@ export default {
     'Место для того, что вы не публикуете.',
   'The right content. The right people.': 'Нужный контент. Нужные люди.',
   'Know exactly what you’re signing.': 'Точно знайте, что подписываете.',
-  'Keep API keys, credentials, private notes, and files together. The planned extension puts your personal workspace first — no contacts or paid handle required.':
-    'Храните API-ключи, учётные данные, личные заметки и файлы вместе. Расширение ставит личное пространство на первое место: контакты и платное имя не нужны.',
+  'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.':
+    'Храните API-ключи, учётные данные, личные заметки и файлы вместе. Настольное приложение ставит личное пространство на первое место: контакты и платное имя не нужны.',
   'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.':
     'Делитесь заметками и файлами проекта в зашифрованной беседе или канале. Приглашайте людей в конкретное пространство с отдельным от личного хранилища доступом.',
   'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.':
@@ -300,8 +300,8 @@ export default {
   'Review example': 'Проверить пример',
   'Walkthrough only. No identity connection or real signature.':
     'Только пример. Без подключения идентичности и настоящей подписи.',
-  'Product preview · Chrome extension in development':
-    'Обзор продукта · Расширение Chrome в разработке',
+  'Product preview · Desktop app in development':
+    'Обзор продукта · Настольное приложение в разработке',
   'Examples run locally. Nothing is sent or signed.':
     'Примеры работают локально. Ничего не отправляется и не подписывается.',
   'Useful on your own.': 'Самодостаточно и удобно в одиночку.',

@@ -54,24 +54,24 @@ export default {
   'Get PANDA from ICPswap': 'Obtener PANDA en ICPswap',
   'dMsg home': 'Inicio de dMsg',
   'dMsg — Your space. Your say.': 'dMsg — Tu espacio. Tu decisión.',
-  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available in read-only mode.':
-    'Un espacio privado para tus secretos, colaboradores elegidos y firmas explícitas. Extensión de Chrome en desarrollo. Aplicación antigua de solo lectura.',
+  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.':
+    'Un espacio privado para tus secretos, colaboradores elegidos y firmas explícitas. Aplicación de escritorio en desarrollo. Aplicación antigua de solo lectura.',
   'Skip to content': 'Saltar al contenido',
   'Main navigation': 'Navegación principal',
   'Workspace': 'Espacio de trabajo',
   'Privacy': 'Privacidad',
   'Developers': 'Desarrolladores',
-  'Coming to Chrome': 'Próximamente en Chrome',
+  'Coming to desktop': 'Próximamente en escritorio',
   'Close navigation': 'Cerrar navegación',
   'Open navigation': 'Abrir navegación',
-  'Private workspace / Chrome extension':
-    'Espacio privado / Extensión de Chrome',
+  'Private workspace / Desktop app':
+    'Espacio privado / Aplicación de escritorio',
   'Your space.': 'Tu espacio.',
   'Your say.': 'Tu decisión.',
   'Explore the workspace': 'Explorar el espacio',
   'Open legacy app': 'Abrir aplicación antigua',
-  'Chrome extension coming soon. Legacy app available read-only.':
-    'Extensión de Chrome próximamente. Aplicación antigua de solo lectura.',
+  'Desktop app coming soon. Legacy app available read-only.':
+    'Aplicación de escritorio próximamente. Aplicación antigua de solo lectura.',
   'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.':
     'Un espacio privado para los secretos que guardas, las personas que eliges y las solicitudes que decides firmar.',
   'Your public doorway': 'Tu puerta pública',
@@ -139,15 +139,15 @@ export default {
   'For connected applications': 'Para aplicaciones conectadas',
   'Your identity,': 'Tu identidad,',
   'beyond one app.': 'más allá de una aplicación.',
-  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate extension confirmation window.':
-    'Permite que una aplicación solicite una acción concreta. Revisa el origen, contenido y consecuencias en una ventana de confirmación separada de la extensión.',
+  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.':
+    'Permite que una aplicación solicite una acción concreta. Revisa el origen, contenido y consecuencias en una ventana de confirmación separada de la aplicación de escritorio.',
   'Walk through a request': 'Recorrer una solicitud',
   'App requests.': 'La aplicación solicita.',
   'Bind a specific file version, purpose, identity, and requesting origin.':
     'Vincula una versión concreta del archivo, propósito, identidad y origen de la solicitud.',
   'You review.': 'Tú revisas.',
-  'Inspect the actual request. Approve or reject it in the extension.':
-    'Examina la solicitud real. Apruébala o recházala en la extensión.',
+  'Inspect the actual request. Approve or reject it in the desktop app.':
+    'Examina la solicitud real. Apruébala o recházala en la aplicación de escritorio.',
   'App verifies.': 'La aplicación verifica.',
   'Receive the result and verify content, signature, and authorization separately.':
     'Recibe el resultado y verifica contenido, firma y autorización por separado.',
@@ -163,7 +163,7 @@ export default {
   'Clear answers about availability, identity, private content, and your existing data.':
     'Respuestas claras sobre disponibilidad, identidad, contenido privado y datos existentes.',
   'In development': 'En desarrollo',
-  'Coming to Chrome.': 'Próximamente en Chrome.',
+  'Coming to desktop.': 'Próximamente en escritorio.',
   'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.':
     'El espacio completo aún no se puede instalar. Creamos primero una bóveda personal, después colaboración privada e integraciones de firma con alcance limitado.',
   'Follow development': 'Seguir el desarrollo',
@@ -197,8 +197,8 @@ export default {
     'Propósito: confirmar esta versión del archivo de ejemplo.',
   'No real release or approval is represented.':
     'No representa ningún lanzamiento ni aprobación real.',
-  'In the planned extension, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
-    'En la extensión prevista, la aprobación solo autoriza el contenido y propósito revisados. No concede acceso a la bóveda ni aprueba futuras solicitudes.',
+  'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
+    'En la aplicación de escritorio prevista, la aprobación solo autoriza el contenido y propósito revisados. No concede acceso a la bóveda ni aprueba futuras solicitudes.',
   'Reject example': 'Rechazar ejemplo',
   'Simulate approval': 'Simular aprobación',
   'Example approved': 'Ejemplo aprobado',
@@ -222,9 +222,9 @@ export default {
   'No new contact from strangers.': 'Sin nuevos contactos de desconocidos.',
   'Closing stops new requests. Existing conversations keep their own permissions.':
     'El cierre detiene las nuevas solicitudes. Las conversaciones existentes mantienen sus permisos.',
-  'Can I install dMsg for Chrome now?': '¿Puedo instalar ya dMsg para Chrome?',
-  'Not yet. The Chrome extension is in development and is not listed in the Chrome Web Store. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
-    'Todavía no. La extensión está en desarrollo y no figura en Chrome Web Store. Los ejemplos explican la experiencia prevista; no son una bóveda, mensajería ni servicio de firma activos.',
+  'Can I install the dMsg desktop app now?': '¿Puedo instalar ya la aplicación de escritorio de dMsg?',
+  'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
+    'Todavía no. La aplicación de escritorio está en desarrollo y aún no tiene una versión pública. Los ejemplos explican la experiencia prevista; no son una bóveda, mensajería ni servicio de firma activos.',
   'What can I do with the legacy app?':
     '¿Qué puedo hacer con la aplicación antigua?',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
@@ -247,8 +247,8 @@ export default {
     'No. El contenido se cifra en dispositivos autorizados y se almacena cifrado en la nube. ICP conserva identidad esencial, control, firmas formales y pagos. Los metadatos, la disponibilidad de nube, las actualizaciones y la gobernanza siguen siendo límites de confianza.',
   'Will the full workspace work on my phone?':
     '¿Funcionará el espacio completo en mi teléfono?',
-  'The initial full workspace is planned for desktop Chrome. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
-    'El espacio completo inicial está previsto para Chrome de escritorio. Este sitio ofrece información y acceso antiguo; una página adaptable no promete una bóveda ni mensajería móviles completas.',
+  'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
+    'El espacio completo inicial está previsto como aplicación de escritorio. Este sitio ofrece información y acceso antiguo; una página adaptable no promete una bóveda ni mensajería móviles completas.',
   'Explore dMsg capabilities': 'Explorar funciones de dMsg',
   'Workspace capabilities': 'Funciones del espacio',
   'Your personal vault': 'Tu bóveda personal',
@@ -259,8 +259,8 @@ export default {
   'The right content. The right people.':
     'El contenido adecuado. Las personas adecuadas.',
   'Know exactly what you’re signing.': 'Sabe exactamente qué firmas.',
-  'Keep API keys, credentials, private notes, and files together. The planned extension puts your personal workspace first — no contacts or paid handle required.':
-    'Reúne claves API, credenciales, notas privadas y archivos. La extensión prioriza tu espacio personal, sin contactos ni nombre de pago obligatorios.',
+  'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.':
+    'Reúne claves API, credenciales, notas privadas y archivos. La aplicación de escritorio prevista prioriza tu espacio personal, sin contactos ni nombre de pago obligatorios.',
   'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.':
     'Comparte notas y archivos del proyecto en una conversación o canal cifrado. Invita a un espacio concreto con acceso separado de tu bóveda personal.',
   'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.':
@@ -306,8 +306,8 @@ export default {
   'Review example': 'Revisar ejemplo',
   'Walkthrough only. No identity connection or real signature.':
     'Solo demostración. Sin conexión de identidad ni firma real.',
-  'Product preview · Chrome extension in development':
-    'Vista previa · Extensión de Chrome en desarrollo',
+  'Product preview · Desktop app in development':
+    'Vista previa · Aplicación de escritorio en desarrollo',
   'Examples run locally. Nothing is sent or signed.':
     'Los ejemplos se ejecutan localmente. No se envía ni firma nada.',
   'Useful on your own.': 'Autónomo y completo en solitario.',

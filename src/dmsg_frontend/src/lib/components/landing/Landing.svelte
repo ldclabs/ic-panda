@@ -42,9 +42,9 @@
   )
   const faqs = $derived([
     [
-      $t('Can I install dMsg for Chrome now?'),
+      $t('Can I install the dMsg desktop app now?'),
       $t(
-        'Not yet. The Chrome extension is in development and is not listed in the Chrome Web Store. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.'
+        'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.'
       )
     ],
     [
@@ -80,7 +80,7 @@
     [
       $t('Will the full workspace work on my phone?'),
       $t(
-        'The initial full workspace is planned for desktop Chrome. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.'
+        'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.'
       )
     ]
   ])
@@ -125,7 +125,7 @@
         >
       </nav>
       <a class="button primary header-action" href="#release"
-        >{$t('Coming to Chrome')}</a
+        >{$t('Coming to desktop')}</a
       >
       <button
         bind:this={menuButton}
@@ -142,7 +142,7 @@
   <main id="main" tabindex="-1">
     <div class="wrap">
       <section class="hero" aria-labelledby="hero-title">
-        <div class="eyebrow">{$t('Private workspace / Chrome extension')}</div>
+        <div class="eyebrow">{$t('Private workspace / Desktop app')}</div>
         <h1 id="hero-title">{$t('Your space.')}<br />{$t('Your say.')}</h1>
         <div class="hero-bottom">
           <div>
@@ -155,7 +155,7 @@
             >
             <p class="hero-note"
               >{$t(
-                'Chrome extension coming soon. Legacy app available read-only.'
+                'Desktop app coming soon. Legacy app available read-only.'
               )}</p
             >
           </div>
@@ -360,7 +360,7 @@
               >{$t('For connected applications')}</div
             ><h2>{$t('Your identity,')}<br />{$t('beyond one app.')}</h2><p
               >{$t(
-                'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate extension confirmation window.'
+                'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.'
               )}</p
             ><button class="text-link" onclick={openReview}
               >{$t('Walk through a request')}<Icon name="arrow-right" /></button
@@ -380,7 +380,7 @@
                 ><span class="step-number">02</span><h3>{$t('You review.')}</h3
                 ><p
                   >{$t(
-                    'Inspect the actual request. Approve or reject it in the extension.'
+                    'Inspect the actual request. Approve or reject it in the desktop app.'
                   )}</p
                 ></article
               ><article
@@ -433,7 +433,7 @@
       <section class="release rule" id="release" aria-labelledby="release-title"
         ><div
           ><div class="eyebrow section-label">{$t('In development')}</div><h2
-            id="release-title">{$t('Coming to Chrome.')}</h2
+            id="release-title">{$t('Coming to desktop.')}</h2
           ><p
             >{$t(
               'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.'
@@ -526,7 +526,7 @@
         >
         <p class="small"
           >{$t(
-            'In the planned extension, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.'
+            'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.'
           )}</p
         >
         <div class="demo-actions"

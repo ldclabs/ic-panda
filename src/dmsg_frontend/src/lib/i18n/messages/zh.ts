@@ -50,23 +50,23 @@ export default {
   'Get PANDA from ICPswap': '在 ICPswap 兑换获取 PANDA',
   'dMsg home': 'dMsg 首页',
   'dMsg — Your space. Your say.': 'dMsg — 你的专属空间，由你自主掌控。',
-  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available in read-only mode.':
-    '专为你的私密数据、精选协作者与明确签名授权打造的私人工作空间。Chrome 扩展正在全力开发中，旧版应用提供只读归档访问。',
+  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.':
+    '专为你的私密数据、精选协作者与明确签名授权打造的私人工作空间。桌面应用正在全力开发中，旧版应用提供只读归档访问。',
   'Skip to content': '跳至主要内容',
   'Main navigation': '主导航',
   'Workspace': '工作空间',
   'Privacy': '隐私与安全',
   'Developers': '开发者',
-  'Coming to Chrome': '即将登陆 Chrome',
+  'Coming to desktop': '即将推出桌面应用',
   'Close navigation': '收起导航',
   'Open navigation': '展开导航',
-  'Private workspace / Chrome extension': '私人工作空间 / Chrome 扩展',
+  'Private workspace / Desktop app': '私人工作空间 / 桌面应用',
   'Your space.': '你的专属空间。',
   'Your say.': '由你完全掌控。',
   'Explore the workspace': '探索私人工作空间',
   'Open legacy app': '访问旧版只读归档',
-  'Chrome extension coming soon. Legacy app available read-only.':
-    'Chrome 扩展即将重磅推出。旧版应用已转入只读归档模式。',
+  'Desktop app coming soon. Legacy app available read-only.':
+    '桌面应用即将推出。旧版应用已转入只读归档模式。',
   'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.':
     '为你悉心守护的私密数据、自主选择的信任伙伴，以及由你审慎决定的签名请求而打造的专属工作空间。',
   'Your public doorway': '你的公开对外入口',
@@ -131,15 +131,15 @@ export default {
   'For connected applications': '面向生态互联应用',
   'Your identity,': '你的主权身份，',
   'beyond one app.': '通行于各款应用。',
-  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate extension confirmation window.':
-    '第三方应用仅能发起具体的单一操作请求。你可以在专属的扩展确认弹窗中逐一核对请求来源、具体数据及产生的影响。',
+  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.':
+    '第三方应用仅能发起具体的单一操作请求。你可以在桌面应用独立的确认窗口中逐一核对请求来源、具体数据及产生的影响。',
   'Walk through a request': '体验授权流程演示',
   'App requests.': '应用发起签名请求。',
   'Bind a specific file version, purpose, identity, and requesting origin.':
     '明确绑定具体的文件版本、业务意图、对应身份以及发起请求的来源网址。',
   'You review.': '你亲自审核。',
-  'Inspect the actual request. Approve or reject it in the extension.':
-    '仔细检查请求明细，直接在扩展中选择批准或果断拒绝。',
+  'Inspect the actual request. Approve or reject it in the desktop app.':
+    '仔细检查请求明细，直接在桌面应用中选择批准或拒绝。',
   'App verifies.': '应用验证执行结果。',
   'Receive the result and verify content, signature, and authorization separately.':
     '应用接收签名结果，并分别对明文内容、数字签名及授权凭据进行确定性校验。',
@@ -155,7 +155,7 @@ export default {
   'Clear answers about availability, identity, private content, and your existing data.':
     '关于系统可用性、身份模型、私密数据保管与历史数据继承的坦诚解答。',
   'In development': '积极开发中',
-  'Coming to Chrome.': '即将登陆 Chrome 商店。',
+  'Coming to desktop.': '桌面应用即将推出。',
   'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.':
     '完整的私人工作空间目前尚未开放安装。我们正在稳步推进本地个人保险库的工程落地，随后将陆续推出私密协作频道与受控签名集成。',
   'Follow development': '关注核心开发进展',
@@ -188,8 +188,8 @@ export default {
     '用途：核对并确认该示例文件版本。',
   'No real release or approval is represented.':
     '本流程仅用于功能交互展示，不代表任何真实的发布或审批行为。',
-  'In the planned extension, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
-    '在未来正式发布的扩展中，点击批准仅代表对当前已核对的内容与特定用途进行授权，绝不会暴露你的保险库，亦不会默认批准任何未来请求。',
+  'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
+    '在未来正式发布的桌面应用中，点击批准仅代表对当前已核对的内容与特定用途进行授权，绝不会暴露你的保险库，亦不会默认批准任何未来请求。',
   'Reject example': '拒绝此示例请求',
   'Simulate approval': '模拟批准操作',
   'Example approved': '已模拟批准此请求',
@@ -211,9 +211,9 @@ export default {
   'No new contact from strangers.': '完全拒收来自陌生人的新联系请求。',
   'Closing stops new requests. Existing conversations keep their own permissions.':
     '开启此选项后将拒绝所有新的外部联系请求，而既有的历史对话仍将保留各自的通信权限。',
-  'Can I install dMsg for Chrome now?': '现在可以直接安装 dMsg Chrome 扩展吗？',
-  'Not yet. The Chrome extension is in development and is not listed in the Chrome Web Store. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
-    '目前尚不可以。Chrome 扩展目前处于深度研发阶段，尚未在 Chrome 应用商店上架。本网站上的所有交互仅用于阐述未来的核心产品理念与设计体验，并非生产环境的实时保险库、聊天工具或签名服务。',
+  'Can I install the dMsg desktop app now?': '现在可以安装 dMsg 桌面应用吗？',
+  'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
+    '目前尚不可以。桌面应用仍在研发中，尚未公开发布。本网站上的所有交互仅用于阐述未来的核心产品理念与设计体验，并非生产环境的实时保险库、聊天工具或签名服务。',
   'What can I do with the legacy app?': '旧版应用目前支持哪些操作？',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
     '你可以使用既有的身份凭据登录，查看过往的历史会话并下载此前已具备权限的文件附件。旧版界面现已全线关闭新消息发送、文件上传、个人资料修改及新账户注册。请务必妥善保留原有的浏览器与本地数据（尤其是曾启用本地密钥模式的用户）。全新的一键迁移方案将在准备就绪后第一时间公布。',
@@ -234,8 +234,8 @@ export default {
     '不会。计划中的设计在已授权设备上加密私密内容，并将密文存入云端。ICP 保存核心身份、控制、正式签名和支付状态。服务元数据、云端可用性、客户端更新和治理仍属于信任边界。',
   'Will the full workspace work on my phone?':
     '完整的私人工作空间支持在智能手机上使用吗？',
-  'The initial full workspace is planned for desktop Chrome. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
-    '初期完整的私人工作空间将专注于桌面端 Chrome 扩展。当前移动端网页仅提供产品架构介绍与旧版历史只读访问；具备移动响应式页面并不意味着已提供完整的移动端保险库或加密通讯应用。',
+  'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
+    '初期完整的私人工作空间将以桌面应用提供。当前网页仅提供产品介绍与旧版历史只读访问；具备移动响应式页面并不意味着已提供完整的移动端保险库或加密通讯应用。',
   'Explore dMsg capabilities': '探索 dMsg 核心矩阵',
   'Workspace capabilities': '工作空间核心能力',
   'Your personal vault': '本地私人保险库',
@@ -245,8 +245,8 @@ export default {
     '为那些永不公开的私密资料构筑安全堡垒。',
   'The right content. The right people.': '恰当的内容，只交托给对的人。',
   'Know exactly what you’re signing.': '每一笔签名，皆了然于胸。',
-  'Keep API keys, credentials, private notes, and files together. The planned extension puts your personal workspace first — no contacts or paid handle required.':
-    '集中保存 API 密钥、凭据、私密笔记和文件。计划中的扩展优先提供个人工作空间，无需联系人或付费用户名。',
+  'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.':
+    '集中保存 API 密钥、凭据、私密笔记和文件。计划中的桌面应用优先提供个人工作空间，无需联系人或付费用户名。',
   'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.':
     '在加密会话或频道中共享项目笔记和文件。邀请他人进入指定空间，其访问权限与个人保险库分开。',
   'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.':
@@ -290,8 +290,8 @@ export default {
   'Review example': '核对示例明细',
   'Walkthrough only. No identity connection or real signature.':
     '仅供交互演示，不连接真实身份，亦不产生有效链上签名。',
-  'Product preview · Chrome extension in development':
-    '产品设计预览 · Chrome 扩展深度开发中',
+  'Product preview · Desktop app in development':
+    '产品设计预览 · 桌面应用开发中',
   'Examples run locally. Nothing is sent or signed.':
     '示例在本地运行，不会发送数据或生成签名。',
   'Useful on your own.': '独享亦得力。',

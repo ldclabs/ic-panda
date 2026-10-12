@@ -116,7 +116,7 @@
           <p
             >{[
               $t(
-                'Keep API keys, credentials, private notes, and files together. The planned extension puts your personal workspace first — no contacts or paid handle required.'
+                'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.'
               ),
               $t(
                 'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.'
@@ -271,7 +271,7 @@
     </div>
   {/each}
   <div class="task-caption"
-    ><span>{$t('Product preview · Chrome extension in development')}</span><span
+    ><span>{$t('Product preview · Desktop app in development')}</span><span
       >{$t('Examples run locally. Nothing is sent or signed.')}</span
     ></div
   >

@@ -10,7 +10,7 @@
       ?.setAttribute(
         'content',
         $t(
-          'A private workspace for your secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available in read-only mode.'
+          'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.'
         )
       )
   }

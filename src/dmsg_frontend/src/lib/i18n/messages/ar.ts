@@ -53,23 +53,23 @@ export default {
   'Get PANDA from ICPswap': 'الحصول على PANDA من ICPswap',
   'dMsg home': 'صفحة dMsg الرئيسية',
   'dMsg — Your space. Your say.': 'dMsg — مساحتك. قرارك.',
-  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Chrome extension in development. Legacy app available in read-only mode.':
-    'مساحة خاصة لأسرارك والمتعاونين الذين تختارهم والتوقيعات الصريحة. إضافة Chrome قيد التطوير. التطبيق القديم للقراءة فقط.',
+  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.':
+    'مساحة خاصة لأسرارك والمتعاونين الذين تختارهم والتوقيعات الصريحة. تطبيق سطح المكتب قيد التطوير. التطبيق القديم للقراءة فقط.',
   'Skip to content': 'انتقل إلى المحتوى',
   'Main navigation': 'التنقّل الرئيسي',
   'Workspace': 'مساحة العمل',
   'Privacy': 'الخصوصية',
   'Developers': 'المطوّرون',
-  'Coming to Chrome': 'قريبًا على Chrome',
+  'Coming to desktop': 'قريبًا على سطح المكتب',
   'Close navigation': 'إغلاق التنقّل',
   'Open navigation': 'فتح التنقّل',
-  'Private workspace / Chrome extension': 'مساحة عمل خاصة / إضافة Chrome',
+  'Private workspace / Desktop app': 'مساحة عمل خاصة / تطبيق سطح المكتب',
   'Your space.': 'مساحتك.',
   'Your say.': 'قرارك.',
   'Explore the workspace': 'استكشف مساحة العمل',
   'Open legacy app': 'فتح التطبيق القديم',
-  'Chrome extension coming soon. Legacy app available read-only.':
-    'إضافة Chrome قريبًا. التطبيق القديم متاح للقراءة فقط.',
+  'Desktop app coming soon. Legacy app available read-only.':
+    'تطبيق سطح المكتب قريبًا. التطبيق القديم متاح للقراءة فقط.',
   'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.':
     'مساحة عمل خاصة لأسرارك وللأشخاص الذين تختارهم وللطلبات التي تقرّر توقيعها.',
   'Your public doorway': 'مدخلك العام',
@@ -134,15 +134,15 @@ export default {
   'For connected applications': 'للتطبيقات المتصلة',
   'Your identity,': 'هويتك،',
   'beyond one app.': 'خارج حدود تطبيق واحد.',
-  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate extension confirmation window.':
-    'دع التطبيق يطلب إجراءً محدّدًا. راجع مصدره ومحتواه ونتيجته في نافذة تأكيد مستقلة للإضافة.',
+  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.':
+    'دع التطبيق يطلب إجراءً محدّدًا. راجع مصدره ومحتواه ونتيجته في نافذة تأكيد مستقلة في تطبيق سطح المكتب.',
   'Walk through a request': 'جرّب مسار الطلب',
   'App requests.': 'التطبيق يطلب.',
   'Bind a specific file version, purpose, identity, and requesting origin.':
     'اربط إصدار الملف والغرض والهوية ومصدر الطلب بشكل محدّد.',
   'You review.': 'أنت تراجع.',
-  'Inspect the actual request. Approve or reject it in the extension.':
-    'افحص الطلب الفعلي. وافق عليه أو ارفضه في الإضافة.',
+  'Inspect the actual request. Approve or reject it in the desktop app.':
+    'افحص الطلب الفعلي. وافق عليه أو ارفضه في تطبيق سطح المكتب.',
   'App verifies.': 'التطبيق يتحقّق.',
   'Receive the result and verify content, signature, and authorization separately.':
     'استلم النتيجة وتحقّق من المحتوى والتوقيع والتفويض كلٍّ على حدة.',
@@ -158,7 +158,7 @@ export default {
   'Clear answers about availability, identity, private content, and your existing data.':
     'إجابات واضحة حول التوفّر والهوية والمحتوى الخاص وبياناتك الحالية.',
   'In development': 'قيد التطوير',
-  'Coming to Chrome.': 'قريبًا على Chrome.',
+  'Coming to desktop.': 'قريبًا على سطح المكتب.',
   'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.':
     'مساحة العمل الكاملة غير متاحة للتثبيت بعد. نبني أولًا خزنة شخصية، ثم تعاونًا خاصًا وتكاملات توقيع محدودة النطاق.',
   'Follow development': 'تابع التطوير',
@@ -190,8 +190,8 @@ export default {
     'الغرض: تأكيد إصدار الملف التجريبي هذا.',
   'No real release or approval is represented.':
     'لا يمثّل أي إصدار أو موافقة حقيقية.',
-  'In the planned extension, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
-    'في الإضافة المخطّطة، تقتصر الموافقة على المحتوى والغرض المراجعين. لا تمنح وصولًا إلى خزنتك ولا توافق على طلبات مستقبلية.',
+  'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
+    'في تطبيق سطح المكتب المخطّط، تقتصر الموافقة على المحتوى والغرض المراجعين. لا تمنح وصولًا إلى خزنتك ولا توافق على طلبات مستقبلية.',
   'Reject example': 'رفض المثال',
   'Simulate approval': 'محاكاة الموافقة',
   'Example approved': 'تمت الموافقة على المثال',
@@ -213,10 +213,10 @@ export default {
   'No new contact from strangers.': 'لا تواصل جديد من الغرباء.',
   'Closing stops new requests. Existing conversations keep their own permissions.':
     'يوقف الإغلاق الطلبات الجديدة. تحتفظ المحادثات الحالية بصلاحياتها.',
-  'Can I install dMsg for Chrome now?':
-    'هل يمكنني تثبيت dMsg لمتصفح Chrome الآن؟',
-  'Not yet. The Chrome extension is in development and is not listed in the Chrome Web Store. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
-    'ليس بعد. الإضافة قيد التطوير وليست منشورة في متجر Chrome. توضّح الأمثلة التجربة المخطّطة ولا تمثّل خزنة أو مراسلة أو خدمة توقيع فعلية.',
+  'Can I install the dMsg desktop app now?':
+    'هل يمكنني تثبيت تطبيق dMsg لسطح المكتب الآن؟',
+  'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
+    'ليس بعد. تطبيق سطح المكتب قيد التطوير ولم يُطرح للعامة بعد. توضّح الأمثلة التجربة المخطّطة ولا تمثّل خزنة أو مراسلة أو خدمة توقيع فعلية.',
   'What can I do with the legacy app?': 'ماذا يمكنني فعله بالتطبيق القديم؟',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
     'سجّل بهويتك الحالية لقراءة المحادثات القديمة وتنزيل المرفقات المتاحة. يعطّل الموقع الرسائل والرفع وتعديل الملف والتسجيل في الواجهة القديمة. احتفظ بالمتصفح الأصلي والبيانات المحلية، خاصة عند استخدام وضع المفتاح المحلي. الهجرة الجديدة غير متاحة بعد.',
@@ -236,8 +236,8 @@ export default {
     'لا. يشفّر التصميم المحتوى على الأجهزة المصرّح بها ويخزّن النص المشفّر في السحابة. يحتفظ ICP بالهوية والتحكم والتوقيع الرسمي وحالة الدفع الأساسية. تبقى البيانات الوصفية وتوفّر السحابة وتحديثات العميل والحوكمة حدود ثقة.',
   'Will the full workspace work on my phone?':
     'هل ستعمل مساحة العمل الكاملة على هاتفي؟',
-  'The initial full workspace is planned for desktop Chrome. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
-    'تُخطّط المساحة الكاملة أولًا لمتصفح Chrome المكتبي. يقدّم الموقع معلومات المنتج والوصول القديم؛ الصفحة المتجاوبة ليست وعدًا بخزنة أو مراسلة كاملة للهاتف.',
+  'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
+    'تُخطّط المساحة الكاملة أولًا كتطبيق لسطح المكتب. يقدّم الموقع معلومات المنتج والوصول القديم؛ الصفحة المتجاوبة ليست وعدًا بخزنة أو مراسلة كاملة للهاتف.',
   'Explore dMsg capabilities': 'استكشف قدرات dMsg',
   'Workspace capabilities': 'قدرات مساحة العمل',
   'Your personal vault': 'خزنتك الشخصية',
@@ -246,8 +246,8 @@ export default {
   'A place for the things you don’t publish.': 'مكان لما لا تنشره.',
   'The right content. The right people.': 'المحتوى المناسب. الأشخاص المناسبون.',
   'Know exactly what you’re signing.': 'اعرف بالضبط ما توقّعه.',
-  'Keep API keys, credentials, private notes, and files together. The planned extension puts your personal workspace first — no contacts or paid handle required.':
-    'اجمع مفاتيح API وبيانات الاعتماد والملاحظات والملفات الخاصة. تضع الإضافة المخطّطة مساحتك الشخصية أولًا دون جهات اتصال أو اسم مدفوع.',
+  'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.':
+    'اجمع مفاتيح API وبيانات الاعتماد والملاحظات والملفات الخاصة. يضع تطبيق سطح المكتب المخطّط مساحتك الشخصية أولًا دون جهات اتصال أو اسم مدفوع.',
   'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.':
     'شارك ملاحظات المشروع وملفاته في محادثة أو قناة مشفّرة. ادعُ الأشخاص إلى مساحة محدّدة بوصول منفصل عن خزنتك الشخصية.',
   'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.':
@@ -291,8 +291,8 @@ export default {
   'Review example': 'مراجعة المثال',
   'Walkthrough only. No identity connection or real signature.':
     'تجربة فقط. بلا ربط هوية أو توقيع حقيقي.',
-  'Product preview · Chrome extension in development':
-    'معاينة المنتج · إضافة Chrome قيد التطوير',
+  'Product preview · Desktop app in development':
+    'معاينة المنتج · تطبيق سطح المكتب قيد التطوير',
   'Examples run locally. Nothing is sent or signed.':
     'تعمل الأمثلة محليًا. لا يُرسل أو يُوقّع شيء.',
   'Useful on your own.': 'أداة فعالة ومستقلة بمفردك.',
