@@ -13,6 +13,7 @@ test('windows never decide or grant, and never send human', () => {
 test('dmsg links only navigate', () => {
   const account = '0123456789abcdefghig'
   assert.deepEqual(parseLink(`dmsg://connect/pair?account=${account}`), { route: 'browsers', account })
+  assert.deepEqual(parseLink('dmsg://connect/pair'), { route: 'browsers', account: null })
   const request = 'ab'.repeat(32)
   assert.deepEqual(parseLink(`dmsg://connect/request?account=${account}&request=${request}`), {
     route: 'request',
@@ -21,6 +22,7 @@ test('dmsg links only navigate', () => {
   })
   for (const bad of [
     'dmsg://connect/approve?account=x',
+    'dmsg://connect/pair?account=x',
     `dmsg://connect/request?account=${account}&request=zz`,
     `https://connect/pair?account=${account}`,
     'dmsg://other/pair',

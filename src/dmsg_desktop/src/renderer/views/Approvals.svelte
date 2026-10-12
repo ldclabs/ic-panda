@@ -67,9 +67,9 @@
 {#if status?.state === 'unlocked'}
   <div class="card">
     <h2>{t('newStatement')}</h2>
-    <textarea placeholder={t('statement')} bind:value={text}></textarea>
+    <textarea placeholder={t('statement')} bind:value={text} data-testid="statement-text"></textarea>
     <div class="row" style="margin-top: 8px">
-      <button class="primary" onclick={sign}>{t('submit')}</button>
+      <button class="primary" onclick={sign} data-testid="statement-submit">{t('submit')}</button>
       <button onclick={enableFormal}>{t('formal')}: {t('enable')}</button>
     </div>
   </div>

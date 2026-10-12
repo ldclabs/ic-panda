@@ -48,6 +48,15 @@ canisters:
       configuration:
         dir: src/dmsg_frontend/dist
 
+  # The dmsg-connect/1 bridge page (connect.dmsg.net), on its own canister and
+  # domain. Build it with its environment's config before deploying (see
+  # src/dmsg_connect/README.md); dist carries the response headers.
+  - name: dmsg_connect
+    recipe:
+      type: "@dfinity/asset-canister@v2.3.0"
+      configuration:
+        dir: src/dmsg_connect/dist
+
   - name: ic_message_channel_02
     build:
       steps:

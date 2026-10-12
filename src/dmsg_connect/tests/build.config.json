@@ -1,0 +1,7 @@
+{
+  "environment": "Local",
+  "icHost": "http://127.0.0.1:4943",
+  "apiOrigin": "http://127.0.0.1:8787",
+  "canisters": { "handle": "rrkah-fqaaa-aaaaa-aaaaq-cai", "commerce": "ryjl3-tyaaa-aaaaa-aaaba-cai" },
+  "rootKey": "00"
+}

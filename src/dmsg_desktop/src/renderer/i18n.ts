@@ -58,7 +58,10 @@ const zh = {
   thisDevice: '本设备',
   profile: '类型',
   issuer: '签发者',
-  subject: '主题'
+  subject: '主题',
+  issuedBy: '签发设备',
+  granted: '连接于',
+  lastUsed: '最近使用'
 }
 const en: typeof zh = {
   vault: 'Vault',
@@ -119,7 +122,10 @@ const en: typeof zh = {
   thisDevice: 'this device',
   profile: 'Profile',
   issuer: 'Issuer',
-  subject: 'Subject'
+  subject: 'Subject',
+  issuedBy: 'Issued by',
+  granted: 'connected',
+  lastUsed: 'last used'
 }
 
 const zhStates: Record<string, string> = {

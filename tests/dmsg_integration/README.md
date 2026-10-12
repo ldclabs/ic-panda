@@ -65,7 +65,7 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane -- hosted_principal_publishes external_action_authority_signature --test-threads=1 --nocapture
 ```
 
-## 桌面客户端验收（W1–W4a）
+## 桌面客户端验收（W1–W4b）
 
 `tests/desktop.rs` 在同一个 PocketIC 部署（与扩展的 `account_fixture` 共用 `tests/support`）和私有中继（workerd）上启动两个 `dmsg daemon`，各用一个 `--home`，配置为 `secure_storage = "file"`，不触碰系统凭据库。测试扮演 dmsg.net 登录页：从 URL fragment 读出请求，用生成的 Ed25519 登录身份签发 delegation 链，再经 daemon 的回调页提交；daemon 没有测试专用路径。
 
@@ -73,6 +73,7 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
 - `desktop_content_and_sync`（W2）：两台设备并发编辑同一条目，两边都得到同一冲突副本，解决后两边一致；删除后另一台的旧编辑被中继拒绝、留作本机冲突副本，墓碑保持，只有显式恢复（采用该副本）带回条目；100 MiB 文件在 A 导入、在 B 校验导出；A 的 daemon 在上传另一个 64 MiB 文件时被杀，重启并登录后续传完成，修订数与写入次数一致；公开资料只含发布的字段，可由他人读取并核对设备签名；锁定后读取、签名与同步返回 `LOCKED`，A 的 home 中找不到任何明文标记；开启“后台在线”的 B 锁定后仍能发送已封存的版本、但不能读取。合成目录把 Free 套餐的存储放大到 1 GiB，以容纳这些文件及其加密开销。`tests/support` 自行启动 PocketIC 服务器并把空闲 TTL 设为 10 分钟：经 HTTP 网关的请求不算服务器活动，默认 60 秒会在 daemon 仍在使用时停掉服务器。
 - `desktop_approvals_and_attestation`（W3）：无凭证访问 `/app/v1`、`/ws/app/v1`、`/daemon/status` 一律 401；`/ws/app/v1` 用 owner 凭证初始化并收到 `approval/changed` 事件；脚本（`--json`）创建的认证请求只能等待，CLI 在非交互模式与 RPC 不带 `human` 时都拒绝批准，摘要不符被拒；没有 `FormalApprove` 时 user home 拒绝且不签名；单设备管理员为自己开启 `FormalApprove`；文件声明在 A 批准、导出为证据包，B 的 home 在 daemon 停止的情况下用 `dmsg attest verify` 独立核验（签名、认证回执、文件摘要、设备当前状态），文件改动后核验失败；请求与批准之间文件变化被拒；仅摘要的声明核验为 `digest_only`；拒绝与撤回不执行；锁定后审批列表返回 `LOCKED`，待审批数仍可见。
 - `desktop_web_connect`（W4a）：注册测试应用 `token-list`（`http://localhost:5173`）后，由无头桥接页（`src/dmsg_connect/scripts/headless.ts`，Node）扮演浏览器。B 邀请、桥接页提交候选，钓鱼页用伪造邀请提交的候选因 MAC 不符被设备排除、无法授予，未经人确认不签发 grant（DT18）；锁定的 A 经提示通道收到无内容提示，开启“后台在线”的 B 只取回密封信封，解锁后才显示来源与载荷（DT26）；页面先取消则批准失败（DT23）；A 离线时创建、B 批准，A 上线后标为“由其他设备处理”（DT22），页面确认后为 `returned`；两台设备同时批准只有一台执行（DT23）；第二个浏览器提交同一操作只产生一个审批，两边收到同一结果（DT31）；桥接页丢失记录后经 `read` 从设备取回快照，未知操作为 `NOT_FOUND`（DT29）；B 在授权后崩溃，重启对账不重复签名（DT24）；撤销 B 后，第二个浏览器（由 A 配对）看到 B 钉定的请求为 `failed` + `DEVICE_REVOKED`（DT30）；B 签发的配对失效，A 签发的仍可用（DT25）。DT19、DT32（中继替换密钥、伪造回复）由 Rust 与桥接页的向量测试覆盖。
+- `desktop_browser_connect`（W4b）：为本次部署构建桥接页（`src/dmsg_connect`，Local 配置内联 PocketIC 网关、根公钥与中继）和测试应用页（`src/dmsg_connect/e2e/app`），由 `scripts/serve.mjs` 按 `.ic-assets.json5` 的响应头与路径别名提供；`scripts/browser.ts` 经 Playwright 在 `DMSG_TEST_BROWSERS`（逗号分隔，默认 `chromium`）中逐个运行：核对 connect-v1 §2.2 的响应头；B 邀请后在浏览器打开配对页，设备看到的标签与浏览器一致，人确认后配对生效；未登记的 origin 握手被拒（DT20）；应用页在点击中打开桥接窗口、完成握手，签署文本声明，桥接窗口给出 `dmsg://connect/request` 链接，Safari（WebKit）先要求在窗口内点击“继续”（§4.1）；B 批准后页面取得结果并确认为 `returned`；关闭桥接窗口后页面调用返回 `DISCONNECTED`（DT27）。DT20 的其余情形（错误 source、opener 关闭或替换）与 DT21（篡改命令、连接与 nonce，nonce 重放与过期）由 `src/dmsg_connect/tests/page.test.ts` 覆盖。
 
 ```sh
 make build-dmsg
@@ -81,4 +82,4 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_CLOUD_DIR=/path/to/dmsg-cloud DMSG_WASM_DI
   cargo test -p dmsg_integration --features pocketic-tests --test desktop -- --ignored --nocapture --test-threads=1
 ```
 
-`DMSG_BIN` 可指定 `dmsg` 二进制，默认 `target/debug/dmsg`；release 构建（`cargo build --release -p dmsg_cli`）加解密 100 MiB 更快。中继由私有仓库的 `dmsg-core/scripts/extension-probe-server.mjs` 以 `client: "desktop"` 启动，不允许任何浏览器 origin，按启动参数 `ttl_ms`（桌面用例 20 分钟）自行退出。`desktop_web_connect` 还需要 Node 与 `pnpm install`（`src/dmsg_connect` 及其依赖 `dmsg-sdk` 的构建）。
+`DMSG_BIN` 可指定 `dmsg` 二进制，默认 `target/debug/dmsg`；release 构建（`cargo build --release -p dmsg_cli`）加解密 100 MiB 更快。中继由私有仓库的 `dmsg-core/scripts/extension-probe-server.mjs` 以 `client: "desktop"` 启动，只允许本次分配的桥接页 origin（`connect_origin`，也是 daemon 的 `connect_url`），按启动参数 `ttl_ms`（桌面用例 20 分钟）自行退出。`desktop_web_connect` 与 `desktop_browser_connect` 还需要 Node 与 `pnpm install`（`src/dmsg_connect` 及其依赖 `dmsg-sdk` 的构建）；后者还需要 Playwright 浏览器（`pnpm --dir src/dmsg_connect exec playwright install chromium webkit firefox`），`DMSG_TEST_CHROME` 可指向已安装的 Chrome for Testing。

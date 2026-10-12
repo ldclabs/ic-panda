@@ -6,14 +6,25 @@
  * The page's origin comes from the caller, which in a real page is
  * `MessageEvent.origin`; everything else the bridge reads is either signed
  * by the page's session key or certified by the IC. Pairings and
- * operations live in memory here; the page keeps them in IndexedDB.
+ * operations persist through a `BridgeStore` (IndexedDB in the page).
  */
 import { ed25519 } from '@noble/curves/ed25519.js'
 import { Principal } from '@icp-sdk/core/principal'
+import {
+  decodeCanonical as decodeContract,
+  sha256,
+  validateActionAdmission,
+  validateAuthentication,
+  validateShape,
+  type AppAction,
+  type AuthenticationRequest,
+  type CheckoutRequest
+} from 'dmsg-sdk'
+import { DmsgError } from 'dmsg-sdk/errors'
 import { Certified, type AppRegistration, type CertifiedAccount, type IcConfig } from './certified.ts'
 import { canonical, decodeCanonical, decodeMaps, equal, hex, random, randomId, unb64, unbase64, unhex } from './codec.ts'
 import { aesSeal, hpkeOpenAuth, hpkeSeal, p256Pair, p256Verify, rawPublic, resultPair, sign1, spki } from './crypto.ts'
-import { ConnectError, ensure, fail } from './errors.ts'
+import { ConnectError, ensure, fail, type ConnectCode } from './errors.ts'
 import {
   CREATE_METHODS,
   CREATE_TTL_MS,
@@ -35,14 +46,18 @@ import {
   type Environment
 } from './protocol.ts'
 import { Relay, type Signer } from './relay.ts'
+import { MemoryStore, type BridgeStore, type OperationRecord, type PairingRecord } from './store.ts'
 
 const COMMAND_TYP = 'application/vnd.dmsg.command+cose;v=1'
 const GRANT_ACTION = 'dmsg/connect/pairing/grant/v1'
 const PAIRING_TTL_MS = 180 * 86_400_000
 const MAX_OPEN = 20
 const MAX_PER_ORIGIN = 5
+/** Ended operations are kept this long after their last change (plan §6.10). */
+const RETENTION_MS = 30 * 86_400_000
 /** States after which a device holds the operation. */
 const PINNED = ['authorized', 'execution_unknown', 'signed', 'returned', 'failed']
+const ENDED = ['signed', 'returned', 'rejected', 'cancelled', 'expired', 'failed', 'result_expired']
 
 export interface BridgeConfig {
   environment: Environment
@@ -50,17 +65,7 @@ export interface BridgeConfig {
   ic: IcConfig
 }
 
-export interface Pairing {
-  account: Uint8Array
-  id: Uint8Array
-  key: CryptoKeyPair
-  pub: Uint8Array
-  label: string
-  state: 'candidate' | 'active'
-  home?: string
-  grant?: string
-  expiresAt?: number
-}
+export type Pairing = PairingRecord
 
 interface Channel {
   requestId: Uint8Array
@@ -92,6 +97,7 @@ interface Reply {
 }
 
 interface Operation {
+  key: string
   origin: string
   command: Command
   digest: Uint8Array
@@ -106,9 +112,6 @@ export interface Connection {
   origin: string
   appId: string
 }
-
-/** Signs a proof message with the page's session key, as the page does after a challenge. */
-export type PageSigner = (message: Uint8Array) => Promise<Uint8Array>
 
 const key = (origin: string, c: Pick<Command, 'appId' | 'operationId'>) => `${origin}\n${c.appId}\n${c.operationId}`
 
@@ -125,22 +128,95 @@ export function xidText(id: Uint8Array): string {
   return text
 }
 
+const CODES: ConnectCode[] = ['FORBIDDEN', 'EXPIRED', 'INTEGRITY_FAILED', 'UNSUPPORTED_PROTOCOL', 'QUOTA_EXCEEDED', 'POLICY_STALE']
+
+/** Run an SDK contract check; its codes become the page's (§4.7). */
+function contract<T>(check: () => T): T {
+  try {
+    return check()
+  } catch (error) {
+    if (!(error instanceof DmsgError)) throw error
+    if (error.code === 'LOCKED') fail('APP_PAUSED')
+    fail(CODES.includes(error.code as ConnectCode) ? (error.code as ConnectCode) : 'INVALID_INPUT', error.message)
+  }
+}
+
 export class Bridge {
   readonly config: BridgeConfig
   readonly relay: Relay
   readonly certified: Certified
+  readonly store: BridgeStore
   readonly pairings = new Map<string, Pairing>()
   readonly operations = new Map<string, Operation>()
   private reads = new Map<string, Channel[]>()
+  /** The newest candidate of each account (Xid text) until its grant arrives. */
+  private candidates = new Map<string, Pairing>()
+  /**
+   * Picks the account of an `authenticate` request when this browser holds
+   * more than one pairing (§4.5); the page asks the person.
+   */
+  chooseAccount: (accounts: string[]) => Promise<string> = async (accounts) => accounts[0]!
 
-  constructor(config: BridgeConfig) {
+  constructor(config: BridgeConfig, store: BridgeStore = new MemoryStore()) {
     this.config = config
     this.relay = new Relay(config.relay)
     this.certified = new Certified(config.ic)
+    this.store = store
+  }
+
+  /** Read the stored pairings and operations; drop ended operations past retention. */
+  async load(): Promise<void> {
+    const { pairings, operations } = await this.store.load()
+    for (const p of pairings) this.pairings.set(hex(p.account), p)
+    const now = Date.now()
+    for (const r of operations) {
+      const pairing = this.pairings.get(r.pairing)
+      const ended = ENDED.includes((r.last?.state as string) ?? '')
+      if (!pairing || (ended && now - r.updatedAt > RETENTION_MS)) {
+        await this.store.deleteOperation(r.key)
+        continue
+      }
+      this.operations.set(r.key, {
+        key: r.key,
+        origin: r.origin,
+        command: r.command as unknown as Command,
+        digest: r.digest,
+        kind: r.kind,
+        channel: { requestId: r.requestId, pairing, resultKey: r.resultKey, seen: r.seen, device: r.device, expiresAt: r.expiresAt },
+        delivered: r.delivered,
+        last: r.last as Value | null
+      })
+    }
+  }
+
+  private save(op: Operation): Promise<void> {
+    const c = op.channel
+    const record: OperationRecord = {
+      key: op.key,
+      origin: op.origin,
+      command: { ...op.command },
+      digest: op.digest,
+      kind: op.kind,
+      pairing: hex(c.pairing.account),
+      requestId: c.requestId,
+      resultKey: c.resultKey,
+      seen: c.seen,
+      device: c.device,
+      expiresAt: c.expiresAt,
+      delivered: op.delivered,
+      last: op.last as Record<string, unknown> | null,
+      updatedAt: Date.now()
+    }
+    return this.store.putOperation(record)
   }
 
   private signer(pairing: Pairing): Signer {
     return { account: pairing.account, pairingId: pairing.id, key: pairing.key.privateKey }
+  }
+
+  /** Active pairings, by account text. */
+  active(): Pairing[] {
+    return [...this.pairings.values()].filter((p) => p.state === 'active' && Date.now() < (p.expiresAt ?? 0))
   }
 
   /** §5.2: read the link the device opened, make a pairing key, submit the candidate. */
@@ -159,13 +235,19 @@ export class Bridge {
       label,
       mac
     })
-    this.pairings.set(hex(invite.account_id), pairing)
+    // A candidate never replaces an active pairing until its grant arrives.
+    const current = this.pairings.get(hex(invite.account_id))
+    if (current?.state !== 'active') {
+      this.pairings.set(hex(invite.account_id), pairing)
+      await this.store.putPairing(pairing)
+    }
+    this.candidates.set(xidText(invite.account_id), pairing)
     return { account: xidText(invite.account_id), pairingId: hex(pairing.id) }
   }
 
-  /** Poll until the device grants the candidate, then verify the grant. */
-  async awaitGrant(account: Uint8Array, timeoutMs: number): Promise<Pairing> {
-    const pairing = this.pairings.get(hex(account))
+  /** Poll until a device grants the candidate of `account` (Xid text), then verify the grant. */
+  async awaitGrant(account: string, timeoutMs: number): Promise<Pairing> {
+    const pairing = this.candidates.get(account) ?? [...this.pairings.values()].find((p) => xidText(p.account) === account)
     ensure(pairing, 'NOT_PAIRED')
     const deadline = Date.now() + timeoutMs
     for (;;) {
@@ -176,11 +258,14 @@ export class Bridge {
       )
       if (status.state === 'active' && status.grant) {
         await this.acceptGrant(pairing, status.grant)
+        this.pairings.set(hex(pairing.account), pairing)
+        this.candidates.delete(account)
+        await this.store.putPairing(pairing)
         return pairing
       }
       ensure(status.state === 'pending', 'NOT_PAIRED', `pairing ${status.state}`)
       ensure(Date.now() < deadline, 'DEVICE_UNAVAILABLE')
-      await new Promise((r) => setTimeout(r, 500))
+      await new Promise((r) => setTimeout(r, 1000))
     }
   }
 
@@ -251,13 +336,14 @@ export class Bridge {
     return app
   }
 
-  /** One page command: a fresh nonce, the page's proof over it, then the method. */
-  async call(connection: Connection, input: Command, sign: PageSigner): Promise<Value> {
+  /**
+   * One page command with its proof: `signature` is the session key's
+   * signature over the proof message of the bridge's fresh `nonce` (§4.3).
+   */
+  async call(connection: Connection, input: Command, nonce: Uint8Array, signature: Uint8Array): Promise<Value> {
     const command = parseCommand(input)
     ensure(command.appId === connection.appId, 'FORBIDDEN')
-    const nonce = random(32)
     const message = proofMessage(nonce, connection.origin, connection.connectionId, command)
-    const signature = await sign(message)
     ensure(await p256Verify(unbase64(command.publicKey, 128), message, signature), 'FORBIDDEN')
     if (CREATE_METHODS.includes(command.method)) return this.create(connection, command, nonce, signature)
     const op = this.operations.get(key(connection.origin, command))
@@ -270,7 +356,9 @@ export class Bridge {
       case 'cancelOperation': {
         ensure(op, 'NOT_FOUND')
         await this.relay.call(this.signer(op.channel.pairing), 'POST', `/v1/connect/requests/${hex(op.channel.requestId)}/cancel`)
-        return this.value(op, { state: 'cancelled' })
+        op.last = this.value(op, { state: 'cancelled' })
+        await this.save(op)
+        return op.last
       }
       default: {
         ensure(op && op.delivered && op.delivered === command.resultDigest, 'INTEGRITY_FAILED')
@@ -280,6 +368,12 @@ export class Bridge {
         return { ...(op.last as Value), state: 'returned' }
       }
     }
+  }
+
+  /** The account and relay request of an operation, for the page's `dmsg://` link. */
+  request(origin: string, appId: string, operationId: string): { account: string; requestId: string } | null {
+    const op = this.operations.get(key(origin, { appId, operationId }))
+    return op ? { account: xidText(op.channel.pairing.account), requestId: hex(op.channel.requestId) } : null
   }
 
   private value(op: Operation, update: Partial<Value>): Value {
@@ -292,21 +386,21 @@ export class Bridge {
     const capability = { authenticate: 'Authenticate', signDocument: 'SignDocument', signAction: 'SignAction', checkout: 'Checkout' }[
       command.method
     ]!
-    ensure(app.capabilities.includes(capability), 'FORBIDDEN')
+    ensure((app.capabilities as string[]).includes(capability), 'FORBIDDEN')
     const payload = unbase64(command.payload!, 65_536)
     const { account, deadline } = this.binding(app, connection, command, payload)
     const digest = operationDigest(connection.origin, command)
-    const existing = this.operations.get(key(connection.origin, command))
+    const k = key(connection.origin, command)
+    const existing = this.operations.get(k)
     if (existing) {
       ensure(equal(existing.digest, digest), 'IDEMPOTENCY_CONFLICT')
       return this.value(existing, {})
     }
-    const pairing = account
-      ? this.pairings.get(hex(account))
-      : [...this.pairings.values()].filter((p) => p.state === 'active').at(0)
-    ensure(pairing?.state === 'active' && Date.now() < (pairing.expiresAt ?? 0), 'NOT_PAIRED')
+    const pairing = account ? this.pairings.get(hex(account)) : await this.pick()
+    // The message names the account, so the page can link to pairing it.
+    ensure(pairing?.state === 'active' && Date.now() < (pairing.expiresAt ?? 0), 'NOT_PAIRED', account ? xidText(account) : '')
     const open = [...this.operations.values()].filter(
-      (o) => o.channel.pairing === pairing && !['signed', 'returned', 'rejected', 'cancelled', 'expired', 'failed'].includes(o.last?.state ?? 'awaiting_user')
+      (o) => o.channel.pairing === pairing && !ENDED.includes(o.last?.state ?? 'awaiting_user')
     )
     ensure(open.length < MAX_OPEN && open.filter((o) => o.origin === connection.origin).length < MAX_PER_ORIGIN, 'QUOTA_EXCEEDED')
     const now = Date.now()
@@ -314,6 +408,7 @@ export class Bridge {
     ensure(now < expiresAt, 'EXPIRED')
     const channel = await this.send(pairing, connection, command, nonce, signature, 'create', expiresAt)
     const op: Operation = {
+      key: k,
       origin: connection.origin,
       command,
       digest,
@@ -322,15 +417,30 @@ export class Bridge {
       delivered: null,
       last: null
     }
-    this.operations.set(key(connection.origin, command), op)
+    this.operations.set(k, op)
+    await this.save(op)
     return this.value(op, {})
+  }
+
+  /** `authenticate` names no account: one pairing is used as is; several are the person's choice. */
+  private async pick(): Promise<Pairing | undefined> {
+    const active = this.active()
+    if (active.length < 2) return active[0]
+    const chosen = await this.chooseAccount(active.map((p) => xidText(p.account)))
+    return active.find((p) => xidText(p.account) === chosen)
   }
 
   /** The payload binding of §4.5; returns the target account, if the method names one, and the deadline. */
   private binding(app: AppRegistration, connection: Connection, command: Command, payload: Uint8Array) {
+    const now = BigInt(Date.now())
     switch (command.method) {
       case 'signDocument': {
-        const request = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(payload))
+        let request: Record<string, any>
+        try {
+          request = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(payload))
+        } catch {
+          fail('INVALID_INPUT')
+        }
         ensure(
           request.protocol === PROTOCOL && request.method === 'signature.request' && request.requestId === command.operationId,
           'INTEGRITY_FAILED'
@@ -338,43 +448,55 @@ export class Bridge {
         const profile = { text: 'TextStatementV1', digest: 'DigestStatementV1', file_statement: 'FileStatementV1' }[
           request.statement?.content?.kind as string
         ]
-        ensure(profile && app.profiles.includes(profile), 'FORBIDDEN')
-        const account = this.accountOf(request.accountId)
-        return { account, deadline: Number(request.expiresAt) }
+        ensure(profile && (app.profiles as string[]).includes(profile), 'FORBIDDEN')
+        const deadline = Number(request.expiresAt)
+        ensure(typeof request.expiresAt === 'string' && Number.isSafeInteger(deadline), 'INVALID_INPUT')
+        return { account: this.accountOf(request.accountId), deadline }
       }
       case 'signAction': {
-        const action = decodeCanonical<Record<string, unknown>>(payload)
-        ensure(app.profiles.includes('AppActionV1'), 'FORBIDDEN')
+        const action = contract(() => decodeContract(payload)) as unknown as AppAction
+        ensure(action && typeof action === 'object' && action.app_config_version === app.config_version, 'POLICY_STALE')
+        contract(() => validateActionAdmission(action, app, now))
         ensure(
-          action.origin === connection.origin &&
-            action.app_id === command.appId &&
-            hex(action.operation_id as Uint8Array) === command.operationId,
+          action.origin === connection.origin && action.app_id === command.appId && hex(action.operation_id) === command.operationId,
           'INTEGRITY_FAILED'
         )
-        ensure(BigInt(action.app_config_version as number) === BigInt(app.config_version), 'POLICY_STALE')
-        return { account: action.signing_account as Uint8Array, deadline: Number(action.expires_at_ms) }
+        return { account: action.signing_account, deadline: Number(action.expires_at_ms) }
       }
       case 'authenticate': {
-        const request = decodeCanonical<Record<string, unknown>>(payload)
-        ensure(BigInt(request.app_config_version as number) === BigInt(app.config_version), 'POLICY_STALE')
+        const request = contract(() => decodeContract(payload)) as unknown as AuthenticationRequest
+        ensure(request && typeof request === 'object' && request.app_config_version === app.config_version, 'POLICY_STALE')
+        contract(() => validateAuthentication(request, app, now))
         ensure(
           request.origin === connection.origin &&
             request.app_id === command.appId &&
-            hex(request.operation_id as Uint8Array) === command.operationId,
+            hex(request.operation_id) === command.operationId &&
+            equal(request.session_key_hash, sha256(unbase64(command.publicKey, 128))),
           'INTEGRITY_FAILED'
         )
         return { account: null, deadline: Number(request.expires_at_ms) }
       }
       default: {
-        const checkout = decodeCanonical<Record<string, any>>(payload)
-        return { account: checkout.approving_account as Uint8Array, deadline: Number(checkout.offer?.accept_by_ms) }
+        const checkout = contract(() => decodeContract(payload)) as unknown as CheckoutRequest
+        contract(() => validateShape('CheckoutRequest', checkout))
+        ensure(
+          checkout.offer.app_id === command.appId && hex(checkout.offer.operation_id) === command.operationId,
+          'INTEGRITY_FAILED'
+        )
+        ensure(checkout.offer.accept_by_ms > now, 'EXPIRED')
+        ensure(
+          app.product_ids.includes(checkout.offer.product_id) &&
+            checkout.offer.allowed_settlement_methods.includes(checkout.method),
+          'FORBIDDEN'
+        )
+        return { account: checkout.approving_account, deadline: Number(checkout.offer.accept_by_ms) }
       }
     }
   }
 
-  private accountOf(text: string): Uint8Array {
+  private accountOf(text: unknown): Uint8Array {
     for (const pairing of this.pairings.values()) if (xidText(pairing.account) === text) return pairing.account
-    fail('NOT_PAIRED')
+    fail('NOT_PAIRED', typeof text === 'string' && /^[0-9a-v]{19}[0g]$/.test(text) ? text : '')
   }
 
   /** Seal a request to the account's approving devices and post it. */
@@ -496,10 +618,9 @@ export class Bridge {
       }
     }
     const current = op.last ?? this.value(op, {})
-    if (current.state === 'signed' && current.resultDigest) {
-      op.delivered = current.resultDigest
-      if (reply.acked_digest === current.resultDigest) return { ...current, state: 'returned' }
-    }
+    if (current.state === 'signed' && current.resultDigest) op.delivered = current.resultDigest
+    await this.save(op)
+    if (current.state === 'signed' && reply.acked_digest === current.resultDigest) return { ...current, state: 'returned' }
     return current
   }
 
@@ -507,13 +628,13 @@ export class Bridge {
    * §4.4 without a local record: a `read` (or `open`) request to every
    * paired account, then one long poll. A sealed snapshot answers; all
    * `unknown` is NOT_FOUND; silence is DEVICE_UNAVAILABLE. Read requests
-   * are reused for two minutes.
+   * are reused for two minutes while the bridge runs.
    */
   private async recover(connection: Connection, command: Command, nonce: Uint8Array, signature: Uint8Array, kind: 'read' | 'open'): Promise<Value> {
     const k = `${kind}\n${key(connection.origin, command)}`
     let channels = (this.reads.get(k) ?? []).filter((c) => Date.now() < c.expiresAt)
     if (!channels.length) {
-      const pairings = [...this.pairings.values()].filter((p) => p.state === 'active')
+      const pairings = this.active()
       ensure(pairings.length, 'NOT_PAIRED')
       channels = await Promise.all(
         pairings.map((p) => this.send(p, connection, command, nonce, signature, kind, Date.now() + READ_TTL_MS))
@@ -544,7 +665,9 @@ export class Bridge {
   }
 
   /** Drop the local record of an operation, as cleared site data would. */
-  forget(origin: string, appId: string, operationId: string): boolean {
-    return this.operations.delete(key(origin, { appId, operationId }))
+  async forget(origin: string, appId: string, operationId: string): Promise<boolean> {
+    const k = key(origin, { appId, operationId })
+    await this.store.deleteOperation(k)
+    return this.operations.delete(k)
   }
 }

@@ -1,16 +1,17 @@
-/** Product-owned durable bridge session. Compile with dmsg-sdk 0.3.0 and DOM libs. */
+/** Product-owned durable dMsg session (dmsg-connect/1). Compile with dmsg-sdk 0.4.0 and DOM libs. */
 import { canonical, decodeCanonical, type CheckoutRequest } from "dmsg-sdk";
 import {
   connectDmsg,
   hex,
   DmsgError,
-  type BrowserOperation,
-} from "dmsg-sdk/browser";
+  type ConnectOperation,
+  type ConnectSession,
+} from "dmsg-sdk/connect";
 interface Saved {
   scope: string;
-  extensionId: string;
   appId: string;
   key: CryptoKeyPair;
+  publicKeyDer: Uint8Array;
   requestCbor: Uint8Array;
   state: "prepared" | "sent";
 }
@@ -48,99 +49,107 @@ async function save(value: Saved) {
     };
   });
 }
-async function connection(value: Saved) {
-  return connectDmsg({
-    extensionId: value.extensionId,
-    appId: value.appId,
-    session: {
-      publicKeyDer: new Uint8Array(
-        await crypto.subtle.exportKey("spki", value.key.publicKey),
-      ),
-      sign: async (message) =>
-        new Uint8Array(
-          await crypto.subtle.sign(
-            { name: "ECDSA", hash: "SHA-256" },
-            value.key.privateKey,
-            Uint8Array.from(message),
-          ),
-        ),
-    },
-  });
+/** The saved operation of `scope`, or a new one with a non-extractable key. */
+async function prepare(scope: string, request: CheckoutRequest) {
+  const stored = await load(scope);
+  if (stored) return stored;
+  const key = await crypto.subtle.generateKey(
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign", "verify"],
+  );
+  const value: Saved = {
+    scope,
+    appId: request.offer.app_id,
+    key,
+    publicKeyDer: new Uint8Array(
+      await crypto.subtle.exportKey("spki", key.publicKey),
+    ),
+    requestCbor: canonical(request),
+    state: "prepared",
+  };
+  await save(value);
+  return value;
 }
-/** request must come from the authenticated product backend, with its actual approval. */
-export async function checkout(
+const session = (value: Saved): ConnectSession => ({
+  publicKeyDer: value.publicKeyDer,
+  sign: async (message) =>
+    new Uint8Array(
+      await crypto.subtle.sign(
+        { name: "ECDSA", hash: "SHA-256" },
+        value.key.privateKey,
+        Uint8Array.from(message),
+      ),
+    ),
+});
+/**
+ * Call from a click handler: the bridge popup opens before anything is
+ * awaited. `request` must come from the authenticated product backend,
+ * with its actual approval.
+ */
+export function checkout(
   scope: string,
-  extensionId: string,
   request: CheckoutRequest,
-): Promise<BrowserOperation> {
-  let stored = await load(scope);
-  if (!stored) {
-    const key = await crypto.subtle.generateKey(
-      { name: "ECDSA", namedCurve: "P-256" },
-      false,
-      ["sign", "verify"],
-    );
-    stored = {
-      scope,
-      extensionId,
-      appId: request.offer.app_id,
-      key,
-      requestCbor: canonical(request),
-      state: "prepared",
-    };
-    await save(stored);
-  }
-  // Recover the saved terms even when the caller's backend now offers something else.
-  const original = decodeCanonical(
-    stored.requestCbor,
-  ) as unknown as CheckoutRequest;
-  const id = hex(original.offer.operation_id),
-    client = await connection(stored);
-  try {
+): Promise<ConnectOperation> {
+  const stored = prepare(scope, request);
+  const client = connectDmsg({
+    appId: request.offer.app_id,
+    session: stored.then(session),
+  });
+  return (async () => {
+    const saved = await stored;
+    // Recover the saved terms even when the caller's backend now offers something else.
+    const original = decodeCanonical(
+      saved.requestCbor,
+    ) as unknown as CheckoutRequest;
+    const id = hex(original.offer.operation_id);
     try {
       await client.getOperation(id);
       return await client.openOperation(id);
     } catch (error) {
       if (
         !(error instanceof DmsgError) ||
-        !["NOT_FOUND", "FORBIDDEN"].includes(error.code)
+        !["NOT_FOUND", "DEVICE_UNAVAILABLE"].includes(error.code)
       )
         throw error;
     }
-    if (stored.state !== "prepared")
+    if (saved.state !== "prepared")
       throw new Error(
         "Outcome unknown: preserve this operation and reconnect the original account.",
       );
-    stored.state = "sent";
-    await save(stored);
+    saved.state = "sent";
+    await save(saved);
     try {
       return await client.checkout(original);
     } catch (error) {
+      // Nothing was created: the person may pair this browser and try again.
       if (
         error instanceof DmsgError &&
-        ["LOCKED", "ACCOUNT_MISMATCH"].includes(error.code)
+        ["NOT_PAIRED", "ACCOUNT_MISMATCH", "POPUP_BLOCKED"].includes(error.code)
       ) {
-        stored.state = "prepared";
-        await save(stored);
+        saved.state = "prepared";
+        await save(saved);
       }
       throw error;
     }
-  } finally {
-    client.disconnect();
-  }
+  })();
 }
-export async function status(scope: string) {
-  const stored = await load(scope);
-  if (!stored) throw new Error("No saved operation");
-  const request = decodeCanonical(
-    stored.requestCbor,
-  ) as unknown as CheckoutRequest;
-  const client = await connection(stored);
-  try {
-    return await client.getOperation(hex(request.offer.operation_id));
-  } finally {
-    client.disconnect();
-  }
+/** Call from a click handler, like `checkout`. */
+export function status(
+  scope: string,
+  appId: string,
+): Promise<ConnectOperation> {
+  const stored = load(scope).then((value) => {
+    if (!value) throw new Error("No saved operation");
+    return value;
+  });
+  const client = connectDmsg({ appId, session: stored.then(session) });
+  return stored.then((saved) => {
+    const request = decodeCanonical(
+      saved.requestCbor,
+    ) as unknown as CheckoutRequest;
+    return client.getOperation(hex(request.offer.operation_id));
+  });
 }
 // After notification, ask your authenticated backend for the contract and bounded
 // entitlement. Only its durable Apply receipt can establish product delivery.

@@ -8,12 +8,12 @@
  *   {"id":2,"cmd":"pair","url":"...","label":"..."}
  */
 import { createInterface } from 'node:readline'
-import { Bridge, xidText, type Connection } from '../src/bridge.ts'
+import { Bridge, type Connection } from '../src/bridge.ts'
 import { p256 } from '@noble/curves/nist.js'
-import { b64, base64, hex, randomId, unhex, utf8 } from '../src/codec.ts'
+import { b64, base64, hex, random, randomId, unhex, utf8 } from '../src/codec.ts'
 import { p256Pair, p256Sign, spki } from '../src/crypto.ts'
 import { ConnectError } from '../src/errors.ts'
-import type { Command } from '../src/protocol.ts'
+import { proofMessage, type Command } from '../src/protocol.ts'
 
 let bridge: Bridge | null = null
 const connections = new Map<string, Connection>()
@@ -42,7 +42,10 @@ async function session(operationId: string, seed?: string) {
 async function command(connection: Connection, method: string, operationId: string, payload: string | null, resultDigest: string | null = null, seed?: string) {
   const { pair, publicKey } = await session(operationId, seed)
   const c: Command = { method, appId: connection.appId, operationId, publicKey, payload, resultDigest }
-  return bridge!.call(connection, c, (message) => p256Sign(pair.privateKey, message))
+  // The page signs the bridge's fresh nonce (connect-v1 §4.3).
+  const nonce = random(32)
+  const signature = await p256Sign(pair.privateKey, proofMessage(nonce, connection.origin, connection.connectionId, c))
+  return bridge!.call(connection, c, nonce, signature)
 }
 
 async function run(input: Record<string, any>): Promise<unknown> {
@@ -61,9 +64,7 @@ async function run(input: Record<string, any>): Promise<unknown> {
       return bridge!.pair(fragment, input.label)
     }
     case 'await_grant': {
-      const pairing = [...bridge!.pairings.values()].find((p) => xidText(p.account) === input.account)
-      if (!pairing) throw new ConnectError('NOT_PAIRED')
-      await bridge!.awaitGrant(pairing.account, input.timeout_ms ?? 30_000)
+      const pairing = await bridge!.awaitGrant(input.account, input.timeout_ms ?? 30_000)
       return { state: 'active', pairing_id: hex(pairing.id) }
     }
     case 'connect': {
@@ -110,7 +111,7 @@ async function run(input: Record<string, any>): Promise<unknown> {
     }
     case 'forget': {
       const connection = connections.get(input.connection)!
-      return { forgotten: bridge!.forget(connection.origin, connection.appId, input.operation_id) }
+      return { forgotten: await bridge!.forget(connection.origin, connection.appId, input.operation_id) }
     }
     default:
       throw new ConnectError('UNSUPPORTED_PROTOCOL')

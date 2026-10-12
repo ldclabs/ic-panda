@@ -92,7 +92,10 @@
     {#each pairings as p (p.pairing_id)}
       <li class="row spread">
         <span><span class="badge">{p.state}</span> {p.label ?? p.pairing_id.slice(0, 12)}</span>
-        <span class="muted">{when(p.last_used_at)}</span>
+        <span class="muted">
+          {t('issuedBy')} <span class="mono">{p.issued_by?.slice(0, 8) ?? '-'}</span>{p.issued_by === own?.device_id ? ` (${t('thisDevice')})` : ''}
+          · {t('granted')} {when(p.granted_at)} · {t('lastUsed')} {when(p.last_used_at)}
+        </span>
         {#if p.state === 'active'}<button class="danger" onclick={() => act('connect/revoke', { pairing: p.pairing_id })}>{t('revoke')}</button>{/if}
       </li>
     {/each}

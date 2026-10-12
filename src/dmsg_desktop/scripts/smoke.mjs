@@ -167,8 +167,8 @@ try {
 
   // A statement started in the main window is marked as the desktop's and opens for approval.
   await main.click('text=/Signatures|签名与授权/')
-  await main.fill('textarea', 'Signed from the desktop')
-  await main.click('button.primary >> nth=0')
+  await main.fill('[data-testid="statement-text"]', 'Signed from the desktop')
+  await main.click('[data-testid="statement-submit"]')
   await approval.waitForSelector('text=Signed from the desktop', { timeout: 20_000 })
   const created = calls.find((c) => c.method === 'attest/request')
   assert.equal(created.params.source, 'gui')

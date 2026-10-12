@@ -338,7 +338,9 @@ fn eventually<T>(seconds: u64, mut check: impl FnMut() -> Option<T>) -> T {
     }
 }
 
-/// The headless bridge page, as one browser: JSON lines over its stdio.
+/// A Node driver of `src/dmsg_connect/scripts`, as one browser: JSON lines
+/// over its stdio. `headless.ts` runs the bridge in Node; `browser.ts` runs
+/// the bridge pages and an application page in a real browser.
 struct Headless {
     child: Child,
     input: std::process::ChildStdin,
@@ -348,23 +350,7 @@ struct Headless {
 
 impl Headless {
     fn start(env: &Env, relay: &str) -> Self {
-        let script = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../src/dmsg_connect/scripts/headless.ts");
-        let mut child = Command::new("node")
-            .arg(&script)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .unwrap();
-        let input = child.stdin.take().unwrap();
-        let output = BufReader::new(child.stdout.take().unwrap());
-        let mut bridge = Self {
-            child,
-            input,
-            output,
-            next: 0,
-        };
+        let mut bridge = Self::spawn("headless.ts");
         let d = &env.deployment;
         bridge
             .call(json!({"cmd": "init", "config": {
@@ -377,6 +363,42 @@ impl Headless {
             }}))
             .unwrap();
         bridge
+    }
+
+    /// A real browser (`chromium`, `firefox` or `webkit`) with a fresh profile.
+    fn browser(name: &str, bridge: &str) -> Self {
+        let mut driver = Self::spawn("browser.ts");
+        // Playwright's own Chromium build, when the installed one is older.
+        let executable = match name {
+            "chromium" => std::env::var("DMSG_TEST_CHROME").unwrap_or_default(),
+            _ => String::new(),
+        };
+        let started = driver
+            .call(json!({"cmd": "init", "browser": name, "bridge": bridge, "executable": executable}))
+            .unwrap_or_else(|e| panic!("{name}: {e} (install it with `pnpm --dir src/dmsg_connect exec playwright install {name}`)"));
+        eprintln!("{name} {}", started["version"]);
+        driver
+    }
+
+    fn spawn(script: &str) -> Self {
+        let script = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../src/dmsg_connect/scripts")
+            .join(script);
+        let mut child = Command::new("node")
+            .arg(&script)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .unwrap();
+        let input = child.stdin.take().unwrap();
+        let output = BufReader::new(child.stdout.take().unwrap());
+        Self {
+            child,
+            input,
+            output,
+            next: 0,
+        }
     }
 
     fn call(&mut self, mut command: Value) -> Result<Value, String> {
@@ -408,6 +430,8 @@ struct Env {
     deployment: support::Deployment,
     http: reqwest::blocking::Client,
     relay: String,
+    /// The bridge page's origin (relay CORS, daemon `connect_url`); `serve_web` serves it.
+    connect: String,
     a: Desktop,
     b: Desktop,
     daemons: [usize; 2],
@@ -436,6 +460,8 @@ impl Env {
         launch["client"] = "desktop".into();
         launch["port"] = free_port().into();
         launch["ttl_ms"] = 1_200_000.into();
+        let connect = format!("http://localhost:{}", free_port());
+        launch["connect_origin"] = connect.clone().into();
         std::fs::write(dir.join("cloud-launch.json"), launch.to_string()).unwrap();
         children.0.push(
             Command::new("node")
@@ -455,7 +481,7 @@ impl Env {
         // The owner credential stays in the home: tests never touch the
         // system credential store.
         let config = format!(
-            "environment = \"local\"\nic_host = \"{}\"\nrelay = \"{relay}\"\nhandle = \"{}\"\nuser_homes = [\"{}\"]\nroot_key = \"{}\"\nsecure_storage = \"file\"\n",
+            "environment = \"local\"\nic_host = \"{}\"\nrelay = \"{relay}\"\nconnect_url = \"{connect}\"\nhandle = \"{}\"\nuser_homes = [\"{}\"]\nroot_key = \"{}\"\nsecure_storage = \"file\"\n",
             deployment.gateway.trim_end_matches('/'),
             deployment.handle,
             deployment.user,
@@ -482,10 +508,69 @@ impl Env {
             deployment,
             http,
             relay,
+            connect,
             a,
             b,
             daemons,
         }
+    }
+
+    /// Build the bridge pages for this deployment and the test application,
+    /// and serve them as the asset canister would: the bridge at
+    /// `self.connect`, the application at two origins. Returns those origins.
+    fn serve_web(&mut self) -> (String, String) {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/dmsg_connect");
+        let d = &self.deployment;
+        let config = json!({
+            "environment": "Local",
+            "icHost": d.gateway.trim_end_matches('/'),
+            "apiOrigin": self.relay,
+            "canisters": {"handle": d.handle.to_text(), "commerce": d.commerce.to_text()},
+            "rootKey": d.root_key_hex,
+        });
+        std::fs::write(self.dir.join("connect.json"), config.to_string()).unwrap();
+        let (bridge, app) = (self.dir.join("connect-dist"), self.dir.join("app-dist"));
+        for (args, var, out) in [
+            (&["build"][..], "DMSG_CONNECT_OUT", &bridge),
+            (
+                &["exec", "vite", "build", "-c", "e2e/vite.config.ts"][..],
+                "DMSG_CONNECT_APP_OUT",
+                &app,
+            ),
+        ] {
+            let built = Command::new("pnpm")
+                .args(args)
+                .current_dir(&root)
+                .env("DMSG_CONNECT_CONFIG", self.dir.join("connect.json"))
+                .env(var, out)
+                .stdout(Stdio::null())
+                .status()
+                .unwrap();
+            assert!(built.success(), "building {}", out.display());
+        }
+        let port = self.connect.rsplit(':').next().unwrap().to_string();
+        let mut origins = vec![];
+        for (dir, port) in [(&bridge, port), (&app, "0".into()), (&app, "0".into())] {
+            let mut child = Command::new("node")
+                .arg(root.join("scripts/serve.mjs"))
+                .args([dir.to_str().unwrap(), &port, "localhost"])
+                .stdout(Stdio::piped())
+                .spawn()
+                .unwrap();
+            let mut line = String::new();
+            BufReader::new(child.stdout.take().unwrap())
+                .read_line(&mut line)
+                .unwrap();
+            origins.push(
+                serde_json::from_str::<Value>(&line).unwrap()["origin"]
+                    .as_str()
+                    .unwrap()
+                    .to_string(),
+            );
+            self.children.0.push(child);
+        }
+        assert_eq!(origins[0], self.connect);
+        (origins[1].clone(), origins[2].clone())
     }
 
     /// A creates the account; B joins it with the same login and A's
@@ -1214,7 +1299,7 @@ fn desktop_web_connect() {
     let invite = env.b.rpc(http, "connect/invite", Value::Null).unwrap();
     let invite_id = invite["invite_id"].as_str().unwrap().to_string();
     let url = invite["url"].as_str().unwrap().to_string();
-    assert!(url.starts_with("https://connect.dmsg.net/v1/pair#"));
+    assert!(url.starts_with(&format!("{}/v1/pair#", env.connect)));
     let mut bridge = Headless::start(&env, &env.relay);
     let paired = bridge
         .call(json!({"cmd": "pair", "url": url, "label": "Chrome · Test"}))
@@ -1553,5 +1638,147 @@ fn desktop_web_connect() {
         json!({"connection": connection2}),
     )
     .unwrap();
+    env.finish();
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC, the private relay (DMSG_CLOUD_DIR), Node and Playwright browsers"]
+fn desktop_browser_connect() {
+    use dmsg_types::integration::{AppCapability, AppRegistration, SigningProfile};
+    let mut env = Env::start("browser", "");
+    let account = env.pair();
+    let client = env.http.clone();
+    let http = &client;
+    let (origin, stranger) = env.serve_web();
+    env.deployment.register_app(&AppRegistration {
+        version: 1,
+        environment: dmsg_types::Environment::Local,
+        app_id: "token-list".into(),
+        config_version: 1,
+        origins: vec![origin.clone()],
+        product_ids: vec![],
+        capabilities: vec![AppCapability::SignDocument],
+        profiles: vec![SigningProfile::TextStatementV1],
+        authentication_receiver: env.deployment.user,
+        action_authority: env.deployment.user,
+        action_schema: None,
+        paused: false,
+    });
+    let request = env.b.run(&["device", "formal-approve", "on"]);
+    assert_eq!(env.b.decide(http, &request, true).unwrap()["state"], "done");
+    let issuer = format!("https://dmsg.test/u/{account}");
+
+    let browsers = std::env::var("DMSG_TEST_BROWSERS").unwrap_or_else(|_| "chromium".into());
+    for name in browsers.split(',').map(str::trim) {
+        let mut browser = Headless::browser(name, &env.connect);
+        // connect-v1 §2.2: no COOP same-origin, no COEP, no framing.
+        let headers = browser.call(json!({"cmd": "headers"})).unwrap();
+        let csp = headers["content-security-policy"].as_str().unwrap();
+        assert!(csp.contains("frame-ancestors 'none'") && csp.contains("script-src 'self'"));
+        assert_eq!(headers["cross-origin-opener-policy"], "unsafe-none");
+        assert_eq!(headers["referrer-policy"], "no-referrer");
+        assert!(headers.get("cross-origin-embedder-policy").is_none());
+
+        // DT27, pairing: the device opens the link; the page shows its label.
+        let invite = env.b.rpc(http, "connect/invite", Value::Null).unwrap();
+        let page = browser
+            .call(json!({"cmd": "pair", "url": invite["url"]}))
+            .unwrap();
+        assert_eq!(page["state"], "waiting", "{name}: {page}");
+        assert_eq!(page["account"], account.as_str());
+        let candidates = eventually(30, || {
+            let found = env
+                .b
+                .rpc(
+                    http,
+                    "connect/candidates",
+                    json!({"invite": invite["invite_id"]}),
+                )
+                .unwrap();
+            (!found["candidates"].as_array().unwrap().is_empty()).then_some(found)
+        });
+        let candidate = &candidates["candidates"][0];
+        assert_eq!(candidate["pairing_id"], page["pairing"]);
+        let label = candidate["label"].as_str().unwrap();
+        let expected = match name {
+            "firefox" => "Firefox",
+            "webkit" => "Safari",
+            _ => "Chrome",
+        };
+        assert!(label.starts_with(expected), "{name}: label {label}");
+        env.b
+            .rpc(
+                http,
+                "connect/grant",
+                json!({"invite": invite["invite_id"], "pairing": candidate["pairing_id"], "human": true}),
+            )
+            .unwrap();
+        let paired = browser.call(json!({"cmd": "await_paired"})).unwrap();
+        assert_eq!(paired["state"], "active", "{name}: {paired}");
+
+        // DT20: an origin the app did not register gets no connection.
+        let other = browser
+            .call(json!({"cmd": "open", "origin": stranger}))
+            .unwrap();
+        assert_eq!(
+            browser.call(json!({"cmd": "connect", "app": other["app"]})),
+            Err("APP_NOT_REGISTERED".into())
+        );
+
+        // DT27, handshake, signature and acknowledgement.
+        let app = browser
+            .call(json!({"cmd": "open", "origin": origin}))
+            .unwrap()["app"]
+            .clone();
+        let methods = browser.call(json!({"cmd": "connect", "app": app})).unwrap();
+        assert!(methods["methods"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("signDocument")));
+        let created = browser
+            .call(json!({"cmd": "sign_document", "app": app, "text": format!("Signed in {name}"), "account": account, "issuer": issuer}))
+            .unwrap();
+        assert_eq!(created["state"], "awaiting_user", "{name}: {created}");
+        // Only Safari asks for a click in the window before creating (§4.1).
+        assert_eq!(created["prompted"], name == "webkit", "{name}");
+        let op = created["operationId"].as_str().unwrap().to_string();
+        let window = browser.call(json!({"cmd": "popup", "app": app})).unwrap();
+        let link = format!("dmsg://connect/request?account={account}&request=");
+        assert!(
+            window["links"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|l| l.as_str().unwrap_or("").starts_with(&link)),
+            "{name}: {window}"
+        );
+        let shown = eventually(30, || web_request(&env.b, http, &op));
+        assert_eq!(shown["detail"]["origin"], origin.as_str());
+        assert_eq!(shown["detail"]["pairing_label"], label);
+        assert_eq!(env.b.decide(http, &shown, true).unwrap()["state"], "done");
+        let signed = browser
+            .call(json!({"cmd": "get", "app": app, "operation_id": op, "wait_ms": 30000, "until": ["signed"]}))
+            .unwrap();
+        assert_eq!(signed["state"], "signed", "{name}: {signed}");
+        let digest = signed["resultDigest"].clone();
+        let acked = browser
+            .call(json!({"cmd": "ack", "app": app, "operation_id": op, "result_digest": digest}))
+            .unwrap();
+        assert_eq!(acked["state"], "returned");
+        let again = browser
+            .call(json!({"cmd": "get", "app": app, "operation_id": op}))
+            .unwrap();
+        assert_eq!(again["state"], "returned");
+
+        // Closing the bridge window disconnects the page; the operation stays.
+        browser
+            .call(json!({"cmd": "close_popup", "app": app}))
+            .unwrap();
+        assert_eq!(
+            browser.call(json!({"cmd": "get", "app": app, "operation_id": op})),
+            Err("DISCONNECTED".into())
+        );
+        let _ = browser.call(json!({"cmd": "quit"}));
+    }
     env.finish();
 }

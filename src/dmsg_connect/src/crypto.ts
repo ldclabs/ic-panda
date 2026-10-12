@@ -117,9 +117,9 @@ export async function hpkeSeal(recipient: Uint8Array, plaintext: Uint8Array, inf
   return { enc: new Uint8Array(sealed.enc), ciphertext: new Uint8Array(sealed.ct) }
 }
 
-/** The bridge page's result key pair: X25519, private key kept by WebCrypto. */
+/** The bridge page's result key pair: X25519 whose private key WebCrypto never exports. */
 export function resultPair(): Promise<CryptoKeyPair> {
-  return suite.kem.generateKeyPair()
+  return subtle.generateKey({ name: 'X25519' }, false, ['deriveBits']) as Promise<CryptoKeyPair>
 }
 
 export async function rawPublic(key: CryptoKey): Promise<Uint8Array> {

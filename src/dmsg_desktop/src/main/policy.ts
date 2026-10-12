@@ -60,7 +60,7 @@ const HEX32 = /^[0-9a-f]{64}$/
 const XID = /^[0-9a-v]{19}[0g]$/
 
 /** A `dmsg://` link as navigation: where to go, never what to do. */
-export type Link = { route: 'browsers'; account: string } | { route: 'request'; account: string; request: string }
+export type Link = { route: 'browsers'; account: string | null } | { route: 'request'; account: string; request: string }
 
 export function parseLink(url: string): Link | null {
   let parsed: URL
@@ -71,6 +71,8 @@ export function parseLink(url: string): Link | null {
   }
   if (parsed.protocol !== 'dmsg:' || parsed.host !== 'connect') return null
   const account = parsed.searchParams.get('account') ?? ''
+  // A bridge window that does not know the account links to pairing without one.
+  if (parsed.pathname === '/pair' && !parsed.searchParams.has('account')) return { route: 'browsers', account: null }
   if (!XID.test(account)) return null
   if (parsed.pathname === '/pair') return { route: 'browsers', account }
   const request = parsed.searchParams.get('request') ?? ''

@@ -7,6 +7,8 @@
 import { Actor, HttpAgent } from '@icp-sdk/core/agent'
 import { IDL } from '@icp-sdk/core/candid'
 import { Principal } from '@icp-sdk/core/principal'
+import { decodeCanonical as decodeContract, validateApp, type AppRegistration } from 'dmsg-sdk'
+import { DmsgError } from 'dmsg-sdk/errors'
 import { verifyCertifiedLeaf } from 'dmsg-sdk/ic'
 import { decodeCanonical, digest, equal } from './codec.ts'
 import { ensure, fail } from './errors.ts'
@@ -147,28 +149,14 @@ export interface CertifiedAccount {
   at: bigint
 }
 
-/** The registration fields the bridge page checks. */
-export interface AppRegistration {
-  version: number
-  environment: string
-  app_id: string
-  config_version: number | bigint
-  origins: string[]
-  product_ids: string[]
-  capabilities: string[]
-  profiles: string[]
-  authentication_receiver: Uint8Array
-  action_authority: Uint8Array
-  action_schema: unknown
-  paused: boolean
-}
-
 export interface IcConfig {
   host: string
   rootKey: Uint8Array
   handle: string
   commerce: string
 }
+
+export type { AppRegistration }
 
 export class Certified {
   readonly config: IcConfig
@@ -244,8 +232,15 @@ export class Certified {
       this.config.rootKey,
       BigInt(Date.now())
     )
-    const app = decodeCanonical<AppRegistration>(value)
-    ensure(app.app_id === appId && app.version === 1, 'INTEGRITY_FAILED')
+    let app: AppRegistration
+    try {
+      app = decodeContract(value) as unknown as AppRegistration
+      validateApp(app)
+    } catch (error) {
+      if (error instanceof DmsgError) fail('INTEGRITY_FAILED', `registration: ${error.code}`)
+      throw error
+    }
+    ensure(app.app_id === appId, 'INTEGRITY_FAILED')
     return app
   }
 }

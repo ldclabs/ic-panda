@@ -1,6 +1,6 @@
 # dmsg-connect/1：网页应用接入协议
 
-2026-10-12 起草，同日按实现修订。中继与设备端已实现（`dmsg_protocol::connect`、`dmsg_client::connect`），桥接页核心逻辑在 `src/dmsg_connect`（无头版本用于测试）；桥接页界面、`dmsg-sdk/connect` 与 `connect.dmsg.net` 部署尚未完成。本协议取代 [browser-v4](browser-v4.md)（`dmsg-extension/4`）：dMsg 不再提供浏览器扩展，网页应用经 `https://connect.dmsg.net` 桥接页，把请求交给用户的 dMsg 桌面端（以后也包括移动端）审批。字节格式以测试向量 [`tests/vectors/client/connect-v1.json`](../../tests/vectors/client/connect-v1.json) 为准。
+2026-10-12 起草，同日按实现修订。中继、设备端（`dmsg_protocol::connect`、`dmsg_client::connect`）、桥接页（`src/dmsg_connect`，资产 canister `dmsg_connect`）与页面 SDK（`dmsg-sdk/connect`）已实现；`connect.dmsg.net` 的部署（自定义域名与中继生产 `API_ORIGIN`）尚未完成。本协议取代 [browser-v4](browser-v4.md)（`dmsg-extension/4`）：dMsg 不再提供浏览器扩展，网页应用经 `https://connect.dmsg.net` 桥接页，把请求交给用户的 dMsg 桌面端（以后也包括移动端）审批。字节格式以测试向量 [`tests/vectors/client/connect-v1.json`](../../tests/vectors/client/connect-v1.json) 为准。
 
 不变的部分：三种文档 profile 与应用动作的签名字节、设备执行批准与认证回执（见 [公开协议](README_zh.md)）、`AuthenticationRequest`、`AppAction`、`CheckoutRequest` 与商业合同，以及应用在 `dmsg_commerce` 的登记（`AppRegistration`）。改变的只有三件事：页面与 dMsg 之间的传输、来源的核实方式、操作的恢复方式。
 
@@ -165,7 +165,7 @@ operation_digest = digest("dmsg/connect-operation/v1", [
 
 除创建类方法外，所有方法都要求 `publicKey` 与该操作原始的会话公钥一致，由桥接页本地记录或设备核对。
 
-**没有本地记录时的 `read`/`open`**：桥接页向每个已配对账户各发一个 `read`（或 `open`）请求，然后以 `wait=20000` 长轮询一次中继。只要有一个请求返回了设备的密封回复，就解封并返回；返回 `unknown`（见 7.4）的账户没有这个操作；20 秒内没有任何回复则返回 `DEVICE_UNAVAILABLE`。已发出的 `read` 请求在 2 分钟有效期内复用：页面重试 `getOperation` 时不新建请求，只再次长轮询。全部账户都返回 `unknown` 时返回 `NOT_FOUND`。
+**没有本地记录时的 `read`/`open`**：桥接页向每个已配对账户各发一个 `read`（或 `open`）请求，然后以 `wait=20000` 长轮询一次中继。只要有一个请求返回了设备的密封回复，就解封并返回；返回 `unknown`（见 7.4）的账户没有这个操作；20 秒内没有任何回复则返回 `DEVICE_UNAVAILABLE`。已发出的 `read` 请求在 2 分钟有效期内、在同一个桥接窗口里复用：页面重试 `getOperation` 时不新建请求，只再次长轮询（`read` 请求不写入 IndexedDB，窗口重开后会新建）。全部账户都返回 `unknown` 时返回 `NOT_FOUND`。
 
 ### 4.5 创建规则
 
@@ -483,7 +483,7 @@ read / open:
 
 | URL | 作用 |
 | --- | --- |
-| `dmsg://connect/pair?account=<xid>` | 打开"连接浏览器"界面 |
+| `dmsg://connect/pair?account=<xid>` | 打开"连接浏览器"界面；桥接页不知道目标账户时（如 `authenticate`）省略 `account` |
 | `dmsg://connect/request?account=<xid>&request=<hex>` | 打开审批中心并定位到该请求 |
 
 任何网页都能触发这些链接，所以它们只是导航提示：设备不会因此执行任何动作，所有内容仍然以 PoP 从中继读取并验证。请求提交后，桥接页显示"在 dMsg 中确认"按钮，指向第二个链接，并在按钮旁说明"也可以在 dMsg 的审批中心或 `dmsg approvals` 中查看"（没有注册 URL scheme 的平台，如仅 CLI 的 Linux，按钮不会有反应）。移动端将使用 `https://connect.dmsg.net/app/…` 形式的 universal link / app link，在移动端阶段定义。
@@ -518,7 +518,7 @@ button.onclick = async () => {
 }
 ```
 
-方法与 browser-v4 相同：`capabilities`、`authenticate`、`signDocument`、`signAction`、`checkout`、`getOperation`、`openOperation`、`cancelOperation`、`acknowledge`；另有 `ready`、`close()` 与只读的 `open`（弹窗是否仍在）。弹窗被用户关闭后，应用需要在新的用户手势中再次调用 `connectDmsg`。`bridgeOrigin` 选项只供 Local 与 Staging 覆盖默认值。应用仍须持久保存会话密钥、挑战与 operationId，刷新后用同一密钥恢复操作。
+方法与 browser-v4 相同：`capabilities`、`authenticate`、`signDocument`、`signAction`、`checkout`、`getOperation`、`openOperation`、`cancelOperation`、`acknowledge`；另有 `ready`、`close()` 与只读的 `open`（弹窗是否仍在）、`methods`（`ready` 中公布的方法）。`session` 也可以是 Promise：弹窗必须在手势中同步打开，而会话密钥常要从 IndexedDB 异步读出。弹窗被用户关闭后，应用需要在新的用户手势中再次调用 `connectDmsg`。`bridgeOrigin` 选项只供 Local 与 Staging 覆盖默认值。应用仍须持久保存会话密钥、挑战与 operationId，刷新后用同一密钥恢复操作。
 
 ## 11. 保留项
 
