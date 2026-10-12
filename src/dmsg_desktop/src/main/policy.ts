@@ -11,7 +11,8 @@
  * Methods that name local files (`wallet/use`, `channel/send_file`,
  * `channel/download`), refunds to named blocks and running a tool as an
  * agent (`ap/call`) stay with the CLI; files enter and leave the vault only
- * through the main process's file dialogs. The agent methods (`mcp/*`)
+ * through the main process's file dialogs, as do legacy transfer files,
+ * frozen-history files and old attachments. The agent methods (`mcp/*`)
  * answer only an agent's own credential.
  */
 export const WINDOW_METHODS = new Set([
@@ -139,7 +140,26 @@ export const WINDOW_METHODS = new Set([
   'agent/credential',
   'grants/list',
   'grants/add',
-  'grants/revoke'
+  'grants/revoke',
+  'legacy/pair',
+  'legacy/pairs',
+  'legacy/cancel',
+  'legacy/list',
+  'legacy/report',
+  'legacy/shared_source',
+  'legacy/shared_prepare',
+  'legacy/shared_check',
+  'legacy/shared_request',
+  'legacy/shared_propose',
+  'legacy/shared_consent',
+  'legacy/shared_view',
+  'legacy/shared_commit',
+  'legacy/shared_activate',
+  'legacy/shared_claim_request',
+  'legacy/shared_claim',
+  'legacy/shared_joined',
+  'legacy/shared_grant',
+  'legacy/shared_receive'
 ])
 
 /** Methods whose requests the desktop marks as its own (`source: "gui"`). */
@@ -203,6 +223,23 @@ export function parseLink(url: string): Link | null {
 }
 
 /** Pages the desktop opens in the system browser: the login page and the bridge's pairing page. */
+/** The old site's migration pages; their links carry an offer or a request in the fragment. */
+const LEGACY_PAGES = ['https://dmsg.net/legacy', 'https://panda.fans/legacy']
+
+export function legacyAllowed(url: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return false
+  }
+  return (
+    LEGACY_PAGES.includes(`${parsed.origin}${parsed.pathname}`) &&
+    !parsed.search &&
+    /^#(pair|approve)=[A-Za-z0-9_-]+$/.test(parsed.hash)
+  )
+}
+
 export function externalAllowed(url: string, login: string[], pairing: string[]): boolean {
   let parsed: URL
   try {

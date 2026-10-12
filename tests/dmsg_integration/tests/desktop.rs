@@ -654,6 +654,9 @@ struct Options {
     /// `dmsg-knowledge` Workers on local HTTPS, which the daemons trust
     /// through `agent_ca`.
     services: bool,
+    /// Install frozen old channel and name-identity canisters of the
+    /// current release, reviewed by the relay and the daemons (`[legacy]`).
+    legacy: bool,
 }
 
 /// One deployment, one relay and two desktops, `a` and `b`.
@@ -680,6 +683,8 @@ struct Env {
     adp: Option<adp::Adp>,
     /// The Agent Mail relay and the Agent Knowledge service, if served.
     services: Option<Services>,
+    /// The frozen old service, if installed.
+    legacy: Option<Legacy>,
 }
 
 /// The local HTTPS origins of `dmsg-mail` and `dmsg-knowledge`.
@@ -783,7 +788,15 @@ impl Env {
         let mut children = Children(vec![]);
 
         let deployment = support::Deployment::start();
+        let legacy = options.legacy.then(|| Legacy::install(&deployment));
         let mut launch: Value = serde_json::from_str(&deployment.fixture_json()).unwrap();
+        if let Some(legacy) = &legacy {
+            launch["legacy"] = json!({
+                "channel": legacy.channel.to_text(),
+                "identity": legacy.identity.to_text(),
+                "root_key_hex": deployment.root_key_hex,
+            });
+        }
         launch["port"] = free_port().into();
         launch["ttl_ms"] = 1_200_000.into();
         let connect = format!("http://localhost:{}", free_port());
@@ -864,10 +877,19 @@ impl Env {
         if !hosts.is_empty() {
             config.push_str(&format!("agent_hosts = [{}]\n", hosts.join(", ")));
         }
+        // A table ends the top-level keys: it goes after every policy.
+        let table = legacy.as_ref().map_or(String::new(), |legacy| {
+            format!(
+                "[legacy]\nchannels = [\"{}\"]\nidentity = \"{}\"\ncutover = \"{}\"\n",
+                legacy.channel,
+                legacy.identity,
+                "08".repeat(32)
+            )
+        });
         let desktop = |name: &str, policy: &str| {
             let home = dir.join(name);
             std::fs::create_dir_all(&home).unwrap();
-            std::fs::write(home.join("config.toml"), format!("{config}{policy}")).unwrap();
+            std::fs::write(home.join("config.toml"), format!("{config}{policy}{table}")).unwrap();
             Desktop {
                 bin: bin.clone(),
                 home,
@@ -889,12 +911,13 @@ impl Env {
             a,
             b,
             daemons,
-            config,
+            config: format!("{config}{table}"),
             relay_proxy,
             ic_proxy,
             agent_proxy,
             adp,
             services: services.map(|(services, _)| services),
+            legacy,
         }
     }
 
@@ -4185,5 +4208,488 @@ fn desktop_release() {
     assert_eq!(installed.run(&["stop"])["stopped"], true);
     let output = installed.command(&["status"]).output().unwrap();
     assert_eq!(output.status.code(), Some(3));
+    env.finish();
+}
+
+/// Old channel and name-identity canisters of the current release in the
+/// deployment's PocketIC, with one channel (old manager `52`, old member
+/// `53`, three encrypted messages) frozen under cutover `08…08`.
+struct Legacy {
+    channel: Principal,
+    identity: Principal,
+    channel_id: u32,
+    /// The historical channel KEK and DEK as COSE_Keys, and the frozen
+    /// DEK wrapper.
+    kek: Vec<u8>,
+    dek: Vec<u8>,
+    wrapped: Vec<u8>,
+}
+
+/// The self-authenticating Principal of the Ed25519 seed `[seed; 32]`, as
+/// the old site's identities in the driver.
+fn old_identity(seed: u8) -> Principal {
+    let mut der = vec![
+        0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
+    ];
+    der.extend(
+        ed25519_dalek::SigningKey::from_bytes(&[seed; 32])
+            .verifying_key()
+            .to_bytes(),
+    );
+    Principal::self_authenticating(der)
+}
+
+impl Legacy {
+    fn install(deployment: &support::Deployment) -> Self {
+        use ic_message_types::channel::{
+            AddMessageInput, AddMessageOutput, ChannelECDHInput, ChannelInfo, CreateChannelInput,
+            Message, UpdateChannelMemberInput,
+        };
+        use ic_message_types::migration::FreezeStatus;
+        #[derive(candid::CandidType)]
+        enum ChannelArgs {
+            Init {
+                managers: Vec<Principal>,
+                name: String,
+            },
+        }
+        #[derive(candid::CandidType)]
+        enum IdentityArgs {
+            Init {
+                session_expires_in_ms: u64,
+                name: String,
+            },
+        }
+        let ic = &deployment.ic;
+        let call = |canister: Principal, caller: Principal, method: &str, args: Vec<u8>| {
+            ic.update_call(canister, caller, method, args).unwrap()
+        };
+        let wasm = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../target/wasm32-unknown-unknown/release");
+        let gov = Principal::from_slice(&[90]);
+        let subnet = ic.topology().get_app_subnets()[0];
+        let channel = ic.create_canister_on_subnet(Some(gov), None, subnet);
+        let identity = ic.create_canister_on_subnet(Some(gov), None, subnet);
+        for (id, name, args) in [
+            (
+                channel,
+                "ic_message_channel",
+                candid::encode_args((Some(ChannelArgs::Init {
+                    managers: vec![gov],
+                    name: "legacy channels".into(),
+                }),))
+                .unwrap(),
+            ),
+            (
+                identity,
+                "ic_name_identity",
+                candid::encode_args((Some(IdentityArgs::Init {
+                    session_expires_in_ms: 3_600_000,
+                    name: "legacy names".into(),
+                }),))
+                .unwrap(),
+            ),
+        ] {
+            ic.add_cycles(id, 10_000_000_000_000_000);
+            let module = std::fs::read(wasm.join(format!("{name}.wasm"))).unwrap_or_else(|_| {
+                panic!(
+                    "build {name}: cargo build --release --target wasm32-unknown-unknown -p {name}"
+                )
+            });
+            ic.install_canister(id, module, args, Some(gov));
+        }
+        let (owner, member) = (old_identity(52), old_identity(53));
+        let kek = ic_cose_types::cose::cose_aes256_key([8; 32], vec![])
+            .to_vec()
+            .unwrap();
+        let dek = ic_cose_types::cose::cose_aes256_key([9; 32], vec![])
+            .to_vec()
+            .unwrap();
+        let wrapped =
+            ic_cose_types::cose::encrypt0::cose_encrypt0(&dek, &[8; 32], &[], &[1; 12], None)
+                .unwrap();
+        let none = || ChannelECDHInput {
+            ecdh_pub: None,
+            ecdh_remote: None,
+        };
+        let created: Result<ChannelInfo, String> = candid::decode_one(&call(
+            channel,
+            gov,
+            "admin_create_channel",
+            candid::encode_args((CreateChannelInput {
+                name: "Frozen channel".into(),
+                image: String::new(),
+                description: String::new(),
+                managers: [(owner, none())].into(),
+                dek: wrapped.clone().into(),
+                created_by: owner,
+                paid: 0,
+            },))
+            .unwrap(),
+        ))
+        .unwrap();
+        let channel_id = created.unwrap().id;
+        let added: Result<(u64, Option<Message>), String> = candid::decode_one(&call(
+            channel,
+            owner,
+            "update_member",
+            candid::encode_args((UpdateChannelMemberInput {
+                id: channel_id,
+                member,
+                ecdh: none(),
+            },))
+            .unwrap(),
+        ))
+        .unwrap();
+        added.unwrap();
+        for n in 0..3u32 {
+            let mut nonce = [2; 12];
+            nonce[8..].copy_from_slice(&n.to_be_bytes());
+            let payload = ic_cose_types::cose::encrypt0::cose_encrypt0(
+                &cbor2::to_vec(&format!("Legacy shared history {n}")).unwrap(),
+                &[9; 32],
+                &[],
+                &nonce,
+                None,
+            )
+            .unwrap();
+            let sent: Result<AddMessageOutput, String> = candid::decode_one(&call(
+                channel,
+                owner,
+                "add_message",
+                candid::encode_args((AddMessageInput {
+                    channel: channel_id,
+                    payload: payload.into(),
+                    reply_to: None,
+                },))
+                .unwrap(),
+            ))
+            .unwrap();
+            sent.unwrap();
+        }
+        let cutover = serde_bytes::ByteArray::new([8u8; 32]);
+        for id in [channel, identity] {
+            let status: FreezeStatus = candid::decode_one(
+                &ic.query_call(id, gov, "legacy_status", candid::encode_args(()).unwrap())
+                    .unwrap(),
+            )
+            .unwrap();
+            if status.baseline_needed {
+                let done: Result<(), String> = candid::decode_one(&call(
+                    id,
+                    gov,
+                    "admin_legacy_acknowledge_baseline",
+                    candid::encode_args((serde_bytes::ByteArray::new([9u8; 32]),)).unwrap(),
+                ))
+                .unwrap();
+                done.unwrap();
+            }
+            for method in ["admin_legacy_drain", "admin_legacy_seal"] {
+                let frozen: Result<FreezeStatus, String> = candid::decode_one(&call(
+                    id,
+                    gov,
+                    method,
+                    candid::encode_args((cutover,)).unwrap(),
+                ))
+                .unwrap();
+                frozen.unwrap_or_else(|e| panic!("{method}: {e}"));
+            }
+        }
+        Self {
+            channel,
+            identity,
+            channel_id,
+            kek,
+            dek,
+            wrapped,
+        }
+    }
+
+    /// One old-site action of `src/dmsg_legacy/tests/e2e-driver.test.ts`,
+    /// as the old identity `seed`.
+    fn old_site(&self, env: &Env, seed: u8, action: &str, extra: Value) -> Value {
+        let n = std::fs::read_dir(&env.dir).unwrap().count();
+        let (input, out) = (
+            env.dir.join(format!("old-site-{n}.json")),
+            env.dir.join(format!("old-site-{n}-out.json")),
+        );
+        let mut value = json!({
+            "gateway": env.deployment.gateway,
+            "root_key_hex": env.deployment.root_key_hex,
+            "channel": self.channel.to_text(),
+            "identity": self.identity.to_text(),
+            "channel_id": self.channel_id,
+            "cutover_hex": "08".repeat(32),
+            "wrapped_hex": hex::encode(&self.wrapped),
+            "kek_hex": hex::encode(&self.kek),
+            "dek_hex": hex::encode(&self.dek),
+            "seed": seed,
+            "action": action,
+            "out": out,
+        });
+        for (key, item) in extra.as_object().unwrap() {
+            value[key] = item.clone();
+        }
+        std::fs::write(&input, value.to_string()).unwrap();
+        let status = Command::new("pnpm")
+            .args(["exec", "vitest", "run", "tests/e2e-driver.test.ts"])
+            .current_dir(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/dmsg_legacy"))
+            .env("DMSG_LEGACY_DRIVER", &input)
+            .stdout(Stdio::null())
+            .status()
+            .unwrap();
+        assert!(status.success(), "old site {action}");
+        serde_json::from_str(&std::fs::read_to_string(&out).unwrap()).unwrap()
+    }
+}
+
+fn strs(args: &[String]) -> Vec<&str> {
+    args.iter().map(String::as_str).collect()
+}
+
+/// A JSON document written for a command.
+fn document(env: &Env, name: &str, value: &Value) -> String {
+    let path = env.dir.join(name);
+    std::fs::write(&path, value.to_string()).unwrap();
+    path.to_str().unwrap().to_string()
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, the legacy canister Wasm, PocketIC, the private relay (DMSG_CLOUD_DIR) and Node"]
+fn desktop_legacy() {
+    let mut env = Env::launch(
+        "legacy",
+        Options {
+            legacy: true,
+            ..Options::default()
+        },
+    );
+    let http = env.http.clone();
+    let legacy = env.legacy.take().unwrap();
+    // C becomes a second device of X at the end.
+    let (c, _) = env.desktop("c");
+    let (a, b) = (&env.a, &env.b);
+    let (owner, member) = (old_identity(52).to_text(), old_identity(53).to_text());
+    assert_eq!(a.login(&http, 41).unwrap()["state"], "no_account");
+    let x = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(b.login(&http, 60).unwrap()["state"], "no_account");
+    let y = b.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // Personal archive: the offer opens the old site with the device as
+    // target; the old site seals the owner's archive to it.
+    let offer = a.run(&["legacy", "pair", "--origin", "https://panda.fans"]);
+    let link = offer["link"].as_str().unwrap();
+    assert!(link.starts_with("https://panda.fans/legacy#pair="));
+    assert_eq!(offer["target"], a.run(&["status"])["device_id"]);
+    let file = env.dir.join("owner.dmsg-migration");
+    let sealed = legacy.old_site(&env, 52, "archive", json!({"link": link, "file": file}));
+    assert_eq!(sealed["principal"], owner.as_str());
+    let (nonce, fingerprint) = (
+        offer["nonce"].as_str().unwrap(),
+        offer["fingerprint"].as_str().unwrap(),
+    );
+    let file = file.to_str().unwrap();
+    let import = |principal: &str| {
+        vec![
+            "legacy",
+            "import",
+            file,
+            "--nonce",
+            nonce,
+            "--fingerprint",
+            fingerprint,
+            "--principal",
+            principal,
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect::<Vec<_>>()
+    };
+    assert_eq!(a.fail(&strs(&import(&member))), "FORBIDDEN");
+    let report = a.run(&strs(&import(&owner)));
+    let archive = report["id"].as_str().unwrap().to_string();
+    let texts = |report: &Value| {
+        report["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["text"].as_str().unwrap().to_string())
+            .collect::<Vec<_>>()
+    };
+    let expected: Vec<String> = (0..3)
+        .map(|n| format!("Legacy shared history {n}"))
+        .collect();
+    assert!(
+        expected.iter().all(|t| texts(&report).contains(t)),
+        "{report}"
+    );
+    assert_eq!(a.run(&strs(&import(&owner)))["id"], archive.as_str());
+    assert_eq!(a.run(&["legacy", "list"]).as_array().unwrap().len(), 1);
+
+    // After the freeze the old site exports the final history: it matches.
+    let frozen = env.dir.join("frozen.cbor");
+    legacy.old_site(&env, 52, "frozen", json!({"file": frozen}));
+    let compared = a.run(&["legacy", "frozen", &archive, frozen.to_str().unwrap()]);
+    assert_eq!(compared["matched"], true, "{compared}");
+
+    // Shared successor: the frozen source, a proposal by X, the old
+    // manager's approval on the old site, then commit and activation.
+    let source = legacy.old_site(&env, 52, "source", json!({}));
+    let source_file = document(&env, "source.json", &source);
+    let checked = a.run(&["legacy", "shared", "source", &source_file]);
+    assert_eq!(checked["managers"], json!([owner]));
+    assert!(checked["members"]
+        .as_array()
+        .unwrap()
+        .contains(&json!(member)));
+    let draft = a.run(&["legacy", "shared", "prepare", &source_file]);
+    let draft_file = document(&env, "draft.json", &draft);
+    let request = a.run(&[
+        "legacy",
+        "shared",
+        "request",
+        &draft_file,
+        "--manager",
+        &owner,
+    ]);
+    assert!(request["links"][0]
+        .as_str()
+        .unwrap()
+        .starts_with("https://dmsg.net/legacy#approve="));
+    let approval = legacy.old_site(&env, 52, "approve", json!({"request": request["request"]}));
+    let approval_file = document(&env, "approval.json", &approval);
+    let view = a.run(&[
+        "legacy",
+        "shared",
+        "propose",
+        &draft_file,
+        "--manager",
+        &owner,
+        "--approval",
+        &approval_file,
+    ]);
+    assert_eq!(view["stage"], "pending");
+    let key = view["key"].as_str().unwrap().to_string();
+    // Another identity's approval of the same intent is refused.
+    assert_eq!(
+        a.fail(&[
+            "legacy",
+            "shared",
+            "consent",
+            &draft_file,
+            "--manager",
+            &member,
+            "--approval",
+            &approval_file,
+        ]),
+        "FORBIDDEN"
+    );
+    assert_eq!(
+        a.run(&["legacy", "shared", "commit", &key])["stage"],
+        "committed"
+    );
+    let active = a.run(&["legacy", "shared", "activate", &key]);
+    assert_eq!(active["stage"], "active");
+    let channel = active["proposal"]["channel_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(a.run(&["channel", "show", &channel])["ledger"]["epoch"], 1);
+
+    // The old member claims account Y and B's device on the old site, with
+    // the record X handed over; B is not a reader of the directory yet.
+    assert_eq!(b.fail(&["legacy", "shared", "view", &key]), "FORBIDDEN");
+    let view_file = document(&env, "view.json", &active);
+    let claim_request = b.run(&[
+        "legacy",
+        "shared",
+        "claim-request",
+        &view_file,
+        "--member",
+        &member,
+    ]);
+    let claim_file = document(&env, "claim.json", &claim_request);
+    let approval = legacy.old_site(
+        &env,
+        53,
+        "approve",
+        json!({"request": claim_request["request"]}),
+    );
+    let approval_file = document(&env, "claim-approval.json", &approval);
+    let claimed = b.run(&[
+        "legacy",
+        "shared",
+        "claim",
+        &view_file,
+        "--request",
+        &claim_file,
+        "--approval",
+        &approval_file,
+    ]);
+    assert_eq!(claimed["claims"][&member]["claim"]["account"], y.as_str());
+
+    // X invites Y; Y joins the next epoch and says so.
+    let invitation = a.run(&["channel", "invite", &channel, &y]);
+    b.run(&["channel", "accept", &invitation.to_string()]);
+    assert_eq!(
+        a.run(&["channel", "rotate", &channel])["ledger"]["epoch"],
+        2
+    );
+    let joined = b.run(&["legacy", "shared", "joined", &key]);
+    assert_eq!(joined["claims"][&member]["joined"], true);
+
+    // X delivers the channel's history from its archive to B's device.
+    let granted = a.run(&[
+        "legacy",
+        "shared",
+        "grant",
+        &key,
+        "--archive",
+        &archive,
+        "--member",
+        &member,
+    ]);
+    let grant = granted["grants"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .next()
+        .unwrap()
+        .clone();
+    let received = b.run(&["legacy", "shared", "receive", &key, "--grant", &grant]);
+    assert!(
+        expected.iter().all(|t| texts(&received).contains(t)),
+        "{received}"
+    );
+    assert_eq!(received["principal"], owner.as_str());
+    assert_eq!(b.run(&["legacy", "list"]).as_array().unwrap().len(), 1);
+
+    // A second device of X gets the archive through sync and reads it offline.
+    assert_eq!(c.login(&http, 41).unwrap()["state"], "pairing_required");
+    let pairing = c.run(&["device", "pair-request"]);
+    a.run(&[
+        "device",
+        "approve",
+        pairing["token"].as_str().unwrap(),
+        "--device",
+        pairing["device_id"].as_str().unwrap(),
+    ]);
+    assert_eq!(c.run(&["unlock"])["state"], "unlocked");
+    a.run(&["sync"]);
+    c.run(&["sync"]);
+    assert_eq!(c.run(&["legacy", "list"])[0]["id"], archive.as_str());
+    let synced = c.run(&["legacy", "report", &archive]);
+    assert!(
+        expected.iter().all(|t| texts(&synced).contains(t)),
+        "{synced}"
+    );
+    assert_eq!(synced["frozen"]["matched"], true);
+    let _ = x;
     env.finish();
 }

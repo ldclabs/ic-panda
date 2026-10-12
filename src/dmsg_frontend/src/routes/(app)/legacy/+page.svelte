@@ -74,7 +74,7 @@
       >
       <p
         >{$t(
-          'New messages, uploads, profile edits, username changes, and payments are disabled in this app. The new Chrome workspace and migration flow are not available yet.'
+          'New messages, uploads, profile edits, username changes, and payments are disabled in this app. To move your history to the dMsg desktop app, start a migration in its Legacy section.'
         )}</p
       >
       <div class="hero-actions"

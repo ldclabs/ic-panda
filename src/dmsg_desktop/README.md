@@ -12,10 +12,10 @@ desktop is one of its clients, like the CLI.
   never reaches a renderer.
 - **Renderer** (`src/renderer`, Svelte 5): the main window (vault with files,
   channels, inbox, plan and names with name transfers and checkout records,
-  agents, signatures and approvals with the month's execution allowance, and
-  settings: this device's accounts, creating or joining an account, pairing
-  and recovery, account security, the public profile and connected browsers)
-  and the approval window.
+  agents, signatures and approvals with the month's execution allowance,
+  legacy migration, and settings: this device's accounts, creating or joining
+  an account, pairing and recovery, account security, the public profile and
+  connected browsers) and the approval window.
 
 Rules (`src/main/policy.ts`):
 
@@ -24,7 +24,15 @@ Rules (`src/main/policy.ts`):
   local files (`wallet/use`, `channel/send_file`, `channel/download`),
   refunds and running a tool as an agent (`ap/call`) stay with the CLI.
   Vault files enter and leave only through the main process's open and save
-  dialogs (`file/import`, `file/export` with the path the person picked).
+  dialogs (`file/import`, `file/export` with the path the person picked), as
+  do legacy transfer files, frozen-history files and old attachments
+  (`legacy/import`, `legacy/frozen`, `legacy/file`).
+- Legacy migration opens the old site (`https://dmsg.net/legacy` or
+  `https://panda.fans/legacy`) only with an offer (`#pair=`) or an approval
+  request (`#approve=`) in the fragment; the person compares the fingerprint,
+  this device's ID and the old Principal on both sides before importing. The
+  shared-channel documents (frozen source, proposal, directory record, the
+  old site's approvals) are pasted or read from a chosen file.
 - Each account on the device keeps its own workspace. Logging in with another
   identity switches to its account; Settings lists the accounts here and
   switches between them (locked, then a login or fast unlock opens one).
@@ -47,7 +55,8 @@ Rules (`src/main/policy.ts`):
   only the main window confirms a browser pairing (`connect/grant`).
 - `dmsg://connect/pair?account=…` and `dmsg://connect/request?account=…&request=…`
   only open a view; they execute nothing.
-- The system browser opens only the login page and the bridge's pairing page.
+- The system browser opens only the login page, the bridge's pairing page
+  and the old site's migration links.
 - Renderers run sandboxed with context isolation, no Node integration, a
   strict CSP, no navigation and no new windows. Closing the main window keeps
   the tray and the daemon; quitting does not stop the daemon.

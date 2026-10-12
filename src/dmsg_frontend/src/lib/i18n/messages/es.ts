@@ -582,8 +582,8 @@ export default {
   'Still in your hands.': 'Sigue en tus manos.',
   'Read your existing conversations and download the attachments you can already access.':
     'Revisa tus conversaciones existentes y descarga los archivos adjuntos a los que ya tienes acceso.',
-  'New messages, uploads, profile edits, username changes, and payments are disabled in this app. The new Chrome workspace and migration flow are not available yet.':
-    'Los nuevos mensajes, subidas, cambios de perfil o nombre y pagos están desactivados. El nuevo espacio Chrome y la migración aún no están disponibles.',
+  'New messages, uploads, profile edits, username changes, and payments are disabled in this app. To move your history to the dMsg desktop app, start a migration in its Legacy section.':
+    'Los nuevos mensajes, subidas, cambios de perfil o nombre y pagos están desactivados. Para llevar tu historial a la app de escritorio de dMsg, inicia la migración en su sección Legacy.',
   'Opening archive…': 'Abriendo archivo…',
   'Open message archive': 'Abrir archivo de mensajes',
   'Account options': 'Opciones de cuenta',

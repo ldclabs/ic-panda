@@ -152,8 +152,8 @@ struct Outgoing {
 
 /// An upload a channel operation needs; its chunks are in the chunk store.
 #[derive(Serialize, Deserialize, Clone, Debug)]
-struct Upload {
-    plan: UploadPlan,
+pub(crate) struct Upload {
+    pub(crate) plan: UploadPlan,
     manifest: ByteBuf,
     recipients: Vec<String>,
 }
@@ -689,11 +689,11 @@ fn devices_of(account: &str, security: &crate::account::Security) -> Vec<Recipie
 }
 
 impl Client {
-    fn me(&self) -> Result<String> {
+    pub(crate) fn me(&self) -> Result<String> {
         Ok(self.account()?.id.to_string())
     }
 
-    fn device_hex(&self) -> String {
+    pub(crate) fn device_hex(&self) -> String {
         hex::encode(*self.workspace.meta.device_id)
     }
 
@@ -757,18 +757,22 @@ impl Client {
         Ok(self.stored(channel, *seq)?.ledger)
     }
 
-    fn job<T: DeserializeOwned + Serialize>(&self, channel: &str, key: &str) -> Result<Option<T>> {
+    pub(crate) fn job<T: DeserializeOwned + Serialize>(
+        &self,
+        channel: &str,
+        key: &str,
+    ) -> Result<Option<T>> {
         self.workspace
             .private(self.keys()?, &format!("{JOB}{channel}:{key}"))
     }
 
-    fn save_job<T: Serialize>(&self, channel: &str, key: &str, value: &T) -> Result<()> {
+    pub(crate) fn save_job<T: Serialize>(&self, channel: &str, key: &str, value: &T) -> Result<()> {
         self.workspace
             .put_private(self.keys()?, &format!("{JOB}{channel}:{key}"), value)
     }
 
     /// The account may write content: its root is the committed one.
-    async fn root_ready(&mut self) -> Result<()> {
+    pub(crate) async fn root_ready(&mut self) -> Result<()> {
         let generation = self.roots()?.generation;
         let state = self.cloud_state().await?;
         ensure(
@@ -814,6 +818,22 @@ impl Client {
         suffix: &str,
     ) -> Result<Json> {
         let base = base(channel)?;
+        self.post_journaled(channel, key, &base, action, payload, suffix)
+            .await
+    }
+
+    /// [`Self::channel_post`] to any relay resource under `base` that reads
+    /// stored outcomes back at `{base}/operations/{request_id}`, journaled
+    /// under the channel's `key`.
+    pub(crate) async fn post_journaled(
+        &mut self,
+        channel: &str,
+        key: &str,
+        base: &str,
+        action: &str,
+        payload: Json,
+        suffix: &str,
+    ) -> Result<Json> {
         let path = format!("{base}{suffix}");
         let job: Option<Operation> = self.job(channel, key)?;
         if let Some(job) = &job {
@@ -1166,6 +1186,76 @@ impl Client {
         self.channel_pull(&channel, None, None).await?;
         self.channel_rotate(&channel).await?;
         Ok(channel)
+    }
+
+    /// Sign the genesis of a collaboration channel that the legacy
+    /// directory creates once every frozen manager agreed, and remember the
+    /// channel by it. Returns the channel ID and the signed genesis.
+    pub(crate) async fn legacy_genesis(&mut self, name: &str) -> Result<(String, String)> {
+        self.root_ready().await?;
+        let channel = random_hex();
+        let genesis = Genesis {
+            channel_id: channel.clone(),
+            nonce: random_hex(),
+            kind: ChannelType::Collaboration,
+        };
+        let job = self
+            .sign_operation(GENESIS, base(&channel)?, json(&genesis), random_hex())
+            .await?;
+        self.save_keyring(
+            None,
+            &Keyring {
+                format: FORMAT.into(),
+                id: channel.clone(),
+                name: name.into(),
+                genesis: hex_sha256(&unb64(&job.cose)?),
+                keys: BTreeMap::new(),
+            },
+        )?;
+        Ok((channel, job.cose))
+    }
+
+    /// Remember a channel by the genesis digest the legacy directory names.
+    pub(crate) fn remember_channel(
+        &mut self,
+        channel: &str,
+        name: &str,
+        genesis: &str,
+    ) -> Result<()> {
+        match self.keyring(channel) {
+            Ok((_, ring)) => ensure(ring.genesis == genesis, Error::IntegrityFailed),
+            Err(Error::NotFound) => self.save_keyring(
+                None,
+                &Keyring {
+                    format: FORMAT.into(),
+                    id: channel.into(),
+                    name: name.into(),
+                    genesis: genesis.into(),
+                    keys: BTreeMap::new(),
+                },
+            ),
+            Err(error) => Err(error),
+        }
+    }
+
+    /// Have the relay create the canonical successor of an old channel
+    /// from the directory's genesis, then read its log and open its first
+    /// epoch.
+    pub(crate) async fn channel_activate_legacy(
+        &mut self,
+        channel: &str,
+        payload: Json,
+    ) -> Result<ChannelView> {
+        self.channel_post(
+            channel,
+            "legacy-activate",
+            "dmsg/legacy/activate/v1",
+            payload,
+            "/legacy-activate",
+        )
+        .await?;
+        self.channel_pull(channel, None, None).await?;
+        self.channel_rotate(channel).await
     }
 
     /// The channels this account knows.
@@ -1561,7 +1651,7 @@ impl Client {
     }
 
     /// Upload a channel upload whose chunks are in the store.
-    async fn channel_upload(&mut self, channel: &str, upload: &Upload) -> Result<()> {
+    pub(crate) async fn channel_upload(&mut self, channel: &str, upload: &Upload) -> Result<()> {
         self.upload(
             &base(channel)?,
             &upload.plan,
@@ -2055,71 +2145,11 @@ impl Client {
             None => {
                 ensure(ledger.status == Status::Active, Error::RekeyRequired)?;
                 let file = self.vault_show(item)?.item.file.ok_or(Error::NotFound)?;
-                let mut chunks = vec![];
-                for chunk in &file.chunks {
-                    let bytes = self
-                        .workspace
-                        .store
-                        .chunk(&chunk.digest)?
-                        .ok_or(Error::RecoveryIncomplete)?;
-                    chunks.push(ChunkRef {
-                        digest: chunk.digest.clone(),
-                        size: bytes.len() as u64,
-                    });
-                }
-                if chunks.is_empty() {
-                    let empty = empty_file();
-                    let digest = hex_sha256(&empty);
-                    self.workspace.store.put_chunk(&digest, &empty)?;
-                    chunks.push(ChunkRef {
-                        digest,
-                        size: empty.len() as u64,
-                    });
-                }
-                let upload_id = random_hex();
-                let key = key32(&unb64(&file.key)?)?;
-                let sealed = seal(
-                    &key,
-                    &canonical(&ChannelFile {
-                        format: "dmsg-channel-file/1".into(),
-                        channel: channel.into(),
-                        epoch: ledger.epoch,
-                        file: file.public(),
-                    }),
-                    &manifest_context(channel, ledger.epoch, &upload_id, &file.id, &file.version),
-                );
-                let manifest = unb64(&sealed)?;
-                let plan = UploadPlan {
-                    upload_id: upload_id.clone(),
-                    object_id: file.id.clone(),
-                    version_id: file.version.clone(),
-                    root_generation: 0,
-                    epoch: ledger.epoch,
-                    control_head: Some(ledger.head.clone()),
-                    kind: "file".into(),
-                    chunks,
-                    manifest_digest: hex_sha256(&manifest),
-                    manifest_size: manifest.len() as u64,
-                    expires_at: now_ms() + PLAN_MS,
-                };
+                let (reference, upload) = self.prepare_upload(channel, &ledger, &file)?;
                 let attachment = Attachment {
                     item: item.into(),
-                    reference: FileRef {
-                        upload_id,
-                        file_id: file.id.clone(),
-                        version: file.version.clone(),
-                        epoch: ledger.epoch,
-                        manifest_digest: plan.manifest_digest.clone(),
-                        name: file.name.clone(),
-                        size: file.size,
-                        mime: file.mime.clone(),
-                        key: file.key.clone(),
-                    },
-                    upload: Upload {
-                        plan,
-                        manifest: ByteBuf::from(manifest),
-                        recipients: vec![],
-                    },
+                    reference,
+                    upload,
                 };
                 self.save_job(channel, &key_name, &attachment)?;
                 attachment
@@ -2127,6 +2157,82 @@ impl Client {
         };
         self.channel_upload(channel, &attachment.upload).await?;
         self.channel_send(channel, text, Some(&message_id)).await
+    }
+
+    /// The upload that shares `file`, whose chunks are in the store, under
+    /// the ledger's epoch, and the reference that carries its key.
+    pub(crate) fn prepare_upload(
+        &self,
+        channel: &str,
+        ledger: &Ledger,
+        file: &FileManifest,
+    ) -> Result<(FileRef, Upload)> {
+        let mut chunks = vec![];
+        for chunk in &file.chunks {
+            let bytes = self
+                .workspace
+                .store
+                .chunk(&chunk.digest)?
+                .ok_or(Error::RecoveryIncomplete)?;
+            chunks.push(ChunkRef {
+                digest: chunk.digest.clone(),
+                size: bytes.len() as u64,
+            });
+        }
+        if chunks.is_empty() {
+            let empty = empty_file();
+            let digest = hex_sha256(&empty);
+            self.workspace.store.put_chunk(&digest, &empty)?;
+            chunks.push(ChunkRef {
+                digest,
+                size: empty.len() as u64,
+            });
+        }
+        let upload_id = random_hex();
+        let key = key32(&unb64(&file.key)?)?;
+        let sealed = seal(
+            &key,
+            &canonical(&ChannelFile {
+                format: "dmsg-channel-file/1".into(),
+                channel: channel.into(),
+                epoch: ledger.epoch,
+                file: file.public(),
+            }),
+            &manifest_context(channel, ledger.epoch, &upload_id, &file.id, &file.version),
+        );
+        let manifest = unb64(&sealed)?;
+        let plan = UploadPlan {
+            upload_id: upload_id.clone(),
+            object_id: file.id.clone(),
+            version_id: file.version.clone(),
+            root_generation: 0,
+            epoch: ledger.epoch,
+            control_head: Some(ledger.head.clone()),
+            kind: "file".into(),
+            chunks,
+            manifest_digest: hex_sha256(&manifest),
+            manifest_size: manifest.len() as u64,
+            expires_at: now_ms() + PLAN_MS,
+        };
+        let reference = FileRef {
+            upload_id,
+            file_id: file.id.clone(),
+            version: file.version.clone(),
+            epoch: ledger.epoch,
+            manifest_digest: plan.manifest_digest.clone(),
+            name: file.name.clone(),
+            size: file.size,
+            mime: file.mime.clone(),
+            key: file.key.clone(),
+        };
+        Ok((
+            reference,
+            Upload {
+                plan,
+                manifest: ByteBuf::from(manifest),
+                recipients: vec![],
+            },
+        ))
     }
 
     /// Read new messages, or with `backfill` every readable one again, such
@@ -2325,8 +2431,22 @@ impl Client {
             .private(self.keys()?, &format!("{INBOX}{channel}:{seq:020}"))?
             .ok_or(Error::NotFound)?;
         let reference = message.file.clone().ok_or(Error::NotFound)?;
+        let manifest = self
+            .channel_file(channel, &reference, &message.account)
+            .await?;
+        self.export_manifest(&manifest, out)
+    }
+
+    /// Fetch the file `reference` names, uploaded by `uploader`: its plan,
+    /// sealed manifest and chunks, each checked; the chunks go to the store.
+    pub(crate) async fn channel_file(
+        &mut self,
+        channel: &str,
+        reference: &FileRef,
+        uploader: &str,
+    ) -> Result<FileManifest> {
         let plan = self
-            .descriptor(channel, &reference.upload_id, Some(&message.account))
+            .descriptor(channel, &reference.upload_id, Some(uploader))
             .await?;
         ensure(
             plan.kind == "file"
@@ -2395,11 +2515,10 @@ impl Client {
                 self.workspace.store.put_chunk(&chunk.digest, &bytes)?;
             }
         }
-        let manifest = FileManifest {
+        Ok(FileManifest {
             key: reference.key.clone(),
             ..file
-        };
-        self.export_manifest(&manifest, out)
+        })
     }
 
     /// Seal keys of epochs `from..=to` to `target`'s devices and grant them.

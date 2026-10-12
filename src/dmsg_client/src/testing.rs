@@ -87,6 +87,7 @@ pub(crate) fn config(background_online: bool) -> Config {
         connect_url: crate::config::CONNECT_URL.into(),
         agent_service: crate::config::AGENT_SERVICE.into(),
         background_online,
+        legacy: None,
     }
 }
 

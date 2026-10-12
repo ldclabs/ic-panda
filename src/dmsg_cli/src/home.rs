@@ -8,7 +8,9 @@
 //! fast unlock is unavailable.
 
 use candid::Principal;
-use dmsg_client::config::{parse_environment, Config, AGENT_SERVICE, CONNECT_URL, LOGIN_URL};
+use dmsg_client::config::{
+    parse_environment, Config, LegacyConfig, AGENT_SERVICE, CONNECT_URL, LOGIN_URL,
+};
 use dmsg_client::secure::SecureStorage;
 use dmsg_types::{Error, Result, MINUTE};
 use serde::{Deserialize, Serialize};
@@ -41,6 +43,18 @@ struct ConfigFile {
     #[serde(default)]
     sync_interval_minutes: u64,
     secure_storage: Option<String>,
+    legacy: Option<LegacyFile>,
+}
+
+/// `[legacy]`: the old service's freeze this deployment reviewed.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LegacyFile {
+    channels: Vec<String>,
+    identity: String,
+    #[serde(default)]
+    buckets: Vec<String>,
+    cutover: String,
 }
 
 /// Where the home keeps the secrets that open it.
@@ -98,6 +112,27 @@ fn principal(text: &str) -> Result<Principal> {
     Principal::from_text(text).map_err(|_| dmsg_types::invalid("principal"))
 }
 
+fn legacy(file: LegacyFile) -> Result<LegacyConfig> {
+    let canonical = |t: &String| principal(t).is_ok_and(|p| p.to_text() == *t);
+    if file.channels.is_empty()
+        || !file.channels.iter().all(canonical)
+        || !file.buckets.iter().all(canonical)
+        || !canonical(&file.identity)
+    {
+        return Err(dmsg_types::invalid("legacy"));
+    }
+    let cutover = hex::decode(&file.cutover)
+        .ok()
+        .and_then(|c| c.try_into().ok())
+        .ok_or_else(|| dmsg_types::invalid("legacy.cutover"))?;
+    Ok(LegacyConfig {
+        channels: file.channels,
+        identity: file.identity,
+        buckets: file.buckets,
+        cutover,
+    })
+}
+
 impl Home {
     /// `--home`, else `$DMSG_HOME`, else `~/.dmsg`.
     pub fn resolve(flag: Option<PathBuf>) -> Self {
@@ -141,6 +176,7 @@ impl Home {
             connect_url: file.connect_url.unwrap_or_else(|| CONNECT_URL.into()),
             agent_service: file.agent_service.unwrap_or_else(|| AGENT_SERVICE.into()),
             background_online: file.background_online,
+            legacy: file.legacy.map(legacy).transpose()?,
         };
         config.validate()?;
         let idle = file.idle_lock_minutes.unwrap_or(15);

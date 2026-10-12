@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import {
     collectFolderProof,
     pack,
@@ -40,6 +41,21 @@
     requestId: base64(p.requestId),
     certificate: base64(p.certificate),
     reply: base64(p.reply)
+  })
+  // The desktop client may open this page with the request in the fragment.
+  onMount(() => {
+    const match = /^#approve=([A-Za-z0-9_-]{1,8000})$/.exec(location.hash)
+    if (!match) return
+    try {
+      requestText = new TextDecoder().decode(
+        Uint8Array.from(atob(match[1]!.replaceAll('-', '+').replaceAll('_', '/')), (c) =>
+          c.charCodeAt(0)
+        )
+      )
+    } catch {
+      error = '批准请求链接无效。'
+    }
+    history.replaceState(null, '', location.pathname + location.search)
   })
   const request = $derived.by(() => {
     try {
@@ -104,7 +120,7 @@
       const names = await collectSnapshot(dynAgent, identity, { Authorities: null }, [
         identity
       ])
-      // The extension verifies the cutover against its reviewed configuration.
+      // The desktop client verifies the cutover against its reviewed configuration.
       const { verifySnapshotProof } = await import('@dmsg/legacy')
       const checked = await verifySnapshotProof(control.proofs[0]!, {
         rootKey: dynAgent.rootKey!,
@@ -175,7 +191,7 @@
       a.download = 'legacy-frozen-history.cbor'
       a.click()
       setTimeout(() => URL.revokeObjectURL(url), 30000)
-      status = '已导出消息与附件的冻结对照证明。文件不含下载 token；请仅导入本人扩展。'
+      status = '已导出消息与附件的冻结对照证明。文件不含下载 token；请仅导入本人的桌面客户端。'
     })
   }
   async function approve() {
@@ -195,7 +211,7 @@
         null,
         2
       )
-      status = '本版本的明确批准已生成。请返回新版扩展完成同一方案。'
+      status = '本版本的明确批准已生成。请复制结果，回到桌面客户端完成同一方案。'
     })
   }
 </script>
@@ -220,7 +236,7 @@
     disabled={busy || $authStore.identity.getPrincipal().isAnonymous()}
     onclick={frozenHistory}>导出此频道的最终历史对照证明</button
   >
-  <label>新版扩展生成的批准请求<textarea bind:value={requestText} rows="5"></textarea></label>
+  <label>桌面客户端生成的批准请求<textarea bind:value={requestText} rows="5"></textarea></label>
   {#if request}<dl>
       <dt>批准类型</dt>
       <dd>{request.kind === 'manager' ? '管理员同意继承方案' : '旧成员认领'}</dd>
@@ -252,7 +268,7 @@
     onclick={approve}>我已核对，批准此版本的明确意图</button
   >
   {#if responseText}<label
-      >返回新版扩展的批准结果<textarea readonly value={responseText} rows="5"
+      >复制到桌面客户端的批准结果<textarea readonly value={responseText} rows="5"
       ></textarea></label
     >{/if}
   {#if status}<p role="status">{status}</p>{/if}{#if error}<p role="alert">{error}</p>{/if}

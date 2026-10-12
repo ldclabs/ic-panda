@@ -16,6 +16,7 @@ test-only.
 | `inbox-v1.json` | The inbox key object ID and a letter envelope | `tests::opens_inbox_letters` |
 | `cloud-v1.json` | `dmsg-cloud/1` device command and HTTP PoP (COSE_Sign1) | `cloud::tests::reproduces_commands_and_http_proofs` |
 | `login-v1.json` | [dmsg-login/1](../../../docs/protocol/login-v1_zh.md) requests, results and errors as canonical CBOR and URL fragments, and requests and callbacks that must be refused | `dmsg_protocol::login::tests`; the login page's `src/dmsg_frontend/src/lib/login/protocol.test.ts` |
+| `legacy-v1.json` | [legacy migration](../../../docs/protocol/legacy_archive_zh.md): a `dmsg-legacy-pair/2` offer, its fragment link and a transfer file sealed by `@dmsg/legacy`, offers and framing the device must refuse, the archive's offline verification (old COSE messages, an attachment, an avatar, gaps), a shared channel's scoped archive and the inheritance digests | `dmsg_client::legacy::tests`, `legacy_proof::tests`, `migration::tests`; `src/dmsg_legacy/tests/vectors.test.ts` |
 | `connect-v1.json` | [dmsg-connect/1](../../../docs/protocol/connect-v1_zh.md): the command and its proof message, the operation digest, pairing ID, invitation and MAC, the ConnectRequest CBOR and COSE, the envelope's AAD and HPKE wrapping, a reply sealed with HPKE in auth mode, and a Connect PoP | `dmsg_client::connect::tests`; `src/dmsg_connect/tests/vectors.test.ts`; the relay's copy in `dmsg-core/interop` |
 
 ```sh
@@ -31,7 +32,9 @@ and primitives with `crypto.getRandomValues` replaced by a SHA-256 counter
 stream keyed by the test name and `Date` fixed at `1760000000000`, so every
 artifact, including HPKE ephemeral keys and the IBE seed, was reproducible;
 `cloud-v1.json` came from its `tests/cloud.test.ts`. Nothing in the repository
-regenerates them now; the Rust tests open or reproduce them byte for byte. `connect-v1.json` comes from the `dmsg_client` connect tests (`DMSG_WRITE_CLIENT_VECTORS=1 cargo test -p dmsg_client connect`); its P-256 signatures are RFC 6979 and its HPKE ephemeral keys come from the recorded `ekm`, so it is reproducible. `login-v1.json` comes from the `dmsg_protocol`
+regenerates them now; the Rust tests open or reproduce them byte for byte. `connect-v1.json` comes from the `dmsg_client` connect tests (`DMSG_WRITE_CLIENT_VECTORS=1 cargo test -p dmsg_client connect`); its P-256 signatures are RFC 6979 and its HPKE ephemeral keys come from the recorded `ekm`, so it is reproducible. `legacy-v1.json` comes from `src/dmsg_legacy/tests/vectors.test.ts`
+(`DMSG_WRITE_CLIENT_VECTORS=1 pnpm --dir src/dmsg_legacy exec vitest run tests/vectors.test.ts`);
+its HPKE seals are random, so both implementations check it by opening it. `login-v1.json` comes from the `dmsg_protocol`
 login tests, which compare it on every run and rewrite it with
 `DMSG_WRITE_CLIENT_VECTORS=1 cargo test -p dmsg_protocol login`; its
 delegation signature is a placeholder that fixes only the encoding. The private relay keeps its own copy
@@ -62,9 +65,8 @@ delegation signature is a placeholder that fixes only the encoding. The private 
   `dmsg_types` and `dmsg_protocol`.
 - **The IBE recovery envelope** is a real vetKD round trip, covered by the
   PocketIC tests; `root-v2.json` only fixes its bytes inside the bundle.
-- **Legacy migration** (`dmsg-legacy-pair/1`, archive decryption) is replaced in
-  W10, which adds its own vectors. The extension's side of it
-  (`crypto/legacy.ts`, `services/shared-migration.ts`) is in Git history at
-  `37451040`; `src/dmsg_legacy` keeps the legacy library.
+- **Frozen-source certificates** (snapshot and folder proofs): they are real
+  IC certificates of frozen old canisters, covered by the PocketIC end-to-end
+  test `desktop_legacy`; `legacy-v1.json` fixes only the digests built on them.
 - **The browser bridge** was removed with the extension; see
   [dmsg-connect/1](../../../docs/protocol/connect-v1_zh.md).

@@ -26,6 +26,7 @@ use crate::content::{
     EncryptedObject, MAX_OBJECT, VAULT,
 };
 use crate::files::FileManifest;
+use crate::migration::MIGRATION_PART;
 use crate::now_ms;
 use crate::store::{ObjectRow, BLOCKED, LOCAL, REPLACED, SYNCED};
 use crate::upload::{hex_id, random_hex, ChunkRef, UploadPlan};
@@ -133,6 +134,16 @@ fn plan_of(record: &EncryptedObject, upload_id: String, generation: u64, now: u6
         manifest_digest: String::new(),
         manifest_size: 0,
         expires_at: now + dmsg_types::DAY,
+    }
+}
+
+/// The file a version of `kind` carries: a vault file item's, or a legacy
+/// archive part's.
+fn record_file(kind: &str, payload: &[u8]) -> Result<Option<FileManifest>> {
+    match kind {
+        VAULT => Ok(decode::<Item>(payload, MAX_OBJECT)?.file),
+        MIGRATION_PART => crate::migration::part_file(payload).map(Some),
+        _ => Ok(None),
     }
 }
 
@@ -284,11 +295,13 @@ impl Client {
 
     /// The file manifest a version carries.
     fn version_file(&self, record: &EncryptedObject) -> Result<Option<FileManifest>> {
-        if record.kind != VAULT {
-            return Ok(None);
+        match record.kind.as_str() {
+            VAULT | MIGRATION_PART => record_file(
+                &record.kind,
+                &record.open(self.environment(), self.roots()?)?,
+            ),
+            _ => Ok(None),
         }
-        let item: Item = decode(&record.open(self.environment(), self.roots()?)?, MAX_OBJECT)?;
-        Ok(item.file)
     }
 
     /// Read the relay snapshot, send local versions, and read it again when
@@ -905,11 +918,11 @@ impl Client {
                 if found.kind == VAULT {
                     let item: Item = decode(&payload, MAX_OBJECT)?;
                     resolved.extend(item.resolved_conflicts.iter().flatten().cloned());
-                    if let Some(file) = &item.file {
-                        let id = (file.id.clone(), file.version.clone());
-                        ensure(files.get(&id) == Some(file), Error::RecoveryIncomplete)?;
-                        self.read_file(file, None)?;
-                    }
+                }
+                if let Some(file) = &record_file(&found.kind, &payload)? {
+                    let id = (file.id.clone(), file.version.clone());
+                    ensure(files.get(&id) == Some(file), Error::RecoveryIncomplete)?;
+                    self.read_file(file, None)?;
                 }
             }
             if !conflict {

@@ -858,6 +858,9 @@ impl Daemon {
             m if crate::account_methods::METHODS.contains(&m) => {
                 self.call_account(method, params).await
             }
+            m if crate::legacy_methods::METHODS.contains(&m) => {
+                self.call_legacy(method, params).await
+            }
             m if crate::agents::METHODS.contains(&m) => self.call_agents(method, params).await,
             m if crate::mcp_events::METHODS.contains(&m) => {
                 self.call_mcp_events(method, params).await
@@ -925,6 +928,7 @@ fn events_of(method: &str) -> &'static [&'static str] {
         "connect/grant" | "connect/revoke" => &["connect/changed"],
         "device/approve" => &["session/changed"],
         m if crate::account_methods::METHODS.contains(&m) => crate::account_methods::events_of(m),
+        m if crate::legacy_methods::METHODS.contains(&m) => crate::legacy_methods::events_of(m),
         m if m.starts_with("agent/")
             || m.starts_with("grants/")
             || m.starts_with("ap/")
@@ -1030,6 +1034,7 @@ impl Daemon {
         if !METHODS.contains(&method)
             && !crate::methods::METHODS.contains(&method)
             && !crate::account_methods::METHODS.contains(&method)
+            && !crate::legacy_methods::METHODS.contains(&method)
             && !crate::agents::METHODS.contains(&method)
             && !crate::mcp_events::METHODS.contains(&method)
             && !agent_method

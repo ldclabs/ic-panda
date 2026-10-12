@@ -17,6 +17,11 @@ const api: DesktopBridge = {
   login: (origin, bind) => unwrap(ipcRenderer.invoke('dmsg:login', origin, bind === true)),
   importFile: () => unwrap(ipcRenderer.invoke('dmsg:import-file')),
   exportFile: (id, name) => unwrap(ipcRenderer.invoke('dmsg:export-file', id, name)),
+  openLegacy: (link) => unwrap(ipcRenderer.invoke('dmsg:open-legacy', link)),
+  legacyImport: (nonce, fingerprint, principal) =>
+    unwrap(ipcRenderer.invoke('dmsg:legacy-import', nonce, fingerprint, principal)),
+  legacyFrozen: (id) => unwrap(ipcRenderer.invoke('dmsg:legacy-frozen', id)),
+  legacyFile: (id, source, name) => unwrap(ipcRenderer.invoke('dmsg:legacy-file', id, source, name)),
   pair: (copyLink) => unwrap(ipcRenderer.invoke('dmsg:pair', copyLink)),
   openApproval: (id) => unwrap(ipcRenderer.invoke('dmsg:open-approval', id)),
   connection: () => unwrap(ipcRenderer.invoke('dmsg:connection')),

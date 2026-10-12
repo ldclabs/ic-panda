@@ -5,7 +5,8 @@
 // with payments and grants only as approval requests; that another account's
 // workspace is selected from Settings, that binding a login and a web
 // checkout are approval requests, and that a web checkout is quoted before it
-// can be approved. Run with `pnpm test:e2e`.
+// can be approved; that a kept legacy archive reads offline and transfer
+// files never pass through a window. Run with `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { createServer } from 'node:http'
@@ -106,7 +107,34 @@ function status() {
     background_online: false
   }
 }
+const offer = {
+  nonce: '77'.repeat(32),
+  origin: 'https://dmsg.net',
+  target: '11'.repeat(32),
+  expires_at: Date.now() + 600_000,
+  fingerprint: '88'.repeat(32),
+  link: 'https://dmsg.net/legacy#pair=pmVub25jZQ',
+  started: false
+}
+const archive = { id: '99'.repeat(32), principal: 'aaaaa-aa', mode: 'Local', objects: 7, gaps: 0, imported_at: Date.now(), parts: 1 }
 const methods = {
+  'legacy/pairs': () => [offer],
+  'legacy/list': () => [archive],
+  'legacy/report': (p) => ({
+    ...archive,
+    id: p.id,
+    snapshot: 'pre_migration',
+    stage: 'content_verified',
+    gaps: [],
+    checks: 5,
+    profile: { name: 'Old Panda', bio: '', image: '' },
+    files: [{ source: 'b/file/7', kind: 'file', name: 'notes.txt', verified: true, mime: null }],
+    resources: [],
+    entitlements: [],
+    messages: [{ source: 'c/channel/1/message/2', text: 'Hello from the old app', deleted: false, system: false, author: 'aaaaa-aa', time: '1700000000002', file: null }],
+    total_messages: 1,
+    frozen: { checked_channels: 0, matched: false, total_changes: 1, changes: [] }
+  }),
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
   'daemon/status': status,
   'vault/list': () => [
@@ -405,6 +433,24 @@ try {
   assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('3 Icp'))
   assert.equal(await approval.isDisabled('[data-testid="approve"]'), false)
   await approval.screenshot({ path: join(shots, 'connect-checkout.png') })
+
+  // Legacy migration: the offer shows its fingerprint and target device, a
+  // kept archive reads offline, and transfer files reach the daemon only
+  // through the main process's dialog.
+  await main.click('nav >> text=/Legacy|旧版迁移/')
+  await main.waitForSelector('[data-testid="legacy-archives"]')
+  await main.check(`input[value="${offer.nonce}"]`)
+  await main.waitForSelector('[data-testid="legacy-offer"]')
+  assert.ok((await main.textContent('[data-testid="legacy-offer"]')).includes(offer.fingerprint))
+  assert.ok((await main.textContent('[data-testid="legacy-offer"]')).includes(offer.target))
+  await main.click('button:has-text("Check offline and read"), button:has-text("离线核对与阅读")')
+  await main.waitForSelector('text=Hello from the old app')
+  await main.screenshot({ path: join(shots, 'legacy.png') })
+  await assert.rejects(
+    main.evaluate(() => window.dmsg.call('legacy/import', { path: '/tmp/x', nonce: '', fingerprint: '', principal: '' })),
+    /FORBIDDEN/
+  )
+  await assert.rejects(main.evaluate(() => window.dmsg.openLegacy('https://evil.example/legacy#pair=x')), /INVALID_INPUT/)
 
   // Settings lists this device's accounts, switches between them, and asks
   // the approval window to bind another login.

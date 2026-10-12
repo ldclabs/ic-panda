@@ -14,11 +14,12 @@ const unhex = (value: string) => Uint8Array.from(value.match(/../g)!, (c) => par
 const h = z.string().regex(/^[0-9a-f]{64}$/)
 const offerSchema = z
   .object({
-    version: z.literal('dmsg-legacy-pair/1'),
+    version: z.literal('dmsg-legacy-pair/2'),
     nonce: h,
     publicKey: h,
     origin: z.enum(['https://dmsg.net', 'https://panda.fans']),
-    target: z.string().regex(/^chrome-extension:\/\/[a-p]{32}$/),
+    // The receiving device's ID; the device shows it beside the fingerprint.
+    target: h,
     expiresAt: z.number().int().nonnegative()
   })
   .strict()
@@ -39,7 +40,7 @@ export function parseOffer(
       offer.expiresAt > now &&
       offer.expiresAt <= now + 10 * 60 * 1000,
     'permission',
-    'Pairing origin, extension target or expiry mismatch'
+    'Pairing origin, device target or expiry mismatch'
   )
   return offer
 }
@@ -52,7 +53,7 @@ export async function createPairing(
   const keys = await suite.kem.deriveKeyPair(seed)
   const offer = parseOffer(
     {
-      version: 'dmsg-legacy-pair/1',
+      version: 'dmsg-legacy-pair/2',
       nonce: hex(crypto.getRandomValues(new Uint8Array(32))),
       publicKey: hex(new Uint8Array(await suite.kem.serializePublicKey(keys.publicKey))),
       origin,
@@ -64,6 +65,34 @@ export async function createPairing(
     now
   )
   return { offer, seed }
+}
+const b64 = (bytes: Uint8Array) => {
+  let text = ''
+  for (const byte of bytes) text += String.fromCharCode(byte)
+  return btoa(text).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+}
+const unb64 = (text: string) => {
+  requireLegacy(/^[A-Za-z0-9_-]{1,2048}$/.test(text), 'corrupt', 'Invalid pairing link')
+  return Uint8Array.from(atob(text.replaceAll('-', '+').replaceAll('_', '/')), (c) =>
+    c.charCodeAt(0)
+  )
+}
+/** The device opens `<origin>/legacy#pair=<base64url(CBOR(offer))>` in the
+ * system browser; the fragment never reaches a server. */
+export const offerLink = (offer: PairingOffer) =>
+  `${offer.origin}/legacy#pair=${b64(pack(offerSchema.parse(offer)))}`
+/** The offer of a `#pair=` fragment, checked against this page's origin. */
+export function readOfferLink(hash: string, origin: string, now = Date.now()) {
+  const match = /^#pair=([A-Za-z0-9_-]+)$/.exec(hash)
+  requireLegacy(match, 'corrupt', 'Invalid pairing link')
+  const bytes = unb64(match[1]!),
+    value = offerSchema.parse(unpack(bytes, 2048))
+  requireLegacy(
+    digest(pack(value)) === digest(bytes),
+    'corrupt',
+    'Pairing link is not canonical'
+  )
+  return parseOffer(value, origin, value.target, now)
 }
 const frameSchema = z
   .object({

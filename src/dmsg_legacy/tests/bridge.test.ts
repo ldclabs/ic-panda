@@ -4,6 +4,8 @@ import {
   pairingFingerprint,
   sealTransfer,
   openTransfer,
+  offerLink,
+  readOfferLink,
   TRANSFER_CHUNK,
   pack,
   unpack,
@@ -15,7 +17,7 @@ import {
   type LegacyArchive
 } from '../src'
 
-const target = `chrome-extension://${'a'.repeat(32)}`,
+const target = 'a'.repeat(64),
   origin = 'https://dmsg.net' as const
 describe('bounded legacy migration transfer', () => {
   it('binds both origins, fingerprint, expiry and recipient, authenticating every ordered chunk', async () => {
@@ -30,7 +32,7 @@ describe('bounded legacy migration transfer', () => {
     await expect(
       openTransfer(encoded, session, {
         ...expected,
-        target: `chrome-extension://${'b'.repeat(32)}`
+        target: 'b'.repeat(64)
       })
     ).rejects.toMatchObject({ code: 'permission' })
     await expect(
@@ -55,6 +57,19 @@ describe('bounded legacy migration transfer', () => {
       mutate(changed)
       await expect(openTransfer(pack(changed), session, expected)).rejects.toThrow()
     }
+  })
+  it('carries the offer in a canonical fragment checked against the page origin', async () => {
+    const { offer } = await createPairing(origin, target)
+    const link = offerLink(offer)
+    expect(link.startsWith('https://dmsg.net/legacy#pair=')).toBe(true)
+    const hash = link.slice(link.indexOf('#'))
+    expect(readOfferLink(hash, origin)).toEqual(offer)
+    expect(() => readOfferLink(hash, 'https://panda.fans')).toThrow()
+    expect(() => readOfferLink(hash, origin, offer.expiresAt)).toThrow()
+    expect(() => readOfferLink('#pair=' + hash.slice(6, -2), origin)).toThrow()
+    expect(() =>
+      readOfferLink(offerLink({ ...offer, target: 'chrome-extension://' + 'a'.repeat(32) }), origin)
+    ).toThrow()
   })
   it('rejects malformed CBOR before recursive decoding', () => {
     expect(() => unpack(new Uint8Array(10000).fill(0x81))).toThrow()

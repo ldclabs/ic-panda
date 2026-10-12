@@ -12,6 +12,8 @@ mod daemon;
 mod event_commands;
 mod hints;
 mod home;
+mod legacy_commands;
+mod legacy_methods;
 mod lifecycle;
 mod mcp;
 mod mcp_events;
@@ -144,6 +146,10 @@ enum Command {
     /// Commerce and membership records the wallet may read and repair.
     #[command(subcommand)]
     Ops(account_commands::OpsCommand),
+    /// Legacy migration: personal archives from the old site and shared
+    /// old channels.
+    #[command(subcommand)]
+    Legacy(legacy_commands::LegacyCommand),
     /// Devices of the account.
     #[command(subcommand)]
     Device(DeviceCommand),
@@ -1512,6 +1518,7 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         Command::Recovery(command) => account_commands::recovery(&remote, json, command).await?,
         Command::Payment(command) => account_commands::payment(&remote, json, command).await?,
         Command::Ops(command) => account_commands::ops(&remote, json, command).await?,
+        Command::Legacy(command) => legacy_commands::legacy(&remote, json, command).await?,
         Command::Lock => {
             let status = remote.call("session/lock", Value::Null).await?;
             print(json, &status, summary);

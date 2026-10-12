@@ -554,8 +554,8 @@ export default {
   'Still in your hands.': '始终由你亲手掌控。',
   'Read your existing conversations and download the attachments you can already access.':
     '查看现存的会话记录，并下载你已具备权限访问的文件附件。',
-  'New messages, uploads, profile edits, username changes, and payments are disabled in this app. The new Chrome workspace and migration flow are not available yet.':
-    '此旧版归档应用已全面禁用新发消息、附件上传、个人资料修改、用户名转让与充值支付功能。全新的 Chrome 工作空间与一键数据迁移方案将在发布后开放。',
+  'New messages, uploads, profile edits, username changes, and payments are disabled in this app. To move your history to the dMsg desktop app, start a migration in its Legacy section.':
+    '此旧版归档应用已全面禁用新发消息、附件上传、个人资料修改、用户名转让与充值支付功能。如需把历史迁入 dMsg 桌面客户端，请在客户端的“旧版迁移”中开始。',
   'Opening archive…': '正在载入历史归档…',
   'Open message archive': '进入历史消息归档',
   'Account options': '账户选项',

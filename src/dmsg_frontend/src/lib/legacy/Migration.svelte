@@ -1,32 +1,37 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import {
     collectArchive,
     encodeArchive,
     pack,
     pairingFingerprint,
-    parseOffer,
+    readOfferLink,
     sealTransfer,
-    type Inventory
+    type Inventory,
+    type PairingOffer
   } from '@dmsg/legacy'
   import { createLegacyReader } from './reader'
   import { authStore } from '$lib/stores/auth'
   let mode = $state<'Local' | 'ECDH' | 'VetKey'>('Local')
   let password = $state(''),
-    offerText = $state(''),
+    offer = $state<PairingOffer | null>(null),
+    linkError = $state(''),
     confirmed = $state(false)
   let report = $state<Inventory | null>(null),
     error = $state(''),
     busy = $state(false)
   let objectCount = $state(0)
   let abort: AbortController | null = null
-  const offer = $derived.by(() => {
+  // The desktop client opens this page with its pairing offer in the URL
+  // fragment, which never reaches a server; drop it from the address bar.
+  onMount(() => {
+    if (!location.hash.startsWith('#pair=')) return
     try {
-      const value = JSON.parse(offerText)
-      return parseOffer(value, location.origin, value.target)
+      offer = readOfferLink(location.hash, location.origin)
     } catch {
-      return null
+      linkError = '配对链接无效、已过期或不属于此网站，请在桌面客户端重新生成。'
     }
+    history.replaceState(null, '', location.pathname + location.search)
   })
   onDestroy(() => {
     abort?.abort()
@@ -42,7 +47,9 @@
       const { reader, checkpoint } = await createLegacyReader(mode)
       try {
         if (exporting) {
-          if (!offer || !confirmed) throw new Error('先在两端核对配对指纹与目标扩展 ID。')
+          if (!offer || !confirmed) throw new Error('先在两端核对配对指纹与目标设备 ID。')
+          if (offer.expiresAt <= Date.now())
+            throw new Error('配对已过期，请在桌面客户端重新生成。')
           const archive = await collectArchive(
             reader,
             {
@@ -140,17 +147,13 @@
       }
     }}>清除迁移缓存并重新清点</button
   >
-  <label
-    >扩展生成的配对请求<textarea
-      bind:value={offerText}
-      oninput={() => (confirmed = false)}
-      rows="4"
-      placeholder="从扩展设置的旧版迁移页复制配对请求"></textarea></label
-  >
-  {#if offer}<p>目标：<code>{offer.target}</code></p>
+  {#if offer}<p>目标设备：<code>{offer.target}</code></p>
     <p>指纹：<code>{pairingFingerprint(offer)}</code></p>
     <label
-      ><input type="checkbox" bind:checked={confirmed} /> 已与扩展显示的指纹、旧身份和目标标识核对一致</label
+      ><input type="checkbox" bind:checked={confirmed} /> 已与桌面客户端显示的指纹、旧身份和目标设备核对一致</label
+    >{:else}<p
+      >{linkError ||
+        '请在 dMsg 桌面客户端的“旧版迁移”中生成配对，客户端会用本浏览器打开带配对信息的链接。'}</p
     >{/if}
   {#if mode !== 'VetKey'}<label
       >原来的解锁口令<input type="password" bind:value={password} autocomplete="off" /></label
@@ -163,7 +166,7 @@
   {#if busy}<button class="button" onclick={() => abort?.abort()}>停止读取</button>{/if}
   {#if error}<p role="alert">{error}</p>{/if}
   <p>
-    文件仅能由本次配对的扩展解密；配对有效期十分钟。保留原浏览器数据和旧服务，直到独立恢复验证完成。缺钥、权限与未完成上传会单独列出。
+    文件仅能由本次配对的桌面设备解密；配对有效期十分钟。保留原浏览器数据和旧服务，直到独立恢复验证完成。缺钥、权限与未完成上传会单独列出。
   </p>
 </section>
 

@@ -28,6 +28,14 @@ export interface DesktopBridge {
   importFile(): Promise<unknown>
   /** Export a vault file to a place the person picks in a system dialog; null when cancelled. */
   exportFile(id: string, name: string): Promise<unknown>
+  /** Open an old-site migration link (`/legacy#pair=` or `#approve=`) in the system browser. */
+  openLegacy(link: string): Promise<void>
+  /** Import a legacy transfer file the person picks in a system dialog; null when cancelled. */
+  legacyImport(nonce: string, fingerprint: string, principal: string): Promise<unknown>
+  /** Compare a kept archive with a frozen-history file the person picks; null when cancelled. */
+  legacyFrozen(id: string): Promise<unknown>
+  /** Save an old attachment where the person picks; null when cancelled. */
+  legacyFile(id: string, source: string, name: string): Promise<unknown>
   /** Start pairing a browser: opens the pairing page in the system browser. */
   pair(copyLink: boolean): Promise<{ invite_id: string; url: string; expires_at: number }>
   /** Open the approval window on a request. */

@@ -47,13 +47,19 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`agent`] | Agent Delegation with the account as principal: enabling it, controller keys kept as vault items, and grants and revocations signed here, journaled, then submitted to the delegation service |
 | [`agents`] | The Agent IDs this device hosts: keys as vault items, their mail keys sealed on the device, residency in the credential store, the credential an agent's MCP session presents, and the capabilities granted over the account |
 | [`mcp_events`] | MCP Events relay endpoints: callback URLs and `whsec_` secrets on the relay, deliveries fetched, opened with the device's HPKE key, checked again (`v1`, and `v1a` against the upstream's published keys), kept sealed under the LDK and read by cursor; `refresh_due` reminders |
+| [`legacy`] | Legacy migration formats: the `dmsg-legacy-pair/2` offer and its fragment link, opening a `dmsg-legacy-transfer/1` file (offer, frame order and lengths checked), the `dmsg-legacy-archive/1` schema, offline verification of old COSE messages, attachments and avatars, and a shared channel's scoped archive |
+| [`legacy_proof`] | Frozen-source evidence: certified `legacy_snapshot` and `legacy_folder_manifest` ingress proofs and their page series, a shared channel's frozen source, old-identity approvals, the inheritance digests, and the frozen comparison of a personal archive |
+| [`migration`] | Personal archives: offers sealed on the device, import (the file's digest recorded first, duplicates by content), archives kept as `migration` and `migration_part` records that sync, offline reports, old attachments, frozen comparison |
+| [`shared_migration`] | The official successor of a shared old channel: drafts with a signed genesis, manager approvals, the directory checked against the frozen evidence, activation, member claims, and history grants sealed to the claimed device |
 
 The byte rules follow the [encryption design](../../docs/dmsg_encryption_zh.md),
 the [account and root contract](../../docs/protocol/account_root_zh.md), the
 [cloud contract](../../docs/protocol/cloud_zh.md) and
 [dmsg-login/1](../../docs/protocol/login-v1_zh.md),
-[dmsg-connect/1](../../docs/protocol/connect-v1_zh.md) and the
-[principal contract](../../docs/protocol/agent_zh.md). They are verified against
+[dmsg-connect/1](../../docs/protocol/connect-v1_zh.md), the
+[principal contract](../../docs/protocol/agent_zh.md) and the legacy
+[archive](../../docs/protocol/legacy_archive_zh.md) and
+[channel inheritance](../../docs/protocol/channel_migration_zh.md) contracts. They are verified against
 the language-independent vectors in
 [tests/vectors/client](../../tests/vectors/client/README.md).
 

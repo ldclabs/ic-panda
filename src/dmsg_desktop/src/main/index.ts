@@ -23,7 +23,7 @@ import { homedir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import type { DaemonEvent } from '../shared/contract'
 import { Daemon, DaemonError } from './daemon'
-import { externalAllowed, parseLink, windowParams } from './policy'
+import { externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
 import { Updates } from './updater'
 
@@ -218,6 +218,54 @@ ipcMain.handle('dmsg:export-file', (event, id: string, name: string) =>
     const picked = await dialog.showSaveDialog(main!, { defaultPath: basename(String(name)) })
     if (picked.canceled || !picked.filePath) return null
     return daemon.call('file/export', { id: String(id), path: picked.filePath })
+  })
+)
+ipcMain.handle('dmsg:open-legacy', (event, link: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    if (!legacyAllowed(String(link))) throw new DaemonError('INVALID_INPUT', 'Not an old-site migration link')
+    await shell.openExternal(String(link))
+  })
+)
+ipcMain.handle('dmsg:legacy-import', (event, nonce: string, fingerprint: string, principal: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    const picked = await dialog.showOpenDialog(main!, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'dMsg migration', extensions: ['dmsg-migration'] },
+        { name: 'All files', extensions: ['*'] }
+      ]
+    })
+    if (picked.canceled || !picked.filePaths[0]) return null
+    return daemon.call('legacy/import', {
+      path: picked.filePaths[0],
+      nonce: String(nonce),
+      fingerprint: String(fingerprint),
+      principal: String(principal)
+    })
+  })
+)
+ipcMain.handle('dmsg:legacy-frozen', (event, id: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    const picked = await dialog.showOpenDialog(main!, {
+      properties: ['openFile'],
+      filters: [
+        { name: 'Frozen history', extensions: ['cbor'] },
+        { name: 'All files', extensions: ['*'] }
+      ]
+    })
+    if (picked.canceled || !picked.filePaths[0]) return null
+    return daemon.call('legacy/frozen', { id: String(id), path: picked.filePaths[0] })
+  })
+)
+ipcMain.handle('dmsg:legacy-file', (event, id: string, source: string, name: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    const picked = await dialog.showSaveDialog(main!, { defaultPath: basename(String(name)) })
+    if (picked.canceled || !picked.filePath) return null
+    return daemon.call('legacy/file', { id: String(id), source: String(source), path: picked.filePath })
   })
 )
 ipcMain.handle('dmsg:pair', (event, copyLink: boolean) =>

@@ -38,6 +38,22 @@ pub struct Config {
     pub agent_service: String,
     /// Keep the device signing key while locked ("后台在线", plan D-7).
     pub background_online: bool,
+    /// The reviewed freeze of the old service, once there is one.
+    pub legacy: Option<LegacyConfig>,
+}
+
+/// The freeze of the old service a deployment reviewed: frozen evidence of
+/// any other canister or cutover is refused.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LegacyConfig {
+    /// Old channel canisters.
+    pub channels: Vec<String>,
+    /// Old name-identity canister.
+    pub identity: String,
+    /// Old OSS buckets of channel attachments.
+    pub buckets: Vec<String>,
+    /// The reviewed cutover ID.
+    pub cutover: [u8; 32],
 }
 
 impl Config {

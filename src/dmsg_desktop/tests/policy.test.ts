@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { externalAllowed, parseLink, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
+import { externalAllowed, legacyAllowed, parseLink, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
 
 test('windows never decide or grant, and never send human', () => {
   for (const method of [
@@ -11,6 +11,9 @@ test('windows never decide or grant, and never send human', () => {
     'session/login',
     'file/import',
     'file/export',
+    'legacy/import',
+    'legacy/file',
+    'legacy/frozen',
     'wallet/use',
     'channel/download',
     'channel/send_file',
@@ -74,4 +77,19 @@ test('only the login and pairing pages open in the browser', () => {
   assert.equal(externalAllowed('https://evil.example/_/login', login, pairing), false)
   assert.equal(externalAllowed('https://connect.dmsg.net/v1/other', login, pairing), false)
   assert.equal(externalAllowed('file:///etc/passwd', login, pairing), false)
+})
+
+test('only old-site migration links open from the legacy view', () => {
+  assert.equal(legacyAllowed('https://dmsg.net/legacy#pair=pmVub25jZQ'), true)
+  assert.equal(legacyAllowed('https://panda.fans/legacy#approve=eyJmb3JtYXQiOjF9'), true)
+  for (const url of [
+    'https://dmsg.net/legacy',
+    'https://dmsg.net/legacy?x=1#pair=abc',
+    'https://dmsg.net/_/login#pair=abc',
+    'https://evil.example/legacy#pair=abc',
+    'http://dmsg.net/legacy#pair=abc',
+    'https://dmsg.net/legacy#pair=a+b',
+    'javascript:alert(1)'
+  ])
+    assert.equal(legacyAllowed(url), false, url)
 })

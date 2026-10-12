@@ -567,8 +567,8 @@ const en = {
   'Still in your hands.': 'Still in your hands.',
   'Read your existing conversations and download the attachments you can already access.':
     'Read your existing conversations and download the attachments you can already access.',
-  'New messages, uploads, profile edits, username changes, and payments are disabled in this app. The new Chrome workspace and migration flow are not available yet.':
-    'New messages, uploads, profile edits, username changes, and payments are disabled in this app. The new Chrome workspace and migration flow are not available yet.',
+  'New messages, uploads, profile edits, username changes, and payments are disabled in this app. To move your history to the dMsg desktop app, start a migration in its Legacy section.':
+    'New messages, uploads, profile edits, username changes, and payments are disabled in this app. To move your history to the dMsg desktop app, start a migration in its Legacy section.',
   'Opening archive…': 'Opening archive…',
   'Open message archive': 'Open message archive',
   'Account options': 'Account options',

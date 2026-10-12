@@ -43,9 +43,17 @@ agent_hosts = [                  # Agent Protocols hosts the hosted agents may s
 ]
 agent_blocked_senders = ["did:agent:…"]  # mail from these is deleted unopened
 agent_ca = "/path/to/ca.pem"     # local only: replaces the system roots for agent_hosts
+
+[legacy]                         # the old service's freeze the deployment reviewed
+channels = ["<old channel canister>"]
+identity = "<old name-identity canister>"
+buckets = ["<old OSS bucket>"]
+cutover = "<32-byte hex cutover ID>"
 ```
 
 Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url`/`agent_service`/`agent_ca` are refused.
+`[legacy]` is needed only for frozen comparisons and shared channel
+inheritance; frozen evidence of any other canister or cutover is refused.
 `agent_hosts` is the only source of the host allowlist: no command, method or
 tool changes it, and a host must be an origin (loopback HTTP only in `local`).
 Mail relays and Knowledge services are hosts like any other, and HTTPS only:
@@ -125,6 +133,14 @@ dmsg account create | show | security
 dmsg account bind-request <account> | bind-approve <request> --principal <p> | bind-accept <account>
 dmsg account unbind <principal> | policy [--freeze|--unfreeze] [--daily N] [--purposes a,b] | recovery-delay <days>
 dmsg recovery status | request | complete | dispute
+dmsg legacy pair [--origin https://dmsg.net|https://panda.fans] | pairs | cancel <nonce>
+dmsg legacy import <file> --nonce N --fingerprint F --principal P | list | report <id> [--offset N] [--limit N]
+dmsg legacy file <id> <source> <out> | frozen <id> <file.cbor>
+dmsg legacy shared source <source.json> | prepare <source.json> [--version N] | check <draft.json>
+dmsg legacy shared request <draft.json> --manager P | propose|consent <draft.json> --manager P --approval <approval.json>
+dmsg legacy shared view <key|record.json> | commit <key> | activate <key> | joined <key>
+dmsg legacy shared claim-request <key|record.json> --member P | claim <key|record.json> --request <request.json> --approval <approval.json>
+dmsg legacy shared grant <key> --archive <id> --member P | receive <key> --grant <id>
 dmsg device list | pair-request [--member] | approve <request> --device <id>
 dmsg vault add --title T [--type note|login|api|key] [--body B] [--username U] [--url L] [--tag T]... [--secret-stdin]
 dmsg vault edit <id> [--title T] [--body B] [--username U] [--url L] [--tag T]... [--secret-stdin]
@@ -357,7 +373,7 @@ The daemon listens on `127.0.0.1` only.
   (the same methods over a WebSocket, plus `event` notifications
   `{seq, type, data}`: `session/changed`, `vault/changed`, `sync/changed`,
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
-  `inbox/changed`, `mcp-events/changed`, `resync`) need
+  `inbox/changed`, `legacy/changed`, `mcp-events/changed`, `resync`) need
   `Authorization: Bearer <owner token>`; any request with an `Origin` header
   is refused with 401. Errors carry `error.data.code` such as `AUTH_REQUIRED`,
   `LOCKED`, `VERSION_CONFLICT` or `EXECUTION_UNKNOWN`.
@@ -379,6 +395,8 @@ The daemon listens on `127.0.0.1` only.
   `handle/resolve|price|claim|register|transfer|accept|transfer_commit|operations|reconcile`,
   `ops/orders|transfers|claims|reconcile_order|process_transfer|revise_transfer|claim|sweep`,
   `approval/reconcile`,
+  `legacy/pair|pairs|cancel|import|list|report|file|frozen` (absolute paths),
+  `legacy/shared_source|shared_prepare|shared_check|shared_request|shared_propose|shared_consent|shared_view|shared_commit|shared_activate|shared_claim_request|shared_claim|shared_joined|shared_grant|shared_receive`,
   `agent/principal|enable|register|retire|compromise|rename|publish|refresh`,
   `agent/grant|revoke|credentials|delegations`,
   `agent/ids|create|use|resident|credential`, `grants/list|add|revoke`,

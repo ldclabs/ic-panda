@@ -67,7 +67,7 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-input:not([type='checkbox']),
+input:not([type='checkbox']):not([type='radio']),
 textarea {
   width: 100%;
   border: 1px solid var(--line);

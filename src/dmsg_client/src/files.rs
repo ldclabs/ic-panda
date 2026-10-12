@@ -271,6 +271,44 @@ impl Client {
         Ok(entry)
     }
 
+    /// Seal in-memory `bytes` as a file whose chunks go to the store, for
+    /// records other than vault items that carry a file.
+    ///
+    /// # Errors
+    /// Returns `Error::QuotaExceeded` beyond 100 MiB.
+    pub(crate) fn store_file(&self, name: &str, mime: &str, bytes: &[u8]) -> Result<FileManifest> {
+        ensure(bytes.len() as u64 <= MAX_FILE, Error::QuotaExceeded)?;
+        let mut manifest = FileManifest {
+            id: random_hex(),
+            version: random_hex(),
+            name: name.into(),
+            mime: mime.into(),
+            size: bytes.len() as u64,
+            sha256: hex::encode(*sha256(bytes)),
+            chunks: vec![],
+            key: b64(&Zeroizing::new(random_key())[..]),
+        };
+        let key = manifest.file_key()?;
+        let count = chunk_count(manifest.size);
+        for (index, plaintext) in bytes.chunks(CHUNK).enumerate() {
+            let index = index as u64;
+            let sealed = unb64(&seal_with_nonce(
+                &key,
+                plaintext,
+                &chunk_aad(&manifest, index, count, plaintext.len() as u64),
+                &nonce(index),
+            ))?;
+            let digest = hex::encode(*sha256(&sealed));
+            self.workspace.store.put_chunk(&digest, &sealed)?;
+            manifest.chunks.push(FileChunk {
+                id: format!("{}:{}:{index}", manifest.id, manifest.version),
+                digest,
+                size: plaintext.len() as u64,
+            });
+        }
+        Ok(manifest)
+    }
+
     /// The unfinished import of a file with this name and length.
     fn import_job(&self, name: &str, size: u64) -> Result<Option<FileJob>> {
         for key in self.workspace.store.sealed_keys(JOB)? {
