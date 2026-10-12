@@ -205,7 +205,10 @@ fn temp() -> Temp {
     Temp(dir)
 }
 
-fn runtime(dir: &Temp, origin: &str, blocked: &[String]) -> Runtime {
+/// A host and the state file it keeps the connectors in.
+struct Hosted(Runtime, std::path::PathBuf);
+
+fn runtime(dir: &Temp, origin: &str, blocked: &[String]) -> Hosted {
     let options = Options {
         hosts: vec![Host {
             host: origin.into(),
@@ -216,12 +219,12 @@ fn runtime(dir: &Temp, origin: &str, blocked: &[String]) -> Runtime {
         local_roots: vec![pem(CERT)],
         local: true,
     };
-    Runtime::new(&dir.0.join("agents.sqlite"), &options).unwrap()
+    Hosted(Runtime::new(&options).unwrap(), dir.0.join("agents.sqlite"))
 }
 
 /// A call as `seed`'s Agent ID with a key store of one value.
 async fn call(
-    runtime: &Runtime,
+    Hosted(runtime, path): &Hosted,
     seed: u8,
     keys: &mut Option<Value>,
     tool: &str,
@@ -231,6 +234,7 @@ async fn call(
     let called = runtime
         .call(
             &turn,
+            path,
             AgentSigner::from_seed([seed; 32]),
             keys.as_ref(),
             tool,

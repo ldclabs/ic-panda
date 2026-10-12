@@ -16,8 +16,10 @@ cryptography, storage and protocol logic live in
 | `daemon.json` | Port, process and instance ID of the running daemon |
 | `dmsg-daemon.lock` | Held by the running daemon: one daemon per home |
 | `logs/daemon.log` | Diagnostics of a daemon started by `dmsg start` or at login |
-| `<environment>/workspace.sqlite` | The device's workspace: encrypted versions and chunks, sealed records, sync jobs |
-| `<environment>/agents.sqlite` | Agent Protocols connector state of the hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
+| `<environment>/accounts/<account>/workspace.sqlite` | An account's workspace on this device: its own device keys, encrypted versions and chunks, sealed records, sync jobs |
+| `<environment>/accounts/<account>/agents.sqlite` | Agent Protocols connector state of the account's hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
+| `<environment>/logins/<principal>/` | The workspace of a login without an account; it becomes `accounts/<account>/` once the login has one |
+| `<environment>/current` | The account selected last, which a restart and fast unlock use |
 
 ```toml
 environment = "local"            # local, staging or production
@@ -115,10 +117,14 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
 ```sh
 dmsg daemon [--port N]           # foreground; port 0 (default) picks a free one
 dmsg status [--json]
-dmsg login [--origin dmsg.net|panda.fans] [--no-browser]
-dmsg unlock [--fast] | lock | stop
+dmsg login [--origin dmsg.net|panda.fans] [--no-browser] [--bind]
+dmsg unlock [--fast] [--account <id>] | lock | stop
+dmsg accounts | switch <account>
 dmsg fast-unlock enable | disable
-dmsg account create | show
+dmsg account create | show | security
+dmsg account bind-request <account> | bind-approve <request> --principal <p> | bind-accept <account>
+dmsg account unbind <principal> | policy [--freeze|--unfreeze] [--daily N] [--purposes a,b] | recovery-delay <days>
+dmsg recovery status | request | complete | dispute
 dmsg device list | pair-request [--member] | approve <request> --device <id>
 dmsg vault add --title T [--type note|login|api|key] [--body B] [--username U] [--url L] [--tag T]... [--secret-stdin]
 dmsg vault edit <id> [--title T] [--body B] [--username U] [--url L] [--tag T]... [--secret-stdin]
@@ -128,9 +134,9 @@ dmsg file import <path> | list | get <id> -o <path> | verify <id>
 dmsg sync | sync status
 dmsg profile show | publish [--name N] [--bio B] [--link URL]... | resolve <account>
 dmsg reset --yes
-dmsg approvals list [--all] | show <id> | approve <id> | reject <id> | cancel <id>
+dmsg approvals list [--all] | show <id> | approve <id> | reject <id> | cancel <id> | quote <id> <ledger|neuron>
 dmsg attest text <text> | digest (--file F | --sha256 H) | file <path> --text T
-dmsg attest history | export <execution> -o <path> | verify <bundle> [--file F]
+dmsg attest history | usage | export <execution> -o <path> | verify <bundle> [--file F]
 dmsg device capabilities <id> --set a,b,c | formal-approve on|off | revoke <id>
 dmsg connect browsers add [--copy-link] | list | revoke <pairing>
 dmsg connect requests | sync
@@ -145,10 +151,14 @@ dmsg inbox policy | configure closed|contacts|free|paid [--price P] [--payee P] 
 dmsg inbox send <recipient> <text> [--pay] [--invitation I] [--order O] | pay <recipient> <order>
 dmsg inbox order <recipient> <order> | outgoing | escrow <order> | refund <order>
 dmsg inbox list | mark <order> [--archive]
+dmsg payment transfers <escrow> | revise <escrow> <leg>
 dmsg wallet use [pem] | balance <ledger>
 dmsg plan catalog | status | quote <sku> <ledger|neuron> [--method cash|panda]
 dmsg plan checkout <id> | advance <id> | order <id> | list | cancel <id> | reconcile <id> | refund <id> [block]...
 dmsg handle resolve <name> | price <name> | claim <name> | register <name>
+dmsg handle transfer <name> <account> | accept <token> | commit <id> | operations | reconcile <id> --block N
+dmsg ops orders | transfers | claims [--after ID] | reconcile-order <id> | process-transfer <id>
+dmsg ops revise-transfer <id> --fee F | claim <id> [--refresh] | sweep
 dmsg agent principal show | enable [--type person|organization|team|project|other] | publish | refresh
 dmsg agent controller register [--name N] [--scope S]... [--audience A]... | retire <gen> | compromise <gen> --from <ms> | rename <gen> [--name N]
 dmsg agent grant <subject> --scope S... --audience A... [--days 30] [--generation G] [--relationship R]
@@ -168,6 +178,30 @@ A new device: `login`, then `account create` for a new account, or
 `device approve <request> --device <id>`, which also rotates the content root
 to the new device; `unlock` on the new device then binds it. Secrets leave the
 daemon only with `vault show --reveal`; file keys never do.
+
+Accounts. Each account keeps its own workspace on this device, with its own
+device keys: a login selects the workspace of the account it is bound to, or
+its own while it has none, so logging in with another identity switches
+accounts and never sees the first one's data. `accounts` lists them;
+`switch <account>` selects one, locked, and `unlock --fast --account <id>`
+selects and fast-unlocks it. `reset` erases only the selected one.
+
+Logins. `account security` lists the logins bound to the account. To bind
+another one on this device, `login --bind` with it while the account is
+unlocked: the request waits for approval and, approved, the new login accepts
+at once. From another device, the new login (without an account) runs
+`account bind-request <account>`, an administrator device
+`account bind-approve <request> --principal <p>`, and the new login then
+`account bind-accept <account>` within ten minutes. `account unbind`,
+`account policy` (freeze formal signatures, executions a day, allowed
+purposes) and `account recovery-delay` are approvals too.
+
+Recovery, when every device is lost: a new device logged in with a bound
+login runs `recovery request`; any device of the account sees it in
+`account security` and can `recovery dispute` it during the delay (one to
+seven days, three by default). After the delay, `recovery complete` takes the
+account over, derives the committed root's key once, opens it and rotates to
+a root only this device holds; run again, it resumes.
 
 Unlocking through a login opens the root and syncs once. Every write waits
 for `dmsg sync` or the scheduled sync; `status` shows pending versions and
@@ -204,7 +238,23 @@ which a person approves at the terminal or in the desktop's approval window,
 seeing the exact amount, ledger and payer. The payer is the login's Principal
 unless `wallet use <pem>` names an identity file; the dMsg account itself
 never holds funds. A paid letter is `inbox send --pay` (a quote), then
-`inbox pay`; a subscription is `plan quote`, then `plan checkout`.
+`inbox pay`; a subscription is `plan quote`, then `plan checkout`. A web
+application's checkout arrives as a web request and is quoted
+(`approvals quote <id> <ledger|neuron>`) before it can be approved; the page
+gets the order's progress. `payment revise` resends an escrow transfer the
+ledger refused at the fee it asked for, never above the escrow's limit.
+
+Names move between accounts in three steps, the last two within a minute:
+the owner's `handle transfer <name> <account>` prints a token, the target
+account's `handle accept <token>` authorizes receiving it, and the owner's
+`handle commit <id>` moves it; both are approvals. `handle reconcile <id>
+--block N` settles a registration whose charge is unknown with its ledger
+block. `ops` reads the orders, cash transfers and PANDA commitments the wallet
+may see as payer, merchant or operator and repeats their original operations:
+reconcile an order, retry a transfer, revise a refused transfer's fee as its
+recipient, refresh or reconcile a claim, release expired commitments.
+`attest usage` shows this month's formal executions and archives finished
+months in the workspace before the home drops them.
 
 Agents. `agent principal enable` and every `agent controller` change are
 account changes an administrator device approves; the user home publishes
@@ -312,20 +362,23 @@ The daemon listens on `127.0.0.1` only.
   is refused with 401. Errors carry `error.data.code` such as `AUTH_REQUIRED`,
   `LOCKED`, `VERSION_CONFLICT` or `EXECUTION_UNKNOWN`.
 - Methods: `app/initialize`, `daemon/status`, `events/poll`,
-  `session/status|login|login_result|unlock|lock|fast_unlock`,
-  `account/create|show`,
+  `session/status|login {origin, bind?}|login_result|accounts|switch|unlock {fast?, account?}|lock|fast_unlock`,
+  `account/create|show|security|bind_request|bind_accept|bind_approve|unbind|policy|recovery_delay`,
+  `recovery/status|request|complete|dispute`,
   `device/pair_request|approve|capabilities|formal_approve|revoke`,
   `vault/put|edit|delete|restore|list|show|conflicts|resolve`,
   `file/import|export|verify` (absolute paths), `sync/run|status`,
-  `profile/show|publish|resolve`, `approval/list|show|respond|cancel`,
-  `attest/request|history|export|verify`,
+  `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`,
+  `attest/request|history|usage|export|verify`,
   `connect/invite|candidates|grant|pairings|revoke|sync|status`,
   `channel/list|show|create|invite|join|control|rotate|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
   `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit`,
   `inbox/policy|configure|send|order|outgoing|pay|escrow|refund|list|mark`,
-  `wallet/use|balance`,
+  `payment/transfers|revise`, `wallet/use|balance`,
   `plan/catalog|status|assets|quote|checkout|advance|order|checkouts|cancel|reconcile|refund`,
-  `handle/resolve|price|claim|register`, `approval/reconcile`,
+  `handle/resolve|price|claim|register|transfer|accept|transfer_commit|operations|reconcile`,
+  `ops/orders|transfers|claims|reconcile_order|process_transfer|revise_transfer|claim|sweep`,
+  `approval/reconcile`,
   `agent/principal|enable|register|retire|compromise|rename|publish|refresh`,
   `agent/grant|revoke|credentials|delegations`,
   `agent/ids|create|use|resident|credential`, `grants/list|add|revoke`,

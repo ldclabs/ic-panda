@@ -2,9 +2,13 @@
   import { onMount } from 'svelte'
   import { t } from '../i18n'
   import { call, code, when } from '../rpc'
+  import Onboarding from './Onboarding.svelte'
+  import Security from './Security.svelte'
+  import Profile from './Profile.svelte'
 
   let { status, refresh, browsers }: { status: any; refresh: () => Promise<void>; browsers: boolean } = $props()
   let account = $state<any>(null)
+  let accounts = $state<any[]>([])
   let pairings = $state<any[]>([])
   let invite = $state<any>(null)
   let candidates = $state<any[]>([])
@@ -14,11 +18,21 @@
   async function load() {
     error = ''
     try {
+      accounts = await call('session/accounts')
+      if (!['unlocked', 'locked', 'root_required'].includes(status?.state)) return
       account = await call('account/show')
       pairings = await call('connect/pairings')
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
     }
+  }
+
+  /** Another account's workspace opens locked; its fast unlock or a login opens it. */
+  async function switchTo(id: string, fast: boolean) {
+    await act(fast ? 'session/unlock' : 'session/switch', fast ? { fast: true, account: id } : { account: id })
+    account = null
+    pairings = []
+    await load()
   }
 
   async function login() {
@@ -56,7 +70,13 @@
 
   onMount(() => {
     void load()
-    return () => clearInterval(timer)
+    const off = window.dmsg.onEvent((event) => {
+      if (event.type === 'session/changed') void load()
+    })
+    return () => {
+      off()
+      clearInterval(timer)
+    }
   })
   const own = $derived(account?.devices?.find((d: any) => d.current))
 </script>
@@ -80,13 +100,41 @@
     <dd>{status?.background_online ? 'on' : 'off'}{status?.resident ? ' (device key resident)' : ''}</dd>
   </dl>
   <div class="row" style="margin-top: 10px">
-    <button onclick={login}>{t('login')}</button>
+    <button onclick={login}>{status?.account ? t('loginOther') : t('login')}</button>
     <button onclick={() => act('session/unlock', { fast: true })}>{t('fastUnlock')}</button>
     <button onclick={() => act('session/lock')}>{t('lock')}</button>
     <button onclick={() => act('sync/run')}>{t('sync')}</button>
   </div>
 </div>
-<div class="card" class:focus={browsers}>
+{#if accounts.length}
+  <div class="card">
+    <h2>{t('localAccounts')}</h2>
+    <p class="muted">{t('localAccountsHint')}</p>
+    <ul class="list" data-testid="local-accounts">
+      {#each accounts as a (a.account)}
+        <li class="row spread">
+          <span>
+            <span class="mono">{a.account}</span>
+            {#if a.current}<span class="badge">{t('current')}</span>{/if}
+            {#if !a.bound}<span class="muted">{t('waitingDevice')}</span>{/if}
+          </span>
+          {#if !a.current}
+            <span class="row">
+              {#if a.fast_unlock}<button onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
+              <button onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
+            </span>
+          {/if}
+        </li>
+      {/each}
+    </ul>
+  </div>
+{/if}
+<Onboarding {status} {refresh} />
+{#if status?.state === 'unlocked'}
+  <Security {status} {refresh} />
+  {#key status.account}<Profile {status} />{/key}
+{/if}
+{#if ['unlocked', 'locked', 'root_required'].includes(status?.state)}<div class="card" class:focus={browsers}>
   <h2>{t('browsers')}</h2>
   <ul class="list" data-testid="pairings">
     {#each pairings as p (p.pairing_id)}
@@ -113,7 +161,7 @@
       </div>
     {/each}
   {/if}
-</div>
+</div>{/if}
 
 <style>
   .focus {

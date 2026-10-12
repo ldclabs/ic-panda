@@ -1,11 +1,17 @@
 //! Names (`src/dmsg_handle/README.md`): resolving a name with a certified
-//! proof, claiming a name frozen in the legacy snapshot and buying a new one.
+//! proof, claiming a name frozen in the legacy snapshot, buying a new one and
+//! transferring one to another account.
 //!
 //! Each operation is an account-authorized intent (`AuthorizeHandle`, a
 //! device-approved account mutation) that the registry consumes. The intent
 //! is journaled with a fixed operation ID: a lost reply is settled by the
 //! certified owner or the registry's operation record, and an intent is
 //! authorized again only after the name is proven absent.
+//!
+//! A transfer needs both accounts' authorizations at once, each valid for
+//! about a minute: the owner prepares a token naming the target, the target
+//! account accepts it, and the owner then authorizes its side and moves the
+//! name within that minute.
 
 use crate::client::Client;
 use crate::now_ms;
@@ -21,13 +27,22 @@ use dmsg_types::{
         LegacyReservation, Registration, SnapshotProgress,
     },
     user::AccountCommand,
-    Error, Hash, Result,
+    AccountId, Error, Hash, Result,
 };
 use icrc_ledger_types::{icrc1::account::Account, icrc2::approve::ApproveArgs};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
 
 const JOURNAL: &str = "handle:";
+/// Format of a transfer token.
+pub const TRANSFER: &str = "dmsg-handle-transfer/1";
+
+#[derive(Serialize, Deserialize)]
+struct TransferPacket {
+    format: String,
+    from: HandleIntent,
+    accept: HandleIntent,
+}
 
 /// What a name operation does.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -36,6 +51,14 @@ pub enum Kind {
     Claim {
         /// The snapshot.
         snapshot: Hash,
+    },
+    /// Move a name from `from`'s account to `accept`'s: the owner commits
+    /// with `from`, the target authorizes `accept`.
+    Transfer {
+        /// The owner's intent.
+        from: Box<HandleIntent>,
+        /// The target's intent.
+        accept: Box<HandleIntent>,
     },
     /// Register a new name, paid from the wallet.
     Register {
@@ -97,12 +120,35 @@ impl HandleJob {
             "caller": self.caller.to_text(),
             "total": match &self.kind {
                 Kind::Register { total, .. } => Some(total.to_string()),
-                Kind::Claim { .. } => None,
+                _ => None,
+            },
+            "from": match &self.kind {
+                Kind::Transfer { from, .. } => Some(from.account_id.to_string()),
+                _ => None,
+            },
+            "to": match &self.kind {
+                Kind::Transfer { accept, .. } => Some(accept.account_id.to_string()),
+                _ => None,
             },
             "phase": self.phase,
             "digest": hex::encode(*self.digest()),
         })
     }
+}
+
+/// The commitment both sides of a transfer authorize.
+fn transfer_terms(
+    registry: Principal,
+    name: &str,
+    from: &AccountId,
+    to: &AccountId,
+    version: u64,
+    op_id: Hash,
+) -> Hash {
+    digest(
+        "dmsg/handle-transfer/v1",
+        &(registry, name, from, to, version, op_id),
+    )
 }
 
 /// One `[0]` or `[1]` label per bucket bit, most significant first.
@@ -312,12 +358,168 @@ impl Client {
         Ok(job)
     }
 
+    /// Prepare transferring a name this account owns to `target`: a token
+    /// for the target account to accept. Once it has, the owner approves
+    /// the transfer within a minute.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` for a name this account does not own.
+    pub async fn handle_transfer_prepare(
+        &mut self,
+        name: &str,
+        target: &AccountId,
+    ) -> Result<(HandleJob, String)> {
+        let name = normalize_handle(name)?;
+        let owner = self.account()?.id;
+        let record = self.handle_resolve(&name).await?.ok_or(Error::NotFound)?;
+        ensure(
+            record.owner_account == owner && *target != owner,
+            Error::Forbidden,
+        )?;
+        let op_id = Hash::new(crate::crypto::random_id());
+        let registry = self.config.handle;
+        let from = HandleIntent {
+            handle_canister: registry,
+            action: HandleAction::Transfer,
+            account_id: owner,
+            target_account: Some(*target),
+            handle: name.clone(),
+            expected_version: record.version,
+            op_id,
+            terms_digest: transfer_terms(registry, &name, &owner, target, record.version, op_id),
+        };
+        let accept = HandleIntent {
+            action: HandleAction::AcceptTransfer,
+            account_id: *target,
+            target_account: Some(owner),
+            ..from.clone()
+        };
+        let token = crate::codec::b64(&crate::codec::canonical(&TransferPacket {
+            format: TRANSFER.into(),
+            from: from.clone(),
+            accept: accept.clone(),
+        }));
+        let job = HandleJob {
+            id: hex::encode(*op_id),
+            name,
+            caller: self.session()?.principal,
+            intent: from.clone(),
+            kind: Kind::Transfer {
+                from: Box::new(from),
+                accept: Box::new(accept),
+            },
+            phase: Phase::Prepared,
+        };
+        self.save_handle_job(&job)?;
+        Ok((job, token))
+    }
+
+    /// Prepare accepting a transfer token naming this account; it runs once
+    /// a person approves it.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a token that does not hold
+    /// together and `Error::Forbidden` for one naming another account.
+    pub async fn handle_accept_prepare(&mut self, token: &str) -> Result<HandleJob> {
+        ensure(token.len() <= 4096, Error::QuotaExceeded)?;
+        let packet: TransferPacket = crate::codec::decode(&crate::codec::unb64(token)?, 4096)?;
+        let (from, accept) = (packet.from, packet.accept);
+        let registry = self.config.handle;
+        let terms = transfer_terms(
+            registry,
+            &from.handle,
+            &from.account_id,
+            &accept.account_id,
+            from.expected_version,
+            from.op_id,
+        );
+        ensure(
+            packet.format == TRANSFER
+                && from.action == HandleAction::Transfer
+                && accept.action == HandleAction::AcceptTransfer
+                && from.handle_canister == registry
+                && accept.handle_canister == registry
+                && normalize_handle(&from.handle)? == from.handle
+                && from.handle == accept.handle
+                && from.expected_version == accept.expected_version
+                && from.op_id == accept.op_id
+                && from.target_account == Some(accept.account_id)
+                && accept.target_account == Some(from.account_id)
+                && from.terms_digest == terms
+                && accept.terms_digest == terms,
+            Error::IntegrityFailed,
+        )?;
+        ensure(accept.account_id == self.account()?.id, Error::Forbidden)?;
+        let record = self
+            .handle_resolve(&from.handle)
+            .await?
+            .ok_or(Error::NotFound)?;
+        ensure(
+            record.owner_account == from.account_id && record.version == from.expected_version,
+            Error::VersionConflict,
+        )?;
+        let job = HandleJob {
+            id: hex::encode(*accept.op_id),
+            name: from.handle.clone(),
+            caller: self.session()?.principal,
+            intent: accept.clone(),
+            kind: Kind::Transfer {
+                from: Box::new(from),
+                accept: Box::new(accept),
+            },
+            phase: Phase::Prepared,
+        };
+        self.save_handle_job(&job)?;
+        Ok(job)
+    }
+
     /// A name operation's journal.
     ///
     /// # Errors
     /// Returns `Error::NotFound` for an unknown operation.
     pub fn handle_operation(&self, id: &str) -> Result<HandleJob> {
         self.handle_job(id)
+    }
+
+    /// Every name operation of this account, for display and settling.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn handle_operations(&self) -> Result<Vec<Json>> {
+        self.workspace
+            .store
+            .sealed_keys(JOURNAL)?
+            .iter()
+            .map(|key| {
+                self.workspace
+                    .private::<HandleJob>(self.keys()?, key)?
+                    .map(|job| job.view())
+                    .ok_or(Error::IntegrityFailed)
+            })
+            .collect()
+    }
+
+    /// Settle a registration whose charge is unknown with the ledger block
+    /// that paid it.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a block that is not this
+    /// registration's charge.
+    pub async fn handle_reconcile(&mut self, id: &str, block: u64) -> Result<Json> {
+        let job = self.handle_job(id)?;
+        ensure(
+            matches!(job.kind, Kind::Register { .. }) && job.phase == Phase::Unknown,
+            Error::VersionConflict,
+        )?;
+        let (_, ic) = self.wallet().await?;
+        let operation: Result<HandleOperation> = ic
+            .update(
+                self.config.handle,
+                "reconcile_handle_charge",
+                (job.intent.account_id, job.intent.op_id, block),
+            )
+            .await?;
+        self.handle_settle(job, operation?).await
     }
 
     /// Run an approved name operation, or settle one whose outcome is
@@ -332,6 +534,9 @@ impl Client {
             Phase::Done => return Ok(job.view()),
             Phase::Rejected => return Err(Error::VersionConflict),
             _ => {}
+        }
+        if let Kind::Transfer { .. } = job.kind {
+            return self.handle_transfer(job).await;
         }
         if let Some(record) = self.handle_resolve(&job.name).await? {
             ensure(
@@ -372,6 +577,7 @@ impl Client {
         job.phase = Phase::Unknown;
         self.save_handle_job(&job)?;
         match job.kind.clone() {
+            Kind::Transfer { .. } => Err(Error::IntegrityFailed),
             Kind::Claim { snapshot } => {
                 let ic = self.session()?.ic.clone();
                 let claimed: Result<Result<HandleRecord>> = ic
@@ -418,6 +624,66 @@ impl Client {
                 }
             }
         }
+    }
+
+    /// Authorize this account's side of a transfer; the owner's side then
+    /// moves the name. A lost reply is settled by the certified owner or by
+    /// calling again, which the registry answers from its record.
+    async fn handle_transfer(&mut self, mut job: HandleJob) -> Result<Json> {
+        let Kind::Transfer { from, accept } = job.kind.clone() else {
+            return Err(Error::IntegrityFailed);
+        };
+        let commit = job.intent == *from;
+        let record = self.handle_resolve(&job.name).await?;
+        if commit && record.as_ref().map(|r| r.owner_account) == Some(accept.account_id) {
+            job.phase = Phase::Done;
+            self.save_handle_job(&job)?;
+            return Ok(job.view());
+        }
+        ensure(
+            record.is_some_and(|r| {
+                r.owner_account == from.account_id && r.version == from.expected_version
+            }),
+            Error::VersionConflict,
+        )?;
+        if self.pending()?.is_some() {
+            self.resume().await?;
+        }
+        self.mutate(
+            AccountCommand::AuthorizeHandle {
+                intent: job.intent.clone(),
+            },
+            None,
+        )
+        .await?;
+        if !commit {
+            // Accepted: the owner has about a minute to move the name.
+            job.phase = Phase::Done;
+            self.save_handle_job(&job)?;
+            return Ok(job.view());
+        }
+        job.phase = Phase::Unknown;
+        self.save_handle_job(&job)?;
+        let ic = self.session()?.ic.clone();
+        let moved: Result<Result<HandleRecord>> = ic
+            .update(self.config.handle, "transfer_handle", (&*from, &*accept))
+            .await;
+        let record = match moved {
+            Ok(Ok(record)) => record,
+            Ok(Err(Error::ExecutionUnknown)) | Err(_) => return Err(Error::ExecutionUnknown),
+            Ok(Err(error)) => {
+                job.phase = Phase::Rejected;
+                self.save_handle_job(&job)?;
+                return Err(error);
+            }
+        };
+        ensure(
+            record.handle == job.name && record.owner_account == accept.account_id,
+            Error::IntegrityFailed,
+        )?;
+        job.phase = Phase::Done;
+        self.save_handle_job(&job)?;
+        Ok(job.view())
     }
 
     /// Let the registry charge the wallet `total` once, unless an allowance

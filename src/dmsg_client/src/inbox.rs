@@ -27,7 +27,7 @@ use crate::wallet::{memo, transfer_call};
 use candid::Principal;
 use dmsg_types::{
     ensure, ensure_valid,
-    payment::{EscrowInfo, FundsDecision, PaymentOffer, SignedOffer},
+    payment::{EscrowInfo, FundsDecision, LegStatus, PaymentOffer, SignedOffer},
     profiles::delivery::OpenEscrow,
     user::Capability,
     AccountId, Ed25519Signature, Error, Hash, Result,
@@ -1077,14 +1077,50 @@ impl Client {
         let transfers = payment.transfers(&escrow.escrow_id).await?;
         Ok(json!({
             "escrow": escrow_view(&escrow),
-            "transfers": transfers.iter().map(|t| json!({
-                "leg_id": t.leg_id,
-                "kind": format!("{:?}", t.kind),
-                "amount": t.amount.to_string(),
-                "status": format!("{:?}", t.status),
-                "block": t.block,
-            })).collect::<Vec<_>>(),
+            "transfers": transfers.iter().map(leg_view).collect::<Vec<_>>(),
         }))
+    }
+
+    /// An escrow's transfer legs: payouts, refunds and their revisions.
+    ///
+    /// # Errors
+    /// Query failures return `Error::Unavailable`.
+    pub async fn payment_transfers(&mut self, escrow: &Hash) -> Result<Json> {
+        let ic = self.reader().await?;
+        let canister = self.home_config().await?.payment_canister;
+        let payment = Payment { ic: &ic, canister };
+        let legs = payment.transfers(escrow).await?;
+        Ok(json!(legs.iter().map(leg_view).collect::<Vec<_>>()))
+    }
+
+    /// Send a refused leg of an escrow the wallet paid or receives from
+    /// again, at the fee the ledger asked for (`FeeBlocked`) or unchanged
+    /// (`Rejected`); the escrow's approved fee ceiling still holds.
+    ///
+    /// # Errors
+    /// Returns `Error::VersionConflict` for a leg that was not refused.
+    pub async fn payment_revise(&mut self, escrow: &Hash, leg: u64) -> Result<Json> {
+        let (_, ic) = self.wallet().await?;
+        let canister = self.home_config().await?.payment_canister;
+        let payment = Payment { ic: &ic, canister };
+        let current = payment
+            .transfers(escrow)
+            .await?
+            .into_iter()
+            .find(|t| t.leg_id == leg)
+            .ok_or(Error::NotFound)?;
+        let fee = match current.status {
+            LegStatus::FeeBlocked => current.expected_fee.ok_or(Error::FeeBlocked)?,
+            LegStatus::Rejected => current.fee,
+            _ => return Err(Error::VersionConflict),
+        };
+        let revised = payment.revise(escrow, leg, fee).await?;
+        // The revision is durable; a failed send stays for the next try.
+        let sent = payment
+            .process_transfer(escrow, revised.leg_id)
+            .await
+            .unwrap_or(revised);
+        Ok(leg_view(&sent))
     }
 
     /// Recover the funds of an order past its acceptance deadline: commit
@@ -1273,3 +1309,19 @@ impl Client {
 #[cfg(test)]
 #[path = "inbox_tests.rs"]
 mod tests;
+
+/// A transfer leg for display.
+pub(crate) fn leg_view(t: &dmsg_types::payment::TransferLeg) -> Json {
+    json!({
+        "escrow_id": hex::encode(*t.escrow_id),
+        "leg_id": t.leg_id,
+        "kind": format!("{:?}", t.kind),
+        "to": t.to.owner.to_text(),
+        "amount": t.amount.to_string(),
+        "fee": t.fee.to_string(),
+        "expected_fee": t.expected_fee.map(|f| f.to_string()),
+        "status": format!("{:?}", t.status),
+        "block": t.block,
+        "revision": t.revision,
+    })
+}

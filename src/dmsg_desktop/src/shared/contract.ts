@@ -22,8 +22,12 @@ export interface DesktopBridge {
   decide(id: string, digest: string, approve: boolean): Promise<unknown>
   /** Connect a browser whose label the person confirmed; the main window only. */
   grant(invite: string, pairing: string): Promise<unknown>
-  /** Start a login in the system browser. */
-  login(origin: string): Promise<unknown>
+  /** Start a login in the system browser; with `bind`, a second login to bind to the unlocked account. */
+  login(origin: string, bind?: boolean): Promise<unknown>
+  /** Import a file the person picks in a system dialog into the vault; null when cancelled. */
+  importFile(): Promise<unknown>
+  /** Export a vault file to a place the person picks in a system dialog; null when cancelled. */
+  exportFile(id: string, name: string): Promise<unknown>
   /** Start pairing a browser: opens the pairing page in the system browser. */
   pair(copyLink: boolean): Promise<{ invite_id: string; url: string; expires_at: number }>
   /** Open the approval window on a request. */

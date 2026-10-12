@@ -30,7 +30,7 @@ use serde_bytes::ByteArray;
 use std::path::Path;
 use zeroize::Zeroizing;
 
-const META: &str = "workspace";
+pub(crate) const META: &str = "workspace";
 const PROVISIONAL: &str = "provisional";
 const LDK: &str = "ldk";
 const FAST_LDK: &str = "ldk-fast";

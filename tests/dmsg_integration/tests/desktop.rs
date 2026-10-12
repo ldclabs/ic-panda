@@ -246,8 +246,15 @@ impl Desktop {
 
     /// Start `dmsg login` and return it with the request it printed.
     fn start_login(&self) -> (Child, BufReader<std::process::ChildStdout>, String) {
+        self.start_login_with(&[])
+    }
+
+    fn start_login_with(
+        &self,
+        extra: &[&str],
+    ) -> (Child, BufReader<std::process::ChildStdout>, String) {
         let mut child = self
-            .command(&["login", "--no-browser"])
+            .command(&[&["login", "--no-browser"], extra].concat())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
@@ -265,7 +272,22 @@ impl Desktop {
     /// Log in as the Ed25519 login `seed`, playing the login page; the
     /// error is the callback's answer.
     fn login(&self, http: &reqwest::blocking::Client, seed: u8) -> Result<Value, String> {
-        let (mut child, mut reader, url) = self.start_login();
+        self.login_with(http, seed, &[])
+    }
+
+    /// Log in as `seed` to bind it to the unlocked account; returns the
+    /// approval request the binding waits on.
+    fn bind_login(&self, http: &reqwest::blocking::Client, seed: u8) -> Value {
+        self.login_with(http, seed, &["--bind"]).unwrap()
+    }
+
+    fn login_with(
+        &self,
+        http: &reqwest::blocking::Client,
+        seed: u8,
+        extra: &[&str],
+    ) -> Result<Value, String> {
+        let (mut child, mut reader, url) = self.start_login_with(extra);
         let (page, fragment) = url.split_once('#').unwrap();
         assert_eq!(page, "https://dmsg.net/_/login");
         let request = decode_request(&URL_SAFE_NO_PAD.decode(fragment).unwrap()).unwrap();
@@ -328,6 +350,25 @@ impl Desktop {
         }
         Ok(serde_json::from_str(rest.lines().last().unwrap()).unwrap())
     }
+}
+
+/// The Principal of the Ed25519 login `seed`.
+fn login_principal(seed: u8) -> String {
+    BasicIdentity::from_raw_key(&[seed; 32])
+        .sender()
+        .unwrap()
+        .to_text()
+}
+
+/// The titles in a device's vault.
+fn titles(device: &Desktop) -> Vec<String> {
+    device
+        .run(&["vault", "list"])
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["item"]["title"].as_str().unwrap().to_string())
+        .collect()
 }
 
 /// Poll `check` every half second until it returns a value.
@@ -1090,17 +1131,11 @@ fn two_desktop_devices_share_an_account() {
     let reply = b.run(&["vault", "add", "--title", "beta", "--body", "hello from B"]);
     assert_eq!(b.run(&["sync"])["sent"], 1);
     a.run(&["sync"]);
-    let titles: Vec<String> = a
-        .run(&["vault", "list"])
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|e| e["item"]["title"].as_str().unwrap().to_string())
-        .collect();
-    assert_eq!(titles.len(), 3);
+    let listed = titles(a);
+    assert_eq!(listed.len(), 3);
     assert!(["alpha", "beta", "gamma"]
         .iter()
-        .all(|t| titles.contains(&t.to_string())));
+        .all(|t| listed.contains(&t.to_string())));
     assert_eq!(
         a.run(&["vault", "show", reply["id"].as_str().unwrap()])["item"]["body"],
         "hello from B"
@@ -1113,15 +1148,124 @@ fn two_desktop_devices_share_an_account() {
     assert_eq!(status["state"], "unlocked");
     assert_eq!(b.run(&["vault", "list"]).as_array().unwrap().len(), 3);
 
-    // Another login cannot unlock this account's device.
+    // Another login gets its own workspace: a new device, none of this
+    // account's data, and an account of its own.
     assert_eq!(b.run(&["lock"])["state"], "locked");
-    assert!(b.login(http, 42).unwrap_err().contains("AuthRequired"));
-
-    let status = b.run(&["status"]);
-    assert_eq!(status["state"], "locked");
-    assert_eq!(status["environment"], "local");
+    let status = b.login(http, 42).unwrap();
+    assert_eq!(status["state"], "no_account");
+    assert!(status["account"].is_null());
+    assert_ne!(status["device_id"], device);
+    let second = b.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(titles(b).is_empty());
+    b.run(&["vault", "add", "--title", "delta"]);
+    assert_eq!(b.run(&["accounts"]).as_array().unwrap().len(), 2);
+    // The first login selects its own account again, with its data only.
+    let status = b.login(http, 41).unwrap();
+    assert_eq!(status["state"], "unlocked");
     assert_eq!(status["account"], account.as_str());
     assert_eq!(status["device_id"], device);
+    assert!(!titles(b).contains(&"delta".to_string()));
+    assert_eq!(titles(b).len(), 3);
+    // Switching selects the other account, locked until its own login.
+    let status = b.run(&["switch", &second]);
+    assert_eq!(status["state"], "locked");
+    assert_eq!(status["account"], second.as_str());
+    assert_eq!(b.fail(&["vault", "list"]), "LOCKED");
+    let accounts = b.run(&["accounts"]);
+    assert_eq!(
+        accounts
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|a| a["current"] == true)
+            .unwrap()["account"],
+        second.as_str()
+    );
+
+    // A login without an account asks to be bound to the first account
+    // from B; an administrator device approves it, then the login accepts
+    // and opens the first account's workspace on B.
+    let third = login_principal(43);
+    assert_eq!(b.login(http, 43).unwrap()["state"], "no_account");
+    let request = b.run(&["account", "bind-request", &account]);
+    let token = request["token"].as_str().unwrap();
+    assert_eq!(
+        a.fail(&[
+            "account",
+            "bind-approve",
+            token,
+            "--principal",
+            &login_principal(44)
+        ]),
+        "INVALID_INPUT"
+    );
+    let approval = a.run(&["account", "bind-approve", token, "--principal", &third]);
+    assert_eq!(approval["type"], "account");
+    assert_eq!(approval["detail"]["principal"], third.as_str());
+    assert_eq!(a.decide(http, &approval, true).unwrap()["state"], "done");
+    let status = b.run(&["account", "bind-accept", &account]);
+    assert_eq!(status["state"], "unlocked");
+    assert_eq!(status["account"], account.as_str());
+    assert_eq!(status["principal"], third.as_str());
+    let logins = |device: &Desktop| -> Vec<String> {
+        device.run(&["account", "security"])["logins"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|l| l["principal"].as_str().unwrap().to_string())
+            .collect()
+    };
+    assert_eq!(logins(a), vec![login_principal(41), third.clone()]);
+
+    // On one device: a second login completed for the unlocked account
+    // waits on an approval, which binds it; removing it is approved too.
+    let approval = a.bind_login(http, 44);
+    assert_eq!(approval["detail"]["change"], "bind_login");
+    assert_eq!(approval["detail"]["principal"], login_principal(44));
+    assert_eq!(a.decide(http, &approval, true).unwrap()["state"], "done");
+    assert!(logins(a).contains(&login_principal(44)));
+    let removal = a.run(&["account", "unbind", &login_principal(44)]);
+    assert_eq!(a.decide(http, &removal, true).unwrap()["state"], "done");
+    assert_eq!(logins(a).len(), 2);
+    // The login in use is not removed from here.
+    assert_eq!(
+        a.fail(&["account", "unbind", &login_principal(41)]),
+        "FORBIDDEN"
+    );
+
+    // Recovery: B starts over as a new device of the first account, and the
+    // bound login asks to take the account over; A disputes it.
+    let status = b.run(&["reset", "--yes"]);
+    assert_eq!(status["state"], "logged_out");
+    assert_ne!(status["device_id"], device);
+    assert_eq!(b.login(http, 43).unwrap()["state"], "pairing_required");
+    let recovery = b.run(&["recovery", "request"]);
+    assert_eq!(recovery["pending"]["this_device"], true);
+    assert_eq!(recovery["pending"]["new_auth"], third.as_str());
+    assert_eq!(recovery["ready"], false);
+    assert_eq!(b.fail(&["recovery", "complete"]), "PENDING");
+    let security = a.run(&["account", "security"]);
+    assert_eq!(security["pending_recovery"]["new_auth"], third.as_str());
+    let dispute = a.run(&["recovery", "dispute"]);
+    assert_eq!(dispute["detail"]["change"], "dispute_recovery");
+    assert_eq!(a.decide(http, &dispute, true).unwrap()["state"], "done");
+    assert!(a.run(&["account", "security"])["pending_recovery"].is_null());
+    assert!(b.run(&["recovery", "status"])["pending"].is_null());
+    assert_eq!(b.fail(&["recovery", "complete"]), "NOT_FOUND");
+    // The other account's workspace on B is untouched.
+    assert!(b
+        .run(&["accounts"])
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|a| a["account"] == second.as_str() && a["bound"] == true));
+
+    let status = b.run(&["status"]);
+    assert_eq!(status["environment"], "local");
+    assert_eq!(status["account"], Value::Null);
     assert!(status["version"].is_string() && status["instance"].is_string());
     env.finish();
 }
@@ -2510,19 +2654,121 @@ fn desktop_commerce() {
     let pem = pem.to_str().unwrap().to_string();
     let b = &env.b;
     assert_eq!(b.login(&http, 62).unwrap()["state"], "no_account");
-    b.run(&["account", "create"]);
+    let second = b.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
     let enable = b.run(&["device", "formal-approve", "on"]);
     assert_eq!(b.decide(&http, &enable, true).unwrap()["state"], "done");
     let wallet = b.run(&["wallet", "use", &pem]);
     assert_eq!(wallet["source"], "pem");
-    let quote = b.run(&["plan", "quote", "plus", &ledger_usdt.to_text()]);
-    assert_eq!(quote["terms"]["asset"], "CkUsdt");
-    let request = b.run(&["plan", "checkout", quote["id"].as_str().unwrap()]);
-    assert_eq!(b.decide(&http, &request, true).unwrap()["state"], "done");
+
+    // The name moves to the other account: the owner offers it, the target
+    // accepts, and the owner commits within the minute the acceptance lasts.
+    let offered = a.run(&["handle", "transfer", "legacy_probe", &second]);
+    let accept = b.run(&["handle", "accept", offered["token"].as_str().unwrap()]);
+    assert_eq!(accept["detail"]["action"], "AcceptTransfer");
+    assert_eq!(b.decide(&http, &accept, true).unwrap()["state"], "done");
+    let commit = a.run(&[
+        "handle",
+        "commit",
+        offered["operation"]["id"].as_str().unwrap(),
+    ]);
+    assert_eq!(commit["detail"]["to"], second.as_str());
+    assert_eq!(a.decide(&http, &commit, true).unwrap()["state"], "done");
     assert_eq!(
-        b.run(&["plan", "order", quote["id"].as_str().unwrap()])["status"],
-        "Applied"
+        a.run(&["handle", "resolve", "legacy_probe"])["account"],
+        second.as_str()
     );
+
+    // The payer reads its orders and replays the original decision.
+    let orders = a.run(&["ops", "orders"]);
+    assert!(orders["orders"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|o| o["order_id"] == id.as_str() && o["status"] == "Applied"));
+    assert_eq!(a.run(&["ops", "reconcile-order", &id])["status"], "Applied");
+
+    // A web application's checkout through the bridge: quoted on the
+    // device before it can be approved, then paid by the wallet once.
+    let invite = b.rpc(&http, "connect/invite", Value::Null).unwrap();
+    let mut bridge = Headless::start(&env, &env.relay);
+    let paired = bridge
+        .call(json!({"cmd": "pair", "url": invite["url"], "label": "Chrome · Test"}))
+        .unwrap();
+    b.rpc(
+        &http,
+        "connect/grant",
+        json!({"invite": invite["invite_id"], "pairing": paired["pairingId"], "human": true}),
+    )
+    .unwrap();
+    bridge
+        .call(json!({"cmd": "await_grant", "account": second, "timeout_ms": 30000}))
+        .unwrap();
+    let connection = bridge
+        .call(json!({"cmd": "connect", "origin": "https://dmsg.net", "app_id": "dmsg"}))
+        .unwrap()["connection"]
+        .clone();
+    let account_id: dmsg_types::AccountId = second.parse().unwrap();
+    let operation = dmsg_types::Hash::new([0x51; 32]);
+    let offer: dmsg_types::Result<dmsg_types::integration::BillingOffer> = candid::decode_one(
+        &d.ic
+            .update_call(
+                commerce,
+                d.peer,
+                "prepare_account_subscription",
+                candid::encode_args((
+                    "dmsg",
+                    dmsg_protocol::billing::beneficiary(d.user, &account_id),
+                    "plus",
+                    operation,
+                ))
+                .unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    let checkout = dmsg_types::integration_billing::CheckoutRequest {
+        offer: offer.unwrap(),
+        approving_account: account_id,
+        product_approval: None,
+        method: dmsg_types::integration::SettlementMethod::Cash,
+    };
+    let operation_id = hex::encode(*operation);
+    let created = bridge
+        .call(json!({
+            "cmd": "checkout", "connection": connection, "operation_id": operation_id,
+            "payload": base64::engine::general_purpose::STANDARD.encode(canonical(&checkout)),
+        }))
+        .unwrap();
+    assert_eq!(created["state"], "awaiting_user");
+    let shown = eventually(30, || web_request(b, &http, &operation_id));
+    assert_eq!(shown["detail"]["method"], "checkout");
+    assert_eq!(shown["detail"]["content"]["sku"], "plus");
+    assert_eq!(b.decide(&http, &shown, true), Err("INVALID_INPUT".into()));
+    let quoted = b
+        .rpc(
+            &http,
+            "approval/quote",
+            json!({"id": shown["id"], "selection": ledger_usdt.to_text()}),
+        )
+        .unwrap();
+    assert_ne!(quoted["digest"], shown["digest"]);
+    assert_eq!(quoted["detail"]["checkout"]["terms"]["asset"], "CkUsdt");
+    assert_eq!(
+        b.decide(&http, &shown, true),
+        Err("INTEGRITY_FAILED".into())
+    );
+    assert_eq!(b.decide(&http, &quoted, true).unwrap()["state"], "done");
+    let signed = bridge
+        .call(json!({"cmd": "get", "connection": connection, "operation_id": operation_id, "wait_ms": 20000, "until": ["signed"]}))
+        .unwrap();
+    assert_eq!(signed["state"], "signed");
+    let order = signed["result"]["orderId"].as_str().unwrap();
+    assert!(signed["result"]["checkoutCbor"].is_string());
+    assert_eq!(b.run(&["plan", "order", order])["status"], "Applied");
+    assert_eq!(b.run(&["plan", "status"])["plan"], "Plus");
 
     // A PANDA membership backed by the wallet's neuron: accepted and
     // cooling down (activation follows the 65-minute cooling period).
@@ -2547,6 +2793,14 @@ fn desktop_commerce() {
     assert_eq!(order["status"], "CoolingDown");
     assert_eq!(order["eligibility"], "Eligible");
     assert_eq!(order["neuron"], "4d".repeat(32));
+    // The neuron's controller reads the commitment it backs.
+    let claims = c.run(&["ops", "claims"]);
+    assert!(claims["claims"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|claim| claim["claim_id"] == quote["id"] && claim["status"] == "CoolingDown"));
+    assert!(c.run(&["ops", "sweep"])["swept"].is_u64());
     env.finish();
 }
 

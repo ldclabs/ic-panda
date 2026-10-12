@@ -1,6 +1,8 @@
 //! `dmsg`: the dMsg command line client. `dmsg daemon` runs the daemon that
 //! holds every key and all state; every other command asks it over loopback.
 
+mod account_commands;
+mod account_methods;
 mod agent_commands;
 mod agents;
 mod autostart;
@@ -95,7 +97,8 @@ enum Command {
     Autostart(AutostartCommand),
     /// Check `config.toml` without starting anything.
     ValidateConfig,
-    /// Log in with Internet Identity through the dMsg login page.
+    /// Log in with Internet Identity through the dMsg login page; a login
+    /// of another account selects that account's workspace.
     Login {
         /// Derivation origin: dmsg.net or, for older logins, panda.fans.
         #[arg(long, default_value = "dmsg.net")]
@@ -103,12 +106,26 @@ enum Command {
         /// Print the login URL instead of opening the browser.
         #[arg(long)]
         no_browser: bool,
+        /// Bind the login to the unlocked account instead of switching to
+        /// it; goes through the approval center.
+        #[arg(long)]
+        bind: bool,
     },
     /// Unlock with the current login, or with --fast without one.
     Unlock {
         /// Use fast unlock (up to seven days after a login unlock).
         #[arg(long)]
         fast: bool,
+        /// Select this account's workspace first.
+        #[arg(long)]
+        account: Option<String>,
+    },
+    /// The account workspaces on this device; each keeps its own data.
+    Accounts,
+    /// Select another account's workspace, locked.
+    Switch {
+        /// Account ID.
+        account: String,
     },
     /// Lock: forget the login and every key.
     Lock,
@@ -118,6 +135,15 @@ enum Command {
     /// The account.
     #[command(subcommand)]
     Account(AccountCommand),
+    /// Recovery after every device is lost.
+    #[command(subcommand)]
+    Recovery(account_commands::RecoveryCommand),
+    /// Escrow transfers of paid letters.
+    #[command(subcommand)]
+    Payment(account_commands::PaymentCommand),
+    /// Commerce and membership records the wallet may read and repair.
+    #[command(subcommand)]
+    Ops(account_commands::OpsCommand),
     /// Devices of the account.
     #[command(subcommand)]
     Device(DeviceCommand),
@@ -221,6 +247,14 @@ enum ApprovalsCommand {
         /// Request ID or a unique prefix.
         id: String,
     },
+    /// Quote a web application's checkout before deciding it: cash on a
+    /// ledger, or a PANDA waiver backed by a neuron.
+    Quote {
+        /// Request ID or a unique prefix.
+        id: String,
+        /// Ledger Principal (cash) or neuron ID in hex (PANDA).
+        selection: String,
+    },
 }
 
 #[derive(Args)]
@@ -269,6 +303,8 @@ enum AttestCommand {
     },
     /// Finished and pending attestations.
     History,
+    /// This month's formal-execution allowance and the archived months.
+    Usage,
     /// Write a finished attestation as a self-contained bundle.
     Export {
         /// Execution ID.
@@ -394,6 +430,8 @@ enum AccountCommand {
     Create,
     /// Show the account and its devices.
     Show,
+    #[command(flatten)]
+    Security(account_commands::SecurityCommand),
 }
 
 #[derive(Subcommand)]
@@ -731,6 +769,42 @@ fn render(request: &Value) -> String {
                 "content   {}",
                 serde_json::to_string_pretty(&d["content"]).unwrap_or_default()
             ));
+            if d["method"] == "checkout" {
+                match d["checkout"].is_null() {
+                    true => lines.push(
+                        "terms     not quoted: run dmsg approvals quote <id> <ledger or neuron>"
+                            .into(),
+                    ),
+                    false => lines.push(format!(
+                        "terms     {}",
+                        serde_json::to_string_pretty(&d["checkout"]).unwrap_or_default()
+                    )),
+                }
+            }
+        }
+        Some("account") => {
+            let change = match d["change"].as_str() {
+                Some("bind_login") => format!(
+                    "bind login {} to the account; it signs in to every device's data",
+                    field(&d["principal"])
+                ),
+                Some("remove_login") => format!("remove login {}", field(&d["principal"])),
+                Some("policy") => format!(
+                    "signing policy: frozen {}, {} executions a day, purposes {}",
+                    field(&d["frozen"]),
+                    field(&d["daily_executions"]),
+                    field(&d["allowed_purposes"])
+                ),
+                Some("recovery_delay") => format!(
+                    "recovery delay {} days",
+                    d["delay_ms"].as_u64().unwrap_or(0) / 86_400_000
+                ),
+                Some("dispute_recovery") => {
+                    format!("cancel the pending recovery {}", field(&d["op_id"]))
+                }
+                _ => field(&d["change"]),
+            };
+            lines.push(format!("change    {change}"));
         }
         _ => lines.push(format!(
             "detail    {}",
@@ -1126,6 +1200,17 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             let decided = decide(&remote, &request, Some(false)).await?;
             println!("{}", decided["state"].as_str().unwrap_or_default());
         }
+        Command::Approvals(ApprovalsCommand::Quote { id, selection }) => {
+            let id = request_id(&remote, &id).await?;
+            let request = remote
+                .call("approval/quote", json!({"id": id, "selection": selection}))
+                .await?;
+            print(json, &request, render);
+        }
+        Command::Attest(AttestCommand::Usage) => {
+            let usage = remote.call("attest/usage", Value::Null).await?;
+            print(json, &usage, pretty);
+        }
         Command::Approvals(ApprovalsCommand::Cancel { id }) => {
             let id = request_id(&remote, &id).await?;
             let request = remote.call("approval/cancel", json!({"id": id})).await?;
@@ -1358,7 +1443,11 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             lifecycle::drain(&home, true, Duration::ZERO).await?;
             print(json, &json!({"stopped": true}), |_| "stopped".into());
         }
-        Command::Login { origin, no_browser } => {
+        Command::Login {
+            origin,
+            no_browser,
+            bind,
+        } => {
             let origin = match origin.as_str() {
                 "dmsg.net" | "https://dmsg.net" => "https://dmsg.net",
                 "panda.fans" | "https://panda.fans" => "https://panda.fans",
@@ -1370,7 +1459,10 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 }
             };
             let started = remote
-                .call("session/login", json!({"origin": origin}))
+                .call(
+                    "session/login",
+                    json!({"origin": origin, "bind": bind, "source": "cli"}),
+                )
                 .await?;
             let url = started["url"].as_str().unwrap_or_default();
             if json {
@@ -1391,6 +1483,9 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 if let Some(error) = result["error"].as_str() {
                     return Err(Failure::new("AUTH_REQUIRED", error));
                 }
+                if bind {
+                    return created(&remote, json, result["approval"].clone()).await;
+                }
                 if result["status"]["principal"].is_null() {
                     return Err(Failure::new("EXPIRED", "the login was not completed"));
                 }
@@ -1398,10 +1493,25 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 break;
             }
         }
-        Command::Unlock { fast } => {
-            let status = remote.call("session/unlock", json!({"fast": fast})).await?;
+        Command::Unlock { fast, account } => {
+            let status = remote
+                .call("session/unlock", json!({"fast": fast, "account": account}))
+                .await?;
             print(json, &status, summary);
         }
+        Command::Accounts => account_commands::accounts(&remote, json).await?,
+        Command::Switch { account } => {
+            let status = remote
+                .call("session/switch", json!({"account": account}))
+                .await?;
+            print(json, &status, summary);
+        }
+        Command::Account(AccountCommand::Security(command)) => {
+            account_commands::security(&remote, json, command).await?
+        }
+        Command::Recovery(command) => account_commands::recovery(&remote, json, command).await?,
+        Command::Payment(command) => account_commands::payment(&remote, json, command).await?,
+        Command::Ops(command) => account_commands::ops(&remote, json, command).await?,
         Command::Lock => {
             let status = remote.call("session/lock", Value::Null).await?;
             print(json, &status, summary);

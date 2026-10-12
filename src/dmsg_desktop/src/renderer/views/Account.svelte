@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { t } from '../i18n'
   import { call, code, units, when } from '../rpc'
+  import Operations from './Operations.svelte'
 
   let { status }: { status: any } = $props()
   let plan = $state<any>(null)
@@ -14,6 +15,11 @@
   let wallet = $state<any>(null)
   let name = $state('')
   let handle = $state<any>(null)
+  let target = $state('')
+  let offer = $state<any>(null)
+  let incoming = $state('')
+  let operations = $state<any[]>([])
+  let blocks = $state<Record<string, string>>({})
   let error = $state('')
   let busy = $state(false)
 
@@ -35,7 +41,34 @@
       catalog ??= await call('plan/catalog')
       assets = await call('plan/assets')
       checkouts = await call('plan/checkouts')
+      operations = await call('handle/operations')
       if (!ledger && assets.length) ledger = assets[0].ledger
+    })
+
+  /** The owner offers; the target accepts; the owner commits within the minute the acceptance lasts. */
+  const transfer = () =>
+    attempt(async () => {
+      offer = await call('handle/transfer', { name: handle.name, target: target.trim() })
+      operations = await call('handle/operations')
+    })
+
+  const accept = () =>
+    attempt(async () => {
+      const request = await call('handle/accept', { token: incoming.trim() })
+      incoming = ''
+      await window.dmsg.openApproval(request.id)
+    })
+
+  const commit = (id: string) =>
+    attempt(async () => {
+      const request = await call('handle/transfer_commit', { id })
+      await window.dmsg.openApproval(request.id)
+    })
+
+  const settle = (id: string) =>
+    attempt(async () => {
+      await call('handle/reconcile', { id, block: Number(blocks[id]) })
+      operations = await call('handle/operations')
     })
 
   /** A quote only fixes the terms; paying it is a separate approval. */
@@ -157,9 +190,47 @@
         <button class="primary" disabled={busy} onclick={() => take('handle/register')}>{t('register')}</button>
       {/if}
     {/if}
+    {#if unlocked && handle.owner === status?.account}
+      <h3>{t('transferName')}</h3>
+      <div class="row">
+        <input placeholder={t('targetAccount')} bind:value={target} data-testid="transfer-target" />
+        <button disabled={busy || !target.trim()} onclick={transfer}>{t('transferName')}</button>
+      </div>
+      {#if offer}
+        <p class="muted">{t('transferHint')}</p>
+        <p class="mono" style="word-break: break-all" data-testid="transfer-token">{offer.token}</p>
+      {/if}
+    {/if}
+  {/if}
+  {#if unlocked}
+    <h3>{t('acceptName')}</h3>
+    <div class="row">
+      <input placeholder={t('token')} bind:value={incoming} data-testid="accept-token" />
+      <button disabled={busy || !incoming.trim()} onclick={accept}>{t('acceptName')}</button>
+    </div>
+  {/if}
+  {#if operations.length}
+    <h3>{t('nameOperations')}</h3>
+    <ul class="list" data-testid="name-operations">
+      {#each operations as op (op.id)}
+        <li class="row spread">
+          <span>{op.name} · {op.action}{op.to ? ` → ${op.to}` : ''} <span class="badge">{op.phase}</span></span>
+          <span class="row">
+            {#if op.action === 'Transfer' && op.phase === 'prepared'}
+              <button disabled={busy} onclick={() => commit(op.id)}>{t('commit')}</button>
+            {/if}
+            {#if op.action === 'Register' && op.phase === 'unknown'}
+              <input style="max-width: 120px" placeholder={t('block')} bind:value={blocks[op.id]} />
+              <button disabled={busy || !/^\d+$/.test(blocks[op.id] ?? '')} onclick={() => settle(op.id)}>{t('reconcile')}</button>
+            {/if}
+          </span>
+        </li>
+      {/each}
+    </ul>
   {/if}
 </div>
 {#if unlocked}
+  <Operations />
   <div class="card">
     <h2>{t('wallet')}</h2>
     <p class="muted">{t('walletHint')}</p>

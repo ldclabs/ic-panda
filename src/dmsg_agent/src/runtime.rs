@@ -21,7 +21,7 @@ use dmsg_types::{ensure, ensure_valid, Error, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// One allowed Agent Protocols host, as `config.toml` lists it.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -103,9 +103,9 @@ pub struct Called {
     pub mail_keys: Value,
 }
 
-/// The connectors of one workspace.
+/// The connectors of the hosted Agent IDs; each call names the state file
+/// of the workspace it runs for.
 pub struct Runtime {
-    path: PathBuf,
     hosts: Vec<AgentProtocolsHost>,
     blocked_senders: Vec<AgentId>,
     http: reqwest::Client,
@@ -126,14 +126,13 @@ fn check_origin(value: &str, local: bool, name: &str) -> Result<String> {
 }
 
 impl Runtime {
-    /// A host of the connectors whose state lives in `path`, configured by
-    /// `options`.
+    /// A host of the connectors, configured by `options`.
     ///
     /// # Errors
     /// Returns `Error::InvalidInput` for a host or profile service that is
     /// not an origin (HTTPS, or loopback HTTP when local), a blocked sender
     /// that is not an Agent ID, or a trusted root outside a local deployment.
-    pub fn new(path: &Path, options: &Options) -> Result<Self> {
+    pub fn new(options: &Options) -> Result<Self> {
         let local = options.local;
         ensure_valid(options.hosts.len() <= 32, "agent_hosts")?;
         ensure_valid(
@@ -186,7 +185,6 @@ impl Runtime {
             .build()
             .map_err(|e| Error::Unavailable(format!("http: {e}")))?;
         Ok(Self {
-            path: path.to_path_buf(),
             hosts,
             blocked_senders,
             http,
@@ -199,12 +197,12 @@ impl Runtime {
         &self.hosts
     }
 
-    fn open(&self) -> Result<Connection> {
-        let conn = Connection::open(&self.path).map_err(storage)?;
+    fn open(path: &Path) -> Result<Connection> {
+        let conn = Connection::open(path).map_err(storage)?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let _ = std::fs::set_permissions(&self.path, std::fs::Permissions::from_mode(0o600));
+            let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
         }
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS connectors (agent_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL, updated_at INTEGER NOT NULL);",
@@ -213,12 +211,12 @@ impl Runtime {
         Ok(conn)
     }
 
-    /// The saved snapshot of an Agent ID's connector.
+    /// The saved snapshot of an Agent ID's connector in the state file `path`.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when storage fails.
-    pub fn snapshot(&self, agent_id: &str) -> Result<Option<Value>> {
-        load(&self.open()?, agent_id)
+    pub fn snapshot(&self, path: &Path, agent_id: &str) -> Result<Option<Value>> {
+        load(&Self::open(path)?, agent_id)
     }
 
     fn save(&self, conn: &Connection, connector: &LocalConnector) -> Result<()> {
@@ -243,9 +241,10 @@ impl Runtime {
         self.calls.lock().await
     }
 
-    /// Run one standard tool as `signer`'s Agent ID, with the mail
-    /// decryption keys its mailboxes retain (`mail_keys`, as
-    /// [`Called::mail_keys`] returned them; `None` for none yet).
+    /// Run one standard tool as `signer`'s Agent ID with the connector state
+    /// in `path`, and the mail decryption keys its mailboxes retain
+    /// (`mail_keys`, as [`Called::mail_keys`] returned them; `None` for none
+    /// yet).
     ///
     /// # Errors
     /// Returns `Error::NotFound` for a tool that is not one of the standard
@@ -255,13 +254,14 @@ impl Runtime {
     pub async fn call(
         &self,
         _turn: &Turn<'_>,
+        path: &Path,
         signer: AgentSigner,
         mail_keys: Option<&Value>,
         tool: &str,
         input: Value,
     ) -> Result<Called> {
         ensure(TOOL_NAMES.contains(&tool), Error::NotFound)?;
-        let conn = self.open()?;
+        let conn = Self::open(path)?;
         let agent_id = signer.agent_id();
         let saved = load(&conn, agent_id.as_str())?;
         let mut connector = match &saved {

@@ -10,9 +10,12 @@ desktop is one of its clients, like the CLI.
   owns the tray, notifications, `dmsg://` links and updates.
 - **Preload** (`src/preload`): `window.dmsg`, a narrow bridge; the credential
   never reaches a renderer.
-- **Renderer** (`src/renderer`, Svelte 5): the main window (vault, channels,
-  inbox, plan and names, agents, signatures and approvals, settings with
-  connected browsers) and the approval window.
+- **Renderer** (`src/renderer`, Svelte 5): the main window (vault with files,
+  channels, inbox, plan and names with name transfers and checkout records,
+  agents, signatures and approvals with the month's execution allowance, and
+  settings: this device's accounts, creating or joining an account, pairing
+  and recovery, account security, the public profile and connected browsers)
+  and the approval window.
 
 Rules (`src/main/policy.ts`):
 
@@ -20,8 +23,20 @@ Rules (`src/main/policy.ts`):
   requests the desktop starts are marked `source: "gui"`. Methods that name
   local files (`wallet/use`, `channel/send_file`, `channel/download`),
   refunds and running a tool as an agent (`ap/call`) stay with the CLI.
+  Vault files enter and leave only through the main process's open and save
+  dialogs (`file/import`, `file/export` with the path the person picked).
+- Each account on the device keeps its own workspace. Logging in with another
+  identity switches to its account; Settings lists the accounts here and
+  switches between them (locked, then a login or fast unlock opens one).
+- Binding another login, removing one, the signing policy, the recovery delay
+  and disputing a recovery are approval requests. "Bind another login" starts
+  a second login in the system browser; once it arrives the approval window
+  opens on the binding. Approving another device's pairing takes the device
+  ID shown on that device.
 - A payment (paid letter, checkout, name) is only a request from the main
-  window; the approval window shows its amount, ledger and payer.
+  window; the approval window shows its amount, ledger and payer. A web
+  application's checkout is quoted in the approval window (an asset, or a
+  PANDA neuron) before it can be approved.
 - The Agents view enables the account's principal, registers and retires
   controllers, grants and revokes credentials (each an approval request; the
   approval window shows the agent, scopes, relying parties and expiry), hosts
@@ -50,8 +65,10 @@ The smoke test runs the built app in a temporary profile against a mock
 daemon: the main window, a `dmsg://` link opening the approval window,
 refusal of decisions from the main window, the exact decision the approval
 window sends, a channel read and send, the inbox, a subscription that
-reaches the daemon only as a desktop-sourced approval request, and an agent
-grant whose approval window shows the agent it names.
+reaches the daemon only as a desktop-sourced approval request, an agent
+grant whose approval window shows the agent it names, a web checkout that
+cannot be approved before it is quoted, a login binding approved in the
+approval window, and switching to another account's workspace.
 
 ## Packages and updates
 

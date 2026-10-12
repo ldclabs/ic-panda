@@ -29,7 +29,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 /// A home accepts approvals at most five minutes ahead; leave a skew margin.
-const APPROVAL_MS: u64 = 270_000;
+pub(crate) const APPROVAL_MS: u64 = 270_000;
 /// A name authorization at most one minute ahead.
 const HANDLE_APPROVAL_MS: u64 = 50_000;
 const JOURNAL: &str = "journal";
@@ -671,6 +671,8 @@ impl Client {
         self.workspace.meta.login_unlocked_at = Some(now_ms());
         self.workspace.save_meta()?;
         self.located = None;
+        // A login's own workspace becomes the account's.
+        self.adopt(&account)?;
         Ok(reference)
     }
 

@@ -248,6 +248,17 @@ impl Payment<'_> {
         self.update("claim_refund", (id, blocks, reserve)).await
     }
 
+    /// Send a leg the ledger refused again, at the fee it asked for: only
+    /// the payer or the leg's recipient may, and never above the escrow's
+    /// approved network fee.
+    ///
+    /// # Errors
+    /// The canister's verdict.
+    pub async fn revise(&self, id: &Hash, leg: u64, fee: u128) -> Result<TransferLeg> {
+        self.update("revise_rejected_transfer", (id, leg, fee))
+            .await
+    }
+
     /// Settle a leg whose outcome is unknown with the ledger block it took.
     ///
     /// # Errors

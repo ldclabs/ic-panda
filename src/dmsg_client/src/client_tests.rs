@@ -84,6 +84,7 @@ fn reset_starts_a_new_device() {
     let name = client.fast_name().unwrap();
     let before = client.status().unwrap().device_id;
     let status = client.reset().unwrap();
+    assert!(status.device_id.is_some());
     assert_ne!(status.device_id, before);
     assert_eq!(status.state, "logged_out");
     assert_eq!(status.pending_sync, 0);
@@ -92,4 +93,101 @@ fn reset_starts_a_new_device() {
     drop(client);
     let reopened = Client::open(crate::testing::config(false), &dir.0, None).unwrap();
     assert_eq!(reopened.status().unwrap().device_id, status.device_id);
+}
+
+fn other_account() -> AccountRef {
+    AccountRef {
+        id: "0k0g2081040g2081040g".parse().unwrap(),
+        home: Principal::from_text("aaaaa-aa").unwrap(),
+        issuer: "https://dmsg.test/u/0k0g2081040g2081040g".into(),
+    }
+}
+
+#[test]
+fn accounts_keep_separate_workspaces() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let first = crate::testing::account();
+    client.vault_put(None, None, &note("first")).unwrap();
+    let first_device = client.status().unwrap().device_id;
+
+    // A second account on the same device: its own device and data.
+    let second = other_account();
+    client.select(Slot::Account(second.id)).unwrap();
+    assert_eq!(client.keys().err(), Some(Error::Locked));
+    let keys = client.workspace.unlock_provisional().unwrap();
+    client
+        .workspace
+        .bind(&keys, second.clone(), &crate::testing::SECRET)
+        .unwrap();
+    client.keys = Some(client.workspace.unlock(&crate::testing::SECRET).unwrap());
+    let root = crate::root::RootKeys::single(1, [6; 32]);
+    client.save_root(&root).unwrap();
+    client.root = Some(root);
+    assert_ne!(client.status().unwrap().device_id, first_device);
+    assert!(client.vault_list(&Filter::default()).unwrap().is_empty());
+    client.vault_put(None, None, &note("second")).unwrap();
+
+    let listed = client.accounts().unwrap();
+    assert_eq!(listed.len(), 2);
+    assert!(listed.iter().all(|a| a.bound));
+    assert_eq!(
+        listed.iter().find(|a| a.current).unwrap().account,
+        second.id.to_string()
+    );
+
+    // Switching locks; the other account's data is not readable from here.
+    let status = client.switch_account(&first.id).unwrap();
+    assert_eq!(status.state, "locked");
+    assert_eq!(status.account, Some(first.id.to_string()));
+    assert_eq!(status.device_id, first_device);
+    assert_eq!(
+        client
+            .switch_account(&"0m0g2081040g2081040g".parse().unwrap())
+            .err(),
+        Some(Error::NotFound)
+    );
+
+    // A restart opens the account selected last.
+    drop(client);
+    let reopened = Client::open(crate::testing::config(false), &dir.0, None).unwrap();
+    assert_eq!(
+        reopened.status().unwrap().account,
+        Some(first.id.to_string())
+    );
+}
+
+#[test]
+fn a_login_workspace_becomes_its_account() {
+    let dir = TempDir::new();
+    let mut client = Client::open(crate::testing::config(false), &dir.0, None).unwrap();
+    let status = client.status().unwrap();
+    assert_eq!((status.state, status.device_id), ("logged_out", None));
+    assert_eq!(client.agent_runtime().err(), Some(Error::AuthRequired));
+
+    let principal = Principal::from_slice(&[7; 29]);
+    client.select(Slot::Login(principal)).unwrap();
+    let device = client.status().unwrap().device_id;
+    assert!(device.is_some());
+    client.keys = Some(client.workspace.unlock_provisional().unwrap());
+    let account = crate::testing::account();
+    let keys = client.keys.take().unwrap();
+    client
+        .workspace
+        .bind(&keys, account.clone(), &crate::testing::SECRET)
+        .unwrap();
+    client.keys = Some(keys);
+    client.adopt(&account.id).unwrap();
+    assert!(client.keys().is_ok());
+    assert_eq!(client.status().unwrap().device_id, device);
+    assert!(!dir
+        .path("logins")
+        .join(principal.to_text())
+        .join(WORKSPACE)
+        .exists());
+    assert!(client
+        .agent_runtime()
+        .unwrap()
+        .starts_with(dir.path("accounts").join(account.id.to_string())));
+    assert_eq!(client.accounts().unwrap().len(), 1);
 }

@@ -181,3 +181,82 @@ fn wraps_bundles_that_open_with_their_chain() {
     )
     .is_err());
 }
+
+/// A vetKD derivation the PocketIC control-plane test produced for account
+/// `c2a41dj7n47abbo00000`, generation 1, to the transport seed `[91; 32]`.
+const RECOVERY_ACCOUNT: &str = "c2a41dj7n47abbo00000";
+const RECOVERY_PUBLIC: &str = "a17778d816ab4617e53bcdfa47e806945ee427e61c00c64523f1e529d8214b0337f2ac37c53d6bda54df34047b2ffe8e12e75302bc3e704484ebccf3540afec3f42ef3772c8f1c6e6cf82df566d59f4f2232ea4ad35c4a6762417c51b6969ab9";
+const RECOVERY_ENCRYPTED: &str = "adac5deb3bd35cf015cab21c69f56a475ebbba453ef2b0b3d824274dc6f27567f6df4f8491c400c8ebc560494db808178d0c99a522acac1afb312264b38f040952f7af852e2f538c33b506a4412fd0fc2fe8cdb4ad0fd548d0e38549193a3cb518a7b7fa83a3fa8979763f94aebf658b34fe4533ede0b09be50b1c7637ba6e867c9bb3591b57275915e86520af21a5e9af5405036e7924ee991eb6721dbe931b8ede3b278f27bfba1c100efe32e234262c97cf1570aa19631c04ffcdeb9e2f94";
+
+#[test]
+fn a_derived_key_opens_the_recovery_envelope_and_its_chain() {
+    let public = hex::decode(RECOVERY_PUBLIC).unwrap();
+    let recovery = RecoveryKey {
+        home_cose: "aaaaa-aa".into(),
+        key_name: "dfx_test_key".into(),
+        public_key: b64(&public),
+    };
+    let signer = (Hash::new([1; 32]), [2u8; 32]);
+    let recipients = [Recipient {
+        device: signer.0,
+        hpke_pub: Hash::new(hpke_public(&[3; 32])),
+    }];
+    let context = |generation| RootContext {
+        account: RECOVERY_ACCOUNT.into(),
+        environment: "local".into(),
+        generation,
+        op_id: "51".repeat(32),
+        security_epoch: 1,
+    };
+    let earlier = wrap_root(
+        &context(1),
+        &[40; 32],
+        &recipients,
+        &recovery,
+        (&signer.0, &signer.1),
+        None,
+    )
+    .unwrap();
+    let digest = bundle_digests(&parse_bundle(&earlier).unwrap()).unwrap();
+    let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();
+    let vetkey =
+        ic_vetkeys::EncryptedVetKey::deserialize(&hex::decode(RECOVERY_ENCRYPTED).unwrap())
+            .unwrap()
+            .decrypt_and_verify(
+                &transport,
+                &DerivedPublicKey::deserialize(&public).unwrap(),
+                &recovery_identity(&RECOVERY_ACCOUNT.parse().unwrap(), 1),
+            )
+            .unwrap();
+    let (root, history) = open_recovered(
+        std::slice::from_ref(&earlier),
+        &digest.bundle,
+        (RECOVERY_ACCOUNT, "local", 1),
+        &vetkey,
+    )
+    .unwrap();
+    assert_eq!(*root, [40; 32]);
+    assert!(history.is_empty());
+    // The key of another generation's identity does not verify.
+    assert!(
+        ic_vetkeys::EncryptedVetKey::deserialize(&hex::decode(RECOVERY_ENCRYPTED).unwrap())
+            .unwrap()
+            .decrypt_and_verify(
+                &transport,
+                &DerivedPublicKey::deserialize(&public).unwrap(),
+                &recovery_identity(&RECOVERY_ACCOUNT.parse().unwrap(), 2),
+            )
+            .is_err()
+    );
+    // Nor does the envelope open for another committed digest.
+    assert_eq!(
+        open_recovered(
+            std::slice::from_ref(&earlier),
+            &Hash::new([9; 32]),
+            (RECOVERY_ACCOUNT, "local", 1),
+            &vetkey,
+        )
+        .err(),
+        Some(Error::IntegrityFailed)
+    );
+}

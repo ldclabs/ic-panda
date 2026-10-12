@@ -1,6 +1,6 @@
 # 账户控制与根封装合同
 
-日期：2026-10-08，2026-10-12 按桌面客户端（`src/dmsg_client`）更新。生产发布门禁保持关闭。
+日期：2026-10-08，2026-10-12 按桌面客户端（`src/dmsg_client`）更新，2026-10-13 补认证绑定、按账户分开的工作区与全设备丢失恢复。生产发布门禁保持关闭。
 此文描述公开客户端实现，不代表生产 key 或生产部署已验收。
 
 ## 账户控制
@@ -11,7 +11,18 @@ user home 不在客户端配置中固定。客户端读取 `dmsg_handle.get_hand
 
 客户端在联网前把完整请求写入工作区的加密日志。响应丢失时通过 `my_account` / `get_operation` 查询原操作；不会把认证成功或返回账户 ID 当成设备批准。当前账户安全叶（schema 4）、完整设备 map、版本及根摘要先经 IC 证书校验；本机已经看到的更高版本和已安装根不得被旧响应覆盖。
 
-新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。根包只封装给持有 `VaultUnlock` 的活跃设备：新设备持有它时，管理员换根后它才能读到根；没有它的设备不在根包中，客户端也不尝试打开根。云端同样按 `VaultUnlock` 放行账户密文读取。账户的初始设备和登录恢复的替换设备必须同时持有 `RootManage` 与 `VaultUnlock`。认证绑定分三步：新登录在本机生成 nonce 并把请求（home、账户、Principal、nonce）交给管理员设备；管理员批准 `BindAuth { principal, nonce }`，账户内登记 10 分钟有效的待接受项；新登录用同一 nonce 调用 `accept_auth_binding` 后才绑定。登录身份不等同于设备授权。桌面客户端尚未实现认证绑定（`BindAuth` 与 `accept_auth_binding`），只能用账户已绑定的登录配对新设备。
+新设备请求绑定目标账户、home、设备公钥、角色、能力、预期版本、请求 ID；管理员核对后批准。默认成员为 ContentSign/VaultUnlock，默认管理员另含 RootManage，不默认开启 FormalApprove/PaymentOffer。根包只封装给持有 `VaultUnlock` 的活跃设备：新设备持有它时，管理员换根后它才能读到根；没有它的设备不在根包中，客户端也不尝试打开根。云端同样按 `VaultUnlock` 放行账户密文读取。账户的初始设备和登录恢复的替换设备必须同时持有 `RootManage` 与 `VaultUnlock`。认证绑定分三步：新登录在本机生成 nonce 并把请求（home、账户、Principal、nonce）交给管理员设备；管理员批准 `BindAuth { principal, nonce }`，账户内登记 10 分钟有效的待接受项；新登录用同一 nonce 调用 `accept_auth_binding` 后才绑定。登录身份不等同于设备授权。
+
+客户端的认证绑定（`dmsg_client::security`）有两种走法，管理员一侧都经审批中心批准：
+
+- **跨设备**：没有账户的新登录生成请求令牌（base64url 的确定性 CBOR `{format: "dmsg-auth-request/1", home, account, principal, nonce, expires_at}`，5 分钟有效），nonce 记在该登录的工作区；管理员设备核对令牌的 home、账户与期限，并由人输入对方显示的登录 Principal 后创建审批；批准后新登录调用 `accept_auth_binding`，随即进入该账户的工作区（本机已有该账户的已绑定工作区时直接解锁，否则等待配对或恢复）。
+- **同一设备**：已解锁的设备发起一次“用于绑定”的登录，daemon 收到第二个登录的 delegation 后不切换账户，而是先确认它没有账户，再生成 nonce 并创建审批；批准即提交 `BindAuth`，随后用第二个登录的身份调用 `accept_auth_binding`。该身份只留在内存，至多等待 10 分钟。
+
+`RemoveAuth`（不能移除当前使用的登录）、`SetPolicy`（冻结、每日执行次数、允许的用途）、`SetRecoveryDelay` 与 `DisputeRecovery` 同样经审批中心。审批记录里登录 Principal 以文本保存，签名前才转换为命令。
+
+## 本机工作区
+
+每个账户在本机有自己的工作区，账户之间互不可见：`<home>/<environment>/accounts/<account>/` 存放该账户的 `workspace.sqlite` 与 Agent 连接器状态 `agents.sqlite`；还没有账户的登录用 `logins/<principal>/`，等它有了账户（创建、被绑定）后整个目录改名为 `accounts/<account>/`。登录时客户端用 `my_account` 找到该登录的账户并选择对应工作区，没有时选择该登录自己的工作区；同一账户的不同登录共用一个工作区。`current` 记录最近选择的账户，daemon 重启和快速解锁使用它；切换到另一个账户的工作区时先锁定，其驻留密钥一并丢弃。每个工作区有自己的设备 ID 与密钥，所以同一台电脑上的不同账户是不同的设备。
 
 ## 本机解锁
 
@@ -68,7 +79,7 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 
 ## 全设备丢失恢复
 
-桌面客户端目前只能在第 2 步提交 `DisputeRecovery`；申请、完成与派生打开（第 1、3、4 步）尚未实现。
+客户端实现见 `dmsg_client::recovery`：申请封存在新设备的工作区，回复丢失时原样重发（同一申请不会重新开始等待）；派生的批准与传输密钥种子按承诺的根摘要封存为 `recover-root:<digest>`，结果先按执行 ID 读取，原批准过期且认证时间与设备序号证明它不可能再执行时才重新批准；`max_cycles` 固定为 700 亿。完成后客户端解开恢复信封、沿 `previous` 链取得历史根，再换根。
 
 1. 新设备用绑定过的 II 账户登录，提交 `request_recovery(account_id, RecoveryRequest { op_id, new_auth = caller, device, expires_at }, device_proof)`，设备 PoP 为 `dmsg/recovery-device/v1`。II 也丢了就不能恢复。
 2. 等待 `recovery_delay_ms`（默认 3 天，`SetRecoveryDelay` 可设 1–7 天）。等待期间已有设备从认证叶 `pending_recovery_digest` 看到申请，任意有效设备提交 `DisputeRecovery { op_id }` 即取消；用 `RemoveAuth` 解除发起申请的登录同样作废申请。没有再确认流程。

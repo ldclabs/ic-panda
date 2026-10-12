@@ -272,15 +272,16 @@ impl Daemon {
             // keys leave the client lock for the call only.
             let runtime = self.agents();
             let turn = runtime.turn().await;
-            let (signer, mail_keys) = {
+            let (path, signer, mail_keys) = {
                 let mut client = self.client().lock().await;
                 (
+                    client.agent_runtime()?,
                     client.agent_signer(&agent.agent_id)?,
                     client.agent_mail_keys(&agent.agent_id)?,
                 )
             };
             let called = runtime
-                .call(&turn, signer, Some(&mail_keys), tool, input)
+                .call(&turn, &path, signer, Some(&mail_keys), tool, input)
                 .await?;
             if called.mail_keys != mail_keys {
                 self.client()

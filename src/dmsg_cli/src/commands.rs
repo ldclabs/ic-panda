@@ -331,6 +331,35 @@ pub enum HandleCommand {
         /// The name.
         name: String,
     },
+    /// Offer a name this account owns to another account; prints a token
+    /// for the target to accept.
+    Transfer {
+        /// The name.
+        name: String,
+        /// The target account.
+        target: String,
+    },
+    /// Accept a transfer token naming this account; goes through the
+    /// approval center. The owner then has about a minute to commit.
+    Accept {
+        /// The token printed by `dmsg handle transfer`.
+        token: String,
+    },
+    /// Move the name once the target accepted; goes through the approval center.
+    Commit {
+        /// Operation ID printed by `dmsg handle transfer`.
+        id: String,
+    },
+    /// This account's name operations.
+    Operations,
+    /// Settle a registration whose charge is unknown with its ledger block.
+    Reconcile {
+        /// Operation ID.
+        id: String,
+        /// The ledger block of the charge.
+        #[arg(long)]
+        block: u64,
+    },
 }
 
 fn json_arg(text: &str) -> Result<Value, Failure> {
@@ -594,6 +623,35 @@ pub async fn handle(remote: &Remote, json: bool, command: HandleCommand) -> Resu
                 .call("handle/register", json!({"name": name, "source": "cli"}))
                 .await?;
             return created(remote, json, request).await;
+        }
+        HandleCommand::Transfer { name, target } => {
+            let offered = remote
+                .call("handle/transfer", json!({"name": name, "target": target}))
+                .await?;
+            print(json, &offered, |v| {
+                format!(
+                    "On a device of {target} run:\n  dmsg handle accept {}\nthen here, within a minute of its approval:\n  dmsg handle commit {}",
+                    v["token"].as_str().unwrap_or_default(),
+                    v["operation"]["id"].as_str().unwrap_or_default()
+                )
+            });
+            return Ok(());
+        }
+        HandleCommand::Accept { token } => {
+            let request = remote
+                .call("handle/accept", json!({"token": token, "source": "cli"}))
+                .await?;
+            return created(remote, json, request).await;
+        }
+        HandleCommand::Commit { id } => {
+            let request = remote
+                .call("handle/transfer_commit", json!({"id": id, "source": "cli"}))
+                .await?;
+            return created(remote, json, request).await;
+        }
+        HandleCommand::Operations => ("handle/operations", Value::Null),
+        HandleCommand::Reconcile { id, block } => {
+            ("handle/reconcile", json!({"id": id, "block": block}))
         }
     };
     let value = remote.call(method, params).await?;

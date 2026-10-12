@@ -68,10 +68,12 @@ const CONNECT_POLL_MS: u64 = 30_000;
 const APP_PROTOCOL: &str = "dmsg-app/1";
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 51] = [
+const METHODS: [&str; 53] = [
     "session/status",
     "session/login",
     "session/login_result",
+    "session/accounts",
+    "session/switch",
     "session/unlock",
     "session/lock",
     "session/fast_unlock",
@@ -150,7 +152,12 @@ const CALLBACK_PAGE: &str = r#"<!doctype html>
 #[derive(Default)]
 struct LoginState {
     session: Option<LoginSession>,
+    /// A login started to bind another identity to the unlocked account,
+    /// with the source of the approval it asks for.
+    bind: Option<String>,
     outcome: Option<std::result::Result<(), String>>,
+    /// The approval request a binding login created.
+    approval: Option<Value>,
 }
 
 pub(crate) struct Daemon {
@@ -223,15 +230,12 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         None => Vec::new(),
     };
     let mcp = crate::mcp_events::McpEvents::new(&local_roots)?;
-    let agents = dmsg_agent::Runtime::new(
-        &client.agent_runtime(),
-        &dmsg_agent::Options {
-            hosts: settings.agent_hosts.clone(),
-            blocked_senders: settings.agent_blocked_senders.clone(),
-            local_roots,
-            local: settings.config.environment == dmsg_types::Environment::Local,
-        },
-    )?;
+    let agents = dmsg_agent::Runtime::new(&dmsg_agent::Options {
+        hosts: settings.agent_hosts.clone(),
+        blocked_senders: settings.agent_blocked_senders.clone(),
+        local_roots,
+        local: settings.config.environment == dmsg_types::Environment::Local,
+    })?;
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port))
         .await
         .map_err(|e| Error::Unavailable(format!("listen: {e}")))?;
@@ -477,9 +481,15 @@ impl Daemon {
         let targets = login_targets(&config).await?;
         let session = LoginSession::new(&targets, origin, self.port, DEFAULT_TTL_MS, now_ms())?;
         let reply = json!({"url": session.url(&config), "expires_at": session.deadline});
+        let bind = match params["bind"] == true {
+            true => Some(crate::account_methods::source(params)?.to_string()),
+            false => None,
+        };
         *self.login.lock().expect("login state") = LoginState {
             session: Some(session),
+            bind,
             outcome: None,
+            approval: None,
         };
         Ok(reply)
     }
@@ -503,22 +513,35 @@ impl Daemon {
             "session/status" => self.status().await,
             "session/login" => self.start_login(params).await,
             "session/login_result" => {
-                let (pending, outcome) = {
+                let (pending, outcome, approval) = {
                     let login = self.login.lock().expect("login state");
                     let pending = login
                         .session
                         .as_ref()
                         .is_some_and(|s| s.deadline > now_ms());
-                    (pending, login.outcome.clone())
+                    (pending, login.outcome.clone(), login.approval.clone())
                 };
                 Ok(json!({
                     "pending": pending,
                     "error": outcome.and_then(|o| o.err()),
+                    "approval": approval,
                     "status": self.status().await?,
                 }))
             }
+            "session/accounts" => Ok(to_json(&self.client.lock().await.accounts()?)),
+            "session/switch" => {
+                let account = account_id(&text("account")?)?;
+                let status = self.client.lock().await.switch_account(&account)?;
+                *self.last_connect.lock().expect("connect report") = None;
+                Ok(to_json(&status))
+            }
             "session/unlock" => {
                 let mut client = self.client.lock().await;
+                // Fast unlock of another account here selects it first.
+                if let Some(account) = params["account"].as_str() {
+                    client.switch_account(&account_id(account)?)?;
+                    *self.last_connect.lock().expect("connect report") = None;
+                }
                 let status = match params["fast"].as_bool().unwrap_or(false) {
                     true => client.unlock_fast().await?,
                     false => client.unlock().await?,
@@ -673,15 +696,14 @@ impl Daemon {
                 Ok(to_json(&profile))
             }
             "profile/resolve" => {
-                let account = <AccountId as std::str::FromStr>::from_str(&text("account")?)
-                    .map_err(|_| Error::InvalidInput("account".into()))?;
+                let account = account_id(&text("account")?)?;
                 let profile = self.client.lock().await.profile_resolve(&account).await?;
                 Ok(to_json(&profile))
             }
             "workspace/reset" => {
                 let mut client = self.client.lock().await;
                 // The caller names this device, as shown in the status.
-                if text("device")? != client.status()?.device_id {
+                if Some(text("device")?) != client.status()?.device_id {
                     return Err(Error::InvalidInput("device does not match".into()));
                 }
                 Ok(to_json(&client.reset()?))
@@ -833,6 +855,9 @@ impl Daemon {
                 }))
             }
             "hint/status" => Ok(to_json(&self.hints.lock().expect("hint state").clone())),
+            m if crate::account_methods::METHODS.contains(&m) => {
+                self.call_account(method, params).await
+            }
             m if crate::agents::METHODS.contains(&m) => self.call_agents(method, params).await,
             m if crate::mcp_events::METHODS.contains(&m) => {
                 self.call_mcp_events(method, params).await
@@ -849,6 +874,11 @@ fn source(params: &Value) -> Result<String> {
         Some("cli") | None => Ok("cli".into()),
         Some(_) => Err(Error::InvalidInput("source".into())),
     }
+}
+
+fn account_id(text: &str) -> Result<AccountId> {
+    text.parse()
+        .map_err(|_| Error::InvalidInput("account ID".into()))
 }
 
 fn hash(text: &str) -> Result<Hash> {
@@ -874,7 +904,11 @@ fn capability(name: &str) -> Result<dmsg_types::user::Capability> {
 /// The events a method's success announces.
 fn events_of(method: &str) -> &'static [&'static str] {
     match method {
-        "session/login" | "session/login_result" | "session/fast_unlock" => &[],
+        "session/status"
+        | "session/login"
+        | "session/login_result"
+        | "session/accounts"
+        | "session/fast_unlock" => &[],
         m if m.starts_with("session/") || m == "workspace/reset" || m == "account/create" => {
             &["session/changed", "approval/changed"]
         }
@@ -890,6 +924,7 @@ fn events_of(method: &str) -> &'static [&'static str] {
         | "connect/sync" => &["approval/changed"],
         "connect/grant" | "connect/revoke" => &["connect/changed"],
         "device/approve" => &["session/changed"],
+        m if crate::account_methods::METHODS.contains(&m) => crate::account_methods::events_of(m),
         m if m.starts_with("agent/")
             || m.starts_with("grants/")
             || m.starts_with("ap/")
@@ -994,6 +1029,7 @@ impl Daemon {
         }
         if !METHODS.contains(&method)
             && !crate::methods::METHODS.contains(&method)
+            && !crate::account_methods::METHODS.contains(&method)
             && !crate::agents::METHODS.contains(&method)
             && !crate::mcp_events::METHODS.contains(&method)
             && !agent_method
@@ -1135,6 +1171,7 @@ async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: B
     else {
         return StatusCode::NOT_FOUND.into_response();
     };
+    let bind = daemon.login.lock().expect("login state").bind.clone();
     let origin = headers.get(header::ORIGIN).and_then(|v| v.to_str().ok());
     let own = [
         format!("http://127.0.0.1:{}", daemon.port),
@@ -1148,13 +1185,32 @@ async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: B
         Err(Error::Forbidden)
     } else {
         match session.accept(&body, now) {
-            Ok(delegated) => daemon
-                .client
-                .lock()
-                .await
-                .login(delegated.identity, delegated.expires_at)
-                .await
-                .map(|_| ()),
+            // A second login for the unlocked account: it waits for the
+            // person to approve binding it.
+            Ok(delegated) => match bind {
+                Some(source) => daemon
+                    .client
+                    .lock()
+                    .await
+                    .bind_login(&source, delegated.identity, delegated.expires_at)
+                    .await
+                    .map(|approval| {
+                        daemon.login.lock().expect("login state").approval = Some(approval);
+                        daemon.emit("approval/changed", Value::Null);
+                    }),
+                None => {
+                    let login = daemon
+                        .client
+                        .lock()
+                        .await
+                        .login(delegated.identity, delegated.expires_at)
+                        .await
+                        .map(|_| ());
+                    // The login may have selected another account.
+                    *daemon.last_connect.lock().expect("connect report") = None;
+                    login
+                }
+            },
             Err(error) => Err(error),
         }
     };

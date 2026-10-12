@@ -11,6 +11,7 @@
   let title = $state('')
   let body = $state('')
   let selected = $state<any>(null)
+  let checked = $state<Record<string, string>>({})
 
   async function load() {
     error = ''
@@ -38,6 +39,23 @@
     selected = null
     await load()
   }
+
+  /** Files enter and leave through system dialogs; the window never names a path. */
+  async function fileAction(work: () => Promise<unknown>) {
+    error = ''
+    try {
+      await work()
+      await load()
+    } catch (e) {
+      error = `${t('error')}: ${code(e)}`
+    }
+  }
+
+  const verify = (id: string) =>
+    fileAction(async () => {
+      const manifest: any = await call('file/verify', { id })
+      checked[id] = `${t('verified')} · ${manifest.size} bytes · sha256 ${String(manifest.sha256).slice(0, 16)}…`
+    })
 
   onMount(() => {
     void load()
@@ -73,6 +91,13 @@
           <dt>updated</dt>
           <dd>{when(item.item.updatedAt)}</dd>
         </dl>
+        {#if item.item.file && !trash}
+          <div class="row">
+            <button onclick={() => fileAction(() => window.dmsg.exportFile(item.id, item.item.file.name))}>{t('exportFile')}</button>
+            <button onclick={() => verify(item.id)}>{t('verifyFile')}</button>
+            {#if checked[item.id]}<span class="muted" data-testid="file-checked">{checked[item.id]}</span>{/if}
+          </div>
+        {/if}
       {/if}
     </li>
   {:else}
@@ -84,7 +109,10 @@
     <h2>{t('add')}</h2>
     <input placeholder={t('title')} bind:value={title} />
     <textarea placeholder={t('body')} bind:value={body} style="margin-top: 8px"></textarea>
-    <button class="primary" style="margin-top: 8px" onclick={add}>{t('save')}</button>
+    <div class="row" style="margin-top: 8px">
+      <button class="primary" onclick={add}>{t('save')}</button>
+      <button data-testid="import-file" onclick={() => fileAction(() => window.dmsg.importFile())}>{t('importFile')}</button>
+    </div>
   </div>
 {/if}
 

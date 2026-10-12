@@ -2,7 +2,10 @@
 // profile. Checks the main window, the approval window opened by a dmsg://
 // link, that only the approval window decides, and that it decides what it
 // showed, and that the channel, inbox, plan and agent views reach the daemon
-// with payments and grants only as approval requests. Run with `pnpm test:e2e`.
+// with payments and grants only as approval requests; that another account's
+// workspace is selected from Settings, that binding a login and a web
+// checkout are approval requests, and that a web checkout is quoted before it
+// can be approved. Run with `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { createServer } from 'node:http'
@@ -70,9 +73,25 @@ const channel = {
 const messages = [{ seq: 1, account: peer, device: '55'.repeat(32), message_id: '66'.repeat(32), epoch: 1, created_at: Date.now(), stored_at: Date.now(), text: 'Hello channel', file: null }]
 const ledger = 'ryjl3-tyaaa-aaaaa-aaaba-cai'
 const claude = 'did:agent:' + 'Q'.repeat(43)
+const other = '0k0g2081040g2081040g'
+const login = 'rdmx6-jaaaa-aaaaa-aaadq-cai'
+const checkoutRequest = {
+  ...request,
+  id: 'c1'.repeat(32),
+  digest: 'c2'.repeat(32),
+  detail: {
+    ...request.detail,
+    method: 'checkout',
+    kind: 'checkout',
+    content: { product_id: 'token-list', sku: 'pro', amount_usd_micros: '3000000', method: 'Cash' }
+  }
+}
 const checkouts = []
 const calls = []
-const requests = new Map([[request.id, request]])
+const requests = new Map([
+  [request.id, request],
+  [checkoutRequest.id, checkoutRequest]
+])
 let sockets = []
 function emit(type) {
   for (const s of sockets) s.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: 1, type } }))
@@ -118,6 +137,54 @@ const methods = {
     return created
   },
   'account/show': () => ({ devices: [{ current: true, capabilities: ['ContentSign', 'FormalApprove'] }] }),
+  'session/accounts': () => [
+    { account, device_id: '11'.repeat(32), bound: true, fast_unlock: false, login_unlocked_at: Date.now(), current: true },
+    { account: other, device_id: '12'.repeat(32), bound: true, fast_unlock: false, login_unlocked_at: Date.now() - 1, current: false }
+  ],
+  'session/switch': (p) => ({ ...status(), state: 'locked', account: p.account }),
+  'account/security': () => ({
+    logins: [{ principal: login, current: true }],
+    policy: { frozen: false, allowed_purposes: ['FileAttestation', 'Statement', 'AppAction'], daily_executions: 20 },
+    recovery_delay_ms: 3 * 86_400_000,
+    pending_recovery: null,
+    recovered_device: null
+  }),
+  'account/bind_approve': (p) => {
+    assert.equal(p.source, 'gui')
+    assert.equal(p.token, 'binding-token')
+    const created = {
+      ...request,
+      id: 'b1'.repeat(32),
+      source: 'gui',
+      state: 'awaiting_user',
+      type: 'account',
+      kind: 'account',
+      digest: 'b2'.repeat(32),
+      detail: { change: 'bind_login', principal: p.principal, nonce: 'b3'.repeat(32) }
+    }
+    requests.set(created.id, created)
+    return created
+  },
+  'approval/quote': (p) => {
+    assert.deepEqual(p, { id: checkoutRequest.id, selection: ledger })
+    const quoted = {
+      ...checkoutRequest,
+      digest: 'c3'.repeat(32),
+      detail: {
+        ...checkoutRequest.detail,
+        checkout: {
+          id: 'c4'.repeat(32),
+          actor: login,
+          sku: 'pro',
+          terms: { method: 'Cash', ledger, asset: 'Icp', amount: '300000000', fee_reserve: '20000', decimals: 8, funding_deadline_ms: Date.now() + 600_000 }
+        }
+      }
+    }
+    requests.set(quoted.id, quoted)
+    return quoted
+  },
+  'handle/operations': () => [],
+  'profile/show': () => null,
   'connect/pairings': () => [],
   'connect/sync': () => ({ fetched: 0 }),
   'channel/list': () => [channel],
@@ -232,6 +299,10 @@ server.on('upgrade', (req, socket, head) => {
     ws.on('close', () => (sockets = sockets.filter((s) => s !== ws)))
   })
 })
+async function waitFor(check) {
+  for (let i = 0; i < 100 && !check(); i++) await new Promise((r) => setTimeout(r, 100))
+  assert.ok(check())
+}
 await new Promise((r) => server.listen(0, '127.0.0.1', r))
 const port = server.address().port
 const profile = await mkdtemp(join(tmpdir(), 'dmsg-desktop-smoke-'))
@@ -253,7 +324,7 @@ const app = await electron.launch({
 try {
   const main = await app.firstWindow()
   await main.waitForSelector('text=Smoke note', { timeout: 20_000 })
-  assert.equal(await main.textContent('[data-testid="waiting-count"]'), '1')
+  assert.equal(await main.textContent('[data-testid="waiting-count"]'), '2')
   await main.screenshot({ path: join(shots, 'main.png') })
 
   // The main window cannot decide, even through the bridge's own methods.
@@ -323,6 +394,34 @@ try {
   assert.equal(await approval.textContent('[data-testid="approval-subject"]'), claude)
   await approval.screenshot({ path: join(shots, 'delegation.png') })
   await main.screenshot({ path: join(shots, 'agents.png') })
+  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
+
+  // A web checkout cannot be approved before it is quoted, and the quote is what is approved.
+  await app.evaluate(({ app }, url) => app.emit('open-url', { preventDefault() {} }, url), `dmsg://connect/request?account=${account}&request=${checkoutRequest.id}`)
+  await approval.waitForSelector('[data-testid="checkout-quote"]', { timeout: 20_000 })
+  assert.equal(await approval.isDisabled('[data-testid="approve"]'), true)
+  await approval.click('button:has-text("Get a quote"), button:has-text("获取报价")')
+  await approval.waitForSelector('[data-testid="approval-amount"]', { timeout: 20_000 })
+  assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('3 Icp'))
+  assert.equal(await approval.isDisabled('[data-testid="approve"]'), false)
+  await approval.screenshot({ path: join(shots, 'connect-checkout.png') })
+
+  // Settings lists this device's accounts, switches between them, and asks
+  // the approval window to bind another login.
+  await main.click('nav >> text=/Settings|设置/')
+  await main.waitForSelector('[data-testid="local-accounts"]')
+  assert.ok((await main.textContent('[data-testid="local-accounts"]')).includes(other))
+  await main.waitForSelector('[data-testid="logins"]')
+  await main.fill('[data-testid="approve-request"]', 'binding-token')
+  await main.fill('[data-testid="approve-shown"]', 'aaaaa-aa')
+  await main.click('button:has-text("Approve the login"), button:has-text("批准绑定登录")')
+  await approval.waitForSelector('[data-testid="approval-principal"]', { timeout: 20_000 })
+  assert.equal(await approval.textContent('[data-testid="approval-principal"]'), 'aaaaa-aa')
+  await approval.screenshot({ path: join(shots, 'bind-login.png') })
+  await main.screenshot({ path: join(shots, 'settings.png') })
+  await main.click('[data-testid="local-accounts"] >> text=/^(Switch|切换)$/')
+  await waitFor(() => calls.some((c) => c.method === 'session/switch'))
+  assert.deepEqual(calls.find((c) => c.method === 'session/switch').params, { account: other })
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
   console.log('desktop smoke test passed')
 } finally {

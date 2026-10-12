@@ -13,6 +13,7 @@
   let text = $state('')
   let pay = $state(false)
   let sent = $state<any>(null)
+  let escrows = $state<Record<string, any>>({})
   let error = $state('')
   let busy = $state(false)
 
@@ -65,6 +66,18 @@
       sent = await call('inbox/order', { recipient: order.recipient, order: order.order_id })
     })
 
+  /** The escrow of a paid letter and its transfers; a refused one is resent at the fee the ledger asked for. */
+  const funds = (order: any) =>
+    attempt(async () => {
+      escrows[order.order_id] = await call('inbox/escrow', { order: order.order_id })
+    })
+
+  const revise = (order: any, leg: any) =>
+    attempt(async () => {
+      await call('payment/revise', { escrow: leg.escrow_id, leg: leg.leg_id })
+      escrows[order.order_id] = await call('inbox/escrow', { order: order.order_id })
+    })
+
   onMount(() => {
     void load()
     return window.dmsg.onEvent((event) => {
@@ -115,9 +128,26 @@
       <h2>{t('sentLetters')}</h2>
       <ul class="list">
         {#each outgoing as order (order.order_id)}
-          <li class="row spread">
-            <span><span class="mono">{order.recipient}</span>{order.paid ? ` · ${t('paid')}` : ''}</span>
-            <button disabled={busy} onclick={() => check(order)}>{t('status')}</button>
+          <li>
+            <div class="row spread">
+              <span><span class="mono">{order.recipient}</span>{order.paid ? ` · ${t('paid')}` : ''}</span>
+              <span class="row">
+                <button disabled={busy} onclick={() => check(order)}>{t('status')}</button>
+                {#if order.paid}<button disabled={busy} onclick={() => funds(order)}>{t('funds')}</button>{/if}
+              </span>
+            </div>
+            {#if escrows[order.order_id]}
+              <ul class="list" data-testid="escrow-transfers">
+                {#each escrows[order.order_id].transfers as leg (leg.leg_id)}
+                  <li class="row spread">
+                    <span><span class="badge">{leg.status}</span> {leg.kind} · {leg.amount} → <span class="mono">{leg.to}</span></span>
+                    {#if ['FeeBlocked', 'Rejected'].includes(leg.status)}
+                      <button disabled={busy} onclick={() => revise(order, leg)}>{t('revise')}</button>
+                    {/if}
+                  </li>
+                {/each}
+              </ul>
+            {/if}
           </li>
         {/each}
       </ul>

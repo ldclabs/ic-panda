@@ -8,6 +8,8 @@
   let error = $state('')
   let busy = $state(false)
   let outcome = $state('')
+  let assets = $state<any[]>([])
+  let selection = $state('')
 
   async function load() {
     try {
@@ -33,11 +35,39 @@
     }
   }
 
+  /** A web checkout is quoted here first, so the amount approved is the amount shown. */
+  async function quote() {
+    busy = true
+    error = ''
+    try {
+      request = await call('approval/quote', { id: request.id, selection: selection.trim() })
+    } catch (e) {
+      error = `${t('error')}: ${code(e)}`
+    } finally {
+      busy = false
+    }
+  }
+
   onMount(() => {
-    void load()
+    void load().then(async () => {
+      if (request?.detail?.method === 'checkout' && request.detail.content?.method === 'Cash') {
+        assets = await call('plan/assets').catch(() => [])
+        if (assets.length) selection = assets[0].ledger
+      }
+    })
   })
   const d = $derived(request?.detail ?? {})
   const s = $derived(d.statement ?? d.content?.statement)
+  /** Terms of a checkout: a web checkout's quote, or this device's own. */
+  const terms = $derived(request?.type === 'connect' ? d.checkout : request?.type === 'checkout' ? d : null)
+  const changes: Record<string, string> = {
+    bind_login: t('bindLogin'),
+    remove_login: `${t('remove')} ${t('loginPrincipal')}`,
+    policy: t('signingPolicy'),
+    recovery_delay: t('recoveryDelay'),
+    dispute_recovery: t('disputeRecovery')
+  }
+  const unquoted = $derived(request?.type === 'connect' && d.method === 'checkout' && !d.checkout)
 </script>
 
 {#if !request}
@@ -60,7 +90,9 @@
                   : t('delegationGrant')
                 : request.type === 'principal'
                   ? t('principalChange')
-                  : request.type}
+                  : request.type === 'account'
+                    ? t('accountChange')
+                    : request.type}
   </h1>
   <div class="card">
     <dl>
@@ -88,30 +120,49 @@
         <dt>{t('capabilities')}</dt>
         <dd>{d.capabilities?.join(', ')}</dd>
       {/if}
-      {#if request.type === 'checkout'}
+      {#if request.type === 'connect' && d.method === 'checkout'}
         <dt>{t('plan')}</dt>
-        <dd data-testid="approval-sku">{d.sku} · {d.origin}</dd>
+        <dd>{d.content?.product_id} · {d.content?.sku}</dd>
         <dt>{t('price')}</dt>
-        <dd>${units(d.amount_usd_micros, 6)}</dd>
-        {#if d.terms?.method === 'Cash'}
+        <dd>${units(d.content?.amount_usd_micros ?? '0', 6)} · {d.content?.method}</dd>
+      {/if}
+      {#if terms}
+        {#if request.type === 'checkout'}
+          <dt>{t('plan')}</dt>
+          <dd data-testid="approval-sku">{terms.sku} · {terms.origin}</dd>
+          <dt>{t('price')}</dt>
+          <dd>${units(terms.amount_usd_micros, 6)}</dd>
+        {/if}
+        {#if terms.terms?.method === 'Cash'}
           <dt>{t('pay')}</dt>
           <dd data-testid="approval-amount">
-            {units(d.terms.amount, d.terms.decimals)} {d.terms.asset} + {t('fee')} {units(d.terms.fee_reserve, d.terms.decimals)}
+            {units(terms.terms.amount, terms.terms.decimals)} {terms.terms.asset} + {t('fee')} {units(terms.terms.fee_reserve, terms.terms.decimals)}
           </dd>
           <dt>{t('ledger')}</dt>
-          <dd class="mono">{d.terms.ledger}</dd>
+          <dd class="mono">{terms.terms.ledger}</dd>
           <dt>{t('deadline')}</dt>
-          <dd>{when(d.terms.funding_deadline_ms)}</dd>
-        {:else if d.terms}
+          <dd>{when(terms.terms.funding_deadline_ms)}</dd>
+        {:else if terms.terms}
           <dt>{t('neuron')}</dt>
-          <dd class="mono">{d.terms.neuron}</dd>
+          <dd class="mono">{terms.terms.neuron}</dd>
           <dt>{t('stake')}</dt>
-          <dd data-testid="approval-amount">{units(d.terms.required_stake_e8s, 8)} PANDA</dd>
+          <dd data-testid="approval-amount">{units(terms.terms.required_stake_e8s, 8)} PANDA</dd>
           <dt>{t('deadline')}</dt>
-          <dd>{when(d.terms.application_deadline_ms)}</dd>
+          <dd>{when(terms.terms.application_deadline_ms)}</dd>
         {/if}
         <dt>{t('payer')}</dt>
-        <dd class="mono">{d.actor}</dd>
+        <dd class="mono">{terms.actor}</dd>
+      {/if}
+      {#if request.type === 'account'}
+        <dt>{t('change')}</dt>
+        <dd data-testid="approval-change">{changes[d.change] ?? d.change}</dd>
+        {#if d.principal}<dt>{t('loginPrincipal')}</dt><dd class="mono" data-testid="approval-principal">{d.principal}</dd>{/if}
+        {#if d.change === 'policy'}
+          <dt>{t('signingPolicy')}</dt>
+          <dd>{d.frozen ? t('frozen') : t('formalOn')} · {d.daily_executions} · {d.allowed_purposes?.join(', ')}</dd>
+        {/if}
+        {#if d.delay_ms}<dt>{t('recoveryDelay')}</dt><dd>{Math.round(d.delay_ms / 86_400_000)}</dd>{/if}
+        {#if d.op_id}<dt>{t('recovery')}</dt><dd class="mono">{d.op_id}</dd>{/if}
       {/if}
       {#if request.type === 'letter'}
         <dt>{t('recipient')}</dt>
@@ -188,10 +239,25 @@
       {/if}
     </div>
   {/if}
+  {#if unquoted && request.state === 'awaiting_user'}
+    <div class="card" data-testid="checkout-quote">
+      <p class="warn">{t('quoteFirst')}</p>
+      <div class="row">
+        {#if d.content?.method === 'Cash'}
+          <select bind:value={selection} data-testid="quote-asset">
+            {#each assets as a (a.ledger)}<option value={a.ledger}>{a.asset}</option>{/each}
+          </select>
+        {:else}
+          <input placeholder={t('neuronHint')} bind:value={selection} />
+        {/if}
+        <button disabled={busy || !selection.trim()} onclick={quote}>{t('quote')}</button>
+      </div>
+    </div>
+  {/if}
   {#if error}<p class="error" data-testid="approval-error">{error}</p>{/if}
   {#if request.state === 'awaiting_user'}
     <div class="row">
-      <button class="primary" disabled={busy} data-testid="approve" onclick={() => decide(true)}>{t('approve')}</button>
+      <button class="primary" disabled={busy || unquoted} data-testid="approve" onclick={() => decide(true)}>{t('approve')}</button>
       <button disabled={busy} data-testid="reject" onclick={() => decide(false)}>{t('reject')}</button>
     </div>
   {:else}

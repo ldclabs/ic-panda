@@ -4,8 +4,12 @@ operating-system or daemon dependencies of its own: no process locks, no
 HTTP server, and the credential store comes in through the
 [`secure::SecureStorage`] trait.
 
-A [`Client`] is one device: its workspace, a login and, while unlocked, its
-keys. The daemon in `src/dmsg_cli` owns one instance.
+A [`Client`] is one device: its workspaces, a login and, while unlocked, the
+keys of the selected one. Each account has its own workspace, with its own
+device keys, under `accounts/<account>/`; a login without an account uses
+`logins/<principal>/` until it has one. A login selects its account's
+workspace, so accounts sharing a computer never see each other's data. The
+daemon in `src/dmsg_cli` owns one instance.
 
 | Module | Role |
 | --- | --- |
@@ -17,6 +21,8 @@ keys. The daemon in `src/dmsg_cli` owns one instance.
 | [`secure`] | The credential-store trait: the desktop daemon uses the system store, mobile apps the Keychain or Keystore |
 | [`ic`] | `ic-agent` calls with Candid-typed replies; a lost update reply is `ExecutionUnknown` |
 | [`account`] | Certified security (public, no login needed) and account state (with the login), the encrypted operation journal, account creation, device-approved mutations and pairing |
+| [`security`] | Bound logins (`BindAuth` and `accept_auth_binding`, across devices by a token or on one device with a second login), removing a login, the sensitive-execution policy, the recovery delay and disputes, each through the approval center |
+| [`recovery`] | Recovery after every device is lost: the delayed takeover request, its completion, the one vetKD derivation of the committed root and opening the bundle's recovery envelope, then a new root |
 | [`root`] | RootBundle v2: wrapping, parsing, opening with the previous-root chain, and the reserve → wrap → upload → commit sequence |
 | [`cloud`] | dmsg-cloud/1: security evidence, device commands and HTTP proof of possession, presigned commands, chunks, stored-command verification |
 | [`upload`] | Account uploads, resumable after the chunks already stored |
@@ -36,8 +42,8 @@ keys. The daemon in `src/dmsg_cli` owns one instance.
 | [`inbox`] | The contact policy and its synced inbox key, sealed letters, the paid-letter quote, escrow, admission and refund, and the recipient's letters checked against the sender's evidence |
 | [`payment`] | The `dmsg_payment` escrow: certified terms and escrows, funding checks, decisions, payouts and refunds |
 | [`wallet`] | ICRC transfers and approvals by the login's Principal or a PEM wallet, journaled before they are sent; a lost reply resends the same bytes |
-| [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription |
-| [`handle`] | Names: certified resolution, legacy claims and registrations as account-authorized intents |
+| [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription and for web applications' checkouts, and the records the wallet may read and repair as payer, merchant or operator |
+| [`handle`] | Names: certified resolution, legacy claims, registrations, transfers between accounts and charge reconciliation, as account-authorized intents |
 | [`agent`] | Agent Delegation with the account as principal: enabling it, controller keys kept as vault items, and grants and revocations signed here, journaled, then submitted to the delegation service |
 | [`agents`] | The Agent IDs this device hosts: keys as vault items, their mail keys sealed on the device, residency in the credential store, the credential an agent's MCP session presents, and the capabilities granted over the account |
 | [`mcp_events`] | MCP Events relay endpoints: callback URLs and `whsec_` secrets on the relay, deliveries fetched, opened with the device's HPKE key, checked again (`v1`, and `v1a` against the upstream's published keys), kept sealed under the LDK and read by cursor; `refresh_due` reminders |

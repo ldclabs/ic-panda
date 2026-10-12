@@ -98,6 +98,9 @@ pub(crate) fn unlocked(
     secure: Option<Arc<dyn SecureStorage>>,
 ) -> Client {
     let mut client = Client::open(config(background_online), dir, secure).unwrap();
+    client
+        .select(crate::client::Slot::Account(account().id))
+        .unwrap();
     let keys = client.workspace.unlock_provisional().unwrap();
     client.workspace.bind(&keys, account(), &SECRET).unwrap();
     client.workspace.meta.login_unlocked_at = Some(crate::now_ms());

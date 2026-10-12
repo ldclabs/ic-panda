@@ -22,7 +22,7 @@ use dmsg_types::{
     user::{AccountCommand, Capability, ContentRootRef},
     AccountId, Environment, Error, Hash, Result,
 };
-use ic_vetkeys::{DerivedPublicKey, IbeCiphertext, IbeIdentity, IbeSeed};
+use ic_vetkeys::{DerivedPublicKey, IbeCiphertext, IbeIdentity, IbeSeed, VetKey};
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
 use std::collections::BTreeMap;
@@ -422,17 +422,8 @@ pub fn open_root(
     device: &Hash,
     hpke_seed: &Key,
 ) -> Result<(Zeroizing<Key>, History)> {
-    ensure(
-        !bundles.is_empty() && bundles.len() <= MAX_CHAIN,
-        Error::QuotaExceeded,
-    )?;
-    let current = parse_bundle(&bundles[0])?;
-    let c = current.body.context.clone();
-    ensure(
-        bundle_digests(&current)?.bundle == *expected
-            && (c.account.as_str(), c.environment.as_str(), c.generation) == context,
-        Error::IntegrityFailed,
-    )?;
+    let current = current_bundle(bundles, expected, context)?;
+    let c = &current.body.context;
     let device = hex::encode(**device);
     let envelope = current
         .body
@@ -446,17 +437,67 @@ pub fn open_root(
             enc: envelope.enc.clone(),
             ciphertext: envelope.ciphertext.clone(),
         },
-        &device_context(&c, &device),
+        &device_context(c, &device),
     )?;
-    let root: Key = opened
-        .as_slice()
-        .try_into()
+    walk_chain(bundles, current, &opened)
+}
+
+/// Open the current bundle's recovery envelope with the vetKD key of its
+/// generation and walk its previous-root chain, as [`open_root`].
+///
+/// # Errors
+/// A key of another identity or generation returns `Error::IntegrityFailed`.
+pub fn open_recovered(
+    bundles: &[Vec<u8>],
+    expected: &Hash,
+    context: (&str, &str, u64),
+    vetkey: &VetKey,
+) -> Result<(Zeroizing<Key>, History)> {
+    let current = current_bundle(bundles, expected, context)?;
+    let ciphertext = IbeCiphertext::deserialize(&unb64(&current.body.recovery)?)
         .map_err(|_| Error::IntegrityFailed)?;
+    let opened = Zeroizing::new(
+        ciphertext
+            .decrypt(vetkey)
+            .map_err(|_| Error::IntegrityFailed)?,
+    );
+    walk_chain(bundles, current, &opened)
+}
+
+/// The current bundle, checked against the committed digest and context.
+fn current_bundle(
+    bundles: &[Vec<u8>],
+    expected: &Hash,
+    context: (&str, &str, u64),
+) -> Result<RootBundle> {
+    ensure(
+        !bundles.is_empty() && bundles.len() <= MAX_CHAIN,
+        Error::QuotaExceeded,
+    )?;
+    let current = parse_bundle(&bundles[0])?;
+    let c = &current.body.context;
+    ensure(
+        bundle_digests(&current)?.bundle == *expected
+            && (c.account.as_str(), c.environment.as_str(), c.generation) == context,
+        Error::IntegrityFailed,
+    )?;
+    Ok(current)
+}
+
+/// Check the opened root against the current bundle's commitment, then
+/// follow its previous-root links through `bundles[1..]`.
+fn walk_chain(
+    bundles: &[Vec<u8>],
+    current: RootBundle,
+    opened: &[u8],
+) -> Result<(Zeroizing<Key>, History)> {
+    let root: Key = opened.try_into().map_err(|_| Error::IntegrityFailed)?;
     let root = Zeroizing::new(root);
     ensure(
         commitment(&root) == current.body.commitment,
         Error::IntegrityFailed,
     )?;
+    let c = current.body.context.clone();
     let mut history = BTreeMap::new();
     let mut cursor = current.body;
     let mut key = root.clone();
@@ -607,24 +648,12 @@ impl Client {
         }
     }
 
-    /// Download the committed bundle chain and open it with this device's envelope.
+    /// The committed bundle of `generation` and every bundle its chain
+    /// links to, current first, with the upload holding the current one.
     ///
     /// # Errors
-    /// As [`open_root`].
-    pub async fn open_current(&mut self) -> Result<()> {
-        let account = self.account()?.clone();
-        let state = self.cloud_state().await?;
-        let generation = state.snapshot.content_root_generation;
-        let digest = state
-            .snapshot
-            .content_root_digest
-            .ok_or(Error::RecoveryIncomplete)?;
-        state.active(&self.workspace.meta.device_id).and_then(|d| {
-            ensure(
-                d.input.capabilities.contains(&Capability::VaultUnlock),
-                Error::Forbidden,
-            )
-        })?;
+    /// Returns `Error::RecoveryIncomplete` for a chain the relay cannot serve.
+    pub(crate) async fn root_bundles(&mut self, generation: u64) -> Result<(Vec<Vec<u8>>, String)> {
         let value = self.relay_get(&format!("{}/root", self.base()?)).await?;
         let pointer: RootPointer =
             serde_json::from_value(value["root"].clone()).map_err(|_| Error::IntegrityFailed)?;
@@ -646,6 +675,28 @@ impl Client {
             link = decode::<RootBundle>(&bytes, MAX_BUNDLE)?.body.previous;
             bundles.push(bytes);
         }
+        Ok((bundles, pointer.upload_id))
+    }
+
+    /// Download the committed bundle chain and open it with this device's envelope.
+    ///
+    /// # Errors
+    /// As [`open_root`].
+    pub async fn open_current(&mut self) -> Result<()> {
+        let account = self.account()?.clone();
+        let state = self.cloud_state().await?;
+        let generation = state.snapshot.content_root_generation;
+        let digest = state
+            .snapshot
+            .content_root_digest
+            .ok_or(Error::RecoveryIncomplete)?;
+        state.active(&self.workspace.meta.device_id).and_then(|d| {
+            ensure(
+                d.input.capabilities.contains(&Capability::VaultUnlock),
+                Error::Forbidden,
+            )
+        })?;
+        let (bundles, upload_id) = self.root_bundles(generation).await?;
         let environment = crate::config::environment_name(&self.config.environment);
         let (root, history) = open_root(
             &bundles,
@@ -654,11 +705,24 @@ impl Client {
             &self.workspace.meta.device_id,
             &self.keys()?.hpke,
         )?;
+        self.keep_root(generation, digest, &bundles[0], upload_id, root, history)
+    }
+
+    /// Keep an opened committed root as this device's root.
+    pub(crate) fn keep_root(
+        &mut self,
+        generation: u64,
+        digest: Hash,
+        bundle: &[u8],
+        upload_id: String,
+        root: Zeroizing<Key>,
+        history: History,
+    ) -> Result<()> {
         let keys = RootKeys {
             generation,
             digest,
-            sha256: hex::encode(*sha256(&bundles[0])),
-            upload_id: pointer.upload_id,
+            sha256: hex::encode(*sha256(bundle)),
+            upload_id,
             root,
             history,
         };

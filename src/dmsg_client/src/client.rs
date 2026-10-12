@@ -1,6 +1,14 @@
 //! One device's client: the workspace, the login and, while unlocked, the
 //! keys. The daemon owns a single instance; mobile apps will too.
 //!
+//! Each account has its own workspace, so accounts sharing a device never
+//! see each other's data: `accounts/<account>/` holds the workspace (and the
+//! agent connectors' state) of an account, bound or waiting for approval,
+//! and `logins/<principal>/` that of a login without an account, which
+//! becomes `accounts/<account>/` once the login has one. A login selects the
+//! workspace of the account it is bound to; `current` names the account
+//! selected last, which a restart and fast unlock use.
+//!
 //! Unlocking needs a login: the user home releases the device's unlock
 //! secret only to a Principal bound to the account. Fast unlock opens a
 //! second copy of the local data key with a key the operating system keeps,
@@ -34,6 +42,21 @@ use zeroize::Zeroizing;
 pub const FAST_UNLOCK_MS: u64 = 7 * DAY;
 /// The agent connectors' state file in the workspace directory.
 const AGENT_RUNTIME: &str = "agents.sqlite";
+/// The workspace file in its directory.
+const WORKSPACE: &str = "workspace.sqlite";
+/// The account selected last.
+const CURRENT: &str = "current";
+
+/// The workspace a client uses.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum Slot {
+    /// None yet: an empty workspace in memory, until a login selects one.
+    Idle,
+    /// An account's workspace, bound or waiting for approval.
+    Account(AccountId),
+    /// The workspace of a login that has no account.
+    Login(Principal),
+}
 
 /// An authenticated login: an agent with the delegated session identity.
 pub(crate) struct Login {
@@ -47,8 +70,9 @@ pub(crate) struct Login {
 pub struct Status {
     /// Lowercase environment name.
     pub environment: String,
-    /// This device's ID.
-    pub device_id: String,
+    /// This device's ID in the selected workspace; none before a login
+    /// selects one.
+    pub device_id: Option<String>,
     /// The account, once the device belongs to one.
     pub account: Option<String>,
     /// The account's user home.
@@ -80,6 +104,24 @@ pub struct Status {
     pub sealed_requests: u64,
 }
 
+/// An account workspace on this device.
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct LocalAccount {
+    /// Account ID.
+    pub account: String,
+    /// This device's ID in the account.
+    pub device_id: String,
+    /// The device belongs to the account; otherwise it waits for approval
+    /// or recovery.
+    pub bound: bool,
+    /// Fast unlock is enabled.
+    pub fast_unlock: bool,
+    /// The latest unlock through a login, in Unix milliseconds.
+    pub login_unlocked_at: Option<u64>,
+    /// The selected workspace.
+    pub current: bool,
+}
+
 /// Work that started and has not settled. All of it is journaled and resumes
 /// after a restart; an update waits for it rather than leaving it to
 /// reconciliation.
@@ -103,8 +145,10 @@ impl InFlight {
 /// A device's client.
 pub struct Client {
     pub(crate) config: Config,
+    /// The environment's directory.
     dir: PathBuf,
     secure: Option<Arc<dyn SecureStorage>>,
+    slot: Slot,
     pub(crate) workspace: Workspace,
     pub(crate) cloud: Cloud,
     pub(crate) login: Option<Login>,
@@ -121,12 +165,14 @@ pub struct Client {
     peers: std::collections::BTreeMap<AccountId, Principal>,
     /// The wallet loaded from a PEM file, until the device locks.
     pub(crate) wallet: Option<(Principal, Ic)>,
+    /// A second login waiting for its binding to this account.
+    pub(crate) binding: Option<crate::security::PendingBinding>,
 }
 
 impl Client {
-    /// Open the client of `config` with its workspace under `dir`, creating
-    /// a new device on first use. `secure` is the operating system's
-    /// credential store; without it fast unlock is unavailable.
+    /// Open the client of `config` with its workspaces under `dir`, on the
+    /// account selected last. `secure` is the operating system's credential
+    /// store; without it fast unlock is unavailable.
     ///
     /// # Errors
     /// An invalid configuration returns `Error::InvalidInput`; storage
@@ -137,17 +183,17 @@ impl Client {
         secure: Option<Arc<dyn SecureStorage>>,
     ) -> Result<Self> {
         config.validate()?;
-        std::fs::create_dir_all(dir).map_err(|e| Error::Unavailable(format!("storage: {e}")))?;
-        let workspace =
-            Workspace::open(&dir.join("workspace.sqlite"), &config.environment, now_ms())?;
+        std::fs::create_dir_all(dir).map_err(storage)?;
         let cloud = Cloud::new(
             &config.relay_origin(),
             config.environment == Environment::Local,
         )?;
-        Ok(Self {
+        let workspace = idle(&config.environment)?;
+        let mut client = Self {
             config,
             dir: dir.to_path_buf(),
             secure,
+            slot: Slot::Idle,
             workspace,
             cloud,
             login: None,
@@ -161,7 +207,155 @@ impl Client {
             homes: None,
             peers: std::collections::BTreeMap::new(),
             wallet: None,
-        })
+            binding: None,
+        };
+        let current = std::fs::read_to_string(dir.join(CURRENT))
+            .ok()
+            .and_then(|text| text.trim().parse::<AccountId>().ok());
+        if let Some(account) = current {
+            if client
+                .slot_dir(&Slot::Account(account))
+                .join(WORKSPACE)
+                .exists()
+            {
+                client.select(Slot::Account(account))?;
+            }
+        }
+        Ok(client)
+    }
+
+    /// The directory of a workspace.
+    fn slot_dir(&self, slot: &Slot) -> PathBuf {
+        match slot {
+            Slot::Idle => self.dir.clone(),
+            Slot::Account(account) => self.dir.join("accounts").join(account.to_string()),
+            Slot::Login(principal) => self.dir.join("logins").join(principal.to_text()),
+        }
+    }
+
+    /// Use the workspace of `slot`, creating a new device in it on first
+    /// use; the keys of the previous one go, the login stays. An account
+    /// without a workspace here takes over the one its login used before
+    /// it had the account.
+    pub(crate) fn select(&mut self, slot: Slot) -> Result<()> {
+        if slot == self.slot {
+            return Ok(());
+        }
+        self.keys = None;
+        self.resident = None;
+        self.root = None;
+        self.security = None;
+        self.published = None;
+        self.located = None;
+        self.wallet = None;
+        self.binding = None;
+        // Close the database before its directory moves or another opens.
+        self.workspace = idle(&self.config.environment)?;
+        self.slot = Slot::Idle;
+        let dir = self.slot_dir(&slot);
+        if let (Slot::Account(account), Some(login)) = (&slot, &self.login) {
+            let from = self.slot_dir(&Slot::Login(login.principal));
+            if !dir.join(WORKSPACE).exists() && from.join(WORKSPACE).exists() {
+                self.move_workspace(&from, account)?;
+            }
+        }
+        std::fs::create_dir_all(&dir).map_err(storage)?;
+        self.workspace = Workspace::open(&dir.join(WORKSPACE), &self.config.environment, now_ms())?;
+        if let Slot::Account(account) = &slot {
+            std::fs::write(self.dir.join(CURRENT), account.to_string()).map_err(storage)?;
+        }
+        self.slot = slot;
+        Ok(())
+    }
+
+    /// Move a login's workspace to the account it now belongs to.
+    fn move_workspace(&self, from: &Path, account: &AccountId) -> Result<()> {
+        let to = self.slot_dir(&Slot::Account(*account));
+        std::fs::create_dir_all(self.dir.join("accounts")).map_err(storage)?;
+        // A workspace left from before, without its database, gives way.
+        if to.exists() {
+            std::fs::remove_dir_all(&to).map_err(storage)?;
+        }
+        std::fs::rename(from, to).map_err(storage)
+    }
+
+    /// Move the selected login workspace, now bound to `account`, to the
+    /// account's directory, keeping the keys and the login.
+    pub(crate) fn adopt(&mut self, account: &AccountId) -> Result<()> {
+        let Slot::Login(principal) = self.slot.clone() else {
+            return Ok(());
+        };
+        let keys = self.keys.take();
+        self.workspace = idle(&self.config.environment)?;
+        self.slot = Slot::Idle;
+        let target = self.slot_dir(&Slot::Account(*account));
+        ensure(!target.join(WORKSPACE).exists(), Error::IntegrityFailed)?;
+        self.move_workspace(&self.slot_dir(&Slot::Login(principal)), account)?;
+        self.workspace =
+            Workspace::open(&target.join(WORKSPACE), &self.config.environment, now_ms())?;
+        std::fs::write(self.dir.join(CURRENT), account.to_string()).map_err(storage)?;
+        self.slot = Slot::Account(*account);
+        self.keys = keys;
+        Ok(())
+    }
+
+    /// The account workspaces on this device.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when storage fails.
+    pub fn accounts(&self) -> Result<Vec<LocalAccount>> {
+        let mut list = Vec::new();
+        let entries = match std::fs::read_dir(self.dir.join("accounts")) {
+            Ok(entries) => entries,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(list),
+            Err(e) => return Err(storage(e)),
+        };
+        for entry in entries {
+            let entry = entry.map_err(storage)?;
+            let Ok(account) = entry.file_name().to_string_lossy().parse::<AccountId>() else {
+                continue;
+            };
+            let current = self.slot == Slot::Account(account);
+            let meta = if current {
+                Some(self.workspace.meta.clone())
+            } else if entry.path().join(WORKSPACE).exists() {
+                crate::store::Store::open(&entry.path().join(WORKSPACE))?
+                    .meta::<crate::workspace::Meta>(crate::workspace::META)?
+            } else {
+                None
+            };
+            let Some(meta) = meta else {
+                continue;
+            };
+            list.push(LocalAccount {
+                account: account.to_string(),
+                device_id: hex::encode(*meta.device_id),
+                bound: meta.account.is_some_and(|a| a.id == account),
+                fast_unlock: meta.fast_unlock.is_some(),
+                login_unlocked_at: meta.login_unlocked_at,
+                current,
+            });
+        }
+        list.sort_by_key(|a| std::cmp::Reverse(a.login_unlocked_at));
+        Ok(list)
+    }
+
+    /// Select another account's workspace on this device, locked; it then
+    /// unlocks with its own login or fast unlock.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an account without a workspace here.
+    pub fn switch_account(&mut self, account: &AccountId) -> Result<Status> {
+        let slot = Slot::Account(*account);
+        ensure(
+            self.slot_dir(&slot).join(WORKSPACE).exists(),
+            Error::NotFound,
+        )?;
+        if self.slot != slot {
+            self.lock();
+            self.select(slot)?;
+        }
+        self.status()
     }
 
     /// The deployment parameters.
@@ -169,10 +363,14 @@ impl Client {
         &self.config
     }
 
-    /// Where the agent connectors of this workspace keep their state; the
-    /// daemon's agent host owns the file, a reset removes it.
-    pub fn agent_runtime(&self) -> PathBuf {
-        self.dir.join(AGENT_RUNTIME)
+    /// Where the agent connectors of the selected workspace keep their
+    /// state; the daemon's agent host owns the file, a reset removes it.
+    ///
+    /// # Errors
+    /// Returns `Error::AuthRequired` before a login selects a workspace.
+    pub fn agent_runtime(&self) -> Result<PathBuf> {
+        ensure(self.slot != Slot::Idle, Error::AuthRequired)?;
+        Ok(self.slot_dir(&self.slot).join(AGENT_RUNTIME))
     }
 
     /// The current status.
@@ -192,7 +390,7 @@ impl Client {
         };
         Ok(Status {
             environment: environment_name(&self.config.environment).into(),
-            device_id: hex::encode(*meta.device_id),
+            device_id: (self.slot != Slot::Idle).then(|| hex::encode(*meta.device_id)),
             account: meta.account.as_ref().map(|a| a.id.to_string()),
             home: meta.account.as_ref().map(|a| a.home.to_text()),
             principal: login.map(|l| l.principal.to_text()),
@@ -226,12 +424,14 @@ impl Client {
         })
     }
 
-    /// Accept a login: check it against every user home with the read-only
-    /// `my_account`, then unlock. A failed check discards the login.
+    /// Accept a login: find its account across every user home with the
+    /// read-only `my_account`, select that account's workspace, or the
+    /// login's own while it has none, then unlock. A failed check discards
+    /// the login.
     ///
     /// # Errors
-    /// Returns `Error::AuthRequired` when the login is not bound to this
-    /// workspace's account; query failures discard the login.
+    /// Query failures discard the login; a workspace bound to another
+    /// account or home returns `Error::IntegrityFailed`.
     pub async fn login(&mut self, identity: Arc<dyn Identity>, expires_at: u64) -> Result<Status> {
         ensure(expires_at > now_ms(), Error::Expired)?;
         let ic = Ic::connect(&self.config, identity).await?;
@@ -242,14 +442,28 @@ impl Client {
             principal,
             expires_at,
         });
+        self.enter().await
+    }
+
+    /// Select the workspace of the login's account, or the login's own
+    /// while it has none, and unlock it; any failure discards the login.
+    pub(crate) async fn enter(&mut self) -> Result<Status> {
+        let principal = self.session()?.principal;
         let checked = match self.locate().await {
-            Ok(found) => match &self.workspace.meta.account {
-                Some(account) => ensure(
-                    found == Some((account.home, account.id)),
-                    Error::AuthRequired,
-                ),
-                None => Ok(()),
-            },
+            Ok(found) => {
+                let slot = match found {
+                    Some((_, account)) => Slot::Account(account),
+                    None => Slot::Login(principal),
+                };
+                self.select(slot)
+                    .and_then(|_| match &self.workspace.meta.account {
+                        Some(account) => ensure(
+                            found == Some((account.home, account.id)),
+                            Error::IntegrityFailed,
+                        ),
+                        None => Ok(()),
+                    })
+            }
             Err(error) => Err(error),
         };
         if let Err(error) = checked {
@@ -409,6 +623,7 @@ impl Client {
         self.published = None;
         self.located = None;
         self.wallet = None;
+        self.binding = None;
     }
 
     /// Drop everything, the resident key included, as the daemon exits.
@@ -417,8 +632,9 @@ impl Client {
         self.resident = None;
     }
 
-    /// Erase this device's workspace and its fast-unlock key and start over
-    /// as a new device. Versions the relay has not accepted are lost.
+    /// Erase the selected workspace and its fast-unlock key and start over
+    /// as a new device in its place. Versions the relay has not accepted
+    /// are lost; other accounts' workspaces stay.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when files cannot be removed.
@@ -431,26 +647,27 @@ impl Client {
             }
         }
         self.shutdown();
-        let environment = self.config.environment.clone();
+        let slot = std::mem::replace(&mut self.slot, Slot::Idle);
         // Close the database before removing its files.
-        self.workspace = Workspace::load(crate::store::Store::memory()?, &environment, now_ms())?;
+        self.workspace = idle(&self.config.environment)?;
+        if slot == Slot::Idle {
+            return self.status();
+        }
+        let dir = self.slot_dir(&slot);
         for name in [
-            "workspace.sqlite",
+            WORKSPACE,
             "workspace.sqlite-wal",
             "workspace.sqlite-shm",
             AGENT_RUNTIME,
             "agents.sqlite-wal",
             "agents.sqlite-shm",
         ] {
-            match std::fs::remove_file(self.dir.join(name)) {
-                Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
-                    return Err(Error::Unavailable(format!("storage: {e}")))
-                }
+            match std::fs::remove_file(dir.join(name)) {
+                Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(storage(e)),
                 _ => {}
             }
         }
-        self.workspace =
-            Workspace::open(&self.dir.join("workspace.sqlite"), &environment, now_ms())?;
+        self.select(slot)?;
         self.status()
     }
 
@@ -697,6 +914,15 @@ impl Client {
         }
         Err(Error::NotFound)
     }
+}
+
+/// The empty workspace of no selection.
+fn idle(environment: &Environment) -> Result<Workspace> {
+    Workspace::load(crate::store::Store::memory()?, environment, now_ms())
+}
+
+fn storage(error: std::io::Error) -> Error {
+    Error::Unavailable(format!("storage: {error}"))
 }
 
 #[cfg(test)]

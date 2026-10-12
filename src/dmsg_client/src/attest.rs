@@ -19,6 +19,7 @@ use dmsg_protocol::{
     app_action_statement, approval_message, attest_approval_command, execution_request_id,
     prepare_attestation, validate_statement, verify_attestation, ATTEST_APPROVAL_DOMAIN,
 };
+use dmsg_types::billing::ExecutionUsage;
 use dmsg_types::{
     app_action::AppAction, ensure, user::Capability, AccountId, AppActionAttestRequest, Approval,
     AttestRequest, CertifiedBatch, Ed25519Signature, Error, ExecutionReceipt, Hash, Result,
@@ -28,6 +29,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
 use sha2::{Digest, Sha256};
 use std::path::Path;
+
+/// An archived month of formal-execution usage, by its YYYYMM.
+const USAGE: &str = "usage:";
 
 /// The application origin of this device's own attestations (plan D-19).
 pub const DMSG_ORIGIN: &str = "https://dmsg.net";
@@ -681,6 +685,78 @@ impl Client {
             }
             Err(error) => Err(error),
         }
+    }
+
+    /// This account's formal-execution allowance for the current month,
+    /// refreshed from its plan, and the months archived in the workspace.
+    /// The home keeps an account's ledgers for this month and the last, and
+    /// the first refresh of a month drops older ones, so finished months it
+    /// still holds are archived first.
+    ///
+    /// # Errors
+    /// Returns `Error::AuthRequired` without a login.
+    pub async fn execution_usage(&mut self) -> Result<Json> {
+        let account = self.account()?.clone();
+        let ic = self.session()?.ic.clone();
+        let keys = self.keys()?;
+        let now = now_ms();
+        let earlier = |month: u32| {
+            if month % 100 == 1 {
+                month - 89
+            } else {
+                month - 1
+            }
+        };
+        let last = earlier(dmsg_protocol::billing::month_utc(now)?);
+        for month in [last, earlier(last)] {
+            let found: Result<ExecutionUsage> = ic
+                .query(account.home, "get_execution_usage", (account.id, month))
+                .await?;
+            let usage = match found {
+                Err(Error::NotFound) => continue,
+                found => found?,
+            };
+            ensure(
+                usage.account_id == account.id && usage.month_utc == month,
+                Error::IntegrityFailed,
+            )?;
+            self.workspace
+                .put_private(keys, &format!("{USAGE}{month}"), &usage)?;
+        }
+        // An update reply is certified by the subnet; there is no separate proof.
+        let usage: Result<ExecutionUsage> = ic
+            .update(account.home, "refresh_execution_entitlement", (account.id,))
+            .await?;
+        let usage = usage?;
+        ensure(
+            usage.account_id == account.id && usage.valid_until_ms > now,
+            Error::IntegrityFailed,
+        )?;
+        let mut history = self
+            .workspace
+            .store
+            .sealed_keys(USAGE)?
+            .iter()
+            .map(|key| {
+                self.workspace
+                    .private::<ExecutionUsage>(self.keys()?, key)?
+                    .ok_or(Error::IntegrityFailed)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        history.sort_by_key(|u| std::cmp::Reverse(u.month_utc));
+        let view = |u: &ExecutionUsage| {
+            json!({
+                "month": u.month_utc,
+                "allowed": u.allowed_units,
+                "charged": u.charged_units,
+                // A refund or downgrade may leave it below what was charged.
+                "remaining": u.allowed_units.saturating_sub(u.charged_units),
+                "valid_until_ms": u.valid_until_ms,
+            })
+        };
+        let mut current = view(&usage);
+        current["history"] = history.iter().map(view).collect();
+        Ok(current)
     }
 
     /// Finished attestations, newest first.

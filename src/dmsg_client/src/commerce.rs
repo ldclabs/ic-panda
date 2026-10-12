@@ -32,11 +32,13 @@ use dmsg_types::{
         SettlementMethod,
     },
     integration_billing::{
-        CashBlock, CheckoutProgress, CheckoutQuote, CheckoutRequest, CheckoutStatus, CheckoutView,
-        OpenCheckout, ProductAuthorizationRequest, SettlementAssetView,
+        CashBlock, CashTransfer, CashTransferProgress, CashTransferStatus, CashTransfersPage,
+        CheckoutOperationsPage, CheckoutProgress, CheckoutQuote, CheckoutRequest, CheckoutStatus,
+        CheckoutView, OpenCheckout, ProductAuthorizationRequest, SettlementAssetView,
     },
     integration_membership::{
         PandaApplicationTerms, PandaClaimRequest, PandaClaimStatus, PandaClaimView,
+        PandaOperationsPage,
     },
     membership::Beneficiary,
     user::{Capability, UserInit},
@@ -195,6 +197,16 @@ pub enum Order {
     Cash(Box<CheckoutView>),
     /// A PANDA claim.
     Panda(Box<PandaClaimView>),
+}
+
+impl Order {
+    /// The view's canonical CBOR.
+    pub fn canonical(&self) -> Vec<u8> {
+        match self {
+            Order::Cash(view) => crate::codec::canonical(view),
+            Order::Panda(view) => crate::codec::canonical(view),
+        }
+    }
 }
 
 impl Client {
@@ -429,6 +441,21 @@ impl Client {
             method,
         };
         self.quote(request, DMSG_ORIGIN, selection, actor, &ic, &services)
+            .await
+    }
+
+    /// Fix the terms of a web application's checkout from `origin` for the
+    /// wallet: cash on the ledger `selection`, or a PANDA waiver backed by
+    /// the neuron `selection` (hex).
+    pub(crate) async fn quote_request(
+        &mut self,
+        request: CheckoutRequest,
+        origin: &str,
+        selection: &str,
+    ) -> Result<Checkout> {
+        let services = self.services().await?;
+        let (actor, ic) = self.wallet().await?;
+        self.quote(request, origin, selection, actor, &ic, &services)
             .await
     }
 
@@ -968,5 +995,196 @@ impl Client {
             "amount": transfer.amount_atomic.to_string(),
             "status": format!("{:?}", transfer.status),
         }))
+    }
+}
+
+/// What the maintenance pages list.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Records {
+    /// Checkout orders with their per-ledger balances.
+    Orders,
+    /// Outgoing cash transfers.
+    Transfers,
+    /// PANDA claims and their eligibility leases.
+    Claims,
+}
+
+/// The commerce and membership records the wallet may read and repair: as
+/// payer, merchant, adapter or operator. Each action repeats an original
+/// operation with its frozen parameters; none creates a new payment.
+impl Client {
+    /// One page of `records` visible to the wallet, after `after`.
+    ///
+    /// # Errors
+    /// The service's verdict.
+    pub async fn commerce_records(
+        &mut self,
+        records: Records,
+        after: Option<Hash>,
+    ) -> Result<Json> {
+        let services = self.services().await?;
+        let (caller, ic) = self.wallet().await?;
+        let units = |n: u128| n.to_string();
+        Ok(match records {
+            Records::Orders => {
+                let page: Result<CheckoutOperationsPage> = ic
+                    .query(services.commerce, "checkout_operations", (after, 16u16))
+                    .await?;
+                let page = page?;
+                json!({
+                    "orders": page.orders.iter().map(|row| json!({
+                        "order_id": hex::encode(*row.order.progress.order_id),
+                        "product_id": row.order.quote.offer.product_id,
+                        "sku": row.order.quote.offer.sku,
+                        "status": format!("{:?}", row.order.progress.status),
+                        "receipt": row.order.receipt.is_some(),
+                        "balances": row.balances.iter().map(|b| json!({
+                            "ledger": b.ledger.to_text(),
+                            "incoming": units(b.incoming_atomic),
+                            "refundable": units(b.refundable_atomic),
+                            "service_reserve": units(b.service_reserve_atomic),
+                            "fee_reserve": units(b.fee_reserve_atomic),
+                            "outgoing": units(b.outgoing_atomic),
+                        })).collect::<Vec<_>>(),
+                    })).collect::<Vec<_>>(),
+                    "next": page.next.map(|h| hex::encode(*h)),
+                })
+            }
+            Records::Transfers => {
+                let page: Result<CashTransfersPage> = ic
+                    .query(services.commerce, "checkout_transfers", (after, 16u16))
+                    .await?;
+                let page = page?;
+                json!({
+                    "transfers": page.transfers.iter().map(|t| json!({
+                        "transfer_id": hex::encode(*t.transfer_id),
+                        "order_id": hex::encode(*t.order_id),
+                        "ledger": t.ledger.to_text(),
+                        "to": t.to.owner.to_text(),
+                        "amount": units(t.amount_atomic),
+                        "fee": units(t.fee_atomic),
+                        "max_fee": units(t.max_fee_atomic),
+                        "expected_fee": t.expected_fee_atomic.map(units),
+                        "status": format!("{:?}", t.status),
+                        "error_code": t.error_code,
+                        "block": t.block_index.map(units),
+                        // Only the recipient revises a refused transfer, within its fee limit.
+                        "revisable": t.status == CashTransferStatus::Rejected
+                            && t.to.owner == caller
+                            && t.expected_fee_atomic.is_some_and(|f| f <= t.max_fee_atomic),
+                    })).collect::<Vec<_>>(),
+                    "next": page.next.map(|h| hex::encode(*h)),
+                })
+            }
+            Records::Claims => {
+                let page: Result<PandaOperationsPage> = ic
+                    .query(services.membership, "panda_operations", (after, 16u16))
+                    .await?;
+                let page = page?;
+                json!({
+                    "claims": page.claims.iter().map(|c| json!({
+                        "claim_id": hex::encode(*c.claim_id),
+                        "product_id": c.terms.offer.product_id,
+                        "sku": c.terms.offer.sku,
+                        "status": format!("{:?}", c.status),
+                        "eligibility": format!("{:?}", c.eligibility),
+                        "observed_at_ms": c.observed_at_ms,
+                        "valid_until_ms": c.valid_until_ms,
+                        "committed_until_ms": c.committed_until_ms,
+                        "amount_usd_micros": units(c.terms.offer.amount_usd_micros),
+                        // A live claim refreshes its lease; others reconcile.
+                        "refreshable": matches!(c.status, PandaClaimStatus::Active | PandaClaimStatus::Terminated),
+                    })).collect::<Vec<_>>(),
+                    "next": page.next.map(|h| hex::encode(*h)),
+                })
+            }
+        })
+    }
+
+    /// Read or replay an order's original decision after a lost reply.
+    ///
+    /// # Errors
+    /// The service's verdict.
+    pub async fn commerce_reconcile_order(&mut self, id: &Hash) -> Result<Json> {
+        let services = self.services().await?;
+        let (_, ic) = self.wallet().await?;
+        let progress: Result<CheckoutProgress> = ic
+            .update(services.commerce, "reconcile_checkout", (id,))
+            .await?;
+        let progress = progress?;
+        Ok(
+            json!({"order_id": hex::encode(*progress.order_id), "status": format!("{:?}", progress.status)}),
+        )
+    }
+
+    /// Send a transfer again with its original memo, time, amount and fee.
+    ///
+    /// # Errors
+    /// The service's verdict.
+    pub async fn commerce_process_transfer(&mut self, id: &Hash) -> Result<Json> {
+        let services = self.services().await?;
+        let (_, ic) = self.wallet().await?;
+        let progress: Result<CashTransferProgress> = ic
+            .update(services.commerce, "process_checkout_transfer", (id,))
+            .await?;
+        let progress = progress?;
+        Ok(json!({
+            "transfer_id": hex::encode(*progress.transfer_id),
+            "status": format!("{:?}", progress.status),
+            "block": progress.block_index.map(|b| b.to_string()),
+        }))
+    }
+
+    /// Replace a transfer the ledger refused with one at the fee it asked
+    /// for, as its recipient; the total obligation does not grow.
+    ///
+    /// # Errors
+    /// The service's verdict.
+    pub async fn commerce_revise_transfer(&mut self, id: &Hash, fee: u128) -> Result<Json> {
+        let services = self.services().await?;
+        let (_, ic) = self.wallet().await?;
+        let revised: Result<CashTransfer> = ic
+            .update(services.commerce, "revise_checkout_transfer_fee", (id, fee))
+            .await?;
+        let revised = revised?;
+        Ok(json!({
+            "transfer_id": hex::encode(*revised.transfer_id),
+            "replaces": revised.replaces.map(|h| hex::encode(*h)),
+            "status": format!("{:?}", revised.status),
+        }))
+    }
+
+    /// Refresh a live PANDA claim's eligibility, or reconcile any other.
+    ///
+    /// # Errors
+    /// The service's verdict.
+    pub async fn commerce_claim(&mut self, id: &Hash, refresh: bool) -> Result<Json> {
+        let services = self.services().await?;
+        let (_, ic) = self.wallet().await?;
+        let method = match refresh {
+            true => "refresh_panda_claim",
+            false => "reconcile_panda_claim",
+        };
+        let view: Result<PandaClaimView> = ic.update(services.membership, method, (id,)).await?;
+        let view = view?;
+        Ok(json!({
+            "claim_id": hex::encode(*view.claim_id),
+            "status": format!("{:?}", view.status),
+            "eligibility": format!("{:?}", view.eligibility),
+            "valid_until_ms": view.valid_until_ms,
+        }))
+    }
+
+    /// Release or compact expired PANDA commitments; anyone may.
+    ///
+    /// # Errors
+    /// The service's verdict.
+    pub async fn commerce_sweep(&mut self) -> Result<u32> {
+        let services = self.services().await?;
+        let ic = self.reader().await?;
+        let swept: Result<u32> = ic
+            .update(services.membership, "sweep_panda_commitments", ())
+            .await?;
+        swept
     }
 }

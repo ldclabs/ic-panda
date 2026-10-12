@@ -36,6 +36,7 @@ use dmsg_types::{
     connect::*,
     ensure,
     integration::{AppCapability, AppRegistration, AuthenticationRequest, SigningProfile},
+    integration_billing::CheckoutRequest,
     user::{Capability, UserInit},
     AccountId, Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result, Statement,
     StatementContent,
@@ -433,6 +434,8 @@ pub(crate) struct Operation {
     pinned: Option<Hash>,
     execution: Option<String>,
     auth: Option<AuthJob>,
+    /// The checkout journal an approved checkout runs.
+    checkout: Option<String>,
     result: Option<String>,
     result_digest: Option<Hash>,
     error: Option<String>,
@@ -1092,6 +1095,7 @@ impl Client {
                             Action::Connect {
                                 operation: op.key.clone(),
                                 digest: op.digest,
+                                checkout: None,
                             },
                             request.expires_at,
                         );
@@ -1197,7 +1201,26 @@ impl Client {
                 )?;
                 (AppCapability::SignAction, action.expires_at_ms)
             }
-            // Checkout runs with the commerce flows (W5).
+            "checkout" => {
+                let checkout: CheckoutRequest = dmsg_protocol::decode_canonical(&payload)
+                    .map_err(|_| Error::InvalidInput("INVALID_INPUT".into()))?;
+                let offer = &checkout.offer;
+                ensure(
+                    offer.app_id == command.app_id && offer.operation_id == operation,
+                    Error::IntegrityFailed,
+                )?;
+                ensure(offer.accept_by_ms > now, Error::Expired)?;
+                ensure(
+                    app.product_ids.contains(&offer.product_id)
+                        && offer.allowed_settlement_methods.contains(&checkout.method),
+                    Error::Forbidden,
+                )?;
+                ensure(
+                    checkout.approving_account == account.id,
+                    Error::InvalidInput("ACCOUNT_MISMATCH".into()),
+                )?;
+                (AppCapability::Checkout, offer.accept_by_ms)
+            }
             _ => return Err(Error::UnsupportedProtocol),
         };
         ensure(app.capabilities.contains(&capability), Error::Forbidden)?;
@@ -1245,6 +1268,7 @@ impl Client {
             pinned: None,
             execution: None,
             auth: None,
+            checkout: None,
             result: None,
             result_digest: None,
             error: None,
@@ -1619,6 +1643,37 @@ impl Client {
             Error::PolicyStale,
         )?;
         ensure(pairing.public.len() == 91, Error::IntegrityFailed)?;
+        // Checks before the request is pinned here, while a refusal still
+        // leaves it to the page: the quoted terms are the approved ones, and
+        // the product authority accepts the action.
+        let payload = command_payload(&op.command)?;
+        let checked = match op.command.method.as_str() {
+            "checkout" => match &approval.action {
+                Action::Connect {
+                    checkout: Some((id, digest)),
+                    ..
+                } => ensure(
+                    self.plan_checkout(id)?.digest() == *digest,
+                    Error::IntegrityFailed,
+                ),
+                _ => Err(Error::IntegrityFailed),
+            },
+            "signAction" => self.inspect_action(&payload).await,
+            _ => Ok(()),
+        };
+        if let Err(error) = checked {
+            // Nothing ran: without a login or network the request waits.
+            if !matches!(
+                error,
+                Error::AuthRequired | Error::Unavailable(_) | Error::PolicyStale
+            ) {
+                op.state = OpState::Rejected;
+                op.error = Some(refusal(&error).0.into());
+                self.save_operation(&op)?;
+                let _ = self.deliver(&mut op).await;
+            }
+            return Err(error);
+        }
         op.state = OpState::Authorizing;
         self.save_operation(&op)?;
         let path = self.connect_path(&format!(
@@ -1710,9 +1765,64 @@ impl Client {
                 }
             }
             "authenticate" => self.authenticate(&mut op, &payload).await,
+            "checkout" => match &approval.action {
+                Action::Connect {
+                    checkout: Some((id, _)),
+                    ..
+                } => {
+                    op.checkout = Some(id.clone());
+                    self.save_operation(&op)?;
+                    self.checkout_result(id).await
+                }
+                _ => Err(Error::IntegrityFailed),
+            },
             _ => Err(Error::UnsupportedProtocol),
         };
         self.connect_outcome(key, outcome).await
+    }
+
+    /// Run an approved checkout, or resume it, and report the order's
+    /// progress; the page then asks its own authority.
+    async fn checkout_result(&mut self, id: &str) -> Result<Json> {
+        self.plan_execute(id).await?;
+        let order = self.plan_order(id).await?;
+        Ok(json!({
+            "orderId": id,
+            "checkoutCbor": STANDARD.encode(order.canonical()),
+        }))
+    }
+
+    /// The method of an operation.
+    pub(crate) fn connect_method(&self, key: &str) -> Result<String> {
+        Ok(self.operation(key)?.command.method)
+    }
+
+    /// Quote the checkout of an operation waiting for approval.
+    pub(crate) async fn connect_quote(
+        &mut self,
+        key: &str,
+        selection: &str,
+    ) -> Result<crate::commerce::Checkout> {
+        let op = self.operation(key)?;
+        ensure(
+            op.command.method == "checkout" && op.state == OpState::AwaitingUser,
+            Error::Forbidden,
+        )?;
+        let request: CheckoutRequest =
+            dmsg_protocol::decode_canonical(&command_payload(&op.command)?)?;
+        self.quote_request(request, &op.origin, selection).await
+    }
+
+    /// The product authority's verdict on an application action before
+    /// this device signs it (`inspect_app_action`).
+    async fn inspect_action(&mut self, payload: &[u8]) -> Result<()> {
+        let action: dmsg_types::app_action::AppAction = dmsg_protocol::decode_canonical(payload)?;
+        let account = self.account()?.clone();
+        let ic = self.session()?.ic.clone();
+        let inspected: Result<()> = ic
+            .update(account.home, "inspect_app_action", (account.id, &action))
+            .await?;
+        inspected
     }
 
     /// Record an execution's outcome on the operation and reply it.
@@ -1780,8 +1890,11 @@ impl Client {
                 let job = job.clone();
                 self.authentication_result(&job).await
             }
-            // Authorized, never executed: the authorization is spent.
-            (None, None) => Err(Error::Expired),
+            (None, None) => match op.checkout.clone() {
+                Some(id) => self.checkout_result(&id).await,
+                // Authorized, never executed: the authorization is spent.
+                None => Err(Error::Expired),
+            },
         };
         self.connect_outcome(key, outcome).await
     }
@@ -1885,6 +1998,20 @@ impl Client {
                     })
                     .unwrap_or(Json::Null)
             }
+            "checkout" => dmsg_protocol::decode_canonical::<CheckoutRequest>(&payload)
+                .map(|c| {
+                    json!({
+                        "product_id": c.offer.product_id,
+                        "sku": c.offer.sku,
+                        "amount_usd_micros": c.offer.amount_usd_micros.to_string(),
+                        "method": format!("{:?}", c.method),
+                        "beneficiary": format!("{:?}", c.offer.beneficiary),
+                        "starts_at": c.offer.starts_at_ms,
+                        "ends_at": c.offer.expires_at_ms,
+                        "accept_by": c.offer.accept_by_ms,
+                    })
+                })
+                .unwrap_or(Json::Null),
             "authenticate" => dmsg_protocol::decode_canonical::<AuthenticationRequest>(&payload)
                 .map(|a| {
                     json!({

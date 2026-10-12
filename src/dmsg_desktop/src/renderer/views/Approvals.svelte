@@ -6,6 +6,7 @@
   let { status }: { status: any } = $props()
   let requests = $state<any[]>([])
   let history = $state<any[]>([])
+  let usage = $state<any>(null)
   let error = $state('')
   let text = $state('')
 
@@ -27,6 +28,15 @@
     text = ''
     await window.dmsg.openApproval(request.id)
     await load()
+  }
+
+  /** Refreshes the month's allowance from the plan and archives finished months here. */
+  async function loadUsage() {
+    try {
+      usage = await call('attest/usage')
+    } catch (e) {
+      error = `${t('error')}: ${code(e)}`
+    }
   }
 
   async function enableFormal() {
@@ -72,6 +82,25 @@
       <button class="primary" onclick={sign} data-testid="statement-submit">{t('submit')}</button>
       <button onclick={enableFormal}>{t('formal')}: {t('enable')}</button>
     </div>
+  </div>
+{/if}
+{#if status?.state === 'unlocked'}
+  <div class="card">
+    <div class="row spread">
+      <h2>{t('usage')}</h2>
+      <button onclick={loadUsage}>{t('refresh')}</button>
+    </div>
+    {#if usage}
+      <p data-testid="usage">{usage.charged} / {usage.allowed} · {usage.remaining} {t('remaining')} · {t('validUntil')} {when(usage.valid_until_ms)}</p>
+      {#if usage.history.length}
+        <h3>{t('archived')}</h3>
+        <ul class="list">
+          {#each usage.history as month (month.month)}
+            <li class="row spread"><span>{month.month}</span><span class="muted">{month.charged} / {month.allowed}</span></li>
+          {/each}
+        </ul>
+      {/if}
+    {/if}
   </div>
 {/if}
 <div class="card">

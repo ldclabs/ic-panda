@@ -114,6 +114,9 @@ pub enum Action {
         operation: String,
         /// The operation's commitment.
         digest: Hash,
+        /// A checkout's quoted terms: the journal ID and its commitment.
+        /// The person quotes before approving, so the exact amount is shown.
+        checkout: Option<(String, Hash)>,
     },
     /// Approve a quoted checkout for the wallet and pay it; with `fresh`,
     /// approve a PANDA claim again after its cooling period.
@@ -145,6 +148,13 @@ pub enum Action {
         /// The intent's commitment.
         digest: Hash,
     },
+    /// Change the account's security: bind or remove a login, the
+    /// sensitive-execution policy, the recovery delay, or dispute a
+    /// pending recovery.
+    Account {
+        /// The change.
+        change: crate::security::AccountChange,
+    },
     /// Change the account's Agent Delegation principal.
     Principal {
         /// The change.
@@ -165,6 +175,7 @@ impl Action {
             Action::Attest { .. } => "attest",
             Action::DeviceCapabilities { .. }
             | Action::DeviceRevoke { .. }
+            | Action::Account { .. }
             | Action::Principal { .. } => "account",
             Action::Delegation { .. } => "agent",
             Action::Connect { .. } => "connect",
@@ -417,6 +428,18 @@ impl Client {
             request.state == State::AwaitingUser && now < request.expires_at,
             Error::Expired,
         )?;
+        if let Action::Connect {
+            operation,
+            checkout: None,
+            ..
+        } = &request.action
+        {
+            // A checkout is approved at the amount shown, never unquoted.
+            ensure(
+                !approve || self.connect_method(operation)? != "checkout",
+                Error::InvalidInput("quote the checkout first".into()),
+            )?;
+        }
         if !approve {
             request.state = State::Rejected;
             request.updated_at = now;
@@ -511,6 +534,7 @@ impl Client {
                 self.save_approval(request)?;
                 self.handle_execute(&id).await.map(|_| ())
             }
+            Action::Account { change } => self.account_execute(&change).await,
             Action::Principal { change } => self.principal_execute(&change).await,
             // The job's journal decides: approving again only resubmits
             // what was signed, so nothing here is past the point of no return.
@@ -609,6 +633,10 @@ impl Client {
                     let id = id.clone();
                     self.handle_execute(&id).await.map(|_| ())
                 }
+                (Action::Account { change }, _) => {
+                    let change = change.clone();
+                    self.account_reconcile(&change).await
+                }
                 (Action::Principal { .. }, _) => self.resume().await.map(|_| ()),
                 (Action::Delegation { job, .. }, _) => {
                     let job = job.clone();
@@ -636,6 +664,36 @@ impl Client {
             }
         }
         Ok(())
+    }
+
+    /// Quote a web application's checkout waiting for approval: cash on the
+    /// ledger `selection`, or a PANDA waiver backed by the neuron
+    /// `selection`, paid or controlled by the wallet. The request then
+    /// commits to those terms; its digest changes, so the person approves
+    /// what was quoted.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` for a request that is not a checkout and
+    /// `Error::Expired` once it is decided.
+    pub async fn approval_quote(&mut self, id: &str, selection: &str) -> Result<Json> {
+        let mut request = self.approval_record(id)?;
+        ensure(
+            request.state == State::AwaitingUser && now_ms() < request.expires_at,
+            Error::Expired,
+        )?;
+        let Action::Connect {
+            operation,
+            checkout,
+            ..
+        } = &mut request.action
+        else {
+            return Err(Error::Forbidden);
+        };
+        let job = self.connect_quote(operation, selection).await?;
+        *checkout = Some((job.id.clone(), job.digest()));
+        request.updated_at = now_ms();
+        self.save_approval(&request)?;
+        self.approval_view(&request)
     }
 
     /// Ask to replace a device's capabilities, such as turning on
@@ -807,7 +865,17 @@ impl Client {
                 "device_id": hex::encode(**device_id),
                 "this_device": *device_id == self.workspace.meta.device_id,
             }),
-            Action::Connect { operation, .. } => self.connect_view(operation)?,
+            Action::Connect {
+                operation,
+                checkout,
+                ..
+            } => {
+                let mut view = self.connect_view(operation)?;
+                if let Some((id, _)) = checkout {
+                    view["checkout"] = self.plan_checkout(id)?.view();
+                }
+                view
+            }
             Action::Checkout { id, fresh, .. } => {
                 let mut view = self.plan_checkout(id)?.view();
                 view["fresh"] = (*fresh).into();
@@ -823,6 +891,7 @@ impl Client {
                 json!({"recipient": recipient, "order": order, "amount": amount, "ledger": ledger})
             }
             Action::Handle { id, .. } => self.handle_operation(id)?.view(),
+            Action::Account { change } => change.view(),
             Action::Principal { change } => json!(change),
             Action::Delegation { job, .. } => self.delegation(job)?.view(),
         };
@@ -838,6 +907,7 @@ impl Client {
                 Action::Checkout { .. } => "checkout",
                 Action::Letter { .. } => "letter",
                 Action::Handle { .. } => "handle",
+                Action::Account { .. } => "account",
                 Action::Principal { .. } => "principal",
                 Action::Delegation { .. } => "delegation",
             },

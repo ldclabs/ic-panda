@@ -35,9 +35,10 @@ pub async fn run(daemon: Arc<Daemon>) {
     }
 }
 
-/// The relay URL of the hint channel and the token, registering one when
-/// the device key is available; `None` before the device has an account.
-async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String)>, Option<String>> {
+/// The account of the hint channel, its relay URL and the token,
+/// registering one when the device key is available; `None` before the
+/// device has an account.
+async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, Option<String>> {
     let mut client = daemon.client().lock().await;
     let status = client.status().map_err(|e| Some(e.to_string()))?;
     let Some(account) = status.account else {
@@ -65,12 +66,13 @@ async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String)>, Option<St
     Ok(Some((
         format!("{ws}/v1/hints/ws?account={account}"),
         token.token,
+        account,
     )))
 }
 
 /// One connection, until it drops.
 async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
-    let Some((url, token)) = endpoint(daemon).await? else {
+    let Some((url, token, account)) = endpoint(daemon).await? else {
         // No account or no token yet: look again later.
         tokio::time::sleep(Duration::from_secs(20)).await;
         return Ok(());
@@ -97,6 +99,11 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
             _ = ping.tick() => {
                 if heard.elapsed() > SILENCE {
                     return Err(Some("hint channel silent".into()));
+                }
+                // Another account selected: its own channel replaces this one.
+                let selected = daemon.client().lock().await.status().ok().and_then(|s| s.account);
+                if selected.as_deref() != Some(account.as_str()) {
+                    return Ok(());
                 }
                 sink.send(Message::Text("ping".into())).await.map_err(|e| Some(e.to_string()))?;
             }

@@ -6,10 +6,21 @@
  * app installs its bundled `dmsg` first (`runtime.ts`) and updates itself
  * from the tray once the daemon stopped for it (`updater.ts`).
  */
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, Notification, shell, Tray, type IpcMainInvokeEvent } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeImage,
+  Notification,
+  shell,
+  Tray,
+  type IpcMainInvokeEvent
+} from 'electron'
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import type { DaemonEvent } from '../shared/contract'
 import { Daemon, DaemonError } from './daemon'
 import { externalAllowed, parseLink, windowParams } from './policy'
@@ -182,12 +193,31 @@ ipcMain.handle('dmsg:grant', (event, invite: string, pairing: string) =>
     return daemon.call('connect/grant', { invite, pairing, human: true })
   })
 )
-ipcMain.handle('dmsg:login', (event, origin: string) =>
+ipcMain.handle('dmsg:login', (event, origin: string, bind: boolean) =>
   guard(async () => {
     trust(event, 'main')
-    const started = (await daemon.call('session/login', { origin })) as { url: string }
+    const started = (await daemon.call('session/login', { origin, bind: bind === true, source: 'gui' })) as {
+      url: string
+    }
     if (externalAllowed(started.url, pages().login, [])) await shell.openExternal(started.url)
     return started
+  })
+)
+/** Files reach the daemon only by paths the person picked in a system dialog. */
+ipcMain.handle('dmsg:import-file', (event) =>
+  guard(async () => {
+    trust(event, 'main')
+    const picked = await dialog.showOpenDialog(main!, { properties: ['openFile'] })
+    if (picked.canceled || !picked.filePaths[0]) return null
+    return daemon.call('file/import', { path: picked.filePaths[0] })
+  })
+)
+ipcMain.handle('dmsg:export-file', (event, id: string, name: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    const picked = await dialog.showSaveDialog(main!, { defaultPath: basename(String(name)) })
+    if (picked.canceled || !picked.filePath) return null
+    return daemon.call('file/export', { id: String(id), path: picked.filePath })
   })
 )
 ipcMain.handle('dmsg:pair', (event, copyLink: boolean) =>

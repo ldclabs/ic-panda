@@ -41,7 +41,10 @@ fn signer(byte: u8) -> AgentSigner {
     AgentSigner::from_seed([byte; 32])
 }
 
-fn runtime(dir: &Temp) -> Runtime {
+/// A host and the state file it keeps the connectors in.
+struct Hosted(Runtime, PathBuf);
+
+fn runtime(dir: &Temp) -> Hosted {
     let host = Host {
         host: HOST.into(),
         label: Some("test".into()),
@@ -52,7 +55,7 @@ fn runtime(dir: &Temp) -> Runtime {
         local: true,
         ..Options::default()
     };
-    Runtime::new(&dir.0.join("agents.sqlite"), &options).unwrap()
+    Hosted(Runtime::new(&options).unwrap(), dir.0.join("agents.sqlite"))
 }
 
 fn block_on<F: std::future::Future>(future: F) -> F::Output {
@@ -166,10 +169,14 @@ fn seed(dir: &Temp, connector: &LocalConnector) {
     .unwrap();
 }
 
-async fn call(runtime: &Runtime, tool: &str, input: Value) -> Result<Value, crate::ToolError> {
+async fn call(
+    Hosted(runtime, path): &Hosted,
+    tool: &str,
+    input: Value,
+) -> Result<Value, crate::ToolError> {
     let turn = runtime.turn().await;
     runtime
-        .call(&turn, signer(1), None, tool, input)
+        .call(&turn, path, signer(1), None, tool, input)
         .await
         .unwrap()
         .outcome
@@ -210,10 +217,12 @@ fn only_configured_hosts_are_allowed() {
         .unwrap_err();
         assert_eq!(refused.code, "permission_denied");
         // No tool adds a host, and unknown tools are refused outright.
-        let turn = runtime.turn().await;
+        let turn = runtime.0.turn().await;
         assert!(runtime
+            .0
             .call(
                 &turn,
+                &runtime.1,
                 signer(1),
                 None,
                 "agent_protocols_host_add",
@@ -238,7 +247,7 @@ fn only_configured_hosts_are_allowed() {
             local,
             ..Options::default()
         };
-        assert!(Runtime::new(&dir.0.join("x.sqlite"), &options).is_err());
+        assert!(Runtime::new(&options).is_err());
     }
     // A trusted root belongs to a local deployment only, and a blocked
     // sender must be an Agent ID.
@@ -252,7 +261,7 @@ fn only_configured_hosts_are_allowed() {
             ..Options::default()
         },
     ] {
-        assert!(Runtime::new(&dir.0.join("x.sqlite"), &options).is_err());
+        assert!(Runtime::new(&options).is_err());
     }
 }
 
@@ -317,7 +326,8 @@ fn connector_state_survives_a_restart() {
         held["draft"]["id"].as_str().unwrap().to_string()
     });
     let spent = first
-        .snapshot(signer(1).agent_id().as_str())
+        .0
+        .snapshot(&first.1, signer(1).agent_id().as_str())
         .unwrap()
         .unwrap()["next_nonce"]
         .as_u64()
@@ -355,7 +365,8 @@ fn connector_state_survives_a_restart() {
         assert_eq!(dropped["status"], "dropped");
     });
     let restored = second
-        .snapshot(signer(1).agent_id().as_str())
+        .0
+        .snapshot(&second.1, signer(1).agent_id().as_str())
         .unwrap()
         .unwrap();
     assert!(restored["next_nonce"].as_u64().unwrap() >= spent);
