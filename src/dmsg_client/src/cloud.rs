@@ -205,6 +205,19 @@ pub fn verify_command<P: DeserializeOwned + Serialize>(
     devices: &BTreeMap<Hash, Device>,
     action: &str,
 ) -> Result<P> {
+    verify_signed_command(cose, issuer, devices, action).map(|(_, payload)| payload)
+}
+
+/// [`verify_command`], also returning the signing device.
+///
+/// # Errors
+/// As [`verify_command`].
+pub fn verify_signed_command<P: DeserializeOwned + Serialize>(
+    cose: &str,
+    issuer: &str,
+    devices: &BTreeMap<Hash, Device>,
+    action: &str,
+) -> Result<(Hash, P)> {
     let bytes = unb64(cose)?;
     ensure(
         bytes.len() <= 262_144 && bytes.first() == Some(&0xd2),
@@ -233,7 +246,7 @@ pub fn verify_command<P: DeserializeOwned + Serialize>(
         body.protocol == CLOUD_PROTOCOL && body.action == action,
         Error::IntegrityFailed,
     )?;
-    Ok(body.payload)
+    Ok((*kid, body.payload))
 }
 
 /// The `X-Dmsg-Pop` proof over the exact request bytes.
@@ -321,7 +334,12 @@ pub struct Presigned {
 #[derive(Serialize)]
 struct CommandBody<'a> {
     cose_sign1: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sealed: Option<&'a Bytes>,
 }
+
+/// Largest command body: a connect reply carries up to 512 KiB beside its command.
+const MAX_BODY: usize = 640 * 1024;
 
 /// The relay's error code mapped onto the client errors.
 fn relay_error(code: &str, message: &str) -> Error {
@@ -565,14 +583,38 @@ impl Cloud {
         request_id: &Hash,
         now: u64,
     ) -> Result<Json> {
+        self.post_sealed(signer, path, action, payload, request_id, None, now)
+            .await
+    }
+
+    /// [`Self::post`] with a sealed reply beside the command; the command
+    /// commits to its digest.
+    ///
+    /// # Errors
+    /// Relay errors as returned; a lost response is `Error::ExecutionUnknown`.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn post_sealed<P: Serialize>(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        action: &str,
+        payload: &P,
+        request_id: &Hash,
+        sealed: Option<&[u8]>,
+        now: u64,
+    ) -> Result<Json> {
         let url = self.url(path)?;
         let request_id = hex::encode(**request_id);
         let deadline = signer.deadline(now)?;
         let command = sign_command(signer, action, payload, &request_id, deadline);
         let body = canonical(&CommandBody {
             cose_sign1: &command,
+            sealed: sealed.map(Bytes::new),
         });
-        ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
+        ensure(
+            body.len() <= if sealed.is_some() { MAX_BODY } else { 262_144 },
+            Error::QuotaExceeded,
+        )?;
         let pop = sign_http(signer, &url, "POST", &body, &request_id, deadline)?;
         self.exchange(
             reqwest::Method::POST,
@@ -608,6 +650,7 @@ impl Cloud {
         let command = sign_command(signer, action, payload, &request_id, deadline);
         let body = canonical(&CommandBody {
             cose_sign1: &command,
+            sealed: None,
         });
         ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
         Ok(Presigned {

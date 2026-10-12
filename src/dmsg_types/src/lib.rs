@@ -3,6 +3,8 @@
 pub mod account;
 pub mod agent;
 pub mod billing;
+/// dmsg-connect/1 messages between the bridge page, the relay and devices.
+pub mod connect;
 pub mod cose;
 pub mod handle;
 /// dmsg-login/1 messages between local clients and the login page.

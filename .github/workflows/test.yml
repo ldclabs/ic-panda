@@ -7,6 +7,9 @@ on:
 jobs:
   extension:
     runs-on: ubuntu-latest
+    env:
+      # Only the local smoke test runs Electron.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
     steps:
       - uses: actions/checkout@v7
       # Use the pnpm version pinned by packageManager in the root package.json.
@@ -26,6 +29,13 @@ jobs:
       - run: pnpm --dir src/dmsg_legacy test
       # dmsg.net, including the dmsg-login/1 page checked against tests/vectors/client/login-v1.json.
       - run: pnpm --dir src/dmsg_frontend test
+      # The dmsg-connect/1 bridge core, checked against tests/vectors/client/connect-v1.json.
+      - run: pnpm --dir src/dmsg_connect check
+      - run: pnpm --dir src/dmsg_connect test
+      # The desktop shell; its Electron smoke test needs a display and runs locally.
+      - run: pnpm --dir src/dmsg_desktop check
+      - run: pnpm --dir src/dmsg_desktop test
+      - run: pnpm --dir src/dmsg_desktop build
       - run: pnpm --dir src/dmsg_app build
       - run: pnpm --dir src/dmsg_app exec playwright install --with-deps chromium
       # The cross-repository cloud probe is a separate local command; no private

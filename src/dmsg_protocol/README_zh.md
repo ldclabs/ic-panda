@@ -22,13 +22,13 @@ dmsg_protocol = { path = "../ic-panda/src/dmsg_protocol" }
 
 ```toml
 [dependencies]
-dmsg_types = "0.3"
-dmsg_protocol = "0.3"
+dmsg_types = "0.4"
+dmsg_protocol = "0.4"
 ```
 
 正式依赖方向是 **dmsg_protocol → dmsg_types**。仓库中反方向的引用只是开发依赖，用于 dmsg_types 的合同测试和向量生成；仅使用类型的应用不会引入本协议库。使用方直接从 dmsg_types 导入公开 DTO 和错误类型。下文示例还使用 `ed25519-dalek = "3"`，批准示例另外使用 `candid = "0.10"`。
 
-发布配置不表示版本已经上架 crates.io。当前 checkout 中 dmsg_types 与 dmsg_protocol 均为 0.3.0；发布顺序见文末说明。
+发布配置不表示版本已经上架 crates.io。当前 checkout 中 dmsg_types 与 dmsg_protocol 均为 0.4.0；发布顺序见文末说明。
 
 ## API 导航
 
@@ -165,7 +165,7 @@ assert_eq!(normalize_handle("Alice_01").unwrap(), "alice_01");
 
 `canonical` 使用 RFC 8949 core deterministic CBOR。`digest(domain, value)` 为 `SHA256(CBOR([1, domain, value]))`。两者面向可信、可序列化的值；Serialize 实现失败时 panic，不检查业务语义。`decode_canonical` 限制输入为 65,536 字节并要求重新编码完全一致，对畸形或非规范记录返回错误。它不是签名产物解码器：外部 COSE 验签必须保留原始 protected 字节。
 
-AccountId 为 12 字节二进制和 20 字符规范 Xid 文本，Hash/OpId 为 32 字节串。身份适配器要求明确的规范 URI 命名空间，以 `/` 或 `:` 结尾且无 query/fragment；不会发现服务或确认账户存在。`validate_origin` 接受精确 HTTPS origin 或 32 个 a..p 字母的 Chrome extension ID，不允许尾随路径；Local 部署还接受精确的环回 HTTP origin。user 与 COSE home 按各自部署环境检查。语法检查不能证明真实浏览器来源。
+AccountId 为 12 字节二进制和 20 字符规范 Xid 文本，Hash/OpId 为 32 字节串。身份适配器要求明确的规范 URI 命名空间，以 `/` 或 `:` 结尾且无 query/fragment；不会发现服务或确认账户存在。`validate_origin` 接受精确 HTTPS origin，不允许尾随路径；Local 部署还接受精确的环回 HTTP origin。user 与 COSE home 按各自部署环境检查。语法检查不能证明真实浏览器来源。
 
 业务时间戳和时长使用毫秒，Statement.issued_at 使用秒，ICRC created_at_time 使用纳秒。`expiry` 要求截止时间严格晚于当前时间且不超过给定的最大剩余时长。`check_sequence` 对旧序号返回 ResultExpired，对未来或耗尽序号返回 VersionConflict，不更新计数器。`price` 使用固定 PANDA 价格表和 8 位小数，要求名称已经验证；它不是通用代币价格预言机。
 
@@ -201,7 +201,7 @@ COSE 部署 pin 运行 `cargo run -p dmsg_protocol --features cose-pins --exampl
 
 ## 维护者发布说明
 
-先发布 dmsg_types，再发布 dmsg_protocol。后者的依赖同时指定本地路径与版本 0.3.0；Cargo 在发布包中使用 registry 版本。应让版本约束与公开合同保持一致。
+先发布 dmsg_types，再发布 dmsg_protocol。后者的依赖同时指定本地路径与版本 0.4.0；Cargo 在发布包中使用 registry 版本。应让版本约束与公开合同保持一致。
 
 0.2.0 移除了 0.1.x 中没有生产代码使用的公开项。`finish_cose` 改为 `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`；`ExecuteRequestExt::approval_message` 改为调用 `approval_message`：文档证明用 `ATTEST_APPROVAL_DOMAIN` 和 `attest_approval_command`，根派生用 `DERIVE_APPROVAL_DOMAIN` 和 `derive_approval_command`；`ExecutionResult::output()` 改为匹配 `ExecutionOutcome::Completed`。`dmsg_types::handle::HandleInit` 新增必填字段 `governance`，并以 `environment`、`issuer_namespace` 和只能追加的 `user_homes` 取代 `home_user`，按账户 ID 的分配器指纹路由。新增的 `handle_bucket` 与 `HANDLE_BUCKET_BITS` 规定注册表在何处认证名称。`CoseInit` 以 `user_homes` 取代 `initial_home_user` 并新增 `governance`；`PaymentInit` 以 `environment`、`issuer_namespace` 和 `user_homes` 取代 `home_user`，`PaymentConfiguration` 改列 `user_homes`；`DirectoryInit` 新增 `governance`。新增的 `agent::check_user_home`、`validate_user_homes`、`account_home`、`is_account_home`、`validate_custom_domains` 和 `MAX_USER_HOMES`（64）让各服务使用同一套分配器指纹路由。`MIN_HANDLE_PRICE`（即 7–20 字节名称的 `price`）从 5,000 PANDA 改为 100 PANDA，与旧注册表的现行价格一致。 `ProductRegistration` 以只能追加的 `beneficiary_authorities` 取代 `beneficiary_authority`，`validate_subject` 要求主体的 authority 在列表中；`CommerceInit` 以 `limits: CommerceLimits` 取代 `max_subjects` 与 `daily_orders`。新增 `dmsg_types::integration::LEASE_RENEW_WINDOW_MS`（10 分钟），是 commerce 与 membership 共用的租约续期窗口。`CommerceLimits` 新增 `calls_per_caller`，新增的 `CommerceStats` 报告 commerce 的实时记录数；`PandaServiceConfig` 以只能追加的 `commerce_homes: Vec<CommerceHome>`（每个 user home 的 commerce）取代 `commerce_canister`，并新增 `qualifications_per_minute`。`ExecutionResult` 新增 `cycles_charged`，即返回的管理调用实际消耗的阈值费用，COSE 与 user 的预算都结算到它；新增的 `CoseStats` 报告 COSE 执行器的实时计数。`content_root_context` 构造 vetKD 内容根 context，可选 feature `cose-pins` 提供 `cose_pins::master_key_pin` 与 `cose_pins` 示例，用于离线计算 COSE master key pin。
 
@@ -219,3 +219,5 @@ Cargo 会从规范化后的 dmsg_types 发布包 manifest 中省略仅含 path �
 应用动作 v1 是独立的签名 profile，使用 `AppAction` 密钥用途；各应用登记自己命令的 schema，详见
 [profile 与实现边界](../../docs/protocol/app-action.md)。Rust COSE 准备与验证支持它；
 `dmsg_user.attest` 与文档浏览器流程明确拒绝它，`attest_app_action` 是唯一入口。
+
+0.4.0 新增 `connect`：设备、桥接页与中继共用的 dmsg-connect/1 规则，包括命令校验、`proof_message`、`operation_digest`、`pairing_id`、`pairing_mac`，密封上下文 `request_aad`、`wrap_info`、`response_info`，以及结构校验 `validate_request` 与 `validate_grant`；向量见 `tests/vectors/client/connect-v1.json`。`validate_origin` 不再接受 `chrome-extension://`：dMsg 不再提供浏览器扩展，网页来源由客户端经 dmsg-connect/1 核实。`authentication::verify_recorded_leaf` 以任意证书时间核验作为证据保存的认证叶，`verify_attestation` 端到端核验产物及其认证执行回执。配套的 dmsg_types 新增 `connect`，包含请求、信封、回复、邀请、grant、证明与设备命令 payload 类型。

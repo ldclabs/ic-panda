@@ -93,7 +93,7 @@ test('canonical text preserves leading U+FEFF and Unicode through round trips', 
 
 test('exact origins and app pause reject unsafe acceptance', () => {
   for (const value of ['https://example.test', 'http://localhost:5188', 'http://127.0.0.1:5188', 'http://[::1]:5188']) validateOrigin(value, 'Local')
-  for (const value of ['https://example.test/', 'https://user@example.test', 'https://example.test/a', 'https://EXAMPLE.test', 'https://example.test:443', 'https://example.test?x=1', 'http://example.test', 'null']) assert.throws(() => validateOrigin(value, 'Local'))
+  for (const value of ['https://example.test/', 'https://user@example.test', 'https://example.test/a', 'https://EXAMPLE.test', 'https://example.test:443', 'https://example.test?x=1', 'http://example.test', 'null', `chrome-extension://${'a'.repeat(32)}`]) assert.throws(() => validateOrigin(value, 'Local'))
   assert.throws(() => validateOrigin('http://localhost:5188', 'Production'))
   assert.throws(() => validateBillingOffer(offer, { ...app, paused: true }, product, now))
 })

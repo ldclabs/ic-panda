@@ -1,0 +1,32 @@
+import { contextBridge, ipcRenderer } from 'electron'
+import type { DaemonEvent, DesktopBridge } from '../shared/contract'
+
+const unwrap = <T>(promise: Promise<T>) =>
+  promise.catch((error: Error) => {
+    // "CODE: message" from the main process, without Electron's prefix.
+    throw new Error(String(error.message).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''))
+  })
+
+const role = process.argv.includes('--dmsg-role=approval') ? 'approval' : 'main'
+
+const api: DesktopBridge = {
+  role,
+  call: (method, params) => unwrap(ipcRenderer.invoke('dmsg:call', method, params ?? null)),
+  decide: (id, digest, approve) => unwrap(ipcRenderer.invoke('dmsg:decide', id, digest, approve)),
+  grant: (invite, pairing) => unwrap(ipcRenderer.invoke('dmsg:grant', invite, pairing)),
+  login: (origin) => unwrap(ipcRenderer.invoke('dmsg:login', origin)),
+  pair: (copyLink) => unwrap(ipcRenderer.invoke('dmsg:pair', copyLink)),
+  openApproval: (id) => unwrap(ipcRenderer.invoke('dmsg:open-approval', id)),
+  connection: () => unwrap(ipcRenderer.invoke('dmsg:connection')),
+  onEvent: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: DaemonEvent) => listener(data)
+    ipcRenderer.on('dmsg:event', handler)
+    return () => ipcRenderer.removeListener('dmsg:event', handler)
+  },
+  onNavigate: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, route: string) => listener(route)
+    ipcRenderer.on('dmsg:navigate', handler)
+    return () => ipcRenderer.removeListener('dmsg:navigate', handler)
+  }
+}
+contextBridge.exposeInMainWorld('dmsg', api)

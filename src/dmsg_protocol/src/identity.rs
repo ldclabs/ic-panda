@@ -72,25 +72,18 @@ pub fn account_issuer(namespace: &str, id: &AccountId) -> String {
     format!("{namespace}{id}")
 }
 
-/// Validate an exact browser origin of at most 256 bytes.
+/// Validate an exact web origin of at most 256 bytes.
 ///
-/// Accepts a Chrome extension origin whose ID contains 32 lowercase letters in
-/// a..p, or an HTTPS origin equal to the URL parser's origin serialization (no
+/// Accepts an HTTPS origin equal to the URL parser's origin serialization (no
 /// path, trailing slash, credentials, query or fragment). Local deployments also
 /// accept exact loopback HTTP origins (`localhost`, `127.0.0.1`, `[::1]`). This
-/// validates syntax only; the extension must independently obtain and check the
-/// actual browser origin.
+/// validates syntax only; the dMsg client must independently obtain and check
+/// the actual origin.
 ///
 /// # Errors
 /// Invalid origins return `Error::InvalidInput`.
 pub fn validate_origin(origin: &str, environment: &Environment) -> Result<()> {
     ensure_valid(origin.len() <= 256, "origin")?;
-    if let Some(id) = origin.strip_prefix("chrome-extension://") {
-        return ensure_valid(
-            id.len() == 32 && id.bytes().all(|b| (b'a'..=b'p').contains(&b)),
-            "origin",
-        );
-    }
     let url = url::Url::parse(origin).map_err(|_| invalid("origin"))?;
     let loopback = *environment == Environment::Local
         && url.scheme() == "http"

@@ -12,18 +12,22 @@ name = "dmsg"
 path = "src/main.rs"
 
 [dependencies]
-axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "ws"] }
 candid.workspace = true
 clap.workspace = true
 dmsg_client = { path = "../dmsg_client" }
 dmsg_types = { path = "../dmsg_types" }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 hex.workspace = true
 # Pinned as in anda-bot: credential-store initialization has regressed in
 # patch releases, so upgrades are validated explicitly.
 keyring = "=4.2.0"
 reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+# The hint channel's TLS uses the same provider as reqwest.
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tokio = { workspace = true }
+tokio-tungstenite = { version = "0.29", default-features = false, features = ["connect", "handshake", "rustls-tls-webpki-roots"] }
 toml = "1"
 zeroize = "1"

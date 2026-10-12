@@ -8,6 +8,8 @@ use url::Url;
 
 /// The dmsg-login/1 page.
 pub const LOGIN_URL: &str = "https://dmsg.net/_/login";
+/// The dmsg-connect/1 bridge origin.
+pub const CONNECT_URL: &str = "https://connect.dmsg.net";
 
 /// Public parameters of one deployment.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -26,6 +28,9 @@ pub struct Config {
     pub root_key: Option<Vec<u8>>,
     /// Login page; only a local deployment may replace [`LOGIN_URL`].
     pub login_url: String,
+    /// Bridge origin of web applications; only a local deployment may
+    /// replace [`CONNECT_URL`].
+    pub connect_url: String,
     /// Keep the device signing key while locked ("后台在线", plan D-7).
     pub background_online: bool,
 }
@@ -42,6 +47,7 @@ impl Config {
             ("ic_host", &self.ic_host),
             ("relay", &self.relay),
             ("login_url", &self.login_url),
+            ("connect_url", &self.connect_url),
         ] {
             let url = Url::parse(value).map_err(|_| dmsg_types::invalid(name))?;
             let loopback = matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "[::1]"));
@@ -53,7 +59,10 @@ impl Config {
             )?;
         }
         ensure_valid(
-            local || (self.root_key.is_none() && self.login_url == LOGIN_URL),
+            local
+                || (self.root_key.is_none()
+                    && self.login_url == LOGIN_URL
+                    && self.connect_url == CONNECT_URL),
             "local-only setting",
         )
     }

@@ -31,10 +31,9 @@ fn account_extension_gateway() {
     let mut application_registered = false;
     while !output.join("stop").exists() && started.elapsed() < Duration::from_secs(300) {
         if !application_registered && output.join("cloud-launch.json").exists() {
-            let launch: serde_json::Value =
-                serde_json::from_slice(&std::fs::read(output.join("cloud-launch.json")).unwrap())
-                    .unwrap();
-            let origin = launch["extensionOrigin"].as_str().unwrap().to_string();
+            // dMsg's own operations use https://dmsg.net (plan D-19); an
+            // extension origin is no longer a valid application origin.
+            let origin = "https://dmsg.net".to_string();
             let app = AppRegistration {
                 version: 1,
                 environment: Environment::Local,

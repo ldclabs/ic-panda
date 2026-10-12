@@ -137,6 +137,7 @@ fn test_config() -> Config {
         user_homes: vec![],
         root_key: None,
         login_url: crate::config::LOGIN_URL.into(),
+        connect_url: crate::config::CONNECT_URL.into(),
         background_online: false,
     }
 }

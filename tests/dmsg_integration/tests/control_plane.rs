@@ -518,10 +518,7 @@ impl Fixture {
             environment: Environment::Local,
             app_id: "dmsg".into(),
             config_version: 1,
-            origins: vec![
-                "https://dmsg.test".into(),
-                format!("chrome-extension://{}", "a".repeat(32)),
-            ],
+            origins: vec!["https://dmsg.test".into(), "https://dmsg.net".into()],
             product_ids: vec!["dmsg".into()],
             capabilities: vec![AppCapability::Checkout],
             profiles: vec![],

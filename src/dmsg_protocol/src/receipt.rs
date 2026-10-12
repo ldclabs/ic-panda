@@ -1,5 +1,6 @@
 //! Binding checks complement (never replace) authentication of an ICP certificate.
 use crate::*;
+use candid::Principal;
 use dmsg_types::*;
 
 /// Return the single certified-tree path segment for an execution receipt.
@@ -39,4 +40,41 @@ pub fn match_execution_receipt(
             && sha256(verified.message.signature()) == receipt.signature_digest,
         Error::IntegrityFailed,
     )
+}
+
+/// Verify an attestation end to end as kept evidence: the artifact's
+/// signature, the IC certificate of its execution receipt under a pinned
+/// root and home at `execution/<account><request>`, and the receipt's
+/// binding to the artifact, account and request. Returns the statement,
+/// the receipt and the certificate time in Unix milliseconds.
+///
+/// It checks no freshness: a receipt proves what the account authorized
+/// when it was certified, not that the device is still trusted.
+///
+/// # Errors
+/// Artifact errors propagate; any certificate or binding mismatch returns
+/// `Error::IntegrityFailed`.
+pub fn verify_attestation(
+    artifact: &SignedArtifact,
+    receipt: &CertifiedBatch,
+    account: &AccountId,
+    request: OpId,
+    trusted_home: Principal,
+    trusted_ic_root_der: &[u8],
+) -> Result<(Statement, ExecutionReceipt, u64)> {
+    let statement = verify_artifact(artifact)?;
+    let key = execution_receipt_key(account, request);
+    let (value, at) = crate::authentication::verify_recorded_leaf(
+        receipt,
+        &key,
+        trusted_home,
+        trusted_ic_root_der,
+    )?;
+    let leaf: ExecutionReceipt = decode_canonical(&value)?;
+    match_execution_receipt(artifact, &leaf)?;
+    ensure(
+        leaf.account_id == *account && leaf.request_id == request,
+        Error::IntegrityFailed,
+    )?;
+    Ok((statement, leaf, at))
 }

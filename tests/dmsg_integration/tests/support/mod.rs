@@ -525,6 +525,21 @@ impl Deployment {
         }
     }
 
+    /// Register an application with commerce, as its governance does.
+    #[allow(dead_code)]
+    pub fn register_app(&self, app: &dmsg_types::integration::AppRegistration) {
+        let reply = self
+            .ic
+            .update_call(
+                self.commerce,
+                self.peer,
+                "register_integration_app",
+                candid::encode_args((app,)).unwrap(),
+            )
+            .unwrap();
+        candid::decode_one::<Result<()>>(&reply).unwrap().unwrap();
+    }
+
     /// `fixture.json` as the relay launchers read it.
     pub fn fixture_json(&self) -> String {
         let Self {

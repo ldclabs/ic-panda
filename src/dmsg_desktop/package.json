@@ -1,0 +1,32 @@
+{
+  "name": "@dmsg/desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "dMsg desktop: the vault, signatures and approvals of a dMsg device, on its local daemon",
+  "author": "LDC Labs",
+  "license": "Apache-2.0",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "node --test tests/*.test.ts",
+    "test:e2e": "pnpm build && node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "ws": "8.20.1"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "6.2.1",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^26.6.4",
+    "@types/ws": "^8.18.1",
+    "electron": "44.4.5",
+    "electron-vite": "5.0.0",
+    "playwright": "1.64.0",
+    "svelte": "^5.57.1",
+    "svelte-check": "^4.7.6",
+    "typescript": "~6.0.3",
+    "vite": "7.3.1"
+  }
+}

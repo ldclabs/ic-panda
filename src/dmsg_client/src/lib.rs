@@ -2,10 +2,13 @@
 #![warn(missing_docs)]
 
 pub mod account;
+pub mod approval;
+pub mod attest;
 pub mod client;
 pub mod cloud;
 pub mod codec;
 pub mod config;
+pub mod connect;
 pub mod content;
 pub mod crypto;
 pub mod files;

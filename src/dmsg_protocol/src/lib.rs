@@ -30,6 +30,9 @@ pub mod authentication;
 /// dmsg-login/1 request and callback checks.
 pub mod login;
 
+/// dmsg-connect/1 digests, sealing contexts and structural checks.
+pub mod connect;
+
 #[cfg(test)]
 extern crate self as dmsg_protocol;
 

@@ -3,7 +3,7 @@ use crate::vectors::{bytes, key, load, text, value};
 use hpke::rand_core::{Infallible, TryCryptoRng, TryRng};
 
 /// Replays fixed bytes, so HPKE derives the vector's ephemeral key from them.
-struct Replay(Vec<u8>);
+pub(crate) struct Replay(pub(crate) Vec<u8>);
 
 impl TryRng for Replay {
     type Error = Infallible;
@@ -89,9 +89,10 @@ fn seals_hpke_exactly_with_fixed_ephemeral_keys() {
         assert_eq!(canonical(&context), bytes(&case["context"]["hex"]));
         let plaintext = bytes(&case["plaintext_hex"]);
         let envelope = hpke_seal_with(
+            &OpModeS::Base,
             &public,
             &plaintext,
-            &context,
+            &canonical(&context),
             &mut Replay(bytes(&case["ekm_hex"])),
         )
         .unwrap();

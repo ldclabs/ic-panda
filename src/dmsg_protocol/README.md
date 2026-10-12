@@ -22,13 +22,13 @@ Once both versions are published, the corresponding registry dependencies are:
 
 ```toml
 [dependencies]
-dmsg_types = "0.3"
-dmsg_protocol = "0.3"
+dmsg_types = "0.4"
+dmsg_protocol = "0.4"
 ```
 
 The runtime dependency is **dmsg_protocol → dmsg_types**. The reverse reference in the repository is a development dependency used by dmsg_types contract tests and vector generation; applications using only the types do not pull in this protocol crate. Consumers import public DTOs and errors from dmsg_types directly. The examples below also use `ed25519-dalek = "3"` and, for the approval example, `candid = "0.10"`.
 
-Publication settings do not prove a version is already on crates.io. In this checkout dmsg_types and dmsg_protocol are both version 0.3.0; see the release notes below for publication order.
+Publication settings do not prove a version is already on crates.io. In this checkout dmsg_types and dmsg_protocol are both version 0.4.0; see the release notes below for publication order.
 
 ## API guide
 
@@ -165,7 +165,7 @@ assert_eq!(normalize_handle("Alice_01").unwrap(), "alice_01");
 
 `canonical` uses RFC 8949 core deterministic CBOR. `digest(domain, value)` is `SHA256(CBOR([1, domain, value]))`. Both operate on trusted serializable values and panic if their Serialize implementation fails; neither enforces business semantics. `decode_canonical` caps input at 65,536 bytes and requires exact re-encoding, returning errors for malformed or noncanonical records. It is not the artifact decoder: external COSE verification must preserve the original protected bytes.
 
-AccountId is 12 binary bytes and 20 characters of canonical Xid text. Hash/OpId are 32-byte strings. Identity adapters require an explicit canonical URI namespace ending in `/` or `:`, without query/fragment; they neither discover services nor establish account existence. `validate_origin` accepts an exact HTTPS origin or a 32-letter a..p Chrome extension ID, without a trailing path; Local deployments also accept exact loopback HTTP origins. The user and COSE homes check it against their own deployment environment. Syntax checks do not prove the browser's actual origin.
+AccountId is 12 binary bytes and 20 characters of canonical Xid text. Hash/OpId are 32-byte strings. Identity adapters require an explicit canonical URI namespace ending in `/` or `:`, without query/fragment; they neither discover services nor establish account existence. `validate_origin` accepts an exact HTTPS origin without a trailing path; Local deployments also accept exact loopback HTTP origins. The user and COSE homes check it against their own deployment environment. Syntax checks do not prove the browser's actual origin.
 
 Business timestamps and durations use milliseconds, while Statement.issued_at uses seconds and ICRC created_at_time uses nanoseconds. `expiry` requires a strictly future deadline within the supplied maximum lifetime. `check_sequence` returns ResultExpired for old sequences and VersionConflict for future/exhausted sequences; it does not update the counter. `price` uses a fixed PANDA schedule with 8 decimal places and requires an already validated handle; it is not a generic token price oracle.
 
@@ -201,7 +201,7 @@ For the COSE deployment pin, run `cargo run -p dmsg_protocol --features cose-pin
 
 ## Release notes for maintainers
 
-Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies both a local path and version 0.3.0; Cargo uses the registry version in a published package. Keep that version requirement aligned with the public contracts.
+Publish dmsg_types first, then dmsg_protocol. The latter's dependency specifies both a local path and version 0.4.0; Cargo uses the registry version in a published package. Keep that version requirement aligned with the public contracts.
 
 0.2.0 removes 0.1.x public items that no production code used. Replace `finish_cose` with `parse_signing_input(tbs)?.into_signature(public)?.finish(signature)`, `ExecuteRequestExt::approval_message` with `approval_message` over `ATTEST_APPROVAL_DOMAIN` and `attest_approval_command` for document attestations or `DERIVE_APPROVAL_DOMAIN` and `derive_approval_command` for root derivations, and `ExecutionResult::output()` with a match on `ExecutionOutcome::Completed`. `dmsg_types::handle::HandleInit` gains the required `governance` field and replaces `home_user` with `environment`, `issuer_namespace` and an append-only `user_homes`, routed by each account ID's allocator fingerprint. The new `handle_bucket` and `HANDLE_BUCKET_BITS` define where the registry certifies a handle. `CoseInit` replaces `initial_home_user` with `user_homes` and gains `governance`; `PaymentInit` replaces `home_user` with `environment`, `issuer_namespace` and `user_homes`, and `PaymentConfiguration` lists `user_homes`; `DirectoryInit` gains `governance`. The new `agent::check_user_home`, `validate_user_homes`, `account_home`, `is_account_home`, `validate_custom_domains` and `MAX_USER_HOMES` (64) give every service the same allocator-fingerprint routing. `MIN_HANDLE_PRICE`, and so `price` for 7–20-byte names, drops from 5,000 to 100 PANDA to match the live legacy registry. `ProductRegistration` replaces `beneficiary_authority` with an append-only `beneficiary_authorities` list, and `validate_subject` requires the subject's authority to be listed; `CommerceInit` replaces `max_subjects` and `daily_orders` with `limits: CommerceLimits`. `dmsg_types::integration::LEASE_RENEW_WINDOW_MS` (10 minutes) is the lease renewal window shared by commerce and membership. `CommerceLimits` gains `calls_per_caller`, and the new `CommerceStats` reports a commerce canister's live counts; `PandaServiceConfig` replaces `commerce_canister` with the append-only `commerce_homes: Vec<CommerceHome>`, the commerce canister of each user home, and gains `qualifications_per_minute`. `ExecutionResult` gains `cycles_charged`, the threshold fee a returned management call consumed, to which COSE and user budgets settle; the new `CoseStats` reports a COSE executor's live counters. `content_root_context` builds the vetKD content-root context, and the optional `cose-pins` feature adds `cose_pins::master_key_pin` and the `cose_pins` example for offline COSE master-key pins.
 
@@ -221,3 +221,5 @@ application registers the schema of its own commands; see [the profile and
 implementation boundary](../../docs/protocol/app-action.md). Rust COSE
 preparation/verification supports it; `dmsg_user.attest` and the document browser
 flow explicitly reject it, and `attest_app_action` is its only entry.
+
+0.4.0 adds `connect`, the dmsg-connect/1 rules shared by devices, the bridge page and the relay: command validation, `proof_message`, `operation_digest`, `pairing_id`, `pairing_mac`, the sealing contexts `request_aad`, `wrap_info` and `response_info`, and the structural checks `validate_request` and `validate_grant`; their vectors are `tests/vectors/client/connect-v1.json`. `validate_origin` no longer accepts `chrome-extension://` origins: dMsg has no browser extension, and the client vouches for web origins through dmsg-connect/1. `authentication::verify_recorded_leaf` verifies a certified leaf kept as evidence, at any certificate time, and `verify_attestation` checks an artifact with its certified execution receipt end to end. The matching dmsg_types change adds `connect` with the request, envelope, reply, invitation, grant, proof and device-command payload types.

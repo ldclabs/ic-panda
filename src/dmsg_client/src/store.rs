@@ -36,6 +36,20 @@ CREATE TABLE IF NOT EXISTS heads (
 );
 CREATE TABLE IF NOT EXISTS chunks (digest TEXT PRIMARY KEY, bytes BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS jobs (key TEXT PRIMARY KEY, value BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS approvals (
+  id TEXT PRIMARY KEY,
+  state TEXT NOT NULL,
+  class TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS approvals_state ON approvals (state, created_at);
+CREATE TABLE IF NOT EXISTS connect_inbox (
+  request_id TEXT PRIMARY KEY,
+  seq INTEGER NOT NULL,
+  value BLOB NOT NULL,
+  done INTEGER NOT NULL DEFAULT 0
+);
 ";
 
 /// A local version the relay has not accepted yet.
@@ -47,6 +61,21 @@ pub const SYNCED: &str = "synced";
 pub const BLOCKED: &str = "blocked";
 /// A local version resealed under a newer root; its replacement is sent.
 pub const REPLACED: &str = "replaced";
+
+/// The plaintext index row of an approval request; its content is sealed.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ApprovalRow {
+    /// Request ID, hex.
+    pub id: String,
+    /// The request's state.
+    pub state: String,
+    /// What kind of source asked, such as `cli` or `connect`; never an origin.
+    pub class: String,
+    /// Creation time in Unix milliseconds.
+    pub created_at: u64,
+    /// Deadline in Unix milliseconds.
+    pub expires_at: u64,
+}
 
 /// One workspace database.
 pub struct Store {
@@ -290,6 +319,107 @@ impl Store {
             .execute("DELETE FROM sealed WHERE key = ?1", [key])
             .map(|_| ())
             .map_err(storage)
+    }
+
+    /// Insert or update an approval's index row.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn put_approval(&self, row: &ApprovalRow) -> Result<()> {
+        self.conn()
+            .execute(
+                "INSERT OR REPLACE INTO approvals (id, state, class, created_at, expires_at) \
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![
+                    row.id,
+                    row.state,
+                    row.class,
+                    row.created_at as i64,
+                    row.expires_at as i64
+                ],
+            )
+            .map(|_| ())
+            .map_err(storage)
+    }
+
+    /// Approval index rows in `states`, oldest first; every row when empty.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn approvals(&self, states: &[&str]) -> Result<Vec<ApprovalRow>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare("SELECT id, state, class, created_at, expires_at FROM approvals ORDER BY created_at, id")
+            .map_err(storage)?;
+        let rows = statement
+            .query_map([], |r| {
+                Ok(ApprovalRow {
+                    id: r.get(0)?,
+                    state: r.get(1)?,
+                    class: r.get(2)?,
+                    created_at: r.get::<_, i64>(3)? as u64,
+                    expires_at: r.get::<_, i64>(4)? as u64,
+                })
+            })
+            .map_err(storage)?;
+        let rows: Vec<ApprovalRow> = rows.collect::<rusqlite::Result<_>>().map_err(storage)?;
+        Ok(rows
+            .into_iter()
+            .filter(|r| states.is_empty() || states.contains(&r.state.as_str()))
+            .collect())
+    }
+
+    /// Store or replace a relay mailbox entry; `done` once it is handled.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn put_inbox<T: Serialize>(
+        &self,
+        request: &str,
+        seq: u64,
+        value: &T,
+        done: bool,
+    ) -> Result<()> {
+        self.conn()
+            .execute(
+                "INSERT OR REPLACE INTO connect_inbox (request_id, seq, value, done) VALUES (?1, ?2, ?3, ?4)",
+                params![request, seq as i64, crate::codec::canonical(value), done],
+            )
+            .map(|_| ())
+            .map_err(storage)
+    }
+
+    /// A relay mailbox entry and whether it is handled.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails or the entry is corrupt.
+    pub fn inbox<T: DeserializeOwned>(&self, request: &str) -> Result<Option<(T, bool)>> {
+        let row: Option<(Vec<u8>, bool)> = self
+            .conn()
+            .query_row(
+                "SELECT value, done FROM connect_inbox WHERE request_id = ?1",
+                [request],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()
+            .map_err(storage)?;
+        row.map(|(bytes, done)| Ok((cbor(&bytes)?, done)))
+            .transpose()
+    }
+
+    /// Relay mailbox entries in sequence order; only unhandled ones with `pending`.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails or an entry is corrupt.
+    pub fn inbox_entries<T: DeserializeOwned>(&self, pending: bool) -> Result<Vec<T>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare("SELECT value FROM connect_inbox WHERE done = 0 OR ?1 = 0 ORDER BY seq")
+            .map_err(storage)?;
+        let rows = statement
+            .query_map([pending], |r| r.get::<_, Vec<u8>>(0))
+            .map_err(storage)?;
+        rows.map(|row| cbor(&row.map_err(storage)?)).collect()
     }
 
     /// Insert an object version; an existing key must hold the same frame.

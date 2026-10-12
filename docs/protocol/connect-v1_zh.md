@@ -1,6 +1,6 @@
 # dmsg-connect/1：网页应用接入协议
 
-2026-10-12 设计草案（同日审查修订），尚未实现。本协议取代 [browser-v4](browser-v4.md)（`dmsg-extension/4`）：dMsg 不再提供浏览器扩展，网页应用经 `https://connect.dmsg.net` 桥接页，把请求交给用户的 dMsg 桌面端（以后也包括移动端）审批。实现前字节格式仍可调整；实现后以测试向量 `tests/vectors/client/connect-v1.json` 为准。
+2026-10-12 起草，同日按实现修订。中继与设备端已实现（`dmsg_protocol::connect`、`dmsg_client::connect`），桥接页核心逻辑在 `src/dmsg_connect`（无头版本用于测试）；桥接页界面、`dmsg-sdk/connect` 与 `connect.dmsg.net` 部署尚未完成。本协议取代 [browser-v4](browser-v4.md)（`dmsg-extension/4`）：dMsg 不再提供浏览器扩展，网页应用经 `https://connect.dmsg.net` 桥接页，把请求交给用户的 dMsg 桌面端（以后也包括移动端）审批。字节格式以测试向量 [`tests/vectors/client/connect-v1.json`](../../tests/vectors/client/connect-v1.json) 为准。
 
 不变的部分：三种文档 profile 与应用动作的签名字节、设备执行批准与认证回执（见 [公开协议](README_zh.md)）、`AuthenticationRequest`、`AppAction`、`CheckoutRequest` 与商业合同，以及应用在 `dmsg_commerce` 的登记（`AppRegistration`）。改变的只有三件事：页面与 dMsg 之间的传输、来源的核实方式、操作的恢复方式。
 
@@ -257,13 +257,13 @@ sequenceDiagram
   participant B as 浏览器中的 connect.dmsg.net
   U->>D: 设置 → 连接浏览器
   D->>D: 生成 invite_id 与 32 字节 secret
-  D->>R: connect.invite（设备命令）
+  D->>R: 邀请（设备命令 dmsg/connect/invite/v1）
   D->>B: 用系统浏览器打开 https://connect.dmsg.net/v1/pair#<邀请>
   B->>B: 读取后立即清除 fragment；核对 environment；生成配对密钥
   B->>R: 提交候选 {pairing_pub, label, mac}（自签名 PoP）
   D->>R: 读取候选
   D->>D: 用 secret 核对 mac；向用户显示标签，等待确认
-  D->>R: connect.pairing.grant（设备命令）
+  D->>R: 授予（设备命令 dmsg/connect/pairing/grant/v1）
   B->>R: 查询配对状态，取得 grant
   B->>B: 用经过认证的设备集合核对 grant，保存配对
 ```
@@ -276,25 +276,25 @@ sequenceDiagram
 
 ### 5.3 授权与验证
 
-设备签发设备命令 `connect.pairing.grant`（信封见 [cloud_zh](cloud_zh.md)），payload 为：
+设备签发设备命令 `dmsg/connect/pairing/grant/v1`（信封见 [cloud_zh](cloud_zh.md)），payload 为：
 
 ```text
 { invite_id, pairing_id, pairing_pub, label, home, granted_at, expires_at }
 ```
 
-`home` 是该账户 user home 的 Principal；`expires_at - granted_at` 不超过 180 天。签发设备必须未撤销且具备 `FormalApprove`；中继对该命令同样要求签发设备具备 `FormalApprove`。
+grant 就是这条设备命令的 COSE_Sign1 本身（中继原样保存、原样返回）；`home` 是该账户 user home 的 Principal（CBOR bstr），`pairing_pub` 为 bstr；`expires_at - granted_at` 不超过 180 天。签发设备必须未撤销且具备 `FormalApprove`；中继对该命令同样要求签发设备具备 `FormalApprove`。
 
 配对同时满足以下条件才有效：grant 签名正确；签发设备在当前认证设备集合中，未撤销且仍具备 `FormalApprove`；未过期；未被撤销；`home` 在 handle 注册表的 `user_homes` 中，且该 home 的认证账户状态确认 `account_id` 属于它。桥接页和设备都按这些条件自行验证，不信任中继给出的状态。签发设备被撤销后，它签发的所有配对一并失效，中继对这些配对返回 410。
 
 配对不提供续期：到期后桥接页报告 `NOT_PAIRED`，用户重新执行 5.2。
 
-撤销：任一具备 `FormalApprove` 的设备签发 `connect.pairing.revoke {pairing_id}`。设备的设置页列出每个配对的标签、签发设备、创建时间与最近使用时间。
+撤销：任一具备 `FormalApprove` 的设备签发 `dmsg/connect/pairing/revoke/v1 {pairing_id}`。设备的设置页列出每个配对的标签、签发设备、创建时间与最近使用时间。
 
 ## 6. 请求与回复
 
 ### 6.1 ConnectRequest
 
-由桥接页构造，用配对密钥签名。签名格式为 COSE_Sign1：alg −7（ES256），`kid` 为 pairing_id，typ 为 `application/vnd.dmsg.connect-request+cose;v=1`，external AAD 为空。
+由桥接页构造，用配对密钥签名。签名格式为 tagged COSE_Sign1：保护头恰为规范 CBOR `{1: -7, 3: "application/cbor", 4: pairing_id, 16: "application/vnd.dmsg.connect-request+cose;v=1"}`，非保护头为空，external AAD 为空，签名为 64 字节 r‖s。
 
 ```text
 ConnectRequest = {
@@ -334,7 +334,7 @@ wrapped  = HPKE Base 模式（X25519 / HKDF-SHA256 / AES-256-GCM）对 cek 的�
            info = aad = CBOR(["dmsg/connect-wrap/v1", account_id, pairing_id, request_id, device_id])
 ```
 
-`recipients[].device_id` 对中继可见，中继用它判断 7.4 中 `unknown` 的完成条件。
+`recipients[].device_id` 对中继可见，中继用它判断 7.4 中 `unknown` 的完成条件；每个请求最多 16 个接收设备。
 
 ### 6.3 设备处理
 
@@ -368,12 +368,13 @@ ConnectResponse = {
   operation_digest: bstr .size 32,
   value: bstr                     ; 4.6 的 value，UTF-8 JSON
 }
-sealed = HPKE Auth 模式（X25519 / HKDF-SHA256 / AES-256-GCM）对 CBOR(ConnectResponse) 的密封：
+sealed = CBOR { enc: bstr .size 32, ciphertext: bstr }
+         HPKE Auth 模式（X25519 / HKDF-SHA256 / AES-256-GCM）对 CBOR(ConnectResponse) 的密封：
          skS = 应答设备的 X25519 私钥（公钥即认证设备集合中的 hpke_pub），pkR = result_key，
          info = aad = CBOR(["dmsg/connect-response/v1", account_id, pairing_id, request_id, version, device_id])
 ```
 
-桥接页从中继取得 `device_id` 与 `sealed`，在新鲜的认证设备集合中找到该设备的 `hpke_pub`（设备必须存在且未撤销），以 Auth 模式解封，再核对 `request_id`、`version`（大于已见版本）与 `operation_digest`，然后把 `value` 交给页面；任一步失败按 `INTEGRITY_FAILED` 丢弃该回复。`create` 请求收到带 `authorized` 或更后状态的回复后，桥接页记下该 `device_id`，此后只接受同一设备的回复。Auth 模式让回复的真实性不再只依赖 `result_key` 的保密：中继或任何不持有该设备 HPKE 私钥的一方都不能伪造回复。
+桥接页从中继取得 `device_id`、`sealed` 与它的 `sealed_version`，在新鲜的认证设备集合中找到该设备的 `hpke_pub`（设备必须存在且未撤销），以 Auth 模式在 `sealed_version` 下解封，再核对 `request_id`、`version`（等于 `sealed_version` 且大于已见版本）与 `operation_digest`，然后把 `value` 交给页面；任一步失败按 `INTEGRITY_FAILED` 丢弃该回复。`create` 请求收到带 `authorized` 或更后状态的回复后，桥接页记下该 `device_id`，此后只接受同一设备的回复。Auth 模式让回复的真实性不再只依赖 `result_key` 的保密：中继或任何不持有该设备 HPKE 私钥的一方都不能伪造回复。
 
 `read` 请求的回复是该操作当前状态的一次性快照。`open` 请求让设备重新展示该操作，并回复当前状态。
 
@@ -386,13 +387,17 @@ sealed = HPKE Auth 模式（X25519 / HKDF-SHA256 / AES-256-GCM）对 CBOR(Connec
 
 ### 7.1 桥接页认证
 
-桥接页的每个请求都带 `X-Dmsg-Connect-Pop` 头，值为无 padding base64url 编码的 COSE_Sign1：alg −7（ES256），`kid` 为 pairing_id，typ 为 `application/vnd.dmsg.connect-pop+cose;v=1`，payload 为：
+桥接页的每个请求都带 `X-Dmsg-Connect-Pop` 头，值为无 padding base64url 编码的 tagged COSE_Sign1，保护头与 6.1 相同，只是 typ 为 `application/vnd.dmsg.connect-pop+cose;v=1`；payload 为规范 CBOR：
 
 ```text
-{ protocol: "dmsg-connect/1", pairing_id, request_id, deadline, audience, method, target, body_digest }
+{ protocol: "dmsg-connect/1", account_id: bstr .size 12, pairing_id: bstr .size 32,
+  request_id: bstr .size 32, deadline: uint, audience: tstr, method: tstr, target: tstr,
+  body_digest: bstr .size 32 }
 ```
 
-规则同设备 HTTP PoP（[cloud_zh](cloud_zh.md)）：`audience` 为 API origin；`target` 为规范的 path/query；`body_digest` 为实际 body 的 SHA-256；`now < deadline ≤ now + 60000`。`request_id` 由每个 HTTP 请求随机生成，中继在期限内拒绝重放。提交配对候选时配对尚未生效，PoP 改用 body 中的 `pairing_pub` 验证。
+`account_id` 选定该账户的中继邮箱（桥接页路由的 URL 不含账户）。其余规则同设备 HTTP PoP（[cloud_zh](cloud_zh.md)）：`audience` 为 API origin；`target` 为规范的 path/query；`body_digest` 为实际 body 的 SHA-256；`now < deadline ≤ now + 60000`。`request_id` 由每个 HTTP 请求随机生成，中继在期限内拒绝重放。提交配对候选时配对尚未生效，PoP 改用 body 中的 `pairing_pub` 验证。
+
+请求 body 为规范 CBOR（`Content-Type: application/cbor`），二进制为 bstr；应答为 JSON `{ok: true, data}` 或 `{ok: false, error: {code, message, retryable}}`，其中 ID 与摘要为小写 hex，`sealed`、`grant` 与 envelope 为无 padding base64url。配对已撤销、过期或签发设备已失去资格时返回 410 `NOT_PAIRED`；不可取消时返回 409 `NOT_CANCELLABLE`。
 
 `/v1/connect/*` 的 CORS 只允许 `Origin: https://connect.dmsg.net`（Local 部署另行配置）。自定义头会触发预检：中继对这些路径回应 `OPTIONS`，`Access-Control-Allow-Headers: Content-Type, X-Dmsg-Connect-Pop`，`Access-Control-Allow-Methods: GET, POST`，`Access-Control-Max-Age: 600`。CORS 只是浏览器侧约束，授权仍然来自 PoP。
 
@@ -403,26 +408,27 @@ sealed = HPKE Auth 模式（X25519 / HKDF-SHA256 / AES-256-GCM）对 CBOR(Connec
 | `POST /v1/connect/pairings` | `{account_id, invite_id, pairing_pub, label, mac}` | 提交配对候选，使用自签名 PoP；每个邀请最多 3 个 |
 | `GET /v1/connect/pairings/:pairing` | `{state, account_id, grant?}` | `state` 为 `pending`、`active`、`revoked` 或 `expired`；active 时返回 grant 的原始 COSE |
 | `POST /v1/connect/requests` | `{request_id, kind, expires_at, envelope}`，返回 `{seq}` | 提交密封请求；中继记录 `envelope.recipients[].device_id` |
-| `GET /v1/connect/requests/:request?wait=&after=` | `{state, version, device_id?, sealed?, acked_digest?}` | 只有创建它的配对能读；`state` 为 7.4 的中继状态；`device_id` 为写入最新 `sealed` 的设备；`wait` 不超过 20000 毫秒的长轮询，在 `version` 大于 `after` 或状态变化时返回 |
+| `GET /v1/connect/requests/:request?wait=&after=` | `{state, version, device_id, sealed, sealed_version, acked_digest}` | 只有创建它的配对能读；`state` 为 7.4 的中继状态（保留期过后为 `result_expired`）；`version` 计入每个回复（含 `unknown`）；`sealed` 是最新的密封回复，`sealed_version` 是它写入时的版本，`device_id` 为写入它的设备；`wait` 不超过 20000 毫秒的长轮询，在 `version` 大于 `after` 或状态变化时返回 |
 | `POST /v1/connect/requests/:request/cancel` | — | 见 6.5 |
 | `POST /v1/connect/requests/:request/ack` | `{result_digest}` | 见 6.5 |
 
 ### 7.3 设备路由
 
-设备路由使用现有的设备 HTTP PoP，写操作使用设备命令。账户内任一未撤销设备都可以读取；`connect.pairing.grant`、`connect.pairing.revoke`、`connect.authorize` 与 `connect.respond` 要求签发设备具备 `FormalApprove`，中继按 action 核对能力（这是对现有设备命令管线的新增要求）。
+设备路由使用现有的设备 HTTP PoP，写操作使用设备命令（命令 payload 中的二进制为 bstr）。账户内任一未撤销设备都可以读取；配对授予、配对撤销、授权与回复四个命令要求签发设备具备 `FormalApprove`，中继按 action 核对能力（这是对现有设备命令管线的新增要求）。
 
 | 路由 | 设备命令 action | 说明 |
 | --- | --- | --- |
-| `POST /v1/accounts/:account/connect/invites` | `connect.invite` | `{invite_id, expires_at}`；每账户同时最多 4 个 |
-| `GET /v1/accounts/:account/connect/invites/:invite` | — | 返回已提交的候选 |
-| `POST /v1/accounts/:account/connect/pairings` | `connect.pairing.grant` | 见 5.3 |
-| `POST /v1/accounts/:account/connect/pairings/:pairing/revoke` | `connect.pairing.revoke` | |
-| `GET /v1/accounts/:account/connect/pairings` | — | 配对列表、grant 与最近使用时间 |
-| `GET /v1/accounts/:account/connect/requests?after=&limit=` | — | 按 seq 分页的请求邮箱，含 envelope、中继状态、当前 version 与钉定设备 |
-| `POST /v1/accounts/:account/connect/requests/:request/authorize` | `connect.authorize` | `{request_id, operation_digest}`；CAS，见 6.3 |
-| `POST /v1/accounts/:account/connect/requests/:request/respond` | `connect.respond` | `{request_id, version, state, sealed?}`；`state` 为 `open`、`closed` 或 `unknown`，`unknown` 不带 `sealed` |
+| `POST /v1/accounts/:account/connect/invites` | `dmsg/connect/invite/v1` | `{invite_id, expires_at}`；10 分钟内；每账户同时最多 4 个 |
+| `GET /v1/accounts/:account/connect/invites/:invite` | — | 已提交的候选 `{pairing_id, pairing_pub, label, mac, submitted_at}` |
+| `POST /v1/accounts/:account/connect/pairings` | `dmsg/connect/pairing/grant/v1` | payload 即 5.3 的 grant；候选的公钥与标签必须一致，邀请随即用尽 |
+| `POST /v1/accounts/:account/connect/pairings/:pairing/revoke` | `dmsg/connect/pairing/revoke/v1` | `{pairing_id}` |
+| `GET /v1/accounts/:account/connect/pairings` | — | 配对列表、grant、签发设备与最近使用时间 |
+| `GET /v1/accounts/:account/connect/requests?after=&limit=` | — | 请求邮箱：envelope、中继状态、当前 version、钉定设备与确认摘要；`seq` 在请求每次变化时递增，`after` 取上次最大的 `seq` 即可看到状态变化 |
+| `GET /v1/accounts/:account/connect/requests/:request` | — | 单个请求，字段同上 |
+| `POST /v1/accounts/:account/connect/requests/:request/authorize` | `dmsg/connect/authorize/v1` | `{request_id, operation_digest}`；CAS，见 6.3；已过期返回 `EXPIRED`，已被授权、取消或结束返回 409 `VERSION_CONFLICT`；同一设备以同一摘要重复授权返回原结果 |
+| `POST /v1/accounts/:account/connect/requests/:request/respond` | `dmsg/connect/respond/v1` | `{request_id, version, state, sealed_digest}`；`state` 为 `open`、`closed` 或 `unknown`；密封回复放在 body 的 `sealed` 字段（与 `cose_sign1` 并列，最多 512 KiB），命令只承诺它的 SHA-256；`unknown` 不带回复，`sealed_digest` 为 null |
 
-`respond` 的接受规则：`version` 必须等于当前版本加一，否则返回 409 `VERSION_CONFLICT`，设备重读版本后重试；`authorized` 请求只接受钉定设备的回复；`pending` 请求与 `read`/`open` 请求接受任一接收设备的回复。
+`respond` 的接受规则：`version` 必须等于当前版本加一，否则返回 409 `VERSION_CONFLICT`，设备重读版本后重试；`authorized` 请求只接受钉定设备的回复；`pending` 请求与 `read`/`open` 请求接受任一接收设备的回复；`unknown` 只用于 `read`/`open`。
 
 ### 7.4 中继状态
 
@@ -450,8 +456,8 @@ read / open:
 
 设备锁定时不持有签名私钥，无法建立需要 PoP 的连接。提示通道让锁定的设备也能知道"有事待处理"：
 
-- 设备解锁时在本地生成 32 字节随机 token，以设备命令 `hint.token.create {token_hash, expires_at}` 登记它的哈希（`POST /v1/accounts/:account/hint-tokens`，有效期不超过 30 天），token 本身存入 OS 凭据库。每台设备同时最多 2 个有效 token（轮换重叠期）。`hint.token.revoke` 撤销 token；设备被撤销时，它的 token 全部失效。
-- 设备以 `GET /v1/hints/ws` 加 `Authorization: Bearer <token>` 升级为 WebSocket。服务器只发送 `{type: "hint", account, kind}` 和 30 秒一次的心跳；`kind` 目前为 `connect`，预留 `mcp-event`、`channel`、`inbox`。消息不含请求 ID、origin 或任何内容。`connect` 提示只发给持有 `FormalApprove` 的设备的 token。
+- 设备在持有签名钥时（解锁，或开启“后台在线”）生成 32 字节随机 token，以设备命令 `dmsg/hint/token/create/v1 {token_hash, expires_at}` 登记它的 SHA-256（`POST /v1/accounts/:account/hint-tokens`，有效期不超过 30 天），token 本身存入 OS 凭据库（没有凭据库时存在工作区的明文元数据中：它只能收无内容的提示）。剩余期限不足 7 天时轮换。每台设备同时最多 2 个有效 token（轮换重叠期）。`dmsg/hint/token/revoke/v1 {token_hash}`（`POST /v1/accounts/:account/hint-tokens/revoke`）撤销 token；设备被撤销时，它的 token 全部失效。
+- 设备以 `GET /v1/hints/ws?account=<xid>` 加 `Authorization: Bearer <base64url token>` 升级为 WebSocket。服务器只发送 `{type: "hint", account, kind}`；心跳由设备发起：设备至少每 30 秒发送 `ping`，中继回 `pong`（不唤醒休眠的连接），60 秒收不到任何消息即重连。`kind` 目前为 `connect`，预留 `mcp-event`、`channel`、`inbox`。消息不含请求 ID、origin 或任何内容。`connect` 提示只发给持有 `FormalApprove` 的设备的 token。
 - 提示只是唤醒信号，设备收到后仍须用 PoP 读取。移动端推送（APNs/FCM）承载同样的内容，留到移动端阶段定义。
 
 ### 7.6 限额与保留

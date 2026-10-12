@@ -51,6 +51,37 @@ pub fn verify_certified_leaf(
     trusted_ic_root_der: &[u8],
     now_ms: u64,
 ) -> Result<(Vec<u8>, u64)> {
+    verify_leaf(
+        batch,
+        key,
+        trusted_home,
+        trusted_ic_root_der,
+        u128::from(now_ms) * 1_000_000,
+        60_000_000_000,
+    )
+}
+
+/// Verify one exact IC-certified leaf kept as evidence: as
+/// [`verify_certified_leaf`], at any certificate time. Returns the leaf and
+/// the certificate time in Unix milliseconds; whether that time is recent
+/// enough is the caller's decision.
+pub fn verify_recorded_leaf(
+    batch: &CertifiedBatch,
+    key: &[u8],
+    trusted_home: Principal,
+    trusted_ic_root_der: &[u8],
+) -> Result<(Vec<u8>, u64)> {
+    verify_leaf(batch, key, trusted_home, trusted_ic_root_der, 0, u128::MAX)
+}
+
+fn verify_leaf(
+    batch: &CertifiedBatch,
+    key: &[u8],
+    trusted_home: Principal,
+    trusted_ic_root_der: &[u8],
+    now_ns: u128,
+    max_offset_ns: u128,
+) -> Result<(Vec<u8>, u64)> {
     ensure(
         batch.schema == 1
             && batch.canister == trusted_home
@@ -69,8 +100,8 @@ pub fn verify_certified_leaf(
         &certificate,
         trusted_home.as_slice(),
         trusted_ic_root_der,
-        u128::from(now_ms) * 1_000_000,
-        60_000_000_000,
+        now_ns,
+        max_offset_ns,
     )
     .map_err(|_| Error::IntegrityFailed)?;
     let LookupResult::Found(time) = certificate.tree.lookup_path([b"time".as_slice()]) else {

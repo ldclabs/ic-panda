@@ -72,6 +72,10 @@ pub struct Status {
     pub fast_unlock: bool,
     /// The latest sync attempt.
     pub last_sync: Option<LastSync>,
+    /// Approval requests waiting for a decision; counted while locked too.
+    pub approvals_waiting: u64,
+    /// Web requests fetched but not yet opened, as while locked.
+    pub sealed_requests: u64,
 }
 
 /// A device's client.
@@ -164,6 +168,8 @@ impl Client {
             resident: self.keys.is_none() && self.resident.is_some(),
             fast_unlock: meta.fast_unlock.is_some(),
             last_sync: self.last_sync()?,
+            approvals_waiting: self.approvals_waiting()?,
+            sealed_requests: self.sealed_requests()?,
         })
     }
 
@@ -406,6 +412,10 @@ impl Client {
             .ok_or(Error::AuthRequired)
     }
 
+    pub(crate) fn secure(&self) -> Option<Arc<dyn SecureStorage>> {
+        self.secure.clone()
+    }
+
     pub(crate) fn keys(&self) -> Result<&Keys> {
         self.keys.as_ref().ok_or(Error::Locked)
     }
@@ -432,6 +442,12 @@ impl Client {
         if let Ok(login) = self.session() {
             return Ok(login.ic.clone());
         }
+        self.anonymous().await
+    }
+
+    /// An anonymous agent, for canisters outside the login's delegation
+    /// targets, such as commerce.
+    pub(crate) async fn anonymous(&mut self) -> Result<Ic> {
         if self.anonymous.is_none() {
             self.anonymous = Some(Ic::anonymous(&self.config).await?);
         }
@@ -504,6 +520,29 @@ impl Client {
                 action,
                 payload,
                 request_id,
+                now_ms(),
+            )
+            .await
+    }
+
+    /// A signed device command with a sealed reply beside it.
+    pub(crate) async fn relay_post_sealed<P: Serialize>(
+        &mut self,
+        path: &str,
+        action: &str,
+        payload: &P,
+        request_id: &Hash,
+        sealed: Option<&[u8]>,
+    ) -> Result<Json> {
+        let state = self.cloud_state().await?;
+        self.cloud
+            .post_sealed(
+                &self.signer(&state)?,
+                path,
+                action,
+                payload,
+                request_id,
+                sealed,
                 now_ms(),
             )
             .await

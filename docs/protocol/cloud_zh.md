@@ -1,6 +1,6 @@
 # dmsg-cloud/1 客户端互操作合同
 
-本文件描述公开扩展 SDK 使用的 wire 合同与内容映射，不包含服务端实现。SDK 位于 `src/dmsg_app/src/lib/protocol/cloud.ts`、`services/cloud-security.ts` 和 `services/relay.ts`。账户和执行证明继续使用现有公开 Rust 类型；本次没有修改 Candid 或正式签名域。
+本文件描述客户端使用的 wire 合同与内容映射，不包含服务端实现。客户端实现在 `src/dmsg_client`（`cloud`、`upload`、`sync`、`connect` 模块）；已冻结的扩展 `src/dmsg_app/src/lib/protocol/cloud.ts` 是最初的参照实现。账户和执行证明继续使用现有公开 Rust 类型。
 
 ## 标识和编码
 
@@ -32,6 +32,8 @@
 - target 为规范 path/query；拒绝重复 query key、编码斜杠和跨 origin URL。签名与网络请求使用同一组序列化字节。
 - 提交期限满足 `now < deadline <= now+60000`，同时不能超过所使用安全证据的有效期。设备签名回调之后再次检查期限。
 - 业务与 HTTP request_id 必须一致。重新签署 HTTP PoP 不改变业务命令和操作 ID；未知结果先查询原操作，不自动换 ID 重发。
+
+dmsg-connect/1 与设备提示通道新增七个 action（路由与规则见 [connect-v1](connect-v1_zh.md) §7.3、§7.5）：`dmsg/connect/invite/v1`、`dmsg/connect/pairing/grant/v1`、`dmsg/connect/pairing/revoke/v1`、`dmsg/connect/authorize/v1`、`dmsg/connect/respond/v1`、`dmsg/hint/token/create/v1`、`dmsg/hint/token/revoke/v1`。其中配对授予、配对撤销、授权与回复要求签发设备在认证设备表中具备 `FormalApprove`，这是命令管线第一次按 action 要求设备能力。`dmsg/connect/respond/v1` 的请求 body 是 `{cose_sign1, sealed}`：密封回复与命令并列（最多 512 KiB），命令 payload 只承诺它的 SHA-256，因此这是唯一允许在 `cose_sign1` 之外附带字段的命令 body。
 
 允许的 action 由公开 SDK 的 `cloudActions` 固定。`signCloudCommand` 构造通用信封；`profileSchema` 对 profile 提供严格字段校验。其它 action 仍必须使用对应资源合同，通用信封不是任意字段都能被服务器接受的保证。
 

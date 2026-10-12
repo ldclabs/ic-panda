@@ -25,12 +25,16 @@ keys. The daemon in `src/dmsg_cli` owns one instance.
 | [`files`] | Files up to 100 MiB in 1 MiB chunks with deterministic nonces; resumable import, verified export |
 | [`sync`] | Content jobs, resumable uploads, presigned vault revisions, verified export snapshots, conflict copies and tombstones |
 | [`profile`] | The public profile: publishing only chosen fields, reading one's own or another account's, checked against its devices |
+| [`approval`] | The approval center: requests from the desktop, the CLI, agents and web pages, decided only by a person; their states, deadlines and limits |
+| [`attest`] | Formal statements (text, digest, file) and application actions signed by this device, journaled before they are sent, reconciled by execution ID; portable bundles and their independent verification |
+| [`connect`] | dmsg-connect/1 on the device: browser pairing, the relay mailbox, the checks of §6.3, authorization by compare-and-swap, replies sealed with HPKE in auth mode, extra delivery channels, `read`/`open` answers, the hint token |
 | [`login`] | dmsg-login/1 on the client side: the session key, the login page URL and the callback check |
 
 The byte rules follow the [encryption design](../../docs/dmsg_encryption_zh.md),
 the [account and root contract](../../docs/protocol/account_root_zh.md), the
 [cloud contract](../../docs/protocol/cloud_zh.md) and
-[dmsg-login/1](../../docs/protocol/login-v1_zh.md). They are verified against
+[dmsg-login/1](../../docs/protocol/login-v1_zh.md) and
+[dmsg-connect/1](../../docs/protocol/connect-v1_zh.md). They are verified against
 the language-independent vectors in
 [tests/vectors/client](../../tests/vectors/client/README.md). Formats no
 module implements yet (channels, inbox) are read by the crate's `tests`
@@ -62,6 +66,27 @@ version stays a conflict copy on its device. A deleted item takes nothing
 but an explicit restore, so an older edit never revives it. Resolving a copy
 writes a new head that names it, and the earlier copies of its branch, in
 `resolvedConflicts`.
+
+## Approvals
+
+Every operation this device signs for a person waits in the approval center:
+a formal statement, a capability change or revocation, a web request.
+Anything may ask; only a person answers, by the digest of the request as it
+was shown. Approving executes once. A formal attestation is signed and
+journaled before it is sent, so a lost reply is settled by its execution ID
+and never signed again; its artifact and certified receipt are kept and
+export as a bundle that `attest::verify_bundle` checks without the device.
+
+A web request (dmsg-connect/1) reaches the center only after the device
+opened it, checked the pairing grant against the certified devices, the
+request and page signatures, the certified application registration and the
+payload; anything else is refused at once with a code. Approving journals the
+decision, then authorizes the request on the relay: a compare-and-swap from
+`pending` that pins it to this device. If another device or a cancellation
+wins, nothing executes. Each state change is sealed to every page that asked
+for the operation, with HPKE in auth mode under the device key. Locked, the
+device only stores sealed envelopes, and the relay's hint channel, which needs
+no signing key, tells it that something waits.
 
 ## Locking
 

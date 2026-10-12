@@ -90,13 +90,12 @@ fn uri_and_namespace_byte_limits_allow_the_boundary() {
 }
 
 #[test]
-fn browser_origins_require_exact_https_or_extension_origins() {
+fn web_origins_require_exact_https_origins() {
     for origin in [
         "https://example.com",
         "https://example.com:8443",
         "https://[::1]",
         "https://xn--bcher-kva.example",
-        "chrome-extension://abcdefghijklmnopabcdefghijklmnop",
     ] {
         assert_eq!(
             validate_origin(origin, &Environment::Production),
@@ -118,6 +117,7 @@ fn browser_origins_require_exact_https_or_extension_origins() {
         "https://example.com\n",
         " https://example.com",
         "https://bücher.example",
+        "chrome-extension://abcdefghijklmnopabcdefghijklmnop",
         "chrome-extension://abcdefghijklmnopabcdefghijklmnop/",
         "chrome-extension://abcdefghijklmnopabcdefghijklmnoq",
         "chrome-extension://abcdefghijklmnopabcdefghijklmno",

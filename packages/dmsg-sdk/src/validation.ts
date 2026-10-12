@@ -155,10 +155,6 @@ export function validateIdentifier(value: string): void {
 
 export function validateOrigin(value: string, environment: Environment): void {
   ensure(typeof value === "string", "INVALID_INPUT");
-  if (value.startsWith("chrome-extension://")) {
-    ensure(/^chrome-extension:\/\/[a-p]{32}$/.test(value), "INVALID_INPUT");
-    return;
-  }
   ensure(URL.canParse(value), "INVALID_INPUT");
   const url = new URL(value);
   const local =

@@ -1,6 +1,6 @@
 [package]
 name = "dmsg_protocol"
-version = "0.3.0"
+version = "0.4.0"
 edition.workspace = true
 license.workspace = true
 description = "Deterministic encoding, COSE document verification, and approval helpers for dMsg"
@@ -12,11 +12,13 @@ publish = true
 
 [dependencies]
 agent-protocols.workspace = true
+base64.workspace = true
+hmac.workspace = true
 serde_json.workspace = true
 serde_jcs.workspace = true
 ic_auth_verifier = { workspace = true, features = ["envelope"] }
 ic-certification.workspace = true
-dmsg_types = { path = "../dmsg_types", version = "0.3.0" }
+dmsg_types = { path = "../dmsg_types", version = "0.4.0" }
 candid.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
@@ -40,7 +42,6 @@ vetkd_key_id = { package = "ic-cdk-management-canister", version = "0.1.1", opti
 cose-pins = ["dep:ic-vetkeys", "dep:vetkd_key_id"]
 
 [dev-dependencies]
-base64.workspace = true
 ic-verify-bls-signature.workspace = true
 ic-canister-sig-creation.workspace = true
 hex.workspace = true

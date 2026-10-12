@@ -16,6 +16,7 @@ test-only.
 | `inbox-v1.json` | The inbox key object ID and a letter envelope | `tests::opens_inbox_letters` |
 | `cloud-v1.json` | `dmsg-cloud/1` device command and HTTP PoP (COSE_Sign1) | `cloud::tests::reproduces_commands_and_http_proofs` |
 | `login-v1.json` | [dmsg-login/1](../../../docs/protocol/login-v1_zh.md) requests, results and errors as canonical CBOR and URL fragments, and requests and callbacks that must be refused | `dmsg_protocol::login::tests`; the login page's `src/dmsg_frontend/src/lib/login/protocol.test.ts` |
+| `connect-v1.json` | [dmsg-connect/1](../../../docs/protocol/connect-v1_zh.md): the command and its proof message, the operation digest, pairing ID, invitation and MAC, the ConnectRequest CBOR and COSE, the envelope's AAD and HPKE wrapping, a reply sealed with HPKE in auth mode, and a Connect PoP | `dmsg_client::connect::tests`; `src/dmsg_connect/tests/vectors.test.ts`; the relay's copy in `dmsg-core/interop` |
 
 ```sh
 cargo test -p dmsg_client -p dmsg_protocol
@@ -37,7 +38,7 @@ DMSG_WRITE_CLIENT_VECTORS=1 pnpm --dir src/dmsg_app exec vitest run tests/client
 ```
 
 `cloud-v1.json` comes from `tests/cloud.test.ts` and is rewritten with
-`DMSG_WRITE_CLOUD_VECTOR=1`. `login-v1.json` comes from the `dmsg_protocol`
+`DMSG_WRITE_CLOUD_VECTOR=1`. `connect-v1.json` comes from the `dmsg_client` connect tests (`DMSG_WRITE_CLIENT_VECTORS=1 cargo test -p dmsg_client connect`); its P-256 signatures are RFC 6979 and its HPKE ephemeral keys come from the recorded `ekm`, so it is reproducible. `login-v1.json` comes from the `dmsg_protocol`
 login tests, which compare it on every run and rewrite it with
 `DMSG_WRITE_CLIENT_VECTORS=1 cargo test -p dmsg_protocol login`; its
 delegation signature is a placeholder that fixes only the encoding. The private relay keeps its own copy

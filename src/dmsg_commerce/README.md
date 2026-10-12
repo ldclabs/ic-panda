@@ -321,13 +321,13 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
         terms_hash = blob "<32 字节条款摘要>"; paused = false })'
       ```
 
-   2. 登记 dMsg 应用。客户端以 `app_id = "dmsg"` 购买，要求应用具备 `Checkout` 能力，并且注册的环境与客户端配置一致（服务哪些 user home 由登记它的 commerce 决定）；`origins` 填扩展和网页的精确 origin：
+   2. 登记 dMsg 应用。客户端以 `app_id = "dmsg"` 购买，要求应用具备 `Checkout` 能力，并且注册的环境与客户端配置一致（服务哪些 user home 由登记它的 commerce 决定）；dMsg 自身的操作以 `https://dmsg.net` 作为应用 origin（桌面端没有网页 origin），dmsg.net 的网页经 dmsg-connect/1 发起的请求共用同一 origin：
 
       ```sh
       icp canister call -e ic dmsg_commerce register_integration_app '(record {
         version = 1 : nat16; environment = variant { Production };
         app_id = "dmsg"; config_version = 1 : nat64;
-        origins = vec { "chrome-extension://<扩展 ID>" };
+        origins = vec { "https://dmsg.net" };
         product_ids = vec { "dmsg" };
         capabilities = vec { variant { Checkout } }; profiles = vec {};
         authentication_receiver = principal "<dmsg_user ID>";
