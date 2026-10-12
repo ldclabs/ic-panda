@@ -108,6 +108,18 @@ pub enum Error {
     Unavailable(String),
 }
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::InvalidInput(message) => write!(f, "InvalidInput: {message}"),
+            Error::Unavailable(message) => write!(f, "Unavailable: {message}"),
+            other => write!(f, "{other:?}"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 /// Construct an invalid-input error with an owned diagnostic.
 pub fn invalid(message: &str) -> Error {
     Error::InvalidInput(message.into())

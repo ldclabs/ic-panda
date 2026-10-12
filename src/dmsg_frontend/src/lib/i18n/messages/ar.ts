@@ -674,5 +674,15 @@ export default {
   'This translation is provided for convenience. The English text of version {version} is binding.':
     'هذه الترجمة مقدمة للتيسير. النص الإنجليزي للإصدار {version} هو النص الملزم.',
   'Could not load this page.': 'تعذّر تحميل هذه الصفحة.',
-  'On this page': 'في هذه الصفحة'
+  'On this page': 'في هذه الصفحة',
+  'Sign in to dMsg on this computer': 'تسجيل الدخول إلى dMsg على هذا الحاسوب',
+  'This login link is invalid or incomplete. Start the login again from the dMsg app.':
+    'رابط تسجيل الدخول هذا غير صالح أو غير مكتمل. ابدأ تسجيل الدخول من جديد من تطبيق dMsg.',
+  'Connecting to dMsg on this computer (port {port}).':
+    'جارٍ الاتصال بـ dMsg على هذا الحاسوب (المنفذ {port}).',
+  'Identity domain: {origin}': 'نطاق الهوية: {origin}',
+  'Waiting for Internet Identity…': 'في انتظار Internet Identity…',
+  'Continue with Internet Identity': 'المتابعة باستخدام Internet Identity',
+  'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
+    'يتيح Internet Identity لتطبيق dMsg على هذا الحاسوب التصرف نيابةً عنك. لا تحتفظ هذه الصفحة بأي جلسة.'
 } satisfies Messages

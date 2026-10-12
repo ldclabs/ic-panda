@@ -24,6 +24,8 @@ jobs:
       - run: pnpm --dir src/dmsg_app test:cose-prune
       - run: pnpm --dir src/dmsg_legacy check
       - run: pnpm --dir src/dmsg_legacy test
+      # dmsg.net, including the dmsg-login/1 page checked against tests/vectors/client/login-v1.json.
+      - run: pnpm --dir src/dmsg_frontend test
       - run: pnpm --dir src/dmsg_app build
       - run: pnpm --dir src/dmsg_app exec playwright install --with-deps chromium
       # The cross-repository cloud probe is a separate local command; no private
@@ -48,6 +50,7 @@ jobs:
       - name: Install dMsg SDK dependencies
         run: pnpm install --frozen-lockfile --filter dmsg-sdk
       # The desktop client crates are rustfmt-clean; their vector tests run with the workspace.
+      # The two-device daemon test (tests/dmsg_integration/tests/desktop.rs) needs the private relay.
       - name: Check client formatting
         run: cargo fmt --check -p dmsg_client -p dmsg_cli
       - name: Run clippy

@@ -27,6 +27,9 @@ pub mod integration;
 /// Independent verification of dedicated third-party IC authentication proofs.
 pub mod authentication;
 
+/// dmsg-login/1 request and callback checks.
+pub mod login;
+
 #[cfg(test)]
 extern crate self as dmsg_protocol;
 

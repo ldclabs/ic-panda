@@ -1,0 +1,101 @@
+<script lang="ts">
+  // dmsg-login/1 (docs/protocol/login-v1_zh.md): Internet Identity signs a
+  // delegation to the local dMsg client's session key; this page keeps no
+  // session and holds no key, and returns only to a loopback callback.
+  import { t } from '$lib/i18n'
+  import { complete, takeFragment } from '$lib/login/flow'
+  import {
+    callbackPort,
+    parseRequest,
+    type LoginRequest
+  } from '$lib/login/protocol'
+  import { Ed25519PublicKey } from '@icp-sdk/core/identity'
+  import { Principal } from '@icp-sdk/core/principal'
+  import { Signer } from '@icp-sdk/signer'
+  import { PostMessageTransport } from '@icp-sdk/signer/web'
+  import { onMount } from 'svelte'
+
+  let request = $state<LoginRequest | null>(null)
+  let invalid = $state(false)
+  let busy = $state(false)
+
+  onMount(() => {
+    try {
+      request = parseRequest(takeFragment(location, history))
+    } catch {
+      invalid = true
+    }
+  })
+
+  async function delegate(request: LoginRequest) {
+    const signer = new Signer({
+      transport: new PostMessageTransport({
+        url: 'https://id.ai/authorize',
+        windowOpenerFeatures: 'width=576,height=680'
+      }),
+      derivationOrigin: request.derivation_origin
+    })
+    await signer.openChannel()
+    try {
+      const chain = await signer.requestDelegation({
+        publicKey: Ed25519PublicKey.fromDer(request.session_pubkey),
+        targets: request.targets.map((target) => Principal.fromText(target)),
+        maxTimeToLive: BigInt(request.ttl_ms) * 1_000_000n
+      })
+      return JSON.stringify(chain.toJSON())
+    } finally {
+      await signer.closeChannel()
+    }
+  }
+
+  function start() {
+    if (!request || busy) return
+    busy = true
+    void complete(request, delegate, (url) => location.assign(url))
+  }
+</script>
+
+<svelte:head>
+  <title>{$t('Sign in to dMsg on this computer')}</title>
+</svelte:head>
+
+<main class="flex min-h-screen items-center justify-center p-4">
+  <div
+    class="w-full max-w-lg space-y-6 rounded-lg bg-white p-6 text-center shadow-md dark:bg-neutral-900"
+  >
+    <h1 class="text-2xl text-gray-900 dark:text-white">
+      {$t('Sign in to dMsg on this computer')}
+    </h1>
+    {#if invalid}
+      <p class="text-error-500">
+        {$t(
+          'This login link is invalid or incomplete. Start the login again from the dMsg app.'
+        )}
+      </p>
+    {:else if request}
+      <p class="text-gray-600 dark:text-gray-400">
+        {$t('Connecting to dMsg on this computer (port {port}).', {
+          port: callbackPort(request.next_url)
+        })}
+      </p>
+      <p class="text-sm break-all text-gray-500">
+        {$t('Identity domain: {origin}', { origin: request.derivation_origin })}
+      </p>
+      <button
+        type="button"
+        class="variant-filled-primary btn w-80 max-w-full"
+        disabled={busy}
+        onclick={start}
+      >
+        {busy
+          ? $t('Waiting for Internet Identity…')
+          : $t('Continue with Internet Identity')}
+      </button>
+      <p class="text-xs text-gray-500">
+        {$t(
+          'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.'
+        )}
+      </p>
+    {/if}
+  </div>
+</main>

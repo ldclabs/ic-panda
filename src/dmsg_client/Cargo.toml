@@ -11,18 +11,25 @@ publish = false
 [dependencies]
 aes-gcm = "0.11"
 base64.workspace = true
+candid.workspace = true
 cbor2.workspace = true
 dmsg_protocol = { path = "../dmsg_protocol" }
 dmsg_types = { path = "../dmsg_types" }
 ed25519-dalek.workspace = true
 getrandom = { workspace = true, features = ["sys_rng"] }
+hex.workspace = true
 hkdf = "0.13"
 hpke = { version = "0.14", default-features = false, features = ["alloc", "aes", "x25519"] }
+ic-agent.workspace = true
+ic-vetkeys.workspace = true
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
+serde_json.workspace = true
 sha2.workspace = true
+url.workspace = true
 zeroize = "1"
 
 [dev-dependencies]
-hex.workspace = true
-serde_json.workspace = true
+tokio = { workspace = true }

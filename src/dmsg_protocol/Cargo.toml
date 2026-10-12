@@ -40,6 +40,7 @@ vetkd_key_id = { package = "ic-cdk-management-canister", version = "0.1.1", opti
 cose-pins = ["dep:ic-vetkeys", "dep:vetkd_key_id"]
 
 [dev-dependencies]
+base64.workspace = true
 ic-verify-bls-signature.workspace = true
 ic-canister-sig-creation.workspace = true
 hex.workspace = true

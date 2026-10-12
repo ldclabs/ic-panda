@@ -698,5 +698,15 @@ export default {
   'This translation is provided for convenience. The English text of version {version} is binding.':
     'Перевод предоставлен для удобства. Юридическую силу имеет английский текст версии {version}.',
   'Could not load this page.': 'Не удалось загрузить страницу.',
-  'On this page': 'На этой странице'
+  'On this page': 'На этой странице',
+  'Sign in to dMsg on this computer': 'Вход в dMsg на этом компьютере',
+  'This login link is invalid or incomplete. Start the login again from the dMsg app.':
+    'Ссылка для входа недействительна или неполна. Начните вход заново в приложении dMsg.',
+  'Connecting to dMsg on this computer (port {port}).':
+    'Подключение к dMsg на этом компьютере (порт {port}).',
+  'Identity domain: {origin}': 'Домен идентичности: {origin}',
+  'Waiting for Internet Identity…': 'Ожидание Internet Identity…',
+  'Continue with Internet Identity': 'Продолжить с Internet Identity',
+  'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
+    'Internet Identity разрешит приложению dMsg на этом компьютере действовать от вашего имени. Эта страница не хранит сеанс.'
 } satisfies Messages

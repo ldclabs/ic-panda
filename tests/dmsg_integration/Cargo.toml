@@ -31,6 +31,10 @@ required-features = ["pocketic-tests"]
 name = "legacy_dependencies"
 required-features = ["pocketic-tests"]
 
+[[test]]
+name = "desktop"
+required-features = ["pocketic-tests"]
+
 [dev-dependencies]
 ic_cose_types.workspace = true
 ic-oss-types.workspace = true
@@ -54,6 +58,10 @@ k256 = { workspace = true, features = ["ecdsa"] }
 serde_json.workspace = true
 agent-protocols.workspace = true
 base64.workspace = true
+hex.workspace = true
+ic-agent.workspace = true
+# The desktop test plays the login page over loopback HTTP.
+reqwest = { version = "0.13", default-features = false, features = ["blocking"] }
 # The gateway-side verifier pairs with its own HTTP types; canisters stay on 3.
 ic-http-certification = "4"
 ic-response-verification = "4"

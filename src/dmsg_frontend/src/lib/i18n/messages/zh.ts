@@ -673,5 +673,15 @@ export default {
   'This translation is provided for convenience. The English text of version {version} is binding.':
     '本译本仅为方便阅读而提供。第 {version} 版的英文原文具有约束力。',
   'Could not load this page.': '无法加载此页面。',
-  'On this page': '本页目录'
+  'On this page': '本页目录',
+  'Sign in to dMsg on this computer': '在这台电脑上登录 dMsg',
+  'This login link is invalid or incomplete. Start the login again from the dMsg app.':
+    '此登录链接无效或不完整。请在 dMsg 应用中重新开始登录。',
+  'Connecting to dMsg on this computer (port {port}).':
+    '正在连接这台电脑上的 dMsg（端口 {port}）。',
+  'Identity domain: {origin}': '身份域：{origin}',
+  'Waiting for Internet Identity…': '正在等待 Internet Identity…',
+  'Continue with Internet Identity': '使用 Internet Identity 继续',
+  'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
+    'Internet Identity 将授权这台电脑上的 dMsg 应用代表你操作。本页面不保留任何会话。'
 } satisfies Messages

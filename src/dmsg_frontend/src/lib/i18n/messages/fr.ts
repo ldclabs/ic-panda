@@ -706,5 +706,15 @@ export default {
   'This translation is provided for convenience. The English text of version {version} is binding.':
     'Cette traduction est fournie pour plus de commodité. Le texte anglais de la version {version} fait foi.',
   'Could not load this page.': 'Impossible de charger cette page.',
-  'On this page': 'Sur cette page'
+  'On this page': 'Sur cette page',
+  'Sign in to dMsg on this computer': 'Se connecter à dMsg sur cet ordinateur',
+  'This login link is invalid or incomplete. Start the login again from the dMsg app.':
+    'Ce lien de connexion est invalide ou incomplet. Relancez la connexion depuis l’application dMsg.',
+  'Connecting to dMsg on this computer (port {port}).':
+    'Connexion à dMsg sur cet ordinateur (port {port}).',
+  'Identity domain: {origin}': 'Domaine d’identité : {origin}',
+  'Waiting for Internet Identity…': 'En attente d’Internet Identity…',
+  'Continue with Internet Identity': 'Continuer avec Internet Identity',
+  'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
+    'Internet Identity autorise l’application dMsg de cet ordinateur à agir pour vous. Cette page ne conserve aucune session.'
 } satisfies Messages

@@ -689,7 +689,17 @@ const en = {
   'This translation is provided for convenience. The English text of version {version} is binding.':
     'This translation is provided for convenience. The English text of version {version} is binding.',
   'Could not load this page.': 'Could not load this page.',
-  'On this page': 'On this page'
+  'On this page': 'On this page',
+  'Sign in to dMsg on this computer': 'Sign in to dMsg on this computer',
+  'This login link is invalid or incomplete. Start the login again from the dMsg app.':
+    'This login link is invalid or incomplete. Start the login again from the dMsg app.',
+  'Connecting to dMsg on this computer (port {port}).':
+    'Connecting to dMsg on this computer (port {port}).',
+  'Identity domain: {origin}': 'Identity domain: {origin}',
+  'Waiting for Internet Identity…': 'Waiting for Internet Identity…',
+  'Continue with Internet Identity': 'Continue with Internet Identity',
+  'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
+    'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.'
 }
 
 export type MessageKey = keyof typeof en

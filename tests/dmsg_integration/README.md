@@ -64,3 +64,16 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
 ```sh
 DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane -- hosted_principal_publishes external_action_authority_signature --test-threads=1 --nocapture
 ```
+
+## 桌面客户端验收（W1）
+
+`tests/desktop.rs` 在同一个 PocketIC 部署（与扩展的 `account_fixture` 共用 `tests/support`）和私有中继（workerd）上启动两个 `dmsg daemon`，各用一个 `--home`：设备 A 建账户、写条目并同步；设备 B 用同一登录发起配对，A 批准并换根；B 读取第 2 代根并解密 A 的条目，B 写入后 A 读到；锁定后重新登录解锁；另一个登录身份、带外部 `Origin` 的登录回调与无凭证或带 `Origin` 的 `/daemon/status` 都被拒绝。测试扮演 dmsg.net 登录页：从 URL fragment 读出请求，用生成的 Ed25519 登录身份签发 delegation 链，再经 daemon 的回调页提交；daemon 没有测试专用路径。
+
+```sh
+make build-dmsg
+cargo build -p dmsg_cli
+POCKET_IC_BIN=/path/to/pocket-ic DMSG_CLOUD_DIR=/path/to/dmsg-cloud DMSG_WASM_DIR=$PWD/target/wasm32-unknown-unknown/release \
+  cargo test -p dmsg_integration --features pocketic-tests --test desktop -- --ignored --nocapture
+```
+
+`DMSG_BIN` 可指定 `dmsg` 二进制，默认 `target/debug/dmsg`。中继由私有仓库的 `dmsg-core/scripts/extension-probe-server.mjs` 以 `client: "desktop"` 启动，不允许任何浏览器 origin。

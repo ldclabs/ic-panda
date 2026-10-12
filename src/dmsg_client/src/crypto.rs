@@ -33,6 +33,26 @@ pub const MAX_SEALED: usize = 2 * 1024 * 1024;
 /// Canonical protected header `{1: 3}`: alg A256GCM.
 const PROTECTED: [u8; 3] = [0xa1, 0x01, 0x03];
 
+/// 32 random bytes, for keys and seeds.
+///
+/// # Panics
+/// Panics if the operating system has no random source.
+pub fn random_key() -> Key {
+    let mut key = [0u8; 32];
+    getrandom::fill(&mut key).expect("operating system random source");
+    key
+}
+
+/// A random 32-byte identifier; never all zero.
+pub fn random_id() -> [u8; 32] {
+    loop {
+        let id = random_key();
+        if id.iter().any(|b| *b != 0) {
+            return id;
+        }
+    }
+}
+
 /// `D(K, C)`: HKDF-SHA-256 with a 32-byte zero salt and `info = CBOR(C)`.
 pub fn derive<C: Serialize>(key: &[u8], context: &C) -> Zeroizing<Key> {
     let mut out = Zeroizing::new([0u8; 32]);

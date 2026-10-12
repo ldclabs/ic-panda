@@ -5,6 +5,8 @@ pub mod agent;
 pub mod billing;
 pub mod cose;
 pub mod handle;
+/// dmsg-login/1 messages between local clients and the login page.
+pub mod login;
 pub mod membership;
 pub mod payment;
 pub mod protocol;

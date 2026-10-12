@@ -1,6 +1,6 @@
 # dmsg-login/1：本机客户端的 Internet Identity 登录中转
 
-2026-10-12 设计草案，尚未实现。dMsg 桌面端（`dmsg daemon`）与以后的移动端不内嵌 Internet Identity 登录；它们用系统浏览器打开 `https://dmsg.net/_/login`，由这个页面请 II 直接为客户端的会话公钥签发 delegation，再把结果交回客户端。页面本身没有登录态：不读取、不保存 dmsg.net 站点的会话，也不持有任何可用的私钥。
+2026-10-12 起草，同日在桌面方案 W1 中实现：登录页为 `src/dmsg_frontend` 的 `/_/login`，客户端一侧为 `dmsg daemon`（`src/dmsg_client` 的 `login` 模块与 `src/dmsg_cli` 的回调）。真实 Internet Identity 仍待 staging 手工验收。dMsg 桌面端（`dmsg daemon`）与以后的移动端不内嵌 Internet Identity 登录；它们用系统浏览器打开 `https://dmsg.net/_/login`，由这个页面请 II 直接为客户端的会话公钥签发 delegation，再把结果交回客户端。页面本身没有登录态：不读取、不保存 dmsg.net 站点的会话，也不持有任何可用的私钥。
 
 ## 1. 为什么放在 dmsg.net
 
@@ -40,7 +40,7 @@ URL 为 `https://dmsg.net/_/login#<base64url(规范 CBOR 请求)>`，没有 quer
 LoginRequest = {
   v: 1,
   state: bstr .size 32,            ; daemon 生成的一次性随机值
-  session_pubkey: bstr,            ; 会话公钥的 SPKI DER（Ed25519 为 44 字节）
+  session_pubkey: bstr,            ; 会话公钥的 SPKI DER，只接受 Ed25519（44 字节）
   targets: [* tstr],               ; canister Principal 文本，1 到 32 个
   ttl_ms: uint,                    ; 申请的 delegation 时长，毫秒
   derivation_origin: tstr,         ; "https://dmsg.net" 或 "https://panda.fans"
@@ -48,7 +48,7 @@ LoginRequest = {
 }
 ```
 
-页面校验：键集合闭合；`state` 非零；`session_pubkey` 是合法 SPKI DER；`targets` 每项都是合法 Principal 文本且不重复；`ttl_ms` 在 1 分钟到 8 小时之间；`derivation_origin` 在允许列表内；`next_url` 符合第 5 节。任一项不符时页面不联系 II，只显示错误，不跳转（因为 `next_url` 本身可能就是不合法的那一项）。
+页面校验：字节是规范 CBOR、base64url 规范（无填充、尾位为零）；键集合闭合；`v` 为 1；`state` 非零；`session_pubkey` 是 Ed25519 SPKI DER（固定 12 字节前缀加 32 字节公钥）；`targets` 有 1 到 32 项，每项都是规范的 Principal 文本且不重复；`ttl_ms` 在 1 分钟到 8 小时之间；`derivation_origin` 在允许列表内；`next_url` 符合第 5 节。任一项不符时页面不联系 II，只显示错误，不跳转（因为 `next_url` 本身可能就是不合法的那一项）。
 
 页面以 `@icp-sdk/signer` 向 II 调用 `icrc34_delegation`，`publicKey` 为 `session_pubkey`，`targets` 与 `maxTimeToLive` 取请求值，`derivationOrigin` 取 `derivation_origin`。页面不生成也不持有会话私钥。
 
@@ -77,8 +77,10 @@ daemon 的 `GET /auth/callback` 返回回调页；回调页把 `location.hash` �
 1. 监听器只在登录期间存在（默认 10 分钟），只接受一次 POST，成功或失败后关闭；`GET /auth/callback` 在监听器关闭后返回 404。
 2. 请求的 `Origin` 头等于回环 origin（`http://127.0.0.1:<port>` 或 `http://[::1]:<port>`）；不设置 CORS 头，拒绝带其他 `Origin` 的请求。
 3. `state` 等于本次登录生成的值。
-4. `delegation` 解析为 DelegationChain：`publicKey` 等于会话公钥 DER；链中每一级 delegation 的 `targets` 都是请求 `targets` 的子集；最终 `expiration` 不晚于 `now + ttl_ms`；链结构完整。签名的有效性由 IC 在首次调用时裁决：daemon 用该身份先做一次只读的 `my_account` 查询，失败即丢弃。
+4. `delegation` 解析为 DelegationChain（JSON 中字节为 hex，`targets` 为 Principal 字节的 hex，`expiration` 为纳秒的 hex）：链首 `publicKey` 是登录的公钥，决定登录 Principal；最后一级 delegation 的 `pubkey` 等于会话公钥 DER；链长 1 到 8；每一级都必须带 `targets`，且是请求 `targets` 的子集（不带 `targets` 的 delegation 不受限，按超集拒绝）；不接受 `permissions`；链中最早的 `expiration` 晚于现在、且不晚于 `now + ttl_ms`。签名的有效性由 IC 裁决：daemon 用该身份对每个 user home 做只读的 `my_account` 查询，任一失败即丢弃；已绑定账户的工作区还要求查到的账户就是本机账户。
 5. 校验通过后把 delegation 保存在内存，不写盘；监听器关闭。
+
+POST 的应答：成功 200；`Origin` 或 `Content-Type` 不符 403；其他校验失败 400；没有进行中的登录 404。回调页自身带 `Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'` 与 `Referrer-Policy: no-referrer`。
 
 ## 5. `next_url` 白名单
 
@@ -106,7 +108,7 @@ daemon 的 `GET /auth/callback` 返回回调页；回调页把 `location.hash` �
 
 ## 8. 验证要求
 
-- 向量：`LoginRequest`、`LoginResult`、`LoginError` 的规范 CBOR 与 base64url 编码，由 Rust 实现生成（`tests/vectors/client/login-v1.json`），页面与 daemon 逐字节核验。
-- 页面（Playwright）：参数缺失、键集合不闭合、非法 Principal、`ttl_ms` 越界、不允许的 `derivation_origin`、`localhost` 与非回环的 `next_url` 都不联系 II 且不跳转；fragment 被清除；成功与失败回调的 fragment 格式。
-- daemon：`state` 不符、公钥不符、`targets` 超集、过期、重复 POST、带外部 `Origin` 的 POST 都被拒绝；监听器关闭后 `GET /auth/callback` 为 404。
-- 端到端：Local 环境用测试身份替身代替 II；真实 II 在 staging 手工验收。
+- 向量：`LoginRequest`、`LoginResult`、`LoginError` 的规范 CBOR 与 base64url 编码，以及应拒绝的请求与回调，由 `dmsg_protocol` 的测试生成并逐字节比对（`tests/vectors/client/login-v1.json`，`DMSG_WRITE_CLIENT_VECTORS=1` 时重写）；登录页的 `src/dmsg_frontend/src/lib/login/protocol.test.ts` 读取同一文件核验。向量中的 delegation 签名是占位值，只固定编码。
+- 页面：参数缺失、键集合不闭合、非法 Principal、`ttl_ms` 越界、不允许的 `derivation_origin`、`localhost` 与非回环的 `next_url` 都在联系 II 之前被拒绝；fragment 被清除；成功与失败回调的 fragment 格式。由 vitest 覆盖页面的协议与流程模块（`src/dmsg_frontend/src/lib/login/`），页面渲染另做浏览器检查。
+- daemon：`state` 不符、公钥不符、`targets` 超集或缺失、过期或超出 `ttl_ms`、登录页错误都被拒绝（`src/dmsg_client/src/login_tests.rs`）；带外部 `Origin` 的 POST 返回 403 并关闭监听，重复 POST 与关闭后的 `GET /auth/callback` 为 404（端到端测试）。
+- 端到端：Local 环境由测试扮演登录页，用生成的 Ed25519 登录身份签发 delegation 链，经 daemon 的回调提交（`tests/dmsg_integration/tests/desktop.rs`）；daemon 没有测试专用的登录路径。真实 II 在 staging 手工验收。

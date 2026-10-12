@@ -130,6 +130,9 @@ importers:
       '@icp-sdk/core':
         specifier: ^6.1.0
         version: 6.1.0
+      '@icp-sdk/signer':
+        specifier: ^6.0.0
+        version: 6.0.0(@icp-sdk/core@6.1.0)
       '@icp-sdk/vetkeys':
         specifier: ^0.7.0
         version: 0.7.0(@icp-sdk/core@6.1.0)
