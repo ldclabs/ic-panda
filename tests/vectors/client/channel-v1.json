@@ -1,0 +1,844 @@
+{
+  "schema": 1,
+  "test_only": true,
+  "generator": "src/dmsg_app/tests/client-vectors.test.ts",
+  "description": "One channel epoch: rotation envelopes and manifest, key confirmation, a message, a history grant and a message with an attachment, produced by the extension engine. Readers open the member envelopes with the member seed and must reproduce every context, digest and key derivation.",
+  "channel": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+  "genesis": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
+  "owner": {
+    "account": "040g2081040g2081040g",
+    "device_id": "2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61",
+    "hpke_public": "NWzgB9Xd6af_FOKsCJIZLOyeIxnIMosdT2SN_qx7i1I"
+  },
+  "member": {
+    "account": "081040g2081040g20810",
+    "device_id": "2121212121212121212121212121212121212121212121212121212121212121",
+    "hpke_seed_hex": "1717171717171717171717171717171717171717171717171717171717171717"
+  },
+  "recipients": [
+    {
+      "recipient": "device:040g2081040g2081040g:2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61",
+      "hpke_pub": "356ce007d5dde9a7ff14e2ac0892192cec9e2319c8328b1d4f648dfeac7b8b52"
+    },
+    {
+      "recipient": "device:081040g2081040g20810:2121212121212121212121212121212121212121212121212121212121212121",
+      "hpke_pub": "7bc0cfc5d0a57e8311a9db50378177c1c588355ec69381a655433ebe301a395f"
+    }
+  ],
+  "recipients_digest_input": {
+    "value": {
+      "array": [
+        {
+          "map": [
+            [
+              {
+                "text": "recipient"
+              },
+              {
+                "text": "device:040g2081040g2081040g:2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61"
+              }
+            ],
+            [
+              {
+                "text": "hpke_pub"
+              },
+              {
+                "text": "356ce007d5dde9a7ff14e2ac0892192cec9e2319c8328b1d4f648dfeac7b8b52"
+              }
+            ]
+          ]
+        },
+        {
+          "map": [
+            [
+              {
+                "text": "recipient"
+              },
+              {
+                "text": "device:081040g2081040g20810:2121212121212121212121212121212121212121212121212121212121212121"
+              }
+            ],
+            [
+              {
+                "text": "hpke_pub"
+              },
+              {
+                "text": "7bc0cfc5d0a57e8311a9db50378177c1c588355ec69381a655433ebe301a395f"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "hex": "82a26868706b655f70756278403335366365303037643564646539613766663134653261633038393231393263656339653233313963383332386231643466363438646665616337623862353269726563697069656e74785c6465766963653a30343067323038313034306732303831303430673a32646462376430356534366339363936626632623439383639373739376531626132633630623062306138666363356138333435333339336363393763643631a26868706b655f70756278403762633063666335643061353765383331316139646235303337383137376331633538383335356563363933383161363535343333656265333031613339356669726563697069656e74785c6465766963653a30383130343067323038313034306732303831303a32313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231"
+  },
+  "lease": {
+    "id": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+    "account": "040g2081040g2081040g",
+    "device": "2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61",
+    "epoch": 1,
+    "head": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
+    "recipients_digest": "d2473cdf8d79246b790720a578590770247b27a08da20486be3e074401dd7d6c",
+    "security_versions": {
+      "040g2081040g2081040g": 1,
+      "081040g2081040g20810": 1
+    },
+    "fencing": 1,
+    "expires_at": 1760000060000
+  },
+  "activation": {
+    "lease_id": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+    "fencing": 1,
+    "expected_head": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
+    "epoch": 1,
+    "recipients_digest": "d2473cdf8d79246b790720a578590770247b27a08da20486be3e074401dd7d6c",
+    "manifest_upload": "cd3f1246d01de4fdda244dbfc61c4cf0b1b64bf82f59391a49f3caffd3494f8f",
+    "key_confirmation": "8a54632fe37e92391dfef11f82713804cfdc046c8dc6e2a40dc61da57f69f66f",
+    "envelopes": [
+      {
+        "recipient": "device:040g2081040g2081040g:2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61",
+        "upload_id": "cd3f1246d01de4fdda244dbfc61c4cf0b1b64bf82f59391a49f3caffd3494f8f",
+        "chunk": 0,
+        "digest": "cb645f5066a2d06aae06e37d00fc9bba15ed4915ca695a85f190afd7928f2f37",
+        "size": 127
+      },
+      {
+        "recipient": "device:081040g2081040g20810:2121212121212121212121212121212121212121212121212121212121212121",
+        "upload_id": "cd3f1246d01de4fdda244dbfc61c4cf0b1b64bf82f59391a49f3caffd3494f8f",
+        "chunk": 1,
+        "digest": "249283798128b8b6d5218675b1df1290cf7de2ae1e7897802c93b2c63995da08",
+        "size": 127
+      }
+    ]
+  },
+  "rotation_uploads": [
+    {
+      "plan": {
+        "upload_id": "cd3f1246d01de4fdda244dbfc61c4cf0b1b64bf82f59391a49f3caffd3494f8f",
+        "object_id": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+        "version_id": "89717f6f89ef76749849074e6bb0987e439770acfb9055b575723d3ae69ea4f8",
+        "root_generation": 0,
+        "epoch": 1,
+        "control_head": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d",
+        "kind": "envelopes",
+        "chunks": [
+          {
+            "digest": "cb645f5066a2d06aae06e37d00fc9bba15ed4915ca695a85f190afd7928f2f37",
+            "size": 127
+          },
+          {
+            "digest": "249283798128b8b6d5218675b1df1290cf7de2ae1e7897802c93b2c63995da08",
+            "size": 127
+          }
+        ],
+        "manifest_digest": "e6e4909b2348514dfac1982c29211057fc698a4b8e0c9f5e497d115bc8f000d3",
+        "manifest_size": 439,
+        "expires_at": 1760003600000
+      },
+      "chunks": [
+        "omNlbmN4K1NnVVB3bjJmQVREVUVoYTM3TXJZN0RwWExFZVJwRHIwS1NZbDhLd0VIR0lqY2lwaGVydGV4dHhAdVI4ZXlOaGhRQkNRZzZ1VFlwMjlZblJyQklVTk03MEZGczRERC0zOXItZUJJQkdFQ2pEWW14TEpMMjJHbjhzcA",
+        "omNlbmN4K09CWFhKUGh3OU1OVGg0dUltNDNBZ2VLRFVYd0pEWS12NGtDdTRMOWZDeVVqY2lwaGVydGV4dHhAcHl6d1Y3Q0QtTjNnZWFkZlYtUTJaTUhCUjBrOWVzcldkNnZkazBtZEo4TmNaenhabmNWUk9fcHFxaVZxQjFsTQ"
+      ],
+      "manifest": "qWRoZWFkeEAwZDBkMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDBkMGQwZDBkZWVwb2NoAWVncm91cABmZm9ybWF0dGRtc2ctY2hhbm5lbC1lcG9jaC8xZ2NoYW5uZWx4QDBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGNnZmVuY2luZwFobGVhc2VfaWR4QDBmMGYwZjBmMGYwZjBmMGYwZjBmMGYwZjBmMGYwZjBmMGYwZjBmMGYwZjBmMGYwZjBmMGYwZjBmMGYwZjBmMGZwa2V5X2NvbmZpcm1hdGlvbnhAOGE1NDYzMmZlMzdlOTIzOTFkZmVmMTFmODI3MTM4MDRjZmRjMDQ2YzhkYzZlMmE0MGRjNjFkYTU3ZjY5ZjY2ZnFyZWNpcGllbnRzX2RpZ2VzdHhAZDI0NzNjZGY4ZDc5MjQ2Yjc5MDcyMGE1Nzg1OTA3NzAyNDdiMjdhMDhkYTIwNDg2YmUzZTA3NDQwMWRkN2Q2Yw",
+      "recipients": [
+        "device:040g2081040g2081040g:2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61",
+        "device:081040g2081040g20810:2121212121212121212121212121212121212121212121212121212121212121"
+      ]
+    }
+  ],
+  "envelope_contexts": [
+    {
+      "value": {
+        "array": [
+          {
+            "text": "dmsg/channel-epoch-envelope/1"
+          },
+          {
+            "text": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+          },
+          {
+            "uint": "1"
+          },
+          {
+            "text": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+          },
+          {
+            "uint": "1"
+          },
+          {
+            "text": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
+          },
+          {
+            "text": "d2473cdf8d79246b790720a578590770247b27a08da20486be3e074401dd7d6c"
+          },
+          {
+            "text": "device:040g2081040g2081040g:2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61"
+          }
+        ]
+      },
+      "hex": "88781d646d73672f6368616e6e656c2d65706f63682d656e76656c6f70652f317840306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330630178403066306630663066306630663066306630663066306630663066306630663066306630663066306630663066306630663066306630663066306630663066306601784030643064306430643064306430643064306430643064306430643064306430643064306430643064306430643064306430643064306430643064306430643064784064323437336364663864373932343662373930373230613537383539303737303234376232376130386461323034383662653365303734343031646437643663785c6465766963653a30343067323038313034306732303831303430673a32646462376430356534366339363936626632623439383639373739376531626132633630623062306138666363356138333435333339336363393763643631"
+    },
+    {
+      "value": {
+        "array": [
+          {
+            "text": "dmsg/channel-epoch-envelope/1"
+          },
+          {
+            "text": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+          },
+          {
+            "uint": "1"
+          },
+          {
+            "text": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+          },
+          {
+            "uint": "1"
+          },
+          {
+            "text": "0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d"
+          },
+          {
+            "text": "d2473cdf8d79246b790720a578590770247b27a08da20486be3e074401dd7d6c"
+          },
+          {
+            "text": "device:081040g2081040g20810:2121212121212121212121212121212121212121212121212121212121212121"
+          }
+        ]
+      },
+      "hex": "88781d646d73672f6368616e6e656c2d65706f63682d656e76656c6f70652f317840306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330630178403066306630663066306630663066306630663066306630663066306630663066306630663066306630663066306630663066306630663066306630663066306601784030643064306430643064306430643064306430643064306430643064306430643064306430643064306430643064306430643064306430643064306430643064784064323437336364663864373932343662373930373230613537383539303737303234376232376130386461323034383662653365303734343031646437643663785c6465766963653a30383130343067323038313034306732303831303a32313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231"
+    }
+  ],
+  "epoch_key_hex": "3d944b446c37e653b692f94ad76b21cc55c5c41a3a55495c51b34b0def29a7b1",
+  "key_confirmation_input": {
+    "value": {
+      "array": [
+        {
+          "text": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+        },
+        {
+          "uint": "1"
+        },
+        {
+          "bytes": "3d944b446c37e653b692f94ad76b21cc55c5c41a3a55495c51b34b0def29a7b1"
+        }
+      ]
+    },
+    "hex": "837840306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330630158203d944b446c37e653b692f94ad76b21cc55c5c41a3a55495c51b34b0def29a7b1"
+  },
+  "message": {
+    "sender": "040g2081040g2081040g",
+    "device_id": "2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61",
+    "payload": {
+      "channel_id": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+      "epoch": 1,
+      "control_head": "1212121212121212121212121212121212121212121212121212121212121212",
+      "acl_version": 2,
+      "message_id": "1313131313131313131313131313131313131313131313131313131313131313",
+      "client_created_at": 1760000000000,
+      "ciphertext": "g0OhAQOhBUx9jOQJ3o6qmFTL5TlYLJgZJaRhtnKFUsXM4B4zfPqcZQ7EKS5vrtOMBZmcdnfNYoKWFAvzfb33stHJ"
+    },
+    "key_context": {
+      "value": {
+        "array": [
+          {
+            "text": "dmsg/channel-message-key/1"
+          },
+          {
+            "text": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+          },
+          {
+            "uint": "1"
+          },
+          {
+            "text": "1313131313131313131313131313131313131313131313131313131313131313"
+          },
+          {
+            "text": "2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61"
+          }
+        ]
+      },
+      "hex": "85781a646d73672f6368616e6e656c2d6d6573736167652d6b65792f3178403063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306301784031333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133784032646462376430356534366339363936626632623439383639373739376531626132633630623062306138666363356138333435333339336363393763643631"
+    },
+    "key_hex": "346871de565e7ae151e6f09d27df50bba5fa7e0450a53dbce2dd015ab75f7ad6",
+    "aad": {
+      "value": {
+        "array": [
+          {
+            "text": "dmsg/channel-message/1"
+          },
+          {
+            "text": "040g2081040g2081040g"
+          },
+          {
+            "text": "2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "channel_id"
+                },
+                {
+                  "text": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+                }
+              ],
+              [
+                {
+                  "text": "epoch"
+                },
+                {
+                  "uint": "1"
+                }
+              ],
+              [
+                {
+                  "text": "control_head"
+                },
+                {
+                  "text": "1212121212121212121212121212121212121212121212121212121212121212"
+                }
+              ],
+              [
+                {
+                  "text": "acl_version"
+                },
+                {
+                  "uint": "2"
+                }
+              ],
+              [
+                {
+                  "text": "message_id"
+                },
+                {
+                  "text": "1313131313131313131313131313131313131313131313131313131313131313"
+                }
+              ],
+              [
+                {
+                  "text": "client_created_at"
+                },
+                {
+                  "uint": "1760000000000"
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "hex": "8476646d73672f6368616e6e656c2d6d6573736167652f31743034306732303831303430673230383130343067784032646462376430356534366339363936626632623439383639373739376531626132633630623062306138666363356138333435333339336363393763643631a66565706f6368016a6368616e6e656c5f69647840306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330636a6d6573736167655f69647840313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331333133313331336b61636c5f76657273696f6e026c636f6e74726f6c5f6865616478403132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313271636c69656e745f637265617465645f61741b00000199c82cc000"
+    },
+    "plaintext": {
+      "map": [
+        [
+          {
+            "text": "text"
+          },
+          {
+            "text": "Hello, channel vector"
+          }
+        ]
+      ]
+    },
+    "plaintext_hex": "a164746578747548656c6c6f2c206368616e6e656c20766563746f72"
+  },
+  "history": {
+    "scope": {
+      "channel": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+      "target": "081040g2081040g20810",
+      "from": 1,
+      "to": 1,
+      "grant_id": "1414141414141414141414141414141414141414141414141414141414141414",
+      "head": "1212121212121212121212121212121212121212121212121212121212121212",
+      "epoch": 1,
+      "recipients_digest": "42d1b0833bda281ea9619695f0becc8deb3f8a93eb39e0f82345dec058d8a605"
+    },
+    "uploads": [
+      {
+        "plan": {
+          "upload_id": "8322707677f1078e16a0a390be1d303e508afbe574fc0badae19a2b5eefae371",
+          "object_id": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+          "version_id": "6c0255efa2131fcfba3acf9850b6aa19b77c5d450d4b1e48f4acbf27b4eccd52",
+          "root_generation": 0,
+          "epoch": 1,
+          "control_head": "1212121212121212121212121212121212121212121212121212121212121212",
+          "kind": "envelopes",
+          "chunks": [
+            {
+              "digest": "452719e313d7e686141794f75ee6df55c39aaed87003e8e8b936eb7844343865",
+              "size": 134
+            }
+          ],
+          "manifest_digest": "9e836a3cc056eaa3d825c02d7592f0e628205623f1b13e8ecd476941b82f960a",
+          "manifest_size": 676,
+          "expires_at": 1760003600000
+        },
+        "chunks": [
+          "omNlbmN4K3NBRzZuLUtMNnM4SzlJMkt5b3F5RDJ2c0FVWWxhN3RDejBodjN2RU5GejBqY2lwaGVydGV4dHhHLVprcXZ0eGpTMC1PZU5QNHRzZnJfMmtObnFQYzJSM19yalFXOEhmeTVXTXY5cWJuOW45SlZQdFdkWVl1MVBKb2V1NFNDYkk"
+        ],
+        "manifest": "o2VzY29wZahidG8BZGZyb20BZGhlYWR4QDEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTJlZXBvY2gBZnRhcmdldHQwODEwNDBnMjA4MTA0MGcyMDgxMGdjaGFubmVseEAwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjMGMwYzBjaGdyYW50X2lkeEAxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0cXJlY2lwaWVudHNfZGlnZXN0eEA0MmQxYjA4MzNiZGEyODFlYTk2MTk2OTVmMGJlY2M4ZGViM2Y4YTkzZWIzOWUwZjgyMzQ1ZGVjMDU4ZDhhNjA1ZmZvcm1hdHZkbXNnLWNoYW5uZWwtaGlzdG9yeS8xaWVudmVsb3Blc4GnYnRvAWRmcm9tAWRzaXplGIZlY2h1bmsAZmRpZ2VzdHhANDUyNzE5ZTMxM2Q3ZTY4NjE0MTc5NGY3NWVlNmRmNTVjMzlhYWVkODcwMDNlOGU4YjkzNmViNzg0NDM0Mzg2NWlyZWNpcGllbnR4XGRldmljZTowODEwNDBnMjA4MTA0MGcyMDgxMDoyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxMjEyMTIxaXVwbG9hZF9pZHhAODMyMjcwNzY3N2YxMDc4ZTE2YTBhMzkwYmUxZDMwM2U1MDhhZmJlNTc0ZmMwYmFkYWUxOWEyYjVlZWZhZTM3MQ",
+        "recipients": [
+          "device:081040g2081040g20810:2121212121212121212121212121212121212121212121212121212121212121"
+        ]
+      }
+    ],
+    "context": {
+      "value": {
+        "array": [
+          {
+            "text": "dmsg/channel-history-envelope/1"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "channel"
+                },
+                {
+                  "text": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+                }
+              ],
+              [
+                {
+                  "text": "target"
+                },
+                {
+                  "text": "081040g2081040g20810"
+                }
+              ],
+              [
+                {
+                  "text": "from"
+                },
+                {
+                  "uint": "1"
+                }
+              ],
+              [
+                {
+                  "text": "to"
+                },
+                {
+                  "uint": "1"
+                }
+              ],
+              [
+                {
+                  "text": "grant_id"
+                },
+                {
+                  "text": "1414141414141414141414141414141414141414141414141414141414141414"
+                }
+              ],
+              [
+                {
+                  "text": "head"
+                },
+                {
+                  "text": "1212121212121212121212121212121212121212121212121212121212121212"
+                }
+              ],
+              [
+                {
+                  "text": "epoch"
+                },
+                {
+                  "uint": "1"
+                }
+              ],
+              [
+                {
+                  "text": "recipients_digest"
+                },
+                {
+                  "text": "42d1b0833bda281ea9619695f0becc8deb3f8a93eb39e0f82345dec058d8a605"
+                }
+              ]
+            ]
+          },
+          {
+            "text": "device:081040g2081040g20810:2121212121212121212121212121212121212121212121212121212121212121"
+          },
+          {
+            "uint": "1"
+          },
+          {
+            "uint": "1"
+          }
+        ]
+      },
+      "hex": "85781f646d73672f6368616e6e656c2d686973746f72792d656e76656c6f70652f31a862746f016466726f6d0164686561647840313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231326565706f63680166746172676574743038313034306732303831303430673230383130676368616e6e656c784030633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063686772616e745f696478403134313431343134313431343134313431343134313431343134313431343134313431343134313431343134313431343134313431343134313431343134313471726563697069656e74735f646967657374784034326431623038333362646132383165613936313936393566306265636338646562336638613933656233396530663832333435646563303538643861363035785c6465766963653a30383130343067323038313034306732303831303a323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132310101"
+    },
+    "plaintext": {
+      "array": [
+        {
+          "array": [
+            {
+              "uint": "1"
+            },
+            {
+              "bytes": "3d944b446c37e653b692f94ad76b21cc55c5c41a3a55495c51b34b0def29a7b1"
+            }
+          ]
+        }
+      ]
+    },
+    "plaintext_hex": "81820158203d944b446c37e653b692f94ad76b21cc55c5c41a3a55495c51b34b0def29a7b1"
+  },
+  "attachment": {
+    "message_id": "1616161616161616161616161616161616161616161616161616161616161616",
+    "payload": {
+      "channel_id": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+      "epoch": 1,
+      "control_head": "1212121212121212121212121212121212121212121212121212121212121212",
+      "acl_version": 2,
+      "message_id": "1616161616161616161616161616161616161616161616161616161616161616",
+      "client_created_at": 1760000000000,
+      "ciphertext": "g0OhAQOhBUyewbnaOoTe84mUeoBZAbyCIxZnq9367Ags7DDc27bmzdU_VIADHmpjqQ0nWf72qlEaebXn-02PX0BAwU0eHWUrWo87r657D39RF_VVxuQoVh5GyQA1FRRLHpL2B21hp1HFrSLdCrnxnFG0ic-YpVAraAHvk3_JH0Dvxk7q8Cwallhs0ae3Htttd20vyJHCAfN34q_2zy0-txewYU--HfyQp4veKSoIJ5zYHZcz2QlOMngoANfh1Xm5XXBFLABsRZ-IQSdxkHZw_dRyx0rOD4Xhy0FTNAl7kSB5N1Q9f8Z0fTkDq_6L_1sSs1e9rQ1JidSH-K6d3Oq-en35u_ZP71rc15sL17d0T1ZQzy8dyNh1rXSdomeu3gdD5nT3Fm_Qh5v5cLWbAL2BQ5w_SNi4yWLzqR2TU5mY6dxlwtL4mNZx67ZmBtueSmOcbmx1tKuPe8OdRaVgak8LQsdU_-pxAzHoBL9Mc6nMKzozHYnBUEg_fnvqwLdIdYKzEmyzy61KR_GCJ1Fi3J_73kqz0nMUswA3ZcbkGLGT_zJiKDZuv96RqFqnvreYklNj4ftieMP2RWXp4TKUEBdfHykEV8p38FfMaRjkxQk45bWh4Rs"
+    },
+    "aad": {
+      "value": {
+        "array": [
+          {
+            "text": "dmsg/channel-message/1"
+          },
+          {
+            "text": "040g2081040g2081040g"
+          },
+          {
+            "text": "2ddb7d05e46c9696bf2b498697797e1ba2c60b0b0a8fcc5a83453393cc97cd61"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "channel_id"
+                },
+                {
+                  "text": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+                }
+              ],
+              [
+                {
+                  "text": "epoch"
+                },
+                {
+                  "uint": "1"
+                }
+              ],
+              [
+                {
+                  "text": "control_head"
+                },
+                {
+                  "text": "1212121212121212121212121212121212121212121212121212121212121212"
+                }
+              ],
+              [
+                {
+                  "text": "acl_version"
+                },
+                {
+                  "uint": "2"
+                }
+              ],
+              [
+                {
+                  "text": "message_id"
+                },
+                {
+                  "text": "1616161616161616161616161616161616161616161616161616161616161616"
+                }
+              ],
+              [
+                {
+                  "text": "client_created_at"
+                },
+                {
+                  "uint": "1760000000000"
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "hex": "8476646d73672f6368616e6e656c2d6d6573736167652f31743034306732303831303430673230383130343067784032646462376430356534366339363936626632623439383639373739376531626132633630623062306138666363356138333435333339336363393763643631a66565706f6368016a6368616e6e656c5f69647840306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330636a6d6573736167655f69647840313631363136313631363136313631363136313631363136313631363136313631363136313631363136313631363136313631363136313631363136313631366b61636c5f76657273696f6e026c636f6e74726f6c5f6865616478403132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313231323132313271636c69656e745f637265617465645f61741b00000199c82cc000"
+    },
+    "key_hex": "fcb4aecf941ae66e29b2ee279101ae9de4c0e6af9916ed9f377e4345285f341f",
+    "plaintext": {
+      "map": [
+        [
+          {
+            "text": "file"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "key"
+                },
+                {
+                  "text": "6H86vpeerJwk4zfdOotPvjonKG3mTaZjiQLxipHB5hA"
+                }
+              ],
+              [
+                {
+                  "text": "mime"
+                },
+                {
+                  "text": "text/plain"
+                }
+              ],
+              [
+                {
+                  "text": "name"
+                },
+                {
+                  "text": "attachment.txt"
+                }
+              ],
+              [
+                {
+                  "text": "size"
+                },
+                {
+                  "uint": "15"
+                }
+              ],
+              [
+                {
+                  "text": "epoch"
+                },
+                {
+                  "uint": "1"
+                }
+              ],
+              [
+                {
+                  "text": "file_id"
+                },
+                {
+                  "text": "cbfd652d7727ad5c33b6e1f442d319d4d3b942d98698864f3f355a4a4be3a8af"
+                }
+              ],
+              [
+                {
+                  "text": "version"
+                },
+                {
+                  "text": "37ec816da08010703bb26befb71c36c12eabce16fd650fb35044019c4f795417"
+                }
+              ],
+              [
+                {
+                  "text": "upload_id"
+                },
+                {
+                  "text": "389f99d8d2c1d61efd3f603dc0f29fff351df07c390d755efee14840b56c46a1"
+                }
+              ],
+              [
+                {
+                  "text": "manifest_digest"
+                },
+                {
+                  "text": "9140d363d30ad8b107a62c92245a5534e8221c0c89013fc4f832a4a88e77664e"
+                }
+              ]
+            ]
+          }
+        ],
+        [
+          {
+            "text": "text"
+          },
+          {
+            "text": "With a file"
+          }
+        ]
+      ]
+    },
+    "plaintext_hex": "a26466696c65a9636b6579782b3648383676706565724a776b347a66644f6f7450766a6f6e4b47336d54615a6a69514c7869704842356841646d696d656a746578742f706c61696e646e616d656e6174746163686d656e742e7478746473697a650f6565706f6368016766696c655f69647840636266643635326437373237616435633333623665316634343264333139643464336239343264393836393838363466336633353561346134626533613861666776657273696f6e7840333765633831366461303830313037303362623236626566623731633336633132656162636531366664363530666233353034343031396334663739353431376975706c6f61645f69647840333839663939643864326331643631656664336636303364633066323966666633353164663037633339306437353565666565313438343062353663343661316f6d616e69666573745f64696765737478403931343064333633643330616438623130376136326339323234356135353334653832323163306338393031336663346638333261346138386537373636346564746578746b5769746820612066696c65",
+    "upload": {
+      "plan": {
+        "upload_id": "389f99d8d2c1d61efd3f603dc0f29fff351df07c390d755efee14840b56c46a1",
+        "object_id": "cbfd652d7727ad5c33b6e1f442d319d4d3b942d98698864f3f355a4a4be3a8af",
+        "version_id": "37ec816da08010703bb26befb71c36c12eabce16fd650fb35044019c4f795417",
+        "root_generation": 0,
+        "epoch": 1,
+        "control_head": "1212121212121212121212121212121212121212121212121212121212121212",
+        "kind": "file",
+        "chunks": [
+          {
+            "digest": "96072d8cd15eea1850ec60b222f36a8ab1667fc16f5eb943d7ae8f569af7ca9d",
+            "size": 53
+          }
+        ],
+        "manifest_digest": "9140d363d30ad8b107a62c92245a5534e8221c0c89013fc4f832a4a88e77664e",
+        "manifest_size": 641,
+        "expires_at": 1760003600000
+      },
+      "chunks": [],
+      "manifest": "g0OhAQOhBUyB04rVHkc99hCiW41ZAmqcieKGaUY3xYIxE9LYj1JOv9xTGBpg1niP86wG8AtFtb_sq3QvT_mM4UD8rkhmPFxXJZV75EwsYNz2mj-PruuYuXWmuH8M-ljAseUHenJ2WgZBmS_z_TjwhH5RoFCkvs-h7DdvKPckU-t3G_QgIvRfcbbVPbZ71qof9PQsCq7xphHk6n8PUWT8xc72plqIn-MoZYZHynnSVrKz5hNoOplmGLtkSzVZrwnNHJlkKva4nr573zvgG8H9_l9qTWKh30cFKxksPG0DtNITS8Wvmls8K0JNMFgLpO73_VpQPgc9DZbMWxozm7MjU92hhQAUjRau6C98vaTVckxd1pLZIVJkKqVZcoqMp1-9ulFsnB3BuKF2dtBCdZ7szT_3x0K8fr3OgsjWty2izhdHa3qPuCJ5ENGArnhKjDH8qgpwG9F53D3JilIkLuEFURRr5yY4wyDk5h6lgSs7vVVHQX2j05DzwIDtlIrzPbFfSm6YSGxfiXVpL8HMPUonRBbGAP43DmDF_eMN7KkS-yc848cZCXZob0KpeN9AXwexyu9ssb5mdIIts_FByKuJa20IfBu2Bt3-ExJ2encKwTBrV1xo0UUdkk8ELgOhzJA1Xzch7iB8viOBd1Fp-CikQFgk-F5lXdM3TFwXG5_9e4-Rnn-Y2TcWa1yX-j7nIzz7gkhzlRAuclcJOFZ7YlHv74WIGKe80UCu-4muMN_xVqRmRsrMvRyEDPAuncsSzKXVd4eRyonG0nYFeYNBq9cj72EP38HdqA2Xw7GQfDIhU15Fx8Gfg3Ti3aXze4Aj9Ybd5NOoVJD7d3wfNJtBGp5ChME",
+      "recipients": []
+    },
+    "manifest_context": {
+      "value": {
+        "array": [
+          {
+            "text": "dmsg/channel-file-manifest/1"
+          },
+          {
+            "text": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+          },
+          {
+            "uint": "1"
+          },
+          {
+            "text": "389f99d8d2c1d61efd3f603dc0f29fff351df07c390d755efee14840b56c46a1"
+          },
+          {
+            "text": "cbfd652d7727ad5c33b6e1f442d319d4d3b942d98698864f3f355a4a4be3a8af"
+          },
+          {
+            "text": "37ec816da08010703bb26befb71c36c12eabce16fd650fb35044019c4f795417"
+          }
+        ]
+      },
+      "hex": "86781c646d73672f6368616e6e656c2d66696c652d6d616e69666573742f3178403063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306301784033383966393964386432633164363165666433663630336463306632396666663335316466303763333930643735356566656531343834306235366334366131784063626664363532643737323761643563333362366531663434326433313964346433623934326439383639383836346633663335356134613462653361386166784033376563383136646130383031303730336262323662656662373163333663313265616263653136666436353066623335303434303139633466373935343137"
+    },
+    "manifest_plaintext": {
+      "map": [
+        [
+          {
+            "text": "file"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "id"
+                },
+                {
+                  "text": "cbfd652d7727ad5c33b6e1f442d319d4d3b942d98698864f3f355a4a4be3a8af"
+                }
+              ],
+              [
+                {
+                  "text": "key"
+                },
+                {
+                  "text": ""
+                }
+              ],
+              [
+                {
+                  "text": "mime"
+                },
+                {
+                  "text": "text/plain"
+                }
+              ],
+              [
+                {
+                  "text": "name"
+                },
+                {
+                  "text": "attachment.txt"
+                }
+              ],
+              [
+                {
+                  "text": "size"
+                },
+                {
+                  "uint": "15"
+                }
+              ],
+              [
+                {
+                  "text": "chunks"
+                },
+                {
+                  "array": [
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "id"
+                          },
+                          {
+                            "text": "cbfd652d7727ad5c33b6e1f442d319d4d3b942d98698864f3f355a4a4be3a8af:37ec816da08010703bb26befb71c36c12eabce16fd650fb35044019c4f795417:0"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "size"
+                          },
+                          {
+                            "uint": "15"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "digest"
+                          },
+                          {
+                            "text": "96072d8cd15eea1850ec60b222f36a8ab1667fc16f5eb943d7ae8f569af7ca9d"
+                          }
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ],
+              [
+                {
+                  "text": "sha256"
+                },
+                {
+                  "text": "47e89967f86b727f32aaa6bc2a1bfc84b3dfb8e06bcc8651f4bcb6ae02888a02"
+                }
+              ],
+              [
+                {
+                  "text": "version"
+                },
+                {
+                  "text": "37ec816da08010703bb26befb71c36c12eabce16fd650fb35044019c4f795417"
+                }
+              ]
+            ]
+          }
+        ],
+        [
+          {
+            "text": "epoch"
+          },
+          {
+            "uint": "1"
+          }
+        ],
+        [
+          {
+            "text": "format"
+          },
+          {
+            "text": "dmsg-channel-file/1"
+          }
+        ],
+        [
+          {
+            "text": "channel"
+          },
+          {
+            "text": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+          }
+        ]
+      ]
+    },
+    "manifest_plaintext_hex": "a46466696c65a8626964784063626664363532643737323761643563333362366531663434326433313964346433623934326439383639383836346633663335356134613462653361386166636b657960646d696d656a746578742f706c61696e646e616d656e6174746163686d656e742e7478746473697a650f666368756e6b7381a36269647883636266643635326437373237616435633333623665316634343264333139643464336239343264393836393838363466336633353561346134626533613861663a333765633831366461303830313037303362623236626566623731633336633132656162636531366664363530666233353034343031396334663739353431373a306473697a650f66646967657374784039363037326438636431356565613138353065633630623232326633366138616231363637666331366635656239343364376165386635363961663763613964667368613235367840343765383939363766383662373237663332616161366263326131626663383462336466623865303662636338363531663462636236616530323838386130326776657273696f6e7840333765633831366461303830313037303362623236626566623731633336633132656162636531366664363530666233353034343031396334663739353431376565706f63680166666f726d617473646d73672d6368616e6e656c2d66696c652f31676368616e6e656c784030633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063306330633063"
+  }
+}

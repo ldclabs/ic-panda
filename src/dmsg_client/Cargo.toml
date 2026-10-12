@@ -1,0 +1,28 @@
+[package]
+name = "dmsg_client"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "dMsg client core shared by the desktop daemon and the mobile apps"
+repository.workspace = true
+readme = "README.md"
+publish = false
+
+[dependencies]
+aes-gcm = "0.11"
+base64.workspace = true
+cbor2.workspace = true
+dmsg_protocol = { path = "../dmsg_protocol" }
+dmsg_types = { path = "../dmsg_types" }
+ed25519-dalek.workspace = true
+getrandom = { workspace = true, features = ["sys_rng"] }
+hkdf = "0.13"
+hpke = { version = "0.14", default-features = false, features = ["alloc", "aes", "x25519"] }
+serde = { workspace = true, features = ["derive"] }
+serde_bytes.workspace = true
+sha2.workspace = true
+zeroize = "1"
+
+[dev-dependencies]
+hex.workspace = true
+serde_json.workspace = true

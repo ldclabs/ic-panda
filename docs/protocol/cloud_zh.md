@@ -111,7 +111,7 @@ A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器�
 
 ## 验证和发布边界
 
-- 固定命令/HTTP 向量：`src/dmsg_app/tests/fixtures/cloud-v1.json`；由公开客户端生成，配套服务使用独立实现逐字节核验。
+- 固定命令/HTTP 向量：`tests/vectors/client/cloud-v1.json`；由公开客户端生成，配套服务使用独立实现逐字节核验。
 - 单元测试：`pnpm --dir src/dmsg_app test`。
 - 真实 MV3 / PocketIC / workerd 测试：见扩展 README 的 P0 互操作说明。测试创建全新账户，使用局部测试根；不读取用户浏览器配置，不联系生产 canister。
 - 错误 canister/账户、过期证据、错误设备 map、伪证书、篡改签名/HTTP body、错误资源和旧协议版本均有负例。

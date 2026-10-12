@@ -75,7 +75,7 @@ describe('dmsg-cloud/1 client wire protocol', () => {
       url: url.href,
       body_digest: hash(body)
     }
-    const path = new URL('./fixtures/cloud-v1.json', import.meta.url)
+    const path = new URL('../../../tests/vectors/client/cloud-v1.json', import.meta.url)
     if (process.env.DMSG_WRITE_CLOUD_VECTOR === '1')
       writeFileSync(path, JSON.stringify(vector, null, 2) + '\n')
     expect(vector).toEqual(JSON.parse(readFileSync(path, 'utf8')))

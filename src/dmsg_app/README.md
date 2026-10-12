@@ -1,5 +1,7 @@
 # dMsg Chrome 扩展
 
+> **已冻结，待删除（2026-10-12）。** dMsg 改为以桌面客户端为主（Rust 核心 `src/dmsg_client`、二进制 `dmsg`），本扩展不再发布，也不再增加功能或跟随协议变化修改。网页应用改经 [dmsg-connect/1](../../docs/protocol/connect-v1_zh.md) 接入。扩展的字节规则已导出为 [客户端向量](../../tests/vectors/client/README.md)，`tests/client-vectors.test.ts` 在删除前持续核对它们。检查与单测失效时，先确认对应向量已导出，再从 CI 移除。下文描述冻结时的状态。
+
 `src/dmsg_app` 是 dMsg 唯一的完整客户端：Svelte 5 + TypeScript + Vite 构建的 Manifest V3 扩展。它在本机生成并使用内容根、对象与文件密钥，负责加解密、设备签名与批准、本地 IndexedDB、outbox 和云端同步；ICP canisters 只保存账户、设备、根承诺、名称、认证回执与资金等权威状态，私有云端只保存和投递密文。整体分工见 [技术架构](../../docs/dmsg_architecture_zh.md)，加密机制见 [加密设计](../../docs/dmsg_encryption_zh.md)。
 
 ## 当前状态
@@ -129,7 +131,7 @@ cargo build --locked --release --target wasm32-unknown-unknown \
 DMSG_CLOUD_DIR=/path/to/dmsg-cloud DMSG_CONTENT_PROBE=1 pnpm --dir src/dmsg_app test:account
 ```
 
-`test:account` 的可选探针：`DMSG_CONTENT_PROBE`、`DMSG_SIGNING_PROBE`、`DMSG_CHANNEL_PROBE`、`DMSG_COMMERCE_PROBE`、`DMSG_DELIVERY_PROBE`、`DMSG_MIGRATION_PROBE`（共享迁移还需 `DMSG_LEGACY_RELEASES` 指向与盘点一致的旧发布工件）。`e2e/legacy-snapshot.spec.ts` 用同一组旧工件核对冻结快照证明。云端命令向量 [cloud-v1.json](tests/fixtures/cloud-v1.json) 只在 `DMSG_WRITE_CLOUD_VECTOR=1` 时由 `tests/cloud.test.ts` 重写，配套服务须独立核对后再接受。
+`test:account` 的可选探针：`DMSG_CONTENT_PROBE`、`DMSG_SIGNING_PROBE`、`DMSG_CHANNEL_PROBE`、`DMSG_COMMERCE_PROBE`、`DMSG_DELIVERY_PROBE`、`DMSG_MIGRATION_PROBE`（共享迁移还需 `DMSG_LEGACY_RELEASES` 指向与盘点一致的旧发布工件）。`e2e/legacy-snapshot.spec.ts` 用同一组旧工件核对冻结快照证明。云端命令向量 [cloud-v1.json](../../tests/vectors/client/cloud-v1.json) 只在 `DMSG_WRITE_CLOUD_VECTOR=1` 时由 `tests/cloud.test.ts` 重写，配套服务须独立核对后再接受。
 
 ## 工具脚本
 

@@ -1299,6 +1299,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "dmsg_cli"
+version = "0.1.0"
+dependencies = [
+ "clap",
+]
+
+[[package]]
+name = "dmsg_client"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm 0.11.1",
+ "base64 0.23.1",
+ "cbor2",
+ "dmsg_protocol",
+ "dmsg_types",
+ "ed25519-dalek 3.0.0",
+ "getrandom 0.4.3",
+ "hex",
+ "hkdf 0.13.0",
+ "hpke",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+ "sha2 0.11.0",
+ "zeroize",
+]
+
+[[package]]
 name = "dmsg_commerce"
 version = "0.1.0"
 dependencies = [
@@ -2209,6 +2237,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5324110b02044183df000f0bd7d2d7e61f1000631508627e77f63983b6fdffb"
 dependencies = [
  "aead 0.6.1",
+ "aes-gcm 0.11.1",
  "chacha20poly1305",
  "getrandom 0.4.3",
  "hkdf 0.13.0",

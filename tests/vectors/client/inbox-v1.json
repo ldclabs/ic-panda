@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "test_only": true,
+  "generator": "src/dmsg_app/tests/client-vectors.test.ts",
+  "description": "Recipient inbox key object and a letter envelope produced by the extension engine. The key object ID is the cross-device lookup key; the envelope is canonical {enc, ciphertext} with base64url text values.",
+  "subject_id": "040g2081040g2081040g",
+  "key_version": 1,
+  "key_object_id": "18cb450b3d391e5d26c49d620bde905d939621b893f1614ac07dbf2e2cb455a1",
+  "key_object_id_input": {
+    "value": {
+      "array": [
+        {
+          "text": "dmsg/inbox-key/1"
+        },
+        {
+          "text": "040g2081040g2081040g"
+        },
+        {
+          "uint": "1"
+        }
+      ]
+    },
+    "hex": "8370646d73672f696e626f782d6b65792f3174303430673230383130343067323038313034306701"
+  },
+  "key_payload": {
+    "map": [
+      [
+        {
+          "text": "seed"
+        },
+        {
+          "text": "ngXHo2BRVkSXnVkX4m6Y_Hw7Jqa9fnC5jIEdeaNbAZk"
+        }
+      ],
+      [
+        {
+          "text": "format"
+        },
+        {
+          "text": "dmsg-inbox-key/1"
+        }
+      ],
+      [
+        {
+          "text": "version"
+        },
+        {
+          "uint": "1"
+        }
+      ],
+      [
+        {
+          "text": "rootGeneration"
+        },
+        {
+          "uint": "1"
+        }
+      ]
+    ]
+  },
+  "public_key_hex": "5bc7a7f7739ae6e9f421eb0d2407236f3b62997c8a5d63db228a88e43f4d184b",
+  "sender": "040g2081040g2081040g",
+  "recipient": "081040g2081040g20810",
+  "order_id": "1515151515151515151515151515151515151515151515151515151515151515",
+  "envelope": "omNlbmN4K28yZ3N3eUh0REVxbGNtTUprZ1RYTWpvNTdzZUdfd0dvZEVzdXQ1UTFUMU1qY2lwaGVydGV4dHhGcVd3Rjc2MUMxYkg0b0xWSHpjNVEtVGpDYlI5NTlGNnRBOHp0Wk9QWUpOdjhTNDZQYkdOdnNxeEdqeVB5bm1xdXRFTUpfQQ",
+  "envelope_hex": "a263656e63782b6f326773777948744445716c636d4d4a6b6754584d6a6f35377365475f77476f644573757435513154314d6a6369706865727465787478467157774637363143316248346f4c56487a6335512d546a43625239353946367441387a745a4f50594a4e76385334365062474e76737178476a7950796e6d717574454d4a5f41",
+  "context": {
+    "value": {
+      "array": [
+        {
+          "text": "dmsg/inbox-envelope/1"
+        },
+        {
+          "text": "040g2081040g2081040g"
+        },
+        {
+          "text": "081040g2081040g20810"
+        },
+        {
+          "text": "1515151515151515151515151515151515151515151515151515151515151515"
+        },
+        {
+          "uint": "1"
+        }
+      ]
+    },
+    "hex": "8575646d73672f696e626f782d656e76656c6f70652f3174303430673230383130343067323038313034306774303831303430673230383130343067323038313078403135313531353135313531353135313531353135313531353135313531353135313531353135313531353135313531353135313531353135313531353135313501"
+  },
+  "plaintext_hex": "a16474657874781c412070616964206c657474657220666f722074686520766563746f72"
+}

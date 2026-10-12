@@ -47,6 +47,9 @@ jobs:
       # make test-dmsg runs the SDK tests against the PocketIC proof with node --test.
       - name: Install dMsg SDK dependencies
         run: pnpm install --frozen-lockfile --filter dmsg-sdk
+      # The desktop client crates are rustfmt-clean; their vector tests run with the workspace.
+      - name: Check client formatting
+        run: cargo fmt --check -p dmsg_client -p dmsg_cli
       - name: Run clippy
         run: cargo clippy --verbose --all-targets --all-features
       - name: Run tests
