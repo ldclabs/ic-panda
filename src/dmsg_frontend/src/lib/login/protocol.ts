@@ -26,7 +26,8 @@ const CALLBACK =
 export interface LoginRequest {
   v: 1
   state: Uint8Array
-  session_pubkey: Uint8Array
+  /** Decoded from the fragment's own buffer, so backed by an `ArrayBuffer`. */
+  session_pubkey: Uint8Array<ArrayBuffer>
   targets: string[]
   ttl_ms: number
   derivation_origin: string
@@ -43,7 +44,7 @@ export function b64(bytes: Uint8Array): string {
 }
 
 /** Canonical base64url only: no padding, no other alphabet, zero trailing bits. */
-export function unb64(text: string): Uint8Array {
+export function unb64(text: string): Uint8Array<ArrayBuffer> {
   if (!/^[A-Za-z0-9_-]*$/.test(text) || text.length % 4 === 1)
     throw new Error('base64url')
   const bytes = Uint8Array.from(

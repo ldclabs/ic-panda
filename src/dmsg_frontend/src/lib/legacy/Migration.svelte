@@ -180,10 +180,6 @@
     display: block;
     margin: 16px 0;
   }
-  textarea {
-    display: block;
-    width: 100%;
-  }
   code {
     overflow-wrap: anywhere;
   }
