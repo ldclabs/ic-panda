@@ -146,7 +146,7 @@ The only signing algorithm is Ed25519 (COSE -19); dMsg documents are signed by t
 ### ICP attestation
 
 1. Locate the account's user home (the handle registry lists the homes), query the account, and check device permissions, `security_epoch`, and the device sequence.
-2. Freeze the complete `Statement` and extension-verified origin. Use `prepare_attestation` to obtain the exact Sig_structure and the device key's thumbprint, sign the bytes with the device's Ed25519 key, then sign the `dmsg/attest/v1` approval over the statement, origin and that signature.
+2. Freeze the complete `Statement` and the origin the dMsg client verified. Use `prepare_attestation` to obtain the exact Sig_structure and the device key's thumbprint, sign the bytes with the device's Ed25519 key, then sign the `dmsg/attest/v1` approval over the statement, origin and that signature.
 3. Call the user canister's `attest` (or `attest_app_action`); it returns the `SignedArtifact`. A lost reply is replayed with `get_attestation` under the same request ID.
 4. If you need evidence of dMsg execution authorization, query `get_execution_receipt`, verify the IC certificate/witness, and then match the artifact and receipt (schema 2) with `match_execution_receipt`. This Rust helper checks bindings only; it does not verify IC certificates.
 
@@ -179,7 +179,7 @@ The recipient device signs a `PaymentOffer`, and the service creates and signs a
 
 Serde defines the data representation. Deterministic encoding still requires the protocol crate or an independent implementation of the public specification: RFC 8949 core deterministic CBOR, with u128 values larger than u64 encoded using tag 2 and a shortest-form big-endian byte string. Do not pass amounts through JavaScript Number. Preserve the original COSE protected-header bytes during verification; do not reorder them before checking the signature.
 
-The browser bridge uses the separate `dmsg-extension/4` JSON contract: accountId is Xid text, digests/requestId/nonce are lowercase hex, and large integers are decimal strings. Ordinary Rust Serde JSON is not the bridge protocol. Rust enum memory layout is not a wire format either.
+Web pages use the separate [dmsg-connect/1](../../docs/protocol/connect-v1_zh.md) frames: accountId is Xid text, IDs, nonces and digests are lowercase hex, and large integers are decimal strings. Ordinary Rust Serde JSON is not that protocol. Rust enum memory layout is not a wire format either.
 
 Certified queries return `CertifiedBatch`. Verify the trusted IC root, expected canister, certificate time, witness path, and exact leaf bytes. The account security leaf uses a single raw AccountId path segment, and an escrow leaf uses a single raw escrow_id. Execution receipt paths are `b"execution/" || account_id || request_id`. `SecuritySnapshot.devices_root` commits to the complete device map, including revocation and sequence fields, rather than a reduced device list. Current account security snapshots use a freshness boundary of certificate time +60 seconds; do not mechanically apply that window to historical execution receipts. `AccountInfo` alone is not a certified proof.
 
@@ -215,7 +215,7 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 Rust code blocks in the English README run as doctests. Keep example code identical in both versions, translating only comments. The crate enables `missing_docs` warnings; document new public items as they are added. See the public implementation documentation for protocol and real-canister integration tests.
 
-Rust type documentation is also included in generated Candid interfaces. After changing public type comments, run `make build-dmsg` and `pnpm --dir src/dmsg_app bindings`, then commit the updated `.did` files and generated bindings together. `make test-dmsg` checks that the committed Candid files exactly match the Wasm exports, including comments.
+Rust type documentation is also included in generated Candid interfaces. After changing public type comments, run `make build-dmsg` and commit the updated `.did` files; frontends regenerate their bindings with `make build-declarations`. `make test-dmsg` checks that the committed Candid files exactly match the Wasm exports, including comments.
 
 Before publishing, review publication settings in `Cargo.toml`, how the repository-only local `dmsg_protocol` dev-dependency is handled in the release package, and run package/publish dry-runs against the actual package. Complete documentation does not establish production deployment, capacity, external-service readiness, or audit acceptance. These are development interfaces with no compatibility promise for earlier experimental encodings or stable-storage layouts.
 

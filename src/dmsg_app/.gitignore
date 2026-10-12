@@ -1,6 +1,0 @@
-node_modules/
-dist/
-.svelte-check/
-test-results/
-playwright-report/
-package-lock.json

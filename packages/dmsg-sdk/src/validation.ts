@@ -28,7 +28,6 @@ import {
 
 export const INTEGRATION_VERSION = 1n;
 export const COMMERCE_VERSION = 2n;
-export const EXTENSION_PROTOCOL = "dmsg-extension/4";
 export const AUTH_TTL_MS = 300_000n;
 export const MAX_SESSION_MS = 86_400_000n;
 export const OFFER_TTL_MS = 900_000n;

@@ -743,7 +743,6 @@ impl Env {
 
         let deployment = support::Deployment::start();
         let mut launch: Value = serde_json::from_str(&deployment.fixture_json()).unwrap();
-        launch["client"] = "desktop".into();
         launch["port"] = free_port().into();
         launch["ttl_ms"] = 1_200_000.into();
         let connect = format!("http://localhost:{}", free_port());
@@ -766,7 +765,7 @@ impl Env {
         std::fs::write(dir.join("cloud-launch.json"), launch.to_string()).unwrap();
         children.0.push(
             Command::new("node")
-                .arg(cloud.join("dmsg-core/scripts/extension-probe-server.mjs"))
+                .arg(cloud.join("dmsg-core/scripts/desktop-probe-server.mjs"))
                 .current_dir(&cloud)
                 .env("DMSG_CLOUD_FIXTURE_DIR", &dir)
                 .env("WRANGLER_SEND_METRICS", "false")

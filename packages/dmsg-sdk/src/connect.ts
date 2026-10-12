@@ -156,7 +156,7 @@ export function connectProofMessage(
   ]);
 }
 
-/** The operation commitment devices check (§4.3); unchanged from browser-v4 but for the domain. */
+/** The operation commitment devices check (§4.3). */
 export function connectOperationDigest(
   command: ConnectCommand,
   origin: string,

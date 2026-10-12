@@ -46,7 +46,6 @@ fn valid_handle_price_boundaries_use_smallest_token_units() {
 
 #[test]
 fn handle_buckets_take_the_leading_digest_bits() {
-    // dmsg_app's handle tests pin the same values.
     assert_eq!(handle_bucket("alice"), 768_019);
     assert_eq!(handle_bucket("panda"), 566_360);
     for name in ["alice", "panda", "a", &"z".repeat(19)] {
@@ -98,4 +97,34 @@ fn charge_digest_binds_ledger_payer_amount_and_fee() {
         expected
     );
     assert_ne!(charge_terms_digest(ledger, &payer, 1, 3), expected);
+}
+
+#[test]
+fn legacy_entries_fold_into_the_snapshot_digest() {
+    use dmsg_types::handle::LegacyReservation;
+    // dmsg_handle folds each imported entry this way; src/dmsg_legacy's name
+    // import plan pins the same value.
+    let entries = [
+        LegacyReservation {
+            handle: "alice".into(),
+            legacy_owner: Principal::from_slice(&[1]),
+            legacy_name_principal: Some(Principal::from_slice(&[2])),
+            frozen_admins: vec![Principal::from_slice(&[3])],
+            quarantined: false,
+        },
+        LegacyReservation {
+            handle: "bob".into(),
+            legacy_owner: Principal::from_slice(&[4]),
+            legacy_name_principal: None,
+            frozen_admins: vec![],
+            quarantined: true,
+        },
+    ];
+    let rolling = entries.iter().fold(Hash::new([0; 32]), |rolling, e| {
+        digest("dmsg/legacy-entry/v1", &(rolling, e))
+    });
+    assert_eq!(
+        hex::encode(rolling.as_slice()),
+        "3ace7fa09259fd6011ec83d07aa489eba29d086861057865f57d0a1673da486a"
+    );
 }

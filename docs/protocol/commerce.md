@@ -3,7 +3,7 @@
 Status: implemented development contracts. Production configuration and real-fund
 acceptance must be recorded separately; local fixtures do not establish either.
 See [integration](integration.md), [app actions](app-action.md) and
-[browser v4](browser-v4.md) for their independent authentication boundaries.
+[dmsg-connect/1](connect-v1_zh.md) for their independent authentication boundaries.
 
 ## Authorities and identities
 
@@ -285,8 +285,8 @@ reader indexes yield only accessible records and return a cursor only when more
 accessible records remain. `checkout_deposits(order_id, after, take)` returns up
 to 128 deposits with an opaque hash cursor. These pages show per-ledger obligations,
 Unknown decisions, fee blockage, expired leases and retained commitments. These
-observations are not delivery receipts. The extension's operations centre never
-offers to clear Unknown records or end an applied PANDA commitment. The merchant's
+observations are not delivery receipts. A client must never offer to clear
+Unknown records or end an applied PANDA commitment. The merchant's
 `collectable_checkouts(after, take)` pages its applied orders with uncollected
 revenue by term end, so a collection job that runs once per term stops at the
 first order whose term has not ended; `commerce_stats` reports live record counts,

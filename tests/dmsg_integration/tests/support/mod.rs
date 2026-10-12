@@ -1,6 +1,6 @@
-//! The live local deployment the extension and desktop gateways share: the
-//! dMsg canisters, two test ledgers and an SNS stand-in behind PocketIC's HTTP
-//! gateway. Only generated test identities and seeds are used.
+//! The live local deployment of the desktop tests: the dMsg canisters, two
+//! test ledgers and an SNS stand-in behind PocketIC's HTTP gateway. Only
+//! generated test identities and seeds are used.
 use candid::Principal;
 use dmsg_types::{cose::*, user::*, *};
 use pocket_ic::{PocketIc, PocketIcBuilder};

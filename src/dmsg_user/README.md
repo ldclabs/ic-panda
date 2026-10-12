@@ -12,7 +12,7 @@ dMsg 的账户控制服务（user home）。它为每个账户保存以下状态
 
 ```mermaid
 flowchart LR
-  C["扩展 / 客户端<br/>登录 Principal + 设备密钥"] -- "账户变更、恢复<br/>执行批准" --> U["dmsg_user"]
+  C["dMsg 客户端<br/>登录 Principal + 设备密钥"] -- "账户变更、恢复<br/>执行批准" --> U["dmsg_user"]
   V["云端中继 / 验证者"] -- "security_snapshot_batch<br/>get_device_bundle" --> U
   U -- "execute / get_execution" --> K["dmsg_cose"]
   U -- "get_execution_entitlement<br/>read_integration_configuration" --> M["dmsg_commerce"]
@@ -180,7 +180,7 @@ flowchart LR
 更早的记录分两路保存：
 
 - **home 汇总**：每次扣费同时累加本 home 当月的汇总，即扣过费的账户数、认证次数和加权单位，保存在配置中，保留最近 12 个有扣费的月份（`EXECUTION_STATS_MONTHS`）。`user_stats.execution_months` 公开返回，从新到旧，没有扣费的月份不出现。汇总不含逐账户数据，按月公开的执行报表可以直接对照链上数字。
-- **逐账户历史**：由客户端归档。`dmsg_app` 每次刷新额度前，用 `get_execution_usage` 读取上月和上上月的月账，写成 `usage:{AccountId}:{YYYYMM}` 的 commerce 日志，随 vault 加密同步到云端，云端只见密文。值未变时不产生新版本。新月份第一次刷新才删除旧月账，所以只要该账户在删除前用过客户端，月账就不会丢；从未打开客户端的月份不会归档。归档值来自本人 query，不是认证数据，只供本人查看。
+- **逐账户历史**：由客户端归档（扩展的实现已随扩展删除，桌面客户端尚未移植，目前不归档）。客户端每次刷新额度前，用 `get_execution_usage` 读取上月和上上月的月账，写成 `usage:{AccountId}:{YYYYMM}` 的 commerce 日志，随 vault 加密同步到云端，云端只见密文。值未变时不产生新版本。新月份第一次刷新才删除旧月账，所以只要该账户在删除前用过客户端，月账就不会丢；从未打开客户端的月份不会归档。归档值来自本人 query，不是认证数据，只供本人查看。
 
 ### 名称、付款与第三方批准
 
@@ -359,7 +359,7 @@ flowchart LR
      --freezing-threshold 90d
    ```
 
-7. 在 `dmsg_handle` 的 `registration_homes` 中加入本 canister（`admin_set_registration_homes`），再在 `src/dmsg_app/dmsg.config.json` 填写 `environment`、`principalOrigin` 和 `canisters.*`（可把本 canister 列入 `canisters.userHomes` 作为交叉核对），重新构建客户端，见 [dmsg_app](../dmsg_app/README.md)。
+7. 在 `dmsg_handle` 的 `registration_homes` 中加入本 canister（`admin_set_registration_homes`），客户端从 handle 的 `user_homes` 找到本 canister；客户端配置（`config.toml`）的 `environment` 须与部署一致，可把本 canister 列入 `user_homes` 作为钉定，见 [dmsg_cli](../dmsg_cli/README.md)。
 
 8. 部署后用一个测试账户走完整链路，并在主网核对费用：
    1. 创建账户，取得 `unlock_secret` 完成本机绑定。
@@ -416,7 +416,7 @@ flowchart LR
 - **注册准入**：`daily_new_accounts` 是全局额度，账户不可删除。配置 `admission_key` 后，新账户须持有云端限流签发的票据；未配置时，批量生成的非匿名 Principal 可以占满当日额度并长期占用 `max_accounts`。登录绑定的待接受项只在账户内，不再有全局额度。
 - **多 home**：可以部署多个 user home，各服务按账户 ID 的分配器指纹把账户路由到所属 home。新 home 须在 COSE、handle、payment、commerce、directory 用 `admin_add_user_home` 登记（登记前用新 home 的 `user_config` 核对 environment、issuer_namespace 与各服务 canister），并加入 handle 的 `registration_homes` 才接收新账户。账户的 `home_user` 和 `home_cose` 不可迁移；同一登录 Principal 可以在不同 home 各建一个账户，跨 home 的唯一性和账户迁移都没有实现。
 - **本机解锁秘密**：`master_secret` 由 canister 持有，节点运营者、controller / SNS 与 API 边界节点都可能读到（见“本机解锁秘密”），且没有轮换机制；它只对持有设备本机密文副本的人有用。
-- **未验收**：生产部署、主网费用、真实外部应用与产品、扩展端到端流程都没有验收。
+- **未验收**：生产部署、主网费用、真实外部应用与产品、签名发布的桌面客户端端到端流程都没有验收。
 
 ## 实现
 

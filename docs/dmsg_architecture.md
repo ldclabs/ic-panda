@@ -6,7 +6,7 @@ English | [简体中文](dmsg_architecture_zh.md)
 
 ## 1. Design Principles
 
-1. **Content off chain, authority on chain.** Plaintext and content keys stay on authorized extension endpoints. The cloud stores and delivers ciphertext and runs channel collaboration and the inbox. ICP holds only the authoritative state that must be publicly verifiable and consistent across services: accounts and devices, content-root commitments, handle ownership, formal attestation receipts, settled funds and commercial entitlements.
+1. **Content off chain, authority on chain.** Plaintext and content keys stay on authorized devices (the dMsg client). The cloud stores and delivers ciphertext and runs channel collaboration and the inbox. ICP holds only the authoritative state that must be publicly verifiable and consistent across services: accounts and devices, content-root commitments, handle ownership, formal attestation receipts, settled funds and commercial entitlements.
 2. **Everyday work writes nothing on chain.** Messages, files, vault edits, channel control and profiles make no ICP update, vetKD derivation or threshold signature; the cloud only queries certified account security snapshots when it needs them.
 3. **Upgrades are independent of scale.** Records and certification trees live in stable memory and the heap holds no business state. An upgrade only republishes the root hash, so `post_upgrade` instructions do not grow with the number of records.
 4. **Scale out by user home.** Every account ID embeds the fingerprint of the user home that allocated it, and every service routes by that fingerprint, so adding a home never remaps existing accounts. Services that need global uniqueness (handles, PANDA neuron occupancy, the principal document domain) stay single-instance.
@@ -16,8 +16,9 @@ English | [简体中文](dmsg_architecture_zh.md)
 
 | Trust domain | Responsibilities | Not decided here |
 | --- | --- | --- |
-| Browser extension ([dmsg_app](../src/dmsg_app/README.md)) | Generates and uses content roots, object and file keys; encrypts and decrypts; signs and approves with device keys; keeps local IndexedDB, outbox and sync state | Self-reported device, membership or payment state never replaces certified evidence |
-| Private cloud | Stores and delivers ciphertext; runs channel control, contact rules, the inbox and resource quotas; verifies ICP certified evidence; signs paid-delivery quotes and admission receipts | Account root authorization, handle ownership, formal attestation, settled funds |
+| dMsg client (the daemon and CLI of [dmsg_cli](../src/dmsg_cli/README.md), the [desktop app](../src/dmsg_desktop/README.md), with [dmsg_client](../src/dmsg_client/README.md) at the core) | Generates and uses content roots, object and file keys; encrypts and decrypts; signs and approves with device keys (the approval centre, including requests from web pages and agents); keeps the local SQLite workspace, sync jobs and reconciliation journals | Self-reported device, membership or payment state never replaces certified evidence |
+| Bridge page ([dmsg_connect](../src/dmsg_connect/README.md), connect.dmsg.net, an asset canister) | [dmsg-connect/1](protocol/connect-v1_zh.md) between web applications and devices: checks the application registration, relays the browser-reported origin, keeps a local operation index and result-unsealing keys | Holds no account or device key and cannot approve; the origin it relays is not a cryptographic proof |
+| Private cloud | Stores and delivers ciphertext; runs channel control, contact rules, the inbox and resource quotas; verifies ICP certified evidence; signs paid-delivery quotes and admission receipts; runs the connect mailbox for web requests (ciphertext only), the hint channel to locked devices and the MCP Events relay | Account root authorization, handle ownership, formal attestation, settled funds |
 | ICP canisters (this repository) | The seven services of section 3 | Holds no channel membership, messages, files or profile bodies and stays off the everyday content path |
 
 Content encryption does not hide operational metadata: the cloud and the canisters see routing, account and device identifiers, sizes, timing, and the membership and contact relations needed to enforce rules. The cloud can deny service, delay, or show different devices different views; clients detect the tampering and rollback they can through signatures, IC certificates and locally known versions. The controller (the SNS once handed over) can upgrade canisters, change their rules, and read a user home's `master_secret`. See the [encryption design](dmsg_encryption_zh.md) (Chinese) and the [cloud wire contract](protocol/cloud_zh.md) (Chinese).
@@ -26,8 +27,9 @@ Content encryption does not hide operational metadata: the cloud and the caniste
 
 ```mermaid
 flowchart LR
-  EXT["Browser extension<br/>encryption · device signing"]
-  CLOUD["Private cloud<br/>ciphertext · channels · inbox"]
+  EXT["dMsg client<br/>encryption · device signing · approvals"]
+  BR["Bridge page connect.dmsg.net<br/>relays web requests"]
+  CLOUD["Private cloud<br/>ciphertext · channels · inbox · connect mailbox"]
   subgraph ICP["ICP canisters (SNS governed)"]
     H["dmsg_handle<br/>handle registry · home list"]
     U["dmsg_user × N<br/>user home"]
@@ -43,6 +45,8 @@ flowchart LR
   EXT -- "checkout" --> C
   EXT -- "PANDA claim" --> M
   EXT -- "signed commands · ciphertext" --> CLOUD
+  BR -- "sealed requests · replies" --> CLOUD
+  BR -- "app registration" --> C
   CLOUD -- "security snapshots" --> U
   CLOUD -- "entitlements · catalog" --> C
   CLOUD -- "escrow state" --> P
@@ -267,7 +271,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 | Job | Entry point | Cadence |
 | --- | --- | --- |
 | user expiry cleanup | `prune_executions(after)`, `prune_external_approvals(after)` | Periodically, paging to the end; account writes also clean up lazily |
-| COSE result cleanup | `prune_executions(after)`, or `src/dmsg_app/scripts/cose-prune.mjs` | Periodically, paging to the end |
+| COSE result cleanup | `prune_executions(after)`, or `scripts/cose-prune.mjs` | Periodically, paging to the end |
 | payment payout dispatch | `list_pending_transfers`, then `process_transfer` per leg | At least hourly, within 24 hours of each leg's creation |
 | commerce price publication | `publish_settlement_price` | For every enabled asset before the previous price expires; validity is at most 30 minutes |
 | commerce revenue collection and archiving | `collectable_checkouts`, `collect_checkout_revenue`, `sweep_checkout_history` | Collect after the service period ends; archive periodically until it returns 0 |
@@ -283,13 +287,13 @@ Each administrative call below accepts the controller or the SNS governance and 
 
 - Every service is in development with development stable layouts, and old experimental instances are not migrated.
 - Local PocketIC regressions, protocol vectors and client unit tests cover the routing, limits and upgrade behaviour described here; there are PocketIC regressions for the registration entry of a second user home and for a second commerce instance.
-- Not yet accepted: mainnet deployment with production `key_1`, real funds and wallet paths, real extension end-to-end flows, private cloud end-to-end, subnet throughput, scale beyond one million records except for handle, and an external security audit.
+- Not yet accepted: mainnet deployment with production `key_1`, real funds and wallet paths, end-to-end flows of a signed desktop release with real web applications, private cloud production end-to-end, subnet throughput, scale beyond one million records except for handle, and an external security audit.
 
 ## 12. References
 
 - [dmsg_canisters.md](dmsg_canisters.md): per-canister implementation increments and validation boundaries.
 - [protocol/README.md](protocol/README.md): statements, signatures, execution approvals and Xid allocation.
 - [protocol/account_root_zh.md](protocol/account_root_zh.md) and [dmsg_encryption_zh.md](dmsg_encryption_zh.md) (Chinese): account control, root wrapping and the encryption design.
-- [protocol/cloud_zh.md](protocol/cloud_zh.md) (Chinese): the wire contract between the extension and the cloud.
+- [protocol/cloud_zh.md](protocol/cloud_zh.md) (Chinese): the wire contract between the client and the cloud; [protocol/connect-v1_zh.md](protocol/connect-v1_zh.md) (Chinese): how web applications connect through the bridge page.
 - [protocol/commerce.md](protocol/commerce.md) and [protocol/agent_zh.md](protocol/agent_zh.md) (Chinese): the commerce and Agent Delegation contracts.
 - The capacity, deployment and operations sections of each canister README (Chinese): measurement methods, reproduction commands and deployment arguments behind the figures above.

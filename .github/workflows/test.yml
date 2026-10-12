@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: ["main"]
 jobs:
-  extension:
+  web:
     runs-on: ubuntu-latest
     env:
       # Only the local smoke test runs Electron.
@@ -19,14 +19,13 @@ jobs:
           node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # dmsg-sdk exports its built dist, which the app resolves as a workspace package.
+      # dmsg-sdk exports its built dist, which workspace packages resolve.
       - run: pnpm --dir packages/dmsg-sdk build
-      - run: pnpm --dir src/dmsg_app check
-      - run: pnpm --dir src/dmsg_app test
-      - run: pnpm --dir src/dmsg_app test:inventory
-      - run: pnpm --dir src/dmsg_app test:cose-prune
+      - run: node --test scripts/cose-prune.test.mjs
+      # The legacy library and the operator tools for the legacy name import.
       - run: pnpm --dir src/dmsg_legacy check
       - run: pnpm --dir src/dmsg_legacy test
+      - run: pnpm --dir src/dmsg_legacy test:scripts
       # dmsg.net, including the dmsg-login/1 page checked against tests/vectors/client/login-v1.json.
       - run: pnpm --dir src/dmsg_frontend test
       # The dmsg-connect/1 bridge page, checked against tests/vectors/client/connect-v1.json;
@@ -40,11 +39,6 @@ jobs:
       - run: pnpm --dir src/dmsg_desktop check
       - run: pnpm --dir src/dmsg_desktop test
       - run: pnpm --dir src/dmsg_desktop build
-      - run: pnpm --dir src/dmsg_app build
-      - run: pnpm --dir src/dmsg_app exec playwright install --with-deps chromium
-      # The cross-repository cloud probe is a separate local command; no private
-      # Worker code or repository credentials are needed by this public job.
-      - run: pnpm --dir src/dmsg_app exec playwright test e2e/extension.spec.ts e2e/external-browser.spec.ts
   test:
     runs-on: ubuntu-latest
     steps:

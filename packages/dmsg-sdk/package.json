@@ -20,10 +20,6 @@
       "types": "./dist/ic.d.ts",
       "default": "./dist/ic.js"
     },
-    "./browser": {
-      "types": "./dist/browser.d.ts",
-      "default": "./dist/browser.js"
-    },
     "./connect": {
       "types": "./dist/connect.d.ts",
       "default": "./dist/connect.js"

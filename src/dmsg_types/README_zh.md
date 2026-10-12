@@ -146,7 +146,7 @@ assert!(!result.is_terminal());
 ### ICP 认证
 
 1. 定位账户所在的 user home（名称注册表列出全部 home），查询账户；确认设备权限、`security_epoch` 和设备序号。
-2. 冻结完整 `Statement` 和经扩展核实的 origin。用 `prepare_attestation` 取得精确的 Sig_structure 与设备公钥指纹，由设备 Ed25519 key 签署字节，再对 statement、origin 与该签名签署 `dmsg/attest/v1` 批准。
+2. 冻结完整 `Statement` 和经 dMsg 客户端核实的 origin。用 `prepare_attestation` 取得精确的 Sig_structure 与设备公钥指纹，由设备 Ed25519 key 签署字节，再对 statement、origin 与该签名签署 `dmsg/attest/v1` 批准。
 3. 调用 user canister 的 `attest`（或 `attest_app_action`），它直接返回 `SignedArtifact`；回复丢失时用 `get_attestation` 按同一 request ID 重放。
 4. 如需证明 dMsg 执行授权，查询 `get_execution_receipt`，验证 IC certificate/witness 后，再用 `match_execution_receipt` 匹配产物与回执（schema 2）。该 Rust helper 只检查绑定，不代替 IC 证书验证。
 
@@ -179,7 +179,7 @@ assert!(!result.is_terminal());
 
 Serde 只定义数据表示，确定性编码仍须使用协议库或独立遵循公开规范：RFC 8949 core deterministic CBOR；大于 u64 的 u128 用 tag 2 最短大端字节串。不要通过 JavaScript Number 中转金额。验签须保留原 COSE protected-header 字节，不能重排后再验签。
 
-浏览器桥是独立的 `dmsg-extension/4` JSON 合同：accountId 为 Xid 文本、摘要/requestId/nonce 为小写 hex、大整数为十进制字符串。普通 Rust Serde JSON 不等同于桥协议，也不要把 Rust 枚举的内存布局当成 wire 格式。
+网页使用独立的 [dmsg-connect/1](../../docs/protocol/connect-v1_zh.md) 帧：accountId 为 Xid 文本，ID、nonce、摘要为小写 hex，大整数为十进制字符串。普通 Rust Serde JSON 不等同于该协议，也不要把 Rust 枚举的内存布局当成 wire 格式。
 
 认证查询返回 `CertifiedBatch`，必须核对可信 IC 根、预期 canister、certificate 时间、witness 路径和原始 leaf 值。账户安全叶路径为单段原始 AccountId，escrow 叶为单段原始 escrow_id；执行回执为 `b"execution/" || account_id || request_id`。`SecuritySnapshot.devices_root` 提交完整设备 map，包括撤销/序号字段，不是删减后的设备列表。当前账户安全快照使用证书时间 +60 秒的新鲜度边界；历史执行回执不能机械套用这一窗口。`AccountInfo` 单独出现不构成认证证明。
 
@@ -215,7 +215,7 @@ node scripts/verify-dmsg-vectors.mjs /tmp/dmsg-vectors.json
 
 英文 README 的 Rust 代码块会作为 doctest 执行；两版示例保持相同代码，仅翻译注释。crate 启用 `missing_docs` 警告，新增公开项时应同步补充注释。协议/真实 canister 联调测试另见公开实现文档。
 
-Rust 类型注释也会进入生成的 Candid 接口。修改公开类型注释后，运行 `make build-dmsg` 和 `pnpm --dir src/dmsg_app bindings`，将更新的 `.did` 文件与生成的绑定一起提交。`make test-dmsg` 会检查仓库 Candid 文件与 Wasm 导出完全一致，包括注释。
+Rust 类型注释也会进入生成的 Candid 接口。修改公开类型注释后，运行 `make build-dmsg` 并提交更新的 `.did` 文件；前端用 `make build-declarations` 重新生成绑定。`make test-dmsg` 会检查仓库 Candid 文件与 Wasm 导出完全一致，包括注释。
 
 发布前核对 `Cargo.toml` 的发布配置、仅用于仓库测试的本地 `dmsg_protocol` dev-dependency 在发布包中的处理方式，并对实际发布包执行 package/publish dry-run。本库的文档完整性不代表生产部署、容量、外部服务或审计已经验收。当前为开发接口，不承诺兼容早期实验编码或稳定存储布局。
 

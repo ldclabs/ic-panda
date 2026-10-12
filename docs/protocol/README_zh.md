@@ -19,7 +19,7 @@
 
 `StatementContent::FileStatement { text, sha256, content_type, location }` 表示针对一个确定文件的声明。payload 为封闭整数键 map `{1: text, 2: sha256, ?3: content_type, ?4: location}`。文本保留原始 1..4096 UTF-8 字节；摘要为原文件精确字节的 SHA-256，编码为 32 字节 bstr。可选媒体类型与 URI 沿用摘要 profile 的校验边界，但位于此 payload 内。缺失可选键必须省略，不能编码为 null。payload 必须采用 RFC 8949 core deterministic CBOR（确定长度、最短编码、键排序），拒绝重复/未知键、tag 和尾随字节，编码上限为 16,384 字节。验签保留 COSE 的原始 protected 字节，同时要求此 payload 采用规范编码。
 
-文本与文件摘要共同受签名保护。文本可表达赞成、反对或观察；此 profile 本身不授予发布/验收权限，也不证明签名人已审阅文件。`subject` 可关联项目或事项，SHA-256 字段确定精确文件版本。验证不会自动获取 `location`。需要机器可判定动作、角色或项目权限的业务应另设明确 profile。扩展桥接格式为 `{kind: "file_statement", text, sha256, contentType?, location?}`，SHA-256 使用小写十六进制；确认界面并列显示文本、摘要与原文件核对状态。
+文本与文件摘要共同受签名保护。文本可表达赞成、反对或观察；此 profile 本身不授予发布/验收权限，也不证明签名人已审阅文件。`subject` 可关联项目或事项，SHA-256 字段确定精确文件版本。验证不会自动获取 `location`。需要机器可判定动作、角色或项目权限的业务应另设明确 profile。dmsg-connect/1 的 `signDocument` 请求以 `{kind: "file_statement", text, sha256, contentType?, location?}` 表示，SHA-256 使用小写十六进制；审批界面并列显示文本、摘要与原文件核对状态。
 
 三者均要求保护头 alg（1）、kid（4）、CWT claims（15）和 typ（16）。claims 包含必需 `iss`（1）、可选 `sub`（2）和可选 `iat`（6）。摘要 profile 按 RFC 9995 禁止头 3，文件长度不是必填字段。三种 profile 均没有 request_id、origin、audience 或执行截止时间。
 
@@ -42,7 +42,7 @@
 
 ICP 业务时间、批准期限为 u64 Unix **毫秒**，使用 `now < expires_at`。certificate 和 ICRC `created_at_time` 为纳秒；账本重试保留原值。CBOR u128 超过 u64 时用 tag 2 最短大端 bstr；不能经 JS Number 转换。ICRC Account 是 `{owner: bstr, subaccount: bstr .size 32 / null}`。
 
-浏览器 JSON 协议为 `dmsg-extension/4`：accountId 为 Xid 文本，SHA-256/requestId/nonce 为小写 hex，大整数为十进制字符串；statement 的 issuedAt 为秒，外层 expiresAt 为毫秒。普通 Rust serde JSON 输出不等同于此桥协议。
+网页应用经 [dmsg-connect/1](connect-v1_zh.md) 接入：页面帧中 accountId 为 Xid 文本，ID、nonce、摘要为小写 hex，公钥、载荷、签名为标准 base64，大整数为十进制字符串；statement 的 issuedAt 为秒，外层 expiresAt 为毫秒。普通 Rust serde JSON 输出不等同于这些帧。页面 origin 由浏览器报告、经桥接页转述，由 dMsg 客户端按应用登记核实。
 
 ## 签名与密钥
 
@@ -77,7 +77,7 @@ digest("dmsg/device-approval/v2", [
 
 设备用同一把 Ed25519 密钥先签 Sig_structure，再签此批准摘要；`statement` 为 Rust `Statement` 的 CBOR（Option 为值或 null，无负载枚举为名称字符串，有负载枚举为单项 map）。应用动作用 `AppActionAttestRequest { account_id, issuer, action, signature, approval }`，statement 为 `{issuer, content: {AppAction: action}}`、origin 为 `action.origin`。恢复设备的根派生使用 `dmsg/derive-root/v1`，命令为 `[generation, transport_key (bstr .size 48), max_cycles]`。账户变更使用独立 `dmsg/account/v2` 域，命令为 `[expected_version, AccountCommand]`。
 
-签署前冻结完整保护头、payload 与批准上下文。user home 检查 issuer 属于当前账户、设备是账户的未撤销设备且具备 `FormalApprove`、用途在账户政策内、当月额度有余，验签 Sig_structure 与批准，然后在同一消息内扣减额度、保存产物并写入认证回执。浏览器 origin 最多 256 字节，为精确 HTTPS origin 或 Chrome extension origin（Local 部署还接受精确的环回 HTTP origin）；由扩展核实，设备签名不独立证明浏览器来源。
+签署前冻结完整保护头、payload 与批准上下文。user home 检查 issuer 属于当前账户、设备是账户的未撤销设备且具备 `FormalApprove`、用途在账户政策内、当月额度有余，验签 Sig_structure 与批准，然后在同一消息内扣减额度、保存产物并写入认证回执。浏览器 origin 最多 256 字节，为精确 HTTPS origin（Local 部署还接受精确的环回 HTTP origin）；由 dMsg 客户端核实，设备签名不独立证明浏览器来源。
 
 幂等作用域为 account_id/request_id；同 ID 不同参数拒绝。丢失回复用 `get_attestation(account_id, request_id)` 取回同一产物。严格设备序号和执行水位在结果清理后继续阻止重放，原样重放已清理的请求返回 `ResultExpired`。
 

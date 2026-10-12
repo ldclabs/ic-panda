@@ -153,7 +153,7 @@ pub struct AuthenticationRequest {
     pub app_id: String,
     /// Exact registration version used at approval time.
     pub app_config_version: u64,
-    /// Actual extension-verified origin.
+    /// Actual origin, verified by the dMsg client.
     pub origin: String,
     /// Pinned product authentication receiver.
     pub receiver: Principal,
@@ -339,7 +339,7 @@ pub struct ApplicationApproval {
     pub app_id: String,
     /// Exact application configuration revision.
     pub app_config_version: u64,
-    /// Extension-verified browser origin.
+    /// Browser origin, verified by the dMsg client.
     pub origin: String,
     /// dMsg account whose device approves this action.
     pub approving_account: AccountId,

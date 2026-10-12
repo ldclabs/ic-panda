@@ -322,7 +322,7 @@ type ApplicationApproval = record {
   beneficiary : Beneficiary;
   // Exact application configuration revision.
   app_config_version : nat64;
-  // Extension-verified browser origin.
+  // Browser origin, verified by the dMsg client.
   origin : text;
   // Complete cash/PANDA quotation or application action digest.
   action_digest : blob;
@@ -409,7 +409,7 @@ type AuthenticationPurpose = variant {
 type AuthenticationRequest = record {
   // Exact registration version used at approval time.
   app_config_version : nat64;
-  // Actual extension-verified origin.
+  // Actual origin, verified by the dMsg client.
   origin : text;
   // Stable operation identity used during recovery.
   operation_id : blob;

@@ -1,7 +1,6 @@
 packages:
   - 'packages/dmsg-sdk'
   - 'src/dmsg_legacy'
-  - 'src/dmsg_app'
   - 'src/dmsg_connect'
   - 'src/dmsg_desktop'
   - 'src/dmsg_frontend'

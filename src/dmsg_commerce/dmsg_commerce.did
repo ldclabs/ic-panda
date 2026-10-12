@@ -63,7 +63,7 @@ type ApplicationApproval = record {
   beneficiary : Beneficiary;
   // Exact application configuration revision.
   app_config_version : nat64;
-  // Extension-verified browser origin.
+  // Browser origin, verified by the dMsg client.
   origin : text;
   // Complete cash/PANDA quotation or application action digest.
   action_digest : blob;

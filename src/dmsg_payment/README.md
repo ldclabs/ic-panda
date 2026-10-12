@@ -26,7 +26,7 @@ flowchart LR
 
 | 组件           | 与 payment 的关系                                                                                                                                                                   |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 付款方客户端   | 用付款 Principal 开单，查账，提交中继返回的收据，随后立即派发收件人和平台出金；也可以触发到期退款和退款领取。扩展里的恢复面板（`PaymentRecovery`）提供入金、退款和出金的手动操作 |
+| 付款方客户端   | 用付款 Principal 开单，查账，提交中继返回的收据，随后立即派发收件人和平台出金；也可以触发到期退款和退款领取。桌面客户端的 `dmsg inbox escrow|refund` 提供托管查看、到期退款与退款领取；账本拒绝后修订出金手续费（`revise_rejected_transfer`）尚未提供 |
 | `dmsg_user`    | 收款账户所属的 home。`verify_payment_offer` 核验收件设备对 `PaymentOffer` 的签名、`payment_offer` 能力和账户安全版本，只接受自己 `UserInit.payment_canister` 的调用                  |
 | ICRC 账本      | 所有金额只使用一个账本。入金只认 DFINITY ICRC 账本的 ICRC-3 `1xfer`/`2xfer` 区块，会跟随账本返回的归档回调读取                                                                       |
 | 私有中继       | 持有收据 signer 私钥：按收件人的 `PaymentOffer` 生成并签名 `Quote`，受理密文后签名 `AdmissionReceipt`，用认证查询核对资金决定后才把消息标为可见。它不能改变已签条款中的收款人和金额 |
@@ -212,7 +212,7 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 
 可以部署多个实例，它们互相独立：订单 ID 和子账户都包含本 canister ID，报价的 `home_payment` 只指向一个实例，同一报价不能在两个实例重复开单。私有中继可以同时登记多个实例和各自的条款。
 
-限制在 user home 一侧。`dmsg_user` 的 `UserInit.payment_canister` 在安装时固定，`verify_payment_offer` 只接受它的调用，所以一个 home 的全部账户只能用一个 payment 实例，而一个 payment 实例最多服务 64 个 home。新实例只能随新的 user home 加入，已有 home 不能换到新实例。客户端目前也只配置一个 payment（`src/dmsg_app/dmsg.config.json` 的 `canisters.payment`）。
+限制在 user home 一侧。`dmsg_user` 的 `UserInit.payment_canister` 在安装时固定，`verify_payment_offer` 只接受它的调用，所以一个 home 的全部账户只能用一个 payment 实例，而一个 payment 实例最多服务 64 个 home。新实例只能随新的 user home 加入，已有 home 不能换到新实例。客户端从账户所在 home 的 `UserInit.payment_canister` 取得 payment，无需配置。
 
 `payment_stats` 的 `escrows` 接近 `max_escrows` 的 60% 时，先在 `MAX_PAYMENT_ESCROWS` 以内提高上限；接近 1,000 万或 stable memory 余量不足时，新的 user home 应指向新的 payment 实例。
 
@@ -309,7 +309,7 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 
    最后一条应提示该 home 已登记（`Already listed`）。`payment_config` 返回当前完整配置，可与安装参数逐项比对；客户端和私有中继应使用 `get_configuration_certified` 的证书核对。
 
-6. 配置私有中继：登记本 canister ID、账本、平台账户、`max_fee`、费率政策和 signer epoch，与安装参数逐项一致。在 `src/dmsg_app/dmsg.config.json` 的 `canisters.payment` 填写本 canister ID，重新构建客户端（见 [dmsg_app](../dmsg_app/README.md)）。
+6. 配置私有中继：登记本 canister ID、账本、平台账户、`max_fee`、费率政策和 signer epoch，与安装参数逐项一致。客户端从 user home 的 `UserInit.payment_canister` 取得本 canister，无需配置。
 
 7. 设置备用 controller 和不少于 90 天的冻结阈值，并为 cycles 余额配置告警：
 

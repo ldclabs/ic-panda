@@ -16,7 +16,7 @@ there is no v2-to-v1 conversion. See [commerce 2](commerce.md) for runtime metho
 | Authentication certified leaf | `application/vnd.dmsg.authentication+cbor;v=1` |
 | Typed application action profile | `application/vnd.dmsg.app-action+cose;v=1` |
 | Generic checkout and irrevocable membership | `dmsg-commerce/2`, `membership/2` |
-| Browser bridge | `dmsg-extension/4` |
+| Web connection | `dmsg-connect/1` |
 
 The three existing document profiles keep their v1 bytes. Authentication is a
 dedicated approved IC-certified leaf, not a signed statement, current security
@@ -181,4 +181,4 @@ authentication, exact approval, cash/PANDA quotes, a durable decision, and u128
 overflow boundaries. There are no real external identities, real transfers or
 production rate defaults in these tests.
 
-The browser transport and recovery contract is specified in [browser-v4](browser-v4.md).
+The browser transport and recovery contract is specified in [dmsg-connect/1](connect-v1_zh.md).

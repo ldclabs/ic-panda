@@ -8,7 +8,7 @@
 
 新增共享 `membership`（PANDA 资格、独占、持久产品决定）及 `dmsg_commerce`（现金订单、合同、退款、资源租约）。实际协议、权限、生命周期和验证边界见 [commerce_zh.md](protocol/commerce_zh.md)。user 新增精确商业批准、真实账户创建时间及独立 UTC 月执行账；COSE 隔离正式签名与安全操作预算；delivery 使用版本化费率和 v2 报价/收据域。旧名称价格不受影响。
 
-当前实现采用共享会员与 dMsg 产品商业服务分离的结构，共六类 canisters。扩展商业 UI 已完成本地接线，TokenList 项目与独立账号 adapter 已实现；生产钱包/SNS 验收单独执行，不将本地测试视为上线证明。
+当前实现采用共享会员与 dMsg 产品商业服务分离的结构，共六类 canisters。桌面客户端的套餐与结账已完成本地接线，TokenList 项目与独立账号 adapter 已实现；生产钱包/SNS 验收单独执行，不将本地测试视为上线证明。
 
 COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保留原请求与商业占用，但不再阻止后续终态清理。明确未发出的管理调用返回失败及成本 0，并撤回预算预留；结果清理不解码旧正文，固定签名派生前缀在初始化和升级时缓存。入口统一验证固定 user home，公开 Candid、派生路径与密钥身份保持不变。执行结果的 `cycles_cost_upper_bound` 是管理调用的保守成本上界，不是实际账单。详见 [COSE 实现与实测](../src/dmsg_cose/README.md)。
 
@@ -27,7 +27,7 @@ COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保
 | dmsg_payment | 固定条款托管、入金验证、互斥资金决定与出金 | [README](../src/dmsg_payment/README.md) / [Candid](../src/dmsg_payment/dmsg_payment.did) |
 | dmsg_directory | Agent Delegation principal 文档的认证 HTTP 发布 | [README](../src/dmsg_directory/README.md) / [Candid](../src/dmsg_directory/dmsg_directory.did) |
 
-扩展与云端的公开 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)。P0 已加入设备命令、HTTP PoP、完整设备证据桥与真实扩展/PocketIC/workerd 的 profile 互操作探针；A1 已接入账户/设备/恢复和根提交 UI，见 [账户与根合同](protocol/account_root_zh.md)；A2 已接通内容同步、冲突/墓碑及完整密文导出。其它配套文档保留的早期描述应按明确的版本修订核对。
+客户端与云端的公开 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)，账户、设备与根见 [账户与根合同](protocol/account_root_zh.md)。客户端是桌面端（`src/dmsg_client`、`src/dmsg_cli`、`src/dmsg_desktop`），其端到端测试在 PocketIC 与本地 workerd 中继上运行（[集成测试说明](../tests/dmsg_integration/README.md)）；网页应用经 [dmsg-connect/1](protocol/connect-v1_zh.md) 接入。其它配套文档保留的早期描述应按明确的版本修订核对。
 
 ## 当前合同
 
@@ -38,21 +38,18 @@ COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保
 - `get_account` 返回 `AccountInfo`，支付返回 `EscrowInfo`。内部预算、去重窗口、ID 分配器不进入这些视图。
 - `dmsg_types` 不含稳定存储、认证树或网络调用。各 canister 使用自己的 `store.rs`、StableCell 和有类型的 StableBTreeMap；用户和 COSE 执行记录独立保存。
 - 四个 canister 的稳定布局使用独立 compact representation：结构字段以显式 CBOR 整数 map key 保存，稀疏可选字段省略；标量、tuple 和原始字节索引保持原编码。该 representation 只存在于 `dmsg_runtime::stable_types` 和各 canister 私有 `stable_codec.rs`，不改变 `dmsg_types` 的公共 CBOR、签名摘要、认证叶或 Candid。`dmsg_user` schema 7 进一步采用有界执行保留索引，普通账户操作不扫描历史执行载荷；实测及容量限制见其 README。
-- 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 为设备公钥指纹，只支持 Ed25519。浏览器消息合同为 `dmsg-extension/4`。
+- 文本签署原始 UTF-8，摘要签署 RFC 9995 Hash Envelope；issuer/subject 使用标准 CWT 文本语义，kid 为设备公钥指纹，只支持 Ed25519。网页接入合同为 [dmsg-connect/1](protocol/connect-v1_zh.md)；`validate_origin` 只接受精确的 HTTPS origin，Local 部署另接受环回 HTTP origin。
 - 付费投递的 Quote/AdmissionReceipt 位于公开的 `profiles::delivery`，它们不是所有签名实现必须支持的基础类型。
 - payment 对开单与查账中的重复请求返回 `Pending`，内部退款/费用修订不重复更新未变化的认证叶。有界配置和预算在 heap 中更新：管理配置修改时即写入 StableCell，`pre_upgrade` 补写当分钟的调用计数和当日开单数，跳过该 hook 的升级只丢失这两项；资金记录仍直接保存到稳定表。容量上限、多实例与部署流程见 [payment README](../src/dmsg_payment/README.md)。
 
 ## 构建与验证
 
-需要 Rust stable、wasm32-unknown-unknown target、candid-extractor 0.1.6、didc 和 Node.js；PocketIC server 与测试 crate 固定为 16.0.0。依赖以 Cargo.lock 为准。
+需要 Rust stable、wasm32-unknown-unknown target、candid-extractor 0.1.6 和 Node.js；PocketIC server 与测试 crate 固定为 16.0.0。依赖以 Cargo.lock 为准。
 
 ```sh
 rustup target add wasm32-unknown-unknown
 make build-dmsg
-pnpm --dir src/dmsg_app bindings
 POCKET_IC_BIN=/path/to/pocket-ic make test-dmsg
-pnpm --dir src/dmsg_app check
-pnpm --dir src/dmsg_app test
 ```
 
 `test-dmsg` 检查 Rust 测试、Clippy、Wasm、Candid 一致性、独立 Rust/JavaScript 协议向量与 PocketIC 调用。测试账本支持故障注入和公开 mint，仅用于测试，不在 icp.yaml 中。详见 [集成测试说明](../tests/dmsg_integration/README.md)。
@@ -63,7 +60,7 @@ pnpm --dir src/dmsg_app test
 
 稳定布局版本由各 canister 的 store.rs 自己维护，使用新实例联调，不读取此前 schema 的开发状态。`dmsg_handle` schema 7 使用 StableLog 保存事件；名称锁和账户锁只在注册扣款进行中或结果未知时存在，未开始扣款的请求不会占住名称。冻结旧名改为普通查询，由认领在链上重新核对，不进入堆上认证树；只认证快照承诺和活跃名称。保留新订单手续费维护和小分配桶；cycles 对比和容量边界见其 [README](../src/dmsg_handle/README.md)。整数 key 与代表样本字节由 round-trip、大小阈值、StableBTreeMap 分配和 SHA-256 golden 测试固定。相同 schema 代码升级后的执行恢复由 PocketIC 覆盖。认证值继续使用公共协议编码，查询时由稳定记录重新生成，因此 compact stable representation 不改变认证响应。
 
-生产部署须固定六类 canister ID；共享 membership 可复用经过核验的权威实例，再用各自 Init 参数配置引用。所有 user home 与 handle/cose/payment/directory 的 environment、issuer_namespace 必须一致且固定；各服务按账户 ID 内嵌的分配器指纹把账户路由到分配它的 home，新 home 须经各服务的 `admin_add_user_home` 登记，指纹不得碰撞。COSE 由 controller 或 governance 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、扩展完整批准流程、私有服务协议、容量和审计仍需单独验收。
+生产部署须固定六类 canister ID；共享 membership 可复用经过核验的权威实例，再用各自 Init 参数配置引用。所有 user home 与 handle/cose/payment/directory 的 environment、issuer_namespace 必须一致且固定；各服务按账户 ID 内嵌的分配器指纹把账户路由到分配它的 home，新 home 须经各服务的 `admin_add_user_home` 登记，指纹不得碰撞。COSE 由 controller 或 governance 初始化并核对生产 key 与 fingerprint；公钥未就绪不接受执行，不能降级为测试根。生产 ledger/归档、客户端完整批准流程、私有服务协议、容量和审计仍需单独验收。
 
 签名产物可在非保护头 270 携带不透明的 RFC 9921 CTT token，验证只限制其大小，不检查其可信性。没有 TSA 网络客户端、CMS/X.509 信任验证、完整证据包归档或 anchor_snapshot 入口；普通签名成功不表示已取得时间戳。频道/profile/普通 grant/消息/文件正文不在这些 canister 中存储，也没有周期 checkpoint 写入。
 
@@ -168,7 +165,7 @@ PocketIC 覆盖第二个 commerce 实例服务自己的 user home（PANDA 期限
 
 COSE 与 user 的每日预算在管理调用返回后结算为实际扣费：`ExecutionResult` 新增 `cycles_charged`（请求附带 cycles 减退款），在途期间仍按成本上界预留；未发出或被明确拒绝（如签名队列满）的调用同时退回次数，结果未知时保留完整预留。PocketIC 中签名与 vetKD 派生的上界约 68.26B、实际扣费 26.15B，单账户每天可做的正式签名从约 12 次增至约 32 次（COSE 侧），user 侧默认次数上限先到。
 
-升级若未先停止 COSE，丢失回调的在途执行此前会永久停在 `Executing` 并卡住账户窗口；现在内存中的在途集合区分仍在等待的调用，`get_execution` 把遗留记录按 `Unknown` 返回，下一次执行或清理页写为 `Unknown` 并推进高水位，不重签。新增 `cose_stats`（账户数与上限、结果数、在途与 Unknown 计数、当日全局预算用量、stable 页数、cycles），`canister_inspect_message` 拒绝非 home 的 `execute` 与非管理员的管理 ingress，`prune_executions` 每页增至最多 64 个账户，用掉 20B 指令后在账户之间提前结束，因为删除一条结果要重写同一 B 树节点中的其余结果（一页 4,096 条过期结果约 0.62B cycles，64 个账户各 32 条 4 KiB 签名约 0.75B），`validate_admin_add_user_home` 显示共享账户容量。`dmsg_protocol` 新增 `content_root_context` 与可选 feature `cose-pins`，`cose_pins` 示例按 canister ID 离线计算生产 pin；`src/dmsg_app/scripts/cose-prune.mjs` 匿名执行一轮清理。仓库以 `rust-toolchain.toml` 固定 Rust 1.98.1，CI 与 release 同步。
+升级若未先停止 COSE，丢失回调的在途执行此前会永久停在 `Executing` 并卡住账户窗口；现在内存中的在途集合区分仍在等待的调用，`get_execution` 把遗留记录按 `Unknown` 返回，下一次执行或清理页写为 `Unknown` 并推进高水位，不重签。新增 `cose_stats`（账户数与上限、结果数、在途与 Unknown 计数、当日全局预算用量、stable 页数、cycles），`canister_inspect_message` 拒绝非 home 的 `execute` 与非管理员的管理 ingress，`prune_executions` 每页增至最多 64 个账户，用掉 20B 指令后在账户之间提前结束，因为删除一条结果要重写同一 B 树节点中的其余结果（一页 4,096 条过期结果约 0.62B cycles，64 个账户各 32 条 4 KiB 签名约 0.75B），`validate_admin_add_user_home` 显示共享账户容量。`dmsg_protocol` 新增 `content_root_context` 与可选 feature `cose-pins`，`cose_pins` 示例按 canister ID 离线计算生产 pin；`scripts/cose-prune.mjs` 匿名执行一轮清理。仓库以 `rust-toolchain.toml` 固定 Rust 1.98.1，CI 与 release 同步。
 
 稳定布局保持 COSE schema 9：结果新增 key 4、全局单元新增 key 3，均带默认值，旧数据照常解码；README 记录了生产后的布局迁移约定。PocketIC 覆盖离线 pin 的生产初始化、不停机升级丢失的回调、扣费结算与 `cose_stats`、ingress 拒绝和 64 账户清理页。主网 `key_1` 验收、签名队列满的真实行为和外部审计仍未完成。
 
@@ -227,6 +224,6 @@ user 新增 `canister_inspect_message`：服务回调只接受对应的配置 ca
 链上逐账户月账仍只保留当月与上月，更早的记录分两路保存：
 
 - **home 汇总**：`UserStats` 新增 `execution_months: vec ExecutionMonthStats`，每项为一个 UTC 月份内扣过费的账户数、认证次数与加权单位。user 在扣费的同一消息内累加，保存在配置中，保留最近 12 个有扣费的月份（`EXECUTION_STATS_MONTHS`）。只有汇总，不公开逐账户用量。
-- **逐账户历史**：`dmsg_app` 每次刷新执行额度前读取上月和上上月的月账，写成 `usage:{AccountId}:{YYYYMM}` 的 commerce 日志，随 vault 加密同步。新月份第一次刷新才删除旧月账，先读后刷新即可在删除前取到；从未打开客户端的月份不会归档。归档值来自本人 query，只供本人查看。
+- **逐账户历史**：（扩展实现，2026-10-12 随扩展删除；桌面客户端尚未移植，目前不归档）客户端每次刷新执行额度前读取上月和上上月的月账，写成 `usage:{AccountId}:{YYYYMM}` 的 commerce 日志，随 vault 加密同步。新月份第一次刷新才删除旧月账，先读后刷新即可在删除前取到；从未打开客户端的月份不会归档。归档值来自本人 query，只供本人查看。
 
 客户端同时修正了退款或降档后已扣单位超过允许单位时，额度读取报 `INTEGRITY_FAILED` 的问题，剩余额度按 0 显示。配置新增的字段有默认值，稳定布局仍为 schema 14。

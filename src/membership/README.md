@@ -10,7 +10,7 @@ dMsg 部署中共享的 PANDA 会员服务。用户用自己的 PANDA SNS 神经
 
 ```mermaid
 flowchart LR
-  APP["dmsg_app / 产品客户端<br/>以列在神经元上的 principal 调用"] -- "quote / request / advance<br/>cancel / reconcile" --> M["membership"]
+  APP["dMsg 客户端 / 产品客户端<br/>以列在神经元上的 principal 调用"] -- "quote / request / advance<br/>cancel / reconcile" --> M["membership"]
   M -- "read_integration_configuration" --> C["dmsg_commerce<br/>（申请所在 home 的实例）"]
   M -- "verify_billing_offer" --> Q["报价权威"]
   M -- "authorize_product_billing" --> B["受益权威"]
@@ -295,7 +295,7 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
      published_at_ms = 0 : nat64; effective_at_ms = <执行时间 30 天之后的 Unix 毫秒> : nat64 })'
    ```
 
-8. dMsg 产品登记的 `allowed_settlement_methods` 要包含 `Panda`（见 commerce README）。在 `src/dmsg_app/dmsg.config.json` 填写 `canisters.membership` 后重新构建客户端。
+8. dMsg 产品登记的 `allowed_settlement_methods` 要包含 `Panda`（见 commerce README）。客户端从账户所在 home 的 `UserInit.membership_canister` 取得本 canister，无需配置。
 
 9. 部署后检查：
 

@@ -1,2 +1,5 @@
 import { defineConfig } from 'vitest/config'
-export default defineConfig({ test: { server: { deps: { inline: ['@ldclabs/cose-ts'] } } } })
+// scripts/*.test.mjs are node:test suites (test:scripts).
+export default defineConfig({
+  test: { include: ['tests/**/*.test.ts'], server: { deps: { inline: ['@ldclabs/cose-ts'] } } }
+})

@@ -1,6 +1,6 @@
 # dmsg-cloud/1 客户端互操作合同
 
-本文件描述客户端使用的 wire 合同与内容映射，不包含服务端实现。客户端实现在 `src/dmsg_client`（`cloud`、`upload`、`sync`、`connect`、`evidence`、`channel_log`、`channel`、`inbox`、`payment` 模块）；已冻结的扩展 `src/dmsg_app/src/lib/protocol/cloud.ts` 是最初的参照实现。账户和执行证明继续使用现有公开 Rust 类型。
+本文件描述客户端使用的 wire 合同与内容映射，不包含服务端实现。客户端实现在 `src/dmsg_client`（`cloud`、`upload`、`sync`、`connect`、`evidence`、`channel_log`、`channel`、`inbox`、`payment` 模块）。账户和执行证明继续使用现有公开 Rust 类型。
 
 ## 标识和编码
 
@@ -91,11 +91,11 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 | 本地 channel/message 草稿 | 签名 genesis/control/epoch/message | 先创建正式频道、接受成员并取得新 epoch；不把本地 `active`、签名或序号直接当在线授权 |
 | 本地 outbox receipt | 资源操作查询和实际服务回执 | 使用资源级回执，按原 request ID 对账；没有单独的通用发送队列实现 |
 
-这里的“本地文件”指新版 `src/dmsg_app` 的 R0 格式：100 MiB 是明文上限，按 1 MiB 明文独立加密。2026-09-22 A2 实施修订为保留已存在的 R0 密文，单块密文预算统一为 `1 MiB + 64 bytes`，整次上传预算为 `100 MiB + 128×64 bytes + 64 KiB manifest`。这些仅是有界格式开销，资源配额仍按实际密文字节计算，Free 配额不会因本次修订扩大。上限以 writer 真实编码校验；超限明确失败，不静默截断。
+这里的“本地文件”指新版客户端的 R0 文件格式（`dmsg_client::files`）：100 MiB 是明文上限，按 1 MiB 明文独立加密。2026-09-22 A2 实施修订为保留已存在的 R0 密文，单块密文预算统一为 `1 MiB + 64 bytes`，整次上传预算为 `100 MiB + 128×64 bytes + 64 KiB manifest`。这些仅是有界格式开销，资源配额仍按实际密文字节计算，Free 配额不会因本次修订扩大。上限以 writer 真实编码校验；超限明确失败，不静默截断。
 
 2026-09-23：若上传计划到期或账户换根，客户端先查询原修订操作和每个上传状态。已提交对象继续复用；无法继续的 staging 上传明确取消后，以当前内容根和新 `upload_id` 重新封装 manifest。原对象、修订 ID、请求 ID 和密文文件块保持不变；配额释放尚在处理中时保留任务供用户重试。
 
-同日客户端审查修订：普通拉取仍使用完整导出清单核对版本与缺口，但密文逐块验证并缓存到 IndexedDB，重复拉取复用已验证块；全部清单和文件验证成功后才原子推进对象 head 与快照游标。单账户拉取不再受单备份包的 256 MiB 限制；单文件、块、清单数量与证据大小的限制继续有效。中断留下的缓存块不代表内容已提交。
+同日客户端审查修订：普通拉取仍使用完整导出清单核对版本与缺口，但密文逐块验证并缓存到本机工作区，重复拉取复用已验证块；全部清单和文件验证成功后才原子推进对象 head 与快照游标。单账户拉取不再受单备份包的 256 MiB 限制；单文件、块、清单数量与证据大小的限制继续有效。中断留下的缓存块不代表内容已提交。
 
 本地普通对象载荷上限为 200,000 bytes，`formal_*` 载荷上限为 512 KiB；读写共用边界。频道索引从认证后的解密内容建立，仅保存在本地 head 元数据中，不改变内容 AAD 或上传记录字段。冲突解决关系放在加密 Item 的 `resolvedConflicts` 中，随后编辑保留该关系，备份与同步一起传递。
 
@@ -114,14 +114,14 @@ A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器�
 ## 验证和发布边界
 
 - 固定命令/HTTP 向量：`tests/vectors/client/cloud-v1.json`；由公开客户端生成，配套服务使用独立实现逐字节核验。
-- 单元测试：`pnpm --dir src/dmsg_app test`。
-- 真实 MV3 / PocketIC / workerd 测试：见扩展 README 的 P0 互操作说明。测试创建全新账户，使用局部测试根；不读取用户浏览器配置，不联系生产 canister。
+- 单元测试：`cargo test -p dmsg_client`（含上述向量）。
+- 端到端测试：桌面客户端在 PocketIC 与本地 workerd 中继上运行（[`tests/dmsg_integration`](../../tests/dmsg_integration/README.md) 的 `desktop.rs`）。测试创建全新账户，使用局部测试根，不联系生产 canister。
 - 错误 canister/账户、过期证据、错误设备 map、伪证书、篡改签名/HTTP body、错误资源和旧协议版本均有负例。
 - `/ready=false` 和生产禁止写入继续有效。真实账户初始化 UI、内容同步 UI、商业 UI 和生产验收分别交付。
 
 ## 后台密文与认证新鲜度增量
 
-扩展后台只提交预先签署的固定 vault revision 和查询同一操作的 GET。批准绑定 origin、路径、方法、body digest、账户、设备和最多 45 秒期限；SW 不持有设备/认证私钥或可续期会话。未知响应查原编号，授权过期后暂停。上传、重新授权和本机加密状态确认在解锁后完成。
+锁定的 daemon 只完成解锁时已经签好的提交：固定 vault revision 及查询同一操作的 GET，HTTP PoP 绑定 origin、路径、方法、body digest、账户、设备和最多 45 秒期限，不持有可续期会话。未知响应查原编号，签名期限过后暂停。开启“后台在线”时，daemon 锁定后仍持有设备签名私钥，可以发送不需要重新封装的版本并缓存密文，但不能读取内容。重新封装、重新授权和本机加密状态确认在解锁后完成。
 
 公开 `Certification::batch` 读取一次 IC 时间，使认证查询依赖当前 batch time；仅加 transport nonce 无法绕过 replica 按 caller/method/args 建立的缓存。该行为与 [IC query cache 实现](https://github.com/dfinity/ic/blob/master/rs/execution_environment/src/query_handler/query_cache.rs) 一致，并有不写账户状态时证书更新的 PocketIC 回归。客户端和 Worker 的 60 秒新鲜度及防回退规则保持不变。
 

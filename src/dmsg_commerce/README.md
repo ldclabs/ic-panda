@@ -14,7 +14,7 @@ dMsg 的商业服务 canister，承担三项职责：
 
 ```mermaid
 flowchart LR
-  APP["dmsg_app / 扩展"] -- "prepare / quote / open<br/>funding / refund" --> C["dmsg_commerce"]
+  APP["dMsg 客户端"] -- "prepare / quote / open<br/>funding / refund" --> C["dmsg_commerce"]
   W["付款钱包"] -- "icrc1_transfer<br/>到订单子账户" --> L["ckUSDC / ckUSDT 账本"]
   C -- "icrc3_get_blocks<br/>icrc1_transfer" --> L
   C -- "authorize_product_billing<br/>verify_application_authorization<br/>verify_product_account" --> U["dmsg_user"]
@@ -232,7 +232,7 @@ heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。
 
 commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce 的 `user_homes` 里，它的 `UserInit.commerce_canister` 指向该实例，账户的订单、主体和认证叶都只在该实例。每个实例独立持有注册表、结算资产、价格、目录和订单，因此治理要在每个实例分别登记产品、应用与资产，价格权威要向每个实例发布，商户也要在每个实例归集。共享的只有 `membership`：它的 `PandaServiceConfig.commerce_homes` 列出每个 user home 的 commerce，按申请所在的 home 读取注册并回调该实例的产品 adapter，神经元占用仍是全局唯一。
 
-私有云端把 `COMMERCE_CANISTER` 配置为按 user home 的映射（单实例仍可填一个 ID），目录和权益证明都按账户 home 的 commerce 验证。客户端已按 `dmsg_handle` 的 home 列表定位账户所在的 user home，但构建配置只固定一个 commerce（`src/dmsg_app/dmsg.config.json` 的 `canisters.commerce`）。客户端能按账户 home 选择 commerce 之前，所有 user home 应列在同一个 commerce 中。
+私有云端把 `COMMERCE_CANISTER` 配置为按 user home 的映射（单实例仍可填一个 ID），目录和权益证明都按账户 home 的 commerce 验证。桌面客户端按 `dmsg_handle` 的 home 列表定位账户所在的 user home，并从该 home 的 `UserInit.commerce_canister` 取得 commerce，因此不同 home 可以指向不同实例。
 
 何时加实例：`commerce_stats` 中 `subjects`、`hot_orders + archived_orders` 接近 `max_subjects`、`max_orders` 的 60%，或冷订单累计接近 1,000 万（订单 ID 和区块去重记录永不回收，`MAX_ORDERS` 是终身上限）时，新的 user home 应指向新的 commerce 实例，而不是继续提高旧实例的上限。
 
@@ -356,7 +356,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
 
    5. 指定价格权威：`set_settlement_price_authority(principal "<价格权威>")`，再启动价格发布任务（见“运维”）。
 
-6. 在 `src/dmsg_app/dmsg.config.json` 填写 `canisters.commerce`、`canisters.membership`，重新构建客户端（见 [dmsg_app](../dmsg_app/README.md)）；同步更新私有云端信任的 commerce canister ID。
+6. 客户端无需配置：它从账户所在 home 的 `UserInit` 读取 commerce 与 membership。同步更新私有云端信任的 commerce canister ID。
 
 7. 部署后检查：
 

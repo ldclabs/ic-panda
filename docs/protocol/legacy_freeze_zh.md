@@ -30,7 +30,7 @@ OSS 候选基于 v1.2.3，新增 `admin_legacy_drain_folder` / `admin_legacy_sea
 
 ## 操作材料与验证
 
-`src/dmsg_app/scripts/legacy-freeze-plan.mjs` 从目标 inventory、已完成基线核对文件和 cutover ID 生成分阶段、绑定模块哈希的 Candid controller payload。工具不签名、不提交、不升级、不停写；调用前仍须核对部署、控制权限、在途操作和实际证据。生产执行不属于本轮开发授权。
+`src/dmsg_legacy/scripts/legacy-freeze-plan.mjs` 从目标 inventory、已完成基线核对文件和 cutover ID 生成分阶段、绑定模块哈希的 Candid controller payload。工具不签名、不提交、不升级、不停写；调用前仍须核对部署、控制权限、在途操作和实际证据。生产执行不属于本轮开发授权。
 
 本地测试使用 I0 已匹配公开 release 的 Wasm：四服务升级后旧 IV、profile、消息保持；真实跨 canister 等待阻止提前 seal；Chrome 验证多页快照及篡改负例。另有 COSE 的 ECDH/VetKey/包装前后对照、OSS 旧写 token 阻断及其它目录继续写入测试。模拟账本只用于建立测试数据，无真实资金。
 

@@ -325,7 +325,7 @@ fn document_budget_covers_maximum_urls_and_later_safety_changes() {
     );
 }
 
-/// Fixed account-approval digest for a registration, shared with the extension.
+/// Fixed account-approval digest for a registration.
 #[test]
 fn register_controller_approval_digest_vector() {
     use dmsg_types::user::*;

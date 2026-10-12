@@ -33,7 +33,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 2. 签名前核对 generation 为当前 controller、本机 vault 公钥等于已登记公钥、设备具备 `FormalApprove`（客户端规则）。`created_at = max(now, valid_from)`，nonce 为本机记录的 `max(last + 1, created_at)`。
 3. 对 `SHA3-256(JCS(event))` 做 Ed25519 签名，信封的 `hash` 与 `signature` 为二者的 base64url（无填充）。信封先写入加密日志再提交；服务 5xx/408/429 时保留 `signed` 状态原样重提，4xx 为终态，需要新签名。
 4. grant 的 scope、依赖方、`expires_at`（不超过 366 天）由 SDK 的 `validate_delegation_acceptance` 在服务端按认证文档检查。revoke 与替换同样由 delegation 服务在接收时检查，规则是 Delegation 第 5 节的上限：受限 controller 只能管理最新 grant 的 scope 与依赖方都在其上限内的凭证，`"*"` 可管理全部凭证，不记录凭证由哪把 key 签发。换钥时新 key 的上限覆盖旧凭证，即可替换或撤销旧 key 签出的凭证。
-5. delegation ID 为 `<account_id>.<后缀>`，前缀是该 principal 的规范账户 ID 文本，扩展使用 128 位随机后缀。服务按这个前缀把凭证读取路由到账户，不以本账户 ID 加 `.` 开头的提交被拒绝。
+5. delegation ID 为 `<account_id>.<后缀>`，前缀是该 principal 的规范账户 ID 文本，客户端使用 128 位随机后缀。服务按这个前缀把凭证读取路由到账户，不以本账户 ID 加 `.` 开头的提交被拒绝。
 
 ## Directory
 
@@ -57,7 +57,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 
 ## 验证
 
-- `dmsg_protocol::agent` 单测：文档渲染经 SDK 校验、状态不变量、目录配置，以及与扩展共享的注册批准和 controller PoP 摘要向量（`protocol_vectors.json` 的 `controller_pop_v1`）。
+- `dmsg_protocol::agent` 单测：文档渲染经 SDK 校验、状态不变量、目录配置，以及注册批准和 controller PoP 摘要向量（`protocol_vectors.json` 的 `controller_pop_v1`）。
 - `dmsg_user` 单测：principal 生命周期的单调性、上限、重放与不推进 `security_epoch`；错误 PoP 被拒。
 - PocketIC `agent::self_held_principal_publishes_certified_documents_and_its_grants_are_accepted`：启用、错误 PoP 注册被拒、注册、发布、以 `ic-response-verification` 验证认证 200/404/域名响应、快照 schema 4、本机 Rust SDK 签名的 grant 被 `validate_delegation_acceptance` 接受、范围外与他人 key 被拒、轮换后退役 key 被拒而上限相同的新 key 可撤销旧 key 签出的凭证、目录发布规则与升级后文档不变。
 - 客户端 `dmsg_client` 单测：本机签名的 grant 与 revoke 通过 SDK 的 `validate_delegation_acceptance`（按 directory 渲染的文档），超出上限被拒，nonce 为 `max(last + 1, created_at)`，不早于 `valid_from`，有效期超过 366 天被拒；controller key 为固定 ID 的 vault 条目。

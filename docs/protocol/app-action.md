@@ -157,5 +157,5 @@ arguments, out-of-range numbers, undeclared choices, misplaced `Null`, depth,
 unknown value kinds, registration without a schema, paused registration and
 expired admission are tested. `integration_vectors.json` includes the registration,
 each action and its signature, checked by an independent TypeScript encoder and
-validator, and the extension renders the same vectors in a server-side render test.
+validator.
 Existing document vectors remain byte-for-byte unchanged.

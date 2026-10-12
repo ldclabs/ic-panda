@@ -10,7 +10,7 @@ dMsg 的内容根 vetKD 服务。它只做一件事：为 user home 已经授权
 
 ```mermaid
 flowchart LR
-  C["客户端 / 扩展"] -- "derive_root" --> U["dmsg_user<br/>（账户所在的 user home）"]
+  C["dMsg 客户端"] -- "derive_root" --> U["dmsg_user<br/>（账户所在的 user home）"]
   C -- "root_public_key" --> K["dmsg_cose"]
   U -- "execute / get_execution" --> K
   K -- "vetkd_derive_key" --> M["管理 canister<br/>（key_1 所在签名 subnet）"]
@@ -120,7 +120,7 @@ ICP 的阈值密钥还按调用者 canister ID 派生，所以内容根公钥由
 
 结果在 `Terminal`、序号不超过 `closed_sequence`、且当前时间超过 `expires_at + 1 天` 后可以删除。账户记录本身、高水位和预算永久保留，已清理的序号再次提交返回 `ResultExpired`。`InFlight` 阻止高水位越过，`Unknown` 不阻止但自身永久保留。
 
-清理有两条路径：同账户下一次执行时惰性清理；任何人调用 `prune_executions(after)`，每页最多检查 64 个账户、删除 4,096 条结果，把返回的 `next_after` 传给下一次调用，直到返回 `None`。一页用掉 20B 指令后在账户之间提前结束。`src/dmsg_app/scripts/cose-prune.mjs` 匿名执行一轮清理。
+清理有两条路径：同账户下一次执行时惰性清理；任何人调用 `prune_executions(after)`，每页最多检查 64 个账户、删除 4,096 条结果，把返回的 `next_after` 传给下一次调用，直到返回 `None`。一页用掉 20B 指令后在账户之间提前结束。`scripts/cose-prune.mjs` 匿名执行一轮清理。
 
 ### 多 user home
 
@@ -213,7 +213,7 @@ PocketIC 回归 `cose_offline_pin_matches_the_initialized_production_key` 用 `p
 
 7. 主网验收：用测试账户完成一次登录恢复与根派生；用离线派生核对 `root_public_key`；记录实际余额差与 `cycles_cost_upper_bound`。
 
-8. 安排每天一轮清理：`node src/dmsg_app/scripts/cose-prune.mjs --canister <COSE canister ID>`。
+8. 安排每天一轮清理：`node scripts/cose-prune.mjs --canister <COSE canister ID>`。
 
 ### 交给 SNS
 
@@ -267,7 +267,7 @@ PocketIC 回归 `cose_offline_pin_matches_the_initialized_production_key` 用 `p
 ```sh
 cargo test -p dmsg_cose
 cargo test -p dmsg_protocol --features cose-pins cose_pins
-node --test src/dmsg_app/scripts/cose-prune.test.mjs
+node --test scripts/cose-prune.test.mjs
 POCKET_IC_BIN=/path/to/pocket-ic bash scripts/test-dmsg.sh
 ```
 

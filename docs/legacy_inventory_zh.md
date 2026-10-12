@@ -1,14 +1,14 @@
 # 旧部署只读盘点工具
 
-`src/dmsg_app/scripts/legacy-inventory.mjs` 读取现有 canister ID 配置，沿消息、频道、资料和 OSS cluster 的公开引用发现部署实例。工具固定使用匿名身份、主网证书根与 query 签名校验，只发 `read_state` 和白名单 query，不读取本机身份密钥，不发送 update。
+`src/dmsg_legacy/scripts/legacy-inventory.mjs` 读取现有 canister ID 配置，沿消息、频道、资料和 OSS cluster 的公开引用发现部署实例。工具固定使用匿名身份、主网证书根与 query 签名校验，只发 `read_state` 和白名单 query，不读取本机身份密钥，不发送 update。
 
 从公开仓库根目录执行（依赖现有工作区 Node 模块）：
 
 ```sh
-node src/dmsg_app/scripts/legacy-inventory.mjs \
+node src/dmsg_legacy/scripts/legacy-inventory.mjs \
   --ids .icp/data/mappings/ic.ids.json \
   --output misc/legacy-inventory/new-observation
-node --test src/dmsg_app/scripts/legacy-inventory.test.mjs
+node --test src/dmsg_legacy/scripts/legacy-inventory.test.mjs
 ```
 
 必须使用新的输出目录。证据文件以独占写入方式保存，避免覆盖已有记录；公共 checkout 内只允许输出到 Git 忽略的目录。`--host` 默认 `https://icp-api.io`，只接受 HTTPS，不拉取自定义 root key。`--max-canisters` 默认 64、最多 256，用于限制动态发现规模；工具不递归扫描所有 controller 的其它业务。

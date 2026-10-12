@@ -6,7 +6,7 @@
 
 ## 1. 设计原则
 
-1. **内容离链，权威上链。** 明文和内容密钥只在已授权的扩展端点。云端保存并投递密文，承担频道协作和收件箱；ICP 只保存需要公开验证、跨服务一致的权威状态：账户与设备、内容根承诺、名称权属、正式认证回执、资金终态和商业权益。
+1. **内容离链，权威上链。** 明文和内容密钥只在已授权的设备（dMsg 客户端）上。云端保存并投递密文，承担频道协作和收件箱；ICP 只保存需要公开验证、跨服务一致的权威状态：账户与设备、内容根承诺、名称权属、正式认证回执、资金终态和商业权益。
 2. **日常操作不写链。** 消息、文件、vault 编辑、频道控制和 profile 不产生 ICP update、vetKD 派生或阈值签名；云端只按需查询账户的认证安全快照。
 3. **规模与升级解耦。** 业务记录和认证树都在 stable memory，heap 不保存业务状态，升级只重新发布根哈希，`post_upgrade` 的指令数不随记录数增长。
 4. **按 user home 横向扩展。** 账户 ID 内嵌分配它的 user home 指纹，各服务据此路由，新增 home 不会重映射已有账户。需要全局唯一性的服务（名称、PANDA 神经元占用、principal 文档域名）保持单实例。
@@ -16,8 +16,9 @@
 
 | 信任域 | 职责 | 不由它决定 |
 | --- | --- | --- |
-| 浏览器扩展（[dmsg_app](../src/dmsg_app/README.md)） | 生成和使用内容根、对象与文件密钥；加解密；设备签名与批准；本地 IndexedDB、outbox 与同步 | 客户端自报的设备、会员或付款状态不能代替认证证据 |
-| 私有云端 | 保存与投递密文；频道控制、联系规则、收件箱和资源配额；验证 ICP 认证证据；签发付费来信的报价与受理收据 | 账户根授权、名称权属、正式认证和资金终态 |
+| dMsg 客户端（[dmsg_cli](../src/dmsg_cli/README.md) 的 daemon 与 CLI、[桌面应用](../src/dmsg_desktop/README.md)，核心为 [dmsg_client](../src/dmsg_client/README.md)） | 生成和使用内容根、对象与文件密钥；加解密；设备签名与批准（审批中心，含网页与智能体的请求）；本机 SQLite 工作区、同步任务与对账日志 | 客户端自报的设备、会员或付款状态不能代替认证证据 |
+| 桥接页（[dmsg_connect](../src/dmsg_connect/README.md)，connect.dmsg.net，资产 canister） | 网页应用与设备之间的 [dmsg-connect/1](protocol/connect-v1_zh.md)：核对应用登记，转述浏览器报告的 origin，保存本地操作索引与结果解封密钥 | 不持有账户或设备密钥，不能批准请求；它转述的 origin 不是密码学证明 |
+| 私有云端 | 保存与投递密文；频道控制、联系规则、收件箱和资源配额；验证 ICP 认证证据；签发付费来信的报价与受理收据；网页请求的连接邮箱（只见密文）、给锁定设备的提示通道、MCP Events 中继 | 账户根授权、名称权属、正式认证和资金终态 |
 | ICP canisters（本仓库） | 第 3 节的七类服务 | 不保存频道成员、消息、文件和 profile 正文，不在日常内容的热路径上 |
 
 内容加密不隐藏运行元数据：云端和 canister 能看到路由、账户与设备标识、尺寸、时序，以及执行规则所需的成员和联系关系。云端可以拒绝服务、延迟或向不同设备呈现不同视图；客户端用签名、IC 证书和本地已知版本检测可检测的篡改与回滚。controller（交给 SNS 后为 SNS）可以升级 canister、改变规则，并能读出 user home 的 `master_secret`。加密设计见 [dmsg_encryption_zh.md](dmsg_encryption_zh.md)，云端 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)。
@@ -26,8 +27,9 @@
 
 ```mermaid
 flowchart LR
-  EXT["浏览器扩展<br/>加解密 · 设备签名"]
-  CLOUD["私有云端<br/>密文 · 频道 · 收件箱"]
+  EXT["dMsg 客户端<br/>加解密 · 设备签名 · 审批"]
+  BR["桥接页 connect.dmsg.net<br/>网页请求转述"]
+  CLOUD["私有云端<br/>密文 · 频道 · 收件箱 · 连接邮箱"]
   subgraph ICP["ICP canisters（SNS 治理）"]
     H["dmsg_handle<br/>名称注册表 · home 列表"]
     U["dmsg_user × N<br/>user home"]
@@ -43,6 +45,8 @@ flowchart LR
   EXT -- "结账" --> C
   EXT -- "PANDA 申请" --> M
   EXT -- "签名命令 · 密文" --> CLOUD
+  BR -- "密封请求 · 回复" --> CLOUD
+  BR -- "应用登记" --> C
   CLOUD -- "安全快照" --> U
   CLOUD -- "权益 · 目录" --> C
   CLOUD -- "托管状态" --> P
@@ -267,7 +271,7 @@ flowchart TB
 | 任务 | 入口 | 节奏 |
 | --- | --- | --- |
 | user 过期数据清理 | `prune_executions(after)`、`prune_external_approvals(after)` | 定期，分页直到结束；账户写入时也会惰性清理 |
-| COSE 结果清理 | `prune_executions(after)`，或 `src/dmsg_app/scripts/cose-prune.mjs` | 定期，分页直到结束 |
+| COSE 结果清理 | `prune_executions(after)`，或 `scripts/cose-prune.mjs` | 定期，分页直到结束 |
 | payment 出金派发 | `list_pending_transfers` 后逐条 `process_transfer` | 至少每小时，须在出金腿创建后 24 小时内 |
 | commerce 价格发布 | `publish_settlement_price` | 每个启用资产在上一价格过期前，有效期最长 30 分钟 |
 | commerce 收入归集与归档 | `collectable_checkouts`、`collect_checkout_revenue`、`sweep_checkout_history` | 服务期结束后归集；归档定期调用到返回 0 |
@@ -283,13 +287,13 @@ flowchart TB
 
 - 全部服务处于开发阶段，使用开发期稳定布局，不迁移旧实验实例。
 - 本地 PocketIC 回归、协议向量和客户端单元测试覆盖了文中的路由、限额和升级行为；第二个 user home 的注册入口与第二个 commerce 实例有 PocketIC 回归。
-- 尚未验收：主网部署与生产 `key_1`、真实资金与钱包路径、真实扩展端到端流程、私有云端端到端、子网吞吐、除 handle 外超过 100 万的规模，以及外部安全审计。
+- 尚未验收：主网部署与生产 `key_1`、真实资金与钱包路径、签名发布的桌面客户端与真实网页应用的端到端流程、私有云端生产端到端、子网吞吐、除 handle 外超过 100 万的规模，以及外部安全审计。
 
 ## 12. 参考
 
 - [dmsg_canisters_zh.md](dmsg_canisters_zh.md)：各 canister 的实现增量与验证边界。
 - [protocol/README_zh.md](protocol/README_zh.md)：声明、签名、执行批准与 Xid 发号规则。
 - [protocol/account_root_zh.md](protocol/account_root_zh.md)、[dmsg_encryption_zh.md](dmsg_encryption_zh.md)：账户控制、根封装与加密设计。
-- [protocol/cloud_zh.md](protocol/cloud_zh.md)：扩展与云端的 wire 合同。
+- [protocol/cloud_zh.md](protocol/cloud_zh.md)：客户端与云端的 wire 合同；[protocol/connect-v1_zh.md](protocol/connect-v1_zh.md)：网页应用经桥接页接入的合同。
 - [protocol/commerce_zh.md](protocol/commerce_zh.md)、[protocol/agent_zh.md](protocol/agent_zh.md)：商业与 Agent Delegation 合同。
 - 各 canister README 的“容量”“部署流程”和“运维”章节：上文数字的测量方法、复现命令与部署参数。

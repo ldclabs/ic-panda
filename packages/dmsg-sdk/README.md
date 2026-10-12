@@ -1,7 +1,7 @@
 # dmsg-sdk 0.4.0
 
 A standalone ESM client for dMsg authentication, document/action signing and
-subscription checkout. The package imports no Svelte, extension database,
+subscription checkout. The package imports no Svelte, client database,
 private relay or wallet store. It ships JavaScript and TypeScript declarations.
 
 ## Contracts
@@ -9,7 +9,6 @@ private relay or wallet store. It ships JavaScript and TypeScript declarations.
 | Surface | Version | Responsibility |
 | --- | --- | --- |
 | Web connection | `dmsg-connect/1` | The bridge page (connect.dmsg.net) relays the page's browser-reported origin and P-256 key possession to the user's dMsg devices; durable operation recovery |
-| Browser bridge (retiring) | `dmsg-extension/4` | Exact origin/document and P-256 key possession, through the frozen extension |
 | Authentication and application approval | 1 | Challenge/account/device/purpose binding |
 | Application action | `dmsg-app-action/1` | Commands of the app's registered schema, original files, intended receiver and actor |
 | Subscription commerce | 2 | Authoritative USD bill, one cash asset or full PANDA waiver, original Apply receipt |
@@ -52,8 +51,6 @@ popup does not cancel operations; open it again in a new gesture.
 Operations wait as `awaiting_user` until a device of the account approves
 them; a browser that is not paired with the account gets `NOT_PAIRED`, and the
 person connects it from dMsg (settings, "Connect a browser").
-`dmsg-sdk/browser` keeps the extension's `dmsg-extension/4` client until the
-extension is removed.
 
 `session` supplies a public SPKI DER key and a `sign(Uint8Array)` method. Keep the
 nonexportable private key in product-owned IndexedDB. Persist the original
@@ -65,7 +62,7 @@ to the integrating product.
 
 `checkoutRequest` contains a product-authoritative `BillingOffer`, the expected
 dMsg approving account, explicit product approval where required, and `Cash` or
-`Panda`. The extension chooses the wallet and a registered cash ledger, or a
+`Panda`. dMsg chooses the wallet and a registered cash ledger, or a
 specific neuron. PANDA covers the whole fee with zero customer cash principal;
 a successfully applied commitment, including a future renewal, cannot exit
 before its original expiry. Native SNS control is not transferred to dMsg.
@@ -113,7 +110,6 @@ or deploy any canister. Pin the coordinated source/Wasm snapshot when deploying.
 
 See [integration](../../docs/protocol/integration.md),
 [dmsg-connect/1](../../docs/protocol/connect-v1_zh.md),
-[browser v4](../../docs/protocol/browser-v4.md),
 [app actions](../../docs/protocol/app-action.md),
 [commerce v2](../../docs/protocol/commerce.md), and the
 [independent account adapter](../../examples/dmsg-account-product/README.md).

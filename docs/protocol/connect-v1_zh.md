@@ -1,6 +1,6 @@
 # dmsg-connect/1：网页应用接入协议
 
-2026-10-12 起草，同日按实现修订。中继、设备端（`dmsg_protocol::connect`、`dmsg_client::connect`）、桥接页（`src/dmsg_connect`，资产 canister `dmsg_connect`）与页面 SDK（`dmsg-sdk/connect`）已实现；`connect.dmsg.net` 的部署（自定义域名与中继生产 `API_ORIGIN`）尚未完成。本协议取代 [browser-v4](browser-v4.md)（`dmsg-extension/4`）：dMsg 不再提供浏览器扩展，网页应用经 `https://connect.dmsg.net` 桥接页，把请求交给用户的 dMsg 桌面端（以后也包括移动端）审批。字节格式以测试向量 [`tests/vectors/client/connect-v1.json`](../../tests/vectors/client/connect-v1.json) 为准。
+2026-10-12 起草，同日按实现修订。中继、设备端（`dmsg_protocol::connect`、`dmsg_client::connect`）、桥接页（`src/dmsg_connect`，资产 canister `dmsg_connect`）与页面 SDK（`dmsg-sdk/connect`）已实现；`connect.dmsg.net` 的部署（自定义域名与中继生产 `API_ORIGIN`）尚未完成。本协议取代已退役的扩展桥 `dmsg-extension/4`（差异见第 9 节）：dMsg 不再提供浏览器扩展，网页应用经 `https://connect.dmsg.net` 桥接页，把请求交给用户的 dMsg 桌面端（以后也包括移动端）审批。字节格式以测试向量 [`tests/vectors/client/connect-v1.json`](../../tests/vectors/client/connect-v1.json) 为准。
 
 不变的部分：三种文档 profile 与应用动作的签名字节、设备执行批准与认证回执（见 [公开协议](README_zh.md)）、`AuthenticationRequest`、`AppAction`、`CheckoutRequest` 与商业合同，以及应用在 `dmsg_commerce` 的登记（`AppRegistration`）。改变的只有三件事：页面与 dMsg 之间的传输、来源的核实方式、操作的恢复方式。
 
@@ -44,7 +44,7 @@ sequenceDiagram
 
 页面 origin 由浏览器写入 `MessageEvent.origin`，页面无法自报。桥接页只接受来自 `window.opener` 的消息，并只向该 origin 回复（`postMessage` 的 `targetOrigin`）。
 
-设备收到的 origin 是桥接页用配对密钥签名的陈述。设备能验证"这是已配对的桥接页说的"，但不能独立验证浏览器来源。扩展时代由扩展转述 Chrome 的 sender，现在改由桥接页转述浏览器给出的 `event.origin`，信任链的形状相同。设备签名与执行回执中记录的 origin 仍然只是"dMsg 客户端核实过的来源"，不是密码学证明。
+设备收到的 origin 是桥接页用配对密钥签名的陈述。设备能验证"这是已配对的桥接页说的"，但不能独立验证浏览器来源。已退役的扩展转述的是 Chrome 的 sender，现在由桥接页转述浏览器给出的 `event.origin`，信任链的形状相同。设备签名与执行回执中记录的 origin 仍然只是"dMsg 客户端核实过的来源"，不是密码学证明。
 
 ### 2.2 各方被攻破时的后果
 
@@ -72,11 +72,11 @@ sequenceDiagram
 
 ## 3. 编码
 
-- 页面帧是可结构化克隆的普通对象，字段集合闭合，多余或缺失的键一律拒绝。文本编码沿用 browser-v4：ID、nonce、摘要用小写 hex；公钥、载荷、签名用规范的标准 base64；大整数用十进制字符串。单帧序列化为 JSON 后不超过 150,000 字节。
+- 页面帧是可结构化克隆的普通对象，字段集合闭合，多余或缺失的键一律拒绝。文本编码：ID、nonce、摘要用小写 hex；公钥、载荷、签名用规范的标准 base64；大整数用十进制字符串。单帧序列化为 JSON 后不超过 150,000 字节。
 - 中继 body 与签名对象使用 RFC 8949 core deterministic CBOR（键按长度优先、再按字节序排序），二进制为 bstr；URL 中的 ID 用小写 hex，AccountId 用规范 Xid 文本；时间为 Unix 毫秒。
 - `digest(domain, value) = SHA256(CBOR([1, domain, value]))`，与其他 dMsg 合同相同。
 - `environment` 字段取 `dmsg_types::Environment` 的 Serde 文本表示：`"Local"`、`"Staging"`、`"Production"`。
-- origin 规则与 `dmsg_protocol::validate_origin` 相同，但不再接受 `chrome-extension://`：精确的 HTTPS origin，不超过 256 字节；只有 Local 部署接受环回 HTTP origin。
+- origin 规则与 `dmsg_protocol::validate_origin` 相同：精确的 HTTPS origin，不超过 256 字节；只有 Local 部署接受环回 HTTP origin。
 
 ## 4. 页面与桥接页
 
@@ -105,7 +105,7 @@ const popup = window.open('https://connect.dmsg.net/v1/', 'dmsg-connect', 'popup
 
 ### 4.3 命令帧与证明
 
-命令对象与 browser-v4 相同，六个键必填且集合闭合：
+命令对象有六个键，必填且集合闭合：
 
 ```text
 command = { method, appId, operationId, publicKey, payload, resultDigest }
@@ -148,7 +148,7 @@ operation_digest = digest("dmsg/connect-operation/v1", [
 ])
 ```
 
-`operationId` 以文本参与摘要，`public_key_der` 与 `payload_bytes` 为解码后的字节，与 browser-v4 的 `dmsg/browser-operation/v1` 字段一致。
+`operationId` 以文本参与摘要，`public_key_der` 与 `payload_bytes` 为解码后的字节。
 
 ### 4.4 方法
 
@@ -174,7 +174,7 @@ operation_digest = digest("dmsg/connect-operation/v1", [
 1. **能力**：应用登记具备对应能力（`Authenticate`、`SignDocument`、`SignAction`、`Checkout`）；文档 profile 在登记的 `profiles` 内。
 2. **载荷绑定**：
    - `authenticate`：`validateAuthentication` 通过（含 `app_config_version` 等于当前登记版本）；`origin` 等于连接 origin，`app_id` 等于 appId，`operation_id` 等于 operationId，`session_key_hash` 等于 `SHA-256(publicKey DER)`，环境与期限有效。
-   - `signDocument`：`protocol` 为 `"dmsg-connect/1"`，`method` 为 `"signature.request"`，`requestId` 等于 operationId；其余字段与 browser-v4 相同。
+   - `signDocument`：闭合的 `SignatureRequest`，`protocol` 为 `"dmsg-connect/1"`，`method` 为 `"signature.request"`，`requestId` 等于 operationId，另有 `accountId`、`nonce`、`expiresAt` 与 `statement`。`statement` 使用现有的文本、摘要或文件声明字段；签名的 `issuedAt` 为秒，执行期限 `expiresAt` 为毫秒，两者都是经过检查的十进制字符串。
    - `signAction`：`validateActionAdmission` 通过（登记的 `action_authority` 与 `action_schema`）；`origin`、`app_id`、`operation_id` 一致，期限有效。
    - `checkout`：`offer.app_id`、`offer.operation_id` 一致，`offer.accept_by_ms` 尚未到期，产品在登记的 `product_ids` 内，`method` 在 `offer.allowed_settlement_methods` 内。
 3. **目标账户**：`signDocument` 取 `accountId`，`signAction` 取 `signing_account`，`checkout` 取 `approving_account`；此浏览器必须持有该账户的有效配对，否则返回 `NOT_PAIRED`，同时弹窗提示用户在 dMsg 中连接此浏览器。`authenticate` 不指定账户：只有一个配对时直接使用，有多个时由用户在弹窗中选择，没有配对时返回 `NOT_PAIRED`。账户中没有具备 `FormalApprove` 的设备时返回 `NO_APPROVING_DEVICE`。
@@ -187,7 +187,7 @@ operation_digest = digest("dmsg/connect-operation/v1", [
 
 ### 4.6 操作值与状态
 
-结果 `value` 沿用 browser-v4 的 `BrowserOperation` 形状，增加可选的 `error`：
+结果 `value` 的形状：
 
 ```text
 { operationId, kind: "authentication" | "document" | "action" | "checkout",
@@ -207,7 +207,7 @@ operation_digest = digest("dmsg/connect-operation/v1", [
 | `failed` | 执行确定失败（带 `error`），或钉定设备已被撤销（`error` 为 `DEVICE_REVOKED`） |
 | `result_expired` | 结果超过保留期，已删除 |
 
-`result` 的内容与验证要求同 browser-v4：认证返回专用证书；文档与动作返回 COSE、执行 ID 与执行回执证书；结账返回进度通知。应用必须独立验证结果，不能把桥接页给出的状态当作结算或授权证据。`resultDigest = SHA256(CBOR(result))`，与 browser-v4 相同。确认丢失时可以再次读取同一结果；确认本身不授权新的签名或付款。
+`result` 的内容：认证返回专用证书（`signed` 只表示证书就绪，不是文档签名，也不说明应用已建立会话）；文档与动作返回 COSE、执行 ID 与执行回执证书；结账返回进度通知。应用必须独立验证结果：认证证书按自己信任的 IC 根、user home 与保存的挑战核对后才消费挑战；文档与动作核对签名产物、执行回执与自己的业务权限；结账之后查询自己的权威合同，不能把桥接页给出的状态当作结算或授权证据。`resultDigest = SHA256(CBOR(result))`。确认丢失时可以再次读取同一结果；确认本身不授权新的签名或付款。
 
 ### 4.7 错误码
 
@@ -348,9 +348,9 @@ wrapped  = HPKE Base 模式（X25519 / HKDF-SHA256 / AES-256-GCM）对 cek 的�
 6. 按 `(origin, appId, operationId)` 查本机操作。摘要不同时回复 `rejected` 与 `IDEMPOTENCY_CONFLICT`。摘要相同时不产生新的审批：把这个请求登记为该操作的附加投递通道，立即回复当前状态（非终态时 `respond.state = "open"`，请求保持打开），此后每次状态变化都对该操作的所有未关闭请求各写一个回复，结果因此同时送达每个曾提交过它的桥接页；设备不对附加通道调用 `authorize`。
 7. 本机未结束的审批总数不超过 20 个，每个 origin 不超过 5 个。
 
-任一步失败时，设备不打扰用户，直接回复 `rejected` 并附错误码（`respond.state = "closed"`）。全部通过后，设备把请求放入审批中心；不需要向中继登记"正在查看"。审批界面显示：origin、应用名称与登记版本、配对标签、账户、用途、期限、请求时间、可核对的原始载荷（规则同 browser-v4），并说明"来源由浏览器经 connect.dmsg.net 转述"。
+任一步失败时，设备不打扰用户，直接回复 `rejected` 并附错误码（`respond.state = "closed"`）。全部通过后，设备把请求放入审批中心；不需要向中继登记"正在查看"。审批界面显示：origin、应用名称与登记版本、配对标签、账户、用途、期限、请求时间、可核对的原始载荷（文档请求核对应用版本与 profile，认证重算已保存载荷的承诺），并说明"来源由浏览器经 connect.dmsg.net 转述"。
 
-用户批准后，设备先把批准与请求写入本机加密日志，再向中继提交 `authorize`。中继只在请求处于 `pending` 时接受，并把请求钉定到这台设备；此后只有它能对该请求回复、执行和对账，其他设备在下次同步看到 `authorized` 且钉定设备不是自己时，把本机记录标为"由其他设备处理"并隐藏。`authorize` 失败（已取消、已过期或已被另一台设备授权）时，设备把日志标为放弃，不执行。执行与对账规则同 browser-v4：结果未知时按原执行 ID 对账，从不重新签名。
+用户批准后，设备先把批准与请求写入本机加密日志，再向中继提交 `authorize`。中继只在请求处于 `pending` 时接受，并把请求钉定到这台设备；此后只有它能对该请求回复、执行和对账，其他设备在下次同步看到 `authorized` 且钉定设备不是自己时，把本机记录标为"由其他设备处理"并隐藏。`authorize` 失败（已取消、已过期或已被另一台设备授权）时，设备把日志标为放弃，不执行。执行与对账：批准参数与设备签名先写入日志再提交；结果未知时按原执行 ID 对账，从不重新签名；过期的结果不会自动产生新的批准。
 
 用户拒绝时，设备直接回复 `rejected`。
 
@@ -488,9 +488,11 @@ read / open:
 
 任何网页都能触发这些链接，所以它们只是导航提示：设备不会因此执行任何动作，所有内容仍然以 PoP 从中继读取并验证。请求提交后，桥接页显示"在 dMsg 中确认"按钮，指向第二个链接，并在按钮旁说明"也可以在 dMsg 的审批中心或 `dmsg approvals` 中查看"（没有注册 URL scheme 的平台，如仅 CLI 的 Linux，按钮不会有反应）。移动端将使用 `https://connect.dmsg.net/app/…` 形式的 universal link / app link，在移动端阶段定义。
 
-## 9. 与 browser-v4 的差异
+## 9. 与 `dmsg-extension/4` 的差异
 
-| 项目 | browser-v4 | dmsg-connect/1 |
+扩展桥 `dmsg-extension/4` 随扩展一起退役，其合同已删除（见 Git 历史）。下表供仍在使用它的应用迁移。
+
+| 项目 | `dmsg-extension/4` | dmsg-connect/1 |
 | --- | --- | --- |
 | 传输 | `chrome.runtime.connect` 端口 | 弹窗与 `postMessage`；桥接页经中继转给设备 |
 | 来源 | Chrome sender（origin、documentId、tab、frame） | `MessageEvent.origin`，由桥接页签名转述；没有 documentId |
@@ -505,7 +507,7 @@ read / open:
 
 ## 10. SDK
 
-`dmsg-sdk/connect` 取代 `dmsg-sdk/browser`：
+`dmsg-sdk/connect` 取代已删除的 `dmsg-sdk/browser`：
 
 ```ts
 import { connectDmsg } from 'dmsg-sdk/connect'
@@ -518,7 +520,7 @@ button.onclick = async () => {
 }
 ```
 
-方法与 browser-v4 相同：`capabilities`、`authenticate`、`signDocument`、`signAction`、`checkout`、`getOperation`、`openOperation`、`cancelOperation`、`acknowledge`；另有 `ready`、`close()` 与只读的 `open`（弹窗是否仍在）、`methods`（`ready` 中公布的方法）。`session` 也可以是 Promise：弹窗必须在手势中同步打开，而会话密钥常要从 IndexedDB 异步读出。弹窗被用户关闭后，应用需要在新的用户手势中再次调用 `connectDmsg`。`bridgeOrigin` 选项只供 Local 与 Staging 覆盖默认值。应用仍须持久保存会话密钥、挑战与 operationId，刷新后用同一密钥恢复操作。
+方法：`capabilities`、`authenticate`、`signDocument`、`signAction`、`checkout`、`getOperation`、`openOperation`、`cancelOperation`、`acknowledge`；另有 `ready`、`close()` 与只读的 `open`（弹窗是否仍在）、`methods`（`ready` 中公布的方法）。`session` 也可以是 Promise：弹窗必须在手势中同步打开，而会话密钥常要从 IndexedDB 异步读出。弹窗被用户关闭后，应用需要在新的用户手势中再次调用 `connectDmsg`。`bridgeOrigin` 选项只供 Local 与 Staging 覆盖默认值。应用仍须持久保存会话密钥、挑战与 operationId，刷新后用同一密钥恢复操作。
 
 ## 11. 保留项
 

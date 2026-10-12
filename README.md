@@ -99,13 +99,13 @@ dMsg is evolving from encrypted messaging into a private workspace. Its planned 
 * **Contact rules** — contacts, invitations, blocking, and optional payments for unsolicited requests.
 * **Identity and signing** — a stable identity and explicit approval of signatures for files, statements, and authorizations.
 
-The design assigns plaintext and cryptographic operations to the extension, ciphertext storage and everyday delivery to Cloudflare, and identity roots, device control, formal signing authority, name ownership, and payment settlement to ICP. Ordinary messages and channel updates do not require a separate blockchain update or threshold signature.
+The design assigns plaintext and cryptographic operations to the dMsg client (the desktop app, CLI and daemon), ciphertext storage and everyday delivery to Cloudflare, and identity roots, device control, formal signing authority, name ownership, and payment settlement to ICP. Ordinary messages and channel updates do not require a separate blockchain update or threshold signature.
 
-The publication model makes the client, protocols, canisters, and recovery tools open source; the production cloud implementation remains private. Content encryption does not hide all operational metadata or guarantee the latest cloud state. Availability, extension updates, and canister upgrades remain trust dependencies.
+The publication model makes the client, protocols, canisters, and recovery tools open source; the production cloud implementation remains private. Content encryption does not hide all operational metadata or guarantee the latest cloud state. Availability, client updates, and canister upgrades remain trust dependencies.
 
-**Status: In development.** The design is defined, but the complete product is not released. The current extension is an R0 local workspace for encrypted storage, export, and offline recovery; production integration, deployment, audits, and release validation remain to be completed.
+**Status: In development.** The design is defined, but the complete product is not released. The desktop client runs against local deployments in end-to-end tests; production deployment, audits, and release validation remain to be completed. Web applications reach it through the connect.dmsg.net bridge page.
 
-* [Chrome extension: capabilities, build instructions, and limitations](./src/dmsg_app/README.md)
+* [The dmsg CLI and daemon](./src/dmsg_cli/README.md) and [the desktop app](./src/dmsg_desktop/README.md)
 * [Public protocol and verification rules](./docs/protocol/README.md)
 * [Canister implementation and validation boundaries](./docs/dmsg_canisters.md)
 

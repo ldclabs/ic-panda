@@ -246,7 +246,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
    空快照的 `entries_digest` 必须是 32 个零字节；`snapshot_id` 任意非零，`source_canister` 可以是任意非匿名、非管理 canister 的 principal。
 
-6. 在 `src/dmsg_app/dmsg.config.json` 填写 `canisters.user` 与 `canisters.handle`，重新构建客户端，见 [dmsg_app](../dmsg_app/README.md)。
+6. 客户端配置（dmsg home 的 `config.toml`）填写 `handle`；user home 从本 canister 的 `user_homes` 读取，`user_homes` 配置项只作钉定，见 [dmsg_cli](../dmsg_cli/README.md)。
 
 7. 部署后检查：`get_handle_config` 与安装参数一致；`snapshot_progress` 显示已封存且 `imported` 等于快照 `count`；`resolve_handle_certified` 的证书能通过客户端验证。
 
@@ -318,16 +318,16 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 ### 步骤
 
-1. **盘点**：用 [legacy-inventory.mjs](../dmsg_app/scripts/legacy-inventory.mjs) 确认两个来源的 canister ID、模块哈希、controllers 和名称数量，见 [旧部署只读盘点](../../docs/legacy_inventory_zh.md)。
+1. **盘点**：用 [legacy-inventory.mjs](../dmsg_legacy/scripts/legacy-inventory.mjs) 确认两个来源的 canister ID、模块哈希、controllers 和名称数量，见 [旧部署只读盘点](../../docs/legacy_inventory_zh.md)。
 
-2. **冻结来源**：用 [legacy-freeze-plan.mjs](../dmsg_app/scripts/legacy-freeze-plan.mjs) 生成分阶段、绑定模块哈希的 controller 调用。按顺序：`admin_legacy_acknowledge_baseline` 确认基线 → `admin_legacy_drain(cutover_id)` 停止新写 → 用 `admin_legacy_pending`、`admin_legacy_resolve` 收敛在途写入 → `admin_legacy_seal(cutover_id)` 进入 ReadOnly。名称注册与转移随之停止，`ic_name_identity` 在 seal 时固定角色表。两个来源使用同一个 cutover ID。
+2. **冻结来源**：用 [legacy-freeze-plan.mjs](../dmsg_legacy/scripts/legacy-freeze-plan.mjs) 生成分阶段、绑定模块哈希的 controller 调用。按顺序：`admin_legacy_acknowledge_baseline` 确认基线 → `admin_legacy_drain(cutover_id)` 停止新写 → 用 `admin_legacy_pending`、`admin_legacy_resolve` 收敛在途写入 → `admin_legacy_seal(cutover_id)` 进入 ReadOnly。名称注册与转移随之停止，`ic_name_identity` 在 seal 时固定角色表。两个来源使用同一个 cutover ID。
 
-3. **采集快照证明**：用非匿名身份分页调用两个来源的 `legacy_snapshot`（update，每页最多 64 条），保留每页 ingress 的 `request_status` 证书。[@dmsg/legacy](../dmsg_legacy/src/snapshot.ts) 的 `collectSnapshot(agent, canister, scope, [canister])` 负责分页、验证证书和滚动摘要。把两组 proofs 写成 `{ "names": [...], "authorities": [...] }`，其中 `args`、`nonce`、`requestId`、`certificate`、`reply` 编码为小写 hex。仓库没有独立的采集命令，完整的采集和编码示例见 [legacy-probe.ts](../dmsg_app/e2e/legacy-probe.ts)。
+3. **采集快照证明**：用非匿名身份分页调用两个来源的 `legacy_snapshot`（update，每页最多 64 条），保留每页 ingress 的 `request_status` 证书。[@dmsg/legacy](../dmsg_legacy/src/snapshot.ts) 的 `collectSnapshot(agent, canister, scope, [canister])` 负责分页、验证证书和滚动摘要。把两组 proofs 写成 `{ "names": [...], "authorities": [...] }`，其中 `args`、`nonce`、`requestId`、`certificate`、`reply` 编码为小写 hex。仓库没有独立的采集命令，完整的采集和编码示例见 [snapshot-gateway.test.ts](../dmsg_legacy/tests/snapshot-gateway.test.ts)。
 
 4. **生成导入计划**（离线执行，不联网、不签名）：
 
    ```sh
-   node src/dmsg_app/scripts/legacy-name-plan.mjs \
+   node src/dmsg_legacy/scripts/legacy-name-plan.mjs \
      --input name-proofs.json \
      --root-key-hex <IC 根公钥 DER 的 hex> \
      --source <ic_message ID> \
@@ -337,7 +337,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
      --output name-plan.json
    ```
 
-   [legacy-name-plan.mjs](../dmsg_app/scripts/legacy-name-plan.mjs) 逐页核对证书、调用者、范围、游标、ReadOnly 状态和 cutover，要求页数据闭合、名称数等于 `--count`（不接受空快照），角色表中的每个名称都能对应到名称快照。然后生成：
+   [legacy-name-plan.mjs](../dmsg_legacy/scripts/legacy-name-plan.mjs) 逐页核对证书、调用者、范围、游标、ReadOnly 状态和 cutover，要求页数据闭合、名称数等于 `--count`（不接受空快照），角色表中的每个名称都能对应到名称快照。然后生成：
 
    - 按名称排序的 `LegacyReservation`；owner 是名称账户且没有冻结管理员的条目标为隔离。
    - `entries_digest`：从 32 个零字节开始，逐条计算 `digest("dmsg/legacy-entry/v1", (前值, entry))`。
@@ -359,7 +359,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 ### 用户认领
 
-用户在客户端的名称设置中连接冻结记录里的旧身份。客户端先用 `snapshot_progress`、`get_legacy_reservation` 预检，再构造 `ClaimLegacy` 意图，由新账户批准后以旧身份调用 `claim_legacy_handle`；结果为版本 1 的 `HandleRecord`。传输失败或结果未知时重试原请求，被明确拒绝后才重新准备。实现见 [services/handle.ts](../dmsg_app/src/lib/services/handle.ts)。
+用户以冻结记录里的旧身份登录桌面客户端，运行 `dmsg handle claim <name>`：登录身份须是旧 owner（owner 是名称账户时，须是它的冻结管理员）。客户端先用 `snapshot_progress`、`get_legacy_reservation` 预检，再构造 `ClaimLegacy` 意图，由账户设备批准后以该登录调用 `claim_legacy_handle`；结果为版本 1 的 `HandleRecord`。传输失败或结果未知时重试原请求，被明确拒绝后才重新准备。实现见 [handle.rs](../dmsg_client/src/handle.rs)。
 
 ### 不迁移的内容
 
@@ -405,7 +405,7 @@ POCKET_IC_BIN=/path/to/pocket-ic \
 - 账户按 ID 指纹路由到所属 user home：未登记 home 的账户返回 `NotFound`，追加 home 后同一操作成功，跨 home 转移在两边分别核对授权；`admin_add_user_home` 的权限、幂等与预演。
 - governance 执行快照导入、封存、手续费更新和收入提取，非管理者被拒绝；`validate_*` 按当前状态预演且不改状态，提前提交的后续导入批次在验证和执行时都被拒绝；提取后账本余额准确变化，超额提取被账本拒绝。
 
-测试账本只模拟 allowance 校验与扣减、固定参数去重和 sender 时间窗口；`approve_test` 只用于测试设置，不模拟真实 approve 的手续费和事件。名称导入工具由 [legacy-snapshot.spec.ts](../dmsg_app/e2e/legacy-snapshot.spec.ts) 覆盖，需要 `DMSG_LEGACY_RELEASES` 指向已核对的旧发布工件。
+测试账本只模拟 allowance 校验与扣减、固定参数去重和 sender 时间窗口；`approve_test` 只用于测试设置，不模拟真实 approve 的手续费和事件。名称导入工具由 [snapshot-gateway.test.ts](../dmsg_legacy/tests/snapshot-gateway.test.ts) 覆盖（`pnpm --dir src/dmsg_legacy test`），需要 `DMSG_LEGACY_RELEASES` 指向已核对的旧发布工件；导入摘要另由 `dmsg_protocol` 与 `@dmsg/legacy` 的固定值测试核对。
 
 2026-10-06 在 schema 9（stable 认证树与多 user home）上完整运行 `scripts/test-dmsg.sh` 通过，包括 Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、106 项 PocketIC 回归（`control_plane` 102 项、`directory` 4 项）和 26 项 SDK 测试；`dmsg_app` 的类型检查与 172 项单元测试也通过，其中名称分桶与 Rust 的固定向量一致。`handle_active_name_capacity_profile` 以 release 模式单独运行通过（1,000–1,000 万名称）；`handle_scale_profile`、`handle_cycles_profile` 未在 schema 9 上运行。部署流程的命令已在隔离的 dfx 0.32.0 本地副本上实测：按 release.yml 的步骤（Candid 元数据、shrink、wasm-opt、gzip）打包后以新参数安装，模块哈希等于 gzip 产物的 SHA-256；空快照封存；`validate_admin_add_user_home` 预演与 `admin_add_user_home`；证书查询；国库子账户的收入提取命令（本地没有账本，返回 `Unavailable`）；`didc check` 后以 `--yes` 升级并输出 `post_upgrade` 日志。转账行为由 PocketIC 回归覆盖。主网部署、SNS 提案流程和名称导入工具的 e2e 未运行。
 

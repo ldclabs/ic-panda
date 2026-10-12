@@ -16,14 +16,6 @@ name = "directory"
 required-features = ["pocketic-tests"]
 
 [[test]]
-name = "cloud_fixture"
-required-features = ["pocketic-tests"]
-
-[[test]]
-name = "account_fixture"
-required-features = ["pocketic-tests"]
-
-[[test]]
 name = "legacy_fixture"
 required-features = ["pocketic-tests"]
 

@@ -1,5 +1,6 @@
 //! Upgrade real released legacy modules, verify freeze/reads, and serve a local
-//! gateway for independently verifying ingress snapshot certificates in Chrome.
+//! gateway for independently verifying ingress snapshot certificates
+//! (`src/dmsg_legacy/tests/snapshot-gateway.test.ts`).
 use candid::{utils::ArgumentEncoder, CandidType, Principal};
 use ed25519_dalek::SigningKey;
 use ic_message_types::{channel::*, migration::*, profile::*};
@@ -63,8 +64,8 @@ fn query<R: DeserializeOwned + CandidType>(
 }
 
 #[test]
-#[ignore = "local Chrome legacy snapshot gateway; requires verified release artifacts"]
-fn legacy_extension_gateway() {
+#[ignore = "local legacy snapshot gateway; requires verified release artifacts"]
+fn legacy_snapshot_gateway() {
     let output =
         PathBuf::from(std::env::var_os("DMSG_CLOUD_FIXTURE_DIR").expect("fixture directory"));
     let releases =

@@ -22,7 +22,7 @@ files = {root / p for p in [
     "Cargo.toml", "Cargo.lock", "dfx.json", "icp.yaml", "recipes/rust.hbs", "Makefile",
     "scripts/test-dmsg.sh",
     "scripts/verify-dmsg-vectors.mjs", "scripts/verify-commerce-vectors.mjs",
-    "scripts/export-commerce-snapshot.py", "src/dmsg_app/scripts/bindings.mjs",
+    "scripts/export-commerce-snapshot.py",
     "docs/protocol/README.md", "docs/protocol/commerce.md", "docs/protocol/commerce.cddl",
 ]}
 for package in ["dmsg_types", "dmsg_protocol", "dmsg_runtime", "dmsg_user", "dmsg_cose",
@@ -30,9 +30,6 @@ for package in ["dmsg_types", "dmsg_protocol", "dmsg_runtime", "dmsg_user", "dms
     for path in (root / "src" / package).rglob("*"):
         if path.is_file() and path.suffix in {".rs", ".toml", ".did", ".json"}:
             files.add(path)
-for path in (root / "src/dmsg_app/src/lib/canisters/generated").rglob("*"):
-    if path.is_file():
-        files.add(path)
 for package in ["dmsg_integration", "dmsg_test_ledger", "dmsg_test_sns"]:
     files.update(p for p in (root / "tests" / package).rglob("*")
                  if p.is_file() and p.suffix in {".rs", ".toml"})

@@ -8,7 +8,8 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:scripts": "node --test scripts/*.test.mjs"
   },
   "dependencies": {
     "@hpke/core": "^1.9.0",
@@ -18,12 +19,15 @@
     "@ldclabs/cose-ts": "^1.7.1",
     "@noble/hashes": "^2.4.0",
     "cborg": "^6.1.3",
+    "dmsg-sdk": "workspace:*",
     "idb": "^8.0.4",
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/node": "^26.6.4",
     "fake-indexeddb": "^6.2.5",
     "typescript": "~7.0.2",
+    "vite": "^8.3.4",
     "vitest": "^5.0.3"
   }
 }
