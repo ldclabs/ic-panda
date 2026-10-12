@@ -115,9 +115,13 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
     }
 }
 
-/// Act on one hint: fetch the mailbox when the device key is here, else
-/// tell the desktop, which notifies without saying from where.
+/// Act on one hint: fetch the mailbox or the MCP events when the keys are
+/// here, else tell the desktop, which notifies without saying from where.
 async fn handle(daemon: &Arc<Daemon>, kind: &str) {
+    if kind == "mcp-event" {
+        // Fetched only while unlocked; locked, it waits on the relay.
+        daemon.mcp().wake();
+    }
     if kind != "connect" {
         daemon.emit("hint", json!({"kind": kind}));
         return;

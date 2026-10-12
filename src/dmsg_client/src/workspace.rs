@@ -308,13 +308,27 @@ impl Workspace {
         )
     }
 
+    /// Seal bytes under the LDK for a record named `key`, which only that
+    /// name opens; for tables of their own, such as MCP events.
+    pub fn seal_record(&self, keys: &Keys, key: &str, bytes: &[u8]) -> String {
+        seal(&keys.ldk, bytes, &self.sealed_context(key))
+    }
+
+    /// Open a [`Self::seal_record`] result under the same name.
+    ///
+    /// # Errors
+    /// A record sealed under another key or name returns `Error::IntegrityFailed`.
+    pub fn open_record(&self, keys: &Keys, key: &str, sealed: &str) -> Result<Zeroizing<Vec<u8>>> {
+        open(&keys.ldk, sealed, &self.sealed_context(key))
+    }
+
     /// Seal bytes under the LDK.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when storage fails.
     pub fn put_sealed(&self, keys: &Keys, key: &str, bytes: &[u8]) -> Result<()> {
         self.store
-            .set_sealed(key, &seal(&keys.ldk, bytes, &self.sealed_context(key)))
+            .set_sealed(key, &self.seal_record(keys, key, bytes))
     }
 
     /// Open bytes sealed under the LDK.
@@ -324,7 +338,7 @@ impl Workspace {
     pub fn open_sealed(&self, keys: &Keys, key: &str) -> Result<Option<Zeroizing<Vec<u8>>>> {
         self.store
             .sealed(key)?
-            .map(|sealed| open(&keys.ldk, &sealed, &self.sealed_context(key)))
+            .map(|sealed| self.open_record(keys, key, &sealed))
             .transpose()
     }
 

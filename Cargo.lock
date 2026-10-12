@@ -1573,6 +1573,7 @@ dependencies = [
  "getrandom 0.4.3",
  "hex",
  "hkdf 0.13.0",
+ "hmac 0.13.0",
  "hpke",
  "ic-agent",
  "ic-certification 3.2.0",
@@ -1677,6 +1678,7 @@ dependencies = [
  "ed25519-dalek 3.0.0",
  "flate2",
  "hex",
+ "hmac 0.13.0",
  "ic-agent",
  "ic-certification 3.2.0",
  "ic-http-certification 4.0.0",
@@ -1693,6 +1695,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
+ "sha2 0.11.0",
  "tungstenite",
 ]
 

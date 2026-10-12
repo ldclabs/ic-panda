@@ -40,6 +40,7 @@ keys. The daemon in `src/dmsg_cli` owns one instance.
 | [`handle`] | Names: certified resolution, legacy claims and registrations as account-authorized intents |
 | [`agent`] | Agent Delegation with the account as principal: enabling it, controller keys kept as vault items, and grants and revocations signed here, journaled, then submitted to the delegation service |
 | [`agents`] | The Agent IDs this device hosts: keys as vault items, their mail keys sealed on the device, residency in the credential store, the credential an agent's MCP session presents, and the capabilities granted over the account |
+| [`mcp_events`] | MCP Events relay endpoints: callback URLs and `whsec_` secrets on the relay, deliveries fetched, opened with the device's HPKE key, checked again (`v1`, and `v1a` against the upstream's published keys), kept sealed under the LDK and read by cursor; `refresh_due` reminders |
 
 The byte rules follow the [encryption design](../../docs/dmsg_encryption_zh.md),
 the [account and root contract](../../docs/protocol/account_root_zh.md), the
@@ -152,6 +153,24 @@ synced, and a resident Agent ID keeps a copy beside its seed. Keys it makes
 while the device is locked live in that copy until the next unlocked call
 folds them in; turning residency off folds them in first, so it needs the
 device unlocked.
+
+## MCP Events
+
+An endpoint is a callback URL on the relay's hooks host and a `whsec_`
+secret, created for one upstream MCP Events subscription by the owner or an
+Agent ID with `events.endpoint`. The relay checks the Standard Webhooks `v1`
+signature of each delivery and seals the raw headers and body to this
+device's HPKE key, with `info = aad = CBOR(["dmsg/mcp-event/1", account,
+device, callback, seq])`. The device opens each record at its place in the
+endpoint's stream, checks `v1` again with its own copies of the secrets
+(within five minutes of the time the relay received it, so a delivery
+fetched days later still verifies) and, when the upstream server bound to
+the endpoint publishes Ed25519 keys at `/.well-known/mcp-webhook-jwks.json`,
+the `v1a` signature: a delivery whose `v1a` fails is dropped, since only the
+relay holds `v1`. Kept deliveries are sealed under the LDK in
+`workspace.sqlite`, once per endpoint and `webhook-id`, for 30 days or the
+newest 10,000; endpoints, secrets and the agents' context stay on this
+device and never sync. Fetching needs the device unlocked.
 
 ## Locking
 

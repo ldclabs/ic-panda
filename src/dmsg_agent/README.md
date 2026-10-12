@@ -9,7 +9,7 @@ and the capability grants live in [`dmsg_client`](../dmsg_client/README.md).
 | Module | Content |
 | --- | --- |
 | `runtime` | Connector state per Agent ID in `<workspace>/agents.sqlite`, restored for every call and saved after it; the host allowlist and the blocked mail senders come only from `config.toml` |
-| `tools` | The MCP catalog: the 33 standard `agent_protocols_*` tools (identity, delegation, rooms, inbox and drafts, profile, Agent Mail, Agent Knowledge) and the `dmsg_*` tools |
+| `tools` | The MCP catalog: the 33 standard `agent_protocols_*` tools (identity, delegation, rooms, inbox and drafts, profile, Agent Mail, Agent Knowledge) and the 17 `dmsg_*` tools, seven of them for MCP Events endpoints |
 
 Every tool call restores the connector from its snapshot (local connector
 §4.1: hosts, rooms and records, members, timeline, read and presented

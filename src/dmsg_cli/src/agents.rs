@@ -108,7 +108,12 @@ impl Daemon {
                 }
             };
             return self
-                .tool(&agent, &text(params, "tool")?, params["input"].clone())
+                .tool(
+                    &agent,
+                    None,
+                    &text(params, "tool")?,
+                    params["input"].clone(),
+                )
                 .await;
         }
         let mut client = self.client().lock().await;
@@ -240,15 +245,27 @@ impl Daemon {
         match method {
             "mcp/tools" => Ok(json!({"tools": tool_list(), "agent_id": agent.agent_id})),
             "mcp/call" => {
-                self.tool(agent, &text(params, "tool")?, params["input"].clone())
-                    .await
+                self.tool(
+                    agent,
+                    params["mcp_session"].as_str(),
+                    &text(params, "tool")?,
+                    params["input"].clone(),
+                )
+                .await
             }
             _ => Err(Error::Forbidden),
         }
     }
 
-    /// One tool call as `agent`: `{"result": …}` or `{"error": {code, message, data?}}`.
-    async fn tool(&self, agent: &AgentEntry, tool: &str, input: Value) -> Result<Value> {
+    /// One tool call as `agent`, from `mcp_session` when an MCP session
+    /// made it: `{"result": …}` or `{"error": {code, message, data?}}`.
+    async fn tool(
+        &self,
+        agent: &AgentEntry,
+        mcp_session: Option<&str>,
+        tool: &str,
+        input: Value,
+    ) -> Result<Value> {
         if is_standard(tool) {
             // The turn spans reading the mail keys to saving what the call
             // left, so no other call sees or overwrites them in between; the
@@ -279,7 +296,11 @@ impl Daemon {
         if !is_dmsg(tool) {
             return Err(Error::NotFound);
         }
-        Ok(match self.dmsg_tool(agent, tool, &input).await {
+        let outcome = match tool.starts_with("dmsg_events_") {
+            true => self.events_tool(agent, mcp_session, tool, &input).await,
+            false => self.dmsg_tool(agent, tool, &input).await,
+        };
+        Ok(match outcome {
             Ok(result) => json!({"result": result}),
             Err(error) => refused(&error),
         })

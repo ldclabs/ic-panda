@@ -2663,7 +2663,10 @@ fn desktop_paid_letters() {
 struct McpClient {
     child: Child,
     stdin: std::process::ChildStdin,
-    stdout: BufReader<std::process::ChildStdout>,
+    /// Messages from stdout, read by a thread.
+    lines: std::sync::mpsc::Receiver<Value>,
+    /// Notifications and replies read while waiting for another reply.
+    pending: std::collections::VecDeque<Value>,
     id: u64,
 }
 
@@ -2681,10 +2684,20 @@ impl McpClient {
             .unwrap();
         let stdin = child.stdin.take().unwrap();
         let stdout = BufReader::new(child.stdout.take().unwrap());
+        let (sender, lines) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            for line in stdout.lines().map_while(Result::ok) {
+                let message = serde_json::from_str(&line).unwrap_or_else(|_| panic!("mcp: {line}"));
+                if sender.send(message).is_err() {
+                    break;
+                }
+            }
+        });
         let mut client = Self {
             child,
             stdin,
-            stdout,
+            lines,
+            pending: Default::default(),
             id: 0,
         };
         let init = client.request(
@@ -2701,7 +2714,8 @@ impl McpClient {
         client
     }
 
-    fn request(&mut self, method: &str, params: Value) -> Value {
+    /// Send a request without waiting; returns its ID.
+    fn send(&mut self, method: &str, params: Value) -> u64 {
         self.id += 1;
         writeln!(
             self.stdin,
@@ -2709,11 +2723,57 @@ impl McpClient {
             json!({"jsonrpc": "2.0", "id": self.id, "method": method, "params": params})
         )
         .unwrap();
-        let mut line = String::new();
-        self.stdout.read_line(&mut line).unwrap();
-        let reply: Value = serde_json::from_str(&line).unwrap_or_else(|_| panic!("mcp: {line}"));
-        assert_eq!(reply["id"], self.id);
-        reply
+        self.id
+    }
+
+    fn notify(&mut self, method: &str, params: Value) {
+        writeln!(
+            self.stdin,
+            "{}",
+            json!({"jsonrpc": "2.0", "method": method, "params": params})
+        )
+        .unwrap();
+    }
+
+    fn request(&mut self, method: &str, params: Value) -> Value {
+        let id = self.send(method, params);
+        loop {
+            let message = self
+                .lines
+                .recv_timeout(Duration::from_secs(90))
+                .expect("an MCP reply");
+            if message["id"] == id && message.get("method").is_none() {
+                return message;
+            }
+            self.pending.push_back(message);
+        }
+    }
+
+    /// The next notification of the event stream `stream`, skipping
+    /// anything else, such as an earlier stream's heartbeats.
+    fn next_of(&mut self, stream: u64) -> Value {
+        loop {
+            let message = self.pending.pop_front().unwrap_or_else(|| {
+                self.lines
+                    .recv_timeout(Duration::from_secs(60))
+                    .expect("an MCP message")
+            });
+            if message["params"]["_meta"]["io.modelcontextprotocol/subscriptionId"] == stream {
+                return message;
+            }
+        }
+    }
+
+    /// The next event occurrence of `stream`, skipping heartbeats.
+    fn next_event(&mut self, stream: u64) -> Value {
+        loop {
+            let message = self.next_of(stream);
+            match message["method"].as_str() {
+                Some("notifications/events/event") => return message["params"].clone(),
+                Some("notifications/events/heartbeat") => continue,
+                _ => panic!("unexpected {message}"),
+            }
+        }
     }
 
     /// A tool's structured result, or its error.
@@ -2878,7 +2938,7 @@ fn desktop_agents() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names.len(), 43);
+    assert_eq!(names.len(), 50);
     assert!(names.contains(&"agent_protocols_room_join") && names.contains(&"dmsg_vault_list"));
     assert!(names.contains(&"agent_protocols_mail_send"));
     let identity = mcp
@@ -3277,5 +3337,375 @@ fn desktop_mail_knowledge() {
     );
     assert_eq!(status["status"], "retracted");
     assert_eq!(status["retractions"], json!([retraction["id"]]));
+    env.finish();
+}
+
+/// An upstream MCP server sending webhooks as the MCP Events draft says:
+/// Standard Webhooks `v1` with the subscriber's secret and `v1a` with its
+/// own Ed25519 key, which it publishes as a JWKS on its origin.
+struct Upstream {
+    http: reqwest::blocking::Client,
+    /// The relay's webhook host, through a proxy that names it.
+    hooks: String,
+    key: ed25519_dalek::SigningKey,
+    origin: String,
+}
+
+impl Upstream {
+    fn start(hooks: &str) -> Self {
+        let key = ed25519_dalek::SigningKey::from_bytes(&[7; 32]);
+        let jwks = json!({"keys": [{
+            "kty": "OKP", "crv": "Ed25519", "kid": "k1",
+            "x": URL_SAFE_NO_PAD.encode(key.verifying_key().as_bytes()),
+        }]})
+        .to_string();
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let mut reader = BufReader::new(stream.try_clone().unwrap());
+                let mut first = String::new();
+                let _ = reader.read_line(&mut first);
+                loop {
+                    let mut line = String::new();
+                    if reader.read_line(&mut line).unwrap_or(0) == 0 || line == "\r\n" {
+                        break;
+                    }
+                }
+                let (status, body) = match first.contains(" /.well-known/mcp-webhook-jwks.json ") {
+                    true => ("200 OK", jwks.clone()),
+                    false => ("404 Not Found", "{}".to_string()),
+                };
+                let mut stream = stream;
+                let _ = write!(
+                    stream,
+                    "HTTP/1.1 {status}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+            }
+        });
+        Self {
+            http: reqwest::blocking::Client::builder()
+                .no_proxy()
+                .build()
+                .unwrap(),
+            hooks: hooks.to_string(),
+            key,
+            origin,
+        }
+    }
+
+    /// POST `body` to an endpoint as delivery `id`, signed at `at` (Unix
+    /// seconds) with `secret` and, with `v1a`, that key; the status and body.
+    fn deliver(
+        &self,
+        url: &str,
+        secret: &str,
+        id: &str,
+        body: &str,
+        at: u64,
+        v1a: Option<&ed25519_dalek::SigningKey>,
+    ) -> (u16, Value) {
+        use base64::engine::general_purpose::STANDARD;
+        use ed25519_dalek::Signer;
+        use hmac::{KeyInit, Mac};
+        let content = format!("{id}.{at}.{body}");
+        let key = STANDARD
+            .decode(secret.strip_prefix("whsec_").unwrap())
+            .unwrap();
+        let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(&key).unwrap();
+        mac.update(content.as_bytes());
+        let mut signature = format!("v1,{}", STANDARD.encode(mac.finalize().into_bytes()));
+        if let Some(key) = v1a {
+            signature.push_str(&format!(
+                " v1a,{}",
+                STANDARD.encode(key.sign(content.as_bytes()).to_bytes())
+            ));
+        }
+        let path = url.split_once("/mcp-events/").unwrap().1;
+        let response = self
+            .http
+            .post(format!("{}/mcp-events/{path}", self.hooks))
+            .header("content-type", "application/json")
+            .header("webhook-id", id)
+            .header("webhook-timestamp", at.to_string())
+            .header("webhook-signature", signature)
+            .header("x-mcp-subscription-id", "sub_1")
+            .body(body.to_string())
+            .send()
+            .unwrap();
+        let status = response.status().as_u16();
+        let body = response.bytes().unwrap();
+        (status, serde_json::from_slice(&body).unwrap_or(Value::Null))
+    }
+
+    /// An upstream event occurrence `id`, signed with `v1` and `v1a`.
+    fn event(&self, url: &str, secret: &str, id: &str, n: u64) -> (u16, Value) {
+        let body = json!({
+            "eventId": id, "name": "issue.opened", "timestamp": "2026-10-12T00:00:00Z",
+            "data": {"number": n}, "cursor": format!("up_{n}"),
+        });
+        self.deliver(
+            url,
+            secret,
+            id,
+            &body.to_string(),
+            now_ms() / 1000,
+            Some(&self.key),
+        )
+    }
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_mcp_events() {
+    let mut env = Env::launch("events", Options::default());
+    let http = env.http.clone();
+    let hooks = Proxy::start_as(&env.relay, Some("hooks.dmsg.local"));
+    let upstream = Upstream::start(&hooks.origin);
+    let a = &env.a;
+    assert_eq!(a.login(&http, 71).unwrap()["state"], "no_account");
+    a.run(&["account", "create"]);
+    for label in ["anda", "other"] {
+        a.run(&["agent", "id", "create", label]);
+    }
+    let credential = |label: &str| {
+        a.run(&["agent", "id", "credential", label])["credential"]
+            .as_str()
+            .unwrap()
+            .to_string()
+    };
+    let (anda, other) = (credential("anda"), credential("other"));
+
+    // Endpoints need events.endpoint, which no agent holds by default (A8).
+    let mut stranger = McpClient::start(a, &other);
+    let refused = stranger
+        .tool("dmsg_events_endpoint_create", json!({}))
+        .unwrap_err();
+    assert_eq!(refused["code"], "FORBIDDEN", "{refused}");
+    drop(stranger);
+    a.run(&["grants", "add", "anda", "events.endpoint"]);
+
+    // dmsg mcp serves one event type by poll and push (A1); an endpoint
+    // comes with its URL and secret and keeps the agent's context (A2).
+    let mut mcp = McpClient::start(a, &anda);
+    let types = mcp.request("events/list", json!({}));
+    assert_eq!(types["result"]["events"][0]["name"], "dmsg.relay.delivery");
+    assert_eq!(
+        types["result"]["events"][0]["delivery"],
+        json!(["poll", "push"])
+    );
+    let endpoint = mcp
+        .tool(
+            "dmsg_events_endpoint_create",
+            json!({"context": {"agent": "anda", "session": "trigger-1", "label": "issues"}}),
+        )
+        .unwrap();
+    let id = endpoint["endpoint_id"].as_str().unwrap().to_string();
+    let url = endpoint["url"].as_str().unwrap().to_string();
+    let secret = endpoint["secret"].as_str().unwrap().to_string();
+    assert_eq!(url, format!("https://hooks.dmsg.local/mcp-events/{id}"));
+    assert!(secret.starts_with("whsec_"));
+
+    // The relay answers the upstream's verification itself (DT14).
+    let verification = json!({"type": "verification", "challenge": "c-1"}).to_string();
+    let answer = upstream.deliver(
+        &url,
+        &secret,
+        "msg_verification_1",
+        &verification,
+        now_ms() / 1000,
+        None,
+    );
+    assert_eq!(answer, (200, json!({"challenge": "c-1"})));
+    mcp.tool(
+        "dmsg_events_bind",
+        json!({
+            "endpoint_id": id,
+            "server": format!("{}/mcp", upstream.origin),
+            "subscription_id": "sub_1",
+            "refresh_before": now_ms() + 1_000,
+        }),
+    )
+    .unwrap();
+
+    // Push: the stream of this MCP session's endpoints starts with
+    // `active`, then the verification, the first event, end-to-end signed,
+    // and the reminder that refreshBefore is near.
+    let stream = mcp.send(
+        "events/stream",
+        json!({"name": "dmsg.relay.delivery", "arguments": {}, "cursor": null}),
+    );
+    let active = mcp.next_of(stream);
+    assert_eq!(active["method"], "notifications/events/active");
+    assert_eq!(upstream.event(&url, &secret, "evt_1", 1).0, 200);
+    let mut seen = std::collections::BTreeMap::new();
+    while seen.len() < 3 {
+        let event = mcp.next_event(stream);
+        assert_eq!(event["name"], "dmsg.relay.delivery");
+        assert_eq!(event["data"]["endpoint_id"], id.as_str());
+        assert_eq!(event["data"]["context"]["session"], "trigger-1");
+        seen.insert(event["data"]["kind"].as_str().unwrap().to_string(), event);
+    }
+    assert_eq!(seen["verification"]["data"]["upstream"]["challenge"], "c-1");
+    let first = &seen["event"];
+    assert_eq!(first["eventId"], format!("{id}:evt_1"));
+    assert_eq!(first["data"]["upstream"]["data"]["number"], 1);
+    assert_eq!(first["data"]["upstream"]["cursor"], "up_1");
+    assert_eq!(first["data"]["subscription_id"], "sub_1");
+    assert_eq!(first["data"]["verified"], json!({"v1": true, "v1a": true}));
+    assert_eq!(seen["refresh_due"]["data"]["subscription_id"], "sub_1");
+
+    // Forged, stale and oversized deliveries are refused at the relay; a
+    // repeated one is acknowledged again but delivered once (DT12). A
+    // delivery whose v1 holds and v1a does not, as only the relay could
+    // make, is dropped by the daemon (DT16).
+    let event = |id: &str| {
+        json!({"eventId": id, "name": "issue.opened", "timestamp": "t", "data": {}}).to_string()
+    };
+    let now = now_ms() / 1000;
+    let forged = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";
+    assert_eq!(
+        upstream
+            .deliver(&url, forged, "evt_x", &event("evt_x"), now, None)
+            .0,
+        401
+    );
+    assert_eq!(
+        upstream
+            .deliver(&url, &secret, "evt_x", &event("evt_x"), now - 400, None)
+            .0,
+        401
+    );
+    let huge = json!({"eventId": "evt_x", "name": "x", "data": "x".repeat(262_144)}).to_string();
+    assert_eq!(
+        upstream.deliver(&url, &secret, "evt_x", &huge, now, None).0,
+        413
+    );
+    assert_eq!(
+        upstream.event(&url, &secret, "evt_1", 1),
+        (200, json!({"ok": true}))
+    );
+    let impostor = ed25519_dalek::SigningKey::from_bytes(&[8; 32]);
+    assert_eq!(
+        upstream
+            .deliver(
+                &url,
+                &secret,
+                "evt_bad",
+                &event("evt_bad"),
+                now,
+                Some(&impostor)
+            )
+            .0,
+        200
+    );
+    assert_eq!(upstream.event(&url, &secret, "evt_2", 2).0, 200);
+    let second = mcp.next_event(stream);
+    assert_eq!(second["eventId"], format!("{id}:evt_2"));
+    assert!(a.run(&["events", "status"])["rejected"].as_u64().unwrap() >= 1);
+
+    // A cancelled stream ends; a new one from the last cursor goes on
+    // without loss or repetition, with a heartbeat when quiet (DT17).
+    mcp.notify("notifications/cancelled", json!({"requestId": stream}));
+    assert_eq!(upstream.event(&url, &secret, "evt_3", 3).0, 200);
+    let cursor = second["cursor"].clone();
+    let stream = mcp.send(
+        "events/stream",
+        json!({"name": "dmsg.relay.delivery", "arguments": {"endpoint_id": id}, "cursor": cursor}),
+    );
+    assert_eq!(mcp.next_of(stream)["method"], "notifications/events/active");
+    let third = mcp.next_event(stream);
+    assert_eq!(third["eventId"], format!("{id}:evt_3"));
+    let heartbeat = mcp.next_of(stream);
+    assert_eq!(heartbeat["method"], "notifications/events/heartbeat");
+    assert_eq!(heartbeat["params"]["cursor"], third["cursor"]);
+    mcp.notify("notifications/cancelled", json!({"requestId": stream}));
+
+    // Poll reads the same records; an acknowledgement lets the daemon
+    // forget them, and a cursor past them stays valid (A5).
+    let polled = mcp.request(
+        "events/poll",
+        json!({"name": "dmsg.relay.delivery", "arguments": {}, "cursor": null}),
+    );
+    let events = polled["result"]["events"].as_array().unwrap().clone();
+    assert_eq!(events.len(), 5, "{polled}");
+    assert_eq!(polled["result"]["hasMore"], false);
+    let acked = mcp
+        .tool("dmsg_events_ack", json!({"through": second["cursor"]}))
+        .unwrap();
+    assert_eq!(acked["acked"], 4);
+    let rest = mcp.request(
+        "events/poll",
+        json!({"name": "dmsg.relay.delivery", "arguments": {}, "cursor": null}),
+    );
+    assert_eq!(
+        rest["result"]["events"][0]["eventId"],
+        format!("{id}:evt_3")
+    );
+    drop(mcp);
+
+    // What arrives while the daemon is down waits on the relay. After the
+    // restart, a new MCP session names the endpoint, or its context
+    // session, explicitly and reads on from its cursor (A3).
+    env.restart(0);
+    assert_eq!(upstream.event(&url, &secret, "evt_4", 4).0, 200);
+    let a = &env.a;
+    assert_eq!(a.login(&http, 71).unwrap()["state"], "unlocked");
+    let mut mcp = McpClient::start(a, &anda);
+    let own = mcp
+        .tool("dmsg_events_next", json!({"cursor": third["cursor"]}))
+        .unwrap();
+    assert_eq!(
+        own["events"],
+        json!([]),
+        "a new session has no endpoint of its own"
+    );
+    let named = mcp
+        .tool(
+            "dmsg_events_next",
+            json!({"session": "trigger-1", "cursor": third["cursor"], "wait_ms": 20_000}),
+        )
+        .unwrap();
+    assert_eq!(
+        named["events"][0]["eventId"],
+        format!("{id}:evt_4"),
+        "{named}"
+    );
+
+    // A rotated secret and the previous one both verify for a day (A6);
+    // a deleted endpoint is gone for the upstream and its readers get a
+    // final record (DT13).
+    let rotated = mcp
+        .tool("dmsg_events_endpoint_rotate", json!({"endpoint_id": id}))
+        .unwrap();
+    let fresh = rotated["secret"].as_str().unwrap();
+    assert_ne!(fresh, secret);
+    assert_eq!(upstream.event(&url, &secret, "evt_5", 5).0, 200);
+    assert_eq!(upstream.event(&url, fresh, "evt_6", 6).0, 200);
+    let listed = mcp.tool("dmsg_events_endpoint_list", json!({})).unwrap();
+    assert_eq!(listed["endpoints"][0]["state"], "active");
+    assert_eq!(listed["endpoints"][0]["relay"]["subscription_id"], "sub_1");
+    mcp.tool("dmsg_events_endpoint_delete", json!({"endpoint_id": id}))
+        .unwrap();
+    assert_eq!(upstream.event(&url, fresh, "evt_7", 7).0, 410);
+    let last = mcp
+        .tool(
+            "dmsg_events_next",
+            json!({"endpoint_id": id, "cursor": named["cursor"], "max": 100}),
+        )
+        .unwrap();
+    let kinds: Vec<&str> = last["events"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["data"]["kind"].as_str().unwrap())
+        .collect();
+    assert_eq!(kinds.last(), Some(&"terminated"), "{last}");
+    assert_eq!(
+        a.run(&["events", "endpoint", "list"])["endpoints"][0]["state"],
+        "deleted"
+    );
+    drop(mcp);
     env.finish();
 }

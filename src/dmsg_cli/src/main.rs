@@ -6,9 +6,11 @@ mod agents;
 mod channels;
 mod commands;
 mod daemon;
+mod event_commands;
 mod hints;
 mod home;
 mod mcp;
+mod mcp_events;
 mod methods;
 mod remote;
 mod secure;
@@ -137,6 +139,9 @@ enum Command {
     /// Serve MCP on stdio for the Agent ID whose credential is in
     /// DMSG_AGENT_TOKEN.
     Mcp,
+    /// MCP Events: webhook endpoints on the relay and their deliveries.
+    #[command(subcommand)]
+    Events(event_commands::EventsCommand),
     /// The daemon's address and owner credential, for the desktop app.
     #[command(hide = true)]
     AppToken,
@@ -1178,6 +1183,7 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         Command::Handle(command) => commands::handle(&remote, json, command).await?,
         Command::Agent(command) => agent_commands::agent(&remote, json, command).await?,
         Command::Grants(command) => agent_commands::grants(&remote, json, command).await?,
+        Command::Events(command) => event_commands::events(&remote, json, command).await?,
         Command::Ap { agent, tool, input } => {
             agent_commands::ap(&remote, json, agent, tool, input).await?
         }

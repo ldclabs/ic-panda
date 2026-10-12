@@ -23,6 +23,7 @@ pub mod handle;
 pub mod ic;
 pub mod inbox;
 pub mod login;
+pub mod mcp_events;
 pub mod payment;
 pub mod profile;
 pub mod root;

@@ -163,6 +163,8 @@ pub(crate) struct Daemon {
     last_connect: std::sync::Mutex<Option<Value>>,
     /// The Agent Protocols connectors of the hosted Agent IDs.
     agents: dmsg_agent::Runtime,
+    /// MCP Events: the fetch loop's signals and upstream keys.
+    mcp: crate::mcp_events::McpEvents,
 }
 
 /// Who presented a credential.
@@ -211,6 +213,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         }
         None => Vec::new(),
     };
+    let mcp = crate::mcp_events::McpEvents::new(&local_roots)?;
     let agents = dmsg_agent::Runtime::new(
         &client.agent_runtime(),
         &dmsg_agent::Options {
@@ -242,6 +245,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         wake: Notify::new(),
         last_connect: std::sync::Mutex::new(None),
         agents,
+        mcp,
     });
     home.publish(&Discovery {
         port,
@@ -251,6 +255,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     tokio::spawn(background(daemon.clone()));
     tokio::spawn(crate::hints::run(daemon.clone()));
     tokio::spawn(crate::channels::run(daemon.clone()));
+    tokio::spawn(crate::mcp_events::run(daemon.clone()));
     let app = Router::new()
         .route("/daemon/status", get(status))
         .route("/app/v1", post(rpc))
@@ -361,6 +366,10 @@ impl Daemon {
 
     pub(crate) fn agents(&self) -> &dmsg_agent::Runtime {
         &self.agents
+    }
+
+    pub(crate) fn mcp(&self) -> &crate::mcp_events::McpEvents {
+        &self.mcp
     }
 
     pub(crate) fn set_hints(&self, f: impl FnOnce(&mut HintState)) {
@@ -789,6 +798,9 @@ impl Daemon {
             }
             "hint/status" => Ok(to_json(&self.hints.lock().expect("hint state").clone())),
             m if crate::agents::METHODS.contains(&m) => self.call_agents(method, params).await,
+            m if crate::mcp_events::METHODS.contains(&m) => {
+                self.call_mcp_events(method, params).await
+            }
             _ => self.call_more(method, params).await,
         }
     }
@@ -934,6 +946,7 @@ impl Daemon {
         if !METHODS.contains(&method)
             && !crate::methods::METHODS.contains(&method)
             && !crate::agents::METHODS.contains(&method)
+            && !crate::mcp_events::METHODS.contains(&method)
             && !agent_method
         {
             return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32601, "message": "method not found"}});
@@ -946,10 +959,15 @@ impl Daemon {
                 "error": {"code": -32000, "message": error.to_string(), "data": {"code": error_code(&error)}},
             });
         }
-        if !matches!(
-            request.method.as_str(),
-            "events/poll" | "daemon/status" | "app/initialize"
-        ) {
+        // Waiting readers are not activity: a stream would otherwise keep
+        // the device unlocked forever.
+        let waiting = request.method == "mcp/call" && request.params["tool"] == "dmsg_events_next";
+        if !waiting
+            && !matches!(
+                request.method.as_str(),
+                "events/poll" | "daemon/status" | "app/initialize" | "mcp-events/poll"
+            )
+        {
             self.activity.store(now_ms(), Ordering::Relaxed);
         }
         let outcome = match session {

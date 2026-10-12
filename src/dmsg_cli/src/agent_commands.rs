@@ -150,8 +150,8 @@ pub enum GrantsCommand {
         /// Label or `did:agent:…`.
         agent: String,
         /// account.read, vault.list, vault.read:<tag>, channel.read:<channel>,
-        /// channel.publish:<channel>, inbox.read, profile.read, attest.request;
-        /// `<name>:*` covers every target.
+        /// channel.publish:<channel>, inbox.read, profile.read, attest.request,
+        /// events.endpoint; `<name>:*` covers every target.
         #[arg(required = true)]
         capabilities: Vec<String>,
         /// Lifetime in days; until revoked by default.

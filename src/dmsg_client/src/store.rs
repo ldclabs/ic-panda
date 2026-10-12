@@ -50,7 +50,33 @@ CREATE TABLE IF NOT EXISTS connect_inbox (
   value BLOB NOT NULL,
   done INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS mcp_events (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  endpoint TEXT NOT NULL,
+  webhook_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  received_at INTEGER NOT NULL,
+  value TEXT NOT NULL,
+  UNIQUE (endpoint, webhook_id)
+);
 ";
+
+/// A relayed MCP event as stored: routing columns and the sealed payload.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct McpEventRow {
+    /// Local sequence; never reused.
+    pub seq: u64,
+    /// The endpoint ID.
+    pub endpoint: String,
+    /// The delivery's `webhook-id`, or the name of a local record.
+    pub webhook_id: String,
+    /// `event`, `verification`, `gap`, `terminated`, `relay_gap` or `refresh_due`.
+    pub kind: String,
+    /// When the relay received it, in Unix milliseconds.
+    pub received_at: u64,
+    /// The payload sealed under the LDK.
+    pub value: String,
+}
 
 /// A local version the relay has not accepted yet.
 pub const LOCAL: &str = "local";
@@ -420,6 +446,137 @@ impl Store {
             .query_map([pending], |r| r.get::<_, Vec<u8>>(0))
             .map_err(storage)?;
         rows.map(|row| cbor(&row.map_err(storage)?)).collect()
+    }
+
+    /// Store a relayed MCP event once per endpoint and `webhook_id`; false
+    /// when it was already there.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn put_mcp_event(
+        &self,
+        endpoint: &str,
+        webhook_id: &str,
+        kind: &str,
+        received_at: u64,
+        value: &str,
+    ) -> Result<bool> {
+        self.conn()
+            .execute(
+                "INSERT OR IGNORE INTO mcp_events (endpoint, webhook_id, kind, received_at, value) VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![endpoint, webhook_id, kind, received_at as i64, value],
+            )
+            .map(|n| n == 1)
+            .map_err(storage)
+    }
+
+    /// Whether an endpoint's `webhook_id` is stored.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn has_mcp_event(&self, endpoint: &str, webhook_id: &str) -> Result<bool> {
+        self.conn()
+            .query_row(
+                "SELECT 1 FROM mcp_events WHERE endpoint = ?1 AND webhook_id = ?2",
+                [endpoint, webhook_id],
+                |_| Ok(()),
+            )
+            .optional()
+            .map(|row| row.is_some())
+            .map_err(storage)
+    }
+
+    /// How many MCP events of `endpoint` are stored.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn count_mcp_events(&self, endpoint: &str) -> Result<u64> {
+        self.conn()
+            .query_row(
+                "SELECT COUNT(*) FROM mcp_events WHERE endpoint = ?1",
+                [endpoint],
+                |r| r.get::<_, i64>(0),
+            )
+            .map(|n| n as u64)
+            .map_err(storage)
+    }
+
+    /// The MCP events of `endpoints` after `after`, oldest first.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn mcp_events(
+        &self,
+        endpoints: &[String],
+        after: u64,
+        limit: usize,
+    ) -> Result<Vec<McpEventRow>> {
+        if endpoints.is_empty() {
+            return Ok(Vec::new());
+        }
+        let marks = vec!["?"; endpoints.len()].join(", ");
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare(&format!(
+                "SELECT seq, endpoint, webhook_id, kind, received_at, value FROM mcp_events WHERE seq > ? AND endpoint IN ({marks}) ORDER BY seq LIMIT ?"
+            ))
+            .map_err(storage)?;
+        let mut values: Vec<rusqlite::types::Value> = vec![(after as i64).into()];
+        values.extend(endpoints.iter().map(|e| e.clone().into()));
+        values.push((limit as i64).into());
+        let rows = statement
+            .query_map(rusqlite::params_from_iter(values), |r| {
+                Ok(McpEventRow {
+                    seq: r.get::<_, i64>(0)? as u64,
+                    endpoint: r.get(1)?,
+                    webhook_id: r.get(2)?,
+                    kind: r.get(3)?,
+                    received_at: r.get::<_, i64>(4)? as u64,
+                    value: r.get(5)?,
+                })
+            })
+            .map_err(storage)?;
+        rows.collect::<rusqlite::Result<_>>().map_err(storage)
+    }
+
+    /// Delete the MCP events of `endpoints` up to `through`; returns how many.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn delete_mcp_events(&self, endpoints: &[String], through: u64) -> Result<u64> {
+        if endpoints.is_empty() {
+            return Ok(0);
+        }
+        let marks = vec!["?"; endpoints.len()].join(", ");
+        let mut values: Vec<rusqlite::types::Value> = vec![(through as i64).into()];
+        values.extend(endpoints.iter().map(|e| e.clone().into()));
+        self.conn()
+            .execute(
+                &format!("DELETE FROM mcp_events WHERE seq <= ? AND endpoint IN ({marks})"),
+                rusqlite::params_from_iter(values),
+            )
+            .map(|n| n as u64)
+            .map_err(storage)
+    }
+
+    /// Keep the MCP events received at or after `since`, at most `keep` of
+    /// the newest.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn prune_mcp_events(&self, since: u64, keep: u64) -> Result<()> {
+        let conn = self.conn();
+        conn.execute(
+            "DELETE FROM mcp_events WHERE received_at < ?1",
+            [since as i64],
+        )
+        .map_err(storage)?;
+        conn.execute(
+            "DELETE FROM mcp_events WHERE seq NOT IN (SELECT seq FROM mcp_events ORDER BY seq DESC LIMIT ?1)",
+            [keep as i64],
+        )
+        .map(|_| ())
+        .map_err(storage)
     }
 
     /// Insert an object version; an existing key must hold the same frame.

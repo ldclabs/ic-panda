@@ -43,7 +43,7 @@ pub const MAX_GRANTS: usize = 64;
 /// tag or a channel ID; `*` is every target and an explicit owner choice.
 /// Account, device and root changes, payments, names, principal changes,
 /// signing and the grants themselves are never grantable.
-pub const CAPABILITIES: [&str; 8] = [
+pub const CAPABILITIES: [&str; 9] = [
     "account.read",
     "vault.list",
     "vault.read:",
@@ -52,6 +52,7 @@ pub const CAPABILITIES: [&str; 8] = [
     "inbox.read",
     "profile.read",
     "attest.request",
+    "events.endpoint",
 ];
 
 /// What every agent may do without a grant.

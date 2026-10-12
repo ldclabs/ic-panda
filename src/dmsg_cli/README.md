@@ -173,8 +173,9 @@ needs the device unlocked then.
 `dmsg mcp`; issuing a new one disables the old. `grants add` gives an agent
 capabilities over this account: `account.read`, `vault.list`,
 `vault.read:<tag>`, `channel.read:<channel>`, `channel.publish:<channel>`,
-`inbox.read`, `attest.request` (`<name>:*` covers every target); without a
-grant an agent reads only public profiles (`profile.read`).
+`inbox.read`, `attest.request`, `events.endpoint` (`<name>:*` covers every
+target); without a grant an agent reads only public profiles
+(`profile.read`).
 
 `dmsg ap <tool> [input]` runs one MCP tool as an Agent ID with the same input
 and result; the tool name may leave out `agent_protocols_` or `dmsg_`, and
@@ -190,8 +191,9 @@ dmsg ap --agent alice knowledge_query '{"service":"https://knowledge.example","t
 ## MCP
 
 `dmsg mcp` serves MCP on stdio (line-delimited JSON-RPC; `initialize`,
-`tools/list`, `tools/call`, `ping`) for the Agent ID whose credential is in
-`DMSG_AGENT_TOKEN`. It reads neither the owner credential nor any key: the
+`tools/list`, `tools/call`, `ping`, and `events/list|poll|stream`) for the
+Agent ID whose credential is in `DMSG_AGENT_TOKEN`. Requests run
+concurrently. It reads neither the owner credential nor any key: the
 daemon runs the Agent ID's connector and checks its capabilities. For Claude
 Code, after `dmsg agent id create claude` and `dmsg agent id credential claude`:
 
@@ -211,6 +213,37 @@ the agent's own requests). A refused call returns `isError` with the
 protocol's `code`, such as `permission_denied`, `room_head_mismatch` or
 `FORBIDDEN`.
 
+MCP Events. An agent on this machine has no public webhook address, so the
+dMsg relay receives webhooks for it: `dmsg_events_endpoint_create` (with
+`events.endpoint`) returns a callback URL on the relay's hooks host and a
+`whsec_` secret, which the agent gives the upstream MCP server in
+`events/subscribe` (`delivery: {mode: "webhook", url, secret}`). The relay
+answers the upstream's `verification` itself, checks the Standard Webhooks
+`v1` signature of every delivery and keeps it sealed to this device for seven
+days; the daemon fetches while unlocked (on the relay's `mcp-event` hint, and
+every minute), checks `v1` again and, when the server bound with
+`dmsg_events_bind` publishes `/.well-known/mcp-webhook-jwks.json`, the
+end-to-end `v1a`, dropping a delivery whose `v1a` fails. `dmsg mcp` declares
+`capabilities.events` with one event type, `dmsg.relay.delivery` (`poll` and
+`push`): its data is `{endpoint_id, subscription_id, kind, upstream,
+received_at, verified: {v1, v1a}, context}`, `kind` one of `event`,
+`verification`, `gap`, `terminated`, `relay_gap` (the relay dropped
+`dropped` unfetched deliveries) and `refresh_due` (the bound
+`refreshBefore` is near; the daemon renews nothing). `events/stream` pushes
+`notifications/events/active|event|heartbeat|error|terminated` with a
+heartbeat at most every 25 seconds and ends on `notifications/cancelled`.
+The cursor is the local sequence and survives restarts; a null cursor reads
+from the oldest delivery not yet acknowledged, and `dmsg_events_ack` lets the
+device forget. Without `endpoint_id`, `endpoint_ids` or `session` (the
+endpoint's `context.session`), a reader gets the endpoints created in or
+bound to its own MCP session. Tools for clients without the events
+extension: `dmsg_events_endpoint_create|list|rotate|delete`,
+`dmsg_events_bind`, `dmsg_events_next` (`wait_ms` up to 25 seconds) and
+`dmsg_events_ack`. Event data comes from other services: treat it as
+untrusted input. The owner's `dmsg events endpoint
+create|list|rotate|delete`, `events bind|poll|stream|ack|status` give the
+same shapes.
+
 ## Daemon protocol
 
 The daemon listens on `127.0.0.1` only.
@@ -219,7 +252,7 @@ The daemon listens on `127.0.0.1` only.
   (the same methods over a WebSocket, plus `event` notifications
   `{seq, type, data}`: `session/changed`, `vault/changed`, `sync/changed`,
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
-  `inbox/changed`, `resync`) need
+  `inbox/changed`, `mcp-events/changed`, `resync`) need
   `Authorization: Bearer <owner token>`; any request with an `Origin` header
   is refused with 401. Errors carry `error.data.code` such as `AUTH_REQUIRED`,
   `LOCKED`, `VERSION_CONFLICT` or `EXECUTION_UNKNOWN`.
@@ -241,9 +274,11 @@ The daemon listens on `127.0.0.1` only.
   `agent/principal|enable|register|retire|compromise|rename|publish|refresh`,
   `agent/grant|revoke|credentials|delegations`,
   `agent/ids|create|use|resident|credential`, `grants/list|add|revoke`,
-  `ap/call`, `hint/status`, `workspace/reset`, `daemon/stop`.
+  `ap/call`, `mcp-events/create|list|rotate|delete|bind|poll|ack|status`,
+  `hint/status`, `workspace/reset`, `daemon/stop`.
 - An Agent ID's credential (`Bearer dmsg-agent-…`) reaches only `POST /app/v1`
-  and only `mcp/tools` and `mcp/call {tool, input}`, as that Agent ID; the
+  and only `mcp/tools` and `mcp/call {tool, input, mcp_session?}`, as that
+  Agent ID; a waiting `dmsg_events_next` is not activity; the
   owner credential never reaches those two. A tool answers
   `{"result": …}` or `{"error": {code, message, data?}}`. Events of agent
   changes: `agent/changed`.
