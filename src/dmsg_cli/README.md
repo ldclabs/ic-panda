@@ -16,6 +16,7 @@ cryptography, storage and protocol logic live in
 | `daemon.json` | Port, process and instance ID of the running daemon |
 | `dmsg-daemon.lock` | Held by the running daemon: one daemon per home |
 | `<environment>/workspace.sqlite` | The device's workspace: encrypted versions and chunks, sealed records, sync jobs |
+| `<environment>/agents.sqlite` | Agent Protocols connector state of the hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
 
 ```toml
 environment = "local"            # local, staging or production
@@ -30,9 +31,16 @@ background_online = false        # keep the device key while locked
 sync_interval_minutes = 0        # scheduled sync; 0 is off
 secure_storage = "system"        # "system" (default on macOS and Windows) or "file"
 connect_url = "http://localhost:5174"  # local only; default https://connect.dmsg.net
+agent_service = "http://127.0.0.1:8788"  # local only; default https://agents.dmsg.net
+agent_hosts = [                  # Agent Protocols hosts the hosted agents may sign for
+  { host = "https://api.al.ink", label = "alink" },
+  { host = "https://agents.example", profile_service = "https://profiles.example" },
+]
 ```
 
-Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url` are refused.
+Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url`/`agent_service` are refused.
+`agent_hosts` is the only source of the host allowlist: no command, method or
+tool changes it, and a host must be an origin (loopback HTTP only in `local`).
 
 `secure_storage = "system"` keeps the owner credential and the fast-unlock key
 in the system credential store (Keychain, Credential Manager, Secret Service)
@@ -78,6 +86,14 @@ dmsg wallet use [pem] | balance <ledger>
 dmsg plan catalog | status | quote <sku> <ledger|neuron> [--method cash|panda]
 dmsg plan checkout <id> | advance <id> | order <id> | list | cancel <id> | reconcile <id> | refund <id> [block]...
 dmsg handle resolve <name> | price <name> | claim <name> | register <name>
+dmsg agent principal show | enable [--type person|organization|team|project|other] | publish | refresh
+dmsg agent controller register [--name N] [--scope S]... [--audience A]... | retire <gen> | compromise <gen> --from <ms> | rename <gen> [--name N]
+dmsg agent grant <subject> --scope S... --audience A... [--days 30] [--generation G] [--relationship R]
+dmsg agent revoke <id> [--generation G] [--reason R] | credentials | delegations
+dmsg agent id create <label> | list | use <agent> | resident <agent> on|off | credential <agent>
+dmsg grants list | add <agent> <capability>... [--days D] | revoke <id>
+dmsg ap [--agent A] tools | <tool> [json-input]
+dmsg mcp                         # stdio MCP server; needs DMSG_AGENT_TOKEN
 ```
 
 `--json` prints one JSON value per line; errors are `{"error": {"code", "message"}}`.
@@ -127,6 +143,53 @@ unless `wallet use <pem>` names an identity file; the dMsg account itself
 never holds funds. A paid letter is `inbox send --pay` (a quote), then
 `inbox pay`; a subscription is `plan quote`, then `plan checkout`.
 
+Agents. `agent principal enable` and every `agent controller` change are
+account changes an administrator device approves; the user home publishes
+the principal document to the directory (`published: false` in `principal
+show` means it has not yet, and `principal publish` retries). `controller
+register` creates the key in the vault; without `--scope`/`--audience` its
+ceiling is `*`. `agent grant` and `revoke` sign with the newest current
+controller (or `--generation`) on a device with `FormalApprove`, after
+approval; `delegations` shows where each signed event stands and
+`credentials` what the delegation service holds.
+
+`agent id create <label>` hosts an Agent ID; the same label on another device
+of the account brings the same Agent ID. `agent id use` picks the one `dmsg ap`
+runs as; `resident on` keeps its key in the system credential store so it
+signs while the device is locked (unavailable with `secure_storage = "file"`).
+`agent id credential` prints, once, the credential an MCP client gives
+`dmsg mcp`; issuing a new one disables the old. `grants add` gives an agent
+capabilities over this account: `account.read`, `vault.list`,
+`vault.read:<tag>`, `channel.read:<channel>`, `channel.publish:<channel>`,
+`inbox.read`, `attest.request` (`<name>:*` covers every target); without a
+grant an agent reads only public profiles (`profile.read`).
+
+`dmsg ap <tool> [input]` runs one MCP tool as an Agent ID with the same input
+and result; the tool name may leave out `agent_protocols_` or `dmsg_`, and
+`dmsg ap tools` lists them.
+
+## MCP
+
+`dmsg mcp` serves MCP on stdio (line-delimited JSON-RPC; `initialize`,
+`tools/list`, `tools/call`, `ping`) for the Agent ID whose credential is in
+`DMSG_AGENT_TOKEN`. It reads neither the owner credential nor any key: the
+daemon runs the Agent ID's connector and checks its capabilities. For Claude
+Code, after `dmsg agent id create claude` and `dmsg agent id credential claude`:
+
+```sh
+claude mcp add dmsg --env DMSG_AGENT_TOKEN=dmsg-agent-… -- dmsg mcp
+```
+
+Tools: the 23 standard `agent_protocols_*` tools of the Agent Protocols
+local connector, as this Agent ID, against the configured hosts; and
+`dmsg_account_status`, `dmsg_vault_list`, `dmsg_vault_read` (never the secret
+field), `dmsg_channel_list|read|publish`, `dmsg_inbox_list`,
+`dmsg_profile_read`, `dmsg_attest_request` (an approval request with source
+`agent:<did>`, which only a person decides) and `dmsg_approval_status` (only
+the agent's own requests). A refused call returns `isError` with the
+protocol's `code`, such as `permission_denied`, `room_head_mismatch` or
+`FORBIDDEN`.
+
 ## Daemon protocol
 
 The daemon listens on `127.0.0.1` only.
@@ -154,11 +217,20 @@ The daemon listens on `127.0.0.1` only.
   `wallet/use|balance`,
   `plan/catalog|status|assets|quote|checkout|advance|order|checkouts|cancel|reconcile|refund`,
   `handle/resolve|price|claim|register`, `approval/reconcile`,
-  `hint/status`, `workspace/reset`, `daemon/stop`.
+  `agent/principal|enable|register|retire|compromise|rename|publish|refresh`,
+  `agent/grant|revoke|credentials|delegations`,
+  `agent/ids|create|use|resident|credential`, `grants/list|add|revoke`,
+  `ap/call`, `hint/status`, `workspace/reset`, `daemon/stop`.
+- An Agent ID's credential (`Bearer dmsg-agent-…`) reaches only `POST /app/v1`
+  and only `mcp/tools` and `mcp/call {tool, input}`, as that Agent ID; the
+  owner credential never reaches those two. A tool answers
+  `{"result": …}` or `{"error": {code, message, data?}}`. Events of agent
+  changes: `agent/changed`.
 - `approval/respond` and `connect/grant` require `human: true`, which only
   the desktop approval window and an interactive terminal send; the daemon
-  cannot tell them from another holder of the owner credential, so the
-  credential is the boundary until agents get credentials of their own.
+  cannot tell them from another holder of the owner credential, so the owner
+  credential is the boundary. Agents present their own credential, which
+  never reaches them.
 - `GET /auth/callback` and `POST /auth/callback` exist only while a login is
   pending (ten minutes) and accept one POST from the daemon's own loopback
   origin ([dmsg-login/1](../../docs/protocol/login-v1_zh.md) §4).

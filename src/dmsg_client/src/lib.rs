@@ -2,6 +2,8 @@
 #![warn(missing_docs)]
 
 pub mod account;
+pub mod agent;
+pub mod agents;
 pub mod approval;
 pub mod attest;
 pub mod certified;
@@ -57,6 +59,8 @@ pub fn error_code(error: &Error) -> String {
     code
 }
 
+#[cfg(test)]
+mod agent_tests;
 #[cfg(test)]
 mod testing;
 #[cfg(test)]

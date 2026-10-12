@@ -54,7 +54,13 @@
             ? t('payLetter')
             : request.type === 'handle'
               ? `${t('names')}: ${d.name}`
-              : request.type}
+              : request.type === 'delegation'
+                ? d.kind?.type === 'revoke'
+                  ? t('delegationRevoke')
+                  : t('delegationGrant')
+                : request.type === 'principal'
+                  ? t('principalChange')
+                  : request.type}
   </h1>
   <div class="card">
     <dl>
@@ -122,6 +128,34 @@
         <dt>{t('payer')}</dt>
         <dd class="mono">{d.caller}</dd>
       {/if}
+      {#if request.type === 'principal'}
+        <dt>{t('method')}</dt>
+        <dd data-testid="approval-change">{d.change}</dd>
+        {#if d.generation}<dt>{t('controllers')}</dt><dd>#{d.generation}{d.name ? ` · ${d.name}` : ''}</dd>{/if}
+        {#if d.delegation}
+          <dt>{t('ceiling')}</dt>
+          <dd>{d.delegation === 'Unrestricted' ? t('everything') : JSON.stringify(d.delegation)}</dd>
+        {/if}
+        {#if d.principal_type}<dt>{t('principal')}</dt><dd>{d.principal_type}</dd>{/if}
+        {#if d.invalid_from}<dt>{t('deadline')}</dt><dd>{when(d.invalid_from)}</dd>{/if}
+      {/if}
+      {#if request.type === 'delegation'}
+        <dt>{t('controllers')}</dt>
+        <dd>#{d.generation}</dd>
+        <dt>ID</dt>
+        <dd class="mono">{d.kind?.id}</dd>
+        {#if d.kind?.type === 'grant'}
+          <dt>{t('grantee')}</dt>
+          <dd class="mono" data-testid="approval-subject">{d.kind.subject}</dd>
+          <dt>{t('scopeLabel')}</dt>
+          <dd>{d.kind.scopes.join(', ')}</dd>
+          <dt>{t('audienceLabel')}</dt>
+          <dd>{d.kind.audiences.join(', ')}</dd>
+          <dt>{t('expires')}</dt>
+          <dd>{when(d.kind.expires_at)}</dd>
+          {#if d.kind.relationship}<dt>{t('subject')}</dt><dd>{d.kind.relationship}</dd>{/if}
+        {/if}
+      {/if}
       {#if request.type === 'device_revoke'}
         <dt>{t('revoke')}</dt>
         <dd class="mono">{d.device_id}</dd>
@@ -129,6 +163,9 @@
     </dl>
     {#if request.type === 'connect'}
       <p class="warn" data-testid="approval-relayed">{t('relayed')}</p>
+    {/if}
+    {#if request.type === 'delegation'}
+      <p class="warn">{t('delegationWarn')}</p>
     {/if}
   </div>
   {#if s}

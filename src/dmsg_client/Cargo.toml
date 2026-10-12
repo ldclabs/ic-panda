@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 aes-gcm = "0.11"
+agent-protocols = { workspace = true, features = ["http-client"] }
 base64.workspace = true
 candid.workspace = true
 cbor2.workspace = true

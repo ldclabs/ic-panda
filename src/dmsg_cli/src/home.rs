@@ -8,7 +8,7 @@
 //! fast unlock is unavailable.
 
 use candid::Principal;
-use dmsg_client::config::{parse_environment, Config, CONNECT_URL, LOGIN_URL};
+use dmsg_client::config::{parse_environment, Config, AGENT_SERVICE, CONNECT_URL, LOGIN_URL};
 use dmsg_client::secure::SecureStorage;
 use dmsg_types::{Error, Result, MINUTE};
 use serde::{Deserialize, Serialize};
@@ -29,6 +29,9 @@ struct ConfigFile {
     root_key: Option<String>,
     login_url: Option<String>,
     connect_url: Option<String>,
+    agent_service: Option<String>,
+    #[serde(default)]
+    agent_hosts: Vec<dmsg_agent::Host>,
     #[serde(default)]
     background_online: bool,
     idle_lock_minutes: Option<u64>,
@@ -57,6 +60,9 @@ pub struct Settings {
     pub sync_interval_ms: u64,
     /// Where secrets live.
     pub storage: Storage,
+    /// The Agent Protocols hosts the hosted agents may sign for; nothing
+    /// else can add one (plan DT02).
+    pub agent_hosts: Vec<dmsg_agent::Host>,
 }
 
 /// Where the running daemon listens.
@@ -125,6 +131,7 @@ impl Home {
                 .transpose()?,
             login_url: file.login_url.unwrap_or_else(|| LOGIN_URL.into()),
             connect_url: file.connect_url.unwrap_or_else(|| CONNECT_URL.into()),
+            agent_service: file.agent_service.unwrap_or_else(|| AGENT_SERVICE.into()),
             background_online: file.background_online,
         };
         config.validate()?;
@@ -147,6 +154,7 @@ impl Home {
             idle_lock_ms: idle * MINUTE,
             sync_interval_ms: file.sync_interval_minutes * MINUTE,
             storage,
+            agent_hosts: file.agent_hosts,
         })
     }
 

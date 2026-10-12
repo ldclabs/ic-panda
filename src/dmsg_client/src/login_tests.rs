@@ -138,6 +138,7 @@ fn test_config() -> Config {
         root_key: None,
         login_url: crate::config::LOGIN_URL.into(),
         connect_url: crate::config::CONNECT_URL.into(),
+        agent_service: crate::config::AGENT_SERVICE.into(),
         background_online: false,
     }
 }

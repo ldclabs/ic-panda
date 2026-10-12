@@ -9,7 +9,9 @@
 /**
  * Methods any window may call; parameters pass through without `human`.
  * Methods that name local files (`wallet/use`, `channel/send_file`,
- * `channel/download`) and refunds to named blocks stay with the CLI.
+ * `channel/download`), refunds to named blocks and running a tool as an
+ * agent (`ap/call`) stay with the CLI; the agent methods (`mcp/*`) answer
+ * only an agent's own credential.
  */
 export const WINDOW_METHODS = new Set([
   'app/initialize',
@@ -81,7 +83,27 @@ export const WINDOW_METHODS = new Set([
   'handle/resolve',
   'handle/price',
   'handle/claim',
-  'handle/register'
+  'handle/register',
+  'agent/principal',
+  'agent/enable',
+  'agent/register',
+  'agent/retire',
+  'agent/compromise',
+  'agent/rename',
+  'agent/publish',
+  'agent/refresh',
+  'agent/grant',
+  'agent/revoke',
+  'agent/credentials',
+  'agent/delegations',
+  'agent/ids',
+  'agent/create',
+  'agent/use',
+  'agent/resident',
+  'agent/credential',
+  'grants/list',
+  'grants/add',
+  'grants/revoke'
 ])
 
 /** Methods whose requests the desktop marks as its own (`source: "gui"`). */
@@ -93,7 +115,14 @@ const GUI_SOURCED = new Set([
   'plan/checkout',
   'plan/advance',
   'handle/claim',
-  'handle/register'
+  'handle/register',
+  'agent/enable',
+  'agent/register',
+  'agent/retire',
+  'agent/compromise',
+  'agent/rename',
+  'agent/grant',
+  'agent/revoke'
 ])
 
 /** The parameters a window's call reaches the daemon with. */

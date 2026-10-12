@@ -27,7 +27,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 
 ## 本地签名
 
-事件由扩展在本机构造、签名并提交，不经过 user home 或 COSE：
+事件由客户端（桌面 daemon，`src/dmsg_client` 的 `agent` 模块）在本机构造、签名并提交，不经过 user home 或 COSE：
 
 1. 客户端把 controller 私钥作为 vault 条目保存（对象 ID `SHA256(CBOR(["dmsg/agent-controller/1", account, generation]))`），与内容根同级别受保护、随根同步；泄露处置与内容根相同：撤销设备、换根、退役 controller。
 2. 签名前核对 generation 为当前 controller、本机 vault 公钥等于已登记公钥、设备具备 `FormalApprove`（客户端规则）。`created_at = max(now, valid_from)`，nonce 为本机记录的 `max(last + 1, created_at)`。
@@ -60,6 +60,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 - `dmsg_protocol::agent` 单测：文档渲染经 SDK 校验、状态不变量、目录配置，以及与扩展共享的注册批准和 controller PoP 摘要向量（`protocol_vectors.json` 的 `controller_pop_v1`）。
 - `dmsg_user` 单测：principal 生命周期的单调性、上限、重放与不推进 `security_epoch`；错误 PoP 被拒。
 - PocketIC `agent::self_held_principal_publishes_certified_documents_and_its_grants_are_accepted`：启用、错误 PoP 注册被拒、注册、发布、以 `ic-response-verification` 验证认证 200/404/域名响应、快照 schema 4、本机 Rust SDK 签名的 grant 被 `validate_delegation_acceptance` 接受、范围外与他人 key 被拒、轮换后退役 key 被拒而上限相同的新 key 可撤销旧 key 签出的凭证、目录发布规则与升级后文档不变。
-- 客户端 `agent-client.test.ts`：vault key 签名与 nonce 推进、暂时失败后原样重提、终态拒绝、公钥不符拒签、注册 PoP。
+- 客户端 `dmsg_client` 单测：本机签名的 grant 与 revoke 通过 SDK 的 `validate_delegation_acceptance`（按 directory 渲染的文档），超出上限被拒，nonce 为 `max(last + 1, created_at)`，不早于 `valid_from`，有效期超过 366 天被拒；controller key 为固定 ID 的 vault 条目。
+- 桌面端到端 `tests/dmsg_integration/tests/desktop.rs` 的 `desktop_agents`：启用、登记、经真实 `dmsg_directory` 发布，授权提交回复丢失后原样重提被接收，依赖方核验 `usable`，撤销后不可用。
 
 以上为本地测试，不代表生产部署、容量实测或安全审计已经完成。

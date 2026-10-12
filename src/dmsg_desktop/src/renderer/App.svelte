@@ -7,6 +7,7 @@
   import Channels from './views/Channels.svelte'
   import Inbox from './views/Inbox.svelte'
   import Account from './views/Account.svelte'
+  import Agents from './views/Agents.svelte'
   import { t, lang } from './i18n'
   import { call } from './rpc'
 
@@ -58,6 +59,7 @@
       <button class:active={route.startsWith('/channels')} onclick={() => go('/channels')}>{t('channels')}</button>
       <button class:active={route.startsWith('/inbox')} onclick={() => go('/inbox')}>{t('inbox')}</button>
       <button class:active={route.startsWith('/account')} onclick={() => go('/account')}>{t('planAndNames')}</button>
+      <button class:active={route.startsWith('/agents')} onclick={() => go('/agents')}>{t('agents')}</button>
       <button class:active={route.startsWith('/approvals')} onclick={() => go('/approvals')}>
         {t('approvals')}
         {#if status?.approvals_waiting}<span class="badge" data-testid="waiting-count">{status.approvals_waiting}</span>{/if}
@@ -74,6 +76,8 @@
         <Inbox {status} />
       {:else if route.startsWith('/account')}
         <Account {status} />
+      {:else if route.startsWith('/agents')}
+        <Agents {status} />
       {:else if route.startsWith('/approvals')}
         <Approvals {status} />
       {:else if route.startsWith('/settings')}

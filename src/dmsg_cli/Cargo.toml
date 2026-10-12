@@ -15,6 +15,7 @@ path = "src/main.rs"
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "ws"] }
 candid.workspace = true
 clap.workspace = true
+dmsg_agent = { path = "../dmsg_agent" }
 dmsg_client = { path = "../dmsg_client" }
 dmsg_types = { path = "../dmsg_types" }
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }

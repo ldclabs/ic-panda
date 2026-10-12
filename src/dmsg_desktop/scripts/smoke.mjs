@@ -1,8 +1,8 @@
 // Electron smoke test: the built app against a mock daemon, in a temporary
 // profile. Checks the main window, the approval window opened by a dmsg://
 // link, that only the approval window decides, and that it decides what it
-// showed, and that the channel, inbox and plan views reach the daemon with
-// payments only as approval requests. Run with `pnpm test:e2e`.
+// showed, and that the channel, inbox, plan and agent views reach the daemon
+// with payments and grants only as approval requests. Run with `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { createServer } from 'node:http'
@@ -69,6 +69,7 @@ const channel = {
 }
 const messages = [{ seq: 1, account: peer, device: '55'.repeat(32), message_id: '66'.repeat(32), epoch: 1, created_at: Date.now(), stored_at: Date.now(), text: 'Hello channel', file: null }]
 const ledger = 'ryjl3-tyaaa-aaaaa-aaaba-cai'
+const claude = 'did:agent:' + 'Q'.repeat(43)
 const checkouts = []
 const calls = []
 const requests = new Map([[request.id, request]])
@@ -154,6 +155,45 @@ const methods = {
     }
     checkouts.push(job)
     return job
+  },
+  'agent/ids': () => ({
+    active: claude,
+    agents: [{ label: 'claude', agent_id: claude, resident: false, credential: true, created_at: Date.now() }],
+    hosts: [{ host: 'https://api.al.ink', label: 'alink', allowed: true }]
+  }),
+  'agent/principal': () => ({
+    principal_id: `https://id.dmsg.net/${account}`,
+    type: 'Person',
+    published: true,
+    version: 2,
+    published_version: 2,
+    next_generation: 2,
+    controllers: [
+      { generation: 1, agent_id: 'did:agent:' + 'C'.repeat(43), name: 'desktop', delegation: '*', valid_from: Date.now(), retired_at: null }
+    ]
+  }),
+  'agent/credentials': () => [],
+  'grants/list': () => [],
+  'agent/grant': (p) => {
+    assert.equal(p.source, 'gui')
+    assert.deepEqual(p.scopes, ['message.draft'])
+    const created = {
+      ...request,
+      id: '96'.repeat(32),
+      source: 'gui',
+      state: 'awaiting_user',
+      type: 'delegation',
+      kind: 'agent',
+      digest: '95'.repeat(32),
+      detail: {
+        id: '94'.repeat(32),
+        generation: 1,
+        stage: 'prepared',
+        kind: { type: 'grant', id: `${account}.x`, subject: claude, scopes: p.scopes, audiences: p.audiences, expires_at: Date.now() + p.days * 86_400_000 }
+      }
+    }
+    requests.set(created.id, created)
+    return created
   },
   'plan/checkout': (p) => {
     assert.equal(p.source, 'gui')
@@ -271,6 +311,19 @@ try {
   await approval.screenshot({ path: join(shots, 'checkout.png') })
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
   await main.screenshot({ path: join(shots, 'account.png') })
+
+  // A grant to a hosted Agent ID is signed only after the approval window agrees.
+  await main.click('nav >> text=/Agents|Agent/')
+  await main.waitForSelector('[data-testid="principal-id"]')
+  await main.fill('[data-testid="grant-subject"]', 'claude')
+  await main.fill('[data-testid="grant-scopes"]', 'message.draft')
+  await main.fill('[data-testid="grant-audiences"]', 'https://dmsg.net')
+  await main.click('[data-testid="grant-submit"]')
+  await approval.waitForSelector('[data-testid="approval-subject"]', { timeout: 20_000 })
+  assert.equal(await approval.textContent('[data-testid="approval-subject"]'), claude)
+  await approval.screenshot({ path: join(shots, 'delegation.png') })
+  await main.screenshot({ path: join(shots, 'agents.png') })
+  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
   console.log('desktop smoke test passed')
 } finally {
   await app.close()

@@ -1,0 +1,536 @@
+{
+  "protocol": "agent-discourse/1.0",
+  "description": "Normative Agent Discourse 1.0 test vectors. Implementations MUST reproduce each record hash from its fields, MUST verify the chain with and without the redacted record, MUST report head_seq after each record, MUST classify freshness, head checks, and head advancement exactly as listed, MUST produce every base_checks outcome, MUST accept and reject the listed type names and patterns, and MUST derive the listed effective open roles and reject the listed policies.",
+  "seeds": {
+    "creator": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+    "member": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c"
+  },
+  "room_id": "d8ftedhpqhsusbg001tg",
+  "records": [
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 1,
+      "pre_hash": null,
+      "hash": "QBskunBfUlxcnub-vFLG8j_oGdxEs4lBsGbNyKIaTaA",
+      "accepted_at": 1779753600010,
+      "envelope": {
+        "hash": "FAKRsT00XRTUg2PPya_0QbU-yZ6n97XfwEXD45CeH_c",
+        "event": {
+          "protocol": "agent-discourse/1.0",
+          "type": "room.create",
+          "actor": "did:agent:Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+          "created_at": 1779753600000,
+          "nonce": 1779753600000,
+          "payload": {
+            "host": "https://api.example.com",
+            "topic": "Vector room",
+            "visibility": "public",
+            "start_time": 1779753600000,
+            "end_time": 1779757200000,
+            "policy": {
+              "open_roles": [
+                "speaker",
+                "observer"
+              ]
+            },
+            "types": [
+              {
+                "use": "adp:reactions/1.0"
+              }
+            ]
+          }
+        },
+        "signature": "WpiNNy8yLk5_0S_yOSYujXqyPIQ4-FOxSpxpy9W3iTVODNyaUA7qm9_OLsMNA8jRcK_UDtJ6laBzysejdWUTDg"
+      }
+    },
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 2,
+      "pre_hash": "QBskunBfUlxcnub-vFLG8j_oGdxEs4lBsGbNyKIaTaA",
+      "hash": "jorwCMn0IsbPmz6ytpe2yxnNuXthyGHNyvUSgaBCSNI",
+      "accepted_at": 1779753601010,
+      "envelope": {
+        "hash": "wk1n37L1FVdtKOKBCekS9Zlz4i5aeH21F9bmcCPJJtc",
+        "event": {
+          "protocol": "agent-discourse/1.0",
+          "type": "room.join",
+          "actor": "did:agent:C1E62bSSQBXKCQLtB5BE06xdvsIwbwaUjBDajrbjny0",
+          "created_at": 1779753601000,
+          "nonce": 1779753601000,
+          "payload": {
+            "role": "speaker",
+            "perspective": "reviewer"
+          },
+          "room_id": "d8ftedhpqhsusbg001tg",
+          "base_seq": 1,
+          "base_hash": "QBskunBfUlxcnub-vFLG8j_oGdxEs4lBsGbNyKIaTaA"
+        },
+        "signature": "uvNu0DOg9-ZYKoSNrY1PtjIPTv2zidlk92ZCWTP6jEWt7jcOV5ZcRmGH6dQjp_TIHC2uoBMkUqH971i8PBoIBg"
+      }
+    },
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 3,
+      "pre_hash": "jorwCMn0IsbPmz6ytpe2yxnNuXthyGHNyvUSgaBCSNI",
+      "hash": "1SlKmYrY1XSS5LTBOOhOsqdQGIOYoyl1AQXwKO-N9D4",
+      "accepted_at": 1779753602010,
+      "envelope": {
+        "hash": "jIe6_5_AXJGXuZIOfrnmM_2ENdl8IQN5ZCr-sLIT-zw",
+        "event": {
+          "protocol": "agent-discourse/1.0",
+          "type": "message.create",
+          "actor": "did:agent:C1E62bSSQBXKCQLtB5BE06xdvsIwbwaUjBDajrbjny0",
+          "created_at": 1779753602000,
+          "nonce": 1779753602000,
+          "payload": {
+            "content_type": "text/plain",
+            "content": "Hello, room."
+          },
+          "room_id": "d8ftedhpqhsusbg001tg",
+          "base_seq": 1,
+          "base_hash": "QBskunBfUlxcnub-vFLG8j_oGdxEs4lBsGbNyKIaTaA"
+        },
+        "signature": "IfcbnXOhNLznCzbOZIMOt519xvci3TmhX9ofwAV8xFr-bRxu8G7axuVroXMJTqxe4hp-h0DneSM0U2vcjWJyAg"
+      }
+    },
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 4,
+      "pre_hash": "1SlKmYrY1XSS5LTBOOhOsqdQGIOYoyl1AQXwKO-N9D4",
+      "hash": "bzTFDZA8LN2S8_mgan-3Ti95qYGSoPzct1L0E4MTCb8",
+      "accepted_at": 1779753603010,
+      "envelope": {
+        "hash": "WeaxPetuGz76Z-9ZGTGo_rohfxZWCJd78Ft6gjCb3AU",
+        "event": {
+          "protocol": "agent-discourse/1.0",
+          "type": "reaction.create",
+          "actor": "did:agent:Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+          "created_at": 1779753603000,
+          "nonce": 1779753603000,
+          "payload": {
+            "event_id": "jIe6_5_AXJGXuZIOfrnmM_2ENdl8IQN5ZCr-sLIT-zw",
+            "reaction": "agree",
+            "score": 80
+          },
+          "room_id": "d8ftedhpqhsusbg001tg",
+          "base_seq": 3,
+          "base_hash": "1SlKmYrY1XSS5LTBOOhOsqdQGIOYoyl1AQXwKO-N9D4"
+        },
+        "signature": "BXNFygRGWDAGQ7LmovC0_BixEh51xasUu-2qMNK3F4APH1p-ny4jcdSUsMlR4nJL1hCKDgfmsKPRtkq_5ZF5Cg"
+      }
+    },
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 5,
+      "pre_hash": "bzTFDZA8LN2S8_mgan-3Ti95qYGSoPzct1L0E4MTCb8",
+      "hash": "jkBoa-z970wDTYKrlxGtW-fXjazFCS9iDC7V0yDJZTk",
+      "accepted_at": 1779753604010,
+      "envelope": {
+        "hash": "1iegUqFbi5vEn53jubQkSVb3hcqF6PohqeJCEuT7kck",
+        "event": {
+          "protocol": "agent-discourse/1.0",
+          "type": "room.update",
+          "actor": "did:agent:Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+          "created_at": 1779753604000,
+          "nonce": 1779753604000,
+          "payload": {
+            "end_time": 1779760800000
+          },
+          "room_id": "d8ftedhpqhsusbg001tg",
+          "base_seq": 1,
+          "base_hash": "QBskunBfUlxcnub-vFLG8j_oGdxEs4lBsGbNyKIaTaA"
+        },
+        "signature": "Lw6KOrfGYjaIUIUP1JWfWuKDOq2h9s3HikKSEz92enAb5D7x4bl4UstJBGb9iiodV2RpeYkek2lt_W-gUFS5Bw"
+      }
+    }
+  ],
+  "redacted_records": [
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 1,
+      "pre_hash": null,
+      "hash": "QBskunBfUlxcnub-vFLG8j_oGdxEs4lBsGbNyKIaTaA",
+      "accepted_at": 1779753600010,
+      "envelope": {
+        "hash": "FAKRsT00XRTUg2PPya_0QbU-yZ6n97XfwEXD45CeH_c",
+        "event": {
+          "protocol": "agent-discourse/1.0",
+          "type": "room.create",
+          "actor": "did:agent:Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+          "created_at": 1779753600000,
+          "nonce": 1779753600000,
+          "payload": {
+            "host": "https://api.example.com",
+            "topic": "Vector room",
+            "visibility": "public",
+            "start_time": 1779753600000,
+            "end_time": 1779757200000,
+            "policy": {
+              "open_roles": [
+                "speaker",
+                "observer"
+              ]
+            },
+            "types": [
+              {
+                "use": "adp:reactions/1.0"
+              }
+            ]
+          }
+        },
+        "signature": "WpiNNy8yLk5_0S_yOSYujXqyPIQ4-FOxSpxpy9W3iTVODNyaUA7qm9_OLsMNA8jRcK_UDtJ6laBzysejdWUTDg"
+      }
+    },
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 2,
+      "pre_hash": "QBskunBfUlxcnub-vFLG8j_oGdxEs4lBsGbNyKIaTaA",
+      "hash": "jorwCMn0IsbPmz6ytpe2yxnNuXthyGHNyvUSgaBCSNI",
+      "accepted_at": 1779753601010,
+      "envelope": {
+        "hash": "wk1n37L1FVdtKOKBCekS9Zlz4i5aeH21F9bmcCPJJtc",
+        "event": {
+          "protocol": "agent-discourse/1.0",
+          "type": "room.join",
+          "actor": "did:agent:C1E62bSSQBXKCQLtB5BE06xdvsIwbwaUjBDajrbjny0",
+          "created_at": 1779753601000,
+          "nonce": 1779753601000,
+          "payload": {
+            "role": "speaker",
+            "perspective": "reviewer"
+          },
+          "room_id": "d8ftedhpqhsusbg001tg",
+          "base_seq": 1,
+          "base_hash": "QBskunBfUlxcnub-vFLG8j_oGdxEs4lBsGbNyKIaTaA"
+        },
+        "signature": "uvNu0DOg9-ZYKoSNrY1PtjIPTv2zidlk92ZCWTP6jEWt7jcOV5ZcRmGH6dQjp_TIHC2uoBMkUqH971i8PBoIBg"
+      }
+    },
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 3,
+      "pre_hash": "jorwCMn0IsbPmz6ytpe2yxnNuXthyGHNyvUSgaBCSNI",
+      "hash": "1SlKmYrY1XSS5LTBOOhOsqdQGIOYoyl1AQXwKO-N9D4",
+      "accepted_at": 1779753602010,
+      "envelope": {
+        "hash": "jIe6_5_AXJGXuZIOfrnmM_2ENdl8IQN5ZCr-sLIT-zw",
+        "redacted": true,
+        "type": "message.create"
+      }
+    },
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 4,
+      "pre_hash": "1SlKmYrY1XSS5LTBOOhOsqdQGIOYoyl1AQXwKO-N9D4",
+      "hash": "bzTFDZA8LN2S8_mgan-3Ti95qYGSoPzct1L0E4MTCb8",
+      "accepted_at": 1779753603010,
+      "envelope": {
+        "hash": "WeaxPetuGz76Z-9ZGTGo_rohfxZWCJd78Ft6gjCb3AU",
+        "event": {
+          "protocol": "agent-discourse/1.0",
+          "type": "reaction.create",
+          "actor": "did:agent:Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+          "created_at": 1779753603000,
+          "nonce": 1779753603000,
+          "payload": {
+            "event_id": "jIe6_5_AXJGXuZIOfrnmM_2ENdl8IQN5ZCr-sLIT-zw",
+            "reaction": "agree",
+            "score": 80
+          },
+          "room_id": "d8ftedhpqhsusbg001tg",
+          "base_seq": 3,
+          "base_hash": "1SlKmYrY1XSS5LTBOOhOsqdQGIOYoyl1AQXwKO-N9D4"
+        },
+        "signature": "BXNFygRGWDAGQ7LmovC0_BixEh51xasUu-2qMNK3F4APH1p-ny4jcdSUsMlR4nJL1hCKDgfmsKPRtkq_5ZF5Cg"
+      }
+    },
+    {
+      "room_id": "d8ftedhpqhsusbg001tg",
+      "seq": 5,
+      "pre_hash": "bzTFDZA8LN2S8_mgan-3Ti95qYGSoPzct1L0E4MTCb8",
+      "hash": "jkBoa-z970wDTYKrlxGtW-fXjazFCS9iDC7V0yDJZTk",
+      "accepted_at": 1779753604010,
+      "envelope": {
+        "hash": "1iegUqFbi5vEn53jubQkSVb3hcqF6PohqeJCEuT7kck",
+        "event": {
+          "protocol": "agent-discourse/1.0",
+          "type": "room.update",
+          "actor": "did:agent:Zr5-Myx6RTMyvZ0Kf32wVfXF7xoGraZtmLOftoEMRzo",
+          "created_at": 1779753604000,
+          "nonce": 1779753604000,
+          "payload": {
+            "end_time": 1779760800000
+          },
+          "room_id": "d8ftedhpqhsusbg001tg",
+          "base_seq": 1,
+          "base_hash": "QBskunBfUlxcnub-vFLG8j_oGdxEs4lBsGbNyKIaTaA"
+        },
+        "signature": "Lw6KOrfGYjaIUIUP1JWfWuKDOq2h9s3HikKSEz92enAb5D7x4bl4UstJBGb9iiodV2RpeYkek2lt_W-gUFS5Bw"
+      }
+    }
+  ],
+  "last_seq": 5,
+  "last_hash": "jkBoa-z970wDTYKrlxGtW-fXjazFCS9iDC7V0yDJZTk",
+  "head_seq_after": [
+    1,
+    1,
+    1,
+    1,
+    5
+  ],
+  "freshness": {
+    "registry": [
+      {
+        "use": "adp:reactions/1.0"
+      },
+      {
+        "use": "adp:moderation/1.0"
+      }
+    ],
+    "classes": {
+      "room.create": "genesis",
+      "room.update": "contract",
+      "room.close": "contract",
+      "room.cancel": "contract",
+      "type.define": "contract",
+      "room.join": "signal",
+      "room.join.review": "signal",
+      "room.leave": "signal",
+      "room.member.role.update": "signal",
+      "room.member.remove": "signal",
+      "message.create": "message",
+      "reaction.create": "signal",
+      "turn.update": "control",
+      "claim.update": "control",
+      "steer.create": "signal"
+    },
+    "head_checked": [
+      "message.create",
+      "turn.update",
+      "claim.update"
+    ],
+    "head_advancing": [
+      "room.create",
+      "room.update",
+      "room.close",
+      "room.cancel",
+      "type.define",
+      "turn.update",
+      "claim.update"
+    ],
+    "base_checks": [
+      {
+        "name": "message based on the head",
+        "type": "message.create",
+        "head_seq": 5,
+        "base_seq": 5,
+        "anchored": true,
+        "expected": "ok"
+      },
+      {
+        "name": "message based on a later message",
+        "type": "message.create",
+        "head_seq": 3,
+        "base_seq": 7,
+        "anchored": true,
+        "expected": "ok"
+      },
+      {
+        "name": "message based before the head",
+        "type": "message.create",
+        "head_seq": 5,
+        "base_seq": 4,
+        "anchored": true,
+        "expected": "room_head_mismatch"
+      },
+      {
+        "name": "control based on the head",
+        "type": "turn.update",
+        "head_seq": 5,
+        "base_seq": 5,
+        "anchored": true,
+        "expected": "ok"
+      },
+      {
+        "name": "control based on a later message",
+        "type": "claim.update",
+        "head_seq": 3,
+        "base_seq": 4,
+        "anchored": true,
+        "expected": "ok"
+      },
+      {
+        "name": "control based before the head",
+        "type": "claim.update",
+        "head_seq": 5,
+        "base_seq": 3,
+        "anchored": true,
+        "expected": "room_head_mismatch"
+      },
+      {
+        "name": "contract based before the head",
+        "type": "room.update",
+        "head_seq": 5,
+        "base_seq": 1,
+        "anchored": true,
+        "expected": "ok"
+      },
+      {
+        "name": "signal based before the head",
+        "type": "reaction.create",
+        "head_seq": 5,
+        "base_seq": 2,
+        "anchored": true,
+        "expected": "ok"
+      },
+      {
+        "name": "membership based before the head",
+        "type": "room.join",
+        "head_seq": 5,
+        "base_seq": 1,
+        "anchored": true,
+        "expected": "ok"
+      },
+      {
+        "name": "message with an unanchored base",
+        "type": "message.create",
+        "head_seq": 5,
+        "base_seq": 6,
+        "anchored": false,
+        "expected": "base_record_mismatch"
+      },
+      {
+        "name": "signal with an unanchored base",
+        "type": "reaction.create",
+        "head_seq": 5,
+        "base_seq": 2,
+        "anchored": false,
+        "expected": "base_record_mismatch"
+      }
+    ]
+  },
+  "patterns": {
+    "valid": [
+      "^[A-Za-z0-9_-]{43}$",
+      "^did:agent:[A-Za-z0-9_-]{43}$",
+      "a|b",
+      "(ab)+c?",
+      "[^,]{1,3}",
+      "x{2,}",
+      "\\.\\-",
+      "^$",
+      "[a-z]",
+      "\\n\\t"
+    ],
+    "invalid": [
+      "\\d+",
+      "\\w",
+      "\\s",
+      "a.b",
+      "(?:a)",
+      "(?=a)",
+      "(?<n>a)",
+      "a*?",
+      "a+?",
+      "a{2}?",
+      "\\p{L}",
+      "[]a]",
+      "[a[b]]",
+      "a^b",
+      "a$b",
+      "\\1",
+      "{2}",
+      "a{x}",
+      "(a",
+      "a)",
+      "\\"
+    ]
+  },
+  "type_names": {
+    "valid": [
+      "review.finding",
+      "x.example.custom_event",
+      "poll2.vote-cast",
+      "graph.node.update"
+    ],
+    "invalid": [
+      "message.edit",
+      "message.create",
+      "room.custom",
+      "type.alias",
+      "Review.finding",
+      "single",
+      "a..b",
+      ".a.b",
+      "a.b.",
+      "-a.b"
+    ]
+  },
+  "open_roles": {
+    "effective": [
+      {
+        "name": "public default",
+        "visibility": "public",
+        "expected": [
+          "observer"
+        ]
+      },
+      {
+        "name": "public with open speaking",
+        "visibility": "public",
+        "policy": {
+          "open_roles": [
+            "speaker",
+            "observer"
+          ]
+        },
+        "expected": [
+          "speaker",
+          "observer"
+        ]
+      },
+      {
+        "name": "restricted default",
+        "visibility": "restricted",
+        "expected": []
+      },
+      {
+        "name": "restricted join to read",
+        "visibility": "restricted",
+        "policy": {
+          "open_roles": [
+            "observer"
+          ]
+        },
+        "expected": [
+          "observer"
+        ]
+      },
+      {
+        "name": "private default",
+        "visibility": "private",
+        "expected": []
+      }
+    ],
+    "invalid": [
+      {
+        "name": "private room with an open role",
+        "visibility": "private",
+        "policy": {
+          "open_roles": [
+            "observer"
+          ]
+        }
+      },
+      {
+        "name": "open moderator role",
+        "visibility": "public",
+        "policy": {
+          "open_roles": [
+            "moderator"
+          ]
+        }
+      }
+    ]
+  }
+}

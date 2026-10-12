@@ -14,7 +14,9 @@
 //!
 //! Approval requests are answered only through `approval/respond` with
 //! `human: true`, which only the desktop approval window and an interactive
-//! terminal send. The daemon keeps a WebSocket to the relay's hint channel
+//! terminal send. An agent's MCP session (`dmsg mcp`) presents its own
+//! credential instead of the owner's, which reaches only `mcp/tools` and
+//! `mcp/call` as that Agent ID. The daemon keeps a WebSocket to the relay's hint channel
 //! with a bearer token that receives content-free hints, locked or not: a
 //! `connect` hint fetches the mailbox, or, locked, tells the desktop to
 //! notify the user.
@@ -159,6 +161,16 @@ pub(crate) struct Daemon {
     wake: Notify,
     /// The latest mailbox pass, refusal codes included; nothing secret.
     last_connect: std::sync::Mutex<Option<Value>>,
+    /// The Agent Protocols connectors of the hosted Agent IDs.
+    agents: dmsg_agent::Runtime,
+}
+
+/// Who presented a credential.
+enum Session {
+    /// The owner: the CLI and the desktop.
+    Owner,
+    /// A hosted Agent ID's MCP session.
+    Agent(dmsg_client::agents::AgentEntry),
 }
 
 /// Where the hint channel stands; nothing secret.
@@ -193,6 +205,11 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         &home.workspace(&settings.config),
         Home::secure(&settings),
     )?;
+    let agents = dmsg_agent::Runtime::new(
+        &client.agent_runtime(),
+        &settings.agent_hosts,
+        settings.config.environment == dmsg_types::Environment::Local,
+    )?;
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port))
         .await
         .map_err(|e| Error::Unavailable(format!("listen: {e}")))?;
@@ -214,6 +231,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         hints: std::sync::Mutex::new(HintState::default()),
         wake: Notify::new(),
         last_connect: std::sync::Mutex::new(None),
+        agents,
     });
     home.publish(&Discovery {
         port,
@@ -331,6 +349,10 @@ impl Daemon {
         &self.settings
     }
 
+    pub(crate) fn agents(&self) -> &dmsg_agent::Runtime {
+        &self.agents
+    }
+
     pub(crate) fn set_hints(&self, f: impl FnOnce(&mut HintState)) {
         f(&mut self.hints.lock().expect("hint state"));
     }
@@ -349,6 +371,27 @@ impl Daemon {
                 .zip(self.token.bytes())
                 .fold(0u8, |acc, (a, b)| acc | (a ^ b))
                 == 0
+    }
+
+    /// The owner's credential, else a hosted agent's; never with an `Origin`.
+    async fn session(&self, headers: &HeaderMap) -> Option<Session> {
+        if self.owner(headers) {
+            return Some(Session::Owner);
+        }
+        let presented = headers
+            .get(header::AUTHORIZATION)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))?;
+        if headers.get(header::ORIGIN).is_some() {
+            return None;
+        }
+        let agent = self
+            .client
+            .lock()
+            .await
+            .agent_by_credential(presented)
+            .ok()??;
+        Some(Session::Agent(agent))
     }
 
     fn pending_login(&self) -> bool {
@@ -735,6 +778,7 @@ impl Daemon {
                 }))
             }
             "hint/status" => Ok(to_json(&self.hints.lock().expect("hint state").clone())),
+            m if crate::agents::METHODS.contains(&m) => self.call_agents(method, params).await,
             _ => self.call_more(method, params).await,
         }
     }
@@ -788,6 +832,13 @@ fn events_of(method: &str) -> &'static [&'static str] {
         | "connect/sync" => &["approval/changed"],
         "connect/grant" | "connect/revoke" => &["connect/changed"],
         "device/approve" => &["session/changed"],
+        m if m.starts_with("agent/")
+            || m.starts_with("grants/")
+            || m.starts_with("ap/")
+            || m.starts_with("mcp/") =>
+        {
+            crate::agents::events_of(m)
+        }
         m => crate::methods::events_of(m),
     }
 }
@@ -851,26 +902,39 @@ async fn status(State(daemon): State<Arc<Daemon>>, headers: HeaderMap) -> Respon
 }
 
 async fn rpc(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: Bytes) -> Response {
-    if !daemon.owner(&headers) {
+    let Some(session) = daemon.session(&headers).await else {
         return StatusCode::UNAUTHORIZED.into_response();
-    }
+    };
     let Ok(request) = serde_json::from_slice::<RpcRequest>(&body) else {
         return Json(json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32700, "message": "parse error"}}))
             .into_response();
     };
-    Json(daemon.dispatch(request).await).into_response()
+    Json(daemon.dispatch(request, &session).await).into_response()
 }
 
 impl Daemon {
-    /// Run one request and announce what it changed.
-    async fn dispatch(&self, request: RpcRequest) -> Value {
+    /// Run one request and announce what it changed. An agent's session
+    /// reaches only the agent methods, and the owner's never does.
+    async fn dispatch(&self, request: RpcRequest, session: &Session) -> Value {
         if request.jsonrpc != "2.0" {
             return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32600, "message": "invalid request"}});
         }
-        if !METHODS.contains(&request.method.as_str())
-            && !crate::methods::METHODS.contains(&request.method.as_str())
+        let method = request.method.as_str();
+        let agent_method = crate::agents::AGENT_METHODS.contains(&method);
+        if !METHODS.contains(&method)
+            && !crate::methods::METHODS.contains(&method)
+            && !crate::agents::METHODS.contains(&method)
+            && !agent_method
         {
             return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32601, "message": "method not found"}});
+        }
+        if agent_method != matches!(session, Session::Agent(_)) {
+            let error = Error::Forbidden;
+            return json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {"code": -32000, "message": error.to_string(), "data": {"code": error_code(&error)}},
+            });
         }
         if !matches!(
             request.method.as_str(),
@@ -878,7 +942,14 @@ impl Daemon {
         ) {
             self.activity.store(now_ms(), Ordering::Relaxed);
         }
-        match self.call(&request.method, &request.params).await {
+        let outcome = match session {
+            Session::Owner => self.call(&request.method, &request.params).await,
+            Session::Agent(agent) => {
+                self.call_agent(agent, &request.method, &request.params)
+                    .await
+            }
+        };
+        match outcome {
             Ok(result) => {
                 for kind in events_of(&request.method) {
                     self.emit(kind, json!({"method": request.method}));
@@ -931,7 +1002,7 @@ async fn serve_socket(daemon: Arc<Daemon>, socket: WebSocket) {
                 let daemon = daemon.clone();
                 let replies = replies.clone();
                 tokio::spawn(async move {
-                    let _ = replies.send(daemon.dispatch(request).await).await;
+                    let _ = replies.send(daemon.dispatch(request, &Session::Owner).await).await;
                 });
             }
             Some(reply) = outgoing.recv() => {

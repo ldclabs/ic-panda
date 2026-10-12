@@ -145,13 +145,28 @@ pub enum Action {
         /// The intent's commitment.
         digest: Hash,
     },
+    /// Change the account's Agent Delegation principal.
+    Principal {
+        /// The change.
+        change: crate::agent::PrincipalChange,
+    },
+    /// Sign a grant or revocation with a controller key and submit it.
+    Delegation {
+        /// Journal ID.
+        job: String,
+        /// The event's commitment.
+        digest: Hash,
+    },
 }
 
 impl Action {
     fn class(&self) -> &'static str {
         match self {
             Action::Attest { .. } => "attest",
-            Action::DeviceCapabilities { .. } | Action::DeviceRevoke { .. } => "account",
+            Action::DeviceCapabilities { .. }
+            | Action::DeviceRevoke { .. }
+            | Action::Principal { .. } => "account",
+            Action::Delegation { .. } => "agent",
             Action::Connect { .. } => "connect",
             Action::Checkout { .. } | Action::Letter { .. } | Action::Handle { .. } => "payment",
         }
@@ -484,6 +499,16 @@ impl Client {
                 self.save_approval(request)?;
                 self.handle_execute(&id).await.map(|_| ())
             }
+            Action::Principal { change } => self.principal_execute(&change).await,
+            // The job's journal decides: approving again only resubmits
+            // what was signed, so nothing here is past the point of no return.
+            Action::Delegation { job, digest } => {
+                ensure(
+                    self.delegation(&job)?.digest() == digest,
+                    Error::IntegrityFailed,
+                )?;
+                self.delegation_execute(&job).await.map(|_| ())
+            }
         }
     }
 
@@ -571,6 +596,11 @@ impl Client {
                 (Action::Handle { id, .. }, _) => {
                     let id = id.clone();
                     self.handle_execute(&id).await.map(|_| ())
+                }
+                (Action::Principal { .. }, _) => self.resume().await.map(|_| ()),
+                (Action::Delegation { job, .. }, _) => {
+                    let job = job.clone();
+                    self.delegation_execute(&job).await.map(|_| ())
                 }
                 // Approved, but the attestation was never prepared.
                 (Action::Attest { .. }, None) => Err(Error::Expired),
@@ -781,6 +811,8 @@ impl Client {
                 json!({"recipient": recipient, "order": order, "amount": amount, "ledger": ledger})
             }
             Action::Handle { id, .. } => self.handle_operation(id)?.view(),
+            Action::Principal { change } => json!(change),
+            Action::Delegation { job, .. } => self.delegation(job)?.view(),
         };
         Ok(json!({
             "id": request.id,
@@ -794,6 +826,8 @@ impl Client {
                 Action::Checkout { .. } => "checkout",
                 Action::Letter { .. } => "letter",
                 Action::Handle { .. } => "handle",
+                Action::Principal { .. } => "principal",
+                Action::Delegation { .. } => "delegation",
             },
             "state": request.state.name(),
             "created_at": request.created_at,

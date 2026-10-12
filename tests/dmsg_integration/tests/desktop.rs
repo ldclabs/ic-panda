@@ -15,6 +15,7 @@
 //! (`cargo build -p dmsg_cli`, or `DMSG_BIN`), `POCKET_IC_BIN`,
 //! `DMSG_CLOUD_DIR` pointing at the private relay checkout, and Node with
 //! `pnpm install` done for `src/dmsg_connect`.
+mod adp;
 mod support;
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
@@ -441,6 +442,13 @@ struct Proxy {
 
 impl Proxy {
     fn start(upstream: &str) -> Self {
+        Self::start_as(upstream, None)
+    }
+
+    /// A forwarder that names `host` in every request, as a virtual host
+    /// on the upstream server expects.
+    fn start_as(upstream: &str, host: Option<&str>) -> Self {
+        let host = host.map(str::to_string);
         let upstream = upstream
             .trim_end_matches('/')
             .trim_start_matches("http://")
@@ -451,9 +459,9 @@ impl Proxy {
         let shared = rules.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
-                let (upstream, rules) = (upstream.clone(), shared.clone());
+                let (upstream, rules, host) = (upstream.clone(), shared.clone(), host.clone());
                 std::thread::spawn(move || {
-                    let _ = Self::serve(stream, &upstream, &rules);
+                    let _ = Self::serve(stream, &upstream, &rules, host.as_deref());
                 });
             }
         });
@@ -526,14 +534,31 @@ impl Proxy {
         format!("{}\r\n\r\n", lines.join("\r\n"))
     }
 
+    /// `head` with its `Host` header naming `host`.
+    fn rehost(head: &str, host: &str) -> String {
+        head.lines()
+            .map(|l| match l.to_ascii_lowercase().starts_with("host:") {
+                true => format!("Host: {host}"),
+                false => l.to_string(),
+            })
+            .collect::<Vec<_>>()
+            .join("\r\n")
+            + "\r\n"
+    }
+
     fn serve(
         client: std::net::TcpStream,
         upstream: &str,
         rules: &std::sync::Mutex<Vec<(String, String)>>,
+        host: Option<&str>,
     ) -> std::io::Result<()> {
         let mut reader = BufReader::new(client.try_clone()?);
         let Some((head, body)) = Self::read_message(&mut reader)? else {
             return Ok(());
+        };
+        let head = match host {
+            Some(host) => Self::rehost(&head, host),
+            None => head,
         };
         let mut server = std::net::TcpStream::connect(upstream)?;
         if head.to_ascii_lowercase().contains("upgrade: websocket") {
@@ -580,6 +605,10 @@ struct Options {
     proxies: bool,
     /// Let the relay take paid letters.
     paid_contacts: bool,
+    /// Serve Agent Delegation: the relay's agent host behind a proxy that
+    /// names it, principal documents from the directory, and a Discourse
+    /// host the daemons may sign for.
+    agents: bool,
 }
 
 /// One deployment, one relay and two desktops, `a` and `b`.
@@ -600,6 +629,10 @@ struct Env {
     relay_proxy: Option<Proxy>,
     /// The proxy in front of the IC gateway, if any.
     ic_proxy: Option<Proxy>,
+    /// The relay's agent host, through a proxy naming `agents.dmsg.test`.
+    agent_proxy: Option<Proxy>,
+    /// The Discourse host the daemons may sign for.
+    adp: Option<adp::Adp>,
 }
 
 impl Env {
@@ -646,6 +679,12 @@ impl Env {
         if let Some(proxy) = &relay_proxy {
             launch["api_origin"] = proxy.origin.clone().into();
         }
+        if options.agents {
+            launch["agent_origin"] = "https://agents.dmsg.test".into();
+            launch["principal_origin"] = "https://id.dmsg.test".into();
+            launch["principal_gateway"] =
+                format!("{}?canisterId={}", deployment.gateway, deployment.directory).into();
+        }
         std::fs::write(dir.join("cloud-launch.json"), launch.to_string()).unwrap();
         children.0.push(
             Command::new("node")
@@ -670,14 +709,27 @@ impl Env {
                 p.origin.clone()
             });
 
+        let agent_proxy = options.agents.then(|| {
+            Proxy::start_as(
+                &format!("http://127.0.0.1:{relay_port}"),
+                Some("agents.dmsg.test"),
+            )
+        });
+        let adp = options.agents.then(adp::Adp::start);
         // The owner credential stays in the home: tests never touch the
         // system credential store.
-        let config = format!(
+        let mut config = format!(
             "environment = \"local\"\nic_host = \"{ic_host}\"\nrelay = \"{relay}\"\nconnect_url = \"{connect}\"\nhandle = \"{}\"\nuser_homes = [\"{}\"]\nroot_key = \"{}\"\nsecure_storage = \"file\"\n",
             deployment.handle,
             deployment.user,
             deployment.root_key_hex,
         );
+        if let (Some(proxy), Some(adp)) = (&agent_proxy, &adp) {
+            config.push_str(&format!(
+                "agent_service = \"{}\"\nagent_hosts = [{{ host = \"{}\", label = \"test\" }}]\n",
+                proxy.origin, adp.origin
+            ));
+        }
         let desktop = |name: &str, policy: &str| {
             let home = dir.join(name);
             std::fs::create_dir_all(&home).unwrap();
@@ -706,6 +758,8 @@ impl Env {
             config,
             relay_proxy,
             ic_proxy,
+            agent_proxy,
+            adp,
         }
     }
 
@@ -2506,5 +2560,438 @@ fn desktop_paid_letters() {
     assert_eq!(letters[0]["text"], "Private paid contact");
     assert_eq!(letters[0]["state"], "visible");
     assert_eq!(letters[0]["sender"], sender.as_str());
+    env.finish();
+}
+
+/// An MCP client on `dmsg mcp`'s stdio, as Claude Code or another agent
+/// runtime drives it.
+struct McpClient {
+    child: Child,
+    stdin: std::process::ChildStdin,
+    stdout: BufReader<std::process::ChildStdout>,
+    id: u64,
+}
+
+impl McpClient {
+    fn start(desktop: &Desktop, credential: &str) -> Self {
+        let mut child = Command::new(&desktop.bin)
+            .arg("--home")
+            .arg(&desktop.home)
+            .arg("mcp")
+            .env("DMSG_AGENT_TOKEN", credential)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .unwrap();
+        let stdin = child.stdin.take().unwrap();
+        let stdout = BufReader::new(child.stdout.take().unwrap());
+        let mut client = Self {
+            child,
+            stdin,
+            stdout,
+            id: 0,
+        };
+        let init = client.request(
+            "initialize",
+            json!({"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}),
+        );
+        assert_eq!(init["result"]["protocolVersion"], "2025-06-18");
+        writeln!(
+            client.stdin,
+            "{}",
+            json!({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        )
+        .unwrap();
+        client
+    }
+
+    fn request(&mut self, method: &str, params: Value) -> Value {
+        self.id += 1;
+        writeln!(
+            self.stdin,
+            "{}",
+            json!({"jsonrpc": "2.0", "id": self.id, "method": method, "params": params})
+        )
+        .unwrap();
+        let mut line = String::new();
+        self.stdout.read_line(&mut line).unwrap();
+        let reply: Value = serde_json::from_str(&line).unwrap_or_else(|_| panic!("mcp: {line}"));
+        assert_eq!(reply["id"], self.id);
+        reply
+    }
+
+    /// A tool's structured result, or its error.
+    fn tool(&mut self, name: &str, arguments: Value) -> Result<Value, Value> {
+        let reply = self.request("tools/call", json!({"name": name, "arguments": arguments}));
+        let result = &reply["result"];
+        let content: Value =
+            serde_json::from_str(result["content"][0]["text"].as_str().unwrap()).unwrap();
+        match result["isError"] == true {
+            true => Err(content),
+            false => Ok(content),
+        }
+    }
+}
+
+impl Drop for McpClient {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+/// The verdict of Agent Delegation §9 on credential `id` for `audience`,
+/// as a relying party reaches it: the principal document from the
+/// directory (through the gateway, which checks its certification), the
+/// credential and its accepted records from the delegation service.
+fn delegation_verdict(env: &Env, account: &str, id: &str, audience: &str) -> Value {
+    use agent_protocols::delegation::{
+        verify_delegation_credential, DelegationCredential, DelegationRecord, PrincipalDocument,
+    };
+    let d = &env.deployment;
+    let http = &env.http;
+    let document: PrincipalDocument = http
+        .get(format!("{}{account}?canisterId={}", d.gateway, d.directory))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(document.id, format!("https://id.dmsg.test/{account}"));
+    let service = &env.agent_proxy.as_ref().unwrap().origin;
+    let credential: DelegationCredential = http
+        .get(format!("{service}/v1/delegations/{id}"))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let events: Value = http
+        .get(format!("{service}/v1/delegations/{id}/events"))
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let records: Vec<DelegationRecord> = serde_json::from_value(events["result"].clone()).unwrap();
+    let verdict = verify_delegation_credential(
+        &credential,
+        &records,
+        &document,
+        &document.id,
+        audience,
+        now_ms() as i64,
+    );
+    serde_json::to_value(verdict).unwrap()
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_agents() {
+    let mut env = Env::launch(
+        "agents",
+        Options {
+            agents: true,
+            ..Options::default()
+        },
+    );
+    let http = env.http.clone();
+    let host = env.adp.as_ref().unwrap().origin.clone();
+    let a = &env.a;
+    assert_eq!(a.login(&http, 61).unwrap()["state"], "no_account");
+    let account = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let enable = a.run(&["device", "formal-approve", "on"]);
+    assert_eq!(a.decide(&http, &enable, true).unwrap()["state"], "done");
+
+    // The account becomes a principal with one controller key, kept in the
+    // vault; the user home publishes both to the directory.
+    let request = a.run(&["agent", "principal", "enable"]);
+    assert_eq!(request["type"], "principal");
+    assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
+    let request = a.run(&["agent", "controller", "register", "--name", "desktop"]);
+    assert_eq!(request["detail"]["generation"], 1);
+    assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
+    let principal = a.run(&["agent", "principal", "show"]);
+    assert_eq!(principal["published"], true, "{principal}");
+    assert_eq!(principal["controllers"][0]["delegation"], "*");
+    let vault = a.run(&["vault", "list"]);
+    assert!(vault
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|e| e["item"]["tags"] == json!(["dmsg-controller"])));
+
+    // Two hosted Agent IDs: one the CLI uses, one an MCP client.
+    let host_agent = a.run(&["agent", "id", "create", "host"])["agent_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let claude = a.run(&["agent", "id", "create", "claude"])["agent_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    a.run(&["agent", "id", "use", "host"]);
+
+    // A grant to Claude's Agent ID, signed here; the first reply from the
+    // delegation service is lost and the same envelope settles it.
+    let proxy = env.agent_proxy.as_ref().unwrap();
+    proxy.lose_next("POST", "/v1/delegations");
+    let request = a.run(&[
+        "agent",
+        "grant",
+        "claude",
+        "--scope",
+        "message.draft",
+        "--audience",
+        "https://dmsg.net",
+        "--days",
+        "7",
+    ]);
+    assert_eq!(request["detail"]["kind"]["subject"], claude.as_str());
+    assert_eq!(
+        a.decide(&http, &request, true),
+        Err("EXECUTION_UNKNOWN".into())
+    );
+    assert_eq!(proxy.pending(), 0);
+    a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
+    assert_eq!(approval_state(a, &request), "done");
+    let job = &a.run(&["agent", "delegations"])[0];
+    assert_eq!(job["stage"], "accepted");
+    let id = job["kind"]["id"].as_str().unwrap().to_string();
+    assert!(id.starts_with(&format!("{account}.")));
+    let verdict = delegation_verdict(&env, &account, &id, "https://dmsg.net");
+    assert_eq!(verdict["usable"], true, "{verdict}");
+    assert_eq!(
+        delegation_verdict(&env, &account, &id, "https://other.test")["usable"],
+        false
+    );
+    let credentials = a.run(&["agent", "credentials"]);
+    assert_eq!(credentials.as_array().unwrap().len(), 1);
+    assert_eq!(credentials[0]["status"], "active");
+
+    // Claude Code's side: `dmsg mcp` with the agent's own credential.
+    let credential = a.run(&["agent", "id", "credential", "claude"])["credential"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let mut mcp = McpClient::start(a, &credential);
+    let tools = mcp.request("tools/list", json!({}));
+    let names: Vec<&str> = tools["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names.len(), 33);
+    assert!(names.contains(&"agent_protocols_room_join") && names.contains(&"dmsg_vault_list"));
+    let identity = mcp
+        .tool("agent_protocols_identity_current", json!({}))
+        .unwrap();
+    assert_eq!(identity["agent_id"], claude.as_str());
+
+    // The agent's credential reaches only the MCP methods (DT01, DT02): no
+    // approvals, no status, no other Agent ID, no host outside the config.
+    let agent_rpc = |method: &str, params: Value| -> Value {
+        http.post(format!("http://127.0.0.1:{}/app/v1", a.port()))
+            .bearer_auth(&credential)
+            .header("content-type", "application/json")
+            .body(
+                json!({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).to_string(),
+            )
+            .send()
+            .unwrap()
+            .json()
+            .unwrap()
+    };
+    for (method, params) in [
+        (
+            "approval/respond",
+            json!({"id": "x", "digest": "x", "approve": true, "human": true}),
+        ),
+        (
+            "ap/call",
+            json!({"agent": "host", "tool": "agent_protocols_identity_current", "input": {}}),
+        ),
+        (
+            "grants/add",
+            json!({"agent": "claude", "capabilities": ["vault.list"]}),
+        ),
+        ("agent/ids", Value::Null),
+    ] {
+        assert_eq!(
+            agent_rpc(method, params)["error"]["data"]["code"],
+            "FORBIDDEN",
+            "{method}"
+        );
+    }
+    let status = http
+        .get(format!("http://127.0.0.1:{}/daemon/status", a.port()))
+        .bearer_auth(&credential)
+        .send()
+        .unwrap();
+    assert_eq!(status.status(), 401);
+    let foreign = mcp
+        .tool(
+            "agent_protocols_room_create",
+            json!({"host": "https://evil.test", "topic": "x", "visibility": "public", "start_time": 1, "end_time": 2}),
+        )
+        .unwrap_err();
+    assert_eq!(foreign["code"], "permission_denied");
+    assert!(mcp
+        .tool(
+            "agent_protocols_host_add",
+            json!({"host": "https://evil.test"})
+        )
+        .is_err());
+
+    // The CLI's agent opens a room; Claude joins it and speaks.
+    let start = now_ms();
+    let created = a.run(&[
+        "ap",
+        "room_create",
+        &json!({
+            "host": host, "topic": "W6", "visibility": "public", "policy": {"open_roles": ["speaker"]},
+            "start_time": start, "end_time": start + 86_400_000,
+        })
+        .to_string(),
+    ]);
+    let room = created["room"]["room_id"].as_str().unwrap().to_string();
+    let joined = mcp
+        .tool(
+            "agent_protocols_room_join",
+            json!({"room_id": room, "host": host, "role": "speaker"}),
+        )
+        .unwrap();
+    assert_eq!(joined["status"], "joined");
+    let state = mcp
+        .tool("agent_protocols_room_state", json!({"room_id": room}))
+        .unwrap();
+    assert_eq!(state["room"]["topic"], "W6");
+    let sent = mcp
+        .tool(
+            "agent_protocols_room_send_message",
+            json!({"room_id": room, "content": "hello from claude"}),
+        )
+        .unwrap();
+    assert_eq!(sent["status"], "sent");
+    let adp = env.adp.as_ref().unwrap();
+    assert_eq!(adp.messages(&room), ["hello from claude"]);
+
+    // The host's own agent changes the topic, which moves the room head.
+    // Claude's next message, based on the head it saw, is held with the
+    // change (DT07); sending the draft re-signs it against the new head.
+    a.run(&[
+        "ap",
+        "room_submit_event",
+        &json!({"room_id": room, "type": "room.update", "payload": {"topic": "W6 review"}})
+            .to_string(),
+    ]);
+    let held = mcp
+        .tool(
+            "agent_protocols_room_send_message",
+            json!({"room_id": room, "content": "late reply"}),
+        )
+        .unwrap();
+    assert_eq!(held["status"], "held", "{held}");
+    assert!(held["changes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|c| c["type"] == "room.update"));
+    let draft = held["draft"]["id"].as_str().unwrap().to_string();
+
+    // A nonce another service saw: within the bound the connector resyncs
+    // and signs once more (DT06).
+    let before = adp.nonce(&claude).unwrap();
+    adp.refuse_next_nonce(before + 1_000, true);
+    let resent = mcp
+        .tool(
+            "agent_protocols_room_send_message",
+            json!({"room_id": room, "content": "after resync", "on_head_mismatch": "send_anyway"}),
+        )
+        .unwrap();
+    assert_eq!(resent["status"], "sent", "{resent}");
+    assert_eq!(adp.nonce(&claude), Some(before + 1_001));
+    // Beyond the bound the value is refused, not applied.
+    adp.refuse_next_nonce(now_ms() + (1 << 33), false);
+    let refused = mcp
+        .tool(
+            "agent_protocols_room_send_message",
+            json!({"room_id": room, "content": "never"}),
+        )
+        .unwrap_err();
+    assert_eq!(refused["code"], "nonce_not_greater");
+
+    // Capabilities over the account: none until the owner grants one, and
+    // an agent's request only waits for a person.
+    assert_eq!(
+        mcp.tool("dmsg_vault_list", json!({})).unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    a.run(&["grants", "add", "claude", "vault.list", "attest.request"]);
+    let items = mcp.tool("dmsg_vault_list", json!({})).unwrap();
+    assert!(items
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|i| i.get("secret").is_none()));
+    let attest = mcp
+        .tool(
+            "dmsg_attest_request",
+            json!({"text": "Claude drafted this review."}),
+        )
+        .unwrap();
+    assert_eq!(attest["source"], format!("agent:{claude}"));
+    assert_eq!(attest["state"], "awaiting_user");
+    let status = mcp
+        .tool("dmsg_approval_status", json!({"id": attest["id"]}))
+        .unwrap();
+    assert_eq!(status["state"], "awaiting_user");
+    let grants = a.run(&["grants", "list"]);
+    a.run(&["grants", "revoke", grants[0]["id"].as_str().unwrap()]);
+    assert_eq!(
+        mcp.tool("dmsg_vault_list", json!({})).unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    drop(mcp);
+
+    // A restarted daemon restores the connector: the held draft, the read
+    // position and the nonce (DT09). Its keys come back with the login.
+    let nonce = adp.nonce(&claude).unwrap();
+    env.restart(0);
+    let (a, adp) = (&env.a, env.adp.as_ref().unwrap());
+    assert_eq!(a.login(&http, 61).unwrap()["state"], "unlocked");
+    let mut mcp = McpClient::start(a, &credential);
+    let drafts = mcp.tool("agent_protocols_drafts_list", json!({})).unwrap();
+    assert_eq!(drafts["drafts"][0]["id"], draft.as_str());
+    let committed = mcp
+        .tool(
+            "agent_protocols_draft_commit",
+            json!({"draft_id": draft, "action": "send"}),
+        )
+        .unwrap();
+    assert_eq!(committed["status"], "sent", "{committed}");
+    assert!(adp.nonce(&claude).unwrap() > nonce);
+    assert_eq!(
+        adp.messages(&room),
+        ["hello from claude", "after resync", "late reply"]
+    );
+    let timeline = mcp
+        .tool(
+            "agent_protocols_room_timeline",
+            json!({"room_id": room, "refresh": true}),
+        )
+        .unwrap();
+    assert!(timeline["items"].as_array().unwrap().len() >= 4);
+    drop(mcp);
+
+    // Revoking the grant: the credential is no longer usable.
+    let request = a.run(&["agent", "revoke", &id]);
+    assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
+    let verdict = delegation_verdict(&env, &account, &id, "https://dmsg.net");
+    assert_eq!(verdict["usable"], false, "{verdict}");
+    assert_eq!(a.run(&["agent", "credentials"])[0]["status"], "revoked");
+    let _ = host_agent;
     env.finish();
 }

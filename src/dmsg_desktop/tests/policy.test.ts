@@ -12,13 +12,27 @@ test('windows never decide or grant, and never send human', () => {
     'wallet/use',
     'channel/download',
     'channel/send_file',
-    'plan/refund'
+    'plan/refund',
+    'ap/call',
+    'mcp/call',
+    'mcp/tools'
   ])
     assert.equal(WINDOW_METHODS.has(method), false, method)
   assert.throws(() => windowParams('approval/respond', { id: 'x', human: true }), /FORBIDDEN/)
   assert.deepEqual(windowParams('vault/list', { trash: true, human: true }), { trash: true })
   assert.deepEqual(windowParams('attest/request', { source: 'cli', statement: {} }), { source: 'gui', statement: {} })
-  for (const method of ['inbox/pay', 'plan/checkout', 'plan/advance', 'handle/claim', 'handle/register'])
+  for (const method of [
+    'inbox/pay',
+    'plan/checkout',
+    'plan/advance',
+    'handle/claim',
+    'handle/register',
+    'agent/enable',
+    'agent/register',
+    'agent/retire',
+    'agent/grant',
+    'agent/revoke'
+  ])
     assert.equal(windowParams(method, { source: 'cli' }).source, 'gui', method)
 })
 

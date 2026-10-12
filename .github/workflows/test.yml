@@ -66,7 +66,7 @@ jobs:
       # The desktop client crates are rustfmt-clean; their vector tests run with the workspace.
       # The two-device daemon test (tests/dmsg_integration/tests/desktop.rs) needs the private relay.
       - name: Check client formatting
-        run: cargo fmt --check -p dmsg_client -p dmsg_cli
+        run: cargo fmt --check -p dmsg_client -p dmsg_agent -p dmsg_cli
       - name: Run clippy
         run: cargo clippy --verbose --all-targets --all-features
       - name: Run tests

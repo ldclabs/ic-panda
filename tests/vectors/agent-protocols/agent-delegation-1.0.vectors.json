@@ -1,0 +1,1849 @@
+{
+  "protocol": "agent-delegation/1.0",
+  "description": "Normative Agent Delegation 1.0 test vectors. Every principal document marked valid MUST pass principal document validation (Sections 4 and 5.1) and every document marked invalid MUST be rejected; delegation IDs and audiences MUST be accepted and rejected as listed; and every acceptance case MUST produce its expected outcome. Controller registration challenge shapes, request shapes, and proof signatures MUST produce the listed validity outcomes; owner authorization, binding, and expiry remain provider checks in Section 4.3.",
+  "delegation_ids": {
+    "valid": [
+      "del_01J8ZM7A3G2T9B4Q6X8R0N1P2Q",
+      "a",
+      "A.b~c-d_e",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    "invalid": [
+      "",
+      ".",
+      "..",
+      "has space",
+      "caf\u00e9",
+      "slash/id",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "percent%20"
+    ]
+  },
+  "principal_documents": [
+    {
+      "name": "restricted",
+      "valid": true,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "empty recovery",
+      "valid": true,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [],
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "signing only local",
+      "valid": true,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "local",
+            "valid_from": 100
+          }
+        ],
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "unrestricted",
+      "valid": true,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": "*"
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "retired compromised",
+      "valid": true,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000,
+        "retired_controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            },
+            "retired_at": 500,
+            "invalid_from": 300
+          }
+        ]
+      }
+    },
+    {
+      "name": "empty binding interval",
+      "valid": true,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000,
+        "retired_controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            },
+            "retired_at": 100
+          }
+        ]
+      }
+    },
+    {
+      "name": "null",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": null
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "empty",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {}
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "unknown string",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": "all"
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "unknown restriction",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "subjects": [
+                "*"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "empty scopes",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "wildcard scope",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "*"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "duplicate scopes",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "x",
+                "x"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "wildcard audience",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "x"
+              ],
+              "audiences": [
+                "*"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "invalid source https://DMSG.NET",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://DMSG.NET",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "invalid source https://dmsg.net/",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net/",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "invalid source https://dmsg.net:443",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net:443",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "invalid source http://dmsg.net",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "http://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "invalid source https://x@dmsg.net",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://x@dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "invalid source https://127.1",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://127.1",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "invalid source https://dmsg.net?x",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net?x",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "invalid source https://dmsg.net#x",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net#x",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "invalid source https://dmsg.net\\x",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net\\x",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "valid source https://[::1]",
+      "valid": true,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://[::1]",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "valid source https://dmsg.net:0",
+      "valid": true,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net:0",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "bad current valid_fromTrue",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": true,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "bad current valid_from-1",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": -1,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "bad current valid_from1001",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 1001,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "bad current valid_from9007199254740992",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 9007199254740992,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "bad current retired_at500",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            },
+            "retired_at": 500
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "bad current invalid_from200",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            },
+            "invalid_from": 200
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "duplicate across lists",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000,
+        "retired_controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            },
+            "retired_at": 500
+          }
+        ]
+      }
+    },
+    {
+      "name": "legacy string array",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        ],
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "missing version",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "cutoff after retirement",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000,
+        "retired_controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            },
+            "retired_at": 500,
+            "invalid_from": 501
+          }
+        ]
+      }
+    },
+    {
+      "name": "retired missing timestamp",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [],
+        "delegation_service": "https://example.com",
+        "updated_at": 1000,
+        "retired_controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "delegation without service",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "signing only without service",
+      "valid": true,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "local",
+            "valid_from": 100
+          }
+        ],
+        "updated_at": 1000
+      }
+    },
+    {
+      "name": "delegation service is a URL, not an origin",
+      "valid": false,
+      "document": {
+        "id": "https://example.com/p",
+        "protocol": "agent-delegation/1.0",
+        "controllers": [
+          {
+            "id": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "source": "https://dmsg.net",
+            "valid_from": 100,
+            "delegation": {
+              "scopes": [
+                "message.draft"
+              ],
+              "audiences": [
+                "https://dmsg.net"
+              ]
+            }
+          }
+        ],
+        "delegation_service": "https://example.com/v1/delegations/query",
+        "updated_at": 1000
+      }
+    }
+  ],
+  "audiences": {
+    "valid": [
+      "https://dmsg.net",
+      "https://dmsg.net:8443",
+      "did:agent:7pOk9m-NFrgZu5vrn_zN_NwUEuh_7moyTCqZoeDmcUg"
+    ],
+    "invalid": [
+      "https://DMSG.NET",
+      "https://dmsg.net/",
+      "http://dmsg.net",
+      "dmsg.net",
+      "*",
+      "",
+      "did:agent:short"
+    ]
+  },
+  "acceptance": {
+    "description": "Evaluate each case against document, resolved at its own id. live cases apply acceptance (Section 7) at accepted_at; historical cases verify an accepted record { envelope, accepted_at } (Section 6). previous is the credential before the event. expected is ok or the error code.",
+    "document": {
+      "protocol": "agent-delegation/1.0",
+      "id": "https://example.com/p",
+      "controllers": [
+        {
+          "id": "did:agent:25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83_MH50",
+          "source": "https://dmsg.net",
+          "valid_from": 100,
+          "delegation": {
+            "scopes": [
+              "message.draft",
+              "inbox.screen"
+            ],
+            "audiences": [
+              "https://dmsg.net",
+              "did:agent:7pOk9m-NFrgZu5vrn_zN_NwUEuh_7moyTCqZoeDmcUg"
+            ]
+          }
+        },
+        {
+          "id": "did:agent:IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+          "source": "local",
+          "valid_from": 100,
+          "delegation": "*"
+        },
+        {
+          "id": "did:agent:Ivwpd5Lwtv_Av8_bftsMCqFOAlo2XsDjQuhuOCnLdLY",
+          "source": "https://dmsg.net",
+          "valid_from": 600,
+          "delegation": {
+            "scopes": [
+              "message.draft",
+              "inbox.screen",
+              "meeting.propose"
+            ],
+            "audiences": [
+              "https://dmsg.net"
+            ]
+          }
+        },
+        {
+          "id": "did:agent:11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+          "source": "https://tokenlist.ing",
+          "valid_from": 100
+        },
+        {
+          "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+          "source": "https://dmsg.net",
+          "valid_from": 100,
+          "delegation": {
+            "scopes": [
+              "inbox.screen"
+            ],
+            "audiences": [
+              "https://dmsg.net"
+            ]
+          }
+        }
+      ],
+      "retired_controllers": [
+        {
+          "id": "did:agent:Y1VpHBeKj_kQB6dHivuVXvc1LGPnslcDmEz3iybiGlY",
+          "source": "https://dmsg.net",
+          "valid_from": 100,
+          "delegation": {
+            "scopes": [
+              "message.draft"
+            ],
+            "audiences": [
+              "https://dmsg.net"
+            ]
+          },
+          "retired_at": 600
+        },
+        {
+          "id": "did:agent:4oqJcHUzMr1y_vQT5rCy7xtKrdp6osFB8jNxKmh2s1E",
+          "source": "https://dmsg.net",
+          "valid_from": 100,
+          "delegation": {
+            "scopes": [
+              "message.draft"
+            ],
+            "audiences": [
+              "https://dmsg.net"
+            ]
+          },
+          "retired_at": 700,
+          "invalid_from": 300
+        }
+      ],
+      "delegation_service": "https://example.com",
+      "updated_at": 2000
+    },
+    "cases": [
+      {
+        "name": "restricted controller grants within its ceiling",
+        "mode": "live",
+        "envelope": {
+          "hash": "wGKRpvoWvKOkg_clrzX0KcGv0lm0712Mbo8sFhNkuEU",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83_MH50",
+            "created_at": 200,
+            "nonce": 1,
+            "payload": {
+              "id": "del_a",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "RALSFR7y2YEbP0UCUL3Nxg2fk-_kisoqQZeOVOPoCH8S9_nRqXp9-KMocrIAJWQ3yeXFz4GsRvS0zuHwZhlsCA"
+        },
+        "accepted_at": 250,
+        "previous": null,
+        "expected": "ok"
+      },
+      {
+        "name": "restricted controller grants to a relying agent audience",
+        "mode": "live",
+        "envelope": {
+          "hash": "sjZHyRwgZHmWfbN0VPqY7mHrN47glgXMBzHuiaIdsIg",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83_MH50",
+            "created_at": 200,
+            "nonce": 2,
+            "payload": {
+              "id": "del_agent",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "did:agent:7pOk9m-NFrgZu5vrn_zN_NwUEuh_7moyTCqZoeDmcUg"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "unrZrDPMvtdJcyoeN5jXoMOsxzIyS9aBVcCj-WvQ4irSq30hxasu3KIwCtMnA_enmrfAhJbfnfb_yL-cs9u7Ag"
+        },
+        "accepted_at": 250,
+        "previous": null,
+        "expected": "ok"
+      },
+      {
+        "name": "restricted controller grants an Agent ID audience outside its ceiling",
+        "mode": "live",
+        "envelope": {
+          "hash": "nawQvD4urr9QKvQ1IhC5k97mguzNgzW9Q-WOzo8_EjE",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83_MH50",
+            "created_at": 200,
+            "nonce": 3,
+            "payload": {
+              "id": "del_other_agent",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "did:agent:dyyKRCt9sG4WbPvBzLy83m8-unak6Y7z_8UZUCI31u8"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "D8CFu2vwo9Fynxml7RCfz7vByy-hptyHEvzC0dVy_Zc0gBOC1NaFp7Pm-oxHPc5dci7jjk0p09tyVb1oxsZtBA"
+        },
+        "accepted_at": 250,
+        "previous": null,
+        "expected": "delegation_ceiling_exceeded"
+      },
+      {
+        "name": "signing-only key grants",
+        "mode": "live",
+        "envelope": {
+          "hash": "wzOZUs3-6eZgHOj28YBLwBis7NQopXBjGDr9dX8hq8c",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:11l5O7wTooGagnx2rbb7qKSa7gB_SfLQmS2ZuCWtLEg",
+            "created_at": 200,
+            "nonce": 1,
+            "payload": {
+              "id": "del_k",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "SzsFshaE5xXsrvMvbdpI4jYVCfVnxgwPuOPqiKT902XLe9P6ZImNrqLYZb_xH6__AM_twx5AAwzn08avcYSaBw"
+        },
+        "accepted_at": 250,
+        "previous": null,
+        "expected": "delegation_not_permitted"
+      },
+      {
+        "name": "restricted controller grants an unlisted scope",
+        "mode": "live",
+        "envelope": {
+          "hash": "KUSV6JgEObhZlFRA2KXxffFUNoGdOkFfGjaST-T4Od0",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83_MH50",
+            "created_at": 200,
+            "nonce": 4,
+            "payload": {
+              "id": "del_admin",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "admin"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "eUTxiktTkcSsKKQqExw6nxj0CTfNoT7u5wR_Tto1_UV8yh77Ja9FThf_twDtCaEfzRFN7ZnC5dmJxyyoTZROCA"
+        },
+        "accepted_at": 250,
+        "previous": null,
+        "expected": "delegation_ceiling_exceeded"
+      },
+      {
+        "name": "restricted controller grants another relying application",
+        "mode": "live",
+        "envelope": {
+          "hash": "GvEZVG9UxdENU0bc9UhuXsUaBY-an0rIrjnhayCo5Sc",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83_MH50",
+            "created_at": 200,
+            "nonce": 5,
+            "payload": {
+              "id": "del_tl",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://tokenlist.ing"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "V40PHmyhu5dZdbKqExOa5FVjM74yFsYScaVFMrnVM4_ZNmovqWG0f6m2ZO3iCVgJHLXliHkWv4bEk5YPJqEXAg"
+        },
+        "accepted_at": 250,
+        "previous": null,
+        "expected": "delegation_ceiling_exceeded"
+      },
+      {
+        "name": "restricted controller replaces another key's credential within its ceiling",
+        "mode": "live",
+        "envelope": {
+          "hash": "3Llv6vFzSRNzo34wq0Bo-hvUP1YPENQXqwxxHyfy0Q8",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83_MH50",
+            "created_at": 300,
+            "nonce": 6,
+            "payload": {
+              "id": "del_r",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "OiGRE8PouJkTVVtm_SyoPm0yT2jbqNDvk2CydSRP_DBVOa28azo-sBKHwvrC4uyK90PU60V85BCCxKKzHbdoDg"
+        },
+        "accepted_at": 300,
+        "previous": {
+          "id": "del_r",
+          "protocol": "agent-delegation/1.0",
+          "principal_id": "https://example.com/p",
+          "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+          "scopes": [
+            "message.draft"
+          ],
+          "audiences": [
+            "https://dmsg.net"
+          ],
+          "expires_at": 1900,
+          "status": "active",
+          "controller": "did:agent:IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+          "grant_event_id": "ujuZKPUbteZLYbUdzHYDIzpIMamMK1Fu8-9c2_lBUgw",
+          "event_id": "ujuZKPUbteZLYbUdzHYDIzpIMamMK1Fu8-9c2_lBUgw",
+          "accepted_at": 250,
+          "checked_at": 250
+        },
+        "expected": "ok"
+      },
+      {
+        "name": "restricted controller revokes another key's credential within its ceiling",
+        "mode": "live",
+        "envelope": {
+          "hash": "_cwSk-V_IMQ_5SB6NyfZVtlNlm78C_AUKO2gsQfCzlw",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.revoke",
+            "actor": "did:agent:Ivwpd5Lwtv_Av8_bftsMCqFOAlo2XsDjQuhuOCnLdLY",
+            "created_at": 700,
+            "nonce": 1,
+            "payload": {
+              "id": "del_o",
+              "principal_id": "https://example.com/p"
+            }
+          },
+          "signature": "tG4AYw4LBMEpd4wWf4Y0-enOaeJqoHRHpcs6EUmm9G1N9XWLW3y2ae1jGSYTuPCNB_L73b16aGR1fhpZkQGyDw"
+        },
+        "accepted_at": 700,
+        "previous": {
+          "id": "del_o",
+          "protocol": "agent-delegation/1.0",
+          "principal_id": "https://example.com/p",
+          "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+          "scopes": [
+            "message.draft"
+          ],
+          "audiences": [
+            "https://dmsg.net"
+          ],
+          "expires_at": 1900,
+          "status": "active",
+          "controller": "did:agent:Y1VpHBeKj_kQB6dHivuVXvc1LGPnslcDmEz3iybiGlY",
+          "grant_event_id": "-NL9zBVKGWgRpGEEP2ZRfNk410iWZcTdJ5DWBp9E2NA",
+          "event_id": "-NL9zBVKGWgRpGEEP2ZRfNk410iWZcTdJ5DWBp9E2NA",
+          "accepted_at": 250,
+          "checked_at": 250
+        },
+        "expected": "ok"
+      },
+      {
+        "name": "restricted controller revokes a credential outside its ceiling",
+        "mode": "live",
+        "envelope": {
+          "hash": "P42YqRNqornlVb2awR3TpTC2vaFMOKGdqae7H8N9fNs",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.revoke",
+            "actor": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+            "created_at": 300,
+            "nonce": 1,
+            "payload": {
+              "id": "del_o",
+              "principal_id": "https://example.com/p"
+            }
+          },
+          "signature": "7bM2wLLkupsMXM4Y0EsnZ-8abjQ8H9w__FuPmZ2A4K3imXUn0hvEDHMui7cj7GQM9_qFRiSBa4SuxZsQqFBtCw"
+        },
+        "accepted_at": 300,
+        "previous": {
+          "id": "del_o",
+          "protocol": "agent-delegation/1.0",
+          "principal_id": "https://example.com/p",
+          "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+          "scopes": [
+            "message.draft"
+          ],
+          "audiences": [
+            "https://dmsg.net"
+          ],
+          "expires_at": 1900,
+          "status": "active",
+          "controller": "did:agent:Y1VpHBeKj_kQB6dHivuVXvc1LGPnslcDmEz3iybiGlY",
+          "grant_event_id": "-NL9zBVKGWgRpGEEP2ZRfNk410iWZcTdJ5DWBp9E2NA",
+          "event_id": "-NL9zBVKGWgRpGEEP2ZRfNk410iWZcTdJ5DWBp9E2NA",
+          "accepted_at": 250,
+          "checked_at": 250
+        },
+        "expected": "delegation_ceiling_exceeded"
+      },
+      {
+        "name": "unrestricted controller revokes another key's credential",
+        "mode": "live",
+        "envelope": {
+          "hash": "29LNC4q6Gkwi5m1UMtP89W1VzIHhtTXhX5Cc4J-ZeDc",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.revoke",
+            "actor": "did:agent:IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+            "created_at": 400,
+            "nonce": 2,
+            "payload": {
+              "id": "del_a",
+              "principal_id": "https://example.com/p"
+            }
+          },
+          "signature": "YSeRY1DimZMhtEbIgPZNScQ7hgoD_vxXazTSsHZbXQyVXoh2CxgEIbIp8t-05nnRrSZCva5jY0wdr6xNqbOFCw"
+        },
+        "accepted_at": 450,
+        "previous": {
+          "id": "del_a",
+          "protocol": "agent-delegation/1.0",
+          "principal_id": "https://example.com/p",
+          "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+          "scopes": [
+            "message.draft"
+          ],
+          "audiences": [
+            "https://dmsg.net"
+          ],
+          "expires_at": 1900,
+          "status": "active",
+          "controller": "did:agent:25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83_MH50",
+          "grant_event_id": "wGKRpvoWvKOkg_clrzX0KcGv0lm0712Mbo8sFhNkuEU",
+          "event_id": "wGKRpvoWvKOkg_clrzX0KcGv0lm0712Mbo8sFhNkuEU",
+          "accepted_at": 250,
+          "checked_at": 250
+        },
+        "expected": "ok"
+      },
+      {
+        "name": "replacement changes the subject",
+        "mode": "live",
+        "envelope": {
+          "hash": "-qQTVXY2m7tt4xrfHHvtjBv47wW5IL6IKrv5jwUxN3k",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+            "created_at": 300,
+            "nonce": 3,
+            "payload": {
+              "id": "del_a",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:dyyKRCt9sG4WbPvBzLy83m8-unak6Y7z_8UZUCI31u8",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "DQljtcOzGCd1izRCPSaSdoC2sud0FAqn7P4KH5OyvvtcAsLD3pANUeUWtN3U_FWCZOZr5sAnZrqgV0zbJ_vdCA"
+        },
+        "accepted_at": 300,
+        "previous": {
+          "id": "del_a",
+          "protocol": "agent-delegation/1.0",
+          "principal_id": "https://example.com/p",
+          "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+          "scopes": [
+            "message.draft"
+          ],
+          "audiences": [
+            "https://dmsg.net"
+          ],
+          "expires_at": 1900,
+          "status": "active",
+          "controller": "did:agent:25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83_MH50",
+          "grant_event_id": "wGKRpvoWvKOkg_clrzX0KcGv0lm0712Mbo8sFhNkuEU",
+          "event_id": "wGKRpvoWvKOkg_clrzX0KcGv0lm0712Mbo8sFhNkuEU",
+          "accepted_at": 250,
+          "checked_at": 250
+        },
+        "expected": "credential_identity_mismatch"
+      },
+      {
+        "name": "grant names an alias instead of the canonical principal",
+        "mode": "live",
+        "envelope": {
+          "hash": "p7t-GBkPYwRa2fE5fbYcOE4LuFWHWkbyS0I7l6E3kZg",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+            "created_at": 200,
+            "nonce": 4,
+            "payload": {
+              "id": "del_alias",
+              "principal_id": "https://example.com/alias",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "Vqd9TrCAKJxs7-GPGpOH0k32QL5h9GyR-V9QVQnjKHn-CLl5sgpRWJ_iFnIfYNx68cD2xakTY4AyPtDaO_7KBA"
+        },
+        "accepted_at": 250,
+        "previous": null,
+        "expected": "principal_not_canonical"
+      },
+      {
+        "name": "retired key submits a backdated grant",
+        "mode": "live",
+        "envelope": {
+          "hash": "qk5b1TwDX1L1eYLFyi2VW-GGT2LPy8Fhbz0tZMyGkIo",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:Y1VpHBeKj_kQB6dHivuVXvc1LGPnslcDmEz3iybiGlY",
+            "created_at": 500,
+            "nonce": 2,
+            "payload": {
+              "id": "del_backdated",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "QytF3CEngYmJ_mHcetdySoizSiSEr4bnFNXx5O_Je-wWV76lE0ZXYu1aGToz7oS6cy2N4WgX5TOFlJCTEaUZDg"
+        },
+        "accepted_at": 800,
+        "previous": null,
+        "expected": "controller_not_current"
+      },
+      {
+        "name": "revocation of a credential that does not exist",
+        "mode": "live",
+        "envelope": {
+          "hash": "R4mxvumXgpIuL81NanzHromYwx-0Ew3NF71We6qcONI",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.revoke",
+            "actor": "did:agent:IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+            "created_at": 400,
+            "nonce": 5,
+            "payload": {
+              "id": "del_missing",
+              "principal_id": "https://example.com/p"
+            }
+          },
+          "signature": "81keLBGMGwqtZEArMIWH22Q59DK9hmpmSFKRYgkX3mIChVKa7aL8uNICdS_sNYAZqONgM0_K4VwR2wZkclo6Aw"
+        },
+        "accepted_at": 400,
+        "previous": null,
+        "expected": "credential_not_found"
+      },
+      {
+        "name": "grant already expired at acceptance",
+        "mode": "live",
+        "envelope": {
+          "hash": "kjfTOWxWzDDpjJvXeXl1wcgeqHSbjeI1Ha8RBxrE_fs",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+            "created_at": 200,
+            "nonce": 6,
+            "payload": {
+              "id": "del_expired",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 300
+            }
+          },
+          "signature": "g9WQA9NFrXCLTloGENCOAANxPa1fFCv_v3aP5r026mOLmMFxku0vecl42epPYZOLcSRuWV4CXt0u-dh5LFjiAA"
+        },
+        "accepted_at": 400,
+        "previous": null,
+        "expected": "grant_expired"
+      },
+      {
+        "name": "grant signed before the controller's binding starts",
+        "mode": "live",
+        "envelope": {
+          "hash": "uTdgGBZmbuoyaK4BI-q73CtIZ9jUtOuH6J5ttO5wHtc",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:Ivwpd5Lwtv_Av8_bftsMCqFOAlo2XsDjQuhuOCnLdLY",
+            "created_at": 500,
+            "nonce": 2,
+            "payload": {
+              "id": "del_early",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "J0BGulKra05aJr31d_muhucnNptA5pOY6tmpJcmMTjGoUlrJe9XCzboeU_uc6tQd0kHea-_DbLP993P8rXt9CA"
+        },
+        "accepted_at": 700,
+        "previous": null,
+        "expected": "controller_not_current"
+      },
+      {
+        "name": "ordinarily retired key's earlier grant",
+        "mode": "historical",
+        "envelope": {
+          "hash": "-NL9zBVKGWgRpGEEP2ZRfNk410iWZcTdJ5DWBp9E2NA",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:Y1VpHBeKj_kQB6dHivuVXvc1LGPnslcDmEz3iybiGlY",
+            "created_at": 200,
+            "nonce": 1,
+            "payload": {
+              "id": "del_o",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "ds9CuInIrsgkZ6FKE98gbJY0iEArpPDpg-94hyvQbptc59Qci_uhr1bRl2NzgALkId-pgYO1PYG0PbrOD_gHBQ"
+        },
+        "accepted_at": 250,
+        "previous": null,
+        "expected": "ok"
+      },
+      {
+        "name": "compromised key's grant accepted before invalid_from",
+        "mode": "historical",
+        "envelope": {
+          "hash": "h3wM4IvHfDUn7Vtb6mnVa0xdQdVVJ47MujWMBpKjzX8",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:4oqJcHUzMr1y_vQT5rCy7xtKrdp6osFB8jNxKmh2s1E",
+            "created_at": 200,
+            "nonce": 1,
+            "payload": {
+              "id": "del_c1",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "kyUGL7WoW4HVZVxL2ZgDdob5NvU4pH91m4vq69EZFbfxmY9beJSwC7nylMGyRr5jbafREMx_B-xvzdAf9-h4Cg"
+        },
+        "accepted_at": 250,
+        "previous": null,
+        "expected": "ok"
+      },
+      {
+        "name": "compromised key's grant accepted after invalid_from",
+        "mode": "historical",
+        "envelope": {
+          "hash": "xSaIoDV82RjaaBySJ-pC6iMd-NBIQ0HZLE5VdM-vLV8",
+          "event": {
+            "protocol": "agent-delegation/1.0",
+            "type": "delegation.grant",
+            "actor": "did:agent:4oqJcHUzMr1y_vQT5rCy7xtKrdp6osFB8jNxKmh2s1E",
+            "created_at": 200,
+            "nonce": 2,
+            "payload": {
+              "id": "del_c2",
+              "principal_id": "https://example.com/p",
+              "subject": "did:agent:1O7Bhp-xuKToF1Fq1akxVXy1aAXD6xbo86gD1kffeGk",
+              "audiences": [
+                "https://dmsg.net"
+              ],
+              "scopes": [
+                "message.draft"
+              ],
+              "expires_at": 1900
+            }
+          },
+          "signature": "_XXSMkPHulOQxlVixyjp2o2XGbmRT4IJ5TOiG86c73Gcy3HG-i2ZFgyylRN20C5C2_hJsGkWFg73Z-jfiBXHCw"
+        },
+        "accepted_at": 350,
+        "previous": null,
+        "expected": "controller_not_current"
+      }
+    ]
+  },
+  "controller_registration": {
+    "seed": "3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d",
+    "challenges": [
+      {
+        "name": "canonical challenge",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "valid": true
+      },
+      {
+        "name": "missing prefix",
+        "challenge": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "valid": false
+      },
+      {
+        "name": "short suffix",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh",
+        "valid": false
+      },
+      {
+        "name": "padded suffix",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        "valid": false
+      },
+      {
+        "name": "trailing newline",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\n",
+        "valid": false
+      },
+      {
+        "name": "wrong purpose prefix",
+        "challenge": "agent-delegation/1.0:delegation.grant:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "valid": false
+      }
+    ],
+    "proofs": [
+      {
+        "name": "complete challenge UTF-8 bytes",
+        "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "signature": "ZuR4e4PgO_bDU-BvOq7gWsd8E-bZ5pkAToKRZpOpIDPrUTeK5SRgRWyi9Gntz68JCPuifJsFlyv0Uo2Y55xICQ",
+        "valid": true
+      },
+      {
+        "name": "decoded suffix",
+        "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "signature": "NAUriSsXTUBpL3DghJRXHhTr8z73PzMY8JIpLloNJqR4YZw3HXetLEFahe63R2G2WPZrV2Hj5OVy7a1yp6qFCQ",
+        "valid": false
+      },
+      {
+        "name": "SHA3-256 of challenge",
+        "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "signature": "ubwP7Kag_GykTlRye8MiX6hO0OhlIlNvppcW-TNGyqCSZKE7qQqgYylAdwDfst_7tcWp3jac2FV2odXAkMXhBw",
+        "valid": false
+      },
+      {
+        "name": "trailing newline",
+        "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "signature": "e4qzIG2xdZsxAqvRVKLIfs7NVlVuXrZxDAwyl0s7qMGTNnchxGlOrLFv-ArDen0rGPlcay7_te_x6kl2ZsEVBg",
+        "valid": false
+      },
+      {
+        "name": "wrong key (seed 0x3e)",
+        "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "signature": "1ovJZQ--iff0k0cEJ9ebTas7BgVp4tHqZY3vsrZvRmvZr6CCt8A5rbOWtv_SlXW_hNHpO2bPv0TLd9sD8qjADw",
+        "valid": false
+      },
+      {
+        "name": "small-order key forges any message (R = identity, S = 0)",
+        "id": "did:agent:AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+        "signature": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "valid": false
+      }
+    ],
+    "requests": [
+      {
+        "name": "signing-only challenge request",
+        "definition": "controllerChallengeRequest",
+        "valid": true,
+        "value": {
+          "principal_id": "https://example.com/p",
+          "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+          "source": "local"
+        }
+      },
+      {
+        "name": "challenge response",
+        "definition": "controllerChallengeResponse",
+        "valid": true,
+        "value": {
+          "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+          "expires_at": 1788653100000
+        }
+      },
+      {
+        "name": "registration proof request",
+        "definition": "controllerRegistrationRequest",
+        "valid": true,
+        "value": {
+          "principal_id": "https://example.com/p",
+          "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+          "source": "local",
+          "name": "Local signer",
+          "expires_at": 1788653100000,
+          "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+          "signature": "ZuR4e4PgO_bDU-BvOq7gWsd8E-bZ5pkAToKRZpOpIDPrUTeK5SRgRWyi9Gntz68JCPuifJsFlyv0Uo2Y55xICQ"
+        }
+      },
+      {
+        "name": "scoped challenge request",
+        "definition": "controllerChallengeRequest",
+        "valid": true,
+        "value": {
+          "principal_id": "https://example.com/p",
+          "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+          "source": "https://dmsg.net",
+          "delegation": {
+            "scopes": [
+              "message.draft"
+            ],
+            "audiences": [
+              "https://dmsg.net"
+            ]
+          }
+        }
+      },
+      {
+        "name": "null delegation",
+        "definition": "controllerChallengeRequest",
+        "valid": false,
+        "value": {
+          "principal_id": "https://example.com/p",
+          "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+          "source": "local",
+          "delegation": null
+        }
+      },
+      {
+        "name": "registration without expires_at",
+        "definition": "controllerRegistrationRequest",
+        "valid": false,
+        "value": {
+          "principal_id": "https://example.com/p",
+          "id": "did:agent:cN-eInmtvsbRK_KSEYTJIi6yTthSAFv2QBOfUuWc2a4",
+          "source": "local",
+          "challenge": "agent-delegation/1.0:controller-registration:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+          "signature": "ZuR4e4PgO_bDU-BvOq7gWsd8E-bZ5pkAToKRZpOpIDPrUTeK5SRgRWyi9Gntz68JCPuifJsFlyv0Uo2Y55xICQ"
+        }
+      }
+    ]
+  }
+}

@@ -11,17 +11,22 @@ desktop is one of its clients, like the CLI.
 - **Preload** (`src/preload`): `window.dmsg`, a narrow bridge; the credential
   never reaches a renderer.
 - **Renderer** (`src/renderer`, Svelte 5): the main window (vault, channels,
-  inbox, plan and names, signatures and approvals, settings with connected
-  browsers) and the approval window.
+  inbox, plan and names, agents, signatures and approvals, settings with
+  connected browsers) and the approval window.
 
 Rules (`src/main/policy.ts`):
 
 - Windows call only the methods in `WINDOW_METHODS`; `human` is stripped and
   requests the desktop starts are marked `source: "gui"`. Methods that name
-  local files (`wallet/use`, `channel/send_file`, `channel/download`) and
-  refunds stay with the CLI.
+  local files (`wallet/use`, `channel/send_file`, `channel/download`),
+  refunds and running a tool as an agent (`ap/call`) stay with the CLI.
 - A payment (paid letter, checkout, name) is only a request from the main
   window; the approval window shows its amount, ledger and payer.
+- The Agents view enables the account's principal, registers and retires
+  controllers, grants and revokes credentials (each an approval request; the
+  approval window shows the agent, scopes, relying parties and expiry), hosts
+  Agent IDs (residency, the MCP credential, shown once) and grants them
+  capabilities. The host allowlist is shown, never edited.
 - Only the approval window decides a request (`approval/respond` with the
   digest of what it showed and `human: true`, added by the main process);
   only the main window confirms a browser pairing (`connect/grant`).
@@ -44,6 +49,7 @@ pnpm --dir src/dmsg_desktop test:e2e   # build, then the Playwright-for-Electron
 The smoke test runs the built app in a temporary profile against a mock
 daemon: the main window, a `dmsg://` link opening the approval window,
 refusal of decisions from the main window, the exact decision the approval
-window sends, a channel read and send, the inbox, and a subscription that
-reaches the daemon only as a desktop-sourced approval request. Packaging, signing and updates come with the release
+window sends, a channel read and send, the inbox, a subscription that
+reaches the daemon only as a desktop-sourced approval request, and an agent
+grant whose approval window shows the agent it names. Packaging, signing and updates come with the release
 work package (W8).

@@ -219,6 +219,20 @@ impl Client {
         self.put_item(id.into(), Some(base.into()), false, &item)
     }
 
+    /// Add an item under a fixed ID, such as a key whose ID its purpose
+    /// determines.
+    ///
+    /// # Errors
+    /// Returns `Error::IdempotencyConflict` when the ID is taken.
+    pub(crate) fn vault_item_with_id(&mut self, id: &str, item: &Item) -> Result<VaultEntry> {
+        ensure(
+            self.workspace.store.head(id)?.is_none(),
+            Error::IdempotencyConflict,
+        )?;
+        item.validate()?;
+        self.put_item(id.into(), None, false, item)
+    }
+
     /// Move an item to the trash: a tombstone on its current version.
     ///
     /// # Errors

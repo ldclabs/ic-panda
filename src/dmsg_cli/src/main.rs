@@ -1,11 +1,14 @@
 //! `dmsg`: the dMsg command line client. `dmsg daemon` runs the daemon that
 //! holds every key and all state; every other command asks it over loopback.
 
+mod agent_commands;
+mod agents;
 mod channels;
 mod commands;
 mod daemon;
 mod hints;
 mod home;
+mod mcp;
 mod methods;
 mod remote;
 mod secure;
@@ -114,6 +117,26 @@ enum Command {
     /// Names: resolve, price, claim and register.
     #[command(subcommand)]
     Handle(commands::HandleCommand),
+    /// Agent Delegation with this account as the principal, and the Agent
+    /// IDs this device hosts.
+    #[command(subcommand)]
+    Agent(agent_commands::AgentCommand),
+    /// Capabilities hosted Agent IDs hold over this account.
+    #[command(subcommand)]
+    Grants(agent_commands::GrantsCommand),
+    /// Run one MCP tool as a hosted Agent ID; `dmsg ap tools` lists them.
+    Ap {
+        /// Label or `did:agent:…`; the active Agent ID by default.
+        #[arg(long)]
+        agent: Option<String>,
+        /// Tool name, with or without its `agent_protocols_`/`dmsg_` prefix.
+        tool: String,
+        /// Tool input as JSON.
+        input: Option<String>,
+    },
+    /// Serve MCP on stdio for the Agent ID whose credential is in
+    /// DMSG_AGENT_TOKEN.
+    Mcp,
     /// The daemon's address and owner credential, for the desktop app.
     #[command(hide = true)]
     AppToken,
@@ -582,6 +605,49 @@ fn render(request: &Value) -> String {
             ));
             lines.push(format!("to        {}", field(&d["capabilities"])));
         }
+        Some("principal") => {
+            lines.push(format!(
+                "principal {} — an account change, published by the user home",
+                field(&d["change"])
+            ));
+            for name in [
+                "principal_type",
+                "generation",
+                "name",
+                "delegation",
+                "invalid_from",
+            ] {
+                if !d[name].is_null() {
+                    lines.push(format!(
+                        "{:<9} {}",
+                        name.replace("principal_", ""),
+                        field(&d[name])
+                    ));
+                }
+            }
+        }
+        Some("delegation") => {
+            let k = &d["kind"];
+            lines.push(format!(
+                "sign      delegation.{} with controller #{}",
+                field(&k["type"]),
+                field(&d["generation"])
+            ));
+            for name in [
+                "id",
+                "subject",
+                "scopes",
+                "audiences",
+                "expires_at",
+                "relationship",
+                "reason",
+            ] {
+                if !k[name].is_null() {
+                    lines.push(format!("{name:<9} {}", field(&k[name])));
+                }
+            }
+            lines.push("          relying parties may act on a grant before its revocation".into());
+        }
         Some("connect") => {
             lines.push(format!(
                 "web app   {} (version {})",
@@ -820,6 +886,9 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         });
         return Ok(());
     }
+    if let Command::Mcp = command {
+        return mcp::run(&home).await;
+    }
     if let Command::AppToken = command {
         let discovery = home
             .discovery()
@@ -852,7 +921,9 @@ async fn run(cli: Cli) -> Result<(), Failure> {
     }
     let remote = Remote::connect(&home)?;
     match command {
-        Command::Daemon { .. } | Command::Status | Command::AppToken => unreachable!(),
+        Command::Daemon { .. } | Command::Status | Command::AppToken | Command::Mcp => {
+            unreachable!()
+        }
         Command::Attest(AttestCommand::Verify { .. }) => unreachable!(),
         Command::Approvals(ApprovalsCommand::List { all }) => {
             let list = remote.call("approval/list", json!({"all": all})).await?;
@@ -1105,6 +1176,11 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         Command::Wallet(command) => commands::wallet(&remote, json, command).await?,
         Command::Plan(command) => commands::plan(&remote, json, command).await?,
         Command::Handle(command) => commands::handle(&remote, json, command).await?,
+        Command::Agent(command) => agent_commands::agent(&remote, json, command).await?,
+        Command::Grants(command) => agent_commands::grants(&remote, json, command).await?,
+        Command::Ap { agent, tool, input } => {
+            agent_commands::ap(&remote, json, agent, tool, input).await?
+        }
         Command::Stop => {
             remote.call("daemon/stop", Value::Null).await?;
             print(json, &json!({"stopped": true}), |_| "stopped".into());

@@ -32,18 +32,28 @@ pub struct Remote {
 impl Remote {
     /// Find the home's daemon.
     pub fn connect(home: &Home) -> Result<Self, Failure> {
-        let discovery = home.discovery().ok_or_else(|| {
-            Failure::new(
-                "DAEMON_STOPPED",
-                "the dmsg daemon is not running; start it with `dmsg daemon`",
-            )
-        })?;
         let settings = home
             .settings()
             .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
         let token = home
             .owner_token(&settings, false)
             .map_err(|e| Failure::new("AUTH_REQUIRED", e.to_string()))?;
+        Self::with_token(home, token)
+    }
+
+    /// Find the home's daemon as a hosted agent, with that agent's
+    /// credential instead of the owner's.
+    pub fn agent(home: &Home, credential: &str) -> Result<Self, Failure> {
+        Self::with_token(home, credential.into())
+    }
+
+    fn with_token(home: &Home, token: String) -> Result<Self, Failure> {
+        let discovery = home.discovery().ok_or_else(|| {
+            Failure::new(
+                "DAEMON_STOPPED",
+                "the dmsg daemon is not running; start it with `dmsg daemon`",
+            )
+        })?;
         Ok(Self {
             base: format!("http://127.0.0.1:{}", discovery.port),
             token,

@@ -18,6 +18,8 @@ pub struct Deployment {
     pub membership: Principal,
     pub sns: Principal,
     pub payment: Principal,
+    /// The principal directory, serving `https://id.dmsg.test/<account>`.
+    pub directory: Principal,
     pub peer: Principal,
     pub gateway: String,
     pub root_key_hex: String,
@@ -91,6 +93,7 @@ impl Deployment {
         let membership = ic.create_canister_on_subnet(None, None, subnet);
         let sns = ic.create_canister_on_subnet(None, None, subnet);
         let payment = ic.create_canister_on_subnet(None, None, subnet);
+        let directory = ic.create_canister_on_subnet(None, None, subnet);
         for id in [
             user,
             cose,
@@ -101,6 +104,7 @@ impl Deployment {
             membership,
             sns,
             payment,
+            directory,
         ] {
             ic.add_cycles(id, 10_000_000_000_000_000);
         }
@@ -124,9 +128,26 @@ impl Deployment {
                 max_accounts: 20,
                 daily_new_accounts: 20,
                 principal_origin: "https://id.dmsg.test".into(),
-                directory_canister: sns,
+                directory_canister: directory,
                 governance: sns,
                 admission_key: None,
+            },))
+            .unwrap(),
+            None,
+        );
+        ic.install_canister(
+            directory,
+            std::fs::read(dir.join("dmsg_directory.wasm")).unwrap(),
+            candid::encode_args((dmsg_types::agent::DirectoryInit {
+                environment: Environment::Local,
+                issuer_namespace: "https://dmsg.test/u/".into(),
+                user_homes: vec![user],
+                principal_origin: "https://id.dmsg.test".into(),
+                controller_source: "https://dmsg.test".into(),
+                delegation_service: "https://agents.dmsg.test".into(),
+                profile_url_prefix: "https://dmsg.test/".into(),
+                custom_domains: vec!["id.dmsg.test".into()],
+                governance: sns,
             },))
             .unwrap(),
             None,
@@ -518,6 +539,7 @@ impl Deployment {
             membership,
             sns,
             payment,
+            directory,
             peer,
             gateway,
             root_key_hex,
@@ -552,13 +574,14 @@ impl Deployment {
             membership,
             sns,
             payment,
+            directory,
             peer,
             gateway,
             root_key_hex: root,
             ..
         } = self;
         format!(
-            r#"{{"test_only":true,"user":"{user}","cose":"{cose}","commerce":"{commerce}","handle":"{handle}","ledger":"{ledger}","ledger_usdt":"{ledger_usdt}","membership":"{membership}","sns":"{sns}","payment":"{payment}","platform":"{peer}","namespace":"https://dmsg.test/u/","gateway":"{gateway}","root_key_hex":"{root}"}}"#
+            r#"{{"test_only":true,"user":"{user}","cose":"{cose}","commerce":"{commerce}","handle":"{handle}","ledger":"{ledger}","ledger_usdt":"{ledger_usdt}","membership":"{membership}","sns":"{sns}","payment":"{payment}","directory":"{directory}","platform":"{peer}","namespace":"https://dmsg.test/u/","gateway":"{gateway}","root_key_hex":"{root}"}}"#
         )
     }
 }

@@ -85,6 +85,7 @@ pub(crate) fn config(background_online: bool) -> Config {
         root_key: Some(vec![]),
         login_url: LOGIN_URL.into(),
         connect_url: crate::config::CONNECT_URL.into(),
+        agent_service: crate::config::AGENT_SERVICE.into(),
         background_online,
     }
 }

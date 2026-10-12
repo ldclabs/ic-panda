@@ -38,12 +38,15 @@ keys. The daemon in `src/dmsg_cli` owns one instance.
 | [`wallet`] | ICRC transfers and approvals by the login's Principal or a PEM wallet, journaled before they are sent; a lost reply resends the same bytes |
 | [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription |
 | [`handle`] | Names: certified resolution, legacy claims and registrations as account-authorized intents |
+| [`agent`] | Agent Delegation with the account as principal: enabling it, controller keys kept as vault items, and grants and revocations signed here, journaled, then submitted to the delegation service |
+| [`agents`] | The Agent IDs this device hosts: keys as vault items, residency in the credential store, the credential an agent's MCP session presents, and the capabilities granted over the account |
 
 The byte rules follow the [encryption design](../../docs/dmsg_encryption_zh.md),
 the [account and root contract](../../docs/protocol/account_root_zh.md), the
 [cloud contract](../../docs/protocol/cloud_zh.md) and
-[dmsg-login/1](../../docs/protocol/login-v1_zh.md) and
-[dmsg-connect/1](../../docs/protocol/connect-v1_zh.md). They are verified against
+[dmsg-login/1](../../docs/protocol/login-v1_zh.md),
+[dmsg-connect/1](../../docs/protocol/connect-v1_zh.md) and the
+[principal contract](../../docs/protocol/agent_zh.md). They are verified against
 the language-independent vectors in
 [tests/vectors/client](../../tests/vectors/client/README.md).
 
@@ -121,6 +124,29 @@ typed ledger rejection on a first attempt proves nothing was paid.
 Checkouts, paid letters and name operations are journals fixed at their
 quote: a person approves their digest in the approval center, then each step
 (open, fund, admit, settle) is reconciled by its order or operation ID.
+
+## Agents
+
+The account may be an Agent Delegation principal at
+`principal_origin/<account>`, published by the directory. Its controller keys
+are Ed25519 seeds kept as vault items whose IDs their generation determines,
+so every device holding the root signs with them. Enabling the principal and
+registering, retiring, distrusting or renaming a controller are account
+mutations an administrator device approves; registration proves possession
+of the new key over the request ID. A grant or revocation is approved in the
+center, then signed on a device with `FormalApprove` with the nonce
+`max(last + 1, created_at)`, journaled with that nonce, and submitted. A lost
+reply or a 5xx/408/429 answer resubmits the same envelope; any other refusal
+is final, and a `Max-Seen-Nonce` within the protocol's bound moves the next
+nonce past it.
+
+Agent IDs this device hosts are vault items too, named by a label: the same
+label on another device of the account brings the same Agent ID. Unlocked,
+the daemon signs with the vault copy; locked, only an Agent ID made resident,
+whose seed the credential store also keeps. Each Agent ID may have one
+credential for its MCP sessions, of which only a digest is kept. Capability
+grants are sealed under the LDK; without one an agent reads only public
+profiles.
 
 ## Locking
 

@@ -1,0 +1,576 @@
+{
+  "protocol": "agent-identity/1.0",
+  "description": "Normative Agent Identity 1.0 test vectors (Appendix A). Implementations MUST reproduce every event's jcs, hash, and signature from its seed and event; MUST verify exactly the signatures marked valid; MUST reject every invalid Agent ID, Agent URL, JSON text, origin, and request JWT; MUST verify every valid origin and request JWT and parse every valid Agent URL into its components; MUST produce every submission outcome in order; and MUST apply the Max-Seen-Nonce bound.",
+  "keys": [
+    {
+      "name": "seed of 32 bytes 0x07",
+      "seed": "0707070707070707070707070707070707070707070707070707070707070707",
+      "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+      "agent_id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw"
+    }
+  ],
+  "events": [
+    {
+      "name": "profile update",
+      "event": {
+        "protocol": "agent-profile/1.0",
+        "type": "profile.update",
+        "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+        "created_at": 1779753600000,
+        "nonce": 1779753600000,
+        "payload": {
+          "id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "name": "ResearchAgent",
+          "capabilities": [
+            "research",
+            "code-review"
+          ],
+          "extra": {}
+        }
+      },
+      "jcs": "{\"actor\":\"did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw\",\"created_at\":1779753600000,\"nonce\":1779753600000,\"payload\":{\"capabilities\":[\"research\",\"code-review\"],\"extra\":{},\"id\":\"did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw\",\"name\":\"ResearchAgent\"},\"protocol\":\"agent-profile/1.0\",\"type\":\"profile.update\"}",
+      "hash": "pSqPTRievcRBpiy9Uk61jqkVdulqwvl-mp-FemLvsNs",
+      "signature": "bFrZgIic7m8hath5TzIStusfp6_7z3lBIh3WcBj4YLJ4u7hUOkcj2dCP_aWwIfjIdj-PrG0xzcv7pR5S_boeBA",
+      "seed": "0707070707070707070707070707070707070707070707070707070707070707"
+    },
+    {
+      "name": "discourse message with Unicode keys and integer boundaries",
+      "event": {
+        "protocol": "agent-discourse/1.0",
+        "type": "message.create",
+        "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+        "created_at": 1779753700000,
+        "nonce": 1779753700001,
+        "payload": {
+          "content_type": "text/markdown",
+          "content": "Café ☕ — 😀   line",
+          "references": [],
+          "extra": {
+            "B": 1,
+            "a": 2,
+            "é": 3,
+            "！": 4,
+            "😀": 5,
+            "max": 9007199254740991,
+            "min": -9007199254740991,
+            "zero": 0,
+            "nested": {
+              "y": [
+                true,
+                false,
+                null
+              ],
+              "x": ""
+            }
+          }
+        },
+        "room_id": "d8ftedhpqhsusbg001tg",
+        "base_seq": 41,
+        "base_hash": "QmFzZTY0dXJsLXByZXZpb3VzLXJlY29yZC1oYXNoMDA",
+        "mentions": []
+      },
+      "jcs": "{\"actor\":\"did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw\",\"base_hash\":\"QmFzZTY0dXJsLXByZXZpb3VzLXJlY29yZC1oYXNoMDA\",\"base_seq\":41,\"created_at\":1779753700000,\"mentions\":[],\"nonce\":1779753700001,\"payload\":{\"content\":\"Café ☕ — 😀   line\",\"content_type\":\"text/markdown\",\"extra\":{\"B\":1,\"a\":2,\"max\":9007199254740991,\"min\":-9007199254740991,\"nested\":{\"x\":\"\",\"y\":[true,false,null]},\"zero\":0,\"é\":3,\"😀\":5,\"！\":4},\"references\":[]},\"protocol\":\"agent-discourse/1.0\",\"room_id\":\"d8ftedhpqhsusbg001tg\",\"type\":\"message.create\"}",
+      "hash": "Eh7Gy324hGcBaiK1A3xCPjlwEw5BMkzzsQVjgZ5xNKo",
+      "signature": "QRnNwYq7bnCi-_QPDm9x2xe9DL5vhtbU2ONhCcaVsWtbpxYGLPyHPIWmEjFSMuJo_fnqSvZcLyXbH6x1h705CQ",
+      "seed": "0707070707070707070707070707070707070707070707070707070707070707"
+    }
+  ],
+  "signatures": [
+    {
+      "name": "honest signature over an event hash",
+      "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+      "message": "pSqPTRievcRBpiy9Uk61jqkVdulqwvl-mp-FemLvsNs",
+      "signature": "bFrZgIic7m8hath5TzIStusfp6_7z3lBIh3WcBj4YLJ4u7hUOkcj2dCP_aWwIfjIdj-PrG0xzcv7pR5S_boeBA",
+      "valid": true
+    },
+    {
+      "name": "tampered message",
+      "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+      "message": "pCqPTRievcRBpiy9Uk61jqkVdulqwvl-mp-FemLvsNs",
+      "signature": "bFrZgIic7m8hath5TzIStusfp6_7z3lBIh3WcBj4YLJ4u7hUOkcj2dCP_aWwIfjIdj-PrG0xzcv7pR5S_boeBA",
+      "valid": false
+    },
+    {
+      "name": "S not reduced (S + L)",
+      "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+      "message": "pSqPTRievcRBpiy9Uk61jqkVdulqwvl-mp-FemLvsNs",
+      "signature": "bFrZgIic7m8hath5TzIStusfp6_7z3lBIh3WcBj4YLJlj66xVKo1Macs9UiPG9fddj-PrG0xzcv7pR5S_boeFA",
+      "valid": false
+    },
+    {
+      "name": "small-order public key and R: identity with S = 0 verifies any message under a lenient verifier",
+      "public_key": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "message": "pSqPTRievcRBpiy9Uk61jqkVdulqwvl-mp-FemLvsNs",
+      "signature": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "valid": false
+    },
+    {
+      "name": "non-canonical public key encoding of the identity point",
+      "public_key": "7v_______________________________________38",
+      "message": "pSqPTRievcRBpiy9Uk61jqkVdulqwvl-mp-FemLvsNs",
+      "signature": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "valid": false
+    },
+    {
+      "name": "non-canonical R encoding",
+      "public_key": "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+      "message": "pSqPTRievcRBpiy9Uk61jqkVdulqwvl-mp-FemLvsNs",
+      "signature": "7v_______________________________________394u7hUOkcj2dCP_aWwIfjIdj-PrG0xzcv7pR5S_boeBA",
+      "valid": false
+    }
+  ],
+  "agent_ids": {
+    "valid": [
+      "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw"
+    ],
+    "invalid": [
+      {
+        "name": "padding character",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw="
+      },
+      {
+        "name": "non-zero trailing bits",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0ix"
+      },
+      {
+        "name": "31-byte key",
+        "value": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      {
+        "name": "33-byte key",
+        "value": "did:agent:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      {
+        "name": "standard base64 alphabet",
+        "value": "did:agent:6kpsY+KcUgq+9VB7Ey7F+ZVHdq6+vnuSQh7qaRRG0i+"
+      },
+      {
+        "name": "wrong prefix",
+        "value": "did:key:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw"
+      }
+    ]
+  },
+  "json": {
+    "valid": [
+      {
+        "name": "surrogate pair and safe integer boundaries",
+        "text": "{\"a\":\"\\ud83d\\ude00\",\"n\":9007199254740991,\"m\":-9007199254740991}"
+      }
+    ],
+    "invalid": [
+      {
+        "name": "duplicate member name at the top level",
+        "text": "{\"hash\":\"x\",\"hash\":\"y\"}"
+      },
+      {
+        "name": "duplicate member name nested in a payload",
+        "text": "{\"event\":{\"payload\":{\"role\":\"speaker\",\"role\":\"moderator\"}}}"
+      },
+      {
+        "name": "unpaired high surrogate",
+        "text": "{\"a\":\"\\ud800\"}"
+      },
+      {
+        "name": "unpaired low surrogate",
+        "text": "{\"a\":\"\\udc00x\"}"
+      },
+      {
+        "name": "integer above the safe range",
+        "text": "{\"nonce\":9007199254740992}"
+      },
+      {
+        "name": "integer below the safe range",
+        "text": "{\"n\":-9007199254740992}"
+      }
+    ]
+  },
+  "events_closed_shape": {
+    "invalid": [
+      {
+        "name": "unknown top-level event field",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "created_at": 1779753600000,
+          "nonce": 1779753600000,
+          "payload": {
+            "id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+            "name": "ResearchAgent",
+            "capabilities": [
+              "research",
+              "code-review"
+            ],
+            "extra": {}
+          },
+          "audience": "https://api.example.com"
+        }
+      },
+      {
+        "name": "missing payload",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "created_at": 1779753600000,
+          "nonce": 1779753600000
+        }
+      }
+    ]
+  },
+  "max_seen_nonce": [
+    {
+      "name": "advance past a nearby header",
+      "next_nonce": 10,
+      "now_ms": 1000,
+      "header": "1500",
+      "accepted": true,
+      "next_after": 1501
+    },
+    {
+      "name": "ignore a header below the local sequence",
+      "next_nonce": 10,
+      "now_ms": 1000,
+      "header": "5",
+      "accepted": true,
+      "next_after": 10
+    },
+    {
+      "name": "accept the largest allowed jump",
+      "next_nonce": 10,
+      "now_ms": 1000,
+      "header": "4294968296",
+      "accepted": true,
+      "next_after": 4294968297
+    },
+    {
+      "name": "reject a jump beyond the bound",
+      "next_nonce": 10,
+      "now_ms": 1000,
+      "header": "4294968297",
+      "accepted": false
+    },
+    {
+      "name": "reject an exhausting header",
+      "next_nonce": 10,
+      "now_ms": 1000,
+      "header": "9007199254740990",
+      "accepted": false
+    }
+  ],
+  "origins": {
+    "valid": [
+      "https://api.example.com",
+      "https://api.example.com:8443",
+      "https://dmsg.net:0",
+      "https://127.0.0.1",
+      "https://[::1]",
+      "https://xn--nxasmq6b.example"
+    ],
+    "invalid": [
+      "https://API.example.com",
+      "https://api.example.com:443",
+      "https://api.example.com:08443",
+      "https://api.example.com/",
+      "https://api.example.com/v1",
+      "https://api.example.com?x",
+      "https://api.example.com#x",
+      "https://user@api.example.com",
+      "https://127.1",
+      "http://api.example.com",
+      "api.example.com",
+      "https://"
+    ]
+  },
+  "agent_urls": {
+    "valid": [
+      {
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+        "parsed": {
+          "agent_id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "routes": []
+        }
+      },
+      {
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw",
+        "parsed": {
+          "agent_id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "protocol": "mail",
+          "resource": "AAECAwQFBgcICQoLDA0ODw",
+          "routes": []
+        }
+      },
+      {
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw?route=https://relay.example&route=https://mirror.example:8443",
+        "parsed": {
+          "agent_id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "protocol": "mail",
+          "resource": "AAECAwQFBgcICQoLDA0ODw",
+          "routes": [
+            "https://relay.example",
+            "https://mirror.example:8443"
+          ]
+        }
+      },
+      {
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/knowledge/MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY?route=https://knowledge.example",
+        "parsed": {
+          "agent_id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "protocol": "knowledge",
+          "resource": "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY",
+          "routes": [
+            "https://knowledge.example"
+          ]
+        }
+      },
+      {
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw?route=https://profile.example",
+        "parsed": {
+          "agent_id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "routes": [
+            "https://profile.example"
+          ]
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "name": "fragment",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw#x"
+      },
+      {
+        "name": "unknown query parameter",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw?route=https://relay.example&card=1"
+      },
+      {
+        "name": "empty query",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw?"
+      },
+      {
+        "name": "empty route parameter",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw?route="
+      },
+      {
+        "name": "trailing slash",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw/"
+      },
+      {
+        "name": "single path segment",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail"
+      },
+      {
+        "name": "three path segments",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw/card"
+      },
+      {
+        "name": "empty path segment",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw//AAECAwQFBgcICQoLDA0ODw"
+      },
+      {
+        "name": "uppercase protocol name",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/Mail/AAECAwQFBgcICQoLDA0ODw"
+      },
+      {
+        "name": "percent-encoded resource",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0OD%77"
+      },
+      {
+        "name": "route is not an origin",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw?route=https://relay.example/v1"
+      },
+      {
+        "name": "route is not https",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw?route=http://relay.example"
+      },
+      {
+        "name": "duplicate route",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw?route=https://relay.example&route=https://relay.example"
+      },
+      {
+        "name": "nine routes",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw/mail/AAECAwQFBgcICQoLDA0ODw?route=https://r0.example&route=https://r1.example&route=https://r2.example&route=https://r3.example&route=https://r4.example&route=https://r5.example&route=https://r6.example&route=https://r7.example&route=https://r8.example"
+      },
+      {
+        "name": "malformed agent id",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw=/mail/AAECAwQFBgcICQoLDA0ODw"
+      },
+      {
+        "name": "whitespace",
+        "value": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw /mail/AAECAwQFBgcICQoLDA0ODw"
+      },
+      {
+        "name": "email-like form",
+        "value": "AAECAwQFBgcICQoLDA0ODw@relay.example"
+      },
+      {
+        "name": "https card URL",
+        "value": "https://relay.example/v1/mailboxes/AAECAwQFBgcICQoLDA0ODw/card"
+      }
+    ]
+  },
+  "request_jwts": {
+    "audience": "https://api.example.com",
+    "now_secs": 1779753700,
+    "max_ttl_secs": 300,
+    "valid": [
+      {
+        "name": "fresh token for the service origin",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTM2MDAsImV4cCI6MTc3OTc1MzkwMH0.IyFOwFhTcamQrVEYP9mo74TP0G8ARtahUCYMQbxXIhcRT5oigB_jybh0qiDjLt1554pyx9QECcJl4-pw9KikCw",
+        "claims": {
+          "iss": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "sub": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "aud": "https://api.example.com",
+          "iat": 1779753600,
+          "exp": 1779753900
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "name": "algorithm other than EdDSA",
+        "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTM2MDAsImV4cCI6MTc3OTc1MzkwMH0.mvbIaHv9eNhzHwpsbLFXiaPzjpaxOS2u-G-b2dnj4jS-6I0RNPebcKfsg84EAf2cuJK7KH_9t7y9VGS5KSM0Dg"
+      },
+      {
+        "name": "kid differs from iss",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDpFNWoyTEcwYVJYeFJ1bXBMWHoyOUwybjhxVElXSVkzSW1YNUJhOUY5azhvIn0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTM2MDAsImV4cCI6MTc3OTc1MzkwMH0.vxLEfv3y2EyQx0gOG2pJRVNhE8ECSRmhNRMxkXdgU359PRktng3ALhsr6Ihzalq-bqbi3p7dCTMqNg0lbga1Bg"
+      },
+      {
+        "name": "sub differs from iss",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDpFNWoyTEcwYVJYeFJ1bXBMWHoyOUwybjhxVElXSVkzSW1YNUJhOUY5azhvIiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTM2MDAsImV4cCI6MTc3OTc1MzkwMH0.Zn3klLC1YEd2loVMGiAvwYY7YNieK1mjLQgaVTnk5cF5zhIZtQK6HKFOO6xxKsj1rhaagIgQfDhJJwt6QcTQCw"
+      },
+      {
+        "name": "audience with a path",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20vdjEiLCJpYXQiOjE3Nzk3NTM2MDAsImV4cCI6MTc3OTc1MzkwMH0.JloO_dvWz7Uf3dIxJLE6pKru40ZA_rNfJW86vaDg133TMD1m3sNsYedVTGQQhCqneRpIYB4cLvs2L2s9h49wDQ"
+      },
+      {
+        "name": "audience of another origin",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9vdGhlci5leGFtcGxlLmNvbSIsImlhdCI6MTc3OTc1MzYwMCwiZXhwIjoxNzc5NzUzOTAwfQ.sIH4SUt333_BHH2zcub5mEDiC5sOrpRGxK79D8mKHfWBTHpeK2HBZOTHZeGcBvs7FLquWIkZyxTMehIGiSNbDA"
+      },
+      {
+        "name": "expired",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTMwMDAsImV4cCI6MTc3OTc1MzMwMH0.RuVHudCMGCYbKJ92S7VVrjrDZ2Rn6ZeqGiCiaJ8_nre4-7N9t_E56mXx3IxqIbWKi-CTg4lzpgAVZ-1xEMZwBg"
+      },
+      {
+        "name": "exp not after iat",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTM2NTAsImV4cCI6MTc3OTc1MzY1MH0.au7X33K1EOhhutwa8DcPSDkWvT4-s_pB8HZwNAGHU8S-i8Un001Mdu6JYQ0yAFZ8gfcfLwSk_G9aJy-OaEHUAg"
+      },
+      {
+        "name": "lifetime above the maximum",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTM2MDAsImV4cCI6MTc3OTc1NDYwMH0.hHXQb45eaOWetTfHXMye4io74OSjC9xHrdLUpFL-QhhFPiWH1hRswsTZtrnZ2RWJE7HdDQeBz4pLqGojgHBPAQ"
+      },
+      {
+        "name": "signed by a key other than kid",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTM2MDAsImV4cCI6MTc3OTc1MzkwMH0.FhnrrsqLZf7c7s6HzcA3f0Ey-wwu5_a6Omt5pbTTzctq8jOUKuNb3FgmC_Mqc65IsRIP-IFNbNecmiamdJTQDQ"
+      },
+      {
+        "name": "tampered signature",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTM2MDAsImV4cCI6MTc3OTc1MzkwMH0.ByFOwFhTcamQrVEYP9mo74TP0G8ARtahUCYMQbxXIhcRT5oigB_jybh0qiDjLt1554pyx9QECcJl4-pw9KikCw"
+      },
+      {
+        "name": "two compact parts",
+        "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3In0.eyJpc3MiOiJkaWQ6YWdlbnQ6Nmtwc1ktS2NVZ3EtOVZCN0V5N0YtWlZIZHE2LXZudVNRaDdxYVJSRzBpdyIsInN1YiI6ImRpZDphZ2VudDo2a3BzWS1LY1VncS05VkI3RXk3Ri1aVkhkcTYtdm51U1FoN3FhUlJHMGl3IiwiYXVkIjoiaHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzk3NTM2MDAsImV4cCI6MTc3OTc1MzkwMH0"
+      }
+    ]
+  },
+  "submissions": {
+    "window_ms": 300000,
+    "description": "Run the steps in order against one nonce store with the implementation's nonce cache validity. accepted lists the envelopes still in durable accepted history at that step.",
+    "envelopes": {
+      "E1": {
+        "hash": "95x2gsYiirwPPBCfNW6wDBpQlgfkh-N1JBXeQgUU-Oc",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "created_at": 1779753600000,
+          "nonce": 1779753600000,
+          "payload": {
+            "id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+            "name": "Submission one"
+          }
+        },
+        "signature": "5QwSLs3i92oGtEbgfqH6RMBqeJ21WHOV3dlWSdsyMx1U_IfMExLpRD-MCAWykQpYKfauWKIbPn_ARlGSsKOxBQ"
+      },
+      "E2": {
+        "hash": "qswIqeOlqXPDI_Rqb3ftbLLuEqoMNvGna4X0Af38ERE",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "created_at": 1779753601000,
+          "nonce": 1779753600000,
+          "payload": {
+            "id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+            "name": "Reused nonce"
+          }
+        },
+        "signature": "d_HpMc8bO90Wzs13Q_5bCyNDPgiyuDHSKjt8oOvYR8uzHvj6BIUbQlILabrl43PLuVihulLk4cYrhdPM-TdmBA"
+      },
+      "E3": {
+        "hash": "g0oRx_1i1dNzXMzyn2ynFNIKlSHEC7fl8g293yQCTWY",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+          "created_at": 1779753900000,
+          "nonce": 1779753900000,
+          "payload": {
+            "id": "did:agent:6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw",
+            "name": "Signed ahead of the clock"
+          }
+        },
+        "signature": "eINwysnXOUP91zkltXh1a7l1vhSnbF-sn_0s9TFr42t23Zb0zYtnpUOX0odjkePjz6X95OcHTfTyR73C_LfzCA"
+      }
+    },
+    "steps": [
+      {
+        "name": "accept a fresh envelope",
+        "envelope": "E1",
+        "now_ms": 1779753600000,
+        "accepted": [],
+        "expected": "accepted"
+      },
+      {
+        "name": "exact resubmission after the window is an idempotent lookup",
+        "envelope": "E1",
+        "now_ms": 1779753900001,
+        "accepted": [
+          "E1"
+        ],
+        "expected": "resubmission"
+      },
+      {
+        "name": "the same envelope after history pruning is a stale write",
+        "envelope": "E1",
+        "now_ms": 1779753900001,
+        "accepted": [],
+        "expected": "timestamp_out_of_window"
+      },
+      {
+        "name": "a different envelope reusing the nonce",
+        "envelope": "E2",
+        "now_ms": 1779753602000,
+        "accepted": [
+          "E1"
+        ],
+        "expected": "nonce_not_greater"
+      },
+      {
+        "name": "an envelope signed ahead of the receiver's clock",
+        "envelope": "E3",
+        "now_ms": 1779753601000,
+        "accepted": [
+          "E1"
+        ],
+        "expected": "accepted"
+      },
+      {
+        "name": "its replay after pruning while still inside the window",
+        "envelope": "E3",
+        "now_ms": 1779754051000,
+        "accepted": [],
+        "expected": "nonce_not_greater"
+      }
+    ]
+  }
+}

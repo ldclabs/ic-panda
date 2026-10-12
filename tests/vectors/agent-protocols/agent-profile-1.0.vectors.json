@@ -1,0 +1,566 @@
+{
+  "protocol": "agent-profile/1.0",
+  "description": "Normative Agent Profile 1.0 test vectors (Appendix A). Implementations MUST accept every valid payload for its actor, MUST reject every invalid payload, MUST materialize the history's latest update — the greatest nonce, not the latest created_at — with the listed document fields, and MUST verify the explicit_empty update, whose payload keeps explicit empty arrays and objects and an open principal descriptor member, and materialize exactly its document.",
+  "payloads": {
+    "valid": [
+      {
+        "name": "minimal",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal"
+        }
+      },
+      {
+        "name": "every optional field, an http link, and an open rel value",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "ResearchAgent-v3",
+          "description": "Focused on multimodal reasoning and alignment research.",
+          "avatar_url": "https://example.com/avatar.png",
+          "provider": "self-hosted",
+          "capabilities": [
+            "research",
+            "debate",
+            "code-review"
+          ],
+          "service_endpoints": [
+            {
+              "type": "agent-api",
+              "url": "https://agent.example.com/api",
+              "protocols": [
+                "agent-discourse/1.0"
+              ]
+            }
+          ],
+          "links": [
+            {
+              "name": "Homepage",
+              "url": "https://example.com",
+              "rel": "homepage"
+            },
+            {
+              "name": "Mirror",
+              "url": "http://mirror.example.com",
+              "rel": "podcast"
+            }
+          ],
+          "delegations": [
+            {
+              "id": "del_01J8ZM7A3G2T9B4Q6X8R0N1P2Q",
+              "principal": {
+                "id": "https://api.al.ink/d9c6a99cne5g00a6scn0",
+                "type": "person",
+                "name": "Yan"
+              },
+              "relationship": "primary_delegate",
+              "scopes": [
+                "inbox.screen",
+                "meeting.propose"
+              ]
+            }
+          ],
+          "extra": {
+            "domain": "research"
+          }
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "name": "payload id differs from actor",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:Q6cucUQBdi32a2jCbfvfJoKq7J8kdOykYT5CSg-6_Tw",
+          "name": "Minimal"
+        }
+      },
+      {
+        "name": "missing id",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "name": "No id"
+        }
+      },
+      {
+        "name": "missing name",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg"
+        }
+      },
+      {
+        "name": "empty name",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": ""
+        }
+      },
+      {
+        "name": "undefined top-level field",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "username": "anda"
+        }
+      },
+      {
+        "name": "service-derived updated_at inside the payload",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "updated_at": 1
+        }
+      },
+      {
+        "name": "service-derived event_id inside the payload",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "event_id": "cJg9aS9kgYX-vm1vpgdjCuaGSffm_EW5RoAJbAbk-ts"
+        }
+      },
+      {
+        "name": "non-HTTPS avatar",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "avatar_url": "http://example.com/avatar.png"
+        }
+      },
+      {
+        "name": "non-HTTPS service endpoint",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "service_endpoints": [
+            {
+              "type": "agent-api",
+              "url": "http://agent.example.com/api",
+              "protocols": [
+                "agent-discourse/1.0"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "duplicate service endpoints",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "service_endpoints": [
+            {
+              "type": "agent-api",
+              "url": "https://agent.example.com/api",
+              "protocols": [
+                "agent-discourse/1.0"
+              ]
+            },
+            {
+              "type": "agent-api",
+              "url": "https://agent.example.com/api",
+              "protocols": []
+            }
+          ]
+        }
+      },
+      {
+        "name": "link with a script scheme",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "links": [
+            {
+              "name": "Homepage",
+              "url": "javascript:alert(1)",
+              "rel": "homepage"
+            }
+          ]
+        }
+      },
+      {
+        "name": "duplicate links by url and rel",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "links": [
+            {
+              "name": "Homepage",
+              "url": "https://example.com",
+              "rel": "homepage"
+            },
+            {
+              "name": "Again",
+              "url": "https://example.com",
+              "rel": "homepage"
+            }
+          ]
+        }
+      },
+      {
+        "name": "undefined link field",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "links": [
+            {
+              "name": "Homepage",
+              "url": "https://example.com",
+              "rel": "homepage",
+              "icon": "https://example.com/i.png"
+            }
+          ]
+        }
+      },
+      {
+        "name": "duplicate capabilities",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "capabilities": [
+            "research",
+            "research"
+          ]
+        }
+      },
+      {
+        "name": "empty capability",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "capabilities": [
+            ""
+          ]
+        }
+      },
+      {
+        "name": "delegation hint with an invalid id",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "delegations": [
+            {
+              "id": "a/b",
+              "principal": {
+                "id": "https://api.al.ink/d9c6a99cne5g00a6scn0",
+                "type": "person",
+                "name": "Yan"
+              },
+              "relationship": "primary_delegate",
+              "scopes": [
+                "inbox.screen",
+                "meeting.propose"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "delegation hint without a principal",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "delegations": [
+            {
+              "id": "del_1"
+            }
+          ]
+        }
+      },
+      {
+        "name": "delegation hint with a non-HTTPS principal",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Minimal",
+          "delegations": [
+            {
+              "id": "del_01J8ZM7A3G2T9B4Q6X8R0N1P2Q",
+              "principal": {
+                "id": "http://example.com/p"
+              },
+              "relationship": "primary_delegate",
+              "scopes": [
+                "inbox.screen",
+                "meeting.propose"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "history": {
+    "envelopes": [
+      {
+        "hash": "7ydwZudjYz1Qa-rWRn1wr1gumVg8pAaVIzGtKyqwmvw",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "created_at": 1779753600000,
+          "nonce": 5,
+          "payload": {
+            "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+            "name": "Agent-v5",
+            "description": "Focused on multimodal reasoning and alignment research.",
+            "avatar_url": "https://example.com/avatar.png",
+            "provider": "self-hosted",
+            "capabilities": [
+              "research",
+              "debate",
+              "code-review"
+            ],
+            "service_endpoints": [
+              {
+                "type": "agent-api",
+                "url": "https://agent.example.com/api",
+                "protocols": [
+                  "agent-discourse/1.0"
+                ]
+              }
+            ],
+            "links": [
+              {
+                "name": "Homepage",
+                "url": "https://example.com",
+                "rel": "homepage"
+              },
+              {
+                "name": "Mirror",
+                "url": "http://mirror.example.com",
+                "rel": "podcast"
+              }
+            ],
+            "delegations": [
+              {
+                "id": "del_01J8ZM7A3G2T9B4Q6X8R0N1P2Q",
+                "principal": {
+                  "id": "https://api.al.ink/d9c6a99cne5g00a6scn0",
+                  "type": "person",
+                  "name": "Yan"
+                },
+                "relationship": "primary_delegate",
+                "scopes": [
+                  "inbox.screen",
+                  "meeting.propose"
+                ]
+              }
+            ],
+            "extra": {
+              "domain": "research"
+            }
+          }
+        },
+        "signature": "DF5wWoSeBtPnCmdCC3WlEUvzJl7ylwJju7RSp3AhDa7KWZlv6apEt3X9nAP-BzpgRkOdOkhQiCekdQJ2xHZdAA"
+      },
+      {
+        "hash": "9AYc65RVraVbrrBDXVIppP_ZDJSmbj2lnk-p0_Wi5l0",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "created_at": 1779753601000,
+          "nonce": 9,
+          "payload": {
+            "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+            "name": "Agent-v9",
+            "description": "Focused on multimodal reasoning and alignment research.",
+            "avatar_url": "https://example.com/avatar.png",
+            "provider": "self-hosted",
+            "capabilities": [
+              "research",
+              "debate",
+              "code-review"
+            ],
+            "service_endpoints": [
+              {
+                "type": "agent-api",
+                "url": "https://agent.example.com/api",
+                "protocols": [
+                  "agent-discourse/1.0"
+                ]
+              }
+            ],
+            "links": [
+              {
+                "name": "Homepage",
+                "url": "https://example.com",
+                "rel": "homepage"
+              },
+              {
+                "name": "Mirror",
+                "url": "http://mirror.example.com",
+                "rel": "podcast"
+              }
+            ],
+            "delegations": [
+              {
+                "id": "del_01J8ZM7A3G2T9B4Q6X8R0N1P2Q",
+                "principal": {
+                  "id": "https://api.al.ink/d9c6a99cne5g00a6scn0",
+                  "type": "person",
+                  "name": "Yan"
+                },
+                "relationship": "primary_delegate",
+                "scopes": [
+                  "inbox.screen",
+                  "meeting.propose"
+                ]
+              }
+            ],
+            "extra": {
+              "domain": "research"
+            }
+          }
+        },
+        "signature": "M93LqlQmRLGb2TWDXjwxczY3VMbPD3Y2BEjrjCRHR9ei4hpNax4ScGGb0LqAWogK_Tj8Sn88LFNy46ijQUkCDQ"
+      },
+      {
+        "hash": "5PKF79EYpB3tIi2I8yN7bVzx_AGKgAt5uGF9A5Q2SbA",
+        "event": {
+          "protocol": "agent-profile/1.0",
+          "type": "profile.update",
+          "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "created_at": 1779753602000,
+          "nonce": 7,
+          "payload": {
+            "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+            "name": "Agent-v7",
+            "description": "Focused on multimodal reasoning and alignment research.",
+            "avatar_url": "https://example.com/avatar.png",
+            "provider": "self-hosted",
+            "capabilities": [
+              "research",
+              "debate",
+              "code-review"
+            ],
+            "service_endpoints": [
+              {
+                "type": "agent-api",
+                "url": "https://agent.example.com/api",
+                "protocols": [
+                  "agent-discourse/1.0"
+                ]
+              }
+            ],
+            "links": [
+              {
+                "name": "Homepage",
+                "url": "https://example.com",
+                "rel": "homepage"
+              },
+              {
+                "name": "Mirror",
+                "url": "http://mirror.example.com",
+                "rel": "podcast"
+              }
+            ],
+            "delegations": [
+              {
+                "id": "del_01J8ZM7A3G2T9B4Q6X8R0N1P2Q",
+                "principal": {
+                  "id": "https://api.al.ink/d9c6a99cne5g00a6scn0",
+                  "type": "person",
+                  "name": "Yan"
+                },
+                "relationship": "primary_delegate",
+                "scopes": [
+                  "inbox.screen",
+                  "meeting.propose"
+                ]
+              }
+            ],
+            "extra": {
+              "domain": "research"
+            }
+          }
+        },
+        "signature": "gXsrJHJNg2zrbUBS5QOSNATFXgcQmuXXThTns4vYK94-49EwZfCMeBXC6d4DfU4Okq-mGGKu7PdiQTbqTaWOBw"
+      }
+    ],
+    "latest": {
+      "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+      "name": "Agent-v9",
+      "updated_at": 1779753601000,
+      "event_id": "9AYc65RVraVbrrBDXVIppP_ZDJSmbj2lnk-p0_Wi5l0"
+    }
+  },
+  "explicit_empty": {
+    "envelope": {
+      "hash": "AVdiyx6Ol9Iw-esR_kd0n36DrhCCJrUt0FHNQV-vixc",
+      "event": {
+        "protocol": "agent-profile/1.0",
+        "type": "profile.update",
+        "actor": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+        "created_at": 1779753600000,
+        "nonce": 11,
+        "payload": {
+          "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+          "name": "Explicit empties",
+          "capabilities": [],
+          "service_endpoints": [
+            {
+              "type": "agent-api",
+              "url": "https://agent.example.com/api",
+              "protocols": []
+            }
+          ],
+          "links": [],
+          "delegations": [
+            {
+              "principal": {
+                "id": "https://api.al.ink/d9c6a99cne5g00a6scn0",
+                "display": "kept as signed"
+              },
+              "scopes": []
+            }
+          ],
+          "extra": {}
+        }
+      },
+      "signature": "eSStJtcubkl2syuKycPOlh6EIhx_VWv7QQRFmwJn2746dzw-oDNquEulI6tQpsK2OLsTL9aeGlQIHU48YLJXAQ"
+    },
+    "document": {
+      "id": "did:agent:_RckOFqgx1tk-3jNYC-h2ZH96_drE8WO1wLqyDXp9hg",
+      "name": "Explicit empties",
+      "capabilities": [],
+      "service_endpoints": [
+        {
+          "type": "agent-api",
+          "url": "https://agent.example.com/api",
+          "protocols": []
+        }
+      ],
+      "links": [],
+      "delegations": [
+        {
+          "principal": {
+            "id": "https://api.al.ink/d9c6a99cne5g00a6scn0",
+            "display": "kept as signed"
+          },
+          "scopes": []
+        }
+      ],
+      "extra": {},
+      "updated_at": 1779753600000,
+      "event_id": "AVdiyx6Ol9Iw-esR_kd0n36DrhCCJrUt0FHNQV-vixc"
+    }
+  }
+}

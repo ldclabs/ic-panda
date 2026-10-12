@@ -3,6 +3,7 @@ members = [
   "src/dmsg_types",
   "src/dmsg_protocol",
   "src/dmsg_client",
+  "src/dmsg_agent",
   "src/dmsg_cli",
   "src/dmsg_runtime",
   "src/dmsg_handle",

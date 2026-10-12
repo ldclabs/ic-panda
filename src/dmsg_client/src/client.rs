@@ -32,6 +32,8 @@ use zeroize::Zeroizing;
 
 /// Fast unlock is refused this long after the last login unlock.
 pub const FAST_UNLOCK_MS: u64 = 7 * DAY;
+/// The agent connectors' state file in the workspace directory.
+const AGENT_RUNTIME: &str = "agents.sqlite";
 
 /// An authenticated login: an agent with the delegated session identity.
 pub(crate) struct Login {
@@ -145,6 +147,12 @@ impl Client {
     /// The deployment parameters.
     pub fn config(&self) -> &Config {
         &self.config
+    }
+
+    /// Where the agent connectors of this workspace keep their state; the
+    /// daemon's agent host owns the file, a reset removes it.
+    pub fn agent_runtime(&self) -> PathBuf {
+        self.dir.join(AGENT_RUNTIME)
     }
 
     /// The current status.
@@ -381,6 +389,10 @@ impl Client {
     pub fn reset(&mut self) -> Result<Status> {
         if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
             secure.delete(&name)?;
+            // Resident Agent ID copies go with the workspace.
+            for agent in self.agents()?.list {
+                secure.delete(&self.resident_name(&agent.agent_id)?)?;
+            }
         }
         self.shutdown();
         let environment = self.config.environment.clone();
@@ -390,6 +402,9 @@ impl Client {
             "workspace.sqlite",
             "workspace.sqlite-wal",
             "workspace.sqlite-shm",
+            AGENT_RUNTIME,
+            "agents.sqlite-wal",
+            "agents.sqlite-shm",
         ] {
             match std::fs::remove_file(self.dir.join(name)) {
                 Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
