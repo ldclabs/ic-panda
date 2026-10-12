@@ -2,7 +2,9 @@
  * dMsg desktop, main process. It owns the daemon connection and the owner
  * credential; windows are sandboxed renderers that reach the daemon only
  * through `policy.ts`. The approval window is the only place a request is
- * decided; `dmsg://` links and notifications only open views.
+ * decided; `dmsg://` links and notifications only open views. A packaged
+ * app installs its bundled `dmsg` first (`runtime.ts`) and updates itself
+ * from the tray once the daemon stopped for it (`updater.ts`).
  */
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, Notification, shell, Tray, type IpcMainInvokeEvent } from 'electron'
 import { readFileSync } from 'node:fs'
@@ -11,6 +13,8 @@ import { join, resolve } from 'node:path'
 import type { DaemonEvent } from '../shared/contract'
 import { Daemon, DaemonError } from './daemon'
 import { externalAllowed, parseLink, windowParams } from './policy'
+import { resolveRuntime } from './runtime'
+import { Updates } from './updater'
 
 const testMode = !app.isPackaged && process.env.DMSG_DESKTOP_TEST === '1'
 if (testMode) {
@@ -37,6 +41,8 @@ let tray: Tray | null = null
 let quitting = false
 let waiting = 0
 let pendingRoute: string | null = null
+let trayState = 'connecting'
+const updates = new Updates(() => updateTray(trayState))
 
 /** Login and pairing pages the desktop may open, from the home's configuration. */
 function pages(): { login: string[]; pairing: string[] } {
@@ -236,9 +242,38 @@ async function refreshWaiting(hint = false) {
   updateTray(status.state ?? 'unknown')
 }
 
+/** The tray's update item: nothing without a feed, else the feed's state. */
+function updateItem(): Electron.MenuItemConstructorOptions[] {
+  const state = updates.state
+  switch (state.kind) {
+    case 'off':
+      return []
+    case 'ready':
+      return [
+        {
+          label: `Restart to Update to ${state.version}`,
+          click: () =>
+            void updates.apply(
+              (method, params) => daemon.call(method, params),
+              () => {
+                quitting = true
+                daemon.close()
+              }
+            )
+        }
+      ]
+    case 'checking':
+    case 'downloading':
+      return [{ label: state.kind === 'checking' ? 'Checking for Updates…' : 'Downloading Update…', enabled: false }]
+    default:
+      return [{ label: 'Check for Updates', click: () => void updates.check() }]
+  }
+}
+
 function updateTray(state: string) {
+  trayState = state
   if (!tray) return
-  tray.setToolTip(`dMsg — ${state}${waiting ? `, ${waiting} waiting` : ''}`)
+  tray.setToolTip(`dMsg ${app.getVersion()} — ${state}${waiting ? `, ${waiting} waiting` : ''}`)
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: `dMsg: ${state}`, enabled: false },
@@ -246,6 +281,14 @@ function updateTray(state: string) {
       { type: 'separator' },
       { label: 'Open dMsg', click: () => showMain() },
       { label: 'Lock', click: () => void daemon.call('session/lock').catch(() => {}) },
+      { type: 'separator' },
+      ...updateItem(),
+      {
+        label: 'Open at Login',
+        type: 'checkbox',
+        checked: app.getLoginItemSettings().openAtLogin,
+        click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked, args: ['--hidden'] })
+      },
       { type: 'separator' },
       {
         label: 'Quit',
@@ -295,7 +338,16 @@ app.whenReady().then(async () => {
     tray = new Tray(icon)
     updateTray('connecting')
   }
-  showMain()
+  // Opened at login, the app starts in the tray.
+  if (!process.argv.includes('--hidden') && !app.getLoginItemSettings().wasOpenedAtLogin) showMain()
+  if (!daemon.options.fixed) {
+    try {
+      daemon.options.binary = (await resolveRuntime(app.isPackaged, process.resourcesPath)).binary
+    } catch (error) {
+      daemon.lastError = `dmsg install failed: ${error instanceof Error ? error.message : String(error)}`
+    }
+  }
+  updates.start()
   await daemon.connect()
   await refreshWaiting()
   const link = pendingRoute ?? process.argv.find((a) => a.startsWith('dmsg://'))

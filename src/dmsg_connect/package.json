@@ -12,7 +12,8 @@
     "build": "vite build",
     "serve": "node scripts/serve.mjs dist",
     "test": "node --test tests/*.test.ts",
-    "check": "tsc --noEmit -p tsconfig.json"
+    "check": "tsc --noEmit -p tsconfig.json",
+    "assets": "node scripts/assets.ts"
   },
   "dependencies": {
     "@hpke/core": "^1.9.0",

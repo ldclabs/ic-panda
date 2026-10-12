@@ -1,10 +1,11 @@
 /**
- * The desktop's connection to its `dmsg` daemon: the owner credential from
- * `dmsg app-token`, then JSON-RPC and events over `/ws/app/v1`. The daemon
- * holds every key; the desktop never starts a second one.
+ * The desktop's connection to its `dmsg` daemon: `dmsg start` (which starts
+ * the daemon unless one runs), the owner credential from `dmsg app-token`,
+ * then JSON-RPC and events over `/ws/app/v1`. The daemon holds every key;
+ * the desktop never starts a second one.
  */
 import { EventEmitter } from 'node:events'
-import { execFile, spawn } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import WebSocket from 'ws'
 import type { DaemonEvent } from '../shared/contract'
@@ -22,7 +23,7 @@ export class DaemonError extends Error {
 }
 
 export interface DaemonOptions {
-  /** The `dmsg` binary. */
+  /** The `dmsg` binary; `runtime.ts` sets the installed one. */
   binary: string
   /** The dMsg home. */
   home: string
@@ -49,30 +50,11 @@ export class Daemon extends EventEmitter {
   /** The daemon's address and owner credential, starting the daemon if it is not running. */
   private async credential(): Promise<{ url: string; token: string }> {
     if (this.options.fixed) return this.options.fixed
-    const ask = async () => {
-      const { stdout } = await run(this.options.binary, ['--home', this.options.home, 'app-token'], {
-        timeout: 15_000
-      })
-      return JSON.parse(stdout.trim().split('\n').pop()!) as { url: string; token: string }
-    }
-    try {
-      return await ask()
-    } catch {
-      const child = spawn(this.options.binary, ['--home', this.options.home, 'daemon'], {
-        detached: true,
-        stdio: 'ignore'
-      })
-      child.unref()
-      for (let i = 0; i < 30; i++) {
-        await new Promise((r) => setTimeout(r, 500))
-        try {
-          return await ask()
-        } catch {
-          /* still starting */
-        }
-      }
-      throw new DaemonError('DAEMON_STOPPED', 'The dmsg daemon did not start')
-    }
+    const home = ['--home', this.options.home]
+    // Returns once the daemon answers; a bad config.toml fails here.
+    await run(this.options.binary, [...home, 'start'], { timeout: 45_000 })
+    const { stdout } = await run(this.options.binary, [...home, 'app-token'], { timeout: 15_000 })
+    return JSON.parse(stdout.trim().split('\n').pop()!) as { url: string; token: string }
   }
 
   async connect(): Promise<void> {

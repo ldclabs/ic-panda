@@ -1,0 +1,41 @@
+# Local packages: ad-hoc signed, no update feed. Releases use
+# electron-builder.release.cjs, which adds signing, notarization and the feed.
+appId: net.dmsg.desktop
+productName: dMsg
+directories:
+  output: release
+  buildResources: resources
+files:
+  - out/**
+  - resources/trayTemplate*.png
+  - package.json
+asar: true
+electronDist: node_modules/electron/dist
+extraResources:
+  # The release's own dmsg (scripts/prepare-runtime.mjs). The app only runs
+  # it as `dmsg install`, which puts it at the shared CLI location; the app
+  # then runs the installed one.
+  - from: resources/runtime
+    to: runtime
+mac:
+  identity: '-'
+  # The bundled dmsg keeps the signature of the release binary, byte for byte.
+  signIgnore:
+    - /Contents/Resources/runtime/dmsg$
+  category: public.app-category.productivity
+  target: [dmg, zip]
+  hardenedRuntime: true
+  entitlements: resources/entitlements.local.plist
+  entitlementsInherit: resources/entitlements.local.plist
+win:
+  target: [nsis]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+protocols:
+  - name: dMsg
+    schemes: [dmsg]
+# Stable names let the install page and Homebrew link to the latest release.
+artifactName: dMsg-${os}-${arch}.${ext}

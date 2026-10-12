@@ -12,6 +12,13 @@
 //! `background_online` the device key stays for sending and fetching
 //! ciphertext. `sync_interval_minutes` adds a scheduled sync.
 //!
+//! `daemon/stop` with `if_idle` (updates and restarts) first refuses new
+//! requests and background passes, waits for the running operation, and
+//! then stops only if nothing approved, no account update and no root
+//! rotation is left unsettled; otherwise it answers what is in flight and
+//! keeps running (plan DT10). Without `if_idle` it stops after the running
+//! operation; unsettled work resumes after the restart either way.
+//!
 //! Approval requests are answered only through `approval/respond` with
 //! `human: true`, which only the desktop approval window and an interactive
 //! terminal send. An agent's MCP session (`dmsg mcp`) presents its own
@@ -48,7 +55,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::{
-    atomic::{AtomicU64, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
     Arc,
 };
 use tokio::sync::{broadcast, Mutex, Notify};
@@ -154,6 +161,8 @@ pub(crate) struct Daemon {
     client: Mutex<Client>,
     login: std::sync::Mutex<LoginState>,
     activity: AtomicU64,
+    /// Set while a stop decides; new requests and background passes wait it out.
+    stopping: AtomicBool,
     stop: Notify,
     events: broadcast::Sender<Value>,
     seq: AtomicU64,
@@ -238,6 +247,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         client: Mutex::new(client),
         login: std::sync::Mutex::new(LoginState::default()),
         activity: AtomicU64::new(now_ms()),
+        stopping: AtomicBool::new(false),
         stop: Notify::new(),
         events: broadcast::channel(256).0,
         seq: AtomicU64::new(0),
@@ -287,6 +297,9 @@ async fn background(daemon: Arc<Daemon>) {
         tokio::select! {
             _ = tokio::time::sleep(std::time::Duration::from_millis(FLUSH_MS)) => {}
             _ = daemon.wake.notified() => polled = 0,
+        }
+        if daemon.stopping() {
+            continue;
         }
         let now = now_ms();
         let mut client = daemon.client.lock().await;
@@ -349,6 +362,32 @@ impl Daemon {
         let _ = self
             .events
             .send(json!({"seq": seq, "type": kind, "data": data}));
+    }
+
+    /// Whether a stop is deciding or decided.
+    pub(crate) fn stopping(&self) -> bool {
+        self.stopping.load(Ordering::SeqCst)
+    }
+
+    /// Stop after the running operation. With `if_idle`, keep running and
+    /// answer what is in flight when anything is.
+    async fn stop(&self, if_idle: bool) -> Result<Value> {
+        self.stopping.store(true, Ordering::SeqCst);
+        // Waiting readers return now instead of at their deadline.
+        self.mcp.arrived.notify_waiters();
+        let in_flight = match self.client.lock().await.in_flight() {
+            Ok(in_flight) => in_flight,
+            Err(error) => {
+                self.stopping.store(false, Ordering::SeqCst);
+                return Err(error);
+            }
+        };
+        if if_idle && in_flight.any() {
+            self.stopping.store(false, Ordering::SeqCst);
+            return Ok(json!({"stopped": false, "in_flight": in_flight}));
+        }
+        self.stop.notify_one();
+        Ok(json!({"stopped": true, "in_flight": in_flight}))
     }
 
     /// Wake the background loop, such as on a hint.
@@ -647,10 +686,7 @@ impl Daemon {
                 }
                 Ok(to_json(&client.reset()?))
             }
-            "daemon/stop" => {
-                self.stop.notify_one();
-                Ok(Value::Null)
-            }
+            "daemon/stop" => self.stop(params["if_idle"] == true).await,
             "daemon/status" => self.status().await,
             "app/initialize" => Ok(json!({
                 "protocol": APP_PROTOCOL,
@@ -943,6 +979,19 @@ impl Daemon {
         }
         let method = request.method.as_str();
         let agent_method = crate::agents::AGENT_METHODS.contains(&method);
+        if self.stopping()
+            && !matches!(
+                method,
+                "daemon/status" | "session/status" | "app/initialize" | "events/poll"
+            )
+        {
+            let error = Error::Unavailable("the daemon is stopping".into());
+            return json!({
+                "jsonrpc": "2.0",
+                "id": request.id,
+                "error": {"code": -32000, "message": error.to_string(), "data": {"code": error_code(&error)}},
+            });
+        }
         if !METHODS.contains(&method)
             && !crate::methods::METHODS.contains(&method)
             && !crate::agents::METHODS.contains(&method)

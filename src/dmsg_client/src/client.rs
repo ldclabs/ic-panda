@@ -80,6 +80,26 @@ pub struct Status {
     pub sealed_requests: u64,
 }
 
+/// Work that started and has not settled. All of it is journaled and resumes
+/// after a restart; an update waits for it rather than leaving it to
+/// reconciliation.
+#[derive(Serialize, Clone, Debug, Default, PartialEq, Eq)]
+pub struct InFlight {
+    /// Approved requests whose outcome is not known yet.
+    pub approvals: u64,
+    /// An account update whose outcome is not known yet; read while unlocked.
+    pub account_update: bool,
+    /// A root rotation that has not committed.
+    pub root_rotation: bool,
+}
+
+impl InFlight {
+    /// Whether anything is in flight.
+    pub fn any(&self) -> bool {
+        self.approvals > 0 || self.account_update || self.root_rotation
+    }
+}
+
 /// A device's client.
 pub struct Client {
     pub(crate) config: Config,
@@ -187,6 +207,22 @@ impl Client {
             last_sync: self.last_sync()?,
             approvals_waiting: self.approvals_waiting()?,
             sealed_requests: self.sealed_requests()?,
+        })
+    }
+
+    /// What has started and not settled.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when storage fails.
+    pub fn in_flight(&self) -> Result<InFlight> {
+        Ok(InFlight {
+            approvals: self.approvals_unsettled()?,
+            account_update: self.keys.is_some() && self.pending()?.is_some(),
+            root_rotation: self
+                .workspace
+                .store
+                .sealed(crate::root::ROOT_JOB)?
+                .is_some(),
         })
     }
 

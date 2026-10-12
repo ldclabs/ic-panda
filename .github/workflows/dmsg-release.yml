@@ -1,0 +1,228 @@
+name: dMsg release
+# The dMsg client: the dmsg CLI and daemon for macOS, Linux and Windows, and
+# the desktop app for macOS and Windows, in one release tagged dmsg-v<version>.
+# It is the repository's latest release, which `dmsg update`, the install
+# scripts and the desktop update feed read; canister releases (v*) are not.
+#
+# Secrets of the dmsg-release environment (all optional; without them the
+# packages are unsigned and the macOS app has no update feed):
+#   MAC_CSC_LINK, MAC_CSC_KEY_PASSWORD   Developer ID Application .p12 (base64) and password
+#   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID   notarization
+#   WIN_CSC_LINK, WIN_CSC_KEY_PASSWORD   Windows code signing; variable DMSG_WINDOWS_PUBLISHER
+#   HOMEBREW_TAP_TOKEN                   write access to ldclabs/homebrew-tap
+on:
+  push:
+    tags:
+      - "dmsg-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      # One version for the tag, the dmsg binary and the desktop app.
+      - id: version
+        run: |
+          cli=$(sed -n 's/^version = "\(.*\)"/\1/p' src/dmsg_cli/Cargo.toml | head -1)
+          desktop=$(node -p "require('./src/dmsg_desktop/package.json').version")
+          [ "$cli" = "$desktop" ] || { echo "dmsg_cli is $cli, the desktop is $desktop"; exit 1; }
+          if [ "${GITHUB_REF_TYPE}" = tag ] && [ "${GITHUB_REF_NAME}" != "dmsg-v$cli" ]; then
+            echo "tag ${GITHUB_REF_NAME} does not name dmsg $cli"; exit 1
+          fi
+          echo "version=$cli" >> "$GITHUB_OUTPUT"
+
+  binary:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            asset: dmsg-macos-arm64
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            asset: dmsg-linux-x86_64
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            asset: dmsg-linux-arm64
+          # Not yet verified on Windows; its failure does not hold the release.
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset: dmsg-windows-x64.exe
+            optional: true
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.optional == true }}
+    steps:
+      - uses: actions/checkout@v7
+      # Keep in step with rust-toolchain.toml.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.1
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        shell: bash
+        run: |
+          cargo build --release --locked -p dmsg_cli --target ${{ matrix.target }}
+          mkdir release
+          exe=dmsg; [ "$RUNNER_OS" = Windows ] && exe=dmsg.exe
+          cp "target/${{ matrix.target }}/release/$exe" "release/${{ matrix.asset }}"
+          "release/${{ matrix.asset }}" --version
+      - name: Checksum
+        shell: bash
+        working-directory: release
+        run: |
+          if command -v sha256sum >/dev/null; then sum="sha256sum"; else sum="shasum -a 256"; fi
+          $sum "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.asset }}
+          path: release/*
+          if-no-files-found: error
+
+  # Its own job, so only it and the desktop jobs see the signing secrets.
+  sign-macos:
+    needs: binary
+    runs-on: macos-latest
+    environment: dmsg-release
+    steps:
+      - uses: actions/checkout@v7
+      - id: signing
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+        run: |
+          if [ -n "$MAC_CSC_LINK" ]; then echo "configured=true" >> "$GITHUB_OUTPUT"
+          else echo "No Developer ID certificate; the macOS binary stays ad hoc signed."; fi
+      - if: steps.signing.outputs.configured == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dmsg-macos-arm64
+          path: release
+      - if: steps.signing.outputs.configured == 'true'
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          scripts/dmsg/sign-macos.sh release/dmsg-macos-arm64
+          release/dmsg-macos-arm64 --version
+          (cd release && shasum -a 256 dmsg-macos-arm64 > dmsg-macos-arm64.sha256)
+      - if: steps.signing.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dmsg-macos-arm64
+          path: release/*
+          overwrite: true
+
+  desktop:
+    needs: [binary, sign-macos]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            asset: dmsg-macos-arm64
+          - os: windows-latest
+            asset: dmsg-windows-x64.exe
+            optional: true
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.optional == true }}
+    environment: dmsg-release
+    env:
+      # The package bundles this release's own dmsg, byte for byte.
+      DMSG_DESKTOP_RUNTIME: ${{ github.workspace }}/runtime/${{ matrix.asset }}
+    steps:
+      - uses: actions/checkout@v7
+      # The pnpm version pinned by packageManager in the root package.json.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @dmsg/desktop
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-${{ matrix.asset }}
+          path: runtime
+      - name: Prepare
+        shell: bash
+        run: |
+          chmod +x "$DMSG_DESKTOP_RUNTIME"
+          pnpm --dir src/dmsg_desktop build
+          node src/dmsg_desktop/scripts/prepare-runtime.mjs
+      - id: config
+        shell: bash
+        env:
+          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
+        run: |
+          # A macOS feed needs the Developer ID signature; Windows publishes one either way.
+          if [ -n "$CSC_LINK" ] || [ "$RUNNER_OS" = Windows ]; then
+            echo "file=electron-builder.release.cjs" >> "$GITHUB_OUTPUT"
+          else
+            echo "No Developer ID certificate; the macOS app is unsigned and has no update feed."
+            echo "file=electron-builder.yml" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Package
+        shell: bash
+        working-directory: src/dmsg_desktop
+        env:
+          CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ runner.os == 'macOS' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          DMSG_WINDOWS_PUBLISHER: ${{ vars.DMSG_WINDOWS_PUBLISHER }}
+        run: pnpm exec electron-builder --config ${{ steps.config.outputs.file }} --publish never
+      - name: Collect
+        shell: bash
+        run: |
+          mkdir desktop-release
+          cp src/dmsg_desktop/release/dMsg-* desktop-release/
+          for feed in latest-mac.yml latest.yml; do
+            [ -f "src/dmsg_desktop/release/$feed" ] && cp "src/dmsg_desktop/release/$feed" desktop-release/
+          done
+          cd desktop-release
+          if command -v sha256sum >/dev/null; then sum="sha256sum"; else sum="shasum -a 256"; fi
+          for file in dMsg-*.dmg dMsg-*.zip dMsg-*.exe; do
+            [ -f "$file" ] && $sum "$file" > "$file.sha256"
+          done
+          ls -la
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-desktop-${{ matrix.os }}
+          path: desktop-release/*
+          if-no-files-found: error
+
+  release:
+    needs: [version, binary, sign-macos, desktop]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    environment: dmsg-release
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release
+      - uses: softprops/action-gh-release@v3
+        with:
+          name: dMsg ${{ needs.version.outputs.version }}
+          files: release/*
+          make_latest: true
+      - name: Homebrew
+        env:
+          CHECKSUM_DIR: release
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then echo "No HOMEBREW_TAP_TOKEN; the tap is not updated."; exit 0; fi
+          scripts/dmsg/publish-homebrew.sh "$GITHUB_REF_NAME"

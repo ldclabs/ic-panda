@@ -15,6 +15,7 @@ cryptography, storage and protocol logic live in
 | `owner.token` | Owner credential with `secure_storage = "file"`, readable only by its owner |
 | `daemon.json` | Port, process and instance ID of the running daemon |
 | `dmsg-daemon.lock` | Held by the running daemon: one daemon per home |
+| `logs/daemon.log` | Diagnostics of a daemon started by `dmsg start` or at login |
 | `<environment>/workspace.sqlite` | The device's workspace: encrypted versions and chunks, sealed records, sync jobs |
 | `<environment>/agents.sqlite` | Agent Protocols connector state of the hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
 
@@ -54,6 +55,60 @@ sender policy. The connectors' requests follow no redirect.
 in the system credential store (Keychain, Credential Manager, Secret Service)
 under the service `dmsg`. `"file"`, the default elsewhere, keeps the owner
 credential in `owner.token`; fast unlock is then unavailable.
+
+## Install, start and update
+
+```sh
+dmsg start                       # the daemon in the background, unless one runs
+dmsg stop                        # after the running operation; returns once it exited
+dmsg restart [--interrupt] [--wait 60]
+dmsg install [--dir D]           # this binary to the shared location
+dmsg update [--check] [--force] [--interrupt] [--wait 60]
+dmsg autostart install | uninstall | status
+dmsg validate-config
+```
+
+[`scripts/dmsg/install.sh`](../../scripts/dmsg/install.sh) (macOS Apple
+Silicon, Linux) and [`install.ps1`](../../scripts/dmsg/install.ps1) (Windows
+x64) download the latest release, check its SHA-256 and run `dmsg install`;
+`--uninstall`/`-Uninstall` stops the daemon and removes the login registration
+and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
+
+- **One binary.** `dmsg install` puts the running binary at the shared
+  location (`DMSG_INSTALL_DIR`, else `~/.local/bin`, or
+  `%LOCALAPPDATA%\dMsg\bin` on Windows, outside the desktop app's install
+  directory) unless the one there is the same release or newer, or Homebrew's
+  (left to `brew upgrade dmsg`). The desktop app runs its bundled copy only
+  this way and then runs the installed one, so the CLI, agents and the app
+  share one daemon. `--json` reports `{action, path, version, on_path}` with
+  `action` one of `installed`, `upgraded`, `current`, `kept_newer`,
+  `homebrew`.
+- **Releases.** dMsg client releases are tagged `dmsg-v<version>` and are the
+  repository's latest release (canister releases are not).
+  `dmsg update --check --json` reports `{current, latest, available,
+  homebrew}`. `dmsg update` downloads this platform's binary
+  (`dmsg-macos-arm64`, `dmsg-linux-x86_64`, `dmsg-linux-arm64`,
+  `dmsg-windows-x64.exe`), checks it against the release's `.sha256` and, when
+  this binary is signed by a Developer ID team, that the new one verifies and
+  is signed by the same team; then it replaces this binary through a staged
+  file. `DMSG_RELEASE_URL` replaces `https://github.com/ldclabs/ic-panda/releases`
+  (tests, mirrors).
+- **Stopping for an update** (plan DT10). `restart` and `update` stop a
+  running daemon with `daemon/stop {if_idle: true}`: the daemon refuses new
+  requests and background passes, waits for the running operation and stops
+  only if no approved request, account update or root rotation is left
+  unsettled; otherwise it keeps running and answers what is in flight. The
+  command asks again every two seconds for `--wait` seconds and then fails with
+  `BUSY`, replacing nothing. Locked, unsettled work cannot reconcile, so unlock
+  first, or use `--interrupt`: the work is journaled and resumes after the
+  restart. An update starts the new daemon and checks the version it reports;
+  the new daemon is locked. Requests waiting for a person and unsynced
+  versions are kept either way.
+- **At login.** `dmsg autostart install` registers this binary with this home:
+  a LaunchAgent `net.dmsg.daemon` on macOS, a systemd user unit `dmsg.service`
+  (XDG autostart without a user systemd) on Linux, the user's `Run` value
+  `dMsg` running `dmsg start` on Windows. It takes effect at the next login;
+  `uninstall` leaves a running daemon alone.
 
 ## Commands
 
@@ -275,7 +330,10 @@ The daemon listens on `127.0.0.1` only.
   `agent/grant|revoke|credentials|delegations`,
   `agent/ids|create|use|resident|credential`, `grants/list|add|revoke`,
   `ap/call`, `mcp-events/create|list|rotate|delete|bind|poll|ack|status`,
-  `hint/status`, `workspace/reset`, `daemon/stop`.
+  `hint/status`, `workspace/reset`, `daemon/stop {if_idle?}` →
+  `{stopped, in_flight: {approvals, account_update, root_rotation}}`. While a
+  stop decides or after it, every method but `app/initialize`,
+  `daemon/status`, `session/status` and `events/poll` answers `UNAVAILABLE`.
 - An Agent ID's credential (`Bearer dmsg-agent-…`) reaches only `POST /app/v1`
   and only `mcp/tools` and `mcp/call {tool, input, mcp_session?}`, as that
   Agent ID; a waiting `dmsg_events_next` is not activity; the

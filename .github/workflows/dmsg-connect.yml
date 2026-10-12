@@ -1,0 +1,44 @@
+name: dmsg-connect release
+# The connect.dmsg.net bridge page (asset canister dmsg_connect), tagged
+# dmsg-connect-v<version>: built twice from src/dmsg_connect/connect.production.json
+# (identical asset hashes, or the job fails), then released with its asset
+# manifest and the built files. Deploy that dist, then check the canister with
+# `pnpm --dir src/dmsg_connect assets verify dmsg-connect-assets.json <canister>`.
+on:
+  push:
+    tags:
+      - "dmsg-connect-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      DMSG_CONNECT_CONFIG: ${{ github.workspace }}/src/dmsg_connect/connect.production.json
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "@dmsg/connect..."
+      - run: pnpm --dir packages/dmsg-sdk build
+      - name: Build twice
+        run: |
+          [ -f "$DMSG_CONNECT_CONFIG" ] || { echo "Commit src/dmsg_connect/connect.production.json first"; exit 1; }
+          for n in 1 2; do
+            DMSG_CONNECT_OUT="$RUNNER_TEMP/dist$n" pnpm --dir src/dmsg_connect build
+            pnpm --silent --dir src/dmsg_connect assets manifest "$RUNNER_TEMP/dist$n" > "$RUNNER_TEMP/manifest$n.json"
+          done
+          cmp "$RUNNER_TEMP/manifest1.json" "$RUNNER_TEMP/manifest2.json"
+          mkdir out
+          cp "$RUNNER_TEMP/manifest1.json" out/dmsg-connect-assets.json
+          tar -C "$RUNNER_TEMP/dist1" -czf out/dmsg-connect-dist.tar.gz .
+          cat out/dmsg-connect-assets.json
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: out/*
+          make_latest: false

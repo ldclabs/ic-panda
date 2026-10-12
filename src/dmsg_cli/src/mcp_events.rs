@@ -44,7 +44,7 @@ const MAX_JWKS: usize = 64 * 1024;
 /// The fetch loop's signals, its last report and the upstream keys.
 pub(crate) struct McpEvents {
     wake: Notify,
-    arrived: Notify,
+    pub(crate) arrived: Notify,
     http: reqwest::Client,
     state: std::sync::Mutex<State>,
 }
@@ -124,6 +124,9 @@ pub(crate) async fn run(daemon: Arc<Daemon>) {
         tokio::select! {
             _ = tokio::time::sleep(Duration::from_millis(FETCH_MS)) => {}
             _ = daemon.mcp().wake.notified() => {}
+        }
+        if daemon.stopping() {
+            continue;
         }
         daemon.fetch_events().await;
         tokio::time::sleep(Duration::from_millis(SPACING_MS)).await;
@@ -299,7 +302,7 @@ impl Daemon {
                 .await
                 .mcp_events_read(filter, after, limit)?;
             let empty = page["events"].as_array().is_none_or(Vec::is_empty);
-            if !empty || tokio::time::Instant::now() >= deadline {
+            if !empty || tokio::time::Instant::now() >= deadline || self.stopping() {
                 page["nextPollMs"] = if page["hasMore"] == true { 0 } else { 5_000 }.into();
                 return Ok(page);
             }

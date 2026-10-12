@@ -58,11 +58,34 @@ injects nothing that conflicts) and `dist/.well-known/ic-domains` from
 pnpm --dir packages/dmsg-sdk build           # the bridge imports dmsg-sdk
 DMSG_CONNECT_CONFIG=connect.config.json pnpm --dir src/dmsg_connect build
 pnpm --dir src/dmsg_connect serve            # dist with the canister's headers and aliases
-icp deploy dmsg_connect -e ic                # uploads dist; record the asset hashes
+icp deploy dmsg_connect -e ic                # uploads dist; see Release
 ```
 
 The relay must list the page's origin as `CONNECT_ORIGIN`, and daemons use it
 as `connect_url` (default `https://connect.dmsg.net`).
+
+## Release
+
+Every pairing browser runs whatever this canister serves, so each release
+records what it serves. `node scripts/assets.ts manifest [dist]` (or `pnpm
+assets manifest`) writes the SHA-256 of every file the canister serves, of
+`.ic-assets.json5` (the headers), the build config and the commit, with one
+`sha256` over the listing; two builds of one commit and config give the same
+manifest. The `dmsg-connect-v*` tag runs `.github/workflows/dmsg-connect.yml`:
+it builds `connect.production.json` twice, fails unless both manifests are
+equal, and releases `dmsg-connect-assets.json` with
+`dmsg-connect-dist.tar.gz`. Deploy that dist (the canister's own approval
+flow), then check what the canister serves against the manifest:
+
+```sh
+pnpm --dir src/dmsg_connect assets verify dmsg-connect-assets.json acjs3-cyaaa-aaaas-qg7da-cai
+```
+
+`verify` reads the canister's asset list anonymously and fails on any
+missing, extra or different file. `connect.production.json` is committed
+once the relay's production origin is fixed. Before an upgrade, run the
+desktop browser tests against staging; to roll back, deploy the previous
+release's dist.
 
 ## Tests
 

@@ -60,3 +60,6 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: out/*
+          # The latest release is the dMsg client's (dmsg-release.yml), which
+          # `dmsg update` and the desktop app's update feed read.
+          make_latest: false

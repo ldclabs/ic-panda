@@ -40,7 +40,7 @@ const MAX_CHAIN: usize = 256;
 /// Most devices one bundle wraps to.
 const MAX_RECIPIENTS: usize = 16;
 const ROOT: &str = "root";
-const ROOT_JOB: &str = "root-job";
+pub(crate) const ROOT_JOB: &str = "root-job";
 
 /// A signed RootBundle v2.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

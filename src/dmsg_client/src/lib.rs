@@ -35,7 +35,7 @@ pub mod vault;
 pub mod wallet;
 pub mod workspace;
 
-pub use client::{Client, Status};
+pub use client::{Client, InFlight, Status};
 use dmsg_types::Error;
 
 /// The current time in Unix milliseconds.

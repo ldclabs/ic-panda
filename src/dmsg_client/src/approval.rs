@@ -343,6 +343,18 @@ impl Client {
             .collect()
     }
 
+    /// Approved requests whose outcome is not settled; readable while locked.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when storage fails.
+    pub fn approvals_unsettled(&self) -> Result<u64> {
+        Ok(self
+            .workspace
+            .store
+            .approvals(&[State::Executing.name(), State::Unknown.name()])?
+            .len() as u64)
+    }
+
     /// Requests waiting for a decision; readable while locked.
     ///
     /// # Errors

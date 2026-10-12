@@ -3,15 +3,18 @@
 
 mod agent_commands;
 mod agents;
+mod autostart;
 mod channels;
 mod commands;
 mod daemon;
 mod event_commands;
 mod hints;
 mod home;
+mod lifecycle;
 mod mcp;
 mod mcp_events;
 mod methods;
+mod release;
 mod remote;
 mod secure;
 
@@ -47,8 +50,51 @@ enum Command {
     },
     /// Show the daemon and session status.
     Status,
-    /// Stop the daemon.
+    /// Start the daemon in the background; its diagnostics go to
+    /// `<home>/logs/daemon.log`.
+    Start,
+    /// Stop the daemon after the running operation.
     Stop,
+    /// Restart the daemon once no approved request, account update or root
+    /// rotation is left unsettled.
+    Restart {
+        /// Restart even with work in flight; it resumes afterwards.
+        #[arg(long)]
+        interrupt: bool,
+        /// Seconds to wait for work in flight to settle.
+        #[arg(long, default_value_t = 60)]
+        wait: u64,
+    },
+    /// Copy this binary to the shared location (`~/.local/bin`, or
+    /// `%LOCALAPPDATA%\dMsg\bin`) unless the one there is newer or
+    /// Homebrew's; the desktop app runs its bundled copy with this.
+    Install {
+        /// Install into this directory instead.
+        #[arg(long)]
+        dir: Option<PathBuf>,
+    },
+    /// Update this binary to the latest release, verified by its SHA-256
+    /// (and, on macOS, its signer), and restart a running daemon the way
+    /// `restart` does.
+    Update {
+        /// Only report whether an update is available.
+        #[arg(long)]
+        check: bool,
+        /// Install the latest release even when it is not newer.
+        #[arg(long)]
+        force: bool,
+        /// Restart even with work in flight; it resumes afterwards.
+        #[arg(long)]
+        interrupt: bool,
+        /// Seconds to wait for work in flight to settle.
+        #[arg(long, default_value_t = 60)]
+        wait: u64,
+    },
+    /// Start the daemon when this user logs in.
+    #[command(subcommand)]
+    Autostart(AutostartCommand),
+    /// Check `config.toml` without starting anything.
+    ValidateConfig,
     /// Log in with Internet Identity through the dMsg login page.
     Login {
         /// Derivation origin: dmsg.net or, for older logins, panda.fans.
@@ -268,6 +314,16 @@ enum BrowsersCommand {
         /// Pairing ID.
         pairing: String,
     },
+}
+
+#[derive(Subcommand)]
+enum AutostartCommand {
+    /// Register this binary to start the daemon at login.
+    Install,
+    /// Remove the registration; a running daemon keeps running.
+    Uninstall,
+    /// Whether the registration exists.
+    Status,
 }
 
 #[derive(Subcommand)]
@@ -837,6 +893,107 @@ fn open_browser(url: &str) -> bool {
     command.arg(url).status().is_ok_and(|s| s.success())
 }
 
+/// Starting, stopping for an update, installing and the login
+/// registration: commands that need no running daemon.
+async fn lifecycle_command(
+    home: &Home,
+    json: bool,
+    command: &Command,
+) -> Option<Result<(), Failure>> {
+    let exe = || std::env::current_exe().map_err(|e| Failure::new("UNAVAILABLE", e.to_string()));
+    let outcome = match command {
+        Command::Start => match exe() {
+            Ok(exe) => lifecycle::start(home, &exe)
+                .await
+                .map(|status| print(json, &status, summary)),
+            Err(failure) => Err(failure),
+        },
+        Command::Restart { interrupt, wait } => {
+            lifecycle::restart(home, *interrupt, Duration::from_secs(*wait))
+                .await
+                .map(|status| print(json, &status, summary))
+        }
+        Command::Install { dir } => release::install(dir.clone()).map(|report| {
+            print(json, &report, |r| {
+                let (path, version) = (r["path"].as_str().unwrap_or_default(), &r["version"]);
+                let version = version.as_str().unwrap_or("of unknown version");
+                let mut text = match r["action"].as_str().unwrap_or_default() {
+                    "installed" => format!("Installed dmsg {version} at {path}."),
+                    "upgraded" => format!("Upgraded dmsg at {path} to {version}; run `dmsg restart` to use it."),
+                    "kept_newer" => format!("Kept the newer dmsg {version} at {path}."),
+                    "homebrew" => format!("Homebrew's dmsg {version} at {path} stays; update it with `brew upgrade dmsg`."),
+                    _ => format!("dmsg {version} is already installed at {path}."),
+                };
+                if r["on_path"] != true {
+                    text.push_str("\nAdd its directory to PATH to run `dmsg` from any terminal.");
+                }
+                text
+            })
+        }),
+        Command::Update { check: true, .. } => lifecycle::check().await.map(|state| {
+            print(json, &state, |s| match s["available"] == true {
+                true => format!(
+                    "dmsg {} is installed; {} is available. Run `dmsg update`.",
+                    s["current"].as_str().unwrap_or_default(),
+                    s["latest"].as_str().unwrap_or_default()
+                ),
+                false => format!("dmsg {} is up to date.", s["current"].as_str().unwrap_or_default()),
+            })
+        }),
+        Command::Update {
+            force,
+            interrupt,
+            wait,
+            ..
+        } => lifecycle::update(home, *force, *interrupt, Duration::from_secs(*wait))
+            .await
+            .map(|reply| {
+                print(json, &reply, |r| match r["updated"] == true {
+                    true => format!(
+                        "Updated dmsg {} to {} at {}{}",
+                        r["from"].as_str().unwrap_or_default(),
+                        r["to"].as_str().unwrap_or_default(),
+                        r["path"].as_str().unwrap_or_default(),
+                        if r["restarted"] == true { "; the daemon restarted, unlock it again." } else { "." }
+                    ),
+                    false => format!("dmsg {} is up to date.", r["current"].as_str().unwrap_or_default()),
+                })
+            }),
+        Command::Autostart(command) => {
+            let done = match command {
+                AutostartCommand::Install => match exe() {
+                    Ok(exe) => autostart::install(&exe, &home.dir).map(|_| true),
+                    Err(failure) => Err(failure),
+                },
+                AutostartCommand::Uninstall => autostart::uninstall().map(|_| false),
+                AutostartCommand::Status => autostart::status(),
+            };
+            done.map(|registered| {
+                print(json, &json!({"registered": registered}), |_| {
+                    match registered {
+                        true => "The daemon starts when you log in.".into(),
+                        false => "The daemon does not start at login.".into(),
+                    }
+                })
+            })
+        }
+        Command::ValidateConfig => home
+            .settings()
+            .map(|settings| {
+                let environment =
+                    dmsg_client::config::environment_name(&settings.config.environment);
+                print(
+                    json,
+                    &json!({"valid": true, "environment": environment}),
+                    |_| format!("config.toml is valid ({environment})."),
+                )
+            })
+            .map_err(|e| Failure::new("INVALID_INPUT", e.to_string())),
+        _ => return None,
+    };
+    Some(outcome)
+}
+
 async fn run(cli: Cli) -> Result<(), Failure> {
     let home = Home::resolve(cli.home);
     let json = cli.json;
@@ -924,11 +1081,20 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             Err(failure) => Err(failure),
         };
     }
+    if let Some(outcome) = lifecycle_command(&home, json, &command).await {
+        return outcome;
+    }
     let remote = Remote::connect(&home)?;
     match command {
         Command::Daemon { .. } | Command::Status | Command::AppToken | Command::Mcp => {
             unreachable!()
         }
+        Command::Start
+        | Command::Restart { .. }
+        | Command::Install { .. }
+        | Command::Update { .. }
+        | Command::Autostart(_)
+        | Command::ValidateConfig => unreachable!(),
         Command::Attest(AttestCommand::Verify { .. }) => unreachable!(),
         Command::Approvals(ApprovalsCommand::List { all }) => {
             let list = remote.call("approval/list", json!({"all": all})).await?;
@@ -1188,7 +1354,8 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             agent_commands::ap(&remote, json, agent, tool, input).await?
         }
         Command::Stop => {
-            remote.call("daemon/stop", Value::Null).await?;
+            drop(remote);
+            lifecycle::drain(&home, true, Duration::ZERO).await?;
             print(json, &json!({"stopped": true}), |_| "stopped".into());
         }
         Command::Login { origin, no_browser } => {

@@ -3709,3 +3709,228 @@ fn desktop_mcp_events() {
     drop(mcp);
     env.finish();
 }
+
+/// A release host on loopback HTTP, laid out as GitHub's: `/latest` names
+/// the tag, `/download/<tag>/<asset>` serves the files.
+struct Releases {
+    origin: String,
+    files: std::sync::Arc<std::sync::Mutex<std::collections::BTreeMap<String, Vec<u8>>>>,
+}
+
+impl Releases {
+    fn start() -> Self {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        let files = std::sync::Arc::new(std::sync::Mutex::new(std::collections::BTreeMap::<
+            String,
+            Vec<u8>,
+        >::new()));
+        let served = files.clone();
+        std::thread::spawn(move || {
+            for mut stream in listener.incoming().flatten() {
+                let mut line = String::new();
+                let mut reader = BufReader::new(stream.try_clone().unwrap());
+                if reader.read_line(&mut line).is_err() {
+                    continue;
+                }
+                loop {
+                    let mut header = String::new();
+                    if reader.read_line(&mut header).unwrap_or(0) == 0 || header == "\r\n" {
+                        break;
+                    }
+                }
+                let path = line.split(' ').nth(1).unwrap_or_default().to_string();
+                let body = served.lock().unwrap().get(&path).cloned();
+                let head = match &body {
+                    Some(body) => format!(
+                        "HTTP/1.1 200 OK\r\ncontent-length: {}\r\nconnection: close\r\n\r\n",
+                        body.len()
+                    ),
+                    None => {
+                        "HTTP/1.1 404 Not Found\r\ncontent-length: 0\r\nconnection: close\r\n\r\n"
+                            .into()
+                    }
+                };
+                let _ = stream.write_all(head.as_bytes());
+                let _ = stream.write_all(&body.unwrap_or_default());
+            }
+        });
+        Self { origin, files }
+    }
+
+    /// Publish `bytes` as this platform's binary of `version`, with
+    /// `listed` as its published SHA-256.
+    fn publish(&self, version: &str, bytes: &[u8], listed: &str) {
+        let asset = match (std::env::consts::OS, std::env::consts::ARCH) {
+            ("macos", "aarch64") => "dmsg-macos-arm64",
+            ("linux", "x86_64") => "dmsg-linux-x86_64",
+            ("linux", "aarch64") => "dmsg-linux-arm64",
+            other => panic!("no release asset for {other:?}"),
+        };
+        let tag = format!("dmsg-v{version}");
+        let mut files = self.files.lock().unwrap();
+        files.insert(
+            "/latest".into(),
+            json!({"tag_name": tag}).to_string().into_bytes(),
+        );
+        files.insert(format!("/download/{tag}/{asset}"), bytes.to_vec());
+        files.insert(
+            format!("/download/{tag}/{asset}.sha256"),
+            format!("{listed}  {asset}\n").into_bytes(),
+        );
+    }
+}
+
+/// Stops a daemon that `dmsg start` detached, however the test ends.
+struct Detached(PathBuf);
+
+impl Drop for Detached {
+    fn drop(&mut self) {
+        if let Ok(text) = std::fs::read(self.0.join("daemon.json")) {
+            let discovery: Value = serde_json::from_slice(&text).unwrap_or_default();
+            if let Some(pid) = discovery["pid"].as_u64() {
+                let _ = Command::new("kill")
+                    .args(["-TERM", &pid.to_string()])
+                    .status();
+            }
+        }
+    }
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_release() {
+    let env = Env::launch(
+        "release",
+        Options {
+            proxies: true,
+            ..Options::default()
+        },
+    );
+    let (a, http) = (&env.a, &env.http);
+    let _detached = Detached(a.home.clone());
+    let ic_proxy = env.ic_proxy.as_ref().unwrap();
+    let user = env.deployment.user;
+    assert_eq!(a.login(http, 43).unwrap()["state"], "no_account");
+    a.run(&["account", "create"]);
+    let enable = a.run(&["device", "formal-approve", "on"]);
+    assert_eq!(a.decide(http, &enable, true).unwrap()["state"], "done");
+
+    // `dmsg install` puts this binary at the shared location once.
+    let bin = env.dir.join("bin");
+    let bin_text = bin.to_str().unwrap();
+    assert_eq!(
+        a.run(&["install", "--dir", bin_text])["action"],
+        "installed"
+    );
+    assert_eq!(a.run(&["install", "--dir", bin_text])["action"], "current");
+    let installed = Desktop {
+        bin: bin.join("dmsg"),
+        home: a.home.clone(),
+    };
+    let version = installed.run(&["status"])["version"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let bytes = std::fs::read(&a.bin).unwrap();
+    let releases = Releases::start();
+    let with_releases = |args: &[&str]| {
+        let mut command = installed.command(args);
+        command.env("DMSG_RELEASE_URL", &releases.origin);
+        command
+    };
+    let run = |args: &[&str]| -> Value {
+        let output = with_releases(args).output().unwrap();
+        let stdout = String::from_utf8(output.stdout).unwrap();
+        assert!(
+            output.status.success(),
+            "dmsg {args:?}: {stdout}{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        serde_json::from_str(stdout.lines().last().unwrap()).unwrap()
+    };
+    let fail = |args: &[&str]| -> String {
+        let output = with_releases(args).output().unwrap();
+        assert!(!output.status.success(), "dmsg {args:?} succeeded");
+        let stdout = String::from_utf8(output.stdout).unwrap();
+        let reply: Value = serde_json::from_str(stdout.lines().last().unwrap()).unwrap();
+        reply["error"]["code"].as_str().unwrap().to_string()
+    };
+    let instance = |desktop: &Desktop| desktop.run(&["status"])["instance"].clone();
+
+    // A canister release is not a client release; the same version is no update.
+    releases.files.lock().unwrap().insert(
+        "/latest".into(),
+        json!({"tag_name": "v2.15.1"}).to_string().into_bytes(),
+    );
+    assert_eq!(fail(&["update", "--check"]), "NOT_FOUND");
+    releases.publish(&version, &bytes, &"00".repeat(32));
+    let check = run(&["update", "--check"]);
+    assert_eq!(check["available"], false);
+    assert_eq!(check["latest"], version.as_str());
+    assert_eq!(run(&["update"])["updated"], false);
+
+    // A binary that does not match its published SHA-256 replaces nothing.
+    let first = instance(a);
+    assert_eq!(fail(&["update", "--force"]), "INTEGRITY_FAILED");
+    assert_eq!(std::fs::read(&installed.bin).unwrap(), bytes);
+    assert_eq!(instance(a), first);
+    releases.publish(&version, &bytes, &sha256_hex(&bytes));
+
+    // DT10: an approved request whose outcome is unknown holds the update;
+    // a request waiting for a person and a new item are kept. Locked, the
+    // daemon cannot reconcile it in the background.
+    let todo = a.run(&["attest", "text", "dMsg W8: waits for a person"]);
+    let item = a.run(&["vault", "add", "--title", "kept"])["id"].clone();
+    ic_proxy.lose_next("POST", &format!("/canister/{user}/call"));
+    let held = a.run(&["attest", "text", "dMsg W8: held across the update"]);
+    assert_eq!(a.decide(http, &held, true), Err("EXECUTION_UNKNOWN".into()));
+    a.run(&["lock"]);
+    let started = Instant::now();
+    assert_eq!(fail(&["update", "--force", "--wait", "3"]), "BUSY");
+    assert!(started.elapsed() >= Duration::from_secs(3));
+    assert_eq!(instance(a), first);
+    assert_eq!(std::fs::read(&installed.bin).unwrap(), bytes);
+
+    // Once it settles, the update stops the daemon, replaces the binary
+    // and starts the new one.
+    assert_eq!(a.login(http, 43).unwrap()["state"], "unlocked");
+    a.rpc(http, "approval/reconcile", Value::Null).unwrap();
+    assert_eq!(approval_state(a, &held), "done");
+    let updated = run(&["update", "--force"]);
+    assert_eq!(updated["updated"], true);
+    assert_eq!(updated["restarted"], true);
+    assert_eq!(updated["status"]["version"], version.as_str());
+    let second = updated["status"]["instance"].clone();
+    assert_ne!(second, first);
+    let status = a.run(&["status"]);
+    assert_eq!(status["state"], "locked");
+    assert_eq!(status["approvals_waiting"], 1);
+    assert_eq!(a.login(http, 43).unwrap()["state"], "unlocked");
+    assert_eq!(approval_state(a, &todo), "awaiting_user");
+    assert_eq!(
+        a.run(&["vault", "show", item.as_str().unwrap()])["item"]["title"],
+        "kept"
+    );
+    assert!(std::fs::read_to_string(a.home.join("logs/daemon.log"))
+        .unwrap()
+        .contains("dmsg daemon listening"));
+
+    // `restart --interrupt` does not wait; the unsettled request resumes.
+    ic_proxy.lose_next("POST", &format!("/canister/{user}/call"));
+    let cut = a.run(&["attest", "text", "dMsg W8: resumed after a restart"]);
+    assert_eq!(a.decide(http, &cut, true), Err("EXECUTION_UNKNOWN".into()));
+    a.run(&["lock"]);
+    assert_eq!(installed.fail(&["restart", "--wait", "0"]), "BUSY");
+    let third = installed.run(&["restart", "--interrupt"])["instance"].clone();
+    assert_ne!(third, second);
+    assert_eq!(a.login(http, 43).unwrap()["state"], "unlocked");
+    a.rpc(http, "approval/reconcile", Value::Null).unwrap();
+    assert_eq!(approval_state(a, &cut), "done");
+
+    // `stop` returns once the daemon is gone.
+    assert_eq!(installed.run(&["stop"])["stopped"], true);
+    let output = installed.command(&["status"]).output().unwrap();
+    assert_eq!(output.status.code(), Some(3));
+    env.finish();
+}
