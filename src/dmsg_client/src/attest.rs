@@ -277,15 +277,19 @@ pub struct Verification {
 
 /// Verify a bundle as kept evidence: the signature, the receipt certificate
 /// under `root_key` and the home, their binding, and the statement against
-/// `file` when given. The device's present status is the caller's to add.
+/// `file` when given. Any canister can certify a receipt, so the home must
+/// be one of the deployment's user `homes`. The device's present status is
+/// the caller's to add.
 ///
 /// # Errors
-/// Returns `Error::IntegrityFailed` for anything that does not verify, and
-/// for a file whose SHA-256 differs from the statement's.
+/// Returns `Error::IntegrityFailed` for anything that does not verify, a
+/// home outside `homes` included, and for a file whose SHA-256 differs from
+/// the statement's.
 pub fn verify_bundle(
     bundle: &Bundle,
     file: Option<&Path>,
     root_key: &[u8],
+    homes: &[Principal],
 ) -> Result<Verification> {
     ensure(bundle.format == BUNDLE_FORMAT, Error::UnsupportedProtocol)?;
     let account: AccountId = bundle
@@ -293,6 +297,7 @@ pub fn verify_bundle(
         .parse()
         .map_err(|_| dmsg_types::invalid("account"))?;
     let home = Principal::from_text(&bundle.home).map_err(|_| dmsg_types::invalid("home"))?;
+    ensure(homes.contains(&home), Error::IntegrityFailed)?;
     let request = Hash::new(
         hex::decode(&bundle.request_id)
             .ok()
@@ -854,7 +859,8 @@ impl Client {
         })
     }
 
-    /// [`verify_online`] with this client's reader.
+    /// [`verify_online`] with this client's reader and the deployment's
+    /// user homes.
     ///
     /// # Errors
     /// As [`verify_bundle`].
@@ -863,22 +869,25 @@ impl Client {
         bundle: &Bundle,
         file: Option<&Path>,
     ) -> Result<Verification> {
+        let homes = self.homes().await?;
         let ic = self.reader().await?;
-        verify_online(&ic, bundle, file).await
+        verify_online(&ic, &homes, bundle, file).await
     }
 }
 
-/// [`verify_bundle`] under the agent's root key, then the approving device's
-/// present status from the account's certified security, when it can be read.
+/// [`verify_bundle`] under the agent's root key and the user `homes`, then
+/// the approving device's present status from the account's certified
+/// security, when it can be read.
 ///
 /// # Errors
 /// As [`verify_bundle`].
 pub async fn verify_online(
     ic: &crate::ic::Ic,
+    homes: &[Principal],
     bundle: &Bundle,
     file: Option<&Path>,
 ) -> Result<Verification> {
-    let mut report = verify_bundle(bundle, file, &ic.root_key())?;
+    let mut report = verify_bundle(bundle, file, &ic.root_key(), homes)?;
     let account: AccountId = report
         .account
         .parse()

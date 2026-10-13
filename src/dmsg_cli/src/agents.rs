@@ -510,10 +510,12 @@ impl Daemon {
                     trash: false,
                     query: input["query"].as_str().map(str::to_string),
                 };
+                // dMsg's own keys stay out of every agent's reach.
                 Ok(Value::Array(
                     client
                         .vault_list(&filter)?
                         .into_iter()
+                        .filter(|e| !e.item.reserved())
                         .map(|e| {
                             json!({
                                 "id": e.id,
@@ -529,12 +531,12 @@ impl Daemon {
             "dmsg_vault_read" => {
                 let entry = client.vault_show(&text(input, "id")?)?;
                 ensure(!entry.deleted, Error::NotFound)?;
+                // Never dMsg's own keys, not even with `vault.read:*`.
+                ensure(!entry.item.reserved(), Error::Forbidden)?;
                 tagged(&client, did, "vault.read", &entry.item)?;
-                // The secret field only with a grant naming the item, and
-                // never of dMsg's own keys.
+                // The secret field only with a grant naming the item.
                 let reveal = input["secret"] == true;
                 if reveal {
-                    ensure(!entry.item.reserved(), Error::Forbidden)?;
                     client.capability_check(did, &format!("vault.secret:{}", entry.id))?;
                 }
                 Ok(to_json(&entry.masked(reveal)))
@@ -586,7 +588,18 @@ impl Daemon {
                 ensure(!item.reserved(), Error::Forbidden)?;
                 tagged(&client, did, "vault.write", &item)?;
                 let entry = client.vault_put(id, input["base"].as_str(), &item)?;
-                Ok(to_json(&entry.masked(false)))
+                // Writing is not reading: the item comes back only to an
+                // agent that may read it.
+                match tagged(&client, did, "vault.read", &entry.item) {
+                    Ok(()) => Ok(to_json(&entry.masked(false))),
+                    Err(_) => Ok(json!({
+                        "id": entry.id,
+                        "revision": entry.revision,
+                        "synced": entry.synced,
+                        "conflict": entry.conflict,
+                        "deleted": entry.deleted,
+                    })),
+                }
             }
             "dmsg_file_read" => {
                 let id = text(input, "id")?;

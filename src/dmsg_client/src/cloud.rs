@@ -541,7 +541,17 @@ impl Cloud {
         if binary && status.is_success() && octets {
             return Ok(Reply::Bytes(data));
         }
-        let envelope: Json = serde_json::from_slice(&data).map_err(|_| Error::IntegrityFailed)?;
+        let envelope: Json = match serde_json::from_slice(&data) {
+            Ok(envelope) => envelope,
+            // An error page of the edge, not the relay's answer: as a lost reply.
+            Err(_) if !status.is_success() => {
+                return Err(match mutation {
+                    true => Error::ExecutionUnknown,
+                    false => Error::Unavailable(format!("relay: HTTP {status}")),
+                })
+            }
+            Err(_) => return Err(Error::IntegrityFailed),
+        };
         match envelope.get("ok").and_then(Json::as_bool) {
             Some(true) if status.is_success() => envelope
                 .get("data")

@@ -30,7 +30,7 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 23] = [
     ),
     (
         "dmsg_vault_write",
-        "Add a vault item, or edit item id (fields left out keep their value). The item must keep a tag of a vault.write:<tag> grant. An edit replaces base, by default the current version; when another device moved past it, the edit is kept as a conflict copy for the owner.",
+        "Add a vault item, or edit item id (fields left out keep their value). The item must keep a tag of a vault.write:<tag> grant. An edit replaces base, by default the current version; when another device moved past it, the edit is kept as a conflict copy for the owner. The item comes back only with vault.read:<tag> for one of its tags.",
         false,
         concat!(
             r#"{"type":"object","properties":{"id":{"type":"string"},"base":{"type":"string"},"type":{"enum":["note","login","api","key"]},"title":{"type":"string"},"#,

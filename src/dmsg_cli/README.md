@@ -264,8 +264,9 @@ terminal without `--json`; otherwise the request is only created and waits in
 the approval center (and the desktop's approval window). A web request shows
 its origin as relayed by the browser through connect.dmsg.net, the browser's
 label, the account and the payload. `attest verify` needs no daemon: it checks
-the signature, the receipt certificate under the configured root, their
-binding, the file when given, and the device's present status.
+the signature, the receipt certificate under the configured root from one
+of the registry's user homes, their binding, the file when given, and the
+device's present status.
 
 `attest action` takes an application action its product prepared, as the
 canonical CBOR a page would send to `signAction`
@@ -407,7 +408,8 @@ protocol's `code`, such as `permission_denied`, `room_head_mismatch` or
 More `dmsg_*` tools, each behind its capability: `dmsg_vault_read` with
 `secret: true` returns the secret field (`vault.secret:<item>`);
 `dmsg_vault_write` adds or edits an item that keeps a granted tag, against a
-`base` like the CLI (`vault.write:<tag>`); `dmsg_file_read` returns up to
+`base` like the CLI (`vault.write:<tag>`), and returns the item only with
+`vault.read` on it; `dmsg_file_read` returns up to
 1 MiB of a file of at most 64 MiB from `offset`, base64url, after checking
 the whole file (`file.read:<tag>`); `dmsg_inbox_list` lists letters without
 their text and `dmsg_inbox_read` returns one, marking it read with

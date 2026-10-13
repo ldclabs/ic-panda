@@ -17,8 +17,8 @@ use crate::client::Client;
 use crate::cloud::verify_signed_command;
 use crate::codec::{b64, canonical, decode, sha256, unb64};
 use crate::crypto::{
-    aes_gcm_open, aes_gcm_seal, hpke_open_info, hpke_seal_auth, p256_verify, random_id, random_key,
-    HpkeEnvelope, Key,
+    aes_gcm_open, hpke_open_info, hpke_seal_auth, p256_verify, random_id, random_key, HpkeEnvelope,
+    Key,
 };
 use crate::now_ms;
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -42,7 +42,7 @@ use dmsg_types::{
     StatementContent,
 };
 use serde::{Deserialize, Serialize};
-use serde_bytes::{ByteArray, ByteBuf};
+use serde_bytes::ByteBuf;
 use serde_json::{json, Value as Json};
 use std::collections::BTreeMap;
 
@@ -96,6 +96,7 @@ fn sig_structure(protected: &[u8], payload: &[u8]) -> Vec<u8> {
 ///
 /// # Errors
 /// An invalid scalar returns `Error::IntegrityFailed`.
+#[cfg(test)]
 pub fn es256_sign1(secret: &Key, kid: &Hash, typ: &str, payload: &[u8]) -> Result<Vec<u8>> {
     let protected = es256_header(kid, typ);
     let signature = crate::crypto::p256_sign(secret, &sig_structure(&protected, payload))?;
@@ -137,6 +138,7 @@ pub fn es256_open(cose: &[u8], kid: &Hash, typ: &str, spki: &[u8]) -> Result<Vec
 ///
 /// # Errors
 /// An invalid recipient key returns `Error::IntegrityFailed`.
+#[cfg(test)]
 pub fn seal_request(
     cose: &[u8],
     account: &AccountId,
@@ -164,8 +166,14 @@ pub fn seal_request(
     Ok(Envelope {
         v: 1,
         recipients,
-        nonce: ByteArray::new(*nonce),
-        ciphertext: aes_gcm_seal(cek, nonce, cose, &request_aad(account, pairing, request)).into(),
+        nonce: serde_bytes::ByteArray::new(*nonce),
+        ciphertext: crate::crypto::aes_gcm_seal(
+            cek,
+            nonce,
+            cose,
+            &request_aad(account, pairing, request),
+        )
+        .into(),
     })
 }
 
@@ -250,6 +258,7 @@ pub fn seal_response(
 ///
 /// # Errors
 /// Anything that does not open or does not match returns `Error::IntegrityFailed`.
+#[cfg(test)]
 #[allow(clippy::too_many_arguments)]
 pub fn open_response(
     sealed: &Sealed,
@@ -541,7 +550,6 @@ struct Pairing {
 
 /// Certified data one pass over the mailbox checks requests against.
 struct Checks {
-    security: crate::account::Security,
     pairings: BTreeMap<Hash, Pairing>,
     commerce: Option<Principal>,
     apps: BTreeMap<String, AppRegistration>,
@@ -917,7 +925,7 @@ impl Client {
         }
     }
 
-    /// Fresh certified security and the account's verified pairings.
+    /// The account's pairings, verified against fresh certified security.
     async fn checks(&mut self) -> Result<Checks> {
         let security = self.cloud_state().await?;
         let path = self.connect_path("/pairings")?;
@@ -941,7 +949,6 @@ impl Client {
             }
         }
         Ok(Checks {
-            security,
             pairings,
             commerce: None,
             apps: BTreeMap::new(),
@@ -1249,7 +1256,6 @@ impl Client {
                 ensure(policy.allowed_purposes.contains(&purpose), Error::Forbidden)?;
             }
         }
-        let _ = &checks.security;
         let op = Operation {
             key: operation_key(&request.origin, command),
             origin: request.origin.clone(),
@@ -1718,6 +1724,14 @@ impl Client {
                         return Err(error);
                     }
                 };
+                if entry.state == "pending" {
+                    // Never authorized: the request waits for the person again.
+                    op.state = OpState::AwaitingUser;
+                    self.save_operation(&op)?;
+                    approval.state = State::AwaitingUser;
+                    approval.error = Some(crate::error_code(&error));
+                    return Ok(());
+                }
                 if !(entry.state == "authorized" && entry.pinned == Some(device)) {
                     op.state = match entry.state.as_str() {
                         "authorized" | "device_revoked" | "abandoned" => OpState::Elsewhere,
@@ -2032,6 +2046,8 @@ impl Client {
             "expires_at": op.expires_at,
             "state": op.state.name(),
             "channels": op.channels.len(),
+            // The relay requests a page's `dmsg://connect/request` link names.
+            "requests": op.channels.iter().map(|c| hex::encode(*c.request_id)).collect::<Vec<_>>(),
             "relayed_by": "connect.dmsg.net",
             "content": content,
         }))

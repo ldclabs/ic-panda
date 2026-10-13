@@ -1,7 +1,8 @@
 use super::*;
 use crate::crypto::tests::Replay;
-use crate::crypto::{hpke_public, p256_public, p256_sign};
+use crate::crypto::{aes_gcm_seal, hpke_public, p256_public, p256_sign};
 use hpke::OpModeS;
+use serde_bytes::ByteArray;
 use serde_json::json;
 
 const VECTORS: &str = "../../tests/vectors/client/connect-v1.json";

@@ -266,7 +266,6 @@ export function parseLink(url: string): Link | null {
   return null
 }
 
-/** Pages the desktop opens in the system browser: the login page and the bridge's pairing page. */
 /** The old site's migration pages; their links carry an offer or a request in the fragment. */
 const LEGACY_PAGES = ['https://dmsg.net/legacy', 'https://panda.fans/legacy']
 
@@ -284,6 +283,7 @@ export function legacyAllowed(url: string): boolean {
   )
 }
 
+/** Pages the desktop opens in the system browser: the login page and the bridge's pairing page. */
 export function externalAllowed(url: string, login: string[], pairing: string[]): boolean {
   let parsed: URL
   try {

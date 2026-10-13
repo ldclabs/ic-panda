@@ -189,6 +189,11 @@ impl Store {
     }
 
     fn init(conn: Connection) -> Result<Self> {
+        // Collected chunks give their pages back to the file system; this
+        // takes effect only in a database created with it, so before WAL,
+        // whose switch writes the new file's header.
+        conn.pragma_update(None, "auto_vacuum", "INCREMENTAL")
+            .map_err(storage)?;
         conn.pragma_update(None, "journal_mode", "WAL")
             .map_err(storage)?;
         conn.pragma_update(None, "synchronous", "FULL")
@@ -196,10 +201,6 @@ impl Store {
         // Deleted pages are zeroed, so a removed record leaves no ciphertext
         // or metadata behind in the file.
         conn.pragma_update(None, "secure_delete", "ON")
-            .map_err(storage)?;
-        // Collected chunks give their pages back to the file system; this
-        // takes effect only in a database created with it.
-        conn.pragma_update(None, "auto_vacuum", "INCREMENTAL")
             .map_err(storage)?;
         conn.execute_batch(SCHEMA).map_err(storage)?;
         Ok(Self {
@@ -927,9 +928,12 @@ impl Store {
             }
             Ok(())
         })?;
-        self.conn()
-            .execute_batch("PRAGMA incremental_vacuum")
-            .map_err(storage)
+        // Each step frees one page and returns a row: step to the end.
+        let conn = self.conn();
+        let mut statement = conn.prepare("PRAGMA incremental_vacuum").map_err(storage)?;
+        let mut rows = statement.query([]).map_err(storage)?;
+        while rows.next().map_err(storage)?.is_some() {}
+        Ok(())
     }
 }
 
@@ -946,3 +950,7 @@ fn row(r: &rusqlite::Row<'_>) -> rusqlite::Result<ObjectRow> {
         created_at: r.get::<_, i64>(8)? as u64,
     })
 }
+
+#[cfg(test)]
+#[path = "store_tests.rs"]
+mod tests;

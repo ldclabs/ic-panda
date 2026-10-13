@@ -70,3 +70,57 @@ fn relay_origins_are_https_or_local_loopback() {
     assert!(Cloud::new("http://api.dmsg.test", true).is_err());
     assert!(Cloud::new("https://api.dmsg.test/base", false).is_err());
 }
+
+#[tokio::test]
+async fn an_edge_error_page_is_a_lost_reply() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+    tokio::spawn(async move {
+        while let Ok((mut socket, _)) = listener.accept().await {
+            // Read the whole request, then answer with a gateway's HTML page.
+            let mut request = Vec::new();
+            let mut buffer = [0u8; 4096];
+            loop {
+                let n = socket.read(&mut buffer).await.unwrap_or(0);
+                request.extend_from_slice(&buffer[..n]);
+                let text = String::from_utf8_lossy(&request).to_ascii_lowercase();
+                let Some(end) = text.find("\r\n\r\n") else {
+                    if n == 0 {
+                        break;
+                    }
+                    continue;
+                };
+                let length = text
+                    .lines()
+                    .find_map(|l| l.strip_prefix("content-length:"))
+                    .and_then(|v| v.trim().parse::<usize>().ok())
+                    .unwrap_or(0);
+                if n == 0 || request.len() >= end + 4 + length {
+                    break;
+                }
+            }
+            let page = "<html><body>502 Bad Gateway</body></html>";
+            let reply = format!(
+                "HTTP/1.1 502 Bad Gateway\r\ncontent-type: text/html\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{page}",
+                page.len()
+            );
+            let _ = socket.write_all(reply.as_bytes()).await;
+        }
+    });
+    let cloud = Cloud::new(&origin, true).unwrap();
+    assert!(matches!(
+        cloud.public("/public/accounts/x/profile").await,
+        Err(Error::Unavailable(_))
+    ));
+    let evidence = Evidence {
+        schema: 1,
+        canister: String::new(),
+        certificate: String::new(),
+        entries: vec![],
+    };
+    assert_eq!(
+        cloud.publish_security(&evidence).await,
+        Err(Error::ExecutionUnknown)
+    );
+}

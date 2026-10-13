@@ -110,7 +110,8 @@ Anything may ask; only a person answers, by the digest of the request as it
 was shown. Approving executes once. A formal attestation is signed and
 journaled before it is sent, so a lost reply is settled by its execution ID
 and never signed again; its artifact and certified receipt are kept and
-export as a bundle that `attest::verify_bundle` checks without the device.
+export as a bundle that `attest::verify_bundle` checks without the device,
+against the deployment's user homes: any canister can certify a receipt.
 
 A web request (dmsg-connect/1) reaches the center only after the device
 opened it, checked the pairing grant against the certified devices, the

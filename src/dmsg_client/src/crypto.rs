@@ -271,11 +271,13 @@ pub fn hpke_open_info(
     hpke_open_with(&OpModeR::Base, seed, envelope, info)
 }
 
-/// Open an [`hpke_seal_auth`] envelope, checking it came from `sender`.
+/// Open an [`hpke_seal_auth`] envelope, checking it came from `sender`, as
+/// the bridge page opens replies; for tests and vectors.
 ///
 /// # Errors
 /// A malformed envelope, another sender, a wrong seed or info returns
 /// `IntegrityFailed`.
+#[cfg(test)]
 pub fn hpke_open_auth(
     seed: &Key,
     sender: &Key,
@@ -308,7 +310,9 @@ fn hpke_open_with(
     .map_err(|_| Error::IntegrityFailed)
 }
 
-/// AES-256-GCM of `plaintext` under a raw key and nonce, with `aad`.
+/// AES-256-GCM of `plaintext` under a raw key and nonce, with `aad`, as the
+/// bridge page seals requests; for tests and vectors.
+#[cfg(test)]
 pub fn aes_gcm_seal(key: &Key, nonce: &[u8; 12], plaintext: &[u8], aad: &[u8]) -> Vec<u8> {
     Aes256Gcm::new(key.into())
         .encrypt(
@@ -321,7 +325,7 @@ pub fn aes_gcm_seal(key: &Key, nonce: &[u8; 12], plaintext: &[u8], aad: &[u8]) -
         .expect("AES-GCM encrypts any in-memory plaintext")
 }
 
-/// Open [`aes_gcm_seal`].
+/// Open AES-256-GCM `ciphertext` under a raw key and nonce, with `aad`.
 ///
 /// # Errors
 /// A wrong key, nonce or AAD, or modified ciphertext, returns `IntegrityFailed`.
@@ -359,10 +363,11 @@ pub fn p256_verify(spki: &[u8], message: &[u8], signature: &[u8]) -> Result<()> 
         .map_err(|_| Error::IntegrityFailed)
 }
 
-/// The P-256 SPKI DER of a 32-byte private scalar.
+/// The P-256 SPKI DER of a 32-byte private scalar; for tests and vectors.
 ///
 /// # Errors
 /// An invalid scalar returns `IntegrityFailed`.
+#[cfg(test)]
 pub fn p256_public(secret: &Key) -> Result<Vec<u8>> {
     let key = p256::ecdsa::SigningKey::from_slice(secret).map_err(|_| Error::IntegrityFailed)?;
     let point = key.verifying_key().to_sec1_point(false);
@@ -376,6 +381,7 @@ pub fn p256_public(secret: &Key) -> Result<Vec<u8>> {
 ///
 /// # Errors
 /// An invalid scalar returns `IntegrityFailed`.
+#[cfg(test)]
 pub fn p256_sign(secret: &Key, message: &[u8]) -> Result<[u8; 64]> {
     use p256::ecdsa::signature::Signer;
     let key = p256::ecdsa::SigningKey::from_slice(secret).map_err(|_| Error::IntegrityFailed)?;

@@ -4505,6 +4505,17 @@ fn desktop_agents() {
         "FORBIDDEN"
     );
     assert_eq!(
+        mcp.tool("dmsg_vault_read", json!({"id": controller}))
+            .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    let listed = mcp.tool("dmsg_vault_list", json!({})).unwrap();
+    assert!(listed
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|i| i["id"] != controller.as_str()));
+    assert_eq!(
         mcp.tool(
             "dmsg_vault_write",
             json!({"id": controller, "tags": ["work"]})

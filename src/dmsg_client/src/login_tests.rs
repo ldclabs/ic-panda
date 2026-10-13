@@ -72,6 +72,11 @@ fn accepts_a_delegation_to_the_session_key() {
     assert_eq!(accepted.principal, user.sender().unwrap());
     assert_eq!(accepted.identity.sender().unwrap(), accepted.principal);
     assert_eq!(accepted.expires_at, NOW + 600_000);
+    // Internet Identity dates the expiration by the IC's clock, which may
+    // run ahead of this one.
+    let ahead = NOW + DEFAULT_TTL_MS + 5_000;
+    let late = s.accept(&body(&s, chain(&key, ahead, Some(targets()))), NOW);
+    assert_eq!(late.unwrap().expires_at, ahead);
     assert!(s
         .url(&test_config())
         .starts_with("https://dmsg.net/_/login#"));
@@ -94,7 +99,7 @@ fn refuses_foreign_or_broader_callbacks() {
         (chain(&key, NOW + 1, Some(wider)), Error::Forbidden),
         (chain(&key, NOW + 1, None), Error::Forbidden),
         (ok(NOW), Error::Expired),
-        (ok(NOW + DEFAULT_TTL_MS + 1), Error::Expired),
+        (ok(NOW + DEFAULT_TTL_MS + CLOCK_SKEW_MS + 1), Error::Expired),
         (b"{}".to_vec(), Error::IntegrityFailed),
     ] {
         assert_eq!(s.accept(&body(&s, delegation), NOW).err(), Some(error));

@@ -26,6 +26,9 @@ pub const LISTEN_MS: u64 = 10 * MINUTE;
 /// Default delegation lifetime (15 minutes).
 pub const DEFAULT_TTL_MS: u64 = 15 * MINUTE;
 const MAX_CALLBACK: usize = 64 * 1024;
+/// How far this clock may run behind the IC's, which Internet Identity
+/// dates the delegation's expiration by.
+const CLOCK_SKEW_MS: u64 = MINUTE;
 const MAX_CHAIN: usize = 8;
 
 /// One pending login.
@@ -187,7 +190,7 @@ impl LoginSession {
             Error::IntegrityFailed,
         )?;
         ensure(
-            expires_at > now && expires_at <= now + self.request.ttl_ms,
+            expires_at > now && expires_at <= now + self.request.ttl_ms + CLOCK_SKEW_MS,
             Error::Expired,
         )?;
         let from = unhex(&chain.public_key)?;

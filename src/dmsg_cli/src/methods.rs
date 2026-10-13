@@ -328,6 +328,7 @@ impl Daemon {
                     .plan_status(params["refresh"].as_bool().unwrap_or(true))
                     .await
             }
+            "plan/assets" => client.plan_assets().await,
             "plan/quote" => {
                 let method = match params["method"].as_str().unwrap_or("cash") {
                     "cash" | "Cash" => SettlementMethod::Cash,

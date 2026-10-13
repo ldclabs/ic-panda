@@ -180,3 +180,23 @@ fn an_application_action_survives_the_approval_record() {
         (Some("token-list"), Some("Approve"))
     );
 }
+
+#[test]
+fn only_the_user_homes_certify_a_bundle() {
+    // Any canister can certify a receipt: one outside the deployment's user
+    // homes vouches for no account, whatever it signed.
+    let home = Principal::from_text("rrkah-fqaaa-aaaaa-aaaaq-cai").unwrap();
+    let bundle = Bundle {
+        format: BUNDLE_FORMAT.into(),
+        account: crate::testing::account().id.to_string(),
+        home: "ryjl3-tyaaa-aaaaa-aaaba-cai".into(),
+        request_id: hex::encode([1u8; 32]),
+        cose_sign1: String::new(),
+        cose_key: String::new(),
+        receipt: String::new(),
+    };
+    assert_eq!(
+        verify_bundle(&bundle, None, &[], &[home]).err(),
+        Some(Error::IntegrityFailed)
+    );
+}

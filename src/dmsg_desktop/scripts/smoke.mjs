@@ -49,6 +49,7 @@ const request = {
     expires_at: Date.now() + 600_000,
     state: 'awaiting_user',
     channels: 1,
+    requests: ['12'.repeat(32)],
     relayed_by: 'connect.dmsg.net',
     content: {
       statement: {
@@ -113,6 +114,7 @@ const checkoutRequest = {
   digest: 'c2'.repeat(32),
   detail: {
     ...request.detail,
+    requests: ['13'.repeat(32)],
     method: 'checkout',
     kind: 'checkout',
     content: { product_id: 'token-list', sku: 'pro', amount_usd_micros: '3000000', method: 'Cash' }
@@ -129,9 +131,10 @@ let published = {
 }
 const checkouts = []
 const calls = []
+// The checkout comes first, so a link finds its request, not the first one.
 const requests = new Map([
-  [request.id, request],
-  [checkoutRequest.id, checkoutRequest]
+  [checkoutRequest.id, checkoutRequest],
+  [request.id, request]
 ])
 let sockets = []
 function emit(type, data) {
@@ -548,9 +551,10 @@ try {
   )
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 0)
 
-  // A dmsg:// link only opens the approval window on the daemon's request.
+  // A dmsg:// link only opens the approval window on the daemon's request:
+  // the bridge links the relay request, which the request's detail lists.
   const opened = app.waitForEvent('window')
-  await app.evaluate(({ app }, url) => app.emit('open-url', { preventDefault() {} }, url), `dmsg://connect/request?account=${account}&request=${request.id}`)
+  await app.evaluate(({ app }, url) => app.emit('open-url', { preventDefault() {} }, url), `dmsg://connect/request?account=${account}&request=${request.detail.requests[0]}`)
   const approval = await opened
   await approval.waitForSelector('[data-testid="approval-origin"]', { timeout: 20_000 })
   assert.equal(await approval.textContent('[data-testid="approval-origin"]'), 'https://app.example')

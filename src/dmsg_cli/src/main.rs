@@ -1266,12 +1266,20 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         let text = std::fs::read(bundle).map_err(|e| Failure::new("NOT_FOUND", e.to_string()))?;
         let bundle: dmsg_client::attest::Bundle = serde_json::from_slice(&text)
             .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
-        let ic = dmsg_client::ic::Ic::anonymous(&settings.config)
+        let failure =
+            |e: dmsg_types::Error| Failure::new(&dmsg_client::error_code(&e), e.to_string());
+        let config = &settings.config;
+        let ic = dmsg_client::ic::Ic::anonymous(config)
             .await
-            .map_err(|e| Failure::new(&dmsg_client::error_code(&e), e.to_string()))?;
-        let report = dmsg_client::attest::verify_online(&ic, &bundle, file.as_deref())
+            .map_err(failure)?;
+        // Only the deployment's user homes certify receipts for its accounts.
+        let homes = dmsg_client::account::user_homes(&ic, config.handle, &config.user_homes)
             .await
-            .map_err(|e| Failure::new(&dmsg_client::error_code(&e), e.to_string()))?;
+            .map_err(failure)?
+            .user_homes;
+        let report = dmsg_client::attest::verify_online(&ic, &homes, &bundle, file.as_deref())
+            .await
+            .map_err(failure)?;
         let report = serde_json::to_value(&report).unwrap_or_default();
         print(json, &report, |r| {
             let text = |name: &str| r[name].as_str().unwrap_or_default().to_string();

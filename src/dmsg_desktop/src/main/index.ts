@@ -153,11 +153,12 @@ async function openLink(url: string) {
   const link = parseLink(url)
   if (!link) return
   if (link.route === 'browsers') return showMain('/settings/browsers')
-  // The request ID in a link is only a hint: find the daemon's request for it.
+  // The request ID in a link is only a hint: find the daemon's request for
+  // it, by the relay request a page links or by the approval's own ID.
   try {
     await daemon.call('connect/sync')
-    const list = (await daemon.call('approval/list', {})) as { id: string; detail?: { operation_id?: string } }[]
-    const found = list.find((r) => r.id === link.request) ?? list.find((r) => r.detail && link.request)
+    const list = (await daemon.call('approval/list', {})) as { id: string; detail?: { requests?: string[] } }[]
+    const found = list.find((r) => r.id === link.request || !!r.detail?.requests?.includes(link.request))
     if (found) return showApproval(found.id)
   } catch {
     /* locked or offline: show the main window */
