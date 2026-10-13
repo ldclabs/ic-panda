@@ -27,6 +27,8 @@ jobs:
       - run: pnpm --dir src/dmsg_legacy test
       - run: pnpm --dir src/dmsg_legacy test:scripts
       # dmsg.net, including the dmsg-login/1 page checked against tests/vectors/client/login-v1.json.
+      # It imports the generated (untracked) Candid bindings in src/declarations.
+      - run: node scripts/generate-declarations.mjs
       - run: pnpm --dir src/dmsg_frontend check
       - run: pnpm --dir src/dmsg_frontend test
       # The dmsg-connect/1 bridge page, checked against tests/vectors/client/connect-v1.json;
