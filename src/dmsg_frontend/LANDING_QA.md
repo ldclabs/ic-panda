@@ -2,35 +2,45 @@
 
 The marketing route is isolated from legacy authentication and token-price initialization. It preserves the original IC asset canister `index.html` SPA fallback so existing `/[handle]`, `/_/[channel]`, profile and authentication URLs remain routable.
 
-The root route loads the initial language catalog before rendering, so SvelteKit can locate fragment targets and restore scroll. The static HTML includes an English title and description; the client localizes the existing description in place and supplies default/page titles without duplicate metadata.
+The root route loads the initial language catalog before rendering, so SvelteKit can locate fragment targets and restore scroll. The static HTML includes an English title, description and share image; the client localizes the existing description in place and supplies default/page titles without duplicate metadata.
 
-The website follows `DESIGN.md` and the supplied landing prototype. Product copy describes the Chrome extension and integrations as in development, uses local sample data, and offers `/legacy` as a read-only entry. No extension-store ID, installation detection, audit, real signature, payment, migration, or successful backup is fabricated.
+## What the page claims
 
-## Archive scope
+The page follows `DESIGN.md`. It describes dMsg as one local program, `dmsg`: a daemon that holds the keys and the approval queue, reached by the desktop app, the command line, AI agents over MCP and websites through `connect.dmsg.net`. There is no browser extension. The desktop app and command line are in development with no public release: the install commands are shown under a note that they work only once the first `dmsg-v*` release is published, and the platforms are those of the release scripts (macOS Apple Silicon first; Windows x64; the command line on Linux). `/legacy` remains the read-only entry for old messages.
 
-- `AuthAgent.call` denies business writes before the network; authentication, historical IV/key derivation and authorized download-token updates remain allowed. Queries and local authentication/cache storage remain usable.
-- No new message/upload, read receipt, profile change, account registration, transfer or payment is offered by the archive UI.
-- Existing Local/ECDH keys can unlock even for COSE-enabled accounts. Remote reads can retrieve an already-existing VetKey; missing remote material is not initialized. Old namespace lookups do not migrate or rewrite settings.
-- Password unlock does not reset or replace keys or automatically migrate them. Existing login providers and name-account switching are retained.
-- **This is a client restriction, not a deployed server freeze.** Canister-side business-write enforcement and authorized Local/ECDH/VetKey production recovery samples still need migration/release validation. This change does not deploy canisters or change production key configuration.
+Facts on the page come from the public code and its READMEs: the 56 tools of `dmsg mcp` (33 standard Agent Protocols tools and 23 `dmsg_*`), the 15 agent capabilities (only public profiles without a grant), the capabilities no agent can hold, the `dmsg` commands and output shapes, the approval sources `gui`/`cli`/`agent:`/`connect:`, the second click before a secret is shown or copied, the 15-minute idle lock, recovery by a bound login after a one-to-seven-day disputable delay, and the dmsg-connect/1 moves and trust point. No audit, release, user count, signature, payment or successful backup is claimed.
+
+## Figures
+
+Every figure runs in the browser with sample data and says so in its caption. None contacts a service.
+
+- **Fig. 1, the gate** (`GateFigure.svelte`): a canvas simulation. Everyday requests travel from the four sources through the daemon and leave as scrambling ciphertext for the cloud; a request that needs a person waits at the gate with a 15-second expiry and a card with Reject and Approve. Only the visitor's approval sends a signature to ICP; “Signed without you” stays 0. Clicking a source sends a request. The loop runs only while the figure is on screen and the tab is visible.
+- **Fig. 2, desktop and terminal** (`DeviceDuo.svelte`): one simulated daemon behind a desktop window and a terminal that accepts a few `dmsg` commands (`status`, `vault list|show|add`, `lock`, `unlock`, `attest file`, `approvals list`, `help`). `attest file` opens the approval sheet in the window; either side can decide. Locking in one pane is enforced in the other.
+- **Fig. 3, agents** (`AgentPlayground.svelte`): capability switches, a scripted MCP run whose calls succeed or fail with `FORBIDDEN` according to the switches, and an audit record of grants and calls.
+- **Fig. 4, websites** (`ConnectFlow.svelte`): the dmsg-connect/1 sequence, which stops at the approval window until the visitor approves or rejects.
+- **Fig. 5, privacy** (`CipherLanes.svelte`): the visitor's text is encrypted in the browser with a throwaway AES-GCM key to show what the cloud holds, including its size; the note says dMsg's own format differs.
+
+With `prefers-reduced-motion: reduce` the figures show still scenes that remain interactive, the headline and sections appear without motion, and smooth scrolling is off.
 
 ## Automated checks
 
 Run from `src/dmsg_frontend`:
 
-- `npm run build`
-- `npm test`: 25 tests cover rejection before network submission, allowed authentication/recovery/download updates, historical namespace fallback, absent/error key states, synthetic Local/ECDH decryption without initialization, locale loading, catalog completeness, interpolation, and localized display data. The root workspace test run passes 41 tests across both frontends.
-- `npx svelte-check --tsconfig ./tsconfig.json`: 0 errors; 24 component warnings remain, primarily initial prop captures.
-- `git diff --check`
-
-Tests use synthetic keys and mocked transport/storage; they do not use a user's account or contact deployed services. The COSE package is inlined in Vitest because its published ESM uses extensionless internal imports. Its missing upstream source maps produce non-failing test warnings.
+- `npm run check` (`svelte-kit sync`, then `svelte-check --fail-on-warnings`): 1615 files, 0 errors, 0 warnings.
+- `npm test`: 41 tests in 10 files, including catalog completeness and identical parameters in all six languages, and the source coverage test (no unregistered visible English, no literal accessibility labels).
+- `npm run build`.
 
 ## Browser checks
 
-Checked the built page at 320px, 390px, 768px and 1440px: no horizontal overflow in the landing content. Verified capability tabs, secret show/hide, lock/unlock with focus restoration, signature rejection and simulated approval, contact-rule changes, mobile navigation with Escape, dialog Escape/focus restoration, the legacy entry, and its login chooser at 320px. No real account sign-in, signature or payment was performed.
+Headless Chrome for Testing 1243 (Playwright) against `vite dev`:
 
-The six-language regression pass checks landing header/content bounds at 320, 360, 361, 390, 481, 600, 601, 768, 1000, 1001 and 1280px. The legacy entry header is checked at 320, 390, 600, 601 and 768px. Russian navigation folds into a menu at 768px, while narrow legacy headers put the return link on its own row. Bounds are compared with the document's client width, including the space used by the scrollbar.
+- No horizontal overflow in any of the six languages at 320, 360, 390, 481, 600, 768, 1000, 1280 and 1440px.
+- No page or console errors in English at 1440 and 390px, Chinese, Russian and Arabic at 1440px, French at 390px, and with reduced motion.
+- Section captures in English at 1440 and 390px and Arabic at 1440px; hero captures in Chinese and Russian. Arabic mirrors the layout while diagrams, commands and hashes stay left to right, and Arabic copy is never set in monospace or tracked.
+- Reduced motion: every revealed element is visible, the waiting request can be approved and the next one appears, and the terminal prints its introduction.
 
-Fresh visits to `/#workspace`, `/#privacy`, `/#developers` and `/#release` position the requested section below the sticky header. Check after smooth scrolling has settled. All six languages retain exactly one title and one description after switching; the production fallback HTML also contains both before JavaScript runs. The OG image remains 1200 × 630. Chinese privacy and integration copy describes separate permissions and trust boundaries without claiming physical isolation or absolute privacy.
+In the Claude desktop browser pane: approving and expiring gate requests, running `dmsg attest file` and approving in the window, the agent run with a refused capability, the website sequence through approval, and typing in the privacy figure (2 bytes of text sealed to 30 bytes).
+
+Not run: Firefox and WebKit, real devices, and screen readers. The legal pages were checked only for unchanged class usage after the shared stylesheet was split (`site.css` for site chrome, `home.css` for the landing page).
 
 Local legacy service calls require a running replica. Without one, the entry page still renders; authenticated history and real attachment recovery cannot be verified in that environment.

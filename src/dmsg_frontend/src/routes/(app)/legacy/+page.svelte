@@ -11,7 +11,7 @@
   import { MyMessageState } from '$lib/stores/message'
   import { authStore } from '$lib/stores/auth'
   import { getModalStore } from '$lib/ui/stores'
-  import '$lib/components/landing/landing.css'
+  import '$lib/components/landing/site.css'
 
   const modalStore = getModalStore()
   let loading = $state(false)

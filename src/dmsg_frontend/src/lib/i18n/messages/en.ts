@@ -51,57 +51,16 @@ const en = {
   'Get PANDA from ICPswap': 'Get PANDA from ICPswap',
   'dMsg home': 'dMsg home',
   'dMsg — Your space. Your say.': 'dMsg — Your space. Your say.',
-  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.':
-    'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.',
   'Skip to content': 'Skip to content',
   'Main navigation': 'Main navigation',
-  'Workspace': 'Workspace',
   'Privacy': 'Privacy',
-  'Developers': 'Developers',
-  'Coming to desktop': 'Coming to desktop',
   'Close navigation': 'Close navigation',
   'Open navigation': 'Open navigation',
-  'Private workspace / Desktop app':
-    'Private workspace / Desktop app',
   'Your space.': 'Your space.',
   'Your say.': 'Your say.',
-  'Explore the workspace': 'Explore the workspace',
-  'Open legacy app': 'Open legacy app',
-  'Desktop app coming soon. Legacy app available read-only.':
-    'Desktop app coming soon. Legacy app available read-only.',
-  'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.':
-    'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.',
-  'Your public doorway': 'Your public doorway',
-  'Be reachable.': 'Be reachable.',
-  'On your terms.': 'On your terms.',
-  'A public profile helps people find you. Your contact rules decide how they approach — while your private work stays in its own space.':
-    'A public profile helps people find you. Your contact rules decide how they approach — while your private work stays in its own space.',
-  'Preview the planned contact modes. Paid requests will follow the personal workspace and private collaboration releases.':
-    'Preview the planned contact modes. Paid requests will follow the personal workspace and private collaboration releases.',
-  '@alex · Example profile': '@alex · Example profile',
-  'Independent builder.': 'Independent builder.',
-  'Thoughtful work, small teams.': 'Thoughtful work, small teams.',
-  'Visitor preview': 'Visitor preview',
-  'How people reach you': 'How people reach you',
-  'Try a rule. This example is not saved.':
-    'Try a rule. This example is not saved.',
   'Privacy, with the details included': 'Privacy, with the details included',
   'Private content.': 'Private content.',
   'Clear boundaries.': 'Clear boundaries.',
-  'The new dMsg is designed around encryption on your device, with distinct roles for the cloud and ICP.':
-    'The new dMsg is designed around encryption on your device, with distinct roles for the cloud and ICP.',
-  'Understand the trust model': 'Understand the trust model',
-  'Your device handles private content.':
-    'Your device handles private content.',
-  'Authorized, unlocked devices encrypt and decrypt your notes, messages, and files. A third-party connection does not open your vault.':
-    'Authorized, unlocked devices encrypt and decrypt your notes, messages, and files. A third-party connection does not open your vault.',
-  'The cloud stores and delivers ciphertext.':
-    'The cloud stores and delivers ciphertext.',
-  'Cloudflare supports encrypted storage, delivery, and collaboration state. Operational metadata is visible where needed to run the service.':
-    'Cloudflare supports encrypted storage, delivery, and collaboration state. Operational metadata is visible where needed to run the service.',
-  'ICP anchors core control.': 'ICP anchors core control.',
-  'Identity ownership, device and recovery roots, formal signing, and final payment state have their own on-chain rules. Ordinary messages are not written on-chain one by one.':
-    'Identity ownership, device and recovery roots, formal signing, and final payment state have their own on-chain rules. Ordinary messages are not written on-chain one by one.',
   'Encryption has a scope.': 'Encryption has a scope.',
   'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.':
     'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.',
@@ -117,51 +76,18 @@ const en = {
   'Private work deserves more than a reassuring badge. Understand what is public, what you authorize, and what recovery depends on.':
     'Private work deserves more than a reassuring badge. Understand what is public, what you authorize, and what recovery depends on.',
   'Inspect the public code.': 'Inspect the public code.',
-  'Client and protocol work lives in the public repository. The production cloud service has its own operational trust boundary.':
-    'Client and protocol work lives in the public repository. The production cloud service has its own operational trust boundary.',
   'Explore the repository': 'Explore the repository',
-  'Keep permissions separate.': 'Keep permissions separate.',
-  'Proving identity, reading shared content, approving a device, and signing a file each need their own scope. One does not imply the others.':
-    'Proving identity, reading shared content, approving a device, and signing a file each need their own scope. One does not imply the others.',
-  'See the request flow': 'See the request flow',
-  'Plan for independent recovery.': 'Plan for independent recovery.',
-  'The recovery design pairs a complete encrypted backup with a separately stored code. Missing ciphertext cannot be recovered from a code alone.':
-    'The recovery design pairs a complete encrypted backup with a separately stored code. Missing ciphertext cannot be recovered from a code alone.',
   'Read the recovery details': 'Read the recovery details',
   'Development is not audit evidence.': 'Development is not audit evidence.',
   'This page describes the target product. A public repository does not establish audit coverage or prove which code is deployed.':
     'This page describes the target product. A public repository does not establish audit coverage or prove which code is deployed.',
   'Release status': 'Release status',
-  'For connected applications': 'For connected applications',
-  'Your identity,': 'Your identity,',
-  'beyond one app.': 'beyond one app.',
-  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.':
-    'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.',
-  'Walk through a request': 'Walk through a request',
-  'App requests.': 'App requests.',
-  'Bind a specific file version, purpose, identity, and requesting origin.':
-    'Bind a specific file version, purpose, identity, and requesting origin.',
-  'You review.': 'You review.',
-  'Inspect the actual request. Approve or reject it in the desktop app.':
-    'Inspect the actual request. Approve or reject it in the desktop app.',
-  'App verifies.': 'App verifies.',
-  'Receive the result and verify content, signature, and authorization separately.':
-    'Receive the result and verify content, signature, and authorization separately.',
-  'Planned file-signing pilot. Project permissions remain with TokenList.':
-    'Planned file-signing pilot. Project permissions remain with TokenList.',
-  'Planned scoped controller integration. Its accounts and grants remain separate.':
-    'Planned scoped controller integration. Its accounts and grants remain separate.',
-  'Integrations are planned, not generally available. Connecting an app never means automatic signing.':
-    'Integrations are planned, not generally available. Connecting an app never means automatic signing.',
   'A few useful answers': 'A few useful answers',
   'Before you': 'Before you',
   'make it yours.': 'make it yours.',
   'Clear answers about availability, identity, private content, and your existing data.':
     'Clear answers about availability, identity, private content, and your existing data.',
   'In development': 'In development',
-  'Coming to desktop.': 'Coming to desktop.',
-  'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.':
-    'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.',
   'Follow development': 'Follow development',
   'Read your legacy messages': 'Read your legacy messages',
   'Keep your existing browser data and recovery materials until migration is available.':
@@ -172,53 +98,10 @@ const en = {
   'what matters.': 'what matters.',
   'Keep your private work close.': 'Keep your private work close.',
   'Decide what leaves your space.': 'Decide what leaves your space.',
-  'Explore dMsg': 'Explore dMsg',
   'Built by': 'Built by',
   'Trust': 'Trust',
   'Legacy app · Read-only': 'Legacy app · Read-only',
-  'Review this file version': 'Review this file version',
-  'Close signature example': 'Close signature example',
-  'Simulated request · No real signature':
-    'Simulated request · No real signature',
-  'Requesting app': 'Requesting app',
-  'TokenList · Example': 'TokenList · Example',
-  'Identity': 'Identity',
-  'Alex · Demo identity': 'Alex · Demo identity',
   'File': 'File',
-  'Purpose': 'Purpose',
-  'Confirm this example version': 'Confirm this example version',
-  'Example file content': 'Example file content',
-  'dMsg release brief': 'dMsg release brief',
-  'Purpose: confirm this example file version.':
-    'Purpose: confirm this example file version.',
-  'No real release or approval is represented.':
-    'No real release or approval is represented.',
-  'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
-    'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.',
-  'Reject example': 'Reject example',
-  'Simulate approval': 'Simulate approval',
-  'Example approved': 'Example approved',
-  'Example rejected': 'Example rejected',
-  'The walkthrough ends here. No signature was generated, no identity was connected, and no result was sent to an app.':
-    'The walkthrough ends here. No signature was generated, no identity was connected, and no result was sent to an app.',
-  'You chose not to approve the sample request. Nothing was signed or sent.':
-    'You chose not to approve the sample request. Nothing was signed or sent.',
-  'Close walkthrough': 'Close walkthrough',
-  'Invitations only': 'Invitations only',
-  'People you invite can reach you.': 'People you invite can reach you.',
-  'Invitations must be accepted. Joining a channel does not automatically make someone a contact.':
-    'Invitations must be accepted. Joining a channel does not automatically make someone a contact.',
-  'Paid requests': 'Paid requests',
-  'A delivery fee for new requests.': 'A delivery fee for new requests.',
-  'Planned for a later release. Payment covers eligible delivery, not a reply, contact status, or signing permission. Fees and refund conditions must be shown before payment.':
-    'Planned for a later release. Payment covers eligible delivery, not a reply, contact status, or signing permission. Fees and refund conditions must be shown before payment.',
-  'Closed to new requests': 'Closed to new requests',
-  'No new contact from strangers.': 'No new contact from strangers.',
-  'Closing stops new requests. Existing conversations keep their own permissions.':
-    'Closing stops new requests. Existing conversations keep their own permissions.',
-  'Can I install the dMsg desktop app now?': 'Can I install the dMsg desktop app now?',
-  'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
-    'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.',
   'What can I do with the legacy app?': 'What can I do with the legacy app?',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
     'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.',
@@ -228,97 +111,10 @@ const en = {
     'The new personal workspace is designed to work without buying a handle or having any contacts. Existing handle holders are intended to retain their names through migration without paying to claim them again. Legacy token balances and benefits are handled separately.',
   'Does logging in unlock my private content?':
     'Does logging in unlock my private content?',
-  'No. Login, device authorization, local unlock, and formal signing have separate permissions. Connecting a third-party app will not give it general access to your vault or automatic signing rights.':
-    'No. Login, device authorization, local unlock, and formal signing have separate permissions. Connecting a third-party app will not give it general access to your vault or automatic signing rights.',
-  'What would I need to recover my data?':
-    'What would I need to recover my data?',
-  'The new recovery design requires a complete encrypted backup and its separately stored recovery code. A code alone cannot reconstruct missing ciphertext. Login recovery and threshold-signing control are separate. Until migration is available, preserve your old browser data and existing recovery materials.':
-    'The new recovery design requires a complete encrypted backup and its separately stored recovery code. A code alone cannot reconstruct missing ciphertext. Login recovery and threshold-signing control are separate. Until migration is available, preserve your old browser data and existing recovery materials.',
   'Is everything stored on the blockchain?':
     'Is everything stored on the blockchain?',
   'No. The planned design encrypts private content on authorized devices and stores ciphertext in the cloud. ICP holds core identity, control, formal-signing, and payment state. Service metadata, cloud availability, client updates, and governance remain trust boundaries.':
     'No. The planned design encrypts private content on authorized devices and stores ciphertext in the cloud. ICP holds core identity, control, formal-signing, and payment state. Service metadata, cloud availability, client updates, and governance remain trust boundaries.',
-  'Will the full workspace work on my phone?':
-    'Will the full workspace work on my phone?',
-  'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
-    'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.',
-  'Explore dMsg capabilities': 'Explore dMsg capabilities',
-  'Workspace capabilities': 'Workspace capabilities',
-  'Your personal vault': 'Your personal vault',
-  'Your chosen people': 'Your chosen people',
-  'Your explicit approval': 'Your explicit approval',
-  'A place for the things you don’t publish.':
-    'A place for the things you don’t publish.',
-  'The right content. The right people.':
-    'The right content. The right people.',
-  'Know exactly what you’re signing.': 'Know exactly what you’re signing.',
-  'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.':
-    'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.',
-  'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.':
-    'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.',
-  'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.':
-    'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.',
-  'Private notes': 'Private notes',
-  'Local search': 'Local search',
-  'Invited members': 'Invited members',
-  'Encrypted files': 'Encrypted files',
-  'Scoped history': 'Scoped history',
-  'Fixed file version': 'Fixed file version',
-  'Clear purpose': 'Clear purpose',
-  'Separate permissions': 'Separate permissions',
-  'Interactive example': 'Interactive example',
-  'Example vault locked': 'Example vault locked',
-  'A real vault will require an authorized device and local unlock.':
-    'A real vault will require an authorized device and local unlock.',
-  'Unlock example': 'Unlock example',
-  'Production API key': 'Production API key',
-  'Example project · Sample credential': 'Example project · Sample credential',
-  'Value': 'Value',
-  'Hide sample secret': 'Hide sample secret',
-  'Show sample secret': 'Show sample secret',
-  'Access': 'Access',
-  'Personal vault': 'Personal vault',
-  'Lock example': 'Lock example',
-  'Copy sample': 'Copy sample',
-  'Sample data only. Never enter a real secret on this page.':
-    'Sample data only. Never enter a real secret on this page.',
-  'Release room': 'Release room',
-  'Example channel · 2 invited members': 'Example channel · 2 invited members',
-  'Alex · Example message': 'Alex · Example message',
-  'Here’s the release brief for your review. Let’s agree on this version before publishing.':
-    'Here’s the release brief for your review. Let’s agree on this version before publishing.',
-  'Sample text file': 'Sample text file',
-  'Download sample release brief': 'Download sample release brief',
-  'New members do not automatically receive old history. Removing access cannot erase copies already downloaded.':
-    'New members do not automatically receive old history. Removing access cannot erase copies already downloaded.',
-  'Confirm a release brief': 'Confirm a release brief',
-  'Example signature request': 'Example signature request',
-  'Confirm this file version': 'Confirm this file version',
-  'Review example': 'Review example',
-  'Walkthrough only. No identity connection or real signature.':
-    'Walkthrough only. No identity connection or real signature.',
-  'Product preview · Desktop app in development':
-    'Product preview · Desktop app in development',
-  'Examples run locally. Nothing is sent or signed.':
-    'Examples run locally. Nothing is sent or signed.',
-  'Useful on your own.': 'Useful on your own.',
-  'Start with one private note or credential. A public identity is an optional doorway, not a prerequisite.':
-    'Start with one private note or credential. A public identity is an optional doorway, not a prerequisite.',
-  'Share a specific space.': 'Share a specific space.',
-  'A channel invitation grants access to that channel. It does not open your personal vault.':
-    'A channel invitation grants access to that channel. It does not open your personal vault.',
-  'Every permission has a purpose.': 'Every permission has a purpose.',
-  'Login, content access, device approval, and formal signing are separate decisions.':
-    'Login, content access, device approval, and formal signing are separate decisions.',
-  'Keep it private': 'Keep it private',
-  'Share with intent': 'Share with intent',
-  'Sign with clarity': 'Sign with clarity',
-  'dMsg release brief Purpose: confirm this example file version. Sample content only. No real release or approval is represented.':
-    'dMsg release brief Purpose: confirm this example file version. Sample content only. No real release or approval is represented.',
-  'Sample copied to your system clipboard.':
-    'Sample copied to your system clipboard.',
-  'Clipboard unavailable. Select and copy the sample value above.':
-    'Clipboard unavailable. Select and copy the sample value above.',
   'Activate username account': 'Activate username account',
   'Your permanent account generated from':
     'Your permanent account generated from',
@@ -595,7 +391,6 @@ const en = {
   'Loading…': 'Loading…',
   'Could not load this language. Please try again.':
     'Could not load this language. Please try again.',
-  'Credentials': 'Credentials',
   'Manager': 'Manager',
   'Member': 'Member',
   'User': 'User',
@@ -699,7 +494,298 @@ const en = {
   'Waiting for Internet Identity…': 'Waiting for Internet Identity…',
   'Continue with Internet Identity': 'Continue with Internet Identity',
   'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
-    'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.'
+    'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.',
+  'A commitment to your content root': 'A commitment to your content root',
+  'A hint wakes your desktop, no content':
+    'A hint wakes your desktop, no content',
+  'A signature request from a website, one move at a time.':
+    'A signature request from a website, one move at a time.',
+  'A vault for what you don’t publish.': 'A vault for what you don’t publish.',
+  'AI agent': 'AI agent',
+  'AI agents': 'AI agents',
+  'API key': 'API key',
+  'API keys, logins, notes and files up to 100 MiB, encrypted on your device before they sync.':
+    'API keys, logins, notes and files up to 100 MiB, encrypted on your device before they sync.',
+  'Account and device changes': 'Account and device changes',
+  'Account and sync status': 'Account and sync status',
+  'Account, devices and logins': 'Account, devices and logins',
+  'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
+    'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.',
+  'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
+    'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.',
+  'Agent': 'Agent',
+  'Agent and controller keys': 'Agent and controller keys',
+  'Agents': 'Agents',
+  'An audit record on your device lists who did what and through which way in: you or an agent, from the desktop, the terminal or MCP. It names actions and outcomes, never content.':
+    'An audit record on your device lists who did what and through which way in: you or an agent, from the desktop, the terminal or MCP. It names actions and outcomes, never content.',
+  'An honest trust point.': 'An honest trust point.',
+  'Any modern browser.': 'Any modern browser.',
+  'App': 'App',
+  'Apple Silicon · the first release': 'Apple Silicon · the first release',
+  'Approval': 'Approval',
+  'Approve': 'Approve',
+  'Approve a new device': 'Approve a new device',
+  'Approved': 'Approved',
+  'Approved by you': 'Approved by you',
+  'Approved. Signature generated.': 'Approved. Signature generated.',
+  'Approved. The signature goes to ICP.':
+    'Approved. The signature goes to ICP.',
+  'Approving any request': 'Approving any request',
+  'Ask you to sign a statement': 'Ask you to sign a statement',
+  'Asks you to sign a file': 'Asks you to sign a file',
+  'Audit record': 'Audit record',
+  'Back to the start': 'Back to the start',
+  'Bridge page': 'Bridge page',
+  'Browser': 'Browser',
+  'Can I install dMsg now?': 'Can I install dMsg now?',
+  'Channels': 'Channels',
+  'Channels and an inbox on your terms.':
+    'Channels and an inbox on your terms.',
+  'Chrome on this Mac': 'Chrome on this Mac',
+  'Ciphertext': 'Ciphertext',
+  'Ciphertext only': 'Ciphertext only',
+  'Ciphertext, plus what it takes to deliver it':
+    'Ciphertext, plus what it takes to deliver it',
+  'Click again to copy': 'Click again to copy',
+  'Click again to show': 'Click again to show',
+  'Click it or type it.': 'Click it or type it.',
+  'Coming to your desktop.': 'Coming to your desktop.',
+  'Command line · x86_64 and arm64': 'Command line · x86_64 and arm64',
+  'Connect Claude Code': 'Connect Claude Code',
+  'Content is encrypted on your devices. The cloud carries ciphertext, and ICP keeps the few facts that must be verifiable. Type below and see what each side gets.':
+    'Content is encrypted on your devices. The cloud carries ciphertext, and ICP keeps the few facts that must be verifiable. Type below and see what each side gets.',
+  'Copy': 'Copy',
+  'Copy command': 'Copy command',
+  'Deploy key': 'Deploy key',
+  'Desktop': 'Desktop',
+  'Desktop & CLI': 'Desktop & CLI',
+  'Desktop & command line': 'Desktop & command line',
+  'Desktop app': 'Desktop app',
+  'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
+    'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.',
+  'Done. The release statement is waiting in your approval window. I can’t approve it myself.':
+    'Done. The release statement is waiting in your approval window. I can’t approve it myself.',
+  'Each agent gets its own did:agent identity. Its key lives in your vault, and stays resident only if you allow it.':
+    'Each agent gets its own did:agent identity. Its key lives in your vault, and stays resident only if you allow it.',
+  'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
+    'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.',
+  'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
+    'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.',
+  'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
+    'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.',
+  'Every action leaves a record.': 'Every action leaves a record.',
+  'Everyday work, encrypted': 'Everyday work, encrypted',
+  'Everything asks. Only you approve.': 'Everything asks. Only you approve.',
+  'Expired': 'Expired',
+  'Expired. Nothing was signed.': 'Expired. Nothing was signed.',
+  'Expires in': 'Expires in',
+  'Fig. {n}': 'Fig. {n}',
+  'Follow on GitHub': 'Follow on GitHub',
+  'Found it. The secret itself stays out: that would need vault.secret for this item.':
+    'Found it. The secret itself stays out: that would need vault.secret for this item.',
+  'From an interactive terminal': 'From an interactive terminal',
+  'Grant a capability, run the agent, read the record.':
+    'Grant a capability, run the agent, read the record.',
+  'Granted capabilities': 'Granted capabilities',
+  'Hide': 'Hide',
+  'Hides again in {seconds} s.': 'Hides again in {seconds} s.',
+  'How do websites connect without an extension?':
+    'How do websites connect without an extension?',
+  'I don’t have {capability}, so I’ll skip that.':
+    'I don’t have {capability}, so I’ll skip that.',
+  'Identity and signatures': 'Identity and signatures',
+  'In development · macOS first.': 'In development · macOS first.',
+  'In the dMsg cloud': 'In the dMsg cloud',
+  'Inbox': 'Inbox',
+  'Install method': 'Install method',
+  'Is there a phone app?': 'Is there a phone app?',
+  'It keeps names and outcomes on your device, never content.':
+    'It keeps names and outcomes on your device, never content.',
+  'It’s one workspace.': 'It’s one workspace.',
+  'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
+    'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.',
+  'Keep secrets, files and conversations encrypted on your own computer. The desktop app, the dmsg command line and your AI agents all work through it, and nothing is signed, paid or shared until you approve.':
+    'Keep secrets, files and conversations encrypted on your own computer. The desktop app, the dmsg command line and your AI agents all work through it, and nothing is signed, paid or shared until you approve.',
+  'Keep the keys.': 'Keep the keys.',
+  'Key': 'Key',
+  'Keys stay here': 'Keys stay here',
+  'Legacy messages stay readable': 'Legacy messages stay readable',
+  'Let agents work.': 'Let agents work.',
+  'Lock the example': 'Lock the example',
+  'Locked': 'Locked',
+  'Locked means locked.': 'Locked means locked.',
+  'Login': 'Login',
+  'MCP tools, from rooms and mail to your vault':
+    'MCP tools, from rooms and mail to your vault',
+  'Needs your approval': 'Needs your approval',
+  'Never grantable': 'Never grantable',
+  'Never your messages or files': 'Never your messages or files',
+  'Next step': 'Next step',
+  'No extension.': 'No extension.',
+  'No. Logging in proves who you are, unlocking opens the keys on one device, and approving signs one specific request. A website or an agent can only ask.':
+    'No. Logging in proves who you are, unlocking opens the keys on one device, and approving signs one specific request. A website or an agent can only ask.',
+  'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
+    'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.',
+  'Not yet. The desktop app and the command line are in development and have no public release. Everything on this page runs in your browser with sample data.':
+    'Not yet. The desktop app and the command line are in development and have no public release. Everything on this page runs in your browser with sample data.',
+  'Note': 'Note',
+  'Nothing is waiting. Tap a source to send a request.':
+    'Nothing is waiting. Tap a source to send a request.',
+  'Nothing recorded yet.': 'Nothing recorded yet.',
+  'Nothing to install in the browser. The site opens a small popup and waits for your answer.':
+    'Nothing to install in the browser. The site opens a small popup and waits for your answer.',
+  'Nothing to review yet. The request appears here when it reaches this device.':
+    'Nothing to review yet. The request appears here when it reaches this device.',
+  'On ICP': 'On ICP',
+  'On your device': 'On your device',
+  'One message, three places, three different views.':
+    'One message, three places, three different views.',
+  'One small program, dmsg, runs quietly on your computer. It holds the keys, encrypts, syncs and keeps the approval queue. The desktop app and the command line are two ways into it, so whatever you do in one shows up in the other.':
+    'One small program, dmsg, runs quietly on your computer. It holds the keys, encrypts, syncs and keeps the approval queue. The desktop app and the command line are two ways into it, so whatever you do in one shows up in the other.',
+  'Only what you grant. Each agent has its own identity and credential; without a grant it can read public profiles and nothing else. No agent can approve a request, pay, change your account or devices, or reach the keys of agents and controllers.':
+    'Only what you grant. Each agent has its own identity and credential; without a grant it can read public profiles and nothing else. No agent can approve a request, pay, change your account or devices, or reach the keys of agents and controllers.',
+  'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
+    'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.',
+  'Opened only by the page that asked': 'Opened only by the page that asked',
+  'Origin': 'Origin',
+  'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
+    'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.',
+  'Pairing browsers': 'Pairing browsers',
+  'Pairing starts on your device.': 'Pairing starts on your device.',
+  'Pause': 'Pause',
+  'Payments and checkout': 'Payments and checkout',
+  'Play': 'Play',
+  'Post in the release channel': 'Post in the release channel',
+  'Private workspace · Desktop · Command line · AI agents':
+    'Private workspace · Desktop · Command line · AI agents',
+  'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
+    'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.',
+  'Publish, assess and retract signed knowledge, and query what other agents have shared.':
+    'Publish, assess and retract signed knowledge, and query what other agents have shared.',
+  'Read items tagged “deploy”': 'Read items tagged “deploy”',
+  'Readable, and only while unlocked': 'Readable, and only while unlocked',
+  'Recovery without a seed phrase.': 'Recovery without a seed phrase.',
+  'Reject': 'Reject',
+  'Rejected': 'Rejected',
+  'Rejected. Nothing was signed.': 'Rejected. Nothing was signed.',
+  'Rejected. The site is told no, and nothing is signed.':
+    'Rejected. The site is told no, and nothing is signed.',
+  'Release plan': 'Release plan',
+  'Replay': 'Replay',
+  'Reported by your browser through connect.dmsg.net':
+    'Reported by your browser through connect.dmsg.net',
+  'Requests': 'Requests',
+  'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.':
+    'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.',
+  'Run again': 'Run again',
+  'Run the agent': 'Run the agent',
+  'Running…': 'Running…',
+  'Sample copied. The app clears the clipboard after {seconds} s.':
+    'Sample copied. The app clears the clipboard after {seconds} s.',
+  'Sample data · nothing leaves this page':
+    'Sample data · nothing leaves this page',
+  'Saved on this device · waits for sync':
+    'Saved on this device · waits for sync',
+  'Sealed both ways.': 'Sealed both ways.',
+  'Sealed refusal': 'Sealed refusal',
+  'Sealed result': 'Sealed result',
+  'Sealed so only your devices can open it':
+    'Sealed so only your devices can open it',
+  'Secret': 'Secret',
+  'See how it works': 'See how it works',
+  'See it in the agent demo': 'See it in the agent demo',
+  'Send a request from {source}': 'Send a request from {source}',
+  'Server login': 'Server login',
+  'Settings': 'Settings',
+  'Settled payments and names': 'Settled payments and names',
+  'Ship v1.4 on Friday. The brief is in the release channel.':
+    'Ship v1.4 on Friday. The brief is in the release channel.',
+  'Ship v1.4 on Friday. The deploy key is in the vault.':
+    'Ship v1.4 on Friday. The deploy key is in the vault.',
+  'Ship v1.4: check the deploy key, post the release note, and get the release signed.':
+    'Ship v1.4: check the deploy key, post the release note, and get the release signed.',
+  'Show': 'Show',
+  'Sign a file': 'Sign a file',
+  'Sign a statement': 'Sign a statement',
+  'Sign in with dMsg': 'Sign in with dMsg',
+  'Signature generated': 'Signature generated',
+  'Signature receipts, after you approve':
+    'Signature receipts, after you approve',
+  'Signatures': 'Signatures',
+  'Signed without you': 'Signed without you',
+  'Simulated agent with sample data. Nothing is sent anywhere.':
+    'Simulated agent with sample data. Nothing is sent anywhere.',
+  'Simulation · nothing is signed': 'Simulation · nothing is signed',
+  'Size': 'Size',
+  'Start over': 'Start over',
+  'Statement': 'Statement',
+  'Still your call.': 'Still your call.',
+  'Synced': 'Synced',
+  'Terminal': 'Terminal',
+  'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
+    'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.',
+  'The desktop app and the command line are in development, with no public release yet. The first release starts with macOS on Apple Silicon.':
+    'The desktop app and the command line are in development, with no public release yet. The first release starts with macOS on Apple Silicon.',
+  'The site is told no; nothing is signed':
+    'The site is told no; nothing is signed',
+  'The site received the result': 'The site received the result',
+  'The site verifies the signature': 'The site verifies the signature',
+  'These commands work once the first dmsg release is published.':
+    'These commands work once the first dmsg release is published.',
+  'Titles, notes, files and secrets stay encrypted until you unlock this device.':
+    'Titles, notes, files and secrets stay encrypted until you unlock this device.',
+  'Toggle a capability, then run the agent.':
+    'Toggle a capability, then run the agent.',
+  'Two windows, one daemon. Run a command, then watch the app.':
+    'Two windows, one daemon. Run a command, then watch the app.',
+  'Type a dmsg command': 'Type a dmsg command',
+  'Type anything. It never leaves this page.':
+    'Type anything. It never leaves this page.',
+  'Unlock': 'Unlock',
+  'Unlock the example': 'Unlock the example',
+  'Unlock to review this request.': 'Unlock to review this request.',
+  'Unlocked': 'Unlocked',
+  'Vault': 'Vault',
+  'Vault locked': 'Vault locked',
+  'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
+    'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.',
+  'Website': 'Website',
+  'Websites': 'Websites',
+  'Websites such as TokenList ask through connect.dmsg.net, a small page that seals each request for your devices. You review it in the dMsg approval window, and the site gets back only the result it asked for.':
+    'Websites such as TokenList ask through connect.dmsg.net, a small page that seals each request for your devices. You review it in the dMsg approval window, and the site gets back only the result it asked for.',
+  'What can an AI agent do with my account?':
+    'What can an AI agent do with my account?',
+  'What if I lose my computer?': 'What if I lose my computer?',
+  'You': 'You',
+  'You pair a browser from your desktop first. A site then opens connect.dmsg.net in a small popup; that page seals the request to your devices through the dMsg relay, you decide in the approval window, and the sealed result goes back to the page that asked.':
+    'You pair a browser from your desktop first. A site then opens connect.dmsg.net in a small popup; that page seals the request to your devices through the dMsg relay, you decide in the approval window, and the sealed result goes back to the page that asked.',
+  'You review it and decide': 'You review it and decide',
+  'Your desktop': 'Your desktop',
+  'Your desktop opens the pairing page with a one-time secret, so a phishing page cannot pair itself with your account.':
+    'Your desktop opens the pairing page with a one-time secret, so a phishing page cannot pair itself with your account.',
+  'Your turn: approve or reject in the approval window.':
+    'Your turn: approve or reject in the approval window.',
+  'account': 'account',
+  'approval window': 'approval window',
+  'capabilities, each granted on purpose':
+    'capabilities, each granted on purpose',
+  'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
+    'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.',
+  'dMsg cloud': 'dMsg cloud',
+  'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
+    'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.',
+  'dMsg relay': 'dMsg relay',
+  'dMsg · Approval': 'dMsg · Approval',
+  'device': 'device',
+  'sealed mailbox': 'sealed mailbox',
+  'size': 'size',
+  'time': 'time',
+  'ways for an agent to approve': 'ways for an agent to approve',
+  'x64 · follows macOS': 'x64 · follows macOS',
+  '{bytes} bytes': '{bytes} bytes',
+  '{count} items': '{count} items',
+  'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
+    'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.'
 }
 
 export type MessageKey = keyof typeof en

@@ -33,11 +33,7 @@ const invariantText = new Set([
   'CoinGecko',
   'BNB Chain:',
   '/ dMsg',
-  'AL',
-  'Alex Lin',
   'vetKeys ↗',
-  'release-brief.txt',
-  'release-brief.txt · v1',
   '_____-_____-_____-_____-cai',
   'SHA-256',
   'x'

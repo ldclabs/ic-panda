@@ -50,54 +50,16 @@ export default {
   'Get PANDA from ICPswap': '在 ICPswap 兑换获取 PANDA',
   'dMsg home': 'dMsg 首页',
   'dMsg — Your space. Your say.': 'dMsg — 你的专属空间，由你自主掌控。',
-  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.':
-    '专为你的私密数据、精选协作者与明确签名授权打造的私人工作空间。桌面应用正在全力开发中，旧版应用提供只读归档访问。',
   'Skip to content': '跳至主要内容',
   'Main navigation': '主导航',
-  'Workspace': '工作空间',
   'Privacy': '隐私与安全',
-  'Developers': '开发者',
-  'Coming to desktop': '即将推出桌面应用',
   'Close navigation': '收起导航',
   'Open navigation': '展开导航',
-  'Private workspace / Desktop app': '私人工作空间 / 桌面应用',
   'Your space.': '你的专属空间。',
   'Your say.': '由你完全掌控。',
-  'Explore the workspace': '探索私人工作空间',
-  'Open legacy app': '访问旧版只读归档',
-  'Desktop app coming soon. Legacy app available read-only.':
-    '桌面应用即将推出。旧版应用已转入只读归档模式。',
-  'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.':
-    '为你悉心守护的私密数据、自主选择的信任伙伴，以及由你审慎决定的签名请求而打造的专属工作空间。',
-  'Your public doorway': '你的公开对外入口',
-  'Be reachable.': '随时联络。',
-  'On your terms.': '完全由你掌控。',
-  'A public profile helps people find you. Your contact rules decide how they approach — while your private work stays in its own space.':
-    '公开个人主页让外界找到你，联系规则决定他人与你沟通的方式——而你的私密工作始终安全地停留在专属空间中。',
-  'Preview the planned contact modes. Paid requests will follow the personal workspace and private collaboration releases.':
-    '抢先预览规划中的联络机制。付费来信模式将在个人保险库与私密协作功能上线后正式推出。',
-  '@alex · Example profile': '@alex · 示例个人资料',
-  'Independent builder.': '独立开发者。',
-  'Thoughtful work, small teams.': '专注打磨，小而精干。',
-  'Visitor preview': '访客视角预览',
-  'How people reach you': '他人与你建立联系的方式',
-  'Try a rule. This example is not saved.':
-    '试选一条联络规则（此演示示例不会被保存）。',
   'Privacy, with the details included': '严谨可查的隐私架构',
   'Private content.': '私密内容。',
   'Clear boundaries.': '权责界限分明。',
-  'The new dMsg is designed around encryption on your device, with distinct roles for the cloud and ICP.':
-    '全新 dMsg 以设备端加密为设计基础，云端与 ICP 各有明确职责。',
-  'Understand the trust model': '深入了解信任模型',
-  'Your device handles private content.': '私密数据由本地设备端处理。',
-  'Authorized, unlocked devices encrypt and decrypt your notes, messages, and files. A third-party connection does not open your vault.':
-    '经授权且已解锁的设备负责加解密你的笔记、消息和文件。连接第三方应用不会开放你的私人保险库。',
-  'The cloud stores and delivers ciphertext.': '云端存储和投递密文。',
-  'Cloudflare supports encrypted storage, delivery, and collaboration state. Operational metadata is visible where needed to run the service.':
-    'Cloudflare 支持密文存储、投递和协作状态管理。服务方可见必要的运行元数据。',
-  'ICP anchors core control.': 'ICP 锚定核心主权控制。',
-  'Identity ownership, device and recovery roots, formal signing, and final payment state have their own on-chain rules. Ordinary messages are not written on-chain one by one.':
-    '身份所有权、设备与恢复根、正式签名及最终支付状态各自受链上规则约束。普通消息不会逐条写入区块链。',
   'Encryption has a scope.': '密码学加密有其明确的作用域。',
   'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.':
     '加密保护内容，无法隐藏所有关系或行为。身份、调用、支付和投递元数据仍可能可见。',
@@ -113,51 +75,18 @@ export default {
   'Private work deserves more than a reassuring badge. Understand what is public, what you authorize, and what recovery depends on.':
     '真正的隐私保护需要的不仅是一枚漂亮的营销徽章。你应当清晰洞察哪些信息属于公开域、你具体做出了哪些授权，以及灾难恢复究竟依赖什么。',
   'Inspect the public code.': '随时审阅开源代码。',
-  'Client and protocol work lives in the public repository. The production cloud service has its own operational trust boundary.':
-    '客户端与协议的开发代码位于公开仓库。生产云端服务有独立的运维信任边界。',
   'Explore the repository': '前往代码仓库探索',
-  'Keep permissions separate.': '坚持权限严格隔离。',
-  'Proving identity, reading shared content, approving a device, and signing a file each need their own scope. One does not imply the others.':
-    '身份证明、共享内容阅读、设备批准和文件签名各自需要独立的权限范围。一项权限不意味着其他权限。',
-  'See the request flow': '查看授权请求流转机制',
-  'Plan for independent recovery.': '规划严密的独立恢复机制。',
-  'The recovery design pairs a complete encrypted backup with a separately stored code. Missing ciphertext cannot be recovered from a code alone.':
-    '我们的灾备设计将完整的本地加密备份与独立保管的恢复码结合。单凭恢复码本身无法凭空还原丢失的密文数据。',
   'Read the recovery details': '了解恢复机制技术细节',
   'Development is not audit evidence.': '开发进行中不等于已具备审计证明。',
   'This page describes the target product. A public repository does not establish audit coverage or prove which code is deployed.':
     '本页面阐述的是产品的设计蓝图。公开开源仓库并不等同于完成了第三方安全审计，亦不能直接证明当前线上所部署的具体代码。',
-  'Release status': '当前发布阶段说明',
-  'For connected applications': '面向生态互联应用',
-  'Your identity,': '你的主权身份，',
-  'beyond one app.': '通行于各款应用。',
-  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.':
-    '第三方应用仅能发起具体的单一操作请求。你可以在桌面应用独立的确认窗口中逐一核对请求来源、具体数据及产生的影响。',
-  'Walk through a request': '体验授权流程演示',
-  'App requests.': '应用发起签名请求。',
-  'Bind a specific file version, purpose, identity, and requesting origin.':
-    '明确绑定具体的文件版本、业务意图、对应身份以及发起请求的来源网址。',
-  'You review.': '你亲自审核。',
-  'Inspect the actual request. Approve or reject it in the desktop app.':
-    '仔细检查请求明细，直接在桌面应用中选择批准或拒绝。',
-  'App verifies.': '应用验证执行结果。',
-  'Receive the result and verify content, signature, and authorization separately.':
-    '应用接收签名结果，并分别对明文内容、数字签名及授权凭据进行确定性校验。',
-  'Planned file-signing pilot. Project permissions remain with TokenList.':
-    '规划中的文件签名试点。项目权限仍由 TokenList 管理。',
-  'Planned scoped controller integration. Its accounts and grants remain separate.':
-    '规划中的限定范围控制器集成。相关账户与授权保持独立。',
-  'Integrations are planned, not generally available. Connecting an app never means automatic signing.':
-    '上述生态集成仍处于规划阶段，尚未正式开放。连接任何第三方应用均绝不意味着授予自动签名的特权。',
+  'Release status': '发布进展',
   'A few useful answers': '常见问题解答',
   'Before you': '开启使用',
   'make it yours.': '专属空间之前。',
   'Clear answers about availability, identity, private content, and your existing data.':
     '关于系统可用性、身份模型、私密数据保管与历史数据继承的坦诚解答。',
   'In development': '积极开发中',
-  'Coming to desktop.': '桌面应用即将推出。',
-  'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.':
-    '完整的私人工作空间目前尚未开放安装。我们正在稳步推进本地个人保险库的工程落地，随后将陆续推出私密协作频道与受控签名集成。',
   'Follow development': '关注核心开发进展',
   'Read your legacy messages': '查看旧版历史消息',
   'Keep your existing browser data and recovery materials until migration is available.':
@@ -168,52 +97,10 @@ export default {
   'what matters.': '构筑私密港湾。',
   'Keep your private work close.': '让核心私密资料始终贴身保管。',
   'Decide what leaves your space.': '严密把关流出你私人空间的每一份数据。',
-  'Explore dMsg': '探索 dMsg 核心特性',
   'Built by': '构建团队：',
   'Trust': '安全与信任',
   'Legacy app · Read-only': '旧版应用 · 只读',
-  'Review this file version': '核对并确认此文件版本',
-  'Close signature example': '关闭签名流程示例',
-  'Simulated request · No real signature': '模拟请求流程 · 不产生真实签名',
-  'Requesting app': '发起请求的应用',
-  'TokenList · Example': 'TokenList · 示例',
-  'Identity': '身份凭据',
-  'Alex · Demo identity': 'Alex · 演示身份',
   'File': '文件',
-  'Purpose': '用途说明',
-  'Confirm this example version': '确认此示例版本',
-  'Example file content': '示例文本内容',
-  'dMsg release brief': 'dMsg 发布简报',
-  'Purpose: confirm this example file version.':
-    '用途：核对并确认该示例文件版本。',
-  'No real release or approval is represented.':
-    '本流程仅用于功能交互展示，不代表任何真实的发布或审批行为。',
-  'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
-    '在未来正式发布的桌面应用中，点击批准仅代表对当前已核对的内容与特定用途进行授权，绝不会暴露你的保险库，亦不会默认批准任何未来请求。',
-  'Reject example': '拒绝此示例请求',
-  'Simulate approval': '模拟批准操作',
-  'Example approved': '已模拟批准此请求',
-  'Example rejected': '已拒绝此示例请求',
-  'The walkthrough ends here. No signature was generated, no identity was connected, and no result was sent to an app.':
-    '交互演示到此结束。在此过程中未生成任何真实数字签名，未暴露任何身份，亦未向任何外部应用发送数据。',
-  'You chose not to approve the sample request. Nothing was signed or sent.':
-    '你已主动选择不批准该示例请求。未签署或向外发送任何数据。',
-  'Close walkthrough': '退出交互演示',
-  'Invitations only': '仅限受邀者',
-  'People you invite can reach you.': '唯有经你主动邀请的人方可与你取得联系。',
-  'Invitations must be accepted. Joining a channel does not automatically make someone a contact.':
-    '邀请必须经双方确认接受。即便同处一个协作频道，彼此也不会自动成为默认联系人。',
-  'Paid requests': '付费来信模式',
-  'A delivery fee for new requests.': '新陌生来信须附带代币投递费用。',
-  'Planned for a later release. Payment covers eligible delivery, not a reply, contact status, or signing permission. Fees and refund conditions must be shown before payment.':
-    '此特性计划在后续版本推出。发信人支付的费用仅用于补偿投递准入，绝不构成回复承诺、联系人身份认可或签名权限。费用与退款规则将在付款前透明公开。',
-  'Closed to new requests': '关闭陌生来信',
-  'No new contact from strangers.': '完全拒收来自陌生人的新联系请求。',
-  'Closing stops new requests. Existing conversations keep their own permissions.':
-    '开启此选项后将拒绝所有新的外部联系请求，而既有的历史对话仍将保留各自的通信权限。',
-  'Can I install the dMsg desktop app now?': '现在可以安装 dMsg 桌面应用吗？',
-  'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
-    '目前尚不可以。桌面应用仍在研发中，尚未公开发布。本网站上的所有交互仅用于阐述未来的核心产品理念与设计体验，并非生产环境的实时保险库、聊天工具或签名服务。',
   'What can I do with the legacy app?': '旧版应用目前支持哪些操作？',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
     '你可以使用既有的身份凭据登录，查看过往的历史会话并下载此前已具备权限的文件附件。旧版界面现已全线关闭新消息发送、文件上传、个人资料修改及新账户注册。请务必妥善保留原有的浏览器与本地数据（尤其是曾启用本地密钥模式的用户）。全新的一键迁移方案将在准备就绪后第一时间公布。',
@@ -223,94 +110,10 @@ export default {
     '新的个人工作空间设计为无需购买用户名或添加联系人即可使用。计划通过迁移保留现有持有者的用户名，无需再次付费认领。旧版代币余额与权益另行处理。',
   'Does logging in unlock my private content?':
     '登录操作会直接解锁我所有的私密数据吗？',
-  'No. Login, device authorization, local unlock, and formal signing have separate permissions. Connecting a third-party app will not give it general access to your vault or automatic signing rights.':
-    '绝对不会。用户登录认证、设备授权信任、本地保险库解锁以及正式链上签名具有完全隔离的独立权限。单纯连接第三方 Web3 应用，绝不会赋予其访问你的私人保险库或擅自签名的权限。',
-  'What would I need to recover my data?': '在灾难恢复时，我需要提供哪些凭据？',
-  'The new recovery design requires a complete encrypted backup and its separately stored recovery code. A code alone cannot reconstruct missing ciphertext. Login recovery and threshold-signing control are separate. Until migration is available, preserve your old browser data and existing recovery materials.':
-    '全新升级的灾备恢复体系要求同时具备完整的加密备份文件与独立妥善保管的恢复凭证码。单凭一串恢复码无法凭空重构丢失的加密文件数据。身份登录恢复与门限阈值签名控制各自独立。在全新迁移工具上线前，请务必严密保存好原有的浏览器缓存与现存的恢复材料。',
   'Is everything stored on the blockchain?':
     '所有的聊天内容与文件都会被保存在区块链上吗？',
   'No. The planned design encrypts private content on authorized devices and stores ciphertext in the cloud. ICP holds core identity, control, formal-signing, and payment state. Service metadata, cloud availability, client updates, and governance remain trust boundaries.':
     '不会。计划中的设计在已授权设备上加密私密内容，并将密文存入云端。ICP 保存核心身份、控制、正式签名和支付状态。服务元数据、云端可用性、客户端更新和治理仍属于信任边界。',
-  'Will the full workspace work on my phone?':
-    '完整的私人工作空间支持在智能手机上使用吗？',
-  'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
-    '初期完整的私人工作空间将以桌面应用提供。当前网页仅提供产品介绍与旧版历史只读访问；具备移动响应式页面并不意味着已提供完整的移动端保险库或加密通讯应用。',
-  'Explore dMsg capabilities': '探索 dMsg 核心矩阵',
-  'Workspace capabilities': '工作空间核心能力',
-  'Your personal vault': '本地私人保险库',
-  'Your chosen people': '精选信任协作圈',
-  'Your explicit approval': '审慎明确的主权签名',
-  'A place for the things you don’t publish.':
-    '为那些永不公开的私密资料构筑安全堡垒。',
-  'The right content. The right people.': '恰当的内容，只交托给对的人。',
-  'Know exactly what you’re signing.': '每一笔签名，皆了然于胸。',
-  'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.':
-    '集中保存 API 密钥、凭据、私密笔记和文件。计划中的桌面应用优先提供个人工作空间，无需联系人或付费用户名。',
-  'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.':
-    '在加密会话或频道中共享项目笔记和文件。邀请他人进入指定空间，其访问权限与个人保险库分开。',
-  'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.':
-    '逐项核实发起请求的应用来源、所选身份、目标文件的精准版本与签名用途。连接外部应用与批准其签名请求属于两个独立决断。',
-  'Private notes': '私密备忘',
-  'Local search': '本地极速检索',
-  'Invited members': '受邀成员',
-  'Encrypted files': '密文文件',
-  'Scoped history': '受控历史范围',
-  'Fixed file version': '确定性文件版本',
-  'Clear purpose': '意图清晰明了',
-  'Separate permissions': '权限严格隔离',
-  'Interactive example': '交互式体验示例',
-  'Example vault locked': '示例保险库已锁定',
-  'A real vault will require an authorized device and local unlock.':
-    '实际保险库需要已获授权的设备，并在本地解锁。',
-  'Unlock example': '解锁示例',
-  'Production API key': '生产环境 API 密钥',
-  'Example project · Sample credential': '示例项目 · 演示凭据',
-  'Value': '凭据值',
-  'Hide sample secret': '隐藏演示密钥',
-  'Show sample secret': '查看演示密钥',
-  'Access': '访问权限',
-  'Personal vault': '私人保险库',
-  'Lock example': '重新锁定示例',
-  'Copy sample': '复制示例内容',
-  'Sample data only. Never enter a real secret on this page.':
-    '本处仅为模拟演示数据，切勿在此页面输入任何真实的私密信息。',
-  'Release room': '发布协作讨论室',
-  'Example channel · 2 invited members': '示例频道 · 2 位受邀成员',
-  'Alex · Example message': 'Alex · 示例发言',
-  'Here’s the release brief for your review. Let’s agree on this version before publishing.':
-    '这是供大家审核的发布简报。在正式上线前，请确认这一文件版本。',
-  'Sample text file': '示例文本文件',
-  'Download sample release brief': '下载示例发布简报',
-  'New members do not automatically receive old history. Removing access cannot erase copies already downloaded.':
-    '新加入的成员绝不会自动读取过往的历史消息；移除其权限亦无法物理抹去对方此前已下载完成的文件副本。',
-  'Confirm a release brief': '确认发布简报声明',
-  'Example signature request': '示例签名授权请求',
-  'Confirm this file version': '确认此文件版本',
-  'Review example': '核对示例明细',
-  'Walkthrough only. No identity connection or real signature.':
-    '仅供交互演示，不连接真实身份，亦不产生有效链上签名。',
-  'Product preview · Desktop app in development':
-    '产品设计预览 · 桌面应用开发中',
-  'Examples run locally. Nothing is sent or signed.':
-    '示例在本地运行，不会发送数据或生成签名。',
-  'Useful on your own.': '独享亦得力。',
-  'Start with one private note or credential. A public identity is an optional doorway, not a prerequisite.':
-    '哪怕仅用于保存一条私密备忘或 API 密钥，它也能为你提供极致价值。公开主权身份仅是按需开启的入口，绝非使用门槛。',
-  'Share a specific space.': '精准共享专属协作空间。',
-  'A channel invitation grants access to that channel. It does not open your personal vault.':
-    '单个频道的加入邀请仅授予该频道的通信权限，绝不会敞开你的私人保险库。',
-  'Every permission has a purpose.': '每一项权限授权，皆有明确指向。',
-  'Login, content access, device approval, and formal signing are separate decisions.':
-    '登录身份认证、内容明文访问、新设备授权接入与正式数字签名，皆属于彼此隔离的独立决断。',
-  'Keep it private': '私密专享',
-  'Share with intent': '精准分享，边界自定',
-  'Sign with clarity': '明白签署，授权清晰',
-  'dMsg release brief Purpose: confirm this example file version. Sample content only. No real release or approval is represented.':
-    'dMsg 发布简报 用途：核对确认此示例文件版本。仅供交互展示，不代表真实发布或审批。',
-  'Sample copied to your system clipboard.': '示例数据已成功复制到系统剪贴板。',
-  'Clipboard unavailable. Select and copy the sample value above.':
-    '无法自动访问剪贴板，请手动选定并复制上方示例内容。',
   'Activate username account': '激活个性用户名账户',
   'Your permanent account generated from':
     '由该个性用户名派生生成的专属永久账户为：',
@@ -582,7 +385,6 @@ export default {
   'Loading…': '正在加载…',
   'Could not load this language. Please try again.':
     '语言资源包加载失败，请刷新重试。',
-  'Credentials': '凭据材料',
   'Manager': '管理员',
   'Member': '正式成员',
   'User': '用户',
@@ -683,5 +485,283 @@ export default {
   'Waiting for Internet Identity…': '正在等待 Internet Identity…',
   'Continue with Internet Identity': '使用 Internet Identity 继续',
   'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
-    'Internet Identity 将授权这台电脑上的 dMsg 应用代表你操作。本页面不保留任何会话。'
+    'Internet Identity 将授权这台电脑上的 dMsg 应用代表你操作。本页面不保留任何会话。',
+  'A commitment to your content root': '你的内容根承诺值',
+  'A hint wakes your desktop, no content': '仅发送提示唤醒桌面端，不含内容',
+  'A signature request from a website, one move at a time.':
+    '来自网站的一次签名请求，逐步拆解。',
+  'A vault for what you don’t publish.': '保管不公开的一切。',
+  'AI agent': 'AI 智能体',
+  'AI agents': 'AI 智能体',
+  'API key': 'API 密钥',
+  'API keys, logins, notes and files up to 100 MiB, encrypted on your device before they sync.':
+    'API 密钥、登录凭据、笔记与最大 100 MiB 的文件，都在你的设备上加密后才会同步。',
+  'Account and device changes': '账户与设备变更',
+  'Account and sync status': '账户与同步状态',
+  'Account, devices and logins': '账户、设备与登录身份',
+  'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
+    '添加第二台设备，并绑定一个你信任的登录身份。即使所有设备都丢失，该登录身份也能在等待期结束后恢复账户；等待期内，你的任何设备都可以提出异议。',
+  'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
+    '闲置 15 分钟后，设备自动锁定并清除内存中的密钥。锁定的设备仍能提醒你有请求待处理，但绝不透露来自谁。',
+  'Agent': '智能体',
+  'Agent and controller keys': '智能体与控制者密钥',
+  'Agents': '智能体',
+  'An audit record on your device lists who did what and through which way in: you or an agent, from the desktop, the terminal or MCP. It names actions and outcomes, never content.':
+    '设备上的审计记录会列出谁经由哪个入口做了什么：是你还是智能体，来自桌面端、终端还是 MCP。它只记录操作与结果，从不记录内容。',
+  'An honest trust point.': '坦诚标明信任点。',
+  'Any modern browser.': '支持任意现代浏览器。',
+  'App': '应用',
+  'Apple Silicon · the first release': 'Apple 芯片 · 首个发布版本',
+  'Approval': '审批',
+  'Approve': '批准',
+  'Approve a new device': '批准新设备',
+  'Approved': '已批准',
+  'Approved by you': '经你批准',
+  'Approved. Signature generated.': '已批准，签名已生成。',
+  'Approved. The signature goes to ICP.': '已批准，签名送往 ICP。',
+  'Approving any request': '批准任何请求',
+  'Ask you to sign a statement': '请求你签署声明',
+  'Asks you to sign a file': '请求你签署文件',
+  'Audit record': '审计记录',
+  'Back to the start': '回到开头',
+  'Bridge page': '桥接页',
+  'Browser': '浏览器',
+  'Can I install dMsg now?': '现在可以安装 dMsg 吗？',
+  'Channels': '频道',
+  'Channels and an inbox on your terms.': '频道与收件箱，规则由你定。',
+  'Chrome on this Mac': '此 Mac 上的 Chrome',
+  'Ciphertext': '密文',
+  'Ciphertext only': '仅密文',
+  'Ciphertext, plus what it takes to deliver it': '密文，以及投递所需的元数据',
+  'Click again to copy': '再次点击以复制',
+  'Click again to show': '再次点击以显示',
+  'Click it or type it.': '点一下，或敲一行。',
+  'Coming to your desktop.': '即将登陆你的桌面。',
+  'Command line · x86_64 and arm64': '命令行 · x86_64 与 arm64',
+  'Connect Claude Code': '连接 Claude Code',
+  'Content is encrypted on your devices. The cloud carries ciphertext, and ICP keeps the few facts that must be verifiable. Type below and see what each side gets.':
+    '内容在你的设备上加密。云端只传递密文，ICP 只保存少数必须可验证的事实。在下方输入文字，看看每一方各自拿到了什么。',
+  'Copy': '复制',
+  'Copy command': '复制命令',
+  'Deploy key': '部署密钥',
+  'Desktop': '桌面',
+  'Desktop & CLI': '桌面与命令行',
+  'Desktop & command line': '桌面端与命令行',
+  'Desktop app': '桌面应用',
+  'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
+    '我已完成被允许的部分。没有 attest.request，我连请你签名都做不到。',
+  'Done. The release statement is waiting in your approval window. I can’t approve it myself.':
+    '完成了。发布声明正在你的审批窗口中等待，我无法替你批准。',
+  'Each agent gets its own did:agent identity. Its key lives in your vault, and stays resident only if you allow it.':
+    '每个智能体都有自己的 did:agent 身份。它的密钥保存在你的保险库中，只有经你允许才会常驻。',
+  'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
+    '带角色与附件的加密频道。联系规则决定谁可以给你写信：无人、仅联系人、任何人，或付费发件人。',
+  'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
+    '此处在你的浏览器中用一次性 AES-GCM 密钥加密，仅作演示；dMsg 的实际格式不同。留意大小：加密隐藏的是内容，而不是长度或时间。',
+  'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
+    '智能体之间的端到端加密信件，投递到你发布并可轮换的邮箱。',
+  'Every action leaves a record.': '每个操作都有记录。',
+  'Everyday work, encrypted': '日常操作，加密传输',
+  'Everything asks. Only you approve.': '一切都要请示，唯有你能批准。',
+  'Expired': '已过期',
+  'Expired. Nothing was signed.': '已过期，未签署任何内容。',
+  'Expires in': '剩余有效期',
+  'Fig. {n}': '图 {n}',
+  'Follow on GitHub': '在 GitHub 上关注',
+  'Found it. The secret itself stays out: that would need vault.secret for this item.':
+    '找到了。机密字段本身不会返回：那需要针对此条目的 vault.secret。',
+  'From an interactive terminal': '来自交互式终端',
+  'Grant a capability, run the agent, read the record.':
+    '授予一项能力，运行智能体，查看审计记录。',
+  'Granted capabilities': '已授予的能力',
+  'Hide': '隐藏',
+  'Hides again in {seconds} s.': '{seconds} 秒后再次隐藏。',
+  'How do websites connect without an extension?':
+    '没有浏览器扩展，网站如何连接？',
+  'I don’t have {capability}, so I’ll skip that.':
+    '我没有 {capability}，所以跳过这一步。',
+  'Identity and signatures': '身份与签名',
+  'In development · macOS first.': '开发中 · 首发 macOS。',
+  'In the dMsg cloud': '在 dMsg 云端',
+  'Inbox': '收件箱',
+  'Install method': '安装方式',
+  'Is there a phone app?': '有手机应用吗？',
+  'It keeps names and outcomes on your device, never content.':
+    '它只在你的设备上记录名称与结果，从不记录内容。',
+  'It’s one workspace.': '都是同一个工作空间。',
+  'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
+    '加入 Agent Discourse 房间，阅读时间线并发言。若智能体思考期间房间已有新动态，草稿会先暂存。',
+  'Keep secrets, files and conversations encrypted on your own computer. The desktop app, the dmsg command line and your AI agents all work through it, and nothing is signed, paid or shared until you approve.':
+    '把机密、文件和对话加密保存在你自己的电脑上。桌面应用、dmsg 命令行和你的 AI 智能体都经由它工作；未经你批准，任何内容都不会被签署、支付或共享。',
+  'Keep the keys.': '密钥留给你。',
+  'Key': '密钥',
+  'Keys stay here': '密钥留在这里',
+  'Legacy messages stay readable': '旧版消息仍可阅读',
+  'Let agents work.': '让智能体去干活。',
+  'Lock the example': '锁定示例',
+  'Locked': '已锁定',
+  'Locked means locked.': '锁定，就是真的锁定。',
+  'Login': '登录凭据',
+  'MCP tools, from rooms and mail to your vault':
+    '个 MCP 工具，从房间、邮件到你的保险库',
+  'Needs your approval': '需要你批准',
+  'Never grantable': '永不可授予',
+  'Never your messages or files': '绝不包含你的消息或文件',
+  'Next step': '下一步',
+  'No extension.': '无需扩展。',
+  'No. Logging in proves who you are, unlocking opens the keys on one device, and approving signs one specific request. A website or an agent can only ask.':
+    '不会。登录证明你是谁，解锁在一台设备上打开密钥，批准只签署一个具体请求。网站或智能体只能发起请求。',
+  'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
+    '暂时没有。核心代码在设计上便于日后由手机应用复用。目前完整的工作空间是桌面应用和命令行；本网站有意保持轻量。',
+  'Not yet. The desktop app and the command line are in development and have no public release. Everything on this page runs in your browser with sample data.':
+    '暂时不行。桌面应用与命令行仍在开发中，尚无公开发布版本。本页的一切都在你的浏览器中用示例数据运行。',
+  'Note': '笔记',
+  'Nothing is waiting. Tap a source to send a request.':
+    '暂无待批请求。点按任一来源即可发出请求。',
+  'Nothing recorded yet.': '尚无记录。',
+  'Nothing to install in the browser. The site opens a small popup and waits for your answer.':
+    '浏览器中无需安装任何东西。网站只会打开一个小弹窗，等待你的答复。',
+  'Nothing to review yet. The request appears here when it reaches this device.':
+    '暂无待审内容。请求到达这台设备后会显示在这里。',
+  'On ICP': '在 ICP 上',
+  'On your device': '在你的设备上',
+  'One message, three places, three different views.':
+    '同一条消息，三个位置，三种视角。',
+  'One small program, dmsg, runs quietly on your computer. It holds the keys, encrypts, syncs and keeps the approval queue. The desktop app and the command line are two ways into it, so whatever you do in one shows up in the other.':
+    '一个名为 dmsg 的小程序在你的电脑上安静运行。它持有密钥，负责加密、同步，并管理审批队列。桌面应用和命令行是进入它的两扇门，在一边做的事，另一边立刻可见。',
+  'Only what you grant. Each agent has its own identity and credential; without a grant it can read public profiles and nothing else. No agent can approve a request, pay, change your account or devices, or reach the keys of agents and controllers.':
+    '只能做你授权的事。每个智能体都有自己的身份与凭证；未经授权，它只能读取公开资料。任何智能体都不能批准请求、付款、更改你的账户或设备，也无法触及智能体与控制者的密钥。',
+  'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
+    '只有你具备批准权的设备能打开请求，也只有发起请求的页面能打开结果。中继只看到密封的信封。',
+  'Opened only by the page that asked': '只有发起请求的页面能打开',
+  'Origin': '来源',
+  'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
+    '配对第二台设备，并为账户绑定一个登录身份。即使所有设备都丢失，该登录身份也可以申请恢复；经过一到七天的等待期（期间你的任何设备都可以提出异议）后，账户会迁移到新设备上的全新密钥。',
+  'Pairing browsers': '配对浏览器',
+  'Pairing starts on your device.': '配对由你的设备发起。',
+  'Pause': '暂停',
+  'Payments and checkout': '付款与结账',
+  'Play': '播放',
+  'Post in the release channel': '在发布频道发言',
+  'Private workspace · Desktop · Command line · AI agents':
+    '私密工作空间 · 桌面端 · 命令行 · AI 智能体',
+  'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
+    '公开声明谁可以代表你行事，凭证有范围、会过期，且随时可撤销。',
+  'Publish, assess and retract signed knowledge, and query what other agents have shared.':
+    '发布、评估与撤回带签名的知识，并查询其他智能体分享的内容。',
+  'Read items tagged “deploy”': '读取标签为“deploy”的条目',
+  'Readable, and only while unlocked': '可读，但仅在解锁期间',
+  'Recovery without a seed phrase.': '无需助记词也能恢复。',
+  'Reject': '拒绝',
+  'Rejected': '已拒绝',
+  'Rejected. Nothing was signed.': '已拒绝，未签署任何内容。',
+  'Rejected. The site is told no, and nothing is signed.':
+    '已拒绝。网站会收到拒绝结果，不会签署任何内容。',
+  'Release plan': '发布计划',
+  'Replay': '重播',
+  'Reported by your browser through connect.dmsg.net':
+    '由你的浏览器经 connect.dmsg.net 转述',
+  'Requests': '请求',
+  'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.':
+    '来自桌面应用、终端、AI 智能体和网站的请求都会到达你电脑上的 dMsg 守护进程。日常操作只以密文形式发往云端；签名只有在你批准后才会到达 ICP。',
+  'Run again': '再运行一次',
+  'Run the agent': '运行智能体',
+  'Running…': '运行中…',
+  'Sample copied. The app clears the clipboard after {seconds} s.':
+    '示例已复制。应用会在 {seconds} 秒后清空剪贴板。',
+  'Sample data · nothing leaves this page': '示例数据 · 不会离开本页面',
+  'Saved on this device · waits for sync': '已保存在本设备 · 等待同步',
+  'Sealed both ways.': '往返全程密封。',
+  'Sealed refusal': '密封的拒绝结果',
+  'Sealed result': '密封的结果',
+  'Sealed so only your devices can open it': '密封后只有你的设备能打开',
+  'Secret': '机密',
+  'See how it works': '看看它如何运作',
+  'See it in the agent demo': '在智能体演示中查看',
+  'Send a request from {source}': '从“{source}”发送请求',
+  'Server login': '服务器登录',
+  'Settings': '设置',
+  'Settled payments and names': '已结算的付款与名称',
+  'Ship v1.4 on Friday. The brief is in the release channel.':
+    '周五发布 v1.4。说明文档在发布频道里。',
+  'Ship v1.4 on Friday. The deploy key is in the vault.':
+    '周五发布 v1.4。部署密钥在保险库里。',
+  'Ship v1.4: check the deploy key, post the release note, and get the release signed.':
+    '发布 v1.4：检查部署密钥，发出更新说明，并让这次发布获得签署。',
+  'Show': '显示',
+  'Sign a file': '签署文件',
+  'Sign a statement': '签署声明',
+  'Sign in with dMsg': '使用 dMsg 登录',
+  'Signature generated': '签名已生成',
+  'Signature receipts, after you approve': '签名回执（经你批准后）',
+  'Signatures': '签名',
+  'Signed without you': '未经你签署',
+  'Simulated agent with sample data. Nothing is sent anywhere.':
+    '模拟智能体，使用示例数据，不会发送任何内容。',
+  'Simulation · nothing is signed': '模拟演示 · 不会签署任何内容',
+  'Size': '大小',
+  'Start over': '重新开始',
+  'Statement': '声明',
+  'Still your call.': '决定权仍在你。',
+  'Synced': '已同步',
+  'Terminal': '终端',
+  'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
+    '客户端、守护进程、协议和 canister 都在公开仓库中。生产环境的云服务有其独立的运营信任边界。',
+  'The desktop app and the command line are in development, with no public release yet. The first release starts with macOS on Apple Silicon.':
+    '桌面应用与命令行仍在开发中，尚无公开发布。首个版本将从 Apple 芯片的 macOS 开始。',
+  'The site is told no; nothing is signed': '网站收到拒绝，不会签署任何内容',
+  'The site received the result': '网站已收到结果',
+  'The site verifies the signature': '网站验证签名',
+  'These commands work once the first dmsg release is published.':
+    '首个 dmsg 版本发布后，这些命令即可使用。',
+  'Titles, notes, files and secrets stay encrypted until you unlock this device.':
+    '在你解锁这台设备之前，标题、笔记、文件与机密始终保持加密。',
+  'Toggle a capability, then run the agent.': '切换一项能力，然后运行智能体。',
+  'Two windows, one daemon. Run a command, then watch the app.':
+    '两个窗口，一个守护进程。运行一条命令，再看看应用。',
+  'Type a dmsg command': '输入 dmsg 命令',
+  'Type anything. It never leaves this page.': '随便输入，内容不会离开本页面。',
+  'Unlock': '解锁',
+  'Unlock the example': '解锁示例',
+  'Unlock to review this request.': '解锁后才能审阅此请求。',
+  'Unlocked': '已解锁',
+  'Vault': '保险库',
+  'Vault locked': '保险库已锁定',
+  'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
+    'Webhook 也能送达你笔记本上的智能体：dMsg 中继代为接收，并密封给你的设备。',
+  'Website': '网站',
+  'Websites': '网站接入',
+  'Websites such as TokenList ask through connect.dmsg.net, a small page that seals each request for your devices. You review it in the dMsg approval window, and the site gets back only the result it asked for.':
+    'TokenList 等网站通过 connect.dmsg.net 发起请求，这个小页面会把每个请求密封给你的设备。你在 dMsg 审批窗口中审阅，网站只会拿回它请求的结果。',
+  'What can an AI agent do with my account?': 'AI 智能体能对我的账户做什么？',
+  'What if I lose my computer?': '如果电脑丢了怎么办？',
+  'You': '你',
+  'You pair a browser from your desktop first. A site then opens connect.dmsg.net in a small popup; that page seals the request to your devices through the dMsg relay, you decide in the approval window, and the sealed result goes back to the page that asked.':
+    '先从桌面端配对浏览器。之后网站会在小弹窗中打开 connect.dmsg.net；该页面经 dMsg 中继把请求密封给你的设备，你在审批窗口中做决定，密封的结果再回到发起请求的页面。',
+  'You review it and decide': '你审阅并做出决定',
+  'Your desktop': '你的桌面端',
+  'Your desktop opens the pairing page with a one-time secret, so a phishing page cannot pair itself with your account.':
+    '由你的桌面端携带一次性密钥打开配对页面，因此钓鱼页面无法自行与你的账户配对。',
+  'Your turn: approve or reject in the approval window.':
+    '轮到你了：请在审批窗口中批准或拒绝。',
+  'account': '账户',
+  'approval window': '审批窗口',
+  'capabilities, each granted on purpose': '项能力，每一项都需明确授予',
+  'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
+    'connect.dmsg.net 转述的是你的浏览器提供的来源。它无法批准、签名或读取你的保险库，审批窗口也会标明来源由谁转述。',
+  'dMsg cloud': 'dMsg 云端',
+  'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
+    'dMsg 是完整的 Agent Protocols 客户端。一条命令即可连接 Claude Code 或任何 MCP 客户端，为每个智能体分配独立身份，并精确授予它能触及的范围。智能体可以请求签名，但只有你能给出签名。',
+  'dMsg relay': 'dMsg 中继',
+  'dMsg · Approval': 'dMsg · 审批',
+  'device': '设备',
+  'sealed mailbox': '密封邮箱',
+  'size': '大小',
+  'time': '时间',
+  'ways for an agent to approve': '种让智能体代你批准的途径',
+  'x64 · follows macOS': 'x64 · 紧随 macOS 之后',
+  '{bytes} bytes': '{bytes} 字节',
+  '{count} items': '{count} 个条目',
+  'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
+    '你电脑上的加密工作空间。桌面应用、dmsg 命令行和你的 AI 智能体都经由它工作，未经你批准，什么都不会被签署。'
 } satisfies Messages

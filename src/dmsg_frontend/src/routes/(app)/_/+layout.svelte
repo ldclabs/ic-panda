@@ -6,7 +6,7 @@
   import Brand from '$lib/components/landing/Brand.svelte'
   import { authStore } from '$lib/stores/auth'
   import type { Snippet } from 'svelte'
-  import '$lib/components/landing/landing.css'
+  import '$lib/components/landing/site.css'
   import '$lib/components/legacy/legacy.css'
 
   let { children }: { children?: Snippet } = $props()

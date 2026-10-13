@@ -57,8 +57,8 @@ typography:
     fontFamily: Inter
     fontSize: 116px
     fontWeight: '650'
-    lineHeight: '1.04'
-    letterSpacing: -0.067em
+    lineHeight: '0.98'
+    letterSpacing: -0.066em
   display-lg:
     fontFamily: Inter
     fontSize: 60px
@@ -131,6 +131,12 @@ typography:
     fontWeight: '400'
     lineHeight: '1.6'
     letterSpacing: '0'
+  kicker:
+    fontFamily: ui-monospace
+    fontSize: 12px
+    fontWeight: '500'
+    lineHeight: '1.5'
+    letterSpacing: 0.08em
 rounded:
   sm: 4px
   DEFAULT: 8px
@@ -159,11 +165,14 @@ spacing:
 
 **Your space. Your say.** / **你的空间，你来决定。**
 
-dMsg is a private workspace and identity signing service for Web3, centered on
-its Chrome extension. It helps people keep secrets, exchange encrypted content
-with chosen people, and approve specific signatures. A public identity and
-contact rules provide a doorway into that work without making the workspace
-public.
+dMsg is a private workspace and identity signing service for Web3. One local
+program, `dmsg`, runs a daemon on the person's computer that holds the keys and
+the approval queue; the desktop app and the command line are two ways into it,
+AI agents reach it through MCP with capabilities the owner grants, and websites
+ask through `connect.dmsg.net`. It helps people keep secrets, exchange encrypted
+content with chosen people, and approve specific signatures. A public identity
+and contact rules provide a doorway into that work without making the workspace
+public. There is no browser extension.
 
 The visual language is **quiet editorial clarity**: large, deliberate headlines;
 warm, light surfaces; forest green actions; precise product examples; and enough space
@@ -185,18 +194,18 @@ the selected editorial layout and interaction model when applying it. Its struct
 follows the 1Pay.ing design document; dMsg retains its own palette, typography,
 metaphor, and interaction rules.
 
-The local visual reference is the selected editorial direction implemented in
-[the interactive landing prototype](prototypes/landing/index.html). That
-prototype establishes composition and product storytelling; it is not evidence
-that its demonstrated backend actions exist. Its checks are recorded in
-[design QA](prototypes/landing/design-qa.md).
+The visual reference is the landing page itself
+(`src/lib/components/landing/`), checked as recorded in
+[LANDING_QA.md](LANDING_QA.md). Its figures are simulations that tell the
+product story; they are not evidence that the demonstrated actions ran.
 
 The tokens above consolidate the reference into reusable roles. Some are
 intentional implementation refinements: stronger focus and control boundaries,
 44px touch targets, a consistent radius/spacing scale, and explicit feedback
 colors. They are not claims that every existing component already uses them.
-The prototype's 14px showcase radius and 57/90px section padding may be
-normalized to this scale during integration.
+The landing page adds a technical-drawing register on top of this editorial
+base: numbered monospace kickers, figures framed with crop marks and captioned
+“Fig. n”, a faint paper grain, and a blueprint grid on the Ink band.
 
 The existing green theme in `src/app.css`, panda assets, and legacy routes are
 compatibility implementation, not the new visual baseline. Scope style migration
@@ -250,9 +259,8 @@ fee, or recovery explanations.
 
 ## Typography
 
-**Inter** carries the wordmark prototype, narrative, navigation, buttons, and
-product UI. Use the variable font for the 550/650 weights in the token map.
-Self-host licensed fonts for production; the standalone prototype embeds Inter.
+**Inter** carries the wordmark, narrative, navigation, buttons, and product UI.
+Use the self-hosted variable font for the 550/650 weights in the token map.
 Use this fallback stack:
 
 ```css
@@ -260,29 +268,33 @@ font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI',
   'PingFang SC', 'Microsoft YaHei', sans-serif;
 ```
 
-**System monospace** carries file hashes, addresses, exact identifiers, and
-technical payloads. Amounts use tabular numerals and retain their relevant
+**System monospace** carries file hashes, addresses, exact identifiers,
+technical payloads, commands, and the landing page's kickers, figure captions
+and diagram labels. Amounts use tabular numerals and retain their relevant
 precision. A short address preview must have a way to inspect and copy the full
 value; matching abbreviations are not proof that two addresses are identical.
 
 The landing hero is intentionally oversized: desktop
-`clamp(70px, 8.3vw, 116px)`, 650 weight, 1.04 line height, and tight tracking.
-Use the two-line “Your space. / Your say.” composition. At the mobile breakpoint,
-use `clamp(60px, 10.5vw, 80px)` and check the complete heading at 320px. This
-exception belongs to short English marketing headlines, not dialogs, app
-navigation, translations, or safety explanations.
+`clamp(62px, 8.6vw, 116px)`, 650 weight, 0.98 line height, and tight tracking,
+with the closing full stops in Forest Green. Use the two-line “Your space. /
+Your say.” composition. At the mobile breakpoint, use `clamp(54px, 15vw, 80px)`
+and check the complete heading at 320px. French, Spanish, Russian and Chinese
+have their own smaller scales; this exception belongs to short marketing
+headlines, not dialogs, app navigation, or safety explanations.
 
-Section headings scale from 32px to 46px; product headings use 18–32px. Body
-copy uses 16px, with a 19px lead and 14px supporting text. Limit long prose to
-roughly 60–65 characters per line. Uppercase eyebrows use 12px Inter with
-0.14em tracking; they orient the page rather than carry essential information.
-Avoid reproducing the prototype's smallest demo labels as important UI text.
+Landing section headings scale from 38px to 66px as a two-line statement whose
+second line is softer (`#6B8A78` on Paper, Jade-mint on Ink); policy pages keep
+32–46px, and product headings use 18–32px. Body copy uses 16px, with an 18px
+lead and 14px supporting text. Limit long prose to roughly 60–65 characters per
+line. Kickers use the 12px monospace token with 0.08em tracking and a boxed
+section number (“01”); they orient the page rather than carry essential
+information. Small demo labels never carry essential information.
 
 Chinese uses the system CJK fallback, ordinary tracking, and a separately
-checked headline scale (approximately 34–44px for mobile marketing). Do not
-force English line breaks or negative tracking onto Chinese. Where RTL locales
-are introduced, use logical spacing, correct reading order, and LTR islands for
-hashes and addresses; their support must be tested rather than inferred.
+checked headline scale. Do not force English line breaks or negative tracking
+onto Chinese. Arabic is laid out right to left with logical spacing and LTR
+islands for hashes, addresses, commands and diagrams; Arabic copy never uses
+monospace, letter spacing or capitals, because they break letter joining.
 
 ## Layout & Spacing
 
@@ -291,36 +303,41 @@ padding: 48px on desktop, 32px on tablet, 24px on mobile. Large screens may use 
 1376px wrapper without increasing prose measure. Use border-box sizing.
 
 Use a 4px spacing base. Favor 8/12px within controls, 16/24px within panels,
-32/48px between groups, and 56/72/88px vertical section padding across
-mobile/tablet/desktop. Large editorial two-column sections may use 80px between
+32/48px between groups, and 72/88/120px vertical landing section padding across
+mobile/tablet/desktop (56/72/88px on policy pages). Large editorial two-column sections may use 80px between
 columns. Let grouping and reading order determine spacing rather than adding a
 border to every object.
 
-The selected landing rhythm is:
+The landing rhythm is:
 
-1. Editorial hero: headline above; CTA on the left and concise explanation on
-   the right below it.
-2. Numbered capability tabs: vault, encrypted collaboration, explicit signing.
-3. A pale task surface with one useful product example, followed by brief
-   practical benefits.
-4. Public contact rules with an example profile and visible consequences.
-5. A full-width Ink privacy section explaining device, cloud, and ICP roles.
-6. Trust evidence: public code, separate permissions, recovery, and limitations.
-7. Cross-application request/review/result sequence with scoped integrations.
-8. FAQ, closing action, and restrained footer.
+1. Editorial hero: headline on the left, explanation and CTA on the right, then
+   Fig. 1 — the gate: requests from the desktop app, the terminal, AI agents and
+   websites meet the local daemon; everyday work leaves as ciphertext, and a
+   signature reaches ICP only after the visitor approves it.
+2. 01 Desktop & command line: Fig. 2 links a desktop window and a terminal
+   through one simulated daemon, followed by three practical notes.
+3. 02 AI agents: three verifiable figures, the MCP connect command, Fig. 3 (grant
+   capabilities, run an agent, read the audit record) and the six protocols.
+4. 03 Websites: Fig. 4, the dmsg-connect/1 sequence ending in the approval
+   window, followed by four trust notes.
+5. 04 Privacy (Ink band): Fig. 5 shows what the device, the cloud and ICP each
+   hold for a message the visitor types, then the three boundaries.
+6. 05 Trust evidence: public code, the audit record, recovery, and limitations.
+7. 06 Release status with platforms and install commands marked as future, then
+   07 FAQ, the closing action, and a restrained footer.
 
 Do not compress all capabilities into the first fold. The page should establish
 what dMsg does before asking the reader to interpret its infrastructure.
 
-At approximately 1000px, reduce gaps and simplify nested columns. At 760px,
-collapse navigation and major two-column sections. At 440px, stack the contact
-profile and rules, and turn the developer sequence into vertical steps. These
+At approximately 1180px, the agent figure moves its audit record below. At
+1000px, collapse navigation and two-column headers. Below 900px the desktop
+window and terminal stack, and below 720px the gate figure turns to portrait
+with sources on top. At 760px and 440px stack the remaining grids. These
 are content-driven breakpoints, not device detection. Check 320px, 390px,
 tablet widths, and a 1440px desktop; no horizontal overflow may hide controls.
 
-The extension's full workspace can use a compact sidebar and wider data areas.
-A side panel and independent confirmation window must fit their own viewport
-without shrinking a desktop screenshot. The website remains a lightweight
+The desktop app's full workspace can use a compact sidebar and wider data areas.
+Its independent approval window must fit its own viewport. The website remains a lightweight
 surface for discovery, public verification, and guidance; a narrow website is
 not a promise of a full mobile vault or messenger.
 
@@ -333,8 +350,8 @@ actual product object or interactive example.
 
 Two elevation treatments have distinct jobs:
 
-- **Product preview:** `0 8px 20px rgba(23, 61, 41, 0.06)`, for the white
-  interactive workspace example on its pale surround.
+- **Product preview:** a 1px line plus `0 18px 44px -22px rgba(16, 37, 31, 0.3)`,
+  for the white working figures on the page surface.
 - **Dialog:** `0 24px 80px rgba(16, 37, 31, 0.20)`, above a darkened backdrop.
 
 The sticky header uses an almost opaque Paper surface and a bottom rule. Backdrop
@@ -351,17 +368,18 @@ markers, not every CTA.
 
 The brand symbol is the **Private Gate**: a stable D-shaped outer boundary and
 an open internal negative space. Use an approved supplied asset. The current
-prototype contains a generated raster concept, not a final vector master; do
-not trace it into a new “official” logo or infer exact geometry from it. Provide
-light, dark, and small-size assets from the same approved master when available.
+asset is a raster concept, not a final vector master; do not trace it into a new
+“official” logo or infer exact geometry from it. The plain D outline in the
+landing figures and closing section is a diagram of the local daemon that
+echoes the outer boundary; it never stands beside the wordmark as a logo.
 
 Spell the name **dMsg**. Do not use “DMSG” as the marketing wordmark or combine
-it with the historical “ICPanda Message” title in the hero. The prototype
-wordmark uses Inter 800 at approximately 26–29px beside a 34–40px symbol box;
+it with the historical “ICPanda Message” title in the hero. The wordmark uses
+Inter 800 at approximately 26–29px beside a 34–40px symbol box;
 maintain optical spacing and check the visible mark within that box.
 
-Use a consistent line-icon family. The prototype uses **Remix Icon**; reuse
-matching existing icon components or licensed source icons in production. Use
+Use one icon family, **Remix Icon**. The landing page inlines its paths
+(`glyphs.ts`) so icons take the text colour; arrow icons mirror in RTL. Use
 20px icons inside controls and a 24px grid for standalone symbols. Keep vault,
 channel, identity, file, and signing icons distinct. Every icon-only action
 needs an accessible name and an adequate hit target.
@@ -381,11 +399,21 @@ clear status and retain the context the user reviewed.
 
 No automatic signing animation, fake encryption progress, confetti, pulsing
 permission prompts, or promotional urgency belongs in a sensitive flow. A
-success state must follow the corresponding real result. Prototype simulation
-must be clearly identified as simulation.
+success state must follow the corresponding real result. Simulation must be
+clearly identified as simulation.
+
+On the landing page, rich motion is allowed inside working figures, which are
+captioned as simulations: packets travel through the gate, ciphertext scrambles
+as it leaves, a terminal types, a sealed envelope rides a sequence diagram.
+Nothing in a figure approves on its own: a request waits for the visitor and
+expires if ignored, and buttons never move or pulse. Headlines rise once on
+load; sections fade up once as they enter. Loops run only while their figure is
+on screen and the tab is visible. Elsewhere, motion stays at hover-level
+details.
 
 Honor `prefers-reduced-motion: reduce`: remove smooth scrolling and decorative
-transitions, keep content visible, and preserve the actual current state. Never
+transitions, keep content visible, and preserve the actual current state. The
+figures then show still scenes that remain interactive. Never
 substitute a successful end state for a pending operation just to stop motion.
 
 ## Components
@@ -405,21 +433,26 @@ and must not look like a completed or unavailable operation. Reserve button
 width to prevent label changes from moving adjacent controls.
 
 Use a visible 3px focus ring with an offset, adjusting its token to the surface.
-Use the stronger semantic focus token; the prototype's smaller icon targets
-are not the final accessibility standard. Navigation is approximately 88px tall on desktop and
+Use the stronger semantic focus token. Navigation is approximately 88px tall on desktop and
 74px on mobile; anchor offsets must account for it. Mobile navigation exposes
 its expanded state, closes on selection/Escape, and returns focus predictably.
 
-### Capability Tabs and Workspace Examples
+### Working Figures
 
-Tabs use a numbered label, a shared baseline, and a 2px active forest green rule. Only
-one task panel is visible at a time. Implement tab/tabpanel relationships,
-roving focus, arrow-key navigation, and Home/End. On mobile, place the number
-above the label instead of overflowing the row.
+A figure is one framed, working example: crop marks at the corners, a white or
+Ink surface, and a monospace caption (“Fig. n”, what it shows, and that it is a
+simulation with sample data). Text inside figures is HTML, never baked into a
+canvas, except decorative ciphertext; a canvas is `aria-hidden` and a
+visually hidden sentence states what it shows.
 
-Each panel explains one task and shows an actual item or request. Demonstrations
-use safe sample data and visibly identify their scope. A homepage can illustrate
-unlocking or signing but must not display a simulated approval as a real proof.
+Figures follow the product's real rules and names: the approval sources `gui`,
+`cli`, `agent:` and `connect:`; `dmsg` commands and their outputs; `dmsg mcp`
+tool names, capabilities and `FORBIDDEN` refusals; the dmsg-connect/1 moves;
+second clicks before a secret is shown or copied. Only a person approves: an
+agent or website in a figure can create a request and never decides one.
+Approval states keep their distinct words (“Approved”, “Signature generated”,
+“The site received the result”). A homepage can illustrate unlocking or signing
+but must not display a simulated approval as a real proof.
 
 ### Vault and Encrypted Channels
 
@@ -502,13 +535,16 @@ multi-column footer.
 
 ## Copy & Interaction Integrity
 
-Use task language: **Keep it private**, **Share with intent**, **Sign with
-clarity**, **Be reachable. On your terms.**, and **Trust you can examine.**
+Use task language: **Click it or type it.**, **Let agents work. Keep the
+keys.**, **No extension. Still your call.**, **Everything asks. Only you
+approve.**, and **Trust you can examine.**
 Pair claims with a concrete explanation, not a general safety badge.
 
 Marketing copy follows the chosen present-tense product voice. That does not
 justify invented technical assurances, test results, or runtime outcomes. A
-prototype must identify sample data and simulated actions. Production CTAs must
+simulation must identify sample data and simulated actions. Counts on the page
+come from the code (for example the MCP tools of `dmsg mcp`), and install
+commands are marked as working only after the first release. Production CTAs must
 resolve to verified destinations and reflect installation state only when it
 can actually be determined.
 
@@ -526,22 +562,27 @@ Describe dMsg as **“a quiet editorial private workspace with explicit identity
 and signing controls.”** Ask for Inter, Paper and Ink, deliberate whitespace,
 forest green primary actions, thin rules, and one realistic task example at a time.
 Use “private space”, “chosen recipients”, “review the request”, and “inspect the
-evidence”. Keep the Chrome extension central to the product explanation.
+evidence”. Explain the local daemon, the desktop app and command line, agents
+that only ask, and websites that connect without an extension.
 
 Exclude panda collages, coin prices, mining, giant shields, cosmic backgrounds,
-AI assistants, decorative code rain, and endless feature-card grids. Do not
+AI mascots or agents shown acting without permission, decorative code rain, and
+endless feature-card grids. Do not
 copy the payment-gate metaphor, blue/amber palette, Geist typography, or
 protocol-heavy presentation from 1Pay.ing.
 
 ### Component Prompts
 
-> An English dMsg landing page, 1440px wide. Paper canvas, Ink text, Inter.
-> An oversized two-line “Your space. Your say.” headline sits above a left CTA
-> and a right explanation of the private workspace. Below it, numbered tabs
-> reveal one vault, channel, or signature task. Continue into contact rules,
-> a dark privacy section, inspectable trust evidence, integrations, FAQ, and
-> a closing CTA. Use generous whitespace and aligned rules, not a card grid.
-> Explain cloud metadata and recovery boundaries. No invented social proof.
+> An English dMsg landing page, 1440px wide. Paper canvas with faint grain, Ink
+> text, Inter with monospace kickers and captions. An oversized two-line “Your
+> space. Your say.” headline sits beside a short explanation and CTA. Below it a
+> framed diagram: desktop app, terminal, AI agent and website feed a D-shaped
+> local gate; ciphertext leaves for the cloud and a signature for ICP only after
+> approval. Continue into a desktop window beside a terminal, an agent
+> capability panel with an audit record, a website request sequence ending in
+> an approval window, a dark privacy band, trust evidence, release status, FAQ
+> and a closing CTA. Aligned rules and crop marks, not a card grid. No invented
+> social proof.
 
 > A dMsg signature review window at 390px wide. White surface, 16px corners,
 > clear Inter typography. Show the requesting application and source, identity,

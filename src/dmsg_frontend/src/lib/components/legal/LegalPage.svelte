@@ -1,7 +1,7 @@
 <script lang="ts">
   import Brand from '$lib/components/landing/Brand.svelte'
   import Icon from '$lib/components/landing/Icon.svelte'
-  import '$lib/components/landing/landing.css'
+  import '$lib/components/landing/site.css'
   import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
   import { locale, localeDir, t, type Locale } from '$lib/i18n'
   import {

@@ -52,57 +52,16 @@ export default {
   'Get PANDA from ICPswap': 'Купить PANDA на ICPswap',
   'dMsg home': 'Главная dMsg',
   'dMsg — Your space. Your say.': 'dMsg — Ваше пространство. Ваше решение.',
-  'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.':
-    'Личное пространство для секретов, выбранных коллег и осознанных подписей. Настольное приложение в разработке. Старое приложение доступно только для чтения.',
   'Skip to content': 'Перейти к содержимому',
   'Main navigation': 'Главная навигация',
-  'Workspace': 'Рабочее пространство',
   'Privacy': 'Конфиденциальность',
-  'Developers': 'Разработчикам',
-  'Coming to desktop': 'Скоро на компьютерах',
   'Close navigation': 'Закрыть навигацию',
   'Open navigation': 'Открыть навигацию',
-  'Private workspace / Desktop app':
-    'Личное пространство / Настольное приложение',
   'Your space.': 'Ваше пространство.',
   'Your say.': 'Ваше решение.',
-  'Explore the workspace': 'Изучить пространство',
-  'Open legacy app': 'Открыть старое приложение',
-  'Desktop app coming soon. Legacy app available read-only.':
-    'Настольное приложение скоро появится. Старое приложение доступно только для чтения.',
-  'A private workspace for the secrets you keep, the people you choose, and the requests you decide to sign.':
-    'Личное пространство для ваших секретов, выбранных людей и запросов, которые вы решаете подписать.',
-  'Your public doorway': 'Ваша публичная дверь',
-  'Be reachable.': 'Всегда на связи.',
-  'On your terms.': 'Исключительно на ваших условиях.',
-  'A public profile helps people find you. Your contact rules decide how they approach — while your private work stays in its own space.':
-    'Публичный профиль помогает вас найти. Правила контактов определяют способ обращения, а личная работа остаётся в своём пространстве.',
-  'Preview the planned contact modes. Paid requests will follow the personal workspace and private collaboration releases.':
-    'Обзор планируемых режимов контакта. Платные запросы появятся после личного пространства и приватной совместной работы.',
-  '@alex · Example profile': '@alex · Пример профиля',
-  'Independent builder.': 'Независимый разработчик.',
-  'Thoughtful work, small teams.': 'Вдумчивая работа, небольшие команды.',
-  'Visitor preview': 'Вид для посетителя',
-  'How people reach you': 'Как с вами связаться',
-  'Try a rule. This example is not saved.':
-    'Попробуйте правило. Пример не сохраняется.',
   'Privacy, with the details included': 'Приватность во всех подробностях',
   'Private content.': 'Приватный контент.',
   'Clear boundaries.': 'Чёткие границы.',
-  'The new dMsg is designed around encryption on your device, with distinct roles for the cloud and ICP.':
-    'Новый dMsg основан на шифровании на устройстве, с отдельными ролями облака и ICP.',
-  'Understand the trust model': 'Изучить модель доверия',
-  'Your device handles private content.':
-    'Устройство обрабатывает приватный контент.',
-  'Authorized, unlocked devices encrypt and decrypt your notes, messages, and files. A third-party connection does not open your vault.':
-    'Авторизованные разблокированные устройства шифруют и расшифровывают заметки, сообщения и файлы. Подключение стороннего приложения не открывает хранилище.',
-  'The cloud stores and delivers ciphertext.':
-    'Облако хранит и доставляет шифротекст.',
-  'Cloudflare supports encrypted storage, delivery, and collaboration state. Operational metadata is visible where needed to run the service.':
-    'Cloudflare обеспечивает хранение шифротекста, доставку и состояние совместной работы. Метаданные операций видимы там, где это нужно сервису.',
-  'ICP anchors core control.': 'ICP закрепляет ключевой контроль.',
-  'Identity ownership, device and recovery roots, formal signing, and final payment state have their own on-chain rules. Ordinary messages are not written on-chain one by one.':
-    'Владение идентичностью, корни устройств и восстановления, формальные подписи и итоговые платежи имеют свои правила в блокчейне. Обычные сообщения не записываются в него по одному.',
   'Encryption has a scope.': 'У шифрования есть границы.',
   'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.':
     'Оно защищает контент, но не все связи и действия. Идентичности, вызовы, платёжные данные и метаданные доставки могут оставаться видимыми.',
@@ -118,51 +77,18 @@ export default {
   'Private work deserves more than a reassuring badge. Understand what is public, what you authorize, and what recovery depends on.':
     'Личная работа заслуживает большего, чем успокаивающий значок. Узнайте, что публично, что вы разрешаете и от чего зависит восстановление.',
   'Inspect the public code.': 'Изучайте открытый код.',
-  'Client and protocol work lives in the public repository. The production cloud service has its own operational trust boundary.':
-    'Клиент и протокол разрабатываются в открытом репозитории. У облачного сервиса в эксплуатации своя граница операционного доверия.',
   'Explore the repository': 'Открыть репозиторий',
-  'Keep permissions separate.': 'Разделяйте разрешения.',
-  'Proving identity, reading shared content, approving a device, and signing a file each need their own scope. One does not imply the others.':
-    'Подтверждение личности, чтение общего контента, одобрение устройства и подписание файла требуют отдельных разрешений. Одно не подразумевает другое.',
-  'See the request flow': 'Посмотреть процесс запроса',
-  'Plan for independent recovery.': 'Планируйте независимое восстановление.',
-  'The recovery design pairs a complete encrypted backup with a separately stored code. Missing ciphertext cannot be recovered from a code alone.':
-    'Для восстановления нужны полная зашифрованная копия и отдельно сохранённый код. Один код не восстановит утраченный шифротекст.',
   'Read the recovery details': 'Подробнее о восстановлении',
   'Development is not audit evidence.': 'Разработка не доказывает аудит.',
   'This page describes the target product. A public repository does not establish audit coverage or prove which code is deployed.':
     'Страница описывает целевой продукт. Открытый репозиторий не подтверждает охват аудита и состав развёрнутого кода.',
   'Release status': 'Статус выпуска',
-  'For connected applications': 'Для подключённых приложений',
-  'Your identity,': 'Ваша идентичность —',
-  'beyond one app.': 'за пределами одного приложения.',
-  'Let an app ask for one specific action. Review its source, the content, and the consequence in a separate confirmation window of the desktop app.':
-    'Пусть приложение запросит одно конкретное действие. Проверьте источник, контент и последствия в отдельном окне подтверждения настольного приложения.',
-  'Walk through a request': 'Пройти пример запроса',
-  'App requests.': 'Приложение запрашивает.',
-  'Bind a specific file version, purpose, identity, and requesting origin.':
-    'Привяжите конкретную версию файла, цель, идентичность и источник запроса.',
-  'You review.': 'Вы проверяете.',
-  'Inspect the actual request. Approve or reject it in the desktop app.':
-    'Изучите сам запрос. Одобрите или отклоните его в настольном приложении.',
-  'App verifies.': 'Приложение проверяет.',
-  'Receive the result and verify content, signature, and authorization separately.':
-    'Получите результат и отдельно проверьте контент, подпись и авторизацию.',
-  'Planned file-signing pilot. Project permissions remain with TokenList.':
-    'Планируется пилот подписания файлов. Права проекта остаются в TokenList.',
-  'Planned scoped controller integration. Its accounts and grants remain separate.':
-    'Планируется интеграция контроллера с ограниченной областью. Аккаунты и разрешения остаются отдельными.',
-  'Integrations are planned, not generally available. Connecting an app never means automatic signing.':
-    'Интеграции запланированы, но ещё не общедоступны. Подключение не означает автоматического подписания.',
   'A few useful answers': 'Полезные ответы',
   'Before you': 'Прежде чем',
   'make it yours.': 'начать.',
   'Clear answers about availability, identity, private content, and your existing data.':
     'Ясные ответы о доступности, идентичности, приватном контенте и существующих данных.',
   'In development': 'В разработке',
-  'Coming to desktop.': 'Скоро на компьютерах.',
-  'The full workspace is not available to install yet. We’re building toward a personal vault, followed by private collaboration and scoped signing integrations.':
-    'Полное пространство пока нельзя установить. Сначала мы создаём личное хранилище, затем приватную совместную работу и интеграции подписания с ограниченной областью.',
   'Follow development': 'Следить за разработкой',
   'Read your legacy messages': 'Просмотреть историю сообщений',
   'Keep your existing browser data and recovery materials until migration is available.':
@@ -173,55 +99,10 @@ export default {
   'what matters.': 'для важного.',
   'Keep your private work close.': 'Держите личную работу рядом.',
   'Decide what leaves your space.': 'Решайте, что покидает ваше пространство.',
-  'Explore dMsg': 'Изучить dMsg',
   'Built by': 'Создано',
   'Trust': 'Доверие',
   'Legacy app · Read-only': 'Старое приложение · Только чтение',
-  'Review this file version': 'Проверить эту версию файла',
-  'Close signature example': 'Закрыть пример подписи',
-  'Simulated request · No real signature':
-    'Имитация запроса · Без настоящей подписи',
-  'Requesting app': 'Запрашивающее приложение',
-  'TokenList · Example': 'TokenList · Пример',
-  'Identity': 'Идентичность',
-  'Alex · Demo identity': 'Alex · Демонстрационная идентичность',
   'File': 'Файл',
-  'Purpose': 'Цель',
-  'Confirm this example version': 'Подтвердить пример версии',
-  'Example file content': 'Содержимое примера файла',
-  'dMsg release brief': 'Сводка выпуска dMsg',
-  'Purpose: confirm this example file version.':
-    'Цель: подтвердить эту версию примера файла.',
-  'No real release or approval is represented.':
-    'Это не настоящий выпуск или одобрение.',
-  'In the planned desktop app, approval authorizes only the reviewed payload and purpose. It does not grant access to your vault or approve future requests.':
-    'В планируемом настольном приложении одобрение разрешает только проверенные данные и цель. Оно не открывает хранилище и не одобряет будущие запросы.',
-  'Reject example': 'Отклонить пример',
-  'Simulate approval': 'Имитировать одобрение',
-  'Example approved': 'Пример одобрен',
-  'Example rejected': 'Пример отклонён',
-  'The walkthrough ends here. No signature was generated, no identity was connected, and no result was sent to an app.':
-    'Пример завершён. Подпись не создана, идентичность не подключена, результат не отправлен приложению.',
-  'You chose not to approve the sample request. Nothing was signed or sent.':
-    'Вы отказались одобрить пример запроса. Ничего не подписано и не отправлено.',
-  'Close walkthrough': 'Закрыть пример',
-  'Invitations only': 'Только по приглашению',
-  'People you invite can reach you.':
-    'С вами могут связаться приглашённые вами люди.',
-  'Invitations must be accepted. Joining a channel does not automatically make someone a contact.':
-    'Приглашения нужно принять. Вступление в канал не делает человека контактом автоматически.',
-  'Paid requests': 'Платные запросы',
-  'A delivery fee for new requests.': 'Плата за доставку новых запросов.',
-  'Planned for a later release. Payment covers eligible delivery, not a reply, contact status, or signing permission. Fees and refund conditions must be shown before payment.':
-    'Запланировано на будущий выпуск. Оплата покрывает допустимую доставку, а не ответ, статус контакта или право подписи. Сборы и условия возврата показываются до оплаты.',
-  'Closed to new requests': 'Новые запросы закрыты',
-  'No new contact from strangers.': 'Без новых обращений от незнакомцев.',
-  'Closing stops new requests. Existing conversations keep their own permissions.':
-    'Закрытие останавливает новые запросы. Права существующих бесед сохраняются.',
-  'Can I install the dMsg desktop app now?':
-    'Можно ли уже установить настольное приложение dMsg?',
-  'Not yet. The desktop app is in development and has no public release yet. The examples here explain the planned experience; they are not a live vault, messenger, or signing service.':
-    'Пока нет. Настольное приложение в разработке и ещё не выпущено публично. Примеры объясняют планируемый опыт, а не работающий сервис хранилища, сообщений или подписей.',
   'What can I do with the legacy app?': 'Что можно делать в старом приложении?',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
     'Войдите прежней идентичностью, чтобы читать старые беседы и скачивать доступные вложения. Новые сообщения, загрузки, изменения профиля и регистрация отключены. Сохраните исходный браузер и локальные данные, особенно при режиме Local key. Новая миграция пока недоступна.',
@@ -231,97 +112,9 @@ export default {
     'Новое личное пространство не требует покупки имени или наличия контактов. При миграции планируется сохранить существующие имена без повторной оплаты. Старые балансы токенов и преимущества рассматриваются отдельно.',
   'Does logging in unlock my private content?':
     'Открывает ли вход мой приватный контент?',
-  'No. Login, device authorization, local unlock, and formal signing have separate permissions. Connecting a third-party app will not give it general access to your vault or automatic signing rights.':
-    'Нет. Вход, авторизация устройства, локальная разблокировка и формальное подписание имеют отдельные права. Подключение стороннего приложения не даёт ему общего доступа к хранилищу или автоматической подписи.',
-  'What would I need to recover my data?':
-    'Что нужно для восстановления данных?',
-  'The new recovery design requires a complete encrypted backup and its separately stored recovery code. A code alone cannot reconstruct missing ciphertext. Login recovery and threshold-signing control are separate. Until migration is available, preserve your old browser data and existing recovery materials.':
-    'Для нового восстановления нужны полная зашифрованная копия и отдельно хранимый код. Код не воссоздаст утраченный шифротекст. Восстановление входа и управление пороговой подписью независимы. До миграции сохраните старые данные браузера и материалы восстановления.',
   'Is everything stored on the blockchain?': 'Всё ли хранится в блокчейне?',
   'No. The planned design encrypts private content on authorized devices and stores ciphertext in the cloud. ICP holds core identity, control, formal-signing, and payment state. Service metadata, cloud availability, client updates, and governance remain trust boundaries.':
     'Нет. Контент шифруется на авторизованных устройствах, шифротекст хранится в облаке. ICP хранит основную идентичность, управление, формальные подписи и платежи. Метаданные сервиса, доступность облака, обновления клиента и управление остаются границами доверия.',
-  'Will the full workspace work on my phone?':
-    'Будет ли полное пространство работать на телефоне?',
-  'The initial full workspace is planned as a desktop app. This website provides product information and legacy access; a responsive page is not a promise of a full mobile vault or messenger.':
-    'Полное пространство сначала планируется как настольное приложение. Этот сайт предоставляет информацию и доступ к старому приложению; адаптивная страница не обещает полноценного мобильного хранилища или мессенджера.',
-  'Explore dMsg capabilities': 'Изучить возможности dMsg',
-  'Workspace capabilities': 'Возможности пространства',
-  'Your personal vault': 'Ваше личное хранилище',
-  'Your chosen people': 'Выбранные вами люди',
-  'Your explicit approval': 'Ваше явное одобрение',
-  'A place for the things you don’t publish.':
-    'Место для того, что вы не публикуете.',
-  'The right content. The right people.': 'Нужный контент. Нужные люди.',
-  'Know exactly what you’re signing.': 'Точно знайте, что подписываете.',
-  'Keep API keys, credentials, private notes, and files together. The planned desktop app puts your personal workspace first — no contacts or paid handle required.':
-    'Храните API-ключи, учётные данные, личные заметки и файлы вместе. Настольное приложение ставит личное пространство на первое место: контакты и платное имя не нужны.',
-  'Share project notes and files in an encrypted conversation or channel. Invite people into a specific space, with access separate from your personal vault.':
-    'Делитесь заметками и файлами проекта в зашифрованной беседе или канале. Приглашайте людей в конкретное пространство с отдельным от личного хранилища доступом.',
-  'Review the requesting app, your identity, the exact file version, and the purpose. Connecting an app is a separate decision from approving its signature request.':
-    'Проверьте приложение, свою идентичность, точную версию файла и цель. Подключение приложения и одобрение его запроса подписи — разные решения.',
-  'Private notes': 'Личные заметки',
-  'Local search': 'Локальный поиск',
-  'Invited members': 'Приглашённые участники',
-  'Encrypted files': 'Зашифрованные файлы',
-  'Scoped history': 'Ограниченная история',
-  'Fixed file version': 'Фиксированная версия файла',
-  'Clear purpose': 'Чёткая цель',
-  'Separate permissions': 'Отдельные разрешения',
-  'Interactive example': 'Интерактивный пример',
-  'Example vault locked': 'Пример хранилища заблокирован',
-  'A real vault will require an authorized device and local unlock.':
-    'Настоящее хранилище потребует авторизованного устройства и локальной разблокировки.',
-  'Unlock example': 'Разблокировать пример',
-  'Production API key': 'API-ключ рабочей среды',
-  'Example project · Sample credential':
-    'Пример проекта · Образец учётных данных',
-  'Value': 'Значение',
-  'Hide sample secret': 'Скрыть пример секрета',
-  'Show sample secret': 'Показать пример секрета',
-  'Access': 'Доступ',
-  'Personal vault': 'Личное хранилище',
-  'Lock example': 'Заблокировать пример',
-  'Copy sample': 'Скопировать образец',
-  'Sample data only. Never enter a real secret on this page.':
-    'Только демонстрационные данные. Не вводите здесь настоящие секреты.',
-  'Release room': 'Комната выпуска',
-  'Example channel · 2 invited members':
-    'Пример канала · 2 приглашённых участника',
-  'Alex · Example message': 'Alex · Пример сообщения',
-  'Here’s the release brief for your review. Let’s agree on this version before publishing.':
-    'Вот сводка выпуска для проверки. Согласуем эту версию перед публикацией.',
-  'Sample text file': 'Пример текстового файла',
-  'Download sample release brief': 'Скачать пример сводки выпуска',
-  'New members do not automatically receive old history. Removing access cannot erase copies already downloaded.':
-    'Новые участники не получают старую историю автоматически. Отзыв доступа не удаляет скачанные копии.',
-  'Confirm a release brief': 'Подтвердить сводку выпуска',
-  'Example signature request': 'Пример запроса подписи',
-  'Confirm this file version': 'Подтвердить эту версию файла',
-  'Review example': 'Проверить пример',
-  'Walkthrough only. No identity connection or real signature.':
-    'Только пример. Без подключения идентичности и настоящей подписи.',
-  'Product preview · Desktop app in development':
-    'Обзор продукта · Настольное приложение в разработке',
-  'Examples run locally. Nothing is sent or signed.':
-    'Примеры работают локально. Ничего не отправляется и не подписывается.',
-  'Useful on your own.': 'Самодостаточно и удобно в одиночку.',
-  'Start with one private note or credential. A public identity is an optional doorway, not a prerequisite.':
-    'Начните с одной личной заметки или учётных данных. Публичная идентичность — дополнительная дверь, а не обязательное условие.',
-  'Share a specific space.': 'Делитесь конкретным пространством.',
-  'A channel invitation grants access to that channel. It does not open your personal vault.':
-    'Приглашение в канал даёт доступ только к нему, не к личному хранилищу.',
-  'Every permission has a purpose.': 'У каждого разрешения своя цель.',
-  'Login, content access, device approval, and formal signing are separate decisions.':
-    'Вход, доступ к контенту, одобрение устройства и формальное подписание — отдельные решения.',
-  'Keep it private': 'Личное и конфиденциальное',
-  'Share with intent': 'Осознанный обмен материалами',
-  'Sign with clarity': 'Подпись с полной ясностью',
-  'dMsg release brief Purpose: confirm this example file version. Sample content only. No real release or approval is represented.':
-    'Сводка выпуска dMsg. Цель: подтвердить эту версию примера файла. Только образец, не настоящий выпуск или одобрение.',
-  'Sample copied to your system clipboard.':
-    'Образец скопирован в системный буфер обмена.',
-  'Clipboard unavailable. Select and copy the sample value above.':
-    'Буфер обмена недоступен. Выделите и скопируйте значение выше.',
   'Activate username account': 'Активировать аккаунт имени пользователя',
   'Your permanent account generated from':
     'Ваш постоянный аккаунт, созданный из',
@@ -603,7 +396,6 @@ export default {
   'Loading…': 'Загрузка…',
   'Could not load this language. Please try again.':
     'Не удалось загрузить язык. Повторите попытку.',
-  'Credentials': 'Учётные данные',
   'Manager': 'Администратор',
   'Member': 'Участник',
   'User': 'Пользователь',
@@ -708,5 +500,297 @@ export default {
   'Waiting for Internet Identity…': 'Ожидание Internet Identity…',
   'Continue with Internet Identity': 'Продолжить с Internet Identity',
   'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
-    'Internet Identity разрешит приложению dMsg на этом компьютере действовать от вашего имени. Эта страница не хранит сеанс.'
+    'Internet Identity разрешит приложению dMsg на этом компьютере действовать от вашего имени. Эта страница не хранит сеанс.',
+  'A commitment to your content root':
+    'Хэш-обязательство корня вашего контента',
+  'A hint wakes your desktop, no content':
+    'Подсказка будит компьютер — без содержимого',
+  'A signature request from a website, one move at a time.':
+    'Запрос подписи от сайта, шаг за шагом.',
+  'A vault for what you don’t publish.':
+    'Хранилище для всего, что вы не публикуете.',
+  'AI agent': 'ИИ-агент',
+  'AI agents': 'ИИ-агенты',
+  'API key': 'API-ключ',
+  'API keys, logins, notes and files up to 100 MiB, encrypted on your device before they sync.':
+    'API-ключи, логины, заметки и файлы до 100 МиБ шифруются на вашем устройстве до синхронизации.',
+  'Account and device changes': 'Изменения аккаунта и устройств',
+  'Account and sync status': 'Статус аккаунта и синхронизации',
+  'Account, devices and logins': 'Аккаунт, устройства и способы входа',
+  'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
+    'Добавьте второе устройство и привяжите надёжный способ входа. Если все устройства потеряны, он сможет восстановить аккаунт после периода ожидания, в течение которого ваши устройства могут это оспорить.',
+  'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
+    'Через 15 минут бездействия устройство блокируется и забывает ключи. Заблокированное устройство может сообщить, что запрос ждёт, но никогда — от кого.',
+  'Agent': 'Агент',
+  'Agent and controller keys': 'Ключи агентов и контроллеров',
+  'Agents': 'Агенты',
+  'An audit record on your device lists who did what and through which way in: you or an agent, from the desktop, the terminal or MCP. It names actions and outcomes, never content.':
+    'Журнал аудита на устройстве показывает, кто и через какой вход что сделал: вы или агент, из приложения, терминала или через MCP. В нём только действия и результаты, никогда — содержимое.',
+  'An honest trust point.': 'Честная точка доверия.',
+  'Any modern browser.': 'Любой современный браузер.',
+  'App': 'Приложение',
+  'Apple Silicon · the first release': 'Apple Silicon · первый выпуск',
+  'Approval': 'Подтверждение',
+  'Approve': 'Одобрить',
+  'Approve a new device': 'Одобрить новое устройство',
+  'Approved': 'Одобрено',
+  'Approved by you': 'Одобрено вами',
+  'Approved. Signature generated.': 'Одобрено. Подпись создана.',
+  'Approved. The signature goes to ICP.': 'Одобрено. Подпись уходит в ICP.',
+  'Approving any request': 'Одобрение любых запросов',
+  'Ask you to sign a statement': 'Просить вас подписать заявление',
+  'Asks you to sign a file': 'Просит подписать файл',
+  'Audit record': 'Журнал аудита',
+  'Back to the start': 'В начало',
+  'Bridge page': 'Страница-мост',
+  'Browser': 'Браузер',
+  'Can I install dMsg now?': 'Можно ли установить dMsg уже сейчас?',
+  'Channels': 'Каналы',
+  'Channels and an inbox on your terms.':
+    'Каналы и входящие — на ваших условиях.',
+  'Chrome on this Mac': 'Chrome на этом Mac',
+  'Ciphertext': 'Шифртекст',
+  'Ciphertext only': 'Только шифртекст',
+  'Ciphertext, plus what it takes to deliver it':
+    'Шифртекст и то, что нужно для доставки',
+  'Click again to copy': 'Нажмите ещё раз, чтобы скопировать',
+  'Click again to show': 'Нажмите ещё раз, чтобы показать',
+  'Click it or type it.': 'Нажмите или наберите.',
+  'Coming to your desktop.': 'Скоро на вашем компьютере.',
+  'Command line · x86_64 and arm64': 'Командная строка · x86_64 и arm64',
+  'Connect Claude Code': 'Подключить Claude Code',
+  'Content is encrypted on your devices. The cloud carries ciphertext, and ICP keeps the few facts that must be verifiable. Type below and see what each side gets.':
+    'Содержимое шифруется на ваших устройствах. Облако передаёт шифртекст, а ICP хранит лишь немногие факты, которые должны быть проверяемыми. Напишите что-нибудь ниже и посмотрите, что получает каждая сторона.',
+  'Copy': 'Копировать',
+  'Copy command': 'Скопировать команду',
+  'Deploy key': 'Ключ деплоя',
+  'Desktop': 'Десктоп',
+  'Desktop & CLI': 'Приложение и CLI',
+  'Desktop & command line': 'Приложение и командная строка',
+  'Desktop app': 'Десктоп-приложение',
+  'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
+    'Сделал всё, что мне разрешено. Без attest.request я не могу даже попросить вас о подписи.',
+  'Done. The release statement is waiting in your approval window. I can’t approve it myself.':
+    'Готово. Заявление о выпуске ждёт в окне подтверждения. Одобрить его сам я не могу.',
+  'Each agent gets its own did:agent identity. Its key lives in your vault, and stays resident only if you allow it.':
+    'У каждого агента своя личность did:agent. Его ключ хранится в вашем хранилище и остаётся в памяти, только если вы это разрешите.',
+  'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
+    'Зашифрованные каналы с ролями и вложениями. Ваши правила контакта решают, кто может вам писать: никто, контакты, все или те, кто платит.',
+  'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
+    'Зашифровано в вашем браузере одноразовым ключом AES-GCM только для иллюстрации; формат dMsg другой. Обратите внимание на размер: шифрование скрывает содержимое, но не длину и не время.',
+  'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
+    'Письма между агентами со сквозным шифрованием — в ящики, которые вы публикуете и обновляете.',
+  'Every action leaves a record.': 'Каждое действие оставляет след.',
+  'Everyday work, encrypted': 'Повседневная работа — зашифрована',
+  'Everything asks. Only you approve.':
+    'Просить могут все. Одобряете только вы.',
+  'Expired': 'Истекло',
+  'Expired. Nothing was signed.': 'Срок истёк. Ничего не подписано.',
+  'Expires in': 'Истекает через',
+  'Fig. {n}': 'Рис. {n}',
+  'Follow on GitHub': 'Следить на GitHub',
+  'Found it. The secret itself stays out: that would need vault.secret for this item.':
+    'Нашёл. Сам секрет не выдаётся: для этого нужен vault.secret на этот элемент.',
+  'From an interactive terminal': 'Из интерактивного терминала',
+  'Grant a capability, run the agent, read the record.':
+    'Выдайте право, запустите агента, прочитайте журнал.',
+  'Granted capabilities': 'Выданные права',
+  'Hide': 'Скрыть',
+  'Hides again in {seconds} s.': 'Снова скроется через {seconds} с.',
+  'How do websites connect without an extension?':
+    'Как сайты подключаются без расширения?',
+  'I don’t have {capability}, so I’ll skip that.':
+    'У меня нет {capability}, пропускаю этот шаг.',
+  'Identity and signatures': 'Личность и подписи',
+  'In development · macOS first.': 'В разработке · сначала macOS.',
+  'In the dMsg cloud': 'В облаке dMsg',
+  'Inbox': 'Входящие',
+  'Install method': 'Способ установки',
+  'Is there a phone app?': 'Есть ли приложение для телефона?',
+  'It keeps names and outcomes on your device, never content.':
+    'Он хранит на устройстве только названия и результаты, никогда — содержимое.',
+  'It’s one workspace.': 'Пространство одно.',
+  'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
+    'Вступайте в комнаты Agent Discourse, читайте ленту и пишите. Если комната ушла вперёд, пока агент думал, черновик придерживается.',
+  'Keep secrets, files and conversations encrypted on your own computer. The desktop app, the dmsg command line and your AI agents all work through it, and nothing is signed, paid or shared until you approve.':
+    'Храните секреты, файлы и переписку в зашифрованном виде на своём компьютере. Десктоп-приложение, командная строка dmsg и ваши ИИ-агенты работают через него, и ничего не подписывается, не оплачивается и не передаётся без вашего одобрения.',
+  'Keep the keys.': 'Ключи — у вас.',
+  'Key': 'Ключ',
+  'Keys stay here': 'Ключи остаются здесь',
+  'Legacy messages stay readable': 'Старые сообщения доступны для чтения',
+  'Let agents work.': 'Пусть агенты работают.',
+  'Lock the example': 'Заблокировать пример',
+  'Locked': 'Заблокировано',
+  'Locked means locked.': 'Заблокировано — значит заблокировано.',
+  'Login': 'Логин',
+  'MCP tools, from rooms and mail to your vault':
+    'инструментов MCP — от комнат и почты до хранилища',
+  'Needs your approval': 'Требует вашего одобрения',
+  'Never grantable': 'Нельзя выдать',
+  'Never your messages or files': 'Никогда — ваши сообщения или файлы',
+  'Next step': 'Следующий шаг',
+  'No extension.': 'Без расширения.',
+  'No. Logging in proves who you are, unlocking opens the keys on one device, and approving signs one specific request. A website or an agent can only ask.':
+    'Нет. Вход подтверждает, кто вы; разблокировка открывает ключи на одном устройстве; одобрение подписывает один конкретный запрос. Сайт или агент могут только просить.',
+  'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
+    'Пока нет. Ядро написано так, чтобы позже его могло использовать мобильное приложение. Сейчас полное пространство — это десктоп-приложение и командная строка; сайт намеренно остаётся лёгким.',
+  'Not yet. The desktop app and the command line are in development and have no public release. Everything on this page runs in your browser with sample data.':
+    'Пока нет. Десктоп-приложение и командная строка в разработке, публичного выпуска нет. Всё на этой странице работает в вашем браузере на примерах.',
+  'Note': 'Заметка',
+  'Nothing is waiting. Tap a source to send a request.':
+    'Ничего не ждёт. Нажмите на источник, чтобы отправить запрос.',
+  'Nothing recorded yet.': 'Пока ничего не записано.',
+  'Nothing to install in the browser. The site opens a small popup and waits for your answer.':
+    'В браузер ничего не нужно устанавливать. Сайт открывает небольшое всплывающее окно и ждёт вашего ответа.',
+  'Nothing to review yet. The request appears here when it reaches this device.':
+    'Пока нечего проверять. Запрос появится здесь, когда дойдёт до этого устройства.',
+  'On ICP': 'В ICP',
+  'On your device': 'На вашем устройстве',
+  'One message, three places, three different views.':
+    'Одно сообщение, три места, три разных вида.',
+  'One small program, dmsg, runs quietly on your computer. It holds the keys, encrypts, syncs and keeps the approval queue. The desktop app and the command line are two ways into it, so whatever you do in one shows up in the other.':
+    'Небольшая программа dmsg тихо работает на вашем компьютере. Она хранит ключи, шифрует, синхронизирует и ведёт очередь подтверждений. Десктоп-приложение и командная строка — два входа в неё, поэтому всё, что вы делаете в одном, видно в другом.',
+  'Only what you grant. Each agent has its own identity and credential; without a grant it can read public profiles and nothing else. No agent can approve a request, pay, change your account or devices, or reach the keys of agents and controllers.':
+    'Только то, что вы разрешили. У каждого агента своя личность и учётные данные; без разрешений он читает только публичные профили. Ни один агент не может одобрить запрос, заплатить, изменить аккаунт или устройства или добраться до ключей агентов и контроллеров.',
+  'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
+    'Открыть запрос могут только ваши устройства с правом одобрения, а результат — только страница, которая его запросила. Ретранслятор видит запечатанные конверты.',
+  'Opened only by the page that asked': 'Открывает только запросившая страница',
+  'Origin': 'Источник',
+  'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
+    'Подключите второе устройство и привяжите к аккаунту способ входа. Если все устройства потеряны, он может запросить восстановление; после периода ожидания от одного до семи дней, в течение которого любое ваше устройство может его оспорить, аккаунт переходит на новые ключи на новом устройстве.',
+  'Pairing browsers': 'Привязка браузеров',
+  'Pairing starts on your device.': 'Привязка начинается на вашем устройстве.',
+  'Pause': 'Пауза',
+  'Payments and checkout': 'Платежи и оформление заказов',
+  'Play': 'Запустить',
+  'Post in the release channel': 'Писать в канал релизов',
+  'Private workspace · Desktop · Command line · AI agents':
+    'Личное пространство · Компьютер · Командная строка · ИИ-агенты',
+  'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
+    'Публикуйте, кто может действовать от вашего имени, — с ограниченными, истекающими полномочиями, которые можно отозвать в любой момент.',
+  'Publish, assess and retract signed knowledge, and query what other agents have shared.':
+    'Публикуйте, оценивайте и отзывайте подписанные знания и ищите то, чем поделились другие агенты.',
+  'Read items tagged “deploy”': 'Читать элементы с меткой «deploy»',
+  'Readable, and only while unlocked': 'Читаемо — и только пока разблокировано',
+  'Recovery without a seed phrase.': 'Восстановление без сид-фразы.',
+  'Reject': 'Отклонить',
+  'Rejected': 'Отклонено',
+  'Rejected. Nothing was signed.': 'Отклонено. Ничего не подписано.',
+  'Rejected. The site is told no, and nothing is signed.':
+    'Отклонено. Сайт получает отказ, ничего не подписано.',
+  'Release plan': 'План релиза',
+  'Replay': 'Повторить',
+  'Reported by your browser through connect.dmsg.net':
+    'Сообщено вашим браузером через connect.dmsg.net',
+  'Requests': 'Запросы',
+  'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.':
+    'Запросы от десктоп-приложения, терминала, ИИ-агентов и сайтов приходят к демону dMsg на вашем компьютере. Повседневная работа уходит в облако только как шифртекст; подпись попадает в ICP только после вашего одобрения.',
+  'Run again': 'Запустить снова',
+  'Run the agent': 'Запустить агента',
+  'Running…': 'Выполняется…',
+  'Sample copied. The app clears the clipboard after {seconds} s.':
+    'Пример скопирован. Приложение очистит буфер обмена через {seconds} с.',
+  'Sample data · nothing leaves this page':
+    'Пример данных · ничего не покидает страницу',
+  'Saved on this device · waits for sync':
+    'Сохранено на устройстве · ждёт синхронизации',
+  'Sealed both ways.': 'Запечатано в обе стороны.',
+  'Sealed refusal': 'Запечатанный отказ',
+  'Sealed result': 'Запечатанный результат',
+  'Sealed so only your devices can open it':
+    'Запечатан: открыть могут только ваши устройства',
+  'Secret': 'Секрет',
+  'See how it works': 'Как это работает',
+  'See it in the agent demo': 'Посмотреть в демо агента',
+  'Send a request from {source}': 'Отправить запрос: {source}',
+  'Server login': 'Вход на сервер',
+  'Settings': 'Настройки',
+  'Settled payments and names': 'Завершённые платежи и имена',
+  'Ship v1.4 on Friday. The brief is in the release channel.':
+    'Выпускаем v1.4 в пятницу. Бриф — в канале релизов.',
+  'Ship v1.4 on Friday. The deploy key is in the vault.':
+    'Выпускаем v1.4 в пятницу. Ключ деплоя — в хранилище.',
+  'Ship v1.4: check the deploy key, post the release note, and get the release signed.':
+    'Выпусти v1.4: проверь ключ деплоя, опубликуй заметку о релизе и получи подпись под выпуском.',
+  'Show': 'Показать',
+  'Sign a file': 'Подписать файл',
+  'Sign a statement': 'Подписать заявление',
+  'Sign in with dMsg': 'Войти через dMsg',
+  'Signature generated': 'Подпись создана',
+  'Signature receipts, after you approve':
+    'Квитанции подписей — после вашего одобрения',
+  'Signatures': 'Подписи',
+  'Signed without you': 'Подписано без вас',
+  'Simulated agent with sample data. Nothing is sent anywhere.':
+    'Имитация агента на примерах. Ничего никуда не отправляется.',
+  'Simulation · nothing is signed': 'Имитация · ничего не подписывается',
+  'Size': 'Размер',
+  'Start over': 'Сначала',
+  'Statement': 'Заявление',
+  'Still your call.': 'Решаете всё равно вы.',
+  'Synced': 'Синхронизировано',
+  'Terminal': 'Терминал',
+  'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
+    'Клиент, демон, протоколы и канистры находятся в публичном репозитории. У облачного сервиса в продакшене своя операционная граница доверия.',
+  'The desktop app and the command line are in development, with no public release yet. The first release starts with macOS on Apple Silicon.':
+    'Десктоп-приложение и командная строка в разработке, публичного выпуска пока нет. Первый выпуск начнётся с macOS на Apple Silicon.',
+  'The site is told no; nothing is signed':
+    'Сайт получает отказ; ничего не подписано',
+  'The site received the result': 'Сайт получил результат',
+  'The site verifies the signature': 'Сайт проверяет подпись',
+  'These commands work once the first dmsg release is published.':
+    'Эти команды заработают после первого выпуска dmsg.',
+  'Titles, notes, files and secrets stay encrypted until you unlock this device.':
+    'Названия, заметки, файлы и секреты остаются зашифрованными, пока вы не разблокируете это устройство.',
+  'Toggle a capability, then run the agent.':
+    'Переключите право и запустите агента.',
+  'Two windows, one daemon. Run a command, then watch the app.':
+    'Два окна, один демон. Выполните команду и посмотрите на приложение.',
+  'Type a dmsg command': 'Введите команду dmsg',
+  'Type anything. It never leaves this page.':
+    'Пишите что угодно — это не покинет страницу.',
+  'Unlock': 'Разблокировать',
+  'Unlock the example': 'Разблокировать пример',
+  'Unlock to review this request.': 'Разблокируйте, чтобы рассмотреть запрос.',
+  'Unlocked': 'Разблокировано',
+  'Vault': 'Хранилище',
+  'Vault locked': 'Хранилище заблокировано',
+  'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
+    'Вебхуки доходят до агентов на вашем ноутбуке: ретранслятор dMsg принимает их и запечатывает для вашего устройства.',
+  'Website': 'Сайт',
+  'Websites': 'Сайты',
+  'Websites such as TokenList ask through connect.dmsg.net, a small page that seals each request for your devices. You review it in the dMsg approval window, and the site gets back only the result it asked for.':
+    'Сайты вроде TokenList обращаются через connect.dmsg.net — небольшую страницу, которая запечатывает каждый запрос для ваших устройств. Вы рассматриваете его в окне подтверждения dMsg, а сайт получает только запрошенный результат.',
+  'What can an AI agent do with my account?':
+    'Что ИИ-агент может делать с моим аккаунтом?',
+  'What if I lose my computer?': 'Что, если я потеряю компьютер?',
+  'You': 'Вы',
+  'You pair a browser from your desktop first. A site then opens connect.dmsg.net in a small popup; that page seals the request to your devices through the dMsg relay, you decide in the approval window, and the sealed result goes back to the page that asked.':
+    'Сначала вы привязываете браузер на компьютере. Затем сайт открывает connect.dmsg.net в небольшом окне; эта страница запечатывает запрос для ваших устройств через ретранслятор dMsg, вы решаете в окне подтверждения, и запечатанный результат возвращается на запросившую страницу.',
+  'You review it and decide': 'Вы рассматриваете и решаете',
+  'Your desktop': 'Ваш компьютер',
+  'Your desktop opens the pairing page with a one-time secret, so a phishing page cannot pair itself with your account.':
+    'Компьютер открывает страницу привязки с одноразовым секретом, поэтому фишинговая страница не может привязать себя к вашему аккаунту.',
+  'Your turn: approve or reject in the approval window.':
+    'Ваш ход: одобрите или отклоните в окне подтверждения.',
+  'account': 'аккаунт',
+  'approval window': 'окно подтверждения',
+  'capabilities, each granted on purpose': 'прав, каждое выдаётся осознанно',
+  'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
+    'connect.dmsg.net передаёт источник, который сообщил ваш браузер. Она не может одобрять, подписывать или читать ваше хранилище, а окно подтверждения указывает, откуда взят источник.',
+  'dMsg cloud': 'Облако dMsg',
+  'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
+    'dMsg — полноценный клиент Agent Protocols. Подключите Claude Code или любой MCP-клиент одной командой, дайте каждому агенту свою личность и разрешите ровно то, к чему он может прикасаться. Агент может попросить подпись; дать её можете только вы.',
+  'dMsg relay': 'Ретранслятор dMsg',
+  'dMsg · Approval': 'dMsg · Подтверждение',
+  'device': 'устройство',
+  'sealed mailbox': 'запечатанный ящик',
+  'size': 'размер',
+  'time': 'время',
+  'ways for an agent to approve': 'способов для агента одобрить запрос',
+  'x64 · follows macOS': 'x64 · после macOS',
+  '{bytes} bytes': '{bytes} байт',
+  '{count} items': 'Элементов: {count}',
+  'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
+    'Зашифрованное пространство на вашем компьютере. Десктоп-приложение, командная строка dmsg и ваши ИИ-агенты работают через него, и ничего не подписывается без вашего одобрения.'
 } satisfies Messages

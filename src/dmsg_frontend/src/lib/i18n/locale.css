@@ -44,9 +44,11 @@ html[dir='rtl']
 
 html[dir='rtl']
   .dmsg-site
-  img:is([src$='/arrow-right.svg'], [src$='/arrow-up-right.svg']) {
+  :is(
+    img[src$='/arrow-right.svg'],
+    img[src$='/arrow-up-right.svg'],
+    .glyph-arrow-right,
+    .glyph-arrow-up-right
+  ) {
   transform: scaleX(-1);
-}
-html[dir='rtl'] .dmsg-site :is(.task-tabs button, .story, .rules) {
-  text-align: start;
 }

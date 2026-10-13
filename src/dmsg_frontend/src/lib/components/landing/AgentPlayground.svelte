@@ -1,0 +1,286 @@
+<script lang="ts">
+  import { onMount, tick } from 'svelte'
+  import { t, tr } from '$lib/i18n'
+  import Glyph from './Glyph.svelte'
+  import { prefersReducedMotion, watchVisibility } from './motion'
+
+  // Tool names, inputs and results follow `dmsg mcp`; the data is a sample.
+  type Call = { tool: string; input: string; cap: string; result: string }
+  type Step =
+    | { kind: 'call'; call: Call; state: 'running' | 'ok' | 'denied' }
+    | { kind: 'say'; text: string }
+  type Entry = {
+    time: string
+    who: string
+    via: string
+    what: string
+    ok: boolean
+    result: string
+  }
+
+  const AGENT = 'claude'
+  const DID = 'did:agent:z6Mk…q3Lw'
+  const GRANTS = [
+    { cap: 'account.read', key: 'Account and sync status' },
+    { cap: 'vault.read:deploy', key: 'Read items tagged “deploy”' },
+    { cap: 'channel.publish:release', key: 'Post in the release channel' },
+    { cap: 'attest.request', key: 'Ask you to sign a statement' }
+  ]
+  const NEVER = [
+    'Approving any request',
+    'Payments and checkout',
+    'Account and device changes',
+    'Pairing browsers',
+    'Agent and controller keys'
+  ]
+  const CALLS: Call[] = [
+    {
+      tool: 'dmsg_account_status',
+      input: '{}',
+      cap: 'account.read',
+      result: '{"locked":false,"pending_versions":0}'
+    },
+    {
+      tool: 'dmsg_vault_read',
+      input: '{"id":"itm_7c1"}',
+      cap: 'vault.read:deploy',
+      result: '{"title":"Deploy key","type":"api","tags":["deploy"]}'
+    },
+    {
+      tool: 'dmsg_channel_publish',
+      input: '{"channel":"release","text":"v1.4 ships Friday."}',
+      cap: 'channel.publish:release',
+      result: '{"seq":42}'
+    },
+    {
+      tool: 'dmsg_attest_request',
+      input: '{"title":"Release v1.4","text":"v1.4 is ready to ship."}',
+      cap: 'attest.request',
+      result: '{"request":"apr_4k2","state":"awaiting_user"}'
+    }
+  ]
+
+  let grants = $state<Record<string, boolean>>({
+    'account.read': true,
+    'vault.read:deploy': false,
+    'channel.publish:release': true,
+    'attest.request': true
+  })
+  let steps = $state<Step[]>([])
+  let audit = $state<Entry[]>([])
+  let running = $state(false)
+  let ran = $state(false)
+  let copied = $state(false)
+  let root: HTMLDivElement
+  let log: HTMLOListElement
+
+  const COMMAND =
+    'claude mcp add dmsg --env DMSG_AGENT_TOKEN=dmsg-agent-… -- dmsg mcp'
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms))
+  const now = () => new Date().toTimeString().slice(0, 8)
+  const denied = (cap: string) =>
+    `{"code":"FORBIDDEN","message":"no grant for ${cap}"}`
+
+  function record(entry: Omit<Entry, 'time'>) {
+    audit.unshift({ time: now(), ...entry })
+    if (audit.length > 9) audit.length = 9
+  }
+
+  function toggle(cap: string) {
+    grants[cap] = !grants[cap]
+    record({
+      who: 'owner',
+      via: 'gui',
+      what: `${grants[cap] ? 'grants/add' : 'grants/revoke'} ${cap}`,
+      ok: true,
+      result: 'ok'
+    })
+  }
+
+  async function follow() {
+    await tick()
+    // Scroll the transcript, never the page.
+    if (log) log.scrollTop = log.scrollHeight
+  }
+
+  async function run() {
+    if (running) return
+    running = true
+    ran = true
+    steps = []
+    const still = prefersReducedMotion()
+    const pause = (ms: number) => (still ? Promise.resolve() : sleep(ms))
+    for (const call of CALLS) {
+      await pause(380)
+      const step: Step = { kind: 'call', call, state: 'running' }
+      steps.push(step)
+      await follow()
+      await pause(520)
+      const allowed = grants[call.cap] ?? false
+      const index = steps.length - 1
+      steps[index] = { ...step, state: allowed ? 'ok' : 'denied' }
+      record({
+        who: AGENT,
+        via: 'mcp',
+        what: call.tool,
+        ok: allowed,
+        result: allowed ? 'ok' : 'FORBIDDEN'
+      })
+      if (!allowed)
+        steps.push({
+          kind: 'say',
+          text: tr('I don’t have {capability}, so I’ll skip that.', {
+            capability: call.cap
+          })
+        })
+      else if (call.tool === 'dmsg_vault_read')
+        steps.push({
+          kind: 'say',
+          text: tr(
+            'Found it. The secret itself stays out: that would need vault.secret for this item.'
+          )
+        })
+      await follow()
+    }
+    await pause(420)
+    steps.push({
+      kind: 'say',
+      text: grants['attest.request']
+        ? tr(
+            'Done. The release statement is waiting in your approval window. I can’t approve it myself.'
+          )
+        : tr(
+            'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.'
+          )
+    })
+    await follow()
+    running = false
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(COMMAND)
+      copied = true
+      setTimeout(() => (copied = false), 2000)
+    } catch {
+      copied = false
+    }
+  }
+
+  onMount(() =>
+    watchVisibility(
+      root,
+      (visible) => {
+        if (visible && !ran) run()
+      },
+      '-25% 0px'
+    )
+  )
+</script>
+
+<div class="connect-cmd">
+  <span class="cc-label">{$t('Connect Claude Code')}</span>
+  <code>{COMMAND}</code>
+  <button class="cc-copy" onclick={copy} aria-label={$t('Copy command')}>
+    <Glyph name={copied ? 'check' : 'copy'} size={16} />
+    <span>{copied ? $t('Copied') : $t('Copy')}</span>
+  </button>
+</div>
+
+<div class="agent-lab" bind:this={root}>
+  <aside class="lab-grants">
+    <header class="lab-agent">
+      <span class="agent-orb"><Glyph name="robot" size={20} /></span>
+      <span><strong>{AGENT}</strong><code>{DID}</code></span>
+    </header>
+    <p class="lab-label">{$t('Granted capabilities')}</p>
+    {#each GRANTS as grant}
+      <label class="switch-row">
+        <input
+          type="checkbox"
+          role="switch"
+          checked={grants[grant.cap]}
+          onchange={() => toggle(grant.cap)}
+        />
+        <span class="switch" aria-hidden="true"></span>
+        <span class="sr-text"
+          ><code>{grant.cap}</code><small>{$t(grant.key)}</small></span
+        >
+      </label>
+    {/each}
+    <p class="lab-label">{$t('Never grantable')}</p>
+    <ul class="never">
+      {#each NEVER as key}
+        <li><Glyph name="forbid" size={14} />{$t(key)}</li>
+      {/each}
+    </ul>
+  </aside>
+
+  <div class="lab-run">
+    <div class="lab-task">
+      <span class="who">{$t('You')}</span>
+      <p>
+        {$t(
+          'Ship v1.4: check the deploy key, post the release note, and get the release signed.'
+        )}
+      </p>
+    </div>
+    <ol class="lab-steps" bind:this={log}>
+      {#each steps as step}
+        {#if step.kind === 'call'}
+          <li class="call {step.state}">
+            <div class="call-head">
+              <code class="tool">{step.call.tool}</code>
+              <span class="call-state">
+                {#if step.state === 'running'}<i class="spin"
+                  ></i>{:else if step.state === 'ok'}<Glyph
+                    name="check"
+                    size={14}
+                  />{:else}<Glyph name="forbid" size={14} />{/if}
+              </span>
+            </div>
+            <code class="call-in">{step.call.input}</code>
+            {#if step.state !== 'running'}
+              <code class="call-out"
+                >{step.state === 'ok'
+                  ? step.call.result
+                  : denied(step.call.cap)}</code
+              >
+            {/if}
+          </li>
+        {:else}
+          <li class="say"><span class="who">{AGENT}</span>{step.text}</li>
+        {/if}
+      {/each}
+    </ol>
+    {#if !steps.length}
+      <p class="lab-hint">{$t('Toggle a capability, then run the agent.')}</p>
+    {/if}
+    <button class="button primary lab-go" onclick={run} disabled={running}>
+      <Glyph name={ran ? 'refresh' : 'play'} size={16} />
+      {running ? $t('Running…') : ran ? $t('Run again') : $t('Run the agent')}
+    </button>
+  </div>
+
+  <aside class="lab-audit">
+    <p class="lab-label"
+      ><Glyph name="history" size={14} />{$t('Audit record')}</p
+    >
+    <ol>
+      {#each audit as entry (entry)}
+        <li>
+          <time>{entry.time}</time>
+          <span class="a-who">{entry.who} · {entry.via}</span>
+          <code>{entry.what}</code>
+          <b class:ok={entry.ok}>{entry.result}</b>
+        </li>
+      {:else}
+        <li class="a-empty">{$t('Nothing recorded yet.')}</li>
+      {/each}
+    </ol>
+    <p class="lab-foot">
+      {$t('It keeps names and outcomes on your device, never content.')}
+    </p>
+  </aside>
+</div>

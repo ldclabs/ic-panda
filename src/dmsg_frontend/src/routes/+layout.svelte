@@ -10,7 +10,7 @@
       ?.setAttribute(
         'content',
         $t(
-          'A private workspace for your secrets, chosen collaborators, and explicit signatures. Desktop app in development. Legacy app available in read-only mode.'
+          'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.'
         )
       )
   }
