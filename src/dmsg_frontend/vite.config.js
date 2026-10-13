@@ -48,14 +48,20 @@ export default defineConfig({
           'dMsg: a private workspace in development. Legacy messages are available read-only.',
         icons: [
           {
-            src: '/_assets/favicons/android-chrome-192x192.png',
+            src: '/_assets/dmsg/icon-192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: '/_assets/favicons/android-chrome-512x512.png',
+            src: '/_assets/dmsg/icon-512.png',
             sizes: '512x512',
             type: 'image/png'
+          },
+          {
+            src: '/_assets/dmsg/icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ],
         start_url: '/',

@@ -104,7 +104,9 @@ Rules (`src/main/policy.ts`):
 Notifications say only that a request waits, never from where; clicking one
 opens the approval window. For agents' MCP Events they say how many
 deliveries arrived, or that a subscription needs renewing, never what or
-from where; clicking one opens the Agents view.
+from where; clicking one opens the Agents view. The tray icon is the dMsg
+mark: its gate is empty, and its diamond appears while a request waits. On
+macOS it is a template image; on Windows it keeps its green tile.
 
 ```sh
 pnpm --dir src/dmsg_desktop dev        # needs a dmsg binary on PATH or DMSG_BIN

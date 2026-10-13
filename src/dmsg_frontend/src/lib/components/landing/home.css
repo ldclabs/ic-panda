@@ -105,9 +105,7 @@
 
 /* ——— Header ——— */
 .home .site-header {
-  transition:
-    box-shadow 0.25s,
-    height 0.25s;
+  transition: box-shadow 0.25s;
 }
 .home .site-header.scrolled {
   box-shadow: 0 10px 30px -22px rgba(16, 37, 31, 0.4);

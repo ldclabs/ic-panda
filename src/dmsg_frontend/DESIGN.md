@@ -35,6 +35,8 @@ colors:
   on-tertiary-container: '#3F5C4C'
   brand-forest: '#145C45'
   brand-jade: '#2D7960'
+  brand-gem: '#B45309'
+  inverse-brand-gem: '#F2A65A'
   error: '#B91C1C'
   on-error: '#FFFFFF'
   error-container: '#FEF2F2'
@@ -366,17 +368,28 @@ showcase surfaces use 16px; 20px is reserved for a deliberately larger container
 Use 4px for small labels. Full rounding belongs to avatars and compact status
 markers, not every CTA.
 
-The brand symbol is the **Private Gate**: a stable D-shaped outer boundary and
-an open internal negative space. Use an approved supplied asset. The current
-asset is a raster concept, not a final vector master; do not trace it into a new
-“official” logo or infer exact geometry from it. The plain D outline in the
-landing figures and closing section is a diagram of the local daemon that
-echoes the outer boundary; it never stands beside the wordmark as a logo.
+The brand symbol is **the Gate**; `static/_assets/dmsg/mark.svg` is the vector
+master. On a 42 × 48 grid, a post 10 units wide and a dome with a 24-unit radius
+stand 4 units apart. The gap is the gate: nothing reaches the dome except
+through it. The diamond in the gap is the request that waits for you, the same
+amber diamond the figures use for “Needs your approval”. It is cut out of the
+post and the dome with a 2.5-unit clearance. The mark descends from the
+daemon's D outline in the landing figures; that outline stays a diagram and
+never stands beside the wordmark as a logo.
+
+Use Forest Green with the `brand-gem` amber on light surfaces, and `#E7EFE9` or
+Mint with `inverse-brand-gem` on Ink and on the Forest Green app tile. In one
+color, the diamond keeps its clearance. Do not mirror the mark in RTL, outline
+it, rotate or recolor its parts, add shadows or gradients, or enclose it in a
+circle. Below 24px use the favicon files: `icon.svg` switches to Mint in dark
+mode, and `favicon.ico` and the PNG app icons put the mark on a Forest Green
+tile.
 
 Spell the name **dMsg**. Do not use “DMSG” as the marketing wordmark or combine
 it with the historical “ICPanda Message” title in the hero. The wordmark uses
-Inter 800 at approximately 26–29px beside a 34–40px symbol box;
-maintain optical spacing and check the visible mark within that box.
+Inter 800 at 24px with −0.045em tracking, 9px after a 26px-tall mark (22px and
+24px on mobile). Hovering or focusing the header brand gives the diamond one
+quarter turn, like a key; that is the mark's only motion.
 
 Use one icon family, **Remix Icon**. The landing page inlines its paths
 (`glyphs.ts`) so icons take the text colour; arrow icons mirror in RTL. Use
@@ -433,8 +446,9 @@ and must not look like a completed or unavailable operation. Reserve button
 width to prevent label changes from moving adjacent controls.
 
 Use a visible 3px focus ring with an offset, adjusting its token to the surface.
-Use the stronger semantic focus token. Navigation is approximately 88px tall on desktop and
-74px on mobile; anchor offsets must account for it. Mobile navigation exposes
+Use the stronger semantic focus token. Navigation is 64px tall on desktop and 56px on
+mobile, with a compact 40px header action that keeps a 44px touch target;
+anchor offsets must account for it. Mobile navigation exposes
 its expanded state, closes on selection/Escape, and returns focus predictably.
 
 ### Working Figures

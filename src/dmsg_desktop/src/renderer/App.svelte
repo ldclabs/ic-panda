@@ -55,7 +55,21 @@
 {:else}
   <div class="shell">
     <nav>
-      <div class="brand">dMsg</div>
+      <div class="brand">
+        <!-- The Gate, as on dmsg.net: a post and a dome, one request waiting between them. -->
+        <svg viewBox="0 0 42 48" aria-hidden="true">
+          <mask id="brand-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="42" height="48">
+            <rect width="42" height="48" fill="#fff" />
+            <path d="M12 17.5 18.5 24 12 30.5 5.5 24Z" stroke="#000" stroke-width="5" stroke-linejoin="round" />
+          </mask>
+          <g mask="url(#brand-cut)">
+            <path d="M4 0h4.5A1.5 1.5 0 0 1 10 1.5v45A1.5 1.5 0 0 1 8.5 48H4a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4Z" />
+            <path d="M15.5 0H18a24 24 0 0 1 0 48h-2.5a1.5 1.5 0 0 1-1.5-1.5v-45A1.5 1.5 0 0 1 15.5 0Z" />
+          </g>
+          <path class="gem" d="M12 17.5 18.5 24 12 30.5 5.5 24Z" />
+        </svg>
+        dMsg
+      </div>
       <button class:active={route.startsWith('/vault')} onclick={() => go('/vault')}>{t('vault')}</button>
       <button class:active={route.startsWith('/channels')} onclick={() => go('/channels')}>{t('channels')}</button>
       <button class:active={route.startsWith('/inbox')} onclick={() => go('/inbox')}>{t('inbox')}</button>
@@ -119,9 +133,22 @@
     color: var(--green);
   }
   .brand {
-    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-weight: 800;
     font-size: 18px;
-    padding: 0 12px 12px;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    padding: 2px 12px 14px;
+  }
+  .brand svg {
+    width: 17px;
+    height: 20px;
+    fill: var(--green);
+  }
+  .brand .gem {
+    fill: var(--gem);
   }
   .foot {
     margin-top: auto;

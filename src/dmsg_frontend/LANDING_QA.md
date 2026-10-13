@@ -39,6 +39,8 @@ Headless Chrome for Testing 1243 (Playwright) against `vite dev`:
 - Section captures in English at 1440 and 390px and Arabic at 1440px; hero captures in Chinese and Russian. Arabic mirrors the layout while diagrams, commands and hashes stay left to right, and Arabic copy is never set in monospace or tracked.
 - Reduced motion: every revealed element is visible, the waiting request can be approved and the next one appears, and the terminal prints its introduction.
 
+- Header and brand: the bar is 64px (56px at 760px and below) on the landing page at 1440, 1000 and 390px, in Chinese and Arabic at 1440px and Russian at 760px; the legacy entry and the privacy policy wrap their navigation below the brand on phones. The Gate mark keeps its orientation in Arabic, its diamond turns a quarter on hover (instantly with reduced motion), and `icon.svg` switches to Mint in a dark color scheme.
+
 In the Claude desktop browser pane: approving and expiring gate requests, running `dmsg attest file` and approving in the window, the agent run with a refused capability, the website sequence through approval, and typing in the privacy figure (2 bytes of text sealed to 30 bytes).
 
 Not run: Firefox and WebKit, real devices, and screen readers. The legal pages were checked only for unchanged class usage after the shared stylesheet was split (`site.css` for site chrome, `home.css` for the landing page).

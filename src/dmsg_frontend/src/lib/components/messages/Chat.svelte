@@ -92,7 +92,7 @@
         <ChannelDetail {channelId} {myState} {myInfo} />
       {:else}
         <div class="flex h-full flex-col items-center justify-center">
-          <img class="w-24" src="/_assets/dmsg/private-gate.png" alt="dMsg" />
+          <img class="w-16" src="/_assets/dmsg/mark.svg" alt="dMsg" />
           {#if !isReady}
             <p class="mt-4 px-6 text-center text-sm"
               >{$t('Unlock your existing keys to read this archive.')}</p

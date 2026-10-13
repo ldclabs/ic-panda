@@ -53,6 +53,7 @@ if (!app.requestSingleInstanceLock()) app.quit()
 let main: BrowserWindow | null = null
 let approval: BrowserWindow | null = null
 let tray: Tray | null = null
+let trayImages: { idle: Electron.NativeImage; waiting: Electron.NativeImage } | null = null
 let quitting = false
 let waiting = 0
 let pendingRoute: string | null = null
@@ -466,9 +467,23 @@ function updateItem(): Electron.MenuItemConstructorOptions[] {
   }
 }
 
+/**
+ * The tray shows the Gate: empty, or with its diamond while a request waits.
+ * macOS tints template images for the menu bar; elsewhere the mark keeps its
+ * tile so it shows on dark and light taskbars.
+ */
+function trayImage(waitingNow: boolean) {
+  const mac = process.platform === 'darwin'
+  const name = `tray${waitingNow ? 'Waiting' : ''}${mac ? 'Template' : ''}.png`
+  const image = nativeImage.createFromPath(join(__dirname, '../../resources', name))
+  if (mac) image.setTemplateImage(true)
+  return image
+}
+
 function updateTray(state: string) {
   trayState = state
   if (!tray) return
+  if (trayImages) tray.setImage(waiting ? trayImages.waiting : trayImages.idle)
   tray.setToolTip(text.tooltip(app.getVersion(), text.state(state), waiting))
   tray.setContextMenu(
     Menu.buildFromTemplate([
@@ -561,9 +576,8 @@ app.whenReady().then(async () => {
   if (!testMode) {
     if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('dmsg', process.execPath, [resolve(process.argv[1])])
     else app.setAsDefaultProtocolClient('dmsg')
-    const icon = nativeImage.createFromPath(join(__dirname, '../../resources/trayTemplate.png'))
-    icon.setTemplateImage(true)
-    tray = new Tray(icon)
+    trayImages = { idle: trayImage(false), waiting: trayImage(true) }
+    tray = new Tray(trayImages.idle)
     updateTray('connecting')
   }
   // Opened at login, the app starts in the tray.

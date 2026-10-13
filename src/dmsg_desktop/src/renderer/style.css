@@ -8,6 +8,7 @@
   --green-hover: #0d4433;
   --line: #dae3d9;
   --pale: #e8f0e9;
+  --gem: #b45309;
   --warn: #8a5a00;
   --error: #991b1b;
   font-family: Inter, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
@@ -27,6 +28,7 @@
     --green-hover: #6fd4ab;
     --line: #26372f;
     --pale: #1c2b24;
+    --gem: #f2a65a;
     --warn: #f0b84a;
     --error: #f08a8a;
   }

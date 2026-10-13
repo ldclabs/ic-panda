@@ -35,7 +35,7 @@ body:has(.dmsg-site) {
 }
 html:has(.dmsg-site) {
   scroll-behavior: smooth;
-  scroll-padding-top: 110px;
+  scroll-padding-top: 88px;
 }
 .dmsg-site * {
   box-sizing: border-box;
@@ -114,17 +114,28 @@ html:has(.dmsg-site) {
 .dmsg-site .brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 29px;
+  gap: 9px;
+  font-size: 24px;
   font-weight: 800;
-  letter-spacing: -1.4px;
+  letter-spacing: -0.045em;
   line-height: 1;
   flex-shrink: 0;
 }
-.dmsg-site .brand img {
-  width: 40px;
-  height: 40px;
-  mix-blend-mode: multiply;
+.dmsg-site .brand-mark {
+  width: 23px;
+  height: 26px;
+  fill: var(--action);
+  overflow: visible;
+}
+/* The waiting request turns a quarter, like a key, under the pointer. */
+.dmsg-site .brand-gem {
+  fill: #b45309;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.5s cubic-bezier(0.3, 1.45, 0.5, 1);
+}
+.dmsg-site .brand:is(:hover, :focus-visible) .brand-gem {
+  transform: rotate(90deg);
 }
 .dmsg-site .button {
   display: inline-flex;
@@ -205,7 +216,7 @@ html:has(.dmsg-site) {
   top: 12px;
 }
 .dmsg-site .site-header {
-  height: 88px;
+  height: 64px;
   border-bottom: 1px solid var(--line);
   background: rgba(247, 248, 244, 0.98);
   position: sticky;
@@ -230,9 +241,19 @@ html:has(.dmsg-site) {
   padding: 12px 0;
   white-space: nowrap;
 }
+/* A compact action: 40px to fit the bar, with a 44px touch target. */
 .dmsg-site .header-action {
+  position: relative;
   flex-shrink: 0;
   white-space: nowrap;
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+.dmsg-site .header-action::after {
+  content: '';
+  position: absolute;
+  inset: -2px 0;
 }
 .dmsg-site .icon-button {
   display: inline-flex;
@@ -318,7 +339,7 @@ html:has(.dmsg-site) {
   }
   .dmsg-site .header-action {
     font-size: 13px;
-    padding: 12px;
+    padding: 8px 12px;
   }
 }
 @media (max-width: 1000px) {
@@ -358,14 +379,15 @@ html:has(.dmsg-site) {
     padding: 0 24px;
   }
   .dmsg-site .site-header {
-    height: 74px;
+    height: 56px;
   }
   .dmsg-site .brand {
-    font-size: 26px;
+    gap: 8px;
+    font-size: 22px;
   }
-  .dmsg-site .brand img {
-    width: 34px;
-    height: 34px;
+  .dmsg-site .brand-mark {
+    width: 21px;
+    height: 24px;
   }
   .dmsg-site .nav-wrap {
     gap: 8px;
@@ -373,8 +395,7 @@ html:has(.dmsg-site) {
   .dmsg-site .header-action {
     margin-inline-start: auto;
     font-size: 12px;
-    padding: 12px 10px;
-    min-height: 44px;
+    padding: 8px 10px;
   }
   .dmsg-site .hero-actions {
     gap: 16px;

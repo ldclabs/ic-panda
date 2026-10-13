@@ -7,7 +7,7 @@ directories:
   buildResources: resources
 files:
   - out/**
-  - resources/trayTemplate*.png
+  - resources/tray*.png
   - package.json
 asar: true
 electronDist: node_modules/electron/dist
