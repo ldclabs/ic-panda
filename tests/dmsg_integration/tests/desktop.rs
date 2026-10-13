@@ -3771,7 +3771,25 @@ struct McpClient {
 }
 
 impl McpClient {
+    /// A session of the `initialize` lifecycle.
     fn start(desktop: &Desktop, credential: &str) -> Self {
+        let mut client = Self::spawn(desktop, credential);
+        let init = client.request(
+            "initialize",
+            json!({"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}),
+        );
+        assert_eq!(init["result"]["protocolVersion"], "2025-06-18");
+        writeln!(
+            client.stdin,
+            "{}",
+            json!({"jsonrpc": "2.0", "method": "notifications/initialized"})
+        )
+        .unwrap();
+        client
+    }
+
+    /// `dmsg mcp`, before any request.
+    fn spawn(desktop: &Desktop, credential: &str) -> Self {
         let mut child = Command::new(&desktop.bin)
             .arg("--home")
             .arg(&desktop.home)
@@ -3793,25 +3811,13 @@ impl McpClient {
                 }
             }
         });
-        let mut client = Self {
+        Self {
             child,
             stdin,
             lines,
             pending: Default::default(),
             id: 0,
-        };
-        let init = client.request(
-            "initialize",
-            json!({"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "test", "version": "1"}}),
-        );
-        assert_eq!(init["result"]["protocolVersion"], "2025-06-18");
-        writeln!(
-            client.stdin,
-            "{}",
-            json!({"jsonrpc": "2.0", "method": "notifications/initialized"})
-        )
-        .unwrap();
-        client
+        }
     }
 
     /// Send a request without waiting; returns its ID.
@@ -3861,6 +3867,28 @@ impl McpClient {
             if message["params"]["_meta"]["io.modelcontextprotocol/subscriptionId"] == stream {
                 return message;
             }
+        }
+    }
+
+    /// The next notification `method` whose params `pick` accepts, skipping
+    /// anything else.
+    fn notification(&mut self, method: &str, pick: impl Fn(&Value) -> bool) -> Value {
+        if let Some(i) = self
+            .pending
+            .iter()
+            .position(|m| m["method"] == method && pick(&m["params"]))
+        {
+            return self.pending.remove(i).unwrap()["params"].clone();
+        }
+        loop {
+            let message = self
+                .lines
+                .recv_timeout(Duration::from_secs(60))
+                .unwrap_or_else(|_| panic!("a {method} notification"));
+            if message["method"] == method && pick(&message["params"]) {
+                return message["params"].clone();
+            }
+            self.pending.push_back(message);
         }
     }
 
@@ -4038,9 +4066,19 @@ fn desktop_agents() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names.len(), 50);
+    assert_eq!(names.len(), 56);
     assert!(names.contains(&"agent_protocols_room_join") && names.contains(&"dmsg_vault_list"));
     assert!(names.contains(&"agent_protocols_mail_send"));
+    for name in [
+        "dmsg_vault_write",
+        "dmsg_file_read",
+        "dmsg_inbox_read",
+        "dmsg_inbox_contact",
+        "dmsg_action_request",
+        "dmsg_delegations_list",
+    ] {
+        assert!(names.contains(&name), "{name}");
+    }
     let identity = mcp
         .tool("agent_protocols_identity_current", json!({}))
         .unwrap();
@@ -4124,6 +4162,42 @@ fn desktop_agents() {
         .tool("agent_protocols_room_state", json!({"room_id": room}))
         .unwrap();
     assert_eq!(state["room"]["topic"], "W6");
+
+    // Resources show the agent's own connector state; a subscriber hears
+    // when one changes (local connector §4.4).
+    let room_uri = format!("agent-protocols://rooms/{room}");
+    let listed = mcp.request("resources/list", json!({}));
+    let uris: Vec<&str> = listed["result"]["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["uri"].as_str().unwrap())
+        .collect();
+    assert!(
+        uris.contains(&"agent-protocols://inbox/pending"),
+        "{listed}"
+    );
+    assert!(uris.contains(&room_uri.as_str()), "{listed}");
+    let templates = mcp.request("resources/templates/list", json!({}));
+    assert_eq!(
+        templates["result"]["resourceTemplates"]
+            .as_array()
+            .unwrap()
+            .len(),
+        5
+    );
+    let read = mcp.request("resources/read", json!({"uri": room_uri}));
+    let shown: Value =
+        serde_json::from_str(read["result"]["contents"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(shown["room"]["topic"], "W6");
+    let missing = mcp.request(
+        "resources/read",
+        json!({"uri": "agent-protocols://rooms/elsewhere"}),
+    );
+    assert_eq!(missing["error"]["code"], -32002);
+    let timeline_uri = format!("{room_uri}/timeline");
+    let subscribed = mcp.request("resources/subscribe", json!({"uri": timeline_uri}));
+    assert!(subscribed["result"].is_object(), "{subscribed}");
     let sent = mcp
         .tool(
             "agent_protocols_room_send_message",
@@ -4133,6 +4207,9 @@ fn desktop_agents() {
     assert_eq!(sent["status"], "sent");
     let discourse = env.discourse.as_ref().unwrap();
     assert_eq!(discourse.messages(&room), ["hello from claude"]);
+    mcp.notification("notifications/resources/updated", |p| {
+        p["uri"] == timeline_uri.as_str()
+    });
 
     // The host's own agent changes the topic, which moves the room head.
     // Claude's next message, based on the head it saw, is held with the
@@ -4142,6 +4219,18 @@ fn desktop_agents() {
         "room_submit_event",
         &json!({"room_id": room, "type": "room.update", "payload": {"topic": "W6 review"}})
             .to_string(),
+    ]);
+    // Another session of Claude's Agent ID reads the room through the
+    // change. This MCP session has not, so what it has seen is still the
+    // old head (local connector §4.2).
+    a.run(&[
+        "ap",
+        "--agent",
+        "claude",
+        "--session",
+        "review",
+        "room_timeline",
+        &json!({"room_id": room, "refresh": true}).to_string(),
     ]);
     let held = mcp
         .tool(
@@ -4196,7 +4285,19 @@ fn desktop_agents() {
         mcp.tool("dmsg_vault_list", json!({})).unwrap_err()["code"],
         "FORBIDDEN"
     );
-    a.run(&["grants", "add", "claude", "vault.list", "attest.request"]);
+    a.run(&[
+        "grants",
+        "add",
+        "claude",
+        "vault.list",
+        "attest.request",
+        "vault.read:work",
+        "vault.write:work",
+        "file.read:work",
+        "inbox.read",
+        "inbox.contact",
+        "agent.delegation.read",
+    ]);
     let items = mcp.tool("dmsg_vault_list", json!({})).unwrap();
     assert!(items
         .as_array()
@@ -4215,12 +4316,277 @@ fn desktop_agents() {
         .tool("dmsg_approval_status", json!({"id": attest["id"]}))
         .unwrap();
     assert_eq!(status["state"], "awaiting_user");
+
+    // Writing: only items that keep a granted tag. The secret the agent
+    // wrote comes back only with a grant naming the item.
+    let written = mcp
+        .tool(
+            "dmsg_vault_write",
+            json!({"type": "login", "title": "CI token", "tags": ["work"], "username": "bot", "secret": "s3cret"}),
+        )
+        .unwrap();
+    let item = written["id"].as_str().unwrap().to_string();
+    assert_eq!(written["item"]["secret"], "********");
+    assert_eq!(
+        mcp.tool(
+            "dmsg_vault_write",
+            json!({"title": "Home", "tags": ["home"]})
+        )
+        .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    let edited = mcp
+        .tool(
+            "dmsg_vault_write",
+            json!({"id": item, "body": "rotates monthly"}),
+        )
+        .unwrap();
+    assert_eq!(edited["item"]["body"], "rotates monthly");
+    assert_eq!(edited["item"]["username"], "bot");
+    let owned = a.run(&["vault", "show", &item, "--reveal"]);
+    assert_eq!(owned["item"]["secret"], "s3cret");
+    assert_eq!(
+        mcp.tool("dmsg_vault_read", json!({"id": item, "secret": true}))
+            .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    a.run(&["grants", "add", "claude", &format!("vault.secret:{item}")]);
+    let revealed = mcp
+        .tool("dmsg_vault_read", json!({"id": item, "secret": true}))
+        .unwrap();
+    assert_eq!(revealed["item"]["secret"], "s3cret");
+    // dMsg's own keys stay out of reach, even with `*`.
+    let controller = vault
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| e["item"]["tags"] == json!(["dmsg-controller"]))
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(
+        a.fail(&["grants", "add", "claude", "vault.read:dmsg-controller"]),
+        "INVALID_INPUT"
+    );
+    a.run(&[
+        "grants",
+        "add",
+        "claude",
+        "vault.read:*",
+        "vault.secret:*",
+        "vault.write:*",
+    ]);
+    assert_eq!(
+        mcp.tool("dmsg_vault_read", json!({"id": controller, "secret": true}))
+            .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    assert_eq!(
+        mcp.tool(
+            "dmsg_vault_write",
+            json!({"id": controller, "tags": ["work"]})
+        )
+        .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+
+    // Files: a slice of a file whose tag the agent may read.
+    let path = env.dir.join("for-claude.txt");
+    std::fs::write(&path, b"notes for claude").unwrap();
+    let file = a.run(&["file", "import", path.to_str().unwrap()])["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(
+        mcp.tool("dmsg_file_read", json!({"id": file})).unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    a.run(&["vault", "edit", &file, "--tag", "work"]);
+    let slice = mcp
+        .tool("dmsg_file_read", json!({"id": file, "offset": 10}))
+        .unwrap();
+    assert_eq!(slice["size"], 16);
+    assert_eq!(slice["eof"], true);
+    assert_eq!(
+        URL_SAFE_NO_PAD
+            .decode(slice["content_base64url"].as_str().unwrap())
+            .unwrap(),
+        b"claude"
+    );
+
+    // Letters: one from another account, read singly and marked read, and
+    // a free one written back.
+    let b = &env.b;
+    assert_eq!(b.login(&http, 62).unwrap()["state"], "no_account");
+    let friend = b.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    a.run(&["inbox", "configure", "free"]);
+    b.run(&["inbox", "configure", "free"]);
+    b.run(&["inbox", "send", &account, "Hello Claude"]);
+    let letters = mcp.tool("dmsg_inbox_list", json!({})).unwrap();
+    assert!(letters[0].get("text").is_none(), "{letters}");
+    let order = letters[0]["order_id"].as_str().unwrap().to_string();
+    let letter = mcp
+        .tool(
+            "dmsg_inbox_read",
+            json!({"order_id": order, "mark_read": true}),
+        )
+        .unwrap();
+    assert_eq!(letter["text"], "Hello Claude");
+    assert_eq!(letter["read"], true);
+    mcp.tool(
+        "dmsg_inbox_contact",
+        json!({"to": friend, "text": "Hello from Claude"}),
+    )
+    .unwrap();
+    let received = b.run(&["inbox", "list"]);
+    assert!(received
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|l| l["text"] == "Hello from Claude"));
+
+    // This principal's credentials, and a request to sign an application
+    // action, which only an action.request grant allows.
+    let delegations = mcp.tool("dmsg_delegations_list", json!({})).unwrap();
+    assert_eq!(delegations[0]["status"], "active", "{delegations}");
+    assert_eq!(
+        mcp.tool("dmsg_action_request", json!({"action": "oA"}))
+            .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    a.run(&["grants", "add", "claude", "action.request"]);
+    assert_eq!(
+        mcp.tool("dmsg_action_request", json!({"action": "oA"}))
+            .unwrap_err()["code"],
+        "INVALID_INPUT"
+    );
+
     let grants = a.run(&["grants", "list"]);
     a.run(&["grants", "revoke", grants[0]["id"].as_str().unwrap()]);
     assert_eq!(
         mcp.tool("dmsg_vault_list", json!({})).unwrap_err()["code"],
         "FORBIDDEN"
     );
+
+    // The audit record: what Claude did through MCP, and the owner's
+    // grants, credential and decisions through the CLI. Reads of the
+    // agent's own connector are not entered.
+    let entries = |actor: &str| -> Vec<Value> {
+        a.run(&["audit", "--agent", actor, "--limit", "500"])["entries"]
+            .as_array()
+            .unwrap()
+            .clone()
+    };
+    let by_claude = entries("claude");
+    let done = |entries: &[Value], action: &str, outcome: &str| {
+        entries
+            .iter()
+            .any(|e| e["action"] == action && e["outcome"] == outcome)
+    };
+    assert!(by_claude
+        .iter()
+        .all(|e| e["actor"] == claude.as_str() && e["via"] == "mcp"));
+    assert!(done(&by_claude, "dmsg_vault_list", "FORBIDDEN"));
+    assert!(done(&by_claude, "dmsg_vault_write", "ok"));
+    assert!(done(&by_claude, "dmsg_file_read", "ok"));
+    assert!(done(&by_claude, "agent_protocols_room_send_message", "ok"));
+    assert!(!by_claude
+        .iter()
+        .any(|e| e["action"] == "agent_protocols_identity_current"));
+    let read_item = by_claude
+        .iter()
+        .find(|e| e["action"] == "dmsg_vault_read" && e["outcome"] == "ok")
+        .unwrap();
+    assert_eq!(read_item["target"], item.as_str());
+    let by_owner = entries("owner");
+    for action in [
+        "grants/add",
+        "grants/revoke",
+        "agent/create",
+        "agent/credential",
+        "approval/approve",
+    ] {
+        assert!(done(&by_owner, action, "ok"), "{action}");
+    }
+    let topic = by_owner
+        .iter()
+        .find(|e| e["action"] == "agent_protocols_room_submit_event")
+        .unwrap();
+    assert_eq!(
+        (topic["via"].as_str(), topic["detail"].as_str()),
+        (Some("cli"), Some(host_agent.as_str()))
+    );
+
+    // The 2026-07-28 lifecycle: no initialize, and every request names its
+    // version; a listen stream hears the resource list change.
+    let mut modern = McpClient::spawn(a, &credential);
+    let meta = json!({
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientCapabilities": {},
+        "io.modelcontextprotocol/clientInfo": {"name": "test", "version": "1"},
+    });
+    let discovered = modern.request("server/discover", json!({"_meta": meta}));
+    assert_eq!(discovered["result"]["resultType"], "complete");
+    assert!(discovered["result"]["supportedVersions"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("2026-07-28")));
+    assert_eq!(
+        discovered["result"]["capabilities"]["resources"]["subscribe"],
+        true
+    );
+    let listed = modern.request("tools/list", json!({"_meta": meta}));
+    assert_eq!(listed["result"]["resultType"], "complete");
+    assert_eq!(listed["result"]["cacheScope"], "private");
+    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 56);
+    let unknown = modern.request(
+        "tools/list",
+        json!({"_meta": {"io.modelcontextprotocol/protocolVersion": "2099-01-01", "io.modelcontextprotocol/clientCapabilities": {}}}),
+    );
+    assert_eq!(unknown["error"]["code"], -32022);
+    let listen = modern.send(
+        "subscriptions/listen",
+        json!({"_meta": meta, "notifications": {
+            "resourcesListChanged": true,
+            "toolsListChanged": true,
+            "resourceSubscriptions": ["agent-protocols://rooms", "agent-protocols://nowhere"],
+        }}),
+    );
+    let ack = modern.next_of(listen);
+    assert_eq!(ack["method"], "notifications/subscriptions/acknowledged");
+    assert_eq!(
+        ack["params"]["notifications"],
+        json!({"resourcesListChanged": true, "resourceSubscriptions": ["agent-protocols://rooms"]})
+    );
+    let start = now_ms();
+    a.run(&[
+        "ap",
+        "--agent",
+        "claude",
+        "room_create",
+        &json!({
+            "host": host, "topic": "Second", "visibility": "public",
+            "start_time": start, "end_time": start + 86_400_000,
+        })
+        .to_string(),
+    ]);
+    let mut heard = std::collections::BTreeSet::new();
+    while heard.len() < 2 {
+        let message = modern.next_of(listen);
+        heard.insert(message["method"].as_str().unwrap().to_string());
+    }
+    assert_eq!(
+        heard.into_iter().collect::<Vec<_>>(),
+        [
+            "notifications/resources/list_changed",
+            "notifications/resources/updated"
+        ]
+    );
+    drop(modern);
     drop(mcp);
 
     // A restarted daemon restores the connector: the held draft, the read
@@ -4259,7 +4625,6 @@ fn desktop_agents() {
     let verdict = delegation_verdict(&env, &account, &id, "https://dmsg.net");
     assert_eq!(verdict["usable"], false, "{verdict}");
     assert_eq!(a.run(&["agent", "credentials"])[0]["status"], "revoked");
-    let _ = host_agent;
     env.finish();
 }
 
@@ -4784,7 +5149,13 @@ impl Upstream {
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_mcp_events() {
-    let mut env = Env::launch("events", Options::default());
+    let mut env = Env::launch(
+        "events",
+        Options {
+            proxies: true,
+            ..Options::default()
+        },
+    );
     let http = env.http.clone();
     let hooks = Proxy::start_as(&env.relay, Some("hooks.dmsg.local"));
     let upstream = Upstream::start(&hooks.origin);
@@ -4831,6 +5202,54 @@ fn desktop_mcp_events() {
     let secret = endpoint["secret"].as_str().unwrap().to_string();
     assert_eq!(url, format!("https://hooks.dmsg.local/mcp-events/{id}"));
     assert!(secret.starts_with("whsec_"));
+
+    // A creation whose reply is lost is sent again as the same request:
+    // one endpoint results, and the agent gets its secret. (Another MCP
+    // session, so this one's stream below reads only its own endpoint.)
+    let mut side = McpClient::start(a, &anda);
+    let relay_proxy = env.relay_proxy.as_ref().unwrap();
+    relay_proxy.lose_next("POST", "/mcp-events/endpoints");
+    let retried = side
+        .tool(
+            "dmsg_events_endpoint_create",
+            json!({"context": {"label": "retried"}}),
+        )
+        .unwrap();
+    assert_eq!(relay_proxy.pending(), 0);
+    assert!(retried["secret"].as_str().unwrap().starts_with("whsec_"));
+    let listed = a.run(&["events", "endpoint", "list"]);
+    assert_eq!(listed["endpoints"].as_array().unwrap().len(), 2);
+    assert_eq!(listed["unknown"], json!([]));
+    // When every try is lost the agent hears EXECUTION_UNKNOWN and never
+    // the secret; the next fetch pass deletes what the creation made.
+    for _ in 0..3 {
+        relay_proxy.lose_next("POST", "/mcp-events/endpoints");
+    }
+    let lost = side
+        .tool("dmsg_events_endpoint_create", json!({}))
+        .unwrap_err();
+    assert_eq!(lost["code"], "EXECUTION_UNKNOWN");
+    let listed = a.run(&["events", "endpoint", "list"]);
+    assert_eq!(
+        (
+            listed["settling"].as_u64(),
+            listed["unknown"].as_array().map(Vec::len)
+        ),
+        (Some(1), Some(1)),
+        "{listed}"
+    );
+    eventually(120, || {
+        // A waiting reader wakes the fetch pass.
+        a.run(&["events", "poll", "--wait", "1000"]);
+        let listed = a.run(&["events", "endpoint", "list"]);
+        (listed["settling"] == 0 && listed["unknown"] == json!([])).then_some(())
+    });
+    side.tool(
+        "dmsg_events_endpoint_delete",
+        json!({"endpoint_id": retried["endpoint_id"]}),
+    )
+    .unwrap();
+    drop(side);
 
     // The relay answers the upstream's verification itself (DT14).
     let verification = json!({"type": "verification", "challenge": "c-1"}).to_string();

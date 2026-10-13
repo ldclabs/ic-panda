@@ -45,8 +45,9 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription and for web applications' checkouts, and the records the wallet may read and repair as payer, merchant or operator |
 | [`handle`] | Names: certified resolution, legacy claims, registrations, transfers between accounts and charge reconciliation, as account-authorized intents |
 | [`agent`] | Agent Delegation with the account as principal: enabling it, controller keys kept as vault items, and grants and revocations signed here, journaled, then submitted to the delegation service |
-| [`agents`] | The Agent IDs this device hosts: keys as vault items, their mail keys sealed on the device, residency in the credential store, the credential an agent's MCP session presents, and the capabilities granted over the account |
-| [`mcp_events`] | MCP Events relay endpoints: callback URLs and `whsec_` secrets on the relay, deliveries fetched, opened with the device's HPKE key, checked again (`v1`, and `v1a` against the upstream's published keys), kept sealed under the LDK and read by cursor; `refresh_due` reminders |
+| [`agents`] | The Agent IDs this device hosts: keys as vault items, their mail keys sealed on the device, residency in the credential store, the credential an agent's MCP session presents, and the capabilities granted over the account, never over dMsg's own keys |
+| [`audit`] | The audit record: who did what on this device, when and through which way in, with IDs and never content; readable while locked, never synced |
+| [`mcp_events`] | MCP Events relay endpoints: callback URLs and `whsec_` secrets on the relay, a creation kept before it is sent and settled when its reply is lost, deliveries fetched, opened with the device's HPKE key, checked again (`v1`, and `v1a` against the upstream's published keys), kept sealed under the LDK and read by cursor; `refresh_due` reminders |
 | [`legacy`] | Legacy migration formats: the `dmsg-legacy-pair/2` offer and its fragment link, opening a `dmsg-legacy-transfer/1` file (offer, frame order and lengths checked), the `dmsg-legacy-archive/1` schema, offline verification of old COSE messages, attachments and avatars, and a shared channel's scoped archive |
 | [`legacy_proof`] | Frozen-source evidence: certified `legacy_snapshot` and `legacy_folder_manifest` ingress proofs and their page series, a shared channel's frozen source, old-identity approvals, the inheritance digests, and the frozen comparison of a personal archive |
 | [`migration`] | Personal archives: offers sealed on the device, import (the file's digest recorded first, duplicates by content), archives kept as `migration` and `migration_part` records that sync, offline reports, old attachments, frozen comparison |
@@ -183,6 +184,15 @@ relay holds `v1`. Kept deliveries are sealed under the LDK in
 `workspace.sqlite`, once per endpoint and `webhook-id`, for 30 days or the
 newest 10,000; endpoints, secrets and the agents' context stay on this
 device and never sync. Fetching needs the device unlocked.
+
+A creation is sealed before it is sent and sent up to three times on a lost
+reply; the relay replays a command with the same request ID and payload, so
+at most one endpoint results. When every reply is lost the caller gets
+`EXECUTION_UNKNOWN` and never the secret, and each fetch pass resubmits the
+creation and deletes the endpoint it made; a creation not settled within
+seven days is forgotten. The owner's endpoint list shows the creations still
+settling and the endpoints of this device on the relay that it never handed
+out.
 
 ## Locking
 

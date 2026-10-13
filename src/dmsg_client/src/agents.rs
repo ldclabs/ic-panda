@@ -40,18 +40,26 @@ pub const MAX_AGENTS: usize = 16;
 pub const MAX_GRANTS: usize = 64;
 
 /// What an agent may be granted (plan §6.9). A `:<target>` names a vault
-/// tag or a channel ID; `*` is every target and an explicit owner choice.
-/// Account, device and root changes, payments, names, principal changes,
-/// signing and the grants themselves are never grantable.
-pub const CAPABILITIES: [&str; 9] = [
+/// tag, a vault item ID (`vault.secret`) or a channel ID; `*` is every
+/// target and an explicit owner choice. Account, device and root changes,
+/// payments, names, principal changes, signing and the grants themselves
+/// are never grantable, and no vault capability reaches dMsg's own keys
+/// (items tagged `dmsg-…`, see [`crate::vault::Item::reserved`]).
+pub const CAPABILITIES: [&str; 15] = [
     "account.read",
     "vault.list",
     "vault.read:",
+    "vault.write:",
+    "vault.secret:",
+    "file.read:",
     "channel.read:",
     "channel.publish:",
     "inbox.read",
+    "inbox.contact",
     "profile.read",
     "attest.request",
+    "action.request",
+    "agent.delegation.read",
     "events.endpoint",
 ];
 
@@ -144,7 +152,9 @@ fn validate_label(label: &str) -> Result<()> {
 pub fn validate_capability(capability: &str) -> Result<()> {
     let known = CAPABILITIES.iter().any(|c| match c.strip_suffix(':') {
         Some(_) => capability.strip_prefix(c).is_some_and(|target| {
-            (1..=128).contains(&target.len()) && !target.contains(char::is_whitespace)
+            (1..=128).contains(&target.len())
+                && !target.contains(char::is_whitespace)
+                && !target.starts_with(crate::vault::RESERVED_TAG)
         }),
         None => capability == *c,
     });
@@ -471,13 +481,15 @@ impl Client {
             .unwrap_or_default())
     }
 
-    /// Grant a hosted Agent ID capabilities, for `days` or until revoked.
+    /// Grant a hosted Agent ID capabilities, for `days` or until revoked;
+    /// the owner's action through `via` enters the audit record.
     ///
     /// # Errors
     /// Returns `Error::InvalidInput` for an unknown capability and
     /// `Error::NotFound` for an Agent ID this device does not host.
     pub fn capability_grant(
         &mut self,
+        via: &str,
         grantee: &str,
         capabilities: Vec<String>,
         days: Option<u64>,
@@ -504,14 +516,21 @@ impl Client {
         };
         grants.push(grant.clone());
         self.workspace.put_private(self.keys()?, GRANTS, &grants)?;
+        self.audit_grant(via, "grants/add", &grant);
         Ok(grant)
     }
 
-    /// Revoke a capability grant.
+    fn audit_grant(&self, via: &str, action: &str, grant: &CapabilityGrant) {
+        let detail = format!("{} {}", grant.grantee, grant.capabilities.join(","));
+        self.audit("owner", via, action, Some(&grant.id), Some(&detail), "ok");
+    }
+
+    /// Revoke a capability grant; the owner's action through `via` enters
+    /// the audit record.
     ///
     /// # Errors
     /// Returns `Error::NotFound` for an unknown grant.
-    pub fn capability_revoke(&mut self, id: &str) -> Result<CapabilityGrant> {
+    pub fn capability_revoke(&mut self, via: &str, id: &str) -> Result<CapabilityGrant> {
         let mut grants = self.capability_grants()?;
         let grant = grants
             .iter_mut()
@@ -520,6 +539,7 @@ impl Client {
         grant.revoked_at.get_or_insert(now_ms());
         let revoked = grant.clone();
         self.workspace.put_private(self.keys()?, GRANTS, &grants)?;
+        self.audit_grant(via, "grants/revoke", &revoked);
         Ok(revoked)
     }
 

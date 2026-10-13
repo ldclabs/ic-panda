@@ -17,6 +17,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use zeroize::Zeroizing;
 
+/// The tag prefix of dMsg's own keys in the vault: Agent ID and controller
+/// keys. No agent capability reaches an item tagged with it.
+pub const RESERVED_TAG: &str = "dmsg-";
+
 /// A vault item's plaintext.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -51,6 +55,12 @@ pub struct Item {
 }
 
 impl Item {
+    /// Whether this is one of dMsg's own keys, which agents never read,
+    /// write or reveal.
+    pub fn reserved(&self) -> bool {
+        self.tags.iter().any(|t| t.starts_with(RESERVED_TAG))
+    }
+
     /// Check the item limits of the vault.
     ///
     /// # Errors

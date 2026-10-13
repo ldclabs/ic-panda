@@ -437,7 +437,13 @@ const zh = {
   approvedAt: '批准时间',
   certifiedAt: '认证时间',
   exportBundle: '导出证据包',
-  bundleSaved: '证据包已保存'
+  bundleSaved: '证据包已保存',
+  capabilityVocabulary: '可授予的能力：',
+  audit: '审计记录',
+  auditHint: '本机上谁、何时、经什么入口做了什么：能力授权与撤销、Agent 凭证与驻留、审批决定，以及 Agent 写入或读取账户数据的调用。只记录 ID，不记录内容。',
+  everyone: '全部',
+  noAudit: '还没有记录',
+  older: '更早的记录'
 }
 const en: typeof zh = {
   vault: 'Vault',
@@ -877,7 +883,13 @@ const en: typeof zh = {
   approvedAt: 'Approved',
   certifiedAt: 'Certified',
   exportBundle: 'Export bundle',
-  bundleSaved: 'Bundle saved'
+  bundleSaved: 'Bundle saved',
+  capabilityVocabulary: 'Grantable: ',
+  audit: 'Audit record',
+  auditHint: 'Who did what on this device, when and through which way in: capability grants and revocations, agent credentials and residency, approval decisions, and the calls agents make that write or reach account data. IDs only, never content.',
+  everyone: 'Everyone',
+  noAudit: 'Nothing recorded yet',
+  older: 'Older entries'
 }
 
 const zhStates: Record<string, string> = {

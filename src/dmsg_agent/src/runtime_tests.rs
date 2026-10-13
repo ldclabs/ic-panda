@@ -1,4 +1,4 @@
-use crate::runtime::{Host, Options, Runtime};
+use crate::runtime::{Host, Options, Runtime, Scope};
 use agent_protocols::{
     discourse::{
         build_server_record, discourse_event, event_type, room_create_event, MessageCreatePayload,
@@ -169,17 +169,30 @@ fn seed(dir: &Temp, connector: &LocalConnector) {
     .unwrap();
 }
 
-async fn call(
+async fn call(hosted: &Hosted, tool: &str, input: Value) -> Result<Value, crate::ToolError> {
+    call_in(hosted, "test", tool, input).await
+}
+
+async fn call_in(
     Hosted(runtime, path): &Hosted,
+    session: &str,
     tool: &str,
     input: Value,
 ) -> Result<Value, crate::ToolError> {
     let turn = runtime.turn().await;
     runtime
-        .call(&turn, path, signer(1), None, tool, input)
+        .call(&turn, Scope { path, session }, signer(1), None, tool, input)
         .await
         .unwrap()
         .outcome
+}
+
+async fn read(
+    Hosted(runtime, path): &Hosted,
+    session: &str,
+    uri: &str,
+) -> dmsg_types::Result<Value> {
+    runtime.read(Scope { path, session }, signer(1), uri).await
 }
 
 #[test]
@@ -222,7 +235,10 @@ fn only_configured_hosts_are_allowed() {
             .0
             .call(
                 &turn,
-                &runtime.1,
+                Scope {
+                    path: &runtime.1,
+                    session: "test",
+                },
                 signer(1),
                 None,
                 "agent_protocols_host_add",
@@ -265,11 +281,9 @@ fn only_configured_hosts_are_allowed() {
     }
 }
 
-#[test]
-fn connector_state_survives_a_restart() {
-    let dir = Temp::new();
-    let creator = signer(5);
-    let (room, records) = room_with_records(&creator);
+/// Agent 1's connector after joining `room_with_records`.
+fn with_room(dir: &Temp) {
+    let (room, records) = room_with_records(&signer(5));
     let mut connector = LocalConnector::new(signer(1));
     connector.add_host(AgentProtocolsHost {
         host: HOST.into(),
@@ -283,7 +297,126 @@ fn connector_state_survives_a_restart() {
     for record in records {
         connector.apply_host_record(HOST, record).unwrap();
     }
-    seed(&dir, &connector);
+    seed(dir, &connector);
+}
+
+#[test]
+fn each_session_sees_the_room_move_by_itself() {
+    let dir = Temp::new();
+    with_room(&dir);
+    let hosted = runtime(&dir);
+    block_on(async {
+        // The first state read of a session presents the current head.
+        let state = call_in(
+            &hosted,
+            "a",
+            "agent_protocols_room_state",
+            json!({"room_id": "room1"}),
+        )
+        .await
+        .unwrap();
+        assert_eq!(state["sync"]["presented_seq"], 3);
+        // Another session has not read the room, so nothing is presented
+        // to it, and a write of its own defaults to the current head.
+        let other = call_in(
+            &hosted,
+            "b",
+            "agent_protocols_room_members_list",
+            json!({"room_id": "room1"}),
+        )
+        .await
+        .unwrap();
+        assert!(other["sync"].get("presented_seq").is_none(), "{other}");
+        // Session a keeps its view across calls; the shared snapshot keeps
+        // no session's.
+        let again = call_in(
+            &hosted,
+            "a",
+            "agent_protocols_room_members_list",
+            json!({"room_id": "room1"}),
+        )
+        .await
+        .unwrap();
+        assert_eq!(again["sync"]["presented_seq"], 3);
+    });
+    let saved = hosted
+        .0
+        .snapshot(&hosted.1, signer(1).agent_id().as_str())
+        .unwrap()
+        .unwrap();
+    assert!(saved["rooms"][0].get("presented_seq").is_none());
+}
+
+#[test]
+fn resources_read_local_state_without_saving() {
+    let dir = Temp::new();
+    with_room(&dir);
+    let hosted = runtime(&dir);
+    block_on(async {
+        let identity = read(&hosted, "r", "agent-protocols://identity/current")
+            .await
+            .unwrap();
+        assert_eq!(identity["agent_id"], signer(1).agent_id().as_str());
+        let hosts = read(&hosted, "r", "agent-protocols://hosts").await.unwrap();
+        assert_eq!(hosts["hosts"][0]["host"], HOST);
+        let rooms = read(&hosted, "r", "agent-protocols://rooms").await.unwrap();
+        assert_eq!(rooms["rooms"][0]["room_id"], "room1");
+        let list = crate::resources::resource_list(&rooms);
+        assert_eq!(list.len(), 8);
+        assert_eq!(list[7]["uri"], "agent-protocols://rooms/room1");
+        let inbox = read(&hosted, "r", "agent-protocols://inbox/pending")
+            .await
+            .unwrap();
+        assert_eq!(inbox["items"].as_array().unwrap().len(), 2);
+        let timeline = read(&hosted, "r", "agent-protocols://rooms/room1/timeline")
+            .await
+            .unwrap();
+        assert_eq!(timeline["items"].as_array().unwrap().len(), 2);
+        let room = read(&hosted, "r", "agent-protocols://rooms/room1")
+            .await
+            .unwrap();
+        assert_eq!(room["room"]["room_id"], "room1");
+        let types = read(&hosted, "r", "agent-protocols://rooms/room1/types")
+            .await
+            .unwrap();
+        assert_eq!(types["types"], json!([]));
+        let statuses = read(&hosted, "r", "agent-protocols://rooms/room1/agent-status")
+            .await
+            .unwrap();
+        assert_eq!(statuses["statuses"], json!([]));
+        for uri in [
+            "agent-protocols://rooms/elsewhere",
+            "agent-protocols://rooms/room1/secrets",
+            "agent-protocols://nothing",
+        ] {
+            assert_eq!(
+                read(&hosted, "r", uri).await.unwrap_err(),
+                dmsg_types::Error::NotFound,
+                "{uri}"
+            );
+        }
+        // Reading presented nothing, claimed nothing and marked nothing read.
+        let state = call_in(
+            &hosted,
+            "r",
+            "agent_protocols_room_members_list",
+            json!({"room_id": "room1"}),
+        )
+        .await
+        .unwrap();
+        assert!(state["sync"].get("presented_seq").is_none(), "{state}");
+        assert_eq!(state["sync"]["unread_count"], 2);
+        let next = call(&hosted, "agent_protocols_inbox_next", json!({}))
+            .await
+            .unwrap();
+        assert_eq!(next["items"].as_array().unwrap().len(), 2);
+    });
+}
+
+#[test]
+fn connector_state_survives_a_restart() {
+    let dir = Temp::new();
+    with_room(&dir);
 
     let first = runtime(&dir);
     let draft = block_on(async {

@@ -4,6 +4,7 @@
   import { call, code, when } from '../rpc'
   import AgentMail from './AgentMail.svelte'
   import AgentEvents from './AgentEvents.svelte'
+  import AgentAudit from './AgentAudit.svelte'
 
   let { status }: { status: any } = $props()
   let principal = $state<any>(null)
@@ -24,6 +25,10 @@
   let issued = $state<{ agent_id: string; credential: string } | null>(null)
   let grantee = $state('')
   let capabilities = $state('')
+
+  /** What an agent may be granted; `<name>:*` covers every target. */
+  const VOCABULARY =
+    'account.read vault.list vault.read:<tag> vault.write:<tag> vault.secret:<item> file.read:<tag> channel.read:<channel> channel.publish:<channel> inbox.read inbox.contact profile.read attest.request action.request agent.delegation.read events.endpoint'
 
   const list = (text: string, separator: RegExp) =>
     text
@@ -227,6 +232,7 @@
   <div class="card">
     <h2>{t('capabilityGrants')}</h2>
     <p class="muted">{t('capabilitiesHint')}</p>
+    <p class="muted">{t('capabilityVocabulary')}<span class="mono">{VOCABULARY}</span></p>
     <ul class="list" data-testid="capability-grants">
       {#each grants as g (g.id)}
         <li class="row spread">
@@ -255,3 +261,4 @@
 {#if unlocked}
   <AgentEvents agents={hosted.agents} />
 {/if}
+<AgentAudit agents={hosted.agents} />

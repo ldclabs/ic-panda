@@ -279,10 +279,13 @@ fn capabilities_cover_only_what_was_granted() {
     }
     for capability in [
         "vault.read:",
-        "vault.write:work",
         "payment",
         "account.read:x",
         "vault.read:a b",
+        // dMsg's own keys are out of every agent's reach.
+        "vault.write:dmsg-agent",
+        "vault.secret:dmsg-controller",
+        "file.read:dmsg-x",
     ] {
         assert!(validate_capability(capability).is_err(), "{capability}");
     }
@@ -298,6 +301,7 @@ fn capabilities_cover_only_what_was_granted() {
     );
     let grant = client
         .capability_grant(
+            "gui",
             "helper",
             vec!["vault.read:work".into(), "channel.read:*".into()],
             Some(7),
@@ -321,11 +325,11 @@ fn capabilities_cover_only_what_was_granted() {
     // Only a hosted Agent ID is granted anything.
     assert_eq!(
         client
-            .capability_grant("did:agent:unknown", vec!["vault.list".into()], None)
+            .capability_grant("cli", "did:agent:unknown", vec!["vault.list".into()], None)
             .unwrap_err(),
         Error::NotFound
     );
-    client.capability_revoke(&grant.id).unwrap();
+    client.capability_revoke("cli", &grant.id).unwrap();
     assert_eq!(
         client
             .capability_check(&agent, "vault.read:work")
@@ -334,6 +338,23 @@ fn capabilities_cover_only_what_was_granted() {
     );
     assert_eq!(client.capability_grants().unwrap().len(), 1);
     client.lock();
+    // The grant and its revocation are in the audit record, which a
+    // locked device still reads.
+    let audit = client.audit_list(None, Some("owner"), 10).unwrap();
+    let actions: Vec<(&str, &str)> = audit
+        .iter()
+        .map(|e| (e.action.as_str(), e.via.as_str()))
+        .collect();
+    assert_eq!(actions, [("grants/revoke", "cli"), ("grants/add", "gui")]);
+    assert_eq!(audit[1].target.as_deref(), Some(grant.id.as_str()));
+    assert_eq!(
+        audit[1].detail.as_deref(),
+        Some(format!("{agent} vault.read:work,channel.read:*").as_str())
+    );
+    assert_eq!(
+        client.audit_list(Some(audit[0].seq), None, 10).unwrap(),
+        audit[1..]
+    );
     assert_eq!(
         client.capability_check(&agent, "vault.list").unwrap_err(),
         Error::Locked

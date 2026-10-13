@@ -191,7 +191,7 @@ ipcMain.handle('dmsg:call', (event, method: string, params: unknown) =>
 ipcMain.handle('dmsg:decide', (event, id: string, digest: string, approve: boolean) =>
   guard(async () => {
     trust(event, 'approval')
-    return daemon.call('approval/respond', { id, digest, approve: approve === true, human: true })
+    return daemon.call('approval/respond', { id, digest, approve: approve === true, human: true, source: 'gui' })
   })
 )
 ipcMain.handle('dmsg:grant', (event, invite: string, pairing: string) =>

@@ -2,6 +2,15 @@
 //! ID, restored from its snapshot for each tool call and saved after it
 //! (local connector §4.1), whether the call succeeded or not.
 //!
+//! The presented head of each room is per MCP session (local connector
+//! §4.2): a session sees a room move only by reading it, whatever other
+//! sessions of the same Agent ID read. Each call names its [`Scope`]; the
+//! session's presented heads go into the connector before the call and
+//! come out after it, and the shared snapshot keeps none. Held drafts and
+//! inbox claims stay with the Agent ID, so a restarted agent finishes what
+//! the previous session held, and a claim's lease keeps a second session
+//! off an item one is handling.
+//!
 //! The operator's configuration alone decides the host allowlist and the
 //! blocked mail senders: before every call each host a snapshot remembers
 //! is disallowed, each sender it blocks is unblocked, and the configured
@@ -12,6 +21,7 @@
 //! holds from reading the keys to saving them, so two sessions of one
 //! Agent ID never overwrite each other's state.
 
+use crate::resources::{Resource, RoomPart};
 use agent_protocols::{
     error::SdkError,
     identity::{service_origin, AgentId, AgentSigner},
@@ -22,6 +32,11 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::path::Path;
+
+/// Sessions not used for this long are forgotten.
+const SESSION_MS: i64 = 30 * 24 * 60 * 60 * 1000;
+/// Most sessions kept per Agent ID.
+const MAX_SESSIONS: i64 = 256;
 
 /// One allowed Agent Protocols host, as `config.toml` lists it.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -88,6 +103,16 @@ pub struct Options {
     pub local_roots: Vec<Vec<u8>>,
     /// A local deployment: loopback HTTP hosts and `local_roots` allowed.
     pub local: bool,
+}
+
+/// Where a call runs: the workspace's state file and the session it is
+/// for, such as one MCP session, the CLI's named one or the desktop's.
+#[derive(Clone, Copy, Debug)]
+pub struct Scope<'a> {
+    /// The state file of the workspace.
+    pub path: &'a Path,
+    /// The session, at most 128 bytes.
+    pub session: &'a str,
 }
 
 /// The right to run one call, held from reading the caller's mail keys to
@@ -205,7 +230,8 @@ impl Runtime {
             let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
         }
         conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS connectors (agent_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL, updated_at INTEGER NOT NULL);",
+            "CREATE TABLE IF NOT EXISTS connectors (agent_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL, updated_at INTEGER NOT NULL);
+             CREATE TABLE IF NOT EXISTS sessions (agent_id TEXT NOT NULL, session TEXT NOT NULL, presented TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (agent_id, session));",
         )
         .map_err(storage)?;
         Ok(conn)
@@ -219,21 +245,76 @@ impl Runtime {
         load(&Self::open(path)?, agent_id)
     }
 
-    fn save(&self, conn: &Connection, connector: &LocalConnector) -> Result<()> {
-        let snapshot = connector
+    /// Save a connector: its presented heads for `session`, the rest for
+    /// every session.
+    fn save(&self, conn: &Connection, session: &str, connector: &LocalConnector) -> Result<()> {
+        let mut snapshot = connector
             .snapshot()
             .map_err(|e| Error::Unavailable(format!("snapshot: {e}")))?;
+        let presented = presented(&snapshot);
+        present(&mut snapshot, &[]);
+        let agent_id = connector.agent_id();
+        let now = agent_protocols::identity::unix_ms();
         conn.execute(
             "INSERT INTO connectors (agent_id, snapshot, updated_at) VALUES (?1, ?2, ?3)
              ON CONFLICT(agent_id) DO UPDATE SET snapshot = excluded.snapshot, updated_at = excluded.updated_at",
+            params![agent_id.as_str(), snapshot.to_string(), now],
+        )
+        .map_err(storage)?;
+        conn.execute(
+            "INSERT INTO sessions (agent_id, session, presented, updated_at) VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(agent_id, session) DO UPDATE SET presented = excluded.presented, updated_at = excluded.updated_at",
             params![
-                connector.agent_id().as_str(),
-                snapshot.to_string(),
-                agent_protocols::identity::unix_ms()
+                agent_id.as_str(),
+                session,
+                Value::Array(presented).to_string(),
+                now
             ],
         )
         .map_err(storage)?;
+        conn.execute(
+            "DELETE FROM sessions WHERE agent_id = ?1 AND (updated_at < ?2 OR session NOT IN
+             (SELECT session FROM sessions WHERE agent_id = ?1 ORDER BY updated_at DESC LIMIT ?3))",
+            params![agent_id.as_str(), now - SESSION_MS, MAX_SESSIONS],
+        )
+        .map_err(storage)?;
         Ok(())
+    }
+
+    /// The connector of `signer`'s Agent ID as `scope` sees it, allowed only
+    /// the configured hosts, and its saved snapshot.
+    fn restore(
+        &self,
+        conn: &Connection,
+        scope: Scope<'_>,
+        signer: AgentSigner,
+    ) -> Result<(LocalConnector, Option<Value>)> {
+        ensure_valid(
+            !scope.session.is_empty() && scope.session.len() <= 128,
+            "session",
+        )?;
+        let agent_id = signer.agent_id();
+        let saved = load(conn, agent_id.as_str())?;
+        let mut connector = match &saved {
+            Some(snapshot) => {
+                let mut snapshot = snapshot.clone();
+                present(
+                    &mut snapshot,
+                    &load_session(conn, agent_id.as_str(), scope.session)?,
+                );
+                LocalConnector::from_snapshot(signer, &snapshot)
+                    .map_err(|_| Error::IntegrityFailed)?
+            }
+            None => LocalConnector::new(signer),
+        }
+        .with_http_client(self.http.clone());
+        for host in connector.state_mut().hosts.values_mut() {
+            host.allowed = false;
+        }
+        for host in &self.hosts {
+            connector.add_host(host.clone());
+        }
+        Ok((connector, saved))
     }
 
     /// Wait for the right to run one call.
@@ -241,10 +322,9 @@ impl Runtime {
         self.calls.lock().await
     }
 
-    /// Run one standard tool as `signer`'s Agent ID with the connector state
-    /// in `path`, and the mail decryption keys its mailboxes retain
-    /// (`mail_keys`, as [`Called::mail_keys`] returned them; `None` for none
-    /// yet).
+    /// Run one standard tool as `signer`'s Agent ID in `scope`, with the
+    /// mail decryption keys its mailboxes retain (`mail_keys`, as
+    /// [`Called::mail_keys`] returned them; `None` for none yet).
     ///
     /// # Errors
     /// Returns `Error::NotFound` for a tool that is not one of the standard
@@ -254,32 +334,19 @@ impl Runtime {
     pub async fn call(
         &self,
         _turn: &Turn<'_>,
-        path: &Path,
+        scope: Scope<'_>,
         signer: AgentSigner,
         mail_keys: Option<&Value>,
         tool: &str,
         input: Value,
     ) -> Result<Called> {
         ensure(TOOL_NAMES.contains(&tool), Error::NotFound)?;
-        let conn = Self::open(path)?;
-        let agent_id = signer.agent_id();
-        let saved = load(&conn, agent_id.as_str())?;
-        let mut connector = match &saved {
-            Some(snapshot) => LocalConnector::from_snapshot(signer, snapshot)
-                .map_err(|_| Error::IntegrityFailed)?,
-            None => LocalConnector::new(signer),
-        }
-        .with_http_client(self.http.clone());
+        let conn = Self::open(scope.path)?;
+        let (mut connector, saved) = self.restore(&conn, scope, signer)?;
         if let Some(keys) = mail_keys {
             connector
                 .restore_mail_keys(keys)
                 .map_err(|_| Error::IntegrityFailed)?;
-        }
-        for host in connector.state_mut().hosts.values_mut() {
-            host.allowed = false;
-        }
-        for host in &self.hosts {
-            connector.add_host(host.clone());
         }
         let remembered = saved
             .as_ref()
@@ -292,10 +359,67 @@ impl Runtime {
             connector.set_mail_sender_blocked(sender.clone(), true);
         }
         let outcome = connector.call_tool(tool, input).await;
-        self.save(&conn, &connector)?;
+        self.save(&conn, scope.session, &connector)?;
         Ok(Called {
             outcome: outcome.map_err(ToolError::from),
             mail_keys: connector.mail_keys_snapshot(),
+        })
+    }
+
+    /// Read one resource of `signer`'s Agent ID as `scope` sees it (local
+    /// connector §4.4), from local state only: nothing is fetched, and
+    /// nothing the read touches is saved, so reading never moves a
+    /// presented head or a read mark.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an unknown resource or room and
+    /// `Error::Unavailable` when storage fails.
+    pub async fn read(&self, scope: Scope<'_>, signer: AgentSigner, uri: &str) -> Result<Value> {
+        let resource = Resource::parse(uri).ok_or(Error::NotFound)?;
+        let conn = Self::open(scope.path)?;
+        let (mut connector, saved) = self.restore(&conn, scope, signer)?;
+        let saved = saved.unwrap_or(Value::Null);
+        let room = match &resource {
+            Resource::Room(id, _) => {
+                let known = saved["rooms"].as_array().into_iter().flatten().find(|r| {
+                    r["room"]["id"] == id.as_str() && r["synced_seq"].as_u64().unwrap_or(0) > 0
+                });
+                Some(known.ok_or(Error::NotFound)?.clone())
+            }
+            _ => None,
+        };
+        let input = match (&resource, &room) {
+            (Resource::Room(id, RoomPart::Timeline), Some(room)) => {
+                let synced = room["synced_seq"].as_u64().unwrap_or(0);
+                json!({"room_id": id, "after_seq": synced.saturating_sub(100), "limit": 100})
+            }
+            (Resource::Room(id, RoomPart::AgentStatus), _) => {
+                let cached = saved["agent_statuses"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .any(|s| s["room_id"] == id.as_str());
+                if !cached {
+                    return Ok(json!({"statuses": []}));
+                }
+                json!({"room_id": id})
+            }
+            (Resource::Room(id, _), _) => json!({"room_id": id}),
+            (Resource::Inbox, _) => json!({"limit": 100}),
+            (Resource::Messages, _) => json!({"limit": 100}),
+            _ => json!({}),
+        };
+        let value = connector
+            .call_tool(resource.tool(), input)
+            .await
+            .map_err(|e| Error::InvalidInput(format!("{uri}: {e}")))?;
+        Ok(match resource {
+            Resource::Hosts => json!({"hosts": value["hosts"]}),
+            Resource::Room(_, RoomPart::Types) => {
+                let types = value["room"].get("types").cloned();
+                json!({"types": types.unwrap_or_else(|| json!([])), "sync": value["sync"]})
+            }
+            _ => value,
         })
     }
 }
@@ -311,6 +435,63 @@ fn load(conn: &Connection, agent_id: &str) -> Result<Option<Value>> {
         .map_err(storage)?;
     text.map(|t| serde_json::from_str(&t).map_err(|_| Error::IntegrityFailed))
         .transpose()
+}
+
+/// The presented heads `session` saw: `[{host, room_id, seq, hash}]`.
+fn load_session(conn: &Connection, agent_id: &str, session: &str) -> Result<Vec<Value>> {
+    let text: Option<String> = conn
+        .query_row(
+            "SELECT presented FROM sessions WHERE agent_id = ?1 AND session = ?2",
+            params![agent_id, session],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(storage)?;
+    match text {
+        Some(text) => serde_json::from_str(&text).map_err(|_| Error::IntegrityFailed),
+        None => Ok(Vec::new()),
+    }
+}
+
+/// The presented head of every room of a snapshot that has one.
+fn presented(snapshot: &Value) -> Vec<Value> {
+    snapshot["rooms"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|room| room["presented_seq"].is_u64())
+        .map(|room| {
+            json!({
+                "host": room["host"],
+                "room_id": room["room"]["id"],
+                "seq": room["presented_seq"],
+                "hash": room["presented_hash"],
+            })
+        })
+        .collect()
+}
+
+/// Give every room of a snapshot the presented head of `heads`, or none.
+fn present(snapshot: &mut Value, heads: &[Value]) {
+    let Some(rooms) = snapshot["rooms"].as_array_mut() else {
+        return;
+    };
+    for room in rooms.iter_mut() {
+        let head = heads
+            .iter()
+            .find(|h| h["host"] == room["host"] && h["room_id"] == room["room"]["id"]);
+        let Some(fields) = room.as_object_mut() else {
+            continue;
+        };
+        fields.remove("presented_seq");
+        fields.remove("presented_hash");
+        if let Some(head) = head {
+            fields.insert("presented_seq".into(), head["seq"].clone());
+            if head["hash"].is_string() {
+                fields.insert("presented_hash".into(), head["hash"].clone());
+            }
+        }
+    }
 }
 
 fn storage(error: rusqlite::Error) -> Error {

@@ -206,11 +206,27 @@ enum Command {
     /// Capabilities hosted Agent IDs hold over this account.
     #[command(subcommand)]
     Grants(agent_commands::GrantsCommand),
+    /// Who did what on this device: grants, decisions and agents' calls.
+    Audit {
+        /// Only this actor: `owner`, or an Agent ID's label or `did:agent:…`.
+        #[arg(long)]
+        agent: Option<String>,
+        /// Entries before this sequence, for the next page.
+        #[arg(long)]
+        before: Option<u64>,
+        /// Most entries shown.
+        #[arg(long, default_value_t = 50)]
+        limit: u64,
+    },
     /// Run one MCP tool as a hosted Agent ID; `dmsg ap tools` lists them.
     Ap {
         /// Label or `did:agent:…`; the active Agent ID by default.
         #[arg(long)]
         agent: Option<String>,
+        /// The connector session, which keeps what this session was shown
+        /// of each room between commands.
+        #[arg(long, default_value = "cli")]
+        session: String,
         /// Tool name, with or without its `agent_protocols_`/`dmsg_` prefix.
         tool: String,
         /// Tool input as JSON.
@@ -1612,9 +1628,17 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         Command::Agent(command) => agent_commands::agent(&remote, json, command).await?,
         Command::Grants(command) => agent_commands::grants(&remote, json, command).await?,
         Command::Events(command) => event_commands::events(&remote, json, command).await?,
-        Command::Ap { agent, tool, input } => {
-            agent_commands::ap(&remote, json, agent, tool, input).await?
-        }
+        Command::Audit {
+            agent,
+            before,
+            limit,
+        } => agent_commands::audit(&remote, json, agent, before, limit).await?,
+        Command::Ap {
+            agent,
+            session,
+            tool,
+            input,
+        } => agent_commands::ap(&remote, json, agent, session, tool, input).await?,
         Command::Stop => {
             drop(remote);
             lifecycle::drain(&home, true, Duration::ZERO).await?;

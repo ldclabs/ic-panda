@@ -180,6 +180,8 @@ pub(crate) struct Daemon {
     last_connect: std::sync::Mutex<Option<Value>>,
     /// The Agent Protocols connectors of the hosted Agent IDs.
     agents: dmsg_agent::Runtime,
+    /// Counts the connector calls, for agents watching their resources.
+    connectors: tokio::sync::watch::Sender<u64>,
     /// MCP Events: the fetch loop's signals and upstream keys.
     mcp: crate::mcp_events::McpEvents,
 }
@@ -260,6 +262,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         wake: Notify::new(),
         last_connect: std::sync::Mutex::new(None),
         agents,
+        connectors: tokio::sync::watch::channel(0).0,
         mcp,
     });
     home.publish(&Discovery {
@@ -410,6 +413,10 @@ impl Daemon {
 
     pub(crate) fn agents(&self) -> &dmsg_agent::Runtime {
         &self.agents
+    }
+
+    pub(crate) fn connectors(&self) -> &tokio::sync::watch::Sender<u64> {
+        &self.connectors
     }
 
     pub(crate) fn mcp(&self) -> &crate::mcp_events::McpEvents {
@@ -734,11 +741,33 @@ impl Daemon {
                 let approve = params["approve"]
                     .as_bool()
                     .ok_or_else(|| Error::InvalidInput("approve".into()))?;
-                self.client
-                    .lock()
-                    .await
-                    .approval_respond(&text("id")?, &text("digest")?, approve)
-                    .await
+                let id = text("id")?;
+                let mut client = self.client.lock().await;
+                let outcome = client
+                    .approval_respond(&id, &text("digest")?, approve)
+                    .await;
+                // Who decided, through which way in, on whose request.
+                let request = client.approval(&id).unwrap_or_default();
+                let detail = format!(
+                    "{} from {}",
+                    request["type"].as_str().unwrap_or("?"),
+                    request["source"].as_str().unwrap_or("?")
+                );
+                let action = if approve {
+                    "approval/approve"
+                } else {
+                    "approval/reject"
+                };
+                let code = outcome.as_ref().err().map_or("ok".into(), error_code);
+                client.audit(
+                    "owner",
+                    &source(params)?,
+                    action,
+                    Some(&id),
+                    Some(&detail),
+                    &code,
+                );
+                outcome
             }
             "approval/cancel" => self.client.lock().await.approval_cancel(&text("id")?),
             "approval/reconcile" => {
@@ -1061,7 +1090,9 @@ impl Daemon {
         }
         // Waiting readers are not activity: a stream would otherwise keep
         // the device unlocked forever.
-        let waiting = request.method == "mcp/call" && request.params["tool"] == "dmsg_events_next";
+        let waiting = (request.method == "mcp/call"
+            && request.params["tool"] == "dmsg_events_next")
+            || request.method == "mcp/changed";
         if !waiting
             && !matches!(
                 request.method.as_str(),

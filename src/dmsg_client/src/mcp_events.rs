@@ -40,6 +40,12 @@ pub const EVENT_NAME: &str = "dmsg.relay.delivery";
 const INFO: &str = "dmsg/mcp-event/1";
 /// The endpoints of this device, sealed under the LDK.
 const ENDPOINTS: &str = "mcp-endpoints";
+/// Creations whose outcome is not known yet, sealed under the LDK.
+const CREATING: &str = "mcp-endpoints-creating";
+/// A creation is tried this many times before its reply counts as lost.
+const CREATE_TRIES: usize = 3;
+/// A lost creation is settled for this long, then forgotten.
+const CREATING_MS: u64 = 7 * DAY;
 /// At most this many live endpoints per account (the relay's bound).
 pub const MAX_ENDPOINTS: usize = 16;
 /// Local records are kept this long, and at most [`KEEP`] of them.
@@ -107,6 +113,17 @@ pub struct Endpoint {
     pub created_at: u64,
     /// When it left `active`, in Unix milliseconds.
     pub ended_at: Option<u64>,
+}
+
+/// An endpoint creation as first submitted, kept until its outcome is
+/// known: the relay replays a command with the same request ID and payload,
+/// so a resubmission learns whether the lost one created the endpoint.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+struct Creating {
+    callback_id: String,
+    secret: String,
+    request_id: String,
+    created_at: u64,
 }
 
 /// Which endpoints a reader means.
@@ -183,6 +200,16 @@ struct Record {
 struct Verified {
     v1: bool,
     v1a: Option<bool>,
+}
+
+/// Whether a relay refusal of a creation is final: it could not have
+/// created the endpoint, then or on a resubmission. Any other failure, such
+/// as a lost reply or stale device evidence, leaves the outcome open.
+fn refused(error: &Error) -> bool {
+    matches!(
+        error,
+        Error::QuotaExceeded | Error::IdempotencyConflict | Error::InvalidInput(_)
+    )
 }
 
 fn new_secret() -> String {
@@ -416,8 +443,57 @@ impl Client {
         })
     }
 
+    fn creating(&self) -> Result<Vec<Creating>> {
+        Ok(self
+            .workspace
+            .private(self.keys()?, CREATING)?
+            .unwrap_or_default())
+    }
+
+    fn save_creating(&self, creating: &[Creating]) -> Result<()> {
+        self.workspace
+            .put_private(self.keys()?, CREATING, &creating)
+    }
+
+    /// Submit a creation, again on a lost reply up to [`CREATE_TRIES`]
+    /// times; each try is the same command, so at most one endpoint results.
+    async fn submit_create(&mut self, creating: &Creating) -> Result<Json> {
+        let path = format!("{}/mcp-events/endpoints", self.base()?);
+        let callback = callback_bytes(&creating.callback_id)?;
+        let request_id = Hash::new(
+            hex::decode(&creating.request_id)
+                .ok()
+                .and_then(|b| b.try_into().ok())
+                .ok_or(Error::IntegrityFailed)?,
+        );
+        let mut tries = 0;
+        loop {
+            tries += 1;
+            let outcome = self
+                .relay_post(
+                    &path,
+                    CREATE_ACTION,
+                    &CreateCommand {
+                        callback_id: &callback,
+                        secret: &creating.secret,
+                    },
+                    &request_id,
+                )
+                .await;
+            match outcome {
+                Err(error) if !refused(&error) && tries < CREATE_TRIES => continue,
+                outcome => return outcome,
+            }
+        }
+    }
+
     /// Create a callback endpoint on the relay for `agent` (`None` for the
     /// owner): a fresh callback ID and `whsec_` secret, returned once.
+    ///
+    /// The creation is kept before it is sent. When its reply stays lost the
+    /// caller gets `Error::ExecutionUnknown` and never the secret, so a later
+    /// fetch pass resubmits it and deletes whatever it created; no endpoint
+    /// is left on the relay that nobody knows.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked, `Error::QuotaExceeded` at
@@ -429,36 +505,45 @@ impl Client {
         context: BTreeMap<String, String>,
     ) -> Result<Json> {
         check_context(&context)?;
-        let mut endpoints = self.endpoints()?;
+        let mut creating = self.creating()?;
         ensure(
-            endpoints.iter().filter(|e| e.state == "active").count() < MAX_ENDPOINTS,
+            self.endpoints()?
+                .iter()
+                .filter(|e| e.state == "active")
+                .count()
+                + creating.len()
+                < MAX_ENDPOINTS,
             Error::QuotaExceeded,
         )?;
-        let callback = ByteBuf::from(random_key()[..16].to_vec());
-        let id = hex::encode(&callback);
-        let secret = new_secret();
-        let path = format!("{}/mcp-events/endpoints", self.base()?);
-        let created = self
-            .relay_post(
-                &path,
-                CREATE_ACTION,
-                &CreateCommand {
-                    callback_id: &callback,
-                    secret: &secret,
-                },
-                &Hash::new(crate::crypto::random_id()),
-            )
-            .await?;
+        let now = now_ms();
+        let pending = Creating {
+            callback_id: hex::encode(&random_key()[..16]),
+            secret: new_secret(),
+            request_id: hex::encode(crate::crypto::random_id()),
+            created_at: now,
+        };
+        creating.push(pending.clone());
+        self.save_creating(&creating)?;
+        let outcome = self.submit_create(&pending).await;
+        let created = match outcome {
+            // Kept for the next fetch pass to settle.
+            Err(error) if !refused(&error) => return Err(error),
+            outcome => {
+                creating.retain(|c| c != &pending);
+                self.save_creating(&creating)?;
+                outcome?
+            }
+        };
+        let id = pending.callback_id;
         let url = created["url"]
             .as_str()
             .filter(|u| u.ends_with(&format!("/mcp-events/{id}")))
             .ok_or(Error::IntegrityFailed)?;
-        let now = now_ms();
         let endpoint = Endpoint {
             endpoint_id: id,
             url: url.to_string(),
             secrets: vec![Secret {
-                secret: secret.clone(),
+                secret: pending.secret.clone(),
                 created_at: now,
                 retire_at: None,
             }],
@@ -472,13 +557,60 @@ impl Client {
             ended_at: None,
         };
         let mut view = Self::endpoint_view(&endpoint);
-        view["secret"] = secret.into();
+        view["secret"] = pending.secret.into();
+        let mut endpoints = self.endpoints()?;
         endpoints.push(endpoint);
         self.save_endpoints(&endpoints)?;
         Ok(view)
     }
 
+    /// Settle the creations whose reply was lost: resubmit each, and delete
+    /// the endpoint it turns out to have created, since its caller never
+    /// got the secret. Returns how many are still open.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub async fn mcp_endpoint_settle(&mut self) -> Result<usize> {
+        let creating = self.creating()?;
+        if creating.is_empty() {
+            return Ok(0);
+        }
+        let now = now_ms();
+        let mut open = Vec::new();
+        for pending in creating {
+            let settled = match self.submit_create(&pending).await {
+                Ok(_) => {
+                    let path = format!(
+                        "{}/mcp-events/endpoints/{}/delete",
+                        self.base()?,
+                        pending.callback_id
+                    );
+                    let deleted = self
+                        .relay_post(
+                            &path,
+                            DELETE_ACTION,
+                            &DeleteCommand {
+                                callback_id: &callback_bytes(&pending.callback_id)?,
+                            },
+                            &Hash::new(crate::crypto::random_id()),
+                        )
+                        .await;
+                    matches!(deleted, Ok(_) | Err(Error::NotFound))
+                }
+                Err(error) => refused(&error),
+            };
+            if !settled && pending.created_at + CREATING_MS > now {
+                open.push(pending);
+            }
+        }
+        self.save_creating(&open)?;
+        Ok(open.len())
+    }
+
     /// The caller's endpoints, with the relay's view of each when it answers.
+    /// The owner also sees the creations still settling, and the endpoints
+    /// of this device on the relay that it never handed out (`unknown`): they
+    /// hold quota and receive nothing until a fetch pass settles them.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
@@ -514,7 +646,21 @@ impl Client {
                 view
             })
             .collect();
-        Ok(json!({"endpoints": listed}))
+        if agent.is_some() {
+            return Ok(json!({"endpoints": listed}));
+        }
+        let device = hex::encode(*self.workspace.meta.device_id);
+        let unknown: Vec<Json> = relay
+            .iter()
+            .filter(|r| r["device"] == device.as_str() && r["state"] == "active")
+            .filter(|r| !endpoints.iter().any(|e| r["callback_id"] == e.endpoint_id))
+            .map(|r| json!({"callback_id": r["callback_id"], "created_at": r["created_at"]}))
+            .collect();
+        Ok(json!({
+            "endpoints": listed,
+            "settling": self.creating()?.len(),
+            "unknown": unknown,
+        }))
     }
 
     /// Give an endpoint a new secret, returned once; the replaced ones keep
@@ -700,6 +846,8 @@ impl Client {
         &mut self,
         jwks: &BTreeMap<String, Vec<Hash>>,
     ) -> Result<FetchReport> {
+        // Creations whose reply was lost are settled on every pass.
+        self.mcp_endpoint_settle().await?;
         let mut endpoints = self.endpoints()?;
         let account = self.account()?.id.to_string();
         let device = hex::encode(*self.workspace.meta.device_id);

@@ -382,6 +382,19 @@ impl Client {
         Ok(manifest.public())
     }
 
+    /// Verify a file of at most `max` bytes and return it.
+    ///
+    /// # Errors
+    /// Returns `Error::QuotaExceeded` for a larger file, otherwise as
+    /// [`Self::file_export`].
+    pub fn file_bytes(&self, id: &str, max: u64) -> Result<(FileManifest, Zeroizing<Vec<u8>>)> {
+        let manifest = self.file_manifest(id)?;
+        ensure(manifest.size <= max, Error::QuotaExceeded)?;
+        let mut bytes = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
+        self.read_file(&manifest, Some(&mut *bytes))?;
+        Ok((manifest.public(), bytes))
+    }
+
     /// Verify a file and write it to `out`, which must not exist yet. The
     /// bytes go to a temporary file first and appear at `out` only once the
     /// whole file has been checked.

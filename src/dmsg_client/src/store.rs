@@ -59,7 +59,39 @@ CREATE TABLE IF NOT EXISTS mcp_events (
   value TEXT NOT NULL,
   UNIQUE (endpoint, webhook_id)
 );
+CREATE TABLE IF NOT EXISTS audit (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT,
+  at INTEGER NOT NULL,
+  actor TEXT NOT NULL,
+  via TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target TEXT,
+  detail TEXT,
+  outcome TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS audit_actor ON audit (actor, seq);
 ";
+
+/// One audit entry: who did what, when and through which way in.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+pub struct AuditRow {
+    /// Local sequence; never reused.
+    pub seq: u64,
+    /// Unix milliseconds.
+    pub at: u64,
+    /// `owner`, or the `did:agent:` of a hosted agent.
+    pub actor: String,
+    /// `cli`, `gui` or `mcp`.
+    pub via: String,
+    /// The method or tool.
+    pub action: String,
+    /// What it acted on: an ID, never content.
+    pub target: Option<String>,
+    /// A short note, such as the capabilities of a grant.
+    pub detail: Option<String>,
+    /// `ok`, or the error code.
+    pub outcome: String,
+}
 
 /// A relayed MCP event as stored: routing columns and the sealed payload.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -577,6 +609,69 @@ impl Store {
         )
         .map(|_| ())
         .map_err(storage)
+    }
+
+    /// Append an audit entry, keeping those at or after `since` and at most
+    /// `keep` of the newest; returns its sequence.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn put_audit(&self, row: &AuditRow, since: u64, keep: u64) -> Result<u64> {
+        let conn = self.conn();
+        conn.execute(
+            "INSERT INTO audit (at, actor, via, action, target, detail, outcome) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                row.at as i64,
+                row.actor,
+                row.via,
+                row.action,
+                row.target,
+                row.detail,
+                row.outcome
+            ],
+        )
+        .map_err(storage)?;
+        let seq = conn.last_insert_rowid() as u64;
+        conn.execute("DELETE FROM audit WHERE at < ?1", [since as i64])
+            .map_err(storage)?;
+        conn.execute(
+            "DELETE FROM audit WHERE seq NOT IN (SELECT seq FROM audit ORDER BY seq DESC LIMIT ?1)",
+            [keep as i64],
+        )
+        .map_err(storage)?;
+        Ok(seq)
+    }
+
+    /// Audit entries before `before`, newest first, of `actor` when given.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn audit(&self, before: u64, actor: Option<&str>, limit: usize) -> Result<Vec<AuditRow>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare(
+                "SELECT seq, at, actor, via, action, target, detail, outcome FROM audit
+                 WHERE seq < ?1 AND (?2 IS NULL OR actor = ?2) ORDER BY seq DESC LIMIT ?3",
+            )
+            .map_err(storage)?;
+        let rows = statement
+            .query_map(
+                params![before.min(i64::MAX as u64) as i64, actor, limit as i64],
+                |r| {
+                    Ok(AuditRow {
+                        seq: r.get::<_, i64>(0)? as u64,
+                        at: r.get::<_, i64>(1)? as u64,
+                        actor: r.get(2)?,
+                        via: r.get(3)?,
+                        action: r.get(4)?,
+                        target: r.get(5)?,
+                        detail: r.get(6)?,
+                        outcome: r.get(7)?,
+                    })
+                },
+            )
+            .map_err(storage)?;
+        rows.collect::<rusqlite::Result<_>>().map_err(storage)
     }
 
     /// Insert an object version; an existing key must hold the same frame.

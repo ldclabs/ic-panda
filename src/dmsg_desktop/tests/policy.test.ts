@@ -55,10 +55,12 @@ test('windows never decide or grant, and never send human', () => {
 })
 
 test('windows run only the Mail and Knowledge tools as an Agent ID', () => {
+  // The audit record names the desktop as the way in.
   assert.deepEqual(windowParams('ap/call', { agent: 'claude', tool: 'agent_protocols_mail_sync', input: {} }), {
     agent: 'claude',
     tool: 'agent_protocols_mail_sync',
-    input: {}
+    input: {},
+    source: 'gui'
   })
   assert.equal(DESKTOP_TOOLS.size, 10)
   for (const tool of [

@@ -10,7 +10,7 @@ use agent_protocols::{
     SdkError,
 };
 use base64::{engine::general_purpose::STANDARD, Engine};
-use dmsg_agent::{Host, Options, Runtime};
+use dmsg_agent::{Host, Options, Runtime, Scope};
 use rustls::{
     pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
     ServerConfig, ServerConnection, StreamOwned,
@@ -234,7 +234,10 @@ async fn call(
     let called = runtime
         .call(
             &turn,
-            path,
+            Scope {
+                path,
+                session: "test",
+            },
             AgentSigner::from_seed([seed; 32]),
             keys.as_ref(),
             tool,

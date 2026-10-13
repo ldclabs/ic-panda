@@ -41,7 +41,7 @@ Rules (`src/main/policy.ts`):
   - legacy transfer files, frozen-history files and old attachments
     (`legacy/import`, `legacy/frozen`, `legacy/file`).
 - `ap/call` runs only the Agent Mail and Agent Knowledge tools
-  (`DESKTOP_TOOLS`) as a hosted Agent ID. The MCP Events methods only manage
+  (`DESKTOP_TOOLS`) as a hosted Agent ID, in the connector session `gui`. The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for
   agents.
 - A vault secret is shown, or copied, only after a second click. A copy goes
@@ -71,7 +71,10 @@ Rules (`src/main/policy.ts`):
   controllers, grants and revokes credentials (each an approval request; the
   approval window shows the agent, scopes, relying parties and expiry), hosts
   Agent IDs (residency, the MCP credential, shown once) and grants them
-  capabilities. The host allowlist is shown, never edited.
+  capabilities. The host allowlist is shown, never edited. Its audit record
+  lists, locked or not, who did what on this device and through which way in
+  (`audit/list`): the owner's grants, credentials, residency and decisions,
+  marked `gui` when they came from a window, and what agents called.
 - Only the approval window decides a request (`approval/respond` with the
   digest of what it showed and `human: true`, added by the main process);
   only the main window confirms a browser pairing (`connect/grant`).

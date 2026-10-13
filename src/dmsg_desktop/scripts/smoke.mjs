@@ -101,6 +101,10 @@ const endpoints = []
 const notes = []
 const ledger = 'ryjl3-tyaaa-aaaaa-aaaba-cai'
 const claude = 'did:agent:' + 'Q'.repeat(43)
+const audit = [
+  { seq: 2, at: Date.now(), actor: claude, via: 'mcp', action: 'dmsg_vault_read', target: 'ab'.repeat(16), detail: null, outcome: 'ok' },
+  { seq: 1, at: Date.now() - 60_000, actor: 'owner', via: 'gui', action: 'grants/add', target: 'cd'.repeat(8), detail: `${claude} vault.read:work`, outcome: 'ok' }
+]
 const other = '0k0g2081040g2081040g'
 const login = 'rdmx6-jaaaa-aaaaa-aaadq-cai'
 const checkoutRequest = {
@@ -413,6 +417,9 @@ const methods = {
     return { ...endpoint, secret: 'whsec_smoke' }
   },
   'grants/list': () => [],
+  'audit/list': (p) => ({
+    entries: p.agent === 'owner' ? audit.filter((e) => e.actor === 'owner') : audit
+  }),
   'agent/grant': (p) => {
     assert.equal(p.source, 'gui')
     assert.deepEqual(p.scopes, ['message.draft'])
@@ -539,7 +546,7 @@ try {
   await approval.waitForSelector('[data-testid="approval-outcome"]')
   const responded = calls.filter((c) => c.method === 'approval/respond')
   assert.equal(responded.length, 1)
-  assert.deepEqual(responded[0].params, { id: request.id, digest: request.digest, approve: true, human: true })
+  assert.deepEqual(responded[0].params, { id: request.id, digest: request.digest, approve: true, human: true, source: 'gui' })
 
   // A statement started in the main window is marked as the desktop's and opens for approval.
   await main.click('text=/Signatures|签名与授权/')
@@ -642,6 +649,15 @@ try {
   }
   assert.equal(notes.length, 1)
   assert.ok(!notes[0].includes('Upstream'))
+  // The audit record names who did what and through which way in.
+  await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
+  await main.selectOption('[data-testid="audit-actor"]', 'owner')
+  await waitFor(() => latest('audit/list').params.agent === 'owner')
+  await main.waitForSelector('[data-testid="audit-entries"] >> text=grants/add')
+  assert.equal(await main.locator('[data-testid="audit-entries"] >> text=dmsg_vault_read').count(), 0)
+  await main.selectOption('[data-testid="audit-actor"]', '')
+  await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
+  await main.locator('[data-testid="agent-audit"]').screenshot({ path: join(shots, 'audit.png') })
   await main.screenshot({ path: join(shots, 'agents.png') })
 
   // A web checkout cannot be approved before it is quoted, and the quote is what is approved.

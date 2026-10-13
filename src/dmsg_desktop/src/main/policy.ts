@@ -156,6 +156,7 @@ export const WINDOW_METHODS = new Set([
   'grants/add',
   'grants/revoke',
   'ap/call',
+  'audit/list',
   'mcp-events/create',
   'mcp-events/list',
   'mcp-events/rotate',
@@ -206,7 +207,13 @@ const GUI_SOURCED = new Set([
   'agent/compromise',
   'agent/rename',
   'agent/grant',
-  'agent/revoke'
+  'agent/revoke',
+  'agent/create',
+  'agent/resident',
+  'agent/credential',
+  'grants/add',
+  'grants/revoke',
+  'ap/call'
 ])
 
 /** The tools the Agents view runs as a hosted Agent ID: Agent Mail and Agent Knowledge. */

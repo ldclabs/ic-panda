@@ -6,6 +6,7 @@ pub mod agent;
 pub mod agents;
 pub mod approval;
 pub mod attest;
+pub mod audit;
 pub mod certified;
 pub mod channel;
 pub mod channel_log;

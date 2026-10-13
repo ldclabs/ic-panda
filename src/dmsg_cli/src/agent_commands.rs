@@ -149,9 +149,12 @@ pub enum GrantsCommand {
     Add {
         /// Label or `did:agent:…`.
         agent: String,
-        /// account.read, vault.list, vault.read:<tag>, channel.read:<channel>,
-        /// channel.publish:<channel>, inbox.read, profile.read, attest.request,
-        /// events.endpoint; `<name>:*` covers every target.
+        /// account.read, vault.list, vault.read:<tag>, vault.write:<tag>,
+        /// vault.secret:<item>, file.read:<tag>, channel.read:<channel>,
+        /// channel.publish:<channel>, inbox.read, inbox.contact,
+        /// profile.read, attest.request, action.request,
+        /// agent.delegation.read, events.endpoint; `<name>:*` covers every
+        /// target. Items tagged `dmsg-…` are dMsg's own keys and out of reach.
         #[arg(required = true)]
         capabilities: Vec<String>,
         /// Lifetime in days; until revoked by default.
@@ -295,13 +298,68 @@ pub async fn grants(remote: &Remote, json: bool, command: GrantsCommand) -> Resu
     Ok(())
 }
 
-/// `dmsg ap [--agent A] <tool> [input]`: one MCP tool as an Agent ID, with
-/// the same input and result. `tools` lists them; `agent_protocols_` and
-/// `dmsg_` may be left out of standard and dMsg names alike.
+/// `dmsg audit`: who did what on this device, newest first.
+pub async fn audit(
+    remote: &Remote,
+    json: bool,
+    agent: Option<String>,
+    before: Option<u64>,
+    limit: u64,
+) -> Result<(), Failure> {
+    let value = remote
+        .call(
+            "audit/list",
+            json!({"agent": agent, "before": before, "limit": limit}),
+        )
+        .await?;
+    print(json, &value, |value| {
+        value["entries"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|e| {
+                let at = e["at"].as_u64().unwrap_or_default();
+                let mut line = format!(
+                    "{:>6} {} {:<10} {:<4} {:<28} {}",
+                    e["seq"],
+                    dmsg_client::mcp_events::timestamp(at),
+                    short(e["actor"].as_str().unwrap_or_default()),
+                    e["via"].as_str().unwrap_or_default(),
+                    e["action"].as_str().unwrap_or_default(),
+                    e["outcome"].as_str().unwrap_or_default(),
+                );
+                for field in ["target", "detail"] {
+                    if let Some(text) = e[field].as_str() {
+                        line.push(' ');
+                        line.push_str(text);
+                    }
+                }
+                line
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    });
+    Ok(())
+}
+
+/// An actor as one column: `owner`, or the end of a `did:agent:`.
+fn short(actor: &str) -> String {
+    match actor.strip_prefix("did:agent:") {
+        Some(key) => format!("…{}", &key[key.len().saturating_sub(8)..]),
+        None => actor.into(),
+    }
+}
+
+/// `dmsg ap [--agent A] [--session S] <tool> [input]`: one MCP tool as an
+/// Agent ID, with the same input and result, in a named connector session
+/// whose presented heads persist between commands. `tools` lists them;
+/// `agent_protocols_` and `dmsg_` may be left out of standard and dMsg
+/// names alike.
 pub async fn ap(
     remote: &Remote,
     json: bool,
     agent: Option<String>,
+    session: String,
     tool: String,
     input: Option<String>,
 ) -> Result<(), Failure> {
@@ -337,7 +395,7 @@ pub async fn ap(
     let outcome = remote
         .call(
             "ap/call",
-            json!({"agent": agent, "tool": name, "input": input}),
+            json!({"agent": agent, "session": session, "tool": name, "input": input}),
         )
         .await?;
     if let Some(error) = outcome.get("error") {

@@ -181,7 +181,8 @@ dmsg agent grant <subject> --scope S... --audience A... [--days 30] [--generatio
 dmsg agent revoke <id> [--generation G] [--reason R] | credentials | delegations
 dmsg agent id create <label> | list | use <agent> | resident <agent> on|off | credential <agent>
 dmsg grants list | add <agent> <capability>... [--days D] | revoke <id>
-dmsg ap [--agent A] tools | <tool> [json-input]
+dmsg audit [--agent owner|A] [--before SEQ] [--limit 50]
+dmsg ap [--agent A] [--session S] tools | <tool> [json-input]
 dmsg mcp                         # stdio MCP server; needs DMSG_AGENT_TOKEN
 ```
 
@@ -310,14 +311,30 @@ needs the device unlocked then.
 `agent id credential` prints, once, the credential an MCP client gives
 `dmsg mcp`; issuing a new one disables the old. `grants add` gives an agent
 capabilities over this account: `account.read`, `vault.list`,
-`vault.read:<tag>`, `channel.read:<channel>`, `channel.publish:<channel>`,
-`inbox.read`, `attest.request`, `events.endpoint` (`<name>:*` covers every
+`vault.read:<tag>`, `vault.write:<tag>`, `vault.secret:<item>`,
+`file.read:<tag>`, `channel.read:<channel>`, `channel.publish:<channel>`,
+`inbox.read`, `inbox.contact`, `attest.request`, `action.request`,
+`agent.delegation.read`, `events.endpoint` (`<name>:*` covers every
 target); without a grant an agent reads only public profiles
-(`profile.read`).
+(`profile.read`). No vault capability reaches an item tagged `dmsg-…` (the
+Agent ID and controller keys), not even with `*`, and such a tag cannot be
+granted.
+
+`dmsg audit` shows who did what on this device, newest first: the owner's
+capability grants and revocations, Agent ID creation, credentials and
+residency, and approval decisions, with the way in (`cli` or `gui`); and the
+calls agents make through `dmsg mcp` (`mcp`) or the owner makes as an Agent ID
+(`dmsg ap`, the desktop), except those that only read the agent's own
+connector or poll. An entry names the method or tool, its target ID and the
+outcome (`ok` or the error code), never content; the record stays on the
+device, is readable while locked, and keeps a year or 10,000 entries.
 
 `dmsg ap <tool> [input]` runs one MCP tool as an Agent ID with the same input
 and result; the tool name may leave out `agent_protocols_` or `dmsg_`, and
-`dmsg ap tools` lists them. For example:
+`dmsg ap tools` lists them. Each command runs in the connector session
+`--session` (`cli` by default; the desktop's is `gui`), which keeps what that
+session was shown of each room, so its writes are checked against its own
+view and not against what an MCP session read. For example:
 
 ```sh
 dmsg ap --agent bob mail_mailbox_publish '{"routes":["https://mail.example"]}'
@@ -328,10 +345,17 @@ dmsg ap --agent alice knowledge_query '{"service":"https://knowledge.example","t
 
 ## MCP
 
-`dmsg mcp` serves MCP on stdio (line-delimited JSON-RPC; `initialize`,
-`tools/list`, `tools/call`, `ping`, and `events/list|poll|stream`) for the
-Agent ID whose credential is in `DMSG_AGENT_TOKEN`. Requests run
-concurrently. It reads neither the owner credential nor any key: the
+`dmsg mcp` serves MCP on stdio (line-delimited JSON-RPC) for the Agent ID
+whose credential is in `DMSG_AGENT_TOKEN`: `initialize` (MCP 2025-11-25 down
+to 2024-11-05), or the 2026-07-28 lifecycle, where `server/discover` takes its
+place, every request names its version and the client's capabilities in
+`_meta` (else `-32602`; an unknown version is `-32022`), and results carry
+`resultType: "complete"` (lists and reads also `ttlMs: 0` and
+`cacheScope: "private"`); `ping`, `tools/list|call`,
+`resources/list|templates/list|read|subscribe|unsubscribe`,
+`subscriptions/listen` and `events/list|poll|stream`. Requests run
+concurrently. Each process is one MCP session, with its own presented heads
+(local connector §4.2). It reads neither the owner credential nor any key: the
 daemon runs the Agent ID's connector and checks its capabilities. For Claude
 Code, after `dmsg agent id create claude` and `dmsg agent id credential claude`:
 
@@ -343,13 +367,40 @@ Tools: the 33 standard `agent_protocols_*` tools of the Agent Protocols
 local connector (`agent-protocols` 0.12: identity, delegation, rooms, inbox
 and drafts, profile, Agent Mail mailboxes and letters, Agent Knowledge
 submissions and reads), as this Agent ID, against the configured hosts; and
-`dmsg_account_status`, `dmsg_vault_list`, `dmsg_vault_read` (never the secret
-field), `dmsg_channel_list|read|publish`, `dmsg_inbox_list`,
+`dmsg_account_status`, `dmsg_vault_list`, `dmsg_vault_read` (the secret
+field only as below), `dmsg_channel_list|read|publish`, `dmsg_inbox_list`,
 `dmsg_profile_read`, `dmsg_attest_request` (an approval request with source
 `agent:<did>`, which only a person decides) and `dmsg_approval_status` (only
 the agent's own requests). A refused call returns `isError` with the
 protocol's `code`, such as `permission_denied`, `room_head_mismatch` or
 `FORBIDDEN`.
+
+More `dmsg_*` tools, each behind its capability: `dmsg_vault_read` with
+`secret: true` returns the secret field (`vault.secret:<item>`);
+`dmsg_vault_write` adds or edits an item that keeps a granted tag, against a
+`base` like the CLI (`vault.write:<tag>`); `dmsg_file_read` returns up to
+1 MiB of a file of at most 64 MiB from `offset`, base64url, after checking
+the whole file (`file.read:<tag>`); `dmsg_inbox_list` lists letters without
+their text and `dmsg_inbox_read` returns one, marking it read with
+`mark_read` (`inbox.read`); `dmsg_inbox_contact` writes a free letter, and a
+recipient who charges only returns a quote (`inbox.contact`);
+`dmsg_action_request` asks the owner to sign an application action, the
+canonical CBOR a web page passes to `signAction` (`action.request`); and
+`dmsg_delegations_list` lists the principal's credentials
+(`agent.delegation.read`). 56 tools in all.
+
+Resources (local connector §4.4): `agent-protocols://identity/current`,
+`hosts`, `rooms`, `inbox/pending`, `drafts/held`, `mail/mailboxes`,
+`mail/messages`, and per known room `rooms/{room_id}` with `/members`,
+`/timeline` (the latest 100 records), `/types` and `/agent-status`, as
+`application/json`. They are read from local state through the read-only
+tool that shows the same thing, and the read is not saved: it presents no
+head, claims nothing and marks nothing read. `resources/subscribe` and a
+`subscriptions/listen` stream (its `resourceSubscriptions` and
+`resourcesListChanged`; tool lists never change) are told
+`notifications/resources/updated` and `list_changed` after any connector call
+of the Agent ID changes what they watch; listen notifications carry the
+stream's `subscriptionId`.
 
 MCP Events. An agent on this machine has no public webhook address, so the
 dMsg relay receives webhooks for it: `dmsg_events_endpoint_create` (with
@@ -417,15 +468,18 @@ The daemon listens on `127.0.0.1` only.
   `agent/principal|enable|register|retire|compromise|rename|publish|refresh`,
   `agent/grant|revoke|credentials|delegations`,
   `agent/ids|create|use|resident|credential`, `grants/list|add|revoke`,
-  `ap/call`, `mcp-events/create|list|rotate|delete|bind|poll|ack|status`,
+  `audit/list {agent?, before?, limit?}`, `ap/call {agent?, session?, tool, input}`,
+  `mcp-events/create|list|rotate|delete|bind|poll|ack|status`,
   `hint/status`, `workspace/reset`, `daemon/stop {if_idle?}` →
   `{stopped, in_flight: {approvals, account_update, root_rotation}}`. While a
   stop decides or after it, every method but `app/initialize`,
   `daemon/status`, `session/status` and `events/poll` answers `UNAVAILABLE`.
 - An Agent ID's credential (`Bearer dmsg-agent-…`) reaches only `POST /app/v1`
-  and only `mcp/tools` and `mcp/call {tool, input, mcp_session?}`, as that
-  Agent ID; a waiting `dmsg_events_next` is not activity; the
-  owner credential never reaches those two. A tool answers
+  and only `mcp/tools`, `mcp/call {tool, input, mcp_session?}`,
+  `mcp/resources`, `mcp/read {uri}` and `mcp/changed {after, wait_ms}` (the
+  count of connector calls, waiting up to 25 seconds for it to pass `after`),
+  as that Agent ID; a waiting `dmsg_events_next` or `mcp/changed` is not
+  activity; the owner credential never reaches those. A tool answers
   `{"result": …}` or `{"error": {code, message, data?}}`. Events of agent
   changes: `agent/changed`.
 - `approval/respond` and `connect/grant` require `human: true`, which only
