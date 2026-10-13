@@ -71,7 +71,7 @@
     "workbox-window": "^7.4.1"
   },
   "license": "Apache-2.0",
-  "name": "ic_message_frontend",
+  "name": "dmsg_frontend",
   "private": true,
   "scripts": {
     "build": "node ../../scripts/terms-digest.mjs --check && tsc && vite build",
@@ -84,5 +84,5 @@
     "test": "vitest run"
   },
   "type": "module",
-  "version": "3.0.0"
+  "version": "3.1.0"
 }
