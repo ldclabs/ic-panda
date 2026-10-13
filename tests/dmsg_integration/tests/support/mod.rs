@@ -1,4 +1,4 @@
-//! The live local deployment of the desktop tests: the dMsg canisters, two
+//! The live local deployment of the desktop tests: the dMsg canisters, three
 //! test ledgers and an SNS stand-in behind PocketIC's HTTP gateway. Only
 //! generated test identities and seeds are used.
 use candid::Principal;
@@ -15,6 +15,8 @@ pub struct Deployment {
     pub handle: Principal,
     pub ledger: Principal,
     pub ledger_usdt: Principal,
+    /// The ledger names are paid on, in place of PANDA.
+    pub name_ledger: Principal,
     pub membership: Principal,
     pub sns: Principal,
     pub payment: Principal,
@@ -90,6 +92,7 @@ impl Deployment {
         let handle = ic.create_canister_on_subnet(None, None, subnet);
         let ledger = ic.create_canister_on_subnet(None, None, subnet);
         let ledger_usdt = ic.create_canister_on_subnet(None, None, subnet);
+        let name_ledger = ic.create_canister_on_subnet(None, None, subnet);
         let membership = ic.create_canister_on_subnet(None, None, subnet);
         let sns = ic.create_canister_on_subnet(None, None, subnet);
         let payment = ic.create_canister_on_subnet(None, None, subnet);
@@ -101,6 +104,7 @@ impl Deployment {
             handle,
             ledger,
             ledger_usdt,
+            name_ledger,
             membership,
             sns,
             payment,
@@ -178,12 +182,14 @@ impl Deployment {
             candid::encode_args(()).unwrap(),
             None,
         );
-        ic.install_canister(
-            ledger_usdt,
-            std::fs::read(dir.join("dmsg_test_ledger.wasm")).unwrap(),
-            candid::encode_args(()).unwrap(),
-            None,
-        );
+        for id in [ledger_usdt, name_ledger] {
+            ic.install_canister(
+                id,
+                std::fs::read(dir.join("dmsg_test_ledger.wasm")).unwrap(),
+                candid::encode_args(()).unwrap(),
+                None,
+            );
+        }
         ic.install_canister(
             sns,
             std::fs::read(dir.join("dmsg_test_sns.wasm")).unwrap(),
@@ -400,7 +406,7 @@ impl Deployment {
                 issuer_namespace: "https://dmsg.test/u/".into(),
                 user_homes: vec![user],
                 registration_homes: vec![user],
-                ledger: peer,
+                ledger: name_ledger,
                 ledger_fee: 10,
                 max_pending: 100,
                 governance: peer,
@@ -418,7 +424,12 @@ impl Deployment {
                 .to_bytes(),
         );
         let owner = Principal::self_authenticating(&owner_der);
-        for ledger in [ledger, ledger_usdt] {
+        // Names cost at least 100 PANDA (10^10 base units).
+        for (ledger, amount) in [
+            (ledger, 10_000_000_000u128),
+            (ledger_usdt, 10_000_000_000),
+            (name_ledger, 100_000_000_000),
+        ] {
             ic.update_call(
                 ledger,
                 peer,
@@ -428,7 +439,7 @@ impl Deployment {
                         owner,
                         subaccount: None,
                     },
-                    10_000_000_000u128,
+                    amount,
                 ))
                 .unwrap(),
             )
@@ -536,6 +547,7 @@ impl Deployment {
             handle,
             ledger,
             ledger_usdt,
+            name_ledger,
             membership,
             sns,
             payment,

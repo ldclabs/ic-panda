@@ -246,7 +246,8 @@ the channel at `rotation_required` until a member with `can_rotate` runs
 `history` gives it older ones. `read` prints what this device read; while
 unlocked the daemon also reads on the relay's hints. A command whose reply was
 lost is kept in `pending`, and running it again, or `pending --key`, settles it
-under the same request ID.
+under the same request ID. After `leave` the relay serves the channel no more
+to this account; the device keeps the last state it verified.
 
 Payments go through the approval center like signatures: `inbox pay`,
 `plan checkout|advance` and `handle claim|register` only create the request,
@@ -259,6 +260,9 @@ application's checkout arrives as a web request and is quoted
 (`approvals quote <id> <ledger|neuron>`) before it can be approved; the page
 gets the order's progress. `payment revise` resends an escrow transfer the
 ledger refused at the fee it asked for, never above the escrow's limit.
+`inbox refund` claims, in one transfer, what a letter's escrow holds for the
+wallet: the payment after the acceptance deadline, the unused fee reserve once
+every payout succeeded, and deposits the escrow did not take.
 
 Names move between accounts in three steps, the last two within a minute:
 the owner's `handle transfer <name> <account>` prints a token, the target
@@ -387,7 +391,7 @@ The daemon listens on `127.0.0.1` only.
   `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`,
   `attest/request|history|usage|export|verify`,
   `connect/invite|candidates|grant|pairings|revoke|sync|status`,
-  `channel/list|show|create|invite|join|control|rotate|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
+  `channel/list|show|create|invite|join|control|leave|rotate|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
   `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit`,
   `inbox/policy|configure|send|order|outgoing|pay|escrow|refund|list|mark`,
   `payment/transfers|revise`, `wallet/use|balance`,

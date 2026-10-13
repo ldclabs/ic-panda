@@ -75,6 +75,7 @@
   "private": true,
   "scripts": {
     "build": "node ../../scripts/terms-digest.mjs --check && tsc && vite build",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss,svelte}\"",
     "ncu": "npx npm-check-updates -u",
     "preview": "vite preview",

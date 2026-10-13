@@ -1693,6 +1693,7 @@ dependencies = [
  "k256 0.14.0",
  "pocket-ic",
  "reqwest",
+ "rustls",
  "serde",
  "serde_bytes",
  "serde_json",

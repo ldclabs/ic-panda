@@ -1123,12 +1123,15 @@ impl Client {
         Ok(leg_view(&sent))
     }
 
-    /// Recover the funds of an order past its acceptance deadline: commit
-    /// the refund if nobody did, then send it to the original funding
-    /// account. Needs no relay.
+    /// Recover what an order's escrow holds for the wallet, in one refund
+    /// it then sends: past the acceptance deadline the whole payment
+    /// (committing the refund if nobody did), after settlement the unused
+    /// fee reserve once every payout succeeded, and any deposit the escrow
+    /// did not take (paid twice, too little or too late). Needs no relay.
     ///
     /// # Errors
-    /// Returns `Error::Pending` before the deadline.
+    /// Returns `Error::Pending` while nothing can be claimed yet: before
+    /// the deadline, or while payouts are under way.
     pub async fn inbox_refund(&mut self, order: &str) -> Result<Json> {
         let (payer, ic) = self.wallet().await?;
         let canister = self.home_config().await?.payment_canister;
@@ -1139,25 +1142,33 @@ impl Client {
             .await?
             .ok_or(Error::NotFound)?;
         let mut escrow = payment.escrow(&escrow.escrow_id).await?;
-        if escrow.decision == FundsDecision::Pending {
-            ensure(now_ms() >= escrow.quote.accept_by, Error::Pending)?;
+        if escrow.decision == FundsDecision::Pending && now_ms() >= escrow.quote.accept_by {
             escrow = payment.expiry_refund(&escrow.escrow_id).await?;
         }
-        ensure(
-            escrow.decision == FundsDecision::RefundCommitted,
-            Error::Forbidden,
-        )?;
         let deposits = payment.deposits(&escrow.escrow_id).await?;
         let blocks: Vec<u64> = deposits
             .iter()
-            .filter(|d| d.refundable > 0 && d.from.owner == payer)
+            .filter(|d| d.refundable > 0 && d.from == escrow.quote.payer)
             .map(|d| d.block)
             .collect();
-        let leg = match blocks.is_empty() {
+        // The decided payment's remainder, once no payout still needs it.
+        let reserve = match escrow.decision {
+            FundsDecision::Pending => false,
+            _ => match payment.quote_refund(&escrow.escrow_id, &[], true).await {
+                Ok(quote) => quote.available > 0,
+                Err(Error::Pending) if !blocks.is_empty() => false,
+                Err(error) => return Err(error),
+            },
+        };
+        ensure(
+            !blocks.is_empty() || reserve || escrow.decision != FundsDecision::Pending,
+            Error::Pending,
+        )?;
+        let leg = match blocks.is_empty() && !reserve {
             true => None,
             false => Some(
                 payment
-                    .claim_refund(&escrow.escrow_id, &blocks, true)
+                    .claim_refund(&escrow.escrow_id, &blocks, reserve)
                     .await?,
             ),
         };

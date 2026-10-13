@@ -1364,6 +1364,22 @@ impl Client {
         action: Action,
         operation: &str,
     ) -> Result<Ledger> {
+        ensure_valid(!matches!(action, Action::Leave {}), "action")?;
+        self.control_post(channel, action, operation).await?;
+        self.channel_pull(channel, None, None).await
+    }
+
+    /// Leave a channel. The relay serves nothing more to a member that left,
+    /// so this device keeps the last state it verified.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` for the owner, who transfers or archives.
+    pub async fn channel_leave(&mut self, channel: &str, operation: &str) -> Result<()> {
+        self.control_post(channel, Action::Leave {}, operation)
+            .await
+    }
+
+    async fn control_post(&mut self, channel: &str, action: Action, operation: &str) -> Result<()> {
         ensure_valid(
             !matches!(
                 action,
@@ -1386,8 +1402,8 @@ impl Client {
             }
         };
         self.channel_post(channel, &key, CONTROL, payload, "/control")
-            .await?;
-        self.channel_pull(channel, None, None).await
+            .await
+            .map(|_| ())
     }
 
     /// Invite `account`; returns the invitation to hand to it.

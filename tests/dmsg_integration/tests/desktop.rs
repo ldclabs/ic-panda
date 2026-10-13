@@ -15,7 +15,6 @@
 //! (`cargo build -p dmsg_cli`, or `DMSG_BIN`), `POCKET_IC_BIN`,
 //! `DMSG_CLOUD_DIR` pointing at the private relay checkout, and Node with
 //! `pnpm install` done for `src/dmsg_connect`.
-mod adp;
 mod support;
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
@@ -167,9 +166,19 @@ impl Desktop {
     }
 
     fn token(&self) -> String {
-        std::fs::read_to_string(self.home.join("owner.token"))
+        if let Ok(token) = std::fs::read_to_string(self.home.join("owner.token")) {
+            return token.trim().into();
+        }
+        // In the system credential store: read it as the desktop app does.
+        let output = Command::new(&self.bin)
+            .arg("--home")
+            .arg(&self.home)
+            .arg("app-token")
+            .output()
+            .unwrap();
+        serde_json::from_slice::<Value>(&output.stdout).unwrap()["token"]
+            .as_str()
             .unwrap()
-            .trim()
             .into()
     }
 
@@ -524,7 +533,7 @@ impl Proxy {
 
     /// One request head and body, or `None` at the end of the stream.
     fn read_message(
-        reader: &mut BufReader<std::net::TcpStream>,
+        reader: &mut BufReader<impl Read>,
     ) -> std::io::Result<Option<(String, Vec<u8>)>> {
         let mut head = String::new();
         loop {
@@ -637,6 +646,168 @@ impl Proxy {
     }
 }
 
+/// An HTTPS front for a local HTTP service, with the public localhost test
+/// certificate the daemons trust through `agent_ca`. It keeps each write
+/// the service accepted and can answer the next matching write itself, as
+/// another service sharing the writer's key would have.
+struct TlsFront {
+    origin: String,
+    state: std::sync::Arc<std::sync::Mutex<FrontState>>,
+}
+
+#[derive(Default)]
+struct FrontState {
+    /// `(method, path fragment, raw response)` answered without forwarding.
+    answers: Vec<(String, String, String)>,
+    /// `(path, JSON body)` of each write the service answered with 2xx.
+    accepted: Vec<(String, Value)>,
+}
+
+impl TlsFront {
+    fn start(upstream: &str) -> Self {
+        use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+        let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../fixtures/localhost-tls");
+        let cert = CertificateDer::from(std::fs::read(fixture.join("cert.der")).unwrap());
+        let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(
+            std::fs::read(fixture.join("key.der")).unwrap(),
+        ));
+        let config = std::sync::Arc::new(
+            rustls::ServerConfig::builder_with_provider(std::sync::Arc::new(
+                rustls::crypto::aws_lc_rs::default_provider(),
+            ))
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(vec![cert], key)
+            .unwrap(),
+        );
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let origin = format!(
+            "https://localhost:{}",
+            listener.local_addr().unwrap().port()
+        );
+        let state = std::sync::Arc::new(std::sync::Mutex::new(FrontState::default()));
+        let (shared, upstream) = (state.clone(), upstream.to_string());
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let (config, state, upstream) = (config.clone(), shared.clone(), upstream.clone());
+                std::thread::spawn(move || {
+                    let _ = Self::serve(stream, config, &upstream, &state);
+                });
+            }
+        });
+        Self { origin, state }
+    }
+
+    /// Answer the next `method` request whose path contains `path` with a
+    /// JSON error `code`, the status 409 and these headers.
+    fn answer_next(&self, method: &str, path: &str, code: &str, headers: &[(&str, String)]) {
+        let body = json!({"error": {"code": code, "message": code}}).to_string();
+        let headers: String = headers
+            .iter()
+            .map(|(name, value)| format!("{name}: {value}\r\n"))
+            .collect();
+        let response = format!(
+            "HTTP/1.1 409 Conflict\r\nContent-Type: application/json\r\nContent-Length: {}\r\n{headers}Connection: close\r\n\r\n{body}",
+            body.len()
+        );
+        self.state
+            .lock()
+            .unwrap()
+            .answers
+            .push((method.into(), path.into(), response));
+    }
+
+    /// The events the service accepted, as their writers signed them.
+    fn events(&self) -> Vec<(String, Value)> {
+        self.state
+            .lock()
+            .unwrap()
+            .accepted
+            .iter()
+            .filter(|(_, body)| body["event"].is_object())
+            .cloned()
+            .collect()
+    }
+
+    /// The highest nonce of an actor the service accepted.
+    fn nonce(&self, actor: &str) -> Option<u64> {
+        self.events()
+            .iter()
+            .filter(|(_, body)| body["event"]["actor"] == actor)
+            .filter_map(|(_, body)| body["event"]["nonce"].as_u64())
+            .max()
+    }
+
+    /// The text of every message the service accepted in a room, in order.
+    fn messages(&self, room: &str) -> Vec<String> {
+        self.events()
+            .iter()
+            .filter(|(path, body)| {
+                path.ends_with(&format!("/v1/rooms/{room}"))
+                    && body["event"]["type"]
+                        == agent_protocols::discourse::event_type::MESSAGE_CREATE
+            })
+            .map(|(_, body)| {
+                body["event"]["payload"]["content"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string()
+            })
+            .collect()
+    }
+
+    fn serve(
+        stream: std::net::TcpStream,
+        config: std::sync::Arc<rustls::ServerConfig>,
+        upstream: &str,
+        state: &std::sync::Mutex<FrontState>,
+    ) -> std::io::Result<()> {
+        let connection = rustls::ServerConnection::new(config).map_err(std::io::Error::other)?;
+        let mut reader = BufReader::new(rustls::StreamOwned::new(connection, stream));
+        let Some((head, body)) = Proxy::read_message(&mut reader)? else {
+            return Ok(());
+        };
+        let mut tls = reader.into_inner();
+        let line = head.lines().next().unwrap_or_default();
+        let (method, rest) = line.split_once(' ').unwrap_or_default();
+        let path = rest.split(' ').next().unwrap_or_default().to_string();
+        let answer = {
+            let mut state = state.lock().unwrap();
+            let found = state
+                .answers
+                .iter()
+                .position(|(m, p, _)| m == method && path.contains(p.as_str()));
+            found.map(|i| state.answers.remove(i).2)
+        };
+        let reply = match answer {
+            Some(response) => response.into_bytes(),
+            None => {
+                let mut server = std::net::TcpStream::connect(upstream)?;
+                server.write_all(Proxy::closing(&head).as_bytes())?;
+                server.write_all(&body)?;
+                let mut response = BufReader::new(server);
+                let Some((reply_head, reply_body)) = Proxy::read_message(&mut response)? else {
+                    return Ok(());
+                };
+                let accepted = reply_head
+                    .split(' ')
+                    .nth(1)
+                    .is_some_and(|status| status.starts_with('2'));
+                if method == "POST" && accepted {
+                    if let Ok(value) = serde_json::from_slice(&body) {
+                        state.lock().unwrap().accepted.push((path, value));
+                    }
+                }
+                [Proxy::closing(&reply_head).into_bytes(), reply_body].concat()
+            }
+        };
+        tls.write_all(&reply)?;
+        tls.conn.send_close_notify();
+        tls.flush()
+    }
+}
+
 /// What a test environment adds to the plain one.
 #[derive(Default)]
 struct Options {
@@ -657,6 +828,9 @@ struct Options {
     /// Install frozen old channel and name-identity canisters of the
     /// current release, reviewed by the relay and the daemons (`[legacy]`).
     legacy: bool,
+    /// Keep device A's owner credential and keys in the system credential
+    /// store, as installed desktops do.
+    system_storage: bool,
 }
 
 /// One deployment, one relay and two desktops, `a` and `b`.
@@ -679,8 +853,8 @@ struct Env {
     ic_proxy: Option<Proxy>,
     /// The relay's agent host, through a proxy naming `agents.dmsg.test`.
     agent_proxy: Option<Proxy>,
-    /// The Discourse host the daemons may sign for.
-    adp: Option<adp::Adp>,
+    /// The `dmsg-discourse` host the daemons may sign for, behind HTTPS.
+    discourse: Option<TlsFront>,
     /// The Agent Mail relay and the Agent Knowledge service, if served.
     services: Option<Services>,
     /// The frozen old service, if installed.
@@ -708,9 +882,9 @@ fn pem(label: &str, bytes: &[u8]) -> String {
     )
 }
 
-/// Start `dmsg-mail` and `dmsg-knowledge` on local HTTPS with the public
-/// localhost test certificate, whose PEM file the daemons get as `agent_ca`.
-fn serve_services(cloud: &Path, dir: &Path, children: &mut Children) -> (Services, PathBuf) {
+/// The public localhost test certificate and key as PEM files; the daemons
+/// get the certificate as `agent_ca`.
+fn localhost_tls(dir: &Path) -> (PathBuf, PathBuf) {
     let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../fixtures/localhost-tls");
     let cert = dir.join("localhost-cert.pem");
     let key = dir.join("localhost-key.pem");
@@ -730,6 +904,13 @@ fn serve_services(cloud: &Path, dir: &Path, children: &mut Children) -> (Service
         ),
     )
     .unwrap();
+    (cert, key)
+}
+
+/// Start `dmsg-mail` and `dmsg-knowledge` on local HTTPS with the localhost
+/// test certificate.
+fn serve_services(cloud: &Path, dir: &Path, children: &mut Children) -> Services {
+    let (cert, key) = localhost_tls(dir);
     let mut origins = vec![];
     for package in ["dmsg-mail", "dmsg-knowledge"] {
         let ready = dir.join(format!("{package}-ready.json"));
@@ -756,7 +937,29 @@ fn serve_services(cloud: &Path, dir: &Path, children: &mut Children) -> (Service
     }
     let knowledge = origins.pop().unwrap();
     let mail = origins.pop().unwrap();
-    (Services { mail, knowledge }, cert)
+    Services { mail, knowledge }
+}
+
+/// Start `dmsg-discourse` on local workerd behind an HTTPS front.
+fn serve_discourse(cloud: &Path, dir: &Path, children: &mut Children) -> TlsFront {
+    let port = free_port();
+    let front = TlsFront::start(&format!("127.0.0.1:{port}"));
+    let ready = dir.join("dmsg-discourse-ready.json");
+    children.0.push(
+        Command::new("node")
+            .arg("scripts/probe-server.mjs")
+            .current_dir(cloud.join("dmsg-discourse"))
+            .env("PROBE_PORT", port.to_string())
+            .env("PROBE_ORIGIN", &front.origin)
+            .env("PROBE_READY", &ready)
+            .env("PROBE_TTL_MS", "1200000")
+            .env("WRANGLER_SEND_METRICS", "false")
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
+    wait_for(&ready, children);
+    front
 }
 
 impl Env {
@@ -846,7 +1049,9 @@ impl Env {
                 Some("agents.dmsg.test"),
             )
         });
-        let adp = options.agents.then(adp::Adp::start);
+        let discourse = options
+            .agents
+            .then(|| serve_discourse(&cloud, &dir, &mut children));
         let services = options
             .services
             .then(|| serve_services(&cloud, &dir, &mut children));
@@ -859,12 +1064,18 @@ impl Env {
             deployment.root_key_hex,
         );
         let mut hosts = vec![];
-        if let (Some(proxy), Some(adp)) = (&agent_proxy, &adp) {
-            config.push_str(&format!("agent_service = \"{}\"\n", proxy.origin));
-            hosts.push(format!("{{ host = \"{}\", label = \"test\" }}", adp.origin));
-        }
-        if let Some((services, cert)) = &services {
+        if options.agents || options.services {
+            let (cert, _) = localhost_tls(&dir);
             config.push_str(&format!("agent_ca = \"{}\"\n", cert.display()));
+        }
+        if let (Some(proxy), Some(discourse)) = (&agent_proxy, &discourse) {
+            config.push_str(&format!("agent_service = \"{}\"\n", proxy.origin));
+            hosts.push(format!(
+                "{{ host = \"{}\", label = \"test\" }}",
+                discourse.origin
+            ));
+        }
+        if let Some(services) = &services {
             hosts.push(format!(
                 "{{ host = \"{}\", label = \"mail\" }}",
                 services.mail
@@ -896,6 +1107,15 @@ impl Env {
             }
         };
         let (a, b) = (desktop("a", ""), desktop("b", options.b_policy));
+        if options.system_storage {
+            let path = a.home.join("config.toml");
+            let text = std::fs::read_to_string(&path).unwrap();
+            std::fs::write(
+                path,
+                text.replace("secure_storage = \"file\"", "secure_storage = \"system\""),
+            )
+            .unwrap();
+        }
         let daemons = [a.spawn(&mut children), b.spawn(&mut children)];
         let http = reqwest::blocking::Client::builder()
             .no_proxy()
@@ -915,8 +1135,8 @@ impl Env {
             relay_proxy,
             ic_proxy,
             agent_proxy,
-            adp,
-            services: services.map(|(services, _)| services),
+            discourse,
+            services,
             legacy,
         }
     }
@@ -1552,7 +1772,58 @@ fn desktop_content_and_sync() {
         a.run(&["vault", "show", pending["id"].as_str().unwrap()])["item"]["title"],
         "sent while locked"
     );
+
+    // AT07 and AT21: A revokes B while B's daemon runs unlocked. A moves to
+    // a new root at once; B's next sync finds the device revoked and erases
+    // its workspace, so what it wrote afterwards never reaches the account.
+    assert_eq!(b.login(&env.http, 41).unwrap()["state"], "unlocked");
+    let b_device = b.run(&["status"])["device_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let generation = a.run(&["status"])["root_generation"].as_u64().unwrap();
+    let revoke = a.run(&["device", "revoke", &b_device]);
+    assert_eq!(a.decide(&env.http, &revoke, true).unwrap()["state"], "done");
+    assert_eq!(
+        a.run(&["status"])["root_generation"].as_u64(),
+        Some(generation + 1)
+    );
+    b.run(&["vault", "add", "--title", "written after revocation"]);
+    assert_eq!(b.fail(&["sync"]), "DEVICE_NOT_APPROVED");
+    let erased = b.run(&["status"]);
+    assert_ne!(erased["device_id"], b_device.as_str(), "{erased}");
+    assert!(erased["root_generation"].is_null());
+    assert_eq!(b.fail(&["vault", "list"]), "LOCKED");
+    a.run(&["sync"]);
+    assert!(!titles(a).contains(&"written after revocation".to_string()));
     eprintln!("content acceptance done at {:?}", started.elapsed());
+    env.finish();
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_idle_lock_and_scheduled_sync() {
+    let env = Env::start("idle", "idle_lock_minutes = 1\nsync_interval_minutes = 1\n");
+    env.pair();
+    let (a, b) = (&env.a, &env.b);
+    // B's last activity is its unlock while pairing; `status` is not one.
+    let since = now_ms();
+    a.run(&["vault", "add", "--title", "for the scheduled sync"]);
+    assert_eq!(a.run(&["sync"])["sent"], 1);
+    // About a minute after its daemon started, B syncs on its own; a
+    // minute after its last activity, it locks.
+    let status = eventually(150, || {
+        let status = b.run(&["status"]);
+        (status["state"] == "locked").then_some(status)
+    });
+    assert!(
+        status["last_sync"]["at"].as_u64().unwrap() > since,
+        "{status}"
+    );
+    assert!(status["last_sync"]["error"].is_null(), "{status}");
+    assert_eq!(b.fail(&["vault", "list"]), "LOCKED");
+    assert_eq!(b.login(&env.http, 41).unwrap()["state"], "unlocked");
+    assert!(titles(b).contains(&"for the scheduled sync".to_string()));
     env.finish();
 }
 
@@ -1779,6 +2050,32 @@ fn desktop_approvals_and_attestation() {
     env.finish();
 }
 
+/// The test application's action schema: one command with one argument.
+fn action_schema() -> dmsg_types::app_action::ActionSchema {
+    use dmsg_types::app_action::*;
+    let label = |text: &str| {
+        vec![ActionLabel {
+            locale: "en".into(),
+            text: text.into(),
+        }]
+    };
+    ActionSchema {
+        version: 1,
+        commands: vec![CommandSchema {
+            name: "CertifyDisclosure".into(),
+            title: label("Certify disclosure draft"),
+            fields: SchemaFields(vec![FieldSchema {
+                name: "revision".into(),
+                label: label("Draft revision"),
+                ty: FieldType::Nat {
+                    min: 1,
+                    max: u64::MAX,
+                },
+            }]),
+        }],
+    }
+}
+
 /// The single request of `operation` waiting on a device, if any.
 fn web_request(
     device: &Desktop,
@@ -1799,6 +2096,7 @@ fn desktop_web_connect() {
     let account = env.pair();
     let client = env.http.clone();
     let http = &client;
+    // The SNS stand-in is the application's action authority.
     env.deployment.register_app(&AppRegistration {
         version: 1,
         environment: dmsg_types::Environment::Local,
@@ -1806,15 +2104,20 @@ fn desktop_web_connect() {
         config_version: 1,
         origins: vec!["http://localhost:5173".into()],
         product_ids: vec![],
-        capabilities: vec![AppCapability::SignDocument],
+        capabilities: vec![
+            AppCapability::Authenticate,
+            AppCapability::SignDocument,
+            AppCapability::SignAction,
+        ],
         profiles: vec![
             SigningProfile::TextStatementV1,
             SigningProfile::DigestStatementV1,
             SigningProfile::FileStatementV1,
+            SigningProfile::AppActionV1,
         ],
         authentication_receiver: env.deployment.user,
-        action_authority: env.deployment.user,
-        action_schema: None,
+        action_authority: env.deployment.sns,
+        action_schema: Some(action_schema()),
         paused: false,
     });
     for device in [&env.a, &env.b] {
@@ -1997,6 +2300,140 @@ fn desktop_web_connect() {
         .call(json!({"cmd": "get", "connection": connection, "operation_id": op3, "wait_ms": 20000, "until": ["signed"]}))
         .unwrap();
     assert_eq!(race["state"], "signed");
+
+    // authenticate: the page's request commits to its session key; the
+    // result is a certified record the application checks on its own.
+    let d = &env.deployment;
+    let account_id: dmsg_types::AccountId = account.parse().unwrap();
+    let b64 = |bytes: Vec<u8>| base64::engine::general_purpose::STANDARD.encode(bytes);
+    let create = |bridge: &mut Headless, method: &str, operation: &str, payload: Vec<u8>| {
+        bridge.call(json!({
+            "cmd": "create", "connection": connection, "method": method,
+            "operation_id": operation, "payload": b64(payload),
+        }))
+    };
+    let auth_op = dmsg_types::Hash::new([0xa5; 32]);
+    let auth_id = hex::encode(*auth_op);
+    let session = bridge
+        .call(json!({"cmd": "session", "operation_id": auth_id}))
+        .unwrap();
+    let spki = base64::engine::general_purpose::STANDARD
+        .decode(session["publicKey"].as_str().unwrap())
+        .unwrap();
+    let issued = now_ms() - 1_000;
+    let request = dmsg_types::integration::AuthenticationRequest {
+        version: 1,
+        environment: dmsg_types::Environment::Local,
+        app_id: "token-list".into(),
+        app_config_version: 1,
+        origin: origin.into(),
+        receiver: d.user,
+        challenge_hash: dmsg_types::Hash::new([21; 32]),
+        session_key_hash: dmsg_protocol::sha256(&spki),
+        purpose: dmsg_types::integration::AuthenticationPurpose::Login,
+        nonce: dmsg_types::Hash::new([23; 32]),
+        operation_id: auth_op,
+        issued_at_ms: issued,
+        expires_at_ms: issued + dmsg_types::integration::AUTH_TTL_MS,
+    };
+    let created = create(&mut bridge, "authenticate", &auth_id, canonical(&request)).unwrap();
+    assert_eq!(created["state"], "awaiting_user");
+    let shown = eventually(30, || web_request(&env.b, http, &auth_id));
+    assert_eq!(shown["detail"]["method"], "authenticate");
+    assert_eq!(env.b.decide(http, &shown, true).unwrap()["state"], "done");
+    let authenticated = bridge
+        .call(json!({"cmd": "get", "connection": connection, "operation_id": auth_id, "wait_ms": 20000, "until": ["signed"]}))
+        .unwrap();
+    assert_eq!(authenticated["state"], "signed", "{authenticated}");
+    let proof: dmsg_types::CertifiedBatch = cbor2::from_slice(
+        &base64::engine::general_purpose::STANDARD
+            .decode(authenticated["result"]["proof"].as_str().unwrap())
+            .unwrap(),
+    )
+    .unwrap();
+    let root = hex::decode(&d.root_key_hex).unwrap();
+    let result = dmsg_protocol::authentication::verify_authentication(
+        &proof,
+        &request,
+        d.user,
+        &root,
+        now_ms(),
+    )
+    .unwrap();
+    assert_eq!(result.account_id, account_id);
+
+    // signAction: the device asks the product authority before it takes
+    // the request (inspect_app_action); a refused action is rejected and
+    // nothing is signed, an accepted one is attested.
+    let action = |op: u8| {
+        let issued = now_ms() - 1_000;
+        dmsg_types::app_action::AppAction {
+            version: 1,
+            environment: dmsg_types::Environment::Local,
+            app_id: "token-list".into(),
+            app_config_version: 1,
+            origin: origin.into(),
+            receiver: d.sns,
+            actor: vec![8; 12].into(),
+            signing_account: account_id,
+            operation_id: dmsg_types::Hash::new([op; 32]),
+            intent_hash: dmsg_types::Hash::new([op; 32]),
+            schema_hash: dmsg_protocol::app_action::action_schema_hash(&action_schema()),
+            issued_at_ms: issued,
+            expires_at_ms: issued + 4 * dmsg_types::MINUTE,
+            command: dmsg_types::app_action::ActionCommand {
+                name: "CertifyDisclosure".into(),
+                args: dmsg_types::app_action::ActionArgs(vec![dmsg_types::app_action::ActionArg {
+                    name: "revision".into(),
+                    value: dmsg_types::app_action::ActionValue::Nat(u64::from(op)),
+                }]),
+            },
+            files: vec![],
+        }
+    };
+    let (accepted, refused) = (action(0xa6), action(0xa7));
+    d.ic.update_call(
+        d.sns,
+        d.peer,
+        "set_action_approval",
+        candid::encode_args((
+            d.user,
+            account_id,
+            accepted.clone(),
+            None::<(Principal, AppRegistration)>,
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+    let refused_id = "a7".repeat(32);
+    create(&mut bridge, "signAction", &refused_id, canonical(&refused)).unwrap();
+    let shown = eventually(30, || web_request(&env.b, http, &refused_id));
+    assert_eq!(env.b.decide(http, &shown, true), Err("FORBIDDEN".into()));
+    let page = bridge
+        .call(json!({"cmd": "get", "connection": connection, "operation_id": refused_id, "wait_ms": 20000, "until": ["rejected"]}))
+        .unwrap();
+    assert_eq!(
+        (page["state"].as_str(), page["error"].as_str()),
+        (Some("rejected"), Some("FORBIDDEN")),
+        "{page}"
+    );
+    let accepted_id = "a6".repeat(32);
+    create(
+        &mut bridge,
+        "signAction",
+        &accepted_id,
+        canonical(&accepted),
+    )
+    .unwrap();
+    let shown = eventually(30, || web_request(&env.b, http, &accepted_id));
+    assert_eq!(shown["detail"]["method"], "signAction");
+    assert_eq!(env.b.decide(http, &shown, true).unwrap()["state"], "done");
+    let signed = bridge
+        .call(json!({"cmd": "get", "connection": connection, "operation_id": accepted_id, "wait_ms": 20000, "until": ["signed"]}))
+        .unwrap();
+    assert_eq!(signed["state"], "signed", "{signed}");
+    assert!(signed["result"]["artifact"]["cose_sign1"].is_string());
+    assert!(signed["result"]["executionCertificateCbor"].is_string());
 
     // DT31: the same operation from a second browser: one approval, both
     // get the result. A pairs this browser, so it outlives B's revocation.
@@ -2514,9 +2951,37 @@ fn desktop_channels() {
 
     // C's channel state stays on the device across a restart.
     env.relaunch(&c, c_daemon);
+    let a = &env.a;
     assert_eq!(c.login(&http, 60).unwrap()["state"], "unlocked");
     let offline = c.rpc(&http, "channel/messages", json!({"id": id})).unwrap();
     assert!(texts(&offline).contains(&"new approved device".to_string()));
+
+    // Roles, leaving, archiving and reopening, on a second channel.
+    let second = a.run(&["channel", "create", "Second channel"])["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let invitation = a.run(&["channel", "invite", &second, &member]);
+    c.run(&["channel", "accept", &invitation.to_string()]);
+    a.run(&["channel", "rotate", &second]);
+    c.run(&["channel", "send", &second, "member message"]);
+    let promoted = a.run(&["channel", "role", &second, &member, "admin"]);
+    assert_eq!(promoted["members"][&member]["role"], "admin", "{promoted}");
+    // Only the owner changes roles, an admin included.
+    c.fail(&["channel", "role", &second, &member, "member"]);
+    let demoted = a.run(&["channel", "role", &second, &member, "member"]);
+    assert_eq!(demoted["members"][&member]["role"], "member");
+    c.run(&["channel", "leave", &second]);
+    let left = a.run(&["channel", "rotate", &second]);
+    assert!(left["ledger"]["members"].get(&member).is_none(), "{left}");
+    c.fail(&["channel", "send", &second, "after leaving"]);
+    let archived = a.run(&["channel", "archive", &second]);
+    assert_eq!(archived["status"], "archived", "{archived}");
+    a.fail(&["channel", "send", &second, "while archived"]);
+    let reopened = a.run(&["channel", "reactivate", &second]);
+    assert_eq!(reopened["ledger"]["status"], "active", "{reopened}");
+    a.run(&["channel", "send", &second, "reopened"]);
+    assert!(texts(&a.run(&["channel", "read", &second])).contains(&"reopened".to_string()));
     env.finish();
 }
 
@@ -2538,6 +3003,42 @@ fn balance(desktop: &Desktop, ledger: &Principal) -> u128 {
         .unwrap()
         .parse()
         .unwrap()
+}
+
+/// Send `amount` from the login `seed`'s own account to `to` on a test
+/// ledger, as a wallet outside dMsg would; returns the block.
+fn ledger_transfer(
+    d: &support::Deployment,
+    ledger: Principal,
+    seed: u8,
+    to: icrc_ledger_types::icrc1::account::Account,
+    amount: u128,
+) -> u64 {
+    use icrc_ledger_types::icrc1::transfer::{TransferArg, TransferError};
+    let reply =
+        d.ic.update_call(
+            ledger,
+            Principal::from_text(login_principal(seed)).unwrap(),
+            "icrc1_transfer",
+            candid::encode_one(TransferArg {
+                from_subaccount: None,
+                to,
+                fee: None,
+                created_at_time: None,
+                memo: None,
+                amount: amount.into(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    let block: Result<candid::Nat, TransferError> = candid::decode_one(&reply).unwrap();
+    block.unwrap().0.try_into().unwrap()
+}
+
+/// Set a test ledger's network fee.
+fn set_ledger_fee(d: &support::Deployment, ledger: Principal, fee: u128) {
+    d.ic.update_call(ledger, d.peer, "set_fee", candid::encode_one(fee).unwrap())
+        .unwrap();
 }
 
 /// An approval request's state.
@@ -2654,6 +3155,84 @@ fn desktop_commerce() {
     assert_eq!(a.fail(&["plan", "cancel", &id]), "FORBIDDEN");
     assert_eq!(a.run(&["plan", "order", &id])["status"], "Applied");
 
+    // A deposit beyond the order returns to its source. The ledger's fee
+    // has risen, so the refund is refused once (BadFee); its recipient, the
+    // wallet, revises it to the fee the ledger asks for and sends it.
+    let order = dmsg_types::Hash::new(hex::decode(&id).unwrap().try_into().unwrap());
+    let payer = Principal::from_text(login_principal(42)).unwrap();
+    let view: dmsg_types::Result<dmsg_types::integration_billing::CheckoutView> =
+        candid::decode_one(
+            &d.ic
+                .query_call(
+                    commerce,
+                    payer,
+                    "get_checkout",
+                    candid::encode_one(order).unwrap(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+    let deposit = view.unwrap().quote.cash.deposit;
+    let before = balance(a, &ledger);
+    let extra = ledger_transfer(d, ledger, 42, deposit, 5_000);
+    let checked: dmsg_types::Result<dmsg_types::integration_billing::CheckoutProgress> =
+        candid::decode_one(
+            &d.ic
+                .update_call(
+                    commerce,
+                    payer,
+                    "check_checkout_funding",
+                    candid::encode_args((
+                        order,
+                        dmsg_types::integration_billing::CashBlock {
+                            ledger,
+                            block_index: u128::from(extra),
+                        },
+                    ))
+                    .unwrap(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+    checked.unwrap();
+    let refund = a.run(&["plan", "refund", &id, &extra.to_string()]);
+    assert_eq!(refund["status"], "Pending");
+    let refund_id = refund["transfer_id"].as_str().unwrap().to_string();
+    set_ledger_fee(d, ledger, 12);
+    a.run(&["ops", "process-transfer", &refund_id]);
+    let transfers = a.run(&["ops", "transfers"]);
+    let refused = transfers["transfers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["transfer_id"] == refund_id.as_str())
+        .unwrap();
+    assert_eq!(refused["status"], "Rejected", "{refused}");
+    assert_eq!(refused["expected_fee"], "12");
+    assert_eq!(refused["revisable"], true);
+    let revised = a.run(&["ops", "revise-transfer", &refund_id, "--fee", "12"]);
+    assert_eq!(revised["replaces"], refund_id.as_str());
+    let sent = a.run(&[
+        "ops",
+        "process-transfer",
+        revised["transfer_id"].as_str().unwrap(),
+    ]);
+    assert_eq!(sent["status"], "Succeeded", "{sent}");
+    set_ledger_fee(d, ledger, 10);
+    let returned = a.run(&["ops", "transfers"])["transfers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["transfer_id"] == revised["transfer_id"])
+        .unwrap()["amount"]
+        .as_str()
+        .unwrap()
+        .parse::<u128>()
+        .unwrap();
+    assert!(returned > 0 && returned <= 5_000 - 12);
+    // The wallet paid the deposit and its fee and got the refund back.
+    assert_eq!(before - balance(a, &ledger), 5_000 + 10 - returned);
+
     // The legacy owner claims its name; the registry's reply is lost and
     // the certified owner settles it.
     ic_proxy.lose_next("POST", &format!("/canister/{handle}/call"));
@@ -2669,6 +3248,21 @@ fn desktop_commerce() {
         a.run(&["handle", "resolve", "legacy_probe"])["account"],
         account.as_str()
     );
+
+    // A new name, paid from the wallet: an allowance the registry charges
+    // once.
+    let price = a.run(&["handle", "price", "desktop_paid"]);
+    let price: u128 = price["price"].as_str().unwrap().parse().unwrap();
+    let before = balance(a, &d.name_ledger);
+    let request = a.run(&["handle", "register", "desktop_paid"]);
+    assert_eq!(request["type"], "handle");
+    assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
+    assert_eq!(
+        a.run(&["handle", "resolve", "desktop_paid"])["account"],
+        account.as_str()
+    );
+    // The price, which pays the registry's transfer fee, and the approval's fee.
+    assert_eq!(before - balance(a, &d.name_ledger), price + 10);
 
     // Another account pays for its plan on ckUSDT with the same funded
     // identity, as a wallet file.
@@ -2761,7 +3355,7 @@ fn desktop_commerce() {
     let operation_id = hex::encode(*operation);
     let created = bridge
         .call(json!({
-            "cmd": "checkout", "connection": connection, "operation_id": operation_id,
+            "cmd": "create", "connection": connection, "method": "checkout", "operation_id": operation_id,
             "payload": base64::engine::general_purpose::STANDARD.encode(canonical(&checkout)),
         }))
         .unwrap();
@@ -2793,11 +3387,17 @@ fn desktop_commerce() {
     assert_eq!(b.run(&["plan", "order", order])["status"], "Applied");
     assert_eq!(b.run(&["plan", "status"])["plan"], "Plus");
 
-    // A PANDA membership backed by the wallet's neuron: accepted and
-    // cooling down (activation follows the 65-minute cooling period).
+    // A PANDA membership backed by the wallet's neuron, asked for by a web
+    // application: the device quotes it on the neuron the person picks; the
+    // application is accepted and cools down (activation follows the
+    // 65-minute cooling period).
     let (c, _) = env.desktop("c");
+    let d = &env.deployment;
     assert_eq!(c.login(&http, 61).unwrap()["state"], "no_account");
-    c.run(&["account", "create"]);
+    let third = c.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
     let enable = c.run(&["device", "formal-approve", "on"]);
     assert_eq!(c.decide(&http, &enable, true).unwrap()["state"], "done");
     c.run(&["wallet", "use", &pem]);
@@ -2810,9 +3410,68 @@ fn desktop_commerce() {
         &"4d".repeat(32),
     ]);
     assert_eq!(quote["terms"]["method"], "Panda");
-    let request = c.run(&["plan", "checkout", quote["id"].as_str().unwrap()]);
-    assert_eq!(c.decide(&http, &request, true).unwrap()["state"], "done");
-    let order = c.run(&["plan", "order", quote["id"].as_str().unwrap()]);
+    let invite = c.rpc(&http, "connect/invite", Value::Null).unwrap();
+    let paired = bridge
+        .call(json!({"cmd": "pair", "url": invite["url"], "label": "Chrome · Test"}))
+        .unwrap();
+    c.rpc(
+        &http,
+        "connect/grant",
+        json!({"invite": invite["invite_id"], "pairing": paired["pairingId"], "human": true}),
+    )
+    .unwrap();
+    bridge
+        .call(json!({"cmd": "await_grant", "account": third, "timeout_ms": 30000}))
+        .unwrap();
+    let account_id: dmsg_types::AccountId = third.parse().unwrap();
+    let operation = dmsg_types::Hash::new([0x52; 32]);
+    let offer: dmsg_types::Result<dmsg_types::integration::BillingOffer> = candid::decode_one(
+        &d.ic
+            .update_call(
+                commerce,
+                d.peer,
+                "prepare_account_subscription",
+                candid::encode_args((
+                    "dmsg",
+                    dmsg_protocol::billing::beneficiary(d.user, &account_id),
+                    "plus",
+                    operation,
+                ))
+                .unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    let checkout = dmsg_types::integration_billing::CheckoutRequest {
+        offer: offer.unwrap(),
+        approving_account: account_id,
+        product_approval: None,
+        method: dmsg_types::integration::SettlementMethod::Panda,
+    };
+    let operation_id = hex::encode(*operation);
+    bridge
+        .call(json!({
+            "cmd": "create", "connection": connection, "method": "checkout", "operation_id": operation_id,
+            "payload": base64::engine::general_purpose::STANDARD.encode(canonical(&checkout)),
+        }))
+        .unwrap();
+    let shown = eventually(30, || web_request(&c, &http, &operation_id));
+    let quoted = c
+        .rpc(
+            &http,
+            "approval/quote",
+            json!({"id": shown["id"], "selection": "4d".repeat(32)}),
+        )
+        .unwrap();
+    assert_eq!(quoted["detail"]["checkout"]["terms"]["method"], "Panda");
+    assert_eq!(c.decide(&http, &quoted, true).unwrap()["state"], "done");
+    let signed = bridge
+        .call(json!({"cmd": "get", "connection": connection, "operation_id": operation_id, "wait_ms": 20000, "until": ["signed"]}))
+        .unwrap();
+    assert_eq!(signed["state"], "signed", "{signed}");
+    let claim = signed["result"]["orderId"].as_str().unwrap().to_string();
+    assert!(signed["result"]["checkoutCbor"].is_string());
+    let order = c.run(&["plan", "order", &claim]);
     assert_eq!(order["status"], "CoolingDown");
     assert_eq!(order["eligibility"], "Eligible");
     assert_eq!(order["neuron"], "4d".repeat(32));
@@ -2822,7 +3481,7 @@ fn desktop_commerce() {
         .as_array()
         .unwrap()
         .iter()
-        .any(|claim| claim["claim_id"] == quote["id"] && claim["status"] == "CoolingDown"));
+        .any(|c| c["claim_id"] == claim.as_str() && c["status"] == "CoolingDown"));
     assert!(c.run(&["ops", "sweep"])["swept"].is_u64());
     env.finish();
 }
@@ -2895,10 +3554,19 @@ fn desktop_paid_letters() {
     assert_eq!(resumed["order_id"], order["order_id"]);
     assert_eq!(resumed["ciphertext"], order["ciphertext"]);
 
+    // The ledger's fee is not the one the escrow terms pay: nothing is
+    // paid and the request fails (FEE_BLOCKED).
+    let before = balance(a, &d.ledger);
+    set_ledger_fee(d, d.ledger, 12);
+    let request = a.run(&["inbox", "pay", &recipient, &order_id]);
+    assert_eq!(a.decide(&http, &request, true), Err("FEE_BLOCKED".into()));
+    assert_eq!(approval_state(a, &request), "failed");
+    assert_eq!(balance(a, &d.ledger), before);
+    set_ledger_fee(d, d.ledger, 10);
+
     // Paying: the ledger's reply to the escrow funding is lost, then the
     // relay's reply to the admission. Each retry reads back what committed;
     // the wallet pays once and the escrow settles.
-    let before = balance(a, &d.ledger);
     d.ic.update_call(
         d.ledger,
         d.peer,
@@ -2917,6 +3585,8 @@ fn desktop_paid_letters() {
     a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
     assert_eq!(approval_state(a, &request), "unknown");
     assert_eq!(relay_proxy.pending(), 0);
+    // The ledger's fee rises before the payouts: both are refused (BadFee).
+    set_ledger_fee(d, d.ledger, 12);
     a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
     assert_eq!(approval_state(a, &request), "done");
     let status = a.run(&["inbox", "order", &recipient, &order_id]);
@@ -2926,11 +3596,98 @@ fn desktop_paid_letters() {
     let amount: u128 = order["quote"]["amount"].as_str().unwrap().parse().unwrap();
     assert_eq!(before - balance(a, &d.ledger), amount + 10);
 
+    // The payer revises each refused payout to the fee the ledger asks for.
+    let escrow_id = escrow["escrow"]["escrow_id"].as_str().unwrap().to_string();
+    let legs = a.run(&["payment", "transfers", &escrow_id]);
+    let refused: Vec<&Value> = legs.as_array().unwrap().iter().collect();
+    assert!(!refused.is_empty());
+    for leg in refused {
+        assert_eq!(leg["status"], "FeeBlocked", "{leg}");
+        assert_eq!(leg["expected_fee"], "12");
+        let revised = a.run(&["payment", "revise", &escrow_id, &leg["leg_id"].to_string()]);
+        assert_eq!(
+            (revised["status"].as_str(), revised["fee"].as_str()),
+            (Some("Succeeded"), Some("12")),
+            "{revised}"
+        );
+    }
+    set_ledger_fee(d, d.ledger, 10);
+
+    // Two more deposits after the decision, the full amount again and a
+    // smaller one: the escrow takes neither, and one refund returns them to
+    // the wallet with the unused fee reserve.
+    let hash = dmsg_types::Hash::new(hex::decode(&escrow_id).unwrap().try_into().unwrap());
+    let payer = Principal::from_text(login_principal(42)).unwrap();
+    let info: dmsg_types::Result<dmsg_types::payment::EscrowInfo> = candid::decode_one(
+        &d.ic
+            .query_call(
+                d.payment,
+                payer,
+                "get_escrow",
+                candid::encode_one(hash).unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    let to = icrc_ledger_types::icrc1::account::Account {
+        owner: d.payment,
+        subaccount: Some(*info.unwrap().subaccount),
+    };
+    for deposit in [amount, 1_000] {
+        let block = ledger_transfer(d, d.ledger, 42, to, deposit);
+        let checked: dmsg_types::Result<dmsg_types::payment::EscrowInfo> = candid::decode_one(
+            &d.ic
+                .update_call(
+                    d.payment,
+                    payer,
+                    "check_funding",
+                    candid::encode_args((hash, block)).unwrap(),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            checked.unwrap().decision,
+            dmsg_types::payment::FundsDecision::SettlementCommitted
+        );
+    }
+    let refund = a.run(&["inbox", "refund", &order_id]);
+    assert!(refund["refund_leg"].is_u64(), "{refund}");
+    let settled = &refund["escrow"];
+    assert_eq!(settled["liabilities"], "0", "{settled}");
+    // Everything the wallet sent, less what came back, is the letter's price
+    // and the network fees: the escrow's own and the wallet's three transfers.
+    let number = |v: &Value| v.as_str().unwrap().parse::<u128>().unwrap();
+    assert_eq!(
+        before - balance(a, &d.ledger),
+        number(&settled["recipient_net"])
+            + number(&settled["service_fee"])
+            + number(&settled["network_fees"])
+            + 3 * 10
+    );
+    assert!(a.run(&["inbox", "refund", &order_id])["refund_leg"].is_null());
+
     // The recipient opens it with the synced inbox key.
     let letters = b.run(&["inbox", "list"]);
     assert_eq!(letters[0]["text"], "Private paid contact");
     assert_eq!(letters[0]["state"], "visible");
     assert_eq!(letters[0]["sender"], sender.as_str());
+    // Until the recipient archives it, the sender cannot write again.
+    assert_eq!(
+        a.fail(&["inbox", "send", &recipient, "Second letter", "--pay"]),
+        "VERSION_CONFLICT"
+    );
+    b.run(&["inbox", "mark", &order_id, "--archive"]);
+    let letters = b.run(&["inbox", "list"]);
+    assert_eq!(
+        (
+            letters[0]["read"].as_bool(),
+            letters[0]["archived"].as_bool()
+        ),
+        (Some(true), Some(true))
+    );
+    let second = a.run(&["inbox", "send", &recipient, "Second letter", "--pay"]);
+    assert_eq!(second["state"], "quoted");
     env.finish();
 }
 
@@ -3125,7 +3882,7 @@ fn desktop_agents() {
         },
     );
     let http = env.http.clone();
-    let host = env.adp.as_ref().unwrap().origin.clone();
+    let host = env.discourse.as_ref().unwrap().origin.clone();
     let a = &env.a;
     assert_eq!(a.login(&http, 61).unwrap()["state"], "no_account");
     let account = a.run(&["account", "create"])["account"]
@@ -3307,8 +4064,8 @@ fn desktop_agents() {
         )
         .unwrap();
     assert_eq!(sent["status"], "sent");
-    let adp = env.adp.as_ref().unwrap();
-    assert_eq!(adp.messages(&room), ["hello from claude"]);
+    let discourse = env.discourse.as_ref().unwrap();
+    assert_eq!(discourse.messages(&room), ["hello from claude"]);
 
     // The host's own agent changes the topic, which moves the room head.
     // Claude's next message, based on the head it saw, is held with the
@@ -3333,10 +4090,16 @@ fn desktop_agents() {
         .any(|c| c["type"] == "room.update"));
     let draft = held["draft"]["id"].as_str().unwrap().to_string();
 
-    // A nonce another service saw: within the bound the connector resyncs
-    // and signs once more (DT06).
-    let before = adp.nonce(&claude).unwrap();
-    adp.refuse_next_nonce(before + 1_000, true);
+    // A nonce another service saw, answered in the host's place: within
+    // the bound the connector resyncs and signs once more (DT06).
+    let room_path = format!("/v1/rooms/{room}");
+    let seen = now_ms() + 5_000;
+    discourse.answer_next(
+        "POST",
+        &room_path,
+        "nonce_not_greater",
+        &[("Max-Seen-Nonce", seen.to_string())],
+    );
     let resent = mcp
         .tool(
             "agent_protocols_room_send_message",
@@ -3344,9 +4107,14 @@ fn desktop_agents() {
         )
         .unwrap();
     assert_eq!(resent["status"], "sent", "{resent}");
-    assert_eq!(adp.nonce(&claude), Some(before + 1_001));
+    assert_eq!(discourse.nonce(&claude), Some(seen + 1));
     // Beyond the bound the value is refused, not applied.
-    adp.refuse_next_nonce(now_ms() + (1 << 33), false);
+    discourse.answer_next(
+        "POST",
+        &room_path,
+        "nonce_not_greater",
+        &[("Max-Seen-Nonce", (now_ms() + (1 << 33)).to_string())],
+    );
     let refused = mcp
         .tool(
             "agent_protocols_room_send_message",
@@ -3390,9 +4158,9 @@ fn desktop_agents() {
 
     // A restarted daemon restores the connector: the held draft, the read
     // position and the nonce (DT09). Its keys come back with the login.
-    let nonce = adp.nonce(&claude).unwrap();
+    let nonce = discourse.nonce(&claude).unwrap();
     env.restart(0);
-    let (a, adp) = (&env.a, env.adp.as_ref().unwrap());
+    let (a, discourse) = (&env.a, env.discourse.as_ref().unwrap());
     assert_eq!(a.login(&http, 61).unwrap()["state"], "unlocked");
     let mut mcp = McpClient::start(a, &credential);
     let drafts = mcp.tool("agent_protocols_drafts_list", json!({})).unwrap();
@@ -3404,9 +4172,9 @@ fn desktop_agents() {
         )
         .unwrap();
     assert_eq!(committed["status"], "sent", "{committed}");
-    assert!(adp.nonce(&claude).unwrap() > nonce);
+    assert!(discourse.nonce(&claude).unwrap() > nonce);
     assert_eq!(
-        adp.messages(&room),
+        discourse.messages(&room),
         ["hello from claude", "after resync", "late reply"]
     );
     let timeline = mcp
@@ -3425,6 +4193,195 @@ fn desktop_agents() {
     assert_eq!(verdict["usable"], false, "{verdict}");
     assert_eq!(a.run(&["agent", "credentials"])[0]["status"], "revoked");
     let _ = host_agent;
+    env.finish();
+}
+
+/// Entries of the `dmsg` service in the login keychain, deleted when
+/// dropped: what a run against the system credential store leaves.
+struct Keychain(Vec<String>);
+
+impl Keychain {
+    fn has(name: &str) -> bool {
+        Command::new("security")
+            .args(["find-generic-password", "-s", "dmsg", "-a", name])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .unwrap()
+            .success()
+    }
+}
+
+impl Drop for Keychain {
+    fn drop(&mut self) {
+        for name in &self.0 {
+            let _ = Command::new("security")
+                .args(["delete-generic-password", "-s", "dmsg", "-a", name])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status();
+        }
+    }
+}
+
+/// The system credential store (macOS login keychain): the owner
+/// credential, fast unlock and a resident Agent ID. Writes and then deletes
+/// entries of the service `dmsg`, so it runs only when asked.
+#[test]
+#[ignore = "needs macOS, DMSG_TEST_SYSTEM_STORAGE=1, the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_system_credentials() {
+    if !cfg!(target_os = "macos") || std::env::var_os("DMSG_TEST_SYSTEM_STORAGE").is_none() {
+        eprintln!(
+            "not run: set DMSG_TEST_SYSTEM_STORAGE=1 on macOS (writes to the login keychain)"
+        );
+        return;
+    }
+    let env = Env::launch(
+        "system",
+        Options {
+            system_storage: true,
+            agents: true,
+            ..Options::default()
+        },
+    );
+    let (a, http) = (&env.a, &env.http);
+    let owner = format!(
+        "owner:{}",
+        std::fs::canonicalize(&a.home).unwrap().display()
+    );
+    let mut keychain = Keychain(vec![owner.clone()]);
+    // The owner credential is in the keychain, not in the home.
+    assert!(!a.home.join("owner.token").exists());
+    assert!(Keychain::has(&owner));
+    assert_eq!(a.login(http, 61).unwrap()["state"], "no_account");
+    let account = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let device = a.run(&["status"])["device_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let workspace = format!("dmsg:local:{account}:{device}");
+    let fast = format!("{workspace}:fast-unlock");
+    keychain.0.push(fast.clone());
+
+    // Fast unlock: a key in the keychain seals a second copy of the data key.
+    a.run(&["fast-unlock", "enable"]);
+    assert!(Keychain::has(&fast));
+    a.run(&["lock"]);
+    assert_eq!(a.run(&["unlock", "--fast"])["state"], "unlocked");
+
+    // A resident Agent ID signs from its keychain copy while locked.
+    let agent = a.run(&["agent", "id", "create", "bot"])["agent_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let resident = [
+        format!("{workspace}:agent:{agent}"),
+        format!("{workspace}:agent-mail:{agent}"),
+    ];
+    keychain.0.extend(resident.iter().cloned());
+    a.run(&["agent", "id", "resident", "bot", "on"]);
+    assert!(resident.iter().all(|name| Keychain::has(name)));
+    assert_eq!(a.run(&["lock"])["state"], "locked");
+    let host = env.discourse.as_ref().unwrap().origin.clone();
+    let start = now_ms();
+    let created = ap(
+        a,
+        "bot",
+        "room_create",
+        json!({"host": host, "topic": "resident", "visibility": "public", "start_time": start, "end_time": start + 3_600_000}),
+    );
+    assert!(created["room"]["room_id"].is_string(), "{created}");
+
+    // Turning both off deletes their keys.
+    assert_eq!(a.login(http, 61).unwrap()["state"], "unlocked");
+    a.run(&["agent", "id", "resident", "bot", "off"]);
+    assert!(resident.iter().all(|name| !Keychain::has(name)));
+    a.run(&["fast-unlock", "disable"]);
+    assert!(!Keychain::has(&fast));
+    env.finish();
+    // The owner credential stays with the home; the guard deletes it.
+    drop(keychain);
+    assert!(!Keychain::has(&owner));
+}
+
+/// Real Claude Code, with its own Agent ID, through `dmsg mcp`: it joins a
+/// room and speaks. Uses the local `claude` login, so it runs only when asked.
+#[test]
+#[ignore = "needs DMSG_TEST_CLAUDE=1, a logged-in `claude`, the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_claude_code() {
+    if std::env::var_os("DMSG_TEST_CLAUDE").is_none() {
+        eprintln!("not run: set DMSG_TEST_CLAUDE=1 (runs the local Claude Code)");
+        return;
+    }
+    let env = Env::launch(
+        "claude",
+        Options {
+            agents: true,
+            ..Options::default()
+        },
+    );
+    let (a, http) = (&env.a, &env.http);
+    assert_eq!(a.login(http, 61).unwrap()["state"], "no_account");
+    a.run(&["account", "create"]);
+    a.run(&["agent", "id", "create", "host"]);
+    a.run(&["agent", "id", "create", "claude"]);
+    let credential = a.run(&["agent", "id", "credential", "claude"])["credential"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let discourse = env.discourse.as_ref().unwrap();
+    let start = now_ms();
+    let created = ap(
+        a,
+        "host",
+        "room_create",
+        json!({
+            "host": discourse.origin, "topic": "Claude Code", "visibility": "public",
+            "policy": {"open_roles": ["speaker"]}, "start_time": start, "end_time": start + 3_600_000,
+        }),
+    );
+    let room = created["room"]["room_id"].as_str().unwrap().to_string();
+    let config = json!({"mcpServers": {"dmsg": {
+        "command": a.bin, "args": ["--home", a.home, "mcp"],
+        "env": {"DMSG_AGENT_TOKEN": credential},
+    }}});
+    let prompt = format!(
+        "Use only the dmsg MCP tools. Join the Agent Discourse room {room} on the host {} as a speaker, then send the message \"hello from Claude Code\" to it. Answer DONE when it is sent.",
+        discourse.origin
+    );
+    let mut claude = Command::new("claude");
+    // As from a plain terminal, not as a session nested in another one.
+    for (name, _) in std::env::vars().filter(|(name, _)| name.starts_with("CLAUDE")) {
+        claude.env_remove(name);
+    }
+    let output = claude
+        .args([
+            "-p",
+            &prompt,
+            "--output-format",
+            "json",
+            "--strict-mcp-config",
+        ])
+        .args(["--mcp-config", &config.to_string()])
+        // Every tool of `dmsg mcp`; the Agent ID's credential bounds them.
+        .args(["--allowedTools", "mcp__dmsg"])
+        .current_dir(&env.dir)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        discourse.messages(&room),
+        ["hello from Claude Code"],
+        "{}",
+        String::from_utf8_lossy(&output.stdout)
+    );
     env.finish();
 }
 
@@ -3521,6 +4478,31 @@ fn desktop_mail_knowledge() {
         answer["received"][0]["thread_id"],
         sent["message"]["thread_id"]
     );
+
+    // The other direction of DT08: a letter the TypeScript SDK seals and
+    // signs for Bob, which his Rust connector opens.
+    let cloud = PathBuf::from(std::env::var_os("DMSG_CLOUD_DIR").unwrap());
+    let output = Command::new("node")
+        .arg("scripts/send-probe.mjs")
+        .current_dir(cloud.join("dmsg-mail"))
+        .env("PROBE_MAIL", &mail)
+        .env("PROBE_TO", bob_box["address"].as_str().unwrap())
+        .env("PROBE_TEXT", "from TypeScript")
+        .env("NODE_EXTRA_CA_CERTS", env.dir.join("localhost-cert.pem"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let typescript: Value = serde_json::from_str(stdout.lines().last().unwrap()).unwrap();
+    assert_eq!(typescript["status"], "delivered", "{typescript}");
+    let synced = ap(a, "bob", "mail_sync", json!({}));
+    assert_eq!(synced["errors"], json!([]), "{synced}");
+    assert_eq!(synced["received"][0]["from"], typescript["agent_id"]);
+    assert_eq!(synced["received"][0]["parts"][0]["text"], "from TypeScript");
 
     // A letter waits on the relay across a restart. The connector state
     // holds no key; Bob's comes back from the sealed store with the login.
@@ -4218,6 +5200,8 @@ struct Legacy {
     channel: Principal,
     identity: Principal,
     channel_id: u32,
+    /// A channel the owner manages with a second old identity.
+    shared_id: u32,
     /// The historical channel KEK and DEK as COSE_Keys, and the frozen
     /// DEK wrapper.
     kek: Vec<u8>,
@@ -4329,6 +5313,23 @@ impl Legacy {
         ))
         .unwrap();
         let channel_id = created.unwrap().id;
+        let created: Result<ChannelInfo, String> = candid::decode_one(&call(
+            channel,
+            gov,
+            "admin_create_channel",
+            candid::encode_args((CreateChannelInput {
+                name: "Frozen channel with two managers".into(),
+                image: String::new(),
+                description: String::new(),
+                managers: [(owner, none()), (old_identity(54), none())].into(),
+                dek: wrapped.clone().into(),
+                created_by: owner,
+                paid: 0,
+            },))
+            .unwrap(),
+        ))
+        .unwrap();
+        let shared_id = created.unwrap().id;
         let added: Result<(u64, Option<Message>), String> = candid::decode_one(&call(
             channel,
             owner,
@@ -4399,6 +5400,7 @@ impl Legacy {
             channel,
             identity,
             channel_id,
+            shared_id,
             kek,
             dek,
             wrapped,
@@ -4690,6 +5692,73 @@ fn desktop_legacy() {
         "{synced}"
     );
     assert_eq!(synced["frozen"]["matched"], true);
+
+    // A channel with two old managers: its successor commits only once
+    // both approved the same proposal.
+    let (a, second) = (&env.a, old_identity(54).to_text());
+    let source = legacy.old_site(&env, 52, "source", json!({"channel_id": legacy.shared_id}));
+    let source_file = document(&env, "source-two.json", &source);
+    let checked = a.run(&["legacy", "shared", "source", &source_file]);
+    let mut managers: Vec<String> = serde_json::from_value(checked["managers"].clone()).unwrap();
+    managers.sort();
+    let mut both = vec![owner.clone(), second.clone()];
+    both.sort();
+    assert_eq!(managers, both);
+    let draft = a.run(&["legacy", "shared", "prepare", &source_file]);
+    let draft_file = document(&env, "draft-two.json", &draft);
+    let mut approvals = vec![];
+    for (seed, manager) in [(52, &owner), (54, &second)] {
+        let request = a.run(&[
+            "legacy",
+            "shared",
+            "request",
+            &draft_file,
+            "--manager",
+            manager,
+        ]);
+        let approval = legacy.old_site(
+            &env,
+            seed,
+            "approve",
+            json!({"request": request["request"]}),
+        );
+        approvals.push(document(
+            &env,
+            &format!("approval-two-{seed}.json"),
+            &approval,
+        ));
+    }
+    let view = a.run(&[
+        "legacy",
+        "shared",
+        "propose",
+        &draft_file,
+        "--manager",
+        &owner,
+        "--approval",
+        &approvals[0],
+    ]);
+    assert_eq!(view["stage"], "pending");
+    let key = view["key"].as_str().unwrap().to_string();
+    assert_eq!(
+        a.fail(&["legacy", "shared", "commit", &key]),
+        "RECOVERY_INCOMPLETE"
+    );
+    let consented = a.run(&[
+        "legacy",
+        "shared",
+        "consent",
+        &draft_file,
+        "--manager",
+        &second,
+        "--approval",
+        &approvals[1],
+    ]);
+    assert_eq!(consented["votes"].as_object().unwrap().len(), 2);
+    assert_eq!(
+        a.run(&["legacy", "shared", "commit", &key])["stage"],
+        "committed"
+    );
     let _ = x;
     env.finish();
 }

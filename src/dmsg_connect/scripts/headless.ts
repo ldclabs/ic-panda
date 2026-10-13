@@ -6,7 +6,8 @@
  *
  *   {"id":1,"cmd":"init","config":{...}}       -> {"id":1,"ok":true,"value":...}
  *   {"id":2,"cmd":"pair","url":"...","label":"..."}
- *   {"id":3,"cmd":"checkout","connection":"…","operation_id":"…","payload":"<base64 CBOR>"}
+ *   {"id":3,"cmd":"session","operation_id":"…"}            -> the page's session key (SPKI, base64)
+ *   {"id":4,"cmd":"create","connection":"…","method":"checkout","operation_id":"…","payload":"<base64 CBOR>"}
  */
 import { createInterface } from 'node:readline'
 import { Bridge, type Connection } from '../src/bridge.ts'
@@ -89,10 +90,15 @@ async function run(input: Record<string, any>): Promise<unknown> {
       const value = await command(connection, 'signDocument', operationId, base64(utf8(JSON.stringify(request))), null, input.page_seed)
       return { ...value, operationId }
     }
-    case 'checkout': {
-      // The page's canonical CBOR `CheckoutRequest`, as base64.
+    case 'session': {
+      // An authentication request commits to the hash of this key.
+      const { publicKey } = await session(input.operation_id, input.page_seed)
+      return { publicKey }
+    }
+    case 'create': {
+      // `authenticate`, `signAction` or `checkout` with the page's canonical CBOR payload, as base64.
       const connection = connections.get(input.connection)!
-      const value = await command(connection, 'checkout', input.operation_id, input.payload)
+      const value = await command(connection, input.method, input.operation_id, input.payload)
       return { ...value, operationId: input.operation_id }
     }
     case 'get':

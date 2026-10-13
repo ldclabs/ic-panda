@@ -588,6 +588,7 @@ pub fn escrow_view(escrow: &EscrowInfo) -> serde_json::Value {
         "confirmed_in": escrow.confirmed_in.to_string(),
         "liabilities": escrow.liabilities.to_string(),
         "transferred": escrow.transferred.to_string(),
+        "network_fees": escrow.network_fees.to_string(),
         "version": escrow.version,
     })
 }

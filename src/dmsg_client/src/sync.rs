@@ -309,10 +309,19 @@ impl Client {
     /// it only sends versions that need no reseal and caches ciphertext.
     ///
     /// # Errors
-    /// Returns `Error::Locked` while locked without a resident key and
-    /// `Error::RekeyRequired` while the account waits for a new root.
+    /// Returns `Error::Locked` while locked without a resident key,
+    /// `Error::RekeyRequired` while the account waits for a new root and
+    /// `Error::DeviceNotApproved` for a revoked device, whose workspace is
+    /// then erased.
     pub async fn sync(&mut self) -> Result<SyncReport> {
         let result = self.sync_once().await;
+        // The relay can know of a revocation before the evidence this device
+        // cached expires: read the account again, and erase it if revoked.
+        if matches!(result, Err(Error::DeviceNotApproved)) {
+            let account = self.account()?.clone();
+            let security = self.refresh_security(account.home, &account.id).await?;
+            self.check_revoked(&security)?;
+        }
         let last = LastSync {
             at: now_ms(),
             error: result.as_ref().err().map(crate::error_code),

@@ -17,6 +17,7 @@ use icrc_ledger_types::{
     },
     icrc2::{
         allowance::{Allowance, AllowanceArgs},
+        approve::{ApproveArgs, ApproveError},
         transfer_from::{TransferFromArgs, TransferFromError},
     },
     icrc3::blocks::{BlockWithId, GetBlocksRequest, GetBlocksResult},
@@ -92,6 +93,78 @@ fn mint_test(a: Account, n: u128) {
 fn approve_test(from: Account, spender: Account, amount: u128) {
     ALLOWANCES
         .with_borrow_mut(|t| t.put(digest("allowance", &(from, spender)).as_slice(), &amount));
+}
+
+/// An approval as the ICRC-2 ledger records it: the fee is charged, the
+/// expected allowance checked and the call deduplicated; expiry is not kept.
+#[ic_cdk::update]
+fn icrc2_approve(a: ApproveArgs) -> std::result::Result<Nat, ApproveError> {
+    let from = Account {
+        owner: ic_cdk::api::msg_caller(),
+        subaccount: a.from_subaccount,
+    };
+    let at = ic_cdk::api::time();
+    const WINDOW_NS: u64 = (24 * 3600 + 60) * 1_000_000_000;
+    if a.created_at_time
+        .is_some_and(|t| t.saturating_add(WINDOW_NS) < at)
+    {
+        return Err(ApproveError::TooOld);
+    }
+    let key = digest("approve", &(from, &a));
+    if let Some(block) = DUPLICATES.with_borrow(|t| t.load(key.as_slice())) {
+        return Err(ApproveError::Duplicate {
+            duplicate_of: block.into(),
+        });
+    }
+    let fee = fee();
+    if a.fee.as_ref().is_some_and(|n| n.0.to_u128() != Some(fee)) {
+        return Err(ApproveError::BadFee {
+            expected_fee: fee.into(),
+        });
+    }
+    let current = allowance(from, a.spender);
+    if a.expected_allowance
+        .as_ref()
+        .is_some_and(|n| n.0.to_u128() != Some(current))
+    {
+        return Err(ApproveError::AllowanceChanged {
+            current_allowance: current.into(),
+        });
+    }
+    if a.expires_at.is_some_and(|t| t <= at) {
+        return Err(ApproveError::Expired { ledger_time: at });
+    }
+    if balance(from) < fee {
+        return Err(ApproveError::InsufficientFunds {
+            balance: balance(from).into(),
+        });
+    }
+    write_balance(from, balance(from) - fee);
+    let amount = a.amount.0.to_u128().unwrap();
+    approve_test(from, a.spender, amount);
+    let index: u64 = config().next;
+    let mut tx = BTreeMap::from([
+        ("op".into(), Value::Text("approve".into())),
+        ("from".into(), account(from)),
+        ("spender".into(), account(a.spender)),
+        ("amt".into(), n(amount)),
+        ("fee".into(), n(fee)),
+    ]);
+    if let Some(memo) = &a.memo {
+        tx.insert("memo".into(), Value::Blob(memo.0.clone()));
+    }
+    if let Some(time) = a.created_at_time {
+        tx.insert("ts".into(), n(time.into()));
+    }
+    let block = Value::Map(BTreeMap::from([
+        ("ts".into(), n(at.into())),
+        ("tx".into(), Value::Map(tx)),
+        ("btype".into(), Value::Text("2approve".into())),
+    ]));
+    BLOCKS.with_borrow_mut(|t| t.put(&index.to_be_bytes(), &block));
+    configure(|c| c.next = index + 1);
+    DUPLICATES.with_borrow_mut(|t| t.put(key.as_slice(), &index));
+    Ok(index.into())
 }
 
 #[ic_cdk::query]

@@ -226,7 +226,9 @@ pub enum InboxCommand {
         /// Order ID.
         order: String,
     },
-    /// Recover a paid letter's funds after its acceptance deadline.
+    /// Recover what a paid letter's escrow holds for the wallet: the payment
+    /// after its acceptance deadline, the unused fee reserve after
+    /// settlement, and deposits it did not take.
     Refund {
         /// Order ID.
         order: String,
@@ -420,10 +422,7 @@ pub async fn channel(remote: &Remote, json: bool, command: ChannelCommand) -> Re
             "channel/control",
             json!({"id": id, "action": {"type": "remove", "account": account}}),
         ),
-        ChannelCommand::Leave { id } => (
-            "channel/control",
-            json!({"id": id, "action": {"type": "leave"}}),
-        ),
+        ChannelCommand::Leave { id } => ("channel/leave", json!({"id": id})),
         ChannelCommand::Archive { id } => (
             "channel/control",
             json!({"id": id, "action": {"type": "archive"}}),

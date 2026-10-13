@@ -14,13 +14,14 @@ use serde::de::DeserializeOwned;
 use serde_json::{json, Value};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 49] = [
+pub(crate) const METHODS: [&str; 50] = [
     "channel/list",
     "channel/show",
     "channel/create",
     "channel/invite",
     "channel/join",
     "channel/control",
+    "channel/leave",
     "channel/rotate",
     "channel/send",
     "channel/send_file",
@@ -160,6 +161,14 @@ impl Daemon {
                 Ok(to_json(
                     &client.channel_control(&id()?, action, &operation).await?,
                 ))
+            }
+            "channel/leave" => {
+                let operation = params["operation"].as_str().map_or_else(
+                    || hex::encode(dmsg_client::crypto::random_id()),
+                    str::to_string,
+                );
+                client.channel_leave(&id()?, &operation).await?;
+                Ok(json!({"left": true}))
             }
             "channel/rotate" => Ok(to_json(&client.channel_rotate(&id()?).await?)),
             "channel/send" => {

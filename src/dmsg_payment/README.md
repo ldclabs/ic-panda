@@ -26,7 +26,7 @@ flowchart LR
 
 | 组件           | 与 payment 的关系                                                                                                                                                                   |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 付款方客户端   | 用付款 Principal 开单，查账，提交中继返回的收据，随后立即派发收件人和平台出金；也可以触发到期退款和退款领取。桌面客户端的 `dmsg inbox escrow|refund` 提供托管查看、到期退款与退款领取，`dmsg payment revise` 在账本拒绝后按其要求的手续费修订出金（`revise_rejected_transfer`，付款方或收款 owner） |
+| 付款方客户端   | 用付款 Principal 开单，查账，提交中继返回的收据，随后立即派发收件人和平台出金；也可以触发到期退款和退款领取。桌面客户端的 `dmsg inbox escrow|refund` 提供托管查看、到期退款与退款领取（`refund` 一次领回该钱包可领的全部余额：到期后的整笔付款、结算且出金全部成功后剩余的预留，以及未被采用的入金），`dmsg payment revise` 在账本拒绝后按其要求的手续费修订出金（`revise_rejected_transfer`，付款方或收款 owner） |
 | `dmsg_user`    | 收款账户所属的 home。`verify_payment_offer` 核验收件设备对 `PaymentOffer` 的签名、`payment_offer` 能力和账户安全版本，只接受自己 `UserInit.payment_canister` 的调用                  |
 | ICRC 账本      | 所有金额只使用一个账本。入金只认 DFINITY ICRC 账本的 ICRC-3 `1xfer`/`2xfer` 区块，会跟随账本返回的归档回调读取                                                                       |
 | 私有中继       | 持有收据 signer 私钥：按收件人的 `PaymentOffer` 生成并签名 `Quote`，受理密文后签名 `AdmissionReceipt`，用认证查询核对资金决定后才把消息标为可见。它不能改变已签条款中的收款人和金额 |

@@ -733,6 +733,10 @@ impl Client {
     }
 
     /// Fresh certified security whose evidence the relay holds.
+    ///
+    /// # Errors
+    /// Returns `Error::DeviceNotApproved` for a revoked device, whose
+    /// workspace is then erased.
     pub(crate) async fn cloud_state(&mut self) -> Result<Security> {
         let account = self.account()?.clone();
         if let (Some(state), Some(at)) = (&self.security, self.published) {
@@ -746,6 +750,8 @@ impl Client {
         let mut attempts = 0;
         loop {
             let state = self.refresh_security(account.home, &account.id).await?;
+            // The relay refuses a revoked device; erase it here first.
+            self.check_revoked(&state)?;
             match self.cloud.publish_security(&state.evidence).await {
                 Ok(()) => {
                     self.published = Some(state.certified_at);
