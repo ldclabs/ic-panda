@@ -1,7 +1,8 @@
 //! Starting, restarting and updating the daemon.
 //!
-//! `dmsg start` runs `dmsg daemon` in the background with its diagnostics in
-//! `<home>/logs/daemon.log`. `restart` and `update` stop the daemon only
+//! `dmsg start` runs `dmsg daemon` in the background; its run log is
+//! `<home>/logs/dmsg-<day>.log` ([`crate::logs`]) and its stderr, only what
+//! fails before that log opens, `<home>/logs/stderr.log`. `restart` and `update` stop the daemon only
 //! when nothing approved, no account update and no root rotation is left
 //! unsettled: they wait for it (`--wait`, 60 seconds) and otherwise refuse
 //! with `BUSY`, unless `--interrupt`; the running operation always finishes
@@ -41,14 +42,10 @@ pub async fn start(home: &Home, exe: &Path) -> Result<Value, Failure> {
     if home.lock().is_ok() {
         home.unpublish();
     }
-    let logs = dir.join("logs");
+    let logs = crate::logs::dir(&dir);
     std::fs::create_dir_all(&logs).map_err(unavailable)?;
-    let log_path = logs.join("daemon.log");
-    let log = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&log_path)
-        .map_err(unavailable)?;
+    let log_path = logs.join("stderr.log");
+    let log = std::fs::File::create(&log_path).map_err(unavailable)?;
     let mut command = Command::new(exe);
     command
         .arg("--home")

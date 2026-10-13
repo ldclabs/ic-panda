@@ -54,7 +54,11 @@ const zh = {
   bundleFile: '证据包',
   pickBundle: '选择要核验的证据包',
   pickOriginal: '选择证据包对应的原文件',
-  pickAction: '选择应用准备的动作（CBOR）'
+  pickAction: '选择应用准备的动作（CBOR）',
+  pickAvatar: '选择公开头像（PNG、JPEG 或 WebP，最大 512 KiB）',
+  imageFile: '图片',
+  newMessages: 'dMsg 有新的频道消息。',
+  newLetter: 'dMsg 有新来信。'
 }
 
 type Text = typeof zh
@@ -86,7 +90,11 @@ const en: Text = {
   bundleFile: 'Attestation bundle',
   pickBundle: 'Choose the bundle to verify',
   pickOriginal: 'Choose the original file of the bundle',
-  pickAction: 'Choose the action the application prepared (CBOR)'
+  pickAction: 'Choose the action the application prepared (CBOR)',
+  pickAvatar: 'Choose a public avatar (PNG, JPEG or WebP, at most 512 KiB)',
+  imageFile: 'Images',
+  newMessages: 'New channel messages in dMsg.',
+  newLetter: 'A new letter arrived in dMsg.'
 }
 
 export type { Text }

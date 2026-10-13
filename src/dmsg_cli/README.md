@@ -15,7 +15,8 @@ cryptography, storage and protocol logic live in
 | `owner.token` | Owner credential with `secure_storage = "file"`, readable only by its owner |
 | `daemon.json` | Port, process and instance ID of the running daemon |
 | `dmsg-daemon.lock` | Held by the running daemon: one daemon per home |
-| `logs/daemon.log` | Diagnostics of a daemon started by `dmsg start` or at login |
+| `logs/dmsg-YYYY-MM-DD.log` | The daemon's run log, one file per UTC day, kept 30 days (`dmsg logs`) |
+| `logs/stderr.log` | The stderr of a daemon started by `dmsg start` (rewritten each time) or at login: what fails before the run log opens |
 | `<environment>/accounts/<account>/workspace.sqlite` | An account's workspace on this device: its own device keys, encrypted versions and chunks, sealed records, sync jobs |
 | `<environment>/accounts/<account>/agents.sqlite` | Agent Protocols connector state of the account's hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
 | `<environment>/logins/<principal>/` | The workspace of a login without an account; it becomes `accounts/<account>/` once the login has one |
@@ -61,6 +62,10 @@ an agent fetches cards, delivers letters and submits or reads Knowledge only
 at them. `agent_blocked_senders` is likewise the only source of the mail
 sender policy. The connectors' requests follow no redirect.
 
+The daemon makes the home its owner's only (mode 700) when it starts: the
+workspaces' metadata and the hosted agents' room records and letters are not
+encrypted.
+
 `secure_storage = "system"` keeps the owner credential and the fast-unlock key
 in the system credential store (Keychain, Credential Manager, Secret Service)
 under the service `dmsg`. `"file"`, the default elsewhere, keeps the owner
@@ -76,6 +81,8 @@ dmsg install [--dir D]           # this binary to the shared location
 dmsg update [--check] [--force] [--interrupt] [--wait 60]
 dmsg autostart install | uninstall | status
 dmsg validate-config
+dmsg doctor                      # checks; exits 1 when one fails
+dmsg logs [-n 100]               # the newest lines of the run log
 ```
 
 [`scripts/dmsg/install.sh`](../../scripts/dmsg/install.sh) (macOS Apple
@@ -114,6 +121,20 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
   restart. An update starts the new daemon and checks the version it reports;
   the new daemon is locked. Requests waiting for a person and unsynced
   versions are kept either way.
+- **Diagnostics** (plan §13). `dmsg doctor` checks, without changing
+  anything: `config.toml`; the home's permissions (and `owner.token`'s with
+  `secure_storage = "file"`); the owner credential in its store; the daemon
+  (running, and the same version as this binary); the relay's `/ready` and
+  its environment; this clock against the `time` `/ready` reports (over 5 seconds is a
+  warning, over 30 a failure: signed requests carry 45-second deadlines); the
+  registry's user homes and the configured pins; the hint channel. `--json`
+  prints `{ok, checks: [{name, status, detail}]}` with `status` `ok`, `warn` or
+  `fail`. The run log has one line per call (method, the tool an agent ran,
+  owner or agent, outcome code, milliseconds; steady polls only when they
+  fail) and one per change of a background task's outcome (sync, flush,
+  web requests, MCP Events, hint channel), so a task failing every round
+  while offline logs once. Lines hold names, codes and numbers only: never
+  parameters, content, paths, tokens or error messages.
 - **At login.** `dmsg autostart install` registers this binary with this home:
   a LaunchAgent `net.dmsg.daemon` on macOS, a systemd user unit `dmsg.service`
   (XDG autostart without a user systemd) on Linux, the user's `Run` value
@@ -149,6 +170,7 @@ dmsg vault conflicts | resolve <id:revision> [--keep-current]
 dmsg file import <path> | list | get <id> -o <path> | verify <id>
 dmsg sync | sync status
 dmsg profile show | publish [--name N] [--bio B] [--link URL]... | resolve <account>
+dmsg profile avatar <png|jpeg|webp> | avatar --remove
 dmsg reset --yes
 dmsg approvals list [--all] | show <id> | approve <id> | reject <id> | cancel <id> | quote <id> <ledger|neuron>
 dmsg attest text <text> | digest (--file F | --sha256 H) | file <path> --text T | action <file|->
@@ -227,7 +249,12 @@ device; `vault resolve` adopts it, or keeps the current version with
 `--keep-current`. An item in the trash takes only `vault restore` (or
 adopting a copy) back. `file import` resumes an interrupted import of the same
 file; `file get` writes only a fully verified file to a path that does not
-exist yet. `profile publish` publishes exactly the fields given. `reset`
+exist yet. `profile publish` publishes exactly the fields given and keeps the avatar;
+`profile avatar` publishes an image (PNG, JPEG or WebP, at most 512 KiB) as
+the public avatar, which the relay serves to anyone unencrypted, and keeps the
+other fields. At the end of a sync while unlocked, chunks nothing needs any
+more are deleted (`collected` in the report): replaced versions', lapsed or
+abandoned uploads' and channel downloads'. `reset`
 erases the workspace, unsent versions included, and starts over as a new
 device; a device its account revoked does this on its own.
 
@@ -258,7 +285,9 @@ the channel at `rotation_required` until a member with `can_rotate` runs
 `rotate` (the owner's `remove` does it itself). An invited account runs
 `accept` with the JSON `invite` printed, then reads from the next epoch;
 `history` gives it older ones. `read` prints what this device read; while
-unlocked the daemon also reads on the relay's hints. A command whose reply was
+unlocked the daemon also reads on the relay's hints. Locked, the account's
+hint channel says only that a channel has new messages or a letter arrived,
+and the desktop notifies without saying from whom. A command whose reply was
 lost is kept in `pending`, and running it again, or `pending --key`, settles it
 under the same request ID. After `leave` the relay serves the channel no more
 to this account; the device keeps the last state it verified.

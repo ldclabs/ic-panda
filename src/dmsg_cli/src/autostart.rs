@@ -179,8 +179,8 @@ fn xdg_entry() -> Result<PathBuf, Failure> {
     Ok(config_dir()?.join("autostart").join("dmsg.desktop"))
 }
 
-/// The daemon in the foreground under launchd; its diagnostics go to
-/// `<home>/logs/daemon.log`, like `dmsg start`.
+/// The daemon in the foreground under launchd; its stderr goes to
+/// `<home>/logs/stderr.log`, like `dmsg start`.
 #[cfg(any(target_os = "macos", test))]
 fn plist(exe: &Path, home: &Path) -> String {
     let xml = |p: &Path| {
@@ -190,7 +190,7 @@ fn plist(exe: &Path, home: &Path) -> String {
             .replace('>', "&gt;")
             .replace('"', "&quot;")
     };
-    let log = home.join("logs").join("daemon.log");
+    let log = home.join("logs").join("stderr.log");
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -256,7 +256,7 @@ mod tests {
         let plist = plist(exe, home);
         assert!(plist.contains("<string>/Users/me/dMsg &amp; co/dmsg</string>"));
         assert!(plist.contains("<string>/Users/me/.dmsg &quot;prod&quot;</string>"));
-        assert!(plist.contains("&quot;prod&quot;/logs/daemon.log</string>"));
+        assert!(plist.contains("&quot;prod&quot;/logs/stderr.log</string>"));
         assert!(plist.contains("<string>daemon</string>"));
         let unit = unit(Path::new("/opt/d m/dmsg"), Path::new("/home/me/100%"));
         assert!(unit.contains("ExecStart=\"/opt/d m/dmsg\" --home \"/home/me/100%%\" daemon"));

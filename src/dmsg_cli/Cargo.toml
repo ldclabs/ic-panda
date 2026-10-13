@@ -13,6 +13,7 @@ path = "src/main.rs"
 
 [dependencies]
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "ws"] }
+base64.workspace = true
 candid.workspace = true
 clap.workspace = true
 dmsg_agent = { path = "../dmsg_agent" }

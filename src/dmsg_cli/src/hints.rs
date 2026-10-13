@@ -1,6 +1,7 @@
 //! The relay's hint channel (connect-v1 §7.5): a WebSocket authenticated by
 //! a bearer token that receives only content-free hints, so a locked daemon
-//! still learns that a web request waits. The token is registered while the
+//! still learns that a web request, an MCP event, a channel message or a
+//! letter waits. The token is registered while the
 //! device key is available and renewed a week before it expires.
 
 use crate::daemon::Daemon;
@@ -23,6 +24,7 @@ pub async fn run(daemon: Arc<Daemon>) {
         match connect(&daemon).await {
             Ok(()) => backoff = 1,
             Err(error) => {
+                daemon.note("hints", "disconnected");
                 daemon.set_hints(|h| {
                     h.connected = false;
                     h.last_error = error;
@@ -91,6 +93,7 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
         h.connected = true;
         h.last_error = None;
     });
+    daemon.note("hints", "connected");
     let (mut sink, mut stream) = socket.split();
     let mut ping = tokio::time::interval(PING);
     let mut heard = tokio::time::Instant::now();
@@ -122,26 +125,26 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
     }
 }
 
-/// Act on one hint: fetch the mailbox or the MCP events when the keys are
-/// here, else tell the desktop, which notifies without saying from where.
+/// Act on one hint. `connect`: fetch the mailbox when the keys are here,
+/// else tell the desktop, which notifies without saying from where.
+/// `mcp-event`: wake the fetch, which runs while unlocked. `channel` and
+/// `inbox`: locked, tell the desktop, which notifies that something
+/// arrived; unlocked, the inbox view reloads, and the channels' own hint
+/// sockets already had the daemon read the new messages.
 async fn handle(daemon: &Arc<Daemon>, kind: &str) {
-    if kind == "mcp-event" {
-        // Fetched only while unlocked; locked, it waits on the relay.
-        daemon.mcp().wake();
-    }
-    if kind != "connect" {
-        daemon.emit("hint", json!({"kind": kind}));
-        return;
-    }
-    let ready = daemon
-        .client()
-        .lock()
-        .await
-        .status()
-        .is_ok_and(|s| s.state == "unlocked" || s.resident);
-    if ready {
-        daemon.wake();
-    } else {
-        daemon.emit("connect/hint", json!({"locked": true}));
+    let status = daemon.client().lock().await.status().ok();
+    let unlocked = status.as_ref().is_some_and(|s| s.state == "unlocked");
+    let ready = unlocked || status.as_ref().is_some_and(|s| s.resident);
+    match kind {
+        "connect" if ready => daemon.wake(),
+        "connect" => daemon.emit("connect/hint", json!({"locked": true})),
+        "mcp-event" => {
+            daemon.mcp().wake();
+            daemon.emit("hint", json!({"kind": kind}));
+        }
+        "inbox" if unlocked => daemon.emit("inbox/changed", json!({"hint": true})),
+        "channel" if unlocked => {}
+        "channel" | "inbox" => daemon.emit("hint", json!({"kind": kind})),
+        _ => {}
     }
 }

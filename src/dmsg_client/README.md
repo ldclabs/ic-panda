@@ -30,7 +30,7 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`vault`] | Items and their versions: add, edit, trash, restore, local search, conflict copies and their resolution |
 | [`files`] | Files up to 100 MiB in 1 MiB chunks with deterministic nonces; resumable import, verified export |
 | [`sync`] | Content jobs, resumable uploads, presigned vault revisions, verified export snapshots, conflict copies and tombstones |
-| [`profile`] | The public profile: publishing only chosen fields, reading one's own or another account's, checked against its devices |
+| [`profile`] | The public profile: publishing only chosen fields and a public avatar (PNG, JPEG or WebP up to 512 KiB, unencrypted), reading one's own or another account's, checked against its devices |
 | [`approval`] | The approval center: requests from the desktop, the CLI, agents and web pages, decided only by a person; their states, deadlines and limits |
 | [`attest`] | Formal statements (text, digest, file) and application actions signed by this device, journaled before they are sent, reconciled by execution ID; portable bundles and their independent verification |
 | [`connect`] | dmsg-connect/1 on the device: browser pairing, the relay mailbox, the checks of §6.3, authorization by compare-and-swap, replies sealed with HPKE in auth mode, extra delivery channels, `read`/`open` answers, the hint token |
@@ -82,6 +82,17 @@ the certified devices and every chunk against its digest, caches the
 ciphertext, opens every new version (a file's every chunk included), and
 only then moves the heads, in one transaction. A snapshot older than one
 already applied, or one that drops a version the relay accepted, is refused.
+
+The chunk store keeps what may still be read. At the end of a sync while
+unlocked, a chunk is deleted unless the snapshot just applied names it (the
+next pull checks every one, so a deleted one would be downloaded again), an
+unsent version's job does (it replans from them), an unfinished file import
+does, or an upload plan in a sealed job (channels, the root) does that has not
+lapsed: an upload reads chunks only before its plan lapses. Replaced
+versions', lapsed or abandoned uploads' and channel downloads' chunks go;
+resolved conflict copies and older versions stay, as the relay keeps them.
+The freed pages return to the file system in a workspace created since
+(`auto_vacuum = INCREMENTAL`).
 
 Conflicts: a local version the relay's head does not lead to becomes a
 conflict copy and is still sent, so the relay keeps it for every device. The

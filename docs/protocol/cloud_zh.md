@@ -95,7 +95,7 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 
 2026-09-23：若上传计划到期或账户换根，客户端先查询原修订操作和每个上传状态。已提交对象继续复用；无法继续的 staging 上传明确取消后，以当前内容根和新 `upload_id` 重新封装 manifest。原对象、修订 ID、请求 ID 和密文文件块保持不变；配额释放尚在处理中时保留任务供用户重试。
 
-同日客户端审查修订：普通拉取仍使用完整导出清单核对版本与缺口，但密文逐块验证并缓存到本机工作区，重复拉取复用已验证块；全部清单和文件验证成功后才原子推进对象 head 与快照游标。单账户拉取不再受单备份包的 256 MiB 限制；单文件、块、清单数量与证据大小的限制继续有效。中断留下的缓存块不代表内容已提交。
+同日客户端审查修订：普通拉取仍使用完整导出清单核对版本与缺口，但密文逐块验证并缓存到本机工作区，重复拉取复用已验证块；全部清单和文件验证成功后才原子推进对象 head 与快照游标。单账户拉取不再受单备份包的 256 MiB 限制；单文件、块、清单数量与证据大小的限制继续有效。中断留下的缓存块不代表内容已提交。2026-10-13：每次解锁后的同步完成时，客户端删除不再需要的本机块：保留刚应用的快照列出的全部块与 manifest（下一次拉取会核对它们，删掉会被重新下载）、尚未发送版本的任务、未完成导入，以及密封任务中仍未过期的上传计划（频道信封与附件、换根）所用的块；被替换的版本、过期或放弃的上传、频道附件下载留下的缓存因此被回收。已解决的冲突副本与历史版本仍在中继快照中，所以保留。
 
 本地普通对象载荷上限为 200,000 bytes，`formal_*` 载荷上限为 512 KiB；读写共用边界。频道索引从认证后的解密内容建立，仅保存在本地 head 元数据中，不改变内容 AAD 或上传记录字段。冲突解决关系放在加密 Item 的 `resolvedConflicts` 中，随后编辑保留该关系，备份与同步一起传递。
 
@@ -106,6 +106,8 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 上传 manifest 的明文固定为规范 CBOR `{format:"dmsg-cloud-manifest/1", account_id, upload_id, object_id, version_id, kind, root_generation, chunks:[{digest,size}], content}`。ID 使用上述 JSON 文本表示，chunks 与 upload plan 一致。vault 的 content 为 null；file 的 content 为现有 FileManifest，包括明文大小/摘要及文件 key，全部处于 manifest 加密层内。使用随机 nonce 的 COSE_Encrypt0 AES-256-GCM，由目标内容根封装；external AAD 为 `['dmsg/cloud-manifest/1', account_id, upload_id, object_id, version_id, kind, root_generation]`。manifest_size/digest 对最终加密 bytes 计算。manifest 不包含自己的摘要，避免循环。
 
 内容根（`kind=root`）例外：manifest 是原始 RootBundle 字节（见[账户与根合同](account_root_zh.md)），`object_id` 取链上 `bundle_digest` 的 hex。`bundle_digest` 覆盖接收者与 body，不等于字节摘要；`GET /v1/accounts/:account/root` 按认证安全快照的 `content_root_generation` 与 `content_root_digest` 匹配 `root_generation` 与 `object_id` 返回对象，客户端下载后仍按 `bundle_digest` 验证。
+
+公开头像（`kind=avatar`）也是例外，内容不加密：唯一的块是 PNG、JPEG 或 WebP 原图（12 字节至 512 KiB，中继按文件头核对），`root_generation` 为 0，`epoch` 为 0，`control_head` 为 null，`object_id`、`version_id` 是随机 ID；manifest 是明文规范 CBOR `{format:"dmsg-cloud-avatar/1", account_id, upload_id, mime}`，中继只保存不读取。上传提交后，下一个 profile 版本的 `avatar_upload` 指向该上传 ID；`GET /public/accounts/:account/avatar/:upload` 只在它是当前 profile 的头像时返回原图（带 `content-type` 与 `etag`），否则 404。客户端按配置的中继 origin 拼出这个地址，不采用响应里的 `avatar_url`。更换或移除头像不删除旧上传：历史 profile 版本仍引用它，只是不再公开提供。
 
 空文件的 manifest 保留 `size=0`、空文件摘要及空文件块列表；上传层使用一个规范 CBOR 容器 `{format:"dmsg-cloud-empty-file/1"}` 作为非空占位块。它不计作明文文件块。恢复程序必须检查空文件标志、零长度和摘要一致性，不能把占位 bytes 返回为文件内容。
 

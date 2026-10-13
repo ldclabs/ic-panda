@@ -9,6 +9,7 @@ mod autostart;
 mod channels;
 mod commands;
 mod daemon;
+mod doctor;
 mod event_commands;
 mod hints;
 mod home;
@@ -16,6 +17,7 @@ mod legacy_commands;
 mod legacy_methods;
 mod lifecycle;
 mod locale;
+mod logs;
 mod mcp;
 mod mcp_events;
 mod methods;
@@ -56,8 +58,7 @@ enum Command {
     },
     /// Show the daemon and session status.
     Status,
-    /// Start the daemon in the background; its diagnostics go to
-    /// `<home>/logs/daemon.log`.
+    /// Start the daemon in the background; see `dmsg logs` for its run log.
     Start,
     /// Stop the daemon after the running operation.
     Stop,
@@ -101,6 +102,16 @@ enum Command {
     Autostart(AutostartCommand),
     /// Check `config.toml` without starting anything.
     ValidateConfig,
+    /// Check the configuration, credential store, permissions, daemon,
+    /// relay, clock, registry and hint channel; exits 1 when one fails.
+    Doctor,
+    /// The newest lines of the daemon's run log, one file per day kept 30
+    /// days; it names methods, outcomes and durations, never content.
+    Logs {
+        /// How many lines.
+        #[arg(long, short = 'n', default_value_t = 100)]
+        lines: usize,
+    },
     /// Log in with Internet Identity through the dMsg login page; a login
     /// of another account selects that account's workspace.
     Login {
@@ -451,6 +462,16 @@ enum ProfileCommand {
     Resolve {
         /// Account ID.
         account: String,
+    },
+    /// Publish an image (PNG, JPEG or WebP, at most 512 KiB) as the public
+    /// avatar, which the relay serves to anyone; the other fields stay.
+    Avatar {
+        /// The image.
+        #[arg(required_unless_present = "remove")]
+        file: Option<PathBuf>,
+        /// Remove the avatar instead.
+        #[arg(long, conflicts_with = "file")]
+        remove: bool,
     },
 }
 
@@ -1198,6 +1219,17 @@ async fn lifecycle_command(
                 )
             })
             .map_err(|e| Failure::new("INVALID_INPUT", e.to_string())),
+        Command::Doctor => {
+            let report = doctor::run(home).await;
+            print(json, &report, doctor::lines);
+            if report["ok"] != true {
+                std::process::exit(1);
+            }
+            Ok(())
+        }
+        Command::Logs { lines } => logs::tail(&home.dir, *lines)
+            .map(|lines| print(json, &json!(lines), |_| lines.join("\n")))
+            .map_err(|e| Failure::new("NOT_FOUND", e.to_string())),
         _ => return None,
     };
     Some(outcome)
@@ -1320,7 +1352,9 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         | Command::Install { .. }
         | Command::Update { .. }
         | Command::Autostart(_)
-        | Command::ValidateConfig => unreachable!(),
+        | Command::ValidateConfig
+        | Command::Doctor
+        | Command::Logs { .. } => unreachable!(),
         Command::Attest(AttestCommand::Verify { .. }) => unreachable!(),
         Command::Approvals(ApprovalsCommand::List { all }) => {
             let list = remote.call("approval/list", json!({"all": all})).await?;
@@ -1981,9 +2015,10 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             print(json, &report, |r| {
                 let (sent, blocked, revisions) = (&r["sent"], &r["blocked"], &r["revisions"]);
                 let (through, pending, conflicts) = (&r["through"], &r["pending"], &r["conflicts"]);
+                let collected = &r["collected"];
                 tr!(
-                    "sent {sent}, refused {blocked}, {revisions} revisions through {through}; {pending} pending, {conflicts} conflicts",
-                    "发送 {sent}，被拒 {blocked}，收到 {revisions} 个版本（至 {through}）；待同步 {pending}，冲突 {conflicts}"
+                    "sent {sent}, refused {blocked}, {revisions} revisions through {through}; {pending} pending, {conflicts} conflicts; {collected} unused chunks deleted",
+                    "发送 {sent}，被拒 {blocked}，收到 {revisions} 个版本（至 {through}）；待同步 {pending}，冲突 {conflicts}；删除 {collected} 个不再需要的本地块"
                 )
             });
         }
@@ -2011,6 +2046,26 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 .call("profile/resolve", json!({"account": account}))
                 .await?;
             print(json, &profile, pretty);
+        }
+        Command::Profile(ProfileCommand::Avatar { file, remove }) => {
+            let params = match file {
+                Some(file) => json!({"path": absolute(file)?}),
+                None => json!({"remove": remove}),
+            };
+            let profile = remote.call("profile/avatar", params).await?;
+            print(json, &profile, |p| {
+                let version = &p["profile"]["version"];
+                match p["profile"]["avatar_upload"].as_str() {
+                    Some(upload) => tr!(
+                        "published version {version} with avatar {upload}",
+                        "已发布版本 {version}，头像 {upload}"
+                    ),
+                    None => tr!(
+                        "published version {version} without an avatar",
+                        "已发布版本 {version}，不带头像"
+                    ),
+                }
+            });
         }
     }
     Ok(())

@@ -188,6 +188,33 @@ impl Desktop {
         discovery["port"].as_u64().unwrap() as u16
     }
 
+    /// The app WebSocket with the owner credential; a read waits at most a
+    /// minute.
+    fn app_socket(&self) -> AppSocket {
+        use tungstenite::client::IntoClientRequest;
+        let mut request = format!("ws://127.0.0.1:{}/ws/app/v1", self.port())
+            .into_client_request()
+            .unwrap();
+        request.headers_mut().insert(
+            "authorization",
+            format!("Bearer {}", self.token()).parse().unwrap(),
+        );
+        let socket = tungstenite::connect(request).unwrap().0;
+        if let tungstenite::stream::MaybeTlsStream::Plain(stream) = socket.get_ref() {
+            stream
+                .set_read_timeout(Some(Duration::from_secs(60)))
+                .unwrap();
+        }
+        socket
+    }
+
+    /// Wait until the daemon's hint channel is connected.
+    fn hints_connected(&self) {
+        eventually(60, || {
+            (self.run(&["status"])["hints"]["connected"] == true).then_some(())
+        });
+    }
+
     /// One JSON-RPC call to the daemon, as the desktop app makes it; the
     /// error is its code.
     fn rpc(
@@ -381,6 +408,24 @@ fn titles(device: &Desktop) -> Vec<String> {
 }
 
 /// Poll `check` every half second until it returns a value.
+type AppSocket = tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<std::net::TcpStream>>;
+
+/// Read the app socket until the daemon announces a `kind` event whose
+/// data's `name` is `value`.
+fn await_event(socket: &mut AppSocket, kind: &str, name: &str, value: &str) -> Value {
+    loop {
+        let tungstenite::Message::Text(text) = socket.read().expect("an event within a minute")
+        else {
+            continue;
+        };
+        let note: Value = serde_json::from_str(&text).unwrap();
+        let event = &note["params"];
+        if note["method"] == "event" && event["type"] == kind && event["data"][name] == value {
+            return event.clone();
+        }
+    }
+}
+
 fn eventually<T>(seconds: u64, mut check: impl FnMut() -> Option<T>) -> T {
     let started = Instant::now();
     loop {
@@ -1708,6 +1753,57 @@ fn desktop_content_and_sync() {
         ""
     );
 
+    // A public avatar (A4.4): the relay serves the image to anyone, and
+    // publishing fields again keeps it; removing it keeps the fields.
+    let png = [&[137u8, 80, 78, 71, 13, 10, 26, 10][..], &[7u8; 200]].concat();
+    let picture = env.dir.join("avatar.png");
+    std::fs::write(&picture, &png).unwrap();
+    let with = a.run(&["profile", "avatar", picture.to_str().unwrap()]);
+    assert_eq!(with["profile"]["version"], 3);
+    assert_eq!(with["profile"]["bio"], "only a bio");
+    let upload = with["profile"]["avatar_upload"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let image = b
+        .rpc(
+            &env.http,
+            "profile/avatar_image",
+            json!({"account": account, "upload": upload}),
+        )
+        .unwrap();
+    assert_eq!(
+        image["url"],
+        format!(
+            "data:image/png;base64,{}",
+            base64::engine::general_purpose::STANDARD.encode(&png)
+        )
+    );
+    let public = format!("{}/public/accounts/{account}/avatar/{upload}", env.relay);
+    let served = env.http.get(&public).send().unwrap();
+    assert_eq!(served.headers()["content-type"], "image/png");
+    assert_eq!(served.bytes().unwrap().as_ref(), &png[..]);
+    let kept = a.run(&["profile", "publish", "--name", "Desk Top"]);
+    assert_eq!(kept["profile"]["avatar_upload"], upload.as_str());
+    let gif = env.dir.join("avatar.gif");
+    std::fs::write(&gif, b"GIF89a-not-an-avatar").unwrap();
+    assert_eq!(
+        a.fail(&["profile", "avatar", gif.to_str().unwrap()]),
+        "INVALID_INPUT"
+    );
+    let removed = a.run(&["profile", "avatar", "--remove"]);
+    assert!(removed["profile"]["avatar_upload"].is_null());
+    assert_eq!(removed["profile"]["display_name"], "Desk Top");
+    assert_eq!(env.http.get(&public).send().unwrap().status(), 404);
+    assert_eq!(
+        b.rpc(
+            &env.http,
+            "profile/avatar_image",
+            json!({"account": account, "upload": upload})
+        ),
+        Ok(Value::Null)
+    );
+
     // AT04: after locking, the home holds no plaintext.
     let marker = b"FILE-PLAINTEXT-MARKER-4471";
     let note_path = env.dir.join("marker-name-4471.txt");
@@ -2917,6 +3013,17 @@ fn desktop_channels() {
     assert_eq!(texts(&seen), ["new shared epoch message"]);
     b.run(&["channel", "send", &id, "member reply"]);
     assert!(texts(&a.run(&["channel", "read", &id])).contains(&"member reply".to_string()));
+    // Locked, B learns only that messages arrived, through its account's
+    // hint channel (A4.5). The relay hints a channel's members at most once
+    // every five seconds.
+    b.hints_connected();
+    let mut events = b.app_socket();
+    b.run(&["lock"]);
+    std::thread::sleep(Duration::from_secs(6));
+    a.run(&["channel", "send", &id, "while B is locked"]);
+    let hint = await_event(&mut events, "hint", "kind", "channel");
+    assert_eq!(hint["data"], json!({"kind": "channel"}));
+    assert_eq!(b.login(&http, 60).unwrap()["state"], "unlocked");
 
     // History: A seals epoch 1 to B's devices; B reads it again.
     let granted = a.run(&["channel", "history", &id, &member, "1", "1"]);
@@ -2933,6 +3040,21 @@ fn desktop_channels() {
         out.to_str().unwrap(),
     ]);
     assert_eq!(downloaded["size"], 1024 * 1024 + 17);
+    assert_eq!(std::fs::read(&out).unwrap(), vec![73u8; 1024 * 1024 + 17]);
+    // The download cached the attachment's two chunks; nothing needs them,
+    // so the next sync collects them, and a download fetches them again.
+    let collected = b.run(&["sync"])["collected"].as_u64().unwrap();
+    assert!(collected >= 2, "{collected}");
+    assert_eq!(b.run(&["sync"])["collected"], 0);
+    std::fs::remove_file(&out).unwrap();
+    b.run(&[
+        "channel",
+        "download",
+        &id,
+        &attachment.to_string(),
+        "-o",
+        out.to_str().unwrap(),
+    ]);
     assert_eq!(std::fs::read(&out).unwrap(), vec![73u8; 1024 * 1024 + 17]);
 
     // Ownership moves to B and back: proposed, accepted by the target
@@ -4437,11 +4559,19 @@ fn desktop_agents() {
         .unwrap();
     assert_eq!(letter["text"], "Hello Claude");
     assert_eq!(letter["read"], true);
+    // Locked, B learns only that a letter arrived, through its account's
+    // hint channel (A4.5); the desktop notifies without saying from whom.
+    b.hints_connected();
+    let mut events = b.app_socket();
+    b.run(&["lock"]);
     mcp.tool(
         "dmsg_inbox_contact",
         json!({"to": friend, "text": "Hello from Claude"}),
     )
     .unwrap();
+    let hint = await_event(&mut events, "hint", "kind", "inbox");
+    assert_eq!(hint["data"], json!({"kind": "inbox"}));
+    assert_eq!(b.login(&http, 62).unwrap()["state"], "unlocked");
     let received = b.run(&["inbox", "list"]);
     assert!(received
         .as_array()
@@ -5656,9 +5786,77 @@ fn desktop_release() {
         a.run(&["vault", "show", item.as_str().unwrap()])["item"]["title"],
         "kept"
     );
-    assert!(std::fs::read_to_string(a.home.join("logs/daemon.log"))
+    // `dmsg start` rewrote the new daemon's stderr; the run log (plan §13)
+    // holds one line per call and per background change, and nothing but
+    // event names, method and tool names, codes and numbers.
+    assert!(std::fs::read_to_string(a.home.join("logs/stderr.log"))
         .unwrap()
         .contains("dmsg daemon listening"));
+    let lines = a.run(&["logs", "-n", "100000"]);
+    let lines: Vec<&str> = lines
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|l| l.as_str().unwrap())
+        .collect();
+    assert!(
+        lines
+            .iter()
+            .filter(|l| l.contains(" daemon/start "))
+            .count()
+            >= 2
+    );
+    assert!(lines
+        .iter()
+        .any(|l| l.contains(" call method=account/create by=owner outcome=ok ms=")));
+    assert!(lines.iter().any(|l| l.contains(" call method=vault/show ")));
+    for line in &lines {
+        let mut tokens = line.split(' ');
+        let at = tokens.next().unwrap();
+        assert!(at.len() == 24 && at.ends_with('Z'), "{line}");
+        let event = tokens.next().unwrap();
+        assert!(
+            event
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b"/-".contains(&b)),
+            "{line}"
+        );
+        for field in tokens {
+            let (key, value) = field.split_once('=').unwrap();
+            assert!(key.bytes().all(|b| b.is_ascii_lowercase()), "{line}");
+            assert!(
+                !value.is_empty()
+                    && value.len() <= 40
+                    && value
+                        .bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b"_./:-".contains(&b)),
+                "{line}"
+            );
+        }
+        assert!(!line.contains("kept"), "{line}");
+    }
+    let doctor = a.run(&["doctor"]);
+    assert_eq!(doctor["ok"], true, "{doctor}");
+    let check = |name: &str| {
+        doctor["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["name"] == name)
+            .unwrap_or_else(|| panic!("{name}: {doctor}"))["status"]
+            .clone()
+    };
+    for name in [
+        "config",
+        "permissions",
+        "credentials",
+        "daemon",
+        "relay",
+        "clock",
+        "registry",
+    ] {
+        assert_eq!(check(name), "ok", "{name}: {doctor}");
+    }
 
     // `restart --interrupt` does not wait; the unsettled request resumes.
     ic_proxy.lose_next("POST", &format!("/canister/{user}/call"));

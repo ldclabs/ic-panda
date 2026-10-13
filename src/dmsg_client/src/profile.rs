@@ -10,8 +10,9 @@
 use crate::account::{user_homes, verify_security, Security};
 use crate::client::Client;
 use crate::cloud::{verify_command, Presigned};
-use crate::codec::{decode, sha256, unb64};
+use crate::codec::{canonical, decode, sha256, unb64};
 use crate::now_ms;
+use crate::upload::{random_hex, ChunkRef, UploadPlan};
 use dmsg_types::{
     ensure, ensure_valid,
     user::{Device, SecuritySnapshot},
@@ -21,7 +22,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
 use std::collections::BTreeMap;
 
-const JOB: &str = "profile";
+/// The pending publish, in the metadata: a presigned command holds no secret.
+const JOB: &str = "profile-job";
 const HEAD: &str = "profile-head";
 
 /// A published profile as the device signs it.
@@ -95,6 +97,36 @@ pub struct PublishedProfile {
     pub device_id: String,
     /// Always true: the account says this about itself.
     pub self_asserted: bool,
+}
+
+/// Largest public avatar: the relay's limit.
+pub const MAX_AVATAR: usize = 512 * 1024;
+
+/// The media type of avatar bytes: PNG, JPEG or WebP of 12 bytes to
+/// 512 KiB, which the relay checks the same way.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` naming `avatar` for anything else.
+pub fn avatar_type(bytes: &[u8]) -> Result<&'static str> {
+    ensure_valid((12..=MAX_AVATAR).contains(&bytes.len()), "avatar")?;
+    if bytes.starts_with(&[137, 80, 78, 71, 13, 10, 26, 10]) {
+        Ok("image/png")
+    } else if bytes.starts_with(&[255, 216, 255]) {
+        Ok("image/jpeg")
+    } else if bytes.starts_with(b"RIFF") && &bytes[8..12] == b"WEBP" {
+        Ok("image/webp")
+    } else {
+        Err(dmsg_types::invalid("avatar"))
+    }
+}
+
+/// The manifest of a public avatar upload; the relay stores it unread.
+#[derive(Serialize)]
+struct AvatarManifest<'a> {
+    format: &'static str,
+    account_id: &'a str,
+    upload_id: &'a str,
+    mime: &'a str,
 }
 
 /// The body of a presigned command.
@@ -184,20 +216,117 @@ impl Client {
     /// Returns `Error::Locked` while locked and `Error::VersionConflict`
     /// when another device published in between.
     pub async fn publish_profile(&mut self, fields: &ProfileFields) -> Result<PublishedProfile> {
+        self.publish_next(|current| Profile {
+            version: 0,
+            prev_hash: None,
+            display_name: fields.display_name.trim().into(),
+            bio: fields.bio.clone(),
+            avatar_upload: current.and_then(|c| c.avatar_upload.clone()),
+            links: fields.links.clone(),
+        })
+        .await
+    }
+
+    /// Upload `image` (PNG, JPEG or WebP, at most 512 KiB) as a public
+    /// avatar and publish the next profile version with it; `None` removes
+    /// the avatar. The other fields stay. The relay serves the image to
+    /// anyone, unencrypted; earlier versions keep naming their avatars.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` for another format or size, and as
+    /// [`Self::publish_profile`].
+    pub async fn publish_avatar(&mut self, image: Option<&[u8]>) -> Result<PublishedProfile> {
         self.keys()?;
-        if let Some(job) = self.workspace.store.job::<ProfileJob>(JOB)? {
+        let upload = match image {
+            Some(bytes) => Some(self.upload_avatar(bytes).await?),
+            None => None,
+        };
+        self.publish_next(|current| Profile {
+            version: 0,
+            prev_hash: None,
+            display_name: current.map(|c| c.display_name.clone()).unwrap_or_default(),
+            bio: current.map(|c| c.bio.clone()).unwrap_or_default(),
+            avatar_upload: upload,
+            links: current.map(|c| c.links.clone()).unwrap_or_default(),
+        })
+        .await
+    }
+
+    /// The avatar an account's profile names, as the relay serves it to
+    /// anyone: its media type and bytes, `None` when gone.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for bytes that are not an avatar.
+    pub async fn avatar(
+        &self,
+        account: &AccountId,
+        upload: &str,
+    ) -> Result<Option<(&'static str, Vec<u8>)>> {
+        crate::upload::hex_id(upload)?;
+        let bytes = self
+            .cloud
+            .public_bytes(&format!("/public/accounts/{account}/avatar/{upload}"))
+            .await?;
+        bytes
+            .map(|b| {
+                let mime = avatar_type(&b).map_err(|_| Error::IntegrityFailed)?;
+                Ok((mime, b))
+            })
+            .transpose()
+    }
+
+    /// Upload an avatar; returns its upload ID.
+    async fn upload_avatar(&mut self, bytes: &[u8]) -> Result<String> {
+        let mime = avatar_type(bytes)?;
+        let account = self.account()?.id.to_string();
+        let upload_id = random_hex();
+        let manifest = canonical(&AvatarManifest {
+            format: "dmsg-cloud-avatar/1",
+            account_id: &account,
+            upload_id: &upload_id,
+            mime,
+        });
+        let digest = hex::encode(*sha256(bytes));
+        let plan = UploadPlan {
+            upload_id: upload_id.clone(),
+            object_id: random_hex(),
+            version_id: random_hex(),
+            root_generation: 0,
+            epoch: 0,
+            control_head: None,
+            kind: "avatar".into(),
+            chunks: vec![ChunkRef {
+                digest: digest.clone(),
+                size: bytes.len() as u64,
+            }],
+            manifest_digest: hex::encode(*sha256(&manifest)),
+            manifest_size: manifest.len() as u64,
+            expires_at: now_ms() + dmsg_types::DAY,
+        };
+        // Read from the store by the upload, then collected after it.
+        self.workspace.store.put_chunk(&digest, bytes)?;
+        self.upload(&self.base()?, &plan, &manifest, 0, |_, _| Ok(()))
+            .await?;
+        Ok(upload_id)
+    }
+
+    /// Publish the next profile version, which `build` makes from the
+    /// current one; an earlier publish still pending is settled first.
+    async fn publish_next(
+        &mut self,
+        build: impl FnOnce(Option<&Profile>) -> Profile,
+    ) -> Result<PublishedProfile> {
+        self.keys()?;
+        if let Some(job) = self.workspace.store.meta::<ProfileJob>(JOB)? {
             // Whatever became of it, the next version builds on the relay's.
             let _ = self.send_profile(job).await;
-            self.workspace.store.delete_job(JOB)?;
+            self.workspace.store.delete_meta(JOB)?;
         }
         let current = self.profile().await?;
         let profile = Profile {
             version: current.as_ref().map_or(0, |c| c.profile.version) + 1,
             prev_hash: current.as_ref().map(|c| c.hash.clone()),
-            display_name: fields.display_name.trim().into(),
-            bio: fields.bio.clone(),
-            avatar_upload: current.and_then(|c| c.profile.avatar_upload),
-            links: fields.links.clone(),
+            ..build(current.as_ref().map(|c| &c.profile))
         };
         profile.validate()?;
         let job = ProfileJob {
@@ -205,11 +334,11 @@ impl Client {
             request_id: Hash::new(crate::crypto::random_id()),
             dispatch: None,
         };
-        self.workspace.store.set_job(JOB, &job)?;
+        self.workspace.store.set_meta(JOB, &job)?;
         let version = job.profile.version;
         let sent = self.send_profile(job).await;
         if !matches!(sent, Err(Error::ExecutionUnknown)) {
-            self.workspace.store.delete_job(JOB)?;
+            self.workspace.store.delete_meta(JOB)?;
         }
         sent?;
         let published = self.profile().await?.ok_or(Error::IntegrityFailed)?;
@@ -251,7 +380,7 @@ impl Client {
                     now_ms(),
                 )?;
                 job.dispatch = Some(dispatch.clone());
-                self.workspace.store.set_job(JOB, &job)?;
+                self.workspace.store.set_meta(JOB, &job)?;
                 dispatch
             }
         };
@@ -304,5 +433,26 @@ impl Client {
         value
             .map(|value| verify_profile(&account.to_string(), &value, &security))
             .transpose()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn avatars_are_png_jpeg_or_webp_up_to_512_kib() {
+        let png = [&[137, 80, 78, 71, 13, 10, 26, 10][..], &[0; 8]].concat();
+        assert_eq!(avatar_type(&png), Ok("image/png"));
+        assert_eq!(
+            avatar_type(&[255, 216, 255, 224, 0, 0, 0, 0, 0, 0, 0, 0]),
+            Ok("image/jpeg")
+        );
+        assert_eq!(avatar_type(b"RIFF\0\0\0\0WEBPVP8 "), Ok("image/webp"));
+        assert!(avatar_type(b"GIF89a\0\0\0\0\0\0").is_err());
+        assert!(avatar_type(&png[..11]).is_err());
+        let large = [&png[..], &vec![0; MAX_AVATAR - png.len() + 1]].concat();
+        assert!(avatar_type(&large).is_err());
+        assert!(avatar_type(&large[..MAX_AVATAR]).is_ok());
     }
 }

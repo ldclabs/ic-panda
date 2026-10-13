@@ -320,6 +320,18 @@ impl Client {
         Ok(None)
     }
 
+    /// The chunks the unfinished imports already stored; a resumed import
+    /// reuses them.
+    pub(crate) fn import_chunks(&self) -> Result<Vec<String>> {
+        let mut digests = Vec::new();
+        for key in self.workspace.store.sealed_keys(JOB)? {
+            if let Some(job) = self.workspace.private::<FileJob>(self.keys()?, &key)? {
+                digests.extend(job.manifest.chunks.into_iter().map(|c| c.digest));
+            }
+        }
+        Ok(digests)
+    }
+
     /// Check every chunk of a file and its SHA-256, writing the plaintext to
     /// `out` when given.
     ///

@@ -297,6 +297,20 @@ ipcMain.handle('dmsg:channel-download', (event, id: string, seq: number, name: s
     return daemon.call('channel/download', { id: String(id), seq: Number(seq), path: picked.filePath })
   })
 )
+/** The public avatar: an image the person picks, or none. */
+ipcMain.handle('dmsg:avatar', (event, remove: boolean) =>
+  guard(async () => {
+    trust(event, 'main')
+    if (remove === true) return daemon.call('profile/avatar', { remove: true })
+    const picked = await dialog.showOpenDialog(main!, {
+      title: text.pickAvatar,
+      properties: ['openFile'],
+      filters: [{ name: text.imageFile, extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
+    })
+    if (picked.canceled || !picked.filePaths[0]) return null
+    return daemon.call('profile/avatar', { path: picked.filePaths[0] })
+  })
+)
 /** An application action its product prepared, as the canonical CBOR in a file the person picks. */
 ipcMain.handle('dmsg:attest-action', (event) =>
   guard(async () => {
@@ -469,11 +483,26 @@ function notifyEvents(data: unknown) {
   note.show()
 }
 
+/** When each kind of hint last notified, so a busy channel notifies once a minute. */
+const hinted: Record<string, number> = {}
+
+/** A locked daemon's hint: something new arrived, never from whom or what. */
+function notifyHint(data: unknown) {
+  const kind = (data as { kind?: string } | null)?.kind
+  const body = kind === 'channel' ? text.newMessages : kind === 'inbox' ? text.newLetter : null
+  if (!kind || !body || !Notification.isSupported() || Date.now() - (hinted[kind] ?? 0) < 60_000) return
+  hinted[kind] = Date.now()
+  const note = new Notification({ title: 'dMsg', body })
+  note.on('click', () => showMain(kind === 'channel' ? '/channels' : '/inbox'))
+  note.show()
+}
+
 daemon.on('event', (event: DaemonEvent) => {
   broadcast('dmsg:event', event)
   if (event.type === 'approval/changed' || event.type === 'session/changed') void refreshWaiting()
   if (event.type === 'connect/hint') void refreshWaiting(true)
   if (event.type === 'mcp-events/changed') notifyEvents(event.data)
+  if (event.type === 'hint') notifyHint(event.data)
 })
 daemon.on('state', () => broadcast('dmsg:event', { type: 'connection/changed' }))
 

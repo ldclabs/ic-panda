@@ -11,6 +11,7 @@ test('windows never decide or grant, and never send human', () => {
     'session/login',
     'file/import',
     'file/export',
+    'profile/avatar',
     'legacy/import',
     'legacy/file',
     'legacy/frozen',

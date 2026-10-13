@@ -20,7 +20,7 @@
 
 use crate::client::Client;
 use crate::cloud::{verify_command, Presigned};
-use crate::codec::{canonical, decode, sha256};
+use crate::codec::{canonical, decode, decode_value, sha256};
 use crate::content::{
     empty_file, object_container, open_manifest, read_container, record, seal_manifest,
     EncryptedObject, MAX_OBJECT, VAULT,
@@ -110,6 +110,8 @@ pub struct SyncReport {
     pub pending: u64,
     /// Conflict copies waiting for a decision.
     pub conflicts: u64,
+    /// Local chunks nothing needed any more, now deleted.
+    pub collected: u64,
 }
 
 /// The latest sync attempt.
@@ -150,6 +152,25 @@ fn record_file(kind: &str, payload: &[u8]) -> Result<Option<FileManifest>> {
 /// The parent revision of a stored version.
 fn record_parent(row: &ObjectRow) -> Option<String> {
     record(row).ok().and_then(|r| r.parent)
+}
+
+/// Every upload plan inside a sealed job, however the job nests it.
+fn plans_in(value: &cbor2::Value, plans: &mut Vec<UploadPlan>) {
+    match value {
+        cbor2::Value::Map(entries) => {
+            let named = |name: &str| entries.iter().any(|(k, _)| k.as_text() == Some(name));
+            if named("upload_id") && named("chunks") && named("manifest_digest") {
+                if let Ok(plan) = decode::<UploadPlan>(&canonical(value), MAX_OBJECT) {
+                    plans.push(plan);
+                    return;
+                }
+            }
+            entries.iter().for_each(|(_, v)| plans_in(v, plans));
+        }
+        cbor2::Value::Array(items) => items.iter().for_each(|v| plans_in(v, plans)),
+        cbor2::Value::Tag(_, inner) => plans_in(inner, plans),
+        _ => {}
+    }
 }
 
 /// Local versions, parents before the versions that replace them.
@@ -348,14 +369,14 @@ impl Client {
         }
         self.reconcile().await?;
         let mut report = SyncReport::default();
-        let snapshot = self.fetch().await?;
+        let mut snapshot = self.fetch().await?;
         if unlocked {
             report.revisions = self.apply(&snapshot)?;
         }
         report.through = snapshot.through;
         let (sent, blocked) = self.push().await?;
         if unlocked && sent + blocked > 0 {
-            let snapshot = self.fetch().await?;
+            snapshot = self.fetch().await?;
             report.revisions = self.apply(&snapshot)?;
             report.through = snapshot.through;
         }
@@ -363,7 +384,58 @@ impl Client {
         report.blocked = blocked;
         report.pending = self.workspace.store.count_in(LOCAL)?;
         report.conflicts = self.workspace.store.conflicts(VAULT)?.len() as u64;
+        if unlocked {
+            // Housekeeping: a failure keeps every chunk until the next sync.
+            report.collected = self.collect_chunks(&snapshot, now_ms()).unwrap_or(0);
+        }
         Ok(report)
+    }
+
+    /// Delete the local chunks nothing needs any more: those of versions
+    /// replaced before they were sent, of uploads that lapsed or were
+    /// abandoned, and of attachments a channel download cached. Kept are
+    /// the chunks of the relay snapshot just applied, since every pull
+    /// checks them all and would download a missing one again; of every
+    /// unsent version's job, which replans from them; of unfinished file
+    /// imports; and of each upload plan a sealed job (channels, the root)
+    /// may still send before it lapses. Returns how many were deleted.
+    fn collect_chunks(&self, snapshot: &Snapshot, now: u64) -> Result<u64> {
+        let keys = self.keys()?;
+        let mut keep: BTreeSet<String> = BTreeSet::new();
+        let mut add = |plan: &UploadPlan| {
+            keep.extend(plan.chunks.iter().map(|c| c.digest.clone()));
+            keep.insert(plan.manifest_digest.clone());
+        };
+        snapshot.plans.iter().for_each(&mut add);
+        for (_, job) in self.workspace.store.jobs::<ContentJob>()? {
+            job.file
+                .iter()
+                .chain([&job.vault])
+                .for_each(|u| add(&u.plan));
+        }
+        let mut sealed = self.workspace.store.sealed_keys(crate::channel::JOB)?;
+        sealed.push(crate::root::ROOT_JOB.into());
+        for key in sealed {
+            let Some(bytes) = self.workspace.open_sealed(keys, &key)? else {
+                continue;
+            };
+            let mut plans = Vec::new();
+            plans_in(&decode_value(&bytes, 2 * 1024 * 1024)?, &mut plans);
+            plans
+                .iter()
+                .filter(|p| p.expires_at > now)
+                .for_each(&mut add);
+        }
+        keep.extend(self.import_chunks()?);
+        let garbage: Vec<String> = self
+            .workspace
+            .store
+            .chunk_digests()?
+            .into_iter()
+            .filter(|d| !keep.contains(d))
+            .collect();
+        self.workspace.store.delete_chunks(&garbage)?;
+        Ok(garbage.len() as u64)
     }
 
     /// Submit presigned revisions whose deadline has not passed; no key is

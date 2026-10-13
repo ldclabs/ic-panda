@@ -58,6 +58,7 @@ export const WINDOW_METHODS = new Set([
   'profile/show',
   'profile/publish',
   'profile/resolve',
+  'profile/avatar_image',
   'approval/list',
   'approval/show',
   'approval/cancel',

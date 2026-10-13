@@ -284,12 +284,19 @@ impl Home {
         let _ = fs::remove_file(self.dir.join("daemon.json"));
     }
 
-    /// Hold `dmsg-daemon.lock` for this process: one daemon per home.
+    /// Hold `dmsg-daemon.lock` for this process: one daemon per home. The
+    /// home becomes its owner's only: the workspaces' metadata and the
+    /// hosted agents' room records and letters are not encrypted.
     ///
     /// # Errors
     /// Returns `Error::Locked` while another daemon holds it.
     pub fn lock(&self) -> Result<fs::File> {
         fs::create_dir_all(&self.dir).map_err(io)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&self.dir, fs::Permissions::from_mode(0o700)).map_err(io)?;
+        }
         let file = fs::OpenOptions::new()
             .create(true)
             .truncate(false)

@@ -24,8 +24,8 @@ desktop is one of its clients, like the CLI.
     actions, and exporting and verifying attestation bundles.
   - Legacy migration.
   - Settings: this device's accounts, creating or joining an account, pairing
-    and recovery, account security, devices, the public profile and connected
-    browsers.
+    and recovery, account security, devices, the public profile with its
+    avatar, and connected browsers.
 
 Rules (`src/main/policy.ts`):
 
@@ -39,7 +39,10 @@ Rules (`src/main/policy.ts`):
   - an application action's CBOR (`attest/action`) and attestation bundles
     (`attest/export`, `attest/verify`);
   - legacy transfer files, frozen-history files and old attachments
-    (`legacy/import`, `legacy/frozen`, `legacy/file`).
+    (`legacy/import`, `legacy/frozen`, `legacy/file`);
+  - the public avatar (`profile/avatar`; removing it goes the same way). A
+    window shows avatars as data URLs from `profile/avatar_image`, so it
+    loads nothing from the network.
 - `ap/call` runs only the Agent Mail and Agent Knowledge tools
   (`DESKTOP_TOOLS`) as a hosted Agent ID, in the connector session `gui`. The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for
@@ -49,6 +52,10 @@ Rules (`src/main/policy.ts`):
   never holds it, and the clipboard is cleared after 30 seconds unless
   something replaced it.
 - Revoking a device and changing its capabilities are approval requests.
+- Notifications say that something happened, never what or from whom: a web
+  request waiting, deliveries to agents, and, while the daemon is locked, a
+  channel's new messages or a new letter (the relay's `channel` and `inbox`
+  hints), each kind at most once a minute.
 - Legacy migration opens the old site (`https://dmsg.net/legacy` or
   `https://panda.fans/legacy`) only with an offer (`#pair=`) or an approval
   request (`#approve=`) in the fragment; the person compares the fingerprint,
@@ -120,8 +127,10 @@ and notifications instead of the system's. It covers:
 - signatures: an application action opened in the approval window, and a
   bundle exported and verified through dialogs;
 - settings: a login binding approved in the approval window, a device
-  revocation as an approval request, and switching to another account's
-  workspace.
+  revocation as an approval request, the avatar shown, set from a picked
+  image and removed (the window cannot name a path), the locked daemon's
+  `inbox` and `channel` hints notified once each, and switching to another
+  account's workspace.
 
 ## Packages and updates
 

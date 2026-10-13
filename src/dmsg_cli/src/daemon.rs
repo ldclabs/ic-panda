@@ -23,10 +23,13 @@
 //! `human: true`, which only the desktop approval window and an interactive
 //! terminal send. An agent's MCP session (`dmsg mcp`) presents its own
 //! credential instead of the owner's, which reaches only `mcp/tools` and
-//! `mcp/call` as that Agent ID. The daemon keeps a WebSocket to the relay's hint channel
-//! with a bearer token that receives content-free hints, locked or not: a
-//! `connect` hint fetches the mailbox, or, locked, tells the desktop to
-//! notify the user.
+//! `mcp/call` as that Agent ID. The daemon keeps a WebSocket to the relay's
+//! hint channel with a bearer token that receives content-free hints, locked
+//! or not: a `connect` hint fetches the mailbox, and a `channel` or `inbox`
+//! hint, locked, tells the desktop to notify the user.
+//!
+//! Its run log ([`crate::logs`]) names each call's method, outcome and
+//! duration, and each change of a background task's outcome.
 
 use crate::home::{Discovery, Home, Settings};
 use axum::{
@@ -40,6 +43,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use base64::Engine;
 use dmsg_client::{
     account::login_targets,
     attest::{Bundle, StatementInput},
@@ -68,7 +72,7 @@ const CONNECT_POLL_MS: u64 = 30_000;
 const APP_PROTOCOL: &str = "dmsg-app/1";
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 54] = [
+const METHODS: [&str; 56] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -97,6 +101,8 @@ const METHODS: [&str; 54] = [
     "profile/show",
     "profile/publish",
     "profile/resolve",
+    "profile/avatar",
+    "profile/avatar_image",
     "workspace/reset",
     "daemon/stop",
     "approval/list",
@@ -184,6 +190,8 @@ pub(crate) struct Daemon {
     connectors: tokio::sync::watch::Sender<u64>,
     /// MCP Events: the fetch loop's signals and upstream keys.
     mcp: crate::mcp_events::McpEvents,
+    /// The last outcome each background task logged.
+    outcomes: std::sync::Mutex<std::collections::BTreeMap<&'static str, String>>,
 }
 
 /// Who presented a credential.
@@ -220,6 +228,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
     let settings = home.settings()?;
     let _lock = home.lock()?;
+    crate::logs::open(&home.dir).map_err(|e| Error::Unavailable(format!("logs: {e}")))?;
     let token = home.owner_token(&settings, true)?;
     let client = Client::open(
         settings.config.clone(),
@@ -264,6 +273,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         agents,
         connectors: tokio::sync::watch::channel(0).0,
         mcp,
+        outcomes: Default::default(),
     });
     home.publish(&Discovery {
         port,
@@ -281,6 +291,14 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         .route("/auth/callback", get(callback_page).post(callback))
         .with_state(daemon.clone());
     eprintln!("dmsg daemon listening on 127.0.0.1:{port}");
+    crate::logs::write(
+        "daemon/start",
+        &[
+            ("version", &env!("CARGO_PKG_VERSION")),
+            ("port", &port),
+            ("pid", &std::process::id()),
+        ],
+    );
     let stopping = daemon.clone();
     let served = axum::serve(listener, app)
         .with_graceful_shutdown(async move {
@@ -293,6 +311,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         .await;
     daemon.client.lock().await.shutdown();
     home.unpublish();
+    crate::logs::write("daemon/stop", &[]);
     served.map_err(|e| Error::Unavailable(format!("serve: {e}")))
 }
 
@@ -317,6 +336,8 @@ async fn background(daemon: Arc<Daemon>) {
         }
         let status = client.status().ok();
         if status.as_ref().map(|s| s.state) != Some(before) {
+            let state = status.as_ref().map_or("unknown", |s| s.state);
+            crate::logs::write("session/changed", &[("state", &state)]);
             daemon.emit(
                 "session/changed",
                 json!({"state": status.as_ref().map(|s| s.state)}),
@@ -328,15 +349,23 @@ async fn background(daemon: Arc<Daemon>) {
         if interval > 0 && now >= synced + interval && ready {
             synced = now;
             // Recorded in the status; a failure waits for the next round.
-            if client.sync().await.is_ok() {
+            let synced = client.sync().await;
+            daemon.note("sync", &outcome(&synced));
+            if synced.is_ok() {
                 daemon.emit("sync/changed", Value::Null);
             }
         } else {
-            let _ = client.flush().await;
+            let flushed = client.flush().await;
+            daemon.note("flush", &outcome(&flushed));
+            if let Ok(settled @ 1..) = flushed {
+                crate::logs::write("flush", &[("settled", &settled)]);
+            }
         }
         if ready && now >= polled + CONNECT_POLL_MS {
             polled = now;
-            if let Ok(report) = client.connect_sync().await {
+            let report = client.connect_sync().await;
+            daemon.note("connect", &outcome(&report));
+            if let Ok(report) = report {
                 if report.fetched > 0 {
                     *daemon.last_connect.lock().expect("connect report") = Some(to_json(&report));
                 }
@@ -396,6 +425,16 @@ impl Daemon {
         }
         self.stop.notify_one();
         Ok(json!({"stopped": true, "in_flight": in_flight}))
+    }
+
+    /// Log a background task's outcome when it differs from the last one,
+    /// so a task failing every round while offline logs once.
+    pub(crate) fn note(&self, task: &'static str, outcome: &str) {
+        let mut outcomes = self.outcomes.lock().expect("outcomes");
+        if outcomes.get(task).map(String::as_str) != Some(outcome) {
+            outcomes.insert(task, outcome.to_string());
+            crate::logs::write(task, &[("outcome", &outcome)]);
+        }
     }
 
     /// Wake the background loop, such as on a hint.
@@ -707,6 +746,45 @@ impl Daemon {
                 let account = account_id(&text("account")?)?;
                 let profile = self.client.lock().await.profile_resolve(&account).await?;
                 Ok(to_json(&profile))
+            }
+            "profile/avatar" => {
+                let image = match params["remove"] == true {
+                    true => None,
+                    false => {
+                        let path = path("path")?;
+                        let size = std::fs::metadata(&path)
+                            .map_err(|e| Error::InvalidInput(format!("path: {e}")))?
+                            .len();
+                        if size > dmsg_client::profile::MAX_AVATAR as u64 {
+                            return Err(Error::InvalidInput("avatar".into()));
+                        }
+                        Some(
+                            std::fs::read(&path)
+                                .map_err(|e| Error::InvalidInput(format!("path: {e}")))?,
+                        )
+                    }
+                };
+                let profile = self
+                    .client
+                    .lock()
+                    .await
+                    .publish_avatar(image.as_deref())
+                    .await?;
+                Ok(to_json(&profile))
+            }
+            "profile/avatar_image" => {
+                let account = account_id(&text("account")?)?;
+                let image = self
+                    .client
+                    .lock()
+                    .await
+                    .avatar(&account, &text("upload")?)
+                    .await?;
+                // A data URL the desktop shows without fetching anything.
+                Ok(image.map_or(Value::Null, |(mime, bytes)| {
+                    let data = base64::engine::general_purpose::STANDARD.encode(bytes);
+                    json!({"mime": mime, "url": format!("data:{mime};base64,{data}")})
+                }))
             }
             "workspace/reset" => {
                 let mut client = self.client.lock().await;
@@ -1101,6 +1179,7 @@ impl Daemon {
         {
             self.activity.store(now_ms(), Ordering::Relaxed);
         }
+        let started = std::time::Instant::now();
         let outcome = match session {
             Session::Owner => self.call(&request.method, &request.params).await,
             Session::Agent(agent) => {
@@ -1108,6 +1187,13 @@ impl Daemon {
                     .await
             }
         };
+        log_call(
+            method,
+            &request.params,
+            agent_method,
+            &outcome,
+            started.elapsed(),
+        );
         match outcome {
             Ok(result) => {
                 for kind in events_of(&request.method) {
@@ -1127,6 +1213,66 @@ impl Daemon {
                 })
             }
         }
+    }
+}
+
+/// `ok`, or the error code.
+pub(crate) fn outcome<T>(result: &Result<T>) -> String {
+    result.as_ref().err().map_or("ok".into(), error_code)
+}
+
+/// Log a call by its method, the tool an agent ran, its outcome and how
+/// long it took; the steady polls only when they fail.
+fn log_call(
+    method: &str,
+    params: &Value,
+    agent: bool,
+    result: &Result<Value>,
+    elapsed: std::time::Duration,
+) {
+    let code = outcome(result);
+    let tool = params["tool"]
+        .as_str()
+        .filter(|_| matches!(method, "mcp/call" | "ap/call"))
+        .filter(|t| t.len() <= 64 && t.bytes().all(|b| b.is_ascii_lowercase() || b == b'_'));
+    let quiet = matches!(
+        method,
+        "session/status"
+            | "session/login_result"
+            | "daemon/status"
+            | "app/initialize"
+            | "events/poll"
+            | "hint/status"
+            | "connect/status"
+            | "sync/status"
+            | "mcp-events/poll"
+            | "mcp/changed"
+    ) || tool == Some("dmsg_events_next");
+    if quiet && code == "ok" {
+        return;
+    }
+    let by = if agent { "agent" } else { "owner" };
+    let ms = elapsed.as_millis();
+    match tool {
+        Some(tool) => crate::logs::write(
+            "call",
+            &[
+                ("method", &method),
+                ("tool", &tool),
+                ("by", &by),
+                ("outcome", &code),
+                ("ms", &ms),
+            ],
+        ),
+        None => crate::logs::write(
+            "call",
+            &[
+                ("method", &method),
+                ("by", &by),
+                ("outcome", &code),
+                ("ms", &ms),
+            ],
+        ),
     }
 }
 

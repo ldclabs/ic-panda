@@ -26,6 +26,8 @@ export interface DesktopBridge {
   login(origin: string, bind?: boolean): Promise<unknown>
   /** Import a file the person picks in a system dialog into the vault; null when cancelled. */
   importFile(): Promise<unknown>
+  /** Publish an image the person picks as the public avatar, or remove it; null when cancelled. */
+  avatar(remove: boolean): Promise<unknown>
   /** Export a vault file to a place the person picks in a system dialog; null when cancelled. */
   exportFile(id: string, name: string): Promise<unknown>
   /** Copy a vault item's secret field to the clipboard, cleared after `clear_after_ms`; the main window only. */

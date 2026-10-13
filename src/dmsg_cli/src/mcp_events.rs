@@ -253,15 +253,14 @@ impl Daemon {
         let due = client.mcp_refresh_due(now_ms()).unwrap_or_default();
         drop(client);
         let stored = report.as_ref().map_or(0, |r| r.stored);
+        self.note("mcp-events", &crate::daemon::outcome(&report));
         {
             let mut state = self.mcp().state.lock().expect("events state");
             if let Ok(report) = &report {
                 state.rejected += report.rejected;
                 if report.rejected > 0 {
-                    eprintln!(
-                        "dmsg: dropped {} MCP event deliveries whose v1a signature failed",
-                        report.rejected
-                    );
+                    // Deliveries whose v1a signature failed were dropped.
+                    crate::logs::write("mcp-events/rejected", &[("count", &report.rejected)]);
                 }
             }
             state.last = Some(match &report {

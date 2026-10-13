@@ -197,6 +197,10 @@ impl Store {
         // or metadata behind in the file.
         conn.pragma_update(None, "secure_delete", "ON")
             .map_err(storage)?;
+        // Collected chunks give their pages back to the file system; this
+        // takes effect only in a database created with it.
+        conn.pragma_update(None, "auto_vacuum", "INCREMENTAL")
+            .map_err(storage)?;
         conn.execute_batch(SCHEMA).map_err(storage)?;
         Ok(Self {
             conn: Mutex::new(conn),
@@ -895,6 +899,36 @@ impl Store {
             })
             .optional()
             .map(|r| r.is_some())
+            .map_err(storage)
+    }
+
+    /// The digests of every stored chunk.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn chunk_digests(&self) -> Result<Vec<String>> {
+        let conn = self.conn();
+        let mut statement = conn.prepare("SELECT digest FROM chunks").map_err(storage)?;
+        let rows = statement.query_map([], |r| r.get(0)).map_err(storage)?;
+        rows.collect::<rusqlite::Result<_>>().map_err(storage)
+    }
+
+    /// Delete chunks in one transaction, then give the freed pages back.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn delete_chunks(&self, digests: &[String]) -> Result<()> {
+        self.atomic(|store| {
+            for digest in digests {
+                store
+                    .conn()
+                    .execute("DELETE FROM chunks WHERE digest = ?1", [digest])
+                    .map_err(storage)?;
+            }
+            Ok(())
+        })?;
+        self.conn()
+            .execute_batch("PRAGMA incremental_vacuum")
             .map_err(storage)
     }
 }

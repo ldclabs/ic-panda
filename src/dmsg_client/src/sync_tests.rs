@@ -350,3 +350,93 @@ fn a_diverged_branch_is_one_conflict() {
         assert_eq!(titles(device, false), ["from a"]);
     }
 }
+
+#[test]
+fn collection_keeps_what_a_pull_or_an_upload_needs() {
+    let (da, db) = (TempDir::new(), TempDir::new());
+    let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
+    let mut relay = Relay::default();
+    let data: Vec<u8> = (0..(crate::files::CHUNK + 5)).map(|i| i as u8).collect();
+    let path = da.path("a.bin");
+    std::fs::write(&path, &data).unwrap();
+    let file = a.file_import(&path).unwrap();
+    a.vault_put(None, None, &item("note")).unwrap();
+    relay.accept(&mut a);
+    relay.deliver(&mut b).unwrap();
+
+    // B has an unsent edit, an unfinished import, a cached attachment and
+    // two channel uploads, one of them lapsed.
+    b.vault_put(None, None, &item("unsent")).unwrap();
+    let put = |client: &Client, bytes: &[u8]| {
+        let digest = hex::encode(*sha256(bytes));
+        client.workspace.store.put_chunk(&digest, bytes).unwrap();
+        digest
+    };
+    let cached = put(&b, b"a cached attachment");
+    let (live, lapsed, imported) = (
+        put(&b, b"an envelope"),
+        put(&b, b"a lapsed envelope"),
+        put(&b, b"an imported chunk"),
+    );
+    let now = now_ms();
+    let plan = |digest: &str, expires_at: u64| UploadPlan {
+        upload_id: random_hex(),
+        object_id: random_hex(),
+        version_id: random_hex(),
+        root_generation: 1,
+        epoch: 1,
+        control_head: Some(random_hex()),
+        kind: "envelopes".into(),
+        chunks: vec![ChunkRef {
+            digest: digest.into(),
+            size: 11,
+        }],
+        manifest_digest: random_hex(),
+        manifest_size: 1,
+        expires_at,
+    };
+    let upload = |plan: UploadPlan| json!({"plan": plan, "manifest": [], "recipients": []});
+    b.save_job(
+        "c1",
+        "rotation-key:x",
+        &json!({"groups": [upload(plan(&live, now + 60_000))]}),
+    )
+    .unwrap();
+    b.save_job(
+        "c1",
+        "file:y",
+        &json!({"upload": upload(plan(&lapsed, now - 1))}),
+    )
+    .unwrap();
+    let job = json!({
+        "manifest": {
+            "id": random_hex(),
+            "version": random_hex(),
+            "name": "big.bin",
+            "mime": "application/octet-stream",
+            "size": 2 * crate::files::CHUNK,
+            "sha256": "",
+            "chunks": [{"id": "x:y:0", "digest": imported, "size": crate::files::CHUNK}],
+            "key": "",
+        },
+        "plain": [],
+    });
+    b.workspace
+        .put_private(b.keys().unwrap(), "file-job:y", &job)
+        .unwrap();
+    assert_eq!(b.import_chunks().unwrap(), std::slice::from_ref(&imported));
+
+    assert_eq!(b.collect_chunks(&relay.snapshot(), now).unwrap(), 2);
+    let has = |digest: &str| b.workspace.store.has_chunk(digest).unwrap();
+    assert!(relay.chunks.keys().all(|d| has(d)));
+    assert!(has(&live) && has(&imported));
+    assert!(!has(&cached) && !has(&lapsed));
+    let out = db.path("a.bin");
+    b.file_export(&file.id, &out).unwrap();
+    assert_eq!(std::fs::read(&out).unwrap(), data);
+    assert_eq!(b.collect_chunks(&relay.snapshot(), now).unwrap(), 0);
+    // The unsent edit still uploads, and A reads it.
+    assert_eq!(relay.accept(&mut b), (1, 0));
+    relay.deliver(&mut a).unwrap();
+    assert!(titles(&a, false).contains(&"unsent".to_string()));
+}

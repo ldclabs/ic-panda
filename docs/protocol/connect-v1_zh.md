@@ -459,7 +459,7 @@ read / open:
 设备锁定时不持有签名私钥，无法建立需要 PoP 的连接。提示通道让锁定的设备也能知道"有事待处理"：
 
 - 设备在持有签名钥时（解锁，或开启“后台在线”）生成 32 字节随机 token，以设备命令 `dmsg/hint/token/create/v1 {token_hash, expires_at}` 登记它的 SHA-256（`POST /v1/accounts/:account/hint-tokens`，有效期不超过 30 天），token 本身存入 OS 凭据库（没有凭据库时存在工作区的明文元数据中：它只能收无内容的提示）。剩余期限不足 7 天时轮换。每台设备同时最多 2 个有效 token（轮换重叠期）。`dmsg/hint/token/revoke/v1 {token_hash}`（`POST /v1/accounts/:account/hint-tokens/revoke`）撤销 token；设备被撤销时，它的 token 全部失效。
-- 设备以 `GET /v1/hints/ws?account=<xid>` 加 `Authorization: Bearer <base64url token>` 升级为 WebSocket。服务器只发送 `{type: "hint", account, kind}`；心跳由设备发起：设备至少每 30 秒发送 `ping`，中继回 `pong`（不唤醒休眠的连接），60 秒收不到任何消息即重连。`kind` 目前为 `connect` 与 `mcp-event`（中继收到了 MCP Events 投递，见 [cloud 合同](cloud_zh.md) “MCP Events 中继端点”），预留 `channel`、`inbox`。消息不含请求 ID、origin 或任何内容。`connect` 提示只发给持有 `FormalApprove` 的设备的 token。
+- 设备以 `GET /v1/hints/ws?account=<xid>` 加 `Authorization: Bearer <base64url token>` 升级为 WebSocket。服务器只发送 `{type: "hint", account, kind}`；心跳由设备发起：设备至少每 30 秒发送 `ping`，中继回 `pong`（不唤醒休眠的连接），60 秒收不到任何消息即重连。`kind` 为 `connect`、`mcp-event`（中继收到了 MCP Events 投递，见 [cloud 合同](cloud_zh.md) “MCP Events 中继端点”）、`channel`（账户所在的某个频道有新消息；同一频道至多每 5 秒提示一次）与 `inbox`（有一封来信对收件人可见：免费来信受理时，或付费来信入账后）。消息不含请求 ID、频道、发信人、origin 或任何内容。`connect` 提示只发给持有 `FormalApprove` 的设备的 token。已解锁的设备照常经各频道的提示连接读取新消息；`channel` 与 `inbox` 主要让锁定的设备告诉用户“有新内容”。
 - 提示只是唤醒信号，设备收到后仍须用 PoP 读取。移动端推送（APNs/FCM）承载同样的内容，留到移动端阶段定义。
 
 ### 7.6 限额与保留

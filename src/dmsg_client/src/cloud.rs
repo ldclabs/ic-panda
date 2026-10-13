@@ -531,7 +531,7 @@ impl Cloud {
             .headers()
             .get(reqwest::header::CONTENT_TYPE)
             .and_then(|v| v.to_str().ok())
-            .is_some_and(|v| v.starts_with("application/octet-stream"));
+            .is_some_and(|v| v.starts_with("application/octet-stream") || v.starts_with("image/"));
         let limit = if binary { MAX_CHUNK } else { MAX_JSON };
         let mut data = Vec::new();
         while let Some(chunk) = response.chunk().await.map_err(failed)? {
@@ -613,6 +613,32 @@ impl Cloud {
             .and_then(Reply::json)
         {
             Ok(value) => Ok(Some(value)),
+            Err(Error::NotFound) => Ok(None),
+            Err(error) => Err(error),
+        }
+    }
+
+    /// The bytes of a public, unauthenticated resource under `/public/`,
+    /// such as an avatar; `None` when absent.
+    ///
+    /// # Errors
+    /// Relay errors other than `NotFound`.
+    pub async fn public_bytes(&self, path: &str) -> Result<Option<Vec<u8>>> {
+        ensure(
+            path.starts_with("/public/") && !path.contains("//") && !path.contains('\\'),
+            dmsg_types::invalid("path"),
+        )?;
+        let url = self
+            .origin
+            .join(path)
+            .map_err(|_| dmsg_types::invalid("path"))?;
+        ensure(url.origin() == self.origin.origin(), Error::Forbidden)?;
+        match self
+            .exchange(reqwest::Method::GET, url, None, None, true)
+            .await
+        {
+            Ok(Reply::Bytes(bytes)) => Ok(Some(bytes)),
+            Ok(Reply::Json(_)) => Err(Error::IntegrityFailed),
             Err(Error::NotFound) => Ok(None),
             Err(error) => Err(error),
         }

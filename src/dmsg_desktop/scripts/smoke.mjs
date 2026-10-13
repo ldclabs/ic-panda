@@ -118,6 +118,15 @@ const checkoutRequest = {
     content: { product_id: 'token-list', sku: 'pro', amount_usd_micros: '3000000', method: 'Cash' }
   }
 }
+/** A 1×1 PNG. */
+const PIXEL = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+let published = {
+  account,
+  profile: { version: 1, prev_hash: null, display_name: 'Smoke', bio: '', avatar_upload: 'a0'.repeat(32), links: [] },
+  hash: 'aa'.repeat(32),
+  device_id: '11'.repeat(32),
+  self_asserted: true
+}
 const checkouts = []
 const calls = []
 const requests = new Map([
@@ -313,7 +322,13 @@ const methods = {
     return quoted
   },
   'handle/operations': () => [],
-  'profile/show': () => null,
+  'profile/show': () => published,
+  'profile/avatar': (p) => {
+    const upload = p.remove ? null : 'a1'.repeat(32)
+    published = { ...published, profile: { ...published.profile, version: published.profile.version + 1, avatar_upload: upload } }
+    return published
+  },
+  'profile/avatar_image': () => ({ mime: 'image/png', url: `data:image/png;base64,${PIXEL}` }),
   'connect/pairings': () => [],
   'connect/sync': () => ({ fetched: 0 }),
   'channel/list': () => [channel],
@@ -767,6 +782,26 @@ try {
   await approval.waitForSelector(`text=${'12'.repeat(32)}`, { timeout: 20_000 })
   assert.equal(latest('device/revoke').params.device, '12'.repeat(32))
   await main.screenshot({ path: join(shots, 'settings.png') })
+  // The public avatar: shown from a data URL, set from a picked image,
+  // removed; the window never names a path itself.
+  await main.waitForSelector('[data-testid="profile-avatar"]')
+  await answer('__open', join(picks, 'me.png'))
+  await main.click('[data-testid="avatar-set"]')
+  await waitFor(() => latest('profile/avatar')?.params.path === join(picks, 'me.png'))
+  await main.locator('[data-testid="profile"]').screenshot({ path: join(shots, 'profile.png') })
+  await main.click('[data-testid="avatar-remove"]')
+  await waitFor(() => latest('profile/avatar')?.params.remove === true)
+  await main.waitForSelector('[data-testid="avatar-remove"]', { state: 'detached' })
+  await assert.rejects(main.evaluate(() => window.dmsg.call('profile/avatar', { path: '/etc/hosts' })), /FORBIDDEN/)
+  // A locked daemon's hints notify that something arrived, never from
+  // whom, and each kind at most once a minute.
+  const arrived = async () =>
+    (await app.evaluate(() => globalThis.__notes)).filter((n) => /letter|来信|channel messages|频道消息/.test(n))
+  emit('hint', { kind: 'inbox' })
+  emit('hint', { kind: 'inbox' })
+  emit('hint', { kind: 'channel' })
+  for (let i = 0; i < 50 && (await arrived()).length < 2; i++) await new Promise((r) => setTimeout(r, 100))
+  assert.equal((await arrived()).length, 2)
   await main.click('[data-testid="local-accounts"] >> text=/^(Switch|切换)$/')
   await waitFor(() => calls.some((c) => c.method === 'session/switch'))
   assert.deepEqual(calls.find((c) => c.method === 'session/switch').params, { account: other })

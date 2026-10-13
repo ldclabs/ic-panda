@@ -59,7 +59,7 @@ const BILLING_TRANSFER: &str = "dmsg/channel/billing/transfer/v1";
 const LOCAL: &str = "channel:";
 const LOG: &str = "channel-control:";
 const INBOX: &str = "channel-msg:";
-const JOB: &str = "channel-job:";
+pub(crate) const JOB: &str = "channel-job:";
 /// Envelopes per upload.
 const GROUP: usize = 120;
 /// How long an invitation stays open.

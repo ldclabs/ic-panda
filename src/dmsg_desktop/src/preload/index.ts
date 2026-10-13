@@ -17,6 +17,7 @@ const api: DesktopBridge = {
   login: (origin, bind) => unwrap(ipcRenderer.invoke('dmsg:login', origin, bind === true)),
   importFile: () => unwrap(ipcRenderer.invoke('dmsg:import-file')),
   exportFile: (id, name) => unwrap(ipcRenderer.invoke('dmsg:export-file', id, name)),
+  avatar: (remove) => unwrap(ipcRenderer.invoke('dmsg:avatar', remove === true)),
   copySecret: (id) => unwrap(ipcRenderer.invoke('dmsg:copy-secret', id)),
   channelDownload: (id, seq, name) => unwrap(ipcRenderer.invoke('dmsg:channel-download', id, seq, name)),
   attestAction: () => unwrap(ipcRenderer.invoke('dmsg:attest-action')),
