@@ -59,7 +59,9 @@ categories = ["web-programming"]
 license = "Apache-2.0"
 
 [workspace.dependencies]
+aes-gcm = "0.11"
 agent-protocols = { version = "0.12", default-features = false }
+axum = { version = "0.8", default-features = false }
 bytes = "1"
 base64 = "0.23"
 bs58 = "0.5"
@@ -67,6 +69,7 @@ candid = "0.10"
 cbor2 = { version = "1", features = ["derive"] }
 cose2 = "0.5"
 futures = { version = "0.3", default-features = false }
+futures-util = { version = "0.3", default-features = false }
 log = "0.4"
 serde = "1"
 serde_bytes = "0.11"
@@ -74,13 +77,20 @@ serde_json = { version = "1", features = ["preserve_order"] }
 serde_jcs = "0.2"
 structured-logger = "1"
 tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.29", default-features = false }
+reqwest = { version = "0.13", default-features = false }
+rustls = { version = "0.23", default-features = false }
 ed25519-dalek = "3"
 hex = "0.4"
+hkdf = "0.13"
 hmac = "0.13"
+hpke = { version = "0.14", default-features = false }
 http = "1"
 sha2 = "0.11"
 sha3 = "0.12"
 k256 = { version = "0.14" }
+p256 = { version = "0.14", default-features = false }
+zeroize = "1"
 num-bigint = "0.5"
 num-traits = "0.2"
 mime = "0.3"
@@ -109,6 +119,11 @@ chrono = { version = "0.4", default-features = false, features = ["std"] }
 clap = { version = "4.6", features = ["derive"] }
 ic-dummy-getrandom-for-wasm = "0.1"
 getrandom = "0.4"
+# Pinned as in anda-bot: credential-store initialization has regressed in
+# patch releases, so upgrades are validated explicitly.
+keyring = "=4.2.0"
+rusqlite = "0.40"
+toml = "1"
 url = "2.5"
 urlencoding = "2.1"
 

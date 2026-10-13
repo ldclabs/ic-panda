@@ -9,7 +9,7 @@ readme = "README.md"
 publish = false
 
 [dependencies]
-aes-gcm = "0.11"
+aes-gcm.workspace = true
 agent-protocols = { workspace = true, features = ["http-client"] }
 base64.workspace = true
 candid.workspace = true
@@ -19,23 +19,23 @@ dmsg_types = { path = "../dmsg_types" }
 ed25519-dalek.workspace = true
 getrandom = { workspace = true, features = ["sys_rng"] }
 hex.workspace = true
-hkdf = "0.13"
+hkdf.workspace = true
 hmac.workspace = true
 ic-certification.workspace = true
 ic_auth_verifier.workspace = true
-hpke = { version = "0.14", default-features = false, features = ["alloc", "aes", "x25519"] }
+hpke = { workspace = true, features = ["alloc", "aes", "x25519"] }
 ic-agent.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys.workspace = true
-p256 = { version = "0.14", default-features = false, features = ["ecdsa", "std"] }
-reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
-rusqlite = { version = "0.40", features = ["bundled"] }
+p256 = { workspace = true, features = ["ecdsa", "std"] }
+reqwest = { workspace = true, features = ["rustls"] }
+rusqlite = { workspace = true, features = ["bundled"] }
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 url.workspace = true
-zeroize = "1"
+zeroize.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true }
