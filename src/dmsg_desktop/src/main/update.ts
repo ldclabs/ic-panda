@@ -4,6 +4,7 @@
  * rotation is left unsettled (plan DT10). The desktop waits up to a minute
  * and otherwise leaves the update for later; nothing is lost either way.
  */
+import type { Text } from './text'
 
 export interface InFlight {
   approvals?: number
@@ -11,15 +12,15 @@ export interface InFlight {
   root_rotation?: boolean
 }
 
-export type Stopped = { stopped: true } | { stopped: false; busy: string }
+export type Stopped = { stopped: true } | { stopped: false; inFlight: InFlight }
 
 /** What is in flight, for people. */
-export function describe(inFlight: InFlight | undefined): string {
+export function describe(inFlight: InFlight | undefined, text: Text): string {
   const parts: string[] = []
-  if (inFlight?.approvals) parts.push(`${inFlight.approvals} approved request(s) whose outcome is not settled`)
-  if (inFlight?.account_update) parts.push('an account update whose outcome is not known')
-  if (inFlight?.root_rotation) parts.push('a root rotation')
-  return parts.join(', ')
+  if (inFlight?.approvals) parts.push(text.inFlightApprovals(inFlight.approvals))
+  if (inFlight?.account_update) parts.push(text.inFlightAccount)
+  if (inFlight?.root_rotation) parts.push(text.inFlightRoot)
+  return parts.join(text.separator)
 }
 
 /**
@@ -41,7 +42,7 @@ export async function stopForUpdate(
       return { stopped: true }
     }
     if (reply.stopped) return { stopped: true }
-    if (now() >= deadline) return { stopped: false, busy: describe(reply.in_flight) }
+    if (now() >= deadline) return { stopped: false, inFlight: reply.in_flight ?? {} }
     await sleep(2_000)
   }
 }

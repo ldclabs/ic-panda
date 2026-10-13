@@ -151,7 +151,7 @@ dmsg sync | sync status
 dmsg profile show | publish [--name N] [--bio B] [--link URL]... | resolve <account>
 dmsg reset --yes
 dmsg approvals list [--all] | show <id> | approve <id> | reject <id> | cancel <id> | quote <id> <ledger|neuron>
-dmsg attest text <text> | digest (--file F | --sha256 H) | file <path> --text T
+dmsg attest text <text> | digest (--file F | --sha256 H) | file <path> --text T | action <file|->
 dmsg attest history | usage | export <execution> -o <path> | verify <bundle> [--file F]
 dmsg device capabilities <id> --set a,b,c | formal-approve on|off | revoke <id>
 dmsg connect browsers add [--copy-link] | list | revoke <pairing>
@@ -238,6 +238,19 @@ its origin as relayed by the browser through connect.dmsg.net, the browser's
 label, the account and the payload. `attest verify` needs no daemon: it checks
 the signature, the receipt certificate under the configured root, their
 binding, the file when given, and the device's present status.
+
+`attest action` takes an application action its product prepared, as the
+canonical CBOR a page would send to `signAction`
+([app-action](../../docs/protocol/app-action.md)): the app's current
+registration must admit it and it must name this account. The origin shown
+is the action's own; nothing relays it. Approving asks the product
+authority (`inspect_app_action`) first, and a refused action fails without a
+signature; the request waits no longer than the action is valid.
+
+The CLI's own text (reviews, prompts, summaries) is in Simplified Chinese
+when the locale (`LC_ALL`, else `LC_MESSAGES`, else `LANG`) starts with `zh`,
+otherwise English; `--json` output, error codes, the daemon's messages and
+`--help` stay as they are.
 
 Channels: `create` makes the first epoch at once; a membership change leaves
 the channel at `rotation_required` until a member with `can_rotate` runs
@@ -389,7 +402,7 @@ The daemon listens on `127.0.0.1` only.
   `vault/put|edit|delete|restore|list|show|conflicts|resolve`,
   `file/import|export|verify` (absolute paths), `sync/run|status`,
   `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`,
-  `attest/request|history|usage|export|verify`,
+  `attest/request|action {action: base64url CBOR}|history|usage|export|verify`,
   `connect/invite|candidates|grant|pairings|revoke|sync|status`,
   `channel/list|show|create|invite|join|control|leave|rotate|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
   `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit`,

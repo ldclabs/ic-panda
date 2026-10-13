@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { externalAllowed, legacyAllowed, parseLink, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
+import { DESKTOP_TOOLS, externalAllowed, legacyAllowed, parseLink, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
 
 test('windows never decide or grant, and never send human', () => {
   for (const method of [
@@ -16,9 +16,12 @@ test('windows never decide or grant, and never send human', () => {
     'legacy/frozen',
     'wallet/use',
     'channel/download',
-    'channel/send_file',
+    'attest/verify',
+    'attest/action',
     'plan/refund',
-    'ap/call',
+    'mcp-events/poll',
+    'mcp-events/ack',
+    'mcp-events/bind',
     'mcp/call',
     'mcp/tools'
   ])
@@ -43,9 +46,30 @@ test('windows never decide or grant, and never send human', () => {
     'agent/register',
     'agent/retire',
     'agent/grant',
-    'agent/revoke'
+    'agent/revoke',
+    'device/capabilities',
+    'device/formal_approve',
+    'device/revoke'
   ])
     assert.equal(windowParams(method, { source: 'cli' }).source, 'gui', method)
+})
+
+test('windows run only the Mail and Knowledge tools as an Agent ID', () => {
+  assert.deepEqual(windowParams('ap/call', { agent: 'claude', tool: 'agent_protocols_mail_sync', input: {} }), {
+    agent: 'claude',
+    tool: 'agent_protocols_mail_sync',
+    input: {}
+  })
+  assert.equal(DESKTOP_TOOLS.size, 10)
+  for (const tool of [
+    'agent_protocols_room_send_message',
+    'agent_protocols_delegation_grant',
+    'agent_protocols_identity_current',
+    'dmsg_vault_read',
+    'dmsg_events_next',
+    undefined
+  ])
+    assert.throws(() => windowParams('ap/call', { tool, input: {} }), /FORBIDDEN/, String(tool))
 })
 
 test('dmsg links only navigate', () => {

@@ -1,24 +1,36 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { t } from '../i18n'
-  import { call, code, when } from '../rpc'
+  import { call, CallError, code, when } from '../rpc'
 
   let { status }: { status: any } = $props()
   let channels = $state<any[]>([])
   let selected = $state<any>(null)
   let messages = $state<any[]>([])
+  let files = $state<any[]>([])
+  let attachment = $state('')
   let text = $state('')
   let name = $state('')
   let kind = $state('collaboration')
   let account = $state('')
   let invitation = $state('')
   let joining = $state('')
+  /** A transfer packet passed between the owner's and the target's devices. */
+  let packet = $state('')
+  let handed = $state('')
+  let transferTo = $state('')
+  /** The member whose history grant is being filled in; empty when none. */
+  let history = $state({ account: '', from: 1, to: 1 })
   let error = $state('')
+  let notice = $state('')
   let busy = $state(false)
+
+  const ROLES = ['admin', 'publisher', 'member']
 
   async function attempt(work: () => Promise<void>) {
     busy = true
     error = ''
+    notice = ''
     try {
       await work()
     } catch (e) {
@@ -36,50 +48,128 @@
   }
 
   async function open(id: string) {
+    if (selected?.id !== id) {
+      handed = ''
+      history.account = ''
+    }
     selected = await call('channel/show', { id })
     messages = await call('channel/messages', { id })
+    files = (await call('vault/list', {}).catch(() => [])).filter((e: any) => e.item.type === 'file')
   }
 
-  const read = () => attempt(async () => {
-    await call('channel/sync', { id: selected.id })
-    await open(selected.id)
-  })
+  const read = () =>
+    attempt(async () => {
+      await call('channel/sync', { id: selected.id })
+      await open(selected.id)
+    })
 
-  const send = () => attempt(async () => {
-    if (!text.trim()) return
-    await call('channel/send', { id: selected.id, text })
-    text = ''
-    await open(selected.id)
-  })
+  const send = () =>
+    attempt(async () => {
+      if (!text.trim() && !attachment) return
+      if (attachment) await call('channel/send_file', { id: selected.id, item: attachment, text })
+      else await call('channel/send', { id: selected.id, text })
+      text = ''
+      attachment = ''
+      await open(selected.id)
+    })
 
-  const create = () => attempt(async () => {
-    if (!name.trim()) return
-    const created = await call('channel/create', { name, type: kind })
-    name = ''
-    channels = await call('channel/list')
-    await open(created.id)
-  })
+  /** A new file enters the vault through the system dialog, then goes with the next message. */
+  const importFile = () =>
+    attempt(async () => {
+      const entry: any = await window.dmsg.importFile()
+      if (!entry) return
+      await open(selected.id)
+      attachment = entry.id
+    })
 
-  const invite = () => attempt(async () => {
-    invitation = JSON.stringify(await call('channel/invite', { id: selected.id, account: account.trim() }))
-    account = ''
-  })
+  const download = (message: any) =>
+    attempt(async () => {
+      const manifest: any = await window.dmsg.channelDownload(selected.id, message.seq, message.file.name)
+      if (manifest) notice = `${t('verified')} · ${message.file.name} · sha256 ${String(manifest.sha256).slice(0, 16)}…`
+    })
 
-  const join = () => attempt(async () => {
-    const ledger = await call('channel/join', { invitation: JSON.parse(joining) })
-    joining = ''
-    channels = await call('channel/list')
-    await open(ledger.channel_id)
-  })
+  const create = () =>
+    attempt(async () => {
+      if (!name.trim()) return
+      const created = await call('channel/create', { name, type: kind })
+      name = ''
+      channels = await call('channel/list')
+      await open(created.id)
+    })
 
-  const rotate = () => attempt(async () => {
-    selected = await call('channel/rotate', { id: selected.id })
-  })
+  const invite = () =>
+    attempt(async () => {
+      invitation = JSON.stringify(await call('channel/invite', { id: selected.id, account: account.trim() }))
+      account = ''
+    })
 
-  const remove = (member: string) => attempt(async () => {
-    await call('channel/control', { id: selected.id, action: { type: 'remove', account: member } })
-    await open(selected.id)
-  })
+  const join = () =>
+    attempt(async () => {
+      const ledger = await call('channel/join', { invitation: JSON.parse(joining) })
+      joining = ''
+      channels = await call('channel/list')
+      await open(ledger.channel_id)
+    })
+
+  const rotate = () =>
+    attempt(async () => {
+      selected = await call('channel/rotate', { id: selected.id })
+    })
+
+  const control = (action: Record<string, unknown>) =>
+    attempt(async () => {
+      await call('channel/control', { id: selected.id, action })
+      await open(selected.id)
+    })
+
+  const leave = () =>
+    attempt(async () => {
+      await call('channel/leave', { id: selected.id })
+      notice = t('left')
+      await open(selected.id)
+    })
+
+  const reactivate = () =>
+    attempt(async () => {
+      selected = await call('channel/reactivate', { id: selected.id })
+      await open(selected.id)
+    })
+
+  /** Older epochs' keys sealed to the member's devices. */
+  const grantHistory = () =>
+    attempt(async () => {
+      await call('channel/history', { id: selected.id, account: history.account, from: Number(history.from), to: Number(history.to) })
+      notice = `${t('historyGranted')} ${history.from}–${history.to}`
+      history.account = ''
+      await open(selected.id)
+    })
+
+  /** The owner proposes; the packet goes to a device of the target, which accepts and hands it back. */
+  const propose = (method: 'channel/owner_propose' | 'channel/sponsor_propose') =>
+    attempt(async () => {
+      handed = JSON.stringify(await call(method, { id: selected.id, account: transferTo.trim() }))
+      transferTo = ''
+    })
+
+  /** A packet without an acceptance is accepted here; an accepted one is committed by the owner who proposed it. */
+  const settle = () =>
+    attempt(async () => {
+      let parsed: any
+      try {
+        parsed = JSON.parse(packet)
+      } catch {
+        throw new CallError('INVALID_INPUT: packet')
+      }
+      const owner = parsed?.format === 'dmsg-channel-owner-transfer/1'
+      if (!owner && parsed?.format !== 'dmsg-channel-sponsor/1') throw new CallError('INVALID_INPUT: packet')
+      const step = parsed.acceptance ? 'commit' : 'accept'
+      const result = await call(`channel/${owner ? 'owner' : 'sponsor'}_${step}`, { packet: parsed })
+      packet = ''
+      handed = step === 'accept' ? JSON.stringify(result) : ''
+      notice = step === 'accept' ? t('packetAccepted') : t('packetCommitted')
+      channels = await call('channel/list')
+      if (selected) await open(selected.id)
+    })
 
   onMount(() => {
     void load()
@@ -91,10 +181,14 @@
   const unlocked = $derived(status?.state === 'unlocked')
   const ledger = $derived(selected?.ledger)
   const me = $derived(status?.account)
+  const myRole = $derived(ledger?.members?.[me]?.role)
+  const owner = $derived(ledger?.owner === me)
+  const manages = $derived(owner || myRole === 'admin')
 </script>
 
 <h1>{t('channels')}</h1>
 {#if error}<p class="error" data-testid="channel-error">{error}</p>{/if}
+{#if notice}<p class="muted" data-testid="channel-notice">{notice}</p>{/if}
 <div class="columns">
   <section>
     <ul class="list card" data-testid="channel-list">
@@ -125,9 +219,21 @@
         <textarea placeholder={t('invitation')} bind:value={joining}></textarea>
         <button style="margin-top: 8px" disabled={busy || !joining.trim()} onclick={join}>{t('join')}</button>
       </div>
+      <div class="card">
+        <h2>{t('transferPacket')}</h2>
+        <p class="muted">{t('transferPacketHint')}</p>
+        <textarea placeholder={t('transferPacket')} bind:value={packet} data-testid="channel-packet"></textarea>
+        <button style="margin-top: 8px" disabled={busy || !packet.trim()} data-testid="channel-packet-settle" onclick={settle}>{t('settlePacket')}</button>
+      </div>
     {/if}
   </section>
   <section>
+    {#if handed}
+      <div class="card">
+        <p class="warn">{t('handPacket')}</p>
+        <textarea readonly data-testid="channel-handed">{handed}</textarea>
+      </div>
+    {/if}
     {#if selected}
       <div class="card">
         <div class="row spread">
@@ -136,10 +242,16 @@
         </div>
         {#if ledger}
           <p class="muted">
-            {t('epoch')} {ledger.epoch} · {ledger.status}{ledger.owner === me ? ` · ${t('owner')}` : ''}
+            {t('epoch')} {ledger.epoch} · {ledger.status}{owner ? ` · ${t('owner')}` : myRole ? ` · ${myRole}` : ''}
           </p>
           {#if ledger.status === 'rotation_required'}
             <p class="warn">{t('rotationRequired')} <button disabled={busy} onclick={rotate}>{t('rotate')}</button></p>
+          {/if}
+          {#if ledger.status === 'archived'}
+            <p class="warn">
+              {t('archivedChannel')}
+              {#if owner && unlocked}<button disabled={busy} data-testid="channel-reactivate" onclick={reactivate}>{t('reactivate')}</button>{/if}
+            </p>
           {/if}
         {/if}
         <ul class="list" data-testid="channel-messages">
@@ -147,7 +259,13 @@
             <li>
               <span class="muted mono">{message.account === me ? t('you') : message.account}</span>
               <span class="muted">{when(message.stored_at)}</span>
-              <div>{message.text}{message.file ? ` [${message.file.name}]` : ''}</div>
+              <div>{message.text}</div>
+              {#if message.file}
+                <div class="row">
+                  <span class="muted">📎 {message.file.name} ({message.file.size} bytes)</span>
+                  <button disabled={busy} onclick={() => download(message)}>{t('download')}</button>
+                </div>
+              {/if}
             </li>
           {:else}
             <li class="muted">{t('noMessages')}</li>
@@ -158,22 +276,62 @@
             <input placeholder={t('message')} bind:value={text} data-testid="channel-text" />
             <button class="primary" disabled={busy} onclick={send}>{t('send')}</button>
           </div>
+          <div class="row" style="margin-top: 8px">
+            <select bind:value={attachment} data-testid="channel-attachment">
+              <option value="">{t('noAttachment')}</option>
+              {#each files as file (file.id)}<option value={file.id}>📎 {file.item.file.name}</option>{/each}
+            </select>
+            <button disabled={busy} onclick={importFile}>{t('importFile')}</button>
+          </div>
         {/if}
       </div>
       {#if ledger}
         <div class="card">
           <h2>{t('members')}</h2>
-          <ul class="list">
+          <ul class="list" data-testid="channel-members">
             {#each Object.values(ledger.members) as any[] as member (member.account)}
-              <li class="row spread">
-                <span><span class="mono">{member.account}</span> · {member.role} · {t('epoch')} ≥ {member.joined_epoch}</span>
-                {#if ledger.owner === me && member.account !== me}
-                  <button class="danger" disabled={busy} onclick={() => remove(member.account)}>{t('remove')}</button>
+              <li>
+                <div class="row spread">
+                  <span>
+                    <span class="mono">{member.account}</span> · {member.role}{member.can_rotate ? ` · ${t('canRotate')}` : ''} · {t('epoch')} ≥ {member.joined_epoch}
+                    {#if member.history.length}<span class="muted">· {t('history')} {member.history.map((h: number[]) => `${h[0]}–${h[1]}`).join(', ')}</span>{/if}
+                  </span>
+                  {#if unlocked && member.account !== me && member.role !== 'owner'}
+                    <span class="row">
+                      {#if owner}
+                        <select
+                          value={member.role}
+                          data-testid="member-role"
+                          onchange={(e) => control({ type: 'role', account: member.account, role: e.currentTarget.value, can_rotate: member.can_rotate })}>
+                          {#each ROLES as role (role)}<option value={role}>{role}</option>{/each}
+                        </select>
+                        <button disabled={busy} onclick={() => control({ type: 'role', account: member.account, role: member.role, can_rotate: !member.can_rotate })}>
+                          {member.can_rotate ? t('noRotate') : t('allowRotate')}
+                        </button>
+                      {/if}
+                      {#if manages && member.joined_epoch > 1}
+                        <button disabled={busy} onclick={() => (history = { account: member.account, from: 1, to: member.joined_epoch - 1 })}>{t('grantHistory')}</button>
+                      {/if}
+                      {#if owner}
+                        <button class="danger" disabled={busy} onclick={() => control({ type: 'remove', account: member.account })}>{t('remove')}</button>
+                      {/if}
+                    </span>
+                  {/if}
+                </div>
+                {#if history.account === member.account}
+                  <div class="row" style="margin-top: 8px" data-testid="history-form">
+                    <span class="muted">{t('epochs')}</span>
+                    <input type="number" min="1" bind:value={history.from} style="max-width: 90px" />
+                    <span>–</span>
+                    <input type="number" min="1" bind:value={history.to} style="max-width: 90px" />
+                    <button class="primary" disabled={busy} data-testid="history-submit" onclick={grantHistory}>{t('grantHistory')}</button>
+                    <button onclick={() => (history.account = '')}>{t('cancel')}</button>
+                  </div>
                 {/if}
               </li>
             {/each}
           </ul>
-          {#if unlocked && ledger.members[me] && ['owner', 'admin'].includes(ledger.members[me].role)}
+          {#if unlocked && manages && ledger.status !== 'archived'}
             <div class="row" style="margin-top: 8px">
               <input placeholder={t('accountId')} bind:value={account} />
               <button disabled={busy || !account.trim()} onclick={invite}>{t('invite')}</button>
@@ -184,6 +342,27 @@
             {/if}
           {/if}
         </div>
+        {#if unlocked && ledger.members[me]}
+          <div class="card">
+            <h2>{t('manageChannel')}</h2>
+            {#if owner}
+              <div class="row">
+                <input placeholder={t('targetMember')} list="channel-member-ids" bind:value={transferTo} data-testid="transfer-target" />
+                <datalist id="channel-member-ids">
+                  {#each Object.keys(ledger.members).filter((a) => a !== me) as id (id)}<option value={id}></option>{/each}
+                </datalist>
+                <button disabled={busy || !transferTo.trim()} data-testid="owner-propose" onclick={() => propose('channel/owner_propose')}>{t('transferOwner')}</button>
+                <button disabled={busy || !transferTo.trim()} onclick={() => propose('channel/sponsor_propose')}>{t('transferSponsor')}</button>
+              </div>
+              <p class="muted">{t('transferHintOwner')}</p>
+              {#if ledger.status !== 'archived'}
+                <button class="danger" disabled={busy} data-testid="channel-archive" onclick={() => control({ type: 'archive' })}>{t('archive')}</button>
+              {/if}
+            {:else}
+              <button class="danger" disabled={busy} data-testid="channel-leave" onclick={leave}>{t('leave')}</button>
+            {/if}
+          </div>
+        {/if}
       {/if}
     {:else}
       <p class="muted">{t('pickChannel')}</p>
@@ -209,5 +388,8 @@
   }
   .link.active strong {
     color: var(--green);
+  }
+  select {
+    max-width: 220px;
   }
 </style>

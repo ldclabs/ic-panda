@@ -452,6 +452,51 @@ impl Client {
         self.approval_view(&request)
     }
 
+    /// Ask this device to attest an application action its product
+    /// prepared (`docs/protocol/app-action.md`), given as canonical CBOR,
+    /// as a page's `signAction` does but from this device: the current
+    /// registration must admit it and it must name this account. The
+    /// request waits in the approval center at most until the action
+    /// expires; approving asks the product authority before signing.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked, `Error::InvalidInput` for bytes
+    /// that are not an action or an action of another account, and the
+    /// admission errors of `validate_action_admission`.
+    pub async fn attest_action_request(&mut self, source: &str, bytes: &[u8]) -> Result<Json> {
+        self.keys()?;
+        let action: AppAction = dmsg_protocol::decode_canonical(bytes)
+            .map_err(|_| Error::InvalidInput("action".into()))?;
+        let account = self.account()?.clone();
+        ensure(
+            action.signing_account == account.id,
+            Error::InvalidInput("ACCOUNT_MISMATCH".into()),
+        )?;
+        let app = self.app_registration(&mut None, &action.app_id).await?;
+        let now = now_ms();
+        dmsg_protocol::app_action::validate_action_admission(&action, &app, now)?;
+        let expires_at = (now + APPROVAL_TTL_MS).min(action.expires_at_ms);
+        let request = self.approval_create(
+            source,
+            Action::AttestAction {
+                action: bytes.to_vec().into(),
+            },
+            expires_at,
+        )?;
+        self.approval_view(&request)
+    }
+
+    /// The product authority's verdict on an application action before
+    /// this device signs it (`inspect_app_action`).
+    pub(crate) async fn inspect_action(&mut self, action: &AppAction) -> Result<()> {
+        let account = self.account()?.clone();
+        let ic = self.session()?.ic.clone();
+        let inspected: Result<()> = ic
+            .update(account.home, "inspect_app_action", (account.id, action))
+            .await?;
+        inspected
+    }
+
     /// Sign an attestation for an approved request and journal it; nothing
     /// is sent yet. Needs a login: the home accepts attestations only from a
     /// Principal bound to the account.

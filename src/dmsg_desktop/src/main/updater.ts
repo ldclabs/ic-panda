@@ -9,7 +9,8 @@ import { app, dialog } from 'electron'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { autoUpdater } from 'electron-updater'
-import { stopForUpdate } from './update'
+import type { Text } from './text'
+import { describe, stopForUpdate } from './update'
 
 const CHECK_MS = 6 * 60 * 60 * 1000
 
@@ -52,14 +53,14 @@ export class Updates {
   }
 
   /** Stop the daemon once idle, then quit and install; otherwise say what holds it. */
-  async apply(call: (method: string, params: unknown) => Promise<unknown>, quit: () => void) {
+  async apply(call: (method: string, params: unknown) => Promise<unknown>, quit: () => void, text: Text) {
     if (this.state.kind !== 'ready') return
     const stopped = await stopForUpdate(call)
     if (!stopped.stopped) {
       await dialog.showMessageBox({
         type: 'info',
-        message: 'dMsg will update when its work in flight settles',
-        detail: `Still in flight: ${stopped.busy}. Unlock dMsg so it can finish, then choose Restart to Update again.`
+        message: text.updateLater,
+        detail: text.updateBusy(describe(stopped.inFlight, text))
       })
       return
     }

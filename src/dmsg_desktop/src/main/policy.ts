@@ -8,12 +8,15 @@
 
 /**
  * Methods any window may call; parameters pass through without `human`.
- * Methods that name local files (`wallet/use`, `channel/send_file`,
- * `channel/download`), refunds to named blocks and running a tool as an
- * agent (`ap/call`) stay with the CLI; files enter and leave the vault only
- * through the main process's file dialogs, as do legacy transfer files,
- * frozen-history files and old attachments. The agent methods (`mcp/*`)
- * answer only an agent's own credential.
+ * Methods that name local files (`wallet/use`, `channel/download`,
+ * `attest/verify` with a file) and refunds to named blocks stay with the CLI;
+ * files enter and leave the vault only through the main process's file
+ * dialogs, as do shared channel files, application actions, attestation
+ * bundles, legacy transfer files, frozen-history files and old attachments.
+ * `ap/call` runs only the Mail and Knowledge tools (`DESKTOP_TOOLS`) as a
+ * hosted Agent ID; the MCP Events methods only manage endpoints, never read
+ * or acknowledge deliveries. The agent methods (`mcp/*`) answer only an
+ * agent's own credential.
  */
 export const WINDOW_METHODS = new Set([
   'app/initialize',
@@ -36,6 +39,7 @@ export const WINDOW_METHODS = new Set([
   'account/recovery_delay',
   'device/pair_request',
   'device/approve',
+  'device/revoke',
   'recovery/status',
   'recovery/request',
   'recovery/complete',
@@ -75,10 +79,20 @@ export const WINDOW_METHODS = new Set([
   'channel/invite',
   'channel/join',
   'channel/control',
+  'channel/leave',
   'channel/rotate',
   'channel/send',
+  'channel/send_file',
   'channel/sync',
   'channel/messages',
+  'channel/history',
+  'channel/owner_propose',
+  'channel/owner_accept',
+  'channel/owner_commit',
+  'channel/sponsor_propose',
+  'channel/sponsor_accept',
+  'channel/sponsor_commit',
+  'channel/reactivate',
   'channel/pending',
   'channel/resume',
   'inbox/policy',
@@ -141,6 +155,12 @@ export const WINDOW_METHODS = new Set([
   'grants/list',
   'grants/add',
   'grants/revoke',
+  'ap/call',
+  'mcp-events/create',
+  'mcp-events/list',
+  'mcp-events/rotate',
+  'mcp-events/delete',
+  'mcp-events/status',
   'legacy/pair',
   'legacy/pairs',
   'legacy/cancel',
@@ -172,6 +192,7 @@ const GUI_SOURCED = new Set([
   'attest/request',
   'device/formal_approve',
   'device/capabilities',
+  'device/revoke',
   'inbox/pay',
   'plan/checkout',
   'plan/advance',
@@ -188,11 +209,26 @@ const GUI_SOURCED = new Set([
   'agent/revoke'
 ])
 
+/** The tools the Agents view runs as a hosted Agent ID: Agent Mail and Agent Knowledge. */
+export const DESKTOP_TOOLS = new Set([
+  'agent_protocols_mail_mailboxes_list',
+  'agent_protocols_mail_mailbox_publish',
+  'agent_protocols_mail_send',
+  'agent_protocols_mail_sync',
+  'agent_protocols_mail_list',
+  'agent_protocols_knowledge_submit',
+  'agent_protocols_knowledge_query',
+  'agent_protocols_knowledge_get',
+  'agent_protocols_knowledge_search',
+  'agent_protocols_knowledge_status'
+])
+
 /** The parameters a window's call reaches the daemon with. */
 export function windowParams(method: string, params: unknown): Record<string, unknown> {
   if (!WINDOW_METHODS.has(method)) throw new Error(`FORBIDDEN: ${method}`)
   const value =
     params && typeof params === 'object' && !Array.isArray(params) ? { ...(params as Record<string, unknown>) } : {}
+  if (method === 'ap/call' && !DESKTOP_TOOLS.has(String(value.tool))) throw new Error(`FORBIDDEN: ${value.tool}`)
   delete value.human
   if (GUI_SOURCED.has(method)) value.source = 'gui'
   return value

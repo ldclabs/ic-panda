@@ -2,6 +2,7 @@
 //! Payments, checkouts and name operations create approval requests, which
 //! an interactive terminal decides at once.
 
+use crate::locale::tr;
 use crate::remote::{Failure, Remote};
 use crate::{absolute, created, print};
 use clap::Subcommand;
@@ -628,10 +629,13 @@ pub async fn handle(remote: &Remote, json: bool, command: HandleCommand) -> Resu
                 .call("handle/transfer", json!({"name": name, "target": target}))
                 .await?;
             print(json, &offered, |v| {
-                format!(
-                    "On a device of {target} run:\n  dmsg handle accept {}\nthen here, within a minute of its approval:\n  dmsg handle commit {}",
+                let (token, operation) = (
                     v["token"].as_str().unwrap_or_default(),
-                    v["operation"]["id"].as_str().unwrap_or_default()
+                    v["operation"]["id"].as_str().unwrap_or_default(),
+                );
+                tr!(
+                    "On a device of {target} run:\n  dmsg handle accept {token}\nthen here, within a minute of its approval:\n  dmsg handle commit {operation}",
+                    "在 {target} 的设备上运行：\n  dmsg handle accept {token}\n批准后一分钟内在这里运行：\n  dmsg handle commit {operation}"
                 )
             });
             return Ok(());

@@ -1,6 +1,7 @@
 //! CLI commands of account workspaces, account security, recovery, payout
 //! revisions and commerce maintenance.
 
+use crate::locale::tr;
 use crate::remote::{Failure, Remote};
 use crate::{created, print, summary};
 use clap::Subcommand;
@@ -157,19 +158,20 @@ pub async fn accounts(remote: &Remote, json: bool) -> Result<(), Failure> {
             .flatten()
             .map(|a| {
                 format!(
-                    "{}{} device {}{}{}",
+                    "{}{} {} {}{}{}",
                     if a["current"] == true { "* " } else { "  " },
                     a["account"].as_str().unwrap_or_default(),
+                    tr!("device", "设备"),
                     &a["device_id"].as_str().unwrap_or_default()[..12],
                     if a["bound"] == true {
-                        ""
+                        String::new()
                     } else {
-                        " (waiting to pair or recover)"
+                        tr!(" (waiting to pair or recover)", "（等待配对或恢复）")
                     },
                     if a["fast_unlock"] == true {
-                        " fast unlock"
+                        tr!(" fast unlock", " 快速解锁")
                     } else {
-                        ""
+                        String::new()
                     }
                 )
             })
@@ -192,11 +194,13 @@ pub async fn security(
                 .await?;
             let principal = remote.status().await?["principal"].clone();
             print(json, &request, |v| {
-                format!(
-                    "login: {}\n\nOn an administrator device of the account run:\n  dmsg account bind-approve {} --principal {}\nthen here, within ten minutes of the approval:\n  dmsg account bind-accept {account}",
+                let (login, token) = (
                     principal.as_str().unwrap_or_default(),
                     v["token"].as_str().unwrap_or_default(),
-                    principal.as_str().unwrap_or_default(),
+                );
+                tr!(
+                    "login: {login}\n\nOn an administrator device of the account run:\n  dmsg account bind-approve {token} --principal {login}\nthen here, within ten minutes of the approval:\n  dmsg account bind-accept {account}",
+                    "登录：{login}\n\n在账户的一台管理员设备上运行：\n  dmsg account bind-approve {token} --principal {login}\n批准后十分钟内在这里运行：\n  dmsg account bind-accept {account}"
                 )
             });
             return Ok(());

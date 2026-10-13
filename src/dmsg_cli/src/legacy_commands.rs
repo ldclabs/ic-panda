@@ -1,6 +1,7 @@
 //! `dmsg legacy`: personal archives from the old site and the official
 //! successor of shared old channels.
 
+use crate::locale::tr;
 use crate::print;
 use crate::remote::{Failure, Remote};
 use clap::Subcommand;
@@ -261,14 +262,16 @@ pub async fn legacy(remote: &Remote, json: bool, command: LegacyCommand) -> Resu
                 .call("legacy/pair", json!({"origin": origin}))
                 .await?;
             print(json, &offer, |o| {
-                format!(
-                    "Open on the old site, in the browser that holds the old data:\n  {}\n\ndevice:      {}\nfingerprint: {}\nnonce:       {}\nvalid for ten minutes. Then:\n  dmsg legacy import <file> --nonce {} --fingerprint {} --principal <old principal>",
-                    o["link"].as_str().unwrap_or_default(),
-                    o["target"].as_str().unwrap_or_default(),
-                    o["fingerprint"].as_str().unwrap_or_default(),
-                    o["nonce"].as_str().unwrap_or_default(),
-                    o["nonce"].as_str().unwrap_or_default(),
-                    o["fingerprint"].as_str().unwrap_or_default(),
+                let text = |name: &str| o[name].as_str().unwrap_or_default().to_string();
+                let (link, device, fingerprint, nonce) = (
+                    text("link"),
+                    text("target"),
+                    text("fingerprint"),
+                    text("nonce"),
+                );
+                tr!(
+                    "Open on the old site, in the browser that holds the old data:\n  {link}\n\ndevice:      {device}\nfingerprint: {fingerprint}\nnonce:       {nonce}\nvalid for ten minutes. Then:\n  dmsg legacy import <file> --nonce {nonce} --fingerprint {fingerprint} --principal <old principal>",
+                    "在保存旧数据的浏览器中打开旧网站：\n  {link}\n\n设备：  {device}\n指纹：  {fingerprint}\nnonce： {nonce}\n十分钟内有效。然后运行：\n  dmsg legacy import <文件> --nonce {nonce} --fingerprint {fingerprint} --principal <旧 Principal>"
                 )
             });
             return Ok(());

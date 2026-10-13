@@ -28,6 +28,16 @@ export interface DesktopBridge {
   importFile(): Promise<unknown>
   /** Export a vault file to a place the person picks in a system dialog; null when cancelled. */
   exportFile(id: string, name: string): Promise<unknown>
+  /** Copy a vault item's secret field to the clipboard, cleared after `clear_after_ms`; the main window only. */
+  copySecret(id: string): Promise<{ clear_after_ms: number }>
+  /** Save a channel message's file where the person picks; null when cancelled. */
+  channelDownload(id: string, seq: number, name: string): Promise<unknown>
+  /** Ask to attest an application action from a file the person picks; the approval request, or null. */
+  attestAction(): Promise<unknown>
+  /** Verify an attestation bundle the person picks, with its original file when `withFile`; null when cancelled. */
+  verifyBundle(withFile: boolean): Promise<unknown>
+  /** Save a finished attestation's bundle where the person picks; null when cancelled. */
+  exportBundle(execution: string): Promise<{ path: string } | null>
   /** Open an old-site migration link (`/legacy#pair=` or `#approve=`) in the system browser. */
   openLegacy(link: string): Promise<void>
   /** Import a legacy transfer file the person picks in a system dialog; null when cancelled. */

@@ -11,6 +11,7 @@
 //! stopped; it then starts the new daemon and checks its version.
 
 use crate::home::Home;
+use crate::locale::tr;
 use crate::release::{self, VERSION};
 use crate::remote::{Failure, Remote};
 use serde_json::{json, Value};
@@ -88,17 +89,21 @@ pub async fn start(home: &Home, exe: &Path) -> Result<Value, Failure> {
 fn describe(in_flight: &Value) -> String {
     let mut parts = Vec::new();
     if let Some(n) = in_flight["approvals"].as_u64().filter(|n| *n > 0) {
-        parts.push(format!(
-            "{n} approved request(s) whose outcome is not settled"
+        parts.push(tr!(
+            "{n} approved request(s) whose outcome is not settled",
+            "{n} 个已批准、结果尚未确定的请求"
         ));
     }
     if in_flight["account_update"] == true {
-        parts.push("an account update whose outcome is not known".into());
+        parts.push(tr!(
+            "an account update whose outcome is not known",
+            "一次结果未知的账户更新"
+        ));
     }
     if in_flight["root_rotation"] == true {
-        parts.push("a root rotation".into());
+        parts.push(tr!("a root rotation", "一次换根"));
     }
-    parts.join(", ")
+    parts.join(&tr!(", ", "、"))
 }
 
 /// Stop the daemon once nothing is in flight, waiting up to `wait`; with
@@ -122,7 +127,7 @@ pub async fn drain(home: &Home, interrupt: bool, wait: Duration) -> Result<(), F
             ));
         }
         if !told {
-            eprintln!("Waiting for {busy}…");
+            eprintln!("{}", tr!("Waiting for {busy}…", "等待{busy}…"));
             told = true;
         }
         tokio::time::sleep(Duration::from_secs(2)).await;

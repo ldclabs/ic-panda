@@ -8,7 +8,9 @@
   let history = $state<any[]>([])
   let usage = $state<any>(null)
   let error = $state('')
+  let notice = $state('')
   let text = $state('')
+  let report = $state<any>(null)
 
   async function load() {
     error = ''
@@ -44,11 +46,44 @@
     await window.dmsg.openApproval(request.id)
   }
 
+  /** Files are picked in the main process's dialogs; the window sees only the outcome. */
+  async function picked(work: () => Promise<void>) {
+    error = ''
+    notice = ''
+    try {
+      await work()
+    } catch (e) {
+      error = `${t('error')}: ${code(e)}`
+    }
+  }
+
+  /** An action its application prepared, approved in the approval window like a page's `signAction`. */
+  const signAction = () =>
+    picked(async () => {
+      const request: any = await window.dmsg.attestAction()
+      if (request) await window.dmsg.openApproval(request.id)
+    })
+
+  const verify = (withFile: boolean) =>
+    picked(async () => {
+      report = (await window.dmsg.verifyBundle(withFile)) ?? report
+    })
+
+  const exportBundle = (execution: string) =>
+    picked(async () => {
+      const saved = await window.dmsg.exportBundle(execution)
+      if (saved) notice = `${t('bundleSaved')}: ${saved.path}`
+    })
+
+  /** What a statement says, in one line. */
+  const summary = (s: any) =>
+    s.profile === 'app_action' ? `${s.content.app_id} · ${s.content.command}` : (s.content.text ?? s.content.sha256)
+
   const label = (r: any) =>
     r.type === 'connect'
       ? `${r.detail.app_id} · ${r.detail.origin}`
       : r.type === 'attest'
-        ? `${r.detail.statement.profile}: ${r.detail.statement.content.text ?? r.detail.statement.content.sha256}`
+        ? `${r.detail.statement.profile}: ${summary(r.detail.statement)}`
         : r.type
 
   onMount(() => {
@@ -60,7 +95,8 @@
 </script>
 
 <h1>{t('approvals')}</h1>
-{#if error}<p class="muted">{error}</p>{/if}
+{#if error}<p class="muted" data-testid="approvals-error">{error}</p>{/if}
+{#if notice}<p class="muted" data-testid="approvals-notice">{notice}</p>{/if}
 <div class="card">
   <h2>{t('waiting')}</h2>
   <ul class="list" data-testid="waiting-list">
@@ -82,8 +118,39 @@
       <button class="primary" onclick={sign} data-testid="statement-submit">{t('submit')}</button>
       <button onclick={enableFormal}>{t('formal')}: {t('enable')}</button>
     </div>
+    <h3 style="margin-top: 12px">{t('appAction')}</h3>
+    <p class="muted">{t('appActionHint')}</p>
+    <button data-testid="sign-action" onclick={signAction}>{t('appActionPick')}</button>
   </div>
 {/if}
+<div class="card" data-testid="verify-bundle">
+  <h2>{t('verifyBundle')}</h2>
+  <p class="muted">{t('verifyBundleHint')}</p>
+  <div class="row">
+    <button onclick={() => verify(false)}>{t('verifyBundle')}</button>
+    <button onclick={() => verify(true)}>{t('verifyWithFile')}</button>
+  </div>
+  {#if report}
+    <dl style="margin-top: 8px" data-testid="verify-report">
+      <dt>{t('content')}</dt>
+      <dd>{report.content}</dd>
+      <dt>{t('signature')}</dt>
+      <dd>{report.signature ? t('valid') : t('invalid')} · <span class="mono">{report.key_fingerprint}</span></dd>
+      <dt>{t('account')}</dt>
+      <dd class="mono">{report.account}</dd>
+      <dt>{t('device')}</dt>
+      <dd><span class="mono">{report.device_id}</span> · {report.current}</dd>
+      <dt>{t('approvedAt')}</dt>
+      <dd>{when(report.approved_at)} · {t('securityEpoch')} {report.security_epoch}</dd>
+      <dt>{t('origin')}</dt>
+      <dd>{report.origin}</dd>
+      <dt>{t('certifiedAt')}</dt>
+      <dd>{when(report.certified_at)}</dd>
+      <dt>{t('statement')}</dt>
+      <dd>{report.statement?.profile}: {summary(report.statement)}</dd>
+    </dl>
+  {/if}
+</div>
 {#if status?.state === 'unlocked'}
   <div class="card">
     <div class="row spread">
@@ -119,8 +186,14 @@
   <ul class="list">
     {#each history as entry (entry.execution)}
       <li>
-        <div class="row spread"><span class="badge">{entry.stage}</span><span class="muted">{when(entry.created_at)}</span></div>
-        <div>{entry.statement.content.text ?? entry.statement.content.sha256}</div>
+        <div class="row spread">
+          <span class="badge">{entry.stage}</span>
+          <span class="row">
+            <span class="muted">{when(entry.created_at)}</span>
+            {#if entry.stage === 'complete'}<button onclick={() => exportBundle(entry.execution)}>{t('exportBundle')}</button>{/if}
+          </span>
+        </div>
+        <div>{summary(entry.statement)}</div>
         <div class="mono muted">{entry.origin} · {entry.execution}</div>
       </li>
     {/each}

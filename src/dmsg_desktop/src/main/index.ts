@@ -9,6 +9,7 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
   Menu,
@@ -19,12 +20,14 @@ import {
   type IpcMainInvokeEvent
 } from 'electron'
 import { readFileSync } from 'node:fs'
+import { readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import type { DaemonEvent } from '../shared/contract'
 import { Daemon, DaemonError } from './daemon'
 import { externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
+import { textFor } from './text'
 import { Updates } from './updater'
 
 const testMode = !app.isPackaged && process.env.DMSG_DESKTOP_TEST === '1'
@@ -53,7 +56,11 @@ let quitting = false
 let waiting = 0
 let pendingRoute: string | null = null
 let trayState = 'connecting'
+/** English until the app is ready and knows its locale. */
+let text = textFor('en')
 const updates = new Updates(() => updateTray(trayState))
+/** A copied secret leaves the clipboard after this long, unless something replaced it. */
+const CLEAR_MS = 30_000
 
 /** Login and pairing pages the desktop may open, from the home's configuration. */
 function pages(): { login: string[]; pairing: string[] } {
@@ -233,8 +240,8 @@ ipcMain.handle('dmsg:legacy-import', (event, nonce: string, fingerprint: string,
     const picked = await dialog.showOpenDialog(main!, {
       properties: ['openFile'],
       filters: [
-        { name: 'dMsg migration', extensions: ['dmsg-migration'] },
-        { name: 'All files', extensions: ['*'] }
+        { name: text.migrationFile, extensions: ['dmsg-migration'] },
+        { name: text.allFiles, extensions: ['*'] }
       ]
     })
     if (picked.canceled || !picked.filePaths[0]) return null
@@ -252,8 +259,8 @@ ipcMain.handle('dmsg:legacy-frozen', (event, id: string) =>
     const picked = await dialog.showOpenDialog(main!, {
       properties: ['openFile'],
       filters: [
-        { name: 'Frozen history', extensions: ['cbor'] },
-        { name: 'All files', extensions: ['*'] }
+        { name: text.frozenFile, extensions: ['cbor'] },
+        { name: text.allFiles, extensions: ['*'] }
       ]
     })
     if (picked.canceled || !picked.filePaths[0]) return null
@@ -266,6 +273,79 @@ ipcMain.handle('dmsg:legacy-file', (event, id: string, source: string, name: str
     const picked = await dialog.showSaveDialog(main!, { defaultPath: basename(String(name)) })
     if (picked.canceled || !picked.filePath) return null
     return daemon.call('legacy/file', { id: String(id), source: String(source), path: picked.filePath })
+  })
+)
+/** The secret goes from the daemon to the clipboard; the window that asked never holds it. */
+ipcMain.handle('dmsg:copy-secret', (event, id: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    const entry = (await daemon.call('vault/show', { id: String(id), reveal: true })) as { item: { secret: string } }
+    const secret = entry.item.secret
+    if (!secret) throw new DaemonError('NOT_FOUND', 'No secret field')
+    await clipboard.writeText(secret)
+    setTimeout(async () => {
+      if ((await clipboard.readText()) === secret) clipboard.clear()
+    }, CLEAR_MS)
+    return { clear_after_ms: CLEAR_MS }
+  })
+)
+ipcMain.handle('dmsg:channel-download', (event, id: string, seq: number, name: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    const picked = await dialog.showSaveDialog(main!, { defaultPath: basename(String(name)) })
+    if (picked.canceled || !picked.filePath) return null
+    return daemon.call('channel/download', { id: String(id), seq: Number(seq), path: picked.filePath })
+  })
+)
+/** An application action its product prepared, as the canonical CBOR in a file the person picks. */
+ipcMain.handle('dmsg:attest-action', (event) =>
+  guard(async () => {
+    trust(event, 'main')
+    const picked = await dialog.showOpenDialog(main!, { title: text.pickAction, properties: ['openFile'] })
+    if (picked.canceled || !picked.filePaths[0]) return null
+    const action = (await readFile(picked.filePaths[0])).toString('base64url')
+    return daemon.call('attest/action', { action, source: 'gui' })
+  })
+)
+/** Verify a bundle the person picks, with the original file of a digest or file statement when asked. */
+ipcMain.handle('dmsg:verify-bundle', (event, withFile: boolean) =>
+  guard(async () => {
+    trust(event, 'main')
+    const bundle = await dialog.showOpenDialog(main!, {
+      title: text.pickBundle,
+      properties: ['openFile'],
+      filters: [
+        { name: text.bundleFile, extensions: ['json'] },
+        { name: text.allFiles, extensions: ['*'] }
+      ]
+    })
+    if (bundle.canceled || !bundle.filePaths[0]) return null
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(await readFile(bundle.filePaths[0], 'utf8'))
+    } catch {
+      throw new DaemonError('INVALID_INPUT', 'Not an attestation bundle')
+    }
+    let file: string | undefined
+    if (withFile === true) {
+      const original = await dialog.showOpenDialog(main!, { title: text.pickOriginal, properties: ['openFile'] })
+      if (original.canceled || !original.filePaths[0]) return null
+      file = original.filePaths[0]
+    }
+    return daemon.call('attest/verify', { bundle: parsed, file })
+  })
+)
+ipcMain.handle('dmsg:export-bundle', (event, execution: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    const bundle = await daemon.call('attest/export', { execution: String(execution) })
+    const picked = await dialog.showSaveDialog(main!, {
+      defaultPath: `dmsg-attestation-${String(execution).slice(0, 12)}.json`,
+      filters: [{ name: text.bundleFile, extensions: ['json'] }]
+    })
+    if (picked.canceled || !picked.filePath) return null
+    await writeFile(picked.filePath, JSON.stringify(bundle, null, 2))
+    return { path: picked.filePath }
   })
 )
 ipcMain.handle('dmsg:pair', (event, copyLink: boolean) =>
@@ -303,7 +383,7 @@ async function refreshWaiting(hint = false) {
   }
   const now = status.approvals_waiting ?? 0
   if ((now > waiting || hint) && Notification.isSupported()) {
-    const note = new Notification({ title: 'dMsg', body: 'A request is waiting for your approval.', silent: false })
+    const note = new Notification({ title: 'dMsg', body: text.requestWaiting, silent: false })
     note.on('click', async () => {
       try {
         const list = (await daemon.call('approval/list', {})) as { id: string; state: string }[]
@@ -329,47 +409,48 @@ function updateItem(): Electron.MenuItemConstructorOptions[] {
     case 'ready':
       return [
         {
-          label: `Restart to Update to ${state.version}`,
+          label: text.restartToUpdate(state.version),
           click: () =>
             void updates.apply(
               (method, params) => daemon.call(method, params),
               () => {
                 quitting = true
                 daemon.close()
-              }
+              },
+              text
             )
         }
       ]
     case 'checking':
     case 'downloading':
-      return [{ label: state.kind === 'checking' ? 'Checking for Updates…' : 'Downloading Update…', enabled: false }]
+      return [{ label: state.kind === 'checking' ? text.checking : text.downloading, enabled: false }]
     default:
-      return [{ label: 'Check for Updates', click: () => void updates.check() }]
+      return [{ label: text.checkUpdates, click: () => void updates.check() }]
   }
 }
 
 function updateTray(state: string) {
   trayState = state
   if (!tray) return
-  tray.setToolTip(`dMsg ${app.getVersion()} — ${state}${waiting ? `, ${waiting} waiting` : ''}`)
+  tray.setToolTip(text.tooltip(app.getVersion(), text.state(state), waiting))
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: `dMsg: ${state}`, enabled: false },
-      { label: `${waiting} request(s) waiting`, click: () => showMain('/approvals') },
+      { label: `dMsg: ${text.state(state)}`, enabled: false },
+      { label: text.waiting(waiting), click: () => showMain('/approvals') },
       { type: 'separator' },
-      { label: 'Open dMsg', click: () => showMain() },
-      { label: 'Lock', click: () => void daemon.call('session/lock').catch(() => {}) },
+      { label: text.open, click: () => showMain() },
+      { label: text.lock, click: () => void daemon.call('session/lock').catch(() => {}) },
       { type: 'separator' },
       ...updateItem(),
       {
-        label: 'Open at Login',
+        label: text.openAtLogin,
         type: 'checkbox',
         checked: app.getLoginItemSettings().openAtLogin,
         click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked, args: ['--hidden'] })
       },
       { type: 'separator' },
       {
-        label: 'Quit',
+        label: text.quit,
         click: () => {
           quitting = true
           app.quit()
@@ -379,10 +460,20 @@ function updateTray(state: string) {
   )
 }
 
+/** Agents' MCP Events: how many arrived or need renewing, never from where or what. */
+function notifyEvents(data: unknown) {
+  const { stored = 0, refresh_due = 0 } = (data ?? {}) as { stored?: number; refresh_due?: number }
+  if (!(stored > 0 || refresh_due > 0) || !Notification.isSupported()) return
+  const note = new Notification({ title: 'dMsg', body: stored > 0 ? text.eventsArrived(stored) : text.refreshDue })
+  note.on('click', () => showMain('/agents'))
+  note.show()
+}
+
 daemon.on('event', (event: DaemonEvent) => {
   broadcast('dmsg:event', event)
   if (event.type === 'approval/changed' || event.type === 'session/changed') void refreshWaiting()
   if (event.type === 'connect/hint') void refreshWaiting(true)
+  if (event.type === 'mcp-events/changed') notifyEvents(event.data)
 })
 daemon.on('state', () => broadcast('dmsg:event', { type: 'connection/changed' }))
 
@@ -408,6 +499,7 @@ app.on('window-all-closed', () => {
 })
 
 app.whenReady().then(async () => {
+  text = textFor(app.getLocale())
   if (!testMode) {
     if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('dmsg', process.execPath, [resolve(process.argv[1])])
     else app.setAsDefaultProtocolClient('dmsg')

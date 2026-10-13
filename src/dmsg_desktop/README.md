@@ -7,26 +7,48 @@ desktop is one of its clients, like the CLI.
 - **Main process** (`src/main`): runs `dmsg start` (which starts the daemon
   when none runs) and gets the daemon's address and owner credential from
   `dmsg app-token`, keeps one `/ws/app/v1` connection, forwards its events,
-  owns the tray, notifications, `dmsg://` links and updates.
+  owns the tray, notifications, file dialogs, the clipboard, `dmsg://` links
+  and updates. Its text (`src/main/text.ts`) follows the app's locale,
+  Simplified Chinese or English, as the windows' does.
 - **Preload** (`src/preload`): `window.dmsg`, a narrow bridge; the credential
   never reaches a renderer.
-- **Renderer** (`src/renderer`, Svelte 5): the main window (vault with files,
-  channels, inbox, plan and names with name transfers and checkout records,
-  agents, signatures and approvals with the month's execution allowance,
-  legacy migration, and settings: this device's accounts, creating or joining
-  an account, pairing and recovery, account security, the public profile and
-  connected browsers) and the approval window.
+- **Renderer** (`src/renderer`, Svelte 5): the main window and the approval
+  window. The main window has these views:
+  - Vault: notes, logins, API credentials, keys and files; details and edits,
+    stars, and conflict copies kept or adopted.
+  - Channels: attachments, roles, history grants, leaving, archiving and
+    reopening, and ownership and billing transfers by packet.
+  - Inbox; plan and names, with name transfers and checkout records.
+  - Agents: Agent Mail, Agent Knowledge and MCP Events endpoints.
+  - Signatures and approvals: the month's execution allowance, application
+    actions, and exporting and verifying attestation bundles.
+  - Legacy migration.
+  - Settings: this device's accounts, creating or joining an account, pairing
+    and recovery, account security, devices, the public profile and connected
+    browsers.
 
 Rules (`src/main/policy.ts`):
 
 - Windows call only the methods in `WINDOW_METHODS`; `human` is stripped and
   requests the desktop starts are marked `source: "gui"`. Methods that name
-  local files (`wallet/use`, `channel/send_file`, `channel/download`),
-  refunds and running a tool as an agent (`ap/call`) stay with the CLI.
-  Vault files enter and leave only through the main process's open and save
-  dialogs (`file/import`, `file/export` with the path the person picked), as
-  do legacy transfer files, frozen-history files and old attachments
-  (`legacy/import`, `legacy/frozen`, `legacy/file`).
+  local files (`wallet/use`, `channel/download`, `attest/verify`) and refunds
+  stay with the CLI. Files enter and leave only through the main process's
+  open and save dialogs with the path the person picked:
+  - vault files (`file/import`, `file/export`) and shared channel files
+    (`channel/download`; `channel/send_file` names a vault item);
+  - an application action's CBOR (`attest/action`) and attestation bundles
+    (`attest/export`, `attest/verify`);
+  - legacy transfer files, frozen-history files and old attachments
+    (`legacy/import`, `legacy/frozen`, `legacy/file`).
+- `ap/call` runs only the Agent Mail and Agent Knowledge tools
+  (`DESKTOP_TOOLS`) as a hosted Agent ID. The MCP Events methods only manage
+  endpoints; a window never reads or acknowledges the deliveries meant for
+  agents.
+- A vault secret is shown, or copied, only after a second click. A copy goes
+  from the daemon to the clipboard through the main process, so the window
+  never holds it, and the clipboard is cleared after 30 seconds unless
+  something replaced it.
+- Revoking a device and changing its capabilities are approval requests.
 - Legacy migration opens the old site (`https://dmsg.net/legacy` or
   `https://panda.fans/legacy`) only with an offer (`#pair=`) or an approval
   request (`#approve=`) in the fragment; the person compares the fingerprint,
@@ -62,7 +84,9 @@ Rules (`src/main/policy.ts`):
   the tray and the daemon; quitting does not stop the daemon.
 
 Notifications say only that a request waits, never from where; clicking one
-opens the approval window.
+opens the approval window. For agents' MCP Events they say how many
+deliveries arrived, or that a subscription needs renewing, never what or
+from where; clicking one opens the Agents view.
 
 ```sh
 pnpm --dir src/dmsg_desktop dev        # needs a dmsg binary on PATH or DMSG_BIN
@@ -71,13 +95,30 @@ pnpm --dir src/dmsg_desktop test:e2e   # build, then the Playwright-for-Electron
 ```
 
 The smoke test runs the built app in a temporary profile against a mock
-daemon: the main window, a `dmsg://` link opening the approval window,
-refusal of decisions from the main window, the exact decision the approval
-window sends, a channel read and send, the inbox, a subscription that
-reaches the daemon only as a desktop-sourced approval request, an agent
-grant whose approval window shows the agent it names, a web checkout that
-cannot be approved before it is quoted, a login binding approved in the
-approval window, and switching to another account's workspace.
+daemon. It answers the main process's file dialogs and watches its clipboard
+and notifications instead of the system's. It covers:
+
+- the main window, a `dmsg://` link opening the approval window, refusal of
+  decisions from the main window and the exact decision the approval window
+  sends;
+- channels: a read and a send, an attachment from the vault, a download, a
+  role change, a history grant, an ownership proposal, archiving and
+  reopening;
+- the inbox, and a subscription that reaches the daemon only as a
+  desktop-sourced approval request;
+- agents: a grant whose approval window shows the agent it names, mail read
+  and answered as an Agent ID, a refused non-Mail tool, an MCP Events
+  endpoint whose secret shows once, and a delivery notification without its
+  content;
+- a web checkout that cannot be approved before it is quoted;
+- the vault: a secret shown and copied only after confirmation, an edit that
+  names the version it replaces, a new login item and an adopted conflict
+  copy;
+- signatures: an application action opened in the approval window, and a
+  bundle exported and verified through dialogs;
+- settings: a login binding approved in the approval window, a device
+  revocation as an approval request, and switching to another account's
+  workspace.
 
 ## Packages and updates
 

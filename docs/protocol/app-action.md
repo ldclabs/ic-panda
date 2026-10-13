@@ -145,7 +145,11 @@ receipt (schema 2) machinery as document attestation.
    requires the next `config_version`, so in-flight actions prepared against the old
    version fail admission.
 3. Build `AppAction` with the schema digest and call `signAction` from the
-   registered origin.
+   registered origin. An application on the user's computer can instead hand
+   the action's canonical CBOR to the device (`dmsg attest action <file>`, or
+   the desktop's signature page). The device admits it against the current
+   registration, asks the product authority with `inspect_app_action` before
+   it signs, and shows the action's own origin, which nothing relays.
 
 ## Regression evidence
 

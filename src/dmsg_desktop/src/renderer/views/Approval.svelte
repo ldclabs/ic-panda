@@ -57,7 +57,8 @@
     })
   })
   const d = $derived(request?.detail ?? {})
-  const s = $derived(d.statement ?? d.content?.statement)
+  /** A statement to sign: this device's own, or a page's document or action. */
+  const s = $derived(d.statement ?? d.content?.statement ?? (d.method === 'signAction' ? d.content : null))
   /** Terms of a checkout: a web checkout's quote, or this device's own. */
   const terms = $derived(request?.type === 'connect' ? d.checkout : request?.type === 'checkout' ? d : null)
   const changes: Record<string, string> = {
@@ -77,7 +78,9 @@
     {request.type === 'connect'
       ? d.app_id
       : request.type === 'attest'
-        ? t('newStatement')
+        ? s?.profile === 'app_action'
+          ? t('appAction')
+          : t('newStatement')
         : request.type === 'checkout'
           ? t('payPlan')
           : request.type === 'letter'
@@ -230,8 +233,20 @@
         {#if s.subject}<dt>{t('subject')}</dt><dd>{s.subject}</dd>{/if}
         {#if s.content?.text}<dt>{t('statement')}</dt><dd data-testid="approval-text">{s.content.text}</dd>{/if}
         {#if s.content?.sha256}<dt>sha256</dt><dd class="mono">{s.content.sha256}</dd>{/if}
+        {#if s.profile === 'app_action'}
+          <dt>{t('application')}</dt>
+          <dd data-testid="approval-app">{s.content.app_id}</dd>
+          <dt>{t('command')}</dt>
+          <dd data-testid="approval-command">{s.content.command}</dd>
+          {#each s.content.args as arg (arg.name)}<dt class="mono">{arg.name}</dt><dd class="mono">{arg.value}</dd>{/each}
+          <dt>{t('operation')}</dt>
+          <dd class="mono">{s.content.operation_id}</dd>
+          <dt>{t('expires')}</dt>
+          <dd>{when(s.content.expires_at)}</dd>
+        {/if}
         {#if d.origin && request.type === 'attest'}<dt>{t('origin')}</dt><dd>{d.origin}</dd>{/if}
       </dl>
+      {#if s.profile === 'app_action'}<p class="warn">{t('appActionWarn')}</p>{/if}
       {#if s.content?.sha256}
         <p class={d.file_checked ? 'muted' : 'warn'}>
           {d.file ? (d.file_checked ? t('fileChecked') : t('fileChanged')) : t('digestOnly')}

@@ -15,6 +15,7 @@ mod home;
 mod legacy_commands;
 mod legacy_methods;
 mod lifecycle;
+mod locale;
 mod mcp;
 mod mcp_events;
 mod methods;
@@ -24,6 +25,7 @@ mod secure;
 
 use clap::{Args, Parser, Subcommand};
 use home::Home;
+use locale::{row, tr};
 use remote::{Failure, Remote};
 use serde_json::{json, Value};
 use std::io::{IsTerminal, Read};
@@ -307,6 +309,12 @@ enum AttestCommand {
         #[command(flatten)]
         fields: StatementFields,
     },
+    /// Sign an application action its product prepared: the action's
+    /// canonical CBOR, as a page's `signAction` would send it.
+    Action {
+        /// The file holding the action, or `-` for standard input.
+        path: PathBuf,
+    },
     /// Finished and pending attestations.
     History,
     /// This month's formal-execution allowance and the archived months.
@@ -563,7 +571,10 @@ enum VaultCommand {
 fn read_secret() -> Result<String, Failure> {
     let mut secret = String::new();
     if std::io::stdin().is_terminal() {
-        eprintln!("Secret (end with Ctrl-D):");
+        eprintln!(
+            "{}",
+            tr!("Secret (end with Ctrl-D):", "秘密字段（按 Ctrl-D 结束）：")
+        );
     }
     std::io::stdin()
         .read_to_string(&mut secret)
@@ -605,15 +616,13 @@ fn entry_lines(list: &Value) -> String {
                 e["id"].as_str().unwrap_or_default(),
                 e["item"]["title"].as_str().unwrap_or_default(),
                 if e["synced"] == true {
-                    ""
+                    String::new()
                 } else {
-                    " (not synced)"
+                    tr!(" (not synced)", "（未同步）")
                 },
                 if e["conflict"] == true {
-                    format!(
-                        " (conflict copy {})",
-                        e["revision"].as_str().unwrap_or_default()
-                    )
+                    let revision = e["revision"].as_str().unwrap_or_default();
+                    tr!(" (conflict copy {revision})", "（冲突副本 {revision}）")
                 } else {
                     String::new()
                 }
@@ -652,68 +661,95 @@ fn render(request: &Value) -> String {
         Value::Null => "-".into(),
         other => other.to_string(),
     };
+    let this_device = |d: &Value| match d["this_device"] == true {
+        true => tr!(" (this device)", "（本设备）"),
+        false => String::new(),
+    };
     let d = &request["detail"];
     let mut lines = vec![
-        format!("request   {}", field(&request["id"])),
-        format!("from      {}", field(&request["source"])),
-        format!("state     {}", field(&request["state"])),
-        format!("expires   {}", field(&request["expires_at"])),
+        row("request", "请求", field(&request["id"])),
+        row("from", "来源", field(&request["source"])),
+        row("state", "状态", field(&request["state"])),
+        row("expires", "期限", field(&request["expires_at"])),
     ];
     match request["type"].as_str() {
         Some("attest") => {
             let s = &d["statement"];
-            lines.push(format!(
-                "sign      {} statement as {}",
-                field(&s["profile"]),
-                field(&s["issuer"])
+            let (profile, issuer) = (field(&s["profile"]), field(&s["issuer"]));
+            lines.push(row(
+                "sign",
+                "签署",
+                tr!(
+                    "{profile} statement as {issuer}",
+                    "{profile} 声明，签发者 {issuer}"
+                ),
             ));
-            lines.push(format!("origin    {}", field(&d["origin"])));
+            lines.push(row("origin", "网站", field(&d["origin"])));
             if !s["subject"].is_null() {
-                lines.push(format!("subject   {}", field(&s["subject"])));
+                lines.push(row("subject", "主题", field(&s["subject"])));
             }
-            for name in ["text", "sha256", "content_type", "location"] {
+            for name in [
+                "text",
+                "sha256",
+                "content_type",
+                "location",
+                "app_id",
+                "command",
+                "args",
+                "operation_id",
+            ] {
                 if !s["content"][name].is_null() {
                     lines.push(format!("{name:<9} {}", field(&s["content"][name])));
                 }
             }
-            match (d["file"].as_str(), d["file_checked"].as_bool()) {
-                (Some(path), Some(true)) => {
-                    lines.push(format!("file      {path} (digest matches)"))
-                }
-                (Some(path), _) => lines.push(format!("file      {path} (CHANGED or unreadable)")),
-                (None, _) if !s["content"]["sha256"].is_null() => lines.push(
-                    "file      only the digest is confirmed; the file was not checked".into(),
+            let file = match (d["file"].as_str(), d["file_checked"].as_bool()) {
+                (Some(path), Some(true)) => tr!("{path} (digest matches)", "{path}（摘要一致）"),
+                (Some(path), _) => tr!(
+                    "{path} (CHANGED or unreadable)",
+                    "{path}（已变化或无法读取）"
                 ),
-                _ => {}
+                (None, _) if !s["content"]["sha256"].is_null() => tr!(
+                    "only the digest is confirmed; the file was not checked",
+                    "仅确认摘要，未核对原文件"
+                ),
+                _ => String::new(),
+            };
+            if !file.is_empty() {
+                lines.push(row("file", "文件", file));
             }
         }
         Some("device_revoke") => {
-            lines.push(format!(
-                "revoke    device {}{}; the content root is rotated without it",
-                field(&d["device_id"]),
-                if d["this_device"] == true {
-                    " (this device)"
-                } else {
-                    ""
-                }
+            let (device, mark) = (field(&d["device_id"]), this_device(d));
+            lines.push(row(
+                "revoke",
+                "撤销",
+                tr!(
+                    "device {device}{mark}; the content root is rotated without it",
+                    "设备 {device}{mark}；随后换根，它不再能读取",
+                ),
             ));
         }
         Some("device_capabilities") => {
-            lines.push(format!(
-                "change    capabilities of device {}{}",
-                field(&d["device_id"]),
-                if d["this_device"] == true {
-                    " (this device)"
-                } else {
-                    ""
-                }
+            let (device, mark) = (field(&d["device_id"]), this_device(d));
+            lines.push(row(
+                "change",
+                "变更",
+                tr!(
+                    "capabilities of device {device}{mark}",
+                    "设备 {device}{mark} 的能力"
+                ),
             ));
-            lines.push(format!("to        {}", field(&d["capabilities"])));
+            lines.push(row("to", "改为", field(&d["capabilities"])));
         }
         Some("principal") => {
-            lines.push(format!(
-                "principal {} — an account change, published by the user home",
-                field(&d["change"])
+            let change = field(&d["change"]);
+            lines.push(row(
+                "principal",
+                "主体",
+                tr!(
+                    "{change} — an account change, published by the user home",
+                    "{change}：账户变更，由 user home 发布",
+                ),
             ));
             for name in [
                 "principal_type",
@@ -733,10 +769,14 @@ fn render(request: &Value) -> String {
         }
         Some("delegation") => {
             let k = &d["kind"];
-            lines.push(format!(
-                "sign      delegation.{} with controller #{}",
-                field(&k["type"]),
-                field(&d["generation"])
+            let (kind, generation) = (field(&k["type"]), field(&d["generation"]));
+            lines.push(row(
+                "sign",
+                "签署",
+                tr!(
+                    "delegation.{kind} with controller #{generation}",
+                    "用 controller #{generation} 签署 delegation.{kind}",
+                ),
             ));
             for name in [
                 "id",
@@ -751,74 +791,97 @@ fn render(request: &Value) -> String {
                     lines.push(format!("{name:<9} {}", field(&k[name])));
                 }
             }
-            lines.push("          relying parties may act on a grant before its revocation".into());
+            lines.push(row(
+                "",
+                "",
+                tr!(
+                    "relying parties may act on a grant before its revocation",
+                    "撤销生效前，依赖方仍可能依据授权行事",
+                ),
+            ));
         }
         Some("connect") => {
-            lines.push(format!(
-                "web app   {} (version {})",
-                field(&d["app_id"]),
-                field(&d["app_version"])
+            let (app, version) = (field(&d["app_id"]), field(&d["app_version"]));
+            lines.push(row(
+                "web app",
+                "网页应用",
+                tr!("{app} (version {version})", "{app}（版本 {version}）"),
             ));
-            lines.push(format!("origin    {}", field(&d["origin"])));
-            lines.push(
-                "          the origin is relayed by your browser through connect.dmsg.net".into(),
-            );
-            lines.push(format!("browser   {}", field(&d["pairing_label"])));
-            lines.push(format!("account   {}", field(&d["account"])));
-            lines.push(format!(
-                "method    {} ({})",
-                field(&d["method"]),
-                field(&d["kind"])
+            lines.push(row("origin", "网站", field(&d["origin"])));
+            lines.push(row(
+                "",
+                "",
+                tr!(
+                    "the origin is relayed by your browser through connect.dmsg.net",
+                    "来源由浏览器经 connect.dmsg.net 转述",
+                ),
             ));
-            lines.push(format!("requested {}", field(&d["requested_at"])));
-            lines.push(format!(
-                "content   {}",
-                serde_json::to_string_pretty(&d["content"]).unwrap_or_default()
+            lines.push(row("browser", "浏览器", field(&d["pairing_label"])));
+            lines.push(row("account", "账户", field(&d["account"])));
+            lines.push(row(
+                "method",
+                "方法",
+                format!("{} ({})", field(&d["method"]), field(&d["kind"])),
+            ));
+            lines.push(row("requested", "发起时间", field(&d["requested_at"])));
+            lines.push(row(
+                "content",
+                "内容",
+                serde_json::to_string_pretty(&d["content"]).unwrap_or_default(),
             ));
             if d["method"] == "checkout" {
-                match d["checkout"].is_null() {
-                    true => lines.push(
-                        "terms     not quoted: run dmsg approvals quote <id> <ledger or neuron>"
-                            .into(),
-                    ),
-                    false => lines.push(format!(
-                        "terms     {}",
-                        serde_json::to_string_pretty(&d["checkout"]).unwrap_or_default()
-                    )),
-                }
+                lines.push(row(
+                    "terms",
+                    "条款",
+                    match d["checkout"].is_null() {
+                        true => tr!(
+                            "not quoted: run dmsg approvals quote <id> <ledger or neuron>",
+                            "尚未报价：运行 dmsg approvals quote <id> <账本或神经元>",
+                        ),
+                        false => serde_json::to_string_pretty(&d["checkout"]).unwrap_or_default(),
+                    },
+                ));
             }
         }
         Some("account") => {
+            let principal = field(&d["principal"]);
             let change = match d["change"].as_str() {
-                Some("bind_login") => format!(
-                    "bind login {} to the account; it signs in to every device's data",
-                    field(&d["principal"])
+                Some("bind_login") => tr!(
+                    "bind login {principal} to the account; it signs in to every device's data",
+                    "把登录 {principal} 绑定到账户；它可以登录并读取所有设备的数据",
                 ),
-                Some("remove_login") => format!("remove login {}", field(&d["principal"])),
-                Some("policy") => format!(
-                    "signing policy: frozen {}, {} executions a day, purposes {}",
-                    field(&d["frozen"]),
-                    field(&d["daily_executions"]),
-                    field(&d["allowed_purposes"])
-                ),
-                Some("recovery_delay") => format!(
-                    "recovery delay {} days",
-                    d["delay_ms"].as_u64().unwrap_or(0) / 86_400_000
-                ),
+                Some("remove_login") => tr!("remove login {principal}", "移除登录 {principal}"),
+                Some("policy") => {
+                    let (frozen, daily, purposes) = (
+                        field(&d["frozen"]),
+                        field(&d["daily_executions"]),
+                        field(&d["allowed_purposes"]),
+                    );
+                    tr!(
+                        "signing policy: frozen {frozen}, {daily} executions a day, purposes {purposes}",
+                        "签名策略：冻结 {frozen}，每天 {daily} 次执行，用途 {purposes}",
+                    )
+                }
+                Some("recovery_delay") => {
+                    let days = d["delay_ms"].as_u64().unwrap_or(0) / 86_400_000;
+                    tr!("recovery delay {days} days", "恢复等待期 {days} 天")
+                }
                 Some("dispute_recovery") => {
-                    format!("cancel the pending recovery {}", field(&d["op_id"]))
+                    let op = field(&d["op_id"]);
+                    tr!("cancel the pending recovery {op}", "取消待生效的恢复 {op}")
                 }
                 _ => field(&d["change"]),
             };
-            lines.push(format!("change    {change}"));
+            lines.push(row("change", "变更", change));
         }
-        _ => lines.push(format!(
-            "detail    {}",
-            serde_json::to_string_pretty(d).unwrap_or_default()
+        _ => lines.push(row(
+            "detail",
+            "详情",
+            serde_json::to_string_pretty(d).unwrap_or_default(),
         )),
     }
     if !request["error"].is_null() {
-        lines.push(format!("error     {}", field(&request["error"])));
+        lines.push(row("error", "错误", field(&request["error"])));
     }
     lines.join("\n")
 }
@@ -845,7 +908,12 @@ async fn decide(remote: &Remote, request: &Value, approve: Option<bool>) -> Resu
     println!("{}", render(request));
     let approve = match approve {
         Some(false) => false,
-        _ => match ask("\nApprove this request? Type yes to approve, no to reject: ").as_str() {
+        _ => match ask(&tr!(
+            "\nApprove this request? Type yes to approve, no to reject: ",
+            "\n批准这个请求？输入 yes 批准，no 拒绝："
+        ))
+        .as_str()
+        {
             "yes" => true,
             "no" => false,
             _ => {
@@ -869,10 +937,10 @@ async fn decide(remote: &Remote, request: &Value, approve: Option<bool>) -> Resu
 async fn created(remote: &Remote, json: bool, request: Value) -> Result<(), Failure> {
     if !interactive(json) {
         print(json, &request, |r| {
-            format!(
-                "request {} waits in the approval center: dmsg approvals approve {}",
-                r["id"].as_str().unwrap_or_default(),
-                r["id"].as_str().unwrap_or_default()
+            let id = r["id"].as_str().unwrap_or_default();
+            tr!(
+                "request {id} waits in the approval center: dmsg approvals approve {id}",
+                "请求 {id} 在审批中心等待确认：dmsg approvals approve {id}"
             )
         });
         return Ok(());
@@ -883,7 +951,7 @@ async fn created(remote: &Remote, json: bool, request: Value) -> Result<(), Fail
         decided["state"].as_str().unwrap_or_default(),
         decided["execution"]
             .as_str()
-            .map(|e| format!("; execution {e}"))
+            .map(|e| tr!("; execution {e}", "；执行 {e}"))
             .unwrap_or_default()
     );
     Ok(())
@@ -919,7 +987,15 @@ fn main() {
                     json!({"error": {"code": failure.code, "message": failure.message}})
                 );
             } else {
-                eprintln!("error: {} ({})", failure.message, failure.code);
+                eprintln!(
+                    "{}",
+                    tr!(
+                        "error: {} ({})",
+                        "错误：{}（{}）",
+                        failure.message,
+                        failure.code
+                    )
+                );
             }
             1
         }
@@ -935,28 +1011,44 @@ fn print(json: bool, value: &Value, human: impl FnOnce(&Value) -> String) {
     }
 }
 
+/// A file's checked digest.
+fn verified(manifest: &Value) -> String {
+    let (sha256, size) = (
+        manifest["sha256"].as_str().unwrap_or_default(),
+        &manifest["size"],
+    );
+    tr!(
+        "verified {sha256} ({size} bytes)",
+        "已核对 {sha256}（{size} 字节）"
+    )
+}
+
 fn pretty(value: &Value) -> String {
     serde_json::to_string_pretty(value).unwrap_or_default()
 }
 
 fn summary(status: &Value) -> String {
     let field = |name: &str| status[name].as_str().unwrap_or("-").to_string();
-    format!(
-        "state: {}\naccount: {}\ndevice: {}\nlogin: {}\nroot generation: {}\npending sync: {}\nconflicts: {}{}",
+    let (state, account, device, login) = (
         field("state"),
         field("account"),
         field("device_id"),
         field("principal"),
-        status["root_generation"]
-            .as_u64()
-            .map_or("-".into(), |g| g.to_string()),
-        status["pending_sync"],
-        status["conflicts"],
-        if status["resident"] == true {
-            "\nbackground online: the device key stays while locked"
-        } else {
-            ""
-        }
+    );
+    let generation = status["root_generation"]
+        .as_u64()
+        .map_or("-".into(), |g| g.to_string());
+    let (pending, conflicts) = (&status["pending_sync"], &status["conflicts"]);
+    let resident = match status["resident"] == true {
+        true => tr!(
+            "\nbackground online: the device key stays while locked",
+            "\n后台在线：锁定时设备密钥仍驻留"
+        ),
+        false => String::new(),
+    };
+    tr!(
+        "state: {state}\naccount: {account}\ndevice: {device}\nlogin: {login}\nroot generation: {generation}\npending sync: {pending}\nconflicts: {conflicts}{resident}",
+        "状态：{state}\n账户：{account}\n设备：{device}\n登录：{login}\n内容根代数：{generation}\n待同步：{pending}\n冲突：{conflicts}{resident}"
     )
 }
 
@@ -996,28 +1088,44 @@ async fn lifecycle_command(
         Command::Install { dir } => release::install(dir.clone()).map(|report| {
             print(json, &report, |r| {
                 let (path, version) = (r["path"].as_str().unwrap_or_default(), &r["version"]);
-                let version = version.as_str().unwrap_or("of unknown version");
+                let version = version
+                    .as_str()
+                    .map_or_else(|| tr!("of unknown version", "（版本未知）"), str::to_string);
                 let mut text = match r["action"].as_str().unwrap_or_default() {
-                    "installed" => format!("Installed dmsg {version} at {path}."),
-                    "upgraded" => format!("Upgraded dmsg at {path} to {version}; run `dmsg restart` to use it."),
-                    "kept_newer" => format!("Kept the newer dmsg {version} at {path}."),
-                    "homebrew" => format!("Homebrew's dmsg {version} at {path} stays; update it with `brew upgrade dmsg`."),
-                    _ => format!("dmsg {version} is already installed at {path}."),
+                    "installed" => tr!("Installed dmsg {version} at {path}.", "已在 {path} 安装 dmsg {version}。"),
+                    "upgraded" => tr!(
+                        "Upgraded dmsg at {path} to {version}; run `dmsg restart` to use it.",
+                        "已把 {path} 的 dmsg 升级到 {version}；运行 `dmsg restart` 后生效。"
+                    ),
+                    "kept_newer" => tr!("Kept the newer dmsg {version} at {path}.", "保留 {path} 中更新的 dmsg {version}。"),
+                    "homebrew" => tr!(
+                        "Homebrew's dmsg {version} at {path} stays; update it with `brew upgrade dmsg`.",
+                        "{path} 的 dmsg {version} 由 Homebrew 管理，保持不变；用 `brew upgrade dmsg` 更新。"
+                    ),
+                    _ => tr!("dmsg {version} is already installed at {path}.", "dmsg {version} 已安装在 {path}。"),
                 };
                 if r["on_path"] != true {
-                    text.push_str("\nAdd its directory to PATH to run `dmsg` from any terminal.");
+                    text.push_str(&tr!(
+                        "\nAdd its directory to PATH to run `dmsg` from any terminal.",
+                        "\n把它所在的目录加入 PATH，即可在任意终端运行 `dmsg`。"
+                    ));
                 }
                 text
             })
         }),
         Command::Update { check: true, .. } => lifecycle::check().await.map(|state| {
-            print(json, &state, |s| match s["available"] == true {
-                true => format!(
-                    "dmsg {} is installed; {} is available. Run `dmsg update`.",
+            print(json, &state, |s| {
+                let (current, latest) = (
                     s["current"].as_str().unwrap_or_default(),
-                    s["latest"].as_str().unwrap_or_default()
-                ),
-                false => format!("dmsg {} is up to date.", s["current"].as_str().unwrap_or_default()),
+                    s["latest"].as_str().unwrap_or_default(),
+                );
+                match s["available"] == true {
+                    true => tr!(
+                        "dmsg {current} is installed; {latest} is available. Run `dmsg update`.",
+                        "已安装 dmsg {current}，可更新到 {latest}。运行 `dmsg update`。"
+                    ),
+                    false => tr!("dmsg {current} is up to date.", "dmsg {current} 已是最新版本。"),
+                }
             })
         }),
         Command::Update {
@@ -1028,15 +1136,20 @@ async fn lifecycle_command(
         } => lifecycle::update(home, *force, *interrupt, Duration::from_secs(*wait))
             .await
             .map(|reply| {
-                print(json, &reply, |r| match r["updated"] == true {
-                    true => format!(
-                        "Updated dmsg {} to {} at {}{}",
-                        r["from"].as_str().unwrap_or_default(),
-                        r["to"].as_str().unwrap_or_default(),
-                        r["path"].as_str().unwrap_or_default(),
-                        if r["restarted"] == true { "; the daemon restarted, unlock it again." } else { "." }
-                    ),
-                    false => format!("dmsg {} is up to date.", r["current"].as_str().unwrap_or_default()),
+                print(json, &reply, |r| {
+                    let text = |name: &str| r[name].as_str().unwrap_or_default().to_string();
+                    let (from, to, path, current) = (text("from"), text("to"), text("path"), text("current"));
+                    match (r["updated"] == true, r["restarted"] == true) {
+                        (true, true) => tr!(
+                            "Updated dmsg {from} to {to} at {path}; the daemon restarted, unlock it again.",
+                            "已把 {path} 的 dmsg 从 {from} 更新到 {to}；daemon 已重启，请再次解锁。"
+                        ),
+                        (true, false) => tr!(
+                            "Updated dmsg {from} to {to} at {path}.",
+                            "已把 {path} 的 dmsg 从 {from} 更新到 {to}。"
+                        ),
+                        (false, _) => tr!("dmsg {current} is up to date.", "dmsg {current} 已是最新版本。"),
+                    }
                 })
             }),
         Command::Autostart(command) => {
@@ -1051,8 +1164,8 @@ async fn lifecycle_command(
             done.map(|registered| {
                 print(json, &json!({"registered": registered}), |_| {
                     match registered {
-                        true => "The daemon starts when you log in.".into(),
-                        false => "The daemon does not start at login.".into(),
+                        true => tr!("The daemon starts when you log in.", "登录系统时启动 daemon。"),
+                        false => tr!("The daemon does not start at login.", "登录系统时不启动 daemon。"),
                     }
                 })
             })
@@ -1065,7 +1178,7 @@ async fn lifecycle_command(
                 print(
                     json,
                     &json!({"valid": true, "environment": environment}),
-                    |_| format!("config.toml is valid ({environment})."),
+                    |_| tr!("config.toml is valid ({environment}).", "config.toml 有效（{environment}）。"),
                 )
             })
             .map_err(|e| Failure::new("INVALID_INPUT", e.to_string())),
@@ -1082,9 +1195,10 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             Ok(remote) => {
                 let status = remote.status().await?;
                 print(json, &status, |s| {
-                    format!(
-                        "{}\n\nCommands: dmsg login | unlock | lock | vault | sync | --help",
-                        summary(s)
+                    let summary = summary(s);
+                    tr!(
+                        "{summary}\n\nCommands: dmsg login | unlock | lock | vault | sync | --help",
+                        "{summary}\n\n常用命令：dmsg login | unlock | lock | vault | sync | --help"
                     )
                 });
                 Ok(())
@@ -1112,19 +1226,35 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             .map_err(|e| Failure::new(&dmsg_client::error_code(&e), e.to_string()))?;
         let report = serde_json::to_value(&report).unwrap_or_default();
         print(json, &report, |r| {
-            format!(
-                "content     {}\nsignature   valid (key {})\nauthorized  by account {} with device {} at {} (epoch {})\norigin      {}\ncertified   {}\ndevice now  {}\nstatement   {}",
-                r["content"].as_str().unwrap_or_default(),
-                r["key_fingerprint"].as_str().unwrap_or_default(),
-                r["account"].as_str().unwrap_or_default(),
-                r["device_id"].as_str().unwrap_or_default(),
-                r["approved_at"],
-                r["security_epoch"],
-                r["origin"].as_str().unwrap_or_default(),
-                r["certified_at"],
-                r["current"].as_str().unwrap_or_default(),
-                serde_json::to_string_pretty(&r["statement"]).unwrap_or_default()
-            )
+            let text = |name: &str| r[name].as_str().unwrap_or_default().to_string();
+            let (key, account, device) =
+                (text("key_fingerprint"), text("account"), text("device_id"));
+            let (at, epoch) = (&r["approved_at"], &r["security_epoch"]);
+            [
+                row("content", "内容", text("content")),
+                row(
+                    "signature",
+                    "签名",
+                    tr!("valid (key {key})", "有效（密钥 {key}）"),
+                ),
+                row(
+                    "approved",
+                    "批准",
+                    tr!(
+                        "by account {account} with device {device} at {at} (epoch {epoch})",
+                        "账户 {account} 的设备 {device}，时间 {at}（安全纪元 {epoch}）"
+                    ),
+                ),
+                row("origin", "网站", text("origin")),
+                row("certified", "认证时间", &r["certified_at"]),
+                row("device", "设备现状", text("current")),
+                row(
+                    "statement",
+                    "声明",
+                    serde_json::to_string_pretty(&r["statement"]).unwrap_or_default(),
+                ),
+            ]
+            .join("\n")
         });
         return Ok(());
     }
@@ -1269,6 +1399,23 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 .await?;
             created(&remote, json, request).await?;
         }
+        Command::Attest(AttestCommand::Action { path }) => {
+            let bytes = match path.as_os_str() == "-" {
+                true => {
+                    let mut bytes = Vec::new();
+                    std::io::Read::read_to_end(&mut std::io::stdin(), &mut bytes).map(|_| bytes)
+                }
+                false => std::fs::read(&path),
+            }
+            .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+            let request = remote
+                .call(
+                    "attest/action",
+                    json!({"action": dmsg_client::codec::b64(&bytes)}),
+                )
+                .await?;
+            created(&remote, json, request).await?;
+        }
         Command::Attest(AttestCommand::History) => {
             let list = remote.call("attest/history", Value::Null).await?;
             print(json, &list, |list| {
@@ -1305,7 +1452,8 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             )
             .map_err(|e| Failure::new("UNAVAILABLE", e.to_string()))?;
             print(json, &json!({"path": out.display().to_string()}), |v| {
-                format!("wrote {}", v["path"].as_str().unwrap_or_default())
+                let path = v["path"].as_str().unwrap_or_default();
+                tr!("wrote {path}", "已写入 {path}")
             });
         }
         Command::Device(DeviceCommand::Capabilities { device, set }) => {
@@ -1344,9 +1492,21 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             let invite = remote.call("connect/invite", Value::Null).await?;
             let url = invite["url"].as_str().unwrap_or_default();
             if copy_link || !open_browser(url) {
-                println!("Open this link in the browser to connect (valid ten minutes):\n{url}");
+                println!(
+                    "{}",
+                    tr!(
+                        "Open this link in the browser to connect (valid ten minutes):\n{url}",
+                        "在要连接的浏览器中打开这个链接（十分钟内有效）：\n{url}"
+                    )
+                );
             } else {
-                println!("Opened the pairing page in your browser.");
+                println!(
+                    "{}",
+                    tr!(
+                        "Opened the pairing page in your browser.",
+                        "已在浏览器中打开配对页。"
+                    )
+                );
             }
             let invite_id = invite["invite_id"].as_str().unwrap_or_default();
             let deadline = invite["expires_at"].as_u64().unwrap_or_default();
@@ -1365,9 +1525,10 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                         continue;
                     }
                     let label = candidate["label"].as_str().unwrap_or_default();
-                    let answer = ask(&format!(
-                        "Connect the browser \"{label}\" ({})? Type yes to connect: ",
-                        &pairing[..12]
+                    let short = &pairing[..12];
+                    let answer = ask(&tr!(
+                        "Connect the browser \"{label}\" ({short})? Type yes to connect: ",
+                        "连接浏览器“{label}”（{short}）？输入 yes 连接："
                     ));
                     if answer == "yes" {
                         let granted = remote
@@ -1376,10 +1537,16 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                                 json!({"invite": invite_id, "pairing": pairing, "human": true}),
                             )
                             .await?;
-                        println!(
-                            "connected {} until {}",
+                        let (label, until) = (
                             granted["label"].as_str().unwrap_or_default(),
-                            granted["expires_at"]
+                            &granted["expires_at"],
+                        );
+                        println!(
+                            "{}",
+                            tr!(
+                                "connected {label} until {until}",
+                                "已连接 {label}，有效至 {until}"
+                            )
                         );
                         return Ok(());
                     }
@@ -1411,7 +1578,9 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             remote
                 .call("connect/revoke", json!({"pairing": pairing}))
                 .await?;
-            print(json, &json!({"revoked": pairing}), |_| "revoked".into());
+            print(json, &json!({"revoked": pairing}), |_| {
+                tr!("revoked", "已撤销")
+            });
         }
         Command::Connect(ConnectCommand::Requests) => {
             let list = remote.call("approval/list", json!({"all": true})).await?;
@@ -1427,9 +1596,11 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         Command::Connect(ConnectCommand::Sync) => {
             let report = remote.call("connect/sync", Value::Null).await?;
             print(json, &report, |r| {
-                format!(
-                    "fetched {}, queued {}, refused {}, replied {}, sealed {}",
-                    r["fetched"], r["queued"], r["refused"], r["replied"], r["sealed"]
+                let (fetched, queued, refused) = (&r["fetched"], &r["queued"], &r["refused"]);
+                let (replied, sealed) = (&r["replied"], &r["sealed"]);
+                tr!(
+                    "fetched {fetched}, queued {queued}, refused {refused}, replied {replied}, sealed {sealed}",
+                    "取回 {fetched}，排队 {queued}，拒绝 {refused}，已答复 {replied}，封存 {sealed}"
                 )
             });
         }
@@ -1447,7 +1618,9 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         Command::Stop => {
             drop(remote);
             lifecycle::drain(&home, true, Duration::ZERO).await?;
-            print(json, &json!({"stopped": true}), |_| "stopped".into());
+            print(json, &json!({"stopped": true}), |_| {
+                tr!("stopped", "已停止")
+            });
         }
         Command::Login {
             origin,
@@ -1475,10 +1648,22 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 println!("{}", json!({"url": url}));
             } else {
                 println!("{url}");
-                eprintln!("Waiting for the login in your browser…");
+                eprintln!(
+                    "{}",
+                    tr!(
+                        "Waiting for the login in your browser…",
+                        "等待在浏览器中完成登录…"
+                    )
+                );
             }
             if !no_browser && !open_browser(url) {
-                eprintln!("Open the URL above in your browser.");
+                eprintln!(
+                    "{}",
+                    tr!(
+                        "Open the URL above in your browser.",
+                        "请在浏览器中打开上面的链接。"
+                    )
+                );
             }
             loop {
                 tokio::time::sleep(Duration::from_millis(500)).await;
@@ -1546,10 +1731,13 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         Command::Account(AccountCommand::Create) => {
             let created = remote.call("account/create", Value::Null).await?;
             print(json, &created, |v| {
-                format!(
-                    "account: {}\nroot generation: {}",
+                let (account, generation) = (
                     v["account"].as_str().unwrap_or_default(),
-                    v["root_generation"]
+                    &v["root_generation"],
+                );
+                tr!(
+                    "account: {account}\nroot generation: {generation}",
+                    "账户：{account}\n内容根代数：{generation}"
                 )
             });
         }
@@ -1578,9 +1766,9 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                                 .collect::<Vec<_>>()
                                 .join(","),
                             if d["revoked_at"].is_null() {
-                                ""
+                                String::new()
                             } else {
-                                " revoked"
+                                tr!(" revoked", " 已撤销")
                             }
                         )
                     })
@@ -1594,11 +1782,13 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 .call("device/pair_request", json!({"role": role}))
                 .await?;
             print(json, &request, |v| {
-                format!(
-                    "device: {}\n\nOn an administrator device run:\n  dmsg device approve {} --device {}",
+                let (device, token) = (
                     v["device_id"].as_str().unwrap_or_default(),
                     v["token"].as_str().unwrap_or_default(),
-                    v["device_id"].as_str().unwrap_or_default()
+                );
+                tr!(
+                    "device: {device}\n\nOn an administrator device run:\n  dmsg device approve {token} --device {device}",
+                    "设备：{device}\n\n在一台管理员设备上运行：\n  dmsg device approve {token} --device {device}"
                 )
             });
         }
@@ -1610,10 +1800,13 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 )
                 .await?;
             print(json, &approved, |v| {
-                format!(
-                    "approved {}\nroot generation: {}",
+                let (device, generation) = (
                     v["device_id"].as_str().unwrap_or_default(),
-                    v["root_generation"]
+                    &v["root_generation"],
+                );
+                tr!(
+                    "approved {device}\nroot generation: {generation}",
+                    "已批准 {device}\n内容根代数：{generation}"
                 )
             });
         }
@@ -1647,20 +1840,20 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 .await?;
             print(json, &entry, |v| {
                 let conflict = if v["conflict"] == true {
-                    " (kept as a conflict copy)"
+                    tr!(" (kept as a conflict copy)", "（保存为冲突副本）")
                 } else {
-                    ""
+                    String::new()
                 };
                 format!("{}{conflict}", v["revision"].as_str().unwrap_or_default())
             });
         }
         Command::Vault(VaultCommand::Rm { id }) => {
             let entry = remote.call("vault/delete", json!({"id": id})).await?;
-            print(json, &entry, |_| "moved to the trash".into());
+            print(json, &entry, |_| tr!("moved to the trash", "已移到回收站"));
         }
         Command::Vault(VaultCommand::Restore { id }) => {
             let entry = remote.call("vault/restore", json!({"id": id})).await?;
-            print(json, &entry, |_| "restored".into());
+            print(json, &entry, |_| tr!("restored", "已恢复"));
         }
         Command::Vault(VaultCommand::List { trash }) => {
             let entries = remote.call("vault/list", json!({"trash": trash})).await?;
@@ -1689,9 +1882,9 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                             e["revision"].as_str().unwrap_or_default(),
                             e["item"]["title"].as_str().unwrap_or_default(),
                             if e["deleted"] == true {
-                                " (deleted)"
+                                tr!(" (deleted)", "（已删除）")
                             } else {
-                                ""
+                                String::new()
                             }
                         )
                     })
@@ -1705,10 +1898,8 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 .call("vault/resolve", json!({"key": key, "keep": keep}))
                 .await?;
             print(json, &entry, |v| {
-                format!(
-                    "resolved; head {}",
-                    v["revision"].as_str().unwrap_or_default()
-                )
+                let revision = v["revision"].as_str().unwrap_or_default();
+                tr!("resolved; head {revision}", "已解决；当前版本 {revision}")
             });
         }
         Command::File(FileCommand::Import { path }) => {
@@ -1733,16 +1924,18 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                     .into_iter()
                     .flatten()
                     .map(|e| {
-                        format!(
-                            "{} {} {} bytes{}",
+                        let (id, name, size) = (
                             e["id"].as_str().unwrap_or_default(),
                             e["item"]["file"]["name"].as_str().unwrap_or_default(),
-                            e["item"]["file"]["size"],
-                            if e["synced"] == true {
-                                ""
-                            } else {
-                                " (not synced)"
-                            }
+                            &e["item"]["file"]["size"],
+                        );
+                        let synced = match e["synced"] == true {
+                            true => String::new(),
+                            false => tr!(" (not synced)", "（未同步）"),
+                        };
+                        tr!(
+                            "{id} {name} {size} bytes{synced}",
+                            "{id} {name} {size} 字节{synced}"
                         )
                     })
                     .collect::<Vec<_>>()
@@ -1753,35 +1946,20 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             let manifest = remote
                 .call("file/export", json!({"id": id, "path": absolute(out)?}))
                 .await?;
-            print(json, &manifest, |m| {
-                format!(
-                    "verified {} ({} bytes)",
-                    m["sha256"].as_str().unwrap_or_default(),
-                    m["size"]
-                )
-            });
+            print(json, &manifest, verified);
         }
         Command::File(FileCommand::Verify { id }) => {
             let manifest = remote.call("file/verify", json!({"id": id})).await?;
-            print(json, &manifest, |m| {
-                format!(
-                    "verified {} ({} bytes)",
-                    m["sha256"].as_str().unwrap_or_default(),
-                    m["size"]
-                )
-            });
+            print(json, &manifest, verified);
         }
         Command::Sync { command: None } => {
             let report = remote.call("sync/run", Value::Null).await?;
             print(json, &report, |r| {
-                format!(
-                    "sent {}, refused {}, {} revisions through {}; {} pending, {} conflicts",
-                    r["sent"],
-                    r["blocked"],
-                    r["revisions"],
-                    r["through"],
-                    r["pending"],
-                    r["conflicts"]
+                let (sent, blocked, revisions) = (&r["sent"], &r["blocked"], &r["revisions"]);
+                let (through, pending, conflicts) = (&r["through"], &r["pending"], &r["conflicts"]);
+                tr!(
+                    "sent {sent}, refused {blocked}, {revisions} revisions through {through}; {pending} pending, {conflicts} conflicts",
+                    "发送 {sent}，被拒 {blocked}，收到 {revisions} 个版本（至 {through}）；待同步 {pending}，冲突 {conflicts}"
                 )
             });
         }

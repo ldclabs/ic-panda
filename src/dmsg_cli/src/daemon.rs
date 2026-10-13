@@ -68,7 +68,7 @@ const CONNECT_POLL_MS: u64 = 30_000;
 const APP_PROTOCOL: &str = "dmsg-app/1";
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 53] = [
+const METHODS: [&str; 54] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -105,6 +105,7 @@ const METHODS: [&str; 53] = [
     "approval/cancel",
     "approval/reconcile",
     "attest/request",
+    "attest/action",
     "attest/history",
     "attest/export",
     "attest/verify",
@@ -757,6 +758,14 @@ impl Daemon {
                     .await
                     .attest_request(&source(params)?, input, file.as_deref())
             }
+            "attest/action" => {
+                let action = dmsg_client::codec::unb64(&text("action")?)?;
+                self.client
+                    .lock()
+                    .await
+                    .attest_action_request(&source(params)?, &action)
+                    .await
+            }
             "attest/history" => Ok(Value::Array(self.client.lock().await.attest_history()?)),
             "attest/export" => {
                 let bundle = self
@@ -921,6 +930,7 @@ fn events_of(method: &str) -> &'static [&'static str] {
         | "approval/cancel"
         | "approval/reconcile"
         | "attest/request"
+        | "attest/action"
         | "device/capabilities"
         | "device/formal_approve"
         | "device/revoke"

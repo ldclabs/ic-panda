@@ -4,6 +4,7 @@
   import { call, code, when } from '../rpc'
   import Onboarding from './Onboarding.svelte'
   import Security from './Security.svelte'
+  import Devices from './Devices.svelte'
   import Profile from './Profile.svelte'
 
   let { status, refresh, browsers }: { status: any; refresh: () => Promise<void>; browsers: boolean } = $props()
@@ -132,6 +133,7 @@
 <Onboarding {status} {refresh} />
 {#if status?.state === 'unlocked'}
   <Security {status} {refresh} />
+  <Devices {status} />
   {#key status.account}<Profile {status} />{/key}
 {/if}
 {#if ['unlocked', 'locked', 'root_required'].includes(status?.state)}<div class="card" class:focus={browsers}>

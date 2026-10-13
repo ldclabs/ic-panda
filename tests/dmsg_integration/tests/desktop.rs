@@ -2435,6 +2435,73 @@ fn desktop_web_connect() {
     assert!(signed["result"]["artifact"]["cose_sign1"].is_string());
     assert!(signed["result"]["executionCertificateCbor"].is_string());
 
+    // The same action from this device (`dmsg attest action`): the current
+    // registration admits it when it is asked for, the product authority
+    // when it is approved; a refused one fails without a signature.
+    let local = |name: &str, action: &dmsg_types::app_action::AppAction| {
+        let path = env.dir.join(name);
+        std::fs::write(&path, canonical(action)).unwrap();
+        path.to_str().unwrap().to_string()
+    };
+    let stale = dmsg_types::app_action::AppAction {
+        app_config_version: 2,
+        ..action(0xa8)
+    };
+    assert_eq!(
+        env.b
+            .fail(&["attest", "action", &local("stale.cbor", &stale)]),
+        "FORBIDDEN"
+    );
+    let request = env
+        .b
+        .run(&["attest", "action", &local("refused.cbor", &action(0xa9))]);
+    assert_eq!(request["source"], "cli");
+    assert_eq!(
+        request["detail"]["statement"]["content"]["command"],
+        "CertifyDisclosure"
+    );
+    assert_eq!(env.b.decide(http, &request, true), Err("FORBIDDEN".into()));
+    let failed = env
+        .b
+        .rpc(http, "approval/show", json!({"id": request["id"]}))
+        .unwrap();
+    assert_eq!(
+        (failed["state"].as_str(), failed["execution"].as_str()),
+        (Some("failed"), None)
+    );
+    let approved = action(0xaa);
+    d.ic.update_call(
+        d.sns,
+        d.peer,
+        "set_action_approval",
+        candid::encode_args((
+            d.user,
+            account_id,
+            approved.clone(),
+            None::<(Principal, AppRegistration)>,
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+    let request = env
+        .b
+        .run(&["attest", "action", &local("approved.cbor", &approved)]);
+    let done = env.b.decide(http, &request, true).unwrap();
+    assert_eq!(done["state"], "done", "{done}");
+    let bundle = env.dir.join("action.attestation.json");
+    env.b.run(&[
+        "attest",
+        "export",
+        done["execution"].as_str().unwrap(),
+        "-o",
+        bundle.to_str().unwrap(),
+    ]);
+    let verified = env.b.run(&["attest", "verify", bundle.to_str().unwrap()]);
+    assert_eq!(
+        (verified["content"].as_str(), verified["origin"].as_str()),
+        (Some("action"), Some(origin))
+    );
+
     // DT31: the same operation from a second browser: one approval, both
     // get the result. A pairs this browser, so it outlives B's revocation.
     let invite = env.a.rpc(http, "connect/invite", Value::Null).unwrap();

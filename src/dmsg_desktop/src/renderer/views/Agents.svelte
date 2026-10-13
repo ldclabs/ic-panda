@@ -2,6 +2,8 @@
   import { onMount } from 'svelte'
   import { t } from '../i18n'
   import { call, code, when } from '../rpc'
+  import AgentMail from './AgentMail.svelte'
+  import AgentEvents from './AgentEvents.svelte'
 
   let { status }: { status: any } = $props()
   let principal = $state<any>(null)
@@ -246,4 +248,10 @@
         onclick={() => run('grants/add', { agent: grantee, capabilities: list(capabilities, /\s+/) })}>{t('grant')}</button>
     </div>
   </div>
+{/if}
+{#if unlocked && hosted.agents.length}
+  <AgentMail agents={hosted.agents} active={hosted.active} />
+{/if}
+{#if unlocked}
+  <AgentEvents agents={hosted.agents} />
 {/if}

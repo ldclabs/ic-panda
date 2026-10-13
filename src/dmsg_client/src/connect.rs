@@ -948,43 +948,48 @@ impl Client {
         })
     }
 
-    /// The certified registration of `app_id` from the home's commerce
-    /// canister, fresh within 60 seconds.
+    /// [`Client::app_registration`], once per pass.
     async fn registration(&mut self, checks: &mut Checks, app_id: &str) -> Result<AppRegistration> {
         if let Some(app) = checks.apps.get(app_id) {
             return Ok(app.clone());
         }
+        let app = self.app_registration(&mut checks.commerce, app_id).await?;
+        checks.apps.insert(app_id.into(), app.clone());
+        Ok(app)
+    }
+
+    /// The certified registration of `app_id` from the home's commerce
+    /// canister, fresh within 60 seconds; `commerce` keeps the canister.
+    pub(crate) async fn app_registration(
+        &mut self,
+        commerce: &mut Option<Principal>,
+        app_id: &str,
+    ) -> Result<AppRegistration> {
         // Commerce is outside the login's delegation targets.
         let ic = self.anonymous().await?;
-        let commerce = match checks.commerce {
-            Some(commerce) => commerce,
+        let canister = match *commerce {
+            Some(canister) => canister,
             None => {
                 let init: UserInit = ic.query(self.account()?.home, "user_config", ()).await?;
-                checks.commerce = Some(init.commerce_canister);
+                *commerce = Some(init.commerce_canister);
                 init.commerce_canister
             }
         };
         let batch: Result<CertifiedBatch> = ic
             .query(
-                commerce,
+                canister,
                 "integration_configuration_certificate",
                 (app_id, None::<String>),
             )
             .await?;
-        let batch = match batch {
-            Ok(batch) => batch,
-            Err(Error::NotFound) => return Err(Error::NotFound),
-            Err(error) => return Err(error),
-        };
         let key = digest("dmsg/registration/app/v1", &app_id).to_vec();
-        let (value, _) = verify_certified_leaf(&batch, &key, commerce, &ic.root_key(), now_ms())?;
+        let (value, _) = verify_certified_leaf(&batch?, &key, canister, &ic.root_key(), now_ms())?;
         let app: AppRegistration = dmsg_protocol::decode_canonical(&value)?;
         validate_app(&app)?;
         ensure(
             app.app_id == app_id && app.environment == self.config.environment,
             Error::IntegrityFailed,
         )?;
-        checks.apps.insert(app_id.into(), app.clone());
         Ok(app)
     }
 
@@ -1658,7 +1663,10 @@ impl Client {
                 ),
                 _ => Err(Error::IntegrityFailed),
             },
-            "signAction" => self.inspect_action(&payload).await,
+            "signAction" => match dmsg_protocol::decode_canonical(&payload) {
+                Ok(action) => self.inspect_action(&action).await,
+                Err(error) => Err(error),
+            },
             _ => Ok(()),
         };
         if let Err(error) = checked {
@@ -1811,18 +1819,6 @@ impl Client {
         let request: CheckoutRequest =
             dmsg_protocol::decode_canonical(&command_payload(&op.command)?)?;
         self.quote_request(request, &op.origin, selection).await
-    }
-
-    /// The product authority's verdict on an application action before
-    /// this device signs it (`inspect_app_action`).
-    async fn inspect_action(&mut self, payload: &[u8]) -> Result<()> {
-        let action: dmsg_types::app_action::AppAction = dmsg_protocol::decode_canonical(payload)?;
-        let account = self.account()?.clone();
-        let ic = self.session()?.ic.clone();
-        let inspected: Result<()> = ic
-            .update(account.home, "inspect_app_action", (account.id, &action))
-            .await?;
-        inspected
     }
 
     /// Record an execution's outcome on the operation and reply it.

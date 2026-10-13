@@ -122,3 +122,61 @@ fn the_queue_is_bounded_and_sealed() {
         assert!(!raw.windows(23).any(|w| w == b"sealed-statement-marker"));
     }
 }
+
+#[test]
+fn an_application_action_survives_the_approval_record() {
+    use dmsg_types::app_action::{ActionArgs, ActionCommand};
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let action = AppAction {
+        version: 1,
+        environment: dmsg_types::Environment::Local,
+        app_id: "token-list".into(),
+        app_config_version: 1,
+        origin: "https://app.example".into(),
+        receiver: Principal::from_slice(&[9; 10]),
+        actor: vec![8; 12].into(),
+        signing_account: crate::testing::account().id,
+        operation_id: Hash::new([1; 32]),
+        intent_hash: Hash::new([2; 32]),
+        schema_hash: Hash::new([3; 32]),
+        issued_at_ms: 1,
+        expires_at_ms: 2,
+        command: ActionCommand {
+            name: "Approve".into(),
+            args: ActionArgs(vec![]),
+        },
+        files: vec![],
+    };
+    // As a typed statement the sealed record would not decode: a candid
+    // Principal inside an internally tagged enum.
+    let typed = Action::Attest {
+        statement: Statement {
+            issuer: "x".into(),
+            subject: None,
+            issued_at: None,
+            content: StatementContent::AppAction(Box::new(action.clone())),
+        },
+        origin: action.origin.clone(),
+        file: None,
+    };
+    assert!(decode::<Action>(&canonical(&typed), 65_536).is_err());
+    let request = client
+        .approval_create(
+            "gui",
+            Action::AttestAction {
+                action: canonical(&action).into(),
+            },
+            now_ms() + 60_000,
+        )
+        .unwrap();
+    let shown = client.approval(&request.id).unwrap();
+    assert_eq!(shown["type"], "attest");
+    assert_eq!(shown["detail"]["origin"], "https://app.example");
+    let content = &shown["detail"]["statement"]["content"];
+    assert_eq!(shown["detail"]["statement"]["profile"], "app_action");
+    assert_eq!(
+        (content["app_id"].as_str(), content["command"].as_str()),
+        (Some("token-list"), Some("Approve"))
+    );
+}

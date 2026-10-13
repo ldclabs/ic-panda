@@ -17,6 +17,11 @@ const api: DesktopBridge = {
   login: (origin, bind) => unwrap(ipcRenderer.invoke('dmsg:login', origin, bind === true)),
   importFile: () => unwrap(ipcRenderer.invoke('dmsg:import-file')),
   exportFile: (id, name) => unwrap(ipcRenderer.invoke('dmsg:export-file', id, name)),
+  copySecret: (id) => unwrap(ipcRenderer.invoke('dmsg:copy-secret', id)),
+  channelDownload: (id, seq, name) => unwrap(ipcRenderer.invoke('dmsg:channel-download', id, seq, name)),
+  attestAction: () => unwrap(ipcRenderer.invoke('dmsg:attest-action')),
+  verifyBundle: (withFile) => unwrap(ipcRenderer.invoke('dmsg:verify-bundle', withFile === true)),
+  exportBundle: (execution) => unwrap(ipcRenderer.invoke('dmsg:export-bundle', execution)),
   openLegacy: (link) => unwrap(ipcRenderer.invoke('dmsg:open-legacy', link)),
   legacyImport: (nonce, fingerprint, principal) =>
     unwrap(ipcRenderer.invoke('dmsg:legacy-import', nonce, fingerprint, principal)),

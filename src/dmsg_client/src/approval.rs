@@ -15,9 +15,10 @@ use crate::now_ms;
 use crate::store::ApprovalRow;
 use dmsg_protocol::digest;
 use dmsg_types::{
+    app_action::AppAction,
     ensure,
     user::{AccountCommand, Capability},
-    Error, Hash, Result, Statement, MINUTE,
+    Error, Hash, Result, Statement, StatementContent, MINUTE,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
@@ -96,6 +97,13 @@ pub enum Action {
         /// The file a file statement or digest describes, re-hashed on approval.
         file: Option<String>,
     },
+    /// Attest an application action its product prepared. It is kept as
+    /// its canonical CBOR: a candid Principal inside this internally
+    /// tagged enum would not decode again.
+    AttestAction {
+        /// The action's canonical CBOR.
+        action: serde_bytes::ByteBuf,
+    },
     /// Replace a device's capabilities.
     DeviceCapabilities {
         /// The device.
@@ -172,7 +180,7 @@ pub enum Action {
 impl Action {
     fn class(&self) -> &'static str {
         match self {
-            Action::Attest { .. } => "attest",
+            Action::Attest { .. } | Action::AttestAction { .. } => "attest",
             Action::DeviceCapabilities { .. }
             | Action::DeviceRevoke { .. }
             | Action::Account { .. }
@@ -466,16 +474,16 @@ impl Client {
                 if let Some(path) = &file {
                     self.check_statement_file(&statement, std::path::Path::new(path))?;
                 }
-                let attestation = self
-                    .attest_prepare(
-                        &request.id,
-                        crate::attest::Subject::Statement { statement, origin },
-                    )
-                    .await?;
-                request.execution = Some(attestation.execution_id());
-                request.started = true;
-                self.save_approval(request)?;
-                self.attest_dispatch(attestation).await.map(|_| ())
+                let subject = crate::attest::Subject::Statement { statement, origin };
+                self.attest_execute(request, subject).await
+            }
+            Action::AttestAction { action } => {
+                let action: AppAction = dmsg_protocol::decode_canonical(&action)?;
+                // The product authority accepts this exact action first, as
+                // for a page's `signAction`.
+                self.inspect_action(&action).await?;
+                let subject = crate::attest::Subject::Action(Box::new(action));
+                self.attest_execute(request, subject).await
             }
             Action::DeviceCapabilities {
                 device_id,
@@ -548,6 +556,19 @@ impl Client {
         }
     }
 
+    /// Sign and journal an approved attestation, then submit it.
+    async fn attest_execute(
+        &mut self,
+        request: &mut Request,
+        subject: crate::attest::Subject,
+    ) -> Result<()> {
+        let attestation = self.attest_prepare(&request.id, subject).await?;
+        request.execution = Some(attestation.execution_id());
+        request.started = true;
+        self.save_approval(request)?;
+        self.attest_dispatch(attestation).await.map(|_| ())
+    }
+
     fn finish_approval(&mut self, request: &mut Request, outcome: Result<()>) -> Result<Json> {
         request.updated_at = now_ms();
         let result = match outcome {
@@ -596,7 +617,7 @@ impl Client {
         {
             let mut request = self.approval_record(&row.id)?;
             let outcome = match (&request.action, &request.execution) {
-                (Action::Attest { .. }, Some(execution)) => {
+                (Action::Attest { .. } | Action::AttestAction { .. }, Some(execution)) => {
                     let execution = execution.clone();
                     self.attest_reconcile(&execution).await.map(|_| ())
                 }
@@ -643,7 +664,7 @@ impl Client {
                     self.delegation_execute(&job).await.map(|_| ())
                 }
                 // Approved, but the attestation was never prepared.
-                (Action::Attest { .. }, None) => Err(Error::Expired),
+                (Action::Attest { .. } | Action::AttestAction { .. }, None) => Err(Error::Expired),
             };
             // A step that could not run says nothing about the outcome:
             // the request stays where it is for the next round.
@@ -853,6 +874,22 @@ impl Client {
                     self.check_statement_file(statement, std::path::Path::new(path)).is_ok()
                 }),
             }),
+            Action::AttestAction { action } => {
+                let action: AppAction = dmsg_protocol::decode_canonical(action)?;
+                let origin = action.origin.clone();
+                let statement = Statement {
+                    issuer: self.account()?.issuer.clone(),
+                    subject: None,
+                    issued_at: None,
+                    content: StatementContent::AppAction(Box::new(action)),
+                };
+                json!({
+                    "statement": crate::attest::statement_view(&statement),
+                    "origin": origin,
+                    "file": null,
+                    "file_checked": null,
+                })
+            }
             Action::DeviceCapabilities {
                 device_id,
                 capabilities,
@@ -900,7 +937,7 @@ impl Client {
             "source": request.source,
             "kind": request.action.class(),
             "type": match &request.action {
-                Action::Attest { .. } => "attest",
+                Action::Attest { .. } | Action::AttestAction { .. } => "attest",
                 Action::DeviceCapabilities { .. } => "device_capabilities",
                 Action::DeviceRevoke { .. } => "device_revoke",
                 Action::Connect { .. } => "connect",
