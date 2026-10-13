@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
 
   /**
@@ -70,7 +70,9 @@
             <button disabled={busy} onclick={() => act('ops/reconcile_order', { id: o.order_id })}>{t('reconcile')}</button>
           </div>
           {#each o.balances as b (b.ledger)}
-            <div class="mono muted">{b.ledger}: in {b.incoming} · refundable {b.refundable} · reserve {b.service_reserve} · fee {b.fee_reserve} · out {b.outgoing}</div>
+            <div class="mono muted">
+              {b.ledger}: {t('opsBalances', { incoming: b.incoming, refundable: b.refundable, reserve: b.service_reserve, fee: b.fee_reserve, outgoing: b.outgoing })}
+            </div>
           {/each}
         </li>
       {/each}
@@ -93,7 +95,11 @@
               {/if}
             </span>
           </div>
-          <div class="mono muted">{x.ledger} · fee {x.fee} / {x.max_fee}{x.expected_fee ? ` · ledger asks ${x.expected_fee}` : ''}{x.error_code ? ` · ${x.error_code}` : ''}</div>
+          <div class="mono muted">
+            {x.ledger} · {t('opsFee', { fee: x.fee, max: x.max_fee })}{x.expected_fee ? ` · ${t('ledgerAsks', { fee: x.expected_fee })}` : ''}{x.error_code
+              ? ` · ${x.error_code}`
+              : ''}
+          </div>
         </li>
       {/each}
     </ul>

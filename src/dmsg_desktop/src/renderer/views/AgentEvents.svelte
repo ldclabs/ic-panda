@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import Select from '../components/Select.svelte'
 
   /**
    * MCP Events endpoints on the relay: an upstream subscription posts to the
@@ -121,10 +122,7 @@
   </ul>
   <div class="row" style="margin-top: 8px">
     <input placeholder={t('label')} bind:value={label} data-testid="endpoint-label" style="max-width: 180px" />
-    <select bind:value={agent}>
-      <option value="">{t('anyAgent')}</option>
-      {#each agents as a (a.agent_id)}<option value={a.agent_id}>{a.label}</option>{/each}
-    </select>
+    <Select bind:value={agent} options={[{ value: '', label: t('anyAgent') }, ...agents.map((a) => ({ value: a.agent_id, label: a.label }))]} />
     <input placeholder={t('eventsSession')} bind:value={session} style="max-width: 180px" />
     <button class="primary" disabled={busy} data-testid="endpoint-create" onclick={create}>{t('create')}</button>
   </div>

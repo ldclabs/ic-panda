@@ -40,10 +40,13 @@ body {
 }
 button,
 input,
-textarea,
-select {
+textarea {
   font: inherit;
   color: inherit;
+}
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--green);
 }
 button {
   cursor: pointer;
@@ -159,4 +162,51 @@ button {
 }
 .card.list {
   padding: 4px 16px;
+}
+/* Dropdown menus (bits-ui): `components/Select.svelte` and the language menu. */
+.select-menu {
+  z-index: 50;
+  min-width: var(--bits-menu-anchor-width);
+  max-width: min(420px, calc(100vw - 16px));
+  max-height: min(var(--bits-menu-content-available-height), 360px);
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 14%);
+}
+.select-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+  overflow-wrap: anywhere;
+}
+.select-item[data-highlighted] {
+  background: var(--pale);
+}
+.select-item[data-state='checked'] {
+  color: var(--green);
+  font-weight: 500;
+}
+.select-item[data-disabled] {
+  cursor: progress;
+  opacity: 0.6;
+}
+/* Right to left (Arabic): identifiers, code and numbers keep their own order. */
+html[dir='rtl'] :is(.mono, pre, input[type='number']) {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+html[dir='rtl'] dd.mono,
+html[dir='rtl'] div.mono,
+html[dir='rtl'] p.mono {
+  text-align: right;
 }

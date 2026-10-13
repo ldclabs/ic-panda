@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
   import AgentMail from './AgentMail.svelte'
   import AgentEvents from './AgentEvents.svelte'
   import AgentAudit from './AgentAudit.svelte'
+  import Select from '../components/Select.svelte'
 
   let { status }: { status: any } = $props()
   let principal = $state<any>(null)
@@ -140,9 +141,7 @@
     {/if}
   {:else if unlocked}
     <div class="row">
-      <select bind:value={kind}>
-        {#each ['person', 'organization', 'team', 'project', 'other'] as k (k)}<option value={k}>{k}</option>{/each}
-      </select>
+      <Select bind:value={kind} options={['person', 'organization', 'team', 'project', 'other'].map((k) => ({ value: k, label: k }))} />
       <button class="primary" disabled={busy} data-testid="enable-principal" onclick={() => request('agent/enable', { type: kind })}>
         {t('enablePrincipal')}
       </button>
@@ -245,9 +244,10 @@
       {/each}
     </ul>
     <div class="row">
-      <select bind:value={grantee}>
-        {#each hosted.agents as a (a.agent_id)}<option value={a.agent_id}>{a.label}</option>{/each}
-      </select>
+      <Select
+        bind:value={grantee}
+        placeholder={t('grantee')}
+        options={hosted.agents.map((a: any) => ({ value: a.agent_id, label: a.label }))} />
       <input placeholder={t('capabilityList')} bind:value={capabilities} />
       <button
         disabled={busy || !grantee || !capabilities.trim()}

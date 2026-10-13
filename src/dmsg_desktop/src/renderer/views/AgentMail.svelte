@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import Select from '../components/Select.svelte'
 
   /** Agent Mail and Agent Knowledge, run as a hosted Agent ID with the connector's own tools. */
   let { agents, active }: { agents: any[]; active: string | null } = $props()
@@ -136,9 +137,11 @@
 <div class="card" data-testid="agent-mail">
   <div class="row spread">
     <h2>{t('mail')}</h2>
-    <select bind:value={agent} onchange={() => ((mailboxes = []), (messages = []))} data-testid="mail-agent">
-      {#each agents as a (a.agent_id)}<option value={a.agent_id}>{a.label}</option>{/each}
-    </select>
+    <Select
+      bind:value={agent}
+      onChange={() => ((mailboxes = []), (messages = []))}
+      testid="mail-agent"
+      options={agents.map((a) => ({ value: a.agent_id, label: a.label }))} />
   </div>
   <p class="muted">{t('mailHint')}</p>
   {#if error}<p class="error" data-testid="mail-error">{error}</p>{/if}
@@ -195,10 +198,14 @@
     <input placeholder={t('subject')} bind:value={draft.subject} />
     <textarea placeholder={t('message')} bind:value={draft.text} data-testid="mail-text"></textarea>
     <div class="row">
-      <select bind:value={draft.reply_mailbox_id}>
-        <option value="">{t('noReplyCard')}</option>
-        {#each mailboxes.filter((b) => b.status === 'open') as box (box.mailbox_id)}<option value={box.mailbox_id}>{t('replyCard')} {box.mailbox_id.slice(0, 8)}</option>{/each}
-      </select>
+      <Select
+        bind:value={draft.reply_mailbox_id}
+        options={[
+          { value: '', label: t('noReplyCard') },
+          ...mailboxes
+            .filter((b) => b.status === 'open')
+            .map((box) => ({ value: box.mailbox_id, label: `${t('replyCard')} ${box.mailbox_id.slice(0, 8)}` }))
+        ]} />
       <button class="primary" disabled={busy || !draft.text.trim() || (!draft.to.trim() && !draft.in_reply_to)} data-testid="mail-send" onclick={send}>{t('send')}</button>
     </div>
   </div>
@@ -240,10 +247,10 @@
   {/if}
   <h3>{t('knowledgeSubmit')}</h3>
   <div class="form">
-    <select bind:value={kind}>
-      <option value="knowledge.publish">knowledge.publish</option>
-      <option value="knowledge.retract">knowledge.retract</option>
-    </select>
+    <Select
+      bind:value={kind}
+      class="kind"
+      options={['knowledge.publish', 'knowledge.retract'].map((k) => ({ value: k, label: k, mono: true }))} />
     <textarea placeholder={t('knowledgePayload')} bind:value={payload}></textarea>
     <button class="primary" disabled={busy || !agent || !service.trim() || !payload.trim()} onclick={submit}>{t('submitTo')}</button>
   </div>
@@ -261,6 +268,9 @@
   }
   .body {
     white-space: pre-wrap;
+  }
+  .form :global(.kind) {
+    align-self: flex-start;
   }
   pre {
     margin: 0;

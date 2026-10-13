@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, CallError, code, when } from '../rpc'
+  import Select from '../components/Select.svelte'
 
   let { status }: { status: any } = $props()
   let channels = $state<any[]>([])
@@ -207,12 +208,16 @@
       <div class="card">
         <h2>{t('newChannel')}</h2>
         <input placeholder={t('channelName')} bind:value={name} data-testid="channel-name" />
-        <select bind:value={kind} style="margin-top: 8px">
-          <option value="collaboration">{t('collaboration')}</option>
-          <option value="distribution">{t('distribution')}</option>
-          <option value="direct">{t('direct')}</option>
-        </select>
-        <button class="primary" style="margin-top: 8px" disabled={busy} onclick={create}>{t('create')}</button>
+        <div class="row" style="margin-top: 8px">
+          <Select
+            bind:value={kind}
+            options={[
+              { value: 'collaboration', label: t('collaboration') },
+              { value: 'distribution', label: t('distribution') },
+              { value: 'direct', label: t('direct') }
+            ]} />
+          <button class="primary" disabled={busy} onclick={create}>{t('create')}</button>
+        </div>
       </div>
       <div class="card">
         <h2>{t('joinChannel')}</h2>
@@ -262,7 +267,7 @@
               <div>{message.text}</div>
               {#if message.file}
                 <div class="row">
-                  <span class="muted">📎 {message.file.name} ({message.file.size} bytes)</span>
+                  <span class="muted">📎 {message.file.name} ({t('bytes', { n: message.file.size })})</span>
                   <button disabled={busy} onclick={() => download(message)}>{t('download')}</button>
                 </div>
               {/if}
@@ -277,10 +282,10 @@
             <button class="primary" disabled={busy} onclick={send}>{t('send')}</button>
           </div>
           <div class="row" style="margin-top: 8px">
-            <select bind:value={attachment} data-testid="channel-attachment">
-              <option value="">{t('noAttachment')}</option>
-              {#each files as file (file.id)}<option value={file.id}>📎 {file.item.file.name}</option>{/each}
-            </select>
+            <Select
+              bind:value={attachment}
+              testid="channel-attachment"
+              options={[{ value: '', label: t('noAttachment') }, ...files.map((file) => ({ value: file.id, label: `📎 ${file.item.file.name}` }))]} />
             <button disabled={busy} onclick={importFile}>{t('importFile')}</button>
           </div>
         {/if}
@@ -299,12 +304,12 @@
                   {#if unlocked && member.account !== me && member.role !== 'owner'}
                     <span class="row">
                       {#if owner}
-                        <select
+                        <Select
                           value={member.role}
-                          data-testid="member-role"
-                          onchange={(e) => control({ type: 'role', account: member.account, role: e.currentTarget.value, can_rotate: member.can_rotate })}>
-                          {#each ROLES as role (role)}<option value={role}>{role}</option>{/each}
-                        </select>
+                          testid="member-role"
+                          disabled={busy}
+                          options={ROLES.map((role) => ({ value: role, label: role }))}
+                          onChange={(role) => control({ type: 'role', account: member.account, role, can_rotate: member.can_rotate })} />
                         <button disabled={busy} onclick={() => control({ type: 'role', account: member.account, role: member.role, can_rotate: !member.can_rotate })}>
                           {member.can_rotate ? t('noRotate') : t('allowRotate')}
                         </button>
@@ -383,13 +388,10 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    text-align: left;
+    text-align: start;
     width: 100%;
   }
   .link.active strong {
     color: var(--green);
-  }
-  select {
-    max-width: 220px;
   }
 </style>

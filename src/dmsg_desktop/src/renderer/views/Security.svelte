@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
 
   /** Bound logins, approvals of other devices and logins, the signing policy and recovery. */

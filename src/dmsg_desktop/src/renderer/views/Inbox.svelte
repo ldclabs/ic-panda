@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import Select from '../components/Select.svelte'
 
   let { status }: { status: any } = $props()
   let letters = $state<any[]>([])
@@ -157,12 +158,16 @@
     <h2>{t('contactPolicy')}</h2>
     <p class="muted">{policy ? `${t('current')}: ${policy.mode} · v${policy.version}` : t('noPolicy')}</p>
     <div class="row">
-      <select bind:value={mode} data-testid="policy-mode">
-        <option value="closed">{t('closed')}</option>
-        <option value="contacts">{t('contactsOnly')}</option>
-        <option value="free">{t('free')}</option>
-        <option value="paid">{t('paidOnly')}</option>
-      </select>
+      <Select
+        bind:value={mode}
+        testid="policy-mode"
+        label={t('contactPolicy')}
+        options={[
+          { value: 'closed', label: t('closed') },
+          { value: 'contacts', label: t('contactsOnly') },
+          { value: 'free', label: t('free') },
+          { value: 'paid', label: t('paidOnly') }
+        ]} />
       {#if mode === 'paid'}<input placeholder={t('priceUnits')} bind:value={price} />{/if}
       <button disabled={busy || (mode === 'paid' && !/^\d+$/.test(price.trim()))} onclick={configure}>{t('save')}</button>
     </div>

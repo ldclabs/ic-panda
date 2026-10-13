@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
 
   /** What a login without a ready workspace does next: create or join an account, pair, or recover. */

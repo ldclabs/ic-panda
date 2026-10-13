@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import Select from '../components/Select.svelte'
 
   /**
    * Legacy migration: a one-time offer opens the old site in the system
@@ -200,10 +201,7 @@
   {#if error}<p class="error">{error}</p>{/if}
   {#if notice}<p class="muted">{notice}</p>{/if}
   <div class="row">
-    <select bind:value={origin}>
-      <option>https://dmsg.net</option>
-      <option>https://panda.fans</option>
-    </select>
+    <Select bind:value={origin} options={['https://dmsg.net', 'https://panda.fans'].map((o) => ({ value: o, label: o, mono: true }))} />
     <button class="primary" disabled={busy} onclick={pair} data-testid="legacy-pair">{t('legacyPair')}</button>
   </div>
   {#if pairs.length}
@@ -288,7 +286,7 @@
       <h3>{t('legacyResources')}</h3>
       <p class="muted">{t('legacyResourcesHint')}</p>
       {#each report.resources as r (r.source)}
-        <div class="mono muted">{r.name} · paid {r.paid} · gas {r.gas}</div>
+        <div class="mono muted">{r.name} · {t('legacyResource', { paid: r.paid, gas: r.gas })}</div>
       {/each}
       {#each report.entitlements as e (e.source)}
         <details><summary class="mono">{e.source}</summary><pre>{pretty(e.value)}</pre></details>
@@ -402,16 +400,14 @@
     {#if view.stage === 'active'}
       <h3>{t('legacyGrant')}</h3>
       <div class="row">
-        <select bind:value={grantArchive}>
-          <option value="">{t('legacyArchives')}</option>
-          {#each archives as a (a.id)}<option value={a.id}>{a.principal} · {a.objects}</option>{/each}
-        </select>
-        <select bind:value={grantMember}>
-          <option value="">{t('legacyMember')}</option>
-          {#each claims.filter((c) => c.joined) as c (c.claim.member)}
-            <option value={c.claim.member}>{c.claim.member}</option>
-          {/each}
-        </select>
+        <Select
+          bind:value={grantArchive}
+          placeholder={t('legacyArchives')}
+          options={archives.map((a) => ({ value: a.id, label: `${a.principal} · ${a.objects}`, mono: true }))} />
+        <Select
+          bind:value={grantMember}
+          placeholder={t('legacyMember')}
+          options={claims.filter((c) => c.joined).map((c) => ({ value: c.claim.member, label: c.claim.member, mono: true }))} />
         <button class="primary" disabled={busy || !grantArchive || !grantMember} onclick={() => act('legacy/shared_grant', { archive: grantArchive, member: grantMember })}>{t('legacyGrantSend')}</button>
       </div>
       <ul class="list">

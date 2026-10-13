@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, units, when } from '../rpc'
   import Operations from './Operations.svelte'
+  import Select from '../components/Select.svelte'
 
   let { status }: { status: any } = $props()
   let plan = $state<any>(null)
@@ -141,9 +142,7 @@
   {#if unlocked}
     <div class="row" style="margin-top: 8px">
       <input placeholder="sku" bind:value={sku} style="max-width: 120px" />
-      <select bind:value={ledger} data-testid="plan-asset">
-        {#each assets as a (a.ledger)}<option value={a.ledger}>{a.asset}</option>{/each}
-      </select>
+      <Select bind:value={ledger} testid="plan-asset" placeholder={t('choose')} options={assets.map((a) => ({ value: a.ledger, label: a.asset }))} />
       <button class="primary" disabled={busy || !ledger || !sku.trim()} onclick={checkout}>{t('subscribe')}</button>
     </div>
   {/if}

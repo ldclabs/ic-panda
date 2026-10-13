@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t, stateLabel } from '../i18n'
+  import { t, stateLabel } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
 
   let { status }: { status: any } = $props()

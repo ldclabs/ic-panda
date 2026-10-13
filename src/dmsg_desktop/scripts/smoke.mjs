@@ -12,8 +12,9 @@
 // window; that channel files, roles, history, archiving and transfers reach
 // the daemon; that the Agents view runs only the Mail and Knowledge tools and
 // manages MCP Events endpoints; that a delivery notifies without its content;
-// and that application actions and attestation bundles enter through the main
-// process's dialogs. Run with `pnpm test:e2e`.
+// that application actions and attestation bundles enter through the main
+// process's dialogs; and that a language picked in the main window reaches
+// both windows. Run with `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { createServer } from 'node:http'
@@ -500,11 +501,18 @@ async function waitFor(check) {
   for (let i = 0; i < 100 && !check(); i++) await new Promise((r) => setTimeout(r, 100))
   assert.ok(check())
 }
+/** Picks an option of a dropdown menu (`components/Select.svelte`, the language menu) by its value. */
+async function choose(page, testid, value) {
+  await page.click(`[data-testid="${testid}"]`)
+  await page.click(`[data-testid="${testid}-menu"] [data-value="${value}"]`)
+}
 await new Promise((r) => server.listen(0, '127.0.0.1', r))
 const port = server.address().port
 const profile = await mkdtemp(join(tmpdir(), 'dmsg-desktop-smoke-'))
 const shots = resolve('test-results')
 await mkdir(shots, { recursive: true })
+// The windows start in English, whatever the system's languages.
+await writeFile(join(profile, 'locale'), 'en')
 
 const app = await electron.launch({
   executablePath: electronPath,
@@ -586,7 +594,7 @@ try {
   // A vault file goes with a message; a shared file is saved where the main
   // process's dialog says; roles, history, a transfer proposal and archiving
   // reach the daemon from the owner's view.
-  await main.selectOption('[data-testid="channel-attachment"]', '23'.repeat(32))
+  await choose(main, 'channel-attachment', '23'.repeat(32))
   await main.fill('[data-testid="channel-text"]', 'With a file')
   await main.click('button:has-text("Send"), button:has-text("发送")')
   await waitFor(() => latest('channel/send_file'))
@@ -597,7 +605,7 @@ try {
   await waitFor(() => latest('channel/download'))
   assert.deepEqual(latest('channel/download').params, { id: channel.id, seq: 2, path: saved })
   await main.waitForSelector('[data-testid="channel-notice"]')
-  await main.selectOption('[data-testid="member-role"]', 'admin')
+  await choose(main, 'member-role', 'admin')
   await waitFor(() => latest('channel/control'))
   assert.deepEqual(latest('channel/control').params, { id: channel.id, action: { type: 'role', account: peer, role: 'admin', can_rotate: false } })
   await main.click('[data-testid="channel-members"] >> text=/Grant history|授权历史/')
@@ -670,11 +678,11 @@ try {
   assert.ok(!notes[0].includes('Upstream'))
   // The audit record names who did what and through which way in.
   await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
-  await main.selectOption('[data-testid="audit-actor"]', 'owner')
+  await choose(main, 'audit-actor', 'owner')
   await waitFor(() => latest('audit/list').params.agent === 'owner')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=grants/add')
   assert.equal(await main.locator('[data-testid="audit-entries"] >> text=dmsg_vault_read').count(), 0)
-  await main.selectOption('[data-testid="audit-actor"]', '')
+  await choose(main, 'audit-actor', '')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
   await main.locator('[data-testid="agent-audit"]').screenshot({ path: join(shots, 'audit.png') })
   await main.screenshot({ path: join(shots, 'agents.png') })
@@ -734,7 +742,10 @@ try {
     base: 'r3',
     changes: { title: 'Smoke login 2', tags: ['work'], body: '', username: 'panda', url: 'https://example.com' }
   })
-  await main.selectOption('[data-testid="vault-type"]', 'login')
+  await main.click('[data-testid="vault-type"]')
+  await main.waitForSelector('[data-testid="vault-type-menu"]')
+  await main.screenshot({ path: join(shots, 'select-menu.png') })
+  await main.click('[data-testid="vault-type-menu"] [data-value="login"]')
   await main.fill('[data-testid="vault-title"]', 'New login')
   await main.fill('[data-testid="vault-new-secret"]', 'new-secret')
   await main.click('[data-testid="vault-add"]')
@@ -810,6 +821,23 @@ try {
   await waitFor(() => calls.some((c) => c.method === 'session/switch'))
   assert.deepEqual(calls.find((c) => c.method === 'session/switch').params, { account: other })
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
+
+  // The language is picked in the main window only, kept in the profile, and
+  // both windows follow it; Arabic reads right to left.
+  await assert.rejects(approval.evaluate(() => window.dmsg.setLocale('fr')), /FORBIDDEN/)
+  await main.click('[data-testid="locale"]')
+  await main.waitForSelector('[data-testid="locale-menu"]')
+  await main.screenshot({ path: join(shots, 'locale-menu.png') })
+  await main.click('[data-testid="locale-menu"] [data-value="ar"]')
+  await main.waitForSelector('html[lang="ar"][dir="rtl"]')
+  await approval.waitForSelector('html[lang="ar"][dir="rtl"]')
+  await main.waitForSelector('nav >> text=الإعدادات')
+  assert.equal(await readFile(join(profile, 'locale'), 'utf8'), 'ar')
+  await main.screenshot({ path: join(shots, 'locale-ar.png') })
+  await choose(main, 'locale', 'fr')
+  await approval.waitForSelector('html[lang="fr"][dir="ltr"]')
+  await main.waitForSelector('nav >> text=Paramètres')
+  await main.screenshot({ path: join(shots, 'locale-fr.png') })
   console.log('desktop smoke test passed')
 } finally {
   await app.close()

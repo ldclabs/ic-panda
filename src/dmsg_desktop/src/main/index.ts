@@ -24,6 +24,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import type { DaemonEvent } from '../shared/contract'
+import { isLocale, resolveLocale, type Locale } from '../shared/locales'
 import { Daemon, DaemonError } from './daemon'
 import { externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
@@ -57,7 +58,8 @@ let waiting = 0
 let pendingRoute: string | null = null
 let trayState = 'connecting'
 /** English until the app is ready and knows its locale. */
-let text = textFor('en')
+let locale: Locale = 'en'
+let text = textFor(locale)
 const updates = new Updates(() => updateTray(trayState))
 /** A copied secret leaves the clipboard after this long, unless something replaced it. */
 const CLEAR_MS = 30_000
@@ -87,14 +89,24 @@ function harden(window: BrowserWindow) {
   window.webContents.on('will-navigate', (event) => event.preventDefault())
 }
 
-function webPreferences() {
+/** The language the person picked in the main window, kept in the app's profile. */
+const localeFile = () => join(app.getPath('userData'), 'locale')
+
+function applyLocale(next: Locale) {
+  locale = next
+  text = textFor(next)
+  updateTray(trayState)
+}
+
+/** A window learns its role and the current language from its arguments. */
+function webPreferences(role: 'main' | 'approval') {
   return {
     preload: join(__dirname, '../preload/index.js'),
     contextIsolation: true,
     sandbox: true,
     nodeIntegration: false,
     webSecurity: true,
-    additionalArguments: []
+    additionalArguments: [`--dmsg-role=${role}`, `--dmsg-locale=${locale}`]
   }
 }
 
@@ -112,7 +124,7 @@ function showMain(route = '/vault') {
     minHeight: 520,
     title: 'dMsg',
     show: !testMode || process.env.DMSG_DESKTOP_SHOW === '1',
-    webPreferences: { ...webPreferences(), additionalArguments: ['--dmsg-role=main'] }
+    webPreferences: webPreferences('main')
   })
   harden(main)
   load(main, route)
@@ -141,7 +153,7 @@ function showApproval(id: string) {
     resizable: true,
     title: 'dMsg approval',
     show: !testMode || process.env.DMSG_DESKTOP_SHOW === '1',
-    webPreferences: { ...webPreferences(), additionalArguments: ['--dmsg-role=approval'] }
+    webPreferences: webPreferences('approval')
   })
   harden(approval)
   load(approval, `/approval/${id}`)
@@ -377,6 +389,16 @@ ipcMain.handle('dmsg:open-approval', (event, id: string) =>
     showApproval(id)
   })
 )
+/** A language picked in the main window is kept; the tray, dialogs and every window follow it. */
+ipcMain.handle('dmsg:set-locale', (event, next: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    if (!isLocale(next)) throw new DaemonError('INVALID_INPUT', 'Not a supported language')
+    await writeFile(localeFile(), next)
+    applyLocale(next)
+    broadcast('dmsg:locale', next)
+  })
+)
 ipcMain.handle('dmsg:connection', (event) =>
   guard(async () => {
     trust(event, 'any')
@@ -529,7 +551,13 @@ app.on('window-all-closed', () => {
 })
 
 app.whenReady().then(async () => {
-  text = textFor(app.getLocale())
+  let stored: string | null = null
+  try {
+    stored = readFileSync(localeFile(), 'utf8').trim()
+  } catch {
+    /* no choice yet */
+  }
+  applyLocale(resolveLocale(stored, [...app.getPreferredSystemLanguages(), app.getLocale()]))
   if (!testMode) {
     if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('dmsg', process.execPath, [resolve(process.argv[1])])
     else app.setAsDefaultProtocolClient('dmsg')

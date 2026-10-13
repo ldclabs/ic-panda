@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import Select from '../components/Select.svelte'
 
   /** The device's audit record: readable while locked, IDs only. */
   let { agents }: { agents: any[] } = $props()
@@ -35,11 +36,15 @@
 <div class="card" data-testid="agent-audit">
   <div class="row spread">
     <h2>{t('audit')}</h2>
-    <select bind:value={actor} onchange={() => load()} data-testid="audit-actor">
-      <option value="">{t('everyone')}</option>
-      <option value="owner">{t('owner')}</option>
-      {#each agents as a (a.agent_id)}<option value={a.agent_id}>{a.label}</option>{/each}
-    </select>
+    <Select
+      bind:value={actor}
+      onChange={() => load()}
+      testid="audit-actor"
+      options={[
+        { value: '', label: t('everyone') },
+        { value: 'owner', label: t('owner') },
+        ...agents.map((a) => ({ value: a.agent_id, label: a.label }))
+      ]} />
   </div>
   <p class="muted">{t('auditHint')}</p>
   {#if error}<p class="error">{error}</p>{/if}

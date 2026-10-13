@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t } from '../i18n/index.svelte'
   import { call, code } from '../rpc'
 
   /** This account's signed public profile, and other accounts' checked against their devices. */
@@ -112,7 +112,7 @@
       <dd>{found.profile.display_name || '-'}</dd>
       <dt>{t('bio')}</dt>
       <dd>{found.profile.bio || '-'}</dd>
-      {#each found.profile.links as link (link)}<dt>link</dt><dd class="mono">{link}</dd>{/each}
+      {#each found.profile.links as link (link)}<dt>{t('link')}</dt><dd class="mono">{link}</dd>{/each}
       <dt>{t('device')}</dt>
       <dd class="mono">{found.device_id}</dd>
     </dl>

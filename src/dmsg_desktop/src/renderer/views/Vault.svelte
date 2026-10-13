@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t, type Label } from '../i18n'
+  import { t, type Label } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import Select from '../components/Select.svelte'
 
   let { status }: { status: any } = $props()
   let items = $state<any[]>([])
@@ -158,7 +159,7 @@
   const verify = (id: string) =>
     fileAction(async () => {
       const manifest: any = await call('file/verify', { id })
-      checked[id] = `${t('verified')} · ${manifest.size} bytes · sha256 ${String(manifest.sha256).slice(0, 16)}…`
+      checked[id] = `${t('verified')} · ${t('bytes', { n: manifest.size })} · sha256 ${String(manifest.sha256).slice(0, 16)}…`
     })
 
   /** Keep the current version, or adopt the copy another device wrote. */
@@ -247,7 +248,7 @@
           {#if entry.item.url}<dt>URL</dt><dd>{entry.item.url}</dd>{/if}
           {#if entry.item.body}<dt>{t('body')}</dt><dd class="body">{entry.item.body}</dd>{/if}
           {#if entry.item.tags.length}<dt>{t('tags')}</dt><dd>{entry.item.tags.join(', ')}</dd>{/if}
-          {#if entry.item.file}<dt>{t('typeFile')}</dt><dd>{entry.item.file.name} ({entry.item.file.size} bytes)</dd>{/if}
+          {#if entry.item.file}<dt>{t('typeFile')}</dt><dd>{entry.item.file.name} ({t('bytes', { n: entry.item.file.size })})</dd>{/if}
           <dt>{t('updated')}</dt>
           <dd>{when(entry.item.updatedAt)} <span class="mono muted">{entry.revision.slice(0, 12)}</span></dd>
         </dl>
@@ -308,9 +309,7 @@
   <div class="card form">
     <h2>{t('add')}</h2>
     <div class="row">
-      <select bind:value={draft.type} data-testid="vault-type">
-        {#each ['note', 'login', 'api', 'key'] as type (type)}<option value={type}>{t(TYPES[type])}</option>{/each}
-      </select>
+      <Select bind:value={draft.type} testid="vault-type" options={['note', 'login', 'api', 'key'].map((type) => ({ value: type, label: t(TYPES[type]) }))} />
       <input placeholder={t('title')} bind:value={draft.title} data-testid="vault-title" />
     </div>
     {#if FIELDS[draft.type].includes('username')}<input placeholder={t('username')} bind:value={draft.username} />{/if}
@@ -334,7 +333,7 @@
     padding: 0;
     display: flex;
     gap: 10px;
-    text-align: left;
+    text-align: start;
   }
   .form {
     display: flex;

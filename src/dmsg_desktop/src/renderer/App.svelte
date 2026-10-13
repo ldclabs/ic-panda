@@ -9,7 +9,8 @@
   import Account from './views/Account.svelte'
   import Agents from './views/Agents.svelte'
   import Legacy from './views/Legacy.svelte'
-  import { t, lang } from './i18n'
+  import { t, sessionLabel } from './i18n/index.svelte'
+  import LocaleSwitcher from './i18n/LocaleSwitcher.svelte'
   import { call } from './rpc'
 
   let route = $state(location.hash.slice(1) || '/vault')
@@ -26,7 +27,6 @@
   }
 
   onMount(() => {
-    document.documentElement.lang = lang
     void refresh()
     const offEvent = window.dmsg.onEvent((event) => {
       if (['session/changed', 'connection/changed', 'approval/changed', 'sync/changed'].includes(event.type)) void refresh()
@@ -68,7 +68,8 @@
       </button>
       <button class:active={route.startsWith('/settings')} onclick={() => go('/settings')}>{t('settings')}</button>
       <div class="foot muted">
-        {#if !connected}<span class="error">{t('disconnected')}</span>{:else}{status?.state ?? '-'}{/if}
+        <LocaleSwitcher />
+        <div class="state">{#if !connected}<span class="error">{t('disconnected')}</span>{:else}{status?.state ? sessionLabel(status.state) : '-'}{/if}</div>
       </div>
     </nav>
     <main>
@@ -100,14 +101,14 @@
     min-height: 100vh;
   }
   nav {
-    border-right: 1px solid var(--line);
+    border-inline-end: 1px solid var(--line);
     padding: 16px 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
   }
   nav button {
-    text-align: left;
+    text-align: start;
     border: 0;
     background: transparent;
     display: flex;
@@ -124,6 +125,15 @@
   }
   .foot {
     margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .foot :global(.locale-trigger) {
+    padding: 4px 12px;
+    font-size: 13px;
+  }
+  .state {
     padding: 0 12px;
     font-size: 12px;
   }

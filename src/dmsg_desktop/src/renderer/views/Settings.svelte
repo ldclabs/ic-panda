@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n'
+  import { t, sessionLabel } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
   import Onboarding from './Onboarding.svelte'
   import Security from './Security.svelte'
@@ -88,17 +88,17 @@
   <h2>{t('status')}</h2>
   <dl>
     <dt>{t('status')}</dt>
-    <dd data-testid="session-state">{status?.state ?? '-'}</dd>
+    <dd data-testid="session-state">{status?.state ? sessionLabel(status.state) : '-'}</dd>
     <dt>{t('account')}</dt>
     <dd class="mono">{status?.account ?? '-'}</dd>
     <dt>{t('device')}</dt>
     <dd class="mono">{status?.device_id ?? '-'}</dd>
     <dt>{t('formal')}</dt>
     <dd>{own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff')}</dd>
-    <dt>sync</dt>
-    <dd>{status?.pending_sync ?? 0} pending · {when(status?.last_sync?.at)}</dd>
-    <dt>background online</dt>
-    <dd>{status?.background_online ? 'on' : 'off'}{status?.resident ? ' (device key resident)' : ''}</dd>
+    <dt>{t('syncState')}</dt>
+    <dd>{t('pendingSync', { n: status?.pending_sync ?? 0 })} · {when(status?.last_sync?.at)}</dd>
+    <dt>{t('backgroundOnline')}</dt>
+    <dd>{status?.background_online ? t('on') : t('off')}{status?.resident ? ` (${t('deviceKeyResident')})` : ''}</dd>
   </dl>
   <div class="row" style="margin-top: 10px">
     <button onclick={login}>{status?.account ? t('loginOther') : t('login')}</button>

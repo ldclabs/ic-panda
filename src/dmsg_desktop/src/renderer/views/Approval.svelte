@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t, stateLabel } from '../i18n'
+  import { t, stateLabel } from '../i18n/index.svelte'
   import { call, code, units, when } from '../rpc'
+  import Select from '../components/Select.svelte'
 
   let { id }: { id: string } = $props()
   let request = $state<any>(null)
@@ -61,13 +62,15 @@
   const s = $derived(d.statement ?? d.content?.statement ?? (d.method === 'signAction' ? d.content : null))
   /** Terms of a checkout: a web checkout's quote, or this device's own. */
   const terms = $derived(request?.type === 'connect' ? d.checkout : request?.type === 'checkout' ? d : null)
-  const changes: Record<string, string> = {
-    bind_login: t('bindLogin'),
-    remove_login: `${t('remove')} ${t('loginPrincipal')}`,
-    policy: t('signingPolicy'),
-    recovery_delay: t('recoveryDelay'),
-    dispute_recovery: t('disputeRecovery')
-  }
+  /** An account security change for people; unknown changes show as they are. */
+  const change = (name: string): string =>
+    ({
+      bind_login: t('bindLogin'),
+      remove_login: `${t('remove')} ${t('loginPrincipal')}`,
+      policy: t('signingPolicy'),
+      recovery_delay: t('recoveryDelay'),
+      dispute_recovery: t('disputeRecovery')
+    })[name] ?? name
   const unquoted = $derived(request?.type === 'connect' && d.method === 'checkout' && !d.checkout)
 </script>
 
@@ -158,7 +161,7 @@
       {/if}
       {#if request.type === 'account'}
         <dt>{t('change')}</dt>
-        <dd data-testid="approval-change">{changes[d.change] ?? d.change}</dd>
+        <dd data-testid="approval-change">{change(d.change)}</dd>
         {#if d.principal}<dt>{t('loginPrincipal')}</dt><dd class="mono" data-testid="approval-principal">{d.principal}</dd>{/if}
         {#if d.change === 'policy'}
           <dt>{t('signingPolicy')}</dt>
@@ -259,9 +262,11 @@
       <p class="warn">{t('quoteFirst')}</p>
       <div class="row">
         {#if d.content?.method === 'Cash'}
-          <select bind:value={selection} data-testid="quote-asset">
-            {#each assets as a (a.ledger)}<option value={a.ledger}>{a.asset}</option>{/each}
-          </select>
+          <Select
+            bind:value={selection}
+            testid="quote-asset"
+            placeholder={t('choose')}
+            options={assets.map((a) => ({ value: a.ledger, label: a.asset }))} />
         {:else}
           <input placeholder={t('neuronHint')} bind:value={selection} />
         {/if}

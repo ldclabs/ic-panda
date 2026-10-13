@@ -1,4 +1,5 @@
 /** The narrow surface the renderer sees as `window.dmsg`; the daemon credential never crosses it. */
+import type { Locale } from './locales'
 
 /** A daemon event, as `/ws/app/v1` sends it. */
 export interface DaemonEvent {
@@ -16,6 +17,10 @@ export interface Connection {
 export interface DesktopBridge {
   /** Which window this is: the main window or the approval window. */
   role: 'main' | 'approval'
+  /** The interface language when this window opened; `onLocale` follows changes. */
+  locale: Locale
+  /** Keep the language the person picked; the main window only. The tray, dialogs and every window follow. */
+  setLocale(locale: Locale): Promise<void>
   /** A daemon method the desktop allows a window to call. */
   call(method: string, params?: unknown): Promise<unknown>
   /** Approve or reject a request after the person saw it; the approval window only. */
@@ -55,4 +60,5 @@ export interface DesktopBridge {
   connection(): Promise<Connection>
   onEvent(listener: (event: DaemonEvent) => void): () => void
   onNavigate(listener: (route: string) => void): () => void
+  onLocale(listener: (locale: Locale) => void): () => void
 }

@@ -24,6 +24,7 @@
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^26.6.4",
     "@types/ws": "^8.18.1",
+    "bits-ui": "^2.19.0",
     "electron": "44.4.5",
     "electron-builder": "26.16.1",
     "electron-vite": "5.0.0",

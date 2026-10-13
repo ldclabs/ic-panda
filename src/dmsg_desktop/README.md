@@ -8,12 +8,20 @@ desktop is one of its clients, like the CLI.
   when none runs) and gets the daemon's address and owner credential from
   `dmsg app-token`, keeps one `/ws/app/v1` connection, forwards its events,
   owns the tray, notifications, file dialogs, the clipboard, `dmsg://` links
-  and updates. Its text (`src/main/text.ts`) follows the app's locale,
-  Simplified Chinese or English, as the windows' does.
+  and updates. Its text (`src/main/text.ts`) is in the interface language.
+- **Languages** (`src/shared/locales.ts`): English, Simplified Chinese,
+  Russian, Arabic, French and Spanish, as on the website. The main process
+  resolves one (the person's choice, kept in the profile's `locale` file,
+  else the system's preferred languages, else English) and passes it to
+  each window; the language menu in the main window changes it for the tray,
+  dialogs and both windows at once. Arabic lays the windows out right to
+  left.
 - **Preload** (`src/preload`): `window.dmsg`, a narrow bridge; the credential
   never reaches a renderer.
 - **Renderer** (`src/renderer`, Svelte 5): the main window and the approval
-  window. The main window has these views:
+  window. Choices are bits-ui dropdown menus (`components/Select.svelte`);
+  the text is in `i18n/messages`, one catalog per language, each checked
+  against the English one. The main window has these views:
   - Vault: notes, logins, API credentials, keys and files; details and edits,
     stars, and conflict copies kept or adopted.
   - Channels: attachments, roles, history grants, leaving, archiving and
@@ -100,7 +108,7 @@ from where; clicking one opens the Agents view.
 
 ```sh
 pnpm --dir src/dmsg_desktop dev        # needs a dmsg binary on PATH or DMSG_BIN
-pnpm --dir src/dmsg_desktop test       # policy and update unit tests
+pnpm --dir src/dmsg_desktop test       # policy, update and language unit tests
 pnpm --dir src/dmsg_desktop test:e2e   # build, then the Playwright-for-Electron smoke test
 ```
 
@@ -130,7 +138,9 @@ and notifications instead of the system's. It covers:
   revocation as an approval request, the avatar shown, set from a picked
   image and removed (the window cannot name a path), the locked daemon's
   `inbox` and `channel` hints notified once each, and switching to another
-  account's workspace.
+  account's workspace;
+- languages: picked only in the main window, kept, and followed by the
+  approval window, Arabic right to left.
 
 ## Packages and updates
 

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { DaemonEvent, DesktopBridge } from '../shared/contract'
+import { defaultLocale, isLocale, type Locale } from '../shared/locales'
 
 const unwrap = <T>(promise: Promise<T>) =>
   promise.catch((error: Error) => {
@@ -8,9 +9,12 @@ const unwrap = <T>(promise: Promise<T>) =>
   })
 
 const role = process.argv.includes('--dmsg-role=approval') ? 'approval' : 'main'
+const locale = process.argv.find((a) => a.startsWith('--dmsg-locale='))?.slice('--dmsg-locale='.length)
 
 const api: DesktopBridge = {
   role,
+  locale: isLocale(locale) ? locale : defaultLocale,
+  setLocale: (next) => unwrap(ipcRenderer.invoke('dmsg:set-locale', next)),
   call: (method, params) => unwrap(ipcRenderer.invoke('dmsg:call', method, params ?? null)),
   decide: (id, digest, approve) => unwrap(ipcRenderer.invoke('dmsg:decide', id, digest, approve)),
   grant: (invite, pairing) => unwrap(ipcRenderer.invoke('dmsg:grant', invite, pairing)),
@@ -40,6 +44,11 @@ const api: DesktopBridge = {
     const handler = (_event: Electron.IpcRendererEvent, route: string) => listener(route)
     ipcRenderer.on('dmsg:navigate', handler)
     return () => ipcRenderer.removeListener('dmsg:navigate', handler)
+  },
+  onLocale: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, next: Locale) => listener(next)
+    ipcRenderer.on('dmsg:locale', handler)
+    return () => ipcRenderer.removeListener('dmsg:locale', handler)
   }
 }
 contextBridge.exposeInMainWorld('dmsg', api)
