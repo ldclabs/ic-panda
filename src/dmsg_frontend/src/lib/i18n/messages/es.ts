@@ -375,7 +375,7 @@ export default {
   'Read your existing conversations and download the attachments you can already access.':
     'Revisa tus conversaciones existentes y descarga los archivos adjuntos a los que ya tienes acceso.',
   'New messages, uploads, profile edits, username changes, and payments are disabled in this app. To move your history to the dMsg desktop app, start a migration in its Legacy section.':
-    'Los nuevos mensajes, subidas, cambios de perfil o nombre y pagos están desactivados. Para llevar tu historial a la app de escritorio de dMsg, inicia la migración en su sección Legacy.',
+    'Los nuevos mensajes, subidas, cambios de perfil o nombre y pagos están desactivados. Para llevar tu historial a la app de escritorio de dMsg, inicia la migración en su sección «Versión anterior».',
   'Opening archive…': 'Abriendo archivo…',
   'Open message archive': 'Abrir archivo de mensajes',
   'Account options': 'Opciones de cuenta',
@@ -803,5 +803,80 @@ export default {
   '{bytes} bytes': '{bytes} bytes',
   '{count} items': '{count} elementos',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
-    'Un espacio cifrado en tu ordenador. La app de escritorio, la línea de comandos dmsg y tus agentes de IA trabajan a través de él, y nada se firma hasta que lo apruebes.'
+    'Un espacio cifrado en tu ordenador. La app de escritorio, la línea de comandos dmsg y tus agentes de IA trabajan a través de él, y nada se firma hasta que lo apruebes.',
+  'Read-only inventory and encrypted migration':
+    'Inventario de solo lectura y migración cifrada',
+  'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.':
+    'Usa tu identidad anterior y elige el modo de clave que usabas. La lectura nunca inicializa ni rota claves, no confirma intercambios ni marca nada como leído. El resultado es una instantánea previa a la migración y no puede confirmar el cambio definitivo.',
+  'Current identity:': 'Identidad actual:',
+  'Legacy key mode': 'Modo de clave anterior',
+  'Take inventory of readable history': 'Inventariar el historial legible',
+  'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.':
+    'Se leyeron {count} registros con {gaps} huecos. Los resultados de consulta no son una instantánea congelada certificada.',
+  'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.':
+    'Las páginas ya leídas se guardan cifradas en una caché de migración aparte de este navegador, así que puedes continuar al volver a abrir. La base original sigue en solo lectura y los cambios del servicio antiguo se informan como diferencias.',
+  'Clear the migration cache and start over':
+    'Borrar la caché de migración y empezar de nuevo',
+  'Target device:': 'Dispositivo de destino:',
+  'Fingerprint:': 'Huella:',
+  'The fingerprint, legacy identity and target device match what the desktop app shows':
+    'La huella, la identidad anterior y el dispositivo de destino coinciden con lo que muestra la app de escritorio',
+  'Your original unlock password': 'Tu contraseña de desbloqueo original',
+  'Unlock and create the encrypted migration file':
+    'Desbloquear y crear el archivo de migración cifrado',
+  'Stop reading': 'Detener la lectura',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'Solo el dispositivo de escritorio de esta vinculación puede descifrar el archivo, y la vinculación es válida diez minutos. Conserva los datos del navegador original y el servicio antiguo hasta verificar una recuperación independiente. Las claves que faltan, los permisos y las subidas sin terminar se enumeran aparte.',
+  'First compare the pairing fingerprint and the target device ID on both sides.':
+    'Primero compara la huella de la vinculación y el ID del dispositivo de destino en ambos lados.',
+  'The pairing has expired. Create a new one in the desktop app.':
+    'La vinculación ha caducado. Crea una nueva en la app de escritorio.',
+  'This pairing link is invalid, expired or meant for another site. Create a new one in the dMsg desktop app.':
+    'Este enlace de vinculación no es válido, ha caducado o es para otro sitio. Crea uno nuevo en la app de escritorio de dMsg.',
+  'The inventory did not finish.': 'El inventario no terminó.',
+  'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
+    'Crea una vinculación en la sección «Versión anterior» de la app de escritorio de dMsg; abrirá en este navegador un enlace con la vinculación.',
+  'Shared channel succession and member claims':
+    'Sucesión de canales compartidos y reclamaciones de miembros',
+  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
+    'Requiere que el servicio antiguo esté congelado. El único sucesor oficial existe solo cuando todos los administradores congelados aceptan el mismo nuevo propietario y el mismo registro inicial del canal.',
+  'Source channel service': 'Servicio de canales de origen',
+  'Legacy channel number': 'Número del canal anterior',
+  'Export frozen authority evidence':
+    'Exportar la prueba de permisos congelados',
+  'Export final history evidence for this channel':
+    'Exportar la prueba final del historial de este canal',
+  'Approval request from the desktop app':
+    'Solicitud de aprobación de la app de escritorio',
+  'Approval type': 'Tipo de aprobación',
+  'Manager consent to the succession proposal':
+    'Consentimiento del administrador a la propuesta de sucesión',
+  'Former member claim': 'Reclamación de un antiguo miembro',
+  'Legacy channel': 'Canal anterior',
+  'New owner': 'Nuevo propietario',
+  'New channel': 'Canal nuevo',
+  'Proposal version': 'Versión de la propuesta',
+  'Legacy identity to act for': 'Identidad anterior en cuyo nombre se actúa',
+  'Target account / device': 'Cuenta / dispositivo de destino',
+  'Expires': 'Caduca',
+  'Intent digest': 'Resumen de la intención',
+  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
+    'Identidad de firma: {principal}. Los nombres compartidos deben aprobarse con el inicio de sesión original del administrador congelado.',
+  'I have checked it: approve this version':
+    'Lo he revisado: aprobar esta versión',
+  'Approval result to copy into the desktop app':
+    'Resultado de la aprobación para copiar en la app de escritorio',
+  'First check a complete proposal that has not expired.':
+    'Primero revisa una propuesta completa que no haya caducado.',
+  'The legacy identity changed. Check again.':
+    'La identidad anterior cambió. Vuelve a revisar.',
+  'This approval request link is invalid.':
+    'Este enlace de solicitud de aprobación no es válido.',
+  'The operation did not finish.': 'La operación no terminó.',
+  'Frozen authority evidence exported. It contains the membership, so give it only to the people migrating this channel.':
+    'Prueba de permisos congelados exportada. Contiene la membresía, así que entrégala solo a quienes migran este canal.',
+  'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
+    'Prueba congelada de los mensajes y adjuntos exportada. El archivo no contiene ningún token de descarga; impórtalo solo en tu propia app de escritorio.',
+  'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
+    'Tu aprobación explícita de esta versión está lista. Copia el resultado en la app de escritorio para terminar la misma propuesta.'
 } satisfies Messages

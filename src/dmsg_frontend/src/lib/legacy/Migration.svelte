@@ -12,6 +12,7 @@
   } from '@dmsg/legacy'
   import { createLegacyReader } from './reader'
   import { authStore } from '$lib/stores/auth'
+  import { t } from '$lib/i18n'
   let mode = $state<'Local' | 'ECDH' | 'VetKey'>('Local')
   let password = $state(''),
     offer = $state<PairingOffer | null>(null),
@@ -24,12 +25,14 @@
   let abort: AbortController | null = null
   // The desktop client opens this page with its pairing offer in the URL
   // fragment, which never reaches a server; drop it from the address bar.
+  // Errors and states hold English message keys and render through $t.
   onMount(() => {
     if (!location.hash.startsWith('#pair=')) return
     try {
       offer = readOfferLink(location.hash, location.origin)
     } catch {
-      linkError = '配对链接无效、已过期或不属于此网站，请在桌面客户端重新生成。'
+      linkError =
+        'This pairing link is invalid, expired or meant for another site. Create a new one in the dMsg desktop app.'
     }
     history.replaceState(null, '', location.pathname + location.search)
   })
@@ -47,9 +50,14 @@
       const { reader, checkpoint } = await createLegacyReader(mode)
       try {
         if (exporting) {
-          if (!offer || !confirmed) throw new Error('先在两端核对配对指纹与目标设备 ID。')
+          if (!offer || !confirmed)
+            throw new Error(
+              'First compare the pairing fingerprint and the target device ID on both sides.'
+            )
           if (offer.expiresAt <= Date.now())
-            throw new Error('配对已过期，请在桌面客户端重新生成。')
+            throw new Error(
+              'The pairing has expired. Create a new one in the desktop app.'
+            )
           const archive = await collectArchive(
             reader,
             {
@@ -96,7 +104,8 @@
         checkpoint.close()
       }
     } catch (cause) {
-      error = cause instanceof Error ? cause.message : '清点未完成。'
+      error =
+        cause instanceof Error ? cause.message : 'The inventory did not finish.'
     } finally {
       password = ''
       busy = false
@@ -106,32 +115,45 @@
 </script>
 
 <section class="migration">
-  <h2>只读清点与加密迁移</h2>
+  <h2>{$t('Read-only inventory and encrypted migration')}</h2>
   <p>
-    使用当前旧身份，显式选择原来的密钥模式。读取不会初始化、换钥、确认交换或标记已读。当前结果是预迁移快照，不能确认最终切换。
+    {$t(
+      'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.'
+    )}
   </p>
-  <p>当前身份：<code>{$authStore.identity.getPrincipal().toText()}</code></p>
+  <p>
+    {$t('Current identity:')}
+    <code>{$authStore.identity.getPrincipal().toText()}</code>
+  </p>
   <label
-    >旧密钥模式 <select bind:value={mode} disabled={busy}
-      ><option>Local</option><option>ECDH</option><option>VetKey</option></select
+    >{$t('Legacy key mode')}
+    <select bind:value={mode} disabled={busy}
+      ><option>Local</option><option>ECDH</option><option>VetKey</option
+      ></select
     ></label
   >
   <button
     class="button"
     disabled={busy || $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={() => run(false)}>清点可读取的历史</button
+    onclick={() => run(false)}
+    >{$t('Take inventory of readable history')}</button
   >
   {#if report}<p role="status">
-      已读取 {objectCount} 项记录；{report.gaps.length} 项缺口。查询结果不等同于认证冻结快照。
+      {$t(
+        'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.',
+        { count: objectCount, gaps: report.gaps.length }
+      )}
     </p>
     <ul>
       {#each report.gaps.slice(0, 30) as gap}<li>
-          <code>{gap.source}</code>：{gap.code} · {gap.detail}
+          <code>{gap.source}</code>: {gap.code} · {gap.detail}
         </li>{/each}
     </ul>
   {/if}
   <p>
-    已读取的消息页加密保存在此浏览器独立迁移缓存中；重新打开后可继续。原始数据库保持只读。旧服务变化会明确报告差异。
+    {$t(
+      'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.'
+    )}
   </p>
   <button
     class="button"
@@ -145,28 +167,45 @@
       } finally {
         checkpoint.close()
       }
-    }}>清除迁移缓存并重新清点</button
+    }}>{$t('Clear the migration cache and start over')}</button
   >
-  {#if offer}<p>目标设备：<code>{offer.target}</code></p>
-    <p>指纹：<code>{pairingFingerprint(offer)}</code></p>
+  {#if offer}<p>{$t('Target device:')} <code>{offer.target}</code></p>
+    <p>{$t('Fingerprint:')} <code>{pairingFingerprint(offer)}</code></p>
     <label
-      ><input type="checkbox" bind:checked={confirmed} /> 已与桌面客户端显示的指纹、旧身份和目标设备核对一致</label
+      ><input type="checkbox" bind:checked={confirmed} />
+      {$t(
+        'The fingerprint, legacy identity and target device match what the desktop app shows'
+      )}</label
     >{:else}<p
-      >{linkError ||
-        '请在 dMsg 桌面客户端的“旧版迁移”中生成配对，客户端会用本浏览器打开带配对信息的链接。'}</p
+      >{$t(
+        linkError ||
+          'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.'
+      )}</p
     >{/if}
   {#if mode !== 'VetKey'}<label
-      >原来的解锁口令<input type="password" bind:value={password} autocomplete="off" /></label
+      >{$t('Your original unlock password')}<input
+        type="password"
+        bind:value={password}
+        autocomplete="off"
+      /></label
     >{/if}
   <button
     class="button primary"
-    disabled={busy || !offer || !confirmed || $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={() => run(true)}>解锁并生成加密迁移文件</button
+    disabled={busy ||
+      !offer ||
+      !confirmed ||
+      $authStore.identity.getPrincipal().isAnonymous()}
+    onclick={() => run(true)}
+    >{$t('Unlock and create the encrypted migration file')}</button
   >
-  {#if busy}<button class="button" onclick={() => abort?.abort()}>停止读取</button>{/if}
-  {#if error}<p role="alert">{error}</p>{/if}
+  {#if busy}<button class="button" onclick={() => abort?.abort()}
+      >{$t('Stop reading')}</button
+    >{/if}
+  {#if error}<p role="alert">{$t(error)}</p>{/if}
   <p>
-    文件仅能由本次配对的桌面设备解密；配对有效期十分钟。保留原浏览器数据和旧服务，直到独立恢复验证完成。缺钥、权限与未完成上传会单独列出。
+    {$t(
+      'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.'
+    )}
   </p>
 </section>
 

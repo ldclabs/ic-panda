@@ -125,4 +125,30 @@ describe('i18n source coverage', () => {
     }
     expect(problems).toEqual([])
   })
+
+  it('keeps Chinese copy in the catalogs', () => {
+    // CJK text, full-width punctuation included, belongs in messages/zh.ts;
+    // code comments may use it.
+    const cjk = /[　-〿㐀-鿿＀-￯]/
+    const problems: string[] = []
+    for (const path of files(resolve('src')).filter((path) =>
+      path.endsWith('.svelte')
+    )) {
+      walk(parse(readFileSync(path, 'utf8')), (node) => {
+        if (['Style', 'Comment'].includes(node.type)) return false
+        const text =
+          node.type === 'Text'
+            ? node.data
+            : node.type === 'Literal'
+              ? node.value
+              : node.type === 'TemplateElement'
+                ? node.value?.cooked
+                : undefined
+        if (typeof text === 'string' && cjk.test(text))
+          problems.push(`${path}: ${text.trim().slice(0, 40)}`)
+        return true
+      })
+    }
+    expect(problems).toEqual([])
+  })
 })

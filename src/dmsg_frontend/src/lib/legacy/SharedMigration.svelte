@@ -13,6 +13,7 @@
   import { createLegacyReader } from './reader'
   import { dynAgent } from '$lib/utils/auth'
   import { authStore } from '$lib/stores/auth'
+  import { locale, t } from '$lib/i18n'
   const channels = [
     'nvdn4-5qaaa-aaaaj-qa4pq-cai',
     'zof5a-5yaaa-aaaai-acr2q-cai',
@@ -32,7 +33,10 @@
     let text = ''
     for (let i = 0; i < bytes.length; i += 8192)
       text += String.fromCharCode(...bytes.subarray(i, i + 8192))
-    return btoa(text).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+    return btoa(text)
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
+      .replace(/=+$/, '')
   }
   const wire = (p: SnapshotProof) => ({
     ...p,
@@ -43,17 +47,19 @@
     reply: base64(p.reply)
   })
   // The desktop client may open this page with the request in the fragment.
+  // Errors and statuses hold English message keys and render through $t.
   onMount(() => {
     const match = /^#approve=([A-Za-z0-9_-]{1,8000})$/.exec(location.hash)
     if (!match) return
     try {
       requestText = new TextDecoder().decode(
-        Uint8Array.from(atob(match[1]!.replaceAll('-', '+').replaceAll('_', '/')), (c) =>
-          c.charCodeAt(0)
+        Uint8Array.from(
+          atob(match[1]!.replaceAll('-', '+').replaceAll('_', '/')),
+          (c) => c.charCodeAt(0)
         )
       )
     } catch {
-      error = '批准请求链接无效。'
+      error = 'This approval request link is invalid.'
     }
     history.replaceState(null, '', location.pathname + location.search)
   })
@@ -94,7 +100,8 @@
     try {
       await task()
     } catch (cause) {
-      error = cause instanceof Error ? cause.message : '操作未完成'
+      error =
+        cause instanceof Error ? cause.message : 'The operation did not finish.'
     } finally {
       busy = false
     }
@@ -117,9 +124,12 @@
         { ChannelAuthority: channel },
         channels
       )
-      const names = await collectSnapshot(dynAgent, identity, { Authorities: null }, [
-        identity
-      ])
+      const names = await collectSnapshot(
+        dynAgent,
+        identity,
+        { Authorities: null },
+        [identity]
+      )
       // The desktop client verifies the cutover against its reviewed configuration.
       const { verifySnapshotProof } = await import('@dmsg/legacy')
       const checked = await verifySnapshotProof(control.proofs[0]!, {
@@ -143,7 +153,8 @@
         },
         'legacy-shared-source.json'
       )
-      status = '冻结权限证明已导出。它包含成员关系，仅交给参与该频道迁移的人。'
+      status =
+        'Frozen authority evidence exported. It contains the membership, so give it only to the people migrating this channel.'
     })
   }
   async function frozenHistory() {
@@ -154,16 +165,28 @@
         { ChannelAuthority: channel },
         channels
       )
-      const messages = await collectSnapshot(dynAgent, source, { Messages: channel }, channels)
+      const messages = await collectSnapshot(
+        dynAgent,
+        source,
+        { Messages: channel },
+        channels
+      )
       const { reader, checkpoint } = await createLegacyReader('Local')
       let folder: Awaited<ReturnType<typeof collectFolderProof>> = []
       try {
-        const info = await reader.call('channel', source, 'get_channel_if_update', [
-          channel,
-          0n
-        ])
+        const info = await reader.call(
+          'channel',
+          source,
+          'get_channel_if_update',
+          [channel, 0n]
+        )
         if (info[0]?.files_state?.length) {
-          const token = await reader.call('channel', source, 'download_files_token', [channel])
+          const token = await reader.call(
+            'channel',
+            source,
+            'download_files_token',
+            [channel]
+          )
           folder = await collectFolderProof(
             dynAgent,
             token.storage[0].toText(),
@@ -191,87 +214,120 @@
       a.download = 'legacy-frozen-history.cbor'
       a.click()
       setTimeout(() => URL.revokeObjectURL(url), 30000)
-      status = '已导出消息与附件的冻结对照证明。文件不含下载 token；请仅导入本人的桌面客户端。'
+      status =
+        'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.'
     })
   }
   async function approve() {
     await run(async () => {
-      if (!request) throw new Error('请先核对完整且未过期的方案。')
+      if (!request)
+        throw new Error('First check a complete proposal that has not expired.')
       const expectedCaller = dynAgent.id.getPrincipal().toText()
       const result = await collectSnapshot(
         dynAgent,
         request.proposal.source,
-        { Attestation: { digest: request.bytes, expires_at: BigInt(request.expires_at) } },
+        {
+          Attestation: {
+            digest: request.bytes,
+            expires_at: BigInt(request.expires_at)
+          }
+        },
         channels
       )
       if (dynAgent.id.getPrincipal().toText() !== expectedCaller)
-        throw new Error('旧身份已变化，请重新核对。')
+        throw new Error('The legacy identity changed. Check again.')
       responseText = JSON.stringify(
         { proof: wire(result.proofs[0]!), expires_at: request.expires_at },
         null,
         2
       )
-      status = '本版本的明确批准已生成。请复制结果，回到桌面客户端完成同一方案。'
+      status =
+        'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.'
     })
   }
 </script>
 
 <section class="migration">
-  <h2>共享频道继承与成员认领</h2>
+  <h2>{$t('Shared channel succession and member claims')}</h2>
   <p>
-    需要旧服务已完成冻结。全部冻结管理员对同一新负责人和初始频道记录的同意齐全后，才可建立唯一官方继承。
+    {$t(
+      'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.'
+    )}
   </p>
   <label
-    >来源频道服务<select bind:value={source}
+    >{$t('Source channel service')}<select bind:value={source}
       >{#each channels as value}<option>{value}</option>{/each}</select
     ></label
   >
-  <label>旧频道编号<input type="number" min="0" max="4294967295" bind:value={channel} /></label>
+  <label
+    >{$t('Legacy channel number')}<input
+      type="number"
+      min="0"
+      max="4294967295"
+      bind:value={channel}
+    /></label
+  >
   <button
     class="button"
     disabled={busy || $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={inventory}>导出冻结权限证明</button
+    onclick={inventory}>{$t('Export frozen authority evidence')}</button
   ><button
     class="button"
     disabled={busy || $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={frozenHistory}>导出此频道的最终历史对照证明</button
+    onclick={frozenHistory}
+    >{$t('Export final history evidence for this channel')}</button
   >
-  <label>桌面客户端生成的批准请求<textarea bind:value={requestText} rows="5"></textarea></label>
+  <label
+    >{$t('Approval request from the desktop app')}<textarea
+      bind:value={requestText}
+      rows="5"></textarea></label
+  >
   {#if request}<dl>
-      <dt>批准类型</dt>
-      <dd>{request.kind === 'manager' ? '管理员同意继承方案' : '旧成员认领'}</dd>
-      <dt>旧频道</dt>
+      <dt>{$t('Approval type')}</dt>
+      <dd>
+        {request.kind === 'manager'
+          ? $t('Manager consent to the succession proposal')
+          : $t('Former member claim')}
+      </dd>
+      <dt>{$t('Legacy channel')}</dt>
       <dd>{request.proposal.source} / {request.proposal.channel}</dd>
-      <dt>新负责人</dt>
+      <dt>{$t('New owner')}</dt>
       <dd>{request.proposal.owner}</dd>
-      <dt>新频道</dt>
+      <dt>{$t('New channel')}</dt>
       <dd>{request.proposal.channel_id}</dd>
-      <dt>版本</dt>
+      <dt>{$t('Proposal version')}</dt>
       <dd>{request.proposal.version}</dd>
-      <dt>拟代表的旧身份</dt>
+      <dt>{$t('Legacy identity to act for')}</dt>
       <dd>{request.identity}</dd>
-      {#if request.kind === 'member'}<dt>目标账户 / 设备</dt>
+      {#if request.kind === 'member'}<dt>{$t('Target account / device')}</dt>
         <dd>{request.claim.account} / {request.claim.device}</dd>{/if}
-      <dt>到期时间</dt>
-      <dd>{new Date(request.expires_at).toLocaleString()}</dd>
-      <dt>意图摘要</dt>
+      <dt>{$t('Expires')}</dt>
+      <dd>{new Date(request.expires_at).toLocaleString($locale)}</dd>
+      <dt>{$t('Intent digest')}</dt>
       <dd>{request.digest}</dd>
     </dl>{/if}
   <p>
-    当前签署身份：{$authStore.identity
-      .getPrincipal()
-      .toText()}。共享名称必须用冻结管理员的原始登录身份批准。
+    {$t(
+      'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.',
+      { principal: $authStore.identity.getPrincipal().toText() }
+    )}
   </p>
   <button
     class="button primary"
-    disabled={!request || busy || $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={approve}>我已核对，批准此版本的明确意图</button
+    disabled={!request ||
+      busy ||
+      $authStore.identity.getPrincipal().isAnonymous()}
+    onclick={approve}>{$t('I have checked it: approve this version')}</button
   >
   {#if responseText}<label
-      >复制到桌面客户端的批准结果<textarea readonly value={responseText} rows="5"
-      ></textarea></label
+      >{$t('Approval result to copy into the desktop app')}<textarea
+        readonly
+        value={responseText}
+        rows="5"></textarea></label
     >{/if}
-  {#if status}<p role="status">{status}</p>{/if}{#if error}<p role="alert">{error}</p>{/if}
+  {#if status}<p role="status">{$t(status)}</p>{/if}{#if error}<p role="alert"
+      >{$t(error)}</p
+    >{/if}
 </section>
 
 <style>

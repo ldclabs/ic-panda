@@ -785,7 +785,81 @@ const en = {
   '{bytes} bytes': '{bytes} bytes',
   '{count} items': '{count} items',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
-    'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.'
+    'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.',
+  'Read-only inventory and encrypted migration':
+    'Read-only inventory and encrypted migration',
+  'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.':
+    'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.',
+  'Current identity:': 'Current identity:',
+  'Legacy key mode': 'Legacy key mode',
+  'Take inventory of readable history': 'Take inventory of readable history',
+  'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.':
+    'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.',
+  'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.':
+    'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.',
+  'Clear the migration cache and start over':
+    'Clear the migration cache and start over',
+  'Target device:': 'Target device:',
+  'Fingerprint:': 'Fingerprint:',
+  'The fingerprint, legacy identity and target device match what the desktop app shows':
+    'The fingerprint, legacy identity and target device match what the desktop app shows',
+  'Your original unlock password': 'Your original unlock password',
+  'Unlock and create the encrypted migration file':
+    'Unlock and create the encrypted migration file',
+  'Stop reading': 'Stop reading',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.',
+  'First compare the pairing fingerprint and the target device ID on both sides.':
+    'First compare the pairing fingerprint and the target device ID on both sides.',
+  'The pairing has expired. Create a new one in the desktop app.':
+    'The pairing has expired. Create a new one in the desktop app.',
+  'This pairing link is invalid, expired or meant for another site. Create a new one in the dMsg desktop app.':
+    'This pairing link is invalid, expired or meant for another site. Create a new one in the dMsg desktop app.',
+  'The inventory did not finish.': 'The inventory did not finish.',
+  'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
+    'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.',
+  'Shared channel succession and member claims':
+    'Shared channel succession and member claims',
+  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
+    'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.',
+  'Source channel service': 'Source channel service',
+  'Legacy channel number': 'Legacy channel number',
+  'Export frozen authority evidence': 'Export frozen authority evidence',
+  'Export final history evidence for this channel':
+    'Export final history evidence for this channel',
+  'Approval request from the desktop app':
+    'Approval request from the desktop app',
+  'Approval type': 'Approval type',
+  'Manager consent to the succession proposal':
+    'Manager consent to the succession proposal',
+  'Former member claim': 'Former member claim',
+  'Legacy channel': 'Legacy channel',
+  'New owner': 'New owner',
+  'New channel': 'New channel',
+  'Proposal version': 'Proposal version',
+  'Legacy identity to act for': 'Legacy identity to act for',
+  'Target account / device': 'Target account / device',
+  'Expires': 'Expires',
+  'Intent digest': 'Intent digest',
+  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
+    'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.',
+  'I have checked it: approve this version':
+    'I have checked it: approve this version',
+  'Approval result to copy into the desktop app':
+    'Approval result to copy into the desktop app',
+  'First check a complete proposal that has not expired.':
+    'First check a complete proposal that has not expired.',
+  'The legacy identity changed. Check again.':
+    'The legacy identity changed. Check again.',
+  'This approval request link is invalid.':
+    'This approval request link is invalid.',
+  'The operation did not finish.': 'The operation did not finish.',
+  'Frozen authority evidence exported. It contains the membership, so give it only to the people migrating this channel.':
+    'Frozen authority evidence exported. It contains the membership, so give it only to the people migrating this channel.',
+  'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
+    'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.',
+  'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
+    'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.'
 }
 
 export type MessageKey = keyof typeof en

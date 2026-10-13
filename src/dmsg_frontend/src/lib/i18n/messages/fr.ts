@@ -376,7 +376,7 @@ export default {
   'Read your existing conversations and download the attachments you can already access.':
     'Consultez vos conversations existantes et téléchargez les pièces jointes auxquelles vous avez déjà accès.',
   'New messages, uploads, profile edits, username changes, and payments are disabled in this app. To move your history to the dMsg desktop app, start a migration in its Legacy section.':
-    'Nouveaux messages, téléversements, modifications de profil ou de nom et paiements sont désactivés. Pour transférer votre historique vers l’application de bureau dMsg, lancez la migration depuis sa section Legacy.',
+    'Nouveaux messages, téléversements, modifications de profil ou de nom et paiements sont désactivés. Pour transférer votre historique vers l’application de bureau dMsg, lancez la migration depuis sa section « Ancienne version ».',
   'Opening archive…': 'Ouverture des archives…',
   'Open message archive': 'Ouvrir les archives de messages',
   'Account options': 'Options du compte',
@@ -805,5 +805,81 @@ export default {
   '{bytes} bytes': '{bytes} octets',
   '{count} items': '{count} éléments',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
-    'Un espace chiffré sur votre ordinateur. L’application de bureau, la ligne de commande dmsg et vos agents IA passent par lui, et rien n’est signé sans votre accord.'
+    'Un espace chiffré sur votre ordinateur. L’application de bureau, la ligne de commande dmsg et vos agents IA passent par lui, et rien n’est signé sans votre accord.',
+  'Read-only inventory and encrypted migration':
+    'Inventaire en lecture seule et migration chiffrée',
+  'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.':
+    'Utilisez votre ancienne identité et choisissez le mode de clé que vous utilisiez. La lecture n’initialise ni ne renouvelle jamais les clés, ne confirme aucun échange et ne marque rien comme lu. Le résultat est un instantané avant migration ; il ne peut pas confirmer la bascule finale.',
+  'Current identity:': 'Identité actuelle :',
+  'Legacy key mode': 'Ancien mode de clé',
+  'Take inventory of readable history': 'Inventorier l’historique lisible',
+  'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.':
+    '{count} enregistrements lus, {gaps} lacunes. Les résultats de requête ne sont pas un instantané gelé certifié.',
+  'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.':
+    'Les pages déjà lues sont gardées chiffrées dans un cache de migration distinct de ce navigateur ; vous pouvez reprendre après réouverture. La base d’origine reste en lecture seule, et les changements de l’ancien service sont signalés comme des écarts.',
+  'Clear the migration cache and start over':
+    'Vider le cache de migration et recommencer',
+  'Target device:': 'Appareil cible :',
+  'Fingerprint:': 'Empreinte :',
+  'The fingerprint, legacy identity and target device match what the desktop app shows':
+    'L’empreinte, l’ancienne identité et l’appareil cible correspondent à ce qu’affiche l’application de bureau',
+  'Your original unlock password':
+    'Votre mot de passe de déverrouillage d’origine',
+  'Unlock and create the encrypted migration file':
+    'Déverrouiller et créer le fichier de migration chiffré',
+  'Stop reading': 'Arrêter la lecture',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'Seul l’appareil de bureau de cette association peut déchiffrer le fichier, et l’association est valable dix minutes. Conservez les données du navigateur d’origine et l’ancien service jusqu’à ce qu’une récupération indépendante soit vérifiée. Les clés manquantes, les autorisations et les téléversements inachevés sont listés à part.',
+  'First compare the pairing fingerprint and the target device ID on both sides.':
+    'Comparez d’abord l’empreinte de l’association et l’ID de l’appareil cible des deux côtés.',
+  'The pairing has expired. Create a new one in the desktop app.':
+    'L’association a expiré. Créez-en une nouvelle dans l’application de bureau.',
+  'This pairing link is invalid, expired or meant for another site. Create a new one in the dMsg desktop app.':
+    'Ce lien d’association est invalide, expiré ou destiné à un autre site. Créez-en un nouveau dans l’application de bureau dMsg.',
+  'The inventory did not finish.': 'L’inventaire n’a pas abouti.',
+  'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
+    'Créez une association dans la section « Ancienne version » de l’application de bureau dMsg ; elle ouvre un lien d’association dans ce navigateur.',
+  'Shared channel succession and member claims':
+    'Succession des canaux partagés et revendications des membres',
+  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
+    'Il faut que l’ancien service soit gelé. Le seul successeur officiel n’existe qu’une fois que chaque gestionnaire gelé a accepté le même nouveau propriétaire et le même enregistrement initial du canal.',
+  'Source channel service': 'Service de canaux source',
+  'Legacy channel number': 'Numéro de l’ancien canal',
+  'Export frozen authority evidence':
+    'Exporter la preuve des autorisations gelées',
+  'Export final history evidence for this channel':
+    'Exporter la preuve finale de l’historique de ce canal',
+  'Approval request from the desktop app':
+    'Demande d’approbation de l’application de bureau',
+  'Approval type': 'Type d’approbation',
+  'Manager consent to the succession proposal':
+    'Accord du gestionnaire sur la proposition de succession',
+  'Former member claim': 'Revendication d’un ancien membre',
+  'Legacy channel': 'Ancien canal',
+  'New owner': 'Nouveau propriétaire',
+  'New channel': 'Nouveau canal',
+  'Proposal version': 'Version de la proposition',
+  'Legacy identity to act for': 'Ancienne identité représentée',
+  'Target account / device': 'Compte / appareil cible',
+  'Expires': 'Expire le',
+  'Intent digest': 'Empreinte de l’intention',
+  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
+    'Identité de signature : {principal}. Les noms partagés doivent être approuvés avec l’identifiant de connexion d’origine du gestionnaire gelé.',
+  'I have checked it: approve this version':
+    'J’ai vérifié : approuver cette version',
+  'Approval result to copy into the desktop app':
+    'Résultat d’approbation à copier dans l’application de bureau',
+  'First check a complete proposal that has not expired.':
+    'Vérifiez d’abord une proposition complète et non expirée.',
+  'The legacy identity changed. Check again.':
+    'L’ancienne identité a changé. Vérifiez à nouveau.',
+  'This approval request link is invalid.':
+    'Ce lien de demande d’approbation est invalide.',
+  'The operation did not finish.': 'L’opération n’a pas abouti.',
+  'Frozen authority evidence exported. It contains the membership, so give it only to the people migrating this channel.':
+    'Preuve des autorisations gelées exportée. Elle contient la liste des membres : ne la donnez qu’aux personnes qui migrent ce canal.',
+  'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
+    'Preuve gelée des messages et des pièces jointes exportée. Le fichier ne contient aucun jeton de téléchargement ; importez-le uniquement dans votre propre application de bureau.',
+  'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
+    'Votre approbation explicite de cette version est prête. Copiez le résultat dans l’application de bureau pour terminer la même proposition.'
 } satisfies Messages

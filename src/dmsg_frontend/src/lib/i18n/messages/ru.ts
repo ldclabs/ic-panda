@@ -368,7 +368,7 @@ export default {
   'Read your existing conversations and download the attachments you can already access.':
     'Просматривайте сохранённые беседы и скачивайте вложения, к которым у вас есть доступ.',
   'New messages, uploads, profile edits, username changes, and payments are disabled in this app. To move your history to the dMsg desktop app, start a migration in its Legacy section.':
-    'Новые сообщения, загрузки, изменения профиля и имени, а также платежи отключены. Чтобы перенести историю в настольное приложение dMsg, начните миграцию в его разделе «Старая версия».',
+    'Новые сообщения, загрузки, изменения профиля и имени, а также платежи отключены. Чтобы перенести историю в настольное приложение dMsg, начните миграцию в его разделе «Прежняя версия».',
   'Opening archive…': 'Открытие архива…',
   'Open message archive': 'Открыть архив сообщений',
   'Account options': 'Параметры аккаунта',
@@ -792,5 +792,80 @@ export default {
   '{bytes} bytes': '{bytes} байт',
   '{count} items': 'Элементов: {count}',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
-    'Зашифрованное пространство на вашем компьютере. Десктоп-приложение, командная строка dmsg и ваши ИИ-агенты работают через него, и ничего не подписывается без вашего одобрения.'
+    'Зашифрованное пространство на вашем компьютере. Десктоп-приложение, командная строка dmsg и ваши ИИ-агенты работают через него, и ничего не подписывается без вашего одобрения.',
+  'Read-only inventory and encrypted migration':
+    'Инвентаризация только для чтения и зашифрованный перенос',
+  'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.':
+    'Используйте прежнюю личность и выберите режим ключей, который был у вас раньше. Чтение никогда не инициализирует и не меняет ключи, не подтверждает обмены и ничего не отмечает прочитанным. Результат — снимок до переноса, он не подтверждает окончательное переключение.',
+  'Current identity:': 'Текущая личность:',
+  'Legacy key mode': 'Прежний режим ключей',
+  'Take inventory of readable history': 'Проверить доступную историю',
+  'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.':
+    'Прочитано записей: {count}, пропусков: {gaps}. Результаты запросов — не сертифицированный замороженный снимок.',
+  'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.':
+    'Уже прочитанные страницы хранятся зашифрованными в отдельном кэше переноса этого браузера, поэтому после повторного открытия можно продолжить. Исходная база остаётся только для чтения, а изменения в старом сервисе показываются как расхождения.',
+  'Clear the migration cache and start over':
+    'Очистить кэш переноса и начать заново',
+  'Target device:': 'Целевое устройство:',
+  'Fingerprint:': 'Отпечаток:',
+  'The fingerprint, legacy identity and target device match what the desktop app shows':
+    'Отпечаток, прежняя личность и целевое устройство совпадают с показанными в настольном приложении',
+  'Your original unlock password': 'Ваш прежний пароль разблокировки',
+  'Unlock and create the encrypted migration file':
+    'Разблокировать и создать зашифрованный файл переноса',
+  'Stop reading': 'Остановить чтение',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'Расшифровать файл может только настольное устройство этой привязки; привязка действует десять минут. Сохраняйте данные исходного браузера и старый сервис, пока независимое восстановление не проверено. Отсутствующие ключи, права и незавершённые загрузки перечисляются отдельно.',
+  'First compare the pairing fingerprint and the target device ID on both sides.':
+    'Сначала сверьте отпечаток привязки и ID целевого устройства на обеих сторонах.',
+  'The pairing has expired. Create a new one in the desktop app.':
+    'Срок привязки истёк. Создайте новую в настольном приложении.',
+  'This pairing link is invalid, expired or meant for another site. Create a new one in the dMsg desktop app.':
+    'Ссылка привязки недействительна, устарела или предназначена для другого сайта. Создайте новую в настольном приложении dMsg.',
+  'The inventory did not finish.': 'Инвентаризация не завершена.',
+  'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
+    'Создайте привязку в разделе «Прежняя версия» настольного приложения dMsg; оно откроет в этом браузере ссылку с привязкой.',
+  'Shared channel succession and member claims':
+    'Преемство общих каналов и заявки участников',
+  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
+    'Для этого старый сервис должен быть заморожен. Единственный официальный преемник появляется только после того, как все замороженные администраторы согласятся на одного и того же нового владельца и исходную запись канала.',
+  'Source channel service': 'Исходный сервис каналов',
+  'Legacy channel number': 'Номер прежнего канала',
+  'Export frozen authority evidence':
+    'Экспортировать доказательство замороженных прав',
+  'Export final history evidence for this channel':
+    'Экспортировать итоговое доказательство истории этого канала',
+  'Approval request from the desktop app':
+    'Запрос на одобрение из настольного приложения',
+  'Approval type': 'Тип одобрения',
+  'Manager consent to the succession proposal':
+    'Согласие администратора с планом преемства',
+  'Former member claim': 'Заявка бывшего участника',
+  'Legacy channel': 'Прежний канал',
+  'New owner': 'Новый владелец',
+  'New channel': 'Новый канал',
+  'Proposal version': 'Версия плана',
+  'Legacy identity to act for':
+    'Прежняя личность, от имени которой действовать',
+  'Target account / device': 'Целевой аккаунт / устройство',
+  'Expires': 'Истекает',
+  'Intent digest': 'Дайджест намерения',
+  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
+    'Подписывающая личность: {principal}. Общие имена должны одобряться исходным входом замороженного администратора.',
+  'I have checked it: approve this version': 'Проверено: одобрить эту версию',
+  'Approval result to copy into the desktop app':
+    'Результат одобрения для копирования в настольное приложение',
+  'First check a complete proposal that has not expired.':
+    'Сначала проверьте полный план, срок которого не истёк.',
+  'The legacy identity changed. Check again.':
+    'Прежняя личность изменилась. Проверьте ещё раз.',
+  'This approval request link is invalid.':
+    'Ссылка запроса на одобрение недействительна.',
+  'The operation did not finish.': 'Операция не завершена.',
+  'Frozen authority evidence exported. It contains the membership, so give it only to the people migrating this channel.':
+    'Доказательство замороженных прав экспортировано. Оно содержит состав участников, передавайте его только тем, кто переносит этот канал.',
+  'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
+    'Замороженное доказательство сообщений и вложений экспортировано. В файле нет токена загрузки; импортируйте его только в своё настольное приложение.',
+  'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
+    'Ваше явное одобрение этой версии готово. Скопируйте результат обратно в настольное приложение, чтобы завершить тот же план.'
 } satisfies Messages

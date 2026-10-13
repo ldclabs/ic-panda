@@ -763,5 +763,69 @@ export default {
   '{bytes} bytes': '{bytes} 字节',
   '{count} items': '{count} 个条目',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
-    '你电脑上的加密工作空间。桌面应用、dmsg 命令行和你的 AI 智能体都经由它工作，未经你批准，什么都不会被签署。'
+    '你电脑上的加密工作空间。桌面应用、dmsg 命令行和你的 AI 智能体都经由它工作，未经你批准，什么都不会被签署。',
+  'Read-only inventory and encrypted migration': '只读清点与加密迁移',
+  'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.':
+    '使用当前旧身份，显式选择原来的密钥模式。读取不会初始化、换钥、确认交换或标记已读。当前结果是预迁移快照，不能确认最终切换。',
+  'Current identity:': '当前身份：',
+  'Legacy key mode': '旧密钥模式',
+  'Take inventory of readable history': '清点可读取的历史',
+  'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.':
+    '已读取 {count} 项记录；{gaps} 项缺口。查询结果不等同于认证冻结快照。',
+  'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.':
+    '已读取的消息页加密保存在此浏览器独立迁移缓存中；重新打开后可继续。原始数据库保持只读。旧服务变化会明确报告差异。',
+  'Clear the migration cache and start over': '清除迁移缓存并重新清点',
+  'Target device:': '目标设备：',
+  'Fingerprint:': '指纹：',
+  'The fingerprint, legacy identity and target device match what the desktop app shows':
+    '已与桌面客户端显示的指纹、旧身份和目标设备核对一致',
+  'Your original unlock password': '原来的解锁口令',
+  'Unlock and create the encrypted migration file': '解锁并生成加密迁移文件',
+  'Stop reading': '停止读取',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    '文件仅能由本次配对的桌面设备解密；配对有效期十分钟。保留原浏览器数据和旧服务，直到独立恢复验证完成。缺钥、权限与未完成上传会单独列出。',
+  'First compare the pairing fingerprint and the target device ID on both sides.':
+    '先在两端核对配对指纹与目标设备 ID。',
+  'The pairing has expired. Create a new one in the desktop app.':
+    '配对已过期，请在桌面客户端重新生成。',
+  'This pairing link is invalid, expired or meant for another site. Create a new one in the dMsg desktop app.':
+    '配对链接无效、已过期或不属于此网站，请在 dMsg 桌面客户端重新生成。',
+  'The inventory did not finish.': '清点未完成。',
+  'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
+    '请在 dMsg 桌面客户端的“旧版迁移”中生成配对，客户端会用本浏览器打开带配对信息的链接。',
+  'Shared channel succession and member claims': '共享频道继承与成员认领',
+  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
+    '需要旧服务已完成冻结。全部冻结管理员对同一新负责人和初始频道记录的同意齐全后，才可建立唯一官方继承。',
+  'Source channel service': '来源频道服务',
+  'Legacy channel number': '旧频道编号',
+  'Export frozen authority evidence': '导出冻结权限证明',
+  'Export final history evidence for this channel':
+    '导出此频道的最终历史对照证明',
+  'Approval request from the desktop app': '桌面客户端生成的批准请求',
+  'Approval type': '批准类型',
+  'Manager consent to the succession proposal': '管理员同意继承方案',
+  'Former member claim': '旧成员认领',
+  'Legacy channel': '旧频道',
+  'New owner': '新负责人',
+  'New channel': '新频道',
+  'Proposal version': '方案版本',
+  'Legacy identity to act for': '拟代表的旧身份',
+  'Target account / device': '目标账户 / 设备',
+  'Expires': '到期时间',
+  'Intent digest': '意图摘要',
+  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
+    '当前签署身份：{principal}。共享名称必须用冻结管理员的原始登录身份批准。',
+  'I have checked it: approve this version': '我已核对，批准此版本的明确意图',
+  'Approval result to copy into the desktop app': '复制到桌面客户端的批准结果',
+  'First check a complete proposal that has not expired.':
+    '请先核对完整且未过期的方案。',
+  'The legacy identity changed. Check again.': '旧身份已变化，请重新核对。',
+  'This approval request link is invalid.': '批准请求链接无效。',
+  'The operation did not finish.': '操作未完成。',
+  'Frozen authority evidence exported. It contains the membership, so give it only to the people migrating this channel.':
+    '冻结权限证明已导出。它包含成员关系，仅交给参与该频道迁移的人。',
+  'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
+    '已导出消息与附件的冻结对照证明。文件不含下载 token；请仅导入本人的桌面客户端。',
+  'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
+    '本版本的明确批准已生成。请复制结果，回到桌面客户端完成同一方案。'
 } satisfies Messages

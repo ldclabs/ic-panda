@@ -769,5 +769,75 @@ export default {
   '{bytes} bytes': '{bytes} بايت',
   '{count} items': '{count} عناصر',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
-    'مساحة عمل مشفّرة على حاسوبك. يعمل من خلالها تطبيق سطح المكتب وسطر أوامر dmsg ووكلاء الذكاء الاصطناعي لديك، ولا يُوقَّع شيء حتى توافق.'
+    'مساحة عمل مشفّرة على حاسوبك. يعمل من خلالها تطبيق سطح المكتب وسطر أوامر dmsg ووكلاء الذكاء الاصطناعي لديك، ولا يُوقَّع شيء حتى توافق.',
+  'Read-only inventory and encrypted migration': 'جرد للقراءة فقط وترحيل مشفّر',
+  'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.':
+    'استخدم هويتك القديمة واختر وضع المفاتيح الذي كنت تستخدمه. القراءة لا تهيّئ المفاتيح ولا تدوّرها، ولا تؤكد عمليات التبادل، ولا تعلّم أي شيء كمقروء. النتيجة لقطة ما قبل الترحيل، ولا يمكنها تأكيد التحويل النهائي.',
+  'Current identity:': 'الهوية الحالية:',
+  'Legacy key mode': 'وضع المفاتيح القديم',
+  'Take inventory of readable history': 'جرد السجل القابل للقراءة',
+  'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.':
+    'قُرئ {count} سجلًا مع {gaps} فجوات. نتائج الاستعلام ليست لقطة مجمّدة موثّقة.',
+  'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.':
+    'تُحفظ الصفحات المقروءة مشفّرة في ذاكرة ترحيل منفصلة في هذا المتصفح، لتتابع بعد إعادة الفتح. تبقى قاعدة البيانات الأصلية للقراءة فقط، وتُبلَّغ تغييرات الخدمة القديمة كفروق.',
+  'Clear the migration cache and start over':
+    'امسح ذاكرة الترحيل وابدأ من جديد',
+  'Target device:': 'الجهاز المستهدف:',
+  'Fingerprint:': 'البصمة:',
+  'The fingerprint, legacy identity and target device match what the desktop app shows':
+    'البصمة والهوية القديمة والجهاز المستهدف تطابق ما يعرضه تطبيق سطح المكتب',
+  'Your original unlock password': 'كلمة مرور الفتح الأصلية',
+  'Unlock and create the encrypted migration file':
+    'افتح القفل وأنشئ ملف الترحيل المشفّر',
+  'Stop reading': 'أوقف القراءة',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'لا يفك تشفير الملف إلا جهاز سطح المكتب في هذا الإقران، والإقران صالح لعشر دقائق. احتفظ ببيانات المتصفح الأصلي وبالخدمة القديمة حتى يُتحقق من الاستعادة المستقلة. تُدرج المفاتيح المفقودة والصلاحيات وعمليات الرفع غير المكتملة على حدة.',
+  'First compare the pairing fingerprint and the target device ID on both sides.':
+    'قارن أولًا بصمة الإقران ومعرّف الجهاز المستهدف على الجانبين.',
+  'The pairing has expired. Create a new one in the desktop app.':
+    'انتهت صلاحية الإقران. أنشئ إقرانًا جديدًا في تطبيق سطح المكتب.',
+  'This pairing link is invalid, expired or meant for another site. Create a new one in the dMsg desktop app.':
+    'رابط الإقران غير صالح أو منتهٍ أو مخصص لموقع آخر. أنشئ رابطًا جديدًا في تطبيق dMsg لسطح المكتب.',
+  'The inventory did not finish.': 'لم يكتمل الجرد.',
+  'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
+    'أنشئ إقرانًا في قسم «الإصدار القديم» في تطبيق dMsg لسطح المكتب؛ وسيفتح رابطًا يحمل الإقران في هذا المتصفح.',
+  'Shared channel succession and member claims':
+    'خلافة القنوات المشتركة ومطالبات الأعضاء',
+  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
+    'يتطلب ذلك أن تكون الخدمة القديمة مجمّدة. لا يوجد الخلف الرسمي الوحيد إلا بعد موافقة جميع المديرين المجمّدين على المالك الجديد نفسه وسجل القناة الأولي نفسه.',
+  'Source channel service': 'خدمة القناة المصدر',
+  'Legacy channel number': 'رقم القناة القديمة',
+  'Export frozen authority evidence': 'تصدير دليل الصلاحيات المجمّدة',
+  'Export final history evidence for this channel':
+    'تصدير الدليل النهائي لسجل هذه القناة',
+  'Approval request from the desktop app': 'طلب الموافقة من تطبيق سطح المكتب',
+  'Approval type': 'نوع الموافقة',
+  'Manager consent to the succession proposal':
+    'موافقة المدير على مقترح الخلافة',
+  'Former member claim': 'مطالبة عضو سابق',
+  'Legacy channel': 'القناة القديمة',
+  'New owner': 'المالك الجديد',
+  'New channel': 'القناة الجديدة',
+  'Proposal version': 'إصدار المقترح',
+  'Legacy identity to act for': 'الهوية القديمة التي يُتصرف باسمها',
+  'Target account / device': 'الحساب / الجهاز المستهدف',
+  'Expires': 'ينتهي في',
+  'Intent digest': 'ملخص النية',
+  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
+    'هوية التوقيع: {principal}. يجب الموافقة على الأسماء المشتركة بهوية الدخول الأصلية للمدير المجمّد.',
+  'I have checked it: approve this version': 'تحققت منه: وافق على هذا الإصدار',
+  'Approval result to copy into the desktop app':
+    'نتيجة الموافقة لنسخها إلى تطبيق سطح المكتب',
+  'First check a complete proposal that has not expired.':
+    'تحقق أولًا من مقترح كامل لم تنتهِ صلاحيته.',
+  'The legacy identity changed. Check again.':
+    'تغيّرت الهوية القديمة. تحقق مرة أخرى.',
+  'This approval request link is invalid.': 'رابط طلب الموافقة غير صالح.',
+  'The operation did not finish.': 'لم تكتمل العملية.',
+  'Frozen authority evidence exported. It contains the membership, so give it only to the people migrating this channel.':
+    'صُدّر دليل الصلاحيات المجمّدة. يتضمن العضوية، فلا تعطه إلا لمن يرحّلون هذه القناة.',
+  'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
+    'صُدّر الدليل المجمّد للرسائل والمرفقات. لا يحتوي الملف على رمز تنزيل؛ استورده فقط إلى تطبيق سطح المكتب الخاص بك.',
+  'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
+    'موافقتك الصريحة على هذا الإصدار جاهزة. انسخ النتيجة إلى تطبيق سطح المكتب لإكمال المقترح نفسه.'
 } satisfies Messages
