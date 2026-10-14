@@ -25,7 +25,7 @@ cryptography, storage and protocol logic live in
 ```toml
 environment = "local"            # local, staging or production
 ic_host = "http://127.0.0.1:4943"
-relay = "http://127.0.0.1:8787"  # dmsg-cloud device API
+relay = "http://127.0.0.1:8787"  # dmsg-cloud relay: device API and Agent Delegation
 handle = "<name registry canister>"
 user_homes = ["<user home>"]     # optional pins; the registry is the authority
 root_key = "<hex DER>"           # local only
@@ -35,7 +35,6 @@ background_online = false        # keep the device key while locked
 sync_interval_minutes = 0        # scheduled sync; 0 is off
 secure_storage = "system"        # "system" (default on macOS and Windows) or "file"
 connect_url = "http://localhost:5174"  # local only; default https://connect.dmsg.net
-agent_service = "http://127.0.0.1:8788"  # local only; default https://agents.dmsg.net
 agent_hosts = [                  # Agent Protocols hosts the hosted agents may sign for
   { host = "https://api.al.ink", label = "alink" },
   { host = "https://agents.example", profile_service = "https://profiles.example" },
@@ -52,7 +51,8 @@ buckets = ["<old OSS bucket>"]
 cutover = "<32-byte hex cutover ID>"
 ```
 
-Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url`/`agent_service`/`agent_ca` are refused.
+Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url`/`agent_ca` are refused.
+The relay is also the Agent Delegation service of the account's principal.
 `[legacy]` is needed only for frozen comparisons and shared channel
 inheritance; frozen evidence of any other canister or cutover is refused.
 `agent_hosts` is the only source of the host allowlist: no command, method or
@@ -435,7 +435,7 @@ stream's `subscriptionId`.
 
 MCP Events. An agent on this machine has no public webhook address, so the
 dMsg relay receives webhooks for it: `dmsg_events_endpoint_create` (with
-`events.endpoint`) returns a callback URL on the relay's hooks host and a
+`events.endpoint`) returns a callback URL on the relay's origin and a
 `whsec_` secret, which the agent gives the upstream MCP server in
 `events/subscribe` (`delivery: {mode: "webhook", url, secret}`). The relay
 answers the upstream's `verification` itself, checks the Standard Webhooks

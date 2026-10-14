@@ -10,8 +10,6 @@ use url::Url;
 pub const LOGIN_URL: &str = "https://dmsg.net/_/login";
 /// The dmsg-connect/1 bridge origin.
 pub const CONNECT_URL: &str = "https://connect.dmsg.net";
-/// The Agent Delegation and Agent Profile service of dMsg principals.
-pub const AGENT_SERVICE: &str = "https://agents.dmsg.net";
 
 /// Public parameters of one deployment.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -20,7 +18,8 @@ pub struct Config {
     pub environment: Environment,
     /// IC API boundary, such as `https://icp-api.io`.
     pub ic_host: String,
-    /// Origin of the dmsg-cloud device API.
+    /// Origin of the dmsg-cloud relay: the device API, and also the Agent
+    /// Delegation and Agent Profile service of dMsg principals.
     pub relay: String,
     /// Name registry, the authority on the deployment's user homes.
     pub handle: Principal,
@@ -33,9 +32,6 @@ pub struct Config {
     /// Bridge origin of web applications; only a local deployment may
     /// replace [`CONNECT_URL`].
     pub connect_url: String,
-    /// Delegation service the account's principal document names; only a
-    /// local deployment may replace [`AGENT_SERVICE`].
-    pub agent_service: String,
     /// Keep the device signing key while locked ("后台在线", plan D-7).
     pub background_online: bool,
     /// The reviewed freeze of the old service, once there is one.
@@ -69,7 +65,6 @@ impl Config {
             ("relay", &self.relay),
             ("login_url", &self.login_url),
             ("connect_url", &self.connect_url),
-            ("agent_service", &self.agent_service),
         ] {
             let url = Url::parse(value).map_err(|_| dmsg_types::invalid(name))?;
             let loopback = matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "[::1]"));
@@ -84,8 +79,7 @@ impl Config {
             local
                 || (self.root_key.is_none()
                     && self.login_url == LOGIN_URL
-                    && self.connect_url == CONNECT_URL
-                    && self.agent_service == AGENT_SERVICE),
+                    && self.connect_url == CONNECT_URL),
             "local-only setting",
         )
     }
@@ -93,11 +87,6 @@ impl Config {
     /// The origin of the relay, without a trailing slash.
     pub fn relay_origin(&self) -> String {
         self.relay.trim_end_matches('/').to_string()
-    }
-
-    /// The origin of the delegation service, without a trailing slash.
-    pub fn agent_origin(&self) -> String {
-        self.agent_service.trim_end_matches('/').to_string()
     }
 }
 

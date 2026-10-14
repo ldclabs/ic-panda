@@ -181,7 +181,7 @@ device unlocked.
 
 ## MCP Events
 
-An endpoint is a callback URL on the relay's hooks host and a `whsec_`
+An endpoint is a callback URL on the relay's origin and a `whsec_`
 secret, created for one upstream MCP Events subscription by the owner or an
 Agent ID with `events.endpoint`. The relay checks the Standard Webhooks `v1`
 signature of each delivery and seals the raw headers and body to this

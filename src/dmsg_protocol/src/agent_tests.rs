@@ -43,7 +43,7 @@ fn config() -> DirectoryInit {
         user_homes: vec![Principal::from_slice(&[1])],
         principal_origin: ORIGIN.into(),
         controller_source: "https://dmsg.net".into(),
-        delegation_service: "https://agents.dmsg.test".into(),
+        delegation_service: "https://api.dmsg.test".into(),
         profile_url_prefix: "https://dmsg.test/u/".into(),
         custom_domains: vec!["id.dmsg.test".into()],
         governance: Principal::from_slice(&[9]),
@@ -83,7 +83,7 @@ fn rendered_document_passes_sdk_validation_and_is_jcs() {
     assert_eq!(document.retired_controllers[0].retired_at, Some(NOW as i64));
     assert_eq!(
         document.delegation_service.as_deref(),
-        Some("https://agents.dmsg.test")
+        Some("https://api.dmsg.test")
     );
     assert_eq!(
         document.links[0].url,
@@ -157,7 +157,7 @@ fn directory_config_and_allocator_routing() {
         |c: &mut DirectoryInit| c.principal_origin = "https://id.dmsg.test/".into(),
         |c: &mut DirectoryInit| c.controller_source = "http://dmsg.net".into(),
         |c: &mut DirectoryInit| {
-            c.delegation_service = "https://agents.dmsg.test/v1/delegations/query".into()
+            c.delegation_service = "https://api.dmsg.test/v1/delegations/query".into()
         },
         |c: &mut DirectoryInit| c.profile_url_prefix = "https://dmsg.test/u".into(),
         |c: &mut DirectoryInit| c.user_homes.push(c.user_homes[0]),

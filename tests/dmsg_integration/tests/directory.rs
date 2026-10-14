@@ -78,7 +78,7 @@ impl Fixture {
             user_homes: vec![homes[0]],
             principal_origin: "https://id.dmsg.test".into(),
             controller_source: "https://dmsg.test".into(),
-            delegation_service: "https://agents.dmsg.test".into(),
+            delegation_service: "https://api.dmsg.test".into(),
             profile_url_prefix: "https://dmsg.test/u/".into(),
             custom_domains: vec!["id.dmsg.test".into()],
             governance: governance(),

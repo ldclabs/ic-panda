@@ -145,7 +145,7 @@ fn reads_upstream_keys_and_checks_servers_and_context() {
 fn endpoint(id: &str, agent: Option<&str>, session: &str, mcp: Option<&str>) -> Endpoint {
     Endpoint {
         endpoint_id: id.into(),
-        url: format!("https://hooks.dmsg.test/mcp-events/{id}"),
+        url: format!("https://api.dmsg.test/mcp-events/{id}"),
         secrets: vec![secret(None)],
         agent: agent.map(str::to_string),
         mcp_session: mcp.map(str::to_string),

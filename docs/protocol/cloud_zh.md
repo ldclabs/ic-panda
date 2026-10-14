@@ -149,13 +149,13 @@ A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器�
 | `dmsg/mcp-events/endpoint/delete/v1` | `POST /v1/accounts/:account/mcp-events/endpoints/:callback/delete` | `{callback_id}` |
 | `dmsg/mcp-events/ack/v1` | `POST /v1/accounts/:account/mcp-events/ack` | `{callback_id, through_seq}` |
 
-- `callback_id` 由设备随机生成，URL 与 JSON 中为 32 个小写 hex 字符；回调 URL 为 `<hooks origin>/mcp-events/<callback_id>`，由创建结果的 `url` 给出，hooks 主机与 API 主机不同。`secret` 为 `whsec_` 加 24–64 字节随机数的标准 base64，由设备生成；轮换时旧密钥再验证 24 小时。每账户最多 16 个活跃端点。
+- `callback_id` 由设备随机生成，URL 与 JSON 中为 32 个小写 hex 字符；回调 URL 为 `<API origin>/mcp-events/<callback_id>`，与设备 API 同一个 origin，由创建结果的 `url` 给出。`secret` 为 `whsec_` 加 24–64 字节随机数的标准 base64，由设备生成；轮换时旧密钥再验证 24 小时。每账户最多 16 个活跃端点。
 - 端点绑定创建它的设备与该设备的 HPKE 公钥。轮换、读取与确认只限该设备；删除限该设备或具备 `RootManage` 的设备。设备被撤销或失去 `ContentSign` 后，端点在之后的投递时被挂起。
 - `GET /v1/accounts/:account/mcp-events/endpoints` 列出账户的端点（不含密钥）：`state`（`active`、`suspended`、`deleted`）、`subscription_id`（验证信封的 `X-MCP-Subscription-Id`）、`seq`、待取数量等。
 - `GET /v1/accounts/:account/mcp-events?endpoint=&after=&limit=` 返回 `seq > after` 的记录 `{seq, kind, webhook_id, received_at, sealed?, dropped?}` 与 `cursor`，单页至多 100 条、约 1 MiB。`kind` 为 `event`、`verification`、`gap`、`terminated` 或 `relay_gap`；`relay_gap` 没有 `sealed`，`dropped` 是未被取回、保留期（7 天）满而丢弃的记录数。确认后记录删除，序号不重用。
 
 封装：`sealed` 为 base64url 的 `CBOR({enc, ciphertext})`，HPKE base 模式（X25519、HKDF-SHA256、AES-256-GCM），`info = aad = CBOR(["dmsg/mcp-event/1", account, device_id_hex, callback_id, seq])`，明文为 `CBOR({headers, body, received_at})`：`headers` 是小写的 `webhook-id`、`webhook-timestamp`、`webhook-signature` 与可选的 `x-mcp-subscription-id`，`body` 是原始正文字节，`received_at` 是中继收到的 Unix 毫秒。中继在入口可见明文（验签、识别类型、回显挑战），存储只有密文。
 
-hooks 主机只接受 `POST /mcp-events/<callback_id>`（`application/json`，正文不超过 262,144 字节）与 `GET /.well-known/mcp-webhook-receiver.json`。时间戳超出 ±300 秒或 `v1` 签名不符返回 401，正文过大 413，非 JSON 415，未知、已删除或挂起的端点 410，单端点每分钟超过 120 次、或未确认记录超过 1,000 条或 16 MiB 返回 429；同一 `webhook-id` 的重复投递返回首次结果。`verification` 信封验签后回显 `{"challenge": …}`。每次新记录经提示通道发出 `mcp-event` 提示（connect-v1 §7.5）。
+webhook 入口只有 `POST /mcp-events/<callback_id>`（`application/json`，正文不超过 262,144 字节）与 `GET /.well-known/mcp-webhook-receiver.json`，不经设备 API 的 PoP 与 Origin 校验。时间戳超出 ±300 秒或 `v1` 签名不符返回 401，正文过大 413，非 JSON 415，未知、已删除或挂起的端点 410，单端点每分钟超过 120 次、或未确认记录超过 1,000 条或 16 MiB 返回 429；同一 `webhook-id` 的重复投递返回首次结果。`verification` 信封验签后回显 `{"challenge": …}`。每次新记录经提示通道发出 `mcp-event` 提示（connect-v1 §7.5）。
 
 设备取回后自行复验：`v1` 用本机保存的密钥、按 `received_at` 判断 5 分钟容差；上游服务器在其 origin 的 `/.well-known/mcp-webhook-jwks.json` 发布 Ed25519 JWK 时再验 `v1a`（同样覆盖 `id.timestamp.body`），`v1a` 不符的投递丢弃（中继持有 `v1` 密钥，只有它能造出这种投递）。

@@ -9,7 +9,7 @@
 | Principal host | `dmsg_directory` | 在 `principal_origin/<account_id>` 以 ICP 认证 HTTP 返回 principal 文档 |
 | 权威状态 | `dmsg_user`（账户所在 home） | controller 登记、退役、泄露标记与改名 |
 | controller key | 客户端 vault 中的普通 Ed25519 密钥条目 | 持根设备都能读取；注册时向 home 证明持有，事件在本机签名 |
-| Delegation 服务 | 文档 `delegation_service` 指向的源 | 按 Agent Delegation 1.0 接收事件、保存 accepted record、提供凭证与查询；查询与读取端点由该源的发现文档给出 |
+| Delegation 服务 | 文档 `delegation_service` 指向的源，即 dmsg-cloud 中继的 API origin（`https://api.dmsg.net`） | 按 Agent Delegation 1.0 接收事件、保存 accepted record、提供凭证与查询；查询与读取端点由该源的发现文档给出 |
 
 user home 是 controller 变更的线性化点：退役一旦提交，该 key 不能再签出被接受的新事件，与目录何时发布无关。directory 只发布 home 推送的状态，不参与授权。
 
@@ -52,7 +52,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 ## 示例文档
 
 ```json
-{"controllers":[{"delegation":{"audiences":["https://dmsg.net"],"scopes":["message.draft"]},"id":"did:agent:<key>","name":"dMsg signer #1","source":"https://dmsg.net","valid_from":1790000000001}],"delegation_service":"https://agents.dmsg.net","id":"https://id.dmsg.net/<account_id>","links":[{"name":"dMsg","rel":"profile","url":"https://dmsg.net/<account_id>"}],"protocol":"agent-delegation/1.0","type":"person","updated_at":1790000000001}
+{"controllers":[{"delegation":{"audiences":["https://dmsg.net"],"scopes":["message.draft"]},"id":"did:agent:<key>","name":"dMsg signer #1","source":"https://dmsg.net","valid_from":1790000000001}],"delegation_service":"https://api.dmsg.net","id":"https://id.dmsg.net/<account_id>","links":[{"name":"dMsg","rel":"profile","url":"https://dmsg.net/<account_id>"}],"protocol":"agent-delegation/1.0","type":"person","updated_at":1790000000001}
 ```
 
 ## 验证

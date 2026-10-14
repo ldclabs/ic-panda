@@ -8,9 +8,7 @@
 //! fast unlock is unavailable.
 
 use candid::Principal;
-use dmsg_client::config::{
-    parse_environment, Config, LegacyConfig, AGENT_SERVICE, CONNECT_URL, LOGIN_URL,
-};
+use dmsg_client::config::{parse_environment, Config, LegacyConfig, CONNECT_URL, LOGIN_URL};
 use dmsg_client::secure::SecureStorage;
 use dmsg_types::{Error, Result, MINUTE};
 use serde::{Deserialize, Serialize};
@@ -31,7 +29,6 @@ struct ConfigFile {
     root_key: Option<String>,
     login_url: Option<String>,
     connect_url: Option<String>,
-    agent_service: Option<String>,
     #[serde(default)]
     agent_hosts: Vec<dmsg_agent::Host>,
     #[serde(default)]
@@ -174,7 +171,6 @@ impl Home {
                 .transpose()?,
             login_url: file.login_url.unwrap_or_else(|| LOGIN_URL.into()),
             connect_url: file.connect_url.unwrap_or_else(|| CONNECT_URL.into()),
-            agent_service: file.agent_service.unwrap_or_else(|| AGENT_SERVICE.into()),
             background_online: file.background_online,
             legacy: file.legacy.map(legacy).transpose()?,
         };

@@ -22,7 +22,7 @@ type DirectoryInit = record {
   // Prefix of the public profile link, such as `https://dmsg.net/`.
   profile_url_prefix : text;
   // Origin of the authoritative delegation service written into every
-  // document, such as `https://agents.dmsg.net`.
+  // document: the relay's API origin, such as `https://api.dmsg.net`.
   delegation_service : text;
   // HTTPS origin of principal IDs, such as `https://id.dmsg.net`.
   principal_origin : text;

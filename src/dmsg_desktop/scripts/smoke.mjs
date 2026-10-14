@@ -431,7 +431,7 @@ const methods = {
   'mcp-events/status': () => ({ state: 'unlocked', fetching: true, last_fetch: null, rejected: 0 }),
   'mcp-events/list': () => ({ endpoints }),
   'mcp-events/create': (p) => {
-    const endpoint = { endpoint_id: 'ee'.repeat(16), url: `https://hooks.dmsg.net/mcp-events/${'ee'.repeat(16)}`, state: 'active', agent: null, context: p.context, created_at: Date.now(), binding: {} }
+    const endpoint = { endpoint_id: 'ee'.repeat(16), url: `https://api.dmsg.net/mcp-events/${'ee'.repeat(16)}`, state: 'active', agent: null, context: p.context, created_at: Date.now(), binding: {} }
     endpoints.push(endpoint)
     return { ...endpoint, secret: 'whsec_smoke' }
   },

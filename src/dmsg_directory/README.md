@@ -131,7 +131,7 @@ flowchart LR
 | `user_homes` | 至少一个 `dmsg_user` canister ID；之后只能追加，最多 64 个，分配器指纹互不相同 |
 | `principal_origin` | principal ID 的 HTTPS origin，不含路径，最多 512 字节；计划值 `https://id.dmsg.net`。须等于每个 home 的 `UserInit.principal_origin` 和客户端的 `principalOrigin`；它的主机名须列入 `custom_domains`，并按下文指向本 canister |
 | `controller_source` | controller 的 `source` origin，最多 512 字节；计划值 `https://dmsg.net` |
-| `delegation_service` | 权威 delegation 服务的 HTTPS origin，不含路径，最多 512 字节；计划值 `https://agents.dmsg.net`。须与该服务对外的 origin 和客户端的 `agentOrigin`（扩展向它提交事件）逐字一致；第三方经该 origin 的发现文档定位查询与读取端点 |
+| `delegation_service` | 权威 delegation 服务的 HTTPS origin，不含路径，最多 512 字节；计划值 `https://api.dmsg.net`，即 dmsg-cloud 中继的 API origin。须与中继的 `API_ORIGIN` 和客户端的 `relay`（客户端向它提交事件）逐字一致；第三方经该 origin 的发现文档定位查询与读取端点 |
 | `profile_url_prefix` | profile 链接前缀：HTTPS，以 `/` 结尾，最多 2 KiB；计划值 `https://dmsg.net/`。文档里的链接是前缀加账户 ID，如 `https://dmsg.net/<账户 ID>`。账户 ID 文本固定 20 个字符，名称最多 19 字节，网站可以在同一层路径同时提供 `/<名称>` 页面 |
 | `custom_domains` | `/.well-known/ic-domains` 列出的域名，必须包含 `principal_origin` 的主机名，生产为 `["id.dmsg.net"]`；之后用 `admin_set_custom_domains` 替换 |
 | `governance` | 生产为 SNS governance `dwv6s-6aaaa-aaaaq-aacta-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`）；本地可填部署者 principal |
@@ -166,7 +166,7 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
      user_homes = vec { principal \"$(icp canister status dmsg_user -e ic --id-only)\" };
      principal_origin = \"https://id.dmsg.net\";
      controller_source = \"https://dmsg.net\";
-     delegation_service = \"https://agents.dmsg.net\";
+     delegation_service = \"https://api.dmsg.net\";
      profile_url_prefix = \"https://dmsg.net/\";
      custom_domains = vec { \"id.dmsg.net\" };
      governance = principal \"dwv6s-6aaaa-aaaaq-aacta-cai\";
@@ -198,7 +198,7 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
 
 6. 登记自定义域，见下节。
 
-7. 用每个 `dmsg_user` 的 `user_config` 确认 `directory_canister` 是本 canister，`environment`、`issuer_namespace` 和 `principal_origin` 与本 canister 相同（见 [dmsg_user](../dmsg_user/README.md#初始化参数)）；客户端 `dmsg.config.json` 已填写 `principalOrigin` 和 `agentOrigin`。
+7. 用每个 `dmsg_user` 的 `user_config` 确认 `directory_canister` 是本 canister，`environment`、`issuer_namespace` 和 `principal_origin` 与本 canister 相同（见 [dmsg_user](../dmsg_user/README.md#初始化参数)）；客户端 `config.toml` 的 `relay` 等于本 canister 的 `delegation_service`。
 
    ```sh
    icp canister call -e ic dmsg_user user_config '()' --query

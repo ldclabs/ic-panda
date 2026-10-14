@@ -359,7 +359,7 @@ impl Client {
             "version": info.state.version,
             "published_version": info.published_version,
             "published": info.published_version == info.state.version,
-            "delegation_service": self.config.agent_origin(),
+            "delegation_service": self.config.relay_origin(),
             "next_generation": next_generation(&info),
         }))
     }
@@ -760,7 +760,7 @@ impl Client {
             .timeout(std::time::Duration::from_secs(20))
             .build()
             .map_err(|e| Error::Unavailable(format!("http: {e}")))?;
-        let service = DelegationClient::with_client(self.config.agent_origin(), http);
+        let service = DelegationClient::with_client(self.config.relay_origin(), http);
         match service.submit_delegation_event(&envelope).await {
             Ok(credential) => {
                 ensure(

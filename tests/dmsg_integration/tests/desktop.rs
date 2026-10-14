@@ -537,13 +537,6 @@ struct Proxy {
 
 impl Proxy {
     fn start(upstream: &str) -> Self {
-        Self::start_as(upstream, None)
-    }
-
-    /// A forwarder that names `host` in every request, as a virtual host
-    /// on the upstream server expects.
-    fn start_as(upstream: &str, host: Option<&str>) -> Self {
-        let host = host.map(str::to_string);
         let upstream = upstream
             .trim_end_matches('/')
             .trim_start_matches("http://")
@@ -554,9 +547,9 @@ impl Proxy {
         let shared = rules.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
-                let (upstream, rules, host) = (upstream.clone(), shared.clone(), host.clone());
+                let (upstream, rules) = (upstream.clone(), shared.clone());
                 std::thread::spawn(move || {
-                    let _ = Self::serve(stream, &upstream, &rules, host.as_deref());
+                    let _ = Self::serve(stream, &upstream, &rules);
                 });
             }
         });
@@ -629,31 +622,14 @@ impl Proxy {
         format!("{}\r\n\r\n", lines.join("\r\n"))
     }
 
-    /// `head` with its `Host` header naming `host`.
-    fn rehost(head: &str, host: &str) -> String {
-        head.lines()
-            .map(|l| match l.to_ascii_lowercase().starts_with("host:") {
-                true => format!("Host: {host}"),
-                false => l.to_string(),
-            })
-            .collect::<Vec<_>>()
-            .join("\r\n")
-            + "\r\n"
-    }
-
     fn serve(
         client: std::net::TcpStream,
         upstream: &str,
         rules: &std::sync::Mutex<Vec<(String, String)>>,
-        host: Option<&str>,
     ) -> std::io::Result<()> {
         let mut reader = BufReader::new(client.try_clone()?);
         let Some((head, body)) = Self::read_message(&mut reader)? else {
             return Ok(());
-        };
-        let head = match host {
-            Some(host) => Self::rehost(&head, host),
-            None => head,
         };
         let mut server = std::net::TcpStream::connect(upstream)?;
         if head.to_ascii_lowercase().contains("upgrade: websocket") {
@@ -862,9 +838,8 @@ struct Options {
     proxies: bool,
     /// Let the relay take paid letters.
     paid_contacts: bool,
-    /// Serve Agent Delegation: the relay's agent host behind a proxy that
-    /// names it, principal documents from the directory, and a Discourse
-    /// host the daemons may sign for.
+    /// Serve Agent Delegation on the relay with principal documents from
+    /// the directory, and a Discourse host the daemons may sign for.
     agents: bool,
     /// Serve Agent Mail and Agent Knowledge: the private `dmsg-mail` and
     /// `dmsg-knowledge` Workers on local HTTPS, which the daemons trust
@@ -896,8 +871,6 @@ struct Env {
     relay_proxy: Option<Proxy>,
     /// The proxy in front of the IC gateway, if any.
     ic_proxy: Option<Proxy>,
-    /// The relay's agent host, through a proxy naming `agents.dmsg.test`.
-    agent_proxy: Option<Proxy>,
     /// The `dmsg-discourse` host the daemons may sign for, behind HTTPS.
     discourse: Option<TlsFront>,
     /// The Agent Mail relay and the Agent Knowledge service, if served.
@@ -1059,7 +1032,9 @@ impl Env {
             launch["api_origin"] = proxy.origin.clone().into();
         }
         if options.agents {
-            launch["agent_origin"] = "https://agents.dmsg.test".into();
+            // The directory takes only https origins; the relay compares
+            // its documents with this one instead of its loopback origin.
+            launch["delegation_service"] = "https://api.dmsg.test".into();
             launch["principal_origin"] = "https://id.dmsg.test".into();
             launch["principal_gateway"] =
                 format!("{}?canisterId={}", deployment.gateway, deployment.directory).into();
@@ -1088,12 +1063,6 @@ impl Env {
                 p.origin.clone()
             });
 
-        let agent_proxy = options.agents.then(|| {
-            Proxy::start_as(
-                &format!("http://127.0.0.1:{relay_port}"),
-                Some("agents.dmsg.test"),
-            )
-        });
         let discourse = options
             .agents
             .then(|| serve_discourse(&cloud, &dir, &mut children));
@@ -1113,8 +1082,7 @@ impl Env {
             let (cert, _) = localhost_tls(&dir);
             config.push_str(&format!("agent_ca = \"{}\"\n", cert.display()));
         }
-        if let (Some(proxy), Some(discourse)) = (&agent_proxy, &discourse) {
-            config.push_str(&format!("agent_service = \"{}\"\n", proxy.origin));
+        if let Some(discourse) = &discourse {
             hosts.push(format!(
                 "{{ host = \"{}\", label = \"test\" }}",
                 discourse.origin
@@ -1179,7 +1147,6 @@ impl Env {
             config: format!("{config}{table}"),
             relay_proxy,
             ic_proxy,
-            agent_proxy,
             discourse,
             services,
             legacy,
@@ -4063,7 +4030,7 @@ fn delegation_verdict(env: &Env, account: &str, id: &str, audience: &str) -> Val
         .json()
         .unwrap();
     assert_eq!(document.id, format!("https://id.dmsg.test/{account}"));
-    let service = &env.agent_proxy.as_ref().unwrap().origin;
+    let service = &env.relay;
     let credential: DelegationCredential = http
         .get(format!("{service}/v1/delegations/{id}"))
         .send()
@@ -4095,6 +4062,7 @@ fn desktop_agents() {
         "agents",
         Options {
             agents: true,
+            proxies: true,
             ..Options::default()
         },
     );
@@ -4140,7 +4108,7 @@ fn desktop_agents() {
 
     // A grant to Claude's Agent ID, signed here; the first reply from the
     // delegation service is lost and the same envelope settles it.
-    let proxy = env.agent_proxy.as_ref().unwrap();
+    let proxy = env.relay_proxy.as_ref().unwrap();
     proxy.lose_next("POST", "/v1/delegations");
     let request = a.run(&[
         "agent",
@@ -5176,14 +5144,14 @@ fn desktop_mail_knowledge() {
 /// own Ed25519 key, which it publishes as a JWKS on its origin.
 struct Upstream {
     http: reqwest::blocking::Client,
-    /// The relay's webhook host, through a proxy that names it.
-    hooks: String,
+    /// The relay origin, which receives the webhooks.
+    relay: String,
     key: ed25519_dalek::SigningKey,
     origin: String,
 }
 
 impl Upstream {
-    fn start(hooks: &str) -> Self {
+    fn start(relay: &str) -> Self {
         let key = ed25519_dalek::SigningKey::from_bytes(&[7; 32]);
         let jwks = json!({"keys": [{
             "kty": "OKP", "crv": "Ed25519", "kid": "k1",
@@ -5220,7 +5188,7 @@ impl Upstream {
                 .no_proxy()
                 .build()
                 .unwrap(),
-            hooks: hooks.to_string(),
+            relay: relay.to_string(),
             key,
             origin,
         }
@@ -5256,7 +5224,7 @@ impl Upstream {
         let path = url.split_once("/mcp-events/").unwrap().1;
         let response = self
             .http
-            .post(format!("{}/mcp-events/{path}", self.hooks))
+            .post(format!("{}/mcp-events/{path}", self.relay))
             .header("content-type", "application/json")
             .header("webhook-id", id)
             .header("webhook-timestamp", at.to_string())
@@ -5298,8 +5266,7 @@ fn desktop_mcp_events() {
         },
     );
     let http = env.http.clone();
-    let hooks = Proxy::start_as(&env.relay, Some("hooks.dmsg.local"));
-    let upstream = Upstream::start(&hooks.origin);
+    let upstream = Upstream::start(&env.relay);
     let a = &env.a;
     assert_eq!(a.login(&http, 71).unwrap()["state"], "no_account");
     a.run(&["account", "create"]);
@@ -5341,7 +5308,7 @@ fn desktop_mcp_events() {
     let id = endpoint["endpoint_id"].as_str().unwrap().to_string();
     let url = endpoint["url"].as_str().unwrap().to_string();
     let secret = endpoint["secret"].as_str().unwrap().to_string();
-    assert_eq!(url, format!("https://hooks.dmsg.local/mcp-events/{id}"));
+    assert_eq!(url, format!("{}/mcp-events/{id}", env.relay));
     assert!(secret.starts_with("whsec_"));
 
     // A creation whose reply is lost is sent again as the same request:

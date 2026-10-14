@@ -1756,7 +1756,7 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
         user_homes: vec![p(1)],
         principal_origin: "https://id.dmsg.test".into(),
         controller_source: "https://dmsg.test".into(),
-        delegation_service: "https://agents.dmsg.test".into(),
+        delegation_service: "https://api.dmsg.test".into(),
         profile_url_prefix: "https://dmsg.test/u/".into(),
         custom_domains: vec![],
         governance: p(9),

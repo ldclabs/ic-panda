@@ -192,7 +192,7 @@ fn device(n: u8) -> DeviceInput {
 }
 const NAMESPACE: &str = "https://dmsg.test/u/";
 const PRINCIPAL_ORIGIN: &str = "https://id.dmsg.test";
-const DELEGATION_SERVICE: &str = "https://agents.dmsg.test";
+const DELEGATION_SERVICE: &str = "https://api.dmsg.test";
 
 /// An account ID carrying `home`'s allocator fingerprint in the test namespace.
 fn home_account(home: Principal, n: u8) -> AccountId {

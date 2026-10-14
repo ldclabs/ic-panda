@@ -115,7 +115,7 @@ pub struct DirectoryInit {
     /// Controller `source` origin, such as `https://dmsg.net`.
     pub controller_source: String,
     /// Origin of the authoritative delegation service written into every
-    /// document, such as `https://agents.dmsg.net`.
+    /// document: the relay's API origin, such as `https://api.dmsg.net`.
     pub delegation_service: String,
     /// Prefix of the public profile link, such as `https://dmsg.net/`.
     pub profile_url_prefix: String,
