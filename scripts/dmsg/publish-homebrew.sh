@@ -48,8 +48,8 @@ trap 'rm -rf "$WORK"' EXIT
 # top-level url and on_linux overrides it per architecture.
 cat >"${WORK}/dmsg.rb" <<EOF
 class Dmsg < Formula
-  desc "dMsg client: CLI and daemon for the private dMsg workspace and its agents"
-  homepage "https://dmsg.net"
+  desc "CLI and daemon for the private dMsg workspace and its agents"
+  homepage "https://dmsg.net/"
   url "${BASE_URL}/dmsg-macos-arm64", using: :nounzip
   version "${VERSION}"
   sha256 "${MACOS_ARM64}"
@@ -100,7 +100,7 @@ cask "dmsg-desktop" do
   url "https://github.com/${REPO}/releases/download/dmsg-v#{version}/dMsg-mac-arm64.dmg"
   name "dMsg"
   desc "Desktop workspace and approvals for dMsg"
-  homepage "https://dmsg.net"
+  homepage "https://dmsg.net/"
 
   auto_updates true
   depends_on arch: :arm64
