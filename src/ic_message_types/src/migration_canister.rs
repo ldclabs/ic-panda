@@ -215,13 +215,16 @@ fn validate_admin_legacy_drain(cutover_id: ByteArray<32>) -> Result<String, Stri
     let canister = ic_cdk::api::canister_self();
     let at = ic_cdk::api::time() / 1_000_000;
     preview(|state| {
-        let already = state.mode != LegacyMode::Active;
+        let already = match state.mode {
+            LegacyMode::Active => "",
+            LegacyMode::Draining => " Already draining.",
+            LegacyMode::ReadOnly => " Already read-only.",
+        };
         let status = state.drain(cutover_id, at)?;
         Ok(format!(
-            "Stop new business writes on legacy canister {canister} for cutover {}; {} writes in flight finish first.{}",
+            "Stop new business writes on legacy canister {canister} for cutover {}; {} writes in flight finish first.{already}",
             hex(cutover_id.as_ref()),
             status.pending,
-            if already { " Already draining." } else { "" }
         ))
     })
 }
@@ -232,12 +235,11 @@ fn validate_admin_legacy_seal(cutover_id: ByteArray<32>) -> Result<String, Strin
     let at = ic_cdk::api::time() / 1_000_000;
     preview(|state| {
         let already = state.mode == LegacyMode::ReadOnly;
-        state
-            .seal(cutover_id, at)
-            .map_err(|e| match state.pending.is_empty() {
-                true => e,
-                false => format!("{e}: {}", blocking(state)),
-            })?;
+        // List the writes in flight only when they are what blocks the seal.
+        state.seal(cutover_id, at).map_err(|e| match e.as_str() {
+            "LegacyWritesPending" => format!("{e}: {}", blocking(state)),
+            _ => e,
+        })?;
         Ok(format!(
             "Make legacy canister {canister} read-only for cutover {}; its business writes never reopen.{}",
             hex(cutover_id.as_ref()),

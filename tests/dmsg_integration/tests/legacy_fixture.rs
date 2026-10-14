@@ -341,6 +341,10 @@ fn legacy_snapshot_gateway() {
         (cutover,),
     );
     assert!(shown.unwrap().contains("1 writes in flight finish first"));
+    // Before the drain, seal fails on the cutover; the write in flight is not named.
+    let shown: Result<String, String> =
+        query(&ic, channel, user, "validate_admin_legacy_seal", (cutover,));
+    assert_eq!(shown.unwrap_err(), "LegacyCutoverConflict");
     let status: FreezeStatus = query(&ic, channel, user, "legacy_status", ());
     assert_eq!(status.mode, LegacyMode::Active);
     update::<Result<FreezeStatus, String>>(&ic, channel, gov, "admin_legacy_drain", (cutover,))
@@ -388,6 +392,14 @@ fn legacy_snapshot_gateway() {
             canister,
             user,
             "validate_admin_legacy_seal",
+            (cutover,),
+        );
+        assert!(shown.unwrap().ends_with("Already read-only."));
+        let shown: Result<String, String> = query(
+            &ic,
+            canister,
+            user,
+            "validate_admin_legacy_drain",
             (cutover,),
         );
         assert!(shown.unwrap().ends_with("Already read-only."));
