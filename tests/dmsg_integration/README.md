@@ -67,7 +67,7 @@ DMSG_WASM_DIR=/path/to/wasm cargo test --locked -p dmsg_integration --features p
 
 ## 旧部署快照（显式运行）
 
-`legacy_fixture` 在 PocketIC 中安装并升级已核对的旧发布模块（`DMSG_LEGACY_RELEASES` 指向这些 `.wasm.gz`），冻结后提供本地网关；`src/dmsg_legacy/tests/snapshot-gateway.test.ts` 启动它，在 Node 中核对冻结快照的 ingress 证明、共享频道的管理者同意与冻结归档比对，并用 `src/dmsg_legacy/scripts/legacy-name-plan.mjs` 生成名称导入计划：
+`legacy_fixture` 在 PocketIC 中安装并升级已核对的旧发布模块（`DMSG_LEGACY_RELEASES` 指向这些 `.wasm.gz`，即主网当前运行的 v2.14.0 `ic_message`、`ic_message_profile`，v2.13.0 `ic_message_channel` 和 v2.15.1 `ic_name_identity`，文件名为 `ic-panda-<tag>-<canister>.wasm.gz`），逐步核对各冻结步骤的 SNS 验证方法（`validate_admin_legacy_*`：预演结果、在途写入阻止 seal 时列出的操作、重复步骤与 cutover 冲突），冻结后提供本地网关；`src/dmsg_legacy/tests/snapshot-gateway.test.ts` 启动它，在 Node 中核对冻结快照的 ingress 证明、共享频道的管理者同意与冻结归档比对，并像运维一样先用 `src/dmsg_legacy/scripts/legacy-name-proofs.mjs` 采集名称证明，再用 `legacy-name-plan.mjs` 生成名称导入计划：
 
 ```sh
 DMSG_LEGACY_RELEASES=/path/to/releases pnpm --dir src/dmsg_legacy test

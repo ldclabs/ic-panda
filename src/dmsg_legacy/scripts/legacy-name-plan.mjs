@@ -1,8 +1,5 @@
-import { build } from 'vite'
-import { readFile, writeFile, mkdtemp, rm, stat } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { resolve, join } from 'node:path'
-import { pathToFileURL, fileURLToPath } from 'node:url'
+import { readFile, writeFile, stat } from 'node:fs/promises'
+import { loadEntry } from './bundle.mjs'
 const args = new Map()
 for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i], process.argv[i + 1])
 for (const flag of [
@@ -33,45 +30,20 @@ const proofs = (values) =>
       ])
     )
   }))
-const app = resolve(fileURLToPath(new URL('..', import.meta.url)))
-const temporary = await mkdtemp(join(tmpdir(), 'dmsg-name-plan-'))
-try {
-  const result = await build({
-    configFile: false,
-    root: app,
-    logLevel: 'error',
-    ssr: { noExternal: true },
-    build: {
-      ssr: resolve(app, 'scripts/legacy-name-plan.ts'),
-      target: 'node22',
-      write: false,
-      minify: false,
-      rollupOptions: {
-        external: [/^node:/],
-        output: { format: 'es', codeSplitting: false }
-      }
-    }
-  })
-  const code = result.output.find((value) => value.type === 'chunk' && value.isEntry).code
-  const path = join(temporary, 'plan.mjs')
-  await writeFile(path, code)
-  const { nameImportPlan } = await import(pathToFileURL(path).href)
-  const plan = await nameImportPlan({
-    names: proofs(input.names),
-    authorities: proofs(input.authorities),
-    rootKey: fromHex(args.get('--root-key-hex')),
-    source: args.get('--source'),
-    identity: args.get('--identity'),
-    expectedNames: Number(args.get('--count')),
-    cutover: fromHex(args.get('--cutover-hex'))
-  })
-  await writeFile(args.get('--output'), JSON.stringify(plan, null, 2), {
-    flag: 'wx',
-    mode: 0o600
-  })
-  process.stdout.write(
-    `Verified ${plan.count} frozen names; wrote ${plan.calls.length} unsigned calls. No network calls or signing performed.\n`
-  )
-} finally {
-  await rm(temporary, { recursive: true, force: true })
-}
+const { nameImportPlan } = await loadEntry('scripts/legacy-name-plan.ts')
+const plan = await nameImportPlan({
+  names: proofs(input.names),
+  authorities: proofs(input.authorities),
+  rootKey: fromHex(args.get('--root-key-hex')),
+  source: args.get('--source'),
+  identity: args.get('--identity'),
+  expectedNames: Number(args.get('--count')),
+  cutover: fromHex(args.get('--cutover-hex'))
+})
+await writeFile(args.get('--output'), JSON.stringify(plan, null, 2), {
+  flag: 'wx',
+  mode: 0o600
+})
+process.stdout.write(
+  `Verified ${plan.count} frozen names; wrote ${plan.calls.length} unsigned calls. No network calls or signing performed.\n`
+)

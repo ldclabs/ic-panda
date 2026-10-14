@@ -241,24 +241,7 @@ async function probe(input: {
       rejected++
     }
   }
-  const hex = (value: Uint8Array) =>
-    Array.from(value, (b) => b.toString(16).padStart(2, '0')).join('')
-  const encodeProofs = (values: typeof names.proofs) =>
-    values.map((value) => ({
-      ...value,
-      ...Object.fromEntries(
-        ['args', 'nonce', 'requestId', 'certificate', 'reply'].map((key) => [
-          key,
-          hex(value[key as 'args'])
-        ])
-      )
-    }))
   return {
-    operator: {
-      root: hex(new Uint8Array(agent.rootKey!)),
-      names: encodeProofs(names.proofs),
-      authorities: encodeProofs(authorities.proofs)
-    },
     frozenDeltaVerified: true,
     sharedConsentVerified: true,
     nameImportVerified: true,
@@ -310,13 +293,24 @@ describe.skipIf(!process.env.DMSG_LEGACY_RELEASES)('legacy snapshot gateway', ()
         await new Promise((done) => setTimeout(done, 100))
       }
       if (!fixture) throw new Error(`Legacy fixture timeout\n${logs.join('')}`)
-      const result = await probe(fixture)
-      const operator = result.operator
+      const summary = await probe(fixture)
       const inputPath = join(dir, 'name-proofs.json'),
         outputPath = join(dir, 'name-plan.json')
-      await writeFile(
-        inputPath,
-        JSON.stringify({ names: operator.names, authorities: operator.authorities })
+      // The operator's commands: collect the frozen proofs, then plan offline.
+      await promisify(execFile)(
+        process.execPath,
+        [
+          resolve(import.meta.dirname, '../scripts/legacy-name-proofs.mjs'),
+          '--host',
+          fixture.gateway,
+          '--source',
+          fixture.message,
+          '--identity',
+          fixture.identity,
+          '--output',
+          inputPath
+        ],
+        { timeout: 60000 }
       )
       await promisify(execFile)(
         process.execPath,
@@ -325,7 +319,7 @@ describe.skipIf(!process.env.DMSG_LEGACY_RELEASES)('legacy snapshot gateway', ()
           '--input',
           inputPath,
           '--root-key-hex',
-          operator.root,
+          fixture.root_key_hex,
           '--source',
           fixture.message,
           '--identity',
@@ -346,7 +340,6 @@ describe.skipIf(!process.env.DMSG_LEGACY_RELEASES)('legacy snapshot gateway', ()
         'seal_legacy_snapshot'
       ])
       expect(plan.count).toBe(1)
-      const { operator: _, ...summary } = result
       expect(summary).toEqual({
         frozenDeltaVerified: true,
         sharedConsentVerified: true,
