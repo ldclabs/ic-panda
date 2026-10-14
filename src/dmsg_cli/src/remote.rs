@@ -1,7 +1,7 @@
 //! The CLI's connection to its daemon: discovery file, owner credential and
 //! JSON-RPC over loopback HTTP.
 
-use crate::home::Home;
+use crate::home::{Discovery, Home};
 use serde_json::{json, Value};
 
 /// A failed call: a stable code and a message.
@@ -30,30 +30,35 @@ pub struct Remote {
 }
 
 impl Remote {
-    /// Find the home's daemon.
+    /// Find the home's daemon. A stopped daemon comes first: before its
+    /// first start there is no owner credential either.
     pub fn connect(home: &Home) -> Result<Self, Failure> {
+        let discovery = Self::discover(home)?;
         let settings = home
             .settings()
             .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
         let token = home
             .owner_token(&settings, false)
             .map_err(|e| Failure::new("AUTH_REQUIRED", e.to_string()))?;
-        Self::with_token(home, token)
+        Self::with_token(&discovery, token)
     }
 
     /// Find the home's daemon as a hosted agent, with that agent's
     /// credential instead of the owner's.
     pub fn agent(home: &Home, credential: &str) -> Result<Self, Failure> {
-        Self::with_token(home, credential.into())
+        Self::with_token(&Self::discover(home)?, credential.into())
     }
 
-    fn with_token(home: &Home, token: String) -> Result<Self, Failure> {
-        let discovery = home.discovery().ok_or_else(|| {
+    fn discover(home: &Home) -> Result<Discovery, Failure> {
+        home.discovery().ok_or_else(|| {
             Failure::new(
                 "DAEMON_STOPPED",
-                "the dmsg daemon is not running; start it with `dmsg daemon`",
+                "the dmsg daemon is not running; start it with `dmsg start`",
             )
-        })?;
+        })
+    }
+
+    fn with_token(discovery: &Discovery, token: String) -> Result<Self, Failure> {
         Ok(Self {
             base: format!("http://127.0.0.1:{}", discovery.port),
             token,

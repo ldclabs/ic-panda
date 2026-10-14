@@ -236,6 +236,8 @@ impl Home {
     /// Returns `Error::Unavailable` when it cannot be read or written.
     pub fn owner_token(&self, settings: &Settings, create: bool) -> Result<String> {
         let existing = match settings.storage {
+            // A home that does not exist yet holds no credential.
+            Storage::System if !self.dir.exists() => None,
             Storage::System => crate::secure::SystemStorage
                 .get(&self.owner_name()?)?
                 .map(|t| String::from_utf8_lossy(&t).into_owned()),
@@ -337,6 +339,15 @@ mod tests {
         let home = Home { dir: dir.clone() };
         let settings = home.settings().unwrap();
         assert!(settings.built_in);
+        // A fresh home: no owner credential yet, and no daemon to reach.
+        assert!(matches!(
+            home.owner_token(&settings, false),
+            Err(Error::AuthRequired)
+        ));
+        assert_eq!(
+            crate::remote::Remote::connect(&home).err().unwrap().code,
+            "DAEMON_STOPPED"
+        );
         assert_eq!(
             settings.config.environment,
             dmsg_types::Environment::Production
