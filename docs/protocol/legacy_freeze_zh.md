@@ -32,6 +32,10 @@ OSS 候选基于 v1.2.3，新增 `admin_legacy_drain_folder` / `admin_legacy_sea
 
 `src/dmsg_legacy/scripts/legacy-freeze-plan.mjs` 从目标 inventory、已完成基线核对文件和 cutover ID 生成分阶段、绑定模块哈希的 Candid controller payload。工具不签名、不提交、不升级、不停写；调用前仍须核对部署、控制权限、在途操作和实际证据。生产执行不属于本轮开发授权。
 
+四个旧 canister 只由 SNS root 控制，冻结步骤由 SNS governance 以通用函数执行。每个 `admin_legacy_*` 有同参数的 `validate_admin_legacy_*` query 作为验证方法：在当前状态的副本上执行同一转换，不写入，返回提案展示的文字；seal 被在途写入阻止时，错误列出这些操作的编号、方法、开始时间和是否中断或结果未知，不含调用者和参数。`admin_legacy_pending` 仍只对 controller 和 governance 开放。
+
+`legacy-freeze-inputs.mjs` 从 `legacy-inventory.mjs` 的盘点和 canisters release 产物生成上述两个输入的草稿：目标绑定 release 模块的 SHA-256（核对 release 列出的 `.txt`），基线核对的 `unresolved` 列出每个来源待确认的升级与在途核对，清空并填写 `evidence_ref` 前计划工具拒绝生成计划。COSE 与 OSS 目标不在草稿中。`legacy-name-proofs.mjs` 用一次性 Ed25519 身份采集 `Names`、`Authorities` 快照并逐页验证，输出名称导入计划的输入；它只调用 `legacy_snapshot`。
+
 本地测试使用 I0 已匹配公开 release 的 Wasm：四服务升级后旧 IV、profile、消息保持；真实跨 canister 等待阻止提前 seal；Chrome 验证多页快照及篡改负例。另有 COSE 的 ECDH/VetKey/包装前后对照、OSS 旧写 token 阻断及其它目录继续写入测试。模拟账本只用于建立测试数据，无真实资金。
 
 真实用户三模式恢复、生产 controller/在途请求盘点、独立发布与退出验收仍不能由这些合成测试替代。旧 minter 未整体停用；来源业务冻结阻止新 PoL 事件，历史权益、结算和是否停发仍按独立治理决定处理。

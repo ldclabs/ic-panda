@@ -320,9 +320,31 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 1. **盘点**：用 [legacy-inventory.mjs](../dmsg_legacy/scripts/legacy-inventory.mjs) 确认两个来源的 canister ID、模块哈希、controllers 和名称数量，见 [旧部署只读盘点](../../docs/legacy_inventory_zh.md)。
 
-2. **冻结来源**：用 [legacy-freeze-plan.mjs](../dmsg_legacy/scripts/legacy-freeze-plan.mjs) 生成分阶段、绑定模块哈希的 controller 调用。按顺序：`admin_legacy_acknowledge_baseline` 确认基线 → `admin_legacy_drain(cutover_id)` 停止新写 → 用 `admin_legacy_pending`、`admin_legacy_resolve` 收敛在途写入 → `admin_legacy_seal(cutover_id)` 进入 ReadOnly。名称注册与转移随之停止，`ic_name_identity` 在 seal 时固定角色表。两个来源使用同一个 cutover ID。
+2. **冻结来源**：冻结的是 `ic_message`、三个 `ic_message_channel`、`ic_message_profile` 和 `ic_name_identity`，它们都使用同一个 cutover ID（`openssl rand -hex 32`，只生成一次）。这些 canister 只由 SNS root 控制，冻结调用只接受 controller 或 SNS governance：
 
-3. **采集快照证明**：用非匿名身份分页调用两个来源的 `legacy_snapshot`（update，每页最多 64 条），保留每页 ingress 的 `request_status` 证书。[@dmsg/legacy](../dmsg_legacy/src/snapshot.ts) 的 `collectSnapshot(agent, canister, scope, [canister])` 负责分页、验证证书和滚动摘要。把两组 proofs 写成 `{ "names": [...], "authorities": [...] }`，其中 `args`、`nonce`、`requestId`、`certificate`、`reply` 编码为小写 hex。仓库没有独立的采集命令，完整的采集和编码示例见 [snapshot-gateway.test.ts](../dmsg_legacy/tests/snapshot-gateway.test.ts)。
+   1. 用 `UpgradeSnsControlledCanister` 提案把它们升级到同一个 canisters release 的产物，模板见 [proposal-480.sh](../../proposals/proposal-480.sh)，不带升级参数。SNS 先停止 canister 再升级，旧模块发起的调用在升级前结束。升级后 `legacy_status` 应显示 `mode = Active`、`baseline_needed = true`。
+   2. 用 [legacy-inventory.mjs](../dmsg_legacy/scripts/legacy-inventory.mjs) 重新盘点，再用 [legacy-freeze-inputs.mjs](../dmsg_legacy/scripts/legacy-freeze-inputs.mjs) 生成计划输入的草稿，`release 目录` 是从该 release 下载的 `.wasm.gz` 及其 `.txt`：
+
+      ```sh
+      node src/dmsg_legacy/scripts/legacy-freeze-inputs.mjs <inventory.json> <release 目录> <release tag> <输出目录>
+      ```
+
+      `targets.json` 绑定 release 模块的 SHA-256。`baseline.json` 的 `unresolved` 列出每个 canister 待确认的事项：盘点到的模块是否已是 release 模块，升级时是否没有在途写入。逐条确认，在 `evidence_ref` 填入升级提案，再删除该条。清空之前计划工具拒绝生成计划：
+
+      ```sh
+      node src/dmsg_legacy/scripts/legacy-freeze-plan.mjs <输出目录>/targets.json <输出目录>/baseline.json <cutover hex> freeze-plan.json
+      ```
+
+   3. 为每个 canister 的 `admin_legacy_acknowledge_baseline`、`admin_legacy_drain`、`admin_legacy_seal` 各登记一个通用函数，按需再登记 `admin_legacy_resolve`。验证方法是同名的 `validate_admin_legacy_*`，主题 `CriticalDappOperations`，模板见 [proposal-452.sh](../../proposals/proposal-452.sh)。验证方法是同参数的 query，按当前状态预演，任何人都可以调用。
+   4. 以 `ExecuteGenericNervousSystemFunction` 按计划顺序执行，载荷是计划中的 `candid_hex`：全部 acknowledge → 全部 drain → 等每个 canister 的 `legacy_status` 显示 `pending = 0` → 全部 seal。`pending` 不归零时，`validate_admin_legacy_seal` 列出阻塞的操作（编号、方法、开始时间，不含调用者和参数）；中断或结果未知的操作核对后用 `admin_legacy_resolve` 核销。seal 后名称注册与转移停止，`ic_name_identity` 固定角色表，旧业务写入不再开放。
+
+3. **采集快照证明**：
+
+   ```sh
+   node src/dmsg_legacy/scripts/legacy-name-proofs.mjs --source <ic_message ID> --identity <ic_name_identity ID> --output name-proofs.json
+   ```
+
+   [legacy-name-proofs.mjs](../dmsg_legacy/scripts/legacy-name-proofs.mjs) 用一次性生成的 Ed25519 身份分页调用两个来源的 `legacy_snapshot`（update，每页最多 64 条），由 [@dmsg/legacy](../dmsg_legacy/src/snapshot.ts) 的 `collectSnapshot` 逐页验证 ingress 的 `request_status` 证书、范围、游标和滚动摘要。输出 `{ "names": [...], "authorities": [...] }`，其中 `args`、`nonce`、`requestId`、`certificate`、`reply` 为小写 hex。`--host` 默认 `https://icp-api.io`，只接受 HTTPS（回环地址的本地副本除外）。它只调用 `legacy_snapshot`，不改变任何服务；输出文件不覆盖已有文件，权限为 0600。
 
 4. **生成导入计划**（离线执行，不联网、不签名）：
 
