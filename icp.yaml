@@ -149,6 +149,10 @@ canisters:
     recipe:
       type: file://recipes/rust.hbs
 
+  - name: dmsg_wallet
+    recipe:
+      type: file://recipes/rust.hbs
+
 # The managed local network always runs the ICP ledger (ryjl3-tyaaa-aaaaa-aaaba-cai), and
 # `ii` adds Internet Identity. It starts empty on every `icp network start`; `make local-network`
 # recreates the canisters at their mainnet IDs, which the frontends hardcode.
