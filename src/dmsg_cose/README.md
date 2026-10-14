@@ -178,7 +178,7 @@ PocketIC 回归 `cose_offline_pin_matches_the_initialized_production_key` 用 `p
 
 2. 与 user home 一起创建 canister ID（两者互相引用），见 [dmsg_user](../dmsg_user/README.md) 的部署步骤。用上节的工具按 COSE 的 canister ID 计算 pin。
 
-3. 用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_cose.wasm.gz` 安装。release 与本地构建都使用 [rust-toolchain.toml](../../rust-toolchain.toml) 固定的 Rust 版本，投票者可以复现同一模块哈希：
+3. 用打 `canisters-v*` tag 后 [canisters-release.yml](../../.github/workflows/canisters-release.yml) 发布的 `dmsg_cose.wasm.gz` 安装。release 与本地构建都使用 [rust-toolchain.toml](../../rust-toolchain.toml) 固定的 Rust 版本，投票者可以复现同一模块哈希：
 
    ```sh
    sha256sum dmsg_cose.wasm.gz

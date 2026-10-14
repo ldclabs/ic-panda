@@ -156,7 +156,7 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
    icp canister create dmsg_directory -e ic
    ```
 
-3. 使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_directory.wasm.gz` 安装，不用本地 `icp deploy` 构建：交给 SNS 后，投票者要按 release 产物核验模块哈希（同 [dmsg_handle](../dmsg_handle/README.md#步骤)）。
+3. 使用打 `canisters-v*` tag 后 [canisters-release.yml](../../.github/workflows/canisters-release.yml) 发布的 `dmsg_directory.wasm.gz` 安装，不用本地 `icp deploy` 构建：交给 SNS 后，投票者要按 release 产物核验模块哈希（同 [dmsg_handle](../dmsg_handle/README.md#步骤)）。
 
    ```sh
    sha256sum dmsg_directory.wasm.gz

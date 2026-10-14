@@ -345,7 +345,7 @@ flowchart LR
    icp canister status dmsg_user -e ic
    ```
 
-   `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建，步骤与 release.yml 相同（Candid 元数据、shrink、wasm-opt -O3、`gzip -n`），本机需要 `ic-wasm` 和 binaryen 的 `wasm-opt`。它还会把环境中各 canister 的 ID 写入本 canister 的环境变量 `PUBLIC_CANISTER_ID:<名称>`。用 `icp canister status` 记录实际模块哈希和 controllers，并保存本次安装参数。
+   `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建，步骤与 canisters-release.yml 相同（Candid 元数据、shrink、wasm-opt -O3、`gzip -n`），本机需要 `ic-wasm` 和 binaryen 的 `wasm-opt`。它还会把环境中各 canister 的 ID 写入本 canister 的环境变量 `PUBLIC_CANISTER_ID:<名称>`。用 `icp canister status` 记录实际模块哈希和 controllers，并保存本次安装参数。
 
 4. 按各自 README 安装其余 canister，所有指向 user 的字段都填 `$(cid dmsg_user)`。COSE 安装后由 controller 或 governance 调用 `initialize_keys`，`key_state` 显示 `Ready` 且公钥指纹与生产 key 一致后才能执行。见 [dmsg_cose](../dmsg_cose/README.md)、[dmsg_handle](../dmsg_handle/README.md)。
 

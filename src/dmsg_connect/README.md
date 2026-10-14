@@ -71,11 +71,13 @@ records what it serves. `node scripts/assets.ts manifest [dist]` (or `pnpm
 assets manifest`) writes the SHA-256 of every file the canister serves, of
 `.ic-assets.json5` (the headers), the build config and the commit, with one
 `sha256` over the listing; two builds of one commit and config give the same
-manifest. The `dmsg-connect-v*` tag runs `.github/workflows/dmsg-connect.yml`:
-it builds `connect.production.json` twice, fails unless both manifests are
-equal, and releases `dmsg-connect-assets.json` with
-`dmsg-connect-dist.tar.gz`. Deploy that dist (the canister's own approval
-flow), then check what the canister serves against the manifest:
+manifest. No workflow publishes the bridge page now. The `dmsg-connect-v*`
+workflow (`.github/workflows/dmsg-connect.yml`) that built
+`connect.production.json` twice, failed unless both manifests were equal, and
+released `dmsg-connect-assets.json` with `dmsg-connect-dist.tar.gz` has been
+removed. Build the production dist by hand with `DMSG_CONNECT_CONFIG` set to the
+production config, write its manifest, deploy that dist (the canister's own
+approval flow), then check what the canister serves against the manifest:
 
 ```sh
 pnpm --dir src/dmsg_connect assets verify dmsg-connect-assets.json acjs3-cyaaa-aaaas-qg7da-cai

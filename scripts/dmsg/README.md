@@ -42,5 +42,5 @@ release still builds, unsigned, and the macOS app has no update feed:
 | `HOMEBREW_TAP_TOKEN` | Write access to the tap |
 
 Windows builds are not verified yet: a failing Windows job does not hold the
-release. The bridge page has its own release, `dmsg-connect-v*`
+release. The bridge page has no release workflow now
 ([`src/dmsg_connect`](../../src/dmsg_connect/README.md#release)).

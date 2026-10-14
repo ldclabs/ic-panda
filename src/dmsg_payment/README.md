@@ -268,7 +268,7 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 
 3. 与 `dmsg_user` 一起创建 canister ID（见 [dmsg_user](../dmsg_user/README.md#步骤) 步骤 3）。
 
-4. 生产安装使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_payment.wasm.gz`，不要用本地 `icp deploy` 构建，原因见 [dmsg_handle](../dmsg_handle/README.md#步骤)。核对产物哈希后安装，先保持订单关闭：
+4. 生产安装使用打 `canisters-v*` tag 后 [canisters-release.yml](../../.github/workflows/canisters-release.yml) 发布的 `dmsg_payment.wasm.gz`，不要用本地 `icp deploy` 构建，原因见 [dmsg_handle](../dmsg_handle/README.md#步骤)。核对产物哈希后安装，先保持订单关闭：
 
    ```sh
    sha256sum dmsg_payment.wasm.gz

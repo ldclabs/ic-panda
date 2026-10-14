@@ -266,7 +266,7 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
    icp canister call membership verify_sns_configuration '()' -e ic
    ```
 
-   `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建（与 release.yml 相同的 Candid 元数据、shrink、wasm-opt -O3 和 `gzip -n`），并写入环境变量 `PUBLIC_CANISTER_ID:<名称>`。`verify_sns_configuration` 返回 `(variant { Ok })` 后才接受申请。
+   `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建（与 canisters-release.yml 相同的 Candid 元数据、shrink、wasm-opt -O3 和 `gzip -n`），并写入环境变量 `PUBLIC_CANISTER_ID:<名称>`。`verify_sns_configuration` 返回 `(variant { Ok })` 后才接受申请。
 
 5. 安装 commerce 和 `dmsg_user`，其 `membership_canister` 指向本实例。
 

@@ -207,7 +207,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 
 3. 以 `handle_canister = $(icp canister status dmsg_handle -e ic --id-only)` 安装 `dmsg_user`，其他字段见 [dmsg_user](../dmsg_user/README.md)。
 
-4. 生产安装使用打 tag 后 [release.yml](../../.github/workflows/release.yml) 发布的 `dmsg_handle.wasm.gz`，不用本地 `icp deploy` 构建：本地构建虽然按 release.yml 的步骤进行，但工具版本和构建环境不同，模块哈希不一致，而交给 SNS 后投票者要按 release 产物核验升级。核对产物、查询账本手续费，然后安装：
+4. 生产安装使用打 `canisters-v*` tag 后 [canisters-release.yml](../../.github/workflows/canisters-release.yml) 发布的 `dmsg_handle.wasm.gz`，不用本地 `icp deploy` 构建：本地构建虽然按 canisters-release.yml 的步骤进行，但工具版本和构建环境不同，模块哈希不一致，而交给 SNS 后投票者要按 release 产物核验升级。核对产物、查询账本手续费，然后安装：
 
    ```sh
    sha256sum dmsg_handle.wasm.gz

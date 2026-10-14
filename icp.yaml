@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/dfinity/icp-cli/main/docs/schemas/icp-yaml-schema.json
 
-# Rust canisters build with recipes/rust.hbs, which follows .github/workflows/release.yml.
+# Rust canisters build with recipes/rust.hbs, which follows .github/workflows/canisters-release.yml.
 canisters:
   - name: ic_delegation_store
     recipe:

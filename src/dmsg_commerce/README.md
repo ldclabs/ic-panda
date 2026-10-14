@@ -301,7 +301,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
 
    icp 不按接口给安装参数定类型：直接用 `--args-file` 时，四个套餐的 `plan_id` 会被推断成同一种 variant，安装报 `catalog: NotFound`。所以先用 `didc` 按 `CommerceInit` 编码，再以 hex 传入。
 
-   `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建（与 release.yml 相同的 Candid 元数据、shrink、wasm-opt -O3 和 `gzip -n`），并写入环境变量 `PUBLIC_CANISTER_ID:<名称>`。用 `icp canister status` 记录实际的模块哈希和 controllers。
+   `icp deploy` 按 icp.yaml 用 [recipes/rust.hbs](../../recipes/rust.hbs) 构建（与 canisters-release.yml 相同的 Candid 元数据、shrink、wasm-opt -O3 和 `gzip -n`），并写入环境变量 `PUBLIC_CANISTER_ID:<名称>`。用 `icp canister status` 记录实际的模块哈希和 controllers。
 
 4. 安装 `dmsg_user`，其中 `commerce_canister`、`membership_canister` 指向上面的 ID，其他字段见 [dmsg_user](../dmsg_user/README.md)。然后安装 `membership`，并由它的 governance 调用 `configure_panda_service`，其中 `commerce_homes` 列出 `{ user_home = <dmsg_user ID>; commerce_canister = <本 canister> }`，`qualifications_per_minute` 按活跃 PANDA 会员数设置（每会员每小时约一次 SNS 读取），见 [membership](../membership/README.md)。
 
