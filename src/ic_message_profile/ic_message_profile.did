@@ -1,7 +1,7 @@
 type CanisterKind = variant { OssBucket; OssCluster };
 // # Canister Status Result
 // 
-// Result type of [`canister_status`](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-canister_status).
+// Result type of [`canister_status`](https://docs.internetcomputer.org/references/management-canister/#canister_status).
 type CanisterStatusResult = record {
   // The detailed metrics on the memory consumption of the canister.
   memory_metrics : MemoryMetrics;
@@ -49,7 +49,7 @@ type ChannelSetting = record { pin : nat32; alias : text; tags : vec text };
 // 
 // Represents the actual settings in effect.
 // 
-// For return of [`canister_status`](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-canister_status).
+// For return of [`canister_status`](https://docs.internetcomputer.org/references/management-canister/#canister_status).
 type DefiniteCanisterSettings = record {
   // Time in seconds after which the canister is considered frozen.
   freezing_threshold : nat;
@@ -59,14 +59,20 @@ type DefiniteCanisterSettings = record {
   environment_variables : vec EnvironmentVariable;
   // Controllers of the canister.
   controllers : vec principal;
+  // Minimum number of cycles required for an incoming call from a different canister.
+  minimum_incoming_canister_call_cycles : nat;
   // Upper limit on [`CanisterStatusResult::reserved_cycles`] of the canister.
   reserved_cycles_limit : nat;
   // Visibility of canister logs.
   log_visibility : LogVisibility;
   // Upper limit on the memory used for canister logs (bytes).
   log_memory_limit : nat;
+  // Visibility of canister snapshots.
+  snapshot_visibility : LogVisibility;
   // Upper limit on the WASM heap memory (bytes) consumption of the canister.
   wasm_memory_limit : nat;
+  // Visibility of canister status.
+  status_visibility : LogVisibility;
   // Total memory (bytes) the canister is allowed to use.
   memory_allocation : nat;
   // Guaranteed compute allocation as a percentage of the maximum compute power that a single canister can allocate.
@@ -249,5 +255,9 @@ service : (opt ChainArgs) -> {
   validate2_admin_remove_managers : (vec principal) -> (Result_7);
   validate_admin_add_canister : (CanisterKind, principal) -> (Result_7);
   validate_admin_add_managers : (vec principal) -> (Result);
+  validate_admin_legacy_acknowledge_baseline : (blob) -> (Result_7) query;
+  validate_admin_legacy_drain : (blob) -> (Result_7) query;
+  validate_admin_legacy_resolve : (nat64, blob) -> (Result_7) query;
+  validate_admin_legacy_seal : (blob) -> (Result_7) query;
   validate_admin_remove_managers : (vec principal) -> (Result);
 }

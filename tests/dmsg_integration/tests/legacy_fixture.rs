@@ -279,14 +279,28 @@ fn legacy_snapshot_gateway() {
         .unwrap();
         let status: FreezeStatus = query(&ic, id, user, "legacy_status", ());
         assert!(status.baseline_needed);
-        update::<Result<(), String>>(
+        // Each step has an SNS validator anyone can query: the same check, nothing written.
+        let baseline = (ByteArray::new([9; 32]),);
+        let shown: Result<String, String> = query(
             &ic,
             id,
-            gov,
-            "admin_legacy_acknowledge_baseline",
-            (ByteArray::new([9; 32]),),
-        )
-        .unwrap();
+            user,
+            "validate_admin_legacy_acknowledge_baseline",
+            baseline,
+        );
+        assert!(shown
+            .unwrap()
+            .starts_with(&format!("Record baseline review {}", "09".repeat(32))));
+        update::<Result<(), String>>(&ic, id, gov, "admin_legacy_acknowledge_baseline", baseline)
+            .unwrap();
+        let shown: Result<String, String> = query(
+            &ic,
+            id,
+            user,
+            "validate_admin_legacy_acknowledge_baseline",
+            baseline,
+        );
+        assert!(shown.unwrap().ends_with("Already recorded."));
     }
     let iv_after: Result<ByteBuf, String> = query(&ic, message, user, "my_iv", ());
     assert_eq!(iv_before, iv_after.unwrap());
@@ -319,6 +333,16 @@ fn legacy_snapshot_gateway() {
     let status: FreezeStatus = query(&ic, channel, user, "legacy_status", ());
     assert_eq!(status.pending, 1);
     let cutover = ByteArray::new([8; 32]);
+    let shown: Result<String, String> = query(
+        &ic,
+        channel,
+        user,
+        "validate_admin_legacy_drain",
+        (cutover,),
+    );
+    assert!(shown.unwrap().contains("1 writes in flight finish first"));
+    let status: FreezeStatus = query(&ic, channel, user, "legacy_status", ());
+    assert_eq!(status.mode, LegacyMode::Active);
     update::<Result<FreezeStatus, String>>(&ic, channel, gov, "admin_legacy_drain", (cutover,))
         .unwrap();
     assert!(update::<Result<FreezeStatus, String>>(
@@ -329,6 +353,20 @@ fn legacy_snapshot_gateway() {
         (cutover,)
     )
     .is_err());
+    // The seal validator names what blocks it, without callers or inputs.
+    let shown: Result<String, String> =
+        query(&ic, channel, user, "validate_admin_legacy_seal", (cutover,));
+    let blocked = shown.unwrap_err();
+    assert!(blocked.starts_with("LegacyWritesPending: "), "{blocked}");
+    assert!(blocked.contains("update_storage (live"), "{blocked}");
+    let shown: Result<String, String> = query(
+        &ic,
+        channel,
+        user,
+        "validate_admin_legacy_resolve",
+        (999u64, ByteArray::new([7; 32])),
+    );
+    assert_eq!(shown.unwrap_err(), "LegacyUnknownTicket");
     let _: () = update(&ic, gate, gov, "release", ());
     let response = ic.await_call(pending).unwrap();
     candid::decode_one::<Result<Message, String>>(&response)
@@ -345,6 +383,22 @@ fn legacy_snapshot_gateway() {
         .unwrap();
         update::<Result<FreezeStatus, String>>(&ic, canister, gov, "admin_legacy_seal", (cutover,))
             .unwrap();
+        let shown: Result<String, String> = query(
+            &ic,
+            canister,
+            user,
+            "validate_admin_legacy_seal",
+            (cutover,),
+        );
+        assert!(shown.unwrap().ends_with("Already read-only."));
+        let shown: Result<String, String> = query(
+            &ic,
+            canister,
+            user,
+            "validate_admin_legacy_drain",
+            (ByteArray::new([6; 32]),),
+        );
+        assert_eq!(shown.unwrap_err(), "LegacyCutoverConflict");
     }
     assert_eq!(
         update::<Result<ChannelInfo, String>>(&ic, channel, gov, "admin_create_channel", (create,))

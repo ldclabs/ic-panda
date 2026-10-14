@@ -127,6 +127,10 @@ service : (opt ChainArgs) -> {
   legacy_status : () -> (FreezeStatus) query;
   remove_delegator : (text, principal) -> (Result_1);
   sign_in : (text, blob, blob) -> (Result_8);
+  validate_admin_legacy_acknowledge_baseline : (blob) -> (Result_9) query;
+  validate_admin_legacy_drain : (blob) -> (Result_9) query;
+  validate_admin_legacy_resolve : (nat64, blob) -> (Result_9) query;
+  validate_admin_legacy_seal : (blob) -> (Result_9) query;
   validate_admin_reset_name : (text, vec principal) -> (Result_9);
   whoami : () -> (Result_5) query;
 }

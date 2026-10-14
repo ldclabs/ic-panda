@@ -161,6 +161,113 @@ fn admin_legacy_acknowledge_baseline(evidence_digest: ByteArray<32>) -> Result<(
     change(|state| state.acknowledge_baseline(evidence_digest))
 }
 
+// The SNS validators of the admin_legacy_* steps: the same transition on a
+// copy of the current state, nothing written, and the text a proposal shows.
+
+fn preview<T>(f: impl FnOnce(&mut FreezeState) -> Result<T, String>) -> Result<T, String> {
+    STATE.with_borrow(|cell| f(&mut cell.get().0.clone()))
+}
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// The tickets that keep a canister from sealing, without callers or inputs.
+fn blocking(state: &FreezeState) -> String {
+    state
+        .pending
+        .values()
+        .map(|p| {
+            let kind = if p.uncertain {
+                "uncertain"
+            } else if !p.live || p.boot < state.boot {
+                "interrupted"
+            } else {
+                "live"
+            };
+            format!(
+                "{} {} ({kind}, started {} ms)",
+                p.id, p.method, p.started_at
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+#[ic_cdk::query]
+fn validate_admin_legacy_acknowledge_baseline(
+    evidence_digest: ByteArray<32>,
+) -> Result<String, String> {
+    let canister = ic_cdk::api::canister_self();
+    preview(|state| {
+        let already = state.baseline_evidence.is_some();
+        state.acknowledge_baseline(evidence_digest)?;
+        Ok(format!(
+            "Record baseline review {} on legacy canister {canister}: no write the old module started is still in flight.{}",
+            hex(evidence_digest.as_ref()),
+            if already { " Already recorded." } else { "" }
+        ))
+    })
+}
+
+#[ic_cdk::query]
+fn validate_admin_legacy_drain(cutover_id: ByteArray<32>) -> Result<String, String> {
+    let canister = ic_cdk::api::canister_self();
+    let at = ic_cdk::api::time() / 1_000_000;
+    preview(|state| {
+        let already = state.mode != LegacyMode::Active;
+        let status = state.drain(cutover_id, at)?;
+        Ok(format!(
+            "Stop new business writes on legacy canister {canister} for cutover {}; {} writes in flight finish first.{}",
+            hex(cutover_id.as_ref()),
+            status.pending,
+            if already { " Already draining." } else { "" }
+        ))
+    })
+}
+
+#[ic_cdk::query]
+fn validate_admin_legacy_seal(cutover_id: ByteArray<32>) -> Result<String, String> {
+    let canister = ic_cdk::api::canister_self();
+    let at = ic_cdk::api::time() / 1_000_000;
+    preview(|state| {
+        let already = state.mode == LegacyMode::ReadOnly;
+        state
+            .seal(cutover_id, at)
+            .map_err(|e| match state.pending.is_empty() {
+                true => e,
+                false => format!("{e}: {}", blocking(state)),
+            })?;
+        Ok(format!(
+            "Make legacy canister {canister} read-only for cutover {}; its business writes never reopen.{}",
+            hex(cutover_id.as_ref()),
+            if already { " Already read-only." } else { "" }
+        ))
+    })
+}
+
+#[ic_cdk::query]
+fn validate_admin_legacy_resolve(
+    ticket: u64,
+    evidence_digest: ByteArray<32>,
+) -> Result<String, String> {
+    let canister = ic_cdk::api::canister_self();
+    preview(|state| {
+        let operation = state
+            .pending
+            .get(&ticket)
+            .map(|p| format!("{} started {} ms", p.method, p.started_at));
+        state.resolve_interrupted(ticket, evidence_digest)?;
+        Ok(match operation {
+            Some(operation) => format!(
+                "Settle interrupted operation {ticket} ({operation}) on legacy canister {canister} with review record {}.",
+                hex(evidence_digest.as_ref())
+            ),
+            None => format!("Operation {ticket} on legacy canister {canister} is already settled."),
+        })
+    })
+}
+
 /// This bounded update preserves the existing certified-data tree (including
 /// legacy sign-in and name-log proofs). Its ingress reply can be independently
 /// retained with a request_status certificate by the migration reader.
