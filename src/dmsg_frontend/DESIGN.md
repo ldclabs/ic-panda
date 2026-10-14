@@ -383,7 +383,9 @@ color, the diamond keeps its clearance. Do not mirror the mark in RTL, outline
 it, rotate or recolor its parts, add shadows or gradients, or enclose it in a
 circle. Below 24px use the favicon files: `icon.svg` switches to Mint in dark
 mode, and `favicon.ico` and the PNG app icons put the mark on a Forest Green
-tile.
+tile. On an app icon tile the mark stands 64% of the tile's height, so it
+holds its own beside other apps' icons; the maskable icon uses 56% to stay in
+its safe zone, and the macOS menu bar template is 16 pt tall on an 18 pt canvas.
 
 Spell the name **dMsg**. Do not use “DMSG” as the marketing wordmark or combine
 it with the historical “ICPanda Message” title in the hero. The wordmark uses
