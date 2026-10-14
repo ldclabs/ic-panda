@@ -26,7 +26,19 @@ node scripts/verify-commerce-vectors.mjs "$task_tmp/commerce.json"
 # installed server; otherwise the host crate downloads that fixed release.
 export DMSG_WASM_DIR="$wasm_dir"
 export DMSG_EXTERNAL_FIXTURE="$task_tmp/authentication-pocketic.cbor"
-cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane --test directory -- --test-threads=1
+# Each test builds its own PocketIC instance, so the tests run in parallel.
+pocketic=(cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane --test directory --)
+if [ -n "${DMSG_POCKETIC_SHARD:-}" ]; then
+  # CI splits the suite across runners: shard k of n runs every n-th test from
+  # the k-th, plus the test that exports the proof the SDK checks below.
+  tests=$("${pocketic[@]}" --list --format terse | sed -n 's/: test$//p' |
+    awk -v k="${DMSG_POCKETIC_SHARD%/*}" -v n="${DMSG_POCKETIC_SHARD#*/}" \
+      '(NR - 1) % n == k - 1 || $0 == "commerce::external_integration::external_authentication_certificate_retry_pause_and_upgrade"')
+  # shellcheck disable=SC2086 # one test name per word
+  "${pocketic[@]}" --exact $tests
+else
+  "${pocketic[@]}"
+fi
 
 
 # Third-party contracts and independent browser verifier. Use the real Wasm

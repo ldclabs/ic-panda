@@ -50,16 +50,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.98.1
-          targets: wasm32-unknown-unknown
           components: clippy, rustfmt
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      # Only main saves the cache; pull requests restore it.
+      - uses: Swatinem/rust-cache@v2
         with:
-          node-version: "22"
-          cache: pnpm
-      # make test-dmsg runs the SDK tests against the PocketIC proof with node --test.
-      - name: Install dMsg SDK dependencies
-        run: pnpm install --frozen-lockfile --filter dmsg-sdk
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       # The desktop client crates are rustfmt-clean; their vector tests run with the workspace.
       # The two-device daemon test (tests/dmsg_integration/tests/desktop.rs) needs the private relay.
       - name: Check client formatting
@@ -68,6 +63,35 @@ jobs:
         run: cargo clippy --verbose --all-targets --all-features
       - name: Run tests
         run: cargo test --verbose --workspace -- --nocapture
+  # The PocketIC suites take most of the run, so each runner takes a third of them.
+  dmsg:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      DMSG_POCKETIC_SHARD: ${{ matrix.shard }}/3
+    steps:
+      - uses: actions/checkout@v7
+      # Keep in step with rust-toolchain.toml.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.1
+          targets: wasm32-unknown-unknown
+          components: clippy
+      # The shards build the same targets; one saves the cache, candid-extractor included.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' && matrix.shard == 1 }}
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+      # make test-dmsg runs the SDK tests against the PocketIC proof with node --test.
+      - name: Install dMsg SDK dependencies
+        run: pnpm install --frozen-lockfile --filter dmsg-sdk
       - name: Install Candid extractor
         run: cargo install candid-extractor --version 0.1.6 --locked
       - name: Test dMsg Wasm and protocol contracts
