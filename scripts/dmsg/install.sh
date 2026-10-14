@@ -87,5 +87,5 @@ case ":${PATH}:" in
         ;;
 esac
 
-info "Next: write ~/.dmsg/config.toml, then \`dmsg start\` and \`dmsg login\`."
+info "Next: \`dmsg start\` and \`dmsg login\` (production; ~/.dmsg/config.toml picks another deployment)."
 info "\`dmsg autostart install\` starts the daemon when you log in."

@@ -78,7 +78,8 @@ class Dmsg < Formula
 
   def caveats
     <<~TEXT
-      Write ~/.dmsg/config.toml, then start the daemon and log in:
+      Start the daemon and log in (production; ~/.dmsg/config.toml picks
+      another deployment):
         dmsg start && dmsg login
       After an upgrade, restart a running daemon to use the new binary:
         dmsg restart

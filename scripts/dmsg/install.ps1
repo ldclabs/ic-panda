@@ -69,5 +69,5 @@ if ($UserPath -notcontains $InstallDir) {
   Set-UserPath ($UserPath + $InstallDir)
   Write-Host "Added $InstallDir to your user PATH; open a new terminal to use it."
 }
-Write-Host "Next: write $env:USERPROFILE\.dmsg\config.toml, then ``dmsg start`` and ``dmsg login``."
+Write-Host "Next: ``dmsg start`` and ``dmsg login`` (production; $env:USERPROFILE\.dmsg\config.toml picks another deployment)."
 Write-Host "``dmsg autostart install`` starts the daemon when you log in."

@@ -16,9 +16,10 @@
   let route = $state(location.hash.slice(1) || '/vault')
   let status = $state<any>(null)
   let connected = $state(true)
+  let connectionError = $state<string | undefined>()
 
   async function refresh() {
-    connected = (await window.dmsg.connection()).connected
+    ;({ connected, error: connectionError } = await window.dmsg.connection())
     try {
       status = await call('daemon/status')
     } catch {
@@ -83,7 +84,7 @@
       <button class:active={route.startsWith('/settings')} onclick={() => go('/settings')}>{t('settings')}</button>
       <div class="foot muted">
         <LocaleSwitcher />
-        <div class="state">{#if !connected}<span class="error">{t('disconnected')}</span>{:else}{status?.state ? sessionLabel(status.state) : '-'}{/if}</div>
+        <div class="state">{#if !connected}<span class="error">{t('disconnected')}</span>{#if connectionError}<span class="detail muted" data-testid="connection-error">{connectionError}</span>{/if}{:else}{status?.state ? sessionLabel(status.state) : '-'}{/if}</div>
       </div>
     </nav>
     <main>
@@ -163,6 +164,12 @@
   .state {
     padding: 0 12px;
     font-size: 12px;
+  }
+  .state .detail {
+    display: block;
+    margin-top: 4px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   main {
     padding: 20px 24px;

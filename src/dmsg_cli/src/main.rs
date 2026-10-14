@@ -1212,10 +1212,17 @@ async fn lifecycle_command(
             .map(|settings| {
                 let environment =
                     dmsg_client::config::environment_name(&settings.config.environment);
+                let built_in = settings.built_in;
                 print(
                     json,
-                    &json!({"valid": true, "environment": environment}),
-                    |_| tr!("config.toml is valid ({environment}).", "config.toml 有效（{environment}）。"),
+                    &json!({"valid": true, "environment": environment, "built_in": built_in}),
+                    |_| match built_in {
+                        true => tr!(
+                            "No config.toml: the built-in {environment} configuration applies.",
+                            "没有 config.toml：使用内置的 {environment} 配置。"
+                        ),
+                        false => tr!("config.toml is valid ({environment}).", "config.toml 有效（{environment}）。"),
+                    },
                 )
             })
             .map_err(|e| Failure::new("INVALID_INPUT", e.to_string())),

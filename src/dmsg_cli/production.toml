@@ -1,0 +1,13 @@
+# The production deployment, built into `dmsg`: a home without config.toml
+# uses it. A config.toml replaces it whole; `dmsg validate-config` says which
+# one applies. `[legacy]` joins once the old service is frozen.
+environment = "production"
+ic_host = "https://icp-api.io"
+relay = "https://api.dmsg.net"
+handle = "wfxrt-2iaaa-aaaaj-qsjwa-cai"
+agent_hosts = [
+  { host = "https://api.al.ink", label = "alink" },
+  { host = "https://discourse.dmsg.net", label = "discourse", profile_service = "https://api.dmsg.net" },
+  { host = "https://mail.dmsg.net", label = "mail" },
+  { host = "https://knowledge.dmsg.net", label = "knowledge" },
+]

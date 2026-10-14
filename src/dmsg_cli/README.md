@@ -11,7 +11,7 @@ cryptography, storage and protocol logic live in
 
 | Path | Content |
 | --- | --- |
-| `config.toml` | Deployment parameters and policies; the only place to change them |
+| `config.toml` | Deployment parameters and policies; the only place to change them. Without it the production deployment built into the binary applies ([`production.toml`](production.toml)) |
 | `owner.token` | Owner credential with `secure_storage = "file"`, readable only by its owner |
 | `daemon.json` | Port, process and instance ID of the running daemon |
 | `dmsg-daemon.lock` | Held by the running daemon: one daemon per home |
@@ -21,6 +21,13 @@ cryptography, storage and protocol logic live in
 | `<environment>/accounts/<account>/agents.sqlite` | Agent Protocols connector state of the account's hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
 | `<environment>/logins/<principal>/` | The workspace of a login without an account; it becomes `accounts/<account>/` once the login has one |
 | `<environment>/current` | The account selected last, which a restart and fast unlock use |
+
+A home without `config.toml` uses [`production.toml`](production.toml),
+compiled into the binary: the production relay, IC host, name registry and
+Agent Protocols hosts, so the desktop app and a fresh install work without
+setup. A `config.toml` replaces it whole (nothing is merged), and `dmsg
+validate-config` and `dmsg doctor` say which one applies. A release's built-in
+settings change with the release; a `config.toml` stays as written.
 
 ```toml
 environment = "local"            # local, staging or production
@@ -54,7 +61,9 @@ cutover = "<32-byte hex cutover ID>"
 Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url`/`agent_ca` are refused.
 The relay is also the Agent Delegation service of the account's principal.
 `[legacy]` is needed only for frozen comparisons and shared channel
-inheritance; frozen evidence of any other canister or cutover is refused.
+inheritance; frozen evidence of any other canister or cutover is refused. The
+built-in settings have no `[legacy]` until the old service is frozen; the
+release after the freeze adds its canisters and cutover ID.
 `agent_hosts` is the only source of the host allowlist: no command, method or
 tool changes it, and a host must be an origin (loopback HTTP only in `local`).
 Mail relays and Knowledge services are hosts like any other, and HTTPS only:

@@ -1,11 +1,12 @@
 //! The dMsg home directory: `config.toml`, the owner credential, the daemon
 //! lock and discovery file, and one workspace directory per environment.
 //!
-//! Security settings live only in `config.toml`; nothing a running daemon
-//! receives can change them. Secrets that open the workspace live in the
-//! system credential store (`secure_storage = "system"`), never in the home;
-//! with `"file"` the owner credential is a file only its owner can read and
-//! fast unlock is unavailable.
+//! Security settings live only in `config.toml`, or without one in the
+//! production configuration built into this binary (`production.toml`);
+//! nothing a running daemon receives can change them. Secrets that open the
+//! workspace live in the system credential store (`secure_storage =
+//! "system"`), never in the home; with `"file"` the owner credential is a
+//! file only its owner can read and fast unlock is unavailable.
 
 use candid::Principal;
 use dmsg_client::config::{parse_environment, Config, LegacyConfig, CONNECT_URL, LOGIN_URL};
@@ -15,6 +16,9 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+
+/// The production deployment, used when the home has no `config.toml`.
+const PRODUCTION: &str = include_str!("../production.toml");
 
 /// `config.toml`.
 #[derive(Deserialize)]
@@ -66,6 +70,8 @@ pub enum Storage {
 /// `config.toml`: the deployment and the daemon's policies.
 #[derive(Clone, Debug)]
 pub struct Settings {
+    /// Whether these are the built-in production settings: no `config.toml`.
+    pub built_in: bool,
     /// The deployment.
     pub config: Config,
     /// Inactivity before the daemon locks.
@@ -145,14 +151,19 @@ impl Home {
         Self { dir }
     }
 
-    /// Read and check `config.toml`.
+    /// Read and check `config.toml`, or the built-in production settings
+    /// when the home has none.
     ///
     /// # Errors
-    /// Returns `Error::InvalidInput` naming a missing or invalid setting.
+    /// Returns `Error::InvalidInput` naming an unreadable file or a missing
+    /// or invalid setting.
     pub fn settings(&self) -> Result<Settings> {
         let path = self.dir.join("config.toml");
-        let text = fs::read_to_string(&path)
-            .map_err(|e| Error::InvalidInput(format!("{}: {e}", path.display())))?;
+        let (text, built_in) = match fs::read_to_string(&path) {
+            Ok(text) => (text, false),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => (PRODUCTION.to_string(), true),
+            Err(e) => return Err(Error::InvalidInput(format!("{}: {e}", path.display()))),
+        };
         let file: ConfigFile =
             toml::from_str(&text).map_err(|e| Error::InvalidInput(format!("config.toml: {e}")))?;
         let config = Config {
@@ -193,6 +204,7 @@ impl Home {
             Some(_) => return Err(dmsg_types::invalid("secure_storage")),
         };
         Ok(Settings {
+            built_in,
             config,
             idle_lock_ms: idle * MINUTE,
             sync_interval_ms: file.sync_interval_minutes * MINUTE,
@@ -313,4 +325,39 @@ fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
     let mut file = options.open(path).map_err(io)?;
     file.write_all(bytes).map_err(io)?;
     file.sync_all().map_err(io)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn built_in_production_without_config() {
+        let dir = std::env::temp_dir().join(format!("dmsg-config-{}", std::process::id()));
+        let home = Home { dir: dir.clone() };
+        let settings = home.settings().unwrap();
+        assert!(settings.built_in);
+        assert_eq!(
+            settings.config.environment,
+            dmsg_types::Environment::Production
+        );
+        assert_eq!(settings.config.relay, "https://api.dmsg.net");
+        assert_eq!(
+            settings.config.handle.to_text(),
+            "wfxrt-2iaaa-aaaaj-qsjwa-cai"
+        );
+        assert_eq!(settings.config.login_url, LOGIN_URL);
+        assert!(settings.config.legacy.is_none());
+        assert_eq!(settings.agent_hosts.len(), 4);
+        dmsg_agent::Runtime::new(&dmsg_agent::Options {
+            hosts: settings.agent_hosts.clone(),
+            ..dmsg_agent::Options::default()
+        })
+        .unwrap();
+        // A config.toml replaces the built-in settings whole.
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("config.toml"), "environment = \"production\"\n").unwrap();
+        assert!(matches!(home.settings(), Err(Error::InvalidInput(_))));
+        fs::remove_dir_all(dir).unwrap();
+    }
 }

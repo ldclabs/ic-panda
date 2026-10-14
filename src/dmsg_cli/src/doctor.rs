@@ -27,7 +27,11 @@ pub async fn run(home: &Home) -> Value {
     let settings = match home.settings() {
         Ok(settings) => {
             let environment = dmsg_client::config::environment_name(&settings.config.environment);
-            report.add("config", "ok", environment.to_string());
+            let detail = match settings.built_in {
+                true => format!("{environment} (built in)"),
+                false => environment.to_string(),
+            };
+            report.add("config", "ok", detail);
             Some(settings)
         }
         Err(error) => {

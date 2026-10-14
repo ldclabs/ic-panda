@@ -12,6 +12,12 @@ import type { DaemonEvent } from '../shared/contract'
 
 const run = promisify(execFile)
 
+/** Why a step failed: what a `dmsg` command wrote to stderr, else the error's message. */
+export function reasonOf(error: unknown): string {
+  const stderr = (error as { stderr?: unknown } | null)?.stderr
+  return (typeof stderr === 'string' && stderr.trim()) || (error instanceof Error ? error.message : String(error))
+}
+
 type Waiting = { resolve(value: unknown): void; reject(error: Error): void; timer: NodeJS.Timeout }
 
 export class DaemonError extends Error {
@@ -78,7 +84,7 @@ export class Daemon extends EventEmitter {
       this.emit('state')
       await this.call('app/initialize')
     } catch (error) {
-      this.lost(error instanceof Error ? error.message : String(error))
+      this.lost(reasonOf(error))
     }
   }
 
@@ -86,6 +92,7 @@ export class Daemon extends EventEmitter {
     if (this.socket) this.socket.removeAllListeners()
     this.socket = null
     const was = this.connected
+    const changed = this.lastError !== reason
     this.connected = false
     this.lastError = reason
     for (const [, w] of this.waiting) {
@@ -93,7 +100,7 @@ export class Daemon extends EventEmitter {
       w.reject(new DaemonError('UNAVAILABLE', reason))
     }
     this.waiting.clear()
-    if (was) this.emit('state')
+    if (was || changed) this.emit('state')
     if (!this.closed) {
       clearTimeout(this.retry)
       this.retry = setTimeout(() => void this.connect(), this.delay)

@@ -9,6 +9,9 @@ desktop is one of its clients, like the CLI.
   `dmsg app-token`, keeps one `/ws/app/v1` connection, forwards its events,
   owns the tray, notifications, file dialogs, the clipboard, `dmsg://` links
   and updates. Its text (`src/main/text.ts`) is in the interface language.
+  While it is not connected, the main window shows why: the error `dmsg`
+  reported, such as a `config.toml` it refused. Without a `config.toml` the
+  daemon uses the production deployment built into `dmsg`.
 - **Languages** (`src/shared/locales.ts`): English, Simplified Chinese,
   Russian, Arabic, French and Spanish, as on the website. The main process
   resolves one (the person's choice, kept in the profile's `locale` file,
@@ -156,7 +159,8 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   `resources/runtime`; its version must be the app's. The app never runs it
   as a daemon: each start runs `dmsg install` with it, which puts it at the
   shared location unless the one there is newer or Homebrew's, and the app
-  then runs the installed `dmsg` (`src/main/runtime.ts`). On macOS the bundled
+  then runs the installed `dmsg` (`src/main/runtime.ts`). If the install
+  fails, the main window shows its error and the next start tries again. On macOS the bundled
   file keeps the release binary's own signature (`signIgnore`).
 - `electron-builder.yml` makes local packages: ad hoc signed, no update feed.
   `electron-builder.release.cjs` (the release workflow) adds the Developer ID

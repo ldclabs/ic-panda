@@ -25,7 +25,7 @@ import { homedir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import type { DaemonEvent } from '../shared/contract'
 import { isLocale, resolveLocale, type Locale } from '../shared/locales'
-import { Daemon, DaemonError } from './daemon'
+import { Daemon, DaemonError, reasonOf } from './daemon'
 import { externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
 import { textFor } from './text'
@@ -582,15 +582,19 @@ app.whenReady().then(async () => {
   }
   // Opened at login, the app starts in the tray.
   if (!process.argv.includes('--hidden') && !app.getLoginItemSettings().wasOpenedAtLogin) showMain()
+  let installed = true
   if (!daemon.options.fixed) {
     try {
       daemon.options.binary = (await resolveRuntime(app.isPackaged, process.resourcesPath)).binary
     } catch (error) {
-      daemon.lastError = `dmsg install failed: ${error instanceof Error ? error.message : String(error)}`
+      // Without the shared `dmsg` nothing can start the daemon; the next app start installs again.
+      installed = false
+      daemon.lastError = `dmsg install failed: ${reasonOf(error)}`
+      daemon.emit('state')
     }
   }
   updates.start()
-  await daemon.connect()
+  if (installed) await daemon.connect()
   await refreshWaiting()
   const link = pendingRoute ?? process.argv.find((a) => a.startsWith('dmsg://'))
   if (link) void openLink(link)
