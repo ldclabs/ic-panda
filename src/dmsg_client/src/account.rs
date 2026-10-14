@@ -297,7 +297,7 @@ pub async fn login_targets(config: &Config) -> Result<Vec<Principal>> {
         }
     }
     ensure(
-        targets.len() <= dmsg_protocol::login::MAX_TARGETS,
+        targets.len() <= crate::login::MAX_TARGETS,
         Error::QuotaExceeded,
     )?;
     Ok(targets)

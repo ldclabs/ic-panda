@@ -3,7 +3,6 @@
 //! Messages are canonical CBOR; the base64url fragment wrapping is left to
 //! the transport. See `docs/protocol/login-v1_zh.md`.
 use crate::{canonical, decode_canonical};
-use candid::Principal;
 use dmsg_types::{login::*, *};
 
 /// Derivation origins a login request may name.
@@ -12,8 +11,6 @@ pub const DERIVATION_ORIGINS: [&str; 2] = ["https://dmsg.net", "https://panda.fa
 pub const MIN_TTL_MS: u64 = MINUTE;
 /// Longest delegation lifetime a request may ask for (eight hours).
 pub const MAX_TTL_MS: u64 = 8 * 60 * MINUTE;
-/// Most canister targets one request may name.
-pub const MAX_TARGETS: usize = 32;
 /// Path of the client's callback page.
 pub const CALLBACK_PATH: &str = "/auth/callback";
 /// DER prefix of an Ed25519 SubjectPublicKeyInfo; the raw key follows.
@@ -58,17 +55,6 @@ pub fn validate_request(request: &LoginRequest) -> Result<()> {
             && request.session_pubkey.starts_with(&ED25519_SPKI_PREFIX),
         "session_pubkey",
     )?;
-    ensure_valid(
-        !request.targets.is_empty() && request.targets.len() <= MAX_TARGETS,
-        "targets",
-    )?;
-    for (i, target) in request.targets.iter().enumerate() {
-        let principal = Principal::from_text(target).map_err(|_| invalid("targets"))?;
-        ensure_valid(
-            principal.to_text() == *target && !request.targets[..i].contains(target),
-            "targets",
-        )?;
-    }
     ensure_valid(
         (MIN_TTL_MS..=MAX_TTL_MS).contains(&request.ttl_ms),
         "ttl_ms",

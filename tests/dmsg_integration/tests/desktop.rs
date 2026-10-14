@@ -331,17 +331,12 @@ impl Desktop {
         assert_eq!(callback.status(), 200);
         assert!(callback.text().unwrap().contains("fetch('/auth/callback'"));
 
+        // Internet Identity signs no targets; the daemon scopes the chain.
         let login = BasicIdentity::from_raw_key(&[seed; 32]);
         let delegation = Delegation {
             pubkey: request.session_pubkey.to_vec(),
             expiration: (now_ms() + 10 * 60_000) * 1_000_000,
-            targets: Some(
-                request
-                    .targets
-                    .iter()
-                    .map(|t| Principal::from_text(t).unwrap())
-                    .collect(),
-            ),
+            targets: None,
             permissions: None,
         };
         let signature = login
@@ -354,8 +349,6 @@ impl Desktop {
                 "delegation": {
                     "expiration": format!("{:x}", delegation.expiration),
                     "pubkey": hex::encode(&delegation.pubkey),
-                    "targets": delegation.targets.as_ref().unwrap().iter()
-                        .map(|t| hex::encode(t.as_slice())).collect::<Vec<_>>(),
                 },
                 "signature": hex::encode(signature),
             }],

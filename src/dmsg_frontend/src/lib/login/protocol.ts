@@ -1,13 +1,11 @@
 // dmsg-login/1 messages (docs/protocol/login-v1_zh.md): canonical CBOR in a
 // base64url URL fragment. The byte rules are fixed by
 // tests/vectors/client/login-v1.json, which the Rust client also checks.
-import { Principal } from '@icp-sdk/core/principal'
 import { decode, encode } from 'cborg'
 
 export const DERIVATION_ORIGINS = ['https://dmsg.net', 'https://panda.fans']
 export const MIN_TTL_MS = 60_000
 export const MAX_TTL_MS = 8 * 60 * 60_000
-export const MAX_TARGETS = 32
 const SPKI_PREFIX = [
   0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00
 ]
@@ -16,7 +14,6 @@ const KEYS = [
   'next_url',
   'session_pubkey',
   'state',
-  'targets',
   'ttl_ms',
   'v'
 ]
@@ -28,7 +25,6 @@ export interface LoginRequest {
   state: Uint8Array
   /** Decoded from the fragment's own buffer, so backed by an `ArrayBuffer`. */
   session_pubkey: Uint8Array<ArrayBuffer>
-  targets: string[]
   ttl_ms: number
   derivation_origin: string
   next_url: string
@@ -102,22 +98,6 @@ export function parseRequest(fragment: string): LoginRequest {
       SPKI_PREFIX.every((b, i) => key[i] === b),
     'session_pubkey'
   )
-  check(
-    Array.isArray(request.targets) &&
-      request.targets.length > 0 &&
-      request.targets.length <= MAX_TARGETS &&
-      new Set(request.targets).size === request.targets.length,
-    'targets'
-  )
-  for (const target of request.targets) {
-    let canonical = ''
-    try {
-      canonical = Principal.fromText(String(target)).toText()
-    } catch {
-      /* reported below */
-    }
-    check(canonical === target, 'targets')
-  }
   check(
     Number.isSafeInteger(request.ttl_ms) &&
       request.ttl_ms >= MIN_TTL_MS &&

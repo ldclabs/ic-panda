@@ -1,9 +1,11 @@
 //! dmsg-login/1 on the client side (`docs/protocol/login-v1_zh.md`): a
 //! session key held in memory, the login page URL, and the callback check.
 //!
-//! The delegation's signatures are judged by the IC: the caller hands the
-//! identity to [`crate::Client::login`], whose read-only `my_account` queries
-//! discard it on any failure.
+//! Internet Identity signs an unscoped delegation to the session key; the
+//! session key then delegates to a fresh key limited to the login targets,
+//! and only that fresh key is kept. The delegation's signatures are judged by
+//! the IC: the caller hands the identity to [`crate::Client::login`], whose
+//! read-only `my_account` queries discard it on any failure.
 
 use crate::codec::{b64, canonical, decode};
 use crate::config::Config;
@@ -11,7 +13,7 @@ use crate::crypto::{random_id, random_key, signing_public, Key};
 use candid::Principal;
 use dmsg_protocol::login::{validate_request, ED25519_SPKI_PREFIX};
 use dmsg_types::{
-    ensure,
+    ensure, ensure_valid,
     login::{LoginCallback, LoginErrorCode, LoginRequest, LOGIN_VERSION},
     Error, Hash, Result, MINUTE,
 };
@@ -25,6 +27,8 @@ use zeroize::Zeroizing;
 pub const LISTEN_MS: u64 = 10 * MINUTE;
 /// Default delegation lifetime (15 minutes).
 pub const DEFAULT_TTL_MS: u64 = 15 * MINUTE;
+/// Most canisters a login delegation may reach.
+pub const MAX_TARGETS: usize = 32;
 const MAX_CALLBACK: usize = 64 * 1024;
 /// How far this clock may run behind the IC's, which Internet Identity
 /// dates the delegation's expiration by.
@@ -34,6 +38,7 @@ const MAX_CHAIN: usize = 8;
 /// One pending login.
 pub struct LoginSession {
     request: LoginRequest,
+    targets: Vec<Principal>,
     seed: Zeroizing<Key>,
     /// When the callback listener closes, in Unix milliseconds.
     pub deadline: u64,
@@ -63,6 +68,7 @@ struct SignedJson {
     signature: String,
 }
 
+/// `permissions` is refused as an unknown field.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DelegationJson {
@@ -76,11 +82,12 @@ fn unhex(text: &str) -> Result<Vec<u8>> {
 }
 
 impl LoginSession {
-    /// Start a login whose callback is `http://127.0.0.1:<port>/auth/callback`.
+    /// Start a login whose delegation reaches only `targets` and whose
+    /// callback is `http://127.0.0.1:<port>/auth/callback`.
     ///
     /// # Errors
-    /// Returns `Error::InvalidInput` for an origin, target set or lifetime
-    /// the login page would refuse.
+    /// Returns `Error::InvalidInput` for an empty or oversized target set,
+    /// or an origin or lifetime the login page would refuse.
     pub fn new(
         targets: &[Principal],
         derivation_origin: &str,
@@ -88,6 +95,10 @@ impl LoginSession {
         ttl_ms: u64,
         now: u64,
     ) -> Result<Self> {
+        ensure_valid(
+            !targets.is_empty() && targets.len() <= MAX_TARGETS,
+            "targets",
+        )?;
         let seed = Zeroizing::new(random_key());
         let mut session_pubkey = ED25519_SPKI_PREFIX.to_vec();
         session_pubkey.extend(signing_public(&seed));
@@ -95,7 +106,6 @@ impl LoginSession {
             v: LOGIN_VERSION,
             state: Hash::new(random_id()),
             session_pubkey: session_pubkey.into(),
-            targets: targets.iter().map(Principal::to_text).collect(),
             ttl_ms,
             derivation_origin: derivation_origin.into(),
             next_url: format!("http://127.0.0.1:{port}/auth/callback"),
@@ -103,6 +113,7 @@ impl LoginSession {
         validate_request(&request)?;
         Ok(Self {
             request,
+            targets: targets.to_vec(),
             seed,
             deadline: now + LISTEN_MS,
         })
@@ -113,12 +124,13 @@ impl LoginSession {
         format!("{}#{}", config.login_url, b64(&canonical(&self.request)))
     }
 
-    /// Check a callback body against this request.
+    /// Check a callback body against this request, then limit the chain to
+    /// the targets by a last delegation from the session key to a fresh key.
     ///
     /// # Errors
-    /// A foreign state, a delegation to another key, a target outside the
-    /// request or a lifetime beyond it is refused. A login page error comes
-    /// back as `Error::AuthRequired` naming its code.
+    /// A foreign state, a delegation to another key, a restricted
+    /// `permissions` or a lifetime beyond the request is refused. A login
+    /// page error comes back as `Error::Unavailable` naming its code.
     pub fn accept(&self, body: &[u8], now: u64) -> Result<Delegated> {
         ensure(
             !body.is_empty() && body.len() <= MAX_CALLBACK,
@@ -151,34 +163,31 @@ impl LoginSession {
             !chain.delegations.is_empty() && chain.delegations.len() <= MAX_CHAIN,
             Error::IntegrityFailed,
         )?;
-        let targets: Vec<Principal> = self
-            .request
-            .targets
-            .iter()
-            .map(|t| Principal::from_text(t).map_err(|_| Error::IntegrityFailed))
-            .collect::<Result<_>>()?;
-        let mut expires_at = u64::MAX;
-        let mut signed = Vec::with_capacity(chain.delegations.len());
+        let mut expiration = u64::MAX;
+        let mut signed = Vec::with_capacity(chain.delegations.len() + 1);
         for link in chain.delegations {
-            let expiration = u64::from_str_radix(&link.delegation.expiration, 16)
+            let link_expiration = u64::from_str_radix(&link.delegation.expiration, 16)
                 .map_err(|_| Error::IntegrityFailed)?;
-            let link_targets = link
+            // Kept exactly as signed; the last link narrows the chain anyway.
+            let targets = link
                 .delegation
                 .targets
-                .ok_or(Error::Forbidden)?
-                .iter()
-                .map(|t| Principal::try_from_slice(&unhex(t)?).map_err(|_| Error::IntegrityFailed))
-                .collect::<Result<Vec<_>>>()?;
-            ensure(
-                link_targets.iter().all(|t| targets.contains(t)),
-                Error::Forbidden,
-            )?;
-            expires_at = expires_at.min(expiration / 1_000_000);
+                .map(|targets| {
+                    targets
+                        .iter()
+                        .map(|t| {
+                            Principal::try_from_slice(&unhex(t)?)
+                                .map_err(|_| Error::IntegrityFailed)
+                        })
+                        .collect::<Result<Vec<_>>>()
+                })
+                .transpose()?;
+            expiration = expiration.min(link_expiration);
             signed.push(SignedDelegation {
                 delegation: Delegation {
                     pubkey: unhex(&link.delegation.pubkey)?,
-                    expiration,
-                    targets: Some(link_targets),
+                    expiration: link_expiration,
+                    targets,
                     permissions: None,
                 },
                 signature: unhex(&link.signature)?,
@@ -189,17 +198,35 @@ impl LoginSession {
                 == Some(self.request.session_pubkey.as_slice()),
             Error::IntegrityFailed,
         )?;
+        let expires_at = expiration / 1_000_000;
         ensure(
             expires_at > now && expires_at <= now + self.request.ttl_ms + CLOCK_SKEW_MS,
             Error::Expired,
         )?;
+        // Internet Identity ignores targets, so the session key, which
+        // drops with this login, scopes the chain for the key that stays.
+        let key = BasicIdentity::from_raw_key(&Zeroizing::new(random_key()));
+        let scoped = Delegation {
+            pubkey: key.public_key().ok_or(Error::IntegrityFailed)?,
+            expiration,
+            targets: Some(self.targets.clone()),
+            permissions: None,
+        };
+        let signature = BasicIdentity::from_raw_key(&self.seed)
+            .sign_delegation(&scoped)
+            .ok()
+            .and_then(|s| s.signature)
+            .ok_or(Error::IntegrityFailed)?;
+        signed.push(SignedDelegation {
+            delegation: scoped,
+            signature,
+        });
         let from = unhex(&chain.public_key)?;
         let principal = Principal::self_authenticating(&from);
-        let session = BasicIdentity::from_raw_key(&self.seed);
         Ok(Delegated {
             identity: Arc::new(DelegatedIdentity::new_unchecked(
                 from,
-                Box::new(session),
+                Box::new(key),
                 signed,
             )),
             principal,

@@ -18,7 +18,6 @@ fn request() -> LoginRequest {
         v: 1,
         state: Hash::new([0x5a; 32]),
         session_pubkey: session_pubkey().into(),
-        targets: vec!["rrkah-fqaaa-aaaaa-aaaaq-cai".into(), "aaaaa-aa".into()],
         ttl_ms: 15 * MINUTE,
         derivation_origin: "https://dmsg.net".into(),
         next_url: "http://127.0.0.1:53817/auth/callback".into(),
@@ -53,7 +52,6 @@ fn request_json(request: &LoginRequest) -> Json {
         "v": request.v,
         "state": hex::encode(*request.state),
         "session_pubkey": hex::encode(&request.session_pubkey),
-        "targets": request.targets,
         "ttl_ms": request.ttl_ms,
         "derivation_origin": request.derivation_origin,
         "next_url": request.next_url,
@@ -78,8 +76,9 @@ fn rejected(name: &str, bytes: Vec<u8>, reason: &str) -> Json {
     })
 }
 
-/// A structurally valid `DelegationChain.toJSON()` sample. The signature is a
-/// placeholder: the vectors fix the encoding, not II's signature.
+/// A structurally valid `DelegationChain.toJSON()` sample without targets,
+/// as Internet Identity signs it. The signature is a placeholder: the vectors
+/// fix the encoding, not II's signature.
 fn delegation_json() -> String {
     let mut user = ED25519_SPKI_PREFIX.to_vec();
     user.extend([0x22; 32]);
@@ -88,11 +87,6 @@ fn delegation_json() -> String {
             "delegation": {
                 "expiration": format!("{:x}", 1_760_000_900_000u64 * 1_000_000),
                 "pubkey": hex::encode(session_pubkey()),
-                "targets": request()
-                    .targets
-                    .iter()
-                    .map(|t| hex::encode(Principal::from_text(t).unwrap().as_slice()))
-                    .collect::<Vec<_>>(),
             },
             "signature": hex::encode([0x33; 64]),
         }],
@@ -111,7 +105,6 @@ fn build() -> Json {
     let legacy = LoginRequest {
         derivation_origin: "https://panda.fans".into(),
         next_url: "http://[::1]:8/auth/callback".into(),
-        targets: vec!["aaaaa-aa".into()],
         ttl_ms: MAX_TTL_MS,
         ..base.clone()
     };
@@ -168,9 +161,6 @@ fn build() -> Json {
     let mut zero_key = ED25519_SPKI_PREFIX.to_vec();
     zero_key[1] = 0x2b;
     zero_key.extend([0x11; 32]);
-    let many: Vec<Value> = (0..33u64)
-        .map(|i| text(&Principal::from_slice(&i.to_be_bytes()).to_text()))
-        .collect();
     let mut unsorted = request_map(&base);
     unsorted.reverse();
     let rejected_requests = vec![
@@ -204,30 +194,6 @@ fn build() -> Json {
             "malformed SPKI",
             with("session_pubkey", Value::Bytes(zero_key)),
             "session_pubkey",
-        ),
-        rejected(
-            "no targets",
-            with("targets", Value::Array(vec![])),
-            "targets",
-        ),
-        rejected("33 targets", with("targets", Value::Array(many)), "targets"),
-        rejected(
-            "invalid principal",
-            with("targets", Value::Array(vec![text("not-a-principal")])),
-            "targets",
-        ),
-        rejected(
-            "non-canonical principal",
-            with("targets", Value::Array(vec![text("AAAAA-AA")])),
-            "targets",
-        ),
-        rejected(
-            "duplicate target",
-            with(
-                "targets",
-                Value::Array(vec![text("aaaaa-aa"), text("aaaaa-aa")]),
-            ),
-            "targets",
         ),
         rejected(
             "ttl below one minute",

@@ -18,8 +18,6 @@ pub struct LoginRequest {
     pub state: Hash,
     /// SPKI DER of the client's Ed25519 session key (44 bytes).
     pub session_pubkey: ByteBuf,
-    /// Canister Principal texts the delegation is limited to, 1 to 32.
-    pub targets: Vec<String>,
     /// Requested delegation lifetime in milliseconds.
     pub ttl_ms: u64,
     /// `https://dmsg.net` or the legacy `https://panda.fans`.

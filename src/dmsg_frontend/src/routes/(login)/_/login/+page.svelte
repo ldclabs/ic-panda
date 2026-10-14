@@ -2,6 +2,8 @@
   // dmsg-login/1 (docs/protocol/login-v1_zh.md): Internet Identity signs a
   // delegation to the local dMsg client's session key; this page keeps no
   // session and holds no key, and returns only to a loopback callback.
+  // Internet Identity ignores ICRC-34 targets, so none are asked for here:
+  // the client limits the chain to its canisters itself.
   import { t } from '$lib/i18n'
   import { complete, takeFragment } from '$lib/login/flow'
   import {
@@ -10,7 +12,6 @@
     type LoginRequest
   } from '$lib/login/protocol'
   import { Ed25519PublicKey } from '@icp-sdk/core/identity'
-  import { Principal } from '@icp-sdk/core/principal'
   import { Signer } from '@icp-sdk/signer'
   import { PostMessageTransport } from '@icp-sdk/signer/web'
   import { onMount } from 'svelte'
@@ -39,7 +40,6 @@
     try {
       const chain = await signer.requestDelegation({
         publicKey: Ed25519PublicKey.fromDer(request.session_pubkey),
-        targets: request.targets.map((target) => Principal.fromText(target)),
         maxTimeToLive: BigInt(request.ttl_ms) * 1_000_000n
       })
       return JSON.stringify(chain.toJSON())

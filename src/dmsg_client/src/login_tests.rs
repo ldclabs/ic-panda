@@ -59,19 +59,39 @@ fn body(session: &LoginSession, delegation: Vec<u8>) -> Vec<u8> {
 fn accepts_a_delegation_to_the_session_key() {
     let s = session();
     let key = s.request.session_pubkey.to_vec();
+    // Internet Identity signs no targets; the session key adds them.
     let accepted = s
-        .accept(
-            &body(
-                &s,
-                chain(&key, NOW + 600_000, Some(targets()[..1].to_vec())),
-            ),
-            NOW,
-        )
+        .accept(&body(&s, chain(&key, NOW + 600_000, None)), NOW)
         .unwrap();
     let user = BasicIdentity::from_raw_key(&[3; 32]);
     assert_eq!(accepted.principal, user.sender().unwrap());
     assert_eq!(accepted.identity.sender().unwrap(), accepted.principal);
     assert_eq!(accepted.expires_at, NOW + 600_000);
+    let links = accepted.identity.delegation_chain();
+    assert_eq!(links.len(), 2);
+    assert_eq!(links[0].delegation.targets, None);
+    let scoped = &links[1];
+    assert_eq!(scoped.delegation.targets, Some(targets()));
+    assert_eq!(scoped.delegation.expiration, links[0].delegation.expiration);
+    assert_ne!(scoped.delegation.pubkey, key);
+    // Ed25519 signs deterministically.
+    let session_key = BasicIdentity::from_raw_key(&s.seed);
+    assert_eq!(
+        session_key
+            .sign_delegation(&scoped.delegation)
+            .unwrap()
+            .signature,
+        Some(scoped.signature.clone())
+    );
+    // A link that names targets stays exactly as signed.
+    let narrow = Some(targets()[..1].to_vec());
+    let accepted = s
+        .accept(&body(&s, chain(&key, NOW + 600_000, narrow.clone())), NOW)
+        .unwrap();
+    assert_eq!(
+        accepted.identity.delegation_chain()[0].delegation.targets,
+        narrow
+    );
     // Internet Identity dates the expiration by the IC's clock, which may
     // run ahead of this one.
     let ahead = NOW + DEFAULT_TTL_MS + 5_000;
@@ -86,18 +106,15 @@ fn accepts_a_delegation_to_the_session_key() {
 fn refuses_foreign_or_broader_callbacks() {
     let s = session();
     let key = s.request.session_pubkey.to_vec();
-    let ok = |at| chain(&key, at, Some(targets()));
-    // Another key, a target outside the request, an unrestricted delegation.
+    let ok = |at| chain(&key, at, None);
+    // Another key, a query-only delegation.
     let mut other = ED25519_SPKI_PREFIX.to_vec();
     other.extend([9; 32]);
-    let wider = vec![Principal::from_text("ryjl3-tyaaa-aaaaa-aaaba-cai").unwrap()];
+    let mut queries: serde_json::Value = serde_json::from_slice(&ok(NOW + 1)).unwrap();
+    queries["delegations"][0]["delegation"]["permissions"] = json!("queries");
     for (delegation, error) in [
-        (
-            chain(&other, NOW + 1, Some(targets())),
-            Error::IntegrityFailed,
-        ),
-        (chain(&key, NOW + 1, Some(wider)), Error::Forbidden),
-        (chain(&key, NOW + 1, None), Error::Forbidden),
+        (chain(&other, NOW + 1, None), Error::IntegrityFailed),
+        (queries.to_string().into_bytes(), Error::IntegrityFailed),
         (ok(NOW), Error::Expired),
         (ok(NOW + DEFAULT_TTL_MS + CLOCK_SKEW_MS + 1), Error::Expired),
         (b"{}".to_vec(), Error::IntegrityFailed),
@@ -125,6 +142,10 @@ fn refuses_foreign_or_broader_callbacks() {
 #[test]
 fn requests_follow_the_page_rules() {
     assert!(LoginSession::new(&[], "https://dmsg.net", 1, DEFAULT_TTL_MS, NOW).is_err());
+    let many: Vec<Principal> = (0..=MAX_TARGETS as u64)
+        .map(|i| Principal::from_slice(&i.to_be_bytes()))
+        .collect();
+    assert!(LoginSession::new(&many, "https://dmsg.net", 1, DEFAULT_TTL_MS, NOW).is_err());
     assert!(LoginSession::new(&targets(), "https://id.ai", 1, DEFAULT_TTL_MS, NOW).is_err());
     assert!(LoginSession::new(&targets(), "https://dmsg.net", 0, DEFAULT_TTL_MS, NOW).is_err());
     let s = session();
