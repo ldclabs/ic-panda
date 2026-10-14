@@ -1,0 +1,12 @@
+{
+  "environment": "Production",
+  "icHost": "https://icp-api.io",
+  "apiOrigin": "https://connect.dmsg.net",
+  "canisters": {
+    "handle": "wfxrt-2iaaa-aaaaj-qsjwa-cai",
+    "commerce": "uwist-sqaaa-aaaaj-qsjyq-cai"
+  },
+  "domains": [
+    "connect.dmsg.net"
+  ]
+}
