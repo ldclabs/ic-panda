@@ -113,6 +113,8 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          # Artifacts do not keep the executable bit.
+          chmod +x release/dmsg-macos-arm64
           scripts/dmsg/sign-macos.sh release/dmsg-macos-arm64
           release/dmsg-macos-arm64 --version
           (cd release && shasum -a 256 dmsg-macos-arm64 > dmsg-macos-arm64.sha256)
