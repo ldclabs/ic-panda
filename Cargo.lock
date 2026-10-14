@@ -1537,7 +1537,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "axum",
  "base64 0.23.1",
@@ -1721,7 +1721,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_protocol"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "agent-protocols",
  "base64 0.23.1",
@@ -1813,7 +1813,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_types"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "candid",
  "cbor2",
@@ -3533,7 +3533,7 @@ dependencies = [
 
 [[package]]
 name = "ic_delegation_store"
-version = "2.15.1"
+version = "2.15.2"
 dependencies = [
  "candid",
  "cbor2",
@@ -3554,7 +3554,7 @@ dependencies = [
 
 [[package]]
 name = "ic_dmsg_minter"
-version = "2.15.1"
+version = "2.15.2"
 dependencies = [
  "candid",
  "cbor2",
@@ -3567,7 +3567,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message"
-version = "2.15.1"
+version = "2.15.2"
 dependencies = [
  "candid",
  "cbor2",
@@ -3591,7 +3591,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_channel"
-version = "2.15.1"
+version = "2.15.2"
 dependencies = [
  "candid",
  "cbor2",
@@ -3610,7 +3610,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_profile"
-version = "2.15.1"
+version = "2.15.2"
 dependencies = [
  "candid",
  "cbor2",
@@ -3629,7 +3629,7 @@ dependencies = [
 
 [[package]]
 name = "ic_message_types"
-version = "2.15.1"
+version = "2.15.2"
 dependencies = [
  "candid",
  "ic-oss-types",
@@ -3640,7 +3640,7 @@ dependencies = [
 
 [[package]]
 name = "ic_name_identity"
-version = "2.15.1"
+version = "2.15.2"
 dependencies = [
  "candid",
  "cbor2",
@@ -3660,7 +3660,7 @@ dependencies = [
 
 [[package]]
 name = "ic_panda_luckypool"
-version = "2.15.1"
+version = "2.15.2"
 dependencies = [
  "base64 0.23.1",
  "candid",
@@ -3697,7 +3697,7 @@ dependencies = [
 
 [[package]]
 name = "ic_signin_with"
-version = "2.15.1"
+version = "2.15.2"
 dependencies = [
  "base64 0.23.1",
  "bs58",
