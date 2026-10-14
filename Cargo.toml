@@ -13,6 +13,7 @@ members = [
   "src/dmsg_payment",
   "src/membership",
   "src/dmsg_commerce",
+  "src/dmsg_wallet",
   "tests/dmsg_integration",
   "tests/dmsg_test_ledger",
   "tests/dmsg_test_sns",
