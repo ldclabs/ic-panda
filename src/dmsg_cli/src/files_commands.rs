@@ -222,6 +222,37 @@ pub enum FilesCommand {
         #[arg(long)]
         version: Option<String>,
     },
+    /// Share a version by link with someone outside dMsg: a fresh edition
+    /// goes to the cloud under its own key, which the link carries in its
+    /// fragment; with --password the link needs the password instead.
+    Link {
+        /// File ID.
+        id: String,
+        /// A version; the current one by default.
+        #[arg(long)]
+        version: Option<String>,
+        /// How many days the link lasts, 1 to 30.
+        #[arg(long, default_value_t = 7)]
+        days: u64,
+        /// How many downloads may start; 0 for no limit.
+        #[arg(long, default_value_t = 0)]
+        max_downloads: u64,
+        /// Ask for a password the link needs; the key then travels wrapped under it.
+        #[arg(long)]
+        password: bool,
+    },
+    /// The links this device made; --refresh reads the relay's counts and
+    /// lists links other devices made.
+    Links {
+        /// Read the relay first.
+        #[arg(long)]
+        refresh: bool,
+    },
+    /// Revoke a link: the cloud copy goes at once.
+    LinkRevoke {
+        /// Share ID.
+        share_id: String,
+    },
     /// Mount the library as a disk through the daemon (needs
     /// `files_mount = true` in config.toml): reading decrypts, writing makes
     /// versions, locking unmounts. --status only shows the mount.
@@ -831,6 +862,64 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
                 .await?;
             print(json, &file, file_line);
         }
+        FilesCommand::Link {
+            id,
+            version,
+            days,
+            max_downloads,
+            password,
+        } => {
+            if !(1..=30).contains(&days) {
+                return Err(Failure::new("INVALID_INPUT", "days must be 1 to 30"));
+            }
+            let secret = if password {
+                let typed = rpassword::prompt_password(tr!("Password: ", "口令："))
+                    .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+                if typed.is_empty() {
+                    return Err(Failure::new("INVALID_INPUT", "empty password"));
+                }
+                Some(typed)
+            } else {
+                None
+            };
+            let link = remote
+                .call(
+                    "files/share_link",
+                    json!({
+                        "id": id,
+                        "version": version,
+                        "expires_in_ms": days * 86_400_000,
+                        "max_downloads": max_downloads,
+                        "password": secret,
+                    }),
+                )
+                .await?;
+            print(json, &link, link_line);
+        }
+        FilesCommand::Links { refresh } => {
+            let links = remote
+                .call("files/share_links", json!({"refresh": refresh}))
+                .await?;
+            print(json, &links, |list| {
+                let lines: Vec<String> = list
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(link_line)
+                    .collect();
+                if lines.is_empty() {
+                    tr!("no links", "没有链接")
+                } else {
+                    lines.join("\n")
+                }
+            });
+        }
+        FilesCommand::LinkRevoke { share_id } => {
+            let link = remote
+                .call("files/share_revoke", json!({"share_id": share_id}))
+                .await?;
+            print(json, &link, link_line);
+        }
         FilesCommand::Mount { status } => {
             let method = if status {
                 "files/mount_status"
@@ -846,6 +935,44 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
         }
     }
     Ok(())
+}
+
+fn link_line(l: &Value) -> String {
+    let share = l["share_id"].as_str().unwrap_or_default();
+    let name = l["name"].as_str().unwrap_or("(another device's link)");
+    let state = l["state"].as_str().unwrap_or_default();
+    let downloads = l["downloads"].as_u64().unwrap_or(0);
+    let limit = match l["max_downloads"].as_u64().unwrap_or(0) {
+        0 => String::new(),
+        n => format!("/{n}"),
+    };
+    let now = dmsg_client::now_ms();
+    let left = l["expires_at"].as_u64().unwrap_or(0).saturating_sub(now);
+    let expires = match left {
+        0 => tr!("expired", "已过期"),
+        ms if ms < 86_400_000 => tr!("{} hours left", "剩 {} 小时", ms.div_ceil(3_600_000)),
+        ms => tr!("{} days left", "剩 {} 天", ms.div_ceil(86_400_000)),
+    };
+    let mut line = tr!(
+        "{share} {name} [{state}] downloads {downloads}{limit}, {expires}",
+        "{share} {name} [{state}] 下载 {downloads}{limit}，{expires}"
+    );
+    if let Some(url) = l["url"].as_str() {
+        line.push('\n');
+        line.push_str(url);
+        if l["password"] == true {
+            line.push_str(&tr!(
+                "\n(the link opens only with its password; send it another way)",
+                "\n（链接须配合口令打开；请另行告知口令）"
+            ));
+        } else {
+            line.push_str(&tr!(
+                "\n(the key is in the link after #; send it over a private channel)",
+                "\n（密钥在链接 # 之后；请通过私密渠道发送）"
+            ));
+        }
+    }
+    line
 }
 
 fn mount_line(m: &Value) -> String {

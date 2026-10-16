@@ -3,8 +3,10 @@
 //! copies, the trash, verification, sharing a version to a channel and
 //! saving a shared file; and the cloud: backups a person asks for
 //! (`files/backup*`), the account's backup inventory, fetching, deleting
-//! and verifying a cloud copy (`files/cloud_*`), and freeing a verified
-//! version's local chunks (`files/evict`). Nothing here uploads by itself.
+//! and verifying a cloud copy (`files/cloud_*`), freeing a verified
+//! version's local chunks (`files/evict`), and share links for people
+//! outside dMsg (`files/share_link*`, `files/share_revoke`). Nothing here
+//! uploads by itself.
 
 use crate::daemon::Daemon;
 use dmsg_client::{library::catalog::ROOT, Client};
@@ -13,7 +15,7 @@ use serde_json::{json, Value};
 use std::path::PathBuf;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 35] = [
+pub(crate) const METHODS: [&str; 38] = [
     "files/list",
     "files/tree",
     "files/show",
@@ -49,6 +51,9 @@ pub(crate) const METHODS: [&str; 35] = [
     "files/cloud_verify",
     "files/cloud_usage",
     "files/evict",
+    "files/share_link",
+    "files/share_links",
+    "files/share_revoke",
 ];
 
 /// The events a method's success announces.
@@ -65,7 +70,8 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "files/usage"
         | "files/backup_status"
         | "files/cloud_list"
-        | "files/cloud_usage" => &[],
+        | "files/cloud_usage"
+        | "files/share_links" => &[],
         "files/share_channel" => &["channel/changed", "files/changed"],
         _ => &["files/changed"],
     }
@@ -281,6 +287,38 @@ impl Daemon {
                     )
                     .await
             }
+            "files/share_link" => {
+                let name = client.files_show(&id()?)?.file.name;
+                let mut progress = |done, total| {
+                    self.emit(
+                        "files/progress",
+                        json!({"job": "share", "path": name, "done": done, "total": total}),
+                    );
+                };
+                let link = client
+                    .files_share_link(
+                        &id()?,
+                        version,
+                        params["expires_in_ms"].as_u64(),
+                        params["max_downloads"].as_u64().unwrap_or(0),
+                        params["password"].as_str().filter(|p| !p.is_empty()),
+                        &mut progress,
+                    )
+                    .await?;
+                Ok(to_json(&link))
+            }
+            "files/share_links" => {
+                let links = match params["refresh"].as_bool().unwrap_or(false) {
+                    true => client.files_share_links_refresh().await?,
+                    false => client.files_share_links()?,
+                };
+                Ok(to_json(&links))
+            }
+            "files/share_revoke" => Ok(to_json(
+                &client
+                    .files_share_revoke(&text(params, "share_id")?)
+                    .await?,
+            )),
             "files/backup" => {
                 let ids = ids(params)?;
                 let all = params["all_versions"].as_bool().unwrap_or(false);

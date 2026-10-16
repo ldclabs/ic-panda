@@ -25,6 +25,7 @@ futures-util = { workspace = true, features = ["sink", "std"] }
 hex.workspace = true
 keyring.workspace = true
 reqwest = { workspace = true, features = ["rustls"] }
+rpassword = "7"
 # The hint channel's TLS uses the same provider as reqwest.
 rustls = { workspace = true, features = ["aws_lc_rs", "std"] }
 serde = { workspace = true, features = ["derive"] }

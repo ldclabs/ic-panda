@@ -8,6 +8,7 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
+  import { copyText } from '../components/clipboard'
   import { bridge, call, code, size } from '../rpc'
   import { unlock } from '../shell/session'
   import { added, backups, failed, picked, progress } from './files/adding.svelte'
@@ -59,6 +60,9 @@
   /** `files/mount_status`: whether the library is a disk right now, and whether it may be. */
   let mount = $state<any>(null)
   let mounting = $state(false)
+  /** `files/share_links`: the links this device made, for the detail's list. */
+  let links = $state<any[]>([])
+  let linking = $state<{ id: string; version: string | null; name: string; days: number; maxDownloads: number; password: string; result: any | null } | null>(null)
   let draft = $state('')
 
   const unlocked = $derived(status?.state === 'unlocked')
@@ -123,6 +127,7 @@
       }
       usage = await call('files/usage').catch(() => null)
       mount = await call('files/mount_status').catch(() => null)
+      links = await call('files/share_links').catch(() => [])
       backups(await call('files/backup_status').catch(() => []))
       error = ''
     } catch (e) {
@@ -287,6 +292,26 @@
       await call('files/share_channel', { channel: sharing.channel, id: sharing.id, version: sharing.version, text: sharing.text })
       sharing = null
     }, t('savedVerified'))
+
+  const askLink = (id: string, version: string | null, name: string) => (linking = { id, version, name, days: 7, maxDownloads: 0, password: '', result: null })
+  const createLink = () =>
+    attempt(async () => {
+      if (!linking) return
+      linking.result = await call('files/share_link', {
+        id: linking.id,
+        version: linking.version,
+        expires_in_ms: linking.days * 86_400_000,
+        max_downloads: linking.maxDownloads,
+        password: linking.password || null
+      })
+      links = await call('files/share_links').catch(() => links)
+    })
+  const revokeLink = (shareId: string) =>
+    attempt(async () => {
+      await call('files/share_revoke', { share_id: shareId })
+      links = await call('files/share_links').catch(() => links)
+    }, t('linkRevoked'))
+  const refreshLinks = () => attempt(async () => (links = await call('files/share_links', { refresh: true })))
 
   const mountDisk = () =>
     attempt(async () => {
@@ -486,6 +511,10 @@
               onExport={(version) => exportFile(current.id, version, current.name)}
               onBackup={(all) => askBackup([current.id], all)}
               onShare={(version) => askShare(current.id, version, current.name)}
+              links={links.filter((l) => l.file === current.id)}
+              onLink={(version) => askLink(current.id, version, current.name)}
+              onRevokeLink={revokeLink}
+              onRefreshLinks={refreshLinks}
               onMove={() => (moving = [current.id])}
               onRename={() => ((renaming = { id: current.id, name: current.name }), (draft = current.name))}
               onDiscard={() => discard([current.id])}
@@ -549,6 +578,45 @@
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (backing = null)}>{t('cancel')}</button>
     <button class={buttonClass('primary')} disabled={busy} onclick={backup} data-testid="files-backup-confirm"><Icon name="cloud-up" />{t('backUp')}</button>
+  {/snippet}
+</Dialog>
+
+<Dialog bind:open={() => !!linking, (next) => !next && (linking = null)} title={t('linkTitle')} description={linking?.name} icon="link" testid="files-link-dialog">
+  {#if linking?.result}
+    <div class="grid gap-3">
+      <p class="text-[13.5px] leading-relaxed">{t('linkReady')}</p>
+      <div class="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2">
+        <code class="min-w-0 flex-1 truncate font-mono text-[12px] text-ink" data-testid="files-link-url">{linking.result.url}</code>
+        <button class={buttonClass('secondary', 'xs')} onclick={() => copyText(linking?.result.url)} data-testid="files-link-copy"><Icon name="copy" />{t('linkCopy')}</button>
+      </div>
+      <Notice tone="info">{linking.result.password ? t('linkPasswordSent') : t('linkSendHint')}</Notice>
+    </div>
+  {:else if linking}
+    <div class="grid gap-3">
+      <Notice tone="info">{t('linkHint')}</Notice>
+      <div class="grid gap-1 text-[12px] text-faint">
+        {t('linkDays')}
+        <Select bind:value={() => String(linking?.days ?? 7), (next) => linking && (linking.days = Number(next))} options={[{ value: '1', label: t('days1') }, { value: '7', label: t('days7') }, { value: '30', label: t('days30') }]} label={t('linkDays')} testid="files-link-days" class="w-full" />
+      </div>
+      <label class="grid gap-1 text-[12px] text-faint">
+        {t('linkMaxDownloads')}
+        <input type="number" min="0" max="1000000" bind:value={linking.maxDownloads} class="text-[13.5px] text-ink" data-testid="files-link-max" />
+      </label>
+      <label class="grid gap-1 text-[12px] text-faint">
+        {t('linkPassword')}
+        <input type="password" bind:value={linking.password} class="text-[13.5px] text-ink" autocomplete="off" data-testid="files-link-password" />
+        <span class="text-[11.5px]">{t('linkPasswordHint')}</span>
+      </label>
+    </div>
+  {/if}
+  {#snippet footer()}
+    <span class="flex-1"></span>
+    {#if linking?.result}
+      <button class={buttonClass('primary')} onclick={() => (linking = null)}>{t('done')}</button>
+    {:else}
+      <button class={buttonClass('ghost')} onclick={() => (linking = null)}>{t('cancel')}</button>
+      <button class={buttonClass('primary')} disabled={busy} onclick={createLink} data-testid="files-link-create"><Icon name="link" />{t('createLink')}</button>
+    {/if}
   {/snippet}
 </Dialog>
 

@@ -199,6 +199,7 @@ dmsg files share <channel> <id> [--version V] [text] | save <channel> <seq> [--t
 dmsg files backup <id|folder>... [--all-versions] | backup-status | backup-cancel <id> <version>
 dmsg files cloud ls [--refresh] | refresh | get <upload> [--to <folder>] | rm <upload>... | verify <upload> | usage
 dmsg files evict <id> [--version V]
+dmsg files link <id> [--version V] [--days 7] [--max-downloads N] [--password] | links [--refresh] | link-revoke <share_id>
 dmsg files mount [--status] | unmount
 dmsg sync | sync status
 dmsg profile show | publish [--name N] [--bio B] [--link URL]... | resolve <account>
@@ -333,6 +334,21 @@ verify` downloads and checks a backup; `files evict` then frees a verified
 version's chunks here, so it reads only after `cloud get`. `cloud usage`
 shows the relay's storage room; a backup request that would not fit fails
 with `QUOTA_EXCEEDED` before anything starts.
+
+Links. `files link` shares a version with someone outside dMsg: a fresh
+edition under its own key goes to the cloud as a `share` object (its
+manifest sealed under that key, never a root) and the relay publishes the
+link `<site>/s/<share_id>#<key>`, the site being the one of `login_url`.
+The key rides in the fragment, which servers never see; with `--password`
+the link carries no key and the key travels wrapped under an Argon2id key
+of the password (19 MiB, two passes, salted with the share ID), so the
+person needs both. A link lasts `--days` (seven by default, thirty at
+most) and `--max-downloads` starts (unlimited by default); `files links`
+lists this device's links with the counts the relay last reported, and
+`--refresh` reads the relay, which also lists links other devices made,
+without their URLs. `files link-revoke` retires the cloud copy at once;
+an expired link's copy goes by itself. The browser page at `/s/` decrypts
+by the chunk rules of `content-v1.json`.
 
 Mount. With `files_mount = true`, `files mount` serves the library as a
 loopback WebDAV share at `/dav/<token>/dMsg` and mounts it through the
@@ -617,6 +633,7 @@ The daemon listens on `127.0.0.1` only.
   `files/backup|backup_status|backup_cancel|backup_run`,
   `files/cloud_list|cloud_refresh|cloud_fetch|cloud_delete|cloud_verify|cloud_usage`, `files/evict`,
   `files/mount|unmount|mount_status`,
+  `files/share_link|share_links|share_revoke`,
   `sync/run|status`,
   `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`,
   `attest/request|action {action: base64url CBOR}|history|usage|export|verify`,

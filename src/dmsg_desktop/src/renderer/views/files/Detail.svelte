@@ -1,5 +1,6 @@
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui'
+  import { copyText } from '../../components/clipboard'
   import { localeDir } from '../../../shared/locales'
   import Icon from '../../components/Icon.svelte'
   import Pill from '../../components/page/Pill.svelte'
@@ -27,6 +28,10 @@
     onExport,
     onBackup,
     onShare,
+    links,
+    onLink,
+    onRevokeLink,
+    onRefreshLinks,
     onMove,
     onRename,
     onDiscard,
@@ -41,6 +46,10 @@
     onExport: (version: string | null) => void
     onBackup: (allVersions: boolean) => void
     onShare: (version: string | null) => void
+    links: any[]
+    onLink: (version: string | null) => void
+    onRevokeLink: (shareId: string) => void
+    onRefreshLinks: () => void
     onMove: () => void
     onRename: () => void
     onDiscard: () => void
@@ -178,6 +187,9 @@
                 <DropdownMenu.Item class={menuItemClass} disabled={!canRead || status === 'too_large'} onSelect={() => onShare(null)}>
                   <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
                 </DropdownMenu.Item>
+                <DropdownMenu.Item class={menuItemClass} disabled={!canRead || status === 'too_large'} onSelect={() => onLink(null)} data-testid="files-link">
+                  <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
+                </DropdownMenu.Item>
                 <DropdownMenu.Item class={menuItemClass} disabled={versions.length > 1 && status === 'backed_up'} onSelect={() => onBackup(true)}>
                   <span class="flex items-center gap-2"><Icon name="cloud-up" class="text-faint" />{t('backUpAll')}</span>
                 </DropdownMenu.Item>
@@ -274,6 +286,29 @@
       {/if}
     </dl>
 
+    {#if links.length}
+      <div class="mt-5 mb-2 flex items-center justify-between">
+        <h3 class="text-[12px] font-medium text-faint">{t('shareLinks')} · {links.length}</h3>
+        <button class="text-[11.5px] text-forest hover:underline" disabled={busy || !unlocked} onclick={onRefreshLinks}>{t('refreshLinks')}</button>
+      </div>
+      <ul class="grid gap-1.5" data-testid="files-links">
+        {#each links as link (link.share_id)}
+          <li class="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px]">
+            <Icon name="link" class="shrink-0 text-faint" />
+            <span class="min-w-0 flex-1">
+              <span class="block truncate">{link.state === 'active' ? t('linkStateActive') : link.state === 'revoked' ? t('linkStateRevoked') : t('linkStateExpired')} · {t('linkDownloads', { n: link.downloads })}{link.max_downloads ? ` / ${link.max_downloads}` : ''}{link.password ? ` · ${t('linkPassword')}` : ''}</span>
+              <span class="block truncate text-[11px] text-faint">{t('linkExpires', { time: new Date(link.expires_at).toLocaleString() })}</span>
+            </span>
+            {#if link.url && link.state === 'active'}
+              <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(link.url)} aria-label={t('linkCopy')}><Icon name="copy" /></button>
+            {/if}
+            {#if link.state === 'active'}
+              <button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy || !unlocked} onclick={() => onRevokeLink(link.share_id)} data-testid="files-link-revoke">{t('linkRevoke')}</button>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    {/if}
     <h3 class="mt-5 mb-2 text-[12px] font-medium text-faint">{t('versions')} · {versions.length}</h3>
     <ol class="divide-y divide-line rounded-xl border border-line bg-surface shadow-xs" data-testid="files-versions">
       {#each [...versions].reverse() as version (version.id)}

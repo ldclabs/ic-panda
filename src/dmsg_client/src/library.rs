@@ -23,6 +23,7 @@ pub mod catalog;
 pub mod cloud;
 pub mod gc;
 pub mod import;
+pub mod link;
 pub mod mount;
 pub mod open;
 pub mod share;
