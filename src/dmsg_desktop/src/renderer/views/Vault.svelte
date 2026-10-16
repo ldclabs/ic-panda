@@ -3,6 +3,8 @@
   import { t, type Label } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
   import Select from '../components/Select.svelte'
+  import { toast } from '../components/toast.svelte'
+  import { buttonClass } from '../components/ui'
 
   let { status }: { status: any } = $props()
   let items = $state<any[]>([])
@@ -20,7 +22,6 @@
   /** Showing or copying a secret waits for a second, explicit click. */
   let confirming = $state<'reveal' | 'copy' | null>(null)
   let revealed = $state<{ id: string; secret: string } | null>(null)
-  let copied = $state('')
   let hide: ReturnType<typeof setTimeout> | undefined
 
   /** Which fields each item type shows; every type has a body and tags. */
@@ -90,7 +91,6 @@
     edit = null
     confirming = null
     revealed = null
-    copied = ''
   }
 
   function startEdit(entry: any) {
@@ -145,8 +145,8 @@
   const copy = (id: string) =>
     attempt(async () => {
       confirming = null
-      await window.dmsg.copySecret(id)
-      copied = t('copied')
+      const { clear_after_ms } = await window.dmsg.copySecret(id)
+      toast((seconds) => t('copied', { seconds }), { ms: clear_after_ms, countdown: true, testid: 'secret-copied' })
     })
 
   /** Files enter and leave through system dialogs; the window never names a path. */
@@ -194,10 +194,9 @@
   const unlocked = $derived(status?.state === 'unlocked')
 </script>
 
-<h1>{t('vault')}</h1>
 <div class="row" style="margin-bottom: 12px">
   <input placeholder={t('search')} bind:value={query} oninput={() => load()} />
-  <button class:primary={trash} onclick={() => ((trash = !trash), (selected = null), load())}>{t('trash')}</button>
+  <button class={buttonClass(trash ? 'primary' : 'secondary')} onclick={() => ((trash = !trash), (selected = null), load())}>{t('trash')}</button>
 </div>
 {#if error}<p class="muted" data-testid="vault-error">{error}</p>{/if}
 {#if conflicts.length}
@@ -213,8 +212,8 @@
               <span class="muted">{copy.deleted ? ` · ${t('deleted')}` : ''} · {when(copy.item.updatedAt)}</span>
             </span>
             <span class="row">
-              <button disabled={busy || !unlocked} onclick={() => resolve(copy, 'current')}>{t('keepCurrent')}</button>
-              <button class="primary" disabled={busy || !unlocked} onclick={() => resolve(copy, 'theirs')}>{t('useCopy')}</button>
+              <button class={buttonClass()} disabled={busy || !unlocked} onclick={() => resolve(copy, 'current')}>{t('keepCurrent')}</button>
+              <button class={buttonClass('primary')} disabled={busy || !unlocked} onclick={() => resolve(copy, 'theirs')}>{t('useCopy')}</button>
             </span>
           </div>
           <div class="muted">{t('differs')}: {differences(copy)}</div>
@@ -236,7 +235,7 @@
               : ' · ↻'}{conflicts.some((c) => c.id === entry.id) ? ` · ${t('conflicts')}` : ''}
           </span>
         </button>
-        <button class="danger" disabled={busy} onclick={() => remove(entry.id)}>{trash ? t('restore') : t('remove')}</button>
+        <button class={buttonClass('danger')} disabled={busy} onclick={() => remove(entry.id)}>{trash ? t('restore') : t('remove')}</button>
       </div>
       {#if selected === entry.id && !edit}
         <dl style="margin-top: 8px" data-testid="vault-detail">
@@ -255,31 +254,30 @@
         {#if !trash}
           <div class="row" style="margin-top: 8px">
             {#if unlocked}
-              <button disabled={busy} onclick={() => startEdit(entry)}>{t('edit')}</button>
-              <button disabled={busy} onclick={() => star(entry)}>{entry.item.favorite ? t('unstar') : t('star')}</button>
+              <button class={buttonClass()} disabled={busy} onclick={() => startEdit(entry)}>{t('edit')}</button>
+              <button class={buttonClass()} disabled={busy} onclick={() => star(entry)}>{entry.item.favorite ? t('unstar') : t('star')}</button>
             {/if}
             {#if entry.item.secret && unlocked}
               {#if revealed?.id === entry.id}
-                <button onclick={() => (revealed = null)}>{t('hideSecret')}</button>
+                <button class={buttonClass()} onclick={() => (revealed = null)}>{t('hideSecret')}</button>
               {:else}
-                <button data-testid="reveal-secret" onclick={() => (confirming = 'reveal')}>{t('showSecret')}</button>
+                <button class={buttonClass()} data-testid="reveal-secret" onclick={() => (confirming = 'reveal')}>{t('showSecret')}</button>
               {/if}
-              <button data-testid="copy-secret" onclick={() => (confirming = 'copy')}>{t('copySecret')}</button>
+              <button class={buttonClass()} data-testid="copy-secret" onclick={() => (confirming = 'copy')}>{t('copySecret')}</button>
             {/if}
             {#if entry.item.file}
-              <button onclick={() => fileAction(() => window.dmsg.exportFile(entry.id, entry.item.file.name))}>{t('exportFile')}</button>
-              <button onclick={() => verify(entry.id)}>{t('verifyFile')}</button>
+              <button class={buttonClass()} onclick={() => fileAction(() => window.dmsg.exportFile(entry.id, entry.item.file.name))}>{t('exportFile')}</button>
+              <button class={buttonClass()} onclick={() => verify(entry.id)}>{t('verifyFile')}</button>
               {#if checked[entry.id]}<span class="muted" data-testid="file-checked">{checked[entry.id]}</span>{/if}
             {/if}
-            {#if copied}<span class="muted" data-testid="secret-copied">{copied}</span>{/if}
           </div>
           {#if confirming}
             <div class="row confirm" data-testid="secret-confirm">
               <span class="warn">{confirming === 'reveal' ? t('confirmReveal') : t('confirmCopy')}</span>
-              <button class="primary" data-testid="secret-confirm-yes" disabled={busy} onclick={() => (confirming === 'reveal' ? reveal(entry.id) : copy(entry.id))}>
+              <button class={buttonClass('primary')} data-testid="secret-confirm-yes" disabled={busy} onclick={() => (confirming === 'reveal' ? reveal(entry.id) : copy(entry.id))}>
                 {confirming === 'reveal' ? t('showSecret') : t('copySecret')}
               </button>
-              <button onclick={() => (confirming = null)}>{t('cancel')}</button>
+              <button class={buttonClass()} onclick={() => (confirming = null)}>{t('cancel')}</button>
             </div>
           {/if}
         {/if}
@@ -295,8 +293,8 @@
           <input placeholder={t('tagsHint')} bind:value={edit.tags} />
           <textarea placeholder={t('body')} bind:value={edit.body}></textarea>
           <div class="row">
-            <button class="primary" disabled={busy || !edit.title.trim()} data-testid="vault-save" onclick={() => save(entry)}>{t('save')}</button>
-            <button onclick={() => (edit = null)}>{t('cancel')}</button>
+            <button class={buttonClass('primary')} disabled={busy || !edit.title.trim()} data-testid="vault-save" onclick={() => save(entry)}>{t('save')}</button>
+            <button class={buttonClass()} onclick={() => (edit = null)}>{t('cancel')}</button>
           </div>
         </div>
       {/if}
@@ -320,8 +318,8 @@
     <input placeholder={t('tagsHint')} bind:value={draft.tags} />
     <textarea placeholder={t('body')} bind:value={draft.body}></textarea>
     <div class="row">
-      <button class="primary" disabled={busy} data-testid="vault-add" onclick={add}>{t('save')}</button>
-      <button data-testid="import-file" onclick={() => fileAction(() => window.dmsg.importFile())}>{t('importFile')}</button>
+      <button class={buttonClass('primary')} disabled={busy} data-testid="vault-add" onclick={add}>{t('save')}</button>
+      <button class={buttonClass()} data-testid="import-file" onclick={() => fileAction(() => window.dmsg.importFile())}>{t('importFile')}</button>
     </div>
   </div>
 {/if}

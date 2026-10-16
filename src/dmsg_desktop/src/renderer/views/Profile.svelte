@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { t } from '../i18n/index.svelte'
   import { call, code } from '../rpc'
+  import { buttonClass } from '../components/ui'
 
   /** This account's signed public profile, and other accounts' checked against their devices. */
   let { status }: { status: any } = $props()
@@ -83,9 +84,9 @@
       {#if mine?.profile.avatar_upload && images[mine.profile.avatar_upload]}
         <img class="avatar" src={images[mine.profile.avatar_upload]} alt={t('avatar')} data-testid="profile-avatar" />
       {/if}
-      <button disabled={busy} onclick={() => avatar(false)} data-testid="avatar-set">{t('setAvatar')}</button>
+      <button class={buttonClass()} disabled={busy} onclick={() => avatar(false)} data-testid="avatar-set">{t('setAvatar')}</button>
       {#if mine?.profile.avatar_upload}
-        <button disabled={busy} onclick={() => avatar(true)} data-testid="avatar-remove">{t('removeAvatar')}</button>
+        <button class={buttonClass()} disabled={busy} onclick={() => avatar(true)} data-testid="avatar-remove">{t('removeAvatar')}</button>
       {/if}
     </div>
     <p class="muted">{t('avatarHint')}</p>
@@ -93,14 +94,14 @@
     <textarea placeholder={t('bio')} bind:value={bio} style="margin-top: 8px"></textarea>
     <textarea placeholder={t('links')} bind:value={links} style="margin-top: 8px"></textarea>
     <div class="row" style="margin-top: 8px">
-      <button class="primary" disabled={busy} onclick={publish}>{t('publish')}</button>
+      <button class={buttonClass('primary')} disabled={busy} onclick={publish}>{t('publish')}</button>
       {#if mine}<span class="muted">v{mine.profile.version} · {t('device')} <span class="mono">{mine.device_id.slice(0, 12)}</span></span>{/if}
     </div>
   {/if}
   <h3>{t('resolveProfile')}</h3>
   <div class="row">
     <input placeholder={t('accountId')} bind:value={other} />
-    <button disabled={busy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
+    <button class={buttonClass()} disabled={busy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
   </div>
   {#if found}
     <dl data-testid="profile-found">

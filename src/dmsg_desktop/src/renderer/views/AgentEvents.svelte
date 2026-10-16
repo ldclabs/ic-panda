@@ -3,6 +3,7 @@
   import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
   import Select from '../components/Select.svelte'
+  import { buttonClass } from '../components/ui'
 
   /**
    * MCP Events endpoints on the relay: an upstream subscription posts to the
@@ -97,8 +98,8 @@
           </span>
           {#if endpoint.state === 'active'}
             <span class="row">
-              <button disabled={busy} onclick={() => rotate(endpoint.endpoint_id)}>{t('rotateSecret')}</button>
-              <button class="danger" disabled={busy} onclick={() => remove(endpoint.endpoint_id)}>{t('remove')}</button>
+              <button class={buttonClass()} disabled={busy} onclick={() => rotate(endpoint.endpoint_id)}>{t('rotateSecret')}</button>
+              <button class={buttonClass('danger')} disabled={busy} onclick={() => remove(endpoint.endpoint_id)}>{t('remove')}</button>
             </span>
           {/if}
         </div>
@@ -124,7 +125,7 @@
     <input placeholder={t('label')} bind:value={label} data-testid="endpoint-label" style="max-width: 180px" />
     <Select bind:value={agent} options={[{ value: '', label: t('anyAgent') }, ...agents.map((a) => ({ value: a.agent_id, label: a.label }))]} />
     <input placeholder={t('eventsSession')} bind:value={session} style="max-width: 180px" />
-    <button class="primary" disabled={busy} data-testid="endpoint-create" onclick={create}>{t('create')}</button>
+    <button class={buttonClass('primary')} disabled={busy} data-testid="endpoint-create" onclick={create}>{t('create')}</button>
   </div>
 </div>
 

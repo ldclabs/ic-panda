@@ -3,6 +3,7 @@
   import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
   import Select from '../components/Select.svelte'
+  import { buttonClass } from '../components/ui'
 
   /** The device's audit record: readable while locked, IDs only. */
   let { agents }: { agents: any[] } = $props()
@@ -65,5 +66,5 @@
       <li class="muted">{t('noAudit')}</li>
     {/each}
   </ul>
-  {#if more}<button onclick={() => load(entries[entries.length - 1].seq)}>{t('older')}</button>{/if}
+  {#if more}<button class={buttonClass()} onclick={() => load(entries[entries.length - 1].seq)}>{t('older')}</button>{/if}
 </div>

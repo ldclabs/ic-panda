@@ -11,6 +11,8 @@
   import { DropdownMenu } from 'bits-ui'
   import { localeDir } from '../../shared/locales'
   import { locale } from '../i18n/index.svelte'
+  import Icon from './Icon.svelte'
+  import { cn, menuContentClass, menuItemClass } from './ui'
 
   /**
    * A choice among options on the bits-ui dropdown menu, in place of a native
@@ -56,20 +58,21 @@
 
 <DropdownMenu.Root bind:open dir={localeDir(locale())}>
   <DropdownMenu.Trigger
-    class={['select', className]}
+    class={cn(
+      'group inline-flex h-8 max-w-full shrink-0 items-center justify-between gap-2 rounded-lg border border-edge bg-surface ps-2.5 pe-2 text-start text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-150 hover:not-disabled:border-forest/60 focus-visible:border-forest focus-visible:ring-3 focus-visible:ring-forest/18 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-forest',
+      className
+    )}
     disabled={disabled || !options.length}
     aria-label={label}
     data-testid={testid}
   >
-    <span class={['select-value', chosen?.mono && 'mono', !chosen && 'muted']}>{chosen?.label ?? placeholder}</span>
-    <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
+    <span class={cn('max-w-[260px] truncate', chosen?.mono && 'font-mono text-xs', !chosen && 'text-faint')}>{chosen?.label ?? placeholder}</span>
+    <Icon name="chevron-down" class="text-faint transition-transform duration-150 group-data-[state=open]:rotate-180 motion-reduce:transition-none" />
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
     <DropdownMenu.Content
       bind:ref={content}
-      class="select-menu"
+      class={menuContentClass}
       align="start"
       sideOffset={4}
       collisionPadding={8}
@@ -78,14 +81,10 @@
     >
       <DropdownMenu.RadioGroup {value} onValueChange={pick}>
         {#each options as option (option.value)}
-          <DropdownMenu.RadioItem value={option.value} textValue={option.label} class="select-item" data-value={option.value}>
+          <DropdownMenu.RadioItem value={option.value} textValue={option.label} class={menuItemClass} data-value={option.value}>
             {#snippet children({ checked })}
-              <span class={option.mono ? 'mono' : ''}>{option.label}</span>
-              {#if checked}
-                <svg class="select-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path d="M4 12.5 9.5 18 20 6" />
-                </svg>
-              {/if}
+              <span class={option.mono ? 'font-mono text-xs' : ''}>{option.label}</span>
+              {#if checked}<Icon name="check" class="size-3.5" />{/if}
             {/snippet}
           </DropdownMenu.RadioItem>
         {/each}
@@ -93,44 +92,3 @@
     </DropdownMenu.Content>
   </DropdownMenu.Portal>
 </DropdownMenu.Root>
-
-<style>
-  :global(.select) {
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    max-width: 100%;
-    padding: 6px 10px;
-    text-align: start;
-  }
-  :global(.select:focus-visible) {
-    outline: 2px solid var(--green);
-    outline-offset: 1px;
-  }
-  .select-value {
-    max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .select-chevron {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    opacity: 0.6;
-    transition: transform 150ms;
-  }
-  :global(.select[data-state='open']) .select-chevron {
-    transform: rotate(180deg);
-  }
-  .select-check {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .select-chevron {
-      transition: none;
-    }
-  }
-</style>

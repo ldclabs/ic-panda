@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { isAppearance } from '../shared/appearance'
 import type { DaemonEvent, DesktopBridge } from '../shared/contract'
 import { defaultLocale, isLocale, type Locale } from '../shared/locales'
 
@@ -10,11 +11,15 @@ const unwrap = <T>(promise: Promise<T>) =>
 
 const role = process.argv.includes('--dmsg-role=approval') ? 'approval' : 'main'
 const locale = process.argv.find((a) => a.startsWith('--dmsg-locale='))?.slice('--dmsg-locale='.length)
+const appearance = process.argv.find((a) => a.startsWith('--dmsg-appearance='))?.slice('--dmsg-appearance='.length)
 
 const api: DesktopBridge = {
   role,
+  platform: process.platform,
   locale: isLocale(locale) ? locale : defaultLocale,
   setLocale: (next) => unwrap(ipcRenderer.invoke('dmsg:set-locale', next)),
+  appearance: isAppearance(appearance) ? appearance : 'system',
+  setAppearance: (next) => unwrap(ipcRenderer.invoke('dmsg:set-appearance', next)),
   call: (method, params) => unwrap(ipcRenderer.invoke('dmsg:call', method, params ?? null)),
   decide: (id, digest, approve) => unwrap(ipcRenderer.invoke('dmsg:decide', id, digest, approve)),
   grant: (invite, pairing) => unwrap(ipcRenderer.invoke('dmsg:grant', invite, pairing)),

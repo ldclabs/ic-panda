@@ -6,8 +6,14 @@
   import Security from './Security.svelte'
   import Devices from './Devices.svelte'
   import Profile from './Profile.svelte'
+  import { buttonClass } from '../components/ui'
 
-  let { status, refresh, browsers }: { status: any; refresh: () => Promise<void>; browsers: boolean } = $props()
+  let {
+    status,
+    refresh,
+    browsers,
+    go
+  }: { status: any; refresh: () => Promise<void>; browsers: boolean; go: (path: string) => void } = $props()
   let account = $state<any>(null)
   let accounts = $state<any[]>([])
   let pairings = $state<any[]>([])
@@ -82,7 +88,6 @@
   const own = $derived(account?.devices?.find((d: any) => d.current))
 </script>
 
-<h1>{t('settings')}</h1>
 {#if error}<p class="error">{error}</p>{/if}
 <div class="card">
   <h2>{t('status')}</h2>
@@ -101,10 +106,10 @@
     <dd>{status?.background_online ? t('on') : t('off')}{status?.resident ? ` (${t('deviceKeyResident')})` : ''}</dd>
   </dl>
   <div class="row" style="margin-top: 10px">
-    <button onclick={login}>{status?.account ? t('loginOther') : t('login')}</button>
-    <button onclick={() => act('session/unlock', { fast: true })}>{t('fastUnlock')}</button>
-    <button onclick={() => act('session/lock')}>{t('lock')}</button>
-    <button onclick={() => act('sync/run')}>{t('sync')}</button>
+    <button class={buttonClass()} onclick={login}>{status?.account ? t('loginOther') : t('login')}</button>
+    <button class={buttonClass()} onclick={() => act('session/unlock', { fast: true })}>{t('fastUnlock')}</button>
+    <button class={buttonClass()} onclick={() => act('session/lock')}>{t('lock')}</button>
+    <button class={buttonClass()} onclick={() => act('sync/run')}>{t('sync')}</button>
   </div>
 </div>
 {#if accounts.length}
@@ -121,8 +126,8 @@
           </span>
           {#if !a.current}
             <span class="row">
-              {#if a.fast_unlock}<button onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
-              <button onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
+              {#if a.fast_unlock}<button class={buttonClass()} onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
+              <button class={buttonClass()} onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
             </span>
           {/if}
         </li>
@@ -146,27 +151,32 @@
           {t('issuedBy')} <span class="mono">{p.issued_by?.slice(0, 8) ?? '-'}</span>{p.issued_by === own?.device_id ? ` (${t('thisDevice')})` : ''}
           · {t('granted')} {when(p.granted_at)} · {t('lastUsed')} {when(p.last_used_at)}
         </span>
-        {#if p.state === 'active'}<button class="danger" onclick={() => act('connect/revoke', { pairing: p.pairing_id })}>{t('revoke')}</button>{/if}
+        {#if p.state === 'active'}<button class={buttonClass('danger')} onclick={() => act('connect/revoke', { pairing: p.pairing_id })}>{t('revoke')}</button>{/if}
       </li>
     {/each}
   </ul>
   <div class="row" style="margin-top: 10px">
-    <button class="primary" onclick={() => pair(false)}>{t('connectBrowser')}</button>
-    <button onclick={() => pair(true)}>{t('copyLink')}</button>
+    <button class={buttonClass('primary')} onclick={() => pair(false)}>{t('connectBrowser')}</button>
+    <button class={buttonClass()} onclick={() => pair(true)}>{t('copyLink')}</button>
   </div>
   {#if invite}
     <p class="mono">{invite.url}</p>
     {#each candidates as c (c.pairing_id)}
       <div class="row spread card">
         <span>{t('confirmBrowser')} <strong>{c.label}</strong> <span class="mono muted">{c.pairing_id.slice(0, 12)}</span></span>
-        <button class="primary" onclick={() => grant(c)}>{t('connect')}</button>
+        <button class={buttonClass('primary')} onclick={() => grant(c)}>{t('connect')}</button>
       </div>
     {/each}
   {/if}
 </div>{/if}
+<div class="card" data-testid="settings-legacy">
+  <h2>{t('legacy')}</h2>
+  <p class="muted">{t('legacyDetail')}</p>
+  <button class={buttonClass()} onclick={() => go('/settings/legacy')}>{t('open')}</button>
+</div>
 
 <style>
   .focus {
-    border-color: var(--green);
+    border-color: var(--forest);
   }
 </style>

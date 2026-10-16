@@ -19,12 +19,35 @@ desktop is one of its clients, like the CLI.
   each window; the language menu in the main window changes it for the tray,
   dialogs and both windows at once. Arabic lays the windows out right to
   left.
+- **Appearance** (`src/shared/appearance.ts`): the system's, light or dark,
+  kept in the profile's `appearance` file. The main process sets Electron's
+  `nativeTheme` from it, so both windows, their menus and dialogs follow it
+  through `prefers-color-scheme`.
 - **Preload** (`src/preload`): `window.dmsg`, a narrow bridge; the credential
   never reaches a renderer.
-- **Renderer** (`src/renderer`, Svelte 5): the main window and the approval
-  window. Choices are bits-ui dropdown menus (`components/Select.svelte`);
-  the text is in `i18n/messages`, one catalog per language, each checked
-  against the English one. The main window has these views:
+- **Renderer** (`src/renderer`, Svelte 5, Tailwind CSS 4): the main window
+  and the approval window. `app.css` holds the dMsg tokens of
+  `src/dmsg_frontend/DESIGN.md` with a dark theme; `components/` is the kit
+  the views compose: `ui.ts` (button and menu classes), Remix icons
+  (`glyphs.ts`), and bits-ui checkboxes, radios, toggle groups, dropdowns,
+  suggestions, collapsibles and toasts in place of native controls. Inter
+  and the icons are bundled; their licenses ship in `public/licenses`. The
+  text is in `i18n/messages`, one catalog per language, each checked
+  against the English one.
+
+  The main window's shell (`shell/`) has a sidebar with the account
+  switcher (this device's accounts, another login), the views in three
+  groups (work; authorization; account) and Settings, and at its foot the
+  gate rail: locked or not with the idle lock's countdown (`lock_at` from
+  `daemon/status`), the versions waiting to sync, background online while
+  it is on, the daemon connection, the language and appearance menus and
+  Lock. A title bar names the view and opens the command palette (⌘K, or
+  Ctrl+K elsewhere), which goes to any view and runs the session,
+  appearance and language commands; ⌘1–⌘6 and ⌘, go to a view, ⌘L locks.
+  The sidebar collapses to icons. On macOS the window has no title bar of
+  its own: the traffic lights sit over the sidebar, on the window's
+  material. A legacy pairing that was started and not imported shows a
+  dismissible notice. The main window has these views:
   - Vault: notes, logins, API credentials, keys and files; details and edits,
     stars, and conflict copies kept or adopted.
   - Channels: attachments, roles, history grants, leaving, archiving and
@@ -33,10 +56,10 @@ desktop is one of its clients, like the CLI.
   - Agents: Agent Mail, Agent Knowledge and MCP Events endpoints.
   - Signatures and approvals: the month's execution allowance, application
     actions, and exporting and verifying attestation bundles.
-  - Legacy migration.
   - Settings: this device's accounts, creating or joining an account, pairing
     and recovery, account security, devices, the public profile with its
-    avatar, and connected browsers.
+    avatar, connected browsers, and the legacy migration
+    (`/settings/legacy`).
 
 Rules (`src/main/policy.ts`):
 
@@ -95,7 +118,15 @@ Rules (`src/main/policy.ts`):
   marked `gui` when they came from a window, and what agents called.
 - Only the approval window decides a request (`approval/respond` with the
   digest of what it showed and `human: true`, added by the main process);
-  only the main window confirms a browser pairing (`connect/grant`).
+  only the main window confirms a browser pairing (`connect/grant`). The
+  window reads as a ticket: the kind of decision and the time left, who
+  asks and the way the request came (a website's through the paired browser
+  and connect.dmsg.net, drawn as relayed), what is signed, paid or changed,
+  what approving does, and the technical fields folded. Reject has the
+  focus; Approve opens 1.2 seconds after the request appears and again
+  after it changes (a quote, for one). Payments, revoking a device, the
+  signing policy and recovery delay, and binding or removing a login are
+  approved by holding the button for a second (`src/renderer/approval.ts`).
 - `dmsg://connect/pair?account=…` and `dmsg://connect/request?account=…&request=…`
   only open a view; they execute nothing.
 - The system browser opens only the login page, the bridge's pairing page

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import { buttonClass } from '../components/ui'
 
   /**
    * Orders, cash transfers and PANDA commitments the wallet may read as payer,
@@ -55,7 +56,7 @@
 <div class="card" data-testid="operations">
   <div class="row spread">
     <h2>{t('operations')}</h2>
-    <button disabled={busy} onclick={load}>{t('refresh')}</button>
+    <button class={buttonClass()} disabled={busy} onclick={load}>{t('refresh')}</button>
   </div>
   <p class="muted">{t('operationsHint')}</p>
   {#if error}<p class="error">{error}</p>{/if}
@@ -67,7 +68,7 @@
         <li>
           <div class="row spread">
             <span>{o.product_id} · {o.sku} <span class="badge">{o.status}</span></span>
-            <button disabled={busy} onclick={() => act('ops/reconcile_order', { id: o.order_id })}>{t('reconcile')}</button>
+            <button class={buttonClass()} disabled={busy} onclick={() => act('ops/reconcile_order', { id: o.order_id })}>{t('reconcile')}</button>
           </div>
           {#each o.balances as b (b.ledger)}
             <div class="mono muted">
@@ -77,7 +78,7 @@
         </li>
       {/each}
     </ul>
-    {#if orders.next}<button disabled={busy} onclick={() => page('ops/orders', orders.next)}>{t('next')}</button>{/if}
+    {#if orders.next}<button class={buttonClass()} disabled={busy} onclick={() => page('ops/orders', orders.next)}>{t('next')}</button>{/if}
   {/if}
   {#if transfers}
     <h3>{t('transfers')}</h3>
@@ -88,10 +89,10 @@
             <span><span class="badge">{x.status}</span> {x.amount} → <span class="mono">{x.to}</span></span>
             <span class="row">
               {#if !['Succeeded', 'Superseded'].includes(x.status)}
-                <button disabled={busy} onclick={() => act('ops/process_transfer', { id: x.transfer_id })}>{t('retry')}</button>
+                <button class={buttonClass()} disabled={busy} onclick={() => act('ops/process_transfer', { id: x.transfer_id })}>{t('retry')}</button>
               {/if}
               {#if x.revisable}
-                <button disabled={busy} onclick={() => act('ops/revise_transfer', { id: x.transfer_id, fee: x.expected_fee })}>{t('revise')}</button>
+                <button class={buttonClass()} disabled={busy} onclick={() => act('ops/revise_transfer', { id: x.transfer_id, fee: x.expected_fee })}>{t('revise')}</button>
               {/if}
             </span>
           </div>
@@ -103,7 +104,7 @@
         </li>
       {/each}
     </ul>
-    {#if transfers.next}<button disabled={busy} onclick={() => page('ops/transfers', transfers.next)}>{t('next')}</button>{/if}
+    {#if transfers.next}<button class={buttonClass()} disabled={busy} onclick={() => page('ops/transfers', transfers.next)}>{t('next')}</button>{/if}
   {/if}
   {#if claims}
     <h3>{t('claims')}</h3>
@@ -111,13 +112,13 @@
       {#each claims.claims as c (c.claim_id)}
         <li class="row spread">
           <span>{c.product_id} · {c.sku} <span class="badge">{c.status}</span> {c.eligibility} · {t('validUntil')} {when(c.valid_until_ms)}</span>
-          <button disabled={busy} onclick={() => act('ops/claim', { id: c.claim_id, refresh: c.refreshable })}>
+          <button class={buttonClass()} disabled={busy} onclick={() => act('ops/claim', { id: c.claim_id, refresh: c.refreshable })}>
             {c.refreshable ? t('refreshClaim') : t('reconcile')}
           </button>
         </li>
       {/each}
     </ul>
-    {#if claims.next}<button disabled={busy} onclick={() => page('ops/claims', claims.next)}>{t('next')}</button>{/if}
-    <button disabled={busy} onclick={() => act('ops/sweep', {})}>{t('sweep')}</button>
+    {#if claims.next}<button class={buttonClass()} disabled={busy} onclick={() => page('ops/claims', claims.next)}>{t('next')}</button>{/if}
+    <button class={buttonClass()} disabled={busy} onclick={() => act('ops/sweep', {})}>{t('sweep')}</button>
   {/if}
 </div>

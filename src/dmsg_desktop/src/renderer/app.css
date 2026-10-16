@@ -1,0 +1,344 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/*
+ * The dMsg tokens (src/dmsg_frontend/DESIGN.md) with the desktop's dark
+ * theme. The main process sets Electron's nativeTheme from the person's
+ * appearance, so `prefers-color-scheme` carries the choice and Tailwind's
+ * `dark:` variant follows it.
+ */
+:root {
+  color-scheme: light dark;
+  --paper: #f7f8f4;
+  --paper-dim: #eef2eb;
+  --surface: #ffffff;
+  --surface-2: #f3f6f1;
+  --pale: #e8f0e9;
+  --wash: rgb(16 37 31 / 5%);
+  --line: #dae3d9;
+  /* Controls a boundary identifies, such as inputs: 3:1 on white. */
+  --edge: #84968a;
+  --edge-soft: #c9d4cb;
+  --ink: #10251f;
+  --ink-2: #2b3f36;
+  --muted: #4e6257;
+  --faint: #637769;
+  --forest: #145c45;
+  --forest-hover: #0d4433;
+  --on-forest: #ffffff;
+  --focus: #145c45;
+  --gem: #b45309;
+  --gem-pale: #fbf1e6;
+  --danger: #b91c1c;
+  --danger-pale: #fdf0f0;
+  --ok: #166534;
+  --ok-pale: #ecf7ef;
+  --warn: #92400e;
+  --warn-pale: #fcf4e4;
+  --pop-shadow: 0 14px 34px -10px rgb(16 37 31 / 25%), 0 0 0 1px rgb(16 37 31 / 5%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0e1512;
+    --paper-dim: #111a16;
+    --surface: #151f1b;
+    --surface-2: #1a2621;
+    --pale: #1e2d26;
+    --wash: rgb(229 238 232 / 6%);
+    --line: #26372f;
+    --edge: #5f776a;
+    --edge-soft: #34483e;
+    --ink: #e5eee8;
+    --ink-2: #cbd8cf;
+    --muted: #a3b7ac;
+    --faint: #8ea398;
+    --forest: #5cc497;
+    --forest-hover: #7ed6ae;
+    --on-forest: #08201a;
+    --focus: #a9d5bd;
+    --gem: #f2a65a;
+    --gem-pale: #2b2117;
+    --danger: #f08a8a;
+    --danger-pale: #2c1818;
+    --ok: #74d39e;
+    --ok-pale: #13261b;
+    --warn: #f0b84a;
+    --warn-pale: #2a2210;
+    --pop-shadow: 0 14px 34px -10px rgb(0 0 0 / 60%), 0 0 0 1px rgb(229 238 232 / 6%);
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-dim: var(--paper-dim);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-pale: var(--pale);
+  --color-wash: var(--wash);
+  --color-line: var(--line);
+  --color-edge: var(--edge);
+  --color-edge-soft: var(--edge-soft);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-forest: var(--forest);
+  --color-forest-hover: var(--forest-hover);
+  --color-on-forest: var(--on-forest);
+  --color-focus: var(--focus);
+  --color-gem: var(--gem);
+  --color-gem-pale: var(--gem-pale);
+  --color-danger: var(--danger);
+  --color-danger-pale: var(--danger-pale);
+  --color-ok: var(--ok);
+  --color-ok-pale: var(--ok-pale);
+  --color-warn: var(--warn);
+  --color-warn-pale: var(--warn-pale);
+  --shadow-pop: var(--pop-shadow);
+  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* From anda-bot: a spring that overshoots for what pops, a soft one for what arrives. */
+  --ease-spring: linear(
+    0,
+    0.071,
+    0.238,
+    0.445,
+    0.65,
+    0.827,
+    0.963,
+    1.055,
+    1.107,
+    1.126,
+    1.121,
+    1.103,
+    1.077,
+    1.051,
+    1.027,
+    1.009,
+    0.996,
+    0.988,
+    0.984,
+    0.986,
+    0.993,
+    1
+  );
+  --ease-spring-soft: linear(0, 0.097, 0.298, 0.514, 0.7, 0.839, 0.933, 0.989, 1.017, 1.027, 1.023, 1.011, 1.003, 1);
+  --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+  }
+  :root[data-chrome='inset'] body {
+    background: transparent;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+  /* Text fields; every other control is a bits-ui component. */
+  input:not([type='checkbox'], [type='radio'], [type='file'], [type='hidden']),
+  textarea {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid var(--edge);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0 10px;
+    height: 32px;
+    transition:
+      border-color 150ms,
+      box-shadow 150ms;
+  }
+  textarea {
+    height: auto;
+    min-height: 88px;
+    padding: 8px 10px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    border-color: var(--forest);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--forest) 18%, transparent);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--faint);
+  }
+  input:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  input[type='number'] {
+    appearance: textfield;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--forest) 22%, transparent);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--edge-soft) transparent;
+  }
+  /* Right to left (Arabic): identifiers, code and numbers keep their own order. */
+  html[dir='rtl'] :is(.mono, pre, input[type='number']) {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+  html[dir='rtl'] :is(dd, div, p).mono {
+    text-align: right;
+  }
+}
+
+/*
+ * The views' shared classes until each view moves to the component kit.
+ * `.classic` marks a window whose views still rely on browser spacing for
+ * headings, paragraphs and lists, which Tailwind's preflight removes.
+ */
+@layer components {
+  .classic :where(h1, h2, h3) {
+    margin: 0 0 12px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  .classic :where(h1) {
+    font-size: 20px;
+    letter-spacing: -0.02em;
+  }
+  .classic :where(h2) {
+    font-size: 15px;
+  }
+  .classic :where(h3) {
+    font-size: 13.5px;
+  }
+  .classic :where(p, pre) {
+    margin: 0.75em 0;
+  }
+  .classic :where(ul:not(.list)) {
+    margin: 0.75em 0;
+    padding-inline-start: 1.5em;
+    list-style: disc;
+  }
+  .classic :where(dl) {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 14px;
+    margin: 0;
+  }
+  .classic :where(dt) {
+    color: var(--muted);
+  }
+  .classic :where(dd) {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .muted {
+    color: var(--muted);
+  }
+  .error {
+    color: var(--danger);
+  }
+  .warn {
+    color: var(--warn);
+  }
+  .card {
+    margin-bottom: 12px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+  }
+  .card.list {
+    padding: 4px 18px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .spread {
+    justify-content: space-between;
+  }
+  .list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .list > li {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .list > li:last-child {
+    border-bottom: 0;
+  }
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    word-break: break-all;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 5px;
+    background: var(--pale);
+    color: var(--forest);
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+}
+
+/* The approval window's Approve fills while its delay runs. */
+@keyframes approve-delay {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Text for work under way, such as a sync: a highlight sweeps across it. */
+.shimmer {
+  background: linear-gradient(100deg, var(--faint) 40%, var(--ink) 50%, var(--faint) 60%) 0 0 / 300% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 2.2s linear infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    background: none;
+    color: inherit;
+    animation: none;
+  }
+}

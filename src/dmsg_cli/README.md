@@ -560,11 +560,14 @@ The daemon listens on `127.0.0.1` only.
   pending (ten minutes) and accept one POST from the daemon's own loopback
   origin ([dmsg-login/1](../../docs/protocol/login-v1_zh.md) §4).
 - `idle_lock_minutes` without a request locks the daemon: the login and every
-  key are dropped. Revisions already signed for submission are still sent,
-  without any key, until their 45-second deadline. With `background_online`
-  the device signing key stays: `dmsg sync` and the scheduled sync still send
-  sealed versions and fetch ciphertext, while reading, editing and every
-  account change answer `LOCKED`.
+  key are dropped. While unlocked, `daemon/status` gives the time it will
+  lock as `lock_at` (Unix milliseconds) and the idle period as
+  `idle_lock_ms`; the lock comes within 10 seconds after `lock_at`.
+  Revisions already signed for submission are still sent, without any key,
+  until their 45-second deadline. With `background_online` the device
+  signing key stays: `dmsg sync` and the scheduled sync still send sealed
+  versions and fetch ciphertext, while reading, editing and every account
+  change answer `LOCKED`.
 - The daemon keeps the relay's hint channel open, locked or not, with a token
   it registers while the device key is available. A `connect` hint fetches the
   mailbox (stored sealed while locked); without the device key the daemon only

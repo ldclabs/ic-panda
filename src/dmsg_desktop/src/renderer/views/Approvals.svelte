@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { t, stateLabel } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import { buttonClass } from '../components/ui'
 
   let { status }: { status: any } = $props()
   let requests = $state<any[]>([])
@@ -94,7 +95,6 @@
   })
 </script>
 
-<h1>{t('approvals')}</h1>
 {#if error}<p class="muted" data-testid="approvals-error">{error}</p>{/if}
 {#if notice}<p class="muted" data-testid="approvals-notice">{notice}</p>{/if}
 <div class="card">
@@ -103,7 +103,7 @@
     {#each requests.filter((r) => r.state === 'awaiting_user') as request (request.id)}
       <li class="row spread">
         <span><span class="badge">{request.source}</span> {label(request)}</span>
-        <button class="primary" onclick={() => window.dmsg.openApproval(request.id)}>{t('open')}</button>
+        <button class={buttonClass('primary')} onclick={() => window.dmsg.openApproval(request.id)}>{t('open')}</button>
       </li>
     {:else}
       <li class="muted">{t('noRequests')}</li>
@@ -115,20 +115,20 @@
     <h2>{t('newStatement')}</h2>
     <textarea placeholder={t('statement')} bind:value={text} data-testid="statement-text"></textarea>
     <div class="row" style="margin-top: 8px">
-      <button class="primary" onclick={sign} data-testid="statement-submit">{t('submit')}</button>
-      <button onclick={enableFormal}>{t('formal')}: {t('enable')}</button>
+      <button class={buttonClass('primary')} onclick={sign} data-testid="statement-submit">{t('submit')}</button>
+      <button class={buttonClass()} onclick={enableFormal}>{t('formal')}: {t('enable')}</button>
     </div>
     <h3 style="margin-top: 12px">{t('appAction')}</h3>
     <p class="muted">{t('appActionHint')}</p>
-    <button data-testid="sign-action" onclick={signAction}>{t('appActionPick')}</button>
+    <button class={buttonClass()} data-testid="sign-action" onclick={signAction}>{t('appActionPick')}</button>
   </div>
 {/if}
 <div class="card" data-testid="verify-bundle">
   <h2>{t('verifyBundle')}</h2>
   <p class="muted">{t('verifyBundleHint')}</p>
   <div class="row">
-    <button onclick={() => verify(false)}>{t('verifyBundle')}</button>
-    <button onclick={() => verify(true)}>{t('verifyWithFile')}</button>
+    <button class={buttonClass()} onclick={() => verify(false)}>{t('verifyBundle')}</button>
+    <button class={buttonClass()} onclick={() => verify(true)}>{t('verifyWithFile')}</button>
   </div>
   {#if report}
     <dl style="margin-top: 8px" data-testid="verify-report">
@@ -155,7 +155,7 @@
   <div class="card">
     <div class="row spread">
       <h2>{t('usage')}</h2>
-      <button onclick={loadUsage}>{t('refresh')}</button>
+      <button class={buttonClass()} onclick={loadUsage}>{t('refresh')}</button>
     </div>
     {#if usage}
       <p data-testid="usage">{usage.charged} / {usage.allowed} · {usage.remaining} {t('remaining')} · {t('validUntil')} {when(usage.valid_until_ms)}</p>
@@ -190,7 +190,7 @@
           <span class="badge">{entry.stage}</span>
           <span class="row">
             <span class="muted">{when(entry.created_at)}</span>
-            {#if entry.stage === 'complete'}<button onclick={() => exportBundle(entry.execution)}>{t('exportBundle')}</button>{/if}
+            {#if entry.stage === 'complete'}<button class={buttonClass()} onclick={() => exportBundle(entry.execution)}>{t('exportBundle')}</button>{/if}
           </span>
         </div>
         <div>{summary(entry.statement)}</div>

@@ -14,6 +14,7 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  nativeTheme,
   Notification,
   shell,
   Tray,
@@ -23,6 +24,7 @@ import { readFileSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
+import { isAppearance, type Appearance } from '../shared/appearance'
 import type { DaemonEvent } from '../shared/contract'
 import { isLocale, resolveLocale, type Locale } from '../shared/locales'
 import { Daemon, DaemonError, reasonOf } from './daemon'
@@ -61,6 +63,7 @@ let trayState = 'connecting'
 /** English until the app is ready and knows its locale. */
 let locale: Locale = 'en'
 let text = textFor(locale)
+let appearance: Appearance = 'system'
 const updates = new Updates(() => updateTray(trayState))
 /** A copied secret leaves the clipboard after this long, unless something replaced it. */
 const CLEAR_MS = 30_000
@@ -99,7 +102,15 @@ function applyLocale(next: Locale) {
   updateTray(trayState)
 }
 
-/** A window learns its role and the current language from its arguments. */
+/** The appearance the person picked in the main window, kept in the app's profile. */
+const appearanceFile = () => join(app.getPath('userData'), 'appearance')
+
+function applyAppearance(next: Appearance) {
+  appearance = next
+  nativeTheme.themeSource = next
+}
+
+/** A window learns its role, the current language and appearance from its arguments. */
 function webPreferences(role: 'main' | 'approval') {
   return {
     preload: join(__dirname, '../preload/index.js'),
@@ -107,9 +118,12 @@ function webPreferences(role: 'main' | 'approval') {
     sandbox: true,
     nodeIntegration: false,
     webSecurity: true,
-    additionalArguments: [`--dmsg-role=${role}`, `--dmsg-locale=${locale}`]
+    additionalArguments: [`--dmsg-role=${role}`, `--dmsg-locale=${locale}`, `--dmsg-appearance=${appearance}`]
   }
 }
+
+/** The page ground of the current theme, shown before the renderer paints. */
+const background = () => (nativeTheme.shouldUseDarkColors ? '#0e1512' : '#f7f8f4')
 
 function showMain(route = '/vault') {
   if (main && !main.isDestroyed()) {
@@ -119,11 +133,15 @@ function showMain(route = '/vault') {
     return
   }
   main = new BrowserWindow({
-    width: 1080,
-    height: 720,
-    minWidth: 720,
-    minHeight: 520,
+    width: 1180,
+    height: 760,
+    minWidth: 760,
+    minHeight: 540,
     title: 'dMsg',
+    // On macOS the sidebar sits on the window's own material, under the traffic lights.
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 18, y: 18 }, vibrancy: 'sidebar', backgroundColor: '#00000000' }
+      : { backgroundColor: background() }),
     show: !testMode || process.env.DMSG_DESKTOP_SHOW === '1',
     webPreferences: webPreferences('main')
   })
@@ -149,10 +167,14 @@ function showApproval(id: string) {
     return
   }
   approval = new BrowserWindow({
-    width: 480,
-    height: 680,
+    width: 460,
+    height: 720,
+    minWidth: 400,
+    minHeight: 560,
     resizable: true,
     title: 'dMsg approval',
+    ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 12, y: 11 } } : {}),
+    backgroundColor: background(),
     show: !testMode || process.env.DMSG_DESKTOP_SHOW === '1',
     webPreferences: webPreferences('approval')
   })
@@ -400,6 +422,15 @@ ipcMain.handle('dmsg:set-locale', (event, next: string) =>
     broadcast('dmsg:locale', next)
   })
 )
+/** An appearance picked in the main window is kept; every window, menu and dialog follows it. */
+ipcMain.handle('dmsg:set-appearance', (event, next: string) =>
+  guard(async () => {
+    trust(event, 'main')
+    if (!isAppearance(next)) throw new DaemonError('INVALID_INPUT', 'Not a supported appearance')
+    await writeFile(appearanceFile(), next)
+    applyAppearance(next)
+  })
+)
 ipcMain.handle('dmsg:connection', (event) =>
   guard(async () => {
     trust(event, 'any')
@@ -573,6 +604,12 @@ app.whenReady().then(async () => {
     /* no choice yet */
   }
   applyLocale(resolveLocale(stored, [...app.getPreferredSystemLanguages(), app.getLocale()]))
+  try {
+    const kept = readFileSync(appearanceFile(), 'utf8').trim()
+    if (isAppearance(kept)) applyAppearance(kept)
+  } catch {
+    /* the system's appearance */
+  }
   if (!testMode) {
     if (process.defaultApp && process.argv[1]) app.setAsDefaultProtocolClient('dmsg', process.execPath, [resolve(process.argv[1])])
     else app.setAsDefaultProtocolClient('dmsg')

@@ -519,6 +519,13 @@ impl Daemon {
         value["port"] = self.port.into();
         value["hints"] = serde_json::to_value(self.hints.lock().expect("hint state").clone())
             .expect("hint state serializes");
+        // While unlocked, when the idle lock comes; the background pass
+        // checks it every FLUSH_MS.
+        if value["state"] == "unlocked" {
+            value["lock_at"] =
+                (self.activity.load(Ordering::Relaxed) + self.settings.idle_lock_ms).into();
+            value["idle_lock_ms"] = self.settings.idle_lock_ms.into();
+        }
         Ok(value)
     }
 

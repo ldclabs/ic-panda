@@ -1,7 +1,7 @@
 // Electron smoke test: the built app against a mock daemon, in a temporary
 // profile. Checks the main window, the approval window opened by a dmsg://
 // link, that only the approval window decides, and that it decides what it
-// showed, and that the channel, inbox, plan and agent views reach the daemon
+// showed, that payments and device revocation take a hold to approve, and that the channel, inbox, plan and agent views reach the daemon
 // with payments and grants only as approval requests; that another account's
 // workspace is selected from Settings, that binding a login and a web
 // checkout are approval requests, and that a web checkout is quoted before it
@@ -14,8 +14,8 @@
 // grants services at a chosen origin and manages MCP Events endpoints; that
 // a delivery notifies without its content; that application actions and
 // attestation bundles enter through the main process's dialogs; and that a
-// language picked in the main window reaches both windows. Run with
-// `pnpm test:e2e`.
+// language and an appearance picked in the main window reach both windows.
+// Run with `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { createServer } from 'node:http'
@@ -155,8 +155,10 @@ function status() {
     account,
     device_id: '11'.repeat(32),
     approvals_waiting: [...requests.values()].filter((r) => r.state === 'awaiting_user').length,
-    pending_sync: 0,
-    background_online: false
+    pending_sync: 2,
+    background_online: false,
+    lock_at: Date.now() + 14 * 60_000,
+    idle_lock_ms: 15 * 60_000
   }
 }
 const offer = {
@@ -518,11 +520,14 @@ const port = server.address().port
 const profile = await mkdtemp(join(tmpdir(), 'dmsg-desktop-smoke-'))
 const shots = resolve('test-results')
 await mkdir(shots, { recursive: true })
-// The windows start in English, whatever the system's languages.
+// The windows start in English and light, whatever the system's languages and appearance.
 await writeFile(join(profile, 'locale'), 'en')
+await writeFile(join(profile, 'appearance'), 'light')
 
 const app = await electron.launch({
   executablePath: electronPath,
+  // The appearance comes from the profile through nativeTheme, not from emulation.
+  colorScheme: null,
   args: [resolve('out/main/index.js')],
   env: {
     ...process.env,
@@ -556,7 +561,24 @@ try {
   const main = await app.firstWindow()
   await main.waitForSelector('text=Smoke note', { timeout: 20_000 })
   assert.equal(await main.textContent('[data-testid="waiting-count"]'), '2')
+  // The gate rail keeps the lock, its countdown and what waits to sync in view.
+  assert.equal(await main.textContent('[data-testid="gate-state"]'), 'Unlocked')
+  assert.match(await main.textContent('[data-testid="gate-rail"]'), /1[34]:\d\d[\s\S]*2 versions to sync/)
   await main.screenshot({ path: join(shots, 'main.png') })
+  // The palette goes to a view by name; ⌘1 comes back to the vault.
+  const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
+  await main.keyboard.press(`${mod}+k`)
+  await main.waitForSelector('[data-testid="palette"]')
+  await main.fill('[data-testid="palette-input"]', 'Inbox')
+  await main.screenshot({ path: join(shots, 'palette.png') })
+  await main.keyboard.press('Enter')
+  await main.waitForSelector('[data-testid="palette"]', { state: 'detached' })
+  assert.equal(await main.textContent('[data-testid="view-title"]'), 'Inbox')
+  await main.keyboard.press(`${mod}+1`)
+  await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
+  await main.click('[data-testid="sidebar-toggle"]')
+  await main.screenshot({ path: join(shots, 'sidebar-collapsed.png') })
+  await main.click('[data-testid="sidebar-toggle"]')
 
   // The main window cannot decide, even through the bridge's own methods.
   await assert.rejects(main.evaluate((id) => window.dmsg.decide(id, 'cd'.repeat(32), true), request.id), /FORBIDDEN/)
@@ -642,6 +664,8 @@ try {
   assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('5 Icp'))
   await approval.waitForSelector('[data-testid="approve"]')
   await approval.screenshot({ path: join(shots, 'checkout.png') })
+  // A payment is approved by holding the button: a click alone decides nothing.
+  await approval.click('[data-testid="approve"]')
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
   await main.screenshot({ path: join(shots, 'account.png') })
 
@@ -716,15 +740,17 @@ try {
   await approval.click('button:has-text("Get a quote"), button:has-text("获取报价")')
   await approval.waitForSelector('[data-testid="approval-amount"]', { timeout: 20_000 })
   assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('3 Icp'))
-  assert.equal(await approval.isDisabled('[data-testid="approve"]'), false)
+  // A quoted request changed, so Approve opens again only after its delay.
+  await approval.waitForSelector('[data-testid="approve"]:not([disabled])')
   await approval.screenshot({ path: join(shots, 'connect-checkout.png') })
 
   // Legacy migration: the offer shows its fingerprint and target device, a
   // kept archive reads offline, and transfer files reach the daemon only
   // through the main process's dialog.
-  await main.click('nav >> text=/Legacy|旧版迁移/')
+  // A started migration that is not imported yet shows a notice; Legacy itself lives in Settings.
+  await main.click('[data-testid="legacy-notice"] >> text=Open')
   await main.waitForSelector('[data-testid="legacy-archives"]')
-  await main.check(`input[value="${offer.nonce}"]`)
+  await main.check(`[data-testid="legacy-pick-${offer.nonce}"]`)
   await main.waitForSelector('[data-testid="legacy-offer"]')
   assert.ok((await main.textContent('[data-testid="legacy-offer"]')).includes(offer.fingerprint))
   assert.ok((await main.textContent('[data-testid="legacy-offer"]')).includes(offer.target))
@@ -805,6 +831,7 @@ try {
   // the approval window to bind another login.
   await main.click('nav >> text=/Settings|设置/')
   await main.waitForSelector('[data-testid="local-accounts"]')
+  await main.waitForSelector('[data-testid="settings-legacy"]')
   assert.ok((await main.textContent('[data-testid="local-accounts"]')).includes(other))
   await main.waitForSelector('[data-testid="logins"]')
   await main.fill('[data-testid="approve-request"]', 'binding-token')
@@ -818,6 +845,7 @@ try {
   await main.click('[data-testid="revoke-device"]')
   await approval.waitForSelector(`text=${'12'.repeat(32)}`, { timeout: 20_000 })
   assert.equal(latest('device/revoke').params.device, '12'.repeat(32))
+  await approval.screenshot({ path: join(shots, 'approval-revoke.png') })
   await main.screenshot({ path: join(shots, 'settings.png') })
   // The public avatar: shown from a data URL, set from a picked image,
   // removed; the window never names a path itself.
@@ -860,6 +888,31 @@ try {
   await approval.waitForSelector('html[lang="fr"][dir="ltr"]')
   await main.waitForSelector('nav >> text=Paramètres')
   await main.screenshot({ path: join(shots, 'locale-fr.png') })
+
+  // The appearance is picked in the main window only and kept in the
+  // profile; both windows follow it through nativeTheme.
+  await assert.rejects(approval.evaluate(() => window.dmsg.setAppearance('dark')), /FORBIDDEN/)
+  assert.ok(!(await main.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)))
+  await choose(main, 'appearance', 'dark')
+  await main.waitForFunction(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  await approval.waitForFunction(() => matchMedia('(prefers-color-scheme: dark)').matches)
+  assert.equal(await readFile(join(profile, 'appearance'), 'utf8'), 'dark')
+  await main.waitForSelector('[data-testid="appearance-menu"]', { state: 'detached' })
+  await main.screenshot({ path: join(shots, 'appearance-dark.png') })
+
+  // Revoking a device takes a hold: a short press decides nothing, a second's hold approves.
+  const decisions = () => calls.filter((c) => c.method === 'approval/respond').length
+  const before = decisions()
+  await approval.click('[data-testid="approve"]')
+  await new Promise((r) => setTimeout(r, 300))
+  assert.equal(decisions(), before)
+  const box = await approval.locator('[data-testid="approve"]').boundingBox()
+  await approval.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await approval.mouse.down()
+  await waitFor(() => decisions() === before + 1)
+  await approval.mouse.up()
+  await approval.waitForSelector('[data-testid="approval-outcome"]')
+  await approval.screenshot({ path: join(shots, 'approval-held.png') })
   console.log('desktop smoke test passed')
 } finally {
   await app.close()

@@ -2,6 +2,7 @@
   import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
   import Select from '../components/Select.svelte'
+  import { buttonClass } from '../components/ui'
 
   /** Agent Mail and Agent Knowledge, run as a hosted Agent ID with the connector's own tools. */
   let { agents, active }: { agents: any[]; active: string | null } = $props()
@@ -147,9 +148,9 @@
   {#if error}<p class="error" data-testid="mail-error">{error}</p>{/if}
   {#if notice}<p class="muted">{notice}</p>{/if}
   <div class="row">
-    <button disabled={busy || !agent} data-testid="mail-open" onclick={loadMail}>{t('open')}</button>
-    <button disabled={busy || !agent} onclick={sync}>{t('sync')}</button>
-    {#if unread}<button disabled={busy} onclick={markRead}>{t('markRead')} ({unread})</button>{/if}
+    <button class={buttonClass()} disabled={busy || !agent} data-testid="mail-open" onclick={loadMail}>{t('open')}</button>
+    <button class={buttonClass()} disabled={busy || !agent} onclick={sync}>{t('sync')}</button>
+    {#if unread}<button class={buttonClass()} disabled={busy} onclick={markRead}>{t('markRead')} ({unread})</button>{/if}
     {#if synced}<span class="muted">{synced}</span>{/if}
   </div>
   <h3>{t('mailboxes')}</h3>
@@ -165,7 +166,7 @@
   </ul>
   <div class="row" style="margin-top: 8px">
     <input placeholder={t('mailRoutes')} bind:value={routes} data-testid="mail-routes" />
-    <button disabled={busy || !routes.trim()} onclick={publish}>{t('openMailbox')}</button>
+    <button class={buttonClass()} disabled={busy || !routes.trim()} onclick={publish}>{t('openMailbox')}</button>
   </div>
   <h3>{t('letters')}</h3>
   <ul class="list" data-testid="mail-messages">
@@ -180,7 +181,7 @@
           </span>
           <span class="row">
             <span class="muted">{when(message.received_at ?? message.created_at)}</span>
-            {#if message.direction === 'received' && message.reply_address}<button disabled={busy} onclick={() => reply(message)}>{t('reply')}</button>{/if}
+            {#if message.direction === 'received' && message.reply_address}<button class={buttonClass()} disabled={busy} onclick={() => reply(message)}>{t('reply')}</button>{/if}
           </span>
         </div>
         <div class="body">{textOf(message)}</div>
@@ -191,7 +192,7 @@
   </ul>
   <div class="form">
     {#if draft.in_reply_to}
-      <p class="muted">{t('replyingTo')} <span class="mono">{draft.in_reply_to.slice(0, 16)}</span> <button onclick={() => (draft.in_reply_to = '')}>{t('cancel')}</button></p>
+      <p class="muted">{t('replyingTo')} <span class="mono">{draft.in_reply_to.slice(0, 16)}</span> <button class={buttonClass()} onclick={() => (draft.in_reply_to = '')}>{t('cancel')}</button></p>
     {:else}
       <input placeholder={t('mailTo')} bind:value={draft.to} data-testid="mail-to" />
     {/if}
@@ -206,7 +207,7 @@
             .filter((b) => b.status === 'open')
             .map((box) => ({ value: box.mailbox_id, label: `${t('replyCard')} ${box.mailbox_id.slice(0, 8)}` }))
         ]} />
-      <button class="primary" disabled={busy || !draft.text.trim() || (!draft.to.trim() && !draft.in_reply_to)} data-testid="mail-send" onclick={send}>{t('send')}</button>
+      <button class={buttonClass('primary')} disabled={busy || !draft.text.trim() || (!draft.to.trim() && !draft.in_reply_to)} data-testid="mail-send" onclick={send}>{t('send')}</button>
     </div>
   </div>
 </div>
@@ -216,7 +217,7 @@
   <div class="row">
     <input placeholder={t('knowledgeService')} bind:value={service} data-testid="knowledge-service" />
     <input placeholder={t('knowledgeActor')} bind:value={actor} />
-    <button disabled={busy || !agent || !service.trim()} onclick={query}>{t('lookUp')}</button>
+    <button class={buttonClass()} disabled={busy || !agent || !service.trim()} onclick={query}>{t('lookUp')}</button>
   </div>
   <ul class="list" data-testid="knowledge-items">
     {#each items as item (item.id)}
@@ -225,13 +226,13 @@
           <strong>{item.payload?.title ?? item.type}</strong>
           <span class="mono muted">{labelOf(item.actor)} · {when(item.created_at)}</span>
         </span>
-        <button disabled={busy} onclick={() => get(item.id)}>{t('open')}</button>
+        <button class={buttonClass()} disabled={busy} onclick={() => get(item.id)}>{t('open')}</button>
       </li>
     {/each}
   </ul>
   <div class="row" style="margin-top: 8px">
     <input placeholder="ID" bind:value={lookup} />
-    <button disabled={busy || !service.trim() || !lookup.trim()} onclick={() => get(lookup.trim())}>{t('open')}</button>
+    <button class={buttonClass()} disabled={busy || !service.trim() || !lookup.trim()} onclick={() => get(lookup.trim())}>{t('open')}</button>
   </div>
   {#if found}
     <dl style="margin-top: 8px" data-testid="knowledge-found">
@@ -252,7 +253,7 @@
       class="kind"
       options={['knowledge.publish', 'knowledge.retract'].map((k) => ({ value: k, label: k, mono: true }))} />
     <textarea placeholder={t('knowledgePayload')} bind:value={payload}></textarea>
-    <button class="primary" disabled={busy || !agent || !service.trim() || !payload.trim()} onclick={submit}>{t('submitTo')}</button>
+    <button class={buttonClass('primary')} disabled={busy || !agent || !service.trim() || !payload.trim()} onclick={submit}>{t('submitTo')}</button>
   </div>
 </div>
 

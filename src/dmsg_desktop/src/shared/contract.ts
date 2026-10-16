@@ -1,4 +1,5 @@
 /** The narrow surface the renderer sees as `window.dmsg`; the daemon credential never crosses it. */
+import type { Appearance } from './appearance'
 import type { Locale } from './locales'
 
 /** A daemon event, as `/ws/app/v1` sends it. */
@@ -17,10 +18,16 @@ export interface Connection {
 export interface DesktopBridge {
   /** Which window this is: the main window or the approval window. */
   role: 'main' | 'approval'
+  /** The operating system, for the window chrome: `darwin`, `win32` or `linux`. */
+  platform: string
   /** The interface language when this window opened; `onLocale` follows changes. */
   locale: Locale
   /** Keep the language the person picked; the main window only. The tray, dialogs and every window follow. */
   setLocale(locale: Locale): Promise<void>
+  /** The appearance when this window opened. */
+  appearance: Appearance
+  /** Keep the appearance the person picked; the main window only. Every window follows through `prefers-color-scheme`. */
+  setAppearance(appearance: Appearance): Promise<void>
   /** A daemon method the desktop allows a window to call. */
   call(method: string, params?: unknown): Promise<unknown>
   /** Approve or reject a request after the person saw it; the approval window only. */

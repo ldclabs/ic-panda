@@ -3,6 +3,8 @@
   import { t } from '../i18n/index.svelte'
   import { call, CallError, code, when } from '../rpc'
   import Select from '../components/Select.svelte'
+  import Suggest from '../components/Suggest.svelte'
+  import { buttonClass } from '../components/ui'
 
   let { status }: { status: any } = $props()
   let channels = $state<any[]>([])
@@ -187,7 +189,6 @@
   const manages = $derived(owner || myRole === 'admin')
 </script>
 
-<h1>{t('channels')}</h1>
 {#if error}<p class="error" data-testid="channel-error">{error}</p>{/if}
 {#if notice}<p class="muted" data-testid="channel-notice">{notice}</p>{/if}
 <div class="columns">
@@ -216,19 +217,19 @@
               { value: 'distribution', label: t('distribution') },
               { value: 'direct', label: t('direct') }
             ]} />
-          <button class="primary" disabled={busy} onclick={create}>{t('create')}</button>
+          <button class={buttonClass('primary')} disabled={busy} onclick={create}>{t('create')}</button>
         </div>
       </div>
       <div class="card">
         <h2>{t('joinChannel')}</h2>
         <textarea placeholder={t('invitation')} bind:value={joining}></textarea>
-        <button style="margin-top: 8px" disabled={busy || !joining.trim()} onclick={join}>{t('join')}</button>
+        <button class={buttonClass()} style="margin-top: 8px" disabled={busy || !joining.trim()} onclick={join}>{t('join')}</button>
       </div>
       <div class="card">
         <h2>{t('transferPacket')}</h2>
         <p class="muted">{t('transferPacketHint')}</p>
         <textarea placeholder={t('transferPacket')} bind:value={packet} data-testid="channel-packet"></textarea>
-        <button style="margin-top: 8px" disabled={busy || !packet.trim()} data-testid="channel-packet-settle" onclick={settle}>{t('settlePacket')}</button>
+        <button class={buttonClass()} style="margin-top: 8px" disabled={busy || !packet.trim()} data-testid="channel-packet-settle" onclick={settle}>{t('settlePacket')}</button>
       </div>
     {/if}
   </section>
@@ -243,19 +244,19 @@
       <div class="card">
         <div class="row spread">
           <h2>{selected.name}</h2>
-          <button disabled={busy} onclick={read}>{t('read')}</button>
+          <button class={buttonClass()} disabled={busy} onclick={read}>{t('read')}</button>
         </div>
         {#if ledger}
           <p class="muted">
             {t('epoch')} {ledger.epoch} · {ledger.status}{owner ? ` · ${t('owner')}` : myRole ? ` · ${myRole}` : ''}
           </p>
           {#if ledger.status === 'rotation_required'}
-            <p class="warn">{t('rotationRequired')} <button disabled={busy} onclick={rotate}>{t('rotate')}</button></p>
+            <p class="warn">{t('rotationRequired')} <button class={buttonClass()} disabled={busy} onclick={rotate}>{t('rotate')}</button></p>
           {/if}
           {#if ledger.status === 'archived'}
             <p class="warn">
               {t('archivedChannel')}
-              {#if owner && unlocked}<button disabled={busy} data-testid="channel-reactivate" onclick={reactivate}>{t('reactivate')}</button>{/if}
+              {#if owner && unlocked}<button class={buttonClass()} disabled={busy} data-testid="channel-reactivate" onclick={reactivate}>{t('reactivate')}</button>{/if}
             </p>
           {/if}
         {/if}
@@ -268,7 +269,7 @@
               {#if message.file}
                 <div class="row">
                   <span class="muted">📎 {message.file.name} ({t('bytes', { n: message.file.size })})</span>
-                  <button disabled={busy} onclick={() => download(message)}>{t('download')}</button>
+                  <button class={buttonClass()} disabled={busy} onclick={() => download(message)}>{t('download')}</button>
                 </div>
               {/if}
             </li>
@@ -279,14 +280,14 @@
         {#if unlocked && ledger?.status === 'active'}
           <div class="row" style="margin-top: 8px">
             <input placeholder={t('message')} bind:value={text} data-testid="channel-text" />
-            <button class="primary" disabled={busy} onclick={send}>{t('send')}</button>
+            <button class={buttonClass('primary')} disabled={busy} onclick={send}>{t('send')}</button>
           </div>
           <div class="row" style="margin-top: 8px">
             <Select
               bind:value={attachment}
               testid="channel-attachment"
               options={[{ value: '', label: t('noAttachment') }, ...files.map((file) => ({ value: file.id, label: `📎 ${file.item.file.name}` }))]} />
-            <button disabled={busy} onclick={importFile}>{t('importFile')}</button>
+            <button class={buttonClass()} disabled={busy} onclick={importFile}>{t('importFile')}</button>
           </div>
         {/if}
       </div>
@@ -310,15 +311,15 @@
                           disabled={busy}
                           options={ROLES.map((role) => ({ value: role, label: role }))}
                           onChange={(role) => control({ type: 'role', account: member.account, role, can_rotate: member.can_rotate })} />
-                        <button disabled={busy} onclick={() => control({ type: 'role', account: member.account, role: member.role, can_rotate: !member.can_rotate })}>
+                        <button class={buttonClass()} disabled={busy} onclick={() => control({ type: 'role', account: member.account, role: member.role, can_rotate: !member.can_rotate })}>
                           {member.can_rotate ? t('noRotate') : t('allowRotate')}
                         </button>
                       {/if}
                       {#if manages && member.joined_epoch > 1}
-                        <button disabled={busy} onclick={() => (history = { account: member.account, from: 1, to: member.joined_epoch - 1 })}>{t('grantHistory')}</button>
+                        <button class={buttonClass()} disabled={busy} onclick={() => (history = { account: member.account, from: 1, to: member.joined_epoch - 1 })}>{t('grantHistory')}</button>
                       {/if}
                       {#if owner}
-                        <button class="danger" disabled={busy} onclick={() => control({ type: 'remove', account: member.account })}>{t('remove')}</button>
+                        <button class={buttonClass('danger')} disabled={busy} onclick={() => control({ type: 'remove', account: member.account })}>{t('remove')}</button>
                       {/if}
                     </span>
                   {/if}
@@ -329,8 +330,8 @@
                     <input type="number" min="1" bind:value={history.from} style="max-width: 90px" />
                     <span>–</span>
                     <input type="number" min="1" bind:value={history.to} style="max-width: 90px" />
-                    <button class="primary" disabled={busy} data-testid="history-submit" onclick={grantHistory}>{t('grantHistory')}</button>
-                    <button onclick={() => (history.account = '')}>{t('cancel')}</button>
+                    <button class={buttonClass('primary')} disabled={busy} data-testid="history-submit" onclick={grantHistory}>{t('grantHistory')}</button>
+                    <button class={buttonClass()} onclick={() => (history.account = '')}>{t('cancel')}</button>
                   </div>
                 {/if}
               </li>
@@ -339,7 +340,7 @@
           {#if unlocked && manages && ledger.status !== 'archived'}
             <div class="row" style="margin-top: 8px">
               <input placeholder={t('accountId')} bind:value={account} />
-              <button disabled={busy || !account.trim()} onclick={invite}>{t('invite')}</button>
+              <button class={buttonClass()} disabled={busy || !account.trim()} onclick={invite}>{t('invite')}</button>
             </div>
             {#if invitation}
               <p class="muted">{t('invitationHint')}</p>
@@ -352,19 +353,24 @@
             <h2>{t('manageChannel')}</h2>
             {#if owner}
               <div class="row">
-                <input placeholder={t('targetMember')} list="channel-member-ids" bind:value={transferTo} data-testid="transfer-target" />
-                <datalist id="channel-member-ids">
-                  {#each Object.keys(ledger.members).filter((a) => a !== me) as id (id)}<option value={id}></option>{/each}
-                </datalist>
-                <button disabled={busy || !transferTo.trim()} data-testid="owner-propose" onclick={() => propose('channel/owner_propose')}>{t('transferOwner')}</button>
-                <button disabled={busy || !transferTo.trim()} onclick={() => propose('channel/sponsor_propose')}>{t('transferSponsor')}</button>
+                <Suggest
+                  bind:value={transferTo}
+                  placeholder={t('targetMember')}
+                  testid="transfer-target"
+                  class="font-mono text-xs"
+                  suggestions={Object.keys(ledger.members)
+                    .filter((a) => a !== me)
+                    .map((id) => ({ value: id }))}
+                />
+                <button class={buttonClass()} disabled={busy || !transferTo.trim()} data-testid="owner-propose" onclick={() => propose('channel/owner_propose')}>{t('transferOwner')}</button>
+                <button class={buttonClass()} disabled={busy || !transferTo.trim()} onclick={() => propose('channel/sponsor_propose')}>{t('transferSponsor')}</button>
               </div>
               <p class="muted">{t('transferHintOwner')}</p>
               {#if ledger.status !== 'archived'}
-                <button class="danger" disabled={busy} data-testid="channel-archive" onclick={() => control({ type: 'archive' })}>{t('archive')}</button>
+                <button class={buttonClass('danger')} disabled={busy} data-testid="channel-archive" onclick={() => control({ type: 'archive' })}>{t('archive')}</button>
               {/if}
             {:else}
-              <button class="danger" disabled={busy} data-testid="channel-leave" onclick={leave}>{t('leave')}</button>
+              <button class={buttonClass('danger')} disabled={busy} data-testid="channel-leave" onclick={leave}>{t('leave')}</button>
             {/if}
           </div>
         {/if}
@@ -392,6 +398,6 @@
     width: 100%;
   }
   .link.active strong {
-    color: var(--green);
+    color: var(--forest);
   }
 </style>

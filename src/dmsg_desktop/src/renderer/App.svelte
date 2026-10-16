@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Tooltip } from 'bits-ui'
   import { onMount } from 'svelte'
   import Vault from './views/Vault.svelte'
   import Approvals from './views/Approvals.svelte'
@@ -9,14 +10,46 @@
   import Account from './views/Account.svelte'
   import Agents from './views/Agents.svelte'
   import Legacy from './views/Legacy.svelte'
-  import { t, sessionLabel } from './i18n/index.svelte'
-  import LocaleSwitcher from './i18n/LocaleSwitcher.svelte'
+  import Toaster from './components/Toaster.svelte'
+  import CommandPalette from './shell/CommandPalette.svelte'
+  import Header from './shell/Header.svelte'
+  import Sidebar from './shell/Sidebar.svelte'
+  import { shortcuts, viewOf, views } from './shell/nav'
+  import { lock } from './shell/session'
   import { call } from './rpc'
 
   let route = $state(location.hash.slice(1) || '/vault')
   let status = $state<any>(null)
   let connected = $state(true)
   let connectionError = $state<string | undefined>()
+  let palette = $state(false)
+  let collapsed = $state(stored('dmsg.sidebar') === 'collapsed')
+  /** Legacy pairing offers started and not imported yet, and those whose notice was dismissed. */
+  let offers = $state<string[]>([])
+  let dismissed = $state<string[]>((stored('dmsg.legacy-notice') ?? '').split(',').filter(Boolean))
+
+  /** On macOS the main window draws its own title bar over the sidebar's material. */
+  const inset = window.dmsg.platform === 'darwin'
+  const mod = inset ? '⌘' : 'Ctrl+'
+  const view = $derived(viewOf(route))
+  const unlocked = $derived(status?.state === 'unlocked')
+  const legacyNotice = $derived(offers.some((nonce) => !dismissed.includes(nonce)))
+
+  function stored(key: string): string | null {
+    try {
+      return localStorage.getItem(key)
+    } catch {
+      return null
+    }
+  }
+
+  function store(key: string, value: string) {
+    try {
+      localStorage.setItem(key, value)
+    } catch {
+      /* the choice lasts until the window closes */
+    }
+  }
 
   async function refresh() {
     ;({ connected, error: connectionError } = await window.dmsg.connection())
@@ -27,10 +60,49 @@
     }
   }
 
+  // Reading the offers counts as activity for the idle lock, so it happens on
+  // unlock and when legacy state changes, never on a status refresh.
+  async function loadOffers() {
+    const pairs = unlocked ? await call<any[]>('legacy/pairs').catch(() => []) : []
+    offers = pairs.map((p) => p.nonce)
+  }
+
+  $effect(() => {
+    void unlocked
+    void loadOffers()
+  })
+
+  $effect(() => store('dmsg.sidebar', collapsed ? 'collapsed' : 'expanded'))
+
+  function dismissLegacy() {
+    dismissed = [...offers]
+    store('dmsg.legacy-notice', dismissed.join(','))
+  }
+
+  const go = (next: string) => (location.hash = next)
+
+  /** ⌘K opens the palette, ⌘1–⌘6 and ⌘, go to a view, ⌘L locks (Ctrl elsewhere). */
+  function onKey(event: KeyboardEvent) {
+    if (window.dmsg.role !== 'main') return
+    const held = inset ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
+    if (!held || event.altKey || event.shiftKey) return
+    const key = event.key.toLowerCase()
+    if (key === 'k') palette = !palette
+    else if (key === 'l' && unlocked) void lock()
+    else {
+      const target = shortcuts.find((v) => v.key === key)
+      if (!target) return
+      palette = false
+      go(target.path)
+    }
+    event.preventDefault()
+  }
+
   onMount(() => {
     void refresh()
     const offEvent = window.dmsg.onEvent((event) => {
       if (['session/changed', 'connection/changed', 'approval/changed', 'sync/changed'].includes(event.type)) void refresh()
+      if (event.type === 'legacy/changed') void loadOffers()
     })
     const offNavigate = window.dmsg.onNavigate((next) => (route = next))
     const onHash = () => (route = location.hash.slice(1) || '/vault')
@@ -41,12 +113,12 @@
       window.removeEventListener('hashchange', onHash)
     }
   })
-
-  const go = (next: string) => (location.hash = next)
 </script>
 
+<svelte:window onkeydown={onKey} />
+
 {#if window.dmsg.role === 'approval'}
-  <main class="approval">
+  <main class="h-screen">
     {#if route.startsWith('/approval/')}
       {#key route}
         <Approval id={route.slice('/approval/'.length)} />
@@ -54,128 +126,44 @@
     {/if}
   </main>
 {:else}
-  <div class="shell">
-    <nav>
-      <div class="brand">
-        <!-- The Gate, as on dmsg.net: a post and a dome, one request waiting between them. -->
-        <svg viewBox="0 0 42 48" aria-hidden="true">
-          <mask id="brand-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="42" height="48">
-            <rect width="42" height="48" fill="#fff" />
-            <path d="M12 17.5 18.5 24 12 30.5 5.5 24Z" stroke="#000" stroke-width="5" stroke-linejoin="round" />
-          </mask>
-          <g mask="url(#brand-cut)">
-            <path d="M4 0h4.5A1.5 1.5 0 0 1 10 1.5v45A1.5 1.5 0 0 1 8.5 48H4a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4Z" />
-            <path d="M15.5 0H18a24 24 0 0 1 0 48h-2.5a1.5 1.5 0 0 1-1.5-1.5v-45A1.5 1.5 0 0 1 15.5 0Z" />
-          </g>
-          <path class="gem" d="M12 17.5 18.5 24 12 30.5 5.5 24Z" />
-        </svg>
-        dMsg
+  <Tooltip.Provider delayDuration={350}>
+    <div class="flex h-screen min-h-0">
+      <Sidebar
+        {route}
+        {status}
+        {connected}
+        {connectionError}
+        bind:collapsed
+        {inset}
+        {mod}
+        {legacyNotice}
+        onDismissLegacy={dismissLegacy}
+        {go}
+      />
+      <div class="flex min-w-0 flex-1 flex-col bg-paper">
+        <Header {view} {mod} {go} onPalette={() => (palette = true)} />
+        <main class="classic min-h-0 flex-1 overflow-auto px-6 py-5">
+          {#if view === views.channels}
+            <Channels {status} />
+          {:else if view === views.inbox}
+            <Inbox {status} />
+          {:else if view === views.plan}
+            <Account {status} />
+          {:else if view === views.agents}
+            <Agents {status} />
+          {:else if view === views.legacy}
+            <Legacy {status} />
+          {:else if view === views.approvals}
+            <Approvals {status} />
+          {:else if view === views.settings}
+            <Settings {status} {refresh} browsers={route === '/settings/browsers'} {go} />
+          {:else}
+            <Vault {status} />
+          {/if}
+        </main>
       </div>
-      <button class:active={route.startsWith('/vault')} onclick={() => go('/vault')}>{t('vault')}</button>
-      <button class:active={route.startsWith('/channels')} onclick={() => go('/channels')}>{t('channels')}</button>
-      <button class:active={route.startsWith('/inbox')} onclick={() => go('/inbox')}>{t('inbox')}</button>
-      <button class:active={route.startsWith('/account')} onclick={() => go('/account')}>{t('planAndNames')}</button>
-      <button class:active={route.startsWith('/agents')} onclick={() => go('/agents')}>{t('agents')}</button>
-      <button class:active={route.startsWith('/legacy')} onclick={() => go('/legacy')}>{t('legacy')}</button>
-      <button class:active={route.startsWith('/approvals')} onclick={() => go('/approvals')}>
-        {t('approvals')}
-        {#if status?.approvals_waiting}<span class="badge" data-testid="waiting-count">{status.approvals_waiting}</span>{/if}
-      </button>
-      <button class:active={route.startsWith('/settings')} onclick={() => go('/settings')}>{t('settings')}</button>
-      <div class="foot muted">
-        <LocaleSwitcher />
-        <div class="state">{#if !connected}<span class="error">{t('disconnected')}</span>{#if connectionError}<span class="detail muted" data-testid="connection-error">{connectionError}</span>{/if}{:else}{status?.state ? sessionLabel(status.state) : '-'}{/if}</div>
-      </div>
-    </nav>
-    <main>
-      {#if route.startsWith('/channels')}
-        <Channels {status} />
-      {:else if route.startsWith('/inbox')}
-        <Inbox {status} />
-      {:else if route.startsWith('/account')}
-        <Account {status} />
-      {:else if route.startsWith('/agents')}
-        <Agents {status} />
-      {:else if route.startsWith('/legacy')}
-        <Legacy {status} />
-      {:else if route.startsWith('/approvals')}
-        <Approvals {status} />
-      {:else if route.startsWith('/settings')}
-        <Settings {status} {refresh} browsers={route === '/settings/browsers'} />
-      {:else}
-        <Vault {status} />
-      {/if}
-    </main>
-  </div>
+      <CommandPalette bind:open={palette} {status} {mod} {collapsed} {go} onToggleSidebar={() => (collapsed = !collapsed)} />
+      <Toaster />
+    </div>
+  </Tooltip.Provider>
 {/if}
-
-<style>
-  .shell {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    min-height: 100vh;
-  }
-  nav {
-    border-inline-end: 1px solid var(--line);
-    padding: 16px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  nav button {
-    text-align: start;
-    border: 0;
-    background: transparent;
-    display: flex;
-    justify-content: space-between;
-  }
-  nav button.active {
-    background: var(--pale);
-    color: var(--green);
-  }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-weight: 800;
-    font-size: 18px;
-    letter-spacing: -0.04em;
-    line-height: 1;
-    padding: 2px 12px 14px;
-  }
-  .brand svg {
-    width: 17px;
-    height: 20px;
-    fill: var(--green);
-  }
-  .brand .gem {
-    fill: var(--gem);
-  }
-  .foot {
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .foot :global(.locale-trigger) {
-    padding: 4px 12px;
-    font-size: 13px;
-  }
-  .state {
-    padding: 0 12px;
-    font-size: 12px;
-  }
-  .state .detail {
-    display: block;
-    margin-top: 4px;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-  main {
-    padding: 20px 24px;
-    overflow: auto;
-  }
-  main.approval {
-    padding: 16px;
-  }
-</style>

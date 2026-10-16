@@ -1,6 +1,8 @@
 <script lang="ts">
   import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import Checkbox from '../components/Checkbox.svelte'
+  import { buttonClass } from '../components/ui'
 
   /** What a login without a ready workspace does next: create or join an account, pair, or recover. */
   let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
@@ -64,26 +66,26 @@
   <div class="card" data-testid="onboarding">
     <h2>{t('noAccount')}</h2>
     <p class="muted">{t('loginPrincipal')}: <span class="mono">{status.principal}</span></p>
-    <button class="primary" disabled={busy} data-testid="create-account" onclick={create}>{t('createAccount')}</button>
+    <button class={buttonClass('primary')} disabled={busy} data-testid="create-account" onclick={create}>{t('createAccount')}</button>
     <h2 style="margin-top: 16px">{t('joinAccount')}</h2>
     <p class="muted">{t('joinAccountHint')}</p>
     <div class="row">
       <input placeholder={t('accountId')} bind:value={account} data-testid="bind-account" />
-      <button disabled={busy || !account.trim()} onclick={bindRequest}>{t('bindRequest')}</button>
+      <button class={buttonClass()} disabled={busy || !account.trim()} onclick={bindRequest}>{t('bindRequest')}</button>
     </div>
     {#if token}
       <p class="mono" data-testid="bind-token" style="word-break: break-all">{token}</p>
-      <button class="primary" disabled={busy} onclick={bindAccept}>{t('bindAccept')}</button>
+      <button class={buttonClass('primary')} disabled={busy} onclick={bindAccept}>{t('bindAccept')}</button>
     {/if}
   </div>
 {:else if status?.state === 'pairing_required'}
   <div class="card" data-testid="onboarding">
     <h2>{t('pairingRequired')}</h2>
     <p class="muted">{t('account')}: <span class="mono">{status.account ?? '-'}</span> · {t('device')}: <span class="mono">{status.device_id}</span></p>
-    <label class="row"><input type="checkbox" bind:checked={member} /> {t('memberRole')}</label>
+    <Checkbox bind:checked={member} class="flex">{t('memberRole')}</Checkbox>
     <div class="row" style="margin-top: 8px">
-      <button class="primary" disabled={busy} data-testid="pair-request" onclick={pair}>{t('pairRequest')}</button>
-      <button disabled={busy} onclick={joined}>{t('checkApproval')}</button>
+      <button class={buttonClass('primary')} disabled={busy} data-testid="pair-request" onclick={pair}>{t('pairRequest')}</button>
+      <button class={buttonClass()} disabled={busy} onclick={joined}>{t('checkApproval')}</button>
     </div>
     {#if pairing}
       <p class="muted">{t('pairHint')}</p>
@@ -97,11 +99,11 @@
     <h2>{t('recovery')}</h2>
     <p class="muted">{t('recoveryHint')}</p>
     <div class="row">
-      <button disabled={busy} onclick={() => recoveryCall('recovery/status')}>{t('recoveryStatus')}</button>
+      <button class={buttonClass()} disabled={busy} onclick={() => recoveryCall('recovery/status')}>{t('recoveryStatus')}</button>
       {#if status?.state === 'pairing_required'}
-        <button disabled={busy} data-testid="recovery-request" onclick={() => recoveryCall('recovery/request')}>{t('requestRecovery')}</button>
+        <button class={buttonClass()} disabled={busy} data-testid="recovery-request" onclick={() => recoveryCall('recovery/request')}>{t('requestRecovery')}</button>
       {/if}
-      <button class="primary" disabled={busy} onclick={() => recoveryCall('recovery/complete')}>{t('completeRecovery')}</button>
+      <button class={buttonClass('primary')} disabled={busy} onclick={() => recoveryCall('recovery/complete')}>{t('completeRecovery')}</button>
     </div>
     {#if recovery}
       {#if recovery.pending}

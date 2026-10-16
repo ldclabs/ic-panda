@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   main: {
@@ -13,7 +14,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve('src/renderer'),
-    plugins: [svelte()],
+    plugins: [tailwindcss(), svelte()],
     build: { rollupOptions: { input: resolve('src/renderer/index.html') } }
   }
 })

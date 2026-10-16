@@ -6,6 +6,9 @@
   import AgentEvents from './AgentEvents.svelte'
   import AgentAudit from './AgentAudit.svelte'
   import Select from '../components/Select.svelte'
+  import Checkbox from '../components/Checkbox.svelte'
+  import Suggest from '../components/Suggest.svelte'
+  import { buttonClass } from '../components/ui'
 
   let { status }: { status: any } = $props()
   let principal = $state<any>(null)
@@ -125,7 +128,6 @@
   const label_of = (did: string) => hosted.agents.find((a: any) => a.agent_id === did)?.label ?? did
 </script>
 
-<h1>{t('agents')}</h1>
 {#if error}<p class="error" data-testid="agents-error">{error}</p>{/if}
 <div class="card">
   <h2>{t('principal')}</h2>
@@ -137,7 +139,7 @@
       <dt>{t('status')}</dt>
       <dd data-testid="principal-published">
         {principal.published ? t('published') : t('unpublished')}
-        {#if !principal.published}<button disabled={busy} onclick={() => run('agent/publish', {})}>{t('publish')}</button>{/if}
+        {#if !principal.published}<button class={buttonClass()} disabled={busy} onclick={() => run('agent/publish', {})}>{t('publish')}</button>{/if}
       </dd>
     </dl>
     <h2>{t('controllers')}</h2>
@@ -151,7 +153,7 @@
           </span>
           <span class="muted">
             {c.delegation === '*' ? t('everything') : `${c.delegation.scopes.join(', ')} → ${c.delegation.audiences.join(', ')}`}
-            {#if c.retired_at}· {t('retired')}{:else if unlocked}<button disabled={busy} onclick={() => request('agent/retire', { generation: c.generation })}>{t('retire')}</button>{/if}
+            {#if c.retired_at}· {t('retired')}{:else if unlocked}<button class={buttonClass()} disabled={busy} onclick={() => request('agent/retire', { generation: c.generation })}>{t('retire')}</button>{/if}
           </span>
         </li>
       {/each}
@@ -162,13 +164,13 @@
         <input placeholder={t('name')} bind:value={controllerName} style="max-width: 160px" />
         <input placeholder={t('scopes')} bind:value={ceilingScopes} />
         <input placeholder={t('audiences')} bind:value={ceilingAudiences} />
-        <button class="primary" disabled={busy} onclick={register}>{t('register')}</button>
+        <button class={buttonClass('primary')} disabled={busy} onclick={register}>{t('register')}</button>
       </div>
     {/if}
   {:else if unlocked}
     <div class="row">
       <Select bind:value={kind} options={['person', 'organization', 'team', 'project', 'other'].map((k) => ({ value: k, label: k }))} />
-      <button class="primary" disabled={busy} data-testid="enable-principal" onclick={() => request('agent/enable', { type: kind })}>
+      <button class={buttonClass('primary')} disabled={busy} data-testid="enable-principal" onclick={() => request('agent/enable', { type: kind })}>
         {t('enablePrincipal')}
       </button>
     </div>
@@ -187,7 +189,7 @@
             </span>
             <span class="muted">
               {c.status}
-              {#if c.status === 'active' && unlocked}<button disabled={busy} onclick={() => request('agent/revoke', { id: c.id })}>{t('revoke')}</button>{/if}
+              {#if c.status === 'active' && unlocked}<button class={buttonClass()} disabled={busy} onclick={() => request('agent/revoke', { id: c.id })}>{t('revoke')}</button>{/if}
             </span>
           </li>
         {/each}
@@ -197,15 +199,17 @@
     {/if}
     {#if unlocked && current.length}
       <div class="row" style="margin-top: 8px">
-        <input placeholder={t('grantee')} list="hosted-agents" bind:value={subject} data-testid="grant-subject" />
-        <datalist id="hosted-agents">
-          {#each hosted.agents as a (a.agent_id)}<option value={a.label}>{a.agent_id}</option>{/each}
-        </datalist>
+        <Suggest
+          bind:value={subject}
+          placeholder={t('grantee')}
+          testid="grant-subject"
+          suggestions={hosted.agents.map((a: any) => ({ value: a.label, hint: a.agent_id }))}
+        />
         <input placeholder={t('scopes')} bind:value={scopes} data-testid="grant-scopes" />
         <input placeholder={t('audiences')} bind:value={audiences} data-testid="grant-audiences" />
         <input type="number" min="1" max="366" bind:value={days} style="max-width: 80px" title={t('days')} />
         <button
-          class="primary"
+          class={buttonClass('primary')}
           data-testid="grant-submit"
           disabled={busy || !subject.trim() || !scopes.trim() || !audiences.trim()}
           onclick={grant}>{t('grant')}</button>
@@ -228,11 +232,11 @@
           <span class="mono muted">{a.agent_id}</span>
         </div>
         <div class="row">
-          <button disabled={busy} onclick={() => run('agent/use', { agent: a.agent_id })}>{t('use')}</button>
-          <button disabled={busy || !unlocked} onclick={() => run('agent/resident', { agent: a.agent_id, on: !a.resident })}>
+          <button class={buttonClass()} disabled={busy} onclick={() => run('agent/use', { agent: a.agent_id })}>{t('use')}</button>
+          <button class={buttonClass()} disabled={busy || !unlocked} onclick={() => run('agent/resident', { agent: a.agent_id, on: !a.resident })}>
             {a.resident ? t('residentOff') : t('residentOn')}
           </button>
-          <button disabled={busy} onclick={() => issue(a.agent_id)}>{t('issueCredential')}</button>
+          <button class={buttonClass()} disabled={busy} onclick={() => issue(a.agent_id)}>{t('issueCredential')}</button>
         </div>
         {#if issued?.agent_id === a.agent_id}
           <p class="warn">{t('credentialOnce')}</p>
@@ -244,7 +248,7 @@
   {#if unlocked}
     <div class="row">
       <input placeholder={t('label')} bind:value={label} data-testid="agent-label" style="max-width: 200px" />
-      <button disabled={busy || !label.trim()} onclick={() => run('agent/create', { label: label.trim() })}>{t('create')}</button>
+      <button class={buttonClass()} disabled={busy || !label.trim()} onclick={() => run('agent/create', { label: label.trim() })}>{t('create')}</button>
     </div>
   {/if}
   <h2>{t('hosts')}</h2>
@@ -263,7 +267,7 @@
           <span>{label_of(g.grantee)} · {g.capabilities.join(' ')}</span>
           <span class="muted">
             {g.revoked_at ? t('retired') : g.expires_at ? when(g.expires_at) : ''}
-            {#if !g.revoked_at}<button disabled={busy} onclick={() => run('grants/revoke', { id: g.id })}>{t('revoke')}</button>{/if}
+            {#if !g.revoked_at}<button class={buttonClass()} disabled={busy} onclick={() => run('grants/revoke', { id: g.id })}>{t('revoke')}</button>{/if}
           </span>
         </li>
       {/each}
@@ -291,23 +295,20 @@
         <li class="row spread">
           <span>{service.name}</span>
           <span class="row">
-            <label class="row"><input type="checkbox" data-testid="service-{service.read}" bind:checked={services[service.read]} /> {t('canRead')}</label>
-            <label class="row"><input type="checkbox" data-testid="service-{service.write}" bind:checked={services[service.write]} /> {t('canWrite')}</label>
+            <Checkbox bind:checked={() => services[service.read] ?? false, (on) => (services[service.read] = on)} testid="service-{service.read}">{t('canRead')}</Checkbox>
+            <Checkbox bind:checked={() => services[service.write] ?? false, (on) => (services[service.write] = on)} testid="service-{service.write}">{t('canWrite')}</Checkbox>
           </span>
         </li>
       {/each}
       <li class="row spread">
         <span>Agent Profile</span>
-        <label class="row">
-          <input type="checkbox" data-testid="service-agent.profile.write" bind:checked={services['agent.profile.write']} />
-          {t('publishProfile')}
-        </label>
+        <Checkbox bind:checked={() => services['agent.profile.write'] ?? false, (on) => (services['agent.profile.write'] = on)} testid="service-agent.profile.write">{t('publishProfile')}</Checkbox>
       </li>
     </ul>
     <p class="muted">{t('capabilityVocabulary')}<span class="mono">{VOCABULARY}</span></p>
     <div class="row">
       <input placeholder={t('capabilityList')} bind:value={capabilities} data-testid="grant-other" />
-      <button data-testid="grant-capabilities" disabled={busy || !grantee || !chosen.length} onclick={grantChosen}>{t('grant')}</button>
+      <button class={buttonClass()} data-testid="grant-capabilities" disabled={busy || !grantee || !chosen.length} onclick={grantChosen}>{t('grant')}</button>
     </div>
   </div>
 {/if}

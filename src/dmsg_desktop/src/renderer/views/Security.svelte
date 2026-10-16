@@ -2,6 +2,9 @@
   import { onMount } from 'svelte'
   import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import Checkbox from '../components/Checkbox.svelte'
+  import Segmented from '../components/Segmented.svelte'
+  import { buttonClass } from '../components/ui'
 
   /** Bound logins, approvals of other devices and logins, the signing policy and recovery. */
   let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
@@ -104,19 +107,19 @@
         <li class="row spread">
           <span class="mono">{login.principal}{login.current ? ` (${t('current')})` : ''}</span>
           {#if !login.current && security.logins.length > 1}
-            <button class="danger" disabled={busy} onclick={() => ask('account/unbind', { principal: login.principal })}>{t('remove')}</button>
+            <button class={buttonClass('danger')} disabled={busy} onclick={() => ask('account/unbind', { principal: login.principal })}>{t('remove')}</button>
           {/if}
         </li>
       {/each}
     </ul>
     <p class="muted">{t('bindLoginHint')}</p>
-    <button disabled={busy} data-testid="bind-login" onclick={bindLogin}>{t('bindLogin')}</button>
+    <button class={buttonClass()} disabled={busy} data-testid="bind-login" onclick={bindLogin}>{t('bindLogin')}</button>
 
     <h3>{t('approveOthers')}</h3>
     <textarea placeholder={t('pasteRequest')} bind:value={request} data-testid="approve-request"></textarea>
     <div class="row" style="margin-top: 8px">
       <input placeholder={`${t('deviceShown')} / ${t('principalShown')}`} bind:value={shown} data-testid="approve-shown" />
-      <button class="primary" disabled={busy || !request.trim() || !shown.trim()} onclick={approve}>
+      <button class={buttonClass('primary')} disabled={busy || !request.trim() || !shown.trim()} onclick={approve}>
         {pairing ? t('approveDevice') : t('approveLogin')}
       </button>
     </div>
@@ -124,31 +127,38 @@
     <h3>{t('signingPolicy')}</h3>
     <p>{security.policy.frozen ? t('frozen') : t('formalOn')}</p>
     <div class="row">
-      <button disabled={busy} onclick={() => ask('account/policy', { frozen: !security.policy.frozen })}>
+      <button class={buttonClass()} disabled={busy} onclick={() => ask('account/policy', { frozen: !security.policy.frozen })}>
         {security.policy.frozen ? t('unfreeze') : t('freeze')}
       </button>
       <input style="max-width: 90px" bind:value={daily} aria-label={t('dailyExecutions')} />
-      <button disabled={busy || !/^\d+$/.test(daily)} onclick={() => ask('account/policy', { daily_executions: Number(daily) })}>{t('dailyExecutions')}</button>
+      <button class={buttonClass()} disabled={busy || !/^\d+$/.test(daily)} onclick={() => ask('account/policy', { daily_executions: Number(daily) })}>{t('dailyExecutions')}</button>
     </div>
     <div class="row" style="margin-top: 8px">
       <span class="muted">{t('purposes')}</span>
       {#each ['FileAttestation', 'Statement', 'AppAction'] as p (p)}
-        <label class="row"><input type="checkbox" value={p} bind:group={purposes} /> {p}</label>
+        <Checkbox checked={purposes.includes(p)} onCheckedChange={(on) => (purposes = on ? [...purposes, p] : purposes.filter((x) => x !== p))}
+          >{p}</Checkbox
+        >
       {/each}
-      <button disabled={busy} onclick={() => ask('account/policy', { allowed_purposes: purposes })}>{t('submit')}</button>
+      <button class={buttonClass()} disabled={busy} onclick={() => ask('account/policy', { allowed_purposes: purposes })}>{t('submit')}</button>
     </div>
 
     <h3>{t('recovery')}</h3>
     <div class="row">
-      <input style="max-width: 90px" bind:value={days} aria-label={t('recoveryDelay')} />
-      <button disabled={busy || !/^[1-7]$/.test(days)} onclick={() => ask('account/recovery_delay', { days: Number(days) })}>{t('recoveryDelay')}</button>
+      <Segmented
+        bind:value={days}
+        label={t('recoveryDelay')}
+        options={['1', '2', '3', '4', '5', '6', '7'].map((d) => ({ value: d, label: d }))}
+        testid="recovery-days"
+      />
+      <button class={buttonClass()} disabled={busy || !/^[1-7]$/.test(days)} onclick={() => ask('account/recovery_delay', { days: Number(days) })}>{t('recoveryDelay')}</button>
     </div>
     {#if security.pending_recovery}
       <p class="warn" data-testid="pending-recovery">
         {t('pendingRecovery')}: {t('loginPrincipal')} <span class="mono">{security.pending_recovery.new_auth}</span>
         · {t('executeAfter')} {when(security.pending_recovery.execute_after)}
       </p>
-      <button class="danger" disabled={busy} onclick={() => ask('recovery/dispute', {})}>{t('disputeRecovery')}</button>
+      <button class={buttonClass('danger')} disabled={busy} onclick={() => ask('recovery/dispute', {})}>{t('disputeRecovery')}</button>
     {:else}
       <p class="muted">{t('noRecovery')}</p>
     {/if}

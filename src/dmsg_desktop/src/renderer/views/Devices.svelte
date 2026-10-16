@@ -2,6 +2,8 @@
   import { onMount } from 'svelte'
   import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
+  import Checkbox from '../components/Checkbox.svelte'
+  import { buttonClass } from '../components/ui'
 
   /** The account's devices as the user home certified them; changes are approval requests. */
   let { status }: { status: any } = $props()
@@ -72,9 +74,9 @@
             </span>
             {#if !device.revoked_at && status?.state === 'unlocked'}
               <span class="row">
-                <button disabled={busy} onclick={() => edit(device)}>{t('capabilities')}</button>
+                <button class={buttonClass()} disabled={busy} onclick={() => edit(device)}>{t('capabilities')}</button>
                 {#if !device.current}
-                  <button class="danger" disabled={busy} data-testid="revoke-device" onclick={() => ask('device/revoke', { device: device.device_id })}>
+                  <button class={buttonClass('danger')} disabled={busy} data-testid="revoke-device" onclick={() => ask('device/revoke', { device: device.device_id })}>
                     {t('revoke')}
                   </button>
                 {/if}
@@ -89,10 +91,13 @@
           {#if editing === device.device_id}
             <div class="row wrap" style="margin-top: 8px">
               {#each CAPABILITIES as capability (capability)}
-                <label class="row"><input type="checkbox" value={capability} bind:group={chosen} /> {capability}</label>
+                <Checkbox
+                  checked={chosen.includes(capability)}
+                  onCheckedChange={(on) => (chosen = on ? [...chosen, capability] : chosen.filter((c) => c !== capability))}>{capability}</Checkbox
+                >
               {/each}
               <button
-                class="primary"
+                class={buttonClass('primary')}
                 disabled={busy}
                 data-testid="capabilities-submit"
                 onclick={() => ask('device/capabilities', { device: device.device_id, capabilities: chosen })}>{t('submit')}</button>

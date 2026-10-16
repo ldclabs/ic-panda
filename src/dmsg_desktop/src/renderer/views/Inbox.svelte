@@ -3,6 +3,8 @@
   import { t } from '../i18n/index.svelte'
   import { call, code, when } from '../rpc'
   import Select from '../components/Select.svelte'
+  import Checkbox from '../components/Checkbox.svelte'
+  import { buttonClass } from '../components/ui'
 
   let { status }: { status: any } = $props()
   let letters = $state<any[]>([])
@@ -90,7 +92,6 @@
   const shown = $derived(letters.filter((l) => !l.archived))
 </script>
 
-<h1>{t('inbox')}</h1>
 {#if error}<p class="error" data-testid="inbox-error">{error}</p>{/if}
 <ul class="list card" data-testid="letters">
   {#each shown as letter (letter.order_id)}
@@ -105,8 +106,8 @@
         <div class="muted">{t('aborted')}: {letter.abort_reason ?? letter.state}</div>
       {/if}
       <div class="row">
-        {#if !letter.read}<button disabled={busy} onclick={() => mark(letter, false)}>{t('markRead')}</button>{/if}
-        <button disabled={busy} onclick={() => mark(letter, true)}>{t('archive')}</button>
+        {#if !letter.read}<button class={buttonClass()} disabled={busy} onclick={() => mark(letter, false)}>{t('markRead')}</button>{/if}
+        <button class={buttonClass()} disabled={busy} onclick={() => mark(letter, true)}>{t('archive')}</button>
       </div>
     </li>
   {:else}
@@ -118,8 +119,8 @@
     <h2>{t('writeLetter')}</h2>
     <input placeholder={t('accountId')} bind:value={recipient} data-testid="letter-recipient" />
     <textarea placeholder={t('message')} bind:value={text} data-testid="letter-text"></textarea>
-    <label class="row" style="margin: 8px 0"><input type="checkbox" bind:checked={pay} /> {t('paidLetterHint')}</label>
-    <button class="primary" disabled={busy || !recipient.trim() || !text.trim()} onclick={send}>{t('send')}</button>
+    <Checkbox bind:checked={pay} class="my-2 flex">{t('paidLetterHint')}</Checkbox>
+    <button class={buttonClass('primary')} disabled={busy || !recipient.trim() || !text.trim()} onclick={send}>{t('send')}</button>
     {#if sent}
       <p data-testid="letter-state">{t('order')} <span class="mono">{sent.order_id}</span> · {sent.state}</p>
     {/if}
@@ -133,8 +134,8 @@
             <div class="row spread">
               <span><span class="mono">{order.recipient}</span>{order.paid ? ` · ${t('paid')}` : ''}</span>
               <span class="row">
-                <button disabled={busy} onclick={() => check(order)}>{t('status')}</button>
-                {#if order.paid}<button disabled={busy} onclick={() => funds(order)}>{t('funds')}</button>{/if}
+                <button class={buttonClass()} disabled={busy} onclick={() => check(order)}>{t('status')}</button>
+                {#if order.paid}<button class={buttonClass()} disabled={busy} onclick={() => funds(order)}>{t('funds')}</button>{/if}
               </span>
             </div>
             {#if escrows[order.order_id]}
@@ -143,7 +144,7 @@
                   <li class="row spread">
                     <span><span class="badge">{leg.status}</span> {leg.kind} · {leg.amount} → <span class="mono">{leg.to}</span></span>
                     {#if ['FeeBlocked', 'Rejected'].includes(leg.status)}
-                      <button disabled={busy} onclick={() => revise(order, leg)}>{t('revise')}</button>
+                      <button class={buttonClass()} disabled={busy} onclick={() => revise(order, leg)}>{t('revise')}</button>
                     {/if}
                   </li>
                 {/each}
@@ -169,7 +170,7 @@
           { value: 'paid', label: t('paidOnly') }
         ]} />
       {#if mode === 'paid'}<input placeholder={t('priceUnits')} bind:value={price} />{/if}
-      <button disabled={busy || (mode === 'paid' && !/^\d+$/.test(price.trim()))} onclick={configure}>{t('save')}</button>
+      <button class={buttonClass()} disabled={busy || (mode === 'paid' && !/^\d+$/.test(price.trim()))} onclick={configure}>{t('save')}</button>
     </div>
   </div>
 {/if}
