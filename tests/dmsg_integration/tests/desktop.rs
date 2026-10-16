@@ -4116,8 +4116,8 @@ fn ledger_balance(
         .unwrap()
 }
 
-/// Add `WalletApprove` to this device's capabilities, approved here.
-fn enable_wallet_approve(desktop: &Desktop, http: &reqwest::blocking::Client) {
+/// This device's capabilities.
+fn own_capabilities(desktop: &Desktop) -> (String, Vec<String>) {
     let devices = desktop.run(&["device", "list"]);
     let own = devices
         .as_array()
@@ -4125,25 +4125,36 @@ fn enable_wallet_approve(desktop: &Desktop, http: &reqwest::blocking::Client) {
         .iter()
         .find(|d| d["current"] == true)
         .unwrap();
-    let mut set: Vec<&str> = own["capabilities"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|c| c.as_str().unwrap())
-        .collect();
-    set.push("WalletApprove");
-    let request = desktop.run(&[
-        "device",
-        "capabilities",
-        own["device_id"].as_str().unwrap(),
-        "--set",
-        &set.join(","),
-    ]);
+    (
+        own["device_id"].as_str().unwrap().to_string(),
+        own["capabilities"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| c.as_str().unwrap().to_string())
+            .collect(),
+    )
+}
+
+/// Add `added` to this device's capabilities, approved here; returns them.
+fn add_capabilities(
+    desktop: &Desktop,
+    http: &reqwest::blocking::Client,
+    added: &[&str],
+) -> Vec<String> {
+    let (device, mut set) = own_capabilities(desktop);
+    for name in added {
+        if !set.iter().any(|c| c == name) {
+            set.push(name.to_string());
+        }
+    }
+    let request = desktop.run(&["device", "capabilities", &device, "--set", &set.join(",")]);
     assert_eq!(request["type"], "device_capabilities");
     assert_eq!(
         desktop.decide(http, &request, true).unwrap()["state"],
         "done"
     );
+    own_capabilities(desktop).1
 }
 
 #[test]
@@ -4172,8 +4183,14 @@ fn desktop_wallet() {
         .as_str()
         .unwrap()
         .to_string();
-    for desktop in [a, b] {
-        enable_wallet_approve(desktop, &http);
+    // A holds every capability, six in all; B adds only WalletApprove. The
+    // relay keeps syncing both accounts on their new security snapshots.
+    let every = ["FormalApprove", "PaymentOffer", "WalletApprove"];
+    assert_eq!(add_capabilities(a, &http, &every).len(), 6);
+    assert!(add_capabilities(b, &http, &["WalletApprove"]).contains(&"WalletApprove".to_string()));
+    for (desktop, title) in [(a, "a"), (b, "b")] {
+        desktop.run(&["vault", "add", "--title", title]);
+        assert_eq!(desktop.run(&["sync"])["sent"], 1);
     }
 
     // Activation: a quote from the hub, then one approval pays it from the

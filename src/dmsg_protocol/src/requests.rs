@@ -22,10 +22,10 @@ impl DeviceInputExt for DeviceInput {
         nonzero(self.device_id.as_slice())?;
         nonzero(self.hpke_pub.as_slice())?;
         ensure_valid(
-            !self.capabilities.is_empty() && self.capabilities.len() <= 5,
+            !self.capabilities.is_empty() && self.capabilities.len() <= 6,
             "capabilities",
         )?;
-        // At most five capabilities: a slice scan avoids a tree allocation.
+        // At most six capabilities: a slice scan avoids a tree allocation.
         ensure_valid(
             self.capabilities
                 .iter()

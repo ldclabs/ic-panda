@@ -43,11 +43,12 @@ fn device_capabilities_are_nonempty_bounded_and_unique() {
         Capability::RootManage,
         Capability::FormalApprove,
         Capability::PaymentOffer,
+        Capability::WalletApprove,
     ];
     assert_eq!(input.validate(), Ok(()));
-    for i in 0..5 {
+    for i in 0..6 {
         let mut changed = input.clone();
-        changed.capabilities[(i + 1) % 5] = changed.capabilities[i].clone();
+        changed.capabilities[(i + 1) % 6] = changed.capabilities[i].clone();
         assert!(changed.validate().is_err());
     }
     input.capabilities.push(Capability::ContentSign);
