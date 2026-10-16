@@ -320,6 +320,30 @@
   }
 }
 
+/* Time running out on an armed or revealed secret: a bar empties toward the reading start. */
+@keyframes drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* A stage under way, such as encrypting a file: a band slides along its bar. */
+.progress-run {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--forest) 55%, transparent), transparent) 0 0 / 50% 100% no-repeat;
+  animation: progress-run 1.2s ease-in-out infinite;
+}
+@keyframes progress-run {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
 /* Text for work under way, such as a sync: a highlight sweeps across it. */
 .shimmer {
   background: linear-gradient(100deg, var(--faint) 40%, var(--ink) 50%, var(--faint) 60%) 0 0 / 300% 100%;
@@ -340,5 +364,9 @@
     background: none;
     color: inherit;
     animation: none;
+  }
+  .progress-run {
+    animation: none;
+    background: color-mix(in srgb, var(--forest) 35%, transparent);
   }
 }

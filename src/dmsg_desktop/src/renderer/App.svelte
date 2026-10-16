@@ -14,8 +14,9 @@
   import CommandPalette from './shell/CommandPalette.svelte'
   import Header from './shell/Header.svelte'
   import Sidebar from './shell/Sidebar.svelte'
-  import { shortcuts, viewOf, views } from './shell/nav'
+  import { shortcuts, viewOf, views, type View } from './shell/nav'
   import { lock } from './shell/session'
+  import { cn } from './components/ui'
   import { call } from './rpc'
 
   let route = $state(location.hash.slice(1) || '/vault')
@@ -32,6 +33,8 @@
   const inset = window.dmsg.platform === 'darwin'
   const mod = inset ? '⌘' : 'Ctrl+'
   const view = $derived(viewOf(route))
+  /** Views laid out edge to edge in panes; the rest still scroll as one padded page. */
+  const bleed: ReadonlySet<View> = new Set([views.vault])
   const unlocked = $derived(status?.state === 'unlocked')
   const legacyNotice = $derived(offers.some((nonce) => !dismissed.includes(nonce)))
 
@@ -142,7 +145,7 @@
       />
       <div class="flex min-w-0 flex-1 flex-col bg-paper">
         <Header {view} {mod} {go} onPalette={() => (palette = true)} />
-        <main class="classic min-h-0 flex-1 overflow-auto px-6 py-5">
+        <main class={cn('min-h-0 flex-1', bleed.has(view) ? 'overflow-hidden' : 'classic overflow-auto px-6 py-5')}>
           {#if view === views.channels}
             <Channels {status} />
           {:else if view === views.inbox}
@@ -158,7 +161,7 @@
           {:else if view === views.settings}
             <Settings {status} {refresh} browsers={route === '/settings/browsers'} {go} />
           {:else}
-            <Vault {status} />
+            <Vault {status} {mod} />
           {/if}
         </main>
       </div>

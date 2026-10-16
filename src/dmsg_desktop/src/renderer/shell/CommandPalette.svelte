@@ -6,6 +6,9 @@
   import type { Glyph } from '../components/glyphs'
   import Icon from '../components/Icon.svelte'
   import { locale, setLocale, t } from '../i18n/index.svelte'
+  import { call } from '../rpc'
+  import { focus } from '../views/vault/focus.svelte'
+  import { typeIcon, typeLabel, typeOf } from '../views/vault/vault'
   import { shortcuts, views } from './nav'
   import { lock, loginOther, sync, unlock } from './session'
 
@@ -28,6 +31,8 @@
 
   interface Entry {
     label: string
+    /** What the palette matches and tells entries apart by, when the label is not unique. */
+    value?: string
     icon: Glyph
     run: () => unknown
     hint?: string
@@ -36,6 +41,21 @@
   }
 
   const appearanceLabels = { system: 'appearanceSystem', light: 'appearanceLight', dark: 'appearanceDark' } as const
+
+  let search = $state('')
+  /** The vault's items while the palette is open on an unlocked device; they show once something is typed. */
+  let items = $state<any[]>([])
+
+  $effect(() => {
+    items = []
+    if (!open) {
+      search = ''
+    } else if (status?.state === 'unlocked') {
+      call<any[]>('vault/list')
+        .then((list) => open && (items = list))
+        .catch(() => {})
+    }
+  })
 
   const groups = $derived.by(() => {
     const unlocked = status?.state === 'unlocked'
@@ -67,7 +87,24 @@
       checked: locale() === code,
       run: () => setLocale(code)
     }))
+    const found: Entry[] = search.trim()
+      ? items.map((entry) => {
+          const type = typeOf(entry.item)
+          return {
+            label: entry.item.title,
+            value: `${entry.item.title}\u2063${entry.id}`,
+            icon: typeIcon[type],
+            hint: t(typeLabel[type]),
+            keywords: [...entry.item.tags, entry.item.username, entry.item.url].filter(Boolean),
+            run: () => {
+              focus.id = entry.id
+              go(views.vault.path)
+            }
+          }
+        })
+      : []
     return [
+      { heading: t('vault'), entries: found },
       { heading: t('goTo'), entries: places },
       { heading: t('commands'), entries: commands },
       { heading: t('appearance'), entries: looks },
@@ -95,6 +132,7 @@
         <div class="flex items-center gap-2.5 border-b border-line px-4 text-faint">
           <Icon name="search" />
           <Command.Input
+            bind:value={search}
             placeholder={t('searchOrCommand')}
             class="h-12 border-0 bg-transparent px-0 text-[15px] focus-visible:shadow-none"
             data-testid="palette-input"
@@ -109,9 +147,9 @@
                 <Command.Group>
                   <Command.GroupHeading class="px-2.5 pt-2.5 pb-1 text-[11px] font-medium text-faint">{group.heading}</Command.GroupHeading>
                   <Command.GroupItems>
-                    {#each group.entries as entry (entry.label)}
+                    {#each group.entries as entry (entry.value ?? entry.label)}
                       <Command.Item
-                        value={entry.label}
+                        value={entry.value ?? entry.label}
                         keywords={entry.keywords}
                         onSelect={() => run(entry)}
                         class="flex h-9 cursor-default items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] outline-none select-none data-selected:bg-pale"

@@ -36,8 +36,12 @@ export interface DesktopBridge {
   grant(invite: string, pairing: string): Promise<unknown>
   /** Start a login in the system browser; with `bind`, a second login to bind to the unlocked account. */
   login(origin: string, bind?: boolean): Promise<unknown>
-  /** Import a file the person picks in a system dialog into the vault; null when cancelled. */
-  importFile(): Promise<unknown>
+  /**
+   * Import a file into the vault: one the person dropped on the window, else
+   * one they pick in a system dialog; null when cancelled. A `file/importing`
+   * event names it before the import starts.
+   */
+  importFile(dropped?: File): Promise<unknown>
   /** Publish an image the person picks as the public avatar, or remove it; null when cancelled. */
   avatar(remove: boolean): Promise<unknown>
   /** Export a vault file to a place the person picks in a system dialog; null when cancelled. */

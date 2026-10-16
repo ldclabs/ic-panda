@@ -1,14 +1,16 @@
 // Electron smoke test: the built app against a mock daemon, in a temporary
 // profile. Checks the main window, the approval window opened by a dmsg://
 // link, that only the approval window decides, and that it decides what it
-// showed, that payments and device revocation take a hold to approve, and that the channel, inbox, plan and agent views reach the daemon
-// with payments and grants only as approval requests; that another account's
+// showed, that payments and device revocation take a hold to approve, and
+// that the channel, inbox, plan and agent views reach the daemon with payments and grants only as approval requests; that another account's
 // workspace is selected from Settings, that binding a login and a web
 // checkout are approval requests, and that a web checkout is quoted before it
 // can be approved; that a kept legacy archive reads offline and transfer
 // files never pass through a window; that a vault secret is shown or copied
 // only after a second click and the copy never passes through a window; that
-// conflict copies resolve; that a device is revoked only through the approval
+// conflict copies resolve side by side; that a vault file is imported through
+// the main process, which refuses a file a page made; that a device is
+// revoked only through the approval
 // window; that channel files, roles, history, archiving and transfers reach
 // the daemon; that the Agents view runs only the Mail and Knowledge tools,
 // grants services at a chosen origin and manages MCP Events endpoints; that
@@ -21,7 +23,7 @@ import electronPath from 'electron'
 import { createServer } from 'node:http'
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import assert from 'node:assert/strict'
 import { WebSocketServer } from 'ws'
 
@@ -99,7 +101,8 @@ const vault = [
   item('24'.repeat(32), 'r3', { title: 'Smoke login', type: 'login', tags: ['work'], username: 'panda', secret: '********', url: 'https://example.com' }),
   item('23'.repeat(32), 'r2', { title: 'report.pdf', type: 'file', file: { name: 'report.pdf', size: 1234 } })
 ]
-let conflicts = [{ ...item('22'.repeat(32), 'r9', { title: 'Smoke note', type: 'note', body: 'hello from the laptop' }), conflict: true }]
+let conflicts = [{ ...item('22'.repeat(32), 'r9', { title: 'Smoke note', type: 'note', body: 'hello\nfrom the laptop' }), conflict: true }]
+const trash = []
 const endpoints = []
 const grants = []
 const notes = []
@@ -191,7 +194,7 @@ const methods = {
   }),
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
   'daemon/status': status,
-  'vault/list': () => vault,
+  'vault/list': (p) => (p?.trash ? trash : vault),
   'vault/show': (p) => {
     const entry = vault.find((e) => e.id === p.id)
     return p.reveal ? { ...entry, item: { ...entry.item, secret: SECRET } } : entry
@@ -207,6 +210,22 @@ const methods = {
     Object.assign(entry.item, p.changes, p.changes.secret ? { secret: '********' } : {})
     entry.revision = `${entry.revision}+`
     return entry
+  },
+  'vault/delete': (p) => {
+    const at = vault.findIndex((e) => e.id === p.id)
+    const [entry] = vault.splice(at, 1)
+    trash.push({ ...entry, deleted: true })
+    return entry
+  },
+  'file/import': (p) => {
+    const entry = { ...item('26'.repeat(32), 'r1', { title: basename(p.path), type: 'file', file: { name: basename(p.path), size: 4096 } }), synced: false }
+    vault.push(entry)
+    return entry
+  },
+  'file/verify': (p) => ({ id: p.id, size: 4096, sha256: 'ab'.repeat(32) }),
+  'sync/run': () => {
+    for (const entry of vault) entry.synced = true
+    return { pushed: 1 }
   },
   'vault/conflicts': () => conflicts,
   'vault/resolve': (p) => {
@@ -544,6 +563,7 @@ const picks = join(profile, 'picks')
 await mkdir(picks, { recursive: true })
 await writeFile(join(picks, 'action.cbor'), 'prepared action')
 await writeFile(join(picks, 'bundle.json'), JSON.stringify({ format: 'dmsg-attestation/1' }))
+await writeFile(join(picks, 'release.tar'), 'release bytes')
 await app.evaluate(({ dialog, clipboard, Notification }) => {
   Object.assign(globalThis, { __open: [], __save: [], __clip: '', __notes: [] })
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [globalThis.__open.shift()] })
@@ -557,6 +577,8 @@ await app.evaluate(({ dialog, clipboard, Notification }) => {
 })
 const answer = (kind, path) => app.evaluate((_electron, [kind, path]) => globalThis[kind].push(path), [kind, path])
 const latest = (method) => calls.filter((c) => c.method === method).at(-1)
+/** Wait for an element's animations, such as a dialog fading in, to end before a screenshot. */
+const settled = (page, selector) => page.locator(selector).evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)))
 try {
   const main = await app.firstWindow()
   await main.waitForSelector('text=Smoke note', { timeout: 20_000 })
@@ -763,25 +785,27 @@ try {
   )
   await assert.rejects(main.evaluate(() => window.dmsg.openLegacy('https://evil.example/legacy#pair=x')), /INVALID_INPUT/)
 
-  // Vault: a secret is shown or copied only after a second click, and the
-  // copy goes from the daemon to the clipboard through the main process; an
-  // edit names the version it replaces; a conflict copy is adopted.
+  // Vault: a secret is shown or copied only on a second click, and the copy
+  // goes from the daemon to the clipboard through the main process; an edit
+  // names the version it replaces; a new item comes from its dialog; a
+  // conflict copy is adopted from the side-by-side dialog.
   await main.click('nav >> text=/Vault|秘密库/')
-  await main.click('text=Smoke login')
-  await main.waitForSelector('[data-testid="vault-secret"]')
-  assert.equal(await main.textContent('[data-testid="vault-secret"]'), '********')
+  await main.click('[data-testid="vault-list"] >> text=Smoke login')
+  await main.waitForSelector('[data-testid="vault-secret"][data-shown="false"]')
   const revealed = () => calls.filter((c) => c.method === 'vault/show' && c.params.reveal).length
   await main.click('[data-testid="reveal-secret"]')
-  await main.waitForSelector('[data-testid="secret-confirm"]')
+  await main.waitForSelector('[data-testid="reveal-secret"][data-armed="true"]')
   assert.equal(revealed(), 0)
-  await main.click('[data-testid="secret-confirm-yes"]')
-  await main.waitForSelector(`text=${SECRET}`)
+  await main.click('[data-testid="reveal-secret"]')
+  await main.waitForSelector(`[data-testid="vault-secret"] >> text=${SECRET}`)
   await main.click('[data-testid="copy-secret"]')
-  await main.click('[data-testid="secret-confirm-yes"]')
+  assert.equal(await app.evaluate(() => globalThis.__clip), '')
+  await main.click('[data-testid="copy-secret"]')
   await main.waitForSelector('[data-testid="secret-copied"]')
   assert.equal(await app.evaluate(() => globalThis.__clip), SECRET)
   assert.equal(revealed(), 2)
-  await main.click('[data-testid="vault-detail"] ~ div >> text=/^(Edit|编辑)$/')
+  await main.screenshot({ path: join(shots, 'vault.png') })
+  await main.click('[data-testid="vault-edit-open"]')
   await main.fill('[data-testid="vault-edit"] input >> nth=0', 'Smoke login 2')
   await main.click('[data-testid="vault-save"]')
   await waitFor(() => latest('vault/edit'))
@@ -790,21 +814,58 @@ try {
     base: 'r3',
     changes: { title: 'Smoke login 2', tags: ['work'], body: '', username: 'panda', url: 'https://example.com' }
   })
-  await main.click('[data-testid="vault-type"]')
-  await main.waitForSelector('[data-testid="vault-type-menu"]')
-  await main.screenshot({ path: join(shots, 'select-menu.png') })
-  await main.click('[data-testid="vault-type-menu"] [data-value="login"]')
+  await main.keyboard.press(`${mod}+n`)
+  await main.waitForSelector('[data-testid="vault-new-dialog"]')
+  await main.click('[data-testid="vault-type-login"]')
   await main.fill('[data-testid="vault-title"]', 'New login')
   await main.fill('[data-testid="vault-new-secret"]', 'new-secret')
+  await settled(main, '[data-testid="vault-new-dialog"]')
+  await main.screenshot({ path: join(shots, 'vault-new.png') })
   await main.click('[data-testid="vault-add"]')
   await waitFor(() => latest('vault/put'))
   assert.equal(latest('vault/put').params.item.type, 'login')
   assert.equal(latest('vault/put').params.item.secret, 'new-secret')
-  await main.waitForSelector('[data-testid="vault-conflicts"]')
-  await main.screenshot({ path: join(shots, 'vault.png') })
-  await main.click('[data-testid="vault-conflicts"] >> text=/^(Use this copy|采用这个副本)$/')
+  await main.waitForSelector('[data-testid="vault-item-title"] >> text=New login')
+  await main.click('[data-testid="vault-conflicts-review"]')
+  await main.waitForSelector('[data-testid="conflict-dialog"] >> text=from the laptop')
+  await settled(main, '[data-testid="conflict-dialog"]')
+  await main.screenshot({ path: join(shots, 'vault-conflict.png') })
+  await main.click('[data-testid="conflict-use"]')
   await waitFor(() => latest('vault/resolve'))
   assert.deepEqual(latest('vault/resolve').params, { key: `${'22'.repeat(32)}:r9`, keep: 'theirs' })
+  await main.waitForSelector('[data-testid="conflict-dialog"]', { state: 'detached' })
+
+  // A file enters through the main process's dialog and shows its way in:
+  // encrypted, checked again, then held by the relay. A file a page made has
+  // no path, so it never reaches the daemon.
+  await answer('__open', join(picks, 'release.tar'))
+  await main.click('[data-testid="import-file"]')
+  await main.waitForSelector('[data-testid="import-job"][data-stage="done"] >> text=release.tar')
+  assert.equal(latest('file/import').params.path, join(picks, 'release.tar'))
+  assert.equal(latest('file/verify').params.id, '26'.repeat(32))
+  await main.waitForSelector('[data-testid="vault-item-title"] >> text=release.tar')
+  const imports = calls.filter((c) => c.method === 'file/import').length
+  await main.evaluate(() => {
+    const transfer = new DataTransfer()
+    transfer.items.add(new File(['made up'], 'made-up.txt'))
+    const list = document.querySelector('[data-testid="vault-list"]')
+    for (const type of ['dragenter', 'dragover', 'drop']) list.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: transfer }))
+  })
+  await main.waitForSelector('[data-testid="import-job"][data-stage="error"] >> text=made-up.txt')
+  assert.equal(calls.filter((c) => c.method === 'file/import').length, imports)
+
+  // The palette finds an item by its title; a row's menu moves it to the trash.
+  await main.keyboard.press(`${mod}+k`)
+  await main.fill('[data-testid="palette-input"]', 'Smoke login 2')
+  await main.keyboard.press('Enter')
+  await main.waitForSelector('[data-testid="vault-item-title"] >> text=Smoke login 2')
+  await main.click('[data-testid="vault-list"] >> text=release.tar', { button: 'right' })
+  await main.click('[data-testid="vault-row-menu"] >> text=/Move to trash/')
+  await waitFor(() => latest('vault/delete'))
+  assert.equal(latest('vault/delete').params.id, '26'.repeat(32))
+  await main.click('[data-testid="vault-scope-trash"]')
+  await main.waitForSelector('[data-testid="vault-list"] >> text=release.tar')
+  await main.click('[data-testid="vault-scope-all"]')
 
   // Signatures: an application action and attestation bundles enter and
   // leave only through the main process's dialogs.

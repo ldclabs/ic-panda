@@ -1,0 +1,115 @@
+<script lang="ts">
+  import { onDestroy } from 'svelte'
+  import Icon from '../../components/Icon.svelte'
+  import { toast } from '../../components/toast.svelte'
+  import { buttonClass, cn } from '../../components/ui'
+  import { t } from '../../i18n/index.svelte'
+  import { bridge, call, code } from '../../rpc'
+
+  /**
+   * A secret field: shown or copied only on a second click within three
+   * seconds of the first. Shown, it hides again after a minute; a copy goes
+   * from the daemon to the clipboard through the main process, so this
+   * window never holds it. A bar under the button shows the time left.
+   */
+  let { id, unlocked }: { id: string; unlocked: boolean } = $props()
+
+  const ARMED_MS = 3000
+  const SHOWN_MS = 60_000
+
+  let armed = $state<'reveal' | 'copy' | null>(null)
+  let secret = $state<string | null>(null)
+  let busy = $state(false)
+  let armTimer: ReturnType<typeof setTimeout> | undefined
+  let hideTimer: ReturnType<typeof setTimeout> | undefined
+
+  function arm(action: 'reveal' | 'copy') {
+    clearTimeout(armTimer)
+    armed = action
+    armTimer = setTimeout(() => (armed = null), ARMED_MS)
+  }
+
+  function hide() {
+    clearTimeout(hideTimer)
+    secret = null
+  }
+
+  async function reveal() {
+    if (secret !== null) return hide()
+    if (armed !== 'reveal') return arm('reveal')
+    clearTimeout(armTimer)
+    armed = null
+    busy = true
+    try {
+      const entry: any = await call('vault/show', { id, reveal: true })
+      secret = entry.item.secret
+      hideTimer = setTimeout(hide, SHOWN_MS)
+    } catch (error) {
+      toast(() => `${t('error')}: ${code(error)}`)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function copy() {
+    if (armed !== 'copy') return arm('copy')
+    clearTimeout(armTimer)
+    armed = null
+    busy = true
+    try {
+      const { clear_after_ms } = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copySecret(id))
+      toast((seconds) => t('copied', { seconds }), { ms: clear_after_ms, countdown: true, testid: 'secret-copied' })
+    } catch (error) {
+      toast(() => `${t('error')}: ${code(error)}`)
+    } finally {
+      busy = false
+    }
+  }
+
+  onDestroy(() => {
+    clearTimeout(armTimer)
+    clearTimeout(hideTimer)
+  })
+</script>
+
+{#snippet bar(ms: number)}
+  <span
+    class="pointer-events-none absolute inset-x-1.5 bottom-0.5 h-0.5 origin-left rounded-full bg-current opacity-60 rtl:origin-right motion-reduce:hidden"
+    style:animation="drain {ms}ms linear forwards"
+    aria-hidden="true"
+  ></span>
+{/snippet}
+
+<div class="flex min-w-0 flex-1 items-center gap-1.5">
+  <span
+    class={cn('min-w-0 flex-1 font-mono text-[12.5px]', secret === null ? 'overflow-hidden tracking-[0.18em] whitespace-nowrap text-faint' : 'break-all text-ink select-text')}
+    data-testid="vault-secret"
+    data-shown={secret !== null}
+  >
+    {secret ?? '••••••••••••'}
+  </span>
+  {#if unlocked}
+    <button
+      class={buttonClass(armed === 'reveal' ? 'primary' : 'secondary', 'sm', 'relative overflow-hidden')}
+      disabled={busy}
+      onclick={reveal}
+      data-testid="reveal-secret"
+      data-armed={armed === 'reveal'}
+    >
+      <Icon name={secret !== null ? 'eye-off' : 'eye'} />
+      {secret !== null ? t('hideSecret') : armed === 'reveal' ? t('clickAgainShow') : t('show')}
+      {#if armed === 'reveal'}{@render bar(ARMED_MS)}{:else if secret !== null}{@render bar(SHOWN_MS)}{/if}
+    </button>
+    <button
+      class={buttonClass(armed === 'copy' ? 'primary' : 'secondary', 'sm', 'relative overflow-hidden')}
+      disabled={busy}
+      onclick={copy}
+      data-testid="copy-secret"
+      data-armed={armed === 'copy'}
+    >
+      <Icon name="copy" />
+      {armed === 'copy' ? t('clickAgainCopy') : t('copy')}
+      {#if armed === 'copy'}{@render bar(ARMED_MS)}{/if}
+    </button>
+  {/if}
+</div>

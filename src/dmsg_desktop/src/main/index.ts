@@ -246,13 +246,23 @@ ipcMain.handle('dmsg:login', (event, origin: string, bind: boolean) =>
     return started
   })
 )
-/** Files reach the daemon only by paths the person picked in a system dialog. */
-ipcMain.handle('dmsg:import-file', (event) =>
+/**
+ * Files reach the daemon only by paths the person picked in a system dialog
+ * or dropped on the window: the preload resolves a dropped file to its path,
+ * which a window cannot name. The window hears the file's name before the
+ * import starts, for its progress.
+ */
+ipcMain.handle('dmsg:import-file', (event, dropped?: string) =>
   guard(async () => {
     trust(event, 'main')
-    const picked = await dialog.showOpenDialog(main!, { properties: ['openFile'] })
-    if (picked.canceled || !picked.filePaths[0]) return null
-    return daemon.call('file/import', { path: picked.filePaths[0] })
+    let path = typeof dropped === 'string' ? dropped : ''
+    if (!path) {
+      const picked = await dialog.showOpenDialog(main!, { properties: ['openFile'] })
+      if (picked.canceled || !picked.filePaths[0]) return null
+      path = picked.filePaths[0]
+    }
+    event.sender.send('dmsg:event', { type: 'file/importing', data: { name: basename(path) } })
+    return daemon.call('file/import', { path })
   })
 )
 ipcMain.handle('dmsg:export-file', (event, id: string, name: string) =>

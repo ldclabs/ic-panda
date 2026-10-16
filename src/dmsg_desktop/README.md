@@ -48,8 +48,12 @@ desktop is one of its clients, like the CLI.
   its own: the traffic lights sit over the sidebar, on the window's
   material. A legacy pairing that was started and not imported shows a
   dismissible notice. The main window has these views:
-  - Vault: notes, logins, API credentials, keys and files; details and edits,
-    stars, and conflict copies kept or adopted.
+  - Vault: filters (starred, each type and tag, the trash), the list and the
+    open item side by side, with a context menu on each row; new items in a
+    dialog, edits in place; conflict copies compared side by side, line by
+    line, and kept or adopted; files imported from a dialog or dropped on
+    the list, each shown encrypted, verified and held by the relay. The
+    command palette finds items by title.
   - Channels: attachments, roles, history grants, leaving, archiving and
     reopening, and ownership and billing transfers by packet.
   - Inbox; plan and names, with name transfers and checkout records.
@@ -67,7 +71,9 @@ Rules (`src/main/policy.ts`):
   requests the desktop starts are marked `source: "gui"`. Methods that name
   local files (`wallet/use`, `channel/download`, `attest/verify`) and refunds
   stay with the CLI. Files enter and leave only through the main process's
-  open and save dialogs with the path the person picked:
+  open and save dialogs with the path the person picked, or, for a vault
+  import, a file dropped on the window: the preload resolves it to its path
+  (`webUtils.getPathForFile`), which a file a page made does not have:
   - vault files (`file/import`, `file/export`) and shared channel files
     (`channel/download`; `channel/send_file` names a vault item);
   - an application action's CBOR (`attest/action`) and attestation bundles
@@ -81,7 +87,8 @@ Rules (`src/main/policy.ts`):
   (`DESKTOP_TOOLS`) as a hosted Agent ID, in the connector session `gui`. The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for
   agents.
-- A vault secret is shown, or copied, only after a second click. A copy goes
+- A vault secret is shown, or copied, only on a second click within three
+  seconds of the first; shown, it hides again after a minute. A copy goes
   from the daemon to the clipboard through the main process, so the window
   never holds it, and the clipboard is cleared after 30 seconds unless
   something replaced it.
@@ -165,9 +172,11 @@ and notifications instead of the system's. It covers:
   endpoint whose secret shows once, and a delivery notification without its
   content;
 - a web checkout that cannot be approved before it is quoted;
-- the vault: a secret shown and copied only after confirmation, an edit that
-  names the version it replaces, a new login item and an adopted conflict
-  copy;
+- the vault: a secret shown and copied only on a second click, an edit that
+  names the version it replaces, a new login from its dialog, a conflict
+  copy adopted from the side-by-side dialog, a file imported through the
+  dialog to the relay, a file a page made refused, an item found from the
+  palette and one moved to the trash from its row's menu;
 - signatures: an application action opened in the approval window, and a
   bundle exported and verified through dialogs;
 - settings: a login binding approved in the approval window, a device

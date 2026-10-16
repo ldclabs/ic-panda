@@ -1,348 +1,344 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { t, type Label } from '../i18n/index.svelte'
-  import { call, code, when } from '../rpc'
+  import { onMount, tick } from 'svelte'
+  import Icon from '../components/Icon.svelte'
   import Select from '../components/Select.svelte'
   import { toast } from '../components/toast.svelte'
+  import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass } from '../components/ui'
+  import { t } from '../i18n/index.svelte'
+  import { bridge, call, code } from '../rpc'
+  import { unlock } from '../shell/session'
+  import Conflict from './vault/Conflict.svelte'
+  import Filters from './vault/Filters.svelte'
+  import { focus } from './vault/focus.svelte'
+  import Imports from './vault/Imports.svelte'
+  import { importFile, picked, settle } from './vault/importing.svelte'
+  import Inspector from './vault/Inspector.svelte'
+  import NewItem from './vault/NewItem.svelte'
+  import Row from './vault/Row.svelte'
+  import { facets as count, inScope, matches, typeLabel, types, type Scope } from './vault/vault'
 
-  let { status }: { status: any } = $props()
-  let items = $state<any[]>([])
+  /**
+   * The vault: filters, the list and the open item side by side. New items
+   * and conflict copies open in dialogs; files dropped on the list are
+   * imported through the main process.
+   */
+  let { status, mod }: { status: any; mod: string } = $props()
+
+  let entries = $state<any[]>([])
+  let trashed = $state<any[]>([])
   let conflicts = $state<any[]>([])
+  let scope = $state<Scope>('all')
   let query = $state('')
-  let trash = $state(false)
-  let error = $state('')
-  let busy = $state(false)
   let selected = $state<string | null>(null)
-  let checked = $state<Record<string, string>>({})
-  /** A new item's fields; the secret goes to the daemon only. */
-  let draft = $state({ type: 'note', title: '', tags: '', body: '', username: '', secret: '', url: '' })
-  /** The open item's fields while editing; an empty `secret` keeps the old one. */
-  let edit = $state<any>(null)
-  /** Showing or copying a secret waits for a second, explicit click. */
-  let confirming = $state<'reveal' | 'copy' | null>(null)
-  let revealed = $state<{ id: string; secret: string } | null>(null)
-  let hide: ReturnType<typeof setTimeout> | undefined
+  let error = $state('')
+  let loaded = $state(false)
+  let creating = $state(false)
+  let comparing = $state(false)
+  let compareFrom = $state(0)
+  let dragging = $state(0)
+  let search = $state<HTMLInputElement | null>(null)
+  let list = $state<HTMLElement | null>(null)
 
-  /** Which fields each item type shows; every type has a body and tags. */
-  const FIELDS: Record<string, string[]> = {
-    note: [],
-    login: ['username', 'secret', 'url'],
-    api: ['username', 'secret', 'url'],
-    key: ['secret'],
-    file: []
-  }
-  const TYPES: Record<string, Label> = { note: 'typeNote', login: 'typeLogin', api: 'typeApi', key: 'typeKey', file: 'typeFile' }
-  const tags = (text: string) =>
-    text
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter(Boolean)
-
-  async function attempt(work: () => Promise<void>) {
-    busy = true
-    error = ''
-    try {
-      await work()
-    } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
-    } finally {
-      busy = false
-    }
-  }
+  const unlocked = $derived(status?.state === 'unlocked')
+  const trash = $derived(scope === 'trash')
+  const facets = $derived(count(entries))
+  const conflicted = $derived(new Set(conflicts.map((copy) => copy.id)))
+  const shown = $derived(
+    (trash ? trashed : entries)
+      .filter((entry) => inScope(entry, scope) && matches(entry.item, query))
+      .sort((a, b) => (b.item.updatedAt ?? 0) - (a.item.updatedAt ?? 0))
+  )
+  const current = $derived(shown.find((entry) => entry.id === selected) ?? null)
+  const scopes = $derived([
+    { value: 'all', label: t('allItems') },
+    { value: 'starred', label: t('starred') },
+    ...types.filter((type) => facets.types[type]).map((type) => ({ value: `type:${type}`, label: t(typeLabel[type]) })),
+    ...facets.tags.map(([tag]) => ({ value: `tag:${tag}`, label: `#${tag}` })),
+    { value: 'trash', label: t('trash') }
+  ])
 
   async function load() {
-    error = ''
     try {
-      items = await call('vault/list', { trash, query: query.trim() || undefined })
-      conflicts = trash ? [] : await call('vault/conflicts')
+      entries = await call('vault/list')
+      trashed = trash ? await call('vault/list', { trash: true }) : []
+      conflicts = await call('vault/conflicts')
+      error = ''
+      settle(entries)
     } catch (e) {
-      items = []
-      conflicts = []
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      entries = trashed = conflicts = []
+      error = code(e) === 'LOCKED' ? 'LOCKED' : `${t('error')}: ${code(e)}`
+    }
+    loaded = true
+  }
+
+  // A filter that no longer has items falls back to everything.
+  $effect(() => {
+    if (scope.startsWith('tag:') || scope.startsWith('type:') || scope === 'starred')
+      if (!scopes.some((option) => option.value === scope)) scope = 'all'
+  })
+
+  // The trash is read when it is opened.
+  $effect(() => {
+    if (trash) void load()
+  })
+
+  // Keep an item open: the first one when the open one left the list.
+  $effect(() => {
+    if (!current && shown.length) selected = shown[0].id
+  })
+
+  // The command palette opens an item here.
+  $effect(() => {
+    const id = focus.id
+    if (!id || !loaded) return
+    focus.id = null
+    scope = 'all'
+    query = ''
+    selected = id
+  })
+
+  async function select(id: string, move = false) {
+    selected = id
+    if (!move) return
+    await tick()
+    list?.querySelector<HTMLElement>(`[data-id="${id}"]`)?.focus()
+  }
+
+  function onListKey(event: KeyboardEvent) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    event.preventDefault()
+    const at = shown.findIndex((entry) => entry.id === selected)
+    const next = shown[Math.max(0, Math.min(shown.length - 1, at + (event.key === 'ArrowDown' ? 1 : -1)))]
+    if (next) void select(next.id, true)
+  }
+
+  function onSearchKey(event: KeyboardEvent) {
+    if (event.key === 'ArrowDown' && shown.length) {
+      event.preventDefault()
+      void select(selected ?? shown[0].id, true)
+    } else if (event.key === 'Escape' && query) {
+      event.stopPropagation()
+      query = ''
     }
   }
 
-  const add = () =>
-    attempt(async () => {
-      if (!draft.title.trim()) return
-      const now = Date.now()
-      const fields = FIELDS[draft.type]
-      await call('vault/put', {
-        item: {
-          type: draft.type,
-          title: draft.title.trim(),
-          tags: tags(draft.tags),
-          body: draft.body,
-          username: fields.includes('username') ? draft.username : '',
-          secret: fields.includes('secret') ? draft.secret : '',
-          url: fields.includes('url') ? draft.url : '',
-          favorite: false,
-          createdAt: now,
-          updatedAt: now
-        }
-      })
-      draft = { type: draft.type, title: '', tags: '', body: '', username: '', secret: '', url: '' }
-      await load()
-    })
-
-  function open(id: string) {
-    selected = selected === id ? null : id
-    edit = null
-    confirming = null
-    revealed = null
-  }
-
-  function startEdit(entry: any) {
-    edit = {
-      title: entry.item.title,
-      tags: entry.item.tags.join(', '),
-      body: entry.item.body,
-      username: entry.item.username,
-      url: entry.item.url,
-      secret: ''
+  /** ⌘N opens a new item, ⌘F the search (Ctrl elsewhere). */
+  function onKey(event: KeyboardEvent) {
+    const held = mod === '⌘' ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
+    if (!held || event.altKey || event.shiftKey || creating || comparing) return
+    const key = event.key.toLowerCase()
+    if (key === 'n' && unlocked) {
+      event.preventDefault()
+      if (trash) scope = 'all'
+      creating = true
+    } else if (key === 'f') {
+      event.preventDefault()
+      search?.focus()
+      search?.select()
     }
   }
 
-  /** The edit replaces the version shown; if another device moved on, it becomes a conflict copy. */
-  const save = (entry: any) =>
-    attempt(async () => {
-      const fields = FIELDS[entry.item.type] ?? []
-      const changes: Record<string, unknown> = { title: edit.title.trim(), tags: tags(edit.tags), body: edit.body }
-      if (fields.includes('username')) changes.username = edit.username
-      if (fields.includes('url')) changes.url = edit.url
-      if (fields.includes('secret') && edit.secret) changes.secret = edit.secret
-      await call('vault/edit', { id: entry.id, base: entry.revision, changes })
-      edit = null
-      revealed = null
-      await load()
-    })
-
-  const star = (entry: any) =>
-    attempt(async () => {
-      await call('vault/edit', { id: entry.id, base: entry.revision, changes: { favorite: !entry.item.favorite } })
-      await load()
-    })
-
-  const remove = (id: string) =>
-    attempt(async () => {
-      await call(trash ? 'vault/restore' : 'vault/delete', { id })
-      selected = null
-      await load()
-    })
-
-  /** Shown for a minute, then hidden again. */
-  const reveal = (id: string) =>
-    attempt(async () => {
-      confirming = null
-      const entry: any = await call('vault/show', { id, reveal: true })
-      revealed = { id, secret: entry.item.secret }
-      clearTimeout(hide)
-      hide = setTimeout(() => (revealed = null), 60_000)
-    })
-
-  /** The main process copies it; this window never holds the copied secret. */
-  const copy = (id: string) =>
-    attempt(async () => {
-      confirming = null
-      const { clear_after_ms } = await window.dmsg.copySecret(id)
-      toast((seconds) => t('copied', { seconds }), { ms: clear_after_ms, countdown: true, testid: 'secret-copied' })
-    })
-
-  /** Files enter and leave through system dialogs; the window never names a path. */
-  const fileAction = (work: () => Promise<unknown>) =>
-    attempt(async () => {
+  async function act(work: () => Promise<unknown>, done?: string) {
+    try {
       await work()
-      await load()
-    })
+      if (done) toast(() => done)
+    } catch (e) {
+      toast(() => (code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`))
+    }
+    await load()
+  }
 
-  const verify = (id: string) =>
-    fileAction(async () => {
-      const manifest: any = await call('file/verify', { id })
-      checked[id] = `${t('verified')} · ${t('bytes', { n: manifest.size })} · sha256 ${String(manifest.sha256).slice(0, 16)}…`
-    })
+  const star = (entry: any) => act(() => call('vault/edit', { id: entry.id, base: entry.revision, changes: { favorite: !entry.item.favorite } }))
+  const discard = (entry: any) =>
+    act(() => call(trash ? 'vault/restore' : 'vault/delete', { id: entry.id }), trash ? t('restored') : t('movedToTrash'))
+  const exportFile = (entry: any) => act(() => bridge(() => window.dmsg.exportFile(entry.id, entry.item.file.name)))
 
-  /** Keep the current version, or adopt the copy another device wrote. */
-  const resolve = (copy: any, keep: 'current' | 'theirs') =>
-    attempt(async () => {
-      await call('vault/resolve', { key: `${copy.id}:${copy.revision}`, keep })
-      await load()
-    })
+  async function add(dropped?: File) {
+    const id = await importFile(dropped, load)
+    if (id) {
+      if (trash) scope = 'all'
+      selected = id
+    }
+  }
 
-  /** The fields in which a conflict copy differs from the current version. */
-  function differences(copy: any): string {
-    const head = items.find((e) => e.id === copy.id)
-    if (!head) return t('deleted')
-    const names: string[] = ['title', 'body', 'username', 'url', 'tags', 'secret', 'favorite'].filter(
-      (name) => JSON.stringify(head.item[name]) !== JSON.stringify(copy.item[name])
-    )
-    if (copy.deleted !== head.deleted) names.push(t('deleted'))
-    return names.join(', ') || '-'
+  async function saved(id: string) {
+    await load()
+    selected = id
+  }
+
+  function compare(id?: string) {
+    compareFrom = Math.max(0, id ? conflicts.findIndex((copy) => copy.id === id) : 0)
+    comparing = true
+  }
+
+  const files = (event: DragEvent) => !!event.dataTransfer?.types.includes('Files')
+
+  function onDragEnter(event: DragEvent) {
+    if (!files(event) || !unlocked) return
+    event.preventDefault()
+    dragging++
+  }
+
+  function onDragOver(event: DragEvent) {
+    if (!files(event) || !unlocked) return
+    event.preventDefault()
+    event.dataTransfer!.dropEffect = 'copy'
+  }
+
+  function onDrop(event: DragEvent) {
+    if (!files(event)) return
+    event.preventDefault()
+    dragging = 0
+    if (!unlocked) return
+    for (const file of Array.from(event.dataTransfer?.files ?? [])) void add(file)
   }
 
   onMount(() => {
     void load()
-    const off = window.dmsg.onEvent((event) => {
+    return window.dmsg.onEvent((event) => {
+      if (event.type === 'file/importing') picked(String((event.data as any)?.name ?? ''))
       if (['vault/changed', 'session/changed', 'sync/changed'].includes(event.type)) void load()
     })
-    return () => {
-      off()
-      clearTimeout(hide)
-    }
   })
-
-  const unlocked = $derived(status?.state === 'unlocked')
 </script>
 
-<div class="row" style="margin-bottom: 12px">
-  <input placeholder={t('search')} bind:value={query} oninput={() => load()} />
-  <button class={buttonClass(trash ? 'primary' : 'secondary')} onclick={() => ((trash = !trash), (selected = null), load())}>{t('trash')}</button>
-</div>
-{#if error}<p class="muted" data-testid="vault-error">{error}</p>{/if}
-{#if conflicts.length}
-  <div class="card" data-testid="vault-conflicts">
-    <h2>{t('conflicts')}</h2>
-    <p class="muted">{t('conflictsHint')}</p>
-    <ul class="list">
-      {#each conflicts as copy (`${copy.id}:${copy.revision}`)}
-        <li>
-          <div class="row spread">
-            <span>
-              <strong>{copy.item.title}</strong>
-              <span class="muted">{copy.deleted ? ` · ${t('deleted')}` : ''} · {when(copy.item.updatedAt)}</span>
-            </span>
-            <span class="row">
-              <button class={buttonClass()} disabled={busy || !unlocked} onclick={() => resolve(copy, 'current')}>{t('keepCurrent')}</button>
-              <button class={buttonClass('primary')} disabled={busy || !unlocked} onclick={() => resolve(copy, 'theirs')}>{t('useCopy')}</button>
-            </span>
-          </div>
-          <div class="muted">{t('differs')}: {differences(copy)}</div>
-          {#if copy.item.body}<div class="muted">{copy.item.body}</div>{/if}
-        </li>
-      {/each}
-    </ul>
-  </div>
-{/if}
-<ul class="list card" data-testid="vault-list">
-  {#each items as entry (entry.id)}
-    <li>
-      <div class="row spread">
-        <button class="link" onclick={() => open(entry.id)}>
-          <strong>{entry.item.favorite ? '★ ' : ''}{entry.item.title}</strong>
-          <span class="muted">
-            {t(TYPES[entry.item.type] ?? 'typeNote')}{entry.item.tags.length ? ` · ${entry.item.tags.join(', ')}` : ''}{entry.synced
-              ? ''
-              : ' · ↻'}{conflicts.some((c) => c.id === entry.id) ? ` · ${t('conflicts')}` : ''}
-          </span>
-        </button>
-        <button class={buttonClass('danger')} disabled={busy} onclick={() => remove(entry.id)}>{trash ? t('restore') : t('remove')}</button>
-      </div>
-      {#if selected === entry.id && !edit}
-        <dl style="margin-top: 8px" data-testid="vault-detail">
-          {#if entry.item.username}<dt>{t('username')}</dt><dd>{entry.item.username}</dd>{/if}
-          {#if entry.item.secret}
-            <dt>{t('secret')}</dt>
-            <dd class="mono" data-testid="vault-secret">{revealed?.id === entry.id ? revealed?.secret : entry.item.secret}</dd>
-          {/if}
-          {#if entry.item.url}<dt>URL</dt><dd>{entry.item.url}</dd>{/if}
-          {#if entry.item.body}<dt>{t('body')}</dt><dd class="body">{entry.item.body}</dd>{/if}
-          {#if entry.item.tags.length}<dt>{t('tags')}</dt><dd>{entry.item.tags.join(', ')}</dd>{/if}
-          {#if entry.item.file}<dt>{t('typeFile')}</dt><dd>{entry.item.file.name} ({t('bytes', { n: entry.item.file.size })})</dd>{/if}
-          <dt>{t('updated')}</dt>
-          <dd>{when(entry.item.updatedAt)} <span class="mono muted">{entry.revision.slice(0, 12)}</span></dd>
-        </dl>
-        {#if !trash}
-          <div class="row" style="margin-top: 8px">
-            {#if unlocked}
-              <button class={buttonClass()} disabled={busy} onclick={() => startEdit(entry)}>{t('edit')}</button>
-              <button class={buttonClass()} disabled={busy} onclick={() => star(entry)}>{entry.item.favorite ? t('unstar') : t('star')}</button>
-            {/if}
-            {#if entry.item.secret && unlocked}
-              {#if revealed?.id === entry.id}
-                <button class={buttonClass()} onclick={() => (revealed = null)}>{t('hideSecret')}</button>
-              {:else}
-                <button class={buttonClass()} data-testid="reveal-secret" onclick={() => (confirming = 'reveal')}>{t('showSecret')}</button>
-              {/if}
-              <button class={buttonClass()} data-testid="copy-secret" onclick={() => (confirming = 'copy')}>{t('copySecret')}</button>
-            {/if}
-            {#if entry.item.file}
-              <button class={buttonClass()} onclick={() => fileAction(() => window.dmsg.exportFile(entry.id, entry.item.file.name))}>{t('exportFile')}</button>
-              <button class={buttonClass()} onclick={() => verify(entry.id)}>{t('verifyFile')}</button>
-              {#if checked[entry.id]}<span class="muted" data-testid="file-checked">{checked[entry.id]}</span>{/if}
-            {/if}
-          </div>
-          {#if confirming}
-            <div class="row confirm" data-testid="secret-confirm">
-              <span class="warn">{confirming === 'reveal' ? t('confirmReveal') : t('confirmCopy')}</span>
-              <button class={buttonClass('primary')} data-testid="secret-confirm-yes" disabled={busy} onclick={() => (confirming === 'reveal' ? reveal(entry.id) : copy(entry.id))}>
-                {confirming === 'reveal' ? t('showSecret') : t('copySecret')}
-              </button>
-              <button class={buttonClass()} onclick={() => (confirming = null)}>{t('cancel')}</button>
-            </div>
-          {/if}
+<svelte:window onkeydown={onKey} />
+
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+  class="@container relative flex h-full min-h-0"
+  ondragenter={onDragEnter}
+  ondragover={onDragOver}
+  ondragleave={(event) => files(event) && (dragging = Math.max(0, dragging - 1))}
+  ondrop={onDrop}
+  data-testid="vault"
+>
+  {#if error === 'LOCKED'}
+    <div class="grid flex-1 place-items-center p-8" data-testid="vault-locked">
+      <div class="grid max-w-sm justify-items-center gap-3 text-center">
+        <span class="grid size-12 place-items-center rounded-2xl border border-line bg-surface text-faint shadow-xs [&_svg]:size-6"><Icon name="lock" /></span>
+        <p class="text-[13.5px] text-muted">{t('locked')}</p>
+        {#if status?.state === 'locked'}
+          <button class={buttonClass('primary')} onclick={() => unlock(status)}>{status?.fast_unlock ? t('fastUnlock') : t('login')}</button>
         {/if}
-      {/if}
-      {#if selected === entry.id && edit}
-        <div class="form" data-testid="vault-edit">
-          <input placeholder={t('title')} bind:value={edit.title} />
-          {#if FIELDS[entry.item.type]?.includes('username')}<input placeholder={t('username')} bind:value={edit.username} />{/if}
-          {#if FIELDS[entry.item.type]?.includes('url')}<input placeholder="URL" bind:value={edit.url} />{/if}
-          {#if FIELDS[entry.item.type]?.includes('secret')}
-            <input type="password" placeholder={t('newSecret')} bind:value={edit.secret} autocomplete="off" />
+      </div>
+    </div>
+  {:else}
+    <aside class="hidden w-[184px] shrink-0 flex-col border-e border-line @min-[860px]:flex">
+      <Filters bind:scope {facets} />
+    </aside>
+
+    <section class="relative flex w-[264px] shrink-0 flex-col border-e border-line @min-[860px]:w-[296px]">
+      <div class="grid gap-2 p-3 pb-2">
+        <div class="flex items-center gap-1.5">
+          <label class="relative min-w-0 flex-1">
+            <Icon name="search" class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-faint" />
+            <input
+              bind:this={search}
+              bind:value={query}
+              type="search"
+              class="ps-8"
+              placeholder={t('searchItems', { n: trash ? trashed.length : facets.all })}
+              aria-label={t('search')}
+              onkeydown={onSearchKey}
+              data-testid="vault-search"
+            />
+          </label>
+          {#if unlocked && !trash}
+            <Tooltip content={`${t('add')} · ${mod}N`}>
+              {#snippet children(props)}
+                <button {...props} class={buttonClass('primary', 'md', 'size-8 px-0')} aria-label={t('add')} onclick={() => (creating = true)} data-testid="vault-new">
+                  <Icon name="add" />
+                </button>
+              {/snippet}
+            </Tooltip>
+            <Tooltip content={t('importFile')}>
+              {#snippet children(props)}
+                <button {...props} class={buttonClass('secondary', 'md', 'size-8 px-0')} aria-label={t('importFile')} onclick={() => add()} data-testid="import-file">
+                  <Icon name="upload" />
+                </button>
+              {/snippet}
+            </Tooltip>
           {/if}
-          <input placeholder={t('tagsHint')} bind:value={edit.tags} />
-          <textarea placeholder={t('body')} bind:value={edit.body}></textarea>
-          <div class="row">
-            <button class={buttonClass('primary')} disabled={busy || !edit.title.trim()} data-testid="vault-save" onclick={() => save(entry)}>{t('save')}</button>
-            <button class={buttonClass()} onclick={() => (edit = null)}>{t('cancel')}</button>
-          </div>
+        </div>
+        <Select bind:value={() => scope, (next) => (scope = next as Scope)} options={scopes} label={t('vaultFilters')} class="w-full @min-[860px]:hidden" testid="vault-scope" />
+      </div>
+
+      {#if conflicts.length && !trash}
+        <div class="mx-3 mb-2 flex items-center gap-2 rounded-xl border border-warn/35 bg-warn-pale px-2.5 py-2 text-[12px] text-ink-2" data-testid="vault-conflicts">
+          <Icon name="conflict" class="shrink-0 text-warn" />
+          <span class="min-w-0 flex-1">{t('conflictBanner', { n: conflicts.length })}</span>
+          <button class={buttonClass('secondary', 'xs')} onclick={() => compare()} data-testid="vault-conflicts-review">{t('review')}</button>
         </div>
       {/if}
-    </li>
-  {:else}
-    <li class="muted">{t('noItems')}</li>
-  {/each}
-</ul>
-{#if unlocked && !trash}
-  <div class="card form">
-    <h2>{t('add')}</h2>
-    <div class="row">
-      <Select bind:value={draft.type} testid="vault-type" options={['note', 'login', 'api', 'key'].map((type) => ({ value: type, label: t(TYPES[type]) }))} />
-      <input placeholder={t('title')} bind:value={draft.title} data-testid="vault-title" />
-    </div>
-    {#if FIELDS[draft.type].includes('username')}<input placeholder={t('username')} bind:value={draft.username} />{/if}
-    {#if FIELDS[draft.type].includes('url')}<input placeholder="URL" bind:value={draft.url} />{/if}
-    {#if FIELDS[draft.type].includes('secret')}
-      <input type="password" placeholder={t('secret')} bind:value={draft.secret} autocomplete="off" data-testid="vault-new-secret" />
-    {/if}
-    <input placeholder={t('tagsHint')} bind:value={draft.tags} />
-    <textarea placeholder={t('body')} bind:value={draft.body}></textarea>
-    <div class="row">
-      <button class={buttonClass('primary')} disabled={busy} data-testid="vault-add" onclick={add}>{t('save')}</button>
-      <button class={buttonClass()} data-testid="import-file" onclick={() => fileAction(() => window.dmsg.importFile())}>{t('importFile')}</button>
-    </div>
-  </div>
-{/if}
 
-<style>
-  .link {
-    border: 0;
-    background: transparent;
-    padding: 0;
-    display: flex;
-    gap: 10px;
-    text-align: start;
-  }
-  .form {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 8px;
-  }
-  .confirm {
-    margin-top: 8px;
-  }
-  .body {
-    white-space: pre-wrap;
-  }
-</style>
+      <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+      <ul bind:this={list} class="min-h-0 flex-1 overflow-y-auto px-2 pb-24" aria-label={t('vault')} onkeydown={onListKey} data-testid="vault-list">
+        {#each shown as entry (entry.id)}
+          <Row
+            {entry}
+            selected={entry.id === selected}
+            conflict={conflicted.has(entry.id)}
+            {trash}
+            {unlocked}
+            onSelect={() => select(entry.id)}
+            onStar={() => star(entry)}
+            onDiscard={() => discard(entry)}
+            onExport={() => exportFile(entry)}
+          />
+        {:else}
+          {#if loaded}
+            <li class="grid justify-items-center gap-2 px-4 py-10 text-center" data-testid="vault-empty">
+              {#if query}
+                <p class="text-[13px] text-muted [overflow-wrap:anywhere]">{t('noMatch', { query })}</p>
+              {:else if trash}
+                <p class="text-[13px] text-muted">{t('emptyTrash')}</p>
+              {:else if scope === 'all'}
+                <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="vault" /></span>
+                <b class="text-[13.5px] font-semibold">{t('emptyVault')}</b>
+                <p class="text-[12.5px] text-muted">{t('emptyVaultHint')}</p>
+              {:else}
+                <p class="text-[13px] text-muted">{t('noItems')}</p>
+              {/if}
+            </li>
+          {/if}
+        {/each}
+      </ul>
+      <Imports />
+    </section>
+
+    <div class="min-w-0 flex-1">
+      {#if current}
+        {#key current.id}
+          <Inspector
+            entry={current}
+            conflict={conflicted.has(current.id)}
+            {trash}
+            {unlocked}
+            {mod}
+            reload={load}
+            onCompare={() => compare(current.id)}
+          />
+        {/key}
+      {:else if loaded}
+        <div class="grid h-full place-items-center p-8 text-center text-[13px] text-faint">
+          <p>{shown.length ? t('selectItem') : error || ''}</p>
+        </div>
+      {/if}
+    </div>
+  {/if}
+
+  {#if dragging}
+    <div class="pointer-events-none absolute inset-2 z-20 grid place-items-center rounded-2xl border-2 border-dashed border-forest/60 bg-pale/85 text-forest backdrop-blur-[1px] animate-in fade-in-0">
+      <div class="grid justify-items-center gap-2">
+        <Icon name="upload" class="size-7" />
+        <b class="text-[14px] font-semibold">{t('dropToImport')}</b>
+        <span class="text-[12px] text-muted">{t('dropDetail')}</span>
+      </div>
+    </div>
+  {/if}
+</div>
+
+<NewItem bind:open={creating} {mod} onSaved={saved} onImport={() => add()} />
+<Conflict bind:open={comparing} {conflicts} start={compareFrom} reload={load} />
