@@ -27,12 +27,13 @@ desktop is one of its clients, like the CLI.
 - **Preload** (`src/preload`): `window.dmsg`, a narrow bridge; the credential
   never reaches a renderer.
 - **Renderer** (`src/renderer`, Svelte 5, Tailwind CSS 4): the main window
-  and the approval window. `app.css` holds the dMsg tokens of
-  `src/dmsg_frontend/DESIGN.md` with a dark theme; `components/` is the kit
-  the views compose: `ui.ts` (button and menu classes), Remix icons
-  (`glyphs.ts`), and bits-ui checkboxes, radios, toggle groups, dropdowns,
-  context menus, dialogs, tabs, suggestions, collapsibles and toasts in
-  place of native controls. Inter and the icons are bundled; their
+  and the approval window, designed in [DESIGN.md](DESIGN.md) (the plan and
+  its record: [docs/dmsg_desktop_design_zh.md](../../docs/dmsg_desktop_design_zh.md)).
+  `app.css` holds the dMsg tokens of `src/dmsg_frontend/DESIGN.md` with a
+  dark theme; `components/` is the kit the views compose: `ui.ts` (button
+  and menu classes), Remix icons (`glyphs.ts`), and bits-ui checkboxes,
+  radios, toggle groups, dropdowns, context menus, dialogs, tabs,
+  suggestions, collapsibles and toasts in place of native controls. Inter and the icons are bundled; their
   licenses ship in `public/licenses`. Motion stops when the system asks
   for reduced motion. The text is in `i18n/messages`, one catalog per
   language, each checked against the English one.
