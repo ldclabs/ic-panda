@@ -23,6 +23,7 @@ pub mod catalog;
 pub mod cloud;
 pub mod gc;
 pub mod import;
+pub mod mount;
 pub mod open;
 pub mod share;
 
@@ -1086,6 +1087,7 @@ impl Client {
         if self.keys.is_some() {
             let _ = self.open_copies_on_lock();
         }
+        self.files_mount_clean();
         self.library = None;
     }
 }

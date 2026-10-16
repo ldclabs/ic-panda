@@ -64,7 +64,10 @@ pub struct Imported {
     pub duplicate_of: Vec<String>,
 }
 
-fn thumb_aad<'a>(file_id: &'a str, version: &'a str) -> (&'static str, &'a str, &'a str) {
+pub(crate) fn thumb_aad<'a>(
+    file_id: &'a str,
+    version: &'a str,
+) -> (&'static str, &'a str, &'a str) {
     ("dmsg/file-thumb/1", file_id, version)
 }
 

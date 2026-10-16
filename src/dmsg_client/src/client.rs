@@ -684,8 +684,13 @@ impl Client {
                 _ => {}
             }
         }
-        // The file library's chunks and opened copies go with the workspace.
-        for name in [BLOBS, crate::library::open::OPEN_DIR] {
+        // The file library's chunks, opened copies and mount uploads go with
+        // the workspace.
+        for name in [
+            BLOBS,
+            crate::library::open::OPEN_DIR,
+            crate::library::mount::MOUNT_DIR,
+        ] {
             match std::fs::remove_dir_all(dir.join(name)) {
                 Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(storage(e)),
                 _ => {}

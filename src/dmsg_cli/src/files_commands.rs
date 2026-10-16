@@ -222,6 +222,16 @@ pub enum FilesCommand {
         #[arg(long)]
         version: Option<String>,
     },
+    /// Mount the library as a disk through the daemon (needs
+    /// `files_mount = true` in config.toml): reading decrypts, writing makes
+    /// versions, locking unmounts. --status only shows the mount.
+    Mount {
+        /// Show the mount instead.
+        #[arg(long)]
+        status: bool,
+    },
+    /// Unmount the disk.
+    Unmount,
 }
 
 /// The cloud: backups of every device of the account.
@@ -821,8 +831,45 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
                 .await?;
             print(json, &file, file_line);
         }
+        FilesCommand::Mount { status } => {
+            let method = if status {
+                "files/mount_status"
+            } else {
+                "files/mount"
+            };
+            let mount = remote.call(method, Value::Null).await?;
+            print(json, &mount, mount_line);
+        }
+        FilesCommand::Unmount => {
+            let mount = remote.call("files/unmount", Value::Null).await?;
+            print(json, &mount, mount_line);
+        }
     }
     Ok(())
+}
+
+fn mount_line(m: &Value) -> String {
+    let note = m["note"].as_str().unwrap_or_default();
+    if m["mounted"] == true {
+        let point = m["mount_point"]
+            .as_str()
+            .or(m["url"].as_str())
+            .unwrap_or_default();
+        return tr!("Mounted at {point}\n{note}", "已挂载于 {point}\n{note}");
+    }
+    if m["enabled"] != true {
+        return tr!(
+            "Not mounted; mounting is off (files_mount = true in config.toml turns it on).\n{note}",
+            "未挂载；挂载功能已关闭（在 config.toml 中设置 files_mount = true 开启）。\n{note}"
+        );
+    }
+    if m["supported"] != true {
+        return tr!(
+            "Not mounted; not supported on this system.",
+            "未挂载；此系统不支持。"
+        );
+    }
+    tr!("Not mounted.\n{note}", "未挂载。\n{note}")
 }
 
 fn cloud_line(c: &Value) -> String {

@@ -63,7 +63,9 @@ desktop is one of its clients, like the CLI.
     the system dialog (files or a folder) or a drop into the folder shown,
     encrypted as they arrive, and rows drag into the tree's folders.
     Backing up asks first and shows the cloud's room; sharing to a channel
-    sends a fresh edition under its own key; deleting a cloud copy is a
+    sends a fresh edition under its own key; the sidebar's foot mounts the
+    library as a disk when the daemon allows it (`files_mount`), after the
+    system's caveat; deleting a cloud copy is a
     second, danger-toned confirmation and leaves the device alone, as the
     trash leaves the cloud alone. Open hands a temporary copy to its
     program; a copy another program changed is offered as a new version

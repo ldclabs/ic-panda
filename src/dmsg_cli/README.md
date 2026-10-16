@@ -21,6 +21,7 @@ cryptography, storage and protocol logic live in
 | `<environment>/accounts/<account>/agents.sqlite` | Agent Protocols connector state of the account's hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
 | `<environment>/accounts/<account>/blobs/<d0d1>/<digest>` | The file library's ciphertext chunks, one file per chunk named by its SHA-256; `blobs/tmp/` holds chunks being written |
 | `<environment>/accounts/<account>/open/<nonce>/<name>` | Plaintext copies of library files opened for another program (`dmsg files open`), owner-only, removed after 30 minutes, on lock and on exit |
+| `<environment>/accounts/<account>/mount/<random>` | A file arriving over the mounted disk, owner-only, until it is imported; removed on lock |
 | `<environment>/logins/<principal>/` | The workspace of a login without an account; it becomes `accounts/<account>/` once the login has one |
 | `<environment>/current` | The account selected last, which a restart and fast unlock use |
 
@@ -44,6 +45,7 @@ background_online = false        # keep the device key while locked
 sync_interval_minutes = 0        # scheduled sync; 0 is off
 files_max_bytes = 4294967296     # largest file the file library takes (default 4 GiB)
 files_trash_days = 30            # days a trashed library file is kept, 1 to 365
+files_mount = false              # allow mounting the library as a disk (loopback WebDAV)
 secure_storage = "system"        # "system" (default on macOS and Windows) or "file"
 connect_url = "http://localhost:5174"  # local only; default https://connect.dmsg.net
 agent_hosts = [                  # Agent Protocols hosts the hosted agents may sign for
@@ -197,6 +199,7 @@ dmsg files share <channel> <id> [--version V] [text] | save <channel> <seq> [--t
 dmsg files backup <id|folder>... [--all-versions] | backup-status | backup-cancel <id> <version>
 dmsg files cloud ls [--refresh] | refresh | get <upload> [--to <folder>] | rm <upload>... | verify <upload> | usage
 dmsg files evict <id> [--version V]
+dmsg files mount [--status] | unmount
 dmsg sync | sync status
 dmsg profile show | publish [--name N] [--bio B] [--link URL]... | resolve <account>
 dmsg profile avatar <png|jpeg|webp> | avatar --remove
@@ -327,6 +330,28 @@ verify` downloads and checks a backup; `files evict` then frees a verified
 version's chunks here, so it reads only after `cloud get`. `cloud usage`
 shows the relay's storage room; a backup request that would not fit fails
 with `QUOTA_EXCEEDED` before anything starts.
+
+Mount. With `files_mount = true`, `files mount` serves the library as a
+loopback WebDAV share at `/dav/<token>/dMsg` and mounts it through the
+system (macOS `mount volume`, Windows `net use`, Linux `gio mount`), as the
+disk `dMsg`. The token is random for each mount and lives only in the
+daemon's memory; on macOS the mount also carries a random Basic password,
+which the system keeps and nobody sees. Reading decrypts one 1 MiB chunk at
+a time, ranges included; a file written to the disk waits, owner-only, in
+`mount/` until the whole of it has arrived, then becomes a new version of
+the file of that name or a new file; a folder maps to a folder, a delete
+goes to the trash, a copy re-encrypts under a new key, and an editor's safe
+save (a temporary file moved over the original) becomes a new version of
+the original. `.DS_Store`, `._*`, `Thumbs.db`, `desktop.ini` and the like
+are accepted and dropped. A lock, an account switch, `files unmount` and
+the daemon's exit unmount, and the share answers nothing without the
+token. Mounting is off by default because of the systems' WebDAV clients:
+macOS keeps a plaintext cache of opened files in its system cache directory
+while mounted; Windows refuses files over 50,000,000 bytes
+(`FileSizeLimitInBytes` of the WebClient service), so larger files go
+through `files get`; Linux mounts through GVFS, which programs not built on
+it reach through its FUSE path. `files mount --status` shows the mount
+with the system's note.
 
 Approvals are decided by a person: `approvals approve|reject`, `connect
 browsers add` and the prompt after `attest …` or `device …` need an interactive
@@ -569,7 +594,8 @@ The daemon listens on `127.0.0.1` only.
 - `GET /daemon/status`, `POST /app/v1` (JSON-RPC 2.0) and `GET /ws/app/v1`
   (the same methods over a WebSocket, plus `event` notifications
   `{seq, type, data}`: `session/changed`, `vault/changed`, `files/changed`,
-  `files/progress {path, done, total}`, `files/open_changed`, `sync/changed`,
+  `files/progress {path, done, total}`, `files/open_changed`,
+  `files/mount_changed`, `sync/changed`,
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
   `inbox/changed`, `legacy/changed`, `mcp-events/changed`, `resync`) need
   `Authorization: Bearer <owner token>`; any request with an `Origin` header
@@ -587,6 +613,7 @@ The daemon listens on `127.0.0.1` only.
   `files/share_channel|save_shared`,
   `files/backup|backup_status|backup_cancel|backup_run`,
   `files/cloud_list|cloud_refresh|cloud_fetch|cloud_delete|cloud_verify|cloud_usage`, `files/evict`,
+  `files/mount|unmount|mount_status`,
   `sync/run|status`,
   `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`,
   `attest/request|action {action: base64url CBOR}|history|usage|export|verify`,

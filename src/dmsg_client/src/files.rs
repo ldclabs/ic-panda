@@ -217,6 +217,45 @@ pub(crate) enum Source {
     Library,
 }
 
+/// Open chunk `index` of a file in `blobs`: that chunk's plaintext alone,
+/// checked against the manifest's chunk list but not against the whole
+/// file's SHA-256; for reads at an offset.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for an index past the end,
+/// `Error::RecoveryIncomplete` for a missing chunk and
+/// `Error::IntegrityFailed` for anything changed.
+pub(crate) fn read_chunk(
+    blobs: &dyn BlobStore,
+    manifest: &FileManifest,
+    index: u64,
+) -> Result<Zeroizing<Vec<u8>>> {
+    let count = chunk_count(manifest.size);
+    ensure(
+        manifest.chunks.len() as u64 == count,
+        Error::IntegrityFailed,
+    )?;
+    ensure_valid(index < count, "index")?;
+    let chunk = &manifest.chunks[index as usize];
+    let expected = (manifest.size - index * CHUNK as u64).min(CHUNK as u64);
+    ensure(
+        chunk.id == format!("{}:{}:{index}", manifest.id, manifest.version)
+            && chunk.size == expected,
+        Error::IntegrityFailed,
+    )?;
+    let sealed = blobs
+        .chunk(&chunk.digest)?
+        .ok_or(Error::RecoveryIncomplete)?;
+    let key = manifest.file_key()?;
+    let plain = open(
+        &key,
+        &b64(&sealed),
+        &chunk_aad(&manifest.id, &manifest.version, index, count, chunk.size),
+    )?;
+    ensure(plain.len() as u64 == chunk.size, Error::IntegrityFailed)?;
+    Ok(plain)
+}
+
 /// Open every chunk of a file in `blobs` in order, handing each plaintext
 /// to `each`, and check the whole against the manifest's SHA-256. `max`
 /// bounds the file size.
@@ -235,25 +274,9 @@ pub(crate) fn read_chunks(
         manifest.size <= max && manifest.chunks.len() as u64 == count,
         Error::IntegrityFailed,
     )?;
-    let key = manifest.file_key()?;
     let mut overall = Sha256::new();
-    for (index, chunk) in manifest.chunks.iter().enumerate() {
-        let index = index as u64;
-        let expected = (manifest.size - index * CHUNK as u64).min(CHUNK as u64);
-        ensure(
-            chunk.id == format!("{}:{}:{index}", manifest.id, manifest.version)
-                && chunk.size == expected,
-            Error::IntegrityFailed,
-        )?;
-        let sealed = blobs
-            .chunk(&chunk.digest)?
-            .ok_or(Error::RecoveryIncomplete)?;
-        let plain = open(
-            &key,
-            &b64(&sealed),
-            &chunk_aad(&manifest.id, &manifest.version, index, count, chunk.size),
-        )?;
-        ensure(plain.len() as u64 == chunk.size, Error::IntegrityFailed)?;
+    for index in 0..count {
+        let plain = read_chunk(blobs, manifest, index)?;
         overall.update(plain.as_slice());
         each(index, &plain)?;
     }

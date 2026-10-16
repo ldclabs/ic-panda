@@ -56,6 +56,9 @@
   let backing = $state<{ ids: string[]; allVersions: boolean; count: number; bytes: number; usage: any } | null>(null)
   let deletingCloud = $state<string[] | null>(null)
   let changedCopy = $state<any | null>(null)
+  /** `files/mount_status`: whether the library is a disk right now, and whether it may be. */
+  let mount = $state<any>(null)
+  let mounting = $state(false)
   let draft = $state('')
 
   const unlocked = $derived(status?.state === 'unlocked')
@@ -119,6 +122,7 @@
         cloudUsage = await call('files/cloud_usage').catch(() => cloudUsage)
       }
       usage = await call('files/usage').catch(() => null)
+      mount = await call('files/mount_status').catch(() => null)
       backups(await call('files/backup_status').catch(() => []))
       error = ''
     } catch (e) {
@@ -284,6 +288,12 @@
       sharing = null
     }, t('savedVerified'))
 
+  const mountDisk = () =>
+    attempt(async () => {
+      mount = await call('files/mount')
+      mounting = false
+    }, t('diskMounted'))
+  const unmountDisk = () => attempt(async () => (mount = await call('files/unmount')), t('diskUnmounted'))
   const refreshCloud = () =>
     attempt(async () => {
       await call('files/cloud_refresh')
@@ -319,6 +329,7 @@
       if (event.type === 'files/adding') picked(Array.isArray(data.names) ? data.names : [])
       else if (event.type === 'files/progress') progress(data)
       else if (event.type === 'files/open_changed') changedCopy = data
+      else if (event.type === 'files/mount_changed') mount = data
       else if (['files/changed', 'session/changed'].includes(event.type)) void load()
     })
   })
@@ -350,6 +361,20 @@
       <Tree {folders} {scope} {unlocked} onPick={pick} onDropMove={move} onNewFolder={(parent) => ((naming = { parent }), (draft = ''))} />
       {#if usage}
         <p class="border-t border-line px-3.5 py-2 text-[11px] text-faint">{t('localUsage', { files: usage.files, versions: usage.versions, bytes: size(usage.blob_bytes) })}</p>
+      {/if}
+      {#if mount?.supported}
+        <div class="border-t border-line px-3.5 py-2 text-[11px] text-faint" data-testid="files-mount">
+          {#if mount.mounted}
+            <p class="truncate" title={mount.mount_point ?? mount.url}>{t('mountedAt', { point: mount.mount_point ?? mount.url })}</p>
+            <button class="mt-1 text-forest hover:underline disabled:opacity-50" disabled={busy} onclick={unmountDisk} data-testid="files-unmount">{t('unmountDisk')}</button>
+          {:else if mount.enabled}
+            <button class="flex items-center gap-1.5 text-forest hover:underline disabled:opacity-50" disabled={busy || !unlocked} onclick={() => (mounting = true)} data-testid="files-mount-open">
+              <Icon name="drive" class="size-3.5" />{t('mountDisk')}
+            </button>
+          {:else}
+            <p>{t('mountOff')}</p>
+          {/if}
+        </div>
       {/if}
     </aside>
 
@@ -521,6 +546,18 @@
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (backing = null)}>{t('cancel')}</button>
     <button class={buttonClass('primary')} disabled={busy} onclick={backup} data-testid="files-backup-confirm"><Icon name="cloud-up" />{t('backUp')}</button>
+  {/snippet}
+</Dialog>
+
+<Dialog bind:open={mounting} title={t('mountTitle')} icon="drive" testid="files-mount-dialog">
+  <p class="text-[13.5px] leading-relaxed">{t('mountHint')}</p>
+  {#if mount?.os === 'macos' || mount?.os === 'windows' || mount?.os === 'linux'}
+    <Notice tone="warn" class="mt-3">{t(mount.os === 'macos' ? 'mountNoteMacos' : mount.os === 'windows' ? 'mountNoteWindows' : 'mountNoteLinux')}</Notice>
+  {/if}
+  {#snippet footer()}
+    <span class="flex-1"></span>
+    <button class={buttonClass('ghost')} onclick={() => (mounting = false)}>{t('cancel')}</button>
+    <button class={buttonClass('primary')} disabled={busy} onclick={mountDisk} data-testid="files-mount-confirm"><Icon name="drive" />{t('mountDisk')}</button>
   {/snippet}
 </Dialog>
 

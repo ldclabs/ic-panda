@@ -23,6 +23,7 @@ mod logs;
 mod mcp;
 mod mcp_events;
 mod methods;
+mod mount;
 mod release;
 mod remote;
 mod secure;

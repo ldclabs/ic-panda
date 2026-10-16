@@ -40,7 +40,7 @@ use axum::{
     },
     http::{header, HeaderMap, StatusCode},
     response::{Html, IntoResponse, Response},
-    routing::{get, post},
+    routing::{any, get, post},
     Json, Router,
 };
 use base64::Engine;
@@ -170,7 +170,7 @@ pub(crate) struct Daemon {
     instance: String,
     port: u16,
     settings: Settings,
-    client: Mutex<Client>,
+    client: Arc<Mutex<Client>>,
     login: std::sync::Mutex<LoginState>,
     activity: AtomicU64,
     /// Set while a stop decides; new requests and background passes wait it out.
@@ -190,6 +190,8 @@ pub(crate) struct Daemon {
     mcp: crate::mcp_events::McpEvents,
     /// The last outcome each background task logged.
     outcomes: std::sync::Mutex<std::collections::BTreeMap<&'static str, String>>,
+    /// The file library's loopback WebDAV mount, while mounted.
+    pub(crate) mount: std::sync::Mutex<Option<crate::mount::Mount>>,
 }
 
 /// Who presented a credential.
@@ -258,7 +260,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         instance: hex::encode(&dmsg_client::crypto::random_id()[..8]),
         port,
         settings,
-        client: Mutex::new(client),
+        client: Arc::new(Mutex::new(client)),
         login: std::sync::Mutex::new(LoginState::default()),
         activity: AtomicU64::new(now_ms()),
         stopping: AtomicBool::new(false),
@@ -272,6 +274,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         connectors: tokio::sync::watch::channel(0).0,
         mcp,
         outcomes: Default::default(),
+        mount: std::sync::Mutex::new(None),
     });
     home.publish(&Discovery {
         port,
@@ -287,6 +290,14 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         .route("/app/v1", post(rpc))
         .route("/ws/app/v1", get(socket))
         .route("/auth/callback", get(callback_page).post(callback))
+        .route(
+            &format!("/dav/{{token}}/{}", crate::mount::VOLUME),
+            any(crate::mount::serve),
+        )
+        .route(
+            &format!("/dav/{{token}}/{}/{{*rest}}", crate::mount::VOLUME),
+            any(crate::mount::serve),
+        )
         .with_state(daemon.clone());
     eprintln!("dmsg daemon listening on 127.0.0.1:{port}");
     crate::logs::write(
@@ -305,6 +316,8 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
                 _ = terminated() => {}
                 _ = stopping.stop.notified() => {}
             }
+            // The system unmounts while the share still answers.
+            stopping.unmount_library().await;
         })
         .await;
     daemon.client.lock().await.shutdown();
@@ -343,6 +356,9 @@ async fn background(daemon: Arc<Daemon>) {
                 json!({"state": status.as_ref().map(|s| s.state)}),
             );
         }
+        drop(client);
+        daemon.check_mount().await;
+        let mut client = daemon.client.lock().await;
         let interval = daemon.settings.sync_interval_ms;
         let unlocked = status.as_ref().is_some_and(|s| s.state == "unlocked");
         let ready = status.as_ref().is_some_and(|s| unlocked || s.resident);
@@ -481,6 +497,16 @@ impl Daemon {
 
     pub(crate) fn client(&self) -> &Mutex<Client> {
         &self.client
+    }
+
+    /// The client, to share with a task that outlives a call.
+    pub(crate) fn client_handle(&self) -> Arc<Mutex<Client>> {
+        self.client.clone()
+    }
+
+    /// The loopback port.
+    pub(crate) fn port(&self) -> u16 {
+        self.port
     }
 
     pub(crate) fn settings(&self) -> &Settings {
@@ -645,6 +671,7 @@ impl Daemon {
                 // Versions already signed for submission still go out.
                 let _ = client.flush().await;
                 drop(client);
+                self.unmount_library().await;
                 self.status().await
             }
             "session/fast_unlock" => {
@@ -815,6 +842,7 @@ impl Daemon {
                 }))
             }
             "workspace/reset" => {
+                self.unmount_library().await;
                 let mut client = self.client.lock().await;
                 // The caller names this device, as shown in the status.
                 if Some(text("device")?) != client.status()?.device_id {
@@ -1013,6 +1041,7 @@ impl Daemon {
             m if crate::files_methods::METHODS.contains(&m) => {
                 self.call_files(method, params).await
             }
+            m if crate::mount::METHODS.contains(&m) => self.call_mount(method, params).await,
             _ => self.call_more(method, params).await,
         }
     }
@@ -1079,6 +1108,7 @@ fn events_of(method: &str) -> &'static [&'static str] {
         m if crate::account_methods::METHODS.contains(&m) => crate::account_methods::events_of(m),
         m if crate::legacy_methods::METHODS.contains(&m) => crate::legacy_methods::events_of(m),
         m if crate::files_methods::METHODS.contains(&m) => crate::files_methods::events_of(m),
+        m if crate::mount::METHODS.contains(&m) => crate::mount::events_of(m),
         m if m.starts_with("agent/")
             || m.starts_with("grants/")
             || m.starts_with("ap/")
@@ -1205,6 +1235,7 @@ impl Daemon {
             && !crate::agents::METHODS.contains(&method)
             && !crate::mcp_events::METHODS.contains(&method)
             && !crate::files_methods::METHODS.contains(&method)
+            && !crate::mount::METHODS.contains(&method)
             && !agent_method
         {
             return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32601, "message": "method not found"}});

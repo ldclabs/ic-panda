@@ -376,7 +376,8 @@ pub struct RootKeys {
 }
 
 impl RootKeys {
-    #[cfg(test)]
+    /// One generation, for tests.
+    #[cfg(any(test, feature = "testing"))]
     pub(crate) fn single(generation: u64, root: Key) -> Self {
         Self {
             generation,

@@ -625,6 +625,163 @@ fn previews_verification_and_shared_editions() {
 }
 
 #[test]
+fn the_mount_primitives_look_up_read_copy_and_replace() {
+    use super::mount::Node;
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let docs = client.files_mkdir_path("docs/2026").unwrap();
+    let data = pattern(CHUNK + 77, 4);
+    let report = client
+        .files_write(&docs.id, "report.bin", &data)
+        .unwrap()
+        .file;
+    let mut png = std::io::Cursor::new(Vec::new());
+    image::RgbaImage::from_pixel(320, 200, image::Rgba([200, 10, 30, 255]))
+        .write_to(&mut png, image::ImageFormat::Png)
+        .unwrap();
+    let picture = client
+        .files_write(&docs.id, "picture.png", png.get_ref())
+        .unwrap()
+        .file;
+    client
+        .files_update(
+            &picture.id,
+            Some(vec!["art".into()]),
+            Some("red".into()),
+            Some(true),
+        )
+        .unwrap();
+
+    // Paths resolve to live folders and files; the root is a folder.
+    assert!(matches!(client.files_lookup("").unwrap(), Some(Node::Folder(f)) if f.id == ROOT));
+    assert!(
+        matches!(client.files_lookup("/docs/2026/").unwrap(), Some(Node::Folder(f)) if f.id == docs.id)
+    );
+    assert!(
+        matches!(client.files_lookup("docs/2026/report.bin").unwrap(), Some(Node::File(f)) if f.id == report.id)
+    );
+    assert_eq!(client.files_lookup("docs/2026/report.bin/x").unwrap(), None);
+    assert_eq!(client.files_lookup("docs/nothing").unwrap(), None);
+    client
+        .files_trash(std::slice::from_ref(&report.id))
+        .unwrap();
+    assert_eq!(client.files_lookup("docs/2026/report.bin").unwrap(), None);
+    client
+        .files_restore(std::slice::from_ref(&report.id))
+        .unwrap();
+
+    // Chunks on their own, bounded by the file.
+    assert_eq!(
+        &client.files_chunk(&report.id, 0).unwrap()[..],
+        &data[..CHUNK]
+    );
+    assert_eq!(
+        &client.files_chunk(&report.id, 1).unwrap()[..],
+        &data[CHUNK..]
+    );
+    assert!(matches!(
+        client.files_chunk(&report.id, 2),
+        Err(Error::InvalidInput(_))
+    ));
+
+    // A copy: same bytes, new key, new identity, its own thumbnail, the
+    // tags and the note but not the star.
+    let copy = client
+        .files_copy(&picture.id, ROOT, "picture (copy).png")
+        .unwrap();
+    assert_ne!(copy.id, picture.id);
+    assert_eq!(
+        (
+            copy.sha256.as_str(),
+            copy.mime.as_str(),
+            copy.folder.as_str()
+        ),
+        (picture.sha256.as_str(), "image/png", ROOT)
+    );
+    assert_eq!(
+        (copy.tags.as_slice(), copy.note.as_str(), copy.starred),
+        (["art".to_string()].as_slice(), "red", false)
+    );
+    assert_eq!(
+        client
+            .files_read(&copy.id, None, MAX_FILE)
+            .unwrap()
+            .1
+            .as_slice(),
+        png.get_ref().as_slice()
+    );
+    let original = client.version(&picture.id, &picture.current).unwrap();
+    let copied = client.version(&copy.id, &copy.current).unwrap();
+    assert_ne!(original.key, copied.key);
+    assert_ne!(original.chunks[0].digest, copied.chunks[0].digest);
+    assert!(copied.thumbnail.is_some() && copied.thumbnail != original.thumbnail);
+    assert_eq!(copied.origin, Origin::Mounted);
+    assert_eq!(client.files_preview(&copy.id, None).unwrap().kind, "image");
+    assert!(matches!(
+        client.files_copy(&picture.id, ROOT, "picture (copy).png"),
+        Err(Error::IdempotencyConflict)
+    ));
+    assert!(matches!(
+        client.files_copy(&picture.id, ROOT, "docs"),
+        Err(Error::IdempotencyConflict)
+    ));
+
+    // A safe save: the temporary file's bytes become a version of the
+    // original, which leaves the trash; the temporary file is gone with
+    // its chunks.
+    let edited = pattern(CHUNK * 2, 8);
+    let temp = client
+        .files_write(&docs.id, "report.bin.tmp", &edited)
+        .unwrap()
+        .file;
+    let temp_chunks = client.version(&temp.id, &temp.current).unwrap().chunks;
+    client
+        .files_trash(std::slice::from_ref(&report.id))
+        .unwrap();
+    let replaced = client.files_replace(&temp.id, &report.id).unwrap();
+    assert_eq!(
+        (
+            replaced.id.as_str(),
+            replaced.size,
+            replaced.versions,
+            replaced.trashed_at
+        ),
+        (report.id.as_str(), edited.len() as u64, 2, None)
+    );
+    assert_eq!(
+        client
+            .files_read(&report.id, None, MAX_FILE)
+            .unwrap()
+            .1
+            .as_slice(),
+        edited.as_slice()
+    );
+    assert_eq!(
+        client.files_versions(&report.id).unwrap()[0].size,
+        data.len() as u64
+    );
+    assert!(matches!(client.files_show(&temp.id), Err(Error::NotFound)));
+    for chunk in &temp_chunks {
+        assert!(!client.blobs().unwrap().has_chunk(&chunk.digest).unwrap());
+    }
+    assert!(matches!(
+        client.files_replace(&report.id, &report.id),
+        Err(Error::InvalidInput(_))
+    ));
+    assert!(matches!(
+        client.files_replace(&temp.id, &report.id),
+        Err(Error::NotFound)
+    ));
+
+    // The upload directory is owner-only and goes on lock.
+    let mount = client.files_mount_dir().unwrap();
+    assert!(mount.is_dir() && mount.ends_with("mount"));
+    std::fs::write(mount.join("partial"), b"...").unwrap();
+    client.lock();
+    assert!(!mount.exists());
+}
+
+#[test]
 fn a_reset_removes_the_library_with_the_workspace() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);

@@ -39,5 +39,9 @@ sha2.workspace = true
 url.workspace = true
 zeroize.workspace = true
 
+[features]
+# Offline unlocked clients for the tests of crates built on this one.
+testing = []
+
 [dev-dependencies]
 tokio = { workspace = true }

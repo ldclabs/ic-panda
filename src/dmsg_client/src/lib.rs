@@ -70,7 +70,7 @@ pub fn error_code(error: &Error) -> String {
 
 #[cfg(test)]
 mod agent_tests;
-#[cfg(test)]
-mod testing;
+#[cfg(any(test, feature = "testing"))]
+pub mod testing;
 #[cfg(test)]
 mod vectors;

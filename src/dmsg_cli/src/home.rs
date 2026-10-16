@@ -45,6 +45,8 @@ struct ConfigFile {
     sync_interval_minutes: u64,
     files_max_bytes: Option<u64>,
     files_trash_days: Option<u64>,
+    #[serde(default)]
+    files_mount: bool,
     secure_storage: Option<String>,
     legacy: Option<LegacyFile>,
 }
@@ -90,6 +92,10 @@ pub struct Settings {
     /// A PEM file of the CA that replaces the system roots for the agent
     /// hosts; a local deployment only.
     pub agent_ca: Option<PathBuf>,
+    /// Whether the file library may be mounted as a disk (`files/mount`);
+    /// off by default, since the systems' WebDAV clients cache plaintext
+    /// and bound file sizes.
+    pub files_mount: bool,
 }
 
 /// Where the running daemon listens.
@@ -220,6 +226,7 @@ impl Home {
             agent_hosts: file.agent_hosts,
             agent_blocked_senders: file.agent_blocked_senders,
             agent_ca: file.agent_ca,
+            files_mount: file.files_mount,
         })
     }
 
