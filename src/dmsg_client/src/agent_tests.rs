@@ -1,5 +1,5 @@
 use crate::agent::{agent_id, controller_item, sign_delegation, DelegationKind, MAX_GRANT_DAYS};
-use crate::agents::{agent_item, covers, validate_capability};
+use crate::agents::{agent_item, covers, validate_capability, MAX_GRANTS};
 use crate::crypto::signing_public;
 use crate::secure::SecureStorage;
 use crate::testing::{account, unlocked, MemoryStorage, TempDir};
@@ -325,6 +325,27 @@ fn a_resident_agent_is_checked_against_a_copy_of_its_grants() {
         .get(&format!("{workspace}:agent-grants:{agent}"))
         .unwrap()
         .is_none());
+}
+
+#[test]
+fn a_grant_takes_the_room_of_revoked_ones() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    client.agent_create("busy").unwrap();
+    let grant = |client: &mut crate::Client| {
+        client.capability_grant("cli", "busy", vec!["vault.list".into()], None)
+    };
+    for _ in 0..MAX_GRANTS {
+        grant(&mut client).unwrap();
+    }
+    // Live grants keep their room.
+    assert_eq!(grant(&mut client).unwrap_err(), Error::QuotaExceeded);
+    let first = client.capability_grants().unwrap()[0].id.clone();
+    client.capability_revoke("cli", &first).unwrap();
+    grant(&mut client).unwrap();
+    let grants = client.capability_grants().unwrap();
+    assert_eq!(grants.len(), MAX_GRANTS);
+    assert!(grants.iter().all(|g| g.revoked_at.is_none()));
 }
 
 #[test]

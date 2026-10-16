@@ -17,12 +17,12 @@
 //! ones are applied again, so neither a tool nor a stored snapshot can
 //! change them (plan DT02). A call's [`Scope`] may narrow the allowlist to
 //! the origins an agent's grant names: the connector then refuses every
-//! other origin, and the runtime refuses a room it knows on another host,
-//! which a read from local state would not ask. The mail decryption keys are not in the
-//! snapshot: the caller brings them from its key store and keeps what the
-//! call leaves. Calls run one at a time, each inside a [`Turn`] the caller
-//! holds from reading the keys to saving them, so two sessions of one
-//! Agent ID never overwrite each other's state.
+//! other origin, and the runtime refuses a room, or a held draft of one, it
+//! knows on another host, which a read from local state would not ask. The
+//! mail decryption keys are not in the snapshot: the caller brings them from
+//! its key store and keeps what the call leaves. Calls run one at a time,
+//! each inside a [`Turn`] the caller holds from reading the keys to saving
+//! them, so two sessions of one Agent ID never overwrite each other's state.
 
 use crate::resources::{Resource, RoomPart};
 use agent_protocols::{
@@ -303,7 +303,7 @@ impl Runtime {
     }
 
     /// The connector of `signer`'s Agent ID as `scope` sees it, allowed only
-    /// the configured hosts, and its saved snapshot.
+    /// the configured hosts within its reach, and its saved snapshot.
     fn restore(
         &self,
         conn: &Connection,
@@ -473,8 +473,9 @@ impl Runtime {
     }
 }
 
-/// Whether an input names a room the snapshot `saved` knows on a host out
-/// of `reach`: reading it from local state would not ask the host.
+/// Whether an input names a room, or a held draft of one, the snapshot
+/// `saved` knows on a host out of `reach`: reading it from local state
+/// would not ask the host.
 fn out_of_reach(reach: Option<&[String]>, saved: Option<&Value>, input: &Value) -> bool {
     reach.is_some_and(|reach| room_host(saved, input).is_some_and(|host| !reach.contains(&host)))
 }
@@ -494,9 +495,13 @@ fn in_reach(reach: Option<&[String]>, tool: &str, mut value: Value) -> Value {
     value
 }
 
-/// The host of the room an input names: its `host`, else the only one the
-/// snapshot knows with that ID.
+/// The host of the room an input names: its draft's, its `host`, else the
+/// only one the snapshot knows with that ID.
 fn room_host(saved: Option<&Value>, input: &Value) -> Option<String> {
+    if let Some(draft_id) = input["draft_id"].as_str() {
+        let draft = &saved?["drafts"][draft_id]["draft"];
+        return draft["current_sync"]["host"].as_str().map(str::to_string);
+    }
     let room_id = input["room_id"].as_str()?;
     if let Some(host) = input["host"].as_str() {
         return Some(host.trim_end_matches('/').to_string());

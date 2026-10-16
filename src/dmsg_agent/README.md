@@ -33,9 +33,9 @@ agent's call the daemon passes the origins its grants name as the call's
 `Scope::reach` (refusing the call when there are none), and the runtime
 allows only those, each as a host of its own, so a host's profile service
 does not come along: the connector refuses every other origin, and the
-runtime refuses a room the snapshot knows on another host, which a read
-from local state would not ask, and leaves the other hosts' rooms out of
-`rooms_list`. The owner acting as an Agent ID (`dmsg ap`, the desktop)
+runtime refuses a room, or a held draft of one, the snapshot knows on
+another host, which a read from local state would not ask, and leaves the
+other hosts' rooms out of `rooms_list`. The owner acting as an Agent ID (`dmsg ap`, the desktop)
 reaches every configured host.
 
 Each call names its session (an MCP session, `dmsg ap --session`, the

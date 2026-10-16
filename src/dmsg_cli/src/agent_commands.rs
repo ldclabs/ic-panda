@@ -143,7 +143,7 @@ pub enum IdCommand {
 
 #[derive(Subcommand)]
 pub enum GrantsCommand {
-    /// Every capability grant, revoked ones included.
+    /// Every capability grant kept, revoked ones included.
     List,
     /// Grant a hosted Agent ID capabilities over this account and at the
     /// allowed hosts.

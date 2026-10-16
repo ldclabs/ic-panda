@@ -367,16 +367,20 @@ profile service), `discourse.read`, `discourse.write`, `mail.read`,
 `mail.write`, `knowledge.read` and `knowledge.write`, such as
 `discourse.read:*` with `discourse.write:https://discourse.dmsg.net`. An
 agent's call then reaches only the configured origins its grants name: the
-connector refuses the others (`permission_denied`), a room it knows from
-another host included, and lists only the rooms of those it reaches; with
-none of them the call is `FORBIDDEN`. Without a grant an agent reads only
+connector refuses the others (`permission_denied`), a room or held draft it
+knows from another host included, and lists only the rooms of those it
+reaches; with none of them the call is `FORBIDDEN`. `mail_sync` needs only
+`mail.read`, and it also delivers the letters already queued, so revoking
+`mail.write` does not hold those back. Without a grant an agent reads only
 public profiles (`profile.read`), and of the standard tools uses only its
 identity, the delegation tools (a grant or revocation needs the Agent ID to
-be a principal's controller) and its inbox, at every configured host. No vault capability reaches an item
-tagged `dmsg-…` (the Agent ID and controller keys), not even with `*`, and
-such a tag cannot be granted. A resident Agent ID's live grants are copied
-beside its key, and while the device is locked it is checked against the
-copy.
+be a principal's controller) and its inbox, at every configured host. No
+vault capability reaches an item tagged `dmsg-…` (the Agent ID and
+controller keys), not even with `*`, and such a tag cannot be granted. A
+resident Agent ID's live grants are copied beside its key, and while the
+device is locked it is checked against the copy. A device keeps 64 grants;
+a new one takes the room of those revoked or expired, which the audit
+record still names.
 
 `dmsg audit` shows who did what on this device, newest first: the owner's
 capability grants and revocations, Agent ID creation, credentials and

@@ -11,10 +11,11 @@
 // conflict copies resolve; that a device is revoked only through the approval
 // window; that channel files, roles, history, archiving and transfers reach
 // the daemon; that the Agents view runs only the Mail and Knowledge tools,
-// grants services at a chosen origin and manages MCP Events endpoints; that a delivery notifies without its content;
-// that application actions and attestation bundles enter through the main
-// process's dialogs; and that a language picked in the main window reaches
-// both windows. Run with `pnpm test:e2e`.
+// grants services at a chosen origin and manages MCP Events endpoints; that
+// a delivery notifies without its content; that application actions and
+// attestation bundles enter through the main process's dialogs; and that a
+// language picked in the main window reaches both windows. Run with
+// `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { createServer } from 'node:http'

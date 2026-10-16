@@ -567,6 +567,38 @@ fn a_call_reaches_only_the_origins_in_its_scope() {
         .await
         .unwrap();
         assert_eq!(rooms["rooms"][0]["room_id"], "room1");
+        // A held draft is its room's: out of reach, it neither shows the
+        // room's changes nor drops.
+        let held = call(
+            &hosted,
+            "agent_protocols_room_send_message",
+            json!({"room_id": "room1", "content": "late", "base_seq": 1, "base_hash": HEAD}),
+        )
+        .await
+        .unwrap();
+        let draft = held["draft"]["id"].as_str().unwrap();
+        for (tool, input) in [
+            ("agent_protocols_drafts_list", json!({"draft_id": draft})),
+            (
+                "agent_protocols_draft_commit",
+                json!({"draft_id": draft, "action": "drop"}),
+            ),
+        ] {
+            let refused = call_within(&hosted, "s", Some(&elsewhere), tool, input)
+                .await
+                .unwrap_err();
+            assert_eq!(refused.code, "permission_denied", "{tool}");
+        }
+        let shown = call_within(
+            &hosted,
+            "s",
+            Some(&here),
+            "agent_protocols_drafts_list",
+            json!({"draft_id": draft}),
+        )
+        .await
+        .unwrap();
+        assert_eq!(shown["changes"].as_array().unwrap().len(), 2);
     });
 }
 

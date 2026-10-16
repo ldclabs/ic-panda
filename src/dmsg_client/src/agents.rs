@@ -38,7 +38,8 @@ const GRANTS: &str = "agent-grants";
 const MAIL_KEYS: &str = "agent-mail-keys:";
 /// Most Agent IDs one device hosts.
 pub const MAX_AGENTS: usize = 16;
-/// Most capability grants kept, revoked ones included.
+/// Most capability grants kept, revoked and expired ones included until a
+/// new grant needs their room.
 pub const MAX_GRANTS: usize = 64;
 
 /// What an agent may be granted (plan §6.9). A `:<target>` names a vault
@@ -227,20 +228,20 @@ impl Client {
         ))
     }
 
-    /// Copy the live grants of resident Agent ID `agent_id` beside its seed.
-    fn resident_grants_save(&self, agent_id: &str) -> Result<()> {
+    /// Copy the live ones of `grants` for resident Agent ID `agent_id`
+    /// beside its seed.
+    fn resident_grants_save(&self, agent_id: &str, grants: &[CapabilityGrant]) -> Result<()> {
         let secure = self
             .secure()
             .ok_or_else(|| Error::Unavailable("no system credential store".into()))?;
         let now = now_ms();
-        let grants: Vec<CapabilityGrant> = self
-            .capability_grants()?
-            .into_iter()
+        let own: Vec<&CapabilityGrant> = grants
+            .iter()
             .filter(|g| g.grantee == agent_id && g.live(now))
             .collect();
         secure.set(
             &self.resident_grants_name(agent_id)?,
-            &serde_json::to_vec(&grants).expect("serializable"),
+            &serde_json::to_vec(&own).expect("serializable"),
         )
     }
 
@@ -394,7 +395,7 @@ impl Client {
                 &mail_slot,
                 &Zeroizing::new(serde_json::to_vec(&keys).expect("serializable")),
             )?;
-            self.resident_grants_save(&entry.agent_id)?;
+            self.resident_grants_save(&entry.agent_id, &self.capability_grants()?)?;
         } else {
             // Keys made while locked live only in the copy: fold them in first.
             let resident = self.resident_mail_keys(&entry.agent_id)?;
@@ -537,7 +538,7 @@ impl Client {
         Ok(())
     }
 
-    /// Every capability grant, revoked ones included.
+    /// Every capability grant kept, revoked and expired ones included.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
@@ -571,8 +572,12 @@ impl Client {
         }
         ensure_valid(days.is_none_or(|d| (1..=366).contains(&d)), "days")?;
         let mut grants = self.capability_grants()?;
-        ensure(grants.len() < MAX_GRANTS, Error::QuotaExceeded)?;
         let now = now_ms();
+        // The audit record keeps what the revoked and expired ones were.
+        if grants.len() >= MAX_GRANTS {
+            grants.retain(|g| g.live(now));
+        }
+        ensure(grants.len() < MAX_GRANTS, Error::QuotaExceeded)?;
         let grant = CapabilityGrant {
             id: hex::encode(&random_id()[..16]),
             grantee,
@@ -584,14 +589,15 @@ impl Client {
         grants.push(grant.clone());
         self.workspace.put_private(self.keys()?, GRANTS, &grants)?;
         self.audit_grant(via, "grants/add", &grant);
-        self.grants_changed(&grant.grantee)?;
+        // After the grants, so the copy never allows more than they do.
+        self.grants_changed(&grant.grantee, &grants)?;
         Ok(grant)
     }
 
-    /// Renew the copy of a resident grantee's grants.
-    fn grants_changed(&self, grantee: &str) -> Result<()> {
+    /// Renew the copy of a resident grantee's grants from `grants`.
+    fn grants_changed(&self, grantee: &str, grants: &[CapabilityGrant]) -> Result<()> {
         match self.agent_find(grantee) {
-            Ok(entry) if entry.resident => self.resident_grants_save(&entry.agent_id),
+            Ok(entry) if entry.resident => self.resident_grants_save(&entry.agent_id, grants),
             _ => Ok(()),
         }
     }
@@ -614,9 +620,10 @@ impl Client {
             .ok_or(Error::NotFound)?;
         grant.revoked_at.get_or_insert(now_ms());
         let revoked = grant.clone();
+        // Before the grants, so the copy never allows more than they do.
+        self.grants_changed(&revoked.grantee, &grants)?;
         self.workspace.put_private(self.keys()?, GRANTS, &grants)?;
         self.audit_grant(via, "grants/revoke", &revoked);
-        self.grants_changed(&revoked.grantee)?;
         Ok(revoked)
     }
 

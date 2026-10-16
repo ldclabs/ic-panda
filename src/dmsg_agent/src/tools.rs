@@ -23,7 +23,8 @@ use serde_json::{json, Value};
 /// and the profile update, needs. The others need none: the Agent ID's
 /// identity, the delegation tools (a grant or revocation needs the Agent ID
 /// to be a principal's controller) and the inbox, which holds only what the
-/// read tools fetched.
+/// read tools fetched. `mail_sync` also delivers the letters already queued,
+/// which a revoked `mail.write` does not hold back.
 const STANDARD_CAPABILITIES: [(&str, &str); 25] = [
     (TOOL_PROFILE_UPDATE, "agent.profile.write"),
     (TOOL_ROOMS_LIST, "discourse.read"),
