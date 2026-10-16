@@ -225,6 +225,10 @@ impl Desktop {
     ) -> Result<Value, String> {
         let reply: Value = http
             .post(format!("http://127.0.0.1:{}/app/v1", self.port()))
+            // A call may move a whole file (a share link re-encrypts and
+            // uploads it, about 30 s for 64 MiB in a debug build); the
+            // desktop app waits for it, not the client's default 30 s.
+            .timeout(Duration::from_secs(300))
             .bearer_auth(self.token())
             .header("content-type", "application/json")
             .body(
