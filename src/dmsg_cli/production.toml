@@ -11,3 +11,6 @@ agent_hosts = [
   { host = "https://mail.dmsg.net", label = "mail" },
   { host = "https://knowledge.dmsg.net", label = "knowledge" },
 ]
+
+[wallet]
+hub = "ghcje-dyaaa-aaaas-qg7va-cai"

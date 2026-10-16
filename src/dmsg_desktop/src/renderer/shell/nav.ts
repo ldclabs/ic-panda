@@ -18,6 +18,7 @@ export const views = {
   approvals: { path: '/approvals', label: 'approvals', detail: 'approvalsDetail', icon: 'approvals', key: '5' },
   agents: { path: '/agents', label: 'agents', detail: 'agentsDetail', icon: 'agents', key: '6' },
   plan: { path: '/account', label: 'planAndNames', detail: 'planDetail', icon: 'plan', key: '7' },
+  wallet: { path: '/wallet', label: 'twNav', detail: 'twDetail', icon: 'coins', key: '8' },
   settings: { path: '/settings', label: 'settings', detail: 'settingsDetail', icon: 'settings', key: ',' },
   legacy: { path: '/settings/legacy', label: 'legacy', detail: 'legacyDetail', icon: 'legacy' }
 } satisfies Record<string, View>
@@ -26,7 +27,7 @@ export const views = {
 export const groups: { label: Label; views: View[] }[] = [
   { label: 'navWork', views: [views.vault, views.files, views.channels, views.inbox] },
   { label: 'navAuthorization', views: [views.approvals, views.agents] },
-  { label: 'navAccount', views: [views.plan] }
+  { label: 'navAccount', views: [views.plan, views.wallet] }
 ]
 
 /** The views with a ⌘ shortcut, in sidebar order. */

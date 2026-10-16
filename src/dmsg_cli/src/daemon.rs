@@ -234,11 +234,17 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     let _lock = home.lock()?;
     crate::logs::open(&home.dir).map_err(|e| Error::Unavailable(format!("logs: {e}")))?;
     let token = home.owner_token(&settings, true)?;
-    let client = Client::open(
+    #[allow(unused_mut)]
+    let mut client = Client::open(
         settings.config.clone(),
         &home.workspace(&settings.config),
         Home::secure(&settings),
     )?;
+    // Cosigner keys go to the Secure Enclave when the system keystore is in use.
+    #[cfg(target_os = "macos")]
+    if settings.storage == crate::home::Storage::System {
+        client.set_cosign_provider(std::sync::Arc::new(crate::enclave::SecureEnclave));
+    }
     let local_roots = match &settings.agent_ca {
         Some(path) => {
             vec![std::fs::read(path).map_err(|e| Error::InvalidInput(format!("agent_ca: {e}")))?]
@@ -1080,6 +1086,9 @@ impl Daemon {
                 self.call_files(method, params).await
             }
             m if crate::mount::METHODS.contains(&m) => self.call_mount(method, params).await,
+            m if crate::wallet_methods::METHODS.contains(&m) => {
+                self.call_wallet(method, params).await
+            }
             _ => self.call_more(method, params).await,
         }
     }
@@ -1115,6 +1124,7 @@ fn capability(name: &str) -> Result<dmsg_types::user::Capability> {
         "root_manage" | "RootManage" => Ok(Capability::RootManage),
         "formal_approve" | "FormalApprove" => Ok(Capability::FormalApprove),
         "payment_offer" | "PaymentOffer" => Ok(Capability::PaymentOffer),
+        "wallet_approve" | "WalletApprove" => Ok(Capability::WalletApprove),
         _ => Err(Error::InvalidInput(format!("capability {name}"))),
     }
 }
@@ -1147,6 +1157,7 @@ fn events_of(method: &str) -> &'static [&'static str] {
         m if crate::legacy_methods::METHODS.contains(&m) => crate::legacy_methods::events_of(m),
         m if crate::files_methods::METHODS.contains(&m) => crate::files_methods::events_of(m),
         m if crate::mount::METHODS.contains(&m) => crate::mount::events_of(m),
+        m if crate::wallet_methods::METHODS.contains(&m) => crate::wallet_methods::events_of(m),
         m if m.starts_with("agent/")
             || m.starts_with("grants/")
             || m.starts_with("ap/")
@@ -1274,6 +1285,7 @@ impl Daemon {
             && !crate::mcp_events::METHODS.contains(&method)
             && !crate::files_methods::METHODS.contains(&method)
             && !crate::mount::METHODS.contains(&method)
+            && !crate::wallet_methods::METHODS.contains(&method)
             && !agent_method
         {
             return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32601, "message": "method not found"}});

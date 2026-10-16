@@ -44,6 +44,38 @@ pub struct Config {
     pub files_trash_days: u64,
     /// The reviewed freeze of the old service, once there is one.
     pub legacy: Option<LegacyConfig>,
+    /// Team wallets: the hub and the chain endpoints this client reads and
+    /// broadcasts through.
+    pub wallet: WalletSettings,
+}
+
+/// Team wallet settings. The chain endpoints only read and broadcast:
+/// wallets sign on the IC, and the client checks what it reads against
+/// what the wallet built.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WalletSettings {
+    /// The wallet hub; team wallets are off without one.
+    pub hub: Option<Principal>,
+    /// An Esplora API, such as `https://mempool.space/api`.
+    pub bitcoin_api: String,
+    /// The JSON-RPC endpoint of each EVM chain, by chain ID.
+    pub evm_rpc: Vec<(u64, String)>,
+    /// A Solana JSON-RPC endpoint.
+    pub solana_rpc: String,
+}
+
+impl Default for WalletSettings {
+    fn default() -> Self {
+        Self {
+            hub: None,
+            bitcoin_api: "https://mempool.space/api".into(),
+            evm_rpc: vec![
+                (1, "https://ethereum-rpc.publicnode.com".into()),
+                (8453, "https://mainnet.base.org".into()),
+            ],
+            solana_rpc: "https://api.mainnet-beta.solana.com".into(),
+        }
+    }
 }
 
 /// The freeze of the old service a deployment reviewed: frozen evidence of
@@ -68,12 +100,20 @@ impl Config {
     /// Returns `Error::InvalidInput` naming the offending setting.
     pub fn validate(&self) -> Result<()> {
         let local = self.environment == Environment::Local;
-        for (name, value) in [
+        let endpoints = [
             ("ic_host", &self.ic_host),
             ("relay", &self.relay),
             ("login_url", &self.login_url),
             ("connect_url", &self.connect_url),
-        ] {
+            ("wallet.bitcoin_api", &self.wallet.bitcoin_api),
+            ("wallet.solana_rpc", &self.wallet.solana_rpc),
+        ];
+        let evm = self
+            .wallet
+            .evm_rpc
+            .iter()
+            .map(|(_, url)| ("wallet.evm_rpc", url));
+        for (name, value) in endpoints.into_iter().chain(evm) {
             let url = Url::parse(value).map_err(|_| dmsg_types::invalid(name))?;
             let loopback = matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "[::1]"));
             ensure_valid(

@@ -10,6 +10,8 @@ mod channels;
 mod commands;
 mod daemon;
 mod doctor;
+#[cfg(target_os = "macos")]
+mod enclave;
 mod event_commands;
 mod files_commands;
 mod files_methods;
@@ -27,6 +29,8 @@ mod mount;
 mod release;
 mod remote;
 mod secure;
+mod wallet_commands;
+mod wallet_methods;
 
 use clap::{Args, Parser, Subcommand};
 use home::Home;
@@ -159,7 +163,7 @@ enum Command {
     /// Escrow transfers of paid letters.
     #[command(subcommand)]
     Payment(account_commands::PaymentCommand),
-    /// Commerce and membership records the wallet may read and repair.
+    /// Commerce and membership records the payer may read and repair.
     #[command(subcommand)]
     Ops(account_commands::OpsCommand),
     /// Legacy migration: personal archives from the old site and shared
@@ -204,9 +208,12 @@ enum Command {
     /// The inbox: contact policy and letters, free or paid.
     #[command(subcommand)]
     Inbox(commands::InboxCommand),
-    /// The wallet that pays: the login, or an identity PEM file.
+    /// The payer: the login, or an identity PEM file.
     #[command(subcommand)]
-    Wallet(commands::WalletCommand),
+    Payer(commands::PayerCommand),
+    /// Team wallets.
+    #[command(subcommand)]
+    Wallet(wallet_commands::WalletCommand),
     /// Plans and membership: catalog, status and checkouts.
     #[command(subcommand)]
     Plan(commands::PlanCommand),
@@ -486,7 +493,7 @@ enum DeviceCommand {
         /// Device ID.
         device: String,
         /// The complete set, comma separated: content_sign, vault_unlock,
-        /// root_manage, formal_approve, payment_offer.
+        /// root_manage, formal_approve, payment_offer, wallet_approve.
         #[arg(long, value_delimiter = ',')]
         set: Vec<String>,
     },
@@ -780,6 +787,71 @@ fn render(request: &Value) -> String {
                         field(&d[name])
                     ));
                 }
+            }
+        }
+        Some("wallet") => {
+            let name = format!("{} {}", field(&d["name"]), field(&d["wallet"]));
+            match d["action"].as_str() {
+                Some("create") => {
+                    lines.push(row(
+                        "create",
+                        "创建",
+                        tr!(
+                            "team wallet {} for {} e8s ICP",
+                            "团队钱包 {}，费用 {} e8s ICP",
+                            field(&d["name"]),
+                            field(&d["price_e8s"])
+                        ),
+                    ));
+                    for m in d["members"].as_array().into_iter().flatten() {
+                        lines.push(row(
+                            "member",
+                            "成员",
+                            format!("{} {}", field(&m["id"]), field(&m["role"])),
+                        ));
+                    }
+                }
+                Some("join") => lines.push(row("join", "加入", name)),
+                Some(action) => {
+                    let p = &d["proposal"];
+                    let intent = &p["intent"];
+                    lines.push(row("wallet", "钱包", name));
+                    lines.push(row(
+                        if action == "cosign" {
+                            "cosign"
+                        } else {
+                            "decide"
+                        },
+                        if action == "cosign" {
+                            "协签"
+                        } else {
+                            "决定"
+                        },
+                        format!(
+                            "{} #{} {}",
+                            field(&d["decision"]),
+                            field(&p["id"]),
+                            field(&intent["kind"])
+                        ),
+                    ));
+                    if !intent["asset"].is_null() {
+                        lines.push(row("asset", "资产", field(&intent["asset"]["asset"])));
+                    }
+                    for o in intent["outputs"].as_array().into_iter().flatten() {
+                        lines.push(row(
+                            "pay",
+                            "支付",
+                            format!("{} → {}", field(&o["amount"]), field(&o["to"])),
+                        ));
+                    }
+                    if !d["plan"].is_null() {
+                        let plan = &d["plan"];
+                        lines.push(row("chain", "链", field(&plan["chain"])));
+                        lines.push(row("fee", "手续费", field(&plan["fee"])));
+                    }
+                    lines.push(row("digest", "摘要", field(&p["digest"])));
+                }
+                None => {}
             }
         }
         Some("delegation") => {
@@ -1650,7 +1722,8 @@ async fn run(cli: Cli) -> Result<(), Failure> {
         Command::Channel(command) => commands::channel(&remote, json, command).await?,
         Command::Files(command) => files_commands::files(&remote, json, command).await?,
         Command::Inbox(command) => commands::inbox(&remote, json, command).await?,
-        Command::Wallet(command) => commands::wallet(&remote, json, command).await?,
+        Command::Payer(command) => commands::payer(&remote, json, command).await?,
+        Command::Wallet(command) => wallet_commands::wallet(&remote, json, command).await?,
         Command::Plan(command) => commands::plan(&remote, json, command).await?,
         Command::Handle(command) => commands::handle(&remote, json, command).await?,
         Command::Agent(command) => agent_commands::agent(&remote, json, command).await?,

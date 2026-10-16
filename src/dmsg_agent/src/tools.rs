@@ -1,6 +1,6 @@
 //! The MCP tool catalog `dmsg mcp` serves: the 33 standard Agent Protocols
 //! local connector tools, Agent Mail and Agent Knowledge among them, and the
-//! 26 `dmsg_*` tools over this account's data and its MCP Events endpoints
+//! 32 `dmsg_*` tools over this account's data, team wallets and its MCP Events endpoints
 //! (plan §6.8, §6.11). A `dmsg_*` call needs a capability the owner granted the
 //! agent (§6.9); a sensitive one only creates an approval request, which
 //! no tool can answer. So does each standard Agent Discourse, Mail and
@@ -54,7 +54,7 @@ const STANDARD_CAPABILITIES: [(&str, &str); 25] = [
 ];
 
 /// The `dmsg_*` tools: name, description, read-only, input schema.
-const DMSG_TOOLS: [(&str, &str, bool, &str); 26] = [
+const DMSG_TOOLS: [(&str, &str, bool, &str); 32] = [
     (
         "dmsg_account_status",
         "This account's lock, sync and approval state; needs account.read.",
@@ -195,6 +195,45 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 26] = [
         "Delete an endpoint: the relay answers 410 to the upstream from now on. Needs events.endpoint.",
         false,
         r#"{"type":"object","required":["endpoint_id"],"properties":{"endpoint_id":{"type":"string"}}}"#,
+    ),
+    (
+        "dmsg_wallet_list",
+        "The team wallets of this account, with members, policy and addresses each checked against the wallet's keys; needs wallet.read.",
+        true,
+        r#"{"type":"object","properties":{}}"#,
+    ),
+    (
+        "dmsg_wallet_balances",
+        "Balances of every address of a team wallet, read from the ledgers and the configured chain endpoints; needs wallet.read.",
+        true,
+        r#"{"type":"object","required":["wallet"],"properties":{"wallet":{"type":"string"}}}"#,
+    ),
+    (
+        "dmsg_wallet_propose_transfer",
+        "Propose a transfer from a team wallet address on this member's behalf; needs wallet.propose:<wallet>, and the member must list this Agent ID. Members approve it themselves; no tool approves. asset: icp, icrc:<ledger>, btc, evm:<chain>[:<token>], sol[:<mint>]; amounts in base units.",
+        false,
+        concat!(
+            r#"{"type":"object","required":["wallet","from","asset","to","amount","max_fee"],"properties":{"wallet":{"type":"string"},"from":{"type":"integer","minimum":0},"#,
+            r#""asset":{"type":"string"},"to":{"type":"string"},"amount":{"type":"string"},"max_fee":{"type":"string"},"memo":{"type":"string"}}}"#
+        ),
+    ),
+    (
+        "dmsg_wallet_proposal_status",
+        "One proposal of a team wallet: status, approvals, plans and signed transactions; needs wallet.read.",
+        true,
+        r#"{"type":"object","required":["wallet","proposal"],"properties":{"wallet":{"type":"string"},"proposal":{"type":"integer","minimum":1}}}"#,
+    ),
+    (
+        "dmsg_wallet_execute",
+        "Execute an approved proposal of a team wallet: the wallet signs, this device checks the plan and broadcasts. A plan that needs this device's cosigner becomes an approval request. Needs wallet.execute:<wallet>.",
+        false,
+        r#"{"type":"object","required":["wallet","proposal"],"properties":{"wallet":{"type":"string"},"proposal":{"type":"integer","minimum":1}}}"#,
+    ),
+    (
+        "dmsg_wallet_report_broadcast",
+        "Check the chain for a proposal's latest signed transaction and report it settled or failed once final, or broadcast it again with rebroadcast; needs wallet.execute:<wallet>.",
+        false,
+        r#"{"type":"object","required":["wallet","proposal"],"properties":{"wallet":{"type":"string"},"proposal":{"type":"integer","minimum":1},"rebroadcast":{"type":"boolean"}}}"#,
     ),
     (
         "dmsg_events_bind",

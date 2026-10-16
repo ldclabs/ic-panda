@@ -92,10 +92,11 @@ fn service(m: &SettlementMethod) -> Principal {
     }
 }
 
-fn method(a: &ApplicationApproval) -> SettlementMethod {
+fn method(a: &ApplicationApproval) -> Result<SettlementMethod> {
     match a.purpose {
-        ApprovalPurpose::CashCheckout => SettlementMethod::Cash,
-        ApprovalPurpose::PandaSubscription => SettlementMethod::Panda,
+        ApprovalPurpose::CashCheckout => Ok(SettlementMethod::Cash),
+        ApprovalPurpose::PandaSubscription => Ok(SettlementMethod::Panda),
+        _ => Err(Error::Forbidden),
     }
 }
 
@@ -211,7 +212,7 @@ fn prepare_billing_offer(
 }
 
 fn check(request: &ProductAuthorizationRequest, at: u64) -> Result<Subject> {
-    let m = method(&request.account_approval);
+    let m = method(&request.account_approval)?;
     ensure(ic_cdk::api::msg_caller() == service(&m), Error::Forbidden)?;
     validate_product_request(request, service(&m), m.clone(), at)?;
     let s = subject(&request.offer.beneficiary)?;
@@ -277,7 +278,7 @@ fn reserve_product_billing(request: ProductAuthorizationRequest, until: u64) -> 
 #[ic_cdk::update]
 fn release_product_billing(request: ProductAuthorizationRequest) -> Result<()> {
     ensure(
-        ic_cdk::api::msg_caller() == service(&method(&request.account_approval)),
+        ic_cdk::api::msg_caller() == service(&method(&request.account_approval)?),
         Error::Forbidden,
     )?;
     let mut s = subject(&request.offer.beneficiary)?;

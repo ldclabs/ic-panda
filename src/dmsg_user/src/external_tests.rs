@@ -84,6 +84,8 @@ fn result(account: &AccountState, request: AuthenticationRequest) -> ExternalBod
     })
 }
 
+const FORMAL: Capability = Capability::FormalApprove;
+
 #[test]
 fn device_approval_is_purpose_separated_and_rechecked_after_a_callback() {
     let mut account = account();
@@ -91,13 +93,23 @@ fn device_approval_is_purpose_separated_and_rechecked_after_a_callback() {
     let approval = signed(&account, &request);
     let caller = fixtures::principal(9);
     let at = fixtures::NOW;
-    precheck(&account, caller, &approval, AUTH_DOMAIN, &request, at).unwrap();
+    precheck(
+        &account,
+        caller,
+        &approval,
+        AUTH_DOMAIN,
+        &request,
+        FORMAL,
+        at,
+    )
+    .unwrap();
     assert!(precheck(
         &account,
         caller,
         &approval,
         APPLICATION_DOMAIN,
         &request,
+        FORMAL,
         at
     )
     .is_err());
@@ -107,18 +119,35 @@ fn device_approval_is_purpose_separated_and_rechecked_after_a_callback() {
         &approval,
         AUTH_DOMAIN,
         &request,
+        FORMAL,
         approval.expires_at
     )
     .is_err());
     account.sensitive_policy.frozen = true;
     assert_eq!(
-        precheck(&account, caller, &approval, AUTH_DOMAIN, &request, at),
+        precheck(
+            &account,
+            caller,
+            &approval,
+            AUTH_DOMAIN,
+            &request,
+            FORMAL,
+            at
+        ),
         Err(Error::Locked)
     );
     account.sensitive_policy.frozen = false;
     account.security_epoch += 1;
     assert_eq!(
-        precheck(&account, caller, &approval, AUTH_DOMAIN, &request, at),
+        precheck(
+            &account,
+            caller,
+            &approval,
+            AUTH_DOMAIN,
+            &request,
+            FORMAL,
+            at
+        ),
         Err(Error::PolicyStale)
     );
     account.security_epoch -= 1;
@@ -128,7 +157,15 @@ fn device_approval_is_purpose_separated_and_rechecked_after_a_callback() {
         .unwrap()
         .revoked_at = Some(at);
     assert_eq!(
-        precheck(&account, caller, &approval, AUTH_DOMAIN, &request, at),
+        precheck(
+            &account,
+            caller,
+            &approval,
+            AUTH_DOMAIN,
+            &request,
+            FORMAL,
+            at
+        ),
         Err(Error::DeviceNotApproved)
     );
 }
@@ -166,6 +203,7 @@ fn failed_quota_does_not_consume_sequence_and_replay_does_not_charge_again() {
         &approval,
         AUTH_DOMAIN,
         &request,
+        FORMAL,
         at,
     )
     .unwrap();
@@ -236,6 +274,7 @@ fn authentication_is_independent_of_formal_execution_and_vault_state() {
         &approval,
         AUTH_DOMAIN,
         &request,
+        FORMAL,
         fixtures::NOW,
     )
     .unwrap();
@@ -252,7 +291,12 @@ fn authentication_is_independent_of_formal_execution_and_vault_state() {
     assert!(changed.execution_expirations.is_empty());
     changed.sensitive_policy.frozen = true;
     assert_eq!(
-        current_device(&changed, approval.device_id, approval.security_epoch),
+        current_device(
+            &changed,
+            approval.device_id,
+            approval.security_epoch,
+            &FORMAL
+        ),
         Err(Error::Locked)
     );
 }

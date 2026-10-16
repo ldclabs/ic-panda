@@ -105,6 +105,7 @@ pub fn config(background_online: bool) -> Config {
         background_online,
         files_max_bytes: crate::config::DEFAULT_FILES_MAX_BYTES,
         files_trash_days: crate::config::DEFAULT_FILES_TRASH_DAYS,
+        wallet: Default::default(),
         legacy: None,
     }
 }

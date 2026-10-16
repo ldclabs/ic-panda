@@ -149,7 +149,10 @@ export const schemas = {
   },
   "ApprovalPurpose": [
     "CashCheckout",
-    "PandaSubscription"
+    "PandaSubscription",
+    "WalletCreate",
+    "WalletProposal",
+    "WalletJoin"
   ],
   "ApplicationApproval": {
     "version": "u16",

@@ -92,7 +92,7 @@
 
   const balance = () =>
     attempt(async () => {
-      wallet = await call('wallet/balance', { ledger })
+      wallet = await call('payer/balance', { ledger })
     })
 
   const lookup = () =>

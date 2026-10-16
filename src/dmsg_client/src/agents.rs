@@ -49,9 +49,12 @@ pub const MAX_GRANTS: usize = 64;
 /// names, principal changes, signing, backups, deletions, sharing and the
 /// grants themselves are never grantable, and no vault capability reaches
 /// dMsg's own keys (items tagged `dmsg-…`, see
-/// [`crate::vault::Item::reserved`]). The last seven are the
-/// [`HOST_CAPABILITIES`].
-pub const CAPABILITIES: [&str; 23] = [
+/// [`crate::vault::Item::reserved`]). A team wallet capability names a
+/// wallet canister: `wallet.propose` only proposes, which the wallet
+/// accepts when the member lists the Agent ID, and `wallet.execute` only
+/// carries out what members approved; no capability approves. The last
+/// seven are the [`HOST_CAPABILITIES`].
+pub const CAPABILITIES: [&str; 26] = [
     "account.read",
     "vault.list",
     "vault.read:",
@@ -68,6 +71,9 @@ pub const CAPABILITIES: [&str; 23] = [
     "action.request",
     "agent.delegation.read",
     "events.endpoint",
+    "wallet.read",
+    "wallet.propose:",
+    "wallet.execute:",
     "agent.profile.write:",
     "discourse.read:",
     "discourse.write:",

@@ -9,7 +9,9 @@
 //! file only its owner can read and fast unlock is unavailable.
 
 use candid::Principal;
-use dmsg_client::config::{parse_environment, Config, LegacyConfig, CONNECT_URL, LOGIN_URL};
+use dmsg_client::config::{
+    parse_environment, Config, LegacyConfig, WalletSettings, CONNECT_URL, LOGIN_URL,
+};
 use dmsg_client::secure::SecureStorage;
 use dmsg_types::{Error, Result, MINUTE};
 use serde::{Deserialize, Serialize};
@@ -49,6 +51,45 @@ struct ConfigFile {
     files_mount: bool,
     secure_storage: Option<String>,
     legacy: Option<LegacyFile>,
+    wallet: Option<WalletFile>,
+}
+
+/// `[wallet]`: the team wallet hub and chain endpoints.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WalletFile {
+    hub: Option<String>,
+    bitcoin_api: Option<String>,
+    #[serde(default)]
+    evm_rpc: std::collections::BTreeMap<String, String>,
+    solana_rpc: Option<String>,
+}
+
+fn wallet(file: Option<WalletFile>) -> Result<WalletSettings> {
+    let mut settings = WalletSettings::default();
+    let Some(file) = file else {
+        return Ok(settings);
+    };
+    settings.hub = file.hub.as_deref().map(principal).transpose()?;
+    if let Some(api) = file.bitcoin_api {
+        settings.bitcoin_api = api;
+    }
+    if let Some(rpc) = file.solana_rpc {
+        settings.solana_rpc = rpc;
+    }
+    if !file.evm_rpc.is_empty() {
+        settings.evm_rpc = file
+            .evm_rpc
+            .into_iter()
+            .map(|(chain, url)| {
+                chain
+                    .parse()
+                    .map(|chain| (chain, url))
+                    .map_err(|_| dmsg_types::invalid("wallet.evm_rpc"))
+            })
+            .collect::<Result<_>>()?;
+    }
+    Ok(settings)
 }
 
 /// `[legacy]`: the old service's freeze this deployment reviewed.
@@ -198,6 +239,7 @@ impl Home {
                 .files_trash_days
                 .unwrap_or(dmsg_client::config::DEFAULT_FILES_TRASH_DAYS),
             legacy: file.legacy.map(legacy).transpose()?,
+            wallet: wallet(file.wallet)?,
         };
         config.validate()?;
         let idle = file.idle_lock_minutes.unwrap_or(15);

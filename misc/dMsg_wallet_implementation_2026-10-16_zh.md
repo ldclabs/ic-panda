@@ -1,6 +1,6 @@
 # dMsg Wallet 技术方案 v0.1 · 团队钱包的 canister、密钥与客户端实现
 
-日期：2026-10-16。状态：技术设计基线，[产品方案](dMsg_wallet_product_2026-10-16_zh.md) 第 12 节的决策点已于 2026-10-16 确认；未实现、未编译、未在 PocketIC 验证。本文保存在 `misc/`（该目录默认被 Git 忽略，本文件显式加入版本库），只引用私有设计文档的章节号。
+日期：2026-10-16。状态：技术设计基线，[产品方案](dMsg_wallet_product_2026-10-16_zh.md) 第 12 节的决策点已于 2026-10-16 确认；2026-10-17 已实现并在 PocketIC 验证，实现与本文的差异见[第 16 节](#16-实现记录2026-10-17)，两者不一致处以实现为准。本文保存在 `misc/`（该目录默认被 Git 忽略，本文件显式加入版本库），只引用私有设计文档的章节号。
 
 ## 1. 基线与范围
 
@@ -479,3 +479,40 @@ WT1 与 WT2 可并行（合同由 WT0 冻结）；WT3 可在 WT1 完成 ICP 路�
 ## 15. 需要同步的文档
 
 与产品方案第 13 节相同，另加：`src/dmsg_wallet/README.md`、`src/dmsg_wallet_hub/README.md`（接口、部署、验证）、`docs/protocol/wallet_zh.md`（公开合同：批准字节、协签消息、地址派生、向量）、`docs/dmsg_canisters_zh.md` 增量条目、`AGENTS.md` 客户端代码位置、`tests/vectors/wallet/README.md`。
+
+## 16. 实现记录（2026-10-17）
+
+实现位置：`src/dmsg_types/src/wallet.rs`、`src/dmsg_protocol/src/wallet/`、`src/dmsg_wallet`、`src/dmsg_wallet_hub`、`src/dmsg_client/src/wallet/`、`src/dmsg_cli/src/wallet_{methods,commands}.rs`、`src/dmsg_cli/src/enclave.rs`、`src/dmsg_agent/src/tools.rs`、`src/dmsg_desktop/src/renderer/views/Wallet.svelte`、`tests/dmsg_integration/tests/control_plane/wallet.rs`、`tests/dmsg_test_cmc`。公开合同见 [docs/protocol/wallet_zh.md](../docs/protocol/wallet_zh.md)。
+
+### 16.1 与本文不同的实现
+
+| 本文 | 实现 | 原因 |
+| --- | --- | --- |
+| 账户成员以登录 Principal 调用钱包（6.2、7.2） | 每台设备一把“钱包密钥”（Ed25519，LDK 加密存于本机工作区），`WalletJoin` 设备批准把它的 Principal 绑定到成员（每成员最多 4 个）；`approve_application` 仍由登录 Principal 在 home 调用 | 登录委托只到达固定的 ≤ 32 个 canister，无法覆盖动态的钱包实例 |
+| 提案也附设备批准 | 提案只需已绑定的 Principal；每次决定才需要设备批准。提案人的批准单独计入 | 智能体提案不能要求每次人工签名；授权集中在决定 |
+| `proposal_digest` 含 `id`、`created_at` | `digest("dmsg-wallet/proposal/v1", (environment, wallet, op_id, intent, policy_version, proposer, via_agent))`；决定再包一层 `decision_digest(proposal_digest, Approve/Reject/Veto)` | id 由钱包分配，摘要须在提交前可算；决定种类须进入批准字节 |
+| Recovery 提案需 Admin 阈值 + 7 天 | 无需批准，延时 7 天，期间任一 Admin/Approver 可否决 | Admin 全部失联时恢复才有意义 |
+| commerce 新增 `read_entitlement` | hub 调用已有的 `refresh_entitlement`，无记录视为 Free | 现有接口已满足 |
+| hub 用 `read_transfer` 核对付款区块 | hub 读取报价专属收款子账户余额 | 不依赖 ICP 账本的 ICRC-3 区块格式 |
+| CMC 充值用 legacy memo | `icrc1_transfer` 带 8 字节小端 ICRC-1 memo `TPUP`（CMC `get_u64_memo` 在旧 memo 为 0 时读取它） | 与 ICRC 转账统一 |
+| 实例回调 `hub.sync_members` | 任何人调用 hub `sync_wallet(wallet)` 拉取 `member_ids` | 钱包不依赖 hub 的接口与可用性 |
+| 地址 `index` 每链从 0 起 | 地址 `id` 钱包内唯一并兼作派生序号；默认 0 = ICP、1 = BTC P2TR、2 = EVM、3 = SOL；chain tag 另有 `icp`、`btc-native` | 一个编号同时定位地址、子账户与派生路径 |
+| `Intent::Freeze`、`SetRole` | 冻结为直接方法 `freeze()`；`UpdateMember` 替代 `SetRole`（可改角色、标签、Agent ID）；新增 `ReleaseEvmNonce`、`InitSolNonce`；`CancelEvmNonce`、`InitSolNonce` 带 `max_fee` | 冻结须立即生效；Agent 授权需可修改 |
+| 状态 `Signing` | `Executing`（覆盖账本调用、canister 调用与签名）；新增 `Stale`（策略版本已变） | — |
+| `report_broadcast` / `report_settled` | `report(ChainReport { outcome: Broadcast / Settled / Failed })` | — |
+| NC 协签人用 secp256k1 | 新增 `CosignerKind::Bip340`，双控 Taproot 的协签人对每个输入的脚本路径 sighash 直接签名；`ExecutionParams::Bitcoin.timelock` 选择链密钥单独花费的 L2 | — |
+| 本地密钥 `dfx_test_key` | PocketIC 的 fiduciary 子网只有 `key_1`，测试 hub 配置 `key_1` | — |
+| 每台设备的协签实现 | 客户端 `CosignProvider` 接口；daemon 在 macOS 且使用系统凭据存储时接入 Secure Enclave（P-256，`PrivateKeyUsage | UserPresence`）；否则软件 P-256 密钥封存于本机工作区并声明非硬件 | 开发构建无签名与钥匙串权限时自动回退 |
+
+### 16.2 工作包完成情况
+
+| 包 | 完成 | 未完成 |
+| --- | --- | --- |
+| WT0 | `dmsg_types::wallet`、`dmsg_protocol::wallet`、`WalletApprove`、三个 `ApprovalPurpose`、user home 核验规则、SDK 与 CDDL 重新生成 | 独立的 `tests/vectors/wallet` 向量文件（以单测中的参考向量与独立库交叉核对代替） |
+| WT1 | 钱包与 hub 全部接口；分块安装；升级、锁定、退款、收入转换、refuel；认证叶与审计链 | — |
+| WT2 | `payer` 改名；客户端 `wallet` 模块、审批中心任务、daemon `wallet/*`、CLI `dmsg wallet`、桌面“团队钱包”视图与审批窗口 | 频道绑定（`wallet/event` 系统消息）；桌面冒烟测试 `desktop_wallet` |
+| WT3 | BTC P2TR/P2WPKH、EVM（ETH、ERC-20、nonce 取消）、SOL（SOL、SPL、ATA、durable nonce）编码与签名；客户端独立解码、Esplora/JSON-RPC 读取与广播、重签规则 | regtest/anvil/test-validator 端到端；主网 `test_key_1` 小额 |
+| WT4 | canister 侧 Raw/FIDO2/WebAuthn 验签；`AddCosigner`/`SetCosign`；协签审批任务；Secure Enclave 与软件密钥 | Windows/Linux TPM、FIDO2（CTAP2）、桥接页 WebAuthn 的客户端适配 |
+| WT5 | MCP 工具 `dmsg_wallet_list|balances|propose_transfer|proposal_status|execute|report_broadcast`，能力 `wallet.read`、`wallet.propose:<wallet>`、`wallet.execute:<wallet>` | 审计模式 `attest_*`；`dmsg_frontend` 透明页 |
+| WT6 | 双控 Taproot（L1 双签、L2 时间锁、可选 L3 恢复叶）的地址、签名与见证 | EVM Safe、Solana Squads、硬件钱包协签 |
+| WT7 | 构建、测试、release 脚本与 icp.yaml 纳入 hub；`.icp` 映射改为 `dmsg_wallet_hub`；production.toml 指向 hub；文档同步 | 主网部署、commerce 登记与版本登记的 SNS 提案、ICPanda DAO 钱包创建与收款账户切换（运维操作） |

@@ -3,8 +3,8 @@
 //! membership claims for the account's own subscription.
 //!
 //! A checkout is a journal fixed at its quote: the device approves exactly
-//! those terms for the wallet that pays (`approve_application`), commerce
-//! opens the order, and the wallet funds it once. Every step is reconciled
+//! those terms for the payer (`approve_application`), commerce
+//! opens the order, and the payer funds it once. Every step is reconciled
 //! by the order's ID after a lost reply; a definite canister rejection is
 //! the only reason to quote again. dMsg's own checkouts use the
 //! application origin `https://dmsg.net` (plan D-19).
@@ -14,9 +14,9 @@ use crate::codec::decode;
 use crate::crypto::sign;
 use crate::ic::Ic;
 use crate::now_ms;
+use crate::payer::{memo, transfer_call};
 use crate::payment::certified_leaf;
 use crate::upload::hex_id;
-use crate::wallet::{memo, transfer_call};
 use candid::Principal;
 use dmsg_protocol::{
     approval_message, billing, commerce_v2, digest,
@@ -85,7 +85,7 @@ pub enum Stage {
 pub struct Checkout {
     /// Order or claim ID, hex.
     pub id: String,
-    /// The paying or neuron-controlling wallet.
+    /// The paying or neuron-controlling identity.
     pub actor: Principal,
     /// The application origin.
     pub origin: String,
@@ -100,7 +100,7 @@ pub struct Checkout {
 }
 
 impl Checkout {
-    /// The commitment a person approves: the exact terms and wallet.
+    /// The commitment a person approves: the exact terms and payer.
     pub fn digest(&self) -> Hash {
         digest(
             "dmsg/checkout-approval/v1",
@@ -383,9 +383,9 @@ impl Client {
         Ok((app, registered))
     }
 
-    /// The wallet's agent for a checkout `actor`.
+    /// The payer's agent for a checkout `actor`.
     async fn actor(&mut self, actor: Principal) -> Result<Ic> {
-        let (payer, ic) = self.wallet().await?;
+        let (payer, ic) = self.payer().await?;
         ensure(payer == actor, Error::Forbidden)?;
         Ok(ic)
     }
@@ -403,7 +403,7 @@ impl Client {
 
     /// Quote this account's own subscription to `sku` (such as `plus`):
     /// cash on the ledger `selection`, or a PANDA waiver backed by the
-    /// neuron `selection` (hex), paid or controlled by the wallet. Returns
+    /// neuron `selection` (hex), paid or controlled by the payer. Returns
     /// the journal to approve.
     ///
     /// # Errors
@@ -424,7 +424,7 @@ impl Client {
                 .contains(&Capability::FormalApprove),
             Error::Forbidden,
         )?;
-        let (actor, ic) = self.wallet().await?;
+        let (actor, ic) = self.payer().await?;
         let beneficiary = self.beneficiary()?;
         let operation = Hash::new(crate::crypto::random_id());
         let offer: Result<BillingOffer> = ic
@@ -445,7 +445,7 @@ impl Client {
     }
 
     /// Fix the terms of a web application's checkout from `origin` for the
-    /// wallet: cash on the ledger `selection`, or a PANDA waiver backed by
+    /// payer: cash on the ledger `selection`, or a PANDA waiver backed by
     /// the neuron `selection` (hex).
     pub(crate) async fn quote_request(
         &mut self,
@@ -454,7 +454,7 @@ impl Client {
         selection: &str,
     ) -> Result<Checkout> {
         let services = self.services().await?;
-        let (actor, ic) = self.wallet().await?;
+        let (actor, ic) = self.payer().await?;
         self.quote(request, origin, selection, actor, &ic, &services)
             .await
     }
@@ -739,7 +739,7 @@ impl Client {
         self.save_checkout(job)
     }
 
-    /// Approve and open a checkout, then fund a cash order from the wallet.
+    /// Approve and open a checkout, then fund a cash order from the payer.
     /// A retry reads the service's state first and repeats only what is
     /// missing; the saved approval is sent again, never a new one.
     ///
@@ -1009,11 +1009,11 @@ pub enum Records {
     Claims,
 }
 
-/// The commerce and membership records the wallet may read and repair: as
+/// The commerce and membership records the payer may read and repair: as
 /// payer, merchant, adapter or operator. Each action repeats an original
 /// operation with its frozen parameters; none creates a new payment.
 impl Client {
-    /// One page of `records` visible to the wallet, after `after`.
+    /// One page of `records` visible to the payer, after `after`.
     ///
     /// # Errors
     /// The service's verdict.
@@ -1023,7 +1023,7 @@ impl Client {
         after: Option<Hash>,
     ) -> Result<Json> {
         let services = self.services().await?;
-        let (caller, ic) = self.wallet().await?;
+        let (caller, ic) = self.payer().await?;
         let units = |n: u128| n.to_string();
         Ok(match records {
             Records::Orders => {
@@ -1107,7 +1107,7 @@ impl Client {
     /// The service's verdict.
     pub async fn commerce_reconcile_order(&mut self, id: &Hash) -> Result<Json> {
         let services = self.services().await?;
-        let (_, ic) = self.wallet().await?;
+        let (_, ic) = self.payer().await?;
         let progress: Result<CheckoutProgress> = ic
             .update(services.commerce, "reconcile_checkout", (id,))
             .await?;
@@ -1123,7 +1123,7 @@ impl Client {
     /// The service's verdict.
     pub async fn commerce_process_transfer(&mut self, id: &Hash) -> Result<Json> {
         let services = self.services().await?;
-        let (_, ic) = self.wallet().await?;
+        let (_, ic) = self.payer().await?;
         let progress: Result<CashTransferProgress> = ic
             .update(services.commerce, "process_checkout_transfer", (id,))
             .await?;
@@ -1142,7 +1142,7 @@ impl Client {
     /// The service's verdict.
     pub async fn commerce_revise_transfer(&mut self, id: &Hash, fee: u128) -> Result<Json> {
         let services = self.services().await?;
-        let (_, ic) = self.wallet().await?;
+        let (_, ic) = self.payer().await?;
         let revised: Result<CashTransfer> = ic
             .update(services.commerce, "revise_checkout_transfer_fee", (id, fee))
             .await?;
@@ -1160,7 +1160,7 @@ impl Client {
     /// The service's verdict.
     pub async fn commerce_claim(&mut self, id: &Hash, refresh: bool) -> Result<Json> {
         let services = self.services().await?;
-        let (_, ic) = self.wallet().await?;
+        let (_, ic) = self.payer().await?;
         let method = match refresh {
             true => "refresh_panda_claim",
             false => "reconcile_panda_claim",

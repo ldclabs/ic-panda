@@ -48,6 +48,14 @@ ic-stable-structures.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys = "=0.9.0"
 k256 = { workspace = true, features = ["ecdsa"] }
+# The wallet tests check signed transactions with independent libraries.
+alloy-consensus = { version = "2", features = ["k256"] }
+alloy-eips = "2"
+dmsg_client = { path = "../../src/dmsg_client" }
+bitcoin = "0.32"
+ic-ed25519.workspace = true
+ic-secp256k1.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }
 
 serde_json.workspace = true
 agent-protocols.workspace = true

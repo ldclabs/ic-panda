@@ -8,7 +8,7 @@
 
 /**
  * Methods any window may call; parameters pass through without `human`.
- * Methods that name local files (`wallet/use`, `channel/download`,
+ * Methods that name local files (`payer/use`, `channel/download`,
  * `attest/verify` with a file) and refunds to named blocks stay with the CLI;
  * files enter and leave the library only through the main process's file
  * dialogs or a drop the preload resolves to a path (`files/import`,
@@ -146,7 +146,32 @@ export const WINDOW_METHODS = new Set([
   'inbox/mark',
   'payment/transfers',
   'payment/revise',
-  'wallet/balance',
+  'payer/balance',
+  'wallet/list',
+  'wallet/show',
+  'wallet/principal',
+  'wallet/quote',
+  'wallet/create',
+  'wallet/join',
+  'wallet/proposals',
+  'wallet/proposal',
+  'wallet/propose',
+  'wallet/send',
+  'wallet/approve',
+  'wallet/reject',
+  'wallet/veto',
+  'wallet/cancel',
+  'wallet/freeze',
+  'wallet/execute',
+  'wallet/broadcast',
+  'wallet/settle',
+  'wallet/report',
+  'wallet/reconcile',
+  'wallet/balances',
+  'wallet/audit',
+  'wallet/refuel',
+  'wallet/cosigners',
+  'wallet/cosigner_new',
   'plan/catalog',
   'plan/status',
   'plan/assets',
@@ -252,7 +277,13 @@ const GUI_SOURCED = new Set([
   'agent/credential',
   'grants/add',
   'grants/revoke',
-  'ap/call'
+  'ap/call',
+  'wallet/create',
+  'wallet/join',
+  'wallet/approve',
+  'wallet/reject',
+  'wallet/veto',
+  'wallet/execute'
 ])
 
 /** The tools the Agents view runs as a hosted Agent ID: Agent Mail and Agent Knowledge. */

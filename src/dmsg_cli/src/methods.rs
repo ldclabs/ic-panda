@@ -1,4 +1,4 @@
-//! The daemon methods of channels, the inbox, the wallet, plans and names
+//! The daemon methods of channels, the inbox, the payer, plans and names
 //! (plan W5). Payments, checkouts and name operations become approval
 //! requests: only a person answers them, in the desktop approval window or
 //! at an interactive terminal.
@@ -48,8 +48,8 @@ pub(crate) const METHODS: [&str; 50] = [
     "inbox/refund",
     "inbox/list",
     "inbox/mark",
-    "wallet/use",
-    "wallet/balance",
+    "payer/use",
+    "payer/balance",
     "plan/catalog",
     "plan/status",
     "plan/assets",
@@ -301,17 +301,17 @@ impl Daemon {
                     )
                     .await
             }
-            "wallet/use" => {
+            "payer/use" => {
                 let pem = match params["pem"].as_str() {
                     Some(_) => Some(absolute(params, "pem")?),
                     None => None,
                 };
-                client.wallet_use(pem.as_deref()).await
+                client.payer_use(pem.as_deref()).await
             }
-            "wallet/balance" => {
+            "payer/balance" => {
                 let ledger = candid::Principal::from_text(text(params, "ledger")?)
                     .map_err(|_| Error::InvalidInput("ledger".into()))?;
-                client.wallet_balance(ledger).await
+                client.payer_balance(ledger).await
             }
             "plan/catalog" => {
                 let catalog = client.plan_catalog().await?;

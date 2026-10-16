@@ -167,6 +167,7 @@ fn test_config() -> Config {
         background_online: false,
         files_max_bytes: crate::config::DEFAULT_FILES_MAX_BYTES,
         files_trash_days: crate::config::DEFAULT_FILES_TRASH_DAYS,
+        wallet: Default::default(),
         legacy: None,
     }
 }

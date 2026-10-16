@@ -14,9 +14,11 @@ members = [
   "src/membership",
   "src/dmsg_commerce",
   "src/dmsg_wallet",
+  "src/dmsg_wallet_hub",
   "tests/dmsg_integration",
   "tests/dmsg_test_ledger",
   "tests/dmsg_test_sns",
+  "tests/dmsg_test_cmc",
   "examples/dmsg-account-product",
   "tests/dmsg_test_legacy",
   "src/cli_airdrop",
@@ -93,6 +95,7 @@ infer = "0.22"
 http = "1"
 sha2 = "0.11"
 sha3 = "0.12"
+ripemd = { version = "0.2", default-features = false }
 k256 = { version = "0.14" }
 p256 = { version = "0.14", default-features = false }
 zeroize = "1"

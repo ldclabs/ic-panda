@@ -19,7 +19,7 @@
   let error = $state('')
   let busy = $state(false)
 
-  const CAPABILITIES = ['ContentSign', 'VaultUnlock', 'RootManage', 'FormalApprove', 'PaymentOffer']
+  const CAPABILITIES = ['ContentSign', 'VaultUnlock', 'RootManage', 'FormalApprove', 'PaymentOffer', 'WalletApprove']
 
   async function load() {
     try {

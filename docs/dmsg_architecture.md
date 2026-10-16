@@ -38,6 +38,8 @@ flowchart LR
     P["dmsg_payment<br/>delivery escrow"]
     C["dmsg_commerce<br/>checkout · entitlements"]
     M["membership<br/>PANDA qualification"]
+    WH["dmsg_wallet_hub<br/>wallet activation · versions"]
+    W["dmsg_wallet × N<br/>team wallets"]
   end
   EXT -- "home list · handles" --> H
   EXT -- "account · devices · root · attest" --> U
@@ -62,6 +64,12 @@ flowchart LR
   H -- "ICRC" --> L["Ledgers"]
   P -- "ICRC" --> L
   C -- "ICRC" --> L
+  EXT -- "propose · execute · report" --> W
+  EXT -- "quote · create" --> WH
+  WH -- "create · install · upgrade" --> W
+  W -- "verify member approvals" --> U
+  W -- "ICRC · chain-key signing" --> L
+  EXT -- "read · broadcast" --> X["BTC / EVM / SOL networks"]
 ```
 
 | Canister | Authoritative data | Instances | Main per-instance limit |
@@ -73,6 +81,8 @@ flowchart LR
 | [dmsg_payment](../src/dmsg_payment/README.md) | Paid-delivery escrows, deposits, funds decisions and payouts | 1 or more; each home is bound to one | 10 million escrows |
 | [dmsg_commerce](../src/dmsg_commerce/README.md) | App and product registrations, catalog, cash orders, paying subjects and resource entitlements | 1 or more; each home belongs to one | 10 million paying subjects and 10 million lifetime orders |
 | [membership](../src/membership/README.md) | Cross-product PANDA neuron occupancy and product decisions | 1 per SNS | 1 million complete records, 10 million lifetime operations |
+| [dmsg_wallet_hub](../src/dmsg_wallet_hub/README.md) | Activation orders, wallet module versions, wallet records and the member index | 1 globally | 256 wallets indexed per member, 16 module versions |
+| [dmsg_wallet](../src/dmsg_wallet/README.md) | One team's members, policy, addresses, cosigners, proposals, plans and audit | 1 per team, created by the hub | 64 members, 256 addresses, 64 cosigners, 10,000 finished proposals kept |
 
 Shared libraries: [dmsg_types](../src/dmsg_types/README.md) defines the public data contracts, [dmsg_protocol](../src/dmsg_protocol/README.md) provides deterministic encoding, approval digests and signature verification, and [dmsg_runtime](../src/dmsg_runtime/README.md) (Chinese) provides stable storage, certification trees, budgets, ledger adapters and bounded calls.
 
@@ -112,6 +122,10 @@ An account's `home_user` and `home_cose` are fixed for its lifetime.
 ### 4.6 Agent Principals
 
 Principal activation, controller registration and retirement commit in the account's home, which then pushes the state to `dmsg_directory`; if that fails, anyone can retry with `publish_principal`. Documents are served under a fixed custom domain as certified responses through the ICP HTTP gateway; see the [protocol](protocol/agent_zh.md) (Chinese).
+
+### 4.7 Team Wallets
+
+The hub quotes within the commerce plan quota, then creates and installs a wallet after checking the creator's `WalletCreate` device approval and the payment; a wallet's only controller is the hub. Members bind their client's wallet-key Principal with a `WalletJoin` approval; each decision on a proposal is a `WalletProposal` device approval that the wallet verifies at the member's home. The wallet transfers ICP/ICRC itself; for Bitcoin, EVM and Solana it builds the transaction from the intent and signs it with `key_1`, and the client decodes it independently before broadcasting and reporting it. Upgrades and locks need the wallet to accept them first by an admin proposal. Contract: [wallet_zh.md](protocol/wallet_zh.md) (Chinese).
 
 ## 5. On-Chain Load Profile
 
@@ -278,6 +292,9 @@ Each administrative call below accepts the controller or the SNS governance and 
 | commerce catalog certificate | `refresh_catalog` | Once after a new catalog takes effect |
 | membership release and compaction | `sweep_panda_commitments` | Every five minutes is suggested, until it returns 0 |
 | directory republication | `publish_principal` | When a home's publication failed |
+| wallet cycles | `refuel_wallet(wallet)` (calls the wallet's `refuel()`), `wallet_health(wallet)` | Below the policy's `min_cycles`; wallets freeze after 365 days without cycles |
+| wallet activation revenue | `collect_revenue(quote_id)` | After an order is ready |
+| wallet member index | `sync_wallet(wallet)` | After membership changes |
 
 - **Upgrades**: the schema must not change. Stop the canister and let in-flight inter-canister calls finish, snapshot canisters that hold funds or unrecoverable data, then upgrade with the empty Candid argument `()`, start, and read the logs. COSE derivations are unbounded waits, so COSE must be stopped before an upgrade; if it is not, executions whose callbacks are lost become `Unknown` and are never derived again.
 - **Irreversible operations**: never reinstall payment, commerce or directory; a reinstall wipes escrows, accounting or documents that cannot be rebuilt. Never delete the COSE canister; deleting it makes every recovery envelope unopenable.
@@ -287,6 +304,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 
 - Every service is in development with development stable layouts, and old experimental instances are not migrated.
 - Local PocketIC regressions, protocol vectors and client unit tests cover the routing, limits and upgrade behaviour described here; there are PocketIC regressions for the registration entry of a second user home and for a second commerce instance.
+- Team wallets are covered by PocketIC (real threshold signatures, hub activation, upgrades and locks, a CMC test double) and by encoders cross-checked against independent libraries; Safe/Squads two-key control and audit-mode attestations are not implemented.
 - Not yet accepted: mainnet deployment with production `key_1`, real funds and wallet paths, end-to-end flows of a signed desktop release with real web applications, private cloud production end-to-end, subnet throughput, scale beyond one million records except for handle, and an external security audit.
 
 ## 12. References
@@ -296,4 +314,5 @@ Each administrative call below accepts the controller or the SNS governance and 
 - [protocol/account_root_zh.md](protocol/account_root_zh.md) and [dmsg_encryption_zh.md](dmsg_encryption_zh.md) (Chinese): account control, root wrapping and the encryption design.
 - [protocol/cloud_zh.md](protocol/cloud_zh.md) (Chinese): the wire contract between the client and the cloud; [protocol/connect-v1_zh.md](protocol/connect-v1_zh.md) (Chinese): how web applications connect through the bridge page.
 - [protocol/commerce.md](protocol/commerce.md) and [protocol/agent_zh.md](protocol/agent_zh.md) (Chinese): the commerce and Agent Delegation contracts.
+- [protocol/wallet_zh.md](protocol/wallet_zh.md) (Chinese): the team wallet contract.
 - The capacity, deployment and operations sections of each canister README (Chinese): measurement methods, reproduction commands and deployment arguments behind the figures above.

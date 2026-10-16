@@ -26,6 +26,8 @@ COSE schema 8 区分仍在途、已返回未知和确定终态：未知结果保
 | dmsg_commerce | 套餐、现金订单、退款与认证资源权益 | [README](../src/dmsg_commerce/README.md) / [Candid](../src/dmsg_commerce/dmsg_commerce.did) |
 | dmsg_payment | 固定条款托管、入金验证、互斥资金决定与出金 | [README](../src/dmsg_payment/README.md) / [Candid](../src/dmsg_payment/dmsg_payment.did) |
 | dmsg_directory | Agent Delegation principal 文档的认证 HTTP 发布 | [README](../src/dmsg_directory/README.md) / [Candid](../src/dmsg_directory/dmsg_directory.did) |
+| dmsg_wallet_hub | 团队钱包的激活、创建、版本登记、升级与锁定、成员索引 | [README](../src/dmsg_wallet_hub/README.md) / [Candid](../src/dmsg_wallet_hub/dmsg_wallet_hub.did) |
+| dmsg_wallet | 团队钱包实例：成员、策略、提案、ICP/ICRC 转账、链密钥签名、审计 | [README](../src/dmsg_wallet/README.md) / [Candid](../src/dmsg_wallet/dmsg_wallet.did) |
 
 客户端与云端的公开 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)，账户、设备与根见 [账户与根合同](protocol/account_root_zh.md)。客户端是桌面端（`src/dmsg_client`、`src/dmsg_cli`、`src/dmsg_desktop`），其端到端测试在 PocketIC 与本地 workerd 中继上运行（[集成测试说明](../tests/dmsg_integration/README.md)）；网页应用经 [dmsg-connect/1](protocol/connect-v1_zh.md) 接入。其它配套文档保留的早期描述应按明确的版本修订核对。
 
@@ -227,3 +229,12 @@ user 新增 `canister_inspect_message`：服务回调只接受对应的配置 ca
 - **逐账户历史**：桌面客户端每次刷新执行额度前读取上月和上上月的月账，以 `usage:<YYYYMM>` 封存在账户的本机工作区（LDK 加密，不同步）。新月份第一次刷新才删除旧月账，先读后刷新即可在删除前取到；从未刷新的月份不会归档。归档值来自本人 query，只供本人查看。
 
 客户端同时修正了退款或降档后已扣单位超过允许单位时，额度读取报 `INTEGRITY_FAILED` 的问题，剩余额度按 0 显示。配置新增的字段有默认值，稳定布局仍为 schema 14。
+
+## 2026-10-17 团队钱包
+
+新增 `dmsg_wallet_hub`（接管保留 ID `ghcje-dyaaa-aaaas-qg7va-cai`）与 `dmsg_wallet`（每个团队一个实例，由 hub 安装，不在 icp.yaml 中单独部署）。合同见 [wallet_zh.md](protocol/wallet_zh.md)，设计见 `misc/dMsg_wallet_*_2026-10-16_zh.md`。
+
+- **批准**：`ApprovalPurpose` 新增 `WalletCreate`、`WalletProposal`、`WalletJoin`，设备能力新增 `WalletApprove`。user home 对这些用途要求 `subject_bytes == service`；`WalletCreate` 的 service 固定为产品登记的 `adapter`（hub），其余为钱包自身。commerce 与示例产品对这些用途的结算请求返回 `Forbidden`。
+- **钱包**：成员（账户或 Principal，Admin/Approver/Proposer/Viewer/Recovery）、版本化策略（按资产分档、24 小时滚动窗口、日限额、地址簿冷却）、提案状态机、哈希链审计与认证叶。ICP/ICRC 以确切参数转账并可 `reconcile`；BTC（P2TR、P2WPKH、链上双控 Taproot）、EVM（EIP-1559、ERC-20、nonce 取消）、SOL（转账、SPL、durable nonce）由钱包从意图构造并以 `key_1` 签名，成员客户端广播。协签支持 Raw、FIDO2、WebAuthn 三种封装。
+- **hub**：按 commerce `refresh_entitlement` 的套餐配额报价，核对设备批准与收款后创建 canister（冻结阈值 365 天）并分块安装；只安装治理登记的模块哈希；按实例接受的版本 stop/install/start；`LockCode` 后清空 controllers；收入经 CMC 为 hub 充 cycles，余额归收入账户。
+- **验证**：`dmsg_protocol`、`dmsg_wallet` 单测（编码器以 `bitcoin`、`alloy`、`solana-message` 交叉核对）与 PocketIC 控制面 `wallet::*`（真实阈值签名，客户端解码器复核计划，CMC 替身 `dmsg_test_cmc`）。主网部署、真实链上广播、Safe/Squads 双控与审计模式核对尚未实现或验收。

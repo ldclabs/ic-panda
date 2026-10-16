@@ -53,6 +53,8 @@ pub enum Capability {
     FormalApprove,
     /// Authorize recipient payment offers.
     PaymentOffer,
+    /// Create, join and decide on team wallet proposals.
+    WalletApprove,
 }
 
 /// Public keys, role and capabilities proposed for a device.

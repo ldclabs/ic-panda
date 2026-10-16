@@ -42,6 +42,9 @@ pub mod commerce_v2;
 /// Shared product-side interval reservation and contract CAS.
 pub mod product_book;
 
+/// `dmsg-wallet/1` commitments, policy, addresses and cosigner verification.
+pub mod wallet;
+
 /// Offline COSE master-key pins for deployment tooling.
 #[cfg(feature = "cose-pins")]
 pub mod cose_pins;

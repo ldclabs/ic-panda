@@ -62,6 +62,12 @@ channels = ["<old channel canister>"]
 identity = "<old name-identity canister>"
 buckets = ["<old OSS bucket>"]
 cutover = "<32-byte hex cutover ID>"
+
+[wallet]                         # team wallets; production names the hub
+hub = "<dmsg_wallet_hub canister>"
+bitcoin_api = "https://mempool.space/api"          # an Esplora API
+solana_rpc = "https://api.mainnet-beta.solana.com"
+evm_rpc = { "1" = "https://ethereum-rpc.publicnode.com", "8453" = "https://mainnet.base.org" }
 ```
 
 Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url`/`agent_ca` are refused.
@@ -223,7 +229,12 @@ dmsg inbox send <recipient> <text> [--pay] [--invitation I] [--order O] | pay <r
 dmsg inbox order <recipient> <order> | outgoing | escrow <order> | refund <order>
 dmsg inbox list | mark <order> [--archive]
 dmsg payment transfers <escrow> | revise <escrow> <leg>
-dmsg wallet use [pem] | balance <ledger>
+dmsg payer use [pem] | balance <ledger>
+dmsg wallet list | show <wallet> | principal | quote | create <quote> --name N [--member id:role[:label]]... | join <wallet>
+dmsg wallet proposals <wallet> | proposal <wallet> <id> | send <wallet> --from A --asset X --to T --amount N --max-fee F
+dmsg wallet propose <wallet> <intent.json> | approve|reject|veto|cancel <wallet> <id> | freeze <wallet>
+dmsg wallet execute|broadcast|settle|reconcile <wallet> <id> | report <wallet> <id> <plan> broadcast|settled|failed
+dmsg wallet balances|audit|refuel <wallet> | cosigners | cosigner-new <label> [--hardware]
 dmsg plan catalog | status | quote <sku> <ledger|neuron> [--method cash|panda]
 dmsg plan checkout <id> | advance <id> | order <id> | list | cancel <id> | reconcile <id> | refund <id> [block]...
 dmsg handle resolve <name> | price <name> | claim <name> | register <name>
@@ -417,7 +428,7 @@ Payments go through the approval center like signatures: `inbox pay`,
 `plan checkout|advance` and `handle claim|register` only create the request,
 which a person approves at the terminal or in the desktop's approval window,
 seeing the exact amount, ledger and payer. The payer is the login's Principal
-unless `wallet use <pem>` names an identity file; the dMsg account itself
+unless `payer use <pem>` names an identity file; the dMsg account itself
 never holds funds. A paid letter is `inbox send --pay` (a quote), then
 `inbox pay`; a subscription is `plan quote`, then `plan checkout`. A web
 application's checkout arrives as a web request and is quoted
@@ -427,6 +438,20 @@ ledger refused at the fee it asked for, never above the escrow's limit.
 `inbox refund` claims, in one transfer, what a letter's escrow holds for the
 wallet: the payment after the acceptance deadline, the unused fee reserve once
 every payout succeeded, and deposits the escrow did not take.
+
+Team wallets (`dmsg wallet`) are canisters of their own, created through
+the hub for a one-time ICP activation within the plan's quota. Proposing,
+executing what members approved, broadcasting and reporting run at once;
+`create`, `join`, `approve`, `reject`, `veto`, and a transaction this
+device must cosign, wait in the approval center. The daemon calls wallets
+with a wallet key kept on this device (`wallet principal`), which `join`
+binds to the account with a device approval; deciding still needs a
+`WalletApprove` device every time. `execute` reads chain parameters from the
+`[wallet]` endpoints, checks the wallet's plan with its own decoder, and
+broadcasts what the wallet signed; `settle` reports it final once the chain
+says so. Cosigner keys live in the Secure Enclave on macOS when the system
+credential store is in use, else in software, which a wallet requiring
+hardware cosigners refuses.
 
 Names move between accounts in three steps, the last two within a minute:
 the owner's `handle transfer <name> <account>` prints a token, the target
@@ -647,7 +672,9 @@ The daemon listens on `127.0.0.1` only.
   `channel/list|show|create|invite|join|control|leave|rotate|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
   `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit`,
   `inbox/policy|configure|send|order|outgoing|pay|escrow|refund|list|mark`,
-  `payment/transfers|revise`, `wallet/use|balance`,
+  `payment/transfers|revise`, `payer/use|balance`,
+  `wallet/list|show|principal|quote|create|join|proposals|proposal|propose|send|approve|reject|veto|cancel|freeze`,
+  `wallet/execute|broadcast|settle|report|reconcile|balances|audit|refuel|cosigners|cosigner_new|policy_default|intent`,
   `plan/catalog|status|assets|quote|checkout|advance|order|checkouts|cancel|reconcile|refund`,
   `handle/resolve|price|claim|register|transfer|accept|transfer_commit|operations|reconcile`,
   `ops/orders|transfers|claims|reconcile_order|process_transfer|revise_transfer|claim|sweep`,

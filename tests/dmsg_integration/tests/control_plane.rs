@@ -51,6 +51,9 @@ mod user_homes;
 #[path = "control_plane/governance.rs"]
 mod governance;
 
+#[path = "control_plane/wallet.rs"]
+mod wallet;
+
 fn wasm(name: &str) -> Vec<u8> {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let target = std::env::var_os("DMSG_WASM_DIR")

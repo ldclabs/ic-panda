@@ -325,6 +325,12 @@ pub enum ApprovalPurpose {
     CashCheckout,
     /// Full subscription waiver approval.
     PandaSubscription,
+    /// Create a team wallet; the service is the wallet hub.
+    WalletCreate,
+    /// Decide on a team wallet proposal; the service is the wallet.
+    WalletProposal,
+    /// Join a team wallet and bind the actor Principal; the service is the wallet.
+    WalletJoin,
 }
 
 /// Approved dMsg account and product beneficiary are deliberately separate.

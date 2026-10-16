@@ -42,8 +42,9 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`channel`] | Formal channels: the synced keyring, the verified control log, epoch rotation by a leased coordinator, messages and attachments, history grants, owner and sponsor transfers, reactivation, and journals reconciled by request ID |
 | [`inbox`] | The contact policy and its synced inbox key, sealed letters, the paid-letter quote, escrow, admission and refund, and the recipient's letters checked against the sender's evidence |
 | [`payment`] | The `dmsg_payment` escrow: certified terms and escrows, funding checks, decisions, payouts and refunds |
-| [`wallet`] | ICRC transfers and approvals by the login's Principal or a PEM wallet, journaled before they are sent; a lost reply resends the same bytes |
-| [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription and for web applications' checkouts, and the records the wallet may read and repair as payer, merchant or operator |
+| [`payer`] | ICRC transfers and approvals by the login's Principal or a PEM identity, journaled before they are sent; a lost reply resends the same bytes |
+| [`wallet`] | Team wallets (`dmsg-wallet/1`): this device's wallet key that joins bind, the hub's quotes, proposals, and approval-center jobs to create, join, decide and cosign; chain parameters read from Esplora, EVM and Solana JSON-RPC; an independent decoder that re-derives every plan's transaction and messages to sign before cosigning or broadcasting; addresses checked against the wallet's key roots; the audit chain; cosigner keys in a platform keystore (the daemon's Secure Enclave on macOS) or sealed in software |
+| [`commerce`] | The certified catalog and entitlement, cash checkouts and PANDA membership claims for the account's own subscription and for web applications' checkouts, and the records the payer may read and repair as payer, merchant or operator |
 | [`handle`] | Names: certified resolution, legacy claims, registrations, transfers between accounts and charge reconciliation, as account-authorized intents |
 | [`agent`] | Agent Delegation with the account as principal: enabling it, controller keys kept as vault items, and grants and revocations signed here, journaled, then submitted to the delegation service |
 | [`agents`] | The Agent IDs this device hosts: keys as vault items, their mail keys sealed on the device, residency in the credential store, the credential an agent's MCP session presents, and the capabilities granted over the account, never over dMsg's own keys |
@@ -147,10 +148,24 @@ operation keeps its request ID across retries and is re-signed under the
 same ID only after its deadline, so a lost reply never becomes a second,
 different operation.
 
+## Team wallets
+
+A team wallet signs every transaction itself; this client never holds a
+chain key. It calls wallets with a wallet key of this device (an Ed25519 key
+sealed under the LDK), which joining binds with a `WalletApprove` device
+approval, because login delegations reach only fixed canisters. Creating,
+joining, deciding and cosigning are approval-center jobs: the device signs an
+`ApplicationApproval` for the exact commitment, the user home records it,
+and the wallet or hub verifies it there. Before cosigning or broadcasting,
+`wallet::decode::verify_plan` parses the plan's unsigned bytes on its own,
+recomputes every message to sign and compares them with the intent and the
+wallet's summary. Addresses are re-derived from the wallet's key roots with
+`ic-secp256k1` and `ic-ed25519`.
+
 ## Payments
 
 The dMsg account never holds funds: the payer is the login's Principal or a
-PEM wallet the CLI names. Every ICRC transfer or approval is journaled with
+PEM identity the CLI names (team wallets hold their own funds; see [`wallet`]). Every ICRC transfer or approval is journaled with
 its exact arguments before it is sent; a lost reply sends the same bytes
 again and the ledger's deduplication returns the original block. Only a
 typed ledger rejection on a first attempt proves nothing was paid.

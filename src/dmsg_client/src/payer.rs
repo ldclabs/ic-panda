@@ -1,6 +1,6 @@
-//! The wallet: ICRC ledger transfers paid by the login's Principal (plan
-//! R25). The dMsg account never holds funds; the wallet is only the payer
-//! the login delegation reaches.
+//! The payer: ICRC ledger transfers paid by the login's Principal or an
+//! identity PEM file (plan R25). The dMsg account never holds funds; the
+//! payer is only the identity that pays. Team wallets are [`crate::wallet`].
 //!
 //! Every payment is journaled under the LDK before it is sent, with its
 //! exact arguments: a lost reply sends the same bytes again, and the
@@ -20,7 +20,7 @@ use icrc_ledger_types::icrc2::approve::{ApproveArgs, ApproveError};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
-const JOURNAL: &str = "wallet:";
+const JOURNAL: &str = "payer:";
 
 /// The arguments of one journaled ledger call.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -149,13 +149,13 @@ pub fn memo(bytes: &[u8]) -> Memo {
     Memo(ByteBuf::from(bytes.to_vec()))
 }
 
-const WALLET_PEM: &str = "wallet-pem";
+const PAYER_PEM: &str = "payer-pem";
 
 /// An identity from a PEM file: Ed25519, secp256k1 or P-256.
 fn pem_identity(path: &std::path::Path) -> Result<std::sync::Arc<dyn ic_agent::Identity>> {
     use ic_agent::identity::{BasicIdentity, Prime256v1Identity, Secp256k1Identity};
     let pem = zeroize::Zeroizing::new(
-        std::fs::read(path).map_err(|e| Error::InvalidInput(format!("wallet: {e}")))?,
+        std::fs::read(path).map_err(|e| Error::InvalidInput(format!("payer: {e}")))?,
     );
     if let Ok(identity) = BasicIdentity::from_pem(pem.as_slice()) {
         return Ok(std::sync::Arc::new(identity));
@@ -165,27 +165,27 @@ fn pem_identity(path: &std::path::Path) -> Result<std::sync::Arc<dyn ic_agent::I
     }
     Prime256v1Identity::from_pem(pem.as_slice())
         .map(|identity| std::sync::Arc::new(identity) as std::sync::Arc<dyn ic_agent::Identity>)
-        .map_err(|_| Error::InvalidInput("wallet: not an identity PEM".into()))
+        .map_err(|_| Error::InvalidInput("payer: not an identity PEM".into()))
 }
 
 impl Client {
     /// The payer: the identity of the configured PEM file, or the login.
     ///
     /// # Errors
-    /// Returns `Error::AuthRequired` without a login or wallet.
-    pub(crate) async fn wallet(&mut self) -> Result<(Principal, Ic)> {
-        let Some(path) = self.workspace.store.meta::<String>(WALLET_PEM)? else {
+    /// Returns `Error::AuthRequired` without a login or payer.
+    pub(crate) async fn payer(&mut self) -> Result<(Principal, Ic)> {
+        let Some(path) = self.workspace.store.meta::<String>(PAYER_PEM)? else {
             let login = self.session()?;
             return Ok((login.principal, login.ic.clone()));
         };
         self.keys()?;
-        if let Some(wallet) = &self.wallet {
-            return Ok(wallet.clone());
+        if let Some(payer) = &self.payer {
+            return Ok(payer.clone());
         }
         let ic = Ic::connect(&self.config, pem_identity(std::path::Path::new(&path))?).await?;
-        let wallet = (ic.principal()?, ic);
-        self.wallet = Some(wallet.clone());
-        Ok(wallet)
+        let payer = (ic.principal()?, ic);
+        self.payer = Some(payer.clone());
+        Ok(payer)
     }
 
     /// Pay with the identity in the PEM file at `pem`, an absolute path the
@@ -194,20 +194,20 @@ impl Client {
     ///
     /// # Errors
     /// Returns `Error::InvalidInput` for a file that holds no identity.
-    pub async fn wallet_use(&mut self, pem: Option<&std::path::Path>) -> Result<serde_json::Value> {
+    pub async fn payer_use(&mut self, pem: Option<&std::path::Path>) -> Result<serde_json::Value> {
         self.keys()?;
-        self.wallet = None;
+        self.payer = None;
         match pem {
             Some(path) => {
                 ensure(path.is_absolute(), dmsg_types::invalid("path"))?;
                 pem_identity(path)?;
                 self.workspace
                     .store
-                    .set_meta(WALLET_PEM, &path.display().to_string())?;
+                    .set_meta(PAYER_PEM, &path.display().to_string())?;
             }
-            None => self.workspace.store.delete_meta(WALLET_PEM)?,
+            None => self.workspace.store.delete_meta(PAYER_PEM)?,
         }
-        let (principal, _) = self.wallet().await?;
+        let (principal, _) = self.payer().await?;
         Ok(serde_json::json!({
             "principal": principal.to_text(),
             "source": if pem.is_some() { "pem" } else { "login" },
@@ -244,7 +244,7 @@ impl Client {
         fee: u128,
         create: impl Fn() -> Result<Call>,
     ) -> Result<u64> {
-        let (payer, ic) = self.wallet().await?;
+        let (payer, ic) = self.payer().await?;
         let mut payment = match self.payment_journal(key)? {
             Some(payment) => payment,
             None => {
@@ -339,12 +339,12 @@ impl Client {
         }
     }
 
-    /// The wallet's Principal and its balance on `ledger`.
+    /// The payer's Principal and its balance on `ledger`.
     ///
     /// # Errors
     /// Returns `Error::AuthRequired` without a login.
-    pub async fn wallet_balance(&mut self, ledger: Principal) -> Result<serde_json::Value> {
-        let (payer, ic) = self.wallet().await?;
+    pub async fn payer_balance(&mut self, ledger: Principal) -> Result<serde_json::Value> {
+        let (payer, ic) = self.payer().await?;
         let reader = Ledger {
             ic: &ic,
             canister: ledger,

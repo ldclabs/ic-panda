@@ -260,7 +260,7 @@ pub async fn user_homes(ic: &Ic, handle: Principal, pins: &[Principal]) -> Resul
 /// Every canister a login delegation must reach: the registry and its
 /// ledger, each user home with its COSE executor, payment, commerce and
 /// membership canisters, and the ledgers those settle on, so the login's
-/// Principal can also pay as the wallet.
+/// Principal can also pay as the payer.
 ///
 /// # Errors
 /// Returns `Error::Unavailable` when a query fails and

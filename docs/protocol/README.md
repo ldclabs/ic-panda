@@ -116,3 +116,5 @@ A dMsg account can act as an Agent Delegation 1.0 principal: controllers are sel
 ## Commercial Services
 
 The product-neutral `membership/1` and `dmsg-commerce/1` contracts, delivery profile 2 and execution grant v3 are documented in [commerce.md](commerce.md), with [commerce.cddl](commerce.cddl) framing and independent commerce vectors. They do not change formal Statement or device execution approval bytes.
+
+Team wallets `dmsg-wallet/1`: the public contract for members, policy, proposals, address derivation, external-chain plans and cosigners is [wallet_zh.md](wallet_zh.md) (Chinese). Device approvals reuse `ApplicationApproval` with the new purposes `WalletCreate`, `WalletProposal` and `WalletJoin` and the device capability `WalletApprove`.

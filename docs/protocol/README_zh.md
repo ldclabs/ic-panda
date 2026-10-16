@@ -116,3 +116,5 @@ dMsg 账户可作为 Agent Delegation 1.0 principal：controller 是客户端 va
 ## 商业服务
 
 产品中立的 `membership/1` 与 `dmsg-commerce/1` 合同、投递 profile 2 和执行授权 v3 详见 [commerce_zh.md](commerce_zh.md)，配套有 [commerce.cddl](commerce.cddl) 结构定义和独立的商业测试向量。它们不改变正式 Statement 或设备执行批准字节。
+
+团队钱包 `dmsg-wallet/1`：成员、策略、提案、地址派生、外链计划与协签的公开合同见 [wallet_zh.md](wallet_zh.md)。设备批准沿用 `ApplicationApproval`，新增用途 `WalletCreate`、`WalletProposal`、`WalletJoin` 与设备能力 `WalletApprove`。

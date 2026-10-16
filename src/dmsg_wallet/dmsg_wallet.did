@@ -1,1 +1,1186 @@
-service : {}
+// [Account](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-3/README.md#value)
+// representation of ledgers supporting the ICRC-1 standard.
+type Account = record { owner : principal; subaccount : opt blob };
+// A wallet address.
+type Address = record {
+  // Wallet-unique ID; also the derivation index and, on ICP, the subaccount.
+  id : nat32;
+  // Chain-key public key at the address's derivation path: SEC1 compressed
+  // secp256k1 (Bitcoin, EVM) or 32-byte Ed25519 (Solana); empty for ICP.
+  public_key : blob;
+  // Chain.
+  chain : Chain;
+  // Control.
+  kind : AddressKind;
+  // Display form: ICRC account text, bech32 or bech32m, EIP-55 hex or base58.
+  "text" : text;
+  // Display label.
+  label : text;
+  // Creation time.
+  created_at_ms : nat64;
+  // Solana durable nonce account, once created.
+  sol_nonce : opt blob;
+  // Cosigners required before signing.
+  cosign : opt CosignPolicy;
+};
+// How an address is controlled.
+type AddressKind = variant {
+  // A Bitcoin Taproot output with an unspendable key path: the first leaf
+  // needs the chain key and the cosigner, the second the chain key alone
+  // once an output is `chain_key_after` blocks old, and an optional third
+  // a recovery key after its own delay.
+  Taproot : TaprootControl;
+  // The wallet's chain key alone: an ICP subaccount, a Bitcoin P2TR key
+  // path, an EVM account or a Solana account. A cosign policy makes the
+  // canister require cosigner signatures before it signs.
+  ChainKey;
+  // A Bitcoin P2WPKH output signed with threshold ECDSA.
+  Segwit;
+};
+// Approved dMsg account and product beneficiary are deliberately separate.
+type ApplicationApproval = record {
+  // Exact service allowed to consume this approval.
+  "service" : principal;
+  // Economic actor, distinct from both account IDs and payer accounts.
+  actor : principal;
+  // Product-defined rights recipient; no inferred AccountId conversion.
+  beneficiary : Beneficiary;
+  // Exact application configuration revision.
+  app_config_version : nat64;
+  // Browser origin, verified by the dMsg client.
+  origin : text;
+  // Complete cash/PANDA quotation or application action digest.
+  action_digest : blob;
+  // Idempotency identifier.
+  operation_id : blob;
+  // dMsg account whose device approves this action.
+  approving_account : blob;
+  // Integration version.
+  version : nat16;
+  // Registered application.
+  app_id : text;
+  // Fresh challenge.
+  nonce : blob;
+  // Deployment separation.
+  environment : Environment;
+  // Purpose-separated authorization.
+  purpose : ApprovalPurpose;
+  // Exclusive validity deadline in Unix milliseconds.
+  expires_at_ms : nat64;
+};
+// Exact purpose for account approval, distinct from product authorization.
+type ApprovalPurpose = variant {
+  // Join a team wallet and bind the actor Principal; the service is the wallet.
+  WalletJoin;
+  // Create a team wallet; the service is the wallet hub.
+  WalletCreate;
+  // Cash order approval.
+  CashCheckout;
+  // Decide on a team wallet proposal; the service is the wallet.
+  WalletProposal;
+  // Full subscription waiver approval.
+  PandaSubscription;
+};
+// Asset identity; amounts and limits are in its native base units.
+type AssetKey = variant {
+  // Bitcoin.
+  Btc;
+  // The native coin (`token = None`) or an ERC-20 token of an EVM chain.
+  Evm : record {
+    // ERC-20 contract.
+    token : opt blob;
+    // EIP-155 chain ID.
+    chain_id : nat64;
+  };
+  // ICP on the ICP ledger.
+  Icp;
+  // SOL (`mint = None`) or an SPL token.
+  Sol : record {
+    // SPL token mint.
+    mint : opt blob;
+  };
+  // An ICRC-1 ledger, such as ckBTC, ckUSDC or PANDA.
+  Icrc : principal;
+};
+// Daily ceiling of an asset; amounts above it need every Approver.
+type AssetLimit = record {
+  // Asset.
+  asset : AssetKey;
+  // Rolling 24-hour amount.
+  amount : nat;
+};
+// Hash-chained audit event.
+type AuditEvent = record {
+  // Position from zero.
+  seq : nat64;
+  // Acting member.
+  actor : opt MemberId;
+  // Time.
+  at_ms : nat64;
+  // `digest("dmsg-wallet/audit/v1", (prev, seq, at_ms, actor, proposal, kind))`.
+  hash : blob;
+  // What happened.
+  kind : AuditKind;
+  // Hash of the previous event, zero for the first.
+  prev : blob;
+  // Proposal.
+  proposal : opt nat64;
+};
+// Kind of an audit event.
+type AuditKind = variant {
+  // Proposal failed.
+  Failed : text;
+  // Cycles topped up.
+  Refueled : record {
+    // ICP ledger block.
+    block : nat64;
+  };
+  // Proposal ended without execution: rejected, vetoed, expired or stale.
+  Closed : ProposalStatus;
+  // Execution began.
+  Executing;
+  // Proposal approved; `Delayed` or `Ready` follows.
+  Approved;
+  // Broadcast reported.
+  Broadcast : record {
+    // Plan.
+    plan : nat32;
+    // Transaction ID.
+    txid : text;
+  };
+  // Proposal made.
+  Proposed;
+  // Decision recorded.
+  Decided : Decision;
+  // Proposal cancelled.
+  Cancelled;
+  // Member joined or bound a Principal.
+  Joined;
+  // Wallet installed.
+  Created;
+  // Transaction signed.
+  Signed : record {
+    // Plan.
+    plan : nat32;
+    // Transaction ID.
+    txid : text;
+  };
+  // Wallet frozen by a member.
+  Frozen;
+  // Proposal settled.
+  Settled;
+};
+// One output of a batch transfer.
+type BatchItem = record {
+  // Recipient.
+  to : Destination;
+  // Amount.
+  amount : nat;
+};
+// Product, authority and opaque subject binding; decoding does not establish control.
+type Beneficiary = record {
+  // Product identifier within this protocol.
+  product_id : text;
+  // Canister authoritative for the beneficiary subject.
+  authority_canister : principal;
+  // Opaque subject bytes in the registered schema.
+  subject_bytes : blob;
+  // Registered schema identifying how to interpret subject_bytes.
+  subject_schema : text;
+};
+// Address-book change.
+type BookChange = variant {
+  // Add or relabel an entry; a new entry starts its cooldown.
+  Add : record {
+    // Recipient.
+    destination : Destination;
+    // Display label.
+    label : text;
+  };
+  // Remove an entry.
+  Remove : record {
+    // Recipient.
+    destination : Destination;
+  };
+};
+// Address-book entry.
+type BookEntry = record {
+  // Recipient.
+  destination : Destination;
+  // Time the entry was added; its cooldown starts here.
+  added_at_ms : nat64;
+  // Display label.
+  label : text;
+};
+// A member's report of broadcasting or settling a transaction.
+type BroadcastReport = record {
+  // Reporting member.
+  member : MemberId;
+  // Time.
+  at_ms : nat64;
+  // Free text, at most 256 bytes.
+  note : text;
+  // Plan.
+  plan : nat32;
+  // Transaction ID.
+  txid : text;
+  // What happened.
+  outcome : ChainOutcome;
+};
+// Bitcoin network of a deployment.
+type BtcNetwork = variant {
+  // `bc` addresses.
+  Mainnet;
+  // `bcrt` addresses.
+  Regtest;
+  // `tb` addresses (testnet4 and signet).
+  Testnet;
+};
+// IC-certified query response. Merely decoding this value authenticates nothing.
+// Verify the IC certificate against a trusted root, the expected canister and
+// certificate time, then each witness, requested path and exact leaf bytes.
+type CertifiedBatch = record {
+  // IC data certificate bytes; verify against a trusted IC root key.
+  certificate : blob;
+  // Version of this public certified-leaf format, not the storage schema.
+  schema : nat16;
+  // Requested leaves and their membership/absence witnesses.
+  entries : vec CertifiedEntry;
+  // Canister identity to match against the expected service and certificate.
+  canister : principal;
+};
+// One requested leaf and its IC hash-tree witness.
+// A missing value must be checked as an absence proof, not treated as an empty leaf.
+type CertifiedEntry = record {
+  // Raw requested leaf path segment; compare with the exact expected path.
+  key : blob;
+  // Exact serialized leaf bytes, or None for requested absence.
+  value : opt blob;
+  // CBOR-encoded IC hash-tree witness for this requested leaf.
+  witness : blob;
+};
+// Chain an address lives on.
+type Chain = variant {
+  // Every EVM chain; one key serves them all.
+  Evm;
+  // ICP and ICRC ledgers: the wallet's own account and a subaccount.
+  Icp;
+  // Solana.
+  Solana;
+  // Bitcoin.
+  Bitcoin;
+};
+// What a member saw of a signed transaction.
+type ChainOutcome = variant {
+  // Will never be final: refused, reverted or replaced.
+  Failed;
+  // Sent to the network.
+  Broadcast;
+  // Final on chain.
+  Settled;
+};
+// A member's report about a signed transaction. The wallet records it
+// without checking the chain.
+type ChainReport = record {
+  // Free text, at most 256 bytes.
+  note : text;
+  // Signed plan.
+  plan : nat32;
+  // Proposal.
+  proposal : nat64;
+  // What happened.
+  outcome : ChainOutcome;
+};
+// What the hub may do with the wallet's code.
+type CodeAcceptance = variant {
+  // Install this version.
+  Upgrade : record {
+    // Hub version number.
+    version : nat32;
+    // SHA-256 of the module.
+    module_hash : blob;
+  };
+  // Remove every controller.
+  Lock;
+  // Nothing accepted.
+  None;
+};
+// ICRC-21 consent text the target canister gave for a call.
+type ConsentRecord = record {
+  // Language of the text.
+  language : text;
+  // The generic display message.
+  message : text;
+};
+// Cosigners an address requires before the canister signs.
+type CosignPolicy = record {
+  // Signatures required, at least one.
+  threshold : nat8;
+  // Cosigner IDs.
+  cosigners : vec nat32;
+};
+// A registered cosigner.
+type Cosigner = record {
+  // Wallet-unique ID.
+  id : nat32;
+  // Highest authenticator signature counter seen (FIDO2 and WebAuthn).
+  counter : nat32;
+  // Registration time.
+  added_at_ms : nat64;
+  // The proposed key and envelope.
+  input : CosignerInput;
+};
+// How a cosigner wraps the message it signs.
+type CosignerEnvelope = variant {
+  // The signature covers the cosign message itself (P-256 and secp256k1
+  // sign its SHA-256, as ECDSA over SHA-256 does).
+  Raw;
+  // A CTAP2 assertion whose client data hash is the cosign message.
+  Fido2 : record {
+    // SHA-256 of the relying-party ID.
+    rp_id_hash : blob;
+    // Whether user verification (PIN or biometrics) is required.
+    user_verification : bool;
+  };
+  // A WebAuthn assertion whose challenge is the cosign message.
+  WebAuthn : record {
+    // SHA-256 of the relying-party ID.
+    rp_id_hash : blob;
+    // Exact origins accepted in the client data.
+    origins : vec text;
+    // Whether user verification is required.
+    user_verification : bool;
+  };
+};
+// A cosigner as proposed.
+type CosignerInput = record {
+  // Member owning the key; removing the member removes the cosigner.
+  member : MemberId;
+  // Message wrapping.
+  envelope : CosignerEnvelope;
+  // SEC1 compressed (P-256, secp256k1), x-only (BIP-340) or 32-byte
+  // Ed25519 public key.
+  public_key : blob;
+  // Curve.
+  kind : CosignerKind;
+  // Display label.
+  label : text;
+  // Whether the client declared a non-exportable hardware key. The canister
+  // cannot check it; a policy may refuse software keys.
+  hardware : bool;
+};
+// Curve of a cosigner key.
+type CosignerKind = variant {
+  // Ed25519.
+  Ed25519;
+  // BIP-340 Schnorr over secp256k1 with an x-only key; native Taproot
+  // cosigners sign the transaction's sighash with it.
+  Bip340;
+  // NIST P-256 ECDSA: Secure Enclave, TPM, FIDO2 and passkeys.
+  P256;
+  // secp256k1 ECDSA.
+  Secp256k1;
+};
+// One cosigner signature over one cosign message.
+type CosignerSig = record {
+  // 64-byte signature: ECDSA `r || s`, BIP-340 or Ed25519; clients convert
+  // DER signatures of Secure Enclave and TPM keys.
+  signature : blob;
+  // Index of the digest in the plan.
+  digest_index : nat32;
+  // Authenticator data (FIDO2 and WebAuthn).
+  authenticator_data : opt blob;
+  // Cosigner ID.
+  cosigner : nat32;
+  // Client data JSON (WebAuthn).
+  client_data_json : opt blob;
+};
+// A member's decision.
+type Decision = variant {
+  // Approve.
+  Approve;
+  // Reject.
+  Reject;
+  // Veto during the delay.
+  Veto;
+};
+// What an unsigned transaction does, as its encoder built it. A client
+// decodes the unsigned bytes on its own and refuses a mismatch.
+type DecodedSummary = record {
+  // Exact fee (Bitcoin), the fee ceiling (EVM) or the signature and
+  // priority fee (Solana), in native base units.
+  fee : nat;
+  // `BTC`, `ETH`, `ERC20:<0x contract>`, `SOL` or `SPL:<mint>`.
+  asset : text;
+  // Source address text.
+  from : text;
+  // `bitcoin:<network>`, `evm:<chain_id>` or `solana`.
+  chain : text;
+  // EVM nonce, Solana blockhash or nonce (base58), or empty.
+  nonce : text;
+  // Change back to the source.
+  change : opt SummaryOutput;
+  // Payments.
+  outputs : vec SummaryOutput;
+};
+// Recipient of a transfer.
+type Destination = variant {
+  // An EVM address.
+  Evm : blob;
+  // An ICRC-1 account (ICP included).
+  Icrc : Account;
+  // A Solana account (for SPL tokens, the owner of the receiving token account).
+  Solana : blob;
+  // A Bitcoin address of the deployment's network.
+  Bitcoin : text;
+};
+// Deployment domain used to separate identities and key derivation.
+type Environment = variant {
+  // Local development deployment.
+  Local;
+  // Production deployment with pinned chain-key configuration.
+  Production;
+  // Pre-production deployment domain.
+  Staging;
+};
+// Application errors returned by dMsg canisters and protocol helpers.
+// Transport failures and Candid decoding failures are separate from this enum.
+type Error = variant {
+  // Required legacy key material is unavailable.
+  MigrationKeyUnavailable;
+  // Legacy business writes are frozen.
+  LegacyWriteDisabled;
+  // A supplied field or combination is invalid; carries a diagnostic.
+  InvalidInput : text;
+  // Another accepted operation owns the same product interval.
+  IntervalReserved;
+  // A neuron still supports a committed or pending product application.
+  NeuronOccupied;
+  // A new content root must be committed before writes can resume.
+  RekeyRequired;
+  // Expected version/generation differs from current state; reread before preparing a new approval.
+  VersionConflict;
+  // Execution may have occurred; reconcile the original request instead of creating another.
+  ExecutionUnknown;
+  // A digest, signature, proof or accounting invariant failed validation.
+  IntegrityFailed;
+  // Account-ID timestamp cannot fit the generator format.
+  IdTimestampOutOfRange;
+  // The requested record does not exist.
+  NotFound;
+  // The approved fee or available fee reserve cannot support the transfer.
+  FeeBlocked;
+  // The device is missing, revoked or not approved for this operation.
+  DeviceNotApproved;
+  // Sensitive operations are locked by account state or policy.
+  Locked;
+  // The source benefit is closing and cannot issue new leases.
+  MembershipClosing;
+  // Required recovery setup/confirmation has not completed.
+  RecoveryIncomplete;
+  // Account-ID counter space is exhausted for this timestamp.
+  IdCapacityExceeded;
+  // Approval or policy evidence refers to an outdated security state.
+  PolicyStale;
+  // Persisted account-ID allocator state does not match its configured namespace.
+  IdGeneratorStateConflict;
+  // An operation ID was reused with different parameters.
+  IdempotencyConflict;
+  // The profile, algorithm or protocol version is unsupported.
+  UnsupportedProtocol;
+  // A required service or resource is unavailable; carries a diagnostic.
+  Unavailable : text;
+  // Commercial qualification is temporarily unverifiable or its lease expired.
+  MembershipStale;
+  // Caller, role or capability does not authorize this operation.
+  Forbidden;
+  // Retained output is no longer available; this does not authorize replay.
+  ResultExpired;
+  // The applicable deadline has passed.
+  Expired;
+  // The subject is known to be ineligible for the requested benefit.
+  MembershipIneligible;
+  // An execution, cycle, storage or admission limit was exceeded.
+  QuotaExceeded;
+  // An authenticated and appropriately bound caller is required.
+  AuthRequired;
+  // The operation is not yet complete; query/retry the same operation as appropriate.
+  Pending;
+};
+// Arguments of `execute`.
+type ExecuteArgs = record {
+  // Plan to sign, for external chains.
+  plan : opt nat32;
+  // Proposal.
+  proposal : nat64;
+  // Cosigner signatures the source address's cosign policy requires,
+  // or the native Taproot cosigner's signatures over the plan digests.
+  cosigs : vec CosignerSig;
+};
+// Result of `execute`.
+type ExecuteResult = record {
+  // Proposal after execution.
+  proposal : Proposal;
+  // The transaction signed by this call, for external chains.
+  signed : opt SignedTx;
+};
+// Chain parameters the executor read and the plan uses.
+type ExecutionParams = variant {
+  // EVM, EIP-1559.
+  Evm : record {
+    // Highest priority fee per gas in wei.
+    max_priority_fee_per_gas : nat;
+    // Highest fee per gas in wei.
+    max_fee_per_gas : nat;
+    // Account nonce.
+    nonce : nat64;
+    // Gas limit.
+    gas_limit : nat64;
+  };
+  // Solana.
+  Solana : record {
+    // Token decimals of an SPL transfer.
+    decimals : opt nat8;
+    // Recent blockhash, or the durable nonce value when the address has a nonce account.
+    blockhash : blob;
+    // Whether to create the recipient's associated token account first.
+    create_ata : bool;
+    // Compute unit limit.
+    compute_unit_limit : nat32;
+    // Compute unit price in micro-lamports.
+    compute_unit_price : nat64;
+  };
+  // Bitcoin.
+  Bitcoin : record {
+    // Fee rate in satoshis per virtual byte.
+    fee_rate : nat64;
+    // Transaction lock time.
+    locktime : nat32;
+    // Inputs; change returns to the source address.
+    utxos : vec Utxo;
+    // Spend a native Taproot address with the chain key alone, through
+    // its timelocked leaf; the inputs must be old enough.
+    timelock : bool;
+  };
+};
+// An unsigned transaction ready for threshold signing.
+type ExecutionPlan = record {
+  // Plan number within the proposal, from 1.
+  seq : nat32;
+  // Creation time.
+  created_at_ms : nat64;
+  // Decoded effect.
+  summary : DecodedSummary;
+  // Proposal.
+  proposal : nat64;
+  // Unsigned transaction: a Bitcoin transaction without witnesses, an
+  // EIP-1559 payload `0x02 || rlp(...)`, or a Solana message.
+  unsigned : blob;
+  // Messages to sign, in signing order.
+  digests : vec blob;
+  // Deadline for `execute`.
+  expires_at_ms : nat64;
+  // Parameters.
+  params : ExecutionParams;
+};
+// What a proposal asks the wallet to do.
+type Intent = variant {
+  // Top up cycles with ICP from an ICP address.
+  Refuel : record {
+    // Source ICP address.
+    from : nat32;
+    // ICP sent to the cycles minting canister.
+    icp_e8s : nat64;
+  };
+  // Let the hub install a registered version.
+  AcceptUpgrade : record {
+    // Hub version number.
+    version : nat32;
+    // SHA-256 of the module.
+    module_hash : blob;
+  };
+  // Remove a member, its cosigners and its pending approvals.
+  RemoveMember : MemberId;
+  // Send several amounts of one asset: ICRC transfers one by one, one
+  // Bitcoin or Solana transaction. Not for EVM.
+  Batch : record {
+    // Asset.
+    asset : AssetKey;
+    // Source address.
+    from : nat32;
+    // Outputs.
+    items : vec BatchItem;
+    // Highest network fee of the whole batch.
+    max_fee : nat;
+  };
+  // Remove a cosigner and every cosign policy naming it.
+  RemoveCosigner : nat32;
+  // Invite a member.
+  AddMember : MemberInput;
+  // Let the hub remove every controller; the code can never change again.
+  LockCode;
+  // Change the address book.
+  AddressBook : BookChange;
+  // Create the Solana durable nonce account of an address.
+  InitSolNonce : record {
+    // Solana address.
+    address : nat32;
+    // Highest network fee in lamports, besides the rent deposit.
+    max_fee : nat;
+  };
+  // Resume executions; any Approver freezes the wallet directly.
+  Unfreeze;
+  // Replace a signed but unsettled EVM transaction with a zero-value
+  // self-transfer at the same nonce.
+  CancelEvmNonce : record {
+    // Chain.
+    chain_id : nat64;
+    // EVM address.
+    address : nat32;
+    // Highest network fee in wei.
+    max_fee : nat;
+  };
+  // Forget an EVM address's unsettled transaction without replacing it.
+  ReleaseEvmNonce : record {
+    // Chain.
+    chain_id : nat64;
+    // EVM address.
+    address : nat32;
+  };
+  // Send one amount.
+  Transfer : record {
+    // Recipient.
+    to : Destination;
+    // Asset.
+    asset : AssetKey;
+    // Source address.
+    from : nat32;
+    // ICRC memo, at most 32 bytes.
+    memo : opt blob;
+    // Highest network fee, in the chain's native base units.
+    max_fee : nat;
+    // Amount.
+    amount : nat;
+  };
+  // Change a member's role, label or agents.
+  UpdateMember : MemberInput;
+  // Replace an address's cosign policy.
+  SetCosign : record {
+    // Address.
+    address : nat32;
+    // New policy, or none.
+    cosign : opt CosignPolicy;
+  };
+  // Call a canister in the policy's `call_targets`.
+  CanisterCall : record {
+    // Candid argument bytes.
+    arg : blob;
+    // Method.
+    method : text;
+    // ICRC-21 consent text, filled by the wallet when the target offers one.
+    consent : opt ConsentRecord;
+    // Cycles attached.
+    cycles : nat;
+    // Target.
+    canister : principal;
+  };
+  // Register a cosigner.
+  AddCosigner : CosignerInput;
+  // Replace the policy; `version` must be the current one plus one.
+  SetPolicy : Policy;
+  // Create an address.
+  AddAddress : record {
+    // Chain.
+    chain : Chain;
+    // Control.
+    kind : AddressKind;
+    // Display label.
+    label : text;
+    // Cosigners required.
+    cosign : opt CosignPolicy;
+  };
+};
+// Root public key and chain code of one chain-key algorithm for this
+// wallet: the key at the empty derivation path. Addresses derive from it
+// offline with `derive_subkey_with_chain_code`.
+type KeyRoot = record {
+  // SEC1 compressed or 32-byte Ed25519 key.
+  public_key : blob;
+  // Chain code.
+  chain_code : blob;
+};
+// The wallet's chain-key roots.
+type KeyRoots = record {
+  // Threshold Schnorr Ed25519 (Solana).
+  ed25519 : opt KeyRoot;
+  // Threshold ECDSA secp256k1 (EVM, Bitcoin P2WPKH).
+  ecdsa : opt KeyRoot;
+  // Threshold Schnorr BIP-340 (Bitcoin Taproot).
+  bip340 : opt KeyRoot;
+};
+// A member of the wallet.
+type Member = record {
+  // Member identity.
+  id : MemberId;
+  // Whether the member joined.
+  status : MemberStatus;
+  // Time the member was added.
+  added_at_ms : nat64;
+  // Role.
+  role : Role;
+  // Agent IDs allowed to propose on this member's behalf.
+  agent_ids : vec text;
+  // Display label.
+  label : text;
+  // Principals that act as this member: the Principal itself, or the
+  // login Principals an account bound when joining.
+  principals : vec principal;
+};
+// Evidence that a member made a decision.
+type MemberApproval = variant {
+  // A dMsg account member's device approval, verified by its user home.
+  Account : record {
+    // The device approval's request ID.
+    approval_id : blob;
+    // The approved terms.
+    approval : ApplicationApproval;
+  };
+  // The calling Principal is the member.
+  Principal;
+};
+// A wallet member: a dMsg account or a Principal such as SNS governance.
+type MemberId = variant {
+  // A dMsg account; it approves with device approvals its user home verifies.
+  Account : blob;
+  // A Principal calling in person.
+  Principal : principal;
+};
+// A member as proposed.
+type MemberInput = record {
+  // Member identity.
+  id : MemberId;
+  // Role.
+  role : Role;
+  // Agent IDs allowed to propose on this member's behalf.
+  agent_ids : vec text;
+  // Display label, at most 64 bytes.
+  label : text;
+};
+// Whether a member confirmed joining.
+type MemberStatus = variant {
+  // Added by a proposal; acts only after `join`.
+  Invited;
+  // Joined.
+  Active;
+};
+// Outcome of an executed proposal.
+type Outcome = variant {
+  // Internal change applied.
+  Applied;
+  // Cycles bought with ICP.
+  Refueled : record {
+    // Cycles minted.
+    cycles : nat;
+    // ICP ledger block.
+    block : nat64;
+  };
+  // The call's outcome is unknown; check the target before proposing again.
+  CallUnknown;
+  // Canister call reply, at most 64 KiB, with its SHA-256.
+  Replied : record {
+    // SHA-256 of the full reply.
+    reply_hash : blob;
+    // Reply bytes.
+    reply : blob;
+  };
+  // A member reported the transaction final.
+  ChainSettled : record {
+    // Settled plan.
+    plan : nat32;
+    // Transaction ID.
+    txid : text;
+  };
+  // Cosigner registered.
+  CosignerAdded : nat32;
+  // The target rejected the call.
+  CallRejected : record {
+    // Reject code.
+    code : nat32;
+    // Reject message.
+    message : text;
+  };
+  // ICRC transfers, one block per item.
+  Ledger : record {
+    // Blocks in item order.
+    blocks : vec nat64;
+  };
+  // Address created.
+  AddressCreated : nat32;
+};
+// The wallet's rules. Every change increases `version`, and open proposals
+// made under an older version can no longer pass.
+type Policy = record {
+  // Whether cosigners must be declared hardware keys.
+  hardware_cosigners : bool;
+  // Amount bands per asset, ascending by `up_to`.
+  tiers : vec Tier;
+  // Lifetime of an unexecuted proposal.
+  proposal_ttl_ms : nat64;
+  // Threshold signatures per UTC day.
+  daily_signatures : nat32;
+  // Admin approvals for admin proposals.
+  admin_threshold : nat8;
+  // Canisters a canister-call proposal may target.
+  call_targets : vec principal;
+  // Default Approver approvals for spending without a matching tier.
+  approver_threshold : nat8;
+  // Whether anyone may read the wallet, not only members.
+  public : bool;
+  // Monotonic version; a proposal fixes the version it was made under.
+  version : nat64;
+  // EVM chain IDs the wallet may sign for.
+  evm_chains : vec nat64;
+  // Delay of an Unfreeze proposal.
+  unfreeze_delay_ms : nat64;
+  // Time a new address-book entry waits before `book_only` tiers accept it.
+  address_book_cooldown_ms : nat64;
+  // Daily ceilings.
+  daily_limits : vec AssetLimit;
+  // Assets the wallet may send; empty means receive only.
+  spendable_assets : vec AssetKey;
+  // Automatic cycles top-up.
+  refuel : opt RefuelRule;
+};
+// A proposal.
+type Proposal = record {
+  // Wallet-local ID.
+  id : nat64;
+  // Status.
+  status : ProposalStatus;
+  // Failure reason.
+  failure : opt text;
+  // Proposer-chosen identity.
+  op_id : blob;
+  // Decisions in order.
+  votes : vec Vote;
+  // End of the veto delay.
+  ready_at_ms : opt nat64;
+  // Broadcast reports.
+  broadcasts : vec BroadcastReport;
+  // Time of the last status change.
+  updated_at_ms : nat64;
+  // Creation time.
+  created_at_ms : nat64;
+  // Agent ID proposing on the proposer's behalf.
+  via_agent : opt text;
+  // Approvals and delay required.
+  requirement : Requirement;
+  // What to do.
+  intent : Intent;
+  // Proposer.
+  proposer : MemberId;
+  // Signed transactions in plan order.
+  signed : vec SignedTx;
+  // Commitment members approve.
+  digest : blob;
+  // Execution plans prepared so far.
+  plans : nat32;
+  // Policy version it was made under.
+  policy_version : nat64;
+  // Outcome.
+  outcome : opt Outcome;
+  // Execution deadline.
+  expires_at_ms : nat64;
+};
+// Page of proposals, newest first.
+type ProposalPage = record {
+  // Pass as `before` for the next page.
+  next : opt nat64;
+  // Proposals.
+  proposals : vec Proposal;
+};
+// Lifecycle of a proposal.
+type ProposalStatus = variant {
+  // The policy changed before execution.
+  Stale;
+  // The ledger, target or chain refused it.
+  Failed;
+  // Collecting approvals.
+  Open;
+  // A ledger call, a canister call or threshold signing is in flight or
+  // its outcome is unknown; reconcile or execute again.
+  Executing;
+  // Approved and past its delay.
+  Ready;
+  // A member reported broadcasting a signed transaction.
+  Broadcast;
+  // Approvers rejected it.
+  Rejected;
+  // Its proposer cancelled it.
+  Cancelled;
+  // An Approver vetoed it during its delay.
+  Vetoed;
+  // Approved; an Approver may veto until `ready_at_ms`.
+  Delayed;
+  // A transaction is signed and waits for broadcast.
+  Signed;
+  // Its lifetime ended before execution.
+  Expired;
+  // Done.
+  Settled;
+};
+// Arguments of a new proposal.
+type ProposeArgs = record {
+  // Proposer-chosen identity; repeating it returns the same proposal.
+  op_id : blob;
+  // Agent ID proposing on the member's behalf.
+  via_agent : opt text;
+  // What to do.
+  intent : Intent;
+};
+// Cycles top-up from the wallet's own ICP.
+type RefuelRule = record {
+  // ICP address paying the top-up.
+  from : nat32;
+  // Top-ups per UTC day.
+  max_per_day : nat8;
+  // ICP sent to the cycles minting canister per top-up.
+  icp_e8s : nat64;
+  // Top up when the cycle balance is below this.
+  min_cycles : nat;
+};
+// Approvals and delay a proposal needs, fixed when it is made.
+type Requirement = record {
+  // Delay after the last approval.
+  delay_ms : nat64;
+  // Whether only Admin approvals count.
+  admin : bool;
+  // The rolling 24-hour amount the tier was chosen for, proposal included.
+  window_amount : nat;
+  // Approvals required.
+  approvals : nat8;
+};
+type Result = variant { Ok : vec BookEntry; Err : Error };
+type Result_1 = variant { Ok : Proposal; Err : Error };
+type Result_10 = variant { Ok : ProposalPage; Err : Error };
+type Result_11 = variant { Ok : vec MemberId; Err : Error };
+type Result_12 = variant { Ok : vec principal; Err : Error };
+type Result_13 = variant { Ok : opt nat; Err : Error };
+type Result_2 = variant { Ok : vec AuditEvent; Err : Error };
+type Result_3 = variant { Ok : KeyRoots; Err : Error };
+type Result_4 = variant { Ok : ExecuteResult; Err : Error };
+type Result_5 = variant { Ok; Err : Error };
+type Result_6 = variant { Ok : ExecutionPlan; Err : Error };
+type Result_7 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_8 = variant { Ok : WalletView; Err : Error };
+type Result_9 = variant { Ok : Member; Err : Error };
+// What a member may do. Roles are ordered: each includes the ones after it
+// except Recovery, which only proposes membership changes.
+type Role = variant {
+  // Reads the wallet.
+  Viewer;
+  // Approves and vetoes spending proposals, freezes the wallet.
+  Approver;
+  // Proposes only membership changes, with a seven-day delay; its approvals never count.
+  Recovery;
+  // Proposes and executes; its approvals do not count.
+  Proposer;
+  // Approves admin proposals (policy, members, cosigners, code) and everything below.
+  Admin;
+};
+// A signed transaction.
+type SignedTx = record {
+  // Raw transaction to broadcast.
+  raw : blob;
+  // Plan.
+  plan : nat32;
+  // Transaction ID: displayed Bitcoin hex, EVM 0x hash or Solana base58 signature.
+  txid : text;
+  // Signing time.
+  signed_at_ms : nat64;
+};
+// One output of a decoded transaction.
+type SummaryOutput = record {
+  // Recipient in display form.
+  to : text;
+  // Amount in base units.
+  amount : nat;
+};
+// Script tree of a native two-key Taproot address.
+type TaprootControl = record {
+  // Relative lock, in blocks, after which the chain key spends alone.
+  chain_key_after : nat16;
+  // Optional recovery key and its relative lock.
+  recovery : opt TaprootRecovery;
+  // Cosigner whose x-only secp256k1 key the first leaf requires.
+  cosigner : nat32;
+};
+// Recovery leaf of a native Taproot address.
+type TaprootRecovery = record {
+  // x-only secp256k1 public key.
+  key : blob;
+  // Relative lock in blocks.
+  after : nat16;
+};
+// Approval requirement of one asset amount band.
+type Tier = record {
+  // Delay after the last approval during which an Approver may veto.
+  delay_ms : nat64;
+  // Asset.
+  asset : AssetKey;
+  // Whether destinations must be address-book entries past their cooldown.
+  book_only : bool;
+  // Inclusive upper bound of the rolling 24-hour amount, proposal included.
+  up_to : nat;
+  // Approver approvals required.
+  approvals : nat8;
+};
+// One unspent Bitcoin output to spend.
+type Utxo = record {
+  // Value in satoshis. A wrong value makes the signature invalid on chain.
+  value : nat64;
+  // Transaction ID in internal byte order (the reverse of the displayed hex).
+  txid : blob;
+  // Output index.
+  vout : nat32;
+  // Wallet address that owns the output.
+  address : nat32;
+};
+// One recorded decision.
+type Vote = record {
+  // Member.
+  member : MemberId;
+  // Decision.
+  decision : Decision;
+  // Time.
+  at_ms : nat64;
+};
+// Install argument of a wallet, chosen by the hub.
+type WalletInit = record {
+  // Cycles minting canister.
+  cmc : principal;
+  // The hub that created the wallet.
+  hub : principal;
+  // The creator, an Admin bound to `creator_principal`.
+  creator : MemberId;
+  // Other members, invited.
+  members : vec MemberInput;
+  // Display name.
+  name : text;
+  // Encrypted channel whose members follow wallet events.
+  channel_hint : opt text;
+  // ICP ledger.
+  icp_ledger : principal;
+  // Account issuer namespace of the user homes.
+  issuer_namespace : text;
+  // Bitcoin network of addresses.
+  btc_network : BtcNetwork;
+  // Chain-key name: `key_1`, `test_key_1` or `dfx_test_key`.
+  key_name : text;
+  // Deployment domain.
+  environment : Environment;
+  // The creator's login Principal.
+  creator_principal : principal;
+  // User homes verifying account members' approvals.
+  user_homes : vec principal;
+  // Initial policy, version 1.
+  policy : Policy;
+};
+// Operational counters of a wallet.
+type WalletStats = record {
+  // Open, delayed, ready or executing proposals.
+  active_proposals : nat64;
+  // Threshold signatures today.
+  signatures_today : nat32;
+  // Cycle balance.
+  cycles : nat;
+  // Proposals stored.
+  proposals : nat64;
+  // Stable memory in 64 KiB pages.
+  stable_pages : nat64;
+};
+// Public state of a wallet.
+type WalletView = record {
+  // Creating hub.
+  hub : principal;
+  // Hash of the last audit event.
+  audit_head : blob;
+  // Members.
+  members : vec Member;
+  // What the hub may do with the code.
+  code : CodeAcceptance;
+  // Display name.
+  name : text;
+  // Chain-key roots, once read.
+  key_roots : KeyRoots;
+  // Audit events recorded.
+  audit_len : nat64;
+  // Encrypted channel following wallet events.
+  channel_hint : opt text;
+  // Next proposal ID.
+  next_proposal : nat64;
+  // Creation time.
+  created_at_ms : nat64;
+  // Wire version.
+  version : nat16;
+  // Addresses.
+  addresses : vec Address;
+  // Bitcoin network.
+  btc_network : BtcNetwork;
+  // Cosigners.
+  cosigners : vec Cosigner;
+  // Chain-key name.
+  key_name : text;
+  // Deployment domain.
+  environment : Environment;
+  // Whether executions are stopped.
+  frozen : bool;
+  // This wallet.
+  wallet : principal;
+  // Policy.
+  policy : Policy;
+};
+service : (WalletInit) -> {
+  // What the hub may install, read by the hub before an upgrade or lock.
+  accepted_upgrade : () -> (CodeAcceptance) query;
+  address_book : (opt Destination, nat16) -> (Result) query;
+  approve_proposal : (nat64, MemberApproval) -> (Result_1);
+  audit : (nat64, nat16) -> (Result_2) query;
+  // Read the chain-key roots and create the default chain addresses. Runs
+  // after install; anyone may retry it until it succeeds.
+  bootstrap : () -> (Result_3);
+  // The proposer withdraws a proposal not yet executing.
+  cancel_proposal : (nat64) -> (Result_1);
+  execute : (ExecuteArgs) -> (Result_4);
+  // Stop executions at once. Any Admin or Approver may freeze; unfreezing
+  // is an Admin proposal with a delay.
+  freeze : () -> (Result_5);
+  get_plan : (nat64, nat32) -> (Result_6) query;
+  get_proposal : (nat64) -> (Result_1) query;
+  // The stored proposal record; deadlines that passed since are not applied.
+  get_proposal_certified : (nat64) -> (Result_7) query;
+  get_wallet : () -> (Result_8) query;
+  get_wallet_certified : () -> (Result_7) query;
+  // Confirm an invitation and bind the calling Principal; an account member
+  // may call it again to bind another login Principal.
+  join : (MemberApproval) -> (Result_9);
+  list_proposals : (opt nat64, nat16) -> (Result_10) query;
+  // Members for the hub's index.
+  member_ids : () -> (Result_11) query;
+  // Build a plan from the executor's chain parameters. Nothing is signed.
+  prepare_execution : (nat64, ExecutionParams) -> (Result_6);
+  propose : (ProposeArgs) -> (Result_1);
+  // Remove the oldest finished proposals beyond the retained count.
+  prune : () -> (nat32);
+  // Resend the exact arguments of an interrupted transfer or top-up.
+  reconcile : (nat64) -> (Result_4);
+  // Append user homes the hub lists, so members of new homes can approve.
+  refresh_homes : () -> (Result_12);
+  // Top up cycles under the policy's refuel rule; anyone may call it.
+  refuel : () -> (Result_13);
+  reject_proposal : (nat64, MemberApproval) -> (Result_1);
+  // Record a member's report of a signed transaction.
+  report : (ChainReport) -> (Result_1);
+  veto_proposal : (nat64, MemberApproval) -> (Result_1);
+  wallet_stats : () -> (WalletStats) query;
+}

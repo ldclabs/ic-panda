@@ -31,8 +31,14 @@ type ApplicationApproval = record {
 };
 // Exact purpose for account approval, distinct from product authorization.
 type ApprovalPurpose = variant {
+  // Join a team wallet and bind the actor Principal; the service is the wallet.
+  WalletJoin;
+  // Create a team wallet; the service is the wallet hub.
+  WalletCreate;
   // Cash order approval.
   CashCheckout;
+  // Decide on a team wallet proposal; the service is the wallet.
+  WalletProposal;
   // Full subscription waiver approval.
   PandaSubscription;
 };

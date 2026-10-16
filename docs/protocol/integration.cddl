@@ -158,7 +158,7 @@ CashQuote = {
   "activation_deadline_ms": u64,
 }
 
-ApprovalPurpose = "CashCheckout" / "PandaSubscription"
+ApprovalPurpose = "CashCheckout" / "PandaSubscription" / "WalletCreate" / "WalletProposal" / "WalletJoin"
 
 ApplicationApproval = {
   "version": u16,

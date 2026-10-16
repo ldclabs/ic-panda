@@ -29,6 +29,7 @@ pub mod library;
 pub mod login;
 pub mod mcp_events;
 pub mod migration;
+pub mod payer;
 pub mod payment;
 pub mod profile;
 pub mod recovery;

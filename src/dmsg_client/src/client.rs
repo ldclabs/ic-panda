@@ -167,8 +167,12 @@ pub struct Client {
     homes: Option<Vec<Principal>>,
     /// The user home of each other account read so far.
     peers: std::collections::BTreeMap<AccountId, Principal>,
-    /// The wallet loaded from a PEM file, until the device locks.
-    pub(crate) wallet: Option<(Principal, Ic)>,
+    /// The payer loaded from a PEM file, until the device locks.
+    pub(crate) payer: Option<(Principal, Ic)>,
+    /// This device's team-wallet key and agent, until the device locks.
+    pub(crate) wallet_ic: Option<(Principal, Ic)>,
+    /// The platform keystore of cosigner keys.
+    pub(crate) cosign: Option<Arc<dyn crate::wallet::cosign::CosignProvider>>,
     /// A second login waiting for its binding to this account.
     pub(crate) binding: Option<crate::security::PendingBinding>,
     /// The file library's chunk directory of the selected workspace.
@@ -216,7 +220,9 @@ impl Client {
             located: None,
             homes: None,
             peers: std::collections::BTreeMap::new(),
-            wallet: None,
+            payer: None,
+            wallet_ic: None,
+            cosign: None,
             binding: None,
             blobs: None,
             library: None,
@@ -261,7 +267,8 @@ impl Client {
         self.security = None;
         self.published = None;
         self.located = None;
-        self.wallet = None;
+        self.payer = None;
+        self.wallet_ic = None;
         self.binding = None;
         // Close the database before its directory moves or another opens.
         self.workspace = idle(&self.config.environment)?;
@@ -639,7 +646,8 @@ impl Client {
         self.security = None;
         self.published = None;
         self.located = None;
-        self.wallet = None;
+        self.payer = None;
+        self.wallet_ic = None;
         self.binding = None;
     }
 

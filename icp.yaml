@@ -149,7 +149,9 @@ canisters:
     recipe:
       type: file://recipes/rust.hbs
 
-  - name: dmsg_wallet
+  # Team wallets are installed by the hub from the modules it registers;
+  # dmsg_wallet itself is built and uploaded, never deployed here.
+  - name: dmsg_wallet_hub
     recipe:
       type: file://recipes/rust.hbs
 

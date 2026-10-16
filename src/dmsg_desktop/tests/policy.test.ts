@@ -18,7 +18,7 @@ test('windows never decide or grant, and never send human', () => {
     'legacy/import',
     'legacy/file',
     'legacy/frozen',
-    'wallet/use',
+    'payer/use',
     'channel/download',
     'attest/verify',
     'attest/action',
@@ -53,7 +53,12 @@ test('windows never decide or grant, and never send human', () => {
     'agent/revoke',
     'device/capabilities',
     'device/formal_approve',
-    'device/revoke'
+    'device/revoke',
+    'wallet/create',
+    'wallet/join',
+    'wallet/approve',
+    'wallet/veto',
+    'wallet/execute'
   ])
     assert.equal(windowParams(method, { source: 'cli' }).source, 'gui', method)
 })

@@ -10,6 +10,7 @@
   import Inbox from './views/Inbox.svelte'
   import Account from './views/Account.svelte'
   import Agents from './views/Agents.svelte'
+  import Wallet from './views/Wallet.svelte'
   import Toaster from './components/Toaster.svelte'
   import CommandPalette from './shell/CommandPalette.svelte'
   import Header from './shell/Header.svelte'
@@ -89,7 +90,7 @@
 
   const go = (next: string) => (location.hash = next)
 
-  /** ⌘K opens the palette, ⌘1–⌘7 and ⌘, go to a view, ⌘L locks (Ctrl elsewhere). */
+  /** ⌘K opens the palette, ⌘1–⌘8 and ⌘, go to a view, ⌘L locks (Ctrl elsewhere). */
   function onKey(event: KeyboardEvent) {
     if (window.dmsg.role !== 'main') return
     const held = inset ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
@@ -160,6 +161,8 @@
             <Inbox {status} {mod} />
           {:else if view === views.plan}
             <Account {status} />
+          {:else if view === views.wallet}
+            <Wallet {status} />
           {:else if view === views.agents}
             <Agents {status} />
           {:else if view === views.approvals}

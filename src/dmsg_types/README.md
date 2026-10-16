@@ -64,6 +64,7 @@ These links point to the public repository's main branch, which changes during d
 | `integration` | `AppRegistration`, `AuthenticationRequest`, `BillingOffer`, `ProductDecision` | Third-party authentication, signing and subscription contracts |
 | `integration_billing` | `CheckoutQuote`, `CheckoutView`, `SubscriptionContract` | Generic cash checkout and shared product subscriptions |
 | `integration_membership` | `PandaApplicationTerms`, `PandaClaimView` | Full-waiver PANDA applications and immutable commitments |
+| `wallet` | `Intent`, `Policy`, `Proposal`, `ExecutionPlan`, `WalletView`, `ActivationQuote` | Team wallets `dmsg-wallet/1`: members, policy, proposals, external-chain plans, cosigners and hub activation ([contract](../../docs/protocol/wallet_zh.md)) |
 
 Types in `protocol` and `signing`, plus `AccountId`, are re-exported at the crate root. Import other types through their modules. An “optional” profile is a business protocol an integrator may choose not to use, not a Cargo feature.
 

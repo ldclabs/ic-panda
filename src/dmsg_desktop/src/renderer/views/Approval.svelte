@@ -184,6 +184,11 @@
         return t('capabilities')
       case 'device_revoke':
         return `${t('revoke')} · ${t('device')}`
+      case 'wallet':
+        if (d.action === 'create') return t('twCreateTitle')
+        if (d.action === 'join') return t('twJoinTitle')
+        if (d.action === 'cosign') return t('twCosignTitle')
+        return d.decision === 'veto' ? t('twVetoTitle') : d.decision === 'reject' ? t('twRejectTitle') : t('twApproveTitle')
       default:
         return request.type
     }
@@ -247,6 +252,11 @@
           [t('afterRotate'), false],
           [t('afterCopies'), true]
         ]
+      case 'wallet':
+        if (d.action === 'create') return [[t('twAfterCreate'), false], final]
+        if (d.action === 'join') return [[t('twAfterJoin'), false]]
+        if (d.action === 'cosign') return [[t('twAfterCosign'), false], final]
+        return [[t('twAfterDecide'), false]]
       default:
         return []
     }
@@ -442,6 +452,29 @@
               {@render row(t('names'), d.name)}
               {@render row(t('method'), d.action)}
               {@render row(t('payer'), d.caller, { mono: true })}
+            {:else if request.type === 'wallet'}
+              {@render row(t('twWallet'), `${d.name}${d.wallet ? ` · ${d.wallet}` : ''}`, { testid: 'approval-wallet' })}
+              {#if d.action === 'create'}
+                {@render row(t('price'), `${units(d.price_e8s, 8)} ICP + ${units(d.ledger_fee_e8s, 8)}`, { testid: 'approval-amount' })}
+                {@render row(t('twPolicy'), t('twPolicyLine', { approvals: d.policy.approver_threshold, admin: d.policy.admin_threshold, version: d.policy.version }))}
+                {#each d.members as m (m.id)}{@render row(m.role, `${m.id}${m.label ? ` · ${m.label}` : ''}`, { mono: true })}{/each}
+              {:else if d.proposal}
+                {@const intent = d.proposal.intent}
+                {@render row(t('twProposal'), `#${d.proposal.id} · ${intent.kind}`, { testid: 'approval-proposal' })}
+                {#if intent.asset}{@render row(t('twAsset'), `${intent.asset.asset}${intent.asset.chain_id ? ` · ${intent.asset.chain_id}` : ''}${intent.asset.token ?? intent.asset.mint ?? intent.asset.ledger ? ` · ${intent.asset.token ?? intent.asset.mint ?? intent.asset.ledger}` : ''}`)}{/if}
+                {#each intent.outputs ?? [] as o, i (i)}{@render row(t('recipient'), `${o.amount} → ${o.to}`, { mono: true, testid: 'approval-recipient' })}{/each}
+                {#if intent.max_fee}{@render row(t('twMaxFee'), intent.max_fee, { mono: true })}{/if}
+                {#if intent.method}{@render row(t('method'), `${intent.canister} · ${intent.method}`, { mono: true })}{/if}
+                {#if intent.consent}{@render row(t('twConsent'), intent.consent)}{/if}
+                {#if intent.member}{@render row(t('twMember'), typeof intent.member === 'string' ? intent.member : `${intent.member.id} · ${intent.member.role}`, { mono: true })}{/if}
+                {@render row(t('twApprovalsOf', { n: d.proposal.votes.filter((v: any) => v.decision === 'Approve').length, m: d.proposal.requirement.approvals }), d.proposal.proposer, { mono: true })}
+                {#if d.plan}
+                  {@render row(t('twChain'), `${d.plan.chain} · ${d.plan.from}`, { mono: true })}
+                  {@render row(t('fee'), d.plan.fee, { mono: true })}
+                  {#if d.plan.change}{@render row(t('twChange'), `${d.plan.change.amount} → ${d.plan.change.to}`, { mono: true })}{/if}
+                {/if}
+                {@render row(t('digest'), d.proposal.digest, { mono: true })}
+              {/if}
             {/if}
           </dl>
         {/if}

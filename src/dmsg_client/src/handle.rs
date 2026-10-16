@@ -15,7 +15,7 @@
 
 use crate::client::Client;
 use crate::now_ms;
-use crate::wallet::{approve_call, memo};
+use crate::payer::{approve_call, memo};
 use candid::Principal;
 use dmsg_protocol::{
     charge_terms_digest, digest, handle_bucket, normalize_handle, price, HANDLE_BUCKET_BITS,
@@ -60,7 +60,7 @@ pub enum Kind {
         /// The target's intent.
         accept: Box<HandleIntent>,
     },
-    /// Register a new name, paid from the wallet.
+    /// Register a new name, paid from the payer.
     Register {
         /// The registration and its fixed charge.
         registration: Box<Registration>,
@@ -92,7 +92,7 @@ pub struct HandleJob {
     pub id: String,
     /// The name.
     pub name: String,
-    /// The calling Principal: the legacy owner or the paying wallet.
+    /// The calling Principal: the legacy owner or the payer.
     pub caller: Principal,
     /// The intent the account authorizes.
     pub intent: HandleIntent,
@@ -288,7 +288,7 @@ impl Client {
         Ok(job)
     }
 
-    /// Prepare registering a new name, paid from the wallet; it runs once a
+    /// Prepare registering a new name, paid from the payer; it runs once a
     /// person approves it.
     ///
     /// # Errors
@@ -318,7 +318,7 @@ impl Client {
         )?;
         let total = price(&name);
         ensure(total > config.ledger_fee, Error::FeeBlocked)?;
-        let (payer, _) = self.wallet().await?;
+        let (payer, _) = self.payer().await?;
         let account = Account {
             owner: payer,
             subaccount: None,
@@ -511,7 +511,7 @@ impl Client {
             matches!(job.kind, Kind::Register { .. }) && job.phase == Phase::Unknown,
             Error::VersionConflict,
         )?;
-        let (_, ic) = self.wallet().await?;
+        let (_, ic) = self.payer().await?;
         let operation: Result<HandleOperation> = ic
             .update(
                 self.config.handle,
@@ -548,7 +548,7 @@ impl Client {
             return Ok(job.view());
         }
         if let Kind::Register { .. } = job.kind {
-            let (_, ic) = self.wallet().await?;
+            let (_, ic) = self.payer().await?;
             let found: Result<HandleOperation> = ic
                 .query(
                     self.config.handle,
@@ -609,7 +609,7 @@ impl Client {
                 Ok(job.view())
             }
             Kind::Register { registration, .. } => {
-                let (_, ic) = self.wallet().await?;
+                let (_, ic) = self.payer().await?;
                 let registered: Result<Result<HandleOperation>> = ic
                     .update(self.config.handle, "register_handle", (&registration,))
                     .await;
@@ -686,7 +686,7 @@ impl Client {
         Ok(job.view())
     }
 
-    /// Let the registry charge the wallet `total` once, unless an allowance
+    /// Let the registry charge the payer `total` once, unless an allowance
     /// already covers it.
     async fn handle_allowance(
         &mut self,
@@ -694,8 +694,8 @@ impl Client {
         ledger: Principal,
         total: u128,
     ) -> Result<()> {
-        let (payer, ic) = self.wallet().await?;
-        let reader = crate::wallet::Ledger {
+        let (payer, ic) = self.payer().await?;
+        let reader = crate::payer::Ledger {
             ic: &ic,
             canister: ledger,
         };
@@ -746,7 +746,7 @@ impl Client {
         )?;
         let operation = match operation.phase {
             HandlePhase::Charging | HandlePhase::ChargeUnknown => {
-                let (_, ic) = self.wallet().await?;
+                let (_, ic) = self.payer().await?;
                 let committed: Result<HandleOperation> = ic
                     .update(
                         self.config.handle,

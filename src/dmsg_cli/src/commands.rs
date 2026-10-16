@@ -1,4 +1,4 @@
-//! CLI commands of channels, the inbox, the wallet, plans and names.
+//! CLI commands of channels, the inbox, the payer, plans and names.
 //! Payments, checkouts and name operations create approval requests, which
 //! an interactive terminal decides at once.
 
@@ -184,7 +184,7 @@ pub enum InboxCommand {
         /// For paid: the net amount a letter pays, in ledger units.
         #[arg(long)]
         price: Option<String>,
-        /// For paid: who receives it; the wallet when absent.
+        /// For paid: who receives it; the payer when absent.
         #[arg(long)]
         payee: Option<String>,
         /// Accounts that write for free.
@@ -197,7 +197,7 @@ pub enum InboxCommand {
         recipient: String,
         /// The text.
         text: String,
-        /// Pay from the wallet when the recipient charges.
+        /// Pay from the payer when the recipient charges.
         #[arg(long)]
         pay: bool,
         /// A contact invitation.
@@ -228,7 +228,7 @@ pub enum InboxCommand {
         /// Order ID.
         order: String,
     },
-    /// Recover what a paid letter's escrow holds for the wallet: the payment
+    /// Recover what a paid letter's escrow holds for the payer: the payment
     /// after its acceptance deadline, the unused fee reserve after
     /// settlement, and deposits it did not take.
     Refund {
@@ -248,13 +248,13 @@ pub enum InboxCommand {
 }
 
 #[derive(Subcommand)]
-pub enum WalletCommand {
+pub enum PayerCommand {
     /// Pay with the identity in a PEM file, or with the login (no file).
     Use {
         /// The PEM file.
         pem: Option<PathBuf>,
     },
-    /// The wallet's balance on a ledger.
+    /// The payer's balance on a ledger.
     Balance {
         /// The ledger canister.
         ledger: String,
@@ -330,7 +330,7 @@ pub enum HandleCommand {
         /// The name.
         name: String,
     },
-    /// Register a new name, paid from the wallet; goes through the approval center.
+    /// Register a new name, paid from the payer; goes through the approval center.
     Register {
         /// The name.
         name: String,
@@ -569,11 +569,11 @@ pub async fn inbox(remote: &Remote, json: bool, command: InboxCommand) -> Result
     Ok(())
 }
 
-pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Result<(), Failure> {
+pub async fn payer(remote: &Remote, json: bool, command: PayerCommand) -> Result<(), Failure> {
     let (method, params) = match command {
-        WalletCommand::Use { pem: Some(pem) } => ("wallet/use", json!({"pem": absolute(pem)?})),
-        WalletCommand::Use { pem: None } => ("wallet/use", json!({})),
-        WalletCommand::Balance { ledger } => ("wallet/balance", json!({"ledger": ledger})),
+        PayerCommand::Use { pem: Some(pem) } => ("payer/use", json!({"pem": absolute(pem)?})),
+        PayerCommand::Use { pem: None } => ("payer/use", json!({})),
+        PayerCommand::Balance { ledger } => ("payer/balance", json!({"ledger": ledger})),
     };
     let value = remote.call(method, params).await?;
     print(json, &value, pretty);

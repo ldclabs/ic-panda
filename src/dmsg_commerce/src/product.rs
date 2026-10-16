@@ -176,10 +176,12 @@ fn service(home: Principal, method: SettlementMethod) -> Principal {
     }
 }
 
-fn settlement(a: &ApplicationApproval) -> SettlementMethod {
+/// Billing approvals only; a wallet approval never settles an offer.
+fn settlement(a: &ApplicationApproval) -> Result<SettlementMethod> {
     match a.purpose {
-        ApprovalPurpose::CashCheckout => SettlementMethod::Cash,
-        ApprovalPurpose::PandaSubscription => SettlementMethod::Panda,
+        ApprovalPurpose::CashCheckout => Ok(SettlementMethod::Cash),
+        ApprovalPurpose::PandaSubscription => Ok(SettlementMethod::Panda),
+        _ => Err(Error::Forbidden),
     }
 }
 
@@ -377,7 +379,7 @@ async fn validate_request(
     )?;
     // The pinned settlement service has already verified the exact device proof.
     // The product adapter cannot consume it: it only rechecks its own beneficiary.
-    validate_product_request(request, service, settlement(&request.account_approval), at)?;
+    validate_product_request(request, service, settlement(&request.account_approval)?, at)?;
     ensure(
         request.user_home == request.offer.beneficiary.authority_canister
             && request.offer.beneficiary.subject_bytes.as_ref()
@@ -402,7 +404,7 @@ async fn reserve_product_billing(
     until_ms: u64,
 ) -> Result<()> {
     let home = ic_cdk::api::canister_self();
-    let service = service(home, settlement(&request.account_approval));
+    let service = service(home, settlement(&request.account_approval)?);
     ensure(ic_cdk::api::msg_caller() == service, Error::Forbidden)?;
     ensure(!released(&request.offer), Error::Forbidden)?;
     let at = now();
@@ -438,7 +440,7 @@ fn release_product_billing(request: ProductAuthorizationRequest) -> Result<()> {
         ic_cdk::api::msg_caller()
             == service(
                 ic_cdk::api::canister_self(),
-                settlement(&request.account_approval),
+                settlement(&request.account_approval)?,
             ),
         Error::Forbidden,
     )?;

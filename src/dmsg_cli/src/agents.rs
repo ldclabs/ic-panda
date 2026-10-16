@@ -42,8 +42,9 @@ const MAX_AGENT_WRITE: usize = 8 * 1024 * 1024;
 /// How long `mcp/changed` waits at most.
 const CHANGED_WAIT_MS: u64 = 25_000;
 /// Input fields that name what a call acts on, in order of preference.
-const TARGETS: [&str; 8] = [
+const TARGETS: [&str; 9] = [
     "id",
+    "wallet",
     "channel",
     "order_id",
     "endpoint_id",
@@ -833,6 +834,85 @@ impl Daemon {
             "dmsg_delegations_list" => {
                 client.capability_check(did, "agent.delegation.read")?;
                 Ok(Value::Array(client.delegation_credentials().await?))
+            }
+            "dmsg_wallet_list" => {
+                client.capability_check(did, "wallet.read")?;
+                let list = client.wallet_list().await?;
+                let mut wallets = vec![];
+                for w in list.as_array().cloned().unwrap_or_default() {
+                    let id = dmsg_client::wallet::parse_wallet(
+                        w["wallet"].as_str().unwrap_or_default(),
+                    )?;
+                    wallets.push(client.wallet_show(id).await?);
+                }
+                Ok(Value::Array(wallets))
+            }
+            "dmsg_wallet_balances" => {
+                client.capability_check(did, "wallet.read")?;
+                let wallet = dmsg_client::wallet::parse_wallet(&text(input, "wallet")?)?;
+                client.wallet_balances(wallet).await
+            }
+            "dmsg_wallet_propose_transfer" => {
+                let id = text(input, "wallet")?;
+                client.capability_check(did, &format!("wallet.propose:{id}"))?;
+                let wallet = dmsg_client::wallet::parse_wallet(&id)?;
+                let from = input["from"]
+                    .as_u64()
+                    .and_then(|f| u32::try_from(f).ok())
+                    .ok_or_else(|| Error::InvalidInput("from".into()))?;
+                let proposal = client
+                    .wallet_send(
+                        wallet,
+                        from,
+                        &text(input, "asset")?,
+                        &text(input, "to")?,
+                        &text(input, "amount")?,
+                        &text(input, "max_fee")?,
+                        input["memo"].as_str(),
+                        Some(did.to_string()),
+                    )
+                    .await?;
+                drop(client);
+                self.emit("wallet/changed", Value::Null);
+                Ok(proposal)
+            }
+            "dmsg_wallet_proposal_status" => {
+                client.capability_check(did, "wallet.read")?;
+                let wallet = dmsg_client::wallet::parse_wallet(&text(input, "wallet")?)?;
+                let proposal = input["proposal"]
+                    .as_u64()
+                    .ok_or_else(|| Error::InvalidInput("proposal".into()))?;
+                client.wallet_proposal(wallet, proposal).await
+            }
+            "dmsg_wallet_execute" => {
+                let id = text(input, "wallet")?;
+                client.capability_check(did, &format!("wallet.execute:{id}"))?;
+                let wallet = dmsg_client::wallet::parse_wallet(&id)?;
+                let proposal = input["proposal"]
+                    .as_u64()
+                    .ok_or_else(|| Error::InvalidInput("proposal".into()))?;
+                let result = client
+                    .wallet_execute(&format!("agent:{did}"), wallet, proposal)
+                    .await?;
+                drop(client);
+                self.emit("wallet/changed", Value::Null);
+                self.emit("approval/changed", Value::Null);
+                Ok(result)
+            }
+            "dmsg_wallet_report_broadcast" => {
+                let id = text(input, "wallet")?;
+                client.capability_check(did, &format!("wallet.execute:{id}"))?;
+                let wallet = dmsg_client::wallet::parse_wallet(&id)?;
+                let proposal = input["proposal"]
+                    .as_u64()
+                    .ok_or_else(|| Error::InvalidInput("proposal".into()))?;
+                let result = match input["rebroadcast"] == true {
+                    true => client.wallet_broadcast(wallet, proposal, None).await?,
+                    false => client.wallet_settle(wallet, proposal).await?,
+                };
+                drop(client);
+                self.emit("wallet/changed", Value::Null);
+                Ok(result)
             }
             "dmsg_approval_status" => {
                 let request = client.approval(&text(input, "id")?)?;

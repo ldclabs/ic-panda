@@ -38,6 +38,8 @@ flowchart LR
     P["dmsg_payment<br/>来信托管"]
     C["dmsg_commerce<br/>结账与权益"]
     M["membership<br/>PANDA 资格"]
+    WH["dmsg_wallet_hub<br/>钱包激活 · 版本"]
+    W["dmsg_wallet × N<br/>团队钱包"]
   end
   EXT -- "home 列表 · 名称" --> H
   EXT -- "账户 · 设备 · 根 · 认证" --> U
@@ -62,6 +64,12 @@ flowchart LR
   H -- "ICRC" --> L["账本"]
   P -- "ICRC" --> L
   C -- "ICRC" --> L
+  EXT -- "提案 · 执行 · 回报" --> W
+  EXT -- "报价 · 创建" --> WH
+  WH -- "创建 · 安装 · 升级" --> W
+  W -- "核验成员批准" --> U
+  W -- "ICRC · 链密钥签名" --> L
+  EXT -- "读取 · 广播" --> X["BTC / EVM / SOL 网络"]
 ```
 
 | Canister | 权威数据 | 部署数量 | 单实例主要上限 |
@@ -73,6 +81,8 @@ flowchart LR
 | [dmsg_payment](../src/dmsg_payment/README.md) | 付费来信托管单、入金、资金决定与出金 | 1 个或多个，每个 home 绑定 1 个 | 1,000 万订单 |
 | [dmsg_commerce](../src/dmsg_commerce/README.md) | 应用与产品注册、目录、现金订单、付费主体与资源权益 | 1 个或多个，每个 home 属于 1 个 | 付费主体、累计订单各 1,000 万 |
 | [membership](../src/membership/README.md) | PANDA 神经元的跨产品占用与产品决定 | 每个 SNS 1 个 | 完整记录 100 万、累计操作 1,000 万 |
+| [dmsg_wallet_hub](../src/dmsg_wallet_hub/README.md) | 激活订单、钱包模块版本、钱包记录与成员索引 | 全局 1 个 | 每成员索引 256 个钱包，16 个模块版本 |
+| [dmsg_wallet](../src/dmsg_wallet/README.md) | 一个团队的成员、策略、地址、协签人、提案、计划与审计 | 每个团队 1 个，由 hub 创建 | 成员 64、地址 256、协签人 64、终态提案保留 1 万 |
 
 共享库：[dmsg_types](../src/dmsg_types/README_zh.md) 定义公开数据合同，[dmsg_protocol](../src/dmsg_protocol/README_zh.md) 提供确定性编码、批准摘要与验签，[dmsg_runtime](../src/dmsg_runtime/README.md) 提供稳定存储、认证树、预算、账本适配和有界调用。
 
@@ -112,6 +122,10 @@ flowchart LR
 ### 4.6 Agent principal
 
 principal 的启用、controller 登记与退役在账户所在 home 提交，随后推送到 `dmsg_directory`；失败时任何人可用 `publish_principal` 补发。文档经 ICP HTTP 网关以认证响应发布在固定的自定义域下，协议见 [agent_zh.md](protocol/agent_zh.md)。
+
+### 4.7 团队钱包
+
+hub 按 commerce 的套餐配额报价，核对创建者的 `WalletCreate` 设备批准与收款后创建并安装钱包，钱包只以 hub 为 controller。成员以 `WalletJoin` 批准绑定客户端的钱包密钥 Principal；提案的每个决定是一次 `WalletProposal` 设备批准，钱包向成员所在 home 核验。ICP/ICRC 由钱包直接转账；BTC/EVM/SOL 由钱包从意图构造交易、以 `key_1` 签名，客户端独立解码复核后广播并回报。升级与锁定须钱包先以管理类提案接受。合同见 [wallet_zh.md](protocol/wallet_zh.md)。
 
 ## 5. 链上负载画像
 
@@ -278,6 +292,9 @@ flowchart TB
 | commerce 目录证书 | `refresh_catalog` | 新目录生效后一次 |
 | membership 释放与压缩 | `sweep_panda_commitments` | 建议每 5 分钟，调用到返回 0 |
 | directory 补发 | `publish_principal` | home 发布失败时 |
+| 钱包 cycles | `refuel_wallet(wallet)`（转调钱包 `refuel()`）、`wallet_health(wallet)` | 低于策略 `min_cycles` 时；钱包冻结阈值 365 天 |
+| 钱包激活收入 | `collect_revenue(quote_id)` | 订单就绪后 |
+| 钱包成员索引 | `sync_wallet(wallet)` | 成员变更后 |
 
 - **升级**：要求 schema 不变。先停止 canister，等在途的跨 canister 调用完成，对持有资金或不可重建数据的 canister 创建快照，再以空 Candid 参数 `()` 升级、启动并查看日志。COSE 的派生是无界等待，升级前必须停止；未停止就升级时，丢失回调的执行按 `Unknown` 处理，不会重新派生。
 - **不可逆操作**：不要重装 payment、commerce 或 directory，重装会清空订单、托管账务或无法重建的文档。不要删除 COSE canister，删除后所有恢复信封都无法打开。
@@ -287,6 +304,7 @@ flowchart TB
 
 - 全部服务处于开发阶段，使用开发期稳定布局，不迁移旧实验实例。
 - 本地 PocketIC 回归、协议向量和客户端单元测试覆盖了文中的路由、限额和升级行为；第二个 user home 的注册入口与第二个 commerce 实例有 PocketIC 回归。
+- 团队钱包由 PocketIC（真实阈值签名、hub 激活、升级与锁定、CMC 替身）和编码器的独立库交叉核对覆盖；Safe/Squads 双控与审计模式核对未实现。
 - 尚未验收：主网部署与生产 `key_1`、真实资金与钱包路径、签名发布的桌面客户端与真实网页应用的端到端流程、私有云端生产端到端、子网吞吐、除 handle 外超过 100 万的规模，以及外部安全审计。
 
 ## 12. 参考
@@ -296,4 +314,5 @@ flowchart TB
 - [protocol/account_root_zh.md](protocol/account_root_zh.md)、[dmsg_encryption_zh.md](dmsg_encryption_zh.md)：账户控制、根封装与加密设计。
 - [protocol/cloud_zh.md](protocol/cloud_zh.md)：客户端与云端的 wire 合同；[protocol/connect-v1_zh.md](protocol/connect-v1_zh.md)：网页应用经桥接页接入的合同。
 - [protocol/commerce_zh.md](protocol/commerce_zh.md)、[protocol/agent_zh.md](protocol/agent_zh.md)：商业与 Agent Delegation 合同。
+- [protocol/wallet_zh.md](protocol/wallet_zh.md)：团队钱包合同。
 - 各 canister README 的“容量”“部署流程”和“运维”章节：上文数字的测量方法、复现命令与部署参数。

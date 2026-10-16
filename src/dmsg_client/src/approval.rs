@@ -126,7 +126,7 @@ pub enum Action {
         /// The person quotes before approving, so the exact amount is shown.
         checkout: Option<(String, Hash)>,
     },
-    /// Approve a quoted checkout for the wallet and pay it; with `fresh`,
+    /// Approve a quoted checkout for the payer and pay it; with `fresh`,
     /// approve a PANDA claim again after its cooling period.
     Checkout {
         /// Order or claim ID.
@@ -136,7 +136,7 @@ pub enum Action {
         /// A post-cooling approval.
         fresh: bool,
     },
-    /// Pay for a quoted letter from the wallet.
+    /// Pay for a quoted letter from the payer.
     Letter {
         /// The recipient.
         recipient: String,
@@ -144,7 +144,7 @@ pub enum Action {
         order: String,
         /// The quote's commitment.
         digest: Hash,
-        /// What the wallet pays, fees and refundable reserve included.
+        /// What the payer pays, fees and refundable reserve included.
         amount: String,
         /// The ledger.
         ledger: String,
@@ -175,6 +175,14 @@ pub enum Action {
         /// The event's commitment.
         digest: Hash,
     },
+    /// Create or join a team wallet, decide on its proposal, or cosign
+    /// one of its transactions.
+    Wallet {
+        /// Journal ID.
+        job: String,
+        /// The job's commitment.
+        digest: Hash,
+    },
 }
 
 impl Action {
@@ -186,6 +194,7 @@ impl Action {
             | Action::Account { .. }
             | Action::Principal { .. } => "account",
             Action::Delegation { .. } => "agent",
+            Action::Wallet { .. } => "wallet",
             Action::Connect { .. } => "connect",
             Action::Checkout { .. } | Action::Letter { .. } | Action::Handle { .. } => "payment",
         }
@@ -553,6 +562,17 @@ impl Client {
                 )?;
                 self.delegation_execute(&job).await.map(|_| ())
             }
+            // Every step is idempotent on the hub and the wallet, and a
+            // signed approval is sent again rather than signed anew.
+            Action::Wallet { job, digest } => {
+                ensure(
+                    self.wallet_job_digest(&job)? == digest,
+                    Error::IntegrityFailed,
+                )?;
+                request.started = true;
+                self.save_approval(request)?;
+                self.wallet_job_execute(&job).await
+            }
         }
     }
 
@@ -665,6 +685,10 @@ impl Client {
                     let job = job.clone();
                     self.delegation_execute(&job).await.map(|_| ())
                 }
+                (Action::Wallet { job, .. }, _) => {
+                    let job = job.clone();
+                    self.wallet_job_execute(&job).await
+                }
                 // Approved, but the attestation was never prepared.
                 (Action::Attest { .. } | Action::AttestAction { .. }, None) => Err(Error::Expired),
             };
@@ -691,7 +715,7 @@ impl Client {
 
     /// Quote a web application's checkout waiting for approval: cash on the
     /// ledger `selection`, or a PANDA waiver backed by the neuron
-    /// `selection`, paid or controlled by the wallet. The request then
+    /// `selection`, paid or controlled by the payer. The request then
     /// commits to those terms; its digest changes, so the person approves
     /// what was quoted.
     ///
@@ -799,7 +823,7 @@ impl Client {
             .await
     }
 
-    /// Ask to approve a quoted checkout and pay it from the wallet; with
+    /// Ask to approve a quoted checkout and pay it from the payer; with
     /// `fresh`, to approve a PANDA claim again after cooling.
     ///
     /// # Errors
@@ -818,7 +842,7 @@ impl Client {
         self.approval_view(&request)
     }
 
-    /// Ask to pay for a quoted letter from the wallet.
+    /// Ask to pay for a quoted letter from the payer.
     ///
     /// # Errors
     /// Returns `Error::NotFound` for an order without a quote.
@@ -933,6 +957,7 @@ impl Client {
             Action::Account { change } => change.view(),
             Action::Principal { change } => json!(change),
             Action::Delegation { job, .. } => self.delegation(job)?.view(),
+            Action::Wallet { job, .. } => self.wallet_job_view(job)?,
         };
         Ok(json!({
             "id": request.id,
@@ -949,6 +974,7 @@ impl Client {
                 Action::Account { .. } => "account",
                 Action::Principal { .. } => "principal",
                 Action::Delegation { .. } => "delegation",
+                Action::Wallet { .. } => "wallet",
             },
             "state": request.state.name(),
             "created_at": request.created_at,

@@ -14,7 +14,10 @@ test('payments, device revocation and control of the account are approved by hol
     request('account', { change: 'bind_login' }),
     request('account', { change: 'remove_login' }),
     request('account', { change: 'policy' }),
-    request('account', { change: 'recovery_delay' })
+    request('account', { change: 'recovery_delay' }),
+    request('wallet', { action: 'create' }),
+    request('wallet', { action: 'cosign' }),
+    request('wallet', { action: 'decide', decision: 'approve', proposal: { intent: { kind: 'transfer' } } })
   ])
     assert.equal(holdToApprove(held), true, `${held.type} ${JSON.stringify(held.detail)}`)
   for (const clicked of [
@@ -25,6 +28,9 @@ test('payments, device revocation and control of the account are approved by hol
     request('device_capabilities'),
     request('handle', { action: 'transfer' }),
     request('account', { change: 'dispute_recovery' }),
+    request('wallet', { action: 'join' }),
+    request('wallet', { action: 'decide', decision: 'reject', proposal: { intent: { kind: 'transfer' } } }),
+    request('wallet', { action: 'decide', decision: 'approve', proposal: { intent: { kind: 'add_member' } } }),
     request('unknown')
   ])
     assert.equal(holdToApprove(clicked), false, `${clicked.type} ${JSON.stringify(clicked.detail)}`)
@@ -37,6 +43,7 @@ test('the chip names the kind of decision', () => {
   assert.equal(kindOf(request('handle', {})), 'kindName')
   assert.equal(kindOf(request('device_revoke')), 'kindSecurity')
   assert.equal(kindOf(request('delegation')), 'kindAgent')
+  assert.equal(kindOf(request('wallet', { action: 'join' })), 'kindWallet')
   assert.equal(kindOf(request('something')), 'kindOther')
 })
 

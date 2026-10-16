@@ -26,6 +26,8 @@ export function kindOf(request: any): Label {
     case 'device_capabilities':
     case 'device_revoke':
       return 'kindSecurity'
+    case 'wallet':
+      return 'kindWallet'
     default:
       return 'kindOther'
   }
@@ -52,9 +54,18 @@ export function holdToApprove(request: any): boolean {
       return d.method === 'checkout'
     case 'account':
       return HELD_CHANGES.includes(d.change)
+    case 'wallet':
+      return walletMovesFunds(d)
     default:
       return false
   }
+}
+
+/** Wallet requests that pay, sign a transfer or approve one are held. */
+function walletMovesFunds(d: any): boolean {
+  if (d.action === 'create' || d.action === 'cosign') return true
+  const kind = d.proposal?.intent?.kind
+  return d.action === 'decide' && d.decision === 'approve' && ['transfer', 'batch', 'canister_call', 'refuel'].includes(kind)
 }
 
 /** One step on the way to this device; a relayed step reports what another party told it. */

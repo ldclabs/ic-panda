@@ -25,6 +25,11 @@ serde_bytes.workspace = true
 cbor2.workspace = true
 cose2 = { workspace = true, features = ["crypto-ed25519-dalek"] }
 sha2.workspace = true
+sha3.workspace = true
+ripemd.workspace = true
+bs58.workspace = true
+k256 = { workspace = true, features = ["ecdsa", "schnorr"] }
+p256 = { workspace = true, features = ["ecdsa"] }
 ed25519-dalek.workspace = true
 ic_bls12_381.workspace = true
 icrc-ledger-types.workspace = true
@@ -42,6 +47,7 @@ vetkd_key_id = { package = "ic-cdk-management-canister", version = "0.1.1", opti
 cose-pins = ["dep:ic-vetkeys", "dep:vetkd_key_id"]
 
 [dev-dependencies]
+ic-secp256k1.workspace = true
 ic-verify-bls-signature.workspace = true
 ic-canister-sig-creation.workspace = true
 hex.workspace = true

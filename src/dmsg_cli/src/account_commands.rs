@@ -94,7 +94,7 @@ pub enum PaymentCommand {
     },
 }
 
-/// Commerce and membership records the wallet may read and repair.
+/// Commerce and membership records the payer may read and repair.
 #[derive(Subcommand)]
 pub enum OpsCommand {
     /// Checkout orders with their per-ledger balances.

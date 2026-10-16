@@ -64,6 +64,7 @@ dmsg_types = { path = "../ic-panda/src/dmsg_types" }
 | `integration` | `AppRegistration`, `AuthenticationRequest`, `BillingOffer`, `ProductDecision` | 第三方认证、签名与订阅合同 |
 | `integration_billing` | `CheckoutQuote`, `CheckoutView`, `SubscriptionContract` | 通用现金结账与共享产品订阅 |
 | `integration_membership` | `PandaApplicationTerms`, `PandaClaimView` | 全额豁免 PANDA 申请与不可变承诺 |
+| `wallet` | `Intent`, `Policy`, `Proposal`, `ExecutionPlan`, `WalletView`, `ActivationQuote` | 团队钱包 `dmsg-wallet/1`：成员、策略、提案、外链计划、协签与 hub 激活（[合同](../../docs/protocol/wallet_zh.md)） |
 
 `protocol`、`signing` 中的类型以及 `AccountId` 在 crate 根重导出；其他类型按模块导入。`profiles` 的“可选”指集成方可以不使用该业务，不是 Cargo feature。
 

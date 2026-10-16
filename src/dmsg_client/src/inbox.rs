@@ -19,11 +19,11 @@ use crate::cloud::{sign_command, Evidence};
 use crate::codec::{b64, canonical, decode, digest, sha256, unb64, MAX_RECORD};
 use crate::crypto::{hpke_open, hpke_public, hpke_seal, random_key, sign, HpkeEnvelope};
 use crate::now_ms;
+use crate::payer::{memo, transfer_call};
 use crate::payment::{
     escrow_view, Payment, Terms, Wire, WireAccount, WireQuote, WireSignedOffer, WireSignedReceipt,
 };
 use crate::upload::random_hex;
-use crate::wallet::{memo, transfer_call};
 use candid::Principal;
 use dmsg_types::{
     ensure, ensure_valid,
@@ -110,7 +110,7 @@ pub struct PolicyInput {
     /// The net amount a paid letter pays, in ledger units, decimal.
     #[serde(default)]
     pub price: Option<String>,
-    /// Where paid letters' net amount goes; the wallet when absent.
+    /// Where paid letters' net amount goes; the payer when absent.
     #[serde(default)]
     pub payee: Option<String>,
 }
@@ -406,7 +406,7 @@ impl Client {
         )?;
         let payee = match &input.payee {
             Some(text) => Principal::from_text(text).map_err(|_| dmsg_types::invalid("payee"))?,
-            None if input.mode == "paid" => self.wallet().await?.0,
+            None if input.mode == "paid" => self.payer().await?.0,
             None => Principal::anonymous(),
         };
         let price = match (&input.mode[..], &input.price) {
@@ -663,7 +663,7 @@ impl Client {
         )?;
         let payer = match pay {
             true => Some(WireAccount {
-                owner: self.wallet().await?.0.to_text(),
+                owner: self.payer().await?.0.to_text(),
                 subaccount: None,
             }),
             false => None,
@@ -796,7 +796,7 @@ impl Client {
         Ok((digest, quote))
     }
 
-    /// Pay for a quoted letter: open the escrow, fund it from the wallet and
+    /// Pay for a quoted letter: open the escrow, fund it from the payer and
     /// have the relay admit the letter; the admission receipt then settles
     /// the escrow. Each step resumes where a lost reply left it.
     ///
@@ -837,7 +837,7 @@ impl Client {
         let (canister, terms) = self
             .payment_terms(Some(quote.signer_epoch), Some(quote.fee_policy_version))
             .await?;
-        let (payer, ic) = self.wallet().await?;
+        let (payer, ic) = self.payer().await?;
         let service =
             dmsg_protocol::billing::delivery_service_fee(quote.recipient_net, &terms.policy)?;
         let ciphertext = unb64(order["ciphertext"].as_str().unwrap_or_default())?;
@@ -916,7 +916,7 @@ impl Client {
         payment.escrow(&opened.escrow_id).await
     }
 
-    /// Fund an escrow from the wallet, once.
+    /// Fund an escrow from the payer, once.
     async fn inbox_fund(&mut self, escrow: EscrowInfo) -> Result<EscrowInfo> {
         if escrow.funded_at.is_some() || escrow.decision != FundsDecision::Pending {
             return Ok(escrow);
@@ -950,7 +950,7 @@ impl Client {
                 create,
             )
             .await?;
-        let (_, ic) = self.wallet().await?;
+        let (_, ic) = self.payer().await?;
         let payment = Payment {
             ic: &ic,
             canister: quote.home_payment,
@@ -970,7 +970,7 @@ impl Client {
             .as_str()
             .ok_or(Error::IntegrityFailed)?
             .to_string();
-        let (_, ic) = self.wallet().await?;
+        let (_, ic) = self.payer().await?;
         let canister = escrow.quote.home_payment;
         let payment = Payment { ic: &ic, canister };
         let proof = self.escrow_proof(&payment, &escrow.escrow_id).await?;
@@ -1065,7 +1065,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` before an escrow was opened.
     pub async fn inbox_escrow(&mut self, order: &str) -> Result<Json> {
-        let (payer, ic) = self.wallet().await?;
+        let (payer, ic) = self.payer().await?;
         let canister = self.home_config().await?.payment_canister;
         let payment = Payment { ic: &ic, canister };
         let op_id = crate::upload::hex_id(order)?;
@@ -1093,14 +1093,14 @@ impl Client {
         Ok(json!(legs.iter().map(leg_view).collect::<Vec<_>>()))
     }
 
-    /// Send a refused leg of an escrow the wallet paid or receives from
+    /// Send a refused leg of an escrow the payer paid or receives from
     /// again, at the fee the ledger asked for (`FeeBlocked`) or unchanged
     /// (`Rejected`); the escrow's approved fee ceiling still holds.
     ///
     /// # Errors
     /// Returns `Error::VersionConflict` for a leg that was not refused.
     pub async fn payment_revise(&mut self, escrow: &Hash, leg: u64) -> Result<Json> {
-        let (_, ic) = self.wallet().await?;
+        let (_, ic) = self.payer().await?;
         let canister = self.home_config().await?.payment_canister;
         let payment = Payment { ic: &ic, canister };
         let current = payment
@@ -1123,7 +1123,7 @@ impl Client {
         Ok(leg_view(&sent))
     }
 
-    /// Recover what an order's escrow holds for the wallet, in one refund
+    /// Recover what an order's escrow holds for the payer, in one refund
     /// it then sends: past the acceptance deadline the whole payment
     /// (committing the refund if nobody did), after settlement the unused
     /// fee reserve once every payout succeeded, and any deposit the escrow
@@ -1133,7 +1133,7 @@ impl Client {
     /// Returns `Error::Pending` while nothing can be claimed yet: before
     /// the deadline, or while payouts are under way.
     pub async fn inbox_refund(&mut self, order: &str) -> Result<Json> {
-        let (payer, ic) = self.wallet().await?;
+        let (payer, ic) = self.payer().await?;
         let canister = self.home_config().await?.payment_canister;
         let payment = Payment { ic: &ic, canister };
         let op_id = crate::upload::hex_id(order)?;

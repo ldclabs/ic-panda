@@ -46,7 +46,32 @@ fn load(id: &AccountId) -> ExternalState {
         .unwrap_or_default()
 }
 
-fn current_device(account: &AccountState, device_id: Hash, epoch: u64) -> Result<()> {
+/// Team-wallet approvals need their own capability, so a device may sign
+/// documents without moving team funds and the reverse.
+fn purpose_capability(purpose: &ApprovalPurpose) -> Capability {
+    match purpose {
+        ApprovalPurpose::WalletCreate
+        | ApprovalPurpose::WalletProposal
+        | ApprovalPurpose::WalletJoin => Capability::WalletApprove,
+        ApprovalPurpose::CashCheckout | ApprovalPurpose::PandaSubscription => {
+            Capability::FormalApprove
+        }
+    }
+}
+
+fn capability(body: &ExternalBody) -> Capability {
+    match body {
+        ExternalBody::Application(a) => purpose_capability(&a.purpose),
+        ExternalBody::Authentication(_) => Capability::FormalApprove,
+    }
+}
+
+fn current_device(
+    account: &AccountState,
+    device_id: Hash,
+    epoch: u64,
+    capability: &Capability,
+) -> Result<()> {
     ensure(!account.sensitive_policy.frozen, Error::Locked)?;
     ensure(account.security_epoch == epoch, Error::PolicyStale)?;
     let device = account
@@ -54,11 +79,7 @@ fn current_device(account: &AccountState, device_id: Hash, epoch: u64) -> Result
         .get(&device_id)
         .ok_or(Error::DeviceNotApproved)?;
     ensure(
-        device.revoked_at.is_none()
-            && device
-                .input
-                .capabilities
-                .contains(&Capability::FormalApprove),
+        device.revoked_at.is_none() && device.input.capabilities.contains(capability),
         Error::DeviceNotApproved,
     )
 }
@@ -69,16 +90,22 @@ fn precheck<T: Serialize>(
     approval: &Approval,
     domain: &str,
     command: &T,
+    capability: Capability,
     at: u64,
 ) -> Result<()> {
-    current_device(account, approval.device_id, approval.security_epoch)?;
+    current_device(
+        account,
+        approval.device_id,
+        approval.security_epoch,
+        &capability,
+    )?;
     account::check_device(
         account,
         caller,
         approval,
         domain,
         command,
-        (Some(Capability::FormalApprove), false),
+        (Some(capability), false),
         at,
     )?;
     Ok(())
@@ -100,7 +127,12 @@ fn existing(
         record.fingerprint == fingerprint,
         Error::IdempotencyConflict,
     )?;
-    current_device(account, record.device_id, record.security_epoch)?;
+    current_device(
+        account,
+        record.device_id,
+        record.security_epoch,
+        &capability(&record.body),
+    )?;
     ensure(at < record.expires_at_ms, Error::Expired)?;
     Ok(Some(record.body.clone()))
 }
@@ -233,7 +265,15 @@ async fn approve_authentication(
             _ => Err(Error::IdempotencyConflict),
         };
     }
-    precheck(&account, caller, &approval, AUTH_DOMAIN, &request, at)?;
+    precheck(
+        &account,
+        caller,
+        &approval,
+        AUTH_DOMAIN,
+        &request,
+        Capability::FormalApprove,
+        at,
+    )?;
     check_quota(&state, at)?;
     drop(state);
     store::admit_call(&account_id, at)?;
@@ -248,7 +288,15 @@ async fn approve_authentication(
             _ => Err(Error::IdempotencyConflict),
         };
     }
-    precheck(&account, caller, &approval, AUTH_DOMAIN, &request, at)?;
+    precheck(
+        &account,
+        caller,
+        &approval,
+        AUTH_DOMAIN,
+        &request,
+        Capability::FormalApprove,
+        at,
+    )?;
     validate_authentication(&request, &app, at)?;
     home_binding(&app, &account)?;
     let result = AuthenticationResult {
@@ -286,7 +334,12 @@ fn authentication_certificate(account_id: AccountId, operation_id: Hash) -> Resu
     let ExternalBody::Authentication(result) = &record.body else {
         return Err(Error::Forbidden);
     };
-    current_device(&account, record.device_id, record.security_epoch)?;
+    current_device(
+        &account,
+        record.device_id,
+        record.security_epoch,
+        &Capability::FormalApprove,
+    )?;
     ensure(at < record.expires_at_ms, Error::Expired)?;
     store::CERT.with_borrow(|c| {
         c.batch(
@@ -297,12 +350,31 @@ fn authentication_certificate(account_id: AccountId, operation_id: Hash) -> Resu
     })
 }
 
-fn service_for(purpose: &ApprovalPurpose) -> Principal {
+/// The service allowed to consume an approval. A device approves a wallet
+/// decision for the exact wallet it names, which is also the beneficiary
+/// subject; wallet creation is fixed to the product's adapter, the hub.
+fn service_for(
+    application: &ApplicationApproval,
+    product: Option<&ProductRegistration>,
+) -> Result<Principal> {
     let config = store::config().init;
-    match purpose {
+    Ok(match application.purpose {
         ApprovalPurpose::CashCheckout => config.commerce_canister,
         ApprovalPurpose::PandaSubscription => config.membership_canister,
-    }
+        ApprovalPurpose::WalletCreate
+        | ApprovalPurpose::WalletProposal
+        | ApprovalPurpose::WalletJoin => {
+            ensure(
+                application.beneficiary.subject_bytes.as_ref() == application.service.as_slice(),
+                Error::Forbidden,
+            )?;
+            match (&application.purpose, product) {
+                (ApprovalPurpose::WalletCreate, Some(p)) => p.adapter,
+                (ApprovalPurpose::WalletCreate, None) => return Err(Error::NotFound),
+                _ => application.service,
+            }
+        }
+    })
 }
 
 #[ic_cdk::update]
@@ -335,6 +407,7 @@ async fn approve_application(application: ApplicationApproval, approval: Approva
         &approval,
         APPLICATION_DOMAIN,
         &application,
+        purpose_capability(&application.purpose),
         at,
     )?;
     check_quota(&state, at)?;
@@ -357,13 +430,15 @@ async fn approve_application(application: ApplicationApproval, approval: Approva
         &approval,
         APPLICATION_DOMAIN,
         &application,
+        purpose_capability(&application.purpose),
         at,
     )?;
+    let product = product.ok_or(Error::NotFound)?;
     validate_application_approval(
         &application,
         &app,
-        &product.ok_or(Error::NotFound)?,
-        service_for(&application.purpose),
+        &product,
+        service_for(&application, Some(&product))?,
         at,
     )?;
     home_binding(&app, &account)?;
@@ -395,10 +470,13 @@ async fn verify_application(
     approval_id: Hash,
     expected: ApplicationApproval,
 ) -> Result<ApplicationAuthorization> {
-    ensure(
-        caller == service_for(&expected.purpose) && caller == expected.service,
-        Error::Forbidden,
-    )?;
+    // Wallet creation names the hub, which only the registration knows.
+    if expected.purpose != ApprovalPurpose::WalletCreate {
+        ensure(
+            caller == service_for(&expected, None)? && caller == expected.service,
+            Error::Forbidden,
+        )?;
+    }
     let (app, product) = configuration(
         expected.app_id.clone(),
         Some(expected.beneficiary.product_id.clone()),
@@ -407,20 +485,25 @@ async fn verify_application(
     let at = nanos_to_millis(ic_cdk::api::time());
     let account = store::load(&expected.approving_account)?;
     home_binding(&app, &account)?;
-    validate_application_approval(
-        &expected,
-        &app,
-        &product.ok_or(Error::NotFound)?,
-        service_for(&expected.purpose),
-        at,
+    let product = product.ok_or(Error::NotFound)?;
+    let service = service_for(&expected, Some(&product))?;
+    ensure(
+        caller == service && caller == expected.service,
+        Error::Forbidden,
     )?;
+    validate_application_approval(&expected, &app, &product, service, at)?;
     let state = load(&account.account_id);
     let record = state.operations.get(&approval_id).ok_or(Error::NotFound)?;
     ensure(
         matches!(&record.body, ExternalBody::Application(approved) if *approved == expected),
         Error::IdempotencyConflict,
     )?;
-    current_device(&account, record.device_id, record.security_epoch)?;
+    current_device(
+        &account,
+        record.device_id,
+        record.security_epoch,
+        &capability(&record.body),
+    )?;
     ensure(at < record.expires_at_ms, Error::Expired)?;
     Ok(ApplicationAuthorization {
         approval_id,
@@ -488,6 +571,7 @@ async fn authorize_product_billing(
     let method = match request.account_approval.purpose {
         ApprovalPurpose::CashCheckout => SettlementMethod::Cash,
         ApprovalPurpose::PandaSubscription => SettlementMethod::Panda,
+        _ => return Err(Error::Forbidden),
     };
     let checked = verify_application(
         caller,
