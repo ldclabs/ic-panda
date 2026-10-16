@@ -383,6 +383,21 @@ async fn background(daemon: Arc<Daemon>) {
                 waiting = count;
             }
         }
+        // Backups a person asked for keep moving while the device key is
+        // there, locked or not; nothing here starts one.
+        if ready && client.library_jobs_running().unwrap_or(false) {
+            let mut progress = |file: &str, done, total| {
+                daemon.emit(
+                    "files/progress",
+                    json!({"job": "backup", "path": file, "done": done, "total": total}),
+                );
+            };
+            let run = client.files_backup_run(&mut progress).await;
+            daemon.note("backup", &outcome(&run));
+            if run.as_ref().is_ok_and(|r| r.completed > 0) {
+                daemon.emit("files/changed", Value::Null);
+            }
+        }
         if unlocked {
             // The file library's housekeeping: expired trash and unreferenced
             // chunks every ten minutes, opened copies every pass.

@@ -1,9 +1,10 @@
 //! The daemon methods of the file library (`files/*`): folders, files and
 //! versions on this device, imports and exports by absolute path, opened
 //! copies, the trash, verification, sharing a version to a channel and
-//! saving a shared file. Nothing here uploads by itself; a backup is a
-//! separate, explicit action (the `files/backup*` and `files/cloud_*`
-//! methods).
+//! saving a shared file; and the cloud: backups a person asks for
+//! (`files/backup*`), the account's backup inventory, fetching, deleting
+//! and verifying a cloud copy (`files/cloud_*`), and freeing a verified
+//! version's local chunks (`files/evict`). Nothing here uploads by itself.
 
 use crate::daemon::Daemon;
 use dmsg_client::{library::catalog::ROOT, Client};
@@ -12,7 +13,7 @@ use serde_json::{json, Value};
 use std::path::PathBuf;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 24] = [
+pub(crate) const METHODS: [&str; 35] = [
     "files/list",
     "files/tree",
     "files/show",
@@ -37,13 +38,34 @@ pub(crate) const METHODS: [&str; 24] = [
     "files/usage",
     "files/share_channel",
     "files/save_shared",
+    "files/backup",
+    "files/backup_status",
+    "files/backup_cancel",
+    "files/backup_run",
+    "files/cloud_list",
+    "files/cloud_refresh",
+    "files/cloud_fetch",
+    "files/cloud_delete",
+    "files/cloud_verify",
+    "files/cloud_usage",
+    "files/evict",
 ];
 
 /// The events a method's success announces.
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
-        "files/list" | "files/tree" | "files/show" | "files/search" | "files/export"
-        | "files/preview" | "files/open_list" | "files/verify" | "files/usage" => &[],
+        "files/list"
+        | "files/tree"
+        | "files/show"
+        | "files/search"
+        | "files/export"
+        | "files/preview"
+        | "files/open_list"
+        | "files/verify"
+        | "files/usage"
+        | "files/backup_status"
+        | "files/cloud_list"
+        | "files/cloud_usage" => &[],
         "files/share_channel" => &["channel/changed", "files/changed"],
         _ => &["files/changed"],
     }
@@ -259,6 +281,67 @@ impl Daemon {
                     )
                     .await
             }
+            "files/backup" => {
+                let ids = ids(params)?;
+                let all = params["all_versions"].as_bool().unwrap_or(false);
+                let request = client.files_backup(&ids, all).await?;
+                Ok(to_json(&request))
+            }
+            "files/backup_status" => Ok(to_json(&client.files_backup_status()?)),
+            "files/backup_cancel" => {
+                client
+                    .files_backup_cancel(&id()?, &text(params, "version")?)
+                    .await?;
+                Ok(json!({"cancelled": true}))
+            }
+            "files/backup_run" => {
+                let mut progress = |file: &str, done, total| {
+                    self.emit(
+                        "files/progress",
+                        json!({"job": "backup", "path": file, "done": done, "total": total}),
+                    );
+                };
+                Ok(to_json(&client.files_backup_run(&mut progress).await?))
+            }
+            "files/cloud_list" => Ok(to_json(&client.files_cloud_list()?)),
+            "files/cloud_refresh" => Ok(to_json(&client.files_cloud_refresh().await?)),
+            "files/cloud_fetch" => {
+                let upload = text(params, "upload_id")?;
+                let target = match params["folder"].is_null() {
+                    true => None,
+                    false => Some(folder(&mut client, &params["folder"], true)?),
+                };
+                let mut progress = |done, total| {
+                    self.emit(
+                        "files/progress",
+                        json!({"job": "fetch", "path": upload, "done": done, "total": total}),
+                    );
+                };
+                let file = client
+                    .files_cloud_fetch(&upload, target.as_deref(), &mut progress)
+                    .await?;
+                Ok(to_json(&file))
+            }
+            "files/cloud_delete" => {
+                let uploads: Vec<String> = serde_json::from_value(params["upload_ids"].clone())
+                    .map_err(|_| Error::InvalidInput("upload_ids".into()))?;
+                let deleted = client.files_cloud_delete(&uploads).await?;
+                Ok(json!({"deleted": deleted}))
+            }
+            "files/cloud_verify" => {
+                let upload = text(params, "upload_id")?;
+                let mut progress = |done, total| {
+                    self.emit(
+                        "files/progress",
+                        json!({"job": "verify", "path": upload, "done": done, "total": total}),
+                    );
+                };
+                Ok(to_json(
+                    &client.files_cloud_verify(&upload, &mut progress).await?,
+                ))
+            }
+            "files/cloud_usage" => Ok(to_json(&client.files_cloud_usage().await?)),
+            "files/evict" => Ok(to_json(&client.files_evict(&id()?, version)?)),
             "files/save_shared" => {
                 let seq = params["seq"]
                     .as_u64()

@@ -111,6 +111,8 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 
 空文件的 manifest 保留 `size=0`、空文件摘要及空文件块列表；上传层使用一个规范 CBOR 容器 `{format:"dmsg-cloud-empty-file/1"}` 作为非空占位块。它不计作明文文件块。恢复程序必须检查空文件标志、零长度和摘要一致性，不能把占位 bytes 返回为文件内容。
 
+备份（`kind=backup`，2026-10-16）：本机文件库的一个版本由用户显式备份时上传。块就是本机 `blobs/` 中该版本的密文块（不重新加密），空文件同样用占位块；`object_id`、`version_id` 是随机 ID，文件与版本身份只在 manifest 内；`root_generation` 为当前根代次，`epoch=0`、`control_head=null`。manifest 仍是 `dmsg-cloud-manifest/1`，`content` 为规范 CBOR `{format:"dmsg-backup/1", file:FileManifest（含 key）, path:[文件夹名…], tags, note, created_at, modified_at, device}`，由当前根封装，中继不读取。中继按账户分页列出已提交的 backup 上传与其回收 tombstone（`GET /v1/accounts/:account/backups?after=&limit=`，每条含签名的 upload plan、上传设备与提交时间），客户端对认证设备集合验签 `dmsg/upload/reserve/v1` 后下载 manifest、用对应代次的根打开，得到云端备份目录；backup 对象不进入 vault 的导出快照。删除云端副本走显式回收 `dmsg/object/collect/v1`；没有墓碑同步：云端删除不动本机文件，本机删除不动云端对象。
+
 A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器和 manifest 的往返向量。P0 的测试范围是签名/证据/HTTP/profile 链路，不声称已支持端到端文件同步。legacy 历史归档有独立格式，不能伪装成上述新版内容。
 
 ## 验证和发布边界

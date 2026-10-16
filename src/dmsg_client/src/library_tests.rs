@@ -638,3 +638,244 @@ fn a_reset_removes_the_library_with_the_workspace() {
     client.reset().unwrap();
     assert!(!blobs.exists() && !open.exists());
 }
+
+#[test]
+fn backups_are_planned_under_the_root_and_settle_on_the_version() {
+    use super::backup::{BackupJob, BACKUP, BACKUP_FORMAT};
+    use crate::content::{open_manifest, Opened};
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let docs = client.files_mkdir_path("docs/2026").unwrap();
+    let data = pattern(CHUNK + 5, 2);
+    let imported = client
+        .files_import(
+            &write(&dir, "plan.pdf", &data),
+            &docs.id,
+            false,
+            &mut no_progress,
+        )
+        .unwrap();
+    client
+        .files_update(
+            &imported.file.id,
+            Some(vec!["work".into()]),
+            Some("final".into()),
+            None,
+        )
+        .unwrap();
+    let job = client
+        .plan_backup(&imported.file.id, &imported.version)
+        .unwrap();
+    assert_eq!(job.plan.kind, BACKUP);
+    assert_eq!(job.plan.root_generation, 1);
+    assert_ne!(job.plan.object_id, imported.file.id);
+    assert_ne!(job.plan.version_id, imported.version);
+    assert_eq!(job.plan.chunks.len(), 2);
+    // Plan sizes are ciphertext sizes: the sealed chunk files' lengths.
+    let version = client
+        .version(&imported.file.id, &imported.version)
+        .unwrap();
+    for (planned, own) in job.plan.chunks.iter().zip(&version.chunks) {
+        assert_eq!(planned.digest, own.digest);
+        assert_eq!(
+            planned.size,
+            client.blobs().unwrap().size(&own.digest).unwrap().unwrap()
+        );
+        assert!(planned.size > own.size);
+    }
+    let opened = open_manifest(&[5; 32], "040g2081040g2081040g", &job.plan, &job.manifest).unwrap();
+    let Opened::Backup(record) = opened else {
+        panic!("a backup manifest");
+    };
+    assert_eq!(record.format, BACKUP_FORMAT);
+    assert_eq!(record.file.id, imported.file.id);
+    assert_eq!(record.file.version, imported.version);
+    assert_eq!(record.file.key, version.key);
+    assert_eq!(record.path, ["docs", "2026"]);
+    assert_eq!(record.tags, ["work"]);
+    assert_eq!(record.note, "final");
+    assert_eq!(record.device, version.device);
+
+    // A committed job settles on the version while unlocked, and the file
+    // shows the backup; locked, it waits. An empty file plans a placeholder.
+    let key = format!(
+        "{}{}:{}",
+        super::BACKUP_JOB,
+        imported.file.id,
+        imported.version
+    );
+    let committed = BackupJob {
+        committed: true,
+        ..job.clone()
+    };
+    client.workspace.store.set_job(&key, &committed).unwrap();
+    assert_eq!(client.files_backup_status().unwrap().len(), 1);
+    assert_eq!(
+        client.files_show(&imported.file.id).unwrap().file.status,
+        "backing_up"
+    );
+    assert!(client.library_jobs_running().unwrap());
+    assert_eq!(client.collect_blobs().unwrap(), (0, 0));
+    client.lock();
+    assert!(!client.settle_backup(&key, &committed).unwrap());
+    client.keys = Some(client.workspace.unlock(&crate::testing::SECRET).unwrap());
+    client.root = Some(RootKeys_single());
+    assert!(client.settle_backup(&key, &committed).unwrap());
+    let details = client.files_show(&imported.file.id).unwrap();
+    assert_eq!(details.file.status, "backed_up");
+    let backup = details.versions[0].backup.clone().unwrap();
+    assert_eq!(backup.upload_id, job.plan.upload_id);
+    assert!(backup.verified);
+    assert!(client.files_backup_status().unwrap().is_empty());
+    let empty = client
+        .files_import(
+            &write(&dir, "empty.txt", b""),
+            ROOT,
+            false,
+            &mut no_progress,
+        )
+        .unwrap();
+    let placeholder = client.plan_backup(&empty.file.id, &empty.version).unwrap();
+    assert_eq!(placeholder.plan.chunks.len(), 1);
+    assert_eq!(
+        placeholder.plan.chunks[0].digest,
+        hex::encode(*sha256(&crate::content::empty_file()))
+    );
+
+    // A verified backup lets the version leave this device; reading it then
+    // asks for a fetch. The thumbnail-less chunks are collected.
+    let view = client.files_evict(&imported.file.id, None).unwrap();
+    assert_eq!(view.status, "cloud_only");
+    assert!(!client
+        .blobs()
+        .unwrap()
+        .has_chunk(&version.chunks[0].digest)
+        .unwrap());
+    assert_eq!(
+        client.files_read(&imported.file.id, None, MAX_FILE).err(),
+        Some(Error::RecoveryIncomplete)
+    );
+    assert!(matches!(
+        client.files_evict(&empty.file.id, None).err(),
+        Some(Error::InvalidInput(_))
+    ));
+    // Evicted versions are skipped by a new backup request's planning.
+    assert_eq!(
+        client
+            .version(&imported.file.id, &imported.version)
+            .unwrap()
+            .status(),
+        "cloud_only"
+    );
+}
+
+#[test]
+fn the_cloud_inventory_marks_local_versions_and_lists_from_the_cache() {
+    use super::backup::BackupManifest;
+    use super::cloud::CloudEntry;
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let imported = client
+        .files_import(
+            &write(&dir, "notes.txt", b"notes"),
+            ROOT,
+            false,
+            &mut no_progress,
+        )
+        .unwrap();
+    let (file, version, manifest) = client.library_manifest(&imported.file.id, None).unwrap();
+    let job = client
+        .plan_backup(&imported.file.id, &imported.version)
+        .unwrap();
+    let record = BackupManifest {
+        format: super::backup::BACKUP_FORMAT.into(),
+        file: manifest.clone(),
+        path: vec![],
+        tags: file.tags.clone(),
+        note: file.note.clone(),
+        created_at: version.created_at,
+        modified_at: file.updated_at,
+        device: version.device.clone(),
+    };
+    // What a refresh caches for a backup another device made of this very
+    // version, and for one whose root this device lacks.
+    client
+        .save_cloud_entry(
+            &job.plan.upload_id,
+            &CloudEntry {
+                plan: job.plan.clone(),
+                device: "aa".repeat(32),
+                committed_at: Some(7),
+                manifest: Some(record.clone()),
+            },
+        )
+        .unwrap();
+    let mut foreign = job.plan.clone();
+    foreign.upload_id = random_hex();
+    foreign.root_generation = 9;
+    client
+        .save_cloud_entry(
+            &foreign.upload_id,
+            &CloudEntry {
+                plan: foreign.clone(),
+                device: "bb".repeat(32),
+                committed_at: Some(8),
+                manifest: None,
+            },
+        )
+        .unwrap();
+    client
+        .mark_backed_up(&record, &job.plan.upload_id, 1, 7)
+        .unwrap();
+    let marked = client
+        .version(&imported.file.id, &imported.version)
+        .unwrap();
+    let backup = marked.backup.clone().unwrap();
+    assert_eq!(
+        (
+            backup.upload_id.as_str(),
+            backup.generation,
+            backup.backed_up_at,
+            backup.verified
+        ),
+        (job.plan.upload_id.as_str(), 1, 7, false)
+    );
+    // Not verified here: the version stays.
+    assert!(matches!(
+        client.files_evict(&imported.file.id, None).err(),
+        Some(Error::InvalidInput(_))
+    ));
+
+    let list = client.files_cloud_list().unwrap();
+    assert_eq!(list.len(), 2);
+    let known = list
+        .iter()
+        .find(|c| c.upload_id == job.plan.upload_id)
+        .unwrap();
+    assert_eq!(known.name.as_deref(), Some("notes.txt"));
+    assert_eq!(known.file_id.as_deref(), Some(imported.file.id.as_str()));
+    assert!(known.local && !known.needs_root);
+    assert_eq!(
+        known.bytes,
+        job.plan.chunks[0].size + job.plan.manifest_size
+    );
+    let unknown = list
+        .iter()
+        .find(|c| c.upload_id == foreign.upload_id)
+        .unwrap();
+    assert!(unknown.needs_root && !unknown.local && unknown.name.is_none());
+    assert_eq!(unknown.generation, 9);
+
+    // Forgetting a cloud copy clears the mark; the file stays.
+    client.forget_cloud(&job.plan.upload_id).unwrap();
+    assert!(client
+        .version(&imported.file.id, &imported.version)
+        .unwrap()
+        .backup
+        .is_none());
+    assert_eq!(client.files_cloud_list().unwrap().len(), 1);
+    assert_eq!(
+        client.files_show(&imported.file.id).unwrap().file.status,
+        "local"
+    );
+}

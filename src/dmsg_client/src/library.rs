@@ -17,8 +17,10 @@
 //! cleaned up after a while, on lock and on exit ([`open`]); chunks nothing
 //! references any more are collected from the blob directory ([`gc`]).
 
+pub mod backup;
 pub mod blobs;
 pub mod catalog;
+pub mod cloud;
 pub mod gc;
 pub mod import;
 pub mod open;
@@ -263,7 +265,12 @@ impl Client {
     fn file_view(&mut self, id: &str) -> Result<FileView> {
         let file = self.file_record(id)?;
         let current = self.version(id, &file.current)?;
-        Ok(self.catalog()?.file_view(id, &file, &current))
+        let backing_up = self.backup_state(id, &file.current)?;
+        let mut view = self.catalog()?.file_view(id, &file, &current);
+        if let Some(state) = backing_up {
+            view.status = state;
+        }
+        Ok(view)
     }
 
     /// Every folder that is not in the trash, with its path.
@@ -351,22 +358,22 @@ impl Client {
         let mut versions = Vec::with_capacity(record.versions.len());
         for reference in &record.versions {
             let version = self.version(id, &reference.id)?;
-            versions.push(version_view(
-                &reference.id,
-                &version,
-                reference.id == record.current,
-            ));
+            let mut view = version_view(&reference.id, &version, reference.id == record.current);
+            if let Some(state) = self.backup_state(id, &reference.id)? {
+                view.status = state;
+            }
+            versions.push(view);
         }
         Ok(Details { file, versions })
     }
 
-    /// Files not in the trash whose name, tags or note contain `query`.
+    /// Files not in the trash whose name, tags or note contain `query`, by
+    /// path and name; an empty query lists every file, newest first.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub fn files_search(&mut self, query: &str) -> Result<Vec<FileView>> {
         let query = query.trim().to_lowercase();
-        ensure_valid(!query.is_empty(), "query")?;
         let ids: Vec<String> = {
             let catalog = self.catalog()?;
             catalog
@@ -374,7 +381,8 @@ impl Client {
                 .iter()
                 .filter(|(_, f)| !catalog.file_trashed(f))
                 .filter(|(_, f)| {
-                    f.name.to_lowercase().contains(&query)
+                    query.is_empty()
+                        || f.name.to_lowercase().contains(&query)
                         || f.note.to_lowercase().contains(&query)
                         || f.tags.iter().any(|t| t.to_lowercase().contains(&query))
                 })
@@ -385,7 +393,10 @@ impl Client {
         for id in &ids {
             files.push(self.file_view(id)?);
         }
-        files.sort_by(|a, b| (&a.path, &a.name).cmp(&(&b.path, &b.name)));
+        match query.is_empty() {
+            true => files.sort_by(|a, b| b.updated_at.cmp(&a.updated_at).then(a.name.cmp(&b.name))),
+            false => files.sort_by(|a, b| (&a.path, &a.name).cmp(&(&b.path, &b.name))),
+        }
         Ok(files)
     }
 
@@ -1056,8 +1067,12 @@ impl Client {
         Ok(keep)
     }
 
-    /// Whether a backup or a fetch of the library is in flight.
-    pub(crate) fn library_jobs_running(&self) -> Result<bool> {
+    /// Whether a backup or a fetch of the library is in flight; readable
+    /// while locked.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when storage fails.
+    pub fn library_jobs_running(&self) -> Result<bool> {
         Ok(self
             .workspace
             .store

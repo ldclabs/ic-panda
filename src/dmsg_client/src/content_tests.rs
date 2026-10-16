@@ -54,11 +54,12 @@ fn opens_exported_manifests() {
         let manifest = unb64(text(&case["manifest"])).unwrap();
         let content = open_manifest(&root, account, &plan, &manifest).unwrap();
         match &content {
-            Some(file) => {
+            Opened::File(file) => {
                 assert_eq!(plan.kind, "file");
                 assert_eq!(canonical(file), canonical(&value(&case["content"])));
             }
-            None => {
+            Opened::Backup(_) => panic!("no backup vectors here"),
+            Opened::None => {
                 assert_eq!(plan.kind, VAULT);
                 let object = unb64(text(&case["object"])).unwrap();
                 assert_eq!(hex::encode(*sha256(&object)), plan.chunks[0].digest);
@@ -128,10 +129,10 @@ fn seals_objects_and_manifests_that_open() {
         manifest_size: 0,
         expires_at: 1,
     };
-    let manifest = seal_manifest(&[5; 32], account, &mut plan, None);
+    let manifest = seal_manifest(&[5; 32], account, &mut plan, ManifestContent::None);
     assert_eq!(
         open_manifest(&[5; 32], account, &plan, &manifest).unwrap(),
-        None
+        Opened::None
     );
     assert!(open_manifest(&[5; 32], account, &plan, &manifest[1..]).is_err());
 
@@ -157,15 +158,75 @@ fn seals_objects_and_manifests_that_open() {
         kind: "file".into(),
         ..plan.clone()
     };
-    let sealed = seal_manifest(&[5; 32], account, &mut file_plan, Some(&file));
+    let sealed = seal_manifest(
+        &[5; 32],
+        account,
+        &mut file_plan,
+        ManifestContent::File(&file),
+    );
     assert_eq!(
         open_manifest(&[5; 32], account, &file_plan, &sealed).unwrap(),
-        Some(file.clone())
+        Opened::File(file.clone())
     );
     let mut vault_plan = plan.clone();
-    let wrong = seal_manifest(&[5; 32], account, &mut vault_plan, Some(&file));
+    let wrong = seal_manifest(
+        &[5; 32],
+        account,
+        &mut vault_plan,
+        ManifestContent::File(&file),
+    );
     assert_eq!(
         open_manifest(&[5; 32], account, &vault_plan, &wrong).err(),
         Some(Error::IntegrityFailed)
     );
+}
+
+#[test]
+fn opens_backup_manifests() {
+    use crate::library::backup::{BackupManifest, BACKUP, BACKUP_FORMAT};
+    let v = load("content-v1.json");
+    let account = text(&v["account"]);
+    let root = key(&v["root_hex"]);
+    for case in v["backups"].as_array().unwrap() {
+        let plan: UploadPlan = serde_json::from_value(case["plan"].clone()).unwrap();
+        assert_eq!(plan.kind, BACKUP);
+        assert_eq!(
+            canonical(&manifest_context(account, &plan)),
+            bytes(&case["manifest_aad"])
+        );
+        let manifest = unb64(text(&case["manifest"])).unwrap();
+        let Opened::Backup(record) = open_manifest(&root, account, &plan, &manifest).unwrap()
+        else {
+            panic!("a backup manifest");
+        };
+        assert_eq!(record.format, BACKUP_FORMAT);
+        assert_eq!(canonical(&record), bytes(&case["content_plaintext_hex"]));
+        let typed: BackupManifest =
+            decode(&bytes(&case["content_plaintext_hex"]), MAX_MANIFEST).unwrap();
+        assert_eq!(typed, record);
+        // The file inside is the file entry's, so its chunks are the file
+        // chunk vectors, sealed under the same key.
+        let file_case = v["objects"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|o| o["name"] == "file entry")
+            .unwrap();
+        let file = crate::vectors::field(&value(&file_case["payload"]), "file").clone();
+        assert_eq!(canonical(&record.file), canonical(&file));
+        assert_eq!(record.path, ["docs", "2026"]);
+        let plain = open(
+            &root,
+            text(&case["manifest"]),
+            &manifest_context(account, &plan),
+        )
+        .unwrap();
+        assert_eq!(*plain, bytes(&case["manifest_plaintext_hex"]));
+        let parsed: Manifest = decode(&plain, MAX_MANIFEST).unwrap();
+        assert_eq!(canonical(&parsed), *plain);
+        // The same bytes under another kind do not open as a backup.
+        let mut as_file = plan.clone();
+        as_file.kind = "file".into();
+        assert!(open_manifest(&root, account, &as_file, &manifest).is_err());
+    }
 }

@@ -67,6 +67,18 @@ impl Blobs {
         Ok(self.dir.join(&digest[..2]).join(digest))
     }
 
+    /// A stored chunk's length, without reading it.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when the file cannot be read.
+    pub fn size(&self, digest: &str) -> Result<Option<u64>> {
+        match fs::metadata(self.path(digest)?) {
+            Ok(metadata) => Ok(Some(metadata.len())),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(storage(e)),
+        }
+    }
+
     /// Delete a chunk; one already gone is no error.
     ///
     /// # Errors

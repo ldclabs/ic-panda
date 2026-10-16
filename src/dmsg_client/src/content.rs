@@ -10,12 +10,15 @@
 //! On the wire a version is a `kind=vault` upload whose single chunk is the
 //! object container and whose manifest is sealed under the root. A file is a
 //! separate `kind=file` upload of its encrypted chunks, with the file
-//! manifest, key included, inside the sealed upload manifest.
+//! manifest, key included, inside the sealed upload manifest; a backup of
+//! the file library is a `kind=backup` upload whose manifest carries a
+//! `dmsg-backup/1` record around the file manifest.
 
 use crate::client::Client;
-use crate::codec::{b64, canonical, decode, sha256, unb64};
+use crate::codec::{b64, canonical, decode, decode_value, sha256, unb64};
 use crate::crypto::{open, random_key, seal, Key};
 use crate::files::FileManifest;
+use crate::library::backup::{BackupManifest, BACKUP, BACKUP_FORMAT};
 use crate::root::RootKeys;
 use crate::store::{ObjectRow, LOCAL};
 use crate::upload::{random_hex, UploadPlan};
@@ -234,7 +237,31 @@ struct Manifest {
     kind: String,
     root_generation: u64,
     chunks: Vec<crate::upload::ChunkRef>,
-    content: Option<FileManifest>,
+    /// By `kind`: a `file` upload's file manifest, a `backup` upload's
+    /// `dmsg-backup/1` record, nothing for the others.
+    content: Option<cbor2::Value>,
+}
+
+/// What an upload manifest carries besides its plan, to seal.
+#[derive(Clone, Copy, Debug)]
+pub enum ManifestContent<'a> {
+    /// A vault object, the root or an avatar: nothing.
+    None,
+    /// A `file` upload: its file manifest, key included.
+    File(&'a FileManifest),
+    /// A `backup` upload: the library's backup record.
+    Backup(&'a BackupManifest),
+}
+
+/// What an opened upload manifest carried.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Opened {
+    /// Nothing.
+    None,
+    /// A `file` upload's file manifest.
+    File(FileManifest),
+    /// A `backup` upload's record.
+    Backup(BackupManifest),
 }
 
 fn manifest_context<'a>(
@@ -260,14 +287,16 @@ fn manifest_context<'a>(
     )
 }
 
-/// Seal an upload manifest, with the file manifest of a `kind=file` upload,
-/// and complete the plan's manifest digest and size.
+/// Seal an upload manifest with its content, and complete the plan's
+/// manifest digest and size.
 pub fn seal_manifest(
     root: &Key,
     account: &str,
     plan: &mut UploadPlan,
-    content: Option<&FileManifest>,
+    content: ManifestContent<'_>,
 ) -> Vec<u8> {
+    let value =
+        |bytes: Vec<u8>| decode_value(&bytes, MAX_MANIFEST).expect("canonical CBOR decodes");
     let manifest = Manifest {
         format: "dmsg-cloud-manifest/1".into(),
         account_id: account.into(),
@@ -277,7 +306,11 @@ pub fn seal_manifest(
         kind: plan.kind.clone(),
         root_generation: plan.root_generation,
         chunks: plan.chunks.clone(),
-        content: content.cloned(),
+        content: match content {
+            ManifestContent::None => None,
+            ManifestContent::File(file) => Some(value(canonical(file))),
+            ManifestContent::Backup(backup) => Some(value(canonical(backup))),
+        },
     };
     let sealed = seal(
         root,
@@ -290,17 +323,12 @@ pub fn seal_manifest(
     bytes
 }
 
-/// Open an upload manifest, check it repeats its plan and return the file
-/// manifest of a `kind=file` upload.
+/// Open an upload manifest, check it repeats its plan and return what it
+/// carries for its kind.
 ///
 /// # Errors
 /// Any difference returns `Error::IntegrityFailed`.
-pub fn open_manifest(
-    root: &Key,
-    account: &str,
-    plan: &UploadPlan,
-    bytes: &[u8],
-) -> Result<Option<FileManifest>> {
+pub fn open_manifest(root: &Key, account: &str, plan: &UploadPlan, bytes: &[u8]) -> Result<Opened> {
     ensure(
         bytes.len() as u64 == plan.manifest_size
             && hex::encode(*sha256(bytes)) == plan.manifest_digest,
@@ -320,15 +348,21 @@ pub fn open_manifest(
         Error::IntegrityFailed,
     )?;
     match (plan.kind.as_str(), manifest.content) {
-        ("file", Some(file)) => {
+        ("file", Some(content)) => {
+            let file: FileManifest = decode(&canonical(&content), MAX_MANIFEST)?;
             ensure(
                 file.id == plan.object_id && file.version == plan.version_id,
                 Error::IntegrityFailed,
             )?;
-            Ok(Some(file))
+            Ok(Opened::File(file))
         }
-        ("file", None) => Err(Error::IntegrityFailed),
-        (_, content) => ensure(content.is_none(), Error::IntegrityFailed).map(|_| None),
+        (BACKUP, Some(content)) => {
+            let backup: BackupManifest = decode(&canonical(&content), MAX_MANIFEST)?;
+            ensure(backup.format == BACKUP_FORMAT, Error::IntegrityFailed)?;
+            Ok(Opened::Backup(backup))
+        }
+        ("file" | BACKUP, None) => Err(Error::IntegrityFailed),
+        (_, content) => ensure(content.is_none(), Error::IntegrityFailed).map(|_| Opened::None),
     }
 }
 

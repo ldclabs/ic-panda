@@ -1,9 +1,11 @@
 //! Housekeeping: trashed files and folders are deleted for good after
 //! `files_trash_days`, and chunk files nothing references any more go. The
-//! reference set is every version's chunks and thumbnail, the chunks of
-//! unfinished imports and the chunks of the library's cloud jobs (backups
-//! and shared editions in flight); it is derived by scanning, never
-//! maintained as counts. Temporary chunk files older than a day go too.
+//! reference set is every local version's chunks, every version's
+//! thumbnail, the chunks of unfinished imports and the chunks of the
+//! library's cloud jobs (backups and shared editions in flight); it is
+//! derived by scanning, never maintained as counts. A version evicted to
+//! the cloud references nothing but its thumbnail, so its chunks go.
+//! Temporary chunk files older than a day go too.
 
 use super::catalog::{Version, VERSION};
 use super::Client;
@@ -34,7 +36,9 @@ impl Client {
         let mut keep = BTreeSet::new();
         for key in self.workspace.store.sealed_keys(VERSION)? {
             if let Some(version) = self.workspace.private::<Version>(self.keys()?, &key)? {
-                keep.extend(version.chunks.into_iter().map(|c| c.digest));
+                if version.local {
+                    keep.extend(version.chunks.into_iter().map(|c| c.digest));
+                }
                 keep.extend(version.thumbnail);
             }
         }

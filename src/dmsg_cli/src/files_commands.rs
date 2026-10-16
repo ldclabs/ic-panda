@@ -190,6 +190,72 @@ pub enum FilesCommand {
         #[arg(long)]
         to: Option<String>,
     },
+    /// Back up files and folders to the cloud: each file's current version,
+    /// or every version with --all-versions. Nothing is backed up unless
+    /// you ask; a copy deleted from the cloud is not uploaded again.
+    Backup {
+        /// File or folder IDs.
+        #[arg(required = true)]
+        ids: Vec<String>,
+        /// Every version, not only the current one.
+        #[arg(long)]
+        all_versions: bool,
+    },
+    /// Backups in flight.
+    BackupStatus,
+    /// Cancel a backup in flight.
+    BackupCancel {
+        /// File ID.
+        id: String,
+        /// Version ID.
+        version: String,
+    },
+    /// The account's backups in the cloud, from every device.
+    #[command(subcommand)]
+    Cloud(CloudCommand),
+    /// Free a version's chunks on this device, keeping only its verified
+    /// backup; reading it then needs a fetch.
+    Evict {
+        /// File ID.
+        id: String,
+        /// A version; the current one by default.
+        #[arg(long)]
+        version: Option<String>,
+    },
+}
+
+/// The cloud: backups of every device of the account.
+#[derive(Subcommand)]
+pub enum CloudCommand {
+    /// Backups this device knows of; --refresh reads the relay first.
+    Ls {
+        /// Read the relay's inventory first.
+        #[arg(long)]
+        refresh: bool,
+    },
+    /// Read the relay's inventory from this device's cursor on.
+    Refresh,
+    /// Fetch a backup into the library, where it was or into --to.
+    Get {
+        /// The backup's upload ID.
+        upload: String,
+        /// Target folder: an ID or a path, created if missing.
+        #[arg(long)]
+        to: Option<String>,
+    },
+    /// Delete cloud copies for good; files on this device stay.
+    Rm {
+        /// Upload IDs.
+        #[arg(required = true)]
+        uploads: Vec<String>,
+    },
+    /// Download and check a backup against its manifest.
+    Verify {
+        /// The backup's upload ID.
+        upload: String,
+    },
+    /// The cloud's room and what the backups take of it.
+    Usage,
 }
 
 fn file_line(f: &Value) -> String {
@@ -615,6 +681,178 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
                 .await?;
             print(json, &imported, |i| file_line(&i["file"]));
         }
+        FilesCommand::Backup { ids, all_versions } => {
+            let request = remote
+                .call(
+                    "files/backup",
+                    json!({"ids": ids, "all_versions": all_versions}),
+                )
+                .await?;
+            print(json, &request, |r| {
+                let started = r["started"].as_array().map_or(0, Vec::len);
+                let bytes = &r["bytes"];
+                let mut lines = vec![tr!(
+                    "{started} backup(s) started, {bytes} bytes to upload",
+                    "已开始 {started} 个备份，共 {bytes} 字节待上传"
+                )];
+                for s in r["skipped"].as_array().into_iter().flatten() {
+                    lines.push(tr!(
+                        "skipped {}@{}: {}",
+                        "跳过 {}@{}：{}",
+                        s["file"].as_str().unwrap_or_default(),
+                        s["version"].as_str().unwrap_or_default(),
+                        s["reason"].as_str().unwrap_or_default()
+                    ));
+                }
+                lines.join("\n")
+            });
+        }
+        FilesCommand::BackupStatus => {
+            let jobs = remote.call("files/backup_status", Value::Null).await?;
+            print(json, &jobs, |list| {
+                let lines: Vec<String> = list
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|j| {
+                        let state = match (j["committed"] == true, j["error"].as_str()) {
+                            (true, _) => tr!("committed", "已提交"),
+                            (false, Some(error)) => tr!("failed: {error}", "失败：{error}"),
+                            (false, None) => tr!("uploading", "上传中"),
+                        };
+                        format!(
+                            "{}@{} {}/{} {state}",
+                            j["file"].as_str().unwrap_or_default(),
+                            j["version"].as_str().unwrap_or_default(),
+                            j["sent"],
+                            j["chunks"]
+                        )
+                    })
+                    .collect();
+                if lines.is_empty() {
+                    tr!("no backups in flight", "没有进行中的备份")
+                } else {
+                    lines.join("\n")
+                }
+            });
+        }
+        FilesCommand::BackupCancel { id, version } => {
+            let result = remote
+                .call("files/backup_cancel", json!({"id": id, "version": version}))
+                .await?;
+            print(json, &result, |_| tr!("cancelled", "已取消"));
+        }
+        FilesCommand::Cloud(CloudCommand::Ls { refresh }) => {
+            if refresh {
+                remote.call("files/cloud_refresh", Value::Null).await?;
+            }
+            let list = remote.call("files/cloud_list", Value::Null).await?;
+            print(json, &list, |list| {
+                let lines: Vec<String> = list
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(cloud_line)
+                    .collect();
+                if lines.is_empty() {
+                    tr!(
+                        "no backups known; try --refresh",
+                        "没有已知备份；试试 --refresh"
+                    )
+                } else {
+                    lines.join("\n")
+                }
+            });
+        }
+        FilesCommand::Cloud(CloudCommand::Refresh) => {
+            let report = remote.call("files/cloud_refresh", Value::Null).await?;
+            print(json, &report, |r| {
+                tr!(
+                    "{} new, {} deleted, {} need a root this device lacks; cursor {}",
+                    "新增 {}，删除 {}，{} 个需要本机没有的根；游标 {}",
+                    r["added"],
+                    r["deleted"],
+                    r["needs_root"],
+                    r["cursor"]
+                )
+            });
+        }
+        FilesCommand::Cloud(CloudCommand::Get { upload, to }) => {
+            let file = remote
+                .call(
+                    "files/cloud_fetch",
+                    json!({"upload_id": upload, "folder": folder_param(to)}),
+                )
+                .await?;
+            print(json, &file, file_line);
+        }
+        FilesCommand::Cloud(CloudCommand::Rm { uploads }) => {
+            let result = remote
+                .call("files/cloud_delete", json!({"upload_ids": uploads}))
+                .await?;
+            print(json, &result, |r| {
+                tr!(
+                    "deleted {} cloud copies; files on this device are unchanged",
+                    "已删除 {} 个云端副本；本机文件不变",
+                    r["deleted"]
+                )
+            });
+        }
+        FilesCommand::Cloud(CloudCommand::Verify { upload }) => {
+            let check = remote
+                .call("files/cloud_verify", json!({"upload_id": upload}))
+                .await?;
+            print(json, &check, |c| match c["ok"] == true {
+                true => tr!("verified", "已核对"),
+                false => tr!(
+                    "failed: {}",
+                    "失败：{}",
+                    c["error"].as_str().unwrap_or_default()
+                ),
+            });
+        }
+        FilesCommand::Cloud(CloudCommand::Usage) => {
+            let usage = remote.call("files/cloud_usage", Value::Null).await?;
+            print(json, &usage, pretty);
+        }
+        FilesCommand::Evict { id, version } => {
+            let file = remote
+                .call("files/evict", json!({"id": id, "version": version}))
+                .await?;
+            print(json, &file, file_line);
+        }
     }
     Ok(())
+}
+
+fn cloud_line(c: &Value) -> String {
+    let upload = c["upload_id"].as_str().unwrap_or_default();
+    if c["needs_root"] == true {
+        return tr!(
+            "{upload} (needs a content root this device lacks; generation {})",
+            "{upload}（需要本机没有的内容根；代次 {}）",
+            c["generation"]
+        );
+    }
+    let mut path: Vec<&str> = c["path"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect();
+    path.push(c["name"].as_str().unwrap_or_default());
+    let local = if c["local"] == true {
+        tr!(" (here too)", "（本机也有）")
+    } else {
+        String::new()
+    };
+    let device = c["device"].as_str().unwrap_or_default();
+    tr!(
+        "{upload} /{} {} bytes from device {} at {}{local}",
+        "{upload} /{} {} 字节，设备 {}，时间 {}{local}",
+        path.join("/"),
+        c["size"],
+        &device[..8.min(device.len())],
+        c["committed_at"]
+    )
 }

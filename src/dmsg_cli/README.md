@@ -194,6 +194,9 @@ dmsg files get <id> [--version V] -o <path> | open <id> [--version V] | opened [
 dmsg files verify <id> | verify --all | versions <id> | version-use <id> <version> | version-rm <id> <version>
 dmsg files rm <id>... | restore <id>... | purge [<id>...] | usage
 dmsg files share <channel> <id> [--version V] [text] | save <channel> <seq> [--to <folder>]
+dmsg files backup <id|folder>... [--all-versions] | backup-status | backup-cancel <id> <version>
+dmsg files cloud ls [--refresh] | refresh | get <upload> [--to <folder>] | rm <upload>... | verify <upload> | usage
+dmsg files evict <id> [--version V]
 dmsg sync | sync status
 dmsg profile show | publish [--name N] [--bio B] [--link URL]... | resolve <account>
 dmsg profile avatar <png|jpeg|webp> | avatar --remove
@@ -302,6 +305,28 @@ to a channel as a new edition under its own key: it shares no key and no
 chunk with the library's copy or a backup. `files save` keeps a shared file
 from a channel message as a file of the library, re-encrypted under a key of
 its own.
+
+Backups. `files backup` is the only way a library file reaches the cloud: it
+uploads the current version (or every version) of the files named, folders
+recursively, as `kind=backup` objects whose chunks are the version's own
+and whose manifest, sealed under the current content root, holds the file's
+key, path, tags and note; the object and version IDs on the relay are
+random. The jobs continue in the background, locked too with
+`background_online`, and `backup-status` shows them. Nothing starts a
+backup but this command: not an import, not an edit, not a cloud refresh,
+and a copy deleted from the cloud is never uploaded again. `files cloud ls
+--refresh` reads the account's backup inventory from the relay (every
+device's, each entry's signed plan checked against the certified devices,
+each manifest opened with the root of its generation; one whose root this
+device lacks is listed as such), marks local versions the backups are of,
+and `cloud get` fetches one into the library, where it was or into `--to`,
+after checking every chunk and the whole file. `cloud rm` deletes cloud
+copies for good, which frees their quota and changes nothing on this
+device; `files rm` on this device changes nothing in the cloud. `cloud
+verify` downloads and checks a backup; `files evict` then frees a verified
+version's chunks here, so it reads only after `cloud get`. `cloud usage`
+shows the relay's storage room; a backup request that would not fit fails
+with `QUOTA_EXCEEDED` before anything starts.
 
 Approvals are decided by a person: `approvals approve|reject`, `connect
 browsers add` and the prompt after `attest …` or `device …` need an interactive
@@ -559,7 +584,10 @@ The daemon listens on `127.0.0.1` only.
   `vault/put|edit|delete|restore|list|show|conflicts|resolve`,
   `files/list|tree|show|search|mkdir|rename|move|update|versions|version_use|version_delete|trash|restore|purge|verify|usage`,
   `files/import|export|open|open_list|open_cleanup` (absolute paths),
-  `files/share_channel|save_shared`, `sync/run|status`,
+  `files/share_channel|save_shared`,
+  `files/backup|backup_status|backup_cancel|backup_run`,
+  `files/cloud_list|cloud_refresh|cloud_fetch|cloud_delete|cloud_verify|cloud_usage`, `files/evict`,
+  `sync/run|status`,
   `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`,
   `attest/request|action {action: base64url CBOR}|history|usage|export|verify`,
   `connect/invite|candidates|grant|pairings|revoke|sync|status`,

@@ -23,7 +23,7 @@ use crate::cloud::{verify_command, Presigned};
 use crate::codec::{canonical, decode, decode_value, sha256};
 use crate::content::{
     empty_file, object_container, open_manifest, read_container, record, seal_manifest,
-    EncryptedObject, MAX_OBJECT, VAULT,
+    EncryptedObject, ManifestContent, Opened, MAX_OBJECT, VAULT,
 };
 use crate::files::{read_file, FileManifest, Source, MAX_FILE};
 use crate::migration::MIGRATION_PART;
@@ -282,7 +282,7 @@ impl Client {
                 manifest_size: 0,
                 expires_at: now + dmsg_types::DAY,
             };
-            let manifest = seal_manifest(root, &account, &mut plan, Some(file));
+            let manifest = seal_manifest(root, &account, &mut plan, ManifestContent::File(file));
             job.file = Some(UploadJob {
                 plan,
                 manifest: ByteBuf::from(manifest),
@@ -299,7 +299,7 @@ impl Client {
                 digest,
                 size: object.len() as u64,
             }];
-            let manifest = seal_manifest(root, &account, &mut plan, None);
+            let manifest = seal_manifest(root, &account, &mut plan, ManifestContent::None);
             job.vault = UploadJob {
                 plan,
                 manifest: ByteBuf::from(manifest),
@@ -939,7 +939,12 @@ impl Client {
                 .key(plan.root_generation)
                 .ok_or(Error::RecoveryIncomplete)?;
             let content = open_manifest(root, &account, plan, &manifest)?;
-            if let Some(file) = content {
+            // Backups never appear in the vault's snapshot.
+            ensure(
+                !matches!(content, Opened::Backup(_)),
+                Error::IntegrityFailed,
+            )?;
+            if let Opened::File(file) = content {
                 let chunks: Vec<&str> = match file.chunks.is_empty() {
                     true => vec![],
                     false => file.chunks.iter().map(|c| c.digest.as_str()).collect(),
