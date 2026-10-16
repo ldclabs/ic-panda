@@ -687,7 +687,9 @@ const messages = {
   tabAgentIds: 'Agent IDs',
   tabCapabilities: 'Capabilities',
   tabEvents: 'Events',
-  tabAudit: 'Audit'
+  tabAudit: 'Audit',
+  legacySteps: 'Show the steps',
+  legacyPasteOr: 'or paste it below'
 }
 
 /** Approval states, as the approvals list and the approval window show them. */

@@ -859,7 +859,13 @@ const en = {
   'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
     'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.',
   'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
-    'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.'
+    'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.',
+  'Your legacy identity': 'Your legacy identity',
+  'Take an inventory': 'Take an inventory',
+  'Compare with the desktop app': 'Compare with the desktop app',
+  'Create the migration file': 'Create the migration file',
+  'Export the frozen evidence': 'Export the frozen evidence',
+  'Approve a request': 'Approve a request'
 }
 
 export type MessageKey = keyof typeof en

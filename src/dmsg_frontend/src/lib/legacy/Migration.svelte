@@ -13,7 +13,12 @@
   import { createLegacyReader } from './reader'
   import { authStore } from '$lib/stores/auth'
   import { t } from '$lib/i18n'
-  let mode = $state<'Local' | 'ECDH' | 'VetKey'>('Local')
+  import Check from './ui/Check.svelte'
+  import Choice from './ui/Choice.svelte'
+  import Step from './ui/Step.svelte'
+  import { chip, field, panel } from './ui/classes'
+  const modes = ['Local', 'ECDH', 'VetKey'] as const
+  let mode = $state<(typeof modes)[number]>('Local')
   let password = $state(''),
     offer = $state<PairingOffer | null>(null),
     linkError = $state(''),
@@ -41,6 +46,19 @@
     password = ''
     report = null
   })
+  const anonymous = $derived($authStore.identity.getPrincipal().isAnonymous())
+
+  async function clearCache() {
+    const { checkpoint } = await createLegacyReader(mode)
+    try {
+      await checkpoint.clear()
+      report = null
+      objectCount = 0
+    } finally {
+      checkpoint.close()
+    }
+  }
+
   async function run(exporting: boolean) {
     if (busy) return
     busy = true
@@ -114,115 +132,141 @@
   }
 </script>
 
-<section class="migration">
-  <h2>{$t('Read-only inventory and encrypted migration')}</h2>
-  <p>
-    {$t(
-      'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.'
-    )}
-  </p>
-  <p>
-    {$t('Current identity:')}
-    <code>{$authStore.identity.getPrincipal().toText()}</code>
-  </p>
-  <label
-    >{$t('Legacy key mode')}
-    <select bind:value={mode} disabled={busy}
-      ><option>Local</option><option>ECDH</option><option>VetKey</option
-      ></select
-    ></label
-  >
-  <button
-    class="button"
-    disabled={busy || $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={() => run(false)}
-    >{$t('Take inventory of readable history')}</button
-  >
-  {#if report}<p role="status">
+<section
+  class="migration grid max-w-[860px] gap-6 border-t border-[var(--line)] py-12"
+>
+  <div class="grid gap-3">
+    <h2>{$t('Read-only inventory and encrypted migration')}</h2>
+    <p class="mb-0!">
       {$t(
-        'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.',
-        { count: objectCount, gaps: report.gaps.length }
+        'Use your legacy identity and choose the key mode you used before. Reading never initializes or rotates keys, confirms exchanges, or marks anything read. The result is a pre-migration snapshot and cannot confirm the final cutover.'
       )}
     </p>
-    <ul>
-      {#each report.gaps.slice(0, 30) as gap}<li>
-          <code>{gap.source}</code>: {gap.code} · {gap.detail}
-        </li>{/each}
-    </ul>
-  {/if}
-  <p>
-    {$t(
-      'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.'
-    )}
-  </p>
-  <button
-    class="button"
-    disabled={busy}
-    onclick={async () => {
-      const { checkpoint } = await createLegacyReader(mode)
-      try {
-        await checkpoint.clear()
-        report = null
-        objectCount = 0
-      } finally {
-        checkpoint.close()
-      }
-    }}>{$t('Clear the migration cache and start over')}</button
-  >
-  {#if offer}<p>{$t('Target device:')} <code>{offer.target}</code></p>
-    <p>{$t('Fingerprint:')} <code>{pairingFingerprint(offer)}</code></p>
-    <label
-      ><input type="checkbox" bind:checked={confirmed} />
-      {$t(
-        'The fingerprint, legacy identity and target device match what the desktop app shows'
-      )}</label
-    >{:else}<p
-      >{$t(
-        linkError ||
-          'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.'
-      )}</p
-    >{/if}
-  {#if mode !== 'VetKey'}<label
-      >{$t('Your original unlock password')}<input
-        type="password"
-        bind:value={password}
-        autocomplete="off"
-      /></label
-    >{/if}
-  <button
-    class="button primary"
-    disabled={busy ||
-      !offer ||
-      !confirmed ||
-      $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={() => run(true)}
-    >{$t('Unlock and create the encrypted migration file')}</button
-  >
-  {#if busy}<button class="button" onclick={() => abort?.abort()}
-      >{$t('Stop reading')}</button
-    >{/if}
-  {#if error}<p role="alert">{$t(error)}</p>{/if}
-  <p>
-    {$t(
-      'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.'
-    )}
-  </p>
+  </div>
+  <ol class={panel}>
+    <Step n={1} title={$t('Your legacy identity')} done={!anonymous}>
+      <div class="flex flex-wrap items-center gap-2 text-[15px]">
+        <span class="text-[var(--muted)]">{$t('Current identity:')}</span>
+        <code class={chip}>{$authStore.identity.getPrincipal().toText()}</code>
+      </div>
+      <div class="grid gap-2">
+        <span class="text-[14px] font-medium">{$t('Legacy key mode')}</span>
+        <Choice
+          bind:value={() => mode, (next) => (mode = next as typeof mode)}
+          options={[...modes]}
+          label={$t('Legacy key mode')}
+          disabled={busy}
+        />
+      </div>
+    </Step>
+    <Step n={2} title={$t('Take an inventory')} done={!!report}>
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          class="button secondary disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={busy || anonymous}
+          onclick={() => run(false)}
+          >{$t('Take inventory of readable history')}</button
+        >
+        <button
+          class="text-link disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={busy}
+          onclick={clearCache}
+          >{$t('Clear the migration cache and start over')}</button
+        >
+      </div>
+      {#if report}<div
+          class="grid gap-2 rounded-xl bg-[var(--canvas)] p-4"
+          role="status"
+        >
+          <span class="text-[15px] font-medium"
+            >{$t(
+              'Read {count} records with {gaps} gaps. Query results are not a certified frozen snapshot.',
+              { count: objectCount, gaps: report.gaps.length }
+            )}</span
+          >
+          {#if report.gaps.length}<ul
+              class="grid max-h-60 gap-1 overflow-y-auto font-mono text-[12.5px] text-[var(--muted)]"
+            >
+              {#each report.gaps.slice(0, 30) as gap}<li>
+                  <code class="text-[var(--ink)]">{gap.source}</code>: {gap.code}
+                  · {gap.detail}
+                </li>{/each}
+            </ul>{/if}
+        </div>{/if}
+      <p class="mb-0! text-[14px]">
+        {$t(
+          'Pages already read are kept encrypted in a separate migration cache in this browser, so you can continue after reopening. The original database stays read-only, and changes in the old service are reported as differences.'
+        )}
+      </p>
+    </Step>
+    <Step n={3} title={$t('Compare with the desktop app')} done={confirmed}>
+      {#if offer}<dl
+          class="grid gap-x-6 gap-y-2 rounded-xl border border-[var(--accent)] bg-[var(--pale)] p-4 sm:grid-cols-[max-content_minmax(0,1fr)]"
+        >
+          <dt class="text-[14px] text-[var(--muted)]">{$t('Target device:')}</dt
+          >
+          <dd class="m-0 font-mono text-[14px] [overflow-wrap:anywhere]">
+            {offer.target}
+          </dd>
+          <dt class="text-[14px] text-[var(--muted)]">{$t('Fingerprint:')}</dt>
+          <dd
+            class="m-0 font-mono text-[15px] font-semibold [overflow-wrap:anywhere] text-[var(--action)]"
+          >
+            {pairingFingerprint(offer)}
+          </dd>
+        </dl>
+        <Check bind:checked={confirmed}
+          >{$t(
+            'The fingerprint, legacy identity and target device match what the desktop app shows'
+          )}</Check
+        >{:else}<p
+          class={[
+            'mb-0! rounded-xl p-4 text-[15px]',
+            linkError ? 'bg-[#fef2f2] text-[#991b1b]!' : 'bg-[var(--canvas)]'
+          ]}
+          role={linkError ? 'alert' : undefined}
+        >
+          {$t(
+            linkError ||
+              'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.'
+          )}
+        </p>{/if}
+    </Step>
+    <Step n={4} title={$t('Create the migration file')}>
+      {#if mode !== 'VetKey'}<label class="grid max-w-md gap-2">
+          <span class="text-[14px] font-medium"
+            >{$t('Your original unlock password')}</span
+          >
+          <input
+            type="password"
+            class={field}
+            bind:value={password}
+            autocomplete="off"
+          />
+        </label>{/if}
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          class="button primary disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={busy || !offer || !confirmed || anonymous}
+          onclick={() => run(true)}
+          >{$t('Unlock and create the encrypted migration file')}</button
+        >
+        {#if busy}<button
+            class="button secondary disabled:cursor-not-allowed disabled:opacity-60"
+            onclick={() => abort?.abort()}>{$t('Stop reading')}</button
+          >{/if}
+      </div>
+      {#if error}<p
+          class="mb-0! rounded-xl bg-[#fef2f2] p-4 text-[15px] text-[#991b1b]!"
+          role="alert"
+        >
+          {$t(error)}
+        </p>{/if}
+      <p class="mb-0! text-[14px]">
+        {$t(
+          'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.'
+        )}
+      </p>
+    </Step>
+  </ol>
 </section>
-
-<style>
-  .migration {
-    padding: 32px 0;
-    border-top: 1px solid #cdd8cf;
-    max-width: 780px;
-  }
-  label {
-    display: block;
-    margin: 16px 0;
-  }
-  code {
-    overflow-wrap: anywhere;
-  }
-  button {
-    margin: 8px 12px 8px 0;
-  }
-</style>

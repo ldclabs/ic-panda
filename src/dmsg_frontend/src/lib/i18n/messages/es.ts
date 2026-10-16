@@ -878,5 +878,11 @@ export default {
   'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
     'Prueba congelada de los mensajes y adjuntos exportada. El archivo no contiene ningún token de descarga; impórtalo solo en tu propia app de escritorio.',
   'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
-    'Tu aprobación explícita de esta versión está lista. Copia el resultado en la app de escritorio para terminar la misma propuesta.'
+    'Tu aprobación explícita de esta versión está lista. Copia el resultado en la app de escritorio para terminar la misma propuesta.',
+  'Your legacy identity': 'Tu identidad anterior',
+  'Take an inventory': 'Hacer el inventario',
+  'Compare with the desktop app': 'Comparar con la aplicación de escritorio',
+  'Create the migration file': 'Crear el archivo de migración',
+  'Export the frozen evidence': 'Exportar las pruebas congeladas',
+  'Approve a request': 'Aprobar una solicitud'
 } satisfies Messages

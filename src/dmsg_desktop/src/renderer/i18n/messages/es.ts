@@ -685,7 +685,9 @@ export default {
     tabAgentIds: 'Agent ID',
     tabCapabilities: 'Capacidades',
     tabEvents: 'Eventos',
-    tabAudit: 'Auditoría'
+    tabAudit: 'Auditoría',
+    legacySteps: 'Mostrar los pasos',
+    legacyPasteOr: 'o pégalo abajo'
   },
   approvalStates: {
     awaiting_user: 'En espera',

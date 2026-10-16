@@ -1,14 +1,20 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { t } from '../i18n/index.svelte'
-  import { call, code, when } from '../rpc'
-  import Select from '../components/Select.svelte'
   import { RadioGroup } from 'bits-ui'
+  import { onMount } from 'svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Collapsible from '../components/Collapsible.svelte'
   import Icon from '../components/Icon.svelte'
+  import Fact from '../components/page/Fact.svelte'
+  import Field from '../components/page/Field.svelte'
+  import Id from '../components/page/Id.svelte'
+  import Notice from '../components/page/Notice.svelte'
+  import Pill from '../components/page/Pill.svelte'
+  import Section from '../components/page/Section.svelte'
   import Radio from '../components/Radio.svelte'
-  import { buttonClass } from '../components/ui'
+  import Select from '../components/Select.svelte'
+  import { buttonClass, cn } from '../components/ui'
+  import { t } from '../i18n/index.svelte'
+  import { call, code, when } from '../rpc'
 
   /**
    * Legacy migration: a one-time offer opens the old site in the system
@@ -202,234 +208,280 @@
   })
 </script>
 
-<div class="card" data-testid="legacy">
-  <h2>{t('legacyTitle')}</h2>
-  <p class="muted">{t('legacyHint')}</p>
-  {#if error}<p class="error">{error}</p>{/if}
-  {#if notice}<p class="muted">{notice}</p>{/if}
-  <div class="row">
-    <Select bind:value={origin} options={['https://dmsg.net', 'https://panda.fans'].map((o) => ({ value: o, label: o, mono: true }))} />
-    <button class={buttonClass('primary')} disabled={busy} onclick={pair} data-testid="legacy-pair">{t('legacyPair')}</button>
+{#snippet step(n: number, title: string)}
+  <h3 class="mt-2 flex items-center gap-2 text-[13px] font-semibold">
+    <span class="grid size-5 place-items-center rounded-full bg-pale font-mono text-[11px] text-forest">{n}</span>{title}
+  </h3>
+{/snippet}
+
+{#snippet links(list: string[])}
+  <div class="flex flex-wrap gap-1.5">
+    {#each list as link (link)}
+      <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => window.dmsg.openLegacy(link)}><Icon name="external" />{new URL(link).host}</button>
+    {/each}
   </div>
+{/snippet}
+
+{#if error}<Notice tone="danger">{error}</Notice>{/if}
+{#if notice}<Notice tone="ok">{notice}</Notice>{/if}
+
+<Section title={t('legacyTitle')} description={t('legacyHint')} icon="legacy" testid="legacy">
+  {#snippet actions()}
+    <Select bind:value={origin} label={t('legacyTitle')} options={['https://dmsg.net', 'https://panda.fans'].map((o) => ({ value: o, label: o, mono: true }))} />
+    <button class={buttonClass('primary')} disabled={busy} onclick={pair} data-testid="legacy-pair"><Icon name="external" />{t('legacyPair')}</button>
+  {/snippet}
   {#if pairs.length}
-    <h3>{t('legacyOffers')}</h3>
+    <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyOffers')}</h3>
     <RadioGroup.Root bind:value={selected} onValueChange={() => (confirmed = false)} aria-label={t('legacyOffers')}>
-    <ul class="list">
-      {#each pairs as p (p.nonce)}
-        <li class="row spread">
-          <Radio value={p.nonce} testid="legacy-pick-{p.nonce}">
-            {p.origin} · <span class="mono">{p.fingerprint.slice(0, 16)}</span> · {t('expires')} {when(p.expires_at)}{p.started ? ` · ${t('legacyStarted')}` : ''}
-          </Radio>
-          <span class="row">
-            <button class={buttonClass()} disabled={busy} onclick={() => window.dmsg.openLegacy(p.link)}>{t('open')}</button>
-            <button class={buttonClass('danger')} disabled={busy} onclick={() => cancel(p.nonce)}>{t('cancel')}</button>
-          </span>
-        </li>
-      {/each}
-    </ul>
+      <ul class="divide-y divide-line rounded-xl border border-line">
+        {#each pairs as p (p.nonce)}
+          <li class={cn('flex flex-wrap items-center gap-2 px-3.5 py-2.5', selected === p.nonce && 'bg-pale/60')}>
+            <Radio value={p.nonce} testid="legacy-pick-{p.nonce}" class="min-w-0 flex-1">
+              <span class="flex flex-wrap items-center gap-1.5 text-[12.5px]">
+                <bdi dir="ltr" class="font-mono">{p.origin}</bdi>
+                <span class="font-mono text-faint">{p.fingerprint.slice(0, 16)}</span>
+                <span class="text-faint">· {t('expires')} {when(p.expires_at)}</span>
+                {#if p.started}<Pill tone="warn">{t('legacyStarted')}</Pill>{/if}
+              </span>
+            </Radio>
+            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => window.dmsg.openLegacy(p.link)}>{t('open')}</button>
+            <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => cancel(p.nonce)}>{t('cancel')}</button>
+          </li>
+        {/each}
+      </ul>
     </RadioGroup.Root>
   {/if}
   {#if pairing}
-    <dl data-testid="legacy-offer">
-      <dt>{t('legacyLink')}</dt>
-      <dd class="mono">{pairing.link}</dd>
-      <dt>{t('device')}</dt>
-      <dd class="mono">{pairing.target}</dd>
-      <dt>{t('fingerprint')}</dt>
-      <dd class="mono">{pairing.fingerprint}</dd>
-    </dl>
-    <input placeholder={t('legacyPrincipal')} bind:value={principal} autocomplete="off" />
-    <Checkbox bind:checked={confirmed} class="mt-2 flex">{t('legacyConfirm')}</Checkbox>
-    <button class={buttonClass('primary')} style="margin-top: 8px" disabled={busy || !confirmed || !principal.trim()} onclick={importFile}>{t('legacyImport')}</button>
+    <div class="mt-3 grid gap-3 rounded-xl border border-forest/30 bg-pale/40 p-4">
+      <dl class="divide-y divide-line" data-testid="legacy-offer">
+        <Fact label={t('legacyLink')}><bdi dir="ltr" class="font-mono text-[11.5px] break-all">{pairing.link}</bdi></Fact>
+        <Fact label={t('device')}><span class="font-mono text-[12px] break-all">{pairing.target}</span></Fact>
+        <Fact label={t('fingerprint')}><span class="font-mono text-[12px] font-semibold break-all text-forest">{pairing.fingerprint}</span></Fact>
+      </dl>
+      <Field label={t('legacyPrincipal')}><input bind:value={principal} autocomplete="off" class="font-mono text-[12.5px]" /></Field>
+      <Checkbox bind:checked={confirmed}>{t('legacyConfirm')}</Checkbox>
+      <button class={buttonClass('primary', 'md', 'justify-self-start')} disabled={busy || !confirmed || !principal.trim()} onclick={importFile}>
+        <Icon name="verified" />{t('legacyImport')}
+      </button>
+    </div>
   {/if}
+</Section>
 
-  <h3>{t('legacyArchives')}</h3>
-  <ul class="list" data-testid="legacy-archives">
+<Section title={t('legacyArchives')} icon="archive" flush>
+  <ul class="divide-y divide-line border-t border-line" data-testid="legacy-archives">
     {#each archives as a (a.id)}
-      <li class="row spread">
-        <span>{a.mode} · <span class="mono">{a.principal}</span> · {a.objects} {t('legacyObjects')} · {a.gaps} {t('legacyGaps')}</span>
-        <button class={buttonClass()} disabled={busy} onclick={() => open(a.id)}>{t('legacyRead')}</button>
+      <li class="flex flex-wrap items-center gap-2 px-5 py-3">
+        <Pill>{a.mode}</Pill>
+        <Id id={a.principal} full class="max-w-[50%]" />
+        <span class="min-w-0 flex-1 text-[12px] text-faint">{a.objects} {t('legacyObjects')} · {a.gaps} {t('legacyGaps')}</span>
+        <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => open(a.id)}>{t('legacyRead')}</button>
       </li>
     {:else}
-      <li class="muted">{t('legacyNone')}</li>
+      <li class="px-5 py-3 text-[13px] text-faint">{t('legacyNone')}</li>
     {/each}
   </ul>
-</div>
+</Section>
 
 {#if report}
-  <div class="card" data-testid="legacy-report">
-    <h2>{report.stage === 'partial' ? t('legacyPartial') : t('legacyVerified')}</h2>
-    <p class="muted">{t('legacyClaims')}</p>
-    <dl>
-      <dt>{t('legacyPrincipal')}</dt>
-      <dd class="mono">{report.principal}</dd>
-      <dt>{t('displayName')}</dt>
-      <dd>{report.profile.name || '-'}</dd>
-      <dt>{t('bio')}</dt>
-      <dd>{report.profile.bio || '-'}</dd>
-    </dl>
-    {#if report.gaps.length}
-      <h3>{t('legacyGapList')}</h3>
-      <ul class="list">
-        {#each report.gaps.slice(0, 30) as gap, i (i)}
-          <li class="mono muted">{gap.code} · {gap.source}: {gap.detail}</li>
-        {/each}
-      </ul>
-    {/if}
-    {#if report.files.length}
-      <h3>{t('legacyFiles')}</h3>
-      <ul class="list">
-        {#each report.files as file (file.source)}
-          <li class="row spread">
-            <span>{file.name} <span class="mono muted">{file.source}</span></span>
-            <button class={buttonClass()} disabled={busy || !file.verified} onclick={() => saveFile(file)}>{file.verified ? t('legacySave') : t('legacyUnverified')}</button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-    {#if report.resources.length || report.entitlements.length}
-      <h3>{t('legacyResources')}</h3>
-      <p class="muted">{t('legacyResourcesHint')}</p>
-      {#each report.resources as r (r.source)}
-        <div class="mono muted">{r.name} · {t('legacyResource', { paid: r.paid, gas: r.gas })}</div>
-      {/each}
-      {#each report.entitlements as e (e.source)}
-        <Collapsible>
-          {#snippet title()}<span class="mono">{e.source}</span>{/snippet}
-          <pre>{pretty(e.value)}</pre>
-        </Collapsible>
-      {/each}
-    {/if}
-    <h3>{t('legacyFrozen')}</h3>
-    <p class="muted">
-      {report.frozen.matched ? t('legacyFrozenMatched') : `${report.frozen.total_changes} ${t('legacyFrozenChanges')}`}
-    </p>
-    <button class={buttonClass()} disabled={busy} onclick={frozen}>{t('legacyFrozenImport')}</button>
-    <h3>{t('legacyMessages')} ({report.total_messages})</h3>
-    <ul class="list" data-testid="legacy-messages">
-      {#each report.messages as m (m.source)}
-        <li>
-          <div class="muted mono">{m.author} · {m.time}{m.system ? ` · ${t('legacySystem')}` : ''}</div>
-          <div style="white-space: pre-wrap">{m.deleted ? t('legacyDeleted') : m.text}{m.file ? ` 📎 ${m.file.name}` : ''}</div>
-        </li>
-      {/each}
-    </ul>
-    {#if report.total_messages > report.messages.length}
-      <button class={buttonClass()} disabled={busy} onclick={more}>{t('next')}</button>
-    {/if}
-  </div>
+  <Section title={report.stage === 'partial' ? t('legacyPartial') : t('legacyVerified')} description={t('legacyClaims')} icon={report.stage === 'partial' ? 'warning' : 'verified'} testid="legacy-report">
+    <div class="grid gap-4">
+      <dl class="divide-y divide-line">
+        <Fact label={t('legacyPrincipal')}><Id id={report.principal} full /></Fact>
+        <Fact label={t('displayName')}>{report.profile.name || '-'}</Fact>
+        <Fact label={t('bio')}>{report.profile.bio || '-'}</Fact>
+      </dl>
+      {#if report.gaps.length}
+        <Notice tone="warn">
+          <p class="font-medium">{t('legacyGapList')}</p>
+          <ul class="mt-1 grid gap-0.5 font-mono text-[11.5px]">
+            {#each report.gaps.slice(0, 30) as gap, i (i)}<li>{gap.code} · {gap.source}: {gap.detail}</li>{/each}
+          </ul>
+        </Notice>
+      {/if}
+      {#if report.files.length}
+        <div>
+          <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyFiles')}</h3>
+          <ul class="divide-y divide-line rounded-xl border border-line">
+            {#each report.files as file (file.source)}
+              <li class="flex items-center gap-2 px-3.5 py-2">
+                <Icon name="file" class="shrink-0 text-faint" />
+                <span class="min-w-0 flex-1 truncate text-[13px]">{file.name} <span class="font-mono text-[11px] text-faint">{file.source}</span></span>
+                <button class={buttonClass('secondary', 'xs')} disabled={busy || !file.verified} onclick={() => saveFile(file)}>
+                  {file.verified ? t('legacySave') : t('legacyUnverified')}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+      {#if report.resources.length || report.entitlements.length}
+        <div class="grid gap-1.5">
+          <h3 class="text-[12px] font-medium text-faint">{t('legacyResources')}</h3>
+          <p class="text-[12px] text-muted">{t('legacyResourcesHint')}</p>
+          {#each report.resources as r (r.source)}
+            <p class="font-mono text-[11.5px] text-muted">{r.name} · {t('legacyResource', { paid: r.paid, gas: r.gas })}</p>
+          {/each}
+          {#each report.entitlements as e (e.source)}
+            <Collapsible>
+              {#snippet title()}<span class="font-mono text-[12px]">{e.source}</span>{/snippet}
+              <pre class="overflow-x-auto rounded-lg bg-surface-2 p-2.5 font-mono text-[11px]">{pretty(e.value)}</pre>
+            </Collapsible>
+          {/each}
+        </div>
+      {/if}
+      <div class="flex flex-wrap items-center gap-2 rounded-xl border border-line px-3.5 py-2.5">
+        <Icon name={report.frozen.matched ? 'verified' : 'warning'} class={report.frozen.matched ? 'text-ok' : 'text-warn'} />
+        <span class="min-w-0 flex-1 text-[12.5px]">
+          <b class="font-medium">{t('legacyFrozen')}</b> · {report.frozen.matched ? t('legacyFrozenMatched') : `${report.frozen.total_changes} ${t('legacyFrozenChanges')}`}
+        </span>
+        <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={frozen}>{t('legacyFrozenImport')}</button>
+      </div>
+      <div>
+        <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('legacyMessages')} · {report.total_messages}</h3>
+        <ul class="divide-y divide-line rounded-xl border border-line" data-testid="legacy-messages">
+          {#each report.messages as m (m.source)}
+            <li class="px-3.5 py-2.5">
+              <p class="font-mono text-[11px] text-faint">{m.author} · {m.time}{m.system ? ` · ${t('legacySystem')}` : ''}</p>
+              <p class={cn('text-[13px] whitespace-pre-wrap [overflow-wrap:anywhere]', m.deleted && 'text-faint italic')}>
+                {m.deleted ? t('legacyDeleted') : m.text}
+              </p>
+              {#if m.file}<p class="mt-0.5 inline-flex items-center gap-1 text-[12px] text-faint"><Icon name="attach" class="size-3.5" />{m.file.name}</p>{/if}
+            </li>
+          {/each}
+        </ul>
+        {#if report.total_messages > report.messages.length}
+          <button class={buttonClass('ghost', 'sm', 'mt-2')} disabled={busy} onclick={more}>{t('more')}</button>
+        {/if}
+      </div>
+    </div>
+  </Section>
 {/if}
 
-<Collapsible class="card" testid="legacy-shared">
-  {#snippet title()}<strong>{t('legacyShared')}</strong>{/snippet}
-  <p class="muted">{t('legacySharedHint')}</p>
-  <h3>{t('legacySource')}</h3>
-  <input bind:this={sourceFile} class="hidden" type="file" accept=".json,application/json" onchange={readFile} />
-  <button class={buttonClass('secondary', 'sm')} onclick={() => sourceFile?.click()}><Icon name="upload" />{t('chooseFile')}</button>
-  <textarea bind:value={sourceText} placeholder="legacy-shared-source.json" style="margin-top: 8px"></textarea>
-  <div class="row" style="margin-top: 8px">
-    <button class={buttonClass()} disabled={busy || !sourceText.trim()} onclick={checkSource}>{t('legacyCheckSource')}</button>
-    <input style="max-width: 80px" bind:value={version} aria-label={t('legacyVersion')} />
-    <button class={buttonClass('primary')} disabled={busy || !sourceText.trim() || !/^\d+$/.test(version)} onclick={prepare}>{t('legacyPropose')}</button>
-  </div>
-  {#if source}
-    <dl>
-      <dt>{t('legacyManagers')}</dt>
-      <dd class="mono">{source.managers.join(', ')}</dd>
-      <dt>{t('legacyMembers')}</dt>
-      <dd class="mono">{source.members.join(', ')}</dd>
-      <dt>{t('legacyRange')}</dt>
-      <dd>{source.messageStart} – {source.messageEnd}</dd>
-    </dl>
-  {/if}
-  <h3>{t('legacyDraft')}</h3>
-  <textarea bind:value={draftText} placeholder="dmsg-shared-migration-draft/1"></textarea>
-  <div class="row" style="margin-top: 8px">
-    <button class={buttonClass()} disabled={busy || !draftText.trim()} onclick={checkDraft}>{t('legacyCheckDraft')}</button>
-    <input placeholder={t('legacyManager')} bind:value={manager} />
-    <button class={buttonClass()} disabled={busy || !draftText.trim() || !manager.trim()} onclick={managerRequest}>{t('legacyRequest')}</button>
-  </div>
-  {#if request}
-    <textarea readonly value={pretty(request.request)}></textarea>
-    <div class="row">
-      {#each request.links as link (link)}
-        <button class={buttonClass()} disabled={busy} onclick={() => window.dmsg.openLegacy(link)}>{new URL(link).host}</button>
-      {/each}
-    </div>
-  {/if}
-  <textarea bind:value={approvalText} placeholder={t('legacyApproval')} style="margin-top: 8px"></textarea>
-  <div class="row" style="margin-top: 8px">
-    <button class={buttonClass('primary')} disabled={busy || !draftText.trim() || !approvalText.trim()} onclick={() => vote('legacy/shared_propose')}>{t('legacySubmitProposal')}</button>
-    <button class={buttonClass()} disabled={busy || !draftText.trim() || !approvalText.trim()} onclick={() => vote('legacy/shared_consent')}>{t('legacySubmitConsent')}</button>
-  </div>
+<Section title={t('legacyShared')} description={t('legacySharedHint')} icon="members" testid="legacy-shared">
+  <Collapsible>
+    {#snippet title()}<span class="text-[12.5px] font-medium">{t('legacySteps')}</span>{/snippet}
+    <div class="grid gap-3 pt-2 pb-1">
+      {@render step(1, t('legacySource'))}
+      <input bind:this={sourceFile} class="hidden" type="file" accept=".json,application/json" onchange={readFile} />
+      <div class="flex flex-wrap items-center gap-2">
+        <button class={buttonClass('secondary', 'sm')} onclick={() => sourceFile?.click()}><Icon name="upload" />{t('chooseFile')}</button>
+        <span class="text-[12px] text-faint">{t('legacyPasteOr')}</span>
+      </div>
+      <textarea bind:value={sourceText} rows="3" class="font-mono text-[11.5px]" placeholder="legacy-shared-source.json"></textarea>
+      <div class="flex flex-wrap items-end gap-2">
+        <button class={buttonClass('secondary')} disabled={busy || !sourceText.trim()} onclick={checkSource}>{t('legacyCheckSource')}</button>
+        <span class="flex-1"></span>
+        <Field label={t('legacyVersion')}><input bind:value={version} class="w-20 tabular-nums" /></Field>
+        <button class={buttonClass('primary')} disabled={busy || !sourceText.trim() || !/^\d+$/.test(version)} onclick={prepare}>{t('legacyPropose')}</button>
+      </div>
+      {#if source}
+        <dl class="divide-y divide-line rounded-xl border border-line px-3.5">
+          <Fact label={t('legacyManagers')}><span class="font-mono text-[11.5px] break-all">{source.managers.join(', ')}</span></Fact>
+          <Fact label={t('legacyMembers')}><span class="font-mono text-[11.5px] break-all">{source.members.join(', ')}</span></Fact>
+          <Fact label={t('legacyRange')}>{source.messageStart} – {source.messageEnd}</Fact>
+        </dl>
+      {/if}
 
-  <h3>{t('legacyDirectory')}</h3>
-  <textarea bind:value={target} placeholder={t('legacyDirectoryHint')}></textarea>
-  <button class={buttonClass()} style="margin-top: 8px" disabled={busy || !target.trim()} onclick={read}>{t('refresh')}</button>
-  {#if view}
-    <p>{t('status')}: {view.stage} · v{view.proposal.version} · {Object.keys(view.votes).length}/{view.source.managers.length} {t('legacyVotes')}</p>
-    <p class="mono muted">{view.key}</p>
-    <Collapsible>
-      {#snippet title()}{t('legacyExportView')}{/snippet}
-      <textarea readonly value={pretty(view)}></textarea>
-    </Collapsible>
-    {#if view.proposal.owner === me}
-      <div class="row">
-        <button class={buttonClass()} disabled={busy || view.stage !== 'pending'} onclick={() => act('legacy/shared_commit')}>{t('legacyCommit')}</button>
-        <button class={buttonClass('primary')} disabled={busy || !['committed', 'active'].includes(view.stage)} onclick={() => act('legacy/shared_activate')}>{t('legacyActivate')}</button>
+      {@render step(2, t('legacyDraft'))}
+      <textarea bind:value={draftText} rows="3" class="font-mono text-[11.5px]" placeholder="dmsg-shared-migration-draft/1"></textarea>
+      <div class="flex flex-wrap items-end gap-2">
+        <button class={buttonClass('secondary')} disabled={busy || !draftText.trim()} onclick={checkDraft}>{t('legacyCheckDraft')}</button>
+        <Field label={t('legacyManager')} class="min-w-48 flex-1"><input bind:value={manager} class="font-mono text-[12px]" /></Field>
+        <button class={buttonClass('secondary')} disabled={busy || !draftText.trim() || !manager.trim()} onclick={managerRequest}>{t('legacyRequest')}</button>
       </div>
-    {/if}
-    <h3>{t('legacyClaim')}</h3>
-    <div class="row">
-      <input placeholder={t('legacyMember')} bind:value={member} />
-      <button class={buttonClass()} disabled={busy || !member.trim()} onclick={askClaim}>{t('legacyRequest')}</button>
+      {#if request}
+        <textarea readonly rows="3" class="font-mono text-[11px]" value={pretty(request.request)}></textarea>
+        {@render links(request.links)}
+      {/if}
+      <Field label={t('legacyApproval')}><textarea bind:value={approvalText} rows="3" class="font-mono text-[11.5px]"></textarea></Field>
+      <div class="flex flex-wrap gap-2">
+        <button class={buttonClass('primary')} disabled={busy || !draftText.trim() || !approvalText.trim()} onclick={() => vote('legacy/shared_propose')}>{t('legacySubmitProposal')}</button>
+        <button class={buttonClass('secondary')} disabled={busy || !draftText.trim() || !approvalText.trim()} onclick={() => vote('legacy/shared_consent')}>{t('legacySubmitConsent')}</button>
+      </div>
+
+      {@render step(3, t('legacyDirectory'))}
+      <textarea bind:value={target} rows="2" class="font-mono text-[11.5px]" placeholder={t('legacyDirectoryHint')}></textarea>
+      <button class={buttonClass('secondary', 'md', 'justify-self-start')} disabled={busy || !target.trim()} onclick={read}><Icon name="sync-now" />{t('refresh')}</button>
+      {#if view}
+        <div class="grid gap-3 rounded-xl border border-line p-3.5">
+          <div class="flex flex-wrap items-center gap-2 text-[12.5px]">
+            <Pill tone={view.stage === 'active' ? 'ok' : 'neutral'}>{view.stage}</Pill>
+            <span>v{view.proposal.version}</span>
+            <span class="text-faint">· {Object.keys(view.votes).length}/{view.source.managers.length} {t('legacyVotes')}</span>
+            <span class="flex-1"></span>
+            {#if view.proposal.owner === me}
+              <button class={buttonClass('secondary', 'xs')} disabled={busy || view.stage !== 'pending'} onclick={() => act('legacy/shared_commit')}>{t('legacyCommit')}</button>
+              <button class={buttonClass('primary', 'xs')} disabled={busy || !['committed', 'active'].includes(view.stage)} onclick={() => act('legacy/shared_activate')}>{t('legacyActivate')}</button>
+            {/if}
+          </div>
+          <p class="font-mono text-[11px] break-all text-faint">{view.key}</p>
+          <Collapsible>
+            {#snippet title()}<span class="text-[12px]">{t('legacyExportView')}</span>{/snippet}
+            <textarea readonly rows="4" class="font-mono text-[11px]" value={pretty(view)}></textarea>
+          </Collapsible>
+        </div>
+
+        {@render step(4, t('legacyClaim'))}
+        <div class="flex flex-wrap items-end gap-2">
+          <Field label={t('legacyMember')} class="min-w-48 flex-1"><input bind:value={member} class="font-mono text-[12px]" /></Field>
+          <button class={buttonClass('secondary')} disabled={busy || !member.trim()} onclick={askClaim}>{t('legacyRequest')}</button>
+        </div>
+        {#if claimRequest}
+          <textarea readonly rows="3" class="font-mono text-[11px]" value={pretty(claimRequest.request)}></textarea>
+          <div class="flex flex-wrap items-center gap-2">
+            {@render links(claimRequest.links)}
+            <span class="flex-1"></span>
+            <button class={buttonClass('primary', 'sm')} disabled={busy || !approvalText.trim()} onclick={claim}>{t('legacySubmitClaim')}</button>
+          </div>
+        {/if}
+        {#if claims.length}
+          <ul class="divide-y divide-line rounded-xl border border-line">
+            {#each claims as c (c.claim.member)}
+              <li class="flex flex-wrap items-center gap-2 px-3.5 py-2">
+                <span class="min-w-0 flex-1 font-mono text-[11.5px] break-all">{c.claim.member} → {c.claim.account}</span>
+                {#if c.joined}<Pill tone="ok">{t('legacyJoined')}</Pill>{/if}
+                {#if view.proposal.owner === me && !c.joined}
+                  <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => invite(c.claim.account)}>{t('invite')}</button>
+                {/if}
+                {#if c.claim.account === me && !c.joined}
+                  <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => act('legacy/shared_joined')}>{t('legacyMarkJoined')}</button>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        {#if invitation}<textarea readonly rows="3" class="font-mono text-[11px]" value={invitation}></textarea>{/if}
+        {#if view.stage === 'active'}
+          {@render step(5, t('legacyGrant'))}
+          <div class="flex flex-wrap items-center gap-2">
+            <Select
+              bind:value={grantArchive}
+              placeholder={t('legacyArchives')}
+              options={archives.map((a) => ({ value: a.id, label: `${a.principal} · ${a.objects}`, mono: true }))}
+            />
+            <Select
+              bind:value={grantMember}
+              placeholder={t('legacyMember')}
+              options={claims.filter((c) => c.joined).map((c) => ({ value: c.claim.member, label: c.claim.member, mono: true }))}
+            />
+            <button
+              class={buttonClass('primary')}
+              disabled={busy || !grantArchive || !grantMember}
+              onclick={() => act('legacy/shared_grant', { archive: grantArchive, member: grantMember })}
+            >
+              {t('legacyGrantSend')}
+            </button>
+          </div>
+          <ul class="divide-y divide-line rounded-xl border border-line">
+            {#each grants.filter((g) => g.grant.scope.account === me) as g (g.grant.scope.grant_id)}
+              <li class="flex items-center gap-2 px-3.5 py-2">
+                <span class="min-w-0 flex-1 font-mono text-[11.5px]">{g.grant.scope.member} · {g.grant.scope.archive_digest.slice(0, 16)}</span>
+                <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => receive(g.grant.scope.grant_id)}>{t('legacyReceive')}</button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      {/if}
     </div>
-    {#if claimRequest}
-      <textarea readonly value={pretty(claimRequest.request)}></textarea>
-      <div class="row">
-        {#each claimRequest.links as link (link)}
-          <button class={buttonClass()} disabled={busy} onclick={() => window.dmsg.openLegacy(link)}>{new URL(link).host}</button>
-        {/each}
-        <button class={buttonClass('primary')} disabled={busy || !approvalText.trim()} onclick={claim}>{t('legacySubmitClaim')}</button>
-      </div>
-    {/if}
-    <ul class="list">
-      {#each claims as c (c.claim.member)}
-        <li class="row spread">
-          <span class="mono">{c.claim.member} → {c.claim.account}{c.joined ? ` · ${t('legacyJoined')}` : ''}</span>
-          <span class="row">
-            {#if view.proposal.owner === me && !c.joined}
-              <button class={buttonClass()} disabled={busy} onclick={() => invite(c.claim.account)}>{t('invite')}</button>
-            {/if}
-            {#if c.claim.account === me && !c.joined}
-              <button class={buttonClass()} disabled={busy} onclick={() => act('legacy/shared_joined')}>{t('legacyMarkJoined')}</button>
-            {/if}
-          </span>
-        </li>
-      {/each}
-    </ul>
-    {#if invitation}<textarea readonly value={invitation}></textarea>{/if}
-    {#if view.stage === 'active'}
-      <h3>{t('legacyGrant')}</h3>
-      <div class="row">
-        <Select
-          bind:value={grantArchive}
-          placeholder={t('legacyArchives')}
-          options={archives.map((a) => ({ value: a.id, label: `${a.principal} · ${a.objects}`, mono: true }))} />
-        <Select
-          bind:value={grantMember}
-          placeholder={t('legacyMember')}
-          options={claims.filter((c) => c.joined).map((c) => ({ value: c.claim.member, label: c.claim.member, mono: true }))} />
-        <button class={buttonClass('primary')} disabled={busy || !grantArchive || !grantMember} onclick={() => act('legacy/shared_grant', { archive: grantArchive, member: grantMember })}>{t('legacyGrantSend')}</button>
-      </div>
-      <ul class="list">
-        {#each grants.filter((g) => g.grant.scope.account === me) as g (g.grant.scope.grant_id)}
-          <li class="row spread">
-            <span class="mono">{g.grant.scope.member} · {g.grant.scope.archive_digest.slice(0, 16)}</span>
-            <button class={buttonClass()} disabled={busy} onclick={() => receive(g.grant.scope.grant_id)}>{t('legacyReceive')}</button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-  {/if}
-</Collapsible>
+  </Collapsible>
+</Section>

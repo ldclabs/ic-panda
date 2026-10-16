@@ -827,5 +827,11 @@ export default {
   'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
     '已导出消息与附件的冻结对照证明。文件不含下载 token；请仅导入本人的桌面客户端。',
   'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
-    '本版本的明确批准已生成。请复制结果，回到桌面客户端完成同一方案。'
+    '本版本的明确批准已生成。请复制结果，回到桌面客户端完成同一方案。',
+  'Your legacy identity': '你的旧版身份',
+  'Take an inventory': '清点可读历史',
+  'Compare with the desktop app': '与桌面应用核对',
+  'Create the migration file': '生成迁移文件',
+  'Export the frozen evidence': '导出冻结证据',
+  'Approve a request': '批准请求'
 } satisfies Messages

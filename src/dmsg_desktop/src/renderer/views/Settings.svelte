@@ -149,117 +149,115 @@
       {/each}
     </div>
     <div class="min-h-0 flex-1">
-      {#if part === 'legacy'}
-        <div class="classic h-full overflow-auto px-6 py-5"><Legacy {status} /></div>
-      {:else}
-        <Page>
-          {#if error}<Notice tone="danger">{error}</Notice>{/if}
-          {#if part === 'session'}
-            <Section title={t('status')} icon="account">
-              {#snippet actions()}
-                <button class={buttonClass('secondary', 'sm')} onclick={() => bridge(() => window.dmsg.login('https://dmsg.net'))}>
-                  <Icon name="login" />{status?.account ? t('loginOther') : t('login')}
-                </button>
-              {/snippet}
-              <dl class="divide-y divide-line">
-                <Fact label={t('status')} testid="session-state">
-                  <Pill tone={unlocked ? 'ok' : 'neutral'}><Icon name={unlocked ? 'unlock' : 'lock'} />{status?.state ? sessionLabel(status.state) : '-'}</Pill>
-                </Fact>
-                <Fact label={t('account')}>{#if status?.account}<Id id={status.account} full />{:else}-{/if}</Fact>
-                <Fact label={t('device')}>{#if status?.device_id}<Id id={status.device_id} />{:else}-{/if}</Fact>
-                <Fact label={t('formal')}>
-                  <Pill tone={own?.capabilities?.includes('FormalApprove') ? 'forest' : 'neutral'}>
-                    {own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff')}
-                  </Pill>
-                </Fact>
-                <Fact label={t('syncState')}>{t('pendingSync', { n: status?.pending_sync ?? 0 })} · {when(status?.last_sync?.at)}</Fact>
-                <Fact label={t('backgroundOnline')}>
-                  {status?.background_online ? t('on') : t('off')}{status?.resident ? ` · ${t('deviceKeyResident')}` : ''}
-                </Fact>
-              </dl>
-              <div class="mt-3 flex flex-wrap gap-1.5">
-                {#if status?.state === 'locked'}
-                  <button class={buttonClass('primary', 'sm')} onclick={() => act('session/unlock', { fast: true })}><Icon name="unlock" />{t('fastUnlock')}</button>
-                {/if}
-                {#if unlocked}
-                  <button class={buttonClass('secondary', 'sm')} onclick={() => act('session/lock')}><Icon name="lock" />{t('lock')}</button>
-                {/if}
-                {#if status?.account}
-                  <button class={buttonClass('secondary', 'sm')} onclick={() => act('sync/run')}><Icon name="sync-now" />{t('sync')}</button>
-                {/if}
-              </div>
+      <Page>
+        {#if error}<Notice tone="danger">{error}</Notice>{/if}
+        {#if part === 'legacy'}
+          <Legacy {status} />
+        {:else if part === 'session'}
+          <Section title={t('status')} icon="account">
+            {#snippet actions()}
+              <button class={buttonClass('secondary', 'sm')} onclick={() => bridge(() => window.dmsg.login('https://dmsg.net'))}>
+                <Icon name="login" />{status?.account ? t('loginOther') : t('login')}
+              </button>
+            {/snippet}
+            <dl class="divide-y divide-line">
+              <Fact label={t('status')} testid="session-state">
+                <Pill tone={unlocked ? 'ok' : 'neutral'}><Icon name={unlocked ? 'unlock' : 'lock'} />{status?.state ? sessionLabel(status.state) : '-'}</Pill>
+              </Fact>
+              <Fact label={t('account')}>{#if status?.account}<Id id={status.account} full />{:else}-{/if}</Fact>
+              <Fact label={t('device')}>{#if status?.device_id}<Id id={status.device_id} />{:else}-{/if}</Fact>
+              <Fact label={t('formal')}>
+                <Pill tone={own?.capabilities?.includes('FormalApprove') ? 'forest' : 'neutral'}>
+                  {own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff')}
+                </Pill>
+              </Fact>
+              <Fact label={t('syncState')}>{t('pendingSync', { n: status?.pending_sync ?? 0 })} · {when(status?.last_sync?.at)}</Fact>
+              <Fact label={t('backgroundOnline')}>
+                {status?.background_online ? t('on') : t('off')}{status?.resident ? ` · ${t('deviceKeyResident')}` : ''}
+              </Fact>
+            </dl>
+            <div class="mt-3 flex flex-wrap gap-1.5">
+              {#if status?.state === 'locked'}
+                <button class={buttonClass('primary', 'sm')} onclick={() => act('session/unlock', { fast: true })}><Icon name="unlock" />{t('fastUnlock')}</button>
+              {/if}
+              {#if unlocked}
+                <button class={buttonClass('secondary', 'sm')} onclick={() => act('session/lock')}><Icon name="lock" />{t('lock')}</button>
+              {/if}
+              {#if status?.account}
+                <button class={buttonClass('secondary', 'sm')} onclick={() => act('sync/run')}><Icon name="sync-now" />{t('sync')}</button>
+              {/if}
+            </div>
+          </Section>
+          {#if accounts.length}
+            <Section title={t('localAccounts')} description={t('localAccountsHint')} icon="members" flush>
+              <ul class="divide-y divide-line border-t border-line" data-testid="local-accounts">
+                {#each accounts as a (a.account)}
+                  <li class="flex flex-wrap items-center gap-2 px-5 py-3">
+                    <Id id={a.account} full class="max-w-[60%]" />
+                    {#if a.current}<Pill tone="forest">{t('current')}</Pill>{/if}
+                    {#if !a.bound}<Pill tone="warn">{t('waitingDevice')}</Pill>{/if}
+                    <span class="flex-1"></span>
+                    {#if !a.current}
+                      {#if a.fast_unlock}<button class={buttonClass('secondary', 'xs')} onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
+                      <button class={buttonClass('secondary', 'xs')} onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
+                    {/if}
+                  </li>
+                {/each}
+              </ul>
             </Section>
-            {#if accounts.length}
-              <Section title={t('localAccounts')} description={t('localAccountsHint')} icon="members" flush>
-                <ul class="divide-y divide-line border-t border-line" data-testid="local-accounts">
-                  {#each accounts as a (a.account)}
-                    <li class="flex flex-wrap items-center gap-2 px-5 py-3">
-                      <Id id={a.account} full class="max-w-[60%]" />
-                      {#if a.current}<Pill tone="forest">{t('current')}</Pill>{/if}
-                      {#if !a.bound}<Pill tone="warn">{t('waitingDevice')}</Pill>{/if}
-                      <span class="flex-1"></span>
-                      {#if !a.current}
-                        {#if a.fast_unlock}<button class={buttonClass('secondary', 'xs')} onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
-                        <button class={buttonClass('secondary', 'xs')} onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
-                      {/if}
-                    </li>
-                  {/each}
-                </ul>
-              </Section>
-            {/if}
-            <Onboarding {status} {refresh} />
-          {:else if part === 'browsers'}
-            {#if opened}
-              <Section title={t('browsers')} description={t('browsersHint')} icon="browser" flush>
-                {#snippet actions()}
-                  <button class={buttonClass('secondary', 'sm')} onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>
-                  <button class={buttonClass('primary', 'sm')} onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>
-                {/snippet}
-                {#if invite}
-                  <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
-                    <p class="flex items-center gap-2 text-[12.5px] text-muted"><span class="shimmer">{t('waitingBrowser')}</span></p>
-                    <bdi dir="ltr" class="font-mono text-[11.5px] break-all text-faint">{invite.url}</bdi>
-                    {#each candidates as c (c.pairing_id)}
-                      <div class="flex flex-wrap items-center gap-2 rounded-xl border border-forest/30 bg-pale px-3 py-2.5">
-                        <Icon name="browser" class="text-forest" />
-                        <span class="min-w-0 flex-1 text-[13px]">{t('confirmBrowser')} <b>{c.label}</b> <span class="font-mono text-[11.5px] text-faint">{c.pairing_id.slice(0, 12)}</span></span>
-                        <button class={buttonClass('primary', 'sm')} onclick={() => grant(c)}>{t('connect')}</button>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-                <ul class="divide-y divide-line border-t border-line" data-testid="pairings">
-                  {#each pairings as p (p.pairing_id)}
-                    <li class="flex flex-wrap items-center gap-2 px-5 py-3">
-                      <Pill tone={p.state === 'active' ? 'ok' : 'neutral'}>{p.state}</Pill>
-                      <b class="text-[13px] font-medium">{p.label ?? p.pairing_id.slice(0, 12)}</b>
-                      <span class="min-w-0 flex-1 text-[12px] text-faint">
-                        {t('issuedBy')} <bdi dir="ltr" class="font-mono">{p.issued_by?.slice(0, 8) ?? '-'}</bdi>{p.issued_by === own?.device_id ? ` (${t('thisDevice')})` : ''}
-                        · {t('granted')} {when(p.granted_at)} · {t('lastUsed')} {when(p.last_used_at)}
-                      </span>
-                      {#if p.state === 'active'}
-                        <button class={buttonClass('danger', 'xs')} onclick={() => act('connect/revoke', { pairing: p.pairing_id })}>{t('revoke')}</button>
-                      {/if}
-                    </li>
-                  {:else}
-                    <li class="px-5 py-3 text-[13px] text-faint">{t('noBrowsers')}</li>
-                  {/each}
-                </ul>
-              </Section>
-            {:else}
-              <Notice>{t('locked')}</Notice>
-            {/if}
-          {:else if !unlocked}
-            <Notice icon="lock">{t('locked')}</Notice>
-          {:else if part === 'security'}
-            <Security {status} {refresh} />
-          {:else if part === 'devices'}
-            <Devices {status} />
-          {:else}
-            {#key status.account}<Profile {status} />{/key}
           {/if}
-        </Page>
-      {/if}
+          <Onboarding {status} {refresh} />
+        {:else if part === 'browsers'}
+          {#if opened}
+            <Section title={t('browsers')} description={t('browsersHint')} icon="browser" flush>
+              {#snippet actions()}
+                <button class={buttonClass('secondary', 'sm')} onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>
+                <button class={buttonClass('primary', 'sm')} onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>
+              {/snippet}
+              {#if invite}
+                <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
+                  <p class="flex items-center gap-2 text-[12.5px] text-muted"><span class="shimmer">{t('waitingBrowser')}</span></p>
+                  <bdi dir="ltr" class="font-mono text-[11.5px] break-all text-faint">{invite.url}</bdi>
+                  {#each candidates as c (c.pairing_id)}
+                    <div class="flex flex-wrap items-center gap-2 rounded-xl border border-forest/30 bg-pale px-3 py-2.5">
+                      <Icon name="browser" class="text-forest" />
+                      <span class="min-w-0 flex-1 text-[13px]">{t('confirmBrowser')} <b>{c.label}</b> <span class="font-mono text-[11.5px] text-faint">{c.pairing_id.slice(0, 12)}</span></span>
+                      <button class={buttonClass('primary', 'sm')} onclick={() => grant(c)}>{t('connect')}</button>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+              <ul class="divide-y divide-line border-t border-line" data-testid="pairings">
+                {#each pairings as p (p.pairing_id)}
+                  <li class="flex flex-wrap items-center gap-2 px-5 py-3">
+                    <Pill tone={p.state === 'active' ? 'ok' : 'neutral'}>{p.state}</Pill>
+                    <b class="text-[13px] font-medium">{p.label ?? p.pairing_id.slice(0, 12)}</b>
+                    <span class="min-w-0 flex-1 text-[12px] text-faint">
+                      {t('issuedBy')} <bdi dir="ltr" class="font-mono">{p.issued_by?.slice(0, 8) ?? '-'}</bdi>{p.issued_by === own?.device_id ? ` (${t('thisDevice')})` : ''}
+                      · {t('granted')} {when(p.granted_at)} · {t('lastUsed')} {when(p.last_used_at)}
+                    </span>
+                    {#if p.state === 'active'}
+                      <button class={buttonClass('danger', 'xs')} onclick={() => act('connect/revoke', { pairing: p.pairing_id })}>{t('revoke')}</button>
+                    {/if}
+                  </li>
+                {:else}
+                  <li class="px-5 py-3 text-[13px] text-faint">{t('noBrowsers')}</li>
+                {/each}
+              </ul>
+            </Section>
+          {:else}
+            <Notice>{t('locked')}</Notice>
+          {/if}
+        {:else if !unlocked}
+          <Notice icon="lock">{t('locked')}</Notice>
+        {:else if part === 'security'}
+          <Security {status} {refresh} />
+        {:else if part === 'devices'}
+          <Devices {status} />
+        {:else}
+          {#key status.account}<Profile {status} />{/key}
+        {/if}
+      </Page>
     </div>
   </div>
 </div>

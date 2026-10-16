@@ -18,7 +18,8 @@ desktop is one of its clients, like the CLI.
   else the system's preferred languages, else English) and passes it to
   each window; the language menu in the main window changes it for the tray,
   dialogs and both windows at once. Arabic lays the windows out right to
-  left.
+  left: panes, menus and directional icons mirror, while IDs, code and
+  numbers keep their left-to-right order.
 - **Appearance** (`src/shared/appearance.ts`): the system's, light or dark,
   kept in the profile's `appearance` file. The main process sets Electron's
   `nativeTheme` from it, so both windows, their menus and dialogs follow it
@@ -30,10 +31,11 @@ desktop is one of its clients, like the CLI.
   `src/dmsg_frontend/DESIGN.md` with a dark theme; `components/` is the kit
   the views compose: `ui.ts` (button and menu classes), Remix icons
   (`glyphs.ts`), and bits-ui checkboxes, radios, toggle groups, dropdowns,
-  suggestions, collapsibles and toasts in place of native controls. Inter
-  and the icons are bundled; their licenses ship in `public/licenses`. The
-  text is in `i18n/messages`, one catalog per language, each checked
-  against the English one.
+  context menus, dialogs, tabs, suggestions, collapsibles and toasts in
+  place of native controls. Inter and the icons are bundled; their
+  licenses ship in `public/licenses`. Motion stops when the system asks
+  for reduced motion. The text is in `i18n/messages`, one catalog per
+  language, each checked against the English one.
 
   The main window's shell (`shell/`) has a sidebar with the account
   switcher (this device's accounts, another login), the views in three

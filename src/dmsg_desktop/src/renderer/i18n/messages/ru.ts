@@ -685,7 +685,9 @@ export default {
     tabAgentIds: 'Agent ID',
     tabCapabilities: 'Возможности',
     tabEvents: 'События',
-    tabAudit: 'Аудит'
+    tabAudit: 'Аудит',
+    legacySteps: 'Показать шаги',
+    legacyPasteOr: 'или вставьте ниже'
   },
   approvalStates: {
     awaiting_user: 'Ожидает',

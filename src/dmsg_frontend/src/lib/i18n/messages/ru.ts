@@ -867,5 +867,11 @@ export default {
   'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
     'Замороженное доказательство сообщений и вложений экспортировано. В файле нет токена загрузки; импортируйте его только в своё настольное приложение.',
   'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
-    'Ваше явное одобрение этой версии готово. Скопируйте результат обратно в настольное приложение, чтобы завершить тот же план.'
+    'Ваше явное одобрение этой версии готово. Скопируйте результат обратно в настольное приложение, чтобы завершить тот же план.',
+  'Your legacy identity': 'Ваша прежняя учётная запись',
+  'Take an inventory': 'Опись истории',
+  'Compare with the desktop app': 'Сверка с настольным приложением',
+  'Create the migration file': 'Создание файла переноса',
+  'Export the frozen evidence': 'Экспорт замороженных доказательств',
+  'Approve a request': 'Подтверждение запроса'
 } satisfies Messages

@@ -881,5 +881,11 @@ export default {
   'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
     'Preuve gelée des messages et des pièces jointes exportée. Le fichier ne contient aucun jeton de téléchargement ; importez-le uniquement dans votre propre application de bureau.',
   'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
-    'Votre approbation explicite de cette version est prête. Copiez le résultat dans l’application de bureau pour terminer la même proposition.'
+    'Votre approbation explicite de cette version est prête. Copiez le résultat dans l’application de bureau pour terminer la même proposition.',
+  'Your legacy identity': 'Votre ancienne identité',
+  'Take an inventory': 'Faire l’inventaire',
+  'Compare with the desktop app': 'Comparer avec l’application de bureau',
+  'Create the migration file': 'Créer le fichier de migration',
+  'Export the frozen evidence': 'Exporter les preuves gelées',
+  'Approve a request': 'Approuver une demande'
 } satisfies Messages

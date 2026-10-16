@@ -685,7 +685,9 @@ export default {
     tabAgentIds: 'معرّفات الوكلاء',
     tabCapabilities: 'القدرات',
     tabEvents: 'الأحداث',
-    tabAudit: 'التدقيق'
+    tabAudit: 'التدقيق',
+    legacySteps: 'إظهار الخطوات',
+    legacyPasteOr: 'أو الصقه أدناه'
   },
   approvalStates: {
     awaiting_user: 'بانتظار التأكيد',

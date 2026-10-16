@@ -685,7 +685,9 @@ export default {
     tabAgentIds: 'Agent ID',
     tabCapabilities: '能力',
     tabEvents: '事件',
-    tabAudit: '审计'
+    tabAudit: '审计',
+    legacySteps: '展开步骤',
+    legacyPasteOr: '或粘贴到下方'
   },
   approvalStates: {
     awaiting_user: '待确认',

@@ -14,6 +14,9 @@
   import { dynAgent } from '$lib/utils/auth'
   import { authStore } from '$lib/stores/auth'
   import { locale, t } from '$lib/i18n'
+  import Picker from './ui/Picker.svelte'
+  import Step from './ui/Step.svelte'
+  import { area, field, panel } from './ui/classes'
   const channels = [
     'nvdn4-5qaaa-aaaaj-qa4pq-cai',
     'zof5a-5yaaa-aaaai-acr2q-cai',
@@ -27,6 +30,7 @@
     status = $state(''),
     busy = $state(false),
     error = $state('')
+  const anonymous = $derived($authStore.identity.getPrincipal().isAnonymous())
   const toHex = (bytes: Uint8Array) =>
     Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
   const base64 = (bytes: Uint8Array) => {
@@ -247,108 +251,143 @@
   }
 </script>
 
-<section class="migration">
-  <h2>{$t('Shared channel succession and member claims')}</h2>
-  <p>
-    {$t(
-      'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.'
-    )}
-  </p>
-  <label
-    >{$t('Source channel service')}<select bind:value={source}
-      >{#each channels as value}<option>{value}</option>{/each}</select
-    ></label
+{#snippet fact(label: string, value: string, mono = true)}
+  <dt class="text-[14px] text-[var(--muted)]">{label}</dt>
+  <dd
+    class={[
+      'm-0 text-[14px] [overflow-wrap:anywhere]',
+      mono && 'font-mono text-[13px]'
+    ]}
   >
-  <label
-    >{$t('Legacy channel number')}<input
-      type="number"
-      min="0"
-      max="4294967295"
-      bind:value={channel}
-    /></label
-  >
-  <button
-    class="button"
-    disabled={busy || $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={inventory}>{$t('Export frozen authority evidence')}</button
-  ><button
-    class="button"
-    disabled={busy || $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={frozenHistory}
-    >{$t('Export final history evidence for this channel')}</button
-  >
-  <label
-    >{$t('Approval request from the desktop app')}<textarea
-      bind:value={requestText}
-      rows="5"></textarea></label
-  >
-  {#if request}<dl>
-      <dt>{$t('Approval type')}</dt>
-      <dd>
-        {request.kind === 'manager'
-          ? $t('Manager consent to the succession proposal')
-          : $t('Former member claim')}
-      </dd>
-      <dt>{$t('Legacy channel')}</dt>
-      <dd>{request.proposal.source} / {request.proposal.channel}</dd>
-      <dt>{$t('New owner')}</dt>
-      <dd>{request.proposal.owner}</dd>
-      <dt>{$t('New channel')}</dt>
-      <dd>{request.proposal.channel_id}</dd>
-      <dt>{$t('Proposal version')}</dt>
-      <dd>{request.proposal.version}</dd>
-      <dt>{$t('Legacy identity to act for')}</dt>
-      <dd>{request.identity}</dd>
-      {#if request.kind === 'member'}<dt>{$t('Target account / device')}</dt>
-        <dd>{request.claim.account} / {request.claim.device}</dd>{/if}
-      <dt>{$t('Expires')}</dt>
-      <dd>{new Date(request.expires_at).toLocaleString($locale)}</dd>
-      <dt>{$t('Intent digest')}</dt>
-      <dd>{request.digest}</dd>
-    </dl>{/if}
-  <p>
-    {$t(
-      'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.',
-      { principal: $authStore.identity.getPrincipal().toText() }
-    )}
-  </p>
-  <button
-    class="button primary"
-    disabled={!request ||
-      busy ||
-      $authStore.identity.getPrincipal().isAnonymous()}
-    onclick={approve}>{$t('I have checked it: approve this version')}</button
-  >
-  {#if responseText}<label
-      >{$t('Approval result to copy into the desktop app')}<textarea
-        readonly
-        value={responseText}
-        rows="5"></textarea></label
-    >{/if}
-  {#if status}<p role="status">{$t(status)}</p>{/if}{#if error}<p role="alert"
-      >{$t(error)}</p
-    >{/if}
-</section>
+    {value}
+  </dd>
+{/snippet}
 
-<style>
-  .migration {
-    padding: 32px 0;
-    border-top: 1px solid #cdd8cf;
-    max-width: 780px;
-  }
-  label {
-    display: block;
-    margin: 16px 0;
-  }
-  textarea {
-    display: block;
-    width: 100%;
-  }
-  dd {
-    overflow-wrap: anywhere;
-    margin-bottom: 12px;
-  }
-  button {
-    margin: 8px 12px 8px 0;
-  }
-</style>
+<section
+  class="migration grid max-w-[860px] gap-6 border-t border-[var(--line)] py-12"
+>
+  <div class="grid gap-3">
+    <h2>{$t('Shared channel succession and member claims')}</h2>
+    <p class="mb-0!">
+      {$t(
+        'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.'
+      )}
+    </p>
+  </div>
+  <ol class={panel}>
+    <Step n={1} title={$t('Export the frozen evidence')}>
+      <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_200px]">
+        <div class="grid gap-2">
+          <span class="text-[14px] font-medium"
+            >{$t('Source channel service')}</span
+          >
+          <Picker
+            bind:value={source}
+            options={channels}
+            label={$t('Source channel service')}
+            mono
+          />
+        </div>
+        <label class="grid gap-2">
+          <span class="text-[14px] font-medium"
+            >{$t('Legacy channel number')}</span
+          >
+          <input
+            type="number"
+            min="0"
+            max="4294967295"
+            class={[field, 'font-mono tabular-nums']}
+            bind:value={channel}
+          />
+        </label>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <button
+          class="button secondary disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={busy || anonymous}
+          onclick={inventory}>{$t('Export frozen authority evidence')}</button
+        >
+        <button
+          class="button secondary disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={busy || anonymous}
+          onclick={frozenHistory}
+          >{$t('Export final history evidence for this channel')}</button
+        >
+      </div>
+    </Step>
+    <Step n={2} title={$t('Approve a request')} done={!!responseText}>
+      <label class="grid gap-2">
+        <span class="text-[14px] font-medium"
+          >{$t('Approval request from the desktop app')}</span
+        >
+        <textarea class={area} bind:value={requestText} rows="5"></textarea>
+      </label>
+      {#if request}<dl
+          class="m-0 grid gap-x-6 gap-y-2 rounded-xl border border-[var(--accent)] bg-[var(--pale)] p-4 sm:grid-cols-[max-content_minmax(0,1fr)]"
+        >
+          {@render fact(
+            $t('Approval type'),
+            request.kind === 'manager'
+              ? $t('Manager consent to the succession proposal')
+              : $t('Former member claim'),
+            false
+          )}
+          {@render fact(
+            $t('Legacy channel'),
+            `${request.proposal.source} / ${request.proposal.channel}`
+          )}
+          {@render fact($t('New owner'), request.proposal.owner)}
+          {@render fact($t('New channel'), request.proposal.channel_id)}
+          {@render fact(
+            $t('Proposal version'),
+            String(request.proposal.version),
+            false
+          )}
+          {@render fact($t('Legacy identity to act for'), request.identity)}
+          {#if request.kind === 'member'}{@render fact(
+              $t('Target account / device'),
+              `${request.claim.account} / ${request.claim.device}`
+            )}{/if}
+          {@render fact(
+            $t('Expires'),
+            new Date(request.expires_at).toLocaleString($locale),
+            false
+          )}
+          {@render fact($t('Intent digest'), request.digest)}
+        </dl>{/if}
+      <p class="mb-0! text-[14px]">
+        {$t(
+          'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.',
+          { principal: $authStore.identity.getPrincipal().toText() }
+        )}
+      </p>
+      <div>
+        <button
+          class="button primary disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={!request || busy || anonymous}
+          onclick={approve}
+          >{$t('I have checked it: approve this version')}</button
+        >
+      </div>
+      {#if responseText}<label class="grid gap-2">
+          <span class="text-[14px] font-medium"
+            >{$t('Approval result to copy into the desktop app')}</span
+          >
+          <textarea class={area} readonly value={responseText} rows="5"
+          ></textarea>
+        </label>{/if}
+    </Step>
+  </ol>
+  {#if status}<p
+      class="mb-0! rounded-xl bg-[var(--pale)] p-4 text-[15px] text-[var(--ink)]!"
+      role="status"
+    >
+      {$t(status)}
+    </p>{/if}
+  {#if error}<p
+      class="mb-0! rounded-xl bg-[#fef2f2] p-4 text-[15px] text-[#991b1b]!"
+      role="alert"
+    >
+      {$t(error)}
+    </p>{/if}
+</section>

@@ -839,5 +839,11 @@ export default {
   'Frozen evidence for the messages and attachments exported. The file holds no download token; import it only into your own desktop app.':
     'صُدّر الدليل المجمّد للرسائل والمرفقات. لا يحتوي الملف على رمز تنزيل؛ استورده فقط إلى تطبيق سطح المكتب الخاص بك.',
   'Your explicit approval of this version is ready. Copy the result back to the desktop app to finish the same proposal.':
-    'موافقتك الصريحة على هذا الإصدار جاهزة. انسخ النتيجة إلى تطبيق سطح المكتب لإكمال المقترح نفسه.'
+    'موافقتك الصريحة على هذا الإصدار جاهزة. انسخ النتيجة إلى تطبيق سطح المكتب لإكمال المقترح نفسه.',
+  'Your legacy identity': 'هويتك القديمة',
+  'Take an inventory': 'جرد السجل',
+  'Compare with the desktop app': 'المطابقة مع تطبيق سطح المكتب',
+  'Create the migration file': 'إنشاء ملف النقل',
+  'Export the frozen evidence': 'تصدير الأدلة المجمدة',
+  'Approve a request': 'الموافقة على طلب'
 } satisfies Messages

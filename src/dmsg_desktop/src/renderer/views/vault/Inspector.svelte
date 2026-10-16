@@ -273,6 +273,6 @@
       <Icon name={entry.synced ? 'sync' : 'time'} class="size-3.5" />{entry.synced ? t('synced') : t('notSynced')}
     </span>
     <span title={when(item.updatedAt)}>{t('updated')} {ago(item.updatedAt)}</span>
-    <span class="font-mono" title={entry.revision}>{t('revision')} {entry.revision.slice(0, 10)}</span>
+    <span title={entry.revision}>{t('revision')} <bdi dir="ltr" class="font-mono">{entry.revision.slice(0, 10)}</bdi></span>
   </footer>
 </section>
