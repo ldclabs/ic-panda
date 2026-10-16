@@ -263,7 +263,7 @@ export default {
     claim: '认领',
     register: '注册',
     wallet: '钱包',
-    walletHint: '默认使用登录身份付款；可在命令行用 dmsg wallet use 指定 PEM 钱包。',
+    walletHint: '默认使用登录身份付款；可在命令行用 dmsg payer use 指定 PEM 钱包。',
     balance: '余额',
     payer: '付款方',
     payPlan: '支付会员订单',

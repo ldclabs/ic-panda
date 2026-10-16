@@ -503,14 +503,16 @@ WT1 与 WT2 可并行（合同由 WT0 冻结）；WT3 可在 WT1 完成 ICP 路�
 | NC 协签人用 secp256k1 | 新增 `CosignerKind::Bip340`，双控 Taproot 的协签人对每个输入的脚本路径 sighash 直接签名；`ExecutionParams::Bitcoin.timelock` 选择链密钥单独花费的 L2 | — |
 | 本地密钥 `dfx_test_key` | PocketIC 的 fiduciary 子网只有 `key_1`，测试 hub 配置 `key_1` | — |
 | 每台设备的协签实现 | 客户端 `CosignProvider` 接口；daemon 在 macOS 且使用系统凭据存储时接入 Secure Enclave（P-256，`PrivateKeyUsage | UserPresence`）；否则软件 P-256 密钥封存于本机工作区并声明非硬件 | 开发构建无签名与钥匙串权限时自动回退 |
+| 向量参考值由 `bitcoin`、`alloy`、`solana-sdk` 在构建机生成（第 12 节） | `tests/vectors/wallet` 由本实现生成（`DMSG_WRITE_WALLET_VECTORS=1`），每次测试逐字节比对；`plans-v1.json` 由 canister 的构建器产生、客户端解码器验收；与 `bitcoin`、`alloy`、`solana-message` 的交叉核对在 `dmsg_wallet` 的 `chains::tests` 与 PocketIC 套件中 | 向量与独立库各司其职：前者固定字节，后者证明字节正确 |
+| `desktop_wallet` 含两成员批准、BTC regtest 转账与协签（第 12 节） | 两个账户：A 经审批中心报价、付款并创建，B 经设备批准加入并批准 ICP 转账，A 执行，两端核对审计链；BTC regtest 与协签留给链上端到端 | daemon 不带 regtest 节点与 Esplora；协签由 PocketIC 套件以真实门限签名覆盖 |
 
 ### 16.2 工作包完成情况
 
 | 包 | 完成 | 未完成 |
 | --- | --- | --- |
-| WT0 | `dmsg_types::wallet`、`dmsg_protocol::wallet`、`WalletApprove`、三个 `ApprovalPurpose`、user home 核验规则、SDK 与 CDDL 重新生成 | 独立的 `tests/vectors/wallet` 向量文件（以单测中的参考向量与独立库交叉核对代替） |
+| WT0 | `dmsg_types::wallet`、`dmsg_protocol::wallet`、`WalletApprove`、三个 `ApprovalPurpose`、user home 核验规则、SDK 与 CDDL 重新生成；2026-10-17 补 `tests/vectors/wallet`：`protocol-v1.json`（全部承诺的原像与摘要、审计链、地址与收款脚本）与 `plans-v1.json`（canister 构建器生成的 11 个计划与 6 个篡改样例，由客户端解码器验收） | TypeScript 端的钱包摘要实现（SDK 目前只有三个审批用途名） |
 | WT1 | 钱包与 hub 全部接口；分块安装；升级、锁定、退款、收入转换、refuel；认证叶与审计链 | — |
-| WT2 | `payer` 改名；客户端 `wallet` 模块、审批中心任务、daemon `wallet/*`、CLI `dmsg wallet`、桌面“团队钱包”视图与审批窗口 | 频道绑定（`wallet/event` 系统消息）；桌面冒烟测试 `desktop_wallet` |
+| WT2 | `payer` 改名；客户端 `wallet` 模块、审批中心任务、daemon `wallet/*`、CLI `dmsg wallet`、桌面“团队钱包”视图与审批窗口；2026-10-17 补桌面端到端 `desktop_wallet`（两个账户经审批中心创建并付款、加入、批准与执行 ICP 转账、核对审计链） | 频道绑定（`wallet/event` 系统消息）；Electron 界面（`pnpm test:e2e` 的模拟 daemon）未覆盖钱包视图 |
 | WT3 | BTC P2TR/P2WPKH、EVM（ETH、ERC-20、nonce 取消）、SOL（SOL、SPL、ATA、durable nonce）编码与签名；客户端独立解码、Esplora/JSON-RPC 读取与广播、重签规则 | regtest/anvil/test-validator 端到端；主网 `test_key_1` 小额 |
 | WT4 | canister 侧 Raw/FIDO2/WebAuthn 验签；`AddCosigner`/`SetCosign`；协签审批任务；Secure Enclave 与软件密钥 | Windows/Linux TPM、FIDO2（CTAP2）、桥接页 WebAuthn 的客户端适配 |
 | WT5 | MCP 工具 `dmsg_wallet_list|balances|propose_transfer|proposal_status|execute|report_broadcast`，能力 `wallet.read`、`wallet.propose:<wallet>`、`wallet.execute:<wallet>` | 审计模式 `attest_*`；`dmsg_frontend` 透明页 |

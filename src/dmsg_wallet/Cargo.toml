@@ -36,6 +36,7 @@ bitcoin = "0.32"
 hex.workspace = true
 ic-ed25519.workspace = true
 ic-secp256k1.workspace = true
+serde_json.workspace = true
 solana-address = { version = "2", features = ["curve25519", "sha2"] }
 solana-hash = "4"
 solana-instruction = "4"

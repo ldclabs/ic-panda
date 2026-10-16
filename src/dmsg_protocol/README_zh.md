@@ -46,7 +46,7 @@ dmsg_protocol = "0.4"
 | 绑定根与密钥 | `root_recipients_digest`, `root_bundle_digest`, `recovery_device_message`, `controller_pop_message` | 客户端构造根包与证明，服务重算并比对 |
 | 处理名称 | `normalize_handle`, `price`, `charge_terms_digest` | 在对应服务中执行名称与账本操作 |
 | 检查基础约束 | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | 提供可信 caller、时间和状态；辅助函数不读取或修改它们 |
-| 团队钱包 | `wallet::{proposal_digest, decision_digest, check_wallet_approval, requirement, validate_policy, address_text, taproot_tree, verify_cosign}` | 钱包与客户端用同一套摘要、策略评估、地址编码与协签验证（[合同](../../docs/protocol/wallet_zh.md)） |
+| 团队钱包 | `wallet::{proposal_digest, decision_digest, check_wallet_approval, requirement, validate_policy, address_text, taproot_tree, verify_cosign}` | 钱包与客户端用同一套摘要、策略评估、地址编码与协签验证（[合同](../../docs/protocol/wallet_zh.md)、[向量](../../tests/vectors/wallet/README.md)） |
 
 Rustdoc 为各入口说明参数、失败行为和信任边界。`verify` 是原始严格 Ed25519 验签；`verify_artifact` 还验证 COSE 文档 profile。`authenticated` 仅排除匿名和管理 canister Principal，不证明账户成员身份。
 

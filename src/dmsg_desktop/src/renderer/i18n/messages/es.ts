@@ -263,7 +263,7 @@ export default {
     claim: 'Reclamar',
     register: 'Registrar',
     wallet: 'Cartera',
-    walletHint: 'Los pagos usan el inicio de sesión de forma predeterminada; `dmsg wallet use` elige una cartera PEM desde la línea de comandos.',
+    walletHint: 'Los pagos usan el inicio de sesión de forma predeterminada; `dmsg payer use` elige una cartera PEM desde la línea de comandos.',
     balance: 'Saldo',
     payer: 'Pagador',
     payPlan: 'Pagar un plan',

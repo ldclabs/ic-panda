@@ -74,6 +74,16 @@ fn server() -> (Server, reqwest::Url) {
     }
 }
 
+/// The dMsg Wasm: `DMSG_WASM_DIR`, or this workspace's release build.
+fn wasm_dir() -> PathBuf {
+    std::env::var_os("DMSG_WASM_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../target/wasm32-unknown-unknown/release")
+        })
+}
+
 impl Deployment {
     /// Install and configure every canister, then open the HTTP gateway.
     pub fn start() -> Self {
@@ -112,12 +122,7 @@ impl Deployment {
         ] {
             ic.add_cycles(id, 10_000_000_000_000_000);
         }
-        let dir = std::env::var_os("DMSG_WASM_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| {
-                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                    .join("../../target/wasm32-unknown-unknown/release")
-            });
+        let dir = wasm_dir();
         ic.install_canister(
             user,
             std::fs::read(dir.join("dmsg_user.wasm")).unwrap(),
@@ -572,6 +577,130 @@ impl Deployment {
             )
             .unwrap();
         candid::decode_one::<Result<()>>(&reply).unwrap().unwrap();
+    }
+
+    /// Install the team wallet hub with a test cycles minting canister,
+    /// register the `dmsg-wallet` application and product with commerce and
+    /// the current `dmsg_wallet` module with the hub. Activation costs
+    /// `price_e8s` on `self.ledger`; Free accounts may create two wallets.
+    #[allow(dead_code)]
+    pub fn install_wallet_hub(&self, price_e8s: u64) -> Principal {
+        use dmsg_types::{integration::*, wallet::*};
+        use icrc_ledger_types::icrc1::account::Account;
+        use std::io::Write;
+        let ic = &self.ic;
+        let dir = wasm_dir();
+        let subnet = ic.topology().get_app_subnets()[0];
+        let cmc = ic.create_canister_on_subnet(None, None, subnet);
+        let hub = ic.create_canister_on_subnet(None, None, subnet);
+        ic.add_cycles(cmc, 10_000_000_000_000_000);
+        ic.add_cycles(hub, 100_000_000_000_000);
+        ic.install_canister(
+            cmc,
+            std::fs::read(dir.join("dmsg_test_cmc.wasm")).unwrap(),
+            candid::encode_one(self.ledger).unwrap(),
+            None,
+        );
+        let revenue = Account {
+            owner: self.peer,
+            subaccount: None,
+        };
+        ic.install_canister(
+            hub,
+            std::fs::read(dir.join("dmsg_wallet_hub.wasm")).unwrap(),
+            candid::encode_one(HubInit {
+                environment: Environment::Local,
+                governance: self.peer,
+                icp_ledger: self.ledger,
+                cmc,
+                commerce: self.commerce,
+                issuer_namespace: "https://dmsg.test/u/".into(),
+                user_homes: vec![self.user],
+                key_name: "key_1".into(),
+                btc_network: BtcNetwork::Regtest,
+                pricing: HubPricing {
+                    price_e8s,
+                    cycles_to_wallet: 3_000_000_000_000,
+                    cycles_share_e8s: price_e8s / 4,
+                    quotas: vec![PlanQuota {
+                        plan: dmsg_types::billing::PlanId::Free,
+                        wallets: 2,
+                    }],
+                    paused: false,
+                },
+                revenue,
+            })
+            .unwrap(),
+            None,
+        );
+        let call = |canister, method: &str, args: Vec<u8>| {
+            let reply = ic.update_call(canister, self.peer, method, args).unwrap();
+            candid::decode_one::<Result<()>>(&reply).unwrap().unwrap();
+        };
+        call(
+            self.commerce,
+            "register_integration_product",
+            candid::encode_args((ProductRegistration {
+                version: 2,
+                environment: Environment::Local,
+                product_id: WALLET_PRODUCT_ID.into(),
+                config_version: 1,
+                quote_authority: hub,
+                beneficiary_authorities: vec![hub],
+                adapter: hub,
+                subject_schema: WALLET_SUBJECT_SCHEMA.into(),
+                subject_size: 10,
+                merchant: revenue,
+                ledgers: vec![self.ledger],
+                terms_hash: Hash::new([77; 32]),
+                paused: false,
+            },))
+            .unwrap(),
+        );
+        self.register_app(&AppRegistration {
+            version: 1,
+            environment: Environment::Local,
+            app_id: WALLET_APP_ID.into(),
+            config_version: 1,
+            origins: vec!["https://dmsg.net".into()],
+            product_ids: vec![WALLET_PRODUCT_ID.into()],
+            capabilities: vec![AppCapability::Checkout],
+            profiles: vec![],
+            authentication_receiver: hub,
+            action_authority: hub,
+            action_schema: None,
+            paused: false,
+        });
+        let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::best());
+        gz.write_all(&std::fs::read(dir.join("dmsg_wallet.wasm")).unwrap())
+            .unwrap();
+        let module = gz.finish().unwrap();
+        for chunk in module.chunks(1024 * 1024) {
+            let reply = ic
+                .update_call(
+                    hub,
+                    self.peer,
+                    "upload_wasm_chunk",
+                    candid::encode_one(serde_bytes::ByteBuf::from(chunk.to_vec())).unwrap(),
+                )
+                .unwrap();
+            candid::decode_one::<Result<StagedModule>>(&reply)
+                .unwrap()
+                .unwrap();
+        }
+        let reply = ic
+            .update_call(
+                hub,
+                self.peer,
+                "admin_register_version",
+                candid::encode_args((dmsg_protocol::sha256(&module), "desktop test".to_string()))
+                    .unwrap(),
+            )
+            .unwrap();
+        candid::decode_one::<Result<WalletVersion>>(&reply)
+            .unwrap()
+            .unwrap();
+        hub
     }
 
     /// `fixture.json` as the relay launchers read it.

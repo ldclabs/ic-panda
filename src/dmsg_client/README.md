@@ -159,7 +159,10 @@ joining, deciding and cosigning are approval-center jobs: the device signs an
 and the wallet or hub verifies it there. Before cosigning or broadcasting,
 `wallet::decode::verify_plan` parses the plan's unsigned bytes on its own,
 recomputes every message to sign and compares them with the intent and the
-wallet's summary. Addresses are re-derived from the wallet's key roots with
+wallet's summary; it accepts every plan of
+[tests/vectors/wallet/plans-v1.json](../../tests/vectors/wallet/README.md),
+which the wallet's own builders produce, and refuses the tampered ones.
+Addresses are re-derived from the wallet's key roots with
 `ic-secp256k1` and `ic-ed25519`.
 
 ## Payments

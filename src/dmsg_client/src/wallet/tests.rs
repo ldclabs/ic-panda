@@ -76,3 +76,97 @@ fn job_digests_bind_the_decision() {
         Some((3, Chain::Solana))
     );
 }
+
+/// The plans in `tests/vectors/wallet/plans-v1.json`, built by the wallet
+/// canister's code, pass this decoder with exactly their summaries, and the
+/// tampered ones are refused.
+#[test]
+fn decodes_the_wallet_plan_vectors() {
+    use sha2::{Digest, Sha256};
+    use sha3::Keccak256;
+    let path = format!(
+        "{}/../../tests/vectors/wallet/plans-v1.json",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    let vectors: Json = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let bytes = |v: &Json| hex::decode(v.as_str().unwrap()).unwrap();
+    let view: WalletView =
+        dmsg_protocol::decode_canonical(&bytes(&vectors["view_cbor_hex"])).unwrap();
+    let mut intents = vec![];
+    for case in vectors["plans"].as_array().unwrap() {
+        let name = &case["name"];
+        let intent: Intent =
+            dmsg_protocol::decode_canonical(&bytes(&case["intent_cbor_hex"])).unwrap();
+        let plan: ExecutionPlan =
+            dmsg_protocol::decode_canonical(&bytes(&case["plan_cbor_hex"])).unwrap();
+        assert_eq!(
+            plan.unsigned.to_vec(),
+            bytes(&case["unsigned_hex"]),
+            "{name}"
+        );
+        let summary =
+            verify_plan(&view, &intent, &plan).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+        assert_eq!(summary.fee.to_string(), case["summary"]["fee"], "{name}");
+        assert_eq!(
+            summary
+                .outputs
+                .iter()
+                .map(|o| o.to.as_str())
+                .collect::<Vec<_>>(),
+            case["summary"]["outputs"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|o| o["to"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            "{name}"
+        );
+        // The transaction ID follows from the signed bytes alone.
+        let signed = bytes(&case["signed_hex"]);
+        let txid = case["txid"].as_str().unwrap();
+        match plan.params {
+            ExecutionParams::Bitcoin { .. } => {
+                // The unsigned bytes are the transaction without witnesses.
+                let mut id: [u8; 32] = Sha256::digest(Sha256::digest(&plan.unsigned)).into();
+                id.reverse();
+                assert_eq!(hex::encode(id), txid, "{name}");
+            }
+            ExecutionParams::Evm { .. } => {
+                assert_eq!(
+                    format!("0x{}", hex::encode(Keccak256::digest(&signed))),
+                    txid,
+                    "{name}"
+                );
+            }
+            ExecutionParams::Solana { .. } => {
+                assert_eq!(
+                    (signed[0], &signed[65..]),
+                    (1, &plan.unsigned[..]),
+                    "{name}"
+                );
+                let from = external_source(&intent).unwrap().0;
+                let key = &view
+                    .addresses
+                    .iter()
+                    .find(|a| a.id == from)
+                    .unwrap()
+                    .public_key;
+                ic_ed25519::PublicKey::deserialize_raw(key)
+                    .unwrap()
+                    .verify_signature(&plan.unsigned, &signed[1..65])
+                    .unwrap();
+            }
+        }
+        intents.push(intent);
+    }
+    for case in vectors["rejected"].as_array().unwrap() {
+        let plan: ExecutionPlan =
+            dmsg_protocol::decode_canonical(&bytes(&case["plan_cbor_hex"])).unwrap();
+        let intent = &intents[case["base"].as_u64().unwrap() as usize];
+        assert!(
+            verify_plan(&view, intent, &plan).is_err(),
+            "{}",
+            case["name"]
+        );
+    }
+}

@@ -46,7 +46,7 @@ Publication settings do not prove a version is already on crates.io. In this che
 | Bind roots and keys | `root_recipients_digest`, `root_bundle_digest`, `recovery_device_message`, `controller_pop_message` | Build bundles and proofs in the client; the services recompute and compare |
 | Handle names | `normalize_handle`, `price`, `charge_terms_digest` | Execute name/ledger operations in their services |
 | Check basic constraints | `authenticated`, `nonzero`, `expiry`, `check_sequence`, `verify` | Supply trusted caller/time/state; these helpers do not read or mutate it |
-| Team wallets | `wallet::{proposal_digest, decision_digest, check_wallet_approval, requirement, validate_policy, address_text, taproot_tree, verify_cosign}` | The wallet canister and clients share digests, policy evaluation, address encodings and cosigner verification ([contract](../../docs/protocol/wallet_zh.md)) |
+| Team wallets | `wallet::{proposal_digest, decision_digest, check_wallet_approval, requirement, validate_policy, address_text, taproot_tree, verify_cosign}` | The wallet canister and clients share digests, policy evaluation, address encodings and cosigner verification ([contract](../../docs/protocol/wallet_zh.md), [vectors](../../tests/vectors/wallet/README.md)) |
 
 Rustdoc describes parameters, failure behavior and trust boundaries for each entry point. `verify` is raw strict Ed25519 verification; `verify_artifact` additionally checks the COSE document profile. `authenticated` only excludes anonymous and management Principals; it does not establish account membership.
 

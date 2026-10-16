@@ -263,7 +263,7 @@ export default {
     claim: 'Revendiquer',
     register: 'Enregistrer',
     wallet: 'Portefeuille',
-    walletHint: 'Les paiements utilisent la connexion par défaut ; `dmsg wallet use` choisit un portefeuille PEM en ligne de commande.',
+    walletHint: 'Les paiements utilisent la connexion par défaut ; `dmsg payer use` choisit un portefeuille PEM en ligne de commande.',
     balance: 'Solde',
     payer: 'Payeur',
     payPlan: 'Payer un forfait',

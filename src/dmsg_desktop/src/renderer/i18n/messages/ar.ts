@@ -263,7 +263,7 @@ export default {
     claim: 'المطالبة',
     register: 'تسجيل',
     wallet: 'المحفظة',
-    walletHint: 'تستخدم المدفوعات هوية تسجيل الدخول افتراضيًا؛ يختار الأمر `dmsg wallet use` محفظة PEM من سطر الأوامر.',
+    walletHint: 'تستخدم المدفوعات هوية تسجيل الدخول افتراضيًا؛ يختار الأمر `dmsg payer use` محفظة PEM من سطر الأوامر.',
     balance: 'الرصيد',
     payer: 'الدافع',
     payPlan: 'دفع ثمن خطة',

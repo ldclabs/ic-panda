@@ -265,7 +265,7 @@ const messages = {
   claim: 'Claim',
   register: 'Register',
   wallet: 'Wallet',
-  walletHint: 'Payments use the login by default; `dmsg wallet use` picks a PEM wallet from the command line.',
+  walletHint: 'Payments use the login by default; `dmsg payer use` picks a PEM wallet from the command line.',
   balance: 'Balance',
   payer: 'Payer',
   payPlan: 'Pay for a plan',

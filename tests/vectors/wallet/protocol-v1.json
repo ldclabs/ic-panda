@@ -1,0 +1,1997 @@
+{
+  "schema": 1,
+  "test_only": true,
+  "generator": "src/dmsg_protocol/src/wallet/vector_tests.rs",
+  "description": "dmsg-wallet/1 commitments, audit chain and address encodings. Each commitment is SHA256 of the canonical CBOR array [1, domain, value]; `value` is the typed JSON form of that CBOR item (see tests/vectors/client/README.md), `preimage_hex` the exact array bytes. Readers rebuild the preimage from `value` and the domain, and compare both hexes. Addresses derive from synthetic secp256k1 and Ed25519 keys; Taproot leaves, control blocks and output scripts are given byte for byte.",
+  "wallet": "zez66-tqjbe-eqsci-jbeeq-sci",
+  "hub": "kcyov-mibae-aqcai-baeaq-cai",
+  "nums_key_hex": "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0",
+  "commitments": [
+    {
+      "name": "proposal: ICP transfer with a memo",
+      "domain": "dmsg-wallet/proposal/v1",
+      "value": {
+        "array": [
+          {
+            "text": "Local"
+          },
+          {
+            "bytes": "09090909090909090909"
+          },
+          {
+            "bytes": "0101010101010101010101010101010101010101010101010101010101010101"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "Transfer"
+                },
+                {
+                  "map": [
+                    [
+                      {
+                        "text": "to"
+                      },
+                      {
+                        "map": [
+                          [
+                            {
+                              "text": "Icrc"
+                            },
+                            {
+                              "map": [
+                                [
+                                  {
+                                    "text": "owner"
+                                  },
+                                  {
+                                    "bytes": "05050505050505050505"
+                                  }
+                                ],
+                                [
+                                  {
+                                    "text": "subaccount"
+                                  },
+                                  {
+                                    "bytes": "0707070707070707070707070707070707070707070707070707070707070707"
+                                  }
+                                ]
+                              ]
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "from"
+                      },
+                      {
+                        "uint": "0"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "memo"
+                      },
+                      {
+                        "bytes": "696e766f6963652d3432"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "asset"
+                      },
+                      {
+                        "text": "Icp"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "amount"
+                      },
+                      {
+                        "uint": "250000000"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "max_fee"
+                      },
+                      {
+                        "uint": "10000"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "uint": "3"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "Account"
+                },
+                {
+                  "bytes": "070707070707070707070707"
+                }
+              ]
+            ]
+          },
+          {
+            "null": true
+          }
+        ]
+      },
+      "preimage_hex": "830177646d73672d77616c6c65742f70726f706f73616c2f763187654c6f63616c4a0909090909090909090958200101010101010101010101010101010101010101010101010101010101010101a1685472616e73666572a662746fa16449637263a2656f776e65724a050505050505050505056a7375626163636f756e74582007070707070707070707070707070707070707070707070707070707070707076466726f6d00646d656d6f4a696e766f6963652d34326561737365746349637066616d6f756e741a0ee6b280676d61785f66656519271003a1674163636f756e744c070707070707070707070707f6",
+      "digest_hex": "71aa6cbe46022f2b28bde519f963b5e72613f8b792b7f2e9b778814753ea8a1c"
+    },
+    {
+      "name": "proposal: Bitcoin batch through an agent",
+      "domain": "dmsg-wallet/proposal/v1",
+      "value": {
+        "array": [
+          {
+            "text": "Production"
+          },
+          {
+            "bytes": "09090909090909090909"
+          },
+          {
+            "bytes": "0202020202020202020202020202020202020202020202020202020202020202"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "Batch"
+                },
+                {
+                  "map": [
+                    [
+                      {
+                        "text": "from"
+                      },
+                      {
+                        "uint": "1"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "asset"
+                      },
+                      {
+                        "text": "Btc"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "items"
+                      },
+                      {
+                        "array": [
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "to"
+                                },
+                                {
+                                  "map": [
+                                    [
+                                      {
+                                        "text": "Bitcoin"
+                                      },
+                                      {
+                                        "text": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "amount"
+                                },
+                                {
+                                  "uint": "40000"
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "to"
+                                },
+                                {
+                                  "map": [
+                                    [
+                                      {
+                                        "text": "Bitcoin"
+                                      },
+                                      {
+                                        "text": "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0"
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "amount"
+                                },
+                                {
+                                  "uint": "60000"
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "max_fee"
+                      },
+                      {
+                        "uint": "5000"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "uint": "3"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "Principal"
+                },
+                {
+                  "bytes": "06060606060606060606"
+                }
+              ]
+            ]
+          },
+          {
+            "text": "ag-treasury"
+          }
+        ]
+      },
+      "preimage_hex": "830177646d73672d77616c6c65742f70726f706f73616c2f7631876a50726f64756374696f6e4a0909090909090909090958200202020202020202020202020202020202020202020202020202020202020202a1654261746368a46466726f6d0165617373657463427463656974656d7382a262746fa167426974636f696e782a6263317177353038643671656a7874646734793572337a6172766172793063357877376b76386633743466616d6f756e74199c40a262746fa167426974636f696e783e6263317030786c78766c68656d6a613663346471763232756170637471757066686c786d3968387a336b3265373271346b3968637a3776717a6b356a6a3066616d6f756e7419ea60676d61785f66656519138803a1695072696e636970616c4a060606060606060606066b61672d7472656173757279",
+      "digest_hex": "8e5e5acb60f134f2ed729f7a2c9a75c20fb4a89e2a93b098a318a9ab274ae34e"
+    },
+    {
+      "name": "proposal: add a member",
+      "domain": "dmsg-wallet/proposal/v1",
+      "value": {
+        "array": [
+          {
+            "text": "Staging"
+          },
+          {
+            "bytes": "09090909090909090909"
+          },
+          {
+            "bytes": "0303030303030303030303030303030303030303030303030303030303030303"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "AddMember"
+                },
+                {
+                  "map": [
+                    [
+                      {
+                        "text": "id"
+                      },
+                      {
+                        "map": [
+                          [
+                            {
+                              "text": "Account"
+                            },
+                            {
+                              "bytes": "080808080808080808080808"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "role"
+                      },
+                      {
+                        "text": "Approver"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "label"
+                      },
+                      {
+                        "text": "ops"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "agent_ids"
+                      },
+                      {
+                        "array": [
+                          {
+                            "text": "ag-ops"
+                          }
+                        ]
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "uint": "4"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "Account"
+                },
+                {
+                  "bytes": "070707070707070707070707"
+                }
+              ]
+            ]
+          },
+          {
+            "null": true
+          }
+        ]
+      },
+      "preimage_hex": "830177646d73672d77616c6c65742f70726f706f73616c2f7631876753746167696e674a0909090909090909090958200303030303030303030303030303030303030303030303030303030303030303a1694164644d656d626572a4626964a1674163636f756e744c08080808080808080808080864726f6c6568417070726f766572656c6162656c636f7073696167656e745f696473816661672d6f707304a1674163636f756e744c070707070707070707070707f6",
+      "digest_hex": "3610e351203e8eac6480695cc54b72b2194668669b9330331a92995eaa0fcde6"
+    },
+    {
+      "name": "proposal: replace the policy",
+      "domain": "dmsg-wallet/proposal/v1",
+      "value": {
+        "array": [
+          {
+            "text": "Local"
+          },
+          {
+            "bytes": "09090909090909090909"
+          },
+          {
+            "bytes": "0404040404040404040404040404040404040404040404040404040404040404"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "SetPolicy"
+                },
+                {
+                  "map": [
+                    [
+                      {
+                        "text": "tiers"
+                      },
+                      {
+                        "array": [
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "asset"
+                                },
+                                {
+                                  "text": "Icp"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "up_to"
+                                },
+                                {
+                                  "uint": "100000000"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "delay_ms"
+                                },
+                                {
+                                  "uint": "0"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "approvals"
+                                },
+                                {
+                                  "uint": "1"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "book_only"
+                                },
+                                {
+                                  "bool": false
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "asset"
+                                },
+                                {
+                                  "text": "Btc"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "up_to"
+                                },
+                                {
+                                  "uint": "1000000"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "delay_ms"
+                                },
+                                {
+                                  "uint": "3600000"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "approvals"
+                                },
+                                {
+                                  "uint": "2"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "book_only"
+                                },
+                                {
+                                  "bool": true
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "public"
+                      },
+                      {
+                        "bool": false
+                      }
+                    ],
+                    [
+                      {
+                        "text": "refuel"
+                      },
+                      {
+                        "map": [
+                          [
+                            {
+                              "text": "from"
+                            },
+                            {
+                              "uint": "0"
+                            }
+                          ],
+                          [
+                            {
+                              "text": "icp_e8s"
+                            },
+                            {
+                              "uint": "50000000"
+                            }
+                          ],
+                          [
+                            {
+                              "text": "min_cycles"
+                            },
+                            {
+                              "uint": "2000000000000"
+                            }
+                          ],
+                          [
+                            {
+                              "text": "max_per_day"
+                            },
+                            {
+                              "uint": "2"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "version"
+                      },
+                      {
+                        "uint": "2"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "evm_chains"
+                      },
+                      {
+                        "array": [
+                          {
+                            "uint": "1"
+                          },
+                          {
+                            "uint": "8453"
+                          }
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "call_targets"
+                      },
+                      {
+                        "array": []
+                      }
+                    ],
+                    [
+                      {
+                        "text": "daily_limits"
+                      },
+                      {
+                        "array": [
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "asset"
+                                },
+                                {
+                                  "map": [
+                                    [
+                                      {
+                                        "text": "Evm"
+                                      },
+                                      {
+                                        "map": [
+                                          [
+                                            {
+                                              "text": "token"
+                                            },
+                                            {
+                                              "bytes": "2222222222222222222222222222222222222222"
+                                            }
+                                          ],
+                                          [
+                                            {
+                                              "text": "chain_id"
+                                            },
+                                            {
+                                              "uint": "8453"
+                                            }
+                                          ]
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "amount"
+                                },
+                                {
+                                  "uint": "5000000000"
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "admin_threshold"
+                      },
+                      {
+                        "uint": "2"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "proposal_ttl_ms"
+                      },
+                      {
+                        "uint": "604800000"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "daily_signatures"
+                      },
+                      {
+                        "uint": "50"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "spendable_assets"
+                      },
+                      {
+                        "array": [
+                          {
+                            "text": "Icp"
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "Icrc"
+                                },
+                                {
+                                  "bytes": "03030303030303030303"
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "text": "Btc"
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "Evm"
+                                },
+                                {
+                                  "map": [
+                                    [
+                                      {
+                                        "text": "token"
+                                      },
+                                      {
+                                        "null": true
+                                      }
+                                    ],
+                                    [
+                                      {
+                                        "text": "chain_id"
+                                      },
+                                      {
+                                        "uint": "1"
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "Sol"
+                                },
+                                {
+                                  "map": [
+                                    [
+                                      {
+                                        "text": "mint"
+                                      },
+                                      {
+                                        "bytes": "4444444444444444444444444444444444444444444444444444444444444444"
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "unfreeze_delay_ms"
+                      },
+                      {
+                        "uint": "86400000"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "approver_threshold"
+                      },
+                      {
+                        "uint": "2"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "hardware_cosigners"
+                      },
+                      {
+                        "bool": true
+                      }
+                    ],
+                    [
+                      {
+                        "text": "address_book_cooldown_ms"
+                      },
+                      {
+                        "uint": "86400000"
+                      }
+                    ]
+                  ]
+                }
+              ]
+            ]
+          },
+          {
+            "uint": "4"
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "Account"
+                },
+                {
+                  "bytes": "070707070707070707070707"
+                }
+              ]
+            ]
+          },
+          {
+            "null": true
+          }
+        ]
+      },
+      "preimage_hex": "830177646d73672d77616c6c65742f70726f706f73616c2f763187654c6f63616c4a0909090909090909090958200404040404040404040404040404040404040404040404040404040404040404a169536574506f6c696379af65746965727382a5656173736574634963706575705f746f1a05f5e1006864656c61795f6d730069617070726f76616c730169626f6f6b5f6f6e6c79f4a5656173736574634274636575705f746f1a000f42406864656c61795f6d731a0036ee8069617070726f76616c730269626f6f6b5f6f6e6c79f5667075626c6963f46672656675656ca46466726f6d00676963705f6538731a02faf0806a6d696e5f6379636c65731b000001d1a94a20006b6d61785f7065725f646179026776657273696f6e026a65766d5f636861696e7382011921056c63616c6c5f74617267657473806c6461696c795f6c696d69747381a2656173736574a16345766da265746f6b656e54222222222222222222222222222222222222222268636861696e5f696419210566616d6f756e741b000000012a05f2006f61646d696e5f7468726573686f6c64026f70726f706f73616c5f74746c5f6d731a240c8400706461696c795f7369676e6174757265731832707370656e6461626c655f6173736574738563496370a164496372634a0303030303030303030363427463a16345766da265746f6b656ef668636861696e5f696401a163536f6ca1646d696e745820444444444444444444444444444444444444444444444444444444444444444471756e667265657a655f64656c61795f6d731a05265c0072617070726f7665725f7468726573686f6c64027268617264776172655f636f7369676e657273f57818616464726573735f626f6f6b5f636f6f6c646f776e5f6d731a05265c0004a1674163636f756e744c070707070707070707070707f6",
+      "digest_hex": "9e8e4c84a341451071d77542b3cefa0a3d62399e51a4a3ac0321ec997e3c70a7"
+    },
+    {
+      "name": "decision: Approve",
+      "domain": "dmsg-wallet/decision/v1",
+      "value": {
+        "array": [
+          {
+            "bytes": "71aa6cbe46022f2b28bde519f963b5e72613f8b792b7f2e9b778814753ea8a1c"
+          },
+          {
+            "text": "Approve"
+          }
+        ]
+      },
+      "preimage_hex": "830177646d73672d77616c6c65742f6465636973696f6e2f763182582071aa6cbe46022f2b28bde519f963b5e72613f8b792b7f2e9b778814753ea8a1c67417070726f7665",
+      "digest_hex": "f44ea2bb937a2068eb5d167aff236c15f39031bcfe993b3525a6de5a40ef8d46"
+    },
+    {
+      "name": "decision: Reject",
+      "domain": "dmsg-wallet/decision/v1",
+      "value": {
+        "array": [
+          {
+            "bytes": "71aa6cbe46022f2b28bde519f963b5e72613f8b792b7f2e9b778814753ea8a1c"
+          },
+          {
+            "text": "Reject"
+          }
+        ]
+      },
+      "preimage_hex": "830177646d73672d77616c6c65742f6465636973696f6e2f763182582071aa6cbe46022f2b28bde519f963b5e72613f8b792b7f2e9b778814753ea8a1c6652656a656374",
+      "digest_hex": "63b19df6e22582052e8e07cdeb1845f3980bab51e1b3bc930bb947ad5c1ae522"
+    },
+    {
+      "name": "decision: Veto",
+      "domain": "dmsg-wallet/decision/v1",
+      "value": {
+        "array": [
+          {
+            "bytes": "71aa6cbe46022f2b28bde519f963b5e72613f8b792b7f2e9b778814753ea8a1c"
+          },
+          {
+            "text": "Veto"
+          }
+        ]
+      },
+      "preimage_hex": "830177646d73672d77616c6c65742f6465636973696f6e2f763182582071aa6cbe46022f2b28bde519f963b5e72613f8b792b7f2e9b778814753ea8a1c645665746f",
+      "digest_hex": "a24a354b60141edd2178fd11e2ce3063d6904c75138970ff1dd522e957dcda57"
+    },
+    {
+      "name": "join",
+      "domain": "dmsg-wallet/join/v1",
+      "value": {
+        "array": [
+          {
+            "bytes": "09090909090909090909"
+          },
+          {
+            "bytes": "070707070707070707070707"
+          },
+          {
+            "bytes": "0b0b0b0b0b0b0b0b0b0b"
+          }
+        ]
+      },
+      "preimage_hex": "830173646d73672d77616c6c65742f6a6f696e2f7631834a090909090909090909094c0707070707070707070707074a0b0b0b0b0b0b0b0b0b0b",
+      "digest_hex": "a0af98089705e6a5c80426be0a0bee06366bd93d76026276599607c8f0e9d953"
+    },
+    {
+      "name": "deposit subaccount",
+      "domain": "dmsg-wallet/deposit/v1",
+      "value": {
+        "array": [
+          {
+            "bytes": "01010101010101010101"
+          },
+          {
+            "bytes": "5151515151515151515151515151515151515151515151515151515151515151"
+          }
+        ]
+      },
+      "preimage_hex": "830176646d73672d77616c6c65742f6465706f7369742f7631824a0101010101010101010158205151515151515151515151515151515151515151515151515151515151515151",
+      "digest_hex": "077dc7f285618761334f4f041ce7672bfdf8c3a2624433256967fa4a044a3b2d"
+    },
+    {
+      "name": "activation",
+      "domain": "dmsg-wallet/activation/v1",
+      "value": {
+        "array": [
+          {
+            "map": [
+              [
+                {
+                  "text": "plan"
+                },
+                {
+                  "text": "Free"
+                }
+              ],
+              [
+                {
+                  "text": "payer"
+                },
+                {
+                  "bytes": "0b0b0b0b0b0b0b0b0b0b"
+                }
+              ],
+              [
+                {
+                  "text": "deposit"
+                },
+                {
+                  "map": [
+                    [
+                      {
+                        "text": "owner"
+                      },
+                      {
+                        "bytes": "01010101010101010101"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "subaccount"
+                      },
+                      {
+                        "bytes": "077dc7f285618761334f4f041ce7672bfdf8c3a2624433256967fa4a044a3b2d"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              [
+                {
+                  "text": "version"
+                },
+                {
+                  "uint": "1"
+                }
+              ],
+              [
+                {
+                  "text": "quote_id"
+                },
+                {
+                  "bytes": "5151515151515151515151515151515151515151515151515151515151515151"
+                }
+              ],
+              [
+                {
+                  "text": "price_e8s"
+                },
+                {
+                  "uint": "1000000000"
+                }
+              ],
+              [
+                {
+                  "text": "remaining"
+                },
+                {
+                  "uint": "2"
+                }
+              ],
+              [
+                {
+                  "text": "account_id"
+                },
+                {
+                  "bytes": "070707070707070707070707"
+                }
+              ],
+              [
+                {
+                  "text": "issued_at_ms"
+                },
+                {
+                  "uint": "1760000000000"
+                }
+              ],
+              [
+                {
+                  "text": "expires_at_ms"
+                },
+                {
+                  "uint": "1760000900000"
+                }
+              ],
+              [
+                {
+                  "text": "ledger_fee_e8s"
+                },
+                {
+                  "uint": "10000"
+                }
+              ],
+              [
+                {
+                  "text": "cycles_to_wallet"
+                },
+                {
+                  "uint": "3000000000000"
+                }
+              ]
+            ]
+          },
+          {
+            "map": [
+              [
+                {
+                  "text": "name"
+                },
+                {
+                  "text": "ICPanda DAO"
+                }
+              ],
+              [
+                {
+                  "text": "policy"
+                },
+                {
+                  "map": [
+                    [
+                      {
+                        "text": "tiers"
+                      },
+                      {
+                        "array": [
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "asset"
+                                },
+                                {
+                                  "text": "Icp"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "up_to"
+                                },
+                                {
+                                  "uint": "100000000"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "delay_ms"
+                                },
+                                {
+                                  "uint": "0"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "approvals"
+                                },
+                                {
+                                  "uint": "1"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "book_only"
+                                },
+                                {
+                                  "bool": false
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "asset"
+                                },
+                                {
+                                  "text": "Btc"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "up_to"
+                                },
+                                {
+                                  "uint": "1000000"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "delay_ms"
+                                },
+                                {
+                                  "uint": "3600000"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "approvals"
+                                },
+                                {
+                                  "uint": "2"
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "book_only"
+                                },
+                                {
+                                  "bool": true
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "public"
+                      },
+                      {
+                        "bool": false
+                      }
+                    ],
+                    [
+                      {
+                        "text": "refuel"
+                      },
+                      {
+                        "map": [
+                          [
+                            {
+                              "text": "from"
+                            },
+                            {
+                              "uint": "0"
+                            }
+                          ],
+                          [
+                            {
+                              "text": "icp_e8s"
+                            },
+                            {
+                              "uint": "50000000"
+                            }
+                          ],
+                          [
+                            {
+                              "text": "min_cycles"
+                            },
+                            {
+                              "uint": "2000000000000"
+                            }
+                          ],
+                          [
+                            {
+                              "text": "max_per_day"
+                            },
+                            {
+                              "uint": "2"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "version"
+                      },
+                      {
+                        "uint": "2"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "evm_chains"
+                      },
+                      {
+                        "array": [
+                          {
+                            "uint": "1"
+                          },
+                          {
+                            "uint": "8453"
+                          }
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "call_targets"
+                      },
+                      {
+                        "array": []
+                      }
+                    ],
+                    [
+                      {
+                        "text": "daily_limits"
+                      },
+                      {
+                        "array": [
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "asset"
+                                },
+                                {
+                                  "map": [
+                                    [
+                                      {
+                                        "text": "Evm"
+                                      },
+                                      {
+                                        "map": [
+                                          [
+                                            {
+                                              "text": "token"
+                                            },
+                                            {
+                                              "bytes": "2222222222222222222222222222222222222222"
+                                            }
+                                          ],
+                                          [
+                                            {
+                                              "text": "chain_id"
+                                            },
+                                            {
+                                              "uint": "8453"
+                                            }
+                                          ]
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ],
+                              [
+                                {
+                                  "text": "amount"
+                                },
+                                {
+                                  "uint": "5000000000"
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "admin_threshold"
+                      },
+                      {
+                        "uint": "2"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "proposal_ttl_ms"
+                      },
+                      {
+                        "uint": "604800000"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "daily_signatures"
+                      },
+                      {
+                        "uint": "50"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "spendable_assets"
+                      },
+                      {
+                        "array": [
+                          {
+                            "text": "Icp"
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "Icrc"
+                                },
+                                {
+                                  "bytes": "03030303030303030303"
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "text": "Btc"
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "Evm"
+                                },
+                                {
+                                  "map": [
+                                    [
+                                      {
+                                        "text": "token"
+                                      },
+                                      {
+                                        "null": true
+                                      }
+                                    ],
+                                    [
+                                      {
+                                        "text": "chain_id"
+                                      },
+                                      {
+                                        "uint": "1"
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ]
+                            ]
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "Sol"
+                                },
+                                {
+                                  "map": [
+                                    [
+                                      {
+                                        "text": "mint"
+                                      },
+                                      {
+                                        "bytes": "4444444444444444444444444444444444444444444444444444444444444444"
+                                      }
+                                    ]
+                                  ]
+                                }
+                              ]
+                            ]
+                          }
+                        ]
+                      }
+                    ],
+                    [
+                      {
+                        "text": "unfreeze_delay_ms"
+                      },
+                      {
+                        "uint": "86400000"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "approver_threshold"
+                      },
+                      {
+                        "uint": "2"
+                      }
+                    ],
+                    [
+                      {
+                        "text": "hardware_cosigners"
+                      },
+                      {
+                        "bool": true
+                      }
+                    ],
+                    [
+                      {
+                        "text": "address_book_cooldown_ms"
+                      },
+                      {
+                        "uint": "86400000"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              [
+                {
+                  "text": "members"
+                },
+                {
+                  "array": [
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "id"
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "Account"
+                                },
+                                {
+                                  "bytes": "080808080808080808080808"
+                                }
+                              ]
+                            ]
+                          }
+                        ],
+                        [
+                          {
+                            "text": "role"
+                          },
+                          {
+                            "text": "Approver"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "label"
+                          },
+                          {
+                            "text": "ops"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "agent_ids"
+                          },
+                          {
+                            "array": []
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "map": [
+                        [
+                          {
+                            "text": "id"
+                          },
+                          {
+                            "map": [
+                              [
+                                {
+                                  "text": "Principal"
+                                },
+                                {
+                                  "bytes": "0c0c0c0c0c0c0c0c0c0c"
+                                }
+                              ]
+                            ]
+                          }
+                        ],
+                        [
+                          {
+                            "text": "role"
+                          },
+                          {
+                            "text": "Recovery"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "label"
+                          },
+                          {
+                            "text": "sns"
+                          }
+                        ],
+                        [
+                          {
+                            "text": "agent_ids"
+                          },
+                          {
+                            "array": []
+                          }
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ],
+              [
+                {
+                  "text": "channel_hint"
+                },
+                {
+                  "null": true
+                }
+              ]
+            ]
+          }
+        ]
+      },
+      "preimage_hex": "83017819646d73672d77616c6c65742f61637469766174696f6e2f763182ac64706c616e64467265656570617965724a0b0b0b0b0b0b0b0b0b0b676465706f736974a2656f776e65724a010101010101010101016a7375626163636f756e745820077dc7f285618761334f4f041ce7672bfdf8c3a2624433256967fa4a044a3b2d6776657273696f6e016871756f74655f6964582051515151515151515151515151515151515151515151515151515151515151516970726963655f6538731a3b9aca006972656d61696e696e67026a6163636f756e745f69644c0707070707070707070707076c6973737565645f61745f6d731b00000199c82cc0006d657870697265735f61745f6d731b00000199c83a7ba06e6c65646765725f6665655f653873192710706379636c65735f746f5f77616c6c65741b000002ba7def3000a4646e616d656b494350616e64612044414f66706f6c696379af65746965727382a5656173736574634963706575705f746f1a05f5e1006864656c61795f6d730069617070726f76616c730169626f6f6b5f6f6e6c79f4a5656173736574634274636575705f746f1a000f42406864656c61795f6d731a0036ee8069617070726f76616c730269626f6f6b5f6f6e6c79f5667075626c6963f46672656675656ca46466726f6d00676963705f6538731a02faf0806a6d696e5f6379636c65731b000001d1a94a20006b6d61785f7065725f646179026776657273696f6e026a65766d5f636861696e7382011921056c63616c6c5f74617267657473806c6461696c795f6c696d69747381a2656173736574a16345766da265746f6b656e54222222222222222222222222222222222222222268636861696e5f696419210566616d6f756e741b000000012a05f2006f61646d696e5f7468726573686f6c64026f70726f706f73616c5f74746c5f6d731a240c8400706461696c795f7369676e6174757265731832707370656e6461626c655f6173736574738563496370a164496372634a0303030303030303030363427463a16345766da265746f6b656ef668636861696e5f696401a163536f6ca1646d696e745820444444444444444444444444444444444444444444444444444444444444444471756e667265657a655f64656c61795f6d731a05265c0072617070726f7665725f7468726573686f6c64027268617264776172655f636f7369676e657273f57818616464726573735f626f6f6b5f636f6f6c646f776e5f6d731a05265c00676d656d6265727382a4626964a1674163636f756e744c08080808080808080808080864726f6c6568417070726f766572656c6162656c636f7073696167656e745f69647380a4626964a1695072696e636970616c4a0c0c0c0c0c0c0c0c0c0c64726f6c65685265636f76657279656c6162656c63736e73696167656e745f696473806c6368616e6e656c5f68696e74f6",
+      "digest_hex": "671656de830e05f4dad59f3cab7fbac6e54a032fc2e1fd7e5daeacb6326c3101"
+    },
+    {
+      "name": "cosign message",
+      "domain": "dmsg-wallet/cosign/v1",
+      "value": {
+        "array": [
+          {
+            "bytes": "09090909090909090909"
+          },
+          {
+            "uint": "4"
+          },
+          {
+            "uint": "1"
+          },
+          {
+            "uint": "0"
+          },
+          {
+            "bytes": "3333333333333333333333333333333333333333333333333333333333333333"
+          }
+        ]
+      },
+      "preimage_hex": "830175646d73672d77616c6c65742f636f7369676e2f7631854a0909090909090909090904010058203333333333333333333333333333333333333333333333333333333333333333",
+      "digest_hex": "4d46bc8241d0bf2ce52ed62c1c1f5646217142fd4f9e4bc3415f907f8d468a80"
+    }
+  ],
+  "audit": {
+    "events": [
+      {
+        "name": "audit 0",
+        "domain": "dmsg-wallet/audit/v1",
+        "value": {
+          "array": [
+            {
+              "bytes": "0000000000000000000000000000000000000000000000000000000000000000"
+            },
+            {
+              "uint": "0"
+            },
+            {
+              "uint": "1760000000000"
+            },
+            {
+              "map": [
+                [
+                  {
+                    "text": "Account"
+                  },
+                  {
+                    "bytes": "070707070707070707070707"
+                  }
+                ]
+              ]
+            },
+            {
+              "null": true
+            },
+            {
+              "text": "Created"
+            }
+          ]
+        },
+        "preimage_hex": "830174646d73672d77616c6c65742f61756469742f76318658200000000000000000000000000000000000000000000000000000000000000000001b00000199c82cc000a1674163636f756e744c070707070707070707070707f66743726561746564",
+        "digest_hex": "54e58a3c4d820b13aa5310da18c0e190ef67aec359c418780f6f03b74452f7c1",
+        "prev_hex": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "name": "audit 1",
+        "domain": "dmsg-wallet/audit/v1",
+        "value": {
+          "array": [
+            {
+              "bytes": "54e58a3c4d820b13aa5310da18c0e190ef67aec359c418780f6f03b74452f7c1"
+            },
+            {
+              "uint": "1"
+            },
+            {
+              "uint": "1760000060000"
+            },
+            {
+              "map": [
+                [
+                  {
+                    "text": "Account"
+                  },
+                  {
+                    "bytes": "070707070707070707070707"
+                  }
+                ]
+              ]
+            },
+            {
+              "uint": "1"
+            },
+            {
+              "text": "Proposed"
+            }
+          ]
+        },
+        "preimage_hex": "830174646d73672d77616c6c65742f61756469742f763186582054e58a3c4d820b13aa5310da18c0e190ef67aec359c418780f6f03b74452f7c1011b00000199c82daa60a1674163636f756e744c070707070707070707070707016850726f706f736564",
+        "digest_hex": "d9c6316e230fcda4541d7f762f10beb6c893f2e6ab90865039cb8c7ad1ec297c",
+        "prev_hex": "54e58a3c4d820b13aa5310da18c0e190ef67aec359c418780f6f03b74452f7c1"
+      },
+      {
+        "name": "audit 2",
+        "domain": "dmsg-wallet/audit/v1",
+        "value": {
+          "array": [
+            {
+              "bytes": "d9c6316e230fcda4541d7f762f10beb6c893f2e6ab90865039cb8c7ad1ec297c"
+            },
+            {
+              "uint": "2"
+            },
+            {
+              "uint": "1760000120000"
+            },
+            {
+              "map": [
+                [
+                  {
+                    "text": "Principal"
+                  },
+                  {
+                    "bytes": "06060606060606060606"
+                  }
+                ]
+              ]
+            },
+            {
+              "uint": "1"
+            },
+            {
+              "map": [
+                [
+                  {
+                    "text": "Decided"
+                  },
+                  {
+                    "text": "Approve"
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        "preimage_hex": "830174646d73672d77616c6c65742f61756469742f7631865820d9c6316e230fcda4541d7f762f10beb6c893f2e6ab90865039cb8c7ad1ec297c021b00000199c82e94c0a1695072696e636970616c4a0606060606060606060601a1674465636964656467417070726f7665",
+        "digest_hex": "cb0e6a63e6fd101e2c4875c8e5659dd9591dd851eede01abaeda77a48caf20a8",
+        "prev_hex": "d9c6316e230fcda4541d7f762f10beb6c893f2e6ab90865039cb8c7ad1ec297c"
+      },
+      {
+        "name": "audit 3",
+        "domain": "dmsg-wallet/audit/v1",
+        "value": {
+          "array": [
+            {
+              "bytes": "cb0e6a63e6fd101e2c4875c8e5659dd9591dd851eede01abaeda77a48caf20a8"
+            },
+            {
+              "uint": "3"
+            },
+            {
+              "uint": "1760000180000"
+            },
+            {
+              "null": true
+            },
+            {
+              "uint": "1"
+            },
+            {
+              "text": "Approved"
+            }
+          ]
+        },
+        "preimage_hex": "830174646d73672d77616c6c65742f61756469742f7631865820cb0e6a63e6fd101e2c4875c8e5659dd9591dd851eede01abaeda77a48caf20a8031b00000199c82f7f20f60168417070726f766564",
+        "digest_hex": "56be56f20f342e448734f149a25a4c77235baa7a4b811bce2982ec0110fd054e",
+        "prev_hex": "cb0e6a63e6fd101e2c4875c8e5659dd9591dd851eede01abaeda77a48caf20a8"
+      },
+      {
+        "name": "audit 4",
+        "domain": "dmsg-wallet/audit/v1",
+        "value": {
+          "array": [
+            {
+              "bytes": "56be56f20f342e448734f149a25a4c77235baa7a4b811bce2982ec0110fd054e"
+            },
+            {
+              "uint": "4"
+            },
+            {
+              "uint": "1760000240000"
+            },
+            {
+              "map": [
+                [
+                  {
+                    "text": "Account"
+                  },
+                  {
+                    "bytes": "070707070707070707070707"
+                  }
+                ]
+              ]
+            },
+            {
+              "uint": "1"
+            },
+            {
+              "map": [
+                [
+                  {
+                    "text": "Signed"
+                  },
+                  {
+                    "map": [
+                      [
+                        {
+                          "text": "plan"
+                        },
+                        {
+                          "uint": "1"
+                        }
+                      ],
+                      [
+                        {
+                          "text": "txid"
+                        },
+                        {
+                          "text": "0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060"
+                        }
+                      ]
+                    ]
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        "preimage_hex": "830174646d73672d77616c6c65742f61756469742f763186582056be56f20f342e448734f149a25a4c77235baa7a4b811bce2982ec0110fd054e041b00000199c8306980a1674163636f756e744c07070707070707070707070701a1665369676e6564a264706c616e0164747869647842307835633530346564343332636235313133386263663039616135653861343130646434613165323034656638346266656431626531366466626131623232303630",
+        "digest_hex": "e92f8cf23b6698ca3dd577daddef24fe9956b8159584c8bbd86bc228b8bf9fde",
+        "prev_hex": "56be56f20f342e448734f149a25a4c77235baa7a4b811bce2982ec0110fd054e"
+      },
+      {
+        "name": "audit 5",
+        "domain": "dmsg-wallet/audit/v1",
+        "value": {
+          "array": [
+            {
+              "bytes": "e92f8cf23b6698ca3dd577daddef24fe9956b8159584c8bbd86bc228b8bf9fde"
+            },
+            {
+              "uint": "5"
+            },
+            {
+              "uint": "1760000300000"
+            },
+            {
+              "null": true
+            },
+            {
+              "uint": "1"
+            },
+            {
+              "text": "Settled"
+            }
+          ]
+        },
+        "preimage_hex": "830174646d73672d77616c6c65742f61756469742f7631865820e92f8cf23b6698ca3dd577daddef24fe9956b8159584c8bbd86bc228b8bf9fde051b00000199c83153e0f60167536574746c6564",
+        "digest_hex": "107544b2080c682e9a200416b5e5ddc3e4f50a5480f4556c1d86dafee6f2f8f0",
+        "prev_hex": "e92f8cf23b6698ca3dd577daddef24fe9956b8159584c8bbd86bc228b8bf9fde"
+      }
+    ],
+    "head_hex": "107544b2080c682e9a200416b5e5ddc3e4f50a5480f4556c1d86dafee6f2f8f0"
+  },
+  "addresses": [
+    {
+      "chain": "Icp",
+      "kind": "ChainKey",
+      "id": 0,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "696370",
+        "00000000"
+      ],
+      "subaccount_hex": null,
+      "text": "zez66-tqjbe-eqsci-jbeeq-sci"
+    },
+    {
+      "chain": "Icp",
+      "kind": "ChainKey",
+      "id": 7,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "696370",
+        "00000007"
+      ],
+      "subaccount_hex": "0000000000000000000000000000000000000000000000000000000000000007",
+      "text": "zez66-tqjbe-eqsci-jbeeq-sci-slq67oa.7"
+    },
+    {
+      "chain": "Bitcoin",
+      "kind": "ChainKey",
+      "network": "Mainnet",
+      "id": 1,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "627463",
+        "00000001"
+      ],
+      "public_key_hex": "02abfb9b1e230040e10bb68f29f9e4023671fbace2dae20bc68d725c9421657a86",
+      "internal_key_hex": "abfb9b1e230040e10bb68f29f9e4023671fbace2dae20bc68d725c9421657a86",
+      "output_key_hex": "bbf9c1d2108868d11e036fdb0c9932ba2c48e6c0a6f9c0025c2793ec816ee8a0",
+      "script_hex": "5120bbf9c1d2108868d11e036fdb0c9932ba2c48e6c0a6f9c0025c2793ec816ee8a0",
+      "text": "bc1ph0uur5ss3p5dz8srdldsexfjhgky3ekq5muuqqjuy7f7eqtwazsqrph2e8"
+    },
+    {
+      "chain": "Bitcoin",
+      "kind": "Segwit",
+      "network": "Mainnet",
+      "id": 2,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "6274632d736567776974",
+        "00000002"
+      ],
+      "public_key_hex": "03e36f900c49844fd30bd1aafca1edc87bbb6f25b6ebc37202a4b177227aca13de",
+      "hash160_hex": "f613ca1c14ba08a023676508659d5f7e94a2bb03",
+      "script_hex": "0014f613ca1c14ba08a023676508659d5f7e94a2bb03",
+      "text": "bc1q7cfu58q5hgy2qgm8v5yxt82l06229wcrrw8m24"
+    },
+    {
+      "chain": "Bitcoin",
+      "kind": "Taproot",
+      "network": "Mainnet",
+      "id": 3,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "6274632d6e6174697665",
+        "00000003"
+      ],
+      "public_key_hex": "03021ec8e8e59b11b23591e211707cf7b69695eaf9082abf62e9a7e3091e54cd91",
+      "cosigner_x_only_hex": "b09b306f1e57850af2174a8bcf924822f6b3c522817b42e7a3c47a9f45df6b89",
+      "chain_key_after": 144,
+      "recovery": {
+        "key_hex": "beedf2c19a419575d77e26d01f49181d443b34980251afd1e8ef1b5be7db9842",
+        "after": 1000
+      },
+      "internal_key_hex": "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0",
+      "leaves_hex": [
+        "20021ec8e8e59b11b23591e211707cf7b69695eaf9082abf62e9a7e3091e54cd91ad20b09b306f1e57850af2174a8bcf924822f6b3c522817b42e7a3c47a9f45df6b89ac",
+        "029000b27520021ec8e8e59b11b23591e211707cf7b69695eaf9082abf62e9a7e3091e54cd91ac",
+        "02e803b27520beedf2c19a419575d77e26d01f49181d443b34980251afd1e8ef1b5be7db9842ac"
+      ],
+      "leaf_hashes_hex": [
+        "e5be3d4136ff3a7272dab84f612099ecf4e46aec05f99bd1cd46b0177e019021",
+        "e5fd0ca8a24f04f8bade5d6919ed67d6adc51d8bbdf0796c58a9039816266021",
+        "f87a56c9f1912001db0cdf9f734c4b56a6d95baebb2272fff14712f9a3f3237b"
+      ],
+      "merkle_root_hex": "819cf7cbfa39f829143006a0737dfc388f719a1ce7313deea6ac3aa715e72c63",
+      "output_key_hex": "2f837e54b1ca261779a560e292604a14dda4d8b27c74533fbee86e5bbbcb8bbe",
+      "output_odd": true,
+      "control_blocks_hex": [
+        "c150929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac02258b0df155d35cffad90f93a2142af85c8c4250fd55c5f11372ffeedbae0287",
+        "c150929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0f87a56c9f1912001db0cdf9f734c4b56a6d95baebb2272fff14712f9a3f3237be5be3d4136ff3a7272dab84f612099ecf4e46aec05f99bd1cd46b0177e019021",
+        "c150929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0e5fd0ca8a24f04f8bade5d6919ed67d6adc51d8bbdf0796c58a9039816266021e5be3d4136ff3a7272dab84f612099ecf4e46aec05f99bd1cd46b0177e019021"
+      ],
+      "script_hex": "51202f837e54b1ca261779a560e292604a14dda4d8b27c74533fbee86e5bbbcb8bbe",
+      "text": "bc1p97phu493egnpw7d9vr3fycz2znw6fk9j0369x0a7aph9hw7t3wlqw9nup3"
+    },
+    {
+      "chain": "Bitcoin",
+      "kind": "ChainKey",
+      "network": "Regtest",
+      "id": 1,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "627463",
+        "00000001"
+      ],
+      "public_key_hex": "02abfb9b1e230040e10bb68f29f9e4023671fbace2dae20bc68d725c9421657a86",
+      "internal_key_hex": "abfb9b1e230040e10bb68f29f9e4023671fbace2dae20bc68d725c9421657a86",
+      "output_key_hex": "bbf9c1d2108868d11e036fdb0c9932ba2c48e6c0a6f9c0025c2793ec816ee8a0",
+      "script_hex": "5120bbf9c1d2108868d11e036fdb0c9932ba2c48e6c0a6f9c0025c2793ec816ee8a0",
+      "text": "bcrt1ph0uur5ss3p5dz8srdldsexfjhgky3ekq5muuqqjuy7f7eqtwazsqestrkj"
+    },
+    {
+      "chain": "Bitcoin",
+      "kind": "Segwit",
+      "network": "Regtest",
+      "id": 2,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "6274632d736567776974",
+        "00000002"
+      ],
+      "public_key_hex": "03e36f900c49844fd30bd1aafca1edc87bbb6f25b6ebc37202a4b177227aca13de",
+      "hash160_hex": "f613ca1c14ba08a023676508659d5f7e94a2bb03",
+      "script_hex": "0014f613ca1c14ba08a023676508659d5f7e94a2bb03",
+      "text": "bcrt1q7cfu58q5hgy2qgm8v5yxt82l06229wcrtp99x0"
+    },
+    {
+      "chain": "Bitcoin",
+      "kind": "Taproot",
+      "network": "Regtest",
+      "id": 3,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "6274632d6e6174697665",
+        "00000003"
+      ],
+      "public_key_hex": "03021ec8e8e59b11b23591e211707cf7b69695eaf9082abf62e9a7e3091e54cd91",
+      "cosigner_x_only_hex": "b09b306f1e57850af2174a8bcf924822f6b3c522817b42e7a3c47a9f45df6b89",
+      "chain_key_after": 144,
+      "recovery": {
+        "key_hex": "beedf2c19a419575d77e26d01f49181d443b34980251afd1e8ef1b5be7db9842",
+        "after": 1000
+      },
+      "internal_key_hex": "50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0",
+      "leaves_hex": [
+        "20021ec8e8e59b11b23591e211707cf7b69695eaf9082abf62e9a7e3091e54cd91ad20b09b306f1e57850af2174a8bcf924822f6b3c522817b42e7a3c47a9f45df6b89ac",
+        "029000b27520021ec8e8e59b11b23591e211707cf7b69695eaf9082abf62e9a7e3091e54cd91ac",
+        "02e803b27520beedf2c19a419575d77e26d01f49181d443b34980251afd1e8ef1b5be7db9842ac"
+      ],
+      "leaf_hashes_hex": [
+        "e5be3d4136ff3a7272dab84f612099ecf4e46aec05f99bd1cd46b0177e019021",
+        "e5fd0ca8a24f04f8bade5d6919ed67d6adc51d8bbdf0796c58a9039816266021",
+        "f87a56c9f1912001db0cdf9f734c4b56a6d95baebb2272fff14712f9a3f3237b"
+      ],
+      "merkle_root_hex": "819cf7cbfa39f829143006a0737dfc388f719a1ce7313deea6ac3aa715e72c63",
+      "output_key_hex": "2f837e54b1ca261779a560e292604a14dda4d8b27c74533fbee86e5bbbcb8bbe",
+      "output_odd": true,
+      "control_blocks_hex": [
+        "c150929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac02258b0df155d35cffad90f93a2142af85c8c4250fd55c5f11372ffeedbae0287",
+        "c150929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0f87a56c9f1912001db0cdf9f734c4b56a6d95baebb2272fff14712f9a3f3237be5be3d4136ff3a7272dab84f612099ecf4e46aec05f99bd1cd46b0177e019021",
+        "c150929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0e5fd0ca8a24f04f8bade5d6919ed67d6adc51d8bbdf0796c58a9039816266021e5be3d4136ff3a7272dab84f612099ecf4e46aec05f99bd1cd46b0177e019021"
+      ],
+      "script_hex": "51202f837e54b1ca261779a560e292604a14dda4d8b27c74533fbee86e5bbbcb8bbe",
+      "text": "bcrt1p97phu493egnpw7d9vr3fycz2znw6fk9j0369x0a7aph9hw7t3wlq5504wy"
+    },
+    {
+      "chain": "Evm",
+      "kind": "ChainKey",
+      "id": 4,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "657468",
+        "00000004"
+      ],
+      "public_key_hex": "0285c76726a878ede464d04eccd6e94c2c2797ae6c2b52cbbd7067a3daeeb4b099",
+      "address_hex": "bc3c31fa0c4b0da205c496d2227671c68d1a286b",
+      "text": "0xbc3C31fa0C4b0da205c496d2227671C68d1A286B"
+    },
+    {
+      "chain": "Solana",
+      "kind": "ChainKey",
+      "id": 5,
+      "derivation_path_hex": [
+        "646d73672d77616c6c65742f7631",
+        "736f6c",
+        "00000005"
+      ],
+      "public_key_hex": "fd1724385aa0c75b64fb78cd602fa1d991fdebf76b13c58ed702eac835e9f618",
+      "text": "J2xccRtuG43drESLYznHhLhQkLTdfepcKYbiQ9BsJVaf"
+    }
+  ],
+  "destinations": [
+    {
+      "chain": "Bitcoin",
+      "network": "Mainnet",
+      "text": "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",
+      "script_hex": "76a91477bff20c60e522dfaa3350c39b030a5d004e839a88ac"
+    },
+    {
+      "chain": "Bitcoin",
+      "network": "Mainnet",
+      "text": "3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy",
+      "script_hex": "a914b472a266d0bd89c13706a4132ccfb16f7c3b9fcb87"
+    },
+    {
+      "chain": "Bitcoin",
+      "network": "Mainnet",
+      "text": "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+      "script_hex": "0014751e76e8199196d454941c45d1b3a323f1433bd6"
+    },
+    {
+      "chain": "Bitcoin",
+      "network": "Mainnet",
+      "text": "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0",
+      "script_hex": "512079be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+    },
+    {
+      "chain": "Bitcoin",
+      "network": "Testnet",
+      "text": "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7",
+      "script_hex": "00201863143c14c5166804bd19203356da136c985678cd4d27a1b8c6329604903262"
+    },
+    {
+      "chain": "Evm",
+      "text": "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+      "address_hex": "5aaeb6053f3e94c9b9a09f33669435e7ef1beaed"
+    },
+    {
+      "chain": "Solana",
+      "text": "Vote111111111111111111111111111111111111111",
+      "address_hex": "0761481d357474bb7c4d7624ebd3bdb3d8355e73d11043fc0da3538000000000"
+    }
+  ]
+}

@@ -122,3 +122,7 @@
 ## cycles
 
 `refuel()` 任何人可调：策略 `refuel` 规则下余额低于 `min_cycles` 且当日次数未满时，从指定 ICP 地址以 ICRC-1 memo `TPUP`（`0x50555054` 小端 8 字节）转入 CMC 的实例子账户并 `notify_top_up`。`Refuel` 意图做同样的事但需要批准。
+
+## 向量
+
+[tests/vectors/wallet](../../tests/vectors/wallet/README.md) 固定本合同的字节：`protocol-v1.json` 给出每种承诺（提案、决定、加入、激活、协签消息、收款子账户、审计事件）的 CBOR 值、完整原像与摘要，以及各链地址、Taproot 叶与控制块和收款脚本；`plans-v1.json` 给出钱包为各类外链意图构建的计划、签名与已签交易，客户端解码器须全部接受，并拒绝其中的篡改样例。两份文件由 Rust 实现生成，每次测试逐字节比对。

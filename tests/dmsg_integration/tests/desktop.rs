@@ -848,6 +848,9 @@ struct Options {
     /// Keep device A's owner credential and keys in the system credential
     /// store, as installed desktops do.
     system_storage: bool,
+    /// Install the team wallet hub; the daemons' `[wallet]` names it and
+    /// points every external chain at a closed loopback port.
+    wallet: bool,
 }
 
 /// One deployment, one relay and two desktops, `a` and `b`.
@@ -1007,6 +1010,9 @@ impl Env {
 
         let deployment = support::Deployment::start();
         let legacy = options.legacy.then(|| Legacy::install(&deployment));
+        let wallet_hub = options
+            .wallet
+            .then(|| deployment.install_wallet_hub(WALLET_PRICE));
         let mut launch: Value = serde_json::from_str(&deployment.fixture_json()).unwrap();
         if let Some(legacy) = &legacy {
             launch["legacy"] = json!({
@@ -1099,7 +1105,7 @@ impl Env {
             config.push_str(&format!("agent_hosts = [{}]\n", hosts.join(", ")));
         }
         // A table ends the top-level keys: it goes after every policy.
-        let table = legacy.as_ref().map_or(String::new(), |legacy| {
+        let mut table = legacy.as_ref().map_or(String::new(), |legacy| {
             format!(
                 "[legacy]\nchannels = [\"{}\"]\nidentity = \"{}\"\ncutover = \"{}\"\n",
                 legacy.channel,
@@ -1107,6 +1113,13 @@ impl Env {
                 "08".repeat(32)
             )
         });
+        if let Some(hub) = wallet_hub {
+            // Nothing listens on port 9: chain reads fail fast and stay local.
+            let closed = "http://127.0.0.1:9";
+            table.push_str(&format!(
+                "[wallet]\nhub = \"{hub}\"\nbitcoin_api = \"{closed}\"\nsolana_rpc = \"{closed}\"\nevm_rpc = {{ 1 = \"{closed}\", 8453 = \"{closed}\" }}\n"
+            ));
+        }
         let desktop = |name: &str, policy: &str| {
             let home = dir.join(name);
             std::fs::create_dir_all(&home).unwrap();
@@ -3366,9 +3379,9 @@ fn ed25519_pem(seed: u8) -> String {
     )
 }
 
-/// A balance as `wallet balance` reports it.
+/// A balance as `payer balance` reports it.
 fn balance(desktop: &Desktop, ledger: &Principal) -> u128 {
-    desktop.run(&["wallet", "balance", &ledger.to_text()])["balance"]
+    desktop.run(&["payer", "balance", &ledger.to_text()])["balance"]
         .as_str()
         .unwrap()
         .parse()
@@ -3647,7 +3660,7 @@ fn desktop_commerce() {
         .to_string();
     let enable = b.run(&["device", "formal-approve", "on"]);
     assert_eq!(b.decide(&http, &enable, true).unwrap()["state"], "done");
-    let wallet = b.run(&["wallet", "use", &pem]);
+    let wallet = b.run(&["payer", "use", &pem]);
     assert_eq!(wallet["source"], "pem");
 
     // The name moves to the other account: the owner offers it, the target
@@ -3770,7 +3783,7 @@ fn desktop_commerce() {
         .to_string();
     let enable = c.run(&["device", "formal-approve", "on"]);
     assert_eq!(c.decide(&http, &enable, true).unwrap()["state"], "done");
-    c.run(&["wallet", "use", &pem]);
+    c.run(&["payer", "use", &pem]);
     let quote = c.run(&[
         "plan",
         "quote",
@@ -4063,6 +4076,270 @@ fn desktop_paid_letters() {
 
 /// An MCP client on `dmsg mcp`'s stdio, as Claude Code or another agent
 /// runtime drives it.
+/// Activation price of the team wallet hub, in e8s of the test ledger.
+const WALLET_PRICE: u64 = 1_000_000_000;
+
+/// Mint `amount` to `to` on a test ledger.
+fn mint(
+    d: &support::Deployment,
+    ledger: Principal,
+    to: icrc_ledger_types::icrc1::account::Account,
+    amount: u128,
+) {
+    d.ic.update_call(
+        ledger,
+        d.peer,
+        "mint_test",
+        candid::encode_args((to, amount)).unwrap(),
+    )
+    .unwrap();
+}
+
+fn ledger_balance(
+    d: &support::Deployment,
+    ledger: Principal,
+    of: icrc_ledger_types::icrc1::account::Account,
+) -> u128 {
+    let reply =
+        d.ic.query_call(
+            ledger,
+            Principal::anonymous(),
+            "icrc1_balance_of",
+            candid::encode_one(of).unwrap(),
+        )
+        .unwrap();
+    candid::decode_one::<candid::Nat>(&reply)
+        .unwrap()
+        .to_string()
+        .replace('_', "")
+        .parse()
+        .unwrap()
+}
+
+/// Add `WalletApprove` to this device's capabilities, approved here.
+fn enable_wallet_approve(desktop: &Desktop, http: &reqwest::blocking::Client) {
+    let devices = desktop.run(&["device", "list"]);
+    let own = devices
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["current"] == true)
+        .unwrap();
+    let mut set: Vec<&str> = own["capabilities"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|c| c.as_str().unwrap())
+        .collect();
+    set.push("WalletApprove");
+    let request = desktop.run(&[
+        "device",
+        "capabilities",
+        own["device_id"].as_str().unwrap(),
+        "--set",
+        &set.join(","),
+    ]);
+    assert_eq!(request["type"], "device_capabilities");
+    assert_eq!(
+        desktop.decide(http, &request, true).unwrap()["state"],
+        "done"
+    );
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_wallet() {
+    use icrc_ledger_types::icrc1::account::Account;
+    let env = Env::launch(
+        "wallet",
+        Options {
+            wallet: true,
+            ..Options::default()
+        },
+    );
+    let http = env.http.clone();
+    let (a, b, d) = (&env.a, &env.b, &env.deployment);
+    let ledger = d.ledger;
+    // Two accounts: A (login 42, the funded payer) creates and pays, B
+    // (login 43) approves spending.
+    assert_eq!(a.login(&http, 42).unwrap()["state"], "no_account");
+    let account_a = a.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(b.login(&http, 43).unwrap()["state"], "no_account");
+    let account_b = b.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    for desktop in [a, b] {
+        enable_wallet_approve(desktop, &http);
+    }
+
+    // Activation: a quote from the hub, then one approval pays it from the
+    // payer, signs the device approval and creates the wallet.
+    let quote = a.run(&["wallet", "quote"]);
+    assert_eq!(quote["remaining"], 2);
+    assert_eq!(quote["plan"], "Free");
+    assert_eq!(quote["price_e8s"], WALLET_PRICE.to_string());
+    let fee: u128 = quote["ledger_fee_e8s"].as_str().unwrap().parse().unwrap();
+    let before = balance(a, &ledger);
+    let create = a.run(&[
+        "wallet",
+        "create",
+        quote["quote_id"].as_str().unwrap(),
+        "--name",
+        "Desk team",
+        "--member",
+        &format!("{account_b}:approver:b"),
+    ]);
+    assert_eq!(create["type"], "wallet");
+    assert_eq!(create["detail"]["action"], "create");
+    assert_eq!(create["detail"]["price_e8s"], WALLET_PRICE.to_string());
+    assert_eq!(a.decide(&http, &create, true).unwrap()["state"], "done");
+    let done = a.run(&["approvals", "show", create["id"].as_str().unwrap()]);
+    assert_eq!(done["detail"]["result"]["status"], "Ready");
+    let wallet = done["detail"]["result"]["wallet"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(balance(a, &ledger), before - u128::from(WALLET_PRICE) - fee);
+    // The hub indexes the wallet under both accounts; A has one left.
+    for desktop in [a, b] {
+        let listed = desktop.run(&["wallet", "list"]);
+        assert_eq!(listed[0]["wallet"], wallet.as_str());
+        assert_eq!(listed[0]["name"], "Desk team");
+    }
+    assert_eq!(a.run(&["wallet", "quote"])["remaining"], 1);
+
+    // B joins, binding its device's wallet key with an account approval.
+    let join = b.run(&["wallet", "join", &wallet]);
+    assert_eq!(join["detail"]["action"], "join");
+    assert_eq!(b.decide(&http, &join, true).unwrap()["state"], "done");
+    let principal_b = b.run(&["wallet", "principal"])["principal"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // The desktop app reads the wallet once the chain-key addresses exist,
+    // each checked against the wallet's key roots.
+    let shown = eventually(120, || {
+        let w = a
+            .rpc(&http, "wallet/show", json!({"wallet": wallet}))
+            .unwrap();
+        (w["addresses"].as_array().unwrap().len() == 4).then_some(w)
+    });
+    let chains: Vec<&str> = shown["addresses"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|x| {
+            assert_eq!(x["verified"], true, "{x}");
+            x["chain"].as_str().unwrap()
+        })
+        .collect();
+    assert_eq!(chains, ["Icp", "Bitcoin", "Evm", "Solana"]);
+    assert!(shown["addresses"][1]["text"]
+        .as_str()
+        .unwrap()
+        .starts_with("bcrt1p"));
+    assert_eq!(shown["me"]["role"], "Admin");
+    let member = |id: &str| {
+        shown["members"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["id"] == id)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(member(&account_a)["status"], "Active");
+    assert_eq!(member(&account_b)["role"], "Approver");
+    assert_eq!(member(&account_b)["status"], "Active");
+    assert_eq!(member(&account_b)["principals"], json!([principal_b]));
+
+    // An ICP transfer: A proposes, B approves, A executes.
+    let owner = Principal::from_text(&wallet).unwrap();
+    mint(
+        d,
+        ledger,
+        Account {
+            owner,
+            subaccount: None,
+        },
+        500_000_000,
+    );
+    let to = Account {
+        owner: Principal::from_text(login_principal(77)).unwrap(),
+        subaccount: None,
+    };
+    let proposed = a.run(&[
+        "wallet",
+        "send",
+        &wallet,
+        "--from",
+        "0",
+        "--asset",
+        "icp",
+        "--to",
+        &to.to_string(),
+        "--amount",
+        "100000000",
+        "--max-fee",
+        "10000",
+    ]);
+    assert_eq!(proposed["status"], "Open");
+    assert_eq!(proposed["requirement"]["approvals"], 1);
+    let id = proposed["id"].as_u64().unwrap().to_string();
+    let approve = b.run(&["wallet", "approve", &wallet, &id]);
+    assert_eq!(approve["detail"]["action"], "decide");
+    assert_eq!(approve["detail"]["decision"], "approve");
+    assert_eq!(b.decide(&http, &approve, true).unwrap()["state"], "done");
+    let ready = a.run(&["wallet", "proposal", &wallet, &id]);
+    assert_eq!(ready["status"], "Ready");
+    assert_eq!(ready["votes"][0]["member"], account_b.as_str());
+    a.run(&["wallet", "execute", &wallet, &id]);
+    eventually(60, || {
+        (a.run(&["wallet", "proposal", &wallet, &id])["status"] == "Settled").then_some(())
+    });
+    assert_eq!(ledger_balance(d, ledger, to), 100_000_000);
+    let balances = a
+        .rpc(&http, "wallet/balances", json!({"wallet": wallet}))
+        .unwrap();
+    let icp = &balances["addresses"][0];
+    assert_eq!(icp["balances"][0]["asset"], "ICP");
+    assert_eq!(
+        icp["balances"][0]["balance"]["Ok"],
+        (400_000_000 - fee).to_string()
+    );
+    // Chain reads fail on the closed port without failing the whole call.
+    assert!(balances["addresses"][1]["balances"][0]["balance"]["Err"].is_string());
+
+    // Both devices verify the whole audit chain against the wallet's head.
+    for desktop in [a, b] {
+        let audit = desktop.run(&["wallet", "audit", &wallet]);
+        assert_eq!(audit["verified"], true);
+        let kinds: Vec<&str> = audit["recent"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .rev()
+            .map(|e| e["kind"].as_str().unwrap())
+            .collect();
+        for kind in [
+            "Created",
+            "Joined",
+            "Proposed",
+            "Decided(Approve)",
+            "Approved",
+            "Settled",
+        ] {
+            assert!(kinds.contains(&kind), "{kind} in {kinds:?}");
+        }
+    }
+    env.finish();
+}
+
 struct McpClient {
     child: Child,
     stdin: std::process::ChildStdin,

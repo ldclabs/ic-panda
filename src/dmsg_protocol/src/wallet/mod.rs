@@ -183,3 +183,6 @@ pub fn check_wallet_approval(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod vector_tests;
