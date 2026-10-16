@@ -4,17 +4,17 @@
 //! signs grants through the approval center; hosts Agent IDs and grants them
 //! capabilities. An agent's MCP session presents its own credential, which
 //! reaches only the `mcp/*` methods: the standard connector tools and
-//! resources as its own Agent ID, and the `dmsg_*` tools its capabilities
-//! allow. Nothing an agent calls can answer an approval, change the host
-//! allowlist or the grants, or reach another Agent ID.
+//! resources as its own Agent ID, and the `dmsg_*` tools, each as far as
+//! its capabilities allow. Nothing an agent calls can answer an approval,
+//! change the host allowlist or the grants, or reach another Agent ID.
 //!
 //! The audit record (plan R38) gets the owner's grants, credentials and
 //! residency changes, and every call that writes or reaches the owner's
 //! data, with who called, through which way in and on what.
 
 use crate::daemon::Daemon;
-use dmsg_agent::resources::{resource_list, resource_templates};
-use dmsg_agent::tools::{is_dmsg, is_read_only, is_standard, tool_list};
+use dmsg_agent::resources::{resource_list, resource_templates, Resource};
+use dmsg_agent::tools::{is_dmsg, is_read_only, is_standard, standard_capability, tool_list};
 use dmsg_agent::Scope;
 use dmsg_client::{
     agent::PrincipalChange,
@@ -355,7 +355,11 @@ impl Daemon {
                 .await
             }
             "mcp/resources" => {
-                let rooms = self.read(agent, session, "agent-protocols://rooms").await?;
+                // Without discourse.read an agent is shown no rooms.
+                let rooms = match self.read(agent, session, "agent-protocols://rooms").await {
+                    Err(Error::Forbidden) => Value::Null,
+                    rooms => rooms?,
+                };
                 Ok(json!({"resources": resource_list(&rooms), "templates": resource_templates()}))
             }
             "mcp/read" => {
@@ -381,20 +385,45 @@ impl Daemon {
         }
     }
 
-    /// One resource of `agent`'s connector as `session` sees it.
+    /// One resource of `agent`'s connector as `session` sees it, within
+    /// the grant the tool behind it needs.
     async fn read(&self, agent: &AgentEntry, session: &str, uri: &str) -> Result<Value> {
-        let (path, signer) = {
+        let tool = Resource::parse(uri).map(|r| r.tool());
+        let (path, signer, reach) = {
             let mut client = self.client().lock().await;
             (
                 client.agent_runtime()?,
                 client.agent_signer(&agent.agent_id)?,
+                match tool {
+                    Some(tool) => self.reach(&client, agent, tool)?,
+                    None => None,
+                },
             )
         };
         let scope = Scope {
             path: &path,
             session,
+            reach: reach.as_deref(),
         };
         self.agents().read(scope, signer, uri).await
+    }
+
+    /// The origins `agent` may reach with standard tool `tool`, those its
+    /// grant names; `None` for a tool that needs no grant, which reaches
+    /// every configured host.
+    fn reach(
+        &self,
+        client: &Client,
+        agent: &AgentEntry,
+        tool: &str,
+    ) -> Result<Option<Vec<String>>> {
+        let Some(name) = standard_capability(tool) else {
+            return Ok(None);
+        };
+        let origins = self.agents().origins(name);
+        let granted = client.capability_targets(&agent.agent_id, name, origins)?;
+        ensure(!granted.is_empty(), Error::Forbidden)?;
+        Ok(Some(granted))
     }
 
     /// One tool call as `agent` for `caller`: `{"result": …}` or
@@ -446,6 +475,15 @@ impl Daemon {
         input: Value,
     ) -> Result<Value> {
         if is_standard(tool) {
+            // An agent reaches what its grant names; the owner acting as one
+            // reaches every configured host.
+            let reach = match caller.actor {
+                "owner" => None,
+                _ => match self.reach(&*self.client().lock().await, agent, tool) {
+                    Ok(reach) => reach,
+                    Err(error) => return Ok(refused(&error)),
+                },
+            };
             // The turn spans reading the mail keys to saving what the call
             // left, so no other call sees or overwrites them in between; the
             // keys leave the client lock for the call only.
@@ -462,6 +500,7 @@ impl Daemon {
             let scope = Scope {
                 path: &path,
                 session: caller.session,
+                reach: reach.as_deref(),
             };
             let called = runtime
                 .call(&turn, scope, signer, Some(&mail_keys), tool, input)
@@ -781,4 +820,21 @@ async fn latest_controller(client: &mut dmsg_client::Client) -> Result<u32> {
         .map(|c| c.generation)
         .max()
         .ok_or(Error::NotFound)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_standard_capability_is_granted_per_origin() {
+        use dmsg_client::agents::{validate_capability, HOST_CAPABILITIES};
+        for tool in tool_list() {
+            if let Some(name) = standard_capability(tool["name"].as_str().unwrap()) {
+                assert!(HOST_CAPABILITIES.contains(&name), "{name}");
+                validate_capability(&format!("{name}:*")).unwrap();
+                validate_capability(&format!("{name}:https://discourse.dmsg.net")).unwrap();
+            }
+        }
+    }
 }

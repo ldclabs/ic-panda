@@ -10,7 +10,7 @@ and the capability grants live in [`dmsg_client`](../dmsg_client/README.md).
 | --- | --- |
 | `runtime` | Connector state per Agent ID in `<workspace>/agents.sqlite`, restored for every call and saved after it, with each session's presented heads apart; resource reads that save nothing; the host allowlist and the blocked mail senders come only from `config.toml` |
 | `resources` | The local connector's resources (§4.4) and the read-only tool behind each |
-| `tools` | The MCP catalog: the 33 standard `agent_protocols_*` tools (identity, delegation, rooms, inbox and drafts, profile, Agent Mail, Agent Knowledge) and the 23 `dmsg_*` tools, seven of them for MCP Events endpoints |
+| `tools` | The MCP catalog: the 33 standard `agent_protocols_*` tools (identity, delegation, rooms, inbox and drafts, profile, Agent Mail, Agent Knowledge) with the capability each needs, and the 23 `dmsg_*` tools, seven of them for MCP Events endpoints |
 
 Every tool call restores the connector from its snapshot (local connector
 §4.1: hosts, rooms and records, members, timeline, read and presented
@@ -22,6 +22,21 @@ then the configured ones are applied again, so neither a tool nor a stored
 snapshot changes them. Calls run one at a time, each inside a turn the
 daemon holds from reading the Agent ID's mail keys to saving those the call
 left.
+
+The host allowlist says where the agents may sign; what each may do at
+which of them is its owner's grant. The Agent Discourse, Mail and Knowledge
+tools need `discourse.read|write`, `mail.read|write` or
+`knowledge.read|write`, and `agent_protocols_profile_update` needs
+`agent.profile.write`, each for an origin or `*`; the identity, delegation
+and inbox tools need none. A resource needs what its tool needs. For an
+agent's call the daemon passes the origins its grants name as the call's
+`Scope::reach` (refusing the call when there are none), and the runtime
+allows only those, each as a host of its own, so a host's profile service
+does not come along: the connector refuses every other origin, and the
+runtime refuses a room the snapshot knows on another host, which a read
+from local state would not ask, and leaves the other hosts' rooms out of
+`rooms_list`. The owner acting as an Agent ID (`dmsg ap`, the desktop)
+reaches every configured host.
 
 Each call names its session (an MCP session, `dmsg ap --session`, the
 desktop). The presented head of each room is per session (local connector

@@ -10,8 +10,8 @@
 // only after a second click and the copy never passes through a window; that
 // conflict copies resolve; that a device is revoked only through the approval
 // window; that channel files, roles, history, archiving and transfers reach
-// the daemon; that the Agents view runs only the Mail and Knowledge tools and
-// manages MCP Events endpoints; that a delivery notifies without its content;
+// the daemon; that the Agents view runs only the Mail and Knowledge tools,
+// grants services at a chosen origin and manages MCP Events endpoints; that a delivery notifies without its content;
 // that application actions and attestation bundles enter through the main
 // process's dialogs; and that a language picked in the main window reaches
 // both windows. Run with `pnpm test:e2e`.
@@ -100,6 +100,7 @@ const vault = [
 ]
 let conflicts = [{ ...item('22'.repeat(32), 'r9', { title: 'Smoke note', type: 'note', body: 'hello from the laptop' }), conflict: true }]
 const endpoints = []
+const grants = []
 const notes = []
 const ledger = 'ryjl3-tyaaa-aaaaa-aaaba-cai'
 const claude = 'did:agent:' + 'Q'.repeat(43)
@@ -435,7 +436,12 @@ const methods = {
     endpoints.push(endpoint)
     return { ...endpoint, secret: 'whsec_smoke' }
   },
-  'grants/list': () => [],
+  'grants/list': () => grants,
+  'grants/add': (p) => {
+    const grant = { id: 'ab'.repeat(8), grantee: p.agent, capabilities: p.capabilities, created_at: Date.now(), expires_at: null, revoked_at: null }
+    grants.push(grant)
+    return grant
+  },
   'audit/list': (p) => ({
     entries: p.agent === 'owner' ? audit.filter((e) => e.actor === 'owner') : audit
   }),
@@ -685,6 +691,21 @@ try {
   await choose(main, 'audit-actor', '')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
   await main.locator('[data-testid="agent-audit"]').screenshot({ path: join(shots, 'audit.png') })
+  // A grant joins the services ticked at the chosen origin with those typed.
+  await choose(main, 'grant-agent', claude)
+  await choose(main, 'grant-origin', 'https://api.al.ink')
+  await main.check('[data-testid="service-discourse.read"]')
+  await main.check('[data-testid="service-mail.write"]')
+  await main.fill('[data-testid="grant-other"]', 'vault.list')
+  await main.locator('[data-testid="grants-card"]').screenshot({ path: join(shots, 'grants.png') })
+  await main.click('[data-testid="grant-capabilities"]')
+  await main.waitForSelector('[data-testid="capability-grants"] >> text=discourse.read:https://api.al.ink')
+  assert.deepEqual(latest('grants/add').params, {
+    agent: claude,
+    capabilities: ['discourse.read:https://api.al.ink', 'mail.write:https://api.al.ink', 'vault.list'],
+    source: 'gui'
+  })
+  assert.equal(await main.isChecked('[data-testid="service-discourse.read"]'), false)
   await main.screenshot({ path: join(shots, 'agents.png') })
 
   // A web checkout cannot be approved before it is quoted, and the quote is what is approved.

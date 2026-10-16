@@ -145,7 +145,8 @@ pub enum IdCommand {
 pub enum GrantsCommand {
     /// Every capability grant, revoked ones included.
     List,
-    /// Grant a hosted Agent ID capabilities over this account.
+    /// Grant a hosted Agent ID capabilities over this account and at the
+    /// allowed hosts.
     Add {
         /// Label or `did:agent:…`.
         agent: String,
@@ -155,6 +156,9 @@ pub enum GrantsCommand {
         /// profile.read, attest.request, action.request,
         /// agent.delegation.read, events.endpoint; `<name>:*` covers every
         /// target. Items tagged `dmsg-…` are dMsg's own keys and out of reach.
+        /// At the allowed hosts, each :<origin> or :* for every host:
+        /// agent.profile.write, discourse.read, discourse.write, mail.read,
+        /// mail.write, knowledge.read, knowledge.write.
         #[arg(required = true)]
         capabilities: Vec<String>,
         /// Lifetime in days; until revoked by default.

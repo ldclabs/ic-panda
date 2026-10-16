@@ -8,7 +8,9 @@
 //! is copied into the operating system's credential store, and turning
 //! residency off deletes the copy. The list of hosted Agent IDs and the
 //! digests of their credentials are public; capability grants are sealed
-//! under the LDK and checked here, never synced.
+//! under the LDK and checked here, never synced. A resident Agent ID's live
+//! grants are copied beside its seed, which it is checked against while
+//! locked.
 //!
 //! The Agent Mail decryption keys of an Agent ID's mailboxes (Agent Mail
 //! §4.3) come from its connector, which keeps none: they are sealed under
@@ -23,7 +25,7 @@ use crate::codec::canonical;
 use crate::crypto::{random_id, signing_public, Key};
 use crate::now_ms;
 use crate::vault::Item;
-use agent_protocols::identity::AgentSigner;
+use agent_protocols::identity::{service_origin, AgentSigner};
 use dmsg_types::{ensure, ensure_valid, Error, Result, DAY};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
@@ -44,8 +46,9 @@ pub const MAX_GRANTS: usize = 64;
 /// target and an explicit owner choice. Account, device and root changes,
 /// payments, names, principal changes, signing and the grants themselves
 /// are never grantable, and no vault capability reaches dMsg's own keys
-/// (items tagged `dmsg-…`, see [`crate::vault::Item::reserved`]).
-pub const CAPABILITIES: [&str; 15] = [
+/// (items tagged `dmsg-…`, see [`crate::vault::Item::reserved`]). The
+/// last seven are the [`HOST_CAPABILITIES`].
+pub const CAPABILITIES: [&str; 22] = [
     "account.read",
     "vault.list",
     "vault.read:",
@@ -61,6 +64,26 @@ pub const CAPABILITIES: [&str; 15] = [
     "action.request",
     "agent.delegation.read",
     "events.endpoint",
+    "agent.profile.write:",
+    "discourse.read:",
+    "discourse.write:",
+    "mail.read:",
+    "mail.write:",
+    "knowledge.read:",
+    "knowledge.write:",
+];
+
+/// The Agent Protocols services at the allowed hosts: publishing the Agent
+/// ID's profile, and reading from or writing to Agent Discourse, Agent Mail
+/// and Agent Knowledge. The target is an origin, or `*` for every one.
+pub const HOST_CAPABILITIES: [&str; 7] = [
+    "agent.profile.write",
+    "discourse.read",
+    "discourse.write",
+    "mail.read",
+    "mail.write",
+    "knowledge.read",
+    "knowledge.write",
 ];
 
 /// What every agent may do without a grant.
@@ -151,6 +174,13 @@ fn validate_label(label: &str) -> Result<()> {
 /// Returns `Error::InvalidInput` for anything else.
 pub fn validate_capability(capability: &str) -> Result<()> {
     let known = CAPABILITIES.iter().any(|c| match c.strip_suffix(':') {
+        Some(name) if HOST_CAPABILITIES.contains(&name) => {
+            capability.strip_prefix(c).is_some_and(|target| {
+                target == "*"
+                    || (target.len() <= 128
+                        && service_origin(target).is_ok_and(|origin| origin == target))
+            })
+        }
         Some(_) => capability.strip_prefix(c).is_some_and(|target| {
             (1..=128).contains(&target.len())
                 && !target.contains(char::is_whitespace)
@@ -188,6 +218,41 @@ impl Client {
 
     fn resident_mail_name(&self, agent_id: &str) -> Result<String> {
         Ok(format!("{}:agent-mail:{agent_id}", self.workspace.name()?))
+    }
+
+    fn resident_grants_name(&self, agent_id: &str) -> Result<String> {
+        Ok(format!(
+            "{}:agent-grants:{agent_id}",
+            self.workspace.name()?
+        ))
+    }
+
+    /// Copy the live grants of resident Agent ID `agent_id` beside its seed.
+    fn resident_grants_save(&self, agent_id: &str) -> Result<()> {
+        let secure = self
+            .secure()
+            .ok_or_else(|| Error::Unavailable("no system credential store".into()))?;
+        let now = now_ms();
+        let grants: Vec<CapabilityGrant> = self
+            .capability_grants()?
+            .into_iter()
+            .filter(|g| g.grantee == agent_id && g.live(now))
+            .collect();
+        secure.set(
+            &self.resident_grants_name(agent_id)?,
+            &serde_json::to_vec(&grants).expect("serializable"),
+        )
+    }
+
+    /// The copy of a resident Agent ID's grants.
+    fn resident_grants(&self, agent_id: &str) -> Result<Vec<CapabilityGrant>> {
+        let entry = self.agent_find(agent_id)?;
+        ensure(entry.resident, Error::Locked)?;
+        let secure = self.secure().ok_or(Error::Locked)?;
+        match secure.get(&self.resident_grants_name(&entry.agent_id)?)? {
+            Some(bytes) => serde_json::from_slice(&bytes).map_err(|_| Error::IntegrityFailed),
+            None => Ok(Vec::new()),
+        }
     }
 
     fn sealed_mail_keys(&self, agent_id: &str) -> Result<MailKeys> {
@@ -308,8 +373,8 @@ impl Client {
         self.save_agents(&agents)
     }
 
-    /// Keep a copy of an Agent ID's seed in the credential store so it
-    /// signs while locked, or delete the copy.
+    /// Keep a copy of an Agent ID's seed, mail keys and grants in the
+    /// credential store so it works while locked, or delete the copies.
     ///
     /// # Errors
     /// Returns `Error::Locked` to turn it on while locked and
@@ -329,6 +394,7 @@ impl Client {
                 &mail_slot,
                 &Zeroizing::new(serde_json::to_vec(&keys).expect("serializable")),
             )?;
+            self.resident_grants_save(&entry.agent_id)?;
         } else {
             // Keys made while locked live only in the copy: fold them in first.
             let resident = self.resident_mail_keys(&entry.agent_id)?;
@@ -341,6 +407,7 @@ impl Client {
                     &keys,
                 )?;
             }
+            secure.delete(&self.resident_grants_name(&entry.agent_id)?)?;
             secure.delete(&mail_slot)?;
             secure.delete(&slot)?;
         }
@@ -517,7 +584,16 @@ impl Client {
         grants.push(grant.clone());
         self.workspace.put_private(self.keys()?, GRANTS, &grants)?;
         self.audit_grant(via, "grants/add", &grant);
+        self.grants_changed(&grant.grantee)?;
         Ok(grant)
+    }
+
+    /// Renew the copy of a resident grantee's grants.
+    fn grants_changed(&self, grantee: &str) -> Result<()> {
+        match self.agent_find(grantee) {
+            Ok(entry) if entry.resident => self.resident_grants_save(&entry.agent_id),
+            _ => Ok(()),
+        }
     }
 
     fn audit_grant(&self, via: &str, action: &str, grant: &CapabilityGrant) {
@@ -540,22 +616,61 @@ impl Client {
         let revoked = grant.clone();
         self.workspace.put_private(self.keys()?, GRANTS, &grants)?;
         self.audit_grant(via, "grants/revoke", &revoked);
+        self.grants_changed(&revoked.grantee)?;
         Ok(revoked)
     }
 
-    /// Whether `grantee` may do `needed`.
+    /// Whether `grantee` may do `needed`: checked against the sealed grants,
+    /// or while locked against a resident Agent ID's copy.
     ///
     /// # Errors
     /// Returns `Error::Forbidden` without a live grant covering it and
-    /// `Error::Locked` while locked.
+    /// `Error::Locked` while locked for an Agent ID that is not resident.
     pub fn capability_check(&self, grantee: &str, needed: &str) -> Result<()> {
         if DEFAULT_CAPABILITIES.contains(&needed) {
             return Ok(());
         }
-        let now = now_ms();
-        let granted = self.capability_grants()?.iter().any(|g| {
-            g.grantee == grantee && g.live(now) && g.capabilities.iter().any(|c| covers(c, needed))
-        });
+        let granted = self
+            .live_grants(grantee)?
+            .iter()
+            .any(|g| g.capabilities.iter().any(|c| covers(c, needed)));
         ensure(granted, Error::Forbidden)
+    }
+
+    /// The `targets` for which `grantee` may `name`, such as the origins of
+    /// a [`HOST_CAPABILITIES`] name.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked for an Agent ID that is not resident.
+    pub fn capability_targets(
+        &self,
+        grantee: &str,
+        name: &str,
+        targets: Vec<String>,
+    ) -> Result<Vec<String>> {
+        let grants = self.live_grants(grantee)?;
+        Ok(targets
+            .into_iter()
+            .filter(|target| {
+                let needed = format!("{name}:{target}");
+                grants
+                    .iter()
+                    .any(|g| g.capabilities.iter().any(|c| covers(c, &needed)))
+            })
+            .collect())
+    }
+
+    /// `grantee`'s live grants, from the sealed ones or while locked from a
+    /// resident Agent ID's copy.
+    fn live_grants(&self, grantee: &str) -> Result<Vec<CapabilityGrant>> {
+        let grants = match self.keys {
+            Some(_) => self.capability_grants()?,
+            None => self.resident_grants(grantee)?,
+        };
+        let now = now_ms();
+        Ok(grants
+            .into_iter()
+            .filter(|g| g.grantee == grantee && g.live(now))
+            .collect())
     }
 }

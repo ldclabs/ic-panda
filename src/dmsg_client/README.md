@@ -171,8 +171,11 @@ label on another device of the account brings the same Agent ID. Unlocked,
 the daemon signs with the vault copy; locked, only an Agent ID made resident,
 whose seed the credential store also keeps. Each Agent ID may have one
 credential for its MCP sessions, of which only a digest is kept. Capability
-grants are sealed under the LDK; without one an agent reads only public
-profiles. The Agent Mail decryption keys of an Agent ID's mailboxes come from
+grants are sealed under the LDK, and one for an Agent Protocols service
+names the origins it covers; without one an agent reads only public
+profiles and reaches no service's content. A resident Agent ID's live
+grants are copied beside its seed, and it is checked against the copy while
+locked. The Agent Mail decryption keys of an Agent ID's mailboxes come from
 its connector, which keeps none: they are sealed under the LDK and never
 synced, and a resident Agent ID keeps a copy beside its seed. Keys it makes
 while the device is locked live in that copy until the next unlocked call

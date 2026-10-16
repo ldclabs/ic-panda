@@ -4208,6 +4208,38 @@ fn desktop_agents() {
         .send()
         .unwrap();
     assert_eq!(status.status(), 401);
+    // The hosts say where Claude may sign, its grants what it may do there:
+    // nothing until the owner grants it, and the owner needs no grant.
+    assert_eq!(
+        mcp.tool("agent_protocols_rooms_list", json!({}))
+            .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    let unread = mcp.request(
+        "resources/read",
+        json!({"uri": "agent-protocols://drafts/held"}),
+    );
+    assert!(unread["error"].is_object(), "{unread}");
+    // A grant reaches only configured origins it names: Claude reads every
+    // host and writes only at the test's.
+    a.run(&[
+        "grants",
+        "add",
+        "claude",
+        "discourse.read:https://other.test",
+    ]);
+    assert_eq!(
+        mcp.tool("agent_protocols_rooms_list", json!({}))
+            .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    a.run(&[
+        "grants",
+        "add",
+        "claude",
+        "discourse.read:*",
+        &format!("discourse.write:{host}"),
+    ]);
     let foreign = mcp
         .tool(
             "agent_protocols_room_create",
@@ -4568,7 +4600,13 @@ fn desktop_agents() {
     );
 
     let grants = a.run(&["grants", "list"]);
-    a.run(&["grants", "revoke", grants[0]["id"].as_str().unwrap()]);
+    let account_grant = grants
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["capabilities"][0] == "vault.list")
+        .unwrap();
+    a.run(&["grants", "revoke", account_grant["id"].as_str().unwrap()]);
     assert_eq!(
         mcp.tool("dmsg_vault_list", json!({})).unwrap_err()["code"],
         "FORBIDDEN"
@@ -4814,10 +4852,16 @@ fn desktop_system_credentials() {
     let resident = [
         format!("{workspace}:agent:{agent}"),
         format!("{workspace}:agent-mail:{agent}"),
+        format!("{workspace}:agent-grants:{agent}"),
     ];
     keychain.0.extend(resident.iter().cloned());
     a.run(&["agent", "id", "resident", "bot", "on"]);
     assert!(resident.iter().all(|name| Keychain::has(name)));
+    a.run(&["grants", "add", "bot", "discourse.read:*"]);
+    let credential = a.run(&["agent", "id", "credential", "bot"])["credential"]
+        .as_str()
+        .unwrap()
+        .to_string();
     assert_eq!(a.run(&["lock"])["state"], "locked");
     let host = env.discourse.as_ref().unwrap().origin.clone();
     let start = now_ms();
@@ -4827,7 +4871,22 @@ fn desktop_system_credentials() {
         "room_create",
         json!({"host": host, "topic": "resident", "visibility": "public", "start_time": start, "end_time": start + 3_600_000}),
     );
-    assert!(created["room"]["room_id"].is_string(), "{created}");
+    let room = created["room"]["room_id"].as_str().unwrap();
+    // The agent itself is checked against the copy of its grants.
+    let mut mcp = McpClient::start(a, &credential);
+    let state = mcp
+        .tool("agent_protocols_room_state", json!({"room_id": room}))
+        .unwrap();
+    assert_eq!(state["room"]["topic"], "resident");
+    assert_eq!(
+        mcp.tool(
+            "agent_protocols_room_send_message",
+            json!({"room_id": room, "content": "no"})
+        )
+        .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    drop(mcp);
 
     // Turning both off deletes their keys.
     assert_eq!(a.login(http, 61).unwrap()["state"], "unlocked");
@@ -4867,6 +4926,13 @@ fn desktop_claude_code() {
         .unwrap()
         .to_string();
     let discourse = env.discourse.as_ref().unwrap();
+    a.run(&[
+        "grants",
+        "add",
+        "claude",
+        &format!("discourse.read:{}", discourse.origin),
+        &format!("discourse.write:{}", discourse.origin),
+    ]);
     let start = now_ms();
     let created = ap(
         a,
@@ -4959,7 +5025,23 @@ fn desktop_mail_knowledge() {
         .as_str()
         .unwrap()
         .to_string();
+    // Alice may use Agent Mail, not Agent Knowledge.
+    a.run(&[
+        "grants",
+        "add",
+        "alice",
+        &format!("mail.read:{mail}"),
+        &format!("mail.write:{mail}"),
+    ]);
     let mut mcp = McpClient::start(a, &credential);
+    assert_eq!(
+        mcp.tool(
+            "agent_protocols_knowledge_search",
+            json!({"service": knowledge, "query": "plan"})
+        )
+        .unwrap_err()["code"],
+        "FORBIDDEN"
+    );
     let alice_box = mcp
         .tool(
             "agent_protocols_mail_mailbox_publish",

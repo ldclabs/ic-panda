@@ -174,25 +174,50 @@ async fn call(hosted: &Hosted, tool: &str, input: Value) -> Result<Value, crate:
 }
 
 async fn call_in(
-    Hosted(runtime, path): &Hosted,
+    hosted: &Hosted,
     session: &str,
     tool: &str,
     input: Value,
 ) -> Result<Value, crate::ToolError> {
+    call_within(hosted, session, None, tool, input).await
+}
+
+async fn call_within(
+    Hosted(runtime, path): &Hosted,
+    session: &str,
+    reach: Option<&[String]>,
+    tool: &str,
+    input: Value,
+) -> Result<Value, crate::ToolError> {
     let turn = runtime.turn().await;
+    let scope = Scope {
+        path,
+        session,
+        reach,
+    };
     runtime
-        .call(&turn, Scope { path, session }, signer(1), None, tool, input)
+        .call(&turn, scope, signer(1), None, tool, input)
         .await
         .unwrap()
         .outcome
 }
 
-async fn read(
+async fn read(hosted: &Hosted, session: &str, uri: &str) -> dmsg_types::Result<Value> {
+    read_within(hosted, session, None, uri).await
+}
+
+async fn read_within(
     Hosted(runtime, path): &Hosted,
     session: &str,
+    reach: Option<&[String]>,
     uri: &str,
 ) -> dmsg_types::Result<Value> {
-    runtime.read(Scope { path, session }, signer(1), uri).await
+    let scope = Scope {
+        path,
+        session,
+        reach,
+    };
+    runtime.read(scope, signer(1), uri).await
 }
 
 #[test]
@@ -238,6 +263,7 @@ fn only_configured_hosts_are_allowed() {
                 Scope {
                     path: &runtime.1,
                     session: "test",
+                    reach: None,
                 },
                 signer(1),
                 None,
@@ -410,6 +436,137 @@ fn resources_read_local_state_without_saving() {
             .await
             .unwrap();
         assert_eq!(next["items"].as_array().unwrap().len(), 2);
+    });
+}
+
+#[test]
+fn a_call_reaches_only_the_origins_in_its_scope() {
+    const OTHER: &str = "http://localhost:9";
+    const PROFILES: &str = "http://localhost:8";
+    let dir = Temp::new();
+    with_room(&dir);
+    let options = Options {
+        hosts: vec![
+            Host {
+                host: HOST.into(),
+                label: Some("test".into()),
+                profile_service: Some(PROFILES.into()),
+            },
+            Host {
+                host: OTHER.into(),
+                label: None,
+                profile_service: None,
+            },
+        ],
+        local: true,
+        ..Options::default()
+    };
+    let hosted = Hosted(Runtime::new(&options).unwrap(), dir.0.join("agents.sqlite"));
+    assert_eq!(hosted.0.origins("discourse.read"), [HOST, OTHER]);
+    assert_eq!(
+        hosted.0.origins("agent.profile.write"),
+        [HOST, OTHER, PROFILES]
+    );
+    let here = [HOST.to_string()];
+    let elsewhere = [OTHER.to_string()];
+    let profiles = [PROFILES.to_string(), "https://unknown.example".to_string()];
+    block_on(async {
+        // Only what the scope names, each without the profile service its
+        // host names, and never an origin the configuration does not list.
+        for (reach, allowed) in [
+            (&elsewhere[..], vec![OTHER]),
+            (&profiles[..], vec![PROFILES]),
+        ] {
+            let identity = call_within(
+                &hosted,
+                "s",
+                Some(reach),
+                "agent_protocols_identity_current",
+                json!({}),
+            )
+            .await
+            .unwrap();
+            let hosts: Vec<&Value> = identity["hosts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|h| h["allowed"] == true)
+                .collect();
+            let names: Vec<&str> = hosts.iter().map(|h| h["host"].as_str().unwrap()).collect();
+            assert_eq!(names, allowed);
+            assert!(hosts.iter().all(|h| h["profile_service"].is_null()));
+        }
+        // A room cached from another host is not read from local state,
+        // and the known rooms of other hosts are not listed.
+        for tool in [
+            "agent_protocols_room_members_list",
+            "agent_protocols_room_timeline",
+            "agent_protocols_room_state",
+        ] {
+            let refused = call_within(
+                &hosted,
+                "s",
+                Some(&elsewhere),
+                tool,
+                json!({"room_id": "room1"}),
+            )
+            .await
+            .unwrap_err();
+            assert_eq!(refused.code, "permission_denied", "{tool}");
+        }
+        let refused = call_within(
+            &hosted,
+            "s",
+            Some(&elsewhere),
+            "agent_protocols_rooms_list",
+            json!({"scope": "public", "host": HOST}),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(refused.code, "permission_denied");
+        let rooms = call_within(
+            &hosted,
+            "s",
+            Some(&elsewhere),
+            "agent_protocols_rooms_list",
+            json!({}),
+        )
+        .await
+        .unwrap();
+        assert_eq!(rooms["rooms"], json!([]));
+        assert!(read_within(
+            &hosted,
+            "s",
+            Some(&elsewhere),
+            "agent-protocols://rooms/room1/timeline"
+        )
+        .await
+        .is_err());
+        let rooms = read_within(&hosted, "s", Some(&elsewhere), "agent-protocols://rooms")
+            .await
+            .unwrap();
+        assert_eq!(rooms["rooms"], json!([]));
+        // The room's own host is in reach.
+        let members = call_within(
+            &hosted,
+            "s",
+            Some(&here),
+            "agent_protocols_room_members_list",
+            json!({"room_id": "room1"}),
+        )
+        .await
+        .unwrap();
+        assert!(members["members"].is_array());
+        let rooms = call_within(
+            &hosted,
+            "s",
+            Some(&here),
+            "agent_protocols_rooms_list",
+            json!({}),
+        )
+        .await
+        .unwrap();
+        assert_eq!(rooms["rooms"][0]["room_id"], "room1");
     });
 }
 

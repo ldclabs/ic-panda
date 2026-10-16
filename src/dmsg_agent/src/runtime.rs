@@ -15,7 +15,10 @@
 //! blocked mail senders: before every call each host a snapshot remembers
 //! is disallowed, each sender it blocks is unblocked, and the configured
 //! ones are applied again, so neither a tool nor a stored snapshot can
-//! change them (plan DT02). The mail decryption keys are not in the
+//! change them (plan DT02). A call's [`Scope`] may narrow the allowlist to
+//! the origins an agent's grant names: the connector then refuses every
+//! other origin, and the runtime refuses a room it knows on another host,
+//! which a read from local state would not ask. The mail decryption keys are not in the
 //! snapshot: the caller brings them from its key store and keeps what the
 //! call leaves. Calls run one at a time, each inside a [`Turn`] the caller
 //! holds from reading the keys to saving them, so two sessions of one
@@ -25,7 +28,7 @@ use crate::resources::{Resource, RoomPart};
 use agent_protocols::{
     error::SdkError,
     identity::{service_origin, AgentId, AgentSigner},
-    local_connector::{AgentProtocolsHost, LocalConnector, TOOL_NAMES},
+    local_connector::{AgentProtocolsHost, LocalConnector, TOOL_NAMES, TOOL_ROOMS_LIST},
 };
 use dmsg_types::{ensure, ensure_valid, Error, Result};
 use rusqlite::{params, Connection, OptionalExtension};
@@ -105,14 +108,18 @@ pub struct Options {
     pub local: bool,
 }
 
-/// Where a call runs: the workspace's state file and the session it is
-/// for, such as one MCP session, the CLI's named one or the desktop's.
+/// Where a call runs: the workspace's state file, the session it is for,
+/// such as one MCP session, the CLI's named one or the desktop's, and the
+/// origins it may reach.
 #[derive(Clone, Copy, Debug)]
 pub struct Scope<'a> {
     /// The state file of the workspace.
     pub path: &'a Path,
     /// The session, at most 128 bytes.
     pub session: &'a str,
+    /// Only these of [`Runtime::origins`], each a host of its own; `None`
+    /// for the configured hosts.
+    pub reach: Option<&'a [String]>,
 }
 
 /// The right to run one call, held from reading the caller's mail keys to
@@ -222,6 +229,20 @@ impl Runtime {
         &self.hosts
     }
 
+    /// The origins a grant of `capability` may reach: the configured hosts,
+    /// and for `agent.profile.write` the profile services they name.
+    pub fn origins(&self, capability: &str) -> Vec<String> {
+        let mut origins: Vec<String> = self.hosts.iter().map(|h| h.host.clone()).collect();
+        if capability == "agent.profile.write" {
+            for service in self.hosts.iter().filter_map(|h| h.profile_service.clone()) {
+                if !origins.contains(&service) {
+                    origins.push(service);
+                }
+            }
+        }
+        origins
+    }
+
     fn open(path: &Path) -> Result<Connection> {
         let conn = Connection::open(path).map_err(storage)?;
         #[cfg(unix)]
@@ -311,8 +332,28 @@ impl Runtime {
         for host in connector.state_mut().hosts.values_mut() {
             host.allowed = false;
         }
-        for host in &self.hosts {
-            connector.add_host(host.clone());
+        match scope.reach {
+            None => {
+                for host in &self.hosts {
+                    connector.add_host(host.clone());
+                }
+            }
+            // Of every origin a grant may name, each as a host of its own:
+            // a configured host brings no profile service along.
+            Some(reach) => {
+                let origins = self.origins("agent.profile.write");
+                for origin in origins.into_iter().filter(|o| reach.contains(o)) {
+                    let label = self.hosts.iter().find(|h| h.host == origin);
+                    connector.add_host(AgentProtocolsHost {
+                        label: label.and_then(|h| h.label.clone()),
+                        host: origin,
+                        allowed: true,
+                        features: Vec::new(),
+                        profile_service: None,
+                        last_checked_at: None,
+                    });
+                }
+            }
         }
         Ok((connector, saved))
     }
@@ -358,7 +399,13 @@ impl Runtime {
         for sender in &self.blocked_senders {
             connector.set_mail_sender_blocked(sender.clone(), true);
         }
-        let outcome = connector.call_tool(tool, input).await;
+        let outcome = match out_of_reach(scope.reach, saved.as_ref(), &input) {
+            true => Err(SdkError::PermissionDenied),
+            false => connector
+                .call_tool(tool, input)
+                .await
+                .map(|value| in_reach(scope.reach, tool, value)),
+        };
         self.save(&conn, scope.session, &connector)?;
         Ok(Called {
             outcome: outcome.map_err(ToolError::from),
@@ -409,10 +456,12 @@ impl Runtime {
             (Resource::Messages, _) => json!({"limit": 100}),
             _ => json!({}),
         };
-        let value = connector
-            .call_tool(resource.tool(), input)
-            .await
-            .map_err(|e| Error::InvalidInput(format!("{uri}: {e}")))?;
+        let value = match out_of_reach(scope.reach, Some(&saved), &input) {
+            true => Err(SdkError::PermissionDenied),
+            false => connector.call_tool(resource.tool(), input).await,
+        }
+        .map(|value| in_reach(scope.reach, resource.tool(), value))
+        .map_err(|e| Error::InvalidInput(format!("{uri}: {e}")))?;
         Ok(match resource {
             Resource::Hosts => json!({"hosts": value["hosts"]}),
             Resource::Room(_, RoomPart::Types) => {
@@ -421,6 +470,45 @@ impl Runtime {
             }
             _ => value,
         })
+    }
+}
+
+/// Whether an input names a room the snapshot `saved` knows on a host out
+/// of `reach`: reading it from local state would not ask the host.
+fn out_of_reach(reach: Option<&[String]>, saved: Option<&Value>, input: &Value) -> bool {
+    reach.is_some_and(|reach| room_host(saved, input).is_some_and(|host| !reach.contains(&host)))
+}
+
+/// A tool's result within `reach`: `rooms_list` without the rooms of the
+/// hosts out of it.
+fn in_reach(reach: Option<&[String]>, tool: &str, mut value: Value) -> Value {
+    if let (Some(reach), TOOL_ROOMS_LIST) = (reach, tool) {
+        if let Some(rooms) = value["rooms"].as_array_mut() {
+            rooms.retain(|room| {
+                room["host"]
+                    .as_str()
+                    .is_some_and(|host| reach.iter().any(|r| r == host))
+            });
+        }
+    }
+    value
+}
+
+/// The host of the room an input names: its `host`, else the only one the
+/// snapshot knows with that ID.
+fn room_host(saved: Option<&Value>, input: &Value) -> Option<String> {
+    let room_id = input["room_id"].as_str()?;
+    if let Some(host) = input["host"].as_str() {
+        return Some(host.trim_end_matches('/').to_string());
+    }
+    let mut hosts = saved?["rooms"]
+        .as_array()?
+        .iter()
+        .filter(|room| room["room"]["id"] == room_id)
+        .filter_map(|room| room["host"].as_str());
+    match (hosts.next(), hosts.next()) {
+        (Some(host), None) => Some(host.to_string()),
+        _ => None,
     }
 }
 

@@ -3,10 +3,54 @@
 //! 23 `dmsg_*` tools over this account's data and its MCP Events endpoints
 //! (plan §6.8, §6.11). A `dmsg_*` call needs a capability the owner granted the
 //! agent (§6.9); a sensitive one only creates an approval request, which
-//! no tool can answer.
+//! no tool can answer. So does each standard Agent Discourse, Mail and
+//! Knowledge tool, and the profile update ([`standard_capability`]), at the
+//! origins the grant names: the host allowlist says where any agent may
+//! sign, an agent's grants what it may do at which of them.
 
-use agent_protocols::local_connector::{standard_tool_definitions, TOOL_NAMES};
+use agent_protocols::local_connector::{
+    standard_tool_definitions, TOOL_AGENT_STATUS_LIST, TOOL_AGENT_STATUS_SET, TOOL_DRAFTS_LIST,
+    TOOL_DRAFT_COMMIT, TOOL_JOIN_REQUESTS_LIST, TOOL_JOIN_REQUEST_REVIEW, TOOL_KNOWLEDGE_GET,
+    TOOL_KNOWLEDGE_QUERY, TOOL_KNOWLEDGE_SEARCH, TOOL_KNOWLEDGE_STATUS, TOOL_KNOWLEDGE_SUBMIT,
+    TOOL_MAIL_LIST, TOOL_MAIL_MAILBOXES_LIST, TOOL_MAIL_MAILBOX_PUBLISH, TOOL_MAIL_SEND,
+    TOOL_MAIL_SYNC, TOOL_NAMES, TOOL_PROFILE_UPDATE, TOOL_ROOMS_LIST, TOOL_ROOM_CREATE,
+    TOOL_ROOM_JOIN, TOOL_ROOM_MEMBERS_LIST, TOOL_ROOM_SEND_MESSAGE, TOOL_ROOM_STATE,
+    TOOL_ROOM_SUBMIT_EVENT, TOOL_ROOM_TIMELINE,
+};
 use serde_json::{json, Value};
+
+/// The capability each standard Agent Discourse, Mail and Knowledge tool,
+/// and the profile update, needs. The others need none: the Agent ID's
+/// identity, the delegation tools (a grant or revocation needs the Agent ID
+/// to be a principal's controller) and the inbox, which holds only what the
+/// read tools fetched.
+const STANDARD_CAPABILITIES: [(&str, &str); 25] = [
+    (TOOL_PROFILE_UPDATE, "agent.profile.write"),
+    (TOOL_ROOMS_LIST, "discourse.read"),
+    (TOOL_ROOM_STATE, "discourse.read"),
+    (TOOL_ROOM_MEMBERS_LIST, "discourse.read"),
+    (TOOL_ROOM_TIMELINE, "discourse.read"),
+    (TOOL_AGENT_STATUS_LIST, "discourse.read"),
+    (TOOL_JOIN_REQUESTS_LIST, "discourse.read"),
+    (TOOL_DRAFTS_LIST, "discourse.read"),
+    (TOOL_ROOM_CREATE, "discourse.write"),
+    (TOOL_ROOM_JOIN, "discourse.write"),
+    (TOOL_ROOM_SEND_MESSAGE, "discourse.write"),
+    (TOOL_ROOM_SUBMIT_EVENT, "discourse.write"),
+    (TOOL_DRAFT_COMMIT, "discourse.write"),
+    (TOOL_AGENT_STATUS_SET, "discourse.write"),
+    (TOOL_JOIN_REQUEST_REVIEW, "discourse.write"),
+    (TOOL_MAIL_MAILBOXES_LIST, "mail.read"),
+    (TOOL_MAIL_SYNC, "mail.read"),
+    (TOOL_MAIL_LIST, "mail.read"),
+    (TOOL_MAIL_MAILBOX_PUBLISH, "mail.write"),
+    (TOOL_MAIL_SEND, "mail.write"),
+    (TOOL_KNOWLEDGE_QUERY, "knowledge.read"),
+    (TOOL_KNOWLEDGE_GET, "knowledge.read"),
+    (TOOL_KNOWLEDGE_SEARCH, "knowledge.read"),
+    (TOOL_KNOWLEDGE_STATUS, "knowledge.read"),
+    (TOOL_KNOWLEDGE_SUBMIT, "knowledge.write"),
+];
 
 /// The `dmsg_*` tools: name, description, read-only, input schema.
 const DMSG_TOOLS: [(&str, &str, bool, &str); 23] = [
@@ -169,6 +213,15 @@ pub fn is_dmsg(name: &str) -> bool {
     DMSG_TOOLS.iter().any(|(n, ..)| *n == name)
 }
 
+/// The capability an agent needs for standard tool `name`, if any, without
+/// its target: the origins it may reach (`discourse.read:<origin>`).
+pub fn standard_capability(name: &str) -> Option<&'static str> {
+    STANDARD_CAPABILITIES
+        .iter()
+        .find(|(tool, _)| *tool == name)
+        .map(|(_, capability)| *capability)
+}
+
 /// Whether a tool only reads: its calls change nothing an audit records.
 pub fn is_read_only(name: &str) -> bool {
     static STANDARD: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
@@ -188,9 +241,13 @@ pub fn is_read_only(name: &str) -> bool {
 /// Every tool as MCP `tools/list` declares it.
 pub fn tool_list() -> Vec<Value> {
     let standard = standard_tool_definitions().into_iter().map(|t| {
+        let description = match standard_capability(&t.name) {
+            Some(capability) => format!("{} Needs {capability}:<origin>.", t.description),
+            None => t.description,
+        };
         json!({
             "name": t.name,
-            "description": t.description,
+            "description": description,
             "inputSchema": t.input_schema,
             "annotations": {
                 "readOnlyHint": t.annotations.read_only_hint,
@@ -216,4 +273,40 @@ pub fn tool_list() -> Vec<Value> {
             })
         });
     standard.chain(own).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_standard_tool_is_classified() {
+        // Local or acting only as a principal's controller: no grant.
+        let free = [
+            "agent_protocols_identity_current",
+            "agent_protocols_principal_resolve",
+            "agent_protocols_delegation_check",
+            "agent_protocols_delegations_list",
+            "agent_protocols_delegation_grant",
+            "agent_protocols_delegation_revoke",
+            "agent_protocols_inbox_next",
+            "agent_protocols_inbox_ack",
+        ];
+        for name in TOOL_NAMES {
+            assert_ne!(
+                free.contains(&name),
+                standard_capability(name).is_some(),
+                "{name}"
+            );
+        }
+        let described = tool_list();
+        let send = described
+            .iter()
+            .find(|t| t["name"] == TOOL_ROOM_SEND_MESSAGE)
+            .unwrap();
+        assert!(send["description"]
+            .as_str()
+            .unwrap()
+            .ends_with(" Needs discourse.write:<origin>."));
+    }
 }

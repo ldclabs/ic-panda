@@ -68,7 +68,14 @@ release after the freeze adds its canisters and cutover ID.
 tool changes it, and a host must be an origin (loopback HTTP only in `local`).
 Mail relays and Knowledge services are hosts like any other, and HTTPS only:
 an agent fetches cards, delivers letters and submits or reads Knowledge only
-at them. `agent_blocked_senders` is likewise the only source of the mail
+at them. An entry names an origin the agents may sign for, not what it
+serves: each tool reads its protocol's discovery document at the origin it
+is given (`/.well-known/agent-mail`, `agent-knowledge`, `agent-discourse`,
+`agent-delegation`, `agent-profile`) and fails where the origin serves none.
+The relay is one of them: it is the account principal's Agent Delegation
+and Agent Profile service. What each agent may do at which of the hosts,
+such as reading Agent Discourse everywhere without speaking, is the owner's
+grant (`grants add` below). `agent_blocked_senders` is likewise the only source of the mail
 sender policy. The connectors' requests follow no redirect.
 
 The daemon makes the home its owner's only (mode 700) when it starts: the
@@ -354,10 +361,22 @@ capabilities over this account: `account.read`, `vault.list`,
 `file.read:<tag>`, `channel.read:<channel>`, `channel.publish:<channel>`,
 `inbox.read`, `inbox.contact`, `attest.request`, `action.request`,
 `agent.delegation.read`, `events.endpoint` (`<name>:*` covers every
-target); without a grant an agent reads only public profiles
-(`profile.read`). No vault capability reaches an item tagged `dmsg-…` (the
-Agent ID and controller keys), not even with `*`, and such a tag cannot be
-granted.
+target); and at the allowed hosts, each `:<origin>` or `:*` for every
+host: `agent.profile.write` (its Agent Profile, at a host or a host's
+profile service), `discourse.read`, `discourse.write`, `mail.read`,
+`mail.write`, `knowledge.read` and `knowledge.write`, such as
+`discourse.read:*` with `discourse.write:https://discourse.dmsg.net`. An
+agent's call then reaches only the configured origins its grants name: the
+connector refuses the others (`permission_denied`), a room it knows from
+another host included, and lists only the rooms of those it reaches; with
+none of them the call is `FORBIDDEN`. Without a grant an agent reads only
+public profiles (`profile.read`), and of the standard tools uses only its
+identity, the delegation tools (a grant or revocation needs the Agent ID to
+be a principal's controller) and its inbox, at every configured host. No vault capability reaches an item
+tagged `dmsg-…` (the Agent ID and controller keys), not even with `*`, and
+such a tag cannot be granted. A resident Agent ID's live grants are copied
+beside its key, and while the device is locked it is checked against the
+copy.
 
 `dmsg audit` shows who did what on this device, newest first: the owner's
 capability grants and revocations, Agent ID creation, credentials and
@@ -370,7 +389,8 @@ device, is readable while locked, and keeps a year or 10,000 entries.
 
 `dmsg ap <tool> [input]` runs one MCP tool as an Agent ID with the same input
 and result; the tool name may leave out `agent_protocols_` or `dmsg_`, and
-`dmsg ap tools` lists them. Each command runs in the connector session
+`dmsg ap tools` lists them. The owner needs no grant for a standard tool.
+Each command runs in the connector session
 `--session` (`cli` by default; the desktop's is `gui`), which keeps what that
 session was shown of each room, so its writes are checked against its own
 view and not against what an MCP session read. For example:
@@ -405,7 +425,12 @@ claude mcp add dmsg --env DMSG_AGENT_TOKEN=dmsg-agent-… -- dmsg mcp
 Tools: the 33 standard `agent_protocols_*` tools of the Agent Protocols
 local connector (`agent-protocols` 0.12: identity, delegation, rooms, inbox
 and drafts, profile, Agent Mail mailboxes and letters, Agent Knowledge
-submissions and reads), as this Agent ID, against the configured hosts; and
+submissions and reads), as this Agent ID, against the configured hosts, each
+Discourse, Mail and Knowledge tool behind its protocol's read or write
+capability and `agent_protocols_profile_update` behind
+`agent.profile.write`, at the origins the grants name (the description
+names it; the resources of rooms, drafts and mail need the same read
+capability as their tools); and
 `dmsg_account_status`, `dmsg_vault_list`, `dmsg_vault_read` (the secret
 field only as below), `dmsg_channel_list|read|publish`, `dmsg_inbox_list`,
 `dmsg_profile_read`, `dmsg_attest_request` (an approval request with source

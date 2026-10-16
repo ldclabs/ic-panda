@@ -360,6 +360,12 @@ mod tests {
         assert_eq!(settings.config.login_url, LOGIN_URL);
         assert!(settings.config.legacy.is_none());
         assert_eq!(settings.agent_hosts.len(), 4);
+        // The relay is the account principal's delegation and profile service,
+        // which the connector reaches only as an allowed host.
+        assert!(settings
+            .agent_hosts
+            .iter()
+            .any(|h| h.host == settings.config.relay));
         dmsg_agent::Runtime::new(&dmsg_agent::Options {
             hosts: settings.agent_hosts.clone(),
             ..dmsg_agent::Options::default()

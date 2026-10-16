@@ -265,6 +265,69 @@ fn mail_keys_are_sealed_and_a_resident_agent_keeps_a_copy() {
 }
 
 #[test]
+fn a_resident_agent_is_checked_against_a_copy_of_its_grants() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    let agent = client.agent_create("reader").unwrap().agent_id;
+    let other = client.agent_create("other").unwrap().agent_id;
+    client
+        .capability_grant("cli", "reader", vec!["discourse.read:*".into()], None)
+        .unwrap();
+    client
+        .capability_grant("cli", "other", vec!["knowledge.read:*".into()], None)
+        .unwrap();
+    client.agent_resident("reader", true).unwrap();
+    let write = client
+        .capability_grant("cli", "reader", vec!["discourse.write:*".into()], None)
+        .unwrap();
+    client.capability_revoke("cli", &write.id).unwrap();
+    let (a, b) = ("https://a.example", "https://b.example");
+    client
+        .capability_grant("cli", "reader", vec![format!("discourse.write:{a}")], None)
+        .unwrap();
+
+    // Locked, the copy holds its live grants and nobody else's.
+    client.lock();
+    client.capability_check(&agent, "discourse.read:x").unwrap();
+    let targets = |name: &str| {
+        client
+            .capability_targets(&agent, name, vec![a.into(), b.into()])
+            .unwrap()
+    };
+    assert_eq!(targets("discourse.read"), [a, b]);
+    assert_eq!(targets("discourse.write"), [a]);
+    assert!(targets("mail.read").is_empty());
+    for needed in ["discourse.write:x", "knowledge.read:x"] {
+        assert_eq!(
+            client.capability_check(&agent, needed).unwrap_err(),
+            Error::Forbidden,
+            "{needed}"
+        );
+    }
+    assert_eq!(
+        client
+            .capability_check(&other, "knowledge.read:x")
+            .unwrap_err(),
+        Error::Locked
+    );
+
+    // Turning residency off deletes the copy.
+    client.agent_resident("reader", false).unwrap();
+    assert_eq!(
+        client
+            .capability_check(&agent, "discourse.read:x")
+            .unwrap_err(),
+        Error::Locked
+    );
+    let workspace = client.workspace.name().unwrap();
+    assert!(storage
+        .get(&format!("{workspace}:agent-grants:{agent}"))
+        .unwrap()
+        .is_none());
+}
+
+#[test]
 fn capabilities_cover_only_what_was_granted() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
@@ -274,6 +337,9 @@ fn capabilities_cover_only_what_was_granted() {
         "channel.read:*",
         "attest.request",
         "vault.list",
+        "discourse.read:*",
+        "mail.write:https://mail.dmsg.net",
+        "agent.profile.write:http://127.0.0.1:8787",
     ] {
         validate_capability(capability).unwrap();
     }
@@ -286,6 +352,12 @@ fn capabilities_cover_only_what_was_granted() {
         "vault.write:dmsg-agent",
         "vault.secret:dmsg-controller",
         "file.read:dmsg-x",
+        // A service capability names an origin, or every one.
+        "discourse.read",
+        "discourse.read:discourse.dmsg.net",
+        "knowledge.read:https://knowledge.dmsg.net/",
+        "mail.read:https://mail.dmsg.net/v1",
+        "mail.read:ftp://mail.dmsg.net",
     ] {
         assert!(validate_capability(capability).is_err(), "{capability}");
     }

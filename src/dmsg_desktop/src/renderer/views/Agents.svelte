@@ -26,10 +26,20 @@
   let issued = $state<{ agent_id: string; credential: string } | null>(null)
   let grantee = $state('')
   let capabilities = $state('')
+  /** The origin the service capabilities name, `*` for every allowed host. */
+  let origin = $state('*')
+  let services = $state<Record<string, boolean>>({})
 
-  /** What an agent may be granted; `<name>:*` covers every target. */
+  /** What else an agent may be granted; `<name>:*` covers every target. */
   const VOCABULARY =
-    'account.read vault.list vault.read:<tag> vault.write:<tag> vault.secret:<item> file.read:<tag> channel.read:<channel> channel.publish:<channel> inbox.read inbox.contact profile.read attest.request action.request agent.delegation.read events.endpoint'
+    'account.read vault.list vault.read:<tag> vault.write:<tag> vault.secret:<item> file.read:<tag> channel.read:<channel> channel.publish:<channel> inbox.read inbox.contact attest.request action.request agent.delegation.read events.endpoint'
+
+  /** The Agent Protocols services, with the capabilities that read and write each. */
+  const SERVICES = [
+    { name: 'Agent Discourse', read: 'discourse.read', write: 'discourse.write' },
+    { name: 'Agent Mail', read: 'mail.read', write: 'mail.write' },
+    { name: 'Agent Knowledge', read: 'knowledge.read', write: 'knowledge.write' }
+  ]
 
   const list = (text: string, separator: RegExp) =>
     text
@@ -74,6 +84,22 @@
 
   const grant = () =>
     request('agent/grant', { subject: subject.trim(), scopes: list(scopes, /,/), audiences: list(audiences, /,/), days })
+
+  /** The ticked services at the chosen origin, and the capabilities typed. */
+  const chosen = $derived([
+    ...Object.keys(services)
+      .filter((name) => services[name])
+      .map((name) => `${name}:${origin}`),
+    ...list(capabilities, /\s+/)
+  ])
+
+  const grantChosen = () =>
+    attempt(async () => {
+      await call('grants/add', { agent: grantee, capabilities: chosen })
+      services = {}
+      capabilities = ''
+      await load()
+    })
 
   const run = (method: string, params: Record<string, unknown>) =>
     attempt(async () => {
@@ -228,10 +254,9 @@
   </ul>
 </div>
 {#if unlocked}
-  <div class="card">
+  <div class="card" data-testid="grants-card">
     <h2>{t('capabilityGrants')}</h2>
     <p class="muted">{t('capabilitiesHint')}</p>
-    <p class="muted">{t('capabilityVocabulary')}<span class="mono">{VOCABULARY}</span></p>
     <ul class="list" data-testid="capability-grants">
       {#each grants as g (g.id)}
         <li class="row spread">
@@ -247,11 +272,42 @@
       <Select
         bind:value={grantee}
         placeholder={t('grantee')}
+        testid="grant-agent"
         options={hosted.agents.map((a: any) => ({ value: a.agent_id, label: a.label }))} />
-      <input placeholder={t('capabilityList')} bind:value={capabilities} />
-      <button
-        disabled={busy || !grantee || !capabilities.trim()}
-        onclick={() => run('grants/add', { agent: grantee, capabilities: list(capabilities, /\s+/) })}>{t('grant')}</button>
+    </div>
+    <h2 style="margin-top: 16px">{t('serviceGrants')}</h2>
+    <p class="muted">{t('serviceGrantsHint')}</p>
+    <div class="row">
+      <Select
+        bind:value={origin}
+        testid="grant-origin"
+        options={[
+          { value: '*', label: t('everyHost') },
+          ...hosted.hosts.map((h: any) => ({ value: h.host, label: h.label ? `${h.host} · ${h.label}` : h.host, mono: true }))
+        ]} />
+    </div>
+    <ul class="list" data-testid="service-grants">
+      {#each SERVICES as service (service.read)}
+        <li class="row spread">
+          <span>{service.name}</span>
+          <span class="row">
+            <label class="row"><input type="checkbox" data-testid="service-{service.read}" bind:checked={services[service.read]} /> {t('canRead')}</label>
+            <label class="row"><input type="checkbox" data-testid="service-{service.write}" bind:checked={services[service.write]} /> {t('canWrite')}</label>
+          </span>
+        </li>
+      {/each}
+      <li class="row spread">
+        <span>Agent Profile</span>
+        <label class="row">
+          <input type="checkbox" data-testid="service-agent.profile.write" bind:checked={services['agent.profile.write']} />
+          {t('publishProfile')}
+        </label>
+      </li>
+    </ul>
+    <p class="muted">{t('capabilityVocabulary')}<span class="mono">{VOCABULARY}</span></p>
+    <div class="row">
+      <input placeholder={t('capabilityList')} bind:value={capabilities} data-testid="grant-other" />
+      <button data-testid="grant-capabilities" disabled={busy || !grantee || !chosen.length} onclick={grantChosen}>{t('grant')}</button>
     </div>
   </div>
 {/if}

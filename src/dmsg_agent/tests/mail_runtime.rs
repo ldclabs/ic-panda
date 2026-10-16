@@ -237,6 +237,7 @@ async fn call(
             Scope {
                 path,
                 session: "test",
+                reach: None,
             },
             AgentSigner::from_seed([seed; 32]),
             keys.as_ref(),
