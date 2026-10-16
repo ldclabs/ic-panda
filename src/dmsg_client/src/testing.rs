@@ -186,6 +186,12 @@ pub fn security(epoch: u64, devices: BTreeMap<Hash, Device>) -> Security {
 /// A command `action` of the test account signed by device `n` under
 /// `epoch`, its payload `{"by": n}`.
 pub fn signed(n: u8, epoch: u64, action: &str) -> String {
+    command(n, epoch, action, &BTreeMap::from([("by", n.to_string())]))
+}
+
+/// A command `action` with `payload` of the test account, signed by device
+/// `n` under `epoch`; its deadline is 10.
+pub fn command<P: serde::Serialize>(n: u8, epoch: u64, action: &str, payload: &P) -> String {
     let issuer = account().issuer;
     let signer = Signer {
         issuer: &issuer,
@@ -194,6 +200,5 @@ pub fn signed(n: u8, epoch: u64, action: &str) -> String {
         seed: &[n; 32],
         expires_at: u64::MAX,
     };
-    let payload = BTreeMap::from([("by", n.to_string())]);
-    sign_command(&signer, action, &payload, "01", 10)
+    sign_command(&signer, action, payload, "01", 10)
 }

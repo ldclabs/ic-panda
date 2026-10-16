@@ -1,16 +1,20 @@
 //! The public profile (`dmsg/profile/v1`, `docs/protocol/cloud_zh.md`):
 //! only the fields the owner explicitly publishes, signed by one of the
-//! account's devices. A reader checks the signature against the account's
-//! certified devices; what the profile says stays self-asserted, and the
-//! relay may serve an older version than the latest.
+//! account's devices. Another account checks the signature against the
+//! account's certified devices; the owner checks it against the certified
+//! evidence the relay kept when it accepted the profile, so its own profile
+//! still verifies after recovery or the device bound replaced the signer.
+//! What the profile says stays self-asserted, and the relay may serve an
+//! older version than the latest.
 //!
 //! Publishing is a presigned command kept as a job until the relay answers,
 //! so a lost reply is reconciled by its request ID, never signed twice.
 
 use crate::account::{user_homes, verify_security, Security};
 use crate::client::Client;
-use crate::cloud::{verify_command, Presigned};
+use crate::cloud::{verify_signed_command, Evidence, Presigned};
 use crate::codec::{canonical, decode, sha256, unb64};
+use crate::evidence::under;
 use crate::now_ms;
 use crate::upload::{random_hex, ChunkRef, UploadPlan};
 use dmsg_types::{
@@ -25,6 +29,7 @@ use std::collections::BTreeMap;
 /// The pending publish, in the metadata: a presigned command holds no secret.
 const JOB: &str = "profile-job";
 const HEAD: &str = "profile-head";
+const ACTION: &str = "dmsg/profile/v1";
 
 /// A published profile as the device signs it.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -142,50 +147,75 @@ struct ProfileJob {
     dispatch: Option<Presigned>,
 }
 
-/// Check a relay profile record against the account's certified devices.
-fn verify_profile(account: &str, value: &Json, security: &Security) -> Result<PublishedProfile> {
-    let cose = value["signed"]["cose_sign1"]
+/// The signed command of a relay profile record.
+fn signed(value: &Json) -> Result<&str> {
+    value["signed"]["cose_sign1"]
         .as_str()
-        .ok_or(Error::IntegrityFailed)?;
-    let profile: Profile = verify_command(
-        cose,
-        &security.snapshot.issuer,
-        &security.devices,
-        "dmsg/profile/v1",
-    )?;
+        .ok_or(Error::IntegrityFailed)
+}
+
+/// This account's profile record, checked against `security`, its certified
+/// security when the relay accepted the record at `stored_at`: the signer
+/// was an unrevoked content signer of the account then, whatever replaced
+/// it since.
+fn verify_own(
+    account: &str,
+    value: &Json,
+    security: &Security,
+    stored_at: u64,
+) -> Result<PublishedProfile> {
+    let cose = signed(value)?;
+    let (device, body) =
+        under::<Profile>(security, cose, Some(ACTION)).map_err(|_| Error::IntegrityFailed)?;
+    ensure(body.deadline > stored_at, Error::IntegrityFailed)?;
+    published(account, value, cose, &device, body.payload)
+}
+
+/// Another account's profile record, checked against its certified devices.
+fn verify_public(account: &str, value: &Json, security: &Security) -> Result<PublishedProfile> {
+    let cose = signed(value)?;
+    let (device, profile) =
+        verify_signed_command(cose, &security.snapshot.issuer, &security.devices, ACTION)?;
+    published(account, value, cose, &device, profile)
+}
+
+/// A relay profile record whose command `cose`, signed by `device`, says
+/// `profile`: its projection must be of that command.
+fn published(
+    account: &str,
+    value: &Json,
+    cose: &str,
+    device: &Hash,
+    profile: Profile,
+) -> Result<PublishedProfile> {
     let hash = hex::encode(*sha256(&unb64(cose)?));
+    let device_id = hex::encode(**device);
     ensure(
         serde_json::to_value(&profile).ok().as_ref() == Some(&value["payload"])
             && value["version"].as_u64() == Some(profile.version)
-            && value["hash"] == hash.as_str(),
-        Error::IntegrityFailed,
-    )?;
-    let device_id = value["signer"]["device_id"]
-        .as_str()
-        .ok_or(Error::IntegrityFailed)?;
-    let device = crate::upload::hex_id(device_id)?;
-    ensure(
-        security.devices.contains_key(&device),
+            && value["hash"] == hash.as_str()
+            && value["signer"]["device_id"] == device_id.as_str(),
         Error::IntegrityFailed,
     )?;
     Ok(PublishedProfile {
         account: account.into(),
         profile,
         hash,
-        device_id: device_id.into(),
+        device_id,
         self_asserted: true,
     })
 }
 
 impl Client {
-    /// This account's published profile, checked against its devices and
-    /// against the newest version this device has seen.
+    /// This account's published profile, checked against the account's
+    /// certified devices when the relay accepted it and against the newest
+    /// version this device has seen.
     ///
     /// # Errors
     /// A relay that loses or rolls back a profile this device saw returns
     /// `Error::IntegrityFailed`.
     pub async fn profile(&mut self) -> Result<Option<PublishedProfile>> {
-        let account = self.account()?.id.to_string();
+        let account = self.account()?.id;
         let value = self
             .relay_find(&format!("{}/profile", self.base()?))
             .await?;
@@ -194,8 +224,15 @@ impl Client {
             ensure(known.is_none(), Error::IntegrityFailed)?;
             return Ok(None);
         };
-        let security = self.cloud_state().await?;
-        let published = verify_profile(&account, &value, &security)?;
+        let evidence: Evidence = serde_json::from_value(value["evidence"].clone())
+            .map_err(|_| Error::IntegrityFailed)?;
+        let stored_at = value["stored_at"].as_u64().ok_or(Error::IntegrityFailed)?;
+        let security = self
+            .trust()
+            .await?
+            .account(&evidence, &account, stored_at, now_ms())
+            .map_err(|_| Error::IntegrityFailed)?;
+        let published = verify_own(&account.to_string(), &value, &security, stored_at)?;
         let version = published.profile.version;
         if let Some((seen, hash)) = &known {
             ensure(
@@ -438,7 +475,7 @@ impl Client {
             .public(&format!("/public/accounts/{account}/profile"))
             .await?;
         value
-            .map(|value| verify_profile(&account.to_string(), &value, &security))
+            .map(|value| verify_public(&account.to_string(), &value, &security))
             .transpose()
     }
 }
@@ -446,6 +483,71 @@ impl Client {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn own_profiles_verify_against_the_devices_that_signed_them() {
+        use crate::testing::{account, command, device, security};
+        use serde_json::json;
+
+        let (a, signer) = device(1, None);
+        let (b, other) = device(2, None);
+        let profile = Profile {
+            version: 1,
+            prev_hash: None,
+            display_name: "name".into(),
+            bio: String::new(),
+            avatar_upload: None,
+            links: vec![],
+        };
+        let cose = command(1, 3, ACTION, &profile);
+        let value = json!({
+            "signed": { "cose_sign1": cose },
+            "payload": profile,
+            "version": 1,
+            "hash": hex::encode(*sha256(&unb64(&cose).unwrap())),
+            "signer": { "device_id": hex::encode(*a) },
+        });
+        let id = account().id.to_string();
+        // Device A signed it under epoch 3; recovery later replaced A with B.
+        let then = security(3, BTreeMap::from([(a, signer)]));
+        let today = security(4, BTreeMap::from([(b, other)]));
+        let published = verify_own(&id, &value, &then, 5).unwrap();
+        assert_eq!(published.profile, profile);
+        assert_eq!(published.device_id, hex::encode(*a));
+        // Against today's devices, as another account checks it, it fails.
+        assert_eq!(
+            verify_public(&id, &value, &today).unwrap_err(),
+            Error::IntegrityFailed
+        );
+        assert_eq!(
+            verify_own(&id, &value, &today, 5).unwrap_err(),
+            Error::IntegrityFailed
+        );
+        assert_eq!(verify_public(&id, &value, &then).unwrap(), published);
+        // Stored past its deadline, or by a device revoked then, it fails.
+        assert_eq!(
+            verify_own(&id, &value, &then, 10).unwrap_err(),
+            Error::IntegrityFailed
+        );
+        let revoked = security(3, BTreeMap::from([device(1, Some(2))]));
+        assert_eq!(
+            verify_own(&id, &value, &revoked, 5).unwrap_err(),
+            Error::IntegrityFailed
+        );
+        // The projection must be of the signed command.
+        for (field, wrong) in [
+            ("/signer/device_id", json!(hex::encode(*b))),
+            ("/payload/display_name", json!("other")),
+            ("/version", json!(2)),
+        ] {
+            let mut edited = value.clone();
+            *edited.pointer_mut(field).unwrap() = wrong;
+            assert_eq!(
+                verify_own(&id, &edited, &then, 5).unwrap_err(),
+                Error::IntegrityFailed
+            );
+        }
+    }
 
     #[test]
     fn avatars_are_png_jpeg_or_webp_up_to_512_kib() {

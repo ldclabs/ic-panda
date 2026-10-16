@@ -70,6 +70,8 @@ value/witness/certificate 使用原始认证字节，devices 是完整设备 map
 
 profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、issuer/device/action、原 COSE 摘要、version 与投影一致性。调用者必须提供已认证的设备公钥；数学验证不证明中继给出了最新版本。历史命令的签名验证不因提交 deadline 已过而失效，当前写授权独立判断。
 
+本人 profile 的签名依据（2026-10-16）：`GET /v1/accounts/:account/profile` 只供本账户设备读取，在公开字段之外带 `evidence` 与 `stored_at`，即中继接受该版本时核对的认证证据与接受时间。客户端用 `stored_at` 核对证据（证书、账户叶与设备表），在其中找签名设备（当时未吊销、有 `content_sign`），命令体的 `security_epoch` 须等于证据中的纪元、deadline 须晚于 `stored_at`，投影中的 `signer.device_id` 须是该设备。全设备丢失恢复会替换所有设备，设备表满 16 条时加设备会移除最早吊销的一台；按当前设备集合验签时，它们签署的最新版本无法读取，也就无法按 `prev_hash` 续写。其他账户经 `/public/accounts/:account/profile` 读取，响应不带证据，仍按该账户当前认证的设备核对；签名设备已不在设备表中的版本不再被视为该账户的资料，直到本人发布新版本。
+
 ## R0 本地内容到云端的映射
 
 这张表冻结 A1/A2/C1 的转换边界。A1 的账户、根封装与本地副本转换见 [账户与根合同](account_root_zh.md)；普通内容同步仍归 A2，本地 outbox 尚不自动作为云端命令发送。
