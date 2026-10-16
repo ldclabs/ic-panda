@@ -67,6 +67,10 @@ let appearance: Appearance = 'system'
 const updates = new Updates(() => updateTray(trayState))
 /** A copied secret leaves the clipboard after this long, unless something replaced it. */
 const CLEAR_MS = 30_000
+/** A person's input in a window is the idle lock's activity, reported at most this often. */
+const ACTIVITY_MS = 10_000
+const INPUT = new Set(['mouseDown', 'mouseWheel', 'rawKeyDown', 'keyDown', 'touchStart'])
+let reported = 0
 
 /** Login and pairing pages the desktop may open, from the home's configuration. */
 function pages(): { login: string[]; pairing: string[] } {
@@ -597,6 +601,11 @@ app.on('open-url', (event, url) => {
 })
 app.on('web-contents-created', (_event, contents) => {
   contents.on('will-attach-webview', (event) => event.preventDefault())
+  contents.on('input-event', (_event, input) => {
+    if (!INPUT.has(input.type) || Date.now() - reported < ACTIVITY_MS) return
+    reported = Date.now()
+    daemon.active()
+  })
 })
 app.on('before-quit', () => {
   quitting = true

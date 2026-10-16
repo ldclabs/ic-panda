@@ -59,8 +59,7 @@
     }
   }
 
-  // Reading the offers counts as activity for the idle lock, so it happens on
-  // unlock and when legacy state changes, never on a status refresh.
+  // The offers change on unlock and with legacy state, never on a status refresh.
   async function loadOffers() {
     const pairs = unlocked ? await call<any[]>('legacy/pairs').catch(() => []) : []
     offers = pairs.map((p) => p.nonce)
@@ -71,9 +70,9 @@
     void loadOffers()
   })
 
-  // Every request moves the idle lock, this window's or not. While unlocked
-  // the status, which is not activity, is read again as often as the daemon
-  // checks the lock, so the gate rail's countdown follows `lock_at`.
+  // The idle lock follows a person's input in any window, which the main
+  // process reports. While unlocked the status is read again as often as the
+  // daemon checks the lock, so the gate rail's countdown follows `lock_at`.
   $effect(() => {
     if (!unlocked) return
     const timer = setInterval(() => void refresh(), 10_000)

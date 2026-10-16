@@ -514,7 +514,8 @@ The daemon listens on `127.0.0.1` only.
   `Authorization: Bearer <owner token>`; any request with an `Origin` header
   is refused with 401. Errors carry `error.data.code` such as `AUTH_REQUIRED`,
   `LOCKED`, `VERSION_CONFLICT` or `EXECUTION_UNKNOWN`.
-- Methods: `app/initialize`, `daemon/status`, `events/poll`,
+- Methods: `app/initialize {activity?}`, `app/activity`, `daemon/status`,
+  `events/poll`,
   `session/status|login {origin, bind?}|login_result|accounts|switch|unlock {fast?, account?}|lock|fast_unlock`,
   `account/create|show|security|bind_request|bind_accept|bind_approve|unbind|policy|recovery_delay`,
   `recovery/status|request|complete|dispute`,
@@ -559,10 +560,15 @@ The daemon listens on `127.0.0.1` only.
 - `GET /auth/callback` and `POST /auth/callback` exist only while a login is
   pending (ten minutes) and accept one POST from the daemon's own loopback
   origin ([dmsg-login/1](../../docs/protocol/login-v1_zh.md) §4).
-- `idle_lock_minutes` without a request locks the daemon: the login and every
-  key are dropped. While unlocked, `daemon/status` gives the time it will
-  lock as `lock_at` (Unix milliseconds) and the idle period as
-  `idle_lock_ms`; the lock comes within 10 seconds after `lock_at`.
+- `idle_lock_minutes` without activity locks the daemon: the login and every
+  key are dropped. Every request is activity except `app/initialize`,
+  `daemon/status`, `events/poll`, `mcp-events/poll` and the waiting readers,
+  and so is a completed login. A WebSocket that sent
+  `app/initialize {activity: "reported"}`, as the desktop does, reports a
+  person's activity with `app/activity`, and its other requests are not
+  activity: its windows read on events. While unlocked, `daemon/status`
+  gives the time it will lock as `lock_at` (Unix milliseconds) and the idle
+  period as `idle_lock_ms`; the lock comes within 10 seconds after `lock_at`.
   Revisions already signed for submission are still sent, without any key,
   until their 45-second deadline. With `background_online` the device
   signing key stays: `dmsg sync` and the scheduled sync still send sealed
@@ -574,8 +580,7 @@ The daemon listens on `127.0.0.1` only.
   emits `connect/hint` for the desktop to notify. The mailbox is also polled
   every 30 seconds; that pass reconciles approved requests whose outcome is
   unknown and announces `approval/changed` only when there were some or the
-  number waiting changed, since windows reload on it and their reads count
-  as activity.
+  number waiting changed.
 - While unlocked, the daemon keeps one WebSocket per active channel; an
   `available` hint, a new socket and a closed one each trigger a signed read.
   A socket's ticket lasts about a minute, so it is renewed every 40 seconds.

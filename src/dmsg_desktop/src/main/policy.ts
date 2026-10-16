@@ -16,10 +16,10 @@
  * `ap/call` runs only the Mail and Knowledge tools (`DESKTOP_TOOLS`) as a
  * hosted Agent ID; the MCP Events methods only manage endpoints, never read
  * or acknowledge deliveries. The agent methods (`mcp/*`) answer only an
- * agent's own credential.
+ * agent's own credential. The `app/*` methods are the main process's, which
+ * declares at `app/initialize` that only a person's input is activity.
  */
 export const WINDOW_METHODS = new Set([
-  'app/initialize',
   'daemon/status',
   'session/status',
   'session/login_result',

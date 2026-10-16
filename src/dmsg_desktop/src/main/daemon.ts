@@ -2,7 +2,8 @@
  * The desktop's connection to its `dmsg` daemon: `dmsg start` (which starts
  * the daemon unless one runs), the owner credential from `dmsg app-token`,
  * then JSON-RPC and events over `/ws/app/v1`. The daemon holds every key;
- * the desktop never starts a second one.
+ * the desktop never starts a second one. Its calls, many of them reads on
+ * events, are not activity for the idle lock; only `active()` is.
  */
 import { EventEmitter } from 'node:events'
 import { execFile } from 'node:child_process'
@@ -82,7 +83,7 @@ export class Daemon extends EventEmitter {
       this.lastError = undefined
       this.delay = 1000
       this.emit('state')
-      await this.call('app/initialize')
+      await this.call('app/initialize', { activity: 'reported' })
     } catch (error) {
       this.lost(reasonOf(error))
     }
@@ -140,6 +141,11 @@ export class Daemon extends EventEmitter {
       this.waiting.set(id, { resolve, reject, timer })
       socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
     })
+  }
+
+  /** A person used a window. */
+  active() {
+    this.call('app/activity').catch(() => {})
   }
 
   close() {

@@ -316,11 +316,9 @@ restyle a control by hand.
   clipboard only through the main process.
 - Files enter through the main process's dialogs or a drop the preload
   resolves to a path; a file a page made has none and is refused.
-- The shell reads only methods that do not count as activity
-  (`daemon/status`, again every 10 seconds while unlocked for the idle
-  lock's countdown); everything else runs on a person's action or an event,
-  and the daemon's background passes announce only what changed, so the
-  idle lock keeps its meaning.
+- The idle lock follows a person's input, which the main process reports;
+  what windows read, on events or the status refresh (every 10 seconds
+  while unlocked, for the countdown), never keeps the device unlocked.
 - Never present a pending or unknown result as success.
 
 ## Accessibility & Languages

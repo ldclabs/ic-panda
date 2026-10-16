@@ -117,6 +117,11 @@ Rules (`src/main/policy.ts`):
   never holds it, and the clipboard is cleared after 30 seconds unless
   something replaced it.
 - Revoking a device and changing its capabilities are approval requests.
+- Only a person's input in a window (a click, a key, a scroll) is activity
+  for the idle lock. The main process declares so at `app/initialize` and
+  reports input with `app/activity` at most every 10 seconds; the windows'
+  reads, on events or the status refresh, never keep the device unlocked.
+  Windows call neither method.
 - Notifications say that something happened, never what or from whom: a web
   request waiting, deliveries to agents, and, while the daemon is locked, a
   channel's new messages or a new letter (the relay's `channel` and `inbox`

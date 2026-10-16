@@ -6,6 +6,8 @@ test('windows never decide or grant, and never send human', () => {
   for (const method of [
     'approval/respond',
     'connect/grant',
+    'app/initialize',
+    'app/activity',
     'daemon/stop',
     'workspace/reset',
     'session/login',

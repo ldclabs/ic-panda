@@ -1,6 +1,7 @@
 // Electron smoke test: the built app against a mock daemon, in a temporary
-// profile. Checks the main window, the approval window opened by a dmsg://
-// link, that only the approval window decides, and that it decides what it
+// profile. Checks the main window, that only a person's input is activity
+// for the idle lock, the approval window opened by a dmsg:// link, that
+// only the approval window decides, and that it decides what it
 // showed, that payments and device revocation take a hold to approve, and
 // that the channel, inbox, plan and agent views reach the daemon with
 // payments and grants only as approval requests; that another account's
@@ -212,6 +213,7 @@ const methods = {
     frozen: { checked_channels: 0, matched: false, total_changes: 1, changes: [] }
   }),
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
+  'app/activity': () => null,
   'daemon/status': status,
   'vault/list': (p) => (p?.trash ? trash : vault),
   'vault/show': (p) => {
@@ -614,7 +616,11 @@ try {
   await main.screenshot({ path: join(shots, 'main.png') })
   // The palette goes to a view by name; ⌘1 comes back to the vault.
   const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
+  // The desktop's reads are not activity for the idle lock; a person's input is.
+  assert.equal(latest('app/initialize').params.activity, 'reported')
+  assert.equal(latest('app/activity'), undefined)
   await main.keyboard.press(`${mod}+k`)
+  await waitFor(() => latest('app/activity'))
   await main.waitForSelector('[data-testid="palette"]')
   await main.fill('[data-testid="palette-input"]', 'Inbox')
   await main.screenshot({ path: join(shots, 'palette.png') })

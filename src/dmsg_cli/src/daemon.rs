@@ -72,7 +72,7 @@ const CONNECT_POLL_MS: u64 = 30_000;
 const APP_PROTOCOL: &str = "dmsg-app/1";
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 56] = [
+const METHODS: [&str; 57] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -127,6 +127,7 @@ const METHODS: [&str; 56] = [
     "connect/status",
     "hint/status",
     "app/initialize",
+    "app/activity",
     "daemon/status",
     "events/poll",
 ];
@@ -375,9 +376,7 @@ async fn background(daemon: Arc<Daemon>) {
                     daemon.emit("approval/changed", json!({"connect": report}));
                 }
             }
-            // Only news is announced: the windows reload on this event and
-            // their reads count as activity, so an event every pass would
-            // keep the idle lock from ever coming.
+            // Only news is announced: windows reload on this event.
             if unlocked {
                 let reconciled = client.approvals_reconcile().await.unwrap_or(0);
                 let count = client.approvals_waiting().unwrap_or(waiting);
@@ -819,6 +818,7 @@ impl Daemon {
                 "instanceId": self.instance,
                 "status": self.status().await?,
             })),
+            "app/activity" => Ok(Value::Null),
             "events/poll" => Ok(json!({"seq": self.seq.load(Ordering::Relaxed)})),
             "approval/list" => {
                 let all = params["all"].as_bool().unwrap_or(false);
@@ -1140,13 +1140,30 @@ async fn rpc(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: Bytes)
         return Json(json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32700, "message": "parse error"}}))
             .into_response();
     };
-    Json(daemon.dispatch(request, &session).await).into_response()
+    Json(daemon.dispatch(request, &session, false).await).into_response()
+}
+
+/// Whether a request moves the idle lock. Waiting readers do not: a stream
+/// would otherwise keep the device unlocked forever. A client that
+/// `reports` its person's activity moves it only with `app/activity`.
+fn is_activity(request: &RpcRequest, reports: bool) -> bool {
+    let method = request.method.as_str();
+    if reports {
+        return method == "app/activity";
+    }
+    let waiting = (method == "mcp/call" && request.params["tool"] == "dmsg_events_next")
+        || method == "mcp/changed";
+    !waiting
+        && !matches!(
+            method,
+            "events/poll" | "daemon/status" | "app/initialize" | "mcp-events/poll"
+        )
 }
 
 impl Daemon {
     /// Run one request and announce what it changed. An agent's session
     /// reaches only the agent methods, and the owner's never does.
-    async fn dispatch(&self, request: RpcRequest, session: &Session) -> Value {
+    async fn dispatch(&self, request: RpcRequest, session: &Session, reports: bool) -> Value {
         if request.jsonrpc != "2.0" {
             return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32600, "message": "invalid request"}});
         }
@@ -1183,17 +1200,7 @@ impl Daemon {
                 "error": {"code": -32000, "message": error.to_string(), "data": {"code": error_code(&error)}},
             });
         }
-        // Waiting readers are not activity: a stream would otherwise keep
-        // the device unlocked forever.
-        let waiting = (request.method == "mcp/call"
-            && request.params["tool"] == "dmsg_events_next")
-            || request.method == "mcp/changed";
-        if !waiting
-            && !matches!(
-                request.method.as_str(),
-                "events/poll" | "daemon/status" | "app/initialize" | "mcp-events/poll"
-            )
-        {
+        if is_activity(&request, reports) {
             self.activity.store(now_ms(), Ordering::Relaxed);
         }
         let started = std::time::Instant::now();
@@ -1258,6 +1265,7 @@ fn log_call(
             | "session/login_result"
             | "daemon/status"
             | "app/initialize"
+            | "app/activity"
             | "events/poll"
             | "hint/status"
             | "connect/status"
@@ -1311,6 +1319,9 @@ async fn serve_socket(daemon: Arc<Daemon>, socket: WebSocket) {
     let (mut sink, mut stream) = socket.split();
     let mut events = daemon.events.subscribe();
     let (replies, mut outgoing) = tokio::sync::mpsc::channel::<Value>(64);
+    // `app/initialize {activity: "reported"}`: the client, such as the
+    // desktop with its reads on events, reports its person's activity.
+    let mut reports = false;
     loop {
         tokio::select! {
             message = stream.next() => {
@@ -1320,11 +1331,14 @@ async fn serve_socket(daemon: Arc<Daemon>, socket: WebSocket) {
                     let _ = replies.send(json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32700, "message": "parse error"}})).await;
                     continue;
                 };
+                if request.method == "app/initialize" {
+                    reports = request.params["activity"] == "reported";
+                }
                 // Requests run concurrently so a slow one never stalls events.
                 let daemon = daemon.clone();
                 let replies = replies.clone();
                 tokio::spawn(async move {
-                    let _ = replies.send(daemon.dispatch(request, &Session::Owner).await).await;
+                    let _ = replies.send(daemon.dispatch(request, &Session::Owner, reports).await).await;
                 });
             }
             Some(reply) = outgoing.recv() => {
@@ -1423,11 +1437,41 @@ async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: B
             Err(error) => Err(error),
         }
     };
+    // The person acted in the browser, where no client reports activity.
+    if outcome.is_ok() {
+        daemon.activity.store(now_ms(), Ordering::Relaxed);
+    }
     daemon.login.lock().expect("login state").outcome =
         Some(outcome.clone().map_err(|e| e.to_string()));
     match outcome {
         Ok(()) => (StatusCode::OK, "ok").into_response(),
         Err(Error::Forbidden) => (StatusCode::FORBIDDEN, "refused").into_response(),
         Err(error) => (StatusCode::BAD_REQUEST, error.to_string()).into_response(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn request(method: &str, params: Value) -> RpcRequest {
+        RpcRequest {
+            jsonrpc: "2.0".into(),
+            id: 1.into(),
+            method: method.into(),
+            params,
+        }
+    }
+
+    #[test]
+    fn activity_of_requests() {
+        assert!(is_activity(&request("vault/list", Value::Null), false));
+        assert!(!is_activity(&request("daemon/status", Value::Null), false));
+        let waiting = request("mcp/call", json!({"tool": "dmsg_events_next"}));
+        assert!(!is_activity(&waiting, false));
+        // A client that reports its person's activity: only the reports count.
+        assert!(!is_activity(&request("vault/list", Value::Null), true));
+        assert!(is_activity(&request("app/activity", Value::Null), true));
+        assert!(is_activity(&request("app/activity", Value::Null), false));
     }
 }
