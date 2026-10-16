@@ -20,7 +20,7 @@ test('filters show starred items, one type or one tag, and count them', () => {
   const items = [
     entry({ type: 'login', tags: ['work', 'infra'], favorite: true }),
     entry({ type: 'note', tags: ['work'] }),
-    entry({ type: 'file', tags: ['family'] })
+    entry({ type: 'api', tags: ['family'] })
   ]
   assert.equal(items.filter((e) => inScope(e, 'starred')).length, 1)
   assert.equal(items.filter((e) => inScope(e, 'type:note')).length, 1)
@@ -29,7 +29,7 @@ test('filters show starred items, one type or one tag, and count them', () => {
   assert.deepEqual(facets(items), {
     all: 3,
     starred: 1,
-    types: { login: 1, note: 1, file: 1 },
+    types: { login: 1, note: 1, api: 1 },
     tags: [
       ['work', 2],
       ['family', 1],

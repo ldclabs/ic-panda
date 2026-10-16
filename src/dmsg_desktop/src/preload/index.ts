@@ -24,18 +24,24 @@ const api: DesktopBridge = {
   decide: (id, digest, approve) => unwrap(ipcRenderer.invoke('dmsg:decide', id, digest, approve)),
   grant: (invite, pairing) => unwrap(ipcRenderer.invoke('dmsg:grant', invite, pairing)),
   login: (origin, bind) => unwrap(ipcRenderer.invoke('dmsg:login', origin, bind === true)),
-  importFile: (dropped) => {
-    if (dropped === undefined) return unwrap(ipcRenderer.invoke('dmsg:import-file'))
+  filesAdd: (folder, dropped, directory) => {
+    if (dropped === undefined) return unwrap(ipcRenderer.invoke('dmsg:files-add', folder, null, directory === true))
     // Only a file the person dropped or picked has a path; one a page made has none.
-    let path = ''
-    try {
-      path = webUtils.getPathForFile(dropped)
-    } catch {
-      /* not a file */
+    const paths: string[] = []
+    for (const file of dropped) {
+      try {
+        const path = webUtils.getPathForFile(file)
+        if (path) paths.push(path)
+      } catch {
+        /* not a file */
+      }
     }
-    return path ? unwrap(ipcRenderer.invoke('dmsg:import-file', path)) : Promise.reject(new Error('INVALID_INPUT: Not a file on this device'))
+    return paths.length === dropped.length && paths.length
+      ? unwrap(ipcRenderer.invoke('dmsg:files-add', folder, paths, false))
+      : Promise.reject(new Error('INVALID_INPUT: Not files on this device'))
   },
-  exportFile: (id, name) => unwrap(ipcRenderer.invoke('dmsg:export-file', id, name)),
+  filesExport: (id, version, name) => unwrap(ipcRenderer.invoke('dmsg:files-export', id, version, name)),
+  filesOpen: (id, version) => unwrap(ipcRenderer.invoke('dmsg:files-open', id, version)),
   avatar: (remove) => unwrap(ipcRenderer.invoke('dmsg:avatar', remove === true)),
   copySecret: (id) => unwrap(ipcRenderer.invoke('dmsg:copy-secret', id)),
   channelDownload: (id, seq, name) => unwrap(ipcRenderer.invoke('dmsg:channel-download', id, seq, name)),

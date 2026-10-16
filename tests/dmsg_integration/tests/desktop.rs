@@ -1627,38 +1627,95 @@ fn desktop_content_and_sync() {
     b.run(&["vault", "restore", &x]);
     assert_eq!(b.run(&["sync"])["sent"], 2);
 
-    // DT11 and R11: a 100 MiB file written on A reads back on B.
+    // DT-F1 and R11: a 100 MiB file added to A's library reaches B only as
+    // an explicit backup. Nothing of the library syncs with the vault; B
+    // reads the account's backup inventory, fetches the backup, and reads
+    // the same bytes.
     let big = pattern(100 * 1024 * 1024, 7);
     let big_path = env.dir.join("big.bin");
     std::fs::write(&big_path, &big).unwrap();
-    let file = a.run(&["file", "import", big_path.to_str().unwrap()]);
-    let file_id = file["id"].as_str().unwrap().to_string();
-    assert_eq!(file["item"]["file"]["key"], "");
-    assert_eq!(file["item"]["file"]["sha256"], sha256_hex(&big).as_str());
-    assert_eq!(a.run(&["sync"])["sent"], 1);
-    b.run(&["sync"]);
-    let out = env.dir.join("big.out");
-    let got = b.run(&["file", "get", &file_id, "-o", out.to_str().unwrap()]);
-    assert_eq!(got["size"], big.len());
-    assert_eq!(sha256_hex(&std::fs::read(&out).unwrap()), sha256_hex(&big));
-    assert_eq!(
-        b.fail(&["file", "get", &file_id, "-o", out.to_str().unwrap()]),
-        "INVALID_INPUT"
-    );
-    drop(big);
-    eprintln!("100 MiB round trip done at {:?}", started.elapsed());
-
-    // AT05: A's daemon dies during an upload; after a restart and a new
-    // login the sync resumes and nothing is sent twice.
-    let medium = pattern(64 * 1024 * 1024, 11);
-    let medium_path = env.dir.join("medium.bin");
-    std::fs::write(&medium_path, &medium).unwrap();
-    let medium_id = a.run(&["file", "import", medium_path.to_str().unwrap()])["id"]
+    let added = a.run(&["files", "add", big_path.to_str().unwrap()]);
+    let file_id = added[0]["file"]["id"].as_str().unwrap().to_string();
+    assert_eq!(added[0]["file"]["sha256"], sha256_hex(&big).as_str());
+    assert_eq!(added[0]["file"]["status"], "local");
+    assert_eq!(a.run(&["sync"])["sent"], 0);
+    assert!(b
+        .run(&["files", "cloud", "ls", "--refresh"])
+        .as_array()
+        .unwrap()
+        .is_empty());
+    let backup = a.run(&["files", "backup", &file_id]);
+    assert_eq!(backup["started"].as_array().unwrap().len(), 1, "{backup}");
+    let shown = a.run(&["files", "show", &file_id]);
+    assert_eq!(shown["file"]["status"], "backed_up", "{shown}");
+    let upload = shown["versions"][0]["backup"]["upload_id"]
         .as_str()
         .unwrap()
         .to_string();
-    let mut sync = a
-        .command(&["sync"])
+    let cloud = b.run(&["files", "cloud", "ls", "--refresh"]);
+    assert_eq!(cloud.as_array().unwrap().len(), 1, "{cloud}");
+    assert_eq!(cloud[0]["upload_id"], upload.as_str());
+    assert_eq!(cloud[0]["name"], "big.bin");
+    assert_eq!(cloud[0]["local"], false);
+    let fetched = b.run(&["files", "cloud", "get", &upload]);
+    assert_eq!(fetched["id"], file_id.as_str());
+    assert_eq!(fetched["status"], "backed_up");
+    let out = env.dir.join("big.out");
+    let got = b.run(&["files", "get", &file_id, "-o", out.to_str().unwrap()]);
+    assert_eq!(got["size"], big.len());
+    assert_eq!(sha256_hex(&std::fs::read(&out).unwrap()), sha256_hex(&big));
+    assert_eq!(
+        b.fail(&["files", "get", &file_id, "-o", out.to_str().unwrap()]),
+        "INVALID_INPUT"
+    );
+    // DT-F2: A deleting its copy leaves the backup. DT-F3: B deleting the
+    // backup leaves B's file, and A sees the deletion only as an entry gone.
+    a.run(&["files", "rm", &file_id]);
+    a.run(&["files", "purge", &file_id]);
+    assert_eq!(a.fail(&["files", "show", &file_id]), "NOT_FOUND");
+    assert_eq!(
+        a.run(&["files", "cloud", "ls", "--refresh"])
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    b.run(&["files", "cloud", "rm", &upload]);
+    assert!(b
+        .run(&["files", "cloud", "ls"])
+        .as_array()
+        .unwrap()
+        .is_empty());
+    assert_eq!(
+        b.run(&["files", "show", &file_id])["file"]["status"],
+        "local"
+    );
+    let again = env.dir.join("big.again");
+    b.run(&["files", "get", &file_id, "-o", again.to_str().unwrap()]);
+    assert_eq!(
+        sha256_hex(&std::fs::read(&again).unwrap()),
+        sha256_hex(&big)
+    );
+    assert!(a
+        .run(&["files", "cloud", "ls", "--refresh"])
+        .as_array()
+        .unwrap()
+        .is_empty());
+    drop(big);
+    eprintln!("100 MiB backup round trip done at {:?}", started.elapsed());
+
+    // AT05: A's daemon dies while a backup uploads; after a restart and a
+    // new login the job resumes in the background, and nothing is sent
+    // twice.
+    let medium = pattern(64 * 1024 * 1024, 11);
+    let medium_path = env.dir.join("medium.bin");
+    std::fs::write(&medium_path, &medium).unwrap();
+    let medium_id = a.run(&["files", "add", medium_path.to_str().unwrap()])[0]["file"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let mut backup = a
+        .command(&["files", "backup", &medium_id])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -1671,25 +1728,50 @@ fn desktop_content_and_sync() {
     if env.daemons[1] > index {
         env.daemons[1] -= 1;
     }
-    assert!(!sync.wait().unwrap().success(), "the sync finished first");
+    assert!(
+        !backup.wait().unwrap().success(),
+        "the backup finished first"
+    );
     env.daemons[0] = a.spawn(&mut env.children);
     assert_eq!(a.run(&["status"])["state"], "locked");
+    assert_eq!(
+        a.run(&["files", "backup-status"]).as_array().unwrap().len(),
+        1
+    );
     let status = a.login(&env.http, 41).unwrap();
     assert_eq!(status["state"], "unlocked");
-    assert_eq!(status["pending_sync"], 0, "{status}");
+    let deadline = Instant::now() + Duration::from_secs(180);
+    let medium_upload = loop {
+        let shown = a.run(&["files", "show", &medium_id]);
+        if shown["file"]["status"] == "backed_up" {
+            break shown["versions"][0]["backup"]["upload_id"]
+                .as_str()
+                .unwrap()
+                .to_string();
+        }
+        assert!(Instant::now() < deadline, "backup did not resume: {shown}");
+        std::thread::sleep(Duration::from_secs(2));
+    };
+    assert!(a
+        .run(&["files", "backup-status"])
+        .as_array()
+        .unwrap()
+        .is_empty());
     let a_report = a.run(&["sync"]);
     let b_report = b.run(&["sync"]);
     assert_eq!(a_report["revisions"], b_report["revisions"]);
-    // Eight versions of the shared item (the refused late edit is not one)
-    // and the two files: each exactly once.
-    assert_eq!(b_report["revisions"], 10);
+    // Eight versions of the shared item (the refused late edit is not one);
+    // the library adds none.
+    assert_eq!(b_report["revisions"], 8);
+    b.run(&["files", "cloud", "refresh"]);
+    b.run(&["files", "cloud", "get", &medium_upload]);
     let out = env.dir.join("medium.out");
-    b.run(&["file", "get", &medium_id, "-o", out.to_str().unwrap()]);
+    b.run(&["files", "get", &medium_id, "-o", out.to_str().unwrap()]);
     assert_eq!(
         sha256_hex(&std::fs::read(&out).unwrap()),
         sha256_hex(&medium)
     );
-    eprintln!("interrupted upload done at {:?}", started.elapsed());
+    eprintln!("interrupted backup done at {:?}", started.elapsed());
 
     // Profile: only the published fields, readable by anyone.
     let profile = a.run(&[
@@ -1768,7 +1850,7 @@ fn desktop_content_and_sync() {
     let marker = b"FILE-PLAINTEXT-MARKER-4471";
     let note_path = env.dir.join("marker-name-4471.txt");
     std::fs::write(&note_path, marker).unwrap();
-    a.run(&["file", "import", note_path.to_str().unwrap()]);
+    a.run(&["files", "add", note_path.to_str().unwrap()]);
     a.run_with(
         &[
             "vault",
@@ -1785,7 +1867,8 @@ fn desktop_content_and_sync() {
     // DT03: locked, nothing reads or signs.
     assert_eq!(a.run(&["lock"])["state"], "locked");
     assert_eq!(a.fail(&["vault", "list"]), "LOCKED");
-    assert_eq!(a.fail(&["file", "verify", &file_id]), "LOCKED");
+    assert_eq!(a.fail(&["files", "verify", &medium_id]), "LOCKED");
+    assert_eq!(a.fail(&["files", "ls"]), "LOCKED");
     assert_eq!(a.fail(&["sync"]), "LOCKED");
     assert_eq!(a.fail(&["profile", "publish", "--name", "x"]), "LOCKED");
     assert_eq!(a.fail(&["fast-unlock", "enable"]), "NOT_FOUND");
@@ -2917,7 +3000,7 @@ fn desktop_channels() {
     a.run(&["channel", "send", &id, "owner history before invitation"]);
     let file = env.dir.join("channel-history.bin");
     std::fs::write(&file, vec![73u8; 1024 * 1024 + 17]).unwrap();
-    let item = a.run(&["file", "import", file.to_str().unwrap()])["id"]
+    let item = a.run(&["files", "add", file.to_str().unwrap()])[0]["file"]["id"]
         .as_str()
         .unwrap()
         .to_string();
@@ -4149,12 +4232,12 @@ fn desktop_agents() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names.len(), 56);
+    assert_eq!(names.len(), 59);
     assert!(names.contains(&"agent_protocols_room_join") && names.contains(&"dmsg_vault_list"));
     assert!(names.contains(&"agent_protocols_mail_send"));
     for name in [
         "dmsg_vault_write",
-        "dmsg_file_read",
+        "dmsg_files_read",
         "dmsg_inbox_read",
         "dmsg_inbox_contact",
         "dmsg_action_request",
@@ -4408,7 +4491,6 @@ fn desktop_agents() {
         "attest.request",
         "vault.read:work",
         "vault.write:work",
-        "file.read:work",
         "inbox.read",
         "inbox.contact",
         "agent.delegation.read",
@@ -4517,20 +4599,33 @@ fn desktop_agents() {
         "FORBIDDEN"
     );
 
-    // Files: a slice of a file whose tag the agent may read.
+    // Files: a slice of a library file in a folder the agent was granted.
     let path = env.dir.join("for-claude.txt");
     std::fs::write(&path, b"notes for claude").unwrap();
-    let file = a.run(&["file", "import", path.to_str().unwrap()])["id"]
+    let folder = a.run(&["files", "mkdir", "claude"])["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let file = a.run(&["files", "add", path.to_str().unwrap(), "--to", &folder])[0]["file"]["id"]
         .as_str()
         .unwrap()
         .to_string();
     assert_eq!(
-        mcp.tool("dmsg_file_read", json!({"id": file})).unwrap_err()["code"],
+        mcp.tool("dmsg_files_read", json!({"id": file}))
+            .unwrap_err()["code"],
         "FORBIDDEN"
     );
-    a.run(&["vault", "edit", &file, "--tag", "work"]);
+    a.run(&["grants", "add", "claude", &format!("files.read:{folder}")]);
+    let listed = mcp
+        .tool("dmsg_files_list", json!({"folder": folder}))
+        .unwrap();
+    assert_eq!(listed["files"][0]["id"], file.as_str());
+    assert_eq!(
+        mcp.tool("dmsg_files_list", json!({})).unwrap_err()["code"],
+        "FORBIDDEN"
+    );
     let slice = mcp
-        .tool("dmsg_file_read", json!({"id": file, "offset": 10}))
+        .tool("dmsg_files_read", json!({"id": file, "offset": 10}))
         .unwrap();
     assert_eq!(slice["size"], 16);
     assert_eq!(slice["eof"], true);
@@ -4632,7 +4727,7 @@ fn desktop_agents() {
         .all(|e| e["actor"] == claude.as_str() && e["via"] == "mcp"));
     assert!(done(&by_claude, "dmsg_vault_list", "FORBIDDEN"));
     assert!(done(&by_claude, "dmsg_vault_write", "ok"));
-    assert!(done(&by_claude, "dmsg_file_read", "ok"));
+    assert!(done(&by_claude, "dmsg_files_read", "ok"));
     assert!(done(&by_claude, "agent_protocols_room_send_message", "ok"));
     assert!(!by_claude
         .iter()

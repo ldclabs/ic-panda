@@ -6,13 +6,11 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code } from '../rpc'
+  import { call, code } from '../rpc'
   import { unlock } from '../shell/session'
   import Conflict from './vault/Conflict.svelte'
   import Filters from './vault/Filters.svelte'
   import { focus } from './vault/focus.svelte'
-  import Imports from './vault/Imports.svelte'
-  import { importFile, picked, settle } from './vault/importing.svelte'
   import Inspector from './vault/Inspector.svelte'
   import NewItem from './vault/NewItem.svelte'
   import Row from './vault/Row.svelte'
@@ -20,8 +18,7 @@
 
   /**
    * The vault: filters, the list and the open item side by side. New items
-   * and conflict copies open in dialogs; files dropped on the list are
-   * imported through the main process.
+   * and conflict copies open in dialogs. Files have their own library.
    */
   let { status, mod }: { status: any; mod: string } = $props()
 
@@ -36,7 +33,6 @@
   let creating = $state(false)
   let comparing = $state(false)
   let compareFrom = $state(0)
-  let dragging = $state(0)
   let search = $state<HTMLInputElement | null>(null)
   let list = $state<HTMLElement | null>(null)
 
@@ -64,7 +60,6 @@
       trashed = trash ? await call('vault/list', { trash: true }) : []
       conflicts = await call('vault/conflicts')
       error = ''
-      settle(entries)
     } catch (e) {
       entries = trashed = conflicts = []
       error = code(e) === 'LOCKED' ? 'LOCKED' : `${t('error')}: ${code(e)}`
@@ -152,16 +147,6 @@
   const star = (entry: any) => act(() => call('vault/edit', { id: entry.id, base: entry.revision, changes: { favorite: !entry.item.favorite } }))
   const discard = (entry: any) =>
     act(() => call(trash ? 'vault/restore' : 'vault/delete', { id: entry.id }), trash ? t('restored') : t('movedToTrash'))
-  const exportFile = (entry: any) => act(() => bridge(() => window.dmsg.exportFile(entry.id, entry.item.file.name)))
-
-  async function add(dropped?: File) {
-    const id = await importFile(dropped, load)
-    if (id) {
-      if (trash) scope = 'all'
-      selected = id
-    }
-  }
-
   async function saved(id: string) {
     await load()
     selected = id
@@ -172,32 +157,9 @@
     comparing = true
   }
 
-  const files = (event: DragEvent) => !!event.dataTransfer?.types.includes('Files')
-
-  function onDragEnter(event: DragEvent) {
-    if (!files(event) || !unlocked) return
-    event.preventDefault()
-    dragging++
-  }
-
-  function onDragOver(event: DragEvent) {
-    if (!files(event) || !unlocked) return
-    event.preventDefault()
-    event.dataTransfer!.dropEffect = 'copy'
-  }
-
-  function onDrop(event: DragEvent) {
-    if (!files(event)) return
-    event.preventDefault()
-    dragging = 0
-    if (!unlocked) return
-    for (const file of Array.from(event.dataTransfer?.files ?? [])) void add(file)
-  }
-
   onMount(() => {
     void load()
     return window.dmsg.onEvent((event) => {
-      if (event.type === 'file/importing') picked(String((event.data as any)?.name ?? ''))
       if (['vault/changed', 'session/changed', 'sync/changed'].includes(event.type)) void load()
     })
   })
@@ -205,15 +167,7 @@
 
 <svelte:window onkeydown={onKey} />
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div
-  class="@container relative flex h-full min-h-0"
-  ondragenter={onDragEnter}
-  ondragover={onDragOver}
-  ondragleave={(event) => files(event) && (dragging = Math.max(0, dragging - 1))}
-  ondrop={onDrop}
-  data-testid="vault"
->
+<div class="@container relative flex h-full min-h-0" data-testid="vault">
   {#if error === 'LOCKED'}
     <div class="grid flex-1 place-items-center p-8" data-testid="vault-locked">
       <div class="grid max-w-sm justify-items-center gap-3 text-center">
@@ -253,13 +207,6 @@
                 </button>
               {/snippet}
             </Tooltip>
-            <Tooltip content={t('importFile')}>
-              {#snippet children(props)}
-                <button {...props} class={buttonClass('secondary', 'md', 'size-8 px-0')} aria-label={t('importFile')} onclick={() => add()} data-testid="import-file">
-                  <Icon name="upload" />
-                </button>
-              {/snippet}
-            </Tooltip>
           {/if}
         </div>
         <Select bind:value={() => scope, (next) => (scope = next as Scope)} options={scopes} label={t('vaultFilters')} class="w-full @min-[860px]:hidden" testid="vault-scope" />
@@ -285,7 +232,6 @@
             onSelect={() => select(entry.id)}
             onStar={() => star(entry)}
             onDiscard={() => discard(entry)}
-            onExport={() => exportFile(entry)}
           />
         {:else}
           {#if loaded}
@@ -305,7 +251,6 @@
           {/if}
         {/each}
       </ul>
-      <Imports />
     </section>
 
     <div class="min-w-0 flex-1">
@@ -329,16 +274,7 @@
     </div>
   {/if}
 
-  {#if dragging}
-    <div class="pointer-events-none absolute inset-2 z-20 grid place-items-center rounded-2xl border-2 border-dashed border-forest/60 bg-pale/85 text-forest backdrop-blur-[1px] animate-in fade-in-0">
-      <div class="grid justify-items-center gap-2">
-        <Icon name="upload" class="size-7" />
-        <b class="text-[14px] font-semibold">{t('dropToImport')}</b>
-        <span class="text-[12px] text-muted">{t('dropDetail')}</span>
-      </div>
-    </div>
-  {/if}
 </div>
 
-<NewItem bind:open={creating} {mod} onSaved={saved} onImport={() => add()} />
+<NewItem bind:open={creating} {mod} onSaved={saved} />
 <Conflict bind:open={comparing} {conflicts} start={compareFrom} reload={load} />

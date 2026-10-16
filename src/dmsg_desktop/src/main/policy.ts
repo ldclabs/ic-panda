@@ -10,9 +10,11 @@
  * Methods any window may call; parameters pass through without `human`.
  * Methods that name local files (`wallet/use`, `channel/download`,
  * `attest/verify` with a file) and refunds to named blocks stay with the CLI;
- * files enter and leave the vault only through the main process's file
- * dialogs, as do shared channel files, application actions, attestation
- * bundles, legacy transfer files, frozen-history files and old attachments.
+ * files enter and leave the library only through the main process's file
+ * dialogs or a drop the preload resolves to a path (`files/import`,
+ * `files/export`, `files/open`), as do shared channel files, application
+ * actions, attestation bundles, legacy transfer files, frozen-history files
+ * and old attachments.
  * `ap/call` runs only the Mail and Knowledge tools (`DESKTOP_TOOLS`) as a
  * hosted Agent ID; the MCP Events methods only manage endpoints, never read
  * or acknowledge deliveries. The agent methods (`mcp/*`) answer only an
@@ -52,7 +54,37 @@ export const WINDOW_METHODS = new Set([
   'vault/show',
   'vault/conflicts',
   'vault/resolve',
-  'file/verify',
+  'files/list',
+  'files/tree',
+  'files/show',
+  'files/search',
+  'files/mkdir',
+  'files/rename',
+  'files/move',
+  'files/update',
+  'files/preview',
+  'files/open_list',
+  'files/open_cleanup',
+  'files/versions',
+  'files/version_use',
+  'files/version_delete',
+  'files/trash',
+  'files/restore',
+  'files/purge',
+  'files/verify',
+  'files/usage',
+  'files/share_channel',
+  'files/save_shared',
+  'files/backup',
+  'files/backup_status',
+  'files/backup_cancel',
+  'files/cloud_list',
+  'files/cloud_refresh',
+  'files/cloud_fetch',
+  'files/cloud_delete',
+  'files/cloud_verify',
+  'files/cloud_usage',
+  'files/evict',
   'sync/run',
   'sync/status',
   'profile/show',

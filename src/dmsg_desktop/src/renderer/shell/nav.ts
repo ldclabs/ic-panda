@@ -12,18 +12,19 @@ export interface View {
 
 export const views = {
   vault: { path: '/vault', label: 'vault', detail: 'vaultDetail', icon: 'vault', key: '1' },
-  channels: { path: '/channels', label: 'channels', detail: 'channelsDetail', icon: 'channels', key: '2' },
-  inbox: { path: '/inbox', label: 'inbox', detail: 'inboxDetail', icon: 'inbox', key: '3' },
-  approvals: { path: '/approvals', label: 'approvals', detail: 'approvalsDetail', icon: 'approvals', key: '4' },
-  agents: { path: '/agents', label: 'agents', detail: 'agentsDetail', icon: 'agents', key: '5' },
-  plan: { path: '/account', label: 'planAndNames', detail: 'planDetail', icon: 'plan', key: '6' },
+  files: { path: '/files', label: 'files', detail: 'filesDetail', icon: 'folder', key: '2' },
+  channels: { path: '/channels', label: 'channels', detail: 'channelsDetail', icon: 'channels', key: '3' },
+  inbox: { path: '/inbox', label: 'inbox', detail: 'inboxDetail', icon: 'inbox', key: '4' },
+  approvals: { path: '/approvals', label: 'approvals', detail: 'approvalsDetail', icon: 'approvals', key: '5' },
+  agents: { path: '/agents', label: 'agents', detail: 'agentsDetail', icon: 'agents', key: '6' },
+  plan: { path: '/account', label: 'planAndNames', detail: 'planDetail', icon: 'plan', key: '7' },
   settings: { path: '/settings', label: 'settings', detail: 'settingsDetail', icon: 'settings', key: ',' },
   legacy: { path: '/settings/legacy', label: 'legacy', detail: 'legacyDetail', icon: 'legacy' }
 } satisfies Record<string, View>
 
 /** The sidebar's groups (PRD §4); devices, recovery and migration live in Settings. */
 export const groups: { label: Label; views: View[] }[] = [
-  { label: 'navWork', views: [views.vault, views.channels, views.inbox] },
+  { label: 'navWork', views: [views.vault, views.files, views.channels, views.inbox] },
   { label: 'navAuthorization', views: [views.approvals, views.agents] },
   { label: 'navAccount', views: [views.plan] }
 ]

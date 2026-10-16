@@ -12,7 +12,7 @@
 // through a window; that a vault secret is shown or copied only after a
 // second click and the copy never passes through a window; that an item
 // with a repeated tag opens; that conflict copies resolve side by side; that
-// a vault file is imported through the main process, which refuses a file a
+// a library file is added through the main process, which refuses a file a
 // page made; that a device's capabilities change and a device is revoked
 // only through the approval window; that a view the main process opened
 // leaves the others a click away; that channel files, roles, history,
@@ -104,12 +104,34 @@ const SECRET = 'smoke-secret-value'
 const vault = [
   item('22'.repeat(32), 'r1', { title: 'Smoke note', type: 'note', body: 'hello' }),
   item('24'.repeat(32), 'r3', { title: 'Smoke login', type: 'login', tags: ['work'], username: 'panda', secret: '********', url: 'https://example.com' }),
-  item('23'.repeat(32), 'r2', { title: 'report.pdf', type: 'file', file: { name: 'report.pdf', size: 1234 } }),
   // Agents and the CLI may write a tag twice; the daemon keeps it as given.
   item('27'.repeat(32), 'r1', { title: 'Tagged twice', type: 'note', tags: ['team', 'team'], updatedAt: Date.now() - 60_000 })
 ]
 let conflicts = [{ ...item('22'.repeat(32), 'r9', { title: 'Smoke note', type: 'note', body: 'hello\nfrom the laptop' }), conflict: true }]
 const trash = []
+/** The file library: files of the root folder, as `files/list` and `files/show` give them. */
+const libraryFile = (id, name, size, status = 'local') => ({
+  id,
+  folder: 'root',
+  name,
+  mime: name.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream',
+  size,
+  sha256: 'ab'.repeat(32),
+  tags: [],
+  note: '',
+  starred: false,
+  created_at: Date.now() - 120_000,
+  updated_at: Date.now() - 60_000,
+  current: 'v1',
+  versions: 1,
+  trashed_at: null,
+  status,
+  backup: status === 'backed_up' ? { upload_id: '71'.repeat(32), generation: 1, backed_up_at: Date.now() - 30_000, verified: true } : null,
+  path: []
+})
+const library = [libraryFile('23'.repeat(32), 'report.pdf', 1234, 'backed_up')]
+const libraryTrash = []
+const version = (file) => ({ id: file.current, size: file.size, sha256: file.sha256, created_at: file.created_at, device: '11'.repeat(32), origin: { type: 'imported' }, local: true, backup: file.backup, current: true, status: file.status })
 const endpoints = []
 const grants = []
 const notes = []
@@ -238,12 +260,46 @@ const methods = {
     trash.push({ ...entry, deleted: true })
     return entry
   },
-  'file/import': (p) => {
-    const entry = { ...item('26'.repeat(32), 'r1', { title: basename(p.path), type: 'file', file: { name: basename(p.path), size: 4096 } }), synced: false }
-    vault.push(entry)
-    return entry
+  'files/tree': () => [],
+  'files/list': (p) => (p?.trash ? { folder: null, folders: [], files: libraryTrash } : { folder: null, folders: [], files: library }),
+  'files/search': () => library,
+  'files/show': (p) => {
+    const file = library.find((f) => f.id === p.id) ?? libraryTrash.find((f) => f.id === p.id)
+    return { file, versions: [version(file)] }
   },
-  'file/verify': (p) => ({ id: p.id, size: 4096, sha256: 'ab'.repeat(32) }),
+  'files/import': (p) => {
+    assert.equal(p.folder, 'root')
+    return p.paths.map((path) => {
+      const file = libraryFile('26'.repeat(32), basename(path), 4096)
+      library.push(file)
+      return { file, version: 'v1', resumed: false, duplicate_of: [] }
+    })
+  },
+  'files/preview': () => ({ kind: 'none', mime: 'application/pdf', size: 1234, content_base64url: null, thumbnail: false }),
+  'files/update': (p) => {
+    const file = library.find((f) => f.id === p.id)
+    if (p.starred !== undefined) file.starred = p.starred
+    if (p.tags) file.tags = p.tags
+    if (p.note !== undefined) file.note = p.note
+    return file
+  },
+  'files/trash': (p) => {
+    for (const id of p.ids) {
+      const at = library.findIndex((f) => f.id === id)
+      const [file] = library.splice(at, 1)
+      libraryTrash.push({ ...file, trashed_at: Date.now() })
+    }
+    return { trashed: p.ids.length }
+  },
+  'files/usage': () => ({ files: library.length, trashed: libraryTrash.length, versions: library.length, local_versions: library.length, blobs: 2, blob_bytes: 5330, open_copies: 0, max_file_bytes: 4294967296, trash_days: 30 }),
+  'files/backup_status': () => [],
+  'files/cloud_list': () => [],
+  'files/cloud_usage': () => ({ reserved: 0, committed: 1300, storage_limit: 104857600, status: 'within_limit', backups: 1, backup_bytes: 1300 }),
+  'files/save_shared': (p) => {
+    const file = libraryFile('28'.repeat(32), 'plan.pdf', 2048)
+    library.push(file)
+    return { file, version: 'v1', resumed: false, duplicate_of: [] }
+  },
   'sync/run': () => {
     for (const entry of vault) entry.synced = true
     return { pushed: 1 }
@@ -392,8 +448,8 @@ const methods = {
     return { seq: messages.length }
   },
   'channel/send_file': (p) => {
-    const file = vault.find((e) => e.id === p.item).item.file
-    messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text, file })
+    const file = library.find((f) => f.id === p.file)
+    messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text, file: { name: file.name, size: file.size } })
     return { seq: messages.length }
   },
   'channel/download': (p) => ({ name: 'plan.pdf', size: 2048, sha256: 'aa'.repeat(32), path: p.path }),
@@ -683,21 +739,25 @@ try {
   await main.waitForSelector('[data-testid="channel-messages"] article:not([data-testid]) >> text=Reply from the desktop')
   assert.equal(await main.locator('[data-testid="message-outgoing"]').count(), 0)
 
-  // A vault file goes with a message; a shared file is saved where the main
-  // process's dialog says; roles, history, a transfer proposal and archiving
-  // reach the daemon from the owner's view.
+  // A library file goes with a message as a shared edition; a shared file
+  // is saved where the main process's dialog says, or into the library;
+  // roles, history, a transfer proposal and archiving reach the daemon from
+  // the owner's view.
   await choose(main, 'channel-attachment', '23'.repeat(32))
   await main.waitForSelector('[data-testid="channel-attached"] >> text=report.pdf')
   await main.fill('[data-testid="channel-text"]', 'With a file')
   await main.click('[data-testid="channel-send"]')
   await waitFor(() => latest('channel/send_file'))
-  assert.deepEqual(latest('channel/send_file').params, { id: channel.id, item: '23'.repeat(32), text: 'With a file' })
+  assert.deepEqual(latest('channel/send_file').params, { id: channel.id, file: '23'.repeat(32), text: 'With a file' })
   const saved = join(profile, 'plan.pdf')
   await answer('__save', saved)
   await main.locator('[data-testid="message-download"]').first().click()
   await waitFor(() => latest('channel/download'))
   assert.deepEqual(latest('channel/download').params, { id: channel.id, seq: 2, path: saved })
   await main.waitForSelector('[data-testid="channel-notice"]')
+  await main.locator('[data-testid="message-save"]').first().click()
+  await waitFor(() => latest('files/save_shared'))
+  assert.deepEqual(latest('files/save_shared').params, { channel: channel.id, seq: 2 })
   await choose(main, 'member-actions', 'admin')
   await waitFor(() => latest('channel/control'))
   assert.deepEqual(latest('channel/control').params, { id: channel.id, action: { type: 'role', account: peer, role: 'admin', can_rotate: false } })
@@ -912,37 +972,43 @@ try {
   assert.deepEqual(latest('vault/resolve').params, { key: `${'22'.repeat(32)}:r9`, keep: 'theirs' })
   await main.waitForSelector('[data-testid="conflict-dialog"]', { state: 'detached' })
 
-  // A file enters through the main process's dialog and shows its way in:
-  // encrypted, checked again, then held by the relay. A file a page made has
-  // no path, so it never reaches the daemon.
-  await answer('__open', join(picks, 'release.tar'))
-  await main.click('[data-testid="import-file"]')
-  await main.waitForSelector('[data-testid="import-job"][data-stage="done"] >> text=release.tar')
-  assert.equal(latest('file/import').params.path, join(picks, 'release.tar'))
-  assert.equal(latest('file/verify').params.id, '26'.repeat(32))
-  await main.waitForSelector('[data-testid="vault-item-title"] >> text=release.tar')
-  const imports = calls.filter((c) => c.method === 'file/import').length
-  await main.evaluate(() => {
-    const transfer = new DataTransfer()
-    transfer.items.add(new File(['made up'], 'made-up.txt'))
-    const list = document.querySelector('[data-testid="vault-list"]')
-    for (const type of ['dragenter', 'dragover', 'drop']) list.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: transfer }))
-  })
-  await main.waitForSelector('[data-testid="import-job"][data-stage="error"] >> text=made-up.txt')
-  assert.equal(calls.filter((c) => c.method === 'file/import').length, imports)
-
-  // The palette finds an item by its title; a row's menu moves it to the trash.
+  // The palette finds an item by its title.
   await main.keyboard.press(`${mod}+k`)
   await main.fill('[data-testid="palette-input"]', 'Smoke login 2')
   await main.keyboard.press('Enter')
   await main.waitForSelector('[data-testid="vault-item-title"] >> text=Smoke login 2')
-  await main.click('[data-testid="vault-list"] >> text=release.tar', { button: 'right' })
-  await main.click('[data-testid="vault-row-menu"] >> text=/Move to trash/')
-  await waitFor(() => latest('vault/delete'))
-  assert.equal(latest('vault/delete').params.id, '26'.repeat(32))
-  await main.click('[data-testid="vault-scope-trash"]')
-  await main.waitForSelector('[data-testid="vault-list"] >> text=release.tar')
-  await main.click('[data-testid="vault-scope-all"]')
+
+  // Files: a file enters the library through the main process's dialog into
+  // the folder shown and shows its way in; a file a page made has no path,
+  // so it never reaches the daemon. The open file shows its status, and a
+  // row's menu moves it to the trash, which lists it.
+  await main.click('nav >> text=/^(Files|文件)$/')
+  await main.waitForSelector('[data-testid="files-list"] >> text=report.pdf')
+  await main.click('[data-testid="files-list"] >> text=report.pdf')
+  await main.waitForSelector('[data-testid="files-status"] >> text=/Backed up/')
+  await main.screenshot({ path: join(shots, 'files.png') })
+  await answer('__open', join(picks, 'release.tar'))
+  await main.click('[data-testid="files-add"]')
+  await main.waitForSelector('[data-testid="files-job"][data-stage="done"] >> text=release.tar')
+  assert.deepEqual(latest('files/import').params, { paths: [join(picks, 'release.tar')], folder: 'root' })
+  await main.waitForSelector('[data-testid="files-name"] >> text=release.tar')
+  const imports = calls.filter((c) => c.method === 'files/import').length
+  await main.evaluate(() => {
+    const transfer = new DataTransfer()
+    transfer.items.add(new File(['made up'], 'made-up.txt'))
+    const list = document.querySelector('[data-testid="files-list"]')
+    for (const type of ['dragenter', 'dragover', 'drop']) list.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: transfer }))
+  })
+  await main.waitForSelector('[data-testid="files-job"][data-stage="error"] >> text=made-up.txt')
+  assert.equal(calls.filter((c) => c.method === 'files/import').length, imports)
+  await main.click('[data-testid="files-list"] >> text=release.tar', { button: 'right' })
+  await main.click('[data-testid="files-row-menu"] >> text=/Move to trash/')
+  await waitFor(() => latest('files/trash'))
+  assert.deepEqual(latest('files/trash').params, { ids: ['26'.repeat(32)] })
+  await main.click('[data-testid="files-scope-trash"]')
+  await main.waitForSelector('[data-testid="files-trash"] >> text=release.tar')
+  await main.click('[data-testid="files-scope-root"]')
+  await main.click('nav >> text=/^(Vault|秘密库)$/')
 
   // Signatures: an application action and attestation bundles enter and
   // leave only through the main process's dialogs.
@@ -1040,7 +1106,7 @@ try {
   await main.keyboard.press(`${mod}+1`)
   await main.waitForSelector('[data-testid="vault-inspector"]')
   await main.screenshot({ path: join(shots, 'vault-ar.png') })
-  await main.keyboard.press(`${mod}+2`)
+  await main.keyboard.press(`${mod}+3`)
   await main.click('[data-testid="channel-list"] button >> nth=0')
   await main.waitForSelector('[data-testid="channel-members"]')
   await main.screenshot({ path: join(shots, 'channels-ar.png') })

@@ -37,15 +37,18 @@ export interface DesktopBridge {
   /** Start a login in the system browser; with `bind`, a second login to bind to the unlocked account. */
   login(origin: string, bind?: boolean): Promise<unknown>
   /**
-   * Import a file into the vault: one the person dropped on the window, else
-   * one they pick in a system dialog; null when cancelled. A `file/importing`
-   * event names it before the import starts.
+   * Add files to the library's `folder`: those the person dropped on the
+   * window, else the ones they pick in a system dialog (files, or with
+   * `directory` one folder); null when cancelled. A `files/adding` event
+   * names what was picked before the import starts.
    */
-  importFile(dropped?: File): Promise<unknown>
+  filesAdd(folder: string, dropped?: File[], directory?: boolean): Promise<unknown>
+  /** Export a library file's version to a place the person picks in a system dialog; null when cancelled. */
+  filesExport(id: string, version: string | null, name: string): Promise<unknown>
+  /** Open a library file's version in its program, from a temporary copy the daemon cleans up. */
+  filesOpen(id: string, version: string | null): Promise<unknown>
   /** Publish an image the person picks as the public avatar, or remove it; null when cancelled. */
   avatar(remove: boolean): Promise<unknown>
-  /** Export a vault file to a place the person picks in a system dialog; null when cancelled. */
-  exportFile(id: string, name: string): Promise<unknown>
   /** Copy a vault item's secret field to the clipboard, cleared after `clear_after_ms`; the main window only. */
   copySecret(id: string): Promise<{ clear_after_ms: number }>
   /** Save a channel message's file where the person picks; null when cancelled. */

@@ -39,7 +39,8 @@
     onRetry,
     onDiscard,
     onImport,
-    onDownload
+    onDownload,
+    onSave
   }: {
     channel: any
     messages: any[]
@@ -54,6 +55,7 @@
     onDiscard: (item: Outgoing) => void
     onImport: () => void
     onDownload: (message: any) => void
+    onSave: (message: any) => void
   } = $props()
 
   let scroller = $state<HTMLElement | null>(null)
@@ -127,6 +129,13 @@
                 <span class="block truncate text-[13px] font-medium">{message.file.name}</span>
                 <span class="block text-[11.5px] text-faint">{size(message.file.size)}</span>
               </span>
+              <Tooltip content={t('saveToLibrary')}>
+                {#snippet children(props)}
+                  <button {...props} class={buttonClass('ghost', 'sm', 'size-8 px-0')} aria-label={t('saveToLibrary')} onclick={() => onSave(message)} data-testid="message-save">
+                    <Icon name="folder-add" />
+                  </button>
+                {/snippet}
+              </Tooltip>
               <Tooltip content={t('download')}>
                 {#snippet children(props)}
                   <button {...props} class={buttonClass('ghost', 'sm', 'size-8 px-0')} aria-label={t('download')} onclick={() => onDownload(message)} data-testid="message-download">
@@ -196,18 +205,18 @@
           <DropdownMenu.Content side="top" align="start" sideOffset={6} class={cn(menuContentClass, 'w-72')} data-testid="channel-attachment-menu">
             {#if files.length}
               <DropdownMenu.Group>
-                <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('fromVault')}</DropdownMenu.GroupHeading>
+                <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('fromLibrary')}</DropdownMenu.GroupHeading>
                 {#each files as file (file.id)}
-                  <DropdownMenu.Item class={menuItemClass} data-value={file.id} onSelect={() => (attachment = { id: file.id, name: file.item.file.name })}>
-                    <span class="flex min-w-0 items-center gap-2"><Icon name="file" class="shrink-0 text-faint" /><span class="truncate">{file.item.file.name}</span></span>
-                    <span class="shrink-0 text-[11px] text-faint">{size(file.item.file.size)}</span>
+                  <DropdownMenu.Item class={menuItemClass} data-value={file.id} onSelect={() => (attachment = { id: file.id, name: file.name })}>
+                    <span class="flex min-w-0 items-center gap-2"><Icon name="file" class="shrink-0 text-faint" /><span class="truncate">{file.name}</span></span>
+                    <span class="shrink-0 text-[11px] text-faint">{size(file.size)}</span>
                   </DropdownMenu.Item>
                 {/each}
               </DropdownMenu.Group>
               <DropdownMenu.Separator class="my-1 h-px bg-line" />
             {/if}
             <DropdownMenu.Item class={menuItemClass} onSelect={onImport}>
-              <span class="flex items-center gap-2"><Icon name="upload" class="text-faint" />{t('importFile')}</span>
+              <span class="flex items-center gap-2"><Icon name="upload" class="text-faint" />{t('addFiles')}</span>
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>

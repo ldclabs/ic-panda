@@ -4,7 +4,7 @@
   import Icon from '../../components/Icon.svelte'
   import { cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { ago, size } from '../../rpc'
+  import { ago } from '../../rpc'
   import { typeIcon, typeLabel, typeOf } from './vault'
 
   /** One item in the list; right-click selects it and opens its actions. */
@@ -16,8 +16,7 @@
     unlocked,
     onSelect,
     onStar,
-    onDiscard,
-    onExport
+    onDiscard
   }: {
     entry: any
     selected: boolean
@@ -27,15 +26,12 @@
     onSelect: () => void
     onStar: () => void
     onDiscard: () => void
-    onExport: () => void
   } = $props()
 
   const item = $derived(entry.item)
   const type = $derived(typeOf(item))
-  /** A line on what the item is: the user name, the address, the file's size, or the body's first line. */
-  const line = $derived(
-    item.file ? size(item.file.size) : item.username || item.url.replace(/^https?:\/\//, '') || item.body.split('\n')[0] || t(typeLabel[type])
-  )
+  /** A line on what the item is: the user name, the address, or the body's first line. */
+  const line = $derived(item.username || item.url.replace(/^https?:\/\//, '') || item.body.split('\n')[0] || t(typeLabel[type]))
 </script>
 
 <li>
@@ -84,11 +80,6 @@
             <ContextMenu.Item class={menuItemClass} onSelect={onStar}>
               <span class="flex items-center gap-2"><Icon name={item.favorite ? 'starred' : 'star'} class="text-faint" />{item.favorite ? t('unstar') : t('star')}</span>
             </ContextMenu.Item>
-            {#if item.file}
-              <ContextMenu.Item class={menuItemClass} onSelect={onExport}>
-                <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
-              </ContextMenu.Item>
-            {/if}
             <ContextMenu.Separator class="my-1 h-px bg-line" />
             <ContextMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={onDiscard}>
               <span class="flex items-center gap-2"><Icon name="trash" />{t('moveToTrash')}</span>

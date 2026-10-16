@@ -54,14 +54,28 @@ desktop is one of its clients, like the CLI.
   - Vault: filters (starred, each type and tag, the trash), the list and the
     open item side by side, with a context menu on each row; new items in a
     dialog, edits in place; conflict copies compared side by side, line by
-    line, and kept or adopted; files imported from a dialog or dropped on
-    the list, each shown encrypted, verified and held by the relay. The
-    command palette finds items by title.
+    line, and kept or adopted. The command palette finds items by title.
+  - Files: the library's folders, starred files, the cloud backups and the
+    trash on the left; the current folder in the middle (search within it,
+    or across the library once the text leaves it); the selected file on
+    the right with its preview, tags, note, versions and what each version
+    has (on this device, backed up, only in the cloud). Files come in from
+    the system dialog (files or a folder) or a drop into the folder shown,
+    encrypted as they arrive, and rows drag into the tree's folders.
+    Backing up asks first and shows the cloud's room; sharing to a channel
+    sends a fresh edition under its own key; deleting a cloud copy is a
+    second, danger-toned confirmation and leaves the device alone, as the
+    trash leaves the cloud alone. Open hands a temporary copy to its
+    program; a copy another program changed is offered as a new version
+    before it is removed (`files/open_changed`). Routes `/files`,
+    `/files/cloud`, `/files/trash`.
   - Channels: the list, the open channel's timeline by day and its
     composer, and the members in a drawer. A message shows as sending
     until the relay stores it, and stays with a retry if the daemon
     refused it; unsent text is kept per channel. Attachments come from the
-    vault or a new import; roles, rotation, removal and history grants are
+    file library (as shared editions under their own keys) or a file added
+    to it on the spot, and a received file can be saved into the library;
+    roles, rotation, removal and history grants are
     in each member's menu; creating, joining, leaving, and ownership and
     billing transfers by packet open in dialogs, a transfer in its three
     steps.
@@ -95,11 +109,13 @@ Rules (`src/main/policy.ts`):
   requests the desktop starts are marked `source: "gui"`. Methods that name
   local files (`wallet/use`, `channel/download`, `attest/verify`) and refunds
   stay with the CLI. Files enter and leave only through the main process's
-  open and save dialogs with the path the person picked, or, for a vault
-  import, a file dropped on the window: the preload resolves it to its path
-  (`webUtils.getPathForFile`), which a file a page made does not have:
-  - vault files (`file/import`, `file/export`) and shared channel files
-    (`channel/download`; `channel/send_file` names a vault item);
+  open and save dialogs with the path the person picked, or, for the file
+  library, files dropped on the window: the preload resolves each to its
+  path (`webUtils.getPathForFile`), which a file a page made does not have:
+  - library files (`files/import` with the paths and the folder,
+    `files/export`, and `files/open`, whose temporary copy the main process
+    hands to `shell.openPath`) and shared channel files (`channel/download`;
+    `channel/send_file` names a library file and version);
   - an application action's CBOR (`attest/action`) and attestation bundles
     (`attest/export`, `attest/verify`);
   - legacy transfer files, frozen-history files and old attachments

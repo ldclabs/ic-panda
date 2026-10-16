@@ -253,28 +253,41 @@ ipcMain.handle('dmsg:login', (event, origin: string, bind: boolean) =>
 /**
  * Files reach the daemon only by paths the person picked in a system dialog
  * or dropped on the window: the preload resolves a dropped file to its path,
- * which a window cannot name. The window hears the file's name before the
- * import starts, for its progress.
+ * which a window cannot name. The window hears the names before the import
+ * starts, for its progress; the daemon's `files/progress` events follow.
  */
-ipcMain.handle('dmsg:import-file', (event, dropped?: string) =>
+ipcMain.handle('dmsg:files-add', (event, folder: string, dropped: string[] | null, directory: boolean) =>
   guard(async () => {
     trust(event, 'main')
-    let path = typeof dropped === 'string' ? dropped : ''
-    if (!path) {
-      const picked = await dialog.showOpenDialog(main!, { properties: ['openFile'] })
-      if (picked.canceled || !picked.filePaths[0]) return null
-      path = picked.filePaths[0]
+    let paths = Array.isArray(dropped) ? dropped.filter((p): p is string => typeof p === 'string' && !!p) : []
+    if (!paths.length) {
+      const picked = await dialog.showOpenDialog(main!, {
+        title: directory === true ? text.pickFolder : text.pickFiles,
+        properties: directory === true ? ['openDirectory'] : ['openFile', 'multiSelections']
+      })
+      if (picked.canceled || !picked.filePaths.length) return null
+      paths = picked.filePaths
     }
-    event.sender.send('dmsg:event', { type: 'file/importing', data: { name: basename(path) } })
-    return daemon.call('file/import', { path })
+    event.sender.send('dmsg:event', { type: 'files/adding', data: { names: paths.map((p) => basename(p)) } })
+    return daemon.call('files/import', { paths, folder: String(folder || 'root') })
   })
 )
-ipcMain.handle('dmsg:export-file', (event, id: string, name: string) =>
+ipcMain.handle('dmsg:files-export', (event, id: string, version: string | null, name: string) =>
   guard(async () => {
     trust(event, 'main')
     const picked = await dialog.showSaveDialog(main!, { defaultPath: basename(String(name)) })
     if (picked.canceled || !picked.filePath) return null
-    return daemon.call('file/export', { id: String(id), path: picked.filePath })
+    return daemon.call('files/export', { id: String(id), version: version ? String(version) : null, path: picked.filePath })
+  })
+)
+/** A temporary copy for the file's program; the daemon removes it later and asks before a change is lost. */
+ipcMain.handle('dmsg:files-open', (event, id: string, version: string | null) =>
+  guard(async () => {
+    trust(event, 'main')
+    const opened = (await daemon.call('files/open', { id: String(id), version: version ? String(version) : null })) as { path: string }
+    const failure = await shell.openPath(opened.path)
+    if (failure) throw new DaemonError('UNAVAILABLE', failure)
+    return opened
   })
 )
 ipcMain.handle('dmsg:open-legacy', (event, link: string) =>

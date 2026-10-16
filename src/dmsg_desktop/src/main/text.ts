@@ -45,6 +45,8 @@ const en = {
   pickOriginal: 'Choose the original file of the bundle',
   pickAction: 'Choose the action the application prepared (CBOR)',
   pickAvatar: 'Choose a public avatar (PNG, JPEG or WebP, at most 512 KiB)',
+  pickFiles: 'Choose files to add to the library',
+  pickFolder: 'Choose a folder to add to the library',
   imageFile: 'Images',
   newMessages: 'New channel messages in dMsg.',
   newLetter: 'A new letter arrived in dMsg.'
@@ -92,6 +94,8 @@ const zh: Text = {
   pickOriginal: '选择证据包对应的原文件',
   pickAction: '选择应用准备的动作（CBOR）',
   pickAvatar: '选择公开头像（PNG、JPEG 或 WebP，最大 512 KiB）',
+  pickFiles: '选择要加入文件库的文件',
+  pickFolder: '选择要加入文件库的文件夹',
   imageFile: '图片',
   newMessages: 'dMsg 有新的频道消息。',
   newLetter: 'dMsg 有新来信。'
@@ -138,6 +142,8 @@ const ru: Text = {
   pickOriginal: 'Выберите исходный файл пакета',
   pickAction: 'Выберите действие, подготовленное приложением (CBOR)',
   pickAvatar: 'Выберите публичный аватар (PNG, JPEG или WebP, не более 512 КиБ)',
+  pickFiles: 'Выберите файлы для добавления в библиотеку',
+  pickFolder: 'Выберите папку для добавления в библиотеку',
   imageFile: 'Изображения',
   newMessages: 'Новые сообщения в каналах dMsg.',
   newLetter: 'В dMsg пришло новое письмо.'
@@ -183,6 +189,8 @@ const ar: Text = {
   pickOriginal: 'اختر الملف الأصلي للحزمة',
   pickAction: 'اختر الإجراء الذي أعدّه التطبيق (CBOR)',
   pickAvatar: 'اختر صورة رمزية عامة (PNG أو JPEG أو WebP، بحد أقصى 512 كيبيبايت)',
+  pickFiles: 'اختر ملفات لإضافتها إلى المكتبة',
+  pickFolder: 'اختر مجلدًا لإضافته إلى المكتبة',
   imageFile: 'الصور',
   newMessages: 'رسائل جديدة في قنوات dMsg.',
   newLetter: 'وصلت رسالة جديدة إلى dMsg.'
@@ -229,6 +237,8 @@ const fr: Text = {
   pickOriginal: 'Choisissez le fichier d’origine du paquet',
   pickAction: 'Choisissez l’action préparée par l’application (CBOR)',
   pickAvatar: 'Choisissez un avatar public (PNG, JPEG ou WebP, 512 Kio au plus)',
+  pickFiles: 'Choisissez des fichiers à ajouter à la bibliothèque',
+  pickFolder: 'Choisissez un dossier à ajouter à la bibliothèque',
   imageFile: 'Images',
   newMessages: 'Nouveaux messages de canal dans dMsg.',
   newLetter: 'Une nouvelle lettre est arrivée dans dMsg.'
@@ -274,6 +284,8 @@ const es: Text = {
   pickOriginal: 'Elige el archivo original del paquete',
   pickAction: 'Elige la acción que preparó la aplicación (CBOR)',
   pickAvatar: 'Elige un avatar público (PNG, JPEG o WebP, 512 KiB como máximo)',
+  pickFiles: 'Elige archivos para añadir a la biblioteca',
+  pickFolder: 'Elige una carpeta para añadir a la biblioteca',
   imageFile: 'Imágenes',
   newMessages: 'Mensajes nuevos en los canales de dMsg.',
   newLetter: 'Llegó una carta nueva a dMsg.'

@@ -5,22 +5,16 @@
   import SecretInput from '../../components/SecretInput.svelte'
   import TagInput from '../../components/TagInput.svelte'
   import { toast } from '../../components/toast.svelte'
-  import { buttonClass, cn } from '../../components/ui'
+  import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { call, code } from '../../rpc'
   import { fields, typeIcon, typeLabel, types, type ItemType } from './vault'
 
   /**
-   * A new item in a dialog: its type, then the fields that type has. A file
-   * is imported instead, through the system dialog. The secret goes to the
-   * daemon only.
+   * A new item in a dialog: its type, then the fields that type has. The
+   * secret goes to the daemon only; files have their own library.
    */
-  let {
-    open = $bindable(false),
-    mod,
-    onSaved,
-    onImport
-  }: { open?: boolean; mod: string; onSaved: (id: string) => void; onImport: () => void } = $props()
+  let { open = $bindable(false), mod, onSaved }: { open?: boolean; mod: string; onSaved: (id: string) => void } = $props()
 
   const blank = () => ({ title: '', tags: [] as string[], body: '', username: '', secret: '', url: '' })
   let type = $state<ItemType>('login')
@@ -78,7 +72,7 @@
 <Dialog bind:open title={t('add')} description={t('newItemHint')} icon="add" testid="vault-new-dialog">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="grid gap-4" onkeydown={onKey}>
-    <RadioGroup.Root bind:value={() => type, (next) => (type = next as ItemType)} class="grid grid-cols-5 gap-1.5" aria-label={t('type')}>
+    <RadioGroup.Root bind:value={() => type, (next) => (type = next as ItemType)} class="grid grid-cols-4 gap-1.5" aria-label={t('type')}>
       {#each types as option (option)}
         <RadioGroup.Item
           value={option}
@@ -91,23 +85,7 @@
       {/each}
     </RadioGroup.Root>
 
-    {#if type === 'file'}
-      <div class="grid place-items-center gap-2 rounded-xl border border-dashed border-edge-soft bg-surface-2 px-6 py-8 text-center">
-        <Icon name="upload" class="size-6 text-faint" />
-        <p class="max-w-sm text-[12.5px] text-muted">{t('fileImportHint')}</p>
-        <button
-          class={buttonClass('primary')}
-          onclick={() => {
-            open = false
-            onImport()
-          }}
-          data-testid="vault-new-file"
-        >
-          <Icon name="upload" />{t('chooseFile')}
-        </button>
-      </div>
-    {:else}
-      <div class="grid gap-3">
+    <div class="grid gap-3">
         <label class="grid gap-1 text-[12px] text-faint">
           {t('title')}
           <input bind:value={draft.title} class="text-[13.5px] text-ink" data-testid="vault-title" placeholder={t(typeLabel[type])} />
@@ -126,17 +104,14 @@
           {t('body')}
           <textarea bind:value={draft.body} rows={type === 'note' ? 7 : 3} class="text-[13.5px] text-ink"></textarea>
         </label>
-      </div>
-    {/if}
+    </div>
     {#if error}<p class="text-[12.5px] text-danger">{error}</p>{/if}
   </div>
   {#snippet footer()}
-    <span class={cn('min-w-0 flex-1 text-[12px] text-faint', type === 'file' && 'invisible')}>{t('dropHint')}</span>
+    <span class="min-w-0 flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>
-    {#if type !== 'file'}
-      <button class={buttonClass('primary')} disabled={busy || !draft.title.trim()} onclick={save} data-testid="vault-add">
-        {t('save')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
-      </button>
-    {/if}
+    <button class={buttonClass('primary')} disabled={busy || !draft.title.trim()} onclick={save} data-testid="vault-add">
+      {t('save')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
+    </button>
   {/snippet}
 </Dialog>

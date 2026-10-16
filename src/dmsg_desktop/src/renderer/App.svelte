@@ -2,6 +2,7 @@
   import { Tooltip } from 'bits-ui'
   import { onMount } from 'svelte'
   import Vault from './views/Vault.svelte'
+  import Files from './views/Files.svelte'
   import Approvals from './views/Approvals.svelte'
   import Approval from './views/Approval.svelte'
   import Settings from './views/Settings.svelte'
@@ -88,7 +89,7 @@
 
   const go = (next: string) => (location.hash = next)
 
-  /** ⌘K opens the palette, ⌘1–⌘6 and ⌘, go to a view, ⌘L locks (Ctrl elsewhere). */
+  /** ⌘K opens the palette, ⌘1–⌘7 and ⌘, go to a view, ⌘L locks (Ctrl elsewhere). */
   function onKey(event: KeyboardEvent) {
     if (window.dmsg.role !== 'main') return
     const held = inset ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
@@ -151,7 +152,9 @@
       <div class="flex min-w-0 flex-1 flex-col bg-paper">
         <Header {view} {mod} {go} onPalette={() => (palette = true)} />
         <main class="min-h-0 flex-1 overflow-hidden">
-          {#if view === views.channels}
+          {#if view === views.files}
+            <Files {status} {mod} {route} {go} />
+          {:else if view === views.channels}
             <Channels {status} />
           {:else if view === views.inbox}
             <Inbox {status} {mod} />

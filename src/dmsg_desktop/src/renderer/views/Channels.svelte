@@ -97,7 +97,7 @@
     if (selected !== id) return
     channel = shownChannel
     messages = list
-    files = (await call<any[]>('vault/list', {}).catch(() => [])).filter((e) => e.item.type === 'file')
+    files = (await call<any[]>('files/search', { query: '' }).catch(() => [])).filter((f) => f.status !== 'cloud_only' && f.status !== 'too_large').slice(0, 20)
   }
 
   const pick = (id: string) => attempt(() => open(id))
@@ -110,7 +110,7 @@
 
   async function deliver(id: string, item: Outgoing) {
     try {
-      if (item.file) await call('channel/send_file', { id, item: item.file.id, text: item.text })
+      if (item.file) await call('channel/send_file', { id, file: item.file.id, text: item.text })
       else await call('channel/send', { id, text: item.text })
       outbox[id] = (outbox[id] ?? []).filter((o) => o.key !== item.key)
       if (selected === id) await open(id)
@@ -140,13 +140,14 @@
 
   const discard = (item: Outgoing) => (outbox[channel.id] = (outbox[channel.id] ?? []).filter((o) => o.key !== item.key))
 
-  /** A new file enters the vault through the system dialog, then goes with the next message. */
+  /** A new file enters the library through the system dialog, then goes with the next message. */
   const importFile = () =>
     attempt(async () => {
-      const entry: any = await bridge(() => window.dmsg.importFile())
-      if (!entry) return
+      const results: any[] | null = await bridge(() => window.dmsg.filesAdd('root'))
+      const file = results?.[0]?.file
+      if (!file) return
       await open(channel.id)
-      attached[channel.id] = { id: entry.id, name: entry.item.file?.name ?? entry.item.title }
+      attached[channel.id] = { id: file.id, name: file.name }
     })
 
   const download = (message: any) =>
@@ -154,6 +155,13 @@
       const manifest: any = await bridge(() => window.dmsg.channelDownload(channel.id, message.seq, message.file.name))
       if (manifest)
         toast(() => `${t('savedVerified')} · ${message.file.name} · sha256 ${String(manifest.sha256).slice(0, 12)}…`, { testid: 'channel-notice' })
+    })
+
+  /** A shared file becomes a file of the library, re-encrypted under a key of its own. */
+  const save = (message: any) =>
+    attempt(async () => {
+      const result: any = await call('files/save_shared', { channel: channel.id, seq: message.seq })
+      toast(() => `${t('savedToLibrary')} · ${result.file?.name ?? message.file.name}`, { testid: 'channel-notice' })
     })
 
   const control = (action: Record<string, unknown>) =>
@@ -413,6 +421,7 @@
           onDiscard={discard}
           onImport={importFile}
           onDownload={download}
+          onSave={save}
         />
       {:else}
         <div class="grid flex-1 place-items-center p-8 text-center text-[13px] text-faint">

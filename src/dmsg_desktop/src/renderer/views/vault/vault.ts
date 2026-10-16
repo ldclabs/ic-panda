@@ -7,22 +7,21 @@
 import type { Glyph } from '../../components/glyphs'
 import type { Label } from '../../i18n/messages/en'
 
-export type ItemType = 'note' | 'login' | 'api' | 'key' | 'file'
+export type ItemType = 'note' | 'login' | 'api' | 'key'
 export type Field = 'username' | 'secret' | 'url'
 
 /** The types in the order the filters and the new-item dialog offer them. */
-export const types: ItemType[] = ['login', 'api', 'key', 'note', 'file']
+export const types: ItemType[] = ['login', 'api', 'key', 'note']
 
-export const typeLabel: Record<ItemType, Label> = { note: 'typeNote', login: 'typeLogin', api: 'typeApi', key: 'typeKey', file: 'typeFile' }
-export const typeIcon: Record<ItemType, Glyph> = { note: 'note', login: 'key', api: 'api', key: 'keypair', file: 'file' }
+export const typeLabel: Record<ItemType, Label> = { note: 'typeNote', login: 'typeLogin', api: 'typeApi', key: 'typeKey' }
+export const typeIcon: Record<ItemType, Glyph> = { note: 'note', login: 'key', api: 'api', key: 'keypair' }
 
 /** Which fields each type has besides the title, tags and body. */
 export const fields: Record<ItemType, Field[]> = {
   note: [],
   login: ['username', 'secret', 'url'],
   api: ['username', 'secret', 'url'],
-  key: ['secret'],
-  file: []
+  key: ['secret']
 }
 
 export const isType = (value: unknown): value is ItemType => types.includes(value as ItemType)

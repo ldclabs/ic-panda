@@ -222,9 +222,11 @@ monospace face: Arabic loses its letter joining there, so only the value
   over the view. On macOS the window has no title bar of its own: the
   traffic lights sit over the sidebar's vibrancy, and the title bar is the
   drag region.
-- **Pane views** (vault, channels, inbox) run edge to edge: a filter or list
-  column (248–320px), the open object, and for channels a members drawer
-  (256–280px). Container queries narrow them: the vault's filter rail turns
+- **Pane views** (vault, files, channels, inbox) run edge to edge: a filter
+  or list column (248–320px), the open object, and for channels a members
+  drawer (256–280px); the file library adds a folder tree (220px) before
+  its list, and its cloud and trash places take the list's and the object's
+  room as one page. Container queries narrow them: the vault's filter rail turns
   into a menu below 860px, the members drawer floats over the timeline below
   860px, the settings section list turns into a row of buttons below 720px.
 - **Page views** (agents, signatures, plan, settings) scroll as one column of
@@ -297,8 +299,13 @@ restyle a control by hand.
   draining bar; the second click acts. A shown secret hides after a minute.
 - **Conflict** — the current version and the copy side by side, changed
   fields tinted, the body diffed line by line; both choices weigh the same.
-- **Import** — encrypt, verify, then held by the relay, each a segment of
-  the job card; the job is done only when the relay holds the file.
+- **Adding files** — a job card per file with its chunks done, above the
+  library's list; a card for a backup or a fetch the same way. Done when
+  the daemon has it encrypted; a backup is its own, explicit step with a
+  confirmation that names what goes and the cloud's room.
+- **Status of a file** — one icon with a tooltip, in the row and as a pill
+  in the detail: on this device, backing up, backed up, only in the cloud,
+  over the cloud's limit, failed. Never by color alone.
 - **Message states** — sending (shimmer) until the relay stores it, then a
   check with its sequence number; refused messages stay with Retry and
   Discard.
@@ -315,7 +322,9 @@ restyle a control by hand.
 - A secret reaches the screen only on the second click and reaches the
   clipboard only through the main process.
 - Files enter through the main process's dialogs or a drop the preload
-  resolves to a path; a file a page made has none and is refused.
+  resolves to a path; a file a page made has none and is refused. Nothing
+  of the library leaves the device unless the person backs it up or shares
+  it, and deleting on one side never deletes on the other.
 - The idle lock follows a person's input, which the main process reports;
   what windows read, on events or the status refresh (every 10 seconds
   while unlocked, for the countdown), never keeps the device unlocked.

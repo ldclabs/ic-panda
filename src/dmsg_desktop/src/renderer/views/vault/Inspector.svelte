@@ -9,7 +9,7 @@
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { ago, bridge, call, code, size, when } from '../../rpc'
+  import { ago, call, code, when } from '../../rpc'
   import SecretField from './SecretField.svelte'
   import { fields, typeIcon, typeLabel, typeOf } from './vault'
 
@@ -39,7 +39,6 @@
 
   let editing = $state<any>(null)
   let busy = $state(false)
-  let checked = $state('')
 
   const item = $derived(entry.item)
   const type = $derived(typeOf(item))
@@ -59,13 +58,6 @@
 
   const star = () => attempt(() => call('vault/edit', { id: entry.id, base: entry.revision, changes: { favorite: !item.favorite } }).then(reload))
   const discard = () => attempt(() => call(trash ? 'vault/restore' : 'vault/delete', { id: entry.id }).then(reload), trash ? t('restored') : t('movedToTrash'))
-  const exportFile = () => attempt(() => bridge(() => window.dmsg.exportFile(entry.id, item.file.name)))
-  const verify = () =>
-    attempt(async () => {
-      const manifest: any = await call('file/verify', { id: entry.id })
-      checked = `${t('verified')} · ${size(manifest.size)} · sha256 ${String(manifest.sha256).slice(0, 16)}…`
-    })
-
   /** The form keeps the version it started from: a version synced in meanwhile makes the save a conflict, not an overwrite. */
   function startEdit() {
     editing = { base: entry.revision, title: item.title, tags: [...item.tags], body: item.body, username: item.username, url: item.url, secret: '' }
@@ -158,15 +150,6 @@
             </Tooltip>
             <DropdownMenu.Portal>
               <DropdownMenu.Content align="end" sideOffset={6} class={cn(menuContentClass, 'min-w-48')} data-testid="vault-more-menu">
-                {#if item.file}
-                  <DropdownMenu.Item class={menuItemClass} onSelect={exportFile}>
-                    <span class="flex items-center gap-2"><Icon name="download" class="text-faint" />{t('exportFile')}</span>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item class={menuItemClass} onSelect={verify}>
-                    <span class="flex items-center gap-2"><Icon name="verified" class="text-faint" />{t('verifyFile')}</span>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Separator class="my-1 h-px bg-line" />
-                {/if}
                 <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={discard} data-testid="vault-trash">
                   <span class="flex items-center gap-2"><Icon name="trash" />{t('moveToTrash')}</span>
                 </DropdownMenu.Item>
@@ -216,7 +199,7 @@
         </div>
       </div>
     {:else}
-      {#if has.length || item.file}
+      {#if has.length}
         <dl class="divide-y divide-line rounded-xl border border-line bg-surface px-4 shadow-xs" data-testid="vault-detail">
           {#if item.username}
             <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
@@ -246,24 +229,14 @@
               </dd>
             </div>
           {/if}
-          {#if item.file}
-            <div class="grid gap-x-4 py-2.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
-              {@render row(t('typeFile'))}
-              <dd class="min-w-0">
-                <div class="truncate">{item.file.name}</div>
-                <div class="text-[12px] text-faint">{size(item.file.size)}{item.file.mime ? ` · ${item.file.mime}` : ''}</div>
-                {#if checked}<div class="mt-1 flex items-center gap-1 text-[12px] text-ok" data-testid="file-checked"><Icon name="verified" class="size-3.5" />{checked}</div>{/if}
-              </dd>
-            </div>
-          {/if}
         </dl>
       {/if}
       {#if item.body}
-        <div class={cn('rounded-xl border border-line bg-surface px-4 py-3 shadow-xs', (has.length || item.file) && 'mt-3')}>
-          {#if has.length || item.file}<div class="mb-1 text-[12px] text-faint">{t('body')}</div>{/if}
+        <div class={cn('rounded-xl border border-line bg-surface px-4 py-3 shadow-xs', has.length && 'mt-3')}>
+          {#if has.length}<div class="mb-1 text-[12px] text-faint">{t('body')}</div>{/if}
           <p class="text-[13.5px] leading-relaxed whitespace-pre-wrap select-text" data-testid="vault-body">{item.body}</p>
         </div>
-      {:else if !has.length && !item.file}
+      {:else if !has.length}
         <p class="text-[13px] text-faint">{t('emptyBody')}</p>
       {/if}
     {/if}
