@@ -115,15 +115,34 @@ impl Trust {
         now: u64,
     ) -> Result<(Security, Device)> {
         let security = self.account(evidence, account, at, now)?;
-        let found = security
-            .devices
-            .get(device)
-            .filter(|d| {
-                d.revoked_at.is_none() && d.input.capabilities.contains(&Capability::ContentSign)
-            })
-            .cloned()
-            .ok_or(Error::AuthRequired)?;
+        let found = content_signer(&security, device)?.clone();
         Ok((security, found))
+    }
+
+    /// The certified security of `account` under its security epoch
+    /// `epoch`, from the evidence the relay kept when it first accepted a
+    /// command under that epoch, at the relay's time `at`. Adding, revoking
+    /// or changing a device starts a new epoch, so within one the keys and
+    /// authority of its devices stay as one check finds them, for every
+    /// command signed under it, whatever replaced those devices since.
+    ///
+    /// # Errors
+    /// Evidence of another epoch returns `Error::IntegrityFailed`, and the
+    /// errors of [`Self::account`].
+    pub fn epoch(
+        &self,
+        evidence: &Evidence,
+        account: &AccountId,
+        epoch: u64,
+        at: u64,
+        now: u64,
+    ) -> Result<Security> {
+        let security = self.account(evidence, account, at, now)?;
+        ensure(
+            security.snapshot.security_epoch == epoch,
+            Error::IntegrityFailed,
+        )?;
+        Ok(security)
     }
 
     /// Verify a stored command with the evidence the relay kept beside it at
@@ -142,23 +161,60 @@ impl Trust {
         action: Option<&str>,
         now: u64,
     ) -> Result<Verified<P>> {
-        let (issuer, kid) = command_signer(cose)?;
+        let (issuer, _) = command_signer(cose)?;
         let account = issuer
             .strip_prefix(&self.namespace)
             .and_then(|id| AccountId::from_str(id).ok())
             .ok_or(Error::AuthRequired)?;
-        let (security, device) = self.device(evidence, &account, &kid, stored_at, now)?;
-        let body: CommandBody<P> =
-            verify_command_body(cose, &issuer, &kid, &device.input.signing_pub, action)?;
-        ensure(
-            body.security_epoch == security.snapshot.security_epoch && body.deadline > stored_at,
-            Error::PolicyStale,
-        )?;
+        let security = self.account(evidence, &account, stored_at, now)?;
+        let (device, body) = under(&security, cose, action)?;
+        ensure(body.deadline > stored_at, Error::PolicyStale)?;
         Ok(Verified {
             account,
-            device: kid,
+            device,
             security,
             body,
         })
     }
 }
+
+/// An unrevoked device of `security` that may sign content.
+fn content_signer<'a>(security: &'a Security, device: &Hash) -> Result<&'a Device> {
+    security
+        .devices
+        .get(device)
+        .filter(|d| {
+            d.revoked_at.is_none() && d.input.capabilities.contains(&Capability::ContentSign)
+        })
+        .ok_or(Error::AuthRequired)
+}
+
+/// Verify a command of the account of `security`, signed under its security
+/// epoch by one of its devices that could sign content then; `action`, when
+/// given, must be the command's. This is what the relay checked when it
+/// accepted the command, against the certified security of that epoch.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` for another account or a device without
+/// authority under that epoch, `Error::PolicyStale` for a command signed
+/// under another epoch, and `Error::IntegrityFailed` for a bad signature.
+pub fn under<P: DeserializeOwned + Serialize>(
+    security: &Security,
+    cose: &str,
+    action: Option<&str>,
+) -> Result<(Hash, CommandBody<P>)> {
+    let (issuer, kid) = command_signer(cose)?;
+    ensure(issuer == security.snapshot.issuer, Error::AuthRequired)?;
+    let device = content_signer(security, &kid)?;
+    let body: CommandBody<P> =
+        verify_command_body(cose, &issuer, &kid, &device.input.signing_pub, action)?;
+    ensure(
+        body.security_epoch == security.snapshot.security_epoch,
+        Error::PolicyStale,
+    )?;
+    Ok((kid, body))
+}
+
+#[cfg(test)]
+#[path = "evidence_tests.rs"]
+mod tests;

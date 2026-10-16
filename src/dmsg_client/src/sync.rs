@@ -18,24 +18,26 @@
 //! against a moved head, and a deleted item takes nothing but an explicit
 //! restore, so an older edit never revives it.
 
+use crate::account::Security;
 use crate::client::Client;
-use crate::cloud::{verify_command, Presigned};
+use crate::cloud::{Evidence, Presigned};
 use crate::codec::{canonical, decode, decode_value, sha256};
 use crate::content::{
     empty_file, object_container, open_manifest, read_container, record, seal_manifest,
     EncryptedObject, ManifestContent, Opened, MAX_OBJECT, VAULT,
 };
+use crate::evidence::{under, Trust};
 use crate::files::{read_file, FileManifest, Source, MAX_FILE};
 use crate::migration::MIGRATION_PART;
 use crate::now_ms;
 use crate::store::{ObjectRow, BLOCKED, LOCAL, REPLACED, SYNCED};
 use crate::upload::{hex_id, random_hex, ChunkRef, UploadPlan};
 use crate::vault::Item;
-use dmsg_types::{ensure, user::VaultWriteState, Error, Hash, Result};
-use serde::{Deserialize, Serialize};
+use dmsg_types::{ensure, user::VaultWriteState, AccountId, Error, Hash, Result};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_json::Value as Json;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 
 const MAX_PLANS: usize = 10_000;
 const MAX_REVISIONS: usize = 100_000;
@@ -93,6 +95,46 @@ struct Snapshot {
 #[derive(Serialize)]
 struct ExportStart<'a> {
     export_id: &'a str,
+}
+
+/// The payload of a snapshot entry's command, checked against the certified
+/// security of the epoch it was signed under, as the relay checked it when it
+/// accepted the command; the evidence of each epoch is on the page and is
+/// checked once per pull. Devices replaced since, by recovery or at the
+/// device bound, still count for what they signed then.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for an entry that does not verify.
+#[allow(clippy::too_many_arguments)]
+fn verify_signed_entry<P: DeserializeOwned + Serialize>(
+    trust: &Trust,
+    account: &AccountId,
+    epochs: &mut BTreeMap<u64, Security>,
+    page: &Json,
+    entry: &Json,
+    cose: &str,
+    action: &str,
+    now: u64,
+) -> Result<P> {
+    let epoch = entry["security_epoch"]
+        .as_u64()
+        .ok_or(Error::IntegrityFailed)?;
+    let security = match epochs.entry(epoch) {
+        Entry::Occupied(checked) => checked.into_mut(),
+        Entry::Vacant(slot) => {
+            let kept = &page["security"][epoch.to_string()];
+            let evidence: Evidence = serde_json::from_value(kept["evidence"].clone())
+                .map_err(|_| Error::IntegrityFailed)?;
+            let at = kept["stored_at"].as_u64().ok_or(Error::IntegrityFailed)?;
+            slot.insert(
+                trust
+                    .epoch(&evidence, account, epoch, at, now)
+                    .map_err(|_| Error::IntegrityFailed)?,
+            )
+        }
+    };
+    let (_, body) = under::<P>(security, cose, Some(action)).map_err(|_| Error::IntegrityFailed)?;
+    Ok(body.payload)
 }
 
 /// What one sync did.
@@ -792,7 +834,9 @@ impl Client {
     /// Read and verify the relay's export snapshot, caching every vault and
     /// file chunk it lacks; nothing is opened yet.
     async fn fetch(&mut self) -> Result<Snapshot> {
-        let account = self.account()?.id.to_string();
+        let id = self.account()?.id;
+        let account = id.to_string();
+        let trust = self.trust().await?;
         let base = self.base()?;
         let export_id = random_hex();
         let start = self
@@ -817,14 +861,14 @@ impl Client {
             plans: vec![],
             revisions: vec![],
         };
+        let mut epochs: BTreeMap<u64, Security> = BTreeMap::new();
         loop {
             let page = self
                 .relay_get(&format!(
                     "{base}/exports/{export_id}?after={cursor}&limit=100"
                 ))
                 .await?;
-            let security = self.cloud_state().await?;
-            let issuer = &security.snapshot.issuer;
+            let now = now_ms();
             let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
             ensure(entries.len() <= 100, Error::IntegrityFailed)?;
             for entry in entries {
@@ -841,13 +885,17 @@ impl Client {
                         )?;
                         let plan: UploadPlan = serde_json::from_value(entry["plan"].clone())
                             .map_err(|_| Error::IntegrityFailed)?;
-                        let signed: UploadPlan = verify_command(
+                        let signed: UploadPlan = verify_signed_entry(
+                            &trust,
+                            &id,
+                            &mut epochs,
+                            &page,
+                            entry,
                             entry["signature"]["cose_sign1"]
                                 .as_str()
                                 .unwrap_or_default(),
-                            issuer,
-                            &security.devices,
                             "dmsg/upload/reserve/v1",
+                            now,
                         )?;
                         ensure(
                             signed == plan
@@ -863,11 +911,15 @@ impl Client {
                     }
                     "revision" => {
                         let value = &entry["value"];
-                        let revision: Revision = verify_command(
+                        let revision: Revision = verify_signed_entry(
+                            &trust,
+                            &id,
+                            &mut epochs,
+                            &page,
+                            entry,
                             value["signed"]["cose_sign1"].as_str().unwrap_or_default(),
-                            issuer,
-                            &security.devices,
                             "dmsg/vault/revision/v1",
+                            now,
                         )?;
                         let fields =
                             serde_json::to_value(&revision).map_err(|_| Error::IntegrityFailed)?;

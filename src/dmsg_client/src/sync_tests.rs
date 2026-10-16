@@ -364,3 +364,54 @@ fn collection_keeps_what_a_pull_or_an_upload_needs() {
     relay.deliver(&mut a).unwrap();
     assert!(titles(&a, false).contains(&"unsent".to_string()));
 }
+
+#[test]
+fn snapshot_entries_verify_against_the_evidence_of_their_epoch() {
+    use crate::testing::{account, device, security, signed};
+    use candid::Principal;
+
+    const REVISION: &str = "dmsg/vault/revision/v1";
+    type Payload = BTreeMap<String, String>;
+    let trust = Trust {
+        homes: vec![Principal::from_slice(&[1])],
+        namespace: "https://dmsg.test/u/".into(),
+        root_key: vec![],
+    };
+    let id = account().id;
+    let (a, active) = device(1, None);
+    let cose = signed(1, 3, REVISION);
+    let entry = json!({ "security_epoch": 3 });
+    let mut epochs = BTreeMap::new();
+    let verify = |epochs: &mut BTreeMap<u64, Security>, page: &Json, entry: &Json| {
+        verify_signed_entry::<Payload>(&trust, &id, epochs, page, entry, &cose, REVISION, 20)
+    };
+    // An epoch with no evidence on the page, or evidence that does not check,
+    // verifies nothing.
+    assert_eq!(
+        verify(&mut epochs, &json!({}), &entry).unwrap_err(),
+        Error::IntegrityFailed
+    );
+    let foreign = json!({ "security": { "3": {
+        "evidence": { "schema": 1, "canister": "aaaaa-aa", "certificate": "", "entries": [] },
+        "stored_at": 15,
+    } } });
+    assert_eq!(
+        verify(&mut epochs, &foreign, &entry).unwrap_err(),
+        Error::IntegrityFailed
+    );
+    assert!(epochs.is_empty());
+    // An epoch checked once in a pull is not checked again: its devices
+    // decide, whatever the account has today.
+    epochs.insert(3, security(3, BTreeMap::from([(a, active.clone())])));
+    assert_eq!(verify(&mut epochs, &json!({}), &entry).unwrap()["by"], "1");
+    // An entry that names another epoch than its command's, or none.
+    epochs.insert(4, security(4, BTreeMap::from([(a, active)])));
+    assert_eq!(
+        verify(&mut epochs, &json!({}), &json!({ "security_epoch": 4 })).unwrap_err(),
+        Error::IntegrityFailed
+    );
+    assert_eq!(
+        verify(&mut epochs, &json!({}), &json!({})).unwrap_err(),
+        Error::IntegrityFailed
+    );
+}

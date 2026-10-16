@@ -1,13 +1,20 @@
 //! Offline clients for unit tests: a bound workspace and an opened root,
-//! with every endpoint unreachable.
+//! with every endpoint unreachable; and the test account's security under
+//! one epoch, with devices that sign commands, behind no certificate.
 
+use crate::account::Security;
 use crate::client::Client;
+use crate::cloud::{sign_command, Evidence, Signer};
 use crate::config::{Config, LOGIN_URL};
 use crate::root::RootKeys;
 use crate::secure::SecureStorage;
 use crate::workspace::AccountRef;
 use candid::Principal;
-use dmsg_types::{AccountId, Environment};
+use dmsg_types::user::{
+    Capability, ControllerRole, Device, DeviceInput, SecuritySnapshot, VaultWriteState,
+};
+use dmsg_types::{AccountId, Environment, Hash};
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -122,4 +129,71 @@ pub fn unlocked(
     client.save_root(&root).unwrap();
     client.root = Some(root);
     client
+}
+
+/// Device `n` of the test account: its seed is `[n; 32]`, and it signs
+/// content unless revoked at `revoked_at`.
+pub fn device(n: u8, revoked_at: Option<u64>) -> (Hash, Device) {
+    let id = Hash::new([n.wrapping_add(100); 32]);
+    let device = Device {
+        input: DeviceInput {
+            device_id: id,
+            signing_pub: Hash::new(crate::crypto::signing_public(&[n; 32])),
+            hpke_pub: Hash::new([n; 32]),
+            role: ControllerRole::Administrator,
+            capabilities: vec![Capability::ContentSign, Capability::VaultUnlock],
+        },
+        added_at: 1,
+        added_by: None,
+        revoked_at,
+        next_sequence: 0,
+    };
+    (id, device)
+}
+
+/// The test account's security under `epoch` with `devices`, as a checked
+/// certificate would give it.
+pub fn security(epoch: u64, devices: BTreeMap<Hash, Device>) -> Security {
+    let account = account();
+    Security {
+        snapshot: SecuritySnapshot {
+            issuer: account.issuer,
+            home_cose: account.home,
+            schema: 4,
+            account_id: account.id,
+            home_user: account.home,
+            account_version: 1,
+            security_epoch: epoch,
+            devices_root: Hash::new([0; 32]),
+            recovery_delay_ms: 0,
+            pending_recovery_digest: None,
+            content_root_generation: 1,
+            content_root_digest: None,
+            vault_write_state: VaultWriteState::Ready,
+            principal_updated_at: None,
+        },
+        devices,
+        evidence: Evidence {
+            schema: 1,
+            canister: account.home.to_text(),
+            certificate: String::new(),
+            entries: vec![],
+        },
+        certified_at: 1,
+    }
+}
+
+/// A command `action` of the test account signed by device `n` under
+/// `epoch`, its payload `{"by": n}`.
+pub fn signed(n: u8, epoch: u64, action: &str) -> String {
+    let issuer = account().issuer;
+    let signer = Signer {
+        issuer: &issuer,
+        device_id: device(n, None).0,
+        security_epoch: epoch,
+        seed: &[n; 32],
+        expires_at: u64::MAX,
+    };
+    let payload = BTreeMap::from([("by", n.to_string())]);
+    sign_command(&signer, action, &payload, "01", 10)
 }

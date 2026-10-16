@@ -79,7 +79,10 @@ under a new ID, only once the relay confirms the old submission can no
 longer commit.
 
 Pulling reads a complete export snapshot, checks every signed entry against
-the certified devices and every chunk against its digest, caches the
+the devices of the security epoch it was signed under (the certified
+evidence the relay kept for that epoch, checked once per epoch, so devices
+replaced since by recovery or at the device bound still count) and every
+chunk against its digest, caches the
 ciphertext, opens every new version (a file's every chunk included), and
 only then moves the heads, in one transaction. A snapshot older than one
 already applied, or one that drops a version the relay accepted, is refused.
