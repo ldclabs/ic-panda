@@ -34,7 +34,7 @@
   const mod = inset ? '⌘' : 'Ctrl+'
   const view = $derived(viewOf(route))
   /** Views laid out edge to edge in panes; the rest still scroll as one padded page. */
-  const bleed: ReadonlySet<View> = new Set([views.vault])
+  const bleed: ReadonlySet<View> = new Set([views.vault, views.channels, views.inbox])
   const unlocked = $derived(status?.state === 'unlocked')
   const legacyNotice = $derived(offers.some((nonce) => !dismissed.includes(nonce)))
 
@@ -149,7 +149,7 @@
           {#if view === views.channels}
             <Channels {status} />
           {:else if view === views.inbox}
-            <Inbox {status} />
+            <Inbox {status} {mod} />
           {:else if view === views.plan}
             <Account {status} />
           {:else if view === views.agents}

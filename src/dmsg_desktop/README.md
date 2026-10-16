@@ -54,9 +54,18 @@ desktop is one of its clients, like the CLI.
     line, and kept or adopted; files imported from a dialog or dropped on
     the list, each shown encrypted, verified and held by the relay. The
     command palette finds items by title.
-  - Channels: attachments, roles, history grants, leaving, archiving and
-    reopening, and ownership and billing transfers by packet.
-  - Inbox; plan and names, with name transfers and checkout records.
+  - Channels: the list, the open channel's timeline by day and its
+    composer, and the members in a drawer. A message shows as sending
+    until the relay stores it, and stays with a retry if the daemon
+    refused it; unsent text is kept per channel. Attachments come from the
+    vault or a new import; roles, rotation, removal and history grants are
+    in each member's menu; creating, joining, leaving, and ownership and
+    billing transfers by packet open in dialogs, a transfer in its three
+    steps.
+  - Inbox: the inbox, sent letters and the archive beside the open letter;
+    a new letter, and who may write (nobody, contacts, everyone, or a price
+    per letter), open in dialogs.
+  - Plan and names, with name transfers and checkout records.
   - Agents: Agent Mail, Agent Knowledge and MCP Events endpoints.
   - Signatures and approvals: the month's execution allowance, application
     actions, and exporting and verifying attestation bundles.
@@ -163,10 +172,10 @@ and notifications instead of the system's. It covers:
   decisions from the main window and the exact decision the approval window
   sends;
 - channels: a read and a send, an attachment from the vault, a download, a
-  role change, a history grant, an ownership proposal, archiving and
-  reopening;
-- the inbox, and a subscription that reaches the daemon only as a
-  desktop-sourced approval request;
+  role change and a history grant from a member's menu, an ownership
+  proposal from its dialog, archiving and reopening;
+- the inbox, its contact rules, and a subscription that reaches the daemon
+  only as a desktop-sourced approval request;
 - agents: a grant whose approval window shows the agent it names, mail read
   and answered as an Agent ID, a refused non-Mail tool, an MCP Events
   endpoint whose secret shows once, and a delivery notification without its

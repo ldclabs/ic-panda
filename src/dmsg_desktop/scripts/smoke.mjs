@@ -2,7 +2,8 @@
 // profile. Checks the main window, the approval window opened by a dmsg://
 // link, that only the approval window decides, and that it decides what it
 // showed, that payments and device revocation take a hold to approve, and
-// that the channel, inbox, plan and agent views reach the daemon with payments and grants only as approval requests; that another account's
+// that the channel, inbox, plan and agent views reach the daemon with
+// payments and grants only as approval requests; that another account's
 // workspace is selected from Settings, that binding a login and a web
 // checkout are approval requests, and that a web checkout is quoted before it
 // can be approved; that a kept legacy archive reads offline and transfer
@@ -390,6 +391,7 @@ const methods = {
   ],
   'inbox/outgoing': () => [],
   'inbox/policy': () => ({ mode: 'paid', version: 1 }),
+  'inbox/configure': (p) => ({ ...p, version: 2 }),
   'plan/status': () => ({ plan: 'Free', storage_bytes: 1_000_000_000 }),
   'plan/catalog': () => ({
     version: 1,
@@ -634,48 +636,67 @@ try {
   const created = calls.find((c) => c.method === 'attest/request')
   assert.equal(created.params.source, 'gui')
 
-  // Channels read and write through the daemon.
+  // Channels read and write through the daemon; a message shows as sending
+  // until the relay stores it.
   await main.click('nav >> text=/Channels|频道/')
-  await main.click('text=Smoke channel')
+  await main.click('[data-testid="channel-list"] >> text=Smoke channel')
   await main.waitForSelector('text=Hello channel')
   await main.fill('[data-testid="channel-text"]', 'Reply from the desktop')
-  await main.click('button:has-text("Send"), button:has-text("发送")')
-  await main.waitForSelector('text=Reply from the desktop')
+  await main.keyboard.press('Enter')
+  await waitFor(() => latest('channel/send'))
+  await main.waitForSelector('[data-testid="channel-messages"] article:not([data-testid]) >> text=Reply from the desktop')
+  assert.equal(await main.locator('[data-testid="message-outgoing"]').count(), 0)
 
   // A vault file goes with a message; a shared file is saved where the main
   // process's dialog says; roles, history, a transfer proposal and archiving
   // reach the daemon from the owner's view.
   await choose(main, 'channel-attachment', '23'.repeat(32))
+  await main.waitForSelector('[data-testid="channel-attached"] >> text=report.pdf')
   await main.fill('[data-testid="channel-text"]', 'With a file')
-  await main.click('button:has-text("Send"), button:has-text("发送")')
+  await main.click('[data-testid="channel-send"]')
   await waitFor(() => latest('channel/send_file'))
   assert.deepEqual(latest('channel/send_file').params, { id: channel.id, item: '23'.repeat(32), text: 'With a file' })
   const saved = join(profile, 'plan.pdf')
   await answer('__save', saved)
-  await main.locator('[data-testid="channel-messages"] button', { hasText: /Download|下载/ }).first().click()
+  await main.locator('[data-testid="message-download"]').first().click()
   await waitFor(() => latest('channel/download'))
   assert.deepEqual(latest('channel/download').params, { id: channel.id, seq: 2, path: saved })
   await main.waitForSelector('[data-testid="channel-notice"]')
-  await choose(main, 'member-role', 'admin')
+  await choose(main, 'member-actions', 'admin')
   await waitFor(() => latest('channel/control'))
   assert.deepEqual(latest('channel/control').params, { id: channel.id, action: { type: 'role', account: peer, role: 'admin', can_rotate: false } })
-  await main.click('[data-testid="channel-members"] >> text=/Grant history|授权历史/')
+  await main.click('[data-testid="member-actions"]')
+  await main.click('[data-testid="member-history"]')
   await main.click('[data-testid="history-submit"]')
   await waitFor(() => latest('channel/history'))
   assert.deepEqual(latest('channel/history').params, { id: channel.id, account: peer, from: 1, to: 1 })
+  await main.waitForSelector('[data-testid="history-dialog"]', { state: 'detached' })
+  await main.screenshot({ path: join(shots, 'channels.png') })
+  await main.click('[data-testid="channel-manage"]')
+  await main.click('[data-testid="owner-transfer"]')
   await main.fill('[data-testid="transfer-target"]', peer)
   await main.click('[data-testid="owner-propose"]')
   await main.waitForSelector('[data-testid="channel-handed"]')
   assert.ok((await main.inputValue('[data-testid="channel-handed"]')).includes('dmsg-channel-owner-transfer/1'))
-  await main.screenshot({ path: join(shots, 'channels.png') })
+  await settled(main, '[data-testid="transfer-dialog"]')
+  await main.screenshot({ path: join(shots, 'channel-transfer.png') })
+  await main.keyboard.press('Escape')
+  await main.waitForSelector('[data-testid="transfer-dialog"]', { state: 'detached' })
+  await main.click('[data-testid="channel-manage"]')
   await main.click('[data-testid="channel-archive"]')
   await main.click('[data-testid="channel-reactivate"]')
   await waitFor(() => latest('channel/reactivate'))
   assert.equal(channel.ledger.status, 'active')
 
+  // Letters in two columns; the contact rules are radio cards.
   await main.click('nav >> text=/Inbox|收件箱/')
-  await main.waitForSelector('text=A paid letter')
+  await main.waitForSelector('[data-testid="letter"] >> text=A paid letter')
   await main.screenshot({ path: join(shots, 'inbox.png') })
+  await main.click('[data-testid="contact-rules"]')
+  await main.click('[data-testid="rules-free"]')
+  await main.click('[data-testid="rules-save"]')
+  await waitFor(() => latest('inbox/configure'))
+  assert.deepEqual(latest('inbox/configure').params, { mode: 'free' })
 
   // A subscription is quoted, then paid only once the approval window agrees.
   await main.click('nav >> text=/Plan & names|会员与名称/')

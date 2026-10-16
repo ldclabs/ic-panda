@@ -15,7 +15,7 @@
   })
 </script>
 
-<div class="pointer-events-none fixed end-4 bottom-4 z-50 flex w-[min(420px,calc(100vw-32px))] flex-col items-end gap-2" role="status" aria-live="polite">
+<div class="pointer-events-none fixed end-4 bottom-24 z-50 flex w-[min(420px,calc(100vw-32px))] flex-col items-end gap-2" role="status" aria-live="polite">
   {#each toasts as item (item.id)}
     {@const left = Math.max(0, Math.ceil((item.until - now) / 1000))}
     <div

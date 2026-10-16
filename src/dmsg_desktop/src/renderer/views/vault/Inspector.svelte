@@ -1,6 +1,7 @@
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui'
   import { localeDir } from '../../../shared/locales'
+  import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
   import SecretInput from '../../components/SecretInput.svelte'
   import TagInput from '../../components/TagInput.svelte'
@@ -64,15 +65,6 @@
       const manifest: any = await call('file/verify', { id: entry.id })
       checked = `${t('verified')} · ${size(manifest.size)} · sha256 ${String(manifest.sha256).slice(0, 16)}…`
     })
-
-  async function copyText(text: string) {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast(() => t('copiedText'))
-    } catch {
-      toast(() => `${t('error')}: UNAVAILABLE`)
-    }
-  }
 
   function startEdit() {
     editing = { title: item.title, tags: [...item.tags], body: item.body, username: item.username, url: item.url, secret: '' }
