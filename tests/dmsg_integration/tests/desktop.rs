@@ -1738,6 +1738,23 @@ fn desktop_content_and_sync() {
         a.run(&["files", "backup-status"]).as_array().unwrap().len(),
         1
     );
+    // The pending backup leaves the vault's jobs alone: the restarted
+    // daemon's first background flush succeeds while the backup waits.
+    let flushed = eventually(40, || {
+        let lines = a.run(&["logs", "-n", "100000"]);
+        let lines: Vec<&str> = lines
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|l| l.as_str().unwrap())
+            .collect();
+        let start = lines.iter().rposition(|l| l.contains(" daemon/start "))?;
+        lines[start..]
+            .iter()
+            .find(|l| l.contains(" flush outcome="))
+            .map(|l| l.to_string())
+    });
+    assert!(flushed.contains(" flush outcome=ok"), "{flushed}");
     let status = a.login(&env.http, 41).unwrap();
     assert_eq!(status["state"], "unlocked");
     let deadline = Instant::now() + Duration::from_secs(180);
@@ -1772,6 +1789,129 @@ fn desktop_content_and_sync() {
         sha256_hex(&medium)
     );
     eprintln!("interrupted backup done at {:?}", started.elapsed());
+
+    // FS3: share links to the medium file, one for the longest time allowed
+    // with its key in the fragment, one behind a password (set through the
+    // daemon: the CLI asks a terminal for it). The relay publishes them
+    // through its outbox; anyone reads the public descriptor, a manifest
+    // read counts a download, the share page's decryption (dmsg_frontend
+    // `$lib/share`) opens both to the shared bytes, and after the revoke
+    // the link answers 410 while A keeps the last count.
+    let link = a.run(&[
+        "files",
+        "link",
+        &medium_id,
+        "--days",
+        "30",
+        "--max-downloads",
+        "3",
+    ]);
+    let share = link["share_id"].as_str().unwrap().to_string();
+    assert!(
+        link["url"]
+            .as_str()
+            .unwrap()
+            .contains(&format!("/s/{share}#")),
+        "{link}"
+    );
+    let guarded = a
+        .rpc(
+            &env.http,
+            "files/share_link",
+            json!({"id": medium_id, "password": "correct horse"}),
+        )
+        .unwrap();
+    let guarded_share = guarded["share_id"].as_str().unwrap().to_string();
+    assert!(
+        guarded["url"]
+            .as_str()
+            .unwrap()
+            .ends_with(&format!("/s/{guarded_share}")),
+        "{guarded}"
+    );
+    let public = format!("{}/public/shares/{share}", env.relay);
+    let published = |url: &str| {
+        eventually(30, || {
+            let response = env.http.get(url).send().unwrap();
+            (response.status() == 200).then(|| response.json::<Value>().unwrap()["data"].clone())
+        })
+    };
+    let descriptor = published(&public);
+    assert_eq!(descriptor["status"], "available", "{descriptor}");
+    assert_eq!(
+        (&descriptor["max_downloads"], &descriptor["password"]),
+        (&json!(3), &json!(false))
+    );
+    assert_eq!(descriptor["chunks"].as_array().unwrap().len(), 64);
+    let wrapped = published(&format!("{}/public/shares/{guarded_share}", env.relay));
+    assert_eq!(wrapped["password"], true, "{wrapped}");
+    assert!(wrapped["key_wrap"].is_string());
+    let manifest = env.http.get(format!("{public}/manifest")).send().unwrap();
+    assert_eq!(manifest.status(), 200);
+    assert_eq!(
+        sha256_hex(&manifest.bytes().unwrap()),
+        descriptor["manifest"]["digest"].as_str().unwrap()
+    );
+    let chunk = env.http.get(format!("{public}/chunks/63")).send().unwrap();
+    assert_eq!(
+        sha256_hex(&chunk.bytes().unwrap()),
+        descriptor["chunks"][63]["digest"].as_str().unwrap()
+    );
+    let live = env.dir.join("share-live.json");
+    let report = env.dir.join("share-live-report.json");
+    let medium_sha = sha256_hex(&medium);
+    std::fs::write(
+        &live,
+        json!([
+            {"url": link["url"], "relay": env.relay, "sha256": medium_sha},
+            {"url": guarded["url"], "relay": env.relay, "password": "correct horse", "sha256": medium_sha},
+        ])
+        .to_string(),
+    )
+    .unwrap();
+    let opened = Command::new("pnpm")
+        .args(["exec", "vitest", "run", "src/lib/share/live.test.ts"])
+        .arg("--reporter=json")
+        .arg(format!("--outputFile={}", report.display()))
+        .current_dir(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/dmsg_frontend"))
+        .env("DMSG_SHARE_LIVE", &live)
+        .stdout(Stdio::null())
+        .status()
+        .unwrap();
+    let report: Value = serde_json::from_str(&std::fs::read_to_string(&report).unwrap()).unwrap();
+    assert!(
+        opened.success() && report["numPassedTests"] == 1,
+        "the share page did not open the links: {report}"
+    );
+    let count = |id: &str, downloads: u64| {
+        eventually(30, || {
+            let links = a.run(&["files", "links", "--refresh"]);
+            links
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|l| l["share_id"] == id && l["downloads"] == downloads)
+                .cloned()
+        })
+    };
+    assert_eq!(count(&share, 2)["state"], "active");
+    assert_eq!(count(&guarded_share, 1)["password"], true);
+    let revoked = a.run(&["files", "link-revoke", &share]);
+    assert_eq!(
+        (&revoked["state"], &revoked["downloads"]),
+        (&json!("revoked"), &json!(2))
+    );
+    // The directory learns of the revoke through the outbox; reading the
+    // descriptor counts nothing.
+    eventually(30, || {
+        let response = env.http.get(&public).send().unwrap();
+        (response.json::<Value>().unwrap()["data"]["status"] == "revoked").then_some(())
+    });
+    for path in ["manifest", "chunks/0"] {
+        let response = env.http.get(format!("{public}/{path}")).send().unwrap();
+        assert_eq!(response.status(), 410, "{path}");
+    }
+    eprintln!("share link done at {:?}", started.elapsed());
 
     // Profile: only the published fields, readable by anyone.
     let profile = a.run(&[
@@ -1833,18 +1973,12 @@ fn desktop_content_and_sync() {
         a.fail(&["profile", "avatar", gif.to_str().unwrap()]),
         "INVALID_INPUT"
     );
+    // The relay's edge cache may keep serving the old bytes at the public
+    // address for its max-age (an hour); the profile no longer names them.
     let removed = a.run(&["profile", "avatar", "--remove"]);
     assert!(removed["profile"]["avatar_upload"].is_null());
     assert_eq!(removed["profile"]["display_name"], "Desk Top");
-    assert_eq!(env.http.get(&public).send().unwrap().status(), 404);
-    assert_eq!(
-        b.rpc(
-            &env.http,
-            "profile/avatar_image",
-            json!({"account": account, "upload": upload})
-        ),
-        Ok(Value::Null)
-    );
+    assert!(b.run(&["profile", "resolve", &account])["profile"]["avatar_upload"].is_null());
 
     // AT04: after locking, the home holds no plaintext.
     let marker = b"FILE-PLAINTEXT-MARKER-4471";
@@ -4777,7 +4911,7 @@ fn desktop_agents() {
     let listed = modern.request("tools/list", json!({"_meta": meta}));
     assert_eq!(listed["result"]["resultType"], "complete");
     assert_eq!(listed["result"]["cacheScope"], "private");
-    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 56);
+    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 59);
     let unknown = modern.request(
         "tools/list",
         json!({"_meta": {"io.modelcontextprotocol/protocolVersion": "2099-01-01", "io.modelcontextprotocol/clientCapabilities": {}}}),
