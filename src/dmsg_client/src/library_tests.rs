@@ -1200,3 +1200,74 @@ async fn the_last_copy_of_a_released_version_stays_in_the_cloud() {
     ));
     assert!(client.cloud_entry(&upload).unwrap().is_some());
 }
+
+#[test]
+fn cloud_entries_verify_only_against_their_reservation_evidence() {
+    use super::backup::BACKUP;
+    use super::cloud::verify_entry;
+    use crate::cloud::{sign_command, Evidence, Signer};
+    use crate::evidence::Trust;
+    use crate::upload::{ChunkRef, UploadPlan};
+    use candid::Principal;
+    use serde_json::json;
+
+    let account = crate::testing::account().id;
+    let issuer = format!("dmsg:{account}");
+    let seed = [3u8; 32];
+    let device = dmsg_types::Hash::new([4; 32]);
+    let signer = Signer {
+        issuer: &issuer,
+        device_id: device,
+        security_epoch: 1,
+        seed: &seed,
+        expires_at: u64::MAX,
+    };
+    let plan = UploadPlan {
+        upload_id: "11".repeat(32),
+        object_id: "22".repeat(32),
+        version_id: "33".repeat(32),
+        root_generation: 1,
+        epoch: 0,
+        control_head: None,
+        kind: BACKUP.into(),
+        chunks: vec![ChunkRef {
+            digest: "44".repeat(32),
+            size: 1,
+        }],
+        manifest_digest: "55".repeat(32),
+        manifest_size: 1,
+        expires_at: 10,
+    };
+    let entry = json!({
+        "upload_id": plan.upload_id,
+        "plan": plan,
+        "signature": {
+            "cose_sign1": sign_command(&signer, "dmsg/upload/reserve/v1", &plan, "01", 10),
+        },
+        "device_id": hex::encode(*device),
+    });
+    let trust = Trust {
+        homes: vec![Principal::from_slice(&[1])],
+        namespace: "dmsg:".into(),
+        root_key: vec![],
+    };
+    // No device map stands in for the reservation's evidence: without it,
+    // a well-formed signature is refused.
+    assert_eq!(
+        verify_entry(&trust, &account, &entry, 20).unwrap_err(),
+        Error::IntegrityFailed
+    );
+    // Evidence from a home outside this deployment is refused as well.
+    let mut foreign = entry.clone();
+    foreign["evidence"] = json!(Evidence {
+        schema: 1,
+        canister: Principal::from_slice(&[2]).to_text(),
+        certificate: String::new(),
+        entries: vec![],
+    });
+    foreign["stored_at"] = json!(15);
+    assert_eq!(
+        verify_entry(&trust, &account, &foreign, 20).unwrap_err(),
+        Error::IntegrityFailed
+    );
+}

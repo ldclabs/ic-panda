@@ -324,11 +324,13 @@ tried again five minutes later. Nothing starts a backup but this command:
 not an import, not an edit, not a cloud refresh, and a copy deleted from
 the cloud is never uploaded again. `files cloud ls --refresh` reads the
 account's backup inventory from the relay (every device's, each entry's
-signed plan checked against the certified devices, each manifest opened
-with the root of its generation; one whose root this device lacks is listed
-as such and opens at a later refresh, once the root is here), marks local
-versions the backups are of, and `cloud get` fetches one into the library,
-where it was or into `--to`, after checking every chunk and the whole file.
+signed plan checked against the certified evidence the relay kept when it
+was reserved, so backups of devices replaced since still count, each
+manifest opened with the root of its generation; one whose root this
+device lacks is listed as such and opens at a later refresh, once the root
+is here), marks local versions the backups are of, and `cloud get`
+fetches one into the library, where it was or into `--to`, after checking
+every chunk and the whole file.
 `cloud rm` deletes cloud copies for good, which frees their quota and
 changes nothing on this device; the copy a version released with `files
 evict` reads from is its last, so `cloud rm` refuses it until `cloud get`

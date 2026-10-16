@@ -5,32 +5,75 @@
 //!
 //! The inventory is the set of committed `backup` uploads of every device of
 //! the account, read by a cursor: each entry's signed plan is checked
-//! against the certified devices, its manifest is downloaded and opened
-//! with the root of its generation, and the result is cached as a sealed
-//! `lib-cloud` record; an entry whose root this device lacked opens at a
-//! later refresh, once the root is here. There is no mutable cloud catalog,
-//! so there is nothing to reconcile: a deletion on either side changes only
-//! that side.
+//! against the certified evidence the relay kept from its reservation, so a
+//! device replaced since (by recovery, or dropped at the device bound) still
+//! counts; its manifest is downloaded and opened with the root of its
+//! generation, and the result is cached as a sealed `lib-cloud` record; an
+//! entry whose root this device lacked opens at a later refresh, once the
+//! root is here. There is no mutable cloud catalog, so there is nothing to
+//! reconcile: a deletion on either side changes only that side.
 
 use super::backup::{BackupManifest, BACKUP};
 use super::catalog::{
     safe_name, Backup, FileRecord, FileView, Origin, Version, VersionRef, FILE, ROOT,
 };
 use super::{Client, VersionCheck};
-use crate::cloud::verify_signed_command;
+use crate::cloud::Evidence;
 use crate::codec::sha256;
 use crate::content::{empty_file, open_manifest, Opened};
 use crate::crypto::Key;
+use crate::evidence::{Trust, Verified};
 use crate::files::{read_file, BlobStore, MAX_FILE};
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan};
-use dmsg_types::{ensure, ensure_valid, Error, Hash, Result};
+use dmsg_types::{ensure, ensure_valid, AccountId, Error, Hash, Result};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value as Json};
 use zeroize::Zeroizing;
 
 pub(crate) const CLOUD: &str = "lib-cloud:";
 const CURSOR: &str = "lib-cloud-cursor";
+
+/// The plan of one inventory entry of `account` and the device that
+/// reserved it, checked against the certified evidence the relay kept from
+/// the reservation, as a channel upload's descriptor is: the device was an
+/// unrevoked content signer of the account then, whatever replaced it since.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for an entry that does not verify.
+pub(crate) fn verify_entry(
+    trust: &Trust,
+    account: &AccountId,
+    entry: &Json,
+    now: u64,
+) -> Result<(UploadPlan, String)> {
+    let plan: UploadPlan =
+        serde_json::from_value(entry["plan"].clone()).map_err(|_| Error::IntegrityFailed)?;
+    let evidence: Evidence =
+        serde_json::from_value(entry["evidence"].clone()).map_err(|_| Error::IntegrityFailed)?;
+    let stored_at = entry["stored_at"].as_u64().ok_or(Error::IntegrityFailed)?;
+    let verified: Verified<UploadPlan> = trust
+        .command(
+            entry["signature"]["cose_sign1"]
+                .as_str()
+                .unwrap_or_default(),
+            &evidence,
+            stored_at,
+            Some("dmsg/upload/reserve/v1"),
+            now,
+        )
+        .map_err(|_| Error::IntegrityFailed)?;
+    let device = hex::encode(*verified.device);
+    ensure(
+        verified.account == *account
+            && verified.body.payload == plan
+            && entry["upload_id"] == plan.upload_id.as_str()
+            && plan.kind == BACKUP
+            && entry["device_id"] == device.as_str(),
+        Error::IntegrityFailed,
+    )?;
+    Ok((plan, device))
+}
 
 /// A committed backup as this device knows it.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -215,18 +258,20 @@ impl Client {
     }
 
     /// Read the relay's backup inventory from this device's cursor on:
-    /// check every entry's signed plan against the account's certified
-    /// devices, open each new manifest with the root of its generation and
-    /// cache it; forget the ones deleted. Cached entries that lacked their
-    /// root open once the root is here. A local version a backup is of is
-    /// marked backed up.
+    /// check every entry's signed plan against the evidence of its
+    /// reservation ([`verify_entry`]), open each new manifest with the root
+    /// of its generation and cache it; forget the ones deleted. Cached
+    /// entries that lacked their root open once the root is here. A local
+    /// version a backup is of is marked backed up.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked and `Error::IntegrityFailed`
     /// for an entry that does not verify.
     pub async fn files_cloud_refresh(&mut self) -> Result<CloudRefresh> {
         self.roots()?;
-        let account = self.account()?.id.to_string();
+        let id = self.account()?.id;
+        let account = id.to_string();
+        let trust = self.trust().await?;
         let base = self.base()?;
         let mut cursor: u64 = self.workspace.private(self.keys()?, CURSOR)?.unwrap_or(0);
         let mut report = CloudRefresh::default();
@@ -241,7 +286,6 @@ impl Client {
             let page = self
                 .relay_get(&format!("{base}/backups?after={cursor}&limit=100"))
                 .await?;
-            let security = self.cloud_state().await?;
             let now = now_ms();
             let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
             ensure(entries.len() <= 100, Error::IntegrityFailed)?;
@@ -249,28 +293,8 @@ impl Client {
                 let at = entry["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
                 ensure(at > cursor, Error::IntegrityFailed)?;
                 cursor = at;
-                let upload_id = entry["upload_id"]
-                    .as_str()
-                    .ok_or(Error::IntegrityFailed)?
-                    .to_string();
-                let plan: UploadPlan = serde_json::from_value(entry["plan"].clone())
-                    .map_err(|_| Error::IntegrityFailed)?;
-                let (signer, signed): (Hash, UploadPlan) = verify_signed_command(
-                    entry["signature"]["cose_sign1"]
-                        .as_str()
-                        .unwrap_or_default(),
-                    &security.snapshot.issuer,
-                    &security.devices,
-                    "dmsg/upload/reserve/v1",
-                )?;
-                let device = hex::encode(*signer);
-                ensure(
-                    signed == plan
-                        && plan.upload_id == upload_id
-                        && plan.kind == BACKUP
-                        && entry["device_id"] == device.as_str(),
-                    Error::IntegrityFailed,
-                )?;
+                let (plan, device) = verify_entry(&trust, &id, entry, now)?;
+                let upload_id = plan.upload_id.clone();
                 if entry["state"] != "committed" {
                     if self.cloud_entry(&upload_id)?.is_some() {
                         self.forget_cloud(&upload_id)?;
