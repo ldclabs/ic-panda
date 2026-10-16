@@ -40,13 +40,13 @@ export function ago(ms?: number | null, now = Date.now()): string {
   return new Date(ms).toLocaleDateString(locale(), { month: 'short', day: 'numeric', year: new Date(ms).getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric' })
 }
 
-/** A size in bytes, as the interface language writes it. */
+/** A size in bytes, as the interface language writes it, in decimal units (1 kB is 1000 bytes). */
 export function size(bytes: number): string {
-  const units = ['byte', 'kilobyte', 'megabyte', 'gigabyte'] as const
+  const units = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte'] as const
   let value = bytes
   let unit = 0
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
+  while (value >= 1000 && unit < units.length - 1) {
+    value /= 1000
     unit++
   }
   return new Intl.NumberFormat(locale(), { style: 'unit', unit: units[unit], unitDisplay: 'short', maximumFractionDigits: unit ? 1 : 0 }).format(value)

@@ -1,13 +1,20 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n/index.svelte'
-  import { call, code, when } from '../rpc'
   import Checkbox from '../components/Checkbox.svelte'
+  import Icon from '../components/Icon.svelte'
+  import Field from '../components/page/Field.svelte'
+  import Id from '../components/page/Id.svelte'
+  import Notice from '../components/page/Notice.svelte'
+  import Pill from '../components/page/Pill.svelte'
+  import Section from '../components/page/Section.svelte'
   import Segmented from '../components/Segmented.svelte'
   import { buttonClass } from '../components/ui'
+  import { t } from '../i18n/index.svelte'
+  import { bridge, call, code, when } from '../rpc'
 
-  /** Bound logins, approvals of other devices and logins, the signing policy and recovery. */
+  /** Bound logins, approvals of other devices and logins, the signing policy and recovery. Every change is an approval request. */
   let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
+
   let security = $state<any>(null)
   let request = $state('')
   let shown = $state('')
@@ -29,62 +36,54 @@
     }
   }
 
-  /** Each change is an approval request; the approval window decides it. */
-  async function ask(method: string, params: unknown) {
+  async function guard(work: () => Promise<void>) {
     busy = true
     error = ''
     try {
-      const created = await call(method, params)
-      if (created?.id) await window.dmsg.openApproval(created.id)
+      await work()
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
     } finally {
       busy = false
     }
   }
+
+  /** Each change is an approval request; the approval window decides it. */
+  const ask = (method: string, params: unknown) =>
+    guard(async () => {
+      const created: any = await call(method, params)
+      if (created?.id) await bridge(() => window.dmsg.openApproval(created.id))
+    })
 
   /** A pairing request carries a device ID; a binding request a login. */
   async function approve() {
-    busy = true
-    error = ''
-    try {
+    await guard(async () => {
       if (pairing) {
         await call('device/approve', { token: request.trim(), device: shown.trim() })
       } else {
-        const created = await call('account/bind_approve', { token: request.trim(), principal: shown.trim() })
-        await window.dmsg.openApproval(created.id)
+        const created: any = await call('account/bind_approve', { token: request.trim(), principal: shown.trim() })
+        await bridge(() => window.dmsg.openApproval(created.id))
       }
       request = ''
       shown = ''
-    } catch (e) {
-      error = `${t('error')}: ${code(e)}`
-    } finally {
-      busy = false
-      await load()
-      await refresh()
-    }
+    })
+    await load()
+    await refresh()
   }
 
   /** The second login happens in the browser; its approval request opens when it arrives. */
-  async function bindLogin() {
-    busy = true
-    error = ''
-    try {
-      const started: any = await window.dmsg.login('https://dmsg.net', true)
+  const bindLogin = () =>
+    guard(async () => {
+      const started: any = await bridge(() => window.dmsg.login('https://dmsg.net', true))
       while (Date.now() < started.expires_at) {
         await new Promise((resolve) => setTimeout(resolve, 1000))
-        const result = await call('session/login_result')
+        const result: any = await call('session/login_result')
         if (result.pending) continue
         if (result.error) error = `${t('error')}: ${result.error}`
-        if (result.approval) await window.dmsg.openApproval(result.approval.id)
+        if (result.approval) await bridge(() => window.dmsg.openApproval(result.approval.id))
         break
       }
-    } catch (e) {
-      error = `${t('error')}: ${code(e)}`
-    } finally {
-      busy = false
-    }
-  }
+    })
 
   /** A device ID names a pairing request; anything else a login. */
   const pairing = $derived(/^[0-9a-f]{64}$/.test(shown.trim()))
@@ -97,72 +96,89 @@
   })
 </script>
 
+{#if error}<Notice tone="danger">{error}</Notice>{/if}
 {#if security}
-  <div class="card" data-testid="security">
-    <h2>{t('security')}</h2>
-    {#if error}<p class="error">{error}</p>{/if}
-    <h3>{t('logins')}</h3>
-    <ul class="list" data-testid="logins">
+  <Section title={t('logins')} description={t('bindLoginHint')} icon="login" flush testid="security">
+    {#snippet actions()}
+      <button class={buttonClass('secondary', 'sm')} disabled={busy} data-testid="bind-login" onclick={bindLogin}><Icon name="add" />{t('bindLogin')}</button>
+    {/snippet}
+    <ul class="divide-y divide-line border-t border-line" data-testid="logins">
       {#each security.logins as login (login.principal)}
-        <li class="row spread">
-          <span class="mono">{login.principal}{login.current ? ` (${t('current')})` : ''}</span>
+        <li class="flex items-center gap-2 px-5 py-3">
+          <Id id={login.principal} full class="max-w-[70%]" />
+          {#if login.current}<Pill tone="forest">{t('current')}</Pill>{/if}
+          <span class="flex-1"></span>
           {#if !login.current && security.logins.length > 1}
-            <button class={buttonClass('danger')} disabled={busy} onclick={() => ask('account/unbind', { principal: login.principal })}>{t('remove')}</button>
+            <button class={buttonClass('danger', 'xs')} disabled={busy} onclick={() => ask('account/unbind', { principal: login.principal })}>{t('remove')}</button>
           {/if}
         </li>
       {/each}
     </ul>
-    <p class="muted">{t('bindLoginHint')}</p>
-    <button class={buttonClass()} disabled={busy} data-testid="bind-login" onclick={bindLogin}>{t('bindLogin')}</button>
+  </Section>
 
-    <h3>{t('approveOthers')}</h3>
-    <textarea placeholder={t('pasteRequest')} bind:value={request} data-testid="approve-request"></textarea>
-    <div class="row" style="margin-top: 8px">
-      <input placeholder={`${t('deviceShown')} / ${t('principalShown')}`} bind:value={shown} data-testid="approve-shown" />
-      <button class={buttonClass('primary')} disabled={busy || !request.trim() || !shown.trim()} onclick={approve}>
-        {pairing ? t('approveDevice') : t('approveLogin')}
-      </button>
+  <Section title={t('approveOthers')} description={t('approveOthersHint')} icon="pair">
+    <div class="grid gap-2.5">
+      <Field label={t('pasteRequest')}><textarea bind:value={request} rows="3" class="font-mono text-[11.5px]" data-testid="approve-request"></textarea></Field>
+      <div class="flex flex-wrap items-end gap-2">
+        <Field label={`${t('deviceShown')} / ${t('principalShown')}`} class="min-w-60 flex-1">
+          <input bind:value={shown} class="font-mono text-[12.5px]" data-testid="approve-shown" />
+        </Field>
+        <button class={buttonClass('primary')} disabled={busy || !request.trim() || !shown.trim()} onclick={approve}>
+          {pairing ? t('approveDevice') : t('approveLogin')}
+        </button>
+      </div>
     </div>
+  </Section>
 
-    <h3>{t('signingPolicy')}</h3>
-    <p>{security.policy.frozen ? t('frozen') : t('formalOn')}</p>
-    <div class="row">
-      <button class={buttonClass()} disabled={busy} onclick={() => ask('account/policy', { frozen: !security.policy.frozen })}>
-        {security.policy.frozen ? t('unfreeze') : t('freeze')}
-      </button>
-      <input style="max-width: 90px" bind:value={daily} aria-label={t('dailyExecutions')} />
-      <button class={buttonClass()} disabled={busy || !/^\d+$/.test(daily)} onclick={() => ask('account/policy', { daily_executions: Number(daily) })}>{t('dailyExecutions')}</button>
+  <Section title={t('signingPolicy')} description={t('signingPolicyHint')} icon="signature">
+    {#snippet actions()}
+      <Pill tone={security.policy.frozen ? 'warn' : 'ok'}>{security.policy.frozen ? t('frozen') : t('formalOn')}</Pill>
+    {/snippet}
+    <div class="grid gap-4">
+      <div class="flex flex-wrap items-end gap-2">
+        <Field label={t('dailyExecutions')}><input bind:value={daily} inputmode="numeric" class="w-28 tabular-nums" /></Field>
+        <button class={buttonClass('secondary')} disabled={busy || !/^\d+$/.test(daily)} onclick={() => ask('account/policy', { daily_executions: Number(daily) })}>
+          {t('save')}
+        </button>
+        <span class="flex-1"></span>
+        <button class={buttonClass(security.policy.frozen ? 'primary' : 'danger')} disabled={busy} onclick={() => ask('account/policy', { frozen: !security.policy.frozen })}>
+          {security.policy.frozen ? t('unfreeze') : t('freeze')}
+        </button>
+      </div>
+      <div class="grid gap-2">
+        <span class="text-[12px] text-faint">{t('purposes')}</span>
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+          {#each ['FileAttestation', 'Statement', 'AppAction'] as p (p)}
+            <Checkbox checked={purposes.includes(p)} onCheckedChange={(on) => (purposes = on ? [...purposes, p] : purposes.filter((x) => x !== p))}>{p}</Checkbox>
+          {/each}
+          <span class="flex-1"></span>
+          <button class={buttonClass('secondary')} disabled={busy} onclick={() => ask('account/policy', { allowed_purposes: purposes })}>{t('submit')}</button>
+        </div>
+      </div>
     </div>
-    <div class="row" style="margin-top: 8px">
-      <span class="muted">{t('purposes')}</span>
-      {#each ['FileAttestation', 'Statement', 'AppAction'] as p (p)}
-        <Checkbox checked={purposes.includes(p)} onCheckedChange={(on) => (purposes = on ? [...purposes, p] : purposes.filter((x) => x !== p))}
-          >{p}</Checkbox
-        >
-      {/each}
-      <button class={buttonClass()} disabled={busy} onclick={() => ask('account/policy', { allowed_purposes: purposes })}>{t('submit')}</button>
-    </div>
+  </Section>
 
-    <h3>{t('recovery')}</h3>
-    <div class="row">
-      <Segmented
-        bind:value={days}
-        label={t('recoveryDelay')}
-        options={['1', '2', '3', '4', '5', '6', '7'].map((d) => ({ value: d, label: d }))}
-        testid="recovery-days"
-      />
-      <button class={buttonClass()} disabled={busy || !/^[1-7]$/.test(days)} onclick={() => ask('account/recovery_delay', { days: Number(days) })}>{t('recoveryDelay')}</button>
+  <Section title={t('recovery')} description={t('recoveryDelayHint')} icon="recovery">
+    <div class="grid gap-3">
+      <div class="flex flex-wrap items-end gap-2">
+        <Field label={t('recoveryDays')}>
+          <Segmented bind:value={days} label={t('recoveryDelay')} options={['1', '2', '3', '4', '5', '6', '7'].map((d) => ({ value: d, label: d }))} testid="recovery-days" />
+        </Field>
+        <button class={buttonClass('secondary')} disabled={busy || !/^[1-7]$/.test(days)} onclick={() => ask('account/recovery_delay', { days: Number(days) })}>
+          {t('recoveryDelay')}
+        </button>
+      </div>
+      {#if security.pending_recovery}
+        <Notice tone="warn" testid="pending-recovery">
+          {t('pendingRecovery')}: {t('loginPrincipal')} <span class="font-mono">{security.pending_recovery.new_auth}</span> · {t('executeAfter')}
+          {when(security.pending_recovery.execute_after)}
+          {#snippet action()}
+            <button class={buttonClass('danger', 'xs')} disabled={busy} onclick={() => ask('recovery/dispute', {})}>{t('disputeRecovery')}</button>
+          {/snippet}
+        </Notice>
+      {:else}
+        <p class="flex items-center gap-1.5 text-[12.5px] text-faint"><Icon name="check" class="text-ok" />{t('noRecovery')}</p>
+      {/if}
     </div>
-    {#if security.pending_recovery}
-      <p class="warn" data-testid="pending-recovery">
-        {t('pendingRecovery')}: {t('loginPrincipal')} <span class="mono">{security.pending_recovery.new_auth}</span>
-        · {t('executeAfter')} {when(security.pending_recovery.execute_after)}
-      </p>
-      <button class={buttonClass('danger')} disabled={busy} onclick={() => ask('recovery/dispute', {})}>{t('disputeRecovery')}</button>
-    {:else}
-      <p class="muted">{t('noRecovery')}</p>
-    {/if}
-  </div>
-{:else if status?.state === 'unlocked' && error}
-  <p class="error">{error}</p>
+  </Section>
 {/if}

@@ -1,119 +1,70 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import Page from '../components/page/Page.svelte'
+  import TabBar from '../components/page/TabBar.svelte'
+  import { toast } from '../components/toast.svelte'
   import { t } from '../i18n/index.svelte'
-  import { call, code, when } from '../rpc'
-  import AgentMail from './AgentMail.svelte'
-  import AgentEvents from './AgentEvents.svelte'
-  import AgentAudit from './AgentAudit.svelte'
-  import Select from '../components/Select.svelte'
-  import Checkbox from '../components/Checkbox.svelte'
-  import Suggest from '../components/Suggest.svelte'
-  import { buttonClass } from '../components/ui'
+  import { bridge, call, code } from '../rpc'
+  import AgentIds from './agents/AgentIds.svelte'
+  import Audit from './agents/Audit.svelte'
+  import Capabilities from './agents/Capabilities.svelte'
+  import Events from './agents/Events.svelte'
+  import Mail from './agents/Mail.svelte'
+  import Overview from './agents/Overview.svelte'
 
+  /**
+   * Agents in parts: the account's principal with its controllers and
+   * credentials, the hosted Agent IDs, what each may reach, Agent Mail and
+   * Knowledge, MCP Events endpoints, and the audit record.
+   */
   let { status }: { status: any } = $props()
+
+  type Tab = 'overview' | 'ids' | 'capabilities' | 'mail' | 'events' | 'audit'
+
+  let tab = $state<Tab>('overview')
   let principal = $state<any>(null)
   let credentials = $state<any[]>([])
   let hosted = $state<any>({ agents: [], hosts: [] })
   let grants = $state<any[]>([])
-  let error = $state('')
   let busy = $state(false)
-  let kind = $state('person')
-  let controllerName = $state('')
-  let ceilingScopes = $state('')
-  let ceilingAudiences = $state('')
-  let subject = $state('')
-  let scopes = $state('')
-  let audiences = $state('')
-  let days = $state(30)
-  let label = $state('')
-  let issued = $state<{ agent_id: string; credential: string } | null>(null)
-  let grantee = $state('')
-  let capabilities = $state('')
-  /** The origin the service capabilities name, `*` for every allowed host. */
-  let origin = $state('*')
-  let services = $state<Record<string, boolean>>({})
 
-  /** What else an agent may be granted; `<name>:*` covers every target. */
-  const VOCABULARY =
-    'account.read vault.list vault.read:<tag> vault.write:<tag> vault.secret:<item> file.read:<tag> channel.read:<channel> channel.publish:<channel> inbox.read inbox.contact attest.request action.request agent.delegation.read events.endpoint'
+  const unlocked = $derived(status?.state === 'unlocked')
 
-  /** The Agent Protocols services, with the capabilities that read and write each. */
-  const SERVICES = [
-    { name: 'Agent Discourse', read: 'discourse.read', write: 'discourse.write' },
-    { name: 'Agent Mail', read: 'mail.read', write: 'mail.write' },
-    { name: 'Agent Knowledge', read: 'knowledge.read', write: 'knowledge.write' }
-  ]
+  const fail = (e: unknown) => toast(() => (code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`))
 
-  const list = (text: string, separator: RegExp) =>
-    text
-      .split(separator)
-      .map((v) => v.trim())
-      .filter(Boolean)
-
-  async function attempt(work: () => Promise<void>) {
+  async function attempt(work: () => Promise<unknown>) {
     busy = true
-    error = ''
     try {
       await work()
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      fail(e)
     } finally {
       busy = false
     }
   }
 
-  const load = () =>
-    attempt(async () => {
+  async function load() {
+    try {
       hosted = await call('agent/ids')
       principal = await call('agent/principal')
       grants = await call('grants/list')
       credentials = principal ? await call('agent/credentials') : []
-    })
+    } catch (e) {
+      if (code(e) !== 'LOCKED') fail(e)
+    }
+  }
 
   /** Principal changes and grants are approval requests the approval window decides. */
   const request = (method: string, params: Record<string, unknown> = {}) =>
     attempt(async () => {
       const created: any = await call(method, params)
-      await window.dmsg.openApproval(created.id)
+      await bridge(() => window.dmsg.openApproval(created.id))
     })
 
-  const register = () =>
-    request('agent/register', {
-      name: controllerName.trim() || null,
-      ...(ceilingScopes.trim() || ceilingAudiences.trim()
-        ? { scopes: list(ceilingScopes, /,/), audiences: list(ceilingAudiences, /,/) }
-        : {})
-    })
-
-  const grant = () =>
-    request('agent/grant', { subject: subject.trim(), scopes: list(scopes, /,/), audiences: list(audiences, /,/), days })
-
-  /** The ticked services at the chosen origin, and the capabilities typed. */
-  const chosen = $derived([
-    ...Object.keys(services)
-      .filter((name) => services[name])
-      .map((name) => `${name}:${origin}`),
-    ...list(capabilities, /\s+/)
-  ])
-
-  const grantChosen = () =>
-    attempt(async () => {
-      await call('grants/add', { agent: grantee, capabilities: chosen })
-      services = {}
-      capabilities = ''
-      await load()
-    })
-
-  const run = (method: string, params: Record<string, unknown>) =>
+  const run = (method: string, params: Record<string, unknown> = {}) =>
     attempt(async () => {
       await call(method, params)
       await load()
-    })
-
-  const issue = (agent: string) =>
-    attempt(async () => {
-      issued = await call('agent/credential', { agent })
-      hosted = await call('agent/ids')
     })
 
   onMount(() => {
@@ -123,199 +74,31 @@
     })
   })
 
-  const unlocked = $derived(status?.state === 'unlocked')
-  const current = $derived((principal?.controllers ?? []).filter((c: any) => !c.retired_at))
-  const label_of = (did: string) => hosted.agents.find((a: any) => a.agent_id === did)?.label ?? did
+  const tabs = $derived([
+    { value: 'overview', label: t('tabPrincipal'), icon: 'plan' as const },
+    { value: 'ids', label: t('tabAgentIds'), icon: 'agents' as const, count: hosted.agents.length },
+    { value: 'capabilities', label: t('tabCapabilities'), icon: 'security' as const },
+    { value: 'mail', label: t('mail'), icon: 'mail' as const },
+    { value: 'events', label: t('tabEvents'), icon: 'webhook' as const },
+    { value: 'audit', label: t('tabAudit'), icon: 'audit' as const }
+  ])
 </script>
 
-{#if error}<p class="error" data-testid="agents-error">{error}</p>{/if}
-<div class="card">
-  <h2>{t('principal')}</h2>
-  <p class="muted">{t('principalHint')}</p>
-  {#if principal}
-    <dl>
-      <dt>ID</dt>
-      <dd class="mono" data-testid="principal-id">{principal.principal_id}</dd>
-      <dt>{t('status')}</dt>
-      <dd data-testid="principal-published">
-        {principal.published ? t('published') : t('unpublished')}
-        {#if !principal.published}<button class={buttonClass()} disabled={busy} onclick={() => run('agent/publish', {})}>{t('publish')}</button>{/if}
-      </dd>
-    </dl>
-    <h2>{t('controllers')}</h2>
-    <ul class="list" data-testid="controllers">
-      {#each principal.controllers as c (c.generation)}
-        <li class="row spread">
-          <span>
-            #{c.generation}
-            {c.name ?? ''}
-            <span class="mono muted">{c.agent_id}</span>
-          </span>
-          <span class="muted">
-            {c.delegation === '*' ? t('everything') : `${c.delegation.scopes.join(', ')} → ${c.delegation.audiences.join(', ')}`}
-            {#if c.retired_at}· {t('retired')}{:else if unlocked}<button class={buttonClass()} disabled={busy} onclick={() => request('agent/retire', { generation: c.generation })}>{t('retire')}</button>{/if}
-          </span>
-        </li>
-      {/each}
-    </ul>
-    {#if unlocked}
-      <h2>{t('registerController')}</h2>
-      <div class="row">
-        <input placeholder={t('name')} bind:value={controllerName} style="max-width: 160px" />
-        <input placeholder={t('scopes')} bind:value={ceilingScopes} />
-        <input placeholder={t('audiences')} bind:value={ceilingAudiences} />
-        <button class={buttonClass('primary')} disabled={busy} onclick={register}>{t('register')}</button>
-      </div>
-    {/if}
-  {:else if unlocked}
-    <div class="row">
-      <Select bind:value={kind} options={['person', 'organization', 'team', 'project', 'other'].map((k) => ({ value: k, label: k }))} />
-      <button class={buttonClass('primary')} disabled={busy} data-testid="enable-principal" onclick={() => request('agent/enable', { type: kind })}>
-        {t('enablePrincipal')}
-      </button>
-    </div>
-  {/if}
-</div>
-{#if principal}
-  <div class="card">
-    <h2>{t('credentials')}</h2>
-    {#if credentials.length}
-      <ul class="list" data-testid="credentials">
-        {#each credentials as c (c.id)}
-          <li class="row spread">
-            <span>
-              {label_of(c.subject)} · {c.scopes.join(', ')} → {c.audiences.join(', ')}
-              <span class="muted">{c.expires_at ? `· ${when(c.expires_at)}` : ''}</span>
-            </span>
-            <span class="muted">
-              {c.status}
-              {#if c.status === 'active' && unlocked}<button class={buttonClass()} disabled={busy} onclick={() => request('agent/revoke', { id: c.id })}>{t('revoke')}</button>{/if}
-            </span>
-          </li>
-        {/each}
-      </ul>
+<div class="flex h-full min-h-0 flex-col">
+  <TabBar bind:value={() => tab, (next) => (tab = next as Tab)} items={tabs} label={t('agents')} testid="agents-tab" />
+  <div class="min-h-0 flex-1">
+    {#if tab === 'overview'}
+      <Page><Overview {principal} {credentials} {hosted} {unlocked} {busy} {request} {run} /></Page>
+    {:else if tab === 'ids'}
+      <Page><AgentIds {hosted} {unlocked} {busy} {run} {attempt} reload={load} /></Page>
+    {:else if tab === 'capabilities'}
+      <Page wide><Capabilities {hosted} {grants} {unlocked} {busy} {run} /></Page>
+    {:else if tab === 'mail'}
+      <Page><Mail agents={hosted.agents} active={hosted.active} {unlocked} /></Page>
+    {:else if tab === 'events'}
+      <Page><Events agents={hosted.agents} {unlocked} /></Page>
     {:else}
-      <p class="muted">{t('noCredentials')}</p>
-    {/if}
-    {#if unlocked && current.length}
-      <div class="row" style="margin-top: 8px">
-        <Suggest
-          bind:value={subject}
-          placeholder={t('grantee')}
-          testid="grant-subject"
-          suggestions={hosted.agents.map((a: any) => ({ value: a.label, hint: a.agent_id }))}
-        />
-        <input placeholder={t('scopes')} bind:value={scopes} data-testid="grant-scopes" />
-        <input placeholder={t('audiences')} bind:value={audiences} data-testid="grant-audiences" />
-        <input type="number" min="1" max="366" bind:value={days} style="max-width: 80px" title={t('days')} />
-        <button
-          class={buttonClass('primary')}
-          data-testid="grant-submit"
-          disabled={busy || !subject.trim() || !scopes.trim() || !audiences.trim()}
-          onclick={grant}>{t('grant')}</button>
-      </div>
+      <Page><Audit agents={hosted.agents} /></Page>
     {/if}
   </div>
-{/if}
-<div class="card">
-  <h2>{t('agentIds')}</h2>
-  <p class="muted">{t('agentIdsHint')}</p>
-  <ul class="list" data-testid="agent-ids">
-    {#each hosted.agents as a (a.agent_id)}
-      <li>
-        <div class="row spread">
-          <span>
-            <strong>{a.label}</strong>
-            {#if hosted.active === a.agent_id}<span class="muted">· {t('active')}</span>{/if}
-            {#if a.resident}<span class="muted">· {t('resident')}</span>{/if}
-          </span>
-          <span class="mono muted">{a.agent_id}</span>
-        </div>
-        <div class="row">
-          <button class={buttonClass()} disabled={busy} onclick={() => run('agent/use', { agent: a.agent_id })}>{t('use')}</button>
-          <button class={buttonClass()} disabled={busy || !unlocked} onclick={() => run('agent/resident', { agent: a.agent_id, on: !a.resident })}>
-            {a.resident ? t('residentOff') : t('residentOn')}
-          </button>
-          <button class={buttonClass()} disabled={busy} onclick={() => issue(a.agent_id)}>{t('issueCredential')}</button>
-        </div>
-        {#if issued?.agent_id === a.agent_id}
-          <p class="warn">{t('credentialOnce')}</p>
-          <pre class="mono" data-testid="agent-credential">{issued?.credential}</pre>
-        {/if}
-      </li>
-    {/each}
-  </ul>
-  {#if unlocked}
-    <div class="row">
-      <input placeholder={t('label')} bind:value={label} data-testid="agent-label" style="max-width: 200px" />
-      <button class={buttonClass()} disabled={busy || !label.trim()} onclick={() => run('agent/create', { label: label.trim() })}>{t('create')}</button>
-    </div>
-  {/if}
-  <h2>{t('hosts')}</h2>
-  <p class="muted">{t('hostsHint')}</p>
-  <ul class="list">
-    {#each hosted.hosts as h (h.host)}<li class="mono">{h.host}{h.label ? ` · ${h.label}` : ''}</li>{/each}
-  </ul>
 </div>
-{#if unlocked}
-  <div class="card" data-testid="grants-card">
-    <h2>{t('capabilityGrants')}</h2>
-    <p class="muted">{t('capabilitiesHint')}</p>
-    <ul class="list" data-testid="capability-grants">
-      {#each grants as g (g.id)}
-        <li class="row spread">
-          <span>{label_of(g.grantee)} · {g.capabilities.join(' ')}</span>
-          <span class="muted">
-            {g.revoked_at ? t('retired') : g.expires_at ? when(g.expires_at) : ''}
-            {#if !g.revoked_at}<button class={buttonClass()} disabled={busy} onclick={() => run('grants/revoke', { id: g.id })}>{t('revoke')}</button>{/if}
-          </span>
-        </li>
-      {/each}
-    </ul>
-    <div class="row">
-      <Select
-        bind:value={grantee}
-        placeholder={t('grantee')}
-        testid="grant-agent"
-        options={hosted.agents.map((a: any) => ({ value: a.agent_id, label: a.label }))} />
-    </div>
-    <h2 style="margin-top: 16px">{t('serviceGrants')}</h2>
-    <p class="muted">{t('serviceGrantsHint')}</p>
-    <div class="row">
-      <Select
-        bind:value={origin}
-        testid="grant-origin"
-        options={[
-          { value: '*', label: t('everyHost') },
-          ...hosted.hosts.map((h: any) => ({ value: h.host, label: h.label ? `${h.host} · ${h.label}` : h.host, mono: true }))
-        ]} />
-    </div>
-    <ul class="list" data-testid="service-grants">
-      {#each SERVICES as service (service.read)}
-        <li class="row spread">
-          <span>{service.name}</span>
-          <span class="row">
-            <Checkbox bind:checked={() => services[service.read] ?? false, (on) => (services[service.read] = on)} testid="service-{service.read}">{t('canRead')}</Checkbox>
-            <Checkbox bind:checked={() => services[service.write] ?? false, (on) => (services[service.write] = on)} testid="service-{service.write}">{t('canWrite')}</Checkbox>
-          </span>
-        </li>
-      {/each}
-      <li class="row spread">
-        <span>Agent Profile</span>
-        <Checkbox bind:checked={() => services['agent.profile.write'] ?? false, (on) => (services['agent.profile.write'] = on)} testid="service-agent.profile.write">{t('publishProfile')}</Checkbox>
-      </li>
-    </ul>
-    <p class="muted">{t('capabilityVocabulary')}<span class="mono">{VOCABULARY}</span></p>
-    <div class="row">
-      <input placeholder={t('capabilityList')} bind:value={capabilities} data-testid="grant-other" />
-      <button class={buttonClass()} data-testid="grant-capabilities" disabled={busy || !grantee || !chosen.length} onclick={grantChosen}>{t('grant')}</button>
-    </div>
-  </div>
-{/if}
-{#if unlocked && hosted.agents.length}
-  <AgentMail agents={hosted.agents} active={hosted.active} />
-{/if}
-{#if unlocked}
-  <AgentEvents agents={hosted.agents} />
-{/if}
-<AgentAudit agents={hosted.agents} />

@@ -242,6 +242,7 @@ const methods = {
     emit('approval/changed')
     return r
   },
+  'attest/usage': () => ({ charged: 3, allowed: 100, remaining: 97, valid_until_ms: Date.now() + 86_400_000, history: [] }),
   'attest/history': () => [
     { execution: 'e1'.repeat(32), stage: 'complete', statement: { profile: 'text', content: { text: 'Signed before' } }, origin: 'https://dmsg.net', created_at: Date.now() }
   ],
@@ -396,8 +397,8 @@ const methods = {
   'plan/catalog': () => ({
     version: 1,
     plans: [
-      { plan: 'Free', price_cents: 0, storage_bytes: 1_000_000_000 },
-      { plan: 'Plus', price_cents: 500, storage_bytes: 50_000_000_000 }
+      { plan_id: 'Free', price_cents: 0, limits: { storage_bytes: 1_000_000_000, active_channels: 3, monthly_execution_units: 10 } },
+      { plan_id: 'Plus', price_cents: 500, limits: { storage_bytes: 50_000_000_000, active_channels: 20, monthly_execution_units: 100 } }
     ]
   }),
   'plan/assets': () => [{ ledger, asset: 'Icp', decimals: 8, network_fee: '10000' }],
@@ -630,6 +631,7 @@ try {
 
   // A statement started in the main window is marked as the desktop's and opens for approval.
   await main.click('text=/Signatures|签名与授权/')
+  await main.click('[data-testid="approvals-tab-sign"]')
   await main.fill('[data-testid="statement-text"]', 'Signed from the desktop')
   await main.click('[data-testid="statement-submit"]')
   await approval.waitForSelector('text=Signed from the desktop', { timeout: 20_000 })
@@ -725,6 +727,7 @@ try {
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
 
   // Mail as a hosted Agent ID; a window runs only the Mail and Knowledge tools.
+  await main.click('[data-testid="agents-tab-mail"]')
   await main.click('[data-testid="mail-open"]')
   await main.waitForSelector('text=Mail for Claude')
   await main.click('[data-testid="mail-messages"] >> text=/^(Reply|回复)$/')
@@ -738,6 +741,7 @@ try {
   assert.ok(calls.filter((c) => c.method === 'ap/call').every((c) => /^agent_protocols_(mail|knowledge)_/.test(c.params.tool)))
   // An MCP Events endpoint shows its secret once; a delivery notifies how
   // many arrived, never what or from where.
+  await main.click('[data-testid="agents-tab-events"]')
   await main.fill('[data-testid="endpoint-label"]', 'Upstream')
   await main.click('[data-testid="endpoint-create"]')
   await main.waitForSelector('[data-testid="endpoint-secret"]')
@@ -751,6 +755,7 @@ try {
   assert.equal(notes.length, 1)
   assert.ok(!notes[0].includes('Upstream'))
   // The audit record names who did what and through which way in.
+  await main.click('[data-testid="agents-tab-audit"]')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
   await choose(main, 'audit-actor', 'owner')
   await waitFor(() => latest('audit/list').params.agent === 'owner')
@@ -759,7 +764,9 @@ try {
   await choose(main, 'audit-actor', '')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
   await main.locator('[data-testid="agent-audit"]').screenshot({ path: join(shots, 'audit.png') })
-  // A grant joins the services ticked at the chosen origin with those typed.
+  // A grant joins the services ticked at the chosen origin with those
+  // typed, and the matrix shows what each Agent ID reaches.
+  await main.click('[data-testid="agents-tab-capabilities"]')
   await choose(main, 'grant-agent', claude)
   await choose(main, 'grant-origin', 'https://api.al.ink')
   await main.check('[data-testid="service-discourse.read"]')
@@ -891,6 +898,7 @@ try {
   // Signatures: an application action and attestation bundles enter and
   // leave only through the main process's dialogs.
   await main.click('text=/Signatures|签名与授权/')
+  await main.click('[data-testid="approvals-tab-sign"]')
   await answer('__open', join(picks, 'action.cbor'))
   await main.click('[data-testid="sign-action"]')
   await approval.waitForSelector('[data-testid="approval-command"]', { timeout: 20_000 })
@@ -899,6 +907,7 @@ try {
   await approval.screenshot({ path: join(shots, 'app-action.png') })
   const bundle = join(profile, 'bundle-out.json')
   await answer('__save', bundle)
+  await main.click('[data-testid="approvals-tab-bundles"]')
   await main.click('text=/^(Export bundle|导出证据包)$/')
   await main.waitForSelector('[data-testid="approvals-notice"]')
   assert.equal(JSON.parse(await readFile(bundle, 'utf8')).request_id, 'e1'.repeat(32))
@@ -915,6 +924,7 @@ try {
   await main.waitForSelector('[data-testid="local-accounts"]')
   await main.waitForSelector('[data-testid="settings-legacy"]')
   assert.ok((await main.textContent('[data-testid="local-accounts"]')).includes(other))
+  await main.click('[data-testid="settings-security"]')
   await main.waitForSelector('[data-testid="logins"]')
   await main.fill('[data-testid="approve-request"]', 'binding-token')
   await main.fill('[data-testid="approve-shown"]', 'aaaaa-aa')
@@ -923,6 +933,7 @@ try {
   assert.equal(await approval.textContent('[data-testid="approval-principal"]'), 'aaaaa-aa')
   await approval.screenshot({ path: join(shots, 'bind-login.png') })
   // Another device is revoked only as an approval request.
+  await main.click('[data-testid="settings-devices"]')
   await main.waitForSelector('[data-testid="security-snapshot"]')
   await main.click('[data-testid="revoke-device"]')
   await approval.waitForSelector(`text=${'12'.repeat(32)}`, { timeout: 20_000 })
@@ -931,6 +942,7 @@ try {
   await main.screenshot({ path: join(shots, 'settings.png') })
   // The public avatar: shown from a data URL, set from a picked image,
   // removed; the window never names a path itself.
+  await main.click('[data-testid="settings-profile"]')
   await main.waitForSelector('[data-testid="profile-avatar"]')
   await answer('__open', join(picks, 'me.png'))
   await main.click('[data-testid="avatar-set"]')
@@ -949,6 +961,7 @@ try {
   emit('hint', { kind: 'channel' })
   for (let i = 0; i < 50 && (await arrived()).length < 2; i++) await new Promise((r) => setTimeout(r, 100))
   assert.equal((await arrived()).length, 2)
+  await main.click('[data-testid="settings-session"]')
   await main.click('[data-testid="local-accounts"] >> text=/^(Switch|切换)$/')
   await waitFor(() => calls.some((c) => c.method === 'session/switch'))
   assert.deepEqual(calls.find((c) => c.method === 'session/switch').params, { account: other })

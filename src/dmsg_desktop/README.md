@@ -65,14 +65,26 @@ desktop is one of its clients, like the CLI.
   - Inbox: the inbox, sent letters and the archive beside the open letter;
     a new letter, and who may write (nobody, contacts, everyone, or a price
     per letter), open in dialogs.
-  - Plan and names, with name transfers and checkout records.
-  - Agents: Agent Mail, Agent Knowledge and MCP Events endpoints.
-  - Signatures and approvals: the month's execution allowance, application
-    actions, and exporting and verifying attestation bundles.
-  - Settings: this device's accounts, creating or joining an account, pairing
-    and recovery, account security, devices, the public profile with its
-    avatar, connected browsers, and the legacy migration
-    (`/settings/legacy`).
+  - Plan and names: the plan and its limits, the plans on offer as cards,
+    checkouts, names with their transfers, the wallet and the payment
+    operations.
+  - Agents, in tabs: the principal with its controllers and credentials,
+    the hosted Agent IDs and the host allowlist, a matrix of what each
+    Agent ID reaches (the Agent Protocols services by origin, and other
+    capabilities) with every grant, Agent Mail and Knowledge, MCP Events
+    endpoints, and the audit record as a timeline.
+  - Signatures and approvals, in tabs: the requests waiting and decided;
+    new statements, application actions, formal approval and the month's
+    allowance as a meter; exporting bundles, and verifying one into a
+    report.
+  - Settings, in sections with their own routes (`/settings/session`,
+    `security`, `devices`, `profile`, `browsers`, `legacy`): this session
+    and the device's accounts, creating or joining an account, pairing and
+    recovery, account security, devices, the public profile with its
+    avatar, connected browsers, and the legacy migration.
+
+  Pages share a small kit (`components/page`): sections, notices, state
+  pills, ID chips that copy the whole ID, fields, facts and tab bars.
 
 Rules (`src/main/policy.ts`):
 

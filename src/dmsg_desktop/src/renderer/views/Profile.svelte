@@ -1,11 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '../i18n/index.svelte'
-  import { call, code } from '../rpc'
+  import Avatar from '../components/Avatar.svelte'
+  import Icon from '../components/Icon.svelte'
+  import Fact from '../components/page/Fact.svelte'
+  import Field from '../components/page/Field.svelte'
+  import Id from '../components/page/Id.svelte'
+  import Notice from '../components/page/Notice.svelte'
+  import Section from '../components/page/Section.svelte'
   import { buttonClass } from '../components/ui'
+  import { t } from '../i18n/index.svelte'
+  import { bridge, call, code } from '../rpc'
 
   /** This account's signed public profile, and other accounts' checked against their devices. */
   let { status }: { status: any } = $props()
+
   let mine = $state<any>(null)
   let displayName = $state('')
   let bio = $state('')
@@ -49,7 +57,7 @@
 
   const avatar = (remove: boolean) =>
     attempt(async () => {
-      const published = await window.dmsg.avatar(remove)
+      const published = await bridge(() => window.dmsg.avatar(remove))
       if (published) show(published)
     })
 
@@ -76,57 +84,57 @@
   })
 </script>
 
-<div class="card" data-testid="profile">
-  <h2>{t('publicProfile')}</h2>
-  {#if error}<p class="error">{error}</p>{/if}
-  {#if status?.state === 'unlocked'}
-    <div class="row" style="margin-bottom: 8px">
-      {#if mine?.profile.avatar_upload && images[mine.profile.avatar_upload]}
-        <img class="avatar" src={images[mine.profile.avatar_upload]} alt={t('avatar')} data-testid="profile-avatar" />
-      {/if}
-      <button class={buttonClass()} disabled={busy} onclick={() => avatar(false)} data-testid="avatar-set">{t('setAvatar')}</button>
-      {#if mine?.profile.avatar_upload}
-        <button class={buttonClass()} disabled={busy} onclick={() => avatar(true)} data-testid="avatar-remove">{t('removeAvatar')}</button>
-      {/if}
-    </div>
-    <p class="muted">{t('avatarHint')}</p>
-    <input placeholder={t('displayName')} bind:value={displayName} data-testid="profile-name" />
-    <textarea placeholder={t('bio')} bind:value={bio} style="margin-top: 8px"></textarea>
-    <textarea placeholder={t('links')} bind:value={links} style="margin-top: 8px"></textarea>
-    <div class="row" style="margin-top: 8px">
-      <button class={buttonClass('primary')} disabled={busy} onclick={publish}>{t('publish')}</button>
-      {#if mine}<span class="muted">v{mine.profile.version} · {t('device')} <span class="mono">{mine.device_id.slice(0, 12)}</span></span>{/if}
-    </div>
+{#snippet picture(published: any, size: string)}
+  {#if published?.profile.avatar_upload && images[published.profile.avatar_upload]}
+    <img class="{size} shrink-0 rounded-full object-cover ring-1 ring-line" src={images[published.profile.avatar_upload]} alt={t('avatar')} data-testid={published === mine ? 'profile-avatar' : undefined} />
+  {:else}
+    <Avatar id={published?.account ?? status?.account ?? ''} name={published?.profile.display_name || published?.account || status?.account || ''} size="lg" class="{size} rounded-full" />
   {/if}
-  <h3>{t('resolveProfile')}</h3>
-  <div class="row">
-    <input placeholder={t('accountId')} bind:value={other} />
-    <button class={buttonClass()} disabled={busy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
-  </div>
-  {#if found}
-    <dl data-testid="profile-found">
-      {#if found.profile.avatar_upload && images[found.profile.avatar_upload]}
-        <dt>{t('avatar')}</dt>
-        <dd><img class="avatar" src={images[found.profile.avatar_upload]} alt={t('avatar')} /></dd>
-      {/if}
-      <dt>{t('displayName')}</dt>
-      <dd>{found.profile.display_name || '-'}</dd>
-      <dt>{t('bio')}</dt>
-      <dd>{found.profile.bio || '-'}</dd>
-      {#each found.profile.links as link (link)}<dt>{t('link')}</dt><dd class="mono">{link}</dd>{/each}
-      <dt>{t('device')}</dt>
-      <dd class="mono">{found.device_id}</dd>
-    </dl>
-  {:else if found === null}
-    <p class="muted">-</p>
-  {/if}
-</div>
+{/snippet}
 
-<style>
-  .avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-</style>
+{#if error}<Notice tone="danger">{error}</Notice>{/if}
+<Section title={t('publicProfile')} description={t('avatarHint')} icon="profile" testid="profile">
+  {#if status?.state === 'unlocked'}
+    <div class="grid gap-4">
+      <div class="flex items-center gap-4">
+        {@render picture(mine, 'size-16')}
+        <div class="flex flex-wrap gap-1.5">
+          <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => avatar(false)} data-testid="avatar-set"><Icon name="upload" />{t('setAvatar')}</button>
+          {#if mine?.profile.avatar_upload}
+            <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => avatar(true)} data-testid="avatar-remove">{t('removeAvatar')}</button>
+          {/if}
+        </div>
+      </div>
+      <Field label={t('displayName')}><input bind:value={displayName} data-testid="profile-name" /></Field>
+      <Field label={t('bio')}><textarea bind:value={bio} rows="3"></textarea></Field>
+      <Field label={t('links')} hint={t('linksHint')}><textarea bind:value={links} rows="3" class="font-mono text-[12px]"></textarea></Field>
+      <div class="flex flex-wrap items-center gap-3">
+        {#if mine}<span class="text-[12px] text-faint">v{mine.profile.version} · {t('device')} <span class="font-mono">{mine.device_id.slice(0, 12)}</span></span>{/if}
+        <span class="flex-1"></span>
+        <button class={buttonClass('primary')} disabled={busy} onclick={publish}>{t('publish')}</button>
+      </div>
+    </div>
+  {/if}
+</Section>
+
+<Section title={t('resolveProfile')} icon="search">
+  <div class="grid gap-3">
+    <div class="flex gap-2">
+      <input placeholder={t('accountId')} bind:value={other} class="font-mono text-[12.5px] placeholder:font-sans" />
+      <button class={buttonClass('secondary')} disabled={busy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
+    </div>
+    {#if found}
+      <div class="flex items-start gap-3 rounded-xl border border-line p-3.5" data-testid="profile-found">
+        {@render picture(found, 'size-12')}
+        <dl class="min-w-0 flex-1 divide-y divide-line">
+          <Fact label={t('displayName')}>{found.profile.display_name || '-'}</Fact>
+          <Fact label={t('bio')}>{found.profile.bio || '-'}</Fact>
+          {#each found.profile.links as link (link)}<Fact label={t('link')}><bdi dir="ltr" class="font-mono text-[12px]">{link}</bdi></Fact>{/each}
+          <Fact label={t('device')}><Id id={found.device_id} /></Fact>
+        </dl>
+      </div>
+    {:else if found === null}
+      <p class="text-[12.5px] text-faint">-</p>
+    {/if}
+  </div>
+</Section>
