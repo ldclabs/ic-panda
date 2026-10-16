@@ -6,7 +6,8 @@
   /**
    * Tags as chips: Enter, a comma or leaving the field adds what was typed,
    * Backspace in an empty field takes the last one off. Duplicates and
-   * blanks are dropped.
+   * blanks are dropped; an item may already carry a tag twice, so chips go
+   * by position.
    */
   let {
     tags = $bindable<string[]>([]),
@@ -20,11 +21,13 @@
   let input = $state<HTMLInputElement | null>(null)
 
   function commit() {
-    const added = text
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter((tag) => tag && !tags.includes(tag))
-    if (added.length) tags = [...tags, ...added].slice(0, max)
+    const added = new Set(
+      text
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter((tag) => tag && !tags.includes(tag))
+    )
+    if (added.size) tags = [...tags, ...added].slice(0, max)
     text = ''
   }
 
@@ -48,7 +51,7 @@
   onclick={() => input?.focus()}
   data-testid={testid}
 >
-  {#each tags as tag (tag)}
+  {#each tags as tag, i (i)}
     <span class="inline-flex h-6 max-w-full items-center gap-0.5 rounded-md bg-wash ps-2 pe-0.5 text-xs text-ink-2">
       <span class="truncate">{tag}</span>
       <button
@@ -57,7 +60,7 @@
         aria-label={`${t('remove')} ${tag}`}
         onclick={(event) => {
           event.stopPropagation()
-          tags = tags.filter((other) => other !== tag)
+          tags = tags.filter((_, j) => j !== i)
         }}
       >
         <Icon name="close" class="size-3" />

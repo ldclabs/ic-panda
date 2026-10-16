@@ -2,7 +2,7 @@
   import { DropdownMenu } from 'bits-ui'
   import { appearances, isAppearance } from '../../shared/appearance'
   import { localeDir } from '../../shared/locales'
-  import { appearance, setAppearance } from '../appearance.svelte'
+  import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
   import { locale, t } from '../i18n/index.svelte'
   import Icon from './Icon.svelte'
   import { toast } from './toast.svelte'
@@ -10,8 +10,6 @@
   import { buttonClass, menuContentClass, menuItemClass } from './ui'
 
   /** The appearance menu, an icon button: the system's, light or dark. The main process keeps the choice for every window. */
-  const labels = { system: 'appearanceSystem', light: 'appearanceLight', dark: 'appearanceDark' } as const
-
   let open = $state(false)
   let content = $state<HTMLElement | null>(null)
   let busy = $state(false)
@@ -35,7 +33,7 @@
 </script>
 
 <DropdownMenu.Root bind:open dir={localeDir(locale())}>
-  <Tooltip content={`${t('appearance')}: ${t(labels[appearance()])}`}>
+  <Tooltip content={`${t('appearance')}: ${t(appearanceLabel[appearance()])}`}>
     {#snippet children(props)}
       <DropdownMenu.Trigger {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('appearance')} aria-busy={busy} data-testid="appearance">
         <Icon name={appearance()} />
@@ -55,9 +53,9 @@
     >
       <DropdownMenu.RadioGroup value={appearance()} onValueChange={pick}>
         {#each appearances as choice (choice)}
-          <DropdownMenu.RadioItem value={choice} textValue={t(labels[choice])} disabled={busy} class={menuItemClass} data-value={choice}>
+          <DropdownMenu.RadioItem value={choice} textValue={t(appearanceLabel[choice])} disabled={busy} class={menuItemClass} data-value={choice}>
             {#snippet children({ checked })}
-              <span class="flex items-center gap-2"><Icon name={choice} />{t(labels[choice])}</span>
+              <span class="flex items-center gap-2"><Icon name={choice} />{t(appearanceLabel[choice])}</span>
               {#if checked}<Icon name="check" class="size-3.5" />{/if}
             {/snippet}
           </DropdownMenu.RadioItem>

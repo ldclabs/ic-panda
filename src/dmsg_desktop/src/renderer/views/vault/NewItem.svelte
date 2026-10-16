@@ -47,7 +47,7 @@
         item: {
           type,
           title: draft.title.trim(),
-          tags: $state.snapshot(draft.tags),
+          tags: draft.tags,
           body: draft.body,
           username: has.includes('username') ? draft.username : '',
           secret: has.includes('secret') ? draft.secret : '',

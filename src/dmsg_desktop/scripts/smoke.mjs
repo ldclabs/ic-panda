@@ -6,15 +6,18 @@
 // payments and grants only as approval requests; that another account's
 // workspace is selected from Settings, that binding a login and a web
 // checkout are approval requests, and that a web checkout is quoted before it
-// can be approved; that a kept legacy archive reads offline and transfer
-// files never pass through a window; that a vault secret is shown or copied
-// only after a second click and the copy never passes through a window; that
-// conflict copies resolve side by side; that a vault file is imported through
-// the main process, which refuses a file a page made; that a device is
-// revoked only through the approval
-// window; that channel files, roles, history, archiving and transfers reach
-// the daemon; that the Agents view runs only the Mail and Knowledge tools,
-// grants services at a chosen origin and manages MCP Events endpoints; that
+// can be approved; that a web login shows what it proves and pays nothing;
+// that a kept legacy archive reads offline and transfer files never pass
+// through a window; that a vault secret is shown or copied only after a
+// second click and the copy never passes through a window; that an item
+// with a repeated tag opens; that conflict copies resolve side by side; that
+// a vault file is imported through the main process, which refuses a file a
+// page made; that a device's capabilities change and a device is revoked
+// only through the approval window; that a view the main process opened
+// leaves the others a click away; that channel files, roles, history,
+// archiving and transfers reach the daemon; that the Agents view runs only
+// the Mail and Knowledge tools, grants services at a chosen origin (each
+// capability once) and manages MCP Events endpoints; that
 // a delivery notifies without its content; that application actions and
 // attestation bundles enter through the main process's dialogs; and that a
 // language and an appearance picked in the main window reach both windows.
@@ -100,7 +103,9 @@ const SECRET = 'smoke-secret-value'
 const vault = [
   item('22'.repeat(32), 'r1', { title: 'Smoke note', type: 'note', body: 'hello' }),
   item('24'.repeat(32), 'r3', { title: 'Smoke login', type: 'login', tags: ['work'], username: 'panda', secret: '********', url: 'https://example.com' }),
-  item('23'.repeat(32), 'r2', { title: 'report.pdf', type: 'file', file: { name: 'report.pdf', size: 1234 } })
+  item('23'.repeat(32), 'r2', { title: 'report.pdf', type: 'file', file: { name: 'report.pdf', size: 1234 } }),
+  // Agents and the CLI may write a tag twice; the daemon keeps it as given.
+  item('27'.repeat(32), 'r1', { title: 'Tagged twice', type: 'note', tags: ['team', 'team'], updatedAt: Date.now() - 60_000 })
 ]
 let conflicts = [{ ...item('22'.repeat(32), 'r9', { title: 'Smoke note', type: 'note', body: 'hello\nfrom the laptop' }), conflict: true }]
 const trash = []
@@ -125,6 +130,19 @@ const checkoutRequest = {
     method: 'checkout',
     kind: 'checkout',
     content: { product_id: 'token-list', sku: 'pro', amount_usd_micros: '3000000', method: 'Cash' }
+  }
+}
+/** A web login: the page's session proven for this account, nothing signed or paid. */
+const authRequest = {
+  ...request,
+  id: 'a7'.repeat(32),
+  digest: 'a8'.repeat(32),
+  detail: {
+    ...request.detail,
+    requests: ['14'.repeat(32)],
+    method: 'authenticate',
+    kind: 'authenticate',
+    content: { purpose: 'Login', receiver: 'aaaaa-aa', expires_at: Date.now() + 300_000 }
   }
 }
 /** A 1×1 PNG. */
@@ -279,6 +297,10 @@ const methods = {
   'device/revoke': (p) => {
     assert.equal(p.source, 'gui')
     return created('d1'.repeat(32), 'device_revoke', { device_id: p.device, this_device: false })
+  },
+  'device/capabilities': (p) => {
+    assert.equal(p.source, 'gui')
+    return created('d2'.repeat(32), 'device_capabilities', { device_id: p.device, capabilities: p.capabilities, this_device: false })
   },
   'attest/request': (p) => {
     assert.equal(p.source, 'gui')
@@ -601,6 +623,12 @@ try {
   assert.equal(await main.textContent('[data-testid="view-title"]'), 'Inbox')
   await main.keyboard.press(`${mod}+1`)
   await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
+  // A view the main process opens (the tray, a notification) leaves the one
+  // the window showed before a click away.
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send('dmsg:navigate', '/approvals'))
+  await main.waitForSelector('[data-testid="view-title"] >> text=Signatures & approvals')
+  await main.keyboard.press(`${mod}+1`)
+  await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
   await main.click('[data-testid="sidebar-toggle"]')
   await main.screenshot({ path: join(shots, 'sidebar-collapsed.png') })
   await main.click('[data-testid="sidebar-toggle"]')
@@ -771,7 +799,8 @@ try {
   await choose(main, 'grant-origin', 'https://api.al.ink')
   await main.check('[data-testid="service-discourse.read"]')
   await main.check('[data-testid="service-mail.write"]')
-  await main.fill('[data-testid="grant-other"]', 'vault.list')
+  // A capability typed twice, or typed as well as ticked, is granted once.
+  await main.fill('[data-testid="grant-other"]', 'vault.list vault.list mail.write:https://api.al.ink')
   await main.locator('[data-testid="grants-card"]').screenshot({ path: join(shots, 'grants.png') })
   await main.click('[data-testid="grant-capabilities"]')
   await main.waitForSelector('[data-testid="capability-grants"] >> text=discourse.read:https://api.al.ink')
@@ -793,6 +822,16 @@ try {
   // A quoted request changed, so Approve opens again only after its delay.
   await approval.waitForSelector('[data-testid="approve"]:not([disabled])')
   await approval.screenshot({ path: join(shots, 'connect-checkout.png') })
+
+  // A web login shows what the page gets proven, and approving it pays nothing.
+  requests.set(authRequest.id, authRequest)
+  await app.evaluate(({ app }, url) => app.emit('open-url', { preventDefault() {} }, url), `dmsg://connect/request?account=${account}&request=${authRequest.detail.requests[0]}`)
+  await approval.waitForSelector('[data-testid="approval-receiver"]', { timeout: 20_000 })
+  assert.equal(await approval.textContent('[data-testid="approval-title"]'), 'Confirm your account to a website')
+  assert.equal(await approval.textContent('[data-testid="approval-purpose"]'), 'Login')
+  assert.equal(await approval.textContent('[data-testid="approval-receiver"]'), 'aaaaa-aa')
+  assert.ok(!(await approval.textContent('body')).includes('paying account'))
+  await approval.screenshot({ path: join(shots, 'connect-authenticate.png') })
 
   // Legacy migration: the offer shows its fingerprint and target device, a
   // kept archive reads offline, and transfer files reach the daemon only
@@ -818,6 +857,10 @@ try {
   // names the version it replaces; a new item comes from its dialog; a
   // conflict copy is adopted from the side-by-side dialog.
   await main.click('nav >> text=/Vault|秘密库/')
+  // An item that carries a tag twice opens like any other.
+  await main.click('[data-testid="vault-list"] >> text=Tagged twice')
+  await main.waitForSelector('[data-testid="vault-item-title"] >> text=Tagged twice')
+  assert.equal(await main.locator('[data-testid="vault-inspector"] header span', { hasText: /^#team$/ }).count(), 2)
   await main.click('[data-testid="vault-list"] >> text=Smoke login')
   await main.waitForSelector('[data-testid="vault-secret"][data-shown="false"]')
   const revealed = () => calls.filter((c) => c.method === 'vault/show' && c.params.reveal).length
@@ -935,6 +978,14 @@ try {
   // Another device is revoked only as an approval request.
   await main.click('[data-testid="settings-devices"]')
   await main.waitForSelector('[data-testid="security-snapshot"]')
+  // The capabilities picked go to the daemon as plain values, though the
+  // window keeps them as state, and the change is an approval request.
+  await main.locator('[data-testid="device-capabilities"]').nth(1).click()
+  await main.click('[data-testid="devices"] label:has-text("FormalApprove")')
+  await main.click('[data-testid="capabilities-submit"]')
+  await waitFor(() => latest('device/capabilities'))
+  assert.deepEqual(latest('device/capabilities').params, { device: '12'.repeat(32), capabilities: ['ContentSign', 'VaultUnlock', 'FormalApprove'], source: 'gui' })
+  await approval.waitForSelector('[data-testid="approval-title"] >> text=Capabilities', { timeout: 20_000 })
   await main.click('[data-testid="revoke-device"]')
   await approval.waitForSelector(`text=${'12'.repeat(32)}`, { timeout: 20_000 })
   assert.equal(latest('device/revoke').params.device, '12'.repeat(32))

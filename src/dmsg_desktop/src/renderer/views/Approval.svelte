@@ -34,9 +34,10 @@
   const HOLD_MS = 1000
   const inset = window.dmsg.platform === 'darwin'
 
-  /** A request seen for the first time or changed is reviewed afresh: Approve waits again. */
+  /** A request seen for the first time or changed is reviewed afresh: Approve waits again, and a hold under way stops. */
   function arm() {
     ready = false
+    stopHold()
     clearTimeout(delay)
     delay = setTimeout(() => (ready = true), APPROVE_DELAY_MS)
   }
@@ -95,7 +96,7 @@
       }
       frame = 0
       held = 0
-      void decide(true)
+      if (canApprove) void decide(true)
     }
     frame = requestAnimationFrame(step)
   }
@@ -164,6 +165,7 @@
       case 'connect':
       case 'attest':
         if (d.method === 'checkout') return t('payPlan')
+        if (d.method === 'authenticate') return t('authenticateTitle')
         if (s?.profile === 'app_action') return t('appAction')
         return s?.content?.sha256 ? t('signFile') : t('newStatement')
       case 'checkout':
@@ -192,7 +194,10 @@
     request?.type === 'connect' ? { name: String(d.app_id ?? ''), detail: String(d.origin ?? '') } : { name: trail[0]?.name ?? '', detail: t(trail[0]?.role ?? 'sourceOther') }
   )
 
-  const section = $derived<Label>(s ? 'youSign' : kind === 'kindPayment' ? 'youPay' : 'youChange')
+  /** A web page asks this device to vouch that the account approved the page's session. */
+  const authenticating = $derived(request?.type === 'connect' && d.method === 'authenticate')
+
+  const section = $derived<Label>(s || authenticating ? 'youSign' : kind === 'kindPayment' ? 'youPay' : 'youChange')
 
   /** What approving does, in plain words; the last lines say what cannot be undone. */
   const after = $derived.by((): [string, boolean][] => {
@@ -203,21 +208,18 @@
         [request.type === 'connect' ? t('afterSignWeb', { origin: String(d.origin ?? '') }) : t('afterSignRecord'), false],
         [t('afterNoUndoSign'), true]
       ]
+    const pay: [string, boolean] = [t('afterPay'), false]
+    const final: [string, boolean] = [t('afterNoUndoPay'), true]
     switch (request.type) {
       case 'connect':
+        if (authenticating) return [[t('afterAuthenticate', { origin: String(d.origin ?? '') }), false]]
+        return d.method === 'checkout' ? [pay, final] : []
       case 'checkout':
+        return [pay, final]
       case 'handle':
-        if (request.type === 'handle' && !d.total) return [[t('afterName'), false]]
-        return [
-          [t('afterPay'), false],
-          [t('afterNoUndoPay'), true]
-        ]
+        return d.total ? [pay, final] : [[t('afterName'), false]]
       case 'letter':
-        return [
-          [t('afterPay'), false],
-          [t('afterLetter'), false],
-          [t('afterNoUndoPay'), true]
-        ]
+        return [pay, [t('afterLetter'), false], final]
       case 'delegation':
         return d.kind?.type === 'revoke'
           ? [
@@ -402,7 +404,12 @@
           </dl>
         {:else}
           <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-xl border border-line bg-paper px-4 py-3.5 text-[13px]">
-            {#if request.type === 'account'}
+            {#if authenticating}
+              {@render row(t('authPurpose'), String(d.content?.purpose ?? ''), { testid: 'approval-purpose' })}
+              {@render row(t('account'), d.account, { mono: true })}
+              {@render row(t('authReceiver'), String(d.content?.receiver ?? ''), { mono: true, testid: 'approval-receiver' })}
+              {@render row(t('expires'), when(d.content?.expires_at))}
+            {:else if request.type === 'account'}
               {@render row(t('change'), change(d.change), { testid: 'approval-change' })}
               {#if d.principal}{@render row(t('loginPrincipal'), d.principal, { mono: true, testid: 'approval-principal' })}{/if}
               {#if d.change === 'policy'}

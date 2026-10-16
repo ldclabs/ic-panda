@@ -24,7 +24,9 @@
   let busy = $state(false)
   let error = $state('')
 
-  const copy = $derived(conflicts[Math.min(index, conflicts.length - 1)])
+  /** The copy shown, kept within the list as settled copies leave it. */
+  const at = $derived(Math.max(0, Math.min(index, conflicts.length - 1)))
+  const copy = $derived(conflicts[at])
   const changed = $derived<Compared[]>(head && copy ? differences(head, copy) : [])
   const body = $derived(head && copy && changed.includes('body') ? lineDiff(head.item.body, copy.item.body) : null)
 
@@ -120,11 +122,11 @@
     {#snippet footer()}
       {#if conflicts.length > 1}
         <span class="flex items-center gap-0.5">
-          <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('previousOne')} disabled={index === 0} onclick={() => index--}>
+          <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('previousOne')} disabled={at === 0} onclick={() => (index = at - 1)}>
             <Icon name="chevron-end" class="rotate-180" />
           </button>
-          <span class="text-[12px] text-faint tabular-nums">{t('conflictOf', { index: index + 1, n: conflicts.length })}</span>
-          <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('nextOne')} disabled={index >= conflicts.length - 1} onclick={() => index++}>
+          <span class="text-[12px] text-faint tabular-nums">{t('conflictOf', { index: at + 1, n: conflicts.length })}</span>
+          <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('nextOne')} disabled={at >= conflicts.length - 1} onclick={() => (index = at + 1)}>
             <Icon name="chevron-end" />
           </button>
         </span>

@@ -129,7 +129,7 @@
         <dl class="min-w-0 flex-1 divide-y divide-line">
           <Fact label={t('displayName')}>{found.profile.display_name || '-'}</Fact>
           <Fact label={t('bio')}>{found.profile.bio || '-'}</Fact>
-          {#each found.profile.links as link (link)}<Fact label={t('link')}><bdi dir="ltr" class="font-mono text-[12px]">{link}</bdi></Fact>{/each}
+          {#each found.profile.links as link, i (i)}<Fact label={t('link')}><bdi dir="ltr" class="font-mono text-[12px]">{link}</bdi></Fact>{/each}
           <Fact label={t('device')}><Id id={found.device_id} /></Fact>
         </dl>
       </div>

@@ -2,7 +2,7 @@
   import { Command, Dialog } from 'bits-ui'
   import { appearances } from '../../shared/appearance'
   import { localeNames, locales } from '../../shared/locales'
-  import { appearance, setAppearance } from '../appearance.svelte'
+  import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
   import type { Glyph } from '../components/glyphs'
   import Icon from '../components/Icon.svelte'
   import { locale, setLocale, t } from '../i18n/index.svelte'
@@ -40,17 +40,17 @@
     checked?: boolean
   }
 
-  const appearanceLabels = { system: 'appearanceSystem', light: 'appearanceLight', dark: 'appearanceDark' } as const
-
   let search = $state('')
   /** The vault's items while the palette is open on an unlocked device; they show once something is typed. */
   let items = $state<any[]>([])
+  const unlocked = $derived(status?.state === 'unlocked')
 
+  // Read again only when the palette opens or the lock changes, not on every status refresh.
   $effect(() => {
     items = []
     if (!open) {
       search = ''
-    } else if (status?.state === 'unlocked') {
+    } else if (unlocked) {
       call<any[]>('vault/list')
         .then((list) => open && (items = list))
         .catch(() => {})
@@ -58,7 +58,6 @@
   })
 
   const groups = $derived.by(() => {
-    const unlocked = status?.state === 'unlocked'
     const places: Entry[] = [
       ...shortcuts.map((view) => ({ label: t(view.label), icon: view.icon, hint: `${mod}${view.key}`, run: () => go(view.path) })),
       { label: `${t('settings')} › ${t('legacy')}`, icon: views.legacy.icon, run: () => go(views.legacy.path) }
@@ -75,7 +74,7 @@
     ]
     const commands = offered.filter((entry): entry is Entry => !!entry)
     const looks: Entry[] = appearances.map((value) => ({
-      label: `${t('appearance')}: ${t(appearanceLabels[value])}`,
+      label: `${t('appearance')}: ${t(appearanceLabel[value])}`,
       icon: value,
       checked: appearance() === value,
       run: () => setAppearance(value)

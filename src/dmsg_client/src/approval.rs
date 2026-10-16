@@ -604,17 +604,19 @@ impl Client {
         self.approval_view(request)
     }
 
-    /// Reconcile every approved request whose outcome is unknown.
+    /// Reconcile every approved request whose outcome is unknown; returns
+    /// how many there were.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked; each request's own failure is
     /// kept on it.
-    pub async fn approvals_reconcile(&mut self) -> Result<()> {
-        for row in self
+    pub async fn approvals_reconcile(&mut self) -> Result<usize> {
+        let rows = self
             .workspace
             .store
-            .approvals(&[State::Executing.name(), State::Unknown.name()])?
-        {
+            .approvals(&[State::Executing.name(), State::Unknown.name()])?;
+        let count = rows.len();
+        for row in rows {
             let mut request = self.approval_record(&row.id)?;
             let outcome = match (&request.action, &request.execution) {
                 (Action::Attest { .. } | Action::AttestAction { .. }, Some(execution)) => {
@@ -684,7 +686,7 @@ impl Client {
                 }
             }
         }
-        Ok(())
+        Ok(count)
     }
 
     /// Quote a web application's checkout waiting for approval: cash on the

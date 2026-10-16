@@ -90,7 +90,9 @@
             </div>
             {#if !device.revoked_at && status?.state === 'unlocked'}
               <div class="flex shrink-0 gap-1.5">
-                <button class={buttonClass('secondary', 'xs')} disabled={busy} aria-expanded={editing === device.device_id} onclick={() => edit(device)}>{t('capabilities')}</button>
+                <button class={buttonClass('secondary', 'xs')} disabled={busy} aria-expanded={editing === device.device_id} onclick={() => edit(device)} data-testid="device-capabilities">
+                  {t('capabilities')}
+                </button>
                 {#if !device.current}
                   <button class={buttonClass('danger', 'xs')} disabled={busy} data-testid="revoke-device" onclick={() => ask('device/revoke', { device: device.device_id })}>
                     {t('revoke')}

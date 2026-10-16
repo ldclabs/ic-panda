@@ -71,6 +71,15 @@
     void loadOffers()
   })
 
+  // Every request moves the idle lock, this window's or not. While unlocked
+  // the status, which is not activity, is read again as often as the daemon
+  // checks the lock, so the gate rail's countdown follows `lock_at`.
+  $effect(() => {
+    if (!unlocked) return
+    const timer = setInterval(() => void refresh(), 10_000)
+    return () => clearInterval(timer)
+  })
+
   $effect(() => store('dmsg.sidebar', collapsed ? 'collapsed' : 'expanded'))
 
   function dismissLegacy() {
@@ -103,7 +112,8 @@
       if (['session/changed', 'connection/changed', 'approval/changed', 'sync/changed'].includes(event.type)) void refresh()
       if (event.type === 'legacy/changed') void loadOffers()
     })
-    const offNavigate = window.dmsg.onNavigate((next) => (route = next))
+    // The route follows the hash only, so a view the hash still names opens again on a click.
+    const offNavigate = window.dmsg.onNavigate(go)
     const onHash = () => (route = location.hash.slice(1) || '/vault')
     window.addEventListener('hashchange', onHash)
     return () => {

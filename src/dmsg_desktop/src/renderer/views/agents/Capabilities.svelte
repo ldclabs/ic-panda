@@ -41,11 +41,14 @@
   const columns = [...services.flatMap((s) => [s.read, s.write]), profileWrite]
   const labelOf = (did: string) => hosted.agents.find((a: any) => a.agent_id === did)?.label ?? did
 
+  /** The ticked services at the origin and the typed capabilities, each once. */
   const chosen = $derived([
-    ...Object.keys(ticked)
-      .filter((name) => ticked[name])
-      .map((name) => `${name}:${origin}`),
-    ...capabilities.split(/\s+/).filter(Boolean)
+    ...new Set([
+      ...Object.keys(ticked)
+        .filter((name) => ticked[name])
+        .map((name) => `${name}:${origin}`),
+      ...capabilities.split(/\s+/).filter(Boolean)
+    ])
   ])
 
   async function grant() {
@@ -167,7 +170,7 @@
             {#if g.revoked_at}<Pill>{t('retired')}</Pill>{:else if g.expires_at}<span class="text-[11.5px] text-faint">{t('expires')} {when(g.expires_at)}</span>{/if}
           </div>
           <div class="mt-1 flex flex-wrap gap-1">
-            {#each g.capabilities as capability (capability)}<Pill class={cn('font-mono font-normal', g.revoked_at && 'line-through opacity-60')}>{capability}</Pill>{/each}
+            {#each g.capabilities as capability, i (i)}<Pill class={cn('font-mono font-normal', g.revoked_at && 'line-through opacity-60')}>{capability}</Pill>{/each}
           </div>
         </div>
         {#if !g.revoked_at && unlocked}

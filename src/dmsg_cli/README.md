@@ -572,7 +572,10 @@ The daemon listens on `127.0.0.1` only.
   it registers while the device key is available. A `connect` hint fetches the
   mailbox (stored sealed while locked); without the device key the daemon only
   emits `connect/hint` for the desktop to notify. The mailbox is also polled
-  every 30 seconds.
+  every 30 seconds; that pass reconciles approved requests whose outcome is
+  unknown and announces `approval/changed` only when there were some or the
+  number waiting changed, since windows reload on it and their reads count
+  as activity.
 - While unlocked, the daemon keeps one WebSocket per active channel; an
   `available` hint, a new socket and a closed one each trigger a signed read.
   A socket's ticket lasts about a minute, so it is renewed every 40 seconds.

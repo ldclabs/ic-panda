@@ -66,17 +66,18 @@
       checked = `${t('verified')} · ${size(manifest.size)} · sha256 ${String(manifest.sha256).slice(0, 16)}…`
     })
 
+  /** The form keeps the version it started from: a version synced in meanwhile makes the save a conflict, not an overwrite. */
   function startEdit() {
-    editing = { title: item.title, tags: [...item.tags], body: item.body, username: item.username, url: item.url, secret: '' }
+    editing = { base: entry.revision, title: item.title, tags: [...item.tags], body: item.body, username: item.username, url: item.url, secret: '' }
   }
 
   const save = () =>
     attempt(async () => {
-      const changes: Record<string, unknown> = { title: editing.title.trim(), tags: $state.snapshot(editing.tags), body: editing.body }
+      const changes: Record<string, unknown> = { title: editing.title.trim(), tags: editing.tags, body: editing.body }
       if (has.includes('username')) changes.username = editing.username
       if (has.includes('url')) changes.url = editing.url
       if (has.includes('secret') && editing.secret) changes.secret = editing.secret
-      await call('vault/edit', { id: entry.id, base: entry.revision, changes })
+      await call('vault/edit', { id: entry.id, base: editing.base, changes })
       editing = null
       await reload()
     }, t('saved'))
@@ -115,7 +116,7 @@
       <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
       <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-faint">
         <span>{t(typeLabel[type])}</span>
-        {#each item.tags as tag (tag)}
+        {#each item.tags as tag, i (i)}
           <span class="rounded-md bg-wash px-1.5 py-px text-[11.5px] text-ink-2">#{tag}</span>
         {/each}
       </div>

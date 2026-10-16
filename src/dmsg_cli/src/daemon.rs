@@ -320,6 +320,8 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
 async fn background(daemon: Arc<Daemon>) {
     let mut synced = now_ms();
     let mut polled = 0;
+    // Requests waiting at the last pass; one that expires changes the count.
+    let mut waiting = 0;
     loop {
         tokio::select! {
             _ = tokio::time::sleep(std::time::Duration::from_millis(FLUSH_MS)) => {}
@@ -373,8 +375,16 @@ async fn background(daemon: Arc<Daemon>) {
                     daemon.emit("approval/changed", json!({"connect": report}));
                 }
             }
-            if unlocked && client.approvals_reconcile().await.is_ok() {
-                daemon.emit("approval/changed", Value::Null);
+            // Only news is announced: the windows reload on this event and
+            // their reads count as activity, so an event every pass would
+            // keep the idle lock from ever coming.
+            if unlocked {
+                let reconciled = client.approvals_reconcile().await.unwrap_or(0);
+                let count = client.approvals_waiting().unwrap_or(waiting);
+                if reconciled > 0 || count != waiting {
+                    daemon.emit("approval/changed", Value::Null);
+                }
+                waiting = count;
             }
         }
     }

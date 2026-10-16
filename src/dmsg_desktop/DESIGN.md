@@ -317,8 +317,10 @@ restyle a control by hand.
 - Files enter through the main process's dialogs or a drop the preload
   resolves to a path; a file a page made has none and is refused.
 - The shell reads only methods that do not count as activity
-  (`daemon/status`); everything else runs on a person's action or an event,
-  so the idle lock keeps its meaning.
+  (`daemon/status`, again every 10 seconds while unlocked for the idle
+  lock's countdown); everything else runs on a person's action or an event,
+  and the daemon's background passes announce only what changed, so the
+  idle lock keeps its meaning.
 - Never present a pending or unknown result as success.
 
 ## Accessibility & Languages

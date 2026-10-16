@@ -41,9 +41,13 @@
     if (unlockedAccount === id) avatar = image?.url ?? null
   }
 
+  // Arrow keys move through the menu once its content has focus.
+  $effect(() => {
+    if (open) content?.focus()
+  })
+
   $effect(() => {
     if (!open) return
-    content?.focus()
     call<any[]>('session/accounts')
       .then((list) => (accounts = list))
       .catch(() => (accounts = []))

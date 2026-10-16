@@ -19,7 +19,12 @@ export async function bridge<T = any>(work: () => Promise<unknown>): Promise<T> 
   }
 }
 
-export const call = <T = any>(method: string, params?: unknown): Promise<T> => bridge<T>(() => window.dmsg.call(method, params))
+/**
+ * A daemon method. The params cross the bridge as the JSON the daemon reads:
+ * `$state` arrays and objects are proxies, which the bridge cannot clone.
+ */
+export const call = <T = any>(method: string, params?: unknown): Promise<T> =>
+  bridge<T>(() => window.dmsg.call(method, params === undefined ? undefined : JSON.parse(JSON.stringify(params))))
 
 export function code(error: unknown): string {
   return error instanceof CallError ? error.code : 'UNAVAILABLE'
