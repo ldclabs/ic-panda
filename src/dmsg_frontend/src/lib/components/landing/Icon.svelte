@@ -1,4 +1,6 @@
 <script lang="ts">
+  // Remix Icon 4.6.0 files in static/_assets/dmsg (Apache-2.0, see
+  // Remix-LICENSE.txt there); icon.svg and mark.svg are dMsg's own.
   let { name }: { name: string } = $props()
 </script>
 

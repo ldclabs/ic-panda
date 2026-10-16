@@ -1,4 +1,4 @@
-// Remix Icon 4.6 paths (Apache-2.0, see static/_assets/dmsg/Remix-LICENSE.txt),
+// Remix Icon 4.6.0 paths (Apache-2.0, see static/_assets/dmsg/Remix-LICENSE.txt),
 // inlined so icons take the surrounding text colour.
 export const glyphs = {
   apple:
