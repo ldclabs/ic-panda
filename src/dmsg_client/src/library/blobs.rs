@@ -130,20 +130,28 @@ impl Blobs {
         Ok(found)
     }
 
-    /// Check every stored chunk against its name; returns the digests of
-    /// those that no longer match. Needs no key.
+    /// Check every stored chunk against its name; returns how many were
+    /// checked and the digests of those that no longer match. Needs no
+    /// key, and nothing else of the library: it may run beside it. A chunk
+    /// the collector removes meanwhile is skipped.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when a file cannot be read.
-    pub fn verify(&self) -> Result<Vec<String>> {
+    pub fn verify(&self) -> Result<(u64, Vec<String>)> {
+        let mut checked = 0;
         let mut bad = Vec::new();
         for (digest, _) in self.entries()? {
-            let bytes = fs::read(self.path(&digest)?).map_err(storage)?;
+            let bytes = match fs::read(self.path(&digest)?) {
+                Ok(bytes) => bytes,
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+                Err(e) => return Err(storage(e)),
+            };
+            checked += 1;
             if hex::encode(*sha256(&bytes)) != digest {
                 bad.push(digest);
             }
         }
-        Ok(bad)
+        Ok((checked, bad))
     }
 
     /// Delete temporary files older than `age`; returns how many.

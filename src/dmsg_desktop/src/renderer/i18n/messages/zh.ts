@@ -107,6 +107,7 @@ export default {
     mountNoteLinux: '经 GVFS 挂载；未基于它的程序通过其 FUSE 路径访问磁盘。',
     diskMounted: '磁盘已挂载',
     diskUnmounted: '磁盘已卸载',
+    selfCheckDamage: '上次自检发现 {n} 个损坏的密文块或版本；请备份完好的部分，其余从云端取回',
     modified: '修改时间',
     createdAt: '创建时间',
     pathLabel: '文件夹',

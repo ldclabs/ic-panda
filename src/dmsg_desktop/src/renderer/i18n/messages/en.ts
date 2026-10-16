@@ -109,6 +109,7 @@ const messages = {
   mountNoteLinux: 'Mounted through GVFS; programs not built on it reach the disk through its FUSE path.',
   diskMounted: 'Disk mounted',
   diskUnmounted: 'Disk unmounted',
+  selfCheckDamage: 'The last check found {n} damaged chunk(s) or version(s); back up what is intact and fetch the rest from the cloud',
   modified: 'Modified',
   createdAt: 'Created',
   pathLabel: 'Folder',

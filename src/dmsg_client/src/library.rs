@@ -38,7 +38,7 @@ use catalog::{
     Version, VersionView, FILE, FOLDER, MAX_NOTE, ROOT, VERSION,
 };
 use dmsg_types::{ensure, ensure_valid, Error, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::io::Write;
 use std::path::Path;
@@ -55,6 +55,10 @@ pub(crate) const FETCH_JOB: &str = "fetch:";
 pub const MAX_PREVIEW_IMAGE: u64 = 8 * 1024 * 1024;
 /// How much of a text file a preview returns.
 pub const PREVIEW_TEXT: usize = 64 * 1024;
+/// The workspace record of the last check of the whole library.
+const CHECK: &str = "lib-check";
+/// A scheduled check is due this long after the last one.
+pub const CHECK_MS: u64 = dmsg_types::DAY;
 /// Largest text file a preview reads through.
 const MAX_PREVIEW_TEXT_FILE: u64 = 256 * 1024 * 1024;
 
@@ -95,7 +99,7 @@ pub struct Preview {
 }
 
 /// One version's check.
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct VersionCheck {
     /// File ID.
     pub file: String,
@@ -116,6 +120,29 @@ pub struct VerifyReport {
     pub blobs_checked: u64,
     /// Chunk files that no longer match their names.
     pub blobs_bad: Vec<String>,
+}
+
+/// The last check of the whole library, scheduled or asked for; kept in
+/// the workspace, unsealed, since it holds nothing but counts and IDs.
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+pub struct Check {
+    /// When, in Unix milliseconds.
+    pub at: u64,
+    /// Chunk files compared with their names.
+    pub blobs_checked: u64,
+    /// Chunk files that no longer match their names.
+    pub blobs_bad: Vec<String>,
+    /// Local versions opened through their keys; none while locked.
+    pub versions_checked: u64,
+    /// Versions that failed.
+    pub versions_bad: Vec<VersionCheck>,
+}
+
+impl Check {
+    /// Nothing was found wrong.
+    pub fn ok(&self) -> bool {
+        self.blobs_bad.is_empty() && self.versions_bad.is_empty()
+    }
 }
 
 /// What the library occupies.
@@ -139,6 +166,8 @@ pub struct Usage {
     pub max_file_bytes: u64,
     /// Days a trashed file is kept.
     pub trash_days: u64,
+    /// The last check of the whole library.
+    pub last_check: Option<Check>,
 }
 
 /// A writer that keeps only the first `limit` bytes.
@@ -877,49 +906,125 @@ impl Client {
         id: Option<&str>,
         version: Option<&str>,
     ) -> Result<VerifyReport> {
-        let mut report = VerifyReport::default();
-        let targets: Vec<(String, String)> = match id {
-            Some(id) => {
-                let (file, version_id, _) = self.pick_version(id, version)?;
-                match version {
-                    Some(_) => vec![(id.to_string(), version_id)],
-                    None => file
-                        .versions
-                        .iter()
-                        .map(|v| (id.to_string(), v.id.clone()))
-                        .collect(),
-                }
-            }
-            None => {
-                let blobs = self.blobs()?;
-                report.blobs_checked = blobs.entries()?.len() as u64;
-                report.blobs_bad = blobs.verify()?;
-                if self.keys.is_none() {
-                    return Ok(report);
-                }
-                let catalog = self.catalog()?;
-                catalog
-                    .files
-                    .iter()
-                    .flat_map(|(id, f)| f.versions.iter().map(move |v| (id.clone(), v.id.clone())))
-                    .collect()
-            }
+        let Some(id) = id else {
+            let (blobs_checked, blobs_bad) = self.blobs()?.verify()?;
+            let (check, versions) = self.check_library(now_ms(), blobs_checked, blobs_bad)?;
+            return Ok(VerifyReport {
+                versions,
+                blobs_checked: check.blobs_checked,
+                blobs_bad: check.blobs_bad,
+            });
         };
+        let (file, version_id, _) = self.pick_version(id, version)?;
+        let targets = match version {
+            Some(_) => vec![(id.to_string(), version_id)],
+            None => file
+                .versions
+                .iter()
+                .map(|v| (id.to_string(), v.id.clone()))
+                .collect(),
+        };
+        Ok(VerifyReport {
+            versions: self.verify_versions(targets)?,
+            blobs_checked: 0,
+            blobs_bad: vec![],
+        })
+    }
+
+    /// Open each local version of `targets` through its key and check it
+    /// whole.
+    fn verify_versions(&mut self, targets: Vec<(String, String)>) -> Result<Vec<VersionCheck>> {
         let max = self.config.files_max_bytes;
+        let mut checks = Vec::new();
         for (file, version_id) in targets {
             let (_, record, manifest) = self.library_manifest(&file, Some(&version_id))?;
             if !record.local {
                 continue;
             }
             let checked = read_file(self.blobs()?, &manifest, max, None);
-            report.versions.push(VersionCheck {
+            checks.push(VersionCheck {
                 file,
                 version: version_id,
                 ok: checked.is_ok(),
                 error: checked.err().as_ref().map(crate::error_code),
             });
         }
-        Ok(report)
+        Ok(checks)
+    }
+
+    /// The chunk directory, for a scan beside the library ([`Blobs::verify`]).
+    ///
+    /// # Errors
+    /// Returns `Error::AuthRequired` before an account is selected.
+    pub fn files_blobs_dir(&self) -> Result<std::path::PathBuf> {
+        Ok(self.blobs()?.dir().to_path_buf())
+    }
+
+    /// The last check of the whole library, if any.
+    ///
+    /// # Errors
+    /// Returns `Error::AuthRequired` before an account is selected.
+    pub fn files_last_check(&self) -> Result<Option<Check>> {
+        self.blobs()?;
+        self.workspace.store.meta(CHECK)
+    }
+
+    /// Whether a scheduled check is due: none yet, or the last one is
+    /// [`CHECK_MS`] old.
+    ///
+    /// # Errors
+    /// Returns `Error::AuthRequired` before an account is selected.
+    pub fn files_check_due(&self, now: u64) -> Result<bool> {
+        Ok(self
+            .files_last_check()?
+            .is_none_or(|check| now >= check.at + CHECK_MS))
+    }
+
+    /// Record a check of the whole library from a chunk scan done beside
+    /// it, adding every local version through its key while unlocked.
+    /// Versions that fail stay in the record; the rest are counted.
+    ///
+    /// # Errors
+    /// Returns `Error::AuthRequired` before an account is selected and
+    /// `Error::Unavailable` when a chunk cannot be read.
+    pub fn files_check_record(
+        &mut self,
+        now: u64,
+        blobs_checked: u64,
+        blobs_bad: Vec<String>,
+    ) -> Result<Check> {
+        Ok(self.check_library(now, blobs_checked, blobs_bad)?.0)
+    }
+
+    /// The check behind [`Self::files_check_record`], with every version's
+    /// result.
+    fn check_library(
+        &mut self,
+        now: u64,
+        blobs_checked: u64,
+        blobs_bad: Vec<String>,
+    ) -> Result<(Check, Vec<VersionCheck>)> {
+        let mut check = Check {
+            at: now,
+            blobs_checked,
+            blobs_bad,
+            versions_checked: 0,
+            versions_bad: vec![],
+        };
+        let mut versions = Vec::new();
+        if self.keys.is_some() {
+            let targets: Vec<(String, String)> = self
+                .catalog()?
+                .files
+                .iter()
+                .flat_map(|(id, f)| f.versions.iter().map(move |v| (id.clone(), v.id.clone())))
+                .collect();
+            versions = self.verify_versions(targets)?;
+            check.versions_checked = versions.len() as u64;
+            check.versions_bad = versions.iter().filter(|c| !c.ok).cloned().collect();
+        }
+        self.workspace.store.set_meta(CHECK, &check)?;
+        Ok((check, versions))
     }
 
     /// What the library occupies on this device.
@@ -930,6 +1035,7 @@ impl Client {
         let mut usage = Usage {
             max_file_bytes: self.config.files_max_bytes,
             trash_days: self.config.files_trash_days,
+            last_check: self.files_last_check()?,
             ..Usage::default()
         };
         for (_, size) in self.blobs()?.entries()? {

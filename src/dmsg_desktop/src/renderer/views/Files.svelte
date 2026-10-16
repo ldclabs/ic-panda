@@ -361,6 +361,9 @@
       <Tree {folders} {scope} {unlocked} onPick={pick} onDropMove={move} onNewFolder={(parent) => ((naming = { parent }), (draft = ''))} />
       {#if usage}
         <p class="border-t border-line px-3.5 py-2 text-[11px] text-faint">{t('localUsage', { files: usage.files, versions: usage.versions, bytes: size(usage.blob_bytes) })}</p>
+        {#if usage.last_check && usage.last_check.blobs_bad.length + usage.last_check.versions_bad.length > 0}
+          <p class="flex items-start gap-1.5 px-3.5 pb-2 text-[11px] text-warn" data-testid="files-check-warning"><Icon name="warning" class="mt-px size-3.5 shrink-0" />{t('selfCheckDamage', { n: usage.last_check.blobs_bad.length + usage.last_check.versions_bad.length })}</p>
+        {/if}
       {/if}
       {#if mount?.supported}
         <div class="border-t border-line px-3.5 py-2 text-[11px] text-faint" data-testid="files-mount">

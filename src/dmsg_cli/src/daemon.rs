@@ -68,6 +68,8 @@ use tokio::sync::{broadcast, Mutex, Notify};
 const FLUSH_MS: u64 = 10_000;
 /// How often the relay mailbox is polled besides hints.
 const CONNECT_POLL_MS: u64 = 30_000;
+/// The library's daily self-check waits for this much quiet at the device.
+const CHECK_IDLE_MS: u64 = 60_000;
 /// The app protocol `initialize` reports.
 const APP_PROTOCOL: &str = "dmsg-app/1";
 
@@ -427,6 +429,36 @@ async fn background(daemon: Arc<Daemon>) {
             if let Ok(changed) = client.files_open_sweep(now) {
                 for copy in changed {
                     daemon.emit("files/open_changed", to_json(&copy));
+                }
+            }
+        }
+        // The library's self-check, once a day while nobody is at the
+        // device: every chunk file against its name, which needs no key and
+        // runs beside the library, then every local version through its
+        // key while unlocked.
+        let quiet = now > daemon.activity.load(Ordering::Relaxed) + CHECK_IDLE_MS;
+        if quiet && client.files_check_due(now).unwrap_or(false) {
+            if let Ok(dir) = client.files_blobs_dir() {
+                drop(client);
+                let scanned = tokio::task::spawn_blocking(move || {
+                    dmsg_client::library::blobs::Blobs::new(dir).verify()
+                })
+                .await
+                .unwrap_or_else(|e| Err(Error::Unavailable(format!("check: {e}"))));
+                let mut client = daemon.client.lock().await;
+                let checked = scanned
+                    .and_then(|(count, bad)| client.files_check_record(now_ms(), count, bad));
+                daemon.note("check", &outcome(&checked));
+                if let Ok(check) = checked {
+                    crate::logs::write(
+                        "files/check",
+                        &[
+                            ("blobs", &check.blobs_checked),
+                            ("versions", &check.versions_checked),
+                            ("bad", &(check.blobs_bad.len() + check.versions_bad.len())),
+                        ],
+                    );
+                    daemon.emit("files/changed", json!({"check": check}));
                 }
             }
         }

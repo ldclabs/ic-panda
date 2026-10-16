@@ -291,7 +291,7 @@ const methods = {
     }
     return { trashed: p.ids.length }
   },
-  'files/usage': () => ({ files: library.length, trashed: libraryTrash.length, versions: library.length, local_versions: library.length, blobs: 2, blob_bytes: 5330, open_copies: 0, max_file_bytes: 4294967296, trash_days: 30 }),
+  'files/usage': () => ({ files: library.length, trashed: libraryTrash.length, versions: library.length, local_versions: library.length, blobs: 2, blob_bytes: 5330, open_copies: 0, max_file_bytes: 4294967296, trash_days: 30, last_check: null }),
   'files/backup_status': () => [],
   'files/mount_status': () => ({ mounted: false, enabled: false, os: 'macos', supported: true, note: '' }),
   'files/cloud_list': () => [],

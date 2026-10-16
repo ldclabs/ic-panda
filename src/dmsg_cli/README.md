@@ -303,7 +303,10 @@ minutes, on lock and on exit, asking first (`files/open_changed`) when the
 program changed it, so the change can be kept as a new version. `files rm`
 moves to the trash, emptied after `files_trash_days`; `files purge` empties
 it now. `files verify --all` checks every chunk file against its name, which
-needs no key, and every version while unlocked. `files share` sends a version
+needs no key, and every version while unlocked; the daemon does the same
+once a day after a minute without anyone at the device, the chunk scan
+beside the library and the versions while unlocked, and `files usage`
+shows the last check (`last_check`) with what failed. `files share` sends a version
 to a channel as a new edition under its own key: it shares no key and no
 chunk with the library's copy or a backup. `files save` keeps a shared file
 from a channel message as a file of the library, re-encrypted under a key of

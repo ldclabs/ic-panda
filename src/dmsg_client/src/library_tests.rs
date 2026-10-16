@@ -553,6 +553,16 @@ fn previews_verification_and_shared_editions() {
     assert_eq!(report.versions.len(), 3);
     assert!(report.versions.iter().all(|v| v.ok) && report.blobs_bad.is_empty());
     assert_eq!(report.blobs_checked, 4);
+    // A check of the whole library is recorded, and the next is due a day on.
+    let check = client.files_last_check().unwrap().unwrap();
+    assert_eq!((check.blobs_checked, check.versions_checked), (4, 3));
+    assert!(check.ok() && check.at > 0);
+    assert!(!client.files_check_due(check.at + DAY - 1).unwrap());
+    assert!(client.files_check_due(check.at + DAY).unwrap());
+    assert_eq!(
+        client.files_usage().unwrap().last_check,
+        Some(check.clone())
+    );
     let digest = version.chunks[0].digest.clone();
     let path = client
         .blobs()
@@ -567,6 +577,23 @@ fn previews_verification_and_shared_editions() {
     let locked = client.files_verify(None, None).unwrap();
     assert_eq!(locked.blobs_bad, std::slice::from_ref(&digest));
     assert!(locked.versions.is_empty());
+    // The scheduled check takes a scan done beside the library; locked, it
+    // checks no version, and the record says so.
+    let (count, bad) = client.blobs().unwrap().verify().unwrap();
+    assert_eq!((count, &bad), (4, &vec![digest.clone()]));
+    let recorded = client
+        .files_check_record(check.at + DAY, count, bad)
+        .unwrap();
+    assert_eq!(
+        (
+            recorded.at,
+            recorded.versions_checked,
+            recorded.blobs_bad.len()
+        ),
+        (check.at + DAY, 0, 1)
+    );
+    assert!(!recorded.ok());
+    assert_eq!(client.files_last_check().unwrap(), Some(recorded));
     assert_eq!(
         client.files_verify(Some(&note.file.id), None).err(),
         Some(Error::Locked)
@@ -575,6 +602,13 @@ fn previews_verification_and_shared_editions() {
     client.root = Some(RootKeys_single());
     let report = client.files_verify(Some(&picture.file.id), None).unwrap();
     assert!(!report.versions[0].ok);
+    // Unlocked, the record names the failed version.
+    let full = client.files_verify(None, None).unwrap();
+    assert_eq!(full.versions.len(), 3);
+    let recorded = client.files_last_check().unwrap().unwrap();
+    assert_eq!(recorded.versions_checked, 3);
+    assert_eq!(recorded.versions_bad.len(), 1);
+    assert_eq!(recorded.versions_bad[0].file, picture.file.id);
     assert_eq!(
         report.versions[0].error.as_deref(),
         Some("INTEGRITY_FAILED")

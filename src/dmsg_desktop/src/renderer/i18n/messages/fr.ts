@@ -107,6 +107,7 @@ export default {
     mountNoteLinux: 'Monté via GVFS ; les programmes qui ne s’appuient pas dessus atteignent le disque par son chemin FUSE.',
     diskMounted: 'Disque monté',
     diskUnmounted: 'Disque démonté',
+    selfCheckDamage: 'La dernière vérification a trouvé {n} bloc(s) ou version(s) endommagés ; sauvegardez ce qui est intact et récupérez le reste depuis le cloud',
     modified: 'Modifié',
     createdAt: 'Créé',
     pathLabel: 'Dossier',

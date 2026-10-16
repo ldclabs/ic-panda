@@ -107,6 +107,7 @@ export default {
     mountNoteLinux: 'مركّب عبر GVFS؛ البرامج غير المبنية عليه تصل إلى القرص عبر مسار FUSE الخاص به.',
     diskMounted: 'تم تركيب القرص',
     diskUnmounted: 'تم فصل القرص',
+    selfCheckDamage: 'وجد الفحص الأخير {n} من الأجزاء أو النسخ التالفة؛ انسخ السليم احتياطيًا واستعد الباقي من السحابة',
     modified: 'آخر تعديل',
     createdAt: 'تاريخ الإنشاء',
     pathLabel: 'المجلد',

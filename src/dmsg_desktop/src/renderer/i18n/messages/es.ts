@@ -107,6 +107,7 @@ export default {
     mountNoteLinux: 'Montado mediante GVFS; los programas que no se basan en él acceden al disco por su ruta FUSE.',
     diskMounted: 'Disco montado',
     diskUnmounted: 'Disco desmontado',
+    selfCheckDamage: 'La última comprobación halló {n} fragmento(s) o versión(es) dañados; haz copia de lo intacto y recupera el resto de la nube',
     modified: 'Modificado',
     createdAt: 'Creado',
     pathLabel: 'Carpeta',
