@@ -70,6 +70,8 @@ const FLUSH_MS: u64 = 10_000;
 const CONNECT_POLL_MS: u64 = 30_000;
 /// The library's daily self-check waits for this much quiet at the device.
 const CHECK_IDLE_MS: u64 = 60_000;
+/// A self-check that could not finish is tried again after this long.
+const CHECK_RETRY_MS: u64 = 3_600_000;
 /// The app protocol `initialize` reports.
 const APP_PROTOCOL: &str = "dmsg-app/1";
 
@@ -335,6 +337,8 @@ async fn background(daemon: Arc<Daemon>) {
     let mut polled = 0;
     // Requests waiting at the last pass; one that expires changes the count.
     let mut waiting = 0;
+    // When the last self-check began, finished or not.
+    let mut checking = 0;
     loop {
         tokio::select! {
             _ = tokio::time::sleep(std::time::Duration::from_millis(FLUSH_MS)) => {}
@@ -437,8 +441,10 @@ async fn background(daemon: Arc<Daemon>) {
         // runs beside the library, then every local version through its
         // key while unlocked.
         let quiet = now > daemon.activity.load(Ordering::Relaxed) + CHECK_IDLE_MS;
-        if quiet && client.files_check_due(now).unwrap_or(false) {
+        if quiet && now >= checking + CHECK_RETRY_MS && client.files_check_due(now).unwrap_or(false)
+        {
             if let Ok(dir) = client.files_blobs_dir() {
+                checking = now;
                 drop(client);
                 let scanned = tokio::task::spawn_blocking(move || {
                     dmsg_client::library::blobs::Blobs::new(dir).verify()

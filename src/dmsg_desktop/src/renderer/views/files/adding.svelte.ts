@@ -47,22 +47,35 @@ export function picked(names: string[]) {
   for (const name of names) if (!jobs.some((job) => job.kind === 'add' && job.stage === 'running' && job.name === name)) start('add', name)
 }
 
-/** The daemon's `files/progress`: chunks done of a file being added, backed up or fetched. */
+/** The jobs `files/progress` names; without a name it is an import. */
+const kinds = new Map<string, Kind>([
+  ['backup', 'backup'],
+  ['fetch', 'fetch'],
+  ['verify', 'verify']
+])
+
+/**
+ * The daemon's `files/progress`: chunks done of a file being added, backed
+ * up or fetched, by any client. The last chunk ends the card; other work,
+ * such as a share link's edition, shows where it was asked for.
+ */
 export function progress(data: { job?: string; path?: string; done?: number; total?: number }) {
-  const kind: Kind = data.job === 'backup' ? 'backup' : data.job === 'fetch' ? 'fetch' : data.job === 'verify' ? 'verify' : 'add'
+  const kind = data.job ? kinds.get(data.job) : 'add'
+  if (!kind) return
   const name = kind === 'add' ? basename(String(data.path ?? '')) : String(data.path ?? '')
   let job = jobs.find((j) => j.kind === kind && j.stage === 'running' && j.name === name)
   job ??= start(kind, name)
   job.done = Number(data.done ?? 0)
   job.total = Number(data.total ?? 0)
-  if (kind !== 'add' && job.total > 0 && job.done >= job.total) settle(job, 'done')
+  if (job.total > 0 && job.done >= job.total) settle(job, 'done')
 }
 
 /** The daemon answered an import: each file added, with how many files already hold its bytes. */
 export function added(results: { file?: { name?: string }; duplicate_of?: string[] }[], duplicateNote: (n: number) => string) {
   for (const result of results) {
     const name = result.file?.name ?? ''
-    let job = jobs.find((j) => j.kind === 'add' && j.stage === 'running' && j.name === name)
+    // Its last chunk may have ended the card already.
+    let job = jobs.find((j) => j.kind === 'add' && j.stage !== 'error' && j.name === name)
     job ??= start('add', name)
     job.done = job.total = Math.max(job.total, 1)
     job.note = result.duplicate_of?.length ? duplicateNote(result.duplicate_of.length) : undefined

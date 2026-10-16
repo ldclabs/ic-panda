@@ -17,7 +17,7 @@ use crate::content::empty_file;
 use crate::crypto::{open, seal, Key};
 use crate::files::{BlobStore, FileManifest, Source, MAX_FILE};
 use crate::upload::{hex_id, random_hex, ChunkRef, UploadPlan};
-use dmsg_types::{ensure, ensure_valid, Error, Hash, Result, DAY};
+use dmsg_types::{ensure, ensure_valid, Error, Hash, Result, DAY, MINUTE};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use zeroize::Zeroizing;
@@ -357,8 +357,11 @@ impl Client {
             let _ = self.cancel_upload(&upload_id).await;
             return Err(error);
         }
-        let expires_at = crate::now_ms() + expires_in;
-        let published = self
+        // The relay bounds the expiry by its own clock; a minute's margin
+        // keeps the longest link within it.
+        let now = crate::now_ms();
+        let expires_at = now + expires_in.min(LINK_MAX_MS - MINUTE);
+        let published = match self
             .relay_post(
                 &format!("{base}/shares"),
                 "dmsg/share/create/v1",
@@ -371,7 +374,22 @@ impl Client {
                 }),
                 &Hash::new(crate::crypto::random_id()),
             )
-            .await?;
+            .await
+        {
+            Ok(published) => published,
+            Err(error) => {
+                // Without its link nothing would retire the committed edition.
+                let _ = self
+                    .relay_post(
+                        &format!("{base}/objects/collect"),
+                        "dmsg/object/collect/v1",
+                        &json!({"upload_id": upload_id, "generation": 0}),
+                        &Hash::new(crate::crypto::random_id()),
+                    )
+                    .await;
+                return Err(error);
+            }
+        };
         ensure(
             published["share_id"] == share_id.as_str(),
             Error::IntegrityFailed,
@@ -387,9 +405,7 @@ impl Client {
             expires_at,
             max_downloads,
             password: password.is_some(),
-            created_at: published["created_at"]
-                .as_u64()
-                .unwrap_or(expires_at - expires_in),
+            created_at: published["created_at"].as_u64().unwrap_or(now),
             revoked_at: None,
             downloads: 0,
         };
@@ -489,8 +505,9 @@ impl Client {
             .into_iter()
             .find(|r| r.share_id == share_id)
         {
+            // The relay's answer counts no downloads; the record keeps the
+            // last count it reported.
             record.revoked_at = revoked_at;
-            record.downloads = revoked["downloads"].as_u64().unwrap_or(record.downloads);
             self.save_link(&record)?;
             return Ok(self.link_view(&record, now));
         }

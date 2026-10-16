@@ -7,14 +7,16 @@
 //! the account, read by a cursor: each entry's signed plan is checked
 //! against the certified devices, its manifest is downloaded and opened
 //! with the root of its generation, and the result is cached as a sealed
-//! `lib-cloud` record. There is no mutable cloud catalog, so there is
-//! nothing to reconcile: a deletion on either side changes only that side.
+//! `lib-cloud` record; an entry whose root this device lacked opens at a
+//! later refresh, once the root is here. There is no mutable cloud catalog,
+//! so there is nothing to reconcile: a deletion on either side changes only
+//! that side.
 
 use super::backup::{BackupManifest, BACKUP};
 use super::catalog::{
     safe_name, Backup, FileRecord, FileView, Origin, Version, VersionRef, FILE, ROOT,
 };
-use super::{Client, VersionCheck, FETCH_JOB};
+use super::{Client, VersionCheck};
 use crate::cloud::verify_signed_command;
 use crate::codec::sha256;
 use crate::content::{empty_file, open_manifest, Opened};
@@ -188,10 +190,35 @@ impl Client {
         Ok(())
     }
 
+    /// The manifest of a committed backup, opened with the root of its
+    /// generation; `None` while this device lacks that root.
+    async fn open_backup(
+        &mut self,
+        account: &str,
+        upload_id: &str,
+        plan: &UploadPlan,
+    ) -> Result<Option<BackupManifest>> {
+        let root: Option<Zeroizing<Key>> = self
+            .roots()?
+            .key(plan.root_generation)
+            .map(|k| Zeroizing::new(*k));
+        let Some(root) = root else {
+            return Ok(None);
+        };
+        let bytes = self
+            .download(upload_id, "manifest", &plan.manifest_digest)
+            .await?;
+        match open_manifest(&root, account, plan, &bytes)? {
+            Opened::Backup(manifest) => Ok(Some(manifest)),
+            _ => Err(Error::IntegrityFailed),
+        }
+    }
+
     /// Read the relay's backup inventory from this device's cursor on:
     /// check every entry's signed plan against the account's certified
     /// devices, open each new manifest with the root of its generation and
-    /// cache it; forget the ones deleted. A local version a backup is of is
+    /// cache it; forget the ones deleted. Cached entries that lacked their
+    /// root open once the root is here. A local version a backup is of is
     /// marked backed up.
     ///
     /// # Errors
@@ -203,11 +230,19 @@ impl Client {
         let base = self.base()?;
         let mut cursor: u64 = self.workspace.private(self.keys()?, CURSOR)?.unwrap_or(0);
         let mut report = CloudRefresh::default();
+        // Entries an earlier refresh cached without their root.
+        let rootless: Vec<String> = self
+            .cloud_entries()?
+            .into_iter()
+            .filter(|(_, entry)| entry.manifest.is_none())
+            .map(|(upload_id, _)| upload_id)
+            .collect();
         loop {
             let page = self
                 .relay_get(&format!("{base}/backups?after={cursor}&limit=100"))
                 .await?;
             let security = self.cloud_state().await?;
+            let now = now_ms();
             let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
             ensure(entries.len() <= 100, Error::IntegrityFailed)?;
             for entry in entries {
@@ -247,32 +282,15 @@ impl Client {
                     continue;
                 }
                 let committed_at = entry["committed_at"].as_u64();
-                let root: Option<Zeroizing<Key>> = self
-                    .roots()?
-                    .key(plan.root_generation)
-                    .map(|k| Zeroizing::new(*k));
-                let manifest = match root {
-                    Some(root) => {
-                        let bytes = self
-                            .download(&upload_id, "manifest", &plan.manifest_digest)
-                            .await?;
-                        match open_manifest(&root, &account, &plan, &bytes)? {
-                            Opened::Backup(manifest) => Some(manifest),
-                            _ => return Err(Error::IntegrityFailed),
-                        }
-                    }
-                    None => {
-                        report.needs_root += 1;
-                        None
-                    }
-                };
-                if let Some(manifest) = &manifest {
-                    self.mark_backed_up(
+                let manifest = self.open_backup(&account, &upload_id, &plan).await?;
+                match &manifest {
+                    Some(manifest) => self.mark_backed_up(
                         manifest,
                         &upload_id,
                         plan.root_generation,
-                        committed_at.unwrap_or_else(now_ms),
-                    )?;
+                        committed_at.unwrap_or(now),
+                    )?,
+                    None => report.needs_root += 1,
                 }
                 self.save_cloud_entry(
                     &upload_id,
@@ -290,6 +308,25 @@ impl Client {
                 break;
             }
             ensure(!entries.is_empty(), Error::IntegrityFailed)?;
+        }
+        // Those still listed open once their root is here.
+        let now = now_ms();
+        for upload_id in rootless {
+            let Some(mut entry) = self.cloud_entry(&upload_id)? else {
+                continue;
+            };
+            let Some(manifest) = self.open_backup(&account, &upload_id, &entry.plan).await? else {
+                report.needs_root += 1;
+                continue;
+            };
+            self.mark_backed_up(
+                &manifest,
+                &upload_id,
+                entry.plan.root_generation,
+                entry.committed_at.unwrap_or(now),
+            )?;
+            entry.manifest = Some(manifest);
+            self.save_cloud_entry(&upload_id, &entry)?;
         }
         report.cursor = cursor;
         Ok(report)
@@ -393,15 +430,8 @@ impl Client {
         if let Some(folder) = folder {
             self.catalog()?.live_folder(folder)?;
         }
-        let key = format!("{FETCH_JOB}{upload_id}");
-        self.workspace
-            .store
-            .set_job(&key, &json!({"upload_id": upload_id}))?;
-        let fetched = self
-            .fetch_chunks(upload_id, &entry.plan, &manifest, progress)
-            .await;
-        self.workspace.store.delete_job(&key)?;
-        fetched?;
+        self.fetch_chunks(upload_id, &entry.plan, &manifest, progress)
+            .await?;
         let now = now_ms();
         let file = &manifest.file;
         let backup = Backup {
@@ -519,13 +549,28 @@ impl Client {
 
     /// Delete cloud copies: an explicit, signed collection of each object on
     /// the relay, which frees its quota. Files on this device stay; their
-    /// versions only lose the backup mark.
+    /// versions only lose the backup mark. The copy a version released from
+    /// this device ([`Self::files_evict`]) reads from is its last one, so
+    /// it is refused until the version is fetched back or deleted here.
     ///
     /// # Errors
-    /// Relay refusals, such as an object an export lease still protects,
-    /// stop at that object; the ones before it are gone.
+    /// Returns `Error::InvalidInput` for such a last copy, before anything
+    /// goes. Relay refusals, such as an object an export lease still
+    /// protects, stop at that object; the ones before it are gone.
     pub async fn files_cloud_delete(&mut self, upload_ids: &[String]) -> Result<u64> {
         ensure_valid(!upload_ids.is_empty(), "upload_ids")?;
+        for upload_id in upload_ids {
+            let Some(manifest) = self.cloud_entry(upload_id)?.and_then(|e| e.manifest) else {
+                continue;
+            };
+            let last = self
+                .version(&manifest.file.id, &manifest.file.version)
+                .is_ok_and(|v| !v.local && v.backup.is_some_and(|b| b.upload_id == *upload_id));
+            ensure_valid(
+                !last,
+                "upload_ids: the only copy of a version freed here; fetch it first",
+            )?;
+        }
         let base = self.base()?;
         let mut deleted = 0;
         for upload_id in upload_ids {
@@ -555,14 +600,9 @@ impl Client {
     ) -> Result<VersionCheck> {
         let entry = self.cloud_entry(upload_id)?.ok_or(Error::NotFound)?;
         let manifest = entry.manifest.clone().ok_or(Error::RecoveryIncomplete)?;
-        let key = format!("{FETCH_JOB}{upload_id}");
-        self.workspace
-            .store
-            .set_job(&key, &json!({"upload_id": upload_id}))?;
         let checked = self
             .fetch_chunks(upload_id, &entry.plan, &manifest, progress)
             .await;
-        self.workspace.store.delete_job(&key)?;
         let file = &manifest.file;
         if checked.is_ok() {
             if let Ok(mut version) = self.version(&file.id, &file.version) {

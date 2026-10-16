@@ -81,15 +81,39 @@ impl Client {
         Ok(Some(Node::Folder(view)))
     }
 
-    /// Chunk `index` of a file's current version, decrypted on its own; for
-    /// reads at an offset. The chunk is checked, the whole file is not.
+    /// Chunk `index` of a file's version, decrypted on its own; for reads at
+    /// an offset, which name the version they began with so that a version
+    /// made meanwhile never mixes in. The chunk is checked, the whole file
+    /// is not.
     ///
     /// # Errors
-    /// Returns `Error::NotFound` for an unknown file, otherwise as
-    /// [`read_chunk`].
-    pub fn files_chunk(&mut self, id: &str, index: u64) -> Result<Zeroizing<Vec<u8>>> {
-        let (_, _, manifest) = self.library_manifest(id, None)?;
+    /// Returns `Error::NotFound` for an unknown file or version, otherwise
+    /// as [`read_chunk`].
+    pub fn files_chunk(
+        &mut self,
+        id: &str,
+        version: &str,
+        index: u64,
+    ) -> Result<Zeroizing<Vec<u8>>> {
+        let (_, _, manifest) = self.library_manifest(id, Some(version))?;
         read_chunk(self.blobs()?, &manifest, index)
+    }
+
+    /// What the mounted disk reports as used: the current versions of the
+    /// files outside the trash, from the catalog alone, since the systems
+    /// ask for it with many listings.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn files_mount_used(&mut self) -> Result<u64> {
+        let catalog = self.catalog()?;
+        Ok(catalog
+            .files
+            .values()
+            .filter(|f| !catalog.file_trashed(f))
+            .filter_map(|f| f.versions.iter().find(|v| v.id == f.current))
+            .map(|v| v.size)
+            .sum())
     }
 
     /// The mount's upload directory, created owner-only when missing.

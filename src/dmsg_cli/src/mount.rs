@@ -723,6 +723,7 @@ impl DavFileSystem for LibraryFs {
                         let reader: Box<dyn DavFile> = Box::new(Reader {
                             client: self.client.clone(),
                             id: file.id,
+                            version: file.current,
                             meta,
                             pos: 0,
                             cache: None,
@@ -935,17 +936,18 @@ impl DavFileSystem for LibraryFs {
     fn get_quota(&'_ self) -> FsFuture<'_, (u64, Option<u64>)> {
         async move {
             let mut client = self.client.lock().await;
-            let usage = client.files_usage().map_err(fs_error)?;
-            Ok((usage.blob_bytes, None))
+            Ok((client.files_mount_used().map_err(fs_error)?, None))
         }
         .boxed()
     }
 }
 
-/// A file open for reading: one decrypted chunk at a time.
+/// A file open for reading: one decrypted chunk at a time, all of the
+/// version current when it was opened.
 struct Reader {
     client: Arc<Mutex<Client>>,
     id: String,
+    version: String,
     meta: Meta,
     pos: u64,
     /// The chunk the position is in.
@@ -984,7 +986,9 @@ impl DavFile for Reader {
             if self.cache.as_ref().is_none_or(|(i, _)| *i != index) {
                 let chunk = {
                     let mut client = self.client.lock().await;
-                    client.files_chunk(&self.id, index).map_err(fs_error)?
+                    client
+                        .files_chunk(&self.id, &self.version, index)
+                        .map_err(fs_error)?
                 };
                 self.cache = Some((index, chunk));
             }

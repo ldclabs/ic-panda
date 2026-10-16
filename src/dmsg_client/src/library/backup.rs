@@ -5,10 +5,11 @@
 //! content root. The upload's object and version IDs are random, so the
 //! relay learns nothing about which file or version this is.
 //!
-//! A backup is a job in the plain `jobs` table: the signed plan, the sealed
-//! manifest and how many chunks went. The job needs no key to continue, so
-//! a locked device with the resident signing key finishes it; the version
-//! record is updated once the device is unlocked. Nothing creates a job but
+//! A backup is a job in the plain `library_jobs` table: the signed plan,
+//! the sealed manifest and how many chunks went. The job needs no key to
+//! continue, so a locked device with the resident signing key finishes it;
+//! the version record is updated once the device is unlocked. A failed
+//! attempt waits [`RETRY_MS`] for the next. Nothing creates a job but
 //! [`Client::files_backup`]: not an import, not an edit, not a cloud
 //! inventory refresh, and a backup the person deleted from the cloud is not
 //! uploaded again.
@@ -20,7 +21,7 @@ use crate::content::{empty_file, seal_manifest, ManifestContent};
 use crate::files::{BlobStore, FileManifest, Source, MAX_FILE};
 use crate::now_ms;
 use crate::upload::{random_hex, ChunkRef, UploadPlan};
-use dmsg_types::{ensure, user::VaultWriteState, Error, Result, DAY};
+use dmsg_types::{ensure, user::VaultWriteState, Error, Result, DAY, MINUTE};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
@@ -28,6 +29,8 @@ use serde_bytes::ByteBuf;
 pub const BACKUP: &str = "backup";
 /// The format of a backup manifest's content.
 pub const BACKUP_FORMAT: &str = "dmsg-backup/1";
+/// A failed backup waits this long before its next attempt.
+pub const RETRY_MS: u64 = 5 * MINUTE;
 
 /// What a backup's sealed manifest carries: the file and where it was.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -64,6 +67,8 @@ pub(crate) struct BackupJob {
     pub(crate) created_at: u64,
     /// The error code of the last attempt, if it failed.
     pub(crate) error: Option<String>,
+    /// When the last attempt failed.
+    pub(crate) failed_at: Option<u64>,
     /// The plan was replaced once after it lapsed.
     pub(crate) replanned: bool,
     /// Committed on the relay; the version record follows once unlocked.
@@ -147,21 +152,7 @@ fn job_key(file: &str, version: &str) -> String {
 impl Client {
     /// Every backup job.
     pub(crate) fn backup_jobs(&self) -> Result<Vec<(String, BackupJob)>> {
-        Ok(self
-            .workspace
-            .store
-            .jobs::<cbor2::Value>()?
-            .into_iter()
-            .filter(|(key, _)| key.starts_with(BACKUP_JOB))
-            .filter_map(|(key, _)| {
-                self.workspace
-                    .store
-                    .job::<BackupJob>(&key)
-                    .ok()
-                    .flatten()
-                    .map(|job| (key, job))
-            })
-            .collect())
+        self.workspace.store.library_jobs()
     }
 
     /// `backing_up` or `failed` while a version's backup job is in flight.
@@ -169,7 +160,7 @@ impl Client {
         Ok(self
             .workspace
             .store
-            .job::<BackupJob>(&job_key(file, version))?
+            .library_job::<BackupJob>(&job_key(file, version))?
             .map(|job| match job.error {
                 Some(_) => "failed",
                 None => "backing_up",
@@ -190,7 +181,12 @@ impl Client {
 
     /// The sealed plan and manifest of a version's backup under the current
     /// root; the chunks are the version's own.
-    pub(crate) fn plan_backup(&mut self, file_id: &str, version_id: &str) -> Result<BackupJob> {
+    pub(crate) fn plan_backup(
+        &mut self,
+        file_id: &str,
+        version_id: &str,
+        now: u64,
+    ) -> Result<BackupJob> {
         let (file, version, manifest) = self.library_manifest(file_id, Some(version_id))?;
         let path = self.catalog()?.path(&file.folder);
         let account = self.account()?.id.to_string();
@@ -219,7 +215,6 @@ impl Client {
                 })
                 .collect::<Result<_>>()?
         };
-        let now = now_ms();
         let mut plan = UploadPlan {
             upload_id: random_hex(),
             object_id: random_hex(),
@@ -253,6 +248,7 @@ impl Client {
             sent: 0,
             created_at: now,
             error: None,
+            failed_at: None,
             replanned: false,
             committed: false,
         })
@@ -279,6 +275,7 @@ impl Client {
             security.snapshot.vault_write_state == VaultWriteState::Ready,
             Error::RekeyRequired,
         )?;
+        let now = now_ms();
         let mut targets: Vec<(String, String)> = Vec::new();
         for id in ids {
             let files: Vec<String> = {
@@ -330,7 +327,7 @@ impl Client {
                     reason,
                 }),
                 None => {
-                    let job = self.plan_backup(&file, &version_id)?;
+                    let job = self.plan_backup(&file, &version_id, now)?;
                     request.bytes += job.size;
                     jobs.push(job);
                 }
@@ -356,7 +353,7 @@ impl Client {
         for job in &jobs {
             self.workspace
                 .store
-                .set_job(&job_key(&job.file, &job.version), job)?;
+                .set_library_job(&job_key(&job.file, &job.version), job)?;
             request.started.push(view(job));
         }
         if !jobs.is_empty() {
@@ -369,7 +366,8 @@ impl Client {
     /// One pass over the backup jobs: upload what is left of each, commit,
     /// and record the version's backup. Works locked with a resident
     /// device key; the version record then follows at the next pass after
-    /// an unlock. `progress(file, sent, chunks)` follows each upload.
+    /// an unlock. A job that failed less than [`RETRY_MS`] ago waits.
+    /// `progress(file, sent, chunks)` follows each upload.
     ///
     /// # Errors
     /// Returns `Error::Locked` without a signing key; a job's own failure
@@ -381,21 +379,29 @@ impl Client {
         self.signing()?;
         let mut run = BackupRun::default();
         for (key, mut job) in self.backup_jobs()? {
+            // Each job's time is read after the uploads before it.
+            let now = now_ms();
             if job.committed {
-                if self.settle_backup(&key, &job)? {
+                if self.settle_backup(&key, &job, now)? {
                     run.completed += 1;
                 } else {
                     run.pending += 1;
                 }
                 continue;
             }
+            if job.failed_at.is_some_and(|at| now < at + RETRY_MS) {
+                run.pending += 1;
+                continue;
+            }
             let outcome = self.send_backup(&key, &mut job, progress).await;
+            let now = now_ms();
             match outcome {
                 Ok(()) => {
                     job.committed = true;
                     job.error = None;
-                    self.workspace.store.set_job(&key, &job)?;
-                    if self.settle_backup(&key, &job)? {
+                    job.failed_at = None;
+                    self.workspace.store.set_library_job(&key, &job)?;
+                    if self.settle_backup(&key, &job, now)? {
                         run.completed += 1;
                     } else {
                         run.pending += 1;
@@ -403,7 +409,8 @@ impl Client {
                 }
                 Err(error) => {
                     job.error = Some(crate::error_code(&error));
-                    self.workspace.store.set_job(&key, &job)?;
+                    job.failed_at = Some(now);
+                    self.workspace.store.set_library_job(&key, &job)?;
                     run.failed += 1;
                     run.pending += 1;
                 }
@@ -427,10 +434,10 @@ impl Client {
             let mut stored: BackupJob = client
                 .workspace
                 .store
-                .job(key)?
+                .library_job(key)?
                 .ok_or(Error::IntegrityFailed)?;
             stored.sent = sent as u64;
-            client.workspace.store.set_job(key, &stored)
+            client.workspace.store.set_library_job(key, &stored)
         };
         let sent = job.sent as usize;
         match self
@@ -453,12 +460,12 @@ impl Client {
             }
             Err(Error::ResultExpired) if !job.replanned && self.keys.is_some() => {
                 self.cancel_upload(&job.plan.upload_id).await?;
-                let fresh = self.plan_backup(&job.file, &job.version)?;
+                let fresh = self.plan_backup(&job.file, &job.version, now_ms())?;
                 job.plan = fresh.plan;
                 job.manifest = fresh.manifest;
                 job.sent = 0;
                 job.replanned = true;
-                self.workspace.store.set_job(key, job)?;
+                self.workspace.store.set_library_job(key, job)?;
                 self.upload(
                     &base,
                     &job.plan,
@@ -480,11 +487,10 @@ impl Client {
 
     /// Record a committed backup on its version and drop the job; `false`
     /// while locked, when it waits for the unlock.
-    pub(crate) fn settle_backup(&mut self, key: &str, job: &BackupJob) -> Result<bool> {
+    pub(crate) fn settle_backup(&mut self, key: &str, job: &BackupJob, now: u64) -> Result<bool> {
         if self.keys.is_none() {
             return Ok(false);
         }
-        let now = now_ms();
         match self.version(&job.file, &job.version) {
             Ok(mut version) => {
                 version.backup = Some(Backup {
@@ -500,7 +506,7 @@ impl Client {
             Err(Error::NotFound) => {}
             Err(error) => return Err(error),
         }
-        self.workspace.store.delete_job(key)?;
+        self.workspace.store.delete_library_job(key)?;
         self.library = None;
         Ok(true)
     }
@@ -513,13 +519,17 @@ impl Client {
     /// Returns `Error::NotFound` without such a job.
     pub async fn files_backup_cancel(&mut self, file: &str, version: &str) -> Result<()> {
         let key = job_key(file, version);
-        let job: BackupJob = self.workspace.store.job(&key)?.ok_or(Error::NotFound)?;
+        let job: BackupJob = self
+            .workspace
+            .store
+            .library_job(&key)?
+            .ok_or(Error::NotFound)?;
         if job.committed {
             // Settle what is committed instead of losing track of it.
-            ensure(self.settle_backup(&key, &job)?, Error::Locked)?;
+            ensure(self.settle_backup(&key, &job, now_ms())?, Error::Locked)?;
             return Err(Error::VersionConflict);
         }
         self.cancel_upload(&job.plan.upload_id).await?;
-        self.workspace.store.delete_job(&key)
+        self.workspace.store.delete_library_job(&key)
     }
 }

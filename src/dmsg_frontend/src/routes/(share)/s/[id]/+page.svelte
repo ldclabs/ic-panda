@@ -31,6 +31,8 @@
   let key = $state<Uint8Array | null>(null)
   let password = $state('')
   let file = $state<ShareFile | null>(null)
+  /** The manifest once opened; the relay counts a download each time it is read. */
+  let opened: ShareFile | null = null
   let blob = $state<Blob | null>(null)
   let progress = $state({ done: 0, total: 0 })
   let reason = $state('')
@@ -72,7 +74,6 @@
       error = $t('Wrong password')
       return
     }
-    phase = 'error'
     error =
       e instanceof ShareError
         ? $t('The file did not check out; the download was discarded.')
@@ -81,6 +82,9 @@
               'The relay could not be reached. Check your connection and try again.'
             )
           : $t('Something went wrong: {error}', { error: String(e) })
+    // A download that broke off may start again; a file that did not check
+    // out may not.
+    phase = key && !(e instanceof ShareError) ? 'ready' : 'error'
   }
 
   async function fetchDescriptor(): Promise<Descriptor | null> {
@@ -159,31 +163,29 @@
     error = ''
     progress = { done: 0, total: descriptor.chunks.length }
     try {
-      // The upload ID is not public; the manifest's AAD names it through the
-      // descriptor's share, object and version, with the upload the relay
-      // stored it under.
-      const sealed = await fetchBytes('manifest')
-      const opened = await openManifest(
+      // A retry reuses the manifest already opened: the relay lets the
+      // chunks of a download under way be read past its limit.
+      const manifest = (opened ??= await openManifest(
         key,
         descriptor,
         descriptor.upload_id,
-        sealed
-      )
+        await fetchBytes('manifest')
+      ))
       const chunks: Uint8Array[] = []
-      for (let i = 0; i < opened.chunks.length; i++) {
+      for (let i = 0; i < manifest.chunks.length; i++) {
         const bytes = await fetchBytes(`chunks/${i}`)
-        chunks.push(await openChunk(key, opened, i, bytes))
-        progress = { done: i + 1, total: opened.chunks.length }
+        chunks.push(await openChunk(key, manifest, i, bytes))
+        progress = { done: i + 1, total: manifest.chunks.length }
       }
-      if (opened.size === 0) {
+      if (manifest.size === 0) {
         const placeholder = await fetchBytes('chunks/0')
         if (!isEmptyPlaceholder(placeholder))
           throw new ShareError('INTEGRITY_FAILED', 'empty')
       }
-      const whole = await assemble(opened, chunks)
-      file = opened
+      const whole = await assemble(manifest, chunks)
+      file = manifest
       blob = new Blob([whole as BlobPart], {
-        type: opened.mime || 'application/octet-stream'
+        type: manifest.mime || 'application/octet-stream'
       })
       phase = 'done'
       save()
@@ -264,6 +266,7 @@
             >
           </form>
         {:else if phase === 'ready'}
+          {#if error}<p class="status gone">{error}</p>{/if}
           <button class="button primary" onclick={download}
             >{$t('Download')}</button
           >

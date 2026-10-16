@@ -704,19 +704,24 @@ fn the_mount_primitives_look_up_read_copy_and_replace() {
         .files_restore(std::slice::from_ref(&report.id))
         .unwrap();
 
-    // Chunks on their own, bounded by the file.
+    // Chunks on their own, bounded by the file; the disk reports the
+    // current versions' bytes as used.
     assert_eq!(
-        &client.files_chunk(&report.id, 0).unwrap()[..],
+        &client.files_chunk(&report.id, &report.current, 0).unwrap()[..],
         &data[..CHUNK]
     );
     assert_eq!(
-        &client.files_chunk(&report.id, 1).unwrap()[..],
+        &client.files_chunk(&report.id, &report.current, 1).unwrap()[..],
         &data[CHUNK..]
     );
     assert!(matches!(
-        client.files_chunk(&report.id, 2),
+        client.files_chunk(&report.id, &report.current, 2),
         Err(Error::InvalidInput(_))
     ));
+    assert_eq!(
+        client.files_mount_used().unwrap(),
+        (data.len() + png.get_ref().len()) as u64
+    );
 
     // A copy: same bytes, new key, new identity, its own thumbnail, the
     // tags and the note but not the star.
@@ -794,6 +799,11 @@ fn the_mount_primitives_look_up_read_copy_and_replace() {
         client.files_versions(&report.id).unwrap()[0].size,
         data.len() as u64
     );
+    // A read that began on the old version keeps reading it.
+    assert_eq!(
+        &client.files_chunk(&report.id, &report.current, 1).unwrap()[..],
+        &data[CHUNK..]
+    );
     assert!(matches!(client.files_show(&temp.id), Err(Error::NotFound)));
     for chunk in &temp_chunks {
         assert!(!client.blobs().unwrap().has_chunk(&chunk.digest).unwrap());
@@ -855,7 +865,7 @@ fn backups_are_planned_under_the_root_and_settle_on_the_version() {
         )
         .unwrap();
     let job = client
-        .plan_backup(&imported.file.id, &imported.version)
+        .plan_backup(&imported.file.id, &imported.version, 7)
         .unwrap();
     assert_eq!(job.plan.kind, BACKUP);
     assert_eq!(job.plan.root_generation, 1);
@@ -899,7 +909,11 @@ fn backups_are_planned_under_the_root_and_settle_on_the_version() {
         committed: true,
         ..job.clone()
     };
-    client.workspace.store.set_job(&key, &committed).unwrap();
+    client
+        .workspace
+        .store
+        .set_library_job(&key, &committed)
+        .unwrap();
     assert_eq!(client.files_backup_status().unwrap().len(), 1);
     assert_eq!(
         client.files_show(&imported.file.id).unwrap().file.status,
@@ -908,10 +922,10 @@ fn backups_are_planned_under_the_root_and_settle_on_the_version() {
     assert!(client.library_jobs_running().unwrap());
     assert_eq!(client.collect_blobs().unwrap(), (0, 0));
     client.lock();
-    assert!(!client.settle_backup(&key, &committed).unwrap());
+    assert!(!client.settle_backup(&key, &committed, 9).unwrap());
     client.keys = Some(client.workspace.unlock(&crate::testing::SECRET).unwrap());
     client.root = Some(RootKeys_single());
-    assert!(client.settle_backup(&key, &committed).unwrap());
+    assert!(client.settle_backup(&key, &committed, 9).unwrap());
     let details = client.files_show(&imported.file.id).unwrap();
     assert_eq!(details.file.status, "backed_up");
     let backup = details.versions[0].backup.clone().unwrap();
@@ -926,7 +940,9 @@ fn backups_are_planned_under_the_root_and_settle_on_the_version() {
             &mut no_progress,
         )
         .unwrap();
-    let placeholder = client.plan_backup(&empty.file.id, &empty.version).unwrap();
+    let placeholder = client
+        .plan_backup(&empty.file.id, &empty.version, 9)
+        .unwrap();
     assert_eq!(placeholder.plan.chunks.len(), 1);
     assert_eq!(
         placeholder.plan.chunks[0].digest,
@@ -976,7 +992,7 @@ fn the_cloud_inventory_marks_local_versions_and_lists_from_the_cache() {
         .unwrap();
     let (file, version, manifest) = client.library_manifest(&imported.file.id, None).unwrap();
     let job = client
-        .plan_backup(&imported.file.id, &imported.version)
+        .plan_backup(&imported.file.id, &imported.version, 7)
         .unwrap();
     let record = BackupManifest {
         format: super::backup::BACKUP_FORMAT.into(),
@@ -1069,4 +1085,118 @@ fn the_cloud_inventory_marks_local_versions_and_lists_from_the_cache() {
         client.files_show(&imported.file.id).unwrap().file.status,
         "local"
     );
+}
+
+#[tokio::test]
+async fn backup_jobs_stay_apart_from_the_vault_jobs_and_keep_their_chunks() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let kept = client
+        .files_import(
+            &write(&dir, "kept.bin", &pattern(CHUNK + 3, 5)),
+            ROOT,
+            false,
+            &mut no_progress,
+        )
+        .unwrap();
+    let gone = client
+        .files_import(
+            &write(&dir, "gone.bin", &pattern(9, 6)),
+            ROOT,
+            false,
+            &mut no_progress,
+        )
+        .unwrap();
+    // A backup whose last attempt failed a moment ago.
+    let mut job = client.plan_backup(&kept.file.id, &kept.version, 7).unwrap();
+    job.error = Some("UNAVAILABLE".into());
+    job.failed_at = Some(crate::now_ms());
+    let key = format!("{}{}:{}", super::BACKUP_JOB, kept.file.id, kept.version);
+    client.workspace.store.set_library_job(&key, &job).unwrap();
+
+    // The vault's sync jobs read as before, and the failed backup waits for
+    // its next attempt instead of going again at once.
+    assert_eq!(client.flush().await, Ok(0));
+    let run = client.files_backup_run(&mut |_, _, _| {}).await.unwrap();
+    assert_eq!((run.failed, run.pending), (0, 1));
+
+    // Collection goes on beside it and keeps the job's chunks after their
+    // version went.
+    let gone_chunks = client.version(&gone.file.id, &gone.version).unwrap().chunks;
+    client
+        .files_trash(&[kept.file.id.clone(), gone.file.id.clone()])
+        .unwrap();
+    client.files_purge(None).unwrap();
+    let blobs = client.blobs().unwrap();
+    assert!(gone_chunks
+        .iter()
+        .all(|c| !blobs.has_chunk(&c.digest).unwrap()));
+    assert!(job
+        .plan
+        .chunks
+        .iter()
+        .all(|c| blobs.has_chunk(&c.digest).unwrap()));
+}
+
+#[tokio::test]
+async fn the_last_copy_of_a_released_version_stays_in_the_cloud() {
+    use super::backup::{BackupManifest, BACKUP_FORMAT};
+    use super::cloud::CloudEntry;
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let imported = client
+        .files_import(
+            &write(&dir, "notes.txt", b"notes"),
+            ROOT,
+            false,
+            &mut no_progress,
+        )
+        .unwrap();
+    let (file, version, manifest) = client.library_manifest(&imported.file.id, None).unwrap();
+    let job = client
+        .plan_backup(&imported.file.id, &imported.version, 7)
+        .unwrap();
+    let upload = job.plan.upload_id.clone();
+    client
+        .save_cloud_entry(
+            &upload,
+            &CloudEntry {
+                plan: job.plan.clone(),
+                device: "aa".repeat(32),
+                committed_at: Some(7),
+                manifest: Some(BackupManifest {
+                    format: BACKUP_FORMAT.into(),
+                    file: manifest,
+                    path: vec![],
+                    tags: file.tags.clone(),
+                    note: file.note.clone(),
+                    created_at: version.created_at,
+                    modified_at: file.updated_at,
+                    device: version.device.clone(),
+                }),
+            },
+        )
+        .unwrap();
+    // The version left this device for that backup: deleting the backup
+    // would delete the version too, so nothing goes.
+    let released = Version {
+        local: false,
+        backup: Some(Backup {
+            upload_id: upload.clone(),
+            generation: 1,
+            backed_up_at: 7,
+            verified: true,
+        }),
+        ..version
+    };
+    client
+        .save_version(&imported.file.id, &imported.version, &released)
+        .unwrap();
+    assert!(matches!(
+        client
+            .files_cloud_delete(std::slice::from_ref(&upload))
+            .await,
+        Err(Error::InvalidInput(_))
+    ));
+    assert!(client.cloud_entry(&upload).unwrap().is_some());
 }

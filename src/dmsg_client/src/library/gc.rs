@@ -50,16 +50,14 @@ impl Client {
     }
 
     /// Delete the chunk files nothing references and the day-old temporary
-    /// files; returns how many of each. Skipped while a cloud job of the
-    /// library is in flight, since it may still add chunks.
+    /// files; returns how many of each. Backups in flight keep their chunks
+    /// through the reference set; a fetch holds the client while it adds
+    /// chunks, so nothing collects beside it.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub(crate) fn collect_blobs(&mut self) -> Result<(u64, u64)> {
         self.keys()?;
-        if self.library_jobs_running()? {
-            return Ok((0, 0));
-        }
         let keep = self.referenced_blobs()?;
         let blobs = self.blobs()?;
         let mut collected = 0;

@@ -17,7 +17,7 @@ cryptography, storage and protocol logic live in
 | `dmsg-daemon.lock` | Held by the running daemon: one daemon per home |
 | `logs/dmsg-YYYY-MM-DD.log` | The daemon's run log, one file per UTC day, kept 30 days (`dmsg logs`) |
 | `logs/stderr.log` | The stderr of a daemon started by `dmsg start` (rewritten each time) or at login: what fails before the run log opens |
-| `<environment>/accounts/<account>/workspace.sqlite` | An account's workspace on this device: its own device keys, encrypted versions and chunks, sealed records, sync jobs |
+| `<environment>/accounts/<account>/workspace.sqlite` | An account's workspace on this device: its own device keys, encrypted versions and chunks, sealed records, sync and backup jobs |
 | `<environment>/accounts/<account>/agents.sqlite` | Agent Protocols connector state of the account's hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
 | `<environment>/accounts/<account>/blobs/<d0d1>/<digest>` | The file library's ciphertext chunks, one file per chunk named by its SHA-256; `blobs/tmp/` holds chunks being written |
 | `<environment>/accounts/<account>/open/<nonce>/<name>` | Plaintext copies of library files opened for another program (`dmsg files open`), owner-only, removed after 30 minutes, on lock and on exit |
@@ -319,21 +319,25 @@ recursively, as `kind=backup` objects whose chunks are the version's own
 and whose manifest, sealed under the current content root, holds the file's
 key, path, tags and note; the object and version IDs on the relay are
 random. The jobs continue in the background, locked too with
-`background_online`, and `backup-status` shows them. Nothing starts a
-backup but this command: not an import, not an edit, not a cloud refresh,
-and a copy deleted from the cloud is never uploaded again. `files cloud ls
---refresh` reads the account's backup inventory from the relay (every
-device's, each entry's signed plan checked against the certified devices,
-each manifest opened with the root of its generation; one whose root this
-device lacks is listed as such), marks local versions the backups are of,
-and `cloud get` fetches one into the library, where it was or into `--to`,
-after checking every chunk and the whole file. `cloud rm` deletes cloud
-copies for good, which frees their quota and changes nothing on this
-device; `files rm` on this device changes nothing in the cloud. `cloud
-verify` downloads and checks a backup; `files evict` then frees a verified
-version's chunks here, so it reads only after `cloud get`. `cloud usage`
-shows the relay's storage room; a backup request that would not fit fails
-with `QUOTA_EXCEEDED` before anything starts.
+`background_online`, and `backup-status` shows them; a failed attempt is
+tried again five minutes later. Nothing starts a backup but this command:
+not an import, not an edit, not a cloud refresh, and a copy deleted from
+the cloud is never uploaded again. `files cloud ls --refresh` reads the
+account's backup inventory from the relay (every device's, each entry's
+signed plan checked against the certified devices, each manifest opened
+with the root of its generation; one whose root this device lacks is listed
+as such and opens at a later refresh, once the root is here), marks local
+versions the backups are of, and `cloud get` fetches one into the library,
+where it was or into `--to`, after checking every chunk and the whole file.
+`cloud rm` deletes cloud copies for good, which frees their quota and
+changes nothing on this device; the copy a version released with `files
+evict` reads from is its last, so `cloud rm` refuses it until `cloud get`
+brings the version back or the version is deleted here. `files rm` on this
+device changes nothing in the cloud. `cloud verify` downloads and checks a
+backup; `files evict` then frees a verified version's chunks here, so it
+reads only after `cloud get`. `cloud usage` shows the relay's storage room;
+a backup request that would not fit fails with `QUOTA_EXCEEDED` before
+anything starts.
 
 Links. `files link` shares a version with someone outside dMsg: a fresh
 edition under its own key goes to the cloud as a `share` object (its

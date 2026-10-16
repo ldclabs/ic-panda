@@ -190,7 +190,7 @@
                 <DropdownMenu.Item class={menuItemClass} disabled={!canRead || status === 'too_large'} onSelect={() => onLink(null)} data-testid="files-link">
                   <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
                 </DropdownMenu.Item>
-                <DropdownMenu.Item class={menuItemClass} disabled={versions.length > 1 && status === 'backed_up'} onSelect={() => onBackup(true)}>
+                <DropdownMenu.Item class={menuItemClass} disabled={!versions.some((v) => v.status === 'local')} onSelect={() => onBackup(true)}>
                   <span class="flex items-center gap-2"><Icon name="cloud-up" class="text-faint" />{t('backUpAll')}</span>
                 </DropdownMenu.Item>
                 <DropdownMenu.Item class={menuItemClass} disabled={!canRead} onSelect={verify}>
@@ -357,7 +357,7 @@
                     </DropdownMenu.Item>
                   {/if}
                   {#if version.backup}
-                    <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={() => onDeleteCloud([version.backup.upload_id])}>
+                    <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} disabled={!version.local} onSelect={() => onDeleteCloud([version.backup.upload_id])}>
                       <span class="flex items-center gap-2"><Icon name="cloud-off" />{t('deleteCloudCopy')}</span>
                     </DropdownMenu.Item>
                   {/if}

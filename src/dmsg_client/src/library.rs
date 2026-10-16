@@ -50,8 +50,6 @@ pub use import::Imported;
 
 /// The job of a version's backup, `backup:<file>:<version>`.
 pub(crate) const BACKUP_JOB: &str = "backup:";
-/// The job of a fetch from the cloud, `fetch:<upload>`.
-pub(crate) const FETCH_JOB: &str = "fetch:";
 /// Largest image returned whole by a preview.
 pub const MAX_PREVIEW_IMAGE: u64 = 8 * 1024 * 1024;
 /// How much of a text file a preview returns.
@@ -1150,12 +1148,17 @@ impl Client {
         Ok(found.into_iter().collect())
     }
 
-    /// The chunk digests the library's cloud work still needs: shared
-    /// editions of attachments whose upload plan has not lapsed.
+    /// The chunk digests the library's cloud work still needs: every backup
+    /// in flight (a lapsed plan is planned again from the same chunks), and
+    /// shared editions of attachments whose upload plan has not lapsed.
     pub(crate) fn library_job_blobs(&self) -> Result<BTreeSet<String>> {
         let keys = self.keys()?;
         let now = now_ms();
-        let mut keep = BTreeSet::new();
+        let mut keep: BTreeSet<String> = self
+            .backup_jobs()?
+            .into_iter()
+            .flat_map(|(_, job)| job.plan.chunks.into_iter().map(|c| c.digest))
+            .collect();
         for key in self.workspace.store.sealed_keys(crate::channel::JOB)? {
             let Some(bytes) = self.workspace.open_sealed(keys, &key)? else {
                 continue;
@@ -1175,18 +1178,12 @@ impl Client {
         Ok(keep)
     }
 
-    /// Whether a backup or a fetch of the library is in flight; readable
-    /// while locked.
+    /// Whether a backup of the library is in flight; readable while locked.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when storage fails.
     pub fn library_jobs_running(&self) -> Result<bool> {
-        Ok(self
-            .workspace
-            .store
-            .jobs::<cbor2::Value>()?
-            .iter()
-            .any(|(key, _)| key.starts_with(BACKUP_JOB) || key.starts_with(FETCH_JOB)))
+        Ok(!self.backup_jobs()?.is_empty())
     }
 
     /// Forget the library's index and clean up opened copies; on lock.

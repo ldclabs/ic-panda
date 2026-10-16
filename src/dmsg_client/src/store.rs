@@ -1,7 +1,7 @@
 //! SQLite storage of one workspace. The store holds plaintext metadata,
 //! records the caller has already sealed, encrypted content objects with
-//! their ciphertext chunks, and sync jobs made only of ciphertext and
-//! signatures; it never sees a key.
+//! their ciphertext chunks, and sync jobs and the file library's backup
+//! jobs, made only of ciphertext and signatures; it never sees a key.
 //!
 //! A store has a single owner, the client, which serializes its use; each
 //! statement takes the connection lock, so [`Store::atomic`] groups the
@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS heads (
 );
 CREATE TABLE IF NOT EXISTS chunks (digest TEXT PRIMARY KEY, bytes BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS jobs (key TEXT PRIMARY KEY, value BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS library_jobs (key TEXT PRIMARY KEY, value BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS approvals (
   id TEXT PRIMARY KEY,
   state TEXT NOT NULL,
@@ -315,9 +316,46 @@ impl Store {
     /// # Errors
     /// Returns `Error::Unavailable` when SQLite fails or a job is corrupt.
     pub fn jobs<T: DeserializeOwned>(&self) -> Result<Vec<(String, T)>> {
+        self.rows("jobs")
+    }
+
+    /// A job of the file library, a backup in flight; kept apart from the
+    /// sync jobs, whose listing reads every row as a sync job.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails or the job is corrupt.
+    pub fn library_job<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
+        self.get("library_jobs", key)
+    }
+
+    /// Store a job of the file library.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn set_library_job<T: Serialize>(&self, key: &str, value: &T) -> Result<()> {
+        self.set("library_jobs", key, value)
+    }
+
+    /// Remove a job of the file library.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn delete_library_job(&self, key: &str) -> Result<()> {
+        self.delete("library_jobs", key)
+    }
+
+    /// Every job of the file library, by key.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails or a job is corrupt.
+    pub fn library_jobs<T: DeserializeOwned>(&self) -> Result<Vec<(String, T)>> {
+        self.rows("library_jobs")
+    }
+
+    fn rows<T: DeserializeOwned>(&self, table: &str) -> Result<Vec<(String, T)>> {
         let conn = self.conn();
         let mut statement = conn
-            .prepare("SELECT key, value FROM jobs ORDER BY key")
+            .prepare(&format!("SELECT key, value FROM {table} ORDER BY key"))
             .map_err(storage)?;
         let rows = statement
             .query_map([], |r| {
