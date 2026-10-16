@@ -6,6 +6,10 @@ export const ENV = IS_LOCAL ? 'local' : 'ic'
 export const APP_ORIGIN = IS_LOCAL
   ? 'http://2fvu6-tqaaa-aaaap-akksa-cai.localhost:8000'
   : 'https://dmsg.net'
+/** The relay's device and public API; the share page reads `/public/shares/*` there. */
+export const API_ORIGIN = IS_LOCAL
+  ? 'http://localhost:8787'
+  : 'https://api.dmsg.net'
 
 export const INTERNET_IDENTITY_CANISTER_ID = 'rdmx6-jaaaa-aaaaa-aaadq-cai' // ic & local
 export const NAME_IDENTITY_CANISTER_ID = '2rgax-kyaaa-aaaap-anvba-cai' // ic & local
