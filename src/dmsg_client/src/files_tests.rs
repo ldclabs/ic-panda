@@ -24,7 +24,7 @@ fn reproduces_file_chunks() {
     for case in v["file_chunks"].as_array().unwrap() {
         let index = case["index"].as_u64().unwrap();
         let length = manifest.chunks[index as usize].size;
-        let aad = chunk_aad(&manifest, index, count, length);
+        let aad = chunk_aad(&manifest.id, &manifest.version, index, count, length);
         assert_eq!(canonical(&aad), bytes(&case["aad"]["hex"]));
         assert_eq!(nonce(index).to_vec(), bytes(&case["nonce_hex"]));
         let sealed = seal_with_nonce(
@@ -38,16 +38,22 @@ fn reproduces_file_chunks() {
             hex::encode(*sha256(&unb64(&sealed).unwrap())),
             text(&case["digest"])
         );
+        let (bytes_sealed, digest) = seal_chunk(
+            &file_key,
+            &manifest.id,
+            &manifest.version,
+            index,
+            count,
+            &bytes(&case["plaintext_hex"]),
+        );
+        assert_eq!(b64(&bytes_sealed), text(&case["ciphertext"]));
+        assert_eq!(digest, text(&case["digest"]));
     }
     for case in v["chunk_rules"].as_array().unwrap() {
         let index = case["index"].as_u64().unwrap();
-        let rule = FileManifest {
-            id: text(&case["file_id"]).into(),
-            version: text(&case["version"]).into(),
-            ..manifest.clone()
-        };
         let aad = chunk_aad(
-            &rule,
+            text(&case["file_id"]),
+            text(&case["version"]),
             index,
             case["count"].as_u64().unwrap(),
             case["plaintext_length"].as_u64().unwrap(),
@@ -70,152 +76,90 @@ fn reads_exported_files() {
     let v = load("content-v1.json");
     let dir = TempDir::new();
     let client = unlocked(&dir.0, false, None);
+    let store = &client.workspace.store;
     let manifest = manifest_of(&v, "file entry");
     for case in v["file_chunks"].as_array().unwrap() {
         let sealed = unb64(text(&case["ciphertext"])).unwrap();
-        client
-            .workspace
-            .store
-            .put_chunk(text(&case["digest"]), &sealed)
-            .unwrap();
+        store.put_chunk(text(&case["digest"]), &sealed).unwrap();
     }
     let mut out = vec![];
-    client.read_file(&manifest, Some(&mut out)).unwrap();
+    read_file(store, &manifest, MAX_FILE, Some(&mut out)).unwrap();
     assert_eq!(
         out,
         bytes(&v["file_chunks"][0]["plaintext_hex"])[..manifest.size as usize]
     );
-    client
-        .read_file(&manifest_of(&v, "empty file entry"), None)
-        .unwrap();
+    read_file(store, &manifest_of(&v, "empty file entry"), MAX_FILE, None).unwrap();
 
     let mut wrong = manifest.clone();
     wrong.sha256 = "00".repeat(32);
     assert_eq!(
-        client.read_file(&wrong, None).err(),
+        read_file(store, &wrong, MAX_FILE, None).err(),
         Some(Error::IntegrityFailed)
     );
     let mut missing = manifest.clone();
     missing.chunks[0].digest = "11".repeat(32);
     assert_eq!(
-        client.read_file(&missing, None).err(),
+        read_file(store, &missing, MAX_FILE, None).err(),
         Some(Error::RecoveryIncomplete)
     );
-    let mut moved = manifest;
+    let mut moved = manifest.clone();
     moved.version = "22".repeat(32);
     assert_eq!(
-        client.read_file(&moved, None).err(),
+        read_file(store, &moved, MAX_FILE, None).err(),
         Some(Error::IntegrityFailed)
     );
-}
-
-#[test]
-fn imports_and_exports_files() {
-    let dir = TempDir::new();
-    let mut client = unlocked(&dir.0, false, None);
-    let data: Vec<u8> = (0..(2 * CHUNK + 1234)).map(|i| (i % 251) as u8).collect();
-    let path = dir.path("data.bin");
-    std::fs::write(&path, &data).unwrap();
-    let entry = client.file_import(&path).unwrap();
-    let file = entry.item.file.clone().unwrap();
-    assert_eq!(file.size, data.len() as u64);
-    assert_eq!(file.chunks.len(), 3);
-    assert_eq!(file.sha256, hex::encode(*sha256(&data)));
-    assert_eq!(file.name, "data.bin");
-    // The job uploads the encrypted chunks and the vault object.
-    let job: crate::sync::ContentJob = client
-        .workspace
-        .store
-        .job(&format!("{}:{}", entry.id, entry.revision))
-        .unwrap()
-        .unwrap();
-    let json = serde_json::to_value(job).unwrap();
-    assert_eq!(json["file"]["plan"]["chunks"].as_array().unwrap().len(), 3);
-
-    let out = dir.path("copy.bin");
-    let checked = client.file_export(&entry.id, &out).unwrap();
-    assert_eq!(checked.key, "");
-    assert_eq!(std::fs::read(&out).unwrap(), data);
-    assert!(client.file_export(&entry.id, &out).is_err());
-    assert!(client
-        .file_export(&entry.id, Path::new("relative"))
-        .is_err());
-    client.file_verify(&entry.id).unwrap();
-
-    let empty = dir.path("empty");
-    std::fs::write(&empty, b"").unwrap();
-    let entry = client.file_import(&empty).unwrap();
-    assert!(entry.item.file.as_ref().unwrap().chunks.is_empty());
-    let out = dir.path("empty.out");
-    client.file_export(&entry.id, &out).unwrap();
-    assert_eq!(std::fs::read(&out).unwrap(), b"");
-
-    let big = dir.path("big");
-    std::fs::File::create(&big)
-        .unwrap()
-        .set_len(MAX_FILE + 1)
-        .unwrap();
-    assert_eq!(client.file_import(&big).err(), Some(Error::QuotaExceeded));
-}
-
-#[test]
-fn an_interrupted_import_resumes_only_on_the_same_bytes() {
-    let dir = TempDir::new();
-    let mut client = unlocked(&dir.0, false, None);
-    let data: Vec<u8> = (0..(CHUNK + 10)).map(|i| (i % 7) as u8).collect();
-    let path = dir.path("resume.bin");
-    std::fs::write(&path, &data).unwrap();
-
-    // What an import leaves after its first chunk.
-    let mut job = FileJob {
-        manifest: FileManifest {
-            id: random_hex(),
-            version: random_hex(),
-            name: "resume.bin".into(),
-            mime: "application/octet-stream".into(),
-            size: data.len() as u64,
-            sha256: String::new(),
-            chunks: vec![],
-            key: b64(&[3; 32]),
-        },
-        plain: vec![],
-    };
-    let sealed = unb64(&seal_with_nonce(
-        &[3; 32],
-        &data[..CHUNK],
-        &chunk_aad(&job.manifest, 0, 2, CHUNK as u64),
-        &nonce(0),
-    ))
-    .unwrap();
-    let digest = hex::encode(*sha256(&sealed));
-    client.workspace.store.put_chunk(&digest, &sealed).unwrap();
-    job.manifest.chunks.push(FileChunk {
-        id: format!("{}:{}:0", job.manifest.id, job.manifest.version),
-        digest: digest.clone(),
-        size: CHUNK as u64,
-    });
-    job.plain.push(hex::encode(*sha256(&data[..CHUNK])));
-    let job_key = format!("{JOB}{}", job.manifest.version);
-    let keys = client.keys.take().unwrap();
-    client.workspace.put_private(&keys, &job_key, &job).unwrap();
-    client.keys = Some(keys);
-
-    // A changed file is refused; the job stays for the original bytes.
-    let mut changed = data.clone();
-    changed[5] ^= 1;
-    std::fs::write(&path, &changed).unwrap();
+    // A bound below the file's size refuses it before any chunk is read.
     assert_eq!(
-        client.file_import(&path).err(),
+        read_file(store, &manifest, manifest.size - 1, None).err(),
         Some(Error::IntegrityFailed)
     );
-    std::fs::write(&path, &data).unwrap();
-    let entry = client.file_import(&path).unwrap();
-    let file = entry.item.file.unwrap();
-    assert_eq!(file.id, job.manifest.id);
-    assert_eq!(file.chunks[0].digest, digest);
-    assert_eq!(file.sha256, hex::encode(*sha256(&data)));
-    assert!(client.workspace.store.sealed(&job_key).unwrap().is_none());
-    let out = dir.path("resumed.out");
-    client.file_export(&entry.id, &out).unwrap();
-    assert_eq!(std::fs::read(&out).unwrap(), data);
+
+    // The same chunks exported through the library's blob directory.
+    let blobs = client.blobs().unwrap();
+    for case in v["file_chunks"].as_array().unwrap() {
+        let sealed = unb64(text(&case["ciphertext"])).unwrap();
+        blobs.put_chunk(text(&case["digest"]), &sealed).unwrap();
+    }
+    let out = dir.path("vector.bin");
+    let checked = export_manifest(blobs, &manifest, MAX_FILE, &out).unwrap();
+    assert_eq!(checked.key, "");
+    assert_eq!(
+        std::fs::read(&out).unwrap(),
+        bytes(&v["file_chunks"][0]["plaintext_hex"])[..manifest.size as usize]
+    );
+    assert!(export_manifest(blobs, &manifest, MAX_FILE, &out).is_err());
+    assert!(export_manifest(blobs, &manifest, MAX_FILE, Path::new("relative")).is_err());
+}
+
+#[test]
+fn stores_in_memory_files() {
+    let dir = TempDir::new();
+    let client = unlocked(&dir.0, false, None);
+    let data: Vec<u8> = (0..(2 * CHUNK + 1234)).map(|i| (i % 251) as u8).collect();
+    let manifest = store_file(
+        &client.workspace.store,
+        "data.bin",
+        "application/octet-stream",
+        &data,
+    )
+    .unwrap();
+    assert_eq!(manifest.chunks.len(), 3);
+    assert_eq!(manifest.sha256, hex::encode(*sha256(&data)));
+    let mut out = vec![];
+    read_file(&client.workspace.store, &manifest, MAX_FILE, Some(&mut out)).unwrap();
+    assert_eq!(out, data);
+    let empty = store_file(&client.workspace.store, "empty", "text/plain", b"").unwrap();
+    assert!(empty.chunks.is_empty());
+    read_file(&client.workspace.store, &empty, MAX_FILE, None).unwrap();
+    let big = vec![0u8; MAX_FILE as usize + 1];
+    assert_eq!(
+        store_file(
+            &client.workspace.store,
+            "big",
+            "application/octet-stream",
+            &big
+        )
+        .err(),
+        Some(Error::QuotaExceeded)
+    );
 }

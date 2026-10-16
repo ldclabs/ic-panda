@@ -184,7 +184,8 @@ impl Daemon {
                 client
                     .channel_send_file(
                         &id()?,
-                        &text(params, "item")?,
+                        &text(params, "file")?,
+                        params["version"].as_str(),
                         params["text"].as_str().unwrap_or_default(),
                         params["message_id"].as_str(),
                     )

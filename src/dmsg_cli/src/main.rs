@@ -11,6 +11,8 @@ mod commands;
 mod daemon;
 mod doctor;
 mod event_commands;
+mod files_commands;
+mod files_methods;
 mod hints;
 mod home;
 mod legacy_commands;
@@ -169,9 +171,9 @@ enum Command {
     /// The vault.
     #[command(subcommand)]
     Vault(VaultCommand),
-    /// Encrypted files in the vault.
+    /// The encrypted file library on this device.
     #[command(subcommand)]
-    File(FileCommand),
+    Files(files_commands::FilesCommand),
     /// Synchronize with the relay, or show where sync stands.
     Sync {
         #[command(subcommand)]
@@ -415,31 +417,6 @@ enum FastUnlockCommand {
 enum SyncCommand {
     /// Pending versions, conflicts and the latest sync.
     Status,
-}
-
-#[derive(Subcommand)]
-enum FileCommand {
-    /// Encrypt a file (at most 100 MiB) into the vault; an interrupted
-    /// import of the same file resumes.
-    Import {
-        /// The file.
-        path: PathBuf,
-    },
-    /// List files.
-    List,
-    /// Verify a file and write it to a new path.
-    Get {
-        /// Item ID.
-        id: String,
-        /// Where to write it; must not exist.
-        #[arg(short, long)]
-        out: PathBuf,
-    },
-    /// Check every chunk of a file and its SHA-256.
-    Verify {
-        /// Item ID.
-        id: String,
-    },
 }
 
 #[derive(Subcommand)]
@@ -1670,6 +1647,7 @@ async fn run(cli: Cli) -> Result<(), Failure> {
             });
         }
         Command::Channel(command) => commands::channel(&remote, json, command).await?,
+        Command::Files(command) => files_commands::files(&remote, json, command).await?,
         Command::Inbox(command) => commands::inbox(&remote, json, command).await?,
         Command::Wallet(command) => commands::wallet(&remote, json, command).await?,
         Command::Plan(command) => commands::plan(&remote, json, command).await?,
@@ -1974,56 +1952,6 @@ async fn run(cli: Cli) -> Result<(), Failure> {
                 let revision = v["revision"].as_str().unwrap_or_default();
                 tr!("resolved; head {revision}", "已解决；当前版本 {revision}")
             });
-        }
-        Command::File(FileCommand::Import { path }) => {
-            let entry = remote
-                .call("file/import", json!({"path": absolute(path)?}))
-                .await?;
-            print(json, &entry, |v| {
-                v["id"].as_str().unwrap_or_default().to_string()
-            });
-        }
-        Command::File(FileCommand::List) => {
-            let entries = remote.call("vault/list", Value::Null).await?;
-            let files: Vec<Value> = entries
-                .as_array()
-                .into_iter()
-                .flatten()
-                .filter(|e| e["item"]["type"] == "file")
-                .cloned()
-                .collect();
-            print(json, &Value::Array(files), |list| {
-                list.as_array()
-                    .into_iter()
-                    .flatten()
-                    .map(|e| {
-                        let (id, name, size) = (
-                            e["id"].as_str().unwrap_or_default(),
-                            e["item"]["file"]["name"].as_str().unwrap_or_default(),
-                            &e["item"]["file"]["size"],
-                        );
-                        let synced = match e["synced"] == true {
-                            true => String::new(),
-                            false => tr!(" (not synced)", "（未同步）"),
-                        };
-                        tr!(
-                            "{id} {name} {size} bytes{synced}",
-                            "{id} {name} {size} 字节{synced}"
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n")
-            });
-        }
-        Command::File(FileCommand::Get { id, out }) => {
-            let manifest = remote
-                .call("file/export", json!({"id": id, "path": absolute(out)?}))
-                .await?;
-            print(json, &manifest, verified);
-        }
-        Command::File(FileCommand::Verify { id }) => {
-            let manifest = remote.call("file/verify", json!({"id": id})).await?;
-            print(json, &manifest, verified);
         }
         Command::Sync { command: None } => {
             let report = remote.call("sync/run", Value::Null).await?;

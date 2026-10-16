@@ -533,7 +533,6 @@ impl Client {
             favorite: false,
             created_at: now_ms(),
             updated_at: now_ms(),
-            file: None,
             resolved_conflicts: None,
         };
         self.vault_key(&id, create.then_some(item))

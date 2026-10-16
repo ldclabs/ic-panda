@@ -1,4 +1,5 @@
-//! The vault: items and files as encrypted versions (see [`crate::content`]).
+//! The vault: items as encrypted versions (see [`crate::content`]). Files
+//! are not vault items; they live in the file library ([`crate::library`]).
 //!
 //! Editing writes a version whose parent is the version edited; deleting
 //! writes a tombstone and restoring writes a version on top of it, so
@@ -9,7 +10,6 @@
 use crate::client::Client;
 use crate::codec::{canonical, decode};
 use crate::content::{record, EncryptedObject, MAX_OBJECT, VAULT};
-use crate::files::{FileManifest, MAX_FILE};
 use crate::store::{ObjectRow, SYNCED};
 use crate::upload::random_hex;
 use dmsg_types::{ensure, ensure_valid, Error, Result};
@@ -25,7 +25,7 @@ pub const RESERVED_TAG: &str = "dmsg-";
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Item {
-    /// `note`, `login`, `api`, `key` or `file`.
+    /// `note`, `login`, `api` or `key`.
     #[serde(rename = "type")]
     pub kind: String,
     /// Title, 1 to 200 characters after trimming.
@@ -46,9 +46,6 @@ pub struct Item {
     pub created_at: u64,
     /// Last edit in Unix milliseconds.
     pub updated_at: u64,
-    /// The file of a `file` item, key included.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub file: Option<FileManifest>,
     /// Conflict copies, as `id:revision`, this version resolved.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolved_conflicts: Option<Vec<String>>,
@@ -70,19 +67,8 @@ impl Item {
         let chars = |s: &str| s.chars().count();
         let title = self.title.trim();
         ensure_valid(
-            matches!(
-                self.kind.as_str(),
-                "note" | "login" | "api" | "key" | "file"
-            ),
+            matches!(self.kind.as_str(), "note" | "login" | "api" | "key"),
             "type",
-        )?;
-        ensure_valid(
-            (self.kind == "file")
-                == self
-                    .file
-                    .as_ref()
-                    .is_some_and(|f| f.size <= MAX_FILE && f.name.chars().count() <= 255),
-            "file",
         )?;
         ensure_valid(!title.is_empty() && chars(title) <= 200, "title")?;
         ensure_valid(
@@ -141,13 +127,11 @@ impl VaultEntry {
         }
     }
 
-    /// The entry as it may leave the daemon: the file key never, the
-    /// secret only when revealed.
+    /// The entry as it may leave the daemon: the secret only when revealed.
     pub fn masked(mut self, reveal: bool) -> Self {
         if !reveal && !self.item.secret.is_empty() {
             self.item.secret = "********".into();
         }
-        self.item.file = self.item.file.as_ref().map(FileManifest::public);
         self
     }
 }
@@ -187,19 +171,17 @@ impl Client {
         item: &Item,
     ) -> Result<VaultEntry> {
         let payload = Zeroizing::new(canonical(item));
-        let (record, conflict) =
-            self.write(VAULT, id, parent, tombstone, &payload, item.file.as_ref())?;
+        let (record, conflict) = self.write(VAULT, id, parent, tombstone, &payload, None)?;
         Ok(VaultEntry::new(&record, item.clone(), false, conflict))
     }
 
     /// Add an item, or edit item `id`. An edit replaces `base`, by default
     /// the current version; when the head has moved past `base` the edit is
-    /// kept as a conflict copy. A file item keeps its file.
+    /// kept as a conflict copy.
     ///
     /// # Errors
-    /// Returns `Error::Locked` while locked, `Error::NotFound` for an
-    /// unknown or deleted item and `Error::InvalidInput` for a new `file`
-    /// item, which only an import creates.
+    /// Returns `Error::Locked` while locked and `Error::NotFound` for an
+    /// unknown or deleted item.
     pub fn vault_put(
         &mut self,
         id: Option<&str>,
@@ -209,7 +191,6 @@ impl Client {
         let mut item = item.clone();
         item.resolved_conflicts = None;
         let Some(id) = id else {
-            ensure_valid(item.kind != "file" && item.file.is_none(), "type")?;
             item.validate()?;
             return self.put_item(random_hex(), None, false, &item);
         };
@@ -223,7 +204,6 @@ impl Client {
         let (record, old) = self.open_row(&row)?;
         ensure(!record.tombstone, Error::NotFound)?;
         ensure_valid(item.kind == old.kind, "type")?;
-        item.file = old.file;
         item.resolved_conflicts = old.resolved_conflicts;
         item.validate()?;
         self.put_item(id.into(), Some(base.into()), false, &item)

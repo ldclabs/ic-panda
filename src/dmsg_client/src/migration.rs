@@ -16,7 +16,7 @@
 use crate::client::Client;
 use crate::codec::{canonical, decode, sha256};
 use crate::content::MAX_OBJECT;
-use crate::files::FileManifest;
+use crate::files::{read_file, store_file, FileManifest, MAX_FILE};
 use crate::legacy::{self, Archive, Offer};
 use crate::legacy_proof::{self, Change, FrozenChannel, Trust};
 use crate::now_ms;
@@ -292,7 +292,8 @@ impl Client {
                 parts.push(id.clone());
                 continue;
             }
-            let file = self.store_file(
+            let file = store_file(
+                &self.workspace.store,
                 &format!("legacy-{archive_digest}-{index}.cbor"),
                 "application/cbor",
                 chunk,
@@ -373,7 +374,12 @@ impl Client {
                 part.archive == record.archive_digest && part.index == index as u64,
                 Error::IntegrityFailed,
             )?;
-            self.read_file(&part.file, Some(&mut *plain))?;
+            read_file(
+                &self.workspace.store,
+                &part.file,
+                MAX_FILE,
+                Some(&mut *plain),
+            )?;
         }
         ensure(
             hex::encode(*sha256(&plain)) == record.archive_digest,

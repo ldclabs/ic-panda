@@ -72,7 +72,7 @@ const CONNECT_POLL_MS: u64 = 30_000;
 const APP_PROTOCOL: &str = "dmsg-app/1";
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 57] = [
+const METHODS: [&str; 54] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -93,9 +93,6 @@ const METHODS: [&str; 57] = [
     "vault/show",
     "vault/conflicts",
     "vault/resolve",
-    "file/import",
-    "file/export",
-    "file/verify",
     "sync/run",
     "sync/status",
     "profile/show",
@@ -384,6 +381,22 @@ async fn background(daemon: Arc<Daemon>) {
                     daemon.emit("approval/changed", Value::Null);
                 }
                 waiting = count;
+            }
+        }
+        if unlocked {
+            // The file library's housekeeping: expired trash and unreferenced
+            // chunks every ten minutes, opened copies every pass.
+            let maintained = client.files_maintain(now);
+            daemon.note("files", &outcome(&maintained));
+            if let Ok(Some(report)) = &maintained {
+                if report.purged_files + report.purged_folders > 0 {
+                    daemon.emit("files/changed", json!({"maintenance": report}));
+                }
+            }
+            if let Ok(changed) = client.files_open_sweep(now) {
+                for copy in changed {
+                    daemon.emit("files/open_changed", to_json(&copy));
+                }
             }
         }
     }
@@ -717,22 +730,6 @@ impl Daemon {
                     .vault_resolve(&text("key")?, keep)?;
                 Ok(to_json(&entry.masked(false)))
             }
-            "file/import" => {
-                let entry = self.client.lock().await.file_import(&path("path")?)?;
-                Ok(to_json(&entry.masked(false)))
-            }
-            "file/export" => {
-                let manifest = self
-                    .client
-                    .lock()
-                    .await
-                    .file_export(&text("id")?, &path("path")?)?;
-                Ok(to_json(&manifest))
-            }
-            "file/verify" => {
-                let manifest = self.client.lock().await.file_verify(&text("id")?)?;
-                Ok(to_json(&manifest))
-            }
             "sync/run" => {
                 let report = self.client.lock().await.sync().await?;
                 Ok(to_json(&report))
@@ -998,6 +995,9 @@ impl Daemon {
             m if crate::mcp_events::METHODS.contains(&m) => {
                 self.call_mcp_events(method, params).await
             }
+            m if crate::files_methods::METHODS.contains(&m) => {
+                self.call_files(method, params).await
+            }
             _ => self.call_more(method, params).await,
         }
     }
@@ -1048,7 +1048,7 @@ fn events_of(method: &str) -> &'static [&'static str] {
         m if m.starts_with("session/") || m == "workspace/reset" || m == "account/create" => {
             &["session/changed", "approval/changed"]
         }
-        m if m.starts_with("vault/") || m.starts_with("file/") => &["vault/changed"],
+        m if m.starts_with("vault/") => &["vault/changed"],
         "sync/run" => &["sync/changed", "vault/changed"],
         "approval/respond"
         | "approval/cancel"
@@ -1063,6 +1063,7 @@ fn events_of(method: &str) -> &'static [&'static str] {
         "device/approve" => &["session/changed"],
         m if crate::account_methods::METHODS.contains(&m) => crate::account_methods::events_of(m),
         m if crate::legacy_methods::METHODS.contains(&m) => crate::legacy_methods::events_of(m),
+        m if crate::files_methods::METHODS.contains(&m) => crate::files_methods::events_of(m),
         m if m.starts_with("agent/")
             || m.starts_with("grants/")
             || m.starts_with("ap/")
@@ -1188,6 +1189,7 @@ impl Daemon {
             && !crate::legacy_methods::METHODS.contains(&method)
             && !crate::agents::METHODS.contains(&method)
             && !crate::mcp_events::METHODS.contains(&method)
+            && !crate::files_methods::METHODS.contains(&method)
             && !agent_method
         {
             return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32601, "message": "method not found"}});

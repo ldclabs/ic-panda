@@ -43,19 +43,22 @@ pub const MAX_AGENTS: usize = 16;
 pub const MAX_GRANTS: usize = 64;
 
 /// What an agent may be granted (plan §6.9). A `:<target>` names a vault
-/// tag, a vault item ID (`vault.secret`) or a channel ID; `*` is every
-/// target and an explicit owner choice. Account, device and root changes,
-/// payments, names, principal changes, signing and the grants themselves
-/// are never grantable, and no vault capability reaches dMsg's own keys
-/// (items tagged `dmsg-…`, see [`crate::vault::Item::reserved`]). The
-/// last seven are the [`HOST_CAPABILITIES`].
-pub const CAPABILITIES: [&str; 22] = [
+/// tag, a vault item ID (`vault.secret`), a library folder ID (`files.*`,
+/// covering the folders under it) or a channel ID; `*` is every target and
+/// an explicit owner choice. Account, device and root changes, payments,
+/// names, principal changes, signing, backups, deletions, sharing and the
+/// grants themselves are never grantable, and no vault capability reaches
+/// dMsg's own keys (items tagged `dmsg-…`, see
+/// [`crate::vault::Item::reserved`]). The last seven are the
+/// [`HOST_CAPABILITIES`].
+pub const CAPABILITIES: [&str; 23] = [
     "account.read",
     "vault.list",
     "vault.read:",
     "vault.write:",
     "vault.secret:",
-    "file.read:",
+    "files.read:",
+    "files.write:",
     "channel.read:",
     "channel.publish:",
     "inbox.read",
@@ -336,7 +339,6 @@ impl Client {
             favorite: false,
             created_at: now,
             updated_at: now,
-            file: None,
             resolved_conflicts: None,
         };
         let seed = self.vault_key(&agent_item(&account, label), Some(item))?;

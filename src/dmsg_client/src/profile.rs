@@ -305,8 +305,15 @@ impl Client {
         };
         // Read from the store by the upload, then collected after it.
         self.workspace.store.put_chunk(&digest, bytes)?;
-        self.upload(&self.base()?, &plan, &manifest, 0, |_, _| Ok(()))
-            .await?;
+        self.upload(
+            &self.base()?,
+            &plan,
+            &manifest,
+            0,
+            crate::files::Source::Store,
+            |_, _| Ok(()),
+        )
+        .await?;
         Ok(upload_id)
     }
 

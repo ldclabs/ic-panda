@@ -86,6 +86,8 @@ pub(crate) fn config(background_online: bool) -> Config {
         login_url: LOGIN_URL.into(),
         connect_url: crate::config::CONNECT_URL.into(),
         background_online,
+        files_max_bytes: crate::config::DEFAULT_FILES_MAX_BYTES,
+        files_trash_days: crate::config::DEFAULT_FILES_TRASH_DAYS,
         legacy: None,
     }
 }

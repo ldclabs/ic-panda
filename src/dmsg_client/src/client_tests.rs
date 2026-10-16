@@ -14,7 +14,6 @@ fn note(title: &str) -> Item {
         favorite: false,
         created_at: 1,
         updated_at: 1,
-        file: None,
         resolved_conflicts: None,
     }
 }

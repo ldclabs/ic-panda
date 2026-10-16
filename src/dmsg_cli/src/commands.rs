@@ -80,14 +80,15 @@ pub enum ChannelCommand {
         /// Channel ID.
         id: String,
     },
-    /// Send a message, or share a vault file with --file.
+    /// Send a message, or share a library file with --file.
     Send {
         /// Channel ID.
         id: String,
         /// The text.
         #[arg(default_value = "")]
         text: String,
-        /// A file item of the vault.
+        /// A library file, `<id>` or `<id>@<version>`; shared as a new
+        /// edition under its own key.
         #[arg(long)]
         file: Option<String>,
         /// Message ID, to retry a send.
@@ -432,12 +433,18 @@ pub async fn channel(remote: &Remote, json: bool, command: ChannelCommand) -> Re
         ChannelCommand::Send {
             id,
             text,
-            file: Some(item),
+            file: Some(file),
             message_id,
-        } => (
-            "channel/send_file",
-            json!({"id": id, "item": item, "text": text, "message_id": message_id}),
-        ),
+        } => {
+            let (file, version) = match file.split_once('@') {
+                Some((file, version)) => (file.to_string(), Some(version.to_string())),
+                None => (file, None),
+            };
+            (
+                "channel/send_file",
+                json!({"id": id, "file": file, "version": version, "text": text, "message_id": message_id}),
+            )
+        }
         ChannelCommand::Send {
             id,
             text,

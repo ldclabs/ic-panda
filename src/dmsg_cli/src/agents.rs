@@ -22,6 +22,7 @@ use dmsg_client::{
     attest::StatementInput,
     codec::{b64, unb64},
     error_code,
+    library::catalog::ROOT,
     vault::{Filter, Item},
     Client,
 };
@@ -32,10 +33,12 @@ use dmsg_types::{
 use serde_json::{json, Value};
 use std::time::Duration;
 
-/// Most bytes one `dmsg_file_read` returns.
+/// Most bytes one `dmsg_files_read` returns.
 const MAX_READ: u64 = 1024 * 1024;
-/// Largest file an agent reads from.
+/// Largest library file an agent reads from.
 const MAX_AGENT_FILE: u64 = 64 * 1024 * 1024;
+/// Largest content one `dmsg_files_write` takes.
+const MAX_AGENT_WRITE: usize = 8 * 1024 * 1024;
 /// How long `mcp/changed` waits at most.
 const CHANGED_WAIT_MS: u64 = 25_000;
 /// Input fields that name what a call acts on, in order of preference.
@@ -602,7 +605,6 @@ impl Daemon {
                         favorite: false,
                         created_at: now,
                         updated_at: now,
-                        file: None,
                         resolved_conflicts: None,
                     },
                 };
@@ -640,13 +642,23 @@ impl Daemon {
                     })),
                 }
             }
-            "dmsg_file_read" => {
+            "dmsg_files_list" => {
+                let folder = input["folder"].as_str().unwrap_or(ROOT).to_string();
+                client.files_grant_check(did, "files.read", &folder)?;
+                let listing = client.files_list(&folder, false)?;
+                Ok(json!({
+                    "folder": folder,
+                    "folders": listing.folders.iter().map(|f| json!({"id": f.id, "name": f.name})).collect::<Vec<_>>(),
+                    "files": listing.files.iter().map(file_summary).collect::<Vec<_>>(),
+                }))
+            }
+            "dmsg_files_read" => {
                 let id = text(input, "id")?;
-                let entry = client.vault_show(&id)?;
-                ensure(!entry.deleted && entry.item.file.is_some(), Error::NotFound)?;
-                ensure(!entry.item.reserved(), Error::Forbidden)?;
-                tagged(&client, did, "file.read", &entry.item)?;
-                let (manifest, bytes) = client.file_bytes(&id, MAX_AGENT_FILE)?;
+                let file = client.files_show(&id)?.file;
+                ensure(file.trashed_at.is_none(), Error::NotFound)?;
+                client.files_grant_check(did, "files.read", &file.folder)?;
+                let (manifest, bytes) =
+                    client.files_read(&id, input["version"].as_str(), MAX_AGENT_FILE)?;
                 let offset = input["offset"].as_u64().unwrap_or(0).min(manifest.size);
                 let length = input["length"]
                     .as_u64()
@@ -655,6 +667,7 @@ impl Daemon {
                 let end = (offset + length).min(manifest.size);
                 Ok(json!({
                     "id": manifest.id,
+                    "version": manifest.version,
                     "name": manifest.name,
                     "mime": manifest.mime,
                     "size": manifest.size,
@@ -664,6 +677,45 @@ impl Daemon {
                     "eof": end == manifest.size,
                     "content_base64url": b64(&bytes[offset as usize..end as usize]),
                 }))
+            }
+            "dmsg_files_write" => {
+                let content = unb64(&text(input, "content_base64url")?)?;
+                ensure(content.len() <= MAX_AGENT_WRITE, Error::QuotaExceeded)?;
+                let (folder, name) = match input["id"].as_str() {
+                    Some(id) => {
+                        let file = client.files_show(id)?.file;
+                        ensure(file.trashed_at.is_none(), Error::NotFound)?;
+                        (file.folder, file.name)
+                    }
+                    None => (
+                        input["folder"].as_str().unwrap_or(ROOT).to_string(),
+                        text(input, "name")?,
+                    ),
+                };
+                client.files_grant_check(did, "files.write", &folder)?;
+                let imported = client.files_write(&folder, &name, &content)?;
+                Ok(json!({
+                    "id": imported.file.id,
+                    "version": imported.version,
+                    "name": imported.file.name,
+                    "size": imported.file.size,
+                    "sha256": imported.file.sha256,
+                    "versions": imported.file.versions,
+                }))
+            }
+            "dmsg_files_search" => {
+                let found = client.files_search(&text(input, "query")?)?;
+                Ok(Value::Array(
+                    found
+                        .iter()
+                        .filter(|f| {
+                            client
+                                .files_grant_check(did, "files.read", &f.folder)
+                                .is_ok()
+                        })
+                        .map(file_summary)
+                        .collect(),
+                ))
             }
             "dmsg_channel_list" => {
                 let channels = client.channel_list()?;
@@ -795,6 +847,23 @@ impl Daemon {
             _ => Err(Error::NotFound),
         }
     }
+}
+
+/// A library file as an agent sees it: no key, no chunks.
+fn file_summary(file: &dmsg_client::library::catalog::FileView) -> Value {
+    json!({
+        "id": file.id,
+        "folder": file.folder,
+        "name": file.name,
+        "mime": file.mime,
+        "size": file.size,
+        "sha256": file.sha256,
+        "tags": file.tags,
+        "note": file.note,
+        "updated_at": file.updated_at,
+        "versions": file.versions,
+        "path": file.path,
+    })
 }
 
 /// Whether `did` holds `<name>:<tag>` for one of the item's tags, or

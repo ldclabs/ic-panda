@@ -23,6 +23,8 @@ use crate::config::{environment_name, Config};
 use crate::content::VAULT;
 use crate::crypto::Key;
 use crate::ic::Ic;
+use crate::library::blobs::Blobs;
+use crate::library::catalog::Catalog;
 use crate::now_ms;
 use crate::root::RootKeys;
 use crate::secure::SecureStorage;
@@ -44,6 +46,8 @@ pub const FAST_UNLOCK_MS: u64 = 7 * DAY;
 const AGENT_RUNTIME: &str = "agents.sqlite";
 /// The workspace file in its directory.
 const WORKSPACE: &str = "workspace.sqlite";
+/// The file library's chunk directory in the workspace directory.
+const BLOBS: &str = "blobs";
 /// The account selected last.
 const CURRENT: &str = "current";
 
@@ -167,6 +171,12 @@ pub struct Client {
     pub(crate) wallet: Option<(Principal, Ic)>,
     /// A second login waiting for its binding to this account.
     pub(crate) binding: Option<crate::security::PendingBinding>,
+    /// The file library's chunk directory of the selected workspace.
+    pub(crate) blobs: Option<Blobs>,
+    /// The library's catalog, read on first use while unlocked.
+    pub(crate) library: Option<Catalog>,
+    /// When the library's maintenance last ran.
+    pub(crate) library_maintained_at: Option<u64>,
 }
 
 impl Client {
@@ -208,6 +218,9 @@ impl Client {
             peers: std::collections::BTreeMap::new(),
             wallet: None,
             binding: None,
+            blobs: None,
+            library: None,
+            library_maintained_at: None,
         };
         let current = std::fs::read_to_string(dir.join(CURRENT))
             .ok()
@@ -241,6 +254,7 @@ impl Client {
         if slot == self.slot {
             return Ok(());
         }
+        self.library_lock();
         self.keys = None;
         self.resident = None;
         self.root = None;
@@ -264,6 +278,7 @@ impl Client {
         if let Slot::Account(account) = &slot {
             std::fs::write(self.dir.join(CURRENT), account.to_string()).map_err(storage)?;
         }
+        self.blobs = (slot != Slot::Idle).then(|| Blobs::new(dir.join(BLOBS)));
         self.slot = slot;
         Ok(())
     }
@@ -294,6 +309,7 @@ impl Client {
         self.workspace =
             Workspace::open(&target.join(WORKSPACE), &self.config.environment, now_ms())?;
         std::fs::write(self.dir.join(CURRENT), account.to_string()).map_err(storage)?;
+        self.blobs = Some(Blobs::new(target.join(BLOBS)));
         self.slot = Slot::Account(*account);
         self.keys = keys;
         Ok(())
@@ -610,6 +626,7 @@ impl Client {
     /// device signing key stays, so presigned and sealed versions still go
     /// out; nothing can be read or decided.
     pub fn lock(&mut self) {
+        self.library_lock();
         let signing = self.keys.as_ref().map(|k| k.signing.clone());
         if self.config.background_online {
             self.resident = signing.or(self.resident.take());
@@ -663,6 +680,13 @@ impl Client {
             "agents.sqlite-shm",
         ] {
             match std::fs::remove_file(dir.join(name)) {
+                Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(storage(e)),
+                _ => {}
+            }
+        }
+        // The file library's chunks and opened copies go with the workspace.
+        for name in [BLOBS, crate::library::open::OPEN_DIR] {
+            match std::fs::remove_dir_all(dir.join(name)) {
                 Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(storage(e)),
                 _ => {}
             }

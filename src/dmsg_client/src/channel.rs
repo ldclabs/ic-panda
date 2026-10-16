@@ -30,7 +30,9 @@ use crate::codec::{b64, canonical, decode, digest, sha256, unb64, MAX_RECORD};
 use crate::content::empty_file;
 use crate::crypto::{derive, hpke_open, hpke_seal, open, random_key, seal, sign, HpkeEnvelope};
 use crate::evidence::{Trust, Verified};
-use crate::files::FileManifest;
+use crate::files::{export_manifest, read_file, BlobStore, FileManifest, Source, MAX_FILE};
+use crate::library::catalog::Origin;
+use crate::library::import::Imported;
 use crate::now_ms;
 use crate::upload::{hex_id, random_hex, ChunkRef, UploadPlan};
 use dmsg_types::{ensure, ensure_valid, user::Capability, AccountId, Error, Hash, Result};
@@ -270,10 +272,12 @@ struct Body {
     file: Option<FileRef>,
 }
 
-/// A file being shared, kept until its message is stored.
+/// A file being shared, kept until its message is stored: the shared
+/// edition's upload and the reference the message carries.
 #[derive(Serialize, Deserialize)]
 struct Attachment {
-    item: String,
+    /// The library version shared, `file@version`.
+    source: String,
     reference: FileRef,
     upload: Upload,
 }
@@ -1523,7 +1527,7 @@ impl Client {
         self.save_job(channel, "rotation", &pending)?;
         let (activation, uploads) = self.rotation_prepare(channel, &ledger, &lease, &recipients)?;
         for upload in &uploads {
-            self.channel_upload(channel, upload).await?;
+            self.channel_upload(channel, upload, Source::Store).await?;
         }
         self.channel_post(
             channel,
@@ -1666,13 +1670,19 @@ impl Client {
         Ok((activation, candidate.groups))
     }
 
-    /// Upload a channel upload whose chunks are in the store.
-    pub(crate) async fn channel_upload(&mut self, channel: &str, upload: &Upload) -> Result<()> {
+    /// Upload a channel upload whose chunks are in `source`.
+    pub(crate) async fn channel_upload(
+        &mut self,
+        channel: &str,
+        upload: &Upload,
+        source: Source,
+    ) -> Result<()> {
         self.upload(
             &base(channel)?,
             &upload.plan,
             &upload.manifest,
             0,
+            source,
             |_, _| Ok(()),
         )
         .await
@@ -2135,35 +2145,43 @@ impl Client {
         Ok(json!({"message_id": message_id, "receipt": receipt}))
     }
 
-    /// Share a vault file under the current epoch: its encrypted chunks are
-    /// uploaded to the channel with a manifest sealed under the file key,
-    /// and the message carries that key.
+    /// Share a library file's version under the current epoch as a shared
+    /// edition: the version re-encrypted under a fresh key with a fresh
+    /// identity ([`Client::share_edition`]), uploaded to the channel with a
+    /// manifest sealed under that key, which the message carries. The
+    /// edition shares neither its key nor a chunk byte with the library's
+    /// own copy or a backup, so no one can relate the two.
     ///
     /// # Errors
-    /// Returns `Error::NotFound` for an item that is not a file.
+    /// Returns `Error::NotFound` for an unknown file or version and
+    /// `Error::QuotaExceeded` for a version over 100 MiB.
     pub async fn channel_send_file(
         &mut self,
         channel: &str,
-        item: &str,
+        file: &str,
+        version: Option<&str>,
         text: &str,
         message_id: Option<&str>,
     ) -> Result<Json> {
         let message_id = message_id.map_or_else(random_hex, str::to_string);
         ensure_valid(is_hash(&message_id), "message_id")?;
+        let (_, _, manifest) = self.library_manifest(file, version)?;
+        let source = format!("{file}@{}", manifest.version);
         let ledger = self.channel_pull(channel, None, None).await?;
         self.root_ready().await?;
         let key_name = format!("file:{message_id}");
         let attachment = match self.job::<Attachment>(channel, &key_name)? {
             Some(attachment) => {
-                ensure(attachment.item == item, Error::IdempotencyConflict)?;
+                ensure(attachment.source == source, Error::IdempotencyConflict)?;
                 attachment
             }
             None => {
                 ensure(ledger.status == Status::Active, Error::RekeyRequired)?;
-                let file = self.vault_show(item)?.item.file.ok_or(Error::NotFound)?;
-                let (reference, upload) = self.prepare_upload(channel, &ledger, &file)?;
+                let edition = self.share_edition(&manifest)?;
+                let (reference, upload) =
+                    self.prepare_upload(channel, &ledger, &edition, self.blobs()?)?;
                 let attachment = Attachment {
-                    item: item.into(),
+                    source,
                     reference,
                     upload,
                 };
@@ -2171,23 +2189,23 @@ impl Client {
                 attachment
             }
         };
-        self.channel_upload(channel, &attachment.upload).await?;
+        self.channel_upload(channel, &attachment.upload, Source::Library)
+            .await?;
         self.channel_send(channel, text, Some(&message_id)).await
     }
 
-    /// The upload that shares `file`, whose chunks are in the store, under
+    /// The upload that shares `file`, whose chunks are in `blobs`, under
     /// the ledger's epoch, and the reference that carries its key.
     pub(crate) fn prepare_upload(
         &self,
         channel: &str,
         ledger: &Ledger,
         file: &FileManifest,
+        blobs: &dyn BlobStore,
     ) -> Result<(FileRef, Upload)> {
         let mut chunks = vec![];
         for chunk in &file.chunks {
-            let bytes = self
-                .workspace
-                .store
+            let bytes = blobs
                 .chunk(&chunk.digest)?
                 .ok_or(Error::RecoveryIncomplete)?;
             chunks.push(ChunkRef {
@@ -2198,7 +2216,7 @@ impl Client {
         if chunks.is_empty() {
             let empty = empty_file();
             let digest = hex_sha256(&empty);
-            self.workspace.store.put_chunk(&digest, &empty)?;
+            blobs.put_chunk(&digest, &empty)?;
             chunks.push(ChunkRef {
                 digest,
                 size: empty.len() as u64,
@@ -2450,7 +2468,55 @@ impl Client {
         let manifest = self
             .channel_file(channel, &reference, &message.account)
             .await?;
-        self.export_manifest(&manifest, out)
+        export_manifest(&self.workspace.store, &manifest, MAX_FILE, out)
+    }
+
+    /// Save a shared file into the library, in `folder`: its chunks are
+    /// fetched and checked, then the plaintext is imported like a file of
+    /// this device, so the library's copy has its own key and chunks. A
+    /// file of the same name in `folder` takes it as a new version.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for a message without a file or an unknown
+    /// folder.
+    pub async fn files_save_shared(
+        &mut self,
+        channel: &str,
+        seq: u64,
+        folder: &str,
+        progress: &mut (dyn FnMut(u64, u64) + Send),
+    ) -> Result<Imported> {
+        self.catalog()?.live_folder(folder)?;
+        self.channel_pull(channel, None, None).await?;
+        let message: Message = self
+            .workspace
+            .private(self.keys()?, &format!("{INBOX}{channel}:{seq:020}"))?
+            .ok_or(Error::NotFound)?;
+        let reference = message.file.clone().ok_or(Error::NotFound)?;
+        let manifest = self
+            .channel_file(channel, &reference, &message.account)
+            .await?;
+        let mut plain = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
+        read_file(
+            &self.workspace.store,
+            &manifest,
+            MAX_FILE,
+            Some(&mut *plain),
+        )?;
+        let name = crate::library::catalog::safe_name(&manifest.name);
+        let into = self.catalog()?.find(folder, &name);
+        self.import_stream(
+            &mut std::io::Cursor::new(&plain[..]),
+            manifest.size,
+            &name,
+            folder,
+            into,
+            Origin::SharedIn {
+                channel: channel.into(),
+                seq,
+            },
+            progress,
+        )
     }
 
     /// Fetch the file `reference` names, uploaded by `uploader`: its plan,
@@ -2582,7 +2648,7 @@ impl Client {
             &grant_id,
         )?;
         for upload in &uploads {
-            self.channel_upload(channel, upload).await?;
+            self.channel_upload(channel, upload, Source::Store).await?;
         }
         let fresh = self.recipients(std::slice::from_ref(&target)).await?;
         ensure(

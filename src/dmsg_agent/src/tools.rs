@@ -1,6 +1,6 @@
 //! The MCP tool catalog `dmsg mcp` serves: the 33 standard Agent Protocols
 //! local connector tools, Agent Mail and Agent Knowledge among them, and the
-//! 23 `dmsg_*` tools over this account's data and its MCP Events endpoints
+//! 26 `dmsg_*` tools over this account's data and its MCP Events endpoints
 //! (plan §6.8, §6.11). A `dmsg_*` call needs a capability the owner granted the
 //! agent (§6.9); a sensitive one only creates an approval request, which
 //! no tool can answer. So does each standard Agent Discourse, Mail and
@@ -54,7 +54,7 @@ const STANDARD_CAPABILITIES: [(&str, &str); 25] = [
 ];
 
 /// The `dmsg_*` tools: name, description, read-only, input schema.
-const DMSG_TOOLS: [(&str, &str, bool, &str); 23] = [
+const DMSG_TOOLS: [(&str, &str, bool, &str); 26] = [
     (
         "dmsg_account_status",
         "This account's lock, sync and approval state; needs account.read.",
@@ -83,10 +83,28 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 23] = [
         ),
     ),
     (
-        "dmsg_file_read",
-        "Up to 1 MiB of a vault file from offset, as base64; needs file.read:<tag> for one of its tags. The whole file is checked against its SHA-256 first.",
+        "dmsg_files_list",
+        "The folders and files of a file-library folder (the root without one); needs files.read:<folder> for it or a folder above it.",
         true,
-        r#"{"type":"object","required":["id"],"properties":{"id":{"type":"string"},"offset":{"type":"integer","minimum":0},"length":{"type":"integer","minimum":1,"maximum":1048576}}}"#,
+        r#"{"type":"object","properties":{"folder":{"type":"string"}}}"#,
+    ),
+    (
+        "dmsg_files_read",
+        "Up to 1 MiB of a library file's version (the current one by default) from offset, as base64; needs files.read:<folder> for its folder or one above. The whole file (at most 64 MiB) is checked against its SHA-256 first.",
+        true,
+        r#"{"type":"object","required":["id"],"properties":{"id":{"type":"string"},"version":{"type":"string"},"offset":{"type":"integer","minimum":0},"length":{"type":"integer","minimum":1,"maximum":1048576}}}"#,
+    ),
+    (
+        "dmsg_files_write",
+        "Write content (base64url, at most 8 MiB) as a new version of file id, or as file name in folder (a same-named file there takes it as a new version); needs files.write:<folder> for the folder or one above. Nothing is backed up, shared or deleted.",
+        false,
+        r#"{"type":"object","required":["content_base64url"],"properties":{"id":{"type":"string"},"folder":{"type":"string"},"name":{"type":"string"},"content_base64url":{"type":"string"}}}"#,
+    ),
+    (
+        "dmsg_files_search",
+        "Library files whose name, tags or note contain the query, within the folders files.read grants reach.",
+        true,
+        r#"{"type":"object","required":["query"],"properties":{"query":{"type":"string"}}}"#,
     ),
     (
         "dmsg_channel_list",

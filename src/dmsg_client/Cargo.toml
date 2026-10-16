@@ -24,6 +24,8 @@ hmac.workspace = true
 ic-certification.workspace = true
 ic_auth_verifier.workspace = true
 hpke = { workspace = true, features = ["alloc", "aes", "x25519"] }
+image = { workspace = true, features = ["gif", "jpeg", "png", "webp"] }
+infer.workspace = true
 ic-agent.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys.workspace = true

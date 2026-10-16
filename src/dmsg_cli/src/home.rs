@@ -43,6 +43,8 @@ struct ConfigFile {
     idle_lock_minutes: Option<u64>,
     #[serde(default)]
     sync_interval_minutes: u64,
+    files_max_bytes: Option<u64>,
+    files_trash_days: Option<u64>,
     secure_storage: Option<String>,
     legacy: Option<LegacyFile>,
 }
@@ -183,6 +185,12 @@ impl Home {
             login_url: file.login_url.unwrap_or_else(|| LOGIN_URL.into()),
             connect_url: file.connect_url.unwrap_or_else(|| CONNECT_URL.into()),
             background_online: file.background_online,
+            files_max_bytes: file
+                .files_max_bytes
+                .unwrap_or(dmsg_client::config::DEFAULT_FILES_MAX_BYTES),
+            files_trash_days: file
+                .files_trash_days
+                .unwrap_or(dmsg_client::config::DEFAULT_FILES_TRASH_DAYS),
             legacy: file.legacy.map(legacy).transpose()?,
         };
         config.validate()?;

@@ -19,6 +19,8 @@ cryptography, storage and protocol logic live in
 | `logs/stderr.log` | The stderr of a daemon started by `dmsg start` (rewritten each time) or at login: what fails before the run log opens |
 | `<environment>/accounts/<account>/workspace.sqlite` | An account's workspace on this device: its own device keys, encrypted versions and chunks, sealed records, sync jobs |
 | `<environment>/accounts/<account>/agents.sqlite` | Agent Protocols connector state of the account's hosted Agent IDs; no private key (see [`dmsg_agent`](../dmsg_agent/README.md)) |
+| `<environment>/accounts/<account>/blobs/<d0d1>/<digest>` | The file library's ciphertext chunks, one file per chunk named by its SHA-256; `blobs/tmp/` holds chunks being written |
+| `<environment>/accounts/<account>/open/<nonce>/<name>` | Plaintext copies of library files opened for another program (`dmsg files open`), owner-only, removed after 30 minutes, on lock and on exit |
 | `<environment>/logins/<principal>/` | The workspace of a login without an account; it becomes `accounts/<account>/` once the login has one |
 | `<environment>/current` | The account selected last, which a restart and fast unlock use |
 
@@ -40,6 +42,8 @@ login_url = "http://localhost:3002/_/login"  # local only; default https://dmsg.
 idle_lock_minutes = 15           # 1 to 1440
 background_online = false        # keep the device key while locked
 sync_interval_minutes = 0        # scheduled sync; 0 is off
+files_max_bytes = 4294967296     # largest file the file library takes (default 4 GiB)
+files_trash_days = 30            # days a trashed library file is kept, 1 to 365
 secure_storage = "system"        # "system" (default on macOS and Windows) or "file"
 connect_url = "http://localhost:5174"  # local only; default https://connect.dmsg.net
 agent_hosts = [                  # Agent Protocols hosts the hosted agents may sign for
@@ -183,7 +187,13 @@ dmsg vault add --title T [--type note|login|api|key] [--body B] [--username U] [
 dmsg vault edit <id> [--title T] [--body B] [--username U] [--url L] [--tag T]... [--secret-stdin]
 dmsg vault rm <id> | restore <id> | list [--trash] | search <text> | show <id> [--reveal]
 dmsg vault conflicts | resolve <id:revision> [--keep-current]
-dmsg file import <path> | list | get <id> -o <path> | verify <id>
+dmsg files ls [folder] [--trash] | tree | show <id> | search <text>
+dmsg files add <path>... [--to <folder>] [--keep-both] | mkdir <path> | mv <id>... <folder> | rename <id> <name>
+dmsg files tag <id> +t|-t... | note <id> [text] | star <id> [--off]
+dmsg files get <id> [--version V] -o <path> | open <id> [--version V] | opened [--cleanup [nonce]] [--save]
+dmsg files verify <id> | verify --all | versions <id> | version-use <id> <version> | version-rm <id> <version>
+dmsg files rm <id>... | restore <id>... | purge [<id>...] | usage
+dmsg files share <channel> <id> [--version V] [text] | save <channel> <seq> [--to <folder>]
 dmsg sync | sync status
 dmsg profile show | publish [--name N] [--bio B] [--link URL]... | resolve <account>
 dmsg profile avatar <png|jpeg|webp> | avatar --remove
@@ -198,7 +208,7 @@ dmsg channel list | show <id> | create <name> [--type direct|collaboration|distr
 dmsg channel invite <id> <account> [--role member|publisher] | accept <invitation>
 dmsg channel members <id> | role <id> <account> <role> | remove <id> <account> | leave <id> | archive <id>
 dmsg channel rotate <id> | reactivate <id> | history <id> <account> <from> <to>
-dmsg channel send <id> [text] [--file <item>] [--message-id M] | read <id> [--after N] [--backfill]
+dmsg channel send <id> [text] [--file <id[@version]>] [--message-id M] | read <id> [--after N] [--backfill]
 dmsg channel download <id> <seq> --out <path> | pending <id> [--key K]
 dmsg channel transfer|sponsor propose <id> <account> | accept <packet> | commit <packet>
 dmsg inbox policy | configure closed|contacts|free|paid [--price P] [--payee P] [--allow A]...
@@ -263,9 +273,7 @@ for `dmsg sync` or the scheduled sync; `status` shows pending versions and
 conflict copies. An edit that lost a race is kept as a conflict copy on every
 device; `vault resolve` adopts it, or keeps the current version with
 `--keep-current`. An item in the trash takes only `vault restore` (or
-adopting a copy) back. `file import` resumes an interrupted import of the same
-file; `file get` writes only a fully verified file to a path that does not
-exist yet. `profile publish` publishes exactly the fields given and keeps the avatar;
+adopting a copy) back. `profile publish` publishes exactly the fields given and keeps the avatar;
 `profile avatar` publishes an image (PNG, JPEG or WebP, at most 512 KiB) as
 the public avatar, which the relay serves to anyone unencrypted, and keeps the
 other fields. At the end of a sync while unlocked, chunks nothing needs any
@@ -273,6 +281,27 @@ more are deleted (`collected` in the report): replaced versions', lapsed or
 abandoned uploads' and channel downloads'. `reset`
 erases the workspace, unsent versions included, and starts over as a new
 device; a device its account revoked does this on its own.
+
+Files. The file library (`dmsg files`) keeps files on this device only, in
+folders, each file as a set of versions with its own key, and nothing of it
+syncs: a backup to the cloud is an explicit action, a file deleted here keeps
+its backup, and a backup deleted there keeps the file here. `files add`
+encrypts files and folders in one pass through a 1 MiB buffer (up to
+`files_max_bytes`, 4 GiB by default), sniffs the type from the bytes, keeps
+a thumbnail of an image, and resumes an interrupted import of the same file
+on the same bytes; a file of the same name in the target folder takes the
+import as a new version unless `--keep-both`. `files get` writes only a
+fully verified version to a path that does not exist yet; `files open`
+exports a copy to `open/` for another program and removes it after 30
+minutes, on lock and on exit, asking first (`files/open_changed`) when the
+program changed it, so the change can be kept as a new version. `files rm`
+moves to the trash, emptied after `files_trash_days`; `files purge` empties
+it now. `files verify --all` checks every chunk file against its name, which
+needs no key, and every version while unlocked. `files share` sends a version
+to a channel as a new edition under its own key: it shares no key and no
+chunk with the library's copy or a backup. `files save` keeps a shared file
+from a channel message as a file of the library, re-encrypted under a key of
+its own.
 
 Approvals are decided by a person: `approvals approve|reject`, `connect
 browsers add` and the prompt after `attest …` or `device …` need an interactive
@@ -358,7 +387,9 @@ needs the device unlocked then.
 `dmsg mcp`; issuing a new one disables the old. `grants add` gives an agent
 capabilities over this account: `account.read`, `vault.list`,
 `vault.read:<tag>`, `vault.write:<tag>`, `vault.secret:<item>`,
-`file.read:<tag>`, `channel.read:<channel>`, `channel.publish:<channel>`,
+`files.read:<folder>`, `files.write:<folder>` (a folder ID or `root`,
+covering the folders under it), `channel.read:<channel>`,
+`channel.publish:<channel>`,
 `inbox.read`, `inbox.contact`, `attest.request`, `action.request`,
 `agent.delegation.read`, `events.endpoint` (`<name>:*` covers every
 target); and at the allowed hosts, each `:<origin>` or `:*` for every
@@ -447,16 +478,20 @@ More `dmsg_*` tools, each behind its capability: `dmsg_vault_read` with
 `secret: true` returns the secret field (`vault.secret:<item>`);
 `dmsg_vault_write` adds or edits an item that keeps a granted tag, against a
 `base` like the CLI (`vault.write:<tag>`), and returns the item only with
-`vault.read` on it; `dmsg_file_read` returns up to
-1 MiB of a file of at most 64 MiB from `offset`, base64url, after checking
-the whole file (`file.read:<tag>`); `dmsg_inbox_list` lists letters without
+`vault.read` on it; `dmsg_files_list` lists a library folder and
+`dmsg_files_search` finds files by name, tag or note (`files.read:<folder>`
+for the folder or one above); `dmsg_files_read` returns up to 1 MiB of a
+version of a file of at most 64 MiB from `offset`, base64url, after
+checking the whole file (`files.read:<folder>`); `dmsg_files_write` writes
+up to 8 MiB as a new file or a new version (`files.write:<folder>`), and no
+tool backs up, shares or deletes a file; `dmsg_inbox_list` lists letters without
 their text and `dmsg_inbox_read` returns one, marking it read with
 `mark_read` (`inbox.read`); `dmsg_inbox_contact` writes a free letter, and a
 recipient who charges only returns a quote (`inbox.contact`);
 `dmsg_action_request` asks the owner to sign an application action, the
 canonical CBOR a web page passes to `signAction` (`action.request`); and
 `dmsg_delegations_list` lists the principal's credentials
-(`agent.delegation.read`). 56 tools in all.
+(`agent.delegation.read`). 59 tools in all.
 
 Resources (local connector §4.4): `agent-protocols://identity/current`,
 `hosts`, `rooms`, `inbox/pending`, `drafts/held`, `mail/mailboxes`,
@@ -508,7 +543,8 @@ The daemon listens on `127.0.0.1` only.
 
 - `GET /daemon/status`, `POST /app/v1` (JSON-RPC 2.0) and `GET /ws/app/v1`
   (the same methods over a WebSocket, plus `event` notifications
-  `{seq, type, data}`: `session/changed`, `vault/changed`, `sync/changed`,
+  `{seq, type, data}`: `session/changed`, `vault/changed`, `files/changed`,
+  `files/progress {path, done, total}`, `files/open_changed`, `sync/changed`,
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
   `inbox/changed`, `legacy/changed`, `mcp-events/changed`, `resync`) need
   `Authorization: Bearer <owner token>`; any request with an `Origin` header
@@ -521,7 +557,9 @@ The daemon listens on `127.0.0.1` only.
   `recovery/status|request|complete|dispute`,
   `device/pair_request|approve|capabilities|formal_approve|revoke`,
   `vault/put|edit|delete|restore|list|show|conflicts|resolve`,
-  `file/import|export|verify` (absolute paths), `sync/run|status`,
+  `files/list|tree|show|search|mkdir|rename|move|update|versions|version_use|version_delete|trash|restore|purge|verify|usage`,
+  `files/import|export|open|open_list|open_cleanup` (absolute paths),
+  `files/share_channel|save_shared`, `sync/run|status`,
   `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`,
   `attest/request|action {action: base64url CBOR}|history|usage|export|verify`,
   `connect/invite|candidates|grant|pairings|revoke|sync|status`,

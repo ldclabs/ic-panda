@@ -4,6 +4,7 @@
 //! same ID must carry the same plan.
 
 use crate::client::Client;
+use crate::files::{BlobStore, Source};
 use dmsg_types::{ensure, Error, Hash, Result};
 use serde::{Deserialize, Serialize};
 
@@ -86,8 +87,16 @@ pub fn hex_id(text: &str) -> Result<Hash> {
 }
 
 impl Client {
+    /// The chunk store an upload reads from.
+    pub(crate) fn source(&self, source: Source) -> Result<&dyn BlobStore> {
+        Ok(match source {
+            Source::Store => &self.workspace.store,
+            Source::Library => self.blobs()?,
+        })
+    }
+
     /// Upload `plan` under `base` (`/v1/accounts/<id>` or
-    /// `/v1/channels/<id>`): its chunks come from the store by digest,
+    /// `/v1/channels/<id>`): its chunks come from `source` by digest,
     /// starting after the `sent` already stored, then `manifest`, then
     /// finalize. `progress` records each stored chunk; an upload the relay
     /// already committed under this plan returns at once.
@@ -102,6 +111,7 @@ impl Client {
         plan: &UploadPlan,
         manifest: &[u8],
         mut sent: usize,
+        source: Source,
         mut progress: impl FnMut(&Self, usize) -> Result<()>,
     ) -> Result<()> {
         let path = format!("{base}/uploads/{}", plan.upload_id);
@@ -149,8 +159,7 @@ impl Client {
         }
         for (index, chunk) in plan.chunks.iter().enumerate().skip(sent) {
             let bytes = self
-                .workspace
-                .store
+                .source(source)?
                 .chunk(&chunk.digest)?
                 .ok_or(Error::RecoveryIncomplete)?;
             ensure(bytes.len() as u64 == chunk.size, Error::IntegrityFailed)?;

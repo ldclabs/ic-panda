@@ -25,7 +25,7 @@ use crate::content::{
     empty_file, object_container, open_manifest, read_container, record, seal_manifest,
     EncryptedObject, MAX_OBJECT, VAULT,
 };
-use crate::files::FileManifest;
+use crate::files::{read_file, FileManifest, Source, MAX_FILE};
 use crate::migration::MIGRATION_PART;
 use crate::now_ms;
 use crate::store::{ObjectRow, BLOCKED, LOCAL, REPLACED, SYNCED};
@@ -139,11 +139,10 @@ fn plan_of(record: &EncryptedObject, upload_id: String, generation: u64, now: u6
     }
 }
 
-/// The file a version of `kind` carries: a vault file item's, or a legacy
-/// archive part's.
+/// The file a version of `kind` carries: a legacy archive part's. Vault
+/// items carry none; the file library keeps its files out of the vault.
 fn record_file(kind: &str, payload: &[u8]) -> Result<Option<FileManifest>> {
     match kind {
-        VAULT => Ok(decode::<Item>(payload, MAX_OBJECT)?.file),
         MIGRATION_PART => crate::migration::part_file(payload).map(Some),
         _ => Ok(None),
     }
@@ -155,7 +154,7 @@ fn record_parent(row: &ObjectRow) -> Option<String> {
 }
 
 /// Every upload plan inside a sealed job, however the job nests it.
-fn plans_in(value: &cbor2::Value, plans: &mut Vec<UploadPlan>) {
+pub(crate) fn plans_in(value: &cbor2::Value, plans: &mut Vec<UploadPlan>) {
     match value {
         cbor2::Value::Map(entries) => {
             let named = |name: &str| entries.iter().any(|(k, _)| k.as_text() == Some(name));
@@ -396,9 +395,10 @@ impl Client {
     /// abandoned, and of attachments a channel download cached. Kept are
     /// the chunks of the relay snapshot just applied, since every pull
     /// checks them all and would download a missing one again; of every
-    /// unsent version's job, which replans from them; of unfinished file
-    /// imports; and of each upload plan a sealed job (channels, the root)
-    /// may still send before it lapses. Returns how many were deleted.
+    /// unsent version's job, which replans from them; and of each upload
+    /// plan a sealed job (channels, the root) may still send before it
+    /// lapses. The file library's chunks live in its own directory and are
+    /// collected by [`crate::library::gc`]. Returns how many were deleted.
     fn collect_chunks(&self, snapshot: &Snapshot, now: u64) -> Result<u64> {
         let keys = self.keys()?;
         let mut keep: BTreeSet<String> = BTreeSet::new();
@@ -426,7 +426,6 @@ impl Client {
                 .filter(|p| p.expires_at > now)
                 .for_each(&mut add);
         }
-        keep.extend(self.import_chunks()?);
         let garbage: Vec<String> = self
             .workspace
             .store
@@ -710,6 +709,7 @@ impl Client {
                     &upload.plan,
                     &upload.manifest,
                     upload.sent as usize,
+                    Source::Store,
                     progress,
                 )
                 .await
@@ -1003,7 +1003,7 @@ impl Client {
                 if let Some(file) = &record_file(&found.kind, &payload)? {
                     let id = (file.id.clone(), file.version.clone());
                     ensure(files.get(&id) == Some(file), Error::RecoveryIncomplete)?;
-                    self.read_file(file, None)?;
+                    read_file(&self.workspace.store, file, MAX_FILE, None)?;
                 }
             }
             if !conflict {

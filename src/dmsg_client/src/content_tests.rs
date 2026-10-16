@@ -21,11 +21,14 @@ fn opens_exported_objects() {
         );
         assert_eq!(object_container(&record), bytes(&case["object_hex"]));
         assert_eq!(read_container(&bytes(&case["object_hex"])).unwrap(), record);
-        // Items, files included, re-encode byte for byte.
-        let item: Item = decode(&plaintext, MAX_OBJECT).unwrap();
-        item.validate().unwrap();
-        assert_eq!(canonical(&item), *plaintext);
-        assert_eq!(canonical(&item), canonical(&value(&case["payload"])));
+        // Items re-encode byte for byte. The file entries stay as object
+        // and chunk vectors; the vault has no file items any more.
+        if !text(&case["name"]).contains("file") {
+            let item: Item = decode(&plaintext, MAX_OBJECT).unwrap();
+            item.validate().unwrap();
+            assert_eq!(canonical(&item), *plaintext);
+            assert_eq!(canonical(&item), canonical(&value(&case["payload"])));
+        }
         let mut changed = record.clone();
         changed.tombstone = !changed.tombstone;
         assert_eq!(

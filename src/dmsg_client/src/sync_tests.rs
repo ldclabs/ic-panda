@@ -15,7 +15,6 @@ fn item(title: &str) -> Item {
         favorite: false,
         created_at: 1,
         updated_at: 1,
-        file: None,
         resolved_conflicts: None,
     }
 }
@@ -272,52 +271,6 @@ fn rollback_and_omission_are_refused() {
 }
 
 #[test]
-fn files_reach_the_other_device() {
-    let (da, db) = (TempDir::new(), TempDir::new());
-    let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
-    let mut relay = Relay::default();
-    let data: Vec<u8> = (0..(crate::files::CHUNK + 77))
-        .map(|i| (i % 13) as u8)
-        .collect();
-    let path = da.path("photo.png");
-    std::fs::write(&path, &data).unwrap();
-    let entry = a.file_import(&path).unwrap();
-    let empty = da.path("empty.txt");
-    std::fs::write(&empty, b"").unwrap();
-    let blank = a.file_import(&empty).unwrap();
-    assert_eq!(relay.accept(&mut a), (2, 0));
-    // Two file uploads and two vault uploads.
-    assert_eq!(relay.plans.len(), 4);
-
-    // Without the chunks a pull cannot verify the file.
-    let chunks = std::mem::take(&mut relay.chunks);
-    let keep: BTreeMap<String, Vec<u8>> = chunks
-        .iter()
-        .filter(|(d, _)| {
-            !entry
-                .item
-                .file
-                .as_ref()
-                .unwrap()
-                .chunks
-                .iter()
-                .any(|c| &c.digest == *d)
-        })
-        .map(|(d, b)| (d.clone(), b.clone()))
-        .collect();
-    relay.chunks = keep;
-    assert_eq!(relay.deliver(&mut b).err(), Some(Error::RecoveryIncomplete));
-    relay.chunks = chunks;
-    relay.deliver(&mut b).unwrap();
-
-    let out = db.path("photo.png");
-    let manifest = b.file_export(&entry.id, &out).unwrap();
-    assert_eq!(std::fs::read(&out).unwrap(), data);
-    assert_eq!(manifest.mime, "image/png");
-    b.file_verify(&blank.id).unwrap();
-}
-
-#[test]
 fn a_diverged_branch_is_one_conflict() {
     let (da, db) = (TempDir::new(), TempDir::new());
     let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
@@ -356,16 +309,12 @@ fn collection_keeps_what_a_pull_or_an_upload_needs() {
     let (da, db) = (TempDir::new(), TempDir::new());
     let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
     let mut relay = Relay::default();
-    let data: Vec<u8> = (0..(crate::files::CHUNK + 5)).map(|i| i as u8).collect();
-    let path = da.path("a.bin");
-    std::fs::write(&path, &data).unwrap();
-    let file = a.file_import(&path).unwrap();
     a.vault_put(None, None, &item("note")).unwrap();
     relay.accept(&mut a);
     relay.deliver(&mut b).unwrap();
 
-    // B has an unsent edit, an unfinished import, a cached attachment and
-    // two channel uploads, one of them lapsed.
+    // B has an unsent edit, a cached attachment and two channel uploads,
+    // one of them lapsed.
     b.vault_put(None, None, &item("unsent")).unwrap();
     let put = |client: &Client, bytes: &[u8]| {
         let digest = hex::encode(*sha256(bytes));
@@ -373,11 +322,7 @@ fn collection_keeps_what_a_pull_or_an_upload_needs() {
         digest
     };
     let cached = put(&b, b"a cached attachment");
-    let (live, lapsed, imported) = (
-        put(&b, b"an envelope"),
-        put(&b, b"a lapsed envelope"),
-        put(&b, b"an imported chunk"),
-    );
+    let (live, lapsed) = (put(&b, b"an envelope"), put(&b, b"a lapsed envelope"));
     let now = now_ms();
     let plan = |digest: &str, expires_at: u64| UploadPlan {
         upload_id: random_hex(),
@@ -408,32 +353,11 @@ fn collection_keeps_what_a_pull_or_an_upload_needs() {
         &json!({"upload": upload(plan(&lapsed, now - 1))}),
     )
     .unwrap();
-    let job = json!({
-        "manifest": {
-            "id": random_hex(),
-            "version": random_hex(),
-            "name": "big.bin",
-            "mime": "application/octet-stream",
-            "size": 2 * crate::files::CHUNK,
-            "sha256": "",
-            "chunks": [{"id": "x:y:0", "digest": imported, "size": crate::files::CHUNK}],
-            "key": "",
-        },
-        "plain": [],
-    });
-    b.workspace
-        .put_private(b.keys().unwrap(), "file-job:y", &job)
-        .unwrap();
-    assert_eq!(b.import_chunks().unwrap(), std::slice::from_ref(&imported));
-
     assert_eq!(b.collect_chunks(&relay.snapshot(), now).unwrap(), 2);
     let has = |digest: &str| b.workspace.store.has_chunk(digest).unwrap();
     assert!(relay.chunks.keys().all(|d| has(d)));
-    assert!(has(&live) && has(&imported));
+    assert!(has(&live));
     assert!(!has(&cached) && !has(&lapsed));
-    let out = db.path("a.bin");
-    b.file_export(&file.id, &out).unwrap();
-    assert_eq!(std::fs::read(&out).unwrap(), data);
     assert_eq!(b.collect_chunks(&relay.snapshot(), now).unwrap(), 0);
     // The unsent edit still uploads, and A reads it.
     assert_eq!(relay.accept(&mut b), (1, 0));

@@ -14,7 +14,6 @@ fn item(title: &str) -> Item {
         favorite: false,
         created_at: 1,
         updated_at: 1,
-        file: None,
         resolved_conflicts: None,
     }
 }
@@ -133,30 +132,4 @@ fn a_stale_edit_is_a_conflict_copy() {
         .vault_put(Some(&first.id), None, &item("later"))
         .unwrap();
     assert_eq!(edited.item.resolved_conflicts, Some(vec![key]));
-}
-
-#[test]
-fn files_enter_only_by_import() {
-    let dir = TempDir::new();
-    let mut client = unlocked(&dir.0, false, None);
-    let path = dir.path("note.txt");
-    std::fs::write(&path, b"hello file").unwrap();
-    let entry = client.file_import(&path).unwrap();
-    let file = entry.item.file.clone().unwrap();
-    assert_eq!(entry.item.kind, "file");
-
-    let mut forged = item("forged");
-    forged.kind = "file".into();
-    forged.file = Some(file.clone());
-    assert!(client.vault_put(None, None, &forged).is_err());
-
-    // Editing a file item changes its fields, never its file.
-    let mut edit = entry.item.clone();
-    edit.title = "renamed".into();
-    edit.file = None;
-    let edited = client.vault_put(Some(&entry.id), None, &edit).unwrap();
-    assert_eq!(edited.item.file, Some(file.clone()));
-    assert_eq!(edited.item.title, "renamed");
-    let masked = edited.masked(true);
-    assert_eq!(masked.item.file.unwrap().key, "");
 }

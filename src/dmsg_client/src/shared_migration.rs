@@ -19,7 +19,7 @@ use crate::cloud::Evidence;
 use crate::codec::{b64, canonical, sha256, unb64};
 use crate::crypto::{hpke_open, hpke_seal, open, random_key, seal, HpkeEnvelope, Key};
 use crate::evidence::Verified;
-use crate::files::FileManifest;
+use crate::files::{read_file, store_file, FileManifest, Source, MAX_FILE};
 use crate::legacy::{self, Archive, Scope};
 use crate::legacy_proof::{
     self, source_key, Approval, MemberClaim, SharedProposal, SharedSource, SourceInput, Trust,
@@ -835,12 +835,14 @@ impl Client {
                 let mut files = vec![];
                 let mut uploads = vec![];
                 for (index, chunk) in encoded.chunks(crate::migration::PART).enumerate() {
-                    let file = self.store_file(
+                    let file = store_file(
+                        &self.workspace.store,
                         &format!("legacy-grant-{grant_id}-{index}.cbor"),
                         "application/cbor",
                         chunk,
                     )?;
-                    let (reference, upload) = self.prepare_upload(&channel, &ledger, &file)?;
+                    let (reference, upload) =
+                        self.prepare_upload(&channel, &ledger, &file, &self.workspace.store)?;
                     files.push(reference);
                     uploads.push(upload);
                 }
@@ -871,7 +873,7 @@ impl Client {
             }
         };
         for upload in &job.uploads {
-            self.channel_upload(&channel, upload).await?;
+            self.channel_upload(&channel, upload, Source::Store).await?;
         }
         self.directory_post(
             &view.proposal,
@@ -951,7 +953,12 @@ impl Client {
         let mut plain = Zeroizing::new(Vec::new());
         for file in &files {
             let manifest: FileManifest = self.channel_file(&channel, file, &granter).await?;
-            self.read_file(&manifest, Some(&mut *plain))?;
+            read_file(
+                &self.workspace.store,
+                &manifest,
+                MAX_FILE,
+                Some(&mut *plain),
+            )?;
         }
         ensure(
             hex::encode(*sha256(&plain)) == scope.archive_digest,
