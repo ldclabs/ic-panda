@@ -1130,16 +1130,12 @@ impl Client {
                 entries.len() <= 5 && next >= local.control,
                 Error::IntegrityFailed,
             )?;
+            let mut verified = Vec::with_capacity(entries.len());
             for row in entries {
                 let cursor = row["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
                 ensure(cursor > local.control, Error::IntegrityFailed)?;
                 let event: Event = from(&row["value"])?;
                 let stored = self.consume(&trust, local.ledger.as_ref(), &event, &ring.genesis)?;
-                self.workspace.put_private(
-                    self.keys()?,
-                    &format!("{LOG}{channel}:{:020}", stored.seq),
-                    &stored,
-                )?;
                 local.heads.insert(stored.head.clone(), stored.seq);
                 match &stored.action[..] {
                     ACTIVATE => {
@@ -1157,15 +1153,24 @@ impl Client {
                     }
                     _ => {}
                 }
-                local.ledger = Some(stored.ledger);
+                local.ledger = Some(stored.ledger.clone());
                 local.control = cursor;
+                verified.push(stored);
             }
             let ledger = local.ledger.clone().ok_or(Error::IntegrityFailed)?;
             ensure(
                 next == local.control && ledger.channel_id == channel,
                 Error::IntegrityFailed,
             )?;
-            self.save_local(channel, &local)?;
+            // The page's controls and the cursor past them in one write.
+            let keys = self.keys()?;
+            self.workspace.store.atomic(|_| {
+                for stored in &verified {
+                    let name = format!("{LOG}{channel}:{:020}", stored.seq);
+                    self.workspace.put_private(keys, &name, stored)?;
+                }
+                self.save_local(channel, &local)
+            })?;
             if page["head"] == ledger.head.as_str() {
                 if let Some(pinned) = pinned {
                     ensure(local.heads.contains_key(pinned), Error::IntegrityFailed)?;

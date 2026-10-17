@@ -1199,6 +1199,7 @@ impl Client {
             let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
             let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
             ensure(next >= after, Error::IntegrityFailed)?;
+            let mut changed = vec![];
             for row in entries {
                 let cursor = row["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
                 ensure(cursor > after && cursor <= next, Error::IntegrityFailed)?;
@@ -1213,6 +1214,9 @@ impl Client {
                         && matches!(value["state"].as_str(), Some("visible" | "aborted")),
                     Error::Forbidden,
                 )?;
+                let cached: Option<Letter> = self
+                    .workspace
+                    .private(self.keys()?, &format!("{LETTER}{order}"))?;
                 let letter = match value["state"].as_str() {
                     // Relay management metadata, never an authenticated letter.
                     Some("aborted") => {
@@ -1234,11 +1238,11 @@ impl Client {
                             .as_str()
                             .ok_or(Error::IntegrityFailed)?
                             .to_string();
-                        let cached: Option<Letter> = self
-                            .workspace
-                            .private(self.keys()?, &format!("{LETTER}{order}"))?;
-                        let text = match cached.filter(|l| l.signed.as_deref() == Some(&cose)) {
-                            Some(letter) => letter.text,
+                        let text = match cached
+                            .as_ref()
+                            .filter(|l| l.signed.as_deref() == Some(&cose))
+                        {
+                            Some(letter) => letter.text.clone(),
                             None => {
                                 let evidence: Evidence =
                                     serde_json::from_value(value["evidence"].clone())
@@ -1285,11 +1289,21 @@ impl Client {
                         }
                     }
                 };
-                self.workspace
-                    .put_private(self.keys()?, &format!("{LETTER}{order}"), &letter)?;
+                if cached.as_ref() != Some(&letter) {
+                    changed.push(letter.clone());
+                }
                 letters.insert(order, letter);
                 after = cursor;
             }
+            // Only what changed is written, in one go.
+            let keys = self.keys()?;
+            self.workspace.store.atomic(|_| {
+                for letter in &changed {
+                    let name = format!("{LETTER}{}", letter.order_id);
+                    self.workspace.put_private(keys, &name, letter)?;
+                }
+                Ok(())
+            })?;
             if next == after || entries.is_empty() {
                 return Ok(letters.into_values().collect());
             }

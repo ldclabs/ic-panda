@@ -879,27 +879,33 @@ impl Client {
                     }
                 };
                 let records = page["events"].as_array().cloned().unwrap_or_default();
-                for record in &records {
-                    report.fetched += 1;
-                    // A record that does not open or verify is dropped: only
-                    // the relay could have made it so.
-                    match self.store_relay_record(
-                        &endpoints[index],
-                        record,
-                        &account,
-                        &device,
-                        keys.map(Vec::as_slice),
-                    ) {
-                        Ok(Some(true)) => report.stored += 1,
-                        Ok(Some(false)) => {}
-                        Ok(None) | Err(Error::IntegrityFailed) => report.rejected += 1,
-                        Err(error) => return Err(error),
-                    }
-                }
                 let cursor = page["cursor"].as_u64().unwrap_or(after);
+                // The page's records and the cursor past them in one write.
+                self.workspace.store.atomic(|_| {
+                    for record in &records {
+                        report.fetched += 1;
+                        // A record that does not open or verify is dropped:
+                        // only the relay could have made it so.
+                        match self.store_relay_record(
+                            &endpoints[index],
+                            record,
+                            &account,
+                            &device,
+                            keys.map(Vec::as_slice),
+                        ) {
+                            Ok(Some(true)) => report.stored += 1,
+                            Ok(Some(false)) => {}
+                            Ok(None) | Err(Error::IntegrityFailed) => report.rejected += 1,
+                            Err(error) => return Err(error),
+                        }
+                    }
+                    if cursor > after {
+                        endpoints[index].relay_seq = cursor;
+                        self.save_endpoints(&endpoints)?;
+                    }
+                    Ok(())
+                })?;
                 if cursor > after {
-                    endpoints[index].relay_seq = cursor;
-                    self.save_endpoints(&endpoints)?;
                     let path = format!("{}/mcp-events/ack", self.base()?);
                     // A lost acknowledgement is repeated by the next pass.
                     let _ = self
