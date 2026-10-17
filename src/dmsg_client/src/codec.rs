@@ -6,6 +6,7 @@
 //! and must re-encode to themselves.
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use candid::Principal;
 use cbor2::Value;
 use dmsg_types::{ensure, ensure_valid, Error, Result};
 use serde::{de::DeserializeOwned, Serialize};
@@ -18,6 +19,29 @@ pub const MAX_RECORD: usize = 262_144;
 const MAX_DEPTH: usize = 24;
 const MAX_NODES: usize = 50_000;
 const MAX_ITEMS: u64 = 25_000;
+
+/// SHA-256 of `bytes` as lowercase hex.
+pub fn hex_sha256(bytes: &[u8]) -> String {
+    hex::encode(*sha256(bytes))
+}
+
+/// A Principal in its canonical text, as records carry it.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for any other text.
+pub fn principal(text: &str) -> Result<Principal> {
+    let value = Principal::from_text(text).map_err(|_| Error::IntegrityFailed)?;
+    ensure(value.to_text() == text, Error::IntegrityFailed)?;
+    Ok(value)
+}
+
+/// A Principal a person or a client typed, in any text `from_text` takes.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for anything else.
+pub fn principal_input(text: &str) -> Result<Principal> {
+    Principal::from_text(text).map_err(|_| dmsg_types::invalid("principal"))
+}
 
 /// Base64url without padding.
 pub fn b64(bytes: &[u8]) -> String {

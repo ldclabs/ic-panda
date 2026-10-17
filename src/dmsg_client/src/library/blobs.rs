@@ -7,6 +7,7 @@
 
 use crate::codec::sha256;
 use crate::files::BlobStore;
+use crate::storage;
 use dmsg_types::{ensure, Error, Result};
 use std::fs;
 use std::io::Write;
@@ -20,10 +21,6 @@ const TMP: &str = "tmp";
 #[derive(Clone, Debug)]
 pub struct Blobs {
     dir: PathBuf,
-}
-
-fn storage(error: std::io::Error) -> Error {
-    Error::Unavailable(format!("blobs: {error}"))
 }
 
 fn is_digest(digest: &str) -> bool {

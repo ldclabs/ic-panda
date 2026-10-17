@@ -9,7 +9,7 @@
 //! times stay claims of the old service. A scoped archive (shared history)
 //! keeps one channel's content and its two channel keys, nothing else.
 
-use crate::codec::{b64, canonical, sha256};
+use crate::codec::{b64, canonical, hex_sha256, principal};
 use crate::crypto::{aes_gcm_open, hpke_open_info, hpke_public, random_id, HpkeEnvelope, Key};
 use candid::Principal;
 use cbor2::Value;
@@ -40,10 +40,6 @@ const MAX_NODES: usize = 2_000_000;
 const MAX_ITEMS: u64 = 100_000;
 const MAX_AVATAR: usize = 2 * 1024 * 1024;
 
-fn hex_sha256(bytes: &[u8]) -> String {
-    hex::encode(*sha256(bytes))
-}
-
 fn is_hash(text: &str) -> bool {
     text.len() == 64
         && text
@@ -59,16 +55,6 @@ pub(crate) fn js_len(text: &str) -> usize {
 /// JavaScript's default string order: UTF-16 code units.
 pub(crate) fn js_order(a: &str, b: &str) -> std::cmp::Ordering {
     a.encode_utf16().cmp(b.encode_utf16())
-}
-
-/// A canonical Principal text.
-fn principal(text: &str) -> Result<Principal> {
-    let value = Principal::from_text(text).map_err(|_| Error::IntegrityFailed)?;
-    ensure(
-        text.len() <= 64 && value.to_text() == text,
-        Error::IntegrityFailed,
-    )?;
-    Ok(value)
 }
 
 /// Why one source object could not be checked.

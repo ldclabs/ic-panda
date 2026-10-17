@@ -28,6 +28,7 @@ use crate::library::catalog::Catalog;
 use crate::now_ms;
 use crate::root::RootKeys;
 use crate::secure::SecureStorage;
+use crate::storage;
 use crate::store::LOCAL;
 use crate::sync::LastSync;
 use crate::workspace::{AccountRef, Keys, Workspace};
@@ -175,6 +176,8 @@ pub struct Client {
     pub(crate) payer: Option<(Principal, Ic)>,
     /// This device's team-wallet key and agent, until the device locks.
     pub(crate) wallet_ic: Option<(Principal, Ic)>,
+    /// The team wallets' chain endpoints, once read.
+    pub(crate) chains: Option<crate::wallet::rpc::Chains>,
     /// The platform keystore of cosigner keys.
     pub(crate) cosign: Option<Arc<dyn crate::wallet::cosign::CosignProvider>>,
     /// A second login waiting for its binding to this account.
@@ -228,6 +231,7 @@ impl Client {
             peers: BTreeMap::new(),
             payer: None,
             wallet_ic: None,
+            chains: None,
             cosign: None,
             binding: None,
             blobs: None,
@@ -1051,10 +1055,6 @@ type Peer = (AccountId, BTreeMap<Hash, Device>);
 /// The empty workspace of no selection.
 fn idle(environment: &Environment) -> Result<Workspace> {
     Workspace::load(crate::store::Store::memory()?, environment, now_ms())
-}
-
-fn storage(error: std::io::Error) -> Error {
-    Error::Unavailable(format!("storage: {error}"))
 }
 
 #[cfg(test)]

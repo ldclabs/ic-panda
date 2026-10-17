@@ -14,7 +14,7 @@
 use crate::approval::{self, Action, State};
 use crate::attest::{statement_view, Subject};
 use crate::client::Client;
-use crate::cloud::verify_signed_command;
+use crate::cloud::{sig_structure, verify_signed_command};
 use crate::codec::{b64, canonical, decode, sha256, unb64};
 use crate::crypto::{
     aes_gcm_open, hpke_open_info, hpke_seal_auth, p256_verify, random_id, random_key, HpkeEnvelope,
@@ -80,15 +80,6 @@ pub fn es256_header(kid: &Hash, typ: &str) -> Vec<u8> {
         (4.into(), Value::Bytes(kid.to_vec())),
         (16.into(), typ.into()),
     ]))
-}
-
-fn sig_structure(protected: &[u8], payload: &[u8]) -> Vec<u8> {
-    canonical(&(
-        "Signature1",
-        serde_bytes::Bytes::new(protected),
-        serde_bytes::Bytes::new(&[]),
-        serde_bytes::Bytes::new(payload),
-    ))
 }
 
 /// A tagged COSE_Sign1 signed by a P-256 scalar (RFC 6979), as the bridge

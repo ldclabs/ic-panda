@@ -23,7 +23,7 @@ use crate::codec::sha256;
 use crate::content::{empty_file, open_manifest, Opened};
 use crate::crypto::Key;
 use crate::evidence::{Trust, Verified};
-use crate::files::{read_file, BlobStore, MAX_FILE};
+use crate::files::{read_file, BlobStore, Source, MAX_FILE};
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan};
 use dmsg_types::{ensure, ensure_valid, AccountId, Error, Hash, Result};
@@ -419,15 +419,20 @@ impl Client {
             Error::IntegrityFailed,
         )?;
         let count = file.chunks.len() as u64;
+        let objects = format!("{}/objects/{upload_id}/chunks", self.base()?);
+        let mut missing = vec![];
         for (index, chunk) in file.chunks.iter().enumerate() {
             if !self.blobs()?.has_chunk(&chunk.digest)? {
-                let bytes = self
-                    .download(upload_id, &index.to_string(), &chunk.digest)
-                    .await?;
-                self.blobs()?.put_chunk(&chunk.digest, &bytes)?;
+                missing.push((format!("{objects}/{index}"), &chunk.digest));
             }
-            progress(index as u64 + 1, count);
         }
+        let mut done = count - missing.len() as u64;
+        progress(done, count);
+        self.download_chunks(Source::Library, &missing, |n| {
+            done += n as u64;
+            progress(done, count);
+        })
+        .await?;
         read_file(self.blobs()?, file, MAX_FILE, None)
     }
 

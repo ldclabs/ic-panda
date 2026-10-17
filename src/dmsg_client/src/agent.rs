@@ -754,12 +754,7 @@ impl Client {
 
     async fn delegation_submit(&mut self, mut job: DelegationJob) -> Result<DelegationJob> {
         let envelope = job.envelope.clone().ok_or(Error::IntegrityFailed)?;
-        let http = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .timeout(std::time::Duration::from_secs(20))
-            .build()
-            .map_err(|e| Error::Unavailable(format!("http: {e}")))?;
-        let service = DelegationClient::with_client(self.config.relay_origin(), http);
+        let service = DelegationClient::with_client(self.config.relay_origin(), self.cloud.http());
         match service.submit_delegation_event(&envelope).await {
             Ok(credential) => {
                 ensure(

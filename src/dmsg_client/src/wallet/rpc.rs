@@ -6,11 +6,32 @@
 use crate::config::WalletSettings;
 use base64::Engine;
 use dmsg_types::{ensure, Error, Hash, Result};
-use serde::Deserialize;
+use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::{json, Value};
+
+/// Largest answer read from a chain endpoint.
+const MAX_RESPONSE: usize = 4 * 1024 * 1024;
 
 fn unavailable(e: impl std::fmt::Display) -> Error {
     Error::Unavailable(format!("chain: {e}"))
+}
+
+/// The body of an answer, within [`MAX_RESPONSE`].
+async fn body(mut r: reqwest::Response) -> Result<Vec<u8>> {
+    let mut data = Vec::new();
+    while let Some(chunk) = r.chunk().await.map_err(unavailable)? {
+        ensure(
+            data.len() + chunk.len() <= MAX_RESPONSE,
+            Error::QuotaExceeded,
+        )?;
+        data.extend_from_slice(&chunk);
+    }
+    Ok(data)
+}
+
+/// A JSON answer, within [`MAX_RESPONSE`].
+async fn json_body<T: DeserializeOwned>(r: reqwest::Response) -> Result<T> {
+    serde_json::from_slice(&body(r).await?).map_err(unavailable)
 }
 
 /// An unspent output as Esplora lists it.
@@ -24,7 +45,8 @@ pub struct EsploraUtxo {
     pub value: u64,
 }
 
-/// The chain endpoints of one deployment.
+/// The chain endpoints of one deployment; clones share one HTTP client.
+#[derive(Clone)]
 pub struct Chains {
     http: reqwest::Client,
     settings: WalletSettings,
@@ -37,6 +59,7 @@ impl Chains {
     /// Returns `Error::Unavailable` when the HTTP client cannot be built.
     pub fn new(settings: &WalletSettings) -> Result<Self> {
         let http = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .map_err(unavailable)?;
@@ -61,7 +84,7 @@ impl Chains {
     /// Returns `Error::Unavailable` when the API fails.
     pub async fn btc_utxos(&self, address: &str) -> Result<Vec<EsploraUtxo>> {
         let url = format!("{}/address/{address}/utxo", self.settings.bitcoin_api);
-        self.get(&url).await?.json().await.map_err(unavailable)
+        json_body(self.get(&url).await?).await
     }
 
     /// A fee rate in satoshis per virtual byte for confirmation within a
@@ -71,7 +94,7 @@ impl Chains {
     /// Returns `Error::Unavailable` when the API fails.
     pub async fn btc_fee_rate(&self) -> Result<u64> {
         let url = format!("{}/fee-estimates", self.settings.bitcoin_api);
-        let rates: Value = self.get(&url).await?.json().await.map_err(unavailable)?;
+        let rates: Value = json_body(self.get(&url).await?).await?;
         let rate = ["3", "2", "1", "6"]
             .iter()
             .find_map(|k| rates[*k].as_f64())
@@ -85,7 +108,7 @@ impl Chains {
     /// Returns `Error::Unavailable` when the API fails.
     pub async fn btc_balance(&self, address: &str) -> Result<i128> {
         let url = format!("{}/address/{address}", self.settings.bitcoin_api);
-        let v: Value = self.get(&url).await?.json().await.map_err(unavailable)?;
+        let v: Value = json_body(self.get(&url).await?).await?;
         let sum = |s: &Value| {
             s["funded_txo_sum"].as_i64().unwrap_or(0) - s["spent_txo_sum"].as_i64().unwrap_or(0)
         };
@@ -108,7 +131,7 @@ impl Chains {
             .await
             .map_err(unavailable)?;
         let ok = r.status().is_success();
-        let text = r.text().await.map_err(unavailable)?;
+        let text = String::from_utf8_lossy(&body(r).await?).into_owned();
         ensure(ok, Error::Unavailable(format!("bitcoin: {text}")))?;
         Ok(text.trim().to_string())
     }
@@ -119,7 +142,7 @@ impl Chains {
     /// Returns `Error::Unavailable` when the API fails.
     pub async fn btc_confirmed(&self, txid: &str) -> Result<bool> {
         let url = format!("{}/tx/{txid}/status", self.settings.bitcoin_api);
-        let v: Value = self.get(&url).await?.json().await.map_err(unavailable)?;
+        let v: Value = json_body(self.get(&url).await?).await?;
         Ok(v["confirmed"].as_bool().unwrap_or(false))
     }
 
@@ -132,7 +155,7 @@ impl Chains {
             .send()
             .await
             .map_err(unavailable)?;
-        let v: Value = r.json().await.map_err(unavailable)?;
+        let v: Value = json_body(r).await?;
         if let Some(error) = v.get("error").filter(|e| !e.is_null()) {
             return Err(Error::Unavailable(format!("{method}: {error}")));
         }

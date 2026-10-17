@@ -8,7 +8,7 @@
 //! the canister's types, whose canonical CBOR is what every digest covers.
 
 pub(crate) use crate::certified::certified_leaf;
-use crate::codec::decode;
+use crate::codec::{decode, principal};
 use crate::ic::Ic;
 use crate::now_ms;
 use candid::Principal;
@@ -410,10 +410,6 @@ pub struct WireSignedReceipt {
 
 /// Conversions between relay JSON and canister types.
 pub struct Wire;
-
-fn principal(text: &str) -> Result<Principal> {
-    Principal::from_text(text).map_err(|_| Error::IntegrityFailed)
-}
 
 fn hash(text: &str) -> Result<Hash> {
     let bytes: [u8; 32] = hex::decode(text)

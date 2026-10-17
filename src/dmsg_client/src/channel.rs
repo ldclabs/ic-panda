@@ -26,7 +26,7 @@ use crate::channel_log::{
 };
 use crate::client::Client;
 use crate::cloud::{sign_command, Evidence, CLOUD_PROTOCOL};
-use crate::codec::{b64, canonical, decode, digest, sha256, unb64, MAX_RECORD};
+use crate::codec::{b64, canonical, decode, digest, hex_sha256, unb64, MAX_RECORD};
 use crate::content::empty_file;
 use crate::crypto::{
     derive, hpke_open, hpke_seal, open, open_bytes, random_key, seal, seal_bytes, sign,
@@ -553,10 +553,6 @@ fn json<T: Serialize>(value: &T) -> Json {
 
 fn from<T: DeserializeOwned>(value: &Json) -> Result<T> {
     serde_json::from_value(value.clone()).map_err(|_| Error::IntegrityFailed)
-}
-
-fn hex_sha256(bytes: &[u8]) -> String {
-    hex::encode(*sha256(bytes))
 }
 
 fn key32(bytes: &[u8]) -> Result<Zeroizing<[u8; 32]>> {
@@ -2671,24 +2667,15 @@ impl Client {
                         .all(|(p, f)| p.digest == f.digest)),
             Error::IntegrityFailed,
         )?;
-        for chunk in &file.chunks {
+        let objects = format!("{}/objects/{}/chunks", base(channel)?, reference.upload_id);
+        let mut missing = vec![];
+        for (index, chunk) in file.chunks.iter().enumerate() {
             if !self.workspace.store.has_chunk(&chunk.digest)? {
-                let index = file
-                    .chunks
-                    .iter()
-                    .position(|c| c.digest == chunk.digest)
-                    .unwrap_or(0);
-                let bytes = self
-                    .channel_chunk(
-                        channel,
-                        &reference.upload_id,
-                        &index.to_string(),
-                        &chunk.digest,
-                    )
-                    .await?;
-                self.workspace.store.put_chunk(&chunk.digest, &bytes)?;
+                missing.push((format!("{objects}/{index}"), &chunk.digest));
             }
         }
+        self.download_chunks(Source::Store, &missing, |_| {})
+            .await?;
         Ok(FileManifest {
             key: reference.key.clone(),
             ..file

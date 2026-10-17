@@ -54,6 +54,11 @@ pub fn now_ms() -> u64 {
         .map_or(0, |d| d.as_millis() as u64)
 }
 
+/// A file system failure of the device's storage.
+pub(crate) fn storage(error: std::io::Error) -> Error {
+    Error::Unavailable(format!("storage: {error}"))
+}
+
 /// An error's variant name in `SCREAMING_SNAKE_CASE`, as the daemon and the
 /// status report it.
 pub fn error_code(error: &Error) -> String {

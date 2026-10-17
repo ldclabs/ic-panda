@@ -16,6 +16,7 @@ pub mod decode;
 pub mod rpc;
 
 use crate::client::Client;
+use crate::codec::principal_input;
 use crate::crypto::{random_id, sign};
 use crate::ic::Ic;
 use crate::now_ms;
@@ -548,16 +549,12 @@ fn shown<T: ToString>(balance: Result<T>) -> std::result::Result<String, String>
     balance.map(|b| b.to_string()).map_err(|e| e.to_string())
 }
 
-fn principal(text: &str) -> Result<Principal> {
-    Principal::from_text(text).map_err(|_| dmsg_types::invalid("principal"))
-}
-
 /// Parse a wallet Principal.
 ///
 /// # Errors
 /// Returns `Error::InvalidInput` for anything else.
 pub fn parse_wallet(text: &str) -> Result<Principal> {
-    principal(text)
+    principal_input(text)
 }
 
 impl Client {
@@ -1175,7 +1172,7 @@ impl Client {
         proposal: &Proposal,
         signed: &SignedTx,
     ) -> Result<String> {
-        let chains = rpc::Chains::new(&self.config.wallet)?;
+        let chains = self.chains()?;
         match external_source(&proposal.intent).map(|(_, c)| c) {
             Some(Chain::Bitcoin) => chains.btc_broadcast(&signed.raw).await,
             Some(Chain::Evm) => {
@@ -1229,7 +1226,7 @@ impl Client {
         let proposal = self.wallet_proposal_raw(wallet, id).await?;
         let latest = proposal.signed.last().cloned().ok_or(Error::NotFound)?;
         let chain = external_source(&proposal.intent).map(|(_, c)| c);
-        let chains = rpc::Chains::new(&self.config.wallet)?;
+        let chains = self.chains()?;
         let (mut pending, mut error) = (false, None);
         for signed in proposal.signed.iter().rev() {
             let status = match chain {
@@ -1293,6 +1290,16 @@ impl Client {
         Ok(proposal_view(&p?))
     }
 
+    /// The chain endpoints, over one HTTP client for the client's life.
+    fn chains(&mut self) -> Result<rpc::Chains> {
+        if self.chains.is_none() {
+            self.chains = Some(rpc::Chains::new(&self.config.wallet)?);
+        }
+        self.chains
+            .clone()
+            .ok_or(Error::Unavailable("chains".into()))
+    }
+
     /// Balances of every address: ICP and ICRC from the ledgers, the other
     /// chains from the configured endpoints, each with its source; every
     /// one is read side by side.
@@ -1301,7 +1308,7 @@ impl Client {
         let hub = self.wallet_hub()?;
         let reader = self.anonymous().await?;
         let config: HubInit = reader.query(hub, "get_hub_config", ()).await?;
-        let chains = rpc::Chains::new(&self.config.wallet)?;
+        let chains = self.chains()?;
         let (view, reader, chains) = (&view, &reader, &chains);
         let (icp_ledger, bitcoin_api) = (config.icp_ledger, &self.config.wallet.bitcoin_api);
         let assets = &view.policy.spendable_assets;
@@ -1386,7 +1393,7 @@ impl Client {
         a: &Address,
         chain: Chain,
     ) -> Result<ExecutionParams> {
-        let chains = rpc::Chains::new(&self.config.wallet)?;
+        let chains = self.chains()?;
         Ok(match chain {
             Chain::Bitcoin => {
                 // A replacement spends the first signed plan's inputs.
@@ -1898,7 +1905,7 @@ pub fn parse_asset(text: &str) -> Result<AssetKey> {
     let parts: Vec<&str> = text.split(':').collect();
     Ok(match parts.as_slice() {
         ["icp"] => AssetKey::Icp,
-        ["icrc", ledger] => AssetKey::Icrc(principal(ledger)?),
+        ["icrc", ledger] => AssetKey::Icrc(principal_input(ledger)?),
         ["btc"] => AssetKey::Btc,
         ["evm", chain] => AssetKey::Evm {
             chain_id: chain.parse().map_err(|_| dmsg_types::invalid("asset"))?,

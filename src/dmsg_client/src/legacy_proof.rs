@@ -13,7 +13,7 @@
 //! channel, an old identity's explicit approval, and the final comparison of
 //! a personal archive against the frozen service.
 
-use crate::codec::{base64url, canonical, sha256};
+use crate::codec::{base64url, canonical, hex_sha256, principal, sha256};
 use crate::legacy::{js_len, js_order, observation_value, Archive};
 use candid::{CandidType, Principal};
 use dmsg_types::{ensure, Error, Result};
@@ -28,16 +28,6 @@ pub const SNAPSHOT_PROOF: &str = "dmsg-legacy-snapshot-proof/1";
 pub const FOLDER_PROOF: &str = "dmsg-legacy-folder-proof/1";
 /// Longest an old approval may stay valid.
 pub const APPROVAL_MS: u64 = 7 * dmsg_types::DAY;
-
-fn hex_sha256(bytes: &[u8]) -> String {
-    hex::encode(*sha256(bytes))
-}
-
-fn principal(text: &str) -> Result<Principal> {
-    let value = Principal::from_text(text).map_err(|_| Error::IntegrityFailed)?;
-    ensure(value.to_text() == text, Error::IntegrityFailed)?;
-    Ok(value)
-}
 
 /// What a `legacy_snapshot` page covers.
 #[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]

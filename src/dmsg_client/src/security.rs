@@ -15,7 +15,7 @@
 
 use crate::approval::{Action, HIGH_RISK_TTL_MS};
 use crate::client::{Client, Status};
-use crate::codec::{b64, canonical, decode, unb64};
+use crate::codec::{b64, canonical, decode, principal_input, unb64};
 use crate::ic::Ic;
 use crate::now_ms;
 use candid::Principal;
@@ -113,10 +113,6 @@ pub enum AccountChange {
     },
 }
 
-fn principal(text: &str) -> Result<Principal> {
-    Principal::from_text(text).map_err(|_| dmsg_types::invalid("principal"))
-}
-
 impl AccountChange {
     /// The account mutation that makes the change.
     ///
@@ -128,11 +124,11 @@ impl AccountChange {
                 principal: p,
                 nonce,
             } => AccountCommand::BindAuth {
-                principal: principal(p)?,
+                principal: principal_input(p)?,
                 nonce: *nonce,
             },
             AccountChange::RemoveLogin { principal: p } => AccountCommand::RemoveAuth {
-                principal: principal(p)?,
+                principal: principal_input(p)?,
             },
             AccountChange::Policy { policy } => AccountCommand::SetPolicy {
                 policy: policy.clone(),

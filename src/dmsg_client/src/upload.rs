@@ -6,6 +6,7 @@
 use crate::client::Client;
 use crate::files::{BlobStore, Source};
 use dmsg_types::{ensure, Error, Hash, Result};
+use futures_util::future::try_join_all;
 use serde::{Deserialize, Serialize};
 
 /// One ciphertext chunk of a plan.
@@ -63,6 +64,8 @@ struct UploadRef<'a> {
 
 /// An unfinished upload must leave this much time to finish.
 const UPLOAD_MARGIN_MS: u64 = 300_000;
+/// Chunks downloaded side by side.
+const DOWNLOADS: usize = 8;
 
 /// A random nonzero ID as lowercase hex.
 pub fn random_hex() -> String {
@@ -206,6 +209,36 @@ impl Client {
                 &Hash::new(crate::crypto::random_id()),
             )
             .await?;
+        }
+        Ok(())
+    }
+
+    /// Download chunks by `(path, digest)` into `into`, a few side by side,
+    /// each group signed with fresh evidence; every one is checked against
+    /// its digest, and `done` hears how many each group stored.
+    ///
+    /// # Errors
+    /// A digest mismatch returns `Error::IntegrityFailed`.
+    pub(crate) async fn download_chunks(
+        &mut self,
+        into: Source,
+        parts: &[(String, &String)],
+        mut done: impl FnMut(usize),
+    ) -> Result<()> {
+        for group in parts.chunks(DOWNLOADS) {
+            let state = self.cloud_state().await?;
+            let signer = self.signer(&state)?;
+            let now = crate::now_ms();
+            let fetched = try_join_all(
+                group
+                    .iter()
+                    .map(|(path, digest)| self.cloud.get_chunk(&signer, path, digest, now)),
+            )
+            .await?;
+            for ((_, digest), bytes) in group.iter().zip(fetched) {
+                self.source(into)?.put_chunk(digest, &bytes)?;
+            }
+            done(group.len());
         }
         Ok(())
     }

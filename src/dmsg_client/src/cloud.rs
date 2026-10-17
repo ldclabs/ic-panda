@@ -134,7 +134,7 @@ fn protected_header(kid: &[u8], issuer: &str, typ: &str) -> Vec<u8> {
     ]))
 }
 
-fn sig_structure(protected: &[u8], payload: &[u8]) -> Vec<u8> {
+pub(crate) fn sig_structure(protected: &[u8], payload: &[u8]) -> Vec<u8> {
     canonical(&(
         "Signature1",
         Bytes::new(protected),
@@ -481,6 +481,12 @@ impl Cloud {
             .build()
             .map_err(|e| Error::Unavailable(format!("http: {e}")))?;
         Ok(Self { http, origin: url })
+    }
+
+    /// The relay's HTTP client, for the services at its origin: it follows
+    /// no redirect and bounds every request's time.
+    pub(crate) fn http(&self) -> reqwest::Client {
+        self.http.clone()
     }
 
     fn url(&self, path: &str) -> Result<Url> {

@@ -34,15 +34,12 @@ use crate::store::{ObjectRow, BLOCKED, LOCAL, REPLACED, SYNCED};
 use crate::upload::{hex_id, random_hex, ChunkRef, UploadPlan};
 use crate::vault::Item;
 use dmsg_types::{ensure, user::VaultWriteState, AccountId, Error, Hash, Result};
-use futures_util::future::try_join_all;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_json::Value as Json;
 use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 
 const MAX_PLANS: usize = 10_000;
-/// Chunks downloaded side by side.
-const DOWNLOADS: usize = 8;
 const MAX_REVISIONS: usize = 100_000;
 const SNAPSHOT: &str = "snapshot-through";
 const LAST_SYNC: &str = "last-sync";
@@ -955,22 +952,7 @@ impl Client {
                 }
             }
         }
-        // A few side by side, each group signed with fresh evidence.
-        for group in missing.chunks(DOWNLOADS) {
-            let state = self.cloud_state().await?;
-            let signer = self.signer(&state)?;
-            let now = now_ms();
-            let fetched = try_join_all(
-                group
-                    .iter()
-                    .map(|(path, digest)| self.cloud.get_chunk(&signer, path, digest, now)),
-            )
-            .await?;
-            for ((_, digest), bytes) in group.iter().zip(fetched) {
-                self.workspace.store.put_chunk(digest, &bytes)?;
-            }
-        }
-        Ok(())
+        self.download_chunks(Source::Store, &missing, |_| {}).await
     }
 
     /// Open every new version of a fetched snapshot, then move the heads in
