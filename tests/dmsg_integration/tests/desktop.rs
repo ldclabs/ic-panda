@@ -4734,12 +4734,13 @@ fn desktop_agents() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names.len(), 59);
+    assert_eq!(names.len(), 65);
     assert!(names.contains(&"agent_protocols_room_join") && names.contains(&"dmsg_vault_list"));
     assert!(names.contains(&"agent_protocols_mail_send"));
     for name in [
         "dmsg_vault_write",
         "dmsg_files_read",
+        "dmsg_wallet_propose_transfer",
         "dmsg_inbox_read",
         "dmsg_inbox_contact",
         "dmsg_action_request",
@@ -5279,7 +5280,7 @@ fn desktop_agents() {
     let listed = modern.request("tools/list", json!({"_meta": meta}));
     assert_eq!(listed["result"]["resultType"], "complete");
     assert_eq!(listed["result"]["cacheScope"], "private");
-    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 59);
+    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 65);
     let unknown = modern.request(
         "tools/list",
         json!({"_meta": {"io.modelcontextprotocol/protocolVersion": "2099-01-01", "io.modelcontextprotocol/clientCapabilities": {}}}),
