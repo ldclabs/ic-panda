@@ -803,6 +803,7 @@ fn render(request: &Value) -> String {
                             field(&d["price_e8s"])
                         ),
                     ));
+                    lines.push(row("quote", "报价", field(&d["quote_id"])));
                     for m in d["members"].as_array().into_iter().flatten() {
                         lines.push(row(
                             "member",

@@ -230,7 +230,7 @@ dmsg inbox order <recipient> <order> | outgoing | escrow <order> | refund <order
 dmsg inbox list | mark <order> [--archive]
 dmsg payment transfers <escrow> | revise <escrow> <leg>
 dmsg payer use [pem] | balance <ledger>
-dmsg wallet list | show <wallet> | principal | quote | create <quote> --name N [--member id:role[:label]]... | join <wallet>
+dmsg wallet list | show <wallet> | principal | quote | create <quote> --name N [--member id:role[:label]]... | refund <quote> | join <wallet>
 dmsg wallet proposals <wallet> | proposal <wallet> <id> | send <wallet> --from A --asset X --to T --amount N --max-fee F
 dmsg wallet propose <wallet> <intent.json> | approve|reject|veto|cancel <wallet> <id> | freeze <wallet>
 dmsg wallet execute|broadcast|settle|reconcile <wallet> <id> | report <wallet> <id> <plan> broadcast|settled|failed
@@ -443,7 +443,10 @@ Team wallets (`dmsg wallet`) are canisters of their own, created through
 the hub for a one-time ICP activation within the plan's quota. Proposing,
 executing what members approved, broadcasting and reporting run at once;
 `create`, `join`, `approve`, `reject`, `veto`, and a transaction this
-device must cosign, wait in the approval center. The daemon calls wallets
+device must cosign, wait in the approval center. `refund <quote>` returns a
+quote's deposit, less the ledger fee, to the identity that paid it once the
+hub failed to create the wallet or the quote expired unused; the quote's ID
+is in the create request's approval details. The daemon calls wallets
 with a wallet key kept on this device (`wallet principal`), which `join`
 binds to the account with a device approval; deciding still needs a
 `WalletApprove` device every time. `execute` reads chain parameters from the

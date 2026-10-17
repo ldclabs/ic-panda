@@ -236,5 +236,5 @@ user 新增 `canister_inspect_message`：服务回调只接受对应的配置 ca
 
 - **批准**：`ApprovalPurpose` 新增 `WalletCreate`、`WalletProposal`、`WalletJoin`，设备能力新增 `WalletApprove`。user home 对这些用途要求 `subject_bytes == service`；`WalletCreate` 的 service 固定为产品登记的 `adapter`（hub），其余为钱包自身。commerce 与示例产品对这些用途的结算请求返回 `Forbidden`。
 - **钱包**：成员（账户或 Principal，Admin/Approver/Proposer/Viewer/Recovery）、版本化策略（按资产分档、24 小时滚动窗口、日限额、地址簿冷却）、提案状态机、哈希链审计与认证叶。ICP/ICRC 以确切参数转账并可 `reconcile`；BTC（P2TR、P2WPKH、链上双控 Taproot）、EVM（EIP-1559、ERC-20、nonce 取消）、SOL（转账、SPL、durable nonce）由钱包从意图构造并以 `key_1` 签名，成员客户端广播。协签支持 Raw、FIDO2、WebAuthn 三种封装。
-- **hub**：按 commerce `refresh_entitlement` 的套餐配额报价，核对设备批准与收款后创建 canister（冻结阈值 365 天）并分块安装；只安装治理登记的模块哈希；按实例接受的版本 stop/install/start；`LockCode` 后清空 controllers；收入经 CMC 为 hub 充 cycles，余额归收入账户。
+- **hub**：按 commerce `refresh_entitlement` 的套餐配额报价，核对设备批准与收款后创建 canister（冻结阈值 365 天）并分块安装；只安装治理登记的模块哈希；按实例接受的版本 stop/install/start；`LockCode` 后清空 controllers；收入经 CMC 为 hub 充 cycles，余额归收入账户；创建失败或过期未用的报价由报价调用者退款到其指定的 hub 以外账户（客户端指定付款身份）。
 - **验证**：`dmsg_protocol`、`dmsg_wallet` 单测（编码器以 `bitcoin`、`alloy`、`solana-message` 交叉核对）与 PocketIC 控制面 `wallet::*`（真实阈值签名，客户端解码器复核计划，CMC 替身 `dmsg_test_cmc`）。主网部署、真实链上广播、Safe/Squads 双控与审计模式核对尚未实现或验收。

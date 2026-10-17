@@ -36,6 +36,8 @@ use serde_json::{json, Value as Json};
 const WALLET_KEY: &str = "wallet-key";
 const JOB: &str = "wallet-job:";
 const QUOTE: &str = "wallet-quote:";
+/// The payer journal key of a quote's payment.
+const ACTIVATION: &str = "wallet-activation:";
 const APPLICATION: &str = "dmsg/application/approve/v1";
 const ORIGIN: &str = "https://dmsg.net";
 /// How long a signed application approval stays valid.
@@ -109,6 +111,7 @@ impl WalletJob {
         let mut view = match &self.kind {
             JobKind::Create { quote, spec } => json!({
                 "action": "create",
+                "quote_id": hex::encode(*quote.quote_id),
                 "name": spec.name,
                 "price_e8s": quote.price_e8s.to_string(),
                 "ledger_fee_e8s": quote.ledger_fee_e8s.to_string(),
@@ -755,6 +758,12 @@ impl Client {
         self.approval_view(&request)
     }
 
+    fn wallet_saved_quote(&self, quote_id: &str) -> Result<ActivationQuote> {
+        self.workspace
+            .private(self.keys()?, &format!("{QUOTE}{quote_id}"))?
+            .ok_or(Error::NotFound)
+    }
+
     /// Ask to pay quote `quote_id` from the payer and create `spec`.
     ///
     /// # Errors
@@ -765,10 +774,7 @@ impl Client {
         quote_id: &str,
         spec: WalletSpec,
     ) -> Result<Json> {
-        let quote: ActivationQuote = self
-            .workspace
-            .private(self.keys()?, &format!("{QUOTE}{quote_id}"))?
-            .ok_or(Error::NotFound)?;
+        let quote = self.wallet_saved_quote(quote_id)?;
         validate_spec(&spec, &self.wallet_member()?)?;
         ensure(now_ms() < quote.expires_at_ms, Error::Expired)?;
         self.wallet_request(
@@ -778,6 +784,36 @@ impl Client {
                 spec: Box::new(spec),
             },
         )
+    }
+
+    /// Return the deposit of quote `quote_id`, less the ledger fee, to the
+    /// identity that paid it, once the hub failed to create its wallet or
+    /// the quote expired unused. The hub takes the claim from this device's
+    /// wallet key, which requested the quote, and pays the account it names.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for a quote this device did not request or
+    /// an empty deposit, and `Error::Forbidden` for a quote still usable or
+    /// one that created its wallet.
+    pub async fn wallet_refund(&mut self, quote_id: &str) -> Result<Json> {
+        let quote = self.wallet_saved_quote(quote_id)?;
+        let hub = self.wallet_hub()?;
+        // The journal names the identity that paid; a deposit paid some
+        // other way goes to the current payer.
+        let key = format!("{ACTIVATION}{}", hex::encode(*quote.quote_id));
+        let owner = match self.payment_journal(&key)? {
+            Some(payment) => payment.payer,
+            None => self.payer().await?.0,
+        };
+        let to = Account {
+            owner,
+            subaccount: None,
+        };
+        let (_, ic) = self.wallet_identity().await?;
+        let block: Result<u64> = ic
+            .update(hub, "claim_activation_refund", (quote.quote_id, to))
+            .await?;
+        Ok(json!({"quote_id": quote_id, "to": to.to_string(), "block": block?}))
     }
 
     /// Ask to join `wallet`, binding this device's wallet key. The hub first
@@ -1712,9 +1748,9 @@ impl Client {
 
     /// Pay a quote's price into its deposit from the payer, once. A first
     /// payment needs a minute left on the quote for the hub to create the
-    /// wallet; only the wallet key could claim the deposit back afterwards.
+    /// wallet; [`Self::wallet_refund`] returns a deposit no wallet used.
     async fn wallet_pay_quote(&mut self, quote: &ActivationQuote) -> Result<u64> {
-        let key = format!("wallet-activation:{}", hex::encode(*quote.quote_id));
+        let key = format!("{ACTIVATION}{}", hex::encode(*quote.quote_id));
         let now = now_ms();
         if self.payment_journal(&key)?.is_none() {
             ensure(

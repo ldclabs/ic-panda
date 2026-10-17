@@ -531,12 +531,19 @@ fn cmc_subaccount(canister: Principal) -> [u8; 32] {
 }
 
 /// Return the deposit of a failed activation, or of a quote that expired
-/// without one, to its payer less the ledger fee; returns the ledger block.
+/// without one, less the ledger fee, to `to`: an account outside the hub
+/// that the quote's caller names, such as the payer's. The first claim
+/// fixes the account and later ones finish that refund; returns the ledger
+/// block.
 #[ic_cdk::update]
-async fn claim_activation_refund(id: Hash) -> Result<u64> {
+async fn claim_activation_refund(id: Hash, to: Account) -> Result<u64> {
     let caller = ic_cdk::api::msg_caller();
     let quote = store::quote(&id).ok_or(Error::NotFound)?;
     ensure(quote.payer == caller, Error::Forbidden)?;
+    ensure_valid(
+        authenticated(to.owner).is_ok() && to.owner != ic_cdk::api::canister_self(),
+        "refund account",
+    )?;
     let refundable = |at: u64| match store::order(&id) {
         Some(o) => matches!(o.status, ActivationStatus::Failed(_)),
         None => at >= quote.expires_at_ms,
@@ -549,17 +556,15 @@ async fn claim_activation_refund(id: Hash) -> Result<u64> {
         ensure(paid > fee, Error::NotFound)?;
         // An order may have started during the balance read.
         if store::payout(&id).is_none() {
-            ensure(refundable(now()), Error::Forbidden)?;
+            let at = ic_cdk::api::time();
+            ensure(refundable(nanos_to_millis(at)), Error::Forbidden)?;
             store::save_payout(
                 &id,
                 &Payout {
                     refund: true,
-                    created_at_time: ic_cdk::api::time(),
+                    created_at_time: at,
                     transfers: vec![PayoutTransfer {
-                        to: Account {
-                            owner: quote.payer,
-                            subaccount: None,
-                        },
+                        to,
                         amount: paid - fee,
                         memo: None,
                         block: None,

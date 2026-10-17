@@ -476,8 +476,11 @@ service : (HubInit) -> {
   admin_set_revenue : (Account) -> (Result);
   admin_set_uploader : (opt principal) -> (Result);
   // Return the deposit of a failed activation, or of a quote that expired
-  // without one, to its payer less the ledger fee; returns the ledger block.
-  claim_activation_refund : (blob) -> (Result_2);
+  // without one, less the ledger fee, to `to`: an account outside the hub
+  // that the quote's caller names, such as the payer's. The first claim
+  // fixes the account and later ones finish that refund; returns the ledger
+  // block.
+  claim_activation_refund : (blob, Account) -> (Result_2);
   clear_wasm_staging : () -> (Result);
   // Move a ready activation's payment: the cycles share to the CMC for the
   // hub's cycles, the rest to the revenue account. Anyone may call it.

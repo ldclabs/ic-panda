@@ -43,6 +43,12 @@ pub enum WalletCommand {
         #[arg(long)]
         spec: Option<PathBuf>,
     },
+    /// Return a quote's deposit, less the ledger fee, to the payer once
+    /// creating its wallet failed or the quote expired unused.
+    Refund {
+        /// The quote ID from `dmsg wallet quote`.
+        quote: String,
+    },
     /// Join a wallet this account was added to; goes through the approval center.
     Join {
         /// Wallet canister ID.
@@ -361,6 +367,17 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
                 }
             }
             created(remote, json, call("wallet/create", params).await?).await?;
+        }
+        WalletCommand::Refund { quote } => {
+            let r = call("wallet/refund", json!({"quote": quote})).await?;
+            print(json, &r, |r| {
+                tr!(
+                    "refunded to {} in block {}",
+                    "已退回 {}，区块 {}",
+                    r["to"].as_str().unwrap_or_default(),
+                    r["block"]
+                )
+            });
         }
         WalletCommand::Join { wallet } => {
             created(

@@ -1,7 +1,8 @@
 //! The daemon methods of team wallets (`wallet/*`). Reading, proposing,
-//! executing approved proposals, broadcasting and reporting run at once;
-//! creating a wallet, joining one, deciding on a proposal and cosigning
-//! become approval requests, which only a person answers.
+//! executing approved proposals, broadcasting, reporting and returning an
+//! unused activation deposit to its payer run at once; creating a wallet,
+//! joining one, deciding on a proposal and cosigning become approval
+//! requests, which only a person answers.
 
 use crate::daemon::Daemon;
 use dmsg_client::wallet::{default_policy, parse_wallet};
@@ -12,12 +13,13 @@ use dmsg_types::{
 use serde_json::{json, Value};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 27] = [
+pub(crate) const METHODS: [&str; 28] = [
     "wallet/list",
     "wallet/show",
     "wallet/principal",
     "wallet/quote",
     "wallet/create",
+    "wallet/refund",
     "wallet/join",
     "wallet/proposals",
     "wallet/proposal",
@@ -170,6 +172,7 @@ impl Daemon {
                 &text(params, "quote")?,
                 spec(params)?,
             ),
+            "wallet/refund" => client.wallet_refund(&text(params, "quote")?).await,
             "wallet/join" => client.wallet_join_request(source(params)?, wallet()?).await,
             "wallet/proposals" => {
                 let limit = params["limit"].as_u64().unwrap_or(50).min(100) as u16;

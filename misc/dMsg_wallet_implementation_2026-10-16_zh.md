@@ -494,6 +494,7 @@ WT1 与 WT2 可并行（合同由 WT0 冻结）；WT3 可在 WT1 完成 ICP 路�
 | Recovery 提案需 Admin 阈值 + 7 天 | 无需批准，延时 7 天，期间任一 Admin/Approver 可否决 | Admin 全部失联时恢复才有意义 |
 | commerce 新增 `read_entitlement` | hub 调用已有的 `refresh_entitlement`，无记录视为 Free | 现有接口已满足 |
 | hub 用 `read_transfer` 核对付款区块 | hub 读取报价专属收款子账户余额 | 不依赖 ICP 账本的 ICRC-3 区块格式 |
+| 付款 principal 调用 `claim_activation_refund(quote_id)`（6.1） | 报价调用者调用 `claim_activation_refund(quote_id, to)` 并指定 hub 以外的退款账户；客户端以本机钱包密钥报价与领取，`to` 为付款身份的默认账户 | hub 只认识报价调用者；客户端报价与创建用钱包密钥，付款用付款身份，两者不是同一个 Principal |
 | CMC 充值用 legacy memo | `icrc1_transfer` 带 8 字节小端 ICRC-1 memo `TPUP`（CMC `get_u64_memo` 在旧 memo 为 0 时读取它） | 与 ICRC 转账统一 |
 | 实例回调 `hub.sync_members` | 任何人调用 hub `sync_wallet(wallet)` 拉取 `member_ids` | 钱包不依赖 hub 的接口与可用性 |
 | 地址 `index` 每链从 0 起 | 地址 `id` 钱包内唯一并兼作派生序号；默认 0 = ICP、1 = BTC P2TR、2 = EVM、3 = SOL；chain tag 另有 `icp`、`btc-native` | 一个编号同时定位地址、子账户与派生路径 |
@@ -512,7 +513,7 @@ WT1 与 WT2 可并行（合同由 WT0 冻结）；WT3 可在 WT1 完成 ICP 路�
 | --- | --- | --- |
 | WT0 | `dmsg_types::wallet`、`dmsg_protocol::wallet`、`WalletApprove`、三个 `ApprovalPurpose`、user home 核验规则、SDK 与 CDDL 重新生成；2026-10-17 补 `tests/vectors/wallet`：`protocol-v1.json`（全部承诺的原像与摘要、审计链、地址与收款脚本）与 `plans-v1.json`（canister 构建器生成的 11 个计划与 6 个篡改样例，由客户端解码器验收） | TypeScript 端的钱包摘要实现（SDK 目前只有三个审批用途名） |
 | WT1 | 钱包与 hub 全部接口；分块安装；升级、锁定、退款、收入转换、refuel；认证叶与审计链 | — |
-| WT2 | `payer` 改名；客户端 `wallet` 模块、审批中心任务、daemon `wallet/*`、CLI `dmsg wallet`、桌面“团队钱包”视图与审批窗口；2026-10-17 补桌面端到端 `desktop_wallet`（两个账户经审批中心创建并付款、加入、批准与执行 ICP 转账、核对审计链） | 频道绑定（`wallet/event` 系统消息）；Electron 界面（`pnpm test:e2e` 的模拟 daemon）未覆盖钱包视图；激活退款没有客户端路径：退款只能由报价调用者（本机钱包密钥）`claim_activation_refund`，款项回到该钱包密钥的账户（客户端付款前会确认报价至少还剩一分钟） |
+| WT2 | `payer` 改名；客户端 `wallet` 模块、审批中心任务、daemon `wallet/*`、CLI `dmsg wallet`、桌面“团队钱包”视图与审批窗口；2026-10-17 补桌面端到端 `desktop_wallet`（两个账户经审批中心创建并付款、加入、批准与执行 ICP 转账、核对审计链）；同日补激活退款：hub 改为 `claim_activation_refund(quote_id, to)`，由报价调用者指定 hub 以外的退款账户，客户端 `wallet_refund`（daemon `wallet/refund`、CLI `dmsg wallet refund <quote>`）以本机钱包密钥领取，退到付款身份（付款日志记下的付款 Principal，没有日志时为当前付款身份）的默认账户，无需审批；创建任务的审批详情显示 `quote_id`；PocketIC 套件覆盖过期报价与创建失败（hub cycles 不足）两种退款，`desktop_wallet` 以 `dmsg wallet refund` 把创建失败的付款退回付款身份 | 频道绑定（`wallet/event` 系统消息）；Electron 界面（`pnpm test:e2e` 的模拟 daemon）未覆盖钱包视图；桌面应用没有退款入口（以审批详情中的 `quote_id` 在 CLI 退款）；过期报价的退款不能在桌面端到端运行（需推进 PocketIC 时间） |
 | WT3 | BTC P2TR/P2WPKH、EVM（ETH、ERC-20、nonce 取消）、SOL（SOL、SPL、ATA、durable nonce）编码与签名；客户端独立解码、Esplora/JSON-RPC 读取与广播、重签规则 | regtest/anvil/test-validator 端到端；主网 `test_key_1` 小额 |
 | WT4 | canister 侧 Raw/FIDO2/WebAuthn 验签；`AddCosigner`/`SetCosign`；协签审批任务；Secure Enclave 与软件密钥 | Windows/Linux TPM、FIDO2（CTAP2）、桥接页 WebAuthn 的客户端适配 |
 | WT5 | MCP 工具 `dmsg_wallet_list|balances|propose_transfer|proposal_status|execute|report_broadcast`，能力 `wallet.read`、`wallet.propose:<wallet>`、`wallet.execute:<wallet>` | 审计模式 `attest_*`；`dmsg_frontend` 透明页 |

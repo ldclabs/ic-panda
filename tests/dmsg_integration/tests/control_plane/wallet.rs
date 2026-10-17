@@ -11,6 +11,8 @@ const A: u8 = 41;
 const B: u8 = 42;
 const P: u8 = 43;
 const RECOVERY: u8 = 44;
+/// Pays activations from its own account, as the client's payer does.
+const PAYER: u8 = 46;
 const PRICE: u64 = 1_000_000_000;
 const SHARE: u64 = 300_000_000;
 
@@ -294,6 +296,43 @@ fn spec(approvers: u8) -> WalletSpec {
         policy: policy(approvers),
         channel_hint: None,
     }
+}
+
+/// The payer, not the wallet key that requested `quote`, pays it.
+fn pay(f: &Fixture, quote: &ActivationQuote) {
+    let fee = u128::from(quote.ledger_fee_e8s);
+    void(
+        &f.ic,
+        f.ledger,
+        person(1),
+        "mint_test",
+        (account(person(PAYER)), u128::from(PRICE) + fee),
+    );
+    let paid: std::result::Result<Nat, TransferError> = update(
+        &f.ic,
+        f.ledger,
+        person(PAYER),
+        "icrc1_transfer",
+        (TransferArg {
+            from_subaccount: None,
+            to: quote.deposit,
+            fee: Some(fee.into()),
+            created_at_time: None,
+            memo: None,
+            amount: PRICE.into(),
+        },),
+    );
+    paid.unwrap();
+}
+
+fn claim_refund(f: &Fixture, hub: Principal, by: u8, quote: Hash, to: Account) -> Result<u64> {
+    update(
+        &f.ic,
+        hub,
+        person(by),
+        "claim_activation_refund",
+        (quote, to),
+    )
 }
 
 impl Team {
@@ -1294,37 +1333,32 @@ fn wallet_upgrade_lock_refuel_refund_and_revenue() {
     );
     assert!(t.f.ic.cycle_balance(t.hub) > hub_cycles);
 
-    // A quote paid but never used is refunded after it expires.
+    // A quote paid but never used goes back once it expires, to the account
+    // the quote's caller (B's wallet key) names: the payer's.
     let quote: Result<ActivationQuote> =
         update(&t.f.ic, t.hub, person(B), "quote_activation", (t.b,));
     let quote = quote.unwrap();
-    void(
-        &t.f.ic,
-        t.f.ledger,
-        person(1),
-        "mint_test",
-        (quote.deposit, u128::from(PRICE)),
-    );
-    let early: Result<u64> = update(
-        &t.f.ic,
-        t.hub,
-        person(B),
-        "claim_activation_refund",
-        (quote.quote_id,),
-    );
-    assert_eq!(early, Err(Error::Forbidden));
+    pay(&t.f, &quote);
+    assert_eq!(t.balance(quote.deposit), u128::from(PRICE));
+    let payer = account(person(PAYER));
+    let claim = |by, to| claim_refund(&t.f, t.hub, by, quote.quote_id, to);
+    assert_eq!(claim(B, payer), Err(Error::Forbidden));
     t.f.ic
         .advance_time(Duration::from_millis(QUOTE_TTL_MS + MINUTE));
-    let refunded: Result<u64> = update(
-        &t.f.ic,
-        t.hub,
-        person(B),
-        "claim_activation_refund",
-        (quote.quote_id,),
-    );
-    refunded.unwrap();
-    assert_eq!(t.balance(account(person(B))), u128::from(PRICE) - 10);
+    // Only the quote's caller claims, and the refund leaves the hub.
+    assert_eq!(claim(PAYER, payer), Err(Error::Forbidden));
+    assert!(matches!(
+        claim(B, account(t.hub)),
+        Err(Error::InvalidInput(_))
+    ));
+    let block = claim(B, payer).unwrap();
+    assert_eq!(t.balance(payer), u128::from(PRICE) - 10);
+    assert_eq!(t.balance(account(person(B))), 0);
     assert_eq!(t.balance(quote.deposit), 0);
+    // The first claim fixed the account: another claim reports the same
+    // refund and moves nothing.
+    assert_eq!(claim(B, account(person(B))), Ok(block));
+    assert_eq!(t.balance(account(person(B))), 0);
 }
 
 #[test]
@@ -1386,4 +1420,50 @@ fn hub_quota_and_creation_checks() {
         "admin_set_uploader",
         (Some(person(1)),),
     );
+
+    // A creation that fails after payment, here for want of the hub's
+    // cycles, gives its quota back and is refunded at once to the account
+    // the quote's caller names.
+    let mut config: HubInit = query(&f.ic, hub, person(1), "get_hub_config", ());
+    config.pricing.cycles_to_wallet = 1_000_000_000_000_000_000;
+    let priced: Result<()> = update(&f.ic, hub, f.sns, "admin_set_pricing", (config.pricing,));
+    priced.unwrap();
+    let quote: Result<ActivationQuote> = update(&f.ic, hub, person(A), "quote_activation", (a,));
+    let quote = quote.unwrap();
+    pay(&f, &quote);
+    let app = application(
+        &f,
+        hub,
+        hub,
+        a,
+        person(A),
+        ApprovalPurpose::WalletCreate,
+        activation_digest(&quote, &s),
+    );
+    let approval_id = approve_app(&f, A, &a, &app);
+    let failed: Result<ActivationOrder> = update(
+        &f.ic,
+        hub,
+        person(A),
+        "create_wallet",
+        (CreateWallet {
+            quote_id: quote.quote_id,
+            spec: s,
+            approval_id,
+            approval: app,
+        },),
+    );
+    assert!(matches!(
+        failed.unwrap().status,
+        ActivationStatus::Failed(_)
+    ));
+    let payer = account(person(PAYER));
+    let block = claim_refund(&f, hub, A, quote.quote_id, payer).unwrap();
+    let order: Option<ActivationOrder> =
+        query(&f.ic, hub, person(1), "get_order", (quote.quote_id,));
+    assert_eq!(order.unwrap().status, ActivationStatus::Refunded { block });
+    let refunded: Nat = query(&f.ic, f.ledger, person(1), "icrc1_balance_of", (payer,));
+    assert_eq!(refunded, Nat::from(PRICE - 10));
+    let again: Result<ActivationQuote> = update(&f.ic, hub, person(A), "quote_activation", (a,));
+    assert_eq!(again.unwrap().remaining, 1);
 }

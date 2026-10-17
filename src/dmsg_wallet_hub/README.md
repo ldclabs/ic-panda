@@ -8,7 +8,7 @@
 
 | 类别 | 方法 | 调用者 |
 | --- | --- | --- |
-| 激活 | `quote_activation(account_id)`、`create_wallet(CreateWallet)`、`reconcile_activation(quote_id)`、`claim_activation_refund(quote_id)` | 报价调用者（付款人） |
+| 激活 | `quote_activation(account_id)`、`create_wallet(CreateWallet)`、`claim_activation_refund(quote_id, to)`；`reconcile_activation(quote_id)` | 报价调用者（客户端为本机钱包密钥）；续做任何人可调 |
 | 收入 | `collect_revenue(quote_id)` | 任何人 |
 | 实例 | `upgrade_wallet`、`lock_wallet`、`refuel_wallet`、`wallet_health`、`sync_wallet` | 任何人（只按实例自己的决定行事） |
 | 查询 | `get_hub_config`、`get_user_homes`、`list_versions`、`hub_stats`、`get_quote`、`get_order`、`get_wallet_record`、`list_wallets_of(member)`、`staged_wasm` | 任何人 |
@@ -19,7 +19,7 @@
 
 1. `quote_activation` 向 commerce 的 `refresh_entitlement` 读取账户的基础套餐（从未付费的账户为 Free），套餐配额减去该账户已占用的激活数；报价 15 分钟有效，收款子账户为 `deposit_subaccount(hub, quote_id)`。
 2. `create_wallet` 核对调用者、报价未过期且未退款、未暂停（`pricing.paused`）、规格（`validate_spec`）、创建者的 `WalletCreate` 设备批准（经账户所在 user home 核验）与收款子账户余额，跨 canister 调用返回后以新读取的时间重查期限、暂停与配额，记为 `Paid` 并占用配额；随后创建 canister（controllers = [hub]，冻结阈值 365 天，日志公开，附 `cycles_to_wallet`），把模块分块上传到实例的 chunk store 后 `install_chunked_code`，最后清空 chunk store。每步都写订单状态，同一订单的并发调用返回 `Pending`。
-3. 创建失败的订单与过期未用的报价可由付款人退款（扣一次账本手续费）。
+3. 创建 canister 失败（`Failed`）的订单与过期未用的报价由报价调用者以 `claim_activation_refund(quote_id, to)` 退款：收款扣一次账本手续费后转到调用者指定的 `to`，须在 hub 之外，所有者不能是匿名或管理 canister。客户端以本机钱包密钥领取，`to` 为付款身份的默认账户。第一次领取固定账户与 `created_at_time`，之后的调用只完成这笔转账并返回同一区块；订单记为 `Refunded`。
 4. `collect_revenue` 把已就绪订单的收款分两笔转出：`cycles_share_e8s` 以 ICRC-1 memo `TPUP` 转入 CMC 的 hub 子账户并 `notify_top_up`，其余转入 `revenue`。每笔的参数与 `created_at_time` 固定保存，重试由账本去重。
 
 ## 模块与升级
@@ -35,4 +35,4 @@
 
 ## 验证
 
-`cargo test -p dmsg_wallet_hub` 只编译；行为由 PocketIC 控制面 `wallet::*` 覆盖（激活、配额、错误调用者、规格与批准不符、未付款、升级、锁定、退款、收入归集），CMC 由测试替身 [dmsg_test_cmc](../../tests/dmsg_test_cmc/src/lib.rs) 代替。主网部署、真实 CMC 汇率与 SNS 提案流程尚未验收。
+`cargo test -p dmsg_wallet_hub` 只编译；行为由 PocketIC 控制面 `wallet::*` 覆盖（激活、配额、错误调用者、规格与批准不符、未付款、升级、锁定、过期报价与创建失败退到付款人账户、收入归集），CMC 由测试替身 [dmsg_test_cmc](../../tests/dmsg_test_cmc/src/lib.rs) 代替。主网部署、真实 CMC 汇率与 SNS 提案流程尚未验收。

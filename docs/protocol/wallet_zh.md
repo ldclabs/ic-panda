@@ -113,8 +113,9 @@
 
 1. `quote_activation(account_id)`：hub 向 commerce `refresh_entitlement` 读取账户套餐（无记录为 Free），按 `quotas` 减去该账户已占用的创建数；报价 15 分钟有效，收款账户为 `(hub, deposit_subaccount(hub, quote_id))`。
 2. 付款人向收款账户转入 `price_e8s`；创建者设备批准 `WalletCreate`。
-3. `create_wallet(CreateWallet { quote_id, spec, approval_id, approval })`：调用者必须是报价时的调用者；hub 核对批准与余额，返回后重查报价期限与暂停，记为 `Paid`，再创建 canister（controller 仅 hub，冻结阈值 365 天，附 `cycles_to_wallet`）并以分块安装当前版本，状态 `Created → Ready`；失败可 `reconcile_activation`，创建失败为 `Failed`，付款人可 `claim_activation_refund`（扣账本手续费）。过期未用的报价同样可退款。
-4. `collect_revenue(quote_id)`：已就绪订单的收款中，`cycles_share_e8s` 以 memo `TPUP` 转入 CMC 为 hub 充值 cycles，余额转入 `revenue` 账户。
+3. `create_wallet(CreateWallet { quote_id, spec, approval_id, approval })`：调用者必须是报价时的调用者；hub 核对批准与余额，返回后重查报价期限与暂停，记为 `Paid`，再创建 canister（controller 仅 hub，冻结阈值 365 天，附 `cycles_to_wallet`）并以分块安装当前版本，状态 `Created → Ready`；失败可 `reconcile_activation`，创建 canister 失败为 `Failed`。
+4. `claim_activation_refund(quote_id, to)`：`Failed` 订单与过期未用的报价，由报价调用者把收款扣一次账本手续费后退到 `to`。`to` 由调用者指定，须在 hub 之外，所有者不能是匿名或管理 canister；客户端以本机钱包密钥报价与领取，`to` 为付款身份的默认账户。第一次领取确定账户与转账参数，之后的调用只完成这笔转账并返回同一区块。
+5. `collect_revenue(quote_id)`：已就绪订单的收款中，`cycles_share_e8s` 以 memo `TPUP` 转入 CMC 为 hub 充值 cycles，余额转入 `revenue` 账户。
 
 ## 升级与锁定
 

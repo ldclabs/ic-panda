@@ -4160,6 +4160,7 @@ fn add_capabilities(
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_wallet() {
+    use dmsg_types::wallet::HubInit;
     use icrc_ledger_types::icrc1::account::Account;
     let env = Env::launch(
         "wallet",
@@ -4354,6 +4355,63 @@ fn desktop_wallet() {
             assert!(kinds.contains(&kind), "{kind} in {kinds:?}");
         }
     }
+
+    // A creation that fails after payment, here for want of the hub's
+    // cycles: `wallet refund` claims the deposit with this device's wallet
+    // key and returns it to the payer that paid it. The deposit account is
+    // the hub's.
+    let hub = quote["deposit"]
+        .as_str()
+        .unwrap()
+        .parse::<Account>()
+        .unwrap()
+        .owner;
+    let config =
+        d.ic.query_call(
+            hub,
+            Principal::anonymous(),
+            "get_hub_config",
+            candid::encode_args(()).unwrap(),
+        )
+        .unwrap();
+    let mut pricing = candid::decode_one::<HubInit>(&config).unwrap().pricing;
+    pricing.cycles_to_wallet = 1_000_000_000_000_000_000;
+    let priced =
+        d.ic.update_call(
+            hub,
+            d.peer,
+            "admin_set_pricing",
+            candid::encode_one(pricing).unwrap(),
+        )
+        .unwrap();
+    candid::decode_one::<dmsg_types::Result<()>>(&priced)
+        .unwrap()
+        .unwrap();
+    let unused = a.run(&["wallet", "quote"]);
+    let quote_id = unused["quote_id"].as_str().unwrap();
+    let before = balance(a, &ledger);
+    let create = a.run(&["wallet", "create", quote_id, "--name", "Unfunded"]);
+    assert_eq!(create["detail"]["quote_id"], quote_id);
+    assert_eq!(a.decide(&http, &create, true).unwrap()["state"], "done");
+    let done = a.run(&["approvals", "show", create["id"].as_str().unwrap()]);
+    let status = done["detail"]["result"]["status"].as_str().unwrap();
+    assert!(status.starts_with("Failed"), "{status}");
+    assert_eq!(balance(a, &ledger), before - u128::from(WALLET_PRICE) - fee);
+    let refund = a.run(&["wallet", "refund", quote_id]);
+    assert_eq!(refund["to"], login_principal(42));
+    assert_eq!(balance(a, &ledger), before - 2 * fee);
+    let key = a.run(&["wallet", "principal"])["principal"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let key = Account {
+        owner: Principal::from_text(key).unwrap(),
+        subaccount: None,
+    };
+    assert_eq!(ledger_balance(d, ledger, key), 0);
+    // Another claim reports the same refund.
+    let again = a.run(&["wallet", "refund", quote_id]);
+    assert_eq!(again["block"], refund["block"]);
     env.finish();
 }
 
