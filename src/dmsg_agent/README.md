@@ -1,7 +1,7 @@
 # dmsg_agent
 
 dMsg as an [Agent Protocols](https://github.com/ldclabs/agent-protocols)
-local connector host (`agent-protocols` 0.12). The daemon (`dmsg_cli`)
+local connector host (`agent-protocols` 0.12.1). The daemon (`dmsg_cli`)
 runs one connector per Agent ID it hosts; `dmsg mcp` and `dmsg ap` reach
 them through the daemon. Agent ID keys, their mail keys, their residency
 and the capability grants live in [`dmsg_client`](../dmsg_client/README.md).
@@ -18,9 +18,13 @@ heads, join requests, agent statuses, profiles, the inbox with its leases,
 held drafts, mailbox cards, card pins, stored letters and the next nonce)
 and saves it afterwards, even when the call failed; a call that leaves it as
 it was does not rewrite it and says so, and only a change wakes the MCP
-sessions that watch resources. The snapshot keeps no host. Before each call
-every remembered blocked sender is unblocked, then the configured hosts and
-senders are applied, so neither a tool nor a stored snapshot changes them.
+sessions that watch resources. The snapshot keeps no host, and before each
+call the configured hosts and blocked senders replace what it remembers, so
+neither a tool nor a stored snapshot changes them. The SDK keeps each room's
+latest 1000 records and timeline items and 1000 inbox entries, so a call's
+cost does not grow with a room's age, and the connectors share one discovery
+cache: each host's discovery document is read once, and again only after a
+network error, 429 or 5xx.
 Calls of one Agent ID run one at a time, each inside a turn the daemon holds
 from reading the Agent ID's mail keys to saving those the call left; calls
 of different Agent IDs do not wait for each other.

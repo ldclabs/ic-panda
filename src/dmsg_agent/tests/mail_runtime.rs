@@ -19,10 +19,15 @@ use serde_json::{json, Value};
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 const CERT: &[u8] = include_bytes!("../../../tests/fixtures/localhost-tls/cert.der");
 const KEY: &[u8] = include_bytes!("../../../tests/fixtures/localhost-tls/key.der");
+
+/// Requests for the relay's Agent Discourse discovery document, which it
+/// does not publish.
+static DISCOVERIES: AtomicUsize = AtomicUsize::new(0);
 
 /// A relay at `https://localhost:<port>`, one request per connection.
 fn relay() -> (String, Arc<Mutex<MailRelayStore>>) {
@@ -112,6 +117,9 @@ fn handle(
     body: &str,
 ) -> (u16, String, String) {
     let now = unix_ms();
+    if target == "/.well-known/agent-discourse" {
+        DISCOVERIES.fetch_add(1, Ordering::SeqCst);
+    }
     let url = url::Url::parse(&format!("https://localhost{target}")).unwrap();
     let segments: Vec<&str> = url.path().trim_start_matches('/').split('/').collect();
     let query = |key: &str| {
@@ -195,9 +203,9 @@ impl Drop for Temp {
     }
 }
 
-fn temp() -> Temp {
+fn temp(name: &str) -> Temp {
     let dir = std::env::temp_dir().join(format!(
-        "dmsg-agent-mail-{}-{}",
+        "dmsg-agent-{name}-{}-{}",
         std::process::id(),
         unix_ms()
     ));
@@ -262,7 +270,7 @@ async fn call(
 #[test]
 fn mail_keys_stay_with_the_caller_and_the_config_blocks_senders() {
     let (origin, relay) = relay();
-    let dir = temp();
+    let dir = temp("mail");
     let alice = AgentSigner::from_seed([1; 32]).agent_id().to_string();
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -368,4 +376,43 @@ fn mail_keys_stay_with_the_caller_and_the_config_blocks_senders() {
             .await;
             assert_eq!(synced["received"][0]["parts"][0]["text"], "again");
         });
+}
+
+#[test]
+fn calls_share_one_discovery_read_per_host() {
+    let (origin, _relay) = relay();
+    let dir = temp("discovery");
+    let Hosted(runtime, path) = runtime(&dir, &origin, &[]);
+    let agent_id = AgentSigner::from_seed([1; 32]).agent_id();
+    let keys = no_keys(1);
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            for _ in 0..2 {
+                let turn = runtime.turn(agent_id.as_str()).await;
+                let scope = Scope {
+                    path: &path,
+                    session: "test",
+                    reach: None,
+                };
+                let input = json!({"scope": "public", "host": origin});
+                let called = runtime
+                    .call(
+                        &turn,
+                        scope,
+                        AgentSigner::from_seed([1; 32]),
+                        &keys,
+                        "agent_protocols_rooms_list",
+                        input,
+                    )
+                    .await
+                    .unwrap();
+                // The relay serves no rooms at the default path either.
+                assert!(called.outcome.is_err());
+            }
+        });
+    // It answered that it has no document, which holds for later calls.
+    assert_eq!(DISCOVERIES.load(Ordering::SeqCst), 1);
 }

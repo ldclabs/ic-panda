@@ -13,9 +13,8 @@
 //!
 //! The operator's configuration alone decides the host allowlist and the
 //! blocked mail senders: the snapshot keeps no host, and before every call
-//! each sender it blocks is unblocked and the configured hosts and senders
-//! are applied, so neither a tool nor a stored snapshot can change them
-//! (plan DT02). A call's [`Scope`] may narrow the allowlist to the origins
+//! the configured hosts and senders replace what it remembers, so neither a
+//! tool nor a stored snapshot can change them (plan DT02). A call's [`Scope`] may narrow the allowlist to the origins
 //! an agent's grant names: the connector then refuses every other origin,
 //! and the runtime refuses a room, or a held draft of one, it knows on
 //! another host, which a read from local state would not ask, and leaves
@@ -24,14 +23,16 @@
 //! key store and keeps what the call leaves. Calls of one Agent ID run one
 //! at a time, each inside a [`Turn`] the caller holds from reading the keys
 //! to saving them, so two sessions never overwrite each other's state;
-//! calls of different Agent IDs do not wait for each other.
+//! calls of different Agent IDs do not wait for each other. The connectors
+//! share one discovery cache, so each host's discovery document is read once.
 
 use crate::resources::{Resource, RoomPart};
 use agent_protocols::{
     error::SdkError,
     identity::{service_origin, AgentId, AgentSigner},
     local_connector::{
-        AgentProtocolsHost, LocalConnector, TOOL_DRAFTS_LIST, TOOL_NAMES, TOOL_ROOMS_LIST,
+        AgentProtocolsHost, DiscoveryCache, LocalConnector, TOOL_DRAFTS_LIST, TOOL_NAMES,
+        TOOL_ROOMS_LIST,
     },
 };
 use dmsg_types::{ensure, ensure_valid, Error, Result};
@@ -153,6 +154,7 @@ pub struct Runtime {
     hosts: Vec<AgentProtocolsHost>,
     blocked_senders: Vec<AgentId>,
     http: reqwest::Client,
+    discovery: DiscoveryCache,
     turns: std::sync::Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
 }
 
@@ -232,6 +234,7 @@ impl Runtime {
             hosts,
             blocked_senders,
             http,
+            discovery: DiscoveryCache::new(),
             turns: std::sync::Mutex::new(HashMap::new()),
         })
     }
@@ -278,7 +281,8 @@ impl Runtime {
                 LocalConnector::from_snapshot(signer, saved).map_err(|_| Error::IntegrityFailed)?
             }
         }
-        .with_http_client(self.http.clone());
+        .with_http_client(self.http.clone())
+        .with_discovery_cache(self.discovery.clone());
         connector.state_mut().hosts.clear();
         match scope.reach {
             None => {
@@ -303,15 +307,7 @@ impl Runtime {
                 }
             }
         }
-        let remembered = saved["mail"]["blocked_senders"].as_array();
-        for sender in remembered.into_iter().flatten() {
-            if let Some(sender) = sender.as_str().and_then(|s| s.parse().ok()) {
-                connector.set_mail_sender_blocked(sender, false);
-            }
-        }
-        for sender in &self.blocked_senders {
-            connector.set_mail_sender_blocked(sender.clone(), true);
-        }
+        connector.set_mail_blocked_senders(self.blocked_senders.iter().cloned());
         Ok(connector)
     }
 
