@@ -6,8 +6,8 @@
 //! authority when the relay stored the command, not an external timestamp.
 
 use crate::account::{verify_security, Security};
-use crate::cloud::{command_signer, verify_command_body, CommandBody, Evidence};
-use crate::codec::{decode, unb64};
+use crate::cloud::{CommandBody, Evidence, SignedCommand};
+use crate::codec::{canonical, decode, sha256, unb64};
 use candid::Principal;
 use dmsg_types::{
     ensure,
@@ -18,12 +18,15 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_bytes::ByteBuf;
 use std::collections::BTreeMap;
 use std::str::FromStr;
+use std::sync::Mutex;
 
 /// How far a certificate may run ahead of this device's clock.
 pub const CLOCK_SKEW_MS: u64 = 10_000;
 
-/// What other accounts' evidence is checked against.
-#[derive(Clone, Debug)]
+/// What other accounts' evidence is checked against. The evidence it
+/// verifies is remembered while it lives, so one certificate a device
+/// presented with many commands is verified once.
+#[derive(Debug)]
 pub struct Trust {
     /// The deployment's user homes.
     pub homes: Vec<Principal>,
@@ -31,6 +34,7 @@ pub struct Trust {
     pub namespace: String,
     /// The IC root key, DER.
     pub root_key: Vec<u8>,
+    verified: Mutex<BTreeMap<[u8; 32], Security>>,
 }
 
 /// A stored command checked against its signer at acceptance time.
@@ -47,6 +51,16 @@ pub struct Verified<P> {
 }
 
 impl Trust {
+    /// Trust in the deployment of `homes` under `namespace` and `root_key`.
+    pub fn new(homes: Vec<Principal>, namespace: String, root_key: Vec<u8>) -> Self {
+        Self {
+            homes,
+            namespace,
+            root_key,
+            verified: Mutex::new(BTreeMap::new()),
+        }
+    }
+
     /// An account's issuer URI.
     pub fn issuer(&self, account: &AccountId) -> String {
         format!("{}{account}", self.namespace)
@@ -80,6 +94,20 @@ impl Trust {
         let (Some(entry), None) = (entries.next(), entries.next()) else {
             return Err(Error::IntegrityFailed);
         };
+        // The certificate was checked within 60 seconds of another time;
+        // whole milliseconds may only narrow what that check accepts.
+        let key = *sha256(&canonical(&(
+            &evidence.canister,
+            &evidence.certificate,
+            entry,
+        )));
+        let mut verified = self.verified.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(security) = verified.get(&key)
+            && security.certified_at < at + 60_000
+            && security.certified_at + 60_000 >= at
+        {
+            return Ok(security.clone());
+        }
         let batch = CertifiedBatch {
             schema: 1,
             canister: home,
@@ -97,6 +125,7 @@ impl Trust {
             security.snapshot.issuer == self.issuer(account),
             Error::IntegrityFailed,
         )?;
+        verified.insert(key, security.clone());
         Ok(security)
     }
 
@@ -161,13 +190,14 @@ impl Trust {
         action: Option<&str>,
         now: u64,
     ) -> Result<Verified<P>> {
-        let (issuer, _) = command_signer(cose)?;
-        let account = issuer
+        let command = SignedCommand::parse(cose)?;
+        let account = command
+            .issuer
             .strip_prefix(&self.namespace)
             .and_then(|id| AccountId::from_str(id).ok())
             .ok_or(Error::AuthRequired)?;
         let security = self.account(evidence, &account, stored_at, now)?;
-        let (device, body) = under(&security, cose, action)?;
+        let (device, body) = under_parsed(&security, &command, action)?;
         ensure(body.deadline > stored_at, Error::PolicyStale)?;
         Ok(Verified {
             account,
@@ -203,16 +233,26 @@ pub fn under<P: DeserializeOwned + Serialize>(
     cose: &str,
     action: Option<&str>,
 ) -> Result<(Hash, CommandBody<P>)> {
-    let (issuer, kid) = command_signer(cose)?;
-    ensure(issuer == security.snapshot.issuer, Error::AuthRequired)?;
-    let device = content_signer(security, &kid)?;
-    let body: CommandBody<P> =
-        verify_command_body(cose, &issuer, &kid, &device.input.signing_pub, action)?;
+    under_parsed(security, &SignedCommand::parse(cose)?, action)
+}
+
+/// [`under`] for a command already parsed.
+fn under_parsed<P: DeserializeOwned + Serialize>(
+    security: &Security,
+    command: &SignedCommand,
+    action: Option<&str>,
+) -> Result<(Hash, CommandBody<P>)> {
+    ensure(
+        command.issuer == security.snapshot.issuer,
+        Error::AuthRequired,
+    )?;
+    let device = content_signer(security, &command.kid)?;
+    let body: CommandBody<P> = command.verify(&device.input.signing_pub, action)?;
     ensure(
         body.security_epoch == security.snapshot.security_epoch,
         Error::PolicyStale,
     )?;
-    Ok((kid, body))
+    Ok((command.kid, body))
 }
 
 #[cfg(test)]

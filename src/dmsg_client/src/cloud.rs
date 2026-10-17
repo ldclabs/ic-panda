@@ -199,106 +199,103 @@ pub struct CommandBody<P> {
     pub payload: P,
 }
 
-/// The parts of a tagged COSE_Sign1 command.
-struct Parsed {
+/// A tagged COSE_Sign1 device command, parsed once. The issuer and device
+/// it claims are read without trusting them: the caller finds the device
+/// among the issuer's certified devices, then [`Self::verify`]s it.
+pub struct SignedCommand {
     protected: Vec<u8>,
     payload: Vec<u8>,
     signature: Vec<u8>,
+    /// The issuer the header claims.
+    pub issuer: String,
+    /// The device the header claims.
+    pub kid: Hash,
 }
 
-fn parse_command(cose: &str) -> Result<Parsed> {
-    let bytes = unb64(cose)?;
-    ensure(
-        bytes.len() <= 262_144 && bytes.first() == Some(&0xd2),
-        Error::IntegrityFailed,
-    )?;
-    let Value::Array(items) = decode_value(&bytes[1..], 262_144)? else {
-        return Err(Error::IntegrityFailed);
-    };
-    let [Value::Bytes(protected), Value::Map(unprotected), Value::Bytes(payload), Value::Bytes(signature)] =
-        items.as_slice()
-    else {
-        return Err(Error::IntegrityFailed);
-    };
-    ensure(unprotected.is_empty(), Error::IntegrityFailed)?;
-    Ok(Parsed {
-        protected: protected.clone(),
-        payload: payload.clone(),
-        signature: signature.clone(),
-    })
-}
+impl SignedCommand {
+    /// Parse a command whose header is exactly the one its claimed signer
+    /// would produce.
+    ///
+    /// # Errors
+    /// A malformed command returns `Error::IntegrityFailed`.
+    pub fn parse(cose: &str) -> Result<Self> {
+        let bytes = unb64(cose)?;
+        ensure(
+            bytes.len() <= 262_144 && bytes.first() == Some(&0xd2),
+            Error::IntegrityFailed,
+        )?;
+        let Value::Array(items) = decode_value(&bytes[1..], 262_144)? else {
+            return Err(Error::IntegrityFailed);
+        };
+        let [Value::Bytes(protected), Value::Map(unprotected), Value::Bytes(payload), Value::Bytes(signature)] =
+            <[Value; 4]>::try_from(items).map_err(|_| Error::IntegrityFailed)?
+        else {
+            return Err(Error::IntegrityFailed);
+        };
+        ensure(unprotected.is_empty(), Error::IntegrityFailed)?;
+        let header = decode_value(&protected, 4096)?;
+        let field = |key: i64| match &header {
+            Value::Map(entries) => entries
+                .iter()
+                .find(|(k, _)| *k == Value::from(key))
+                .map(|(_, v)| v),
+            _ => None,
+        };
+        let Some(Value::Bytes(kid)) = field(4) else {
+            return Err(Error::IntegrityFailed);
+        };
+        let issuer = match field(15) {
+            Some(Value::Map(claims)) => claims
+                .iter()
+                .find(|(k, _)| *k == Value::from(1))
+                .and_then(|(_, v)| v.as_text())
+                .ok_or(Error::IntegrityFailed)?,
+            _ => return Err(Error::IntegrityFailed),
+        };
+        let kid = Hash::new(
+            kid.as_slice()
+                .try_into()
+                .map_err(|_| Error::IntegrityFailed)?,
+        );
+        // The whole header must be the one this signer would produce.
+        ensure(
+            protected_header(kid.as_slice(), issuer, COMMAND_PROFILE) == protected,
+            Error::IntegrityFailed,
+        )?;
+        let issuer = issuer.to_string();
+        Ok(Self {
+            protected,
+            payload,
+            signature,
+            issuer,
+            kid,
+        })
+    }
 
-/// The issuer and device a command claims, read without trusting them: the
-/// caller finds the device among the issuer's certified devices and then
-/// verifies the command with [`verify_command_body`].
-///
-/// # Errors
-/// A malformed command returns `Error::IntegrityFailed`.
-pub fn command_signer(cose: &str) -> Result<(String, Hash)> {
-    let parsed = parse_command(cose)?;
-    let header = decode_value(&parsed.protected, 4096)?;
-    let field = |key: i64| match &header {
-        Value::Map(entries) => entries
-            .iter()
-            .find(|(k, _)| *k == Value::from(key))
-            .map(|(_, v)| v),
-        _ => None,
-    };
-    let Some(Value::Bytes(kid)) = field(4) else {
-        return Err(Error::IntegrityFailed);
-    };
-    let issuer = match field(15) {
-        Some(Value::Map(claims)) => claims
-            .iter()
-            .find(|(k, _)| *k == Value::from(1))
-            .and_then(|(_, v)| v.as_text())
-            .ok_or(Error::IntegrityFailed)?,
-        _ => return Err(Error::IntegrityFailed),
-    };
-    let kid = Hash::new(
-        kid.as_slice()
-            .try_into()
-            .map_err(|_| Error::IntegrityFailed)?,
-    );
-    // The whole header must be the one this signer would produce.
-    ensure(
-        protected_header(kid.as_slice(), issuer, COMMAND_PROFILE) == parsed.protected,
-        Error::IntegrityFailed,
-    )?;
-    Ok((issuer.to_string(), kid))
-}
-
-/// Verify a command from the device `kid` of `issuer` with its signing key
-/// and return the whole body; `action`, when given, must be the command's.
-/// A historical command stays valid after its deadline; only submission
-/// checks freshness.
-///
-/// # Errors
-/// Another issuer, device or action, or a bad signature returns
-/// `Error::IntegrityFailed`.
-pub fn verify_command_body<P: DeserializeOwned + Serialize>(
-    cose: &str,
-    issuer: &str,
-    kid: &Hash,
-    signing_pub: &Hash,
-    action: Option<&str>,
-) -> Result<CommandBody<P>> {
-    let parsed = parse_command(cose)?;
-    ensure(
-        protected_header(kid.as_slice(), issuer, COMMAND_PROFILE) == parsed.protected,
-        Error::IntegrityFailed,
-    )?;
-    verify(
-        signing_pub,
-        &sig_structure(&parsed.protected, &parsed.payload),
-        &parsed.signature,
-    )?;
-    let body: CommandBody<P> = decode(&parsed.payload, 262_144)?;
-    ensure(
-        body.protocol == CLOUD_PROTOCOL && action.is_none_or(|a| body.action == a),
-        Error::IntegrityFailed,
-    )?;
-    Ok(body)
+    /// Verify the command with its device's signing key and return the
+    /// whole body; `action`, when given, must be the command's. A historical
+    /// command stays valid after its deadline; only submission checks
+    /// freshness.
+    ///
+    /// # Errors
+    /// Another action or a bad signature returns `Error::IntegrityFailed`.
+    pub fn verify<P: DeserializeOwned + Serialize>(
+        &self,
+        signing_pub: &Hash,
+        action: Option<&str>,
+    ) -> Result<CommandBody<P>> {
+        verify(
+            signing_pub,
+            &sig_structure(&self.protected, &self.payload),
+            &self.signature,
+        )?;
+        let body: CommandBody<P> = decode(&self.payload, 262_144)?;
+        ensure(
+            body.protocol == CLOUD_PROTOCOL && action.is_none_or(|a| body.action == a),
+            Error::IntegrityFailed,
+        )?;
+        Ok(body)
+    }
 }
 
 /// Verify a stored device command of `action` from one of the account's
@@ -327,11 +324,11 @@ pub fn verify_signed_command<P: DeserializeOwned + Serialize>(
     devices: &BTreeMap<Hash, Device>,
     action: &str,
 ) -> Result<(Hash, P)> {
-    let (claimed, kid) = command_signer(cose)?;
-    ensure(claimed == issuer, Error::IntegrityFailed)?;
-    let device = devices.get(&kid).ok_or(Error::IntegrityFailed)?;
-    let body = verify_command_body(cose, issuer, &kid, &device.input.signing_pub, Some(action))?;
-    Ok((kid, body.payload))
+    let command = SignedCommand::parse(cose)?;
+    ensure(command.issuer == issuer, Error::IntegrityFailed)?;
+    let device = devices.get(&command.kid).ok_or(Error::IntegrityFailed)?;
+    let body = command.verify(&device.input.signing_pub, Some(action))?;
+    Ok((command.kid, body.payload))
 }
 
 /// The `X-Dmsg-Pop` proof over the exact request bytes.

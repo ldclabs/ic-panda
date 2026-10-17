@@ -17,8 +17,8 @@
 //! plan D-7) only the device signing key stays, so presigned and already
 //! sealed versions keep moving while nothing can be read.
 
-use crate::account::Security;
-use crate::cloud::{Cloud, Signer};
+use crate::account::{device_bundle, verify_security, Security};
+use crate::cloud::{Cloud, Evidence, EvidenceEntry, Signer};
 use crate::config::{environment_name, Config};
 use crate::content::VAULT;
 use crate::crypto::Key;
@@ -32,10 +32,14 @@ use crate::store::LOCAL;
 use crate::sync::LastSync;
 use crate::workspace::{AccountRef, Keys, Workspace};
 use candid::Principal;
-use dmsg_types::{ensure, AccountId, Environment, Error, Hash, Result, DAY};
+use dmsg_types::{
+    ensure, user::Device, AccountId, CertifiedBatch, Environment, Error, Hash, Result, DAY,
+};
+use futures_util::future::try_join_all;
 use ic_agent::Identity;
 use serde::Serialize;
 use serde_json::Value as Json;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use zeroize::Zeroizing;
@@ -166,7 +170,7 @@ pub struct Client {
     /// The deployment's user homes, read once from the handle registry.
     homes: Option<Vec<Principal>>,
     /// The user home of each other account read so far.
-    peers: std::collections::BTreeMap<AccountId, Principal>,
+    peers: BTreeMap<AccountId, Principal>,
     /// The payer loaded from a PEM file, until the device locks.
     pub(crate) payer: Option<(Principal, Ic)>,
     /// This device's team-wallet key and agent, until the device locks.
@@ -219,7 +223,7 @@ impl Client {
             published: None,
             located: None,
             homes: None,
-            peers: std::collections::BTreeMap::new(),
+            peers: BTreeMap::new(),
             payer: None,
             wallet_ic: None,
             cosign: None,
@@ -775,16 +779,24 @@ impl Client {
     /// workspace is then erased.
     pub(crate) async fn cloud_state(&mut self) -> Result<Security> {
         let account = self.account()?.clone();
+        let fresh = |state: &Security| {
+            state.snapshot.account_id == account.id && state.expires_at() > now_ms() + 10_000
+        };
         if let (Some(state), Some(at)) = (&self.security, self.published)
             && state.certified_at == at
-            && state.snapshot.account_id == account.id
-            && state.expires_at() > now_ms() + 10_000
+            && fresh(state)
         {
             return Ok(state.clone());
         }
+        // State this device just read, such as on unlock, is handed over as
+        // it is; the relay asks for newer when it has seen newer.
+        let mut cached = self.security.clone().filter(|s| fresh(s));
         let mut attempts = 0;
         loop {
-            let state = self.refresh_security(account.home, &account.id).await?;
+            let state = match cached.take() {
+                Some(state) => state,
+                None => self.refresh_security(account.home, &account.id).await?,
+            };
             // The relay refuses a revoked device; erase it here first.
             self.check_revoked(&state)?;
             match self.cloud.publish_security(&state.evidence).await {
@@ -909,11 +921,7 @@ impl Client {
             .to_string();
         let homes = self.homes().await?;
         let root_key = self.reader().await?.root_key();
-        Ok(crate::evidence::Trust {
-            homes,
-            namespace,
-            root_key,
-        })
+        Ok(crate::evidence::Trust::new(homes, namespace, root_key))
     }
 
     /// Another account's certified security from its user home, with the
@@ -921,41 +929,121 @@ impl Client {
     ///
     /// # Errors
     /// Returns `Error::NotFound` when no user home knows the account.
-    pub(crate) async fn peer_security(
+    pub(crate) async fn peer_security(&mut self, account: &AccountId) -> Result<Security> {
+        let mut peers = self.peers_security(std::slice::from_ref(account)).await?;
+        peers.pop().map(|(_, s)| s).ok_or(Error::NotFound)
+    }
+
+    /// [`Self::peer_security`] of several accounts at once.
+    pub(crate) async fn peers_security(
         &mut self,
-        account: &AccountId,
-    ) -> Result<crate::account::Security> {
-        let ic = self.reader().await?;
-        let homes = match self.peers.get(account) {
-            Some(home) => vec![*home],
-            None => self.homes().await?,
-        };
-        for home in homes {
-            let bundle: Result<(
-                dmsg_types::user::SecuritySnapshot,
-                std::collections::BTreeMap<Hash, dmsg_types::user::Device>,
-            )> = ic.query(home, "get_device_bundle", (account,)).await?;
-            let Ok((_, devices)) = bundle else {
-                continue;
-            };
-            let batch: Result<dmsg_types::CertifiedBatch> = ic
-                .query(home, "security_snapshot_batch", (vec![*account],))
-                .await?;
-            let security = crate::account::verify_security(
-                home,
-                account,
-                &batch?,
-                devices,
-                &ic.root_key(),
-                now_ms(),
-            )?;
-            self.peers.insert(*account, home);
-            self.cloud.publish_security(&security.evidence).await?;
-            return Ok(security);
+        accounts: &[AccountId],
+    ) -> Result<Vec<(AccountId, Security)>> {
+        let found = self.read_peers(accounts).await?;
+        // One request per certificate, of at most 16 accounts' evidence.
+        let mut grouped: BTreeMap<(&str, &str), Vec<EvidenceEntry>> = BTreeMap::new();
+        for (_, security) in &found {
+            let evidence = &security.evidence;
+            grouped
+                .entry((&evidence.canister, &evidence.certificate))
+                .or_default()
+                .extend(evidence.entries.iter().cloned());
         }
-        Err(Error::NotFound)
+        let requests: Vec<Evidence> = grouped
+            .into_iter()
+            .flat_map(|((canister, certificate), entries)| {
+                entries
+                    .chunks(16)
+                    .map(|chunk| Evidence {
+                        schema: 1,
+                        canister: canister.into(),
+                        certificate: certificate.into(),
+                        entries: chunk.to_vec(),
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        try_join_all(requests.iter().map(|e| self.cloud.publish_security(e))).await?;
+        Ok(found)
+    }
+
+    /// Other accounts' certified security from their user homes, with the
+    /// public queries: their device maps side by side, from the home each
+    /// was met at or else the first that knows it, then one certified batch
+    /// per home.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` when no user home knows an account.
+    pub(crate) async fn read_peers(
+        &mut self,
+        accounts: &[AccountId],
+    ) -> Result<Vec<(AccountId, Security)>> {
+        let ic = self.reader().await?;
+        let homes = self.homes().await?;
+        let lookups = accounts.iter().map(|account| {
+            let candidates = self
+                .peers
+                .get(account)
+                .map_or_else(|| homes.clone(), |home| vec![*home]);
+            let ic = &ic;
+            async move {
+                for home in candidates {
+                    if let Ok((_, devices)) = device_bundle(ic, home, account).await? {
+                        return Ok((home, devices));
+                    }
+                }
+                Err(Error::NotFound)
+            }
+        });
+        let mut by_home: BTreeMap<Principal, Vec<Peer>> = BTreeMap::new();
+        for (account, (home, devices)) in accounts.iter().zip(try_join_all(lookups).await?) {
+            by_home.entry(home).or_default().push((*account, devices));
+        }
+        let groups: Vec<(Principal, Vec<Peer>)> = by_home
+            .into_iter()
+            .flat_map(|(home, peers)| {
+                peers
+                    .chunks(dmsg_types::MAX_BATCH)
+                    .map(|chunk| (home, chunk.to_vec()))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        let batches = try_join_all(groups.iter().map(|(home, peers)| {
+            let ids: Vec<AccountId> = peers.iter().map(|(account, _)| *account).collect();
+            let ic = &ic;
+            async move {
+                let batch: Result<CertifiedBatch> =
+                    ic.query(*home, "security_snapshot_batch", (ids,)).await?;
+                batch
+            }
+        }))
+        .await?;
+        let (root_key, now) = (ic.root_key(), now_ms());
+        let mut found = Vec::with_capacity(accounts.len());
+        for ((home, peers), batch) in groups.into_iter().zip(batches) {
+            for (account, devices) in peers {
+                let entry = batch
+                    .entries
+                    .iter()
+                    .find(|e| e.key.as_slice() == account.as_slice())
+                    .ok_or(Error::IntegrityFailed)?;
+                let single = CertifiedBatch {
+                    schema: batch.schema,
+                    canister: batch.canister,
+                    certificate: batch.certificate.clone(),
+                    entries: vec![entry.clone()],
+                };
+                let security = verify_security(home, &account, &single, devices, &root_key, now)?;
+                self.peers.insert(account, home);
+                found.push((account, security));
+            }
+        }
+        Ok(found)
     }
 }
+
+/// Another account and the device map its home returned.
+type Peer = (AccountId, BTreeMap<Hash, Device>);
 
 /// The empty workspace of no selection.
 fn idle(environment: &Environment) -> Result<Workspace> {

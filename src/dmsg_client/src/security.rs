@@ -297,10 +297,10 @@ impl Client {
         dmsg_protocol::authenticated(principal)?;
         ensure(principal != current, Error::IdempotencyConflict)?;
         let homes = self.homes().await?;
-        for home in homes {
-            let found: Option<AccountId> = ic.query(home, "my_account", ()).await?;
-            ensure(found.is_none(), Error::IdempotencyConflict)?;
-        }
+        ensure(
+            crate::account::find_account(&ic, &homes).await?.is_none(),
+            Error::IdempotencyConflict,
+        )?;
         let state = self.refresh(account.home, &account.id).await?;
         ensure(
             !state.info.auth_bindings.contains(&principal),

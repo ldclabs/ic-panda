@@ -1508,14 +1508,17 @@ impl Client {
             versions: BTreeMap::new(),
             expires_at: u64::MAX,
         };
-        for account in accounts {
-            let id = AccountId::from_str(account).map_err(|_| Error::IntegrityFailed)?;
-            let security = self.peer_security(&id).await?;
+        let ids = accounts
+            .iter()
+            .map(|a| AccountId::from_str(a).map_err(|_| Error::IntegrityFailed))
+            .collect::<Result<Vec<_>>>()?;
+        for (id, security) in self.peers_security(&ids).await? {
+            let account = id.to_string();
+            current.expires_at = current.expires_at.min(security.expires_at());
+            current.recipients.extend(devices_of(&account, &security));
             current
                 .versions
-                .insert(account.clone(), security.snapshot.security_epoch);
-            current.expires_at = current.expires_at.min(security.expires_at());
-            current.recipients.extend(devices_of(account, &security));
+                .insert(account, security.snapshot.security_epoch);
         }
         current.recipients.sort();
         Ok(current)

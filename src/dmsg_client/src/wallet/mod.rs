@@ -30,6 +30,7 @@ use dmsg_types::{
     wallet::*,
     Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
 };
+use futures_util::future::{join, join_all, try_join_all};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
@@ -542,6 +543,11 @@ pub fn wallet_view(view: &WalletView, me: Option<&MemberId>) -> Json {
     })
 }
 
+/// A balance as a view shows it: the amount, or why it is unknown.
+fn shown<T: ToString>(balance: Result<T>) -> std::result::Result<String, String> {
+    balance.map(|b| b.to_string()).map_err(|e| e.to_string())
+}
+
 fn principal(text: &str) -> Result<Principal> {
     Principal::from_text(text).map_err(|_| dmsg_types::invalid("principal"))
 }
@@ -685,11 +691,14 @@ impl Client {
     pub async fn wallet_proposal(&mut self, wallet: Principal, id: u64) -> Result<Json> {
         let p = self.wallet_proposal_raw(wallet, id).await?;
         let (_, ic) = self.wallet_identity().await?;
-        let mut plans = vec![];
-        for seq in 1..=p.plans {
-            let plan: Result<ExecutionPlan> = ic.query(wallet, "get_plan", (id, seq)).await?;
-            plans.push(plan_view(&plan?));
-        }
+        let plans = try_join_all((1..=p.plans).map(|seq| {
+            let ic = &ic;
+            async move {
+                let plan: Result<ExecutionPlan> = ic.query(wallet, "get_plan", (id, seq)).await?;
+                Ok::<_, Error>(plan_view(&plan?))
+            }
+        }))
+        .await?;
         let mut out = proposal_view(&p);
         out["plan_details"] = Json::Array(plans);
         Ok(out)
@@ -1285,71 +1294,86 @@ impl Client {
     }
 
     /// Balances of every address: ICP and ICRC from the ledgers, the other
-    /// chains from the configured endpoints, each with its source.
+    /// chains from the configured endpoints, each with its source; every
+    /// one is read side by side.
     pub async fn wallet_balances(&mut self, wallet: Principal) -> Result<Json> {
         let view = self.wallet_state(wallet).await?;
         let hub = self.wallet_hub()?;
         let reader = self.anonymous().await?;
         let config: HubInit = reader.query(hub, "get_hub_config", ()).await?;
         let chains = rpc::Chains::new(&self.config.wallet)?;
-        let mut out = vec![];
-        for a in &view.addresses {
-            let mut balances = vec![];
-            match a.chain {
+        let (view, reader, chains) = (&view, &reader, &chains);
+        let (icp_ledger, bitcoin_api) = (config.icp_ledger, &self.config.wallet.bitcoin_api);
+        let assets = &view.policy.spendable_assets;
+        let out = join_all(view.addresses.iter().map(|a| async move {
+            let balances: Vec<Json> = match a.chain {
                 Chain::Icp => {
-                    let mut ledgers = vec![config.icp_ledger];
-                    for asset in &view.policy.spendable_assets {
-                        if let AssetKey::Icrc(ledger) = asset {
-                            ledgers.push(*ledger);
-                        }
-                    }
-                    for ledger in ledgers {
+                    let icrc = assets.iter().filter_map(|asset| match asset {
+                        AssetKey::Icrc(ledger) => Some(*ledger),
+                        _ => None,
+                    });
+                    join_all(std::iter::once(icp_ledger).chain(icrc).map(|ledger| async move {
                         let account = icp_account(wallet, a.id);
                         let n: Result<candid::Nat> =
                             reader.query(ledger, "icrc1_balance_of", (account,)).await;
-                        balances.push(json!({
+                        json!({
                             "ledger": ledger.to_text(),
-                            "asset": if ledger == config.icp_ledger { "ICP" } else { "ICRC" },
-                            "balance": n.map(|n| n.0.to_string()).map_err(|e| e.to_string()),
-                        }));
-                    }
+                            "asset": if ledger == icp_ledger { "ICP" } else { "ICRC" },
+                            "balance": shown(n.map(|n| n.0)),
+                        })
+                    }))
+                    .await
                 }
                 Chain::Bitcoin => {
                     let b = chains.btc_balance(&a.text).await;
-                    balances.push(json!({"asset": "BTC", "balance": b.map(|b| b.to_string()).map_err(|e| e.to_string()), "source": self.config.wallet.bitcoin_api}));
+                    vec![json!({"asset": "BTC", "balance": shown(b), "source": bitcoin_api})]
                 }
                 Chain::Evm => {
-                    for chain_id in &view.policy.evm_chains {
-                        let b = chains.evm_balance(*chain_id, &a.text, None).await;
-                        balances.push(json!({"asset": "ETH", "chain_id": chain_id, "balance": b.map(|b| b.to_string()).map_err(|e| e.to_string())}));
-                        for asset in &view.policy.spendable_assets {
-                            if let AssetKey::Evm {
+                    let reads = view.policy.evm_chains.iter().flat_map(|chain_id| {
+                        let tokens = assets.iter().filter_map(move |asset| match asset {
+                            AssetKey::Evm {
                                 chain_id: c,
                                 token: Some(token),
-                            } = asset
-                                && c == chain_id
-                            {
-                                let token = eip55(&token.into_array());
-                                let b = chains.evm_balance(*chain_id, &a.text, Some(&token)).await;
-                                balances.push(json!({"asset": "ERC20", "token": token, "chain_id": chain_id, "balance": b.map(|b| b.to_string()).map_err(|e| e.to_string())}));
+                            } if c == chain_id => Some(eip55(&token.into_array())),
+                            _ => None,
+                        });
+                        std::iter::once(None)
+                            .chain(tokens.map(Some))
+                            .map(move |token| (*chain_id, token))
+                    });
+                    join_all(reads.map(|(chain_id, token)| async move {
+                        let b = chains.evm_balance(chain_id, &a.text, token.as_deref()).await;
+                        match token {
+                            None => {
+                                json!({"asset": "ETH", "chain_id": chain_id, "balance": shown(b)})
+                            }
+                            Some(token) => {
+                                json!({"asset": "ERC20", "token": token, "chain_id": chain_id, "balance": shown(b)})
                             }
                         }
-                    }
+                    }))
+                    .await
                 }
                 Chain::Solana => {
-                    let b = chains.sol_balance(&a.text).await;
-                    balances.push(json!({"asset": "SOL", "balance": b.map(|b| b.to_string()).map_err(|e| e.to_string())}));
-                    for asset in &view.policy.spendable_assets {
-                        if let AssetKey::Sol { mint: Some(mint) } = asset {
-                            let mint = sol_address(&mint.into_array());
-                            let b = chains.sol_token(&a.text, &mint).await;
-                            balances.push(json!({"asset": "SPL", "mint": mint, "balance": b.map(|(b, _)| b.to_string()).map_err(|e| e.to_string())}));
-                        }
-                    }
+                    let mints = assets.iter().filter_map(|asset| match asset {
+                        AssetKey::Sol { mint: Some(mint) } => Some(sol_address(&mint.into_array())),
+                        _ => None,
+                    });
+                    let sol = async {
+                        let b = chains.sol_balance(&a.text).await;
+                        json!({"asset": "SOL", "balance": shown(b)})
+                    };
+                    let tokens = join_all(mints.map(|mint| async move {
+                        let b = chains.sol_token(&a.text, &mint).await;
+                        json!({"asset": "SPL", "mint": mint, "balance": shown(b.map(|(b, _)| b))})
+                    }));
+                    let (sol, tokens) = join(sol, tokens).await;
+                    std::iter::once(sol).chain(tokens).collect()
                 }
-            }
-            out.push(json!({"address": a.id, "chain": format!("{:?}", a.chain), "text": a.text, "balances": balances}));
-        }
+            };
+            json!({"address": a.id, "chain": format!("{:?}", a.chain), "text": a.text, "balances": balances})
+        }))
+        .await;
         Ok(json!({"wallet": wallet.to_text(), "read_at": now_ms(), "addresses": out}))
     }
 

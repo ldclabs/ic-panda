@@ -10,21 +10,16 @@
 //! Publishing is a presigned command kept as a job until the relay answers,
 //! so a lost reply is reconciled by its request ID, never signed twice.
 
-use crate::account::{user_homes, verify_security, Security};
+use crate::account::Security;
 use crate::client::Client;
 use crate::cloud::{verify_signed_command, Evidence, Presigned};
 use crate::codec::{canonical, decode, sha256, unb64};
 use crate::evidence::under;
 use crate::now_ms;
 use crate::upload::{random_hex, ChunkRef, UploadPlan};
-use dmsg_types::{
-    ensure, ensure_valid,
-    user::{Device, SecuritySnapshot},
-    AccountId, CertifiedBatch, Error, Hash, Result,
-};
+use dmsg_types::{ensure, ensure_valid, AccountId, Error, Hash, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as Json;
-use std::collections::BTreeMap;
 
 /// The pending publish, in the metadata: a presigned command holds no secret.
 const JOB: &str = "profile-job";
@@ -447,29 +442,11 @@ impl Client {
         &mut self,
         account: &AccountId,
     ) -> Result<Option<PublishedProfile>> {
-        let ic = self.reader().await?;
-        let homes = user_homes(&ic, self.config.handle, &self.config.user_homes).await?;
-        let mut security = None;
-        for home in homes.user_homes {
-            let bundle: Result<(SecuritySnapshot, BTreeMap<Hash, Device>)> =
-                ic.query(home, "get_device_bundle", (account,)).await?;
-            let Ok((_, devices)) = bundle else {
-                continue;
-            };
-            let batch: Result<CertifiedBatch> = ic
-                .query(home, "security_snapshot_batch", (vec![*account],))
-                .await?;
-            security = Some(verify_security(
-                home,
-                account,
-                &batch?,
-                devices,
-                &ic.root_key(),
-                now_ms(),
-            )?);
-            break;
-        }
-        let security = security.ok_or(Error::NotFound)?;
+        let (_, security) = self
+            .read_peers(std::slice::from_ref(account))
+            .await?
+            .pop()
+            .ok_or(Error::NotFound)?;
         let value = self
             .cloud
             .public(&format!("/public/accounts/{account}/profile"))
@@ -483,6 +460,7 @@ impl Client {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
 
     #[test]
     fn own_profiles_verify_against_the_devices_that_signed_them() {

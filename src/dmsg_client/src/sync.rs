@@ -34,12 +34,15 @@ use crate::store::{ObjectRow, BLOCKED, LOCAL, REPLACED, SYNCED};
 use crate::upload::{hex_id, random_hex, ChunkRef, UploadPlan};
 use crate::vault::Item;
 use dmsg_types::{ensure, user::VaultWriteState, AccountId, Error, Hash, Result};
+use futures_util::future::try_join_all;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use serde_json::Value as Json;
 use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 
 const MAX_PLANS: usize = 10_000;
+/// Chunks downloaded side by side.
+const DOWNLOADS: usize = 8;
 const MAX_REVISIONS: usize = 100_000;
 const SNAPSHOT: &str = "snapshot-through";
 const LAST_SYNC: &str = "last-sync";
@@ -841,6 +844,7 @@ impl Client {
             let now = now_ms();
             let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
             ensure(entries.len() <= 100, Error::IntegrityFailed)?;
+            let mut fetched = Vec::new();
             for entry in entries {
                 let at = entry["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
                 ensure(at > cursor && at <= through, Error::IntegrityFailed)?;
@@ -874,9 +878,11 @@ impl Client {
                             Error::IntegrityFailed,
                         )?;
                         if matches!(plan.kind.as_str(), "vault" | "file") {
-                            ensure(snapshot.plans.len() < MAX_PLANS, Error::QuotaExceeded)?;
-                            self.cache(&plan).await?;
-                            snapshot.plans.push(plan);
+                            ensure(
+                                snapshot.plans.len() + fetched.len() < MAX_PLANS,
+                                Error::QuotaExceeded,
+                            )?;
+                            fetched.push(plan);
                         }
                     }
                     "revision" => {
@@ -906,6 +912,8 @@ impl Client {
                     _ => {}
                 }
             }
+            self.cache(&fetched).await?;
+            snapshot.plans.extend(fetched);
             let end = page["inventory_end"]
                 .as_bool()
                 .ok_or(Error::IntegrityFailed)?;
@@ -927,19 +935,39 @@ impl Client {
         Ok(snapshot)
     }
 
-    /// Download the manifest and chunks of a committed upload that the
+    /// Download the manifests and chunks of committed uploads that the
     /// store lacks; every one is checked against its digest.
-    async fn cache(&mut self, plan: &UploadPlan) -> Result<()> {
-        let parts = plan
-            .chunks
-            .iter()
-            .enumerate()
-            .map(|(i, c)| (i.to_string(), c.digest.clone()))
-            .chain([("manifest".to_string(), plan.manifest_digest.clone())]);
-        for (name, digest) in parts.collect::<Vec<_>>() {
-            if !self.workspace.store.has_chunk(&digest)? {
-                let bytes = self.download(&plan.upload_id, &name, &digest).await?;
-                self.workspace.store.put_chunk(&digest, &bytes)?;
+    async fn cache(&mut self, plans: &[UploadPlan]) -> Result<()> {
+        let base = self.base()?;
+        let mut seen = BTreeSet::new();
+        let mut missing = Vec::new();
+        for plan in plans {
+            let parts = plan
+                .chunks
+                .iter()
+                .enumerate()
+                .map(|(i, c)| (i.to_string(), &c.digest))
+                .chain([("manifest".to_string(), &plan.manifest_digest)]);
+            for (name, digest) in parts {
+                if seen.insert(digest) && !self.workspace.store.has_chunk(digest)? {
+                    let path = format!("{base}/objects/{}/chunks/{name}", plan.upload_id);
+                    missing.push((path, digest));
+                }
+            }
+        }
+        // A few side by side, each group signed with fresh evidence.
+        for group in missing.chunks(DOWNLOADS) {
+            let state = self.cloud_state().await?;
+            let signer = self.signer(&state)?;
+            let now = now_ms();
+            let fetched = try_join_all(
+                group
+                    .iter()
+                    .map(|(path, digest)| self.cloud.get_chunk(&signer, path, digest, now)),
+            )
+            .await?;
+            for ((_, digest), bytes) in group.iter().zip(fetched) {
+                self.workspace.store.put_chunk(digest, &bytes)?;
             }
         }
         Ok(())

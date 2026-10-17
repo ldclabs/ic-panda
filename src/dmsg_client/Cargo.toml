@@ -18,6 +18,7 @@ cbor2.workspace = true
 dmsg_protocol = { path = "../dmsg_protocol" }
 dmsg_types = { path = "../dmsg_types" }
 ed25519-dalek.workspace = true
+futures-util = { workspace = true, features = ["std"] }
 getrandom = { workspace = true, features = ["sys_rng"] }
 hex.workspace = true
 hkdf.workspace = true

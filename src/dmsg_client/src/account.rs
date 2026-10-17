@@ -25,6 +25,7 @@ use dmsg_types::{
     },
     AccountId, Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
 };
+use futures_util::future::{join, join3, try_join_all};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -257,6 +258,41 @@ pub async fn user_homes(ic: &Ic, handle: Principal, pins: &[Principal]) -> Resul
     Ok(config)
 }
 
+/// The account of `ic`'s caller across `homes`, asking every home at once.
+///
+/// # Errors
+/// Returns `Error::Unavailable` when any home cannot answer.
+pub(crate) async fn find_account(
+    ic: &Ic,
+    homes: &[Principal],
+) -> Result<Option<(Principal, AccountId)>> {
+    let found = try_join_all(homes.iter().map(|home| async move {
+        let found: Option<AccountId> = ic.query(*home, "my_account", ()).await?;
+        Ok::<_, Error>(found.map(|account| (*home, account)))
+    }))
+    .await?;
+    Ok(found.into_iter().flatten().next())
+}
+
+/// An account's certified security leaf at `home`.
+pub(crate) async fn security_batch(
+    ic: &Ic,
+    home: Principal,
+    account: &AccountId,
+) -> Result<Result<CertifiedBatch>> {
+    ic.query(home, "security_snapshot_batch", (vec![*account],))
+        .await
+}
+
+/// An account's device map at `home`.
+pub(crate) async fn device_bundle(
+    ic: &Ic,
+    home: Principal,
+    account: &AccountId,
+) -> Result<Result<(SecuritySnapshot, BTreeMap<Hash, Device>)>> {
+    ic.query(home, "get_device_bundle", (account,)).await
+}
+
 /// Every canister a login delegation must reach: the registry and its
 /// ledger, each user home with its COSE executor, payment, commerce and
 /// membership canisters, and the ledgers those settle on, so the login's
@@ -389,15 +425,11 @@ impl Client {
     /// Returns `Error::AuthRequired` without a login and `Error::Unavailable`
     /// when any home cannot answer.
     pub async fn locate(&self) -> Result<Option<(Principal, AccountId)>> {
+        // Read the homes afresh: a home added since must not hide an
+        // account and lead to a second registration.
         let ic = &self.session()?.ic;
         let homes = user_homes(ic, self.config.handle, &self.config.user_homes).await?;
-        for home in homes.user_homes {
-            let found: Option<AccountId> = ic.query(home, "my_account", ()).await?;
-            if let Some(account) = found {
-                return Ok(Some((home, account)));
-            }
-        }
-        Ok(None)
+        find_account(ic, &homes.user_homes).await
     }
 
     /// Fetch and verify the account's current state with the login,
@@ -407,18 +439,18 @@ impl Client {
     /// As [`verify_account`]; an older answer returns `Error::PolicyStale`.
     pub async fn refresh(&mut self, home: Principal, account: &AccountId) -> Result<AccountState> {
         let ic = &self.session()?.ic;
-        let info: Result<AccountInfo> = ic.query(home, "get_account", (account,)).await?;
-        let batch: Result<CertifiedBatch> = ic
-            .query(home, "security_snapshot_batch", (vec![*account],))
-            .await?;
-        let bundle: Result<(SecuritySnapshot, BTreeMap<Hash, Device>)> =
-            ic.query(home, "get_device_bundle", (account,)).await?;
+        let (info, batch, bundle) = join3(
+            ic.query::<_, Result<AccountInfo>>(home, "get_account", (account,)),
+            security_batch(ic, home, account),
+            device_bundle(ic, home, account),
+        )
+        .await;
         let state = verify_account(
             home,
             account,
-            info?,
-            &batch?,
-            bundle?.1,
+            info??,
+            &batch??,
+            bundle??.1,
             &ic.root_key(),
             now_ms(),
         )?;
@@ -437,13 +469,19 @@ impl Client {
         account: &AccountId,
     ) -> Result<Security> {
         let ic = self.reader().await?;
-        let batch: Result<CertifiedBatch> = ic
-            .query(home, "security_snapshot_batch", (vec![*account],))
-            .await?;
-        let bundle: Result<(SecuritySnapshot, BTreeMap<Hash, Device>)> =
-            ic.query(home, "get_device_bundle", (account,)).await?;
-        let security =
-            verify_security(home, account, &batch?, bundle?.1, &ic.root_key(), now_ms())?;
+        let (batch, bundle) = join(
+            security_batch(&ic, home, account),
+            device_bundle(&ic, home, account),
+        )
+        .await;
+        let security = verify_security(
+            home,
+            account,
+            &batch??,
+            bundle??.1,
+            &ic.root_key(),
+            now_ms(),
+        )?;
         self.observe(account, &security)?;
         Ok(security)
     }

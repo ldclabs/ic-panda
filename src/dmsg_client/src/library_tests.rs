@@ -1246,11 +1246,7 @@ fn cloud_entries_verify_only_against_their_reservation_evidence() {
         },
         "device_id": hex::encode(*device),
     });
-    let trust = Trust {
-        homes: vec![Principal::from_slice(&[1])],
-        namespace: "dmsg:".into(),
-        root_key: vec![],
-    };
+    let trust = Trust::new(vec![Principal::from_slice(&[1])], "dmsg:".into(), vec![]);
     // No device map stands in for the reservation's evidence: without it,
     // a well-formed signature is refused.
     assert_eq!(

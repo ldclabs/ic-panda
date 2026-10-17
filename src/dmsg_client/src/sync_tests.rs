@@ -361,11 +361,11 @@ fn snapshot_entries_verify_against_the_evidence_of_their_epoch() {
 
     const REVISION: &str = "dmsg/vault/revision/v1";
     type Payload = BTreeMap<String, String>;
-    let trust = Trust {
-        homes: vec![Principal::from_slice(&[1])],
-        namespace: "https://dmsg.test/u/".into(),
-        root_key: vec![],
-    };
+    let trust = Trust::new(
+        vec![Principal::from_slice(&[1])],
+        "https://dmsg.test/u/".into(),
+        vec![],
+    );
     let id = account().id;
     let (a, active) = device(1, None);
     let cose = signed(1, 3, REVISION);
