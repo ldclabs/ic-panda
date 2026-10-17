@@ -14,11 +14,10 @@ use crate::crypto::{random_id, sign};
 use crate::ic::Ic;
 use crate::now_ms;
 use crate::workspace::AccountRef;
-use candid::Principal;
+use candid::{CandidType, Principal};
 use dmsg_protocol::{approval_message, authentication::verify_certified_leaf, verify};
 use dmsg_types::{
     AccountId, Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result, ensure,
-    handle::HandleInit,
     user::{
         AccountCommand, AccountInfo, AccountMutation, ControllerRole, CreateAccount, Device,
         OperationReceipt, SecuritySnapshot, UserInit,
@@ -239,12 +238,27 @@ pub struct PairingRequest {
     pub mutation: AccountMutation,
 }
 
+/// What the client reads of the registry's `get_handle_config`. The other
+/// fields, such as the revenue account, stay the registry's own: a registry
+/// that adds or lacks one still answers.
+#[derive(CandidType, Deserialize, Clone, Debug)]
+pub struct HandleConfig {
+    /// Every user home; the authoritative list accounts are routed with.
+    pub user_homes: Vec<Principal>,
+    /// The user homes accepting new accounts.
+    pub registration_homes: Vec<Principal>,
+    /// The ledger of registration charges.
+    pub ledger: Principal,
+    /// The ledger fee in base units.
+    pub ledger_fee: u128,
+}
+
 /// The handle registry's user homes, checked against the configured pins.
 ///
 /// # Errors
 /// An inconsistent list returns `Error::IntegrityFailed`.
-pub async fn user_homes(ic: &Ic, handle: Principal, pins: &[Principal]) -> Result<HandleInit> {
-    let config: HandleInit = ic.query(handle, "get_handle_config", ()).await?;
+pub async fn user_homes(ic: &Ic, handle: Principal, pins: &[Principal]) -> Result<HandleConfig> {
+    let config: HandleConfig = ic.query(handle, "get_handle_config", ()).await?;
     ensure(
         !config.user_homes.is_empty()
             && config
@@ -910,3 +924,7 @@ impl Client {
         .await
     }
 }
+
+#[cfg(test)]
+#[path = "account_tests.rs"]
+mod tests;

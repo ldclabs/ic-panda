@@ -13,6 +13,7 @@
 //! account accepts it, and the owner then authorizes its side and moves the
 //! name within that minute.
 
+use crate::account::HandleConfig;
 use crate::client::Client;
 use crate::now_ms;
 use crate::payer::{approve_call, memo};
@@ -23,8 +24,8 @@ use dmsg_protocol::{
 use dmsg_types::{
     AccountId, Error, Hash, Result, ensure,
     handle::{
-        HandleAction, HandleInit, HandleIntent, HandleOperation, HandlePhase, HandleRecord,
-        LegacyReservation, Registration, SnapshotProgress,
+        HandleAction, HandleIntent, HandleOperation, HandlePhase, HandleRecord, LegacyReservation,
+        Registration, SnapshotProgress,
     },
     user::AccountCommand,
 };
@@ -308,7 +309,7 @@ impl Client {
             .query(self.config.handle, "get_legacy_reservation", (&name,))
             .await?;
         ensure(reserved?.is_none(), Error::VersionConflict)?;
-        let config: HandleInit = ic
+        let config: HandleConfig = ic
             .query(self.config.handle, "get_handle_config", ())
             .await?;
         ensure(
