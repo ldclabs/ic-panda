@@ -475,8 +475,13 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
     };
     let req = request(action.clone());
     let before = f.account_id(1, &account).devices[&hash].next_sequence;
-    let refused: Result<SignedArtifact> =
-        update(&f.ic, f.user, person(1), "attest_app_action", (req.clone(),));
+    let refused: Result<SignedArtifact> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "attest_app_action",
+        (req.clone(),),
+    );
     assert_eq!(refused, Err(Error::Forbidden));
     assert_eq!(
         f.account_id(1, &account).devices[&hash].next_sequence,
@@ -503,8 +508,13 @@ fn external_action_authority_signature_receipt_replay_and_callback_pause() {
     );
     preview.unwrap();
     let before_cycles = f.ic.cycle_balance(f.user);
-    let signed: Result<SignedArtifact> =
-        update(&f.ic, f.user, person(1), "attest_app_action", (req.clone(),));
+    let signed: Result<SignedArtifact> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "attest_app_action",
+        (req.clone(),),
+    );
     println!(
         "user_cycles method=attest_app_action cycles={}",
         before_cycles - f.ic.cycle_balance(f.user)

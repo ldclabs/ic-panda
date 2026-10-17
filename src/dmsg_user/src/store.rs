@@ -16,6 +16,7 @@ use std::cell::RefCell;
 // approvals=7, principals=8, certified leaf hashes=9, certification nodes=10.
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 type HourlyCalls = (u64, u32); // UTC hour, remote calls started in it
+
 // Instructions after which a public cleanup page stops at an account boundary.
 const PRUNE_INSTRUCTIONS: u64 = 20_000_000_000;
 
@@ -71,7 +72,11 @@ pub(crate) fn save_config(cfg: &Config) {
 /// The 32-byte secret a bound login Principal fetches to unlock one device's
 /// local store. It is a function of the home's master secret, so nothing is
 /// stored per device, and a revoked device is refused at the query.
-pub(crate) fn unlock_secret(cfg: &Config, account_id: &AccountId, device_id: &Hash) -> Result<Hash> {
+pub(crate) fn unlock_secret(
+    cfg: &Config,
+    account_id: &AccountId,
+    device_id: &Hash,
+) -> Result<Hash> {
     let master = cfg
         .master_secret
         .ok_or_else(|| Error::Unavailable("unlock secret is not ready".into()))?;

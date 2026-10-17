@@ -154,7 +154,10 @@ fn attestations_name_the_device_key_and_derive_the_policy_purpose() {
     let signer = SigningKey::from_bytes(&[7; 32]);
     let public: Hash = signer.verifying_key().to_bytes().into();
     for (content, purpose) in [
-        (StatementContent::Text("hello".into()), KeyPurpose::Statement),
+        (
+            StatementContent::Text("hello".into()),
+            KeyPurpose::Statement,
+        ),
         (
             StatementContent::FileStatement {
                 text: "review the file".into(),
@@ -181,7 +184,10 @@ fn attestations_name_the_device_key_and_derive_the_policy_purpose() {
             prepared.thumbprint,
             key_thumbprint(&public_cose_key(&[], public.as_slice()).unwrap()).unwrap()
         );
-        assert_eq!(key_thumbprint(&prepared.cose_key).unwrap(), prepared.thumbprint);
+        assert_eq!(
+            key_thumbprint(&prepared.cose_key).unwrap(),
+            prepared.thumbprint
+        );
         let (cose_key, thumbprint) = (prepared.cose_key.clone(), prepared.thumbprint);
         let signature = signer.sign(&prepared.to_be_signed).to_bytes();
         let artifact = prepared.finish(&signature).unwrap();

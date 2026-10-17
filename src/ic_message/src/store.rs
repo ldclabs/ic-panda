@@ -1,5 +1,6 @@
 use candid::{Nat, Principal};
 use cbor2::{from_slice, to_vec};
+use ic_cdk_management_canister::SchnorrAlgorithm;
 use ic_certification::{HashTreeNode, Label};
 use ic_cose_types::types::{
     namespace::CreateNamespaceInput,
@@ -9,7 +10,6 @@ use ic_cose_types::types::{
     },
     PublicKeyOutput,
 };
-use ic_cdk_management_canister::SchnorrAlgorithm;
 use ic_message_types::{
     profile::{UpdateKVInput, UserInfo},
     NameBlock,

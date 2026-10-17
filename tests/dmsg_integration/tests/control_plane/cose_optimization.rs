@@ -260,8 +260,7 @@ fn cose_callbacks_preserve_other_executions_and_pending_replays() {
 fn cose_query_and_cleanup_cycles_profile() {
     let f = CoseFixture::new(1000);
     let args = (AccountId([1; 12]), 7u64);
-    let expected: Result<KeyDescriptor> =
-        query(&f.ic, f.cose, f.home, "root_public_key", args);
+    let expected: Result<KeyDescriptor> = query(&f.ic, f.cose, f.home, "root_public_key", args);
     // Replicated queries follow the same path used by the user canister;
     // measure their cycle balance delta rather than host/PocketIC latency.
     let before = f.ic.cycle_balance(f.cose);

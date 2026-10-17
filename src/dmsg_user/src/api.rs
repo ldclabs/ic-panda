@@ -34,7 +34,10 @@ async fn draw_master_secret() {
     if cfg.master_secret.is_some() {
         return;
     }
-    match drawn.ok().and_then(|bytes| <[u8; 32]>::try_from(bytes).ok()) {
+    match drawn
+        .ok()
+        .and_then(|bytes| <[u8; 32]>::try_from(bytes).ok())
+    {
         Some(bytes) => {
             cfg.master_secret = Some(Hash::new(bytes));
             save_config(&cfg);

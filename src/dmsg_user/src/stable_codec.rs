@@ -330,12 +330,15 @@ impl StableCodec for AccountState {
             handle_authorizations: map_to_repr(&self.handle_authorizations),
             execution_expirations: self.execution_expirations.clone(),
             principal_updated_at: self.principal_updated_at,
-            completed_recovery: self.completed_recovery.as_ref().map(|r| RecoveryReceiptRepr {
-                request_id: r.request_id,
-                new_auth: r.new_auth,
-                device_id: r.device_id,
-                root_generation: r.root_generation,
-            }),
+            completed_recovery: self
+                .completed_recovery
+                .as_ref()
+                .map(|r| RecoveryReceiptRepr {
+                    request_id: r.request_id,
+                    new_auth: r.new_auth,
+                    device_id: r.device_id,
+                    root_generation: r.root_generation,
+                }),
         }
     }
 
@@ -466,17 +469,19 @@ impl StableCodec for AuthorizedExecution {
             request_id: self.request_id,
             command_digest: self.command_digest,
             record: match &self.record {
-                ExecutionRecord::Attestation(a) => ExecutionRecordRepr::Attestation(AttestationRepr {
-                    device_id: a.device_id,
-                    security_epoch: a.security_epoch,
-                    approved_at: a.approved_at,
-                    expires_at: a.expires_at,
-                    origin: a.origin.clone(),
-                    to_be_signed_digest: a.to_be_signed_digest,
-                    public_key_fingerprint: a.public_key_fingerprint,
-                    signature_digest: a.signature_digest,
-                    artifact: a.artifact.to_repr(),
-                }),
+                ExecutionRecord::Attestation(a) => {
+                    ExecutionRecordRepr::Attestation(AttestationRepr {
+                        device_id: a.device_id,
+                        security_epoch: a.security_epoch,
+                        approved_at: a.approved_at,
+                        expires_at: a.expires_at,
+                        origin: a.origin.clone(),
+                        to_be_signed_digest: a.to_be_signed_digest,
+                        public_key_fingerprint: a.public_key_fingerprint,
+                        signature_digest: a.signature_digest,
+                        artifact: a.artifact.to_repr(),
+                    })
+                }
                 ExecutionRecord::Derivation { grant, result } => ExecutionRecordRepr::Derivation {
                     grant: grant.to_repr(),
                     result: result.to_repr(),

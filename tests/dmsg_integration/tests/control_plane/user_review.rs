@@ -124,7 +124,10 @@ fn recovery_retries_preserve_pending_and_completed_results() {
     let before = f.account_id(1, &id);
     // No root was committed, so the recovered device has nothing to derive.
     assert_eq!(before.recovered_device, None);
-    assert_eq!(before.devices.keys().copied().collect::<Vec<_>>(), vec![Hash::new([4; 32])]);
+    assert_eq!(
+        before.devices.keys().copied().collect::<Vec<_>>(),
+        vec![Hash::new([4; 32])]
+    );
     f.ic.upgrade_canister(
         f.user,
         wasm("dmsg_user"),

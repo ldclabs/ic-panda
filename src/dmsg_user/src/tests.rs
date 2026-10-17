@@ -239,7 +239,12 @@ fn attest_fingerprint(r: &AttestRequest) -> Hash {
     )
 }
 
-fn attest(s: &mut TestAccount, caller: Principal, r: &AttestRequest, now: u64) -> Result<SignedArtifact> {
+fn attest(
+    s: &mut TestAccount,
+    caller: Principal,
+    r: &AttestRequest,
+    now: u64,
+) -> Result<SignedArtifact> {
     let fingerprint = attest_fingerprint(r);
     if let Some(e) = s.executions.get(&r.approval.request_id) {
         ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
@@ -332,7 +337,12 @@ fn derive_request(s: &AccountState, n: u8, generation: u64, time: u64) -> Derive
     r
 }
 
-fn derive(s: &mut TestAccount, caller: Principal, r: &DeriveRootRequest, now: u64) -> Result<AuthorizedExecution> {
+fn derive(
+    s: &mut TestAccount,
+    caller: Principal,
+    r: &DeriveRootRequest,
+    now: u64,
+) -> Result<AuthorizedExecution> {
     let fingerprint = digest("dmsg/derive-request/v1", r);
     if let Some(e) = s.executions.get(&r.approval.request_id) {
         ensure(s.auth_bindings.contains(&caller), Error::AuthRequired)?;
@@ -547,7 +557,11 @@ fn commit_root_binds_the_vault_devices_and_vetkd_identity() {
             1,
             good.body_digest,
         ),
-        rewrap(&[Hash::new([1; 32]), Hash::new([2; 32])], 2, good.body_digest),
+        rewrap(
+            &[Hash::new([1; 32]), Hash::new([2; 32])],
+            2,
+            good.body_digest,
+        ),
         ContentRootRef {
             suite: "dmsg-root-v1".into(),
             ..good.clone()
@@ -665,10 +679,16 @@ fn attestations_bind_statement_origin_signature_and_device() {
     let before = s.clone();
     let mut altered = r.clone();
     altered.statement.content = StatementContent::Text("different".into());
-    assert_eq!(attest(&mut s, p(1), &altered, 1), Err(Error::IntegrityFailed));
+    assert_eq!(
+        attest(&mut s, p(1), &altered, 1),
+        Err(Error::IntegrityFailed)
+    );
     let mut altered = r.clone();
     altered.signature = sk(2).sign(b"x").to_bytes().into();
-    assert_eq!(attest(&mut s, p(1), &altered, 1), Err(Error::IntegrityFailed));
+    assert_eq!(
+        attest(&mut s, p(1), &altered, 1),
+        Err(Error::IntegrityFailed)
+    );
     let mut forged = attest_request(&s, 1, statement(&s), 1);
     forged.signature = sk(2)
         .sign(
@@ -691,7 +711,10 @@ fn attestations_bind_statement_origin_signature_and_device() {
         )
         .to_bytes()
         .into();
-    assert_eq!(attest(&mut s, p(1), &forged, 1), Err(Error::IntegrityFailed));
+    assert_eq!(
+        attest(&mut s, p(1), &forged, 1),
+        Err(Error::IntegrityFailed)
+    );
     assert_eq!(s, before);
     s.devices.get_mut(&Hash::new([1; 32])).unwrap().revoked_at = Some(1);
     assert_eq!(attest(&mut s, p(1), &r, 1), Err(Error::DeviceNotApproved));
@@ -713,10 +736,7 @@ fn attestations_count_against_the_daily_policy_and_the_window() {
     }
     let refused = attest_request(&s, 1, statement(&s), 1);
     let before = s.clone();
-    assert_eq!(
-        attest(&mut s, p(1), &refused, 1),
-        Err(Error::QuotaExceeded)
-    );
+    assert_eq!(attest(&mut s, p(1), &refused, 1), Err(Error::QuotaExceeded));
     assert_eq!(s, before);
     let tomorrow = attest_request(&s, 1, statement(&s), DAY + 1);
     attest(&mut s, p(1), &tomorrow, DAY + 1).unwrap();
@@ -841,7 +861,12 @@ fn recovery_delay_is_bounded_and_frozen_while_a_takeover_is_pending() {
         .is_err());
     }
     let epoch = s.security_epoch;
-    apply(&mut s, AccountCommand::SetRecoveryDelay { delay_ms: DAY }, 1).unwrap();
+    apply(
+        &mut s,
+        AccountCommand::SetRecoveryDelay { delay_ms: DAY },
+        1,
+    )
+    .unwrap();
     assert_eq!(s.recovery_delay_ms, DAY);
     assert_eq!(s.snapshot(NAMESPACE).recovery_delay_ms, DAY);
     assert_eq!(s.security_epoch, epoch + 1);
@@ -912,10 +937,7 @@ fn a_recovered_device_derives_the_committed_root_until_it_rekeys() {
     );
     let mut bad = derive_request(&s, 4, 1, at);
     bad.transport_public_key = [1; 48].into();
-    assert_eq!(
-        derive(&mut s, p(4), &bad, at),
-        Err(Error::IntegrityFailed)
-    );
+    assert_eq!(derive(&mut s, p(4), &bad, at), Err(Error::IntegrityFailed));
     let r = derive_request(&s, 4, 1, at);
     let e = derive(&mut s, p(4), &r, at).unwrap();
     let ExecutionRecord::Derivation { grant, result } = &e.record else {
@@ -955,7 +977,11 @@ fn a_recovered_device_derives_the_committed_root_until_it_rekeys() {
     );
     assert_eq!(s.budget.executions, 1);
     assert_eq!(
-        record_execution_response(&mut s, again.approval.request_id, Err(Error::ExecutionUnknown)),
+        record_execution_response(
+            &mut s,
+            again.approval.request_id,
+            Err(Error::ExecutionUnknown)
+        ),
         Ok(done)
     );
     // A completed derivation does not end the right: a new approval derives

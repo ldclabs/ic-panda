@@ -76,7 +76,11 @@ fn post_upgrade() {
     if c.state.initialization == Initialization::Ready {
         let key = c.public_key.as_ref().expect("cached key");
         let fp = sha256(key);
-        assert_eq!(c.state.fingerprint, Some(fp), "cached key fingerprint mismatch");
+        assert_eq!(
+            c.state.fingerprint,
+            Some(fp),
+            "cached key fingerprint mismatch"
+        );
         assert!(
             pinned(&c.state.config.master, &fp),
             "configured key fingerprint mismatch"

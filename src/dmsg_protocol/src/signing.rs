@@ -440,10 +440,7 @@ pub(crate) fn thumbprint(key: &Key) -> Result<Hash> {
     )?;
     let mut required = Key::new();
     for label in [1, -1, -2] {
-        required.insert(
-            label,
-            key.get(label).ok_or(Error::IntegrityFailed)?.clone(),
-        );
+        required.insert(label, key.get(label).ok_or(Error::IntegrityFailed)?.clone());
     }
     Ok(sha256(&required.to_vec().map_err(malformed)?))
 }

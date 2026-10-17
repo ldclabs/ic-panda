@@ -167,7 +167,14 @@ pub(crate) fn check_derivation(
     fingerprint: Hash,
     now: u64,
 ) -> Result<Budget> {
-    precheck(s, caller, &input.account_id, &input.approval, fingerprint, now)?;
+    precheck(
+        s,
+        caller,
+        &input.account_id,
+        &input.approval,
+        fingerprint,
+        now,
+    )?;
     validate_transport_key(&input.transport_public_key)?;
     ensure(
         s.completed_recovery.as_ref().is_some_and(|r| {
@@ -256,7 +263,11 @@ pub(crate) fn rejected_dispatch_result(
 
 /// Return the counted derivation when COSE ran nothing; a completed or
 /// unknown derivation keeps its count.
-pub(crate) fn settle_budget(s: &mut AccountState, grant: &ExecutionGrant, result: &ExecutionResult) {
+pub(crate) fn settle_budget(
+    s: &mut AccountState,
+    grant: &ExecutionGrant,
+    result: &ExecutionResult,
+) {
     let executed = match result.outcome {
         ExecutionOutcome::Completed(_) => true,
         ExecutionOutcome::Failed(_) => result.cycles_charged > 0,
@@ -297,7 +308,10 @@ pub(crate) fn record_execution_response(
     result.clone()
 }
 
-pub(crate) fn receipt(execution: &AuthorizedExecution, namespace: &str) -> Result<ExecutionReceipt> {
+pub(crate) fn receipt(
+    execution: &AuthorizedExecution,
+    namespace: &str,
+) -> Result<ExecutionReceipt> {
     let ExecutionRecord::Attestation(a) = &execution.record else {
         return Err(Error::UnsupportedProtocol);
     };

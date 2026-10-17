@@ -73,7 +73,10 @@ impl PreparedAttestation {
 ///
 /// # Errors
 /// Propagates [`prepare_cose`] and key encoding errors.
-pub fn prepare_attestation(statement: &Statement, signing_pub: &Hash) -> Result<PreparedAttestation> {
+pub fn prepare_attestation(
+    statement: &Statement,
+    signing_pub: &Hash,
+) -> Result<PreparedAttestation> {
     let thumbprint = key_thumbprint(&public_cose_key(&[], signing_pub.as_slice())?)?;
     let cose_key = public_cose_key(thumbprint.as_slice(), signing_pub.as_slice())?;
     let (message, to_be_signed) = prepare_cose(statement, thumbprint.as_slice())?;
@@ -199,7 +202,11 @@ pub fn derive_approval_command(request: &DeriveRootRequest) -> (u64, &ByteArray<
 ///
 /// Binds the user home, account and the full request. This constructs bytes
 /// only; it checks nothing.
-pub fn recovery_device_message(home: Principal, account_id: &AccountId, request: &RecoveryRequest) -> Hash {
+pub fn recovery_device_message(
+    home: Principal,
+    account_id: &AccountId,
+    request: &RecoveryRequest,
+) -> Hash {
     digest("dmsg/recovery-device/v1", &(home, account_id, request))
 }
 

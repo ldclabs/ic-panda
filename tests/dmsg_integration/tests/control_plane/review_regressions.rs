@@ -134,10 +134,7 @@ fn file_statement_attestation_uses_statement_policy_and_binds_the_opinion_and_fi
         content_type: None,
         location: None,
     };
-    assert_eq!(
-        f.attest(1, &id, digest_statement),
-        Err(Error::Forbidden)
-    );
+    assert_eq!(f.attest(1, &id, digest_statement), Err(Error::Forbidden));
 }
 
 #[test]
@@ -257,7 +254,10 @@ fn root_public_key_is_queryable_after_initialization_and_opens_ibe_envelopes() {
     );
     let described = described.unwrap();
     assert_eq!(described.public_key.len(), 96);
-    assert_eq!(described.public_key_fingerprint, sha256(&described.public_key));
+    assert_eq!(
+        described.public_key_fingerprint,
+        sha256(&described.public_key)
+    );
     // The same executor key serves every account and generation.
     let other: Result<KeyDescriptor> = query(
         &f.ic,
@@ -298,7 +298,10 @@ fn root_public_key_is_queryable_after_initialization_and_opens_ibe_envelopes() {
     let derived = derived.unwrap();
     let output = completed(&derived);
     assert_eq!(output.key, described);
-    assert!(derived.cycles_cost_upper_bound > 0 && derived.cycles_cost_upper_bound <= request.max_cycles);
+    assert!(
+        derived.cycles_cost_upper_bound > 0
+            && derived.cycles_cost_upper_bound <= request.max_cycles
+    );
     let vetkey = ic_vetkeys::EncryptedVetKey::deserialize(&output.encrypted_key)
         .unwrap()
         .decrypt_and_verify(&transport, &public, identity.value())
@@ -624,7 +627,10 @@ fn login_recovery_is_visible_disputable_and_completes_after_the_delay() {
     completed.unwrap();
     let after = f.account_id(1, &account_id);
     assert_eq!(after.auth_bindings, vec![person(1)]);
-    assert_eq!(after.devices.keys().copied().collect::<Vec<_>>(), vec![Hash::new([9; 32])]);
+    assert_eq!(
+        after.devices.keys().copied().collect::<Vec<_>>(),
+        vec![Hash::new([9; 32])]
+    );
     assert_eq!(after.recovered_device, Some((Hash::new([9; 32]), 1)));
 }
 
@@ -634,8 +640,7 @@ fn invalid_transport_is_rejected_without_consuming_authorization() {
     let account_id = recovered_root_user(&f);
     let before = f.account_id(1, &account_id);
     let bad = f.derive_request(1, 9, &account_id, vec![1; 48]);
-    let result: Result<ExecutionResult> =
-        update(&f.ic, f.user, person(1), "derive_root", (bad,));
+    let result: Result<ExecutionResult> = update(&f.ic, f.user, person(1), "derive_root", (bad,));
     assert_eq!(result, Err(Error::IntegrityFailed));
     assert_eq!(f.account_id(1, &account_id), before);
     let transport = ic_vetkeys::TransportSecretKey::from_seed(vec![91; 32]).unwrap();

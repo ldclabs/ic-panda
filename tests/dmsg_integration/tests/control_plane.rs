@@ -239,7 +239,12 @@ impl Fixture {
         daily_orders: u32,
         configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
     ) -> Self {
-        Self::with_payment_capacity(generous, daily_orders, MAX_PAYMENT_ESCROWS, configure_membership)
+        Self::with_payment_capacity(
+            generous,
+            daily_orders,
+            MAX_PAYMENT_ESCROWS,
+            configure_membership,
+        )
     }
 
     fn with_payment_capacity(
@@ -587,7 +592,13 @@ impl Fixture {
         self.attest_request_by(n, n, id, statement)
     }
     /// An attestation signed by device `n` and submitted by login `login`.
-    fn attest_request_by(&self, login: u8, n: u8, id: &AccountId, statement: Statement) -> AttestRequest {
+    fn attest_request_by(
+        &self,
+        login: u8,
+        n: u8,
+        id: &AccountId,
+        statement: Statement,
+    ) -> AttestRequest {
         let s = self.account_id(login, id);
         let sequence = s.devices[&Hash::new([n; 32])].next_sequence;
         let prepared =
@@ -601,7 +612,12 @@ impl Fixture {
                 device_id: Hash::new([n; 32]),
                 security_epoch: s.security_epoch,
                 sequence,
-                request_id: execution_request_id(id, s.security_epoch, Hash::new([n; 32]), sequence),
+                request_id: execution_request_id(
+                    id,
+                    s.security_epoch,
+                    Hash::new([n; 32]),
+                    sequence,
+                ),
                 expires_at: time(&self.ic) + MINUTE,
                 signature: Default::default(),
             },
@@ -615,7 +631,13 @@ impl Fixture {
     fn attest(&self, n: u8, id: &AccountId, statement: Statement) -> Result<SignedArtifact> {
         self.attest_by(n, n, id, statement)
     }
-    fn attest_by(&self, login: u8, n: u8, id: &AccountId, statement: Statement) -> Result<SignedArtifact> {
+    fn attest_by(
+        &self,
+        login: u8,
+        n: u8,
+        id: &AccountId,
+        statement: Statement,
+    ) -> Result<SignedArtifact> {
         let request = self.attest_request_by(login, n, id, statement);
         update(&self.ic, self.user, person(login), "attest", (request,))
     }
@@ -991,7 +1013,13 @@ impl Fixture {
     }
 
     /// Login `n`'s recovered device `m` derives the committed root.
-    fn derive(&self, n: u8, m: u8, account_id: &AccountId, transport_key: Vec<u8>) -> ExecutionResult {
+    fn derive(
+        &self,
+        n: u8,
+        m: u8,
+        account_id: &AccountId,
+        transport_key: Vec<u8>,
+    ) -> ExecutionResult {
         let request = self.derive_request(n, m, account_id, transport_key);
         let result: Result<ExecutionResult> =
             update(&self.ic, self.user, person(n), "derive_root", (request,));
@@ -1183,8 +1211,7 @@ fn identity_roots_certification_attestation_recovery_and_upgrade() {
     assert_eq!(verify_artifact(&artifact).unwrap(), payload);
     assert_eq!(
         key_thumbprint(&artifact.cose_key).unwrap(),
-        key_thumbprint(&public_cose_key(&[], &key(1).verifying_key().to_bytes()).unwrap())
-            .unwrap()
+        key_thumbprint(&public_cose_key(&[], &key(1).verifying_key().to_bytes()).unwrap()).unwrap()
     );
     let batch: Result<CertifiedBatch> = query(
         &f.ic,
@@ -1242,8 +1269,7 @@ fn identity_roots_certification_attestation_recovery_and_upgrade() {
         (&account_id, request_id),
     );
     assert!(denied.is_err());
-    let replay: Result<SignedArtifact> =
-        update(&f.ic, f.user, person(1), "attest", (request,));
+    let replay: Result<SignedArtifact> = update(&f.ic, f.user, person(1), "attest", (request,));
     assert_eq!(replay.unwrap(), artifact);
     let stored: Result<SignedArtifact> = query(
         &f.ic,

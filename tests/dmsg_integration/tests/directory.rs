@@ -377,9 +377,11 @@ fn governance_appends_homes_replaces_domains_and_upgrades_keep_configuration() {
         let rejected: std::result::Result<String, String> =
             f.query("validate_admin_set_custom_domains", (&invalid,));
         assert!(rejected.is_err(), "{invalid:?}");
-        let rejected: Result<()> =
-            f.update(governance(), "admin_set_custom_domains", (&invalid,));
-        assert!(matches!(rejected, Err(Error::InvalidInput(_))), "{invalid:?}");
+        let rejected: Result<()> = f.update(governance(), "admin_set_custom_domains", (&invalid,));
+        assert!(
+            matches!(rejected, Err(Error::InvalidInput(_))),
+            "{invalid:?}"
+        );
     }
     let rendered: std::result::Result<String, String> =
         f.query("validate_admin_set_custom_domains", (&domains,));

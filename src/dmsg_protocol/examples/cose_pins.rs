@@ -30,9 +30,10 @@ fn main() {
         _ => panic!("{usage}"),
     };
     let key_name = args.get(3).map_or("key_1", String::as_str);
-    let master = master_key_pin(source, canister, &environment, key_name).expect("known master key");
-    let public_key =
-        content_root_public_key(source, canister, &environment, key_name).expect("known master key");
+    let master =
+        master_key_pin(source, canister, &environment, key_name).expect("known master key");
+    let public_key = content_root_public_key(source, canister, &environment, key_name)
+        .expect("known master key");
     let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
     let pin: String = master
         .expected_fingerprint

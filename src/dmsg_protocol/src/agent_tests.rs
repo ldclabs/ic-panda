@@ -349,7 +349,13 @@ fn register_controller_approval_digest_vector() {
         signature: Default::default(),
     };
     let home = candid::Principal::from_slice(&[9, 1]);
-    let message = approval_message(home, &account, "dmsg/account/v2", &(&10u64, &command), &approval);
+    let message = approval_message(
+        home,
+        &account,
+        "dmsg/account/v2",
+        &(&10u64, &command),
+        &approval,
+    );
     let hex = |h: Hash| h.iter().map(|b| format!("{b:02x}")).collect::<String>();
     assert_eq!(
         hex(message),

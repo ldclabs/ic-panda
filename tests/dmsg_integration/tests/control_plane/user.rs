@@ -11,13 +11,8 @@ fn text_statement(f: &Fixture, id: &AccountId, text: &str) -> Statement {
 
 fn usage(f: &Fixture, id: &AccountId) -> dmsg_types::billing::ExecutionUsage {
     let month = dmsg_protocol::billing::month_utc(time(&f.ic)).unwrap();
-    let usage: Result<dmsg_types::billing::ExecutionUsage> = query(
-        &f.ic,
-        f.user,
-        person(1),
-        "get_execution_usage",
-        (id, month),
-    );
+    let usage: Result<dmsg_types::billing::ExecutionUsage> =
+        query(&f.ic, f.user, person(1), "get_execution_usage", (id, month));
     usage.unwrap()
 }
 
@@ -69,8 +64,7 @@ fn attestations_charge_the_month_once_and_replay_the_stored_artifact() {
     // A tampered replay under the same request ID is a conflict.
     let mut altered = first.clone();
     altered.origin = "https://other.test".into();
-    let conflict: Result<SignedArtifact> =
-        update(&f.ic, f.user, person(1), "attest", (altered,));
+    let conflict: Result<SignedArtifact> = update(&f.ic, f.user, person(1), "attest", (altered,));
     assert_eq!(conflict, Err(Error::IdempotencyConflict));
     // The account policy counts attestations per day.
     f.attest(1, &id, text_statement(&f, &id, "second")).unwrap();
@@ -93,7 +87,8 @@ fn attestations_charge_the_month_once_and_replay_the_stored_artifact() {
         }]
     );
     f.ic.advance_time(Duration::from_millis(DAY));
-    f.attest(1, &id, text_statement(&f, &id, "tomorrow")).unwrap();
+    f.attest(1, &id, text_statement(&f, &id, "tomorrow"))
+        .unwrap();
 }
 
 #[test]
