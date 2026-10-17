@@ -1,24 +1,36 @@
 use candid::Principal;
-use cbor2::from_slice;
-use ic_auth_types::{ByteArrayB64, ByteBufB64, Delegation, SignedDelegation};
-use ic_auth_verifier::SignedEnvelope;
+use ic_auth_types::{Delegation, SignedDelegation};
 use ic_canister_sig_creation::delegation_signature_msg;
-use lib_panda::mac_256;
 use serde_bytes::ByteBuf;
 
-use crate::{
-    helper::{
-        MAX_PUBLIC_KEY_DER_BYTES, MAX_SIGNED_ENVELOPE_BYTES, NANOSECONDS_PER_MILLISECOND,
-        authenticated_caller,
-    },
-    store,
-};
+use crate::{api_admin::is_controller, helper::MAX_PUBLIC_KEY_DER_BYTES, store};
 
 const MAX_DELEGATION_SEED_BYTES: usize = 32;
+// The largest sign-in arguments are a 255-byte domain, a 44-byte address, a
+// 128-byte session key and a 65-byte signature: about 530 bytes of Candid.
+const MAX_SIGN_IN_ARG_BYTES: usize = 1_024;
+
+/// Accept only the ingress a method would serve, so nobody makes this canister
+/// pay for ingress: bounded sign-in calls from anyone, and everything else
+/// (admin methods, validators, queries sent as update calls) from a controller
+/// or governance. This runs on one replica and is not a security boundary;
+/// every method still checks its input and caller.
+#[ic_cdk::inspect_message]
+fn inspect_message() {
+    let allowed = match ic_cdk::api::msg_method_name().as_str() {
+        "sign_in_with_ethereum" | "sign_in_with_solana" => {
+            ic_cdk::api::msg_arg_data().len() <= MAX_SIGN_IN_ARG_BYTES
+        }
+        _ => is_controller().is_ok(),
+    };
+    if allowed {
+        ic_cdk::api::accept_message();
+    }
+}
 
 #[ic_cdk::query]
-fn info() -> Result<store::StateInfo, String> {
-    Ok(store::state::with(|s| s.into()))
+fn info() -> Result<store::State, String> {
+    Ok(store::state::with(Clone::clone))
 }
 
 #[ic_cdk::query]
@@ -49,37 +61,5 @@ fn get_delegation(
             permissions: None,
         },
         signature: signature.into(),
-    })
-}
-
-#[ic_cdk::query]
-pub fn verify_envelope(
-    signed_envelope: ByteBufB64,
-    expect_target: Option<Principal>,
-    expect_digest: Option<ByteArrayB64<32>>,
-) -> Result<Principal, String> {
-    if signed_envelope.len() > MAX_SIGNED_ENVELOPE_BYTES {
-        return Err("signed envelope is too large".to_string());
-    }
-    let now_ms = ic_cdk::api::time() / NANOSECONDS_PER_MILLISECOND;
-    let signed_envelope: SignedEnvelope = from_slice(signed_envelope.as_slice())
-        .map_err(|err| format!("failed to decode signed envelope: {err}"))?;
-    signed_envelope.verify(
-        now_ms,
-        expect_target,
-        expect_digest.as_ref().map(|d| d.as_slice()),
-    )?;
-    Ok(Principal::self_authenticating(&signed_envelope.pubkey))
-}
-
-#[ic_cdk::query]
-fn my_iv() -> Result<ByteArrayB64<32>, String> {
-    let caller = authenticated_caller()?;
-    store::state::with(|s| {
-        if s.nonce_iv.as_slice().iter().all(|byte| *byte == 0) {
-            return Err("canister is still initializing".to_string());
-        }
-        let pk = mac_256(s.nonce_iv.as_slice(), caller.as_slice());
-        Ok(pk.into())
     })
 }

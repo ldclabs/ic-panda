@@ -1,15 +1,10 @@
 use ic_auth_types::{ByteArrayB64, ByteBufB64, SignInResponse};
 use ic_auth_verifier::keccak256;
-use ic_canister_sig_creation::{CanisterSigPublicKey, delegation_signature_msg};
 use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use sha3::{Digest, Keccak256};
 
-use crate::{
-    helper::{
-        SignInNetwork, delegation_expiration_ns, prepare_sign_in_message, validate_sign_in_request,
-        verify_session_signature,
-    },
-    store,
+use crate::helper::{
+    NANOSECONDS_PER_MILLISECOND, SignInNetwork, issue_delegation, prepare_sign_in_message,
 };
 
 const ETH_ADDRESS_BYTES: usize = 20;
@@ -21,64 +16,49 @@ fn get_sign_in_with_ethereum_message(
     address: String,
     chain_id: u32,
     now_ms: u64,
+    session_pubkey: ByteBufB64,
 ) -> Result<String, String> {
+    let local_now_ms = ic_cdk::api::time() / NANOSECONDS_PER_MILLISECOND;
     parse_eth_address(&address)?;
-    Ok(
-        prepare_sign_in_message(&domain, &address, SignInNetwork::Ethereum(chain_id), now_ms)?
-            .message,
-    )
+    let prepared = prepare_sign_in_message(
+        &domain,
+        &address,
+        SignInNetwork::Ethereum(chain_id),
+        now_ms,
+        session_pubkey.as_slice(),
+        local_now_ms,
+    )?;
+    Ok(prepared.message)
 }
 
-#[allow(clippy::too_many_arguments)]
 #[ic_cdk::update]
 fn sign_in_with_ethereum(
     domain: String,
     address: String,
     chain_id: u32,
     now_ms: u64,
-    message: String,
-    message_sig: ByteBufB64,
     session_pubkey: ByteBufB64,
-    session_sig: ByteArrayB64<64>,
+    message_sig: ByteArrayB64<65>,
 ) -> Result<SignInResponse, String> {
-    validate_sign_in_request(
-        &domain,
-        &message,
-        session_pubkey.as_slice(),
-        session_sig.as_slice(),
-    )?;
-    if message_sig.len() != ETH_SIGNATURE_BYTES {
-        return Err("invalid ethereum signature length".to_string());
-    }
-
+    let local_now_ms = ic_cdk::api::time() / NANOSECONDS_PER_MILLISECOND;
     let expected_address = parse_eth_address(&address)?;
-    let prepared =
-        prepare_sign_in_message(&domain, &address, SignInNetwork::Ethereum(chain_id), now_ms)?;
-    if !message.starts_with(&prepared.message) {
-        return Err("signed message does not match expected message".to_string());
-    }
-
-    if recover_eth_address(message.as_bytes(), message_sig.as_slice())? != expected_address {
+    let prepared = prepare_sign_in_message(
+        &domain,
+        &address,
+        SignInNetwork::Ethereum(chain_id),
+        now_ms,
+        session_pubkey.as_slice(),
+        local_now_ms,
+    )?;
+    if recover_eth_address(prepared.message.as_bytes(), &message_sig)? != expected_address {
         return Err("signature does not match expected address".to_string());
     }
-    verify_session_signature(
+
+    Ok(issue_delegation(
+        expected_address.to_vec(),
         session_pubkey.as_slice(),
-        message_sig.as_slice(),
-        session_sig.as_slice(),
-    )?;
-
-    let user_key =
-        CanisterSigPublicKey::new(ic_cdk::api::canister_self(), expected_address.to_vec());
-    let expiration =
-        delegation_expiration_ns(prepared.local_now_ms, prepared.session_expires_in_ms)?;
-    let delegation_hash = delegation_signature_msg(session_pubkey.as_slice(), expiration, None);
-    store::state::add_signature(user_key.seed.as_slice(), delegation_hash.as_slice());
-
-    Ok(SignInResponse {
-        expiration,
-        user_key: user_key.to_der().into(),
-        seed: user_key.seed.into(),
-    })
+        prepared.expiration,
+    ))
 }
 
 fn parse_eth_address(address: &str) -> Result<[u8; ETH_ADDRESS_BYTES], String> {
@@ -95,12 +75,8 @@ fn parse_eth_address(address: &str) -> Result<[u8; ETH_ADDRESS_BYTES], String> {
 
 fn recover_eth_address(
     message: &[u8],
-    signature: &[u8],
+    signature: &[u8; ETH_SIGNATURE_BYTES],
 ) -> Result<[u8; ETH_ADDRESS_BYTES], String> {
-    if signature.len() != ETH_SIGNATURE_BYTES {
-        return Err("invalid ethereum signature length".to_string());
-    }
-
     let recovery_id = match signature[64] {
         value @ 0..=1 => value,
         value @ 27..=28 => value - 27,
@@ -173,7 +149,9 @@ mod tests {
     }
 
     #[test]
-    fn short_signatures_return_an_error_instead_of_trapping() {
-        assert!(recover_eth_address(b"message", &[0; 64]).is_err());
+    fn invalid_recovery_ids_return_an_error_instead_of_trapping() {
+        let mut signature = [0; ETH_SIGNATURE_BYTES];
+        signature[64] = 2;
+        assert!(recover_eth_address(b"message", &signature).is_err());
     }
 }

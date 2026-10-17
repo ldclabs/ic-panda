@@ -27,6 +27,10 @@ required-features = ["pocketic-tests"]
 name = "desktop"
 required-features = ["pocketic-tests"]
 
+[[test]]
+name = "signin_with"
+required-features = ["pocketic-tests"]
+
 [dev-dependencies]
 ic_cose_types.workspace = true
 ic-oss-types.workspace = true
@@ -40,6 +44,10 @@ cbor2.workspace = true
 serde.workspace = true
 serde_bytes.workspace = true
 ed25519-dalek.workspace = true
+# The sign-in test checks the delegations ic_signin_with certifies.
+bs58.workspace = true
+ic_auth_types.workspace = true
+ic_auth_verifier = { workspace = true, features = ["envelope"] }
 flate2 = "1"
 hmac.workspace = true
 sha2.workspace = true

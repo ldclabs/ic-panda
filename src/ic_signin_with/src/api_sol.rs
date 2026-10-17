@@ -1,13 +1,8 @@
-use ed25519_dalek::{Signature, VerifyingKey};
 use ic_auth_types::{ByteArrayB64, ByteBufB64, SignInResponse};
-use ic_canister_sig_creation::{CanisterSigPublicKey, delegation_signature_msg};
+use ic_auth_verifier::{Algorithm, verify_basic_sig};
 
-use crate::{
-    helper::{
-        SignInNetwork, delegation_expiration_ns, prepare_sign_in_message, validate_sign_in_request,
-        verify_session_signature,
-    },
-    store,
+use crate::helper::{
+    NANOSECONDS_PER_MILLISECOND, SignInNetwork, issue_delegation, prepare_sign_in_message,
 };
 
 const SOLANA_PUBLIC_KEY_BYTES: usize = 32;
@@ -18,9 +13,19 @@ fn get_sign_in_with_solana_message(
     domain: String,
     address: String,
     now_ms: u64,
+    session_pubkey: ByteBufB64,
 ) -> Result<String, String> {
+    let local_now_ms = ic_cdk::api::time() / NANOSECONDS_PER_MILLISECOND;
     parse_solana_address(&address)?;
-    Ok(prepare_sign_in_message(&domain, &address, SignInNetwork::Solana, now_ms)?.message)
+    let prepared = prepare_sign_in_message(
+        &domain,
+        &address,
+        SignInNetwork::Solana,
+        now_ms,
+        session_pubkey.as_slice(),
+        local_now_ms,
+    )?;
+    Ok(prepared.message)
 }
 
 #[ic_cdk::update]
@@ -28,47 +33,31 @@ fn sign_in_with_solana(
     domain: String,
     address: String,
     now_ms: u64,
-    message: String,
-    message_sig: ByteArrayB64<64>,
     session_pubkey: ByteBufB64,
-    session_sig: ByteArrayB64<64>,
+    message_sig: ByteArrayB64<64>,
 ) -> Result<SignInResponse, String> {
-    validate_sign_in_request(
-        &domain,
-        &message,
-        session_pubkey.as_slice(),
-        session_sig.as_slice(),
-    )?;
-
+    let local_now_ms = ic_cdk::api::time() / NANOSECONDS_PER_MILLISECOND;
     let public_key = parse_solana_address(&address)?;
-    let prepared = prepare_sign_in_message(&domain, &address, SignInNetwork::Solana, now_ms)?;
-    if !message.starts_with(&prepared.message) {
-        return Err("signed message does not match expected message".to_string());
-    }
-
-    let verifying_key =
-        VerifyingKey::from_bytes(&public_key).map_err(|_| "invalid public key".to_string())?;
-    let signature = Signature::from_bytes(&message_sig);
-    verifying_key
-        .verify_strict(message.as_bytes(), &signature)
-        .map_err(|_| "verification failed".to_string())?;
-    verify_session_signature(
+    let prepared = prepare_sign_in_message(
+        &domain,
+        &address,
+        SignInNetwork::Solana,
+        now_ms,
         session_pubkey.as_slice(),
+        local_now_ms,
+    )?;
+    verify_basic_sig(
+        Algorithm::Ed25519,
+        &public_key,
+        prepared.message.as_bytes(),
         message_sig.as_slice(),
-        session_sig.as_slice(),
     )?;
 
-    let user_key = CanisterSigPublicKey::new(ic_cdk::api::canister_self(), public_key.to_vec());
-    let expiration =
-        delegation_expiration_ns(prepared.local_now_ms, prepared.session_expires_in_ms)?;
-    let delegation_hash = delegation_signature_msg(session_pubkey.as_slice(), expiration, None);
-    store::state::add_signature(user_key.seed.as_slice(), delegation_hash.as_slice());
-
-    Ok(SignInResponse {
-        expiration,
-        user_key: user_key.to_der().into(),
-        seed: user_key.seed.into(),
-    })
+    Ok(issue_delegation(
+        public_key.to_vec(),
+        session_pubkey.as_slice(),
+        prepared.expiration,
+    ))
 }
 
 fn parse_solana_address(address: &str) -> Result<[u8; SOLANA_PUBLIC_KEY_BYTES], String> {

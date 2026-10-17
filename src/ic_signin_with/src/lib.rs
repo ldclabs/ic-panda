@@ -5,7 +5,6 @@ use serde_bytes::ByteBuf;
 mod api;
 mod api_admin;
 mod api_eth;
-mod api_http;
 mod api_init;
 mod api_sol;
 mod helper;

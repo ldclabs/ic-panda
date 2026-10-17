@@ -2,21 +2,15 @@ use http::{Uri, uri::Authority};
 
 use crate::{
     helper::{MAX_DOMAIN_BYTES, MAX_STATEMENT_BYTES, MAX_URI_BYTES},
-    store,
+    store::{self, State},
 };
 
 const MAX_DOMAINS: usize = 64;
 
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_update_domain(domain: String, uri: String) -> Result<(), String> {
-    validate_domain_mapping(&domain, &uri)?;
-    if store::state::with(|state| state.domains.get(&domain) == Some(&uri)) {
-        return Ok(());
-    }
     store::state::try_mutate(|state| {
-        if !state.domains.contains_key(&domain) && state.domains.len() >= MAX_DOMAINS {
-            return Err(format!("domain limit of {MAX_DOMAINS} reached"));
-        }
+        check_domain_update(state, &domain, &uri)?;
         state.domains.insert(domain, uri);
         Ok(())
     })
@@ -24,7 +18,7 @@ fn admin_update_domain(domain: String, uri: String) -> Result<(), String> {
 
 #[ic_cdk::update]
 fn validate_admin_update_domain(domain: String, uri: String) -> Result<String, String> {
-    validate_domain_mapping(&domain, &uri)?;
+    store::state::with(|state| check_domain_update(state, &domain, &uri))?;
     Ok(format!("domain: {domain}\nuri: {uri}"))
 }
 
@@ -51,9 +45,6 @@ fn validate_admin_remove_domain(domain: String) -> Result<String, String> {
 #[ic_cdk::update(guard = "is_controller")]
 fn admin_update_statement(statement: String) -> Result<(), String> {
     validate_statement(&statement)?;
-    if store::state::with(|state| state.statement == statement) {
-        return Ok(());
-    }
     store::state::mutate(|state| state.statement = statement);
     Ok(())
 }
@@ -62,6 +53,39 @@ fn admin_update_statement(statement: String) -> Result<(), String> {
 fn validate_admin_update_statement(statement: String) -> Result<String, String> {
     validate_statement(&statement)?;
     Ok(format!("statement: {statement}"))
+}
+
+pub fn is_controller() -> Result<(), String> {
+    let caller = ic_cdk::api::msg_caller();
+    if ic_cdk::api::is_controller(&caller)
+        || store::state::with(|state| state.governance_canister == Some(caller))
+    {
+        Ok(())
+    } else {
+        Err("caller is not authorized".to_string())
+    }
+}
+
+/// Check the statement and domains that Init args install together.
+pub fn validate_config(state: &State) -> Result<(), String> {
+    validate_statement(&state.statement)?;
+    if state.domains.len() > MAX_DOMAINS {
+        return Err(format!("domain limit of {MAX_DOMAINS} exceeded"));
+    }
+    state
+        .domains
+        .iter()
+        .try_for_each(|(domain, uri)| validate_domain_mapping(domain, uri))
+}
+
+/// The proposal validator runs this too, so a proposal over the domain limit
+/// fails when submitted rather than when executed.
+fn check_domain_update(state: &State, domain: &str, uri: &str) -> Result<(), String> {
+    validate_domain_mapping(domain, uri)?;
+    if !state.domains.contains_key(domain) && state.domains.len() >= MAX_DOMAINS {
+        return Err(format!("domain limit of {MAX_DOMAINS} reached"));
+    }
+    Ok(())
 }
 
 fn validate_domain_mapping(domain: &str, uri: &str) -> Result<(), String> {
@@ -106,17 +130,6 @@ fn validate_statement(statement: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn is_controller() -> Result<(), String> {
-    let caller = ic_cdk::api::msg_caller();
-    if ic_cdk::api::is_controller(&caller)
-        || store::state::with(|state| state.governance_canister == Some(caller))
-    {
-        Ok(())
-    } else {
-        Err("caller is not authorized".to_string())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -135,5 +148,29 @@ mod tests {
         assert!(validate_statement("Sign in").is_ok());
         assert!(validate_statement("line one\nline two").is_err());
         assert!(validate_statement(&"x".repeat(MAX_STATEMENT_BYTES + 1)).is_err());
+    }
+
+    #[test]
+    fn domain_updates_stop_at_the_limit_unless_they_replace_one() {
+        let mut state = State {
+            statement: "Sign in".to_string(),
+            ..Default::default()
+        };
+        for i in 0..MAX_DOMAINS {
+            state.domains.insert(
+                format!("d{i}.example.com"),
+                "https://example.com".to_string(),
+            );
+        }
+        assert!(check_domain_update(&state, "new.example.com", "https://example.com").is_err());
+        assert!(check_domain_update(&state, "d0.example.com", "https://d0.example.com").is_ok());
+        assert!(validate_config(&state).is_ok());
+
+        state.domains.insert(
+            "new.example.com".to_string(),
+            "https://example.com".to_string(),
+        );
+        assert!(validate_config(&state).is_err());
+        assert!(validate_config(&State::default()).is_err());
     }
 }

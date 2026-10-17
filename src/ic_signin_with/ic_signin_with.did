@@ -1,4 +1,8 @@
-type CanisterArgs = variant { Upgrade : UpgradeArgs; Init : InitArgs };
+type CanisterArgs = variant {
+  Upgrade : UpgradeArgs;
+  // The whole configuration, so a reinstall serves sign-ins at once.
+  Init : State;
+};
 // A delegation from one key to another.
 // 
 // If key A signs a delegation containing key B, then key B may be used to
@@ -20,17 +24,12 @@ type DelegationPermissions = variant {
   // Only query calls and `read_state` requests are permitted.
   queries;
 };
-type InitArgs = record {
-  session_expires_in_ms : nat64;
-  governance_canister : opt principal;
-};
 type Result = variant { Ok; Err : text };
 type Result_1 = variant { Ok : SignedDelegation; Err : text };
 type Result_2 = variant { Ok : text; Err : text };
-type Result_3 = variant { Ok : StateInfo; Err : text };
-type Result_4 = variant { Ok : blob; Err : text };
-type Result_5 = variant { Ok : SignInResponse; Err : text };
-type Result_6 = variant { Ok : principal; Err : text };
+type Result_3 = variant { Ok : State; Err : text };
+type Result_4 = variant { Ok : SignInResponse; Err : text };
+type Result_5 = variant { Ok : principal; Err : text };
 type SignInResponse = record {
   // The user canister public key. This key is used to derive the user principal.
   user_key : blob;
@@ -47,7 +46,7 @@ type SignedDelegation = record {
   // The signed delegation.
   delegation : Delegation;
 };
-type StateInfo = record {
+type State = record {
   session_expires_in_ms : nat64;
   governance_canister : opt principal;
   statement : text;
@@ -62,28 +61,17 @@ service : (opt CanisterArgs) -> {
   admin_update_domain : (text, text) -> (Result);
   admin_update_statement : (text) -> (Result);
   get_delegation : (blob, blob, nat64) -> (Result_1) query;
-  get_sign_in_with_ethereum_message : (text, text, nat32, nat64) -> (
+  get_sign_in_with_ethereum_message : (text, text, nat32, nat64, blob) -> (
       Result_2,
     ) query;
-  get_sign_in_with_solana_message : (text, text, nat64) -> (Result_2) query;
+  get_sign_in_with_solana_message : (text, text, nat64, blob) -> (
+      Result_2,
+    ) query;
   info : () -> (Result_3) query;
-  my_iv : () -> (Result_4) query;
-  sign_in_with_ethereum : (
-      text,
-      text,
-      nat32,
-      nat64,
-      text,
-      blob,
-      blob,
-      blob,
-    ) -> (Result_5);
-  sign_in_with_solana : (text, text, nat64, text, blob, blob, blob) -> (
-      Result_5,
-    );
+  sign_in_with_ethereum : (text, text, nat32, nat64, blob, blob) -> (Result_4);
+  sign_in_with_solana : (text, text, nat64, blob, blob) -> (Result_4);
   validate_admin_remove_domain : (text) -> (Result_2);
   validate_admin_update_domain : (text, text) -> (Result_2);
   validate_admin_update_statement : (text) -> (Result_2);
-  verify_envelope : (blob, opt principal, opt blob) -> (Result_6) query;
-  whoami : () -> (Result_6) query;
+  whoami : () -> (Result_5) query;
 }
