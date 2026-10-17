@@ -1328,9 +1328,13 @@ fn two_desktop_devices_share_an_account() {
     assert_eq!(http.get(&request.next_url).send().unwrap().status(), 404);
     assert!(!child.wait().unwrap().success());
 
-    // Device A creates the account, writes an item and syncs.
+    // Device A creates the account, writes an item and syncs. The desktop
+    // hears of a login, which no method call carries.
+    let mut events = a.app_socket();
     let status = a.login(http, 41).unwrap();
     assert_eq!(status["state"], "no_account");
+    await_event(&mut events, "session/changed", "state", "no_account");
+    drop(events);
     let created = a.run(&["account", "create"]);
     let account = created["account"].as_str().unwrap().to_string();
     assert_eq!(created["root_generation"], 1);

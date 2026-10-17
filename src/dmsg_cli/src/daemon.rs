@@ -1544,15 +1544,21 @@ async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: B
                         daemon.emit("approval/changed", Value::Null);
                     }),
                 None => {
-                    let login = daemon
-                        .client
-                        .lock()
-                        .await
+                    let mut client = daemon.client.lock().await;
+                    let login = client
                         .login(delegated.identity, delegated.expires_at)
                         .await
                         .map(|_| ());
+                    let state = client.session_state().state;
+                    drop(client);
                     // The login may have selected another account.
                     *daemon.last_connect.lock().expect("connect report") = None;
+                    // No method call carries it, so the windows hear of it
+                    // here, as they hear of `session/unlock`; a failed login
+                    // has dropped the one before.
+                    crate::logs::write("session/changed", &[("state", &state)]);
+                    daemon.emit("session/changed", json!({"state": state}));
+                    daemon.emit("approval/changed", Value::Null);
                     login
                 }
             },

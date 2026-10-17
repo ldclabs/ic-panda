@@ -717,7 +717,9 @@ The daemon listens on `127.0.0.1` only.
   never reaches them.
 - `GET /auth/callback` and `POST /auth/callback` exist only while a login is
   pending (ten minutes) and accept one POST from the daemon's own loopback
-  origin ([dmsg-login/1](../../docs/protocol/login-v1_zh.md) §4).
+  origin ([dmsg-login/1](../../docs/protocol/login-v1_zh.md) §4). A login
+  announces `session/changed {state}` and `approval/changed`, a binding login
+  `approval/changed`.
 - `idle_lock_minutes` without activity locks the daemon: the login and every
   key are dropped. Every request is activity except `app/initialize`,
   `daemon/status`, `events/poll`, `mcp-events/poll` and the waiting readers,
