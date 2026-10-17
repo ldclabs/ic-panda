@@ -129,6 +129,7 @@ fn with_max_pending(f: &Fixture, max_pending: u32) {
             registration_homes: vec![f.user],
             ledger: f.ledger,
             ledger_fee: 10,
+            revenue: handle_revenue(),
             max_pending,
             governance: f.sns,
         },))
@@ -639,7 +640,7 @@ fn handle_failed_charges_are_diagnostic_and_release_names_accounts_and_capacity(
 }
 
 #[test]
-fn handle_fee_updates_only_affect_new_operations() {
+fn handle_fee_and_revenue_updates_only_affect_new_operations() {
     let f = Fixture::new();
     let owner = f.create(1);
     seal_snapshot(&f, &[]);
@@ -691,6 +692,14 @@ fn handle_fee_updates_only_affect_new_operations() {
         (12u128,),
     );
     changed.unwrap();
+    let moved: Result<()> = update(
+        &f.ic,
+        f.handle,
+        Principal::anonymous(),
+        "admin_set_revenue",
+        (account(person(77)),),
+    );
+    moved.unwrap();
     void(
         &f.ic,
         f.ledger,
@@ -704,8 +713,16 @@ fn handle_fee_updates_only_affect_new_operations() {
     let result = commit(&f, &new).unwrap();
     assert_eq!(result.phase, HandlePhase::Committed);
     assert_eq!(result.registration.fee, 11);
+    assert_eq!(result.payee, handle_revenue());
     assert_eq!(result.memo, unknown.memo);
     assert_eq!(result.created_at, unknown.created_at);
+    let balance =
+        |who: Account| -> Nat { query(&f.ic, f.ledger, person(1), "icrc1_balance_of", (who,)) };
+    assert_eq!(
+        balance(handle_revenue()),
+        Nat::from(price("feechange") - 11)
+    );
+    assert_eq!(balance(account(person(77))), Nat::from(0u8));
 }
 
 // A second dmsg_user sharing the deployment's environment and namespace.
@@ -875,62 +892,64 @@ fn handle_governance_runs_validated_admin_operations() {
         update(&f.ic, f.handle, f.sns, "seal_legacy_snapshot", ());
     assert!(sealed.unwrap().sealed);
 
-    // Collect registration revenue held by the registry.
-    let name = "collected";
-    f.mint(person(1), price(name));
-    f.approve_handle(person(1), price(name));
-    let input = registration(&f, &owner, name, 1);
-    authorize(&f, 1, &input.intent);
-    assert_eq!(register(&f, &input).unwrap().phase, HandlePhase::Committed);
+    // Charges pay the revenue account directly; the registry holds nothing.
     let balance =
         |who: Account| -> Nat { query(&f.ic, f.ledger, person(1), "icrc1_balance_of", (who,)) };
-    let revenue = price(name) - 10;
-    assert_eq!(balance(account(f.handle)), Nat::from(revenue));
-    let treasury = account(person(77));
-    let zero: Rendered = query(
-        &f.ic,
-        f.handle,
-        f.sns,
-        "validate_admin_collect_token",
-        (treasury, 0u128),
+    let (first, second) = ("collected", "rerouted");
+    f.mint(person(1), price(first) + price(second));
+    f.approve_handle(person(1), price(first) + price(second));
+    let input = registration(&f, &owner, first, 1);
+    authorize(&f, 1, &input.intent);
+    let paid = register(&f, &input).unwrap();
+    assert_eq!(
+        (paid.phase, paid.payee),
+        (HandlePhase::Committed, handle_revenue())
     );
-    assert!(zero.is_err());
+    assert_eq!(balance(handle_revenue()), Nat::from(price(first) - 10));
+    assert_eq!(balance(account(f.handle)), Nat::from(0u8));
+    // Revenue may go anywhere except the registry, which cannot pay it out.
+    for invalid in [account(f.handle), account(Principal::anonymous())] {
+        let rendered: Rendered = query(
+            &f.ic,
+            f.handle,
+            f.sns,
+            "validate_admin_set_revenue",
+            (invalid,),
+        );
+        assert!(rendered.is_err());
+        let rejected: Result<()> = update(&f.ic, f.handle, f.sns, "admin_set_revenue", (invalid,));
+        assert!(rejected.is_err());
+    }
+    let wallet = Account {
+        owner: person(77),
+        subaccount: Some([4; 32]),
+    };
     let rendered: Rendered = query(
         &f.ic,
         f.handle,
         f.sns,
-        "validate_admin_collect_token",
-        (treasury, revenue - 10),
+        "validate_admin_set_revenue",
+        (wallet,),
     );
-    assert!(rendered.unwrap().contains(&treasury.to_string()));
-    let denied: Result<u64> = update(
-        &f.ic,
-        f.handle,
-        person(1),
-        "admin_collect_token",
-        (treasury, revenue - 10),
-    );
+    assert!(rendered.unwrap().contains(&wallet.to_string()));
+    let denied: Result<()> = update(&f.ic, f.handle, person(1), "admin_set_revenue", (wallet,));
     assert_eq!(denied, Err(Error::Forbidden));
-    let collected: Result<u64> = update(
+    let set: Result<()> = update(&f.ic, f.handle, f.sns, "admin_set_revenue", (wallet,));
+    set.unwrap();
+    let same: Rendered = query(
         &f.ic,
         f.handle,
         f.sns,
-        "admin_collect_token",
-        (treasury, revenue - 10),
+        "validate_admin_set_revenue",
+        (wallet,),
     );
-    collected.unwrap();
-    assert_eq!(balance(treasury), Nat::from(revenue - 10));
+    assert!(same.unwrap().ends_with("Same account; no change."));
+    let input = registration(&f, &owner, second, 2);
+    authorize(&f, 1, &input.intent);
+    assert_eq!(register(&f, &input).unwrap().payee, wallet);
+    assert_eq!(balance(wallet), Nat::from(price(second) - 10));
+    assert_eq!(balance(handle_revenue()), Nat::from(price(first) - 10));
     assert_eq!(balance(account(f.handle)), Nat::from(0u8));
-    // The ledger rejects a collection beyond the balance without a transfer.
-    let excess: Result<u64> = update(
-        &f.ic,
-        f.handle,
-        f.sns,
-        "admin_collect_token",
-        (treasury, 1u128),
-    );
-    assert!(matches!(excess, Err(Error::Unavailable(_))));
-    assert_eq!(balance(treasury), Nat::from(revenue - 10));
 
     let rejected: Rendered = query(
         &f.ic,
@@ -943,7 +962,10 @@ fn handle_governance_runs_validated_admin_operations() {
     let changed: Result<()> = update(&f.ic, f.handle, f.sns, "update_ledger_fee", (11u128,));
     changed.unwrap();
     let config: HandleInit = query(&f.ic, f.handle, person(1), "get_handle_config", ());
-    assert_eq!((config.ledger_fee, config.governance), (11, f.sns));
+    assert_eq!(
+        (config.ledger_fee, config.revenue, config.governance),
+        (11, wallet, f.sns)
+    );
 }
 
 #[test]

@@ -144,7 +144,7 @@ pub(crate) fn op_key(account_id: &AccountId, op: Hash) -> Hash {
     digest("dmsg/handle-operation/v1", &(account_id, op))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 9;
+pub(crate) const STABLE_SCHEMA: u16 = 10;
 
 // Largest active-name population verified by the capacity profile.
 pub(crate) const MAX_ACTIVE_NAMES: u64 = 10_000_000;

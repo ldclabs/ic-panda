@@ -413,6 +413,7 @@ impl Deployment {
                 registration_homes: vec![user],
                 ledger: name_ledger,
                 ledger_fee: 10,
+                revenue: peer.into(),
                 max_pending: 100,
                 governance: peer,
             })

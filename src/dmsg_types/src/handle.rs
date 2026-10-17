@@ -60,6 +60,10 @@ pub struct HandleInit {
     pub ledger: Principal,
     /// Configured network fee in ledger base units.
     pub ledger_fee: u128,
+    /// Account receiving registration charges directly; never this canister.
+    /// Governance replaces it; each operation keeps the account it began with.
+    #[serde(with = "crate::account::account_cbor")]
+    pub revenue: Account,
     /// Maximum pending name operations allowed by this registry.
     pub max_pending: u32,
     /// Fixed SNS governance caller allowed, besides controllers, to run administrative operations.
@@ -172,6 +176,10 @@ pub struct HandleOperation {
     pub phase: HandlePhase,
     /// Ledger transfer amount in base units, excluding registration.fee.
     pub amount: u128,
+    /// Account receiving the charge: the registry's revenue account when the
+    /// operation began.
+    #[serde(with = "crate::account::account_cbor")]
+    pub payee: Account,
     /// Creation time in Unix milliseconds, also the ledger `created_at_time`.
     pub created_at: u64,
     /// Fixed 32-byte ledger memo used for transfer correlation/deduplication.

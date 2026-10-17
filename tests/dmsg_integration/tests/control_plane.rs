@@ -173,6 +173,10 @@ fn account(owner: Principal) -> Account {
         subaccount: None,
     }
 }
+// Account the handle registry's charges pay.
+fn handle_revenue() -> Account {
+    account(person(62))
+}
 fn person(n: u8) -> Principal {
     Principal::self_authenticating([n; 32])
 }
@@ -348,6 +352,7 @@ impl Fixture {
                 user_homes: vec![user],
                 registration_homes: vec![user],
                 ledger_fee: 10,
+                revenue: handle_revenue(),
                 max_pending: 100,
                 governance: sns,
             },))

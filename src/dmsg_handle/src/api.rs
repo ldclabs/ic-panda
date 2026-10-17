@@ -6,10 +6,7 @@ use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_runtime::{self as stable};
 use dmsg_types::{handle::*, *};
 use icrc_ledger_types::{
-    icrc1::{
-        account::Account,
-        transfer::{TransferArg, TransferError},
-    },
+    icrc1::account::Account,
     icrc2::transfer_from::{TransferFromArgs, TransferFromError},
 };
 
@@ -68,12 +65,21 @@ fn check_registration_homes(init: &HandleInit, homes: &[Principal]) -> Result<()
     )
 }
 
+// Charges pay the revenue account directly; the registry holds no funds.
+fn check_revenue(account: &Account, canister_id: Principal) -> Result<()> {
+    ensure_valid(
+        authenticated(account.owner).is_ok() && account.owner != canister_id,
+        "revenue account",
+    )
+}
+
 #[ic_cdk::init]
 fn init(args: HandleInit) {
     validate_namespace(&args.issuer_namespace).expect("issuer namespace");
     validate_user_homes(&args.environment, &args.issuer_namespace, &args.user_homes)
         .expect("user homes");
     check_registration_homes(&args, &args.registration_homes).expect("registration homes");
+    check_revenue(&args.revenue, ic_cdk::api::canister_self()).expect("revenue account");
     authenticated(args.ledger).expect("ledger");
     authenticated(args.governance).expect("governance");
     assert!(
@@ -201,37 +207,30 @@ fn validate_update_ledger_fee(fee: u128) -> Validation {
     }))
 }
 
-fn check_collect(to: &Account, amount: u128) -> Result<()> {
-    authenticated(to.owner)?;
-    ensure_valid(amount > 0, "collect amount")
-}
-
-/// Transfer registration revenue from this canister's default account and
-/// return the ledger block. Check the ledger before retrying an unknown result.
+/// Send the charges of new registrations to `account`. Operations already
+/// started keep their payee.
 #[ic_cdk::update]
-async fn admin_collect_token(to: Account, amount: u128) -> Result<u64> {
+fn admin_set_revenue(account: Account) -> Result<()> {
     check_admin(ic_cdk::api::msg_caller())?;
-    check_collect(&to, amount)?;
-    let reply: std::result::Result<Nat, TransferError> = stable::call(
-        with_cfg(|c| c.init.ledger),
-        "icrc1_transfer",
-        (TransferArg {
-            from_subaccount: None,
-            to,
-            fee: None,
-            created_at_time: None,
-            memo: None,
-            amount: Nat::from(amount),
-        },),
-    )
-    .await?;
-    dmsg_runtime::ledger::block_index(reply.map_err(|e| Error::Unavailable(e.to_string()))?)
+    check_revenue(&account, ic_cdk::api::canister_self())?;
+    let mut c = cfg();
+    if c.init.revenue != account {
+        c.init.revenue = account;
+        save_cfg(c);
+    }
+    Ok(())
 }
 
 #[ic_cdk::query]
-fn validate_admin_collect_token(to: Account, amount: u128) -> Validation {
-    validation(check_collect(&to, amount).map(|()| {
-        format!("Collect {amount} ledger base units of handle registration revenue to {to}.")
+fn validate_admin_set_revenue(account: Account) -> Validation {
+    validation(with_cfg(|c| {
+        check_revenue(&account, ic_cdk::api::canister_self()).map(|()| {
+            format!(
+                "Send new handle registration charges to {account} (currently {}).{}",
+                c.init.revenue,
+                admin::unchanged(c.init.revenue != account, "Same account"),
+            )
+        })
     }))
 }
 
@@ -550,11 +549,12 @@ async fn register_handle(registration: Registration) -> Result<HandleOperation> 
         digest: fp,
         phase: HandlePhase::Charging,
         amount,
+        payee: c.init.revenue,
         created_at: now(),
         memo: digest("dmsg/handle-memo/v1", &(canister_id, key)),
         ledger_block: None,
     };
-    let args = transfer_args(&o, canister_id)?;
+    let args = transfer_args(&o)?;
     let _call = ChargeGuard::acquire(key)?;
     let i = &o.registration.intent;
     LOCKS.with_borrow_mut(|t| t.insert(i.handle.as_bytes().to_vec(), key.into_array()));
@@ -627,14 +627,11 @@ fn release(c: &mut Config, o: &HandleOperation) {
     c.pending = c.pending.checked_sub(1).expect("pending accounting");
 }
 
-fn transfer_args(o: &HandleOperation, canister_id: Principal) -> Result<TransferFromArgs> {
+fn transfer_args(o: &HandleOperation) -> Result<TransferFromArgs> {
     Ok(TransferFromArgs {
         spender_subaccount: None,
         from: o.registration.payer,
-        to: Account {
-            owner: canister_id,
-            subaccount: None,
-        },
+        to: o.payee,
         amount: Nat::from(o.amount),
         fee: Some(Nat::from(o.registration.fee)),
         memo: Some(o.memo.to_vec().into()),
@@ -723,7 +720,7 @@ async fn commit_handle(account_id: AccountId, op_id: Hash) -> Result<HandleOpera
         HandlePhase::Rejected { .. } => return Err(Error::VersionConflict),
     }
     let _call = ChargeGuard::acquire(key)?;
-    let args = transfer_args(&o, ic_cdk::api::canister_self())?;
+    let args = transfer_args(&o)?;
     o.phase = HandlePhase::Charging;
     save_op(&key, &o);
     charge(&key, args, true).await
@@ -749,11 +746,7 @@ async fn reconcile_handle_charge(
     let canister_id = ic_cdk::api::canister_self();
     ensure(
         tx.from == o.registration.payer
-            && tx.to
-                == Account {
-                    owner: canister_id,
-                    subaccount: None,
-                }
+            && tx.to == o.payee
             && tx.amount == o.amount
             && tx.memo == Some(o.memo.to_vec())
             && tx.created_at_time == Some(millis_to_nanos(o.created_at)?)

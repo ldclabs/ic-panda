@@ -174,6 +174,7 @@ stable_struct!(HandleInitRepr => HandleInit {
     8 => user_homes: Vec<Principal>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     9 => registration_homes: Vec<Principal>,
+    10 => revenue: AccountRepr as codec,
 });
 
 stable_struct!(LegacySnapshotRepr => LegacySnapshot {
@@ -239,6 +240,7 @@ stable_struct!(HandleOperationRepr => HandleOperation {
     7 => memo: Hash,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     8 => ledger_block: Option<u64>,
+    9 => payee: AccountRepr as codec,
 });
 
 stable_struct!(ReceiptSignerRepr => ReceiptSigner {

@@ -126,6 +126,10 @@ mod tests {
             digest: Hash::new([6; 32]),
             phase: HandlePhase::Charging,
             amount: 1_000_000,
+            payee: Account {
+                owner: p(8),
+                subaccount: Some([9; 32]),
+            },
             created_at: 1_700_000_000_000,
             memo: Hash::new([7; 32]),
             ledger_block: Some(99),
@@ -168,12 +172,12 @@ mod tests {
         );
 
         let operation_bytes = compact_bytes(&operation);
-        assert_eq!(operation_bytes.len(), 280);
+        assert_eq!(operation_bytes.len(), 321);
         assert_eq!(
             hex(&operation_bytes),
-            "fc277fc2168439b4cb64e93b21c36cb42a1c9a8d606cc79c99080e212b80baa9"
+            "363dea8732a1dcb56863737592f1ceb923acce0b6373273b683797f159ecb212"
         );
-        assert_integer_top_keys(&operation_bytes, 7);
+        assert_integer_top_keys(&operation_bytes, 8);
         assert_eq!(
             compact_from_bytes::<HandleOperation>(&operation_bytes),
             operation
@@ -228,6 +232,10 @@ mod tests {
                 registration_homes: vec![p(7)],
                 ledger: p(2),
                 ledger_fee: 10_000,
+                revenue: Account {
+                    owner: p(8),
+                    subaccount: None,
+                },
                 max_pending: 1_000,
                 governance: p(6),
             },
