@@ -125,11 +125,14 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
   location (`DMSG_INSTALL_DIR`, else `~/.local/bin`, or
   `%LOCALAPPDATA%\dMsg\bin` on Windows, outside the desktop app's install
   directory) unless the one there is the same release or newer, or Homebrew's
-  (left to `brew upgrade dmsg`). The desktop app runs its bundled copy only
-  this way and then runs the installed one, so the CLI, agents and the app
-  share one daemon. `--json` reports `{action, path, version, on_path}` with
-  `action` one of `installed`, `upgraded`, `current`, `kept_newer`,
-  `homebrew`.
+  (left to `brew upgrade dmsg`). When this binary is signed by a Developer ID
+  team (macOS), an installed one stays only if it verifies and is signed by
+  the same team, checked before anything runs it: a shared one that fails is
+  replaced, and a Homebrew one that fails gives way to the shared location.
+  The desktop app runs its bundled copy only this way and then runs the
+  installed one, so the CLI, agents and the app share one daemon. `--json`
+  reports `{action, path, version, on_path}` with `action` one of
+  `installed`, `upgraded`, `replaced`, `current`, `kept_newer`, `homebrew`.
 - **Releases.** dMsg client releases are tagged `dmsg-v<version>` and are the
   repository's latest release (canister releases are not).
   `dmsg update --check --json` reports `{current, latest, available,

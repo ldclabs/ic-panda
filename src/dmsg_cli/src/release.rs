@@ -203,8 +203,9 @@ fn team(path: &Path) -> Option<String> {
         .map(str::to_string)
 }
 
-/// A binary signed by a team replaces it only with one that verifies and is
-/// signed by the same team; an unsigned build has nothing to compare.
+/// A binary signed by a team accepts another one, a replacement or an
+/// installed one, only when it verifies and is signed by the same team; an
+/// unsigned build has nothing to compare.
 #[cfg(target_os = "macos")]
 fn check_signature(candidate: &Path) -> Result<(), Failure> {
     let Some(expected) = std::env::current_exe().ok().and_then(|exe| team(&exe)) else {
@@ -301,25 +302,47 @@ fn on_path(dir: &Path) -> bool {
 /// `dmsg install`: put this binary at the shared location unless the one
 /// there is the same release or newer, or Homebrew owns it. The desktop app
 /// runs its bundled copy with this on every start and then uses the
-/// reported path.
+/// reported path, so an installed binary stays only when it is signed as
+/// [`check_signature`] requires.
 pub fn install(dir: Option<PathBuf>) -> Result<Value, Failure> {
     let source = std::env::current_exe().map_err(unavailable)?;
-    let target = match dir {
-        Some(dir) => dir.join(executable()),
-        None => locate()?,
+    let (target, shared) = match dir {
+        Some(dir) => (dir.join(executable()), dir.join(executable())),
+        None => (locate()?, install_dir()?.join(executable())),
+    };
+    install_at(&source, target, shared, |path| {
+        check_signature(path).is_ok()
+    })
+}
+
+/// Install `source` at `target`. Nothing runs an installed binary that
+/// fails `verified`: one at the shared location is replaced, and a Homebrew
+/// one gives way to the shared location.
+fn install_at(
+    source: &Path,
+    target: PathBuf,
+    shared: PathBuf,
+    verified: impl Fn(&Path) -> bool,
+) -> Result<Value, Failure> {
+    let target = match homebrew(&target) && !verified(&target) {
+        true => shared,
+        false => target,
     };
     let same = |a: &Path, b: &Path| match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
         (Ok(a), Ok(b)) => a == b,
         _ => false,
     };
-    let copy = || std::fs::read(&source).map_err(unavailable);
+    let copy = || std::fs::read(source).map_err(unavailable);
     let (action, version) = if !target.exists() {
         place(&copy()?, &target)?;
         ("installed", Some(VERSION.to_string()))
     } else if homebrew(&target) {
         ("homebrew", version_of(&target))
-    } else if same(&source, &target) {
+    } else if same(source, &target) {
         ("current", Some(VERSION.to_string()))
+    } else if !verified(&target) {
+        place(&copy()?, &target)?;
+        ("replaced", Some(VERSION.to_string()))
     } else {
         match version_of(&target) {
             Some(version) if version == VERSION => ("current", Some(version)),
@@ -373,6 +396,62 @@ mod tests {
             let mode = std::fs::metadata(&target).unwrap().permissions().mode();
             assert_eq!(mode & 0o777, 0o755);
         }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    /// A `dmsg` that reports `version` and leaves `ran` behind once run.
+    #[cfg(unix)]
+    fn fake(path: &Path, version: &str, ran: &Path) {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let script = format!(
+            "#!/bin/sh\ntouch '{}'\necho 'dmsg {version}'\n",
+            ran.display()
+        );
+        std::fs::write(path, script).unwrap();
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn install_keeps_only_a_verified_binary() {
+        let dir = std::env::temp_dir().join(format!(
+            "dmsg-install-{}",
+            hex::encode(dmsg_client::crypto::random_id())
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let source = dir.join("bundled");
+        std::fs::write(&source, b"bundled").unwrap();
+        let shared = dir.join("bin").join(executable());
+        let ran = dir.join("ran");
+
+        // A newer release that verifies stays.
+        fake(&shared, "9.9.9", &ran);
+        let kept = install_at(&source, shared.clone(), shared.clone(), |_| true).unwrap();
+        assert_eq!(
+            (&kept["action"], &kept["version"]),
+            (&json!("kept_newer"), &json!("9.9.9"))
+        );
+        // One that fails is replaced before anything runs it.
+        std::fs::remove_file(&ran).unwrap();
+        let replaced = install_at(&source, shared.clone(), shared.clone(), |_| false).unwrap();
+        assert_eq!(replaced["action"], "replaced");
+        assert_eq!(std::fs::read(&shared).unwrap(), b"bundled");
+        assert!(!ran.exists());
+
+        // A Homebrew binary that fails gives way to the shared location.
+        std::fs::remove_file(&shared).unwrap();
+        let brewed = dir.join("Cellar/dmsg/9.9.9/bin").join(executable());
+        fake(&brewed, "9.9.9", &ran);
+        let installed =
+            install_at(&source, brewed.clone(), shared.clone(), |p| !homebrew(p)).unwrap();
+        assert_eq!(
+            (&installed["action"], &installed["path"]),
+            (&json!("installed"), &json!(shared))
+        );
+        assert!(!ran.exists());
+        let kept = install_at(&source, brewed, shared, |_| true).unwrap();
+        assert_eq!(kept["action"], "homebrew");
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

@@ -1,7 +1,8 @@
 /**
  * The `dmsg` the desktop runs. A packaged app carries its release's `dmsg`
  * and runs it only as `dmsg install`, which puts it at the shared location
- * unless the one there is newer or Homebrew's; the app then runs the
+ * unless the one there is newer or Homebrew's and, on macOS, signed by the
+ * same Developer ID team; the app then runs the
  * installed one, so the CLI, agents and the app share one binary and one
  * daemon. Development builds use `DMSG_BIN` or `dmsg` on PATH.
  */
@@ -14,7 +15,7 @@ const run = promisify(execFile)
 export interface Runtime {
   /** The binary to run. */
   binary: string
-  /** What `dmsg install` did: installed, upgraded, current, kept_newer or homebrew. */
+  /** What `dmsg install` did: installed, upgraded, replaced, current, kept_newer or homebrew. */
   action?: string
   /** The installed binary's version, when known. */
   version?: string

@@ -273,7 +273,8 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   (`DMSG_DESKTOP_RUNTIME`, else a local `cargo build --release`) in
   `resources/runtime`; its version must be the app's. The app never runs it
   as a daemon: each start runs `dmsg install` with it, which puts it at the
-  shared location unless the one there is newer or Homebrew's, and the app
+  shared location unless the one there is newer or Homebrew's and, on macOS,
+  signed by the same Developer ID team, and the app
   then runs the installed `dmsg` (`src/main/runtime.ts`). If the install
   fails, the main window shows its error and the next start tries again. On macOS the bundled
   file keeps the release binary's own signature (`signIgnore`).

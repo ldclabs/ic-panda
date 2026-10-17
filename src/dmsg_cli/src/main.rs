@@ -691,6 +691,10 @@ fn installed(r: &Value) -> String {
             "Upgraded dmsg at {path} to {version}; run `dmsg restart` to use it.",
             "已把 {path} 的 dmsg 升级到 {version}；运行 `dmsg restart` 后生效。"
         ),
+        "replaced" => tr!(
+            "Replaced the dmsg at {path}, which failed the signature check, with {version}; run `dmsg restart` to use it.",
+            "{path} 的 dmsg 未通过签名校验，已替换为 {version}；运行 `dmsg restart` 后生效。"
+        ),
         "kept_newer" => tr!(
             "Kept the newer dmsg {version} at {path}.",
             "保留 {path} 中更新的 dmsg {version}。"
