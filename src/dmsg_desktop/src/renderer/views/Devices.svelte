@@ -8,7 +8,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, when } from '../rpc'
+  import { bridge, call, code, onChange, single, when } from '../rpc'
 
   /** The account's devices as the user home certified them; changes are approval requests. */
   let { status }: { status: any } = $props()
@@ -21,14 +21,14 @@
 
   const CAPABILITIES = ['ContentSign', 'VaultUnlock', 'RootManage', 'FormalApprove', 'PaymentOffer', 'WalletApprove']
 
-  async function load() {
+  const reload = single(async () => {
     try {
       view = await call('account/show')
     } catch (e) {
       view = null
       error = code(e) === 'AUTH_REQUIRED' ? '' : `${t('error')}: ${code(e)}`
     }
-  }
+  })
 
   /** The approval window shows the device and decides. */
   async function ask(method: string, params: unknown) {
@@ -51,10 +51,8 @@
   }
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['approval/changed', 'session/changed', 'sync/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    return onChange(['approval/changed', 'session/changed', 'sync/changed'], reload)
   })
 </script>
 

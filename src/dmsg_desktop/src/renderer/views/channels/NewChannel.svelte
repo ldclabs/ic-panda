@@ -5,7 +5,7 @@
   import Icon from '../../components/Icon.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { call, CallError, code } from '../../rpc'
+  import { call, CallError, errorText } from '../../rpc'
 
   /** A new channel of a kind, or joining one with an invitation another member gave. */
   let {
@@ -53,7 +53,7 @@
       }
       open = false
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

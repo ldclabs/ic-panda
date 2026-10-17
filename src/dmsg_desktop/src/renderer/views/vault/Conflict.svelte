@@ -10,14 +10,10 @@
   /**
    * Conflict copies side by side with the current version, one at a time:
    * the fields that differ, the body line by line. Keeping one settles the
-   * copy; the daemon records it as resolved either way.
+   * copy; the daemon records it as resolved either way, and its
+   * `vault/changed` reloads the list.
    */
-  let {
-    open = $bindable(false),
-    conflicts,
-    start = 0,
-    reload
-  }: { open?: boolean; conflicts: any[]; start?: number; reload: () => Promise<void> } = $props()
+  let { open = $bindable(false), conflicts, start = 0 }: { open?: boolean; conflicts: any[]; start?: number } = $props()
 
   let index = $state(0)
   let head = $state<any>(null)
@@ -58,7 +54,6 @@
     try {
       await call('vault/resolve', { key: `${copy.id}:${copy.revision}`, keep })
       toast(() => (keep === 'current' ? t('keptCurrent') : t('usedCopy')))
-      await reload()
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
     } finally {

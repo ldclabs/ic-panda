@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte'
   import Icon from '../components/Icon.svelte'
+  import Locked from '../components/page/Locked.svelte'
   import Select from '../components/Select.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { call, code } from '../rpc'
-  import { unlock } from '../shell/session'
+  import { call, code, errorText, onChange, single } from '../rpc'
   import Conflict from './vault/Conflict.svelte'
   import Filters from './vault/Filters.svelte'
   import { focus } from './vault/focus.svelte'
@@ -19,6 +19,7 @@
   /**
    * The vault: filters, the list and the open item side by side. New items
    * and conflict copies open in dialogs. Files have their own library.
+   * Each change reaches the list through the daemon's `vault/changed`.
    */
   let { status, mod }: { status: any; mod: string } = $props()
 
@@ -54,18 +55,16 @@
     { value: 'trash', label: t('trash') }
   ])
 
-  async function load() {
+  const reload = single(async () => {
     try {
-      entries = await call('vault/list')
-      trashed = trash ? await call('vault/list', { trash: true }) : []
-      conflicts = await call('vault/conflicts')
+      ;[entries, trashed, conflicts] = await Promise.all([call('vault/list'), trash ? call('vault/list', { trash: true }) : [], call('vault/conflicts')])
       error = ''
     } catch (e) {
       entries = trashed = conflicts = []
-      error = code(e) === 'LOCKED' ? 'LOCKED' : `${t('error')}: ${code(e)}`
+      error = code(e) === 'LOCKED' ? 'LOCKED' : errorText(e)
     }
     loaded = true
-  }
+  })
 
   // A filter that no longer has items falls back to everything.
   $effect(() => {
@@ -75,7 +74,7 @@
 
   // The trash is read when it is opened.
   $effect(() => {
-    if (trash) void load()
+    if (trash) void reload()
   })
 
   // Keep an item open: the first one when the open one left the list.
@@ -139,16 +138,16 @@
       await work()
       if (done) toast(() => done)
     } catch (e) {
-      toast(() => (code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`))
+      toast(() => errorText(e))
     }
-    await load()
   }
 
   const star = (entry: any) => act(() => call('vault/edit', { id: entry.id, base: entry.revision, changes: { favorite: !entry.item.favorite } }))
   const discard = (entry: any) =>
     act(() => call(trash ? 'vault/restore' : 'vault/delete', { id: entry.id }), trash ? t('restored') : t('movedToTrash'))
+  /** A new item opens once the list holds it. */
   async function saved(id: string) {
-    await load()
+    await reload()
     selected = id
   }
 
@@ -158,10 +157,8 @@
   }
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['vault/changed', 'session/changed', 'sync/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    return onChange(['vault/changed', 'session/changed', 'sync/changed'], reload)
   })
 </script>
 
@@ -169,15 +166,7 @@
 
 <div class="@container relative flex h-full min-h-0" data-testid="vault">
   {#if error === 'LOCKED'}
-    <div class="grid flex-1 place-items-center p-8" data-testid="vault-locked">
-      <div class="grid max-w-sm justify-items-center gap-3 text-center">
-        <span class="grid size-12 place-items-center rounded-2xl border border-line bg-surface text-faint shadow-xs [&_svg]:size-6"><Icon name="lock" /></span>
-        <p class="text-[13.5px] text-muted">{t('locked')}</p>
-        {#if status?.state === 'locked'}
-          <button class={buttonClass('primary')} onclick={() => unlock(status)}>{status?.fast_unlock ? t('fastUnlock') : t('login')}</button>
-        {/if}
-      </div>
-    </div>
+    <Locked {status} testid="vault-locked" />
   {:else}
     <aside class="hidden w-[184px] shrink-0 flex-col border-e border-line @min-[860px]:flex">
       <Filters bind:scope {facets} />
@@ -262,7 +251,6 @@
             {trash}
             {unlocked}
             {mod}
-            reload={load}
             onCompare={() => compare(current.id)}
           />
         {/key}
@@ -277,4 +265,4 @@
 </div>
 
 <NewItem bind:open={creating} {mod} onSaved={saved} />
-<Conflict bind:open={comparing} {conflicts} start={compareFrom} reload={load} />
+<Conflict bind:open={comparing} {conflicts} start={compareFrom} />

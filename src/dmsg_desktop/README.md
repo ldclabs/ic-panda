@@ -46,7 +46,7 @@ desktop is one of its clients, like the CLI.
   it is on, the daemon connection, the language and appearance menus and
   Lock. A title bar names the view and opens the command palette (⌘K, or
   Ctrl+K elsewhere), which goes to any view and runs the session,
-  appearance and language commands; ⌘1–⌘6 and ⌘, go to a view, ⌘L locks.
+  appearance and language commands; ⌘1–⌘8 and ⌘, go to a view, ⌘L locks.
   The sidebar collapses to icons. On macOS the window has no title bar of
   its own: the traffic lights sit over the sidebar, on the window's
   material. A legacy pairing that was started and not imported shows a
@@ -67,12 +67,16 @@ desktop is one of its clients, like the CLI.
     library as a disk when the daemon allows it (`files_mount`), after the
     system's caveat; deleting a cloud copy is a
     second, danger-toned confirmation and leaves the device alone, as the
-    trash leaves the cloud alone. Open hands a temporary copy to its
+    trash leaves the cloud alone. A backup under way can be cancelled
+    from its card. Open hands a temporary copy to its
     program; a copy another program changed is offered as a new version
     before it is removed (`files/open_changed`). Routes `/files`,
     `/files/cloud`, `/files/trash`.
   - Channels: the list, the open channel's timeline by day and its
-    composer, and the members in a drawer. A message shows as sending
+    composer, and the members in a drawer. A channel opens with its latest
+    200 messages and then reads only those after the last one shown. The
+    library's files for an attachment are read when its menu opens. A
+    message shows as sending
     until the relay stores it, and stays with a retry if the daemon
     refused it; unsent text is kept per channel. Attachments come from the
     file library (as shared editions under their own keys) or a file added
@@ -111,11 +115,20 @@ desktop is one of its clients, like the CLI.
     avatar, connected browsers, and the legacy migration.
 
   Pages share a small kit (`components/page`): sections, notices, state
-  pills, ID chips that copy the whole ID, fields, facts and tab bars.
+  pills, ID chips that copy the whole ID, fields, facts, tab bars and the
+  locked placeholder.
+
+  Views follow the daemon's events (`rpc.ts` `onChange`): a view reads
+  again when an event names what it shows, such as `vault/changed`,
+  `files/changed` or `channel/changed`, and on `resync` after missed
+  events. Its reads run one at a time (`shared/single.ts`), so a burst of
+  events reads twice at most, and an action does not read again itself
+  unless it opens what it made. Independent reads go out together.
 
 Rules (`src/main/policy.ts`):
 
-- Windows call only the methods in `WINDOW_METHODS`; `human` is stripped and
+- Windows call only the methods in `WINDOW_METHODS`, those their views use;
+  `human` is stripped and
   requests the desktop starts are marked `source: "gui"`. Methods that name
   local files (`payer/use`, `channel/download`, `attest/verify`) and refunds
   stay with the CLI. Files enter and leave only through the main process's
@@ -206,7 +219,7 @@ macOS it is a template image; on Windows it keeps its green tile.
 
 ```sh
 pnpm --dir src/dmsg_desktop dev        # needs a dmsg binary on PATH or DMSG_BIN
-pnpm --dir src/dmsg_desktop test       # policy, update and language unit tests
+pnpm --dir src/dmsg_desktop test       # policy, update, language and view-rule unit tests
 pnpm --dir src/dmsg_desktop test:e2e   # build, then the Playwright-for-Electron smoke test
 ```
 
@@ -217,7 +230,8 @@ and notifications instead of the system's. It covers:
 - the main window, a `dmsg://` link opening the approval window, refusal of
   decisions from the main window and the exact decision the approval window
   sends;
-- channels: a read and a send, an attachment from the vault, a download, a
+- channels: a read and a send, the timeline's latest page and the reads
+  after it, an attachment from the file library, a download, a
   role change and a history grant from a member's menu, an ownership
   proposal from its dialog, archiving and reopening;
 - the inbox, its contact rules, and a subscription that reaches the daemon
@@ -232,12 +246,15 @@ and notifications instead of the system's. It covers:
 - a web checkout that cannot be approved before it is quoted;
 - the vault: a secret shown and copied only on a second click, an edit that
   names the version it replaces, a new login from its dialog, a conflict
-  copy adopted from the side-by-side dialog, a file imported through the
-  dialog to the relay, a file a page made refused, an item found from the
-  palette and one moved to the trash from its row's menu;
+  copy adopted from the side-by-side dialog and an item found from the
+  palette;
+- the file library: a file added through the dialog, a file a page made
+  refused, a backup cancelled from its card and a file moved to the trash
+  from its row's menu;
 - signatures: an application action opened in the approval window, and a
   bundle exported and verified through dialogs;
-- settings: a login binding approved in the approval window, a device
+- settings: an edit of the signing policy kept while events reload the
+  page, a login binding approved in the approval window, a device
   revocation as an approval request, the avatar shown, set from a picked
   image and removed (the window cannot name a path), the locked daemon's
   `inbox` and `channel` hints notified once each, and switching to another

@@ -14,7 +14,7 @@
   import { toast } from '../components/toast.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, size, units, when } from '../rpc'
+  import { bridge, call, errorText, onChange, single, size, units, when } from '../rpc'
   import Operations from './Operations.svelte'
 
   /**
@@ -55,34 +55,38 @@
     try {
       await work()
     } catch (e) {
-      toast(() => (code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`))
+      toast(() => errorText(e))
     } finally {
       busy = false
     }
   }
 
+  /** The plan, read from the relay again with `refresh`; the catalog once. */
   async function load(refresh = false) {
     try {
-      plan = await call('plan/status', { refresh })
-      catalog ??= await call('plan/catalog')
-      assets = await call('plan/assets')
-      checkouts = await call('plan/checkouts')
-      operations = await call('handle/operations')
+      ;[plan, catalog, assets, checkouts, operations] = await Promise.all([
+        call('plan/status', { refresh }),
+        catalog ?? call('plan/catalog'),
+        call('plan/assets'),
+        call('plan/checkouts'),
+        call('handle/operations')
+      ])
       if (!ledger && assets.length) ledger = assets[0].ledger
       error = ''
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
   }
 
+  const reload = single(() => load())
+
   const approve = async (request: any) => bridge(() => window.dmsg.openApproval(request.id))
 
-  /** A quote only fixes the terms; paying it is a separate approval. */
+  /** A quote only fixes the terms; paying it is a separate approval, whose `approval/changed` reloads the checkouts. */
   const checkout = () =>
     attempt(async () => {
       const job: any = await call('plan/quote', { sku, method: 'cash', selection: ledger })
       await approve(await call('plan/checkout', { id: job.id }))
-      checkouts = await call('plan/checkouts')
     })
 
   const order = (method: string, id: string) =>
@@ -124,10 +128,8 @@
     })
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['approval/changed', 'session/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    return onChange(['approval/changed', 'session/changed'], reload)
   })
 
   const price = (cents: number) => `$${(cents / 100).toFixed(2)}`

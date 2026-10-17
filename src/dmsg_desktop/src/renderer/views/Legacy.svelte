@@ -14,7 +14,7 @@
   import Select from '../components/Select.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { call, code, when } from '../rpc'
+  import { call, errorText, onChange, single, when } from '../rpc'
 
   /**
    * Legacy migration: a one-time offer opens the old site in the system
@@ -66,22 +66,21 @@
       await work()
       notice = done
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }
   }
 
-  async function load() {
-    pairs = await call('legacy/pairs')
-    archives = await call('legacy/list')
-  }
+  /** The offers and kept archives; the daemon's `legacy/changed` reads them again after each change. */
+  const reload = single(async () => {
+    ;[pairs, archives] = await Promise.all([call('legacy/pairs'), call('legacy/list')])
+  })
 
   const pair = () =>
     attempt(async () => {
       offer = await call('legacy/pair', { origin })
       await window.dmsg.openLegacy(offer.link)
-      await load()
       selected = offer.nonce
       confirmed = false
     })
@@ -92,7 +91,6 @@
       if (!result) return
       report = result
       limit = 100
-      await load()
     }, t('legacyKept'))
 
   const open = (id: string) =>
@@ -122,7 +120,6 @@
     attempt(async () => {
       await call('legacy/cancel', { nonce })
       if (selected === nonce) selected = ''
-      await load()
     })
 
   const json = (text: string) => JSON.parse(text)
@@ -197,14 +194,11 @@
   const receive = (grant: string) =>
     attempt(async () => {
       report = await call('legacy/shared_receive', { key: view.key, grant })
-      await load()
     }, t('legacyKept'))
 
   onMount(() => {
-    void attempt(load)
-    return window.dmsg.onEvent((event) => {
-      if (event.type === 'legacy/changed') void load().catch(() => {})
-    })
+    void attempt(reload)
+    return onChange(['legacy/changed'], () => reload().catch(() => {}))
   })
 </script>
 

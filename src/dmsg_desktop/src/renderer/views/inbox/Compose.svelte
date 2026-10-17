@@ -4,13 +4,14 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { bridge, call, code } from '../../rpc'
+  import { bridge, call, errorText } from '../../rpc'
 
   /**
    * A letter to an account. A free one is delivered at once; a paid one
    * comes back quoted and is paid only once the approval window agrees.
+   * The daemon's `inbox/changed` reloads the letters.
    */
-  let { open = $bindable(false), mod, onSent }: { open?: boolean; mod: string; onSent: () => void } = $props()
+  let { open = $bindable(false), mod }: { open?: boolean; mod: string } = $props()
 
   let recipient = $state('')
   let text = $state('')
@@ -40,9 +41,8 @@
       text = ''
       pay = false
       open = false
-      onSent()
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

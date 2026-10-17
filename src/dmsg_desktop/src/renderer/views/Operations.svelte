@@ -33,9 +33,7 @@
   }
 
   async function all() {
-    orders = await call('ops/orders')
-    transfers = await call('ops/transfers')
-    claims = await call('ops/claims')
+    ;[orders, transfers, claims] = await Promise.all([call('ops/orders'), call('ops/transfers'), call('ops/claims')])
   }
 
   const page = (method: string, after: string) =>

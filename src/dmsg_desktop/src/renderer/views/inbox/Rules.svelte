@@ -6,7 +6,7 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t, type Label } from '../../i18n/index.svelte'
-  import { call, code } from '../../rpc'
+  import { call, errorText } from '../../rpc'
 
   /** Who may write to this account: nobody, contacts, everyone, or anyone who pays the price per letter. */
   let { open = $bindable(false), policy, onSaved }: { open?: boolean; policy: any; onSaved: (policy: any) => void } = $props()
@@ -42,7 +42,7 @@
       onSaved(saved)
       open = false
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

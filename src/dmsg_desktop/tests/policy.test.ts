@@ -30,13 +30,12 @@ test('windows never decide or grant, and never send human', () => {
     'mcp/tools'
   ])
     assert.equal(WINDOW_METHODS.has(method), false, method)
-  assert.throws(() => windowParams('approval/respond', { id: 'x', human: true }), /FORBIDDEN/)
+  assert.throws(() => windowParams('approval/respond', { id: 'x', human: true }), { code: 'FORBIDDEN' })
   assert.deepEqual(windowParams('vault/list', { trash: true, human: true }), { trash: true })
   assert.deepEqual(windowParams('attest/request', { source: 'cli', statement: {} }), { source: 'gui', statement: {} })
   for (const method of [
     'inbox/pay',
     'plan/checkout',
-    'plan/advance',
     'handle/claim',
     'handle/register',
     'handle/accept',
@@ -80,7 +79,7 @@ test('windows run only the Mail and Knowledge tools as an Agent ID', () => {
     'dmsg_events_next',
     undefined
   ])
-    assert.throws(() => windowParams('ap/call', { tool, input: {} }), /FORBIDDEN/, String(tool))
+    assert.throws(() => windowParams('ap/call', { tool, input: {} }), { code: 'FORBIDDEN' }, String(tool))
 })
 
 test('dmsg links only navigate', () => {

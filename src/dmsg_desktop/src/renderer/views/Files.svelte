@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte'
+  import { onMount, tick, untrack } from 'svelte'
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
+  import Locked from '../components/page/Locked.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Select from '../components/Select.svelte'
   import { toast } from '../components/toast.svelte'
@@ -9,9 +10,8 @@
   import { buttonClass, cn } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
   import { copyText } from '../components/clipboard'
-  import { bridge, call, code, size } from '../rpc'
-  import { unlock } from '../shell/session'
-  import { added, backups, failed, picked, progress } from './files/adding.svelte'
+  import { bridge, call, code, errorText, onChange, single, size } from '../rpc'
+  import { added, backups, dismiss, failed, picked, progress, type Job } from './files/adding.svelte'
   import Cloud from './files/Cloud.svelte'
   import Detail from './files/Detail.svelte'
   import { matchesFile, ordered, pathOf, ROOT } from './files/files'
@@ -26,7 +26,8 @@
    * folder in the middle, the selected file on the right. Files come in by
    * the system dialog or a drop and are encrypted on this device; backing
    * up, sharing and deleting a cloud copy are explicit actions, each
-   * confirmed, and no deletion on either side reaches the other.
+   * confirmed, and no deletion on either side reaches the other. Each change
+   * comes back through the daemon's `files/changed`.
    */
   let { status, mod, route, go }: { status: any; mod: string; route: string; go: (path: string) => void } = $props()
 
@@ -76,11 +77,11 @@
     return ordered(subfolders, files, locale())
   })
   const current = $derived(selected.length === 1 ? rows.find((r) => r.id === selected[0] && r.kind === 'file') ?? null : null)
+  /** The details follow the selected file's ID, not each new row object a reload or search makes. */
+  const currentId = $derived<string | null>(current?.id ?? null)
   const path = $derived(pathOf(folders, folderScope ? scope : ROOT))
 
-  function fail(e: unknown) {
-    toast(() => (code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`))
-  }
+  const fail = (e: unknown) => toast(() => errorText(e))
 
   async function attempt(work: () => Promise<unknown>, done?: string) {
     busy = true
@@ -111,60 +112,67 @@
     else if (route !== '/files') go('/files')
   }
 
-  async function load() {
+  async function showDetails(id: string | null) {
+    const next = id ? await call('files/show', { id }).catch(() => null) : null
+    if (currentId === id) details = next
+  }
+
+  /** The place shown and the library around it, read together. */
+  const reload = single(async () => {
+    const place = scope
     try {
-      folders = await call('files/tree')
-      if (folderScope) listing = await call('files/list', { folder: scope })
-      else if (scope === 'starred') {
-        const all: any[] = await call('files/search', { query: '' })
-        listing = { folder: null, folders: [], files: all.filter((f) => f.starred) }
-      } else listing = null
-      if (scope === 'trash') trashListing = await call('files/list', { trash: true })
-      if (scope === 'cloud') {
-        cloud = await call('files/cloud_list')
+      const [tree, shown, trashed, cloudList, cloudRoom, local, disk, shares, jobs] = await Promise.all([
+        call('files/tree'),
+        folderScope ? call('files/list', { folder: place }) : place === 'starred' ? call<any[]>('files/search', { query: '' }) : null,
+        place === 'trash' ? call('files/list', { trash: true }) : null,
+        place === 'cloud' ? call('files/cloud_list') : null,
+        place === 'cloud' ? call('files/cloud_usage').catch(() => null) : null,
+        call('files/usage').catch(() => null),
+        call('files/mount_status').catch(() => null),
+        call('files/share_links').catch(() => []),
+        call('files/backup_status').catch(() => [])
+      ])
+      folders = tree
+      listing = Array.isArray(shown) ? { folder: null, folders: [], files: shown.filter((f) => f.starred) } : shown
+      if (trashed) trashListing = trashed
+      if (cloudList) {
+        cloud = cloudList
+        cloudUsage = cloudRoom ?? cloudUsage
         cloudLoaded = true
-        cloudUsage = await call('files/cloud_usage').catch(() => cloudUsage)
       }
-      usage = await call('files/usage').catch(() => null)
-      mount = await call('files/mount_status').catch(() => null)
-      links = await call('files/share_links').catch(() => [])
-      backups(await call('files/backup_status').catch(() => []))
+      usage = local
+      mount = disk
+      links = shares
+      backups(jobs)
       error = ''
     } catch (e) {
       listing = null
       folders = []
-      error = code(e) === 'LOCKED' ? 'LOCKED' : `${t('error')}: ${code(e)}`
+      error = code(e) === 'LOCKED' ? 'LOCKED' : errorText(e)
     }
     loaded = true
     selected = selected.filter((id) => rows.some((r) => r.id === id))
-    if (current) details = await call('files/show', { id: current.id }).catch(() => null)
-    else details = null
-  }
-
-  $effect(() => {
-    void scope
-    void load()
+    await showDetails(currentId)
   })
 
-  // A search across the library once the text leaves this folder's names.
+  // Read untracked: the reload's own reads are not this effect's to follow.
+  $effect(() => {
+    void scope
+    untrack(() => void reload())
+  })
+
+  // The folder's own matches first; a search across the library once the text leaves this folder's names.
   $effect(() => {
     const q = query.trim()
-    if (!q || !folderScope) {
+    if (!q || !folderScope || listing?.files.some((f) => matchesFile(f, q))) {
       found = null
       return
     }
-    const timer = setTimeout(() => void call('files/search', { query: q }).then((list) => (found = list)).catch(() => (found = [])), 150)
+    const timer = setTimeout(() => void call<any[]>('files/search', { query: q }).then((list) => q === query.trim() && (found = list)).catch(() => (found = [])), 150)
     return () => clearTimeout(timer)
   })
 
-  $effect(() => {
-    if (!current) {
-      details = null
-      return
-    }
-    const id = current.id
-    void call('files/show', { id }).then((d) => current?.id === id && (details = d)).catch(() => (details = null))
-  })
+  $effect(() => void showDetails(currentId))
 
   function select(id: string, event?: MouseEvent) {
     if (event && (event.metaKey || event.ctrlKey)) selected = selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]
@@ -209,8 +217,11 @@
       const results: any = await bridge(() => window.dmsg.filesAdd(folder, dropped, directory))
       if (results) {
         added(results, (n) => t('duplicateOf', { n }))
-        await load()
-        if (results.length === 1 && results[0].file) selected = [results[0].file.id]
+        // A single file opens once the list holds it.
+        if (results.length === 1 && results[0].file) {
+          await reload()
+          selected = [results[0].file.id]
+        }
       }
     } catch (e) {
       failed(code(e))
@@ -235,6 +246,7 @@
     if (!unlocked || !folderScope) return
     const dropped = Array.from(event.dataTransfer?.files ?? [])
     if (dropped.length) {
+      // Named here too: a drop the preload refuses never reaches the main process's `files/adding`.
       picked(dropped.map((f) => f.name))
       void add(dropped)
     }
@@ -242,10 +254,10 @@
 
   const open = (id: string, version: string | null) => attempt(() => bridge(() => window.dmsg.filesOpen(id, version)))
   const exportFile = (id: string, version: string | null, name: string) => attempt(() => bridge(() => window.dmsg.filesExport(id, version, name)))
-  const star = (file: any) => attempt(() => call('files/update', { id: file.id, starred: !file.starred }).then(load))
-  const discard = (ids: string[]) => attempt(() => call(scope === 'trash' ? 'files/restore' : 'files/trash', { ids }).then(load), scope === 'trash' ? t('restored') : t('movedToTrash'))
-  const purge = (ids: string[] | null) => attempt(() => call('files/purge', ids ? { ids } : {}).then(load))
-  const move = (ids: string[], folder: string) => attempt(() => call('files/move', { ids, folder }).then(load), t('moved'))
+  const star = (file: any) => attempt(() => call('files/update', { id: file.id, starred: !file.starred }))
+  const discard = (ids: string[]) => attempt(() => call(scope === 'trash' ? 'files/restore' : 'files/trash', { ids }), scope === 'trash' ? t('restored') : t('movedToTrash'))
+  const purge = (ids: string[] | null) => attempt(() => call('files/purge', ids ? { ids } : {}))
+  const move = (ids: string[], folder: string) => attempt(() => call('files/move', { ids, folder }), t('moved'))
 
   const createFolder = () =>
     attempt(async () => {
@@ -253,7 +265,6 @@
       if (!name || !naming) return
       await call('files/mkdir', { parent: naming.parent, name })
       naming = null
-      await load()
     })
   const rename = () =>
     attempt(async () => {
@@ -261,7 +272,6 @@
       if (!name || !renaming) return
       await call('files/rename', { id: renaming.id, name })
       renaming = null
-      await load()
     })
 
   /** Backing up shows what goes and the cloud's room first; nothing is uploaded before the confirmation. */
@@ -278,7 +288,6 @@
       const request: any = await call('files/backup', { ids: backing.ids, all_versions: backing.allVersions })
       backing = null
       if (request.skipped?.length) toast(() => t('backupSkipped', { n: request.skipped.length }))
-      await load()
     }, t('backupStarted'))
 
   async function askShare(id: string, version: string | null, name: string) {
@@ -304,13 +313,8 @@
         max_downloads: linking.maxDownloads,
         password: linking.password || null
       })
-      links = await call('files/share_links').catch(() => links)
     })
-  const revokeLink = (shareId: string) =>
-    attempt(async () => {
-      await call('files/share_revoke', { share_id: shareId })
-      links = await call('files/share_links').catch(() => links)
-    }, t('linkRevoked'))
+  const revokeLink = (shareId: string) => attempt(() => call('files/share_revoke', { share_id: shareId }), t('linkRevoked'))
   const refreshLinks = () => attempt(async () => (links = await call('files/share_links', { refresh: true })))
 
   const mountDisk = () =>
@@ -319,25 +323,25 @@
       mounting = false
     }, t('diskMounted'))
   const unmountDisk = () => attempt(async () => (mount = await call('files/unmount')), t('diskUnmounted'))
-  const refreshCloud = () =>
-    attempt(async () => {
-      await call('files/cloud_refresh')
-      await load()
-    })
-  const fetchBackup = (upload: string, folder: string | null) => attempt(() => call('files/cloud_fetch', { upload_id: upload, folder }).then(load), t('fetched'))
+  const refreshCloud = () => attempt(() => call('files/cloud_refresh'))
+  const fetchBackup = (upload: string, folder: string | null) => attempt(() => call('files/cloud_fetch', { upload_id: upload, folder }), t('fetched'))
   const verifyBackup = (upload: string) =>
     attempt(async () => {
       const check: any = await call('files/cloud_verify', { upload_id: upload })
       toast(() => (check.ok ? t('verified') : `${t('error')}: ${check.error}`))
-      await load()
     })
   const deleteCloud = () =>
     attempt(async () => {
       if (!deletingCloud) return
       await call('files/cloud_delete', { upload_ids: deletingCloud })
       deletingCloud = null
-      await load()
     }, t('cloudDeleted'))
+  /** A cancelled backup leaves its card at once; the daemon keeps the version on this device. */
+  const cancelBackup = (job: Job) =>
+    attempt(async () => {
+      await call('files/backup_cancel', { id: job.name, version: job.version })
+      dismiss(job.key)
+    })
 
   /** A copy another program changed: kept as a new version, or let go; the copy is removed either way. */
   const settleCopy = (save: boolean) =>
@@ -345,18 +349,22 @@
       if (!changedCopy) return
       await call('files/open_cleanup', { nonce: changedCopy.nonce, save })
       changedCopy = null
-      await load()
     })
 
   onMount(() => {
-    return window.dmsg.onEvent((event) => {
+    const offChange = onChange(['files/changed', 'session/changed'], reload)
+    const offWork = window.dmsg.onEvent((event) => {
       const data = (event.data ?? {}) as any
       if (event.type === 'files/adding') picked(Array.isArray(data.names) ? data.names : [])
       else if (event.type === 'files/progress') progress(data)
       else if (event.type === 'files/open_changed') changedCopy = data
-      else if (event.type === 'files/mount_changed') mount = data
-      else if (['files/changed', 'session/changed'].includes(event.type)) void load()
+      // A mount or unmount names only its method; the daemon's own announcement carries the status.
+      else if (event.type === 'files/mount_changed') void call('files/mount_status').then((next) => (mount = next)).catch(() => {})
     })
+    return () => {
+      offChange()
+      offWork()
+    }
   })
 </script>
 
@@ -372,15 +380,7 @@
   data-testid="files"
 >
   {#if error === 'LOCKED'}
-    <div class="grid flex-1 place-items-center p-8" data-testid="files-locked">
-      <div class="grid max-w-sm justify-items-center gap-3 text-center">
-        <span class="grid size-12 place-items-center rounded-2xl border border-line bg-surface text-faint shadow-xs [&_svg]:size-6"><Icon name="lock" /></span>
-        <p class="text-[13.5px] text-muted">{t('locked')}</p>
-        {#if status?.state === 'locked'}
-          <button class={buttonClass('primary')} onclick={() => unlock(status)}>{status?.fast_unlock ? t('fastUnlock') : t('login')}</button>
-        {/if}
-      </div>
-    </div>
+    <Locked {status} testid="files-locked" />
   {:else}
     <aside class="flex w-[220px] shrink-0 flex-col border-e border-line">
       <Tree {folders} {scope} {unlocked} onPick={pick} onDropMove={move} onNewFolder={(parent) => ((naming = { parent }), (draft = ''))} />
@@ -495,18 +495,17 @@
             {/if}
           {/each}
         </ul>
-        <Jobs {names} />
+        <Jobs {names} onCancel={cancelBackup} />
       </section>
 
       <div class="min-w-0 flex-1">
-        {#if current && details}
+        {#if current && details?.file?.id === current.id}
           {#key current.id}
             <Detail
               file={details.file}
               versions={details.versions}
               trash={false}
               {unlocked}
-              reload={load}
               onOpen={(version) => open(current.id, version)}
               onExport={(version) => exportFile(current.id, version, current.name)}
               onBackup={(all) => askBackup([current.id], all)}

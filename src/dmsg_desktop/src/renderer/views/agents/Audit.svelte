@@ -6,7 +6,7 @@
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { call, code, when } from '../../rpc'
+  import { call, code, onChange, single, when } from '../../rpc'
   import { days } from '../channels/channels'
   import { outcomeTone } from './agents'
 
@@ -30,11 +30,12 @@
     }
   }
 
+  /** The first page again, once per burst of changes. */
+  const reload = single(() => load())
+
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['agent/changed', 'approval/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    return onChange(['agent/changed', 'approval/changed'], reload)
   })
 
   const labelOf = (who: string) => (who === 'owner' ? t('owner') : (agents.find((a) => a.agent_id === who)?.label ?? who))

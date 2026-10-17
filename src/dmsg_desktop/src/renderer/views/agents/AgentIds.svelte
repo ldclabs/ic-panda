@@ -20,15 +20,13 @@
     unlocked,
     busy,
     run,
-    attempt,
-    reload
+    attempt
   }: {
     hosted: any
     unlocked: boolean
     busy: boolean
     run: (method: string, params?: Record<string, unknown>) => Promise<void>
     attempt: (work: () => Promise<unknown>) => Promise<void>
-    reload: () => Promise<void>
   } = $props()
 
   let label = $state('')
@@ -37,7 +35,6 @@
   const issue = (agent: string) =>
     attempt(async () => {
       issued = await call('agent/credential', { agent })
-      await reload()
     })
 
   async function create() {

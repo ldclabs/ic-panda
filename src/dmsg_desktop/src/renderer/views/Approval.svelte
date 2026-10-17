@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte'
   import { t, stateLabel, type Label } from '../i18n/index.svelte'
-  import { call, code, units, when } from '../rpc'
+  import { call, code, errorText, onChange, single, units, when } from '../rpc'
   import { holdToApprove, kindOf, trailOf } from '../approval'
   import Collapsible from '../components/Collapsible.svelte'
   import type { Glyph } from '../components/glyphs'
@@ -53,9 +53,11 @@
         rejectButton?.focus()
       }
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
   }
+
+  const reload = single(load)
 
   /** Decide exactly what is shown: the digest of this view goes with the answer. */
   async function decide(approve: boolean) {
@@ -121,9 +123,7 @@
         if (assets.length) selection = assets[0].ledger
       }
     })
-    const off = window.dmsg.onEvent((event) => {
-      if (event.type === 'approval/changed') void load()
-    })
+    const off = onChange(['approval/changed'], reload)
     const clock = setInterval(() => (now = Date.now()), 1000)
     return () => {
       off()

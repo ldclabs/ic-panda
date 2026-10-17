@@ -14,7 +14,9 @@
 // second click and the copy never passes through a window; that an item
 // with a repeated tag opens; that conflict copies resolve side by side; that
 // a library file is added through the main process, which refuses a file a
-// page made; that a device's capabilities change and a device is revoked
+// page made, and a backup under way is cancelled from its card; that a
+// channel opens with its latest page and then reads only what follows; that
+// an edit under way survives the reloads the daemon's events cause; that a device's capabilities change and a device is revoked
 // only through the approval window; that a view the main process opened
 // leaves the others a click away; that channel files, roles, history,
 // archiving and transfers reach the daemon; that the Agents view runs only
@@ -132,6 +134,8 @@ const libraryFile = (id, name, size, status = 'local') => ({
 })
 const library = [libraryFile('23'.repeat(32), 'report.pdf', 1234, 'backed_up')]
 const libraryTrash = []
+/** Backups under way, as `files/backup_status` lists them. */
+const backupJobs = []
 const version = (file) => ({ id: file.current, size: file.size, sha256: file.sha256, created_at: file.created_at, device: '11'.repeat(32), origin: { type: 'imported' }, local: true, backup: file.backup, current: true, status: file.status })
 const endpoints = []
 const grants = []
@@ -299,7 +303,11 @@ const methods = {
     return { trashed: p.ids.length }
   },
   'files/usage': () => ({ files: library.length, trashed: libraryTrash.length, versions: library.length, local_versions: library.length, blobs: 2, blob_bytes: 5330, open_copies: 0, max_file_bytes: 4294967296, trash_days: 30, last_check: null }),
-  'files/backup_status': () => [],
+  'files/backup_status': () => backupJobs,
+  'files/backup_cancel': (p) => {
+    backupJobs.splice(backupJobs.findIndex((j) => j.file === p.id && j.version === p.version), 1)
+    return null
+  },
   'files/share_links': () => [],
   'files/mount_status': () => ({ mounted: false, enabled: false, os: 'macos', supported: true, note: '' }),
   'files/cloud_list': () => [],
@@ -451,7 +459,7 @@ const methods = {
   'connect/sync': () => ({ fetched: 0 }),
   'channel/list': () => [channel],
   'channel/show': () => channel,
-  'channel/messages': () => messages,
+  'channel/messages': (p) => messages.filter((m) => m.seq > (p.after ?? 0)).slice(0, p.limit ?? 200),
   'channel/send': (p) => {
     messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text })
     return { seq: messages.length }
@@ -606,6 +614,37 @@ const methods = {
     return created
   }
 }
+/** The events a method's success announces before its reply, as the daemon's `events_of` names them. */
+const announced = {
+  'vault/put': ['vault/changed'],
+  'vault/edit': ['vault/changed'],
+  'vault/delete': ['vault/changed'],
+  'vault/resolve': ['vault/changed'],
+  'sync/run': ['sync/changed', 'vault/changed'],
+  'files/import': ['files/changed'],
+  'files/update': ['files/changed'],
+  'files/trash': ['files/changed'],
+  'files/save_shared': ['files/changed'],
+  'files/backup_cancel': ['files/changed'],
+  'channel/send': ['channel/changed'],
+  'channel/send_file': ['channel/changed'],
+  'channel/control': ['channel/changed'],
+  'channel/history': ['channel/changed'],
+  'channel/reactivate': ['channel/changed'],
+  'channel/owner_propose': ['channel/changed'],
+  'inbox/configure': ['inbox/changed'],
+  'session/switch': ['session/changed', 'approval/changed'],
+  'attest/request': ['approval/changed'],
+  'attest/action': ['approval/changed'],
+  'device/capabilities': ['approval/changed'],
+  'device/revoke': ['approval/changed'],
+  'account/bind_approve': ['approval/changed'],
+  'approval/quote': ['approval/changed'],
+  'plan/checkout': ['approval/changed'],
+  'agent/grant': ['approval/changed'],
+  'grants/add': ['agent/changed'],
+  'ap/call': ['agent/changed']
+}
 const server = createServer((_req, res) => res.writeHead(404).end())
 const wss = new WebSocketServer({ noServer: true })
 server.on('upgrade', (req, socket, head) => {
@@ -622,6 +661,7 @@ server.on('upgrade', (req, socket, head) => {
       const reply = handler
         ? { jsonrpc: '2.0', id: message.id, result: handler(message.params ?? {}) }
         : { jsonrpc: '2.0', id: message.id, error: { code: -32601, message: 'method not found', data: { code: 'NOT_FOUND' } } }
+      if (handler) for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
       ws.send(JSON.stringify(reply))
     })
     ws.on('close', () => (sockets = sockets.filter((s) => s !== ws)))
@@ -757,6 +797,10 @@ try {
   await waitFor(() => latest('channel/send'))
   await main.waitForSelector('[data-testid="channel-messages"] article:not([data-testid]) >> text=Reply from the desktop')
   assert.equal(await main.locator('[data-testid="message-outgoing"]').count(), 0)
+  // A channel opens with its latest page; later reads ask only for what follows the last message shown.
+  const pages = calls.filter((c) => c.method === 'channel/messages').map((c) => c.params)
+  assert.deepEqual(pages[0], { id: channel.id, after: 0, limit: 200 })
+  assert.ok(pages.slice(1).some((p) => p.after === 2))
 
   // A library file goes with a message as a shared edition; a shared file
   // is saved where the main process's dialog says, or into the library;
@@ -1024,6 +1068,15 @@ try {
   await main.click('[data-testid="files-list"] >> text=report.pdf')
   await main.waitForSelector('[data-testid="files-status"] >> text=/Backed up/')
   await main.screenshot({ path: join(shots, 'files.png') })
+  // A backup under way is cancelled from its card, which then leaves.
+  backupJobs.push({ file: '23'.repeat(32), version: 'v1', upload_id: '72'.repeat(32), size: 1234, sent: 1, chunks: 4, created_at: Date.now(), error: null })
+  emit('files/changed')
+  await main.waitForSelector('[data-testid="files-job"][data-kind="backup"] >> text=report.pdf')
+  await main.locator('[data-testid="files-job"][data-kind="backup"]').screenshot({ path: join(shots, 'files-backup-job.png') })
+  await main.click('[data-testid="files-job"][data-kind="backup"] [data-testid="files-job-cancel"]')
+  await waitFor(() => latest('files/backup_cancel'))
+  assert.deepEqual(latest('files/backup_cancel').params, { id: '23'.repeat(32), version: 'v1' })
+  await main.waitForSelector('[data-testid="files-job"][data-kind="backup"]', { state: 'detached' })
   await answer('__open', join(picks, 'release.tar'))
   await main.click('[data-testid="files-add"]')
   await main.waitForSelector('[data-testid="files-job"][data-stage="done"] >> text=release.tar')
@@ -1078,6 +1131,13 @@ try {
   assert.ok((await main.textContent('[data-testid="local-accounts"]')).includes(other))
   await main.click('[data-testid="settings-security"]')
   await main.waitForSelector('[data-testid="logins"]')
+  // An edit under way stays when the daemon's events reload the page.
+  await main.fill('[data-testid="daily-executions"]', '7')
+  const securityReads = calls.filter((c) => c.method === 'account/security').length
+  emit('approval/changed')
+  await waitFor(() => calls.filter((c) => c.method === 'account/security').length > securityReads)
+  await new Promise((r) => setTimeout(r, 300))
+  assert.equal(await main.inputValue('[data-testid="daily-executions"]'), '7')
   await main.fill('[data-testid="approve-request"]', 'binding-token')
   await main.fill('[data-testid="approve-shown"]', 'aaaaa-aa')
   await main.click('button:has-text("Approve the login"), button:has-text("批准绑定登录")')

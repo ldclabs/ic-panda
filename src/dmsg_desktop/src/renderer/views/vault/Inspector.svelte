@@ -9,7 +9,7 @@
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { ago, call, code, when } from '../../rpc'
+  import { ago, call, errorText, when } from '../../rpc'
   import SecretField from './SecretField.svelte'
   import { fields, typeIcon, typeLabel, typeOf } from './vault'
 
@@ -17,7 +17,8 @@
    * One item, opened: its fields with their actions beside them, the body,
    * and where the version stands. Edit turns the fields into a form whose
    * save names the version it replaces; if another device moved on, the
-   * daemon keeps both as a conflict.
+   * daemon keeps both as a conflict. The daemon's `vault/changed` reloads
+   * the vault after each change.
    */
   let {
     entry,
@@ -25,7 +26,6 @@
     trash,
     unlocked,
     mod,
-    reload,
     onCompare
   }: {
     entry: any
@@ -33,7 +33,6 @@
     trash: boolean
     unlocked: boolean
     mod: string
-    reload: () => Promise<void>
     onCompare: () => void
   } = $props()
 
@@ -50,14 +49,14 @@
       await work()
       if (done) toast(() => done)
     } catch (error) {
-      toast(() => (code(error) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(error)}`))
+      toast(() => errorText(error))
     } finally {
       busy = false
     }
   }
 
-  const star = () => attempt(() => call('vault/edit', { id: entry.id, base: entry.revision, changes: { favorite: !item.favorite } }).then(reload))
-  const discard = () => attempt(() => call(trash ? 'vault/restore' : 'vault/delete', { id: entry.id }).then(reload), trash ? t('restored') : t('movedToTrash'))
+  const star = () => attempt(() => call('vault/edit', { id: entry.id, base: entry.revision, changes: { favorite: !item.favorite } }))
+  const discard = () => attempt(() => call(trash ? 'vault/restore' : 'vault/delete', { id: entry.id }), trash ? t('restored') : t('movedToTrash'))
   /** The form keeps the version it started from: a version synced in meanwhile makes the save a conflict, not an overwrite. */
   function startEdit() {
     editing = { base: entry.revision, title: item.title, tags: [...item.tags], body: item.body, username: item.username, url: item.url, secret: '' }
@@ -71,7 +70,6 @@
       if (has.includes('secret') && editing.secret) changes.secret = editing.secret
       await call('vault/edit', { id: entry.id, base: editing.base, changes })
       editing = null
-      await reload()
     }, t('saved'))
 
   function onFormKey(event: KeyboardEvent) {

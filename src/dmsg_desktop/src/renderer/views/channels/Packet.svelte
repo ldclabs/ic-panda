@@ -10,9 +10,10 @@
   /**
    * A transfer packet another device handed over: a proposal to this
    * account is accepted here and goes back to the owner; an accepted one
-   * is committed here by the owner who proposed it.
+   * is committed here by the owner who proposed it. The daemon's
+   * `channel/changed` reloads the channels.
    */
-  let { open = $bindable(false), onSettled }: { open?: boolean; onSettled: (channel?: string) => void } = $props()
+  let { open = $bindable(false) }: { open?: boolean } = $props()
 
   let packet = $state('')
   let handed = $state('')
@@ -48,7 +49,6 @@
         toast(() => t('packetCommitted'))
         open = false
       }
-      onSettled(parsed.channel)
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
     } finally {

@@ -4,7 +4,7 @@
   import TabBar from '../components/page/TabBar.svelte'
   import { toast } from '../components/toast.svelte'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code } from '../rpc'
+  import { bridge, call, code, errorText, onChange, single } from '../rpc'
   import AgentIds from './agents/AgentIds.svelte'
   import Audit from './agents/Audit.svelte'
   import Capabilities from './agents/Capabilities.svelte'
@@ -15,7 +15,8 @@
   /**
    * Agents in parts: the account's principal with its controllers and
    * credentials, the hosted Agent IDs, what each may reach, Agent Mail and
-   * Knowledge, MCP Events endpoints, and the audit record.
+   * Knowledge, MCP Events endpoints, and the audit record. Each change
+   * comes back through the daemon's `agent/changed` or `approval/changed`.
    */
   let { status }: { status: any } = $props()
 
@@ -30,7 +31,7 @@
 
   const unlocked = $derived(status?.state === 'unlocked')
 
-  const fail = (e: unknown) => toast(() => (code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`))
+  const fail = (e: unknown) => toast(() => errorText(e))
 
   async function attempt(work: () => Promise<unknown>) {
     busy = true
@@ -43,16 +44,14 @@
     }
   }
 
-  async function load() {
+  const reload = single(async () => {
     try {
-      hosted = await call('agent/ids')
-      principal = await call('agent/principal')
-      grants = await call('grants/list')
+      ;[hosted, principal, grants] = await Promise.all([call('agent/ids'), call('agent/principal'), call('grants/list')])
       credentials = principal ? await call('agent/credentials') : []
     } catch (e) {
       if (code(e) !== 'LOCKED') fail(e)
     }
-  }
+  })
 
   /** Principal changes and grants are approval requests the approval window decides. */
   const request = (method: string, params: Record<string, unknown> = {}) =>
@@ -61,17 +60,11 @@
       await bridge(() => window.dmsg.openApproval(created.id))
     })
 
-  const run = (method: string, params: Record<string, unknown> = {}) =>
-    attempt(async () => {
-      await call(method, params)
-      await load()
-    })
+  const run = (method: string, params: Record<string, unknown> = {}) => attempt(() => call(method, params))
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['approval/changed', 'session/changed', 'agent/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    return onChange(['approval/changed', 'session/changed', 'agent/changed'], reload)
   })
 
   const tabs = $derived([
@@ -90,7 +83,7 @@
     {#if tab === 'overview'}
       <Page><Overview {principal} {credentials} {hosted} {unlocked} {busy} {request} {run} /></Page>
     {:else if tab === 'ids'}
-      <Page><AgentIds {hosted} {unlocked} {busy} {run} {attempt} reload={load} /></Page>
+      <Page><AgentIds {hosted} {unlocked} {busy} {run} {attempt} /></Page>
     {:else if tab === 'capabilities'}
       <Page wide><Capabilities {hosted} {grants} {unlocked} {busy} {run} /></Page>
     {:else if tab === 'mail'}

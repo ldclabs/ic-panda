@@ -7,7 +7,7 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { call, code } from '../../rpc'
+  import { call, errorText } from '../../rpc'
   import { fields, typeIcon, typeLabel, types, type ItemType } from './vault'
 
   /**
@@ -55,7 +55,7 @@
       toast(() => t('saved'))
       onSaved(entry.id)
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

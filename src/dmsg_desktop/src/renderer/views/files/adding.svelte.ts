@@ -10,8 +10,10 @@ export type Stage = 'running' | 'done' | 'error'
 export interface Job {
   key: number
   kind: Kind
-  /** The file's name, or the path the daemon reports. */
+  /** The file's name, or the path the daemon reports; a backup's file ID. */
   name: string
+  /** A backup's version, which cancelling it names. */
+  version?: string
   done: number
   total: number
   stage: Stage
@@ -91,10 +93,11 @@ export function failed(code: string) {
 }
 
 /** Backups the daemon reports in flight, from `files/backup_status`. */
-export function backups(list: { file: string; sent: number; chunks: number; error?: string | null; committed?: boolean }[]) {
+export function backups(list: { file: string; version: string; sent: number; chunks: number; error?: string | null; committed?: boolean }[]) {
   for (const entry of list) {
     let job = jobs.find((j) => j.kind === 'backup' && j.name === entry.file && j.stage !== 'done')
     job ??= start('backup', entry.file)
+    job.version = entry.version
     job.done = entry.sent
     job.total = entry.chunks
     if (entry.error) {

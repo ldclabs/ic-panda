@@ -9,7 +9,7 @@
   import Select from '../../components/Select.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { call, code, when } from '../../rpc'
+  import { call, errorText, onChange, single, when } from '../../rpc'
 
   /**
    * MCP Events endpoints on the relay: an upstream subscription posts to the
@@ -33,17 +33,19 @@
     try {
       await work()
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }
   }
 
-  const load = () =>
+  const reload = single(() =>
     attempt(async () => {
-      relay = await call('mcp-events/status')
-      endpoints = (await call('mcp-events/list')).endpoints
+      const [state, list] = await Promise.all([call('mcp-events/status'), call('mcp-events/list')])
+      relay = state
+      endpoints = list.endpoints
     })
+  )
 
   const create = () =>
     attempt(async () => {
@@ -73,10 +75,8 @@
     })
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['mcp-events/changed', 'session/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    return onChange(['mcp-events/changed', 'session/changed'], reload)
   })
 
   const labelOf = (did?: string | null) => (did ? (agents.find((a) => a.agent_id === did)?.label ?? did) : t('owner'))

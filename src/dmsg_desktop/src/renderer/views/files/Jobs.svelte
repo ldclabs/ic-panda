@@ -4,8 +4,8 @@
   import { t } from '../../i18n/index.svelte'
   import { dismiss, jobs, type Job } from './adding.svelte'
 
-  /** Cards for what the library has under way: adding, backing up, fetching. */
-  let { names }: { names: Record<string, string> } = $props()
+  /** Cards for what the library has under way: adding, backing up, fetching. A backup under way can be cancelled. */
+  let { names, onCancel }: { names: Record<string, string>; onCancel: (job: Job) => void } = $props()
 
   const label = (job: Job) => (job.kind === 'add' ? job.name : names[job.name] ?? job.name)
   const verb = (job: Job) => (job.kind === 'add' ? t('adding') : job.kind === 'backup' ? t('statusBackingUp') : job.kind === 'fetch' ? t('fetchFile') : t('verifying'))
@@ -26,7 +26,9 @@
           <Icon name={job.stage === 'done' ? 'verified' : job.stage === 'error' ? 'warning' : icon(job)} class={cn('shrink-0', job.stage === 'done' ? 'text-ok' : job.stage === 'error' ? 'text-danger' : 'text-faint')} />
           <b class="min-w-0 flex-1 truncate text-[12.5px] font-medium">{label(job)}</b>
           <span class="text-[11px] text-faint tabular-nums">{job.total ? `${job.done}/${job.total}` : ''}</span>
-          {#if job.stage !== 'running'}
+          {#if job.kind === 'backup' && job.stage !== 'done' && job.version}
+            <button class={buttonClass('ghost', 'xs', '-me-1 h-6 px-1.5')} onclick={() => onCancel(job)} data-testid="files-job-cancel">{t('cancelBackup')}</button>
+          {:else if job.stage !== 'running'}
             <button class={buttonClass('ghost', 'xs', '-me-1 size-6 px-0')} aria-label={t('dismiss')} onclick={() => dismiss(job.key)}>
               <Icon name="close" />
             </button>

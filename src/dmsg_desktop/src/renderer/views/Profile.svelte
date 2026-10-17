@@ -9,7 +9,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code } from '../rpc'
+  import { bridge, call, errorText } from '../rpc'
 
   /** This account's signed public profile, and other accounts' checked against their devices. */
   let { status }: { status: any } = $props()
@@ -31,7 +31,7 @@
     try {
       await work()
     } catch (e) {
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

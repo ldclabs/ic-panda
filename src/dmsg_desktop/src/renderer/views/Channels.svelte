@@ -5,11 +5,12 @@
   import Avatar from '../components/Avatar.svelte'
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
+  import Locked from '../components/page/Locked.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
-  import { bridge, call, code } from '../rpc'
+  import { bridge, call, code, errorText, onChange, single } from '../rpc'
   import { kindLabel, powers, roleLabel, statusLabel } from './channels/channels'
   import Members from './channels/Members.svelte'
   import NewChannel from './channels/NewChannel.svelte'
@@ -20,7 +21,8 @@
   /**
    * Channels: the list, the open channel's timeline and composer, and its
    * members in a drawer. Creating, joining, transfers and history grants
-   * open in dialogs.
+   * open in dialogs. Each change comes back through the daemon's
+   * `channel/changed`.
    */
   let { status }: { status: any } = $props()
 
@@ -45,6 +47,9 @@
   let leaving = $state(false)
   let sent = 0
 
+  /** How many messages a channel opens with, its latest; later ones are added as they arrive. */
+  const PAGE = 200
+
   const unlocked = $derived(status?.state === 'unlocked')
   const me = $derived<string | undefined>(status?.account)
   const ledger = $derived(channel?.ledger)
@@ -67,7 +72,7 @@
     }
   })
 
-  const fail = (e: unknown) => toast(() => (code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`))
+  const fail = (e: unknown) => toast(() => errorText(e))
 
   async function attempt(work: () => Promise<unknown>) {
     busy = true
@@ -80,40 +85,50 @@
     }
   }
 
-  async function load() {
+  const reload = single(async () => {
     try {
       channels = await call('channel/list')
       error = ''
+      if (selected && !channels.some((c) => c.id === selected)) selected = channel = null
       if (selected) await open(selected)
     } catch (e) {
       channels = []
-      error = code(e) === 'LOCKED' ? 'LOCKED' : `${t('error')}: ${code(e)}`
+      error = code(e) === 'LOCKED' ? 'LOCKED' : errorText(e)
     }
-  }
+  })
 
+  /** A channel and its latest messages; the one already shown only gains the messages after its last. */
   async function open(id: string) {
     selected = id
-    const [shownChannel, list] = await Promise.all([call('channel/show', { id }), call<any[]>('channel/messages', { id })])
+    const last = channel?.id === id ? (messages.at(-1)?.seq ?? 0) : null
+    const [next, list] =
+      last === null
+        ? await call('channel/show', { id }).then(async (next) => [next, await call<any[]>('channel/messages', { id, after: Math.max(0, next.message_cursor - PAGE), limit: PAGE })])
+        : await Promise.all([call('channel/show', { id }), call<any[]>('channel/messages', { id, after: last, limit: PAGE })])
     if (selected !== id) return
-    channel = shownChannel
-    messages = list
-    files = (await call<any[]>('files/search', { query: '' }).catch(() => [])).filter((f) => f.status !== 'cloud_only' && f.status !== 'too_large').slice(0, 20)
+    const shown = channel?.id === id ? messages : []
+    const after = shown.at(-1)?.seq ?? 0
+    channel = next
+    messages = [...shown, ...list.filter((m: any) => m.seq > after)]
   }
 
   const pick = (id: string) => attempt(() => open(id))
 
-  const read = () =>
-    attempt(async () => {
-      await call('channel/sync', { id: channel.id })
-      await open(channel.id)
-    })
+  /** The library's files that can go with a message, read when the attachment menu opens. */
+  async function attachments() {
+    const all = await call<any[]>('files/search', { query: '' }).catch(() => [])
+    files = all.filter((f) => f.status !== 'cloud_only' && f.status !== 'too_large').slice(0, 20)
+  }
 
+  const read = () => attempt(() => call('channel/sync', { id: channel.id }))
+
+  /** A message stays in the outbox until the timeline holds it. */
   async function deliver(id: string, item: Outgoing) {
     try {
       if (item.file) await call('channel/send_file', { id, file: item.file.id, text: item.text })
       else await call('channel/send', { id, text: item.text })
+      await reload()
       outbox[id] = (outbox[id] ?? []).filter((o) => o.key !== item.key)
-      if (selected === id) await open(id)
     } catch (e) {
       const waiting = (outbox[id] ?? []).find((o) => o.key === item.key)
       if (waiting) waiting.error = code(e)
@@ -145,9 +160,7 @@
     attempt(async () => {
       const results: any[] | null = await bridge(() => window.dmsg.filesAdd('root'))
       const file = results?.[0]?.file
-      if (!file) return
-      await open(channel.id)
-      attached[channel.id] = { id: file.id, name: file.name }
+      if (file) attached[channel.id] = { id: file.id, name: file.name }
     })
 
   const download = (message: any) =>
@@ -164,30 +177,15 @@
       toast(() => `${t('savedToLibrary')} · ${result.file?.name ?? message.file.name}`, { testid: 'channel-notice' })
     })
 
-  const control = (action: Record<string, unknown>) =>
-    attempt(async () => {
-      await call('channel/control', { id: channel.id, action })
-      await open(channel.id)
-    })
-
-  const rotate = () =>
-    attempt(async () => {
-      await call('channel/rotate', { id: channel.id })
-      await open(channel.id)
-    })
-
-  const reactivate = () =>
-    attempt(async () => {
-      await call('channel/reactivate', { id: channel.id })
-      await open(channel.id)
-    })
+  const control = (action: Record<string, unknown>) => attempt(() => call('channel/control', { id: channel.id, action }))
+  const rotate = () => attempt(() => call('channel/rotate', { id: channel.id }))
+  const reactivate = () => attempt(() => call('channel/reactivate', { id: channel.id }))
 
   const leave = () =>
     attempt(async () => {
       await call('channel/leave', { id: channel.id })
       leaving = false
       toast(() => t('left'))
-      await load()
     })
 
   async function invite(account: string): Promise<string | null> {
@@ -206,30 +204,23 @@
       await call('channel/history', { id: channel.id, account: member.account, from: Number(from), to: Number(to) })
       toast(() => `${t('historyGranted')} ${from}–${to}`)
       history.open = false
-      await open(channel.id)
     })
 
+  /** A channel created or joined opens once the list holds it. */
   async function opened(id: string) {
-    channels = await call('channel/list').catch(() => channels)
-    await pick(id)
+    selected = id
+    await reload()
   }
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['channel/changed', 'session/changed', 'sync/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    return onChange(['channel/changed', 'session/changed', 'sync/changed'], reload)
   })
 </script>
 
 <div class="@container relative flex h-full min-h-0">
   {#if error === 'LOCKED'}
-    <div class="grid flex-1 place-items-center p-8 text-center">
-      <div class="grid justify-items-center gap-3">
-        <span class="grid size-12 place-items-center rounded-2xl border border-line bg-surface text-faint shadow-xs [&_svg]:size-6"><Icon name="lock" /></span>
-        <p class="max-w-sm text-[13.5px] text-muted">{t('locked')}</p>
-      </div>
-    </div>
+    <Locked {status} />
   {:else}
     <section class="flex w-[248px] shrink-0 flex-col border-e border-line @min-[1100px]:w-[284px]">
       <div class="flex items-center gap-1.5 p-3 pb-2">
@@ -420,6 +411,7 @@
           onRetry={retry}
           onDiscard={discard}
           onImport={importFile}
+          onAttach={attachments}
           onDownload={download}
           onSave={save}
         />
@@ -449,7 +441,7 @@
 </div>
 
 <NewChannel bind:open={creating} bind:tab={createTab} onOpened={opened} />
-<Packet bind:open={settling} onSettled={() => load()} />
+<Packet bind:open={settling} />
 {#if channel}
   <Transfer bind:open={transfer.open} kind={transfer.kind} {channel} {me} />
   <Dialog bind:open={leaving} title={t('leaveTitle', { name: channel.name })} description={t('leaveHint')} icon="leave" tone="danger" testid="channel-leave-dialog">

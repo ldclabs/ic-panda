@@ -9,21 +9,21 @@
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { ago, call, code, size, when } from '../../rpc'
+  import { ago, call, errorText, size, when } from '../../rpc'
   import { fileIcon, originLabel, previewable, statusIcon, statusLabel, statusOf, statusTone, type Status } from './files'
 
   /**
    * One file, opened: a preview, its tags and note, where each version
    * stands (on this device, in the cloud, both) and what can be done with
    * it. Backups, sharing and deleting are explicit actions here; nothing
-   * about the file leaves the device otherwise.
+   * about the file leaves the device otherwise. Each change comes back
+   * through the daemon's `files/changed`.
    */
   let {
     file,
     versions,
     trash,
     unlocked,
-    reload,
     onOpen,
     onExport,
     onBackup,
@@ -41,7 +41,6 @@
     versions: any[]
     trash: boolean
     unlocked: boolean
-    reload: () => Promise<void>
     onOpen: (version: string | null) => void
     onExport: (version: string | null) => void
     onBackup: (allVersions: boolean) => void
@@ -73,7 +72,7 @@
       await work()
       if (done) toast(() => done)
     } catch (error) {
-      toast(() => (code(error) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(error)}`))
+      toast(() => errorText(error))
     } finally {
       busy = false
     }
@@ -106,13 +105,12 @@
     return new TextDecoder().decode(bytes)
   }
 
-  const star = () => attempt(() => call('files/update', { id: file.id, starred: !file.starred }).then(reload))
-  const tags = (next: string[]) => attempt(() => call('files/update', { id: file.id, tags: next }).then(reload))
+  const star = () => attempt(() => call('files/update', { id: file.id, starred: !file.starred }))
+  const tags = (next: string[]) => attempt(() => call('files/update', { id: file.id, tags: next }))
   const saveNote = () =>
     attempt(async () => {
       await call('files/update', { id: file.id, note })
       editingNote = false
-      await reload()
     }, t('saved'))
   const verify = () =>
     attempt(async () => {
@@ -121,9 +119,9 @@
       const bad = report.versions.filter((v: any) => !v.ok)
       checked = bad.length ? `${t('error')}: ${bad[0].error}` : `${t('verified')} · ${size(file.size)} · sha256 ${String(file.sha256).slice(0, 16)}…`
     })
-  const useVersion = (version: string) => attempt(() => call('files/version_use', { id: file.id, version }).then(reload))
-  const deleteVersion = (version: string) => attempt(() => call('files/version_delete', { id: file.id, version }).then(reload))
-  const evict = (version: string) => attempt(() => call('files/evict', { id: file.id, version }).then(reload))
+  const useVersion = (version: string) => attempt(() => call('files/version_use', { id: file.id, version }))
+  const deleteVersion = (version: string) => attempt(() => call('files/version_delete', { id: file.id, version }))
+  const evict = (version: string) => attempt(() => call('files/evict', { id: file.id, version }))
 
   const tones: Record<string, string> = { neutral: 'text-faint', forest: 'text-forest', gem: 'text-gem', warn: 'text-warn', danger: 'text-danger', ok: 'text-ok' }
   const dateFormat = $derived(new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }))

@@ -1,4 +1,6 @@
-import { locale } from './i18n/index.svelte'
+import { locale, t } from './i18n/index.svelte'
+
+export { single } from '../shared/single'
 
 /** Calls through `window.dmsg`, with the daemon's error code split off. */
 export class CallError extends Error {
@@ -28,6 +30,19 @@ export const call = <T = any>(method: string, params?: unknown): Promise<T> =>
 
 export function code(error: unknown): string {
   return error instanceof CallError ? error.code : 'UNAVAILABLE'
+}
+
+/** A failure for people: locked, or the error code. */
+export const errorText = (error: unknown) => (code(error) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(error)}`)
+
+/**
+ * Reload on the daemon events that change what a view shows, and on
+ * `resync`, which says events were missed. Returns the unsubscribe.
+ */
+export function onChange(types: string[], reload: () => unknown): () => void {
+  return window.dmsg.onEvent((event) => {
+    if (event.type === 'resync' || types.includes(event.type)) void reload()
+  })
 }
 
 /** A time in the interface language. */

@@ -4,11 +4,12 @@
   import Avatar from '../components/Avatar.svelte'
   import { copyText } from '../components/clipboard'
   import Icon from '../components/Icon.svelte'
+  import Locked from '../components/page/Locked.svelte'
   import { toast } from '../components/toast.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
-  import { ago, call, code, when } from '../rpc'
+  import { ago, call, code, errorText, onChange, single, when } from '../rpc'
   import { shortId } from '../shell/session'
   import Compose from './inbox/Compose.svelte'
   import Rules from './inbox/Rules.svelte'
@@ -48,32 +49,29 @@
     try {
       await work()
     } catch (e) {
-      toast(() => (code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`))
+      toast(() => errorText(e))
     } finally {
       busy = false
     }
   }
 
-  async function load() {
+  const reload = single(async () => {
     try {
       ;[letters, outgoing, policy] = await Promise.all([call('inbox/list'), call('inbox/outgoing'), call('inbox/policy')])
       error = ''
     } catch (e) {
       letters = outgoing = []
-      error = code(e) === 'LOCKED' ? 'LOCKED' : `${t('error')}: ${code(e)}`
+      error = code(e) === 'LOCKED' ? 'LOCKED' : errorText(e)
     }
-  }
+  })
 
   // Keep a letter open: the first one when the open one left the list.
   $effect(() => {
     if (!list.some((l) => l.order_id === selected)) selected = list[0]?.order_id ?? null
   })
 
-  const mark = (target: any, read: boolean, archived: boolean) =>
-    attempt(async () => {
-      await call('inbox/mark', { order: target.order_id, read, archived })
-      letters = await call('inbox/list')
-    })
+  /** The daemon's `inbox/changed` reloads the letters. */
+  const mark = (target: any, read: boolean, archived: boolean) => attempt(() => call('inbox/mark', { order: target.order_id, read, archived }))
 
   const check = (target: any) =>
     attempt(async () => {
@@ -93,10 +91,8 @@
     })
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['inbox/changed', 'session/changed', 'approval/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    return onChange(['inbox/changed', 'session/changed', 'approval/changed'], reload)
   })
 
   const tabClass =
@@ -109,12 +105,7 @@
 
 <div class="@container flex h-full min-h-0">
   {#if error === 'LOCKED'}
-    <div class="grid flex-1 place-items-center p-8 text-center">
-      <div class="grid justify-items-center gap-3">
-        <span class="grid size-12 place-items-center rounded-2xl border border-line bg-surface text-faint shadow-xs [&_svg]:size-6"><Icon name="lock" /></span>
-        <p class="max-w-sm text-[13.5px] text-muted">{t('locked')}</p>
-      </div>
-    </div>
+    <Locked {status} />
   {:else}
     <section class="flex w-[280px] shrink-0 flex-col border-e border-line @min-[900px]:w-[320px]">
       <div class="grid gap-2 p-3 pb-2">
@@ -284,5 +275,5 @@
   {/if}
 </div>
 
-<Compose bind:open={writing} {mod} onSent={load} />
+<Compose bind:open={writing} {mod} />
 <Rules bind:open={ruling} {policy} onSaved={(next) => (policy = next)} />

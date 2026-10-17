@@ -13,14 +13,15 @@
   import { toast } from '../components/toast.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, units, when } from '../rpc'
+  import { bridge, call, code, errorText, onChange, single, units, when } from '../rpc'
 
   /**
    * Team wallets: one canister per team. Proposing, executing what members
    * approved, broadcasting, reading and refunding an activation payment
    * that created no wallet run here; creating, joining, deciding and
    * cosigning open the approval window. The wallet signs every transaction;
-   * this device checks each plan with its own decoder first.
+   * this device checks each plan with its own decoder first. Each change
+   * comes back through the daemon's `wallet/changed` or `approval/changed`.
    */
   let { status }: { status: any } = $props()
 
@@ -52,6 +53,8 @@
   let maxFee = $state('10000')
   // Cosigner key.
   let cosignerLabel = $state('')
+  /** The wallet whose balances and audit are shown; they are read again only on request. */
+  let opened = ''
 
   const unlocked = $derived(status?.state === 'unlocked')
   const me = $derived(wallet?.me)
@@ -86,43 +89,42 @@
     try {
       await work()
     } catch (e) {
-      toast(() => (code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`))
+      toast(() => errorText(e))
     } finally {
       busy = false
     }
   }
 
-  async function load() {
+  /** The hub and ledger reads behind the deposits may fail on their own; the list waits for the next load. */
+  const readDeposits = () => call<any[]>('wallet/deposits').catch(() => [])
+
+  const reload = single(async () => {
     if (!unlocked) return
     try {
-      wallets = await call('wallet/list')
-      principal = (await call('wallet/principal')).principal
-      cosigners = await call('wallet/cosigners')
+      const [list, mine, keys, paid] = await Promise.all([call('wallet/list'), call('wallet/principal'), call('wallet/cosigners'), readDeposits()])
+      wallets = list
+      principal = mine.principal
+      cosigners = keys
+      deposits = paid
       if (!selected && wallets.length) selected = wallets[0].wallet
       error = ''
       if (selected) await open(selected)
-      await loadDeposits()
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
     }
-  }
-
-  /** The hub and ledger reads behind it may fail on their own; the list waits for the next load. */
-  async function loadDeposits() {
-    try {
-      deposits = await call('wallet/deposits')
-    } catch {
-      deposits = []
-    }
-  }
+  })
 
   async function open(id: string) {
     selected = id
-    balances = null
-    audit = null
+    if (opened !== id) {
+      opened = id
+      balances = null
+      audit = null
+    }
     try {
-      wallet = await call('wallet/show', { wallet: id })
-      proposals = (await call('wallet/proposals', { wallet: id, limit: 50 })).proposals
+      const [shown, page] = await Promise.all([call('wallet/show', { wallet: id }), call('wallet/proposals', { wallet: id, limit: 50 })])
+      wallet = shown
+      proposals = page.proposals
     } catch (e) {
       wallet = null
       proposals = []
@@ -166,7 +168,7 @@
     attempt(async () => {
       const refunded: any = await call('wallet/refund', { quote: id })
       toast(() => t('twRefunded', { to: refunded.to, block: refunded.block }))
-      await loadDeposits()
+      deposits = await readDeposits()
     })
 
   const join = () => attempt(async () => approve(await call('wallet/join', { wallet: joining.trim() })))
@@ -178,7 +180,6 @@
       await call('wallet/send', { wallet: selected, from: Number(from), asset, to: to.trim(), amount: amount.trim(), max_fee: maxFee.trim() })
       to = ''
       amount = ''
-      await open(selected)
     })
 
   const execute = (proposal: number) =>
@@ -187,20 +188,11 @@
       // A plan this device cosigns waits in the approval window.
       if (result.kind === 'wallet' && result.digest) await approve(result)
       else if (result.broadcast_error) toast(() => `${t('twBroadcastFailed')}: ${result.broadcast_error}`)
-      await open(selected)
     })
 
-  const step = (method: string, proposal: number) =>
-    attempt(async () => {
-      await call(method, { wallet: selected, proposal })
-      await open(selected)
-    })
+  const step = (method: string, proposal: number) => attempt(() => call(method, { wallet: selected, proposal }))
 
-  const freeze = () =>
-    attempt(async () => {
-      await call('wallet/freeze', { wallet: selected })
-      await open(selected)
-    })
+  const freeze = () => attempt(() => call('wallet/freeze', { wallet: selected }))
 
   const readBalances = () => attempt(async () => (balances = await call('wallet/balances', { wallet: selected })))
 
@@ -210,16 +202,13 @@
     attempt(async () => {
       const created: any = await call('wallet/cosigner_new', { label: cosignerLabel.trim() })
       cosignerLabel = ''
-      cosigners = await call('wallet/cosigners')
       await copyText(JSON.stringify(created.intent))
       toast(() => t('twIntentCopied'))
     })
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['approval/changed', 'session/changed', 'wallet/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    return onChange(['approval/changed', 'session/changed', 'wallet/changed'], reload)
   })
 
   /** An intent in a line. */
@@ -255,7 +244,7 @@
             <p class="text-[15px] text-muted">{t('twNone')}</p>
           {/if}
         </div>
-        <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt(load)}><Icon name="sync-now" />{t('refresh')}</button>
+        <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt(reload)}><Icon name="sync-now" />{t('refresh')}</button>
       </div>
       {#if wallet}
         <dl class="divide-y divide-line border-t border-line px-6">

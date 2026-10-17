@@ -5,9 +5,11 @@
  * for the approval window and the main window's confirmation; no window
  * sends it itself. `dmsg://` links only move the view (connect-v1 §8).
  */
+import { DaemonError } from './error.ts'
 
 /**
- * Methods any window may call; parameters pass through without `human`.
+ * Methods any window may call, and only those its views use; parameters
+ * pass through without `human`.
  * Methods that name local files (`payer/use`, `channel/download`,
  * `attest/verify` with a file) and refunds to named blocks stay with the CLI
  * (`wallet/refund` names only a quote, which the daemon returns to the payer);
@@ -24,13 +26,11 @@
  */
 export const WINDOW_METHODS = new Set([
   'daemon/status',
-  'session/status',
   'session/login_result',
   'session/accounts',
   'session/switch',
   'session/unlock',
   'session/lock',
-  'session/fast_unlock',
   'account/create',
   'account/show',
   'account/security',
@@ -64,9 +64,7 @@ export const WINDOW_METHODS = new Set([
   'files/move',
   'files/update',
   'files/preview',
-  'files/open_list',
   'files/open_cleanup',
-  'files/versions',
   'files/version_use',
   'files/version_delete',
   'files/trash',
@@ -93,26 +91,21 @@ export const WINDOW_METHODS = new Set([
   'files/share_links',
   'files/share_revoke',
   'sync/run',
-  'sync/status',
   'profile/show',
   'profile/publish',
   'profile/resolve',
   'profile/avatar_image',
   'approval/list',
   'approval/show',
-  'approval/cancel',
   'approval/quote',
   'attest/request',
   'attest/history',
-  'attest/export',
   'attest/usage',
   'device/formal_approve',
   'device/capabilities',
   'connect/candidates',
   'connect/pairings',
   'connect/revoke',
-  'connect/sync',
-  'connect/status',
   'channel/list',
   'channel/show',
   'channel/create',
@@ -133,8 +126,6 @@ export const WINDOW_METHODS = new Set([
   'channel/sponsor_accept',
   'channel/sponsor_commit',
   'channel/reactivate',
-  'channel/pending',
-  'channel/resume',
   'inbox/policy',
   'inbox/configure',
   'inbox/send',
@@ -142,10 +133,8 @@ export const WINDOW_METHODS = new Set([
   'inbox/outgoing',
   'inbox/pay',
   'inbox/escrow',
-  'inbox/refund',
   'inbox/list',
   'inbox/mark',
-  'payment/transfers',
   'payment/revise',
   'payer/balance',
   'wallet/list',
@@ -157,8 +146,6 @@ export const WINDOW_METHODS = new Set([
   'wallet/refund',
   'wallet/join',
   'wallet/proposals',
-  'wallet/proposal',
-  'wallet/propose',
   'wallet/send',
   'wallet/approve',
   'wallet/reject',
@@ -168,11 +155,8 @@ export const WINDOW_METHODS = new Set([
   'wallet/execute',
   'wallet/broadcast',
   'wallet/settle',
-  'wallet/report',
-  'wallet/reconcile',
   'wallet/balances',
   'wallet/audit',
-  'wallet/refuel',
   'wallet/cosigners',
   'wallet/cosigner_new',
   'plan/catalog',
@@ -180,12 +164,10 @@ export const WINDOW_METHODS = new Set([
   'plan/assets',
   'plan/quote',
   'plan/checkout',
-  'plan/advance',
   'plan/order',
   'plan/checkouts',
   'plan/cancel',
   'plan/reconcile',
-  'handle/resolve',
   'handle/price',
   'handle/claim',
   'handle/register',
@@ -206,14 +188,10 @@ export const WINDOW_METHODS = new Set([
   'agent/enable',
   'agent/register',
   'agent/retire',
-  'agent/compromise',
-  'agent/rename',
   'agent/publish',
-  'agent/refresh',
   'agent/grant',
   'agent/revoke',
   'agent/credentials',
-  'agent/delegations',
   'agent/ids',
   'agent/create',
   'agent/use',
@@ -263,7 +241,6 @@ const GUI_SOURCED = new Set([
   'device/revoke',
   'inbox/pay',
   'plan/checkout',
-  'plan/advance',
   'handle/claim',
   'handle/register',
   'handle/transfer_commit',
@@ -271,8 +248,6 @@ const GUI_SOURCED = new Set([
   'agent/enable',
   'agent/register',
   'agent/retire',
-  'agent/compromise',
-  'agent/rename',
   'agent/grant',
   'agent/revoke',
   'agent/create',
@@ -305,10 +280,10 @@ export const DESKTOP_TOOLS = new Set([
 
 /** The parameters a window's call reaches the daemon with. */
 export function windowParams(method: string, params: unknown): Record<string, unknown> {
-  if (!WINDOW_METHODS.has(method)) throw new Error(`FORBIDDEN: ${method}`)
+  if (!WINDOW_METHODS.has(method)) throw new DaemonError('FORBIDDEN', method)
   const value =
     params && typeof params === 'object' && !Array.isArray(params) ? { ...(params as Record<string, unknown>) } : {}
-  if (method === 'ap/call' && !DESKTOP_TOOLS.has(String(value.tool))) throw new Error(`FORBIDDEN: ${value.tool}`)
+  if (method === 'ap/call' && !DESKTOP_TOOLS.has(String(value.tool))) throw new DaemonError('FORBIDDEN', String(value.tool))
   delete value.human
   if (GUI_SOURCED.has(method)) value.source = 'gui'
   return value

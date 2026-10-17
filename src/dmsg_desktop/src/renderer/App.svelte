@@ -17,7 +17,7 @@
   import Sidebar from './shell/Sidebar.svelte'
   import { shortcuts, viewOf, views } from './shell/nav'
   import { lock } from './shell/session'
-  import { call } from './rpc'
+  import { call, onChange, single } from './rpc'
 
   let route = $state(location.hash.slice(1) || '/vault')
   let status = $state<any>(null)
@@ -29,6 +29,8 @@
   let offers = $state<string[]>([])
   let dismissed = $state<string[]>((stored('dmsg.legacy-notice') ?? '').split(',').filter(Boolean))
 
+  /** The approval window shows one request; the status, offers and shortcuts are the main window's. */
+  const isMain = window.dmsg.role === 'main'
   /** On macOS the main window draws its own title bar over the sidebar's material. */
   const inset = window.dmsg.platform === 'darwin'
   const mod = inset ? '⌘' : 'Ctrl+'
@@ -52,14 +54,14 @@
     }
   }
 
-  async function refresh() {
+  const refresh = single(async () => {
     ;({ connected, error: connectionError } = await window.dmsg.connection())
     try {
       status = await call('daemon/status')
     } catch {
       status = null
     }
-  }
+  })
 
   // The offers change on unlock and with legacy state, never on a status refresh.
   async function loadOffers() {
@@ -69,14 +71,14 @@
 
   $effect(() => {
     void unlocked
-    void loadOffers()
+    if (isMain) void loadOffers()
   })
 
   // The idle lock follows a person's input in any window, which the main
   // process reports. While unlocked the status is read again as often as the
   // daemon checks the lock, so the gate rail's countdown follows `lock_at`.
   $effect(() => {
-    if (!unlocked) return
+    if (!isMain || !unlocked) return
     const timer = setInterval(() => void refresh(), 10_000)
     return () => clearInterval(timer)
   })
@@ -92,7 +94,7 @@
 
   /** ⌘K opens the palette, ⌘1–⌘8 and ⌘, go to a view, ⌘L locks (Ctrl elsewhere). */
   function onKey(event: KeyboardEvent) {
-    if (window.dmsg.role !== 'main') return
+    if (!isMain) return
     const held = inset ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
     if (!held || event.altKey || event.shiftKey) return
     const key = event.key.toLowerCase()
@@ -108,26 +110,22 @@
   }
 
   onMount(() => {
-    void refresh()
-    const offEvent = window.dmsg.onEvent((event) => {
-      if (['session/changed', 'connection/changed', 'approval/changed', 'sync/changed'].includes(event.type)) void refresh()
-      if (event.type === 'legacy/changed') void loadOffers()
-    })
     // The route follows the hash only, so a view the hash still names opens again on a click.
     const offNavigate = window.dmsg.onNavigate(go)
     const onHash = () => (route = location.hash.slice(1) || '/vault')
     window.addEventListener('hashchange', onHash)
-    return () => {
-      offEvent()
-      offNavigate()
-      window.removeEventListener('hashchange', onHash)
+    const offs = [offNavigate, () => window.removeEventListener('hashchange', onHash)]
+    if (isMain) {
+      void refresh()
+      offs.push(onChange(['session/changed', 'connection/changed', 'approval/changed', 'sync/changed'], refresh), onChange(['legacy/changed'], loadOffers))
     }
+    return () => offs.forEach((off) => off())
   })
 </script>
 
 <svelte:window onkeydown={onKey} />
 
-{#if window.dmsg.role === 'approval'}
+{#if !isMain}
   <main class="h-screen">
     {#if route.startsWith('/approval/')}
       {#key route}

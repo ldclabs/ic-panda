@@ -12,7 +12,7 @@
   import { toast } from '../components/toast.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { stateLabel, t, type Label } from '../i18n/index.svelte'
-  import { ago, bridge, call, code, when } from '../rpc'
+  import { ago, bridge, call, errorText, onChange, single, when } from '../rpc'
   import { kindOf } from '../approval'
 
   /**
@@ -47,24 +47,23 @@
     kindOther: 'info'
   } as Record<Label, Glyph>
 
-  async function load() {
+  const reload = single(async () => {
     error = ''
     try {
-      requests = await call('approval/list', { all: true })
-      history = await call('attest/history')
+      ;[requests, history] = await Promise.all([call('approval/list', { all: true }), call('attest/history')])
     } catch (e) {
       requests = []
       history = []
-      error = code(e) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
-  }
+  })
 
   async function attempt(work: () => Promise<unknown>) {
     busy = true
     try {
       await work()
     } catch (e) {
-      toast(() => `${t('error')}: ${code(e)}`)
+      toast(() => errorText(e))
     } finally {
       busy = false
     }
@@ -78,7 +77,6 @@
       const request: any = await call('attest/request', { statement: { profile: 'text', text } })
       text = ''
       await bridge(() => window.dmsg.openApproval(request.id))
-      await load()
     })
 
   /** Refreshes the month's allowance from the plan and archives finished months here. */
@@ -125,10 +123,8 @@
   })
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (event.type === 'approval/changed' || event.type === 'session/changed') void load()
-    })
+    void reload()
+    return onChange(['approval/changed', 'session/changed'], reload)
   })
 
   const tabs = $derived([

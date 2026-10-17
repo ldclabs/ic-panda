@@ -27,7 +27,9 @@ import { basename, join, resolve } from 'node:path'
 import { isAppearance, type Appearance } from '../shared/appearance'
 import type { DaemonEvent } from '../shared/contract'
 import { isLocale, resolveLocale, type Locale } from '../shared/locales'
-import { Daemon, DaemonError, reasonOf } from './daemon'
+import { single } from '../shared/single'
+import { Daemon, reasonOf } from './daemon'
+import { DaemonError } from './error'
 import { externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
 import { textFor } from './text'
@@ -58,7 +60,7 @@ let tray: Tray | null = null
 let trayImages: { idle: Electron.NativeImage; waiting: Electron.NativeImage } | null = null
 let quitting = false
 let waiting = 0
-let pendingRoute: string | null = null
+let pendingLink: string | null = null
 let trayState = 'connecting'
 /** English until the app is ready and knows its locale. */
 let locale: Locale = 'en'
@@ -129,9 +131,10 @@ function webPreferences(role: 'main' | 'approval') {
 /** The page ground of the current theme, shown before the renderer paints. */
 const background = () => (nativeTheme.shouldUseDarkColors ? '#0e1512' : '#f7f8f4')
 
-function showMain(route = '/vault') {
+/** Show the main window; with a route, on that view, else on the one it showed. */
+function showMain(route?: string) {
   if (main && !main.isDestroyed()) {
-    main.webContents.send('dmsg:navigate', route)
+    if (route) main.webContents.send('dmsg:navigate', route)
     main.show()
     main.focus()
     return
@@ -150,7 +153,7 @@ function showMain(route = '/vault') {
     webPreferences: webPreferences('main')
   })
   harden(main)
-  load(main, route)
+  load(main, route ?? '/vault')
   main.on('close', (event) => {
     // Closing keeps the tray and the daemon; quitting is explicit.
     if (!quitting && !testMode) {
@@ -205,7 +208,9 @@ async function openLink(url: string) {
   showMain('/approvals')
 }
 
-function trust(event: IpcMainInvokeEvent, role: 'main' | 'approval' | 'any') {
+type Role = 'main' | 'approval' | 'any'
+
+function trust(event: IpcMainInvokeEvent, role: Role) {
   const sender = event.sender
   const isMain = !!main && !main.isDestroyed() && sender === main.webContents
   const isApproval = !!approval && !approval.isDestroyed() && sender === approval.webContents
@@ -213,264 +218,185 @@ function trust(event: IpcMainInvokeEvent, role: 'main' | 'approval' | 'any') {
   if (!ok) throw new DaemonError('FORBIDDEN', 'Not allowed from this window')
 }
 
-async function guard<T>(work: () => Promise<T>): Promise<T> {
-  try {
-    return await work()
-  } catch (error) {
-    const code = error instanceof DaemonError ? error.code : 'UNAVAILABLE'
-    throw new Error(`${code}: ${error instanceof Error ? error.message : String(error)}`)
-  }
+/** A bridge method only `role`'s window may call; a failure reaches the window as "CODE: message". */
+function handle(channel: string, role: Role, work: (event: IpcMainInvokeEvent, ...args: any[]) => unknown) {
+  ipcMain.handle(channel, async (event, ...args) => {
+    try {
+      trust(event, role)
+      return await work(event, ...args)
+    } catch (error) {
+      const code = error instanceof DaemonError ? error.code : 'UNAVAILABLE'
+      throw new Error(`${code}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  })
 }
 
-ipcMain.handle('dmsg:call', (event, method: string, params: unknown) =>
-  guard(async () => {
-    trust(event, 'any')
-    return daemon.call(method, windowParams(method, params))
-  })
+/** A file the person picks in the main window's open dialog; null when cancelled. */
+async function pickFile(options: Electron.OpenDialogOptions = {}): Promise<string | null> {
+  const picked = await dialog.showOpenDialog(main!, { properties: ['openFile'], ...options })
+  return picked.canceled ? null : (picked.filePaths[0] ?? null)
+}
+
+/** Where the person saves, from the main window's save dialog; null when cancelled. */
+async function pickSave(options: Electron.SaveDialogOptions): Promise<string | null> {
+  const picked = await dialog.showSaveDialog(main!, options)
+  return picked.canceled ? null : picked.filePath || null
+}
+
+handle('dmsg:call', 'any', (_event, method: string, params: unknown) => daemon.call(method, windowParams(method, params)))
+handle('dmsg:decide', 'approval', (_event, id: string, digest: string, approve: boolean) =>
+  daemon.call('approval/respond', { id, digest, approve: approve === true, human: true, source: 'gui' })
 )
-ipcMain.handle('dmsg:decide', (event, id: string, digest: string, approve: boolean) =>
-  guard(async () => {
-    trust(event, 'approval')
-    return daemon.call('approval/respond', { id, digest, approve: approve === true, human: true, source: 'gui' })
-  })
-)
-ipcMain.handle('dmsg:grant', (event, invite: string, pairing: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    return daemon.call('connect/grant', { invite, pairing, human: true })
-  })
-)
-ipcMain.handle('dmsg:login', (event, origin: string, bind: boolean) =>
-  guard(async () => {
-    trust(event, 'main')
-    const started = (await daemon.call('session/login', { origin, bind: bind === true, source: 'gui' })) as {
-      url: string
-    }
-    if (externalAllowed(started.url, pages().login, [])) await shell.openExternal(started.url)
-    return started
-  })
-)
+handle('dmsg:grant', 'main', (_event, invite: string, pairing: string) => daemon.call('connect/grant', { invite, pairing, human: true }))
+handle('dmsg:login', 'main', async (_event, origin: string, bind: boolean) => {
+  const started = (await daemon.call('session/login', { origin, bind: bind === true, source: 'gui' })) as { url: string }
+  if (externalAllowed(started.url, pages().login, [])) await shell.openExternal(started.url)
+  return started
+})
 /**
  * Files reach the daemon only by paths the person picked in a system dialog
  * or dropped on the window: the preload resolves a dropped file to its path,
  * which a window cannot name. The window hears the names before the import
  * starts, for its progress; the daemon's `files/progress` events follow.
  */
-ipcMain.handle('dmsg:files-add', (event, folder: string, dropped: string[] | null, directory: boolean) =>
-  guard(async () => {
-    trust(event, 'main')
-    let paths = Array.isArray(dropped) ? dropped.filter((p): p is string => typeof p === 'string' && !!p) : []
-    if (!paths.length) {
-      const picked = await dialog.showOpenDialog(main!, {
-        title: directory === true ? text.pickFolder : text.pickFiles,
-        properties: directory === true ? ['openDirectory'] : ['openFile', 'multiSelections']
-      })
-      if (picked.canceled || !picked.filePaths.length) return null
-      paths = picked.filePaths
-    }
-    event.sender.send('dmsg:event', { type: 'files/adding', data: { names: paths.map((p) => basename(p)) } })
-    return daemon.call('files/import', { paths, folder: String(folder || 'root') })
-  })
-)
-ipcMain.handle('dmsg:files-export', (event, id: string, version: string | null, name: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    const picked = await dialog.showSaveDialog(main!, { defaultPath: basename(String(name)) })
-    if (picked.canceled || !picked.filePath) return null
-    return daemon.call('files/export', { id: String(id), version: version ? String(version) : null, path: picked.filePath })
-  })
-)
+handle('dmsg:files-add', 'main', async (event, folder: string, dropped: string[] | null, directory: boolean) => {
+  let paths = Array.isArray(dropped) ? dropped.filter((p): p is string => typeof p === 'string' && !!p) : []
+  if (!paths.length) {
+    const picked = await dialog.showOpenDialog(main!, {
+      title: directory === true ? text.pickFolder : text.pickFiles,
+      properties: directory === true ? ['openDirectory'] : ['openFile', 'multiSelections']
+    })
+    if (picked.canceled || !picked.filePaths.length) return null
+    paths = picked.filePaths
+  }
+  event.sender.send('dmsg:event', { type: 'files/adding', data: { names: paths.map((p) => basename(p)) } })
+  return daemon.call('files/import', { paths, folder: String(folder || 'root') })
+})
+handle('dmsg:files-export', 'main', async (_event, id: string, version: string | null, name: string) => {
+  const path = await pickSave({ defaultPath: basename(String(name)) })
+  return path && daemon.call('files/export', { id: String(id), version: version ? String(version) : null, path })
+})
 /** A temporary copy for the file's program; the daemon removes it later and asks before a change is lost. */
-ipcMain.handle('dmsg:files-open', (event, id: string, version: string | null) =>
-  guard(async () => {
-    trust(event, 'main')
-    const opened = (await daemon.call('files/open', { id: String(id), version: version ? String(version) : null })) as { path: string }
-    const failure = await shell.openPath(opened.path)
-    if (failure) throw new DaemonError('UNAVAILABLE', failure)
-    return opened
+handle('dmsg:files-open', 'main', async (_event, id: string, version: string | null) => {
+  const opened = (await daemon.call('files/open', { id: String(id), version: version ? String(version) : null })) as { path: string }
+  const failure = await shell.openPath(opened.path)
+  if (failure) throw new DaemonError('UNAVAILABLE', failure)
+  return opened
+})
+handle('dmsg:open-legacy', 'main', async (_event, link: string) => {
+  if (!legacyAllowed(String(link))) throw new DaemonError('INVALID_INPUT', 'Not an old-site migration link')
+  await shell.openExternal(String(link))
+})
+handle('dmsg:legacy-import', 'main', async (_event, nonce: string, fingerprint: string, principal: string) => {
+  const path = await pickFile({
+    filters: [
+      { name: text.migrationFile, extensions: ['dmsg-migration'] },
+      { name: text.allFiles, extensions: ['*'] }
+    ]
   })
-)
-ipcMain.handle('dmsg:open-legacy', (event, link: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    if (!legacyAllowed(String(link))) throw new DaemonError('INVALID_INPUT', 'Not an old-site migration link')
-    await shell.openExternal(String(link))
+  return path && daemon.call('legacy/import', { path, nonce: String(nonce), fingerprint: String(fingerprint), principal: String(principal) })
+})
+handle('dmsg:legacy-frozen', 'main', async (_event, id: string) => {
+  const path = await pickFile({
+    filters: [
+      { name: text.frozenFile, extensions: ['cbor'] },
+      { name: text.allFiles, extensions: ['*'] }
+    ]
   })
-)
-ipcMain.handle('dmsg:legacy-import', (event, nonce: string, fingerprint: string, principal: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    const picked = await dialog.showOpenDialog(main!, {
-      properties: ['openFile'],
-      filters: [
-        { name: text.migrationFile, extensions: ['dmsg-migration'] },
-        { name: text.allFiles, extensions: ['*'] }
-      ]
-    })
-    if (picked.canceled || !picked.filePaths[0]) return null
-    return daemon.call('legacy/import', {
-      path: picked.filePaths[0],
-      nonce: String(nonce),
-      fingerprint: String(fingerprint),
-      principal: String(principal)
-    })
-  })
-)
-ipcMain.handle('dmsg:legacy-frozen', (event, id: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    const picked = await dialog.showOpenDialog(main!, {
-      properties: ['openFile'],
-      filters: [
-        { name: text.frozenFile, extensions: ['cbor'] },
-        { name: text.allFiles, extensions: ['*'] }
-      ]
-    })
-    if (picked.canceled || !picked.filePaths[0]) return null
-    return daemon.call('legacy/frozen', { id: String(id), path: picked.filePaths[0] })
-  })
-)
-ipcMain.handle('dmsg:legacy-file', (event, id: string, source: string, name: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    const picked = await dialog.showSaveDialog(main!, { defaultPath: basename(String(name)) })
-    if (picked.canceled || !picked.filePath) return null
-    return daemon.call('legacy/file', { id: String(id), source: String(source), path: picked.filePath })
-  })
-)
+  return path && daemon.call('legacy/frozen', { id: String(id), path })
+})
+handle('dmsg:legacy-file', 'main', async (_event, id: string, source: string, name: string) => {
+  const path = await pickSave({ defaultPath: basename(String(name)) })
+  return path && daemon.call('legacy/file', { id: String(id), source: String(source), path })
+})
 /** The secret goes from the daemon to the clipboard; the window that asked never holds it. */
-ipcMain.handle('dmsg:copy-secret', (event, id: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    const entry = (await daemon.call('vault/show', { id: String(id), reveal: true })) as { item: { secret: string } }
-    const secret = entry.item.secret
-    if (!secret) throw new DaemonError('NOT_FOUND', 'No secret field')
-    await clipboard.writeText(secret)
-    setTimeout(async () => {
-      if ((await clipboard.readText()) === secret) clipboard.clear()
-    }, CLEAR_MS)
-    return { clear_after_ms: CLEAR_MS }
-  })
-)
-ipcMain.handle('dmsg:channel-download', (event, id: string, seq: number, name: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    const picked = await dialog.showSaveDialog(main!, { defaultPath: basename(String(name)) })
-    if (picked.canceled || !picked.filePath) return null
-    return daemon.call('channel/download', { id: String(id), seq: Number(seq), path: picked.filePath })
-  })
-)
+handle('dmsg:copy-secret', 'main', async (_event, id: string) => {
+  const entry = (await daemon.call('vault/show', { id: String(id), reveal: true })) as { item: { secret: string } }
+  const secret = entry.item.secret
+  if (!secret) throw new DaemonError('NOT_FOUND', 'No secret field')
+  await clipboard.writeText(secret)
+  setTimeout(async () => {
+    if ((await clipboard.readText()) === secret) clipboard.clear()
+  }, CLEAR_MS)
+  return { clear_after_ms: CLEAR_MS }
+})
+handle('dmsg:channel-download', 'main', async (_event, id: string, seq: number, name: string) => {
+  const path = await pickSave({ defaultPath: basename(String(name)) })
+  return path && daemon.call('channel/download', { id: String(id), seq: Number(seq), path })
+})
 /** The public avatar: an image the person picks, or none. */
-ipcMain.handle('dmsg:avatar', (event, remove: boolean) =>
-  guard(async () => {
-    trust(event, 'main')
-    if (remove === true) return daemon.call('profile/avatar', { remove: true })
-    const picked = await dialog.showOpenDialog(main!, {
-      title: text.pickAvatar,
-      properties: ['openFile'],
-      filters: [{ name: text.imageFile, extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
-    })
-    if (picked.canceled || !picked.filePaths[0]) return null
-    return daemon.call('profile/avatar', { path: picked.filePaths[0] })
-  })
-)
+handle('dmsg:avatar', 'main', async (_event, remove: boolean) => {
+  if (remove === true) return daemon.call('profile/avatar', { remove: true })
+  const path = await pickFile({ title: text.pickAvatar, filters: [{ name: text.imageFile, extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
+  return path && daemon.call('profile/avatar', { path })
+})
 /** An application action its product prepared, as the canonical CBOR in a file the person picks. */
-ipcMain.handle('dmsg:attest-action', (event) =>
-  guard(async () => {
-    trust(event, 'main')
-    const picked = await dialog.showOpenDialog(main!, { title: text.pickAction, properties: ['openFile'] })
-    if (picked.canceled || !picked.filePaths[0]) return null
-    const action = (await readFile(picked.filePaths[0])).toString('base64url')
-    return daemon.call('attest/action', { action, source: 'gui' })
-  })
-)
+handle('dmsg:attest-action', 'main', async () => {
+  const path = await pickFile({ title: text.pickAction })
+  return path && daemon.call('attest/action', { action: (await readFile(path)).toString('base64url'), source: 'gui' })
+})
 /** Verify a bundle the person picks, with the original file of a digest or file statement when asked. */
-ipcMain.handle('dmsg:verify-bundle', (event, withFile: boolean) =>
-  guard(async () => {
-    trust(event, 'main')
-    const bundle = await dialog.showOpenDialog(main!, {
-      title: text.pickBundle,
-      properties: ['openFile'],
-      filters: [
-        { name: text.bundleFile, extensions: ['json'] },
-        { name: text.allFiles, extensions: ['*'] }
-      ]
-    })
-    if (bundle.canceled || !bundle.filePaths[0]) return null
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(await readFile(bundle.filePaths[0], 'utf8'))
-    } catch {
-      throw new DaemonError('INVALID_INPUT', 'Not an attestation bundle')
-    }
-    let file: string | undefined
-    if (withFile === true) {
-      const original = await dialog.showOpenDialog(main!, { title: text.pickOriginal, properties: ['openFile'] })
-      if (original.canceled || !original.filePaths[0]) return null
-      file = original.filePaths[0]
-    }
-    return daemon.call('attest/verify', { bundle: parsed, file })
+handle('dmsg:verify-bundle', 'main', async (_event, withFile: boolean) => {
+  const path = await pickFile({
+    title: text.pickBundle,
+    filters: [
+      { name: text.bundleFile, extensions: ['json'] },
+      { name: text.allFiles, extensions: ['*'] }
+    ]
   })
-)
-ipcMain.handle('dmsg:export-bundle', (event, execution: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    const bundle = await daemon.call('attest/export', { execution: String(execution) })
-    const picked = await dialog.showSaveDialog(main!, {
-      defaultPath: `dmsg-attestation-${String(execution).slice(0, 12)}.json`,
-      filters: [{ name: text.bundleFile, extensions: ['json'] }]
-    })
-    if (picked.canceled || !picked.filePath) return null
-    await writeFile(picked.filePath, JSON.stringify(bundle, null, 2))
-    return { path: picked.filePath }
+  if (!path) return null
+  let bundle: unknown
+  try {
+    bundle = JSON.parse(await readFile(path, 'utf8'))
+  } catch {
+    throw new DaemonError('INVALID_INPUT', 'Not an attestation bundle')
+  }
+  const file = withFile === true ? await pickFile({ title: text.pickOriginal }) : undefined
+  if (file === null) return null
+  return daemon.call('attest/verify', { bundle, file })
+})
+handle('dmsg:export-bundle', 'main', async (_event, execution: string) => {
+  const bundle = await daemon.call('attest/export', { execution: String(execution) })
+  const path = await pickSave({
+    defaultPath: `dmsg-attestation-${String(execution).slice(0, 12)}.json`,
+    filters: [{ name: text.bundleFile, extensions: ['json'] }]
   })
-)
-ipcMain.handle('dmsg:pair', (event, copyLink: boolean) =>
-  guard(async () => {
-    trust(event, 'main')
-    const invite = (await daemon.call('connect/invite')) as { url: string }
-    if (!copyLink && externalAllowed(invite.url, [], pages().pairing)) await shell.openExternal(invite.url)
-    return invite
-  })
-)
-ipcMain.handle('dmsg:open-approval', (event, id: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    showApproval(id)
-  })
-)
+  if (!path) return null
+  await writeFile(path, JSON.stringify(bundle, null, 2))
+  return { path }
+})
+handle('dmsg:pair', 'main', async (_event, copyLink: boolean) => {
+  const invite = (await daemon.call('connect/invite')) as { url: string }
+  if (!copyLink && externalAllowed(invite.url, [], pages().pairing)) await shell.openExternal(invite.url)
+  return invite
+})
+handle('dmsg:open-approval', 'main', (_event, id: string) => showApproval(id))
 /** A language picked in the main window is kept; the tray, dialogs and every window follow it. */
-ipcMain.handle('dmsg:set-locale', (event, next: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    if (!isLocale(next)) throw new DaemonError('INVALID_INPUT', 'Not a supported language')
-    await writeFile(localeFile(), next)
-    applyLocale(next)
-    broadcast('dmsg:locale', next)
-  })
-)
+handle('dmsg:set-locale', 'main', async (_event, next: string) => {
+  if (!isLocale(next)) throw new DaemonError('INVALID_INPUT', 'Not a supported language')
+  await writeFile(localeFile(), next)
+  applyLocale(next)
+  broadcast('dmsg:locale', next)
+})
 /** An appearance picked in the main window is kept; every window, menu and dialog follows it. */
-ipcMain.handle('dmsg:set-appearance', (event, next: string) =>
-  guard(async () => {
-    trust(event, 'main')
-    if (!isAppearance(next)) throw new DaemonError('INVALID_INPUT', 'Not a supported appearance')
-    await writeFile(appearanceFile(), next)
-    applyAppearance(next)
-  })
-)
-ipcMain.handle('dmsg:connection', (event) =>
-  guard(async () => {
-    trust(event, 'any')
-    return { connected: daemon.connected, error: daemon.lastError }
-  })
-)
+handle('dmsg:set-appearance', 'main', async (_event, next: string) => {
+  if (!isAppearance(next)) throw new DaemonError('INVALID_INPUT', 'Not a supported appearance')
+  await writeFile(appearanceFile(), next)
+  applyAppearance(next)
+})
+handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError }))
 
 function broadcast(channel: string, payload: unknown) {
   for (const window of [main, approval]) if (window && !window.isDestroyed()) window.webContents.send(channel, payload)
 }
 
+/** A `connect/hint` arrived since the last refresh: a web request waits at the relay. */
+let hinted = false
+
 /** Notify without saying from where; clicking opens the request, never decides it. */
-async function refreshWaiting(hint = false) {
+const refreshWaiting = single(async () => {
+  const hint = hinted
+  hinted = false
   let status: { approvals_waiting?: number; state?: string } = {}
   try {
     status = (await daemon.call('daemon/status')) as typeof status
@@ -494,7 +420,7 @@ async function refreshWaiting(hint = false) {
   }
   waiting = now
   updateTray(status.state ?? 'unknown')
-}
+})
 
 /** The tray's update item: nothing without a feed, else the feed's state. */
 function updateItem(): Electron.MenuItemConstructorOptions[] {
@@ -580,14 +506,14 @@ function notifyEvents(data: unknown) {
 }
 
 /** When each kind of hint last notified, so a busy channel notifies once a minute. */
-const hinted: Record<string, number> = {}
+const hintedAt: Record<string, number> = {}
 
 /** A locked daemon's hint: something new arrived, never from whom or what. */
 function notifyHint(data: unknown) {
   const kind = (data as { kind?: string } | null)?.kind
   const body = kind === 'channel' ? text.newMessages : kind === 'inbox' ? text.newLetter : null
-  if (!kind || !body || !Notification.isSupported() || Date.now() - (hinted[kind] ?? 0) < 60_000) return
-  hinted[kind] = Date.now()
+  if (!kind || !body || !Notification.isSupported() || Date.now() - (hintedAt[kind] ?? 0) < 60_000) return
+  hintedAt[kind] = Date.now()
   const note = new Notification({ title: 'dMsg', body })
   note.on('click', () => showMain(kind === 'channel' ? '/channels' : '/inbox'))
   note.show()
@@ -595,12 +521,17 @@ function notifyHint(data: unknown) {
 
 daemon.on('event', (event: DaemonEvent) => {
   broadcast('dmsg:event', event)
-  if (event.type === 'approval/changed' || event.type === 'session/changed') void refreshWaiting()
-  if (event.type === 'connect/hint') void refreshWaiting(true)
+  if (event.type === 'connect/hint') hinted = true
+  if (['approval/changed', 'session/changed', 'connect/hint', 'resync'].includes(event.type)) void refreshWaiting()
   if (event.type === 'mcp-events/changed') notifyEvents(event.data)
   if (event.type === 'hint') notifyHint(event.data)
 })
-daemon.on('state', () => broadcast('dmsg:event', { type: 'connection/changed' }))
+// The tray follows the connection: the daemon's state once connected, else connecting again.
+daemon.on('state', () => {
+  broadcast('dmsg:event', { type: 'connection/changed' })
+  if (daemon.connected) void refreshWaiting()
+  else updateTray('connecting')
+})
 
 app.on('second-instance', (_event, argv) => {
   const link = argv.find((a) => a.startsWith('dmsg://'))
@@ -610,7 +541,11 @@ app.on('second-instance', (_event, argv) => {
 app.on('open-url', (event, url) => {
   event.preventDefault()
   if (app.isReady()) void openLink(url)
-  else pendingRoute = url
+  else pendingLink = url
+})
+// The Dock icon brings back the main window that closing hid.
+app.on('activate', () => {
+  if (app.isReady()) showMain()
 })
 app.on('web-contents-created', (_event, contents) => {
   contents.on('will-attach-webview', (event) => event.preventDefault())
@@ -664,7 +599,6 @@ app.whenReady().then(async () => {
   }
   updates.start()
   if (installed) await daemon.connect()
-  await refreshWaiting()
-  const link = pendingRoute ?? process.argv.find((a) => a.startsWith('dmsg://'))
+  const link = pendingLink ?? process.argv.find((a) => a.startsWith('dmsg://'))
   if (link) void openLink(link)
 })

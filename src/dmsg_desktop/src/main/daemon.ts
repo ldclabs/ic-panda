@@ -10,6 +10,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import WebSocket from 'ws'
 import type { DaemonEvent } from '../shared/contract'
+import { DaemonError } from './error'
 
 const run = promisify(execFile)
 
@@ -20,14 +21,6 @@ export function reasonOf(error: unknown): string {
 }
 
 type Waiting = { resolve(value: unknown): void; reject(error: Error): void; timer: NodeJS.Timeout }
-
-export class DaemonError extends Error {
-  readonly code: string
-  constructor(code: string, message: string) {
-    super(message)
-    this.code = code
-  }
-}
 
 export interface DaemonOptions {
   /** The `dmsg` binary; `runtime.ts` sets the installed one. */
@@ -82,15 +75,17 @@ export class Daemon extends EventEmitter {
       this.connected = true
       this.lastError = undefined
       this.delay = 1000
-      this.emit('state')
+      // Windows hear of the connection once their reads no longer count as a person's activity.
       await this.call('app/initialize', { activity: 'reported' })
+      this.emit('state')
     } catch (error) {
       this.lost(reasonOf(error))
     }
   }
 
   private lost(reason: string) {
-    if (this.socket) this.socket.removeAllListeners()
+    // A connection given up on, such as one whose `app/initialize` failed, closes too.
+    this.socket?.removeAllListeners().on('error', () => {}).terminate()
     this.socket = null
     const was = this.connected
     const changed = this.lastError !== reason

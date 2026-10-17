@@ -10,11 +10,9 @@
   import Segmented from '../components/Segmented.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, when } from '../rpc'
+  import { bridge, call, code, onChange, single, when } from '../rpc'
 
   /** Bound logins, approvals of other devices and logins, the signing policy and recovery. Every change is an approval request. */
-  let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
-
   let security = $state<any>(null)
   let request = $state('')
   let shown = $state('')
@@ -23,18 +21,21 @@
   let days = $state('')
   let error = $state('')
   let busy = $state(false)
+  let mounted = true
 
-  async function load() {
+  // A field follows the account only when the account's value changed, so an edit under way stays.
+  const reload = single(async () => {
     try {
-      security = await call('account/security')
-      daily = String(security.policy.daily_executions)
-      purposes = [...security.policy.allowed_purposes]
-      days = String(Math.round(security.recovery_delay_ms / 86_400_000))
+      const next: any = await call('account/security')
+      if (next.policy.daily_executions !== security?.policy.daily_executions) daily = String(next.policy.daily_executions)
+      if (String(next.policy.allowed_purposes) !== String(security?.policy.allowed_purposes)) purposes = [...next.policy.allowed_purposes]
+      if (next.recovery_delay_ms !== security?.recovery_delay_ms) days = String(Math.round(next.recovery_delay_ms / 86_400_000))
+      security = next
     } catch (e) {
       security = null
       error = code(e) === 'AUTH_REQUIRED' ? '' : `${t('error')}: ${code(e)}`
     }
-  }
+  })
 
   async function guard(work: () => Promise<void>) {
     busy = true
@@ -55,9 +56,9 @@
       if (created?.id) await bridge(() => window.dmsg.openApproval(created.id))
     })
 
-  /** A pairing request carries a device ID; a binding request a login. */
-  async function approve() {
-    await guard(async () => {
+  /** A pairing request carries a device ID; a binding request a login. Their daemon events reload the view. */
+  const approve = () =>
+    guard(async () => {
       if (pairing) {
         await call('device/approve', { token: request.trim(), device: shown.trim() })
       } else {
@@ -67,15 +68,12 @@
       request = ''
       shown = ''
     })
-    await load()
-    await refresh()
-  }
 
   /** The second login happens in the browser; its approval request opens when it arrives. */
   const bindLogin = () =>
     guard(async () => {
       const started: any = await bridge(() => window.dmsg.login('https://dmsg.net', true))
-      while (Date.now() < started.expires_at) {
+      while (mounted && Date.now() < started.expires_at) {
         await new Promise((resolve) => setTimeout(resolve, 1000))
         const result: any = await call('session/login_result')
         if (result.pending) continue
@@ -89,10 +87,12 @@
   const pairing = $derived(/^[0-9a-f]{64}$/.test(shown.trim()))
 
   onMount(() => {
-    void load()
-    return window.dmsg.onEvent((event) => {
-      if (['approval/changed', 'session/changed'].includes(event.type)) void load()
-    })
+    void reload()
+    const off = onChange(['approval/changed', 'session/changed'], reload)
+    return () => {
+      mounted = false
+      off()
+    }
   })
 </script>
 
@@ -136,7 +136,7 @@
     {/snippet}
     <div class="grid gap-4">
       <div class="flex flex-wrap items-end gap-2">
-        <Field label={t('dailyExecutions')}><input bind:value={daily} inputmode="numeric" class="w-28 tabular-nums" /></Field>
+        <Field label={t('dailyExecutions')}><input bind:value={daily} inputmode="numeric" class="w-28 tabular-nums" data-testid="daily-executions" /></Field>
         <button class={buttonClass('secondary')} disabled={busy || !/^\d+$/.test(daily)} onclick={() => ask('account/policy', { daily_executions: Number(daily) })}>
           {t('save')}
         </button>

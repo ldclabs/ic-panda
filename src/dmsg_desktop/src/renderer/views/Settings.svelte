@@ -10,7 +10,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { sessionLabel, t, type Label } from '../i18n/index.svelte'
-  import { bridge, call, code, when } from '../rpc'
+  import { bridge, call, code, onChange, single, when } from '../rpc'
   import Devices from './Devices.svelte'
   import Legacy from './Legacy.svelte'
   import Onboarding from './Onboarding.svelte'
@@ -49,33 +49,30 @@
   const opened = $derived(['unlocked', 'locked', 'root_required'].includes(status?.state))
   const own = $derived(account?.devices?.find((d: any) => d.current))
 
-  async function load() {
+  const reload = single(async () => {
     error = ''
     try {
       accounts = await call('session/accounts')
-      if (!opened) return
-      account = await call('account/show')
-      pairings = await call('connect/pairings')
+      if (opened) [account, pairings] = await Promise.all([call('account/show'), call('connect/pairings')])
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
     }
-  }
+  })
 
+  /** A session or browser change; its daemon event reloads what it changed. */
   async function act(method: string, params?: unknown) {
     try {
       await call(method, params)
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
     }
-    await refresh()
   }
 
   /** Another account's workspace opens locked; its fast unlock or a login opens it. */
   async function switchTo(id: string, fast: boolean) {
-    await act(fast ? 'session/unlock' : 'session/switch', fast ? { fast: true, account: id } : { account: id })
     account = null
     pairings = []
-    await load()
+    await act(fast ? 'session/unlock' : 'session/switch', fast ? { fast: true, account: id } : { account: id })
   }
 
   async function pair(copy: boolean) {
@@ -104,14 +101,11 @@
     clearInterval(timer)
     invite = null
     candidates = []
-    await load()
   }
 
   onMount(() => {
-    void load()
-    const off = window.dmsg.onEvent((event) => {
-      if (event.type === 'session/changed') void load()
-    })
+    void reload()
+    const off = onChange(['session/changed', 'connect/changed'], reload)
     return () => {
       off()
       clearInterval(timer)
@@ -251,7 +245,7 @@
         {:else if !unlocked}
           <Notice icon="lock">{t('locked')}</Notice>
         {:else if part === 'security'}
-          <Security {status} {refresh} />
+          <Security />
         {:else if part === 'devices'}
           <Devices {status} />
         {:else}

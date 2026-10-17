@@ -25,6 +25,7 @@
    * A channel's messages by day and the composer. A message shows as
    * sending until the relay stores it (its sequence number), and stays with
    * a retry if the daemon refused it. Enter sends; Shift+Enter starts a line.
+   * The library's files for an attachment are read when its menu opens.
    */
   let {
     channel,
@@ -39,6 +40,7 @@
     onRetry,
     onDiscard,
     onImport,
+    onAttach,
     onDownload,
     onSave
   }: {
@@ -54,6 +56,7 @@
     onRetry: (item: Outgoing) => void
     onDiscard: (item: Outgoing) => void
     onImport: () => void
+    onAttach: () => void
     onDownload: (message: any) => void
     onSave: (message: any) => void
   } = $props()
@@ -193,7 +196,7 @@
       </div>
     {/if}
     <div class="flex items-end gap-1.5 rounded-xl border border-edge bg-surface p-1.5 transition-[border-color,box-shadow] duration-150 focus-within:border-forest focus-within:ring-3 focus-within:ring-forest/18">
-      <DropdownMenu.Root dir={localeDir(locale())}>
+      <DropdownMenu.Root dir={localeDir(locale())} onOpenChange={(open) => open && onAttach()}>
         <Tooltip content={t('attachFile')}>
           {#snippet children(props)}
             <DropdownMenu.Trigger {...props} class={buttonClass('ghost', 'md', 'size-8 px-0')} aria-label={t('attachFile')} data-testid="channel-attachment">
