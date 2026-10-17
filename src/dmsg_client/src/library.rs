@@ -1152,28 +1152,9 @@ impl Client {
     /// in flight (a lapsed plan is planned again from the same chunks), and
     /// shared editions of attachments whose upload plan has not lapsed.
     pub(crate) fn library_job_blobs(&self) -> Result<BTreeSet<String>> {
-        let keys = self.keys()?;
-        let now = now_ms();
-        let mut keep: BTreeSet<String> = self
-            .backup_jobs()?
-            .into_iter()
-            .flat_map(|(_, job)| job.plan.chunks.into_iter().map(|c| c.digest))
-            .collect();
-        for key in self.workspace.store.sealed_keys(crate::channel::JOB)? {
-            let Some(bytes) = self.workspace.open_sealed(keys, &key)? else {
-                continue;
-            };
-            let mut plans = Vec::new();
-            crate::sync::plans_in(
-                &crate::codec::decode_value(&bytes, 2 * 1024 * 1024)?,
-                &mut plans,
-            );
-            for plan in plans
-                .iter()
-                .filter(|p| p.kind == "file" && p.expires_at > now)
-            {
-                keep.extend(plan.chunks.iter().map(|c| c.digest.clone()));
-            }
+        let mut keep = self.held_chunks(now_ms())?;
+        for (_, job) in self.backup_jobs()? {
+            keep.extend(job.plan.chunks.into_iter().map(|c| c.digest));
         }
         Ok(keep)
     }

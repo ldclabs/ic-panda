@@ -91,9 +91,10 @@ already applied, or one that drops a version the relay accepted, is refused.
 The chunk store keeps what may still be read. At the end of a sync while
 unlocked, a chunk is deleted unless the snapshot just applied names it (the
 next pull checks every one, so a deleted one would be downloaded again), an
-unsent version's job does (it replans from them), or an upload plan in a
-sealed job (channels, the root) does that has not lapsed: an upload reads
-chunks only before its plan lapses. Replaced versions', lapsed or abandoned
+unsent version's job does (it replans from them), or a channel or root
+upload in flight does whose plan has not lapsed: an upload reads chunks only
+before its plan lapses, and channel uploads are listed in one sealed record
+for that until then. Replaced versions', lapsed or abandoned
 uploads' and channel downloads' chunks go; resolved conflict copies and
 older versions stay, as the relay keeps them. The freed pages return to the
 file system in a workspace created since (`auto_vacuum = INCREMENTAL`). The
@@ -146,7 +147,9 @@ takes a lease, seals the new key to every current member device, and
 activates it with the recipients' digest and a key confirmation. An
 operation keeps its request ID across retries and is re-signed under the
 same ID only after its deadline, so a lost reply never becomes a second,
-different operation.
+different operation. The journals of a sent message, a finished rotation
+and a history grant go once their outcome is stored; the relay then refuses
+the message's ID with other bytes.
 
 ## Team wallets
 

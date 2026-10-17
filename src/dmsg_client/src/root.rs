@@ -599,6 +599,14 @@ impl Client {
         })
     }
 
+    /// The upload plan of a root rotation in flight.
+    pub(crate) fn root_plan(&self) -> Result<Option<UploadPlan>> {
+        Ok(self
+            .workspace
+            .private::<RootJob>(self.keys()?, ROOT_JOB)?
+            .and_then(|job| job.plan))
+    }
+
     pub(crate) fn save_root(&self, keys: &RootKeys) -> Result<()> {
         let record = RootRecord {
             generation: keys.generation,

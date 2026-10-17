@@ -157,3 +157,87 @@ fn attachments_carry_the_file_key() {
     );
     assert_eq!(field(field(&shared, "file"), "key").as_text(), Some(""));
 }
+
+#[test]
+fn messages_page_by_sequence_and_uploads_are_held_until_they_lapse() {
+    use crate::testing::{unlocked, TempDir};
+
+    let dir = TempDir::new();
+    let client = unlocked(&dir.0, false, None);
+    let channel = "c".repeat(64);
+    let message = |seq: u64| Message {
+        seq,
+        account: "a".into(),
+        device: "d".into(),
+        message_id: format!("{seq:064}"),
+        epoch: 1,
+        created_at: seq,
+        stored_at: seq,
+        text: format!("text {seq}"),
+        file: None,
+    };
+    for seq in [1, 2, 3, 10, 11] {
+        client
+            .workspace
+            .put_private(
+                client.keys().unwrap(),
+                &format!("{INBOX}{channel}:{seq:020}"),
+                &message(seq),
+            )
+            .unwrap();
+    }
+    // Another channel's messages are not on the page.
+    client
+        .workspace
+        .put_private(
+            client.keys().unwrap(),
+            &format!("{INBOX}{}:{:020}", "d".repeat(64), 4),
+            &message(4),
+        )
+        .unwrap();
+    let seqs = |after, limit| {
+        client
+            .channel_messages(&channel, after, limit)
+            .unwrap()
+            .iter()
+            .map(|m| m.seq)
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(seqs(0, 10), [1, 2, 3, 10, 11]);
+    assert_eq!(seqs(2, 2), [3, 10]);
+    assert_eq!(seqs(9, 10), [10, 11]);
+    assert!(seqs(11, 10).is_empty());
+
+    let plan = |id: &str, expires_at: u64, digest: &str| UploadPlan {
+        upload_id: id.into(),
+        object_id: channel.clone(),
+        version_id: id.into(),
+        root_generation: 0,
+        epoch: 1,
+        control_head: None,
+        kind: "envelopes".into(),
+        chunks: vec![ChunkRef {
+            digest: digest.into(),
+            size: 1,
+        }],
+        manifest_digest: String::new(),
+        manifest_size: 0,
+        expires_at,
+    };
+    client
+        .hold_uploads([&plan("u1", 100, "x"), &plan("u2", 200, "y")])
+        .unwrap();
+    assert_eq!(
+        client.held_chunks(50).unwrap(),
+        BTreeSet::from(["x".to_string(), "y".to_string()])
+    );
+    assert_eq!(
+        client.held_chunks(150).unwrap(),
+        BTreeSet::from(["y".to_string()])
+    );
+    // The lapsed upload is forgotten for good.
+    assert_eq!(
+        client.held_chunks(50).unwrap(),
+        BTreeSet::from(["y".to_string()])
+    );
+}

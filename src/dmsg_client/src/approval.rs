@@ -18,7 +18,7 @@ use dmsg_types::{
     app_action::AppAction,
     ensure,
     user::{AccountCommand, Capability},
-    Error, Hash, Result, Statement, StatementContent, MINUTE,
+    Error, Hash, Result, Statement, StatementContent, DAY, MINUTE,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as Json};
@@ -31,6 +31,9 @@ pub const HIGH_RISK_TTL_MS: u64 = 5 * MINUTE;
 pub const MAX_PENDING: usize = 20;
 /// Most web requests from one origin waiting at once.
 pub const MAX_PER_ORIGIN: usize = 5;
+/// Finished requests, and the web operations behind them, are kept this
+/// long after they were made.
+pub const RETAIN_MS: u64 = 30 * DAY;
 
 const PREFIX: &str = "approval:";
 
@@ -81,6 +84,16 @@ impl State {
             State::AwaitingUser | State::Executing | State::Unknown
         )
     }
+
+    /// The names of the states with no further change.
+    const TERMINAL: [&'static str; 6] = [
+        "rejected",
+        "expired",
+        "cancelled",
+        "done",
+        "failed",
+        "elsewhere",
+    ];
 }
 
 /// What a request asks the device to do.
@@ -331,8 +344,16 @@ impl Client {
         Ok(request)
     }
 
-    /// Mark undecided requests past their deadline expired.
+    /// Mark undecided requests past their deadline expired, and forget
+    /// finished ones past [`RETAIN_MS`].
     fn expire_approvals(&mut self, now: u64) -> Result<()> {
+        for id in self
+            .workspace
+            .store
+            .prune_approvals(&State::TERMINAL, now.saturating_sub(RETAIN_MS))?
+        {
+            self.workspace.delete_private(&Self::approval_key(&id))?;
+        }
         for row in self
             .workspace
             .store
@@ -376,11 +397,9 @@ impl Client {
     /// # Errors
     /// Returns `Error::Unavailable` when storage fails.
     pub fn approvals_unsettled(&self) -> Result<u64> {
-        Ok(self
-            .workspace
+        self.workspace
             .store
-            .approvals(&[State::Executing.name(), State::Unknown.name()])?
-            .len() as u64)
+            .count_approvals(&[State::Executing.name(), State::Unknown.name()], 0)
     }
 
     /// Requests waiting for a decision; readable while locked.
@@ -388,14 +407,9 @@ impl Client {
     /// # Errors
     /// Returns `Error::Unavailable` when storage fails.
     pub fn approvals_waiting(&self) -> Result<u64> {
-        let now = now_ms();
-        Ok(self
-            .workspace
+        self.workspace
             .store
-            .approvals(&[State::AwaitingUser.name()])?
-            .iter()
-            .filter(|r| r.expires_at > now)
-            .count() as u64)
+            .count_approvals(&[State::AwaitingUser.name()], now_ms())
     }
 
     /// One request with everything a person needs to decide.
@@ -933,7 +947,11 @@ impl Client {
                 checkout,
                 ..
             } => {
-                let mut view = self.connect_view(operation)?;
+                // A finished operation may be forgotten before its request.
+                let mut view = match self.connect_view(operation) {
+                    Err(Error::NotFound) => json!(null),
+                    view => view?,
+                };
                 if let Some((id, _)) = checkout {
                     view["checkout"] = self.plan_checkout(id)?.view();
                 }

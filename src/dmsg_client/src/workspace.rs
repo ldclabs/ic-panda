@@ -35,6 +35,8 @@ const PROVISIONAL: &str = "provisional";
 const LDK: &str = "ldk";
 const FAST_LDK: &str = "ldk-fast";
 const DEVICE: &str = "device";
+/// Largest value [`Workspace::private`] decodes.
+const MAX_PRIVATE: usize = 2 * 1024 * 1024;
 
 /// Plaintext facts about the workspace; nothing here is secret.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -360,8 +362,27 @@ impl Workspace {
         key: &str,
     ) -> Result<Option<T>> {
         self.open_sealed(keys, key)?
-            .map(|bytes| decode(&bytes, 2 * 1024 * 1024))
+            .map(|bytes| decode(&bytes, MAX_PRIVATE))
             .transpose()
+    }
+
+    /// At most `limit` values sealed by [`Self::put_private`] under names
+    /// starting with `prefix` that sort after `after`, in name order.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a corrupt or foreign record.
+    pub fn private_after<T: DeserializeOwned + Serialize>(
+        &self,
+        keys: &Keys,
+        prefix: &str,
+        after: &str,
+        limit: usize,
+    ) -> Result<Vec<T>> {
+        self.store
+            .sealed_after(prefix, after, limit)?
+            .into_iter()
+            .map(|(key, sealed)| decode(&self.open_record(keys, &key, &sealed)?, MAX_PRIVATE))
+            .collect()
     }
 
     /// Delete a sealed record.

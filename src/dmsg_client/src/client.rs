@@ -420,7 +420,7 @@ impl Client {
             state,
             root_generation: self.root.as_ref().map(|r| r.generation),
             pending_sync: self.workspace.store.count_in(LOCAL)?,
-            conflicts: self.workspace.store.conflicts(VAULT)?.len() as u64,
+            conflicts: self.workspace.store.count_conflicts(VAULT)?,
             background_online: self.config.background_online,
             resident: self.keys.is_none() && self.resident.is_some(),
             fast_unlock: meta.fast_unlock.is_some(),
@@ -667,7 +667,7 @@ impl Client {
             secure.delete(&name)?;
             // Resident Agent ID copies go with the workspace.
             for agent in self.agents()?.list {
-                secure.delete(&self.resident_name(&agent.agent_id)?)?;
+                self.forget_resident(secure.as_ref(), &agent.agent_id)?;
             }
         }
         self.shutdown();

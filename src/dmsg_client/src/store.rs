@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS mcp_events (
   value TEXT NOT NULL,
   UNIQUE (endpoint, webhook_id)
 );
+CREATE INDEX IF NOT EXISTS mcp_events_received ON mcp_events (received_at);
 CREATE TABLE IF NOT EXISTS audit (
   seq INTEGER PRIMARY KEY AUTOINCREMENT,
   at INTEGER NOT NULL,
@@ -71,6 +72,7 @@ CREATE TABLE IF NOT EXISTS audit (
   outcome TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS audit_actor ON audit (actor, seq);
+CREATE INDEX IF NOT EXISTS audit_at ON audit (at);
 ";
 
 /// One audit entry: who did what, when and through which way in.
@@ -170,6 +172,20 @@ fn storage(error: rusqlite::Error) -> Error {
 
 fn cbor<T: DeserializeOwned>(bytes: &[u8]) -> Result<T> {
     cbor2::from_slice(bytes).map_err(|_| Error::Unavailable("corrupt record".into()))
+}
+
+/// The least key above every key starting with `prefix`, the end of its
+/// range; the prefixes are ASCII.
+fn prefix_end(prefix: &str) -> String {
+    let mut end = prefix.to_string();
+    let last = end.pop().expect("a prefix");
+    end.push(char::from_u32(u32::from(last) + 1).expect("an ASCII prefix"));
+    end
+}
+
+/// `?, ?, …` for `n` values.
+fn marks(n: usize) -> String {
+    vec!["?"; n].join(", ")
 }
 
 impl Store {
@@ -382,17 +398,45 @@ impl Store {
             .map_err(storage)
     }
 
-    /// Keys of the sealed records starting with `prefix`.
+    /// Keys of the sealed records starting with `prefix`, in order; a range
+    /// of the primary key.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when SQLite fails.
     pub fn sealed_keys(&self, prefix: &str) -> Result<Vec<String>> {
         let conn = self.conn();
         let mut statement = conn
-            .prepare("SELECT key FROM sealed WHERE substr(key, 1, ?2) = ?1 ORDER BY key")
+            .prepare("SELECT key FROM sealed WHERE key >= ?1 AND key < ?2 ORDER BY key")
             .map_err(storage)?;
         let rows = statement
-            .query_map(params![prefix, prefix.len() as i64], |r| r.get(0))
+            .query_map(params![prefix, prefix_end(prefix)], |r| r.get(0))
+            .map_err(storage)?;
+        rows.collect::<rusqlite::Result<_>>().map_err(storage)
+    }
+
+    /// At most `limit` sealed records starting with `prefix` whose keys sort
+    /// after `after`, in order, with their values.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn sealed_after(
+        &self,
+        prefix: &str,
+        after: &str,
+        limit: usize,
+    ) -> Result<Vec<(String, String)>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare(
+                "SELECT key, value FROM sealed WHERE key > ?1 AND key >= ?2 AND key < ?3 \
+                 ORDER BY key LIMIT ?4",
+            )
+            .map_err(storage)?;
+        let rows = statement
+            .query_map(
+                params![after, prefix, prefix_end(prefix), limit as i64],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
             .map_err(storage)?;
         rows.collect::<rusqlite::Result<_>>().map_err(storage)
     }
@@ -448,12 +492,19 @@ impl Store {
     /// # Errors
     /// Returns `Error::Unavailable` when SQLite fails.
     pub fn approvals(&self, states: &[&str]) -> Result<Vec<ApprovalRow>> {
+        let filter = match states.len() {
+            0 => String::new(),
+            n => format!("WHERE state IN ({})", marks(n)),
+        };
         let conn = self.conn();
         let mut statement = conn
-            .prepare("SELECT id, state, class, created_at, expires_at FROM approvals ORDER BY created_at, id")
+            .prepare(&format!(
+                "SELECT id, state, class, created_at, expires_at FROM approvals {filter} \
+                 ORDER BY created_at, id"
+            ))
             .map_err(storage)?;
         let rows = statement
-            .query_map([], |r| {
+            .query_map(rusqlite::params_from_iter(states), |r| {
                 Ok(ApprovalRow {
                     id: r.get(0)?,
                     state: r.get(1)?,
@@ -463,11 +514,50 @@ impl Store {
                 })
             })
             .map_err(storage)?;
-        let rows: Vec<ApprovalRow> = rows.collect::<rusqlite::Result<_>>().map_err(storage)?;
-        Ok(rows
-            .into_iter()
-            .filter(|r| states.is_empty() || states.contains(&r.state.as_str()))
-            .collect())
+        rows.collect::<rusqlite::Result<_>>().map_err(storage)
+    }
+
+    /// How many approvals in `states` have a deadline after `after`.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn count_approvals(&self, states: &[&str], after: u64) -> Result<u64> {
+        let mut values: Vec<rusqlite::types::Value> =
+            states.iter().map(|s| s.to_string().into()).collect();
+        values.push((after.min(i64::MAX as u64) as i64).into());
+        self.conn()
+            .query_row(
+                &format!(
+                    "SELECT COUNT(*) FROM approvals WHERE state IN ({}) AND expires_at > ?",
+                    marks(states.len())
+                ),
+                rusqlite::params_from_iter(values),
+                |r| r.get::<_, i64>(0),
+            )
+            .map(|n| n as u64)
+            .map_err(storage)
+    }
+
+    /// Delete the approvals in `states` created before `before`; returns
+    /// their IDs.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn prune_approvals(&self, states: &[&str], before: u64) -> Result<Vec<String>> {
+        let mut values: Vec<rusqlite::types::Value> =
+            states.iter().map(|s| s.to_string().into()).collect();
+        values.push((before.min(i64::MAX as u64) as i64).into());
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare(&format!(
+                "DELETE FROM approvals WHERE state IN ({}) AND created_at < ? RETURNING id",
+                marks(states.len())
+            ))
+            .map_err(storage)?;
+        let rows = statement
+            .query_map(rusqlite::params_from_iter(values), |r| r.get(0))
+            .map_err(storage)?;
+        rows.collect::<rusqlite::Result<_>>().map_err(storage)
     }
 
     /// Store or replace a relay mailbox entry; `done` once it is handled.
@@ -506,6 +596,32 @@ impl Store {
             .map_err(storage)?;
         row.map(|(bytes, done)| Ok((cbor(&bytes)?, done)))
             .transpose()
+    }
+
+    /// Remove a relay mailbox entry.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn delete_inbox(&self, request: &str) -> Result<()> {
+        self.conn()
+            .execute("DELETE FROM connect_inbox WHERE request_id = ?1", [request])
+            .map(|_| ())
+            .map_err(storage)
+    }
+
+    /// How many relay mailbox entries are not handled yet.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn count_inbox_pending(&self) -> Result<u64> {
+        self.conn()
+            .query_row(
+                "SELECT COUNT(*) FROM connect_inbox WHERE done = 0",
+                [],
+                |r| r.get::<_, i64>(0),
+            )
+            .map(|n| n as u64)
+            .map_err(storage)
     }
 
     /// Relay mailbox entries in sequence order; only unhandled ones with `pending`.
@@ -589,7 +705,7 @@ impl Store {
         if endpoints.is_empty() {
             return Ok(Vec::new());
         }
-        let marks = vec!["?"; endpoints.len()].join(", ");
+        let marks = marks(endpoints.len());
         let conn = self.conn();
         let mut statement = conn
             .prepare(&format!(
@@ -622,7 +738,7 @@ impl Store {
         if endpoints.is_empty() {
             return Ok(0);
         }
-        let marks = vec!["?"; endpoints.len()].join(", ");
+        let marks = marks(endpoints.len());
         let mut values: Vec<rusqlite::types::Value> = vec![(through as i64).into()];
         values.extend(endpoints.iter().map(|e| e.clone().into()));
         self.conn()
@@ -647,7 +763,8 @@ impl Store {
         )
         .map_err(storage)?;
         conn.execute(
-            "DELETE FROM mcp_events WHERE seq NOT IN (SELECT seq FROM mcp_events ORDER BY seq DESC LIMIT ?1)",
+            "DELETE FROM mcp_events WHERE seq <= \
+             (SELECT seq FROM mcp_events ORDER BY seq DESC LIMIT 1 OFFSET ?1)",
             [keep as i64],
         )
         .map(|_| ())
@@ -677,9 +794,11 @@ impl Store {
         let seq = conn.last_insert_rowid() as u64;
         conn.execute("DELETE FROM audit WHERE at < ?1", [since as i64])
             .map_err(storage)?;
+        // Sequences grow by one and are never reused, so the newest `keep`
+        // are the ones above this bound.
         conn.execute(
-            "DELETE FROM audit WHERE seq NOT IN (SELECT seq FROM audit ORDER BY seq DESC LIMIT ?1)",
-            [keep as i64],
+            "DELETE FROM audit WHERE seq <= ?1",
+            [seq.saturating_sub(keep) as i64],
         )
         .map_err(storage)?;
         Ok(seq)
@@ -791,6 +910,22 @@ impl Store {
             "conflict = 1 AND resolved = 0 AND state != 'replaced' AND kind = ?1",
             kind,
         )
+    }
+
+    /// How many [`Self::conflicts`] there are.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn count_conflicts(&self, kind: &str) -> Result<u64> {
+        self.conn()
+            .query_row(
+                "SELECT COUNT(*) FROM objects
+                 WHERE conflict = 1 AND resolved = 0 AND state != 'replaced' AND kind = ?1",
+                [kind],
+                |r| r.get::<_, i64>(0),
+            )
+            .map(|n| n as u64)
+            .map_err(storage)
     }
 
     /// Record that a newer version resolved this conflict copy.

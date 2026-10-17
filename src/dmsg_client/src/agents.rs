@@ -24,6 +24,7 @@ use crate::client::Client;
 use crate::codec::canonical;
 use crate::crypto::{random_id, signing_public, Key};
 use crate::now_ms;
+use crate::secure::SecureStorage;
 use crate::vault::Item;
 use agent_protocols::identity::{service_origin, AgentSigner};
 use dmsg_types::{ensure, ensure_valid, Error, Result, DAY};
@@ -237,6 +238,15 @@ impl Client {
         ))
     }
 
+    /// Delete every copy a resident Agent ID keeps in the credential store:
+    /// its grants first, so a copy never allows more than the grants do,
+    /// then its mail keys and its seed.
+    pub(crate) fn forget_resident(&self, secure: &dyn SecureStorage, agent_id: &str) -> Result<()> {
+        secure.delete(&self.resident_grants_name(agent_id)?)?;
+        secure.delete(&self.resident_mail_name(agent_id)?)?;
+        secure.delete(&self.resident_name(agent_id)?)
+    }
+
     /// Copy the live ones of `grants` for resident Agent ID `agent_id`
     /// beside its seed.
     fn resident_grants_save(&self, agent_id: &str, grants: &[CapabilityGrant]) -> Result<()> {
@@ -416,9 +426,7 @@ impl Client {
                     &keys,
                 )?;
             }
-            secure.delete(&self.resident_grants_name(&entry.agent_id)?)?;
-            secure.delete(&mail_slot)?;
-            secure.delete(&slot)?;
+            self.forget_resident(secure.as_ref(), &entry.agent_id)?;
         }
         entry.resident = on;
         self.agent_update(&entry)?;

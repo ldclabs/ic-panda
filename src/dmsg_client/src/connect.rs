@@ -608,6 +608,16 @@ impl Client {
             .put_private(self.keys()?, &Self::op_key(&op.key), op)
     }
 
+    /// Delete a finished operation with the mailbox entries of its requests.
+    fn forget_operation(&self, op: &Operation) -> Result<()> {
+        self.workspace.store.atomic(|store| {
+            for channel in &op.channels {
+                store.delete_inbox(&hex::encode(*channel.request_id))?;
+            }
+            store.delete_sealed(&Self::op_key(&op.key))
+        })
+    }
+
     fn connect_path(&self, rest: &str) -> Result<String> {
         Ok(format!("{}/connect{rest}", self.base()?))
     }
@@ -1532,10 +1542,28 @@ impl Client {
     /// cancelled, expired or acknowledged; then reconcile and deliver.
     async fn connect_follow(&mut self) -> Result<u64> {
         let device = self.workspace.meta.device_id;
+        let now = now_ms();
         let mut written = 0;
         for key in self.workspace.store.sealed_keys(OP)? {
             let key = key.trim_start_matches(OP).to_string();
             let mut op = self.operation(&key)?;
+            if op.state.terminal() {
+                // Past the approvals' retention nothing reads it again.
+                if op.requested_at + approval::RETAIN_MS <= now {
+                    self.forget_operation(&op)?;
+                    continue;
+                }
+                // Answered on every page: only an acknowledgement may follow.
+                let state = op.state.name();
+                if op.state != OpState::Signed
+                    && op
+                        .channels
+                        .iter()
+                        .all(|c| c.closed || c.sent.as_deref() == Some(state))
+                {
+                    continue;
+                }
+            }
             let Some(first) = op.channels.first() else {
                 continue;
             };
@@ -1714,7 +1742,7 @@ impl Client {
                 let entry = match self.relay_get(&path).await {
                     Ok(value) => Entry::parse(&value)?,
                     Err(_) if error == Error::ExecutionUnknown => {
-                        return Err(Error::ExecutionUnknown)
+                        return Err(Error::ExecutionUnknown);
                     }
                     Err(_) => {
                         op.state = OpState::AwaitingUser;
@@ -2118,7 +2146,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::Unavailable` when storage fails.
     pub fn sealed_requests(&self) -> Result<u64> {
-        Ok(self.workspace.store.inbox_entries::<Entry>(true)?.len() as u64)
+        self.workspace.store.count_inbox_pending()
     }
 
     /// The stored hint token, without contacting the relay; usable locked.

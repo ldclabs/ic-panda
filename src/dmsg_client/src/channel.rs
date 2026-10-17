@@ -61,7 +61,9 @@ const BILLING_TRANSFER: &str = "dmsg/channel/billing/transfer/v1";
 const LOCAL: &str = "channel:";
 const LOG: &str = "channel-control:";
 const INBOX: &str = "channel-msg:";
-pub(crate) const JOB: &str = "channel-job:";
+const JOB: &str = "channel-job:";
+/// The chunks of channel uploads in flight, by upload, until their plans lapse.
+const UPLOADS: &str = "channel-uploads";
 /// Envelopes per upload.
 const GROUP: usize = 120;
 /// How long an invitation stays open.
@@ -149,7 +151,13 @@ struct Operation {
 struct Outgoing {
     text: String,
     payload: MessagePayload,
-    receipt: Option<Json>,
+}
+
+/// A channel upload in flight: what the chunk collectors keep for it.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct Held {
+    expires_at: u64,
+    chunks: Vec<String>,
 }
 
 /// An upload a channel operation needs; its chunks are in the chunk store.
@@ -773,6 +781,52 @@ impl Client {
     pub(crate) fn save_job<T: Serialize>(&self, channel: &str, key: &str, value: &T) -> Result<()> {
         self.workspace
             .put_private(self.keys()?, &format!("{JOB}{channel}:{key}"), value)
+    }
+
+    /// Delete a job whose outcome is settled.
+    fn forget_job(&self, channel: &str, key: &str) -> Result<()> {
+        self.workspace
+            .delete_private(&format!("{JOB}{channel}:{key}"))
+    }
+
+    /// Keep the chunks of channel uploads until their plans lapse, whatever
+    /// becomes of the jobs that planned them.
+    pub(crate) fn hold_uploads<'a>(
+        &self,
+        plans: impl IntoIterator<Item = &'a UploadPlan>,
+    ) -> Result<()> {
+        let keys = self.keys()?;
+        let mut held: BTreeMap<String, Held> =
+            self.workspace.private(keys, UPLOADS)?.unwrap_or_default();
+        for plan in plans {
+            held.insert(
+                plan.upload_id.clone(),
+                Held {
+                    expires_at: plan.expires_at,
+                    chunks: plan.chunks.iter().map(|c| c.digest.clone()).collect(),
+                },
+            );
+        }
+        self.workspace.put_private(keys, UPLOADS, &held)
+    }
+
+    /// The chunks of the channel uploads whose plans have not lapsed at
+    /// `now`, from the workspace's store or the library's blobs alike; the
+    /// lapsed ones are forgotten.
+    pub(crate) fn held_chunks(&self, now: u64) -> Result<BTreeSet<String>> {
+        let keys = self.keys()?;
+        let Some(mut held) = self
+            .workspace
+            .private::<BTreeMap<String, Held>>(keys, UPLOADS)?
+        else {
+            return Ok(BTreeSet::new());
+        };
+        let before = held.len();
+        held.retain(|_, h| h.expires_at > now);
+        if held.len() != before {
+            self.workspace.put_private(keys, UPLOADS, &held)?;
+        }
+        Ok(held.into_values().flat_map(|h| h.chunks).collect())
     }
 
     /// The account may write content: its root is the committed one.
@@ -1486,6 +1540,7 @@ impl Client {
             current = self.recipients(&members).await?;
         }
         if ledger.status == Status::Active {
+            self.forget_rotation(channel)?;
             return self.channel_open_epoch(channel, ledger.epoch).await;
         }
         ensure(ledger.status == Status::RotationRequired, Error::Forbidden)?;
@@ -1537,7 +1592,23 @@ impl Client {
         )
         .await?;
         self.channel_pull(channel, None, None).await?;
+        self.forget_rotation(channel)?;
         self.channel_open_epoch(channel, activation.epoch).await
+    }
+
+    /// Forget the journals of a rotation that ended, by this device or by
+    /// another one: nothing of it is sent again, and the epoch key it
+    /// sealed is in the keyring once opened.
+    fn forget_rotation(&self, channel: &str) -> Result<()> {
+        let Some(rotation) = self.job::<Rotation>(channel, "rotation")? else {
+            return Ok(());
+        };
+        self.forget_job(channel, &format!("lease:{}", rotation.lease_id))?;
+        if let Some(lease) = &rotation.lease {
+            self.forget_job(channel, &format!("rotation-key:{}", lease.id))?;
+            self.forget_job(channel, &format!("activate:{}", lease.id))?;
+        }
+        self.forget_job(channel, "rotation")
     }
 
     /// Seal the lease's key to every recipient, in groups of 120 per
@@ -1639,6 +1710,7 @@ impl Client {
                     key: ByteBuf::from(key.to_vec()),
                     groups,
                 };
+                self.hold_uploads(candidate.groups.iter().map(|g| &g.plan))?;
                 self.save_job(channel, &key_name, &candidate)?;
                 candidate
             }
@@ -2109,38 +2181,33 @@ impl Client {
                 let outgoing = Outgoing {
                     text: text.into(),
                     payload,
-                    receipt: None,
                 };
                 self.save_job(channel, &key_name, &outgoing)?;
                 outgoing
             }
         };
+        let send = format!("send:{message_id}");
         let receipt = self
             .channel_post(
                 channel,
-                &format!("send:{message_id}"),
+                &send,
                 MESSAGE,
                 json(&outgoing.payload),
                 "/messages",
             )
             .await?;
-        let operation: Operation = self
-            .job(channel, &format!("send:{message_id}"))?
-            .ok_or(Error::IntegrityFailed)?;
+        let operation: Operation = self.job(channel, &send)?.ok_or(Error::IntegrityFailed)?;
         ensure(
             receipt["digest"] == hex_sha256(&unb64(&operation.cose)?).as_str()
                 && receipt["seq"].as_u64().is_some_and(|s| s > 0),
             Error::IntegrityFailed,
         )?;
-        self.save_job(
-            channel,
-            &key_name,
-            &Outgoing {
-                receipt: Some(receipt.clone()),
-                ..outgoing
-            },
-        )?;
-        self.channel_sync(channel, false).await?;
+        // Stored: the message is the relay's now, and its journals go. The
+        // relay refuses this message ID with other bytes from now on.
+        for key in [key_name, send, format!("file:{message_id}")] {
+            self.forget_job(channel, &key)?;
+        }
+        self.sync_messages(channel, ledger, false).await?;
         Ok(json!({"message_id": message_id, "receipt": receipt}))
     }
 
@@ -2258,6 +2325,7 @@ impl Client {
             mime: file.mime.clone(),
             key: file.key.clone(),
         };
+        self.hold_uploads([&plan])?;
         Ok((
             reference,
             Upload {
@@ -2277,9 +2345,20 @@ impl Client {
     /// the cursor stays.
     pub async fn channel_sync(&mut self, channel: &str, backfill: bool) -> Result<ChannelSync> {
         let ledger = self.channel_pull(channel, None, None).await?;
+        self.sync_messages(channel, ledger, backfill).await
+    }
+
+    /// [`Self::channel_sync`] from the control log as `ledger` verified it.
+    async fn sync_messages(
+        &mut self,
+        channel: &str,
+        mut ledger: Ledger,
+        backfill: bool,
+    ) -> Result<ChannelSync> {
         let me = self.me()?;
         let trust = self.trust().await?;
         let mut local = self.local(channel)?;
+        let mut ring = self.keyring(channel)?.1;
         let mut after = if backfill { 0 } else { local.message };
         let mut received = 0;
         let mut ledgers: BTreeMap<String, Ledger> = BTreeMap::new();
@@ -2287,16 +2366,21 @@ impl Client {
             let page = self
                 .relay_get(&format!("{}/sync?after={after}&limit=20", base(channel)?))
                 .await?;
+            if page["head"] != ledger.head.as_str() {
+                // A control landed since the log was read: read it, then
+                // the page again.
+                let pulled = self.channel_pull(channel, None, None).await?;
+                ensure(pulled.head != ledger.head, Error::IntegrityFailed)?;
+                ledger = pulled;
+                local = self.local(channel)?;
+                continue;
+            }
             let next = page["next_seq"].as_u64().ok_or(Error::IntegrityFailed)?;
             let latest = page["latest_seq"].as_u64().ok_or(Error::IntegrityFailed)?;
             let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
             let skipped = page["skipped"].as_array().ok_or(Error::IntegrityFailed)?;
             ensure(
-                page["head"] == ledger.head.as_str()
-                    && next >= after
-                    && latest >= next
-                    && entries.len() <= 20
-                    && next - after <= 20,
+                next >= after && latest >= next && entries.len() <= 20 && next - after <= 20,
                 Error::IntegrityFailed,
             )?;
             let mut seen = BTreeSet::new();
@@ -2360,16 +2444,16 @@ impl Client {
             }
             ensure(seen.len() as u64 == next - after, Error::IntegrityFailed)?;
             ensure(next > after || next == latest, Error::IntegrityFailed)?;
+            let mut opened = Vec::with_capacity(rows.len());
             for (seq, stored_at, author, device, payload) in rows {
                 let key_name = format!("{INBOX}{channel}:{seq:020}");
                 if self.workspace.store.sealed(&key_name)?.is_some() {
                     continue;
                 }
-                let (_, ring) = self.keyring(channel)?;
                 if !ring.keys.contains_key(&payload.epoch) {
                     self.channel_open_epoch(channel, payload.epoch).await?;
+                    ring = self.keyring(channel)?.1;
                 }
-                let (_, ring) = self.keyring(channel)?;
                 let root = unb64(
                     ring.keys
                         .get(&payload.epoch)
@@ -2384,10 +2468,9 @@ impl Client {
                 )?;
                 let body: Body = decode(&plain, MAX_RECORD)?;
                 ensure(body.text.len() <= MAX_TEXT, Error::IntegrityFailed)?;
-                self.workspace.put_private(
-                    self.keys()?,
-                    &key_name,
-                    &Message {
+                opened.push((
+                    key_name,
+                    Message {
                         seq,
                         account: author,
                         device,
@@ -2398,14 +2481,22 @@ impl Client {
                         text: body.text,
                         file: body.file,
                     },
-                )?;
-                received += 1;
+                ));
             }
-            if !backfill && next != local.message {
-                local = self.local(channel)?;
-                local.message = next;
-                self.save_local(channel, &local)?;
-            }
+            received += opened.len();
+            // The page's messages and the cursor past them in one write.
+            let keys = self.keys()?;
+            self.workspace.store.atomic(|_| {
+                for (key, message) in &opened {
+                    self.workspace.put_private(keys, key, message)?;
+                }
+                if !backfill && next != local.message {
+                    local = self.local(channel)?;
+                    local.message = next;
+                    self.save_local(channel, &local)?;
+                }
+                Ok(())
+            })?;
             after = next;
             if after == latest {
                 return Ok(ChannelSync {
@@ -2428,24 +2519,16 @@ impl Client {
         limit: usize,
     ) -> Result<Vec<Message>> {
         base(channel)?;
-        let mut messages = vec![];
-        for key in self
-            .workspace
-            .store
-            .sealed_keys(&format!("{INBOX}{channel}:"))?
-        {
-            let message: Message = self
-                .workspace
-                .private(self.keys()?, &key)?
-                .ok_or(Error::IntegrityFailed)?;
-            if message.seq > after {
-                messages.push(message.public());
-                if messages.len() >= limit {
-                    break;
-                }
-            }
-        }
-        Ok(messages)
+        // Messages are named by their zero-padded sequence: the page is a
+        // range of names, and only its messages are opened.
+        let prefix = format!("{INBOX}{channel}:");
+        let messages: Vec<Message> = self.workspace.private_after(
+            self.keys()?,
+            &prefix,
+            &format!("{prefix}{after:020}"),
+            limit,
+        )?;
+        Ok(messages.iter().map(Message::public).collect())
     }
 
     /// Verify and decrypt a shared file and write it to `out`.
@@ -2672,6 +2755,9 @@ impl Client {
             "/control",
         )
         .await?;
+        // Each grant has its own ID, so nothing reads its journals again.
+        self.forget_job(channel, &format!("history-plan:{grant_id}"))?;
+        self.forget_job(channel, &format!("history:{grant_id}"))?;
         self.channel_pull(channel, None, None).await
     }
 
@@ -2792,6 +2878,7 @@ impl Client {
                 }
             })
             .collect();
+        self.hold_uploads(uploads.iter().map(|u| &u.plan))?;
         self.save_job(
             channel,
             &key_name,

@@ -340,19 +340,8 @@ fn collection_keeps_what_a_pull_or_an_upload_needs() {
         manifest_size: 1,
         expires_at,
     };
-    let upload = |plan: UploadPlan| json!({"plan": plan, "manifest": [], "recipients": []});
-    b.save_job(
-        "c1",
-        "rotation-key:x",
-        &json!({"groups": [upload(plan(&live, now + 60_000))]}),
-    )
-    .unwrap();
-    b.save_job(
-        "c1",
-        "file:y",
-        &json!({"upload": upload(plan(&lapsed, now - 1))}),
-    )
-    .unwrap();
+    b.hold_uploads([&plan(&live, now + 60_000), &plan(&lapsed, now - 1)])
+        .unwrap();
     assert_eq!(b.collect_chunks(&relay.snapshot(), now).unwrap(), 2);
     let has = |digest: &str| b.workspace.store.has_chunk(digest).unwrap();
     assert!(relay.chunks.keys().all(|d| has(d)));

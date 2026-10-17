@@ -328,6 +328,35 @@ fn a_resident_agent_is_checked_against_a_copy_of_its_grants() {
 }
 
 #[test]
+fn a_reset_deletes_every_copy_of_a_resident_agent() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    let agent = client.agent_create("mailer").unwrap().agent_id;
+    client
+        .agent_mail_keys_save(
+            "mailer",
+            &json!({"version": 1, "agent_id": agent, "keys": {"pk": "sk"}}),
+        )
+        .unwrap();
+    client
+        .capability_grant("cli", "mailer", vec!["mail.read:*".into()], None)
+        .unwrap();
+    client.agent_resident("mailer", true).unwrap();
+    let workspace = client.workspace.name().unwrap();
+    let copies =
+        ["agent", "agent-mail", "agent-grants"].map(|kind| format!("{workspace}:{kind}:{agent}"));
+    for name in &copies {
+        assert!(storage.get(name).unwrap().is_some(), "{name}");
+    }
+
+    client.reset().unwrap();
+    for name in &copies {
+        assert!(storage.get(name).unwrap().is_none(), "{name}");
+    }
+}
+
+#[test]
 fn a_grant_takes_the_room_of_revoked_ones() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
