@@ -8,7 +8,7 @@ and the capability grants live in [`dmsg_client`](../dmsg_client/README.md).
 
 | Module | Content |
 | --- | --- |
-| `runtime` | Connector state per Agent ID in `<workspace>/agents.sqlite`, restored for every call and saved after it, with each session's presented heads apart; resource reads that save nothing; the host allowlist and the blocked mail senders come only from `config.toml` |
+| `runtime` | Connector state per Agent ID in `<workspace>/agents.sqlite`, restored for every call and saved after it when it changed, with each session's presented heads apart; resource reads that save nothing; the host allowlist and the blocked mail senders come only from `config.toml` |
 | `resources` | The local connector's resources (§4.4) and the read-only tool behind each |
 | `tools` | The MCP catalog: the 33 standard `agent_protocols_*` tools (identity, delegation, rooms, inbox and drafts, profile, Agent Mail, Agent Knowledge) with the capability each needs, and the 32 `dmsg_*` tools, six of them for team wallets and seven for MCP Events endpoints |
 
@@ -16,12 +16,14 @@ Every tool call restores the connector from its snapshot (local connector
 §4.1: hosts, rooms and records, members, timeline, read and presented
 heads, join requests, agent statuses, profiles, the inbox with its leases,
 held drafts, mailbox cards, card pins, stored letters and the next nonce)
-and saves it afterwards, even when the call failed. Before each call every
-remembered host is disallowed and every remembered blocked sender unblocked,
-then the configured ones are applied again, so neither a tool nor a stored
-snapshot changes them. Calls run one at a time, each inside a turn the
-daemon holds from reading the Agent ID's mail keys to saving those the call
-left.
+and saves it afterwards, even when the call failed; a call that leaves it as
+it was does not rewrite it and says so, and only a change wakes the MCP
+sessions that watch resources. The snapshot keeps no host. Before each call
+every remembered blocked sender is unblocked, then the configured hosts and
+senders are applied, so neither a tool nor a stored snapshot changes them.
+Calls of one Agent ID run one at a time, each inside a turn the daemon holds
+from reading the Agent ID's mail keys to saving those the call left; calls
+of different Agent IDs do not wait for each other.
 
 The host allowlist says where the agents may sign; what each may do at
 which of them is its owner's grant. The Agent Discourse, Mail and Knowledge
@@ -35,8 +37,9 @@ allows only those, each as a host of its own, so a host's profile service
 does not come along: the connector refuses every other origin, and the
 runtime refuses a room, or a held draft of one, the snapshot knows on
 another host, which a read from local state would not ask, and leaves the
-other hosts' rooms out of `rooms_list`. The owner acting as an Agent ID (`dmsg ap`, the desktop)
-reaches every configured host.
+other hosts' rooms and held drafts out of `rooms_list` and `drafts_list`; a
+resource of such a room is `Forbidden`. The owner acting as an Agent ID
+(`dmsg ap`, the desktop) reaches every configured host.
 
 Each call names its session (an MCP session, `dmsg ap --session`, the
 desktop). The presented head of each room is per session (local connector
@@ -67,7 +70,8 @@ private key.
 Tests (`cargo test -p dmsg_agent`) cover the allowlist (DT02), a restart
 that restores drafts, inbox leases, read positions and the nonce (DT09),
 with a held write when the head moved (DT07), presented heads kept per
-session, resource reads that change nothing, and Agent Mail over HTTPS
+session, resource reads that change nothing, the reach of an agent's grant,
+unchanged state left unwritten, turns per Agent ID, and Agent Mail over HTTPS
 against the SDK's reference relay (`tests/mail_runtime.rs`): a mailbox's key
 comes back to the caller and never reaches `agents.sqlite`, a recipient
 without its keys cannot open a letter, and the configuration alone blocks

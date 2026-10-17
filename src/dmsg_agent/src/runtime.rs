@@ -12,29 +12,35 @@
 //! off an item one is handling.
 //!
 //! The operator's configuration alone decides the host allowlist and the
-//! blocked mail senders: before every call each host a snapshot remembers
-//! is disallowed, each sender it blocks is unblocked, and the configured
-//! ones are applied again, so neither a tool nor a stored snapshot can
-//! change them (plan DT02). A call's [`Scope`] may narrow the allowlist to
-//! the origins an agent's grant names: the connector then refuses every
-//! other origin, and the runtime refuses a room, or a held draft of one, it
-//! knows on another host, which a read from local state would not ask. The
-//! mail decryption keys are not in the snapshot: the caller brings them from
-//! its key store and keeps what the call leaves. Calls run one at a time,
-//! each inside a [`Turn`] the caller holds from reading the keys to saving
-//! them, so two sessions of one Agent ID never overwrite each other's state.
+//! blocked mail senders: the snapshot keeps no host, and before every call
+//! each sender it blocks is unblocked and the configured hosts and senders
+//! are applied, so neither a tool nor a stored snapshot can change them
+//! (plan DT02). A call's [`Scope`] may narrow the allowlist to the origins
+//! an agent's grant names: the connector then refuses every other origin,
+//! and the runtime refuses a room, or a held draft of one, it knows on
+//! another host, which a read from local state would not ask, and leaves
+//! the other hosts' rooms and held drafts out of the lists. The mail
+//! decryption keys are not in the snapshot: the caller brings them from its
+//! key store and keeps what the call leaves. Calls of one Agent ID run one
+//! at a time, each inside a [`Turn`] the caller holds from reading the keys
+//! to saving them, so two sessions never overwrite each other's state;
+//! calls of different Agent IDs do not wait for each other.
 
 use crate::resources::{Resource, RoomPart};
 use agent_protocols::{
     error::SdkError,
     identity::{service_origin, AgentId, AgentSigner},
-    local_connector::{AgentProtocolsHost, LocalConnector, TOOL_NAMES, TOOL_ROOMS_LIST},
+    local_connector::{
+        AgentProtocolsHost, LocalConnector, TOOL_DRAFTS_LIST, TOOL_NAMES, TOOL_ROOMS_LIST,
+    },
 };
 use dmsg_types::{ensure, ensure_valid, Error, Result};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Arc;
 
 /// Sessions not used for this long are forgotten.
 const SESSION_MS: i64 = 30 * 24 * 60 * 60 * 1000;
@@ -122,9 +128,12 @@ pub struct Scope<'a> {
     pub reach: Option<&'a [String]>,
 }
 
-/// The right to run one call, held from reading the caller's mail keys to
-/// saving them.
-pub type Turn<'a> = tokio::sync::MutexGuard<'a, ()>;
+/// The right to run one call of an Agent ID, held from reading its mail keys
+/// to saving them.
+pub struct Turn {
+    agent_id: String,
+    _guard: tokio::sync::OwnedMutexGuard<()>,
+}
 
 /// One call's outcome and the mail keys the connector holds after it.
 pub struct Called {
@@ -133,6 +142,9 @@ pub struct Called {
     /// `{version, agent_id, keys}` for the caller's key store; keys of
     /// cards past `receive_until` are gone.
     pub mail_keys: Value,
+    /// Whether the call changed the Agent ID's shared connector state, which
+    /// every session's resources show.
+    pub changed: bool,
 }
 
 /// The connectors of the hosted Agent IDs; each call names the state file
@@ -141,7 +153,7 @@ pub struct Runtime {
     hosts: Vec<AgentProtocolsHost>,
     blocked_senders: Vec<AgentId>,
     http: reqwest::Client,
-    calls: tokio::sync::Mutex<()>,
+    turns: std::sync::Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
 }
 
 /// An origin without path: HTTPS, or loopback HTTP in a local deployment.
@@ -220,7 +232,7 @@ impl Runtime {
             hosts,
             blocked_senders,
             http,
-            calls: tokio::sync::Mutex::new(()),
+            turns: std::sync::Mutex::new(HashMap::new()),
         })
     }
 
@@ -243,95 +255,31 @@ impl Runtime {
         origins
     }
 
-    fn open(path: &Path) -> Result<Connection> {
-        let conn = Connection::open(path).map_err(storage)?;
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
-        }
-        conn.execute_batch(
-            "CREATE TABLE IF NOT EXISTS connectors (agent_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL, updated_at INTEGER NOT NULL);
-             CREATE TABLE IF NOT EXISTS sessions (agent_id TEXT NOT NULL, session TEXT NOT NULL, presented TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (agent_id, session));",
-        )
-        .map_err(storage)?;
-        Ok(conn)
-    }
-
-    /// The saved snapshot of an Agent ID's connector in the state file `path`.
-    ///
-    /// # Errors
-    /// Returns `Error::Unavailable` when storage fails.
-    pub fn snapshot(&self, path: &Path, agent_id: &str) -> Result<Option<Value>> {
-        load(&Self::open(path)?, agent_id)
-    }
-
-    /// Save a connector: its presented heads for `session`, the rest for
-    /// every session.
-    fn save(&self, conn: &Connection, session: &str, connector: &LocalConnector) -> Result<()> {
-        let mut snapshot = connector
-            .snapshot()
-            .map_err(|e| Error::Unavailable(format!("snapshot: {e}")))?;
-        let presented = presented(&snapshot);
-        present(&mut snapshot, &[]);
-        let agent_id = connector.agent_id();
-        let now = agent_protocols::identity::unix_ms();
-        conn.execute(
-            "INSERT INTO connectors (agent_id, snapshot, updated_at) VALUES (?1, ?2, ?3)
-             ON CONFLICT(agent_id) DO UPDATE SET snapshot = excluded.snapshot, updated_at = excluded.updated_at",
-            params![agent_id.as_str(), snapshot.to_string(), now],
-        )
-        .map_err(storage)?;
-        conn.execute(
-            "INSERT INTO sessions (agent_id, session, presented, updated_at) VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT(agent_id, session) DO UPDATE SET presented = excluded.presented, updated_at = excluded.updated_at",
-            params![
-                agent_id.as_str(),
-                session,
-                Value::Array(presented).to_string(),
-                now
-            ],
-        )
-        .map_err(storage)?;
-        conn.execute(
-            "DELETE FROM sessions WHERE agent_id = ?1 AND (updated_at < ?2 OR session NOT IN
-             (SELECT session FROM sessions WHERE agent_id = ?1 ORDER BY updated_at DESC LIMIT ?3))",
-            params![agent_id.as_str(), now - SESSION_MS, MAX_SESSIONS],
-        )
-        .map_err(storage)?;
-        Ok(())
-    }
-
-    /// The connector of `signer`'s Agent ID as `scope` sees it, allowed only
-    /// the configured hosts within its reach, and its saved snapshot.
+    /// The connector of `signer`'s Agent ID as `scope` sees it, from its
+    /// saved snapshot (`Null` for none), which gets the session's presented
+    /// heads: allowed only the configured hosts within its reach, and
+    /// blocking only the configured senders.
     fn restore(
         &self,
         conn: &Connection,
         scope: Scope<'_>,
         signer: AgentSigner,
-    ) -> Result<(LocalConnector, Option<Value>)> {
+        saved: &mut Value,
+    ) -> Result<LocalConnector> {
         ensure_valid(
             !scope.session.is_empty() && scope.session.len() <= 128,
             "session",
         )?;
-        let agent_id = signer.agent_id();
-        let saved = load(conn, agent_id.as_str())?;
-        let mut connector = match &saved {
-            Some(snapshot) => {
-                let mut snapshot = snapshot.clone();
-                present(
-                    &mut snapshot,
-                    &load_session(conn, agent_id.as_str(), scope.session)?,
-                );
-                LocalConnector::from_snapshot(signer, &snapshot)
-                    .map_err(|_| Error::IntegrityFailed)?
+        let mut connector = match saved.is_null() {
+            true => LocalConnector::new(signer),
+            false => {
+                let heads = load_session(conn, signer.agent_id().as_str(), scope.session)?;
+                present(saved, &heads);
+                LocalConnector::from_snapshot(signer, saved).map_err(|_| Error::IntegrityFailed)?
             }
-            None => LocalConnector::new(signer),
         }
         .with_http_client(self.http.clone());
-        for host in connector.state_mut().hosts.values_mut() {
-            host.allowed = false;
-        }
+        connector.state_mut().hosts.clear();
         match scope.reach {
             None => {
                 for host in &self.hosts {
@@ -355,61 +303,74 @@ impl Runtime {
                 }
             }
         }
-        Ok((connector, saved))
-    }
-
-    /// Wait for the right to run one call.
-    pub async fn turn(&self) -> Turn<'_> {
-        self.calls.lock().await
-    }
-
-    /// Run one standard tool as `signer`'s Agent ID in `scope`, with the
-    /// mail decryption keys its mailboxes retain (`mail_keys`, as
-    /// [`Called::mail_keys`] returned them; `None` for none yet).
-    ///
-    /// # Errors
-    /// Returns `Error::NotFound` for a tool that is not one of the standard
-    /// ones, `Error::IntegrityFailed` for keys of another Agent ID or that
-    /// do not match their public keys, and `Error::Unavailable` when storage
-    /// fails; the tool's own refusal is [`Called::outcome`].
-    pub async fn call(
-        &self,
-        _turn: &Turn<'_>,
-        scope: Scope<'_>,
-        signer: AgentSigner,
-        mail_keys: Option<&Value>,
-        tool: &str,
-        input: Value,
-    ) -> Result<Called> {
-        ensure(TOOL_NAMES.contains(&tool), Error::NotFound)?;
-        let conn = Self::open(scope.path)?;
-        let (mut connector, saved) = self.restore(&conn, scope, signer)?;
-        if let Some(keys) = mail_keys {
-            connector
-                .restore_mail_keys(keys)
-                .map_err(|_| Error::IntegrityFailed)?;
-        }
-        let remembered = saved
-            .as_ref()
-            .and_then(|s| s["mail"]["blocked_senders"].as_array().cloned())
-            .unwrap_or_default();
-        for sender in remembered.iter().filter_map(|s| s.as_str()?.parse().ok()) {
-            connector.set_mail_sender_blocked(sender, false);
+        let remembered = saved["mail"]["blocked_senders"].as_array();
+        for sender in remembered.into_iter().flatten() {
+            if let Some(sender) = sender.as_str().and_then(|s| s.parse().ok()) {
+                connector.set_mail_sender_blocked(sender, false);
+            }
         }
         for sender in &self.blocked_senders {
             connector.set_mail_sender_blocked(sender.clone(), true);
         }
-        let outcome = match out_of_reach(scope.reach, saved.as_ref(), &input) {
+        Ok(connector)
+    }
+
+    /// Wait for the right to run one call of `agent_id`.
+    pub async fn turn(&self, agent_id: &str) -> Turn {
+        let lock = self
+            .turns
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .entry(agent_id.to_string())
+            .or_default()
+            .clone();
+        Turn {
+            agent_id: agent_id.to_string(),
+            _guard: lock.lock_owned().await,
+        }
+    }
+
+    /// Run one standard tool as `signer`'s Agent ID in `scope`, with the
+    /// mail decryption keys its mailboxes retain (`mail_keys`, as
+    /// [`Called::mail_keys`] returned them).
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for a tool that is not one of the standard
+    /// ones, `Error::InvalidInput` for a turn of another Agent ID,
+    /// `Error::IntegrityFailed` for keys of another Agent ID or that do not
+    /// match their public keys, and `Error::Unavailable` when storage fails;
+    /// the tool's own refusal is [`Called::outcome`].
+    pub async fn call(
+        &self,
+        turn: &Turn,
+        scope: Scope<'_>,
+        signer: AgentSigner,
+        mail_keys: &Value,
+        tool: &str,
+        input: Value,
+    ) -> Result<Called> {
+        ensure(TOOL_NAMES.contains(&tool), Error::NotFound)?;
+        let agent_id = signer.agent_id();
+        ensure_valid(turn.agent_id == agent_id.as_str(), "turn")?;
+        let conn = open(scope.path)?;
+        let stored = load(&conn, agent_id.as_str())?;
+        let mut saved = parse(stored.as_deref())?;
+        let mut connector = self.restore(&conn, scope, signer, &mut saved)?;
+        connector
+            .restore_mail_keys(mail_keys)
+            .map_err(|_| Error::IntegrityFailed)?;
+        let outcome = match out_of_reach(scope.reach, &saved, &input) {
             true => Err(SdkError::PermissionDenied),
             false => connector
                 .call_tool(tool, input)
                 .await
                 .map(|value| in_reach(scope.reach, tool, value)),
         };
-        self.save(&conn, scope.session, &connector)?;
+        let changed = save(&conn, scope.session, &mut connector, stored.as_deref())?;
         Ok(Called {
             outcome: outcome.map_err(ToolError::from),
             mail_keys: connector.mail_keys_snapshot(),
+            changed,
         })
     }
 
@@ -419,23 +380,24 @@ impl Runtime {
     /// presented head or a read mark.
     ///
     /// # Errors
-    /// Returns `Error::NotFound` for an unknown resource or room and
+    /// Returns `Error::NotFound` for an unknown resource or room,
+    /// `Error::Forbidden` for a room on a host out of reach and
     /// `Error::Unavailable` when storage fails.
     pub async fn read(&self, scope: Scope<'_>, signer: AgentSigner, uri: &str) -> Result<Value> {
         let resource = Resource::parse(uri).ok_or(Error::NotFound)?;
-        let conn = Self::open(scope.path)?;
-        let (mut connector, saved) = self.restore(&conn, scope, signer)?;
-        let saved = saved.unwrap_or(Value::Null);
+        let conn = open(scope.path)?;
+        let mut saved = parse(load(&conn, signer.agent_id().as_str())?.as_deref())?;
+        let mut connector = self.restore(&conn, scope, signer, &mut saved)?;
         let room = match &resource {
             Resource::Room(id, _) => {
                 let known = saved["rooms"].as_array().into_iter().flatten().find(|r| {
                     r["room"]["id"] == id.as_str() && r["synced_seq"].as_u64().unwrap_or(0) > 0
                 });
-                Some(known.ok_or(Error::NotFound)?.clone())
+                Some(known.ok_or(Error::NotFound)?)
             }
             _ => None,
         };
-        let input = match (&resource, &room) {
+        let input = match (&resource, room) {
             (Resource::Room(id, RoomPart::Timeline), Some(room)) => {
                 let synced = room["synced_seq"].as_u64().unwrap_or(0);
                 json!({"room_id": id, "after_seq": synced.saturating_sub(100), "limit": 100})
@@ -456,12 +418,12 @@ impl Runtime {
             (Resource::Messages, _) => json!({"limit": 100}),
             _ => json!({}),
         };
-        let value = match out_of_reach(scope.reach, Some(&saved), &input) {
-            true => Err(SdkError::PermissionDenied),
-            false => connector.call_tool(resource.tool(), input).await,
-        }
-        .map(|value| in_reach(scope.reach, resource.tool(), value))
-        .map_err(|e| Error::InvalidInput(format!("{uri}: {e}")))?;
+        ensure(!out_of_reach(scope.reach, &saved, &input), Error::Forbidden)?;
+        let value = connector
+            .call_tool(resource.tool(), input)
+            .await
+            .map_err(|e| Error::InvalidInput(format!("{uri}: {e}")))?;
+        let value = in_reach(scope.reach, resource.tool(), value);
         Ok(match resource {
             Resource::Hosts => json!({"hosts": value["hosts"]}),
             Resource::Room(_, RoomPart::Types) => {
@@ -476,37 +438,43 @@ impl Runtime {
 /// Whether an input names a room, or a held draft of one, the snapshot
 /// `saved` knows on a host out of `reach`: reading it from local state
 /// would not ask the host.
-fn out_of_reach(reach: Option<&[String]>, saved: Option<&Value>, input: &Value) -> bool {
+fn out_of_reach(reach: Option<&[String]>, saved: &Value, input: &Value) -> bool {
     reach.is_some_and(|reach| room_host(saved, input).is_some_and(|host| !reach.contains(&host)))
 }
 
-/// A tool's result within `reach`: `rooms_list` without the rooms of the
-/// hosts out of it.
+/// A tool's result within `reach`: `rooms_list` and `drafts_list` without
+/// the rooms, and the held drafts, of the hosts out of it.
 fn in_reach(reach: Option<&[String]>, tool: &str, mut value: Value) -> Value {
-    if let (Some(reach), TOOL_ROOMS_LIST) = (reach, tool) {
-        if let Some(rooms) = value["rooms"].as_array_mut() {
-            rooms.retain(|room| {
-                room["host"]
-                    .as_str()
-                    .is_some_and(|host| reach.iter().any(|r| r == host))
-            });
-        }
+    let Some(reach) = reach else {
+        return value;
+    };
+    let (list, host): (&str, fn(&Value) -> &Value) = match tool {
+        TOOL_ROOMS_LIST => ("rooms", |room| &room["host"]),
+        TOOL_DRAFTS_LIST => ("drafts", |draft| &draft["current_sync"]["host"]),
+        _ => return value,
+    };
+    if let Some(items) = value[list].as_array_mut() {
+        items.retain(|item| {
+            host(item)
+                .as_str()
+                .is_some_and(|host| reach.iter().any(|r| r == host))
+        });
     }
     value
 }
 
 /// The host of the room an input names: its draft's, its `host`, else the
 /// only one the snapshot knows with that ID.
-fn room_host(saved: Option<&Value>, input: &Value) -> Option<String> {
+fn room_host(saved: &Value, input: &Value) -> Option<String> {
     if let Some(draft_id) = input["draft_id"].as_str() {
-        let draft = &saved?["drafts"][draft_id]["draft"];
+        let draft = &saved["drafts"][draft_id]["draft"];
         return draft["current_sync"]["host"].as_str().map(str::to_string);
     }
     let room_id = input["room_id"].as_str()?;
     if let Some(host) = input["host"].as_str() {
         return Some(host.trim_end_matches('/').to_string());
     }
-    let mut hosts = saved?["rooms"]
+    let mut hosts = saved["rooms"]
         .as_array()?
         .iter()
         .filter(|room| room["room"]["id"] == room_id)
@@ -517,17 +485,86 @@ fn room_host(saved: Option<&Value>, input: &Value) -> Option<String> {
     }
 }
 
-fn load(conn: &Connection, agent_id: &str) -> Result<Option<Value>> {
-    let text: Option<String> = conn
-        .query_row(
-            "SELECT snapshot FROM connectors WHERE agent_id = ?1",
-            params![agent_id],
-            |r| r.get(0),
+fn open(path: &Path) -> Result<Connection> {
+    let conn = Connection::open(path).map_err(storage)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
+    }
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS connectors (agent_id TEXT PRIMARY KEY, snapshot TEXT NOT NULL, updated_at INTEGER NOT NULL);
+         CREATE TABLE IF NOT EXISTS sessions (agent_id TEXT NOT NULL, session TEXT NOT NULL, presented TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (agent_id, session));",
+    )
+    .map_err(storage)?;
+    Ok(conn)
+}
+
+/// The stored snapshot of an Agent ID's connector.
+fn load(conn: &Connection, agent_id: &str) -> Result<Option<String>> {
+    conn.query_row(
+        "SELECT snapshot FROM connectors WHERE agent_id = ?1",
+        params![agent_id],
+        |r| r.get(0),
+    )
+    .optional()
+    .map_err(storage)
+}
+
+/// A stored snapshot as JSON, `Null` for none.
+fn parse(stored: Option<&str>) -> Result<Value> {
+    stored.map_or(Ok(Value::Null), |text| {
+        serde_json::from_str(text).map_err(|_| Error::IntegrityFailed)
+    })
+}
+
+/// Save a connector: its presented heads for `session`, and the rest for
+/// every session unless it equals `stored`. The hosts are left out: every
+/// restore applies the configured ones. Returns whether the rest changed.
+fn save(
+    conn: &Connection,
+    session: &str,
+    connector: &mut LocalConnector,
+    stored: Option<&str>,
+) -> Result<bool> {
+    connector.state_mut().hosts.clear();
+    let mut snapshot = connector
+        .snapshot()
+        .map_err(|e| Error::Unavailable(format!("snapshot: {e}")))?;
+    let presented = presented(&snapshot);
+    present(&mut snapshot, &[]);
+    let snapshot = snapshot.to_string();
+    let changed = stored != Some(snapshot.as_str());
+    let agent_id = connector.agent_id();
+    let now = agent_protocols::identity::unix_ms();
+    let tx = conn.unchecked_transaction().map_err(storage)?;
+    if changed {
+        tx.execute(
+            "INSERT INTO connectors (agent_id, snapshot, updated_at) VALUES (?1, ?2, ?3)
+             ON CONFLICT(agent_id) DO UPDATE SET snapshot = excluded.snapshot, updated_at = excluded.updated_at",
+            params![agent_id.as_str(), snapshot, now],
         )
-        .optional()
         .map_err(storage)?;
-    text.map(|t| serde_json::from_str(&t).map_err(|_| Error::IntegrityFailed))
-        .transpose()
+    }
+    tx.execute(
+        "INSERT INTO sessions (agent_id, session, presented, updated_at) VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT(agent_id, session) DO UPDATE SET presented = excluded.presented, updated_at = excluded.updated_at",
+        params![
+            agent_id.as_str(),
+            session,
+            Value::Array(presented).to_string(),
+            now
+        ],
+    )
+    .map_err(storage)?;
+    tx.execute(
+        "DELETE FROM sessions WHERE agent_id = ?1 AND (updated_at < ?2 OR session NOT IN
+         (SELECT session FROM sessions WHERE agent_id = ?1 ORDER BY updated_at DESC LIMIT ?3))",
+        params![agent_id.as_str(), now - SESSION_MS, MAX_SESSIONS],
+    )
+    .map_err(storage)?;
+    tx.commit().map_err(storage)?;
+    Ok(changed)
 }
 
 /// The presented heads `session` saw: `[{host, room_id, seq, hash}]`.

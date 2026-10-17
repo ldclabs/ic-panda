@@ -9,7 +9,7 @@ use agent_protocols::{
     local_connector::{AgentProtocolsHost, LocalConnector},
 };
 use serde_json::{json, Value};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Refuses connections at once, so a call that reaches the network fails fast.
 const HOST: &str = "http://127.0.0.1:9";
@@ -39,6 +39,24 @@ impl Drop for Temp {
 
 fn signer(byte: u8) -> AgentSigner {
     AgentSigner::from_seed([byte; 32])
+}
+
+/// Agent 1's mail keys before it has any.
+fn keys() -> Value {
+    json!({"version": 1, "agent_id": signer(1).agent_id(), "keys": {}})
+}
+
+/// The snapshot the state file keeps for agent 1.
+fn stored(path: &Path) -> Value {
+    let conn = rusqlite::Connection::open(path).unwrap();
+    let text: String = conn
+        .query_row(
+            "SELECT snapshot FROM connectors WHERE agent_id = ?1",
+            [signer(1).agent_id().as_str()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    serde_json::from_str(&text).unwrap()
 }
 
 /// A host and the state file it keeps the connectors in.
@@ -189,14 +207,14 @@ async fn call_within(
     tool: &str,
     input: Value,
 ) -> Result<Value, crate::ToolError> {
-    let turn = runtime.turn().await;
+    let turn = runtime.turn(signer(1).agent_id().as_str()).await;
     let scope = Scope {
         path,
         session,
         reach,
     };
     runtime
-        .call(&turn, scope, signer(1), None, tool, input)
+        .call(&turn, scope, signer(1), &keys(), tool, input)
         .await
         .unwrap()
         .outcome
@@ -239,13 +257,13 @@ fn only_configured_hosts_are_allowed() {
         let identity = call(&runtime, "agent_protocols_identity_current", json!({}))
             .await
             .unwrap();
+        // The remembered host is not even listed.
         let hosts = identity["hosts"].as_array().unwrap();
-        let allowed: Vec<&str> = hosts
-            .iter()
-            .filter(|h| h["allowed"] == true)
-            .map(|h| h["host"].as_str().unwrap())
-            .collect();
-        assert_eq!(allowed, [HOST]);
+        assert_eq!(hosts.len(), 1);
+        assert_eq!(
+            (&hosts[0]["host"], &hosts[0]["allowed"]),
+            (&json!(HOST), &json!(true))
+        );
         let refused = call(
             &runtime,
             "agent_protocols_rooms_list",
@@ -255,7 +273,7 @@ fn only_configured_hosts_are_allowed() {
         .unwrap_err();
         assert_eq!(refused.code, "permission_denied");
         // No tool adds a host, and unknown tools are refused outright.
-        let turn = runtime.0.turn().await;
+        let turn = runtime.0.turn(signer(1).agent_id().as_str()).await;
         assert!(runtime
             .0
             .call(
@@ -266,13 +284,15 @@ fn only_configured_hosts_are_allowed() {
                     reach: None,
                 },
                 signer(1),
-                None,
+                &keys(),
                 "agent_protocols_host_add",
                 json!({"host": "https://evil.example"})
             )
             .await
             .is_err());
     });
+    // The state file keeps no host: every call applies the configured ones.
+    assert_eq!(stored(&runtime.1)["hosts"], json!({}));
     // Configuration is the only source: a host that is not an origin, or
     // loopback HTTP outside a local deployment, is refused.
     for (host, local) in [
@@ -365,11 +385,7 @@ fn each_session_sees_the_room_move_by_itself() {
         .unwrap();
         assert_eq!(again["sync"]["presented_seq"], 3);
     });
-    let saved = hosted
-        .0
-        .snapshot(&hosted.1, signer(1).agent_id().as_str())
-        .unwrap()
-        .unwrap();
+    let saved = stored(&hosted.1);
     assert!(saved["rooms"][0].get("presented_seq").is_none());
 }
 
@@ -494,6 +510,7 @@ fn a_call_reaches_only_the_origins_in_its_scope() {
                 .collect();
             let names: Vec<&str> = hosts.iter().map(|h| h["host"].as_str().unwrap()).collect();
             assert_eq!(names, allowed);
+            assert_eq!(identity["hosts"].as_array().unwrap().len(), allowed.len());
             assert!(hosts.iter().all(|h| h["profile_service"].is_null()));
         }
         // A room cached from another host is not read from local state,
@@ -534,14 +551,17 @@ fn a_call_reaches_only_the_origins_in_its_scope() {
         .await
         .unwrap();
         assert_eq!(rooms["rooms"], json!([]));
-        assert!(read_within(
-            &hosted,
-            "s",
-            Some(&elsewhere),
-            "agent-protocols://rooms/room1/timeline"
-        )
-        .await
-        .is_err());
+        assert_eq!(
+            read_within(
+                &hosted,
+                "s",
+                Some(&elsewhere),
+                "agent-protocols://rooms/room1/timeline"
+            )
+            .await
+            .unwrap_err(),
+            dmsg_types::Error::Forbidden
+        );
         let rooms = read_within(&hosted, "s", Some(&elsewhere), "agent-protocols://rooms")
             .await
             .unwrap();
@@ -577,6 +597,25 @@ fn a_call_reaches_only_the_origins_in_its_scope() {
         .await
         .unwrap();
         let draft = held["draft"]["id"].as_str().unwrap();
+        // Out of reach, the lists leave it out.
+        for input in [json!({}), json!({"host": HOST})] {
+            let listed = call_within(
+                &hosted,
+                "s",
+                Some(&elsewhere),
+                "agent_protocols_drafts_list",
+                input,
+            )
+            .await
+            .unwrap();
+            assert_eq!(listed["drafts"], json!([]));
+        }
+        for (reach, count) in [(&elsewhere, 0), (&here, 1)] {
+            let held = read_within(&hosted, "s", Some(reach), "agent-protocols://drafts/held")
+                .await
+                .unwrap();
+            assert_eq!(held["drafts"].as_array().unwrap().len(), count);
+        }
         for (tool, input) in [
             ("agent_protocols_drafts_list", json!({"draft_id": draft})),
             (
@@ -647,13 +686,7 @@ fn connector_state_survives_a_restart() {
         assert_eq!(failed.code, "unavailable");
         held["draft"]["id"].as_str().unwrap().to_string()
     });
-    let spent = first
-        .0
-        .snapshot(&first.1, signer(1).agent_id().as_str())
-        .unwrap()
-        .unwrap()["next_nonce"]
-        .as_u64()
-        .unwrap();
+    let spent = stored(&first.1)["next_nonce"].as_u64().unwrap();
     assert!(spent > agent_protocols::identity::unix_ms() as u64 - 60_000);
     drop(first);
 
@@ -686,10 +719,47 @@ fn connector_state_survives_a_restart() {
         .unwrap();
         assert_eq!(dropped["status"], "dropped");
     });
-    let restored = second
-        .0
-        .snapshot(&second.1, signer(1).agent_id().as_str())
-        .unwrap()
-        .unwrap();
-    assert!(restored["next_nonce"].as_u64().unwrap() >= spent);
+    assert!(stored(&second.1)["next_nonce"].as_u64().unwrap() >= spent);
+}
+
+#[test]
+fn unchanged_state_is_not_written_and_turns_are_per_agent() {
+    let dir = Temp::new();
+    with_room(&dir);
+    let Hosted(runtime, path) = runtime(&dir);
+    let scope = Scope {
+        path: &path,
+        session: "s",
+        reach: None,
+    };
+    let no_keys = keys();
+    block_on(async {
+        let turn = runtime.turn(signer(1).agent_id().as_str()).await;
+        let run = |tool: &'static str, input: Value| {
+            runtime.call(&turn, scope, signer(1), &no_keys, tool, input)
+        };
+        // The seeded snapshot names a host, which the first save drops.
+        let identity = "agent_protocols_identity_current";
+        assert!(run(identity, json!({})).await.unwrap().changed);
+        assert!(!run(identity, json!({})).await.unwrap().changed);
+        let read = json!({"room_id": "room1", "mark_read": true});
+        assert!(
+            run("agent_protocols_room_timeline", read)
+                .await
+                .unwrap()
+                .changed
+        );
+        // Another Agent ID's turn does not wait for agent 1's, and is not
+        // agent 1's to use.
+        let other = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            runtime.turn(signer(2).agent_id().as_str()),
+        )
+        .await
+        .expect("turns of different Agent IDs do not wait");
+        assert!(runtime
+            .call(&other, scope, signer(1), &no_keys, identity, json!({}))
+            .await
+            .is_err());
+    });
 }

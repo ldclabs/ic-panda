@@ -222,15 +222,22 @@ fn runtime(dir: &Temp, origin: &str, blocked: &[String]) -> Hosted {
     Hosted(Runtime::new(&options).unwrap(), dir.0.join("agents.sqlite"))
 }
 
+/// `seed`'s key store before it holds any key.
+fn no_keys(seed: u8) -> Value {
+    let agent_id = AgentSigner::from_seed([seed; 32]).agent_id();
+    json!({"version": 1, "agent_id": agent_id, "keys": {}})
+}
+
 /// A call as `seed`'s Agent ID with a key store of one value.
 async fn call(
     Hosted(runtime, path): &Hosted,
     seed: u8,
-    keys: &mut Option<Value>,
+    keys: &mut Value,
     tool: &str,
     input: Value,
 ) -> Value {
-    let turn = runtime.turn().await;
+    let signer = AgentSigner::from_seed([seed; 32]);
+    let turn = runtime.turn(signer.agent_id().as_str()).await;
     let called = runtime
         .call(
             &turn,
@@ -239,14 +246,14 @@ async fn call(
                 session: "test",
                 reach: None,
             },
-            AgentSigner::from_seed([seed; 32]),
-            keys.as_ref(),
+            signer,
+            keys,
             tool,
             input,
         )
         .await
         .unwrap();
-    *keys = Some(called.mail_keys);
+    *keys = called.mail_keys;
     called
         .outcome
         .unwrap_or_else(|e| panic!("{tool}: {} {}", e.code, e.message))
@@ -263,7 +270,7 @@ fn mail_keys_stay_with_the_caller_and_the_config_blocks_senders() {
         .unwrap()
         .block_on(async {
             let open = runtime(&dir, &origin, &[]);
-            let (mut alice_keys, mut bob_keys) = (None, None);
+            let (mut alice_keys, mut bob_keys) = (no_keys(1), no_keys(2));
             let mailbox = call(
                 &open,
                 2,
@@ -273,7 +280,7 @@ fn mail_keys_stay_with_the_caller_and_the_config_blocks_senders() {
             )
             .await["mailbox"]
                 .clone();
-            let secrets: Vec<String> = bob_keys.as_ref().unwrap()["keys"]
+            let secrets: Vec<String> = bob_keys["keys"]
                 .as_object()
                 .unwrap()
                 .values()
@@ -299,11 +306,11 @@ fn mail_keys_stay_with_the_caller_and_the_config_blocks_senders() {
             assert_eq!(sent["status"], "delivered");
             // Without its keys the recipient cannot open the letter, and
             // leaves it on the relay.
-            let mut no_keys = None;
+            let mut without = no_keys(2);
             let synced = call(
                 &open,
                 2,
-                &mut no_keys,
+                &mut without,
                 "agent_protocols_mail_sync",
                 json!({}),
             )

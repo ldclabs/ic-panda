@@ -10,61 +10,81 @@ use agent_protocols::local_connector::{
 };
 use serde_json::{json, Value};
 
-/// The resources with a fixed URI: URI, name and description.
-const FIXED: [(&str, &str, &str); 7] = [
+/// The resources with a fixed URI: URI, resource, name and description.
+const FIXED: [(&str, Resource, &str, &str); 7] = [
     (
         RESOURCE_IDENTITY_CURRENT,
+        Resource::Identity,
         "identity",
         "The active Agent ID and its non-secret configuration.",
     ),
     (
         RESOURCE_HOSTS,
+        Resource::Hosts,
         "hosts",
         "The operator's host allowlist and discovery metadata.",
     ),
     (
         RESOURCE_ROOMS,
+        Resource::Rooms,
         "rooms",
         "Locally known rooms and unread summaries.",
     ),
     (
         RESOURCE_INBOX_PENDING,
+        Resource::Inbox,
         "inbox",
         "Pending actionable inbox items.",
     ),
     (
         RESOURCE_DRAFTS_HELD,
+        Resource::Drafts,
         "drafts",
         "Held drafts waiting for an explicit decision.",
     ),
     (
         RESOURCE_MAIL_MAILBOXES,
+        Resource::Mailboxes,
         "mailboxes",
         "This Agent ID's mailboxes and their current cards.",
     ),
     (
         RESOURCE_MAIL_MESSAGES,
+        Resource::Messages,
         "mail",
         "Locally stored received and sent mail.",
     ),
 ];
 
-/// The per-room resources: URI suffix, name and description.
-const ROOM: [(&str, &str, &str); 5] = [
+/// The per-room resources: URI suffix, part, name and description.
+const ROOM: [(&str, RoomPart, &str, &str); 5] = [
     (
         "",
+        RoomPart::State,
         "room",
         "A room's materialized state and latest hash-chain head.",
     ),
-    ("/members", "members", "A room's member directory."),
+    (
+        "/members",
+        RoomPart::Members,
+        "members",
+        "A room's member directory.",
+    ),
     (
         "/timeline",
+        RoomPart::Timeline,
         "timeline",
         "The latest 100 records of a room's timeline.",
     ),
-    ("/types", "types", "A room's materialized type registry."),
+    (
+        "/types",
+        RoomPart::Types,
+        "types",
+        "A room's materialized type registry.",
+    ),
     (
         RESOURCE_ROOM_AGENT_STATUS_SUFFIX,
+        RoomPart::AgentStatus,
         "agent-status",
         "Current unexpired transient agent status in a room.",
     ),
@@ -109,33 +129,17 @@ pub enum Resource {
 impl Resource {
     /// The resource a URI names.
     pub fn parse(uri: &str) -> Option<Self> {
-        let fixed = [
-            Self::Identity,
-            Self::Hosts,
-            Self::Rooms,
-            Self::Inbox,
-            Self::Drafts,
-            Self::Mailboxes,
-            Self::Messages,
-        ];
-        if let Some(i) = FIXED.iter().position(|(u, ..)| *u == uri) {
-            return Some(fixed[i].clone());
+        if let Some((_, resource, ..)) = FIXED.iter().find(|(u, ..)| *u == uri) {
+            return Some(resource.clone());
         }
         let rest = uri.strip_prefix(RESOURCE_ROOMS)?.strip_prefix('/')?;
-        let (id, part) = rest.split_once('/').unwrap_or((rest, ""));
-        let part = match part {
-            "" => RoomPart::State,
-            "members" => RoomPart::Members,
-            "timeline" => RoomPart::Timeline,
-            "types" => RoomPart::Types,
-            "agent-status" => RoomPart::AgentStatus,
-            _ => return None,
-        };
+        let (id, suffix) = rest.find('/').map_or((rest, ""), |i| rest.split_at(i));
+        let (_, part, ..) = ROOM.iter().find(|(s, ..)| *s == suffix)?;
         let valid = (1..=128).contains(&id.len())
             && id
                 .bytes()
                 .all(|b| b.is_ascii_alphanumeric() || b"-_.".contains(&b));
-        valid.then(|| Self::Room(id.into(), part))
+        valid.then(|| Self::Room(id.into(), *part))
     }
 
     /// The read-only tool that shows the same state.
@@ -158,7 +162,7 @@ impl Resource {
 /// MCP `resources/list`: the fixed resources and each known room's state,
 /// from the `rooms` resource's `{rooms: [{room_id, host, topic?}]}`.
 pub fn resource_list(rooms: &Value) -> Vec<Value> {
-    let fixed = FIXED.iter().map(|(uri, name, description)| {
+    let fixed = FIXED.iter().map(|(uri, _, name, description)| {
         json!({"uri": uri, "name": name, "description": description, "mimeType": "application/json"})
     });
     let rooms = rooms["rooms"]
@@ -172,7 +176,7 @@ pub fn resource_list(rooms: &Value) -> Vec<Value> {
                 "uri": format!("{RESOURCE_ROOMS}/{id}"),
                 "name": format!("room {id}"),
                 "title": title,
-                "description": ROOM[0].2,
+                "description": ROOM[0].3,
                 "mimeType": "application/json",
             }))
         });
@@ -182,7 +186,7 @@ pub fn resource_list(rooms: &Value) -> Vec<Value> {
 /// MCP `resources/templates/list`: the per-room resources.
 pub fn resource_templates() -> Vec<Value> {
     ROOM.iter()
-        .map(|(suffix, name, description)| {
+        .map(|(suffix, _, name, description)| {
             json!({
                 "uriTemplate": format!("{RESOURCE_ROOMS}/{{room_id}}{suffix}"),
                 "name": name,

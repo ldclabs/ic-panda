@@ -488,11 +488,11 @@ impl Daemon {
                     Err(error) => return Ok(refused(&error)),
                 },
             };
-            // The turn spans reading the mail keys to saving what the call
-            // left, so no other call sees or overwrites them in between; the
-            // keys leave the client lock for the call only.
+            // The Agent ID's turn spans reading the mail keys to saving what
+            // the call left, so no other call of it sees or overwrites them
+            // in between; the keys leave the client lock for the call only.
             let runtime = self.agents();
-            let turn = runtime.turn().await;
+            let turn = runtime.turn(&agent.agent_id).await;
             let (path, signer, mail_keys) = {
                 let mut client = self.client().lock().await;
                 (
@@ -507,9 +507,11 @@ impl Daemon {
                 reach: reach.as_deref(),
             };
             let called = runtime
-                .call(&turn, scope, signer, Some(&mail_keys), tool, input)
+                .call(&turn, scope, signer, &mail_keys, tool, input)
                 .await?;
-            self.connectors().send_modify(|revision| *revision += 1);
+            if called.changed {
+                self.connectors().send_modify(|revision| *revision += 1);
+            }
             if called.mail_keys != mail_keys {
                 self.client()
                     .lock()
