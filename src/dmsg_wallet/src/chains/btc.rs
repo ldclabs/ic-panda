@@ -355,24 +355,22 @@ pub(crate) fn build(
         outputs: outs,
         locktime,
     };
-    // Price the transaction with change, then drop change below dust.
+    // What is left must pay the transaction without change; change is
+    // added when what remains after its own fee is at least dust.
+    let left = total_in.checked_sub(total_out).ok_or(Error::FeeBlocked)?;
+    ensure(left >= fee_rate * vsize(&tx, &spends), Error::FeeBlocked)?;
     tx.outputs.push(TxOut {
         value: 0,
         script: script.clone().into(),
     });
-    let mut fee = fee_rate * vsize(&tx, &spends);
-    let mut change = total_in
-        .checked_sub(total_out)
-        .and_then(|left| left.checked_sub(fee))
-        .ok_or(Error::FeeBlocked)?;
+    let mut change = left.saturating_sub(fee_rate * vsize(&tx, &spends));
     if change < DUST {
         tx.outputs.pop();
-        fee = total_in - total_out;
         change = 0;
-        ensure(fee >= fee_rate * vsize(&tx, &spends), Error::FeeBlocked)?;
     } else {
         tx.outputs.last_mut().expect("change").value = change;
     }
+    let fee = left - change;
     ensure(u128::from(fee) <= max_fee, Error::FeeBlocked)?;
     let amounts: Vec<u64> = utxos.iter().map(|u| u.value).collect();
     let scripts = vec![script; utxos.len()];

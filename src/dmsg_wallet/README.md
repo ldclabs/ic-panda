@@ -37,9 +37,9 @@ heap 不保存业务状态；`post_upgrade(Option<u32>)` 只在 hub 传入的版
 
 ## 执行
 
-- **ICP/ICRC**：同一消息内置 `Executing` 并保存作业，读取账本手续费（超过 `max_fee` 即失败）后固定 `created_at_time`，逐笔 `icrc1_transfer`；批量转账每笔的 memo 为 `SHA-256(proposal_digest ‖ index)`，避免相同收款相同金额被账本去重合并。结果未知时保持 `Executing`，`reconcile` 以完全相同的参数重发。
-- **canister 调用**：目标须在 `call_targets`；提案时尝试读取目标的 ICRC-21 通用同意文本存入意图。执行用有界等待调用，回复原样保存（≤ 64 KiB）及其 SHA-256；`SYS_UNKNOWN` 记为结果未知。
-- **外链**：`prepare_execution` 从意图构造交易并核对参数（见合同文档），`execute` 核对协签后逐个签名，期间冻结即停止，签完组装并保存 `SignedTx`。编码器手写：BIP-341/342 与 BIP-143 sighash、bech32/bech32m、RLP、Solana legacy message。
+- **ICP/ICRC**：同一消息内置 `Executing` 并保存作业，读取账本手续费（超过 `max_fee` 即失败）后固定 `created_at_time`，逐笔 `icrc1_transfer`；批量转账每笔的 memo 为 `SHA-256(proposal_digest ‖ index)`，避免相同收款相同金额被账本去重合并；每笔发出前核对冻结，冻结后批量停在下一笔之前。结果未知时保持 `Executing`，`reconcile` 以完全相同的参数重发。部分转出后被拒的批量、成员回报失败的已签交易仍计入 24 小时窗口。
+- **canister 调用**：目标须在 `call_targets`，提案时先核对白名单，再尝试读取目标的 ICRC-21 通用同意文本存入意图。执行用有界等待调用，回复原样保存（≤ 64 KiB）及其 SHA-256；`SYS_UNKNOWN` 记为结果未知。
+- **外链**：`prepare_execution` 从意图构造交易并核对参数（见合同文档），`execute` 核对协签后逐个签名，期间冻结即停止，签完组装并保存 `SignedTx`。重签规则以提案的首个已签计划为准，构建计划时与签名时各核对一次，签名前先构建的多个计划只有与先签者相容的能再签。编码器手写：BIP-341/342 与 BIP-143 sighash、bech32/bech32m、RLP、Solana legacy message。
 - **新地址**：`AddAddress` 执行时调用 `*_public_key` 取得该路径的公钥。
 
 ## 验证
@@ -53,7 +53,7 @@ POCKET_IC_BIN=/path/to/pocket-ic make test-dmsg
 - `dmsg_protocol` 单测：Taproot 调整与 `ic-secp256k1` 的 BIP-341 签名互验，bech32/bech32m/base58check 参考向量，EIP-55，Taproot 树与控制块，三种协签封装（含计数器、RP、来源与 UV），策略分档、滚动窗口、日限额、Recovery 与管理类要求，审计链。
 - `dmsg_wallet` 单测用独立实现核对编码器：`bitcoin` 0.32 核对 P2TR 密钥路径、P2WPKH、双控 Taproot 脚本路径的 sighash、控制块、已签交易、txid 与 vsize；`alloy` 解码 EIP-1559 交易并恢复签名人；`solana-message` 与本实现编译出的 message 逐字节一致，含 ATA 与 durable nonce。
 - 向量 [tests/vectors/wallet](../../tests/vectors/wallet/README.md)：`dmsg_protocol` 生成 `protocol-v1.json`（全部承诺的原像与摘要、审计链、地址与收款脚本），本 crate 的 `chains::tests::vectors` 以构建器生成 `plans-v1.json`（11 个计划、确定性签名与已签交易、6 个篡改样例），`dmsg_client` 的解码器逐个验收并拒绝篡改样例。
-- PocketIC（`tests/dmsg_integration`，控制面 `wallet::*`）：hub 付费激活与配额、成员以设备批准加入、ICP 转账与拒绝、`key_1` 真实阈值签名的 BTC（含同输入替换）、EVM（含 nonce 取消）、SOL 交易（分别用 `bitcoin`、`alloy`、`ed25519-dalek` 验签），客户端解码器复核每个真实计划，P-256 协签、冻结与解冻延时、Recovery 否决与生效、经 hub 升级与锁定、经 CMC 替身充值、过期报价退款、收入归集。
+- PocketIC（`tests/dmsg_integration`，控制面 `wallet::*`）：hub 付费激活与配额、成员以设备批准加入、ICP 转账与拒绝、`key_1` 真实阈值签名的 BTC（含同输入替换）、EVM（含 nonce 取消）、SOL 交易（分别用 `bitcoin`、`alloy`、`ed25519-dalek` 验签；先于首签构建的第二个计划在签名时被拒），客户端解码器复核每个真实计划，P-256 协签、冻结与解冻延时、Recovery 否决与生效、移除协签人所属成员后双控 Taproot 地址仍可走时间锁叶花费、经 hub 升级与锁定、经 CMC 替身充值、过期报价退款、收入归集。
 - 桌面端到端 `desktop_wallet`（`tests/dmsg_integration/tests/desktop.rs`，需私有中继）：两个 daemon 经审批中心创建并付款、加入、批准与执行 ICP 转账，核对地址与审计链。
 
 ## 未实现

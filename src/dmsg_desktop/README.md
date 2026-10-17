@@ -85,8 +85,13 @@ desktop is one of its clients, like the CLI.
     a new letter, and who may write (nobody, contacts, everyone, or a price
     per letter), open in dialogs.
   - Plan and names: the plan and its limits, the plans on offer as cards,
-    checkouts, names with their transfers, the wallet and the payment
+    checkouts, names with their transfers, the payer and the payment
     operations.
+  - Team wallets (`/wallet`): the account's wallets with members, policy
+    and addresses checked against the wallet's keys, proposals with their
+    approvals, balances, the audit chain and this device's cosigner keys;
+    proposing, executing and broadcasting run here, while creating,
+    joining, deciding and cosigning open the approval window.
   - Agents, in tabs: the principal with its controllers and credentials,
     the hosted Agent IDs and the host allowlist, a matrix of what each
     Agent ID reaches (the Agent Protocols services by origin, and other
@@ -109,7 +114,7 @@ Rules (`src/main/policy.ts`):
 
 - Windows call only the methods in `WINDOW_METHODS`; `human` is stripped and
   requests the desktop starts are marked `source: "gui"`. Methods that name
-  local files (`wallet/use`, `channel/download`, `attest/verify`) and refunds
+  local files (`payer/use`, `channel/download`, `attest/verify`) and refunds
   stay with the CLI. Files enter and leave only through the main process's
   open and save dialogs with the path the person picked, or, for the file
   library, files dropped on the window: the preload resolves each to its

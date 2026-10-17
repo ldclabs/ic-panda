@@ -263,6 +263,7 @@ async fn create_wallet(req: CreateWallet) -> Result<ActivationOrder> {
     validate_spec(&req.spec, &creator)?;
     let me = ic_cdk::api::canister_self();
     let h = store::hub();
+    ensure(!h.init.pricing.paused, Error::Locked)?;
     check_wallet_approval(
         &req.approval,
         &ExpectedApproval {
@@ -293,14 +294,17 @@ async fn create_wallet(req: CreateWallet) -> Result<ActivationOrder> {
     verified?;
     let paid = balance(h.init.icp_ledger, quote.deposit).await?;
     ensure(paid >= u128::from(quote.price_e8s), Error::FeeBlocked)?;
-    // The quote may have been used meanwhile; quota is rechecked too.
+    // The quote may have been used meanwhile; its deadline, the pause and
+    // quota are rechecked too.
     let at = now();
     if let Some(order) = store::order(&req.quote_id) {
         ensure(order.spec == req.spec, Error::IdempotencyConflict)?;
         return Ok(order);
     }
     ensure(store::payout(&req.quote_id).is_none(), Error::Forbidden)?;
+    ensure(at < quote.expires_at_ms, Error::Expired)?;
     let h = store::hub();
+    ensure(!h.init.pricing.paused, Error::Locked)?;
     let quota = plan_quota(&h, &quote.plan);
     ensure(
         store::quota_used(&quote.account_id) < quota,
@@ -656,19 +660,20 @@ async fn upgrade_wallet(wallet: Principal) -> Result<WalletRecord> {
         Error::IdempotencyConflict,
     )?;
     let module = store::module(version).ok_or(Error::NotFound)?;
-    // The wallet has no calls to the hub in flight, so stopping it ends.
-    stop_canister(&CanisterIdRecord {
+    // The wallet has no calls to the hub in flight, so stopping it ends. A
+    // stop that fails, such as one timing out on a call still in flight,
+    // leaves it stopping: it runs again, since this method could not reach
+    // a stopped wallet to start it later.
+    let id = CanisterIdRecord {
         canister_id: wallet,
-    })
-    .await
-    .map_err(unavailable)?;
+    };
+    if let Err(e) = stop_canister(&id).await {
+        let _ = start_canister(&id).await;
+        return Err(unavailable(e));
+    }
     let arg = candid::encode_one(Some(version)).map_err(unavailable)?;
     let installed = install(wallet, &module, CanisterInstallMode::Upgrade(None), arg).await;
-    start_canister(&CanisterIdRecord {
-        canister_id: wallet,
-    })
-    .await
-    .map_err(unavailable)?;
+    start_canister(&id).await.map_err(unavailable)?;
     installed?;
     let mut record = store::wallet(wallet).ok_or(Error::NotFound)?;
     let old = record.clone();

@@ -230,6 +230,25 @@ mod bitcoin_checks {
         .unwrap();
         assert!(built.summary.change.is_none());
         assert_eq!(built.summary.fee, 500);
+        // What is left pays the transaction without change even when it
+        // could not also pay for a change output: 157 vB at 2 sat/vB is 314,
+        // 200 vB with change would be 400.
+        let pay = |amount| {
+            btc::build(
+                &w,
+                &a,
+                &[(Destination::Bitcoin(dest.to_string()), amount)],
+                1_000,
+                &utxos,
+                2,
+                0,
+                false,
+            )
+        };
+        let built = pay(119_650).unwrap();
+        assert!(built.summary.change.is_none());
+        assert_eq!(built.summary.fee, 350);
+        assert_eq!(pay(119_700).err(), Some(Error::FeeBlocked));
     }
 
     fn tx_of(a: &Assembly) -> btc::BtcTx {

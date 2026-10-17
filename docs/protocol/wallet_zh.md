@@ -26,7 +26,7 @@
 | Viewer | 否 | 否 | 否 |
 | Recovery | 仅成员变更 | 否；其提案无需批准，延时 7 天，期间任一 Admin/Approver 可否决 | 否 |
 
-被添加的成员处于 `Invited`，`join` 后才行动。账户成员以 `WalletJoin` 设备批准绑定调用 Principal（每成员最多 4 个）；之后该 Principal 代表该账户提案、执行与回报，决定仍需每次的设备批准。dMsg 客户端为此在每台设备生成一把“钱包密钥”（Ed25519，LDK 加密存于本机工作区），因为登录委托只到达固定 canister。
+被添加的成员处于 `Invited`，`join` 后才行动；客户端加入前先请 hub `sync_wallet` 刷新成员索引，创建后才加入的成员由此出现在索引中。移除成员时其协签人一并移除，但双控 Taproot 地址脚本承诺的协签人保留，该地址仍可花费。账户成员以 `WalletJoin` 设备批准绑定调用 Principal（每成员最多 4 个）；之后该 Principal 代表该账户提案、执行与回报，决定仍需每次的设备批准。dMsg 客户端为此在每台设备生成一把“钱包密钥”（Ed25519，LDK 加密存于本机工作区），因为登录委托只到达固定 canister。
 
 ## 摘要与设备批准
 
@@ -60,7 +60,8 @@
 - **操作类**（`CanisterCall`、`CancelEvmNonce`、`InitSolNonce`、`AddressBook`）：`approver_threshold`，无延时。
 - **管理类**：`admin_threshold`，只计 Admin。`SetPolicy`、`RemoveMember`、`SetCosign`、`RemoveCosigner`、`AcceptUpgrade`、`LockCode`、`ReleaseEvmNonce` 延时 24 小时；`Unfreeze` 延时 `unfreeze_delay_ms`；其余无延时。
 - 达到要求后进入 `Delayed`（有延时，期间可否决）或 `Ready`。只改钱包记录的意图在 `Ready` 时即生效；其余由成员调用 `execute`。
-- 任一 Admin/Approver 可直接 `freeze()`；冻结时只能提案与执行 `Unfreeze` 和成员变更。
+- 任一 Admin/Approver 可直接 `freeze()`；冻结时只能提案与执行 `Unfreeze` 和成员变更，进行中的批量转账停在下一笔之前，签名停在下一个签名之前。
+- 部分转出后失败的批量转账、成员回报失败的已签交易仍计入 24 小时窗口；只有确定没有转出的失败才释放。
 
 ## 状态
 
@@ -92,11 +93,11 @@
 
 | 链 | `prepare_execution` 规则 |
 | --- | --- |
-| Bitcoin | 版本 2；输入全部属于来源地址、不重复、最多 32 个；输出不低于 546 sat；`fee = fee_rate × vsize`（含找零估算），找零低于 546 sat 时并入手续费；`fee ≤ max_fee`；输入序号 `0xFFFFFFFD`（RBF），走 L2 时为 `chain_key_after`。同一提案的后续计划必须花费与首个已签计划完全相同的输入 |
+| Bitcoin | 版本 2；输入全部属于来源地址、不重复、最多 32 个；输出不低于 546 sat；剩余额须够付无找零交易的 `fee_rate × vsize`，扣除含找零的手续费后仍不低于 546 sat 时才加找零，否则全部并入手续费；`fee ≤ max_fee`；输入序号 `0xFFFFFFFD`（RBF），走 L2 时为 `chain_key_after`。同一提案的后续计划必须以相同金额花费与首个已签计划完全相同的输入 |
 | EVM | `chain_id ∈ evm_chains`；原生转账 `to = 收款方, data = 空`；ERC-20 为 `transfer(address,uint256)`；`gas_limit × max_fee_per_gas ≤ max_fee`，`max_priority ≤ max_fee_per_gas`。同一地址同一链同时只能有一笔未结算已签交易，重签必须同 nonce；`CancelEvmNonce` 以同 nonce 零值自转替换它，结算后被替换的提案标记失败 |
-| Solana | 指令只来自意图：ComputeBudget、System `Transfer`、SPL `TransferChecked`（可选 ATA `CreateIdempotent`）、`CreateAccountWithSeed` + `InitializeNonceAccount`（`InitSolNonce`，seed `dmsg-wallet-nonce`，租金 1,447,680 lamports）；地址有 nonce 账户时第一条为 `AdvanceNonceAccount`，`blockhash` 为 nonce 值，重签必须同值；无 nonce 账户时重签至少间隔 150 秒；`5000 + ⌈price × limit / 10⁶⌉ ≤ max_fee` |
+| Solana | 指令只来自意图：ComputeBudget、System `Transfer`、SPL `TransferChecked`（可选 ATA `CreateIdempotent`）、`CreateAccountWithSeed` + `InitializeNonceAccount`（`InitSolNonce`，seed `dmsg-wallet-nonce`，租金 1,447,680 lamports）；地址有 nonce 账户时第一条为 `AdvanceNonceAccount`，`blockhash` 为 nonce 值，重签必须与首个已签计划同值；无 nonce 账户时重签距本提案上次签名至少 150 秒；`5000 + ⌈price × limit / 10⁶⌉ ≤ max_fee` |
 
-每计划有效 10 分钟，每提案最多 8 个计划，每日阈值签名数受 `daily_signatures` 限制。
+每计划有效 10 分钟，每提案最多 8 个计划，每日阈值签名数受 `daily_signatures` 限制。重签规则在构建计划时和签名时各核对一次：任何计划签名前构建的多个计划，以先签名者为准。
 
 ## 协签封装
 
@@ -112,12 +113,12 @@
 
 1. `quote_activation(account_id)`：hub 向 commerce `refresh_entitlement` 读取账户套餐（无记录为 Free），按 `quotas` 减去该账户已占用的创建数；报价 15 分钟有效，收款账户为 `(hub, deposit_subaccount(hub, quote_id))`。
 2. 付款人向收款账户转入 `price_e8s`；创建者设备批准 `WalletCreate`。
-3. `create_wallet(CreateWallet { quote_id, spec, approval_id, approval })`：调用者必须是报价时的调用者；hub 核对批准与余额后记为 `Paid`，再创建 canister（controller 仅 hub，冻结阈值 365 天，附 `cycles_to_wallet`）并以分块安装当前版本，状态 `Created → Ready`；失败可 `reconcile_activation`，创建失败为 `Failed`，付款人可 `claim_activation_refund`（扣账本手续费）。过期未用的报价同样可退款。
+3. `create_wallet(CreateWallet { quote_id, spec, approval_id, approval })`：调用者必须是报价时的调用者；hub 核对批准与余额，返回后重查报价期限与暂停，记为 `Paid`，再创建 canister（controller 仅 hub，冻结阈值 365 天，附 `cycles_to_wallet`）并以分块安装当前版本，状态 `Created → Ready`；失败可 `reconcile_activation`，创建失败为 `Failed`，付款人可 `claim_activation_refund`（扣账本手续费）。过期未用的报价同样可退款。
 4. `collect_revenue(quote_id)`：已就绪订单的收款中，`cycles_share_e8s` 以 memo `TPUP` 转入 CMC 为 hub 充值 cycles，余额转入 `revenue` 账户。
 
 ## 升级与锁定
 
-钱包以 `AcceptUpgrade { version, module_hash }` 管理类提案（24 小时延时）接受 hub 登记的版本；任何人调用 hub `upgrade_wallet`，hub 读取 `accepted_upgrade()`、核对版本与哈希后停止实例、分块安装（`post_upgrade` 参数为该版本号，匹配时清除接受记录）并启动。`LockCode` 生效后 `lock_wallet` 把 controllers 设为空，之后不能升级或删除。hub 只安装治理以 `admin_register_version` 登记过哈希的模块；上传由 controller、governance 或其指定的上传者完成。
+钱包以 `AcceptUpgrade { version, module_hash }` 管理类提案（24 小时延时）接受 hub 登记的版本；任何人调用 hub `upgrade_wallet`，hub 读取 `accepted_upgrade()`、核对版本与哈希后停止实例、分块安装（`post_upgrade` 参数为该版本号，匹配时清除接受记录）并启动；停止失败时立即重新启动实例。`LockCode` 生效后 `lock_wallet` 把 controllers 设为空，之后不能升级或删除。hub 只安装治理以 `admin_register_version` 登记过哈希的模块；上传由 controller、governance 或其指定的上传者完成。
 
 ## cycles
 

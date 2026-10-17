@@ -877,23 +877,26 @@ fn wallet_signs_bitcoin_evm_and_solana() {
         )
         .id,
     );
-    let plan = t
-        .prepare(
-            p.id,
-            ExecutionParams::Solana {
-                blockhash: Hash::new([7; 32]),
-                compute_unit_price: 0,
-                compute_unit_limit: 10_000,
-                decimals: None,
-                create_ata: false,
-            },
-        )
-        .unwrap();
+    let sol_params = |blockhash| ExecutionParams::Solana {
+        blockhash: Hash::new([blockhash; 32]),
+        compute_unit_price: 0,
+        compute_unit_limit: 10_000,
+        decimals: None,
+        create_ata: false,
+    };
+    let plan = t.prepare(p.id, sol_params(7)).unwrap();
+    // A version built before the first one is signed is checked again when
+    // signed: its blockhash cannot land beside the first's.
+    let early = t.prepare(p.id, sol_params(8)).unwrap();
     let tx = t
         .execute(p.id, Some(plan.seq), vec![])
         .unwrap()
         .signed
         .unwrap();
+    assert_eq!(
+        t.execute(p.id, Some(early.seq), vec![]).err(),
+        Some(Error::Forbidden)
+    );
     assert_eq!(&tx.raw[65..], &plan.unsigned[..]);
     let key = ed25519_dalek::VerifyingKey::from_bytes(&sol.public_key.to_vec().try_into().unwrap())
         .unwrap();
@@ -1111,6 +1114,99 @@ fn wallet_cosigners_freeze_veto_and_recovery() {
         (MemberId::Principal(person(45)),),
     );
     assert_eq!(listed.len(), 1);
+
+    // A native Taproot address commits to its cosigner's key, so removing
+    // the cosigner's member keeps that cosigner and the address spends.
+    let btc = t
+        .view()
+        .addresses
+        .iter()
+        .find(|a| a.chain == Chain::Bitcoin)
+        .unwrap()
+        .clone();
+    let added = t.approve_p(
+        t.propose(
+            P,
+            Intent::AddCosigner(CosignerInput {
+                member: MemberId::Account(t.b),
+                kind: CosignerKind::Bip340,
+                public_key: x_only(&btc.public_key).unwrap().to_vec().into(),
+                envelope: CosignerEnvelope::Raw,
+                hardware: true,
+                label: "hardware wallet".into(),
+            }),
+        )
+        .id,
+    );
+    let Some(Outcome::CosignerAdded(cosigner)) = added.outcome else {
+        panic!("cosigner {added:?}")
+    };
+    let native = t.approve_p(
+        t.propose(
+            P,
+            Intent::AddAddress {
+                chain: Chain::Bitcoin,
+                kind: AddressKind::Taproot(TaprootControl {
+                    cosigner,
+                    chain_key_after: 144,
+                    recovery: None,
+                }),
+                label: "cold".into(),
+                cosign: None,
+            },
+        )
+        .id,
+    );
+    let created = t.execute(native.id, None, vec![]).unwrap().proposal;
+    let Some(Outcome::AddressCreated(cold)) = created.outcome else {
+        panic!("address {created:?}")
+    };
+    let removed = t.approve_p(
+        t.propose(P, Intent::RemoveMember(MemberId::Account(t.b)))
+            .id,
+    );
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.f.ic.tick();
+    assert_eq!(
+        t.execute(removed.id, None, vec![]).unwrap().proposal.status,
+        ProposalStatus::Settled
+    );
+    let v = t.view();
+    assert!(v.members.iter().all(|m| m.id != MemberId::Account(t.b)));
+    assert!(v.cosigners.iter().any(|c| c.id == cosigner));
+    let spend = t.approve_p(
+        t.propose(
+            P,
+            Intent::Transfer {
+                from: cold,
+                asset: AssetKey::Btc,
+                to: Destination::Bitcoin(btc.text.clone()),
+                amount: 50_000,
+                max_fee: 20_000,
+                memo: None,
+            },
+        )
+        .id,
+    );
+    // The chain key spends alone through the timelocked leaf.
+    let plan = t
+        .prepare(
+            spend.id,
+            ExecutionParams::Bitcoin {
+                utxos: vec![Utxo {
+                    txid: Hash::new([6; 32]),
+                    vout: 0,
+                    value: 100_000,
+                    address: cold,
+                }],
+                fee_rate: 2,
+                locktime: 0,
+                timelock: true,
+            },
+        )
+        .unwrap();
+    assert_eq!(plan.summary.outputs[0].amount, 50_000);
 }
 
 #[test]

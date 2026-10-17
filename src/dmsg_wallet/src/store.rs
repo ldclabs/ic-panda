@@ -44,8 +44,6 @@ pub(crate) struct EvmPending {
 pub(crate) struct SolLast {
     pub(crate) address: u32,
     pub(crate) blockhash: Hash,
-    pub(crate) at_ms: u64,
-    pub(crate) proposal: u64,
 }
 
 /// An approved or executed spend in the rolling window.
@@ -108,6 +106,13 @@ impl Wallet {
             .iter()
             .find(|c| c.id == id)
             .ok_or(Error::NotFound)
+    }
+
+    /// Whether a native Taproot address's script commits to `cosigner`.
+    pub(crate) fn taproot_cosigner(&self, cosigner: u32) -> bool {
+        self.addresses
+            .iter()
+            .any(|a| matches!(&a.kind, AddressKind::Taproot(c) if c.cosigner == cosigner))
     }
 
     /// Whether `caller` may read the wallet.

@@ -530,7 +530,8 @@ pub enum Intent {
     RemoveCosigner(u32),
     /// Invite a member.
     AddMember(MemberInput),
-    /// Remove a member, its cosigners and its pending approvals.
+    /// Remove a member, its pending approvals and its cosigners, except one
+    /// a native Taproot address commits to, which stays for that address.
     RemoveMember(MemberId),
     /// Change a member's role, label or agents.
     UpdateMember(MemberInput),

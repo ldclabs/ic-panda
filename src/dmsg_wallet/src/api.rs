@@ -23,7 +23,7 @@ const DEFAULT_ADDRESSES: [(u32, Chain, &str); 3] = [
     (3, Chain::Solana, "Solana"),
 ];
 
-fn counts(members: &[Member]) -> (usize, usize) {
+fn role_counts(members: &[Member]) -> (usize, usize) {
     let admins = members.iter().filter(|m| m.role == Role::Admin).count();
     let approvers = members
         .iter()
@@ -57,7 +57,7 @@ fn init(args: WalletInit) {
         assert!(members.iter().all(|x| x.id != m.id), "duplicate member");
         members.push(invited(m, at));
     }
-    let (admins, approvers) = counts(&members);
+    let (admins, approvers) = role_counts(&members);
     assert_eq!(args.policy.version, 1, "policy version");
     validate_policy(&args.policy, admins, approvers).expect("policy");
     let mut w = Wallet {
@@ -528,7 +528,7 @@ fn window_and_book(w: &Wallet, intent: &Intent, at: u64) -> (u128, bool) {
 }
 
 /// State checks of an intent beyond its shape.
-pub(crate) fn check_state(w: &Wallet, intent: &Intent, at: u64) -> Result<()> {
+pub(crate) fn check_state(w: &Wallet, intent: &Intent) -> Result<()> {
     let address = |id: u32, chain: Chain| -> Result<&Address> {
         let a = w.address(id)?;
         ensure_valid(a.chain == chain, "address chain")?;
@@ -589,12 +589,7 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent, at: u64) -> Result<()> {
         }
         Intent::RemoveCosigner(id) => {
             w.cosigner(*id)?;
-            ensure_valid(
-                w.addresses
-                    .iter()
-                    .all(|a| !matches!(&a.kind, AddressKind::Taproot(c) if c.cosigner == *id)),
-                "cosigner of a native address",
-            )?;
+            ensure_valid(!w.taproot_cosigner(*id), "cosigner of a native address")?;
         }
         Intent::AddMember(input) => {
             ensure(w.members.len() < MAX_MEMBERS, Error::QuotaExceeded)?;
@@ -603,7 +598,7 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent, at: u64) -> Result<()> {
         Intent::RemoveMember(id) => {
             w.member(id).ok_or(Error::NotFound)?;
             let rest: Vec<Member> = w.members.iter().filter(|m| m.id != *id).cloned().collect();
-            let (admins, approvers) = counts(&rest);
+            let (admins, approvers) = role_counts(&rest);
             validate_policy(&w.policy, admins, approvers)?;
         }
         Intent::UpdateMember(input) => {
@@ -612,7 +607,7 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent, at: u64) -> Result<()> {
             if let Some(m) = rest.iter_mut().find(|m| m.id == input.id) {
                 m.role = input.role;
             }
-            let (admins, approvers) = counts(&rest);
+            let (admins, approvers) = role_counts(&rest);
             validate_policy(&w.policy, admins, approvers)?;
         }
         Intent::SetPolicy(policy) => {
@@ -620,7 +615,7 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent, at: u64) -> Result<()> {
                 policy.version == w.policy.version + 1,
                 Error::VersionConflict,
             )?;
-            let (admins, approvers) = counts(&w.members);
+            let (admins, approvers) = role_counts(&w.members);
             validate_policy(policy, admins, approvers)?;
             if let Some(r) = &policy.refuel {
                 address(r.from, Chain::Icp)?;
@@ -666,7 +661,6 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent, at: u64) -> Result<()> {
             )?;
         }
     }
-    let _ = at;
     Ok(())
 }
 
@@ -769,7 +763,12 @@ async fn propose(args: ProposeArgs) -> Result<Proposal> {
         ..
     } = &mut intent
     {
-        // Every approver sees the target's own description of the call.
+        // Only a listed target is asked; every approver sees its own
+        // description of the call.
+        ensure(
+            store::with(|w| w.policy.call_targets.contains(canister)),
+            Error::Forbidden,
+        )?;
         *c = consent(*canister, method, arg).await;
     }
     // Membership, policy and the operation index are reread after the call.
@@ -780,7 +779,7 @@ async fn propose(args: ProposeArgs) -> Result<Proposal> {
         ensure(member.agent_ids.contains(agent), Error::Forbidden)?;
     }
     ensure(store::op(&op_id).is_none(), Error::IdempotencyConflict)?;
-    check_state(&w, &intent, at)?;
+    check_state(&w, &intent)?;
     ensure(
         !w.frozen || matches!(intent, Intent::Unfreeze) || is_membership(&intent),
         Error::Locked,
@@ -904,7 +903,7 @@ fn check_decision(
     match decision {
         Decision::Approve | Decision::Reject => {
             ensure(p.status == ProposalStatus::Open, Error::VersionConflict)?;
-            ensure(counts_for(m.role, &p.requirement), Error::Forbidden)?;
+            ensure(counts(m.role, &p.requirement), Error::Forbidden)?;
             ensure(
                 p.votes.iter().all(|v| v.member != *member),
                 Error::IdempotencyConflict,
@@ -916,10 +915,6 @@ fn check_decision(
         }
     }
     Ok(m.role)
-}
-
-fn counts_for(role: Role, requirement: &Requirement) -> bool {
-    dmsg_protocol::wallet::counts(role, requirement)
 }
 
 async fn decide(id: u64, evidence: MemberApproval, decision: Decision) -> Result<Proposal> {
@@ -988,7 +983,7 @@ async fn decide(id: u64, evidence: MemberApproval, decision: Decision) -> Result
             .filter(|v| v.decision == d)
             .filter(|v| {
                 w.member(&v.member).is_some_and(|m| {
-                    m.status == MemberStatus::Active && counts_for(m.role, &p.requirement)
+                    m.status == MemberStatus::Active && counts(m.role, &p.requirement)
                 })
             })
             .count()
@@ -1004,7 +999,7 @@ async fn decide(id: u64, evidence: MemberApproval, decision: Decision) -> Result
             let eligible = w
                 .members
                 .iter()
-                .filter(|m| m.status == MemberStatus::Active && counts_for(m.role, &p.requirement))
+                .filter(|m| m.status == MemberStatus::Active && counts(m.role, &p.requirement))
                 .count();
             if eligible.saturating_sub(counted(Decision::Reject))
                 < usize::from(p.requirement.approvals)

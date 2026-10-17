@@ -163,7 +163,9 @@ wallet's summary; it accepts every plan of
 [tests/vectors/wallet/plans-v1.json](../../tests/vectors/wallet/README.md),
 which the wallet's own builders produce, and refuses the tampered ones.
 Addresses are re-derived from the wallet's key roots with
-`ic-secp256k1` and `ic-ed25519`.
+`ic-secp256k1` and `ic-ed25519`. The wallet record is read certified, and
+each proposal's digest is recomputed from what it shows, so no single
+replica can change what a person approves or cosigns.
 
 ## Payments
 

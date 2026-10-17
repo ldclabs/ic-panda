@@ -18,13 +18,13 @@
 ## 激活
 
 1. `quote_activation` 向 commerce 的 `refresh_entitlement` 读取账户的基础套餐（从未付费的账户为 Free），套餐配额减去该账户已占用的激活数；报价 15 分钟有效，收款子账户为 `deposit_subaccount(hub, quote_id)`。
-2. `create_wallet` 核对调用者、报价未过期且未退款、规格（`validate_spec`）、创建者的 `WalletCreate` 设备批准（经账户所在 user home 核验）与收款子账户余额，记为 `Paid` 并占用配额；随后创建 canister（controllers = [hub]，冻结阈值 365 天，日志公开，附 `cycles_to_wallet`），把模块分块上传到实例的 chunk store 后 `install_chunked_code`，最后清空 chunk store。每步都写订单状态，同一订单的并发调用返回 `Pending`。
+2. `create_wallet` 核对调用者、报价未过期且未退款、未暂停（`pricing.paused`）、规格（`validate_spec`）、创建者的 `WalletCreate` 设备批准（经账户所在 user home 核验）与收款子账户余额，跨 canister 调用返回后以新读取的时间重查期限、暂停与配额，记为 `Paid` 并占用配额；随后创建 canister（controllers = [hub]，冻结阈值 365 天，日志公开，附 `cycles_to_wallet`），把模块分块上传到实例的 chunk store 后 `install_chunked_code`，最后清空 chunk store。每步都写订单状态，同一订单的并发调用返回 `Pending`。
 3. 创建失败的订单与过期未用的报价可由付款人退款（扣一次账本手续费）。
 4. `collect_revenue` 把已就绪订单的收款分两笔转出：`cycles_share_e8s` 以 ICRC-1 memo `TPUP` 转入 CMC 的 hub 子账户并 `notify_top_up`，其余转入 `revenue`。每笔的参数与 `created_at_time` 固定保存，重试由账本去重。
 
 ## 模块与升级
 
-模块（建议为 release 产出的 `.wasm.gz`，≤ 4 MiB，最多 16 个版本）先分块上传到暂存区，再由治理以模块哈希 `admin_register_version` 登记；新钱包使用最新未退役版本。`upgrade_wallet` 读取实例的 `accepted_upgrade()`，核对版本已登记、哈希一致且与已装版本不同，然后 stop → 分块 install（`Upgrade`，参数为版本号）→ start；安装失败也会重新启动实例。`lock_wallet` 在实例接受 `LockCode` 后把 controllers 设为空。
+模块（建议为 release 产出的 `.wasm.gz`，≤ 4 MiB，最多 16 个版本）先分块上传到暂存区，再由治理以模块哈希 `admin_register_version` 登记；新钱包使用最新未退役版本。`upgrade_wallet` 读取实例的 `accepted_upgrade()`，核对版本已登记、哈希一致且与已装版本不同，然后 stop → 分块 install（`Upgrade`，参数为版本号）→ start；停止失败（例如在途调用使其超时）或安装失败都会重新启动实例，否则停下的实例连 `accepted_upgrade()` 都无法应答，hub 再也启动不了它。`lock_wallet` 在实例接受 `LockCode` 后把 controllers 设为空。
 
 ## 部署与上线
 

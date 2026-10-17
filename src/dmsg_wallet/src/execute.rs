@@ -36,12 +36,16 @@ fn settle(w: &mut Wallet, p: &mut Proposal, outcome: Outcome, at: u64) {
     store::audit(w, at, None, Some(p.id), AuditKind::Settled);
 }
 
-/// A definite failure; nothing more moves, so the window spend is released.
-fn fail(w: &mut Wallet, p: &mut Proposal, reason: String, at: u64) {
+/// A definite failure. The window spend is released only when nothing
+/// moved and nothing still can: a partly paid batch or a signed transaction
+/// keeps counting until the window passes.
+fn fail(w: &mut Wallet, p: &mut Proposal, reason: String, release: bool, at: u64) {
     p.status = ProposalStatus::Failed;
     p.failure = Some(reason.clone());
     p.updated_at_ms = at;
-    w.spends.retain(|s| s.proposal != p.id);
+    if release {
+        w.spends.retain(|s| s.proposal != p.id);
+    }
     store::audit(w, at, None, Some(p.id), AuditKind::Failed(reason));
 }
 
@@ -50,9 +54,9 @@ pub(crate) fn apply_ready(w: &mut Wallet, p: &mut Proposal, at: u64) {
     if !internal(&p.intent) {
         return;
     }
-    match check_state(w, &p.intent, at).and_then(|()| apply(w, &p.intent, at)) {
+    match check_state(w, &p.intent).and_then(|()| apply(w, &p.intent, at)) {
         Ok(outcome) => settle(w, p, outcome, at),
-        Err(e) => fail(w, p, e.to_string(), at),
+        Err(e) => fail(w, p, e.to_string(), true, at),
     }
 }
 
@@ -106,10 +110,12 @@ fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
         }
         Intent::RemoveMember(id) => {
             w.members.retain(|m| m.id != *id);
+            // A native Taproot address's script commits to its cosigner's
+            // key, so that cosigner stays for the address to remain spendable.
             let owned: Vec<u32> = w
                 .cosigners
                 .iter()
-                .filter(|c| c.input.member == *id)
+                .filter(|c| c.input.member == *id && !w.taproot_cosigner(c.id))
                 .map(|c| c.id)
                 .collect();
             strip_cosigners(w, &owned);
@@ -404,7 +410,7 @@ async fn start_ledger(mut w: Wallet, mut p: Proposal, at: u64) -> Result<Execute
         }
     };
     if fee.saturating_mul(count) > max_fee {
-        fail(&mut w, &mut p, "FeeBlocked".into(), at);
+        fail(&mut w, &mut p, "FeeBlocked".into(), true, at);
         store::remove_job(p.id);
         store::save_proposal(&p);
         store::save(w);
@@ -434,6 +440,8 @@ async fn process_ledger(id: u64) -> Result<ExecuteResult> {
             store::save(w);
             return Ok(result(p, None));
         };
+        // A freeze stops the batch before its next transfer.
+        ensure(!store::with(|w| w.frozen), Error::Locked)?;
         let sent = ledger::send(job.ledger, job.arg(&job.items[i])).await;
         let at = now();
         let Some(Job::Ledger(mut job)) = store::job(id) else {
@@ -447,16 +455,17 @@ async fn process_ledger(id: u64) -> Result<ExecuteResult> {
             Sent::Refused(reason) => {
                 let mut w = store::wallet();
                 let mut p = store::proposal(id)?;
-                p.outcome = Some(Outcome::Ledger {
-                    blocks: job.items.iter().filter_map(|x| x.block).collect(),
-                });
-                let reason = if reason.starts_with("TooOld") {
-                    // A resend past the ledger's deduplication window proves nothing.
+                let blocks: Vec<u64> = job.items.iter().filter_map(|x| x.block).collect();
+                // A resend past the ledger's deduplication window proves nothing.
+                let unknown = reason.starts_with("TooOld");
+                let reason = if unknown {
                     format!("item {i}: outcome unknown after the deduplication window; check the ledger")
                 } else {
                     format!("item {i}: {reason}")
                 };
-                fail(&mut w, &mut p, reason.clone(), at);
+                let release = blocks.is_empty() && !unknown;
+                p.outcome = Some(Outcome::Ledger { blocks });
+                fail(&mut w, &mut p, reason.clone(), release, at);
                 store::remove_job(id);
                 store::save_proposal(&p);
                 store::save(w);
@@ -508,7 +517,7 @@ async fn call(
     if let Outcome::CallRejected { message, .. } = &outcome {
         let reason = message.clone();
         p.outcome = Some(outcome);
-        fail(&mut w, &mut p, reason, at);
+        fail(&mut w, &mut p, reason, true, at);
     } else {
         settle(&mut w, &mut p, outcome, at);
     }
@@ -535,7 +544,7 @@ async fn top_up(id: u64) -> Result<ExecuteResult> {
             Sent::Refused(reason) => {
                 let mut w = store::wallet();
                 let mut p = store::proposal(id)?;
-                fail(&mut w, &mut p, reason.clone(), at);
+                fail(&mut w, &mut p, reason.clone(), true, at);
                 store::remove_job(id);
                 store::save_proposal(&p);
                 store::save(w);
@@ -554,7 +563,7 @@ async fn top_up(id: u64) -> Result<ExecuteResult> {
             store::audit(&mut w, at, None, Some(id), AuditKind::Refueled { block });
             settle(&mut w, &mut p, Outcome::Refueled { block, cycles }, at);
         }
-        Notified::Refunded(reason) => fail(&mut w, &mut p, reason, at),
+        Notified::Refunded(reason) => fail(&mut w, &mut p, reason, true, at),
         Notified::Pending => return Err(Error::Pending),
     }
     store::remove_job(id);
@@ -573,7 +582,7 @@ async fn add_address(
     cosign: Option<CosignPolicy>,
     at: u64,
 ) -> Result<ExecuteResult> {
-    check_state(&w, &p.intent, at)?;
+    check_state(&w, &p.intent)?;
     let me = ic_cdk::api::canister_self();
     let id = w.next_address;
     w.next_address += 1;
@@ -660,6 +669,92 @@ fn waiting_status(p: &Proposal) -> ProposalStatus {
     }
 }
 
+/// What a plan must share with the proposal's first signed plan and with
+/// the address's other transactions, so at most one version of a payment
+/// can land. Checked when a plan is built and again when it is signed: plans
+/// built before either is signed are checked against whichever signs first.
+/// Returns the unsettled nonce an EVM cancellation replaces.
+fn check_versions(
+    w: &Wallet,
+    p: &Proposal,
+    address: u32,
+    params: &ExecutionParams,
+    at: u64,
+) -> Result<Option<u64>> {
+    let first = match p.signed.first() {
+        Some(s) => Some(store::plan(p.id, s.plan)?.plan.params),
+        None => None,
+    };
+    match params {
+        ExecutionParams::Evm { nonce, .. } => {
+            // A re-sign keeps the nonce, so only one version can be mined.
+            if let Some(first) = &first {
+                ensure(
+                    matches!(first, ExecutionParams::Evm { nonce: n, .. } if n == nonce),
+                    Error::Forbidden,
+                )?;
+            }
+            let (chain_id, cancel) = match &p.intent {
+                Intent::Transfer {
+                    asset: AssetKey::Evm { chain_id, .. },
+                    ..
+                } => (*chain_id, false),
+                Intent::CancelEvmNonce { chain_id, .. } => (*chain_id, true),
+                _ => return Err(invalid("evm intent")),
+            };
+            let pending = w
+                .evm_pending
+                .iter()
+                .find(|e| e.address == address && e.chain_id == chain_id);
+            if cancel {
+                return Ok(pending.filter(|e| e.proposal != p.id).map(|e| e.nonce));
+            }
+            // One unsettled transaction per address and chain.
+            if let Some(e) = pending {
+                ensure(e.proposal == p.id && e.nonce == *nonce, Error::Forbidden)?;
+            }
+        }
+        ExecutionParams::Bitcoin { utxos, .. } => {
+            if let Some(first) = &first {
+                let ExecutionParams::Bitcoin { utxos: signed, .. } = first else {
+                    return Err(Error::IntegrityFailed);
+                };
+                // A replacement spends exactly the first plan's inputs at
+                // the same values.
+                let inputs = |u: &[Utxo]| {
+                    let mut v: Vec<(Hash, u32, u64)> =
+                        u.iter().map(|u| (u.txid, u.vout, u.value)).collect();
+                    v.sort();
+                    v
+                };
+                ensure(inputs(signed) == inputs(utxos), Error::Forbidden)?;
+            }
+        }
+        ExecutionParams::Solana { blockhash, .. } => {
+            if w.address(address)?.sol_nonce.is_some() {
+                match &first {
+                    // A nonce value lands once, so every version shares it.
+                    Some(ExecutionParams::Solana { blockhash: b, .. }) => {
+                        ensure(b == blockhash, Error::Forbidden)?;
+                    }
+                    Some(_) => return Err(Error::IntegrityFailed),
+                    // A new payment needs a value the address did not sign with last.
+                    None => ensure(
+                        w.sol_last
+                            .iter()
+                            .all(|s| s.address != address || s.blockhash != *blockhash),
+                        Error::Forbidden,
+                    )?,
+                }
+            } else if let Some(last) = p.signed.last() {
+                // A blockhash dies after 150 blocks; sign again only after that.
+                ensure(at >= last.signed_at_ms + 150 * SECOND, Error::Forbidden)?;
+            }
+        }
+    }
+    Ok(None)
+}
+
 /// Build a plan from the executor's chain parameters. Nothing is signed.
 #[ic_cdk::update]
 fn prepare_execution(id: u64, params: ExecutionParams) -> Result<ExecutionPlan> {
@@ -673,7 +768,7 @@ fn prepare_execution(id: u64, params: ExecutionParams) -> Result<ExecutionPlan> 
         store::save(w);
         return Err(Error::Expired);
     }
-    let (address, chain) =
+    let (address, _) =
         chains::chain_source(&p.intent).ok_or_else(|| invalid("not an external-chain intent"))?;
     ensure(!w.frozen, Error::Locked)?;
     ensure(
@@ -688,74 +783,7 @@ fn prepare_execution(id: u64, params: ExecutionParams) -> Result<ExecutionPlan> 
         Error::Expired,
     )?;
     ensure(p.plans < MAX_PLANS, Error::QuotaExceeded)?;
-    let mut pending_nonce = None;
-    match (&p.intent, &params) {
-        (Intent::CancelEvmNonce { chain_id, .. }, ExecutionParams::Evm { .. }) => {
-            pending_nonce = w
-                .evm_pending
-                .iter()
-                .find(|e| e.address == address && e.chain_id == *chain_id && e.proposal != id)
-                .map(|e| e.nonce);
-        }
-        (_, ExecutionParams::Evm { nonce, .. }) => {
-            let chain_id = match &p.intent {
-                Intent::Transfer {
-                    asset: AssetKey::Evm { chain_id, .. },
-                    ..
-                } => *chain_id,
-                _ => return Err(invalid("evm intent")),
-            };
-            // One unsettled transaction per address and chain; a re-sign keeps its nonce.
-            if let Some(e) = w
-                .evm_pending
-                .iter()
-                .find(|e| e.address == address && e.chain_id == chain_id)
-            {
-                ensure(e.proposal == id && e.nonce == *nonce, Error::Forbidden)?;
-            }
-        }
-        (_, ExecutionParams::Bitcoin { utxos, .. }) => {
-            if let Some(first) = p.signed.first() {
-                // Replacement spends exactly the first plan's inputs.
-                let signed = store::plan(id, first.plan)?;
-                let outpoints = |u: &[Utxo]| {
-                    let mut v: Vec<(Hash, u32)> = u.iter().map(|u| (u.txid, u.vout)).collect();
-                    v.sort();
-                    v
-                };
-                let ExecutionParams::Bitcoin { utxos: first, .. } = &signed.plan.params else {
-                    return Err(Error::IntegrityFailed);
-                };
-                ensure(outpoints(first) == outpoints(utxos), Error::Forbidden)?;
-            }
-        }
-        (_, ExecutionParams::Solana { blockhash, .. }) => {
-            let nonce = w.address(address)?.sol_nonce.is_some();
-            let last = w.sol_last.iter().find(|s| s.address == address);
-            if !p.signed.is_empty() {
-                let mine = last.filter(|s| s.proposal == id);
-                if nonce {
-                    // A nonce value lands once, so every version shares it.
-                    ensure(
-                        mine.is_some_and(|s| s.blockhash == *blockhash),
-                        Error::Forbidden,
-                    )?;
-                } else {
-                    // A blockhash dies after 150 blocks; re-sign only after that.
-                    ensure(
-                        mine.is_none_or(|s| at >= s.at_ms + 150 * SECOND),
-                        Error::Forbidden,
-                    )?;
-                }
-            } else if nonce {
-                ensure(
-                    last.is_none_or(|s| s.blockhash != *blockhash),
-                    Error::Forbidden,
-                )?;
-            }
-        }
-    }
-    let _ = chain;
+    let pending_nonce = check_versions(&w, &p, address, &params, at)?;
     let built = chains::build(&w, &p.intent, &params, pending_nonce)?;
     let seq = p.plans + 1;
     let plan = ExecutionPlan {
@@ -805,6 +833,8 @@ async fn sign_plan(
     let record = store::plan(p.id, seq)?;
     ensure(at < record.plan.expires_at_ms, Error::Expired)?;
     let (address, _) = chains::chain_source(&p.intent).expect("chain intent");
+    // Another plan may have been signed since this one was built.
+    check_versions(&w, &p, address, &record.plan.params, at)?;
     let address = w.address(address)?.clone();
     let digests = &record.plan.digests;
     w.roll_day(at);
@@ -891,8 +921,6 @@ async fn sign_plan(
             w.sol_last.push(SolLast {
                 address: address.id,
                 blockhash: *blockhash,
-                at_ms: at,
-                proposal: p.id,
             });
         }
         _ => {}
@@ -983,6 +1011,7 @@ fn report(args: ChainReport) -> Result<Proposal> {
                                 &mut w,
                                 &mut replaced,
                                 format!("nonce replaced by proposal {}", p.id),
+                                true,
                                 at,
                             );
                             store::save_proposal(&replaced);
@@ -1003,10 +1032,12 @@ fn report(args: ChainReport) -> Result<Proposal> {
         }
         ChainOutcome::Failed => {
             w.evm_pending.retain(|e| e.proposal != p.id);
+            // The signed transaction may still land, so its spend keeps counting.
             fail(
                 &mut w,
                 &mut p,
                 format!("reported failed by {:?}", member.id),
+                false,
                 at,
             );
         }

@@ -599,7 +599,8 @@ type Intent = variant {
     // SHA-256 of the module.
     module_hash : blob;
   };
-  // Remove a member, its cosigners and its pending approvals.
+  // Remove a member, its pending approvals and its cosigners, except one
+  // a native Taproot address commits to, which stays for that address.
   RemoveMember : MemberId;
   // Send several amounts of one asset: ICRC transfers one by one, one
   // Bitcoin or Solana transaction. Not for EVM.
