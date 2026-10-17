@@ -200,10 +200,10 @@ fn save(id: &AccountId, old: &ExternalState, next: &ExternalState) {
             }
         }
         for (op, record) in &next.operations {
-            if let ExternalBody::Authentication(result) = &record.body {
-                if !old.operations.contains_key(op) {
-                    c.set(authentication_key(id, op), leaf_hash(&canonical(result)));
-                }
+            if let ExternalBody::Authentication(result) = &record.body
+                && !old.operations.contains_key(op)
+            {
+                c.set(authentication_key(id, op), leaf_hash(&canonical(result)));
             }
         }
         c.publish();

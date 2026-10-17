@@ -1,12 +1,10 @@
 use candid::Principal;
 use cbor2::from_slice;
+// ic-agent's own certification types: the workspace's ic-certification is a
+// newer major version than the one ic-agent verifies with.
 use ic_agent::{
-    hash_tree::{Label, LookupResult},
-    Agent,
-};
-use ic_certification::{
-    hash_tree::{HashTreeNode, SubtreeLookupResult},
-    Certificate, HashTree,
+    hash_tree::{HashTree, HashTreeNode, Label, LookupResult, SubtreeLookupResult},
+    Agent, Certificate,
 };
 use icrc_ledger_types::icrc3::archive::{GetArchivesArgs, GetArchivesResult};
 use icrc_ledger_types::icrc3::blocks::{DataCertificate, GetBlocksRequest, GetBlocksResult};
@@ -111,7 +109,8 @@ impl Icrc1Agent {
             return Err("Certificate not found in the DataCertificate".to_string());
         };
 
-        let hash_tree: HashTree = from_slice(hash_tree.as_slice()).map_err(format_error)?;
+        let hash_tree: HashTree<Vec<u8>> =
+            from_slice(hash_tree.as_slice()).map_err(format_error)?;
         self.verify_root_hash(&certificate, &hash_tree.digest())
             .await?;
 
@@ -153,7 +152,7 @@ impl Icrc1Agent {
     }
 }
 
-fn lookup_leaf(hash_tree: &HashTree, leaf_name: &str) -> Result<Option<Vec<u8>>, String> {
+fn lookup_leaf(hash_tree: &HashTree<Vec<u8>>, leaf_name: &str) -> Result<Option<Vec<u8>>, String> {
     match hash_tree.lookup_subtree([leaf_name.as_bytes()]) {
         SubtreeLookupResult::Found(tree) => match tree.as_ref() {
             HashTreeNode::Leaf(result) => Ok(Some(result.clone())),

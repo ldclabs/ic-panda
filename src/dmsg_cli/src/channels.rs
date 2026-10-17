@@ -109,12 +109,12 @@ async fn sync(daemon: &Daemon, channel: &str) {
         .await
         .channel_sync(channel, false)
         .await;
-    if let Ok(report) = result {
-        if report.received > 0 {
-            daemon.emit(
-                "channel/changed",
-                json!({"id": channel, "received": report.received}),
-            );
-        }
+    if let Ok(report) = result
+        && report.received > 0
+    {
+        daemon.emit(
+            "channel/changed",
+            json!({"id": channel, "received": report.received}),
+        );
     }
 }

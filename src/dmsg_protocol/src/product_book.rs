@@ -161,12 +161,12 @@ impl ProductBook {
 
     /// Release only an unused reservation; it cannot end an applied contract or unknown Apply.
     pub fn release(&mut self, offer: &BillingOffer) -> Result<()> {
-        if let Some(r) = &self.reservation {
-            if r.request.offer.operation_id == offer.operation_id {
-                ensure(r.request.offer == *offer, Error::IdempotencyConflict)?;
-                ensure(r.decision_id.is_none(), Error::ExecutionUnknown)?;
-                self.reservation = None;
-            }
+        if let Some(r) = &self.reservation
+            && r.request.offer.operation_id == offer.operation_id
+        {
+            ensure(r.request.offer == *offer, Error::IdempotencyConflict)?;
+            ensure(r.decision_id.is_none(), Error::ExecutionUnknown)?;
+            self.reservation = None;
         }
         Ok(())
     }

@@ -184,10 +184,10 @@ pub(crate) fn prune_executions(after: Vec<u8>, now: u64) -> Option<Vec<u8>> {
             if ic_cdk::api::instruction_counter() > PRUNE_INSTRUCTIONS {
                 break;
             }
-            if let Ok(mut s) = load(&id) {
-                if prune_account_executions(&mut s, now) > 0 {
-                    save_account(&s);
-                }
+            if let Ok(mut s) = load(&id)
+                && prune_account_executions(&mut s, now) > 0
+            {
+                save_account(&s);
             }
             visited = Some(id);
         }

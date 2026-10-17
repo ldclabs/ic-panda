@@ -152,10 +152,10 @@ fn publish(account_id: AccountId, state: PrincipalState) -> Result<Publication> 
             Error::Forbidden,
         )?,
     }
-    if let Some(record) = &current {
-        if state.version < record.version {
-            return Ok(publication(&account_id, &init, record));
-        }
+    if let Some(record) = &current
+        && state.version < record.version
+    {
+        return Ok(publication(&account_id, &init, record));
     }
     let state_digest = digest("dmsg/principal-state/v1", &state);
     if let Some(record) = &current {

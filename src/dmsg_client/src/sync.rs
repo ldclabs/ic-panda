@@ -200,11 +200,13 @@ pub(crate) fn plans_in(value: &cbor2::Value, plans: &mut Vec<UploadPlan>) {
     match value {
         cbor2::Value::Map(entries) => {
             let named = |name: &str| entries.iter().any(|(k, _)| k.as_text() == Some(name));
-            if named("upload_id") && named("chunks") && named("manifest_digest") {
-                if let Ok(plan) = decode::<UploadPlan>(&canonical(value), MAX_OBJECT) {
-                    plans.push(plan);
-                    return;
-                }
+            if named("upload_id")
+                && named("chunks")
+                && named("manifest_digest")
+                && let Ok(plan) = decode::<UploadPlan>(&canonical(value), MAX_OBJECT)
+            {
+                plans.push(plan);
+                return;
             }
             entries.iter().for_each(|(_, v)| plans_in(v, plans));
         }
@@ -568,10 +570,10 @@ impl Client {
         self.workspace.store.atomic(|store| {
             store.set_object(key, BLOCKED, true)?;
             store.delete_job(key)?;
-            if store.head(&row.item)?.as_deref() == Some(&row.revision) {
-                if let Some(parent) = &parent {
-                    store.set_head(&row.item, parent, &row.kind)?;
-                }
+            if store.head(&row.item)?.as_deref() == Some(&row.revision)
+                && let Some(parent) = &parent
+            {
+                store.set_head(&row.item, parent, &row.kind)?;
             }
             Ok(())
         })

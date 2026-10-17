@@ -511,35 +511,33 @@ async fn entitlement(id: AccountId) -> Result<Option<u64>> {
     else {
         return Ok(None);
     };
-    if let SubscriptionSource::PandaClaim { claim_id, .. } = c.source {
-        if c.status != SubscriptionStatus::Terminated
-            && c.lease_until_ms <= at.saturating_add(MINUTE)
+    if let SubscriptionSource::PandaClaim { claim_id, .. } = c.source
+        && c.status != SubscriptionStatus::Terminated
+        && c.lease_until_ms <= at.saturating_add(MINUTE)
+    {
+        let answer: Result<Result<PandaClaimView>> =
+            call(config().membership, "refresh_panda_claim", (claim_id,)).await;
+        s = SUBJECTS
+            .with_borrow(|t| t.load(id.as_slice()))
+            .ok_or(Error::NotFound)?;
+        if let Some(current) = s
+            .book
+            .contracts
+            .iter_mut()
+            .find(|v| v.contract_id == c.contract_id)
+            && let Ok(Ok(v)) = answer
         {
-            let answer: Result<Result<PandaClaimView>> =
-                call(config().membership, "refresh_panda_claim", (claim_id,)).await;
-            s = SUBJECTS
-                .with_borrow(|t| t.load(id.as_slice()))
-                .ok_or(Error::NotFound)?;
-            if let Some(current) = s
-                .book
-                .contracts
-                .iter_mut()
-                .find(|v| v.contract_id == c.contract_id)
-            {
-                if let Ok(Ok(v)) = answer {
-                    ensure(v.terms.offer == current.offer, Error::IntegrityFailed)?;
-                    if v.status == PandaClaimStatus::Terminated {
-                        current.status = SubscriptionStatus::Terminated;
-                    } else {
-                        observe_contract(
-                            current,
-                            v.eligibility,
-                            v.observed_at_ms,
-                            v.valid_until_ms,
-                            now(),
-                        )?;
-                    }
-                }
+            ensure(v.terms.offer == current.offer, Error::IntegrityFailed)?;
+            if v.status == PandaClaimStatus::Terminated {
+                current.status = SubscriptionStatus::Terminated;
+            } else {
+                observe_contract(
+                    current,
+                    v.eligibility,
+                    v.observed_at_ms,
+                    v.valid_until_ms,
+                    now(),
+                )?;
             }
         }
     }

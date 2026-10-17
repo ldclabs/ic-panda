@@ -1058,16 +1058,15 @@ pub fn verify(archive: &Archive) -> Verification {
         }
     }
     for claimed in &archive.checks {
-        if let Some(actual) = checks.iter().find(|c| c.source == claimed.source) {
-            if actual.result != claimed.result
-                || actual.plaintext_digest != claimed.plaintext_digest
-            {
-                gaps.push(Gap {
-                    source: claimed.source.clone(),
-                    code: Failure::Corrupt,
-                    detail: "Exporter verification disagrees with offline verification".into(),
-                });
-            }
+        if let Some(actual) = checks.iter().find(|c| c.source == claimed.source)
+            && (actual.result != claimed.result
+                || actual.plaintext_digest != claimed.plaintext_digest)
+        {
+            gaps.push(Gap {
+                source: claimed.source.clone(),
+                code: Failure::Corrupt,
+                detail: "Exporter verification disagrees with offline verification".into(),
+            });
         }
     }
     Verification {

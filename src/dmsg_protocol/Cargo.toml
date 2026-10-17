@@ -17,7 +17,8 @@ hmac.workspace = true
 serde_json.workspace = true
 serde_jcs.workspace = true
 ic_auth_verifier = { workspace = true, features = ["envelope"] }
-ic-certification.workspace = true
+# ic_auth_verifier 0.10 parses certificates with ic-certification 3.
+ic-certification = "3"
 dmsg_types = { path = "../dmsg_types", version = "0.4.0" }
 candid.workspace = true
 serde = { workspace = true, features = ["derive"] }

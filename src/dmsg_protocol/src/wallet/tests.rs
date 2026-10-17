@@ -163,7 +163,7 @@ fn convert(bytes: &[u8]) -> Vec<u8> {
 // A bech32 (not bech32m) string over `data`, built independently.
 fn bech32_v0_checksum(hrp: &str, data: &[u8]) -> String {
     const CHARSET: &[u8] = b"qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-    let gen = [
+    let generator = [
         0x3b6a57b2u32,
         0x26508e6d,
         0x1ea119fa,
@@ -179,7 +179,7 @@ fn bech32_v0_checksum(hrp: &str, data: &[u8]) -> String {
     for v in values {
         let top = chk >> 25;
         chk = ((chk & 0x1ffffff) << 5) ^ u32::from(v);
-        for (i, g) in gen.iter().enumerate() {
+        for (i, g) in generator.iter().enumerate() {
             if (top >> i) & 1 == 1 {
                 chk ^= g;
             }

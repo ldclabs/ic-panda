@@ -442,13 +442,12 @@ impl Client {
                             .as_u64()
                             .is_some_and(|t| t > now_ms() + 3_600_000)))
         };
-        if let Some(old) = &old {
-            if matches(old)
-                && old["security_epoch"].as_u64() == Some(state.snapshot.security_epoch)
-                && old["root_generation"].as_u64() == Some(generation)
-            {
-                return Ok(old.clone());
-            }
+        if let Some(old) = &old
+            && matches(old)
+            && old["security_epoch"].as_u64() == Some(state.snapshot.security_epoch)
+            && old["root_generation"].as_u64() == Some(generation)
+        {
+            return Ok(old.clone());
         }
         let expected = old
             .as_ref()
@@ -456,24 +455,25 @@ impl Client {
             .unwrap_or(0);
         let key = format!("policy:{expected}");
         // The exact policy signed before a lost reply, while it can still commit.
-        if let Some(job) = self.inbox_job::<Operation>(&key)? {
-            if job.result.is_none() && job.deadline > now_ms() + 5_000 {
-                let payload: PolicyPayload = serde_json::from_value(job.payload.clone())
-                    .map_err(|_| Error::IntegrityFailed)?;
-                ensure(
-                    matches(&serde_json::to_value(&payload).unwrap_or_default()),
-                    Error::IdempotencyConflict,
-                )?;
-                return self
-                    .inbox_post(
-                        &key,
-                        &format!("/v1/inboxes/{me}/policy"),
-                        POLICY,
-                        job.payload,
-                        false,
-                    )
-                    .await;
-            }
+        if let Some(job) = self.inbox_job::<Operation>(&key)?
+            && job.result.is_none()
+            && job.deadline > now_ms() + 5_000
+        {
+            let payload: PolicyPayload =
+                serde_json::from_value(job.payload.clone()).map_err(|_| Error::IntegrityFailed)?;
+            ensure(
+                matches(&serde_json::to_value(&payload).unwrap_or_default()),
+                Error::IdempotencyConflict,
+            )?;
+            return self
+                .inbox_post(
+                    &key,
+                    &format!("/v1/inboxes/{me}/policy"),
+                    POLICY,
+                    job.payload,
+                    false,
+                )
+                .await;
         }
         let version = old
             .as_ref()

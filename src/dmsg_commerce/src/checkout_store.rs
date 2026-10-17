@@ -465,15 +465,15 @@ pub(crate) fn sweep(at: u64) -> CheckoutHistorySweep {
     let mut orders = 0;
     for key in keys {
         let id = Hash::new(key[8..].try_into().expect("expiry key"));
-        if let Some(mut o) = ORDERS.with_borrow(|t| t.load(id.as_slice())) {
-            if o.archive_after().is_some_and(|end| end <= at) {
-                o.authorization = None;
-                o.decision = None;
-                o.reservation_released = true;
-                ARCHIVED_ORDERS.with_borrow_mut(|t| t.put(id.as_slice(), &o));
-                ORDERS.with_borrow_mut(|t| t.delete(id.as_slice()));
-                orders += 1;
-            }
+        if let Some(mut o) = ORDERS.with_borrow(|t| t.load(id.as_slice()))
+            && o.archive_after().is_some_and(|end| end <= at)
+        {
+            o.authorization = None;
+            o.decision = None;
+            o.reservation_released = true;
+            ARCHIVED_ORDERS.with_borrow_mut(|t| t.put(id.as_slice(), &o));
+            ORDERS.with_borrow_mut(|t| t.delete(id.as_slice()));
+            orders += 1;
         }
         ORDER_EXPIRY.with_borrow_mut(|t| t.delete(&key));
     }
@@ -481,12 +481,12 @@ pub(crate) fn sweep(at: u64) -> CheckoutHistorySweep {
     let mut transfers = 0;
     for key in keys {
         let id = Hash::new(key[8..].try_into().expect("expiry key"));
-        if let Some(t) = TRANSFERS.with_borrow(|t| t.load(id.as_slice())) {
-            if transfer_expiry(&t).is_some_and(|end| end <= at) {
-                ARCHIVED_TRANSFERS.with_borrow_mut(|m| m.put(id.as_slice(), &t));
-                TRANSFERS.with_borrow_mut(|m| m.delete(id.as_slice()));
-                transfers += 1;
-            }
+        if let Some(t) = TRANSFERS.with_borrow(|t| t.load(id.as_slice()))
+            && transfer_expiry(&t).is_some_and(|end| end <= at)
+        {
+            ARCHIVED_TRANSFERS.with_borrow_mut(|m| m.put(id.as_slice(), &t));
+            TRANSFERS.with_borrow_mut(|m| m.delete(id.as_slice()));
+            transfers += 1;
         }
         TRANSFER_EXPIRY.with_borrow_mut(|t| t.delete(&key));
     }

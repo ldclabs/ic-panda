@@ -309,16 +309,16 @@ fn manager_start_airdrops108() -> Result<bool, String> {
     }
 
     let res = store::state::with_mut(|r| {
-        if let Some(ref mut airdrops108) = r.airdrops108 {
-            if !airdrops108.status < 1 {
-                airdrops108.status = 1;
-                let delay = AIRDROP108_TIME_NS.saturating_sub(ic_cdk::api::time());
-                ic_cdk_timers::set_timer(
-                    Duration::from_nanos(delay),
-                    store::state::start_airdrops108(),
-                );
-                return true;
-            }
+        if let Some(ref mut airdrops108) = r.airdrops108
+            && !airdrops108.status < 1
+        {
+            airdrops108.status = 1;
+            let delay = AIRDROP108_TIME_NS.saturating_sub(ic_cdk::api::time());
+            ic_cdk_timers::set_timer(
+                Duration::from_nanos(delay),
+                store::state::start_airdrops108(),
+            );
+            return true;
         }
         false
     });

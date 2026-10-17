@@ -81,11 +81,11 @@ pub fn verify_session_signature(
 ) -> Result<(), String> {
     validate_session_key(session_pubkey, session_sig)?;
 
-    if let Some(raw_key) = session_pubkey.strip_prefix(ED25519_DER_PREFIX) {
-        if raw_key.len() == 32 {
-            return verify_basic_sig(Algorithm::Ed25519, raw_key, challenge, session_sig)
-                .map_err(|err| format!("challenge verification failed: {err}"));
-        }
+    if let Some(raw_key) = session_pubkey.strip_prefix(ED25519_DER_PREFIX)
+        && raw_key.len() == 32
+    {
+        return verify_basic_sig(Algorithm::Ed25519, raw_key, challenge, session_sig)
+            .map_err(|err| format!("challenge verification failed: {err}"));
     }
 
     let (algorithm, raw_key) = user_public_key_from_der(session_pubkey)

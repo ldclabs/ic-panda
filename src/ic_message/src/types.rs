@@ -68,30 +68,30 @@ pub struct UpdatePriceInput {
 
 impl UpdatePriceInput {
     pub fn validate(&self) -> Result<(), String> {
-        if let Some(price) = self.name_l1 {
-            if price < MIN_NAME_PRICE {
-                return Err(format!("name price too low: {}", price));
-            }
+        if let Some(price) = self.name_l1
+            && price < MIN_NAME_PRICE
+        {
+            return Err(format!("name price too low: {}", price));
         }
-        if let Some(price) = self.name_l2 {
-            if price < MIN_NAME_PRICE {
-                return Err(format!("name price too low: {}", price));
-            }
+        if let Some(price) = self.name_l2
+            && price < MIN_NAME_PRICE
+        {
+            return Err(format!("name price too low: {}", price));
         }
-        if let Some(price) = self.name_l3 {
-            if price < MIN_NAME_PRICE {
-                return Err(format!("name price too low: {}", price));
-            }
+        if let Some(price) = self.name_l3
+            && price < MIN_NAME_PRICE
+        {
+            return Err(format!("name price too low: {}", price));
         }
-        if let Some(price) = self.name_l5 {
-            if price < MIN_NAME_PRICE {
-                return Err(format!("name price too low: {}", price));
-            }
+        if let Some(price) = self.name_l5
+            && price < MIN_NAME_PRICE
+        {
+            return Err(format!("name price too low: {}", price));
         }
-        if let Some(price) = self.name_l7 {
-            if price < MIN_NAME_PRICE {
-                return Err(format!("name price too low: {}", price));
-            }
+        if let Some(price) = self.name_l7
+            && price < MIN_NAME_PRICE
+        {
+            return Err(format!("name price too low: {}", price));
         }
         Ok(())
     }

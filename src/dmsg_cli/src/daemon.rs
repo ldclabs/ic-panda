@@ -431,10 +431,10 @@ async fn background(daemon: Arc<Daemon>) {
             // chunks every ten minutes, opened copies every pass.
             let maintained = client.files_maintain(now);
             daemon.note("files", &outcome(&maintained));
-            if let Ok(Some(report)) = &maintained {
-                if report.purged_files + report.purged_folders > 0 {
-                    daemon.emit("files/changed", json!({"maintenance": report}));
-                }
+            if let Ok(Some(report)) = &maintained
+                && report.purged_files + report.purged_folders > 0
+            {
+                daemon.emit("files/changed", json!({"maintenance": report}));
             }
             if let Ok(changed) = client.files_open_sweep(now) {
                 for copy in changed {
@@ -447,31 +447,32 @@ async fn background(daemon: Arc<Daemon>) {
         // runs beside the library, then every local version through its
         // key while unlocked.
         let quiet = now > daemon.activity.load(Ordering::Relaxed) + CHECK_IDLE_MS;
-        if quiet && now >= checking + CHECK_RETRY_MS && client.files_check_due(now).unwrap_or(false)
+        if quiet
+            && now >= checking + CHECK_RETRY_MS
+            && client.files_check_due(now).unwrap_or(false)
+            && let Ok(dir) = client.files_blobs_dir()
         {
-            if let Ok(dir) = client.files_blobs_dir() {
-                checking = now;
-                drop(client);
-                let scanned = tokio::task::spawn_blocking(move || {
-                    dmsg_client::library::blobs::Blobs::new(dir).verify()
-                })
-                .await
-                .unwrap_or_else(|e| Err(Error::Unavailable(format!("check: {e}"))));
-                let mut client = daemon.client.lock().await;
-                let checked = scanned
-                    .and_then(|(count, bad)| client.files_check_record(now_ms(), count, bad));
-                daemon.note("check", &outcome(&checked));
-                if let Ok(check) = checked {
-                    crate::logs::write(
-                        "files/check",
-                        &[
-                            ("blobs", &check.blobs_checked),
-                            ("versions", &check.versions_checked),
-                            ("bad", &(check.blobs_bad.len() + check.versions_bad.len())),
-                        ],
-                    );
-                    daemon.emit("files/changed", json!({"check": check}));
-                }
+            checking = now;
+            drop(client);
+            let scanned = tokio::task::spawn_blocking(move || {
+                dmsg_client::library::blobs::Blobs::new(dir).verify()
+            })
+            .await
+            .unwrap_or_else(|e| Err(Error::Unavailable(format!("check: {e}"))));
+            let mut client = daemon.client.lock().await;
+            let checked =
+                scanned.and_then(|(count, bad)| client.files_check_record(now_ms(), count, bad));
+            daemon.note("check", &outcome(&checked));
+            if let Ok(check) = checked {
+                crate::logs::write(
+                    "files/check",
+                    &[
+                        ("blobs", &check.blobs_checked),
+                        ("versions", &check.versions_checked),
+                        ("bad", &(check.blobs_bad.len() + check.versions_bad.len())),
+                    ],
+                );
+                daemon.emit("files/changed", json!({"check": check}));
             }
         }
     }

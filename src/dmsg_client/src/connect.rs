@@ -459,11 +459,11 @@ impl Operation {
             "kind": self.kind,
             "state": self.state.name(),
         });
-        if let (Some(result), Some(digest)) = (&self.result, &self.result_digest) {
-            if matches!(self.state, OpState::Signed | OpState::Returned) {
-                value["result"] = serde_json::from_str(result).unwrap_or(Json::Null);
-                value["resultDigest"] = hex::encode(**digest).into();
-            }
+        if let (Some(result), Some(digest)) = (&self.result, &self.result_digest)
+            && matches!(self.state, OpState::Signed | OpState::Returned)
+        {
+            value["result"] = serde_json::from_str(result).unwrap_or(Json::Null);
+            value["resultDigest"] = hex::encode(**digest).into();
         }
         if let Some(error) = &self.error {
             value["error"] = error.clone().into();
@@ -1568,10 +1568,9 @@ impl Client {
                     .workspace
                     .store
                     .inbox::<Entry>(&hex::encode(*channel.request_id))?
+                    && matches!(attached.state.as_str(), "cancelled" | "expired" | "closed")
                 {
-                    if matches!(attached.state.as_str(), "cancelled" | "expired" | "closed") {
-                        channel.closed = true;
-                    }
+                    channel.closed = true;
                 }
             }
             if op.state != before {
@@ -1583,12 +1582,11 @@ impl Client {
                     _ => None,
                 };
                 if let (Some(state), Ok(mut approval)) = (state, self.approval_record(&op.approval))
+                    && approval.state == State::AwaitingUser
                 {
-                    if approval.state == State::AwaitingUser {
-                        approval.state = state;
-                        approval.updated_at = now_ms();
-                        self.save_approval(&approval)?;
-                    }
+                    approval.state = state;
+                    approval.updated_at = now_ms();
+                    self.save_approval(&approval)?;
                 }
             }
             if matches!(
@@ -2074,10 +2072,10 @@ impl Client {
             None => self.workspace.store.meta(&name)?,
         };
         let now = now_ms();
-        if let Some(token) = &stored {
-            if token.expires_at > now + HINT_RENEW_MS {
-                return Ok(token.clone());
-            }
+        if let Some(token) = &stored
+            && token.expires_at > now + HINT_RENEW_MS
+        {
+            return Ok(token.clone());
         }
         let secret = random_key();
         let token = HintToken {

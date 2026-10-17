@@ -606,10 +606,10 @@ impl Client {
     /// and `Error::IdempotencyConflict` when the login already owns one.
     pub async fn create_account(&mut self) -> Result<AccountRef> {
         ensure(self.workspace.provisional(), Error::Forbidden)?;
-        if let Some(journal) = self.resume().await? {
-            if let (Request::Create(_), Some(account)) = (&journal.request, journal.account) {
-                return self.join(journal.home, account).await;
-            }
+        if let Some(journal) = self.resume().await?
+            && let (Request::Create(_), Some(account)) = (&journal.request, journal.account)
+        {
+            return self.join(journal.home, account).await;
         }
         ensure(self.locate().await?.is_none(), Error::IdempotencyConflict)?;
         let login = self.session()?;

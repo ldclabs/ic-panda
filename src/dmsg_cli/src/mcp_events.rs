@@ -90,10 +90,10 @@ impl McpEvents {
     /// The keys an origin publishes at `/.well-known/mcp-webhook-jwks.json`;
     /// none when it publishes none or cannot be read.
     async fn keys(&self, origin: &str, now: u64) -> Vec<Hash> {
-        if let Some((at, keys)) = self.state.lock().expect("events state").jwks.get(origin) {
-            if now < at + JWKS_TTL_MS {
-                return keys.clone();
-            }
+        if let Some((at, keys)) = self.state.lock().expect("events state").jwks.get(origin)
+            && now < at + JWKS_TTL_MS
+        {
+            return keys.clone();
         }
         let keys = match self
             .http

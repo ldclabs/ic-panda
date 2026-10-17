@@ -57,10 +57,10 @@ impl Drop for Children {
 fn wait_for(path: &Path, children: &mut Children) -> Value {
     let started = Instant::now();
     while started.elapsed() < Duration::from_secs(120) {
-        if let Ok(bytes) = std::fs::read(path) {
-            if let Ok(value) = serde_json::from_slice(&bytes) {
-                return value;
-            }
+        if let Ok(bytes) = std::fs::read(path)
+            && let Ok(value) = serde_json::from_slice(&bytes)
+        {
+            return value;
         }
         for child in &mut children.0 {
             if let Ok(Some(status)) = child.try_wait() {
@@ -812,10 +812,11 @@ impl TlsFront {
                     .split(' ')
                     .nth(1)
                     .is_some_and(|status| status.starts_with('2'));
-                if method == "POST" && accepted {
-                    if let Ok(value) = serde_json::from_slice(&body) {
-                        state.lock().unwrap().accepted.push((path, value));
-                    }
+                if method == "POST"
+                    && accepted
+                    && let Ok(value) = serde_json::from_slice(&body)
+                {
+                    state.lock().unwrap().accepted.push((path, value));
                 }
                 [Proxy::closing(&reply_head).into_bytes(), reply_body].concat()
             }

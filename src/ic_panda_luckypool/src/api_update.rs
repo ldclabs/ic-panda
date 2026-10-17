@@ -270,10 +270,10 @@ async fn luckydraw(args: types::LuckyDrawInput) -> Result<types::LuckyDrawOutput
     });
 
     let state = store::airdrop::state_of(&caller);
-    if let Some(ref state) = state {
-        if state.0 == 0 {
-            return Err("user is banned".to_string());
-        }
+    if let Some(ref state) = state
+        && state.0 == 0
+    {
+        return Err("user is banned".to_string());
     }
 
     let now_sec = ic_cdk::api::time() / SECOND;

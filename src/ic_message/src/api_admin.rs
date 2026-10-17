@@ -180,25 +180,25 @@ fn validate2_admin_add_canister(
 fn validate_admin_update_price(args: types::UpdatePriceInput) -> Result<(), String> {
     args.validate()?;
     store::state::with(|s| {
-        if let Some(price) = args.name_l5 {
-            if price <= args.name_l7.unwrap_or(s.price.name_l7) {
-                Err("name_l5 must be greater than name_l7".to_string())?;
-            }
+        if let Some(price) = args.name_l5
+            && price <= args.name_l7.unwrap_or(s.price.name_l7)
+        {
+            Err("name_l5 must be greater than name_l7".to_string())?;
         }
-        if let Some(price) = args.name_l3 {
-            if price <= args.name_l5.unwrap_or(s.price.name_l5) {
-                Err("name_l3 must be greater than name_l5".to_string())?;
-            }
+        if let Some(price) = args.name_l3
+            && price <= args.name_l5.unwrap_or(s.price.name_l5)
+        {
+            Err("name_l3 must be greater than name_l5".to_string())?;
         }
-        if let Some(price) = args.name_l2 {
-            if price <= args.name_l3.unwrap_or(s.price.name_l3) {
-                Err("name_l2 must be greater than name_l3".to_string())?;
-            }
+        if let Some(price) = args.name_l2
+            && price <= args.name_l3.unwrap_or(s.price.name_l3)
+        {
+            Err("name_l2 must be greater than name_l3".to_string())?;
         }
-        if let Some(price) = args.name_l1 {
-            if price <= args.name_l2.unwrap_or(s.price.name_l2) {
-                Err("name_l1 must be greater than name_l2".to_string())?;
-            }
+        if let Some(price) = args.name_l1
+            && price <= args.name_l2.unwrap_or(s.price.name_l2)
+        {
+            Err("name_l1 must be greater than name_l2".to_string())?;
         }
         Ok::<(), String>(())
     })?;

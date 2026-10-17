@@ -182,16 +182,16 @@ impl UpdateChannelInput {
             }
         }
 
-        if let Some(ref image) = self.image {
-            if !image.starts_with("http") {
-                Err("invalid image url".to_string())?;
-            }
+        if let Some(ref image) = self.image
+            && !image.starts_with("http")
+        {
+            Err("invalid image url".to_string())?;
         }
 
-        if let Some(ref description) = self.description {
-            if description.len() > 256 {
-                Err("description is too long".to_string())?;
-            }
+        if let Some(ref description) = self.description
+            && description.len() > 256
+        {
+            Err("description is too long".to_string())?;
         }
         Ok(())
     }

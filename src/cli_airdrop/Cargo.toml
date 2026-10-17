@@ -16,7 +16,6 @@ serde_bytes = { workspace = true }
 sha2 = { workspace = true }
 tokio = { workspace = true }
 ic-agent = { workspace = true }
-ic-certification = { workspace = true }
 clap = { workspace = true }
 cbor2 = { workspace = true }
 num-traits = { workspace = true }

@@ -255,13 +255,12 @@ async fn refresh(
 ) -> Result<(EntitlementView, u64)> {
     valid_subject(&b)?;
     let mut s = load(&b)?;
-    if let Some(v) = &s.view {
-        if at.saturating_add(LEASE_RENEW_WINDOW_MS) < v.valid_until_ms
-            && v.business_revision == s.business_revision
-            && same_catalog(v.issued_at_ms, at)
-        {
-            return Ok((v.clone(), at));
-        }
+    if let Some(v) = &s.view
+        && at.saturating_add(LEASE_RENEW_WINDOW_MS) < v.valid_until_ms
+        && v.business_revision == s.business_revision
+        && same_catalog(v.issued_at_ms, at)
+    {
+        return Ok((v.clone(), at));
     }
     let source = s.active(at).and_then(|c| match c.source {
         ContractSource::Sns { claim_id } => Some((c.contract_id, claim_id)),

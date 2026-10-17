@@ -874,10 +874,10 @@ impl Client {
             return Err(Error::Forbidden);
         };
         let services = self.services().await?;
-        if let Order::Panda(view) = self.plan_order(id).await? {
-            if view.status != PandaClaimStatus::CoolingDown {
-                return Ok(order_view(&Order::Panda(view)));
-            }
+        if let Order::Panda(view) = self.plan_order(id).await?
+            && view.status != PandaClaimStatus::CoolingDown
+        {
+            return Ok(order_view(&Order::Panda(view)));
         }
         self.authorize_checkout(&mut job, &services, true).await?;
         let (application, approval) = job.approval.clone().ok_or(Error::IntegrityFailed)?;

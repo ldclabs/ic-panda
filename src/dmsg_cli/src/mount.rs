@@ -484,14 +484,14 @@ pub(crate) async fn serve(
     let Some((handler, password, account, prefix)) = daemon.mount_of(&token) else {
         return status(StatusCode::NOT_FOUND);
     };
-    if let Some(password) = &password {
-        if !authorized(request.headers(), password) {
-            return (
-                StatusCode::UNAUTHORIZED,
-                [(header::WWW_AUTHENTICATE, "Basic realm=\"dMsg\"")],
-            )
-                .into_response();
-        }
+    if let Some(password) = &password
+        && !authorized(request.headers(), password)
+    {
+        return (
+            StatusCode::UNAUTHORIZED,
+            [(header::WWW_AUTHENTICATE, "Basic realm=\"dMsg\"")],
+        )
+            .into_response();
     }
     let serving = {
         let client = daemon.client().lock().await;

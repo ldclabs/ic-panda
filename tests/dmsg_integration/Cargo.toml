@@ -68,7 +68,7 @@ reqwest = { version = "0.13", default-features = false, features = ["blocking"] 
 rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std"] }
 # The desktop test reads the daemon's /ws/app/v1 events.
 tungstenite = { version = "0.29", default-features = false, features = ["handshake"] }
-# The gateway-side verifier pairs with its own HTTP types; canisters stay on 3.
-ic-http-certification = "4"
+# The gateway-side verifier pairs with the workspace HTTP certification types.
+ic-http-certification.workspace = true
 ic-response-verification = "4"
 dmsg_account_product = { path = "../../examples/dmsg-account-product" }

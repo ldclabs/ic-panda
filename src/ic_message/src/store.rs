@@ -916,13 +916,12 @@ pub mod channel {
             call(channel_canister, "admin_create_channel", (input,), 0).await?;
 
         // try to mint $DMSG for the miner
-        if res.is_ok() {
-            if let Some(miner) = miner {
-                if user::has_username(&miner) {
-                    let _: Result<bool, String> =
-                        call(MINTER_CANISTER, "try_prepare", (miner, caller), 0).await;
-                }
-            }
+        if res.is_ok()
+            && let Some(miner) = miner
+            && user::has_username(&miner)
+        {
+            let _: Result<bool, String> =
+                call(MINTER_CANISTER, "try_prepare", (miner, caller), 0).await;
         }
 
         res

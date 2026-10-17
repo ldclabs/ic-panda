@@ -130,13 +130,13 @@ impl Channel {
         > = HashMap::new();
         if is_manager {
             for (p, s) in self.managers.iter() {
-                if s.ecdh_pub.is_some() {
-                    ecdh_request.insert(*p, (s.ecdh_pub.unwrap(), s.ecdh_remote.clone()));
+                if let Some(ecdh_pub) = s.ecdh_pub {
+                    ecdh_request.insert(*p, (ecdh_pub, s.ecdh_remote.clone()));
                 }
             }
             for (p, s) in self.members.iter() {
-                if s.ecdh_pub.is_some() {
-                    ecdh_request.insert(*p, (s.ecdh_pub.unwrap(), s.ecdh_remote.clone()));
+                if let Some(ecdh_pub) = s.ecdh_pub {
+                    ecdh_request.insert(*p, (ecdh_pub, s.ecdh_remote.clone()));
                 }
             }
         }

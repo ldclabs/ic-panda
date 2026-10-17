@@ -60,11 +60,11 @@ fn validate_session_key(pubkey: &[u8], sig: &[u8]) -> Result<(), String> {
 }
 
 fn verify_challenge(pubkey: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), String> {
-    if let Some(raw_key) = pubkey.strip_prefix(ED25519_DER_PREFIX) {
-        if raw_key.len() == 32 {
-            return verify_basic_sig(Algorithm::Ed25519, raw_key, msg, sig)
-                .map_err(|err| format!("challenge verification failed: {err}"));
-        }
+    if let Some(raw_key) = pubkey.strip_prefix(ED25519_DER_PREFIX)
+        && raw_key.len() == 32
+    {
+        return verify_basic_sig(Algorithm::Ed25519, raw_key, msg, sig)
+            .map_err(|err| format!("challenge verification failed: {err}"));
     }
 
     let (algorithm, raw_key) =

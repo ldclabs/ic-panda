@@ -203,13 +203,13 @@ fn every_shared_recipient_rejection() {
             .unwrap_or(c.event.actor.clone());
         let outcome = (|| {
             let p = validate_packet(&case["packet"])?;
-            if let Some(id) = case["packet_id"].as_str() {
-                if packet_id(&p)? != id {
-                    return Err(agent_protocols::SdkError::protocol(
-                        "invalid_event",
-                        "wrong id",
-                    ));
-                }
+            if let Some(id) = case["packet_id"].as_str()
+                && packet_id(&p)? != id
+            {
+                return Err(agent_protocols::SdkError::protocol(
+                    "invalid_event",
+                    "wrong id",
+                ));
             }
             decrypt_packet(&p, &c, &k, &owner, now)
         })();

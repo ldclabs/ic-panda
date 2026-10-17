@@ -1057,19 +1057,19 @@ impl Client {
             // needs the person too; the cosignature covers the proposal digest.
             let icp_source = source_address(&proposal.intent)
                 .and_then(|from| view.addresses.iter().find(|a| a.id == from));
-            if let Some(address) = icp_source {
-                if let Some(cosigner) = self.local_cosigner_of(&view, address)? {
-                    return self.wallet_request(
-                        source,
-                        JobKind::Cosign {
-                            wallet,
-                            name: view.name.clone(),
-                            proposal: Box::new(proposal),
-                            plan: None,
-                            cosigner,
-                        },
-                    );
-                }
+            if let Some(address) = icp_source
+                && let Some(cosigner) = self.local_cosigner_of(&view, address)?
+            {
+                return self.wallet_request(
+                    source,
+                    JobKind::Cosign {
+                        wallet,
+                        name: view.name.clone(),
+                        proposal: Box::new(proposal),
+                        plan: None,
+                        cosigner,
+                    },
+                );
             }
             let (_, ic) = self.wallet_identity().await?;
             let r: Result<ExecuteResult> = ic
@@ -1327,13 +1327,11 @@ impl Client {
                                 chain_id: c,
                                 token: Some(token),
                             } = asset
+                                && c == chain_id
                             {
-                                if c == chain_id {
-                                    let token = eip55(&token.into_array());
-                                    let b =
-                                        chains.evm_balance(*chain_id, &a.text, Some(&token)).await;
-                                    balances.push(json!({"asset": "ERC20", "token": token, "chain_id": chain_id, "balance": b.map(|b| b.to_string()).map_err(|e| e.to_string())}));
-                                }
+                                let token = eip55(&token.into_array());
+                                let b = chains.evm_balance(*chain_id, &a.text, Some(&token)).await;
+                                balances.push(json!({"asset": "ERC20", "token": token, "chain_id": chain_id, "balance": b.map(|b| b.to_string()).map_err(|e| e.to_string())}));
                             }
                         }
                     }

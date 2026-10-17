@@ -1096,10 +1096,9 @@ impl Client {
                             action: Action::History { account, .. },
                             ..
                         }) = from::<Control>(&stored.payload)
+                            && account == me
                         {
-                            if account == me {
-                                local.histories.push(stored.seq);
-                            }
+                            local.histories.push(stored.seq);
                         }
                     }
                     _ => {}
@@ -1914,11 +1913,11 @@ impl Client {
                     },
                 ..
             } = from::<Control>(&stored.payload)?
+                && from_epoch <= epoch
+                && epoch <= to_epoch
             {
-                if from_epoch <= epoch && epoch <= to_epoch {
-                    grant = Some(stored);
-                    break;
-                }
+                grant = Some(stored);
+                break;
             }
         }
         let stored = grant.ok_or(Error::RecoveryIncomplete)?;

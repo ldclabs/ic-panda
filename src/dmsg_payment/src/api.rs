@@ -568,10 +568,10 @@ fn revise_rejected_transfer(escrow_id: Hash, leg_id: u64, fee: u128) -> Result<T
         };
         cursor = previous;
     }
-    if let Some(parent) = cursor.replaces {
-        if get_leg(escrow_id, parent).is_ok_and(|leg| leg.status == LegStatus::Superseded) {
-            LEGS.with_borrow_mut(|t| t.delete(&key(escrow_id, parent)));
-        }
+    if let Some(parent) = cursor.replaces
+        && get_leg(escrow_id, parent).is_ok_and(|leg| leg.status == LegStatus::Superseded)
+    {
+        LEGS.with_borrow_mut(|t| t.delete(&key(escrow_id, parent)));
     }
     save_escrow(&e);
     Ok(new)

@@ -65,11 +65,11 @@ pub(crate) fn complete_recovery(
     request_id: OpId,
     now: u64,
 ) -> Result<Option<Vec<Principal>>> {
-    if let Some(r) = &s.completed_recovery {
-        if r.request_id == request_id {
-            ensure(caller == r.new_auth, Error::AuthRequired)?;
-            return Ok(None);
-        }
+    if let Some(r) = &s.completed_recovery
+        && r.request_id == request_id
+    {
+        ensure(caller == r.new_auth, Error::AuthRequired)?;
+        return Ok(None);
     }
     let r = s.pending_recovery.clone().ok_or(Error::NotFound)?;
     ensure(r.request.op_id == request_id, Error::IdempotencyConflict)?;

@@ -55,10 +55,10 @@ pub struct UpdateProfileInput {
 
 impl UpdateProfileInput {
     pub fn validate(&self) -> Result<(), String> {
-        if let Some(bio) = &self.bio {
-            if bio.len() > MAX_PROFILE_BIO_SIZE {
-                return Err(format!("bio size limit exceeded: {}", bio.len()));
-            }
+        if let Some(bio) = &self.bio
+            && bio.len() > MAX_PROFILE_BIO_SIZE
+        {
+            return Err(format!("bio size limit exceeded: {}", bio.len()));
         }
         // Check for conflicts in follow and unfollow
         if !self.follow.is_disjoint(&self.unfollow) {

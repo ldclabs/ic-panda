@@ -22,7 +22,8 @@ getrandom = { workspace = true, features = ["sys_rng"] }
 hex.workspace = true
 hkdf.workspace = true
 hmac.workspace = true
-ic-certification.workspace = true
+# ic_auth_verifier 0.10 and ic-agent 0.49 certificates use ic-certification 3.
+ic-certification = "3"
 ic_auth_verifier.workspace = true
 hpke = { workspace = true, features = ["alloc", "aes", "x25519"] }
 ic-ed25519.workspace = true

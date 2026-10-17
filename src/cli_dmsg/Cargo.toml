@@ -9,7 +9,7 @@ name = "cli_dmsg"
 path = "src/main.rs"
 
 [dependencies]
-ic_message_types = { path = "../ic_message_types", version = "2" }
+ic_message_types = { path = "../ic_message_types", version = "3" }
 candid = { workspace = true, features = ["value", "printer"] }
 serde = { workspace = true }
 sha2 = { workspace = true }

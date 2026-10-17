@@ -231,14 +231,13 @@ impl Client {
         let current = std::fs::read_to_string(dir.join(CURRENT))
             .ok()
             .and_then(|text| text.trim().parse::<AccountId>().ok());
-        if let Some(account) = current {
-            if client
+        if let Some(account) = current
+            && client
                 .slot_dir(&Slot::Account(account))
                 .join(WORKSPACE)
                 .exists()
-            {
-                client.select(Slot::Account(account))?;
-            }
+        {
+            client.select(Slot::Account(account))?;
         }
         Ok(client)
     }
@@ -526,10 +525,10 @@ impl Client {
             self.workspace.save_meta()?;
         }
         if !self.workspace.provisional() {
-            if let Err(error) = self.resume().await {
-                if error != Error::Expired {
-                    return Err(error);
-                }
+            if let Err(error) = self.resume().await
+                && error != Error::Expired
+            {
+                return Err(error);
             }
             self.open_root().await?;
         }
@@ -776,13 +775,12 @@ impl Client {
     /// workspace is then erased.
     pub(crate) async fn cloud_state(&mut self) -> Result<Security> {
         let account = self.account()?.clone();
-        if let (Some(state), Some(at)) = (&self.security, self.published) {
-            if state.certified_at == at
-                && state.snapshot.account_id == account.id
-                && state.expires_at() > now_ms() + 10_000
-            {
-                return Ok(state.clone());
-            }
+        if let (Some(state), Some(at)) = (&self.security, self.published)
+            && state.certified_at == at
+            && state.snapshot.account_id == account.id
+            && state.expires_at() > now_ms() + 10_000
+        {
+            return Ok(state.clone());
         }
         let mut attempts = 0;
         loop {

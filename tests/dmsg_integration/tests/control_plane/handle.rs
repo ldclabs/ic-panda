@@ -1308,11 +1308,11 @@ fn handle_charging_recovers_after_upgrade_with_or_without_a_committed_debit() {
         let mut charging = None;
         for _ in 0..10 {
             f.ic.tick();
-            if let Ok(o) = operation(&f, &input) {
-                if o.phase == HandlePhase::Charging {
-                    charging = Some(o);
-                    break;
-                }
+            if let Ok(o) = operation(&f, &input)
+                && o.phase == HandlePhase::Charging
+            {
+                charging = Some(o);
+                break;
             }
         }
         let before = charging.expect("observe the in-flight charge");

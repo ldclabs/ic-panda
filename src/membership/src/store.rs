@@ -306,10 +306,10 @@ pub fn save(c: &mut Claim, at: u64) {
             }
         });
     }
-    if old.as_ref().and_then(|v| v.retain_until_ms) != c.retain_until_ms {
-        if let Some(until) = c.retain_until_ms {
-            RETENTION.with_borrow_mut(|t| t.put(&expiry_key(until, id), &id));
-        }
+    if old.as_ref().and_then(|v| v.retain_until_ms) != c.retain_until_ms
+        && let Some(until) = c.retain_until_ms
+    {
+        RETENTION.with_borrow_mut(|t| t.put(&expiry_key(until, id), &id));
     }
     let old_release = old.as_ref().and_then(Claim::release_at);
     let release = c.release_at();

@@ -652,14 +652,14 @@ impl Client {
             thumbnail: false,
         };
         if manifest.mime.starts_with("image/") {
-            if let Some(digest) = &record.thumbnail {
-                if let Some(thumbnail) = self.open_thumbnail(&manifest, digest)? {
-                    preview.kind = "image";
-                    preview.mime = "image/png".into();
-                    preview.thumbnail = true;
-                    preview.content_base64url = Some(b64(&thumbnail));
-                    return Ok(preview);
-                }
+            if let Some(digest) = &record.thumbnail
+                && let Some(thumbnail) = self.open_thumbnail(&manifest, digest)?
+            {
+                preview.kind = "image";
+                preview.mime = "image/png".into();
+                preview.thumbnail = true;
+                preview.content_base64url = Some(b64(&thumbnail));
+                return Ok(preview);
             }
             if manifest.size <= MAX_PREVIEW_IMAGE {
                 let mut bytes = Zeroizing::new(Vec::with_capacity(manifest.size as usize));

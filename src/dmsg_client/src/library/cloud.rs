@@ -184,19 +184,16 @@ impl Client {
     /// Forget a cloud copy here: its cache, and the backup mark of the
     /// local version it was of.
     pub(crate) fn forget_cloud(&mut self, upload_id: &str) -> Result<()> {
-        if let Some(entry) = self.cloud_entry(upload_id)? {
-            if let Some(manifest) = &entry.manifest {
-                if let Ok(mut version) = self.version(&manifest.file.id, &manifest.file.version) {
-                    if version
-                        .backup
-                        .as_ref()
-                        .is_some_and(|b| b.upload_id == upload_id)
-                    {
-                        version.backup = None;
-                        self.save_version(&manifest.file.id, &manifest.file.version, &version)?;
-                    }
-                }
-            }
+        if let Some(entry) = self.cloud_entry(upload_id)?
+            && let Some(manifest) = &entry.manifest
+            && let Ok(mut version) = self.version(&manifest.file.id, &manifest.file.version)
+            && version
+                .backup
+                .as_ref()
+                .is_some_and(|b| b.upload_id == upload_id)
+        {
+            version.backup = None;
+            self.save_version(&manifest.file.id, &manifest.file.version, &version)?;
         }
         self.workspace
             .delete_private(&format!("{CLOUD}{upload_id}"))
@@ -628,14 +625,14 @@ impl Client {
             .fetch_chunks(upload_id, &entry.plan, &manifest, progress)
             .await;
         let file = &manifest.file;
-        if checked.is_ok() {
-            if let Ok(mut version) = self.version(&file.id, &file.version) {
-                version.local = true;
-                if let Some(backup) = version.backup.as_mut().filter(|b| b.upload_id == upload_id) {
-                    backup.verified = true;
-                }
-                self.save_version(&file.id, &file.version, &version)?;
+        if checked.is_ok()
+            && let Ok(mut version) = self.version(&file.id, &file.version)
+        {
+            version.local = true;
+            if let Some(backup) = version.backup.as_mut().filter(|b| b.upload_id == upload_id) {
+                backup.verified = true;
             }
+            self.save_version(&file.id, &file.version, &version)?;
         }
         Ok(VersionCheck {
             file: file.id.clone(),
