@@ -9,7 +9,8 @@
 /**
  * Methods any window may call; parameters pass through without `human`.
  * Methods that name local files (`payer/use`, `channel/download`,
- * `attest/verify` with a file) and refunds to named blocks stay with the CLI;
+ * `attest/verify` with a file) and refunds to named blocks stay with the CLI
+ * (`wallet/refund` names only a quote, which the daemon returns to the payer);
  * files enter and leave the library only through the main process's file
  * dialogs or a drop the preload resolves to a path (`files/import`,
  * `files/export`, `files/open`), as do shared channel files, application
@@ -152,6 +153,8 @@ export const WINDOW_METHODS = new Set([
   'wallet/principal',
   'wallet/quote',
   'wallet/create',
+  'wallet/deposits',
+  'wallet/refund',
   'wallet/join',
   'wallet/proposals',
   'wallet/proposal',

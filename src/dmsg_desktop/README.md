@@ -91,7 +91,10 @@ desktop is one of its clients, like the CLI.
     and addresses checked against the wallet's keys, proposals with their
     approvals, balances, the audit chain and this device's cosigner keys;
     proposing, executing and broadcasting run here, while creating,
-    joining, deciding and cosigning open the approval window.
+    joining, deciding and cosigning open the approval window. Activation
+    payments this device made that created no wallet are listed with
+    what comes back; a failed creation's or an expired quote's is refunded
+    to the paying account with one click.
   - Agents, in tabs: the principal with its controllers and credentials,
     the hosted Agent IDs and the host allowlist, a matrix of what each
     Agent ID reaches (the Agent Protocols services by origin, and other
@@ -219,6 +222,9 @@ and notifications instead of the system's. It covers:
   proposal from its dialog, archiving and reopening;
 - the inbox, its contact rules, and a subscription that reaches the daemon
   only as a desktop-sourced approval request;
+- team wallets: an activation payment that created no wallet refunded
+  with one click and no approval request, and one that waits for its
+  quote to expire;
 - agents: a grant whose approval window shows the agent it names, mail read
   and answered as an Agent ID, a refused non-Mail tool, an MCP Events
   endpoint whose secret shows once, and a delivery notification without its

@@ -13,12 +13,13 @@ use dmsg_types::{
 use serde_json::{json, Value};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 28] = [
+pub(crate) const METHODS: [&str; 29] = [
     "wallet/list",
     "wallet/show",
     "wallet/principal",
     "wallet/quote",
     "wallet/create",
+    "wallet/deposits",
     "wallet/refund",
     "wallet/join",
     "wallet/proposals",
@@ -172,6 +173,7 @@ impl Daemon {
                 &text(params, "quote")?,
                 spec(params)?,
             ),
+            "wallet/deposits" => client.wallet_deposits().await,
             "wallet/refund" => client.wallet_refund(&text(params, "quote")?).await,
             "wallet/join" => client.wallet_join_request(source(params)?, wallet()?).await,
             "wallet/proposals" => {

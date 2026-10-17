@@ -4397,6 +4397,17 @@ fn desktop_wallet() {
     let status = done["detail"]["result"]["status"].as_str().unwrap();
     assert!(status.starts_with("Failed"), "{status}");
     assert_eq!(balance(a, &ledger), before - u128::from(WALLET_PRICE) - fee);
+    // The desktop app lists it; the wallet's own quote, spent, and the
+    // unpaid one are not there.
+    let deposits = a.rpc(&http, "wallet/deposits", json!({})).unwrap();
+    assert_eq!(deposits.as_array().unwrap().len(), 1, "{deposits}");
+    assert_eq!(deposits[0]["quote_id"], quote_id);
+    assert_eq!(deposits[0]["state"], "failed");
+    assert_eq!(deposits[0]["refundable"], true);
+    assert_eq!(
+        deposits[0]["refund_e8s"],
+        (u128::from(WALLET_PRICE) - fee).to_string()
+    );
     let refund = a.run(&["wallet", "refund", quote_id]);
     assert_eq!(refund["to"], login_principal(42));
     assert_eq!(balance(a, &ledger), before - 2 * fee);
@@ -4409,9 +4420,10 @@ fn desktop_wallet() {
         subaccount: None,
     };
     assert_eq!(ledger_balance(d, ledger, key), 0);
-    // Another claim reports the same refund.
-    let again = a.run(&["wallet", "refund", quote_id]);
-    assert_eq!(again["block"], refund["block"]);
+    // The refunded quote is spent: the device forgets it.
+    let deposits = a.rpc(&http, "wallet/deposits", json!({})).unwrap();
+    assert_eq!(deposits, json!([]));
+    assert_eq!(a.fail(&["wallet", "refund", quote_id]), "NOT_FOUND");
     env.finish();
 }
 

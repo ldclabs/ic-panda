@@ -17,9 +17,10 @@
 
   /**
    * Team wallets: one canister per team. Proposing, executing what members
-   * approved, broadcasting and reading run here; creating, joining,
-   * deciding and cosigning open the approval window. The wallet signs every
-   * transaction; this device checks each plan with its own decoder first.
+   * approved, broadcasting, reading and refunding an activation payment
+   * that created no wallet run here; creating, joining, deciding and
+   * cosigning open the approval window. The wallet signs every transaction;
+   * this device checks each plan with its own decoder first.
    */
   let { status }: { status: any } = $props()
 
@@ -32,6 +33,8 @@
   let principal = $state('')
   let cosigners = $state<any[]>([])
   let quote = $state<any>(null)
+  // Activation payments this device made that created no wallet.
+  let deposits = $state<any[]>([])
   let error = $state('')
   let busy = $state(false)
   // New wallet.
@@ -98,8 +101,18 @@
       if (!selected && wallets.length) selected = wallets[0].wallet
       error = ''
       if (selected) await open(selected)
+      await loadDeposits()
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
+    }
+  }
+
+  /** The hub and ledger reads behind it may fail on their own; the list waits for the next load. */
+  async function loadDeposits() {
+    try {
+      deposits = await call('wallet/deposits')
+    } catch {
+      deposits = []
     }
   }
 
@@ -146,6 +159,14 @@
         })
       )
       quote = null
+    })
+
+  /** Back to the paying account, which the daemon names; no approval, the money goes nowhere else. */
+  const refund = (id: string) =>
+    attempt(async () => {
+      const refunded: any = await call('wallet/refund', { quote: id })
+      toast(() => t('twRefunded', { to: refunded.to, block: refunded.block }))
+      await loadDeposits()
     })
 
   const join = () => attempt(async () => approve(await call('wallet/join', { wallet: joining.trim() })))
@@ -377,6 +398,34 @@
         </div>
       {/if}
     </Section>
+
+    {#if deposits.length}
+      <Section title={t('twDeposits')} description={t('twDepositsHint')} icon="restore" flush testid="wallet-deposits">
+        <ul class="divide-y divide-line border-t border-line">
+          {#each deposits as d (d.quote_id)}
+            <li class="flex flex-wrap items-center gap-3 px-5 py-3" data-testid="wallet-deposit">
+              <Id id={d.quote_id} />
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <b class="text-[13px] font-medium tabular-nums">{t('twDepositAmount', { amount: units(d.refund_e8s, 8) })}</b>
+                  {#if d.state === 'failed'}
+                    <Pill tone="danger">{t('twDepositFailed')}</Pill>
+                  {:else if d.state === 'expired'}
+                    <Pill tone="warn">{t('twDepositExpired')}</Pill>
+                  {:else}
+                    <Pill>{t('twDepositUnused', { time: when(d.expires_at) })}</Pill>
+                  {/if}
+                </div>
+                {#if d.reason}<p class="mt-0.5 text-[12px] [overflow-wrap:anywhere] text-faint">{d.reason}</p>{/if}
+              </div>
+              {#if d.refundable}
+                <button class={buttonClass('primary', 'xs')} disabled={busy} onclick={() => refund(d.quote_id)} data-testid="wallet-refund">{t('twRefund')}</button>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      </Section>
+    {/if}
 
     <Section title={t('twJoin')} description={t('twJoinHint', { principal })} icon="link">
       <div class="flex gap-2">

@@ -4,7 +4,8 @@
 // only the approval window decides, and that it decides what it
 // showed, that payments and device revocation take a hold to approve, and
 // that the channel, inbox, plan and agent views reach the daemon with
-// payments and grants only as approval requests; that another account's
+// payments and grants only as approval requests; that an activation payment
+// that created no wallet is refunded from the wallet view; that another account's
 // workspace is selected from Settings, that binding a login and a web
 // checkout are approval requests, and that a web checkout is quoted before it
 // can be approved; that a web login shows what it proves and pays nothing;
@@ -178,6 +179,12 @@ let published = {
   self_asserted: true
 }
 const checkouts = []
+// Activation payments that created no wallet: one refundable now, one once its quote expires.
+const payer = 'rwlgt-iiaaa-aaaaa-aaaaa-cai'
+const deposits = [
+  { quote_id: 'b1'.repeat(32), state: 'failed', refundable: true, refund_e8s: '999990000', ledger_fee_e8s: '10000', expires_at: Date.now() - 60_000, reason: 'insufficient liquid cycle balance' },
+  { quote_id: 'b2'.repeat(32), state: 'unused', refundable: false, refund_e8s: '999990000', ledger_fee_e8s: '10000', expires_at: Date.now() + 600_000, reason: null }
+]
 const calls = []
 // The checkout comes first, so a link finds its request, not the first one.
 const requests = new Map([
@@ -475,6 +482,16 @@ const methods = {
   'inbox/outgoing': () => [],
   'inbox/policy': () => ({ mode: 'paid', version: 1 }),
   'inbox/configure': (p) => ({ ...p, version: 2 }),
+  'wallet/list': () => [],
+  'wallet/principal': () => ({ principal: 'xkbqi-2qaaa-aaaah-qbpqq-cai' }),
+  'wallet/cosigners': () => [],
+  'wallet/deposits': () => deposits,
+  'wallet/refund': (p) => {
+    const i = deposits.findIndex((d) => d.quote_id === p.quote && d.refundable)
+    assert.ok(i >= 0, 'a refundable deposit')
+    deposits.splice(i, 1)
+    return { quote_id: p.quote, to: payer, block: 42 }
+  },
   'plan/status': () => ({ plan: 'Free', storage_bytes: 1_000_000_000 }),
   'plan/catalog': () => ({
     version: 1,
@@ -810,6 +827,24 @@ try {
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
   await main.screenshot({ path: join(shots, 'account.png') })
 
+  // An activation payment that created no wallet goes back to the payer at
+  // once, without an approval; an unused quote's waits for its expiry.
+  await main.click('nav >> text=Team wallets')
+  await main.waitForSelector('[data-testid="wallet-deposits"]')
+  assert.equal(await main.locator('[data-testid="wallet-deposit"]').count(), 2)
+  assert.equal(await main.locator('[data-testid="wallet-refund"]').count(), 1)
+  assert.match(await main.textContent('[data-testid="wallet-deposits"]'), /9\.9999 ICP to return[\s\S]*Creation failed[\s\S]*Refundable after/)
+  await main.locator('[data-testid="wallet-deposits"]').screenshot({ path: join(shots, 'wallet-deposits.png') })
+  const requested = requests.size
+  await main.click('[data-testid="wallet-refund"]')
+  await waitFor(() => latest('wallet/refund'))
+  assert.deepEqual(latest('wallet/refund').params, { quote: 'b1'.repeat(32) })
+  await main.waitForSelector(`text=Refunded to ${payer} in block 42`)
+  await waitFor(() => calls.filter((c) => c.method === 'wallet/deposits').length >= 2)
+  await main.waitForFunction(() => document.querySelectorAll('[data-testid="wallet-deposit"]').length === 1)
+  assert.equal(await main.locator('[data-testid="wallet-refund"]').count(), 0)
+  assert.equal(requests.size, requested)
+
   // A grant to a hosted Agent ID is signed only after the approval window agrees.
   await main.click('nav >> text=/Agents|Agent/')
   await main.waitForSelector('[data-testid="principal-id"]')
@@ -1112,6 +1147,9 @@ try {
   await main.click('[data-testid="channel-list"] button >> nth=0')
   await main.waitForSelector('[data-testid="channel-members"]')
   await main.screenshot({ path: join(shots, 'channels-ar.png') })
+  await main.keyboard.press(`${mod}+8`)
+  await main.waitForSelector('[data-testid="wallet-deposits"]')
+  await main.locator('[data-testid="wallet-deposits"]').screenshot({ path: join(shots, 'wallet-deposits-ar.png') })
   await main.keyboard.press(`${mod}+,`)
   await choose(main, 'locale', 'fr')
   await approval.waitForSelector('html[lang="fr"][dir="ltr"]')

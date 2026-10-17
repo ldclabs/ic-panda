@@ -19,6 +19,7 @@ use crate::client::Client;
 use crate::crypto::{random_id, sign};
 use crate::ic::Ic;
 use crate::now_ms;
+use crate::payer::Stage;
 use crate::payment::certified_leaf;
 use candid::Principal;
 use dmsg_protocol::{approval_message, digest, integration::*, wallet::*};
@@ -790,11 +791,12 @@ impl Client {
     /// identity that paid it, once the hub failed to create its wallet or
     /// the quote expired unused. The hub takes the claim from this device's
     /// wallet key, which requested the quote, and pays the account it names.
+    /// The refunded quote is spent, so this device forgets it.
     ///
     /// # Errors
     /// Returns `Error::NotFound` for a quote this device did not request or
-    /// an empty deposit, and `Error::Forbidden` for a quote still usable or
-    /// one that created its wallet.
+    /// no longer keeps, or an empty deposit, and `Error::Forbidden` for a
+    /// quote still usable or one that created its wallet.
     pub async fn wallet_refund(&mut self, quote_id: &str) -> Result<Json> {
         let quote = self.wallet_saved_quote(quote_id)?;
         let hub = self.wallet_hub()?;
@@ -813,7 +815,67 @@ impl Client {
         let block: Result<u64> = ic
             .update(hub, "claim_activation_refund", (quote.quote_id, to))
             .await?;
-        Ok(json!({"quote_id": quote_id, "to": to.to_string(), "block": block?}))
+        let block = block?;
+        self.workspace
+            .delete_private(&format!("{QUOTE}{quote_id}"))?;
+        Ok(json!({"quote_id": quote_id, "to": to.to_string(), "block": block}))
+    }
+
+    /// The activation deposits this device paid that created no wallet,
+    /// newest first. A failed creation's and an expired quote's are
+    /// refundable now with [`Self::wallet_refund`]; an unused quote's once
+    /// it expires, unless it creates its wallet first.
+    pub async fn wallet_deposits(&mut self) -> Result<Json> {
+        let hub = self.wallet_hub()?;
+        let keys = self.keys()?;
+        let mut paid = vec![];
+        for key in self.workspace.store.sealed_keys(QUOTE)? {
+            let Some(quote) = self.workspace.private::<ActivationQuote>(keys, &key)? else {
+                continue;
+            };
+            let payment =
+                self.payment_journal(&format!("{ACTIVATION}{}", hex::encode(*quote.quote_id)))?;
+            // Only a payment sent may have reached the deposit.
+            if payment.is_some_and(|p| matches!(p.stage, Stage::Confirmed | Stage::Unknown)) {
+                paid.push(quote);
+            }
+        }
+        paid.sort_by_key(|q| std::cmp::Reverse(q.issued_at_ms));
+        let mut out = vec![];
+        if paid.is_empty() {
+            return Ok(Json::Array(out));
+        }
+        let reader = self.anonymous().await?;
+        let config: HubInit = reader.query(hub, "get_hub_config", ()).await?;
+        let now = now_ms();
+        for quote in paid {
+            let order: Option<ActivationOrder> =
+                reader.query(hub, "get_order", (quote.quote_id,)).await?;
+            let (state, reason) = match order.map(|o| o.status) {
+                Some(ActivationStatus::Failed(reason)) => ("failed", Some(reason)),
+                // Created, refunded, or still being created.
+                Some(_) => continue,
+                None if now >= quote.expires_at_ms => ("expired", None),
+                None => ("unused", None),
+            };
+            let held: candid::Nat = reader
+                .query(config.icp_ledger, "icrc1_balance_of", (quote.deposit,))
+                .await?;
+            let held = u128::try_from(held.0).map_err(|_| Error::IntegrityFailed)?;
+            let fee = u128::from(quote.ledger_fee_e8s);
+            if held > fee {
+                out.push(json!({
+                    "quote_id": hex::encode(*quote.quote_id),
+                    "state": state,
+                    "refundable": state != "unused",
+                    "refund_e8s": (held - fee).to_string(),
+                    "ledger_fee_e8s": quote.ledger_fee_e8s.to_string(),
+                    "expires_at": quote.expires_at_ms,
+                    "reason": reason,
+                }));
+            }
+        }
+        Ok(Json::Array(out))
     }
 
     /// Ask to join `wallet`, binding this device's wallet key. The hub first
@@ -1627,6 +1689,11 @@ impl Client {
                     )
                     .await?;
                 let order = order?;
+                // A quote that created its wallet is spent.
+                if order.status == ActivationStatus::Ready {
+                    self.workspace
+                        .delete_private(&format!("{QUOTE}{}", hex::encode(*quote.quote_id)))?;
+                }
                 json!({
                     "status": format!("{:?}", order.status),
                     "wallet": order.wallet.map(|w| w.to_text()),
