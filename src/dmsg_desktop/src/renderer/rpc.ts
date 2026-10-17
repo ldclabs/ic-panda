@@ -32,6 +32,10 @@ export function code(error: unknown): string {
   return error instanceof CallError ? error.code : 'UNAVAILABLE'
 }
 
+/** The device cannot read yet: locked, or logged in without an opened account. */
+export const closed = (error: unknown, status: any) =>
+  code(error) === 'LOCKED' || (code(error) === 'RECOVERY_INCOMPLETE' && status?.state !== 'unlocked')
+
 /** A failure for people: locked, or the error code. */
 export const errorText = (error: unknown) => (code(error) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(error)}`)
 

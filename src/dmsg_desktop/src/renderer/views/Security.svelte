@@ -11,6 +11,7 @@
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, onChange, single, when } from '../rpc'
+  import { startLogin } from '../shell/login.svelte'
 
   /** Bound logins, approvals of other devices and logins, the signing policy and recovery. Every change is an approval request. */
   let security = $state<any>(null)
@@ -21,7 +22,6 @@
   let days = $state('')
   let error = $state('')
   let busy = $state(false)
-  let mounted = true
 
   // A field follows the account only when the account's value changed, so an edit under way stays.
   const reload = single(async () => {
@@ -69,30 +69,15 @@
       shown = ''
     })
 
-  /** The second login happens in the browser; its approval request opens when it arrives. */
-  const bindLogin = () =>
-    guard(async () => {
-      const started: any = await bridge(() => window.dmsg.login('https://dmsg.net', true))
-      while (mounted && Date.now() < started.expires_at) {
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        const result: any = await call('session/login_result')
-        if (result.pending) continue
-        if (result.error) error = `${t('error')}: ${result.error}`
-        if (result.approval) await bridge(() => window.dmsg.openApproval(result.approval.id))
-        break
-      }
-    })
+  /** The second login happens in the browser, followed by the login dialog; its approval request opens when it arrives. */
+  const bindLogin = () => startLogin(true)
 
   /** A device ID names a pairing request; anything else a login. */
   const pairing = $derived(/^[0-9a-f]{64}$/.test(shown.trim()))
 
   onMount(() => {
     void reload()
-    const off = onChange(['approval/changed', 'session/changed'], reload)
-    return () => {
-      mounted = false
-      off()
-    }
+    return onChange(['approval/changed', 'session/changed'], reload)
   })
 </script>
 

@@ -10,7 +10,7 @@
   import { buttonClass, cn } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
   import { copyText } from '../components/clipboard'
-  import { bridge, call, code, errorText, onChange, single, size } from '../rpc'
+  import { bridge, call, closed, code, errorText, onChange, single, size } from '../rpc'
   import { added, backups, dismiss, failed, picked, progress, type Job } from './files/adding.svelte'
   import Cloud from './files/Cloud.svelte'
   import Detail from './files/Detail.svelte'
@@ -148,7 +148,7 @@
     } catch (e) {
       listing = null
       folders = []
-      error = code(e) === 'LOCKED' ? 'LOCKED' : errorText(e)
+      error = closed(e, status) ? 'LOCKED' : errorText(e)
     }
     loaded = true
     selected = selected.filter((id) => rows.some((r) => r.id === id))

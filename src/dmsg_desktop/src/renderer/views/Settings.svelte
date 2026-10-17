@@ -11,6 +11,8 @@
   import { buttonClass, cn } from '../components/ui'
   import { sessionLabel, t, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, onChange, single, when } from '../rpc'
+  import { startLogin } from '../shell/login.svelte'
+  import { unlock } from '../shell/session'
   import Devices from './Devices.svelte'
   import Legacy from './Legacy.svelte'
   import Onboarding from './Onboarding.svelte'
@@ -150,8 +152,8 @@
         {:else if part === 'session'}
           <Section title={t('status')} icon="account">
             {#snippet actions()}
-              <button class={buttonClass('secondary', 'sm')} onclick={() => bridge(() => window.dmsg.login('https://dmsg.net'))}>
-                <Icon name="login" />{status?.account ? t('loginOther') : t('login')}
+              <button class={buttonClass(status?.state === 'logged_out' ? 'primary' : 'secondary', 'sm')} onclick={() => startLogin()} data-testid="settings-login">
+                <Icon name="login" />{status?.state === 'logged_out' ? t('login') : t('loginOther')}
               </button>
             {/snippet}
             <dl class="divide-y divide-line">
@@ -172,7 +174,7 @@
             </dl>
             <div class="mt-3 flex flex-wrap gap-1.5">
               {#if status?.state === 'locked'}
-                <button class={buttonClass('primary', 'sm')} onclick={() => act('session/unlock', { fast: true })}><Icon name="unlock" />{t('fastUnlock')}</button>
+                <button class={buttonClass('primary', 'sm')} onclick={() => unlock(status)}><Icon name="unlock" />{status.fast_unlock ? t('fastUnlock') : t('login')}</button>
               {/if}
               {#if unlocked}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => act('session/lock')}><Icon name="lock" />{t('lock')}</button>

@@ -14,6 +14,7 @@
   import Toaster from './components/Toaster.svelte'
   import CommandPalette from './shell/CommandPalette.svelte'
   import Header from './shell/Header.svelte'
+  import LoginDialog from './shell/LoginDialog.svelte'
   import Sidebar from './shell/Sidebar.svelte'
   import { shortcuts, viewOf, views } from './shell/nav'
   import { lock } from './shell/session'
@@ -173,6 +174,7 @@
         </main>
       </div>
       <CommandPalette bind:open={palette} {status} {mod} {collapsed} {go} onToggleSidebar={() => (collapsed = !collapsed)} />
+      <LoginDialog />
       <Toaster />
     </div>
   </Tooltip.Provider>

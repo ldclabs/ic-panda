@@ -10,7 +10,7 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText, onChange, single } from '../rpc'
+  import { bridge, call, closed, code, errorText, onChange, single } from '../rpc'
   import { kindLabel, powers, roleLabel, statusLabel } from './channels/channels'
   import Members from './channels/Members.svelte'
   import NewChannel from './channels/NewChannel.svelte'
@@ -93,7 +93,7 @@
       if (selected) await open(selected)
     } catch (e) {
       channels = []
-      error = code(e) === 'LOCKED' ? 'LOCKED' : errorText(e)
+      error = closed(e, status) ? 'LOCKED' : errorText(e)
     }
   })
 

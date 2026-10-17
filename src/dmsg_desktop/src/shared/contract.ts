@@ -34,8 +34,13 @@ export interface DesktopBridge {
   decide(id: string, digest: string, approve: boolean): Promise<unknown>
   /** Connect a browser whose label the person confirmed; the main window only. */
   grant(invite: string, pairing: string): Promise<unknown>
-  /** Start a login in the system browser; with `bind`, a second login to bind to the unlocked account. */
-  login(origin: string, bind?: boolean): Promise<unknown>
+  /**
+   * Start a login in the system browser; with `bind`, a second login to bind
+   * to the unlocked account. Resolves to `{url, expires_at}` once the page opened.
+   */
+  login(origin: string, bind?: boolean): Promise<{ url: string; expires_at: number }>
+  /** Open a started login's page again, such as after its browser tab was closed. */
+  openLogin(url: string): Promise<void>
   /**
    * Add files to the library's `folder`: those the person dropped on the
    * window, else the ones they pick in a system dialog (files, or with

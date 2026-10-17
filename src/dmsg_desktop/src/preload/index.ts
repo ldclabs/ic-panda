@@ -24,6 +24,7 @@ const api: DesktopBridge = {
   decide: (id, digest, approve) => unwrap(ipcRenderer.invoke('dmsg:decide', id, digest, approve)),
   grant: (invite, pairing) => unwrap(ipcRenderer.invoke('dmsg:grant', invite, pairing)),
   login: (origin, bind) => unwrap(ipcRenderer.invoke('dmsg:login', origin, bind === true)),
+  openLogin: (url) => unwrap(ipcRenderer.invoke('dmsg:open-login', url)),
   filesAdd: (folder, dropped, directory) => {
     if (dropped === undefined) return unwrap(ipcRenderer.invoke('dmsg:files-add', folder, null, directory === true))
     // Only a file the person dropped or picked has a path; one a page made has none.

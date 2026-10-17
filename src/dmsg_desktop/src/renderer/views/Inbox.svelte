@@ -9,7 +9,7 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
-  import { ago, call, code, errorText, onChange, single, when } from '../rpc'
+  import { ago, call, closed, errorText, onChange, single, when } from '../rpc'
   import { shortId } from '../shell/session'
   import Compose from './inbox/Compose.svelte'
   import Rules from './inbox/Rules.svelte'
@@ -61,7 +61,7 @@
       error = ''
     } catch (e) {
       letters = outgoing = []
-      error = code(e) === 'LOCKED' ? 'LOCKED' : errorText(e)
+      error = closed(e, status) ? 'LOCKED' : errorText(e)
     }
   })
 

@@ -253,6 +253,10 @@ handle('dmsg:login', 'main', async (_event, origin: string, bind: boolean) => {
   if (externalAllowed(started.url, pages().login, [])) await shell.openExternal(started.url)
   return started
 })
+handle('dmsg:open-login', 'main', async (_event, url: string) => {
+  if (!externalAllowed(String(url), pages().login, [])) throw new DaemonError('INVALID_INPUT', 'Not a login page')
+  await shell.openExternal(String(url))
+})
 /**
  * Files reach the daemon only by paths the person picked in a system dialog
  * or dropped on the window: the preload resolves a dropped file to its path,

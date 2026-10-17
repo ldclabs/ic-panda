@@ -6,7 +6,7 @@
   import LocaleSwitcher from '../i18n/LocaleSwitcher.svelte'
   import { sessionLabel, t } from '../i18n/index.svelte'
   import { when } from '../rpc'
-  import { lock, sync, unlock } from './session'
+  import { lock, nextStep, sync } from './session'
 
   /**
    * The gate rail at the foot of the sidebar: whether the device is locked
@@ -34,6 +34,8 @@
 
   const session = $derived<string>(status?.state ?? '')
   const unlocked = $derived(session === 'unlocked')
+  /** A login, an unlock or the setup: what opens the device from here. */
+  const step = $derived(nextStep(status))
   const left = $derived(unlocked && status?.lock_at ? Math.max(0, status.lock_at - now) : null)
   const clock = $derived.by(() => {
     if (left === null) return ''
@@ -64,13 +66,17 @@
 
 {#if collapsed}
   <div class="flex flex-col items-center gap-1 pb-1" data-testid="gate-rail">
-    <Tooltip content={left !== null ? `${sessionLabel(session)} · ${t('locksIn', { time: clock })}` : sessionLabel(session)} side="right">
+    <Tooltip
+      content={left !== null ? `${sessionLabel(session)} · ${t('locksIn', { time: clock })}` : step ? `${sessionLabel(session)} · ${t(step.label)}` : sessionLabel(session)}
+      side="right"
+    >
       {#snippet children(props)}
         <button
           {...props}
           class={buttonClass('ghost', 'sm', 'relative size-8 px-0')}
           aria-label={sessionLabel(session)}
-          onclick={() => (unlocked ? lock() : session === 'locked' && unlock(status))}
+          onclick={() => (unlocked ? lock() : step?.run())}
+          data-testid="gate-toggle"
         >
           <Icon name={unlocked ? 'unlock' : 'lock'} />
         </button>
@@ -112,9 +118,9 @@
             <span {...props} class="ms-auto inline-flex items-center gap-1.5 font-mono text-[11.5px] text-faint tabular-nums">{@render ring()}{clock}</span>
           {/snippet}
         </Tooltip>
-      {:else if session === 'locked'}
-        <button class={buttonClass('secondary', 'xs', 'ms-auto')} onclick={() => unlock(status)} data-testid="gate-unlock">
-          {status?.fast_unlock ? t('fastUnlock') : t('login')}
+      {:else if step}
+        <button class={buttonClass(session === 'logged_out' ? 'primary' : 'secondary', 'xs', 'ms-auto')} onclick={step.run} data-testid="gate-unlock">
+          {t(step.label)}
         </button>
       {/if}
     </div>

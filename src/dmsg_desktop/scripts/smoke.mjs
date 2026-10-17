@@ -196,6 +196,10 @@ const requests = new Map([
   [request.id, request]
 ])
 let sockets = []
+/** The session the mock reports, the login under way and whether the next one fails to start. */
+let session = 'unlocked'
+let loginResult = null
+let failLogin = false
 function emit(type, data) {
   for (const s of sockets) s.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: 1, type, data } }))
 }
@@ -207,8 +211,8 @@ function created(id, type, detail) {
 }
 function status() {
   return {
-    state: 'unlocked',
-    account,
+    state: session,
+    account: session === 'logged_out' ? null : account,
     device_id: '11'.repeat(32),
     approvals_waiting: [...requests.values()].filter((r) => r.state === 'awaiting_user').length,
     pending_sync: 2,
@@ -248,7 +252,19 @@ const methods = {
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
   'app/activity': () => null,
   'daemon/status': status,
-  'vault/list': (p) => (p?.trash ? trash : vault),
+  'vault/list': (p) => {
+    if (session !== 'unlocked') throw { code: 'LOCKED', message: 'Locked' }
+    return p?.trash ? trash : vault
+  },
+  'session/login': () => {
+    if (failLogin) {
+      failLogin = false
+      throw { code: 'UNAVAILABLE', message: 'Unavailable: the registry did not answer' }
+    }
+    loginResult = { pending: true, checking: false, done: false, error: null, approval: null }
+    return { url: 'https://dmsg.net/_/login#smoke', expires_at: Date.now() + 600_000 }
+  },
+  'session/login_result': () => ({ ...loginResult, status: status() }),
   'vault/show': (p) => {
     const entry = vault.find((e) => e.id === p.id)
     return p.reveal ? { ...entry, item: { ...entry.item, secret: SECRET } } : entry
@@ -658,10 +674,16 @@ server.on('upgrade', (req, socket, head) => {
       const message = JSON.parse(String(data))
       calls.push(message)
       const handler = methods[message.method]
-      const reply = handler
-        ? { jsonrpc: '2.0', id: message.id, result: handler(message.params ?? {}) }
-        : { jsonrpc: '2.0', id: message.id, error: { code: -32601, message: 'method not found', data: { code: 'NOT_FOUND' } } }
-      if (handler) for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
+      let reply
+      try {
+        reply = handler
+          ? { jsonrpc: '2.0', id: message.id, result: handler(message.params ?? {}) }
+          : { jsonrpc: '2.0', id: message.id, error: { code: -32601, message: 'method not found', data: { code: 'NOT_FOUND' } } }
+      } catch (failure) {
+        // A handler throws `{code, message}` for a daemon error.
+        reply = { jsonrpc: '2.0', id: message.id, error: { code: -32000, message: failure.message, data: { code: failure.code } } }
+      }
+      if (handler && !reply.error) for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
       ws.send(JSON.stringify(reply))
     })
     ws.on('close', () => (sockets = sockets.filter((s) => s !== ws)))
@@ -706,8 +728,9 @@ await mkdir(picks, { recursive: true })
 await writeFile(join(picks, 'action.cbor'), 'prepared action')
 await writeFile(join(picks, 'bundle.json'), JSON.stringify({ format: 'dmsg-attestation/1' }))
 await writeFile(join(picks, 'release.tar'), 'release bytes')
-await app.evaluate(({ dialog, clipboard, Notification }) => {
-  Object.assign(globalThis, { __open: [], __save: [], __clip: '', __notes: [] })
+await app.evaluate(({ dialog, clipboard, Notification, shell }) => {
+  Object.assign(globalThis, { __open: [], __save: [], __clip: '', __notes: [], __opened: [] })
+  shell.openExternal = async (url) => void globalThis.__opened.push(url)
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [globalThis.__open.shift()] })
   dialog.showSaveDialog = async () => ({ canceled: false, filePath: globalThis.__save.shift() })
   clipboard.writeText = async (text) => void (globalThis.__clip = text)
@@ -1186,6 +1209,40 @@ try {
   await waitFor(() => calls.some((c) => c.method === 'session/switch'))
   assert.deepEqual(calls.find((c) => c.method === 'session/switch').params, { account: other })
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
+
+  // Logged out, the gate rail, the account menu and the locked vault offer
+  // the login. Its dialog says why a start failed, opens the page on a
+  // retry, and follows the browser's answer to the end.
+  session = 'logged_out'
+  emit('session/changed', { state: 'logged_out' })
+  await main.waitForSelector('[data-testid="gate-unlock"] >> text=Log in')
+  await main.click('[data-testid="account-switcher"]')
+  assert.equal((await main.textContent('[data-testid="account-login"]')).trim(), 'Log in')
+  await main.keyboard.press('Escape')
+  await main.keyboard.press(`${mod}+1`)
+  await main.waitForSelector('[data-testid="vault-locked"] >> text=Log in to use dMsg on this device.')
+  failLogin = true
+  await main.click('[data-testid="vault-locked"] [data-testid="locked-step"]')
+  await main.waitForSelector('[data-testid="login-error"] >> text=no usable answer from the Internet Computer')
+  await settled(main, '[data-testid="login-dialog"]')
+  await main.screenshot({ path: join(shots, 'login-failed.png') })
+  await main.click('[data-testid="login-retry"]')
+  await main.waitForSelector('[data-testid="login-steps"][data-phase="browser"]')
+  assert.deepEqual(await app.evaluate(() => globalThis.__opened), ['https://dmsg.net/_/login#smoke'])
+  await main.screenshot({ path: join(shots, 'login-browser.png') })
+  await main.click('[data-testid="login-reopen"]')
+  for (let i = 0; i < 50 && (await app.evaluate(() => globalThis.__opened.length)) < 2; i++) await new Promise((r) => setTimeout(r, 100))
+  assert.equal(await app.evaluate(() => globalThis.__opened.length), 2)
+  loginResult = { ...loginResult, checking: true }
+  emit('login/changed', null)
+  await main.waitForSelector('[data-testid="login-steps"][data-phase="checking"]')
+  session = 'unlocked'
+  loginResult = { pending: false, checking: false, done: true, error: null, approval: null }
+  emit('session/changed', { state: 'unlocked' })
+  emit('login/changed', null)
+  await main.waitForSelector('[data-testid="login-dialog"]', { state: 'detached' })
+  await main.waitForSelector('text=Smoke note')
+  assert.equal(await main.textContent('[data-testid="gate-state"]'), 'Unlocked')
 
   // The language is picked in the main window only, kept in the profile, and
   // both windows follow it; Arabic reads right to left.

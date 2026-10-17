@@ -209,7 +209,9 @@ struct LoginState {
     /// A login started to bind another identity to the unlocked account,
     /// with the source of the approval it asks for.
     bind: Option<String>,
-    outcome: Option<std::result::Result<(), String>>,
+    /// The callback is checking what the browser returned.
+    checking: bool,
+    outcome: Option<Result<()>>,
     /// The approval request a binding login created.
     approval: Option<Value>,
 }
@@ -702,8 +704,7 @@ impl Daemon {
         *self.login.lock().expect("login state") = LoginState {
             session: Some(session),
             bind,
-            outcome: None,
-            approval: None,
+            ..LoginState::default()
         };
         Ok(reply)
     }
@@ -732,17 +733,22 @@ impl Daemon {
             "session/status" => self.status().await,
             "session/login" => self.start_login(params).await,
             "session/login_result" => {
-                let (pending, outcome, approval) = {
+                let (waiting, checking, outcome, approval) = {
                     let login = self.login.lock().expect("login state");
-                    let pending = login
+                    let waiting = login
                         .session
                         .as_ref()
                         .is_some_and(|s| s.deadline > now_ms());
-                    (pending, login.outcome.clone(), login.approval.clone())
+                    let outcome = login.outcome.clone();
+                    (waiting, login.checking, outcome, login.approval.clone())
                 };
+                let done = outcome.is_some();
+                let error = outcome.and_then(|o| o.err());
                 Ok(json!({
-                    "pending": pending,
-                    "error": outcome.and_then(|o| o.err()),
+                    "pending": waiting || checking,
+                    "checking": checking,
+                    "done": done,
+                    "error": error.map(|e| json!({"code": error_code(&e), "message": e.to_string()})),
                     "approval": approval,
                     "status": self.status().await?,
                 }))
@@ -1512,11 +1518,15 @@ async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: B
     let (session, bind) = {
         let mut login = daemon.login.lock().expect("login state");
         let session = login.session.take().filter(|s| s.deadline > now);
+        login.checking = session.is_some();
         (session, login.bind.clone())
     };
     let Some(session) = session else {
         return StatusCode::NOT_FOUND.into_response();
     };
+    // The windows show the check, then its outcome, through
+    // `session/login_result`.
+    daemon.emit("login/changed", Value::Null);
     let origin = headers.get(header::ORIGIN).and_then(|v| v.to_str().ok());
     let own = [
         format!("http://127.0.0.1:{}", daemon.port),
@@ -1569,8 +1579,12 @@ async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: B
     if outcome.is_ok() {
         daemon.activity.store(now_ms(), Ordering::Relaxed);
     }
-    daemon.login.lock().expect("login state").outcome =
-        Some(outcome.clone().map_err(|e| e.to_string()));
+    {
+        let mut login = daemon.login.lock().expect("login state");
+        login.checking = false;
+        login.outcome = Some(outcome.clone());
+    }
+    daemon.emit("login/changed", Value::Null);
     match outcome {
         Ok(()) => (StatusCode::OK, "ok").into_response(),
         Err(Error::Forbidden) => (StatusCode::FORBIDDEN, "refused").into_response(),

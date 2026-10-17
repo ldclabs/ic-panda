@@ -10,7 +10,8 @@
   import { focus } from '../views/vault/focus.svelte'
   import { typeIcon, typeLabel, typeOf } from '../views/vault/vault'
   import { shortcuts, views } from './nav'
-  import { lock, loginOther, sync, unlock } from './session'
+  import { startLogin } from './login.svelte'
+  import { lock, nextStep, sync } from './session'
 
   /** The command palette: go to any view, and the session, appearance and language commands, found by typing. */
   let {
@@ -62,14 +63,11 @@
       ...shortcuts.map((view) => ({ label: t(view.label), icon: view.icon, hint: `${mod}${view.key}`, run: () => go(view.path) })),
       { label: `${t('settings')} › ${t('legacy')}`, icon: views.legacy.icon, run: () => go(views.legacy.path) }
     ]
+    const step = nextStep(status)
     const offered: (Entry | null)[] = [
-      unlocked
-        ? { label: t('lock'), icon: 'lock', hint: `${mod}L`, run: lock }
-        : status?.state === 'locked'
-          ? { label: status?.fast_unlock ? t('fastUnlock') : t('login'), icon: 'unlock', run: () => unlock(status) }
-          : null,
+      unlocked ? { label: t('lock'), icon: 'lock', hint: `${mod}L`, run: lock } : step ? { label: t(step.label), icon: step.icon, run: step.run } : null,
       status?.account ? { label: t('sync'), icon: 'sync-now', run: sync } : null,
-      { label: t('loginOther'), icon: 'login', run: loginOther },
+      status?.state && status.state !== 'logged_out' ? { label: t('loginOther'), icon: 'login', run: () => startLogin() } : null,
       { label: collapsed ? t('expandSidebar') : t('collapseSidebar'), icon: collapsed ? 'sidebar-unfold' : 'sidebar-fold', run: onToggleSidebar }
     ]
     const commands = offered.filter((entry): entry is Entry => !!entry)

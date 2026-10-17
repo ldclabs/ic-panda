@@ -655,7 +655,8 @@ The daemon listens on `127.0.0.1` only.
 
 - `GET /daemon/status`, `POST /app/v1` (JSON-RPC 2.0) and `GET /ws/app/v1`
   (the same methods over a WebSocket, plus `event` notifications
-  `{seq, type, data}`: `session/changed`, `vault/changed`, `files/changed`,
+  `{seq, type, data}`: `session/changed`, `login/changed`, `vault/changed`,
+  `files/changed`,
   `files/progress {path, done, total}`, `files/open_changed`,
   `files/mount_changed`, `sync/changed`,
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
@@ -722,7 +723,10 @@ The daemon listens on `127.0.0.1` only.
   pending (ten minutes) and accept one POST from the daemon's own loopback
   origin ([dmsg-login/1](../../docs/protocol/login-v1_zh.md) §4). A login
   announces `session/changed {state}` and `approval/changed`, a binding login
-  `approval/changed`.
+  `approval/changed`. `login/changed` comes when the POST arrives and when its
+  check ends: `session/login_result` reports `{pending, checking, done,
+  error {code, message}, approval, status}`, pending until the login page's
+  time runs out or the check ends, and done once the check ended.
 - `idle_lock_minutes` without activity locks the daemon: the login and every
   key are dropped. Every request is activity except `app/initialize`,
   `daemon/status`, `events/poll`, `mcp-events/poll` and the waiting readers,

@@ -42,9 +42,11 @@ desktop is one of its clients, like the CLI.
   switcher (this device's accounts, another login), the views in three
   groups (work; authorization; account) and Settings, and at its foot the
   gate rail: locked or not with the idle lock's countdown (`lock_at` from
-  `daemon/status`), the versions waiting to sync, background online while
-  it is on, the daemon connection, the language and appearance menus and
-  Lock. A title bar names the view and opens the command palette (⌘K, or
+  `daemon/status`), the step that opens the device when it is not (Log in,
+  Fast unlock, or Continue setup in Settings), the versions waiting to sync,
+  background online while it is on, the daemon connection, the language and
+  appearance menus and Lock. Views the device cannot show yet offer the same
+  step. A title bar names the view and opens the command palette (⌘K, or
   Ctrl+K elsewhere), which goes to any view and runs the session,
   appearance and language commands; ⌘1–⌘8 and ⌘, go to a view, ⌘L locks.
   The sidebar collapses to icons. On macOS the window has no title bar of
@@ -114,6 +116,16 @@ desktop is one of its clients, like the CLI.
     recovery, account security, devices, the public profile with its
     avatar, connected browsers, and the legacy migration.
 
+  Every login, from the gate rail, a locked view, the account menu, the
+  palette, Settings or "Bind another login", runs one flow
+  (`shell/login.svelte.ts`) shown in a dialog: the page opening, the login
+  in the browser (with the page's expiry, Open the page again and Copy
+  link), and the daemon's check, read from `session/login_result` on its
+  `login/changed` and `session/changed` events. A failure says why (no
+  network, cancelled in the browser, expired, refused) with the daemon's
+  message and Retry; closing the dialog leaves a login finished later to
+  open the device. A first login without an account goes on to Settings.
+
   Pages share a small kit (`components/page`): sections, notices, state
   pills, ID chips that copy the whole ID, fields, facts, tab bars and the
   locked placeholder.
@@ -176,8 +188,8 @@ Rules (`src/main/policy.ts`):
   switches between them (locked, then a login or fast unlock opens one).
 - Binding another login, removing one, the signing policy, the recovery delay
   and disputing a recovery are approval requests. "Bind another login" starts
-  a second login in the system browser; once it arrives the approval window
-  opens on the binding. Approving another device's pairing takes the device
+  a second login in the system browser, followed by the login dialog; once
+  it arrives the approval window opens on the binding. Approving another device's pairing takes the device
   ID shown on that device.
 - A payment (paid letter, checkout, name) is only a request from the main
   window; the approval window shows its amount, ledger and payer. A web
@@ -259,6 +271,10 @@ and notifications instead of the system's. It covers:
   image and removed (the window cannot name a path), the locked daemon's
   `inbox` and `channel` hints notified once each, and switching to another
   account's workspace;
+- logging in: logged out, the gate rail, the account menu and the locked
+  vault offer Log in; a start that fails shows its reason and retries, the
+  page opens again on request, and the dialog follows the daemon's check to
+  the unlocked vault;
 - languages: picked only in the main window, kept, and followed by the
   approval window, Arabic right to left.
 

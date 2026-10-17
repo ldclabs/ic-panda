@@ -453,7 +453,7 @@ pub async fn login(
         if result["pending"] == true {
             continue;
         }
-        if let Some(error) = result["error"].as_str() {
+        if let Some(error) = result["error"]["message"].as_str() {
             return Err(Failure::new("AUTH_REQUIRED", error));
         }
         if bind {

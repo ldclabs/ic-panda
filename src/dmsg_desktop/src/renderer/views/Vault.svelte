@@ -7,7 +7,7 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { call, code, errorText, onChange, single } from '../rpc'
+  import { call, closed, errorText, onChange, single } from '../rpc'
   import Conflict from './vault/Conflict.svelte'
   import Filters from './vault/Filters.svelte'
   import { focus } from './vault/focus.svelte'
@@ -61,7 +61,7 @@
       error = ''
     } catch (e) {
       entries = trashed = conflicts = []
-      error = code(e) === 'LOCKED' ? 'LOCKED' : errorText(e)
+      error = closed(e, status) ? 'LOCKED' : errorText(e)
     }
     loaded = true
   })

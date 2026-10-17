@@ -6,7 +6,8 @@
   import { cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, sessionLabel, t } from '../i18n/index.svelte'
   import { call } from '../rpc'
-  import { loginOther, shortId, switchAccount } from './session'
+  import { startLogin } from './login.svelte'
+  import { shortId, switchAccount } from './session'
 
   /**
    * The account this device works in, at the top of the sidebar: its public
@@ -105,8 +106,8 @@
         {/each}
       </DropdownMenu.Group>
       <DropdownMenu.Separator class="my-1 h-px bg-line" />
-      <DropdownMenu.Item class={menuItemClass} onSelect={loginOther}>
-        <span class="flex items-center gap-2"><Icon name="login" />{t('loginOther')}</span>
+      <DropdownMenu.Item class={menuItemClass} onSelect={() => startLogin()} data-testid="account-login">
+        <span class="flex items-center gap-2"><Icon name="login" />{status?.state === 'logged_out' ? t('login') : t('loginOther')}</span>
       </DropdownMenu.Item>
     </DropdownMenu.Content>
   </DropdownMenu.Portal>
