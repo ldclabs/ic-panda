@@ -418,9 +418,11 @@ fn concurrent_sns_configuration_checks_share_one_call_and_retry_after_failure() 
     };
     let results = run();
     assert_eq!(results.iter().filter(|r| r.is_ok()).count(), 1);
-    assert!(results
-        .iter()
-        .all(|r| r.is_ok() || *r == Err(Error::Pending)));
+    assert!(
+        results
+            .iter()
+            .all(|r| r.is_ok() || *r == Err(Error::Pending))
+    );
     assert_eq!(counters(&f).3, start + 1);
     void(&f.ic, f.sns, person(1), "set_decimals", (6u8,));
     f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS + 1));
@@ -432,16 +434,20 @@ fn concurrent_sns_configuration_checks_share_one_call_and_retry_after_failure() 
             .count(),
         1
     );
-    assert!(results
-        .iter()
-        .all(|r| *r == Err(Error::UnsupportedProtocol) || *r == Err(Error::Pending)));
+    assert!(
+        results
+            .iter()
+            .all(|r| *r == Err(Error::UnsupportedProtocol) || *r == Err(Error::Pending))
+    );
     assert_eq!(counters(&f).3, start + 2);
     void(&f.ic, f.sns, person(1), "set_decimals", (8u8,));
     let results = run();
     assert_eq!(results.iter().filter(|r| r.is_ok()).count(), 1);
-    assert!(results
-        .iter()
-        .all(|r| r.is_ok() || *r == Err(Error::Pending)));
+    assert!(
+        results
+            .iter()
+            .all(|r| r.is_ok() || *r == Err(Error::Pending))
+    );
     assert_eq!(counters(&f).3, start + 3);
 }
 
@@ -807,7 +813,11 @@ fn membership_capacity_profile() {
         println!("{upgrade}");
         println!(
             "membership_capacity claims={claims} image_bytes={image_bytes} upgrade_cycles={upgrade_cycles} verify_refresh_cycles={verify_refresh_cycles} refresh_cycles={refresh_cycles} sweep64_cycles={} stable_pages={}",
-            sweeps.iter().map(|s| s.1.to_string()).collect::<Vec<_>>().join("/"),
+            sweeps
+                .iter()
+                .map(|s| s.1.to_string())
+                .collect::<Vec<_>>()
+                .join("/"),
             stats.stable_pages,
         );
     }

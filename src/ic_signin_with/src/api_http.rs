@@ -1,7 +1,7 @@
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD as BASE64};
 use candid::{CandidType, Principal};
 use cbor2::from_slice;
-use ic_auth_types::{cbor_into_vec, ByteArrayB64, ByteBufB64};
+use ic_auth_types::{ByteArrayB64, ByteBufB64, cbor_into_vec};
 use ic_http_certification::{HeaderField, HttpRequest};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;

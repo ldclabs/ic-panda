@@ -9,10 +9,10 @@
 
 use crate::client::Client;
 use crate::codec::{canonical, decode};
-use crate::content::{record, EncryptedObject, MAX_OBJECT, VAULT};
+use crate::content::{EncryptedObject, MAX_OBJECT, VAULT, record};
 use crate::store::{ObjectRow, SYNCED};
 use crate::upload::random_hex;
-use dmsg_types::{ensure, ensure_valid, Error, Result};
+use dmsg_types::{Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use zeroize::Zeroizing;

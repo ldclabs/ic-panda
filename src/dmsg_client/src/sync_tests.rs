@@ -1,5 +1,5 @@
 use super::*;
-use crate::testing::{unlocked, TempDir};
+use crate::testing::{TempDir, unlocked};
 use crate::vault::Filter;
 use serde_json::json;
 

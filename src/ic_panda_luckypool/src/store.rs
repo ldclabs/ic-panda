@@ -1,12 +1,12 @@
 use candid::{CandidType, Nat, Principal};
 use cbor2::{from_slice, to_vec};
 use ic_stable_structures::{
+    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, StableMinHeap, Storable,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
-    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, StableMinHeap, Storable,
 };
 use icrc_ledger_types::icrc1::account::Account;
-use lib_panda::{mac_256, Cryptogram};
+use lib_panda::{Cryptogram, mac_256};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
@@ -18,7 +18,7 @@ use std::{
 };
 
 use crate::utils::{luck_amount, luckycode_from_string, luckycode_to_string};
-use crate::{types, SECOND, TOKEN_1, TOKEN_SMALL_UNIT};
+use crate::{SECOND, TOKEN_1, TOKEN_SMALL_UNIT, types};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
@@ -189,11 +189,7 @@ impl SysPrizeSubsidy {
         }
 
         let subsidy = claimable * self.3 as u32 / 100;
-        if subsidy > self.4 {
-            self.4
-        } else {
-            subsidy
-        }
+        if subsidy > self.4 { self.4 } else { subsidy }
     }
 }
 
@@ -1360,7 +1356,7 @@ pub mod naming {
 
 pub mod state {
     use super::*;
-    use crate::{token_balance_of, token_transfer_to, TOKEN_CANISTER};
+    use crate::{TOKEN_CANISTER, token_balance_of, token_transfer_to};
     use std::time::Duration;
 
     pub fn is_manager(caller: &Principal) -> bool {

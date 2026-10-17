@@ -1,6 +1,6 @@
-use base64::{engine::general_purpose::URL_SAFE as BASE64_URL, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE as BASE64_URL};
 use candid::Principal;
-use ic_auth_verifier::{sha3_256, user_public_key_from_der, verify_basic_sig, Algorithm};
+use ic_auth_verifier::{Algorithm, sha3_256, user_public_key_from_der, verify_basic_sig};
 use std::fmt::{self, Write as _};
 
 use crate::store;
@@ -321,12 +321,14 @@ mod tests {
         assert!(validate_session_key(&[0; MAX_PUBLIC_KEY_DER_BYTES + 1], &[0; 64]).is_err());
         assert!(validate_session_key(&[0; 44], &[0; 63]).is_err());
         assert!(validate_sign_in_request("", "message", &[0; 44], &[0; 64]).is_err());
-        assert!(validate_sign_in_request(
-            "example.com",
-            &"x".repeat(MAX_SIGN_IN_MESSAGE_BYTES + 1),
-            &[0; 44],
-            &[0; 64]
-        )
-        .is_err());
+        assert!(
+            validate_sign_in_request(
+                "example.com",
+                &"x".repeat(MAX_SIGN_IN_MESSAGE_BYTES + 1),
+                &[0; 44],
+                &[0; 64]
+            )
+            .is_err()
+        );
     }
 }

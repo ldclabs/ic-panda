@@ -163,7 +163,7 @@ fn shared_hpke_vectors_and_random_roundtrips() {
 }
 #[test]
 fn official_rfc9180_known_answer_with_production_primitive() {
-    use hpke::{kem::X25519HkdfSha256 as K, Deserializable, Kem, Serializable};
+    use hpke::{Deserializable, Kem, Serializable, kem::X25519HkdfSha256 as K};
     let v = vectors();
     let kat = &v["rfc9180_known_answer"];
     let sk = <K as Kem>::PrivateKey::from_bytes(&hex(kat["skRm"].as_str().unwrap())).unwrap();
@@ -317,13 +317,15 @@ fn shared_recipient_lifecycle_and_replies() {
         inbox = MailInbox::from_snapshot(keys, &snapshot).unwrap();
     }
     let history = &v["lifecycle"]["historical_card"];
-    assert!(MailInbox::new(keyring(&v))
-        .accept(
-            &packet(&v, "original"),
-            None,
-            history["now"].as_i64().unwrap()
-        )
-        .is_ok());
+    assert!(
+        MailInbox::new(keyring(&v))
+            .accept(
+                &packet(&v, "original"),
+                None,
+                history["now"].as_i64().unwrap()
+            )
+            .is_ok()
+    );
     let expired = &v["lifecycle"]["expired_new_message"];
     assert_eq!(
         code(MailInbox::new(keyring(&v)).accept(
@@ -717,11 +719,13 @@ fn sender_policy_is_checked_before_decryption_and_survives_restart() {
         code(relay.deliver(mailbox, &packet(&v, "reencrypted"), now)).as_deref(),
         Some("permission_denied")
     );
-    assert!(relay
-        .list(mailbox, &jwt, now, 100, None)
-        .unwrap()
-        .result
-        .is_empty());
+    assert!(
+        relay
+            .list(mailbox, &jwt, now, 100, None)
+            .unwrap()
+            .result
+            .is_empty()
+    );
 }
 #[test]
 fn packets_are_not_live_writes_and_logical_message_conflicts() {

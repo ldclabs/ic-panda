@@ -20,7 +20,12 @@ fn main() {
     for block in reply.blocks {
         let id = dmsg_runtime::ledger::block_index(block.id).expect("supported index");
         if let Ok(tx) = dmsg_runtime::ledger::parse_transfer(id, &block.block) {
-            println!("{{\"block_index\":{id},\"fee_atomic\":{},\"sender_timestamp_present\":{},\"memo_bytes\":{}}}",tx.fee.map_or("null".into(),|f|f.to_string()),tx.created_at_time.is_some(),tx.memo.as_ref().map_or(0,Vec::len));
+            println!(
+                "{{\"block_index\":{id},\"fee_atomic\":{},\"sender_timestamp_present\":{},\"memo_bytes\":{}}}",
+                tx.fee.map_or("null".into(), |f| f.to_string()),
+                tx.created_at_time.is_some(),
+                tx.memo.as_ref().map_or(0, Vec::len)
+            );
             checked += 1;
         }
     }

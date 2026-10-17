@@ -9,8 +9,8 @@ use dmsg_runtime::{
 };
 use dmsg_types::{account::account_cbor, wallet::*, *};
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use icrc_ledger_types::icrc1::account::Account;
 use serde_bytes::ByteBuf;

@@ -3,9 +3,9 @@ use crate::store::SignSpec;
 use dmsg_protocol::wallet::KeyAlgorithm;
 use dmsg_types::*;
 use ic_cdk_management_canister::{
-    ecdsa_public_key, schnorr_public_key, sign_with_ecdsa, sign_with_schnorr, Bip341, EcdsaCurve,
-    EcdsaKeyId, EcdsaPublicKeyArgs, SchnorrAlgorithm, SchnorrAux, SchnorrKeyId,
-    SchnorrPublicKeyArgs, SignWithEcdsaArgs, SignWithSchnorrArgs,
+    Bip341, EcdsaCurve, EcdsaKeyId, EcdsaPublicKeyArgs, SchnorrAlgorithm, SchnorrAux, SchnorrKeyId,
+    SchnorrPublicKeyArgs, SignWithEcdsaArgs, SignWithSchnorrArgs, ecdsa_public_key,
+    schnorr_public_key, sign_with_ecdsa, sign_with_schnorr,
 };
 use serde_bytes::ByteBuf;
 

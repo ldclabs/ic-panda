@@ -4,7 +4,7 @@ use crate::locale::tr;
 use crate::remote::{Failure, Remote};
 use crate::{pretty, print};
 use clap::{Args, Subcommand};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::io::{IsTerminal, Read};
 
 #[derive(Args)]

@@ -735,9 +735,11 @@ fn handle_routes_authorizations_to_each_accounts_user_home() {
         "validate_admin_add_user_home",
         (second,),
     );
-    assert!(rendered
-        .unwrap()
-        .starts_with(&format!("Add user home {second}")));
+    assert!(
+        rendered
+            .unwrap()
+            .starts_with(&format!("Add user home {second}"))
+    );
     assert_eq!(add(person(9), second), Err(Error::Forbidden));
     assert_eq!(add(f.sns, Principal::anonymous()), Err(Error::AuthRequired));
     assert_eq!(add(f.sns, second), Ok(()));
@@ -806,9 +808,11 @@ fn handle_governance_runs_validated_admin_operations() {
         "validate_begin_legacy_snapshot",
         (snapshot.clone(),),
     );
-    assert!(rendered
-        .unwrap()
-        .starts_with(&format!("Begin legacy snapshot {}", "05".repeat(32))));
+    assert!(
+        rendered
+            .unwrap()
+            .starts_with(&format!("Begin legacy snapshot {}", "05".repeat(32)))
+    );
     let denied: Result<()> = update(
         &f.ic,
         f.handle,
@@ -853,9 +857,11 @@ fn handle_governance_runs_validated_admin_operations() {
         "validate_import_legacy_handles",
         first.clone(),
     );
-    assert!(rendered
-        .unwrap()
-        .starts_with("Import legacy handles alpha..=beta at offset 0"));
+    assert!(
+        rendered
+            .unwrap()
+            .starts_with("Import legacy handles alpha..=beta at offset 0")
+    );
     assert_eq!(progress(&f).imported, 0);
     let imported: Result<SnapshotProgress> =
         update(&f.ic, f.handle, f.sns, "import_legacy_handles", first);
@@ -1529,8 +1535,8 @@ fn handle_live_charge_excludes_retry_and_reconciliation() {
 fn handle_active_name_capacity_profile() {
     use dmsg_runtime::{name_tree::NameTree, storage::CompactStored};
     use ic_stable_structures::{
-        memory_manager::{MemoryId, MemoryManager},
         StableBTreeMap,
+        memory_manager::{MemoryId, MemoryManager},
     };
     use std::{cell::RefCell, rc::Rc, time::Instant};
     for count in [1_000u64, 100_000, 1_000_000, 10_000_000] {
@@ -1641,7 +1647,13 @@ fn handle_active_name_capacity_profile() {
                 println!("{line}");
             }
         }
-        println!("handle_capacity names={count} upgrade_cycles={upgrade_cycles} transfer_cycles={transfer_cycles} heap_bytes={} stable_bytes={} batch64_bytes={wire_bytes} host_query_ms={} host_build_s={}", status.memory_metrics.wasm_memory_size, status.memory_metrics.stable_memory_size, elapsed.as_millis(), host_build.as_secs());
+        println!(
+            "handle_capacity names={count} upgrade_cycles={upgrade_cycles} transfer_cycles={transfer_cycles} heap_bytes={} stable_bytes={} batch64_bytes={wire_bytes} host_query_ms={} host_build_s={}",
+            status.memory_metrics.wasm_memory_size,
+            status.memory_metrics.stable_memory_size,
+            elapsed.as_millis(),
+            host_build.as_secs()
+        );
         if count == 10_000_000 {
             // Full registries reject additions locally but still transfer names.
             let addition = registration(&f, &owner, "capacityaddition", 1);

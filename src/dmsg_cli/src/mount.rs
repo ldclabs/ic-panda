@@ -17,30 +17,31 @@ use crate::daemon::Daemon;
 use axum::{
     body::Body,
     extract::{Path, Request, State},
-    http::{header, HeaderMap, StatusCode},
+    http::{HeaderMap, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use base64::Engine;
 use dav_server::{
+    DavHandler,
     davpath::DavPath,
     fakels::FakeLs,
     fs::{
         DavDirEntry, DavFile, DavFileSystem, DavMetaData, FsError, FsFuture, FsResult, FsStream,
         OpenOptions, ReadDirMeta,
     },
-    DavHandler,
 };
 use dmsg_client::{
+    Client,
     files::CHUNK,
     library::{
-        catalog::{validate_name, FileView, FolderView, ROOT},
+        catalog::{FileView, FolderView, ROOT, validate_name},
         mount::Node,
     },
-    now_ms, Client,
+    now_ms,
 };
 use dmsg_types::{Error, Result};
 use futures_util::FutureExt;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::io::{SeekFrom, Write};
 use std::path::PathBuf;
@@ -85,11 +86,23 @@ pub(crate) struct Mount {
 /// What this system can do with a mount.
 fn platform() -> (&'static str, bool, &'static str) {
     if cfg!(target_os = "macos") {
-        ("macos", true, "macOS keeps a plaintext cache of opened files in its system cache directory while the disk is mounted.")
+        (
+            "macos",
+            true,
+            "macOS keeps a plaintext cache of opened files in its system cache directory while the disk is mounted.",
+        )
     } else if cfg!(windows) {
-        ("windows", true, "Windows reads and writes files up to 50,000,000 bytes on WebDAV disks (WebClient FileSizeLimitInBytes); use export for larger files.")
+        (
+            "windows",
+            true,
+            "Windows reads and writes files up to 50,000,000 bytes on WebDAV disks (WebClient FileSizeLimitInBytes); use export for larger files.",
+        )
     } else if cfg!(target_os = "linux") {
-        ("linux", true, "Mounted through GVFS (gio); file managers built on it see the disk, other programs through its FUSE path.")
+        (
+            "linux",
+            true,
+            "Mounted through GVFS (gio); file managers built on it see the disk, other programs through its FUSE path.",
+        )
     } else {
         ("other", false, "No mount on this system.")
     }

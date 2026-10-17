@@ -1,7 +1,7 @@
 use crate::{account, execution, principal, recovery, state::*, store::*, xid};
 use candid::Principal;
 use dmsg_protocol::*;
-use dmsg_runtime::admin::{self, validation, Validation};
+use dmsg_runtime::admin::{self, Validation, validation};
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_runtime::{self as stable};
 use dmsg_types::{agent::*, billing::*, cose::*, handle::*, payment::SignedOffer, user::*, *};

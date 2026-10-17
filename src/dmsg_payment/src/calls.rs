@@ -1,6 +1,6 @@
 //! Bound and coalesce cross-canister work. No money state lives here.
 use candid::Principal;
-use dmsg_types::{ensure, Error, Hash, Result};
+use dmsg_types::{Error, Hash, Result, ensure};
 use std::{cell::RefCell, collections::BTreeSet};
 
 const MAX_IN_FLIGHT: usize = 128;

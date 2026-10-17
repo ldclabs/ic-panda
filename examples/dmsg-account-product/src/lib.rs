@@ -13,8 +13,8 @@ use dmsg_types::{
     *,
 };
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::BTreeMap};

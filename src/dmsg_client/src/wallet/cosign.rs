@@ -5,10 +5,10 @@
 //! requires hardware cosigners refuses it.
 use crate::client::Client;
 use crate::now_ms;
-use dmsg_types::{ensure, wallet::*, Error, Result};
-use p256::ecdsa::{signature::Signer, Signature, SigningKey};
+use dmsg_types::{Error, Result, ensure, wallet::*};
+use p256::ecdsa::{Signature, SigningKey, signature::Signer};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use zeroize::Zeroizing;
 
 const COSIGNERS: &str = "wallet-cosigners";
@@ -154,7 +154,7 @@ impl Client {
             _ if hardware => {
                 return Err(Error::Unavailable(
                     "no hardware cosigner key on this device".into(),
-                ))
+                ));
             }
             _ => {
                 let secret = loop {

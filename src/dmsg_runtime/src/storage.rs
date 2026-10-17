@@ -1,5 +1,5 @@
-use ic_stable_structures::{storable::Bound, Memory, StableBTreeMap, Storable};
-use serde::{de::DeserializeOwned, Serialize};
+use ic_stable_structures::{Memory, StableBTreeMap, Storable, storable::Bound};
+use serde::{Serialize, de::DeserializeOwned};
 use std::borrow::Cow;
 
 #[derive(Clone, Debug)]
@@ -269,9 +269,11 @@ mod tests {
         let cbor2::Value::Map(entries) = cbor2::from_slice(&compact).unwrap() else {
             panic!("compact representation must be a map")
         };
-        assert!(entries
-            .iter()
-            .all(|(key, _)| matches!(key, cbor2::Value::Integer(_))));
+        assert!(
+            entries
+                .iter()
+                .all(|(key, _)| matches!(key, cbor2::Value::Integer(_)))
+        );
         assert!(compact.len() < plain.len());
         assert_eq!(compact_from_bytes::<Domain>(&compact), value);
     }

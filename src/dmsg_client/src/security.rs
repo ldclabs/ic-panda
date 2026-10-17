@@ -20,13 +20,12 @@ use crate::ic::Ic;
 use crate::now_ms;
 use candid::Principal;
 use dmsg_types::{
-    ensure, ensure_valid,
+    AccountId, DAY, Error, Hash, Result, ensure, ensure_valid,
     user::{AccountCommand, PendingRecovery, SensitivePolicy},
-    AccountId, Error, Hash, Result, DAY,
 };
 use ic_agent::Identity;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use std::sync::Arc;
 
 /// Format of a binding request token.

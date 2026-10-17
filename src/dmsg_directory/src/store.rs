@@ -3,8 +3,8 @@ use candid::Principal;
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_types::{agent::*, *};
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;

@@ -8,7 +8,7 @@ use crate::params::{absolute, parse, text, to_json};
 use dmsg_client::legacy_proof::{Approval, MemberClaim};
 use dmsg_client::shared_migration::{Draft, SharedView, SourceFile};
 use dmsg_types::{Error, Result};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// The methods this module serves.
 pub(crate) const METHODS: [&str; 22] = [

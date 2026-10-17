@@ -229,16 +229,18 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
         },
         enabled: true,
     };
-    assert!(validate_quote(
-        &c,
-        &c.fee_policy,
-        i.quote.home_payment,
-        i.quote.payer.owner,
-        &i,
-        &s,
-        2
-    )
-    .is_ok());
+    assert!(
+        validate_quote(
+            &c,
+            &c.fee_policy,
+            i.quote.home_payment,
+            i.quote.payer.owner,
+            &i,
+            &s,
+            2
+        )
+        .is_ok()
+    );
     let mut disabled = c.clone();
     disabled.enabled = false;
     assert_eq!(
@@ -261,26 +263,30 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
     );
     let mut malformed = i.clone();
     malformed.quote_signature = Default::default();
-    assert!(validate_quote(
-        &c,
-        &c.fee_policy,
-        i.quote.home_payment,
-        i.quote.payer.owner,
-        &malformed,
-        &s,
-        2
-    )
-    .is_err());
-    assert!(validate_quote(
-        &c,
-        &c.fee_policy,
-        i.quote.home_payment,
-        i.quote.payer.owner,
-        &i,
-        &s,
-        MINUTE + 2
-    )
-    .is_ok());
+    assert!(
+        validate_quote(
+            &c,
+            &c.fee_policy,
+            i.quote.home_payment,
+            i.quote.payer.owner,
+            &malformed,
+            &s,
+            2
+        )
+        .is_err()
+    );
+    assert!(
+        validate_quote(
+            &c,
+            &c.fee_policy,
+            i.quote.home_payment,
+            i.quote.payer.owner,
+            &i,
+            &s,
+            MINUTE + 2
+        )
+        .is_ok()
+    );
     assert_eq!(
         validate_quote(
             &c,
@@ -295,28 +301,32 @@ fn quote_signature_binds_beneficiary_fee_and_payment_home() {
     );
     let mut modified = i.clone();
     modified.quote.recipient = account(9);
-    assert!(validate_quote(
-        &c,
-        &c.fee_policy,
-        i.quote.home_payment,
-        i.quote.payer.owner,
-        &modified,
-        &s,
-        2
-    )
-    .is_err());
+    assert!(
+        validate_quote(
+            &c,
+            &c.fee_policy,
+            i.quote.home_payment,
+            i.quote.payer.owner,
+            &modified,
+            &s,
+            2
+        )
+        .is_err()
+    );
     modified = i.clone();
     modified.quote.fee_reserve += 1;
-    assert!(validate_quote(
-        &c,
-        &c.fee_policy,
-        i.quote.home_payment,
-        i.quote.payer.owner,
-        &modified,
-        &s,
-        2
-    )
-    .is_err());
+    assert!(
+        validate_quote(
+            &c,
+            &c.fee_policy,
+            i.quote.home_payment,
+            i.quote.payer.owner,
+            &modified,
+            &s,
+            2
+        )
+        .is_err()
+    );
 }
 
 #[test]

@@ -5,9 +5,9 @@
 //! invalid on chain.
 use crate::config::WalletSettings;
 use base64::Engine;
-use dmsg_types::{ensure, Error, Hash, Result};
-use serde::{de::DeserializeOwned, Deserialize};
-use serde_json::{json, Value};
+use dmsg_types::{Error, Hash, Result, ensure};
+use serde::{Deserialize, de::DeserializeOwned};
+use serde_json::{Value, json};
 
 /// Largest answer read from a chain endpoint.
 const MAX_RESPONSE: usize = 4 * 1024 * 1024;

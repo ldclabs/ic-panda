@@ -8,7 +8,7 @@
 
 use crate::client::Client;
 use crate::cloud::{Evidence, EvidenceEntry};
-use crate::codec::{b64, canonical, decode, digest, unb64, MAX_RECORD};
+use crate::codec::{MAX_RECORD, b64, canonical, decode, digest, unb64};
 use crate::config::Config;
 use crate::crypto::{random_id, sign};
 use crate::ic::Ic;
@@ -17,13 +17,12 @@ use crate::workspace::AccountRef;
 use candid::Principal;
 use dmsg_protocol::{approval_message, authentication::verify_certified_leaf, verify};
 use dmsg_types::{
-    ensure,
+    AccountId, Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result, ensure,
     handle::HandleInit,
     user::{
         AccountCommand, AccountInfo, AccountMutation, ControllerRole, CreateAccount, Device,
         OperationReceipt, SecuritySnapshot, UserInit,
     },
-    AccountId, Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
 };
 use futures_util::future::{join, join3, try_join_all};
 use serde::{Deserialize, Serialize};

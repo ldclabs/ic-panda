@@ -1,4 +1,4 @@
-use dmsg_types::{ensure, Error, Hash, Result};
+use dmsg_types::{Error, Hash, Result, ensure};
 use std::{cell::RefCell, collections::BTreeSet};
 
 thread_local! {

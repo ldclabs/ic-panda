@@ -1,4 +1,4 @@
-use candid::{utils::ArgumentEncoder, Nat, Principal};
+use candid::{Nat, Principal, utils::ArgumentEncoder};
 use ic_canister_sig_creation::CanisterSigPublicKey;
 use ic_cdk_management_canister::CanisterStatusResult;
 use ic_cose_types::ANONYMOUS;

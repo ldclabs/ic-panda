@@ -127,11 +127,7 @@ pub fn invalid(message: &str) -> Error {
 
 /// Return Ok(()) when condition holds, otherwise return the supplied error.
 pub fn ensure(condition: bool, error: Error) -> Result<()> {
-    if condition {
-        Ok(())
-    } else {
-        Err(error)
-    }
+    if condition { Ok(()) } else { Err(error) }
 }
 
 /// Like [`ensure`] with [`invalid`], allocating the diagnostic only on failure.

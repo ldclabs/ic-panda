@@ -12,7 +12,7 @@
 use crate::client::Client;
 use crate::now_ms;
 use crate::store::AuditRow;
-use dmsg_types::{Result, DAY};
+use dmsg_types::{DAY, Result};
 
 /// Entries kept at most.
 pub const KEEP: u64 = 10_000;

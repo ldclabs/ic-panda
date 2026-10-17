@@ -1,4 +1,4 @@
-use candid::{utils::ArgumentEncoder, CandidType, Nat, Principal};
+use candid::{CandidType, Nat, Principal, utils::ArgumentEncoder};
 use dmsg_protocol::*;
 use dmsg_types::profiles::delivery::*;
 use dmsg_types::{cose::*, handle::*, payment::*, user::*, *};
@@ -8,7 +8,7 @@ use icrc_ledger_types::icrc1::{
     transfer::{TransferArg, TransferError},
 };
 use pocket_ic::{PocketIc, PocketIcBuilder};
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_bytes::ByteBuf;
 use std::{path::PathBuf, time::Duration};
 
@@ -1329,9 +1329,11 @@ fn identity_roots_certification_attestation_recovery_and_upgrade() {
         envelope.decrypt(&vetkey).unwrap(),
         b"content root of generation 1"
     );
-    assert!(encrypted
-        .decrypt_and_verify(&transport, &public, &canonical(&(&account_id, 2u64)))
-        .is_err());
+    assert!(
+        encrypted
+            .decrypt_and_verify(&transport, &public, &canonical(&(&account_id, 2u64)))
+            .is_err()
+    );
     // The recovered device rekeys and loses the derivation right.
     let rotated = f.rekey_by(1, 9, &account_id);
     assert_eq!(rotated.generation, 2);

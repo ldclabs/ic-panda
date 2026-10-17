@@ -3,10 +3,10 @@ use dmsg_protocol::{billing::*, digest};
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_types::{
     billing::*,
-    user::{ExecutionMonthStats, EXECUTION_STATS_MONTHS},
+    user::{EXECUTION_STATS_MONTHS, ExecutionMonthStats},
     *,
 };
-use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
+use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, memory_manager::VirtualMemory};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 

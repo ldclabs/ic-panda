@@ -34,10 +34,12 @@ fn chain(to: &[u8], expiration_ms: u64, targets: Option<Vec<Principal>>) -> Vec<
         "pubkey": hex::encode(to),
     });
     if let Some(targets) = targets {
-        link["targets"] = json!(targets
-            .iter()
-            .map(|t| hex::encode(t.as_slice()))
-            .collect::<Vec<_>>());
+        link["targets"] = json!(
+            targets
+                .iter()
+                .map(|t| hex::encode(t.as_slice()))
+                .collect::<Vec<_>>()
+        );
     }
     json!({
         "delegations": [{"delegation": link, "signature": hex::encode(signature)}],
@@ -97,9 +99,10 @@ fn accepts_a_delegation_to_the_session_key() {
     let ahead = NOW + DEFAULT_TTL_MS + 5_000;
     let late = s.accept(&body(&s, chain(&key, ahead, Some(targets()))), NOW);
     assert_eq!(late.unwrap().expires_at, ahead);
-    assert!(s
-        .url(&test_config())
-        .starts_with("https://dmsg.net/_/login#"));
+    assert!(
+        s.url(&test_config())
+            .starts_with("https://dmsg.net/_/login#")
+    );
 }
 
 #[test]

@@ -5,11 +5,11 @@
 //! before any allocation, so hostile input cannot exhaust memory or recursion,
 //! and must re-encode to themselves.
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use candid::Principal;
 use cbor2::Value;
-use dmsg_types::{ensure, ensure_valid, Error, Result};
-use serde::{de::DeserializeOwned, Serialize};
+use dmsg_types::{Error, Result, ensure, ensure_valid};
+use serde::{Serialize, de::DeserializeOwned};
 
 pub use dmsg_protocol::{canonical, digest, sha256};
 
@@ -60,7 +60,7 @@ pub fn unb64(text: &str) -> Result<Vec<u8>> {
 
 /// Serde adapter for byte fields carried as base64url text.
 pub mod base64url {
-    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
 
     /// Serialize bytes as base64url text.
     pub fn serialize<S: Serializer>(bytes: &[u8], serializer: S) -> Result<S::Ok, S::Error> {

@@ -29,10 +29,12 @@ fn reader_index_pages_only_authorized_claims() {
     assert_eq!(second.claims.len(), 2);
     assert!(second.next.is_none());
     assert!(first.claims.last().unwrap().claim_id < second.claims[0].claim_id);
-    assert!(operations(fixture::base::principal(42), false, None, 32)
-        .unwrap()
-        .claims
-        .is_empty());
+    assert!(
+        operations(fixture::base::principal(42), false, None, 32)
+            .unwrap()
+            .claims
+            .is_empty()
+    );
     assert_eq!(operations(reader, true, None, 32).unwrap().claims.len(), 32);
 }
 
@@ -153,10 +155,12 @@ fn history_profile() {
             save(&mut c, at);
         }
         let start = std::time::Instant::now();
-        assert!(operations(fixture::base::principal(99), false, None, 32)
-            .unwrap()
-            .claims
-            .is_empty());
+        assert!(
+            operations(fixture::base::principal(99), false, None, 32)
+                .unwrap()
+                .claims
+                .is_empty()
+        );
         let query_ms = start.elapsed().as_secs_f64() * 1000.;
         let pages: u64 = [1, 3, 4, 6, 7, 8]
             .into_iter()

@@ -5,7 +5,7 @@
 use crate::{digest, expiry};
 use candid::Principal;
 use dmsg_types::{
-    integration::{ApplicationApproval, ApprovalPurpose, AUTH_TTL_MS, INTEGRATION_VERSION},
+    integration::{AUTH_TTL_MS, ApplicationApproval, ApprovalPurpose, INTEGRATION_VERSION},
     membership::Beneficiary,
     wallet::*,
     *,

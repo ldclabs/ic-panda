@@ -103,9 +103,11 @@ fn governed_limits_bound_admission_and_admin_changes_persist_without_pre_upgrade
         "validate_admin_set_limits",
         (&next,),
     );
-    assert!(rendered
-        .unwrap()
-        .starts_with("Set payment limits: 2 escrows"));
+    assert!(
+        rendered
+            .unwrap()
+            .starts_with("Set payment limits: 2 escrows")
+    );
     assert_denied(&f.ic, f.payment, person(9), "admin_set_limits", (&next,));
     let set: Result<()> = update(&f.ic, f.payment, governance, "admin_set_limits", (&next,));
     set.unwrap();

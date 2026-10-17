@@ -7,15 +7,15 @@
 //! subtree hash: one per account document, `.well-known` for the domain list
 //! and `<*>` for the fallback 404. Only hashes are stored, so an upgrade
 //! republishes the root without visiting the documents.
-use crate::store::{memory, Memory};
+use crate::store::{Memory, memory};
 use dmsg_runtime::cert_map::CertMap;
 use dmsg_types::*;
-use ic_certification::{labeled, labeled_hash, HashTree, SubtreeLookupResult};
+use ic_certification::{HashTree, SubtreeLookupResult, labeled, labeled_hash};
 use ic_http_certification::{
+    CERTIFICATE_EXPRESSION_HEADER_NAME, DefaultCelBuilder, DefaultResponseCertification,
+    DefaultResponseOnlyCelExpression, HttpCertification, HttpCertificationPath,
+    HttpCertificationTree, HttpCertificationTreeEntry, HttpRequest, HttpResponse, StatusCode,
     utils::{add_v2_certificate_header, more_specific_wildcards_for},
-    DefaultCelBuilder, DefaultResponseCertification, DefaultResponseOnlyCelExpression,
-    HttpCertification, HttpCertificationPath, HttpCertificationTree, HttpCertificationTreeEntry,
-    HttpRequest, HttpResponse, StatusCode, CERTIFICATE_EXPRESSION_HEADER_NAME,
 };
 use std::{cell::RefCell, sync::LazyLock};
 

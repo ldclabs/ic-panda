@@ -17,9 +17,9 @@
 //! plan D-7) only the device signing key stays, so presigned and already
 //! sealed versions keep moving while nothing can be read.
 
-use crate::account::{device_bundle, verify_security, Security};
+use crate::account::{Security, device_bundle, verify_security};
 use crate::cloud::{Cloud, Evidence, EvidenceEntry, Signer};
-use crate::config::{environment_name, Config};
+use crate::config::{Config, environment_name};
 use crate::content::VAULT;
 use crate::crypto::Key;
 use crate::ic::Ic;
@@ -34,7 +34,7 @@ use crate::sync::LastSync;
 use crate::workspace::{AccountRef, Keys, Workspace};
 use candid::Principal;
 use dmsg_types::{
-    ensure, user::Device, AccountId, CertifiedBatch, Environment, Error, Hash, Result, DAY,
+    AccountId, CertifiedBatch, DAY, Environment, Error, Hash, Result, ensure, user::Device,
 };
 use futures_util::future::try_join_all;
 use ic_agent::Identity;

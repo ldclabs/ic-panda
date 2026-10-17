@@ -1,4 +1,4 @@
-use candid::{utils::ArgumentEncoder, Nat, Principal};
+use candid::{Nat, Principal, utils::ArgumentEncoder};
 use icrc_ledger_types::icrc1::{
     account::Account,
     transfer::{Memo, TransferArg, TransferError},

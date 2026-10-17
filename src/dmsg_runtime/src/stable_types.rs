@@ -6,7 +6,7 @@
 //! Integer assignments are stable schema: key 0 is reserved, existing keys
 //! must never be reused, and new fields receive new positive keys.
 
-use crate::{storage::StableCodec, Budget};
+use crate::{Budget, storage::StableCodec};
 use candid::Principal;
 use cbor2::Cbor;
 use dmsg_types::{
@@ -581,9 +581,11 @@ mod tests {
         let cbor2::Value::Map(fields) = value else {
             panic!("expected a compact record")
         };
-        assert!(fields
-            .iter()
-            .all(|(key, _)| matches!(key, cbor2::Value::Integer(_))));
+        assert!(
+            fields
+                .iter()
+                .all(|(key, _)| matches!(key, cbor2::Value::Integer(_)))
+        );
     }
 
     fn field(value: &cbor2::Value, key: u64) -> Option<&cbor2::Value> {

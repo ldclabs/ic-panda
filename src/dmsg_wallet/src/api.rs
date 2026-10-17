@@ -1,5 +1,5 @@
 //! Install, bootstrap, reads, membership and proposal decisions.
-use crate::store::{self, Settings, Spend, Wallet, STABLE_SCHEMA};
+use crate::store::{self, STABLE_SCHEMA, Settings, Spend, Wallet};
 use candid::Principal;
 use dmsg_protocol::{
     agent::{account_home, check_user_home, validate_user_homes},

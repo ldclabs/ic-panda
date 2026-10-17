@@ -16,15 +16,15 @@
 use crate::client::Client;
 use crate::codec::{canonical, decode, sha256};
 use crate::content::MAX_OBJECT;
-use crate::files::{read_file, store_file, FileManifest, MAX_FILE};
+use crate::files::{FileManifest, MAX_FILE, read_file, store_file};
 use crate::legacy::{self, Archive, Offer};
 use crate::legacy_proof::{self, Change, FrozenChannel, Trust};
 use crate::now_ms;
 use crate::upload::random_hex;
-use dmsg_types::{ensure, ensure_valid, Error, Result};
+use dmsg_types::{Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteArray;
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use std::collections::BTreeMap;
 use std::path::Path;
 use zeroize::Zeroizing;

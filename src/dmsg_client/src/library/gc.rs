@@ -9,9 +9,9 @@
 //! version collects at once; what lapses on its own waits for the hourly
 //! pass.
 
-use super::catalog::VERSION;
 use super::Client;
-use dmsg_types::{Error, Result, DAY, MINUTE};
+use super::catalog::VERSION;
+use dmsg_types::{DAY, Error, MINUTE, Result};
 use serde::Serialize;
 use std::collections::BTreeSet;
 use std::time::Duration;

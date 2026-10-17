@@ -7,7 +7,7 @@ use crate::locale::{row, tr};
 use crate::remote::{Failure, Remote};
 use crate::{absolute, ask, interactive, open_browser, pretty, print, short};
 use clap::{Args, Subcommand};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -458,7 +458,7 @@ async fn decide(remote: &Remote, request: &Value, reject: bool) -> Result<Value,
                 return Err(Failure::new(
                     "CANCELLED",
                     "no decision; the request still waits",
-                ))
+                ));
             }
         },
     };

@@ -1,9 +1,9 @@
 use candid::{CandidType, Principal};
 use cbor2::{from_slice, to_vec};
 use ic_stable_structures::{
+    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
-    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
 };
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};
@@ -157,7 +157,7 @@ pub mod state {
 
 pub mod minter {
     use super::*;
-    use crate::{token_transfer_to, TOKEN_1, TOKEN_FEE};
+    use crate::{TOKEN_1, TOKEN_FEE, token_transfer_to};
 
     const COINBASE_REWARDS: u64 = TOKEN_1;
     const BLOCK_HALVING: u64 = 21_000_000;

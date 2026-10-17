@@ -853,12 +853,14 @@ fn login_recovery_waits_for_the_delay_and_a_dispute_cancels_it() {
 fn recovery_delay_is_bounded_and_frozen_while_a_takeover_is_pending() {
     let mut s = fixture();
     for delay in [DAY - 1, 8 * DAY] {
-        assert!(apply(
-            &mut s,
-            AccountCommand::SetRecoveryDelay { delay_ms: delay },
-            1
-        )
-        .is_err());
+        assert!(
+            apply(
+                &mut s,
+                AccountCommand::SetRecoveryDelay { delay_ms: delay },
+                1
+            )
+            .is_err()
+        );
     }
     let epoch = s.security_epoch;
     apply(
@@ -1280,15 +1282,17 @@ fn device_capability_changes_are_administrator_only_atomic_and_rekey_for_vault_a
         receipt
     );
     let before = s.clone();
-    assert!(apply(
-        &mut s,
-        AccountCommand::SetDeviceCapabilities {
-            device_id,
-            capabilities: vec![Capability::FormalApprove],
-        },
-        4
-    )
-    .is_err());
+    assert!(
+        apply(
+            &mut s,
+            AccountCommand::SetDeviceCapabilities {
+                device_id,
+                capabilities: vec![Capability::FormalApprove],
+            },
+            4
+        )
+        .is_err()
+    );
     assert_eq!(s, before, "last administrator cannot lose RootManage");
     let mut denied = mutation(
         &s,
@@ -1970,7 +1974,9 @@ fn home_totals_keep_the_latest_charged_months() {
     assert_eq!(months.len(), EXECUTION_STATS_MONTHS);
     assert_eq!(months[0].month_utc, 202701);
     assert_eq!(months[EXECUTION_STATS_MONTHS - 1].month_utc, 202602);
-    assert!(months
-        .iter()
-        .all(|m| (m.accounts, m.attestations, m.charged_units) == (1, 1, 2)));
+    assert!(
+        months
+            .iter()
+            .all(|m| (m.accounts, m.attestations, m.charged_units) == (1, 1, 2))
+    );
 }

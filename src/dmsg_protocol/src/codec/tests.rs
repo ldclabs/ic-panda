@@ -157,18 +157,22 @@ fn signature_domains_and_canonical_encoding_are_bound() {
     };
     let msg = approval_message(p, &AccountId([4; 12]), "root", &42u64, &a);
     a.signature = sk.sign(msg.as_slice()).to_bytes().into();
-    assert!(verify(
-        &sk.verifying_key().to_bytes().into(),
-        msg.as_slice(),
-        a.signature.as_slice()
-    )
-    .is_ok());
-    assert!(verify(
-        &sk.verifying_key().to_bytes().into(),
-        approval_message(p, &AccountId([4; 12]), "sign", &42u64, &a).as_slice(),
-        a.signature.as_slice()
-    )
-    .is_err());
+    assert!(
+        verify(
+            &sk.verifying_key().to_bytes().into(),
+            msg.as_slice(),
+            a.signature.as_slice()
+        )
+        .is_ok()
+    );
+    assert!(
+        verify(
+            &sk.verifying_key().to_bytes().into(),
+            approval_message(p, &AccountId([4; 12]), "sign", &42u64, &a).as_slice(),
+            a.signature.as_slice()
+        )
+        .is_err()
+    );
     assert_eq!(
         hex::encode(canonical(&(1u8, "dmsg", 42u64))),
         "830164646d7367182a"

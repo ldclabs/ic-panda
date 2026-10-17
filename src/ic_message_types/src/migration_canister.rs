@@ -5,7 +5,7 @@ use ic_message_types::migration::{
     FreezeState, FreezeStatus, LegacyMode, PendingWrite, SnapshotPage, SnapshotScope,
 };
 use ic_stable_structures::{
-    memory_manager::VirtualMemory, storable::Bound, DefaultMemoryImpl, StableCell, Storable,
+    DefaultMemoryImpl, StableCell, Storable, memory_manager::VirtualMemory, storable::Bound,
 };
 use serde_bytes::{ByteArray, ByteBuf};
 use sha2::{Digest, Sha256};

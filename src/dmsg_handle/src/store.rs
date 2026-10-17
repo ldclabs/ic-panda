@@ -3,8 +3,8 @@ use dmsg_runtime::name_tree::NameTree;
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_types::{handle::*, *};
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableBTreeSet, StableCell, StableLog,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use std::cell::RefCell;
 

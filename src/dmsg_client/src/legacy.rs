@@ -10,10 +10,10 @@
 //! keeps one channel's content and its two channel keys, nothing else.
 
 use crate::codec::{b64, canonical, hex_sha256, principal};
-use crate::crypto::{aes_gcm_open, hpke_open_info, hpke_public, random_id, HpkeEnvelope, Key};
+use crate::crypto::{HpkeEnvelope, Key, aes_gcm_open, hpke_open_info, hpke_public, random_id};
 use candid::Principal;
 use cbor2::Value;
-use dmsg_types::{ensure, ensure_valid, Error, Result};
+use dmsg_types::{Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteBuf, Bytes};
 use std::collections::{BTreeMap, BTreeSet};
@@ -857,8 +857,11 @@ fn legacy_decrypt(key: &Key, data: &[u8]) -> Checked<Zeroizing<Vec<u8>>> {
     let Value::Array(items) = value else {
         return Err(corrupt());
     };
-    let [Value::Bytes(protected), Value::Map(unprotected), Value::Bytes(ciphertext)] =
-        items.as_slice()
+    let [
+        Value::Bytes(protected),
+        Value::Map(unprotected),
+        Value::Bytes(ciphertext),
+    ] = items.as_slice()
     else {
         return Err(corrupt());
     };
@@ -927,7 +930,11 @@ fn decode_message(key: Option<&Key>, kind: Option<i128>, payload: &[u8]) -> Chec
     let (text, file) = match value {
         Value::Text(text) => (text, None),
         Value::Array(items) => match items.as_slice() {
-            [Value::Text(text), Value::Text(kind), Value::Bytes(reference)] if kind == "File" => {
+            [
+                Value::Text(text),
+                Value::Text(kind),
+                Value::Bytes(reference),
+            ] if kind == "File" => {
                 let file = unpack(reference, 8192).or(fault(
                     Failure::Corrupt,
                     "Invalid legacy attachment reference",

@@ -29,16 +29,16 @@
 use crate::resources::{Resource, RoomPart};
 use agent_protocols::{
     error::SdkError,
-    identity::{service_origin, AgentId, AgentSigner},
+    identity::{AgentId, AgentSigner, service_origin},
     local_connector::{
         AgentProtocolsHost, DiscoveryCache, LocalConnector, TOOL_DRAFTS_LIST, TOOL_NAMES,
         TOOL_ROOMS_LIST,
     },
 };
-use dmsg_types::{ensure, ensure_valid, Error, Result};
-use rusqlite::{params, Connection, OptionalExtension};
+use dmsg_types::{Error, Result, ensure, ensure_valid};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;

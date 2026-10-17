@@ -1,26 +1,26 @@
 //! Scope tests use matched public releases and local candidate worktrees only.
-use candid::{utils::ArgumentEncoder, CandidType, Principal};
+use candid::{CandidType, Principal, utils::ArgumentEncoder};
 use ed25519_dalek::{Signer, SigningKey};
 use ic_cose_types::{
     cose::{
-        ecdh::{try_ecdh_x25519, PublicKey, StaticSecret},
+        ecdh::{PublicKey, StaticSecret, try_ecdh_x25519},
         encrypt0::{cose_decrypt0, cose_encrypt0},
     },
     types::{
+        ECDHInput, ECDHOutput,
         namespace::CreateNamespaceInput,
         setting::{CreateSettingInput, CreateSettingOutput, SettingPath},
-        ECDHInput, ECDHOutput,
     },
 };
 use ic_oss_types::{
     bucket::UpdateBucketInput,
-    cose::{cose_sign1, cose_sign1_to_vec, EdDSA, Token, BUCKET_TOKEN_AAD},
+    cose::{BUCKET_TOKEN_AAD, EdDSA, Token, cose_sign1, cose_sign1_to_vec},
     file::*,
     folder::*,
 };
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use pocket_ic::{PocketIc, PocketIcBuilder};
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_bytes::{ByteArray, ByteBuf};
 use std::{collections::BTreeSet, path::PathBuf};
 
@@ -293,14 +293,16 @@ fn freezes_one_cose_namespace_without_changing_existing_recovery_roots() {
     };
     let mut new_path = path.clone();
     new_path.key = vec![1].into();
-    assert!(update::<Result<CreateSettingOutput, String>>(
-        &ic,
-        id,
-        user,
-        "setting_create",
-        (&new_path, &input)
-    )
-    .is_err());
+    assert!(
+        update::<Result<CreateSettingOutput, String>>(
+            &ic,
+            id,
+            user,
+            "setting_create",
+            (&new_path, &input)
+        )
+        .is_err()
+    );
     new_path.ns = "unrelated".into();
     update::<Result<CreateSettingOutput, String>>(
         &ic,
@@ -310,17 +312,19 @@ fn freezes_one_cose_namespace_without_changing_existing_recovery_roots() {
         (&new_path, &input),
     )
     .unwrap();
-    assert!(update::<Result<(), String>>(
-        &ic,
-        id,
-        gov,
-        "namespace_add_users",
-        (
-            "dmsg_legacy".to_string(),
-            BTreeSet::from([Principal::from_slice(&[92])])
+    assert!(
+        update::<Result<(), String>>(
+            &ic,
+            id,
+            gov,
+            "namespace_add_users",
+            (
+                "dmsg_legacy".to_string(),
+                BTreeSet::from([Principal::from_slice(&[92])])
+            )
         )
-    )
-    .is_err());
+        .is_err()
+    );
 }
 
 #[test]

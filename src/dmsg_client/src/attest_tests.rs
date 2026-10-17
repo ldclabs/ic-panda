@@ -1,6 +1,6 @@
 use super::*;
-use crate::approval::{State, MAX_PENDING};
-use crate::testing::{unlocked, TempDir};
+use crate::approval::{MAX_PENDING, State};
+use crate::testing::{TempDir, unlocked};
 
 fn text(text: &str) -> StatementInput {
     StatementInput::Text {

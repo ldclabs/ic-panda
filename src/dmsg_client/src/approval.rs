@@ -15,13 +15,13 @@ use crate::now_ms;
 use crate::store::ApprovalRow;
 use dmsg_protocol::digest;
 use dmsg_types::{
+    DAY, Error, Hash, MINUTE, Result, Statement, StatementContent,
     app_action::AppAction,
     ensure,
     user::{AccountCommand, Capability},
-    Error, Hash, Result, Statement, StatementContent, DAY, MINUTE,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 
 /// How long a request from this device's own clients waits.
 pub const APPROVAL_TTL_MS: u64 = 10 * MINUTE;

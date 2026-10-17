@@ -257,12 +257,14 @@ fn control_payloads_keep_the_wire_shape() {
     let back: Control = crate::codec::decode(&bytes, 4096).unwrap();
     assert_eq!(back, control);
     // Unknown fields are refused.
-    assert!(serde_json::from_value::<Control>(serde_json::json!({
-        "expected_head": h(1),
-        "expected_acl_version": 0,
-        "action": {"type": "leave", "extra": 1}
-    }))
-    .is_err());
+    assert!(
+        serde_json::from_value::<Control>(serde_json::json!({
+            "expected_head": h(1),
+            "expected_acl_version": 0,
+            "action": {"type": "leave", "extra": 1}
+        }))
+        .is_err()
+    );
 }
 
 #[test]

@@ -3,8 +3,8 @@
 //! ledger instead of paying twice.
 use candid::{Nat, Principal};
 use cbor2::Cbor;
-use dmsg_runtime::ledger::{cmc_subaccount, MEMO_TOP_UP};
-pub(crate) use dmsg_runtime::ledger::{fee, notify_top_up, send, Notified, Sent};
+use dmsg_runtime::ledger::{MEMO_TOP_UP, cmc_subaccount};
+pub(crate) use dmsg_runtime::ledger::{Notified, Sent, fee, notify_top_up, send};
 use dmsg_types::{account::account_cbor, *};
 use icrc_ledger_types::icrc1::{
     account::Account,

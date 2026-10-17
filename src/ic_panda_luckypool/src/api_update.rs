@@ -1,11 +1,11 @@
 use candid::Nat;
 use icrc_ledger_types::icrc1::account::Account;
-use lib_panda::{mac_256, ChallengeState, Cryptogram, Ed25519Message, VerifyingKey};
+use lib_panda::{ChallengeState, Cryptogram, Ed25519Message, VerifyingKey, mac_256};
 use serde_bytes::ByteBuf;
 
 use crate::{
-    icp_transfer_from, icp_transfer_to, is_authenticated, nat_to_u64, store, token_transfer_from,
-    token_transfer_to, types, utils, ICP_1, SECOND, TOKEN_1, TRANS_FEE,
+    ICP_1, SECOND, TOKEN_1, TRANS_FEE, icp_transfer_from, icp_transfer_to, is_authenticated,
+    nat_to_u64, store, token_transfer_from, token_transfer_to, types, utils,
 };
 
 const LUCKIEST_AIRDROP_AMOUNT: u64 = 100_000;
@@ -25,10 +25,10 @@ async fn airdrop(args: types::AirdropClaimInput) -> Result<types::AirdropStateOu
         let pk = store::keys::with_challenge_pub_key(VerifyingKey::from_bytes)
             .map_err(|_| "failed to get the public key of the challenge".to_string())?;
         let state = ChallengeState::verify_from(&pk, &args.challenge)?;
-        if !state.is_valid(&caller, &state.0 .1, now_sec) {
+        if !state.is_valid(&caller, &state.0.1, now_sec) {
             return Err("invalid xauth challenge or expired".to_string());
         }
-        if !store::xauth::try_set(state.0 .1, caller, now_sec) {
+        if !store::xauth::try_set(state.0.1, caller, now_sec) {
             return Err("xauth user id exists".to_string());
         }
 

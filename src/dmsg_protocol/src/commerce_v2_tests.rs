@@ -5,11 +5,11 @@ use crate::commerce_v2::{
 use crate::integration::{panda_quote_hash, product_decision_hash};
 use crate::product_book::ProductBook;
 use dmsg_types::integration::{
-    ProductDecision, ProductRejection, SettlementSource, PANDA_COOLING_MS, PANDA_LEASE_MS,
+    PANDA_COOLING_MS, PANDA_LEASE_MS, ProductDecision, ProductRejection, SettlementSource,
 };
 use dmsg_types::integration_billing::{SubscriptionSource, SubscriptionStatus};
 use dmsg_types::membership::Eligibility;
-use dmsg_types::{Environment, Error, Hash, DAY, MINUTE};
+use dmsg_types::{DAY, Environment, Error, Hash, MINUTE};
 #[path = "../../dmsg_types/tests/support/commerce.rs"]
 mod f;
 use f::base::*;

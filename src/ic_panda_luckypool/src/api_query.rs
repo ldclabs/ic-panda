@@ -1,7 +1,7 @@
 use candid::{Nat, Principal};
 use lib_panda::Cryptogram;
 
-use crate::{nat_to_u64, store, types, utils, ANONYMOUS, SECOND, TOKEN_1};
+use crate::{ANONYMOUS, SECOND, TOKEN_1, nat_to_u64, store, types, utils};
 
 #[ic_cdk::query]
 fn api_version() -> u16 {
@@ -126,7 +126,7 @@ async fn prizes_of(owner: Option<Principal>) -> Vec<(u32, u32, u16, u32, u16, u1
         Some(store::AirdropState(code, _, _)) => store::prize::list_airdrop(code)
             .0
             .into_iter()
-            .map(|p| (code, p.0 .0, p.0 .1, p.0 .2, p.0 .3, p.1))
+            .map(|p| (code, p.0.0, p.0.1, p.0.2, p.0.3, p.1))
             .collect(),
     }
 }
@@ -150,7 +150,7 @@ async fn airdrop_codes_of(owner: Principal) -> Vec<types::AirdropCodeOutput> {
                 .0
                 .into_iter()
                 .map(|p| {
-                    let prize = store::Prize(code, p.0 .0, p.0 .1, p.0 .2, p.0 .3);
+                    let prize = store::Prize(code, p.0.0, p.0.1, p.0.2, p.0.3);
 
                     types::AirdropCodeOutput {
                         issuer: issuer.clone(),

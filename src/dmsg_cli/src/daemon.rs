@@ -34,38 +34,38 @@
 use crate::home::{Discovery, Home, Settings};
 use crate::params::{absolute, account, hash, optional, parse, source, text, to_json};
 use axum::{
+    Json, Router,
     body::Bytes,
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
         DefaultBodyLimit, State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
-    http::{header, HeaderMap, StatusCode},
+    http::{HeaderMap, StatusCode, header},
     response::{Html, IntoResponse, Response},
     routing::{any, get, post},
-    Json, Router,
 };
 use base64::Engine;
 use dmsg_client::{
+    Client,
     account::login_targets,
     attest::{Bundle, StatementInput},
     error_code,
-    library::{blobs::Blobs, Check, VersionCheck},
-    login::{LoginSession, DEFAULT_TTL_MS},
+    library::{Check, VersionCheck, blobs::Blobs},
+    login::{DEFAULT_TTL_MS, LoginSession},
     now_ms,
     profile::ProfileFields,
     vault::{Filter, Item, VaultEntry},
-    Client,
 };
-use dmsg_types::{user::ControllerRole, Error, Result};
+use dmsg_types::{Error, Result, user::ControllerRole};
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::{
-    atomic::{AtomicBool, AtomicU64, Ordering},
     Arc,
+    atomic::{AtomicBool, AtomicU64, Ordering},
 };
 use std::time::Duration;
-use tokio::sync::{broadcast, Mutex, Notify};
+use tokio::sync::{Mutex, Notify, broadcast};
 
 /// How often presigned submissions are flushed.
 const FLUSH_MS: u64 = 10_000;

@@ -1,14 +1,14 @@
 use crate::runtime::{Host, Options, Runtime, Scope};
 use agent_protocols::{
     discourse::{
-        build_server_record, discourse_event, event_type, room_create_event, MessageCreatePayload,
-        RoomCreatePayload, RoomHead, RoomResponse, RoomState, RoomUpdatePayload, ServerRecord,
-        Visibility,
+        MessageCreatePayload, RoomCreatePayload, RoomHead, RoomResponse, RoomState,
+        RoomUpdatePayload, ServerRecord, Visibility, build_server_record, discourse_event,
+        event_type, room_create_event,
     },
     identity::AgentSigner,
     local_connector::{AgentProtocolsHost, LocalConnector},
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 
 /// Refuses connections at once, so a call that reaches the network fails fast.
@@ -274,22 +274,24 @@ fn only_configured_hosts_are_allowed() {
         assert_eq!(refused.code, "permission_denied");
         // No tool adds a host, and unknown tools are refused outright.
         let turn = runtime.0.turn(signer(1).agent_id().as_str()).await;
-        assert!(runtime
-            .0
-            .call(
-                &turn,
-                Scope {
-                    path: &runtime.1,
-                    session: "test",
-                    reach: None,
-                },
-                signer(1),
-                &keys(),
-                "agent_protocols_host_add",
-                json!({"host": "https://evil.example"})
-            )
-            .await
-            .is_err());
+        assert!(
+            runtime
+                .0
+                .call(
+                    &turn,
+                    Scope {
+                        path: &runtime.1,
+                        session: "test",
+                        reach: None,
+                    },
+                    signer(1),
+                    &keys(),
+                    "agent_protocols_host_add",
+                    json!({"host": "https://evil.example"})
+                )
+                .await
+                .is_err()
+        );
     });
     // The state file keeps no host: every call applies the configured ones.
     assert_eq!(stored(&runtime.1)["hosts"], json!({}));
@@ -757,9 +759,11 @@ fn unchanged_state_is_not_written_and_turns_are_per_agent() {
         )
         .await
         .expect("turns of different Agent IDs do not wait");
-        assert!(runtime
-            .call(&other, scope, signer(1), &no_keys, identity, json!({}))
-            .await
-            .is_err());
+        assert!(
+            runtime
+                .call(&other, scope, signer(1), &no_keys, identity, json!({}))
+                .await
+                .is_err()
+        );
     });
 }

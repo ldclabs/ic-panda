@@ -1,8 +1,8 @@
 use super::*;
-use crate::crypto::{hpke_seal_info, Key};
-use crate::testing::{unlocked, TempDir};
+use crate::crypto::{Key, hpke_seal_info};
+use crate::testing::{TempDir, unlocked};
 use crate::vectors::load;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 
 fn unb64url(text: &serde_json::Value) -> Vec<u8> {
     URL_SAFE_NO_PAD.decode(text.as_str().unwrap()).unwrap()
@@ -135,9 +135,11 @@ fn imports_one_archive_once_and_reads_it_offline() {
     let cbor2::Value::Map(fields) = job else {
         panic!("job");
     };
-    assert!(fields
-        .iter()
-        .any(|(k, v)| *k == cbor2::Value::Text("file".into()) && *v != cbor2::Value::Null));
+    assert!(
+        fields
+            .iter()
+            .any(|(k, v)| *k == cbor2::Value::Text("file".into()) && *v != cbor2::Value::Null)
+    );
     assert!(client.pair_state(&offer.nonce).unwrap().seed.is_none());
     assert_eq!(client.legacy_list().unwrap().len(), 1);
     assert!(client.legacy_pairs().unwrap().is_empty());
@@ -177,9 +179,11 @@ fn imports_one_archive_once_and_reads_it_offline() {
         std::fs::read_to_string(&out).unwrap(),
         "Notes kept since 2024.\n"
     );
-    assert!(client
-        .legacy_file(&id, "532er-faaaa-aaaaj-qncpa-cai/file/7", &out)
-        .is_err());
+    assert!(
+        client
+            .legacy_file(&id, "532er-faaaa-aaaaj-qncpa-cai/file/7", &out)
+            .is_err()
+    );
 }
 
 #[test]
@@ -190,10 +194,12 @@ fn offers_are_bounded_and_cancelled() {
     let mut nonces = vec![];
     for _ in 0..MAX_PAIRS {
         let offer = client.legacy_pair("https://dmsg.net").unwrap();
-        assert!(offer["link"]
-            .as_str()
-            .unwrap()
-            .starts_with("https://dmsg.net/legacy#pair="));
+        assert!(
+            offer["link"]
+                .as_str()
+                .unwrap()
+                .starts_with("https://dmsg.net/legacy#pair=")
+        );
         nonces.push(offer["nonce"].as_str().unwrap().to_string());
     }
     assert_eq!(

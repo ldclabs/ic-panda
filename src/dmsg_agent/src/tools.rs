@@ -9,15 +9,15 @@
 //! sign, an agent's grants what it may do at which of them.
 
 use agent_protocols::local_connector::{
-    standard_tool_definitions, TOOL_AGENT_STATUS_LIST, TOOL_AGENT_STATUS_SET, TOOL_DRAFTS_LIST,
-    TOOL_DRAFT_COMMIT, TOOL_JOIN_REQUESTS_LIST, TOOL_JOIN_REQUEST_REVIEW, TOOL_KNOWLEDGE_GET,
-    TOOL_KNOWLEDGE_QUERY, TOOL_KNOWLEDGE_SEARCH, TOOL_KNOWLEDGE_STATUS, TOOL_KNOWLEDGE_SUBMIT,
-    TOOL_MAIL_LIST, TOOL_MAIL_MAILBOXES_LIST, TOOL_MAIL_MAILBOX_PUBLISH, TOOL_MAIL_SEND,
-    TOOL_MAIL_SYNC, TOOL_NAMES, TOOL_PROFILE_UPDATE, TOOL_ROOMS_LIST, TOOL_ROOM_CREATE,
-    TOOL_ROOM_JOIN, TOOL_ROOM_MEMBERS_LIST, TOOL_ROOM_SEND_MESSAGE, TOOL_ROOM_STATE,
-    TOOL_ROOM_SUBMIT_EVENT, TOOL_ROOM_TIMELINE,
+    TOOL_AGENT_STATUS_LIST, TOOL_AGENT_STATUS_SET, TOOL_DRAFT_COMMIT, TOOL_DRAFTS_LIST,
+    TOOL_JOIN_REQUEST_REVIEW, TOOL_JOIN_REQUESTS_LIST, TOOL_KNOWLEDGE_GET, TOOL_KNOWLEDGE_QUERY,
+    TOOL_KNOWLEDGE_SEARCH, TOOL_KNOWLEDGE_STATUS, TOOL_KNOWLEDGE_SUBMIT, TOOL_MAIL_LIST,
+    TOOL_MAIL_MAILBOX_PUBLISH, TOOL_MAIL_MAILBOXES_LIST, TOOL_MAIL_SEND, TOOL_MAIL_SYNC,
+    TOOL_NAMES, TOOL_PROFILE_UPDATE, TOOL_ROOM_CREATE, TOOL_ROOM_JOIN, TOOL_ROOM_MEMBERS_LIST,
+    TOOL_ROOM_SEND_MESSAGE, TOOL_ROOM_STATE, TOOL_ROOM_SUBMIT_EVENT, TOOL_ROOM_TIMELINE,
+    TOOL_ROOMS_LIST, standard_tool_definitions,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// The capability each standard Agent Discourse, Mail and Knowledge tool,
 /// and the profile update, needs. The others need none: the Agent ID's
@@ -362,9 +362,11 @@ mod tests {
             .iter()
             .find(|t| t["name"] == TOOL_ROOM_SEND_MESSAGE)
             .unwrap();
-        assert!(send["description"]
-            .as_str()
-            .unwrap()
-            .ends_with(" Needs discourse.write:<origin>."));
+        assert!(
+            send["description"]
+                .as_str()
+                .unwrap()
+                .ends_with(" Needs discourse.write:<origin>.")
+        );
     }
 }

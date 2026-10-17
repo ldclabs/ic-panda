@@ -9,7 +9,7 @@ use dmsg_protocol::{authenticated, digest};
 use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
 use dmsg_types::{billing::CommerceStats, integration_billing::*, *};
 use ic_stable_structures::{
-    memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap, StableCell,
+    DefaultMemoryImpl, StableBTreeMap, StableCell, memory_manager::VirtualMemory,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -631,10 +631,12 @@ mod tests {
         later.status = CheckoutStatus::RefundCommitted;
         save(&mut later, NOW + 1);
         assert!(collectable(merchant, None, 32).unwrap().orders.is_empty());
-        assert!(collectable(merchant, Some(earlier.id), 32)
-            .unwrap()
-            .orders
-            .is_empty());
+        assert!(
+            collectable(merchant, Some(earlier.id), 32)
+                .unwrap()
+                .orders
+                .is_empty()
+        );
         assert_eq!(COLLECTIONS.with_borrow(|t| t.len()), 1);
     }
 
@@ -662,10 +664,11 @@ mod tests {
         // positions the page inside the caller's own index.
         for (caller, cursor) in [(a, orders[2].id), (b, orders[0].id)] {
             let page = collectable(caller, Some(cursor), 32).unwrap();
-            assert!(page
-                .orders
-                .iter()
-                .all(|o| o.order.quote.product.merchant.owner == caller));
+            assert!(
+                page.orders
+                    .iter()
+                    .all(|o| o.order.quote.product.merchant.owner == caller)
+            );
         }
     }
 
@@ -790,7 +793,9 @@ mod tests {
                 });
             }
             let scan_us = started.elapsed().as_micros();
-            println!("orders={count} seed_ms={write_ms} indexed_100_us={indexed_us} legacy_scan_100_us={scan_us}");
+            println!(
+                "orders={count} seed_ms={write_ms} indexed_100_us={indexed_us} legacy_scan_100_us={scan_us}"
+            );
         }
         let before = compact_bytes(&order(closed(0).id).unwrap()).len();
         let started = std::time::Instant::now();
@@ -798,6 +803,8 @@ mod tests {
         let archived = order(closed(0).id).unwrap();
         let compacted = compact_bytes(&archived).len();
         let sweep_ms = started.elapsed().as_millis();
-        println!("archive_10000_ms={sweep_ms} active_record_bytes={before} archived_record_bytes={compacted}");
+        println!(
+            "archive_10000_ms={sweep_ms} active_record_bytes={before} archived_record_bytes={compacted}"
+        );
     }
 }

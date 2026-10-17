@@ -1,6 +1,6 @@
 use crate::{commerce::Month, principal::AgentPrincipal, state::*, store::Config};
 use cbor2::Cbor;
-use dmsg_runtime::{stable_types::*, storage::StableCodec, Budget};
+use dmsg_runtime::{Budget, stable_types::*, storage::StableCodec};
 use dmsg_types::{agent::*, billing::*, cose::*, handle::*, user::*, *};
 use ic_auth_types::XidGenerator;
 use std::collections::BTreeMap;
@@ -677,9 +677,11 @@ mod tests {
         else {
             panic!("public record must be a map")
         };
-        assert!(entries
-            .iter()
-            .all(|(key, _)| matches!(key, cbor2::Value::Text(_))));
+        assert!(
+            entries
+                .iter()
+                .all(|(key, _)| matches!(key, cbor2::Value::Text(_)))
+        );
     }
 
     #[test]

@@ -1,11 +1,11 @@
 //! Immutable announced conversion rates; version identities survive pruning.
 use crate::store;
 use dmsg_protocol::integration::*;
-use dmsg_runtime::admin::{self, validation, Validation};
+use dmsg_runtime::admin::{self, Validation, validation};
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_types::{integration::*, *};
 use ic_stable_structures::{
-    memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap, StableCell,
+    DefaultMemoryImpl, StableBTreeMap, StableCell, memory_manager::VirtualMemory,
 };
 use std::cell::RefCell;
 type Memory = VirtualMemory<DefaultMemoryImpl>;

@@ -14,7 +14,7 @@ use candid::Principal;
 use dmsg_protocol::{agent, verify};
 use dmsg_runtime::storage::{CompactStored, MapExt};
 use dmsg_types::{agent::*, user::*, *};
-use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
+use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, memory_manager::VirtualMemory};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 

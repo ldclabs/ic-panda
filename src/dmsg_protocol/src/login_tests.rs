@@ -1,7 +1,7 @@
 use super::*;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use cbor2::Value;
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 
 const VECTORS: &str = "../../tests/vectors/client/login-v1.json";
 

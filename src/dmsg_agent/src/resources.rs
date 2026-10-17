@@ -5,10 +5,10 @@
 
 use agent_protocols::local_connector::{
     RESOURCE_DRAFTS_HELD, RESOURCE_HOSTS, RESOURCE_IDENTITY_CURRENT, RESOURCE_INBOX_PENDING,
-    RESOURCE_MAIL_MAILBOXES, RESOURCE_MAIL_MESSAGES, RESOURCE_ROOMS,
-    RESOURCE_ROOM_AGENT_STATUS_SUFFIX,
+    RESOURCE_MAIL_MAILBOXES, RESOURCE_MAIL_MESSAGES, RESOURCE_ROOM_AGENT_STATUS_SUFFIX,
+    RESOURCE_ROOMS,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// The resources with a fixed URI: URI, resource, name and description.
 const FIXED: [(&str, Resource, &str, &str); 7] = [

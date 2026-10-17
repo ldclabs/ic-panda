@@ -11,11 +11,11 @@
 use crate::daemon::Daemon;
 use crate::params::{absolute, number, optional, parse, text, to_json};
 use dmsg_client::{
-    library::{catalog::ROOT, VerifyReport},
     Client,
+    library::{VerifyReport, catalog::ROOT},
 };
 use dmsg_types::{Error, Result};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::PathBuf;
 
 /// The methods this module serves.

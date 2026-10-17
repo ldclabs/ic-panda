@@ -1,7 +1,7 @@
 //! Full-fee PANDA commitments. No upgrade, replacement, buyout or early-close variants.
 use crate::{
-    integration::*, integration_billing::ProductAuthorizationRequest, membership::Eligibility,
-    AccountId, Hash,
+    AccountId, Hash, integration::*, integration_billing::ProductAuthorizationRequest,
+    membership::Eligibility,
 };
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};

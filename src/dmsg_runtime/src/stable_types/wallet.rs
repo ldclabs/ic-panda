@@ -3,7 +3,7 @@
 //! activation states) and policies keep their protocol encoding; the integer
 //! keys replace the field names repeated in every member, address, proposal,
 //! audit event, quote and wallet record.
-use super::{is_zero, AccountRepr, StableCodec};
+use super::{AccountRepr, StableCodec, is_zero};
 use candid::Principal;
 use cbor2::Cbor;
 use dmsg_types::{billing::PlanId, wallet::*, *};

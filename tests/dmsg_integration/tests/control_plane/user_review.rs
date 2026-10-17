@@ -235,9 +235,11 @@ fn admission_tickets_gate_new_accounts_when_governance_sets_a_key() {
             (key,),
         )
     };
-    assert!(validate(Some(issuer_key))
-        .unwrap()
-        .contains("none (open admission)"));
+    assert!(
+        validate(Some(issuer_key))
+            .unwrap()
+            .contains("none (open admission)")
+    );
     assert!(validate(Some(Hash::new([0; 32]))).is_err());
     assert_refused(
         &f.ic,

@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use finl_unicode::categories::CharacterCategories;
 
 pub fn luckycode_to_string(code: u32) -> String {

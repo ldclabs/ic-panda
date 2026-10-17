@@ -30,15 +30,15 @@ pub mod share;
 
 use crate::client::Client;
 use crate::codec::b64;
-use crate::files::{export_manifest, read_chunk, read_file, FileManifest, CHUNK};
+use crate::files::{CHUNK, FileManifest, export_manifest, read_chunk, read_file};
 use crate::now_ms;
 use crate::upload::random_hex;
 use blobs::Blobs;
 use catalog::{
-    validate_name, validate_tags, version_view, Catalog, FileRecord, FileView, Folder, FolderView,
-    Version, VersionView, FILE, FOLDER, MAX_NOTE, ROOT, VERSION,
+    Catalog, FILE, FOLDER, FileRecord, FileView, Folder, FolderView, MAX_NOTE, ROOT, VERSION,
+    Version, VersionView, validate_name, validate_tags, version_view,
 };
-use dmsg_types::{ensure, ensure_valid, Error, Result};
+use dmsg_types::{Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::io::Write;

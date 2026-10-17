@@ -20,28 +20,27 @@
 //! against the evidence the relay stored with it.
 
 use crate::channel_log::{
-    advance, is_hash, may_publish, readable, recipients_digest, start, Action, Activation,
-    ChannelType, Control, Genesis, Lease, Ledger, MessagePayload, Reactivate, Recipient, Role,
-    Status,
+    Action, Activation, ChannelType, Control, Genesis, Lease, Ledger, MessagePayload, Reactivate,
+    Recipient, Role, Status, advance, is_hash, may_publish, readable, recipients_digest, start,
 };
 use crate::client::Client;
-use crate::cloud::{sign_command, Evidence, CLOUD_PROTOCOL};
-use crate::codec::{b64, canonical, decode, digest, hex_sha256, unb64, MAX_RECORD};
+use crate::cloud::{CLOUD_PROTOCOL, Evidence, sign_command};
+use crate::codec::{MAX_RECORD, b64, canonical, decode, digest, hex_sha256, unb64};
 use crate::content::empty_file;
 use crate::crypto::{
-    derive, hpke_open, hpke_seal, open, open_bytes, random_key, seal, seal_bytes, sign,
-    HpkeEnvelope,
+    HpkeEnvelope, derive, hpke_open, hpke_seal, open, open_bytes, random_key, seal, seal_bytes,
+    sign,
 };
 use crate::evidence::{Trust, Verified};
-use crate::files::{export_manifest, read_file, BlobStore, FileManifest, Source, MAX_FILE};
+use crate::files::{BlobStore, FileManifest, MAX_FILE, Source, export_manifest, read_file};
 use crate::library::catalog::Origin;
 use crate::library::import::Imported;
 use crate::now_ms;
-use crate::upload::{hex_id, random_hex, ChunkRef, UploadPlan};
-use dmsg_types::{ensure, ensure_valid, user::Capability, AccountId, Error, Hash, Result};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use crate::upload::{ChunkRef, UploadPlan, hex_id, random_hex};
+use dmsg_types::{AccountId, Error, Hash, Result, ensure, ensure_valid, user::Capability};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_bytes::{ByteBuf, Bytes};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 use zeroize::Zeroizing;

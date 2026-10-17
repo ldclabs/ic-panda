@@ -666,7 +666,12 @@ fn commerce_cost_profile() {
                 f.ic.canister_status(f.commerce, None)
                     .unwrap()
                     .memory_metrics;
-            println!("commerce orders={} open_scenario_cycles={open_cycles} unrelated_reader_cycles={query_cycles} stable_bytes={} heap_bytes={}", i + 1, metrics.stable_memory_size, metrics.wasm_memory_size);
+            println!(
+                "commerce orders={} open_scenario_cycles={open_cycles} unrelated_reader_cycles={query_cycles} stable_bytes={} heap_bytes={}",
+                i + 1,
+                metrics.stable_memory_size,
+                metrics.wasm_memory_size
+            );
         }
     }
     let before = f.ic.cycle_balance(f.commerce);

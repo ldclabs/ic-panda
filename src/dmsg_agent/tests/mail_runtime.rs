@@ -5,17 +5,17 @@
 //! never reach `agents.sqlite`; the configuration alone blocks senders.
 
 use agent_protocols::{
-    identity::{unix_ms, AgentSigner},
-    mail::MailRelayStore,
     SdkError,
+    identity::{AgentSigner, unix_ms},
+    mail::MailRelayStore,
 };
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD};
 use dmsg_agent::{Host, Options, Runtime, Scope};
 use rustls::{
-    pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
     ServerConfig, ServerConnection, StreamOwned,
+    pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::path::PathBuf;
@@ -145,14 +145,14 @@ fn handle(
             return match relay.delete(id, packet, jwt, now) {
                 Ok(()) => (204, String::new(), String::new()),
                 Err(e) => failure(e),
-            }
+            };
         }
         _ => {
             return (
                 404,
                 r#"{"error":{"code":"not_found","message":"no route"}}"#.into(),
                 String::new(),
-            )
+            );
         }
     };
     match result {

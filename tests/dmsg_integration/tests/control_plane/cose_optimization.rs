@@ -455,9 +455,11 @@ fn cose_authenticates_the_configured_home_before_new_requests_and_replays() {
         "validate_admin_add_user_home",
         (person(80),),
     );
-    assert!(rendered
-        .unwrap()
-        .ends_with("All homes share this executor's 1 of 1000000 accounts."));
+    assert!(
+        rendered
+            .unwrap()
+            .ends_with("All homes share this executor's 1 of 1000000 accounts.")
+    );
     let rendered: std::result::Result<String, String> = query(
         &f.ic,
         f.cose,
@@ -465,17 +467,19 @@ fn cose_authenticates_the_configured_home_before_new_requests_and_replays() {
         "validate_admin_add_user_home",
         (f.home,),
     );
-    assert!(rendered
-        .unwrap()
-        .ends_with("1 of 1000000 accounts. Already listed; no change."));
+    assert!(
+        rendered
+            .unwrap()
+            .ends_with("1 of 1000000 accounts. Already listed; no change.")
+    );
 }
 
 #[test]
 fn cose_returned_unknown_survives_upgrade_without_blocking_later_cleanup() {
     use dmsg_runtime::storage::compact_bytes;
     use ic_stable_structures::{
-        memory_manager::{MemoryId, MemoryManager},
         StableBTreeMap,
+        memory_manager::{MemoryId, MemoryManager},
     };
     use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 
@@ -735,7 +739,7 @@ fn cose_upgrade_without_stopping_records_abandoned_calls_as_unknown() {
 
 #[test]
 fn cose_offline_pin_matches_the_initialized_production_key() {
-    use dmsg_protocol::cose_pins::{content_root_public_key, master_key_pin, KeySource};
+    use dmsg_protocol::cose_pins::{KeySource, content_root_public_key, master_key_pin};
 
     let ic = PocketIcBuilder::new()
         .with_application_subnet()

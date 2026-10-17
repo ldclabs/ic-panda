@@ -19,19 +19,19 @@ use crate::now_ms;
 use crate::root::{open_recovered, parse_bundle, recovery_identity};
 use candid::Principal;
 use dmsg_protocol::{
-    approval_message, derive_approval_command, execution_request_id, recovery_device_message,
-    DERIVE_APPROVAL_DOMAIN,
+    DERIVE_APPROVAL_DOMAIN, approval_message, derive_approval_command, execution_request_id,
+    recovery_device_message,
 };
 use dmsg_types::{
+    AccountId, Approval, DAY, Ed25519Signature, Error, Hash, MINUTE, Result,
     cose::{DeriveRootRequest, ExecutionOutcome, ExecutionResult},
     ensure,
     user::{ControllerRole, PendingRecovery, RecoveryRequest},
-    AccountId, Approval, Ed25519Signature, Error, Hash, Result, DAY, MINUTE,
 };
 use ic_vetkeys::{DerivedPublicKey, EncryptedVetKey, TransportSecretKey};
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 
 /// The recovery request of this device, sealed in its workspace.
 const REQUEST: &str = "recovery-request";

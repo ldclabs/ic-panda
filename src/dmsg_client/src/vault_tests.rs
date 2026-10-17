@@ -1,6 +1,6 @@
 use super::*;
 use crate::store::LOCAL;
-use crate::testing::{unlocked, TempDir};
+use crate::testing::{TempDir, unlocked};
 
 fn item(title: &str) -> Item {
     Item {
@@ -107,12 +107,14 @@ fn a_stale_edit_is_a_conflict_copy() {
     // A conflict copy is still sent, so the relay keeps it for every device.
     let row = client.workspace.store.object(&key).unwrap().unwrap();
     assert_eq!((row.state.as_str(), row.conflict), (LOCAL, true));
-    assert!(client
-        .workspace
-        .store
-        .job::<crate::sync::ContentJob>(&key)
-        .unwrap()
-        .is_some());
+    assert!(
+        client
+            .workspace
+            .store
+            .job::<crate::sync::ContentJob>(&key)
+            .unwrap()
+            .is_some()
+    );
     assert_eq!(
         client.vault_show(&first.id).unwrap().revision,
         head.revision

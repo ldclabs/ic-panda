@@ -1,8 +1,8 @@
 //! COSE profiles: three portable document profiles and a distinct typed app-action profile.
 //! Document payloads exclude execution context; app actions explicitly bind their receiver and origin.
-use crate::app_action::{validate_app_action, APP_ACTION_PROFILE};
+use crate::app_action::{APP_ACTION_PROFILE, validate_app_action};
 use crate::*;
-use cose2::{iana, Header, Key, Label, Sign1Message, Value, Verifier};
+use cose2::{Header, Key, Label, Sign1Message, Value, Verifier, iana};
 use dmsg_types::*;
 
 /// Experimental dMsg text document profile media type (v1), used in protected header 16.

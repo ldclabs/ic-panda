@@ -2,7 +2,7 @@
 //! JSON-RPC over loopback HTTP.
 
 use crate::home::{Discovery, Home};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// A failed call: a stable code and a message.
 #[derive(Debug)]
@@ -108,7 +108,7 @@ impl Remote {
                 return Err(Failure::new(
                     "AUTH_REQUIRED",
                     "the daemon refused the credential",
-                ))
+                ));
             }
             status => return Err(Failure::new("UNAVAILABLE", status.to_string())),
         }

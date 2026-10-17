@@ -1,15 +1,15 @@
 use candid::{CandidType, Principal};
 use cbor2::{from_slice, to_vec};
 use ic_canister_sig_creation::{
-    signature_map::{CanisterSigInputs, SignatureMap, LABEL_SIG},
     DELEGATION_SIG_DOMAIN,
+    signature_map::{CanisterSigInputs, LABEL_SIG, SignatureMap},
 };
 use ic_cdk::api::certified_data_set;
 use ic_certification::labeled_hash;
 use ic_stable_structures::{
+    DefaultMemoryImpl, StableBTreeMap, StableCell, Storable,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
-    DefaultMemoryImpl, StableBTreeMap, StableCell, Storable,
 };
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, cell::RefCell, collections::BTreeSet};

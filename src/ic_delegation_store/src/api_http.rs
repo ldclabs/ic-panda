@@ -1,8 +1,8 @@
 use cbor2::from_slice;
-use ic_auth_types::{cbor_into_vec, ByteBufB64, BytesB64};
+use ic_auth_types::{ByteBufB64, BytesB64, cbor_into_vec};
 use ic_http_certification::{
-    utils::add_skip_certification_header, HeaderField, HttpRequest, HttpResponse,
-    HttpUpdateRequest, StatusCode,
+    HeaderField, HttpRequest, HttpResponse, HttpUpdateRequest, StatusCode,
+    utils::add_skip_certification_header,
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -51,7 +51,7 @@ fn http_request(request: HttpRequest<'static>) -> HttpResponse<'static> {
     let path = match request.get_path() {
         Ok(path) => path,
         Err(err) => {
-            return certify_response(error_response(HttpError::bad_request(err.to_string())))
+            return certify_response(error_response(HttpError::bad_request(err.to_string())));
         }
     };
 

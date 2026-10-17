@@ -7,9 +7,9 @@
 //! statement takes the connection lock, so [`Store::atomic`] groups the
 //! owner's writes but does not isolate them from the owner's own reads.
 
-use dmsg_types::{ensure, Error, Result};
-use rusqlite::{params, Connection, OptionalExtension};
-use serde::{de::DeserializeOwned, Serialize};
+use dmsg_types::{Error, Result, ensure};
+use rusqlite::{Connection, OptionalExtension, params};
+use serde::{Serialize, de::DeserializeOwned};
 use std::path::Path;
 use std::sync::{Mutex, MutexGuard};
 

@@ -1,9 +1,9 @@
 //! Executions: internal changes, ICRC transfers, canister calls, cycles
 //! top-ups, new addresses and external-chain signing.
 use crate::api::{check_state, now, refresh, unlocked};
-use crate::chains::{self, btc::BtcSpend, Assembly};
+use crate::chains::{self, Assembly, btc::BtcSpend};
 use crate::ledger::{self, LedgerItem, LedgerJob, Notified, Sent, TopUp};
-use crate::store::{self, EvmPending, Job, PlanRecord, SignSpec, SolLast, Wallet, REFUEL_JOB};
+use crate::store::{self, EvmPending, Job, PlanRecord, REFUEL_JOB, SignSpec, SolLast, Wallet};
 use candid::Principal;
 use dmsg_protocol::wallet::*;
 use dmsg_types::{wallet::*, *};
@@ -450,7 +450,9 @@ async fn process_ledger(id: u64, mut at: u64) -> Result<ExecuteResult> {
                 // A resend past the ledger's deduplication window proves nothing.
                 let unknown = reason.starts_with("TooOld");
                 let reason = if unknown {
-                    format!("item {i}: outcome unknown after the deduplication window; check the ledger")
+                    format!(
+                        "item {i}: outcome unknown after the deduplication window; check the ledger"
+                    )
                 } else {
                     format!("item {i}: {reason}")
                 };

@@ -1,7 +1,7 @@
 use super::*;
 use crate::codec::canonical;
 use crate::content::empty_file;
-use crate::testing::{unlocked, TempDir};
+use crate::testing::{TempDir, unlocked};
 use crate::vectors::{bytes, field, key, load, text, value};
 
 fn manifest_of(v: &serde_json::Value, name: &str) -> FileManifest {

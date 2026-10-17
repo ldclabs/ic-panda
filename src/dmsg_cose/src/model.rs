@@ -383,10 +383,11 @@ mod tests {
         next.approved_at = 2 * DAY;
         next.expires_at = next.approved_at + MINUTE;
         h.check(&next, next.approved_at).unwrap();
-        assert!(h
-            .prepare(&next, next.approved_at, Some(1))
-            .unwrap()
-            .is_empty());
+        assert!(
+            h.prepare(&next, next.approved_at, Some(1))
+                .unwrap()
+                .is_empty()
+        );
         assert_eq!(h.closed_sequence, 1);
         assert_eq!(h.executions.len(), 4);
         h.finish(1, &done(1));

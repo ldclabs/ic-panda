@@ -1,7 +1,7 @@
 //! Adapter for the DFINITY ICRC ledger's ICRC-3 `1xfer`/`2xfer` blocks. Assets with
 //! another block schema must have a separately reviewed adapter. Also the
 //! ICRC-1 transfers and cycles top-ups that wallets and the wallet hub send.
-use crate::{call, call_classified, CallFailure};
+use crate::{CallFailure, call, call_classified};
 use candid::{CandidType, Nat, Principal};
 use dmsg_types::*;
 use icrc_ledger_types::{

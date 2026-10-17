@@ -23,21 +23,21 @@ use crate::client::Client;
 use crate::cloud::{Evidence, Presigned};
 use crate::codec::{canonical, decode, sha256};
 use crate::content::{
-    empty_file, object_container, open_manifest, read_container, record, seal_manifest,
-    EncryptedObject, ManifestContent, Opened, MAX_OBJECT, VAULT,
+    EncryptedObject, MAX_OBJECT, ManifestContent, Opened, VAULT, empty_file, object_container,
+    open_manifest, read_container, record, seal_manifest,
 };
-use crate::evidence::{under, Trust};
-use crate::files::{read_file, FileManifest, Source, MAX_FILE};
+use crate::evidence::{Trust, under};
+use crate::files::{FileManifest, MAX_FILE, Source, read_file};
 use crate::migration::MIGRATION_PART;
 use crate::now_ms;
-use crate::store::{ObjectRow, BLOCKED, LOCAL, REPLACED, SYNCED};
-use crate::upload::{hex_id, random_hex, ChunkRef, UploadPlan};
+use crate::store::{BLOCKED, LOCAL, ObjectRow, REPLACED, SYNCED};
+use crate::upload::{ChunkRef, UploadPlan, hex_id, random_hex};
 use crate::vault::Item;
-use dmsg_types::{ensure, user::VaultWriteState, AccountId, Error, Hash, Result};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use dmsg_types::{AccountId, Error, Hash, Result, ensure, user::VaultWriteState};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_bytes::ByteBuf;
 use serde_json::Value as Json;
-use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
 
 const MAX_PLANS: usize = 10_000;
 const MAX_REVISIONS: usize = 100_000;

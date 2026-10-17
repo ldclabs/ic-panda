@@ -7,7 +7,7 @@
 //! `DMSG_WRITE_WALLET_VECTORS=1 cargo test -p dmsg_wallet chains::tests::vectors`.
 use super::*;
 use dmsg_protocol::canonical;
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use sha3::{Digest, Keccak256};
 
 const VECTORS: &str = "../../tests/vectors/wallet/plans-v1.json";

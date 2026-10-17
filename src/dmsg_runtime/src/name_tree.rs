@@ -8,7 +8,7 @@
 //! without visiting names, and a write rehashes one bucket and one path.
 use dmsg_protocol::HANDLE_BUCKET_BITS;
 use ic_certification::hash_tree::{fork_hash, labeled_hash, leaf_hash};
-use ic_certification::{empty, fork, labeled, leaf, pruned, Hash, HashTree};
+use ic_certification::{Hash, HashTree, empty, fork, labeled, leaf, pruned};
 use ic_stable_structures::Memory;
 
 const BITS: u32 = HANDLE_BUCKET_BITS;

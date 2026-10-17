@@ -1,5 +1,5 @@
 //! Directory-only Wasm regressions; no payment, COSE or user fixture is needed.
-use candid::{utils::ArgumentEncoder, CandidType, Principal};
+use candid::{CandidType, Principal, utils::ArgumentEncoder};
 use dmsg_protocol::{agent, sha256};
 use dmsg_types::{agent::*, *};
 use ed25519_dalek::SigningKey;
@@ -349,9 +349,11 @@ fn governance_appends_homes_replaces_domains_and_upgrades_keep_configuration() {
     let home = f.homes[1];
     let rendered: std::result::Result<String, String> =
         f.query("validate_admin_add_user_home", (home,));
-    assert!(rendered
-        .unwrap()
-        .starts_with(&format!("Add user home {home}")));
+    assert!(
+        rendered
+            .unwrap()
+            .starts_with(&format!("Add user home {home}"))
+    );
     let rejected: std::result::Result<String, String> =
         f.query("validate_admin_add_user_home", (Principal::anonymous(),));
     assert_eq!(rejected, Err("AuthRequired".into()));
@@ -477,7 +479,9 @@ fn directory_cost_and_rebuild_profile() {
             .unwrap()
             .memory_metrics
             .wasm_memory_size;
-    println!("directory_rebuild records=130 heap_before={before_heap} heap_after={after_heap} cycles={cycles}");
+    println!(
+        "directory_rebuild records=130 heap_before={before_heap} heap_after={after_heap} cycles={cycles}"
+    );
     for i in [1, 64, 128] {
         let id = f.id(0, 1_000 + i);
         assert_eq!(

@@ -15,7 +15,7 @@ use crate::home::Home;
 use crate::locale::tr;
 use crate::release::{self, VERSION};
 use crate::remote::{Failure, Remote};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
@@ -123,7 +123,9 @@ pub async fn drain(home: &Home, interrupt: bool, wait: Duration) -> Result<(), F
         if Instant::now() >= deadline {
             return Err(Failure::new(
                 "BUSY",
-                format!("not stopped: {busy}; unlock so it settles, or use --interrupt (it resumes after the restart)"),
+                format!(
+                    "not stopped: {busy}; unlock so it settles, or use --interrupt (it resumes after the restart)"
+                ),
             ));
         }
         if !told {

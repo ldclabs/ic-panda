@@ -1,19 +1,19 @@
 use candid::{CandidType, Principal};
 use cbor2::{from_slice, to_vec};
 use ic_canister_sig_creation::{
-    signature_map::{CanisterSigInputs, SignatureMap, LABEL_SIG},
     DELEGATION_SIG_DOMAIN,
+    signature_map::{CanisterSigInputs, LABEL_SIG, SignatureMap},
 };
 use ic_cdk::api::certified_data_set;
-use ic_certification::{fork, fork_hash, labeled_hash, pruned, Hash, HashTree};
+use ic_certification::{Hash, HashTree, fork, fork_hash, labeled_hash, pruned};
 use ic_http_certification::{
-    cel::{create_cel_expr, DefaultCelBuilder},
     HttpCertification, HttpCertificationPath, HttpCertificationTree, HttpCertificationTreeEntry,
+    cel::{DefaultCelBuilder, create_cel_expr},
 };
 use ic_stable_structures::{
+    DefaultMemoryImpl, StableCell, Storable,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
-    DefaultMemoryImpl, StableCell, Storable,
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteArray;
@@ -221,8 +221,7 @@ mod tests {
         // pins the exact bytes it produced rather than round-tripping through
         // whichever encoder is current: a round trip passes even if the format
         // silently changes, and the upgrade would then read back garbage.
-        const DEPLOYED: &str =
-            "a567646f6d61696e73a16b6578616d706c652e636f6d7368747470733a2f2f6578616d\
+        const DEPLOYED: &str = "a567646f6d61696e73a16b6578616d706c652e636f6d7368747470733a2f2f6578616d\
 706c652e636f6d686e6f6e63655f69765820070707070707070707070707070707070707070707070707070707070707\
 07076973746174656d656e74675369676e20696e7573657373696f6e5f657870697265735f696e5f6d731a0036ee8073\
 676f7665726e616e63655f63616e697374657243010203";

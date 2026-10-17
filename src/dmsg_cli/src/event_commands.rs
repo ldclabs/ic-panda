@@ -5,7 +5,7 @@
 use crate::remote::{Failure, Remote};
 use crate::{pretty, print};
 use clap::Subcommand;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Subcommand)]
 pub enum EventsCommand {

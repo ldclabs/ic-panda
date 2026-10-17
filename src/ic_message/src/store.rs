@@ -3,21 +3,21 @@ use cbor2::{from_slice, to_vec};
 use ic_cdk_management_canister::SchnorrAlgorithm;
 use ic_certification::{HashTreeNode, Label};
 use ic_cose_types::types::{
+    PublicKeyOutput,
     namespace::CreateNamespaceInput,
     setting::{
         CreateSettingInput, CreateSettingOutput, SettingInfo, SettingPath, UpdateSettingOutput,
         UpdateSettingPayloadInput,
     },
-    PublicKeyOutput,
 };
 use ic_message_types::{
-    profile::{UpdateKVInput, UserInfo},
     NameBlock,
+    profile::{UpdateKVInput, UserInfo},
 };
 use ic_stable_structures::{
+    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
-    DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog, Storable,
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::{ByteArray, ByteBuf};
@@ -850,7 +850,7 @@ pub mod channel {
     use super::*;
     use crate::MINTER_CANISTER;
     use ic_message_types::channel::{
-        channel_kek_key, ChannelInfo, ChannelKEKInput, ChannelTopupInput, CreateChannelInput,
+        ChannelInfo, ChannelKEKInput, ChannelTopupInput, CreateChannelInput, channel_kek_key,
     };
 
     pub async fn create_channel(

@@ -1,8 +1,8 @@
 use agent_protocols::delegation::*;
 use agent_protocols::identity::{
-    is_controller_challenge, verify_controller_challenge, AgentId, AgentSigner, Envelope,
+    AgentId, AgentSigner, Envelope, is_controller_challenge, verify_controller_challenge,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 const ID: &str = "https://example.com/p";
 const ORIGIN: &str = "https://dmsg.net";

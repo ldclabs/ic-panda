@@ -6,13 +6,12 @@
 //!   <cose-canister-id> Production [mainnet|pocketic] [key_1]
 //! ```
 use candid::Principal;
-use dmsg_protocol::cose_pins::{content_root_public_key, master_key_pin, KeySource};
+use dmsg_protocol::cose_pins::{KeySource, content_root_public_key, master_key_pin};
 use dmsg_types::Environment;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let usage =
-        "usage: cose_pins <cose-canister-id> <Production|Staging|Local> [mainnet|pocketic] [key name]";
+    let usage = "usage: cose_pins <cose-canister-id> <Production|Staging|Local> [mainnet|pocketic] [key name]";
     let (Some(canister), Some(environment)) = (args.first(), args.get(1)) else {
         eprintln!("{usage}");
         std::process::exit(2);

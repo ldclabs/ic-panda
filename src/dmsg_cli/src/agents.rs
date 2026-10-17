@@ -14,10 +14,11 @@
 
 use crate::daemon::Daemon;
 use crate::params::{number, parse, source, text, to_json};
-use dmsg_agent::resources::{resource_list, resource_templates, Resource};
-use dmsg_agent::tools::{is_dmsg, is_read_only, is_standard, standard_capability, tool_list};
 use dmsg_agent::Scope;
+use dmsg_agent::resources::{Resource, resource_list, resource_templates};
+use dmsg_agent::tools::{is_dmsg, is_read_only, is_standard, standard_capability, tool_list};
 use dmsg_client::{
+    Client,
     agent::PrincipalChange,
     agents::AgentEntry,
     attest::StatementInput,
@@ -25,13 +26,13 @@ use dmsg_client::{
     error_code,
     library::catalog::ROOT,
     vault::{Filter, Item},
-    Client,
 };
 use dmsg_types::{
+    Error, Result,
     agent::{DelegationAuthority, PrincipalType},
-    ensure, Error, Result,
+    ensure,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::time::Duration;
 
 /// Most bytes one `dmsg_files_read` returns.
@@ -951,7 +952,7 @@ mod tests {
 
     #[test]
     fn every_standard_capability_is_granted_per_origin() {
-        use dmsg_client::agents::{validate_capability, HOST_CAPABILITIES};
+        use dmsg_client::agents::{HOST_CAPABILITIES, validate_capability};
         for tool in tool_list() {
             if let Some(name) = standard_capability(tool["name"].as_str().unwrap()) {
                 assert!(HOST_CAPABILITIES.contains(&name), "{name}");

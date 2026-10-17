@@ -9,16 +9,15 @@
 
 use crate::codec::{b64, canonical, decode};
 use crate::config::Config;
-use crate::crypto::{random_id, random_key, signing_public, Key};
+use crate::crypto::{Key, random_id, random_key, signing_public};
 use candid::Principal;
-use dmsg_protocol::login::{validate_request, ED25519_SPKI_PREFIX};
+use dmsg_protocol::login::{ED25519_SPKI_PREFIX, validate_request};
 use dmsg_types::{
-    ensure, ensure_valid,
-    login::{LoginCallback, LoginErrorCode, LoginRequest, LOGIN_VERSION},
-    Error, Hash, Result, MINUTE,
+    Error, Hash, MINUTE, Result, ensure, ensure_valid,
+    login::{LOGIN_VERSION, LoginCallback, LoginErrorCode, LoginRequest},
 };
-use ic_agent::identity::{BasicIdentity, DelegatedIdentity, Delegation, SignedDelegation};
 use ic_agent::Identity;
+use ic_agent::identity::{BasicIdentity, DelegatedIdentity, Delegation, SignedDelegation};
 use serde::Deserialize;
 use std::sync::Arc;
 use zeroize::Zeroizing;

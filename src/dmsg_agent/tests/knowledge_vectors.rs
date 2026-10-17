@@ -2,11 +2,11 @@
 #![allow(clippy::result_large_err)]
 
 use agent_protocols::{
+    Result,
     identity::{self, AgentSigner, Envelope},
     knowledge::*,
-    Result,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 const SERVICE: &str = "https://knowledge.example.com";
 fn vectors() -> Value {
@@ -357,10 +357,12 @@ fn batch_and_search_cases() {
                 SERVICE,
             )?;
             assert_eq!(
-                json!(array(&response["result"])
-                    .iter()
-                    .map(|r| r["envelope"]["hash"].clone())
-                    .collect::<Vec<_>>()),
+                json!(
+                    array(&response["result"])
+                        .iter()
+                        .map(|r| r["envelope"]["hash"].clone())
+                        .collect::<Vec<_>>()
+                ),
                 case["result"]
             );
             assert_eq!(response["missing"], case["missing"]);

@@ -17,19 +17,19 @@ use crate::channel::{FileRef, Upload};
 use crate::client::Client;
 use crate::cloud::Evidence;
 use crate::codec::{b64, canonical, sha256, unb64};
-use crate::crypto::{hpke_open, hpke_seal, open, random_key, seal, HpkeEnvelope, Key};
+use crate::crypto::{HpkeEnvelope, Key, hpke_open, hpke_seal, open, random_key, seal};
 use crate::evidence::Verified;
-use crate::files::{read_file, store_file, FileManifest, Source, MAX_FILE};
+use crate::files::{FileManifest, MAX_FILE, Source, read_file, store_file};
 use crate::legacy::{self, Archive, Scope};
 use crate::legacy_proof::{
-    self, source_key, Approval, MemberClaim, SharedProposal, SharedSource, SourceInput, Trust,
+    self, Approval, MemberClaim, SharedProposal, SharedSource, SourceInput, Trust, source_key,
 };
 use crate::migration::{MIGRATION, REPORT_PAGE};
 use crate::now_ms;
 use crate::upload::random_hex;
-use dmsg_types::{ensure, ensure_valid, AccountId, Error, Result};
+use dmsg_types::{AccountId, Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use std::collections::BTreeMap;
 use std::str::FromStr;
 use zeroize::Zeroizing;
@@ -266,10 +266,12 @@ fn from_json<T: for<'de> Deserialize<'de>>(value: Json) -> Result<T> {
 /// The old-site links of an approval request.
 fn request_links(request: &Json) -> Json {
     let fragment = b64(request.to_string().as_bytes());
-    json!(legacy::ORIGINS
-        .iter()
-        .map(|o| format!("{o}/legacy#approve={fragment}"))
-        .collect::<Vec<_>>())
+    json!(
+        legacy::ORIGINS
+            .iter()
+            .map(|o| format!("{o}/legacy#approve={fragment}"))
+            .collect::<Vec<_>>()
+    )
 }
 
 impl Client {

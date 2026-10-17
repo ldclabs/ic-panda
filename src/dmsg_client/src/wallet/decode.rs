@@ -4,7 +4,7 @@
 //! anyone cosigns or broadcasts. A mismatch is refused, whichever side is
 //! wrong.
 use dmsg_protocol::wallet::*;
-use dmsg_types::{ensure, invalid, wallet::*, Error, Hash, Result};
+use dmsg_types::{Error, Hash, Result, ensure, invalid, wallet::*};
 use sha2::{Digest, Sha256};
 use sha3::Keccak256;
 

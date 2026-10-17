@@ -12,7 +12,7 @@
 use crate::client::Client;
 use crate::ic::Ic;
 use candid::{Nat, Principal};
-use dmsg_types::{ensure, Error, Result};
+use dmsg_types::{Error, Result, ensure};
 use icrc_ledger_types::icrc1::account::Account;
 use icrc_ledger_types::icrc1::transfer::{Memo, TransferArg, TransferError};
 use icrc_ledger_types::icrc2::allowance::{Allowance, AllowanceArgs};

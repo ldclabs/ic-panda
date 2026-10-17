@@ -5,7 +5,7 @@ use crate::{
 };
 use candid::Principal;
 use dmsg_protocol::{billing::*, *};
-use dmsg_runtime::admin::{self, hex, validation, Validation};
+use dmsg_runtime::admin::{self, Validation, hex, validation};
 use dmsg_runtime::storage::MapExt;
 use dmsg_types::{billing::*, integration::LEASE_RENEW_WINDOW_MS, membership::*, *};
 
@@ -386,7 +386,7 @@ async fn get_execution_entitlement(
                 &month_catalogs(month, at)?,
                 at,
                 next_catalog_at(at),
-            )
+            );
         }
         Err(e) => return Err(e),
     };

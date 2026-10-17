@@ -160,7 +160,7 @@ fn attachments_carry_the_file_key() {
 
 #[test]
 fn messages_page_by_sequence_and_uploads_are_held_until_they_lapse() {
-    use crate::testing::{unlocked, TempDir};
+    use crate::testing::{TempDir, unlocked};
 
     let dir = TempDir::new();
     let client = unlocked(&dir.0, false, None);

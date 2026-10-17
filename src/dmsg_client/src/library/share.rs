@@ -10,10 +10,10 @@ use super::Client;
 use crate::codec::b64;
 use crate::crypto::random_key;
 use crate::files::{
-    chunk_count, read_chunks, seal_chunk, BlobStore, FileChunk, FileManifest, MAX_FILE,
+    BlobStore, FileChunk, FileManifest, MAX_FILE, chunk_count, read_chunks, seal_chunk,
 };
 use crate::upload::random_hex;
-use dmsg_types::{ensure, Error, Result};
+use dmsg_types::{Error, Result, ensure};
 use zeroize::Zeroizing;
 
 /// Re-encrypt the file of `source`, whose chunks are in `from`, under `key`

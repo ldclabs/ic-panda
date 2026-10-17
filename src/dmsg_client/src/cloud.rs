@@ -9,11 +9,11 @@
 //! deadline.
 
 use crate::codec::{b64, canonical, decode, decode_value, sha256, unb64};
-use crate::crypto::{sign, Key};
+use crate::crypto::{Key, sign};
 use cbor2::Value;
 use dmsg_protocol::verify;
-use dmsg_types::{ensure, user::Device, Error, Hash, Result};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use dmsg_types::{Error, Hash, Result, ensure, user::Device};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_bytes::{ByteBuf, Bytes};
 use serde_json::Value as Json;
 use std::collections::BTreeMap;
@@ -227,8 +227,12 @@ impl SignedCommand {
         let Value::Array(items) = decode_value(&bytes[1..], 262_144)? else {
             return Err(Error::IntegrityFailed);
         };
-        let [Value::Bytes(protected), Value::Map(unprotected), Value::Bytes(payload), Value::Bytes(signature)] =
-            <[Value; 4]>::try_from(items).map_err(|_| Error::IntegrityFailed)?
+        let [
+            Value::Bytes(protected),
+            Value::Map(unprotected),
+            Value::Bytes(payload),
+            Value::Bytes(signature),
+        ] = <[Value; 4]>::try_from(items).map_err(|_| Error::IntegrityFailed)?
         else {
             return Err(Error::IntegrityFailed);
         };
@@ -551,7 +555,7 @@ impl Cloud {
                 return Err(match mutation {
                     true => Error::ExecutionUnknown,
                     false => Error::Unavailable(format!("relay: HTTP {status}")),
-                })
+                });
             }
             Err(_) => return Err(Error::IntegrityFailed),
         };

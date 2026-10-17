@@ -6,7 +6,7 @@ use crate::locale::tr;
 use crate::remote::{Failure, Remote};
 use crate::{pretty, print, read_json};
 use clap::Subcommand;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::PathBuf;
 
 /// Team wallets: one canister per team, holding ICP and ICRC tokens and

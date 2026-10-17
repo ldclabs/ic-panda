@@ -41,9 +41,11 @@ fn changes_survive_the_approval_record() {
             nonce: Hash::new([1; 32]),
         }
     );
-    assert!(AccountChange::RemoveLogin {
-        principal: "not a principal".into()
-    }
-    .command()
-    .is_err());
+    assert!(
+        AccountChange::RemoveLogin {
+            principal: "not a principal".into()
+        }
+        .command()
+        .is_err()
+    );
 }

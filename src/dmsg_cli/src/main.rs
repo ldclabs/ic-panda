@@ -40,7 +40,7 @@ use clap::{Parser, Subcommand};
 use home::Home;
 use locale::tr;
 use remote::{Failure, Remote};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::time::Duration;

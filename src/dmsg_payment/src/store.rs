@@ -5,8 +5,8 @@ use dmsg_runtime::cert_map::CertMap;
 use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
 use dmsg_types::{payment::*, *};
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use std::{cell::RefCell, collections::BTreeMap};
 

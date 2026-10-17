@@ -24,9 +24,11 @@ fn taproot_tweak_matches_the_chain_key_signer() {
         let key = k256::schnorr::VerifyingKey::from_bytes((&q).into()).unwrap();
         let sig = k256::schnorr::Signature::try_from(&sig[..]).unwrap();
         key.verify_raw(&message, &sig).unwrap();
-        assert!(secret
-            .public_key()
-            .verify_bip341_signature(&message, &sig.to_bytes(), tree));
+        assert!(
+            secret
+                .public_key()
+                .verify_bip341_signature(&message, &sig.to_bytes(), tree)
+        );
     }
 }
 
@@ -107,16 +109,20 @@ fn bech32_reference_vectors() {
     );
     // Wrong network, mixed case and a broken checksum are refused.
     assert!(btc_script(BtcNetwork::Testnet, v1).is_err());
-    assert!(btc_script(
-        BtcNetwork::Mainnet,
-        "bc1P0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0"
-    )
-    .is_err());
-    assert!(btc_script(
-        BtcNetwork::Mainnet,
-        "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj1"
-    )
-    .is_err());
+    assert!(
+        btc_script(
+            BtcNetwork::Mainnet,
+            "bc1P0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0"
+        )
+        .is_err()
+    );
+    assert!(
+        btc_script(
+            BtcNetwork::Mainnet,
+            "bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj1"
+        )
+        .is_err()
+    );
     // A v1 program checksummed as bech32 instead of bech32m is refused.
     let mut values = vec![1u8];
     values.extend(convert(&g));
@@ -597,13 +603,15 @@ fn intent_shapes() {
         max_fee: 1,
     };
     assert!(validate_intent(&evm_batch).is_err());
-    assert!(validate_intent(&Intent::AddAddress {
-        chain: Chain::Icp,
-        kind: AddressKind::Segwit,
-        label: String::new(),
-        cosign: None,
-    })
-    .is_err());
+    assert!(
+        validate_intent(&Intent::AddAddress {
+            chain: Chain::Icp,
+            kind: AddressKind::Segwit,
+            label: String::new(),
+            cosign: None,
+        })
+        .is_err()
+    );
 }
 
 #[test]

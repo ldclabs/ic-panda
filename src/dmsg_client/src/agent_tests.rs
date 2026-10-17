@@ -1,18 +1,18 @@
-use crate::agent::{agent_id, controller_item, sign_delegation, DelegationKind, MAX_GRANT_DAYS};
-use crate::agents::{agent_item, covers, validate_capability, MAX_GRANTS};
+use crate::agent::{DelegationKind, MAX_GRANT_DAYS, agent_id, controller_item, sign_delegation};
+use crate::agents::{MAX_GRANTS, agent_item, covers, validate_capability};
 use crate::crypto::signing_public;
 use crate::secure::SecureStorage;
-use crate::testing::{account, unlocked, MemoryStorage, TempDir};
+use crate::testing::{MemoryStorage, TempDir, account, unlocked};
 use agent_protocols::delegation::{
-    materialize_delegation_credential, validate_delegation_acceptance, DelegationStatus,
-    PrincipalDocument,
+    DelegationStatus, PrincipalDocument, materialize_delegation_credential,
+    validate_delegation_acceptance,
 };
-use agent_protocols::identity::{verify_envelope, AgentSigner};
+use agent_protocols::identity::{AgentSigner, verify_envelope};
 use candid::Principal;
 use dmsg_protocol::agent::render_principal_document;
 use dmsg_types::{
+    DAY, Environment, Error, Hash,
     agent::{DelegationAuthority, DirectoryInit, HostedController, PrincipalState, PrincipalType},
-    Environment, Error, Hash, DAY,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -258,10 +258,12 @@ fn mail_keys_are_sealed_and_a_resident_agent_keeps_a_copy() {
         keys(&[("pk2", "s2"), ("pk3", "s3")])
     );
     let workspace = client.workspace.name().unwrap();
-    assert!(storage
-        .get(&format!("{workspace}:agent-mail:{agent}"))
-        .unwrap()
-        .is_none());
+    assert!(
+        storage
+            .get(&format!("{workspace}:agent-mail:{agent}"))
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[test]
@@ -321,10 +323,12 @@ fn a_resident_agent_is_checked_against_a_copy_of_its_grants() {
         Error::Locked
     );
     let workspace = client.workspace.name().unwrap();
-    assert!(storage
-        .get(&format!("{workspace}:agent-grants:{agent}"))
-        .unwrap()
-        .is_none());
+    assert!(
+        storage
+            .get(&format!("{workspace}:agent-grants:{agent}"))
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[test]

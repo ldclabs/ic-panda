@@ -1,7 +1,7 @@
 use crate::{http, store::*};
 use candid::Principal;
 use dmsg_protocol::{agent, digest, sha256};
-use dmsg_runtime::admin::{self, validation, Validation};
+use dmsg_runtime::admin::{self, Validation, validation};
 use dmsg_types::{agent::*, *};
 use ic_http_certification::{HttpRequest, HttpResponse};
 

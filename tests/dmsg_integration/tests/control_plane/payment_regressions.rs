@@ -721,7 +721,10 @@ fn payment_scale_profile() {
                     canonical(expected)
                 );
             }
-            println!("payment_growth orders={count} upgrade_cycles={cycles} stable_bytes={} wasm_bytes={}", status.memory_metrics.stable_memory_size, status.memory_metrics.wasm_memory_size);
+            println!(
+                "payment_growth orders={count} upgrade_cycles={cycles} stable_bytes={} wasm_bytes={}",
+                status.memory_metrics.stable_memory_size, status.memory_metrics.wasm_memory_size
+            );
         }
     }
     let exhausted: Result<EscrowInfo> = update(

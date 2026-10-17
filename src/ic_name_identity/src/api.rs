@@ -1,14 +1,14 @@
 use candid::{CandidType, Principal};
 use cbor2::to_writer;
 use ic_auth_types::{Delegation, SignInResponse, SignedDelegation};
-use ic_auth_verifier::{user_public_key_from_der, verify_basic_sig, Algorithm};
-use ic_canister_sig_creation::{delegation_signature_msg, CanisterSigPublicKey};
+use ic_auth_verifier::{Algorithm, user_public_key_from_der, verify_basic_sig};
+use ic_canister_sig_creation::{CanisterSigPublicKey, delegation_signature_msg};
 use ic_cdk::call::Call;
 use serde::Deserialize;
 use serde_bytes::ByteBuf;
 
 use crate::types::{Delegator, NameAccount};
-use crate::{store, NAMECHAIN_CANISTER};
+use crate::{NAMECHAIN_CANISTER, store};
 
 const NANOSECONDS_PER_MILLISECOND: u64 = 1_000_000;
 const MAX_NAME_BYTES: usize = 64;

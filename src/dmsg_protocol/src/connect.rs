@@ -3,7 +3,7 @@
 //! operation digests, pairing IDs and MACs, the sealing contexts, and the
 //! structural checks of requests and grants. Nothing here touches a key.
 use crate::{canonical, digest, validate_origin};
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD};
 use dmsg_types::{connect::*, *};
 use hmac::{KeyInit, Mac, SimpleHmac};
 use serde_bytes::Bytes;

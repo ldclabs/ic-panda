@@ -490,7 +490,7 @@ pub(crate) fn apply(
         | AccountCommand::RetireController { .. }
         | AccountCommand::MarkControllerCompromised { .. }
         | AccountCommand::RenameController { .. } => {
-            return Err(invalid("principal commands use the principal record"))
+            return Err(invalid("principal commands use the principal record"));
         }
     }
     let receipt = finish(&mut next, &m.approval, fp);

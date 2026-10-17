@@ -1,7 +1,7 @@
 //! Host-built capacity images: the canister's own stable records and certification
 //! tree, which `commerce_capacity_profile` loads into PocketIC.
 use crate::{
-    checkout_model::{fixture, Order},
+    checkout_model::{Order, fixture},
     checkout_store,
     model::{self, Subject},
     store::{self, RAW},

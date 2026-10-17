@@ -1,7 +1,7 @@
 use candid::Principal;
 use dmsg_types::*;
 use ed25519_dalek::{Signature, VerifyingKey};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 
 /// Reject anonymous and management-canister Principals.

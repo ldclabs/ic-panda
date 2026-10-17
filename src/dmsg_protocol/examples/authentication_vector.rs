@@ -2,7 +2,7 @@
 use candid::Principal;
 use dmsg_protocol::{canonical, integration::*};
 use dmsg_types::{integration::*, *};
-use ic_certification::{fork, labeled, leaf, Certificate};
+use ic_certification::{Certificate, fork, labeled, leaf};
 fn fixture() -> (CertifiedBatch, AuthenticationRequest, Vec<u8>) {
     let home = Principal::from_slice(&[1, 1]);
     let at = 1_800_000_000_000u64;

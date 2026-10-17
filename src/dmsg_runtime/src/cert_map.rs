@@ -21,7 +21,7 @@
 use crate::certified::{certified_batch, query_certificate};
 use dmsg_types::*;
 use ic_certification::hash_tree::{fork_hash, labeled_hash};
-use ic_certification::{empty, fork, labeled, leaf, pruned, Hash, HashTree};
+use ic_certification::{Hash, HashTree, empty, fork, labeled, leaf, pruned};
 use ic_stable_structures::{Memory, StableBTreeMap};
 
 pub use ic_certification::hash_tree::leaf_hash;

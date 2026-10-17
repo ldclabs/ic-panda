@@ -9,9 +9,9 @@ pub mod name_tree;
 pub mod stable_types;
 pub mod storage;
 pub use budget::Budget;
-pub use certified::{certified_batch, query_certificate, MAX_CERTIFIED_RESPONSE_BYTES};
+pub use certified::{MAX_CERTIFIED_RESPONSE_BYTES, certified_batch, query_certificate};
 mod calls;
-pub use calls::{call, call_classified, CallFailure};
+pub use calls::{CallFailure, call, call_classified};
 
 /// Retained executions (attestations and recovery derivations) per account.
 pub const WINDOW: usize = 64;

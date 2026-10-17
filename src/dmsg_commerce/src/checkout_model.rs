@@ -350,8 +350,8 @@ pub fn transfer_result(
     >,
 ) -> Result<Option<u128>> {
     use dmsg_runtime::{
-        ledger::{block_index, token_amount},
         CallFailure,
+        ledger::{block_index, token_amount},
     };
     use icrc_ledger_types::icrc1::transfer::TransferError;
     let (code, expected_fee, transport) = match response {

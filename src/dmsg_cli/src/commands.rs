@@ -7,7 +7,7 @@ use crate::locale::tr;
 use crate::remote::{Failure, Remote};
 use crate::{absolute, pretty, print};
 use clap::Subcommand;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::PathBuf;
 
 #[derive(Subcommand)]

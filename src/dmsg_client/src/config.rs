@@ -3,7 +3,7 @@
 //! tool or remote party can change them.
 
 use candid::Principal;
-use dmsg_types::{ensure_valid, Environment, Result};
+use dmsg_types::{Environment, Result, ensure_valid};
 use url::Url;
 
 /// The dmsg-login/1 page.

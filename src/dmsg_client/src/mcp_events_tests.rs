@@ -1,6 +1,6 @@
 use super::*;
 use crate::crypto::{hpke_seal, sign, signing_public};
-use crate::testing::{unlocked, TempDir};
+use crate::testing::{TempDir, unlocked};
 
 const NOW: u64 = 1_790_000_000_000;
 const SECRET: &str = "whsec_MfKQ9r8GKYqrTwjUPD8ILPZIo2LaLaSw";

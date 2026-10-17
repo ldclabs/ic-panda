@@ -5,7 +5,7 @@
 //! here, so a relay cannot invent a member or a role.
 
 use crate::codec::digest;
-use dmsg_types::{ensure, Error, Result, DAY};
+use dmsg_types::{DAY, Error, Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 

@@ -10,10 +10,10 @@
 
 use candid::Principal;
 use dmsg_client::config::{
-    parse_environment, Config, LegacyConfig, WalletSettings, CONNECT_URL, LOGIN_URL,
+    CONNECT_URL, Config, LOGIN_URL, LegacyConfig, WalletSettings, parse_environment,
 };
 use dmsg_client::secure::SecureStorage;
-use dmsg_types::{Error, Result, MINUTE};
+use dmsg_types::{Error, MINUTE, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
@@ -426,10 +426,12 @@ mod tests {
         assert_eq!(settings.agent_hosts.len(), 4);
         // The relay is the account principal's delegation and profile service,
         // which the connector reaches only as an allowed host.
-        assert!(settings
-            .agent_hosts
-            .iter()
-            .any(|h| h.host == settings.config.relay));
+        assert!(
+            settings
+                .agent_hosts
+                .iter()
+                .any(|h| h.host == settings.config.relay)
+        );
         dmsg_agent::Runtime::new(&dmsg_agent::Options {
             hosts: settings.agent_hosts.clone(),
             ..dmsg_agent::Options::default()

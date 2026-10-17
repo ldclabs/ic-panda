@@ -1,15 +1,15 @@
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use candid::{Nat, Principal};
 use cbor2::from_slice;
 use icrc_ledger_types::icrc1::account::Account;
-use lib_panda::{bytes32_from_base64, sha256, Cryptogram};
+use lib_panda::{Cryptogram, bytes32_from_base64, sha256};
 use serde_bytes::ByteBuf;
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Duration;
 
 use crate::{
-    icp_transfer_to, is_authenticated, is_controller, store, token_transfer_to, types,
     AIRDROP108_TIME_NS, AIRDROP108_TOKENS, ANONYMOUS, DAO_CANISTER, ICP_1, SECOND, TOKEN_1,
+    icp_transfer_to, is_authenticated, is_controller, store, token_transfer_to, types,
 };
 
 #[ic_cdk::update(guard = "is_controller")]

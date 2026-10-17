@@ -4,13 +4,13 @@
 //! `DMSG_WRITE_WALLET_VECTORS=1 cargo test -p dmsg_protocol wallet::vector_tests`.
 use super::*;
 use crate::{canonical, sha256};
-use cbor2::{value::Integer, Value};
+use cbor2::{Value, value::Integer};
 use dmsg_types::billing::PlanId;
 use ic_secp256k1::PrivateKey;
 use icrc_ledger_types::icrc1::account::Account;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 
 const VECTORS: &str = "../../tests/vectors/wallet/protocol-v1.json";
 

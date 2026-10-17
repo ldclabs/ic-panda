@@ -1,6 +1,6 @@
 //! Readers for the language-independent vectors in `tests/vectors/client`.
 
-use cbor2::{value::Integer, Value};
+use cbor2::{Value, value::Integer};
 use serde_json::Value as Json;
 
 /// Parse a vector file by name.

@@ -143,11 +143,13 @@ fn wraps_bundles_that_open_with_their_chain() {
     )
     .unwrap();
     let bundle = parse_bundle(&second).unwrap();
-    assert!(bundle
-        .body
-        .envelopes
-        .windows(2)
-        .all(|w| w[0].device < w[1].device));
+    assert!(
+        bundle
+            .body
+            .envelopes
+            .windows(2)
+            .all(|w| w[0].device < w[1].device)
+    );
     let digests = bundle_digests(&bundle).unwrap();
     for (device, seed) in &seeds {
         let (root, history) = open_root(
@@ -171,15 +173,17 @@ fn wraps_bundles_that_open_with_their_chain() {
         assert_eq!(*root, first_root);
     }
     // The signer must be a recipient.
-    assert!(wrap_root(
-        &context(1),
-        &first_root,
-        &recipients,
-        &recovery,
-        (&Hash::new([3; 32]), &signer.1),
-        None
-    )
-    .is_err());
+    assert!(
+        wrap_root(
+            &context(1),
+            &first_root,
+            &recipients,
+            &recovery,
+            (&Hash::new([3; 32]), &signer.1),
+            None
+        )
+        .is_err()
+    );
 }
 
 /// A vetKD derivation the PocketIC control-plane test produced for account

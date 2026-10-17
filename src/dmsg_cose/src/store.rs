@@ -1,10 +1,10 @@
 use crate::model;
-use dmsg_runtime::storage::{compact_bytes, compact_from_bytes, CompactStored, MapExt};
 use dmsg_runtime::Budget;
+use dmsg_runtime::storage::{CompactStored, MapExt, compact_bytes, compact_from_bytes};
 use dmsg_types::{cose::*, *};
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, RestrictedMemory, StableBTreeMap, StableCell,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use std::{cell::RefCell, collections::BTreeSet};
 
@@ -354,10 +354,12 @@ mod tests {
         assert_eq!(execution(&account, 2), Ok(unknown(2)));
         let resolved = home(&account).unwrap();
         assert_eq!(resolved.closed_sequence, 2);
-        assert!(resolved
-            .executions
-            .values()
-            .all(|e| e.state == model::ExecutionState::Unknown));
+        assert!(
+            resolved
+                .executions
+                .values()
+                .all(|e| e.state == model::ExecutionState::Unknown)
+        );
         assert_eq!(unknown_count(), 2);
     }
 

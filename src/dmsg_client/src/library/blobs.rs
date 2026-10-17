@@ -8,7 +8,7 @@
 use crate::codec::sha256;
 use crate::files::BlobStore;
 use crate::storage;
-use dmsg_types::{ensure, Error, Result};
+use dmsg_types::{Error, Result, ensure};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};

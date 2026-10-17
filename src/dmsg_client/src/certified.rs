@@ -4,7 +4,7 @@
 //! the returned bytes or proven absent; nothing else is accepted.
 
 use candid::Principal;
-use dmsg_types::{ensure, CertifiedBatch, Error, Result};
+use dmsg_types::{CertifiedBatch, Error, Result, ensure};
 use ic_certification::{HashTree, LookupResult};
 
 /// The leaf of `entry_key` in `batch`, at `path` in the canister's tree

@@ -29,7 +29,7 @@
 use crate::home::Home;
 use crate::remote::{Failure, Remote};
 use dmsg_client::mcp_events::EVENT_NAME;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::{BTreeSet, HashMap};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::{Arc, Mutex};

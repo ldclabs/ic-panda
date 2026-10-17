@@ -2,13 +2,13 @@ use crate::model::Subject;
 use candid::Principal;
 use dmsg_protocol::billing::*;
 use dmsg_runtime::{
-    cert_map::{leaf_hash, CertMap},
+    cert_map::{CertMap, leaf_hash},
     storage::{CompactStored, MapExt, Stored},
 };
 use dmsg_types::{billing::*, membership::*, *};
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::BTreeMap};

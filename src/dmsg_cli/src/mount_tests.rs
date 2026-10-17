@@ -1,6 +1,6 @@
 use super::*;
 use dmsg_client::library::catalog::Origin;
-use dmsg_client::testing::{unlocked, TempDir};
+use dmsg_client::testing::{TempDir, unlocked};
 use futures_util::StreamExt;
 
 const PREFIX: &str = "/dav/t/dMsg";
@@ -369,12 +369,14 @@ async fn folders_moves_copies_and_deletes_map_to_the_library() {
     );
     // The file inside went with its folder, not on its own.
     assert_eq!(trash.files.len(), 1);
-    assert!(client
-        .files_show(&report.id)
-        .unwrap()
-        .file
-        .trashed_at
-        .is_none());
+    assert!(
+        client
+            .files_show(&report.id)
+            .unwrap()
+            .file
+            .trashed_at
+            .is_none()
+    );
     client
         .files_restore(std::slice::from_ref(&archive.id))
         .unwrap();

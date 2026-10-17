@@ -7,7 +7,7 @@
 use crate::{commerce::Month, execution, state::*, store::*};
 use candid::Principal;
 use dmsg_protocol::{billing::month_utc, canonical, digest, execution_receipt_key};
-use dmsg_runtime::{cert_map::leaf_hash, storage::MapExt, Budget};
+use dmsg_runtime::{Budget, cert_map::leaf_hash, storage::MapExt};
 use dmsg_types::{billing::*, user::*, *};
 use ed25519_dalek::SigningKey;
 use ic_auth_types::XidGenerator;

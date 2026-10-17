@@ -15,26 +15,25 @@
 //! deadline the payer recovers the funds from the canister alone.
 
 use crate::client::Client;
-use crate::cloud::{sign_command, Evidence};
-use crate::codec::{b64, canonical, decode, digest, sha256, unb64, MAX_RECORD};
-use crate::crypto::{hpke_open, hpke_public, hpke_seal, random_key, sign, HpkeEnvelope};
+use crate::cloud::{Evidence, sign_command};
+use crate::codec::{MAX_RECORD, b64, canonical, decode, digest, sha256, unb64};
+use crate::crypto::{HpkeEnvelope, hpke_open, hpke_public, hpke_seal, random_key, sign};
 use crate::now_ms;
 use crate::payer::{memo, transfer_call};
 use crate::payment::{
-    escrow_view, Payment, Terms, Wire, WireAccount, WireQuote, WireSignedOffer, WireSignedReceipt,
+    Payment, Terms, Wire, WireAccount, WireQuote, WireSignedOffer, WireSignedReceipt, escrow_view,
 };
 use crate::upload::random_hex;
 use candid::Principal;
 use dmsg_types::{
-    ensure, ensure_valid,
+    AccountId, Ed25519Signature, Error, Hash, Result, ensure, ensure_valid,
     payment::{EscrowInfo, FundsDecision, LegStatus, PaymentOffer, SignedOffer},
     profiles::delivery::OpenEscrow,
     user::Capability,
-    AccountId, Ed25519Signature, Error, Hash, Result,
 };
 use icrc_ledger_types::icrc1::{account::Account, transfer::TransferArg};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use zeroize::Zeroizing;
 
 /// Content kind of an inbox key.

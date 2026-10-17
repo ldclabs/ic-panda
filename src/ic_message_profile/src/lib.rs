@@ -1,4 +1,4 @@
-use candid::{utils::ArgumentEncoder, Principal};
+use candid::{Principal, utils::ArgumentEncoder};
 use ic_cdk_management_canister::CanisterStatusResult;
 use ic_cose_types::ANONYMOUS;
 use ic_message_types::migration::{FreezeStatus, PendingWrite, SnapshotPage, SnapshotScope};

@@ -2,10 +2,10 @@
 use crate::store;
 use candid::Principal;
 use dmsg_protocol::{canonical, digest, integration::*};
-use dmsg_runtime::admin::{self, hex, validation, Validation};
+use dmsg_runtime::admin::{self, Validation, hex, validation};
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_types::{integration::*, *};
-use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
+use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, memory_manager::VirtualMemory};
 use std::cell::RefCell;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;

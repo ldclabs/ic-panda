@@ -1,7 +1,7 @@
 //! `dmsg-commerce/1`: fixed subscription terms, resource leases and merchant accounting.
 //! Amounts are ledger atomic units; times are Unix milliseconds unless explicitly named.
 //! Constructing or decoding these records performs no validation or authorization.
-use crate::{membership::*, Environment, Hash};
+use crate::{Environment, Hash, membership::*};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 

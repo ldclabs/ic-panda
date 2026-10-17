@@ -1,6 +1,6 @@
 //! Bitcoin transactions: version 2, RBF inputs, Taproot key-path and
 //! native two-key script-path spends (BIP-341/342) and P2WPKH (BIP-143).
-use super::{dest_text, Built};
+use super::{Built, dest_text};
 use crate::store::{SignSpec, Wallet};
 use cbor2::Cbor;
 use dmsg_protocol::wallet::*;

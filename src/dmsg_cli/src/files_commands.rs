@@ -4,7 +4,7 @@ use crate::locale::tr;
 use crate::remote::{Failure, Remote};
 use crate::{absolute, pretty, print, short};
 use clap::Subcommand;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::PathBuf;
 
 /// The file library: folders, files and their versions, encrypted on this

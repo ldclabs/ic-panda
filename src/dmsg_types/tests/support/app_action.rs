@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use candid::Principal;
-use dmsg_types::{app_action::*, integration::*, AccountId, Environment, Hash};
+use dmsg_types::{AccountId, Environment, Hash, app_action::*, integration::*};
 
 /// Registration of the sample application that signs actions.
 pub fn app() -> AppRegistration {

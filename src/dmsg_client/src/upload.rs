@@ -5,7 +5,7 @@
 
 use crate::client::Client;
 use crate::files::{BlobStore, Source};
-use dmsg_types::{ensure, Error, Hash, Result};
+use dmsg_types::{Error, Hash, Result, ensure};
 use futures_util::future::try_join_all;
 use serde::{Deserialize, Serialize};
 

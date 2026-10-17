@@ -13,13 +13,12 @@ use crate::ic::Ic;
 use crate::now_ms;
 use candid::Principal;
 use dmsg_types::{
-    ensure,
+    AccountId, CertifiedBatch, Ed25519Signature, Error, Hash, Result, ensure,
     payment::{
         DeliveryFeePolicy, Deposit, EscrowInfo, PaymentConfiguration, PaymentOffer, ReceiptSigner,
         RefundQuote, SignedOffer, TransferLeg,
     },
     profiles::delivery::{AdmissionReceipt, OpenEscrow, Quote, SignedReceipt},
-    AccountId, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
 };
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};

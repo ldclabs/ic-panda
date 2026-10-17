@@ -1,13 +1,13 @@
 use ic_auth_types::{ByteArrayB64, ByteBufB64, SignInResponse};
 use ic_auth_verifier::keccak256;
-use ic_canister_sig_creation::{delegation_signature_msg, CanisterSigPublicKey};
+use ic_canister_sig_creation::{CanisterSigPublicKey, delegation_signature_msg};
 use k256::ecdsa::{RecoveryId, Signature, VerifyingKey};
 use sha3::{Digest, Keccak256};
 
 use crate::{
     helper::{
-        delegation_expiration_ns, prepare_sign_in_message, validate_sign_in_request,
-        verify_session_signature, SignInNetwork,
+        SignInNetwork, delegation_expiration_ns, prepare_sign_in_message, validate_sign_in_request,
+        verify_session_signature,
     },
     store,
 };

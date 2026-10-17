@@ -7,7 +7,7 @@ use crate::locale::tr;
 use crate::remote::{Failure, Remote};
 use crate::{absolute, open_browser, pretty, print, short, summary};
 use clap::Subcommand;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -416,7 +416,7 @@ pub async fn login(
             return Err(Failure::new(
                 "INVALID_INPUT",
                 "origin must be dmsg.net or panda.fans",
-            ))
+            ));
         }
     };
     let started = remote

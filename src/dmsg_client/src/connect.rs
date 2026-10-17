@@ -12,16 +12,16 @@
 //! the device already has becomes one more delivery channel of it.
 
 use crate::approval::{self, Action, State};
-use crate::attest::{statement_view, Subject};
+use crate::attest::{Subject, statement_view};
 use crate::client::Client;
 use crate::cloud::{sig_structure, verify_signed_command};
 use crate::codec::{b64, canonical, decode, sha256, unb64};
 use crate::crypto::{
-    aes_gcm_open, hpke_open_info, hpke_seal_auth, p256_verify, random_id, random_key, HpkeEnvelope,
-    Key,
+    HpkeEnvelope, Key, aes_gcm_open, hpke_open_info, hpke_seal_auth, p256_verify, random_id,
+    random_key,
 };
 use crate::now_ms;
-use base64::{engine::general_purpose::STANDARD, Engine};
+use base64::{Engine, engine::general_purpose::STANDARD};
 use candid::Principal;
 use cbor2::Value;
 use dmsg_protocol::{
@@ -33,17 +33,17 @@ use dmsg_protocol::{
     validate_statement,
 };
 use dmsg_types::{
+    AccountId, Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result, Statement,
+    StatementContent,
     connect::*,
     ensure,
     integration::{AppCapability, AppRegistration, AuthenticationRequest, SigningProfile},
     integration_billing::CheckoutRequest,
     user::{Capability, UserInit},
-    AccountId, Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result, Statement,
-    StatementContent,
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use std::collections::BTreeMap;
 
 /// Path of the pairing page on the bridge origin.
@@ -111,8 +111,12 @@ pub fn es256_open(cose: &[u8], kid: &Hash, typ: &str, spki: &[u8]) -> Result<Vec
     let Value::Array(items) = crate::codec::decode_value(&cose[1..], MAX_ENVELOPE)? else {
         return Err(Error::IntegrityFailed);
     };
-    let [Value::Bytes(protected), Value::Map(unprotected), Value::Bytes(payload), Value::Bytes(signature)] =
-        items.as_slice()
+    let [
+        Value::Bytes(protected),
+        Value::Map(unprotected),
+        Value::Bytes(payload),
+        Value::Bytes(signature),
+    ] = items.as_slice()
     else {
         return Err(Error::IntegrityFailed);
     };

@@ -116,7 +116,7 @@ mod tests {
     use super::*;
     use crate::store::STABLE_SCHEMA;
     use candid::Principal;
-    use dmsg_runtime::storage::{compact_bytes, compact_from_bytes, CompactStored};
+    use dmsg_runtime::storage::{CompactStored, compact_bytes, compact_from_bytes};
     use ic_stable_structures::{StableCell, VectorMemory};
 
     fn p(n: u32) -> Principal {

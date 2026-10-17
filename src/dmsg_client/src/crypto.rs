@@ -4,18 +4,18 @@
 
 use crate::codec::{b64, base64url, canonical, unb64};
 use aes_gcm::{
-    aead::{Aead, AeadInOut, KeyInit, Payload},
     Aes256Gcm,
+    aead::{Aead, AeadInOut, KeyInit, Payload},
 };
-use dmsg_types::{ensure, Error, Result};
+use dmsg_types::{Error, Result, ensure};
 use ed25519_dalek::{Signer, SigningKey};
 use hkdf::Hkdf;
 use hpke::{
+    Deserializable, Kem, OpModeR, OpModeS, Serializable,
     aead::AesGcm256,
     kdf::HkdfSha256,
     kem::X25519HkdfSha256,
     rand_core::{CryptoRng, UnwrapErr},
-    Deserializable, Kem, OpModeR, OpModeS, Serializable,
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::Bytes;

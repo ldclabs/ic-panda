@@ -17,13 +17,13 @@
 //! `pnpm install` done for `src/dmsg_connect`.
 mod support;
 
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use candid::Principal;
 use dmsg_protocol::{canonical, login::decode_request};
 use dmsg_types::login::{LoginCallback, LoginResult};
-use ic_agent::identity::{BasicIdentity, Delegation};
 use ic_agent::Identity;
-use serde_json::{json, Value};
+use ic_agent::identity::{BasicIdentity, Delegation};
+use serde_json::{Value, json};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -1077,9 +1077,7 @@ impl Env {
         // system credential store.
         let mut config = format!(
             "environment = \"local\"\nic_host = \"{ic_host}\"\nrelay = \"{relay}\"\nconnect_url = \"{connect}\"\nhandle = \"{}\"\nuser_homes = [\"{}\"]\nroot_key = \"{}\"\nsecure_storage = \"file\"\n",
-            deployment.handle,
-            deployment.user,
-            deployment.root_key_hex,
+            deployment.handle, deployment.user, deployment.root_key_hex,
         );
         let mut hosts = vec![];
         if options.agents || options.services {
@@ -1399,9 +1397,11 @@ fn two_desktop_devices_share_an_account() {
     a.run(&["sync"]);
     let listed = titles(a);
     assert_eq!(listed.len(), 3);
-    assert!(["alpha", "beta", "gamma"]
-        .iter()
-        .all(|t| listed.contains(&t.to_string())));
+    assert!(
+        ["alpha", "beta", "gamma"]
+            .iter()
+            .all(|t| listed.contains(&t.to_string()))
+    );
     assert_eq!(
         a.run(&["vault", "show", reply["id"].as_str().unwrap()])["item"]["body"],
         "hello from B"
@@ -1522,12 +1522,13 @@ fn two_desktop_devices_share_an_account() {
     assert!(b.run(&["recovery", "status"])["pending"].is_null());
     assert_eq!(b.fail(&["recovery", "complete"]), "NOT_FOUND");
     // The other account's workspace on B is untouched.
-    assert!(b
-        .run(&["accounts"])
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|a| a["account"] == second.as_str() && a["bound"] == true));
+    assert!(
+        b.run(&["accounts"])
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a["account"] == second.as_str() && a["bound"] == true)
+    );
 
     let status = b.run(&["status"]);
     assert_eq!(status["environment"], "local");
@@ -1657,11 +1658,12 @@ fn desktop_content_and_sync() {
     assert_eq!(added[0]["file"]["sha256"], sha256_hex(&big).as_str());
     assert_eq!(added[0]["file"]["status"], "local");
     assert_eq!(a.run(&["sync"])["sent"], 0);
-    assert!(b
-        .run(&["files", "cloud", "ls", "--refresh"])
-        .as_array()
-        .unwrap()
-        .is_empty());
+    assert!(
+        b.run(&["files", "cloud", "ls", "--refresh"])
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
     let backup = a.run(&["files", "backup", &file_id]);
     assert_eq!(backup["started"].as_array().unwrap().len(), 1, "{backup}");
     let shown = a.run(&["files", "show", &file_id]);
@@ -1699,11 +1701,12 @@ fn desktop_content_and_sync() {
         1
     );
     b.run(&["files", "cloud", "rm", &upload]);
-    assert!(b
-        .run(&["files", "cloud", "ls"])
-        .as_array()
-        .unwrap()
-        .is_empty());
+    assert!(
+        b.run(&["files", "cloud", "ls"])
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
     assert_eq!(
         b.run(&["files", "show", &file_id])["file"]["status"],
         "local"
@@ -1714,11 +1717,12 @@ fn desktop_content_and_sync() {
         sha256_hex(&std::fs::read(&again).unwrap()),
         sha256_hex(&big)
     );
-    assert!(a
-        .run(&["files", "cloud", "ls", "--refresh"])
-        .as_array()
-        .unwrap()
-        .is_empty());
+    assert!(
+        a.run(&["files", "cloud", "ls", "--refresh"])
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
     drop(big);
     eprintln!("100 MiB backup round trip done at {:?}", started.elapsed());
 
@@ -1787,11 +1791,12 @@ fn desktop_content_and_sync() {
         assert!(Instant::now() < deadline, "backup did not resume: {shown}");
         std::thread::sleep(Duration::from_secs(2));
     };
-    assert!(a
-        .run(&["files", "backup-status"])
-        .as_array()
-        .unwrap()
-        .is_empty());
+    assert!(
+        a.run(&["files", "backup-status"])
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
     let a_report = a.run(&["sync"]);
     let b_report = b.run(&["sync"]);
     assert_eq!(a_report["revisions"], b_report["revisions"]);
@@ -2229,10 +2234,12 @@ fn desktop_approvals_and_attestation() {
         .iter()
         .find(|d| d["current"] == true)
         .unwrap();
-    assert!(own["capabilities"]
-        .as_array()
-        .unwrap()
-        .contains(&json!("FormalApprove")));
+    assert!(
+        own["capabilities"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("FormalApprove"))
+    );
 
     // A file statement, approved here and verified elsewhere.
     let file = env.dir.join("release.txt");
@@ -2559,12 +2566,13 @@ fn desktop_web_connect() {
         .rpc(http, "approval/list", json!({"all": true}))
         .unwrap();
     // A sees the request only as handled elsewhere: nothing to decide.
-    assert!(all
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|r| r["detail"]["operation_id"] == op2.as_str())
-        .all(|r| r["state"] == "elsewhere"));
+    assert!(
+        all.as_array()
+            .unwrap()
+            .iter()
+            .filter(|r| r["detail"]["operation_id"] == op2.as_str())
+            .all(|r| r["state"] == "elsewhere")
+    );
     // The page confirms the result; the device records it.
     let returned = bridge
         .call(json!({"cmd": "ack", "connection": connection, "operation_id": op2}))
@@ -3058,10 +3066,12 @@ fn desktop_browser_connect() {
             .unwrap()["app"]
             .clone();
         let methods = browser.call(json!({"cmd": "connect", "app": app})).unwrap();
-        assert!(methods["methods"]
-            .as_array()
-            .unwrap()
-            .contains(&json!("signDocument")));
+        assert!(
+            methods["methods"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("signDocument"))
+        );
         let created = browser
             .call(json!({"cmd": "sign_document", "app": app, "text": format!("Signed in {name}"), "account": account, "issuer": issuer}))
             .unwrap();
@@ -3684,11 +3694,13 @@ fn desktop_commerce() {
 
     // The payer reads its orders and replays the original decision.
     let orders = a.run(&["ops", "orders"]);
-    assert!(orders["orders"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|o| o["order_id"] == id.as_str() && o["status"] == "Applied"));
+    assert!(
+        orders["orders"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|o| o["order_id"] == id.as_str() && o["status"] == "Applied")
+    );
     assert_eq!(a.run(&["ops", "reconcile-order", &id])["status"], "Applied");
 
     // A web application's checkout through the bridge: quoted on the
@@ -3861,11 +3873,13 @@ fn desktop_commerce() {
     assert_eq!(order["neuron"], "4d".repeat(32));
     // The neuron's controller reads the commitment it backs.
     let claims = c.run(&["ops", "claims"]);
-    assert!(claims["claims"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|c| c["claim_id"] == claim.as_str() && c["status"] == "CoolingDown"));
+    assert!(
+        claims["claims"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|c| c["claim_id"] == claim.as_str() && c["status"] == "CoolingDown")
+    );
     assert!(c.run(&["ops", "sweep"])["swept"].is_u64());
     env.finish();
 }
@@ -4258,10 +4272,12 @@ fn desktop_wallet() {
         })
         .collect();
     assert_eq!(chains, ["Icp", "Bitcoin", "Evm", "Solana"]);
-    assert!(shown["addresses"][1]["text"]
-        .as_str()
-        .unwrap()
-        .starts_with("bcrt1p"));
+    assert!(
+        shown["addresses"][1]["text"]
+            .as_str()
+            .unwrap()
+            .starts_with("bcrt1p")
+    );
     assert_eq!(shown["me"]["role"], "Admin");
     let member = |id: &str| {
         shown["members"]
@@ -4598,7 +4614,7 @@ impl Drop for McpClient {
 /// credential and its accepted records from the delegation service.
 fn delegation_verdict(env: &Env, account: &str, id: &str, audience: &str) -> Value {
     use agent_protocols::delegation::{
-        verify_delegation_credential, DelegationCredential, DelegationRecord, PrincipalDocument,
+        DelegationCredential, DelegationRecord, PrincipalDocument, verify_delegation_credential,
     };
     let d = &env.deployment;
     let http = &env.http;
@@ -4668,11 +4684,13 @@ fn desktop_agents() {
     assert_eq!(principal["published"], true, "{principal}");
     assert_eq!(principal["controllers"][0]["delegation"], "*");
     let vault = a.run(&["vault", "list"]);
-    assert!(vault
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|e| e["item"]["tags"] == json!(["dmsg-controller"])));
+    assert!(
+        vault
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e["item"]["tags"] == json!(["dmsg-controller"]))
+    );
 
     // Two hosted Agent IDs: one the CLI uses, one an MCP client.
     let host_agent = a.run(&["agent", "id", "create", "host"])["agent_id"]
@@ -4834,12 +4852,13 @@ fn desktop_agents() {
         )
         .unwrap_err();
     assert_eq!(foreign["code"], "permission_denied");
-    assert!(mcp
-        .tool(
+    assert!(
+        mcp.tool(
             "agent_protocols_host_add",
             json!({"host": "https://evil.test"})
         )
-        .is_err());
+        .is_err()
+    );
 
     // The CLI's agent opens a room; Claude joins it and speaks.
     let start = now_ms();
@@ -4941,11 +4960,13 @@ fn desktop_agents() {
         )
         .unwrap();
     assert_eq!(held["status"], "held", "{held}");
-    assert!(held["changes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|c| c["type"] == "room.update"));
+    assert!(
+        held["changes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|c| c["type"] == "room.update")
+    );
     let draft = held["draft"]["id"].as_str().unwrap().to_string();
 
     // A nonce another service saw, answered in the host's place: within
@@ -5000,11 +5021,13 @@ fn desktop_agents() {
         "agent.delegation.read",
     ]);
     let items = mcp.tool("dmsg_vault_list", json!({})).unwrap();
-    assert!(items
-        .as_array()
-        .unwrap()
-        .iter()
-        .all(|i| i.get("secret").is_none()));
+    assert!(
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|i| i.get("secret").is_none())
+    );
     let attest = mcp
         .tool(
             "dmsg_attest_request",
@@ -5089,11 +5112,13 @@ fn desktop_agents() {
         "FORBIDDEN"
     );
     let listed = mcp.tool("dmsg_vault_list", json!({})).unwrap();
-    assert!(listed
-        .as_array()
-        .unwrap()
-        .iter()
-        .all(|i| i["id"] != controller.as_str()));
+    assert!(
+        listed
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|i| i["id"] != controller.as_str())
+    );
     assert_eq!(
         mcp.tool(
             "dmsg_vault_write",
@@ -5176,11 +5201,13 @@ fn desktop_agents() {
     assert_eq!(hint["data"], json!({"kind": "inbox"}));
     assert_eq!(b.login(&http, 62).unwrap()["state"], "unlocked");
     let received = b.run(&["inbox", "list"]);
-    assert!(received
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|l| l["text"] == "Hello from Claude"));
+    assert!(
+        received
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|l| l["text"] == "Hello from Claude")
+    );
 
     // This principal's credentials, and a request to sign an application
     // action, which only an action.request grant allows.
@@ -5226,16 +5253,20 @@ fn desktop_agents() {
             .iter()
             .any(|e| e["action"] == action && e["outcome"] == outcome)
     };
-    assert!(by_claude
-        .iter()
-        .all(|e| e["actor"] == claude.as_str() && e["via"] == "mcp"));
+    assert!(
+        by_claude
+            .iter()
+            .all(|e| e["actor"] == claude.as_str() && e["via"] == "mcp")
+    );
     assert!(done(&by_claude, "dmsg_vault_list", "FORBIDDEN"));
     assert!(done(&by_claude, "dmsg_vault_write", "ok"));
     assert!(done(&by_claude, "dmsg_files_read", "ok"));
     assert!(done(&by_claude, "agent_protocols_room_send_message", "ok"));
-    assert!(!by_claude
-        .iter()
-        .any(|e| e["action"] == "agent_protocols_identity_current"));
+    assert!(
+        !by_claude
+            .iter()
+            .any(|e| e["action"] == "agent_protocols_identity_current")
+    );
     let read_item = by_claude
         .iter()
         .find(|e| e["action"] == "dmsg_vault_read" && e["outcome"] == "ok")
@@ -5270,10 +5301,12 @@ fn desktop_agents() {
     });
     let discovered = modern.request("server/discover", json!({"_meta": meta}));
     assert_eq!(discovered["result"]["resultType"], "complete");
-    assert!(discovered["result"]["supportedVersions"]
-        .as_array()
-        .unwrap()
-        .contains(&json!("2026-07-28")));
+    assert!(
+        discovered["result"]["supportedVersions"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("2026-07-28"))
+    );
     assert_eq!(
         discovered["result"]["capabilities"]["resources"]["subscribe"],
         true
@@ -6441,9 +6474,11 @@ fn desktop_release() {
     // `dmsg start` rewrote the new daemon's stderr; the run log (plan §13)
     // holds one line per call and per background change, and nothing but
     // event names, method and tool names, codes and numbers.
-    assert!(std::fs::read_to_string(a.home.join("logs/stderr.log"))
-        .unwrap()
-        .contains("dmsg daemon listening"));
+    assert!(
+        std::fs::read_to_string(a.home.join("logs/stderr.log"))
+            .unwrap()
+            .contains("dmsg daemon listening")
+    );
     let lines = a.run(&["logs", "-n", "100000"]);
     let lines: Vec<&str> = lines
         .as_array()
@@ -6458,9 +6493,11 @@ fn desktop_release() {
             .count()
             >= 2
     );
-    assert!(lines
-        .iter()
-        .any(|l| l.contains(" call method=account/create by=owner outcome=ok ms=")));
+    assert!(
+        lines
+            .iter()
+            .any(|l| l.contains(" call method=account/create by=owner outcome=ok ms="))
+    );
     assert!(lines.iter().any(|l| l.contains(" call method=vault/show ")));
     for line in &lines {
         let mut tokens = line.split(' ');
@@ -6882,10 +6919,12 @@ fn desktop_legacy() {
     let source_file = document(&env, "source.json", &source);
     let checked = a.run(&["legacy", "shared", "source", &source_file]);
     assert_eq!(checked["managers"], json!([owner]));
-    assert!(checked["members"]
-        .as_array()
-        .unwrap()
-        .contains(&json!(member)));
+    assert!(
+        checked["members"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(member))
+    );
     let draft = a.run(&["legacy", "shared", "prepare", &source_file]);
     let draft_file = document(&env, "draft.json", &draft);
     let request = a.run(&[
@@ -6896,10 +6935,12 @@ fn desktop_legacy() {
         "--manager",
         &owner,
     ]);
-    assert!(request["links"][0]
-        .as_str()
-        .unwrap()
-        .starts_with("https://dmsg.net/legacy#approve="));
+    assert!(
+        request["links"][0]
+            .as_str()
+            .unwrap()
+            .starts_with("https://dmsg.net/legacy#approve=")
+    );
     let approval = legacy.old_site(&env, 52, "approve", json!({"request": request["request"]}));
     let approval_file = document(&env, "approval.json", &approval);
     let view = a.run(&[

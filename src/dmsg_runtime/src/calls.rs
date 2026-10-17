@@ -1,4 +1,4 @@
-use candid::{utils::ArgumentEncoder, CandidType, Principal};
+use candid::{CandidType, Principal, utils::ArgumentEncoder};
 use dmsg_types::{Error, Result};
 use ic_cdk::call::CallErrorExt;
 use serde::de::DeserializeOwned;

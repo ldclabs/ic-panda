@@ -7,7 +7,7 @@
 //! client release is marked as the latest one.
 
 use crate::remote::Failure;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -151,11 +151,7 @@ pub fn version_of(path: &Path) -> Option<String> {
 }
 
 fn executable() -> &'static str {
-    if cfg!(windows) {
-        "dmsg.exe"
-    } else {
-        "dmsg"
-    }
+    if cfg!(windows) { "dmsg.exe" } else { "dmsg" }
 }
 
 /// Where the install scripts put `dmsg`: `DMSG_INSTALL_DIR`, else

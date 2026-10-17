@@ -323,9 +323,11 @@ mod tests {
         state.drain(id, 11).unwrap();
         assert!(state.writable().is_err());
         assert!(state.seal(id, 12).is_err());
-        assert!(state
-            .resolve_interrupted(op, ByteArray::new([9; 32]))
-            .is_err());
+        assert!(
+            state
+                .resolve_interrupted(op, ByteArray::new([9; 32]))
+                .is_err()
+        );
         state.finish(op).unwrap();
         let frozen = state.seal(id, 13).unwrap();
         assert_eq!(frozen, state.seal(id, 14).unwrap());

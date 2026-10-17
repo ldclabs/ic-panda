@@ -9,7 +9,7 @@ use crate::{
 use candid::{CandidType, Nat, Principal};
 use dmsg_protocol::{commerce_v2::*, integration::*, *};
 use dmsg_runtime::{
-    admin::{self, validation, Validation},
+    admin::{self, Validation, validation},
     call, call_classified,
     ledger::{read_transfer, token_amount},
 };

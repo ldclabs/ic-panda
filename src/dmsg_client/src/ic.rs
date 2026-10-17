@@ -5,9 +5,9 @@
 //! caller reconciles by its operation ID and never resubmits blindly.
 
 use crate::config::Config;
-use candid::{utils::ArgumentEncoder, CandidType, Principal};
+use candid::{CandidType, Principal, utils::ArgumentEncoder};
 use dmsg_types::{Environment, Error, Result};
-use ic_agent::{agent::RejectCode, identity::AnonymousIdentity, Agent, AgentError, Identity};
+use ic_agent::{Agent, AgentError, Identity, agent::RejectCode, identity::AnonymousIdentity};
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
 

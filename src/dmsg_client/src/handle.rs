@@ -18,20 +18,19 @@ use crate::now_ms;
 use crate::payer::{approve_call, memo};
 use candid::Principal;
 use dmsg_protocol::{
-    charge_terms_digest, digest, handle_bucket, normalize_handle, price, HANDLE_BUCKET_BITS,
+    HANDLE_BUCKET_BITS, charge_terms_digest, digest, handle_bucket, normalize_handle, price,
 };
 use dmsg_types::{
-    ensure,
+    AccountId, Error, Hash, Result, ensure,
     handle::{
         HandleAction, HandleInit, HandleIntent, HandleOperation, HandlePhase, HandleRecord,
         LegacyReservation, Registration, SnapshotProgress,
     },
     user::AccountCommand,
-    AccountId, Error, Hash, Result,
 };
 use icrc_ledger_types::{icrc1::account::Account, icrc2::approve::ApproveArgs};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 
 const JOURNAL: &str = "handle:";
 /// Format of a transfer token.
@@ -590,7 +589,7 @@ impl Client {
                 let record = match claimed {
                     Ok(Ok(record)) => record,
                     Ok(Err(Error::ExecutionUnknown)) | Err(_) => {
-                        return Err(Error::ExecutionUnknown)
+                        return Err(Error::ExecutionUnknown);
                     }
                     Ok(Err(error)) => {
                         job.phase = Phase::Rejected;

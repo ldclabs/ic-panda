@@ -1,6 +1,6 @@
 //! Operational v2 checkout, product authorization and shared subscription contracts.
 //! All money is integer atomic units or explicitly named USD micro units.
-use crate::{integration::*, membership::Eligibility, AccountId, Environment, Hash};
+use crate::{AccountId, Environment, Hash, integration::*, membership::Eligibility};
 use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};

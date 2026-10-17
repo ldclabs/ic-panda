@@ -226,14 +226,16 @@ fn authentication_result_is_bound_to_the_entire_pending_request() {
     assert!(
         match_authentication_result(&result, &request, principal(1), NOW, NOW + 61_000).is_err()
     );
-    assert!(match_authentication_result(
-        &result,
-        &request,
-        principal(1),
-        request.expires_at_ms,
-        request.expires_at_ms
-    )
-    .is_err());
+    assert!(
+        match_authentication_result(
+            &result,
+            &request,
+            principal(1),
+            request.expires_at_ms,
+            request.expires_at_ms
+        )
+        .is_err()
+    );
     assert!(
         authentication_key(&result.account_id, &request.operation_id)
             .starts_with(b"authentication/v1/")

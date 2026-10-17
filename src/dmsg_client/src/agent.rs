@@ -13,14 +13,14 @@
 
 use crate::client::Client;
 use crate::codec::{b64, canonical, unb64};
-use crate::crypto::{random_id, sign, signing_public, Key};
+use crate::crypto::{Key, random_id, sign, signing_public};
 use crate::now_ms;
 use crate::vault::Item;
 use agent_protocols::{
     delegation::{
-        validate_audience, validate_delegation_grant_payload, DelegationCredential,
-        DelegationGrantPayload, DelegationPayload, DelegationRevokePayload, DELEGATION_GRANT,
-        DELEGATION_REVOKE, PROTOCOL,
+        DELEGATION_GRANT, DELEGATION_REVOKE, DelegationCredential, DelegationGrantPayload,
+        DelegationPayload, DelegationRevokePayload, PROTOCOL, validate_audience,
+        validate_delegation_grant_payload,
     },
     error::SdkError,
     http_client::DelegationClient,
@@ -28,13 +28,13 @@ use agent_protocols::{
 };
 use dmsg_protocol::{controller_pop_message, digest};
 use dmsg_types::{
+    DAY, Ed25519Signature, Error, Hash, Result,
     agent::{DelegationAuthority, PrincipalInfo, PrincipalType},
     ensure, ensure_valid,
     user::{AccountCommand, Capability},
-    Ed25519Signature, Error, Hash, Result, DAY,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 

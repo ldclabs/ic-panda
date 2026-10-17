@@ -1,10 +1,10 @@
-use super::catalog::{safe_name, validate_name, Origin, ROOT};
+use super::catalog::{Origin, ROOT, safe_name, validate_name};
 use super::gc::{COLLECT_MS, MAINTENANCE_MS};
 use super::open::OPEN_TTL_MS;
 use super::*;
 use crate::codec::sha256;
 use crate::files::{BlobStore, CHUNK, MAX_FILE};
-use crate::testing::{unlocked, TempDir};
+use crate::testing::{TempDir, unlocked};
 use crate::upload::random_hex;
 use dmsg_types::DAY;
 
@@ -260,14 +260,16 @@ fn the_size_limit_and_names_are_checked() {
             .err(),
         Some(Error::QuotaExceeded)
     );
-    assert!(client
-        .files_import(
-            std::path::Path::new("relative.bin"),
-            ROOT,
-            false,
-            &mut no_progress
-        )
-        .is_err());
+    assert!(
+        client
+            .files_import(
+                std::path::Path::new("relative.bin"),
+                ROOT,
+                false,
+                &mut no_progress
+            )
+            .is_err()
+    );
     assert_eq!(
         client
             .files_import(&fits, "nowhere", false, &mut no_progress)
@@ -349,10 +351,12 @@ fn the_trash_expires_and_collection_keeps_what_is_referenced() {
         .unwrap();
     assert_eq!(client.collect_blobs().unwrap(), (1, 1));
     assert!(!has(&client, &stray) && !tmp.exists());
-    assert!(a_chunks
-        .iter()
-        .chain(&b_chunks)
-        .all(|c| has(&client, &c.digest)));
+    assert!(
+        a_chunks
+            .iter()
+            .chain(&b_chunks)
+            .all(|c| has(&client, &c.digest))
+    );
 
     // Trashing a folder hides its files; the trash lists the folder, not them.
     let now = now_ms();
@@ -402,10 +406,12 @@ fn the_trash_expires_and_collection_keeps_what_is_referenced() {
     let report = client.files_maintain(later).unwrap().unwrap();
     assert_eq!((report.purged_files, report.purged_folders), (2, 1));
     assert_eq!(report.collected, 4);
-    assert!(a_chunks
-        .iter()
-        .chain(&b_chunks)
-        .all(|c| !has(&client, &c.digest)));
+    assert!(
+        a_chunks
+            .iter()
+            .chain(&b_chunks)
+            .all(|c| !has(&client, &c.digest))
+    );
     assert!(client.files_list(ROOT, true).unwrap().files.is_empty());
     assert_eq!(client.files_show(&a.file.id).err(), Some(Error::NotFound));
     let usage = client.files_usage().unwrap();
@@ -448,15 +454,19 @@ fn opened_copies_report_changes_and_are_cleaned_up() {
     assert_eq!(client.files_open_list().unwrap().len(), 1);
 
     // Unchanged past its time: removed, directory included.
-    assert!(client
-        .files_open_sweep(now + OPEN_TTL_MS)
-        .unwrap()
-        .is_empty());
+    assert!(
+        client
+            .files_open_sweep(now + OPEN_TTL_MS)
+            .unwrap()
+            .is_empty()
+    );
     assert!(client.files_open_list().unwrap().is_empty());
-    assert!(!std::path::Path::new(&opened.path)
-        .parent()
-        .unwrap()
-        .exists());
+    assert!(
+        !std::path::Path::new(&opened.path)
+            .parent()
+            .unwrap()
+            .exists()
+    );
 
     // Changed: reported once, kept past its time, and saved as a version
     // on request.
@@ -465,10 +475,12 @@ fn opened_copies_report_changes_and_are_cleaned_up() {
     let changed = client.files_open_sweep(now + OPEN_TTL_MS).unwrap();
     assert_eq!(changed.len(), 1);
     assert!(changed[0].changed);
-    assert!(client
-        .files_open_sweep(now + OPEN_TTL_MS)
-        .unwrap()
-        .is_empty());
+    assert!(
+        client
+            .files_open_sweep(now + OPEN_TTL_MS)
+            .unwrap()
+            .is_empty()
+    );
     assert_eq!(client.files_open_list().unwrap().len(), 1);
     // Locking keeps a changed copy for the next unlock to decide.
     client.open_copies_on_lock().unwrap();
@@ -650,21 +662,25 @@ fn previews_verification_and_shared_editions() {
     assert_ne!(edition.key, manifest.key);
     assert_eq!(edition.sha256, manifest.sha256);
     assert_eq!(edition.chunks.len(), manifest.chunks.len());
-    assert!(edition
-        .chunks
-        .iter()
-        .zip(&manifest.chunks)
-        .all(|(e, m)| e.digest != m.digest));
+    assert!(
+        edition
+            .chunks
+            .iter()
+            .zip(&manifest.chunks)
+            .all(|(e, m)| e.digest != m.digest)
+    );
     let mut out = Vec::new();
     crate::files::read_file(client.blobs().unwrap(), &edition, MAX_FILE, Some(&mut out)).unwrap();
     assert_eq!(out, text.as_bytes());
     // Nothing references the edition: the collector takes it.
     assert_eq!(client.collect_blobs().unwrap().0, 1);
-    assert!(!client
-        .blobs()
-        .unwrap()
-        .has_chunk(&edition.chunks[0].digest)
-        .unwrap());
+    assert!(
+        !client
+            .blobs()
+            .unwrap()
+            .has_chunk(&edition.chunks[0].digest)
+            .unwrap()
+    );
 
     // A version over the cloud bound cannot be shared.
     let big = FileManifest {
@@ -871,8 +887,8 @@ fn a_reset_removes_the_library_with_the_workspace() {
 
 #[test]
 fn backups_are_planned_under_the_root_and_settle_on_the_version() {
-    use super::backup::{BackupJob, BACKUP, BACKUP_FORMAT};
-    use crate::content::{open_manifest, Opened};
+    use super::backup::{BACKUP, BACKUP_FORMAT, BackupJob};
+    use crate::content::{Opened, open_manifest};
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
     let docs = client.files_mkdir_path("docs/2026").unwrap();
@@ -982,11 +998,13 @@ fn backups_are_planned_under_the_root_and_settle_on_the_version() {
     // asks for a fetch. The thumbnail-less chunks are collected.
     let view = client.files_evict(&imported.file.id, None).unwrap();
     assert_eq!(view.status, "cloud_only");
-    assert!(!client
-        .blobs()
-        .unwrap()
-        .has_chunk(&version.chunks[0].digest)
-        .unwrap());
+    assert!(
+        !client
+            .blobs()
+            .unwrap()
+            .has_chunk(&version.chunks[0].digest)
+            .unwrap()
+    );
     assert_eq!(
         client
             .files_read_range(&imported.file.id, None, 0, u64::MAX)
@@ -1106,11 +1124,13 @@ fn the_cloud_inventory_marks_local_versions_and_lists_from_the_cache() {
 
     // Forgetting a cloud copy clears the mark; the file stays.
     client.forget_cloud(&job.plan.upload_id).unwrap();
-    assert!(client
-        .version(&imported.file.id, &imported.version)
-        .unwrap()
-        .backup
-        .is_none());
+    assert!(
+        client
+            .version(&imported.file.id, &imported.version)
+            .unwrap()
+            .backup
+            .is_none()
+    );
     assert_eq!(client.files_cloud_list().unwrap().len(), 1);
     assert_eq!(
         client.files_show(&imported.file.id).unwrap().file.status,
@@ -1162,19 +1182,22 @@ async fn backup_jobs_stay_apart_from_the_vault_jobs_and_keep_their_chunks() {
         .unwrap();
     client.files_purge(None).unwrap();
     let blobs = client.blobs().unwrap();
-    assert!(gone_chunks
-        .iter()
-        .all(|c| !blobs.has_chunk(&c.digest).unwrap()));
-    assert!(job
-        .plan
-        .chunks
-        .iter()
-        .all(|c| blobs.has_chunk(&c.digest).unwrap()));
+    assert!(
+        gone_chunks
+            .iter()
+            .all(|c| !blobs.has_chunk(&c.digest).unwrap())
+    );
+    assert!(
+        job.plan
+            .chunks
+            .iter()
+            .all(|c| blobs.has_chunk(&c.digest).unwrap())
+    );
 }
 
 #[tokio::test]
 async fn the_last_copy_of_a_released_version_stays_in_the_cloud() {
-    use super::backup::{BackupManifest, BACKUP_FORMAT};
+    use super::backup::{BACKUP_FORMAT, BackupManifest};
     use super::cloud::CloudEntry;
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
@@ -1239,7 +1262,7 @@ async fn the_last_copy_of_a_released_version_stays_in_the_cloud() {
 fn cloud_entries_verify_only_against_their_reservation_evidence() {
     use super::backup::BACKUP;
     use super::cloud::verify_entry;
-    use crate::cloud::{sign_command, Evidence, Signer};
+    use crate::cloud::{Evidence, Signer, sign_command};
     use crate::evidence::Trust;
     use crate::upload::{ChunkRef, UploadPlan};
     use candid::Principal;

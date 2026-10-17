@@ -4,11 +4,11 @@
 //! the program changed is reported first (`files/open_changed`), so the
 //! person can keep the change as a new version; until they decide it stays.
 
-use super::catalog::Origin;
 use super::Client;
+use super::catalog::Origin;
 use crate::files::{export_manifest, io};
 use crate::now_ms;
-use dmsg_types::{ensure, Error, Result, MINUTE};
+use dmsg_types::{Error, MINUTE, Result, ensure};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;

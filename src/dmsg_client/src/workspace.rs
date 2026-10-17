@@ -15,17 +15,16 @@
 //! operating system keeps (encryption design §5.2; plan D-6); it is refused
 //! seven days after the last unlock through a login.
 
-use crate::codec::{canonical, decode, MAX_RECORD};
+use crate::codec::{MAX_RECORD, canonical, decode};
 use crate::config::environment_name;
-use crate::crypto::{hpke_public, open, random_key, seal, signing_public, Key};
+use crate::crypto::{Key, hpke_public, open, random_key, seal, signing_public};
 use crate::store::Store;
 use candid::Principal;
 use dmsg_types::{
-    ensure,
+    AccountId, Environment, Error, Hash, Result, ensure,
     user::{Capability, ControllerRole, DeviceInput},
-    AccountId, Environment, Error, Hash, Result,
 };
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_bytes::ByteArray;
 use std::path::Path;
 use zeroize::Zeroizing;

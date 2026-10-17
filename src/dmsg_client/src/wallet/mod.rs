@@ -25,16 +25,15 @@ use crate::payment::certified_leaf;
 use candid::Principal;
 use dmsg_protocol::{approval_message, digest, integration::*, wallet::*};
 use dmsg_types::{
-    ensure,
+    Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result, ensure,
     integration::{AppRegistration, ApplicationApproval, ApprovalPurpose, ProductRegistration},
     user::Capability,
     wallet::*,
-    Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
 };
 use futures_util::future::{join, join_all, try_join_all};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 
 const WALLET_KEY: &str = "wallet-key";
 const JOB: &str = "wallet-job:";

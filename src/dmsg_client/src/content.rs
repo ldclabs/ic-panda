@@ -16,13 +16,13 @@
 
 use crate::client::Client;
 use crate::codec::{canonical, decode, decode_value, sha256};
-use crate::crypto::{open, open_bytes, random_key, seal, seal_bytes, Key};
+use crate::crypto::{Key, open, open_bytes, random_key, seal, seal_bytes};
 use crate::files::FileManifest;
-use crate::library::backup::{BackupManifest, BACKUP, BACKUP_FORMAT};
+use crate::library::backup::{BACKUP, BACKUP_FORMAT, BackupManifest};
 use crate::root::RootKeys;
-use crate::store::{ObjectRow, LOCAL};
-use crate::upload::{random_hex, UploadPlan};
-use dmsg_types::{ensure, Error, Result};
+use crate::store::{LOCAL, ObjectRow};
+use crate::upload::{UploadPlan, random_hex};
+use dmsg_types::{Error, Result, ensure};
 use serde::{Deserialize, Serialize};
 use zeroize::Zeroizing;
 

@@ -1,6 +1,6 @@
 use crate::{model, store::Config};
 use cbor2::Cbor;
-use dmsg_runtime::{stable_types::*, storage::StableCodec, Budget};
+use dmsg_runtime::{Budget, stable_types::*, storage::StableCodec};
 use dmsg_types::cose::*;
 use std::collections::BTreeMap;
 
@@ -109,9 +109,11 @@ mod tests {
             panic!("stable record must be a map")
         };
         assert_eq!(entries.len(), count);
-        assert!(entries
-            .iter()
-            .all(|(key, _)| matches!(key, cbor2::Value::Integer(_))));
+        assert!(
+            entries
+                .iter()
+                .all(|(key, _)| matches!(key, cbor2::Value::Integer(_)))
+        );
     }
 
     fn assert_public_text_keys<T: serde::Serialize>(value: &T) {
@@ -119,9 +121,11 @@ mod tests {
         else {
             panic!("public record must be a map")
         };
-        assert!(entries
-            .iter()
-            .all(|(key, _)| matches!(key, cbor2::Value::Text(_))));
+        assert!(
+            entries
+                .iter()
+                .all(|(key, _)| matches!(key, cbor2::Value::Text(_)))
+        );
     }
 
     #[test]

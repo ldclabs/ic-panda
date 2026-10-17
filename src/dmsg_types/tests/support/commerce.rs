@@ -8,7 +8,7 @@ use dmsg_protocol::commerce_v2::{
 };
 use dmsg_protocol::integration::quote_panda;
 use dmsg_types::integration::{
-    ApprovalPurpose, ProductDecision, SettlementSource, CASH_ACTIVATION_MS,
+    ApprovalPurpose, CASH_ACTIVATION_MS, ProductDecision, SettlementSource,
 };
 use dmsg_types::integration_billing::{
     CheckoutQuote, OpenCheckout, ProductAuthorizationRequest, SettlementAsset, SettlementAssetKind,
@@ -16,8 +16,8 @@ use dmsg_types::integration_billing::{
 };
 use dmsg_types::integration_membership::{PandaApplicationTerms, PandaClaimRequest};
 use dmsg_types::{
-    billing::{Catalog, CommerceInit, CommerceLimits},
     AccountId, Environment, Hash, MINUTE,
+    billing::{Catalog, CommerceInit, CommerceLimits},
 };
 
 /// Generous admission limits for fixtures.

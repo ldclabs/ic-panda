@@ -7,7 +7,7 @@ use crate::approval_commands::request;
 use crate::remote::{Failure, Remote};
 use crate::{pretty, print};
 use clap::Subcommand;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Subcommand)]
 pub enum AgentCommand {
@@ -179,7 +179,7 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
     let (method, params) = match command {
         AgentCommand::Principal(PrincipalCommand::Show) => ("agent/principal", Value::Null),
         AgentCommand::Principal(PrincipalCommand::Enable { kind }) => {
-            return request(remote, json, "agent/enable", json!({"type": kind})).await
+            return request(remote, json, "agent/enable", json!({"type": kind})).await;
         }
         AgentCommand::Principal(PrincipalCommand::Publish) => ("agent/publish", Value::Null),
         AgentCommand::Principal(PrincipalCommand::Refresh) => ("agent/refresh", Value::Null),
@@ -201,7 +201,7 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
                 "agent/retire",
                 json!({"generation": generation}),
             )
-            .await
+            .await;
         }
         AgentCommand::Controller(ControllerCommand::Compromise { generation, from }) => {
             return request(
@@ -210,7 +210,7 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
                 "agent/compromise",
                 json!({"generation": generation, "invalid_from": from}),
             )
-            .await
+            .await;
         }
         AgentCommand::Controller(ControllerCommand::Rename { generation, name }) => {
             return request(
@@ -219,7 +219,7 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
                 "agent/rename",
                 json!({"generation": generation, "name": name}),
             )
-            .await
+            .await;
         }
         AgentCommand::Grant {
             subject,
@@ -238,7 +238,7 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
                     "generation": generation, "relationship": relationship,
                 }),
             )
-            .await
+            .await;
         }
         AgentCommand::Revoke {
             id,
@@ -251,7 +251,7 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
                 "agent/revoke",
                 json!({"id": id, "generation": generation, "reason": reason}),
             )
-            .await
+            .await;
         }
         AgentCommand::Credentials => ("agent/credentials", Value::Null),
         AgentCommand::Delegations => ("agent/delegations", Value::Null),

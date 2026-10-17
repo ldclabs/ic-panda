@@ -4,7 +4,7 @@
 
 use crate::account::Security;
 use crate::client::Client;
-use crate::cloud::{sign_command, Evidence, Signer};
+use crate::cloud::{Evidence, Signer, sign_command};
 use crate::config::{Config, LOGIN_URL};
 use crate::root::RootKeys;
 use crate::secure::SecureStorage;

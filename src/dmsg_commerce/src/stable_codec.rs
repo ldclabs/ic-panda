@@ -9,7 +9,7 @@ use candid::Principal;
 use cbor2::Cbor;
 use dmsg_runtime::storage::StableCodec;
 use dmsg_types::{
-    billing::*, integration::*, integration_billing::*, membership::*, Environment, Hash,
+    Environment, Hash, billing::*, integration::*, integration_billing::*, membership::*,
 };
 use std::collections::BTreeMap;
 
@@ -115,9 +115,11 @@ mod tests {
         let cbor2::Value::Map(fields) = cbor2::from_slice(&bytes).unwrap() else {
             panic!("record")
         };
-        assert!(fields
-            .iter()
-            .all(|(key, _)| matches!(key, cbor2::Value::Integer(_))));
+        assert!(
+            fields
+                .iter()
+                .all(|(key, _)| matches!(key, cbor2::Value::Integer(_)))
+        );
         assert!(bytes.len() < cbor2::to_vec(&subject).unwrap().len());
     }
 }

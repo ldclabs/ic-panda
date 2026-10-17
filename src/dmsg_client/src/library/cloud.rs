@@ -13,22 +13,22 @@
 //! root is here. There is no mutable cloud catalog, so there is nothing to
 //! reconcile: a deletion on either side changes only that side.
 
-use super::backup::{BackupManifest, BACKUP};
+use super::backup::{BACKUP, BackupManifest};
 use super::catalog::{
-    safe_name, Backup, FileRecord, FileView, Origin, Version, VersionRef, FILE, ROOT,
+    Backup, FILE, FileRecord, FileView, Origin, ROOT, Version, VersionRef, safe_name,
 };
 use super::{Client, VersionCheck};
 use crate::cloud::Evidence;
 use crate::codec::sha256;
-use crate::content::{empty_file, open_manifest, Opened};
+use crate::content::{Opened, empty_file, open_manifest};
 use crate::crypto::Key;
 use crate::evidence::{Trust, Verified};
-use crate::files::{read_file, BlobStore, Source, MAX_FILE};
+use crate::files::{BlobStore, MAX_FILE, Source, read_file};
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan};
-use dmsg_types::{ensure, ensure_valid, AccountId, Error, Hash, Result};
+use dmsg_types::{AccountId, Error, Hash, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use zeroize::Zeroizing;
 
 pub(crate) const CLOUD: &str = "lib-cloud:";

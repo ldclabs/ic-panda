@@ -15,13 +15,13 @@
 //! uploaded again.
 
 use super::catalog::Backup;
-use super::{Client, BACKUP_JOB};
+use super::{BACKUP_JOB, Client};
 use crate::codec::sha256;
-use crate::content::{empty_file, seal_manifest, ManifestContent};
-use crate::files::{BlobStore, FileManifest, Source, MAX_FILE};
+use crate::content::{ManifestContent, empty_file, seal_manifest};
+use crate::files::{BlobStore, FileManifest, MAX_FILE, Source};
 use crate::now_ms;
-use crate::upload::{random_hex, ChunkRef, UploadPlan};
-use dmsg_types::{ensure, user::VaultWriteState, Error, Result, DAY, MINUTE};
+use crate::upload::{ChunkRef, UploadPlan, random_hex};
+use dmsg_types::{DAY, Error, MINUTE, Result, ensure, user::VaultWriteState};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 

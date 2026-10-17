@@ -246,23 +246,27 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
     // Audiences outside the published ceiling and foreign actors are refused
     // by the same acceptance rules, without any home involvement.
     let outside = signed_grant(&f, &id, 20, 11, "https://tokenlist.ing");
-    assert!(sdk::validate_delegation_acceptance(
-        &outside,
-        &document,
-        &principal_id,
-        time(&f.ic) as i64,
-        None,
-    )
-    .is_err());
+    assert!(
+        sdk::validate_delegation_acceptance(
+            &outside,
+            &document,
+            &principal_id,
+            time(&f.ic) as i64,
+            None,
+        )
+        .is_err()
+    );
     let foreign = signed_grant(&f, &id, 21, 12, "https://dmsg.net");
-    assert!(sdk::validate_delegation_acceptance(
-        &foreign,
-        &document,
-        &principal_id,
-        time(&f.ic) as i64,
-        None,
-    )
-    .is_err());
+    assert!(
+        sdk::validate_delegation_acceptance(
+            &foreign,
+            &document,
+            &principal_id,
+            time(&f.ic) as i64,
+            None,
+        )
+        .is_err()
+    );
     let credential = sdk::materialize_delegation_credential(
         &envelope,
         sdk::DelegationStatus::Active,
@@ -279,14 +283,16 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
     assert_eq!(document.controllers.len(), 1);
     assert_eq!(document.retired_controllers[0].id, actor);
     let late = signed_grant(&f, &id, 20, 13, "https://dmsg.net");
-    assert!(sdk::validate_delegation_acceptance(
-        &late,
-        &document,
-        &principal_id,
-        time(&f.ic) as i64,
-        None,
-    )
-    .is_err());
+    assert!(
+        sdk::validate_delegation_acceptance(
+            &late,
+            &document,
+            &principal_id,
+            time(&f.ic) as i64,
+            None,
+        )
+        .is_err()
+    );
     // Management follows the ceiling: the successor covers the credential the
     // retired key issued, so it may revoke it without any recorded ownership.
     f.ic.advance_time(Duration::from_millis(10));

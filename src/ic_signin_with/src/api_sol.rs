@@ -1,11 +1,11 @@
 use ed25519_dalek::{Signature, VerifyingKey};
 use ic_auth_types::{ByteArrayB64, ByteBufB64, SignInResponse};
-use ic_canister_sig_creation::{delegation_signature_msg, CanisterSigPublicKey};
+use ic_canister_sig_creation::{CanisterSigPublicKey, delegation_signature_msg};
 
 use crate::{
     helper::{
-        delegation_expiration_ns, prepare_sign_in_message, validate_sign_in_request,
-        verify_session_signature, SignInNetwork,
+        SignInNetwork, delegation_expiration_ns, prepare_sign_in_message, validate_sign_in_request,
+        verify_session_signature,
     },
     store,
 };

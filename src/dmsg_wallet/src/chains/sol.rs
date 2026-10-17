@@ -1,6 +1,6 @@
 //! Solana legacy messages: SOL and SPL transfers, compute budget, durable
 //! nonces and nonce-account creation. The wallet address is the only signer.
-use super::{dest_text, Built};
+use super::{Built, dest_text};
 use crate::store::SignSpec;
 use dmsg_protocol::wallet::*;
 use dmsg_types::{wallet::*, *};

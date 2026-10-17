@@ -14,9 +14,9 @@
 //! a personal archive against the frozen service.
 
 use crate::codec::{base64url, canonical, hex_sha256, principal, sha256};
-use crate::legacy::{js_len, js_order, observation_value, Archive};
+use crate::legacy::{Archive, js_len, js_order, observation_value};
 use candid::{CandidType, Principal};
-use dmsg_types::{ensure, Error, Result};
+use dmsg_types::{Error, Result, ensure};
 use ic_certification::LookupResult;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;

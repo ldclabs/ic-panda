@@ -1,8 +1,8 @@
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use candid::Principal;
 use cbor2::{from_slice, to_vec};
 use hmac::{KeyInit, Mac, SimpleHmac};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_bytes::ByteBuf;
 use sha3::{Digest, Sha3_256};
 
@@ -89,7 +89,7 @@ where
 pub struct ChallengeState<T>(pub (Principal, T, u64));
 impl<T: PartialEq> ChallengeState<T> {
     pub fn is_valid(&self, caller: &Principal, data: &T, now_sec: u64) -> bool {
-        &self.0 .0 == caller && &self.0 .1 == data && self.0 .2 >= now_sec
+        &self.0.0 == caller && &self.0.1 == data && self.0.2 >= now_sec
     }
 }
 
@@ -260,7 +260,10 @@ mod test {
         let pk = VerifyingKey::from(&sk);
         let state = ChallengeState((Principal::anonymous(), "1234567890".to_string(), 1000));
         let msg = state.sign_to(&sk);
-        assert_eq!(msg, "glGDQQRqMTIzNDU2Nzg5MBkD6FhAyABxVV7f4L9QXL_MP0-VZE5EMzu288JeF0kHz4FxvByZlHaSmZx_BCEIxOouOY0CCgJEuTxkUnpZF24EpQozBw");
+        assert_eq!(
+            msg,
+            "glGDQQRqMTIzNDU2Nzg5MBkD6FhAyABxVV7f4L9QXL_MP0-VZE5EMzu288JeF0kHz4FxvByZlHaSmZx_BCEIxOouOY0CCgJEuTxkUnpZF24EpQozBw"
+        );
         let state2 = ChallengeState::verify_from(&pk, &msg).unwrap();
         assert_eq!(state, state2);
     }

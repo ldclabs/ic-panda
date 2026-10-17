@@ -5,7 +5,7 @@ use crate::locale::tr;
 use crate::remote::{Failure, Remote};
 use crate::{absolute, pretty, print, read_json};
 use clap::Subcommand;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 
 /// Legacy migration.

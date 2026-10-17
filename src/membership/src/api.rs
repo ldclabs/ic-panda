@@ -1,7 +1,7 @@
 //! Initialization, governance configuration and SNS interface verification.
 use crate::{sns, store};
 use dmsg_protocol::authenticated;
-use dmsg_runtime::admin::{self, validation, Validation};
+use dmsg_runtime::admin::{self, Validation, validation};
 use dmsg_types::{integration::*, integration_membership::PandaServiceConfig, membership::*, *};
 use std::cell::Cell;
 

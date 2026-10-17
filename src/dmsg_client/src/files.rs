@@ -8,10 +8,10 @@
 //! library ([`crate::library`]).
 
 use crate::codec::{b64, sha256, unb64};
-use crate::crypto::{open_bytes, random_key, seal_with_nonce, Key};
+use crate::crypto::{Key, open_bytes, random_key, seal_with_nonce};
 use crate::store::Store;
 use crate::upload::random_hex;
-use dmsg_types::{ensure, ensure_valid, Error, Result};
+use dmsg_types::{Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::Write;

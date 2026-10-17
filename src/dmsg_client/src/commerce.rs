@@ -25,6 +25,7 @@ use dmsg_protocol::{
     },
 };
 use dmsg_types::{
+    Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
     billing::{Catalog, EntitlementView},
     ensure, ensure_valid,
     integration::{
@@ -42,11 +43,10 @@ use dmsg_types::{
     },
     membership::Beneficiary,
     user::{Capability, UserInit},
-    Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
 };
 use icrc_ledger_types::icrc1::{account::Account, transfer::TransferArg};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 
 /// dMsg's own application ID and origin.
 pub const DMSG_APP: &str = "dmsg";

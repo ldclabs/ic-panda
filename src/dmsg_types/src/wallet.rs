@@ -12,7 +12,7 @@
 //! (e8s, satoshis, wei, lamports, token atomic units). Constructing or
 //! decoding these records performs no validation or authorization.
 use crate::{
-    billing::PlanId, integration::ApplicationApproval, AccountId, Environment, Hash, OpId,
+    AccountId, Environment, Hash, OpId, billing::PlanId, integration::ApplicationApproval,
 };
 use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;

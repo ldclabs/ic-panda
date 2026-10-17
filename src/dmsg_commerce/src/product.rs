@@ -10,7 +10,7 @@ use dmsg_protocol::{
     billing::*,
     commerce_v2::*,
     integration::*,
-    product_book::{rejected, ProductBook},
+    product_book::{ProductBook, rejected},
     *,
 };
 use dmsg_runtime::{
@@ -25,7 +25,7 @@ use dmsg_types::{
     membership::{Beneficiary, Eligibility},
     *,
 };
-use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
+use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, memory_manager::VirtualMemory};
 use std::cell::RefCell;
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;

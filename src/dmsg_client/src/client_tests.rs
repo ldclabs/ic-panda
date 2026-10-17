@@ -1,5 +1,5 @@
 use super::*;
-use crate::testing::{unlocked, MemoryStorage, TempDir};
+use crate::testing::{MemoryStorage, TempDir, unlocked};
 use crate::vault::{Filter, Item};
 
 fn note(title: &str) -> Item {
@@ -179,14 +179,17 @@ fn a_login_workspace_becomes_its_account() {
     client.adopt(&account.id).unwrap();
     assert!(client.keys().is_ok());
     assert_eq!(client.status().unwrap().device_id, device);
-    assert!(!dir
-        .path("logins")
-        .join(principal.to_text())
-        .join(WORKSPACE)
-        .exists());
-    assert!(client
-        .agent_runtime()
-        .unwrap()
-        .starts_with(dir.path("accounts").join(account.id.to_string())));
+    assert!(
+        !dir.path("logins")
+            .join(principal.to_text())
+            .join(WORKSPACE)
+            .exists()
+    );
+    assert!(
+        client
+            .agent_runtime()
+            .unwrap()
+            .starts_with(dir.path("accounts").join(account.id.to_string()))
+    );
     assert_eq!(client.accounts().unwrap().len(), 1);
 }

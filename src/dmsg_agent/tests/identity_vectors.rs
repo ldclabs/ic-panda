@@ -1,8 +1,8 @@
 //! Agent Identity conformance vectors shared by every SDK.
 
 use agent_protocols::identity::*;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine as _;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde_json::Value;
 
 fn vectors() -> Value {
@@ -136,10 +136,12 @@ fn signed_json_is_parsed_strictly() {
     assert_eq!(parsed.hash, envelope.hash);
     let mut extra = serde_json::to_value(&envelope).unwrap();
     extra["extra"] = Value::from(1);
-    assert!(parse_envelope_json::<Value>(&extra.to_string())
-        .unwrap_err()
-        .to_string()
-        .contains("unknown envelope field"));
+    assert!(
+        parse_envelope_json::<Value>(&extra.to_string())
+            .unwrap_err()
+            .to_string()
+            .contains("unknown envelope field")
+    );
     assert!(parse_envelope_json::<Value>("[]").is_err());
 }
 

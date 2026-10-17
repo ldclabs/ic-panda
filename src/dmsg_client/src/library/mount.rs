@@ -5,18 +5,18 @@
 //! No WebDAV and no operating system here; the mount itself lives in the
 //! daemon.
 
-use super::blobs::create_private_dir;
-use super::catalog::{validate_name, FileRecord, FolderView, Origin, Version, VersionRef, FILE};
-use super::catalog::{FileView, ROOT};
-use super::import::{thumb_aad, Imported};
-use super::share::reencrypt;
 use super::Client;
+use super::blobs::create_private_dir;
+use super::catalog::{FILE, FileRecord, FolderView, Origin, Version, VersionRef, validate_name};
+use super::catalog::{FileView, ROOT};
+use super::import::{Imported, thumb_aad};
+use super::share::reencrypt;
 use crate::codec::{b64, sha256};
 use crate::crypto::{random_key, seal_bytes};
-use crate::files::{io, read_chunk, BlobStore};
+use crate::files::{BlobStore, io, read_chunk};
 use crate::now_ms;
-use crate::upload::{random_hex, ChunkRef};
-use dmsg_types::{ensure, Error, Result};
+use crate::upload::{ChunkRef, random_hex};
+use dmsg_types::{Error, Result, ensure};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 use zeroize::Zeroizing;

@@ -103,26 +103,30 @@ fn device_approval_is_purpose_separated_and_rechecked_after_a_callback() {
         at,
     )
     .unwrap();
-    assert!(precheck(
-        &account,
-        caller,
-        &approval,
-        APPLICATION_DOMAIN,
-        &request,
-        FORMAL,
-        at
-    )
-    .is_err());
-    assert!(precheck(
-        &account,
-        caller,
-        &approval,
-        AUTH_DOMAIN,
-        &request,
-        FORMAL,
-        approval.expires_at
-    )
-    .is_err());
+    assert!(
+        precheck(
+            &account,
+            caller,
+            &approval,
+            APPLICATION_DOMAIN,
+            &request,
+            FORMAL,
+            at
+        )
+        .is_err()
+    );
+    assert!(
+        precheck(
+            &account,
+            caller,
+            &approval,
+            AUTH_DOMAIN,
+            &request,
+            FORMAL,
+            approval.expires_at
+        )
+        .is_err()
+    );
     account.sensitive_policy.frozen = true;
     assert_eq!(
         precheck(
@@ -230,33 +234,39 @@ fn failed_quota_does_not_consume_sequence_and_replay_does_not_charge_again() {
         Ok(Some(body))
     );
     assert_eq!(state.used, 1);
-    assert!(existing(
-        &state,
-        &account,
-        fixtures::principal(9),
-        approval.request_id,
-        Hash::new([99; 32]),
-        at
-    )
-    .is_err());
-    assert!(existing(
-        &state,
-        &account,
-        fixtures::principal(99),
-        approval.request_id,
-        fingerprint,
-        at
-    )
-    .is_err());
-    assert!(existing(
-        &state,
-        &account,
-        fixtures::principal(9),
-        approval.request_id,
-        fingerprint,
-        approval.expires_at
-    )
-    .is_err());
+    assert!(
+        existing(
+            &state,
+            &account,
+            fixtures::principal(9),
+            approval.request_id,
+            Hash::new([99; 32]),
+            at
+        )
+        .is_err()
+    );
+    assert!(
+        existing(
+            &state,
+            &account,
+            fixtures::principal(99),
+            approval.request_id,
+            fingerprint,
+            at
+        )
+        .is_err()
+    );
+    assert!(
+        existing(
+            &state,
+            &account,
+            fixtures::principal(9),
+            approval.request_id,
+            fingerprint,
+            approval.expires_at
+        )
+        .is_err()
+    );
 }
 
 #[test]

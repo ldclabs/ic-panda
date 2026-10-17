@@ -9,24 +9,24 @@
 //! and receipt, so it can be exported as a self-contained bundle that
 //! [`verify_bundle`] checks without the device.
 
-use crate::approval::{Action, APPROVAL_TTL_MS};
+use crate::approval::{APPROVAL_TTL_MS, Action};
 use crate::client::Client;
 use crate::codec::{b64, canonical, decode, unb64};
 use crate::crypto::sign;
 use crate::now_ms;
 use candid::Principal;
 use dmsg_protocol::{
-    app_action_statement, approval_message, attest_approval_command, execution_request_id,
-    prepare_attestation, validate_statement, verify_attestation, ATTEST_APPROVAL_DOMAIN,
+    ATTEST_APPROVAL_DOMAIN, app_action_statement, approval_message, attest_approval_command,
+    execution_request_id, prepare_attestation, validate_statement, verify_attestation,
 };
 use dmsg_types::billing::ExecutionUsage;
 use dmsg_types::{
-    app_action::AppAction, ensure, user::Capability, AccountId, AppActionAttestRequest, Approval,
-    AttestRequest, CertifiedBatch, Ed25519Signature, Error, ExecutionReceipt, Hash, Result,
-    SignedArtifact, Statement, StatementContent,
+    AccountId, AppActionAttestRequest, Approval, AttestRequest, CertifiedBatch, Ed25519Signature,
+    Error, ExecutionReceipt, Hash, Result, SignedArtifact, Statement, StatementContent,
+    app_action::AppAction, ensure, user::Capability,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use sha2::{Digest, Sha256};
 use std::path::Path;
 
@@ -696,7 +696,7 @@ impl Client {
                 return Err(match attestation.error.as_deref() {
                     Some("EXPIRED") | None => Error::Expired,
                     Some(_) => Error::Forbidden,
-                })
+                });
             }
             Stage::Unknown => {}
         }

@@ -5,8 +5,8 @@ use dmsg_runtime::storage::{CompactStored, MapExt, Stored};
 use dmsg_types::{user::*, *};
 use ic_auth_types::XidGenerator;
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;

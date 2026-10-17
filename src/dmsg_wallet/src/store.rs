@@ -7,8 +7,8 @@ use dmsg_runtime::cert_map::CertMap;
 use dmsg_runtime::storage::{CompactStored, Stored};
 use dmsg_types::{wallet::*, *};
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use std::cell::RefCell;
 

@@ -1,7 +1,7 @@
 //! Shared encoding of deterministic interoperability fixtures.
 use dmsg_protocol::sha256;
 use ed25519_dalek::{Signer, SigningKey};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 
 fn tree(v: cbor2::Value) -> Json {
     use cbor2::Value::*;

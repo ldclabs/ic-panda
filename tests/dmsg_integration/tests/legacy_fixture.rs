@@ -1,11 +1,11 @@
 //! Upgrade real released legacy modules, verify freeze/reads, and serve a local
 //! gateway for independently verifying ingress snapshot certificates
 //! (`src/dmsg_legacy/tests/snapshot-gateway.test.ts`).
-use candid::{utils::ArgumentEncoder, CandidType, Principal};
+use candid::{CandidType, Principal, utils::ArgumentEncoder};
 use ed25519_dalek::SigningKey;
 use ic_message_types::{channel::*, migration::*, profile::*};
 use pocket_ic::{PocketIc, PocketIcBuilder};
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_bytes::{ByteArray, ByteBuf};
 use std::{
     collections::{BTreeSet, HashMap},
@@ -288,9 +288,11 @@ fn legacy_snapshot_gateway() {
             "validate_admin_legacy_acknowledge_baseline",
             baseline,
         );
-        assert!(shown
-            .unwrap()
-            .starts_with(&format!("Record baseline review {}", "09".repeat(32))));
+        assert!(
+            shown
+                .unwrap()
+                .starts_with(&format!("Record baseline review {}", "09".repeat(32)))
+        );
         update::<Result<(), String>>(&ic, id, gov, "admin_legacy_acknowledge_baseline", baseline)
             .unwrap();
         let shown: Result<String, String> = query(
@@ -349,14 +351,10 @@ fn legacy_snapshot_gateway() {
     assert_eq!(status.mode, LegacyMode::Active);
     update::<Result<FreezeStatus, String>>(&ic, channel, gov, "admin_legacy_drain", (cutover,))
         .unwrap();
-    assert!(update::<Result<FreezeStatus, String>>(
-        &ic,
-        channel,
-        gov,
-        "admin_legacy_seal",
-        (cutover,)
-    )
-    .is_err());
+    assert!(
+        update::<Result<FreezeStatus, String>>(&ic, channel, gov, "admin_legacy_seal", (cutover,))
+            .is_err()
+    );
     // The seal validator names what blocks it, without callers or inputs.
     let shown: Result<String, String> =
         query(&ic, channel, user, "validate_admin_legacy_seal", (cutover,));

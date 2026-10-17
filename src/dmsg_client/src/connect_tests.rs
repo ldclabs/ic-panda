@@ -287,15 +287,17 @@ fn devices_open_requests_and_pages_open_replies() {
     )
     .unwrap();
     // The relay swaps the request ID or the recipient: nothing opens.
-    assert!(open_request(
-        &envelope,
-        &f.account,
-        &pairing,
-        &Hash::new([1; 32]),
-        &f.device,
-        &f.device_hpke
-    )
-    .is_err());
+    assert!(
+        open_request(
+            &envelope,
+            &f.account,
+            &pairing,
+            &Hash::new([1; 32]),
+            &f.device,
+            &f.device_hpke
+        )
+        .is_err()
+    );
     assert_eq!(
         open_request(
             &envelope,
@@ -327,28 +329,32 @@ fn devices_open_requests_and_pages_open_replies() {
     assert_eq!(canonical(&response), unhex("/response/cbor_hex"));
     // A reply from a key outside the certified device set fails (DT32),
     // and so does a replayed version.
-    assert!(open_response(
-        &sealed,
-        &f.account,
-        &pairing,
-        &f.request.request_id,
-        1,
-        &f.device,
-        &hpke_public(&f.other_hpke),
-        &f.result
-    )
-    .is_err());
-    assert!(open_response(
-        &sealed,
-        &f.account,
-        &pairing,
-        &f.request.request_id,
-        2,
-        &f.device,
-        &hpke_public(&f.device_hpke),
-        &f.result
-    )
-    .is_err());
+    assert!(
+        open_response(
+            &sealed,
+            &f.account,
+            &pairing,
+            &f.request.request_id,
+            1,
+            &f.device,
+            &hpke_public(&f.other_hpke),
+            &f.result
+        )
+        .is_err()
+    );
+    assert!(
+        open_response(
+            &sealed,
+            &f.account,
+            &pairing,
+            &f.request.request_id,
+            2,
+            &f.device,
+            &hpke_public(&f.device_hpke),
+            &f.result
+        )
+        .is_err()
+    );
     let forged = seal_response(
         &response,
         &f.account,
@@ -358,17 +364,19 @@ fn devices_open_requests_and_pages_open_replies() {
         &f.request.result_key,
     )
     .unwrap();
-    assert!(open_response(
-        &forged,
-        &f.account,
-        &pairing,
-        &f.request.request_id,
-        1,
-        &f.device,
-        &hpke_public(&f.device_hpke),
-        &f.result
-    )
-    .is_err());
+    assert!(
+        open_response(
+            &forged,
+            &f.account,
+            &pairing,
+            &f.request.request_id,
+            1,
+            &f.device,
+            &hpke_public(&f.device_hpke),
+            &f.result
+        )
+        .is_err()
+    );
 
     // The pairing MAC binds the label the user confirms (DT18).
     let invite: PairingInvite = decode(&unhex("/invite/cbor_hex"), 4096).unwrap();

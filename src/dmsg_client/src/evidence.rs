@@ -5,16 +5,15 @@
 //! device in it, and checks the signature. This proves the key and its
 //! authority when the relay stored the command, not an external timestamp.
 
-use crate::account::{verify_security, Security};
+use crate::account::{Security, verify_security};
 use crate::cloud::{CommandBody, Evidence, SignedCommand};
 use crate::codec::{canonical, decode, sha256, unb64};
 use candid::Principal;
 use dmsg_types::{
-    ensure,
+    AccountId, CertifiedBatch, CertifiedEntry, Error, Hash, Result, ensure,
     user::{Capability, Device},
-    AccountId, CertifiedBatch, CertifiedEntry, Error, Hash, Result,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_bytes::ByteBuf;
 use std::collections::BTreeMap;
 use std::str::FromStr;

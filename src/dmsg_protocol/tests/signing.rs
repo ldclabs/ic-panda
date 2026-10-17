@@ -1,4 +1,4 @@
-use cose2::{iana, Header, Key, Label, Sign1Message, Value, Verifier};
+use cose2::{Header, Key, Label, Sign1Message, Value, Verifier, iana};
 use dmsg_protocol::*;
 use dmsg_types::*;
 use ed25519_dalek::{Signer, SigningKey};
@@ -202,16 +202,20 @@ fn file_statement_schema_is_closed_bounded_and_canonical_even_when_signed() {
         assert!(verify_artifact(&resigned(&artifact, |_, payload| *payload = bad)).is_err());
     }
     for header in [258, 259, 260] {
-        assert!(verify_artifact(&resigned(&artifact, |headers, _| {
-            headers.insert(header, -16);
-        }))
-        .is_err());
+        assert!(
+            verify_artifact(&resigned(&artifact, |headers, _| {
+                headers.insert(header, -16);
+            }))
+            .is_err()
+        );
     }
     for profile in [TEXT_PROFILE, DIGEST_PROFILE, "application/unknown+cose"] {
-        assert!(verify_artifact(&resigned(&artifact, |headers, _| {
-            headers.insert(16, profile);
-        }))
-        .is_err());
+        assert!(
+            verify_artifact(&resigned(&artifact, |headers, _| {
+                headers.insert(16, profile);
+            }))
+            .is_err()
+        );
     }
     let mut boundary = file_statement();
     if let StatementContent::FileStatement {

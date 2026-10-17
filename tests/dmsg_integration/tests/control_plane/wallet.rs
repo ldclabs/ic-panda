@@ -725,7 +725,7 @@ fn wallet_activation_membership_and_icp_transfer() {
 }
 
 fn verify_bitcoin(raw: &[u8], plan: &ExecutionPlan, output_key: &[u8; 32]) {
-    use bitcoin::secp256k1::{schnorr, Message, Secp256k1, XOnlyPublicKey};
+    use bitcoin::secp256k1::{Message, Secp256k1, XOnlyPublicKey, schnorr};
     let tx: bitcoin::Transaction = bitcoin::consensus::deserialize(raw).unwrap();
     let secp = Secp256k1::verification_only();
     let key = XOnlyPublicKey::from_slice(output_key).unwrap();
@@ -862,7 +862,7 @@ fn wallet_signs_bitcoin_evm_and_solana() {
             panic!("EIP-1559")
         };
         assert_eq!(
-            signed.recover_signer().unwrap().0 .0,
+            signed.recover_signer().unwrap().0.0,
             evm_address(&evm.public_key).unwrap()
         );
         assert_eq!(format!("{:#x}", signed.hash()), tx.txid);
@@ -1359,17 +1359,20 @@ fn wallet_cosigners_freeze_veto_and_recovery() {
         },),
     );
     assert_eq!(done.unwrap().proposal.status, ProposalStatus::Settled);
-    assert!(t
-        .view()
-        .members
-        .iter()
-        .any(|m| m.id == MemberId::Principal(person(45))));
+    assert!(
+        t.view()
+            .members
+            .iter()
+            .any(|m| m.id == MemberId::Principal(person(45)))
+    );
     let synced: Result<WalletRecord> =
         update(&t.f.ic, t.hub, person(1), "sync_wallet", (t.wallet,));
-    assert!(synced
-        .unwrap()
-        .members
-        .contains(&MemberId::Principal(person(45))));
+    assert!(
+        synced
+            .unwrap()
+            .members
+            .contains(&MemberId::Principal(person(45)))
+    );
     let listed: Vec<WalletRecord> = query(
         &t.f.ic,
         t.hub,
@@ -1529,9 +1532,11 @@ fn wallet_upgrade_lock_refuel_refund_and_revenue() {
         "validate_admin_remove_version",
         (1u32,),
     );
-    assert!(rendered
-        .unwrap()
-        .contains("Remove retired wallet version 1"));
+    assert!(
+        rendered
+            .unwrap()
+            .contains("Remove retired wallet version 1")
+    );
     let removed: Result<()> = update(&t.f.ic, t.hub, t.f.sns, "admin_remove_version", (1u32,));
     removed.unwrap();
     let versions: Vec<WalletVersion> = query(&t.f.ic, t.hub, person(1), "list_versions", ());
@@ -1742,9 +1747,11 @@ fn hub_quota_and_creation_checks() {
         "validate_admin_set_pricing",
         (thin.clone(),),
     );
-    assert!(rendered
-        .unwrap()
-        .contains("(currently 1000000000 e8s ICP of which 300000000 e8s"));
+    assert!(
+        rendered
+            .unwrap()
+            .contains("(currently 1000000000 e8s ICP of which 300000000 e8s")
+    );
     let priced: Result<()> = update(&f.ic, hub, f.sns, "admin_set_pricing", (thin,));
     priced.unwrap();
     let thin_quote: Result<ActivationQuote> =

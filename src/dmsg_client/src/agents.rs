@@ -22,14 +22,14 @@
 use crate::agent::agent_id;
 use crate::client::Client;
 use crate::codec::canonical;
-use crate::crypto::{random_id, signing_public, Key};
+use crate::crypto::{Key, random_id, signing_public};
 use crate::now_ms;
 use crate::secure::SecureStorage;
 use crate::vault::Item;
-use agent_protocols::identity::{service_origin, AgentSigner};
-use dmsg_types::{ensure, ensure_valid, Error, Result, DAY};
+use agent_protocols::identity::{AgentSigner, service_origin};
+use dmsg_types::{DAY, Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as Json};
+use serde_json::{Value as Json, json};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 

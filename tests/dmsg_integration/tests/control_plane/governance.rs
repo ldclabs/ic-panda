@@ -79,9 +79,11 @@ fn cose_and_payment_governance_run_validated_admin_operations() {
         effective_at_ms: time(&f.ic) + 31 * DAY,
         ..soon
     };
-    assert!(validate(&f, f.payment, "schedule_fee_policy", (&policy,))
-        .unwrap()
-        .contains("version 2"));
+    assert!(
+        validate(&f, f.payment, "schedule_fee_policy", (&policy,))
+            .unwrap()
+            .contains("version 2")
+    );
     govern(&f, f.payment, governance, "schedule_fee_policy", (&policy,));
 
     let signer = ReceiptSigner {
@@ -96,9 +98,11 @@ fn cose_and_payment_governance_run_validated_admin_operations() {
         ..signer.clone()
     };
     assert!(validate(&f, f.payment, "rotate_receipt_signer", (&stale,)).is_err());
-    assert!(validate(&f, f.payment, "rotate_receipt_signer", (&signer,))
-        .unwrap()
-        .contains("epoch 2"));
+    assert!(
+        validate(&f, f.payment, "rotate_receipt_signer", (&signer,))
+            .unwrap()
+            .contains("epoch 2")
+    );
     govern(
         &f,
         f.payment,
@@ -229,13 +233,15 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         ),
         Err("NotFound".into())
     );
-    assert!(validate(
-        &f,
-        f.commerce,
-        "verify_settlement_asset",
-        (asset.ledger, None::<u128>)
-    )
-    .is_ok());
+    assert!(
+        validate(
+            &f,
+            f.commerce,
+            "verify_settlement_asset",
+            (asset.ledger, None::<u128>)
+        )
+        .is_ok()
+    );
     govern(
         &f,
         f.commerce,
@@ -243,21 +249,25 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         "verify_settlement_asset",
         (asset.ledger, None::<u128>),
     );
-    assert!(validate(
-        &f,
-        f.commerce,
-        "publish_settlement_price",
-        (asset.ledger, 0u128, MINUTE)
-    )
-    .is_err());
-    assert!(validate(
-        &f,
-        f.commerce,
-        "publish_settlement_price",
-        (asset.ledger, 999_000u128, MINUTE)
-    )
-    .unwrap()
-    .contains("999000 USD micros"));
+    assert!(
+        validate(
+            &f,
+            f.commerce,
+            "publish_settlement_price",
+            (asset.ledger, 0u128, MINUTE)
+        )
+        .is_err()
+    );
+    assert!(
+        validate(
+            &f,
+            f.commerce,
+            "publish_settlement_price",
+            (asset.ledger, 999_000u128, MINUTE)
+        )
+        .unwrap()
+        .contains("999000 USD micros")
+    );
     govern(
         &f,
         f.commerce,
@@ -338,9 +348,11 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         max_orders: 5_000_000,
         ..limits.clone()
     };
-    assert!(validate(&f, f.commerce, "admin_set_limits", (&raised,))
-        .unwrap()
-        .contains("2000000 subjects"));
+    assert!(
+        validate(&f, f.commerce, "admin_set_limits", (&raised,))
+            .unwrap()
+            .contains("2000000 subjects")
+    );
     for invalid in [
         dmsg_types::billing::CommerceLimits {
             max_hot_orders: 6_000_000,
@@ -375,9 +387,11 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
     }
     assert!(validate(&f, f.commerce, "schedule_policy", (&catalog,)).is_err());
     catalog.effective_at_ms = time(&f.ic) + 31 * DAY;
-    assert!(validate(&f, f.commerce, "schedule_policy", (&catalog,))
-        .unwrap()
-        .contains("catalog version 2"));
+    assert!(
+        validate(&f, f.commerce, "schedule_policy", (&catalog,))
+            .unwrap()
+            .contains("catalog version 2")
+    );
     govern(&f, f.commerce, f.sns, "schedule_policy", (&catalog,));
     assert_eq!(
         validate(&f, f.commerce, "set_admission_pause", (true,)),
@@ -494,9 +508,11 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         effective_at_ms: time(&f.ic) + POLICY_NOTICE_MS,
         ..rate
     };
-    assert!(validate(&f, m, "schedule_panda_rate", (&next,))
-        .unwrap()
-        .contains("6000/1"));
+    assert!(
+        validate(&f, m, "schedule_panda_rate", (&next,))
+            .unwrap()
+            .contains("6000/1")
+    );
     govern(&f, m, f.sns, "schedule_panda_rate", (&next,));
 }
 

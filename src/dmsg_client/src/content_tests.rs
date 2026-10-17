@@ -183,7 +183,7 @@ fn seals_objects_and_manifests_that_open() {
 
 #[test]
 fn opens_backup_manifests() {
-    use crate::library::backup::{BackupManifest, BACKUP, BACKUP_FORMAT};
+    use crate::library::backup::{BACKUP, BACKUP_FORMAT, BackupManifest};
     let v = load("content-v1.json");
     let account = text(&v["account"]);
     let root = key(&v["root_hex"]);

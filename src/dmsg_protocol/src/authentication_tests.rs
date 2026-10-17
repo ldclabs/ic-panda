@@ -1,6 +1,6 @@
 use super::*;
 use crate::canonical;
-use ic_certification::{fork, labeled, leaf, Certificate};
+use ic_certification::{Certificate, fork, labeled, leaf};
 
 fn fixture() -> (CertifiedBatch, AuthenticationRequest, Vec<u8>) {
     let home = Principal::from_slice(&[1, 1]);
@@ -98,32 +98,38 @@ fn verifies_a_real_bls_signed_certificate_and_exact_request() {
     assert_eq!(result.request, request);
     let mut changed = request.clone();
     changed.purpose = AuthenticationPurpose::Link;
-    assert!(verify_authentication(
-        &batch,
-        &changed,
-        batch.canister,
-        &root,
-        request.issued_at_ms
-    )
-    .is_err());
+    assert!(
+        verify_authentication(
+            &batch,
+            &changed,
+            batch.canister,
+            &root,
+            request.issued_at_ms
+        )
+        .is_err()
+    );
     changed = request.clone();
     changed.session_key_hash = Hash::new([99; 32]);
-    assert!(verify_authentication(
-        &batch,
-        &changed,
-        batch.canister,
-        &root,
-        request.issued_at_ms
-    )
-    .is_err());
-    assert!(verify_authentication(
-        &batch,
-        &request,
-        Principal::from_slice(&[99, 1]),
-        &root,
-        request.issued_at_ms
-    )
-    .is_err());
+    assert!(
+        verify_authentication(
+            &batch,
+            &changed,
+            batch.canister,
+            &root,
+            request.issued_at_ms
+        )
+        .is_err()
+    );
+    assert!(
+        verify_authentication(
+            &batch,
+            &request,
+            Principal::from_slice(&[99, 1]),
+            &root,
+            request.issued_at_ms
+        )
+        .is_err()
+    );
 }
 
 #[test]

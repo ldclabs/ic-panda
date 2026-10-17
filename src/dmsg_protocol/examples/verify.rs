@@ -16,7 +16,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let artifact: SignedArtifact = cbor2::from_slice(&bytes)?;
     let statement = dmsg_protocol::verify_artifact(&artifact)
         .map_err(|e| format!("verification failed: {e:?}"))?;
-    println!("Mathematical signature valid. Identity, authorization and TSA trust have not been evaluated.");
+    println!(
+        "Mathematical signature valid. Identity, authorization and TSA trust have not been evaluated."
+    );
     println!("{statement:?}");
     Ok(())
 }

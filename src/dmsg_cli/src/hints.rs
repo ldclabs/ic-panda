@@ -7,10 +7,10 @@
 use crate::daemon::Daemon;
 use dmsg_client::now_ms;
 use futures_util::{SinkExt, StreamExt};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio_tungstenite::tungstenite::{client::IntoClientRequest, Message};
+use tokio_tungstenite::tungstenite::{Message, client::IntoClientRequest};
 
 /// The client heartbeat; the relay answers each `ping` with `pong`.
 const PING: Duration = Duration::from_secs(25);

@@ -8,10 +8,10 @@ use crate::daemon::Daemon;
 use crate::params::{number, optional, parse, source, text, to_json};
 use dmsg_client::wallet::{default_policy, parse_wallet};
 use dmsg_types::{
-    wallet::{ChainOutcome, Decision, Intent, MemberId, MemberInput, Role, WalletSpec},
     Error, Result,
+    wallet::{ChainOutcome, Decision, Intent, MemberId, MemberInput, Role, WalletSpec},
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 /// The methods this module serves.
 pub(crate) const METHODS: [&str; 29] = [

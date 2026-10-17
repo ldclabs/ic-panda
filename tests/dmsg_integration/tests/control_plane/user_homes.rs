@@ -14,9 +14,11 @@ fn add_home(f: &Fixture, canister: Principal, governance: Principal, home: Princ
             (home,),
         )
     };
-    assert!(validate()
-        .unwrap()
-        .starts_with(&format!("Add user home {home}")));
+    assert!(
+        validate()
+            .unwrap()
+            .starts_with(&format!("Add user home {home}"))
+    );
     let rejected: Rendered = query(
         &f.ic,
         canister,
@@ -130,9 +132,11 @@ fn services_serve_accounts_of_a_user_home_added_by_governance() {
         "validate_admin_set_registration_homes",
         (vec![second],),
     );
-    assert!(rendered
-        .unwrap()
-        .starts_with(&format!("Accept new accounts at [{second}]")));
+    assert!(
+        rendered
+            .unwrap()
+            .starts_with(&format!("Accept new accounts at [{second}]"))
+    );
     let rejected: Rendered = query(
         &f.ic,
         f.handle,

@@ -6,7 +6,7 @@ use serde_bytes::ByteBuf;
 use std::collections::BTreeSet;
 use url::Url;
 
-use crate::{store, utils, MAX_PRIZE_CLAIMABLE, TOKEN_1};
+use crate::{MAX_PRIZE_CLAIMABLE, TOKEN_1, store, utils};
 
 #[derive(CandidType, Clone, Serialize)]
 pub struct State {

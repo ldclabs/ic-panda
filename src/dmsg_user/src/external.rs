@@ -5,7 +5,7 @@ use dmsg_protocol::{canonical, digest, integration::*};
 use dmsg_runtime::cert_map::leaf_hash;
 use dmsg_runtime::storage::{MapExt, Stored};
 use dmsg_types::{integration::*, user::*, *};
-use ic_stable_structures::{memory_manager::VirtualMemory, DefaultMemoryImpl, StableBTreeMap};
+use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap, memory_manager::VirtualMemory};
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::BTreeMap};
 

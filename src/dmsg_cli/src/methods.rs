@@ -10,8 +10,8 @@ use dmsg_client::{
     channel_log::{Action, ChannelType, Role},
     inbox::PolicyInput,
 };
-use dmsg_types::{integration::SettlementMethod, Error, Result};
-use serde_json::{json, Value};
+use dmsg_types::{Error, Result, integration::SettlementMethod};
+use serde_json::{Value, json};
 
 /// The methods this module serves.
 pub(crate) const METHODS: [&str; 50] = [

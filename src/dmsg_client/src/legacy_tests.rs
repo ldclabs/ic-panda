@@ -1,6 +1,6 @@
 use super::*;
 use crate::vectors::load;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 
 fn unb64url(text: &serde_json::Value) -> Vec<u8> {
     URL_SAFE_NO_PAD.decode(text.as_str().unwrap()).unwrap()

@@ -102,13 +102,13 @@ fn utxo(n: u8, value: u64, address: u32) -> Utxo {
 mod bitcoin_checks {
     use super::*;
     use bitcoin::{
+        Amount, Network, ScriptBuf, Transaction, TxOut as BTxOut,
         consensus::deserialize,
         hashes::Hash as _,
         key::{Secp256k1, XOnlyPublicKey},
-        secp256k1::{schnorr, Message},
+        secp256k1::{Message, schnorr},
         sighash::{EcdsaSighashType, Prevouts, SighashCache, TapSighashType},
         taproot::{LeafVersion, TapLeafHash, TaprootBuilder},
-        Amount, Network, ScriptBuf, Transaction, TxOut as BTxOut,
     };
 
     fn prevouts(script: &[u8], utxos: &[Utxo]) -> Vec<BTxOut> {
@@ -206,17 +206,19 @@ mod bitcoin_checks {
             u128::from(120_000 - 60_000 - fee)
         );
         // A fee above the intent's ceiling is refused.
-        assert!(btc::build(
-            &w,
-            &a,
-            &[(Destination::Bitcoin(dest.to_string()), 60_000)],
-            100,
-            &utxos,
-            2,
-            0,
-            false
-        )
-        .is_err());
+        assert!(
+            btc::build(
+                &w,
+                &a,
+                &[(Destination::Bitcoin(dest.to_string()), 60_000)],
+                100,
+                &utxos,
+                2,
+                0,
+                false
+            )
+            .is_err()
+        );
         // Change below dust goes to the fee.
         let built = btc::build(
             &w,
@@ -480,28 +482,32 @@ mod bitcoin_checks {
             sk.public_key().serialize_sec1(true),
         );
         let to = Destination::Bitcoin(a.text.clone());
-        assert!(btc::build(
-            &w,
-            &a,
-            &[(to.clone(), 1_000)],
-            5_000,
-            &[utxo(1, 9_000, 2)],
-            1,
-            0,
-            false
-        )
-        .is_err());
-        assert!(btc::build(
-            &w,
-            &a,
-            &[(to.clone(), 1_000)],
-            5_000,
-            &[utxo(1, 9_000, 1), utxo(1, 9_000, 1)],
-            1,
-            0,
-            false
-        )
-        .is_err());
+        assert!(
+            btc::build(
+                &w,
+                &a,
+                &[(to.clone(), 1_000)],
+                5_000,
+                &[utxo(1, 9_000, 2)],
+                1,
+                0,
+                false
+            )
+            .is_err()
+        );
+        assert!(
+            btc::build(
+                &w,
+                &a,
+                &[(to.clone(), 1_000)],
+                5_000,
+                &[utxo(1, 9_000, 1), utxo(1, 9_000, 1)],
+                1,
+                0,
+                false
+            )
+            .is_err()
+        );
         assert!(
             btc::build(
                 &w,
@@ -604,7 +610,7 @@ mod evm_checks {
             assert_eq!(tx.input().len(), data_len);
             assert_eq!(format!("{:#x}", signed.hash()), txid);
             let signer = signed.recover_signer().unwrap();
-            assert_eq!(signer.0 .0, evm_address(&a.public_key).unwrap());
+            assert_eq!(signer.0.0, evm_address(&a.public_key).unwrap());
             assert_eq!(built.summary.fee, 60_000 * 30_000_000_000);
         }
         assert!(
@@ -889,17 +895,19 @@ mod solana_checks {
             ],
         ));
         assert_eq!(built.unsigned, reference(payer, &ixs, [2; 32]));
-        assert!(sol::build(
-            &a,
-            sol::Payment::InitNonce,
-            100_000,
-            Hash::new([2; 32]),
-            0,
-            10_000,
-            None,
-            false
-        )
-        .is_err());
+        assert!(
+            sol::build(
+                &a,
+                sol::Payment::InitNonce,
+                100_000,
+                Hash::new([2; 32]),
+                0,
+                10_000,
+                None,
+                false
+            )
+            .is_err()
+        );
     }
 }
 

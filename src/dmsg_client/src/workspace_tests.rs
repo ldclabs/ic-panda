@@ -29,11 +29,12 @@ fn provisional_workspace_binds_to_the_unlock_secret() {
         )
     );
     assert_eq!(ws.unlock_provisional().err(), Some(Error::Forbidden));
-    assert!(ws
-        .store
-        .meta::<ByteArray<32>>(PROVISIONAL)
-        .unwrap()
-        .is_none());
+    assert!(
+        ws.store
+            .meta::<ByteArray<32>>(PROVISIONAL)
+            .unwrap()
+            .is_none()
+    );
     assert!(matches!(ws.unlock(&[8; 32]), Err(Error::IntegrityFailed)));
 
     let again = ws.unlock(&secret).unwrap();

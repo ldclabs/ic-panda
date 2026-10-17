@@ -1,4 +1,4 @@
-use http::{uri::Authority, Uri};
+use http::{Uri, uri::Authority};
 
 use crate::{
     helper::{MAX_DOMAIN_BYTES, MAX_STATEMENT_BYTES, MAX_URI_BYTES},

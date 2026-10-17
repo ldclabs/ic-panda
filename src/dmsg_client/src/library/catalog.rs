@@ -7,7 +7,7 @@
 use crate::files::{FileChunk, FileManifest, MAX_FILE};
 use crate::upload::ChunkRef;
 use crate::workspace::{Keys, Workspace};
-use dmsg_types::{ensure, Error, Result};
+use dmsg_types::{Error, Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Mutex;

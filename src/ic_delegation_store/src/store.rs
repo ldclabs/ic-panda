@@ -1,10 +1,10 @@
 use cbor2::{from_slice, to_vec};
-use ic_auth_verifier::{verify_delegation_chain, SignInResponse};
+use ic_auth_verifier::{SignInResponse, verify_delegation_chain};
 use ic_http_certification::utils::skip_certification_certified_data;
 use ic_stable_structures::{
+    DefaultMemoryImpl, StableCell, Storable,
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     storable::Bound,
-    DefaultMemoryImpl, StableCell, Storable,
 };
 use serde::{Deserialize, Serialize};
 use std::{

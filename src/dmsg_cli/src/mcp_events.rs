@@ -11,10 +11,10 @@
 use crate::daemon::Daemon;
 use crate::params::text;
 use dmsg_client::agents::AgentEntry;
-use dmsg_client::mcp_events::{jwks_keys, Filter};
+use dmsg_client::mcp_events::{Filter, jwks_keys};
 use dmsg_client::now_ms;
 use dmsg_types::{Error, Hash, Result};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -330,7 +330,7 @@ impl Daemon {
                         params["limit"].as_u64().unwrap_or(100) as usize,
                         params["wait_ms"].as_u64().unwrap_or(0),
                     )
-                    .await
+                    .await;
             }
             "mcp-events/status" => return self.events_status().await,
             _ => {}

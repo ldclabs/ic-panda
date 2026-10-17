@@ -6,8 +6,8 @@ use dmsg_runtime::{
     storage::{MapExt, Stored},
 };
 use ic_stable_structures::{
-    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell,
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
 };
 use icrc_ledger_types::{
     icrc::generic_value::ICRC3Value as Value,

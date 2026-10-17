@@ -1,5 +1,5 @@
 //! Third-party contracts. Values alone are never evidence of authorization.
-use crate::{app_action::ActionSchema, membership::Beneficiary, AccountId, Environment, Hash};
+use crate::{AccountId, Environment, Hash, app_action::ActionSchema, membership::Beneficiary};
 use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
