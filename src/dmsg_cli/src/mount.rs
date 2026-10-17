@@ -32,7 +32,10 @@ use dav_server::{
 };
 use dmsg_client::{
     files::CHUNK,
-    library::{catalog::validate_name, catalog::ROOT, mount::Node},
+    library::{
+        catalog::{validate_name, FileView, FolderView, ROOT},
+        mount::Node,
+    },
     now_ms, Client,
 };
 use dmsg_types::{Error, Result};
@@ -305,13 +308,11 @@ impl Daemon {
                 }
                 let account = {
                     let client = self.client().lock().await;
-                    let status = client.status()?;
-                    if status.state != "unlocked" {
-                        return Err(Error::Locked);
-                    }
+                    let session = client.session_state();
+                    let account = session.unlocked_account().ok_or(Error::Locked)?;
                     client.files_mount_clean();
                     client.files_mount_dir()?;
-                    status.account.ok_or(Error::AuthRequired)?
+                    account.to_string()
                 };
                 let token = hex::encode(dmsg_client::crypto::random_id());
                 let password = cfg!(target_os = "macos")
@@ -399,15 +400,8 @@ impl Daemon {
             .as_ref()
             .map(|m| m.account.clone());
         let Some(account) = account else { return };
-        let current = {
-            let client = self.client().lock().await;
-            client
-                .status()
-                .ok()
-                .filter(|s| s.state == "unlocked")
-                .and_then(|s| s.account)
-        };
-        if current.as_deref() != Some(&account) {
+        let session = self.client().lock().await.session_state();
+        if session.unlocked_account() != Some(account.as_str()) {
             self.unmount_library().await;
         }
     }
@@ -430,14 +424,6 @@ impl Daemon {
     }
 }
 
-fn constant_time_eq(a: &str, b: &str) -> bool {
-    a.len() == b.len()
-        && a.bytes()
-            .zip(b.bytes())
-            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
-            == 0
-}
-
 /// `Authorization: Basic` with [`USER`] and `password`.
 fn authorized(headers: &HeaderMap, password: &str) -> bool {
     let Some(encoded) = headers
@@ -454,7 +440,7 @@ fn authorized(headers: &HeaderMap, password: &str) -> bool {
         return false;
     };
     match decoded.split_once(':') {
-        Some((user, pass)) => user == USER && constant_time_eq(pass, password),
+        Some((user, pass)) => user == USER && crate::daemon::constant_time_eq(pass, password),
         None => false,
     }
 }
@@ -493,18 +479,13 @@ pub(crate) async fn serve(
         )
             .into_response();
     }
-    let serving = {
-        let client = daemon.client().lock().await;
-        client
-            .status()
-            .is_ok_and(|s| s.state == "unlocked" && s.account.as_deref() == Some(&account))
-    };
-    if !serving {
-        return status(StatusCode::FORBIDDEN);
-    }
     let rest = params.get("rest").cloned().unwrap_or_default();
     let intercepted = {
         let mut client = daemon.client().lock().await;
+        // Only the unlocked account's library is served.
+        if client.session_state().unlocked_account() != Some(account.as_str()) {
+            return status(StatusCode::FORBIDDEN);
+        }
         intercept(
             &mut client,
             request.method().as_str(),
@@ -633,18 +614,26 @@ struct Meta {
 impl Meta {
     fn of(node: &Node) -> Self {
         match node {
-            Node::Folder(folder) => Meta {
-                len: 0,
-                modified: folder.updated_at,
-                dir: true,
-                sha256: None,
-            },
-            Node::File(file) => Meta {
-                len: file.size,
-                modified: file.updated_at,
-                dir: false,
-                sha256: Some(file.sha256.clone()),
-            },
+            Node::Folder(folder) => Self::folder(folder),
+            Node::File(file) => Self::file(file),
+        }
+    }
+
+    fn folder(folder: &FolderView) -> Self {
+        Meta {
+            len: 0,
+            modified: folder.updated_at,
+            dir: true,
+            sha256: None,
+        }
+    }
+
+    fn file(file: &FileView) -> Self {
+        Meta {
+            len: file.size,
+            modified: file.updated_at,
+            dir: false,
+            sha256: Some(file.sha256.clone()),
         }
     }
 }
@@ -699,12 +688,16 @@ impl LibraryFs {
 
     /// The live folder at `path`.
     async fn folder(&self, path: &str) -> FsResult<String> {
-        let mut client = self.client.lock().await;
-        match client.files_lookup(path).map_err(fs_error)? {
-            Some(Node::Folder(folder)) => Ok(folder.id),
-            Some(Node::File(_)) => Err(FsError::Forbidden),
-            None => Err(FsError::NotFound),
-        }
+        folder_at(&mut *self.client.lock().await, path)
+    }
+}
+
+/// The live folder at `path`.
+fn folder_at(client: &mut Client, path: &str) -> FsResult<String> {
+    match client.files_lookup(path).map_err(fs_error)? {
+        Some(Node::Folder(folder)) => Ok(folder.id),
+        Some(Node::File(_)) => Err(FsError::Forbidden),
+        None => Err(FsError::NotFound),
     }
 }
 
@@ -719,12 +712,11 @@ impl DavFileSystem for LibraryFs {
             if !options.write {
                 return match self.lookup(path).await? {
                     Some(Node::File(file)) => {
-                        let meta = Meta::of(&Node::File(file.clone()));
                         let reader: Box<dyn DavFile> = Box::new(Reader {
                             client: self.client.clone(),
+                            meta: Meta::file(&file),
                             id: file.id,
                             version: file.current,
-                            meta,
                             pos: 0,
                             cache: None,
                         });
@@ -790,11 +782,11 @@ impl DavFileSystem for LibraryFs {
                 .iter()
                 .map(|f| Entry {
                     name: f.name.clone(),
-                    meta: Meta::of(&Node::Folder(f.clone())),
+                    meta: Meta::folder(f),
                 })
                 .chain(listing.files.iter().map(|f| Entry {
                     name: f.name.clone(),
-                    meta: Meta::of(&Node::File(f.clone())),
+                    meta: Meta::file(f),
                 }))
                 .map(|e| Ok(Box::new(e) as Box<dyn DavDirEntry>))
                 .collect();
@@ -876,31 +868,26 @@ impl DavFileSystem for LibraryFs {
 
     fn rename<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<'a, ()> {
         async move {
-            let (_, name) = split(&path_of(to)?);
-            let (parent, _) = split(&path_of(to)?);
+            let (from, to) = (path_of(from)?, path_of(to)?);
+            let (parent, name) = split(&to);
             if noise(&name) {
                 return Err(FsError::Forbidden);
             }
             validate_name(&name).map_err(|_| FsError::Forbidden)?;
-            let id = match self.lookup(from).await? {
-                Some(Node::Folder(folder)) if folder.id == ROOT => return Err(FsError::Forbidden),
-                Some(Node::Folder(folder)) => folder.id,
-                Some(Node::File(file)) => file.id,
-                None => return Err(FsError::NotFound),
-            };
-            let folder = self.folder(&parent).await?;
             let mut client = self.client.lock().await;
-            let current_parent = match client.files_lookup(&path_of(from)?).map_err(fs_error)? {
-                Some(Node::Folder(f)) => f.parent,
-                Some(Node::File(f)) => f.folder,
+            let (id, current_parent) = match client.files_lookup(&from).map_err(fs_error)? {
+                Some(Node::Folder(folder)) if folder.id == ROOT => return Err(FsError::Forbidden),
+                Some(Node::Folder(folder)) => (folder.id, folder.parent),
+                Some(Node::File(file)) => (file.id, file.folder),
                 None => return Err(FsError::NotFound),
             };
+            let folder = folder_at(&mut client, &parent)?;
             if current_parent != folder {
                 client
                     .files_move(std::slice::from_ref(&id), &folder)
                     .map_err(fs_error)?;
             }
-            let current_name = match client.files_lookup(&path_of(to)?).map_err(fs_error)? {
+            let current_name = match client.files_lookup(&to).map_err(fs_error)? {
                 Some(Node::Folder(f)) if f.id == id => Some(f.name),
                 Some(Node::File(f)) if f.id == id => Some(f.name),
                 Some(_) => return Err(FsError::Exists),
@@ -1050,12 +1037,9 @@ impl std::fmt::Debug for Writer {
 impl Writer {
     fn write(&mut self, bytes: &[u8]) -> FsResult<()> {
         let file = self.file.as_mut().ok_or(FsError::GeneralFailure)?;
-        file.write_all(bytes).map_err(|e| {
-            if e.raw_os_error() == Some(28) {
-                FsError::InsufficientStorage
-            } else {
-                FsError::GeneralFailure
-            }
+        file.write_all(bytes).map_err(|e| match e.kind() {
+            std::io::ErrorKind::StorageFull => FsError::InsufficientStorage,
+            _ => FsError::GeneralFailure,
         })?;
         self.written += bytes.len() as u64;
         Ok(())

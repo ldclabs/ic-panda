@@ -9,7 +9,11 @@
 //! uploads by itself.
 
 use crate::daemon::Daemon;
-use dmsg_client::{library::catalog::ROOT, Client};
+use crate::params::{absolute, number, optional, parse, text, to_json};
+use dmsg_client::{
+    library::{catalog::ROOT, VerifyReport},
+    Client,
+};
 use dmsg_types::{Error, Result};
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -77,13 +81,6 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     }
 }
 
-fn text(params: &Value, name: &str) -> Result<String> {
-    params[name]
-        .as_str()
-        .map(str::to_string)
-        .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-}
-
 /// `ids`, else the single `id`.
 fn ids(params: &Value) -> Result<Vec<String>> {
     if let Some(list) = params["ids"].as_array() {
@@ -97,14 +94,6 @@ fn ids(params: &Value) -> Result<Vec<String>> {
             .collect();
     }
     Ok(vec![text(params, "id")?])
-}
-
-fn absolute(params: &Value, name: &str) -> Result<PathBuf> {
-    let path = PathBuf::from(text(params, name)?);
-    match path.is_absolute() {
-        true => Ok(path),
-        false => Err(Error::InvalidInput(format!("{name} must be absolute"))),
-    }
 }
 
 fn is_id(value: &str) -> bool {
@@ -122,13 +111,18 @@ fn folder(client: &mut Client, value: &Value, create: bool) -> Result<String> {
     }
 }
 
-fn to_json<T: serde::Serialize>(value: &T) -> Value {
-    serde_json::to_value(value).expect("serializable")
-}
-
 impl Daemon {
     /// Run one of [`METHODS`].
     pub(crate) async fn call_files(&self, method: &str, params: &Value) -> Result<Value> {
+        // The whole library is scanned beside the client, not under it.
+        if method == "files/verify" && params["id"].is_null() {
+            let (check, versions) = self.check_library().await?;
+            return Ok(to_json(&VerifyReport {
+                versions,
+                blobs_checked: check.blobs_checked,
+                blobs_bad: check.blobs_bad,
+            }));
+        }
         let mut client = self.client().lock().await;
         let id = || text(params, "id");
         let version = params["version"].as_str();
@@ -162,13 +156,7 @@ impl Daemon {
                 Ok(json!({"moved": ids.len(), "folder": target}))
             }
             "files/update" => {
-                let tags: Option<Vec<String>> = match &params["tags"] {
-                    Value::Null => None,
-                    value => Some(
-                        serde_json::from_value(value.clone())
-                            .map_err(|_| Error::InvalidInput("tags".into()))?,
-                    ),
-                };
+                let tags: Option<Vec<String>> = optional(params, "tags", parse)?;
                 let note = params["note"].as_str().map(str::to_string);
                 let starred = params["starred"].as_bool();
                 Ok(to_json(&client.files_update(
@@ -272,9 +260,7 @@ impl Daemon {
                 };
                 Ok(to_json(&client.files_purge(ids.as_deref())?))
             }
-            "files/verify" => Ok(to_json(
-                &client.files_verify(params["id"].as_str(), version)?,
-            )),
+            "files/verify" => Ok(to_json(&client.files_verify(&id()?, version)?)),
             "files/usage" => Ok(to_json(&client.files_usage()?)),
             "files/share_channel" => {
                 client
@@ -339,7 +325,9 @@ impl Daemon {
                         json!({"job": "backup", "path": file, "done": done, "total": total}),
                     );
                 };
-                Ok(to_json(&client.files_backup_run(&mut progress).await?))
+                Ok(to_json(
+                    &client.files_backup_run(None, &mut progress).await?,
+                ))
             }
             "files/cloud_list" => Ok(to_json(&client.files_cloud_list()?)),
             "files/cloud_refresh" => Ok(to_json(&client.files_cloud_refresh().await?)),
@@ -361,8 +349,7 @@ impl Daemon {
                 Ok(to_json(&file))
             }
             "files/cloud_delete" => {
-                let uploads: Vec<String> = serde_json::from_value(params["upload_ids"].clone())
-                    .map_err(|_| Error::InvalidInput("upload_ids".into()))?;
+                let uploads: Vec<String> = parse(params, "upload_ids")?;
                 let deleted = client.files_cloud_delete(&uploads).await?;
                 Ok(json!({"deleted": deleted}))
             }
@@ -381,9 +368,7 @@ impl Daemon {
             "files/cloud_usage" => Ok(to_json(&client.files_cloud_usage().await?)),
             "files/evict" => Ok(to_json(&client.files_evict(&id()?, version)?)),
             "files/save_shared" => {
-                let seq = params["seq"]
-                    .as_u64()
-                    .ok_or_else(|| Error::InvalidInput("seq".into()))?;
+                let seq = number(params, "seq")?;
                 let target = folder(&mut client, &params["folder"], true)?;
                 let mut progress = |done, total| {
                     self.emit(

@@ -4,12 +4,11 @@
 //! identity happen on the old site; this daemon only checks them.
 
 use crate::daemon::Daemon;
+use crate::params::{absolute, parse, text, to_json};
 use dmsg_client::legacy_proof::{Approval, MemberClaim};
 use dmsg_client::shared_migration::{Draft, SharedView, SourceFile};
 use dmsg_types::{Error, Result};
-use serde::de::DeserializeOwned;
 use serde_json::{json, Value};
-use std::path::PathBuf;
 
 /// The methods this module serves.
 pub(crate) const METHODS: [&str; 22] = [
@@ -47,30 +46,6 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         }
         _ => &[],
     }
-}
-
-fn text(params: &Value, name: &str) -> Result<String> {
-    params[name]
-        .as_str()
-        .map(str::to_string)
-        .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-}
-
-fn parse<T: DeserializeOwned>(params: &Value, name: &str) -> Result<T> {
-    serde_json::from_value(params[name].clone())
-        .map_err(|e| Error::InvalidInput(format!("{name}: {e}")))
-}
-
-fn absolute(params: &Value, name: &str) -> Result<PathBuf> {
-    let path = PathBuf::from(text(params, name)?);
-    match path.is_absolute() {
-        true => Ok(path),
-        false => Err(Error::InvalidInput(format!("{name} must be absolute"))),
-    }
-}
-
-fn to_json<T: serde::Serialize>(value: &T) -> Value {
-    serde_json::to_value(value).expect("serializable")
 }
 
 impl Daemon {
@@ -196,7 +171,7 @@ impl Daemon {
                     .shared_receive(&text(params, "key")?, &text(params, "grant")?)
                     .await
             }
-            _ => Err(Error::InvalidInput(format!("unknown method {method}"))),
+            _ => Err(Error::NotFound),
         }
     }
 }

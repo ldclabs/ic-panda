@@ -32,11 +32,12 @@
 //! duration, and each change of a background task's outcome.
 
 use crate::home::{Discovery, Home, Settings};
+use crate::params::{absolute, account, hash, optional, parse, source, text, to_json};
 use axum::{
     body::Bytes,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        State,
+        DefaultBodyLimit, State,
     },
     http::{header, HeaderMap, StatusCode},
     response::{Html, IntoResponse, Response},
@@ -48,13 +49,14 @@ use dmsg_client::{
     account::login_targets,
     attest::{Bundle, StatementInput},
     error_code,
+    library::{blobs::Blobs, Check, VersionCheck},
     login::{LoginSession, DEFAULT_TTL_MS},
     now_ms,
     profile::ProfileFields,
     vault::{Filter, Item, VaultEntry},
     Client,
 };
-use dmsg_types::{user::ControllerRole, AccountId, Error, Hash, Result};
+use dmsg_types::{user::ControllerRole, Error, Result};
 use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -62,10 +64,14 @@ use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
     Arc,
 };
+use std::time::Duration;
 use tokio::sync::{broadcast, Mutex, Notify};
 
 /// How often presigned submissions are flushed.
 const FLUSH_MS: u64 = 10_000;
+/// How long one background pass uploads a backup before requests waiting
+/// for the client go first; the next pass follows at once.
+const BACKUP_SLICE_MS: u64 = 5_000;
 /// How often the relay mailbox is polled besides hints.
 const CONNECT_POLL_MS: u64 = 30_000;
 /// The library's daily self-check waits for this much quiet at the device.
@@ -74,6 +80,9 @@ const CHECK_IDLE_MS: u64 = 60_000;
 const CHECK_RETRY_MS: u64 = 3_600_000;
 /// The app protocol `initialize` reports.
 const APP_PROTOCOL: &str = "dmsg-app/1";
+/// The largest request body and WebSocket message: an agent's 8 MiB
+/// `dmsg_files_write` is about 11 MiB as base64 in JSON.
+const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
 const METHODS: [&str; 54] = [
@@ -132,6 +141,42 @@ const METHODS: [&str; 54] = [
     "daemon/status",
     "events/poll",
 ];
+
+/// The module that serves a method.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Module {
+    Daemon,
+    More,
+    Account,
+    Legacy,
+    Agents,
+    /// The methods an agent's credential reaches.
+    Agent,
+    McpEvents,
+    Files,
+    Mount,
+    Wallet,
+}
+
+/// The module that serves `method`; `None` for an unknown method.
+fn route(method: &str) -> Option<Module> {
+    let modules: [(Module, &[&str]); 10] = [
+        (Module::Daemon, &METHODS),
+        (Module::More, &crate::methods::METHODS),
+        (Module::Account, &crate::account_methods::METHODS),
+        (Module::Legacy, &crate::legacy_methods::METHODS),
+        (Module::Agents, &crate::agents::METHODS),
+        (Module::Agent, &crate::agents::AGENT_METHODS),
+        (Module::McpEvents, &crate::mcp_events::METHODS),
+        (Module::Files, &crate::files_methods::METHODS),
+        (Module::Mount, &crate::mount::METHODS),
+        (Module::Wallet, &crate::wallet_methods::METHODS),
+    ];
+    modules
+        .into_iter()
+        .find(|(_, methods)| methods.contains(&method))
+        .map(|(module, _)| module)
+}
 
 const CALLBACK_PAGE: &str = r#"<!doctype html>
 <meta charset="utf-8">
@@ -265,27 +310,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         .local_addr()
         .map_err(|e| Error::Unavailable(format!("listen: {e}")))?
         .port();
-    let daemon = Arc::new(Daemon {
-        token,
-        instance: hex::encode(&dmsg_client::crypto::random_id()[..8]),
-        port,
-        settings,
-        client: Arc::new(Mutex::new(client)),
-        login: std::sync::Mutex::new(LoginState::default()),
-        activity: AtomicU64::new(now_ms()),
-        stopping: AtomicBool::new(false),
-        stop: Notify::new(),
-        events: broadcast::channel(256).0,
-        seq: AtomicU64::new(0),
-        hints: std::sync::Mutex::new(HintState::default()),
-        wake: Notify::new(),
-        last_connect: std::sync::Mutex::new(None),
-        agents,
-        connectors: tokio::sync::watch::channel(0).0,
-        mcp,
-        outcomes: Default::default(),
-        mount: std::sync::Mutex::new(None),
-    });
+    let daemon = Arc::new(Daemon::new(token, port, settings, client, agents, mcp));
     home.publish(&Discovery {
         port,
         pid: std::process::id(),
@@ -295,20 +320,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     tokio::spawn(crate::hints::run(daemon.clone()));
     tokio::spawn(crate::channels::run(daemon.clone()));
     tokio::spawn(crate::mcp_events::run(daemon.clone()));
-    let app = Router::new()
-        .route("/daemon/status", get(status))
-        .route("/app/v1", post(rpc))
-        .route("/ws/app/v1", get(socket))
-        .route("/auth/callback", get(callback_page).post(callback))
-        .route(
-            &format!("/dav/{{token}}/{}", crate::mount::VOLUME),
-            any(crate::mount::serve),
-        )
-        .route(
-            &format!("/dav/{{token}}/{}/{{*rest}}", crate::mount::VOLUME),
-            any(crate::mount::serve),
-        )
-        .with_state(daemon.clone());
+    let app = app(daemon.clone());
     eprintln!("dmsg daemon listening on 127.0.0.1:{port}");
     crate::logs::write(
         "daemon/start",
@@ -336,6 +348,27 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     served.map_err(|e| Error::Unavailable(format!("serve: {e}")))
 }
 
+/// The loopback routes.
+fn app(daemon: Arc<Daemon>) -> Router {
+    Router::new()
+        .route("/daemon/status", get(status))
+        .route(
+            "/app/v1",
+            post(rpc).layer(DefaultBodyLimit::max(MAX_REQUEST)),
+        )
+        .route("/ws/app/v1", get(socket))
+        .route("/auth/callback", get(callback_page).post(callback))
+        .route(
+            &format!("/dav/{{token}}/{}", crate::mount::VOLUME),
+            any(crate::mount::serve),
+        )
+        .route(
+            &format!("/dav/{{token}}/{}/{{*rest}}", crate::mount::VOLUME),
+            any(crate::mount::serve),
+        )
+        .with_state(daemon)
+}
+
 /// Idle lock, the keyless flush of presigned submissions and the
 /// scheduled sync. Background work is not activity.
 async fn background(daemon: Arc<Daemon>) {
@@ -345,35 +378,33 @@ async fn background(daemon: Arc<Daemon>) {
     let mut waiting = 0;
     // When the last self-check began, finished or not.
     let mut checking = 0;
+    let mut pause = FLUSH_MS;
     loop {
         tokio::select! {
-            _ = tokio::time::sleep(std::time::Duration::from_millis(FLUSH_MS)) => {}
+            _ = tokio::time::sleep(Duration::from_millis(pause)) => {}
             _ = daemon.wake.notified() => polled = 0,
         }
+        pause = FLUSH_MS;
         if daemon.stopping() {
             continue;
         }
         let now = now_ms();
         let mut client = daemon.client.lock().await;
-        let before = client.status().map(|s| s.state).unwrap_or_default();
+        let before = client.session_state().state;
         if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
             client.lock();
         }
-        let status = client.status().ok();
-        if status.as_ref().map(|s| s.state) != Some(before) {
-            let state = status.as_ref().map_or("unknown", |s| s.state);
-            crate::logs::write("session/changed", &[("state", &state)]);
-            daemon.emit(
-                "session/changed",
-                json!({"state": status.as_ref().map(|s| s.state)}),
-            );
+        let session = client.session_state();
+        if session.state != before {
+            crate::logs::write("session/changed", &[("state", &session.state)]);
+            daemon.emit("session/changed", json!({"state": session.state}));
         }
         drop(client);
         daemon.check_mount().await;
         let mut client = daemon.client.lock().await;
         let interval = daemon.settings.sync_interval_ms;
-        let unlocked = status.as_ref().is_some_and(|s| s.state == "unlocked");
-        let ready = status.as_ref().is_some_and(|s| unlocked || s.resident);
+        let unlocked = session.state == "unlocked";
+        let ready = unlocked || session.resident;
         if interval > 0 && now >= synced + interval && ready {
             synced = now;
             // Recorded in the status; a failure waits for the next round.
@@ -412,7 +443,7 @@ async fn background(daemon: Arc<Daemon>) {
             }
         }
         // Backups a person asked for keep moving while the device key is
-        // there, locked or not; nothing here starts one.
+        // there, locked or not, a slice per pass; nothing here starts one.
         if ready && client.library_jobs_running().unwrap_or(false) {
             let mut progress = |file: &str, done, total| {
                 daemon.emit(
@@ -420,10 +451,15 @@ async fn background(daemon: Arc<Daemon>) {
                     json!({"job": "backup", "path": file, "done": done, "total": total}),
                 );
             };
-            let run = client.files_backup_run(&mut progress).await;
+            let run = client
+                .files_backup_run(Some(BACKUP_SLICE_MS), &mut progress)
+                .await;
             daemon.note("backup", &outcome(&run));
             if run.as_ref().is_ok_and(|r| r.completed > 0) {
                 daemon.emit("files/changed", Value::Null);
+            }
+            if run.as_ref().is_ok_and(|r| r.paused) {
+                pause = 0;
             }
         }
         if unlocked {
@@ -443,27 +479,15 @@ async fn background(daemon: Arc<Daemon>) {
             }
         }
         // The library's self-check, once a day while nobody is at the
-        // device: every chunk file against its name, which needs no key and
-        // runs beside the library, then every local version through its
-        // key while unlocked.
+        // device.
         let quiet = now > daemon.activity.load(Ordering::Relaxed) + CHECK_IDLE_MS;
-        if quiet
-            && now >= checking + CHECK_RETRY_MS
-            && client.files_check_due(now).unwrap_or(false)
-            && let Ok(dir) = client.files_blobs_dir()
+        if quiet && now >= checking + CHECK_RETRY_MS && client.files_check_due(now).unwrap_or(false)
         {
             checking = now;
             drop(client);
-            let scanned = tokio::task::spawn_blocking(move || {
-                dmsg_client::library::blobs::Blobs::new(dir).verify()
-            })
-            .await
-            .unwrap_or_else(|e| Err(Error::Unavailable(format!("check: {e}"))));
-            let mut client = daemon.client.lock().await;
-            let checked =
-                scanned.and_then(|(count, bad)| client.files_check_record(now_ms(), count, bad));
+            let checked = daemon.check_library().await;
             daemon.note("check", &outcome(&checked));
-            if let Ok(check) = checked {
+            if let Ok((check, _)) = checked {
                 crate::logs::write(
                     "files/check",
                     &[
@@ -491,6 +515,51 @@ async fn terminated() {
 }
 
 impl Daemon {
+    fn new(
+        token: String,
+        port: u16,
+        settings: Settings,
+        client: Client,
+        agents: dmsg_agent::Runtime,
+        mcp: crate::mcp_events::McpEvents,
+    ) -> Self {
+        Self {
+            token,
+            instance: hex::encode(&dmsg_client::crypto::random_id()[..8]),
+            port,
+            settings,
+            client: Arc::new(Mutex::new(client)),
+            login: std::sync::Mutex::new(LoginState::default()),
+            activity: AtomicU64::new(now_ms()),
+            stopping: AtomicBool::new(false),
+            stop: Notify::new(),
+            events: broadcast::channel(256).0,
+            seq: AtomicU64::new(0),
+            hints: std::sync::Mutex::new(HintState::default()),
+            wake: Notify::new(),
+            last_connect: std::sync::Mutex::new(None),
+            agents,
+            connectors: tokio::sync::watch::channel(0).0,
+            mcp,
+            outcomes: Default::default(),
+            mount: std::sync::Mutex::new(None),
+        }
+    }
+
+    /// Check the whole library: every chunk file against its name beside
+    /// the client, which needs no key, then every local version through
+    /// its key while unlocked; the check is recorded.
+    pub(crate) async fn check_library(&self) -> Result<(Check, Vec<VersionCheck>)> {
+        let dir = self.client.lock().await.files_blobs_dir()?;
+        let (count, bad) = tokio::task::spawn_blocking(move || Blobs::new(dir).verify())
+            .await
+            .map_err(|e| Error::Unavailable(format!("check: {e}")))??;
+        self.client
+            .lock()
+            .await
+            .files_check_record(now_ms(), count, bad)
+    }
+
     /// Publish an event to every WebSocket client.
     pub(crate) fn emit(&self, kind: &str, data: Value) {
         let seq = self.seq.fetch_add(1, Ordering::Relaxed) + 1;
@@ -576,31 +645,14 @@ impl Daemon {
 
     /// The owner credential and no `Origin`.
     fn owner(&self, headers: &HeaderMap) -> bool {
-        let presented = headers
-            .get(header::AUTHORIZATION)
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .unwrap_or_default();
-        headers.get(header::ORIGIN).is_none()
-            && presented.len() == self.token.len()
-            && presented
-                .bytes()
-                .zip(self.token.bytes())
-                .fold(0u8, |acc, (a, b)| acc | (a ^ b))
-                == 0
+        bearer(headers).is_some_and(|presented| constant_time_eq(presented, &self.token))
     }
 
     /// The owner's credential, else a hosted agent's; never with an `Origin`.
     async fn session(&self, headers: &HeaderMap) -> Option<Session> {
-        if self.owner(headers) {
+        let presented = bearer(headers)?;
+        if constant_time_eq(presented, &self.token) {
             return Some(Session::Owner);
-        }
-        let presented = headers
-            .get(header::AUTHORIZATION)
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))?;
-        if headers.get(header::ORIGIN).is_some() {
-            return None;
         }
         let agent = self
             .client
@@ -644,7 +696,7 @@ impl Daemon {
         let session = LoginSession::new(&targets, origin, self.port, DEFAULT_TTL_MS, now_ms())?;
         let reply = json!({"url": session.url(&config), "expires_at": session.deadline});
         let bind = match params["bind"] == true {
-            true => Some(crate::account_methods::source(params)?.to_string()),
+            true => Some(source(params)?.to_string()),
             false => None,
         };
         *self.login.lock().expect("login state") = LoginState {
@@ -656,20 +708,25 @@ impl Daemon {
         Ok(reply)
     }
 
-    async fn call(&self, method: &str, params: &Value) -> Result<Value> {
-        let text = |name: &str| {
-            params[name]
-                .as_str()
-                .map(str::to_string)
-                .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-        };
-        let path = |name: &str| {
-            let path = std::path::PathBuf::from(text(name)?);
-            match path.is_absolute() {
-                true => Ok(path),
-                false => Err(Error::InvalidInput(format!("{name} must be absolute"))),
-            }
-        };
+    /// Run one of the owner's methods.
+    async fn call(&self, module: Module, method: &str, params: &Value) -> Result<Value> {
+        match module {
+            Module::Daemon => self.call_daemon(method, params).await,
+            Module::More => self.call_more(method, params).await,
+            Module::Account => self.call_account(method, params).await,
+            Module::Legacy => self.call_legacy(method, params).await,
+            Module::Agents => self.call_agents(method, params).await,
+            Module::McpEvents => self.call_mcp_events(method, params).await,
+            Module::Files => self.call_files(method, params).await,
+            Module::Mount => self.call_mount(method, params).await,
+            Module::Wallet => self.call_wallet(method, params).await,
+            // An agent's credential reaches these, never the owner's.
+            Module::Agent => Err(Error::Forbidden),
+        }
+    }
+
+    /// Run one of [`METHODS`].
+    async fn call_daemon(&self, method: &str, params: &Value) -> Result<Value> {
         let reveal = params["reveal"].as_bool().unwrap_or(false);
         match method {
             "session/status" => self.status().await,
@@ -692,7 +749,7 @@ impl Daemon {
             }
             "session/accounts" => Ok(to_json(&self.client.lock().await.accounts()?)),
             "session/switch" => {
-                let account = account_id(&text("account")?)?;
+                let account = account(params, "account")?;
                 let status = self.client.lock().await.switch_account(&account)?;
                 *self.last_connect.lock().expect("connect report") = None;
                 Ok(to_json(&status))
@@ -700,8 +757,8 @@ impl Daemon {
             "session/unlock" => {
                 let mut client = self.client.lock().await;
                 // Fast unlock of another account here selects it first.
-                if let Some(account) = params["account"].as_str() {
-                    client.switch_account(&account_id(account)?)?;
+                if let Some(account) = optional(params, "account", account)? {
+                    client.switch_account(&account)?;
                     *self.last_connect.lock().expect("connect report") = None;
                 }
                 let status = match params["fast"].as_bool().unwrap_or(false) {
@@ -749,9 +806,9 @@ impl Daemon {
             }
             "device/approve" => {
                 let mut client = self.client.lock().await;
-                let request = client.inspect_pairing(&text("token")?)?;
+                let request = client.inspect_pairing(&text(params, "token")?)?;
                 // The owner names the device shown on the new device's screen.
-                if hex::encode(*request.device.device_id) != text("device")? {
+                if hex::encode(*request.device.device_id) != text(params, "device")? {
                     return Err(Error::InvalidInput(
                         "device does not match the request".into(),
                     ));
@@ -763,8 +820,7 @@ impl Daemon {
                 )
             }
             "vault/put" => {
-                let item: Item = serde_json::from_value(params["item"].clone())
-                    .map_err(|e| Error::InvalidInput(format!("item: {e}")))?;
+                let item: Item = parse(params, "item")?;
                 let entry = self.client.lock().await.vault_put(
                     params["id"].as_str(),
                     params["base"].as_str(),
@@ -773,7 +829,7 @@ impl Daemon {
                 Ok(to_json(&entry.masked(false)))
             }
             "vault/edit" => {
-                let id = text("id")?;
+                let id = text(params, "id")?;
                 let mut client = self.client.lock().await;
                 let mut item = client.vault_show(&id)?.item;
                 edit(&mut item, &params["changes"])?;
@@ -781,11 +837,19 @@ impl Daemon {
                 Ok(to_json(&entry.masked(false)))
             }
             "vault/delete" => {
-                let entry = self.client.lock().await.vault_delete(&text("id")?)?;
+                let entry = self
+                    .client
+                    .lock()
+                    .await
+                    .vault_delete(&text(params, "id")?)?;
                 Ok(to_json(&entry.masked(false)))
             }
             "vault/restore" => {
-                let entry = self.client.lock().await.vault_restore(&text("id")?)?;
+                let entry = self
+                    .client
+                    .lock()
+                    .await
+                    .vault_restore(&text(params, "id")?)?;
                 Ok(to_json(&entry.masked(false)))
             }
             "vault/list" => {
@@ -797,7 +861,7 @@ impl Daemon {
                 Ok(masked_all(entries))
             }
             "vault/show" => {
-                let entry = self.client.lock().await.vault_show(&text("id")?)?;
+                let entry = self.client.lock().await.vault_show(&text(params, "id")?)?;
                 Ok(to_json(&entry.masked(reveal)))
             }
             "vault/conflicts" => {
@@ -814,7 +878,7 @@ impl Daemon {
                     .client
                     .lock()
                     .await
-                    .vault_resolve(&text("key")?, keep)?;
+                    .vault_resolve(&text(params, "key")?, keep)?;
                 Ok(to_json(&entry.masked(false)))
             }
             "sync/run" => {
@@ -843,7 +907,7 @@ impl Daemon {
                 Ok(to_json(&profile))
             }
             "profile/resolve" => {
-                let account = account_id(&text("account")?)?;
+                let account = account(params, "account")?;
                 let profile = self.client.lock().await.profile_resolve(&account).await?;
                 Ok(to_json(&profile))
             }
@@ -851,7 +915,7 @@ impl Daemon {
                 let image = match params["remove"] == true {
                     true => None,
                     false => {
-                        let path = path("path")?;
+                        let path = absolute(params, "path")?;
                         let size = std::fs::metadata(&path)
                             .map_err(|e| Error::InvalidInput(format!("path: {e}")))?
                             .len();
@@ -873,12 +937,12 @@ impl Daemon {
                 Ok(to_json(&profile))
             }
             "profile/avatar_image" => {
-                let account = account_id(&text("account")?)?;
+                let account = account(params, "account")?;
                 let image = self
                     .client
                     .lock()
                     .await
-                    .avatar(&account, &text("upload")?)
+                    .avatar(&account, &text(params, "upload")?)
                     .await?;
                 // A data URL the desktop shows without fetching anything.
                 Ok(image.map_or(Value::Null, |(mime, bytes)| {
@@ -890,7 +954,7 @@ impl Daemon {
                 self.unmount_library().await;
                 let mut client = self.client.lock().await;
                 // The caller names this device, as shown in the status.
-                if Some(text("device")?) != client.status()?.device_id {
+                if Some(text(params, "device")?) != client.status()?.device_id {
                     return Err(Error::InvalidInput("device does not match".into()));
                 }
                 Ok(to_json(&client.reset()?))
@@ -910,7 +974,12 @@ impl Daemon {
                 let list = self.client.lock().await.approvals(all)?;
                 Ok(Value::Array(list))
             }
-            "approval/show" => self.client.lock().await.approval(&text("id")?),
+            // The CLI names a request by a unique prefix.
+            "approval/show" => {
+                let mut client = self.client.lock().await;
+                let id = client.approval_id(&text(params, "id")?)?;
+                client.approval(&id)
+            }
             "approval/respond" => {
                 // Only a person answers: the desktop approval window or an
                 // interactive terminal says so; scripts, agents and web
@@ -921,10 +990,10 @@ impl Daemon {
                 let approve = params["approve"]
                     .as_bool()
                     .ok_or_else(|| Error::InvalidInput("approve".into()))?;
-                let id = text("id")?;
+                let id = text(params, "id")?;
                 let mut client = self.client.lock().await;
                 let outcome = client
-                    .approval_respond(&id, &text("digest")?, approve)
+                    .approval_respond(&id, &text(params, "digest")?, approve)
                     .await;
                 // Who decided, through which way in, on whose request.
                 let request = client.approval(&id).unwrap_or_default();
@@ -941,7 +1010,7 @@ impl Daemon {
                 let code = outcome.as_ref().err().map_or("ok".into(), error_code);
                 client.audit(
                     "owner",
-                    &source(params)?,
+                    source(params)?,
                     action,
                     Some(&id),
                     Some(&detail),
@@ -949,30 +1018,30 @@ impl Daemon {
                 );
                 outcome
             }
-            "approval/cancel" => self.client.lock().await.approval_cancel(&text("id")?),
+            "approval/cancel" => {
+                let mut client = self.client.lock().await;
+                let id = client.approval_id(&text(params, "id")?)?;
+                client.approval_cancel(&id)
+            }
             "approval/reconcile" => {
                 let mut client = self.client.lock().await;
                 client.approvals_reconcile().await?;
                 Ok(Value::Array(client.approvals(false)?))
             }
             "attest/request" => {
-                let input: StatementInput = serde_json::from_value(params["statement"].clone())
-                    .map_err(|e| Error::InvalidInput(format!("statement: {e}")))?;
-                let file = match params["file"].as_str() {
-                    Some(_) => Some(path("file")?),
-                    None => None,
-                };
+                let input: StatementInput = parse(params, "statement")?;
+                let file = optional(params, "file", absolute)?;
                 self.client
                     .lock()
                     .await
-                    .attest_request(&source(params)?, input, file.as_deref())
+                    .attest_request(source(params)?, input, file.as_deref())
             }
             "attest/action" => {
-                let action = dmsg_client::codec::unb64(&text("action")?)?;
+                let action = dmsg_client::codec::unb64(&text(params, "action")?)?;
                 self.client
                     .lock()
                     .await
-                    .attest_action_request(&source(params)?, &action)
+                    .attest_action_request(source(params)?, &action)
                     .await
             }
             "attest/history" => Ok(Value::Array(self.client.lock().await.attest_history()?)),
@@ -981,16 +1050,12 @@ impl Daemon {
                     .client
                     .lock()
                     .await
-                    .attest_bundle(&text("execution")?)?;
+                    .attest_bundle(&text(params, "execution")?)?;
                 Ok(to_json(&bundle))
             }
             "attest/verify" => {
-                let bundle: Bundle = serde_json::from_value(params["bundle"].clone())
-                    .map_err(|e| Error::InvalidInput(format!("bundle: {e}")))?;
-                let file = match params["file"].as_str() {
-                    Some(_) => Some(path("file")?),
-                    None => None,
-                };
+                let bundle: Bundle = parse(params, "bundle")?;
+                let file = optional(params, "file", absolute)?;
                 let report = self
                     .client
                     .lock()
@@ -1000,7 +1065,7 @@ impl Daemon {
                 Ok(to_json(&report))
             }
             "device/capabilities" => {
-                let device = hash(&text("device")?)?;
+                let device = hash(params, "device")?;
                 let capabilities = params["capabilities"]
                     .as_array()
                     .ok_or_else(|| Error::InvalidInput("capabilities".into()))?
@@ -1010,7 +1075,7 @@ impl Daemon {
                 self.client
                     .lock()
                     .await
-                    .capabilities_request(&source(params)?, device, capabilities)
+                    .capabilities_request(source(params)?, device, capabilities)
                     .await
             }
             "device/formal_approve" => {
@@ -1020,15 +1085,15 @@ impl Daemon {
                 self.client
                     .lock()
                     .await
-                    .formal_approve_request(&source(params)?, enable)
+                    .formal_approve_request(source(params)?, enable)
                     .await
             }
             "device/revoke" => {
-                let device = hash(&text("device")?)?;
+                let device = hash(params, "device")?;
                 self.client
                     .lock()
                     .await
-                    .revoke_request(&source(params)?, device)
+                    .revoke_request(source(params)?, device)
                     .await
             }
             "connect/invite" => self.client.lock().await.connect_invite().await,
@@ -1036,7 +1101,7 @@ impl Daemon {
                 self.client
                     .lock()
                     .await
-                    .connect_candidates(&text("invite")?)
+                    .connect_candidates(&text(params, "invite")?)
                     .await
             }
             "connect/grant" => {
@@ -1047,7 +1112,7 @@ impl Daemon {
                 self.client
                     .lock()
                     .await
-                    .connect_grant(&text("invite")?, &text("pairing")?)
+                    .connect_grant(&text(params, "invite")?, &text(params, "pairing")?)
                     .await
             }
             "connect/pairings" => self.client.lock().await.connect_pairings().await,
@@ -1055,7 +1120,7 @@ impl Daemon {
                 self.client
                     .lock()
                     .await
-                    .connect_revoke(&text("pairing")?)
+                    .connect_revoke(&text(params, "pairing")?)
                     .await
             }
             "connect/sync" => {
@@ -1073,48 +1138,9 @@ impl Daemon {
                 }))
             }
             "hint/status" => Ok(to_json(&self.hints.lock().expect("hint state").clone())),
-            m if crate::account_methods::METHODS.contains(&m) => {
-                self.call_account(method, params).await
-            }
-            m if crate::legacy_methods::METHODS.contains(&m) => {
-                self.call_legacy(method, params).await
-            }
-            m if crate::agents::METHODS.contains(&m) => self.call_agents(method, params).await,
-            m if crate::mcp_events::METHODS.contains(&m) => {
-                self.call_mcp_events(method, params).await
-            }
-            m if crate::files_methods::METHODS.contains(&m) => {
-                self.call_files(method, params).await
-            }
-            m if crate::mount::METHODS.contains(&m) => self.call_mount(method, params).await,
-            m if crate::wallet_methods::METHODS.contains(&m) => {
-                self.call_wallet(method, params).await
-            }
-            _ => self.call_more(method, params).await,
+            _ => Err(Error::NotFound),
         }
     }
-}
-
-/// The local source a request names: the CLI or the desktop.
-fn source(params: &Value) -> Result<String> {
-    match params["source"].as_str() {
-        Some("gui") => Ok("gui".into()),
-        Some("cli") | None => Ok("cli".into()),
-        Some(_) => Err(Error::InvalidInput("source".into())),
-    }
-}
-
-fn account_id(text: &str) -> Result<AccountId> {
-    text.parse()
-        .map_err(|_| Error::InvalidInput("account ID".into()))
-}
-
-fn hash(text: &str) -> Result<Hash> {
-    hex::decode(text)
-        .ok()
-        .and_then(|b| b.try_into().ok())
-        .map(Hash::new)
-        .ok_or_else(|| Error::InvalidInput("hex identifier".into()))
 }
 
 fn capability(name: &str) -> Result<dmsg_types::user::Capability> {
@@ -1130,43 +1156,38 @@ fn capability(name: &str) -> Result<dmsg_types::user::Capability> {
     }
 }
 
-/// The events a method's success announces.
-fn events_of(method: &str) -> &'static [&'static str] {
-    match method {
-        "session/status"
-        | "session/login"
-        | "session/login_result"
-        | "session/accounts"
-        | "session/fast_unlock" => &[],
-        m if m.starts_with("session/") || m == "workspace/reset" || m == "account/create" => {
-            &["session/changed", "approval/changed"]
-        }
-        m if m.starts_with("vault/") => &["vault/changed"],
-        "sync/run" => &["sync/changed", "vault/changed"],
-        "approval/respond"
-        | "approval/cancel"
-        | "approval/reconcile"
-        | "attest/request"
-        | "attest/action"
-        | "device/capabilities"
-        | "device/formal_approve"
-        | "device/revoke"
-        | "connect/sync" => &["approval/changed"],
-        "connect/grant" | "connect/revoke" => &["connect/changed"],
-        "device/approve" => &["session/changed"],
-        m if crate::account_methods::METHODS.contains(&m) => crate::account_methods::events_of(m),
-        m if crate::legacy_methods::METHODS.contains(&m) => crate::legacy_methods::events_of(m),
-        m if crate::files_methods::METHODS.contains(&m) => crate::files_methods::events_of(m),
-        m if crate::mount::METHODS.contains(&m) => crate::mount::events_of(m),
-        m if crate::wallet_methods::METHODS.contains(&m) => crate::wallet_methods::events_of(m),
-        m if m.starts_with("agent/")
-            || m.starts_with("grants/")
-            || m.starts_with("ap/")
-            || m.starts_with("mcp/") =>
-        {
-            crate::agents::events_of(m)
-        }
-        m => crate::methods::events_of(m),
+/// The events a method's success announces; reads announce none, since
+/// windows reload on them.
+fn events_of(module: Module, method: &str) -> &'static [&'static str] {
+    match module {
+        Module::Daemon => match method {
+            "session/switch" | "session/unlock" | "session/lock" | "workspace/reset"
+            | "account/create" => &["session/changed", "approval/changed"],
+            "vault/put" | "vault/edit" | "vault/delete" | "vault/restore" | "vault/resolve" => {
+                &["vault/changed"]
+            }
+            "sync/run" => &["sync/changed", "vault/changed"],
+            "approval/respond"
+            | "approval/cancel"
+            | "approval/reconcile"
+            | "attest/request"
+            | "attest/action"
+            | "device/capabilities"
+            | "device/formal_approve"
+            | "device/revoke"
+            | "connect/sync" => &["approval/changed"],
+            "connect/grant" | "connect/revoke" => &["connect/changed"],
+            "device/approve" => &["session/changed"],
+            _ => &[],
+        },
+        Module::More => crate::methods::events_of(method),
+        Module::Account => crate::account_methods::events_of(method),
+        Module::Legacy => crate::legacy_methods::events_of(method),
+        Module::Agents | Module::Agent => crate::agents::events_of(method),
+        Module::McpEvents => &[],
+        Module::Files => crate::files_methods::events_of(method),
+        Module::Mount => crate::mount::events_of(method),
+        Module::Wallet => crate::wallet_methods::events_of(method),
     }
 }
 
@@ -1204,6 +1225,28 @@ fn edit(item: &mut Item, changes: &Value) -> Result<()> {
     Ok(())
 }
 
+/// The bearer credential of a request without an `Origin`: web pages
+/// cannot even learn whether the daemon runs.
+fn bearer(headers: &HeaderMap) -> Option<&str> {
+    if headers.contains_key(header::ORIGIN) {
+        return None;
+    }
+    headers
+        .get(header::AUTHORIZATION)?
+        .to_str()
+        .ok()?
+        .strip_prefix("Bearer ")
+}
+
+/// Compare a presented secret without leaking where it differs.
+pub(crate) fn constant_time_eq(a: &str, b: &str) -> bool {
+    a.len() == b.len()
+        && a.bytes()
+            .zip(b.bytes())
+            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+            == 0
+}
+
 /// Entries as they leave the daemon: no secret, no file key.
 fn masked_all(entries: Vec<VaultEntry>) -> Value {
     to_json(
@@ -1212,10 +1255,6 @@ fn masked_all(entries: Vec<VaultEntry>) -> Value {
             .map(|e| e.masked(false))
             .collect::<Vec<_>>(),
     )
-}
-
-fn to_json<T: serde::Serialize>(value: &T) -> Value {
-    serde_json::to_value(value).expect("serializable")
 }
 
 async fn status(State(daemon): State<Arc<Daemon>>, headers: HeaderMap) -> Response {
@@ -1233,10 +1272,23 @@ async fn rpc(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: Bytes)
         return StatusCode::UNAUTHORIZED.into_response();
     };
     let Ok(request) = serde_json::from_slice::<RpcRequest>(&body) else {
-        return Json(json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32700, "message": "parse error"}}))
-            .into_response();
+        return Json(reply_error(&Value::Null, -32700, "parse error")).into_response();
     };
     Json(daemon.dispatch(request, &session, false).await).into_response()
+}
+
+/// A JSON-RPC error reply.
+fn reply_error(id: &Value, code: i64, message: &str) -> Value {
+    json!({"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message}})
+}
+
+/// A method's failure, with the dMsg error code in `data`.
+fn reply_failure(id: &Value, error: &Error) -> Value {
+    json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "error": {"code": -32000, "message": error.to_string(), "data": {"code": error_code(error)}},
+    })
 }
 
 /// Whether a request moves the idle lock. Waiting readers do not: a stream
@@ -1260,55 +1312,33 @@ impl Daemon {
     /// Run one request and announce what it changed. An agent's session
     /// reaches only the agent methods, and the owner's never does.
     async fn dispatch(&self, request: RpcRequest, session: &Session, reports: bool) -> Value {
+        let id = &request.id;
         if request.jsonrpc != "2.0" {
-            return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32600, "message": "invalid request"}});
+            return reply_error(id, -32600, "invalid request");
         }
         let method = request.method.as_str();
-        let agent_method = crate::agents::AGENT_METHODS.contains(&method);
         if self.stopping()
             && !matches!(
                 method,
                 "daemon/status" | "session/status" | "app/initialize" | "events/poll"
             )
         {
-            let error = Error::Unavailable("the daemon is stopping".into());
-            return json!({
-                "jsonrpc": "2.0",
-                "id": request.id,
-                "error": {"code": -32000, "message": error.to_string(), "data": {"code": error_code(&error)}},
-            });
+            return reply_failure(id, &Error::Unavailable("the daemon is stopping".into()));
         }
-        if !METHODS.contains(&method)
-            && !crate::methods::METHODS.contains(&method)
-            && !crate::account_methods::METHODS.contains(&method)
-            && !crate::legacy_methods::METHODS.contains(&method)
-            && !crate::agents::METHODS.contains(&method)
-            && !crate::mcp_events::METHODS.contains(&method)
-            && !crate::files_methods::METHODS.contains(&method)
-            && !crate::mount::METHODS.contains(&method)
-            && !crate::wallet_methods::METHODS.contains(&method)
-            && !agent_method
-        {
-            return json!({"jsonrpc": "2.0", "id": request.id, "error": {"code": -32601, "message": "method not found"}});
-        }
+        let Some(module) = route(method) else {
+            return reply_error(id, -32601, "method not found");
+        };
+        let agent_method = module == Module::Agent;
         if agent_method != matches!(session, Session::Agent(_)) {
-            let error = Error::Forbidden;
-            return json!({
-                "jsonrpc": "2.0",
-                "id": request.id,
-                "error": {"code": -32000, "message": error.to_string(), "data": {"code": error_code(&error)}},
-            });
+            return reply_failure(id, &Error::Forbidden);
         }
         if is_activity(&request, reports) {
             self.activity.store(now_ms(), Ordering::Relaxed);
         }
         let started = std::time::Instant::now();
         let outcome = match session {
-            Session::Owner => self.call(&request.method, &request.params).await,
-            Session::Agent(agent) => {
-                self.call_agent(agent, &request.method, &request.params)
-                    .await
-            }
+            Session::Owner => self.call(module, method, &request.params).await,
+            Session::Agent(agent) => self.call_agent(agent, method, &request.params).await,
         };
         log_call(
             method,
@@ -1319,21 +1349,17 @@ impl Daemon {
         );
         match outcome {
             Ok(result) => {
-                for kind in events_of(&request.method) {
-                    self.emit(kind, json!({"method": request.method}));
+                for kind in events_of(module, method) {
+                    self.emit(kind, json!({"method": method}));
                 }
-                json!({"jsonrpc": "2.0", "id": request.id, "result": result})
+                json!({"jsonrpc": "2.0", "id": id, "result": result})
             }
             Err(error) => {
                 // A failed decision may still have changed the request.
-                if request.method == "approval/respond" {
+                if method == "approval/respond" {
                     self.emit("approval/changed", Value::Null);
                 }
-                json!({
-                    "jsonrpc": "2.0",
-                    "id": request.id,
-                    "error": {"code": -32000, "message": error.to_string(), "data": {"code": error_code(&error)}},
-                })
+                reply_failure(id, &error)
             }
         }
     }
@@ -1410,7 +1436,7 @@ async fn socket(
         return StatusCode::UNAUTHORIZED.into_response();
     }
     upgrade
-        .max_message_size(4 * 1024 * 1024)
+        .max_message_size(MAX_REQUEST)
         .on_upgrade(move |socket| serve_socket(daemon, socket))
 }
 
@@ -1427,7 +1453,7 @@ async fn serve_socket(daemon: Arc<Daemon>, socket: WebSocket) {
                 let Some(Ok(message)) = message else { break };
                 let Message::Text(text) = message else { continue };
                 let Ok(request) = serde_json::from_str::<RpcRequest>(&text) else {
-                    let _ = replies.send(json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32700, "message": "parse error"}})).await;
+                    let _ = replies.send(reply_error(&Value::Null, -32700, "parse error")).await;
                     continue;
                 };
                 if request.method == "app/initialize" {
@@ -1483,17 +1509,14 @@ async fn callback_page(State(daemon): State<Arc<Daemon>>) -> Response {
 async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: Bytes) -> Response {
     let now = now_ms();
     // One POST per login, whatever its fate.
-    let Some(session) = daemon
-        .login
-        .lock()
-        .expect("login state")
-        .session
-        .take()
-        .filter(|s| s.deadline > now)
-    else {
+    let (session, bind) = {
+        let mut login = daemon.login.lock().expect("login state");
+        let session = login.session.take().filter(|s| s.deadline > now);
+        (session, login.bind.clone())
+    };
+    let Some(session) = session else {
         return StatusCode::NOT_FOUND.into_response();
     };
-    let bind = daemon.login.lock().expect("login state").bind.clone();
     let origin = headers.get(header::ORIGIN).and_then(|v| v.to_str().ok());
     let own = [
         format!("http://127.0.0.1:{}", daemon.port),
@@ -1552,6 +1575,97 @@ async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: B
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::remote::Remote;
+
+    #[test]
+    fn routes_methods_and_reads_announce_nothing() {
+        assert_eq!(route("vault/list"), Some(Module::Daemon));
+        assert_eq!(route("channel/list"), Some(Module::More));
+        assert_eq!(route("mcp/call"), Some(Module::Agent));
+        assert_eq!(route("no/such"), None);
+        let modules = [
+            &METHODS[..],
+            &crate::methods::METHODS,
+            &crate::account_methods::METHODS,
+            &crate::legacy_methods::METHODS,
+            &crate::agents::METHODS,
+            &crate::agents::AGENT_METHODS,
+            &crate::mcp_events::METHODS,
+            &crate::files_methods::METHODS,
+            &crate::mount::METHODS,
+            &crate::wallet_methods::METHODS,
+        ];
+        let mut seen = std::collections::BTreeSet::new();
+        for method in modules.into_iter().flatten() {
+            assert!(seen.insert(method), "{method} is listed twice");
+        }
+        // Windows reload on these events: a read announcing one would loop.
+        for read in [
+            "vault/list",
+            "vault/show",
+            "vault/conflicts",
+            "files/list",
+            "channel/list",
+        ] {
+            assert!(events_of(route(read).unwrap(), read).is_empty(), "{read}");
+        }
+        assert_eq!(events_of(Module::Daemon, "vault/put"), ["vault/changed"]);
+    }
+
+    #[tokio::test]
+    async fn takes_large_requests_and_refuses_other_credentials() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = Home {
+            dir: dir.0.join("home"),
+        };
+        let client = dmsg_client::testing::unlocked(&dir.0.join("workspace"), false, None);
+        let daemon = Arc::new(Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        ));
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let port = listener.local_addr().unwrap().port();
+        tokio::spawn(async move { axum::serve(listener, app(daemon)).await });
+        std::fs::create_dir_all(&home.dir).unwrap();
+        home.publish(&Discovery {
+            port,
+            pid: 0,
+            instance: "test".into(),
+        })
+        .unwrap();
+        // An agent's 8 MiB file write is about 11 MiB as base64 in JSON.
+        let owner = Remote::agent(&home, "owner-token").unwrap();
+        let padding = "a".repeat(11 * 1024 * 1024);
+        assert_eq!(
+            owner
+                .call("app/activity", json!({"padding": padding}))
+                .await
+                .unwrap(),
+            Value::Null
+        );
+        // A larger one is refused as such, not as a missing credential.
+        let padding = "a".repeat(MAX_REQUEST);
+        let refused = owner
+            .call("app/activity", json!({"padding": padding}))
+            .await
+            .unwrap_err();
+        assert_ne!(refused.code, "AUTH_REQUIRED", "{refused:?}");
+        let stranger = Remote::agent(&home, "not-the-owner").unwrap();
+        assert_eq!(
+            stranger
+                .call("app/activity", Value::Null)
+                .await
+                .unwrap_err()
+                .code,
+            "AUTH_REQUIRED"
+        );
+    }
 
     fn request(method: &str, params: Value) -> RpcRequest {
         RpcRequest {

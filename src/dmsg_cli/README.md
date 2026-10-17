@@ -314,11 +314,11 @@ exports a copy to `open/` for another program and removes it after 30
 minutes, on lock and on exit, asking first (`files/open_changed`) when the
 program changed it, so the change can be kept as a new version. `files rm`
 moves to the trash, emptied after `files_trash_days`; `files purge` empties
-it now. `files verify --all` checks every chunk file against its name, which
-needs no key, and every version while unlocked; the daemon does the same
-once a day after a minute without anyone at the device, the chunk scan
-beside the library and the versions while unlocked, and `files usage`
-shows the last check (`last_check`) with what failed. `files share` sends a version
+it now. `files verify --all` checks every chunk file against its name,
+which needs no key, beside the library, so other requests go on meanwhile,
+then every version while unlocked; the daemon does the same once a day
+after a minute without anyone at the device, and `files usage` shows the
+last check (`last_check`) with what failed. `files share` sends a version
 to a channel as a new edition under its own key: it shares no key and no
 chunk with the library's copy or a backup. `files save` keeps a shared file
 from a channel message as a file of the library, re-encrypted under a key of
@@ -330,7 +330,8 @@ recursively, as `kind=backup` objects whose chunks are the version's own
 and whose manifest, sealed under the current content root, holds the file's
 key, path, tags and note; the object and version IDs on the relay are
 random. The jobs continue in the background, locked too with
-`background_online`, and `backup-status` shows them; a failed attempt is
+`background_online`, in slices of about five seconds with other requests
+going first in between, and `backup-status` shows them; a failed attempt is
 tried again five minutes later. Nothing starts a backup but this command:
 not an import, not an edit, not a cloud refresh, and a copy deleted from
 the cloud is never uploaded again. `files cloud ls --refresh` reads the
@@ -392,7 +393,8 @@ with the system's note.
 Approvals are decided by a person: `approvals approve|reject`, `connect
 browsers add` and the prompt after `attest …` or `device …` need an interactive
 terminal without `--json`; otherwise the request is only created and waits in
-the approval center (and the desktop's approval window). A web request shows
+the approval center (and the desktop's approval window). A request is named
+by its ID or a unique prefix of at least six characters. A web request shows
 its origin as relayed by the browser through connect.dmsg.net, the browser's
 label, the account and the payload. `approvals list --all` shows finished
 requests too, for 30 days after they were made. `attest verify` needs no
@@ -585,8 +587,9 @@ More `dmsg_*` tools, each behind its capability: `dmsg_vault_read` with
 `vault.read` on it; `dmsg_files_list` lists a library folder and
 `dmsg_files_search` finds files by name, tag or note (`files.read:<folder>`
 for the folder or one above); `dmsg_files_read` returns up to 1 MiB of a
-version of a file of at most 64 MiB from `offset`, base64url, after
-checking the whole file (`files.read:<folder>`); `dmsg_files_write` writes
+version from `offset`, base64url, opening only the chunks it lies in, each
+authenticated with its place in the version as the mounted disk reads them
+(`files.read:<folder>`); `dmsg_files_write` writes
 up to 8 MiB as a new file or a new version (`files.write:<folder>`), and no
 tool backs up, shares or deletes a file; `dmsg_inbox_list` lists letters without
 their text and `dmsg_inbox_read` returns one, marking it read with
@@ -653,8 +656,10 @@ The daemon listens on `127.0.0.1` only.
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
   `inbox/changed`, `legacy/changed`, `mcp-events/changed`, `resync`) need
   `Authorization: Bearer <owner token>`; any request with an `Origin` header
-  is refused with 401. Errors carry `error.data.code` such as `AUTH_REQUIRED`,
-  `LOCKED`, `VERSION_CONFLICT` or `EXECUTION_UNKNOWN`.
+  is refused with 401. A request or WebSocket message may be up to 16 MiB.
+  Errors carry `error.data.code` such as `AUTH_REQUIRED`, `LOCKED`,
+  `VERSION_CONFLICT` or `EXECUTION_UNKNOWN`. Reads announce no event, since
+  windows reload on them.
 - Methods: `app/initialize {activity?}`, `app/activity`, `daemon/status`,
   `events/poll`,
   `session/status|login {origin, bind?}|login_result|accounts|switch|unlock {fast?, account?}|lock|fast_unlock`,
@@ -670,7 +675,8 @@ The daemon listens on `127.0.0.1` only.
   `files/mount|unmount|mount_status`,
   `files/share_link|share_links|share_revoke`,
   `sync/run|status`,
-  `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`,
+  `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`
+  (`show`, `cancel` and `quote` take a unique ID prefix),
   `attest/request|action {action: base64url CBOR}|history|usage|export|verify`,
   `connect/invite|candidates|grant|pairings|revoke|sync|status`,
   `channel/list|show|create|invite|join|control|leave|rotate|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
@@ -732,5 +738,7 @@ The daemon listens on `127.0.0.1` only.
   unknown and announces `approval/changed` only when there were some or the
   number waiting changed.
 - While unlocked, the daemon keeps one WebSocket per active channel; an
-  `available` hint, a new socket and a closed one each trigger a signed read.
-  A socket's ticket lasts about a minute, so it is renewed every 40 seconds.
+  `available` hint, a socket opened with none before it and a closed one each
+  trigger a signed read. A socket's ticket lasts about a minute, so it is
+  renewed every 40 seconds: the new socket opens first and closes the one it
+  replaces, which needs no read.

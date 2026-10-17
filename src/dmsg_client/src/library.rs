@@ -30,7 +30,7 @@ pub mod share;
 
 use crate::client::Client;
 use crate::codec::b64;
-use crate::files::{export_manifest, read_file, FileManifest};
+use crate::files::{export_manifest, read_chunk, read_file, FileManifest, CHUNK};
 use crate::now_ms;
 use crate::upload::random_hex;
 use blobs::Blobs;
@@ -631,21 +631,31 @@ impl Client {
         export_manifest(self.blobs()?, &manifest, self.config.files_max_bytes, out)
     }
 
-    /// Verify a version and return its bytes, up to `max`.
+    /// Up to `length` bytes of a version from `offset`, opening only the
+    /// chunks they lie in; each chunk is authenticated with its place in
+    /// the version, as the mounted disk reads.
     ///
     /// # Errors
-    /// Returns `Error::QuotaExceeded` for a larger file, otherwise as
-    /// [`Self::files_export`].
-    pub fn files_read(
+    /// As [`Self::files_export`].
+    pub fn files_read_range(
         &mut self,
         id: &str,
         version: Option<&str>,
-        max: u64,
+        offset: u64,
+        length: u64,
     ) -> Result<(FileManifest, Zeroizing<Vec<u8>>)> {
         let (_, _, manifest) = self.library_manifest(id, version)?;
-        ensure(manifest.size <= max, Error::QuotaExceeded)?;
-        let mut bytes = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
-        read_file(self.blobs()?, &manifest, max, Some(&mut *bytes))?;
+        let start = offset.min(manifest.size);
+        let end = start.saturating_add(length).min(manifest.size);
+        let size = CHUNK as u64;
+        let mut bytes = Zeroizing::new(Vec::with_capacity((end - start) as usize));
+        for index in start / size..end.div_ceil(size) {
+            let chunk = read_chunk(self.blobs()?, &manifest, index)?;
+            let base = index * size;
+            bytes.extend_from_slice(
+                &chunk[(start.max(base) - base) as usize..(end.min(base + size) - base) as usize],
+            );
+        }
         Ok((manifest.public(), bytes))
     }
 
@@ -908,27 +918,13 @@ impl Client {
         Ok((files, removed))
     }
 
-    /// Check versions: of one file (its current version, or the one named),
-    /// or without an ID every chunk file against its name and, while
-    /// unlocked, every local version through its key.
+    /// Check one file's versions, or only the one named. The whole library
+    /// is checked by [`Self::files_check_record`].
     ///
     /// # Errors
     /// Returns `Error::NotFound` for an unknown file and `Error::Locked`
-    /// for a named file while locked.
-    pub fn files_verify(
-        &mut self,
-        id: Option<&str>,
-        version: Option<&str>,
-    ) -> Result<VerifyReport> {
-        let Some(id) = id else {
-            let (blobs_checked, blobs_bad) = self.blobs()?.verify()?;
-            let (check, versions) = self.check_library(now_ms(), blobs_checked, blobs_bad)?;
-            return Ok(VerifyReport {
-                versions,
-                blobs_checked: check.blobs_checked,
-                blobs_bad: check.blobs_bad,
-            });
-        };
+    /// while locked.
+    pub fn files_verify(&mut self, id: &str, version: Option<&str>) -> Result<VerifyReport> {
         let (file, version_id, _) = self.pick_version(id, version)?;
         let targets = match version {
             Some(_) => vec![(id.to_string(), version_id)],
@@ -995,24 +991,15 @@ impl Client {
     }
 
     /// Record a check of the whole library from a chunk scan done beside
-    /// it, adding every local version through its key while unlocked.
-    /// Versions that fail stay in the record; the rest are counted.
+    /// it ([`Blobs::verify`] in [`Self::files_blobs_dir`]), adding every
+    /// local version through its key while unlocked. Versions that fail
+    /// stay in the record; the rest are counted. Returns the record and
+    /// every version's result.
     ///
     /// # Errors
     /// Returns `Error::AuthRequired` before an account is selected and
     /// `Error::Unavailable` when a chunk cannot be read.
     pub fn files_check_record(
-        &mut self,
-        now: u64,
-        blobs_checked: u64,
-        blobs_bad: Vec<String>,
-    ) -> Result<Check> {
-        Ok(self.check_library(now, blobs_checked, blobs_bad)?.0)
-    }
-
-    /// The check behind [`Self::files_check_record`], with every version's
-    /// result.
-    fn check_library(
         &mut self,
         now: u64,
         blobs_checked: u64,

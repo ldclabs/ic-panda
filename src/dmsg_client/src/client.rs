@@ -113,6 +113,24 @@ pub struct Status {
     pub sealed_requests: u64,
 }
 
+/// The session fields of [`Status`], read without touching storage.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SessionState {
+    /// As [`Status::state`].
+    pub state: &'static str,
+    /// As [`Status::account`].
+    pub account: Option<String>,
+    /// As [`Status::resident`].
+    pub resident: bool,
+}
+
+impl SessionState {
+    /// The account while unlocked.
+    pub fn unlocked_account(&self) -> Option<&str> {
+        self.account.as_deref().filter(|_| self.state == "unlocked")
+    }
+}
+
 /// An account workspace on this device.
 #[derive(Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct LocalAccount {
@@ -413,7 +431,33 @@ impl Client {
     pub fn status(&self) -> Result<Status> {
         let meta = &self.workspace.meta;
         let login = self.login.as_ref().filter(|l| l.expires_at > now_ms());
-        let state = match (&meta.account, login, &self.keys) {
+        let session = self.session_state();
+        Ok(Status {
+            environment: environment_name(&self.config.environment).into(),
+            device_id: (self.slot != Slot::Idle).then(|| hex::encode(*meta.device_id)),
+            account: session.account,
+            home: meta.account.as_ref().map(|a| a.home.to_text()),
+            principal: login.map(|l| l.principal.to_text()),
+            login_expires_at: login.map(|l| l.expires_at),
+            state: session.state,
+            root_generation: self.root.as_ref().map(|r| r.generation),
+            pending_sync: self.workspace.store.count_in(LOCAL)?,
+            conflicts: self.workspace.store.count_conflicts(VAULT)?,
+            background_online: self.config.background_online,
+            resident: session.resident,
+            fast_unlock: meta.fast_unlock.is_some(),
+            last_sync: self.last_sync()?,
+            approvals_waiting: self.approvals_waiting()?,
+            sealed_requests: self.sealed_requests()?,
+        })
+    }
+
+    /// The lock state, the account and residency, for checks that run
+    /// often; [`Self::status`] also reads the counts from storage.
+    pub fn session_state(&self) -> SessionState {
+        let account = self.workspace.meta.account.as_ref();
+        let login = self.login.as_ref().filter(|l| l.expires_at > now_ms());
+        let state = match (account, login, &self.keys) {
             (None, None, _) => "logged_out",
             (None, Some(_), _) if self.located.is_some() => "pairing_required",
             (None, Some(_), _) => "no_account",
@@ -421,24 +465,11 @@ impl Client {
             (Some(_), _, Some(_)) if self.root.is_none() => "root_required",
             (Some(_), _, Some(_)) => "unlocked",
         };
-        Ok(Status {
-            environment: environment_name(&self.config.environment).into(),
-            device_id: (self.slot != Slot::Idle).then(|| hex::encode(*meta.device_id)),
-            account: meta.account.as_ref().map(|a| a.id.to_string()),
-            home: meta.account.as_ref().map(|a| a.home.to_text()),
-            principal: login.map(|l| l.principal.to_text()),
-            login_expires_at: login.map(|l| l.expires_at),
+        SessionState {
             state,
-            root_generation: self.root.as_ref().map(|r| r.generation),
-            pending_sync: self.workspace.store.count_in(LOCAL)?,
-            conflicts: self.workspace.store.count_conflicts(VAULT)?,
-            background_online: self.config.background_online,
+            account: account.map(|a| a.id.to_string()),
             resident: self.keys.is_none() && self.resident.is_some(),
-            fast_unlock: meta.fast_unlock.is_some(),
-            last_sync: self.last_sync()?,
-            approvals_waiting: self.approvals_waiting()?,
-            sealed_requests: self.sealed_requests()?,
-        })
+        }
     }
 
     /// What has started and not settled.

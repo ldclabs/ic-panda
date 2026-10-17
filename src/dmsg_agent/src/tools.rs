@@ -90,7 +90,7 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 32] = [
     ),
     (
         "dmsg_files_read",
-        "Up to 1 MiB of a library file's version (the current one by default) from offset, as base64; needs files.read:<folder> for its folder or one above. The whole file (at most 64 MiB) is checked against its SHA-256 first.",
+        "Up to 1 MiB of a library file's version (the current one by default) from offset, as base64; needs files.read:<folder> for its folder or one above. Each chunk read is authenticated with its place in the version.",
         true,
         r#"{"type":"object","required":["id"],"properties":{"id":{"type":"string"},"version":{"type":"string"},"offset":{"type":"integer","minimum":0},"length":{"type":"integer","minimum":1,"maximum":1048576}}}"#,
     ),

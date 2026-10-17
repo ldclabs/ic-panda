@@ -13,6 +13,7 @@
 //! data, with who called, through which way in and on what.
 
 use crate::daemon::Daemon;
+use crate::params::{number, parse, source, text, to_json};
 use dmsg_agent::resources::{resource_list, resource_templates, Resource};
 use dmsg_agent::tools::{is_dmsg, is_read_only, is_standard, standard_capability, tool_list};
 use dmsg_agent::Scope;
@@ -35,8 +36,6 @@ use std::time::Duration;
 
 /// Most bytes one `dmsg_files_read` returns.
 const MAX_READ: u64 = 1024 * 1024;
-/// Largest library file an agent reads from.
-const MAX_AGENT_FILE: u64 = 64 * 1024 * 1024;
 /// Largest content one `dmsg_files_write` takes.
 const MAX_AGENT_WRITE: usize = 8 * 1024 * 1024;
 /// How long `mcp/changed` waits at most.
@@ -114,38 +113,6 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     }
 }
 
-fn text(params: &Value, name: &str) -> Result<String> {
-    params[name]
-        .as_str()
-        .map(str::to_string)
-        .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-}
-
-fn generation(params: &Value) -> Result<u32> {
-    params["generation"]
-        .as_u64()
-        .and_then(|g| u32::try_from(g).ok())
-        .ok_or_else(|| Error::InvalidInput("generation".into()))
-}
-
-fn strings(params: &Value, name: &str) -> Result<Vec<String>> {
-    serde_json::from_value(params[name].clone())
-        .map_err(|_| Error::InvalidInput(format!("{name}: a list of strings")))
-}
-
-/// The local source of a request: the CLI or the desktop.
-fn source(params: &Value) -> Result<&'static str> {
-    match params["source"].as_str() {
-        Some("gui") => Ok("gui"),
-        Some("cli") | None => Ok("cli"),
-        Some(_) => Err(Error::InvalidInput("source".into())),
-    }
-}
-
-fn to_json<T: serde::Serialize + ?Sized>(value: &T) -> Value {
-    serde_json::to_value(value).expect("serializable")
-}
-
 /// A tool's refusal in the shape tools return it.
 fn refused(error: &Error) -> Value {
     json!({"error": {"code": error_code(error), "message": error.to_string()}})
@@ -210,8 +177,8 @@ impl Daemon {
                         DelegationAuthority::Unrestricted
                     }
                     _ => DelegationAuthority::Restricted {
-                        scopes: strings(params, "scopes")?,
-                        audiences: strings(params, "audiences")?,
+                        scopes: parse(params, "scopes")?,
+                        audiences: parse(params, "audiences")?,
                     },
                 };
                 let info = client.principal().await?.ok_or(Error::NotFound)?;
@@ -222,16 +189,16 @@ impl Daemon {
                 })
             }
             "agent/retire" => Some(PrincipalChange::Retire {
-                generation: generation(params)?,
+                generation: number(params, "generation")?,
             }),
             "agent/compromise" => Some(PrincipalChange::Compromise {
-                generation: generation(params)?,
+                generation: number(params, "generation")?,
                 invalid_from: params["invalid_from"]
                     .as_u64()
                     .ok_or_else(|| Error::InvalidInput("invalid_from".into()))?,
             }),
             "agent/rename" => Some(PrincipalChange::Rename {
-                generation: generation(params)?,
+                generation: number(params, "generation")?,
                 name: params["name"].as_str().map(str::to_string),
             }),
             _ => None,
@@ -246,7 +213,7 @@ impl Daemon {
             "agent/grant" => {
                 let generation = match params["generation"].is_null() {
                     true => latest_controller(&mut client).await?,
-                    false => generation(params)?,
+                    false => number(params, "generation")?,
                 };
                 // The subject may name a hosted Agent ID by its label.
                 let subject = text(params, "subject")?;
@@ -256,8 +223,8 @@ impl Daemon {
                         source(params)?,
                         generation,
                         &subject,
-                        strings(params, "scopes")?,
-                        strings(params, "audiences")?,
+                        parse(params, "scopes")?,
+                        parse(params, "audiences")?,
                         params["days"].as_u64().unwrap_or(30),
                         params["relationship"].as_str().map(str::to_string),
                     )
@@ -266,7 +233,7 @@ impl Daemon {
             "agent/revoke" => {
                 let generation = match params["generation"].is_null() {
                     true => latest_controller(&mut client).await?,
-                    false => generation(params)?,
+                    false => number(params, "generation")?,
                 };
                 client
                     .delegation_revoke_request(
@@ -320,7 +287,7 @@ impl Daemon {
                 let grant = client.capability_grant(
                     source(params)?,
                     &text(params, "agent")?,
-                    strings(params, "capabilities")?,
+                    parse(params, "capabilities")?,
                     params["days"].as_u64(),
                 )?;
                 Ok(to_json(&grant))
@@ -479,23 +446,24 @@ impl Daemon {
         input: Value,
     ) -> Result<Value> {
         if is_standard(tool) {
-            // An agent reaches what its grant names; the owner acting as one
-            // reaches every configured host.
-            let reach = match caller.actor {
-                "owner" => None,
-                _ => match self.reach(&*self.client().lock().await, agent, tool) {
-                    Ok(reach) => reach,
-                    Err(error) => return Ok(refused(&error)),
-                },
-            };
             // The Agent ID's turn spans reading the mail keys to saving what
             // the call left, so no other call of it sees or overwrites them
             // in between; the keys leave the client lock for the call only.
             let runtime = self.agents();
             let turn = runtime.turn(&agent.agent_id).await;
-            let (path, signer, mail_keys) = {
+            let (reach, path, signer, mail_keys) = {
                 let mut client = self.client().lock().await;
+                // An agent reaches what its grant names; the owner acting as
+                // one reaches every configured host.
+                let reach = match caller.actor {
+                    "owner" => None,
+                    _ => match self.reach(&client, agent, tool) {
+                        Ok(reach) => reach,
+                        Err(error) => return Ok(refused(&error)),
+                    },
+                };
                 (
+                    reach,
                     client.agent_runtime()?,
                     client.agent_signer(&agent.agent_id)?,
                     client.agent_mail_keys(&agent.agent_id)?,
@@ -626,7 +594,7 @@ impl Daemon {
                     }
                 }
                 if !input["tags"].is_null() {
-                    item.tags = strings(input, "tags")?;
+                    item.tags = parse(input, "tags")?;
                 }
                 item.updated_at = now;
                 ensure(!item.reserved(), Error::Forbidden)?;
@@ -660,14 +628,18 @@ impl Daemon {
                 let file = client.files_show(&id)?.file;
                 ensure(file.trashed_at.is_none(), Error::NotFound)?;
                 client.files_grant_check(did, "files.read", &file.folder)?;
-                let (manifest, bytes) =
-                    client.files_read(&id, input["version"].as_str(), MAX_AGENT_FILE)?;
-                let offset = input["offset"].as_u64().unwrap_or(0).min(manifest.size);
                 let length = input["length"]
                     .as_u64()
                     .unwrap_or(MAX_READ)
                     .clamp(1, MAX_READ);
-                let end = (offset + length).min(manifest.size);
+                let (manifest, bytes) = client.files_read_range(
+                    &id,
+                    input["version"].as_str(),
+                    input["offset"].as_u64().unwrap_or(0),
+                    length,
+                )?;
+                let offset = input["offset"].as_u64().unwrap_or(0).min(manifest.size);
+                let end = offset + bytes.len() as u64;
                 Ok(json!({
                     "id": manifest.id,
                     "version": manifest.version,
@@ -676,9 +648,9 @@ impl Daemon {
                     "size": manifest.size,
                     "sha256": manifest.sha256,
                     "offset": offset,
-                    "length": end - offset,
+                    "length": bytes.len(),
                     "eof": end == manifest.size,
-                    "content_base64url": b64(&bytes[offset as usize..end as usize]),
+                    "content_base64url": b64(&bytes),
                 }))
             }
             "dmsg_files_write" => {

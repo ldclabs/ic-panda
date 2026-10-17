@@ -1,9 +1,10 @@
 //! `dmsg wallet`: team wallets. Creating, joining, deciding and cosigning
 //! wait in the approval center, decided here at an interactive terminal.
 
+use crate::approval_commands::{created, request};
 use crate::locale::tr;
 use crate::remote::{Failure, Remote};
-use crate::{created, pretty, print};
+use crate::{pretty, print, read_json};
 use clap::Subcommand;
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -215,13 +216,6 @@ fn member(text: &str) -> Result<Value, Failure> {
     Ok(json!({"id": id, "role": role, "label": label}))
 }
 
-fn read_json(path: &PathBuf) -> Result<Value, Failure> {
-    let text = std::fs::read_to_string(path)
-        .map_err(|e| Failure::new("INVALID_INPUT", format!("{}: {e}", path.display())))?;
-    serde_json::from_str(&text)
-        .map_err(|e| Failure::new("INVALID_INPUT", format!("{}: {e}", path.display())))
-}
-
 fn proposal_line(p: &Value) -> String {
     let intent = &p["intent"];
     let what = match intent["kind"].as_str().unwrap_or_default() {
@@ -297,11 +291,9 @@ fn wallet_lines(w: &Value) -> String {
 }
 
 pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Result<(), Failure> {
-    let call =
-        |method: &'static str, params: Value| async move { remote.call(method, params).await };
     match command {
         WalletCommand::List => {
-            let list = call("wallet/list", Value::Null).await?;
+            let list = remote.call("wallet/list", Value::Null).await?;
             print(json, &list, |l| {
                 l.as_array()
                     .into_iter()
@@ -318,17 +310,19 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             });
         }
         WalletCommand::Show { wallet } => {
-            let w = call("wallet/show", json!({"wallet": wallet})).await?;
+            let w = remote
+                .call("wallet/show", json!({"wallet": wallet}))
+                .await?;
             print(json, &w, wallet_lines);
         }
         WalletCommand::Principal => {
-            let p = call("wallet/principal", Value::Null).await?;
+            let p = remote.call("wallet/principal", Value::Null).await?;
             print(json, &p, |p| {
                 p["principal"].as_str().unwrap_or_default().to_string()
             });
         }
         WalletCommand::Quote => {
-            let q = call("wallet/quote", Value::Null).await?;
+            let q = remote.call("wallet/quote", Value::Null).await?;
             print(json, &q, |q| {
                 tr!(
                     "quote {} · {} e8s ICP plus fee {} · {} wallets left on {} · until {}",
@@ -350,7 +344,7 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             admin_approvals,
             spec,
         } => {
-            let mut params = json!({"quote": quote, "source": "cli"});
+            let mut params = json!({"quote": quote});
             match spec {
                 Some(path) => params["spec"] = read_json(&path)?,
                 None => {
@@ -366,10 +360,12 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
                     params["admin_approvals"] = json!(admin_approvals);
                 }
             }
-            created(remote, json, call("wallet/create", params).await?).await?;
+            request(remote, json, "wallet/create", params).await?;
         }
         WalletCommand::Refund { quote } => {
-            let r = call("wallet/refund", json!({"quote": quote})).await?;
+            let r = remote
+                .call("wallet/refund", json!({"quote": quote}))
+                .await?;
             print(json, &r, |r| {
                 tr!(
                     "refunded to {} in block {}",
@@ -380,19 +376,15 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             });
         }
         WalletCommand::Join { wallet } => {
-            created(
-                remote,
-                json,
-                call("wallet/join", json!({"wallet": wallet, "source": "cli"})).await?,
-            )
-            .await?;
+            request(remote, json, "wallet/join", json!({"wallet": wallet})).await?;
         }
         WalletCommand::Proposals { wallet, before } => {
-            let page = call(
-                "wallet/proposals",
-                json!({"wallet": wallet, "before": before}),
-            )
-            .await?;
+            let page = remote
+                .call(
+                    "wallet/proposals",
+                    json!({"wallet": wallet, "before": before}),
+                )
+                .await?;
             print(json, &page, |p| {
                 p["proposals"]
                     .as_array()
@@ -404,7 +396,9 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             });
         }
         WalletCommand::Proposal { wallet, id } => {
-            let p = call("wallet/proposal", json!({"wallet": wallet, "proposal": id})).await?;
+            let p = remote
+                .call("wallet/proposal", json!({"wallet": wallet, "proposal": id}))
+                .await?;
             print(json, &p, pretty);
         }
         WalletCommand::Send {
@@ -416,71 +410,52 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             max_fee,
             memo,
         } => {
-            let p = call(
-                "wallet/send",
+            let p = remote.call("wallet/send",
                 json!({"wallet": wallet, "from": from, "asset": asset, "to": to, "amount": amount, "max_fee": max_fee, "memo": memo}),
             )
             .await?;
             print(json, &p, proposal_line);
         }
         WalletCommand::Propose { wallet, intent } => {
-            let p = call(
-                "wallet/propose",
-                json!({"wallet": wallet, "intent": read_json(&intent)?}),
-            )
-            .await?;
+            let p = remote
+                .call(
+                    "wallet/propose",
+                    json!({"wallet": wallet, "intent": read_json(&intent)?}),
+                )
+                .await?;
             print(json, &p, proposal_line);
         }
         WalletCommand::Approve { wallet, id } => {
-            created(
-                remote,
-                json,
-                call(
-                    "wallet/approve",
-                    json!({"wallet": wallet, "proposal": id, "source": "cli"}),
-                )
-                .await?,
-            )
-            .await?;
+            let params = json!({"wallet": wallet, "proposal": id});
+            request(remote, json, "wallet/approve", params).await?;
         }
         WalletCommand::Reject { wallet, id } => {
-            created(
-                remote,
-                json,
-                call(
-                    "wallet/reject",
-                    json!({"wallet": wallet, "proposal": id, "source": "cli"}),
-                )
-                .await?,
-            )
-            .await?;
+            let params = json!({"wallet": wallet, "proposal": id});
+            request(remote, json, "wallet/reject", params).await?;
         }
         WalletCommand::Veto { wallet, id } => {
-            created(
-                remote,
-                json,
-                call(
-                    "wallet/veto",
-                    json!({"wallet": wallet, "proposal": id, "source": "cli"}),
-                )
-                .await?,
-            )
-            .await?;
+            let params = json!({"wallet": wallet, "proposal": id});
+            request(remote, json, "wallet/veto", params).await?;
         }
         WalletCommand::Cancel { wallet, id } => {
-            let p = call("wallet/cancel", json!({"wallet": wallet, "proposal": id})).await?;
+            let p = remote
+                .call("wallet/cancel", json!({"wallet": wallet, "proposal": id}))
+                .await?;
             print(json, &p, proposal_line);
         }
         WalletCommand::Freeze { wallet } => {
-            let r = call("wallet/freeze", json!({"wallet": wallet})).await?;
+            let r = remote
+                .call("wallet/freeze", json!({"wallet": wallet}))
+                .await?;
             print(json, &r, |_| tr!("frozen", "已冻结"));
         }
         WalletCommand::Execute { wallet, id } => {
-            let r = call(
-                "wallet/execute",
-                json!({"wallet": wallet, "proposal": id, "source": "cli"}),
-            )
-            .await?;
+            let r = remote
+                .call(
+                    "wallet/execute",
+                    json!({"wallet": wallet, "proposal": id, "source": "cli"}),
+                )
+                .await?;
             // A cosigned plan comes back as an approval request.
             if r["kind"] == "wallet" && !r["digest"].is_null() {
                 created(remote, json, r).await?;
@@ -501,15 +476,18 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             }
         }
         WalletCommand::Broadcast { wallet, id, plan } => {
-            let p = call(
-                "wallet/broadcast",
-                json!({"wallet": wallet, "proposal": id, "plan": plan}),
-            )
-            .await?;
+            let p = remote
+                .call(
+                    "wallet/broadcast",
+                    json!({"wallet": wallet, "proposal": id, "plan": plan}),
+                )
+                .await?;
             print(json, &p, proposal_line);
         }
         WalletCommand::Settle { wallet, id } => {
-            let p = call("wallet/settle", json!({"wallet": wallet, "proposal": id})).await?;
+            let p = remote
+                .call("wallet/settle", json!({"wallet": wallet, "proposal": id}))
+                .await?;
             print(json, &p, |p| match p["pending"] == true {
                 true => tr!("not final yet", "尚未最终确认"),
                 false => proposal_line(p),
@@ -522,23 +500,25 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             outcome,
             note,
         } => {
-            let p = call(
-                "wallet/report",
+            let p = remote.call("wallet/report",
                 json!({"wallet": wallet, "proposal": id, "plan": plan, "outcome": outcome, "note": note}),
             )
             .await?;
             print(json, &p, proposal_line);
         }
         WalletCommand::Reconcile { wallet, id } => {
-            let p = call(
-                "wallet/reconcile",
-                json!({"wallet": wallet, "proposal": id}),
-            )
-            .await?;
+            let p = remote
+                .call(
+                    "wallet/reconcile",
+                    json!({"wallet": wallet, "proposal": id}),
+                )
+                .await?;
             print(json, &p, proposal_line);
         }
         WalletCommand::Balances { wallet } => {
-            let b = call("wallet/balances", json!({"wallet": wallet})).await?;
+            let b = remote
+                .call("wallet/balances", json!({"wallet": wallet}))
+                .await?;
             print(json, &b, |b| {
                 b["addresses"]
                     .as_array()
@@ -564,7 +544,9 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             });
         }
         WalletCommand::Audit { wallet } => {
-            let a = call("wallet/audit", json!({"wallet": wallet})).await?;
+            let a = remote
+                .call("wallet/audit", json!({"wallet": wallet}))
+                .await?;
             print(json, &a, |a| {
                 tr!(
                     "audit chain verified: {} events, head {}",
@@ -575,22 +557,25 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
             });
         }
         WalletCommand::Refuel { wallet } => {
-            let r = call("wallet/refuel", json!({"wallet": wallet})).await?;
+            let r = remote
+                .call("wallet/refuel", json!({"wallet": wallet}))
+                .await?;
             print(json, &r, |r| match r["cycles"].as_str() {
                 Some(c) => tr!("topped up {c} cycles", "已充值 {c} cycles"),
                 None => tr!("no top-up needed", "无需充值"),
             });
         }
         WalletCommand::Cosigners => {
-            let c = call("wallet/cosigners", Value::Null).await?;
+            let c = remote.call("wallet/cosigners", Value::Null).await?;
             print(json, &c, pretty);
         }
         WalletCommand::CosignerNew { label, hardware } => {
-            let c = call(
-                "wallet/cosigner_new",
-                json!({"label": label, "hardware": hardware}),
-            )
-            .await?;
+            let c = remote
+                .call(
+                    "wallet/cosigner_new",
+                    json!({"label": label, "hardware": hardware}),
+                )
+                .await?;
             print(json, &c, pretty);
         }
     }

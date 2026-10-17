@@ -1,11 +1,97 @@
-//! CLI commands of account workspaces, account security, recovery, payout
+//! CLI commands of the login and account workspaces, the account and its
+//! devices, the public profile, account security, recovery, payout
 //! revisions and commerce maintenance.
 
+use crate::approval_commands::{created, request};
 use crate::locale::tr;
 use crate::remote::{Failure, Remote};
-use crate::{created, print, summary};
+use crate::{absolute, open_browser, pretty, print, short, summary};
 use clap::Subcommand;
 use serde_json::{json, Value};
+use std::path::PathBuf;
+use std::time::Duration;
+
+#[derive(Subcommand)]
+pub enum ProfileCommand {
+    /// The published profile of this account.
+    Show,
+    /// Publish exactly the given fields; anything left out is unpublished.
+    Publish {
+        /// Display name.
+        #[arg(long, default_value = "")]
+        name: String,
+        /// Bio.
+        #[arg(long, default_value = "")]
+        bio: String,
+        /// HTTPS links.
+        #[arg(long = "link")]
+        links: Vec<String>,
+    },
+    /// Another account's published profile, checked against its devices.
+    Resolve {
+        /// Account ID.
+        account: String,
+    },
+    /// Publish an image (PNG, JPEG or WebP, at most 512 KiB) as the public
+    /// avatar, which the relay serves to anyone; the other fields stay.
+    Avatar {
+        /// The image.
+        #[arg(required_unless_present = "remove")]
+        file: Option<PathBuf>,
+        /// Remove the avatar instead.
+        #[arg(long, conflicts_with = "file")]
+        remove: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum AccountCommand {
+    /// Create an account for the current login with this device as administrator.
+    Create,
+    /// Show the account and its devices.
+    Show,
+    #[command(flatten)]
+    Security(SecurityCommand),
+}
+
+#[derive(Subcommand)]
+pub enum DeviceCommand {
+    /// List the account's devices.
+    List,
+    /// Ask to join the login's account; prints a request for an administrator device.
+    PairRequest {
+        /// Join as a member instead of an administrator.
+        #[arg(long)]
+        member: bool,
+    },
+    /// Approve a pairing request and rotate the content root to include the device.
+    Approve {
+        /// The request printed by `dmsg device pair-request`.
+        request: String,
+        /// The device ID shown on the new device.
+        #[arg(long)]
+        device: String,
+    },
+    /// Replace a device's capabilities; goes through the approval center.
+    Capabilities {
+        /// Device ID.
+        device: String,
+        /// The complete set, comma separated: content_sign, vault_unlock,
+        /// root_manage, formal_approve, payment_offer, wallet_approve.
+        #[arg(long, value_delimiter = ',')]
+        set: Vec<String>,
+    },
+    /// Let this device approve formal signatures and web requests, or stop.
+    FormalApprove {
+        /// on or off.
+        state: String,
+    },
+    /// Revoke another device and rotate the content root without it.
+    Revoke {
+        /// Device ID.
+        device: String,
+    },
+}
 
 /// Account security: bound logins, the signing policy and recovery delay.
 #[derive(Subcommand)]
@@ -145,10 +231,6 @@ pub enum OpsCommand {
     Sweep,
 }
 
-fn pretty(value: &Value) -> String {
-    serde_json::to_string_pretty(value).unwrap_or_default()
-}
-
 /// The account workspaces on this device.
 pub async fn accounts(remote: &Remote, json: bool) -> Result<(), Failure> {
     let list = remote.call("session/accounts", Value::Null).await?;
@@ -162,7 +244,7 @@ pub async fn accounts(remote: &Remote, json: bool) -> Result<(), Failure> {
                     if a["current"] == true { "* " } else { "  " },
                     a["account"].as_str().unwrap_or_default(),
                     tr!("device", "设备"),
-                    &a["device_id"].as_str().unwrap_or_default()[..12],
+                    short(a["device_id"].as_str().unwrap_or_default(), 12),
                     if a["bound"] == true {
                         String::new()
                     } else {
@@ -205,14 +287,17 @@ pub async fn security(
             });
             return Ok(());
         }
-        SecurityCommand::BindApprove { request, principal } => {
-            let request = remote
-                .call(
-                    "account/bind_approve",
-                    json!({"token": request, "principal": principal, "source": "cli"}),
-                )
-                .await?;
-            return created(remote, json, request).await;
+        SecurityCommand::BindApprove {
+            request: token,
+            principal,
+        } => {
+            return request(
+                remote,
+                json,
+                "account/bind_approve",
+                json!({"token": token, "principal": principal}),
+            )
+            .await;
         }
         SecurityCommand::BindAccept { account } => {
             let status = remote
@@ -222,13 +307,13 @@ pub async fn security(
             return Ok(());
         }
         SecurityCommand::Unbind { principal } => {
-            let request = remote
-                .call(
-                    "account/unbind",
-                    json!({"principal": principal, "source": "cli"}),
-                )
-                .await?;
-            return created(remote, json, request).await;
+            return request(
+                remote,
+                json,
+                "account/unbind",
+                json!({"principal": principal}),
+            )
+            .await;
         }
         SecurityCommand::Policy {
             freeze,
@@ -236,7 +321,7 @@ pub async fn security(
             daily,
             purposes,
         } => {
-            let mut params = json!({"source": "cli"});
+            let mut params = json!({});
             if freeze || unfreeze {
                 params["frozen"] = freeze.into();
             }
@@ -246,17 +331,16 @@ pub async fn security(
             if let Some(purposes) = purposes {
                 params["allowed_purposes"] = purposes.into();
             }
-            let request = remote.call("account/policy", params).await?;
-            return created(remote, json, request).await;
+            return request(remote, json, "account/policy", params).await;
         }
         SecurityCommand::RecoveryDelay { days } => {
-            let request = remote
-                .call(
-                    "account/recovery_delay",
-                    json!({"days": days, "source": "cli"}),
-                )
-                .await?;
-            return created(remote, json, request).await;
+            return request(
+                remote,
+                json,
+                "account/recovery_delay",
+                json!({"days": days}),
+            )
+            .await;
         }
     };
     let value = remote.call(method, params).await?;
@@ -278,10 +362,7 @@ pub async fn recovery(
             return Ok(());
         }
         RecoveryCommand::Dispute => {
-            let request = remote
-                .call("recovery/dispute", json!({"source": "cli"}))
-                .await?;
-            return created(remote, json, request).await;
+            return request(remote, json, "recovery/dispute", json!({})).await;
         }
     };
     let value = remote.call(method, Value::Null).await?;
@@ -316,5 +397,221 @@ pub async fn ops(remote: &Remote, json: bool, command: OpsCommand) -> Result<(),
     };
     let value = remote.call(method, params).await?;
     print(json, &value, pretty);
+    Ok(())
+}
+
+/// `dmsg login`: through the dMsg login page; with `bind`, the login is
+/// bound to the unlocked account through the approval center.
+pub async fn login(
+    remote: &Remote,
+    json: bool,
+    origin: &str,
+    no_browser: bool,
+    bind: bool,
+) -> Result<(), Failure> {
+    let origin = match origin {
+        "dmsg.net" | "https://dmsg.net" => "https://dmsg.net",
+        "panda.fans" | "https://panda.fans" => "https://panda.fans",
+        _ => {
+            return Err(Failure::new(
+                "INVALID_INPUT",
+                "origin must be dmsg.net or panda.fans",
+            ))
+        }
+    };
+    let started = remote
+        .call(
+            "session/login",
+            json!({"origin": origin, "bind": bind, "source": "cli"}),
+        )
+        .await?;
+    let url = started["url"].as_str().unwrap_or_default();
+    if json {
+        println!("{}", json!({"url": url}));
+    } else {
+        println!("{url}");
+        eprintln!(
+            "{}",
+            tr!(
+                "Waiting for the login in your browser…",
+                "等待在浏览器中完成登录…"
+            )
+        );
+    }
+    if !no_browser && !open_browser(url) {
+        eprintln!(
+            "{}",
+            tr!(
+                "Open the URL above in your browser.",
+                "请在浏览器中打开上面的链接。"
+            )
+        );
+    }
+    loop {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let result = remote.call("session/login_result", Value::Null).await?;
+        if result["pending"] == true {
+            continue;
+        }
+        if let Some(error) = result["error"].as_str() {
+            return Err(Failure::new("AUTH_REQUIRED", error));
+        }
+        if bind {
+            return created(remote, json, result["approval"].clone()).await;
+        }
+        if result["status"]["principal"].is_null() {
+            return Err(Failure::new("EXPIRED", "the login was not completed"));
+        }
+        print(json, &result["status"], summary);
+        return Ok(());
+    }
+}
+
+/// `dmsg account`.
+pub async fn account(remote: &Remote, json: bool, command: AccountCommand) -> Result<(), Failure> {
+    match command {
+        AccountCommand::Create => {
+            let created = remote.call("account/create", Value::Null).await?;
+            print(json, &created, |v| {
+                let (account, generation) = (
+                    v["account"].as_str().unwrap_or_default(),
+                    &v["root_generation"],
+                );
+                tr!(
+                    "account: {account}\nroot generation: {generation}",
+                    "账户：{account}\n内容根代数：{generation}"
+                )
+            });
+        }
+        AccountCommand::Show => {
+            let view = remote.call("account/show", Value::Null).await?;
+            print(json, &view, pretty);
+        }
+        AccountCommand::Security(command) => security(remote, json, command).await?,
+    }
+    Ok(())
+}
+
+/// `dmsg device`.
+pub async fn device(remote: &Remote, json: bool, command: DeviceCommand) -> Result<(), Failure> {
+    match command {
+        DeviceCommand::List => {
+            let view = remote.call("account/show", Value::Null).await?;
+            print(json, &view["devices"], |devices| {
+                devices
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .map(|d| {
+                        format!(
+                            "{}{} {} {}{}",
+                            if d["current"] == true { "* " } else { "  " },
+                            d["device_id"].as_str().unwrap_or_default(),
+                            d["role"].as_str().unwrap_or_default(),
+                            d["capabilities"]
+                                .as_array()
+                                .into_iter()
+                                .flatten()
+                                .filter_map(Value::as_str)
+                                .collect::<Vec<_>>()
+                                .join(","),
+                            if d["revoked_at"].is_null() {
+                                String::new()
+                            } else {
+                                tr!(" revoked", " 已撤销")
+                            }
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            });
+        }
+        DeviceCommand::PairRequest { member } => {
+            let role = if member { "member" } else { "administrator" };
+            let request = remote
+                .call("device/pair_request", json!({"role": role}))
+                .await?;
+            print(json, &request, |v| {
+                let (device, token) = (
+                    v["device_id"].as_str().unwrap_or_default(),
+                    v["token"].as_str().unwrap_or_default(),
+                );
+                tr!(
+                    "device: {device}\n\nOn an administrator device run:\n  dmsg device approve {token} --device {device}",
+                    "设备：{device}\n\n在一台管理员设备上运行：\n  dmsg device approve {token} --device {device}"
+                )
+            });
+        }
+        DeviceCommand::Approve {
+            request: token,
+            device,
+        } => {
+            let approved = remote
+                .call("device/approve", json!({"token": token, "device": device}))
+                .await?;
+            print(json, &approved, |v| {
+                let (device, generation) = (
+                    v["device_id"].as_str().unwrap_or_default(),
+                    &v["root_generation"],
+                );
+                tr!(
+                    "approved {device}\nroot generation: {generation}",
+                    "已批准 {device}\n内容根代数：{generation}"
+                )
+            });
+        }
+        DeviceCommand::Capabilities { device, set } => {
+            let params = json!({"device": device, "capabilities": set});
+            request(remote, json, "device/capabilities", params).await?
+        }
+        DeviceCommand::FormalApprove { state } => {
+            let enable = match state.as_str() {
+                "on" => true,
+                "off" => false,
+                _ => return Err(Failure::new("INVALID_INPUT", "on or off")),
+            };
+            let params = json!({"enable": enable});
+            request(remote, json, "device/formal_approve", params).await?
+        }
+        DeviceCommand::Revoke { device } => {
+            request(remote, json, "device/revoke", json!({"device": device})).await?
+        }
+    }
+    Ok(())
+}
+
+/// `dmsg profile`.
+pub async fn profile(remote: &Remote, json: bool, command: ProfileCommand) -> Result<(), Failure> {
+    let (method, params) = match command {
+        ProfileCommand::Show => ("profile/show", Value::Null),
+        ProfileCommand::Publish { name, bio, links } => (
+            "profile/publish",
+            json!({"display_name": name, "bio": bio, "links": links}),
+        ),
+        ProfileCommand::Resolve { account } => ("profile/resolve", json!({"account": account})),
+        ProfileCommand::Avatar { file, remove } => {
+            let params = match file {
+                Some(file) => json!({"path": absolute(file)?}),
+                None => json!({"remove": remove}),
+            };
+            let profile = remote.call("profile/avatar", params).await?;
+            print(json, &profile, |p| {
+                let version = &p["profile"]["version"];
+                match p["profile"]["avatar_upload"].as_str() {
+                    Some(upload) => tr!(
+                        "published version {version} with avatar {upload}",
+                        "已发布版本 {version}，头像 {upload}"
+                    ),
+                    None => tr!(
+                        "published version {version} without an avatar",
+                        "已发布版本 {version}，不带头像"
+                    ),
+                }
+            });
+            return Ok(());
+        }
+    };
+    let profile = remote.call(method, params).await?;
+    print(json, &profile, pretty);
     Ok(())
 }

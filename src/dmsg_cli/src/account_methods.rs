@@ -5,8 +5,9 @@
 //! terminal.
 
 use crate::daemon::Daemon;
+use crate::params::{account, hash, number, optional, source, text, to_json};
 use dmsg_client::{commerce::Records, security::AccountChange};
-use dmsg_types::{user::SensitivePolicy, AccountId, Error, Hash, KeyPurpose, Result, DAY};
+use dmsg_types::{Error, Hash, KeyPurpose, Result, DAY};
 use serde_json::{json, Value};
 
 /// The methods this module serves.
@@ -59,33 +60,6 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     }
 }
 
-fn text(params: &Value, name: &str) -> Result<String> {
-    params[name]
-        .as_str()
-        .map(str::to_string)
-        .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-}
-
-fn account(params: &Value, name: &str) -> Result<AccountId> {
-    text(params, name)?
-        .parse()
-        .map_err(|_| Error::InvalidInput(format!("{name}: account ID")))
-}
-
-fn hash(params: &Value, name: &str) -> Result<Hash> {
-    hex::decode(text(params, name)?)
-        .ok()
-        .and_then(|b| b.try_into().ok())
-        .map(Hash::new)
-        .ok_or_else(|| Error::InvalidInput(format!("{name}: hex identifier")))
-}
-
-fn number(params: &Value, name: &str) -> Result<u64> {
-    params[name]
-        .as_u64()
-        .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-}
-
 /// An amount in base units, as a decimal string or a number.
 fn amount(params: &Value, name: &str) -> Result<u128> {
     match &params[name] {
@@ -94,15 +68,6 @@ fn amount(params: &Value, name: &str) -> Result<u128> {
         _ => None,
     }
     .ok_or_else(|| Error::InvalidInput(format!("{name}: amount")))
-}
-
-/// The local source of a request: the CLI or the desktop.
-pub(crate) fn source(params: &Value) -> Result<&'static str> {
-    match params["source"].as_str() {
-        Some("gui") => Ok("gui"),
-        Some("cli") | None => Ok("cli"),
-        Some(_) => Err(Error::InvalidInput("source".into())),
-    }
 }
 
 fn purpose(name: &str) -> Result<KeyPurpose> {
@@ -115,10 +80,7 @@ fn purpose(name: &str) -> Result<KeyPurpose> {
 }
 
 fn after(params: &Value) -> Result<Option<Hash>> {
-    match params["after"].as_str() {
-        Some(_) => hash(params, "after").map(Some),
-        None => Ok(None),
-    }
+    optional(params, "after", hash)
 }
 
 impl Daemon {
@@ -131,10 +93,9 @@ impl Daemon {
                 let token = client.bind_request(&account(params, "account")?).await?;
                 Ok(json!({"token": token}))
             }
-            "account/bind_accept" => {
-                let status = client.bind_accept(&account(params, "account")?).await?;
-                Ok(serde_json::to_value(status).expect("status serializes"))
-            }
+            "account/bind_accept" => Ok(to_json(
+                &client.bind_accept(&account(params, "account")?).await?,
+            )),
             "account/bind_approve" => {
                 let request = client.inspect_binding(&text(params, "token")?)?;
                 // The person names the login shown on the other device.
@@ -160,26 +121,13 @@ impl Daemon {
                     .await
             }
             "account/policy" => {
-                let current = client.account_security().await?;
-                let mut policy = SensitivePolicy {
-                    frozen: current["policy"]["frozen"] == true,
-                    allowed_purposes: current["policy"]["allowed_purposes"]
-                        .as_array()
-                        .into_iter()
-                        .flatten()
-                        .map(|p| purpose(p.as_str().unwrap_or_default()))
-                        .collect::<Result<_>>()?,
-                    daily_executions: current["policy"]["daily_executions"]
-                        .as_u64()
-                        .and_then(|n| u32::try_from(n).ok())
-                        .ok_or(Error::IntegrityFailed)?,
-                };
+                // The fields given replace those in force.
+                let mut policy = client.account_policy().await?;
                 if let Some(frozen) = params["frozen"].as_bool() {
                     policy.frozen = frozen;
                 }
-                if let Some(daily) = params["daily_executions"].as_u64() {
-                    policy.daily_executions =
-                        u32::try_from(daily).map_err(|_| Error::InvalidInput("daily".into()))?;
+                if let Some(daily) = optional(params, "daily_executions", number)? {
+                    policy.daily_executions = daily;
                 }
                 if let Some(purposes) = params["allowed_purposes"].as_array() {
                     policy.allowed_purposes = purposes
@@ -192,7 +140,7 @@ impl Daemon {
                     .await
             }
             "account/recovery_delay" => {
-                let days = number(params, "days")?;
+                let days = number::<u64>(params, "days")?;
                 client
                     .account_request(
                         source(params)?,
@@ -204,10 +152,7 @@ impl Daemon {
             }
             "recovery/status" => client.recovery_status().await,
             "recovery/request" => client.recovery_request().await,
-            "recovery/complete" => {
-                let status = client.recovery_complete().await?;
-                Ok(serde_json::to_value(status).expect("status serializes"))
-            }
+            "recovery/complete" => Ok(to_json(&client.recovery_complete().await?)),
             "recovery/dispute" => {
                 let status = client.recovery_status().await?;
                 let op_id = status["pending"]["op_id"]
@@ -249,8 +194,10 @@ impl Daemon {
             }
             "attest/usage" => client.execution_usage().await,
             "approval/quote" => {
+                // The CLI names a request by a unique prefix.
+                let id = client.approval_id(&text(params, "id")?)?;
                 client
-                    .approval_quote(&text(params, "id")?, &text(params, "selection")?)
+                    .approval_quote(&id, &text(params, "selection")?)
                     .await
             }
             "ops/orders" => {

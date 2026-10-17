@@ -83,6 +83,19 @@ async fn answers_bind_the_request_as_shown() {
         .approval_cancel(withdrawn["id"].as_str().unwrap())
         .unwrap();
     assert_eq!(cancelled["state"], "cancelled");
+    // A unique prefix of six characters or more names a request.
+    let id = withdrawn["id"].as_str().unwrap();
+    assert_eq!(client.approval_id(&id[..6]).unwrap(), id);
+    assert_eq!(client.approval_id(id).unwrap(), id);
+    assert!(matches!(
+        client.approval_id(&id[..5]),
+        Err(Error::InvalidInput(_))
+    ));
+    assert!(matches!(
+        client.approval_id(""),
+        Err(Error::InvalidInput(_))
+    ));
+    assert_eq!(client.approval_id("zzzzzz"), Err(Error::NotFound));
 
     // Past its deadline a request expires undecided.
     let late = client.attest_request("cli", text("late"), None).unwrap();

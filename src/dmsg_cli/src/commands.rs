@@ -2,9 +2,10 @@
 //! Payments, checkouts and name operations create approval requests, which
 //! an interactive terminal decides at once.
 
+use crate::approval_commands::request;
 use crate::locale::tr;
 use crate::remote::{Failure, Remote};
-use crate::{absolute, created, print};
+use crate::{absolute, pretty, print};
 use clap::Subcommand;
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -370,10 +371,6 @@ fn json_arg(text: &str) -> Result<Value, Failure> {
     serde_json::from_str(text).map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))
 }
 
-fn pretty(value: &Value) -> String {
-    serde_json::to_string_pretty(value).unwrap_or_default()
-}
-
 fn message_lines(list: &Value) -> String {
     list.as_array()
         .into_iter()
@@ -543,13 +540,8 @@ pub async fn inbox(remote: &Remote, json: bool, command: InboxCommand) -> Result
             json!({"recipient": recipient, "text": text, "pay": pay, "invitation": invitation, "order": order}),
         ),
         InboxCommand::Pay { recipient, order } => {
-            let request = remote
-                .call(
-                    "inbox/pay",
-                    json!({"recipient": recipient, "order": order, "source": "cli"}),
-                )
-                .await?;
-            return created(remote, json, request).await;
+            let params = json!({"recipient": recipient, "order": order});
+            return request(remote, json, "inbox/pay", params).await;
         }
         InboxCommand::Order { recipient, order } => (
             "inbox/order",
@@ -593,16 +585,10 @@ pub async fn plan(remote: &Remote, json: bool, command: PlanCommand) -> Result<(
             json!({"sku": sku, "method": method, "selection": selection}),
         ),
         PlanCommand::Checkout { id } => {
-            let request = remote
-                .call("plan/checkout", json!({"id": id, "source": "cli"}))
-                .await?;
-            return created(remote, json, request).await;
+            return request(remote, json, "plan/checkout", json!({"id": id})).await;
         }
         PlanCommand::Advance { id } => {
-            let request = remote
-                .call("plan/advance", json!({"id": id, "source": "cli"}))
-                .await?;
-            return created(remote, json, request).await;
+            return request(remote, json, "plan/advance", json!({"id": id})).await;
         }
         PlanCommand::Order { id } => ("plan/order", json!({"id": id})),
         PlanCommand::List => ("plan/checkouts", Value::Null),
@@ -620,16 +606,10 @@ pub async fn handle(remote: &Remote, json: bool, command: HandleCommand) -> Resu
         HandleCommand::Resolve { name } => ("handle/resolve", json!({"name": name})),
         HandleCommand::Price { name } => ("handle/price", json!({"name": name})),
         HandleCommand::Claim { name } => {
-            let request = remote
-                .call("handle/claim", json!({"name": name, "source": "cli"}))
-                .await?;
-            return created(remote, json, request).await;
+            return request(remote, json, "handle/claim", json!({"name": name})).await;
         }
         HandleCommand::Register { name } => {
-            let request = remote
-                .call("handle/register", json!({"name": name, "source": "cli"}))
-                .await?;
-            return created(remote, json, request).await;
+            return request(remote, json, "handle/register", json!({"name": name})).await;
         }
         HandleCommand::Transfer { name, target } => {
             let offered = remote
@@ -648,16 +628,10 @@ pub async fn handle(remote: &Remote, json: bool, command: HandleCommand) -> Resu
             return Ok(());
         }
         HandleCommand::Accept { token } => {
-            let request = remote
-                .call("handle/accept", json!({"token": token, "source": "cli"}))
-                .await?;
-            return created(remote, json, request).await;
+            return request(remote, json, "handle/accept", json!({"token": token})).await;
         }
         HandleCommand::Commit { id } => {
-            let request = remote
-                .call("handle/transfer_commit", json!({"id": id, "source": "cli"}))
-                .await?;
-            return created(remote, json, request).await;
+            return request(remote, json, "handle/transfer_commit", json!({"id": id})).await;
         }
         HandleCommand::Operations => ("handle/operations", Value::Null),
         HandleCommand::Reconcile { id, block } => {

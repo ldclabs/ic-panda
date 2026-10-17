@@ -3,8 +3,9 @@
 //! Principal changes and grants create approval requests, which an
 //! interactive terminal decides at once.
 
+use crate::approval_commands::request;
 use crate::remote::{Failure, Remote};
-use crate::{created, pretty, print};
+use crate::{pretty, print};
 use clap::Subcommand;
 use serde_json::{json, Value};
 
@@ -151,11 +152,13 @@ pub enum GrantsCommand {
         /// Label or `did:agent:…`.
         agent: String,
         /// account.read, vault.list, vault.read:<tag>, vault.write:<tag>,
-        /// vault.secret:<item>, file.read:<tag>, channel.read:<channel>,
-        /// channel.publish:<channel>, inbox.read, inbox.contact,
-        /// profile.read, attest.request, action.request,
-        /// agent.delegation.read, events.endpoint; `<name>:*` covers every
-        /// target. Items tagged `dmsg-…` are dMsg's own keys and out of reach.
+        /// vault.secret:<item>, files.read:<folder>, files.write:<folder>,
+        /// channel.read:<channel>, channel.publish:<channel>, inbox.read,
+        /// inbox.contact, profile.read, attest.request, action.request,
+        /// agent.delegation.read, events.endpoint, wallet.read,
+        /// wallet.propose:<wallet>, wallet.execute:<wallet>; `<name>:*`
+        /// covers every target. Items tagged `dmsg-…` are dMsg's own keys
+        /// and out of reach.
         /// At the allowed hosts, each :<origin> or :* for every host:
         /// agent.profile.write, discourse.read, discourse.write, mail.read,
         /// mail.write, knowledge.read, knowledge.write.
@@ -272,18 +275,6 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
     Ok(())
 }
 
-/// A method that creates an approval request.
-async fn request(
-    remote: &Remote,
-    json: bool,
-    method: &str,
-    mut params: Value,
-) -> Result<(), Failure> {
-    params["source"] = "cli".into();
-    let request = remote.call(method, params).await?;
-    created(remote, json, request).await
-}
-
 pub async fn grants(remote: &Remote, json: bool, command: GrantsCommand) -> Result<(), Failure> {
     let (method, params) = match command {
         GrantsCommand::List => ("grants/list", Value::Null),
@@ -327,7 +318,7 @@ pub async fn audit(
                     "{:>6} {} {:<10} {:<4} {:<28} {}",
                     e["seq"],
                     dmsg_client::mcp_events::timestamp(at),
-                    short(e["actor"].as_str().unwrap_or_default()),
+                    actor(e["actor"].as_str().unwrap_or_default()),
                     e["via"].as_str().unwrap_or_default(),
                     e["action"].as_str().unwrap_or_default(),
                     e["outcome"].as_str().unwrap_or_default(),
@@ -347,7 +338,7 @@ pub async fn audit(
 }
 
 /// An actor as one column: `owner`, or the end of a `did:agent:`.
-fn short(actor: &str) -> String {
+fn actor(actor: &str) -> String {
     match actor.strip_prefix("did:agent:") {
         Some(key) => format!("…{}", &key[key.len().saturating_sub(8)..]),
         None => actor.into(),

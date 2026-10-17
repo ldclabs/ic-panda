@@ -64,7 +64,10 @@ pub async fn start(home: &Home, exe: &Path) -> Result<Value, Failure> {
     let mut child = command.spawn().map_err(unavailable)?;
     let deadline = Instant::now() + Duration::from_secs(30);
     loop {
-        if let Some(status) = running(home).await {
+        // The credential is read once the daemon has said where it listens.
+        if home.discovery().is_some()
+            && let Some(status) = running(home).await
+        {
             return Ok(status);
         }
         if child.try_wait().map_err(unavailable)?.is_some() {

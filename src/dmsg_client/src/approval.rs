@@ -392,6 +392,22 @@ impl Client {
             .collect()
     }
 
+    /// The full ID of the one request that starts with `prefix`, at least
+    /// six characters, from the index alone.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` when none matches and `Error::InvalidInput`
+    /// for a shorter prefix or one that matches several.
+    pub fn approval_id(&self, prefix: &str) -> Result<String> {
+        let rows = self.workspace.store.approvals(&[])?;
+        let mut found = rows.into_iter().filter(|row| row.id.starts_with(prefix));
+        match (found.next(), found.next()) {
+            (None, _) => Err(Error::NotFound),
+            (Some(row), None) if prefix.len() >= 6 => Ok(row.id),
+            _ => Err(Error::InvalidInput("give more of the request ID".into())),
+        }
+    }
+
     /// Approved requests whose outcome is not settled; readable while locked.
     ///
     /// # Errors

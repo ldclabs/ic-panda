@@ -2,7 +2,7 @@
 
 use crate::locale::tr;
 use crate::remote::{Failure, Remote};
-use crate::{absolute, pretty, print};
+use crate::{absolute, pretty, print, short};
 use clap::Subcommand;
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -1026,7 +1026,7 @@ fn cloud_line(c: &Value) -> String {
         "{upload} /{} {} 字节，设备 {}，时间 {}{local}",
         path.join("/"),
         c["size"],
-        &device[..8.min(device.len())],
+        short(device, 8),
         c["committed_at"]
     )
 }

@@ -42,8 +42,8 @@ pub async fn run(daemon: Arc<Daemon>) {
 /// device has an account.
 async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, Option<String>> {
     let mut client = daemon.client().lock().await;
-    let status = client.status().map_err(|e| Some(e.to_string()))?;
-    let Some(account) = status.account else {
+    let session = client.session_state();
+    let Some(account) = session.account else {
         return Ok(None);
     };
     let token = match client
@@ -51,7 +51,7 @@ async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, O
         .map_err(|e| Some(e.to_string()))?
     {
         Some(token) if token.expires_at > now_ms() + 7 * dmsg_types::DAY => token,
-        stored if status.state == "unlocked" || status.resident => {
+        stored if session.state == "unlocked" || session.resident => {
             match client.hint_token().await {
                 Ok(token) => token,
                 Err(_) if stored.is_some() => stored.expect("stored token"),
@@ -104,7 +104,7 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
                     return Err(Some("hint channel silent".into()));
                 }
                 // Another account selected: its own channel replaces this one.
-                let selected = daemon.client().lock().await.status().ok().and_then(|s| s.account);
+                let selected = daemon.client().lock().await.session_state().account;
                 if selected.as_deref() != Some(account.as_str()) {
                     return Ok(());
                 }
@@ -132,9 +132,9 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
 /// arrived; unlocked, the inbox view reloads, and the channels' own hint
 /// sockets already had the daemon read the new messages.
 async fn handle(daemon: &Arc<Daemon>, kind: &str) {
-    let status = daemon.client().lock().await.status().ok();
-    let unlocked = status.as_ref().is_some_and(|s| s.state == "unlocked");
-    let ready = unlocked || status.as_ref().is_some_and(|s| s.resident);
+    let session = daemon.client().lock().await.session_state();
+    let unlocked = session.state == "unlocked";
+    let ready = unlocked || session.resident;
     match kind {
         "connect" if ready => daemon.wake(),
         "connect" => daemon.emit("connect/hint", json!({"locked": true})),

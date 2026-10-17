@@ -4,13 +4,13 @@
 //! at an interactive terminal.
 
 use crate::daemon::Daemon;
+use crate::params::{absolute, account, number, optional, parse, source, text, to_json};
 use dmsg_client::{
     channel::{Invitation, OwnerTransfer, Sponsor},
     channel_log::{Action, ChannelType, Role},
     inbox::PolicyInput,
 };
-use dmsg_types::{integration::SettlementMethod, AccountId, Error, Result};
-use serde::de::DeserializeOwned;
+use dmsg_types::{integration::SettlementMethod, Error, Result};
 use serde_json::{json, Value};
 
 /// The methods this module serves.
@@ -78,45 +78,6 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         }
         _ => &[],
     }
-}
-
-fn text(params: &Value, name: &str) -> Result<String> {
-    params[name]
-        .as_str()
-        .map(str::to_string)
-        .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-}
-
-fn parse<T: DeserializeOwned>(params: &Value, name: &str) -> Result<T> {
-    serde_json::from_value(params[name].clone())
-        .map_err(|e| Error::InvalidInput(format!("{name}: {e}")))
-}
-
-fn account(params: &Value, name: &str) -> Result<AccountId> {
-    text(params, name)?
-        .parse()
-        .map_err(|_| Error::InvalidInput(format!("{name}: account ID")))
-}
-
-fn absolute(params: &Value, name: &str) -> Result<std::path::PathBuf> {
-    let path = std::path::PathBuf::from(text(params, name)?);
-    match path.is_absolute() {
-        true => Ok(path),
-        false => Err(Error::InvalidInput(format!("{name} must be absolute"))),
-    }
-}
-
-/// The local source of a request: the CLI or the desktop.
-fn source(params: &Value) -> Result<&'static str> {
-    match params["source"].as_str() {
-        Some("gui") => Ok("gui"),
-        Some("cli") | None => Ok("cli"),
-        Some(_) => Err(Error::InvalidInput("source".into())),
-    }
-}
-
-fn to_json<T: serde::Serialize>(value: &T) -> Value {
-    serde_json::to_value(value).expect("serializable")
 }
 
 impl Daemon {
@@ -201,26 +162,19 @@ impl Daemon {
                 Ok(to_json(&client.channel_messages(&id()?, after, limit)?))
             }
             "channel/download" => {
-                let seq = params["seq"]
-                    .as_u64()
-                    .ok_or_else(|| Error::InvalidInput("seq".into()))?;
+                let seq = number(params, "seq")?;
                 let manifest = client
                     .channel_download(&id()?, seq, &absolute(params, "path")?)
                     .await?;
                 Ok(to_json(&manifest.public()))
             }
             "channel/history" => {
-                let range = |name: &str| {
-                    params[name]
-                        .as_u64()
-                        .ok_or_else(|| Error::InvalidInput(name.into()))
-                };
                 let ledger = client
                     .channel_grant_history(
                         &id()?,
                         &account(params, "account")?,
-                        range("from")?,
-                        range("to")?,
+                        number(params, "from")?,
+                        number(params, "to")?,
                     )
                     .await?;
                 Ok(to_json(&ledger))
@@ -302,10 +256,7 @@ impl Daemon {
                     .await
             }
             "payer/use" => {
-                let pem = match params["pem"].as_str() {
-                    Some(_) => Some(absolute(params, "pem")?),
-                    None => None,
-                };
+                let pem = optional(params, "pem", absolute)?;
                 client.payer_use(pem.as_deref()).await
             }
             "payer/balance" => {

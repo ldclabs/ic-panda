@@ -9,6 +9,7 @@
 //! subscription, it reminds with `refresh_due` records.
 
 use crate::daemon::Daemon;
+use crate::params::text;
 use dmsg_client::agents::AgentEntry;
 use dmsg_client::mcp_events::{jwks_keys, Filter};
 use dmsg_client::now_ms;
@@ -133,13 +134,6 @@ pub(crate) async fn run(daemon: Arc<Daemon>) {
     }
 }
 
-fn text(input: &Value, name: &str) -> Result<String> {
-    input[name]
-        .as_str()
-        .map(str::to_string)
-        .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-}
-
 /// A cursor: the decimal local sequence; absent or null is the start.
 fn cursor(value: &Value) -> Result<u64> {
     match value {
@@ -237,7 +231,7 @@ impl Daemon {
     pub(crate) async fn fetch_events(&self) {
         let servers = {
             let client = self.client().lock().await;
-            if !client.status().is_ok_and(|s| s.state == "unlocked") {
+            if client.session_state().unlocked_account().is_none() {
                 return;
             }
             client.mcp_servers().unwrap_or_default()

@@ -129,6 +129,9 @@ pub struct BackupRun {
     pub failed: u64,
     /// Jobs left, failed ones included.
     pub pending: u64,
+    /// The pass stopped at its time budget; the next one goes on from the
+    /// last chunk sent.
+    pub paused: bool,
 }
 
 fn view(job: &BackupJob) -> BackupJobView {
@@ -358,7 +361,7 @@ impl Client {
         }
         if !jobs.is_empty() {
             // Failures stay in the jobs for the next pass.
-            let _ = self.files_backup_run(&mut |_, _, _| {}).await;
+            let _ = self.files_backup_run(None, &mut |_, _, _| {}).await;
         }
         Ok(request)
     }
@@ -367,6 +370,8 @@ impl Client {
     /// and record the version's backup. Works locked with a resident
     /// device key; the version record then follows at the next pass after
     /// an unlock. A job that failed less than [`RETRY_MS`] ago waits.
+    /// With `budget_ms`, no chunk starts after that long and the pass says
+    /// it `paused`, so other work gets the client in between.
     /// `progress(file, sent, chunks)` follows each upload.
     ///
     /// # Errors
@@ -374,9 +379,11 @@ impl Client {
     /// is recorded in the job and counted, never returned.
     pub async fn files_backup_run(
         &mut self,
+        budget_ms: Option<u64>,
         progress: &mut (dyn FnMut(&str, u64, u64) + Send),
     ) -> Result<BackupRun> {
         self.signing()?;
+        let deadline = budget_ms.map(|ms| now_ms().saturating_add(ms));
         let mut run = BackupRun::default();
         for (key, mut job) in self.backup_jobs()? {
             // Each job's time is read after the uploads before it.
@@ -389,13 +396,21 @@ impl Client {
                 }
                 continue;
             }
-            if job.failed_at.is_some_and(|at| now < at + RETRY_MS) {
+            if run.paused || job.failed_at.is_some_and(|at| now < at + RETRY_MS) {
                 run.pending += 1;
                 continue;
             }
-            let outcome = self.send_backup(&key, &mut job, progress).await;
+            let mut paused = false;
+            let outcome = self
+                .send_backup(&key, &mut job, deadline, &mut paused, progress)
+                .await;
             let now = now_ms();
             match outcome {
+                // Its chunks so far are recorded; nothing failed.
+                Err(_) if paused => {
+                    run.paused = true;
+                    run.pending += 1;
+                }
                 Ok(()) => {
                     job.committed = true;
                     job.error = None;
@@ -420,24 +435,33 @@ impl Client {
     }
 
     /// Upload one job, resuming after the chunks it recorded; a lapsed plan
-    /// is replaced once, which needs the device unlocked.
+    /// is replaced once, which needs the device unlocked. Past `deadline`
+    /// it stops after a recorded chunk and sets `paused`.
     async fn send_backup(
         &mut self,
         key: &str,
         job: &mut BackupJob,
+        deadline: Option<u64>,
+        paused: &mut bool,
         progress: &mut (dyn FnMut(&str, u64, u64) + Send),
     ) -> Result<()> {
         let base = self.base()?;
         let chunks = job.plan.chunks.len() as u64;
         let file = job.file.clone();
-        let record = |client: &Self, sent: usize| {
+        let mut step = |client: &Self, sent: usize| {
+            progress(&file, sent as u64, chunks);
             let mut stored: BackupJob = client
                 .workspace
                 .store
                 .library_job(key)?
                 .ok_or(Error::IntegrityFailed)?;
             stored.sent = sent as u64;
-            client.workspace.store.set_library_job(key, &stored)
+            client.workspace.store.set_library_job(key, &stored)?;
+            if (sent as u64) < chunks && deadline.is_some_and(|d| now_ms() >= d) {
+                *paused = true;
+                return Err(Error::Pending);
+            }
+            Ok(())
         };
         let sent = job.sent as usize;
         match self
@@ -447,10 +471,7 @@ impl Client {
                 &job.manifest,
                 sent,
                 Source::Library,
-                |client, sent| {
-                    progress(&file, sent as u64, chunks);
-                    record(client, sent)
-                },
+                &mut step,
             )
             .await
         {
@@ -472,10 +493,7 @@ impl Client {
                     &job.manifest,
                     0,
                     Source::Library,
-                    |client, sent| {
-                        progress(&file, sent as u64, chunks);
-                        record(client, sent)
-                    },
+                    &mut step,
                 )
                 .await?;
                 job.sent = chunks;

@@ -73,7 +73,7 @@ async fn bytes_of(share: &Share, id: &str) -> Vec<u8> {
         .client
         .lock()
         .await
-        .files_read(id, None, u64::MAX)
+        .files_read_range(id, None, 0, u64::MAX)
         .unwrap()
         .1
         .to_vec()
@@ -448,7 +448,10 @@ async fn a_safe_save_becomes_a_version_of_the_original() {
     assert_eq!(details.versions[1].origin, Origin::Mounted);
     assert_eq!(details.file.size, "version two".len() as u64);
     assert_eq!(
-        &client.files_read(&notes.id, None, u64::MAX).unwrap().1[..],
+        &client
+            .files_read_range(&notes.id, None, 0, u64::MAX)
+            .unwrap()
+            .1[..],
         b"version two"
     );
     assert!(client.files_lookup("notes.txt.sb-1a2b").unwrap().is_none());

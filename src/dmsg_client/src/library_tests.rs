@@ -561,13 +561,14 @@ fn previews_verification_and_shared_editions() {
     // Verification: every version, by file and across the library; a
     // chunk file damaged on disk is found by name without a key, and by
     // its version with one.
-    let report = client.files_verify(Some(&note.file.id), None).unwrap();
+    let report = client.files_verify(&note.file.id, None).unwrap();
     assert_eq!(report.versions.len(), 1);
     assert!(report.versions[0].ok);
-    let report = client.files_verify(None, None).unwrap();
-    assert_eq!(report.versions.len(), 3);
-    assert!(report.versions.iter().all(|v| v.ok) && report.blobs_bad.is_empty());
-    assert_eq!(report.blobs_checked, 4);
+    let (count, bad) = client.blobs().unwrap().verify().unwrap();
+    let (check, versions) = client.files_check_record(now_ms(), count, bad).unwrap();
+    assert_eq!(versions.len(), 3);
+    assert!(versions.iter().all(|v| v.ok) && check.blobs_bad.is_empty());
+    assert_eq!(check.blobs_checked, 4);
     // A check of the whole library is recorded, and the next is due a day on.
     let check = client.files_last_check().unwrap().unwrap();
     assert_eq!((check.blobs_checked, check.versions_checked), (4, 3));
@@ -589,16 +590,14 @@ fn previews_verification_and_shared_editions() {
     damaged[20] ^= 1;
     std::fs::write(&path, &damaged).unwrap();
     client.lock();
-    let locked = client.files_verify(None, None).unwrap();
-    assert_eq!(locked.blobs_bad, std::slice::from_ref(&digest));
-    assert!(locked.versions.is_empty());
-    // The scheduled check takes a scan done beside the library; locked, it
-    // checks no version, and the record says so.
+    // The check takes a scan done beside the library; locked, it checks no
+    // version, and the record says so.
     let (count, bad) = client.blobs().unwrap().verify().unwrap();
     assert_eq!((count, &bad), (4, &vec![digest.clone()]));
-    let recorded = client
+    let (recorded, versions) = client
         .files_check_record(check.at + DAY, count, bad)
         .unwrap();
+    assert!(versions.is_empty());
     assert_eq!(
         (
             recorded.at,
@@ -610,16 +609,17 @@ fn previews_verification_and_shared_editions() {
     assert!(!recorded.ok());
     assert_eq!(client.files_last_check().unwrap(), Some(recorded));
     assert_eq!(
-        client.files_verify(Some(&note.file.id), None).err(),
+        client.files_verify(&note.file.id, None).err(),
         Some(Error::Locked)
     );
     client.keys = Some(client.workspace.unlock(&crate::testing::SECRET).unwrap());
     client.root = Some(RootKeys_single());
-    let report = client.files_verify(Some(&picture.file.id), None).unwrap();
+    let report = client.files_verify(&picture.file.id, None).unwrap();
     assert!(!report.versions[0].ok);
     // Unlocked, the record names the failed version.
-    let full = client.files_verify(None, None).unwrap();
-    assert_eq!(full.versions.len(), 3);
+    let (count, bad) = client.blobs().unwrap().verify().unwrap();
+    let (_, full) = client.files_check_record(now_ms(), count, bad).unwrap();
+    assert_eq!(full.len(), 3);
     let recorded = client.files_last_check().unwrap().unwrap();
     assert_eq!(recorded.versions_checked, 3);
     assert_eq!(recorded.versions_bad.len(), 1);
@@ -636,7 +636,9 @@ fn previews_verification_and_shared_editions() {
             .thumbnail
     );
     assert_eq!(
-        client.files_read(&picture.file.id, None, MAX_FILE).err(),
+        client
+            .files_read_range(&picture.file.id, None, 0, u64::MAX)
+            .err(),
         Some(Error::IntegrityFailed)
     );
 
@@ -733,6 +735,18 @@ fn the_mount_primitives_look_up_read_copy_and_replace() {
         client.files_chunk(&report.id, &report.current, 2),
         Err(Error::InvalidInput(_))
     ));
+    // A range reads across a chunk boundary and stops at the end.
+    let at = (CHUNK - 3) as u64;
+    let range = |client: &mut Client, offset, length| {
+        client
+            .files_read_range(&report.id, None, offset, length)
+            .unwrap()
+            .1
+            .to_vec()
+    };
+    assert_eq!(range(&mut client, at, 7), &data[CHUNK - 3..CHUNK + 4]);
+    assert_eq!(range(&mut client, at, u64::MAX), &data[CHUNK - 3..]);
+    assert!(range(&mut client, data.len() as u64 + 5, 9).is_empty());
     assert_eq!(
         client.files_mount_used().unwrap(),
         (data.len() + png.get_ref().len()) as u64
@@ -758,7 +772,7 @@ fn the_mount_primitives_look_up_read_copy_and_replace() {
     );
     assert_eq!(
         client
-            .files_read(&copy.id, None, MAX_FILE)
+            .files_read_range(&copy.id, None, 0, u64::MAX)
             .unwrap()
             .1
             .as_slice(),
@@ -804,7 +818,7 @@ fn the_mount_primitives_look_up_read_copy_and_replace() {
     );
     assert_eq!(
         client
-            .files_read(&report.id, None, MAX_FILE)
+            .files_read_range(&report.id, None, 0, u64::MAX)
             .unwrap()
             .1
             .as_slice(),
@@ -974,7 +988,9 @@ fn backups_are_planned_under_the_root_and_settle_on_the_version() {
         .has_chunk(&version.chunks[0].digest)
         .unwrap());
     assert_eq!(
-        client.files_read(&imported.file.id, None, MAX_FILE).err(),
+        client
+            .files_read_range(&imported.file.id, None, 0, u64::MAX)
+            .err(),
         Some(Error::RecoveryIncomplete)
     );
     assert!(matches!(
@@ -1132,7 +1148,10 @@ async fn backup_jobs_stay_apart_from_the_vault_jobs_and_keep_their_chunks() {
     // The vault's sync jobs read as before, and the failed backup waits for
     // its next attempt instead of going again at once.
     assert_eq!(client.flush().await, Ok(0));
-    let run = client.files_backup_run(&mut |_, _, _| {}).await.unwrap();
+    let run = client
+        .files_backup_run(None, &mut |_, _, _| {})
+        .await
+        .unwrap();
     assert_eq!((run.failed, run.pending), (0, 1));
 
     // Collection goes on beside it and keeps the job's chunks after their

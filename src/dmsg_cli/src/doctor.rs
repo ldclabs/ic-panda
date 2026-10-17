@@ -12,6 +12,7 @@ use std::time::Duration;
 const SKEW_OK_MS: i64 = 5_000;
 const SKEW_MAX_MS: i64 = 30_000;
 
+#[derive(Default)]
 struct Report(Vec<Value>);
 
 impl Report {
@@ -42,9 +43,15 @@ pub async fn run(home: &Home) -> Value {
     permissions(home, settings.as_ref(), &mut report);
     if let Some(settings) = &settings {
         credentials(home, settings, &mut report);
-        daemon(home, &mut report).await;
-        relay(settings, &mut report).await;
-        registry(settings, &mut report).await;
+        // The network checks run side by side and report in this order.
+        let (mut local, mut remote, mut homes) = Default::default();
+        tokio::join!(
+            daemon(home, &mut local),
+            relay(settings, &mut remote),
+            registry(settings, &mut homes)
+        );
+        let reports: [Report; 3] = [local, remote, homes];
+        report.0.extend(reports.into_iter().flat_map(|r| r.0));
     }
     let logs = crate::logs::dir(&home.dir);
     report.add("logs", "ok", logs.display().to_string());

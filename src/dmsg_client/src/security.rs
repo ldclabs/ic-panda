@@ -201,6 +201,17 @@ impl Client {
         }))
     }
 
+    /// The signing policy in force, as the user home holds it.
+    ///
+    /// # Errors
+    /// As [`Self::account_security`].
+    pub async fn account_policy(&mut self) -> Result<SensitivePolicy> {
+        self.session()?;
+        let account = self.account()?.clone();
+        let state = self.refresh(account.home, &account.id).await?;
+        Ok(state.info.sensitive_policy.clone())
+    }
+
     /// Ask an administrator device of `account` to bind this login, which
     /// has no account yet: a token to hand over. The nonce stays in this
     /// login's workspace until it accepts.

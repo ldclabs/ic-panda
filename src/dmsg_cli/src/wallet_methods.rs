@@ -5,6 +5,7 @@
 //! requests, which only a person answers.
 
 use crate::daemon::Daemon;
+use crate::params::{number, optional, parse, source, text, to_json};
 use dmsg_client::wallet::{default_policy, parse_wallet};
 use dmsg_types::{
     wallet::{ChainOutcome, Decision, Intent, MemberId, MemberInput, Role, WalletSpec},
@@ -66,26 +67,9 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     }
 }
 
-fn text(params: &Value, name: &str) -> Result<String> {
-    params[name]
-        .as_str()
-        .map(str::to_string)
-        .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-}
-
-fn number<T: TryFrom<u64>>(params: &Value, name: &str) -> Result<T> {
-    params[name]
-        .as_u64()
-        .and_then(|n| T::try_from(n).ok())
-        .ok_or_else(|| Error::InvalidInput(format!("missing {name}")))
-}
-
-fn source(params: &Value) -> Result<&'static str> {
-    match params["source"].as_str() {
-        Some("gui") => Ok("gui"),
-        Some("cli") | None => Ok("cli"),
-        Some(_) => Err(Error::InvalidInput("source".into())),
-    }
+/// An approval threshold, one by default.
+fn threshold(params: &Value, name: &str) -> Result<u8> {
+    Ok(optional(params, name, number)?.unwrap_or(1))
 }
 
 fn role(text: &str) -> Result<Role> {
@@ -130,20 +114,20 @@ pub(crate) fn member(value: &Value) -> Result<MemberInput> {
 /// two thresholds over the default policy.
 fn spec(params: &Value) -> Result<WalletSpec> {
     if !params["spec"].is_null() {
-        return serde_json::from_value(params["spec"].clone())
-            .map_err(|e| Error::InvalidInput(format!("spec: {e}")));
+        return parse(params, "spec");
     }
     let members = params["members"]
         .as_array()
         .map(|m| m.iter().map(member).collect::<Result<Vec<_>>>())
         .transpose()?
         .unwrap_or_default();
-    let approvals = params["approvals"].as_u64().unwrap_or(1) as u8;
-    let admin = params["admin_approvals"].as_u64().unwrap_or(1) as u8;
     Ok(WalletSpec {
         name: text(params, "name")?,
         members,
-        policy: default_policy(approvals, admin),
+        policy: default_policy(
+            threshold(params, "approvals")?,
+            threshold(params, "admin_approvals")?,
+        ),
         channel_hint: params["channel"].as_str().map(str::to_string),
     })
 }
@@ -184,8 +168,7 @@ impl Daemon {
             }
             "wallet/proposal" => client.wallet_proposal(wallet()?, id()?).await,
             "wallet/propose" => {
-                let intent: Intent = serde_json::from_value(params["intent"].clone())
-                    .map_err(|e| Error::InvalidInput(format!("intent: {e}")))?;
+                let intent: Intent = parse(params, "intent")?;
                 client.wallet_propose(wallet()?, intent, None).await
             }
             "wallet/send" => {
@@ -220,7 +203,7 @@ impl Daemon {
                     .await
             }
             "wallet/broadcast" => {
-                let plan = params["plan"].as_u64().map(|p| p as u32);
+                let plan = optional(params, "plan", number)?;
                 client.wallet_broadcast(wallet()?, id()?, plan).await
             }
             "wallet/settle" => client.wallet_settle(wallet()?, id()?).await,
@@ -244,18 +227,29 @@ impl Daemon {
                 &text(params, "label")?,
                 params["hardware"].as_bool().unwrap_or(false),
             ),
-            "wallet/policy_default" => serde_json::to_value(default_policy(
-                params["approvals"].as_u64().unwrap_or(1) as u8,
-                params["admin_approvals"].as_u64().unwrap_or(1) as u8,
-            ))
-            .map_err(|e| Error::InvalidInput(e.to_string())),
+            "wallet/policy_default" => Ok(to_json(&default_policy(
+                threshold(params, "approvals")?,
+                threshold(params, "admin_approvals")?,
+            ))),
             // The JSON shape of an intent, for building one by hand.
             "wallet/intent" => {
-                let intent: Intent = serde_json::from_value(params["intent"].clone())
-                    .map_err(|e| Error::InvalidInput(format!("intent: {e}")))?;
+                let intent: Intent = parse(params, "intent")?;
                 Ok(json!({"intent": dmsg_client::wallet::intent_view(&intent)}))
             }
             _ => Err(Error::NotFound),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn thresholds_fit_a_byte_and_default_to_one() {
+        let spec = |approvals: Value| spec(&json!({"name": "team", "approvals": approvals}));
+        assert!(matches!(spec(json!(256)), Err(Error::InvalidInput(_))));
+        assert!(spec(json!(2)).is_ok());
+        assert!(spec(Value::Null).is_ok());
     }
 }

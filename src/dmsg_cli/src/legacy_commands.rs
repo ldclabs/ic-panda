@@ -2,8 +2,8 @@
 //! successor of shared old channels.
 
 use crate::locale::tr;
-use crate::print;
 use crate::remote::{Failure, Remote};
+use crate::{absolute, pretty, print, read_json};
 use clap::Subcommand;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -186,27 +186,10 @@ pub enum SharedCommand {
     },
 }
 
-fn read(path: &Path) -> Result<Value, Failure> {
-    let text = std::fs::read_to_string(path)
-        .map_err(|e| Failure::new("INVALID_INPUT", format!("{}: {e}", path.display())))?;
-    serde_json::from_str(&text)
-        .map_err(|e| Failure::new("INVALID_INPUT", format!("{}: {e}", path.display())))
-}
-
-fn absolute(path: &Path) -> Result<String, Failure> {
-    std::path::absolute(path)
-        .map(|p| p.display().to_string())
-        .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))
-}
-
-fn pretty(value: &Value) -> String {
-    serde_json::to_string_pretty(value).unwrap_or_default()
-}
-
 /// A directory key, or the record in a file.
 fn target(text: &str) -> Result<Value, Failure> {
     match Path::new(text).is_file() {
-        true => Ok(json!({"view": read(Path::new(text))?})),
+        true => Ok(json!({"view": read_json(Path::new(text))?})),
         false => Ok(json!({"key": text})),
     }
 }
@@ -318,18 +301,18 @@ pub async fn legacy(remote: &Remote, json: bool, command: LegacyCommand) -> Resu
         }
         LegacyCommand::Shared(command) => match command {
             SharedCommand::Source { file } => {
-                ("legacy/shared_source", json!({"source": read(&file)?}))
+                ("legacy/shared_source", json!({"source": read_json(&file)?}))
             }
             SharedCommand::Prepare { file, version } => (
                 "legacy/shared_prepare",
-                json!({"source": read(&file)?, "version": version}),
+                json!({"source": read_json(&file)?, "version": version}),
             ),
             SharedCommand::Check { draft } => {
-                ("legacy/shared_check", json!({"draft": read(&draft)?}))
+                ("legacy/shared_check", json!({"draft": read_json(&draft)?}))
             }
             SharedCommand::Request { draft, manager } => (
                 "legacy/shared_request",
-                json!({"draft": read(&draft)?, "manager": manager}),
+                json!({"draft": read_json(&draft)?, "manager": manager}),
             ),
             SharedCommand::Propose {
                 draft,
@@ -337,7 +320,7 @@ pub async fn legacy(remote: &Remote, json: bool, command: LegacyCommand) -> Resu
                 approval,
             } => (
                 "legacy/shared_propose",
-                json!({"draft": read(&draft)?, "manager": manager, "approval": read(&approval)?}),
+                json!({"draft": read_json(&draft)?, "manager": manager, "approval": read_json(&approval)?}),
             ),
             SharedCommand::Consent {
                 draft,
@@ -345,7 +328,7 @@ pub async fn legacy(remote: &Remote, json: bool, command: LegacyCommand) -> Resu
                 approval,
             } => (
                 "legacy/shared_consent",
-                json!({"draft": read(&draft)?, "manager": manager, "approval": read(&approval)?}),
+                json!({"draft": read_json(&draft)?, "manager": manager, "approval": read_json(&approval)?}),
             ),
             SharedCommand::View { target: t } => ("legacy/shared_view", target(&t)?),
             SharedCommand::Commit { key } => ("legacy/shared_commit", json!({"key": key})),
@@ -361,8 +344,8 @@ pub async fn legacy(remote: &Remote, json: bool, command: LegacyCommand) -> Resu
                 approval,
             } => {
                 let mut params = target(&t)?;
-                params["claim"] = read(&request)?["request"]["claim"].clone();
-                params["approval"] = read(&approval)?;
+                params["claim"] = read_json(&request)?["request"]["claim"].clone();
+                params["approval"] = read_json(&approval)?;
                 ("legacy/shared_claim", params)
             }
             SharedCommand::Joined { key } => ("legacy/shared_joined", json!({"key": key})),
