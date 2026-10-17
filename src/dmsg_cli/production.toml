@@ -1,6 +1,6 @@
 # The production deployment, built into `dmsg`: a home without config.toml
 # uses it. A config.toml replaces it whole; `dmsg validate-config` says which
-# one applies. `[legacy]` joins once the old service is frozen.
+# one applies.
 environment = "production"
 ic_host = "https://icp-api.io"
 relay = "https://api.dmsg.net"
@@ -11,6 +11,13 @@ agent_hosts = [
   { host = "https://mail.dmsg.net", label = "mail" },
   { host = "https://knowledge.dmsg.net", label = "knowledge" },
 ]
+
+# The old service's freeze, sealed by SNS proposals 553–558 on canisters-v3.0.0.
+# The old OSS buckets join once their folders are frozen under this cutover.
+[legacy]
+channels = ["nvdn4-5qaaa-aaaaj-qa4pq-cai", "zof5a-5yaaa-aaaai-acr2q-cai", "4jxyd-pqaaa-aaaah-qdqtq-cai"]
+identity = "2rgax-kyaaa-aaaap-anvba-cai"
+cutover = "4d8f8b5ba5814440efd03dd3170aa14ba2873c40496f4a916790cd0befb38b2a"
 
 [wallet]
 hub = "ghcje-dyaaa-aaaas-qg7va-cai"

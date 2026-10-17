@@ -415,7 +415,14 @@ mod tests {
             "wfxrt-2iaaa-aaaaj-qsjwa-cai"
         );
         assert_eq!(settings.config.login_url, LOGIN_URL);
-        assert!(settings.config.legacy.is_none());
+        let legacy = settings.config.legacy.as_ref().unwrap();
+        assert_eq!(legacy.channels.len(), 3);
+        assert_eq!(legacy.identity, "2rgax-kyaaa-aaaap-anvba-cai");
+        assert!(legacy.buckets.is_empty());
+        assert_eq!(
+            hex::encode(legacy.cutover),
+            "4d8f8b5ba5814440efd03dd3170aa14ba2873c40496f4a916790cd0befb38b2a"
+        );
         assert_eq!(settings.agent_hosts.len(), 4);
         // The relay is the account principal's delegation and profile service,
         // which the connector reaches only as an allowed host.

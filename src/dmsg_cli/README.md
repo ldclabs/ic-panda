@@ -74,8 +74,10 @@ Outside `local`, every URL must be HTTPS and `root_key`/`login_url`/`connect_url
 The relay is also the Agent Delegation service of the account's principal.
 `[legacy]` is needed only for frozen comparisons and shared channel
 inheritance; frozen evidence of any other canister or cutover is refused. The
-built-in settings have no `[legacy]` until the old service is frozen; the
-release after the freeze adds its canisters and cutover ID.
+built-in settings name the three frozen channel canisters, the name identity
+and the cutover sealed by SNS proposals 553–558. They list no OSS bucket: the
+old buckets cannot freeze folders yet, so a frozen comparison of a channel
+with attachments stays incomplete.
 `agent_hosts` is the only source of the host allowlist: no command, method or
 tool changes it, and a host must be an origin (loopback HTTP only in `local`).
 Mail relays and Knowledge services are hosts like any other, and HTTPS only:
