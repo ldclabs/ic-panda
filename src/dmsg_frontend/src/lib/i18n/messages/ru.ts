@@ -518,19 +518,22 @@ export default {
   'Account, devices and logins': 'Аккаунт, устройства и способы входа',
   'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
     'Добавьте второе устройство и привяжите надёжный способ входа. Если все устройства потеряны, он сможет восстановить аккаунт после периода ожидания, в течение которого ваши устройства могут это оспорить.',
+  'Add {file}': 'Добавить {file}',
   'Address book: {label} · past its 24-hour wait':
     'Адресная книга: {label} · 24 часа ожидания прошли',
   'Addresses': 'Адреса',
   'Admin': 'Администратор',
   'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
     'Через 15 минут бездействия устройство блокируется и забывает ключи. Заблокированное устройство может сообщить, что запрос ждёт, но никогда — от кого.',
-  'Agent': 'Агент',
   'Agent ID listed by {member}': 'Agent ID, указанный {member}',
   'Agent and controller keys': 'Ключи агентов и контроллеров',
   'Agents': 'Агенты',
   'Agents get a folder.': 'Агенту — одна папка.',
   'Agents propose, people decide.': 'Агенты предлагают, люди решают.',
   'All downloads and checksums': 'Все загрузки и контрольные суммы',
+  'Allowed by its grant': 'В пределах его разрешений',
+  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.':
+    'ИИ-агент, сайт, коллега и терминал обращаются к вашему хранилищу, кошелькам, сообщениям и файлам. Разрешённая агенту работа, зашифрованные сообщения и ваши собственные команды проходят; платёж, вход или подпись ждут у ворот, пока вы их не одобрите.',
   'An agent acting for {member}': 'Агент, действующий за {member}',
   'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
     'Агент с вашим разрешением может подготовить перевод и выполнить одобренный. Никакое право не позволяет ему одобрять.',
@@ -543,14 +546,14 @@ export default {
     'Apple Silicon · приложение и командная строка',
   'Approval': 'Подтверждение',
   'Approve': 'Одобрить',
-  'Approve a new device': 'Одобрить новое устройство',
   'Approve as Mei': 'Одобрить за Mei',
   'Approved': 'Одобрено',
   'Approved by you': 'Одобрено вами',
   'Approved. Either approver can still veto it until the delay ends.':
     'Одобрено. Пока идёт задержка, любой из одобряющих может наложить вето.',
+  'Approved. Only this request passes.':
+    'Одобрено. Проходит только этот запрос.',
   'Approved. Signature generated.': 'Одобрено. Подпись создана.',
-  'Approved. The signature goes to ICP.': 'Одобрено. Подпись уходит в ICP.',
   'Approver': 'Одобряющий',
   'Approving any request': 'Одобрение любых запросов',
   'Ask you to sign a statement': 'Просить вас подписать заявление',
@@ -584,7 +587,6 @@ export default {
     'Каналы и входящие — на ваших условиях.',
   'Chrome on this Mac': 'Chrome на этом Mac',
   'Ciphertext': 'Шифртекст',
-  'Ciphertext only': 'Только шифртекст',
   'Ciphertext, plus what it takes to deliver it':
     'Шифртекст и то, что нужно для доставки',
   'Click again to copy': 'Нажмите ещё раз, чтобы скопировать',
@@ -611,10 +613,8 @@ export default {
   'Delete the cloud copy': 'Удалить облачную копию',
   'Deletions that crossed over': 'Удалений, перешедших на другую сторону',
   'Deploy key': 'Ключ деплоя',
-  'Desktop': 'Десктоп',
   'Desktop & CLI': 'Приложение и CLI',
   'Desktop & command line': 'Приложение и командная строка',
-  'Desktop app': 'Десктоп-приложение',
   'Desktop app for macOS and Windows · command line on Linux too.':
     'Приложение для macOS и Windows · командная строка и для Linux.',
   'Documents': 'Документы',
@@ -633,21 +633,24 @@ export default {
     'Каждое событие содержит хеш предыдущего, так что участник может проверить, что ничего не пропало.',
   'Empty. Nothing arrives here until you back it up.':
     'Пусто. Сюда ничего не попадёт, пока вы не сделаете копию.',
+  'Encrypted and saved': 'Зашифровано и сохранено',
   'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
     'Зашифрованные каналы с ролями и вложениями. Ваши правила контакта решают, кто может вам писать: никто, контакты, все или те, кто платит.',
   'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
     'Зашифровано в вашем браузере одноразовым ключом AES-GCM только для иллюстрации; формат dMsg другой. Обратите внимание на размер: шифрование скрывает содержимое, но не длину и не время.',
+  'Encrypted on this computer': 'Зашифровано на этом компьютере',
+  'End-to-end encrypted': 'Сквозное шифрование',
   'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
     'Письма между агентами со сквозным шифрованием — в ящики, которые вы публикуете и обновляете.',
   'Every action leaves a record.': 'Каждое действие оставляет след.',
   'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
     'Каждое изменение — новая версия со своим ключом. Версии с разных устройств лежат рядом, а текущую выбираете вы.',
-  'Everyday work, encrypted': 'Повседневная работа — зашифрована',
   'Everything asks. Only you approve.':
     'Просить могут все. Одобряете только вы.',
   'Execute': 'Выполнить',
   'Expired': 'Истекло',
-  'Expired. Nothing was signed.': 'Срок истёк. Ничего не подписано.',
+  'Expired. Nothing was signed or paid.':
+    'Истекло. Ничего не подписано и не оплачено.',
   'Expires in': 'Истекает через',
   'Fetch into the library': 'Загрузить в библиотеку',
   'Fetched and checked. Only on your devices does it have a name: {name}.':
@@ -656,6 +659,8 @@ export default {
   'Files': 'Файлы',
   'Found it. The secret itself stays out: that would need vault.secret for this item.':
     'Нашёл. Сам секрет не выдаётся: для этого нужен vault.secret на этот элемент.',
+  'From Team treasury. It pays only after enough members approve.':
+    'Из казны команды. Платёж уйдёт, только когда его одобрит достаточно участников.',
   'From an interactive terminal': 'Из интерактивного терминала',
   'Get dMsg': 'Скачать dMsg',
   'Grant a capability, run the agent, read the record.':
@@ -672,7 +677,6 @@ export default {
     'У меня нет {capability}, пропускаю этот шаг.',
   'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.':
     'Подсеть подписей ICP хранит каждый ключ долями, выведенными только для этого кошелька. Нет сид-фразы, которую можно показать, ввести, украсть или потерять.',
-  'Identity and signatures': 'Личность и подписи',
   'In the dMsg cloud': 'В облаке dMsg',
   'In the trash here, kept {days} days.':
     'В корзине на этом устройстве, хранится {days} дней.',
@@ -691,7 +695,6 @@ export default {
   'Keep the keys.': 'Ключи — у вас.',
   'Key': 'Ключ',
   'Keys no one can export.': 'Ключи, которые никто не выгрузит.',
-  'Keys stay here': 'Ключи остаются здесь',
   'Legacy messages stay readable': 'Старые сообщения доступны для чтения',
   'Let agents work.': 'Пусть агенты работают.',
   'Lock the example': 'Заблокировать пример',
@@ -700,11 +703,11 @@ export default {
   'Login': 'Логин',
   'MCP tools, from rooms and mail to files and wallets':
     'инструментов MCP — от комнат и почты до файлов и кошельков',
+  'Message in {channel}': 'Сообщение в {channel}',
   'Move {name} to the trash': 'Переместить {name} в корзину',
   'Needs 1 of 2 approvals.': 'Нужно 1 одобрение из 2.',
   'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.':
     'Нужны 2 одобрения из 2, затем 24 часа, в которые любой из них может наложить вето.',
-  'Needs your approval': 'Требует вашего одобрения',
   'Never grantable': 'Нельзя выдать',
   'Never your messages or files': 'Никогда — ваши сообщения или файлы',
   'New address-book entries': 'Новые записи адресной книги',
@@ -731,6 +734,7 @@ export default {
     'Пока нечего проверять. Запрос появится здесь, когда дойдёт до этого устройства.',
   'On ICP': 'В ICP',
   'On another device': 'На другом устройстве',
+  'On its way': 'В пути',
   'On your desktop today.': 'Уже на вашем компьютере.',
   'On your device': 'На вашем устройстве',
   'One library, two places. Back up, delete, and see what each side keeps.':
@@ -757,11 +761,14 @@ export default {
   'Pairing browsers': 'Привязка браузеров',
   'Pairing starts on your device.': 'Привязка начинается на вашем устройстве.',
   'Pause': 'Пауза',
+  'Pay {amount} to {payee}': 'Перевести {amount} на «{payee}»',
+  'Payment': 'Платёж',
   'Payments and checkout': 'Платежи и оформление заказов',
   'Photos': 'Фото',
   'Play': 'Запустить',
   'Policy for BTC': 'Политика для BTC',
   'Post in the release channel': 'Писать в канал релизов',
+  'Post in {channel}': 'Написать в {channel}',
   'Private workspace · Files · Team wallets · AI agents':
     'Личное пространство · Файлы · Командные кошельки · ИИ-агенты',
   'Progress': 'Ход',
@@ -774,6 +781,7 @@ export default {
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
     'Публикуйте, оценивайте и отзывайте подписанные знания и ищите то, чем поделились другие агенты.',
   'Read items tagged “deploy”': 'Читать элементы с меткой «deploy»',
+  'Read the deploy key': 'Прочитать ключ деплоя',
   'Readable, and only while unlocked': 'Читаемо — и только пока разблокировано',
   'Ready': 'Готово',
   'Ready. A member can execute it now.':
@@ -781,6 +789,8 @@ export default {
   'Recovery without a seed phrase.': 'Восстановление без сид-фразы.',
   'Reject': 'Отклонить',
   'Rejected': 'Отклонено',
+  'Rejected. Nothing was signed or paid.':
+    'Отклонено. Ничего не подписано и не оплачено.',
   'Rejected. Nothing was signed.': 'Отклонено. Ничего не подписано.',
   'Rejected. The site is told no, and nothing is signed.':
     'Отклонено. Сайт получает отказ, ничего не подписано.',
@@ -788,9 +798,6 @@ export default {
   'Replay': 'Повторить',
   'Reported by your browser through connect.dmsg.net':
     'Сообщено вашим браузером через connect.dmsg.net',
-  'Requests': 'Запросы',
-  'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.':
-    'Запросы от десктоп-приложения, терминала, ИИ-агентов и сайтов приходят к демону dMsg на вашем компьютере. Повседневная работа уходит в облако только как шифртекст; подпись попадает в ICP только после вашего одобрения.',
   'Restore': 'Восстановить',
   'Restored on this device.': 'Восстановлено на этом устройстве.',
   'Run again': 'Запустить снова',
@@ -802,6 +809,7 @@ export default {
     'Пример данных · ничего не покидает страницу',
   'Sample files · nothing leaves this page':
     'Примеры файлов · ничего не покидает страницу',
+  'Save {file}': 'Сохранить {file}',
   'Saved as a new version in your library. Backing it up or sharing it stays with you.':
     'Сохранено новой версией в вашей библиотеке. Копировать в облако или делиться — решаете вы.',
   'Saved on this device · waits for sync':
@@ -832,16 +840,19 @@ export default {
     'Выпусти v1.4: проверь ключ деплоя, сохрани заметки о релизе, опубликуй их и получи подпись под выпуском.',
   'Show': 'Показать',
   'Sign a file': 'Подписать файл',
-  'Sign a statement': 'Подписать заявление',
   'Sign in with dMsg': 'Войти через dMsg',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.':
     'Войдите прежней идентичностью, чтобы читать старые беседы и скачивать доступные вложения. Новые сообщения, загрузки, изменения профиля и регистрация отключены. Сохраните исходный браузер и локальные данные, особенно при режиме Local key. Чтобы перейти на новый dMsg, начните перенос в десктоп-приложении в разделе «Настройки › Прежняя версия».',
+  'Sign {file}': 'Подписать {file}',
+  'Sign-in': 'Вход',
+  'Signature': 'Подпись',
   'Signature generated': 'Подпись создана',
   'Signature receipts, after you approve':
     'Квитанции подписей — после вашего одобрения',
   'Signatures': 'Подписи',
   'Signed': 'Подписано',
-  'Signed without you': 'Подписано без вас',
+  'Signed, paid or shared without you':
+    'Подписано, оплачено или передано без вас',
   'Signing key': 'Ключ подписи',
   'Signing…': 'Подписывается…',
   'Simulated agent with sample data. Nothing is sent anywhere.':
@@ -861,6 +872,7 @@ export default {
     'Командные кошельки в разработке. До независимого аудита используйте их только для проверки, с небольшими суммами.',
   'Team wallets, their proposals and approvals':
     'Командные кошельки, их предложения и одобрения',
+  'Teammate': 'Коллега',
   'Terminal': 'Терминал',
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'Клиент, демон, протоколы и канистры находятся в публичном репозитории. У облачного сервиса в продакшене своя операционная граница доверия.',
@@ -874,6 +886,8 @@ export default {
     'Сайт получает отказ; ничего не подписано',
   'The site received the result': 'Сайт получил результат',
   'The site verifies the signature': 'Сайт проверяет подпись',
+  'The terminal receives your signature for this file.':
+    'Терминал получит вашу подпись для этого файла.',
   'The wallet builds the transaction from the proposal and signs it with its threshold key.':
     'Кошелёк собирает транзакцию из предложения и подписывает её своим пороговым ключом.',
   'Titles, notes and secrets stay encrypted until you unlock this device.':
@@ -908,6 +922,7 @@ export default {
   'Wait 24 hours': 'Ждут 24 часа',
   'Waiting for approvals. The agent cannot give one.':
     'Ждём одобрений. Агент дать его не может.',
+  'Waiting for you': 'Ждёт вас',
   'Wallets': 'Кошельки',
   'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
     'Вебхуки доходят до агентов на вашем ноутбуке: ретранслятор dMsg принимает их и запечатывает для вашего устройства.',
@@ -921,6 +936,7 @@ export default {
   'What if I lose my computer?': 'Что, если я потеряю компьютер?',
   'What you approve is what it signs.': 'Что одобрили, то и подписано.',
   'Who holds a team wallet’s keys?': 'У кого ключи командного кошелька?',
+  'Who’s asking': 'Кто просит',
   'Windows installer': 'Установщик для Windows',
   'Write into the “release” folder': 'Писать в папку «release»',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
@@ -947,7 +963,6 @@ export default {
   'capabilities, each granted on purpose': 'прав, каждое выдаётся осознанно',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net передаёт источник, который сообщил ваш браузер. Она не может одобрять, подписывать или читать ваше хранилище, а окно подтверждения указывает, откуда взят источник.',
-  'dMsg cloud': 'Облако dMsg',
   'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
     'dMsg ещё не проходил независимый аудит. Публичный репозиторий не доказывает ни аудит, ни то, какой код развёрнут.',
   'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
@@ -965,6 +980,9 @@ export default {
   '{count} files · {size}': 'Файлов: {count} · {size}',
   '{count} items': 'Элементов: {count}',
   '{count} versions': 'версий: {count}',
+  '{n} more waiting': 'Ещё ждут: {n}',
+  '{site} receives a signed sign-in for this account.':
+    '{site} получит подписанный вход для этого аккаунта.',
   '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.':
     '{size}, в том же шифровании. Без этого шага ничего не загружается, и ни с одной стороны ничего не удаляется.',
   '{used} of {limit}': '{used} из {limit}',

@@ -501,19 +501,22 @@ export default {
   'Account, devices and logins': 'الحساب والأجهزة وهويات الدخول',
   'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
     'أضف جهازًا ثانيًا واربط هوية دخول تثق بها. إذا فُقدت كل الأجهزة، يمكن لتلك الهوية استعادة الحساب بعد فترة انتظار تستطيع أجهزتك خلالها الاعتراض.',
+  'Add {file}': 'إضافة {file}',
   'Address book: {label} · past its 24-hour wait':
     'دفتر العناوين: {label} · انقضت مهلة الـ 24 ساعة',
   'Addresses': 'العناوين',
   'Admin': 'مشرف',
   'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
     'بعد 15 دقيقة من الخمول يُقفل الجهاز وينسى مفاتيحه. يظل الجهاز المقفل قادرًا على إخبارك بوجود طلب ينتظر، لكن دون أن يذكر مصدره أبدًا.',
-  'Agent': 'وكيل',
   'Agent ID listed by {member}': 'Agent ID أدرجه {member}',
   'Agent and controller keys': 'مفاتيح الوكلاء والمتحكمين',
   'Agents': 'الوكلاء',
   'Agents get a folder.': 'للوكيل مجلد واحد.',
   'Agents propose, people decide.': 'الوكلاء يقترحون، والبشر يقرّرون.',
   'All downloads and checksums': 'كل التنزيلات وقيم التحقق',
+  'Allowed by its grant': 'ضمن ما مُنح له',
+  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.':
+    'يطلب وكيل ذكاء اصطناعي وموقع وعضو في الفريق والطرفية أشياء من خزنتك ومحافظك ورسائلك وملفاتك. يمر العمل المصرّح به للوكيل والرسائل المشفّرة وأوامرك أنت؛ أما الدفع أو تسجيل الدخول أو التوقيع فينتظر عند البوابة حتى توافق عليه.',
   'An agent acting for {member}': 'وكيل يعمل نيابة عن {member}',
   'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
     'يستطيع الوكيل الذي تمنحه الإذن صياغة تحويل وتنفيذ تحويل معتمد. لا توجد صلاحية تسمح له بالموافقة.',
@@ -526,14 +529,13 @@ export default {
     'Apple Silicon · تطبيق سطح المكتب وسطر الأوامر',
   'Approval': 'الموافقة',
   'Approve': 'موافقة',
-  'Approve a new device': 'الموافقة على جهاز جديد',
   'Approve as Mei': 'الموافقة باسم Mei',
   'Approved': 'تمت الموافقة',
-  'Approved by you': 'وافقتَ عليها',
+  'Approved by you': 'وافقتَ عليه',
   'Approved. Either approver can still veto it until the delay ends.':
     'تمت الموافقة. وحتى تنتهي المهلة يستطيع أي من الموافقَين النقض.',
+  'Approved. Only this request passes.': 'تمت الموافقة. يمر هذا الطلب وحده.',
   'Approved. Signature generated.': 'تمت الموافقة. أُنشئ التوقيع.',
-  'Approved. The signature goes to ICP.': 'تمت الموافقة. يذهب التوقيع إلى ICP.',
   'Approver': 'موافِق',
   'Approving any request': 'الموافقة على أي طلب',
   'Ask you to sign a statement': 'أن يطلب منك توقيع بيان',
@@ -565,7 +567,6 @@ export default {
   'Channels and an inbox on your terms.': 'قنوات وصندوق وارد بشروطك.',
   'Chrome on this Mac': 'Chrome على جهاز Mac هذا',
   'Ciphertext': 'النص المشفّر',
-  'Ciphertext only': 'نص مشفّر فقط',
   'Ciphertext, plus what it takes to deliver it': 'نص مشفّر، وما يلزم لتسليمه',
   'Click again to copy': 'انقر مرة أخرى للنسخ',
   'Click again to delete for good': 'انقر مرة أخرى للحذف نهائيًا',
@@ -591,10 +592,8 @@ export default {
   'Delete the cloud copy': 'حذف النسخة السحابية',
   'Deletions that crossed over': 'عمليات حذف عبرت إلى الجانب الآخر',
   'Deploy key': 'مفتاح النشر',
-  'Desktop': 'سطح المكتب',
   'Desktop & CLI': 'سطح المكتب وسطر الأوامر',
   'Desktop & command line': 'سطح المكتب وسطر الأوامر',
-  'Desktop app': 'تطبيق سطح المكتب',
   'Desktop app for macOS and Windows · command line on Linux too.':
     'تطبيق سطح المكتب لنظامي macOS وWindows · وسطر الأوامر على Linux أيضًا.',
   'Documents': 'المستندات',
@@ -613,20 +612,23 @@ export default {
     'كل حدث يتضمن تجزئة الحدث الذي قبله، فيستطيع العضو التحقق من أن شيئًا لم يُفقد.',
   'Empty. Nothing arrives here until you back it up.':
     'فارغة. لا يصل إلى هنا شيء حتى تنسخه احتياطيًا.',
+  'Encrypted and saved': 'مشفّر ومحفوظ',
   'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
     'قنوات مشفّرة بأدوار ومرفقات. تحدد قواعد التواصل لديك من يمكنه مراسلتك: لا أحد، أو جهات اتصالك، أو الجميع، أو من يدفع.',
   'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
     'شُفّر في متصفحك بمفتاح AES-GCM مؤقت للتوضيح فقط؛ تنسيق dMsg الفعلي مختلف. لاحظ الحجم: التشفير يخفي المحتوى، لا الطول ولا التوقيت.',
+  'Encrypted on this computer': 'مشفّرة على هذا الحاسوب',
+  'End-to-end encrypted': 'مشفّرة من طرف إلى طرف',
   'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
     'رسائل مشفّرة من طرف إلى طرف بين الوكلاء، إلى صناديق بريد تنشرها وتدوّرها.',
   'Every action leaves a record.': 'كل إجراء يترك سجلًا.',
   'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
     'كل تغيير إصدار جديد بمفتاحه الخاص. تقف إصدارات الأجهزة المختلفة جنبًا إلى جنب، وأنت تختار الحالي منها.',
-  'Everyday work, encrypted': 'العمل اليومي، مشفّرًا',
   'Everything asks. Only you approve.': 'الجميع يطلب. وحدك توافق.',
   'Execute': 'تنفيذ',
-  'Expired': 'منتهية',
-  'Expired. Nothing was signed.': 'انتهت المهلة. لم يُوقَّع شيء.',
+  'Expired': 'انتهت مهلته',
+  'Expired. Nothing was signed or paid.':
+    'انتهت المهلة. لم يُوقَّع شيء ولم يُدفع شيء.',
   'Expires in': 'ينتهي خلال',
   'Fetch into the library': 'جلب إلى المكتبة',
   'Fetched and checked. Only on your devices does it have a name: {name}.':
@@ -635,6 +637,8 @@ export default {
   'Files': 'الملفات',
   'Found it. The secret itself stays out: that would need vault.secret for this item.':
     'وجدته. يبقى السر نفسه محجوبًا: فذلك يتطلب vault.secret لهذا العنصر.',
+  'From Team treasury. It pays only after enough members approve.':
+    'من خزينة الفريق. لا يُدفع المبلغ إلا بعد موافقة عدد كافٍ من الأعضاء.',
   'From an interactive terminal': 'من طرفية تفاعلية',
   'Get dMsg': 'احصل على dMsg',
   'Grant a capability, run the agent, read the record.':
@@ -651,7 +655,6 @@ export default {
     'لا أملك {capability}، لذا سأتخطى ذلك.',
   'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.':
     'تحتفظ شبكة التوقيع الفرعية في ICP بكل مفتاح على هيئة حصص مشتقة لهذه المحفظة وحدها. لا عبارة استرداد تُعرض أو تُكتب أو تُسرق أو تضيع.',
-  'Identity and signatures': 'الهوية والتوقيعات',
   'In the dMsg cloud': 'في سحابة dMsg',
   'In the trash here, kept {days} days.':
     'في المهملات هنا، يُحفظ {days} يومًا.',
@@ -670,7 +673,6 @@ export default {
   'Keep the keys.': 'واحتفظ بالمفاتيح.',
   'Key': 'مفتاح',
   'Keys no one can export.': 'مفاتيح لا يستطيع أحد تصديرها.',
-  'Keys stay here': 'المفاتيح تبقى هنا',
   'Legacy messages stay readable': 'الرسائل القديمة تبقى قابلة للقراءة',
   'Let agents work.': 'دع الوكلاء يعملون.',
   'Lock the example': 'اقفل المثال',
@@ -679,11 +681,11 @@ export default {
   'Login': 'بيانات الدخول',
   'MCP tools, from rooms and mail to files and wallets':
     'أداة MCP، من الغرف والبريد إلى الملفات والمحافظ',
+  'Message in {channel}': 'رسالة في {channel}',
   'Move {name} to the trash': 'نقل {name} إلى المهملات',
   'Needs 1 of 2 approvals.': 'يحتاج إلى موافقة واحدة من 2.',
   'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.':
     'يحتاج إلى موافقتين من 2، ثم 24 ساعة يستطيع فيها أيٌّ من الموافقَين النقض.',
-  'Needs your approval': 'يحتاج موافقتك',
   'Never grantable': 'لا يمكن منحها أبدًا',
   'Never your messages or files': 'لا رسائلك ولا ملفاتك أبدًا',
   'New address-book entries': 'إدخالات دفتر العناوين الجديدة',
@@ -710,6 +712,7 @@ export default {
     'لا شيء للمراجعة بعد. يظهر الطلب هنا عندما يصل إلى هذا الجهاز.',
   'On ICP': 'على ICP',
   'On another device': 'على جهاز آخر',
+  'On its way': 'في الطريق',
   'On your desktop today.': 'على حاسوبك اليوم.',
   'On your device': 'على جهازك',
   'One library, two places. Back up, delete, and see what each side keeps.':
@@ -736,11 +739,14 @@ export default {
   'Pairing browsers': 'إقران المتصفحات',
   'Pairing starts on your device.': 'يبدأ الإقران من جهازك.',
   'Pause': 'إيقاف مؤقت',
+  'Pay {amount} to {payee}': 'دفع {amount} إلى «{payee}»',
+  'Payment': 'دفعة',
   'Payments and checkout': 'المدفوعات والدفع',
   'Photos': 'الصور',
   'Play': 'تشغيل',
   'Policy for BTC': 'سياسة BTC',
   'Post in the release channel': 'النشر في قناة الإصدارات',
+  'Post in {channel}': 'النشر في {channel}',
   'Private workspace · Files · Team wallets · AI agents':
     'مساحة عمل خاصة · الملفات · محافظ الفريق · وكلاء الذكاء الاصطناعي',
   'Progress': 'التقدّم',
@@ -753,12 +759,15 @@ export default {
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
     'انشر المعرفة الموقّعة وقيّمها واسحبها، واستعلم عمّا شاركه الوكلاء الآخرون.',
   'Read items tagged “deploy”': 'قراءة العناصر الموسومة «deploy»',
+  'Read the deploy key': 'قراءة مفتاح النشر',
   'Readable, and only while unlocked': 'مقروء، وفقط أثناء فتح القفل',
   'Ready': 'جاهز',
   'Ready. A member can execute it now.': 'جاهز. يستطيع أي عضو تنفيذه الآن.',
   'Recovery without a seed phrase.': 'استعادة بلا عبارة استرداد.',
   'Reject': 'رفض',
-  'Rejected': 'مرفوضة',
+  'Rejected': 'مرفوض',
+  'Rejected. Nothing was signed or paid.':
+    'رُفض. لم يُوقَّع شيء ولم يُدفع شيء.',
   'Rejected. Nothing was signed.': 'مرفوض. لم يُوقَّع شيء.',
   'Rejected. The site is told no, and nothing is signed.':
     'مرفوض. يُبلَّغ الموقع بالرفض، ولا يُوقَّع شيء.',
@@ -766,9 +775,6 @@ export default {
   'Replay': 'إعادة التشغيل',
   'Reported by your browser through connect.dmsg.net':
     'أبلغ به متصفحك عبر connect.dmsg.net',
-  'Requests': 'الطلبات',
-  'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.':
-    'تصل الطلبات من تطبيق سطح المكتب والطرفية ووكلاء الذكاء الاصطناعي والمواقع إلى خدمة dMsg على حاسوبك. يغادر العمل اليومي إلى السحابة نصًا مشفّرًا فقط؛ ولا يصل التوقيع إلى ICP إلا بعد موافقتك.',
   'Restore': 'استعادة',
   'Restored on this device.': 'استُعيد على هذا الجهاز.',
   'Run again': 'تشغيل مجددًا',
@@ -780,6 +786,7 @@ export default {
     'بيانات تجريبية · لا شيء يغادر هذه الصفحة',
   'Sample files · nothing leaves this page':
     'ملفات تجريبية · لا شيء يغادر هذه الصفحة',
+  'Save {file}': 'حفظ {file}',
   'Saved as a new version in your library. Backing it up or sharing it stays with you.':
     'حُفظ إصدارًا جديدًا في مكتبتك. نسخه احتياطيًا أو مشاركته قرار يبقى لك.',
   'Saved on this device · waits for sync':
@@ -809,15 +816,17 @@ export default {
     'أطلق v1.4: تحقق من مفتاح النشر، واحفظ ملاحظات الإصدار وانشرها، واحصل على توقيع للإصدار.',
   'Show': 'عرض',
   'Sign a file': 'توقيع ملف',
-  'Sign a statement': 'توقيع بيان',
   'Sign in with dMsg': 'تسجيل الدخول عبر dMsg',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.':
     'سجّل بهويتك الحالية لقراءة المحادثات القديمة وتنزيل المرفقات المتاحة. يعطّل الموقع الرسائل والرفع وتعديل الملف والتسجيل في الواجهة القديمة. احتفظ بالمتصفح الأصلي والبيانات المحلية، خاصة عند استخدام وضع المفتاح المحلي. للانتقال إلى dMsg الجديد، ابدأ الترحيل في تطبيق سطح المكتب من «الإعدادات › الإصدار القديم».',
+  'Sign {file}': 'توقيع {file}',
+  'Sign-in': 'تسجيل الدخول',
+  'Signature': 'توقيع',
   'Signature generated': 'أُنشئ التوقيع',
   'Signature receipts, after you approve': 'إيصالات التوقيع، بعد موافقتك',
   'Signatures': 'التوقيعات',
   'Signed': 'موقَّع',
-  'Signed without you': 'وُقِّع من دونك',
+  'Signed, paid or shared without you': 'ما وُقّع أو دُفع أو شورك دونك',
   'Signing key': 'مفتاح التوقيع',
   'Signing…': 'جارٍ التوقيع…',
   'Simulated agent with sample data. Nothing is sent anywhere.':
@@ -836,6 +845,7 @@ export default {
     'محافظ الفريق قيد التطوير. وحتى يُجرى تدقيق مستقل، استخدمها للاختبار فقط وبمبالغ صغيرة.',
   'Team wallets, their proposals and approvals':
     'محافظ الفريق ومقترحاتها وموافقاتها',
+  'Teammate': 'عضو الفريق',
   'Terminal': 'الطرفية',
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'العميل والخدمة الخلفية والبروتوكولات والحاويات (canisters) موجودة في المستودع العام. لخدمة السحابة في بيئة الإنتاج حدود ثقة تشغيلية خاصة بها.',
@@ -849,6 +859,8 @@ export default {
     'يُبلَّغ الموقع بالرفض؛ لا يُوقَّع شيء',
   'The site received the result': 'تلقّى الموقع النتيجة',
   'The site verifies the signature': 'يتحقق الموقع من التوقيع',
+  'The terminal receives your signature for this file.':
+    'تتلقى الطرفية توقيعك لهذا الملف.',
   'The wallet builds the transaction from the proposal and signs it with its threshold key.':
     'تبني المحفظة المعاملة من المقترح وتوقّعها بمفتاحها العتبي.',
   'Titles, notes and secrets stay encrypted until you unlock this device.':
@@ -882,6 +894,7 @@ export default {
   'Wait 24 hours': 'تنتظر 24 ساعة',
   'Waiting for approvals. The agent cannot give one.':
     'بانتظار الموافقات. لا يستطيع الوكيل أن يعطي واحدة.',
+  'Waiting for you': 'بانتظارك',
   'Wallets': 'المحافظ',
   'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
     'تصل الخطافات (webhooks) إلى الوكلاء على حاسوبك المحمول: يستقبلها مرحّل dMsg ويختمها لجهازك.',
@@ -895,6 +908,7 @@ export default {
   'What if I lose my computer?': 'ماذا لو فقدت حاسوبي؟',
   'What you approve is what it signs.': 'ما توافق عليه هو ما توقّعه.',
   'Who holds a team wallet’s keys?': 'من يملك مفاتيح محفظة الفريق؟',
+  'Who’s asking': 'من يطلب',
   'Windows installer': 'مثبّت Windows',
   'Write into the “release” folder': 'الكتابة في مجلد «release»',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
@@ -921,7 +935,6 @@ export default {
   'capabilities, each granted on purpose': 'صلاحية، تُمنح كل واحدة عن قصد',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'ينقل connect.dmsg.net المصدر الذي أبلغه به متصفحك. لا يستطيع الموافقة أو التوقيع أو قراءة خزنتك، وتوضح نافذة الموافقة من أين جاء المصدر.',
-  'dMsg cloud': 'سحابة dMsg',
   'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
     'لم يخضع dMsg لتدقيق مستقل بعد. المستودع العام لا يثبت وجود تدقيق ولا أي شيفرة منشورة فعلًا.',
   'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
@@ -939,6 +952,9 @@ export default {
   '{count} files · {size}': 'الملفات: {count} · {size}',
   '{count} items': '{count} عناصر',
   '{count} versions': 'الإصدارات: {count}',
+  '{n} more waiting': '{n} أخرى بالانتظار',
+  '{site} receives a signed sign-in for this account.':
+    'يتلقى {site} تسجيل دخول موقّعًا لهذا الحساب.',
   '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.':
     '{size}، مشفّرًا كما هو. لا يُرفع شيء من دون هذه الخطوة، ولا يُحذف شيء من أي جانب.',
   '{used} of {limit}': '{used} من {limit}',

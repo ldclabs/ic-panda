@@ -1,100 +1,254 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { t } from '$lib/i18n'
+  import { locale, localeDir, t } from '$lib/i18n'
   import Glyph from './Glyph.svelte'
   import type { GlyphName } from './glyphs'
-  import { frameLoop, prefersReducedMotion, watchVisibility } from './motion'
+  import {
+    frameLoop,
+    prefersReducedMotion,
+    splitStop,
+    watchVisibility
+  } from './motion'
 
   type Pt = { x: number; y: number }
-  type Curve = [Pt, Pt, Pt, Pt]
-  type Stage =
-    'in' | 'approach' | 'wait' | 'through' | 'out' | 'back' | 'fade' | 'done'
-  // One lane per source: its path in, its path through the gate and where a
-  // request that needs a person waits. Layout updates lanes in place.
-  type Lane = { index: number; src: Curve; inner: Curve; wait: number }
-  type Exit = { curve: Curve; length: number }
+  // A path sampled finely, so a packet keeps a steady speed along it.
+  type Track = { pts: Pt[]; cum: number[]; len: number }
+  type Kind =
+    'read' | 'save' | 'post' | 'message' | 'add' | 'pay' | 'signin' | 'sign'
+  type Req = { asker: number; kind: Kind; object: string }
+  type Status =
+    | 'sending'
+    | 'waiting'
+    | 'allowed'
+    | 'encrypted'
+    | 'saved'
+    | 'approved'
+    | 'rejected'
+    | 'expired'
   type Packet = {
     id: number
-    lane: Lane
-    exit: Exit
+    req: Req
     formal: boolean
-    stage: Stage
-    t: number
+    // In along the asker's lane, into a room, back out, or fading in place.
+    stage: 'in' | 'room' | 'back' | 'fade' | 'done'
+    d: number
     alpha: number
-    at: Pt
-    cipher: string[]
+    approved: boolean
+    parked: boolean
+    arrived: boolean
   }
 
-  // The approval model's own source tags; protocol text, not copy.
-  const SOURCES: { glyph: GlyphName; tag: string; object: string }[] = [
-    { glyph: 'laptop', tag: 'gui', object: 'MacBook Air' },
-    { glyph: 'terminal', tag: 'cli', object: 'build-1.4.tar.gz' },
-    {
-      glyph: 'robot',
-      tag: 'agent:did:agent:…',
-      object: 'release-brief.txt · v1'
-    },
-    { glyph: 'globe', tag: 'connect:https://…', object: 'tokenlist.ing' }
+  // The gate is the mark (static/_assets/dmsg/mark.svg) on its 42 × 48 grid:
+  // a post and a dome, and between them the request that waits for you.
+  const POST =
+    'M4 0h4.5A1.5 1.5 0 0 1 10 1.5v45A1.5 1.5 0 0 1 8.5 48H4a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4Z'
+  const DOME =
+    'M15.5 0H18a24 24 0 0 1 0 48h-2.5a1.5 1.5 0 0 1-1.5-1.5v-45A1.5 1.5 0 0 1 15.5 0Z'
+  const GEM = 'M12 17.5 18.5 24 12 30.5 5.5 24Z'
+  // Rooms in the dome, in grid units: they clear the gem's cut-out and keep
+  // inside the dome's curve.
+  const ROOMS: { glyph: GlyphName; x: number; y: number; w: number }[] = [
+    { glyph: 'vault', x: 15.5, y: 8.5, w: 19.6 },
+    { glyph: 'coins', x: 21, y: 17.2, w: 18.8 },
+    { glyph: 'chat', x: 21, y: 25.8, w: 18.8 },
+    { glyph: 'folder', x: 15.5, y: 34.5, w: 19.6 }
   ]
-  const DAEMON = 'dmsg daemon'
-  const ICP = 'ICP'
-  const HEX = '0123456789abcdef'
+  // Sample data; names and files are identifiers, not copy.
+  const AGENT = 'claude'
+  const SITE = 'tokenlist.ing'
+  const MEI = 'Mei'
+  const CLI = 'dmsg'
+  const NOTES = 'notes-v1.4.md'
+  const BUILD = 'build-1.4.tar.gz'
+  const RELEASE = '#release'
+  const DESIGN = '#design'
+  const AMOUNT = '0.4 BTC'
+  const ASKERS: { glyph: GlyphName | null; id: string }[] = [
+    { glyph: 'robot', id: AGENT },
+    { glyph: 'globe', id: SITE },
+    { glyph: null, id: MEI },
+    { glyph: 'terminal', id: CLI }
+  ]
+  const req = (asker: number, kind: Kind, object = ''): Req => ({
+    asker,
+    kind,
+    object
+  })
+  const READ = req(0, 'read')
+  const SAVE = req(0, 'save', NOTES)
+  const PAY = req(0, 'pay', AMOUNT)
+  const POST_RELEASE = req(0, 'post', RELEASE)
+  const SIGN_IN = req(1, 'signin', SITE)
+  const MESSAGE = req(2, 'message', RELEASE)
+  const MESSAGE_DESIGN = req(2, 'message', DESIGN)
+  const ADD = req(3, 'add', BUILD)
+  const SIGN = req(3, 'sign', BUILD)
+  // What each asker sends when tapped, in turn.
+  const SCRIPTS: Req[][] = [
+    [READ, SAVE, PAY, POST_RELEASE],
+    [SIGN_IN],
+    [MESSAGE, MESSAGE_DESIGN],
+    [ADD, SIGN]
+  ]
+  // What happens while nobody taps.
+  const ROUTINE = [MESSAGE, READ, ADD, SAVE, MESSAGE_DESIGN, POST_RELEASE]
+  const FORMAL = [PAY, SIGN_IN, SIGN]
+  const ROOM_OF: Record<Kind, number> = {
+    read: 0,
+    pay: 1,
+    post: 2,
+    message: 2,
+    save: 3,
+    add: 3,
+    signin: -1,
+    sign: -1
+  }
+  // How each asker's everyday work passes: the agent's grant, end-to-end
+  // encryption, or your own command. The website only asks for approvals.
+  const PASSED_AS: Status[] = ['allowed', 'approved', 'encrypted', 'saved']
   const WAIT_SECONDS = 15
   const INK = '16, 37, 31'
   const FOREST = '20, 92, 69'
-  const JADE = '45, 121, 96'
+  const MINT = '169, 213, 189'
   const AMBER = '180, 83, 9'
+  const GREY = '78, 98, 87'
 
-  const names = $derived([
-    $t('Desktop app'),
-    $t('Terminal'),
+  const uid = $props.id()
+  const cut = `${uid}-cut`
+  const ltr = (text: string) =>
+    String.fromCharCode(0x2066) + text + String.fromCharCode(0x2069)
+  const isFormal = (r: Req) =>
+    r.kind === 'pay' || r.kind === 'signin' || r.kind === 'sign'
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  const dir = $derived(localeDir($locale))
+  const space = $derived(splitStop($t('Your space.'))[0])
+  const say = $derived(splitStop($t('Your say.'))[0])
+  const roles = $derived([
     $t('AI agent'),
-    $t('Website')
+    $t('Website'),
+    $t('Teammate'),
+    $t('Terminal')
   ])
-  const shortNames = $derived([
-    $t('Desktop'),
-    $t('Terminal'),
-    $t('Agent'),
-    $t('Website')
+  const roomNames = $derived([
+    $t('Vault'),
+    $t('Wallets'),
+    $t('Messages'),
+    $t('Files')
   ])
-  const asks = $derived([
-    $t('Approve a new device'),
-    $t('Sign a file'),
-    $t('Sign a statement'),
-    $t('Sign in with dMsg')
-  ])
+  const statusText = $derived<Record<Status, string>>({
+    sending: $t('On its way'),
+    waiting: $t('Waiting for you'),
+    allowed: $t('Allowed by its grant'),
+    encrypted: $t('End-to-end encrypted'),
+    saved: $t('Encrypted and saved'),
+    approved: $t('Approved by you'),
+    rejected: $t('Rejected'),
+    expired: $t('Expired')
+  })
 
   let stage: HTMLDivElement
-  let canvas: HTMLCanvasElement
-  let card: HTMLDivElement
-  let vertical = $state(false)
-  let anchors = $state<{ src: Pt[]; dst: Pt[]; core: Pt; r: number }>({
-    src: [],
-    dst: [],
-    core: { x: 0, y: 0 },
-    r: 0
-  })
-  let head = $state<{ src: number; left: number; share: number } | null>(null)
+  let back: HTMLCanvasElement
+  let front: HTMLCanvasElement
+  let mark: HTMLDivElement
+  let ticket: HTMLDivElement
+  let list: HTMLDivElement
+  const cardEls: HTMLButtonElement[] = []
+  const roomEls: HTMLElement[] = []
+
+  let cards = $state<{ req: Req; status: Status }[]>([
+    { req: SAVE, status: 'allowed' },
+    { req: SIGN_IN, status: 'approved' },
+    { req: MESSAGE, status: 'encrypted' },
+    { req: ADD, status: 'saved' }
+  ])
+  let touched = $state(['', '', RELEASE, NOTES])
+  let hits = $state([false, false, false, false])
+  let head = $state<{
+    id: number
+    req: Req
+    left: number
+    share: number
+    more: number
+  } | null>(null)
   let outcome = $state<'' | 'approved' | 'rejected' | 'expired'>('')
-  let stats = $state({ seen: 0, approved: 0, rejected: 0, expired: 0 })
+  let announce = $state('')
+  let lit = $state(false)
   let hover = $state(-1)
   let pinged = $state(-1)
 
-  const waiting = $derived(head ? SOURCES[head.src] : undefined)
+  const roomMeta = $derived(
+    touched.map(
+      (object, i) =>
+        (object && ltr(object)) ||
+        (i === 0 ? $t('Deploy key') : $t('Team treasury'))
+    )
+  )
+
   const outcomeText = $derived(
     {
       '': '',
-      approved: $t('Approved. The signature goes to ICP.'),
-      rejected: $t('Rejected. Nothing was signed.'),
-      expired: $t('Expired. Nothing was signed.')
+      approved: $t('Approved. Only this request passes.'),
+      rejected: $t('Rejected. Nothing was signed or paid.'),
+      expired: $t('Expired. Nothing was signed or paid.')
     }[outcome]
   )
 
+  function ask(r: Req): string {
+    const object = ltr(r.object)
+    switch (r.kind) {
+      case 'read':
+        return $t('Read the deploy key')
+      case 'save':
+        return $t('Save {file}', { file: object })
+      case 'post':
+        return $t('Post in {channel}', { channel: object })
+      case 'message':
+        return $t('Message in {channel}', { channel: object })
+      case 'add':
+        return $t('Add {file}', { file: object })
+      case 'pay':
+        return $t('Pay {amount} to {payee}', {
+          amount: object,
+          payee: $t('Auditor')
+        })
+      case 'signin':
+        return $t('Sign in with dMsg')
+      case 'sign':
+        return $t('Sign {file}', { file: object })
+    }
+  }
+
+  function kindLabel(r: Req): string {
+    if (r.kind === 'pay') return $t('Payment')
+    return r.kind === 'signin' ? $t('Sign-in') : $t('Signature')
+  }
+
+  // What approving does, said before the details.
+  function consequence(r: Req): string {
+    if (r.kind === 'pay')
+      return $t(
+        'From Team treasury. It pays only after enough members approve.'
+      )
+    if (r.kind === 'signin')
+      return $t('{site} receives a signed sign-in for this account.', {
+        site: ltr(SITE)
+      })
+    return $t('The terminal receives your signature for this file.')
+  }
+
   // The simulation lives outside Svelte's reactivity; these are set on mount.
   let decide: (approve: boolean) => void = () => {}
-  let send: (src: number) => void = () => {}
+  let send: (asker: number) => void = () => {}
+  let redraw = () => {}
 
-  function at([a, b, c, d]: Curve, t: number): Pt {
+  $effect(() => {
+    void hover
+    redraw()
+  })
+
+  function at(curve: [Pt, Pt, Pt, Pt], t: number): Pt {
+    const [a, b, c, d] = curve
     const m = 1 - t
     const k0 = m * m * m
     const k1 = 3 * m * m * t
@@ -106,372 +260,397 @@
     }
   }
 
-  function length(curve: Curve): number {
-    let total = 0
-    let prev = curve[0]
-    for (let i = 1; i <= 32; i++) {
-      const next = at(curve, i / 32)
-      total += Math.hypot(next.x - prev.x, next.y - prev.y)
-      prev = next
+  const cubic = (a: Pt, b: Pt, c: Pt, d: Pt): Pt[] =>
+    Array.from({ length: 33 }, (_, i) => at([a, b, c, d], i / 32))
+
+  function track(pts: Pt[]): Track {
+    const cum = [0]
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1]!
+      const b = pts[i]!
+      cum.push(cum[i - 1]! + Math.hypot(b.x - a.x, b.y - a.y))
     }
-    return total
+    return { pts, cum, len: cum[cum.length - 1]! }
   }
 
-  const digit = () => HEX.charAt((Math.random() * 16) | 0)
-  const pad = (n: number) => String(n).padStart(2, '0')
+  function pointAt({ pts, cum, len }: Track, d: number): Pt {
+    if (d <= 0) return pts[0]!
+    if (d >= len) return pts[pts.length - 1]!
+    let i = 1
+    while (cum[i]! < d) i++
+    const a = pts[i - 1]!
+    const b = pts[i]!
+    const k = (d - cum[i - 1]!) / (cum[i]! - cum[i - 1]! || 1)
+    return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }
+  }
 
   onMount(() => {
-    const ctx = canvas.getContext('2d')!
+    const bctx = back.getContext('2d')!
+    const fctx = front.getContext('2d')!
     const still = prefersReducedMotion()
-    const origin = (): Curve => [
-      { x: 0, y: 0 },
-      { x: 0, y: 0 },
-      { x: 0, y: 0 },
-      { x: 0, y: 0 }
-    ]
-    const lanes: Lane[] = SOURCES.map((_, index) => ({
-      index,
-      src: origin(),
-      inner: origin(),
-      wait: 0
-    }))
-    const cloud: Exit = { curve: origin(), length: 1 }
-    const icp: Exit = { curve: origin(), length: 1 }
+    const none = (): Track => track([{ x: 0, y: 0 }])
+    let lanes: Track[] = ASKERS.map(none)
+    let toRoom: Track[] = ROOMS.map(none)
+    let ports: Pt[] = []
+    let check: Pt = { x: 0, y: 0 }
+    let s = 1
+    let box = { x: 0, y: 0, w: 0, h: 0 }
     let width = 0
     let height = 0
-    let gate: Pt[] = []
-    let core: Pt[] = []
-    let coreEdge: Pt[] = []
     let dots: Pt[] = []
     let pointer: Pt | null = null
     let packets: Packet[] = []
     let queue: Packet[] = []
-    let seals: number[] = []
     let clock = 0
     let deadline = 0
-    let nextSync = 0.4
-    let nextFormal = 0.7
-    let lastFormal = 1
+    let nextRoutine = 1.3
+    let nextFormal = 0.6
     let seq = 0
-    let shownId = -1
+    let routineAt = 0
+    let formalAt = 0
     let visible = false
+    // Each asker's next request when tapped: the agent asks to pay first.
+    const turn = [2, 0, 1, 1]
+    // When each asker's card last showed a decision, so it stays readable.
+    const decided = [-9, -9, -9, -9]
     let outcomeTimer: ReturnType<typeof setTimeout> | undefined
+    const hitTimers: (ReturnType<typeof setTimeout> | undefined)[] = []
 
     function layout() {
-      const rect = stage.getBoundingClientRect()
-      width = rect.width
-      height = rect.height
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      canvas.width = Math.round(width * dpr)
-      canvas.height = Math.round(height * dpr)
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      const down = width < 720
-      vertical = down
-      // Work along the flow (u) and across it (v), then map to the screen.
-      const U = down ? height : width
-      const V = down ? width : height
-      const map = (u: number, v: number): Pt =>
-        down ? { x: v, y: u } : { x: u, y: v }
-      const curve = (au: number, av: number, bu: number, bv: number): Curve => {
-        const k = (bu - au) / 2
-        return [map(au, av), map(au + k, av), map(bu - k, bv), map(bu, bv)]
-      }
-      const su = down ? 100 : U * 0.215
-      const across = down
-        ? [0.125, 0.375, 0.625, 0.875]
-        : [0.14, 0.38, 0.62, 0.86]
-      const r = down ? Math.min(V * 0.27, 96) : Math.min(V * 0.31, U * 0.105)
-      const gu = U * (down ? 0.47 : 0.5) - r / 2
-      const gv = V / 2
-      const du = down ? U - 108 : U * 0.79
-      const exitU = gu + r
-      // Requests that need a person wait at the inner gate's flat edge.
-      const edge = gu + r * 0.15
-      for (const lane of lanes) {
-        const sv = (across[lane.index] ?? 0.5) * V
-        const ev = gv + (lane.index - 1.5) * r * 0.4
-        lane.src = curve(su, sv, gu, ev)
-        lane.inner = [
-          map(gu, ev),
-          map(gu + r * 0.5, ev),
-          map(exitU - r * 0.5, gv),
-          map(exitU, gv)
-        ]
-        let lo = 0
-        let hi = 0.5
-        for (let i = 0; i < 18; i++) {
-          const mid = (lo + hi) / 2
-          const p = at(lane.inner, mid)
-          if ((down ? p.y : p.x) < edge) lo = mid
-          else hi = mid
+      const frame = stage.getBoundingClientRect()
+      const rel = (el: Element) => {
+        const r = el.getBoundingClientRect()
+        return {
+          x: r.left - frame.left,
+          y: r.top - frame.top,
+          w: r.width,
+          h: r.height
         }
-        lane.wait = hi
       }
-      cloud.curve = curve(exitU, gv, du, V * 0.3)
-      icp.curve = curve(exitU, gv, du, V * 0.7)
-      cloud.length = length(cloud.curve)
-      icp.length = length(icp.curve)
-      const arc = (cu: number, radius: number) =>
-        Array.from({ length: 61 }, (_, k) => {
-          const a = -Math.PI / 2 + (Math.PI * k) / 60
-          return map(cu + radius * Math.cos(a), gv + radius * Math.sin(a))
+      width = frame.width
+      height = frame.height
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      for (const [canvas, ctx] of [
+        [back, bctx],
+        [front, fctx]
+      ] as const) {
+        canvas.width = Math.round(width * dpr)
+        canvas.height = Math.round(height * dpr)
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      }
+      box = rel(mark)
+      s = box.h / 48
+      const sx = box.x + 12 * s
+      const top = box.y
+      const bottom = box.y + 48 * s
+      check = { x: sx, y: box.y + 24 * s }
+      const all = rel(list)
+      if (all.y + all.h <= top) {
+        // Askers stacked above the gate share one path into the gap.
+        const start = { x: sx, y: all.y + all.h + 6 }
+        const trunk = track([start, { x: sx, y: top }, check])
+        lanes = ASKERS.map(() => trunk)
+        ports = [start]
+      } else {
+        // Askers beside the gate: the upper ones come over the post into
+        // the gap, the lower ones under it.
+        ports = cardEls.map((el) => {
+          const r = rel(el)
+          return { x: r.x + r.w + 8, y: r.y + r.h / 2 }
         })
-      gate = arc(gu, r)
-      core = arc(edge, r * 0.78)
-      coreEdge = [map(edge, gv - r * 0.78), map(edge, gv + r * 0.78)]
+        lanes = ports.map((p) => {
+          const down = p.y > check.y
+          const edge = down ? bottom : top
+          const q = { x: box.x + 2 * s, y: edge + (down ? 22 : -22) }
+          const run = q.x - p.x
+          return track([
+            ...cubic(
+              p,
+              { x: p.x + run * 0.55, y: p.y },
+              { x: q.x - run * 0.5, y: q.y },
+              q
+            ),
+            ...cubic(
+              q,
+              { x: sx, y: q.y },
+              { x: sx, y: q.y },
+              { x: sx, y: edge }
+            ).slice(1),
+            check
+          ])
+        })
+      }
+      toRoom = roomEls.map((el) => {
+        const r = rel(el)
+        const c = { x: r.x + r.w / 2, y: r.y + r.h / 2 }
+        return track(
+          cubic(
+            check,
+            { x: check.x + 6 * s, y: check.y },
+            { x: c.x - 4 * s, y: c.y },
+            c
+          )
+        )
+      })
       dots = []
       const gap = 22
       for (let y = gap / 2; y < height; y += gap) {
         for (let x = gap / 2; x < width; x += gap) {
-          const u = down ? y : x
-          const v = down ? x : y
           const inside =
-            u >= gu - 4 && (u - gu) ** 2 + (v - gv) ** 2 <= (r + 6) ** 2
+            x > box.x - 6 &&
+            x < box.x + box.w + 6 &&
+            y > box.y - 6 &&
+            y < box.y + box.h + 6
           if (!inside) dots.push({ x, y })
         }
       }
-      anchors = {
-        src: across.map((f) => map(su, f * V)),
-        dst: [map(du, V * 0.3), map(du, V * 0.7)],
-        core: map(gu + r * (down ? 0.45 : 0.52), gv),
-        r
-      }
     }
+
+    const lane = (p: Packet) => lanes[p.req.asker] ?? lanes[0]!
+    const room = (p: Packet) => toRoom[ROOM_OF[p.req.kind]] ?? toRoom[0]!
 
     function position(p: Packet): Pt {
-      switch (p.stage) {
-        case 'in':
-          return at(p.lane.src, p.t)
-        case 'back':
-          return p.t > 1 ? at(p.lane.inner, p.t - 1) : at(p.lane.src, p.t)
-        case 'approach':
-          return at(p.lane.inner, p.t * p.lane.wait)
-        case 'wait':
-          return at(p.lane.inner, p.lane.wait)
-        case 'through':
-          return at(p.lane.inner, p.t)
-        case 'out':
-          return at(p.exit.curve, p.t)
-        default:
-          return p.at
-      }
+      return p.stage === 'room' ? pointAt(room(p), p.d) : pointAt(lane(p), p.d)
     }
 
-    function spawn(src: number, formal: boolean): Packet {
-      const p: Packet = {
-        id: ++seq,
-        lane: lanes[src] ?? lanes[0]!,
-        exit: cloud,
-        formal,
-        stage: 'in',
-        t: 0,
-        alpha: 1,
-        at: { x: 0, y: 0 },
-        cipher: Array.from({ length: 9 }, digit)
-      }
-      packets.push(p)
-      stats.seen++
-      return p
+    // The front request waits in the gem; the next ones wait in the gap.
+    function goal(p: Packet): number {
+      const k = queue.indexOf(p)
+      const len = lane(p).len
+      return k <= 0 ? len : len - 9.5 * s - 8 - 14 * (k - 1)
     }
 
-    const pendingFormal = () =>
-      packets.filter(
-        (p) =>
-          p.formal &&
-          (p.stage === 'in' || p.stage === 'approach' || p.stage === 'wait')
-      )
+    function hit(index: number, object: string) {
+      if (index < 0) return
+      hits[index] = true
+      if (index >= 2) touched[index] = object
+      clearTimeout(hitTimers[index])
+      hitTimers[index] = setTimeout(() => (hits[index] = false), 1100)
+    }
+
+    function pass(p: Packet) {
+      hit(ROOM_OF[p.req.kind], p.req.object)
+      const status = PASSED_AS[p.req.asker] ?? 'allowed'
+      if (!p.formal) cards[p.req.asker] = { req: p.req, status }
+    }
 
     function showHead() {
       const first = queue[0]
-      if (!first) {
+      if (!first?.arrived) {
         head = null
-        shownId = -1
         return
       }
       const left = Math.max(0, deadline - clock)
       head = {
-        src: first.lane.index,
+        id: first.id,
+        req: first.req,
         left: Math.ceil(left),
-        share: left / WAIT_SECONDS
+        share: left / WAIT_SECONDS,
+        more: queue.length - 1
       }
     }
 
-    function promote() {
+    function arrive(p: Packet) {
+      p.arrived = true
+      lit = true
       deadline = clock + WAIT_SECONDS
-      shownId = queue[0]?.id ?? -1
+      announce = ask(p.req)
       showHead()
+    }
+
+    function park(p: Packet) {
+      p.parked = true
+      cards[p.req.asker] = { req: p.req, status: 'waiting' }
+      if (queue[0] === p) arrive(p)
     }
 
     function flash(kind: 'approved' | 'rejected' | 'expired') {
       outcome = kind
       clearTimeout(outcomeTimer)
-      outcomeTimer = setTimeout(() => (outcome = ''), 2800)
+      outcomeTimer = setTimeout(() => (outcome = ''), 2600)
     }
 
-    function wait(p: Packet) {
-      p.stage = 'wait'
-      p.t = 0
-      queue.push(p)
-      if (queue.length === 1) promote()
+    function spawn(r: Req) {
+      const formal = isFormal(r)
+      const p: Packet = {
+        id: ++seq,
+        req: r,
+        formal,
+        stage: 'in',
+        d: 0,
+        alpha: 1,
+        approved: false,
+        parked: false,
+        arrived: false
+      }
+      cards[r.asker] = { req: r, status: 'sending' }
+      if (formal) queue.push(p)
+      if (!still) {
+        packets.push(p)
+        return
+      }
+      // Without motion a request lands at once: work passes, and a request
+      // that needs you is already waiting.
+      if (!formal) {
+        pass(p)
+        return
+      }
+      packets.push(p)
+      p.d = goal(p)
+      park(p)
+    }
+
+    function pickRoutine(): Req | undefined {
+      for (let k = 0; k < ROUTINE.length; k++) {
+        const r = ROUTINE[routineAt++ % ROUTINE.length]!
+        const busy = queue.some((p) => p.req.asker === r.asker)
+        if (!busy && clock - (decided[r.asker] ?? 0) > 3) return r
+      }
+      return undefined
+    }
+
+    // A decision on the front request, or its expiry, moves the queue on.
+    function settle() {
+      lit = false
+      // With motion, the next request moves up to the gem on its own.
+      const next = queue[0]
+      if (still && next) {
+        next.d = goal(next)
+        arrive(next)
+      }
+      if (still && !queue.length) spawn(FORMAL[formalAt++ % FORMAL.length]!)
+      nextFormal = Math.max(nextFormal, 3.5)
+      showHead()
     }
 
     decide = (approve: boolean) => {
-      const p = queue.shift()
-      if (!p) return
-      const hadFocus = card.contains(document.activeElement)
-      if (still) {
-        packets = packets.filter((x) => x !== p)
-        seals = approve ? [0.5] : []
-      } else if (approve) {
-        p.stage = 'through'
-        p.t = p.lane.wait
-        p.exit = icp
-      } else {
-        p.stage = 'back'
-        p.t = 1 + p.lane.wait
+      const p = queue[0]
+      if (!p?.arrived) return
+      queue.shift()
+      const hadFocus = ticket.contains(document.activeElement)
+      cards[p.req.asker] = {
+        req: p.req,
+        status: approve ? 'approved' : 'rejected'
       }
-      if (approve) stats.approved++
-      else stats.rejected++
+      decided[p.req.asker] = clock
+      p.approved = approve
+      if (approve && p.req.kind === 'pay') {
+        if (still) hit(1, '')
+        p.stage = 'room'
+        p.d = 0
+      } else p.stage = 'back'
+      if (still) packets = packets.filter((x) => x !== p)
       flash(approve ? 'approved' : 'rejected')
-      // Without motion, the next request is already waiting.
-      if (still && !queue.length)
-        wait(spawn((p.lane.index + 1) % SOURCES.length, true))
-      if (queue.length) promote()
-      else showHead()
-      if (hadFocus) card.focus()
-      if (still) draw()
+      const said = approve
+        ? $t('Approved. Only this request passes.')
+        : $t('Rejected. Nothing was signed or paid.')
+      settle()
+      // Without motion the next request is already waiting; say both.
+      announce = head ? `${said} ${ask(head.req)}` : said
+      if (hadFocus) ticket.focus()
+      draw()
     }
 
-    send = (src: number) => {
-      pinged = src
-      setTimeout(() => pinged === src && (pinged = -1), 600)
-      const busy = pendingFormal()
-      const formal = busy.length < 3 && !busy.some((p) => p.lane.index === src)
-      const p = spawn(src, formal)
-      if (!still) {
-        if (formal) nextFormal = Math.max(nextFormal, 5)
-        return
-      }
-      // Without motion a request arrives where it waits; other work is only
-      // counted.
-      if (formal) wait(p)
-      else packets.pop()
+    function expire() {
+      const p = queue.shift()!
+      p.stage = 'fade'
+      cards[p.req.asker] = { req: p.req, status: 'expired' }
+      decided[p.req.asker] = clock
+      flash('expired')
+      announce = $t('Expired. Nothing was signed or paid.')
+      settle()
+    }
+
+    send = (asker: number) => {
+      pinged = asker
+      setTimeout(() => pinged === asker && (pinged = -1), 600)
+      // One request per asker waits at a time.
+      if (queue.some((p) => p.req.asker === asker)) return
+      const script = SCRIPTS[asker] ?? []
+      const r = script[turn[asker]! % script.length]
+      if (!r || (isFormal(r) && queue.length >= 3)) return
+      turn[asker]!++
+      if (isFormal(r)) nextFormal = Math.max(nextFormal, 5)
+      spawn(r)
       draw()
+    }
+
+    function advance(p: Packet, dt: number) {
+      switch (p.stage) {
+        case 'in': {
+          const end = p.formal ? goal(p) : lane(p).len
+          p.d = Math.min(end, p.d + dt * (p.formal ? 170 : 210))
+          if (p.d < end) break
+          if (!p.formal) {
+            p.stage = 'room'
+            p.d = 0
+          } else if (!p.parked) park(p)
+          else if (queue[0] === p && !p.arrived) arrive(p)
+          break
+        }
+        case 'room':
+          p.d += dt * 130
+          if (p.d >= room(p).len) {
+            if (p.formal) hit(1, '')
+            else pass(p)
+            p.stage = 'done'
+          }
+          break
+        case 'back': {
+          const len = lane(p).len
+          p.d -= dt * (p.approved ? 240 : 200)
+          if (!p.approved) p.alpha = Math.max(0, (p.d / len - 0.35) / 0.65)
+          if (p.d <= 0 || p.alpha <= 0) p.stage = 'done'
+          break
+        }
+        case 'fade':
+          p.alpha -= dt / 0.8
+          if (p.alpha <= 0) p.stage = 'done'
+          break
+      }
     }
 
     function step(dt: number) {
       clock += dt
-      nextSync -= dt
-      nextFormal -= dt
-      if (nextSync <= 0) {
-        const pick = Math.random()
-        spawn(pick < 0.32 ? 0 : pick < 0.58 ? 1 : pick < 0.82 ? 2 : 3, false)
-        nextSync = 0.55 + Math.random() * 0.8
+      nextRoutine -= dt
+      if (nextRoutine <= 0) {
+        const r = pickRoutine()
+        if (r) spawn(r)
+        nextRoutine = 2.1 + Math.random() * 1.4
       }
-      if (nextFormal <= 0) {
-        const busy = pendingFormal()
-        if (busy.length < 2) {
-          const free = [2, 3, 1, 0].filter(
-            (s) => s !== lastFormal && !busy.some((p) => p.lane.index === s)
-          )
-          // The first request comes from an agent, the most telling case.
-          const src =
-            seq < 3 ? 2 : (free[(Math.random() * free.length) | 0] ?? 2)
-          lastFormal = src
-          spawn(src, true)
-        }
-        nextFormal = 6.5 + Math.random() * 3.5
-      }
-      for (const p of packets) {
-        switch (p.stage) {
-          case 'in':
-            p.t += dt / (p.formal ? 2.6 : 2.2)
-            if (p.t >= 1) {
-              p.t = 0
-              p.stage = p.formal ? 'approach' : 'through'
-            }
-            break
-          case 'approach':
-            p.t += dt / 0.4
-            if (p.t >= 1) wait(p)
-            break
-          case 'wait':
-            p.t += dt
-            break
-          case 'through':
-            p.t += dt / (p.formal ? 0.7 : 0.8)
-            if (p.t >= 1) {
-              p.t = 0
-              p.stage = 'out'
-            }
-            break
-          case 'out':
-            p.t += dt / (p.formal ? 1.5 : 2.3)
-            for (let i = 0; i < p.cipher.length; i++)
-              if (Math.random() < 0.1) p.cipher[i] = digit()
-            if (p.t >= 1) {
-              if (p.formal) seals.push(0)
-              p.stage = 'done'
-            }
-            break
-          case 'back':
-            p.t -= dt / 1.3
-            p.alpha = Math.max(0, Math.min(1, (p.t - 0.45) / 0.55))
-            if (p.t <= 0.45) p.stage = 'done'
-            break
-          case 'fade':
-            p.alpha -= dt / 0.8
-            if (p.alpha <= 0) p.stage = 'done'
-            break
+      if (!queue.length) {
+        nextFormal -= dt
+        if (nextFormal <= 0) {
+          spawn(FORMAL[formalAt++ % FORMAL.length]!)
+          nextFormal = 4 + Math.random() * 2.5
         }
       }
+      for (const p of packets) advance(p, dt)
       const first = queue[0]
-      if (first && clock >= deadline) {
-        queue.shift()
-        first.at = position(first)
-        first.stage = 'fade'
-        stats.expired++
-        flash('expired')
-        if (queue.length) promote()
-        else showHead()
-      } else if (first && first.id !== shownId) promote()
-      else if (first && Math.floor(clock * 4) !== Math.floor((clock - dt) * 4))
+      if (first?.arrived && clock >= deadline) expire()
+      else if (
+        first?.arrived &&
+        Math.floor(clock * 4) !== Math.floor((clock - dt) * 4)
+      )
         showHead()
       packets = packets.filter((p) => p.stage !== 'done')
-      seals = seals.map((s) => s + dt / 1.2).filter((s) => s < 1)
       draw()
     }
 
-    function trace(points: Pt[], close = false) {
+    function diamond(ctx: CanvasRenderingContext2D, p: Pt, size: number) {
       ctx.beginPath()
-      points.forEach((p, i) =>
-        i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)
-      )
-      if (close) ctx.closePath()
+      ctx.moveTo(p.x, p.y - size)
+      ctx.lineTo(p.x + size, p.y)
+      ctx.lineTo(p.x, p.y + size)
+      ctx.lineTo(p.x - size, p.y)
+      ctx.closePath()
     }
 
-    function bezier([a, b, c, d]: Curve) {
-      ctx.beginPath()
-      ctx.moveTo(a.x, a.y)
-      ctx.bezierCurveTo(b.x, b.y, c.x, c.y, d.x, d.y)
-    }
-
-    function diamond(p: Pt, size: number) {
-      trace(
-        [
-          { x: p.x, y: p.y - size },
-          { x: p.x + size, y: p.y },
-          { x: p.x, y: p.y + size },
-          { x: p.x - size, y: p.y }
-        ],
-        true
-      )
-    }
-
-    function draw() {
+    function drawBack() {
+      const ctx = bctx
       ctx.clearRect(0, 0, width, height)
 
-      // A field of graph-paper dots that leans away from the pointer.
+      // Graph-paper dots that lean away from the pointer.
       ctx.fillStyle = `rgba(${INK}, 0.12)`
       ctx.beginPath()
       const near: [Pt, number, number, number][] = []
@@ -495,157 +674,99 @@
         ctx.fillRect(d.x + dx * k, d.y + dy * k, 1.5 + f, 1.5 + f)
       }
 
-      // Paths in, and the two ways out.
+      // Each lane stops where the gem's cut-out begins.
       ctx.lineCap = 'round'
-      for (const lane of lanes) {
-        const hot = hover === lane.index
-        bezier(lane.src)
+      ctx.lineJoin = 'round'
+      const drawn = new Set<Track>()
+      lanes.forEach((path, i) => {
+        if (drawn.has(path) && hover !== i) return
+        drawn.add(path)
+        const stop = path.len - 9.2 * s
+        ctx.beginPath()
+        path.pts.forEach((p, k) => {
+          if ((path.cum[k] ?? 0) > stop) return
+          if (k) ctx.lineTo(p.x, p.y)
+          else ctx.moveTo(p.x, p.y)
+        })
+        const hot = hover === i
         ctx.lineWidth = hot ? 1.6 : 1
-        ctx.strokeStyle = hot ? `rgba(${FOREST}, 0.75)` : `rgba(${INK}, 0.2)`
+        ctx.strokeStyle = hot ? `rgba(${FOREST}, 0.75)` : `rgba(${INK}, 0.22)`
         ctx.stroke()
-      }
-      bezier(cloud.curve)
-      ctx.lineWidth = 1
-      ctx.strokeStyle = `rgba(${JADE}, 0.42)`
-      ctx.stroke()
-      ctx.setLineDash([3, 5])
-      bezier(icp.curve)
-      ctx.strokeStyle = `rgba(${INK}, 0.3)`
-      ctx.stroke()
-      ctx.setLineDash([])
-
-      // The gate: your computer, with the approval queue inside.
-      ctx.save()
-      ctx.shadowColor = 'rgba(23, 61, 41, 0.12)'
-      ctx.shadowBlur = 28
-      ctx.shadowOffsetY = 10
-      trace(gate, true)
-      ctx.fillStyle = '#ffffff'
-      ctx.fill()
-      ctx.restore()
-      trace(gate, true)
-      ctx.lineWidth = 1.5
-      ctx.strokeStyle = `rgba(${INK}, 0.9)`
-      ctx.stroke()
-      trace(core, true)
-      ctx.lineWidth = 1
-      ctx.strokeStyle = `rgba(${INK}, 0.14)`
-      ctx.stroke()
-      if (queue.length) {
-        ctx.setLineDash([4, 4])
-        trace(coreEdge)
-        ctx.lineWidth = 1.5
-        ctx.strokeStyle = `rgba(${AMBER}, 0.7)`
-        ctx.stroke()
-        ctx.setLineDash([])
-      }
-
-      for (const p of anchors.src) {
+      })
+      for (const p of ports) {
         ctx.beginPath()
         ctx.arc(p.x, p.y, 3, 0, Math.PI * 2)
         ctx.fillStyle = '#f7f8f4'
         ctx.fill()
         ctx.lineWidth = 1.2
-        ctx.strokeStyle = `rgba(${INK}, 0.7)`
+        ctx.strokeStyle = `rgba(${INK}, 0.6)`
         ctx.stroke()
       }
-      anchors.dst.forEach((p, j) => {
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, 4.5, 0, Math.PI * 2)
-        ctx.fillStyle = j ? `rgba(${FOREST}, 1)` : '#f7f8f4'
-        ctx.fill()
-        ctx.lineWidth = 1.2
-        ctx.strokeStyle = j ? `rgba(${FOREST}, 1)` : `rgba(${JADE}, 0.9)`
-        ctx.stroke()
-      })
-      const sealAt = anchors.dst[1]
-      if (sealAt)
-        for (const s of seals) {
-          ctx.beginPath()
-          ctx.arc(sealAt.x, sealAt.y, 5 + s * 26, 0, Math.PI * 2)
+    }
+
+    function drawFront() {
+      const ctx = fctx
+      ctx.clearRect(0, 0, width, height)
+      const first = queue[0]
+
+      // The waiting gem echoes outward, the shape of the mark's cut-out.
+      if (first?.arrived && !still) {
+        for (const offset of [0, 0.5]) {
+          const phase = (clock * 0.55 + offset) % 1
+          diamond(ctx, check, (9.2 + phase * 2.6) * s)
           ctx.lineWidth = 1.5
-          ctx.strokeStyle = `rgba(${FOREST}, ${0.55 * (1 - s)})`
+          ctx.strokeStyle = `rgba(${AMBER}, ${0.5 * (1 - phase)})`
           ctx.stroke()
         }
-
-      // A leader from the request in front to the card below the figure.
-      const first = queue[0]
-      if (first) {
-        const p = position(first)
-        ctx.setLineDash([2, 4])
-        ctx.beginPath()
-        ctx.moveTo(p.x, p.y + 10)
-        ctx.bezierCurveTo(
-          p.x,
-          p.y + 60,
-          width / 2,
-          height - 50,
-          width / 2,
-          height
-        )
-        ctx.lineWidth = 1
-        ctx.strokeStyle = `rgba(${AMBER}, 0.55)`
-        ctx.stroke()
-        ctx.setLineDash([])
       }
 
-      ctx.font =
-        '500 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
       for (const p of packets) {
+        if (p.arrived && p === first) continue
         const q = position(p)
         if (!p.formal) {
-          if (p.stage === 'out') {
-            // Leaving the device, a request is only ciphertext.
-            const step = 9 / p.exit.length
-            p.cipher.forEach((char, k) => {
-              const tt = p.t - k * step
-              if (tt < 0) return
-              const c = at(p.exit.curve, tt)
-              ctx.fillStyle = `rgba(${JADE}, ${0.9 * (1 - k / p.cipher.length)})`
-              ctx.fillText(char, c.x, c.y)
-            })
+          if (p.stage === 'room') {
+            ctx.beginPath()
+            ctx.arc(q.x, q.y, 6, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(${MINT}, 0.22)`
+            ctx.fill()
+            ctx.beginPath()
+            ctx.arc(q.x, q.y, 3, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(${MINT}, 1)`
+            ctx.fill()
             continue
           }
-          if (p.stage === 'in')
-            for (let k = 1; k < 5; k++) {
-              const tt = p.t - k * 0.014
-              if (tt < 0) break
-              const c = at(p.lane.src, tt)
-              ctx.beginPath()
-              ctx.arc(c.x, c.y, 2.4 - k * 0.4, 0, Math.PI * 2)
-              ctx.fillStyle = `rgba(${FOREST}, ${0.35 - k * 0.07})`
-              ctx.fill()
-            }
+          for (let k = 1; k < 5; k++) {
+            const t = pointAt(lane(p), p.d - k * 5)
+            ctx.beginPath()
+            ctx.arc(t.x, t.y, 2.6 - k * 0.45, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(${FOREST}, ${0.32 - k * 0.06})`
+            ctx.fill()
+          }
           ctx.beginPath()
-          ctx.arc(q.x, q.y, 2.6, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(${FOREST}, ${p.stage === 'through' ? 0.35 : 0.9})`
+          ctx.arc(q.x, q.y, 3, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(${FOREST}, 0.95)`
           ctx.fill()
           continue
         }
-        const front = p === first
-        const size = front ? 7.5 : 6.5
-        diamond(q, size)
-        if (p.stage === 'wait') {
-          ctx.fillStyle = `rgba(${AMBER}, ${front ? 1 : 0.55})`
+        if (p.stage === 'room') {
+          diamond(ctx, q, 6)
+          ctx.fillStyle = `rgba(${MINT}, 1)`
           ctx.fill()
-          if (!still) {
-            const phase = (clock * 0.7 + p.id * 0.37) % 1
-            ctx.beginPath()
-            ctx.arc(q.x, q.y, 10 + phase * 9, 0, Math.PI * 2)
-            ctx.lineWidth = 1
-            ctx.strokeStyle = `rgba(${AMBER}, ${0.35 * (1 - phase)})`
-            ctx.stroke()
-          }
-        } else if (p.stage === 'through' || p.stage === 'out') {
+        } else if (p.stage === 'back' && p.approved) {
+          diamond(ctx, q, 6)
           ctx.fillStyle = `rgba(${FOREST}, 1)`
           ctx.fill()
         } else if (p.stage === 'back' || p.stage === 'fade') {
+          diamond(ctx, q, 6)
           ctx.lineWidth = 1.4
-          ctx.strokeStyle = `rgba(78, 98, 87, ${p.alpha})`
+          ctx.strokeStyle = `rgba(${GREY}, ${p.alpha})`
           ctx.stroke()
+        } else if (p.parked) {
+          diamond(ctx, q, 5.5)
+          ctx.fillStyle = `rgba(${AMBER}, 0.6)`
+          ctx.fill()
         } else {
+          diamond(ctx, q, 6)
           ctx.fillStyle = '#f7f8f4'
           ctx.fill()
           ctx.lineWidth = 1.6
@@ -655,17 +776,16 @@
       }
     }
 
+    function draw() {
+      drawBack()
+      drawFront()
+    }
+    redraw = draw
+
     function seedStill() {
-      const place = (src: number, stage: Stage, t: number) => {
-        const p = spawn(src, false)
-        p.stage = stage
-        p.t = t
-      }
-      place(0, 'in', 0.42)
-      place(3, 'in', 0.7)
-      place(1, 'out', 0.42)
-      place(0, 'out', 0.8)
-      wait(spawn(2, true))
+      spawn(PAY)
+      turn[0] = 3
+      formalAt = 1
     }
 
     layout()
@@ -675,6 +795,9 @@
       draw()
     })
     resize.observe(stage)
+    resize.observe(mark)
+    resize.observe(list)
+    for (const el of cardEls) resize.observe(el)
     const stopWatch = watchVisibility(stage, (value) => {
       visible = value
       loop.wake()
@@ -698,124 +821,194 @@
       resize.disconnect()
       stopWatch()
       clearTimeout(outcomeTimer)
+      hitTimers.forEach((timer) => clearTimeout(timer))
+      redraw = () => {}
       stage.removeEventListener('pointermove', onMove)
       stage.removeEventListener('pointerleave', onLeave)
     }
   })
 </script>
 
+{#snippet orb(asker: number)}
+  {@const who = ASKERS[asker]}
+  <span class="gh-orb" aria-hidden="true"
+    >{#if who?.glyph}<Glyph name={who.glyph} size={18} />{:else}{who?.id.at(
+        0
+      )}{/if}</span
+  >
+{/snippet}
+
 <figure class="fig gate-fig">
   <div class="gate-frame">
-    <div class="gate-stage" class:vertical bind:this={stage} dir="ltr">
-      <canvas bind:this={canvas} aria-hidden="true"></canvas>
-      {#each SOURCES as source, i}
-        <button
-          class="gate-source"
-          class:hot={hover === i}
-          class:ping={pinged === i}
-          style:left="{anchors.src[i]?.x ?? 0}px"
-          style:top="{anchors.src[i]?.y ?? 0}px"
-          aria-label={$t('Send a request from {source}', {
-            source: names[i] ?? ''
-          })}
-          onpointerenter={() => (hover = i)}
-          onpointerleave={() => (hover = -1)}
-          onfocus={() => (hover = i)}
-          onblur={() => (hover = -1)}
-          onclick={() => send(i)}
-        >
-          <span class="gs-icon"><Glyph name={source.glyph} size={18} /></span>
-          <span class="gs-text" dir="auto"
-            ><strong>{vertical ? shortNames[i] : names[i]}</strong><code
-              >{source.tag}</code
-            ></span
-          >
-        </button>
-      {/each}
-      <div
-        class="gate-core"
-        style:left="{anchors.core.x}px"
-        style:top="{anchors.core.y}px"
-        style:width="{anchors.r * (vertical ? 1.15 : 0.84)}px"
-      >
-        <code>{DAEMON}</code>
-        <span dir="auto">{$t('Keys stay here')}</span>
-      </div>
-      {#each anchors.dst as point, j}
-        <div
-          class="gate-dest"
-          class:icp={j === 1}
-          style:left="{point.x}px"
-          style:top="{point.y}px"
-        >
-          <span class="gd-icon"
-            ><Glyph name={j ? 'badge' : 'cloud'} size={16} /></span
-          >
-          <span class="gs-text" dir="auto"
-            ><strong>{j ? ICP : $t('dMsg cloud')}</strong><small
-              >{j
-                ? $t('Identity and signatures')
-                : $t('Ciphertext only')}</small
-            ></span
-          >
-        </div>
-      {/each}
-    </div>
+    <div class="gate-stage" bind:this={stage} dir="ltr">
+      <canvas class="back" bind:this={back} aria-hidden="true"></canvas>
 
-    <div class="gate-dock">
-      <ul class="gate-legend">
-        <li><i class="lg-dot"></i>{$t('Everyday work, encrypted')}</li>
-        <li><i class="lg-diamond"></i>{$t('Needs your approval')}</li>
-      </ul>
-      <div
-        class="gate-card"
-        class:waiting={head}
-        bind:this={card}
-        tabindex="-1"
-        role="group"
-        aria-label={$t('Approval')}
-      >
-        {#if head && waiting}
-          <div class="gc-head">
-            <span class="gc-from"
-              ><Glyph name={waiting.glyph} size={16} />{names[head.src]}</span
+      <div class="gh-askers" {dir}>
+        <p class="gh-label">{$t('Who’s asking')}</p>
+        <div class="gh-list" bind:this={list}>
+          {#each ASKERS as asker, i}
+            {@const card = cards[i]}
+            <button
+              class="gh-asker"
+              class:hot={hover === i}
+              class:ping={pinged === i}
+              class:waiting={card?.status === 'waiting'}
+              bind:this={cardEls[i]}
+              aria-label={$t('Send a request from {source}', {
+                source: roles[i] ?? ''
+              })}
+              onpointerenter={() => (hover = i)}
+              onpointerleave={() => (hover = -1)}
+              onfocus={() => (hover = i)}
+              onblur={() => (hover = -1)}
+              onclick={() => send(i)}
             >
-            <span class="gc-timer">0:{pad(head.left)}</span>
-          </div>
-          <p class="gc-ask">
-            <strong>{asks[head.src]}</strong>
-            <code>{waiting.object}</code>
-          </p>
-          <div class="gc-actions">
-            <button class="button secondary" onclick={() => decide(false)}
-              >{$t('Reject')}</button
-            >
-            <button class="button primary" onclick={() => decide(true)}
-              >{$t('Approve')}</button
-            >
-          </div>
-          <i class="gc-expiry" style:transform="scaleX({head.share})"></i>
-        {:else}
-          <p class="gc-idle">
-            {$t('Nothing is waiting. Tap a source to send a request.')}
-          </p>
-        {/if}
+              {@render orb(i)}
+              <span class="gh-who"
+                ><strong>{roles[i]}</strong><code>{asker.id}</code></span
+              >
+              {#if card}
+                <span class="gh-req"
+                  ><i class:formal={isFormal(card.req)}></i>{ask(
+                    card.req
+                  )}</span
+                >
+                <span class="gh-state {card.status}"
+                  >{statusText[card.status]}</span
+                >
+              {/if}
+            </button>
+          {/each}
+        </div>
       </div>
-      <dl class="gate-stats">
-        <div><dt>{$t('Requests')}</dt><dd>{stats.seen}</dd></div>
-        <div><dt>{$t('Approved by you')}</dt><dd>{stats.approved}</dd></div>
-        <div><dt>{$t('Rejected')}</dt><dd>{stats.rejected}</dd></div>
-        <div><dt>{$t('Expired')}</dt><dd>{stats.expired}</dd></div>
-        <div class="zero"><dt>{$t('Signed without you')}</dt><dd>0</dd></div>
-      </dl>
+
+      <div class="gh-gate">
+        <p class="gh-label">{space}</p>
+        <div class="gh-mark" class:lit bind:this={mark}>
+          <svg viewBox="0 0 42 48" aria-hidden="true" focusable="false">
+            <mask
+              id={cut}
+              maskUnits="userSpaceOnUse"
+              x="0"
+              y="0"
+              width="42"
+              height="48"
+            >
+              <rect width="42" height="48" fill="#fff" />
+              <path
+                d={GEM}
+                stroke="#000"
+                stroke-width="5"
+                stroke-linejoin="round"
+              />
+            </mask>
+            <g class="gh-body" mask="url(#{cut})"
+              ><path d={POST} /><path d={DOME} /></g
+            >
+            <path class="gh-socket" d={GEM} />
+            <path class="gh-gem" d={GEM} />
+          </svg>
+          <ul class="gh-rooms">
+            {#each ROOMS as room, i}
+              <li
+                class="gh-room"
+                class:hit={hits[i]}
+                style:--x={room.x}
+                style:--y={room.y}
+                style:--w={room.w}
+              >
+                <span class="gh-room-icon" bind:this={roomEls[i]}
+                  ><Glyph name={room.glyph} size={16} /></span
+                >
+                <span class="gh-room-text" {dir}
+                  ><strong>{roomNames[i]}</strong><small>{roomMeta[i]}</small
+                  ></span
+                >
+              </li>
+            {/each}
+          </ul>
+        </div>
+        <p class="gh-sub">{$t('Encrypted on this computer')}</p>
+      </div>
+
+      <div class="gh-you" {dir}>
+        <p class="gh-label">{say}</p>
+        <div class="gh-say">
+          <div
+            class="approval-window gh-ticket"
+            class:awaiting={head}
+            bind:this={ticket}
+            tabindex="-1"
+            role="group"
+            aria-label={$t('Approval')}
+          >
+            <div class="win-bar">
+              <span class="lights" aria-hidden="true"
+                ><i></i><i></i><i></i></span
+              >
+              <span class="win-title">{$t('dMsg · Approval')}</span>
+            </div>
+            <div class="gh-tk">
+              {#if head}
+                {#key head.id}
+                  <div class="gh-tk-top">
+                    <span class="gh-kind"><i></i>{kindLabel(head.req)}</span>
+                    {#if head.more}
+                      <span class="gh-more"
+                        >{$t('{n} more waiting', { n: head.more })}</span
+                      >
+                    {/if}
+                    <span class="gh-timer">0:{pad(head.left)}</span>
+                  </div>
+                  <h4>{ask(head.req)}</h4>
+                  <p class="gh-from">
+                    {@render orb(head.req.asker)}<span
+                      >{roles[head.req.asker]}</span
+                    ><code>{ASKERS[head.req.asker]?.id}</code>
+                  </p>
+                  <p class="gh-effect">{consequence(head.req)}</p>
+                  <div class="gc-actions">
+                    <button
+                      class="button secondary"
+                      onclick={() => decide(false)}>{$t('Reject')}</button
+                    >
+                    <button class="button primary" onclick={() => decide(true)}
+                      >{$t('Approve')}</button
+                    >
+                  </div>
+                {/key}
+                <i class="gc-expiry" style:transform="scaleX({head.share})"></i>
+              {:else if outcome}
+                <p class="gh-outcome {outcome}">
+                  <Glyph
+                    name={outcome === 'approved'
+                      ? 'check'
+                      : outcome === 'rejected'
+                        ? 'close'
+                        : 'time'}
+                    size={18}
+                  />{outcomeText}
+                </p>
+              {:else}
+                <p class="gc-idle">
+                  {$t('Nothing is waiting. Tap a source to send a request.')}
+                </p>
+              {/if}
+            </div>
+          </div>
+          <p class="gh-zero">
+            <span>{$t('Signed, paid or shared without you')}</span><b>0</b>
+          </p>
+        </div>
+      </div>
+
+      <canvas class="front" bind:this={front} aria-hidden="true"></canvas>
     </div>
   </div>
-  <p class="gate-outcome" class:shown={outcome} aria-live="polite">
-    {outcomeText}
-  </p>
+  <p class="sr-only" aria-live="polite">{announce}</p>
   <p class="sr-only">
     {$t(
-      'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.'
+      'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.'
     )}
   </p>
   <figcaption>

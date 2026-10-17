@@ -315,9 +315,13 @@ border to every object.
 The landing rhythm is:
 
 1. Editorial hero: headline on the left, explanation and CTA on the right, then
-   Fig. 1 — the gate: requests from the desktop app, the terminal, AI agents and
-   websites meet the local daemon; everyday work leaves as ciphertext, and a
-   signature reaches ICP only after the visitor approves it.
+   Fig. 1 — the gatehouse, labelled with the headline's own words: who's asking,
+   your space, your say. An AI agent, a website, a teammate and the terminal
+   ask on the left; the mark, drawn large, holds the vault, wallets, messages
+   and files in its dome; granted work, encrypted messages and the visitor's
+   own commands pass through the gap into a room, and a payment, a sign-in or
+   a signature waits there as the amber gem until the visitor decides in the
+   approval window on the right.
 2. 01 Desktop & command line: Fig. 2 links a desktop window and a terminal
    through one simulated daemon, followed by three practical notes.
 3. 02 Files: Fig. 3 puts the library on this device beside what the cloud
@@ -345,8 +349,9 @@ what dMsg does before asking the reader to interpret its infrastructure.
 At approximately 1180px, the agent and wallet figures move their audit record
 below. At 1000px, collapse navigation and two-column headers, and stack the
 file figure's device and cloud panes. Below 900px the desktop
-window and terminal stack, and below 720px the gate figure turns to portrait
-with sources on top. At 760px and 440px stack the remaining grids. These
+window and terminal stack. The gate figure follows its own width: below about
+1060px the approval window moves under the gate, and below 720px the askers
+stack above it and share one path into the gap. At 760px and 440px stack the remaining grids. These
 are content-driven breakpoints, not device detection. Check 320px, 390px,
 tablet widths, and a 1440px desktop; no horizontal overflow may hide controls.
 
@@ -384,10 +389,11 @@ The brand symbol is **the Gate**; `static/_assets/dmsg/mark.svg` is the vector
 master. On a 42 × 48 grid, a post 10 units wide and a dome with a 24-unit radius
 stand 4 units apart. The gap is the gate: nothing reaches the dome except
 through it. The diamond in the gap is the request that waits for you, the same
-amber diamond the figures use for “Needs your approval”. It is cut out of the
-post and the dome with a 2.5-unit clearance. The mark descends from the
-daemon's D outline in the landing figures; that outline stays a diagram and
-never stands beside the wordmark as a logo.
+amber diamond the figures use for a request that needs approval. It is cut out
+of the post and the dome with a 2.5-unit clearance. Fig. 1 draws the mark at
+figure scale on the master's geometry, with the workspace's rooms in the dome
+and a waiting request lit in the gap; it is a diagram of what the mark means
+and never stands beside the wordmark as a logo.
 
 Use Forest Green with the `brand-gem` amber on light surfaces, and `#E7EFE9` or
 Mint with `inverse-brand-gem` on Ink and on the Forest Green app tile. In one
@@ -430,8 +436,9 @@ success state must follow the corresponding real result. Simulation must be
 clearly identified as simulation.
 
 On the landing page, rich motion is allowed inside working figures, which are
-captioned as simulations: packets travel through the gate, ciphertext scrambles
-as it leaves, a terminal types, a sealed envelope rides a sequence diagram.
+captioned as simulations: requests drop through the gate's gap into its rooms,
+typed text turns to ciphertext, a terminal types, a sealed envelope rides a
+sequence diagram.
 Nothing in a figure approves on its own: a request waits for the visitor and
 expires if ignored, and buttons never move or pulse. Headlines rise once on
 load; sections fade up once as they enter. Loops run only while their figure is
@@ -624,9 +631,10 @@ protocol-heavy presentation from 1Pay.ing.
 > An English dMsg landing page, 1440px wide. Paper canvas with faint grain, Ink
 > text, Inter with monospace kickers and captions. An oversized two-line “Your
 > space. Your say.” headline sits beside a short explanation and CTA. Below it a
-> framed diagram: desktop app, terminal, AI agent and website feed a D-shaped
-> local gate; ciphertext leaves for the cloud and a signature for ICP only after
-> approval. Continue into a desktop window beside a terminal, a file library
+> framed diagram: an AI agent, a website, a teammate and a terminal ask on the
+> left; the dMsg mark, drawn large, holds the vault, wallets, messages and files
+> in its dome; granted work passes through the gap, and a payment waits there as
+> the amber gem until the approval window on the right is answered. Continue into a desktop window beside a terminal, a file library
 > beside what the cloud holds, a team wallet proposal with its policy, an agent
 > capability panel with an audit record, a website request sequence ending in
 > an approval window, a dark privacy band, trust evidence, release status, FAQ

@@ -363,259 +363,429 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
 
 /* ——— Fig. 1: the gate ——— */
 .home .gate-frame {
+  container: gatehouse / inline-size;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: linear-gradient(180deg, #fbfcf9, #f3f6f1);
 }
+/* Who asks, the gate and your space, and your say, left to right. */
 .home .gate-stage {
   position: relative;
-  height: 420px;
-  border-radius: 18px 18px 0 0;
-  overflow: hidden;
-}
-.home .gate-stage.vertical {
-  height: 660px;
+  display: grid;
+  grid-template-columns:
+    minmax(220px, 250px) minmax(72px, 1.2fr) auto minmax(24px, 0.4fr)
+    minmax(280px, 330px);
+  grid-template-areas: 'ask . gate . you';
+  padding: 30px 32px;
 }
 .home .gate-stage canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
-.home .gate-source {
-  position: absolute;
+.home .gate-stage canvas.front {
+  z-index: 3;
+}
+/* Labels share the top line; the askers and the ticket centre below them. */
+.home :is(.gh-askers, .gh-gate, .gh-you) {
+  position: relative;
   z-index: 1;
-  transform: translate(calc(-100% - 16px), -50%);
+  min-width: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+}
+.home :is(.gh-list, .gh-say) {
+  margin-block: auto;
+}
+.home .gh-label {
+  margin: 0 0 12px;
+  font: 500 11.5px/1.5 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--forest);
+}
+.home .gh-askers {
+  grid-area: ask;
+}
+.home .gh-list {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  max-width: calc(21.5% - 20px);
-  padding: 7px 12px 7px 7px;
+}
+.home .gh-asker {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: start;
+  padding: 10px 12px 10px 10px;
   border: 1px solid var(--line);
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.94);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
   text-align: start;
   transition:
     border-color 0.18s,
-    box-shadow 0.18s,
-    transform 0.25s var(--ease);
+    box-shadow 0.18s;
 }
-.home .gate-source:hover,
-.home .gate-source.hot {
+.home .gh-asker:hover,
+.home .gh-asker.hot {
   border-color: var(--forest);
   box-shadow: 0 8px 22px -10px rgba(20, 92, 69, 0.45);
 }
-.home .gate-source:active {
-  transform: translate(calc(-100% - 16px), -50%) scale(0.97);
+.home .gh-asker.waiting {
+  border-color: rgba(180, 83, 9, 0.6);
 }
-.home .gate-source.ping .gs-icon {
-  animation: ping 0.6s var(--ease);
+.home .gh-asker > :not(.gh-orb) {
+  grid-column: 2;
 }
-.home .gs-icon {
+.home .gh-orb {
+  grid-row: 1 / span 3;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
   display: grid;
   place-items: center;
-  flex-shrink: 0;
+  border-radius: 8px;
   background: var(--pale);
+  font: 600 13px var(--mono);
   color: var(--forest);
 }
-.home .gs-text {
+.home .gh-asker.ping .gh-orb {
+  animation: ping 0.6s var(--ease);
+}
+.home .gh-who {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  line-height: 1.35;
+}
+.home .gh-who strong {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.home :is(.gh-who, .gh-from) code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 11px var(--mono);
+  color: var(--muted);
+}
+.home .gh-req {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 3px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.home .gh-req i {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--forest);
+  transform: translateY(-1px);
+}
+.home .gh-req i.formal {
+  border-radius: 1px;
+  background: var(--amber);
+  transform: translateY(-1px) rotate(45deg);
+}
+.home .gh-state {
+  margin-top: 2px;
+  padding-inline-start: 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--jade);
+}
+.home .gh-state:is(.sending, .rejected, .expired) {
+  color: var(--muted);
+}
+.home .gh-state.waiting {
+  font-weight: 600;
+  color: var(--amber);
+}
+.home .gh-gate {
+  grid-area: gate;
+}
+/* The gate's labels stand over the dome, clear of the lanes into the gap. */
+.home .gh-gate :is(.gh-label, .gh-sub) {
+  margin-inline: 38% 0;
+  text-align: center;
+}
+.home .gh-sub {
+  margin-block: 12px 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.home .gh-mark {
+  container: mark / size;
+  position: relative;
+  height: 400px;
+  aspect-ratio: 42 / 48;
+}
+.home .gh-mark > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.home .gh-body {
+  fill: var(--forest);
+}
+.home .gh-socket {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 0.4;
+  stroke-dasharray: 1.1 0.9;
+  opacity: 0.6;
+}
+.home .gh-gem {
+  fill: var(--amber);
+  opacity: 0;
+  transform: scale(0.2);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 0.35s var(--ease),
+    opacity 0.2s;
+}
+.home .gh-socket {
+  transition: opacity 0.2s;
+}
+.home .lit .gh-socket {
+  opacity: 0;
+}
+.home .lit .gh-gem {
+  opacity: 1;
+  transform: none;
+}
+.home .gh-rooms {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: clamp(10.5px, 3.2cqh, 13.5px);
+}
+.home .gh-room {
+  position: absolute;
+  left: calc(var(--x) / 42 * 100%);
+  top: calc(var(--y) / 48 * 100%);
+  width: calc(var(--w) / 42 * 100%);
+  height: calc(5 / 48 * 100%);
+  display: flex;
+  align-items: center;
+  gap: 0.65em;
+  padding: 0 0.7em;
+  border-radius: 0.7em;
+  background: rgba(231, 239, 233, 0.07);
+  color: #e7efe9;
+  transition: background 0.3s;
+}
+.home .gh-room.hit {
+  background: rgba(169, 213, 189, 0.26);
+}
+.home .gh-room-icon {
+  width: 2em;
+  height: 2em;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 0.55em;
+  background: rgba(169, 213, 189, 0.16);
+  color: var(--mint);
+}
+.home .gh-room-icon .glyph {
+  width: 1.2em;
+  height: 1.2em;
+}
+.home .gh-room-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  line-height: 1.25;
+  line-height: 1.3;
 }
-.home .gs-text strong {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.home .gs-text :is(code, small) {
-  font: 11px/1.4 var(--mono);
-  color: var(--muted);
-  white-space: nowrap;
+.home .gh-room-text :is(strong, small) {
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.home .gate-core {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 6px 2px;
-  border-radius: 8px;
-  background: #fff;
-  text-align: center;
-  pointer-events: none;
-}
-.home .gate-core code {
-  font: 600 12px/1.3 var(--mono);
-  color: var(--ink);
   white-space: nowrap;
 }
-.home .gate-core span {
-  font-size: 12px;
-  line-height: 1.3;
-  color: var(--forest);
+.home .gh-room-text strong {
+  font-weight: 600;
 }
-.home .gate-dest {
-  position: absolute;
-  transform: translate(16px, -50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: calc(21% - 20px);
-  pointer-events: none;
+.home .gh-room-text small {
+  font: 0.8em var(--mono);
+  color: rgba(231, 239, 233, 0.62);
 }
-.home .gd-icon {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid var(--line-2);
-  background: #fff;
-  color: var(--jade);
+@container mark (max-height: 330px) {
+  .home .gh-room-text small {
+    display: none;
+  }
 }
-.home .gate-dest.icp .gd-icon {
-  background: var(--forest);
-  border-color: var(--forest);
-  color: #fff;
+.home .gh-you {
+  grid-area: you;
 }
-.home .gate-dest small {
-  white-space: normal;
-}
-.home .vertical .gate-source {
-  transform: translate(-50%, calc(-100% - 12px));
-  flex-direction: column;
-  gap: 5px;
-  width: 23%;
-  max-width: 23%;
-  padding: 8px 4px;
-  text-align: center;
-}
-.home .vertical .gate-source:active {
-  transform: translate(-50%, calc(-100% - 12px)) scale(0.97);
-}
-.home .vertical .gs-text strong {
-  font-size: 12px;
-}
-.home .vertical .gate-source code {
-  display: none;
-}
-.home .vertical .gate-dest {
-  transform: translate(-50%, 12px);
-  flex-direction: column;
-  gap: 5px;
-  width: 42%;
-  max-width: 42%;
-  text-align: center;
-}
-.home .vertical .gs-text {
-  align-items: center;
-}
-.home .gate-dock {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 460px) minmax(0, 1fr);
-  gap: 28px;
-  align-items: center;
-  padding: 20px 26px;
-  border-top: 1px solid var(--line);
-  border-radius: 0 0 18px 18px;
-  background: rgba(255, 255, 255, 0.66);
-}
-.home .gate-legend {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.home .gate-legend li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.home .lg-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--forest);
-  box-shadow:
-    12px 0 0 -1px rgba(45, 121, 96, 0.5),
-    22px 0 0 -2px rgba(45, 121, 96, 0.25);
-  margin-inline-end: 20px;
-}
-.home .lg-diamond {
-  width: 9px;
-  height: 9px;
-  margin: 0 5px 0 1px;
-  background: var(--amber);
-  transform: rotate(45deg);
-}
-.home .gate-card {
+.home .gh-ticket {
   position: relative;
-  min-height: 116px;
-  padding: 14px 16px 16px;
+  top: auto;
+}
+.home .gh-tk {
+  position: relative;
+  min-height: 218px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-  overflow: hidden;
-  outline-offset: 3px;
-  transition:
-    border-color 0.25s,
-    box-shadow 0.25s;
+  padding: 14px 16px 18px;
 }
-.home .gate-card.waiting {
-  border-color: rgba(180, 83, 9, 0.55);
-  box-shadow: 0 14px 34px -18px rgba(180, 83, 9, 0.45);
-  animation: card-in 0.35s var(--ease);
+.home .gh-tk > :not(i) {
+  animation: fade-up 0.35s var(--ease) both;
 }
-.home .gc-head {
+.home .gh-tk-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+.home .gh-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 9px 2px 8px;
+  border-radius: 4px;
+  background: var(--amber-pale);
+  font: 600 11px/1.6 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.home .gh-kind i {
+  width: 7px;
+  height: 7px;
+  background: var(--amber);
+  transform: rotate(45deg);
+}
+.home .gh-more {
   font-size: 12px;
   color: var(--muted);
 }
-.home .gc-from {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.home .gc-timer {
+.home .gh-timer {
+  margin-inline-start: auto;
   font: 12px var(--mono);
   color: var(--amber);
 }
-.home .gc-ask {
+.home .gh-tk h4 {
+  margin: 12px 0 8px;
+  font-size: 18px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+.home .gh-from {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
-  margin: 6px 0 12px;
-  font-size: 15px;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
   color: var(--ink);
 }
-.home .gc-ask code {
-  font: 12.5px var(--mono);
+.home .gh-from .gh-orb {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+.home .gh-from .gh-orb .glyph {
+  width: 15px;
+  height: 15px;
+}
+.home .gh-effect {
+  margin: 10px 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--muted);
-  background: var(--paper-2);
-  padding: 1px 7px;
-  border-radius: 4px;
+}
+.home .gh-outcome {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--forest);
+}
+.home .gh-outcome:is(.rejected, .expired) {
+  color: var(--muted);
+}
+.home .gh-zero {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin: 14px 2px 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--forest);
+}
+.home .gh-zero b {
+  font: 600 15px var(--mono);
+}
+@container gatehouse (max-width: 1060px) {
+  .home .gate-stage {
+    grid-template-columns:
+      minmax(220px, 280px) minmax(72px, 1fr) auto
+      minmax(0, 0.3fr);
+    grid-template-areas: 'ask . gate .' 'you you you you';
+    row-gap: 36px;
+  }
+  .home .gh-mark {
+    height: 360px;
+  }
+  .home .gh-say {
+    display: grid;
+    grid-template-columns: minmax(0, 440px) minmax(200px, 1fr);
+    column-gap: 32px;
+    align-items: end;
+  }
+  .home .gh-zero {
+    margin: 0;
+  }
+}
+@container gatehouse (max-width: 719px) {
+  .home .gate-stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'ask' 'gate' 'you';
+    row-gap: 44px;
+    padding: 24px 16px;
+  }
+  .home .gh-gate {
+    justify-self: center;
+  }
+  /* Askers above share one path into the gap; the label goes below. */
+  .home .gh-gate .gh-label {
+    order: 1;
+    margin-block: 14px 0;
+  }
+  .home .gh-gate .gh-sub {
+    order: 2;
+    margin-top: 2px;
+  }
+  .home .gh-mark {
+    height: min(340px, calc((100cqw - 34px) * 48 / 42));
+  }
+  .home .gh-say {
+    display: block;
+  }
+  .home .gh-zero {
+    margin-top: 14px;
+  }
 }
 .home :is(.gc-actions, .as-actions, .aw-actions) {
   display: flex;
@@ -673,18 +843,6 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
 .home .gate-stats .zero :is(dt, dd) {
   color: var(--forest);
   font-weight: 600;
-}
-.home .gate-outcome {
-  min-height: 21px;
-  margin: 12px 0 0;
-  font-size: 13px;
-  text-align: center;
-  color: var(--forest);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.home .gate-outcome.shown {
-  opacity: 1;
 }
 
 /* ——— Fig. 2: desktop window and terminal ——— */
@@ -3268,12 +3426,6 @@ html[dir='rtl'] .home .up {
     transform: translateY(-6px);
   }
 }
-@keyframes card-in {
-  from {
-    transform: translateY(6px);
-    opacity: 0.4;
-  }
-}
 @keyframes ring {
   0% {
     transform: scale(0.6);
@@ -3436,7 +3588,9 @@ html[lang='ar']
   :is(
     .kicker,
     .fig figcaption,
-    .gs-text small,
+    .gh-label,
+    .gh-kind,
+    .gh-room-text small,
     .lab-label,
     .cc-label,
     .who,
@@ -3466,12 +3620,6 @@ html[lang='ar']
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
     column-gap: 20px;
-  }
-  .home .gate-dock {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
-  }
-  .home .gate-legend {
-    display: none;
   }
 }
 @media (max-width: 1000px) {
@@ -3554,11 +3702,6 @@ html[lang='ar']
   }
   .home .sec-head {
     margin-bottom: 36px;
-  }
-  .home .gate-dock {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    padding: 16px;
   }
   .home .gate-stats {
     justify-self: stretch;

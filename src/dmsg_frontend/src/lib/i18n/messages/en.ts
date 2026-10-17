@@ -510,19 +510,22 @@ const en = {
   'Account, devices and logins': 'Account, devices and logins',
   'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
     'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.',
+  'Add {file}': 'Add {file}',
   'Address book: {label} · past its 24-hour wait':
     'Address book: {label} · past its 24-hour wait',
   'Addresses': 'Addresses',
   'Admin': 'Admin',
   'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
     'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.',
-  'Agent': 'Agent',
   'Agent ID listed by {member}': 'Agent ID listed by {member}',
   'Agent and controller keys': 'Agent and controller keys',
   'Agents': 'Agents',
   'Agents get a folder.': 'Agents get a folder.',
   'Agents propose, people decide.': 'Agents propose, people decide.',
   'All downloads and checksums': 'All downloads and checksums',
+  'Allowed by its grant': 'Allowed by its grant',
+  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.':
+    'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.',
   'An agent acting for {member}': 'An agent acting for {member}',
   'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
     'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.',
@@ -535,15 +538,13 @@ const en = {
     'Apple Silicon · desktop app and command line',
   'Approval': 'Approval',
   'Approve': 'Approve',
-  'Approve a new device': 'Approve a new device',
   'Approve as Mei': 'Approve as Mei',
   'Approved': 'Approved',
   'Approved by you': 'Approved by you',
   'Approved. Either approver can still veto it until the delay ends.':
     'Approved. Either approver can still veto it until the delay ends.',
+  'Approved. Only this request passes.': 'Approved. Only this request passes.',
   'Approved. Signature generated.': 'Approved. Signature generated.',
-  'Approved. The signature goes to ICP.':
-    'Approved. The signature goes to ICP.',
   'Approver': 'Approver',
   'Approving any request': 'Approving any request',
   'Ask you to sign a statement': 'Ask you to sign a statement',
@@ -576,7 +577,6 @@ const en = {
     'Channels and an inbox on your terms.',
   'Chrome on this Mac': 'Chrome on this Mac',
   'Ciphertext': 'Ciphertext',
-  'Ciphertext only': 'Ciphertext only',
   'Ciphertext, plus what it takes to deliver it':
     'Ciphertext, plus what it takes to deliver it',
   'Click again to copy': 'Click again to copy',
@@ -602,10 +602,8 @@ const en = {
   'Delete the cloud copy': 'Delete the cloud copy',
   'Deletions that crossed over': 'Deletions that crossed over',
   'Deploy key': 'Deploy key',
-  'Desktop': 'Desktop',
   'Desktop & CLI': 'Desktop & CLI',
   'Desktop & command line': 'Desktop & command line',
-  'Desktop app': 'Desktop app',
   'Desktop app for macOS and Windows · command line on Linux too.':
     'Desktop app for macOS and Windows · command line on Linux too.',
   'Documents': 'Documents',
@@ -625,20 +623,23 @@ const en = {
     'Each event hashes the one before it, so a member can check that none is missing.',
   'Empty. Nothing arrives here until you back it up.':
     'Empty. Nothing arrives here until you back it up.',
+  'Encrypted and saved': 'Encrypted and saved',
   'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
     'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.',
   'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
     'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.',
+  'Encrypted on this computer': 'Encrypted on this computer',
+  'End-to-end encrypted': 'End-to-end encrypted',
   'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
     'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.',
   'Every action leaves a record.': 'Every action leaves a record.',
   'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
     'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.',
-  'Everyday work, encrypted': 'Everyday work, encrypted',
   'Everything asks. Only you approve.': 'Everything asks. Only you approve.',
   'Execute': 'Execute',
   'Expired': 'Expired',
-  'Expired. Nothing was signed.': 'Expired. Nothing was signed.',
+  'Expired. Nothing was signed or paid.':
+    'Expired. Nothing was signed or paid.',
   'Expires in': 'Expires in',
   'Fetch into the library': 'Fetch into the library',
   'Fetched and checked. Only on your devices does it have a name: {name}.':
@@ -647,6 +648,8 @@ const en = {
   'Files': 'Files',
   'Found it. The secret itself stays out: that would need vault.secret for this item.':
     'Found it. The secret itself stays out: that would need vault.secret for this item.',
+  'From Team treasury. It pays only after enough members approve.':
+    'From Team treasury. It pays only after enough members approve.',
   'From an interactive terminal': 'From an interactive terminal',
   'Get dMsg': 'Get dMsg',
   'Grant a capability, run the agent, read the record.':
@@ -663,7 +666,6 @@ const en = {
     'I don’t have {capability}, so I’ll skip that.',
   'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.':
     'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.',
-  'Identity and signatures': 'Identity and signatures',
   'In the dMsg cloud': 'In the dMsg cloud',
   'In the trash here, kept {days} days.':
     'In the trash here, kept {days} days.',
@@ -682,7 +684,6 @@ const en = {
   'Keep the keys.': 'Keep the keys.',
   'Key': 'Key',
   'Keys no one can export.': 'Keys no one can export.',
-  'Keys stay here': 'Keys stay here',
   'Legacy messages stay readable': 'Legacy messages stay readable',
   'Let agents work.': 'Let agents work.',
   'Lock the example': 'Lock the example',
@@ -691,11 +692,11 @@ const en = {
   'Login': 'Login',
   'MCP tools, from rooms and mail to files and wallets':
     'MCP tools, from rooms and mail to files and wallets',
+  'Message in {channel}': 'Message in {channel}',
   'Move {name} to the trash': 'Move {name} to the trash',
   'Needs 1 of 2 approvals.': 'Needs 1 of 2 approvals.',
   'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.':
     'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.',
-  'Needs your approval': 'Needs your approval',
   'Never grantable': 'Never grantable',
   'Never your messages or files': 'Never your messages or files',
   'New address-book entries': 'New address-book entries',
@@ -722,6 +723,7 @@ const en = {
     'Nothing to review yet. The request appears here when it reaches this device.',
   'On ICP': 'On ICP',
   'On another device': 'On another device',
+  'On its way': 'On its way',
   'On your desktop today.': 'On your desktop today.',
   'On your device': 'On your device',
   'One library, two places. Back up, delete, and see what each side keeps.':
@@ -748,11 +750,14 @@ const en = {
   'Pairing browsers': 'Pairing browsers',
   'Pairing starts on your device.': 'Pairing starts on your device.',
   'Pause': 'Pause',
+  'Pay {amount} to {payee}': 'Pay {amount} to {payee}',
+  'Payment': 'Payment',
   'Payments and checkout': 'Payments and checkout',
   'Photos': 'Photos',
   'Play': 'Play',
   'Policy for BTC': 'Policy for BTC',
   'Post in the release channel': 'Post in the release channel',
+  'Post in {channel}': 'Post in {channel}',
   'Private workspace · Files · Team wallets · AI agents':
     'Private workspace · Files · Team wallets · AI agents',
   'Progress': 'Progress',
@@ -765,12 +770,15 @@ const en = {
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
     'Publish, assess and retract signed knowledge, and query what other agents have shared.',
   'Read items tagged “deploy”': 'Read items tagged “deploy”',
+  'Read the deploy key': 'Read the deploy key',
   'Readable, and only while unlocked': 'Readable, and only while unlocked',
   'Ready': 'Ready',
   'Ready. A member can execute it now.': 'Ready. A member can execute it now.',
   'Recovery without a seed phrase.': 'Recovery without a seed phrase.',
   'Reject': 'Reject',
   'Rejected': 'Rejected',
+  'Rejected. Nothing was signed or paid.':
+    'Rejected. Nothing was signed or paid.',
   'Rejected. Nothing was signed.': 'Rejected. Nothing was signed.',
   'Rejected. The site is told no, and nothing is signed.':
     'Rejected. The site is told no, and nothing is signed.',
@@ -778,9 +786,6 @@ const en = {
   'Replay': 'Replay',
   'Reported by your browser through connect.dmsg.net':
     'Reported by your browser through connect.dmsg.net',
-  'Requests': 'Requests',
-  'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.':
-    'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.',
   'Restore': 'Restore',
   'Restored on this device.': 'Restored on this device.',
   'Run again': 'Run again',
@@ -792,6 +797,7 @@ const en = {
     'Sample data · nothing leaves this page',
   'Sample files · nothing leaves this page':
     'Sample files · nothing leaves this page',
+  'Save {file}': 'Save {file}',
   'Saved as a new version in your library. Backing it up or sharing it stays with you.':
     'Saved as a new version in your library. Backing it up or sharing it stays with you.',
   'Saved on this device · waits for sync':
@@ -822,16 +828,18 @@ const en = {
     'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.',
   'Show': 'Show',
   'Sign a file': 'Sign a file',
-  'Sign a statement': 'Sign a statement',
   'Sign in with dMsg': 'Sign in with dMsg',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.':
     'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.',
+  'Sign {file}': 'Sign {file}',
+  'Sign-in': 'Sign-in',
+  'Signature': 'Signature',
   'Signature generated': 'Signature generated',
   'Signature receipts, after you approve':
     'Signature receipts, after you approve',
   'Signatures': 'Signatures',
   'Signed': 'Signed',
-  'Signed without you': 'Signed without you',
+  'Signed, paid or shared without you': 'Signed, paid or shared without you',
   'Signing key': 'Signing key',
   'Signing…': 'Signing…',
   'Simulated agent with sample data. Nothing is sent anywhere.':
@@ -851,6 +859,7 @@ const en = {
     'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.',
   'Team wallets, their proposals and approvals':
     'Team wallets, their proposals and approvals',
+  'Teammate': 'Teammate',
   'Terminal': 'Terminal',
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.',
@@ -864,6 +873,8 @@ const en = {
     'The site is told no; nothing is signed',
   'The site received the result': 'The site received the result',
   'The site verifies the signature': 'The site verifies the signature',
+  'The terminal receives your signature for this file.':
+    'The terminal receives your signature for this file.',
   'The wallet builds the transaction from the proposal and signs it with its threshold key.':
     'The wallet builds the transaction from the proposal and signs it with its threshold key.',
   'Titles, notes and secrets stay encrypted until you unlock this device.':
@@ -898,6 +909,7 @@ const en = {
   'Wait 24 hours': 'Wait 24 hours',
   'Waiting for approvals. The agent cannot give one.':
     'Waiting for approvals. The agent cannot give one.',
+  'Waiting for you': 'Waiting for you',
   'Wallets': 'Wallets',
   'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
     'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.',
@@ -911,6 +923,7 @@ const en = {
   'What if I lose my computer?': 'What if I lose my computer?',
   'What you approve is what it signs.': 'What you approve is what it signs.',
   'Who holds a team wallet’s keys?': 'Who holds a team wallet’s keys?',
+  'Who’s asking': 'Who’s asking',
   'Windows installer': 'Windows installer',
   'Write into the “release” folder': 'Write into the “release” folder',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
@@ -938,7 +951,6 @@ const en = {
     'capabilities, each granted on purpose',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.',
-  'dMsg cloud': 'dMsg cloud',
   'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
     'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.',
   'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
@@ -956,6 +968,9 @@ const en = {
   '{count} files · {size}': '{count} files · {size}',
   '{count} items': '{count} items',
   '{count} versions': '{count} versions',
+  '{n} more waiting': '{n} more waiting',
+  '{site} receives a signed sign-in for this account.':
+    '{site} receives a signed sign-in for this account.',
   '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.':
     '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.',
   '{used} of {limit}': '{used} of {limit}',

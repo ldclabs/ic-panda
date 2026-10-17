@@ -526,13 +526,13 @@ export default {
     'Compte, appareils et identifiants de connexion',
   'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
     'Ajoutez un second appareil et associez un identifiant de connexion de confiance. Si tous vos appareils sont perdus, il peut récupérer le compte après un délai d’attente que vos appareils peuvent contester.',
+  'Add {file}': 'Ajouter {file}',
   'Address book: {label} · past its 24-hour wait':
     'Carnet : {label} · délai de 24 heures écoulé',
   'Addresses': 'Adresses',
   'Admin': 'Admin',
   'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
     'Après 15 minutes d’inactivité, l’appareil se verrouille et oublie ses clés. Verrouillé, il peut encore vous signaler qu’une demande attend, mais jamais de qui.',
-  'Agent': 'Agent',
   'Agent ID listed by {member}': 'Agent ID déclaré par {member}',
   'Agent and controller keys': 'Clés des agents et contrôleurs',
   'Agents': 'Agents',
@@ -541,6 +541,9 @@ export default {
     'Les agents proposent, les humains décident.',
   'All downloads and checksums':
     'Tous les téléchargements et sommes de contrôle',
+  'Allowed by its grant': 'Couverte par son autorisation',
+  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.':
+    'Un agent IA, un site web, un membre de l’équipe et le terminal demandent l’accès à votre coffre, vos portefeuilles, vos messages et vos fichiers. Le travail autorisé à l’agent, les messages chiffrés et vos propres commandes passent ; un paiement, une connexion ou une signature attend à la porte jusqu’à votre accord.',
   'An agent acting for {member}': 'Un agent agissant pour {member}',
   'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
     'Un agent autorisé peut préparer un transfert et exécuter un transfert approuvé. Aucune capacité ne lui permet d’approuver.',
@@ -553,15 +556,14 @@ export default {
     'Apple Silicon · application de bureau et ligne de commande',
   'Approval': 'Approbation',
   'Approve': 'Approuver',
-  'Approve a new device': 'Approuver un nouvel appareil',
   'Approve as Mei': 'Approuver comme Mei',
   'Approved': 'Approuvé',
-  'Approved by you': 'Approuvées par vous',
+  'Approved by you': 'Approuvée par vous',
   'Approved. Either approver can still veto it until the delay ends.':
     'Approuvée. Jusqu’à la fin du délai, chacun peut encore opposer un veto.',
+  'Approved. Only this request passes.':
+    'Approuvée. Seule cette demande passe.',
   'Approved. Signature generated.': 'Approuvé. Signature générée.',
-  'Approved. The signature goes to ICP.':
-    'Approuvé. La signature part vers ICP.',
   'Approver': 'Approbateur',
   'Approving any request': 'Approuver une demande',
   'Ask you to sign a statement': 'Vous demander de signer une déclaration',
@@ -594,7 +596,6 @@ export default {
     'Canaux et boîte de réception, selon vos règles.',
   'Chrome on this Mac': 'Chrome sur ce Mac',
   'Ciphertext': 'Texte chiffré',
-  'Ciphertext only': 'Uniquement du chiffré',
   'Ciphertext, plus what it takes to deliver it':
     'Du chiffré, plus ce qu’il faut pour le livrer',
   'Click again to copy': 'Cliquez à nouveau pour copier',
@@ -622,10 +623,8 @@ export default {
   'Delete the cloud copy': 'Supprimer la copie en ligne',
   'Deletions that crossed over': 'Suppressions passées de l’autre côté',
   'Deploy key': 'Clé de déploiement',
-  'Desktop': 'Bureau',
   'Desktop & CLI': 'Bureau et CLI',
   'Desktop & command line': 'Bureau et ligne de commande',
-  'Desktop app': 'Application de bureau',
   'Desktop app for macOS and Windows · command line on Linux too.':
     'Application de bureau pour macOS et Windows · ligne de commande aussi sur Linux.',
   'Documents': 'Documents',
@@ -645,21 +644,24 @@ export default {
     'Chaque événement contient l’empreinte du précédent : un membre peut vérifier qu’il n’en manque aucun.',
   'Empty. Nothing arrives here until you back it up.':
     'Vide. Rien n’arrive ici tant que vous ne sauvegardez pas.',
+  'Encrypted and saved': 'Chiffré et enregistré',
   'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
     'Des canaux chiffrés avec rôles et pièces jointes. Vos règles de contact décident qui peut vous écrire : personne, vos contacts, tout le monde ou les expéditeurs qui paient.',
   'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
     'Chiffré dans votre navigateur avec une clé AES-GCM jetable, à titre d’illustration ; le format de dMsg est différent. Regardez la taille : le chiffrement cache le contenu, pas la longueur ni le moment.',
+  'Encrypted on this computer': 'Chiffré sur cet ordinateur',
+  'End-to-end encrypted': 'Chiffré de bout en bout',
   'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
     'Des lettres chiffrées de bout en bout entre agents, vers des boîtes que vous publiez et renouvelez.',
   'Every action leaves a record.': 'Chaque action laisse une trace.',
   'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
     'Chaque modification est une nouvelle version sous sa propre clé. Les versions de différents appareils se côtoient, et vous choisissez la version courante.',
-  'Everyday work, encrypted': 'Le quotidien, chiffré',
   'Everything asks. Only you approve.':
     'Tout le monde demande. Vous seul approuvez.',
   'Execute': 'Exécuter',
-  'Expired': 'Expirées',
-  'Expired. Nothing was signed.': 'Expiré. Rien n’a été signé.',
+  'Expired': 'Expirée',
+  'Expired. Nothing was signed or paid.':
+    'Expirée. Rien n’a été signé ni payé.',
   'Expires in': 'Expire dans',
   'Fetch into the library': 'Récupérer dans la bibliothèque',
   'Fetched and checked. Only on your devices does it have a name: {name}.':
@@ -668,6 +670,8 @@ export default {
   'Files': 'Fichiers',
   'Found it. The secret itself stays out: that would need vault.secret for this item.':
     'Trouvé. Le secret lui-même reste à l’écart : il faudrait vault.secret pour cet élément.',
+  'From Team treasury. It pays only after enough members approve.':
+    'Depuis la trésorerie d’équipe. Le paiement ne part qu’avec l’accord de suffisamment de membres.',
   'From an interactive terminal': 'Depuis un terminal interactif',
   'Get dMsg': 'Obtenir dMsg',
   'Grant a capability, run the agent, read the record.':
@@ -684,7 +688,6 @@ export default {
     'Je n’ai pas {capability}, je passe cette étape.',
   'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.':
     'Le sous-réseau de signature d’ICP détient chaque clé en parts, dérivée pour ce seul portefeuille. Aucune phrase secrète à afficher, saisir, voler ou perdre.',
-  'Identity and signatures': 'Identité et signatures',
   'In the dMsg cloud': 'Dans le cloud dMsg',
   'In the trash here, kept {days} days.':
     'Dans la corbeille ici, conservé {days} jours.',
@@ -703,7 +706,6 @@ export default {
   'Keep the keys.': 'Gardez les clés.',
   'Key': 'Clé',
   'Keys no one can export.': 'Des clés que personne n’exporte.',
-  'Keys stay here': 'Les clés restent ici',
   'Legacy messages stay readable': 'Les anciens messages restent lisibles',
   'Let agents work.': 'Laissez les agents travailler.',
   'Lock the example': 'Verrouiller l’exemple',
@@ -712,11 +714,11 @@ export default {
   'Login': 'Identifiant',
   'MCP tools, from rooms and mail to files and wallets':
     'outils MCP, des salons au courrier, aux fichiers et aux portefeuilles',
+  'Message in {channel}': 'Message dans {channel}',
   'Move {name} to the trash': 'Mettre {name} à la corbeille',
   'Needs 1 of 2 approvals.': 'Il faut 1 approbation sur 2.',
   'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.':
     'Il faut 2 approbations sur 2, puis 24 heures pendant lesquelles chacun peut opposer un veto.',
-  'Needs your approval': 'Nécessite votre accord',
   'Never grantable': 'Jamais accordable',
   'Never your messages or files': 'Jamais vos messages ni vos fichiers',
   'New address-book entries': 'Nouvelles entrées du carnet',
@@ -743,6 +745,7 @@ export default {
     'Rien à examiner pour l’instant. La demande apparaît ici quand elle atteint cet appareil.',
   'On ICP': 'Sur ICP',
   'On another device': 'Sur un autre appareil',
+  'On its way': 'En route',
   'On your desktop today.': 'Sur votre ordinateur, dès aujourd’hui.',
   'On your device': 'Sur votre appareil',
   'One library, two places. Back up, delete, and see what each side keeps.':
@@ -770,11 +773,14 @@ export default {
   'Pairing browsers': 'Associer des navigateurs',
   'Pairing starts on your device.': 'L’association part de votre appareil.',
   'Pause': 'Pause',
+  'Pay {amount} to {payee}': 'Payer {amount} à « {payee} »',
+  'Payment': 'Paiement',
   'Payments and checkout': 'Paiements et achats',
   'Photos': 'Photos',
   'Play': 'Lancer',
   'Policy for BTC': 'Politique pour BTC',
   'Post in the release channel': 'Publier dans le canal des versions',
+  'Post in {channel}': 'Publier dans {channel}',
   'Private workspace · Files · Team wallets · AI agents':
     'Espace privé · Fichiers · Portefeuilles d’équipe · Agents IA',
   'Progress': 'Progression',
@@ -787,13 +793,16 @@ export default {
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
     'Publiez, évaluez et retirez des connaissances signées, et interrogez ce que d’autres agents ont partagé.',
   'Read items tagged “deploy”': 'Lire les éléments étiquetés « deploy »',
+  'Read the deploy key': 'Lire la clé de déploiement',
   'Readable, and only while unlocked': 'Lisible, et seulement déverrouillé',
   'Ready': 'Prête',
   'Ready. A member can execute it now.':
     'Prête. Un membre peut l’exécuter maintenant.',
   'Recovery without a seed phrase.': 'Récupérer sans phrase secrète.',
   'Reject': 'Refuser',
-  'Rejected': 'Refusées',
+  'Rejected': 'Refusée',
+  'Rejected. Nothing was signed or paid.':
+    'Refusée. Rien n’a été signé ni payé.',
   'Rejected. Nothing was signed.': 'Refusé. Rien n’a été signé.',
   'Rejected. The site is told no, and nothing is signed.':
     'Refusé. Le site reçoit un refus, et rien n’est signé.',
@@ -801,9 +810,6 @@ export default {
   'Replay': 'Rejouer',
   'Reported by your browser through connect.dmsg.net':
     'Transmis par votre navigateur via connect.dmsg.net',
-  'Requests': 'Demandes',
-  'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.':
-    'Les demandes de l’application de bureau, du terminal, des agents IA et des sites arrivent au démon dMsg sur votre ordinateur. Le travail courant ne part vers le cloud que chiffré ; une signature n’atteint ICP qu’après votre accord.',
   'Restore': 'Restaurer',
   'Restored on this device.': 'Restauré sur cet appareil.',
   'Run again': 'Relancer',
@@ -815,6 +821,7 @@ export default {
     'Données d’exemple · rien ne quitte cette page',
   'Sample files · nothing leaves this page':
     'Fichiers d’exemple · rien ne quitte cette page',
+  'Save {file}': 'Enregistrer {file}',
   'Saved as a new version in your library. Backing it up or sharing it stays with you.':
     'Enregistré comme nouvelle version dans votre bibliothèque. Le sauvegarder ou le partager reste votre décision.',
   'Saved on this device · waits for sync':
@@ -845,16 +852,18 @@ export default {
     'Sors la v1.4 : vérifie la clé de déploiement, enregistre les notes de version, publie-les et fais signer la version.',
   'Show': 'Afficher',
   'Sign a file': 'Signer un fichier',
-  'Sign a statement': 'Signer une déclaration',
   'Sign in with dMsg': 'Se connecter avec dMsg',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.':
     'Connectez-vous avec votre identité existante pour lire les anciennes conversations et télécharger les pièces jointes accessibles. Messages, envois, modifications de profil et inscriptions sont désactivés. Conservez le navigateur d’origine et ses données, surtout en mode Local key. Pour passer au nouveau dMsg, lancez une migration dans l’application de bureau, sous Paramètres › Ancienne version.',
+  'Sign {file}': 'Signer {file}',
+  'Sign-in': 'Connexion',
+  'Signature': 'Signature',
   'Signature generated': 'Signature générée',
   'Signature receipts, after you approve':
     'Reçus de signature, après votre accord',
   'Signatures': 'Signatures',
   'Signed': 'Signée',
-  'Signed without you': 'Signé sans vous',
+  'Signed, paid or shared without you': 'Signé, payé ou partagé sans vous',
   'Signing key': 'Clé de signature',
   'Signing…': 'Signature…',
   'Simulated agent with sample data. Nothing is sent anywhere.':
@@ -874,6 +883,7 @@ export default {
     'Les portefeuilles d’équipe sont en développement. Jusqu’à un audit indépendant, utilisez-les seulement pour tester, avec de petits montants.',
   'Team wallets, their proposals and approvals':
     'Portefeuilles d’équipe, leurs propositions et approbations',
+  'Teammate': 'Membre de l’équipe',
   'Terminal': 'Terminal',
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'Le client, le démon, les protocoles et les canisters sont dans le dépôt public. Le service cloud de production a sa propre frontière de confiance opérationnelle.',
@@ -887,6 +897,8 @@ export default {
     'Le site reçoit un refus ; rien n’est signé',
   'The site received the result': 'Le site a reçu le résultat',
   'The site verifies the signature': 'Le site vérifie la signature',
+  'The terminal receives your signature for this file.':
+    'Le terminal reçoit votre signature pour ce fichier.',
   'The wallet builds the transaction from the proposal and signs it with its threshold key.':
     'Le portefeuille construit la transaction à partir de la proposition et la signe avec sa clé à seuil.',
   'Titles, notes and secrets stay encrypted until you unlock this device.':
@@ -922,6 +934,7 @@ export default {
   'Wait 24 hours': 'Attendent 24 heures',
   'Waiting for approvals. The agent cannot give one.':
     'En attente d’approbations. L’agent ne peut pas en donner.',
+  'Waiting for you': 'Vous attend',
   'Wallets': 'Portefeuilles',
   'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
     'Les webhooks atteignent les agents sur votre portable : le relais dMsg les reçoit et les scelle pour votre appareil.',
@@ -937,6 +950,7 @@ export default {
     'Ce que vous approuvez est ce qu’il signe.',
   'Who holds a team wallet’s keys?':
     'Qui détient les clés d’un portefeuille d’équipe ?',
+  'Who’s asking': 'Qui demande',
   'Windows installer': 'Installateur Windows',
   'Write into the “release” folder': 'Écrire dans le dossier « release »',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
@@ -964,7 +978,6 @@ export default {
     'capacités, chacune accordée sciemment',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net transmet l’origine que votre navigateur lui a donnée. Elle ne peut ni approuver, ni signer, ni lire votre coffre, et la fenêtre d’approbation indique d’où vient l’origine.',
-  'dMsg cloud': 'Cloud dMsg',
   'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
     'dMsg n’a pas encore été audité de façon indépendante. Un dépôt public ne prouve ni un audit ni le code réellement déployé.',
   'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
@@ -982,6 +995,9 @@ export default {
   '{count} files · {size}': '{count} fichiers · {size}',
   '{count} items': '{count} éléments',
   '{count} versions': '{count} versions',
+  '{n} more waiting': 'Encore {n} en attente',
+  '{site} receives a signed sign-in for this account.':
+    '{site} reçoit une connexion signée pour ce compte.',
   '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.':
     '{size}, chiffré tel quel. Rien n’est envoyé sans cette étape, et rien n’est supprimé d’un côté ni de l’autre.',
   '{used} of {limit}': '{used} sur {limit}',
