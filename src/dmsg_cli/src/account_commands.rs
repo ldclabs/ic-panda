@@ -456,11 +456,12 @@ pub async fn login(
         if let Some(error) = result["error"]["message"].as_str() {
             return Err(Failure::new("AUTH_REQUIRED", error));
         }
+        // The page ran out before the browser answered.
+        if result["done"] != true {
+            return Err(Failure::new("EXPIRED", "the login was not completed"));
+        }
         if bind {
             return created(remote, json, result["approval"].clone()).await;
-        }
-        if result["status"]["principal"].is_null() {
-            return Err(Failure::new("EXPIRED", "the login was not completed"));
         }
         print(json, &result["status"], summary);
         return Ok(());

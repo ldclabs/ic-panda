@@ -316,17 +316,18 @@ pub fn install(dir: Option<PathBuf>) -> Result<Value, Failure> {
 }
 
 /// Install `source` at `target`. Nothing runs an installed binary that
-/// fails `verified`: one at the shared location is replaced, and a Homebrew
-/// one gives way to the shared location.
+/// fails `verified`: a Homebrew one gives way to the shared location, and
+/// any other one is replaced, even one that resolves under a `Cellar`.
 fn install_at(
     source: &Path,
     target: PathBuf,
     shared: PathBuf,
     verified: impl Fn(&Path) -> bool,
 ) -> Result<Value, Failure> {
-    let target = match homebrew(&target) && !verified(&target) {
-        true => shared,
-        false => target,
+    let (target, brewed) = match homebrew(&target) {
+        true if verified(&target) => (target, true),
+        true => (shared, false),
+        false => (target, false),
     };
     let same = |a: &Path, b: &Path| match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
         (Ok(a), Ok(b)) => a == b,
@@ -336,7 +337,7 @@ fn install_at(
     let (action, version) = if !target.exists() {
         place(&copy()?, &target)?;
         ("installed", Some(VERSION.to_string()))
-    } else if homebrew(&target) {
+    } else if brewed {
         ("homebrew", version_of(&target))
     } else if same(source, &target) {
         ("current", Some(VERSION.to_string()))
@@ -450,8 +451,19 @@ mod tests {
             (&json!("installed"), &json!(shared))
         );
         assert!(!ran.exists());
-        let kept = install_at(&source, brewed, shared, |_| true).unwrap();
+        let kept = install_at(&source, brewed.clone(), shared.clone(), |_| true).unwrap();
         assert_eq!(kept["action"], "homebrew");
+
+        // A shared binary that fails is replaced even when it resolves under
+        // a `Cellar`.
+        std::fs::remove_file(&ran).unwrap();
+        std::fs::remove_file(&shared).unwrap();
+        std::os::unix::fs::symlink(&brewed, &shared).unwrap();
+        let replaced =
+            install_at(&source, shared.clone(), shared.clone(), |p| !homebrew(p)).unwrap();
+        assert_eq!(replaced["action"], "replaced");
+        assert_eq!(std::fs::read(&shared).unwrap(), b"bundled");
+        assert!(!ran.exists());
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

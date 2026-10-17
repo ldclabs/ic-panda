@@ -289,7 +289,7 @@ Recovery   = 提案人角色为 Recovery 时只接受 AddMember/RemoveMember/Set
 
 - `Transfer { asset: Icp | Icrc }`：`execute` 在同一消息内把提案置 `Signing` 并记录 `created_at_time = now`、`memo = proposal_digest[..32]`，再 `icrc1_transfer`（ICP 账本同样走 ICRC-1）。成功 → `Settled { block }`；账本明确拒绝 → `Failed(reason)`（`BadFee` 时允许 `revise_fee` 后重试，同 memo 去重）；结果未知 → 保持 `Signing`，`reconcile` 用 `icrc3_get_blocks` 按 memo 与 `created_at_time` 找回区块（复用 `dmsg_runtime::ledger`）。24 小时去重窗口内不重复发送。
 - `Batch`：顺序逐笔，每笔独立状态，失败不回滚已成功的（账本不支持原子批量），审计逐笔。
-- `CanisterCall`：`propose` 时实例先 `icrc10_supported_standards` 探测目标，支持 ICRC-21 则调 `icrc21_canister_call_consent_message` 取同意文本存入 `consent`（所有批准者看到同一文本）；不支持则要求提案附客户端解码的参数摘要并标记“未取得目标同意文本”。目标必须在 `call_targets` 白名单。`execute` 用 `ic_cdk::call` 附 `cycles`，回复原样保存（≤ 64 KiB，超出存摘要）。dMsg 收入归集（`dmsg_commerce.collect_checkout_revenue`、`dmsg_handle` 的收款账户）就是这类调用。
+- `CanisterCall`：`propose` 时实例先 `icrc10_supported_standards` 探测目标，支持 ICRC-21 则调 `icrc21_canister_call_consent_message` 取同意文本存入 `consent`（所有批准者看到同一文本）；不支持则要求提案附客户端解码的参数摘要并标记“未取得目标同意文本”。目标必须在 `call_targets` 白名单。`execute` 用 `ic_cdk::call` 附 `cycles`，回复原样保存（≤ 64 KiB，超出存摘要）。dMsg 收入归集（`dmsg_commerce.collect_checkout_revenue`）就是这类调用；handle 注册费直接转入其收入账户，无需归集。
 - `Refuel`：见 7.9。
 
 ### 7.5 外链执行

@@ -21,9 +21,8 @@
     { label: 'loginStepIdentity', phase: 'browser' },
     { label: 'loginStepFinish', phase: 'checking' }
   ]
-  const order = ['starting', 'browser', 'checking']
 
-  const current = $derived(order.indexOf(login.phase))
+  const current = $derived(steps.findIndex((step) => step.phase === login.phase))
   const until = $derived(login.expiresAt ? new Date(login.expiresAt).toLocaleTimeString(locale(), { hour: 'numeric', minute: '2-digit' }) : '')
   const title = $derived(login.phase === 'failed' ? t('loginFailedTitle') : login.bind ? t('bindLogin') : t('loginWaitTitle'))
   const icon = $derived<Glyph>(login.phase === 'failed' ? 'warning' : 'login')

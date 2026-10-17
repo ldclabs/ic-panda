@@ -227,7 +227,7 @@ stateDiagram-v2
 
 | 收入来源 | 现有入口 | 接入方式 |
 | --- | --- | --- |
-| handle 注册 PANDA 收入 | `dmsg_handle.admin_collect_token(to, amount)`，controller/SNS governance 调用 | SNS 提案把 `to` 设为团队钱包的 PANDA 收款账户 |
+| handle 注册 PANDA 收入 | 注册费直接转入 `HandleInit.revenue`，controller/SNS governance 用 `admin_set_revenue` 更换 | 收入账户设为团队钱包的 PANDA 收款账户 |
 | commerce 商户收入（ckUSDC/ckUSDT） | `dmsg_commerce.collect_checkout_revenue`，必须由产品注册中 `merchant.owner` 调用 | 产品注册的 `merchant` 设为团队钱包 principal；钱包用“canister 调用”提案归集 |
 | payment 平台费 | `PaymentInit.platform` 收款账户，安装后不可改 | 新实例把 `platform` 设为团队钱包账户；已部署实例由 SNS 提案处理 |
 | 钱包激活费 | 工厂 | 工厂的 DAO 收入账户 = 团队钱包 |

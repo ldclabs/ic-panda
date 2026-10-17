@@ -742,15 +742,22 @@ impl Daemon {
                     let outcome = login.outcome.clone();
                     (waiting, login.checking, outcome, login.approval.clone())
                 };
+                let pending = waiting || checking;
                 let done = outcome.is_some();
                 let error = outcome.and_then(|o| o.err());
+                // The check holds the client until it ends, and the status
+                // would wait for it.
+                let status = match pending {
+                    true => Value::Null,
+                    false => self.status().await?,
+                };
                 Ok(json!({
-                    "pending": waiting || checking,
+                    "pending": pending,
                     "checking": checking,
                     "done": done,
                     "error": error.map(|e| json!({"code": error_code(&e), "message": e.to_string()})),
                     "approval": approval,
-                    "status": self.status().await?,
+                    "status": status,
                 }))
             }
             "session/accounts" => Ok(to_json(&self.client.lock().await.accounts()?)),
@@ -1512,7 +1519,15 @@ async fn callback_page(State(daemon): State<Arc<Daemon>>) -> Response {
         .into_response()
 }
 
+/// The check runs in its own task: a browser that leaves before the answer
+/// drops the request, which would leave the login checking and half applied.
 async fn callback(State(daemon): State<Arc<Daemon>>, headers: HeaderMap, body: Bytes) -> Response {
+    tokio::spawn(check_callback(daemon, headers, body))
+        .await
+        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+}
+
+async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) -> Response {
     let now = now_ms();
     // One POST per login, whatever its fate.
     let (session, bind) = {
@@ -1684,6 +1699,51 @@ mod tests {
                 .unwrap_err()
                 .code,
             "AUTH_REQUIRED"
+        );
+    }
+
+    #[tokio::test]
+    async fn login_result_answers_while_the_callback_checks() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = Home {
+            dir: dir.0.join("home"),
+        };
+        let client = dmsg_client::testing::unlocked(&dir.0.join("workspace"), false, None);
+        let daemon = Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        );
+        // The callback holds the client while it checks a login.
+        daemon.login.lock().expect("login state").checking = true;
+        let held = daemon.client.lock().await;
+        let result = tokio::time::timeout(
+            Duration::from_secs(5),
+            daemon.call_daemon("session/login_result", &Value::Null),
+        )
+        .await
+        .expect("an answer while the check holds the client")
+        .unwrap();
+        assert_eq!(
+            (&result["pending"], &result["checking"], &result["status"]),
+            (&json!(true), &json!(true), &Value::Null)
+        );
+        drop(held);
+        daemon.login.lock().expect("login state").checking = false;
+        let result = daemon
+            .call_daemon("session/login_result", &Value::Null)
+            .await
+            .unwrap();
+        assert_eq!(
+            (
+                &result["pending"],
+                &result["done"],
+                &result["status"]["state"]
+            ),
+            (&json!(false), &json!(false), &json!("unlocked"))
         );
     }
 

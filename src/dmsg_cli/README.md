@@ -726,7 +726,9 @@ The daemon listens on `127.0.0.1` only.
   `approval/changed`. `login/changed` comes when the POST arrives and when its
   check ends: `session/login_result` reports `{pending, checking, done,
   error {code, message}, approval, status}`, pending until the login page's
-  time runs out or the check ends, and done once the check ended.
+  time runs out or the check ends, and done once the check ended; `status`
+  is null while pending. The check finishes even if the browser leaves
+  before its answer.
 - `idle_lock_minutes` without activity locks the daemon: the login and every
   key are dropped. Every request is activity except `app/initialize`,
   `daemon/status`, `events/poll`, `mcp-events/poll` and the waiting readers,
