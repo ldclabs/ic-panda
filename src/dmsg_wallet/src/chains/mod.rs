@@ -6,31 +6,35 @@ pub(crate) mod evm;
 pub(crate) mod sol;
 
 use crate::store::{SignSpec, Wallet};
+use cbor2::Cbor;
 use dmsg_types::{wallet::*, *};
-use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 
 /// How to turn signatures into the signed transaction.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) enum Assembly {
+    /// Every input spends from the plan's address the same way.
     Bitcoin {
+        #[cbor(key = 1)]
         tx: btc::BtcTx,
-        spends: Vec<btc::BtcSpend>,
+        #[cbor(key = 2)]
+        spend: btc::BtcSpend,
     },
     Evm {
+        #[cbor(key = 1)]
         tx: evm::Eip1559,
+        #[cbor(key = 3)]
         public_key: ByteBuf,
     },
-    Solana {
-        message: ByteBuf,
-    },
+    /// The signature precedes the unsigned message.
+    Solana,
 }
 
 /// A built plan before it is stored.
 pub(crate) struct Built {
     pub(crate) unsigned: Vec<u8>,
     pub(crate) digests: Vec<Hash>,
-    pub(crate) signs: Vec<SignSpec>,
+    pub(crate) sign: SignSpec,
     pub(crate) summary: DecodedSummary,
     pub(crate) assembly: Assembly,
 }
@@ -197,20 +201,26 @@ pub(crate) fn build(
     }
 }
 
-/// The signed transaction and its ID.
+/// The signed transaction and its ID, from a plan's unsigned bytes and
+/// digests, one threshold signature per digest and, for a native Taproot
+/// address, the cosigner's signatures.
 pub(crate) fn assemble(
     a: &Assembly,
+    unsigned: &[u8],
+    digests: &[Hash],
     sigs: &[Vec<u8>],
     cosigs: &[Option<Vec<u8>>],
 ) -> Result<(Vec<u8>, String)> {
+    let first = sigs.first().ok_or(Error::IntegrityFailed)?;
     match a {
-        Assembly::Bitcoin { tx, spends } => btc::assemble(tx, spends, sigs, cosigs),
-        Assembly::Evm { tx, public_key } => {
-            evm::assemble(tx, public_key, sigs.first().ok_or(Error::IntegrityFailed)?)
-        }
-        Assembly::Solana { message } => {
-            sol::assemble(message, sigs.first().ok_or(Error::IntegrityFailed)?)
-        }
+        Assembly::Bitcoin { tx, spend } => btc::assemble(tx, spend, sigs, cosigs),
+        Assembly::Evm { tx, public_key } => evm::assemble(
+            tx,
+            public_key,
+            digests.first().ok_or(Error::IntegrityFailed)?,
+            first,
+        ),
+        Assembly::Solana => sol::assemble(unsigned, first),
     }
 }
 

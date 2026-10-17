@@ -4,7 +4,6 @@ use super::{dest_text, Built};
 use crate::store::SignSpec;
 use dmsg_protocol::wallet::*;
 use dmsg_types::{wallet::*, *};
-use serde_bytes::ByteBuf;
 use sha2::{Digest, Sha256};
 
 /// Fee of one signature in lamports.
@@ -15,34 +14,31 @@ pub(crate) const NONCE_RENT: u64 = 1_447_680;
 pub(crate) const NONCE_SEED: &str = "dmsg-wallet-nonce";
 
 const SYSTEM: [u8; 32] = [0; 32];
-
-fn key(text: &str) -> [u8; 32] {
-    bs58::decode(text)
-        .into_vec()
-        .ok()
-        .and_then(|v| v.try_into().ok())
-        .expect("program address")
-}
-
-fn compute_budget() -> [u8; 32] {
-    key("ComputeBudget111111111111111111111111111111")
-}
-
-pub(crate) fn token_program() -> [u8; 32] {
-    key("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
-}
-
-pub(crate) fn ata_program() -> [u8; 32] {
-    key("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")
-}
-
-fn recent_blockhashes() -> [u8; 32] {
-    key("SysvarRecentB1ockHashes11111111111111111111")
-}
-
-fn rent() -> [u8; 32] {
-    key("SysvarRent111111111111111111111111111111111")
-}
+/// `ComputeBudget111111111111111111111111111111`.
+pub(crate) const COMPUTE_BUDGET: [u8; 32] = [
+    3, 6, 70, 111, 229, 33, 23, 50, 255, 236, 173, 186, 114, 195, 155, 231, 188, 140, 229, 187,
+    197, 247, 18, 107, 44, 67, 155, 58, 64, 0, 0, 0,
+];
+/// `TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA`.
+pub(crate) const TOKEN_PROGRAM: [u8; 32] = [
+    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28, 180, 133, 237,
+    95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169,
+];
+/// `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL`.
+pub(crate) const ATA_PROGRAM: [u8; 32] = [
+    140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153, 218,
+    255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89,
+];
+/// `SysvarRecentB1ockHashes11111111111111111111`.
+pub(crate) const RECENT_BLOCKHASHES: [u8; 32] = [
+    6, 167, 213, 23, 25, 44, 86, 142, 224, 138, 132, 95, 115, 210, 151, 136, 207, 3, 92, 49, 69,
+    178, 26, 179, 68, 216, 6, 46, 169, 64, 0, 0,
+];
+/// `SysvarRent111111111111111111111111111111111`.
+pub(crate) const RENT: [u8; 32] = [
+    6, 167, 213, 23, 25, 44, 92, 81, 33, 140, 201, 76, 61, 74, 241, 127, 88, 218, 238, 8, 155, 161,
+    253, 68, 227, 219, 217, 138, 0, 0, 0, 0,
+];
 
 /// One instruction: program, accounts as (key, signer, writable), data.
 pub(crate) struct Ix {
@@ -150,7 +146,7 @@ pub(crate) fn program_address(seeds: &[&[u8]], program: &[u8; 32]) -> [u8; 32] {
 
 /// The associated token account of `owner` for `mint`.
 pub(crate) fn ata(owner: &[u8; 32], mint: &[u8; 32]) -> [u8; 32] {
-    program_address(&[owner, &token_program(), mint], &ata_program())
+    program_address(&[owner, &TOKEN_PROGRAM, mint], &ATA_PROGRAM)
 }
 
 /// `create_with_seed` address of the nonce account of `base`.
@@ -170,12 +166,12 @@ fn system(index: u32, rest: &[u8]) -> Vec<u8> {
 fn budget(limit: u32, price: u64) -> [Ix; 2] {
     [
         Ix {
-            program: compute_budget(),
+            program: COMPUTE_BUDGET,
             accounts: vec![],
             data: [&[2u8][..], &limit.to_le_bytes()].concat(),
         },
         Ix {
-            program: compute_budget(),
+            program: COMPUTE_BUDGET,
             accounts: vec![],
             data: [&[3u8][..], &price.to_le_bytes()].concat(),
         },
@@ -187,7 +183,7 @@ fn advance(nonce: [u8; 32], authority: [u8; 32]) -> Ix {
         program: SYSTEM,
         accounts: vec![
             (nonce, false, true),
-            (recent_blockhashes(), false, false),
+            (RECENT_BLOCKHASHES, false, false),
             (authority, true, false),
         ],
         data: system(4, &[]),
@@ -273,21 +269,21 @@ pub(crate) fn build(
                 let target = ata(&owner, &mint);
                 if create_ata {
                     ixs.push(Ix {
-                        program: ata_program(),
+                        program: ATA_PROGRAM,
                         accounts: vec![
                             (payer, true, true),
                             (target, false, true),
                             (owner, false, false),
                             (mint, false, false),
                             (SYSTEM, false, false),
-                            (token_program(), false, false),
+                            (TOKEN_PROGRAM, false, false),
                         ],
                         data: vec![1],
                     });
                 }
                 let units = u64::try_from(*amount).map_err(|_| invalid("amount"))?;
                 ixs.push(Ix {
-                    program: token_program(),
+                    program: TOKEN_PROGRAM,
                     accounts: vec![
                         (source, false, true),
                         (mint, false, false),
@@ -321,8 +317,8 @@ pub(crate) fn build(
                 program: SYSTEM,
                 accounts: vec![
                     (nonce, false, true),
-                    (recent_blockhashes(), false, false),
-                    (rent(), false, false),
+                    (RECENT_BLOCKHASHES, false, false),
+                    (RENT, false, false),
                 ],
                 data: system(6, &payer),
             });
@@ -335,15 +331,15 @@ pub(crate) fn build(
     let message = compile(payer, &ixs, blockhash.into_array())?;
     ensure(message.len() <= 1_232 - 65, Error::QuotaExceeded)?;
     Ok(Built {
-        unsigned: message.clone(),
         digests: vec![Hash::new(Sha256::digest(&message).into())],
-        signs: vec![SignSpec::Ed25519 {
+        unsigned: message,
+        sign: SignSpec::Ed25519 {
             path: crate::keys::path_bytes(&derivation_path(
                 Chain::Solana,
                 &AddressKind::ChainKey,
                 from.id,
             )?),
-        }],
+        },
         summary: DecodedSummary {
             chain: "solana".into(),
             from: from.text.clone(),
@@ -353,9 +349,7 @@ pub(crate) fn build(
             fee,
             nonce: sol_address(&blockhash.into_array()),
         },
-        assembly: super::Assembly::Solana {
-            message: ByteBuf::from(message),
-        },
+        assembly: super::Assembly::Solana,
     })
 }
 

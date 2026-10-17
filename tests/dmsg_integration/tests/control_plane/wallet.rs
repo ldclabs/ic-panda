@@ -291,7 +291,11 @@ fn spec(approvers: u8) -> WalletSpec {
         members: vec![
             member(MemberId::Account(AccountId([0; 12])), Role::Approver, "b"),
             member(MemberId::Principal(person(P)), Role::Admin, "p"),
-            member(MemberId::Principal(person(RECOVERY)), Role::Recovery, "sns"),
+            member(
+                MemberId::Principal(person(RECOVERY)),
+                Role::Recovery,
+                "recovery",
+            ),
         ],
         policy: policy(approvers),
         channel_hint: None,
@@ -947,6 +951,227 @@ fn wallet_signs_bitcoin_evm_and_solana() {
     assert_eq!(t.view().addresses.len(), 4);
     let stats: WalletStats = query(&t.f.ic, t.wallet, person(A), "wallet_stats", ());
     assert_eq!(stats.signatures_today, 6);
+}
+
+#[test]
+fn wallet_split_spends_meet_the_tier_of_their_sum() {
+    let t = Team::new(1);
+    // Two transfers pending at once: the one approved second meets the tier
+    // of their sum, here the top tier plus one approver.
+    let transfer = |amount| Intent::Transfer {
+        from: 0,
+        asset: AssetKey::Icp,
+        to: Destination::Icrc(account(person(80))),
+        amount,
+        max_fee: 10_000,
+        memo: None,
+    };
+    let first = t.propose(A, transfer(600_000_000));
+    let second = t.propose(A, transfer(600_000_001));
+    assert_eq!(first.requirement.approvals, 1);
+    assert_eq!(second.requirement.approvals, 1);
+    assert_eq!(t.approve_p(first.id).status, ProposalStatus::Ready);
+    let second = t.approve_p(second.id);
+    assert_eq!(second.status, ProposalStatus::Open);
+    assert_eq!(second.requirement.approvals, 2);
+    assert_eq!(second.requirement.window_amount, 1_200_000_001);
+    let second = t
+        .decide_account(B, t.b, &second, Decision::Approve)
+        .unwrap();
+    assert_eq!(second.status, ProposalStatus::Ready);
+}
+
+#[test]
+fn wallet_delayed_chain_spend_plans_after_its_delay() {
+    let t = Team::new(1);
+    let btc = t
+        .view()
+        .addresses
+        .iter()
+        .find(|a| a.chain == Chain::Bitcoin)
+        .unwrap()
+        .clone();
+    // Bitcoin spends wait an hour after their approval.
+    let mut policy = t.view().policy;
+    policy.version += 1;
+    policy.tiers.push(Tier {
+        asset: AssetKey::Btc,
+        up_to: 1_000_000,
+        approvals: 1,
+        delay_ms: 60 * MINUTE,
+        book_only: false,
+    });
+    let set = t.approve_p(t.propose(P, Intent::SetPolicy(policy)).id);
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.f.ic.tick();
+    assert_eq!(
+        t.execute(set.id, None, vec![]).unwrap().proposal.status,
+        ProposalStatus::Settled
+    );
+    let p = t.approve_p(
+        t.propose(
+            P,
+            Intent::Transfer {
+                from: btc.id,
+                asset: AssetKey::Btc,
+                to: Destination::Bitcoin(btc.text.clone()),
+                amount: 50_000,
+                max_fee: 20_000,
+                memo: None,
+            },
+        )
+        .id,
+    );
+    assert_eq!(p.status, ProposalStatus::Delayed);
+    t.f.ic.advance_time(Duration::from_millis(60 * MINUTE + 1));
+    t.f.ic.tick();
+    // The first plan after the delay is built, not refused as expired.
+    let plan = t
+        .prepare(
+            p.id,
+            ExecutionParams::Bitcoin {
+                utxos: vec![Utxo {
+                    txid: Hash::new([7; 32]),
+                    vout: 0,
+                    value: 100_000,
+                    address: btc.id,
+                }],
+                fee_rate: 2,
+                locktime: 0,
+                timelock: false,
+            },
+        )
+        .unwrap();
+    t.execute(p.id, Some(plan.seq), vec![]).unwrap();
+    // A plan's broadcast is recorded once, and joining again changes nothing.
+    let report = || -> Proposal {
+        let r: Result<Proposal> = update(
+            &t.f.ic,
+            t.wallet,
+            person(A),
+            "report",
+            (ChainReport {
+                proposal: p.id,
+                plan: plan.seq,
+                outcome: ChainOutcome::Broadcast,
+                note: "sent".into(),
+            },),
+        );
+        r.unwrap()
+    };
+    assert_eq!(report().broadcasts.len(), 1);
+    let audit_len = t.view().audit_len;
+    assert_eq!(report().broadcasts.len(), 1);
+    let joined: Result<Member> = update(
+        &t.f.ic,
+        t.wallet,
+        person(P),
+        "join",
+        (MemberApproval::Principal,),
+    );
+    assert_eq!(joined.unwrap().principals, vec![person(P)]);
+    assert_eq!(t.view().audit_len, audit_len);
+}
+
+#[test]
+fn wallet_freeze_refuses_approving_internal_changes() {
+    let t = Team::new(1);
+    let book = t.propose(
+        A,
+        Intent::AddressBook(BookChange::Add {
+            destination: Destination::Icrc(account(person(81))),
+            label: "ops".into(),
+        }),
+    );
+    let member = t.propose(
+        A,
+        Intent::AddMember(MemberInput {
+            id: MemberId::Principal(person(45)),
+            role: Role::Viewer,
+            label: "auditor".into(),
+            agent_ids: vec![],
+        }),
+    );
+    let frozen: Result<()> = update(&t.f.ic, t.wallet, person(B), "freeze", ());
+    frozen.unwrap();
+    let refused: Result<Proposal> = update(
+        &t.f.ic,
+        t.wallet,
+        person(P),
+        "approve_proposal",
+        (book.id, MemberApproval::Principal),
+    );
+    assert_eq!(refused, Err(Error::Locked));
+    assert_eq!(t.approve_p(member.id).status, ProposalStatus::Settled);
+}
+
+#[test]
+fn wallet_refuses_a_second_concurrent_signing_for_one_evm_address() {
+    let t = Team::new(1);
+    let evm = t
+        .view()
+        .addresses
+        .iter()
+        .find(|a| a.chain == Chain::Evm)
+        .unwrap()
+        .clone();
+    let transfer = |amount| Intent::Transfer {
+        from: evm.id,
+        asset: AssetKey::Evm {
+            chain_id: 1,
+            token: None,
+        },
+        to: Destination::Evm(Hash20::new([0x33; 20])),
+        amount,
+        max_fee: 10u128.pow(16),
+        memo: None,
+    };
+    let params = |nonce| ExecutionParams::Evm {
+        nonce,
+        max_fee_per_gas: 30_000_000_000,
+        max_priority_fee_per_gas: 1_000_000_000,
+        gas_limit: 21_000,
+    };
+    // Both plans are built before either is signed.
+    let plans: Vec<(u64, ExecutionPlan)> = [(1_000, 0), (2_000, 1)]
+        .into_iter()
+        .map(|(amount, nonce)| {
+            let p = t.approve_p(t.propose(P, transfer(amount)).id);
+            (p.id, t.prepare(p.id, params(nonce)).unwrap())
+        })
+        .collect();
+    // Both start signing before either's signature returns.
+    let calls: Vec<_> = plans
+        .iter()
+        .map(|(id, plan)| {
+            t.f.ic
+                .submit_call(
+                    t.wallet,
+                    person(A),
+                    "execute",
+                    candid::encode_args((ExecuteArgs {
+                        proposal: *id,
+                        plan: Some(plan.seq),
+                        cosigs: vec![],
+                    },))
+                    .unwrap(),
+                )
+                .unwrap()
+        })
+        .collect();
+    let results: Vec<Result<ExecuteResult>> = calls
+        .into_iter()
+        .map(|call| candid::decode_one(&t.f.ic.await_call(call).unwrap()).unwrap())
+        .collect();
+    assert_eq!(results.iter().filter(|r| r.is_ok()).count(), 1);
+    assert!(results.contains(&Err(Error::Forbidden)));
+    // The refused proposal is Ready again, and both signings counted.
+    let refused = plans[results.iter().position(|r| r.is_err()).unwrap()].0;
+    let p: Result<Proposal> = query(&t.f.ic, t.wallet, person(A), "get_proposal", (refused,));
+    assert_eq!(p.unwrap().status, ProposalStatus::Ready);
+    let stats: WalletStats = query(&t.f.ic, t.wallet, person(A), "wallet_stats", ());
+    assert_eq!(stats.signatures_today, 2);
 }
 
 #[test]

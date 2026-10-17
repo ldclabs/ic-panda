@@ -441,10 +441,9 @@ fn build_vectors() -> Json {
         let plan = plan_of(index, case, &built);
         // As `sign_plan` signs: Ed25519 the whole message, others the digest.
         let messages: Vec<Vec<u8>> = built
-            .signs
+            .digests
             .iter()
-            .zip(&built.digests)
-            .map(|(spec, d)| match spec {
+            .map(|d| match built.sign {
                 SignSpec::Ed25519 { .. } => built.unsigned.clone(),
                 _ => d.to_vec(),
             })
@@ -454,7 +453,14 @@ fn build_vectors() -> Json {
             .iter()
             .map(|m| case.cosigner.as_ref().map(|c| c.sign(m)))
             .collect();
-        let (raw, txid) = assemble(&built.assembly, &sigs, &cosigs).unwrap();
+        let (raw, txid) = assemble(
+            &built.assembly,
+            &built.unsigned,
+            &built.digests,
+            &sigs,
+            &cosigs,
+        )
+        .unwrap();
         records.push(json!({
             "name": case.name,
             "intent_cbor_hex": hex::encode(canonical(&case.intent)),

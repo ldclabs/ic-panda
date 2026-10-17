@@ -2,9 +2,9 @@
 //! native two-key script-path spends (BIP-341/342) and P2WPKH (BIP-143).
 use super::{dest_text, Built};
 use crate::store::{SignSpec, Wallet};
+use cbor2::Cbor;
 use dmsg_protocol::wallet::*;
 use dmsg_types::{wallet::*, *};
-use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha2::{Digest, Sha256};
 
@@ -13,38 +13,54 @@ pub(crate) const SEQUENCE_RBF: u32 = 0xffff_fffd;
 /// Outputs below this are refused and change below it goes to the fee.
 pub(crate) const DUST: u64 = 546;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct TxIn {
+    #[cbor(key = 1)]
     pub(crate) txid: Hash,
+    #[cbor(key = 2)]
     pub(crate) vout: u32,
+    #[cbor(key = 3)]
     pub(crate) sequence: u32,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct TxOut {
+    #[cbor(key = 1)]
     pub(crate) value: u64,
+    #[cbor(key = 2)]
     pub(crate) script: ByteBuf,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct BtcTx {
+    #[cbor(key = 1)]
     pub(crate) version: u32,
+    #[cbor(key = 2)]
     pub(crate) inputs: Vec<TxIn>,
+    #[cbor(key = 3)]
     pub(crate) outputs: Vec<TxOut>,
+    #[cbor(key = 4)]
     pub(crate) locktime: u32,
 }
 
-/// How an input is witnessed.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// How the inputs are witnessed.
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) enum BtcSpend {
     /// Taproot key path: the tweaked chain key's signature.
     KeyPath,
     /// P2WPKH: DER signature and public key.
-    Segwit { public_key: ByteBuf },
+    Segwit {
+        #[cbor(key = 1)]
+        public_key: ByteBuf,
+    },
     /// Native Taproot script path; `cosigner` is set for the two-key leaf.
     Script {
+        #[cbor(key = 2)]
         leaf: ByteBuf,
+        #[cbor(key = 3)]
         control: ByteBuf,
+        #[cbor(key = 4)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         cosigner: Option<u32>,
     },
 }
@@ -101,15 +117,8 @@ fn sha(bytes: &[u8]) -> [u8; 32] {
     Sha256::digest(bytes).into()
 }
 
-/// BIP-341 signature message hash with SIGHASH_DEFAULT; `leaf` selects a
-/// BIP-342 script-path spend.
-pub(crate) fn taproot_sighash(
-    tx: &BtcTx,
-    amounts: &[u64],
-    scripts: &[Vec<u8>],
-    index: usize,
-    leaf: Option<&[u8]>,
-) -> [u8; 32] {
+/// Outpoints and sequences of every input, as both sighash schemes hash them.
+fn outpoints_and_sequences(tx: &BtcTx) -> (Vec<u8>, Vec<u8>) {
     let mut prevouts = vec![];
     let mut sequences = vec![];
     for i in &tx.inputs {
@@ -117,53 +126,79 @@ pub(crate) fn taproot_sighash(
         prevouts.extend_from_slice(&i.vout.to_le_bytes());
         sequences.extend_from_slice(&i.sequence.to_le_bytes());
     }
-    let amounts: Vec<u8> = amounts.iter().flat_map(|a| a.to_le_bytes()).collect();
-    let scripts: Vec<u8> = scripts
-        .iter()
-        .flat_map(|s| [compact_size(s.len()), s.clone()].concat())
-        .collect();
-    let mut m = vec![0x00, 0x00];
-    m.extend_from_slice(&tx.version.to_le_bytes());
-    m.extend_from_slice(&tx.locktime.to_le_bytes());
-    m.extend_from_slice(&sha(&prevouts));
-    m.extend_from_slice(&sha(&amounts));
-    m.extend_from_slice(&sha(&scripts));
-    m.extend_from_slice(&sha(&sequences));
-    m.extend_from_slice(&sha(&output_bytes(&tx.outputs)));
-    m.push(if leaf.is_some() { 2 } else { 0 });
-    m.extend_from_slice(&(index as u32).to_le_bytes());
-    if let Some(leaf) = leaf {
-        m.extend_from_slice(&tapleaf_hash(leaf));
-        m.push(0x00);
-        m.extend_from_slice(&0xffff_ffffu32.to_le_bytes());
-    }
-    tagged_hash("TapSighash", &m)
+    (prevouts, sequences)
 }
 
-/// BIP-143 SIGHASH_ALL of a P2WPKH input.
-pub(crate) fn segwit_sighash(tx: &BtcTx, amount: u64, public_key: &[u8], index: usize) -> [u8; 32] {
-    let mut prevouts = vec![];
-    let mut sequences = vec![];
-    for i in &tx.inputs {
-        prevouts.extend_from_slice(&i.txid[..]);
-        prevouts.extend_from_slice(&i.vout.to_le_bytes());
-        sequences.extend_from_slice(&i.sequence.to_le_bytes());
-    }
-    let input = &tx.inputs[index];
-    let mut m = tx.version.to_le_bytes().to_vec();
-    m.extend_from_slice(&sha256d(&prevouts)[..]);
-    m.extend_from_slice(&sha256d(&sequences)[..]);
-    m.extend_from_slice(&input.txid[..]);
-    m.extend_from_slice(&input.vout.to_le_bytes());
-    m.extend_from_slice(&[0x19, 0x76, 0xa9, 0x14]);
-    m.extend_from_slice(&hash160(public_key));
-    m.extend_from_slice(&[0x88, 0xac]);
-    m.extend_from_slice(&amount.to_le_bytes());
-    m.extend_from_slice(&input.sequence.to_le_bytes());
-    m.extend_from_slice(&sha256d(&output_bytes(&tx.outputs))[..]);
-    m.extend_from_slice(&tx.locktime.to_le_bytes());
-    m.extend_from_slice(&1u32.to_le_bytes());
-    sha256d(&m).into_array()
+/// BIP-341 signature message hashes of every input with SIGHASH_DEFAULT,
+/// every input spending `script` with the given `amounts`; `leaf` selects a
+/// BIP-342 script-path spend. The hashes of the whole transaction are taken
+/// once and shared by every input's message.
+pub(crate) fn taproot_sighashes(
+    tx: &BtcTx,
+    amounts: &[u64],
+    script: &[u8],
+    leaf: Option<&[u8]>,
+) -> Vec<[u8; 32]> {
+    let (prevouts, sequences) = outpoints_and_sequences(tx);
+    let amounts: Vec<u8> = amounts.iter().flat_map(|a| a.to_le_bytes()).collect();
+    let scripts = [compact_size(script.len()), script.to_vec()]
+        .concat()
+        .repeat(tx.inputs.len());
+    let mut common = vec![0x00, 0x00];
+    common.extend_from_slice(&tx.version.to_le_bytes());
+    common.extend_from_slice(&tx.locktime.to_le_bytes());
+    common.extend_from_slice(&sha(&prevouts));
+    common.extend_from_slice(&sha(&amounts));
+    common.extend_from_slice(&sha(&scripts));
+    common.extend_from_slice(&sha(&sequences));
+    common.extend_from_slice(&sha(&output_bytes(&tx.outputs)));
+    common.push(if leaf.is_some() { 2 } else { 0 });
+    let leaf = leaf.map(tapleaf_hash);
+    (0..tx.inputs.len())
+        .map(|index| {
+            let mut m = common.clone();
+            m.extend_from_slice(&(index as u32).to_le_bytes());
+            if let Some(leaf) = &leaf {
+                m.extend_from_slice(leaf);
+                m.push(0x00);
+                m.extend_from_slice(&0xffff_ffffu32.to_le_bytes());
+            }
+            tagged_hash("TapSighash", &m)
+        })
+        .collect()
+}
+
+/// BIP-143 SIGHASH_ALL hashes of every input, each a P2WPKH output of
+/// `public_key` with the given `amounts`.
+pub(crate) fn segwit_sighashes(tx: &BtcTx, amounts: &[u64], public_key: &[u8]) -> Vec<[u8; 32]> {
+    let (prevouts, sequences) = outpoints_and_sequences(tx);
+    let prevouts = sha256d(&prevouts);
+    let sequences = sha256d(&sequences);
+    let outputs = sha256d(&output_bytes(&tx.outputs));
+    let script_code = [
+        &[0x19, 0x76, 0xa9, 0x14][..],
+        &hash160(public_key),
+        &[0x88, 0xac],
+    ]
+    .concat();
+    tx.inputs
+        .iter()
+        .zip(amounts)
+        .map(|(input, amount)| {
+            let mut m = tx.version.to_le_bytes().to_vec();
+            m.extend_from_slice(&prevouts[..]);
+            m.extend_from_slice(&sequences[..]);
+            m.extend_from_slice(&input.txid[..]);
+            m.extend_from_slice(&input.vout.to_le_bytes());
+            m.extend_from_slice(&script_code);
+            m.extend_from_slice(&amount.to_le_bytes());
+            m.extend_from_slice(&input.sequence.to_le_bytes());
+            m.extend_from_slice(&outputs[..]);
+            m.extend_from_slice(&tx.locktime.to_le_bytes());
+            m.extend_from_slice(&1u32.to_le_bytes());
+            sha256d(&m).into_array()
+        })
+        .collect()
 }
 
 /// DER encoding of a low-s ECDSA signature followed by SIGHASH_ALL.
@@ -202,9 +237,9 @@ fn witness_size(spend: &BtcSpend) -> usize {
 }
 
 /// Virtual size of the signed transaction.
-pub(crate) fn vsize(tx: &BtcTx, spends: &[BtcSpend]) -> u64 {
+pub(crate) fn vsize(tx: &BtcTx, spend: &BtcSpend) -> u64 {
     let base = tx.serialize(None).len();
-    let witness = 2 + spends.iter().map(witness_size).sum::<usize>();
+    let witness = 2 + tx.inputs.len() * witness_size(spend);
     ((base * 4 + witness) as u64).div_ceil(4)
 }
 
@@ -348,7 +383,6 @@ pub(crate) fn build(
             amount: *amount,
         });
     }
-    let spends = vec![spend_kind; inputs.len()];
     let mut tx = BtcTx {
         version: 2,
         inputs,
@@ -358,12 +392,15 @@ pub(crate) fn build(
     // What is left must pay the transaction without change; change is
     // added when what remains after its own fee is at least dust.
     let left = total_in.checked_sub(total_out).ok_or(Error::FeeBlocked)?;
-    ensure(left >= fee_rate * vsize(&tx, &spends), Error::FeeBlocked)?;
+    ensure(
+        left >= fee_rate * vsize(&tx, &spend_kind),
+        Error::FeeBlocked,
+    )?;
     tx.outputs.push(TxOut {
         value: 0,
         script: script.clone().into(),
     });
-    let mut change = left.saturating_sub(fee_rate * vsize(&tx, &spends));
+    let mut change = left.saturating_sub(fee_rate * vsize(&tx, &spend_kind));
     if change < DUST {
         tx.outputs.pop();
         change = 0;
@@ -373,24 +410,15 @@ pub(crate) fn build(
     let fee = left - change;
     ensure(u128::from(fee) <= max_fee, Error::FeeBlocked)?;
     let amounts: Vec<u64> = utxos.iter().map(|u| u.value).collect();
-    let scripts = vec![script; utxos.len()];
-    let digests = spends
-        .iter()
-        .enumerate()
-        .map(|(i, s)| {
-            Hash::new(match s {
-                BtcSpend::KeyPath => taproot_sighash(&tx, &amounts, &scripts, i, None),
-                BtcSpend::Segwit { public_key } => segwit_sighash(&tx, amounts[i], public_key, i),
-                BtcSpend::Script { leaf, .. } => {
-                    taproot_sighash(&tx, &amounts, &scripts, i, Some(leaf))
-                }
-            })
-        })
-        .collect();
+    let digests = match &spend_kind {
+        BtcSpend::KeyPath => taproot_sighashes(&tx, &amounts, &script, None),
+        BtcSpend::Segwit { public_key } => segwit_sighashes(&tx, &amounts, public_key),
+        BtcSpend::Script { leaf, .. } => taproot_sighashes(&tx, &amounts, &script, Some(leaf)),
+    };
     Ok(Built {
         unsigned: tx.serialize(None),
-        digests,
-        signs: vec![sign; tx.inputs.len()],
+        digests: digests.into_iter().map(Hash::new).collect(),
+        sign,
         summary: DecodedSummary {
             chain: format!("bitcoin:{}", btc_hrp(network)),
             from: from.text.clone(),
@@ -403,21 +431,24 @@ pub(crate) fn build(
             fee: u128::from(fee),
             nonce: String::new(),
         },
-        assembly: super::Assembly::Bitcoin { tx, spends },
+        assembly: super::Assembly::Bitcoin {
+            tx,
+            spend: spend_kind,
+        },
     })
 }
 
 /// Witnesses from threshold signatures and native cosigner signatures.
 pub(crate) fn assemble(
     tx: &BtcTx,
-    spends: &[BtcSpend],
+    spend: &BtcSpend,
     sigs: &[Vec<u8>],
     cosigs: &[Option<Vec<u8>>],
 ) -> Result<(Vec<u8>, String)> {
+    ensure(sigs.len() == tx.inputs.len(), Error::IntegrityFailed)?;
     let mut witnesses = vec![];
-    for (i, s) in spends.iter().enumerate() {
-        let sig = sigs.get(i).ok_or(Error::IntegrityFailed)?;
-        witnesses.push(match s {
+    for (i, sig) in sigs.iter().enumerate() {
+        witnesses.push(match spend {
             BtcSpend::KeyPath => vec![sig.clone()],
             BtcSpend::Segwit { public_key } => vec![der_signature(sig)?, public_key.to_vec()],
             BtcSpend::Script {

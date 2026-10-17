@@ -1,63 +1,93 @@
 //! Stable state: the wallet record, proposals, plans, jobs, the address book,
 //! the hash-chained audit log and the certified tree.
 use candid::Principal;
+use cbor2::Cbor;
 use dmsg_protocol::{authenticated, canonical, wallet::*};
 use dmsg_runtime::cert_map::CertMap;
-use dmsg_runtime::storage::Stored;
+use dmsg_runtime::storage::{CompactStored, Stored};
 use dmsg_types::{wallet::*, *};
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, StableCell, StableLog,
 };
-use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
+// Stable layout: wallet=0, proposals=1, operation IDs=2, plans=3, jobs=4,
+// audit index=5, audit data=6, address book=7, certified leaf hashes=8,
+// certification nodes=9.
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
+pub(crate) const STABLE_SCHEMA: u16 = 1;
+
+/// Job key of the policy's automatic top-up; proposal IDs start at 1.
+pub(crate) const REFUEL_JOB: u64 = 0;
+
 /// Deployment settings fixed at install, except appended user homes.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct Settings {
+    #[cbor(key = 1)]
     pub(crate) environment: Environment,
+    #[cbor(key = 2)]
     pub(crate) hub: Principal,
+    #[cbor(key = 3)]
     pub(crate) key_name: String,
+    #[cbor(key = 4)]
     pub(crate) btc_network: BtcNetwork,
+    #[cbor(key = 5)]
     pub(crate) icp_ledger: Principal,
+    #[cbor(key = 6)]
     pub(crate) cmc: Principal,
+    #[cbor(key = 7)]
     pub(crate) issuer_namespace: String,
+    #[cbor(key = 8)]
     pub(crate) user_homes: Vec<Principal>,
+    #[cbor(key = 9)]
     pub(crate) name: String,
+    #[cbor(key = 10)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) channel_hint: Option<String>,
 }
 
 /// An EVM transaction signed and not yet settled; the address signs no
 /// other nonce until it settles or is released.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct EvmPending {
+    #[cbor(key = 1)]
     pub(crate) address: u32,
+    #[cbor(key = 2)]
     pub(crate) chain_id: u64,
+    #[cbor(key = 3)]
     pub(crate) nonce: u64,
+    #[cbor(key = 4)]
     pub(crate) proposal: u64,
 }
 
 /// The last blockhash or nonce value a Solana address signed with.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct SolLast {
+    #[cbor(key = 1)]
     pub(crate) address: u32,
+    #[cbor(key = 2)]
     pub(crate) blockhash: Hash,
 }
 
 /// An approved or executed spend in the rolling window.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct Spend {
+    #[cbor(key = 1)]
     pub(crate) asset: AssetKey,
+    #[cbor(key = 2)]
     pub(crate) amount: u128,
+    #[cbor(key = 3)]
     pub(crate) at_ms: u64,
+    #[cbor(key = 4)]
     pub(crate) proposal: u64,
 }
 
 /// The wallet record.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct Wallet {
+    pub(crate) schema: u16,
     pub(crate) settings: Settings,
     pub(crate) created_at_ms: u64,
     pub(crate) members: Vec<Member>,
@@ -77,7 +107,6 @@ pub(crate) struct Wallet {
     pub(crate) evm_pending: Vec<EvmPending>,
     pub(crate) sol_last: Vec<SolLast>,
     pub(crate) spends: Vec<Spend>,
-    pub(crate) refuel: Option<crate::ledger::TopUp>,
 }
 
 impl Wallet {
@@ -166,31 +195,45 @@ impl Wallet {
     }
 }
 
-/// One threshold signature a plan needs.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// The threshold signature every digest of a plan needs: a plan spends from
+/// one address, so one key and one tweak sign all of its digests.
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) enum SignSpec {
     /// BIP-340; `tweak` is the BIP-341 merkle root for a key-path spend
     /// (empty for no scripts), absent for a script-path spend.
     Bip340 {
+        #[cbor(key = 1)]
         path: Vec<serde_bytes::ByteBuf>,
+        #[cbor(key = 2)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         tweak: Option<serde_bytes::ByteBuf>,
     },
     /// ECDSA secp256k1 over a 32-byte hash.
-    Ecdsa { path: Vec<serde_bytes::ByteBuf> },
-    /// Ed25519 over the message.
-    Ed25519 { path: Vec<serde_bytes::ByteBuf> },
+    Ecdsa {
+        #[cbor(key = 1)]
+        path: Vec<serde_bytes::ByteBuf>,
+    },
+    /// Ed25519 over the whole unsigned message.
+    Ed25519 {
+        #[cbor(key = 1)]
+        path: Vec<serde_bytes::ByteBuf>,
+    },
 }
 
 /// A prepared plan and how to assemble its signed transaction.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct PlanRecord {
+    #[cbor(key = 1)]
     pub(crate) plan: ExecutionPlan,
-    pub(crate) signs: Vec<SignSpec>,
+    #[cbor(key = 2)]
+    pub(crate) sign: SignSpec,
+    #[cbor(key = 3)]
     pub(crate) assembly: crate::chains::Assembly,
 }
 
-/// Ledger work of an ICP or ICRC proposal.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// Work of a proposal in flight. Ledger work keeps its exact arguments so a
+/// retry is deduplicated; the others only mark the proposal busy.
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) enum Job {
     /// ICRC transfers, sent one by one.
     Ledger(crate::ledger::LedgerJob),
@@ -199,10 +242,7 @@ pub(crate) enum Job {
     /// A canister call in flight.
     Call,
     /// Threshold signing of a plan in flight.
-    Signing {
-        plan: u32,
-        signatures: Vec<serde_bytes::ByteBuf>,
-    },
+    Signing,
     /// A public key being read for a new address.
     Address,
 }
@@ -214,11 +254,12 @@ pub(crate) fn memory(id: u8) -> Memory {
 thread_local! {
     static MEMORY: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
-    static STABLE_WALLET: RefCell<StableCell<Stored<Option<Wallet>>, Memory>> =
-        RefCell::new(StableCell::init(memory(0), Stored(None)));
+    static STABLE_WALLET: RefCell<StableCell<CompactStored<Option<Wallet>>, Memory>> =
+        RefCell::new(StableCell::init(memory(0), CompactStored::new(&None)));
+    // Every message reads the record, so it stays decoded on the heap.
     static WALLET: RefCell<Option<Wallet>> =
-        RefCell::new(STABLE_WALLET.with_borrow(|c| c.get().0.clone()));
-    static PROPOSALS: RefCell<StableBTreeMap<u64, Stored<Proposal>, Memory>> =
+        RefCell::new(STABLE_WALLET.with_borrow(|c| c.get().value()));
+    static PROPOSALS: RefCell<StableBTreeMap<u64, CompactStored<Proposal>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(1)));
     static OPS: RefCell<StableBTreeMap<[u8; 32], u64, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(2)));
@@ -226,9 +267,9 @@ thread_local! {
         RefCell::new(StableBTreeMap::init(memory(3)));
     static JOBS: RefCell<StableBTreeMap<u64, Stored<Job>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(4)));
-    pub(crate) static AUDIT: StableLog<Stored<AuditEvent>, Memory, Memory> =
+    static AUDIT: StableLog<CompactStored<AuditEvent>, Memory, Memory> =
         StableLog::init(memory(5), memory(6));
-    static BOOK: RefCell<StableBTreeMap<Vec<u8>, Stored<BookEntry>, Memory>> =
+    static BOOK: RefCell<StableBTreeMap<Vec<u8>, CompactStored<BookEntry>, Memory>> =
         RefCell::new(StableBTreeMap::init(memory(7)));
     static CERT: RefCell<CertMap<Memory>> = RefCell::new(CertMap::new(memory(8), memory(9)));
 }
@@ -244,15 +285,15 @@ pub(crate) fn wallet() -> Wallet {
 /// Persist the wallet and certify its view.
 pub(crate) fn save(w: Wallet) {
     let view = canonical(&w.view());
-    STABLE_WALLET.with_borrow_mut(|c| c.set(Stored(Some(w.clone()))));
-    WALLET.with_borrow_mut(|cell| *cell = Some(w));
+    STABLE_WALLET.with_borrow_mut(|c| c.set(CompactStored::some(&w)));
     CERT.with_borrow_mut(|c| c.insert(b"wallet".to_vec(), &view));
+    WALLET.with_borrow_mut(|cell| *cell = Some(w));
 }
 
 pub(crate) fn proposal(id: u64) -> Result<Proposal> {
     PROPOSALS
         .with_borrow(|t| t.get(&id))
-        .map(|p| p.0)
+        .map(CompactStored::into_inner)
         .ok_or(Error::NotFound)
 }
 
@@ -262,7 +303,7 @@ pub(crate) fn proposal_key(id: u64) -> Vec<u8> {
 
 pub(crate) fn save_proposal(p: &Proposal) {
     let bytes = canonical(p);
-    PROPOSALS.with_borrow_mut(|t| t.insert(p.id, Stored(p.clone())));
+    PROPOSALS.with_borrow_mut(|t| t.insert(p.id, CompactStored::new(p)));
     CERT.with_borrow_mut(|c| c.insert(proposal_key(p.id), &bytes));
 }
 
@@ -272,13 +313,14 @@ pub(crate) fn proposals_before(before: Option<u64>, limit: usize) -> Vec<Proposa
         t.range(..end)
             .rev()
             .take(limit)
-            .map(|e| e.value().0)
+            .map(|e| e.value().into_inner())
             .collect()
     })
 }
 
-pub(crate) fn oldest_proposal() -> Option<Proposal> {
-    PROPOSALS.with_borrow(|t| t.first_key_value().map(|(_, p)| p.0))
+/// IDs of the `limit` oldest proposals.
+pub(crate) fn oldest_ids(limit: usize) -> Vec<u64> {
+    PROPOSALS.with_borrow(|t| t.keys().take(limit).collect())
 }
 
 pub(crate) fn proposal_count() -> u64 {
@@ -287,11 +329,14 @@ pub(crate) fn proposal_count() -> u64 {
 
 pub(crate) fn remove_proposal(id: u64) {
     if let Some(p) = PROPOSALS.with_borrow_mut(|t| t.remove(&id)) {
-        OPS.with_borrow_mut(|t| t.remove(&p.0.op_id.into_array()));
+        let p = p.into_inner();
+        OPS.with_borrow_mut(|t| t.remove(&p.op_id.into_array()));
         CERT.with_borrow_mut(|c| c.remove(&proposal_key(id)));
-        for seq in 1..=p.0.plans {
-            PLANS.with_borrow_mut(|t| t.remove(&plan_key(id, seq)));
-        }
+        PLANS.with_borrow_mut(|t| {
+            for seq in 1..=p.plans {
+                t.remove(&plan_key(id, seq));
+            }
+        });
     }
 }
 
@@ -343,7 +388,8 @@ pub(crate) fn book_key(d: &Destination) -> Vec<u8> {
 }
 
 pub(crate) fn book_entry(d: &Destination) -> Option<BookEntry> {
-    BOOK.with_borrow(|t| t.get(&book_key(d))).map(|e| e.0)
+    BOOK.with_borrow(|t| t.get(&book_key(d)))
+        .map(CompactStored::into_inner)
 }
 
 pub(crate) fn book_len() -> u64 {
@@ -356,7 +402,7 @@ pub(crate) fn book_page(after: Option<Destination>, limit: usize) -> Vec<BookEnt
         let start = after.map_or(Unbounded, |d| Excluded(book_key(&d)));
         t.range((start, Unbounded))
             .take(limit)
-            .map(|e| e.value().0)
+            .map(|e| e.value().into_inner())
             .collect()
     })
 }
@@ -364,12 +410,11 @@ pub(crate) fn book_page(after: Option<Destination>, limit: usize) -> Vec<BookEnt
 pub(crate) fn set_book(change: &BookChange, now: u64) {
     BOOK.with_borrow_mut(|t| match change {
         BookChange::Add { destination, label } => {
-            let added_at_ms = t
-                .get(&book_key(destination))
-                .map_or(now, |e| e.0.added_at_ms);
+            let key = book_key(destination);
+            let added_at_ms = t.get(&key).map_or(now, |e| e.into_inner().added_at_ms);
             t.insert(
-                book_key(destination),
-                Stored(BookEntry {
+                key,
+                CompactStored::new(&BookEntry {
                     destination: destination.clone(),
                     label: label.clone(),
                     added_at_ms,
@@ -403,7 +448,7 @@ pub(crate) fn audit(
         hash,
     };
     AUDIT
-        .with(|l| l.append(&Stored(event)))
+        .with(|l| l.append(&CompactStored::new(&event)))
         .expect("audit log memory");
     w.audit_head = hash;
 }
@@ -411,20 +456,17 @@ pub(crate) fn audit(
 pub(crate) fn audit_page(from: u64, limit: u64) -> Vec<AuditEvent> {
     AUDIT.with(|l| {
         (from..l.len().min(from.saturating_add(limit)))
-            .filter_map(|i| l.get(i).map(|e| e.0))
+            .filter_map(|i| l.get(i).map(CompactStored::into_inner))
             .collect()
     })
 }
 
 pub(crate) fn certified(
+    me: Principal,
     keys: Vec<Vec<u8>>,
     value: impl FnMut(&[u8]) -> Option<Vec<u8>>,
 ) -> Result<CertifiedBatch> {
-    CERT.with_borrow(|c| c.batch(ic_cdk::api::canister_self(), keys, value))
-}
-
-pub(crate) fn publish() {
-    CERT.with_borrow(|c| c.publish());
+    CERT.with_borrow(|c| c.batch(me, keys, value))
 }
 
 pub(crate) fn stable_pages() -> u64 {

@@ -60,7 +60,7 @@ pub const MAX_CALL_BYTES: usize = 65_536;
 /// 20-byte EVM address.
 pub type Hash20 = serde_bytes::ByteArray<20>;
 
-/// A wallet member: a dMsg account or a Principal such as SNS governance.
+/// A wallet member, one of the team: a dMsg account or a Principal.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MemberId {
     /// A dMsg account; it approves with device approvals its user home verifies.
@@ -615,7 +615,8 @@ pub enum ProposalStatus {
     Stale,
 }
 
-/// Approvals and delay a proposal needs, fixed when it is made.
+/// Approvals and delay a proposal needs, set when it is made. A spend's is
+/// raised at an approval when its rolling window then asks for more.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Requirement {
     /// Approvals required.
@@ -1135,7 +1136,7 @@ pub struct WalletStats {
     pub signatures_today: u32,
     /// Proposals stored.
     pub proposals: u64,
-    /// Open, delayed, ready or executing proposals.
+    /// Proposals not yet final among the newest 200.
     pub active_proposals: u64,
     /// Stable memory in 64 KiB pages.
     pub stable_pages: u64,

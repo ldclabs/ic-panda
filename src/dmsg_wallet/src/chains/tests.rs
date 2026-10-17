@@ -26,6 +26,7 @@ fn wallet() -> Wallet {
         public: false,
     };
     Wallet {
+        schema: crate::store::STABLE_SCHEMA,
         settings: Settings {
             environment: Environment::Local,
             hub: Principal::from_slice(&[1; 10]),
@@ -56,7 +57,6 @@ fn wallet() -> Wallet {
         evm_pending: vec![],
         sol_last: vec![],
         spends: vec![],
-        refuel: None,
     }
 }
 
@@ -184,7 +184,8 @@ mod bitcoin_checks {
                     .to_vec()
             })
             .collect();
-        let (raw, txid) = assemble(&built.assembly, &sigs, &[]).unwrap();
+        let (raw, txid) =
+            assemble(&built.assembly, &built.unsigned, &built.digests, &sigs, &[]).unwrap();
         let tx = signed(&raw);
         assert_eq!(tx.compute_txid().to_string(), txid);
         let output_key = XOnlyPublicKey::from_slice(&script[2..]).unwrap();
@@ -195,7 +196,7 @@ mod bitcoin_checks {
         }
         assert_eq!(
             tx.vsize() as u64,
-            btc::vsize(&tx_of(&built.assembly), &spends_of(&built.assembly))
+            btc::vsize(&tx_of(&built.assembly), &spend_of(&built.assembly))
         );
         let fee = 120_000 - tx.output.iter().map(|o| o.value.to_sat()).sum::<u64>();
         assert_eq!(u128::from(fee), built.summary.fee);
@@ -258,11 +259,11 @@ mod bitcoin_checks {
         tx.clone()
     }
 
-    fn spends_of(a: &Assembly) -> Vec<btc::BtcSpend> {
-        let Assembly::Bitcoin { spends, .. } = a else {
+    fn spend_of(a: &Assembly) -> btc::BtcSpend {
+        let Assembly::Bitcoin { spend, .. } = a else {
             panic!()
         };
-        spends.clone()
+        spend.clone()
     }
 
     #[test]
@@ -297,7 +298,14 @@ mod bitcoin_checks {
             .unwrap();
         assert_eq!(built.digests[0][..], h.to_byte_array());
         let sig = sk.sign_digest_with_ecdsa(&built.digests[0][..]).to_vec();
-        let (raw, txid) = assemble(&built.assembly, &[sig], &[]).unwrap();
+        let (raw, txid) = assemble(
+            &built.assembly,
+            &built.unsigned,
+            &built.digests,
+            &[sig],
+            &[],
+        )
+        .unwrap();
         let tx = signed(&raw);
         assert_eq!(tx.compute_txid().to_string(), txid);
         let der = &tx.input[0].witness[0];
@@ -311,7 +319,7 @@ mod bitcoin_checks {
             )
             .unwrap();
         assert!(
-            tx.vsize() as u64 <= btc::vsize(&tx_of(&built.assembly), &spends_of(&built.assembly))
+            tx.vsize() as u64 <= btc::vsize(&tx_of(&built.assembly), &spend_of(&built.assembly))
         );
     }
 
@@ -425,7 +433,14 @@ mod bitcoin_checks {
                 .iter()
                 .map(|d| (!timelock).then(|| cs.sign_message_with_bip340_no_rng(&d[..]).to_vec()))
                 .collect();
-            let (raw, txid) = assemble(&built.assembly, &sigs, &cosigs).unwrap();
+            let (raw, txid) = assemble(
+                &built.assembly,
+                &built.unsigned,
+                &built.digests,
+                &sigs,
+                &cosigs,
+            )
+            .unwrap();
             let tx = signed(&raw);
             assert_eq!(tx.compute_txid().to_string(), txid);
             let witness: Vec<Vec<u8>> = tx.input[0].witness.iter().map(|x| x.to_vec()).collect();
@@ -448,7 +463,7 @@ mod bitcoin_checks {
             }
             assert!(
                 tx.vsize() as u64
-                    <= btc::vsize(&tx_of(&built.assembly), &spends_of(&built.assembly))
+                    <= btc::vsize(&tx_of(&built.assembly), &spend_of(&built.assembly))
             );
         }
     }
@@ -569,7 +584,14 @@ mod evm_checks {
             )
             .unwrap();
             let sig = sk.sign_digest_with_ecdsa(&built.digests[0][..]).to_vec();
-            let (raw, txid) = assemble(&built.assembly, &[sig], &[]).unwrap();
+            let (raw, txid) = assemble(
+                &built.assembly,
+                &built.unsigned,
+                &built.digests,
+                &[sig],
+                &[],
+            )
+            .unwrap();
             let TxEnvelope::Eip1559(signed) = TxEnvelope::decode_2718(&mut raw.as_slice()).unwrap()
             else {
                 panic!("not EIP-1559")
@@ -635,6 +657,31 @@ mod solana_checks {
     }
 
     #[test]
+    fn program_ids_match_their_addresses() {
+        for (key, text) in [
+            (
+                sol::COMPUTE_BUDGET,
+                "ComputeBudget111111111111111111111111111111",
+            ),
+            (
+                sol::TOKEN_PROGRAM,
+                "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+            ),
+            (
+                sol::ATA_PROGRAM,
+                "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+            ),
+            (
+                sol::RECENT_BLOCKHASHES,
+                "SysvarRecentB1ockHashes11111111111111111111",
+            ),
+            (sol::RENT, "SysvarRent111111111111111111111111111111111"),
+        ] {
+            assert_eq!(sol_address(&key), text);
+        }
+    }
+
+    #[test]
     fn sol_and_spl_messages_match_solana() {
         let mut w = wallet();
         let sk = ic_ed25519::PrivateKey::generate_from_seed(&[9; 32]);
@@ -680,7 +727,14 @@ mod solana_checks {
         assert_eq!(built.unsigned, reference(payer, &ixs, [7; 32]));
         assert_eq!(built.summary.fee, 5_000 + 200);
         let sig = sk.sign_message(&built.unsigned);
-        let (raw, txid) = assemble(&built.assembly, &[sig.to_vec()], &[]).unwrap();
+        let (raw, txid) = assemble(
+            &built.assembly,
+            &built.unsigned,
+            &built.digests,
+            &[sig.to_vec()],
+            &[],
+        )
+        .unwrap();
         assert_eq!(raw[0], 1);
         assert_eq!(&raw[65..], &built.unsigned[..]);
         assert_eq!(txid, bs58::encode(sig).into_string());
@@ -690,8 +744,8 @@ mod solana_checks {
 
         // An SPL transfer creating the recipient's token account.
         let mint = [0x44; 32];
-        let token = pk(sol::token_program());
-        let ata_program = pk(sol::ata_program());
+        let token = pk(sol::TOKEN_PROGRAM);
+        let ata_program = pk(sol::ATA_PROGRAM);
         let ata = |owner: [u8; 32]| {
             Pubkey::find_program_address(&[&owner, token.as_ref(), &mint], &ata_program).0
         };

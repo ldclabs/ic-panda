@@ -749,7 +749,7 @@ type MemberApproval = variant {
   // The calling Principal is the member.
   Principal;
 };
-// A wallet member: a dMsg account or a Principal such as SNS governance.
+// A wallet member, one of the team: a dMsg account or a Principal.
 type MemberId = variant {
   // A dMsg account; it approves with device approvals its user home verifies.
   Account : blob;
@@ -950,7 +950,8 @@ type RefuelRule = record {
   // Top up when the cycle balance is below this.
   min_cycles : nat;
 };
-// Approvals and delay a proposal needs, fixed when it is made.
+// Approvals and delay a proposal needs, set when it is made. A spend's is
+// raised at an approval when its rolling window then asks for more.
 type Requirement = record {
   // Delay after the last approval.
   delay_ms : nat64;
@@ -965,8 +966,7 @@ type Result = variant { Ok : vec BookEntry; Err : Error };
 type Result_1 = variant { Ok : Proposal; Err : Error };
 type Result_10 = variant { Ok : ProposalPage; Err : Error };
 type Result_11 = variant { Ok : vec MemberId; Err : Error };
-type Result_12 = variant { Ok : vec principal; Err : Error };
-type Result_13 = variant { Ok : opt nat; Err : Error };
+type Result_12 = variant { Ok : opt nat; Err : Error };
 type Result_2 = variant { Ok : vec AuditEvent; Err : Error };
 type Result_3 = variant { Ok : KeyRoots; Err : Error };
 type Result_4 = variant { Ok : ExecuteResult; Err : Error };
@@ -1089,7 +1089,7 @@ type WalletInit = record {
 };
 // Operational counters of a wallet.
 type WalletStats = record {
-  // Open, delayed, ready or executing proposals.
+  // Proposals not yet final among the newest 200.
   active_proposals : nat64;
   // Threshold signatures today.
   signatures_today : nat32;
@@ -1147,8 +1147,9 @@ service : (WalletInit) -> {
   address_book : (opt Destination, nat16) -> (Result) query;
   approve_proposal : (nat64, MemberApproval) -> (Result_1);
   audit : (nat64, nat16) -> (Result_2) query;
-  // Read the chain-key roots and create the default chain addresses. Runs
-  // after install; anyone may retry it until it succeeds.
+  // Read the chain-key roots and create the default chain addresses. A timer
+  // runs it after install and upgrades until it succeeds; anyone may run it
+  // sooner.
   bootstrap : () -> (Result_3);
   // The proposer withdraws a proposal not yet executing.
   cancel_proposal : (nat64) -> (Result_1);
@@ -1171,14 +1172,12 @@ service : (WalletInit) -> {
   // Build a plan from the executor's chain parameters. Nothing is signed.
   prepare_execution : (nat64, ExecutionParams) -> (Result_6);
   propose : (ProposeArgs) -> (Result_1);
-  // Remove the oldest finished proposals beyond the retained count.
+  // Remove up to 100 of the oldest finished proposals beyond the retained count.
   prune : () -> (nat32);
   // Resend the exact arguments of an interrupted transfer or top-up.
   reconcile : (nat64) -> (Result_4);
-  // Append user homes the hub lists, so members of new homes can approve.
-  refresh_homes : () -> (Result_12);
   // Top up cycles under the policy's refuel rule; anyone may call it.
-  refuel : () -> (Result_13);
+  refuel : () -> (Result_12);
   reject_proposal : (nat64, MemberApproval) -> (Result_1);
   // Record a member's report of a signed transaction.
   report : (ChainReport) -> (Result_1);

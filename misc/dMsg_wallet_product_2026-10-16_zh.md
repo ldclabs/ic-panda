@@ -78,7 +78,7 @@ dMsg Wallet 的位置：Safe/Squads 的策略能力 + MPC 托管的无助记词�
 | P4 | **所签即所见。**批准对象是 canister 内的权威意图记录；交易字节由 canister 从意图生成，转账类意图不接受任意 calldata；通用 canister 调用必须附 ICRC-21 同意文本摘要 | Bybit 教训 |
 | P5 | **三种地址，逐级加强。**链钥地址（CK）→ 协签地址（CS）→ 链上双控地址（NC），见第 5 节 | 用户设想的“纯 ICP 阈值地址”与“叠加链下签名”分别是 CK 和 CS；NC 是把第二种做成链上可验证的 2-of-2，即使 canister 代码被恶意升级也动不了 |
 | P6 | **策略在链上。**阈值、分级额度、延时与否决、地址簿冷却、每日限额、冻结，全部由 canister 执行 | 客户端只是界面；云端只传通知 |
-| P7 | **成员即 dMsg 账户。**批准由成员的 dMsg 设备签名，经成员所在 user home 核验，复用审批中心、设备能力与账户恢复；同时允许纯 Principal 成员（SNS governance、硬件签名器、其它 canister） | 不另造身份体系；设备撤销、账户恢复、Agent Delegation 的规则直接适用 |
+| P7 | **成员即 dMsg 账户。**批准由成员的 dMsg 设备签名，经成员所在 user home 核验，复用审批中心、设备能力与账户恢复；同时允许纯 Principal 成员（硬件签名器、团队运营的 canister）。钱包只由团队成员管理，SNS governance 不作为成员 | 不另造身份体系；设备撤销、账户恢复、Agent Delegation 的规则直接适用 |
 | P8 | **付费会员 + 一次性 ICP 激活。**创建钱包要求创建者账户持有有效付费套餐，并向工厂支付一次 ICP；ICP 的一部分铸成新 canister 的 cycles，余额归 DAO 收入 | 用户要求；cycles 成本必须由使用者承担 |
 | P9 | **资金永不因订阅过期而锁住。**套餐到期只影响新建钱包、新增外链地址等增量能力，已有钱包的查看、批准、执行、提现永远可用 | 托管资金的产品底线 |
 | P10 | **ICPanda DAO 团队钱包是第一个用户。**接收 handle 注册收入、commerce 商户收入、payment 平台费，并公开透明页 | 吃自己的狗粮，同时落实商业化 §9.1 的收款与国库要求 |
@@ -136,7 +136,7 @@ dMsg Wallet 的位置：Safe/Squads 的策略能力 + MPC 托管的无助记词�
 | Proposer | 创建提案、准备执行参数、广播并回报 |
 | Viewer | 只读（含审计日志） |
 
-成员身份两种：**dMsg 账户**（AccountId；批准由该账户持 `WalletApprove` 能力的设备签名，经 user home 核验）和 **Principal**（直接以 caller 身份调用；用于 SNS governance、ICRC-25 硬件签名器、其它 canister）。一个账户可以限定“只有这台带硬件密钥的桌面可以批准钱包操作”，这是把 `WalletApprove` 做成独立设备能力的原因。
+成员身份两种：**dMsg 账户**（AccountId；批准由该账户持 `WalletApprove` 能力的设备签名，经 user home 核验）和 **Principal**（直接以 caller 身份调用；用于 ICRC-25 硬件签名器、团队运营的 canister）。一个账户可以限定“只有这台带硬件密钥的桌面可以批准钱包操作”，这是把 `WalletApprove` 做成独立设备能力的原因。
 
 智能体（Agent Delegation 下的 Agent ID）经 `dmsg mcp` 使用钱包：**只能提案、准备执行与广播，不能批准、不能改策略**；提案记录“由账户 X 的智能体 Y 发起”。这样团队可以让智能体做记账与发薪的准备工作，人只负责点头。
 
@@ -147,7 +147,7 @@ dMsg Wallet 的位置：Safe/Squads 的策略能力 + MPC 托管的无助记词�
 | 规则 | 说明 | 默认建议 |
 | --- | --- | --- |
 | 基础阈值 | Approver 中 m-of-n；Admin 操作有独立的 m′-of-n′ | 2-of-3 / 2-of-3 |
-| 分级额度 | 按资产、按单笔金额分档，每档不同的阈值与延时；提案人不能把同一意图拆成多笔规避（按 24 小时滚动累计计档） | 小额 1 人即批、无延时；中额阈值；大额阈值 + 24 小时延时 |
+| 分级额度 | 按资产、按单笔金额分档，每档不同的阈值与延时；提案人不能把同一意图拆成多笔规避（按 24 小时滚动累计计档，提案与每次批准时各算一次） | 小额 1 人即批、无延时；中额阈值；大额阈值 + 24 小时延时 |
 | 延时与否决 | 达到阈值后进入延时期，任何 Approver 可以否决；否决需要 Admin 阈值解除 | 大额 24 小时 |
 | 地址簿与冷却 | 已登记收款地址可按低一档处理；新地址登记后冷却期内不能使用，或只能按最高档处理；全地址显示 + 校验和，杜绝“地址投毒”（只比首尾几位） | 冷却 24 小时 |
 | 每日限额 | 每资产 24 小时滚动支出上限，超过即需最高档 | 由团队设定 |
@@ -233,7 +233,7 @@ stateDiagram-v2
 | 钱包激活费 | 工厂 | 工厂的 DAO 收入账户 = 团队钱包 |
 | SNS 国库拨款 | SNS `TransferSnsTreasuryFunds` | 直接转入钱包的 ICP/PANDA 账户 |
 
-建议的策略：成员为 DAO 核心运营者的 dMsg 账户（Admin 2-of-3、Approver 3-of-5），SNS governance principal 作为“恢复成员”——只能发起成员变更提案且带 7 天延时；小额运营支出 2 人即批，大额 3 人 + 24 小时；收入归集地址进地址簿；公开透明页展示成员数、策略摘要、每笔提案与执行记录、各链地址与 txid（金额以链上为准）。这回答了 `Evolved.md` 承诺的“金库资金决策透明公开”。
+需要 SNS 治理的资金留在 SNS 国库，由 SNS 提案处理；团队钱包只放团队运营的资金，由团队成员管理，SNS governance 不作为成员。建议的策略：成员为 DAO 核心运营者的 dMsg 账户（Admin 2-of-3、Approver 3-of-5），可另设离线保管的 Principal 作为“恢复成员”——只能发起成员变更提案且带 7 天延时；小额运营支出 2 人即批，大额 3 人 + 24 小时；收入归集地址进地址簿；公开透明页展示成员数、策略摘要、每笔提案与执行记录、各链地址与 txid（金额以链上为准）。这回答了 `Evolved.md` 承诺的“金库资金决策透明公开”。
 
 ## 10. 安全模型与边界
 
@@ -280,7 +280,7 @@ stateDiagram-v2
 | D-3 | 默认控制模型 | 工厂为唯一 controller，升级须钱包 Admin 阈值接受；“锁定代码”作为显式选项 |
 | D-4 | T2 链范围 | BTC（P2TR）、ETH + 一条 L2（Base）、SOL；EVM 链 ID 由策略白名单添加 |
 | D-5 | 额度计价 | 原生单位；USD 换算只作展示（复用 commerce 价格权威），不参与策略判定 |
-| D-6 | ICPanda DAO 钱包是否纳入 SNS governance 为恢复成员 | 纳入，仅能发起成员变更且 7 天延时 |
+| D-6 | ICPanda DAO 钱包是否纳入 SNS governance 为恢复成员 | 不纳入（2026-10-17 修订）：需要 SNS 治理的资金走 SNS 国库，团队钱包由团队成员管理；钱包不提供 admin 方法与 `validate_*` |
 | D-7 | 是否提供 1-of-1 个人钱包 | T1 允许（策略模板“个人冷储”），不单独营销 |
 | D-8 | 协签默认来源 | 设备硬件密钥：在 macOS Secure Enclave / Windows TPM / Linux TPM2 内生成的 P-256 密钥，私钥不可导出，签名在硬件内完成，可绑定生物识别或 PIN；FIDO2 安全密钥次之。OS keyring（macOS 钥匙串、Windows 凭据管理器、Linux Secret Service，即 daemon 现有的 `SystemStorage`）只是加密存储，解锁后把私钥明文交回进程，存入其中的私钥仍是可复制的软件密钥，不算硬件密钥，归第 4 档，仅作无 TPM 时的回退并标记为弱 |
 | D-9 | 外链确认是否做链上核对 | 默认不做；DAO 钱包可开启“审计模式”用 Bitcoin API / EVM RPC / SOL RPC canister 核对 txid |

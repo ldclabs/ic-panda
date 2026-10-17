@@ -148,44 +148,7 @@ pub fn requirement(
     }
     Ok(match classify(intent, policy) {
         IntentClass::Spend { asset, .. } => {
-            ensure(policy.spendable_assets.contains(&asset), Error::Forbidden)?;
-            let tiers: Vec<&Tier> = policy.tiers.iter().filter(|t| t.asset == asset).collect();
-            let ceiling = voters.approvers.max(1);
-            let (mut approvals, mut delay_ms, book_only) =
-                match tiers.iter().find(|t| t.up_to >= window_amount) {
-                    Some(t) => (t.approvals, t.delay_ms, t.book_only),
-                    None => match tiers.last() {
-                        Some(top) => (
-                            top.approvals
-                                .saturating_add(1)
-                                .min(ceiling)
-                                .max(top.approvals),
-                            top.delay_ms,
-                            top.book_only,
-                        ),
-                        None => (policy.approver_threshold, 0, false),
-                    },
-                };
-            if policy
-                .daily_limits
-                .iter()
-                .any(|l| l.asset == asset && window_amount > l.amount)
-            {
-                approvals = approvals.max(ceiling);
-                delay_ms = tiers
-                    .iter()
-                    .map(|t| t.delay_ms)
-                    .max()
-                    .unwrap_or(0)
-                    .max(delay_ms);
-            }
-            ensure(!book_only || in_book, Error::Forbidden)?;
-            Requirement {
-                approvals: approvals.max(1),
-                admin: false,
-                delay_ms,
-                window_amount,
-            }
+            spend_requirement(policy, &asset, voters, window_amount, in_book)?
         }
         IntentClass::Operate => Requirement {
             approvals: policy.approver_threshold,
@@ -200,6 +163,83 @@ pub fn requirement(
             window_amount: 0,
         },
     })
+}
+
+/// The requirement of spending `asset` when its rolling 24-hour amount,
+/// this spend included, is `window_amount`. The wallet applies it when a
+/// spend is proposed and again when its last approval arrives, so spends
+/// approved meanwhile count.
+///
+/// # Errors
+/// Returns `Error::Forbidden` when the asset is not spendable or a
+/// book-only tier meets a recipient outside the book.
+pub fn spend_requirement(
+    policy: &Policy,
+    asset: &AssetKey,
+    voters: Voters,
+    window_amount: u128,
+    in_book: bool,
+) -> Result<Requirement> {
+    ensure(policy.spendable_assets.contains(asset), Error::Forbidden)?;
+    let tiers: Vec<&Tier> = policy.tiers.iter().filter(|t| t.asset == *asset).collect();
+    let ceiling = voters.approvers.max(1);
+    let (mut approvals, mut delay_ms, book_only) =
+        match tiers.iter().find(|t| t.up_to >= window_amount) {
+            Some(t) => (t.approvals, t.delay_ms, t.book_only),
+            None => match tiers.last() {
+                Some(top) => (
+                    top.approvals
+                        .saturating_add(1)
+                        .min(ceiling)
+                        .max(top.approvals),
+                    top.delay_ms,
+                    top.book_only,
+                ),
+                None => (policy.approver_threshold, 0, false),
+            },
+        };
+    if policy
+        .daily_limits
+        .iter()
+        .any(|l| l.asset == *asset && window_amount > l.amount)
+    {
+        approvals = approvals.max(ceiling);
+        delay_ms = tiers
+            .iter()
+            .map(|t| t.delay_ms)
+            .max()
+            .unwrap_or(0)
+            .max(delay_ms);
+    }
+    ensure(!book_only || in_book, Error::Forbidden)?;
+    Ok(Requirement {
+        approvals: approvals.max(1),
+        admin: false,
+        delay_ms,
+        window_amount,
+    })
+}
+
+/// Whether a proposal waits for approvals, its delay or its execution.
+pub fn is_waiting(status: ProposalStatus) -> bool {
+    matches!(
+        status,
+        ProposalStatus::Open | ProposalStatus::Delayed | ProposalStatus::Ready
+    )
+}
+
+/// Whether a proposal reached a status it never leaves.
+pub fn is_terminal(status: ProposalStatus) -> bool {
+    matches!(
+        status,
+        ProposalStatus::Settled
+            | ProposalStatus::Failed
+            | ProposalStatus::Rejected
+            | ProposalStatus::Vetoed
+            | ProposalStatus::Cancelled
+            | ProposalStatus::Expired
+            | ProposalStatus::Stale
+    )
 }
 
 fn label(text: &str) -> Result<()> {

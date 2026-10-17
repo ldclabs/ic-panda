@@ -2,25 +2,34 @@
 //! cancellations.
 use super::Built;
 use crate::store::SignSpec;
+use cbor2::Cbor;
 use dmsg_protocol::wallet::*;
 use dmsg_types::{wallet::*, *};
-use serde::{Deserialize, Serialize};
-use serde_bytes::ByteBuf;
 use sha3::{Digest, Keccak256};
 
 /// Gas of a plain value transfer.
 pub(crate) const TRANSFER_GAS: u64 = 21_000;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct Eip1559 {
+    #[cbor(key = 1)]
     pub(crate) chain_id: u64,
+    #[cbor(key = 2)]
     pub(crate) nonce: u64,
+    #[cbor(key = 3)]
     pub(crate) max_priority_fee_per_gas: u128,
+    #[cbor(key = 4)]
     pub(crate) max_fee_per_gas: u128,
+    #[cbor(key = 5)]
     pub(crate) gas_limit: u64,
+    #[cbor(key = 6)]
     pub(crate) to: Hash20,
+    #[cbor(key = 7)]
     pub(crate) value: u128,
-    pub(crate) data: ByteBuf,
+    #[cbor(key = 8)]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(with = "serde_bytes")]
+    pub(crate) data: Vec<u8>,
 }
 
 fn rlp_bytes(b: &[u8]) -> Vec<u8> {
@@ -169,20 +178,20 @@ pub(crate) fn build(
         gas_limit,
         to,
         value,
-        data: data.into(),
+        data,
     };
     let payload = tx.payload();
     let digest: [u8; 32] = Keccak256::digest(&payload).into();
     Ok(Built {
         unsigned: payload,
         digests: vec![Hash::new(digest)],
-        signs: vec![SignSpec::Ecdsa {
+        sign: SignSpec::Ecdsa {
             path: crate::keys::path_bytes(&derivation_path(
                 Chain::Evm,
                 &AddressKind::ChainKey,
                 from.id,
             )?),
-        }],
+        },
         summary: DecodedSummary {
             chain: format!("evm:{chain_id}"),
             from: from.text.clone(),
@@ -205,14 +214,19 @@ pub(crate) fn build(
     })
 }
 
-/// Normalize the threshold signature to low s and find its recovery parity.
-pub(crate) fn assemble(tx: &Eip1559, public_key: &[u8], sig: &[u8]) -> Result<(Vec<u8>, String)> {
+/// Normalize the threshold signature over `digest`, the payload's
+/// Keccak-256, to low s and find its recovery parity.
+pub(crate) fn assemble(
+    tx: &Eip1559,
+    public_key: &[u8],
+    digest: &Hash,
+    sig: &[u8],
+) -> Result<(Vec<u8>, String)> {
     let sig = k256::ecdsa::Signature::from_slice(sig).map_err(|_| Error::IntegrityFailed)?;
     let sig = sig.normalize_s();
     let key = k256::ecdsa::VerifyingKey::from_sec1_bytes(public_key)
         .map_err(|_| Error::IntegrityFailed)?;
-    let digest = Keccak256::digest(tx.payload());
-    let id = k256::ecdsa::RecoveryId::trial_recovery_from_prehash(&key, &digest, &sig)
+    let id = k256::ecdsa::RecoveryId::trial_recovery_from_prehash(&key, &digest[..], &sig)
         .map_err(|_| Error::IntegrityFailed)?;
     let bytes = sig.to_bytes();
     Ok(tx.signed(id.is_y_odd(), &bytes[..32], &bytes[32..]))

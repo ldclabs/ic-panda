@@ -7,6 +7,7 @@ mod chains;
 mod execute;
 mod keys;
 mod ledger;
+mod stable_codec;
 mod store;
 
 use candid::Principal;
@@ -18,10 +19,7 @@ use dmsg_types::{wallet::*, *};
 fn inspect_message() {
     let caller = ic_cdk::api::msg_caller();
     let method = ic_cdk::api::msg_method_name();
-    let open = matches!(
-        method.as_str(),
-        "join" | "bootstrap" | "refuel" | "refresh_homes" | "prune"
-    );
+    let open = matches!(method.as_str(), "join" | "bootstrap" | "refuel" | "prune");
     let member = store::with(|w| w.members.iter().any(|m| m.principals.contains(&caller)));
     if caller != Principal::anonymous() && (open || member) {
         ic_cdk::api::accept_message();

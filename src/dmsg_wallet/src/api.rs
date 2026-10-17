@@ -1,5 +1,5 @@
 //! Install, bootstrap, reads, membership and proposal decisions.
-use crate::store::{self, Settings, Spend, Wallet};
+use crate::store::{self, Settings, Spend, Wallet, STABLE_SCHEMA};
 use candid::Principal;
 use dmsg_protocol::{
     agent::{account_home, check_user_home, validate_user_homes},
@@ -11,6 +11,14 @@ use dmsg_types::{
     wallet::*,
     *,
 };
+use std::time::Duration;
+
+/// Proposals kept before the oldest finished ones are removed.
+const RETAINED_PROPOSALS: u64 = 10_000;
+/// Oldest proposals one prune looks at.
+const PRUNE_SCAN: usize = 200;
+/// Newest proposals `wallet_stats` counts the unfinished ones of.
+const STATS_SCAN: usize = 200;
 
 pub(crate) fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
@@ -61,6 +69,7 @@ fn init(args: WalletInit) {
     assert_eq!(args.policy.version, 1, "policy version");
     validate_policy(&args.policy, admins, approvers).expect("policy");
     let mut w = Wallet {
+        schema: STABLE_SCHEMA,
         settings: Settings {
             environment: args.environment,
             hub: args.hub,
@@ -101,13 +110,10 @@ fn init(args: WalletInit) {
         evm_pending: vec![],
         sol_last: vec![],
         spends: vec![],
-        refuel: None,
     };
     store::audit(&mut w, at, Some(args.creator), None, AuditKind::Created);
     store::save(w);
-    ic_cdk_timers::set_timer(std::time::Duration::ZERO, async {
-        let _ = bootstrap_keys().await;
-    });
+    ensure_bootstrap();
 }
 
 fn invited(m: &MemberInput, at: u64) -> Member {
@@ -126,23 +132,61 @@ fn invited(m: &MemberInput, at: u64) -> Member {
 #[ic_cdk::post_upgrade]
 fn post_upgrade(version: Option<u32>) {
     let mut w = store::wallet();
+    assert_eq!(
+        w.schema, STABLE_SCHEMA,
+        "explicit stable-state migration required"
+    );
     if matches!(w.code, CodeAcceptance::Upgrade { version: v, .. } if Some(v) == version) {
         w.code = CodeAcceptance::None;
     }
+    // The view's encoding may change with the code, so its leaf is certified
+    // again; saving also republishes the root.
     store::save(w);
-    store::publish();
+    ensure_bootstrap();
 }
 
-/// Read the chain-key roots and create the default chain addresses. Runs
-/// after install; anyone may retry it until it succeeds.
+/// Whether the chain-key roots and the default addresses exist.
+fn bootstrapped(w: &Wallet) -> bool {
+    w.key_roots.ecdsa.is_some()
+        && w.key_roots.bip340.is_some()
+        && w.key_roots.ed25519.is_some()
+        && DEFAULT_ADDRESSES
+            .iter()
+            .all(|(id, ..)| w.address(*id).is_ok())
+}
+
+/// Bootstrap in a timer, retrying every minute until it succeeds.
+fn ensure_bootstrap() {
+    if !store::with(bootstrapped) {
+        ic_cdk_timers::set_timer(Duration::ZERO, retry_bootstrap());
+    }
+}
+
+async fn retry_bootstrap() {
+    if bootstrap_keys().await.is_err() {
+        ic_cdk_timers::set_timer(Duration::from_secs(60), retry_bootstrap());
+    }
+}
+
+/// Read the chain-key roots and create the default chain addresses. A timer
+/// runs it after install and upgrades until it succeeds; anyone may run it
+/// sooner.
 #[ic_cdk::update]
 async fn bootstrap() -> Result<KeyRoots> {
     bootstrap_keys().await
 }
 
 async fn bootstrap_keys() -> Result<KeyRoots> {
-    let key_name = store::with(|w| w.settings.key_name.clone());
-    let mut roots = store::with(|w| w.key_roots.clone());
+    let (key_name, mut roots, done) = store::with(|w| {
+        (
+            w.settings.key_name.clone(),
+            w.key_roots.clone(),
+            bootstrapped(w),
+        )
+    });
+    if done {
+        return Ok(roots);
+    }
     for algorithm in [
         KeyAlgorithm::Ecdsa,
         KeyAlgorithm::Bip340,
@@ -222,16 +266,16 @@ fn get_wallet() -> Result<WalletView> {
 
 #[ic_cdk::query]
 fn get_wallet_certified() -> Result<CertifiedBatch> {
+    let me = ic_cdk::api::canister_self();
     let view = store::with(|w| {
         check_reader(w, ic_cdk::api::msg_caller())?;
         Ok::<_, Error>(canonical(&w.view()))
     })?;
-    store::certified(vec![b"wallet".to_vec()], |_| Some(view.clone()))
+    store::certified(me, vec![b"wallet".to_vec()], |_| Some(view.clone()))
 }
 
 /// A proposal as stored, with deadlines applied.
-fn current(p: Proposal, w: &Wallet, at: u64) -> Proposal {
-    let mut p = p;
+fn current(mut p: Proposal, w: &Wallet, at: u64) -> Proposal {
     close(&mut p, w, at);
     p
 }
@@ -248,9 +292,10 @@ fn get_proposal(id: u64) -> Result<Proposal> {
 /// The stored proposal record; deadlines that passed since are not applied.
 #[ic_cdk::query]
 fn get_proposal_certified(id: u64) -> Result<CertifiedBatch> {
+    let me = ic_cdk::api::canister_self();
     store::with(|w| check_reader(w, ic_cdk::api::msg_caller()))?;
     let bytes = canonical(&store::proposal(id)?);
-    store::certified(vec![store::proposal_key(id)], |_| Some(bytes.clone()))
+    store::certified(me, vec![store::proposal_key(id)], |_| Some(bytes.clone()))
 }
 
 #[ic_cdk::query]
@@ -299,19 +344,10 @@ fn wallet_stats() -> WalletStats {
             0
         },
         proposals: store::proposal_count(),
-        active_proposals: store::proposals_before(None, 200)
-            .iter()
-            .filter(|p| {
-                matches!(
-                    p.status,
-                    ProposalStatus::Open
-                        | ProposalStatus::Delayed
-                        | ProposalStatus::Ready
-                        | ProposalStatus::Executing
-                        | ProposalStatus::Signed
-                        | ProposalStatus::Broadcast
-                )
-            })
+        active_proposals: store::proposals_before(None, STATS_SCAN)
+            .into_iter()
+            .map(|p| current(p, w, at))
+            .filter(|p| !is_terminal(p.status))
             .count() as u64,
         stable_pages: store::stable_pages(),
     })
@@ -333,7 +369,7 @@ fn member_ids() -> Result<Vec<MemberId>> {
 }
 
 /// The user home of an account member, named by its ID's fingerprint.
-pub(crate) fn home_of(w: &Wallet, account: &AccountId) -> Result<Principal> {
+fn home_of(w: &Wallet, account: &AccountId) -> Result<Principal> {
     account_home(
         &w.settings.environment,
         &w.settings.issuer_namespace,
@@ -343,10 +379,13 @@ pub(crate) fn home_of(w: &Wallet, account: &AccountId) -> Result<Principal> {
     .ok_or(Error::NotFound)
 }
 
-/// Append user homes the hub lists, so members of new homes can approve.
-#[ic_cdk::update]
-async fn refresh_homes() -> Result<Vec<Principal>> {
-    let hub = store::with(|w| w.settings.hub);
+/// The user home of an account member. When none matches, the homes the
+/// hub listed since are appended once and the lookup runs again.
+async fn member_home(account: &AccountId) -> Result<Principal> {
+    let (home, hub) = store::with(|w| (home_of(w, account), w.settings.hub));
+    if home.is_ok() {
+        return home;
+    }
     let homes: Vec<Principal> = dmsg_runtime::call(hub, "get_user_homes", ()).await?;
     let mut w = store::wallet();
     let mut changed = false;
@@ -361,15 +400,15 @@ async fn refresh_homes() -> Result<Vec<Principal>> {
             changed = true;
         }
     }
-    let homes = w.settings.user_homes.clone();
+    let home = home_of(&w, account);
     if changed {
         store::save(w);
     }
-    Ok(homes)
+    home
 }
 
 /// Verify an account member's device approval at its user home.
-pub(crate) async fn verify_account(
+async fn verify_account(
     home: Principal,
     approval_id: Hash,
     approval: &ApplicationApproval,
@@ -385,6 +424,7 @@ pub(crate) async fn verify_account(
 
 fn expected<'a>(
     w: &'a Wallet,
+    me: Principal,
     purpose: ApprovalPurpose,
     action_digest: Hash,
     account: &'a AccountId,
@@ -393,7 +433,7 @@ fn expected<'a>(
     ExpectedApproval {
         environment: &w.settings.environment,
         hub: w.settings.hub,
-        service: ic_cdk::api::canister_self(),
+        service: me,
         purpose,
         action_digest,
         account,
@@ -406,7 +446,8 @@ fn expected<'a>(
 #[ic_cdk::update]
 async fn join(evidence: MemberApproval) -> Result<Member> {
     let caller = ic_cdk::api::msg_caller();
-    let at = now();
+    let me = ic_cdk::api::canister_self();
+    let mut at = now();
     authenticated(caller)?;
     let id = match &evidence {
         MemberApproval::Principal => MemberId::Principal(caller),
@@ -415,33 +456,41 @@ async fn join(evidence: MemberApproval) -> Result<Member> {
             approval,
         } => {
             let account = approval.approving_account;
-            let home = store::with(|w| {
+            store::with(|w| {
                 w.member(&MemberId::Account(account))
                     .ok_or(Error::Forbidden)?;
                 check_wallet_approval(
                     approval,
                     &expected(
                         w,
+                        me,
                         ApprovalPurpose::WalletJoin,
-                        join_digest(ic_cdk::api::canister_self(), &account, caller),
+                        join_digest(me, &account, caller),
                         &account,
                         caller,
                     ),
                     at,
-                )?;
-                home_of(w, &account)
+                )
             })?;
+            let home = member_home(&account).await?;
             verify_account(home, *approval_id, approval).await?;
+            at = now();
             MemberId::Account(account)
         }
     };
-    let at = now();
     let mut w = store::wallet();
-    let member = w
-        .members
-        .iter_mut()
-        .find(|m| m.id == id)
-        .ok_or(Error::Forbidden)?;
+    let member = w.member(&id).ok_or(Error::Forbidden)?;
+    if member.status == MemberStatus::Active && member.principals.contains(&caller) {
+        return Ok(member.clone());
+    }
+    // A Principal acts as one member only.
+    ensure(
+        w.members.iter().all(|m| {
+            m.id == id || (m.id != MemberId::Principal(caller) && !m.principals.contains(&caller))
+        }),
+        Error::IdempotencyConflict,
+    )?;
+    let member = w.members.iter_mut().find(|m| m.id == id).expect("member");
     if !member.principals.contains(&caller) {
         ensure(
             member.principals.len() < MAX_MEMBER_PRINCIPALS,
@@ -474,12 +523,10 @@ fn freeze() -> Result<()> {
 }
 
 /// Close a proposal whose lifetime ended or whose policy changed, and move
-/// a delayed proposal past its veto period to Ready.
+/// a delayed proposal past its veto period to Ready. Returns whether the
+/// status changed.
 pub(crate) fn close(p: &mut Proposal, w: &Wallet, at: u64) -> bool {
-    let waiting = matches!(
-        p.status,
-        ProposalStatus::Open | ProposalStatus::Delayed | ProposalStatus::Ready
-    );
+    let waiting = is_waiting(p.status);
     let status = if waiting && at >= p.expires_at_ms {
         ProposalStatus::Expired
     } else if waiting && p.policy_version != w.policy.version {
@@ -492,6 +539,27 @@ pub(crate) fn close(p: &mut Proposal, w: &Wallet, at: u64) -> bool {
     p.status = status;
     p.updated_at_ms = at;
     true
+}
+
+/// Apply `close` to a stored proposal and persist a change; a proposal whose
+/// lifetime ended or whose policy changed is refused.
+pub(crate) fn refresh(w: &mut Wallet, p: &mut Proposal, at: u64) -> Result<()> {
+    if close(p, w, at) {
+        save_closed(w, p, at);
+        store::save(w.clone());
+    }
+    ensure(
+        !matches!(p.status, ProposalStatus::Expired | ProposalStatus::Stale),
+        Error::Expired,
+    )
+}
+
+/// Refuse what a freeze stops: only Unfreeze and membership changes proceed.
+pub(crate) fn unlocked(w: &Wallet, intent: &Intent) -> Result<()> {
+    ensure(
+        !w.frozen || matches!(intent, Intent::Unfreeze) || is_membership(intent),
+        Error::Locked,
+    )
 }
 
 /// Persist a closed proposal, release its window spend and audit the end.
@@ -738,6 +806,7 @@ async fn consent(canister: Principal, method: &str, arg: &[u8]) -> Option<Consen
 #[ic_cdk::update]
 async fn propose(args: ProposeArgs) -> Result<Proposal> {
     let caller = ic_cdk::api::msg_caller();
+    let me = ic_cdk::api::canister_self();
     let ProposeArgs {
         mut intent,
         op_id,
@@ -745,10 +814,9 @@ async fn propose(args: ProposeArgs) -> Result<Proposal> {
     } = args;
     validate_intent(&intent)?;
     dmsg_protocol::nonzero(&op_id[..])?;
-    store::with(|w| w.acting(caller).map(|_| ()))?;
+    let proposer = store::with(|w| w.acting(caller).map(|m| m.id.clone()))?;
     if let Some(id) = store::op(&op_id) {
         let p = store::proposal(id)?;
-        let proposer = store::with(|w| w.acting(caller).map(|m| m.id.clone()))?;
         ensure(
             p.proposer == proposer && p.via_agent == via_agent && same_intent(&p.intent, &intent),
             Error::IdempotencyConflict,
@@ -780,10 +848,7 @@ async fn propose(args: ProposeArgs) -> Result<Proposal> {
     }
     ensure(store::op(&op_id).is_none(), Error::IdempotencyConflict)?;
     check_state(&w, &intent)?;
-    ensure(
-        !w.frozen || matches!(intent, Intent::Unfreeze) || is_membership(&intent),
-        Error::Locked,
-    )?;
+    unlocked(&w, &intent)?;
     let (window, in_book) = window_and_book(&w, &intent, at);
     let requirement = requirement(
         &w.policy,
@@ -797,7 +862,7 @@ async fn propose(args: ProposeArgs) -> Result<Proposal> {
     w.next_proposal += 1;
     let digest = proposal_digest(
         &w.settings.environment,
-        ic_cdk::api::canister_self(),
+        me,
         &op_id,
         &intent,
         w.policy.version,
@@ -837,6 +902,8 @@ async fn propose(args: ProposeArgs) -> Result<Proposal> {
     }
     store::save_op(&op_id, id);
     store::save_proposal(&p);
+    // Each new proposal clears a little of the history beyond the retained count.
+    prune_finished(&mut w, at, 2);
     store::save(w);
     Ok(p)
 }
@@ -887,6 +954,31 @@ fn approve(w: &mut Wallet, p: &mut Proposal, at: u64) {
     store::audit(w, at, None, Some(p.id), AuditKind::Approved);
 }
 
+/// Raise a spend's requirement to what its rolling window asks now: spends
+/// approved since it was proposed count, so a payment split into several
+/// proposals still meets the tier of their sum. The delay it gains extends
+/// its lifetime.
+fn raise_requirement(w: &Wallet, p: &mut Proposal, at: u64) -> Result<()> {
+    let IntentClass::Spend { asset, .. } = classify(&p.intent, &w.policy) else {
+        return Ok(());
+    };
+    let (window, in_book) = window_and_book(w, &p.intent, at);
+    let fresh = spend_requirement(&w.policy, &asset, Voters::of(&w.members), window, in_book)?;
+    let r = &p.requirement;
+    if fresh.approvals > r.approvals || fresh.delay_ms > r.delay_ms {
+        p.requirement = Requirement {
+            approvals: fresh.approvals.max(r.approvals),
+            admin: false,
+            delay_ms: fresh.delay_ms.max(r.delay_ms),
+            window_amount: fresh.window_amount,
+        };
+        p.expires_at_ms = p
+            .expires_at_ms
+            .max(p.created_at_ms + p.requirement.delay_ms + w.policy.proposal_ttl_ms);
+    }
+    Ok(())
+}
+
 /// The member deciding, checked against the proposal's current state.
 fn check_decision(
     w: &Wallet,
@@ -908,6 +1000,9 @@ fn check_decision(
                 p.votes.iter().all(|v| v.member != *member),
                 Error::IdempotencyConflict,
             )?;
+            if decision == Decision::Approve {
+                unlocked(w, &p.intent)?;
+            }
         }
         Decision::Veto => {
             ensure(p.status == ProposalStatus::Delayed, Error::VersionConflict)?;
@@ -919,51 +1014,46 @@ fn check_decision(
 
 async fn decide(id: u64, evidence: MemberApproval, decision: Decision) -> Result<Proposal> {
     let caller = ic_cdk::api::msg_caller();
-    let at = now();
+    let me = ic_cdk::api::canister_self();
+    let mut at = now();
     let member = match &evidence {
         MemberApproval::Principal => MemberId::Principal(caller),
         MemberApproval::Account { approval, .. } => MemberId::Account(approval.approving_account),
     };
+    if let MemberApproval::Account {
+        approval_id,
+        approval,
+    } = &evidence
     {
+        let account = approval.approving_account;
         let mut w = store::wallet();
         let mut p = store::proposal(id)?;
-        if close(&mut p, &w, at) {
-            save_closed(&mut w, &p, at);
-            store::save(w);
-            return Err(Error::Expired);
-        }
+        refresh(&mut w, &mut p, at)?;
         check_decision(&w, &p, &member, caller, decision)?;
-        if let MemberApproval::Account {
-            approval_id,
+        check_wallet_approval(
             approval,
-        } = &evidence
-        {
-            let account = approval.approving_account;
-            check_wallet_approval(
-                approval,
-                &expected(
-                    &w,
-                    ApprovalPurpose::WalletProposal,
-                    decision_digest(&p.digest, decision),
-                    &account,
-                    caller,
-                ),
-                at,
-            )?;
-            let home = home_of(&w, &account)?;
-            verify_account(home, *approval_id, approval).await?;
-        }
+            &expected(
+                &w,
+                me,
+                ApprovalPurpose::WalletProposal,
+                decision_digest(&p.digest, decision),
+                &account,
+                caller,
+            ),
+            at,
+        )?;
+        let home = member_home(&account).await?;
+        verify_account(home, *approval_id, approval).await?;
+        // Time, membership and the proposal are reread after the home's reply.
+        at = now();
     }
-    // Time, membership and the proposal are reread after the home's reply.
-    let at = now();
     let mut w = store::wallet();
     let mut p = store::proposal(id)?;
-    if close(&mut p, &w, at) {
-        save_closed(&mut w, &p, at);
-        store::save(w);
-        return Err(Error::Expired);
-    }
+    refresh(&mut w, &mut p, at)?;
     check_decision(&w, &p, &member, caller, decision)?;
+    if decision == Decision::Approve {
+        raise_requirement(&w, &mut p, at)?;
+    }
     p.votes.push(Vote {
         member: member.clone(),
         decision,
@@ -1039,14 +1129,8 @@ fn cancel_proposal(id: u64) -> Result<Proposal> {
     let mut p = store::proposal(id)?;
     let member = w.acting(caller)?.id.clone();
     ensure(p.proposer == member, Error::Forbidden)?;
-    close(&mut p, &w, at);
-    ensure(
-        matches!(
-            p.status,
-            ProposalStatus::Open | ProposalStatus::Delayed | ProposalStatus::Ready
-        ),
-        Error::VersionConflict,
-    )?;
+    refresh(&mut w, &mut p, at)?;
+    ensure(is_waiting(p.status), Error::VersionConflict)?;
     p.status = ProposalStatus::Cancelled;
     p.updated_at_ms = at;
     save_closed(&mut w, &p, at);
@@ -1054,29 +1138,44 @@ fn cancel_proposal(id: u64) -> Result<Proposal> {
     Ok(p)
 }
 
-/// Remove the oldest finished proposals beyond the retained count.
+/// Remove up to `limit` of the oldest finished proposals beyond the retained
+/// count, applying deadlines that passed first; a proposal still in flight
+/// is skipped.
+pub(crate) fn prune_finished(w: &mut Wallet, at: u64, limit: u64) -> u32 {
+    let excess = store::proposal_count()
+        .saturating_sub(RETAINED_PROPOSALS)
+        .min(limit);
+    let mut removed = 0;
+    if excess == 0 {
+        return removed;
+    }
+    for id in store::oldest_ids(PRUNE_SCAN) {
+        let Ok(mut p) = store::proposal(id) else {
+            continue;
+        };
+        if close(&mut p, w, at) {
+            save_closed(w, &p, at);
+        }
+        if is_terminal(p.status) {
+            store::remove_proposal(id);
+            removed += 1;
+            if u64::from(removed) == excess {
+                break;
+            }
+        }
+    }
+    removed
+}
+
+/// Remove up to 100 of the oldest finished proposals beyond the retained count.
 #[ic_cdk::update]
 fn prune() -> u32 {
-    const RETAINED: u64 = 10_000;
-    let mut removed = 0;
-    while store::proposal_count() > RETAINED && removed < 100 {
-        let Some(oldest) = store::oldest_proposal().map(|p| (p.id, p.status)) else {
-            break;
-        };
-        if !matches!(
-            oldest.1,
-            ProposalStatus::Settled
-                | ProposalStatus::Failed
-                | ProposalStatus::Rejected
-                | ProposalStatus::Vetoed
-                | ProposalStatus::Cancelled
-                | ProposalStatus::Expired
-                | ProposalStatus::Stale
-        ) {
-            break;
-        }
-        store::remove_proposal(oldest.0);
-        removed += 1;
+    if store::proposal_count() <= RETAINED_PROPOSALS {
+        return 0;
     }
+    let at = now();
+    let mut w = store::wallet();
+    let removed = prune_finished(&mut w, at, 100);
+    store::save(w);
     removed
 }

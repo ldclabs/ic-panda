@@ -16,7 +16,7 @@
 
 ## 成员与角色
 
-成员是 dMsg 账户（`MemberId::Account`）或 Principal（`MemberId::Principal`，例如 SNS governance）。角色：
+钱包由团队成员管理：成员是团队成员的 dMsg 账户（`MemberId::Account`）或以调用者身份直接行动的 Principal（`MemberId::Principal`）。需要 SNS 治理的资金留在 SNS 国库，由 SNS 提案处理，不经团队钱包。角色：
 
 | 角色 | 提案 | 批准计数 | 否决 / 冻结 |
 | --- | --- | --- | --- |
@@ -26,7 +26,7 @@
 | Viewer | 否 | 否 | 否 |
 | Recovery | 仅成员变更 | 否；其提案无需批准，延时 7 天，期间任一 Admin/Approver 可否决 | 否 |
 
-被添加的成员处于 `Invited`，`join` 后才行动；客户端加入前先请 hub `sync_wallet` 刷新成员索引，创建后才加入的成员由此出现在索引中。移除成员时其协签人一并移除，但双控 Taproot 地址脚本承诺的协签人保留，该地址仍可花费。账户成员以 `WalletJoin` 设备批准绑定调用 Principal（每成员最多 4 个）；之后该 Principal 代表该账户提案、执行与回报，决定仍需每次的设备批准。dMsg 客户端为此在每台设备生成一把“钱包密钥”（Ed25519，LDK 加密存于本机工作区），因为登录委托只到达固定 canister。
+被添加的成员处于 `Invited`，`join` 后才行动；客户端加入前先请 hub `sync_wallet` 刷新成员索引，创建后才加入的成员由此出现在索引中。移除成员时其协签人一并移除，但双控 Taproot 地址脚本承诺的协签人保留，该地址仍可花费。账户成员以 `WalletJoin` 设备批准绑定调用 Principal（每成员最多 4 个）；之后该 Principal 代表该账户提案、执行与回报，决定仍需每次的设备批准。dMsg 客户端为此在每台设备生成一把“钱包密钥”（Ed25519，LDK 加密存于本机工作区），因为登录委托只到达固定 canister。一个 Principal 只能代表一个成员；已加入并已绑定的 Principal 再次 `join` 直接返回成员记录。账户所在的 user home 不在钱包记录中时，钱包向 hub `get_user_homes` 补取一次后再核验。
 
 ## 摘要与设备批准
 
@@ -54,18 +54,20 @@
 
 ## 策略与要求
 
-提案时按当前策略一次算出 `Requirement { approvals, admin, delay_ms, window_amount }` 并冻结；之后策略版本变化使未执行提案变为 `Stale`。
+提案时按当前策略算出 `Requirement { approvals, admin, delay_ms, window_amount }`。支出类在每次批准时按当时的 24 小时窗口再算一次，更严时提高 `approvals` 与 `delay_ms`，`expires_at_ms` 随延时延长：一笔支出拆成多个同时挂起的提案，后批准的仍落入合计金额的档。策略版本变化使未执行提案变为 `Stale`。
 
 - **支出类**（`Transfer`、`Batch`、`Refuel`）：资产须在 `spendable_assets`。`window_amount` = 该资产过去 24 小时已批准或执行的金额 + 本提案金额；取第一个 `up_to ≥ window_amount` 的档（`approvals`、`delay_ms`、`book_only`）；超出最高档为最高档 + 1 人（不超过活跃批准人数）；超过 `daily_limits` 时需要全部活跃批准人。`book_only` 档要求每个收款方是冷却期已过的地址簿条目。没有该资产的档时用 `approver_threshold`、无延时。
 - **操作类**（`CanisterCall`、`CancelEvmNonce`、`InitSolNonce`、`AddressBook`）：`approver_threshold`，无延时。
 - **管理类**：`admin_threshold`，只计 Admin。`SetPolicy`、`RemoveMember`、`SetCosign`、`RemoveCosigner`、`AcceptUpgrade`、`LockCode`、`ReleaseEvmNonce` 延时 24 小时；`Unfreeze` 延时 `unfreeze_delay_ms`；其余无延时。
 - 达到要求后进入 `Delayed`（有延时，期间可否决）或 `Ready`。只改钱包记录的意图在 `Ready` 时即生效；其余由成员调用 `execute`。
-- 任一 Admin/Approver 可直接 `freeze()`；冻结时只能提案与执行 `Unfreeze` 和成员变更，进行中的批量转账停在下一笔之前，签名停在下一个签名之前。
+- 任一 Admin/Approver 可直接 `freeze()`；冻结时只能提案、批准与执行 `Unfreeze` 和成员变更（拒绝与否决不受限），进行中的批量转账停在下一笔之前，签名停在下一个签名之前。
 - 部分转出后失败的批量转账、成员回报失败的已签交易仍计入 24 小时窗口；只有确定没有转出的失败才释放。
 
 ## 状态
 
 `Open → Delayed → Ready → Executing → Signed → Broadcast → Settled`，终态另有 `Failed`、`Rejected`（剩余可批准人数不足）、`Vetoed`、`Cancelled`（提案人撤回）、`Expired`（超过 `expires_at_ms = created + delay + proposal_ttl_ms`）、`Stale`。ICP/ICRC 转账在 `Executing` 时结果未知，由 `reconcile` 用相同参数重发，账本去重返回原区块。
+
+终态提案超过 10,000 条时，每个新提案顺带删除最旧的 2 条终态提案，`prune()` 每次最多删除 100 条；期限已过的提案先按期限关闭，仍在执行或等待回报的跳过。
 
 ## 地址
 
@@ -80,7 +82,7 @@
 | EVM | `eth` | ECDSA secp256k1 | `keccak256(x‖y)[12..]`，EIP-55；所有 EVM 链共用 | `sign_with_ecdsa(keccak256(0x02‖rlp(...)))`，low-s，试算 y-parity |
 | Solana | `sol` | Schnorr Ed25519 | 32 字节公钥的 base58 | `sign_with_schnorr` 签完整 message |
 
-实例创建后 `bootstrap` 读取三个根公钥（空路径的公钥与 chain code，见 `WalletView.key_roots`）并建立默认地址 1（Bitcoin）、2（EVM）、3（Solana）。客户端用 `ic-secp256k1` / `ic-ed25519` 的 `derive_subkey_with_chain_code` 从根公钥离线派生每个地址的公钥并重算地址文本，不一致的地址标记为未核对。
+实例安装与每次升级后，定时器执行 `bootstrap`（失败每分钟重试，任何人也可提前调用），读取三个根公钥（空路径的公钥与 chain code，见 `WalletView.key_roots`）并建立默认地址 1（Bitcoin）、2（EVM）、3（Solana）。客户端用 `ic-secp256k1` / `ic-ed25519` 的 `derive_subkey_with_chain_code` 从根公钥离线派生每个地址的公钥并重算地址文本，不一致的地址标记为未核对。
 
 链上双控 Taproot 的叶脚本：`L1 = <ck_x> OP_CHECKSIGVERIFY <cs_x> OP_CHECKSIG`（链密钥与协签人同时签），`L2 = <n> OP_CSV OP_DROP <ck_x> OP_CHECKSIG`（UTXO 满 `chain_key_after` 个区块后链密钥单独花费），可选 `L3 = <m> OP_CSV OP_DROP <recovery_x> OP_CHECKSIG`。协签人须为 `Bip340` 密钥，对每个输入的脚本路径 sighash 直接签名。
 
@@ -89,7 +91,7 @@
 1. 成员读取外链参数，调用 `prepare_execution(id, ExecutionParams)`；钱包从意图构造交易，核对参数，返回 `ExecutionPlan { unsigned, digests, summary }`，不签名。
 2. 客户端独立解码 `unsigned`，重算每个待签摘要（BIP-341/BIP-143 sighash、`keccak256`、`SHA-256(message)`），与意图和 `summary` 逐项比对；不一致即拒绝。
 3. 地址有协签策略时，协签人对 `cosign_message(wallet, id, seq, i, digests[i])` 签名；`execute(ExecuteArgs { proposal, plan: Some(seq), cosigs })`。钱包验签后逐个调用管理 canister，期间若被冻结则停止；签完组装交易并返回 `SignedTx { raw, txid }`。
-4. 成员广播 `raw`，以 `report(ChainReport { outcome: Broadcast | Settled | Failed })` 回报；钱包记录回报人，不核对链上状态。
+4. 成员广播 `raw`，以 `report(ChainReport { outcome: Broadcast | Settled | Failed })` 回报；钱包记录回报人，不核对链上状态。同一计划的 `Broadcast` 只记录一次，`Settled` 与 `Failed` 结束提案。
 
 | 链 | `prepare_execution` 规则 |
 | --- | --- |
@@ -97,7 +99,7 @@
 | EVM | `chain_id ∈ evm_chains`；原生转账 `to = 收款方, data = 空`；ERC-20 为 `transfer(address,uint256)`；`gas_limit × max_fee_per_gas ≤ max_fee`，`max_priority ≤ max_fee_per_gas`。同一地址同一链同时只能有一笔未结算已签交易，重签必须同 nonce；`CancelEvmNonce` 以同 nonce 零值自转替换它，结算后被替换的提案标记失败 |
 | Solana | 指令只来自意图：ComputeBudget、System `Transfer`、SPL `TransferChecked`（可选 ATA `CreateIdempotent`）、`CreateAccountWithSeed` + `InitializeNonceAccount`（`InitSolNonce`，seed `dmsg-wallet-nonce`，租金 1,447,680 lamports）；地址有 nonce 账户时第一条为 `AdvanceNonceAccount`，`blockhash` 为 nonce 值，重签必须与首个已签计划同值；无 nonce 账户时重签距本提案上次签名至少 150 秒；`5000 + ⌈price × limit / 10⁶⌉ ≤ max_fee` |
 
-每计划有效 10 分钟，每提案最多 8 个计划，每日阈值签名数受 `daily_signatures` 限制。重签规则在构建计划时和签名时各核对一次：任何计划签名前构建的多个计划，以先签名者为准。
+每计划有效 10 分钟，每提案最多 8 个计划。每日阈值签名数受 `daily_signatures` 限制，签名开始时即按计划的摘要数计入，中途停止也计入。重签规则在构建计划时、签名前和签完后各核对一次：任何计划签名前构建的多个计划，以先签名者为准；两个提案同时为同一地址签名时，后签完者被拒绝，不返回已签交易。
 
 ## 协签封装
 

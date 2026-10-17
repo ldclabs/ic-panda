@@ -570,6 +570,8 @@ where
         .collect()
 }
 
+pub mod wallet;
+
 #[cfg(test)]
 mod tests {
     use super::*;

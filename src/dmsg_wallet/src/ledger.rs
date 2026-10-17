@@ -2,46 +2,66 @@
 //! arguments, so a retry after an unknown outcome is deduplicated by the
 //! ledger instead of paying twice.
 use candid::{CandidType, Nat, Principal};
+use cbor2::Cbor;
 use dmsg_runtime::{call_classified, CallFailure};
 use dmsg_types::{account::account_cbor, *};
 use icrc_ledger_types::icrc1::{
     account::Account,
     transfer::{Memo, TransferArg, TransferError},
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 /// `TPUP`: the cycles minting canister's top-up memo, as ICRC-1 memo bytes.
 pub(crate) const MEMO_TOP_UP: u64 = 0x5055_5054;
 
 /// One ICRC transfer with its exact arguments.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct LedgerItem {
+    #[cbor(key = 1)]
     #[serde(with = "account_cbor")]
     pub(crate) to: Account,
+    #[cbor(key = 2)]
     pub(crate) amount: u128,
+    #[cbor(key = 3)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) memo: Option<serde_bytes::ByteBuf>,
+    #[cbor(key = 4)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) block: Option<u64>,
 }
 
 /// Transfers of one proposal, sent in order from one subaccount.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct LedgerJob {
+    #[cbor(key = 1)]
     pub(crate) ledger: Principal,
+    #[cbor(key = 2)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) from: Option<Hash>,
     /// Fee and sender time, fixed before the first transfer.
+    #[cbor(key = 3)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) fee: Option<u128>,
+    #[cbor(key = 4)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) created_at_time: Option<u64>,
+    #[cbor(key = 5)]
     pub(crate) items: Vec<LedgerItem>,
 }
 
 /// ICP sent to the cycles minting canister and its notification.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Cbor)]
 pub(crate) struct TopUp {
+    #[cbor(key = 1)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) from: Option<Hash>,
+    #[cbor(key = 2)]
     pub(crate) amount: u64,
+    #[cbor(key = 3)]
     pub(crate) created_at_time: u64,
+    #[cbor(key = 4)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) block: Option<u64>,
-    pub(crate) cycles: Option<u128>,
 }
 
 /// Outcome of one attempt.

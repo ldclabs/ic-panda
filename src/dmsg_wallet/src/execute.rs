@@ -1,9 +1,9 @@
 //! Executions: internal changes, ICRC transfers, canister calls, cycles
 //! top-ups, new addresses and external-chain signing.
-use crate::api::{check_state, close, now, save_closed};
+use crate::api::{check_state, now, refresh, unlocked};
 use crate::chains::{self, btc::BtcSpend, Assembly};
 use crate::ledger::{self, LedgerItem, LedgerJob, Notified, Sent, TopUp};
-use crate::store::{self, EvmPending, Job, PlanRecord, SignSpec, SolLast, Wallet};
+use crate::store::{self, EvmPending, Job, PlanRecord, SignSpec, SolLast, Wallet, REFUEL_JOB};
 use candid::Principal;
 use dmsg_protocol::wallet::*;
 use dmsg_types::{wallet::*, *};
@@ -47,6 +47,14 @@ fn fail(w: &mut Wallet, p: &mut Proposal, reason: String, release: bool, at: u64
         w.spends.retain(|s| s.proposal != p.id);
     }
     store::audit(w, at, None, Some(p.id), AuditKind::Failed(reason));
+}
+
+/// Persist a proposal whose execution step ended, with the wallet, and
+/// clear its job.
+fn finish(w: Wallet, p: &Proposal) {
+    store::remove_job(p.id);
+    store::save_proposal(p);
+    store::save(w);
 }
 
 /// Apply an internal intent the moment it is Ready.
@@ -155,6 +163,7 @@ fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
 /// Check the cosign policy of `address` over `digests` of `plan`.
 fn check_cosigs(
     w: &mut Wallet,
+    me: Principal,
     address: &Address,
     proposal: u64,
     plan: u32,
@@ -164,7 +173,6 @@ fn check_cosigs(
     let Some(policy) = &address.cosign else {
         return Ok(());
     };
-    let me = ic_cdk::api::canister_self();
     let mut satisfied = 0;
     for id in &policy.cosigners {
         let Ok(c) = w.cosigner(*id) else {
@@ -204,25 +212,28 @@ fn native_cosigs(
     record: &PlanRecord,
     cosigs: &[CosignerSig],
 ) -> Result<Vec<Option<Vec<u8>>>> {
-    let Assembly::Bitcoin { spends, .. } = &record.assembly else {
+    let Assembly::Bitcoin {
+        spend: BtcSpend::Script {
+            cosigner: Some(id), ..
+        },
+        ..
+    } = &record.assembly
+    else {
         return Ok(vec![]);
     };
-    spends
+    let c = w.cosigner(*id)?;
+    record
+        .plan
+        .digests
         .iter()
         .enumerate()
-        .map(|(i, s)| match s {
-            BtcSpend::Script {
-                cosigner: Some(id), ..
-            } => {
-                let c = w.cosigner(*id)?;
-                let sig = cosigs
-                    .iter()
-                    .find(|s| s.cosigner == *id && s.digest_index == i as u32)
-                    .ok_or(Error::Forbidden)?;
-                verify_cosign(c, &record.plan.digests[i], sig)?;
-                Ok(Some(sig.signature.to_vec()))
-            }
-            _ => Ok(None),
+        .map(|(i, digest)| {
+            let sig = cosigs
+                .iter()
+                .find(|s| s.cosigner == *id && s.digest_index == i as u32)
+                .ok_or(Error::Forbidden)?;
+            verify_cosign(c, digest, sig)?;
+            Ok(Some(sig.signature.to_vec()))
         })
         .collect()
 }
@@ -246,39 +257,32 @@ fn result(p: Proposal, signed: Option<SignedTx>) -> ExecuteResult {
 #[ic_cdk::update]
 async fn execute(args: ExecuteArgs) -> Result<ExecuteResult> {
     let caller = ic_cdk::api::msg_caller();
+    let me = ic_cdk::api::canister_self();
     let at = now();
     let mut w = store::wallet();
     let mut p = store::proposal(args.proposal)?;
     let member = w.acting(caller)?.clone();
     ensure(member.role != Role::Viewer, Error::Forbidden)?;
-    if close(&mut p, &w, at) {
-        save_closed(&mut w, &p, at);
-        store::save(w.clone());
-    }
-    ensure(
-        !w.frozen || matches!(p.intent, Intent::Unfreeze) || is_membership(&p.intent),
-        Error::Locked,
-    )?;
+    refresh(&mut w, &mut p, at)?;
+    unlocked(&w, &p.intent)?;
     if chains::chain_source(&p.intent).is_some() {
         let seq = args.plan.ok_or_else(|| invalid("plan"))?;
-        return sign_plan(w, p, seq, &args.cosigs, member.id, at).await;
+        return sign_plan(w, p, seq, &args.cosigs, member.id, me, at).await;
     }
     match p.status {
         ProposalStatus::Ready => {}
-        ProposalStatus::Executing => return resume(p.id).await,
+        ProposalStatus::Executing => return resume(p.id, me, at).await,
         ProposalStatus::Settled => return Ok(result(p, None)),
         _ => return Err(Error::VersionConflict),
     }
-    ensure(at < p.expires_at_ms, Error::Expired)?;
     if let Some(from) = source(&p.intent) {
         let address = w.address(from)?.clone();
-        check_cosigs(&mut w, &address, p.id, 0, &[p.digest], &args.cosigs)?;
+        check_cosigs(&mut w, me, &address, p.id, 0, &[p.digest], &args.cosigs)?;
     }
     match p.intent.clone() {
         intent if internal(&intent) => {
             apply_ready(&mut w, &mut p, at);
-            store::save_proposal(&p);
-            store::save(w);
+            finish(w, &p);
             Ok(result(p, None))
         }
         Intent::Transfer { .. } | Intent::Batch { .. } => start_ledger(w, p, at).await,
@@ -293,19 +297,13 @@ async fn execute(args: ExecuteArgs) -> Result<ExecuteResult> {
             let job = TopUp {
                 from: icp_subaccount(from).map(Hash::new),
                 amount: icp_e8s,
-                created_at_time: ic_cdk::api::time(),
+                created_at_time: at * NANOS_PER_MILLISECOND,
                 block: None,
-                cycles: None,
             };
             begin(&mut w, &mut p, Job::TopUp(job), at);
-            top_up(p.id).await
+            top_up(p.id, me).await
         }
-        Intent::AddAddress {
-            chain,
-            kind,
-            label,
-            cosign,
-        } => add_address(w, p, chain, kind, label, cosign, at).await,
+        Intent::AddAddress { .. } => add_address(w, p, me, at).await,
         _ => Err(invalid("intent")),
     }
 }
@@ -321,13 +319,11 @@ fn begin(w: &mut Wallet, p: &mut Proposal, job: Job, at: u64) {
 }
 
 /// Undo `begin` after a call that proved nothing happened.
-fn abandon(id: u64, status: ProposalStatus) {
-    if let Ok(mut p) = store::proposal(id) {
-        p.status = status;
-        p.updated_at_ms = now();
-        store::save_proposal(&p);
-    }
-    store::remove_job(id);
+fn abandon(p: &mut Proposal, status: ProposalStatus, at: u64) {
+    p.status = status;
+    p.updated_at_ms = at;
+    store::save_proposal(p);
+    store::remove_job(p.id);
 }
 
 async fn start_ledger(mut w: Wallet, mut p: Proposal, at: u64) -> Result<ExecuteResult> {
@@ -405,45 +401,40 @@ async fn start_ledger(mut w: Wallet, mut p: Proposal, at: u64) -> Result<Execute
     let fee = match fee {
         Ok(fee) => fee,
         Err(e) => {
-            abandon(p.id, ProposalStatus::Ready);
+            abandon(&mut p, ProposalStatus::Ready, at);
             return Err(e);
         }
     };
     if fee.saturating_mul(count) > max_fee {
         fail(&mut w, &mut p, "FeeBlocked".into(), true, at);
-        store::remove_job(p.id);
-        store::save_proposal(&p);
-        store::save(w);
+        finish(w, &p);
         return Err(Error::FeeBlocked);
     }
     job.fee = Some(fee);
-    job.created_at_time = Some(ic_cdk::api::time());
+    job.created_at_time = Some(at * NANOS_PER_MILLISECOND);
     store::save_job(p.id, &Job::Ledger(job));
-    process_ledger(p.id).await
+    process_ledger(p.id, at).await
 }
 
 /// Send the remaining transfers of a ledger job in order.
-async fn process_ledger(id: u64) -> Result<ExecuteResult> {
+async fn process_ledger(id: u64, mut at: u64) -> Result<ExecuteResult> {
     loop {
         let Some(Job::Ledger(job)) = store::job(id) else {
             return Err(Error::NotFound);
         };
         ensure(job.created_at_time.is_some(), Error::Pending)?;
         let Some(i) = job.items.iter().position(|x| x.block.is_none()) else {
-            let at = now();
             let mut w = store::wallet();
             let mut p = store::proposal(id)?;
             let blocks = job.items.iter().filter_map(|x| x.block).collect();
             settle(&mut w, &mut p, Outcome::Ledger { blocks }, at);
-            store::remove_job(id);
-            store::save_proposal(&p);
-            store::save(w);
+            finish(w, &p);
             return Ok(result(p, None));
         };
         // A freeze stops the batch before its next transfer.
         ensure(!store::with(|w| w.frozen), Error::Locked)?;
         let sent = ledger::send(job.ledger, job.arg(&job.items[i])).await;
-        let at = now();
+        at = now();
         let Some(Job::Ledger(mut job)) = store::job(id) else {
             return Err(Error::NotFound);
         };
@@ -466,9 +457,7 @@ async fn process_ledger(id: u64) -> Result<ExecuteResult> {
                 let release = blocks.is_empty() && !unknown;
                 p.outcome = Some(Outcome::Ledger { blocks });
                 fail(&mut w, &mut p, reason.clone(), release, at);
-                store::remove_job(id);
-                store::save_proposal(&p);
-                store::save(w);
+                finish(w, &p);
                 return Err(Error::InvalidInput(reason));
             }
             Sent::Unknown => return Err(Error::ExecutionUnknown),
@@ -509,11 +498,10 @@ async fn call(
             message: r.reject_message().chars().take(1_024).collect(),
         },
         Err(e) => {
-            abandon(p.id, ProposalStatus::Ready);
+            abandon(&mut p, ProposalStatus::Ready, at);
             return Err(Error::Unavailable(e.to_string()));
         }
     };
-    store::remove_job(p.id);
     if let Outcome::CallRejected { message, .. } = &outcome {
         let reason = message.clone();
         p.outcome = Some(outcome);
@@ -521,131 +509,160 @@ async fn call(
     } else {
         settle(&mut w, &mut p, outcome, at);
     }
-    store::save_proposal(&p);
-    store::save(w);
+    finish(w, &p);
     Ok(result(p, None))
 }
 
-/// Send the top-up transfer once, then notify the cycles minting canister.
-async fn top_up(id: u64) -> Result<ExecuteResult> {
+/// How a top-up ended.
+enum TopUpEnd {
+    /// Cycles minted from the ICP sent in `block`.
+    Minted { block: u64, cycles: u128 },
+    /// The ledger refused the transfer or the cycles minting canister
+    /// returned the ICP.
+    Refused(String),
+}
+
+/// Run the top-up job under `key`: send its transfer once, then notify the
+/// cycles minting canister. An unknown or pending outcome keeps the job, so
+/// a retry resends the same arguments; `None` means another call finished
+/// the job meanwhile.
+async fn run_top_up(key: u64, me: Principal) -> Result<Option<TopUpEnd>> {
     let (cmc, ledger) = store::with(|w| (w.settings.cmc, w.settings.icp_ledger));
-    let me = ic_cdk::api::canister_self();
-    let Some(Job::TopUp(mut job)) = store::job(id) else {
+    let Some(Job::TopUp(mut job)) = store::job(key) else {
         return Err(Error::NotFound);
     };
     if job.block.is_none() {
         let sent = ledger::send(ledger, job.arg(cmc, me)).await;
-        let at = now();
+        let Some(Job::TopUp(stored)) = store::job(key) else {
+            return Ok(None);
+        };
+        job = stored;
         match sent {
             Sent::Block(block) => {
                 job.block = Some(block);
-                store::save_job(id, &Job::TopUp(job.clone()));
+                store::save_job(key, &Job::TopUp(job.clone()));
             }
             Sent::Refused(reason) => {
-                let mut w = store::wallet();
-                let mut p = store::proposal(id)?;
-                fail(&mut w, &mut p, reason.clone(), true, at);
-                store::remove_job(id);
-                store::save_proposal(&p);
-                store::save(w);
-                return Err(Error::InvalidInput(reason));
+                store::remove_job(key);
+                return Ok(Some(TopUpEnd::Refused(reason)));
             }
             Sent::Unknown => return Err(Error::ExecutionUnknown),
         }
     }
     let block = job.block.expect("sent");
-    let notified = ledger::notify_top_up(cmc, block, me).await;
+    let end = match ledger::notify_top_up(cmc, block, me).await {
+        Notified::Cycles(cycles) => TopUpEnd::Minted { block, cycles },
+        Notified::Refunded(reason) => TopUpEnd::Refused(reason),
+        Notified::Pending => return Err(Error::Pending),
+    };
+    if store::job(key).is_none() {
+        return Ok(None);
+    }
+    store::remove_job(key);
+    Ok(Some(end))
+}
+
+/// The top-up of a Refuel proposal.
+async fn top_up(id: u64, me: Principal) -> Result<ExecuteResult> {
+    let end = run_top_up(id, me).await?;
     let at = now();
     let mut w = store::wallet();
     let mut p = store::proposal(id)?;
-    match notified {
-        Notified::Cycles(cycles) => {
+    match end {
+        None => return Ok(result(p, None)),
+        Some(TopUpEnd::Minted { block, cycles }) => {
             store::audit(&mut w, at, None, Some(id), AuditKind::Refueled { block });
             settle(&mut w, &mut p, Outcome::Refueled { block, cycles }, at);
         }
-        Notified::Refunded(reason) => fail(&mut w, &mut p, reason, true, at),
-        Notified::Pending => return Err(Error::Pending),
+        Some(TopUpEnd::Refused(reason)) => {
+            fail(&mut w, &mut p, reason.clone(), true, at);
+            finish(w, &p);
+            return Err(Error::InvalidInput(reason));
+        }
     }
-    store::remove_job(id);
-    store::save_proposal(&p);
-    store::save(w);
+    finish(w, &p);
     Ok(result(p, None))
 }
 
-#[allow(clippy::too_many_arguments)]
 async fn add_address(
     mut w: Wallet,
     mut p: Proposal,
-    chain: Chain,
-    kind: AddressKind,
-    label: String,
-    cosign: Option<CosignPolicy>,
+    me: Principal,
     at: u64,
 ) -> Result<ExecuteResult> {
+    let Intent::AddAddress {
+        chain,
+        kind,
+        label,
+        cosign,
+    } = p.intent.clone()
+    else {
+        unreachable!("address intent")
+    };
     check_state(&w, &p.intent)?;
-    let me = ic_cdk::api::canister_self();
     let id = w.next_address;
     w.next_address += 1;
-    store::save(w.clone());
-    let algorithm = key_algorithm(chain, &kind)?;
-    let key = match algorithm {
-        None => vec![],
+    let (key, at) = match key_algorithm(chain, &kind)? {
+        None => (vec![], at),
         Some(algorithm) => {
+            let path = derivation_path(chain, &kind, id)?;
+            let key_name = w.settings.key_name.clone();
             begin(&mut w, &mut p, Job::Address, at);
-            let key = crate::keys::public_key(
-                &w.settings.key_name,
-                algorithm,
-                derivation_path(chain, &kind, id)?,
-            )
-            .await;
+            let key = crate::keys::public_key(&key_name, algorithm, path).await;
+            let at = now();
+            w = store::wallet();
+            p = store::proposal(p.id)?;
             match key {
-                Ok((key, _)) => key,
+                Ok((key, _)) => (key, at),
                 Err(e) => {
-                    abandon(p.id, ProposalStatus::Ready);
+                    abandon(&mut p, ProposalStatus::Ready, at);
                     return Err(e);
                 }
             }
         }
     };
-    let at = now();
-    let mut w = store::wallet();
-    let mut p = store::proposal(p.id)?;
-    let cosigner = match &kind {
-        AddressKind::Taproot(control) => Some(chains::btc::native_cosigner(&w, control)?),
-        _ => None,
-    };
-    let text = address_text(
-        me,
-        w.settings.btc_network,
-        id,
-        chain,
-        &kind,
-        &key,
-        cosigner.as_ref(),
-    )?;
-    w.addresses.push(Address {
-        id,
-        chain,
-        kind,
-        public_key: key.into(),
-        text,
-        label,
-        cosign,
-        sol_nonce: None,
-        created_at_ms: at,
+    // A cosigner removed while the key was read fails the proposal.
+    let text = match &kind {
+        AddressKind::Taproot(control) => chains::btc::native_cosigner(&w, control).map(Some),
+        _ => Ok(None),
+    }
+    .and_then(|cosigner| {
+        address_text(
+            me,
+            w.settings.btc_network,
+            id,
+            chain,
+            &kind,
+            &key,
+            cosigner.as_ref(),
+        )
     });
-    settle(&mut w, &mut p, Outcome::AddressCreated(id), at);
-    store::remove_job(p.id);
-    store::save_proposal(&p);
-    store::save(w);
+    match text {
+        Ok(text) => {
+            w.addresses.push(Address {
+                id,
+                chain,
+                kind,
+                public_key: key.into(),
+                text,
+                label,
+                cosign,
+                sol_nonce: None,
+                created_at_ms: at,
+            });
+            settle(&mut w, &mut p, Outcome::AddressCreated(id), at);
+        }
+        Err(e) => fail(&mut w, &mut p, e.to_string(), true, at),
+    }
+    finish(w, &p);
     Ok(result(p, None))
 }
 
 /// Resume a proposal whose execution was interrupted.
-async fn resume(id: u64) -> Result<ExecuteResult> {
+async fn resume(id: u64, me: Principal, at: u64) -> Result<ExecuteResult> {
     match store::job(id) {
-        Some(Job::Ledger(_)) => process_ledger(id).await,
-        Some(Job::TopUp(_)) => top_up(id).await,
+        Some(Job::Ledger(_)) => process_ledger(id, at).await,
+        Some(Job::TopUp(_)) => top_up(id, me).await,
         Some(_) => Err(Error::Pending),
         None => Err(Error::NotFound),
     }
@@ -655,8 +672,17 @@ async fn resume(id: u64) -> Result<ExecuteResult> {
 #[ic_cdk::update]
 async fn reconcile(id: u64) -> Result<ExecuteResult> {
     let caller = ic_cdk::api::msg_caller();
-    store::with(|w| w.acting(caller).map(|_| ()))?;
-    resume(id).await
+    let me = ic_cdk::api::canister_self();
+    let at = now();
+    store::with(|w| {
+        let member = w.acting(caller)?;
+        ensure(member.role != Role::Viewer, Error::Forbidden)
+    })?;
+    ensure(
+        store::proposal(id)?.status == ProposalStatus::Executing,
+        Error::VersionConflict,
+    )?;
+    resume(id, me, at).await
 }
 
 fn waiting_status(p: &Proposal) -> ProposalStatus {
@@ -763,24 +789,16 @@ fn prepare_execution(id: u64, params: ExecutionParams) -> Result<ExecutionPlan> 
     let mut w = store::wallet();
     let mut p = store::proposal(id)?;
     ensure(w.acting(caller)?.role != Role::Viewer, Error::Forbidden)?;
-    if close(&mut p, &w, at) {
-        save_closed(&mut w, &p, at);
-        store::save(w);
-        return Err(Error::Expired);
-    }
+    refresh(&mut w, &mut p, at)?;
     let (address, _) =
         chains::chain_source(&p.intent).ok_or_else(|| invalid("not an external-chain intent"))?;
-    ensure(!w.frozen, Error::Locked)?;
+    unlocked(&w, &p.intent)?;
     ensure(
         matches!(
             p.status,
             ProposalStatus::Ready | ProposalStatus::Signed | ProposalStatus::Broadcast
         ),
         Error::VersionConflict,
-    )?;
-    ensure(
-        p.status != ProposalStatus::Ready || at < p.expires_at_ms,
-        Error::Expired,
     )?;
     ensure(p.plans < MAX_PLANS, Error::QuotaExceeded)?;
     let pending_nonce = check_versions(&w, &p, address, &params, at)?;
@@ -798,7 +816,7 @@ fn prepare_execution(id: u64, params: ExecutionParams) -> Result<ExecutionPlan> 
     };
     store::save_plan(&PlanRecord {
         plan: plan.clone(),
-        signs: built.signs,
+        sign: built.sign,
         assembly: built.assembly,
     });
     p.plans = seq;
@@ -813,6 +831,7 @@ async fn sign_plan(
     seq: u32,
     cosigs: &[CosignerSig],
     member: MemberId,
+    me: Principal,
     at: u64,
 ) -> Result<ExecuteResult> {
     if let Some(signed) = p.signed.iter().find(|s| s.plan == seq) {
@@ -837,55 +856,62 @@ async fn sign_plan(
     check_versions(&w, &p, address, &record.plan.params, at)?;
     let address = w.address(address)?.clone();
     let digests = &record.plan.digests;
+    let count = digests.len() as u32;
     w.roll_day(at);
     ensure(
-        w.signatures_today as usize + record.signs.len() <= w.policy.daily_signatures as usize,
+        w.signatures_today.saturating_add(count) <= w.policy.daily_signatures,
         Error::QuotaExceeded,
     )?;
-    check_cosigs(&mut w, &address, p.id, seq, digests, cosigs)?;
+    check_cosigs(&mut w, me, &address, p.id, seq, digests, cosigs)?;
     let native = native_cosigs(&w, &record, cosigs)?;
     let back = waiting_status(&p);
-    begin(
-        &mut w,
-        &mut p,
-        Job::Signing {
-            plan: seq,
-            signatures: vec![],
-        },
-        at,
-    );
+    // Signatures count when signing starts, so concurrent signings share
+    // the daily limit and a stopped signing still counts.
+    w.signatures_today += count;
     let key_name = w.settings.key_name.clone();
+    begin(&mut w, &mut p, Job::Signing, at);
     let mut signatures = vec![];
-    for (i, spec) in record.signs.iter().enumerate() {
-        let message = match spec {
-            SignSpec::Ed25519 { .. } => record.plan.unsigned.to_vec(),
-            _ => digests[i].to_vec(),
+    for digest in digests {
+        let message = match record.sign {
+            SignSpec::Ed25519 { .. } => &record.plan.unsigned[..],
+            _ => &digest[..],
         };
-        let sig = crate::keys::sign(&key_name, spec, &message).await;
+        let sig = crate::keys::sign(&key_name, &record.sign, message).await;
         // A freeze during signing stops the remaining signatures.
-        let frozen = store::with(|w| w.frozen);
-        match sig {
-            Ok(sig) if !frozen => {
+        let stop = match sig {
+            Ok(_) if store::with(|w| w.frozen) => Some(Error::Locked),
+            Ok(sig) => {
                 signatures.push(sig);
-                let mut w = store::wallet();
-                w.roll_day(now());
-                w.signatures_today += 1;
-                store::save(w);
+                None
             }
-            Ok(_) => {
-                abandon(p.id, back);
-                return Err(Error::Locked);
-            }
-            Err(e) => {
-                abandon(p.id, back);
-                return Err(e);
-            }
+            Err(e) => Some(e),
+        };
+        if let Some(e) = stop {
+            let mut p = store::proposal(p.id)?;
+            abandon(&mut p, back, now());
+            return Err(e);
         }
     }
     let at = now();
     let mut w = store::wallet();
     let mut p = store::proposal(p.id)?;
-    let (raw, txid) = chains::assemble(&record.assembly, &signatures, &native)?;
+    // Another proposal may have signed for the address meanwhile.
+    let assembled = check_versions(&w, &p, address.id, &record.plan.params, at).and_then(|_| {
+        chains::assemble(
+            &record.assembly,
+            &record.plan.unsigned,
+            digests,
+            &signatures,
+            &native,
+        )
+    });
+    let (raw, txid) = match assembled {
+        Ok(tx) => tx,
+        Err(e) => {
+            abandon(&mut p, back, at);
+            return Err(e);
+        }
+    };
     let signed = SignedTx {
         plan: seq,
         raw: raw.into(),
@@ -932,9 +958,7 @@ async fn sign_plan(
         Some(p.id),
         AuditKind::Signed { plan: seq, txid },
     );
-    store::remove_job(p.id);
-    store::save_proposal(&p);
-    store::save(w);
+    finish(w, &p);
     Ok(result(p, Some(signed)))
 }
 
@@ -959,6 +983,14 @@ fn report(args: ChainReport) -> Result<Proposal> {
         .ok_or(Error::NotFound)?
         .txid
         .clone();
+    // A plan's broadcast is recorded once; Settled and Failed end the proposal.
+    if args.outcome == ChainOutcome::Broadcast
+        && p.broadcasts
+            .iter()
+            .any(|b| b.plan == args.plan && b.outcome == ChainOutcome::Broadcast)
+    {
+        return Ok(p);
+    }
     p.broadcasts.push(BroadcastReport {
         plan: args.plan,
         outcome: args.outcome,
@@ -1050,68 +1082,37 @@ fn report(args: ChainReport) -> Result<Proposal> {
 /// Top up cycles under the policy's refuel rule; anyone may call it.
 #[ic_cdk::update]
 async fn refuel() -> Result<Option<u128>> {
-    let at = now();
-    let mut w = store::wallet();
-    w.roll_day(at);
     let me = ic_cdk::api::canister_self();
-    if w.refuel.is_none() {
+    if store::job(REFUEL_JOB).is_none() {
+        let at = now();
+        let mut w = store::wallet();
         let Some(rule) = w.policy.refuel.clone() else {
             return Ok(None);
         };
         if ic_cdk::api::canister_cycle_balance() >= rule.min_cycles {
             return Ok(None);
         }
+        w.roll_day(at);
         ensure(w.refuels_today < rule.max_per_day, Error::QuotaExceeded)?;
         w.refuels_today += 1;
-        w.refuel = Some(TopUp {
+        let job = TopUp {
             from: icp_subaccount(rule.from).map(Hash::new),
             amount: rule.icp_e8s,
-            created_at_time: ic_cdk::api::time(),
+            created_at_time: at * NANOS_PER_MILLISECOND,
             block: None,
-            cycles: None,
-        });
+        };
+        store::save_job(REFUEL_JOB, &Job::TopUp(job));
         store::save(w);
     }
-    let (cmc, ledger, mut job) = store::with(|w| {
-        (
-            w.settings.cmc,
-            w.settings.icp_ledger,
-            w.refuel.clone().expect("job"),
-        )
-    });
-    if job.block.is_none() {
-        let sent = ledger::send(ledger, job.arg(cmc, me)).await;
-        let mut w = store::wallet();
-        match sent {
-            Sent::Block(block) => {
-                job.block = Some(block);
-                w.refuel = Some(job.clone());
-                store::save(w);
-            }
-            Sent::Refused(reason) => {
-                w.refuel = None;
-                store::save(w);
-                return Err(Error::InvalidInput(reason));
-            }
-            Sent::Unknown => return Err(Error::ExecutionUnknown),
-        }
-    }
-    let block = job.block.expect("sent");
-    let notified = ledger::notify_top_up(cmc, block, me).await;
-    let at = now();
-    let mut w = store::wallet();
-    match notified {
-        Notified::Cycles(cycles) => {
-            w.refuel = None;
+    match run_top_up(REFUEL_JOB, me).await? {
+        None => Ok(None),
+        Some(TopUpEnd::Minted { block, cycles }) => {
+            let at = now();
+            let mut w = store::wallet();
             store::audit(&mut w, at, None, None, AuditKind::Refueled { block });
             store::save(w);
             Ok(Some(cycles))
         }
-        Notified::Refunded(reason) => {
-            w.refuel = None;
-            store::save(w);
-            Err(Error::InvalidInput(reason))
-        }
-        Notified::Pending => Err(Error::Pending),
+        Some(TopUpEnd::Refused(reason)) => Err(Error::InvalidInput(reason)),
     }
 }

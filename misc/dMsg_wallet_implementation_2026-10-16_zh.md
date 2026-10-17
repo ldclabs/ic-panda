@@ -149,7 +149,7 @@ pub type ProposalId = u64;                    // 实例内单调
 pub enum MemberId { Account(AccountId), Principal(Principal) }
 
 pub struct Member { pub id: MemberId, pub role: Role, pub label: String, pub added_at: u64, pub agent_ids: Vec<String> /* 允许代该成员提案的 Agent ID */ }
-pub enum Role { Admin, Approver, Proposer, Viewer, Recovery }   // Recovery：只能提案成员类变更，固定 7 天延时；供 SNS governance 一类 Principal 成员使用
+pub enum Role { Admin, Approver, Proposer, Viewer, Recovery }   // Recovery：只能提案成员类变更，固定 7 天延时；供团队指定的恢复成员（如离线保管的 Principal）使用
 
 pub struct Policy {
     pub version: u64,                          // 每次变更 +1；未执行的批准绑定它
@@ -265,14 +265,14 @@ dMsg 账户成员：客户端先在成员的 home 调 `approve_application(Appli
 
 `dmsg_user::external::service_for(WalletProposal)` 返回 `expected.service` 本身：只要 caller 等于设备签名中指定的 service 即可，因为设备明确把批准签给了这个 canister。`WalletCreate` 的 service 固定为 hub。
 
-Principal 成员：`approve(id, Principal)`，caller 必须等于成员 principal；SNS governance 作为成员时通过通用提案调用。
+Principal 成员：`approve(id, Principal)`，caller 必须等于成员 principal。钱包由团队成员管理，SNS governance 不作为成员；需要 SNS 治理的资金留在 SNS 国库，钱包也因此没有 admin 方法与 `validate_*`。
 
 ### 7.3 策略评估
 
-`propose` 时一次性算出 `Requirement` 并冻结进提案（之后策略变化使提案失效，而不是改变要求）：
+`propose` 时算出 `Requirement` 存入提案（之后策略变化使提案失效，而不是改变要求）；支出类在每次批准时按当时的窗口再算一次，更严则提高批准数与延时并延长期限，拆成多个同时挂起的提案也落入合计金额的档：
 
 ```text
-amount_24h = 该资产 24 小时窗口内 已执行 + 已签 + Approved/Delayed/Ready 的金额之和 + 本提案金额
+amount_24h = 该资产 24 小时窗口内 已执行 + 已签 + Approved/Delayed/Ready 的金额之和 + 本提案金额（提案与每次批准时各算一次）
 tier       = tiers[asset] 中第一个 up_to ≥ amount_24h 的档；没有则最高档 + 1 人（上限 n）
 book_only  = tier.book_only && 目的地不在地址簿（或冷却中） → 拒绝提案
 approvals  = max(tier.approvals, 1)；提案人自己的批准计入，但 approvals ≥ 2 时提案人不能是唯一批准人
@@ -372,16 +372,15 @@ sequenceDiagram
 
 | 区域 | 结构 | 边界 |
 | --- | --- | --- |
-| `config` | `StableCell<Stored<WalletConfig>>`（成员 ≤ 64、地址 ≤ 256、协签人 ≤ 64、策略、版本） | 单条，≤ 256 KiB |
-| `proposals` | `StableBTreeMap<ProposalId, Stored<Proposal>>` | 终态提案保留 10,000 条，`prune` 按序清理（审计仍保留） |
-| `plans` | `StableBTreeMap<(ProposalId, u32), Stored<ExecutionPlan>>` | 每提案 ≤ 8 个 plan；`unsigned` ≤ 64 KiB |
-| `signed` | `StableBTreeMap<(ProposalId, u32), Stored<SignedTx>>` | 与 plan 同生命周期 |
-| `audit` | `StableLog<AuditEvent>`，`hash = SHA-256(prev_hash ‖ canonical(event))` | 只追加；`audit_root` 进认证树 |
-| `spend_window` | `StableBTreeMap<(AssetKey, u64 ts, ProposalId), u128>` | 48 小时清理 |
-| `address_book` | `StableBTreeMap<DestinationKey, Stored<Entry>>` | ≤ 4,096 条 |
-| `cert` | `dmsg_runtime::cert_map`，叶：`wallet/config`、`proposal/<id>`、`audit/root`、`members/<id>` | `certified_batch` 返回证书 + 树 |
+| 钱包记录 | `StableCell<CompactStored<Wallet>>`（存储版本、成员 ≤ 64、地址 ≤ 256、协签人 ≤ 64、策略、计数、未结算 nonce、24 小时支出窗口） | 单条；满载约 38.6 KB |
+| `proposals` | `StableBTreeMap<u64, CompactStored<Proposal>>`，另有 `op_id → id` | 终态提案保留 10,000 条；每个新提案顺带删 2 条最旧的终态提案，`prune` 每次 ≤ 100 条（审计仍保留） |
+| `plans` | `StableBTreeMap<(u64, u32), PlanRecord>`（计划、一份签名规格、组装数据） | 每提案 ≤ 8 个 plan；已签交易存在提案的 `signed` |
+| `jobs` | `StableBTreeMap<u64, Job>`（ICRC 转账确切参数、CMC 充值、在途标记；键 0 为策略自动充值） | 执行结束即删 |
+| `audit` | `StableLog<CompactStored<AuditEvent>>`，`hash = digest("dmsg-wallet/audit/v1", ...)` | 只追加；链头在钱包视图中认证 |
+| `address_book` | `StableBTreeMap<canonical(Destination), CompactStored<BookEntry>>` | ≤ 4,096 条 |
+| `cert` | `dmsg_runtime::cert_map`，叶：`wallet`（`WalletView`）、`proposal/<id>` | `certified_batch` 返回证书 + 树 |
 
-heap 不保存业务状态；`post_upgrade` 只重建根哈希，与其它 dMsg canister 的升级模型一致（[dmsg_architecture_zh.md §6](../docs/dmsg_architecture_zh.md)）。
+stable 记录用整数键的紧凑编码（协议类型的表示在 `dmsg_runtime::stable_types::wallet`），认证叶与摘要仍用协议的确定性 CBOR。heap 只缓存解码后的钱包记录；`post_upgrade` 校验存储版本、重新认证钱包视图，与其它 dMsg canister 的升级模型一致（[dmsg_architecture_zh.md §6](../docs/dmsg_architecture_zh.md)）。
 
 hub：`orders`（激活订单，≤ 100 万）、`wallets`（记录 + 版本）、`member_index`（`MemberId → Vec<WalletId>`，每成员 ≤ 256）、`versions`（Wasm 字节分块，≤ 16 个版本，每个 ≤ 4 MiB）、`pricing`、`revenue` 账务（`received = minted_to_pool + transferred_to_dao + refunded + pending`，每次保存校验守恒）。
 
@@ -512,7 +511,7 @@ WT1 与 WT2 可并行（合同由 WT0 冻结）；WT3 可在 WT1 完成 ICP 路�
 | 包 | 完成 | 未完成 |
 | --- | --- | --- |
 | WT0 | `dmsg_types::wallet`、`dmsg_protocol::wallet`、`WalletApprove`、三个 `ApprovalPurpose`、user home 核验规则、SDK 与 CDDL 重新生成；2026-10-17 补 `tests/vectors/wallet`：`protocol-v1.json`（全部承诺的原像与摘要、审计链、地址与收款脚本）与 `plans-v1.json`（canister 构建器生成的 11 个计划与 6 个篡改样例，由客户端解码器验收） | TypeScript 端的钱包摘要实现（SDK 目前只有三个审批用途名） |
-| WT1 | 钱包与 hub 全部接口；分块安装；升级、锁定、退款、收入转换、refuel；认证叶与审计链 | — |
+| WT1 | 钱包与 hub 全部接口；分块安装；升级、锁定、退款、收入转换、refuel；认证叶与审计链；2026-10-17 审查修复：延时过后首次 `prepare_execution` 不再误报过期，签名在开始时计入日签名数并在签完后重查 EVM/Solana 约束，跨 canister 返回后的错误不再让提案卡在 `Executing`，冻结时不接受内部变更的批准，`prune` 先套用期限并跳过在途提案（新提案顺带清理），同一计划的广播回报只记一次，重复 `join` 不写审计，`bootstrap` 失败自动重试，缺失的 user home 按需向 hub 补取（删去 `refresh_homes`），支出在每次批准时按当时窗口重算要求；存储改为整数键的紧凑编码，计划只存一份签名规格，sighash 的整笔哈希只算一次 | 超过 10,000 条提案后的清理没有 PocketIC 用例 |
 | WT2 | `payer` 改名；客户端 `wallet` 模块、审批中心任务、daemon `wallet/*`、CLI `dmsg wallet`、桌面“团队钱包”视图与审批窗口；2026-10-17 补桌面端到端 `desktop_wallet`（两个账户经审批中心创建并付款、加入、批准与执行 ICP 转账、核对审计链）；同日补激活退款：hub 改为 `claim_activation_refund(quote_id, to)`，由报价调用者指定 hub 以外的退款账户，客户端 `wallet_refund`（daemon `wallet/refund`、CLI `dmsg wallet refund <quote>`）以本机钱包密钥领取，退到付款身份（付款日志记下的付款 Principal，没有日志时为当前付款身份）的默认账户，无需审批；创建任务的审批详情显示 `quote_id`；PocketIC 套件覆盖过期报价与创建失败（hub cycles 不足）两种退款，`desktop_wallet` 以 `dmsg wallet refund` 把创建失败的付款退回付款身份；桌面“团队钱包”视图列出本机付过款而未建成钱包的激活付款（daemon `wallet/deposits`，按 hub 订单与收款子账户余额），可退的一键退款；已用完的报价（钱包已创建或已退款）从本机删除 | 频道绑定（`wallet/event` 系统消息）；Electron 界面（`pnpm test:e2e` 的模拟 daemon）只覆盖钱包视图的激活付款退款；过期报价的退款不能在桌面端到端运行（需推进 PocketIC 时间） |
 | WT3 | BTC P2TR/P2WPKH、EVM（ETH、ERC-20、nonce 取消）、SOL（SOL、SPL、ATA、durable nonce）编码与签名；客户端独立解码、Esplora/JSON-RPC 读取与广播、重签规则 | regtest/anvil/test-validator 端到端；主网 `test_key_1` 小额 |
 | WT4 | canister 侧 Raw/FIDO2/WebAuthn 验签；`AddCosigner`/`SetCosign`；协签审批任务；Secure Enclave 与软件密钥 | Windows/Linux TPM、FIDO2（CTAP2）、桥接页 WebAuthn 的客户端适配 |
