@@ -2,12 +2,11 @@
 //! A256GCM, HPKE base mode (X25519, HKDF-SHA-256, AES-256-GCM) and Ed25519
 //! device keys. Contexts and AADs are any `Serialize` value, encoded canonically.
 
-use crate::codec::{b64, base64url, canonical, decode_value, unb64};
+use crate::codec::{b64, base64url, canonical, unb64};
 use aes_gcm::{
-    aead::{Aead, KeyInit, Payload},
+    aead::{Aead, AeadInOut, KeyInit, Payload},
     Aes256Gcm,
 };
-use cbor2::Value;
 use dmsg_types::{ensure, Error, Result};
 use ed25519_dalek::{Signer, SigningKey};
 use hkdf::Hkdf;
@@ -21,7 +20,6 @@ use hpke::{
 use serde::{Deserialize, Serialize};
 use serde_bytes::Bytes;
 use sha2::Sha256;
-use std::collections::BTreeMap;
 use zeroize::Zeroizing;
 
 /// A 32-byte symmetric key or seed.
@@ -72,71 +70,131 @@ pub fn unlock_key(secret: &Key, workspace: &str) -> Zeroizing<Key> {
 /// # Panics
 /// Panics if the operating system has no random source.
 pub fn seal<A: Serialize>(key: &Key, plaintext: &[u8], aad: &A) -> String {
+    b64(&seal_bytes(key, plaintext, aad))
+}
+
+/// [`seal`] as bytes, for formats that carry bytes, such as upload
+/// manifests and thumbnails.
+///
+/// # Panics
+/// Panics if the operating system has no random source.
+pub fn seal_bytes<A: Serialize>(key: &Key, plaintext: &[u8], aad: &A) -> Vec<u8> {
     let mut nonce = [0u8; 12];
     getrandom::fill(&mut nonce).expect("operating system random source");
     seal_with_nonce(key, plaintext, aad, &nonce)
 }
 
-/// [`seal`] under a caller-chosen nonce. Only formats that fix the nonce,
-/// such as file chunks, may use it; never reuse a nonce under one key.
+/// [`seal_bytes`] under a caller-chosen nonce. Only formats that fix the
+/// nonce, such as file chunks, may use it; never reuse a nonce under one key.
 pub fn seal_with_nonce<A: Serialize>(
     key: &Key,
     plaintext: &[u8],
     aad: &A,
     nonce: &[u8; 12],
-) -> String {
-    let ciphertext = Aes256Gcm::new(key.into())
-        .encrypt(
+) -> Vec<u8> {
+    // The canonical encoding is fixed but for the ciphertext's length, so
+    // it is written directly and the plaintext encrypted in place.
+    let length = bstr_header(plaintext.len() + 16);
+    let start = HEAD.len() + nonce.len() + length.len();
+    let mut out = Vec::with_capacity(start + plaintext.len() + 16);
+    out.extend_from_slice(&HEAD);
+    out.extend_from_slice(nonce);
+    out.extend_from_slice(&length);
+    out.extend_from_slice(plaintext);
+    let tag = Aes256Gcm::new(key.into())
+        .encrypt_inout_detached(
             nonce.into(),
-            Payload {
-                msg: plaintext,
-                aad: &enc_structure(aad),
-            },
+            &enc_structure(aad),
+            (&mut out[start..]).into(),
         )
         .expect("AES-GCM encrypts any in-memory plaintext");
-    b64(&canonical(&(
-        Bytes::new(&PROTECTED),
-        BTreeMap::from([(5u8, Bytes::new(nonce))]),
-        Bytes::new(&ciphertext),
-    )))
+    out.extend_from_slice(&tag);
+    out
 }
 
 /// Open a [`seal`] result under the same key and AAD.
 ///
 /// # Errors
-/// Malformed encodings return `InvalidInput` or `IntegrityFailed`; another
-/// algorithm, nonce size or header set returns `UnsupportedProtocol`; a wrong
-/// key, AAD or modified ciphertext returns `IntegrityFailed`.
+/// As [`open_bytes`], and `InvalidInput` for text that is not base64url.
 pub fn open<A: Serialize>(key: &Key, sealed: &str, aad: &A) -> Result<Zeroizing<Vec<u8>>> {
-    let Value::Array(items) = decode_value(&unb64(sealed)?, MAX_SEALED)? else {
-        return Err(Error::IntegrityFailed);
-    };
-    let [Value::Bytes(protected), Value::Map(unprotected), Value::Bytes(ciphertext)] =
-        items.as_slice()
-    else {
-        return Err(Error::IntegrityFailed);
-    };
-    let nonce = match unprotected.as_slice() {
-        [(Value::Integer(label), Value::Bytes(nonce))] if i128::from(*label) == 5 => {
-            <&[u8; 12]>::try_from(nonce.as_slice()).ok()
-        }
-        _ => None,
-    };
-    let nonce = nonce.ok_or(Error::UnsupportedProtocol)?;
+    open_bytes(key, &unb64(sealed)?, aad)
+}
+
+/// Open a [`seal_bytes`] result under the same key and AAD.
+///
+/// # Errors
+/// Another algorithm, nonce size or header set returns
+/// `UnsupportedProtocol`; anything malformed, a wrong key or AAD or a
+/// modified ciphertext returns `IntegrityFailed`.
+pub fn open_bytes<A: Serialize>(key: &Key, sealed: &[u8], aad: &A) -> Result<Zeroizing<Vec<u8>>> {
     ensure(
-        protected.as_slice() == PROTECTED && ciphertext.len() >= 16,
-        Error::UnsupportedProtocol,
+        sealed.len() <= MAX_SEALED && sealed.first() == Some(&HEAD[0]),
+        Error::IntegrityFailed,
     )?;
+    let rest = sealed
+        .strip_prefix(&HEAD)
+        .ok_or(Error::UnsupportedProtocol)?;
+    let (nonce, rest) = rest
+        .split_first_chunk::<12>()
+        .ok_or(Error::IntegrityFailed)?;
+    let ciphertext = whole_bstr(rest).ok_or(Error::IntegrityFailed)?;
+    ensure(ciphertext.len() >= 16, Error::IntegrityFailed)?;
+    let (body, tag) = ciphertext.split_at(ciphertext.len() - 16);
+    let tag = aes_gcm::Tag::try_from(tag).map_err(|_| Error::IntegrityFailed)?;
+    let mut plain = Zeroizing::new(body.to_vec());
     Aes256Gcm::new(key.into())
-        .decrypt(
+        .decrypt_inout_detached(
             nonce.into(),
-            Payload {
-                msg: ciphertext,
-                aad: &enc_structure(aad),
-            },
+            &enc_structure(aad),
+            plain.as_mut_slice().into(),
+            &tag,
         )
-        .map(Zeroizing::new)
-        .map_err(|_| Error::IntegrityFailed)
+        .map_err(|_| Error::IntegrityFailed)?;
+    Ok(plain)
+}
+
+/// The canonical start of every COSE_Encrypt0 this module writes: an array
+/// of three, the protected header `{1: 3}` and `{5: <12-byte nonce>}`.
+const HEAD: [u8; 8] = [0x83, 0x43, 0xa1, 0x01, 0x03, 0xa1, 0x05, 0x4c];
+
+/// The content of a canonical CBOR byte string that is all of `bytes`.
+fn whole_bstr(bytes: &[u8]) -> Option<&[u8]> {
+    let (&first, rest) = bytes.split_first()?;
+    let (len, rest) = match first {
+        0x40..=0x57 => (usize::from(first & 0x1f), rest),
+        0x58 => {
+            let (&n, rest) = rest.split_first()?;
+            (usize::from(n), rest)
+        }
+        0x59 => {
+            let (n, rest) = rest.split_first_chunk::<2>()?;
+            (usize::from(u16::from_be_bytes(*n)), rest)
+        }
+        0x5a => {
+            let (n, rest) = rest.split_first_chunk::<4>()?;
+            (u32::from_be_bytes(*n) as usize, rest)
+        }
+        _ => return None,
+    };
+    // Only the shortest head is canonical, and nothing may follow.
+    let head = &bytes[..bytes.len() - rest.len()];
+    (bstr_header(len) == head && rest.len() == len).then_some(rest)
+}
+
+/// The canonical CBOR head of a byte string of `len` bytes.
+fn bstr_header(len: usize) -> Vec<u8> {
+    match len {
+        0..=23 => vec![0x40 | len as u8],
+        24..=0xff => vec![0x58, len as u8],
+        0x100..=0xffff => [0x59]
+            .into_iter()
+            .chain((len as u16).to_be_bytes())
+            .collect(),
+        _ => [0x5a]
+            .into_iter()
+            .chain((len as u32).to_be_bytes())
+            .collect(),
+    }
 }
 
 fn enc_structure<A: Serialize>(aad: &A) -> Vec<u8> {

@@ -102,11 +102,8 @@ fn opens_the_share_vector() {
             );
             assert_eq!(expected.size, plaintext.len() as u64);
             let sealed = seal_with_nonce(&key, &plaintext, &aad, &nonce(index as u64));
-            assert_eq!(sealed, text(&chunk["ciphertext"]));
-            assert_eq!(
-                hex::encode(*sha256(&unb64(&sealed).unwrap())),
-                expected.digest
-            );
+            assert_eq!(b64(&sealed), text(&chunk["ciphertext"]));
+            assert_eq!(hex::encode(*sha256(&sealed)), expected.digest);
             assert_eq!(expected.digest, text(&chunk["digest"]));
             whole.extend_from_slice(&plaintext);
         }
@@ -127,7 +124,7 @@ fn print_share_vector() {
     let plaintext = b"A small file. ".repeat(20);
     let aad = chunk_aad(&share_id, &version_id, 0, 1, plaintext.len() as u64);
     let sealed_chunk = seal_with_nonce(&key, &plaintext, &aad, &nonce(0));
-    let digest = hex::encode(*sha256(&unb64(&sealed_chunk).unwrap()));
+    let digest = hex::encode(*sha256(&sealed_chunk));
     let file = FileManifest {
         id: share_id.clone(),
         version: version_id.clone(),
@@ -171,7 +168,7 @@ fn print_share_vector() {
                 "plaintext_hex": hex::encode(&plaintext),
                 "aad": hex::encode(canonical(&aad)),
                 "nonce_hex": hex::encode(nonce(0)),
-                "ciphertext": sealed_chunk,
+                "ciphertext": b64(&sealed_chunk),
                 "digest": digest,
             }],
             "generator": "dmsg_client (Rust), 2026-10-16",

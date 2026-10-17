@@ -14,7 +14,7 @@
 use super::Client;
 use crate::codec::{canonical, unb64};
 use crate::content::empty_file;
-use crate::crypto::{open, seal, Key};
+use crate::crypto::{open, seal, seal_bytes, Key};
 use crate::files::{BlobStore, FileManifest, Source, MAX_FILE};
 use crate::upload::{hex_id, random_hex, ChunkRef, UploadPlan};
 use dmsg_types::{ensure, ensure_valid, Error, Hash, Result, DAY, MINUTE};
@@ -314,7 +314,7 @@ impl Client {
         }
         let now = crate::now_ms();
         let upload_id = random_hex();
-        let sealed = seal(
+        let manifest_bytes = seal_bytes(
             &key,
             &canonical(&ShareFile {
                 format: SHARE_FORMAT.into(),
@@ -323,7 +323,6 @@ impl Client {
             }),
             &share_manifest_aad(&share_id, &upload_id, &edition.id, &edition.version),
         );
-        let manifest_bytes = unb64(&sealed)?;
         let plan = UploadPlan {
             upload_id: upload_id.clone(),
             object_id: edition.id.clone(),

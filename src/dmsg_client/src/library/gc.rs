@@ -5,17 +5,21 @@
 //! library's cloud jobs (backups and shared editions in flight); it is
 //! derived by scanning, never maintained as counts. A version evicted to
 //! the cloud references nothing but its thumbnail, so its chunks go.
-//! Temporary chunk files older than a day go too.
+//! Temporary chunk files older than a day go too. Deleting a file or a
+//! version collects at once; what lapses on its own waits for the hourly
+//! pass.
 
-use super::catalog::{Version, VERSION};
+use super::catalog::VERSION;
 use super::Client;
-use dmsg_types::{Result, DAY, MINUTE};
+use dmsg_types::{Error, Result, DAY, MINUTE};
 use serde::Serialize;
 use std::collections::BTreeSet;
 use std::time::Duration;
 
 /// Maintenance runs at most this often.
 pub const MAINTENANCE_MS: u64 = 10 * MINUTE;
+/// Unreferenced chunks are collected at least this often.
+pub const COLLECT_MS: u64 = 60 * MINUTE;
 
 /// What a maintenance pass did.
 #[derive(Serialize, Clone, Debug, Default, PartialEq, Eq)]
@@ -35,12 +39,14 @@ impl Client {
     fn referenced_blobs(&self) -> Result<BTreeSet<String>> {
         let mut keep = BTreeSet::new();
         for key in self.workspace.store.sealed_keys(VERSION)? {
-            if let Some(version) = self.workspace.private::<Version>(self.keys()?, &key)? {
-                if version.local {
-                    keep.extend(version.chunks.into_iter().map(|c| c.digest));
-                }
-                keep.extend(version.thumbnail);
+            let (file, version) = key[VERSION.len()..]
+                .split_once(':')
+                .ok_or(Error::IntegrityFailed)?;
+            let version = self.version(file, version)?;
+            if version.local {
+                keep.extend(version.chunks.into_iter().map(|c| c.digest));
             }
+            keep.extend(version.thumbnail);
         }
         for job in self.import_jobs()? {
             keep.extend(job.chunks.into_iter().map(|c| c.digest));
@@ -58,6 +64,7 @@ impl Client {
     /// Returns `Error::Locked` while locked.
     pub(crate) fn collect_blobs(&mut self) -> Result<(u64, u64)> {
         self.keys()?;
+        self.library_collected_at = Some(crate::now_ms());
         let keep = self.referenced_blobs()?;
         let blobs = self.blobs()?;
         let mut collected = 0;
@@ -103,6 +110,16 @@ impl Client {
                 )
                 .collect()
         };
+        // Deleting a file or a version collects at once; what lapses on
+        // its own, such as abandoned imports and uploads, waits for the
+        // hourly pass.
+        if expired.is_empty()
+            && self
+                .library_collected_at
+                .is_some_and(|at| now < at + COLLECT_MS)
+        {
+            return Ok(Some(Maintenance::default()));
+        }
         let report = self.files_purge(Some(&expired))?;
         Ok(Some(report))
     }

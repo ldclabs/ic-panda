@@ -58,10 +58,20 @@ fn seals_cose_encrypt0_exactly() {
         let plaintext = bytes(&case["plaintext_hex"]);
         assert_eq!(enc_structure(&aad), bytes(&case["enc_structure_hex"]));
         let sealed = seal_with_nonce(&k, &plaintext, &aad, &nonce);
-        assert_eq!(sealed, text(&case["sealed"]), "{}", case["name"]);
-        assert_eq!(unb64(&sealed).unwrap(), bytes(&case["cose_hex"]));
-        assert_eq!(*open(&k, &sealed, &aad).unwrap(), plaintext);
-        assert_ne!(seal(&k, &plaintext, &aad), sealed);
+        assert_eq!(b64(&sealed), text(&case["sealed"]), "{}", case["name"]);
+        assert_eq!(sealed, bytes(&case["cose_hex"]));
+        assert_eq!(*open(&k, &b64(&sealed), &aad).unwrap(), plaintext);
+        assert_eq!(*open_bytes(&k, &sealed, &aad).unwrap(), plaintext);
+        assert_ne!(seal_bytes(&k, &plaintext, &aad), sealed);
+        // The canonical encoder writes the same bytes.
+        assert_eq!(
+            canonical(&(
+                serde_bytes::Bytes::new(&PROTECTED),
+                std::collections::BTreeMap::from([(5u8, serde_bytes::Bytes::new(&nonce))]),
+                serde_bytes::Bytes::new(&sealed[sealed.len() - plaintext.len() - 16..]),
+            )),
+            sealed
+        );
     }
 }
 

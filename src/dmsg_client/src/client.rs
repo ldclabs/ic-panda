@@ -185,6 +185,8 @@ pub struct Client {
     pub(crate) library: Option<Catalog>,
     /// When the library's maintenance last ran.
     pub(crate) library_maintained_at: Option<u64>,
+    /// When the library's unreferenced chunks were last collected.
+    pub(crate) library_collected_at: Option<u64>,
 }
 
 impl Client {
@@ -231,6 +233,7 @@ impl Client {
             blobs: None,
             library: None,
             library_maintained_at: None,
+            library_collected_at: None,
         };
         let current = std::fs::read_to_string(dir.join(CURRENT))
             .ok()

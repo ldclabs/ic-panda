@@ -1,5 +1,5 @@
 use super::catalog::{safe_name, validate_name, Origin, ROOT};
-use super::gc::MAINTENANCE_MS;
+use super::gc::{COLLECT_MS, MAINTENANCE_MS};
 use super::open::OPEN_TTL_MS;
 use super::*;
 use crate::codec::sha256;
@@ -383,6 +383,21 @@ fn the_trash_expires_and_collection_keeps_what_is_referenced() {
     let report = client.files_maintain(now).unwrap().unwrap();
     assert_eq!((report.purged_files, report.purged_folders), (0, 0));
     assert!(client.files_maintain(now + 1).unwrap().is_none());
+    // Without expired trash, unreferenced chunks wait for the hourly pass.
+    let late = hex::encode(*sha256(b"late"));
+    client.blobs().unwrap().put_chunk(&late, b"late").unwrap();
+    let report = client
+        .files_maintain(now + MAINTENANCE_MS)
+        .unwrap()
+        .unwrap();
+    assert_eq!(report.collected, 0);
+    assert!(has(&client, &late));
+    let report = client
+        .files_maintain(now + COLLECT_MS + MAINTENANCE_MS)
+        .unwrap()
+        .unwrap();
+    assert_eq!(report.collected, 1);
+    assert!(!has(&client, &late));
     let later = now + DAY + MAINTENANCE_MS;
     let report = client.files_maintain(later).unwrap().unwrap();
     assert_eq!((report.purged_files, report.purged_folders), (2, 1));

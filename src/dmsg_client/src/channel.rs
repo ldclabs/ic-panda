@@ -28,7 +28,10 @@ use crate::client::Client;
 use crate::cloud::{sign_command, Evidence, CLOUD_PROTOCOL};
 use crate::codec::{b64, canonical, decode, digest, sha256, unb64, MAX_RECORD};
 use crate::content::empty_file;
-use crate::crypto::{derive, hpke_open, hpke_seal, open, random_key, seal, sign, HpkeEnvelope};
+use crate::crypto::{
+    derive, hpke_open, hpke_seal, open, open_bytes, random_key, seal, seal_bytes, sign,
+    HpkeEnvelope,
+};
 use crate::evidence::{Trust, Verified};
 use crate::files::{export_manifest, read_file, BlobStore, FileManifest, Source, MAX_FILE};
 use crate::library::catalog::Origin;
@@ -2298,7 +2301,7 @@ impl Client {
         }
         let upload_id = random_hex();
         let key = key32(&unb64(&file.key)?)?;
-        let sealed = seal(
+        let manifest = seal_bytes(
             &key,
             &canonical(&ChannelFile {
                 format: "dmsg-channel-file/1".into(),
@@ -2308,7 +2311,6 @@ impl Client {
             }),
             &manifest_context(channel, ledger.epoch, &upload_id, &file.id, &file.version),
         );
-        let manifest = unb64(&sealed)?;
         let plan = UploadPlan {
             upload_id: upload_id.clone(),
             object_id: file.id.clone(),
@@ -2637,9 +2639,9 @@ impl Client {
             )
             .await?;
         let key = key32(&unb64(&reference.key)?)?;
-        let plain = open(
+        let plain = open_bytes(
             &key,
-            &b64(&sealed),
+            &sealed,
             &manifest_context(
                 channel,
                 reference.epoch,

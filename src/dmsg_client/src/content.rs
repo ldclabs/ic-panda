@@ -15,8 +15,8 @@
 //! `dmsg-backup/1` record around the file manifest.
 
 use crate::client::Client;
-use crate::codec::{b64, canonical, decode, decode_value, sha256, unb64};
-use crate::crypto::{open, random_key, seal, Key};
+use crate::codec::{canonical, decode, decode_value, sha256};
+use crate::crypto::{open, open_bytes, random_key, seal, seal_bytes, Key};
 use crate::files::FileManifest;
 use crate::library::backup::{BackupManifest, BACKUP, BACKUP_FORMAT};
 use crate::root::RootKeys;
@@ -312,12 +312,11 @@ pub fn seal_manifest(
             ManifestContent::Backup(backup) => Some(value(canonical(backup))),
         },
     };
-    let sealed = seal(
+    let bytes = seal_bytes(
         root,
         &Zeroizing::new(canonical(&manifest)),
         &manifest_context(account, plan),
     );
-    let bytes = unb64(&sealed).expect("sealed text is base64url");
     plan.manifest_digest = hex::encode(*sha256(&bytes));
     plan.manifest_size = bytes.len() as u64;
     bytes
@@ -334,7 +333,7 @@ pub fn open_manifest(root: &Key, account: &str, plan: &UploadPlan, bytes: &[u8])
             && hex::encode(*sha256(bytes)) == plan.manifest_digest,
         Error::IntegrityFailed,
     )?;
-    let plain = open(root, &b64(bytes), &manifest_context(account, plan))?;
+    let plain = open_bytes(root, bytes, &manifest_context(account, plan))?;
     let manifest: Manifest = decode(&plain, MAX_MANIFEST)?;
     ensure(
         manifest.format == "dmsg-cloud-manifest/1"

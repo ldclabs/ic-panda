@@ -11,8 +11,8 @@ use super::catalog::{FileView, ROOT};
 use super::import::{thumb_aad, Imported};
 use super::share::reencrypt;
 use super::Client;
-use crate::codec::{b64, sha256, unb64};
-use crate::crypto::{random_key, seal};
+use crate::codec::{b64, sha256};
+use crate::crypto::{random_key, seal_bytes};
 use crate::files::{io, read_chunk, BlobStore};
 use crate::now_ms;
 use crate::upload::{random_hex, ChunkRef};
@@ -208,7 +208,7 @@ impl Client {
             self.workspace
                 .put_private(self.keys()?, &format!("{FILE}{new_id}"), &file)
         })?;
-        self.catalog()?.files.insert(new_id.clone(), file);
+        self.catalog()?.put_file(&new_id, file);
         self.file_view(&new_id)
     }
 
@@ -249,8 +249,8 @@ impl Client {
             self.workspace.delete_private(&format!("{FILE}{from}"))
         })?;
         let catalog = self.catalog()?;
-        catalog.files.insert(into.into(), target);
-        catalog.files.remove(from);
+        catalog.put_file(into, target);
+        catalog.drop_file(from);
         self.collect_blobs()?;
         self.file_view(into)
     }
@@ -279,7 +279,7 @@ impl Client {
         let thumbnail = match &record.thumbnail {
             Some(digest) => match self.open_thumbnail(&source, digest)? {
                 Some(png) => {
-                    let sealed = unb64(&seal(&key, &png, &thumb_aad(into_id, &version_id)))?;
+                    let sealed = seal_bytes(&key, &png, &thumb_aad(into_id, &version_id));
                     let digest = hex::encode(*sha256(&sealed));
                     blobs.put_chunk(&digest, &sealed)?;
                     Some(digest)

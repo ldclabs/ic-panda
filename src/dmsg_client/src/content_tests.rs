@@ -1,5 +1,5 @@
 use super::*;
-use crate::codec::decode_value;
+use crate::codec::{decode_value, unb64};
 use crate::files::FileChunk;
 use crate::upload::ChunkRef;
 use crate::vault::Item;

@@ -9,7 +9,8 @@ use crate::upload::ChunkRef;
 use crate::workspace::{Keys, Workspace};
 use dmsg_types::{ensure, Error, Result};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Mutex;
 
 /// The root folder; it has no record.
 pub const ROOT: &str = "root";
@@ -267,10 +268,18 @@ pub struct VersionView {
     pub status: &'static str,
 }
 
-/// The unlocked index of folders and files.
+/// The unlocked index of folders and files. The maps are read directly but
+/// changed only through [`Catalog::put_file`] and its siblings, which keep
+/// the name indexes in step.
 pub(crate) struct Catalog {
     pub(crate) folders: BTreeMap<String, Folder>,
     pub(crate) files: BTreeMap<String, FileRecord>,
+    /// The files of each folder, trashed ones included, by name and ID.
+    file_names: BTreeMap<String, BTreeSet<(String, String)>>,
+    /// The folders under each folder, by name and ID.
+    folder_names: BTreeMap<String, BTreeSet<(String, String)>>,
+    /// Version records read so far, by file and version.
+    versions: Mutex<BTreeMap<(String, String), Version>>,
 }
 
 /// Check a folder or file name.
@@ -325,19 +334,89 @@ pub fn validate_tags(tags: &[String]) -> Result<()> {
 impl Catalog {
     /// Read every folder and file record.
     pub(crate) fn load(workspace: &Workspace, keys: &Keys) -> Result<Self> {
-        let mut folders = BTreeMap::new();
+        let mut catalog = Self {
+            folders: BTreeMap::new(),
+            files: BTreeMap::new(),
+            file_names: BTreeMap::new(),
+            folder_names: BTreeMap::new(),
+            versions: Mutex::new(BTreeMap::new()),
+        };
         for key in workspace.store.sealed_keys(FOLDER)? {
             if let Some(folder) = workspace.private::<Folder>(keys, &key)? {
-                folders.insert(key[FOLDER.len()..].to_string(), folder);
+                catalog.put_folder(&key[FOLDER.len()..], folder);
             }
         }
-        let mut files = BTreeMap::new();
         for key in workspace.store.sealed_keys(FILE)? {
             if let Some(file) = workspace.private::<FileRecord>(keys, &key)? {
-                files.insert(key[FILE.len()..].to_string(), file);
+                catalog.put_file(&key[FILE.len()..], file);
             }
         }
-        Ok(Self { folders, files })
+        Ok(catalog)
+    }
+
+    /// Add or replace a folder.
+    pub(crate) fn put_folder(&mut self, id: &str, folder: Folder) {
+        self.drop_folder(id);
+        self.folder_names
+            .entry(folder.parent.clone())
+            .or_default()
+            .insert((folder.name.clone(), id.into()));
+        self.folders.insert(id.into(), folder);
+    }
+
+    /// Forget a folder.
+    pub(crate) fn drop_folder(&mut self, id: &str) {
+        if let Some(old) = self.folders.remove(id)
+            && let Some(names) = self.folder_names.get_mut(&old.parent)
+        {
+            names.remove(&(old.name, id.into()));
+        }
+    }
+
+    /// Add or replace a file.
+    pub(crate) fn put_file(&mut self, id: &str, file: FileRecord) {
+        if let Some(old) = self.files.remove(id)
+            && let Some(names) = self.file_names.get_mut(&old.folder)
+        {
+            names.remove(&(old.name, id.into()));
+        }
+        self.file_names
+            .entry(file.folder.clone())
+            .or_default()
+            .insert((file.name.clone(), id.into()));
+        self.files.insert(id.into(), file);
+    }
+
+    /// Forget a file and its versions.
+    pub(crate) fn drop_file(&mut self, id: &str) {
+        if let Some(old) = self.files.remove(id) {
+            if let Some(names) = self.file_names.get_mut(&old.folder) {
+                names.remove(&(old.name, id.into()));
+            }
+            let mut versions = self.versions.lock().unwrap_or_else(|e| e.into_inner());
+            for version in old.versions {
+                versions.remove(&(id.into(), version.id));
+            }
+        }
+    }
+
+    /// A version record read before.
+    pub(crate) fn cached_version(&self, file: &str, version: &str) -> Option<Version> {
+        self.versions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(&(file.into(), version.into()))
+            .cloned()
+    }
+
+    /// Remember a version record as stored, or forget it with `None`.
+    pub(crate) fn cache_version(&self, file: &str, version: &str, record: Option<&Version>) {
+        let mut versions = self.versions.lock().unwrap_or_else(|e| e.into_inner());
+        let key = (file.to_string(), version.to_string());
+        match record {
+            Some(record) => versions.insert(key, record.clone()),
+            None => versions.remove(&key),
+        };
     }
 
     /// Whether `folder` exists: the root, or a known folder.
@@ -408,12 +487,13 @@ impl Catalog {
         }
     }
 
-    /// The folders directly under `parent`.
+    /// The folders directly under `parent`, by name.
     pub(crate) fn children(&self, parent: &str) -> Vec<String> {
-        self.folders
-            .iter()
-            .filter(|(_, f)| f.parent == parent)
-            .map(|(id, _)| id.clone())
+        self.folder_names
+            .get(parent)
+            .into_iter()
+            .flatten()
+            .map(|(_, id)| id.clone())
             .collect()
     }
 
@@ -429,29 +509,28 @@ impl Catalog {
         found
     }
 
-    /// The files directly in `folder`.
+    /// The files directly in `folder`, by name.
     pub(crate) fn files_in(&self, folder: &str) -> Vec<String> {
-        self.files
-            .iter()
-            .filter(|(_, f)| f.folder == folder)
-            .map(|(id, _)| id.clone())
+        self.file_names
+            .get(folder)
+            .into_iter()
+            .flatten()
+            .map(|(_, id)| id.clone())
             .collect()
     }
 
     /// A file of this name in `folder` that is not in the trash.
     pub(crate) fn find(&self, folder: &str, name: &str) -> Option<String> {
-        self.files
-            .iter()
-            .find(|(_, f)| f.folder == folder && f.name == name && f.trashed_at.is_none())
-            .map(|(id, _)| id.clone())
+        named(&self.file_names, folder, name)
+            .find(|id| self.files[*id].trashed_at.is_none())
+            .cloned()
     }
 
     /// A folder of this name under `parent` that is not in the trash.
     pub(crate) fn find_folder(&self, parent: &str, name: &str) -> Option<String> {
-        self.folders
-            .iter()
-            .find(|(_, f)| f.parent == parent && f.name == name && f.trashed_at.is_none())
-            .map(|(id, _)| id.clone())
+        named(&self.folder_names, parent, name)
+            .find(|id| self.folders[*id].trashed_at.is_none())
+            .cloned()
     }
 
     /// A name free in `folder`: `name`, else `name (2)`, `name (3)`, …
@@ -504,6 +583,20 @@ impl Catalog {
             path: self.path(&file.folder),
         }
     }
+}
+
+/// The IDs of the entries named `name` in `parent` of a name index.
+fn named<'a>(
+    index: &'a BTreeMap<String, BTreeSet<(String, String)>>,
+    parent: &str,
+    name: &'a str,
+) -> impl Iterator<Item = &'a String> {
+    index
+        .get(parent)
+        .into_iter()
+        .flat_map(move |names| names.range((name.to_string(), String::new())..))
+        .take_while(move |(n, _)| n == name)
+        .map(|(_, id)| id)
 }
 
 /// A version view.

@@ -33,11 +33,8 @@ fn reproduces_file_chunks() {
             &aad,
             &nonce(index),
         );
-        assert_eq!(sealed, text(&case["ciphertext"]));
-        assert_eq!(
-            hex::encode(*sha256(&unb64(&sealed).unwrap())),
-            text(&case["digest"])
-        );
+        assert_eq!(b64(&sealed), text(&case["ciphertext"]));
+        assert_eq!(hex::encode(*sha256(&sealed)), text(&case["digest"]));
         let (bytes_sealed, digest) = seal_chunk(
             &file_key,
             &manifest.id,
@@ -66,7 +63,7 @@ fn reproduces_file_chunks() {
             &aad,
             &nonce(index),
         );
-        assert_eq!(sealed, text(&case["sealed"]));
+        assert_eq!(b64(&sealed), text(&case["sealed"]));
     }
     assert_eq!(empty_file(), bytes(&v["empty_file_hex"]));
 }

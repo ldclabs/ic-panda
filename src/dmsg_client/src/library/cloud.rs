@@ -515,7 +515,7 @@ impl Client {
                             &record,
                         )
                     })?;
-                    self.catalog()?.files.insert(file.id.clone(), record);
+                    self.catalog()?.put_file(&file.id, record);
                 }
             }
             None => {
@@ -562,7 +562,7 @@ impl Client {
                     self.workspace
                         .put_private(self.keys()?, &format!("{FILE}{}", file.id), &record)
                 })?;
-                self.catalog()?.files.insert(file.id.clone(), record);
+                self.catalog()?.put_file(&file.id, record);
             }
         }
         Ok(self.files_show(&file.id)?.file)

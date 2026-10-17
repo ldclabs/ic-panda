@@ -219,20 +219,24 @@ impl Client {
     fn save_folder(&mut self, id: &str, folder: Folder) -> Result<()> {
         self.workspace
             .put_private(self.keys()?, &format!("{FOLDER}{id}"), &folder)?;
-        self.catalog()?.folders.insert(id.into(), folder);
+        self.catalog()?.put_folder(id, folder);
         Ok(())
     }
 
     pub(crate) fn save_file(&mut self, id: &str, file: FileRecord) -> Result<()> {
         self.workspace
             .put_private(self.keys()?, &format!("{FILE}{id}"), &file)?;
-        self.catalog()?.files.insert(id.into(), file);
+        self.catalog()?.put_file(id, file);
         Ok(())
     }
 
     pub(crate) fn save_version(&self, file: &str, version: &str, record: &Version) -> Result<()> {
         self.workspace
-            .put_private(self.keys()?, &format!("{VERSION}{file}:{version}"), record)
+            .put_private(self.keys()?, &format!("{VERSION}{file}:{version}"), record)?;
+        if let Some(catalog) = &self.library {
+            catalog.cache_version(file, version, Some(record));
+        }
+        Ok(())
     }
 
     /// A version record.
@@ -240,9 +244,18 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` for an unknown version.
     pub(crate) fn version(&self, file: &str, version: &str) -> Result<Version> {
-        self.workspace
+        let catalog = self.library.as_ref();
+        if let Some(found) = catalog.and_then(|c| c.cached_version(file, version)) {
+            return Ok(found);
+        }
+        let record: Version = self
+            .workspace
             .private(self.keys()?, &format!("{VERSION}{file}:{version}"))?
-            .ok_or(Error::NotFound)
+            .ok_or(Error::NotFound)?;
+        if let Some(catalog) = catalog {
+            catalog.cache_version(file, version, Some(&record));
+        }
+        Ok(record)
     }
 
     /// A file's record.
@@ -731,7 +744,9 @@ impl Client {
                 .put_private(self.keys()?, &format!("{FILE}{id}"), &file)?;
             self.workspace.delete_private(&key)
         })?;
-        self.catalog()?.files.insert(id.into(), file);
+        let catalog = self.catalog()?;
+        catalog.put_file(id, file);
+        catalog.cache_version(id, &version_id, None);
         self.collect_blobs()?;
         self.file_view(id)
     }
@@ -871,7 +886,7 @@ impl Client {
             }
             self.workspace.delete_private(&format!("{FILE}{id}"))
         })?;
-        self.catalog()?.files.remove(id);
+        self.catalog()?.drop_file(id);
         Ok(())
     }
 
@@ -887,7 +902,7 @@ impl Client {
             }
             self.workspace
                 .delete_private(&format!("{FOLDER}{folder}"))?;
-            self.catalog()?.folders.remove(folder);
+            self.catalog()?.drop_folder(folder);
             removed += 1;
         }
         Ok((files, removed))

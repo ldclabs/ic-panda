@@ -8,7 +8,7 @@
 //! library ([`crate::library`]).
 
 use crate::codec::{b64, sha256, unb64};
-use crate::crypto::{open, random_key, seal_with_nonce, Key};
+use crate::crypto::{open_bytes, random_key, seal_with_nonce, Key};
 use crate::store::Store;
 use crate::upload::random_hex;
 use dmsg_types::{ensure, ensure_valid, Error, Result};
@@ -149,13 +149,12 @@ pub(crate) fn seal_chunk(
     count: u64,
     plaintext: &[u8],
 ) -> (Vec<u8>, String) {
-    let sealed = unb64(&seal_with_nonce(
+    let sealed = seal_with_nonce(
         key,
         plaintext,
         &chunk_aad(id, version, index, count, plaintext.len() as u64),
         &nonce(index),
-    ))
-    .expect("sealed text is base64url");
+    );
     let digest = hex::encode(*sha256(&sealed));
     (sealed, digest)
 }
@@ -247,9 +246,9 @@ pub(crate) fn read_chunk(
         .chunk(&chunk.digest)?
         .ok_or(Error::RecoveryIncomplete)?;
     let key = manifest.file_key()?;
-    let plain = open(
+    let plain = open_bytes(
         &key,
-        &b64(&sealed),
+        &sealed,
         &chunk_aad(&manifest.id, &manifest.version, index, count, chunk.size),
     )?;
     ensure(plain.len() as u64 == chunk.size, Error::IntegrityFailed)?;

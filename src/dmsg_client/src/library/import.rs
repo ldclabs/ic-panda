@@ -9,7 +9,7 @@
 use super::catalog::{validate_name, FileRecord, Origin, Version, VersionRef, FILE};
 use super::Client;
 use crate::codec::{b64, sha256, unb64};
-use crate::crypto::{open, random_key, seal};
+use crate::crypto::{open_bytes, random_key, seal_bytes};
 use crate::files::{chunk_count, io, seal_chunk, BlobStore, FileManifest, CHUNK};
 use crate::now_ms;
 use crate::upload::{random_hex, ChunkRef};
@@ -280,7 +280,7 @@ impl Client {
         let digest = hex::encode(overall.finalize());
         let thumbnail = match image.as_deref().and_then(|bytes| thumbnail(bytes)) {
             Some(png) => {
-                let sealed = unb64(&seal(&key, &png, &thumb_aad(&file_id, &job.version)))?;
+                let sealed = seal_bytes(&key, &png, &thumb_aad(&file_id, &job.version));
                 let digest = hex::encode(*sha256(&sealed));
                 self.blobs()?.put_chunk(&digest, &sealed)?;
                 Some(digest)
@@ -330,7 +330,7 @@ impl Client {
                 .put_private(self.keys()?, &format!("{FILE}{file_id}"), &file)?;
             self.workspace.delete_private(&job_key)
         })?;
-        self.catalog()?.files.insert(file_id.clone(), file);
+        self.catalog()?.put_file(&file_id, file);
         let duplicate_of = self.files_with_digest(&digest, &file_id)?;
         let view = self.files_show(&file_id)?.file;
         Ok(Imported {
@@ -381,9 +381,9 @@ impl Client {
             return Ok(None);
         };
         let key = manifest.file_key()?;
-        Ok(Some(open(
+        Ok(Some(open_bytes(
             &key,
-            &b64(&sealed),
+            &sealed,
             &thumb_aad(&manifest.id, &manifest.version),
         )?))
     }
