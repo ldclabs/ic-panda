@@ -1360,6 +1360,8 @@ pub struct HubStats {
     pub wallets: u64,
     /// Activations recorded.
     pub orders: u64,
+    /// Ready activations whose payment is not yet revenue.
+    pub uncollected: u64,
     /// Registered versions.
     pub versions: u32,
     /// Version new wallets get.

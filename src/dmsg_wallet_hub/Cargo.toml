@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 candid.workspace = true
+cbor2.workspace = true
 dmsg_protocol = { path = "../dmsg_protocol" }
 dmsg_runtime = { path = "../dmsg_runtime" }
 dmsg_types = { path = "../dmsg_types" }
@@ -20,4 +21,3 @@ icrc-ledger-types.workspace = true
 lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
-sha2.workspace = true

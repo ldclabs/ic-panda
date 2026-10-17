@@ -113,19 +113,19 @@
 
 ## hub 激活
 
-1. `quote_activation(account_id)`：hub 向 commerce `refresh_entitlement` 读取账户套餐（无记录为 Free），按 `quotas` 减去该账户已占用的创建数；报价 15 分钟有效，收款账户为 `(hub, deposit_subaccount(hub, quote_id))`。
+1. `quote_activation(account_id)`：hub 向 commerce `refresh_entitlement` 读取账户套餐（无记录为 Free），按 `quotas` 减去该账户已占用的创建数；报价 15 分钟有效，收款账户为 `(hub, deposit_subaccount(hub, quote_id))`。按当前账本手续费，收入的两笔转账付不出时不出报价。
 2. 付款人向收款账户转入 `price_e8s`；创建者设备批准 `WalletCreate`。
-3. `create_wallet(CreateWallet { quote_id, spec, approval_id, approval })`：调用者必须是报价时的调用者；hub 核对批准与余额，返回后重查报价期限与暂停，记为 `Paid`，再创建 canister（controller 仅 hub，冻结阈值 365 天，附 `cycles_to_wallet`）并以分块安装当前版本，状态 `Created → Ready`；失败可 `reconcile_activation`，创建 canister 失败为 `Failed`。
-4. `claim_activation_refund(quote_id, to)`：`Failed` 订单与过期未用的报价，由报价调用者把收款扣一次账本手续费后退到 `to`。`to` 由调用者指定，须在 hub 之外，所有者不能是匿名或管理 canister；客户端以本机钱包密钥报价与领取，`to` 为付款身份的默认账户。第一次领取确定账户与转账参数，之后的调用只完成这笔转账并返回同一区块。
-5. `collect_revenue(quote_id)`：已就绪订单的收款中，`cycles_share_e8s` 以 memo `TPUP` 转入 CMC 为 hub 充值 cycles，余额转入 `revenue` 账户。
+3. `create_wallet(CreateWallet { quote_id, spec, approval_id, approval })`：调用者必须是报价时的调用者；hub 核对批准与余额，返回后重查报价期限、退款、暂停与配额，记为 `Paid`，再创建 canister（controller 仅 hub，冻结阈值 365 天，附 `cycles_to_wallet`）并以分块安装报价中的版本，状态 `Created → Ready`；创建 canister 失败为 `Failed`。安装中断时，付款人以同一请求再调 `create_wallet`，或任何人调 `reconcile_activation`，都会继续这次激活。
+4. `claim_activation_refund(quote_id, to)`：`Failed` 订单与过期未用的报价，由报价调用者把收款扣一次账本手续费后退到 `to`；已就绪订单的收款不退。`to` 由调用者指定，须在 hub 之外，所有者不能是匿名或管理 canister；客户端以本机钱包密钥报价与领取，`to` 为付款身份的默认账户。第一次领取确定账户与转账参数，之后的调用只完成这笔转账并返回同一区块。
+5. `collect_revenue(quote_id)`：已就绪订单的收款中，`cycles_share_e8s` 以 memo `TPUP` 转入 CMC 为 hub 充值 cycles，余额转入 `revenue` 账户；`collectable_activations(after, take)` 列出待归集的订单，任何人可归集。
 
 ## 升级与锁定
 
-钱包以 `AcceptUpgrade { version, module_hash }` 管理类提案（24 小时延时）接受 hub 登记的版本；任何人调用 hub `upgrade_wallet`，hub 读取 `accepted_upgrade()`、核对版本与哈希后停止实例、分块安装（`post_upgrade` 参数为该版本号，匹配时清除接受记录）并启动；停止失败时立即重新启动实例。`LockCode` 生效后 `lock_wallet` 把 controllers 设为空，之后不能升级或删除。hub 只安装治理以 `admin_register_version` 登记过哈希的模块；上传由 controller、governance 或其指定的上传者完成。
+钱包以 `AcceptUpgrade { version, module_hash }` 管理类提案（24 小时延时）接受 hub 登记的版本；任何人调用 hub `upgrade_wallet`，hub 读取 `accepted_upgrade()`、核对版本与哈希后停止实例、分块安装（`post_upgrade` 参数为该版本号，匹配时清除接受记录）并启动；停止失败时立即重新启动实例；读不到 `accepted_upgrade()` 时先启动实例再报错。`LockCode` 生效后 `lock_wallet` 把 controllers 设为空，之后不能升级或删除。hub 只安装治理以 `admin_register_version` 登记过哈希的模块；上传由 controller、governance 或其指定的上传者完成。已退役的版本可由 `admin_remove_version` 删除，之后不能再安装，版本号不复用。
 
 ## cycles
 
-`refuel()` 任何人可调：策略 `refuel` 规则下余额低于 `min_cycles` 且当日次数未满时，从指定 ICP 地址以 ICRC-1 memo `TPUP`（`0x50555054` 小端 8 字节）转入 CMC 的实例子账户并 `notify_top_up`。`Refuel` 意图做同样的事但需要批准。
+`refuel()` 任何人可调：策略 `refuel` 规则下余额低于 `min_cycles` 且当日次数未满时，从指定 ICP 地址以 ICRC-1 memo `TPUP`（`0x50555054` 小端 8 字节）转入 CMC 的实例子账户并 `notify_top_up`。`Refuel` 意图做同样的事但需要批准。看门狗以 hub 的 `list_wallets(after, take)` 遍历实例。
 
 ## 向量
 

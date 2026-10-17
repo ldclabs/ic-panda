@@ -1,14 +1,19 @@
 //! Adapter for the DFINITY ICRC ledger's ICRC-3 `1xfer`/`2xfer` blocks. Assets with
-//! another block schema must have a separately reviewed adapter.
-use crate::call;
-use candid::{Nat, Principal};
+//! another block schema must have a separately reviewed adapter. Also the
+//! ICRC-1 transfers and cycles top-ups that wallets and the wallet hub send.
+use crate::{call, call_classified, CallFailure};
+use candid::{CandidType, Nat, Principal};
 use dmsg_types::*;
 use icrc_ledger_types::{
     icrc::generic_value::ICRC3Value as Value,
-    icrc1::account::Account,
+    icrc1::{
+        account::Account,
+        transfer::{TransferArg, TransferError},
+    },
     icrc3::blocks::{GetBlocksRequest, GetBlocksResult},
 };
 use num_traits::ToPrimitive;
+use serde::Deserialize;
 use std::collections::BTreeMap;
 
 /// Transfer fields read from an authenticated ledger or archive reply.
@@ -150,6 +155,100 @@ pub fn block_index(n: Nat) -> Result<u64> {
 
 pub fn token_amount(n: Nat) -> Result<u128> {
     n.0.to_u128().ok_or(Error::IntegrityFailed)
+}
+
+/// `TPUP`: the cycles minting canister's top-up memo, as ICRC-1 memo bytes.
+pub const MEMO_TOP_UP: u64 = 0x5055_5054;
+
+/// Outcome of one ICRC-1 transfer attempt.
+pub enum Sent {
+    Block(u64),
+    /// The ledger refused the arguments; nothing was transferred.
+    Refused(String),
+    /// Nothing is known; resend the same arguments.
+    Unknown,
+}
+
+/// Send one transfer; a duplicate answers with the original block.
+pub async fn send(ledger: Principal, arg: TransferArg) -> Sent {
+    let reply: std::result::Result<std::result::Result<Nat, TransferError>, CallFailure> =
+        call_classified(ledger, "icrc1_transfer", (arg,)).await;
+    match reply {
+        Ok(Ok(n)) | Ok(Err(TransferError::Duplicate { duplicate_of: n })) => {
+            block_index(n).map_or(Sent::Unknown, Sent::Block)
+        }
+        Ok(Err(TransferError::TemporarilyUnavailable)) => Sent::Unknown,
+        Ok(Err(e)) => Sent::Refused(format!("{e:?}")),
+        Err(_) => Sent::Unknown,
+    }
+}
+
+/// The ledger's current fee.
+pub async fn fee(ledger: Principal) -> Result<u128> {
+    let n: Nat = call(ledger, "icrc1_fee", ()).await?;
+    token_amount(n)
+}
+
+/// The cycles minting canister's subaccount for top-ups of `canister`.
+pub fn cmc_subaccount(canister: Principal) -> [u8; 32] {
+    let bytes = canister.as_slice();
+    let mut sub = [0; 32];
+    sub[0] = bytes.len() as u8;
+    sub[1..=bytes.len()].copy_from_slice(bytes);
+    sub
+}
+
+#[derive(CandidType, Deserialize)]
+struct NotifyTopUp {
+    block_index: u64,
+    canister_id: Principal,
+}
+
+#[derive(CandidType, Deserialize, Debug)]
+enum NotifyError {
+    Refunded {
+        reason: String,
+        block_index: Option<u64>,
+    },
+    Processing,
+    TransactionTooOld(u64),
+    InvalidTransaction(String),
+    Other {
+        error_code: u64,
+        error_message: String,
+    },
+}
+
+/// Outcome of a top-up notification.
+pub enum Notified {
+    Cycles(u128),
+    /// The CMC returned the ICP; the top-up is over.
+    Refunded(String),
+    /// Ask again later.
+    Pending,
+}
+
+/// Tell the CMC that `block` paid a top-up of `canister`.
+pub async fn notify_top_up(cmc: Principal, block: u64, canister: Principal) -> Notified {
+    let reply: std::result::Result<std::result::Result<Nat, NotifyError>, CallFailure> =
+        call_classified(
+            cmc,
+            "notify_top_up",
+            (NotifyTopUp {
+                block_index: block,
+                canister_id: canister,
+            },),
+        )
+        .await;
+    match reply {
+        Ok(Ok(n)) => token_amount(n).map_or(Notified::Pending, Notified::Cycles),
+        Ok(Err(NotifyError::Refunded { reason, .. })) => Notified::Refunded(reason),
+        Ok(Err(NotifyError::InvalidTransaction(reason))) => Notified::Refunded(reason),
+        Ok(Err(NotifyError::TransactionTooOld(_))) => {
+            Notified::Refunded("transaction too old".into())
+        }
+        Ok(Err(_)) | Err(_) => Notified::Pending,
+    }
 }
 
 #[cfg(test)]

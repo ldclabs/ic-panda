@@ -276,6 +276,8 @@ type HubPricing = record {
 };
 // Hub counters.
 type HubStats = record {
+  // Ready activations whose payment is not yet revenue.
+  uncollected : nat64;
   // Activations recorded.
   orders : nat64;
   // Cycle balance.
@@ -374,10 +376,9 @@ type Result_2 = variant { Ok : nat64; Err : Error };
 type Result_3 = variant { Ok : ActivationOrder; Err : Error };
 type Result_4 = variant { Ok : WalletRecord; Err : Error };
 type Result_5 = variant { Ok : ActivationQuote; Err : Error };
-type Result_6 = variant { Ok : opt nat; Err : Error };
-type Result_7 = variant { Ok : StagedModule; Err : Error };
-type Result_8 = variant { Ok : text; Err : text };
-type Result_9 = variant { Ok : WalletHealth; Err : Error };
+type Result_6 = variant { Ok : StagedModule; Err : Error };
+type Result_7 = variant { Ok : text; Err : text };
+type Result_8 = variant { Ok : WalletHealth; Err : Error };
 // What a member may do. Roles are ordered: each includes the ones after it
 // except Recovery, which only proposes membership changes.
 type Role = variant {
@@ -468,9 +469,14 @@ type WalletVersion = record {
 };
 service : (HubInit) -> {
   admin_add_user_home : (principal) -> (Result);
-  // Register the staged module as the next version new wallets get.
+  // Register the staged module as the next version new wallets get. The
+  // staging must stay untouched until the proposal executes.
   admin_register_version : (blob, text) -> (Result_1);
-  // Stop giving a version to new wallets; installed wallets keep it.
+  // Delete a retired version and its module, freeing a registration slot;
+  // wallets can no longer install it.
+  admin_remove_version : (nat32) -> (Result);
+  // Stop giving a version to new wallets; installed wallets keep it and may
+  // still accept it.
   admin_retire_version : (nat32) -> (Result);
   admin_set_pricing : (HubPricing) -> (Result);
   admin_set_revenue : (Account) -> (Result);
@@ -483,10 +489,15 @@ service : (HubInit) -> {
   claim_activation_refund : (blob, Account) -> (Result_2);
   clear_wasm_staging : () -> (Result);
   // Move a ready activation's payment: the cycles share to the CMC for the
-  // hub's cycles, the rest to the revenue account. Anyone may call it.
+  // hub's cycles, the rest to the revenue account. Anyone may call it;
+  // `collectable_activations` lists the activations waiting for it.
   collect_revenue : (blob) -> (Result_3);
-  // Create the wallet of a paid quote. The creator's device approval names
-  // the quote and the exact wallet; the payment must be in the deposit.
+  // Quote IDs of ready activations whose payment is not yet revenue, after
+  // `after`, at most 100. Maintenance collects each with `collect_revenue`.
+  collectable_activations : (opt blob, nat16) -> (vec blob) query;
+  // Create the wallet of a paid quote, or continue its interrupted
+  // activation. The creator's device approval names the quote and the exact
+  // wallet; the payment must be in the deposit.
   create_wallet : (CreateWallet) -> (Result_3);
   get_hub_config : () -> (HubInit) query;
   get_order : (blob) -> (opt ActivationOrder) query;
@@ -495,6 +506,9 @@ service : (HubInit) -> {
   get_wallet_record : (principal) -> (opt WalletRecord) query;
   hub_stats : () -> (HubStats) query;
   list_versions : () -> (vec WalletVersion) query;
+  // Wallet records by canister ID after `after`, at most 100, for
+  // maintenance such as cycles top-ups.
+  list_wallets : (opt principal, nat16) -> (vec WalletRecord) query;
   list_wallets_of : (MemberId) -> (vec WalletRecord) query;
   // Remove every controller of a wallet that accepted locking its code.
   lock_wallet : (principal) -> (Result_4);
@@ -503,20 +517,19 @@ service : (HubInit) -> {
   quote_activation : (blob) -> (Result_5);
   // Continue an activation after an interrupted creation or install.
   reconcile_activation : (blob) -> (Result_3);
-  // Ask a wallet to top itself up under its refuel rule.
-  refuel_wallet : (principal) -> (Result_6);
   staged_wasm : () -> (StagedModule) query;
   // Refresh the member index from the wallet. Anyone may call it.
   sync_wallet : (principal) -> (Result_4);
   // Install the version a wallet accepted. Anyone may call it.
   upgrade_wallet : (principal) -> (Result_4);
   // Append bytes to the module staged for registration.
-  upload_wasm_chunk : (blob) -> (Result_7);
-  validate_admin_add_user_home : (principal) -> (Result_8) query;
-  validate_admin_register_version : (blob, text) -> (Result_8) query;
-  validate_admin_retire_version : (nat32) -> (Result_8) query;
-  validate_admin_set_pricing : (HubPricing) -> (Result_8) query;
-  validate_admin_set_revenue : (Account) -> (Result_8) query;
-  validate_admin_set_uploader : (opt principal) -> (Result_8) query;
-  wallet_health : (principal) -> (Result_9);
+  upload_wasm_chunk : (blob) -> (Result_6);
+  validate_admin_add_user_home : (principal) -> (Result_7) query;
+  validate_admin_register_version : (blob, text) -> (Result_7) query;
+  validate_admin_remove_version : (nat32) -> (Result_7) query;
+  validate_admin_retire_version : (nat32) -> (Result_7) query;
+  validate_admin_set_pricing : (HubPricing) -> (Result_7) query;
+  validate_admin_set_revenue : (Account) -> (Result_7) query;
+  validate_admin_set_uploader : (opt principal) -> (Result_7) query;
+  wallet_health : (principal) -> (Result_8);
 }

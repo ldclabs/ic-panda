@@ -1508,6 +1508,52 @@ fn wallet_upgrade_lock_refuel_refund_and_revenue() {
         update(&t.f.ic, t.hub, person(99), "upgrade_wallet", (t.wallet,));
     assert!(again.is_err());
 
+    // Governance frees the slot of an old version only once it is retired;
+    // its number is not given out again.
+    let removed: Result<()> = update(&t.f.ic, t.hub, t.f.sns, "admin_remove_version", (1u32,));
+    assert!(matches!(removed, Err(Error::InvalidInput(_))));
+    let rendered: std::result::Result<String, String> = query(
+        &t.f.ic,
+        t.hub,
+        t.f.sns,
+        "validate_admin_retire_version",
+        (1u32,),
+    );
+    assert!(rendered.unwrap().contains("new wallets then get version 2"));
+    let retired: Result<()> = update(&t.f.ic, t.hub, t.f.sns, "admin_retire_version", (1u32,));
+    retired.unwrap();
+    let rendered: std::result::Result<String, String> = query(
+        &t.f.ic,
+        t.hub,
+        t.f.sns,
+        "validate_admin_remove_version",
+        (1u32,),
+    );
+    assert!(rendered
+        .unwrap()
+        .contains("Remove retired wallet version 1"));
+    let removed: Result<()> = update(&t.f.ic, t.hub, t.f.sns, "admin_remove_version", (1u32,));
+    removed.unwrap();
+    let versions: Vec<WalletVersion> = query(&t.f.ic, t.hub, person(1), "list_versions", ());
+    assert_eq!(
+        versions.iter().map(|v| v.version).collect::<Vec<_>>(),
+        vec![2]
+    );
+    let listed: Vec<WalletRecord> = query(
+        &t.f.ic,
+        t.hub,
+        person(1),
+        "list_wallets",
+        (None::<Principal>, 10u16),
+    );
+    assert_eq!(
+        listed
+            .iter()
+            .map(|r| (r.wallet, r.version))
+            .collect::<Vec<_>>(),
+        vec![(t.wallet, 2)]
+    );
+
     // Cycles from the wallet's own ICP through the CMC.
     void(
         &t.f.ic,
@@ -1547,7 +1593,18 @@ fn wallet_upgrade_lock_refuel_refund_and_revenue() {
         update(&t.f.ic, t.hub, person(99), "upgrade_wallet", (t.wallet,));
     assert_eq!(refused, Err(Error::Locked));
 
-    // Revenue: the cycles share to the CMC for the hub, the rest to the DAO.
+    // Revenue: maintenance finds the ready activation and moves its payment,
+    // the cycles share to the CMC for the hub, the rest to the DAO.
+    let collectable = || -> Vec<Hash> {
+        query(
+            &t.f.ic,
+            t.hub,
+            person(1),
+            "collectable_activations",
+            (None::<Hash>, 10u16),
+        )
+    };
+    assert_eq!(collectable(), vec![t.quote]);
     let hub_cycles = t.f.ic.cycle_balance(t.hub);
     let collected: Result<ActivationOrder> =
         update(&t.f.ic, t.hub, person(99), "collect_revenue", (t.quote,));
@@ -1557,6 +1614,14 @@ fn wallet_upgrade_lock_refuel_refund_and_revenue() {
         u128::from(PRICE - SHARE) - 20
     );
     assert!(t.f.ic.cycle_balance(t.hub) > hub_cycles);
+    assert!(collectable().is_empty());
+    let stats: HubStats = query(&t.f.ic, t.hub, person(1), "hub_stats", ());
+    assert_eq!(stats.uncollected, 0);
+    // The payment of a created wallet is revenue, never a refund.
+    assert_eq!(
+        claim_refund(&t.f, t.hub, A, t.quote, account(person(PAYER))),
+        Err(Error::Forbidden)
+    );
 
     // A quote paid but never used goes back once it expires, to the account
     // the quote's caller (B's wallet key) names: the payer's.
@@ -1645,13 +1710,67 @@ fn hub_quota_and_creation_checks() {
         "admin_set_uploader",
         (Some(person(1)),),
     );
+    // Governance cannot name an anonymous uploader or the hub itself as the
+    // revenue account, nor set prices whose revenue cannot be paid out.
+    let anonymous: Result<()> = update(
+        &f.ic,
+        hub,
+        f.sns,
+        "admin_set_uploader",
+        (Some(Principal::anonymous()),),
+    );
+    assert_eq!(anonymous, Err(Error::AuthRequired));
+    let own: Result<()> = update(&f.ic, hub, f.sns, "admin_set_revenue", (account(hub),));
+    assert!(matches!(own, Err(Error::InvalidInput(_))));
+    let config: HubInit = query(&f.ic, hub, person(1), "get_hub_config", ());
+    let mut unshared = config.pricing.clone();
+    unshared.cycles_share_e8s = 0;
+    let mut twice = config.pricing.clone();
+    twice.quotas.push(twice.quotas[0].clone());
+    for pricing in [unshared, twice] {
+        let refused: Result<()> = update(&f.ic, hub, f.sns, "admin_set_pricing", (pricing,));
+        assert!(matches!(refused, Err(Error::InvalidInput(_))));
+    }
+    // With the test ledger's 10 e8s fee, 20 e8s past the cycles share cannot
+    // pay both revenue transfers, so no quote is issued.
+    let mut thin = config.pricing.clone();
+    thin.price_e8s = SHARE + 20;
+    let rendered: std::result::Result<String, String> = query(
+        &f.ic,
+        hub,
+        f.sns,
+        "validate_admin_set_pricing",
+        (thin.clone(),),
+    );
+    assert!(rendered
+        .unwrap()
+        .contains("(currently 1000000000 e8s ICP of which 300000000 e8s"));
+    let priced: Result<()> = update(&f.ic, hub, f.sns, "admin_set_pricing", (thin,));
+    priced.unwrap();
+    let thin_quote: Result<ActivationQuote> =
+        update(&f.ic, hub, person(A), "quote_activation", (a,));
+    assert!(matches!(thin_quote, Err(Error::Unavailable(_))));
+    let priced: Result<()> = update(
+        &f.ic,
+        hub,
+        f.sns,
+        "admin_set_pricing",
+        (config.pricing.clone(),),
+    );
+    priced.unwrap();
 
     // A creation that fails after payment, here for want of the hub's
     // cycles, gives its quota back and is refunded at once to the account
     // the quote's caller names.
     let mut config: HubInit = query(&f.ic, hub, person(1), "get_hub_config", ());
     config.pricing.cycles_to_wallet = 1_000_000_000_000_000_000;
-    let priced: Result<()> = update(&f.ic, hub, f.sns, "admin_set_pricing", (config.pricing,));
+    let priced: Result<()> = update(
+        &f.ic,
+        hub,
+        f.sns,
+        "admin_set_pricing",
+        (config.pricing.clone(),),
+    );
     priced.unwrap();
     let quote: Result<ActivationQuote> = update(&f.ic, hub, person(A), "quote_activation", (a,));
     let quote = quote.unwrap();
@@ -1673,7 +1792,7 @@ fn hub_quota_and_creation_checks() {
         "create_wallet",
         (CreateWallet {
             quote_id: quote.quote_id,
-            spec: s,
+            spec: s.clone(),
             approval_id,
             approval: app,
         },),
@@ -1691,4 +1810,65 @@ fn hub_quota_and_creation_checks() {
     assert_eq!(refunded, Nat::from(PRICE - 10));
     let again: Result<ActivationQuote> = update(&f.ic, hub, person(A), "quote_activation", (a,));
     assert_eq!(again.unwrap().remaining, 1);
+
+    // An activation interrupted after its canister was created continues
+    // when the payer calls again. Here the hub briefly loses control of the
+    // new canister, which fails the install.
+    config.pricing.cycles_to_wallet = 3_000_000_000_000;
+    let priced: Result<()> = update(&f.ic, hub, f.sns, "admin_set_pricing", (config.pricing,));
+    priced.unwrap();
+    let quote: Result<ActivationQuote> = update(&f.ic, hub, person(A), "quote_activation", (a,));
+    let quote = quote.unwrap();
+    pay(&f, &quote);
+    let app = application(
+        &f,
+        hub,
+        hub,
+        a,
+        person(A),
+        ApprovalPurpose::WalletCreate,
+        activation_digest(&quote, &s),
+    );
+    let approval_id = approve_app(&f, A, &a, &app);
+    let req = CreateWallet {
+        quote_id: quote.quote_id,
+        spec: s,
+        approval_id,
+        approval: app,
+    };
+    let pending =
+        f.ic.submit_call(
+            hub,
+            person(A),
+            "create_wallet",
+            candid::encode_one(req.clone()).unwrap(),
+        )
+        .unwrap();
+    let order_of = |f: &Fixture| -> Option<ActivationOrder> {
+        query(&f.ic, hub, person(1), "get_order", (quote.quote_id,))
+    };
+    let wallet = (0..200)
+        .find_map(|_| {
+            f.ic.tick();
+            order_of(&f)
+                .filter(|o| o.status == ActivationStatus::Created)
+                .and_then(|o| o.wallet)
+        })
+        .expect("canister created");
+    f.ic.set_controllers(wallet, Some(hub), vec![person(99)])
+        .unwrap();
+    let interrupted: Result<ActivationOrder> =
+        candid::decode_one(&f.ic.await_call(pending).unwrap()).unwrap();
+    assert!(matches!(interrupted, Err(Error::Unavailable(_))));
+    assert_eq!(order_of(&f).unwrap().status, ActivationStatus::Created);
+    f.ic.set_controllers(wallet, Some(person(99)), vec![hub])
+        .unwrap();
+    let resumed: Result<ActivationOrder> = update(&f.ic, hub, person(A), "create_wallet", (req,));
+    let resumed = resumed.unwrap();
+    assert_eq!(
+        (resumed.status, resumed.wallet),
+        (ActivationStatus::Ready, Some(wallet))
+    );
+    let none: Result<ActivationQuote> = update(&f.ic, hub, person(A), "quote_activation", (a,));
+    assert_eq!(none, Err(Error::QuotaExceeded));
 }

@@ -292,8 +292,8 @@ flowchart TB
 | commerce 目录证书 | `refresh_catalog` | 新目录生效后一次 |
 | membership 释放与压缩 | `sweep_panda_commitments` | 建议每 5 分钟，调用到返回 0 |
 | directory 补发 | `publish_principal` | home 发布失败时 |
-| 钱包 cycles | `refuel_wallet(wallet)`（转调钱包 `refuel()`）、`wallet_health(wallet)` | 低于策略 `min_cycles` 时；钱包冻结阈值 365 天 |
-| 钱包激活收入 | `collect_revenue(quote_id)` | 订单就绪后 |
+| 钱包 cycles | hub `list_wallets(after, take)` 遍历，逐个调钱包 `refuel()`；hub `wallet_health(wallet)` 读取实例状态 | 低于策略 `min_cycles` 时；钱包冻结阈值 365 天 |
+| 钱包激活收入 | `collectable_activations(after, take)` 后逐条 `collect_revenue(quote_id)` | 订单就绪后；`hub_stats.uncollected` 为待归集数 |
 | 钱包成员索引 | `sync_wallet(wallet)` | 成员变更后 |
 
 - **升级**：要求 schema 不变。先停止 canister，等在途的跨 canister 调用完成，对持有资金或不可重建数据的 canister 创建快照，再以空 Candid 参数 `()` 升级、启动并查看日志。COSE 的派生是无界等待，升级前必须停止；未停止就升级时，丢失回调的执行按 `Unknown` 处理，不会重新派生。

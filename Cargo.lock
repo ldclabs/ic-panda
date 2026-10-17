@@ -2817,6 +2817,7 @@ name = "dmsg_wallet_hub"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "cbor2",
  "dmsg_protocol",
  "dmsg_runtime",
  "dmsg_types",
@@ -2827,7 +2828,6 @@ dependencies = [
  "lib_dummy_getrandom",
  "serde",
  "serde_bytes",
- "sha2 0.11.0",
 ]
 
 [[package]]

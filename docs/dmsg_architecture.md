@@ -292,8 +292,8 @@ Each administrative call below accepts the controller or the SNS governance and 
 | commerce catalog certificate | `refresh_catalog` | Once after a new catalog takes effect |
 | membership release and compaction | `sweep_panda_commitments` | Every five minutes is suggested, until it returns 0 |
 | directory republication | `publish_principal` | When a home's publication failed |
-| wallet cycles | `refuel_wallet(wallet)` (calls the wallet's `refuel()`), `wallet_health(wallet)` | Below the policy's `min_cycles`; wallets freeze after 365 days without cycles |
-| wallet activation revenue | `collect_revenue(quote_id)` | After an order is ready |
+| wallet cycles | the hub's `list_wallets(after, take)`, then each wallet's `refuel()`; the hub's `wallet_health(wallet)` for instance status | Below the policy's `min_cycles`; wallets freeze after 365 days without cycles |
+| wallet activation revenue | `collectable_activations(after, take)`, then `collect_revenue(quote_id)` for each | After an order is ready; `hub_stats.uncollected` counts what is waiting |
 | wallet member index | `sync_wallet(wallet)` | After membership changes |
 
 - **Upgrades**: the schema must not change. Stop the canister and let in-flight inter-canister calls finish, snapshot canisters that hold funds or unrecoverable data, then upgrade with the empty Candid argument `()`, start, and read the logs. COSE derivations are unbounded waits, so COSE must be stopped before an upgrade; if it is not, executions whose callbacks are lost become `Unknown` and are never derived again.

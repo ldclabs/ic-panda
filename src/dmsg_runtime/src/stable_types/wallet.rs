@@ -1,11 +1,12 @@
-//! Compact representations of the team-wallet records a wallet canister
-//! stores. Nested enums (intents, outcomes, audit kinds, policies) keep their
-//! protocol encoding; the integer keys replace the field names repeated in
-//! every member, address, proposal and audit event.
-use super::{is_zero, StableCodec};
+//! Compact representations of the team-wallet records a wallet canister and
+//! the wallet hub store. Nested enums (intents, outcomes, audit kinds,
+//! activation states) and policies keep their protocol encoding; the integer
+//! keys replace the field names repeated in every member, address, proposal,
+//! audit event, quote and wallet record.
+use super::{is_zero, AccountRepr, StableCodec};
 use candid::Principal;
 use cbor2::Cbor;
-use dmsg_types::{wallet::*, *};
+use dmsg_types::{billing::PlanId, wallet::*, *};
 use serde_bytes::ByteBuf;
 
 stable_struct!(MemberRepr => Member {
@@ -136,6 +137,90 @@ stable_struct!(AuditEventRepr => AuditEvent {
     5 => kind: AuditKind,
     6 => prev: Hash,
     7 => hash: Hash,
+});
+
+stable_struct!(MemberInputRepr => MemberInput {
+    1 => id: MemberId,
+    2 => role: Role,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    3 => label: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    4 => agent_ids: Vec<String>,
+});
+
+stable_struct!(WalletSpecRepr => WalletSpec {
+    1 => name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    2 => members: Vec<MemberInputRepr> as codec,
+    3 => policy: Policy,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    4 => channel_hint: Option<String>,
+});
+
+stable_struct!(ActivationQuoteRepr => ActivationQuote {
+    1 => quote_id: Hash,
+    2 => account_id: AccountId,
+    3 => payer: Principal,
+    4 => plan: PlanId,
+    5 => remaining: u32,
+    6 => price_e8s: u64,
+    7 => ledger_fee_e8s: u64,
+    8 => cycles_to_wallet: u128,
+    9 => deposit: AccountRepr as codec,
+    10 => version: u32,
+    11 => issued_at_ms: u64,
+    12 => expires_at_ms: u64,
+});
+
+stable_struct!(WalletRecordRepr => WalletRecord {
+    1 => wallet: Principal,
+    2 => creator: AccountId,
+    3 => name: String,
+    4 => version: u32,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    5 => locked: bool,
+    6 => members: Vec<MemberId>,
+    7 => created_at_ms: u64,
+});
+
+stable_struct!(WalletVersionRepr => WalletVersion {
+    1 => version: u32,
+    2 => module_hash: Hash,
+    3 => size: u64,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    4 => notes: String,
+    5 => registered_at_ms: u64,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    6 => retired: bool,
+});
+
+stable_struct!(PlanQuotaRepr => PlanQuota {
+    1 => plan: PlanId,
+    2 => wallets: u32,
+});
+
+stable_struct!(HubPricingRepr => HubPricing {
+    1 => price_e8s: u64,
+    2 => cycles_to_wallet: u128,
+    3 => cycles_share_e8s: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    4 => quotas: Vec<PlanQuotaRepr> as codec,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    5 => paused: bool,
+});
+
+stable_struct!(HubInitRepr => HubInit {
+    1 => environment: Environment,
+    2 => governance: Principal,
+    3 => icp_ledger: Principal,
+    4 => cmc: Principal,
+    5 => commerce: Principal,
+    6 => issuer_namespace: String,
+    7 => user_homes: Vec<Principal>,
+    8 => key_name: String,
+    9 => btc_network: BtcNetwork,
+    10 => pricing: HubPricingRepr as codec,
+    11 => revenue: AccountRepr as codec,
 });
 
 #[cfg(test)]
@@ -276,6 +361,145 @@ mod tests {
         assert_eq!(
             compact_from_bytes::<BookEntry>(&compact_bytes(&entry)),
             entry
+        );
+    }
+
+    #[test]
+    fn hub_records_round_trip_and_shrink() {
+        let quote = ActivationQuote {
+            quote_id: Hash::new([7; 32]),
+            account_id: AccountId([3; 12]),
+            payer: Principal::from_slice(&[9; 29]),
+            plan: PlanId::Pro,
+            remaining: 3,
+            price_e8s: 250_000_000,
+            ledger_fee_e8s: 10_000,
+            cycles_to_wallet: 3_000_000_000_000,
+            deposit: Account {
+                owner: Principal::from_slice(&[1; 10]),
+                subaccount: Some([5; 32]),
+            },
+            version: 3,
+            issued_at_ms: 1_790_000_000_000,
+            expires_at_ms: 1_790_000_900_000,
+        };
+        let compact = compact_bytes(&quote);
+        assert_eq!(compact_from_bytes::<ActivationQuote>(&compact), quote);
+        let plain = cbor2::to_vec(&quote).unwrap();
+        assert!(
+            compact.len() * 100 <= plain.len() * 60,
+            "quote {} !<= 60% of {}",
+            compact.len(),
+            plain.len()
+        );
+
+        let spec = WalletSpec {
+            name: "ICPanda DAO".into(),
+            members: vec![
+                MemberInput {
+                    id: MemberId::Account(AccountId([4; 12])),
+                    role: Role::Approver,
+                    label: "ops".into(),
+                    agent_ids: vec![],
+                },
+                MemberInput {
+                    id: MemberId::Principal(Principal::from_slice(&[6; 29])),
+                    role: Role::Recovery,
+                    label: String::new(),
+                    agent_ids: vec!["agent-1".into()],
+                },
+            ],
+            policy: Policy {
+                version: 1,
+                approver_threshold: 1,
+                admin_threshold: 1,
+                tiers: vec![],
+                address_book_cooldown_ms: 0,
+                daily_limits: vec![],
+                spendable_assets: vec![AssetKey::Icp],
+                call_targets: vec![],
+                evm_chains: vec![],
+                proposal_ttl_ms: 7 * DAY,
+                unfreeze_delay_ms: DAY,
+                daily_signatures: 50,
+                refuel: None,
+                hardware_cosigners: false,
+                public: false,
+            },
+            channel_hint: Some("channel".into()),
+        };
+        assert_eq!(
+            compact_from_bytes::<WalletSpec>(&compact_bytes(&spec)),
+            spec
+        );
+        let record = WalletRecord {
+            wallet: Principal::from_slice(&[2; 10]),
+            creator: AccountId([3; 12]),
+            name: "ICPanda DAO".into(),
+            version: 3,
+            locked: false,
+            members: (0..5u8)
+                .map(|i| MemberId::Account(AccountId([i; 12])))
+                .collect(),
+            created_at_ms: 1_790_000_100_000,
+        };
+        assert_eq!(
+            compact_from_bytes::<WalletRecord>(&compact_bytes(&record)),
+            record
+        );
+        let init = HubInit {
+            environment: Environment::Production,
+            governance: Principal::from_slice(&[11; 10]),
+            icp_ledger: Principal::from_slice(&[12; 10]),
+            cmc: Principal::from_slice(&[13; 10]),
+            commerce: Principal::from_slice(&[14; 10]),
+            issuer_namespace: "https://dmsg.net/u/".into(),
+            user_homes: (0..4)
+                .map(|i| Principal::from_slice(&[20 + i; 10]))
+                .collect(),
+            key_name: "key_1".into(),
+            btc_network: BtcNetwork::Mainnet,
+            pricing: HubPricing {
+                price_e8s: 250_000_000,
+                cycles_to_wallet: 3_000_000_000_000,
+                cycles_share_e8s: 100_000_000,
+                quotas: vec![
+                    PlanQuota {
+                        plan: PlanId::Plus,
+                        wallets: 1,
+                    },
+                    PlanQuota {
+                        plan: PlanId::Max,
+                        wallets: 10,
+                    },
+                ],
+                paused: true,
+            },
+            revenue: Account {
+                owner: Principal::from_slice(&[15; 10]),
+                subaccount: None,
+            },
+        };
+        let compact = compact_bytes(&init);
+        assert_eq!(compact_from_bytes::<HubInit>(&compact), init);
+        let plain = cbor2::to_vec(&init).unwrap();
+        assert!(
+            compact.len() * 100 <= plain.len() * 60,
+            "hub init {} !<= 60% of {}",
+            compact.len(),
+            plain.len()
+        );
+        let version = WalletVersion {
+            version: 2,
+            module_hash: Hash::new([8; 32]),
+            size: 950_206,
+            notes: String::new(),
+            registered_at_ms: 1_790_000_000_000,
+            retired: true,
+        };
+        assert_eq!(
+            compact_from_bytes::<WalletVersion>(&compact_bytes(&version)),
+            version
         );
     }
 }
