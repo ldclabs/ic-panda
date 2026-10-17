@@ -13,7 +13,7 @@ dMsg is built in public by ICPanda DAO. For a problem you can reproduce, open a 
 
 ## Legacy app
 
-The legacy app is read-only. Sign in with your existing identity to read old conversations and download the attachments you can access. Keep the original browser and its data, especially if you used Local key mode: keys stored only in a browser you cleared cannot be recovered. Migration to the new dMsg is not available yet.
+The legacy app is read-only. Sign in with your existing identity to read old conversations and download the attachments you can access. Keep the original browser and its data, especially if you used Local key mode: keys stored only in a browser you cleared cannot be recovered. To move to the new dMsg, install the desktop app and start a migration under Settings › Legacy; it opens this site's legacy page to hand your history to that device.
 
 ## Payments and orders
 

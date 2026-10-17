@@ -142,6 +142,11 @@
       >
       <li><Glyph name="vault" size={14} />{$t('Settled payments and names')}</li
       >
+      <li
+        ><Glyph name="coins" size={14} />{$t(
+          'Team wallets, their proposals and approvals'
+        )}</li
+      >
     </ul>
   </div>
 </div>

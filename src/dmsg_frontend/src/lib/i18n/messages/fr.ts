@@ -82,21 +82,12 @@ export default {
   'Inspect the public code.': 'Inspectez le code public.',
   'Explore the repository': 'Explorer le dépôt',
   'Read the recovery details': 'Lire les détails de récupération',
-  'Development is not audit evidence.':
-    'Le développement ne prouve pas un audit.',
-  'This page describes the target product. A public repository does not establish audit coverage or prove which code is deployed.':
-    'Cette page décrit le produit visé. Un dépôt public ne prouve ni la couverture d’audit ni le code déployé.',
-  'Release status': 'État de publication',
   'A few useful answers': 'Quelques réponses utiles',
   'Before you': 'Avant de',
   'make it yours.': 'vous lancer.',
   'Clear answers about availability, identity, private content, and your existing data.':
     'Des réponses claires sur la disponibilité, l’identité, le contenu privé et vos données existantes.',
-  'In development': 'En développement',
-  'Follow development': 'Suivre le développement',
   'Read your legacy messages': 'Consulter vos anciens messages',
-  'Keep your existing browser data and recovery materials until migration is available.':
-    'Conservez les données du navigateur et vos éléments de récupération jusqu’à la migration.',
   'A little less exposure. A little more control.':
     'Moins d’exposition. Plus de contrôle.',
   'Make room for': 'Faites place à',
@@ -109,8 +100,6 @@ export default {
   'File': 'Fichier',
   'What can I do with the legacy app?':
     'Que puis-je faire dans l’ancienne application ?',
-  'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
-    'Connectez-vous avec votre identité existante pour lire les anciennes conversations et télécharger les pièces jointes accessibles. Messages, envois, modifications de profil et inscriptions sont désactivés. Conservez le navigateur d’origine et ses données, surtout en mode Local key. La nouvelle migration n’est pas disponible.',
   'Do I need a username or PANDA to start?':
     'Faut-il un nom d’utilisateur ou des PANDA pour commencer ?',
   'The new personal workspace is designed to work without buying a handle or having any contacts. Existing handle holders are intended to retain their names through migration without paying to claim them again. Legacy token balances and benefits are handled separately.':
@@ -119,8 +108,6 @@ export default {
     'La connexion déverrouille-t-elle mon contenu privé ?',
   'Is everything stored on the blockchain?':
     'Tout est-il stocké sur la blockchain ?',
-  'No. The planned design encrypts private content on authorized devices and stores ciphertext in the cloud. ICP holds core identity, control, formal-signing, and payment state. Service metadata, cloud availability, client updates, and governance remain trust boundaries.':
-    'Non. Le contenu est chiffré sur les appareils autorisés puis stocké chiffré dans le cloud. ICP conserve l’identité essentielle, le contrôle, les signatures formelles et les paiements. Métadonnées, disponibilité cloud, mises à jour et gouvernance restent des limites de confiance.',
   'Activate username account': 'Activer le compte du nom d’utilisateur',
   'Your permanent account generated from':
     'Votre compte permanent généré à partir de',
@@ -509,52 +496,99 @@ export default {
   'Continue with Internet Identity': 'Continuer avec Internet Identity',
   'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
     'Internet Identity autorise l’application dMsg de cet ordinateur à agir pour vous. Cette page ne conserve aucune session.',
+  '1 of 2 approvals': '1 approbation sur 2',
+  '2 of 2, then 24 hours': '2 sur 2, puis 24 heures',
   'A commitment to your content root':
     'Un engagement sur la racine de votre contenu',
+  'A cosigned address also needs a key on a member’s device, such as a Mac’s Secure Enclave. A dual-control Taproot address makes Bitcoin itself require both keys.':
+    'Une adresse cosignée exige aussi une clé sur l’appareil d’un membre, comme la Secure Enclave d’un Mac. Une adresse Taproot à double contrôle fait exiger les deux clés par Bitcoin lui-même.',
   'A hint wakes your desktop, no content':
     'Un signal réveille votre ordinateur, sans contenu',
+  'A release is not an audit.': 'Une version n’est pas un audit.',
+  'A second key, if you want one.': 'Une seconde clé, si vous le voulez.',
+  'A share is its own copy.': 'Un partage est une copie à part.',
   'A signature request from a website, one move at a time.':
     'Une demande de signature d’un site, étape par étape.',
+  'A team wallet is a canister of its own on ICP. It holds ICP and tokens, and signs for Bitcoin, EVM chains and Solana with threshold keys no person holds. Funds move only when a proposal meets the team’s policy: enough approvals, any delay passed, no veto.':
+    'Un portefeuille d’équipe est un canister à part sur ICP. Il détient des ICP et des jetons, et signe pour Bitcoin, les chaînes EVM et Solana avec des clés à seuil que personne ne détient. Les fonds ne bougent que lorsqu’une proposition respecte la politique de l’équipe : assez d’approbations, délai écoulé, aucun veto.',
+  'A transfer an agent proposed, from approval to settlement.':
+    'Un transfert proposé par un agent, de l’approbation au règlement.',
   'A vault for what you don’t publish.':
     'Un coffre pour ce que vous ne publiez pas.',
   'AI agent': 'Agent IA',
   'AI agents': 'Agents IA',
   'API key': 'Clé d’API',
-  'API keys, logins, notes and files up to 100 MiB, encrypted on your device before they sync.':
-    'Clés d’API, identifiants, notes et fichiers jusqu’à 100 Mio, chiffrés sur votre appareil avant toute synchronisation.',
+  'API keys, logins, signing keys and notes, encrypted on your device before they sync.':
+    'Clés d’API, identifiants, clés de signature et notes, chiffrés sur votre appareil avant toute synchronisation.',
   'Account and device changes': 'Modifier le compte ou les appareils',
   'Account and sync status': 'État du compte et de la synchronisation',
   'Account, devices and logins':
     'Compte, appareils et identifiants de connexion',
   'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
     'Ajoutez un second appareil et associez un identifiant de connexion de confiance. Si tous vos appareils sont perdus, il peut récupérer le compte après un délai d’attente que vos appareils peuvent contester.',
+  'Address book: {label} · past its 24-hour wait':
+    'Carnet : {label} · délai de 24 heures écoulé',
+  'Addresses': 'Adresses',
+  'Admin': 'Admin',
   'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
     'Après 15 minutes d’inactivité, l’appareil se verrouille et oublie ses clés. Verrouillé, il peut encore vous signaler qu’une demande attend, mais jamais de qui.',
   'Agent': 'Agent',
+  'Agent ID listed by {member}': 'Agent ID déclaré par {member}',
   'Agent and controller keys': 'Clés des agents et contrôleurs',
   'Agents': 'Agents',
+  'Agents get a folder.': 'Les agents ont un dossier.',
+  'Agents propose, people decide.':
+    'Les agents proposent, les humains décident.',
+  'All downloads and checksums':
+    'Tous les téléchargements et sommes de contrôle',
+  'An agent acting for {member}': 'Un agent agissant pour {member}',
+  'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
+    'Un agent autorisé peut préparer un transfert et exécuter un transfert approuvé. Aucune capacité ne lui permet d’approuver.',
   'An audit record on your device lists who did what and through which way in: you or an agent, from the desktop, the terminal or MCP. It names actions and outcomes, never content.':
     'Un journal d’audit sur votre appareil indique qui a fait quoi et par quelle entrée : vous ou un agent, depuis l’application, le terminal ou MCP. Il nomme les actions et leurs résultats, jamais le contenu.',
   'An honest trust point.': 'Un point de confiance assumé.',
   'Any modern browser.': 'N’importe quel navigateur récent.',
   'App': 'Application',
-  'Apple Silicon · the first release': 'Apple Silicon · première version',
+  'Apple Silicon · desktop app and command line':
+    'Apple Silicon · application de bureau et ligne de commande',
   'Approval': 'Approbation',
   'Approve': 'Approuver',
   'Approve a new device': 'Approuver un nouvel appareil',
+  'Approve as Mei': 'Approuver comme Mei',
   'Approved': 'Approuvé',
   'Approved by you': 'Approuvées par vous',
+  'Approved. Either approver can still veto it until the delay ends.':
+    'Approuvée. Jusqu’à la fin du délai, chacun peut encore opposer un veto.',
   'Approved. Signature generated.': 'Approuvé. Signature générée.',
   'Approved. The signature goes to ICP.':
     'Approuvé. La signature part vers ICP.',
+  'Approver': 'Approbateur',
   'Approving any request': 'Approuver une demande',
   'Ask you to sign a statement': 'Vous demander de signer une déclaration',
   'Asks you to sign a file': 'Demande de signer un fichier',
+  'Audit chain': 'Chaîne d’audit',
   'Audit record': 'Journal d’audit',
+  'Auditor': 'Auditeur',
+  'Available now': 'Disponible',
   'Back to the start': 'Revenir au début',
+  'Back up': 'Sauvegarder',
+  'Back up a file, delete one side, then look at the other.':
+    'Sauvegardez un fichier, supprimez un côté, puis regardez l’autre.',
+  'Back up to the cloud?': 'Sauvegarder en ligne ?',
+  'Backed up': 'Sauvegardé',
+  'Backed up. The relay got ciphertext under a random ID, no name.':
+    'Sauvegardé. Le relais a reçu du chiffré sous un identifiant aléatoire, sans nom.',
+  'Backing up, sharing or deleting files':
+    'Sauvegarder, partager ou supprimer des fichiers',
+  'Backing up…': 'Sauvegarde…',
+  'Backups when you say.': 'Sauvegardés quand vous le dites.',
+  'Backups you started': 'Sauvegardes lancées par vous',
   'Bridge page': 'Page passerelle',
+  'Broadcast': 'Diffusée',
+  'Broadcast. Waiting for the network.': 'Diffusée. En attente du réseau.',
   'Browser': 'Navigateur',
   'Can I install dMsg now?': 'Puis-je installer dMsg maintenant ?',
+  'Cancel': 'Annuler',
   'Channels': 'Canaux',
   'Channels and an inbox on your terms.':
     'Canaux et boîte de réception, selon vos règles.',
@@ -564,26 +598,53 @@ export default {
   'Ciphertext, plus what it takes to deliver it':
     'Du chiffré, plus ce qu’il faut pour le livrer',
   'Click again to copy': 'Cliquez à nouveau pour copier',
+  'Click again to delete for good':
+    'Cliquez à nouveau pour supprimer définitivement',
   'Click again to show': 'Cliquez à nouveau pour afficher',
   'Click it or type it.': 'Cliquez ou tapez.',
-  'Coming to your desktop.': 'Bientôt sur votre ordinateur.',
+  'Cloud copy deleted, and its room is freed.':
+    'Copie en ligne supprimée, son espace est libéré.',
+  'Cloud copy deleted. The file on this device is unchanged.':
+    'Copie en ligne supprimée. Le fichier sur cet appareil est inchangé.',
+  'Cloud room: {used} used of {limit}':
+    'Espace en ligne : {used} utilisés sur {limit}',
   'Command line · x86_64 and arm64': 'Ligne de commande · x86_64 et arm64',
   'Connect Claude Code': 'Connecter Claude Code',
   'Content is encrypted on your devices. The cloud carries ciphertext, and ICP keeps the few facts that must be verifiable. Type below and see what each side gets.':
     'Le contenu est chiffré sur vos appareils. Le cloud transporte du chiffré, et ICP conserve les quelques faits qui doivent rester vérifiables. Écrivez ci-dessous et voyez ce que reçoit chaque partie.',
+  'Contracts': 'Contrats',
   'Copy': 'Copier',
   'Copy command': 'Copier la commande',
+  'Creating one takes a paid plan and a one-time ICP activation, part of which becomes the wallet’s cycles. The wallet then pays its own signing costs. Receiving, approving, executing and withdrawing never depend on your plan.':
+    'Pour en créer un, il faut une offre payante et une activation unique en ICP, dont une partie devient les cycles du portefeuille. Ensuite, le portefeuille paie lui-même ses signatures. Recevoir, approuver, exécuter et retirer ne dépendent jamais de votre offre.',
+  'Declined': 'Refusé',
+  'Delayed': 'En délai',
+  'Delete the cloud copy': 'Supprimer la copie en ligne',
+  'Deletions that crossed over': 'Suppressions passées de l’autre côté',
   'Deploy key': 'Clé de déploiement',
   'Desktop': 'Bureau',
   'Desktop & CLI': 'Bureau et CLI',
   'Desktop & command line': 'Bureau et ligne de commande',
   'Desktop app': 'Application de bureau',
+  'Desktop app for macOS and Windows · command line on Linux too.':
+    'Application de bureau pour macOS et Windows · ligne de commande aussi sur Linux.',
+  'Documents': 'Documents',
+  'Does dMsg upload my files?': 'dMsg envoie-t-il mes fichiers en ligne ?',
   'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
     'J’ai fait ce qui m’est permis. Sans attest.request, je ne peux même pas vous demander de signer.',
   'Done. The release statement is waiting in your approval window. I can’t approve it myself.':
     'C’est fait. La déclaration de version attend dans votre fenêtre d’approbation. Je ne peux pas l’approuver moi-même.',
+  'Download for Mac': 'Télécharger pour Mac',
   'Each agent gets its own did:agent identity. Its key lives in your vault, and stays resident only if you allow it.':
     'Chaque agent reçoit sa propre identité did:agent. Sa clé est dans votre coffre et ne reste résidente que si vous l’autorisez.',
+  'Each checked against the wallet’s keys':
+    'Chacune vérifiée avec les clés du portefeuille',
+  'Each command installs the latest release and checks its SHA-256.':
+    'Chaque commande installe la dernière version et vérifie son SHA-256.',
+  'Each event hashes the one before it, so a member can check that none is missing.':
+    'Chaque événement contient l’empreinte du précédent : un membre peut vérifier qu’il n’en manque aucun.',
+  'Empty. Nothing arrives here until you back it up.':
+    'Vide. Rien n’arrive ici tant que vous ne sauvegardez pas.',
   'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
     'Des canaux chiffrés avec rôles et pièces jointes. Vos règles de contact décident qui peut vous écrire : personne, vos contacts, tout le monde ou les expéditeurs qui paient.',
   'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
@@ -591,29 +652,44 @@ export default {
   'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
     'Des lettres chiffrées de bout en bout entre agents, vers des boîtes que vous publiez et renouvelez.',
   'Every action leaves a record.': 'Chaque action laisse une trace.',
+  'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
+    'Chaque modification est une nouvelle version sous sa propre clé. Les versions de différents appareils se côtoient, et vous choisissez la version courante.',
   'Everyday work, encrypted': 'Le quotidien, chiffré',
   'Everything asks. Only you approve.':
     'Tout le monde demande. Vous seul approuvez.',
+  'Execute': 'Exécuter',
   'Expired': 'Expirées',
   'Expired. Nothing was signed.': 'Expiré. Rien n’a été signé.',
   'Expires in': 'Expire dans',
+  'Fetch into the library': 'Récupérer dans la bibliothèque',
+  'Fetched and checked. Only on your devices does it have a name: {name}.':
+    'Récupéré et vérifié. Il n’a de nom que sur vos appareils : {name}.',
   'Fig. {n}': 'Fig. {n}',
-  'Follow on GitHub': 'Suivre sur GitHub',
+  'Files': 'Fichiers',
   'Found it. The secret itself stays out: that would need vault.secret for this item.':
     'Trouvé. Le secret lui-même reste à l’écart : il faudrait vault.secret pour cet élément.',
   'From an interactive terminal': 'Depuis un terminal interactif',
+  'Get dMsg': 'Obtenir dMsg',
   'Grant a capability, run the agent, read the record.':
     'Accordez une capacité, lancez l’agent, lisez le journal.',
+  'Grant an agent one folder to read or write. No tool can back up, share or delete a file.':
+    'Accordez à un agent un dossier à lire ou à écrire. Aucun outil ne peut sauvegarder, partager ou supprimer un fichier.',
   'Granted capabilities': 'Capacités accordées',
   'Hide': 'Masquer',
   'Hides again in {seconds} s.': 'Masqué à nouveau dans {seconds} s.',
+  'Highest network fee': 'Frais de réseau maximum',
   'How do websites connect without an extension?':
     'Comment les sites se connectent-ils sans extension ?',
   'I don’t have {capability}, so I’ll skip that.':
     'Je n’ai pas {capability}, je passe cette étape.',
+  'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.':
+    'Le sous-réseau de signature d’ICP détient chaque clé en parts, dérivée pour ce seul portefeuille. Aucune phrase secrète à afficher, saisir, voler ou perdre.',
   'Identity and signatures': 'Identité et signatures',
-  'In development · macOS first.': 'En développement · macOS d’abord.',
   'In the dMsg cloud': 'Dans le cloud dMsg',
+  'In the trash here, kept {days} days.':
+    'Dans la corbeille ici, conservé {days} jours.',
+  'In the trash here. Its cloud copy stays as it was.':
+    'Dans la corbeille ici. Sa copie en ligne reste telle quelle.',
   'Inbox': 'Boîte de réception',
   'Install method': 'Méthode d’installation',
   'Is there a phone app?': 'Existe-t-il une application mobile ?',
@@ -622,10 +698,11 @@ export default {
   'It’s one workspace.': 'C’est le même espace.',
   'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
     'Rejoignez des salons Agent Discourse, lisez le fil et publiez. Un brouillon est retenu si le salon a avancé pendant que l’agent réfléchissait.',
-  'Keep secrets, files and conversations encrypted on your own computer. The desktop app, the dmsg command line and your AI agents all work through it, and nothing is signed, paid or shared until you approve.':
-    'Gardez secrets, fichiers et conversations chiffrés sur votre propre ordinateur. L’application de bureau, la ligne de commande dmsg et vos agents IA passent tous par lui, et rien n’est signé, payé ni partagé sans votre accord.',
+  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.':
+    'Gardez secrets, fichiers et conversations chiffrés sur votre propre ordinateur, et des fonds d’équipe qui ne bougent qu’avec assez d’approbations. L’application de bureau, la ligne de commande dmsg et vos agents IA passent tous par lui ; rien n’est signé, payé ni partagé sans votre accord.',
   'Keep the keys.': 'Gardez les clés.',
   'Key': 'Clé',
+  'Keys no one can export.': 'Des clés que personne n’exporte.',
   'Keys stay here': 'Les clés restent ici',
   'Legacy messages stay readable': 'Les anciens messages restent lisibles',
   'Let agents work.': 'Laissez les agents travailler.',
@@ -633,19 +710,29 @@ export default {
   'Locked': 'Verrouillé',
   'Locked means locked.': 'Verrouillé, c’est verrouillé.',
   'Login': 'Identifiant',
-  'MCP tools, from rooms and mail to your vault':
-    'outils MCP, des salons au courrier et à votre coffre',
+  'MCP tools, from rooms and mail to files and wallets':
+    'outils MCP, des salons au courrier, aux fichiers et aux portefeuilles',
+  'Move {name} to the trash': 'Mettre {name} à la corbeille',
+  'Needs 1 of 2 approvals.': 'Il faut 1 approbation sur 2.',
+  'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.':
+    'Il faut 2 approbations sur 2, puis 24 heures pendant lesquelles chacun peut opposer un veto.',
   'Needs your approval': 'Nécessite votre accord',
   'Never grantable': 'Jamais accordable',
   'Never your messages or files': 'Jamais vos messages ni vos fichiers',
+  'New address-book entries': 'Nouvelles entrées du carnet',
   'Next step': 'Étape suivante',
   'No extension.': 'Sans extension.',
+  'No person. Each wallet is a canister of its own, and its keys are threshold keys of ICP’s signing subnet, derived for that canister. It signs only what an approved proposal says. Upgrades wait for the wallet’s own admins to accept them, and a wallet can lock its code for good.':
+    'Personne. Chaque portefeuille est un canister à part, et ses clés sont des clés à seuil du sous-réseau de signature d’ICP, dérivées pour ce canister. Il ne signe que ce que dit une proposition approuvée. Les mises à jour attendent l’accord des administrateurs du portefeuille, et un portefeuille peut verrouiller son code définitivement.',
+  'No seed phrase.': 'Pas de phrase secrète.',
+  'No single signer.': 'Pas de signataire unique.',
   'No. Logging in proves who you are, unlocking opens the keys on one device, and approving signs one specific request. A website or an agent can only ask.':
     'Non. Se connecter prouve qui vous êtes, déverrouiller ouvre les clés sur un appareil, et approuver signe une demande précise. Un site ou un agent ne peut que demander.',
+  'No. Private content is encrypted on your devices. Vault items and messages travel through the cloud as ciphertext, and files go there only when you back them up. ICP holds identity, control, formal signatures, payments and team wallets. Service metadata, cloud availability, client updates and governance remain trust boundaries.':
+    'Non. Le contenu privé est chiffré sur vos appareils. Les éléments du coffre et les messages transitent chiffrés par le cloud, et les fichiers n’y vont que si vous les sauvegardez. ICP conserve l’identité, le contrôle, les signatures formelles, les paiements et les portefeuilles d’équipe. Métadonnées, disponibilité cloud, mises à jour et gouvernance restent des limites de confiance.',
+  'Not audited yet.': 'Pas encore audité.',
   'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
     'Pas encore. Le cœur est écrit pour qu’une application mobile puisse le réutiliser plus tard. Pour l’instant, l’espace complet, c’est l’application de bureau et la ligne de commande ; ce site reste volontairement léger.',
-  'Not yet. The desktop app and the command line are in development and have no public release. Everything on this page runs in your browser with sample data.':
-    'Pas encore. L’application de bureau et la ligne de commande sont en développement, sans version publique. Tout sur cette page tourne dans votre navigateur avec des données d’exemple.',
   'Note': 'Note',
   'Nothing is waiting. Tap a source to send a request.':
     'Rien n’attend. Touchez une source pour envoyer une demande.',
@@ -655,34 +742,55 @@ export default {
   'Nothing to review yet. The request appears here when it reaches this device.':
     'Rien à examiner pour l’instant. La demande apparaît ici quand elle atteint cet appareil.',
   'On ICP': 'Sur ICP',
+  'On another device': 'Sur un autre appareil',
+  'On your desktop today.': 'Sur votre ordinateur, dès aujourd’hui.',
   'On your device': 'Sur votre appareil',
+  'One library, two places. Back up, delete, and see what each side keeps.':
+    'Une bibliothèque, deux endroits. Sauvegardez, supprimez, et voyez ce que garde chaque côté.',
   'One message, three places, three different views.':
     'Un message, trois endroits, trois vues différentes.',
   'One small program, dmsg, runs quietly on your computer. It holds the keys, encrypts, syncs and keeps the approval queue. The desktop app and the command line are two ways into it, so whatever you do in one shows up in the other.':
     'Un petit programme, dmsg, tourne discrètement sur votre ordinateur. Il détient les clés, chiffre, synchronise et tient la file des approbations. L’application de bureau et la ligne de commande sont deux portes d’entrée : ce que vous faites dans l’une apparaît dans l’autre.',
+  'Only on this device': 'Seulement sur cet appareil',
   'Only what you grant. Each agent has its own identity and credential; without a grant it can read public profiles and nothing else. No agent can approve a request, pay, change your account or devices, or reach the keys of agents and controllers.':
     'Seulement ce que vous accordez. Chaque agent a sa propre identité et ses identifiants ; sans autorisation, il ne lit que les profils publics. Aucun agent ne peut approuver une demande, payer, modifier votre compte ou vos appareils, ni atteindre les clés des agents et contrôleurs.',
+  'Only when you back them up. The file library stays on your computer; a backup sends the files or folder you chose, as ciphertext under random IDs. Deleting a backup leaves your file alone, and deleting a file leaves its backup alone.':
+    'Seulement quand vous les sauvegardez. La bibliothèque reste sur votre ordinateur ; une sauvegarde envoie les fichiers ou le dossier choisis, chiffrés sous des identifiants aléatoires. Supprimer une sauvegarde ne touche pas votre fichier, et supprimer un fichier ne touche pas sa sauvegarde.',
   'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
     'Seuls vos appareils habilités peuvent ouvrir une demande, et seule la page qui l’a faite peut ouvrir le résultat. Le relais ne voit que des enveloppes scellées.',
+  'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.':
+    '« Ouvrir » confie une copie temporaire au programme, supprimée après 30 minutes ou au verrouillage. Ou montez la bibliothèque comme un disque : la lecture déchiffre, l’enregistrement crée une nouvelle version.',
+  'Open it, or mount it.': 'Ouvrez-le, ou montez-le.',
   'Opened only by the page that asked':
     'Ouvert seulement par la page qui a demandé',
   'Origin': 'Origine',
+  'Over the cloud’s 100 MiB limit': 'Au-delà de la limite de 100 Mio en ligne',
   'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
     'Associez un second appareil et gardez un identifiant de connexion lié à votre compte. Si tous les appareils sont perdus, il peut demander la récupération ; après un délai d’un à sept jours, pendant lequel chacun de vos appareils peut la contester, le compte passe à de nouvelles clés sur le nouvel appareil.',
   'Pairing browsers': 'Associer des navigateurs',
   'Pairing starts on your device.': 'L’association part de votre appareil.',
   'Pause': 'Pause',
   'Payments and checkout': 'Paiements et achats',
+  'Photos': 'Photos',
   'Play': 'Lancer',
+  'Policy for BTC': 'Politique pour BTC',
   'Post in the release channel': 'Publier dans le canal des versions',
-  'Private workspace · Desktop · Command line · AI agents':
-    'Espace privé · Bureau · Ligne de commande · Agents IA',
+  'Private workspace · Files · Team wallets · AI agents':
+    'Espace privé · Fichiers · Portefeuilles d’équipe · Agents IA',
+  'Progress': 'Progression',
+  'Proposal #{n}': 'Proposition n° {n}',
+  'Proposed': 'Proposée',
+  'Proposed by': 'Proposé par',
+  'Proposer': 'Proposant',
   'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
     'Publiez qui peut agir pour vous, avec des autorisations limitées et temporaires, révocables à tout moment.',
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
     'Publiez, évaluez et retirez des connaissances signées, et interrogez ce que d’autres agents ont partagé.',
   'Read items tagged “deploy”': 'Lire les éléments étiquetés « deploy »',
   'Readable, and only while unlocked': 'Lisible, et seulement déverrouillé',
+  'Ready': 'Prête',
+  'Ready. A member can execute it now.':
+    'Prête. Un membre peut l’exécuter maintenant.',
   'Recovery without a seed phrase.': 'Récupérer sans phrase secrète.',
   'Reject': 'Refuser',
   'Rejected': 'Refusées',
@@ -696,6 +804,8 @@ export default {
   'Requests': 'Demandes',
   'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.':
     'Les demandes de l’application de bureau, du terminal, des agents IA et des sites arrivent au démon dMsg sur votre ordinateur. Le travail courant ne part vers le cloud que chiffré ; une signature n’atteint ICP qu’après votre accord.',
+  'Restore': 'Restaurer',
+  'Restored on this device.': 'Restauré sur cet appareil.',
   'Run again': 'Relancer',
   'Run the agent': 'Lancer l’agent',
   'Running…': 'En cours…',
@@ -703,6 +813,10 @@ export default {
     'Exemple copié. L’application vide le presse-papiers après {seconds} s.',
   'Sample data · nothing leaves this page':
     'Données d’exemple · rien ne quitte cette page',
+  'Sample files · nothing leaves this page':
+    'Fichiers d’exemple · rien ne quitte cette page',
+  'Saved as a new version in your library. Backing it up or sharing it stays with you.':
+    'Enregistré comme nouvelle version dans votre bibliothèque. Le sauvegarder ou le partager reste votre décision.',
   'Saved on this device · waits for sync':
     'Enregistré sur cet appareil · en attente de synchro',
   'Sealed both ways.': 'Scellé dans les deux sens.',
@@ -713,48 +827,75 @@ export default {
   'Secret': 'Secret',
   'See how it works': 'Voir comment ça marche',
   'See it in the agent demo': 'Le voir dans la démo d’agent',
+  'Send': 'Envoi',
   'Send a request from {source}': 'Envoyer une demande depuis : {source}',
   'Server login': 'Accès serveur',
   'Settings': 'Réglages',
+  'Settled': 'Réglée',
   'Settled payments and names': 'Paiements réglés et noms',
+  'Settled. Every step is in the audit chain.':
+    'Réglée. Chaque étape est dans la chaîne d’audit.',
+  'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.':
+    'Partager dans un canal, ou par lien avec quelqu’un hors de dMsg, scelle une nouvelle copie sous une nouvelle clé. Elle ne partage ni clé ni octets avec votre bibliothèque ou ses sauvegardes.',
   'Ship v1.4 on Friday. The brief is in the release channel.':
     'Sortie de la v1.4 vendredi. Le brief est dans le canal des versions.',
   'Ship v1.4 on Friday. The deploy key is in the vault.':
     'Sortie de la v1.4 vendredi. La clé de déploiement est dans le coffre.',
-  'Ship v1.4: check the deploy key, post the release note, and get the release signed.':
-    'Sors la v1.4 : vérifie la clé de déploiement, publie la note de version et fais signer la version.',
+  'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.':
+    'Sors la v1.4 : vérifie la clé de déploiement, enregistre les notes de version, publie-les et fais signer la version.',
   'Show': 'Afficher',
   'Sign a file': 'Signer un fichier',
   'Sign a statement': 'Signer une déclaration',
   'Sign in with dMsg': 'Se connecter avec dMsg',
+  'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.':
+    'Connectez-vous avec votre identité existante pour lire les anciennes conversations et télécharger les pièces jointes accessibles. Messages, envois, modifications de profil et inscriptions sont désactivés. Conservez le navigateur d’origine et ses données, surtout en mode Local key. Pour passer au nouveau dMsg, lancez une migration dans l’application de bureau, sous Paramètres › Ancienne version.',
   'Signature generated': 'Signature générée',
   'Signature receipts, after you approve':
     'Reçus de signature, après votre accord',
   'Signatures': 'Signatures',
+  'Signed': 'Signée',
   'Signed without you': 'Signé sans vous',
+  'Signing key': 'Clé de signature',
+  'Signing…': 'Signature…',
   'Simulated agent with sample data. Nothing is sent anywhere.':
     'Agent simulé avec des données d’exemple. Rien n’est envoyé.',
   'Simulation · nothing is signed': 'Simulation · rien n’est signé',
+  'Simulation · nothing reaches a chain':
+    'Simulation · rien n’atteint une chaîne',
   'Size': 'Taille',
+  'Skip the 24 hours': 'Passer les 24 heures',
   'Start over': 'Recommencer',
   'Statement': 'Déclaration',
   'Still your call.': 'Vous décidez toujours.',
   'Synced': 'Synchronisé',
+  'Team treasury': 'Trésorerie d’équipe',
+  'Team wallets': 'Portefeuilles d’équipe',
+  'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.':
+    'Les portefeuilles d’équipe sont en développement. Jusqu’à un audit indépendant, utilisez-les seulement pour tester, avec de petits montants.',
+  'Team wallets, their proposals and approvals':
+    'Portefeuilles d’équipe, leurs propositions et approbations',
   'Terminal': 'Terminal',
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'Le client, le démon, les protocoles et les canisters sont dans le dépôt public. Le service cloud de production a sa propre frontière de confiance opérationnelle.',
-  'The desktop app and the command line are in development, with no public release yet. The first release starts with macOS on Apple Silicon.':
-    'L’application de bureau et la ligne de commande sont en développement, sans version publique pour l’instant. La première version commence par macOS sur Apple Silicon.',
+  'The desktop app runs on macOS with Apple Silicon and on Windows x64, and the dmsg command line also runs on Linux. Download the app, or install it with one command.':
+    'L’application de bureau fonctionne sur macOS avec Apple Silicon et sur Windows x64, et la ligne de commande dmsg aussi sur Linux. Téléchargez l’application, ou installez-la en une commande.',
+  'The file library keeps everything on this computer, encrypted as it arrives: contents, names, folders, tags, notes and every version. Nothing goes to the cloud until you back it up, and deleting on one side never deletes the other.':
+    'La bibliothèque de fichiers garde tout sur cet ordinateur, chiffré dès l’arrivée : contenu, noms, dossiers, étiquettes, notes et chaque version. Rien ne part en ligne tant que vous ne sauvegardez pas, et supprimer d’un côté ne supprime jamais l’autre.',
+  'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
+    'Le relais voit des tailles, des heures et des appareils. Noms, dossiers et types restent scellés.',
   'The site is told no; nothing is signed':
     'Le site reçoit un refus ; rien n’est signé',
   'The site received the result': 'Le site a reçu le résultat',
   'The site verifies the signature': 'Le site vérifie la signature',
-  'These commands work once the first dmsg release is published.':
-    'Ces commandes fonctionneront dès la publication de la première version de dmsg.',
-  'Titles, notes, files and secrets stay encrypted until you unlock this device.':
-    'Titres, notes, fichiers et secrets restent chiffrés jusqu’à ce que vous déverrouilliez cet appareil.',
+  'The wallet builds the transaction from the proposal and signs it with its threshold key.':
+    'Le portefeuille construit la transaction à partir de la proposition et la signe avec sa clé à seuil.',
+  'Titles, notes and secrets stay encrypted until you unlock this device.':
+    'Titres, notes et secrets restent chiffrés jusqu’à ce que vous déverrouilliez cet appareil.',
   'Toggle a capability, then run the agent.':
     'Activez une capacité, puis lancez l’agent.',
+  'Trash · kept {days} days. Cloud copies are not affected.':
+    'Corbeille · conservée {days} jours. Les copies en ligne ne changent pas.',
+  'Turned down': 'Refusée',
   'Two windows, one daemon. Run a command, then watch the app.':
     'Deux fenêtres, un démon. Lancez une commande, puis regardez l’application.',
   'Type a dmsg command': 'Saisissez une commande dmsg',
@@ -765,8 +906,23 @@ export default {
   'Unlock to review this request.':
     'Déverrouillez pour examiner cette demande.',
   'Unlocked': 'Déverrouillé',
+  'Up to 4 GiB a file. Names, folders, tags, notes and every version are encrypted here.':
+    'Jusqu’à 4 Gio par fichier. Noms, dossiers, étiquettes, notes et chaque version sont chiffrés ici.',
+  'Up to {amount} in 24 hours': 'Jusqu’à {amount} sur 24 heures',
+  'Uploaded without you': 'Envoyé sans vous',
+  'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.':
+    'Vous utilisiez l’ancien dMsg ? Lancez une migration dans l’application de bureau, sous Paramètres › Ancienne version, et gardez les données de votre ancien navigateur jusqu’à la fin.',
   'Vault': 'Coffre',
   'Vault locked': 'Coffre verrouillé',
+  'Versions side by side.': 'Les versions côte à côte.',
+  'Veto': 'Opposer un veto',
+  'Vetoed': 'Bloquée par veto',
+  'Vetoed. Nothing was signed.': 'Veto. Rien n’a été signé.',
+  'Videos': 'Vidéos',
+  'Wait 24 hours': 'Attendent 24 heures',
+  'Waiting for approvals. The agent cannot give one.':
+    'En attente d’approbations. L’agent ne peut pas en donner.',
+  'Wallets': 'Portefeuilles',
   'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
     'Les webhooks atteignent les agents sur votre portable : le relais dMsg les reçoit et les scelle pour votre appareil.',
   'Website': 'Site web',
@@ -775,14 +931,31 @@ export default {
     'Des sites comme TokenList passent par connect.dmsg.net, une petite page qui scelle chaque demande pour vos appareils. Vous l’examinez dans la fenêtre d’approbation de dMsg, et le site ne reçoit que le résultat demandé.',
   'What can an AI agent do with my account?':
     'Que peut faire un agent IA avec mon compte ?',
+  'What does a team wallet cost?': 'Combien coûte un portefeuille d’équipe ?',
   'What if I lose my computer?': 'Et si je perds mon ordinateur ?',
+  'What you approve is what it signs.':
+    'Ce que vous approuvez est ce qu’il signe.',
+  'Who holds a team wallet’s keys?':
+    'Qui détient les clés d’un portefeuille d’équipe ?',
+  'Windows installer': 'Installateur Windows',
+  'Write into the “release” folder': 'Écrire dans le dossier « release »',
+  'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
+    'Oui. dMsg fonctionne sur macOS avec Apple Silicon et sur Windows x64, et sa ligne de commande aussi sur Linux. Les figures de cette page restent des simulations avec des données d’exemple.',
   'You': 'Vous',
+  'You approve the proposal the wallet keeps, not a page’s picture of it. The wallet builds the transaction from it, and your device decodes it again before broadcasting.':
+    'Vous approuvez la proposition que garde le portefeuille, pas l’image qu’en donne une page. Le portefeuille en construit la transaction, et votre appareil la décode à nouveau avant de la diffuser.',
   'You pair a browser from your desktop first. A site then opens connect.dmsg.net in a small popup; that page seals the request to your devices through the dMsg relay, you decide in the approval window, and the sealed result goes back to the page that asked.':
     'Vous associez d’abord un navigateur depuis votre ordinateur. Un site ouvre ensuite connect.dmsg.net dans une petite fenêtre ; cette page scelle la demande pour vos appareils via le relais dMsg, vous décidez dans la fenêtre d’approbation, et le résultat scellé revient à la page qui l’a demandé.',
   'You review it and decide': 'Vous examinez et décidez',
   'Your desktop': 'Votre ordinateur',
   'Your desktop opens the pairing page with a one-time secret, so a phishing page cannot pair itself with your account.':
     'Votre ordinateur ouvre la page d’association avec un secret à usage unique : une page d’hameçonnage ne peut pas s’associer à votre compte.',
+  'Your device decodes the transaction, checks it against the proposal and broadcasts it.':
+    'Votre appareil décode la transaction, la compare à la proposition et la diffuse.',
+  'Your device signs your decision.': 'Votre appareil signe votre décision.',
+  'Your files stay home.': 'Vos fichiers restent chez vous.',
+  'Your no is recorded. Mei can still approve it.':
+    'Votre refus est enregistré. Mei peut encore l’approuver.',
   'Your turn: approve or reject in the approval window.':
     'À vous : approuvez ou refusez dans la fenêtre d’approbation.',
   'account': 'compte',
@@ -792,6 +965,8 @@ export default {
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net transmet l’origine que votre navigateur lui a donnée. Elle ne peut ni approuver, ni signer, ni lire votre coffre, et la fenêtre d’approbation indique d’où vient l’origine.',
   'dMsg cloud': 'Cloud dMsg',
+  'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
+    'dMsg n’a pas encore été audité de façon indépendante. Un dépôt public ne prouve ni un audit ni le code réellement déployé.',
   'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
     'dMsg est un client Agent Protocols complet. Connectez Claude Code ou n’importe quel client MCP en une commande, donnez à chaque agent sa propre identité et accordez exactement ce qu’il peut toucher. Un agent peut demander une signature ; vous seul pouvez la donner.',
   'dMsg relay': 'Relais dMsg',
@@ -801,9 +976,15 @@ export default {
   'size': 'taille',
   'time': 'heure',
   'ways for an agent to approve': 'moyens pour un agent d’approuver',
-  'x64 · follows macOS': 'x64 · après macOS',
+  'x64 · desktop app and command line, less tested':
+    'x64 · application de bureau et ligne de commande, moins testées',
   '{bytes} bytes': '{bytes} octets',
+  '{count} files · {size}': '{count} fichiers · {size}',
   '{count} items': '{count} éléments',
+  '{count} versions': '{count} versions',
+  '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.':
+    '{size}, chiffré tel quel. Rien n’est envoyé sans cette étape, et rien n’est supprimé d’un côté ni de l’autre.',
+  '{used} of {limit}': '{used} sur {limit}',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
     'Un espace chiffré sur votre ordinateur. L’application de bureau, la ligne de commande dmsg et vos agents IA passent par lui, et rien n’est signé sans votre accord.',
   'Read-only inventory and encrypted migration':

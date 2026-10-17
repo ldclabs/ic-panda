@@ -23,12 +23,14 @@
   const GRANTS = [
     { cap: 'account.read', key: 'Account and sync status' },
     { cap: 'vault.read:deploy', key: 'Read items tagged “deploy”' },
+    { cap: 'files.write:fld_r3l', key: 'Write into the “release” folder' },
     { cap: 'channel.publish:release', key: 'Post in the release channel' },
     { cap: 'attest.request', key: 'Ask you to sign a statement' }
   ]
   const NEVER = [
     'Approving any request',
     'Payments and checkout',
+    'Backing up, sharing or deleting files',
     'Account and device changes',
     'Pairing browsers',
     'Agent and controller keys'
@@ -47,6 +49,14 @@
       result: '{"title":"Deploy key","type":"api","tags":["deploy"]}'
     },
     {
+      tool: 'dmsg_files_write',
+      input:
+        '{"folder":"fld_r3l","name":"notes-v1.4.md","content_base64url":"IyB2MS40…"}',
+      cap: 'files.write:fld_r3l',
+      result:
+        '{"id":"fil_8k2","version":"ver_2","name":"notes-v1.4.md","versions":2}'
+    },
+    {
       tool: 'dmsg_channel_publish',
       input: '{"channel":"release","text":"v1.4 ships Friday."}',
       cap: 'channel.publish:release',
@@ -63,6 +73,7 @@
   let grants = $state<Record<string, boolean>>({
     'account.read': true,
     'vault.read:deploy': false,
+    'files.write:fld_r3l': true,
     'channel.publish:release': true,
     'attest.request': true
   })
@@ -133,6 +144,13 @@
           text: tr('I don’t have {capability}, so I’ll skip that.', {
             capability: call.cap
           })
+        })
+      else if (call.tool === 'dmsg_files_write')
+        steps.push({
+          kind: 'say',
+          text: tr(
+            'Saved as a new version in your library. Backing it up or sharing it stays with you.'
+          )
         })
       else if (call.tool === 'dmsg_vault_read')
         steps.push({
@@ -222,7 +240,7 @@
       <span class="who">{$t('You')}</span>
       <p>
         {$t(
-          'Ship v1.4: check the deploy key, post the release note, and get the release signed.'
+          'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.'
         )}
       </p>
     </div>

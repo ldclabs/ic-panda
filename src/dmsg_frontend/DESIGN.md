@@ -171,8 +171,10 @@ dMsg is a private workspace and identity signing service for Web3. One local
 program, `dmsg`, runs a daemon on the person's computer that holds the keys and
 the approval queue; the desktop app and the command line are two ways into it,
 AI agents reach it through MCP with capabilities the owner grants, and websites
-ask through `connect.dmsg.net`. It helps people keep secrets, exchange encrypted
-content with chosen people, and approve specific signatures. A public identity
+ask through `connect.dmsg.net`. It helps people keep secrets, keep files in a
+local encrypted library that reaches the cloud only when they back it up,
+exchange encrypted content with chosen people, hold team funds in wallets that
+move only by approved proposals, and approve specific signatures. A public identity
 and contact rules provide a doorway into that work without making the workspace
 public. There is no browser extension.
 
@@ -318,21 +320,31 @@ The landing rhythm is:
    signature reaches ICP only after the visitor approves it.
 2. 01 Desktop & command line: Fig. 2 links a desktop window and a terminal
    through one simulated daemon, followed by three practical notes.
-3. 02 AI agents: three verifiable figures, the MCP connect command, Fig. 3 (grant
+3. 02 Files: Fig. 3 puts the library on this device beside what the cloud
+   holds; the visitor backs up, trashes, fetches and deletes cloud copies and
+   sees that only Back up uploads and no deletion crosses sides. Four notes:
+   versions, shares under their own key, open and mount, agents' folders.
+4. 03 Team wallets: Fig. 4, a transfer an agent proposed, decided by members
+   under the wallet's policy, then signed by the wallet and broadcast by a
+   member's device. Four notes and the statement that wallets are not yet
+   audited.
+5. 04 AI agents: three verifiable figures, the MCP connect command, Fig. 5 (grant
    capabilities, run an agent, read the audit record) and the six protocols.
-4. 03 Websites: Fig. 4, the dmsg-connect/1 sequence ending in the approval
+6. 05 Websites: Fig. 6, the dmsg-connect/1 sequence ending in the approval
    window, followed by four trust notes.
-5. 04 Privacy (Ink band): Fig. 5 shows what the device, the cloud and ICP each
+7. 06 Privacy (Ink band): Fig. 7 shows what the device, the cloud and ICP each
    hold for a message the visitor types, then the three boundaries.
-6. 05 Trust evidence: public code, the audit record, recovery, and limitations.
-7. 06 Release status with platforms and install commands marked as future, then
-   07 FAQ, the closing action, and a restrained footer.
+8. 07 Trust evidence: public code, the audit record, recovery, and limitations.
+9. 08 Available now: platforms, download buttons and install commands that
+   follow the latest release, then 09 FAQ, the closing action, and a
+   restrained footer.
 
 Do not compress all capabilities into the first fold. The page should establish
 what dMsg does before asking the reader to interpret its infrastructure.
 
-At approximately 1180px, the agent figure moves its audit record below. At
-1000px, collapse navigation and two-column headers. Below 900px the desktop
+At approximately 1180px, the agent and wallet figures move their audit record
+below. At 1000px, collapse navigation and two-column headers, and stack the
+file figure's device and cloud panes. Below 900px the desktop
 window and terminal stack, and below 720px the gate figure turns to portrait
 with sources on top. At 760px and 440px stack the remaining grids. These
 are content-driven breakpoints, not device detection. Check 320px, 390px,
@@ -464,15 +476,18 @@ visually hidden sentence states what it shows.
 Figures follow the product's real rules and names: the approval sources `gui`,
 `cli`, `agent:` and `connect:`; `dmsg` commands and their outputs; `dmsg mcp`
 tool names, capabilities and `FORBIDDEN` refusals; the dmsg-connect/1 moves;
-second clicks before a secret is shown or copied. Only a person approves: an
-agent or website in a figure can create a request and never decides one.
+second clicks before a secret is shown or copied; the file library's states,
+its ask-first backup, random cloud IDs and deletions that never cross sides;
+a team wallet's policy, proposal states and audit chain. Only a person
+approves: an agent or website in a figure can create a request and never
+decides one, and a wallet's delay ends only when the visitor skips it.
 Approval states keep their distinct words (“Approved”, “Signature generated”,
 “The site received the result”). A homepage can illustrate unlocking or signing
 but must not display a simulated approval as a real proof.
 
 ### Vault and Encrypted Channels
 
-A locked vault hides titles, filenames, tags, and content. Do not merely blur
+A locked vault hides titles, tags, and content. Do not merely blur
 real private text. Revealing or copying a secret is deliberate; copy feedback
 says it reached the system clipboard, not that the clipboard is protected.
 
@@ -481,6 +496,21 @@ content. Distinguish draft, queued, persisted, received, and voluntarily read
 states. Invitation acceptance is not vault permission. Removed membership and
 future key isolation are different stages. Do not imply that a downloaded file
 or disclosed secret can be remotely erased.
+
+### Files and Team Wallets
+
+A file's state says where its copies are: only on this device, backing up,
+backed up, or over the cloud's limit. Backing up asks first and shows the
+room it takes; deleting a cloud copy is a second, danger-toned click that
+says the device keeps its file, as the trash says the cloud keeps its copy.
+Call a backup a backup, never a sync.
+
+A wallet proposal shows the full receiving address with its address-book
+label, the amount, the fee cap, who proposed it (and the agent acting for
+them) and what the policy requires, before any decision. Keep its states
+distinct: proposed, delayed, ready, signed, broadcast and settled; turned
+down and vetoed. A delay shows its time left and who may veto. Amounts and
+sizes keep their left-to-right order inside right-to-left text.
 
 ### Public Profiles and Contact Rules
 
@@ -551,16 +581,18 @@ multi-column footer.
 
 ## Copy & Interaction Integrity
 
-Use task language: **Click it or type it.**, **Let agents work. Keep the
-keys.**, **No extension. Still your call.**, **Everything asks. Only you
-approve.**, and **Trust you can examine.**
+Use task language: **Click it or type it.**, **Your files stay home.
+Backups when you say.**, **No seed phrase. No single signer.**, **Let agents
+work. Keep the keys.**, **No extension. Still your call.**, **Everything asks.
+Only you approve.**, and **Trust you can examine.**
 Pair claims with a concrete explanation, not a general safety badge.
 
 Marketing copy follows the chosen present-tense product voice. That does not
 justify invented technical assurances, test results, or runtime outcomes. A
 simulation must identify sample data and simulated actions. Counts on the page
-come from the code (for example the MCP tools of `dmsg mcp`), and install
-commands are marked as working only after the first release. Production CTAs must
+come from the code (for example the MCP tools of `dmsg mcp`). Release copy
+names no version: download buttons and install commands follow the latest
+release, so a new release needs no page change. Production CTAs must
 resolve to verified destinations and reflect installation state only when it
 can actually be determined.
 
@@ -594,7 +626,8 @@ protocol-heavy presentation from 1Pay.ing.
 > space. Your say.” headline sits beside a short explanation and CTA. Below it a
 > framed diagram: desktop app, terminal, AI agent and website feed a D-shaped
 > local gate; ciphertext leaves for the cloud and a signature for ICP only after
-> approval. Continue into a desktop window beside a terminal, an agent
+> approval. Continue into a desktop window beside a terminal, a file library
+> beside what the cloud holds, a team wallet proposal with its policy, an agent
 > capability panel with an audit record, a website request sequence ending in
 > an approval window, a dark privacy band, trust evidence, release status, FAQ
 > and a closing CTA. Aligned rules and crop marks, not a card grid. No invented

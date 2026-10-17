@@ -77,20 +77,12 @@ export default {
   'Inspect the public code.': '随时审阅开源代码。',
   'Explore the repository': '前往代码仓库探索',
   'Read the recovery details': '了解恢复机制技术细节',
-  'Development is not audit evidence.': '开发进行中不等于已具备审计证明。',
-  'This page describes the target product. A public repository does not establish audit coverage or prove which code is deployed.':
-    '本页面阐述的是产品的设计蓝图。公开开源仓库并不等同于完成了第三方安全审计，亦不能直接证明当前线上所部署的具体代码。',
-  'Release status': '发布进展',
   'A few useful answers': '常见问题解答',
   'Before you': '开启使用',
   'make it yours.': '专属空间之前。',
   'Clear answers about availability, identity, private content, and your existing data.':
     '关于系统可用性、身份模型、私密数据保管与历史数据继承的坦诚解答。',
-  'In development': '积极开发中',
-  'Follow development': '关注核心开发进展',
   'Read your legacy messages': '查看旧版历史消息',
-  'Keep your existing browser data and recovery materials until migration is available.':
-    '在全新数据迁移工具正式发布之前，请务必妥善保留原有的浏览器数据及灾难恢复凭据。',
   'A little less exposure. A little more control.':
     '少一点数据暴露，多一份自我主权。',
   'Make room for': '为真正重要之事',
@@ -102,8 +94,6 @@ export default {
   'Legacy app · Read-only': '旧版应用 · 只读',
   'File': '文件',
   'What can I do with the legacy app?': '旧版应用目前支持哪些操作？',
-  'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.':
-    '你可以使用既有的身份凭据登录，查看过往的历史会话并下载此前已具备权限的文件附件。旧版界面现已全线关闭新消息发送、文件上传、个人资料修改及新账户注册。请务必妥善保留原有的浏览器与本地数据（尤其是曾启用本地密钥模式的用户）。全新的一键迁移方案将在准备就绪后第一时间公布。',
   'Do I need a username or PANDA to start?':
     '刚开始使用时，必须购买用户名或持有 PANDA 代币吗？',
   'The new personal workspace is designed to work without buying a handle or having any contacts. Existing handle holders are intended to retain their names through migration without paying to claim them again. Legacy token balances and benefits are handled separately.':
@@ -112,8 +102,6 @@ export default {
     '登录操作会直接解锁我所有的私密数据吗？',
   'Is everything stored on the blockchain?':
     '所有的聊天内容与文件都会被保存在区块链上吗？',
-  'No. The planned design encrypts private content on authorized devices and stores ciphertext in the cloud. ICP holds core identity, control, formal-signing, and payment state. Service metadata, cloud availability, client updates, and governance remain trust boundaries.':
-    '不会。计划中的设计在已授权设备上加密私密内容，并将密文存入云端。ICP 保存核心身份、控制、正式签名和支付状态。服务元数据、云端可用性、客户端更新和治理仍属于信任边界。',
   'Activate username account': '激活个性用户名账户',
   'Your permanent account generated from':
     '由该个性用户名派生生成的专属永久账户为：',
@@ -486,47 +474,91 @@ export default {
   'Continue with Internet Identity': '使用 Internet Identity 继续',
   'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.':
     'Internet Identity 将授权这台电脑上的 dMsg 应用代表你操作。本页面不保留任何会话。',
+  '1 of 2 approvals': '2 人中 1 人批准',
+  '2 of 2, then 24 hours': '2 人都批准，再等 24 小时',
   'A commitment to your content root': '你的内容根承诺值',
+  'A cosigned address also needs a key on a member’s device, such as a Mac’s Secure Enclave. A dual-control Taproot address makes Bitcoin itself require both keys.':
+    '协签地址还需要成员设备上的一把密钥，例如 Mac 的 Secure Enclave。双控 Taproot 地址则由比特币本身要求两把密钥同时签名。',
   'A hint wakes your desktop, no content': '仅发送提示唤醒桌面端，不含内容',
+  'A release is not an audit.': '发布不等于审计。',
+  'A second key, if you want one.': '需要的话，再加一把钥匙。',
+  'A share is its own copy.': '分享出去的是独立副本。',
   'A signature request from a website, one move at a time.':
     '来自网站的一次签名请求，逐步拆解。',
+  'A team wallet is a canister of its own on ICP. It holds ICP and tokens, and signs for Bitcoin, EVM chains and Solana with threshold keys no person holds. Funds move only when a proposal meets the team’s policy: enough approvals, any delay passed, no veto.':
+    '每个团队钱包都是 ICP 上一个独立的 canister。它持有 ICP 与代币，并用无人持有的门限密钥为比特币、EVM 链和 Solana 签名。只有提案满足团队策略——批准人数足够、延时已过、无人否决——资金才会动。',
+  'A transfer an agent proposed, from approval to settlement.':
+    '一笔由智能体提出的转账，从批准到结算。',
   'A vault for what you don’t publish.': '保管不公开的一切。',
   'AI agent': 'AI 智能体',
   'AI agents': 'AI 智能体',
   'API key': 'API 密钥',
-  'API keys, logins, notes and files up to 100 MiB, encrypted on your device before they sync.':
-    'API 密钥、登录凭据、笔记与最大 100 MiB 的文件，都在你的设备上加密后才会同步。',
+  'API keys, logins, signing keys and notes, encrypted on your device before they sync.':
+    'API 密钥、登录凭据、签名密钥与笔记，都在你的设备上加密后才会同步。',
   'Account and device changes': '账户与设备变更',
   'Account and sync status': '账户与同步状态',
   'Account, devices and logins': '账户、设备与登录身份',
   'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
     '添加第二台设备，并绑定一个你信任的登录身份。即使所有设备都丢失，该登录身份也能在等待期结束后恢复账户；等待期内，你的任何设备都可以提出异议。',
+  'Address book: {label} · past its 24-hour wait':
+    '地址簿：{label} · 已过 24 小时等待期',
+  'Addresses': '地址',
+  'Admin': '管理员',
   'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
     '闲置 15 分钟后，设备自动锁定并清除内存中的密钥。锁定的设备仍能提醒你有请求待处理，但绝不透露来自谁。',
   'Agent': '智能体',
+  'Agent ID listed by {member}': '由 {member} 登记的 Agent ID',
   'Agent and controller keys': '智能体与控制者密钥',
   'Agents': '智能体',
+  'Agents get a folder.': '智能体只拿到一个文件夹。',
+  'Agents propose, people decide.': '智能体提议，人来决定。',
+  'All downloads and checksums': '全部下载与校验和',
+  'An agent acting for {member}': '代表 {member} 行事的智能体',
+  'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
+    '经你授权的智能体可以起草转账，也可以执行已批准的转账，但没有任何能力能让它批准。',
   'An audit record on your device lists who did what and through which way in: you or an agent, from the desktop, the terminal or MCP. It names actions and outcomes, never content.':
     '设备上的审计记录会列出谁经由哪个入口做了什么：是你还是智能体，来自桌面端、终端还是 MCP。它只记录操作与结果，从不记录内容。',
   'An honest trust point.': '坦诚标明信任点。',
   'Any modern browser.': '支持任意现代浏览器。',
   'App': '应用',
-  'Apple Silicon · the first release': 'Apple 芯片 · 首个发布版本',
+  'Apple Silicon · desktop app and command line':
+    'Apple 芯片 · 桌面应用与命令行',
   'Approval': '审批',
   'Approve': '批准',
   'Approve a new device': '批准新设备',
+  'Approve as Mei': '以 Mei 的身份批准',
   'Approved': '已批准',
   'Approved by you': '经你批准',
+  'Approved. Either approver can still veto it until the delay ends.':
+    '已批准。延时结束前，任一批准人仍可否决。',
   'Approved. Signature generated.': '已批准，签名已生成。',
   'Approved. The signature goes to ICP.': '已批准，签名送往 ICP。',
+  'Approver': '批准人',
   'Approving any request': '批准任何请求',
   'Ask you to sign a statement': '请求你签署声明',
   'Asks you to sign a file': '请求你签署文件',
+  'Audit chain': '审计链',
   'Audit record': '审计记录',
+  'Auditor': '审计方',
+  'Available now': '现已发布',
   'Back to the start': '回到开头',
+  'Back up': '备份',
+  'Back up a file, delete one side, then look at the other.':
+    '备份一个文件，删掉其中一边，再看看另一边。',
+  'Back up to the cloud?': '备份到云端？',
+  'Backed up': '已备份',
+  'Backed up. The relay got ciphertext under a random ID, no name.':
+    '已备份。中继收到的是随机 ID 下的密文，没有名称。',
+  'Backing up, sharing or deleting files': '备份、分享或删除文件',
+  'Backing up…': '备份中…',
+  'Backups when you say.': '备份，听你的。',
+  'Backups you started': '你发起的备份',
   'Bridge page': '桥接页',
+  'Broadcast': '已广播',
+  'Broadcast. Waiting for the network.': '已广播，等待网络确认。',
   'Browser': '浏览器',
   'Can I install dMsg now?': '现在可以安装 dMsg 吗？',
+  'Cancel': '取消',
   'Channels': '频道',
   'Channels and an inbox on your terms.': '频道与收件箱，规则由你定。',
   'Chrome on this Mac': '此 Mac 上的 Chrome',
@@ -534,26 +566,50 @@ export default {
   'Ciphertext only': '仅密文',
   'Ciphertext, plus what it takes to deliver it': '密文，以及投递所需的元数据',
   'Click again to copy': '再次点击以复制',
+  'Click again to delete for good': '再次点击以永久删除',
   'Click again to show': '再次点击以显示',
   'Click it or type it.': '点一下，或敲一行。',
-  'Coming to your desktop.': '即将登陆你的桌面。',
+  'Cloud copy deleted, and its room is freed.':
+    '云端副本已删除，占用的空间已释放。',
+  'Cloud copy deleted. The file on this device is unchanged.':
+    '云端副本已删除。本机上的文件不受影响。',
+  'Cloud room: {used} used of {limit}': '云端空间：已用 {used}，共 {limit}',
   'Command line · x86_64 and arm64': '命令行 · x86_64 与 arm64',
   'Connect Claude Code': '连接 Claude Code',
   'Content is encrypted on your devices. The cloud carries ciphertext, and ICP keeps the few facts that must be verifiable. Type below and see what each side gets.':
     '内容在你的设备上加密。云端只传递密文，ICP 只保存少数必须可验证的事实。在下方输入文字，看看每一方各自拿到了什么。',
+  'Contracts': '合同',
   'Copy': '复制',
   'Copy command': '复制命令',
+  'Creating one takes a paid plan and a one-time ICP activation, part of which becomes the wallet’s cycles. The wallet then pays its own signing costs. Receiving, approving, executing and withdrawing never depend on your plan.':
+    '创建钱包需要付费套餐，并一次性支付 ICP 激活费，其中一部分会转为钱包的 cycles。之后钱包自己支付签名成本。收款、批准、执行和提取都不取决于你的套餐。',
+  'Declined': '已拒绝',
+  'Delayed': '延时中',
+  'Delete the cloud copy': '删除云端副本',
+  'Deletions that crossed over': '跨到另一边的删除',
   'Deploy key': '部署密钥',
   'Desktop': '桌面',
   'Desktop & CLI': '桌面与命令行',
   'Desktop & command line': '桌面端与命令行',
   'Desktop app': '桌面应用',
+  'Desktop app for macOS and Windows · command line on Linux too.':
+    '桌面应用支持 macOS 与 Windows · 命令行还支持 Linux。',
+  'Documents': '文档',
+  'Does dMsg upload my files?': 'dMsg 会上传我的文件吗？',
   'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
     '我已完成被允许的部分。没有 attest.request，我连请你签名都做不到。',
   'Done. The release statement is waiting in your approval window. I can’t approve it myself.':
     '完成了。发布声明正在你的审批窗口中等待，我无法替你批准。',
+  'Download for Mac': '下载 Mac 版',
   'Each agent gets its own did:agent identity. Its key lives in your vault, and stays resident only if you allow it.':
     '每个智能体都有自己的 did:agent 身份。它的密钥保存在你的保险库中，只有经你允许才会常驻。',
+  'Each checked against the wallet’s keys': '每个地址都已对照钱包密钥核验',
+  'Each command installs the latest release and checks its SHA-256.':
+    '每条命令都会安装最新版本，并校验其 SHA-256。',
+  'Each event hashes the one before it, so a member can check that none is missing.':
+    '每条事件都包含前一条的哈希，成员可以核对有没有缺失。',
+  'Empty. Nothing arrives here until you back it up.':
+    '空的。你不备份，这里就什么也没有。',
   'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
     '带角色与附件的加密频道。联系规则决定谁可以给你写信：无人、仅联系人、任何人，或付费发件人。',
   'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
@@ -561,28 +617,42 @@ export default {
   'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
     '智能体之间的端到端加密信件，投递到你发布并可轮换的邮箱。',
   'Every action leaves a record.': '每个操作都有记录。',
+  'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
+    '每次修改都是一个新版本，各有独立的密钥。不同设备产生的版本并排保留，由你选择当前版本。',
   'Everyday work, encrypted': '日常操作，加密传输',
   'Everything asks. Only you approve.': '一切都要请示，唯有你能批准。',
+  'Execute': '执行',
   'Expired': '已过期',
   'Expired. Nothing was signed.': '已过期，未签署任何内容。',
   'Expires in': '剩余有效期',
+  'Fetch into the library': '取回到文件库',
+  'Fetched and checked. Only on your devices does it have a name: {name}.':
+    '已取回并校验。只有在你的设备上，它才有名字：{name}。',
   'Fig. {n}': '图 {n}',
-  'Follow on GitHub': '在 GitHub 上关注',
+  'Files': '文件',
   'Found it. The secret itself stays out: that would need vault.secret for this item.':
     '找到了。机密字段本身不会返回：那需要针对此条目的 vault.secret。',
   'From an interactive terminal': '来自交互式终端',
+  'Get dMsg': '获取 dMsg',
   'Grant a capability, run the agent, read the record.':
     '授予一项能力，运行智能体，查看审计记录。',
+  'Grant an agent one folder to read or write. No tool can back up, share or delete a file.':
+    '授权智能体读取或写入某一个文件夹。没有任何工具能备份、分享或删除文件。',
   'Granted capabilities': '已授予的能力',
   'Hide': '隐藏',
   'Hides again in {seconds} s.': '{seconds} 秒后再次隐藏。',
+  'Highest network fee': '最高网络手续费',
   'How do websites connect without an extension?':
     '没有浏览器扩展，网站如何连接？',
   'I don’t have {capability}, so I’ll skip that.':
     '我没有 {capability}，所以跳过这一步。',
+  'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.':
+    'ICP 的签名子网以分片形式持有每把密钥，且只为这个钱包派生。没有可以显示、输入、被盗或丢失的助记词。',
   'Identity and signatures': '身份与签名',
-  'In development · macOS first.': '开发中 · 首发 macOS。',
   'In the dMsg cloud': '在 dMsg 云端',
+  'In the trash here, kept {days} days.': '已移到本机回收站，保留 {days} 天。',
+  'In the trash here. Its cloud copy stays as it was.':
+    '已移到本机回收站。它的云端副本保持不变。',
   'Inbox': '收件箱',
   'Install method': '安装方式',
   'Is there a phone app?': '有手机应用吗？',
@@ -591,10 +661,11 @@ export default {
   'It’s one workspace.': '都是同一个工作空间。',
   'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
     '加入 Agent Discourse 房间，阅读时间线并发言。若智能体思考期间房间已有新动态，草稿会先暂存。',
-  'Keep secrets, files and conversations encrypted on your own computer. The desktop app, the dmsg command line and your AI agents all work through it, and nothing is signed, paid or shared until you approve.':
-    '把机密、文件和对话加密保存在你自己的电脑上。桌面应用、dmsg 命令行和你的 AI 智能体都经由它工作；未经你批准，任何内容都不会被签署、支付或共享。',
+  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.':
+    '把机密、文件和对话加密保存在你自己的电脑上，团队资金也只在获得足够批准后才会动用。桌面应用、dmsg 命令行和你的 AI 智能体都经由它工作；未经你批准，任何内容都不会被签署、支付或共享。',
   'Keep the keys.': '密钥留给你。',
   'Key': '密钥',
+  'Keys no one can export.': '谁也导不出的密钥。',
   'Keys stay here': '密钥留在这里',
   'Legacy messages stay readable': '旧版消息仍可阅读',
   'Let agents work.': '让智能体去干活。',
@@ -602,19 +673,29 @@ export default {
   'Locked': '已锁定',
   'Locked means locked.': '锁定，就是真的锁定。',
   'Login': '登录凭据',
-  'MCP tools, from rooms and mail to your vault':
-    '个 MCP 工具，从房间、邮件到你的保险库',
+  'MCP tools, from rooms and mail to files and wallets':
+    '个 MCP 工具，从房间、邮件到文件与钱包',
+  'Move {name} to the trash': '将 {name} 移到回收站',
+  'Needs 1 of 2 approvals.': '需要 2 位批准人中的 1 位批准。',
+  'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.':
+    '需要 2 位批准人都批准，之后 24 小时内任一批准人都可否决。',
   'Needs your approval': '需要你批准',
   'Never grantable': '永不可授予',
   'Never your messages or files': '绝不包含你的消息或文件',
+  'New address-book entries': '新加入地址簿的地址',
   'Next step': '下一步',
   'No extension.': '无需扩展。',
+  'No person. Each wallet is a canister of its own, and its keys are threshold keys of ICP’s signing subnet, derived for that canister. It signs only what an approved proposal says. Upgrades wait for the wallet’s own admins to accept them, and a wallet can lock its code for good.':
+    '没有任何人。每个钱包都是独立的 canister，它的密钥是 ICP 签名子网为该 canister 派生的门限密钥。它只签署已批准提案中写明的内容。升级必须由钱包自己的管理员接受，钱包也可以永久锁定代码。',
+  'No seed phrase.': '没有助记词。',
+  'No single signer.': '也没有单一签名人。',
   'No. Logging in proves who you are, unlocking opens the keys on one device, and approving signs one specific request. A website or an agent can only ask.':
     '不会。登录证明你是谁，解锁在一台设备上打开密钥，批准只签署一个具体请求。网站或智能体只能发起请求。',
+  'No. Private content is encrypted on your devices. Vault items and messages travel through the cloud as ciphertext, and files go there only when you back them up. ICP holds identity, control, formal signatures, payments and team wallets. Service metadata, cloud availability, client updates and governance remain trust boundaries.':
+    '不是。私密内容在你的设备上加密。保险库条目和消息以密文形式经过云端，文件只有在你备份时才会上云。ICP 保存身份、控制、正式签名、支付和团队钱包。服务元数据、云端可用性、客户端更新和治理仍属于信任边界。',
+  'Not audited yet.': '尚未经过审计。',
   'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
     '暂时没有。核心代码在设计上便于日后由手机应用复用。目前完整的工作空间是桌面应用和命令行；本网站有意保持轻量。',
-  'Not yet. The desktop app and the command line are in development and have no public release. Everything on this page runs in your browser with sample data.':
-    '暂时不行。桌面应用与命令行仍在开发中，尚无公开发布版本。本页的一切都在你的浏览器中用示例数据运行。',
   'Note': '笔记',
   'Nothing is waiting. Tap a source to send a request.':
     '暂无待批请求。点按任一来源即可发出请求。',
@@ -624,33 +705,53 @@ export default {
   'Nothing to review yet. The request appears here when it reaches this device.':
     '暂无待审内容。请求到达这台设备后会显示在这里。',
   'On ICP': '在 ICP 上',
+  'On another device': '在另一台设备上',
+  'On your desktop today.': '今天就装到你的电脑上。',
   'On your device': '在你的设备上',
+  'One library, two places. Back up, delete, and see what each side keeps.':
+    '一个文件库，两个地方。备份、删除，看看每一边各留下了什么。',
   'One message, three places, three different views.':
     '同一条消息，三个位置，三种视角。',
   'One small program, dmsg, runs quietly on your computer. It holds the keys, encrypts, syncs and keeps the approval queue. The desktop app and the command line are two ways into it, so whatever you do in one shows up in the other.':
     '一个名为 dmsg 的小程序在你的电脑上安静运行。它持有密钥，负责加密、同步，并管理审批队列。桌面应用和命令行是进入它的两扇门，在一边做的事，另一边立刻可见。',
+  'Only on this device': '仅在本机',
   'Only what you grant. Each agent has its own identity and credential; without a grant it can read public profiles and nothing else. No agent can approve a request, pay, change your account or devices, or reach the keys of agents and controllers.':
     '只能做你授权的事。每个智能体都有自己的身份与凭证；未经授权，它只能读取公开资料。任何智能体都不能批准请求、付款、更改你的账户或设备，也无法触及智能体与控制者的密钥。',
+  'Only when you back them up. The file library stays on your computer; a backup sends the files or folder you chose, as ciphertext under random IDs. Deleting a backup leaves your file alone, and deleting a file leaves its backup alone.':
+    '只有在你备份时才会。文件库留在你的电脑上；备份只会以随机 ID 下的密文发送你选中的文件或文件夹。删除备份不影响你的文件，删除文件也不影响它的备份。',
   'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
     '只有你具备批准权的设备能打开请求，也只有发起请求的页面能打开结果。中继只看到密封的信封。',
+  'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.':
+    '“打开”会把一份临时副本交给对应程序，30 分钟后或锁定时自动删除。也可以把文件库挂载为磁盘：读取即解密，保存即生成新版本。',
+  'Open it, or mount it.': '打开它，或挂载它。',
   'Opened only by the page that asked': '只有发起请求的页面能打开',
   'Origin': '来源',
+  'Over the cloud’s 100 MiB limit': '超过云端 100 MiB 上限',
   'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
     '配对第二台设备，并为账户绑定一个登录身份。即使所有设备都丢失，该登录身份也可以申请恢复；经过一到七天的等待期（期间你的任何设备都可以提出异议）后，账户会迁移到新设备上的全新密钥。',
   'Pairing browsers': '配对浏览器',
   'Pairing starts on your device.': '配对由你的设备发起。',
   'Pause': '暂停',
   'Payments and checkout': '付款与结账',
+  'Photos': '照片',
   'Play': '播放',
+  'Policy for BTC': 'BTC 策略',
   'Post in the release channel': '在发布频道发言',
-  'Private workspace · Desktop · Command line · AI agents':
-    '私密工作空间 · 桌面端 · 命令行 · AI 智能体',
+  'Private workspace · Files · Team wallets · AI agents':
+    '私密工作空间 · 文件 · 团队钱包 · AI 智能体',
+  'Progress': '进度',
+  'Proposal #{n}': '提案 #{n}',
+  'Proposed': '已提案',
+  'Proposed by': '提案人',
+  'Proposer': '提案人',
   'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
     '公开声明谁可以代表你行事，凭证有范围、会过期，且随时可撤销。',
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
     '发布、评估与撤回带签名的知识，并查询其他智能体分享的内容。',
   'Read items tagged “deploy”': '读取标签为“deploy”的条目',
   'Readable, and only while unlocked': '可读，但仅在解锁期间',
+  'Ready': '可执行',
+  'Ready. A member can execute it now.': '可执行。成员现在可以执行它。',
   'Recovery without a seed phrase.': '无需助记词也能恢复。',
   'Reject': '拒绝',
   'Rejected': '已拒绝',
@@ -664,12 +765,17 @@ export default {
   'Requests': '请求',
   'Requests from the desktop app, the terminal, AI agents and websites reach the dMsg daemon on your computer. Everyday work leaves only as ciphertext for the cloud; a signature reaches ICP only after you approve it.':
     '来自桌面应用、终端、AI 智能体和网站的请求都会到达你电脑上的 dMsg 守护进程。日常操作只以密文形式发往云端；签名只有在你批准后才会到达 ICP。',
+  'Restore': '恢复',
+  'Restored on this device.': '已在本机恢复。',
   'Run again': '再运行一次',
   'Run the agent': '运行智能体',
   'Running…': '运行中…',
   'Sample copied. The app clears the clipboard after {seconds} s.':
     '示例已复制。应用会在 {seconds} 秒后清空剪贴板。',
   'Sample data · nothing leaves this page': '示例数据 · 不会离开本页面',
+  'Sample files · nothing leaves this page': '示例文件 · 不会离开本页面',
+  'Saved as a new version in your library. Backing it up or sharing it stays with you.':
+    '已作为新版本存入你的文件库。要不要备份或分享，由你决定。',
   'Saved on this device · waits for sync': '已保存在本设备 · 等待同步',
   'Sealed both ways.': '往返全程密封。',
   'Sealed refusal': '密封的拒绝结果',
@@ -678,45 +784,70 @@ export default {
   'Secret': '机密',
   'See how it works': '看看它如何运作',
   'See it in the agent demo': '在智能体演示中查看',
+  'Send': '转出',
   'Send a request from {source}': '从“{source}”发送请求',
   'Server login': '服务器登录',
   'Settings': '设置',
+  'Settled': '已确认',
   'Settled payments and names': '已结算的付款与名称',
+  'Settled. Every step is in the audit chain.':
+    '已确认。每一步都记在审计链上。',
+  'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.':
+    '分享到频道，或通过链接分享给 dMsg 之外的人，都会用新密钥密封一份新副本。它与你的文件库及其备份既不共用密钥，也不共用字节。',
   'Ship v1.4 on Friday. The brief is in the release channel.':
     '周五发布 v1.4。说明文档在发布频道里。',
   'Ship v1.4 on Friday. The deploy key is in the vault.':
     '周五发布 v1.4。部署密钥在保险库里。',
-  'Ship v1.4: check the deploy key, post the release note, and get the release signed.':
-    '发布 v1.4：检查部署密钥，发出更新说明，并让这次发布获得签署。',
+  'Ship v1.4: check the deploy key, save the release notes, post them, and get the release signed.':
+    '发布 v1.4：检查部署密钥，保存更新说明并发出去，再让这次发布获得签署。',
   'Show': '显示',
   'Sign a file': '签署文件',
   'Sign a statement': '签署声明',
   'Sign in with dMsg': '使用 dMsg 登录',
+  'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.':
+    '你可以使用既有的身份凭据登录，查看过往的历史会话并下载此前已具备权限的文件附件。旧版界面现已全线关闭新消息发送、文件上传、个人资料修改及新账户注册。请务必妥善保留原有的浏览器与本地数据（尤其是曾启用本地密钥模式的用户）。要迁移到新版 dMsg，请在桌面应用的“设置 › 旧版迁移”中开始。',
   'Signature generated': '签名已生成',
   'Signature receipts, after you approve': '签名回执（经你批准后）',
   'Signatures': '签名',
+  'Signed': '已签名',
   'Signed without you': '未经你签署',
+  'Signing key': '签名密钥',
+  'Signing…': '签名中…',
   'Simulated agent with sample data. Nothing is sent anywhere.':
     '模拟智能体，使用示例数据，不会发送任何内容。',
   'Simulation · nothing is signed': '模拟演示 · 不会签署任何内容',
+  'Simulation · nothing reaches a chain': '模拟演示 · 不会上链',
   'Size': '大小',
+  'Skip the 24 hours': '跳过这 24 小时',
   'Start over': '重新开始',
   'Statement': '声明',
   'Still your call.': '决定权仍在你。',
   'Synced': '已同步',
+  'Team treasury': '团队金库',
+  'Team wallets': '团队钱包',
+  'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.':
+    '团队钱包仍在开发中。在完成独立审计之前，请只用小额资金测试。',
+  'Team wallets, their proposals and approvals': '团队钱包及其提案与批准',
   'Terminal': '终端',
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     '客户端、守护进程、协议和 canister 都在公开仓库中。生产环境的云服务有其独立的运营信任边界。',
-  'The desktop app and the command line are in development, with no public release yet. The first release starts with macOS on Apple Silicon.':
-    '桌面应用与命令行仍在开发中，尚无公开发布。首个版本将从 Apple 芯片的 macOS 开始。',
+  'The desktop app runs on macOS with Apple Silicon and on Windows x64, and the dmsg command line also runs on Linux. Download the app, or install it with one command.':
+    '桌面应用支持 Apple 芯片的 macOS 与 Windows x64，dmsg 命令行还支持 Linux。直接下载应用，或用一条命令安装。',
+  'The file library keeps everything on this computer, encrypted as it arrives: contents, names, folders, tags, notes and every version. Nothing goes to the cloud until you back it up, and deleting on one side never deletes the other.':
+    '文件库把一切都留在这台电脑上，文件一进来就加密：内容、名称、文件夹、标签、备注和每个版本。不备份，就什么都不会上云；删掉一边，另一边也不会跟着删除。',
+  'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
+    '中继只看得到大小、时间和设备；名称、文件夹和类型都是密封的。',
   'The site is told no; nothing is signed': '网站收到拒绝，不会签署任何内容',
   'The site received the result': '网站已收到结果',
   'The site verifies the signature': '网站验证签名',
-  'These commands work once the first dmsg release is published.':
-    '首个 dmsg 版本发布后，这些命令即可使用。',
-  'Titles, notes, files and secrets stay encrypted until you unlock this device.':
-    '在你解锁这台设备之前，标题、笔记、文件与机密始终保持加密。',
+  'The wallet builds the transaction from the proposal and signs it with its threshold key.':
+    '钱包根据提案构造交易，并用它的门限密钥签名。',
+  'Titles, notes and secrets stay encrypted until you unlock this device.':
+    '在你解锁这台设备之前，标题、笔记与机密始终保持加密。',
   'Toggle a capability, then run the agent.': '切换一项能力，然后运行智能体。',
+  'Trash · kept {days} days. Cloud copies are not affected.':
+    '回收站 · 保留 {days} 天。云端副本不受影响。',
+  'Turned down': '未通过',
   'Two windows, one daemon. Run a command, then watch the app.':
     '两个窗口，一个守护进程。运行一条命令，再看看应用。',
   'Type a dmsg command': '输入 dmsg 命令',
@@ -725,8 +856,23 @@ export default {
   'Unlock the example': '解锁示例',
   'Unlock to review this request.': '解锁后才能审阅此请求。',
   'Unlocked': '已解锁',
+  'Up to 4 GiB a file. Names, folders, tags, notes and every version are encrypted here.':
+    '单个文件最大 4 GiB。名称、文件夹、标签、备注和每个版本都在本机加密。',
+  'Up to {amount} in 24 hours': '24 小时内最多 {amount}',
+  'Uploaded without you': '未经你上传',
+  'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.':
+    '用过旧版 dMsg？在桌面应用的“设置 › 旧版迁移”中开始迁移，完成之前请保留旧浏览器的数据。',
   'Vault': '保险库',
   'Vault locked': '保险库已锁定',
+  'Versions side by side.': '版本并排保留。',
+  'Veto': '否决',
+  'Vetoed': '已否决',
+  'Vetoed. Nothing was signed.': '已否决，未签署任何内容。',
+  'Videos': '视频',
+  'Wait 24 hours': '等待 24 小时',
+  'Waiting for approvals. The agent cannot give one.':
+    '等待批准。智能体无权批准。',
+  'Wallets': '钱包',
   'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
     'Webhook 也能送达你笔记本上的智能体：dMsg 中继代为接收，并密封给你的设备。',
   'Website': '网站',
@@ -734,14 +880,29 @@ export default {
   'Websites such as TokenList ask through connect.dmsg.net, a small page that seals each request for your devices. You review it in the dMsg approval window, and the site gets back only the result it asked for.':
     'TokenList 等网站通过 connect.dmsg.net 发起请求，这个小页面会把每个请求密封给你的设备。你在 dMsg 审批窗口中审阅，网站只会拿回它请求的结果。',
   'What can an AI agent do with my account?': 'AI 智能体能对我的账户做什么？',
+  'What does a team wallet cost?': '团队钱包需要多少费用？',
   'What if I lose my computer?': '如果电脑丢了怎么办？',
+  'What you approve is what it signs.': '你批准的，就是它签的。',
+  'Who holds a team wallet’s keys?': '团队钱包的密钥由谁持有？',
+  'Windows installer': 'Windows 安装程序',
+  'Write into the “release” folder': '写入“release”文件夹',
+  'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
+    '可以。dMsg 支持 Apple 芯片的 macOS 和 Windows x64，命令行还支持 Linux。本页的演示图仍是使用示例数据的模拟。',
   'You': '你',
+  'You approve the proposal the wallet keeps, not a page’s picture of it. The wallet builds the transaction from it, and your device decodes it again before broadcasting.':
+    '你批准的是钱包保存的提案本身，而不是某个页面对它的呈现。钱包据此构造交易，你的设备在广播前再解码核对一遍。',
   'You pair a browser from your desktop first. A site then opens connect.dmsg.net in a small popup; that page seals the request to your devices through the dMsg relay, you decide in the approval window, and the sealed result goes back to the page that asked.':
     '先从桌面端配对浏览器。之后网站会在小弹窗中打开 connect.dmsg.net；该页面经 dMsg 中继把请求密封给你的设备，你在审批窗口中做决定，密封的结果再回到发起请求的页面。',
   'You review it and decide': '你审阅并做出决定',
   'Your desktop': '你的桌面端',
   'Your desktop opens the pairing page with a one-time secret, so a phishing page cannot pair itself with your account.':
     '由你的桌面端携带一次性密钥打开配对页面，因此钓鱼页面无法自行与你的账户配对。',
+  'Your device decodes the transaction, checks it against the proposal and broadcasts it.':
+    '你的设备解码交易，对照提案核验后广播。',
+  'Your device signs your decision.': '你的设备为你的决定签名。',
+  'Your files stay home.': '文件留在家里。',
+  'Your no is recorded. Mei can still approve it.':
+    '你的拒绝已记录。Mei 仍可以批准。',
   'Your turn: approve or reject in the approval window.':
     '轮到你了：请在审批窗口中批准或拒绝。',
   'account': '账户',
@@ -750,6 +911,8 @@ export default {
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net 转述的是你的浏览器提供的来源。它无法批准、签名或读取你的保险库，审批窗口也会标明来源由谁转述。',
   'dMsg cloud': 'dMsg 云端',
+  'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
+    'dMsg 尚未经过独立审计。公开仓库既不代表已有审计覆盖，也无法证明实际部署的是哪份代码。',
   'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
     'dMsg 是完整的 Agent Protocols 客户端。一条命令即可连接 Claude Code 或任何 MCP 客户端，为每个智能体分配独立身份，并精确授予它能触及的范围。智能体可以请求签名，但只有你能给出签名。',
   'dMsg relay': 'dMsg 中继',
@@ -759,9 +922,15 @@ export default {
   'size': '大小',
   'time': '时间',
   'ways for an agent to approve': '种让智能体代你批准的途径',
-  'x64 · follows macOS': 'x64 · 紧随 macOS 之后',
+  'x64 · desktop app and command line, less tested':
+    'x64 · 桌面应用与命令行，测试较少',
   '{bytes} bytes': '{bytes} 字节',
+  '{count} files · {size}': '{count} 个文件 · {size}',
   '{count} items': '{count} 个条目',
+  '{count} versions': '{count} 个版本',
+  '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.':
+    '{size}，按原样加密上传。没有这一步，什么都不会上传；两边也都不会删除任何东西。',
+  '{used} of {limit}': '{used} / {limit}',
   'An encrypted workspace on your computer. The desktop app, the dmsg command line and your AI agents work through it, and nothing is signed until you approve.':
     '你电脑上的加密工作空间。桌面应用、dmsg 命令行和你的 AI 智能体都经由它工作，未经你批准，什么都不会被签署。',
   'Read-only inventory and encrypted migration': '只读清点与加密迁移',

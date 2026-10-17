@@ -6,8 +6,10 @@
   import CipherLanes from './CipherLanes.svelte'
   import ConnectFlow from './ConnectFlow.svelte'
   import DeviceDuo from './DeviceDuo.svelte'
+  import FileLibrary from './FileLibrary.svelte'
   import GateFigure from './GateFigure.svelte'
   import Glyph from './Glyph.svelte'
+  import TeamWallet from './TeamWallet.svelte'
   import type { GlyphName } from './glyphs'
   import {
     prefersReducedMotion,
@@ -19,6 +21,11 @@
   import './home.css'
 
   const REPO = 'https://github.com/ldclabs/ic-panda'
+  // The repository's latest release is always a dmsg-v* release, so these
+  // links follow each new version without a change here.
+  const RELEASE = `${REPO}/releases/latest`
+  const MAC_APP = `${REPO}/releases/latest/download/dMsg-mac-arm64.dmg`
+  const WINDOWS_APP = `${REPO}/releases/latest/download/dMsg-win-x64.exe`
   type Method = 'brew' | 'sh' | 'ps'
   const METHODS: Method[] = ['brew', 'sh', 'ps']
   const INSTALL: Record<Method, { label: string; lines: string[] }> = {
@@ -43,8 +50,16 @@
     }
   }
   const PLATFORMS: { glyph: GlyphName; name: string; key: string }[] = [
-    { glyph: 'apple', name: 'macOS', key: 'Apple Silicon · the first release' },
-    { glyph: 'windows', name: 'Windows', key: 'x64 · follows macOS' },
+    {
+      glyph: 'apple',
+      name: 'macOS',
+      key: 'Apple Silicon · desktop app and command line'
+    },
+    {
+      glyph: 'windows',
+      name: 'Windows',
+      key: 'x64 · desktop app and command line, less tested'
+    },
     { glyph: 'terminal', name: 'Linux', key: 'Command line · x86_64 and arm64' }
   ]
   const PROTOCOLS: { glyph: GlyphName; name: string; key: string }[] = [
@@ -91,7 +106,25 @@
     [
       $t('Can I install dMsg now?'),
       $t(
-        'Not yet. The desktop app and the command line are in development and have no public release. Everything on this page runs in your browser with sample data.'
+        'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.'
+      )
+    ],
+    [
+      $t('Does dMsg upload my files?'),
+      $t(
+        'Only when you back them up. The file library stays on your computer; a backup sends the files or folder you chose, as ciphertext under random IDs. Deleting a backup leaves your file alone, and deleting a file leaves its backup alone.'
+      )
+    ],
+    [
+      $t('Who holds a team wallet’s keys?'),
+      $t(
+        'No person. Each wallet is a canister of its own, and its keys are threshold keys of ICP’s signing subnet, derived for that canister. It signs only what an approved proposal says. Upgrades wait for the wallet’s own admins to accept them, and a wallet can lock its code for good.'
+      )
+    ],
+    [
+      $t('What does a team wallet cost?'),
+      $t(
+        'Creating one takes a paid plan and a one-time ICP activation, part of which becomes the wallet’s cycles. The wallet then pays its own signing costs. Receiving, approving, executing and withdrawing never depend on your plan.'
       )
     ],
     [
@@ -121,13 +154,13 @@
     [
       $t('Is everything stored on the blockchain?'),
       $t(
-        'No. The planned design encrypts private content on authorized devices and stores ciphertext in the cloud. ICP holds core identity, control, formal-signing, and payment state. Service metadata, cloud availability, client updates, and governance remain trust boundaries.'
+        'No. Private content is encrypted on your devices. Vault items and messages travel through the cloud as ciphertext, and files go there only when you back them up. ICP holds identity, control, formal signatures, payments and team wallets. Service metadata, cloud availability, client updates and governance remain trust boundaries.'
       )
     ],
     [
       $t('What can I do with the legacy app?'),
       $t(
-        'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. The new migration flow is not available yet.'
+        'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.'
       )
     ],
     [
@@ -206,6 +239,9 @@
         <a href="#desktop" onclick={() => (menuOpen = false)}
           >{$t('Desktop & CLI')}</a
         >
+        <a href="#files" onclick={() => (menuOpen = false)}>{$t('Files')}</a>
+        <a href="#wallets" onclick={() => (menuOpen = false)}>{$t('Wallets')}</a
+        >
         <a href="#agents" onclick={() => (menuOpen = false)}>{$t('Agents')}</a>
         <a href="#connect" onclick={() => (menuOpen = false)}
           >{$t('Websites')}</a
@@ -214,7 +250,7 @@
         >
       </nav>
       <a class="button primary header-action" href="#release"
-        >{$t('Release status')}</a
+        >{$t('Download')}</a
       >
       <button
         bind:this={menuButton}
@@ -234,7 +270,7 @@
       <div class="wrap">
         <p class="kicker hero-kicker">
           <i class="pulse"></i>{$t(
-            'Private workspace · Desktop · Command line · AI agents'
+            'Private workspace · Files · Team wallets · AI agents'
           )}
         </p>
         <div class="hero-grid">
@@ -248,23 +284,21 @@
           <div class="hero-side">
             <p class="hero-lead">
               {$t(
-                'Keep secrets, files and conversations encrypted on your own computer. The desktop app, the dmsg command line and your AI agents all work through it, and nothing is signed, paid or shared until you approve.'
+                'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.'
               )}
             </p>
             <div class="hero-actions">
-              <a class="button primary" href="#desktop"
-                >{$t('See how it works')}<Glyph name="arrow-right" /></a
+              <a class="button primary" href="#release"
+                >{$t('Get dMsg')}<Glyph name="arrow-right" /></a
               >
-              <a
-                class="text-link"
-                href={REPO}
-                target="_blank"
-                rel="noopener noreferrer"
-                ><Glyph name="github" />{$t('Follow on GitHub')}</a
+              <a class="text-link" href="#desktop"
+                >{$t('See how it works')}<Glyph name="arrow-right" /></a
               >
             </div>
             <p class="hero-note">
-              {$t('In development · macOS first.')}
+              {$t(
+                'Desktop app for macOS and Windows · command line on Linux too.'
+              )}
               <a href="/legacy" data-sveltekit-reload
                 >{$t('Legacy messages stay readable')}<Glyph
                   name="arrow-up-right"
@@ -313,7 +347,7 @@
             <h3>{$t('A vault for what you don’t publish.')}</h3>
             <p>
               {$t(
-                'API keys, logins, notes and files up to 100 MiB, encrypted on your device before they sync.'
+                'API keys, logins, signing keys and notes, encrypted on your device before they sync.'
               )}
             </p>
           </article>
@@ -339,11 +373,157 @@
       </div>
     </section>
 
+    <section class="section" id="files" aria-labelledby="files-title">
+      <div class="wrap">
+        <header class="sec-head" use:reveal>
+          <p class="kicker"><b>02</b>{$t('Files')}</p>
+          <h2 id="files-title">
+            {$t('Your files stay home.')}<br /><span class="soft"
+              >{$t('Backups when you say.')}</span
+            >
+          </h2>
+          <p class="sec-lead">
+            {$t(
+              'The file library keeps everything on this computer, encrypted as it arrives: contents, names, folders, tags, notes and every version. Nothing goes to the cloud until you back it up, and deleting on one side never deletes the other.'
+            )}
+          </p>
+        </header>
+        <figure class="fig" use:reveal>
+          <FileLibrary />
+          <figcaption>
+            <span class="fig-no">{$t('Fig. {n}', { n: 3 })}</span>
+            <span
+              >{$t(
+                'One library, two places. Back up, delete, and see what each side keeps.'
+              )}</span
+            >
+            <span class="fig-note"
+              >{$t('Sample files · nothing leaves this page')}</span
+            >
+          </figcaption>
+        </figure>
+        <div class="notes four" use:reveal>
+          <article>
+            <Glyph name="history" size={22} />
+            <h3>{$t('Versions side by side.')}</h3>
+            <p>
+              {$t(
+                'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.'
+              )}
+            </p>
+          </article>
+          <article>
+            <Glyph name="link" size={22} />
+            <h3>{$t('A share is its own copy.')}</h3>
+            <p>
+              {$t(
+                'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.'
+              )}
+            </p>
+          </article>
+          <article>
+            <Glyph name="folder" size={22} />
+            <h3>{$t('Open it, or mount it.')}</h3>
+            <p>
+              {$t(
+                'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.'
+              )}
+            </p>
+          </article>
+          <article>
+            <Glyph name="robot" size={22} />
+            <h3>{$t('Agents get a folder.')}</h3>
+            <p>
+              {$t(
+                'Grant an agent one folder to read or write. No tool can back up, share or delete a file.'
+              )}
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section band" id="wallets" aria-labelledby="wallets-title">
+      <div class="wrap">
+        <header class="sec-head" use:reveal>
+          <p class="kicker"><b>03</b>{$t('Team wallets')}</p>
+          <h2 id="wallets-title">
+            {$t('No seed phrase.')}<br /><span class="soft"
+              >{$t('No single signer.')}</span
+            >
+          </h2>
+          <p class="sec-lead">
+            {$t(
+              'A team wallet is a canister of its own on ICP. It holds ICP and tokens, and signs for Bitcoin, EVM chains and Solana with threshold keys no person holds. Funds move only when a proposal meets the team’s policy: enough approvals, any delay passed, no veto.'
+            )}
+          </p>
+        </header>
+        <figure class="fig" use:reveal>
+          <TeamWallet />
+          <figcaption>
+            <span class="fig-no">{$t('Fig. {n}', { n: 4 })}</span>
+            <span
+              >{$t(
+                'A transfer an agent proposed, from approval to settlement.'
+              )}</span
+            >
+            <span class="fig-note"
+              >{$t('Simulation · nothing reaches a chain')}</span
+            >
+          </figcaption>
+        </figure>
+        <div class="notes four" use:reveal>
+          <article>
+            <Glyph name="key" size={22} />
+            <h3>{$t('Keys no one can export.')}</h3>
+            <p>
+              {$t(
+                'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.'
+              )}
+            </p>
+          </article>
+          <article>
+            <Glyph name="eye" size={22} />
+            <h3>{$t('What you approve is what it signs.')}</h3>
+            <p>
+              {$t(
+                'You approve the proposal the wallet keeps, not a page’s picture of it. The wallet builds the transaction from it, and your device decodes it again before broadcasting.'
+              )}
+            </p>
+          </article>
+          <article>
+            <Glyph name="robot" size={22} />
+            <h3>{$t('Agents propose, people decide.')}</h3>
+            <p>
+              {$t(
+                'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.'
+              )}
+            </p>
+          </article>
+          <article>
+            <Glyph name="fingerprint" size={22} />
+            <h3>{$t('A second key, if you want one.')}</h3>
+            <p>
+              {$t(
+                'A cosigned address also needs a key on a member’s device, such as a Mac’s Secure Enclave. A dual-control Taproot address makes Bitcoin itself require both keys.'
+              )}
+            </p>
+          </article>
+        </div>
+        <p class="caveat" use:reveal>
+          <strong>{$t('Not audited yet.')}</strong>
+          {$t(
+            'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.'
+          )}
+        </p>
+      </div>
+    </section>
+
     <section class="section" id="agents" aria-labelledby="agents-title">
       <div class="wrap">
         <div class="split-head">
           <header class="sec-head" use:reveal>
-            <p class="kicker"><b>02</b>{$t('AI agents')}</p>
+            <p class="kicker"><b>04</b>{$t('AI agents')}</p>
             <h2 id="agents-title">
               {$t('Let agents work.')}<br /><span class="soft"
                 >{$t('Keep the keys.')}</span
@@ -357,12 +537,14 @@
           </header>
           <dl class="numbers" use:reveal>
             <div>
-              <dt>{$t('MCP tools, from rooms and mail to your vault')}</dt>
-              <dd use:countUp={56}>56</dd>
+              <dt
+                >{$t('MCP tools, from rooms and mail to files and wallets')}</dt
+              >
+              <dd use:countUp={65}>65</dd>
             </div>
             <div>
               <dt>{$t('capabilities, each granted on purpose')}</dt>
-              <dd use:countUp={15}>15</dd>
+              <dd use:countUp={26}>26</dd>
             </div>
             <div>
               <dt>{$t('ways for an agent to approve')}</dt>
@@ -373,7 +555,7 @@
         <figure class="fig" use:reveal>
           <AgentPlayground />
           <figcaption>
-            <span class="fig-no">{$t('Fig. {n}', { n: 3 })}</span>
+            <span class="fig-no">{$t('Fig. {n}', { n: 5 })}</span>
             <span
               >{$t('Grant a capability, run the agent, read the record.')}</span
             >
@@ -401,7 +583,7 @@
     <section class="section band" id="connect" aria-labelledby="connect-title">
       <div class="wrap">
         <header class="sec-head" use:reveal>
-          <p class="kicker"><b>03</b>{$t('Websites')}</p>
+          <p class="kicker"><b>05</b>{$t('Websites')}</p>
           <h2 id="connect-title">
             {$t('No extension.')}<br /><span class="soft"
               >{$t('Still your call.')}</span
@@ -416,7 +598,7 @@
         <figure class="fig" use:reveal>
           <ConnectFlow />
           <figcaption>
-            <span class="fig-no">{$t('Fig. {n}', { n: 4 })}</span>
+            <span class="fig-no">{$t('Fig. {n}', { n: 6 })}</span>
             <span
               >{$t(
                 'A signature request from a website, one move at a time.'
@@ -467,7 +649,7 @@
         <div class="split-head">
           <header class="sec-head" use:reveal>
             <p class="kicker"
-              ><b>04</b>{$t('Privacy, with the details included')}</p
+              ><b>06</b>{$t('Privacy, with the details included')}</p
             >
             <h2 id="privacy-title">
               {$t('Private content.')}<br /><span class="soft"
@@ -484,7 +666,7 @@
         <figure class="fig on-dark" use:reveal>
           <CipherLanes />
           <figcaption>
-            <span class="fig-no">{$t('Fig. {n}', { n: 5 })}</span>
+            <span class="fig-no">{$t('Fig. {n}', { n: 7 })}</span>
             <span
               >{$t('One message, three places, three different views.')}</span
             >
@@ -523,7 +705,7 @@
       <div class="wrap">
         <div class="split-head">
           <header class="sec-head" use:reveal>
-            <p class="kicker"><b>05</b>{$t('Evidence over promises')}</p>
+            <p class="kicker"><b>07</b>{$t('Evidence over promises')}</p>
             <h2 id="trust-title">
               {$t('Trust you can')}<br /><span class="soft"
                 >{$t('examine.')}</span
@@ -580,13 +762,13 @@
         </div>
         <div class="trust-foot" use:reveal>
           <p>
-            <strong>{$t('Development is not audit evidence.')}</strong>
+            <strong>{$t('A release is not an audit.')}</strong>
             {$t(
-              'This page describes the target product. A public repository does not establish audit coverage or prove which code is deployed.'
+              'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.'
             )}
           </p>
           <a class="text-link" href="#release"
-            >{$t('Release status')}<Glyph name="arrow-right" /></a
+            >{$t('Download')}<Glyph name="arrow-right" /></a
           >
         </div>
       </div>
@@ -599,11 +781,11 @@
     >
       <div class="wrap release-grid">
         <div class="sec-head" use:reveal>
-          <p class="kicker"><b>06</b>{$t('In development')}</p>
-          <h2 id="release-title">{$t('Coming to your desktop.')}</h2>
+          <p class="kicker"><b>08</b>{$t('Available now')}</p>
+          <h2 id="release-title">{$t('On your desktop today.')}</h2>
           <p class="sec-lead">
             {$t(
-              'The desktop app and the command line are in development, with no public release yet. The first release starts with macOS on Apple Silicon.'
+              'The desktop app runs on macOS with Apple Silicon and on Windows x64, and the dmsg command line also runs on Linux. Download the app, or install it with one command.'
             )}
           </p>
           <ul class="platforms">
@@ -619,12 +801,22 @@
             {/each}
           </ul>
           <div class="release-actions">
+            <a class="button primary" href={MAC_APP}
+              ><Glyph name="download" />{$t('Download for Mac')}</a
+            >
+            <a class="button secondary" href={WINDOWS_APP}
+              ><Glyph name="download" />{$t('Windows installer')}</a
+            >
+          </div>
+          <div class="release-links">
             <a
-              class="button primary"
-              href={REPO}
+              class="text-link"
+              href={RELEASE}
               target="_blank"
               rel="noopener noreferrer"
-              ><Glyph name="github" />{$t('Follow development')}</a
+              >{$t('All downloads and checksums')}<Glyph
+                name="arrow-up-right"
+              /></a
             >
             <a class="text-link" href="/legacy" data-sveltekit-reload
               >{$t('Read your legacy messages')}<Glyph
@@ -634,7 +826,7 @@
           </div>
           <p class="small">
             {$t(
-              'Keep your existing browser data and recovery materials until migration is available.'
+              'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.'
             )}
           </p>
         </div>
@@ -671,8 +863,8 @@
               </div>
             {/each}
             <p class="install-note">
-              <Glyph name="time" size={14} />{$t(
-                'These commands work once the first dmsg release is published.'
+              <Glyph name="check" size={14} />{$t(
+                'Each command installs the latest release and checks its SHA-256.'
               )}
             </p>
           </div>
@@ -683,7 +875,7 @@
     <section class="section" id="faq" aria-labelledby="faq-title">
       <div class="wrap two-col">
         <header class="sec-head" use:reveal>
-          <p class="kicker"><b>07</b>{$t('A few useful answers')}</p>
+          <p class="kicker"><b>09</b>{$t('A few useful answers')}</p>
           <h2 id="faq-title">
             {$t('Before you')}<br /><span class="soft"
               >{$t('make it yours.')}</span

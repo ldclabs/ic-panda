@@ -13,7 +13,7 @@ ICPanda DAO développe dMsg en public. Pour un problème reproductible, ouvrez u
 
 ## Ancienne application
 
-L’ancienne application est en lecture seule. Connectez-vous avec votre identité existante pour lire vos anciennes conversations et télécharger les pièces jointes auxquelles vous avez accès. Conservez le navigateur d’origine et ses données, surtout si vous avez utilisé le mode de clé Local : les clés stockées uniquement dans un navigateur effacé ne peuvent pas être récupérées. La migration vers le nouveau dMsg n’est pas encore disponible.
+L’ancienne application est en lecture seule. Connectez-vous avec votre identité existante pour lire vos anciennes conversations et télécharger les pièces jointes auxquelles vous avez accès. Conservez le navigateur d’origine et ses données, surtout si vous avez utilisé le mode de clé Local : les clés stockées uniquement dans un navigateur effacé ne peuvent pas être récupérées. Pour passer au nouveau dMsg, installez l’application de bureau et lancez une migration sous Paramètres › Ancienne version : elle ouvre la page de l’ancienne version sur ce site pour transmettre votre historique à cet appareil.
 
 ## Paiements et commandes
 

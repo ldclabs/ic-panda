@@ -6,7 +6,7 @@
   import { prefersReducedMotion, watchVisibility } from './motion'
 
   // One simulated daemon behind both panes, as on a real device.
-  type Kind = 'api' | 'login' | 'note' | 'key' | 'file'
+  type Kind = 'api' | 'login' | 'note' | 'key'
   type Item = {
     id: string
     key?: string
@@ -38,7 +38,6 @@
   const CLI = 'cli'
   const DAEMON = 'dmsg daemon'
   const ACCOUNT = 'acc_5q2w…h7'
-  const FILE_SIZE = '18 KB'
   const SUGGESTIONS = [
     'dmsg status',
     'dmsg vault add --title "Stripe key" --type api --tag billing',
@@ -50,15 +49,16 @@
     api: 'key',
     login: 'shield',
     note: 'file',
-    key: 'key',
-    file: 'file'
+    key: 'key'
   }
   const NAV: { glyph: GlyphName; key: string }[] = [
     { glyph: 'vault', key: 'Vault' },
+    { glyph: 'folder', key: 'Files' },
     { glyph: 'chat', key: 'Channels' },
     { glyph: 'inbox', key: 'Inbox' },
-    { glyph: 'robot', key: 'Agents' },
     { glyph: 'pen', key: 'Signatures' },
+    { glyph: 'robot', key: 'Agents' },
+    { glyph: 'coins', key: 'Team wallets' },
     { glyph: 'settings', key: 'Settings' }
   ]
 
@@ -80,7 +80,13 @@
       secret: 'correct-horse-demo'
     },
     { id: 'itm_b02', key: 'Release plan', kind: 'note', tag: 'release' },
-    { id: 'itm_e44', title: 'release-brief.txt', kind: 'file', tag: 'release' }
+    {
+      id: 'itm_e44',
+      key: 'Signing key',
+      kind: 'key',
+      tag: 'release',
+      secret: 'dmsg_demo_signing_key'
+    }
   ])
   let selected = $state('itm_7c1')
   let approval = $state<Approval | null>(null)
@@ -110,8 +116,7 @@
     api: $t('API key'),
     login: $t('Login'),
     note: $t('Note'),
-    key: $t('Key'),
-    file: $t('File')
+    key: $t('Key')
   })
   const titleOf = (item: Item) => (item.key ? tr(item.key) : item.title!)
   const clock = (seconds: number) =>
@@ -523,7 +528,7 @@
             <h4>{$t('Vault locked')}</h4>
             <p>
               {$t(
-                'Titles, notes, files and secrets stay encrypted until you unlock this device.'
+                'Titles, notes and secrets stay encrypted until you unlock this device.'
               )}
             </p>
             <button
@@ -611,13 +616,6 @@
                       'Ship v1.4 on Friday. The brief is in the release channel.'
                     )}
                   </p>
-                {:else if current.kind === 'file'}
-                  <div class="vd-row">
-                    <span>{$t('Size')}</span><code>{FILE_SIZE}</code>
-                  </div>
-                  <div class="vd-row">
-                    <span>SHA-256</span><code>{hex(current.id, 8)}…</code>
-                  </div>
                 {/if}
                 <p class="vd-sync" class:pending={current.fresh}>
                   <Glyph
