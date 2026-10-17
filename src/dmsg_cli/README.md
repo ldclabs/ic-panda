@@ -394,10 +394,11 @@ browsers add` and the prompt after `attest …` or `device …` need an interact
 terminal without `--json`; otherwise the request is only created and waits in
 the approval center (and the desktop's approval window). A web request shows
 its origin as relayed by the browser through connect.dmsg.net, the browser's
-label, the account and the payload. `attest verify` needs no daemon: it checks
-the signature, the receipt certificate under the configured root from one
-of the registry's user homes, their binding, the file when given, and the
-device's present status.
+label, the account and the payload. `approvals list --all` shows finished
+requests too, for 30 days after they were made. `attest verify` needs no
+daemon: it checks the signature, the receipt certificate under the
+configured root from one of the registry's user homes, their binding, the
+file when given, and the device's present status.
 
 `attest action` takes an application action its product prepared, as the
 canonical CBOR a page would send to `signAction`

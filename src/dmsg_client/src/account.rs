@@ -439,11 +439,13 @@ impl Client {
     /// As [`verify_account`]; an older answer returns `Error::PolicyStale`.
     pub async fn refresh(&mut self, home: Principal, account: &AccountId) -> Result<AccountState> {
         let ic = &self.session()?.ic;
-        let (info, batch, bundle) = join3(
+        // Boxed: the queries side by side would otherwise sit inside every
+        // future that refreshes, on the runtime's small stacks.
+        let (info, batch, bundle) = Box::pin(join3(
             ic.query::<_, Result<AccountInfo>>(home, "get_account", (account,)),
             security_batch(ic, home, account),
             device_bundle(ic, home, account),
-        )
+        ))
         .await;
         let state = verify_account(
             home,
@@ -469,10 +471,10 @@ impl Client {
         account: &AccountId,
     ) -> Result<Security> {
         let ic = self.reader().await?;
-        let (batch, bundle) = join(
+        let (batch, bundle) = Box::pin(join(
             security_batch(&ic, home, account),
             device_bundle(&ic, home, account),
-        )
+        ))
         .await;
         let security = verify_security(
             home,
