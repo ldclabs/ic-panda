@@ -35,17 +35,13 @@ fn init(args: Option<CanisterArgs>) {
 #[ic_cdk::post_upgrade]
 fn post_upgrade(args: Option<CanisterArgs>) {
     match args {
-        Some(CanisterArgs::Upgrade(args)) => {
-            if let Some(origins) = args.allowed_origins {
-                set_allowed_origins(origins);
-            } else {
-                normalize_allowed_origins();
-            }
-        }
+        Some(CanisterArgs::Upgrade(UpgradeArgs {
+            allowed_origins: Some(origins),
+        })) => set_allowed_origins(origins),
+        Some(CanisterArgs::Upgrade(_)) | None => {}
         Some(CanisterArgs::Init(_)) => {
             ic_cdk::trap("cannot upgrade the canister with Init args");
         }
-        None => normalize_allowed_origins(),
     }
 
     store::state::init_certified_data();
@@ -54,9 +50,4 @@ fn post_upgrade(args: Option<CanisterArgs>) {
 fn set_allowed_origins(origins: Vec<String>) {
     store::config::set_allowed_origins(origins)
         .unwrap_or_else(|err| ic_cdk::trap(format!("invalid allowed_origins: {err}")));
-}
-
-fn normalize_allowed_origins() {
-    store::config::normalize_allowed_origins()
-        .unwrap_or_else(|err| ic_cdk::trap(format!("invalid persisted allowed_origins: {err}")));
 }

@@ -48,7 +48,6 @@ codegen-units = 1
 
 [profile.release.package.ic_delegation_store]
 codegen-units = 1
-opt-level = 3
 
 [profile.release.package.ic_signin_with]
 codegen-units = 1

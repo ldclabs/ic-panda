@@ -21,14 +21,9 @@ ic-cdk = { workspace = true }
 serde = { workspace = true }
 ic-stable-structures = { workspace = true }
 ic-http-certification = { workspace = true }
-ic-dummy-getrandom-for-wasm = { workspace = true }
-lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
 ic_auth_types = { workspace = true }
-ic_auth_verifier = { workspace = true, features = ["envelope"] }
 serde_json = { workspace = true }
 urlencoding = { workspace = true }
 
 [dev-dependencies]
-ed25519-dalek = { workspace = true }
 hex = { workspace = true }
-ic-canister-sig-creation = { workspace = true }

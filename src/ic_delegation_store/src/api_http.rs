@@ -11,7 +11,10 @@ use crate::store;
 
 const CBOR: &str = "application/cbor";
 const JSON: &str = "application/json";
-const MAX_HTTP_REQUEST_BODY_BYTES: usize = 512 * 1_024;
+// A Base64 JSON body for the largest accepted delegation fits with room to spare.
+const MAX_HTTP_REQUEST_BODY_BYTES: usize = 32 * 1_024;
+// The request body plus headers and Candid framing.
+const MAX_UPDATE_ARG_BYTES: usize = 64 * 1_024;
 const MAX_PUBLIC_KEY_QUERY_BYTES: usize = 256;
 
 #[derive(Debug)]
@@ -36,15 +39,20 @@ impl HttpError {
     }
 }
 
+/// Accepts only HTTP update calls small enough to carry a delegation, so other ingress
+/// messages are rejected before the canister pays for them. This runs on one replica and is
+/// not a security boundary; `http_request_update` still checks every request.
+#[ic_cdk::inspect_message]
+fn inspect_message() {
+    if ic_cdk::api::msg_method_name() == "http_request_update"
+        && ic_cdk::api::msg_arg_data().len() <= MAX_UPDATE_ARG_BYTES
+    {
+        ic_cdk::api::accept_message();
+    }
+}
+
 #[ic_cdk::query(hidden = true)]
 fn http_request(request: HttpRequest<'static>) -> HttpResponse<'static> {
-    if request.method().as_str() == "POST" {
-        return HttpResponse::builder()
-            .with_body(b"Upgrade".as_slice())
-            .with_upgrade(true)
-            .build();
-    }
-
     let request_cbor = header_contains(request.headers(), "content-type", CBOR);
     let response_cbor = request_cbor || header_contains(request.headers(), "accept", CBOR);
     let origin = header_value(request.headers(), "origin");
@@ -56,6 +64,19 @@ fn http_request(request: HttpRequest<'static>) -> HttpResponse<'static> {
     };
 
     let result = match (request.method().as_str(), path.as_str()) {
+        // Upgrade only a request that the update would accept, so this free query answers
+        // the others instead of a charged update call.
+        ("POST", "/delegation") => {
+            match check_put_delegation(request.body().len(), origin.unwrap_or_default()) {
+                Ok(()) => {
+                    return HttpResponse::builder()
+                        .with_body(b"Upgrade".as_slice())
+                        .with_upgrade(true)
+                        .build();
+                }
+                Err(err) => Err(err),
+            }
+        }
         ("HEAD", _) => Ok(Vec::new()),
         ("GET", "/delegation") => request
             .get_query()
@@ -109,10 +130,15 @@ fn get_delegation(
     response_cbor: bool,
 ) -> Result<Vec<u8>, HttpError> {
     let pubkey = parse_public_key(query)?;
-    store::state::with_delegation(pubkey.as_slice(), origin, |payload| {
-        encode_response(payload, response_cbor)
-    })
-    .ok_or_else(|| HttpError {
+    // An unlisted origin is told that nothing is stored.
+    let response = if store::config::origin_is_allowed(origin) {
+        store::state::with_delegation(pubkey.as_slice(), |payload| {
+            encode_response(payload, response_cbor)
+        })
+    } else {
+        None
+    };
+    response.ok_or_else(|| HttpError {
         status_code: StatusCode::NOT_FOUND,
         message: format!("no delegation found for pubkey: {pubkey}"),
     })?
@@ -124,12 +150,7 @@ fn put_delegation(
     request_cbor: bool,
     response_cbor: bool,
 ) -> Result<Vec<u8>, HttpError> {
-    if body.len() > MAX_HTTP_REQUEST_BODY_BYTES {
-        return Err(HttpError {
-            status_code: StatusCode::PAYLOAD_TOO_LARGE,
-            message: "request body is too large".to_string(),
-        });
-    }
+    check_put_delegation(body.len(), origin)?;
 
     let request: Request = if request_cbor {
         from_slice(body).map_err(|err| {
@@ -141,9 +162,27 @@ fn put_delegation(
         })?
     };
 
-    let pubkey = store::state::put_delegation(request.payload.into_vec(), origin)
-        .map_err(HttpError::bad_request)?;
+    let pubkey =
+        store::state::put_delegation(request.payload.into_vec()).map_err(HttpError::bad_request)?;
     encode_response(&pubkey, response_cbor)
+}
+
+/// The checks that need only the request line and headers, shared by the query that decides
+/// whether to upgrade and by the update that stores the delegation.
+fn check_put_delegation(body_len: usize, origin: &str) -> Result<(), HttpError> {
+    if body_len > MAX_HTTP_REQUEST_BODY_BYTES {
+        return Err(HttpError {
+            status_code: StatusCode::PAYLOAD_TOO_LARGE,
+            message: "request body is too large".to_string(),
+        });
+    }
+    if !store::config::origin_is_allowed(Some(origin)) {
+        return Err(HttpError {
+            status_code: StatusCode::FORBIDDEN,
+            message: format!("origin not allowed: {origin}"),
+        });
+    }
+    Ok(())
 }
 
 fn parse_public_key(query: Option<&str>) -> Result<ByteBufB64, HttpError> {
@@ -271,6 +310,21 @@ mod tests {
         let error = parse_public_key(Some(&query)).unwrap_err();
         assert_eq!(error.status_code, StatusCode::BAD_REQUEST);
         assert_eq!(error.message, "query parameter is too long");
+    }
+
+    #[test]
+    fn put_checks_reject_oversized_bodies_and_unlisted_origins() {
+        assert!(check_put_delegation(MAX_HTTP_REQUEST_BODY_BYTES, "").is_ok());
+        let error = check_put_delegation(MAX_HTTP_REQUEST_BODY_BYTES + 1, "").unwrap_err();
+        assert_eq!(error.status_code, StatusCode::PAYLOAD_TOO_LARGE);
+
+        store::config::set_allowed_origins(vec!["https://example.com".to_string()]).unwrap();
+        assert!(check_put_delegation(1, "https://EXAMPLE.com:443").is_ok());
+        for origin in ["", "https://other.example"] {
+            let error = check_put_delegation(1, origin).unwrap_err();
+            assert_eq!(error.status_code, StatusCode::FORBIDDEN);
+        }
+        store::config::set_allowed_origins(Vec::new()).unwrap();
     }
 
     #[test]

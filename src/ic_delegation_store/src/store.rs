@@ -1,5 +1,5 @@
 use cbor2::{from_slice, to_vec};
-use ic_auth_verifier::{SignInResponse, verify_delegation_chain};
+use ic_auth_types::ByteBufB64;
 use ic_http_certification::utils::skip_certification_certified_data;
 use ic_stable_structures::{
     DefaultMemoryImpl, StableCell, Storable,
@@ -7,43 +7,52 @@ use ic_stable_structures::{
     storable::Bound,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    borrow::Cow,
-    cell::RefCell,
-    collections::{HashMap, VecDeque},
-    rc::Rc,
-};
+use std::{borrow::Cow, cell::RefCell, collections::HashMap};
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
 pub const MAX_PUBLIC_KEY_BYTES: usize = 48;
-pub const MAX_SIGNED_DELEGATION_BYTES: usize = 256 * 1_024;
+pub const MAX_SIGNED_DELEGATION_BYTES: usize = 16 * 1_024;
 
 const RELAY_TTL_MS: u64 = 60 * 1_000;
-const MAX_TO_PRUNE: usize = 64;
-const MAX_CACHED_DELEGATIONS: usize = 10_000;
-const MAX_CACHED_PAYLOAD_BYTES: usize = 32 * 1_024 * 1_024;
+// Together with MAX_SIGNED_DELEGATION_BYTES, this bounds the relayed payloads to 32 MiB.
+const MAX_CACHED_DELEGATIONS: usize = 2_048;
 const MAX_ALLOWED_ORIGINS: usize = 256;
 const MAX_ORIGIN_BYTES: usize = 2_048;
 
+/// The fields of a sign-in response that the relay reads.
+///
+/// The relay does not verify the delegation chain. The app that polls for the response
+/// verifies it against its own session key, and anyone can sign a valid chain for any
+/// session key with a key of their own, so a check here would only cost cycles.
+#[derive(Deserialize)]
+struct SignInResponse {
+    #[serde(rename = "d")]
+    delegations: Vec<SignedDelegation>,
+}
+
+#[derive(Deserialize)]
+struct SignedDelegation {
+    #[serde(rename = "d", alias = "delegation")]
+    delegation: Delegation,
+}
+
+#[derive(Deserialize)]
+struct Delegation {
+    #[serde(rename = "p", alias = "pubkey")]
+    pubkey: ByteBufB64,
+    #[serde(rename = "e", alias = "expiration")]
+    expiration: u64,
+}
+
 #[derive(Default)]
 struct State {
-    delegations: HashMap<Rc<[u8]>, StoredDelegation>,
-    expiration_queue: VecDeque<DelegationExpiration>,
-    payload_bytes: usize,
-    next_generation: u64,
+    delegations: HashMap<Vec<u8>, StoredDelegation>,
 }
 
 struct StoredDelegation {
     payload: Vec<u8>,
     expires_at: u64,
-    generation: u64,
-}
-
-struct DelegationExpiration {
-    expires_at: u64,
-    generation: u64,
-    pubkey: Rc<[u8]>,
 }
 
 impl State {
@@ -68,139 +77,51 @@ impl State {
 
         let mut response: SignInResponse = from_slice(&signed_delegation)
             .map_err(|err| format!("failed to decode signed delegation: {err}"))?;
-
+        let now_ns = now_ms * 1_000_000;
+        if response
+            .delegations
+            .iter()
+            .any(|link| link.delegation.expiration <= now_ns)
+        {
+            return Err("delegation has expired".to_string());
+        }
         let session_pubkey = response
             .delegations
-            .last()
+            .pop()
             .ok_or_else(|| "no delegation found".to_string())?
             .delegation
             .pubkey
-            .as_slice();
+            .into_vec();
         if session_pubkey.is_empty() || session_pubkey.len() > MAX_PUBLIC_KEY_BYTES {
             return Err("invalid session public key length".to_string());
         }
 
-        self.prune_expired(now_ms);
+        // The store holds at most MAX_CACHED_DELEGATIONS short-lived entries, so a full scan
+        // is cheaper than keeping an expiration index up to date.
+        self.delegations
+            .retain(|_, stored| stored.expires_at > now_ms);
 
-        // HTTP gateways and clients may retry an update. An identical, live payload was already
-        // verified, so avoid repeating the cryptographic verification and growing the expiry queue.
-        let existing = self.delegations.get(session_pubkey);
-        let is_live_replay = existing.is_some_and(|stored| {
-            stored.expires_at > now_ms && stored.payload == signed_delegation
-        });
-        if is_live_replay {
-            return Ok(std::mem::take(
-                &mut response
-                    .delegations
-                    .last_mut()
-                    .expect("the delegation was checked above")
-                    .delegation
-                    .pubkey,
-            )
-            .into_vec());
+        if let Some(stored) = self.delegations.get(&session_pubkey) {
+            // HTTP gateways and clients may retry an update. Every sign-in uses a fresh
+            // session key, so a different payload for a live key is never a retry.
+            return if stored.payload == signed_delegation {
+                Ok(session_pubkey)
+            } else {
+                Err("a delegation is already stored for this session public key".to_string())
+            };
         }
-
-        let existing_payload_bytes = existing.map_or(0, |stored| stored.payload.len());
-        if existing.is_none() && self.delegations.len() >= MAX_CACHED_DELEGATIONS {
+        if self.delegations.len() >= MAX_CACHED_DELEGATIONS {
             return Err("delegation store is at capacity".to_string());
         }
-        let projected_payload_bytes = self
-            .payload_bytes
-            .saturating_sub(existing_payload_bytes)
-            .checked_add(signed_delegation.len())
-            .ok_or_else(|| "delegation store capacity overflow".to_string())?;
-        if projected_payload_bytes > MAX_CACHED_PAYLOAD_BYTES {
-            return Err("delegation store is at capacity".to_string());
-        }
-
-        verify_delegation_chain(
-            response.user_pubkey.as_slice(),
-            session_pubkey,
-            &response.delegations,
-            now_ms,
-            None,
-        )?;
-
-        let session_pubkey = std::mem::take(
-            &mut response
-                .delegations
-                .last_mut()
-                .expect("the delegation was checked above")
-                .delegation
-                .pubkey,
-        )
-        .into_vec();
-        let cache_key: Rc<[u8]> = Rc::from(session_pubkey.as_slice());
-        let generation = self.next_generation;
-        self.next_generation = self.next_generation.wrapping_add(1);
-        let expires_at = now_ms.saturating_add(RELAY_TTL_MS);
 
         self.delegations.insert(
-            cache_key.clone(),
+            session_pubkey.clone(),
             StoredDelegation {
                 payload: signed_delegation,
-                expires_at,
-                generation,
+                expires_at: now_ms + RELAY_TTL_MS,
             },
         );
-        self.expiration_queue.push_back(DelegationExpiration {
-            expires_at,
-            generation,
-            pubkey: cache_key,
-        });
-        self.payload_bytes = projected_payload_bytes;
-
         Ok(session_pubkey)
-    }
-
-    fn prune_expired(&mut self, now_ms: u64) {
-        for _ in 0..MAX_TO_PRUNE {
-            let Some(expiration) = self.expiration_queue.front() else {
-                break;
-            };
-            if expiration.expires_at > now_ms {
-                break;
-            }
-
-            let expiration = self
-                .expiration_queue
-                .pop_front()
-                .expect("the queue front was checked above");
-            let is_current = self
-                .delegations
-                .get(expiration.pubkey.as_ref())
-                .is_some_and(|stored| stored.generation == expiration.generation);
-            if is_current {
-                let removed = self
-                    .delegations
-                    .remove(expiration.pubkey.as_ref())
-                    .expect("the current delegation must exist");
-                self.payload_bytes = self.payload_bytes.saturating_sub(removed.payload.len());
-            }
-        }
-    }
-
-    #[cfg(test)]
-    fn insert_for_test(&mut self, pubkey: &[u8], payload: &[u8], expires_at: u64) {
-        let generation = self.next_generation;
-        self.next_generation += 1;
-        let key: Rc<[u8]> = Rc::from(pubkey);
-        if let Some(previous) = self.delegations.insert(
-            key.clone(),
-            StoredDelegation {
-                payload: payload.to_vec(),
-                expires_at,
-                generation,
-            },
-        ) {
-            self.payload_bytes -= previous.payload.len();
-        }
-        self.payload_bytes += payload.len();
-        self.expiration_queue.push_back(DelegationExpiration {
-            expires_at,
-            generation,
-            pubkey: key,
-        });
     }
 }
 
@@ -266,6 +187,8 @@ impl Storable for Config {
     }
 
     fn from_bytes(bytes: Cow<'_, [u8]>) -> Self {
+        // Releases before v2.15.1 initialized the cell with an empty value, and a canister
+        // that never set its origins still holds it.
         if bytes.is_empty() {
             return Self::default();
         }
@@ -304,12 +227,7 @@ pub mod config {
         Ok(())
     }
 
-    pub fn normalize_allowed_origins() -> Result<(), String> {
-        let allowed_origins = CONFIG.with_borrow(|cell| cell.get().allowed_origins.clone());
-        set_allowed_origins(allowed_origins)
-    }
-
-    pub(super) fn origin_is_allowed(origin: Option<&str>) -> bool {
+    pub fn origin_is_allowed(origin: Option<&str>) -> bool {
         CONFIG.with_borrow(|cell| cell.get().origin_is_allowed(origin))
     }
 }
@@ -321,22 +239,12 @@ pub mod state {
         ic_cdk::api::certified_data_set(skip_certification_certified_data());
     }
 
-    pub fn with_delegation<R>(
-        pubkey: &[u8],
-        origin: Option<&str>,
-        f: impl FnOnce(&[u8]) -> R,
-    ) -> Option<R> {
-        if !config::origin_is_allowed(origin) {
-            return None;
-        }
+    pub fn with_delegation<R>(pubkey: &[u8], f: impl FnOnce(&[u8]) -> R) -> Option<R> {
         let now_ms = ic_cdk::api::time() / 1_000_000;
         STATE.with_borrow(|state| state.with_delegation(pubkey, now_ms, f))
     }
 
-    pub fn put_delegation(signed_delegation: Vec<u8>, origin: &str) -> Result<Vec<u8>, String> {
-        if !config::origin_is_allowed(Some(origin)) {
-            return Err(format!("origin not allowed: {origin}"));
-        }
+    pub fn put_delegation(signed_delegation: Vec<u8>) -> Result<Vec<u8>, String> {
         let now_ms = ic_cdk::api::time() / 1_000_000;
         STATE.with_borrow_mut(|state| state.put_delegation(signed_delegation, now_ms))
     }
@@ -365,42 +273,55 @@ fn normalize_origin(origin: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::{Signer, SigningKey};
     use ic_auth_types::{DelegationCompact, SignedDelegationCompact};
-    use ic_canister_sig_creation::delegation_signature_msg;
-    use ic_stable_structures::VectorMemory;
 
-    const ED25519_DER_PREFIX: &[u8] = &[
-        0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
-    ];
+    const NOW_MS: u64 = 1_000_000;
 
-    fn signed_delegation(now_ms: u64) -> (Vec<u8>, Vec<u8>) {
-        let signing_key = SigningKey::from_bytes(&[7; 32]);
-        let mut user_pubkey = ED25519_DER_PREFIX.to_vec();
-        user_pubkey.extend_from_slice(signing_key.verifying_key().as_bytes());
+    /// The wire format of `ic_auth_verifier::deeplink::SignInResponse`.
+    #[derive(Serialize)]
+    struct WireSignInResponse {
+        #[serde(rename = "u")]
+        user_pubkey: ByteBufB64,
+        #[serde(rename = "d")]
+        delegations: Vec<SignedDelegationCompact>,
+        #[serde(rename = "a")]
+        authn_method: String,
+        #[serde(rename = "o")]
+        origin: String,
+    }
 
-        let mut session_pubkey = ED25519_DER_PREFIX.to_vec();
-        session_pubkey.extend_from_slice(&[9; 32]);
-        let expiration = now_ms.saturating_add(10 * 60 * 1_000) * 1_000_000;
-        let mut message = ic_auth_verifier::IC_REQUEST_AUTH_DELEGATION_DOMAIN_SEPARATOR.to_vec();
-        message.extend_from_slice(&delegation_signature_msg(&session_pubkey, expiration, None));
-        let signature = signing_key.sign(&message).to_bytes().to_vec();
-        let response = SignInResponse {
-            user_pubkey: user_pubkey.into(),
-            delegations: vec![SignedDelegationCompact {
+    fn session_pubkey(seed: u8) -> Vec<u8> {
+        let mut pubkey = vec![
+            0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
+        ];
+        pubkey.extend_from_slice(&[seed; 32]);
+        pubkey
+    }
+
+    fn sign_in_response(pubkeys: &[&[u8]], expiration_ms: u64, signature: u8) -> Vec<u8> {
+        let delegations = pubkeys
+            .iter()
+            .map(|pubkey| SignedDelegationCompact {
                 delegation: DelegationCompact {
-                    pubkey: session_pubkey.clone().into(),
-                    expiration,
+                    pubkey: pubkey.to_vec().into(),
+                    expiration: expiration_ms * 1_000_000,
                     targets: None,
                     permissions: None,
                 },
-                signature: signature.into(),
-            }],
-            authn_method: "test".to_string(),
+                signature: vec![signature; 64].into(),
+            })
+            .collect();
+        to_vec(&WireSignInResponse {
+            user_pubkey: vec![1; 44].into(),
+            delegations,
+            authn_method: "passkey".to_string(),
             origin: "https://example.com".to_string(),
-        };
+        })
+        .unwrap()
+    }
 
-        (to_vec(&response).unwrap(), session_pubkey)
+    fn payload(seed: u8) -> Vec<u8> {
+        sign_in_response(&[&session_pubkey(seed)], NOW_MS + 600_000, 0)
     }
 
     #[test]
@@ -415,20 +336,7 @@ mod tests {
 
         assert_eq!(encode_config(&config), expected);
         assert_eq!(Config::from_bytes(Cow::Owned(expected)), config);
-    }
-
-    #[test]
-    fn config_cell_reads_the_previous_vec_encoding() {
-        let memory = VectorMemory::default();
-        let config = Config {
-            allowed_origins: vec!["https://example.com".to_string()],
-        };
-        let mut old_cell = StableCell::init(memory.clone(), Vec::<u8>::new());
-        old_cell.set(encode_config(&config));
-        drop(old_cell);
-
-        let new_cell = StableCell::<Config, _>::init(memory, Config::default());
-        assert_eq!(new_cell.get(), &config);
+        assert_eq!(Config::from_bytes(Cow::Borrowed(&[])), Config::default());
     }
 
     #[test]
@@ -446,57 +354,137 @@ mod tests {
     }
 
     #[test]
-    fn expired_delegations_are_not_returned() {
+    fn a_stored_delegation_is_served_until_it_expires() {
         let mut state = State::default();
-        state.insert_for_test(b"key", b"payload", 100);
+        let payload = payload(1);
 
         assert_eq!(
-            state.with_delegation(b"key", 99, |payload| payload.to_vec()),
-            Some(b"payload".to_vec())
+            state.put_delegation(payload.clone(), NOW_MS).unwrap(),
+            session_pubkey(1)
         );
-        assert_eq!(state.with_delegation(b"key", 100, |_| ()), None);
+        assert_eq!(
+            state.with_delegation(&session_pubkey(1), NOW_MS + RELAY_TTL_MS - 1, |p| p
+                .to_vec()),
+            Some(payload)
+        );
+        assert_eq!(
+            state.with_delegation(&session_pubkey(1), NOW_MS + RELAY_TTL_MS, |_| ()),
+            None
+        );
     }
 
     #[test]
-    fn valid_delegation_is_verified_once_and_replays_are_idempotent() {
-        let now_ms = 1_000_000;
-        let (payload, session_pubkey) = signed_delegation(now_ms);
+    fn the_last_delegation_names_the_session_key() {
         let mut state = State::default();
+        let payload = sign_in_response(
+            &[&session_pubkey(1), &session_pubkey(2)],
+            NOW_MS + 600_000,
+            0,
+        );
 
         assert_eq!(
-            state.put_delegation(payload.clone(), now_ms).unwrap(),
-            session_pubkey
+            state.put_delegation(payload, NOW_MS).unwrap(),
+            session_pubkey(2)
         );
-        assert_eq!(state.expiration_queue.len(), 1);
-        assert_eq!(
-            state.put_delegation(payload, now_ms + 1).unwrap(),
-            session_pubkey
-        );
-        assert_eq!(state.expiration_queue.len(), 1);
     }
 
     #[test]
-    fn stale_expiration_does_not_remove_a_newer_value() {
+    fn a_retry_is_idempotent_and_a_different_payload_is_rejected() {
         let mut state = State::default();
-        state.insert_for_test(b"key", b"old", 100);
-        state.insert_for_test(b"key", b"new", 200);
+        let first = payload(1);
+        state.put_delegation(first.clone(), NOW_MS).unwrap();
 
-        state.prune_expired(100);
         assert_eq!(
-            state.with_delegation(b"key", 100, |payload| payload.to_vec()),
-            Some(b"new".to_vec())
+            state.put_delegation(first.clone(), NOW_MS + 1).unwrap(),
+            session_pubkey(1)
         );
-        assert_eq!(state.payload_bytes, 3);
+        let other = sign_in_response(&[&session_pubkey(1)], NOW_MS + 600_000, 9);
+        assert_eq!(
+            state.put_delegation(other.clone(), NOW_MS + 1).unwrap_err(),
+            "a delegation is already stored for this session public key"
+        );
+        assert_eq!(
+            state.with_delegation(&session_pubkey(1), NOW_MS + 1, |p| p.to_vec()),
+            Some(first)
+        );
 
-        state.prune_expired(200);
+        // Once the first one expires, the key can be used again.
+        state
+            .put_delegation(other.clone(), NOW_MS + RELAY_TTL_MS)
+            .unwrap();
+        assert_eq!(
+            state.with_delegation(&session_pubkey(1), NOW_MS + RELAY_TTL_MS, |p| p.to_vec()),
+            Some(other)
+        );
+    }
+
+    #[test]
+    fn expired_entries_are_dropped_on_the_next_put() {
+        let mut state = State::default();
+        state.put_delegation(payload(1), NOW_MS).unwrap();
+        state.put_delegation(payload(2), NOW_MS + 1).unwrap();
+
+        state
+            .put_delegation(payload(3), NOW_MS + RELAY_TTL_MS)
+            .unwrap();
+        assert_eq!(state.delegations.len(), 2);
+        assert!(!state.delegations.contains_key(&session_pubkey(1)));
+    }
+
+    #[test]
+    fn the_store_is_bounded() {
+        let mut state = State::default();
+        for i in 0..MAX_CACHED_DELEGATIONS {
+            state.delegations.insert(
+                i.to_be_bytes().to_vec(),
+                StoredDelegation {
+                    payload: Vec::new(),
+                    expires_at: NOW_MS + RELAY_TTL_MS,
+                },
+            );
+        }
+
+        assert_eq!(
+            state.put_delegation(payload(1), NOW_MS).unwrap_err(),
+            "delegation store is at capacity"
+        );
+        state
+            .put_delegation(payload(1), NOW_MS + RELAY_TTL_MS)
+            .unwrap();
+        assert_eq!(state.delegations.len(), 1);
+    }
+
+    #[test]
+    fn invalid_delegations_are_rejected() {
+        let mut state = State::default();
+        let cases = [
+            (Vec::new(), "invalid signed delegation length"),
+            (
+                vec![0; MAX_SIGNED_DELEGATION_BYTES + 1],
+                "invalid signed delegation length",
+            ),
+            (
+                sign_in_response(&[&session_pubkey(1)], NOW_MS, 0),
+                "delegation has expired",
+            ),
+            (
+                sign_in_response(&[], NOW_MS + 600_000, 0),
+                "no delegation found",
+            ),
+            (
+                sign_in_response(&[&[7; MAX_PUBLIC_KEY_BYTES + 1]], NOW_MS + 600_000, 0),
+                "invalid session public key length",
+            ),
+        ];
+        for (payload, expected) in cases {
+            assert_eq!(state.put_delegation(payload, NOW_MS).unwrap_err(), expected);
+        }
+
+        let err = state.put_delegation(vec![0xff], NOW_MS).unwrap_err();
+        assert!(
+            err.starts_with("failed to decode signed delegation"),
+            "{err}"
+        );
         assert!(state.delegations.is_empty());
-        assert_eq!(state.payload_bytes, 0);
-    }
-
-    #[test]
-    fn pruning_an_empty_queue_stops_immediately() {
-        let mut state = State::default();
-        state.prune_expired(u64::MAX);
-        assert!(state.expiration_queue.is_empty());
     }
 }
