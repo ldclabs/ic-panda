@@ -54,7 +54,7 @@ codegen-units = 1
 
 [workspace.package]
 edition = "2024"
-version = "3.0.0"
+version = "3.0.1"
 repository = "https://github.com/ldclabs/ic-panda"
 keywords = ["canister", "icp", "panda"]
 categories = ["web-programming"]
