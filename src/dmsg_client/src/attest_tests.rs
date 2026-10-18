@@ -787,11 +787,19 @@ async fn the_reconciler_leaves_a_running_attestation_alone() {
     record.state = State::Executing;
     client.save_approval(&record).unwrap();
     client.running.insert(id.clone(), now_ms());
-    assert_eq!(client.approvals_reconcile().await.unwrap(), 0);
+    let reconcile = async |client: &mut Client| {
+        crate::approval::reconcile_attestations(&client.hold())
+            .await
+            .unwrap()
+    };
+    assert_eq!(reconcile(&mut client).await, 0);
     assert_eq!(client.approval_record(&id).unwrap().state, State::Executing);
     // Left behind past its time, it is reconciled as any other: approved
-    // and never signed, it cannot have run.
+    // and never signed, it cannot have run. The other requests' reconciler
+    // leaves it alone.
     client.running.insert(id.clone(), 0);
-    assert_eq!(client.approvals_reconcile().await.unwrap(), 1);
+    assert_eq!(client.approvals_reconcile().await.unwrap(), 0);
+    assert_eq!(client.approval_record(&id).unwrap().state, State::Executing);
+    assert_eq!(reconcile(&mut client).await, 1);
     assert_eq!(client.approval_record(&id).unwrap().state, State::Failed);
 }

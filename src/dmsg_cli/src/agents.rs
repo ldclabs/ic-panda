@@ -635,15 +635,21 @@ impl Daemon {
                 granted("wallet.read").await?;
                 return dmsg_client::wallet::proposal(&h, wallet()?, proposal()?).await;
             }
+            "dmsg_action_request" => {
+                granted("action.request").await?;
+                let action = unb64(&text(input, "action")?)?;
+                let via = format!("agent:{did}");
+                let request = dmsg_client::attest::action_request(&h, &via, &action).await?;
+                self.emit("approval/changed", Value::Null);
+                return Ok(request);
+            }
             _ => {}
         }
         // These still wait on the relay and the IC under the client:
-        // contacts, signed actions, delegations and the wallet's proposals
-        // and executions.
+        // contacts, delegations and the wallet's proposals and executions.
         let networked = matches!(
             tool,
             "dmsg_inbox_contact"
-                | "dmsg_action_request"
                 | "dmsg_delegations_list"
                 | "dmsg_wallet_propose_transfer"
                 | "dmsg_wallet_execute"
@@ -662,11 +668,6 @@ impl Daemon {
                         client
                             .inbox_send(&to, &text(input, "text")?, None, None, false)
                             .await
-                    }
-                    "dmsg_action_request" => {
-                        client.capability_check(did, "action.request")?;
-                        let action = unb64(&text(input, "action")?)?;
-                        client.attest_action_request(&via, &action).await
                     }
                     "dmsg_delegations_list" => {
                         client.capability_check(did, "agent.delegation.read")?;
@@ -708,7 +709,7 @@ impl Daemon {
                     _ => Err(Error::NotFound),
                 })
                 .await?;
-            if matches!(tool, "dmsg_action_request" | "dmsg_wallet_execute") {
+            if tool == "dmsg_wallet_execute" {
                 self.emit("approval/changed", Value::Null);
             }
             if tool.starts_with("dmsg_wallet_") {

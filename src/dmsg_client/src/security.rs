@@ -210,17 +210,6 @@ impl Client {
         }))
     }
 
-    /// The signing policy in force, as the user home holds it.
-    ///
-    /// # Errors
-    /// As [`Self::account_security`].
-    pub async fn account_policy(&mut self) -> Result<SensitivePolicy> {
-        self.session()?;
-        let account = self.account()?.clone();
-        let state = self.refresh(account.home, &account.id).await?;
-        Ok(state.info.sensitive_policy.clone())
-    }
-
     /// Ask an administrator device of `account` to bind this login, which
     /// has no account yet: a token to hand over. The nonce stays in this
     /// login's workspace until it accepts.
@@ -339,19 +328,23 @@ impl Client {
         .await
     }
 
-    /// Ask to change the account's security: bind or remove a login, set
-    /// the sensitive-execution policy or the recovery delay, or dispute a
-    /// pending recovery. A person approves it in the approval center.
+    /// [`account_request`], for callers that hold the client throughout.
     ///
     /// # Errors
-    /// Returns `Error::Forbidden` for a change this device cannot sign and
-    /// `Error::InvalidInput` for one the home would refuse.
+    /// As [`account_request`].
     pub async fn account_request(&mut self, source: &str, change: AccountChange) -> Result<Json> {
-        let command = change.command()?;
-        self.keys()?;
+        account_request(&self.hold(), source, change).await
+    }
+
+    /// [`account_request`] with the account's state read.
+    fn account_change_request(
+        &mut self,
+        source: &str,
+        change: AccountChange,
+        command: &AccountCommand,
+        state: &AccountState,
+    ) -> Result<Json> {
         let principal = self.session()?.principal;
-        let account = self.account()?.clone();
-        let state = self.refresh(account.home, &account.id).await?;
         let own = state.active(&self.workspace.meta.device_id)?;
         let admin = own.input.role == dmsg_types::user::ControllerRole::Administrator
             && own
@@ -359,7 +352,7 @@ impl Client {
                 .capabilities
                 .contains(&dmsg_types::user::Capability::RootManage);
         let info = &state.info;
-        match &command {
+        match command {
             AccountCommand::BindAuth { principal, .. } => {
                 dmsg_protocol::authenticated(*principal)?;
                 ensure(admin, Error::Forbidden)?;
@@ -458,15 +451,34 @@ fn check_policy(policy: &SensitivePolicy) -> Result<()> {
 /// # Errors
 /// Returns `Error::AuthRequired` without a login.
 pub async fn account_security<H: Hold>(h: &H) -> Result<Json> {
-    let (ic, account) = h
-        .with(|c| Ok((c.session()?.ic.clone(), c.account()?.clone())))
-        .await?;
-    let state = crate::account::read_account(&ic, account.home, &account.id).await?;
-    h.with(|c| {
-        c.observe(&account.id, &state.security)?;
-        c.security_view(&state)
-    })
-    .await
+    let state = crate::account::refreshed(h).await?;
+    h.with(|c| c.security_view(&state)).await
+}
+
+/// The account's sensitive-execution policy in force, as its user home
+/// answers the login now, waited on without the client.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` without a login.
+pub async fn account_policy<H: Hold>(h: &H) -> Result<SensitivePolicy> {
+    let state = crate::account::refreshed(h).await?;
+    Ok(state.info.sensitive_policy)
+}
+
+/// Ask to change the account's security: bind or remove a login, set the
+/// sensitive-execution policy or the recovery delay, or dispute a pending
+/// recovery. A person approves it in the approval center. The user home is
+/// waited on without the client.
+///
+/// # Errors
+/// Returns `Error::Forbidden` for a change this device cannot sign and
+/// `Error::InvalidInput` for one the home would refuse.
+pub async fn account_request<H: Hold>(h: &H, source: &str, change: AccountChange) -> Result<Json> {
+    let command = change.command()?;
+    h.with(|c| c.keys().map(|_| ())).await?;
+    let state = crate::account::refreshed(h).await?;
+    h.with(|c| c.account_change_request(source, change, &command, &state))
+        .await
 }
 
 #[cfg(test)]

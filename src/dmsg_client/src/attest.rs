@@ -72,10 +72,9 @@ pub enum Subject {
     Action(Box<AppAction>),
 }
 
-/// An approved attestation of this device's own clients, run in steps so
-/// that its network waits happen outside any lock on the client:
-/// [`AttestRun::read`], [`Client::attest_sign`], [`AttestRun::send`] and
-/// [`Client::attest_settle`]. [`Client::approval_respond`] runs them in turn.
+/// An approved attestation of this device's own clients, run against a
+/// [`Hold`] ([`AttestRun::run`]): read, sign, send and settle, the client
+/// taken only to sign and to settle.
 pub struct AttestRun {
     request: crate::approval::Request,
     subject: Subject,
@@ -87,14 +86,14 @@ pub struct AttestRun {
 }
 
 /// What [`AttestRun::read`] found before signing.
-pub struct RunRead {
+struct RunRead {
     file: Option<Result<Hash>>,
     inspected: Option<Result<()>>,
     account: Result<crate::account::AccountState>,
 }
 
 /// What [`AttestRun::send`] got back.
-pub struct RunSent {
+struct RunSent {
     reply: Result<Result<SignedArtifact>>,
     receipt: Option<Result<Result<CertifiedBatch>>>,
 }
@@ -105,9 +104,21 @@ impl AttestRun {
         &self.request.id
     }
 
+    /// Read what signing needs, sign and journal under the client, send,
+    /// then settle the request under it.
+    ///
+    /// # Errors
+    /// As [`Client::approval_respond`].
+    pub async fn run<H: Hold>(mut self, h: &H) -> Result<Json> {
+        let read = self.read().await;
+        h.with(|c| c.attest_sign(&mut self, read)).await?;
+        let sent = self.send().await;
+        h.with(|c| c.attest_settle(self, sent)).await
+    }
+
     /// What signing needs read first: a local file's SHA-256, the product
     /// authority's verdict on an action, and the account's state.
-    pub async fn read(&self) -> RunRead {
+    async fn read(&self) -> RunRead {
         let file = self
             .file
             .as_ref()
@@ -137,7 +148,7 @@ impl AttestRun {
     }
 
     /// Submit the signed attestation and read its receipt.
-    pub async fn send(&self) -> RunSent {
+    async fn send(&self) -> RunSent {
         let Some(attestation) = &self.attestation else {
             return RunSent {
                 reply: Err(Error::Expired),
@@ -823,43 +834,6 @@ impl Client {
         self.approval_view(&request)
     }
 
-    /// Ask this device to attest an application action its product
-    /// prepared (`docs/protocol/app-action.md`), given as canonical CBOR,
-    /// as a page's `signAction` does but from this device: the current
-    /// registration must admit it and it must name this account. The
-    /// request waits in the approval center at most until the action
-    /// expires; approving asks the product authority before signing.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked, `Error::InvalidInput` for bytes
-    /// that are not an action or an action of another account, and the
-    /// admission errors of `validate_action_admission`.
-    pub async fn attest_action_request(&mut self, source: &str, bytes: &[u8]) -> Result<Json> {
-        self.keys()?;
-        let action: AppAction = dmsg_protocol::decode_canonical(bytes)
-            .map_err(|_| Error::InvalidInput("action".into()))?;
-        let account = self.account()?.clone();
-        ensure(
-            action.signing_account == account.id,
-            Error::InvalidInput("ACCOUNT_MISMATCH".into()),
-        )?;
-        let app = self.app_registration(&mut None, &action.app_id).await?;
-        let now = now_ms();
-        dmsg_protocol::app_action::validate_action_admission(&action, &app, now)?;
-        let expires_at = (now + APPROVAL_TTL_MS).min(action.expires_at_ms);
-        let request = self.approval_create(
-            source,
-            Action::AttestAction {
-                action: bytes.to_vec().into(),
-                // The schema the review renders, from the certified
-                // registration that admitted the action.
-                schema: app.action_schema.as_ref().map(|s| canonical(s).into()),
-            },
-            expires_at,
-        )?;
-        self.approval_view(&request)
-    }
-
     /// The product authority's verdict on an application action before
     /// this device signs it (`inspect_app_action`).
     pub(crate) async fn inspect_action(&mut self, action: &AppAction) -> Result<()> {
@@ -993,53 +967,6 @@ impl Client {
         Ok(attestation)
     }
 
-    /// Send a journaled attestation and keep its artifact and receipt.
-    ///
-    /// # Errors
-    /// Returns `Error::ExecutionUnknown` when the reply is lost and the
-    /// home's refusal otherwise.
-    pub(crate) async fn attest_dispatch(
-        &mut self,
-        mut attestation: Attestation,
-    ) -> Result<Attestation> {
-        let home = self.account()?.home;
-        let ic = self.session()?.ic.clone();
-        let reply: Result<SignedArtifact> = match &attestation.request {
-            Signed::Document(request) => ic.update(home, "attest", (request,)).await?,
-            Signed::Action(request) => ic.update(home, "attest_app_action", (request,)).await?,
-        };
-        match reply {
-            Ok(artifact) => self.attest_finish(attestation, artifact).await,
-            Err(error) => {
-                attestation.stage = Stage::Failed;
-                attestation.error = Some(crate::error_code(&error));
-                self.save_attestation(&attestation)?;
-                Err(error)
-            }
-        }
-    }
-
-    /// Check an artifact against what was signed, then fetch and check its
-    /// receipt.
-    async fn attest_finish(
-        &mut self,
-        attestation: Attestation,
-        artifact: SignedArtifact,
-    ) -> Result<Attestation> {
-        let account = self.account()?.clone();
-        let approval = attestation.request.approval().clone();
-        let receipt: Result<CertifiedBatch> = self
-            .session()?
-            .ic
-            .query(
-                account.home,
-                "get_execution_receipt",
-                (account.id, approval.request_id),
-            )
-            .await?;
-        self.attest_complete(attestation, artifact, receipt?)
-    }
-
     /// Check an artifact and its receipt against what was signed and keep
     /// both.
     fn attest_complete(
@@ -1119,7 +1046,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::IntegrityFailed` for a file that changed, the product
     /// authority's refusal and [`Self::attest_prepare`]'s errors.
-    pub fn attest_sign(&mut self, run: &mut AttestRun, read: RunRead) -> Result<()> {
+    fn attest_sign(&mut self, run: &mut AttestRun, read: RunRead) -> Result<()> {
         match self.attest_signed(run, read) {
             Ok(attestation) => {
                 run.request.execution = Some(attestation.execution_id());
@@ -1159,7 +1086,7 @@ impl Client {
     /// Returns the home's refusal, `Error::ExecutionUnknown` while the
     /// outcome is open, and `Error::IntegrityFailed` for an artifact or
     /// receipt that does not match what was signed.
-    pub fn attest_settle(&mut self, run: AttestRun, sent: RunSent) -> Result<Json> {
+    fn attest_settle(&mut self, run: AttestRun, sent: RunSent) -> Result<Json> {
         let AttestRun {
             mut request,
             attestation,
@@ -1242,72 +1169,6 @@ impl Client {
             kept.push(evidence);
         }
         Ok(kept)
-    }
-
-    /// Settle an attestation whose outcome is unknown, by its execution ID.
-    ///
-    /// # Errors
-    /// Returns `Error::ExecutionUnknown` while the home's answer is still
-    /// open, `Error::ResultExpired` once it can no longer be known, and the
-    /// recorded refusal of a failed one.
-    pub(crate) async fn attest_reconcile(&mut self, execution: &str) -> Result<Attestation> {
-        let mut attestation = self.attestation(execution)?.ok_or(Error::NotFound)?;
-        match attestation.stage {
-            Stage::Complete => return Ok(attestation),
-            Stage::Failed | Stage::Expired => {
-                return Err(match attestation.error.as_deref() {
-                    Some("EXPIRED") | None => Error::Expired,
-                    Some(_) => Error::Forbidden,
-                });
-            }
-            Stage::Lost => return Err(Error::ResultExpired),
-            Stage::Unknown => {}
-        }
-        let account = self.account()?.clone();
-        let approval = attestation.request.approval().clone();
-        let found: Result<SignedArtifact> = self
-            .session()?
-            .ic
-            .query(
-                account.home,
-                "get_attestation",
-                (account.id, approval.request_id),
-            )
-            .await?;
-        match found {
-            Ok(artifact) => self.attest_finish(attestation, artifact).await,
-            Err(Error::ResultExpired) => {
-                let state = self.refresh(account.home, &account.id).await?;
-                let device = state.device(&approval.device_id);
-                // A certified time past the deadline with the sequence
-                // unconsumed proves it never ran and never can.
-                if state.security.certified_at >= approval.expires_at
-                    && device.map(|d| d.next_sequence) == Some(approval.sequence)
-                {
-                    attestation.stage = Stage::Expired;
-                    attestation.error = Some("EXPIRED".into());
-                    self.save_attestation(&attestation)?;
-                    return Err(Error::Expired);
-                }
-                if now_ms() < approval.expires_at {
-                    // Still valid: sending the same signed request again is
-                    // safe, the home deduplicates it.
-                    return self.attest_dispatch(attestation).await;
-                }
-                // Past the deadline with the sequence used: it may have
-                // been recorded, and the home no longer says.
-                if state.security.certified_at >= approval.expires_at
-                    && device.is_some_and(|d| d.next_sequence > approval.sequence)
-                {
-                    attestation.stage = Stage::Lost;
-                    attestation.error = Some("RESULT_EXPIRED".into());
-                    self.save_attestation(&attestation)?;
-                    return Err(Error::ResultExpired);
-                }
-                Err(Error::ExecutionUnknown)
-            }
-            Err(error) => Err(error),
-        }
     }
 
     /// This account's formal-execution allowance for the current month,
@@ -1458,21 +1319,183 @@ impl Client {
             receipt: b64(&canonical(receipt)),
         })
     }
+}
 
-    /// [`verify_online`] with this client's reader and the deployment's
-    /// user homes.
-    ///
-    /// # Errors
-    /// As [`verify_bundle`].
-    pub async fn attest_verify(
-        &mut self,
-        bundle: &Bundle,
-        file: Option<&Path>,
-    ) -> Result<Verification> {
-        let homes = self.homes().await?;
-        let ic = self.reader().await?;
-        verify_online(&ic, &homes, bundle, file).await
+/// Ask this device to attest an application action its product prepared
+/// (`docs/protocol/app-action.md`), given as canonical CBOR, as a page's
+/// `signAction` does but from this device: the current registration must
+/// admit it and it must name this account. The request waits in the
+/// approval center at most until the action expires; approving asks the
+/// product authority before signing. The registration is read without the
+/// client.
+///
+/// # Errors
+/// Returns `Error::Locked` while locked, `Error::InvalidInput` for bytes
+/// that are not an action or an action of another account, and the
+/// admission errors of `validate_action_admission`.
+pub async fn action_request<H: Hold>(h: &H, source: &str, bytes: &[u8]) -> Result<Json> {
+    h.with(|c| c.keys().map(|_| ())).await?;
+    let action: AppAction =
+        dmsg_protocol::decode_canonical(bytes).map_err(|_| Error::InvalidInput("action".into()))?;
+    let (home, environment) = h
+        .with(|c| {
+            let account = c.account()?;
+            ensure(
+                action.signing_account == account.id,
+                Error::InvalidInput("ACCOUNT_MISMATCH".into()),
+            )?;
+            Ok((account.home, c.config.environment.clone()))
+        })
+        .await?;
+    // Commerce is outside the login's delegation targets.
+    let ic = h.anonymous().await?;
+    let app =
+        crate::connect::registration(&ic, home, &environment, &mut None, &action.app_id).await?;
+    h.with(|c| {
+        let now = now_ms();
+        dmsg_protocol::app_action::validate_action_admission(&action, &app, now)?;
+        let expires_at = (now + APPROVAL_TTL_MS).min(action.expires_at_ms);
+        let request = c.approval_create(
+            source,
+            Action::AttestAction {
+                action: bytes.to_vec().into(),
+                // The schema the review renders, from the certified
+                // registration that admitted the action.
+                schema: app.action_schema.as_ref().map(|s| canonical(s).into()),
+            },
+            expires_at,
+        )?;
+        c.approval_view(&request)
+    })
+    .await
+}
+
+/// Send a journaled attestation and keep its artifact and receipt, the user
+/// home waited on without the client.
+///
+/// # Errors
+/// Returns `Error::ExecutionUnknown` when the reply is lost and the home's
+/// refusal otherwise.
+pub(crate) async fn dispatch<H: Hold>(h: &H, mut attestation: Attestation) -> Result<Attestation> {
+    let (ic, home) = h
+        .with(|c| Ok((c.session()?.ic.clone(), c.account()?.home)))
+        .await?;
+    let reply: Result<SignedArtifact> = match &attestation.request {
+        Signed::Document(request) => ic.update(home, "attest", (request,)).await?,
+        Signed::Action(request) => ic.update(home, "attest_app_action", (request,)).await?,
+    };
+    match reply {
+        Ok(artifact) => finish(h, attestation, artifact).await,
+        Err(error) => {
+            attestation.stage = Stage::Failed;
+            attestation.error = Some(crate::error_code(&error));
+            h.with(|c| c.save_attestation(&attestation)).await?;
+            Err(error)
+        }
     }
+}
+
+/// Check an artifact against what was signed, then fetch and check its
+/// receipt.
+async fn finish<H: Hold>(
+    h: &H,
+    attestation: Attestation,
+    artifact: SignedArtifact,
+) -> Result<Attestation> {
+    let (ic, account) = h
+        .with(|c| Ok((c.session()?.ic.clone(), c.account()?.clone())))
+        .await?;
+    let approval = attestation.request.approval();
+    let receipt: Result<CertifiedBatch> = ic
+        .query(
+            account.home,
+            "get_execution_receipt",
+            (account.id, approval.request_id),
+        )
+        .await?;
+    let receipt = receipt?;
+    h.with(|c| c.attest_complete(attestation, artifact, receipt))
+        .await
+}
+
+/// Settle an attestation whose outcome is unknown, by its execution ID, the
+/// user home waited on without the client.
+///
+/// # Errors
+/// Returns `Error::ExecutionUnknown` while the home's answer is still open,
+/// `Error::ResultExpired` once it can no longer be known, and the recorded
+/// refusal of a failed one.
+pub(crate) async fn reconcile<H: Hold>(h: &H, execution: &str) -> Result<Attestation> {
+    let mut attestation = h
+        .with(|c| c.attestation(execution)?.ok_or(Error::NotFound))
+        .await?;
+    match attestation.stage {
+        Stage::Complete => return Ok(attestation),
+        Stage::Failed | Stage::Expired => {
+            return Err(match attestation.error.as_deref() {
+                Some("EXPIRED") | None => Error::Expired,
+                Some(_) => Error::Forbidden,
+            });
+        }
+        Stage::Lost => return Err(Error::ResultExpired),
+        Stage::Unknown => {}
+    }
+    let (ic, account) = h
+        .with(|c| Ok((c.session()?.ic.clone(), c.account()?.clone())))
+        .await?;
+    let approval = attestation.request.approval().clone();
+    let found: Result<SignedArtifact> = ic
+        .query(
+            account.home,
+            "get_attestation",
+            (account.id, approval.request_id),
+        )
+        .await?;
+    match found {
+        Ok(artifact) => finish(h, attestation, artifact).await,
+        Err(Error::ResultExpired) => {
+            let state = crate::account::refreshed(h).await?;
+            let device = state.device(&approval.device_id);
+            // A certified time past the deadline with the sequence
+            // unconsumed proves it never ran and never can.
+            if state.security.certified_at >= approval.expires_at
+                && device.map(|d| d.next_sequence) == Some(approval.sequence)
+            {
+                attestation.stage = Stage::Expired;
+                attestation.error = Some("EXPIRED".into());
+                h.with(|c| c.save_attestation(&attestation)).await?;
+                return Err(Error::Expired);
+            }
+            if now_ms() < approval.expires_at {
+                // Still valid: sending the same signed request again is
+                // safe, the home deduplicates it.
+                return dispatch(h, attestation).await;
+            }
+            // Past the deadline with the sequence used: it may have been
+            // recorded, and the home no longer says.
+            if state.security.certified_at >= approval.expires_at
+                && device.is_some_and(|d| d.next_sequence > approval.sequence)
+            {
+                attestation.stage = Stage::Lost;
+                attestation.error = Some("RESULT_EXPIRED".into());
+                h.with(|c| c.save_attestation(&attestation)).await?;
+                return Err(Error::ResultExpired);
+            }
+            Err(Error::ExecutionUnknown)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+/// [`verify_online`] with the client's reader and the deployment's user
+/// homes, read without the client.
+///
+/// # Errors
+/// As [`verify_bundle`].
+pub async fn verify<H: Hold>(h: &H, bundle: &Bundle, file: Option<&Path>) -> Result<Verification> {
+    let homes = crate::client::homes(h).await?;
+    let ic = h.reader().await?;
+    verify_online(&ic, &homes, bundle, file).await
 }
 
 /// [`verify_bundle`] under the agent's root key and the user `homes`, then

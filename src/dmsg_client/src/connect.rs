@@ -1034,8 +1034,7 @@ impl Client {
         Ok(app)
     }
 
-    /// The certified registration of `app_id` from the home's commerce
-    /// canister, fresh within 60 seconds; `commerce` keeps the canister.
+    /// [`registration`] with this client's anonymous agent.
     pub(crate) async fn app_registration(
         &mut self,
         commerce: &mut Option<Principal>,
@@ -1043,30 +1042,8 @@ impl Client {
     ) -> Result<AppRegistration> {
         // Commerce is outside the login's delegation targets.
         let ic = self.anonymous().await?;
-        let canister = match *commerce {
-            Some(canister) => canister,
-            None => {
-                let init: UserInit = ic.query(self.account()?.home, "user_config", ()).await?;
-                *commerce = Some(init.commerce_canister);
-                init.commerce_canister
-            }
-        };
-        let batch: Result<CertifiedBatch> = ic
-            .query(
-                canister,
-                "integration_configuration_certificate",
-                (app_id, None::<String>),
-            )
-            .await?;
-        let key = digest("dmsg/registration/app/v1", &app_id).to_vec();
-        let (value, _) = verify_certified_leaf(&batch?, &key, canister, &ic.root_key(), now_ms())?;
-        let app: AppRegistration = dmsg_protocol::decode_canonical(&value)?;
-        validate_app(&app)?;
-        ensure(
-            app.app_id == app_id && app.environment == self.config.environment,
-            Error::IntegrityFailed,
-        )?;
-        Ok(app)
+        let home = self.account()?.home;
+        registration(&ic, home, &self.config.environment, commerce, app_id).await
     }
 
     async fn connect_handle(&mut self, entry: &Entry, checks: &mut Checks) -> Result<Handled> {
@@ -1871,7 +1848,7 @@ impl Client {
                         approval.execution = op.execution.clone();
                         self.save_operation(&op)?;
                         self.save_approval(approval)?;
-                        self.attest_dispatch(attestation)
+                        crate::attest::dispatch(&self.hold(), attestation)
                             .await
                             .and_then(|a| attestation_result(&a))
                     }
@@ -2009,7 +1986,7 @@ impl Client {
         let outcome = match (&op.execution, &op.auth) {
             (Some(execution), _) => {
                 let execution = execution.clone();
-                self.attest_reconcile(&execution)
+                crate::attest::reconcile(&self.hold(), &execution)
                     .await
                     .and_then(|a| attestation_result(&a))
             }
@@ -2273,6 +2250,42 @@ enum Handled {
 }
 
 /// The page-visible refusal of an admission failure.
+/// The certified registration of `app_id` from the commerce canister of
+/// the user `home`, fresh within 60 seconds, read with the anonymous agent
+/// `ic`; `commerce` keeps the canister.
+pub(crate) async fn registration(
+    ic: &crate::ic::Ic,
+    home: Principal,
+    environment: &dmsg_types::Environment,
+    commerce: &mut Option<Principal>,
+    app_id: &str,
+) -> Result<AppRegistration> {
+    let canister = match *commerce {
+        Some(canister) => canister,
+        None => {
+            let init: UserInit = ic.query(home, "user_config", ()).await?;
+            *commerce = Some(init.commerce_canister);
+            init.commerce_canister
+        }
+    };
+    let batch: Result<CertifiedBatch> = ic
+        .query(
+            canister,
+            "integration_configuration_certificate",
+            (app_id, None::<String>),
+        )
+        .await?;
+    let key = digest("dmsg/registration/app/v1", &app_id).to_vec();
+    let (value, _) = verify_certified_leaf(&batch?, &key, canister, &ic.root_key(), now_ms())?;
+    let app: AppRegistration = dmsg_protocol::decode_canonical(&value)?;
+    validate_app(&app)?;
+    ensure(
+        app.app_id == app_id && app.environment == *environment,
+        Error::IntegrityFailed,
+    )?;
+    Ok(app)
+}
+
 fn admission_refusal(error: &Error) -> Refusal {
     match error {
         Error::InvalidInput(code) => Refusal(match code.as_str() {

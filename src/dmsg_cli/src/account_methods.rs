@@ -6,7 +6,10 @@
 
 use crate::daemon::Daemon;
 use crate::params::{account, hash, number, optional, source, text, to_json};
-use dmsg_client::{commerce::Records, security::AccountChange};
+use dmsg_client::{
+    commerce::Records,
+    security::{AccountChange, account_request},
+};
 use dmsg_types::{DAY, Error, Hash, KeyPurpose, Result};
 use serde_json::{Value, json};
 
@@ -104,45 +107,35 @@ impl Daemon {
                     self.client().lock().await.handle_operations()?,
                 ));
             }
-            _ => {}
-        }
-        // Account changes, recovery, handles and payments still wait on the
-        // IC under the client.
-        self.under_lock(async |client| match method {
-            "account/bind_request" => {
-                let token = client.bind_request(&account(params, "account")?).await?;
-                Ok(json!({"token": token}))
-            }
-            "account/bind_accept" => Ok(to_json(
-                &client.bind_accept(&account(params, "account")?).await?,
-            )),
+            // Requests for an account change read the account without the
+            // client.
             "account/bind_approve" => {
-                let request = client.inspect_binding(&text(params, "token")?)?;
+                let request = self
+                    .client()
+                    .lock()
+                    .await
+                    .inspect_binding(&text(params, "token")?)?;
                 // The person names the login shown on the other device.
                 if request.principal.to_text() != text(params, "principal")? {
                     return Err(Error::InvalidInput(
                         "principal does not match the request".into(),
                     ));
                 }
-                client
-                    .account_request(
-                        source(params)?,
-                        AccountChange::BindLogin {
-                            principal: request.principal.to_text(),
-                            nonce: request.nonce,
-                        },
-                    )
-                    .await
+                let change = AccountChange::BindLogin {
+                    principal: request.principal.to_text(),
+                    nonce: request.nonce,
+                };
+                return account_request(&self.hold(), source(params)?, change).await;
             }
             "account/unbind" => {
                 let principal = text(params, "principal")?;
-                client
-                    .account_request(source(params)?, AccountChange::RemoveLogin { principal })
-                    .await
+                let change = AccountChange::RemoveLogin { principal };
+                return account_request(&self.hold(), source(params)?, change).await;
             }
             "account/policy" => {
                 // The fields given replace those in force.
-                let previous = client.account_policy().await?;
+                let h = self.hold();
+                let previous = dmsg_client::security::account_policy(&h).await?;
                 let mut policy = previous.clone();
                 if let Some(frozen) = params["frozen"].as_bool() {
                     policy.frozen = frozen;
@@ -156,27 +149,31 @@ impl Daemon {
                         .map(|p| purpose(p.as_str().unwrap_or_default()))
                         .collect::<Result<_>>()?;
                 }
-                client
-                    .account_request(
-                        source(params)?,
-                        AccountChange::Policy {
-                            policy,
-                            previous: Some(previous),
-                        },
-                    )
-                    .await
+                let change = AccountChange::Policy {
+                    policy,
+                    previous: Some(previous),
+                };
+                return account_request(&h, source(params)?, change).await;
             }
             "account/recovery_delay" => {
                 let days = number::<u64>(params, "days")?;
-                client
-                    .account_request(
-                        source(params)?,
-                        AccountChange::RecoveryDelay {
-                            delay_ms: days.saturating_mul(DAY),
-                        },
-                    )
-                    .await
+                let change = AccountChange::RecoveryDelay {
+                    delay_ms: days.saturating_mul(DAY),
+                };
+                return account_request(&self.hold(), source(params)?, change).await;
             }
+            _ => {}
+        }
+        // Logins, recovery, handles and payments still wait on the IC under
+        // the client.
+        self.under_lock(async |client| match method {
+            "account/bind_request" => {
+                let token = client.bind_request(&account(params, "account")?).await?;
+                Ok(json!({"token": token}))
+            }
+            "account/bind_accept" => Ok(to_json(
+                &client.bind_accept(&account(params, "account")?).await?,
+            )),
             "recovery/status" => client.recovery_status().await,
             "recovery/request" => client.recovery_request().await,
             "recovery/complete" => Ok(to_json(&client.recovery_complete().await?)),

@@ -11,6 +11,7 @@ use crate::cloud::{Evidence, EvidenceEntry};
 use crate::codec::{MAX_RECORD, b64, canonical, decode, digest, unb64};
 use crate::config::Config;
 use crate::crypto::{random_id, sign};
+use crate::hold::Hold;
 use crate::ic::Ic;
 use crate::now_ms;
 use crate::workspace::AccountRef;
@@ -955,6 +956,33 @@ pub(crate) async fn read_account(
         &ic.root_key(),
         now_ms(),
     )
+}
+
+/// [`Client::refresh`] of the selected account, its user home waited on
+/// without the client.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` without a login, and as [`Client::refresh`].
+pub(crate) async fn refreshed<H: Hold>(h: &H) -> Result<AccountState> {
+    let (ic, account) = h
+        .with(|c| Ok((c.session()?.ic.clone(), c.account()?.clone())))
+        .await?;
+    let state = read_account(&ic, account.home, &account.id).await?;
+    h.with(|c| c.observe(&account.id, &state.security)).await?;
+    Ok(state)
+}
+
+/// [`Client::refresh_security`] of the selected account, its user home
+/// waited on without the client.
+///
+/// # Errors
+/// As [`Client::refresh_security`].
+pub(crate) async fn refreshed_security<H: Hold>(h: &H) -> Result<Security> {
+    let account = h.with(|c| c.account().cloned()).await?;
+    let ic = h.reader().await?;
+    let security = fetch_security(&ic, account.home, &account.id).await?;
+    h.with(|c| c.observe(&account.id, &security)).await?;
+    Ok(security)
 }
 
 #[cfg(test)]

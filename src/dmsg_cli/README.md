@@ -770,16 +770,19 @@ The daemon listens on `127.0.0.1` only.
   library's backups, cloud copies and share links; profiles, the inbox,
   MCP Events endpoints, team wallets' reads, the plan's status, catalog
   and assets, `account/show|security`, `connect/pairings|sync` and
-  `attest/readiness`; a high-risk approval's presence prompt and an
-  approved attestation's reads, submission and receipt; and the
+  `attest/readiness|action|verify`; requests for account and device
+  changes (`account/bind_approve|unbind|policy|recovery_delay`,
+  `device/capabilities|formal_approve|revoke`); a high-risk approval's
+  presence prompt, an approved attestation's reads, submission and receipt,
+  and the reconciling of attestations whose outcome is unknown; and the
   background flush, mailbox read, backup passes and MCP Events fetch.
   Requests are signed under the client and sent after it, so a slow
   network does not hold up the library's reads. Work on the same thing
-  takes turns: one backup pass, one profile publish, one MCP Events fetch
-  and one send of a given message ID at a time. Account, device and channel
-  controls, payments, names, other approved requests carrying themselves out,
-  the content sync, unlocking, login checks and the legacy migration still
-  wait under it.
+  takes turns: one backup pass, one profile publish, one MCP Events fetch,
+  one reconcile pass and one send of a given message ID at a time. Login
+  binding, recovery, device pairing, channel controls, payments, names,
+  other approved requests carrying themselves out, the content sync,
+  unlocking, login checks and the legacy migration still wait under it.
 - Methods: `app/initialize {activity?}`, `app/activity`, `daemon/status`,
   `events/poll`,
   `session/status|login {origin, bind?}|login_result|accounts|switch|unlock {fast?, account?}|lock|fast_unlock`,

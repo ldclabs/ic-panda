@@ -16,6 +16,7 @@
 //! login password first (plan S03).
 
 use crate::client::Client;
+use crate::hold::Hold;
 use crate::now_ms;
 use crate::secure::PresenceKey;
 use crate::store::ApprovalRow;
@@ -683,13 +684,7 @@ impl Client {
             .await?
         {
             Decision::Done(view) => Ok(view),
-            Decision::Attest(run) => {
-                let mut run = *run;
-                let read = run.read().await;
-                self.attest_sign(&mut run, read)?;
-                let sent = run.send().await;
-                self.attest_settle(run, sent)
-            }
+            Decision::Attest(run) => run.run(&self.hold()).await,
         }
     }
 
@@ -905,99 +900,91 @@ impl Client {
         self.approval_view(request)
     }
 
-    /// Reconcile every approved request whose outcome is unknown; returns
-    /// how many there were.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked; each request's own failure is
-    /// kept on it.
-    pub async fn approvals_reconcile(&mut self) -> Result<usize> {
-        // Finished attestations the account does not keep yet, such as one
-        // signed while the root was being replaced.
-        let _ = self.attest_backfill();
+    /// The approved requests whose outcome is unknown and that are not
+    /// running in steps now: the attestations, or the others.
+    fn unsettled(&mut self, attestations: bool) -> Result<Vec<Request>> {
         let now = now_ms();
         self.running.retain(|_, at| now < *at + RUN_MS);
         let rows: Vec<ApprovalRow> = self
             .workspace
             .store
-            .approvals(&[State::Executing.name(), State::Unknown.name()])?
-            .into_iter()
-            .filter(|row| !self.running.contains_key(&row.id))
-            .collect();
-        let count = rows.len();
+            .approvals(&[State::Executing.name(), State::Unknown.name()])?;
+        let mut found = Vec::new();
         for row in rows {
-            let mut request = self.approval_record(&row.id)?;
-            let outcome = match (&request.action, &request.execution) {
-                (Action::Attest { .. } | Action::AttestAction { .. }, Some(execution)) => {
-                    let execution = execution.clone();
-                    self.attest_reconcile(&execution).await.map(|_| ())
-                }
+            if self.running.contains_key(&row.id) {
+                continue;
+            }
+            let request = self.approval_record(&row.id)?;
+            let attestation = matches!(
+                request.action,
+                Action::Attest { .. } | Action::AttestAction { .. }
+            );
+            if attestation == attestations {
+                found.push(request);
+            }
+        }
+        Ok(found)
+    }
+
+    /// Keep what reconciling a request found. A step that could not run
+    /// says nothing about the outcome: the request stays where it is for
+    /// the next round.
+    fn reconciled(&mut self, request: &mut Request, outcome: Result<()>) -> Result<()> {
+        match outcome {
+            Err(
+                error @ (Error::ExecutionUnknown
+                | Error::Unavailable(_)
+                | Error::AuthRequired
+                | Error::PolicyStale
+                | Error::Locked),
+            ) => {
+                request.error = Some(crate::error_code(&error));
+                self.save_approval(request)
+            }
+            outcome => {
+                let _ = self.finish_approval(request, outcome);
+                Ok(())
+            }
+        }
+    }
+
+    /// Reconcile every approved request whose outcome is unknown, other
+    /// than attestations ([`reconcile_attestations`]); returns how many
+    /// there were.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked; each request's own failure is
+    /// kept on it.
+    pub async fn approvals_reconcile(&mut self) -> Result<usize> {
+        let requests = self.unsettled(false)?;
+        let count = requests.len();
+        for mut request in requests {
+            let outcome = match request.action.clone() {
                 // Account changes reconcile through the account journal.
-                (Action::DeviceCapabilities { .. }, _) => self.resume().await.map(|_| ()),
-                (Action::DeviceRevoke { .. }, _) => match self.resume().await {
+                Action::DeviceCapabilities { .. } => self.resume().await.map(|_| ()),
+                Action::DeviceRevoke { .. } => match self.resume().await {
                     Ok(_) => self.rotate_root().await.map(|_| ()),
                     Err(error) => Err(error),
                 },
-                (Action::Connect { operation, .. }, _) => {
-                    let operation = operation.clone();
-                    self.connect_reconcile(&operation).await
-                }
-                (Action::Checkout { id, fresh, .. }, _) => {
-                    let (id, fresh) = (id.clone(), *fresh);
-                    match fresh {
-                        true => self.plan_advance(&id).await.map(|_| ()),
-                        false => self.plan_execute(&id).await.map(|_| ()),
-                    }
-                }
-                (
-                    Action::Letter {
-                        recipient, order, ..
-                    },
-                    _,
-                ) => {
-                    let order = order.clone();
-                    match recipient.parse() {
-                        Ok(recipient) => self.inbox_pay(&recipient, &order).await.map(|_| ()),
-                        Err(_) => Err(Error::IntegrityFailed),
-                    }
-                }
-                (Action::Handle { id, .. }, _) => {
-                    let id = id.clone();
-                    self.handle_execute(&id).await.map(|_| ())
-                }
-                (Action::Account { change }, _) => {
-                    let change = change.clone();
-                    self.account_reconcile(&change).await
-                }
-                (Action::Principal { .. }, _) => self.resume().await.map(|_| ()),
-                (Action::Delegation { job, .. }, _) => {
-                    let job = job.clone();
-                    self.delegation_execute(&job).await.map(|_| ())
-                }
-                (Action::Wallet { job, .. }, _) => {
-                    let job = job.clone();
-                    self.wallet_job_execute(&job).await
-                }
-                // Approved, but the attestation was never prepared.
-                (Action::Attest { .. } | Action::AttestAction { .. }, None) => Err(Error::Expired),
+                Action::Connect { operation, .. } => self.connect_reconcile(&operation).await,
+                Action::Checkout { id, fresh, .. } => match fresh {
+                    true => self.plan_advance(&id).await.map(|_| ()),
+                    false => self.plan_execute(&id).await.map(|_| ()),
+                },
+                Action::Letter {
+                    recipient, order, ..
+                } => match recipient.parse() {
+                    Ok(recipient) => self.inbox_pay(&recipient, &order).await.map(|_| ()),
+                    Err(_) => Err(Error::IntegrityFailed),
+                },
+                Action::Handle { id, .. } => self.handle_execute(&id).await.map(|_| ()),
+                Action::Account { change } => self.account_reconcile(&change).await,
+                Action::Principal { .. } => self.resume().await.map(|_| ()),
+                Action::Delegation { job, .. } => self.delegation_execute(&job).await.map(|_| ()),
+                Action::Wallet { job, .. } => self.wallet_job_execute(&job).await,
+                Action::Attest { .. } | Action::AttestAction { .. } => continue,
             };
-            // A step that could not run says nothing about the outcome:
-            // the request stays where it is for the next round.
-            match outcome {
-                Err(
-                    error @ (Error::ExecutionUnknown
-                    | Error::Unavailable(_)
-                    | Error::AuthRequired
-                    | Error::PolicyStale
-                    | Error::Locked),
-                ) => {
-                    request.error = Some(crate::error_code(&error));
-                    self.save_approval(&request)?;
-                }
-                outcome => {
-                    let _ = self.finish_approval(&mut request, outcome);
-                }
-            }
+            self.reconciled(&mut request, outcome)?;
         }
         Ok(count)
     }
@@ -1030,86 +1017,6 @@ impl Client {
         request.updated_at = now_ms();
         self.save_approval(&request)?;
         self.approval_view(&request)
-    }
-
-    /// Ask to replace a device's capabilities, such as turning on
-    /// `FormalApprove` for this device; an administrator device holding
-    /// `RootManage` approves it, its own included.
-    ///
-    /// # Errors
-    /// Returns `Error::Forbidden` on a device that cannot approve account
-    /// changes and `Error::DeviceNotApproved` for an unknown or revoked device.
-    pub async fn capabilities_request(
-        &mut self,
-        source: &str,
-        device_id: Hash,
-        capabilities: Vec<Capability>,
-    ) -> Result<Json> {
-        self.keys()?;
-        let account = self.account()?.clone();
-        let security = self.refresh_security(account.home, &account.id).await?;
-        let own = security.active(&self.workspace.meta.device_id)?;
-        ensure(
-            own.input.role == dmsg_types::user::ControllerRole::Administrator
-                && own.input.capabilities.contains(&Capability::RootManage),
-            Error::Forbidden,
-        )?;
-        let target = security.active(&device_id)?;
-        let mut input = target.input.clone();
-        input.capabilities = capabilities.clone();
-        dmsg_protocol::DeviceInputExt::validate(&input)?;
-        let request = self.approval_create(
-            source,
-            Action::DeviceCapabilities {
-                device_id,
-                capabilities,
-            },
-            now_ms() + HIGH_RISK_TTL_MS,
-        )?;
-        self.approval_view(&request)
-    }
-
-    /// Ask to revoke another device of the account; approving also rotates
-    /// the content root, so the revoked device cannot read what comes next.
-    ///
-    /// # Errors
-    /// Returns `Error::Forbidden` on a device that cannot approve account
-    /// changes or for this device itself.
-    pub async fn revoke_request(&mut self, source: &str, device_id: Hash) -> Result<Json> {
-        self.keys()?;
-        let account = self.account()?.clone();
-        let security = self.refresh_security(account.home, &account.id).await?;
-        let own = security.active(&self.workspace.meta.device_id)?;
-        ensure(
-            own.input.role == dmsg_types::user::ControllerRole::Administrator
-                && own.input.capabilities.contains(&Capability::RootManage)
-                && device_id != self.workspace.meta.device_id,
-            Error::Forbidden,
-        )?;
-        security.active(&device_id)?;
-        let request = self.approval_create(
-            source,
-            Action::DeviceRevoke { device_id },
-            now_ms() + HIGH_RISK_TTL_MS,
-        )?;
-        self.approval_view(&request)
-    }
-
-    /// This device's capabilities with `FormalApprove` turned on or off.
-    ///
-    /// # Errors
-    /// As [`Self::capabilities_request`].
-    pub async fn formal_approve_request(&mut self, source: &str, enable: bool) -> Result<Json> {
-        let account = self.account()?.clone();
-        let security = self.refresh_security(account.home, &account.id).await?;
-        let device_id = self.workspace.meta.device_id;
-        let mut capabilities = security.active(&device_id)?.input.capabilities.clone();
-        capabilities.retain(|c| *c != Capability::FormalApprove);
-        if enable {
-            capabilities.push(Capability::FormalApprove);
-        }
-        self.capabilities_request(source, device_id, capabilities)
-            .await
     }
 
     /// Ask to approve a quoted checkout and pay it from the payer; with
@@ -1293,6 +1200,121 @@ impl Client {
             "detail": detail,
         }))
     }
+}
+
+/// Reconcile every approved attestation whose outcome is unknown, its user
+/// home waited on without the client; returns how many there were. The
+/// other requests reconcile in [`Client::approvals_reconcile`].
+///
+/// # Errors
+/// Returns `Error::Locked` while locked; each request's own failure is kept
+/// on it.
+pub async fn reconcile_attestations<H: Hold>(h: &H) -> Result<usize> {
+    let requests = h
+        .with(|c| {
+            // Finished attestations the account does not keep yet, such as
+            // one signed while the root was being replaced.
+            let _ = c.attest_backfill();
+            c.unsettled(true)
+        })
+        .await?;
+    let count = requests.len();
+    for request in requests {
+        let outcome = match &request.execution {
+            Some(execution) => crate::attest::reconcile(h, execution).await.map(|_| ()),
+            // Approved, but the attestation was never prepared.
+            None => Err(Error::Expired),
+        };
+        h.with(|c| {
+            let mut request = c.approval_record(&request.id)?;
+            c.reconciled(&mut request, outcome)
+        })
+        .await?;
+    }
+    Ok(count)
+}
+
+/// Ask to replace a device's capabilities, such as turning on
+/// `FormalApprove` for this device; an administrator device holding
+/// `RootManage` approves it, its own included. The user home is waited on
+/// without the client.
+///
+/// # Errors
+/// Returns `Error::Forbidden` on a device that cannot approve account
+/// changes and `Error::DeviceNotApproved` for an unknown or revoked device.
+pub async fn capabilities_request<H: Hold>(
+    h: &H,
+    source: &str,
+    device_id: Hash,
+    capabilities: Vec<Capability>,
+) -> Result<Json> {
+    h.with(|c| c.keys().map(|_| ())).await?;
+    let security = crate::account::refreshed_security(h).await?;
+    h.with(|c| {
+        let own = security.active(&c.workspace.meta.device_id)?;
+        ensure(
+            own.input.role == dmsg_types::user::ControllerRole::Administrator
+                && own.input.capabilities.contains(&Capability::RootManage),
+            Error::Forbidden,
+        )?;
+        let mut input = security.active(&device_id)?.input.clone();
+        input.capabilities = capabilities.clone();
+        dmsg_protocol::DeviceInputExt::validate(&input)?;
+        let request = c.approval_create(
+            source,
+            Action::DeviceCapabilities {
+                device_id,
+                capabilities,
+            },
+            now_ms() + HIGH_RISK_TTL_MS,
+        )?;
+        c.approval_view(&request)
+    })
+    .await
+}
+
+/// Ask to revoke another device of the account; approving also rotates the
+/// content root, so the revoked device cannot read what comes next. The
+/// user home is waited on without the client.
+///
+/// # Errors
+/// Returns `Error::Forbidden` on a device that cannot approve account
+/// changes or for this device itself.
+pub async fn revoke_request<H: Hold>(h: &H, source: &str, device_id: Hash) -> Result<Json> {
+    h.with(|c| c.keys().map(|_| ())).await?;
+    let security = crate::account::refreshed_security(h).await?;
+    h.with(|c| {
+        let own = security.active(&c.workspace.meta.device_id)?;
+        ensure(
+            own.input.role == dmsg_types::user::ControllerRole::Administrator
+                && own.input.capabilities.contains(&Capability::RootManage)
+                && device_id != c.workspace.meta.device_id,
+            Error::Forbidden,
+        )?;
+        security.active(&device_id)?;
+        let request = c.approval_create(
+            source,
+            Action::DeviceRevoke { device_id },
+            now_ms() + HIGH_RISK_TTL_MS,
+        )?;
+        c.approval_view(&request)
+    })
+    .await
+}
+
+/// This device's capabilities with `FormalApprove` turned on or off.
+///
+/// # Errors
+/// As [`capabilities_request`].
+pub async fn formal_approve_request<H: Hold>(h: &H, source: &str, enable: bool) -> Result<Json> {
+    let security = crate::account::refreshed_security(h).await?;
+    let device_id = h.with(|c| Ok(c.workspace.meta.device_id)).await?;
+    let mut capabilities = security.active(&device_id)?.input.capabilities.clone();
+    capabilities.retain(|c| *c != Capability::FormalApprove);
+    if enable {
+        capabilities.push(Capability::FormalApprove);
+    }
+    capabilities_request(h, source, device_id, capabilities).await
 }
 
 /// The SHA-256 a document statement names, if any.

@@ -475,6 +475,19 @@ impl Peers {
     }
 }
 
+/// The deployment's user homes, checked against the configured pins: read
+/// without the client the first time.
+pub(crate) async fn homes<H: Hold>(h: &H) -> Result<Vec<Principal>> {
+    let (homes, config) = h.with(|c| Ok((c.homes.clone(), c.config.clone()))).await?;
+    if let Some(homes) = homes {
+        return Ok(homes);
+    }
+    let ic = h.reader().await?;
+    let read = crate::account::user_homes(&ic, config.handle, &config.user_homes).await?;
+    h.with(|c| Ok(c.homes.get_or_insert(read.user_homes).clone()))
+        .await
+}
+
 /// Whether `state` is the account's and has more than ten seconds left.
 fn fresh(state: &Security, account: &AccountId) -> bool {
     state.snapshot.account_id == *account && state.expires_at() > now_ms() + 10_000
@@ -1402,14 +1415,7 @@ impl Client {
 
     /// The deployment's user homes, checked against the configured pins.
     pub(crate) async fn homes(&mut self) -> Result<Vec<Principal>> {
-        if let Some(homes) = &self.homes {
-            return Ok(homes.clone());
-        }
-        let ic = self.reader().await?;
-        let config =
-            crate::account::user_homes(&ic, self.config.handle, &self.config.user_homes).await?;
-        self.homes = Some(config.user_homes.clone());
-        Ok(config.user_homes)
+        homes(&self.hold()).await
     }
 
     /// What other accounts' relay evidence is checked against.

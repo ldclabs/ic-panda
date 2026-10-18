@@ -450,16 +450,15 @@ async fn background(daemon: Arc<Daemon>) {
                     daemon.emit("approval/changed", json!({"connect": report}));
                 }
             }
-            // Only news is announced: windows reload on this event. An
-            // approved request carries itself out under the client.
+            // Only news is announced: windows reload on this event.
             if unlocked {
-                let (reconciled, count) = daemon
-                    .under_lock(async |client| {
-                        let reconciled = client.approvals_reconcile().await.unwrap_or(0);
-                        Ok((reconciled, client.approvals_waiting().unwrap_or(waiting)))
-                    })
+                let reconciled = daemon.reconcile_pass().await.unwrap_or(0);
+                let count = daemon
+                    .client
+                    .lock()
                     .await
-                    .unwrap_or((0, waiting));
+                    .approvals_waiting()
+                    .unwrap_or(waiting);
                 if reconciled > 0 || count != waiting {
                     daemon.emit("approval/changed", Value::Null);
                 }
@@ -731,15 +730,24 @@ impl Daemon {
         match decision {
             Decision::Done(view) => Ok(view),
             Decision::Attest(run) => {
-                let mut run = *run;
                 // The windows see it executing while it runs.
                 self.emit("approval/changed", Value::Null);
-                let read = run.read().await;
-                self.client.lock().await.attest_sign(&mut run, read)?;
-                let sent = run.send().await;
-                self.client.lock().await.attest_settle(run, sent)
+                run.run(&self.hold()).await
             }
         }
+    }
+
+    /// Settle the approved requests whose outcome is unknown, one pass at a
+    /// time: attestations wait on their user home without the client; the
+    /// other requests carry themselves out under it. Returns how many there
+    /// were.
+    async fn reconcile_pass(&self) -> Result<usize> {
+        let _turn = self.turn("reconcile").await;
+        let attested = dmsg_client::approval::reconcile_attestations(&self.hold()).await?;
+        let others = self
+            .under_lock(async |client| client.approvals_reconcile().await)
+            .await?;
+        Ok(attested + others)
     }
 
     /// The loopback port.
@@ -1111,11 +1119,8 @@ impl Daemon {
                 client.approval_cancel(&id)
             }
             "approval/reconcile" => {
-                self.under_lock(async |client| {
-                    client.approvals_reconcile().await?;
-                    Ok(Value::Array(client.approvals(false)?))
-                })
-                .await
+                self.reconcile_pass().await?;
+                Ok(Value::Array(self.client.lock().await.approvals(false)?))
             }
             // A file compared with a request's digest: hashed here, outside
             // the client, since it may be large.
@@ -1157,9 +1162,7 @@ impl Daemon {
             }
             "attest/action" => {
                 let action = dmsg_client::codec::unb64(&text(params, "action")?)?;
-                let via = source(params)?;
-                self.under_lock(async |client| client.attest_action_request(via, &action).await)
-                    .await
+                dmsg_client::attest::action_request(&self.hold(), source(params)?, &action).await
             }
             "attest/history" => Ok(Value::Array(self.client.lock().await.attest_history()?)),
             "attest/export" => {
@@ -1173,9 +1176,8 @@ impl Daemon {
             "attest/verify" => {
                 let bundle: Bundle = parse(params, "bundle")?;
                 let file = optional(params, "file", absolute)?;
-                let report = self
-                    .under_lock(async |client| client.attest_verify(&bundle, file.as_deref()).await)
-                    .await?;
+                let report =
+                    dmsg_client::attest::verify(&self.hold(), &bundle, file.as_deref()).await?;
                 Ok(to_json(&report))
             }
             "device/capabilities" => {
@@ -1187,24 +1189,19 @@ impl Daemon {
                     .map(|c| capability(c.as_str().unwrap_or_default()))
                     .collect::<Result<Vec<_>>>()?;
                 let via = source(params)?;
-                self.under_lock(async |client| {
-                    client.capabilities_request(via, device, capabilities).await
-                })
-                .await
+                dmsg_client::approval::capabilities_request(&self.hold(), via, device, capabilities)
+                    .await
             }
             "device/formal_approve" => {
                 let enable = params["enable"]
                     .as_bool()
                     .ok_or_else(|| Error::InvalidInput("enable".into()))?;
-                let via = source(params)?;
-                self.under_lock(async |client| client.formal_approve_request(via, enable).await)
+                dmsg_client::approval::formal_approve_request(&self.hold(), source(params)?, enable)
                     .await
             }
             "device/revoke" => {
                 let device = hash(params, "device")?;
-                let via = source(params)?;
-                self.under_lock(async |client| client.revoke_request(via, device).await)
-                    .await
+                dmsg_client::approval::revoke_request(&self.hold(), source(params)?, device).await
             }
             "connect/invite" => {
                 self.under_lock(async |client| client.connect_invite().await)
@@ -1971,6 +1968,52 @@ mod tests {
                 }
             });
             answers_beside(&daemon, if on_ic { &ic } else { &relay }, work).await;
+        }
+    }
+
+    /// Each call has its own daemon, as above.
+    #[tokio::test]
+    async fn the_library_answers_while_approvals_are_asked() {
+        use dmsg_types::Hash;
+        use dmsg_types::app_action::{ActionArgs, ActionCommand, AppAction};
+        let action = AppAction {
+            version: 1,
+            environment: dmsg_types::Environment::Local,
+            app_id: "token-list".into(),
+            app_config_version: 1,
+            origin: "https://app.example".into(),
+            receiver: candid::Principal::from_slice(&[9; 10]),
+            actor: vec![8; 12].into(),
+            signing_account: dmsg_client::testing::account().id,
+            operation_id: Hash::new([1; 32]),
+            intent_hash: Hash::new([2; 32]),
+            schema_hash: Hash::new([3; 32]),
+            issued_at_ms: 1,
+            expires_at_ms: u64::MAX,
+            command: ActionCommand {
+                name: "Publish".into(),
+                args: ActionArgs(vec![]),
+            },
+            files: vec![],
+        };
+        let action = dmsg_client::codec::b64(&dmsg_client::codec::canonical(&action));
+        let cases = [
+            // An application action: its registration, before it waits.
+            ("attest/action", json!({"action": action})),
+            // The account's certified devices, before asking to revoke one.
+            ("device/revoke", json!({"device": "11".repeat(32)})),
+        ];
+        for (method, params) in cases {
+            let dir = dmsg_client::testing::TempDir::new();
+            let (daemon, _relay, ic) = stalled(&dir).await;
+            let work = tokio::spawn({
+                let daemon = daemon.clone();
+                async move {
+                    let module = route(method).expect("a method");
+                    daemon.call(module, method, &params).await
+                }
+            });
+            answers_beside(&daemon, &ic, work).await;
         }
     }
 
