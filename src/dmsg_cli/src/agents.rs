@@ -723,7 +723,16 @@ impl Daemon {
             "dmsg_channel_publish" => {
                 let id = channel()?;
                 client.capability_check(did, &format!("channel.publish:{id}"))?;
-                client.channel_send(&id, &text(input, "text")?, None).await
+                // Members see which Agent ID wrote it through this device.
+                let draft = dmsg_client::channel::Draft {
+                    text: text(input, "text")?,
+                    agent: Some(dmsg_client::channel::AgentRef {
+                        id: agent.agent_id.clone(),
+                        name: agent.label.clone(),
+                    }),
+                    ..Default::default()
+                };
+                client.channel_send(&id, &draft, None).await
             }
             "dmsg_inbox_list" => {
                 client.capability_check(did, "inbox.read")?;

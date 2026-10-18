@@ -441,6 +441,33 @@ impl Store {
         rows.collect::<rusqlite::Result<_>>().map_err(storage)
     }
 
+    /// At most `limit` sealed records starting with `prefix` whose keys sort
+    /// before `before`, the last first, with their values.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn sealed_before(
+        &self,
+        prefix: &str,
+        before: &str,
+        limit: usize,
+    ) -> Result<Vec<(String, String)>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare(
+                "SELECT key, value FROM sealed WHERE key < ?1 AND key >= ?2 AND key < ?3 \
+                 ORDER BY key DESC LIMIT ?4",
+            )
+            .map_err(storage)?;
+        let rows = statement
+            .query_map(
+                params![before, prefix, prefix_end(prefix), limit as i64],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .map_err(storage)?;
+        rows.collect::<rusqlite::Result<_>>().map_err(storage)
+    }
+
     /// Store a sealed record.
     ///
     /// # Errors

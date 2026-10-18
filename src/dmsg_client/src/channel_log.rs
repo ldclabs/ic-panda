@@ -179,6 +179,11 @@ pub enum Action {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         envelope_upload: Option<String>,
     },
+    /// Withdraw an open invitation; a manager signs it.
+    RevokeInvite {
+        /// Invitation ID, hex.
+        invitation_id: String,
+    },
     /// Accept an invitation; the invited account signs it.
     Accept {
         /// Invitation ID, hex.
@@ -478,7 +483,9 @@ fn check_control(control: &Control) -> Result<()> {
                     && matches!(role, Role::Member | Role::Publisher)
                     && envelope_upload.as_deref().is_none_or(is_hash)
             }
-            Action::Accept { invitation_id } => is_hash(invitation_id),
+            Action::Accept { invitation_id } | Action::RevokeInvite { invitation_id } => {
+                is_hash(invitation_id)
+            }
             Action::Role { account, role, .. } => is_account(account) && *role != Role::Owner,
             Action::Remove { account } => is_account(account),
             Action::Leave {} | Action::Archive {} | Action::Rekey {} => true,
@@ -583,6 +590,9 @@ pub fn advance(
                     envelope_upload: envelope_upload.clone(),
                 },
             );
+        }
+        Action::RevokeInvite { invitation_id } => {
+            forbid(manager && state.invitations.remove(invitation_id).is_some())?;
         }
         Action::Accept { invitation_id } => {
             let limit = if state.kind == ChannelType::Direct {

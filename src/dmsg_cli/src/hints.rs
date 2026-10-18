@@ -94,6 +94,8 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
         h.last_error = None;
     });
     daemon.note("hints", "connected");
+    // Hints sent while it was down are lost: read every channel once.
+    daemon.hint_channel("*");
     let (mut sink, mut stream) = socket.split();
     let mut ping = tokio::time::interval(PING);
     let mut heard = tokio::time::Instant::now();
@@ -118,7 +120,7 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
                 let Ok(hint) = serde_json::from_str::<Value>(&text) else { continue };
                 if hint["type"] == "hint" {
                     daemon.set_hints(|h| h.received += 1);
-                    handle(daemon, hint["kind"].as_str().unwrap_or_default()).await;
+                    handle(daemon, &hint).await;
                 }
             }
         }
@@ -127,11 +129,12 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
 
 /// Act on one hint. `connect`: fetch the mailbox when the keys are here,
 /// else tell the desktop, which notifies without saying from where.
-/// `mcp-event`: wake the fetch, which runs while unlocked. `channel` and
-/// `inbox`: locked, tell the desktop, which notifies that something
-/// arrived; unlocked, the inbox view reloads, and the channels' own hint
-/// sockets already had the daemon read the new messages.
-async fn handle(daemon: &Arc<Daemon>, kind: &str) {
+/// `mcp-event`: wake the fetch, which runs while unlocked. `channel`:
+/// unlocked, the channel loop reads the channel the hint names; locked,
+/// the desktop notifies that messages arrived, never for a control.
+/// `inbox`: locked, the desktop notifies; unlocked, the inbox view reloads.
+async fn handle(daemon: &Arc<Daemon>, hint: &Value) {
+    let kind = hint["kind"].as_str().unwrap_or_default();
     let session = daemon.client().lock().await.session_state();
     let unlocked = session.state == "unlocked";
     let ready = unlocked || session.resident;
@@ -143,7 +146,8 @@ async fn handle(daemon: &Arc<Daemon>, kind: &str) {
             daemon.emit("hint", json!({"kind": kind}));
         }
         "inbox" if unlocked => daemon.emit("inbox/changed", json!({"hint": true})),
-        "channel" if unlocked => {}
+        "channel" if unlocked => daemon.hint_channel(hint["resource"].as_str().unwrap_or("*")),
+        "channel" if hint["event"] == "control" => {}
         "channel" | "inbox" => daemon.emit("hint", json!({"kind": kind})),
         _ => {}
     }

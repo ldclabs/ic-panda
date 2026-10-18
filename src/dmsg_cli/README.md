@@ -477,8 +477,18 @@ none, and the member reads from the next epoch. Removing a member, a member
 leaving, a revoked device or `rekey` leave the channel at
 `rotation_required`; an unlocked daemon whose account may coordinate (the
 owner, an admin or a member with `can_rotate`) rotates it on its own, and
-`rotate` does it at once. A device a member adds needs no new epoch. `read` prints what this device read; while
-unlocked the daemon also reads on the relay's hints. Locked, the account's
+`rotate` does it at once. A device a member adds needs no new epoch.
+`uninvite` withdraws an open invitation. A billing transfer (`sponsor
+propose`) pauses the channel's messages until it completes, and `sponsor
+cancel` calls it off. `send` journals a message before it signs it, and a
+retry with the same `--message-id` never sends it twice; `outbox` lists
+what is still on its way and `outbox --discard` gives one up. `settings`
+renames a channel for this account, mutes or hides it, `search` looks
+through what this device read, and `receipts` shows how far members' devices
+took and read the messages. A message that does not open stays in `read` as
+unreadable instead of stopping the channel; a history grant has its epochs
+read again on the next `read`. `read` prints what this device read; while
+unlocked the daemon also reads the channels the account's hint channel names. Locked, the account's
 hint channel says only that a channel has new messages or a letter arrived,
 and the desktop notifies without saying from whom. A command whose reply was
 lost is kept in `pending`, and running it again, or `pending --key`, settles it

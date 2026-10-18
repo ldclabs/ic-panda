@@ -455,6 +455,40 @@ impl Client {
         )
     }
 
+    /// The display names `accounts` publish, each checked against the
+    /// account's certified devices like [`Self::profile_resolve`]; an account
+    /// without a profile, or whose profile does not verify, has none.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when the user homes cannot be read.
+    pub async fn profile_names(
+        &mut self,
+        accounts: &[AccountId],
+    ) -> Result<Vec<(String, Option<String>)>> {
+        let peers = self.read_peers(accounts).await?;
+        let cloud = self.cloud.clone();
+        let fetched = futures_util::future::join_all(peers.iter().map(|(account, _)| {
+            let cloud = cloud.clone();
+            let path = format!("/public/accounts/{account}/profile");
+            async move { cloud.public(&path).await }
+        }))
+        .await;
+        Ok(peers
+            .iter()
+            .zip(fetched)
+            .map(|((account, security), value)| {
+                let id = account.to_string();
+                let name = value
+                    .ok()
+                    .flatten()
+                    .and_then(|value| verify_public(&id, &value, security).ok())
+                    .map(|p| p.profile.display_name)
+                    .filter(|name| !name.is_empty());
+                (id, name)
+            })
+            .collect())
+    }
+
     /// Another account's published profile, checked against that account's
     /// certified devices; no login needed.
     ///

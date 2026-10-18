@@ -61,6 +61,15 @@
       >
         <Icon name={view.icon} class={active ? 'text-forest' : 'text-faint'} />
         {#if !collapsed}<span class="min-w-0 flex-1">{t(view.label)}</span>{/if}
+        {#if view === views.channels && status?.channels_unread}
+          <span
+            class={cn(
+              'min-w-4.5 rounded-full bg-forest px-1.5 text-center text-[10.5px] leading-[18px] font-semibold text-on-forest tabular-nums',
+              collapsed && 'absolute -end-1 -top-1 min-w-4 px-1 text-[9.5px] leading-4'
+            )}
+            data-testid="channels-unread">{status.channels_unread > 99 ? '99+' : status.channels_unread}</span
+          >
+        {/if}
         {#if view === views.approvals && status?.approvals_waiting}
           <span
             class={cn(

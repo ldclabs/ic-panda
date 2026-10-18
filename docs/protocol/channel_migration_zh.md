@@ -8,11 +8,11 @@
 
 加入不换代。频道可写时，邀请控制带 `envelope_upload`：邀请人把当前 epoch key 按历史授权的格式（`dmsg-channel-history/1`，范围只含当前 epoch）封装给被邀请账户当时有效且有内容权限的设备，上传绑定当前 epoch 与 head；中继保存被邀请账户的认证证据作为该控制的 `acceptance_evidence`。邀请只能在发出时的 epoch 被接受；带密钥的邀请还要求接受时被邀请账户的安全版本未变，否则须重新邀请。接受后新成员的 `joined_epoch` 为当前 epoch，频道保持可写，新成员可读当前 epoch 在其加入前已发的消息，更早的 epoch 仍须历史授权。频道等待换代时的邀请不带密钥，接受后从下一 epoch 起可读并需要换代。
 
-需要换代的情形：成员被移除或退出、`rekey` 控制（所有者、管理员或获准成员随时可发，例如不想让新成员读到当前 epoch 已有内容时先 rekey 再邀请），以及某成员原持有当前 epoch 的设备被撤销或失去内容权限。成员只新增设备时中继采纳其新安全版本而不换代，新设备经账户同步的频道记录取得已有 epoch key。所有者、管理员与 `can_rotate` 成员（已持有当前 epoch）可以协调换代；客户端 daemon 解锁时发现频道等待换代且本账户有权协调，就自动申请租约完成。中继在控制提交、epoch 激活和要求换代后经频道 WebSocket 发 `{type: "control", head}`，已不是成员的连接被关闭。
+需要换代的情形：成员被移除或退出、`rekey` 控制（所有者、管理员或获准成员随时可发，例如不想让新成员读到当前 epoch 已有内容时先 rekey 再邀请），以及某成员原持有当前 epoch 的设备被撤销或失去内容权限。成员只新增设备时中继采纳其新安全版本而不换代，新设备经账户同步的频道记录取得已有 epoch key。所有者、管理员与 `can_rotate` 成员（已持有当前 epoch）可以协调换代；客户端 daemon 解锁时发现频道等待换代且本账户有权协调，就自动申请租约完成。中继在控制提交、epoch 激活和要求换代后经成员账户的提示通道发 `channel` 提示（`event: "control"`，带频道 ID，见 connect-v1 7.5），消息提交后发 `event: "message"`；没有频道各自的 WebSocket。所有者可以撤销尚未接受的邀请（`revoke_invite` 控制）。邀请可以 `dmsg://channel/join#<base64url(邀请 JSON)>` 链接交付，打开后只预填加入对话框。
 
 换代租约绑定 epoch、head、fencing 和完整接收集合摘要。接收项为 `device:<account>:<device>`，只封装给当前有效且有内容权限的设备；最多 500 个设备。账户恢复后的设备经换根重新加入，不再有恢复接收项。HPKE 原文为随机 epoch key，info/AAD 使用 `dmsg/channel-epoch-envelope/1` 并绑定上述范围。每次换代保留公开接收集合证明；接收者验证自身信封与 key confirmation 后保存密钥。普通消息、文件、控制和 grant 不增加逐条 ICP update。
 
-消息使用独立随机 ID，按 `dmsg/channel-message-key/1` 从 epoch key 派生消息 key；重试保留原密文、ID 和批准。消息游标使用服务返回的 `next_seq`，无历史权限的序号由 `skipped` 单列；不能按返回条数猜结束。历史授权独立选择代范围，并只封装给目标当时有效的设备/恢复项。文件保留固定版本、原分块认证和完整 SHA-256。
+消息使用独立随机 ID，按 `dmsg/channel-message-key/1` 从 epoch key 派生消息 key；重试保留原密文、ID 和批准。中继未存下、而频道已换代或控制 head 已变的消息，以同一 ID 按当前纪元重新封装（C06）。密文正文为 `{text, file?, reply_to?, edit_of?, retract?, agent?, packet?}`：`reply_to`、`edit_of`、`retract` 以 `{seq, digest}` 指名一条消息（`digest` 为其签名命令的 SHA-256），编辑与撤回只对同一作者的消息生效，撤回让各成员设备删去原文与附件引用，但收不回已被取走的副本；`agent` 为经本设备写这条消息的 Agent ID 与名称（账户的声明，随正文由设备签名）；`packet` 为在频道内交付的所有权或计费转移包。无法解开或解码的正文、缺少纪元 key 的消息记为“无法读取”而游标照常前进，取得 key 后重读该纪元时再打开。成员可报告投递与已读游标（`POST /v1/channels/:id/cursor`，`dmsg/channel/cursor/v1 {delivered, read|null}`，只增不减），已读只在用户选择发送时上报；`GET /v1/channels/:id/cursors` 返回当前成员的游标。消息游标使用服务返回的 `next_seq`，无历史权限的序号由 `skipped` 单列；不能按返回条数猜结束。历史授权独立选择代范围，并只封装给目标当时有效的设备/恢复项；接收方下一次读取时自动打开授予的纪元，只重读此前跳过的那些消息。计费转移进行期间中继暂停普通写入，所有者可经 `billing/cancel` 取消，频道视图返回进行中的转移（`billing_transition`）。文件保留固定版本、原分块认证和完整 SHA-256。
 
 认证记录保留历史设备证据，不把“当前仍有权限”当成当时的证明。中继记录的接收时间不构成独立 TSA 时间戳。已取得的历史 key 无法远程收回；撤销隔离依赖新的 root/epoch，并受认证新鲜度窗口约束。
 

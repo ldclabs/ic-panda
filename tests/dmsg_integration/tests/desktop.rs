@@ -3236,6 +3236,104 @@ fn desktop_channels() {
     assert_eq!(texts(&seen), ["new shared epoch message"]);
     b.run(&["channel", "send", &id, "member reply"]);
     assert!(texts(&a.run(&["channel", "read", &id])).contains(&"member reply".to_string()));
+
+    // B answers a message of A, A edits it and withdraws another; each shows
+    // through the message it names, on B's device as on A's.
+    let refer =
+        |sent: &Value| json!({"seq": sent["receipt"]["seq"], "digest": sent["receipt"]["digest"]});
+    let draft = a.run(&["channel", "send", &id, "to be edited"]);
+    let doomed = a.run(&["channel", "send", &id, "to be withdrawn"]);
+    b.run(&["channel", "read", &id]);
+    b.rpc(&http, "channel/send", json!({"id": id, "text": "an answer", "reply_to": refer(&draft), "message_id": "7".repeat(64)}))
+        .unwrap();
+    a.rpc(
+        &http,
+        "channel/send",
+        json!({"id": id, "text": "edited", "edit_of": refer(&draft), "message_id": "8".repeat(64)}),
+    )
+    .unwrap();
+    a.rpc(
+        &http,
+        "channel/send",
+        json!({"id": id, "retract": refer(&doomed), "message_id": "9".repeat(64)}),
+    )
+    .unwrap();
+    // Another account cannot edit A's message.
+    assert_eq!(
+        b.rpc(
+            &http,
+            "channel/send",
+            json!({"id": id, "text": "mine", "edit_of": refer(&draft)})
+        )
+        .unwrap_err(),
+        "FORBIDDEN"
+    );
+    b.run(&["channel", "read", &id]);
+    let shown = b.rpc(&http, "channel/messages", json!({"id": id})).unwrap();
+    let at = |seq: &Value| {
+        shown
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["seq"] == *seq)
+            .unwrap()
+            .clone()
+    };
+    let edited = at(&draft["receipt"]["seq"]);
+    assert_eq!(edited["text"], "edited");
+    assert!(edited["edited_at"].is_u64());
+    let withdrawn = at(&doomed["receipt"]["seq"]);
+    assert_eq!(
+        (withdrawn["retracted"].clone(), withdrawn["text"].clone()),
+        (json!(true), json!(""))
+    );
+    let answer = shown
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|m| m["text"] == "an answer")
+        .unwrap();
+    assert_eq!(answer["reply_to"]["seq"], draft["receipt"]["seq"]);
+    assert!(!texts(&shown).contains(&"mine".to_string()));
+    // B's unread count follows what it marks read; its devices report the
+    // delivery on their own, and a read receipt only when B says so (C04).
+    let view = b.rpc(&http, "channel/show", json!({"id": id})).unwrap();
+    assert!(view["unread"].as_u64().unwrap() > 0, "{view}");
+    let through = view["message_cursor"].clone();
+    let marked = b
+        .rpc(
+            &http,
+            "channel/mark",
+            json!({"id": id, "through": through, "receipt": true}),
+        )
+        .unwrap();
+    assert_eq!(marked["unread"], 0);
+    let receipts = eventually(60, || {
+        let receipts = a.rpc(&http, "channel/receipts", json!({"id": id})).ok()?;
+        (receipts["cursors"][&member]["read"] == through).then_some(receipts)
+    });
+    assert!(receipts["cursors"][&member]["delivered"].as_u64() >= through.as_u64());
+    // Search finds what this device read, never a withdrawn message.
+    assert_eq!(
+        texts(&b.run(&["channel", "search", &id, "EDITED"])),
+        ["edited"]
+    );
+    assert!(texts(&b.run(&["channel", "search", &id, "withdrawn"])).is_empty());
+    // A renames and mutes the channel for its account alone.
+    let renamed = a.run(&[
+        "channel",
+        "settings",
+        &id,
+        "--name",
+        "Renamed here",
+        "--mute",
+        "true",
+    ]);
+    assert_eq!(
+        (renamed["name"].clone(), renamed["muted"].clone()),
+        (json!("Renamed here"), json!(true))
+    );
+    assert_ne!(b.run(&["channel", "show", &id])["name"], "Renamed here");
     // Locked, B learns only that messages arrived, through its account's
     // hint channel (A4.5). The relay hints a channel's members at most once
     // every five seconds.
@@ -3248,10 +3346,11 @@ fn desktop_channels() {
     assert_eq!(hint["data"], json!({"kind": "channel"}));
     assert_eq!(b.login(&http, 60).unwrap()["state"], "unlocked");
 
-    // History: A seals epoch 1 to B's devices; B reads it again.
+    // History: A seals epoch 1 to B's devices; B's next read opens the
+    // granted epoch and reads the messages it skipped there.
     let granted = a.run(&["channel", "history", &id, &member, "1", "1"]);
     assert_eq!(granted["members"][&member]["history"], json!([[1, 1]]));
-    let backfilled = b.run(&["channel", "read", &id, "--backfill"]);
+    let backfilled = b.run(&["channel", "read", &id]);
     assert!(texts(&backfilled).contains(&"owner history before invitation".to_string()));
     let out = env.dir.join("attachment.bin");
     let downloaded = b.run(&[
@@ -3290,6 +3389,32 @@ fn desktop_channels() {
     let accepted = a.run(&["channel", "transfer", "accept", &back.to_string()]);
     let returned = b.run(&["channel", "transfer", "commit", &accepted.to_string()]);
     assert_eq!(returned["owner"], owner.as_str());
+
+    // A billing transfer pauses the channel's messages until it completes;
+    // the owner calls one off, and they resume.
+    a.run(&["channel", "sponsor", "propose", &id, &member]);
+    assert_eq!(
+        a.fail(&["channel", "send", &id, "paused"]),
+        "MEMBERSHIP_CLOSING"
+    );
+    assert!(a.run(&["channel", "show", &id])["billing"]["transition"]["id"].is_string());
+    a.run(&["channel", "sponsor", "cancel", &id]);
+    // The relay releases the payer's budget in the background; a retry with
+    // the same message ID goes through once it did.
+    eventually(60, || {
+        let output = a
+            .command(&[
+                "channel",
+                "send",
+                &id,
+                "resumed",
+                "--message-id",
+                &"6".repeat(64),
+            ])
+            .output()
+            .unwrap();
+        output.status.success().then_some(())
+    });
 
     // B pays for the channel from now on.
     let proposal = a.run(&["channel", "sponsor", "propose", &id, &member]);
@@ -3385,6 +3510,18 @@ fn desktop_channels() {
         .as_str()
         .unwrap()
         .to_string();
+    // A withdrawn invitation cannot be accepted; a new one can.
+    let withdrawn = a.run(&["channel", "invite", &second, &member]);
+    a.run(&[
+        "channel",
+        "uninvite",
+        &second,
+        withdrawn["invitation"].as_str().unwrap(),
+    ]);
+    assert_eq!(
+        c.fail(&["channel", "accept", &withdrawn.to_string()]),
+        "FORBIDDEN"
+    );
     let invitation = a.run(&["channel", "invite", &second, &member]);
     let joined = c.run(&["channel", "accept", &invitation.to_string()]);
     assert_eq!(joined["status"], "active");

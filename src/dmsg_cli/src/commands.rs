@@ -139,10 +139,11 @@ pub enum ChannelCommand {
         #[command(subcommand)]
         step: TransferStep,
     },
-    /// Move the channel's billing to a member, in the same three steps.
+    /// Move the channel's billing to a member, in the same three steps;
+    /// the channel's writes pause until it completes or is cancelled.
     Sponsor {
         #[command(subcommand)]
-        step: TransferStep,
+        step: SponsorStep,
     },
     /// Reopen an archived channel.
     Reactivate {
@@ -156,6 +157,73 @@ pub enum ChannelCommand {
         /// The operation to settle.
         #[arg(long)]
         key: Option<String>,
+    },
+    /// Messages on their way, or give one up with --discard.
+    Outbox {
+        /// Channel ID.
+        id: String,
+        /// The message ID to give up.
+        #[arg(long)]
+        discard: Option<String>,
+    },
+    /// Rename a channel for this account, mute it or hide it.
+    Settings {
+        /// Channel ID.
+        id: String,
+        /// The name this account calls it.
+        #[arg(long)]
+        name: Option<String>,
+        /// Mute (true) or unmute (false) its notifications.
+        #[arg(long)]
+        mute: Option<bool>,
+        /// Hide (true) it from the list or show (false) it again.
+        #[arg(long)]
+        hide: Option<bool>,
+    },
+    /// Messages this device read whose text or file name holds a query.
+    Search {
+        /// Channel ID.
+        id: String,
+        /// What to look for.
+        query: String,
+    },
+    /// Withdraw an open invitation.
+    Uninvite {
+        /// Channel ID.
+        id: String,
+        /// The invitation ID.
+        invitation: String,
+    },
+    /// How far each member's devices took and read the messages.
+    Receipts {
+        /// Channel ID.
+        id: String,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum SponsorStep {
+    /// Propose it to a member; prints the packet to hand over.
+    Propose {
+        /// Channel ID.
+        id: String,
+        /// The member.
+        account: String,
+    },
+    /// Accept a proposal to this device; prints the packet to hand back.
+    Accept {
+        /// The packet, as JSON.
+        packet: String,
+    },
+    /// Commit an accepted proposal.
+    Commit {
+        /// The packet, as JSON.
+        packet: String,
+    },
+    /// Call off the transfer under way, which resumes the channel's writes.
+    Cancel {
+        /// Channel ID.
+        id: String,
     },
 }
 
@@ -382,15 +450,32 @@ fn message_lines(list: &Value) -> String {
         .into_iter()
         .flatten()
         .map(|m| {
+            let mut notes = vec![];
+            if let Some(name) = m["file"]["name"].as_str() {
+                notes.push(format!("[file {name}]"));
+            }
+            if let Some(seq) = m["reply_to"]["seq"].as_u64() {
+                notes.push(format!("[reply to {seq}]"));
+            }
+            if let Some(agent) = m["agent"]["name"].as_str() {
+                notes.push(format!("[agent {agent}]"));
+            }
+            if m["edited_at"].is_u64() {
+                notes.push("[edited]".into());
+            }
+            if m["retracted"] == true {
+                notes.push("[retracted]".into());
+            }
+            if m["unreadable"] == true {
+                notes.push("[unreadable]".into());
+            }
             format!(
-                "{:>5} {} {}{}",
+                "{:>5} {} {}{}{}",
                 m["seq"],
                 m["account"].as_str().unwrap_or_default(),
                 m["text"].as_str().unwrap_or_default(),
-                m["file"]["name"]
-                    .as_str()
-                    .map(|n| format!(" [file {n}]"))
-                    .unwrap_or_default()
+                if notes.is_empty() { "" } else { " " },
+                notes.join(" ")
             )
         })
         .collect::<Vec<_>>()
@@ -500,24 +585,54 @@ pub async fn channel(remote: &Remote, json: bool, command: ChannelCommand) -> Re
             ),
         },
         ChannelCommand::Sponsor { step } => match step {
-            TransferStep::Propose { id, account } => (
+            SponsorStep::Propose { id, account } => (
                 "channel/sponsor_propose",
                 json!({"id": id, "account": account}),
             ),
-            TransferStep::Accept { packet } => (
+            SponsorStep::Accept { packet } => (
                 "channel/sponsor_accept",
                 json!({"packet": json_arg(&packet)?}),
             ),
-            TransferStep::Commit { packet } => (
+            SponsorStep::Commit { packet } => (
                 "channel/sponsor_commit",
                 json!({"packet": json_arg(&packet)?}),
             ),
+            SponsorStep::Cancel { id } => ("channel/sponsor_cancel", json!({"id": id})),
         },
         ChannelCommand::Reactivate { id } => ("channel/reactivate", json!({"id": id})),
         ChannelCommand::Pending { id, key: Some(key) } => {
             ("channel/resume", json!({"id": id, "key": key}))
         }
         ChannelCommand::Pending { id, key: None } => ("channel/pending", json!({"id": id})),
+        ChannelCommand::Outbox {
+            id,
+            discard: Some(message_id),
+        } => (
+            "channel/discard",
+            json!({"id": id, "message_id": message_id}),
+        ),
+        ChannelCommand::Outbox { id, discard: None } => ("channel/outbox", json!({"id": id})),
+        ChannelCommand::Settings {
+            id,
+            name,
+            mute,
+            hide,
+        } => (
+            "channel/settings",
+            json!({"id": id, "name": name, "muted": mute, "hidden": hide}),
+        ),
+        ChannelCommand::Search { id, query } => {
+            let list = remote
+                .call("channel/search", json!({"id": id, "query": query}))
+                .await?;
+            print(json, &list, message_lines);
+            return Ok(());
+        }
+        ChannelCommand::Uninvite { id, invitation } => (
+            "channel/control",
+            json!({"id": id, "action": {"type": "revoke_invite", "invitation_id": invitation}}),
+        ),
+        ChannelCommand::Receipts { id } => ("channel/receipts", json!({"id": id})),
     };
     let value = remote.call(method, params).await?;
     print(json, &value, pretty);

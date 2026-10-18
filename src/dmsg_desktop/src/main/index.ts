@@ -229,6 +229,7 @@ async function openLink(url: string) {
   const link = parseLink(url)
   if (!link) return
   if (link.route === 'browsers') return showMain('/settings/browsers')
+  if (link.route === 'join') return showMain(`/channels?join=${link.invitation}`)
   // The request ID in a link is only a hint: find the daemon's request for
   // it, by the relay request a page links or by the approval's own ID.
   try {
@@ -601,7 +602,7 @@ let hinted = false
 const refreshWaiting = single(async () => {
   const hint = hinted
   hinted = false
-  let status: { approvals_waiting?: number; state?: string } = {}
+  let status: { approvals_waiting?: number; channels_unread?: number; state?: string } = {}
   try {
     status = (await daemon.call('daemon/status')) as typeof status
   } catch {
@@ -624,8 +625,29 @@ const refreshWaiting = single(async () => {
     note.show()
   }
   waiting = now
+  // The dock counts what is unread in channels that are not muted.
+  app.setBadgeCount(status.channels_unread ?? 0)
   updateTray(status.state ?? 'unknown')
 })
+
+/** When each channel last notified, so a busy one notifies at most every ten seconds. */
+const channelNotifiedAt: Record<string, number> = {}
+
+/**
+ * New messages in a channel that is not muted, while unlocked and the main
+ * window is not in front: the channel's name and how many, never who wrote
+ * what. Clicking opens the channel.
+ */
+function notifyChannel(data: unknown) {
+  const { id, name, received = 0, muted } = (data ?? {}) as { id?: string; name?: string; received?: number; muted?: boolean }
+  if (!id || received <= 0 || muted || !Notification.isSupported()) return
+  if (main && !main.isDestroyed() && main.isVisible() && main.isFocused()) return
+  if (Date.now() - (channelNotifiedAt[id] ?? 0) < 10_000) return
+  channelNotifiedAt[id] = Date.now()
+  const note = new Notification({ title: name || 'dMsg', body: text.channelMessages(received) })
+  note.on('click', () => showMain(`/channels?open=${id}`))
+  note.show()
+}
 
 /** Restart into a downloaded update, or open the release page of one this package cannot install. */
 function applyUpdate() {
@@ -752,7 +774,8 @@ function notifyHint(data: unknown) {
 daemon.on('event', (event: DaemonEvent) => {
   broadcast('dmsg:event', event)
   if (event.type === 'connect/hint') hinted = true
-  if (['approval/changed', 'session/changed', 'connect/hint', 'resync'].includes(event.type)) void refreshWaiting()
+  if (['approval/changed', 'session/changed', 'connect/hint', 'resync', 'channel/changed', 'channel/read'].includes(event.type)) void refreshWaiting()
+  if (event.type === 'channel/changed') notifyChannel(event.data)
   if (event.type === 'mcp-events/changed') notifyEvents(event.data)
   if (event.type === 'hint') notifyHint(event.data)
 })

@@ -132,6 +132,13 @@
           {#each found.profile.links as link, i (i)}<Fact label={t('link')}><bdi dir="ltr" class="font-mono text-[12px]">{link}</bdi></Fact>{/each}
           <Fact label={t('device')}><Id id={found.device_id} /></Fact>
         </dl>
+        {#if status?.state === 'unlocked' && found.account !== status.account}
+          <button
+            class={buttonClass('secondary', 'sm', 'shrink-0')}
+            onclick={() => (location.hash = `/channels?direct=${found.account}&name=${encodeURIComponent(found.profile.display_name || '')}`)}
+            data-testid="profile-converse"><Icon name="channels" />{t('startConversation')}</button
+          >
+        {/if}
       </div>
     {:else if found === null}
       <p class="text-[12.5px] text-faint">-</p>

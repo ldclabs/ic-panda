@@ -311,7 +311,10 @@ impl Daemon {
                         &text(params, "channel")?,
                         &id()?,
                         version,
-                        params["text"].as_str().unwrap_or_default(),
+                        &dmsg_client::channel::Draft {
+                            text: params["text"].as_str().unwrap_or_default().into(),
+                            ..Default::default()
+                        },
                         params["message_id"].as_str(),
                     )
                     .await

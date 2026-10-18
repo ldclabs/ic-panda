@@ -96,7 +96,13 @@ test('dmsg links only navigate', () => {
     account,
     request
   })
+  // An invitation link only opens the join dialog with it.
+  const invitation = 'eyJmb3JtYXQiOiJkbXNnLWNoYW5uZWwtaW52aXRhdGlvbi8xIn0'
+  assert.deepEqual(parseLink(`dmsg://channel/join#${invitation}`), { route: 'join', invitation })
   for (const bad of [
+    'dmsg://channel/join#short',
+    'dmsg://channel/join#not+base64url!',
+    `dmsg://channel/accept#${invitation}`,
     'dmsg://connect/approve?account=x',
     'dmsg://connect/pair?account=x',
     `dmsg://connect/request?account=${account}&request=zz`,

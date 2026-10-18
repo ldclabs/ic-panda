@@ -61,6 +61,7 @@ const REACTIVATE: &str = "dmsg/channel/reactivate/v1";
 const MESSAGE: &str = "dmsg/channel/message/v1";
 const RESERVE: &str = "dmsg/upload/reserve/v1";
 const BILLING_TRANSFER: &str = "dmsg/channel/billing/transfer/v1";
+const CURSOR: &str = "dmsg/channel/cursor/v1";
 const LOCAL: &str = "channel:";
 const LOG: &str = "channel-control:";
 const INBOX: &str = "channel-msg:";
@@ -73,6 +74,8 @@ const GROUP: usize = 120;
 const INVITATION_MS: u64 = dmsg_types::DAY;
 /// Upload plans lapse after an hour.
 const PLAN_MS: u64 = 3_600_000;
+/// Largest image shown in place.
+const PREVIEW: u64 = 4 * 1024 * 1024;
 
 /// What the account keeps of a channel on every device.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -85,10 +88,17 @@ struct Keyring {
     genesis: String,
     /// Epoch keys, base64url.
     keys: BTreeMap<u64, String>,
+    /// No notifications for it.
+    #[serde(default)]
+    muted: bool,
+    /// Kept out of the channel list, as after leaving.
+    #[serde(default)]
+    hidden: bool,
 }
 
 /// One device's replay of a channel, sealed under the LDK.
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(default)]
 struct Local {
     /// Relay cursor of the control log.
     control: u64,
@@ -100,8 +110,45 @@ struct Local {
     heads: BTreeMap<String, u64>,
     /// Control sequence of each epoch's activation.
     epochs: BTreeMap<u64, u64>,
-    /// Control sequences of history grants to this account.
+    /// Control sequences of history grants and sealed invitations to this
+    /// account.
     histories: Vec<u64>,
+    /// Epoch ranges granted to this account whose messages are still to be
+    /// read again.
+    granted: Vec<(u64, u64)>,
+    /// The first and last sequence of each epoch's messages this device
+    /// could not read, so a grant reads only them again.
+    skipped: BTreeMap<u64, (u64, u64)>,
+    /// Edits and retractions read before the message they name, by its
+    /// sequence.
+    amends: BTreeMap<u64, Vec<u64>>,
+    /// Messages read through this sequence.
+    read: u64,
+    /// Others' messages after `read`.
+    unread: u64,
+    /// The latest message, for the channel list.
+    last: Option<Preview>,
+    /// The unsent text of the composer.
+    draft: String,
+    /// The relay's billing of the channel, as last read.
+    billing: Option<Json>,
+    /// Invitations this device made, to hand over again.
+    invites: BTreeMap<String, Invitation>,
+    /// The delivery cursor last reported to the relay.
+    delivered: u64,
+}
+
+/// The latest message of a channel, for its list.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct Preview {
+    /// Relay sequence.
+    pub seq: u64,
+    /// The author's account.
+    pub account: String,
+    /// When the relay stored it.
+    pub stored_at: u64,
+    /// Its text's start, or the attached file's name.
+    pub text: String,
 }
 
 /// A control this device verified, and the channel after it.
@@ -152,7 +199,7 @@ struct Operation {
 /// A message to send, kept until the relay stores it.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct Outgoing {
-    text: String,
+    draft: Draft,
     payload: MessagePayload,
 }
 
@@ -274,6 +321,53 @@ pub struct FileRef {
     pub key: String,
 }
 
+/// A message another one names: its relay sequence and the digest of its
+/// signed command, so the reference binds those exact bytes.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct MessageRef {
+    /// Relay sequence.
+    pub seq: u64,
+    /// SHA-256 of its signed command, hex.
+    pub digest: String,
+}
+
+/// The Agent ID that wrote a message through this account's device: the
+/// account's claim, signed by its device like the rest of the body.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct AgentRef {
+    /// The Agent ID.
+    pub id: String,
+    /// Its name in the account.
+    pub name: String,
+}
+
+/// What a message says, as its author writes it; the file goes apart.
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Draft {
+    /// The text.
+    #[serde(default)]
+    pub text: String,
+    /// The message it answers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply_to: Option<MessageRef>,
+    /// An earlier message of the same author whose text this replaces.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edit_of: Option<MessageRef>,
+    /// An earlier message of the same author it withdraws: readers drop
+    /// its text and file, but copies already taken stay with them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retract: Option<MessageRef>,
+    /// The Agent ID that wrote it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentRef>,
+    /// An ownership or billing transfer packet handed over in the channel.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub packet: Option<Json>,
+}
+
 /// The sealed body of a message.
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -281,6 +375,16 @@ struct Body {
     text: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     file: Option<FileRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    reply_to: Option<MessageRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    edit_of: Option<MessageRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    retract: Option<MessageRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    agent: Option<AgentRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    packet: Option<Json>,
 }
 
 /// A file being shared, kept until its message is stored: the shared
@@ -303,7 +407,8 @@ struct ChannelFile {
 }
 
 /// A message read from a channel.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+#[serde(default)]
 pub struct Message {
     /// Relay sequence.
     pub seq: u64,
@@ -323,9 +428,35 @@ pub struct Message {
     pub text: String,
     /// An attached file.
     pub file: Option<FileRef>,
+    /// SHA-256 of its signed command, hex: what references name.
+    pub digest: String,
+    /// The message it answers.
+    pub reply_to: Option<MessageRef>,
+    /// The message whose text it replaces; applied to that one.
+    pub edit_of: Option<MessageRef>,
+    /// The message it withdraws; applied to that one.
+    pub retract: Option<MessageRef>,
+    /// The Agent ID that wrote it.
+    pub agent: Option<AgentRef>,
+    /// A transfer packet handed over in the channel.
+    pub packet: Option<Json>,
+    /// Its body did not open, or its epoch's key is not here: the cursor
+    /// moved past it, and reading its epoch again retries it.
+    pub unreadable: bool,
+    /// When its author last edited it.
+    pub edited_at: Option<u64>,
+    /// Withdrawn by its author: its text and file were dropped here.
+    pub retracted: bool,
+    /// Hidden on this device.
+    pub hidden: bool,
 }
 
 impl Message {
+    /// An edit or a retraction, shown through the message it names.
+    pub fn amends(&self) -> bool {
+        self.edit_of.is_some() || self.retract.is_some()
+    }
+
     /// The message as it may leave the daemon: no file key.
     pub fn public(&self) -> Self {
         let mut message = self.clone();
@@ -337,7 +468,7 @@ impl Message {
 }
 
 /// A channel as this device knows it.
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, Default)]
 pub struct ChannelView {
     /// Channel ID.
     pub id: String,
@@ -351,6 +482,23 @@ pub struct ChannelView {
     pub message_cursor: u64,
     /// Epochs this account holds keys for.
     pub readable_epochs: Vec<u64>,
+    /// No notifications for it.
+    pub muted: bool,
+    /// Kept out of the channel list.
+    pub hidden: bool,
+    /// Messages read through this sequence.
+    pub read: u64,
+    /// Others' messages after `read`.
+    pub unread: u64,
+    /// The latest message.
+    pub last: Option<Preview>,
+    /// The composer's unsent text.
+    pub draft: String,
+    /// The relay's billing of the channel: payer, version and lifecycle,
+    /// with the billing transfer under way, as last read.
+    pub billing: Option<Json>,
+    /// Open invitations this device made, by ID.
+    pub invites: BTreeMap<String, Invitation>,
 }
 
 /// What a channel sync read.
@@ -360,6 +508,89 @@ pub struct ChannelSync {
     pub through: u64,
     /// New messages.
     pub received: usize,
+}
+
+/// The step a channel read takes next.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Step {
+    /// A page of the control log.
+    Control,
+    /// The relay's view of the channel, once the log is read.
+    Head,
+    /// A page of messages.
+    Messages,
+    /// Read through.
+    Done,
+}
+
+/// A read of a channel, page by page, that a caller can carry out without
+/// holding the client: [`Client::channel_read_request`] signs the next
+/// page's request and [`Client::channel_read_settle`] applies the answer.
+#[derive(Clone, Debug)]
+pub struct Reading {
+    /// Channel ID.
+    pub channel: String,
+    step: Step,
+    /// Read messages after the control log.
+    messages: bool,
+    /// Messages read again in `(after, through]`, the cursor untouched.
+    range: Option<(u64, u64)>,
+    /// The range reads epochs granted to this account.
+    granting: bool,
+    invitation: Option<String>,
+    pinned: Option<String>,
+    /// The messages' cursor within this read.
+    after: Option<u64>,
+    /// The head a message page outran, which the log must move past.
+    stale: Option<String>,
+    ledger: Option<Ledger>,
+    /// New messages read, edits and withdrawals aside.
+    pub received: usize,
+}
+
+impl Reading {
+    /// The control log, then the new messages.
+    pub fn new(channel: &str) -> Self {
+        Self {
+            messages: true,
+            ..Self::controls(channel)
+        }
+    }
+
+    /// The control log alone.
+    pub fn controls(channel: &str) -> Self {
+        Self {
+            channel: channel.into(),
+            step: Step::Control,
+            messages: false,
+            range: None,
+            granting: false,
+            invitation: None,
+            pinned: None,
+            after: None,
+            stale: None,
+            ledger: None,
+            received: 0,
+        }
+    }
+
+    /// Whether it is through.
+    pub fn done(&self) -> bool {
+        self.step == Step::Done
+    }
+
+    /// The channel as verified, once its log was read.
+    pub fn ledger(&self) -> Option<&Ledger> {
+        self.ledger.as_ref()
+    }
+}
+
+/// A journaled command, ready to send without holding the client.
+pub enum Posting {
+    /// The relay stored it already: its outcome.
+    Done(Json),
+    /// The request to send.
+    Send(Prepared),
 }
 
 /// An invitation the inviter hands to the invited account.
@@ -891,6 +1122,29 @@ impl Client {
         payload: Json,
         suffix: &str,
     ) -> Result<Json> {
+        match self
+            .journaled_request(channel, key, base, action, payload, suffix)
+            .await?
+        {
+            Posting::Done(result) => Ok(result),
+            Posting::Send(request) => {
+                let reply = self.cloud.send(request).await;
+                self.journaled_settle(channel, key, reply)
+            }
+        }
+    }
+
+    /// [`Self::post_journaled`] up to the request: the stored outcome when
+    /// the relay has the command already, or the request to send.
+    pub(crate) async fn journaled_request(
+        &mut self,
+        channel: &str,
+        key: &str,
+        base: &str,
+        action: &str,
+        payload: Json,
+        suffix: &str,
+    ) -> Result<Posting> {
         let path = format!("{base}{suffix}");
         let job: Option<Operation> = self.job(channel, key)?;
         if let Some(job) = &job {
@@ -899,7 +1153,7 @@ impl Client {
                 Error::IdempotencyConflict,
             )?;
             if let Some(result) = &job.result {
-                return Ok(result.clone());
+                return Ok(Posting::Done(result.clone()));
             }
             let found = self
                 .relay_find(&format!("{base}/operations/{}", job.request_id))
@@ -908,10 +1162,10 @@ impl Client {
                 let mut job = job.clone();
                 job.result = Some(found["result"].clone());
                 self.save_job(channel, key, &job)?;
-                return Ok(found["result"].clone());
+                return Ok(Posting::Done(found["result"].clone()));
             }
         }
-        let mut job = match job {
+        let job = match job {
             Some(job) if job.deadline > now_ms() + 5_000 => job,
             Some(job) if job.fixed => return Err(Error::Expired),
             previous => {
@@ -927,17 +1181,25 @@ impl Client {
             }
         };
         let state = self.cloud_state().await?;
-        let result = self
-            .cloud
-            .post_signed(
-                &self.signer(&state)?,
-                &job.path,
-                &job.cose,
-                &job.request_id,
-                job.deadline,
-                now_ms(),
-            )
-            .await?;
+        Ok(Posting::Send(self.cloud.prepare_signed(
+            &self.signer(&state)?,
+            &job.path,
+            &job.cose,
+            &job.request_id,
+            job.deadline,
+            now_ms(),
+        )?))
+    }
+
+    /// Record the reply to a request of [`Self::journaled_request`].
+    pub(crate) fn journaled_settle(
+        &self,
+        channel: &str,
+        key: &str,
+        reply: Result<Json>,
+    ) -> Result<Json> {
+        let result = reply?;
+        let mut job: Operation = self.job(channel, key)?.ok_or(Error::IntegrityFailed)?;
         job.result = Some(result.clone());
         self.save_job(channel, key, &job)?;
         Ok(result)
@@ -1105,114 +1367,212 @@ impl Client {
         invitation: Option<&str>,
         pinned: Option<&str>,
     ) -> Result<Ledger> {
-        let base = base(channel)?;
-        let (_, ring) = self.keyring(channel)?;
-        let mut local = self.local(channel)?;
+        let mut reading = Reading {
+            invitation: invitation.map(str::to_string),
+            pinned: pinned.map(str::to_string),
+            ..Reading::controls(channel)
+        };
+        self.channel_read(&mut reading).await?;
+        reading.ledger.ok_or(Error::IntegrityFailed)
+    }
+
+    /// Carry out `reading` here, waiting on the relay with the client.
+    async fn channel_read(&mut self, reading: &mut Reading) -> Result<()> {
+        for _ in 0..100_000 {
+            if reading.step == Step::Done {
+                return Ok(());
+            }
+            let page = self.relay_get(&self.channel_read_path(reading)?).await?;
+            self.channel_read_settle(reading, page).await?;
+        }
+        Err(Error::QuotaExceeded)
+    }
+
+    /// The new messages, against the control log as last read.
+    fn message_reading(&self, channel: &str) -> Result<Reading> {
+        let local = self.local(channel)?;
+        Ok(Reading {
+            step: Step::Messages,
+            messages: true,
+            after: Some(local.message),
+            ledger: Some(local.ledger.ok_or(Error::NotFound)?),
+            ..Reading::controls(channel)
+        })
+    }
+
+    /// The relay path of `reading`'s next page.
+    fn channel_read_path(&self, reading: &Reading) -> Result<String> {
+        let base = base(&reading.channel)?;
+        let invitation = reading.invitation.as_deref();
+        Ok(match reading.step {
+            Step::Control => format!(
+                "{base}/sync?kind=control&after={}&limit=5{}",
+                self.local(&reading.channel)?.control,
+                invitation
+                    .map(|i| format!("&invitation={i}"))
+                    .unwrap_or_default()
+            ),
+            Step::Head => format!(
+                "{base}{}",
+                invitation
+                    .map(|i| format!("?invitation={i}"))
+                    .unwrap_or_default()
+            ),
+            Step::Messages => format!(
+                "{base}/sync?after={}&limit=20",
+                reading.after.unwrap_or_default()
+            ),
+            Step::Done => return Err(Error::IntegrityFailed),
+        })
+    }
+
+    /// The signed request of `reading`'s next page, to send without holding
+    /// the client; [`Self::channel_read_settle`] takes the answer.
+    ///
+    /// # Errors
+    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
+    pub fn channel_read_request(&self, reading: &Reading) -> Result<Prepared> {
+        self.signed_get(&self.channel_read_path(reading)?)
+    }
+
+    /// Apply the page `reading` asked for and move it on.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a page that does not continue
+    /// what this device verified.
+    pub async fn channel_read_settle(&mut self, reading: &mut Reading, page: Json) -> Result<()> {
+        match reading.step {
+            Step::Control => self.control_page(reading, &page).await,
+            Step::Head => self.head_page(reading, &page),
+            Step::Messages => self.messages_page(reading, &page).await,
+            Step::Done => Err(Error::IntegrityFailed),
+        }
+    }
+
+    /// Verify and keep a page of the control log.
+    async fn control_page(&mut self, reading: &mut Reading, page: &Json) -> Result<()> {
+        let channel = reading.channel.clone();
+        let (_, ring) = self.keyring(&channel)?;
+        let mut local = self.local(&channel)?;
         let trust = self.trust().await?;
         let me = self.me()?;
-        let extra = invitation
-            .map(|i| format!("&invitation={i}"))
-            .unwrap_or_default();
-        for _ in 0..10_000 {
-            let page = self
-                .relay_get(&format!(
-                    "{base}/sync?kind=control&after={}&limit=5{extra}",
-                    local.control
-                ))
-                .await?;
-            let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
-            let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
-            ensure(
-                entries.len() <= 5 && next >= local.control,
-                Error::IntegrityFailed,
-            )?;
-            let mut verified = Vec::with_capacity(entries.len());
-            for row in entries {
-                let cursor = row["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
-                ensure(cursor > local.control, Error::IntegrityFailed)?;
-                let event: Event = from(&row["value"])?;
-                let stored = self.consume(&trust, local.ledger.as_ref(), &event, &ring.genesis)?;
-                local.heads.insert(stored.head.clone(), stored.seq);
-                match &stored.action[..] {
-                    ACTIVATE => {
-                        local.epochs.insert(stored.ledger.epoch, stored.seq);
+        let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
+        let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
+        ensure(
+            entries.len() <= 5 && next >= local.control,
+            Error::IntegrityFailed,
+        )?;
+        let mut verified = Vec::with_capacity(entries.len());
+        for row in entries {
+            let cursor = row["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
+            ensure(cursor > local.control, Error::IntegrityFailed)?;
+            let event: Event = from(&row["value"])?;
+            let stored = self.consume(&trust, local.ledger.as_ref(), &event, &ring.genesis)?;
+            local.heads.insert(stored.head.clone(), stored.seq);
+            match &stored.action[..] {
+                ACTIVATE => {
+                    local.epochs.insert(stored.ledger.epoch, stored.seq);
+                }
+                // History grants and sealed invitations to this account
+                // carry epoch keys for its devices; a grant's messages are
+                // read again.
+                CONTROL => match from::<Control>(&stored.payload).map(|c| c.action) {
+                    Ok(Action::History {
+                        account,
+                        from_epoch,
+                        to_epoch,
+                        ..
+                    }) if account == me => {
+                        local.histories.push(stored.seq);
+                        local.granted.push((from_epoch, to_epoch));
                     }
-                    CONTROL => {
-                        // History grants and sealed invitations to this
-                        // account carry epoch keys for its devices.
-                        if let Ok(Control {
-                            action:
-                                Action::History { account, .. }
-                                | Action::Invite {
-                                    account,
-                                    envelope_upload: Some(_),
-                                    ..
-                                },
-                            ..
-                        }) = from::<Control>(&stored.payload)
-                            && account == me
-                        {
-                            local.histories.push(stored.seq);
-                        }
-                    }
+                    Ok(Action::Invite {
+                        account,
+                        envelope_upload: Some(_),
+                        ..
+                    }) if account == me => local.histories.push(stored.seq),
                     _ => {}
-                }
-                local.ledger = Some(stored.ledger.clone());
-                local.control = cursor;
-                verified.push(stored);
+                },
+                _ => {}
             }
-            let ledger = local.ledger.clone().ok_or(Error::IntegrityFailed)?;
-            ensure(
-                next == local.control && ledger.channel_id == channel,
-                Error::IntegrityFailed,
-            )?;
-            // The page's controls and the cursor past them in one write.
-            let keys = self.keys()?;
-            self.workspace.store.atomic(|_| {
-                for stored in &verified {
-                    let name = format!("{LOG}{channel}:{:020}", stored.seq);
-                    self.workspace.put_private(keys, &name, stored)?;
-                }
-                self.save_local(channel, &local)
-            })?;
-            if page["head"] == ledger.head.as_str() {
-                if let Some(pinned) = pinned {
-                    ensure(local.heads.contains_key(pinned), Error::IntegrityFailed)?;
-                }
-                let query = invitation
-                    .map(|i| format!("?invitation={i}"))
-                    .unwrap_or_default();
-                let remote = self.relay_get(&format!("{base}{query}")).await?;
-                ensure(
-                    remote["head"] == ledger.head.as_str()
-                        && remote["control_seq"].as_u64() == Some(ledger.control_seq)
-                        && remote["epoch"].as_u64() == Some(ledger.epoch)
-                        && remote["acl_version"].as_u64() == Some(ledger.acl_version),
-                    Error::IntegrityFailed,
-                )?;
-                let mut ledger = ledger;
-                let status: Status = from(&remote["status"])?;
-                // The relay asks for a new epoch when a member's device goes.
-                if status == Status::RotationRequired && ledger.status == Status::Active {
-                    ledger.status = status;
-                } else {
-                    ensure(status == ledger.status, Error::IntegrityFailed)?;
-                }
-                if let Some(members) = remote.get("members") {
-                    let members: BTreeMap<String, crate::channel_log::Member> = from(members)?;
-                    ensure(
-                        members == ledger.members && remote["owner"] == ledger.owner.as_str(),
-                        Error::IntegrityFailed,
-                    )?;
-                }
-                local.ledger = Some(ledger.clone());
-                self.save_local(channel, &local)?;
-                return Ok(ledger);
+            local.ledger = Some(stored.ledger.clone());
+            local.control = cursor;
+            verified.push(stored);
+        }
+        let ledger = local.ledger.clone().ok_or(Error::IntegrityFailed)?;
+        ensure(
+            next == local.control && ledger.channel_id == channel,
+            Error::IntegrityFailed,
+        )?;
+        // The page's controls and the cursor past them in one write.
+        let keys = self.keys()?;
+        self.workspace.store.atomic(|_| {
+            for stored in &verified {
+                let name = format!("{LOG}{channel}:{:020}", stored.seq);
+                self.workspace.put_private(keys, &name, stored)?;
             }
+            self.save_local(&channel, &local)
+        })?;
+        if page["head"] == ledger.head.as_str() {
+            if let Some(pinned) = &reading.pinned {
+                ensure(local.heads.contains_key(pinned), Error::IntegrityFailed)?;
+            }
+            reading.step = Step::Head;
+        } else {
             // A page without entries below the head is a gap.
             ensure(!entries.is_empty(), Error::IntegrityFailed)?;
         }
-        Err(Error::QuotaExceeded)
+        Ok(())
+    }
+
+    /// Check the relay's view of the channel against the verified log, and
+    /// keep its billing.
+    fn head_page(&mut self, reading: &mut Reading, remote: &Json) -> Result<()> {
+        let channel = reading.channel.clone();
+        let mut local = self.local(&channel)?;
+        let mut ledger = local.ledger.clone().ok_or(Error::IntegrityFailed)?;
+        ensure(
+            remote["head"] == ledger.head.as_str()
+                && remote["control_seq"].as_u64() == Some(ledger.control_seq)
+                && remote["epoch"].as_u64() == Some(ledger.epoch)
+                && remote["acl_version"].as_u64() == Some(ledger.acl_version)
+                && reading
+                    .stale
+                    .take()
+                    .is_none_or(|stale| stale != ledger.head),
+            Error::IntegrityFailed,
+        )?;
+        let status: Status = from(&remote["status"])?;
+        // The relay asks for a new epoch when a member's device goes.
+        if status == Status::RotationRequired && ledger.status == Status::Active {
+            ledger.status = status;
+        } else {
+            ensure(status == ledger.status, Error::IntegrityFailed)?;
+        }
+        if let Some(members) = remote.get("members") {
+            let members: BTreeMap<String, crate::channel_log::Member> = from(members)?;
+            ensure(
+                members == ledger.members && remote["owner"] == ledger.owner.as_str(),
+                Error::IntegrityFailed,
+            )?;
+        }
+        if let Some(billing) = remote.get("billing").filter(|b| b.is_object()) {
+            let mut billing = billing.clone();
+            billing["transition"] = remote["billing_transition"].clone();
+            local.billing = Some(billing);
+        }
+        local.ledger = Some(ledger.clone());
+        self.save_local(&channel, &local)?;
+        reading.ledger = Some(ledger);
+        reading.step = if reading.messages {
+            reading
+                .after
+                .get_or_insert(reading.range.map_or(local.message, |(after, _)| after));
+            Step::Messages
+        } else {
+            Step::Done
+        };
+        Ok(())
     }
 
     /// Create a channel; this account owns it and its first epoch follows.
@@ -1244,6 +1604,8 @@ impl Client {
                 name: name.into(),
                 genesis: hex_sha256(&unb64(&job.cose)?),
                 keys: BTreeMap::new(),
+                muted: false,
+                hidden: false,
             },
         )?;
         self.save_job(&channel, "genesis", &job)?;
@@ -1276,6 +1638,8 @@ impl Client {
                 name: name.into(),
                 genesis: hex_sha256(&unb64(&job.cose)?),
                 keys: BTreeMap::new(),
+                muted: false,
+                hidden: false,
             },
         )?;
         Ok((channel, job.cose))
@@ -1298,6 +1662,8 @@ impl Client {
                     name: name.into(),
                     genesis: genesis.into(),
                     keys: BTreeMap::new(),
+                    muted: false,
+                    hidden: false,
                 },
             ),
             Err(error) => Err(error),
@@ -1337,6 +1703,19 @@ impl Client {
             .collect()
     }
 
+    /// Unread messages of the channels that are neither muted nor hidden.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn channels_unread(&self) -> Result<u64> {
+        Ok(self
+            .channel_list()?
+            .iter()
+            .filter(|c| !c.muted && !c.hidden)
+            .map(|c| c.unread)
+            .sum())
+    }
+
     /// One channel as this device knows it.
     ///
     /// # Errors
@@ -1344,6 +1723,17 @@ impl Client {
     pub fn channel_view(&self, channel: &str) -> Result<ChannelView> {
         let (_, ring) = self.keyring(channel)?;
         let local = self.local(channel)?;
+        let invites = local
+            .invites
+            .into_iter()
+            .filter(|(id, invite)| {
+                invite.expires_at > now_ms()
+                    && local
+                        .ledger
+                        .as_ref()
+                        .is_some_and(|l| l.invitations.contains_key(id))
+            })
+            .collect();
         Ok(ChannelView {
             id: ring.id,
             name: ring.name,
@@ -1351,6 +1741,14 @@ impl Client {
             ledger: local.ledger,
             message_cursor: local.message,
             readable_epochs: ring.keys.keys().copied().collect(),
+            muted: ring.muted,
+            hidden: ring.hidden,
+            read: local.read,
+            unread: local.unread,
+            last: local.last,
+            draft: local.draft,
+            billing: local.billing,
+            invites,
         })
     }
 
@@ -1381,6 +1779,8 @@ impl Client {
                     name: invitation.name.chars().take(MAX_NAME).collect(),
                     genesis: invitation.genesis.clone(),
                     keys: BTreeMap::new(),
+                    muted: false,
+                    hidden: false,
                 },
             )?,
             Err(error) => return Err(error),
@@ -1547,16 +1947,24 @@ impl Client {
         self.forget_job(channel, &format!("history-plan:{invitation}"))?;
         let ledger = self.channel_pull(channel, None, None).await?;
         let (_, ring) = self.keyring(channel)?;
-        Ok(Invitation {
+        let packet = Invitation {
             format: "dmsg-channel-invitation/1".into(),
             channel: channel.into(),
             genesis: ring.genesis,
             head: ledger.head,
-            invitation,
+            invitation: invitation.clone(),
             account: account.to_string(),
             name: ring.name,
             expires_at,
-        })
+        };
+        // Kept to hand over again while it is open.
+        let mut local = self.local(channel)?;
+        local
+            .invites
+            .retain(|id, i| i.expires_at > now_ms() && ledger.invitations.contains_key(id));
+        local.invites.insert(invitation, packet.clone());
+        self.save_local(channel, &local)?;
+        Ok(packet)
     }
 
     /// The recipients of an epoch for `accounts`, from their certified
@@ -2188,9 +2596,10 @@ impl Client {
         self.channel_view(channel)
     }
 
-    /// Send `text`, with the file prepared under the same message ID, under
+    /// Send `draft`, with the file prepared under the same message ID, under
     /// the current epoch. The message is journaled before it is signed, so a
-    /// retry with the same ID sends the same message.
+    /// retry with the same ID sends the same message; one the channel moved
+    /// past before the relay stored it is sealed again under what holds now.
     ///
     /// # Errors
     /// Returns `Error::Forbidden` for a member who may not publish and
@@ -2198,90 +2607,288 @@ impl Client {
     pub async fn channel_send(
         &mut self,
         channel: &str,
-        text: &str,
+        draft: &Draft,
         message_id: Option<&str>,
     ) -> Result<Json> {
+        self.channel_pull(channel, None, None).await?;
+        let (message_id, posting) = self
+            .channel_send_request(channel, draft, message_id)
+            .await?;
+        let reply = match posting {
+            Posting::Done(result) => Ok(result),
+            Posting::Send(request) => self.cloud.send(request).await,
+        };
+        let receipt = self.channel_send_settle(channel, &message_id, reply)?;
+        let mut reading = self.message_reading(channel)?;
+        self.channel_read(&mut reading).await?;
+        Ok(json!({"message_id": message_id, "receipt": receipt}))
+    }
+
+    /// Seal and journal `draft` against the channel as last read, and the
+    /// request that stores it, to send without holding the client;
+    /// [`Self::channel_send_settle`] takes the reply.
+    ///
+    /// # Errors
+    /// As [`Self::channel_send`].
+    pub async fn channel_send_request(
+        &mut self,
+        channel: &str,
+        draft: &Draft,
+        message_id: Option<&str>,
+    ) -> Result<(String, Posting)> {
         let message_id = message_id.map_or_else(random_hex, str::to_string);
         ensure_valid(is_hash(&message_id), "message_id")?;
-        ensure_valid(text.len() <= MAX_TEXT, "text")?;
-        let ledger = self.channel_pull(channel, None, None).await?;
+        ensure_valid(draft.text.len() <= MAX_TEXT, "text")?;
+        let ledger = self.local(channel)?.ledger.ok_or(Error::NotFound)?;
         self.root_ready().await?;
         let key_name = format!("message:{message_id}");
-        let outgoing = match self.job::<Outgoing>(channel, &key_name)? {
-            Some(outgoing) => {
-                ensure(outgoing.text == text, Error::IdempotencyConflict)?;
-                outgoing
+        let send = format!("send:{message_id}");
+        let mut outgoing = self.job::<Outgoing>(channel, &key_name)?;
+        if let Some(prior) = &outgoing {
+            ensure(prior.draft == *draft, Error::IdempotencyConflict)?;
+            let current = prior.payload.epoch == ledger.epoch
+                && prior.payload.control_head == ledger.head
+                && prior.payload.acl_version == ledger.acl_version;
+            if !current && !self.committed(channel, &send).await? {
+                // Never stored, and the channel moved on: seal it again
+                // under what holds now (C06).
+                self.forget_job(channel, &send)?;
+                self.forget_job(channel, &key_name)?;
+                outgoing = None;
             }
+        }
+        let outgoing = match outgoing {
+            Some(outgoing) => outgoing,
             None => {
-                let me = self.me()?;
-                ensure(ledger.status == Status::Active, Error::RekeyRequired)?;
-                ensure(may_publish(&ledger, &me), Error::Forbidden)?;
-                let (_, ring) = self.keyring(channel)?;
-                if !ring.keys.contains_key(&ledger.epoch) {
-                    self.channel_open_epoch(channel, ledger.epoch).await?;
-                }
-                let (_, ring) = self.keyring(channel)?;
-                let root = unb64(
-                    ring.keys
-                        .get(&ledger.epoch)
-                        .ok_or(Error::RecoveryIncomplete)?,
-                )?;
-                let attachment: Option<Attachment> =
-                    self.job(channel, &format!("file:{message_id}"))?;
-                ensure_valid(!text.is_empty() || attachment.is_some(), "text")?;
-                if let Some(attachment) = &attachment {
-                    ensure(
-                        attachment.reference.epoch == ledger.epoch,
-                        Error::RekeyRequired,
-                    )?;
-                }
-                let mut payload = MessagePayload {
-                    channel_id: channel.into(),
-                    epoch: ledger.epoch,
-                    control_head: ledger.head.clone(),
-                    acl_version: ledger.acl_version,
-                    message_id: message_id.clone(),
-                    client_created_at: now_ms(),
-                    ciphertext: String::new(),
-                };
-                let device = self.device_hex();
-                let key = message_key(&root, channel, ledger.epoch, &message_id, &device);
-                let body = Zeroizing::new(canonical(&Body {
-                    text: text.into(),
-                    file: attachment.map(|a| a.reference),
-                }));
-                payload.ciphertext = seal(&key, &body, &message_aad(&me, &device, &payload));
-                let outgoing = Outgoing {
-                    text: text.into(),
-                    payload,
-                };
-                self.save_job(channel, &key_name, &outgoing)?;
-                outgoing
+                self.seal_message(channel, &ledger, draft, &message_id)
+                    .await?
             }
         };
-        let send = format!("send:{message_id}");
-        let receipt = self
-            .channel_post(
+        let posting = self
+            .journaled_request(
                 channel,
                 &send,
+                &base(channel)?,
                 MESSAGE,
                 json(&outgoing.payload),
                 "/messages",
             )
             .await?;
+        Ok((message_id, posting))
+    }
+
+    /// Record the relay's reply to a message sent from
+    /// [`Self::channel_send_request`]: stored, its journals go, and the
+    /// relay refuses this message ID with other bytes from now on.
+    ///
+    /// # Errors
+    /// The reply's error; `Error::IntegrityFailed` for a receipt of other
+    /// bytes.
+    pub fn channel_send_settle(
+        &mut self,
+        channel: &str,
+        message_id: &str,
+        reply: Result<Json>,
+    ) -> Result<Json> {
+        let send = format!("send:{message_id}");
+        let receipt = self.journaled_settle(channel, &send, reply)?;
         let operation: Operation = self.job(channel, &send)?.ok_or(Error::IntegrityFailed)?;
         ensure(
             receipt["digest"] == hex_sha256(&unb64(&operation.cose)?).as_str()
                 && receipt["seq"].as_u64().is_some_and(|s| s > 0),
             Error::IntegrityFailed,
         )?;
-        // Stored: the message is the relay's now, and its journals go. The
-        // relay refuses this message ID with other bytes from now on.
-        for key in [key_name, send, format!("file:{message_id}")] {
+        for key in [
+            format!("message:{message_id}"),
+            send,
+            format!("file:{message_id}"),
+        ] {
             self.forget_job(channel, &key)?;
         }
-        self.sync_messages(channel, ledger, false).await?;
-        Ok(json!({"message_id": message_id, "receipt": receipt}))
+        Ok(receipt)
+    }
+
+    /// Whether the relay stored the journaled command `key`.
+    async fn committed(&mut self, channel: &str, key: &str) -> Result<bool> {
+        let Some(mut job) = self.job::<Operation>(channel, key)? else {
+            return Ok(false);
+        };
+        if job.result.is_some() {
+            return Ok(true);
+        }
+        let found = self
+            .relay_find(&format!("{}/operations/{}", base(channel)?, job.request_id))
+            .await?;
+        match found.filter(|f| f["found"] == true) {
+            Some(found) => {
+                job.result = Some(found["result"].clone());
+                self.save_job(channel, key, &job)?;
+                Ok(true)
+            }
+            None => Ok(false),
+        }
+    }
+
+    /// Check `draft` against the channel and seal it as a new message.
+    async fn seal_message(
+        &mut self,
+        channel: &str,
+        ledger: &Ledger,
+        draft: &Draft,
+        message_id: &str,
+    ) -> Result<Outgoing> {
+        let me = self.me()?;
+        ensure(ledger.status == Status::Active, Error::RekeyRequired)?;
+        ensure(may_publish(ledger, &me), Error::Forbidden)?;
+        let attachment: Option<Attachment> = self.job(channel, &format!("file:{message_id}"))?;
+        if let Some(attachment) = &attachment {
+            ensure(
+                attachment.reference.epoch == ledger.epoch,
+                Error::RekeyRequired,
+            )?;
+        }
+        self.check_draft(channel, &me, draft, attachment.is_some())?;
+        let (_, ring) = self.keyring(channel)?;
+        if !ring.keys.contains_key(&ledger.epoch) {
+            self.channel_open_epoch(channel, ledger.epoch).await?;
+        }
+        let (_, ring) = self.keyring(channel)?;
+        let root = unb64(
+            ring.keys
+                .get(&ledger.epoch)
+                .ok_or(Error::RecoveryIncomplete)?,
+        )?;
+        let mut payload = MessagePayload {
+            channel_id: channel.into(),
+            epoch: ledger.epoch,
+            control_head: ledger.head.clone(),
+            acl_version: ledger.acl_version,
+            message_id: message_id.into(),
+            client_created_at: now_ms(),
+            ciphertext: String::new(),
+        };
+        let device = self.device_hex();
+        let key = message_key(&root, channel, ledger.epoch, message_id, &device);
+        let body = Zeroizing::new(canonical(&Body {
+            text: draft.text.clone(),
+            file: attachment.map(|a| a.reference),
+            reply_to: draft.reply_to.clone(),
+            edit_of: draft.edit_of.clone(),
+            retract: draft.retract.clone(),
+            agent: draft.agent.clone(),
+            packet: draft.packet.clone(),
+        }));
+        payload.ciphertext = seal(&key, &body, &message_aad(&me, &device, &payload));
+        let outgoing = Outgoing {
+            draft: draft.clone(),
+            payload,
+        };
+        self.save_job(channel, &format!("message:{message_id}"), &outgoing)?;
+        Ok(outgoing)
+    }
+
+    /// A draft says something, names messages this device read and edits
+    /// or withdraws only this account's own.
+    fn check_draft(&self, channel: &str, me: &str, draft: &Draft, file: bool) -> Result<()> {
+        let stored = |target: &MessageRef| -> Result<Message> {
+            self.workspace
+                .private::<Message>(
+                    self.keys()?,
+                    &format!("{INBOX}{channel}:{:020}", target.seq),
+                )?
+                .filter(|m| m.digest == target.digest && !m.unreadable && !m.amends())
+                .ok_or(Error::NotFound)
+        };
+        if let Some(target) = &draft.reply_to {
+            stored(target)?;
+        }
+        let amended = draft.edit_of.as_ref().or(draft.retract.as_ref());
+        if let Some(target) = amended {
+            let target = stored(target)?;
+            ensure(target.account == me && !target.retracted, Error::Forbidden)?;
+        }
+        let packet = draft.packet.as_ref().map(canonical);
+        ensure_valid(
+            (draft.edit_of.is_none() || draft.retract.is_none())
+                && (draft.edit_of.is_none() || (!draft.text.is_empty() && !file))
+                && (draft.retract.is_none() || (draft.text.is_empty() && !file))
+                && (amended.is_none() || draft.packet.is_none())
+                && draft.packet.as_ref().is_none_or(|p| {
+                    p["channel"] == channel
+                        && matches!(
+                            p["format"].as_str(),
+                            Some("dmsg-channel-owner-transfer/1" | "dmsg-channel-sponsor/1")
+                        )
+                })
+                && packet.is_none_or(|p| p.len() <= MAX_TEXT)
+                && draft.agent.as_ref().is_none_or(|a| {
+                    !a.id.is_empty() && a.id.len() <= 256 && a.name.chars().count() <= MAX_NAME
+                })
+                && (!draft.text.is_empty()
+                    || file
+                    || draft.retract.is_some()
+                    || draft.packet.is_some()),
+            "draft",
+        )
+    }
+
+    /// Messages of a channel still on their way: sealed or prepared on this
+    /// device and not yet stored by the relay, oldest first.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn channel_outbox(&self, channel: &str) -> Result<Vec<Json>> {
+        let keys = self.keys()?;
+        let prefix = format!("{JOB}{channel}:");
+        let mut items: BTreeMap<String, Json> = BTreeMap::new();
+        for key in self
+            .workspace
+            .store
+            .sealed_keys(&format!("{prefix}message:"))?
+        {
+            let id = key[prefix.len() + "message:".len()..].to_string();
+            if let Some(outgoing) = self.workspace.private::<Outgoing>(keys, &key)? {
+                let item = items
+                    .entry(id.clone())
+                    .or_insert_with(|| json!({"message_id": id}));
+                item["draft"] = json(&outgoing.draft);
+                item["created_at"] = outgoing.payload.client_created_at.into();
+            }
+        }
+        for key in self
+            .workspace
+            .store
+            .sealed_keys(&format!("{prefix}file:"))?
+        {
+            let id = key[prefix.len() + "file:".len()..].to_string();
+            if let Some(attachment) = self.workspace.private::<Attachment>(keys, &key)? {
+                let item = items
+                    .entry(id.clone())
+                    .or_insert_with(|| json!({"message_id": id}));
+                item["file"] = json!({
+                    "name": attachment.reference.name,
+                    "size": attachment.reference.size,
+                    "source": attachment.source,
+                });
+            }
+        }
+        let mut items: Vec<Json> = items.into_values().collect();
+        items.sort_by_key(|i| i["created_at"].as_u64().unwrap_or(u64::MAX));
+        Ok(items)
+    }
+
+    /// Give up a message of the outbox. One the relay stored meanwhile still
+    /// arrives with the next read.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` for a malformed message ID.
+    pub fn channel_discard(&self, channel: &str, message_id: &str) -> Result<()> {
+        base(channel)?;
+        ensure_valid(is_hash(message_id), "message_id")?;
+        for key in ["message", "send", "file"] {
+            self.forget_job(channel, &format!("{key}:{message_id}"))?;
+        }
+        Ok(())
     }
 
     /// Share a library file's version under the current epoch as a shared
@@ -2289,7 +2896,8 @@ impl Client {
     /// identity ([`Client::share_edition`]), uploaded to the channel with a
     /// manifest sealed under that key, which the message carries. The
     /// edition shares neither its key nor a chunk byte with the library's
-    /// own copy or a backup, so no one can relate the two.
+    /// own copy or a backup, so no one can relate the two. A retry after the
+    /// epoch changed shares it again under the new one.
     ///
     /// # Errors
     /// Returns `Error::NotFound` for an unknown file or version and
@@ -2299,7 +2907,7 @@ impl Client {
         channel: &str,
         file: &str,
         version: Option<&str>,
-        text: &str,
+        draft: &Draft,
         message_id: Option<&str>,
     ) -> Result<Json> {
         let message_id = message_id.map_or_else(random_hex, str::to_string);
@@ -2309,11 +2917,20 @@ impl Client {
         let ledger = self.channel_pull(channel, None, None).await?;
         self.root_ready().await?;
         let key_name = format!("file:{message_id}");
-        let attachment = match self.job::<Attachment>(channel, &key_name)? {
-            Some(attachment) => {
-                ensure(attachment.source == source, Error::IdempotencyConflict)?;
-                attachment
+        let mut attachment = self.job::<Attachment>(channel, &key_name)?;
+        if let Some(prior) = &attachment {
+            ensure(prior.source == source, Error::IdempotencyConflict)?;
+            if prior.reference.epoch != ledger.epoch
+                && !self
+                    .committed(channel, &format!("send:{message_id}"))
+                    .await?
+            {
+                self.forget_job(channel, &key_name)?;
+                attachment = None;
             }
+        }
+        let attachment = match attachment {
+            Some(attachment) => attachment,
             None => {
                 ensure(ledger.status == Status::Active, Error::RekeyRequired)?;
                 let edition = self.share_edition(&manifest)?;
@@ -2330,7 +2947,7 @@ impl Client {
         };
         self.channel_upload(channel, &attachment.upload, Source::Library)
             .await?;
-        self.channel_send(channel, text, Some(&message_id)).await
+        self.channel_send(channel, draft, Some(&message_id)).await
     }
 
     /// The upload that shares `file`, whose chunks are in `blobs`, under
@@ -2408,179 +3025,337 @@ impl Client {
         ))
     }
 
-    /// Read new messages, or with `backfill` every readable one again, such
-    /// as after a history grant. Messages of epochs this account may not
-    /// read are skipped by the relay without their ciphertext.
+    /// Read new messages, or with `backfill` every readable one again. A
+    /// history grant to this account has its epochs read again on its own.
+    /// Messages of epochs this account may not read are skipped by the relay
+    /// without their ciphertext.
     ///
     /// # Errors
-    /// Returns `Error::RecoveryIncomplete` when an epoch's key is missing;
-    /// the cursor stays.
+    /// Returns `Error::IntegrityFailed` for pages that do not verify; the
+    /// cursor stays.
     pub async fn channel_sync(&mut self, channel: &str, backfill: bool) -> Result<ChannelSync> {
-        let ledger = self.channel_pull(channel, None, None).await?;
-        self.sync_messages(channel, ledger, backfill).await
+        let mut reading = Reading::new(channel);
+        if backfill {
+            let through = self.local(channel)?.message;
+            reading.range = Some((0, through));
+        }
+        self.channel_read(&mut reading).await?;
+        Ok(ChannelSync {
+            through: self.local(channel)?.message,
+            received: reading.received,
+        })
     }
 
-    /// [`Self::channel_sync`] from the control log as `ledger` verified it.
-    async fn sync_messages(
-        &mut self,
-        channel: &str,
-        mut ledger: Ledger,
-        backfill: bool,
-    ) -> Result<ChannelSync> {
+    /// Verify, open and keep a page of messages.
+    async fn messages_page(&mut self, reading: &mut Reading, page: &Json) -> Result<()> {
+        let channel = reading.channel.clone();
+        let ledger = reading.ledger.clone().ok_or(Error::IntegrityFailed)?;
+        if page["head"] != ledger.head.as_str() {
+            // A control landed since the log was read: read it, then the
+            // page again.
+            reading.stale = Some(ledger.head);
+            reading.step = Step::Control;
+            return Ok(());
+        }
         let me = self.me()?;
         let trust = self.trust().await?;
-        let mut local = self.local(channel)?;
-        let mut ring = self.keyring(channel)?.1;
-        let mut after = if backfill { 0 } else { local.message };
-        let mut received = 0;
-        let mut ledgers: BTreeMap<String, Ledger> = BTreeMap::new();
-        for _ in 0..10_000 {
-            let page = self
-                .relay_get(&format!("{}/sync?after={after}&limit=20", base(channel)?))
-                .await?;
-            if page["head"] != ledger.head.as_str() {
-                // A control landed since the log was read: read it, then
-                // the page again.
-                let pulled = self.channel_pull(channel, None, None).await?;
-                ensure(pulled.head != ledger.head, Error::IntegrityFailed)?;
-                ledger = pulled;
-                local = self.local(channel)?;
-                continue;
-            }
-            let next = page["next_seq"].as_u64().ok_or(Error::IntegrityFailed)?;
-            let latest = page["latest_seq"].as_u64().ok_or(Error::IntegrityFailed)?;
-            let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
-            let skipped = page["skipped"].as_array().ok_or(Error::IntegrityFailed)?;
+        let local = self.local(&channel)?;
+        let mut ring = self.keyring(&channel)?.1;
+        let after = reading.after.unwrap_or_default();
+        let next = page["next_seq"].as_u64().ok_or(Error::IntegrityFailed)?;
+        let latest = page["latest_seq"].as_u64().ok_or(Error::IntegrityFailed)?;
+        let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
+        let skipped = page["skipped"].as_array().ok_or(Error::IntegrityFailed)?;
+        ensure(
+            next >= after && latest >= next && entries.len() <= 20 && next - after <= 20,
+            Error::IntegrityFailed,
+        )?;
+        let mut seen = BTreeSet::new();
+        let mut unread_epochs = vec![];
+        for row in skipped {
+            let seq = row["seq"].as_u64().ok_or(Error::IntegrityFailed)?;
+            let epoch = row["epoch"].as_u64().ok_or(Error::IntegrityFailed)?;
             ensure(
-                next >= after && latest >= next && entries.len() <= 20 && next - after <= 20,
+                seq > after
+                    && seq <= next
+                    && seen.insert(seq)
+                    && epoch > 0
+                    && epoch <= ledger.epoch
+                    && !readable(&ledger, &me, epoch),
                 Error::IntegrityFailed,
             )?;
-            let mut seen = BTreeSet::new();
-            for row in skipped {
-                let seq = row["seq"].as_u64().ok_or(Error::IntegrityFailed)?;
-                let epoch = row["epoch"].as_u64().ok_or(Error::IntegrityFailed)?;
-                ensure(
-                    seq > after
-                        && seq <= next
-                        && seen.insert(seq)
-                        && epoch > 0
-                        && epoch <= ledger.epoch
-                        && !readable(&ledger, &me, epoch),
-                    Error::IntegrityFailed,
-                )?;
+            unread_epochs.push((epoch, seq));
+        }
+        let mut rows = vec![];
+        let mut ledgers: BTreeMap<String, Ledger> = BTreeMap::new();
+        for row in entries {
+            let seq = row["seq"].as_u64().ok_or(Error::IntegrityFailed)?;
+            let receipt = &row["receipt"];
+            let stored_at = receipt["stored_at"]
+                .as_u64()
+                .ok_or(Error::IntegrityFailed)?;
+            let cose = row["signed"]["cose_sign1"]
+                .as_str()
+                .ok_or(Error::IntegrityFailed)?;
+            let evidence: Evidence = from(&row["evidence"])?;
+            let verified: Verified<MessagePayload> =
+                trust.command(cose, &evidence, stored_at, Some(MESSAGE), now_ms())?;
+            let payload = verified.body.payload.clone();
+            let digest = hex_sha256(&unb64(cose)?);
+            ensure(
+                payload.channel_id == channel
+                    && row["epoch"].as_u64() == Some(payload.epoch)
+                    && receipt["seq"].as_u64() == Some(seq)
+                    && receipt["digest"] == digest.as_str()
+                    && seq > after
+                    && seq <= next
+                    && seen.insert(seq),
+                Error::IntegrityFailed,
+            )?;
+            let author = verified.account.to_string();
+            let historical = match ledgers.get(&payload.control_head) {
+                Some(ledger) => ledger.clone(),
+                None => {
+                    let found = self.ledger_at(&channel, &local, &payload.control_head)?;
+                    ledgers.insert(payload.control_head.clone(), found.clone());
+                    found
+                }
+            };
+            let role = historical.members.get(&author).map(|m| m.role);
+            ensure(
+                role.is_some()
+                    && historical.epoch == payload.epoch
+                    && historical.acl_version == payload.acl_version
+                    && (historical.kind != ChannelType::Distribution || role != Some(Role::Member))
+                    && readable(&ledger, &me, payload.epoch),
+                Error::Forbidden,
+            )?;
+            rows.push((seq, stored_at, author, verified.device, payload, digest));
+        }
+        ensure(seen.len() as u64 == next - after, Error::IntegrityFailed)?;
+        ensure(next > after || next == latest, Error::IntegrityFailed)?;
+        let mut opened = Vec::with_capacity(rows.len());
+        for (seq, stored_at, author, device, payload, digest) in rows {
+            let key_name = format!("{INBOX}{channel}:{seq:020}");
+            // Kept already, unless it could not be read then.
+            if self
+                .workspace
+                .private::<Message>(self.keys()?, &key_name)?
+                .is_some_and(|m| !m.unreadable)
+            {
+                continue;
             }
-            let mut rows = vec![];
-            for row in entries {
-                let seq = row["seq"].as_u64().ok_or(Error::IntegrityFailed)?;
-                let receipt = &row["receipt"];
-                let stored_at = receipt["stored_at"]
-                    .as_u64()
-                    .ok_or(Error::IntegrityFailed)?;
-                let cose = row["signed"]["cose_sign1"]
-                    .as_str()
-                    .ok_or(Error::IntegrityFailed)?;
-                let evidence: Evidence = from(&row["evidence"])?;
-                let verified: Verified<MessagePayload> =
-                    trust.command(cose, &evidence, stored_at, Some(MESSAGE), now_ms())?;
-                let payload = verified.body.payload.clone();
-                ensure(
-                    payload.channel_id == channel
-                        && row["epoch"].as_u64() == Some(payload.epoch)
-                        && receipt["seq"].as_u64() == Some(seq)
-                        && receipt["digest"] == hex_sha256(&unb64(cose)?).as_str()
-                        && seq > after
-                        && seq <= next
-                        && seen.insert(seq),
-                    Error::IntegrityFailed,
-                )?;
-                let author = verified.account.to_string();
-                let historical = match ledgers.get(&payload.control_head) {
-                    Some(ledger) => ledger.clone(),
-                    None => {
-                        let found = self.ledger_at(channel, &local, &payload.control_head)?;
-                        ledgers.insert(payload.control_head.clone(), found.clone());
-                        found
+            let message = Message {
+                seq,
+                account: author,
+                device: hex::encode(*device),
+                message_id: payload.message_id.clone(),
+                epoch: payload.epoch,
+                created_at: payload.client_created_at,
+                stored_at,
+                digest,
+                ..Message::default()
+            };
+            let message = self
+                .open_message(&channel, &mut ring, message, &payload)
+                .await?;
+            opened.push((key_name, message));
+        }
+        let reread = reading.range.is_some();
+        let keys = self.keys()?;
+        // The page's messages and the cursor past them in one write.
+        self.workspace.store.atomic(|_| {
+            let mut local = self.local(&channel)?;
+            for (epoch, seq) in &unread_epochs {
+                extend(&mut local.skipped, *epoch, *seq);
+            }
+            for (key, message) in &opened {
+                if message.unreadable {
+                    extend(&mut local.skipped, message.epoch, message.seq);
+                }
+                self.workspace.put_private(keys, key, message)?;
+                self.amend(&channel, &mut local, message)?;
+                if !reread && !message.amends() {
+                    local.last = Some(preview(message));
+                    if message.account != me {
+                        local.unread += 1;
                     }
-                };
-                let role = historical.members.get(&author).map(|m| m.role);
-                ensure(
-                    role.is_some()
-                        && historical.epoch == payload.epoch
-                        && historical.acl_version == payload.acl_version
-                        && (historical.kind != ChannelType::Distribution
-                            || role != Some(Role::Member))
-                        && readable(&ledger, &me, payload.epoch),
-                    Error::Forbidden,
-                )?;
-                rows.push((seq, stored_at, author, verified.device, payload));
+                }
             }
-            ensure(seen.len() as u64 == next - after, Error::IntegrityFailed)?;
-            ensure(next > after || next == latest, Error::IntegrityFailed)?;
-            let mut opened = Vec::with_capacity(rows.len());
-            for (seq, stored_at, author, device, payload) in rows {
-                let key_name = format!("{INBOX}{channel}:{seq:020}");
-                if self.workspace.store.sealed(&key_name)?.is_some() {
-                    continue;
-                }
-                if !ring.keys.contains_key(&payload.epoch) {
-                    self.channel_open_epoch(channel, payload.epoch).await?;
-                    ring = self.keyring(channel)?.1;
-                }
-                let root = unb64(
-                    ring.keys
-                        .get(&payload.epoch)
-                        .ok_or(Error::RecoveryIncomplete)?,
-                )?;
-                let device = hex::encode(*device);
-                let key = message_key(&root, channel, payload.epoch, &payload.message_id, &device);
-                let plain = open(
-                    &key,
-                    &payload.ciphertext,
-                    &message_aad(&author, &device, &payload),
-                )?;
-                let body: Body = decode(&plain, MAX_RECORD)?;
-                ensure(body.text.len() <= MAX_TEXT, Error::IntegrityFailed)?;
-                opened.push((
-                    key_name,
-                    Message {
-                        seq,
-                        account: author,
-                        device,
-                        message_id: payload.message_id.clone(),
-                        epoch: payload.epoch,
-                        created_at: payload.client_created_at,
-                        stored_at,
-                        text: body.text,
-                        file: body.file,
-                    },
-                ));
+            if !reread && next != local.message {
+                local.message = next;
             }
-            received += opened.len();
-            // The page's messages and the cursor past them in one write.
-            let keys = self.keys()?;
-            self.workspace.store.atomic(|_| {
-                for (key, message) in &opened {
-                    self.workspace.put_private(keys, key, message)?;
-                }
-                if !backfill && next != local.message {
-                    local = self.local(channel)?;
-                    local.message = next;
-                    self.save_local(channel, &local)?;
-                }
-                Ok(())
-            })?;
-            after = next;
-            if after == latest {
-                return Ok(ChannelSync {
-                    through: after,
-                    received,
-                });
+            self.save_local(&channel, &local)
+        })?;
+        reading.received += opened.iter().filter(|(_, m)| !m.amends()).count();
+        reading.after = Some(next);
+        let end = reading
+            .range
+            .map_or(latest, |(_, through)| through.min(latest));
+        if next >= end {
+            reading.step = Step::Done;
+            if reading.granting {
+                let mut local = self.local(&channel)?;
+                local.granted.clear();
+                self.save_local(&channel, &local)?;
+            }
+            if reading.range.is_none() || reading.granting {
+                self.grant_pass(reading).await?;
             }
         }
-        Err(Error::QuotaExceeded)
+        Ok(())
     }
 
-    /// The messages this device read, after `after`, at most `limit`.
+    /// Open a message's body under its epoch's key. A body that does not
+    /// open, or an epoch whose key is not here, leaves the message
+    /// unreadable instead of stopping the channel: any member could
+    /// otherwise stall everyone's reading with one bad message.
+    async fn open_message(
+        &mut self,
+        channel: &str,
+        ring: &mut Keyring,
+        mut message: Message,
+        payload: &MessagePayload,
+    ) -> Result<Message> {
+        if !ring.keys.contains_key(&payload.epoch) {
+            match self.channel_open_epoch(channel, payload.epoch).await {
+                Ok(_) => *ring = self.keyring(channel)?.1,
+                Err(Error::RecoveryIncomplete | Error::NotFound | Error::Forbidden) => {
+                    message.unreadable = true;
+                    return Ok(message);
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        let root = unb64(
+            ring.keys
+                .get(&payload.epoch)
+                .ok_or(Error::RecoveryIncomplete)?,
+        )?;
+        let key = message_key(
+            &root,
+            channel,
+            payload.epoch,
+            &payload.message_id,
+            &message.device,
+        );
+        let body = open(
+            &key,
+            &payload.ciphertext,
+            &message_aad(&message.account, &message.device, payload),
+        )
+        .ok()
+        .and_then(|plain| decode::<Body>(&plain, MAX_RECORD).ok())
+        .filter(|b| {
+            b.text.len() <= MAX_TEXT
+                && (b.edit_of.is_none() || b.retract.is_none())
+                && (b.edit_of.is_none() && b.retract.is_none()
+                    || b.file.is_none() && b.packet.is_none())
+        });
+        match body {
+            Some(body) => {
+                message.text = body.text;
+                message.file = body.file;
+                message.reply_to = body.reply_to;
+                message.edit_of = body.edit_of;
+                message.retract = body.retract;
+                message.agent = body.agent;
+                message.packet = body.packet;
+            }
+            None => message.unreadable = true,
+        }
+        Ok(message)
+    }
+
+    /// Apply `message` when it edits or withdraws an earlier message of its
+    /// author, and the edits and withdrawals of `message` read before it.
+    fn amend(&self, channel: &str, local: &mut Local, message: &Message) -> Result<()> {
+        let keys = self.keys()?;
+        let name = |seq: u64| format!("{INBOX}{channel}:{seq:020}");
+        if let Some(target) = message.edit_of.as_ref().or(message.retract.as_ref()) {
+            match self.workspace.private::<Message>(keys, &name(target.seq))? {
+                Some(mut stored) if !stored.unreadable => {
+                    if amendable(&stored, target, message) {
+                        apply(&mut stored, message);
+                        self.workspace
+                            .put_private(keys, &name(stored.seq), &stored)?;
+                        if local.last.as_ref().is_some_and(|l| l.seq == stored.seq) {
+                            local.last = Some(preview(&stored));
+                        }
+                    }
+                }
+                _ => local
+                    .amends
+                    .entry(target.seq)
+                    .or_default()
+                    .push(message.seq),
+            }
+        }
+        if !message.unreadable
+            && let Some(pending) = local.amends.remove(&message.seq)
+        {
+            let mut current = message.clone();
+            for seq in pending {
+                let Some(amend) = self.workspace.private::<Message>(keys, &name(seq))? else {
+                    continue;
+                };
+                let target = amend.edit_of.as_ref().or(amend.retract.as_ref());
+                if target.is_some_and(|t| amendable(&current, t, &amend)) {
+                    apply(&mut current, &amend);
+                }
+            }
+            self.workspace
+                .put_private(keys, &name(current.seq), &current)?;
+        }
+        Ok(())
+    }
+
+    /// Start reading again the epochs granted to this account: their keys
+    /// are opened and the messages this device skipped in them are read.
+    async fn grant_pass(&mut self, reading: &mut Reading) -> Result<()> {
+        let channel = reading.channel.clone();
+        let mut local = self.local(&channel)?;
+        if local.granted.is_empty() {
+            return Ok(());
+        }
+        let mut span: Option<(u64, u64)> = None;
+        let mut epochs = vec![];
+        for &(from, to) in &local.granted {
+            for (epoch, &range) in local.skipped.range(from..=to) {
+                epochs.push((*epoch, range));
+            }
+        }
+        for (epoch, (first, last)) in epochs {
+            match self.channel_open_epoch(&channel, epoch).await {
+                Ok(_) => {
+                    local.skipped.remove(&epoch);
+                    span = Some(span.map_or((first, last), |(a, b)| (a.min(first), b.max(last))));
+                }
+                // The relay or a user home is out of reach: the next read
+                // tries again.
+                Err(error @ Error::Unavailable(_)) => return Err(error),
+                // A grant that does not open here leaves its epoch skipped.
+                Err(_) => {}
+            }
+        }
+        match span {
+            Some((first, last)) => {
+                self.save_local(&channel, &local)?;
+                reading.range = Some((first - 1, last));
+                reading.after = Some(first - 1);
+                reading.granting = true;
+                reading.step = Step::Messages;
+            }
+            None => {
+                local.granted.clear();
+                self.save_local(&channel, &local)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// The messages this device read, after `after`, at most `limit`;
+    /// edits and withdrawals show through the messages they name.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
@@ -2594,13 +3369,204 @@ impl Client {
         // Messages are named by their zero-padded sequence: the page is a
         // range of names, and only its messages are opened.
         let prefix = format!("{INBOX}{channel}:");
-        let messages: Vec<Message> = self.workspace.private_after(
+        let mut shown = vec![];
+        let mut from = after;
+        while shown.len() < limit {
+            let page: Vec<Message> = self.workspace.private_after(
+                self.keys()?,
+                &prefix,
+                &format!("{prefix}{from:020}"),
+                limit,
+            )?;
+            let Some(last) = page.last() else {
+                break;
+            };
+            from = last.seq;
+            shown.extend(page.into_iter().filter(|m| !m.amends()));
+        }
+        shown.truncate(limit);
+        Ok(shown.iter().map(Message::public).collect())
+    }
+
+    /// The `limit` messages before `before`, oldest first, as
+    /// [`Self::channel_messages`] shows them.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn channel_messages_before(
+        &self,
+        channel: &str,
+        before: u64,
+        limit: usize,
+    ) -> Result<Vec<Message>> {
+        base(channel)?;
+        let prefix = format!("{INBOX}{channel}:");
+        let mut shown = vec![];
+        let mut until = before;
+        while shown.len() < limit && until > 1 {
+            let page: Vec<Message> = self.workspace.private_before(
+                self.keys()?,
+                &prefix,
+                &format!("{prefix}{until:020}"),
+                limit,
+            )?;
+            let Some(first) = page.first() else {
+                break;
+            };
+            until = first.seq;
+            let mut kept: Vec<Message> = page.into_iter().filter(|m| !m.amends()).collect();
+            kept.extend(shown);
+            shown = kept;
+        }
+        let skip = shown.len().saturating_sub(limit);
+        Ok(shown[skip..].iter().map(Message::public).collect())
+    }
+
+    /// The messages of a channel whose text or file name holds `query`,
+    /// newest first, at most `limit`.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn channel_search(&self, channel: &str, query: &str, limit: usize) -> Result<Vec<Message>> {
+        base(channel)?;
+        let query = query.trim().to_lowercase();
+        ensure_valid(!query.is_empty() && query.chars().count() <= 200, "query")?;
+        let prefix = format!("{INBOX}{channel}:");
+        let mut found = vec![];
+        let mut from = 0;
+        loop {
+            let page: Vec<Message> = self.workspace.private_after(
+                self.keys()?,
+                &prefix,
+                &format!("{prefix}{from:020}"),
+                500,
+            )?;
+            let Some(last) = page.last() else {
+                break;
+            };
+            from = last.seq;
+            found.extend(page.into_iter().filter(|m| {
+                !m.amends()
+                    && !m.retracted
+                    && !m.hidden
+                    && (m.text.to_lowercase().contains(&query)
+                        || m.file
+                            .as_ref()
+                            .is_some_and(|f| f.name.to_lowercase().contains(&query)))
+            }));
+        }
+        found.reverse();
+        found.truncate(limit);
+        Ok(found.iter().map(Message::public).collect())
+    }
+
+    /// Mark the messages through `through` read; the unread count follows.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an unknown channel.
+    pub fn channel_mark(&self, channel: &str, through: u64) -> Result<ChannelView> {
+        let me = self.me()?;
+        let mut local = self.local(channel)?;
+        local.read = local.read.max(through.min(local.message));
+        let prefix = format!("{INBOX}{channel}:");
+        let after: Vec<Message> = self.workspace.private_after(
             self.keys()?,
             &prefix,
-            &format!("{prefix}{after:020}"),
-            limit,
+            &format!("{prefix}{:020}", local.read),
+            1000,
         )?;
-        Ok(messages.iter().map(Message::public).collect())
+        local.unread = after
+            .iter()
+            .filter(|m| m.account != me && !m.amends())
+            .count() as u64;
+        self.save_local(channel, &local)?;
+        self.channel_view(channel)
+    }
+
+    /// Keep the composer's unsent text on this device.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` for a text over the message limit.
+    pub fn channel_draft(&self, channel: &str, text: &str) -> Result<()> {
+        ensure_valid(text.len() <= MAX_TEXT, "text")?;
+        let mut local = self.local(channel)?;
+        local.draft = text.into();
+        self.save_local(channel, &local)
+    }
+
+    /// Rename a channel for this account, or mute or hide it; every device
+    /// of the account follows.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` for a malformed name.
+    pub fn channel_settings(
+        &mut self,
+        channel: &str,
+        name: Option<&str>,
+        muted: Option<bool>,
+        hidden: Option<bool>,
+    ) -> Result<ChannelView> {
+        let (revision, mut ring) = self.keyring(channel)?;
+        if let Some(name) = name {
+            let name = name.trim();
+            ensure_valid(
+                !name.is_empty()
+                    && name.chars().count() <= MAX_NAME
+                    && !name.chars().any(char::is_control),
+                "name",
+            )?;
+            ring.name = name.into();
+        }
+        ring.muted = muted.unwrap_or(ring.muted);
+        ring.hidden = hidden.unwrap_or(ring.hidden);
+        self.save_keyring(Some(revision), &ring)?;
+        self.channel_view(channel)
+    }
+
+    /// Hide a message on this device, or show it again.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for a message this device did not read.
+    pub fn channel_hide(&self, channel: &str, seq: u64, hidden: bool) -> Result<Message> {
+        base(channel)?;
+        let keys = self.keys()?;
+        let name = format!("{INBOX}{channel}:{seq:020}");
+        let mut message: Message = self
+            .workspace
+            .private(keys, &name)?
+            .ok_or(Error::NotFound)?;
+        message.hidden = hidden;
+        self.workspace.put_private(keys, &name, &message)?;
+        Ok(message.public())
+    }
+
+    /// An image a message carries, as a data URL to show in place.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for a message without an image and
+    /// `Error::QuotaExceeded` for one over 4 MiB.
+    pub async fn channel_preview(&mut self, channel: &str, seq: u64) -> Result<Json> {
+        let message: Message = self
+            .workspace
+            .private(self.keys()?, &format!("{INBOX}{channel}:{seq:020}"))?
+            .ok_or(Error::NotFound)?;
+        let reference = message.file.clone().ok_or(Error::NotFound)?;
+        ensure(
+            matches!(
+                reference.mime.as_str(),
+                "image/png" | "image/jpeg" | "image/gif" | "image/webp"
+            ),
+            Error::NotFound,
+        )?;
+        ensure(reference.size <= PREVIEW, Error::QuotaExceeded)?;
+        let manifest = self
+            .channel_file(channel, &reference, &message.account)
+            .await?;
+        let mut plain = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
+        read_file(&self.workspace.store, &manifest, PREVIEW, Some(&mut *plain))?;
+        use base64::Engine;
+        let data = base64::engine::general_purpose::STANDARD.encode(&plain[..]);
+        Ok(json!({"mime": reference.mime, "url": format!("data:{};base64,{data}", reference.mime)}))
     }
 
     /// Verify and decrypt a shared file and write it to `out`.
@@ -3432,6 +4398,45 @@ impl Client {
         Ok(result)
     }
 
+    /// Call off a billing transfer this account's owner proposed and the
+    /// payer has not completed: the relay pauses the channel's writes while
+    /// one is under way, so a payer who never accepts would hold them.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` without a transfer under way and
+    /// `Error::Forbidden` unless this account owns the channel.
+    pub async fn channel_sponsor_cancel(&mut self, channel: &str) -> Result<Ledger> {
+        let ledger = self.channel_pull(channel, None, None).await?;
+        ensure(ledger.owner == self.me()?, Error::Forbidden)?;
+        let current = self.relay_get(&base(channel)?).await?;
+        let transition = current["billing_transition"]["id"]
+            .as_str()
+            .filter(|id| is_hash(id))
+            .ok_or(Error::NotFound)?
+            .to_string();
+        self.channel_post(
+            channel,
+            &format!("sponsor-cancel:{transition}"),
+            "dmsg/channel/billing/cancel/v1",
+            json!({"transition_id": transition}),
+            "/billing/cancel",
+        )
+        .await?;
+        // The proposal's packet cannot complete any more.
+        let prefix = format!("{JOB}{channel}:");
+        for key in self
+            .workspace
+            .store
+            .sealed_keys(&format!("{prefix}sponsor"))?
+        {
+            let key = &key[prefix.len()..];
+            if key.starts_with("sponsor:") || key.ends_with(&transition) {
+                self.forget_job(channel, key)?;
+            }
+        }
+        self.channel_pull(channel, None, None).await
+    }
+
     /// Reopen an archived channel this account owns; a new epoch follows.
     ///
     /// # Errors
@@ -3460,44 +4465,53 @@ impl Client {
         self.channel_rotate(channel).await
     }
 
-    /// The relay command asking for a single-use ticket of the channel's hint
-    /// WebSocket, signed for the caller to send without the client, and the
-    /// ticket it asks for; [`Self::channel_ticket_url`] makes its URL, valid
-    /// for 30 seconds. The socket only says new messages are available;
-    /// reading them goes through [`Self::channel_sync`]. The relay refuses a
-    /// channel this account left with `Error::Forbidden`.
+    /// The delivery cursor to report: the messages this device read past
+    /// what it reported last, if any.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn channel_delivery_due(&self, channel: &str) -> Result<Option<u64>> {
+        let local = self.local(channel)?;
+        Ok((local.message > local.delivered).then_some(local.message))
+    }
+
+    /// Tell the relay this account's devices took the messages through
+    /// `delivered`, and, when it chooses to say so, read those through
+    /// `read`: members see both (C04). Signed to send without the client;
+    /// [`Self::channel_cursor_settle`] notes a delivery sent.
     ///
     /// # Errors
     /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
-    pub fn channel_ticket_request(&self, channel: &str) -> Result<(Prepared, String)> {
-        let ticket = random_hex();
-        let request = self.signed_post(
-            &format!("{}/ws-ticket", base(channel)?),
-            "dmsg/channel/ws-ticket/v1",
-            &json!({"ticket": ticket}),
+    pub fn channel_cursor_request(
+        &self,
+        channel: &str,
+        delivered: u64,
+        read: Option<u64>,
+    ) -> Result<Prepared> {
+        self.signed_post(
+            &format!("{}/cursor", base(channel)?),
+            CURSOR,
+            &json!({"delivered": delivered, "read": read}),
             &Hash::new(crate::crypto::random_id()),
-        )?;
-        Ok((request, ticket))
+        )
     }
 
-    /// The live address of `channel` for `ticket`, once the relay's answer
-    /// `value` confirms it.
+    /// Note the delivery cursor the relay took.
     ///
     /// # Errors
-    /// Returns `Error::Expired` when the relay did not take the ticket.
-    pub fn channel_ticket_url(&self, channel: &str, ticket: &str, value: &Json) -> Result<String> {
-        ensure(
-            value["ticket"] == ticket && value["expires_at"].as_u64().is_some_and(|t| t > now_ms()),
-            Error::Expired,
-        )?;
-        let mut url = url::Url::parse(&self.config.relay_origin())
-            .map_err(|_| Error::IntegrityFailed)?
-            .join(&format!("{}/ws", base(channel)?))
-            .map_err(|_| Error::IntegrityFailed)?;
-        let scheme = if url.scheme() == "https" { "wss" } else { "ws" };
-        url.set_scheme(scheme).map_err(|_| Error::IntegrityFailed)?;
-        url.query_pairs_mut().append_pair("ticket", ticket);
-        Ok(url.to_string())
+    /// Returns `Error::Locked` while locked.
+    pub fn channel_cursor_settle(&self, channel: &str, delivered: u64) -> Result<()> {
+        let mut local = self.local(channel)?;
+        local.delivered = local.delivered.max(delivered);
+        self.save_local(channel, &local)
+    }
+
+    /// The members' delivery and read cursors, as the relay keeps them.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` for a channel this account left.
+    pub async fn channel_receipts(&mut self, channel: &str) -> Result<Json> {
+        self.relay_get(&format!("{}/cursors", base(channel)?)).await
     }
 
     /// Operations of a channel still waiting for their outcome.
@@ -3540,6 +4554,54 @@ impl Client {
             .await?;
         self.channel_pull(channel, None, None).await?;
         Ok(result)
+    }
+}
+
+/// Widen an epoch's span of unread sequences to `seq`.
+fn extend(spans: &mut BTreeMap<u64, (u64, u64)>, epoch: u64, seq: u64) {
+    spans
+        .entry(epoch)
+        .and_modify(|(first, last)| {
+            *first = (*first).min(seq);
+            *last = (*last).max(seq);
+        })
+        .or_insert((seq, seq));
+}
+
+/// What a channel list shows of a message.
+fn preview(message: &Message) -> Preview {
+    let text = match &message.file {
+        _ if message.retracted || message.unreadable => String::new(),
+        Some(file) if message.text.is_empty() => file.name.clone(),
+        _ => message.text.chars().take(80).collect(),
+    };
+    Preview {
+        seq: message.seq,
+        account: message.account.clone(),
+        stored_at: message.stored_at,
+        text,
+    }
+}
+
+/// Whether `amend` edits or withdraws `target`, the message `reference`
+/// names: the same author's, as read, neither withdrawn nor itself an edit.
+fn amendable(target: &Message, reference: &MessageRef, amend: &Message) -> bool {
+    target.digest == reference.digest
+        && target.account == amend.account
+        && !target.amends()
+        && !target.retracted
+}
+
+/// Apply an edit or a withdrawal to the message it names.
+fn apply(target: &mut Message, amend: &Message) {
+    if amend.retract.is_some() {
+        target.text.clear();
+        target.file = None;
+        target.packet = None;
+        target.retracted = true;
+    } else {
+        target.text.clone_from(&amend.text);
+        target.edited_at = Some(amend.stored_at);
     }
 }
 

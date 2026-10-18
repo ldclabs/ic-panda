@@ -121,7 +121,7 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 32] = [
     ),
     (
         "dmsg_channel_publish",
-        "Send a text message to a channel as this device; needs channel.publish:<channel>.",
+        "Send a text message to a channel as this device, marked as written by this Agent ID; needs channel.publish:<channel>.",
         false,
         r#"{"type":"object","required":["channel","text"],"properties":{"channel":{"type":"string"},"text":{"type":"string"}}}"#,
     ),

@@ -822,6 +822,37 @@ impl Cloud {
         })
     }
 
+    /// [`Self::post_signed`] as a request to send later, within the
+    /// command's deadline.
+    ///
+    /// # Errors
+    /// Returns `Error::Expired` past the deadline.
+    pub(crate) fn prepare_signed(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        cose: &str,
+        request_id: &str,
+        deadline: u64,
+        now: u64,
+    ) -> Result<Prepared> {
+        ensure(now < deadline, Error::Expired)?;
+        let url = self.url(path)?;
+        let proof = signer.deadline(now)?.min(deadline);
+        let body = canonical(&WireBody {
+            cose_sign1: cose,
+            sealed: None,
+        });
+        ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
+        let pop = sign_http(signer, &url, "POST", &body, request_id, proof)?;
+        Ok(Prepared {
+            method: reqwest::Method::POST,
+            url,
+            body: Some(body),
+            pop,
+        })
+    }
+
     /// Post a command signed earlier, such as one whose exact bytes another
     /// account approved, with a fresh proof of possession.
     ///

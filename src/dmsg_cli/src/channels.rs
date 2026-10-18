@@ -1,55 +1,36 @@
-//! Channel hints: while unlocked, one WebSocket per channel this account is
-//! a member of says new messages or controls are available, and the daemon
-//! reads them with the signed HTTP sync. A socket's authorization ends with
-//! its ticket's evidence, about a minute, so each is renewed before then:
-//! the new socket opens first and closes the one it replaces, so no hint
-//! falls between them. A socket that opens with none before it reads once,
-//! as hints sent while none was open are lost, and so does one that closes,
-//! which may have missed one; the relay closes stale ones on the next
-//! message. Each channel is also read every few minutes, which brings a
-//! member's device revocation to the relay's notice without traffic.
+//! The channel loop: while unlocked, the daemon reads a channel when the
+//! account's hint channel names it (a message or a control landed), every
+//! few minutes regardless, which brings a member's device revocation to the
+//! relay's notice without traffic, and once more a few seconds after a
+//! hint, as the relay hints a channel at most every five seconds. Each read
+//! waits on the relay without holding the client.
 //!
 //! A channel that waits for a new epoch, after a member left or was
 //! removed, a device was revoked or a manager rekeyed, is rotated here when
 //! this account may coordinate it; the relay's lease lets one device win.
+//! The delivery cursor of what this device read goes to the relay at most
+//! every half minute per channel (C04).
 
 use crate::daemon::Daemon;
+use dmsg_client::channel::Reading;
 use dmsg_client::channel_log::{Status, may_rotate};
-use futures_util::StreamExt;
-use serde_json::{Value, json};
+use dmsg_types::Result;
+use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::mpsc;
-use tokio::task::{AbortHandle, JoinHandle};
 use tokio::time::{Instant, MissedTickBehavior};
-use tokio_tungstenite::tungstenite::Message;
 
-/// A socket is renewed after this long.
-const RENEW: Duration = Duration::from_secs(40);
 /// How often the set of channels is checked.
 const TICK: Duration = Duration::from_secs(5);
 /// Each channel is read at least this often.
 const READ: Duration = Duration::from_secs(600);
-/// A rotation or a ticket that failed is tried again after this long.
+/// A hinted channel is read again after this long, for the messages the
+/// relay did not hint.
+const AGAIN: Duration = Duration::from_secs(6);
+/// A rotation that failed is tried again after this long, and a delivery
+/// cursor goes at most this often.
 const RETRY: Duration = Duration::from_secs(30);
-
-/// A channel's hint socket.
-struct Socket {
-    task: JoinHandle<()>,
-    opened: Instant,
-    /// The socket it renews, which it closes once open.
-    previous: Option<AbortHandle>,
-}
-
-impl Socket {
-    fn close(&self) {
-        self.task.abort();
-        if let Some(previous) = &self.previous {
-            previous.abort();
-        }
-    }
-}
 
 /// A channel this account is a member of.
 struct Joined {
@@ -58,104 +39,98 @@ struct Joined {
     rotate: bool,
 }
 
-/// Keep a hint socket per joined channel while the daemon is unlocked, and
-/// rotate the channels that wait for it.
+/// What the loop remembers of a channel.
+#[derive(Default)]
+struct Seen {
+    read: Option<Instant>,
+    again: Option<Instant>,
+    rotated: Option<Instant>,
+    reported: Option<Instant>,
+}
+
+/// Read the channels the relay hints at and rotate the ones that wait for
+/// it, while the daemon is unlocked.
 pub async fn run(daemon: Arc<Daemon>) {
-    let (tx, mut rx) = mpsc::channel::<String>(64);
-    let mut sockets: BTreeMap<String, Socket> = BTreeMap::new();
-    let mut read: BTreeMap<String, Instant> = BTreeMap::new();
-    let mut rotated: BTreeMap<String, Instant> = BTreeMap::new();
-    // Tickets the relay refused, as to a member removed meanwhile.
-    let mut refused: BTreeMap<String, Instant> = BTreeMap::new();
+    let Some(mut hints) = daemon.take_channel_hints() else {
+        return;
+    };
+    let mut seen: BTreeMap<String, Seen> = BTreeMap::new();
     // A steady tick, which reads in between do not postpone.
     let mut tick = tokio::time::interval(TICK);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
     loop {
-        tokio::select! {
-            _ = tick.tick() => {}
-            Some(channel) = rx.recv() => {
-                sync(&daemon, &channel).await;
-                read.insert(channel, Instant::now());
-                continue;
-            }
-        }
+        let hinted = tokio::select! {
+            _ = tick.tick() => None,
+            Some(channel) = hints.recv() => Some(channel),
+        };
         let channels = joined(&daemon).await;
+        seen.retain(|id, _| channels.iter().any(|c| c.id == *id));
         for channel in &channels {
-            if channel.rotate
-                && rotated
-                    .get(&channel.id)
-                    .is_none_or(|at| at.elapsed() >= RETRY)
+            let state = seen.entry(channel.id.clone()).or_default();
+            let named = hinted
+                .as_deref()
+                .is_some_and(|h| h == channel.id || h == "*");
+            let due =
+                |at: Option<Instant>, every: Duration| at.is_none_or(|at| at.elapsed() >= every);
+            if named || due(state.read, READ) || state.again.is_some_and(|at| at.elapsed() >= AGAIN)
             {
-                rotated.insert(channel.id.clone(), Instant::now());
+                state.again = named.then(Instant::now);
+                state.read = Some(Instant::now());
+                let report = due(state.reported, RETRY);
+                if sync(&daemon, &channel.id, report).await {
+                    state.reported = Some(Instant::now());
+                }
+            }
+            if channel.rotate && due(state.rotated, RETRY) {
+                state.rotated = Some(Instant::now());
                 rotate(&daemon, &channel.id).await;
             }
-            if read.get(&channel.id).is_some_and(|at| at.elapsed() >= READ) {
-                sync(&daemon, &channel.id).await;
-                read.insert(channel.id.clone(), Instant::now());
-            }
-        }
-        read.retain(|id, _| channels.iter().any(|c| c.id == *id));
-        rotated.retain(|id, _| channels.iter().any(|c| c.id == *id && c.rotate));
-        refused.retain(|_, at| at.elapsed() < RETRY);
-        sockets.retain(|id, socket| {
-            let keep = channels.iter().any(|c| c.id == *id) && !socket.task.is_finished();
-            if !keep {
-                socket.close();
-            }
-            keep
-        });
-        for Joined { id: channel, .. } in channels {
-            let previous = match sockets.get(&channel) {
-                Some(socket) if socket.opened.elapsed() < RENEW => continue,
-                _ if refused.contains_key(&channel) => continue,
-                Some(socket) => {
-                    // Whatever this one replaced is closed by now.
-                    if let Some(previous) = &socket.previous {
-                        previous.abort();
-                    }
-                    Some(socket.task.abort_handle())
-                }
-                None => None,
-            };
-            let url = match ticket(&daemon, &channel).await {
-                Ok(url) => url,
-                Err(_) => {
-                    refused.insert(channel, Instant::now());
-                    continue;
-                }
-            };
-            let tx = tx.clone();
-            let id = channel.clone();
-            let replaces = previous.clone();
-            let task = tokio::spawn(async move {
-                listen(&url, &id, &tx, replaces).await;
-                // A closed socket may have missed a hint.
-                let _ = tx.send(id).await;
-            });
-            sockets.insert(
-                channel,
-                Socket {
-                    task,
-                    opened: Instant::now(),
-                    previous,
-                },
-            );
         }
     }
 }
 
-/// A live address of `channel`: the relay's ticket is asked for without
-/// holding the client.
-async fn ticket(daemon: &Daemon, channel: &str) -> dmsg_types::Result<String> {
-    let (relay, (request, ticket)) = daemon
-        .signed(|client| client.channel_ticket_request(channel))
+/// Carry out `reading` without holding the client while the relay answers.
+///
+/// # Errors
+/// As [`dmsg_client::Client::channel_read_settle`].
+pub(crate) async fn read(daemon: &Daemon, reading: &mut Reading) -> Result<()> {
+    while !reading.done() {
+        let (relay, request) = daemon
+            .signed(|client| client.channel_read_request(reading))
+            .await?;
+        let page = relay.send(request).await?;
+        daemon
+            .client()
+            .lock()
+            .await
+            .channel_read_settle(reading, page)
+            .await?;
+    }
+    Ok(())
+}
+
+/// Report this device's delivery cursor, and the read one when given,
+/// without holding the client; whether one went.
+///
+/// # Errors
+/// Relay errors as returned.
+pub(crate) async fn report(daemon: &Daemon, channel: &str, read: Option<u64>) -> Result<bool> {
+    let due = daemon.client().lock().await.channel_delivery_due(channel)?;
+    let delivered = match (due, read) {
+        (Some(delivered), _) => delivered,
+        (None, Some(_)) => 0,
+        (None, None) => return Ok(false),
+    };
+    let (relay, request) = daemon
+        .signed(|client| client.channel_cursor_request(channel, delivered, read))
         .await?;
-    let value = relay.send(request).await?;
+    relay.send(request).await?;
     daemon
         .client()
         .lock()
         .await
-        .channel_ticket_url(channel, &ticket, &value)
+        .channel_cursor_settle(channel, delivered)?;
+    Ok(true)
 }
 
 /// The channels this account is a member of and that are not archived,
@@ -185,45 +160,10 @@ async fn joined(daemon: &Daemon) -> Vec<Joined> {
         .collect()
 }
 
-/// Read hints until the socket closes. Once open, it closes the socket it
-/// renews, or else reads once.
-async fn listen(
-    url: &str,
-    channel: &str,
-    tx: &mpsc::Sender<String>,
-    replaces: Option<AbortHandle>,
-) {
-    let Ok((socket, _)) = tokio_tungstenite::connect_async(url).await else {
-        return;
-    };
-    match replaces {
-        Some(previous) => previous.abort(),
-        // Hints sent while no socket was open are lost.
-        None => {
-            if tx.send(channel.to_string()).await.is_err() {
-                return;
-            }
-        }
-    }
-    let (_, mut stream) = socket.split();
-    while let Some(Ok(message)) = stream.next().await {
-        let Message::Text(text) = message else {
-            continue;
-        };
-        let Ok(hint) = serde_json::from_str::<Value>(&text) else {
-            continue;
-        };
-        if (hint["type"] == "available" || hint["type"] == "control")
-            && tx.send(channel.to_string()).await.is_err()
-        {
-            return;
-        }
-    }
-}
-
-/// Read a channel's controls and messages; a change is announced.
-async fn sync(daemon: &Daemon, channel: &str) {
-    let mut client = daemon.client().lock().await;
+/// Read a channel's controls and messages and, when `report`, tell the
+/// relay what this device took; a change is announced. Whether a cursor
+/// went.
+async fn sync(daemon: &Daemon, channel: &str, report: bool) -> bool {
     let state = |client: &dmsg_client::Client| {
         client
             .channel_view(channel)
@@ -231,19 +171,26 @@ async fn sync(daemon: &Daemon, channel: &str) {
             .and_then(|v| v.ledger)
             .map(|l| (l.head, l.status))
     };
-    let before = state(&client);
-    let received = client
-        .channel_sync(channel, false)
-        .await
-        .map_or(0, |report| report.received);
-    let changed = state(&client) != before;
-    drop(client);
-    if received > 0 || changed {
+    let before = state(&*daemon.client().lock().await);
+    let mut reading = Reading::new(channel);
+    let read = read(daemon, &mut reading).await;
+    let changed = state(&*daemon.client().lock().await) != before;
+    if reading.received > 0 || changed {
+        let view = daemon.client().lock().await.channel_view(channel).ok();
         daemon.emit(
             "channel/changed",
-            json!({"id": channel, "received": received}),
+            json!({
+                "id": channel,
+                "received": reading.received,
+                "name": view.as_ref().map(|v| v.name.clone()),
+                "muted": view.as_ref().is_some_and(|v| v.muted || v.hidden),
+            }),
         );
     }
+    read.is_ok()
+        && report
+        && reading.received > 0
+        && self::report(daemon, channel, None).await.unwrap_or(false)
 }
 
 /// Seal a new epoch to the channel's members.
@@ -255,4 +202,48 @@ async fn rotate(daemon: &Daemon, channel: &str) {
             json!({"id": channel, "epoch": view.ledger.map(|l| l.epoch)}),
         );
     }
+}
+
+/// Display names of accounts, checked against their certified devices and
+/// kept for ten minutes.
+///
+/// # Errors
+/// Returns `Error::Unavailable` when the user homes cannot be read.
+pub(crate) async fn names(daemon: &Daemon, accounts: &[String]) -> Result<serde_json::Value> {
+    use std::sync::{Mutex, OnceLock};
+    type Cache = Mutex<BTreeMap<String, (Option<String>, Instant)>>;
+    static CACHE: OnceLock<Cache> = OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
+    let missing: Vec<dmsg_types::AccountId> = {
+        let known = cache.lock().expect("names");
+        accounts
+            .iter()
+            .filter(|a| {
+                known
+                    .get(*a)
+                    .is_none_or(|(_, at)| at.elapsed() >= Duration::from_secs(600))
+            })
+            .filter_map(|a| a.parse().ok())
+            .take(100)
+            .collect()
+    };
+    if !missing.is_empty() {
+        let found = daemon.client().lock().await.profile_names(&missing).await?;
+        let mut known = cache.lock().expect("names");
+        for account in &missing {
+            let id = account.to_string();
+            let name = found
+                .iter()
+                .find(|(a, _)| *a == id)
+                .and_then(|(_, n)| n.clone());
+            known.insert(id, (name, Instant::now()));
+        }
+    }
+    let known = cache.lock().expect("names");
+    Ok(json!(
+        accounts
+            .iter()
+            .filter_map(|a| known.get(a).map(|(name, _)| (a.clone(), json!(name))))
+            .collect::<serde_json::Map<_, _>>()
+    ))
 }

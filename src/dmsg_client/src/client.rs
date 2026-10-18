@@ -140,6 +140,9 @@ pub struct Status {
     pub approvals_waiting: u64,
     /// Web requests fetched but not yet opened, as while locked.
     pub sealed_requests: u64,
+    /// Unread channel messages, muted and hidden channels aside; while
+    /// unlocked.
+    pub channels_unread: u64,
 }
 
 /// The session fields of [`Status`], read without touching storage.
@@ -621,6 +624,10 @@ impl Client {
             last_sync: self.last_sync()?,
             approvals_waiting: self.approvals_waiting()?,
             sealed_requests: self.sealed_requests()?,
+            channels_unread: match session.state {
+                "unlocked" => self.channels_unread().unwrap_or(0),
+                _ => 0,
+            },
         })
     }
 

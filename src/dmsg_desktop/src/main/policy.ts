@@ -135,6 +135,18 @@ export const WINDOW_METHODS = new Set([
   'channel/leave',
   'channel/rotate',
   'channel/rekey',
+  'channel/outbox',
+  'channel/discard',
+  'channel/mark',
+  'channel/draft',
+  'channel/settings',
+  'channel/search',
+  'channel/hide',
+  'channel/preview',
+  'channel/sponsor_cancel',
+  'channel/names',
+  'channel/receipts',
+  'handle/resolve',
   'channel/send',
   'channel/send_file',
   'channel/sync',
@@ -314,7 +326,10 @@ const HEX32 = /^[0-9a-f]{64}$/
 const XID = /^[0-9a-v]{19}[0g]$/
 
 /** A `dmsg://` link as navigation: where to go, never what to do. */
-export type Link = { route: 'browsers'; account: string | null } | { route: 'request'; account: string; request: string }
+export type Link =
+  | { route: 'browsers'; account: string | null }
+  | { route: 'request'; account: string; request: string }
+  | { route: 'join'; invitation: string }
 
 export function parseLink(url: string): Link | null {
   let parsed: URL
@@ -322,6 +337,11 @@ export function parseLink(url: string): Link | null {
     parsed = new URL(url)
   } catch {
     return null
+  }
+  // A channel invitation opens the join dialog with it; joining is still the person's click.
+  if (parsed.protocol === 'dmsg:' && parsed.host === 'channel' && parsed.pathname === '/join') {
+    const invitation = parsed.hash.slice(1)
+    return /^[A-Za-z0-9_-]{16,8192}$/.test(invitation) ? { route: 'join', invitation } : null
   }
   if (parsed.protocol !== 'dmsg:' || parsed.host !== 'connect') return null
   const account = parsed.searchParams.get('account') ?? ''

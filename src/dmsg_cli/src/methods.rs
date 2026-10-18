@@ -7,7 +7,7 @@ use crate::daemon::Daemon;
 use crate::params::{absolute, account, number, optional, parse, source, text, to_json};
 use dmsg_client::{
     Client,
-    channel::{Invitation, OwnerTransfer, Sponsor},
+    channel::{Draft, Invitation, MessageRef, OwnerTransfer, Posting, Reading, Sponsor},
     channel_log::{Action, ChannelType, Role},
     cloud::found,
     inbox::PolicyInput,
@@ -16,7 +16,7 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 51] = [
+pub(crate) const METHODS: [&str; 62] = [
     "channel/list",
     "channel/show",
     "channel/create",
@@ -41,6 +41,17 @@ pub(crate) const METHODS: [&str; 51] = [
     "channel/reactivate",
     "channel/pending",
     "channel/resume",
+    "channel/outbox",
+    "channel/discard",
+    "channel/mark",
+    "channel/draft",
+    "channel/settings",
+    "channel/search",
+    "channel/hide",
+    "channel/preview",
+    "channel/sponsor_cancel",
+    "channel/names",
+    "channel/receipts",
     "inbox/policy",
     "inbox/configure",
     "inbox/send",
@@ -73,7 +84,11 @@ pub(crate) const METHODS: [&str; 51] = [
 /// The events a method's success announces.
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
-        "channel/list" | "channel/show" | "channel/messages" | "channel/pending" => &[],
+        "channel/list" | "channel/show" | "channel/messages" | "channel/pending"
+        | "channel/outbox" | "channel/search" | "channel/preview" | "channel/names"
+        | "channel/receipts" | "channel/draft" => &[],
+        // A read position moves only counts, which the views keep themselves.
+        "channel/mark" => &["channel/read"],
         m if m.starts_with("channel/") => &["channel/changed"],
         "inbox/configure" | "inbox/send" | "inbox/mark" | "inbox/refund" => &["inbox/changed"],
         "inbox/pay" | "plan/checkout" | "plan/advance" | "handle/claim" | "handle/register" => {
@@ -88,6 +103,52 @@ impl Daemon {
     pub(crate) async fn call_more(&self, method: &str, params: &Value) -> Result<Value> {
         // Relay reads signed under the client wait for the network without it.
         match method {
+            "channel/sync" if params["backfill"] != true => {
+                let channel = text(params, "id")?;
+                let mut reading = Reading::new(&channel);
+                crate::channels::read(self, &mut reading).await?;
+                return Ok(json!({
+                    "through": self.client().lock().await.channel_view(&channel)?.message_cursor,
+                    "received": reading.received,
+                }));
+            }
+            "channel/send" => {
+                let channel = text(params, "id")?;
+                let draft = draft(params)?;
+                crate::channels::read(self, &mut Reading::controls(&channel)).await?;
+                let (relay, (message_id, posting)) = {
+                    let mut client = self.client().lock().await;
+                    let request = client
+                        .channel_send_request(&channel, &draft, params["message_id"].as_str())
+                        .await?;
+                    (client.relay(), request)
+                };
+                let reply = match posting {
+                    Posting::Done(result) => Ok(result),
+                    Posting::Send(request) => relay.send(request).await,
+                };
+                let receipt =
+                    self.client()
+                        .lock()
+                        .await
+                        .channel_send_settle(&channel, &message_id, reply)?;
+                crate::channels::read(self, &mut Reading::new(&channel)).await?;
+                return Ok(json!({"message_id": message_id, "receipt": receipt}));
+            }
+            "channel/mark" => {
+                let channel = text(params, "id")?;
+                let through = number(params, "through")?;
+                let view = self.client().lock().await.channel_mark(&channel, through)?;
+                // A read receipt only when the account says so (C04).
+                if params["receipt"] == true {
+                    crate::channels::report(self, &channel, Some(view.read)).await?;
+                }
+                return Ok(to_json(&view));
+            }
+            "channel/names" => {
+                let accounts: Vec<String> = parse(params, "accounts")?;
+                return crate::channels::names(self, &accounts).await;
+            }
             "inbox/policy" => {
                 let (relay, request) = self.signed(Client::inbox_policy_request).await?;
                 return Ok(found(relay.send(request).await)?.unwrap_or(Value::Null));
@@ -158,22 +219,13 @@ impl Daemon {
             }
             "channel/rotate" => Ok(to_json(&client.channel_rotate(&id()?).await?)),
             "channel/rekey" => Ok(to_json(&client.channel_rekey(&id()?).await?)),
-            "channel/send" => {
-                client
-                    .channel_send(
-                        &id()?,
-                        &text(params, "text")?,
-                        params["message_id"].as_str(),
-                    )
-                    .await
-            }
             "channel/send_file" => {
                 client
                     .channel_send_file(
                         &id()?,
                         &text(params, "file")?,
                         params["version"].as_str(),
-                        params["text"].as_str().unwrap_or_default(),
+                        &draft(params)?,
                         params["message_id"].as_str(),
                     )
                     .await
@@ -183,9 +235,15 @@ impl Daemon {
                 Ok(to_json(&client.channel_sync(&id()?, backfill).await?))
             }
             "channel/messages" => {
-                let after = params["after"].as_u64().unwrap_or(0);
                 let limit = params["limit"].as_u64().unwrap_or(200).min(1000) as usize;
-                Ok(to_json(&client.channel_messages(&id()?, after, limit)?))
+                Ok(to_json(&match params["before"].as_u64() {
+                    Some(before) => client.channel_messages_before(&id()?, before, limit)?,
+                    None => client.channel_messages(
+                        &id()?,
+                        params["after"].as_u64().unwrap_or(0),
+                        limit,
+                    )?,
+                }))
             }
             "channel/download" => {
                 let seq = number(params, "seq")?;
@@ -234,6 +292,37 @@ impl Daemon {
             "channel/reactivate" => Ok(to_json(&client.channel_reactivate(&id()?).await?)),
             "channel/pending" => Ok(Value::Array(client.channel_pending(&id()?)?)),
             "channel/resume" => client.channel_resume(&id()?, &text(params, "key")?).await,
+            "channel/outbox" => Ok(Value::Array(client.channel_outbox(&id()?)?)),
+            "channel/discard" => {
+                client.channel_discard(&id()?, &text(params, "message_id")?)?;
+                Ok(json!({"discarded": true}))
+            }
+            "channel/draft" => {
+                client.channel_draft(&id()?, params["text"].as_str().unwrap_or_default())?;
+                Ok(json!({"saved": true}))
+            }
+            "channel/settings" => Ok(to_json(&client.channel_settings(
+                &id()?,
+                params["name"].as_str(),
+                params["muted"].as_bool(),
+                params["hidden"].as_bool(),
+            )?)),
+            "channel/search" => {
+                let limit = params["limit"].as_u64().unwrap_or(50).min(200) as usize;
+                Ok(to_json(&client.channel_search(
+                    &id()?,
+                    &text(params, "query")?,
+                    limit,
+                )?))
+            }
+            "channel/hide" => Ok(to_json(&client.channel_hide(
+                &id()?,
+                number(params, "seq")?,
+                params["hidden"].as_bool().unwrap_or(true),
+            )?)),
+            "channel/preview" => client.channel_preview(&id()?, number(params, "seq")?).await,
+            "channel/sponsor_cancel" => Ok(to_json(&client.channel_sponsor_cancel(&id()?).await?)),
+            "channel/receipts" => client.channel_receipts(&id()?).await,
             "inbox/configure" => {
                 let input: PolicyInput = serde_json::from_value(params.clone())
                     .map_err(|e| Error::InvalidInput(format!("policy: {e}")))?;
@@ -345,4 +434,25 @@ impl Daemon {
             _ => Err(Error::NotFound),
         }
     }
+}
+
+/// The message a call writes: its text, the messages it names and a
+/// transfer packet; the Agent ID is never the caller's to claim.
+fn draft(params: &Value) -> Result<Draft> {
+    let reference = |field: &str| -> Result<Option<MessageRef>> {
+        match &params[field] {
+            Value::Null => Ok(None),
+            value => serde_json::from_value(value.clone())
+                .map(Some)
+                .map_err(|_| Error::InvalidInput(field.into())),
+        }
+    };
+    Ok(Draft {
+        text: params["text"].as_str().unwrap_or_default().to_string(),
+        reply_to: reference("reply_to")?,
+        edit_of: reference("edit_of")?,
+        retract: reference("retract")?,
+        agent: None,
+        packet: params.get("packet").filter(|p| !p.is_null()).cloned(),
+    })
 }

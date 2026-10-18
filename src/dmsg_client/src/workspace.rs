@@ -397,6 +397,26 @@ impl Workspace {
             .collect()
     }
 
+    /// At most `limit` values as [`Self::private_after`], the last ones whose
+    /// names sort before `before`, in name order.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a corrupt or foreign record.
+    pub fn private_before<T: DeserializeOwned + Serialize>(
+        &self,
+        keys: &Keys,
+        prefix: &str,
+        before: &str,
+        limit: usize,
+    ) -> Result<Vec<T>> {
+        self.store
+            .sealed_before(prefix, before, limit)?
+            .into_iter()
+            .rev()
+            .map(|(key, sealed)| decode(&self.open_record(keys, &key, &sealed)?, MAX_PRIVATE))
+            .collect()
+    }
+
     /// Delete a sealed record.
     ///
     /// # Errors

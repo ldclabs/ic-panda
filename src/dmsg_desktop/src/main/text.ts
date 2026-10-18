@@ -69,6 +69,7 @@ const en = {
   allow: 'Allow',
   imageFile: 'Images',
   newMessages: 'New channel messages in dMsg.',
+  channelMessages: (n: number) => `${n} new message(s)`,
   newLetter: 'A new letter arrived in dMsg.'
 }
 
@@ -138,6 +139,7 @@ const zh: Text = {
   allow: '允许',
   imageFile: '图片',
   newMessages: 'dMsg 有新的频道消息。',
+  channelMessages: (n: number) => `${n} 条新消息`,
   newLetter: 'dMsg 有新来信。'
 }
 
@@ -207,6 +209,7 @@ const ru: Text = {
   allow: 'Разрешить',
   imageFile: 'Изображения',
   newMessages: 'Новые сообщения в каналах dMsg.',
+  channelMessages: (n: number) => `Новых сообщений: ${n}`,
   newLetter: 'В dMsg пришло новое письмо.'
 }
 
@@ -274,6 +277,7 @@ const ar: Text = {
   allow: 'سماح',
   imageFile: 'الصور',
   newMessages: 'رسائل جديدة في قنوات dMsg.',
+  channelMessages: (n: number) => `رسائل جديدة: ${n}`,
   newLetter: 'وصلت رسالة جديدة إلى dMsg.'
 }
 
@@ -343,6 +347,7 @@ const fr: Text = {
   allow: 'Autoriser',
   imageFile: 'Images',
   newMessages: 'Nouveaux messages de canal dans dMsg.',
+  channelMessages: (n: number) => `${n} nouveau(x) message(s)`,
   newLetter: 'Une nouvelle lettre est arrivée dans dMsg.'
 }
 
@@ -411,6 +416,7 @@ const es: Text = {
   allow: 'Permitir',
   imageFile: 'Imágenes',
   newMessages: 'Mensajes nuevos en los canales de dMsg.',
+  channelMessages: (n: number) => `${n} mensaje(s) nuevo(s)`,
   newLetter: 'Llegó una carta nueva a dMsg.'
 }
 

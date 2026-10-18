@@ -414,3 +414,44 @@ fn recipients_digest_matches_the_vector() {
         text(&v["lease"]["recipients_digest"])
     );
 }
+
+#[test]
+fn managers_withdraw_open_invitations() {
+    let ledger = activated(&genesis(ChannelType::Collaboration));
+    let invited = apply(
+        &ledger,
+        OWNER,
+        Action::Invite {
+            invitation_id: h(11),
+            account: OTHER.into(),
+            role: Role::Member,
+            expires_at: 2_000,
+            envelope_upload: None,
+        },
+        12,
+    )
+    .unwrap();
+    let joined = invite(&invited, MEMBER, 20);
+    let revoke = Action::RevokeInvite {
+        invitation_id: h(11),
+    };
+    // A member does not withdraw it; the owner does, and it is gone.
+    assert_eq!(
+        apply(&activated(&joined), MEMBER, revoke.clone(), 30),
+        Err(Error::Forbidden)
+    );
+    let withdrawn = apply(&activated(&joined), OWNER, revoke.clone(), 30).unwrap();
+    assert!(withdrawn.invitations.is_empty());
+    assert_eq!(apply(&withdrawn, OWNER, revoke, 31), Err(Error::Forbidden));
+    assert_eq!(
+        apply(
+            &withdrawn,
+            OTHER,
+            Action::Accept {
+                invitation_id: h(11)
+            },
+            32
+        ),
+        Err(Error::Forbidden)
+    );
+}

@@ -206,6 +206,9 @@
                 <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => mark(letter, true, !letter.archived)} data-testid="letter-archive">
                   <Icon name={letter.archived ? 'unarchive' : 'archive'} />{letter.archived ? t('moveToInbox') : t('archive')}
                 </button>
+                <button class={buttonClass('secondary', 'sm')} onclick={() => (location.hash = `/channels?direct=${letter.sender}`)} data-testid="letter-converse">
+                  <Icon name="channels" />{t('startConversation')}
+                </button>
               </div>
             {/if}
           </header>

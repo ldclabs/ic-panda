@@ -657,11 +657,26 @@ const methods = {
   'connect/sync': () => ({ fetched: 0 }),
   'channel/list': () => [channel],
   'channel/show': () => channel,
-  'channel/messages': (p) => messages.filter((m) => m.seq > (p.after ?? 0)).slice(0, p.limit ?? 200),
+  'channel/messages': (p) =>
+    p.before !== undefined
+      ? messages.filter((m) => m.seq < p.before).slice(-(p.limit ?? 200))
+      : messages.filter((m) => m.seq > (p.after ?? 0)).slice(0, p.limit ?? 200),
   'channel/send': (p) => {
-    messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text })
+    messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text, digest: 'dd'.repeat(32) })
     return { seq: messages.length }
   },
+  'channel/outbox': () => [],
+  'channel/receipts': () => ({ latest_seq: messages.length, cursors: { [peer]: { delivered: messages.length, read: 1 } } }),
+  'channel/names': (p) => Object.fromEntries(p.accounts.map((a) => [a, a === peer ? 'Peer Person' : null])),
+  'channel/mark': (p) => ({ ...channel, read: p.through, unread: 0 }),
+  'channel/draft': () => ({ saved: true }),
+  'channel/settings': (p) => {
+    if (p.name) channel.name = p.name
+    if (p.muted !== undefined) channel.muted = p.muted
+    return channel
+  },
+  'channel/search': (p) => messages.filter((m) => m.text?.includes(p.query)),
+  'channel/hide': (p) => ({ ...messages.find((m) => m.seq === p.seq), hidden: p.hidden }),
   'channel/send_file': (p) => {
     const file = library.find((f) => f.id === p.file)
     messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text, file: { name: file.name, size: file.size } })
@@ -1083,8 +1098,11 @@ try {
   assert.equal(await main.locator('[data-testid="message-outgoing"]').count(), 0)
   // A channel opens with its latest page; later reads ask only for what follows the last message shown.
   const pages = calls.filter((c) => c.method === 'channel/messages').map((c) => c.params)
-  assert.deepEqual(pages[0], { id: channel.id, after: 0, limit: 200 })
+  assert.deepEqual(pages[0], { id: channel.id, before: channel.message_cursor + 1, limit: 200 })
   assert.ok(pages.slice(1).some((p) => p.after === 2))
+  // A message names its own ID, so a retry never sends it twice; members show their names.
+  assert.match(latest('channel/send').params.message_id, /^[0-9a-f]{64}$/)
+  await main.waitForSelector('[data-testid="channel-members"] >> text=Peer Person')
 
   // A library file goes with a message as a shared edition; a shared file
   // is saved where the main process's dialog says, or into the library;
@@ -1095,7 +1113,9 @@ try {
   await main.fill('[data-testid="channel-text"]', 'With a file')
   await main.click('[data-testid="channel-send"]')
   await waitFor(() => latest('channel/send_file'))
-  assert.deepEqual(latest('channel/send_file').params, { id: channel.id, file: '23'.repeat(32), text: 'With a file' })
+  const shared = latest('channel/send_file').params
+  assert.deepEqual({ file: shared.file, text: shared.text }, { file: '23'.repeat(32), text: 'With a file' })
+  assert.match(shared.message_id, /^[0-9a-f]{64}$/)
   const saved = join(profile, 'plan.pdf')
   await answer('__save', saved)
   await main.locator('[data-testid="message-download"]').first().click()
@@ -1132,8 +1152,14 @@ try {
   await main.screenshot({ path: join(shots, 'channel-transfer.png') })
   await main.keyboard.press('Escape')
   await main.waitForSelector('[data-testid="transfer-dialog"]', { state: 'detached' })
+  // Searching opens a result among its neighbours; archiving asks first.
+  await main.click('[data-testid="channel-search-toggle"]')
+  await main.fill('[data-testid="channel-search-query"]', 'Hello')
+  await main.press('[data-testid="channel-search-query"]', 'Enter')
+  await main.waitForSelector('[data-testid="channel-search-results"] >> text=Hello channel')
   await main.click('[data-testid="channel-manage"]')
   await main.click('[data-testid="channel-archive"]')
+  await main.click('[data-testid="channel-archive-confirm"]')
   await main.click('[data-testid="channel-reactivate"]')
   await waitFor(() => latest('channel/reactivate'))
   assert.equal(channel.ledger.status, 'active')

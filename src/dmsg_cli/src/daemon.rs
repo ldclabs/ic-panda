@@ -242,6 +242,10 @@ pub(crate) struct Daemon {
     pub(crate) files_mount: AtomicBool,
     /// Stops the file imports under way; set without the client's lock.
     pub(crate) import_cancel: Arc<AtomicBool>,
+    /// Channels the relay hinted at, for the channel loop; `*` reads all.
+    channel_hints: tokio::sync::mpsc::UnboundedSender<String>,
+    /// The loop's end of `channel_hints`, until it takes it.
+    channel_hinted: std::sync::Mutex<Option<tokio::sync::mpsc::UnboundedReceiver<String>>>,
 }
 
 /// Who presented a credential.
@@ -532,6 +536,7 @@ impl Daemon {
         mcp: crate::mcp_events::McpEvents,
     ) -> Self {
         let settings_mount = settings.files_mount;
+        let (channel_hints, channel_hinted) = tokio::sync::mpsc::unbounded_channel();
         Self {
             token,
             instance: hex::encode(&dmsg_client::crypto::random_id()[..8]),
@@ -554,7 +559,21 @@ impl Daemon {
             mount: std::sync::Mutex::new(None),
             files_mount: AtomicBool::new(settings_mount),
             import_cancel: Arc::new(AtomicBool::new(false)),
+            channel_hints,
+            channel_hinted: std::sync::Mutex::new(Some(channel_hinted)),
         }
+    }
+
+    /// Have the channel loop read `channel`, or every channel for `*`.
+    pub(crate) fn hint_channel(&self, channel: &str) {
+        let _ = self.channel_hints.send(channel.to_string());
+    }
+
+    /// The channel loop's end of [`Self::hint_channel`], once.
+    pub(crate) fn take_channel_hints(
+        &self,
+    ) -> Option<tokio::sync::mpsc::UnboundedReceiver<String>> {
+        self.channel_hinted.lock().expect("channel hints").take()
     }
 
     /// Check the whole library: every chunk file against its name beside

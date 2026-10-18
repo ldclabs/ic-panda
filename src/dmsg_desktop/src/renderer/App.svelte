@@ -160,7 +160,10 @@
     const offs = [offNavigate, () => window.removeEventListener('hashchange', onHash)]
     if (isMain) {
       void refresh()
-      offs.push(onChange(['session/changed', 'connection/changed', 'approval/changed', 'sync/changed'], refresh), onChange(['legacy/changed'], loadOffers))
+      offs.push(
+        onChange(['session/changed', 'connection/changed', 'approval/changed', 'sync/changed', 'channel/changed', 'channel/read'], refresh),
+        onChange(['legacy/changed'], loadOffers)
+      )
     }
     return () => offs.forEach((off) => off())
   })
@@ -209,7 +212,7 @@
           {#if view === views.files}
             <Files {status} {mod} {route} {go} />
           {:else if view === views.channels}
-            <Channels {status} />
+            <Channels {status} {route} {go} />
           {:else if view === views.inbox}
             <Inbox {status} {mod} />
           {:else if view === views.plan}

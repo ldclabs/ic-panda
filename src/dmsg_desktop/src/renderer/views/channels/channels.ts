@@ -1,7 +1,8 @@
 /**
  * The channel views' rules apart from the window: who may do what in a
- * ledger, members in order, a timeline split into days, and the tone of an
- * avatar. Pure, so they are tested under node.
+ * ledger, members in order, the channel list in order, a timeline split
+ * into days, receipts, invitation links, transfer packets in a timeline,
+ * and the tone of an avatar. Pure, so they are tested under node.
  */
 import type { Label } from '../../i18n/messages/en'
 
@@ -26,8 +27,81 @@ export function powers(ledger: any, me: string | undefined) {
     owner,
     manages: owner || role === 'admin',
     rotates: mayRotate(ledger, me),
-    writes: !!role && ledger?.status === 'active'
+    // A distribution channel's members read; its owner, admins and publishers write.
+    writes: !!role && ledger?.status === 'active' && (ledger?.type !== 'distribution' || role !== 'member')
   }
+}
+
+/** Largest message text in bytes, as the daemon counts them. */
+export const MAX_TEXT = 16_000
+
+/** A text's length in UTF-8 bytes. */
+export const bytes = (text: string): number => new TextEncoder().encode(text).length
+
+/**
+ * The channel list: the channels this account takes part in, latest
+ * activity first, then the others (archived, left or hidden) by name.
+ */
+export function arrange(channels: any[], me: string | undefined): { live: any[]; other: any[] } {
+  const live: any[] = []
+  const other: any[] = []
+  for (const channel of channels) {
+    const member = !!me && !!channel.ledger?.members?.[me]
+    if (member && channel.ledger?.status !== 'archived' && !channel.hidden) live.push(channel)
+    else other.push(channel)
+  }
+  const at = (c: any) => c.last?.stored_at ?? 0
+  live.sort((a, b) => at(b) - at(a) || String(a.name).localeCompare(String(b.name)))
+  other.sort((a, b) => String(a.name).localeCompare(String(b.name)))
+  return { live, other }
+}
+
+/** How far the other members took and read a message of this account (C04). */
+export function receiptOf(seq: number, receipts: any, ledger: any, me: string | undefined): { delivered: number; read: number; others: number } {
+  const others = Object.keys(ledger?.members ?? {}).filter((a) => a !== me)
+  const cursors = receipts?.cursors ?? {}
+  return {
+    delivered: others.filter((a) => (cursors[a]?.delivered ?? 0) >= seq).length,
+    read: others.filter((a) => (cursors[a]?.read ?? 0) >= seq).length,
+    others: others.length
+  }
+}
+
+const LINK = 'dmsg://channel/join#'
+
+/** The link that opens an invitation in the invited account's desktop. */
+export function invitationLink(invitation: unknown): string {
+  const text = JSON.stringify(invitation)
+  const base = btoa(String.fromCharCode(...new TextEncoder().encode(text)))
+  return LINK + base.replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+}
+
+/** An invitation pasted as its JSON or its link; null when it is neither. */
+export function readInvitation(text: string): any | null {
+  const value = text.trim()
+  try {
+    if (value.startsWith('{')) return JSON.parse(value)
+    const encoded = value.startsWith(LINK) ? value.slice(LINK.length) : value
+    const binary = atob(encoded.replaceAll('-', '+').replaceAll('_', '/'))
+    const parsed = JSON.parse(new TextDecoder().decode(Uint8Array.from(binary, (c) => c.charCodeAt(0))))
+    return parsed?.format === 'dmsg-channel-invitation/1' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * What this account does with a transfer packet handed over in a channel:
+ * accept a proposal to it, commit an acceptance of its own proposal, or
+ * nothing; done once the channel shows the transfer.
+ */
+export function packetStep(packet: any, ledger: any, billing: any, me: string | undefined): { kind: 'owner' | 'sponsor'; target: string; step: 'accept' | 'commit' | 'wait' | 'done' } | null {
+  const owner = packet?.format === 'dmsg-channel-owner-transfer/1'
+  if (!owner && packet?.format !== 'dmsg-channel-sponsor/1') return null
+  const target: string = owner ? packet.payload?.action?.account : packet.payload?.to_payer
+  const done = owner ? ledger?.owner === target : billing?.billing_account === target
+  const step = done ? 'done' : !packet.acceptance ? (target === me ? 'accept' : 'wait') : packet.context?.account_id === me ? 'commit' : 'wait'
+  return { kind: owner ? 'owner' : 'sponsor', target, step }
 }
 
 const rank: Record<string, number> = { owner: 0, admin: 1, publisher: 2, member: 3 }
