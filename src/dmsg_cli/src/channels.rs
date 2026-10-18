@@ -105,7 +105,7 @@ async fn ticket(daemon: &Daemon, channel: &str) -> dmsg_types::Result<String> {
     let (relay, (request, ticket)) = daemon
         .signed(|client| client.channel_ticket_request(channel))
         .await?;
-    let value = relay.send(&request).await?;
+    let value = relay.send(request).await?;
     daemon
         .client()
         .lock()

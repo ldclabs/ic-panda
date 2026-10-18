@@ -587,6 +587,13 @@ pub struct ConnectReport {
     pub sealed: u64,
 }
 
+/// Where a page of the mailbox starts: the cursor when its read was signed,
+/// and the account it was signed for.
+pub struct MailboxCursor {
+    account: AccountId,
+    after: u64,
+}
+
 impl Client {
     fn op_key(key: &str) -> String {
         format!("{OP}{key}")
@@ -770,19 +777,9 @@ impl Client {
         }))
     }
 
-    /// The account's browser pairings, each grant checked against the
-    /// certified devices.
-    ///
-    /// # Errors
-    /// Relay errors.
-    pub async fn connect_pairings(&mut self) -> Result<Json> {
-        let path = self.connect_path("/pairings")?;
-        let data = self.relay_get(&path).await?;
-        self.connect_pairings_settle(&data).await
-    }
-
-    /// [`Self::connect_pairings`]' relay read, signed for the caller to send
-    /// without the client.
+    /// The relay read of the account's browser pairings, signed for the
+    /// caller to send without the client; [`Self::connect_pairings_settle`]
+    /// checks the answer.
     ///
     /// # Errors
     /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
@@ -790,8 +787,9 @@ impl Client {
         self.signed_get(&self.connect_path("/pairings")?)
     }
 
-    /// Check what the relay answered for [`Self::connect_pairings`]; after
-    /// a [`Self::warmup`], without the network.
+    /// The account's browser pairings the relay answered, each grant checked
+    /// against the certified devices; after a [`Self::warmup`], without the
+    /// network.
     ///
     /// # Errors
     /// Returns `Error::IntegrityFailed` for a malformed answer.
@@ -865,20 +863,10 @@ impl Client {
         .await
     }
 
-    /// Fetch the mailbox, then, unlocked, check new requests, follow the
-    /// state of known operations and send pending replies. Locked with the
-    /// device key resident, it only stores sealed envelopes.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` without the device key and relay errors.
-    pub async fn connect_sync(&mut self) -> Result<ConnectReport> {
-        let fetched = self.connect_fetch().await?;
-        self.connect_entries(fetched).await
-    }
-
-    /// [`Self::connect_sync`] of the entries already stored, `fetched` of
-    /// them just now, such as by pages read with
-    /// [`Self::connect_fetch_request`] without the client.
+    /// Handle the mailbox entries stored, `fetched` of them just now by pages
+    /// read with [`Self::connect_fetch_request`]: unlocked, check new
+    /// requests, follow the state of known operations and send pending
+    /// replies. Locked with the device key resident, the entries stay sealed.
     ///
     /// # Errors
     /// Returns `Error::Locked` without the device key and relay errors.
@@ -925,37 +913,33 @@ impl Client {
         Ok(report)
     }
 
-    /// Store every mailbox entry changed since the cursor.
-    async fn connect_fetch(&mut self) -> Result<u64> {
-        let mut fetched = 0;
-        loop {
-            let after = self.connect_cursor()?;
-            let page = self.relay_get(&self.connect_page(after)?).await?;
-            match self.connect_fetch_store(after, &page)? {
-                0 => return Ok(fetched),
-                count => fetched += count,
-            }
-        }
-    }
-
-    /// The next page of the mailbox after the cursor, signed for the caller
-    /// to send without the client, and that cursor for
-    /// [`Self::connect_fetch_store`].
+    /// The next page of the mailbox, the entries changed since the cursor,
+    /// signed for the caller to send without the client, and where it starts
+    /// for [`Self::connect_fetch_store`].
     ///
     /// # Errors
     /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
-    pub fn connect_fetch_request(&self) -> Result<(Prepared, u64)> {
+    pub fn connect_fetch_request(&self) -> Result<(Prepared, MailboxCursor)> {
         let after = self.connect_cursor()?;
-        Ok((self.signed_get(&self.connect_page(after)?)?, after))
+        let request = self.signed_get(&self.connect_page(after)?)?;
+        let account = self.account()?.id;
+        Ok((request, MailboxCursor { account, after }))
     }
 
-    /// Store a page of mailbox entries read after `after`; returns how many,
+    /// Store a page of mailbox entries read from `from`; returns how many,
     /// none at its end. A read beside it may have moved the cursor, and the
-    /// entries are kept by their request IDs.
+    /// entries are kept by their request IDs. A page read for an account
+    /// switched away from meanwhile is refused.
     ///
     /// # Errors
-    /// Returns `Error::IntegrityFailed` for a malformed page.
-    pub fn connect_fetch_store(&mut self, after: u64, page: &Json) -> Result<u64> {
+    /// Returns `Error::IntegrityFailed` for a malformed page and
+    /// `Error::Unavailable` when the account changed.
+    pub fn connect_fetch_store(&mut self, from: MailboxCursor, page: &Json) -> Result<u64> {
+        ensure(
+            self.account()?.id == from.account,
+            Error::Unavailable("the account changed".into()),
+        )?;
+        let after = from.after;
         let items = page["requests"].as_array().ok_or(Error::IntegrityFailed)?;
         let mut cursor = after.max(self.connect_cursor()?);
         for item in items {

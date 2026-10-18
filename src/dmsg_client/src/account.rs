@@ -418,18 +418,9 @@ pub struct AccountView {
 }
 
 impl Client {
-    /// The account's certified state, for display; no login needed.
-    ///
-    /// # Errors
-    /// Returns `Error::RecoveryIncomplete` before the device has an account.
-    pub async fn account_view(&mut self) -> Result<AccountView> {
-        let account = self.account()?.clone();
-        let state = self.refresh_security(account.home, &account.id).await?;
-        self.account_view_of(&state)
-    }
-
-    /// [`Self::account_view`] of certified state already fetched, such as by
-    /// a refreshing [`Self::warmup`] that ran without the client.
+    /// The account's certified state, for display, from `state` already
+    /// fetched, such as by a [`Self::warmup`] that ran without the client; no
+    /// login needed.
     ///
     /// # Errors
     /// Returns `Error::RecoveryIncomplete` before the device has an account.

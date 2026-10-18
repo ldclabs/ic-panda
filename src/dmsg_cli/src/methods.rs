@@ -89,14 +89,14 @@ impl Daemon {
         match method {
             "inbox/policy" => {
                 let (relay, request) = self.signed(Client::inbox_policy_request).await?;
-                return Ok(found(relay.send(&request).await)?.unwrap_or(Value::Null));
+                return Ok(found(relay.send(request).await)?.unwrap_or(Value::Null));
             }
             "inbox/list" => {
                 let mut letters = std::collections::BTreeMap::new();
                 let mut after = 0;
                 for _ in 0..dmsg_client::inbox::INBOX_PAGES {
                     let (relay, request) = self.signed(|c| c.inbox_page_request(after)).await?;
-                    let page = relay.send(&request).await?;
+                    let page = relay.send(request).await?;
                     let mut client = self.client().lock().await;
                     match client.inbox_page_settle(after, &page, &mut letters).await? {
                         Some(next) => after = next,

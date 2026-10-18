@@ -468,3 +468,37 @@ fn accepts_high_s_signatures_as_webcrypto_makes_them() {
     p256_verify(&der, message, &low).unwrap();
     p256_verify(&der, message, &high.to_bytes()).unwrap();
 }
+
+#[test]
+fn a_mailbox_page_read_before_an_account_switch_is_refused() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    crate::testing::warm(&mut client);
+    let (_, from) = client.connect_fetch_request().unwrap();
+    let page = json!({"requests": [{
+        "seq": 7,
+        "request_id": "a1".repeat(32),
+        "pairing_id": "b2".repeat(32),
+        "kind": "read",
+        "created_at": NOW,
+        "expires_at": NOW + 300_000,
+        "envelope": b64(&[1, 2, 3]),
+        "state": "pending",
+        "version": 1,
+        "pinned_device": null,
+        "acked_digest": null,
+    }]});
+    // Signed for another account, the page neither lands here nor moves
+    // this account's cursor.
+    let other = MailboxCursor {
+        account: AccountId([0x31; 12]),
+        after: from.after,
+    };
+    assert!(matches!(
+        client.connect_fetch_store(other, &page),
+        Err(Error::Unavailable(_))
+    ));
+    assert_eq!(client.connect_cursor(), Ok(0));
+    assert_eq!(client.connect_fetch_store(from, &page), Ok(1));
+    assert_eq!(client.connect_cursor(), Ok(7));
+}

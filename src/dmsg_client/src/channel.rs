@@ -3393,27 +3393,12 @@ impl Client {
         self.channel_rotate(channel).await
     }
 
-    /// A single-use ticket for the channel's hint WebSocket: its URL, valid
+    /// The relay command asking for a single-use ticket of the channel's hint
+    /// WebSocket, signed for the caller to send without the client, and the
+    /// ticket it asks for; [`Self::channel_ticket_url`] makes its URL, valid
     /// for 30 seconds. The socket only says new messages are available;
-    /// reading them goes through [`Self::channel_sync`].
-    ///
-    /// # Errors
-    /// Returns `Error::Forbidden` for a channel this account left.
-    pub async fn channel_ticket(&mut self, channel: &str) -> Result<String> {
-        let ticket = random_hex();
-        let value = self
-            .relay_post(
-                &format!("{}/ws-ticket", base(channel)?),
-                "dmsg/channel/ws-ticket/v1",
-                &json!({"ticket": ticket}),
-                &Hash::new(crate::crypto::random_id()),
-            )
-            .await?;
-        self.channel_ticket_url(channel, &ticket, &value)
-    }
-
-    /// [`Self::channel_ticket`]'s relay command, signed for the caller to
-    /// send without the client, and the ticket it asks for.
+    /// reading them goes through [`Self::channel_sync`]. The relay refuses a
+    /// channel this account left with `Error::Forbidden`.
     ///
     /// # Errors
     /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.

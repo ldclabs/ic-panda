@@ -709,7 +709,7 @@ impl Cloud {
     /// # Errors
     /// Relay errors as returned; `Error::NotFound` for an absent resource.
     pub async fn get(&self, signer: &Signer<'_>, path: &str, now: u64) -> Result<Json> {
-        self.send(&self.prepare_get(signer, path, now)?).await
+        self.send(self.prepare_get(signer, path, now)?).await
     }
 
     /// [`Self::get`] reporting an absent resource as `None`.
@@ -744,20 +744,11 @@ impl Cloud {
     /// # Errors
     /// Relay errors as returned; `Error::NotFound` for an absent resource, and
     /// a lost response to a POST is `Error::ExecutionUnknown`.
-    pub async fn send(&self, request: &Prepared) -> Result<Json> {
-        let body = request
-            .body
-            .as_ref()
-            .map(|bytes| (bytes.clone(), "application/cbor"));
-        self.exchange(
-            request.method.clone(),
-            request.url.clone(),
-            body,
-            Some(request.pop.clone()),
-            false,
-        )
-        .await?
-        .json()
+    pub async fn send(&self, request: Prepared) -> Result<Json> {
+        let body = request.body.map(|bytes| (bytes, "application/cbor"));
+        self.exchange(request.method, request.url, body, Some(request.pop), false)
+            .await?
+            .json()
     }
 
     /// Sign and post a device command. The HTTP proof and the command share
@@ -795,7 +786,7 @@ impl Cloud {
         now: u64,
     ) -> Result<Json> {
         let request = self.prepare_post(signer, path, action, payload, request_id, sealed, now)?;
-        self.send(&request).await
+        self.send(request).await
     }
 
     /// [`Self::post_sealed`] signed now and sent later with [`Self::send`].

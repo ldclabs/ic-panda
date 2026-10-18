@@ -663,13 +663,14 @@ impl Daemon {
         Ok(settled)
     }
 
-    /// [`Client::connect_sync`], the mailbox read without holding the client.
+    /// Read the dmsg-connect mailbox without holding the client, then handle
+    /// its entries ([`Client::connect_entries`]).
     pub(crate) async fn connect_pass(&self) -> Result<dmsg_client::connect::ConnectReport> {
         let mut fetched = 0;
         loop {
-            let (relay, (request, after)) = self.signed(Client::connect_fetch_request).await?;
-            let page = relay.send(&request).await?;
-            match self.client.lock().await.connect_fetch_store(after, &page)? {
+            let (relay, (request, from)) = self.signed(Client::connect_fetch_request).await?;
+            let page = relay.send(request).await?;
+            match self.client.lock().await.connect_fetch_store(from, &page)? {
                 0 => break,
                 count => fetched += count,
             }
@@ -990,7 +991,7 @@ impl Daemon {
             }
             "profile/show" => {
                 let (relay, request) = self.signed(Client::profile_request).await?;
-                let value = found(relay.send(&request).await)?;
+                let value = found(relay.send(request).await)?;
                 let profile = self.client.lock().await.profile_settle(value).await?;
                 Ok(to_json(&profile))
             }
@@ -1210,7 +1211,7 @@ impl Daemon {
             }
             "connect/pairings" => {
                 let (relay, request) = self.signed(Client::connect_pairings_request).await?;
-                let data = relay.send(&request).await?;
+                let data = relay.send(request).await?;
                 self.client
                     .lock()
                     .await

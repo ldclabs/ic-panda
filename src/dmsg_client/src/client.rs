@@ -1084,7 +1084,7 @@ impl Client {
     /// workspace is then erased.
     pub(crate) async fn cloud_state(&mut self) -> Result<Security> {
         if let Some(state) = self.fresh_state() {
-            return Ok(state);
+            return Ok(state.clone());
         }
         let warmup = self
             .warmup_for(Warm::Relay, false)?
@@ -1095,11 +1095,10 @@ impl Client {
 
     /// The certified security the relay holds, while it is fresh enough to
     /// sign requests with.
-    fn fresh_state(&self) -> Option<Security> {
+    fn fresh_state(&self) -> Option<&Security> {
         let account = self.account().ok()?;
         let state = self.security.as_ref()?;
-        (self.published == Some(state.certified_at) && fresh(state, &account.id))
-            .then(|| state.clone())
+        (self.published == Some(state.certified_at) && fresh(state, &account.id)).then_some(state)
     }
 
     /// What this client's requests wait on the network for, to run without
@@ -1179,8 +1178,7 @@ impl Client {
     /// relay's evidence fresh.
     pub(crate) fn signed_get(&self, path: &str) -> Result<Prepared> {
         let state = self.fresh_state().ok_or(Error::PolicyStale)?;
-        self.cloud
-            .prepare_get(&self.signer(&state)?, path, now_ms())
+        self.cloud.prepare_get(&self.signer(state)?, path, now_ms())
     }
 
     /// A device command signed now, as [`Self::signed_get`].
@@ -1193,7 +1191,7 @@ impl Client {
     ) -> Result<Prepared> {
         let state = self.fresh_state().ok_or(Error::PolicyStale)?;
         self.cloud.prepare_post(
-            &self.signer(&state)?,
+            &self.signer(state)?,
             path,
             action,
             payload,
