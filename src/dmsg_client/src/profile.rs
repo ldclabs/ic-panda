@@ -144,9 +144,26 @@ pub async fn avatar(
         .transpose()
 }
 
+/// The profile the account of `peers` publishes (`Client::peers_of` of that
+/// one account), checked against its certified devices; no login needed.
+/// It needs no key, so the caller holds only the relay client and `peers`
+/// while the user home and the relay answer, never the client.
+///
+/// # Errors
+/// Returns `Error::NotFound` when no user home knows the account.
+pub async fn resolve(relay: &Cloud, peers: &mut Peers) -> Result<Option<PublishedProfile>> {
+    let (account, security) = peers.read().await?.pop().ok_or(Error::NotFound)?;
+    let value = relay
+        .public(&format!("/public/accounts/{account}/profile"))
+        .await?;
+    value
+        .map(|value| verify_public(&account.to_string(), &value, &security))
+        .transpose()
+}
+
 /// The display names the accounts of `peers` publish, each checked against
-/// the account's certified devices like [`Client::profile_resolve`]; an
-/// account without a profile, or whose profile does not verify, has none.
+/// the account's certified devices like [`resolve`]; an account without a
+/// profile, or whose profile does not verify, has none.
 /// It needs no key, so the caller holds only the relay client and `peers`
 /// (`Client::peers_of`) while the user homes and the relay answer, never
 /// the client.
@@ -487,8 +504,8 @@ impl Client {
         )
     }
 
-    /// Another account's published profile, checked against that account's
-    /// certified devices; no login needed.
+    /// Another account's published profile as [`resolve`] reads it, for a
+    /// caller that holds the client anyway.
     ///
     /// # Errors
     /// Returns `Error::NotFound` when no user home knows the account.
@@ -496,18 +513,10 @@ impl Client {
         &mut self,
         account: &AccountId,
     ) -> Result<Option<PublishedProfile>> {
-        let (_, security) = self
-            .read_peers(std::slice::from_ref(account))
-            .await?
-            .pop()
-            .ok_or(Error::NotFound)?;
-        let value = self
-            .cloud
-            .public(&format!("/public/accounts/{account}/profile"))
-            .await?;
-        value
-            .map(|value| verify_public(&account.to_string(), &value, &security))
-            .transpose()
+        let mut peers = self.peers_of(std::slice::from_ref(account));
+        let found = resolve(&self.cloud, &mut peers).await;
+        self.peers_met(peers);
+        found
     }
 }
 

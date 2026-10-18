@@ -4630,12 +4630,14 @@ impl Client {
         self.save_local(channel, &local)
     }
 
-    /// The members' delivery and read cursors, as the relay keeps them.
+    /// The request for the members' delivery and read cursors, as the relay
+    /// keeps them, signed for the caller to send without the client; the
+    /// relay refuses a channel this account left with `Error::Forbidden`.
     ///
     /// # Errors
-    /// Returns `Error::Forbidden` for a channel this account left.
-    pub async fn channel_receipts(&mut self, channel: &str) -> Result<Json> {
-        self.relay_get(&format!("{}/cursors", base(channel)?)).await
+    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
+    pub fn channel_receipts_request(&self, channel: &str) -> Result<Prepared> {
+        self.signed_get(&format!("{}/cursors", base(channel)?))
     }
 
     /// Operations of a channel still waiting for their outcome.

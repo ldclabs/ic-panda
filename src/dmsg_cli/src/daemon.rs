@@ -953,8 +953,17 @@ impl Daemon {
             }
             "profile/resolve" => {
                 let account = account(params, "account")?;
-                let profile = self.client.lock().await.profile_resolve(&account).await?;
-                Ok(to_json(&profile))
+                // The user home and the relay answer without the client.
+                let (relay, mut peers) = {
+                    let client = self.client.lock().await;
+                    (
+                        client.relay(),
+                        client.peers_of(std::slice::from_ref(&account)),
+                    )
+                };
+                let profile = dmsg_client::profile::resolve(&relay, &mut peers).await;
+                self.client.lock().await.peers_met(peers);
+                Ok(to_json(&profile?))
             }
             "profile/avatar" => {
                 let image = match params["remove"] == true {
@@ -1836,8 +1845,23 @@ mod tests {
         answers_beside(&daemon, &ic, work).await;
     }
 
+    /// Its own daemon, so the user home's first connection is the profile's.
     #[tokio::test]
-    async fn the_library_answers_while_channel_images_and_names_load() {
+    async fn the_library_answers_while_another_profile_resolves() {
+        let account = dmsg_client::testing::account().id.to_string();
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, _relay, ic) = stalled(&dir).await;
+        // Another account's profile: its user home certifies its devices.
+        let params = json!({"account": account});
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.call_daemon("profile/resolve", &params).await }
+        });
+        answers_beside(&daemon, &ic, work).await;
+    }
+
+    #[tokio::test]
+    async fn the_library_answers_while_channel_images_names_and_receipts_load() {
         let account = dmsg_client::testing::account().id.to_string();
         let dir = dmsg_client::testing::TempDir::new();
         let (daemon, relay, ic) = stalled(&dir).await;
@@ -1857,6 +1881,13 @@ mod tests {
             async move { daemon.call_more("channel/names", &params).await }
         });
         answers_beside(&daemon, &ic, work).await;
+        // How far the members took and read the messages: a signed relay read.
+        let params = json!({"id": channel});
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.call_more("channel/receipts", &params).await }
+        });
+        answers_beside(&daemon, &relay, work).await;
     }
 
     #[tokio::test]

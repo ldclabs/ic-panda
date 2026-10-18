@@ -158,6 +158,13 @@ impl Daemon {
                 let (channel, seq) = (text(params, "id")?, number(params, "seq")?);
                 return crate::channels::preview(self, &channel, seq).await;
             }
+            "channel/receipts" => {
+                let channel = text(params, "id")?;
+                let (relay, request) = self
+                    .signed(|c| c.channel_receipts_request(&channel))
+                    .await?;
+                return relay.send(request).await;
+            }
             "inbox/policy" => {
                 let (relay, request) = self.signed(Client::inbox_policy_request).await?;
                 return Ok(found(relay.send(request).await)?.unwrap_or(Value::Null));
@@ -330,7 +337,6 @@ impl Daemon {
                 params["hidden"].as_bool().unwrap_or(true),
             )?)),
             "channel/sponsor_cancel" => Ok(to_json(&client.channel_sponsor_cancel(&id()?).await?)),
-            "channel/receipts" => client.channel_receipts(&id()?).await,
             "inbox/configure" => {
                 let input: PolicyInput = serde_json::from_value(params.clone())
                     .map_err(|e| Error::InvalidInput(format!("policy: {e}")))?;
