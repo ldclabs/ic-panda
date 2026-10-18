@@ -1229,8 +1229,15 @@ try {
   // the folder shown and shows its way in; a file a page made has no path,
   // so it never reaches the daemon. The open file shows its status, and a
   // row's menu moves it to the trash, which lists it.
+  // Until the daemon answers, which other work may delay, the list says it
+  // is reading, never that the library is empty.
+  const listing = hold('files/list')
   await main.click('nav >> text=/^(Files|文件)$/')
+  await main.waitForSelector('[data-testid="files-loading"]')
+  assert.equal(await main.locator('[data-testid="files-empty"]').count(), 0)
+  await listing()
   await main.waitForSelector('[data-testid="files-list"] >> text=report.pdf')
+  assert.equal(await main.locator('[data-testid="files-loading"]').count(), 0)
   await main.click('[data-testid="files-list"] >> text=report.pdf')
   await main.waitForSelector('[data-testid="files-status"] >> text=/Backed up/')
   await main.screenshot({ path: join(shots, 'files.png') })

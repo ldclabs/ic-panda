@@ -875,6 +875,9 @@
                   <p class="text-[12.5px] text-muted">{t('emptyFolderHint')}</p>
                 {/if}
               </li>
+            {:else}
+              <!-- The daemon may answer late, busy with other work: never an empty library before it does. -->
+              <li class="px-4 py-10 text-center" data-testid="files-loading"><p class="shimmer text-[13px] text-muted">{t('loading')}</p></li>
             {/if}
           {/each}
           {#if rows.length > shown.length}
