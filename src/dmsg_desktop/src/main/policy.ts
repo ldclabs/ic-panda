@@ -134,6 +134,7 @@ export const WINDOW_METHODS = new Set([
   'channel/control',
   'channel/leave',
   'channel/rotate',
+  'channel/rekey',
   'channel/send',
   'channel/send_file',
   'channel/sync',

@@ -179,6 +179,12 @@
 
   const control = (action: Record<string, unknown>) => attempt(() => call('channel/control', { id: channel.id, action }))
   const rotate = () => attempt(() => call('channel/rotate', { id: channel.id }))
+
+  /** A new epoch now: who joins later reads nothing before it. */
+  async function rekey() {
+    const view: any = await call('channel/rekey', { id: channel.id })
+    toast(() => t('rekeyed', { epoch: view.ledger?.epoch }))
+  }
   const reactivate = () => attempt(() => call('channel/reactivate', { id: channel.id }))
 
   const leave = () =>
@@ -188,8 +194,10 @@
       toast(() => t('left'))
     })
 
-  async function invite(account: string): Promise<string | null> {
+  /** An invitation, after a new epoch when what was written stays from the invited account. */
+  async function invite(account: string, fresh: boolean): Promise<string | null> {
     try {
+      if (fresh) await rekey()
       return JSON.stringify(await call('channel/invite', { id: channel.id, account }))
     } catch (e) {
       fail(e)
@@ -352,6 +360,12 @@
               </Tooltip>
               <DropdownMenu.Portal>
                 <DropdownMenu.Content align="end" sideOffset={6} class={cn(menuContentClass, 'min-w-56')} data-testid="channel-manage-menu">
+                  {#if can.rotates && ledger.status === 'active'}
+                    <DropdownMenu.Item class={menuItemClass} onSelect={() => attempt(rekey)} data-testid="channel-rekey">
+                      <span class="flex items-center gap-2"><Icon name="epoch" class="text-faint" />{t('rekey')}</span>
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Separator class="my-1 h-px bg-line" />
+                  {/if}
                   {#if can.owner}
                     <DropdownMenu.Item class={menuItemClass} onSelect={() => (transfer = { open: true, kind: 'owner' })} data-testid="owner-transfer">
                       <span class="flex items-center gap-2"><Icon name="owner" class="text-faint" />{t('transferOwner')}…</span>
@@ -379,8 +393,8 @@
         {#if ledger?.status === 'rotation_required'}
           <div class="flex items-center gap-2.5 border-b border-warn/30 bg-warn-pale px-5 py-2 text-[12.5px] text-ink-2">
             <Icon name="epoch" class="shrink-0 text-warn" />
-            <span class="min-w-0 flex-1">{t('rotationRequired')}</span>
-            {#if unlocked}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={rotate}>{t('rotate')}</button>{/if}
+            <span class="min-w-0 flex-1" data-testid="channel-rotation">{t(can.rotates ? 'rotationRequired' : 'rotationWaiting')}</span>
+            {#if unlocked && can.rotates}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={rotate}>{t('rotate')}</button>{/if}
           </div>
         {:else if ledger?.status === 'archived'}
           <div class="flex items-center gap-2.5 border-b border-line bg-surface-2 px-5 py-2 text-[12.5px] text-muted">
@@ -429,6 +443,7 @@
           {me}
           owner={unlocked && can.owner}
           manages={unlocked && can.manages}
+          rotates={unlocked && can.rotates}
           {busy}
           onControl={control}
           onHistory={(member) => (history = { open: true, member, from: 1, to: member.joined_epoch - 1 })}

@@ -1,24 +1,32 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { days, initials, ordered, powers, tone } from '../src/renderer/views/channels/channels.ts'
+import { days, initials, mayRotate, ordered, powers, tone } from '../src/renderer/views/channels/channels.ts'
 
 const ledger = {
   owner: 'o',
   status: 'active',
+  epoch: 2,
   members: {
-    m: { account: 'm', role: 'member' },
-    o: { account: 'o', role: 'owner' },
-    a: { account: 'a', role: 'admin' },
-    p: { account: 'p', role: 'publisher' }
+    m: { account: 'm', role: 'member', joined_epoch: 1, can_rotate: false },
+    o: { account: 'o', role: 'owner', joined_epoch: 1, can_rotate: true },
+    a: { account: 'a', role: 'admin', joined_epoch: 2, can_rotate: false },
+    p: { account: 'p', role: 'publisher', joined_epoch: 1, can_rotate: true }
   }
 }
 
 test('the owner and admins manage; members write while the channel is active', () => {
-  assert.deepEqual(powers(ledger, 'o'), { member: true, owner: true, manages: true, writes: true })
-  assert.deepEqual(powers(ledger, 'a'), { member: true, owner: false, manages: true, writes: true })
-  assert.deepEqual(powers(ledger, 'm'), { member: true, owner: false, manages: false, writes: true })
+  assert.deepEqual(powers(ledger, 'o'), { member: true, owner: true, manages: true, rotates: true, writes: true })
+  assert.deepEqual(powers(ledger, 'a'), { member: true, owner: false, manages: true, rotates: true, writes: true })
+  assert.deepEqual(powers(ledger, 'm'), { member: true, owner: false, manages: false, rotates: false, writes: true })
   assert.deepEqual(powers({ ...ledger, status: 'archived' }, 'm').writes, false)
-  assert.deepEqual(powers(ledger, 'x'), { member: false, owner: false, manages: false, writes: false })
+  assert.deepEqual(powers(ledger, 'x'), { member: false, owner: false, manages: false, rotates: false, writes: false })
+})
+
+test('the owner, admins and allowed members holding the epoch rotate', () => {
+  assert.ok(mayRotate(ledger, 'p'))
+  // A member waiting for the next epoch does not coordinate it.
+  assert.ok(!mayRotate({ ...ledger, epoch: 1 }, 'a'))
+  assert.ok(!mayRotate(ledger, undefined))
 })
 
 test('members list the owner first, then by role', () => {

@@ -16,7 +16,7 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 50] = [
+pub(crate) const METHODS: [&str; 51] = [
     "channel/list",
     "channel/show",
     "channel/create",
@@ -25,6 +25,7 @@ pub(crate) const METHODS: [&str; 50] = [
     "channel/control",
     "channel/leave",
     "channel/rotate",
+    "channel/rekey",
     "channel/send",
     "channel/send_file",
     "channel/sync",
@@ -156,6 +157,7 @@ impl Daemon {
                 Ok(json!({"left": true}))
             }
             "channel/rotate" => Ok(to_json(&client.channel_rotate(&id()?).await?)),
+            "channel/rekey" => Ok(to_json(&client.channel_rekey(&id()?).await?)),
             "channel/send" => {
                 client
                     .channel_send(

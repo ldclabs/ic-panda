@@ -21,7 +21,8 @@
 
 use crate::channel_log::{
     Action, Activation, ChannelType, Control, Genesis, Lease, Ledger, MessagePayload, Reactivate,
-    Recipient, Role, Status, advance, is_hash, may_publish, readable, recipients_digest, start,
+    Recipient, Role, Status, advance, is_hash, may_publish, may_rotate, readable,
+    recipients_digest, start,
 };
 use crate::client::Client;
 use crate::cloud::{CLOUD_PROTOCOL, Evidence, Prepared, sign_command};
@@ -1061,12 +1062,9 @@ impl Client {
                         activation.validate()?;
                         let unique: BTreeSet<&String> =
                             activation.envelopes.iter().map(|e| &e.recipient).collect();
-                        let coordinator = previous.members.get(&account);
                         ensure(
-                            coordinator.is_some_and(|c| {
-                                c.can_rotate
-                                    && (previous.epoch == 0 || c.joined_epoch <= previous.epoch)
-                            }) && previous.status != Status::Archived
+                            may_rotate(previous, &account)
+                                && previous.status != Status::Archived
                                 && activation.expected_head == previous.head
                                 && activation.epoch == previous.epoch + 1
                                 && unique.len() == activation.envelopes.len(),
@@ -1140,8 +1138,16 @@ impl Client {
                         local.epochs.insert(stored.ledger.epoch, stored.seq);
                     }
                     CONTROL => {
+                        // History grants and sealed invitations to this
+                        // account carry epoch keys for its devices.
                         if let Ok(Control {
-                            action: Action::History { account, .. },
+                            action:
+                                Action::History { account, .. }
+                                | Action::Invite {
+                                    account,
+                                    envelope_upload: Some(_),
+                                    ..
+                                },
                             ..
                         }) = from::<Control>(&stored.payload)
                             && account == me
@@ -1410,7 +1416,18 @@ impl Client {
             )
             .await?;
         }
-        self.channel_pull(&invitation.channel, None, None).await
+        let ledger = self.channel_pull(&invitation.channel, None, None).await?;
+        // A sealed invitation joined the current epoch: open its key now.
+        if ledger.epoch > 0
+            && ledger
+                .members
+                .get(&me)
+                .is_some_and(|m| m.joined_epoch == ledger.epoch)
+        {
+            self.channel_open_epoch(&invitation.channel, ledger.epoch)
+                .await?;
+        }
+        Ok(ledger)
     }
 
     /// Apply a control action, checked locally against the current channel
@@ -1466,7 +1483,11 @@ impl Client {
             .map(|_| ())
     }
 
-    /// Invite `account`; returns the invitation to hand to it.
+    /// Invite `account`; returns the invitation to hand to it. While the
+    /// epoch is active its key is sealed to the account's devices and goes
+    /// with the invitation, so the member reads that epoch from its start,
+    /// what was written before it joined included; a manager who wants
+    /// otherwise rekeys first. Otherwise the member joins the next epoch.
     ///
     /// # Errors
     /// Returns `Error::Forbidden` unless this account manages the channel.
@@ -1477,19 +1498,54 @@ impl Client {
         role: Role,
     ) -> Result<Invitation> {
         let invitation = random_hex();
+        let target = account.to_string();
         let expires_at = now_ms() + INVITATION_MS;
-        let ledger = self
-            .channel_control(
+        let ledger = self.channel_pull(channel, None, None).await?;
+        self.root_ready().await?;
+        let mut control = Control {
+            expected_head: ledger.head.clone(),
+            expected_acl_version: ledger.acl_version,
+            action: Action::Invite {
+                invitation_id: invitation.clone(),
+                account: target.clone(),
+                role,
+                expires_at,
+                envelope_upload: None,
+            },
+        };
+        advance(&ledger, &control, &self.me()?, &"0".repeat(64), now_ms())?;
+        if ledger.status == Status::Active {
+            self.channel_open_epoch(channel, ledger.epoch).await?;
+            let current = self.recipients(std::slice::from_ref(&target)).await?;
+            let uploads = self.history_prepare(
                 channel,
-                Action::Invite {
-                    invitation_id: invitation.clone(),
-                    account: account.to_string(),
-                    role,
-                    expires_at,
-                },
+                &ledger,
+                &target,
+                ledger.epoch,
+                ledger.epoch,
+                &current.recipients,
                 &invitation,
-            )
-            .await?;
+            )?;
+            for upload in &uploads {
+                self.channel_upload(channel, upload, Source::Store).await?;
+            }
+            if let Action::Invite {
+                envelope_upload, ..
+            } = &mut control.action
+            {
+                *envelope_upload = Some(uploads[0].plan.upload_id.clone());
+            }
+        }
+        self.channel_post(
+            channel,
+            &format!("control:{invitation}"),
+            CONTROL,
+            json(&control),
+            "/control",
+        )
+        .await?;
+        self.forget_job(channel, &format!("history-plan:{invitation}"))?;
+        let ledger = self.channel_pull(channel, None, None).await?;
         let (_, ring) = self.keyring(channel)?;
         Ok(Invitation {
             format: "dmsg-channel-invitation/1".into(),
@@ -1525,6 +1581,21 @@ impl Client {
         }
         current.recipients.sort();
         Ok(current)
+    }
+
+    /// Start a new epoch now and seal it to the members' devices: who joins
+    /// later reads nothing before it. A channel already waiting for one
+    /// only rotates.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` unless this account may rotate.
+    pub async fn channel_rekey(&mut self, channel: &str) -> Result<ChannelView> {
+        let ledger = self.channel_pull(channel, None, None).await?;
+        if ledger.status == Status::Active {
+            self.control_post(channel, Action::Rekey {}, &format!("rekey:{}", ledger.head))
+                .await?;
+        }
+        self.channel_rotate(channel).await
     }
 
     /// Bring the channel to an active epoch this device can read: rotate
@@ -1975,40 +2046,36 @@ impl Client {
         Ok(())
     }
 
-    /// Install older epoch keys from the latest history grant to this account.
+    /// Install epoch keys from the latest history grant to this account,
+    /// or from the invitation it joined with, which seals the epoch it was
+    /// issued in.
     async fn channel_open_history(&mut self, channel: &str, epoch: u64) -> Result<ChannelView> {
         let local = self.local(channel)?;
         let me = self.me()?;
         let mut grant = None;
         for seq in local.histories.iter().rev() {
             let stored = self.stored(channel, *seq)?;
-            if let Control {
-                action:
-                    Action::History {
-                        from_epoch,
-                        to_epoch,
-                        ..
-                    },
-                ..
-            } = from::<Control>(&stored.payload)?
-                && from_epoch <= epoch
-                && epoch <= to_epoch
-            {
-                grant = Some(stored);
+            let control: Control = from(&stored.payload)?;
+            let (from_epoch, to_epoch, upload) = match &control.action {
+                Action::History {
+                    from_epoch,
+                    to_epoch,
+                    envelope_upload,
+                    ..
+                } => (*from_epoch, *to_epoch, envelope_upload.clone()),
+                Action::Invite {
+                    envelope_upload: Some(upload),
+                    ..
+                } => (stored.ledger.epoch, stored.ledger.epoch, upload.clone()),
+                _ => continue,
+            };
+            if from_epoch <= epoch && epoch <= to_epoch {
+                grant = Some((stored, control, from_epoch, to_epoch, upload));
                 break;
             }
         }
-        let stored = grant.ok_or(Error::RecoveryIncomplete)?;
-        let control: Control = from(&stored.payload)?;
-        let Action::History {
-            from_epoch,
-            to_epoch,
-            envelope_upload,
-            ..
-        } = control.action
-        else {
-            return Err(Error::IntegrityFailed);
-        };
+        let (stored, control, from_epoch, to_epoch, envelope_upload) =
+            grant.ok_or(Error::RecoveryIncomplete)?;
         let first = self
             .descriptor(channel, &envelope_upload, Some(&stored.account))
             .await?;

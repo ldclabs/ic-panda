@@ -66,7 +66,7 @@ pub struct Member {
     pub role: Role,
     /// The first epoch the member reads without a history grant.
     pub joined_epoch: u64,
-    /// May coordinate an epoch rotation.
+    /// May coordinate an epoch rotation; owners and admins always may.
     pub can_rotate: bool,
     /// Older epoch ranges granted to the member, inclusive.
     pub history: Vec<(u64, u64)>,
@@ -82,6 +82,11 @@ pub struct Invitation {
     pub role: Role,
     /// Unix milliseconds.
     pub expires_at: u64,
+    /// The epoch it was issued in; it cannot be accepted in a later one.
+    #[serde(default)]
+    pub epoch: u64,
+    /// The upload sealing that epoch's key to the account's devices.
+    pub envelope_upload: Option<String>,
 }
 
 /// A data grant to an application.
@@ -168,6 +173,11 @@ pub enum Action {
         role: Role,
         /// Unix milliseconds, at most seven days ahead.
         expires_at: u64,
+        /// The upload sealing the current epoch's key to the account's
+        /// devices: the member reads that epoch from its start. Without
+        /// it the member joins the next epoch, which a rotation starts.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        envelope_upload: Option<String>,
     },
     /// Accept an invitation; the invited account signs it.
     Accept {
@@ -192,6 +202,9 @@ pub enum Action {
     Leave {},
     /// Close the channel; owner only.
     Archive {},
+    /// Start a new epoch now: members who join later read nothing before
+    /// it. A member who may rotate signs it.
+    Rekey {},
     /// Hand ownership to a member, who accepted the exact request.
     Transfer {
         /// The new owner.
@@ -398,6 +411,15 @@ pub fn readable(ledger: &Ledger, account: &str, epoch: u64) -> bool {
     })
 }
 
+/// Whether `account` may coordinate a rotation: the owner, an admin or a
+/// member allowed to, holding the current epoch.
+pub fn may_rotate(ledger: &Ledger, account: &str) -> bool {
+    ledger.members.get(account).is_some_and(|m| {
+        (matches!(m.role, Role::Owner | Role::Admin) || m.can_rotate)
+            && (ledger.epoch == 0 || m.joined_epoch <= ledger.epoch)
+    })
+}
+
 /// Whether `account` may publish now.
 pub fn may_publish(ledger: &Ledger, account: &str) -> bool {
     ledger.status == Status::Active
@@ -448,16 +470,18 @@ fn check_control(control: &Control) -> Result<()> {
                 invitation_id,
                 account,
                 role,
+                envelope_upload,
                 ..
             } => {
                 is_hash(invitation_id)
                     && is_account(account)
                     && matches!(role, Role::Member | Role::Publisher)
+                    && envelope_upload.as_deref().is_none_or(is_hash)
             }
             Action::Accept { invitation_id } => is_hash(invitation_id),
             Action::Role { account, role, .. } => is_account(account) && *role != Role::Owner,
             Action::Remove { account } => is_account(account),
-            Action::Leave {} | Action::Archive {} => true,
+            Action::Leave {} | Action::Archive {} | Action::Rekey {} => true,
             Action::Transfer {
                 account,
                 device,
@@ -537,6 +561,7 @@ pub fn advance(
             account,
             role,
             expires_at,
+            envelope_upload,
         } => {
             forbid(
                 manager
@@ -545,7 +570,8 @@ pub fn advance(
                     && !state.invitations.contains_key(invitation_id)
                     && state.invitations.len() < MAX_OPEN
                     && *expires_at > accepted_at
-                    && *expires_at <= accepted_at + 7 * DAY,
+                    && *expires_at <= accepted_at + 7 * DAY
+                    && (envelope_upload.is_none() || state.epoch > 0),
             )?;
             state.invitations.insert(
                 invitation_id.clone(),
@@ -553,6 +579,8 @@ pub fn advance(
                     account: account.clone(),
                     role: *role,
                     expires_at: *expires_at,
+                    epoch: state.epoch,
+                    envelope_upload: envelope_upload.clone(),
                 },
             );
         }
@@ -570,19 +598,24 @@ pub fn advance(
             let Some(invitation) = invitation else {
                 return Err(Error::Forbidden);
             };
-            forbid(me.is_none() && state.members.len() < limit)?;
+            forbid(me.is_none() && state.members.len() < limit && invitation.epoch == state.epoch)?;
+            // The invitation sealed its epoch: the member reads it, and no
+            // rotation is needed. Without it the member waits for the next.
+            let sealed = invitation.envelope_upload.is_some();
             state.members.insert(
                 actor.into(),
                 Member {
                     account: actor.into(),
                     role: invitation.role,
-                    joined_epoch: state.epoch + 1,
+                    joined_epoch: if sealed { state.epoch } else { state.epoch + 1 },
                     can_rotate: false,
                     history: vec![],
                 },
             );
             remove_invites(&mut state, actor);
-            state.status = Status::RotationRequired;
+            if !sealed {
+                state.status = Status::RotationRequired;
+            }
         }
         Action::Role {
             account,
@@ -634,6 +667,10 @@ pub fn advance(
         Action::Archive {} => {
             forbid(role == Some(Role::Owner))?;
             state.status = Status::Archived;
+        }
+        Action::Rekey {} => {
+            forbid(may_rotate(previous, actor))?;
+            state.status = Status::RotationRequired;
         }
         Action::History {
             account,

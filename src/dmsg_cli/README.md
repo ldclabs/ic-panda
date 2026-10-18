@@ -468,11 +468,16 @@ when the locale (`LC_ALL`, else `LC_MESSAGES`, else `LANG`) starts with `zh`,
 otherwise English; `--json` output, error codes, the daemon's messages and
 `--help` stay as they are.
 
-Channels: `create` makes the first epoch at once; a membership change leaves
-the channel at `rotation_required` until a member with `can_rotate` runs
-`rotate` (the owner's `remove` does it itself). An invited account runs
-`accept` with the JSON `invite` printed, then reads from the next epoch;
-`history` gives it older ones. `read` prints what this device read; while
+Channels: `create` makes the first epoch at once. `invite` seals the current
+epoch's key to the invited account's devices, so after `accept` with the
+JSON printed it reads that epoch from its start, what was written before it
+joined included; `rekey` first when it should not, and `history` gives it
+older epochs. An invitation made while the channel waits for keys carries
+none, and the member reads from the next epoch. Removing a member, a member
+leaving, a revoked device or `rekey` leave the channel at
+`rotation_required`; an unlocked daemon whose account may coordinate (the
+owner, an admin or a member with `can_rotate`) rotates it on its own, and
+`rotate` does it at once. A device a member adds needs no new epoch. `read` prints what this device read; while
 unlocked the daemon also reads on the relay's hints. Locked, the account's
 hint channel says only that a channel has new messages or a letter arrived,
 and the desktop notifies without saying from whom. A command whose reply was

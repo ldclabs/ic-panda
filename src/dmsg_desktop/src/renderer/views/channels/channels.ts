@@ -11,6 +11,12 @@ export const roleLabel: Record<string, Label> = { owner: 'roleOwner', admin: 'ro
 export const kindLabel: Record<string, Label> = { collaboration: 'collaboration', distribution: 'distribution', direct: 'direct' }
 export const statusLabel: Record<string, Label> = { active: 'channelActive', rotation_required: 'channelRotation', archived: 'channelArchived' }
 
+/** Whether an account coordinates rotations: the owner, an admin or an allowed member holding the current epoch. */
+export function mayRotate(ledger: any, account: string | undefined): boolean {
+  const member = account ? ledger?.members?.[account] : undefined
+  return !!member && (member.role === 'owner' || member.role === 'admin' || member.can_rotate) && (ledger.epoch === 0 || member.joined_epoch <= ledger.epoch)
+}
+
 /** What this account may do in a channel, from its ledger. */
 export function powers(ledger: any, me: string | undefined) {
   const role: string | undefined = me ? ledger?.members?.[me]?.role : undefined
@@ -19,6 +25,7 @@ export function powers(ledger: any, me: string | undefined) {
     member: !!role,
     owner,
     manages: owner || role === 'admin',
+    rotates: mayRotate(ledger, me),
     writes: !!role && ledger?.status === 'active'
   }
 }

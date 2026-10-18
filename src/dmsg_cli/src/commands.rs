@@ -76,8 +76,14 @@ pub enum ChannelCommand {
         /// Channel ID.
         id: String,
     },
-    /// Start the next epoch now, when membership changed.
+    /// Finish the rotation a channel waits for after a member or device
+    /// change; an unlocked daemon that may rotate does it on its own.
     Rotate {
+        /// Channel ID.
+        id: String,
+    },
+    /// Start a new epoch now: who joins later reads nothing before it.
+    Rekey {
         /// Channel ID.
         id: String,
     },
@@ -427,6 +433,7 @@ pub async fn channel(remote: &Remote, json: bool, command: ChannelCommand) -> Re
             json!({"id": id, "action": {"type": "archive"}}),
         ),
         ChannelCommand::Rotate { id } => ("channel/rotate", json!({"id": id})),
+        ChannelCommand::Rekey { id } => ("channel/rekey", json!({"id": id})),
         ChannelCommand::Send {
             id,
             text,

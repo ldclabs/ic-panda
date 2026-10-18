@@ -681,6 +681,10 @@ const methods = {
     channel.ledger.status = 'active'
     return channel
   },
+  'channel/rekey': () => {
+    channel.ledger.epoch += 1
+    return channel
+  },
   'channel/owner_propose': (p) => ({ format: 'dmsg-channel-owner-transfer/1', channel: channel.id, payload: { to: p.account }, acceptance: null }),
   'inbox/list': () => [
     { order_id: '77'.repeat(32), sender: peer, state: 'visible', text: 'A paid letter', created_at: Date.now(), read: false, archived: false }
@@ -838,6 +842,7 @@ const announced = {
   'channel/control': ['channel/changed'],
   'channel/history': ['channel/changed'],
   'channel/reactivate': ['channel/changed'],
+  'channel/rekey': ['channel/changed'],
   'channel/owner_propose': ['channel/changed'],
   'inbox/configure': ['inbox/changed'],
   'session/switch': ['session/changed', 'approval/changed'],
@@ -1109,6 +1114,13 @@ try {
   await waitFor(() => latest('channel/history'))
   assert.deepEqual(latest('channel/history').params, { id: channel.id, account: peer, from: 1, to: 1 })
   await main.waitForSelector('[data-testid="history-dialog"]', { state: 'detached' })
+  // An invitation says what the account will read; the owner rotates keys at will.
+  assert.ok((await main.textContent('[data-testid="invite-reads"]')).includes('1'))
+  await main.click('[data-testid="channel-manage"]')
+  await main.click('[data-testid="channel-rekey"]')
+  await waitFor(() => latest('channel/rekey'))
+  assert.deepEqual(latest('channel/rekey').params, { id: channel.id })
+  await main.waitForSelector('[data-testid="invite-reads"] >> text=/2/')
   await main.screenshot({ path: join(shots, 'channels.png') })
   await main.click('[data-testid="channel-manage"]')
   await main.click('[data-testid="owner-transfer"]')

@@ -3189,21 +3189,25 @@ fn desktop_channels() {
         &item,
     ]);
     let attachment = shared["receipt"]["seq"].as_u64().unwrap();
-    let invitation = a.run(&["channel", "invite", &id, &member]);
-    assert_eq!(invitation["account"], member.as_str());
-    let joined = b.run(&["channel", "accept", &invitation.to_string()]);
-    assert_eq!(joined["status"], "rotation_required");
-    assert_eq!(joined["members"][&member]["joined_epoch"], 2);
 
-    // The epoch activation commits but its reply is lost: the retry
-    // settles it by request ID, and the second rotation opens epoch 2.
+    // A new epoch before the invitation keeps what was written from the
+    // member. Its activation commits but the reply is lost: the retry, or
+    // A's daemon first, settles it by request ID, and epoch 2 opens.
     let relay_proxy = env.relay_proxy.as_ref().unwrap();
     relay_proxy.lose_next("POST", "/rotation/activate");
-    assert_eq!(a.fail(&["channel", "rotate", &id]), "EXECUTION_UNKNOWN");
+    assert_eq!(a.fail(&["channel", "rekey", &id]), "EXECUTION_UNKNOWN");
     assert_eq!(relay_proxy.pending(), 0);
     let rotated = a.run(&["channel", "rotate", &id]);
     assert_eq!(rotated["ledger"]["epoch"], 2);
     assert_eq!(rotated["readable_epochs"], json!([1, 2]));
+
+    // The invitation carries epoch 2's key: B joins it without a rotation.
+    let invitation = a.run(&["channel", "invite", &id, &member]);
+    assert_eq!(invitation["account"], member.as_str());
+    let joined = b.run(&["channel", "accept", &invitation.to_string()]);
+    assert_eq!(joined["status"], "active");
+    assert_eq!(joined["epoch"], 2);
+    assert_eq!(joined["members"][&member]["joined_epoch"], 2);
 
     // B reads from epoch 2 only: epoch-1 messages are skipped by the relay.
     assert_eq!(
@@ -3293,8 +3297,8 @@ fn desktop_channels() {
     let billing = a.run(&["channel", "sponsor", "commit", &accepted.to_string()]);
     assert_eq!(billing["billing_account"], member.as_str());
 
-    // B's new device C joins B's account; the synced channel record and the
-    // next epoch's envelope let it read and write.
+    // B's new device C joins B's account. The synced channel record holds
+    // epoch 2's key, and the relay keeps the epoch for an added device.
     let (c, c_daemon) = env.desktop("c");
     let (a, b) = (&env.a, &env.b);
     assert_eq!(c.login(&http, 60).unwrap()["state"], "pairing_required");
@@ -3313,8 +3317,6 @@ fn desktop_channels() {
     c.run(&["sync"]);
     let listed = c.run(&["channel", "list"]);
     assert_eq!(listed[0]["id"], id.as_str());
-    let added = a.run(&["channel", "rotate", &id]);
-    assert_eq!(added["ledger"]["epoch"], 3);
     // The relay finishes moving the billing in the background; until then
     // it refuses new messages with VERSION_CONFLICT.
     eventually(60, || {
@@ -3331,26 +3333,40 @@ fn desktop_channels() {
             .unwrap();
         output.status.success().then_some(())
     });
+    let kept = a.run(&["channel", "show", &id]);
+    assert_eq!(kept["ledger"]["epoch"], 2);
+    assert_eq!(kept["ledger"]["status"], "active");
+    let epoch = |desktop: &Desktop, channel: &str, epoch: u64| {
+        eventually(120, || {
+            let shown = desktop
+                .rpc(&http, "channel/show", json!({"id": channel}))
+                .unwrap();
+            (shown["ledger"]["epoch"] == epoch && shown["ledger"]["status"] == "active")
+                .then_some(shown)
+        })
+    };
 
-    // C revokes B's first device; the next epoch excludes it.
+    // C revokes B's first device. A's next read brings it to the relay's
+    // notice, which asks for a new epoch; a daemon that may rotate, A's or
+    // C's (B is an admin since the transfers), seals it to the rest.
     let b_device = b.run(&["status"])["device_id"]
         .as_str()
         .unwrap()
         .to_string();
     let revoke = c.run(&["device", "revoke", &b_device]);
     assert_eq!(c.decide(&http, &revoke, true).unwrap()["state"], "done");
-    let excluded = a.run(&["channel", "rotate", &id]);
-    assert_eq!(excluded["ledger"]["epoch"], 4);
+    a.run(&["channel", "read", &id]);
+    epoch(a, &id, 3);
     assert_ne!(
         b.fail(&["channel", "send", &id, "revoked device cannot send"]),
         ""
     );
     c.run(&["channel", "read", &id]);
 
-    // Removing B: the relay refuses it at once, a new epoch isolates it.
+    // Removing B: the relay refuses it at once, and A's daemon seals a new
+    // epoch that isolates it.
     a.run(&["channel", "remove", &id, &member]);
-    let removed = a.run(&["channel", "rotate", &id]);
-    assert_eq!(removed["ledger"]["epoch"], 5);
+    let removed = epoch(a, &id, 4);
     assert!(removed["ledger"]["members"].get(&member).is_none());
     assert_ne!(
         c.fail(&["channel", "send", &id, "removed member cannot send"]),
@@ -3370,8 +3386,8 @@ fn desktop_channels() {
         .unwrap()
         .to_string();
     let invitation = a.run(&["channel", "invite", &second, &member]);
-    c.run(&["channel", "accept", &invitation.to_string()]);
-    a.run(&["channel", "rotate", &second]);
+    let joined = c.run(&["channel", "accept", &invitation.to_string()]);
+    assert_eq!(joined["status"], "active");
     c.run(&["channel", "send", &second, "member message"]);
     let promoted = a.run(&["channel", "role", &second, &member, "admin"]);
     assert_eq!(promoted["members"][&member]["role"], "admin", "{promoted}");
@@ -3380,7 +3396,7 @@ fn desktop_channels() {
     let demoted = a.run(&["channel", "role", &second, &member, "member"]);
     assert_eq!(demoted["members"][&member]["role"], "member");
     c.run(&["channel", "leave", &second]);
-    let left = a.run(&["channel", "rotate", &second]);
+    let left = epoch(a, &second, 2);
     assert!(left["ledger"]["members"].get(&member).is_none(), "{left}");
     c.fail(&["channel", "send", &second, "after leaving"]);
     let archived = a.run(&["channel", "archive", &second]);
@@ -7032,13 +7048,11 @@ fn desktop_legacy() {
     ]);
     assert_eq!(claimed["claims"][&member]["claim"]["account"], y.as_str());
 
-    // X invites Y; Y joins the next epoch and says so.
+    // X invites Y with the epoch's key; Y joins it at once and says so.
     let invitation = a.run(&["channel", "invite", &channel, &y]);
-    b.run(&["channel", "accept", &invitation.to_string()]);
-    assert_eq!(
-        a.run(&["channel", "rotate", &channel])["ledger"]["epoch"],
-        2
-    );
+    let joined = b.run(&["channel", "accept", &invitation.to_string()]);
+    assert_eq!(joined["status"], "active");
+    assert_eq!(joined["members"][&y]["joined_epoch"], 1);
     let joined = b.run(&["legacy", "shared", "joined", &key]);
     assert_eq!(joined["claims"][&member]["joined"], true);
 

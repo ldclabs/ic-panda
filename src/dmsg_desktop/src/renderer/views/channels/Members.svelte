@@ -2,24 +2,29 @@
   import { DropdownMenu } from 'bits-ui'
   import { localeDir } from '../../../shared/locales'
   import Avatar from '../../components/Avatar.svelte'
+  import Checkbox from '../../components/Checkbox.svelte'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { shortId } from '../../shell/session'
-  import { ordered, roleLabel, roles } from './channels'
+  import { mayRotate, ordered, roleLabel, roles } from './channels'
 
   /**
    * The members drawer: each member's role, the epoch they joined at and
    * the history granted to them. The owner changes roles and rotation and
-   * removes members; the owner and admins grant history and invite.
+   * removes members; the owner and admins grant history and invite. An
+   * invitation made while the epoch is active carries its key, so the
+   * member reads it from its start; rotating first keeps what was written
+   * from them.
    */
   let {
     ledger,
     me,
     owner,
     manages,
+    rotates,
     busy,
     onControl,
     onHistory,
@@ -30,20 +35,22 @@
     me: string | undefined
     owner: boolean
     manages: boolean
+    rotates: boolean
     busy: boolean
     onControl: (action: Record<string, unknown>) => void
     onHistory: (member: any) => void
-    onInvite: (account: string) => Promise<string | null>
+    onInvite: (account: string, rekey: boolean) => Promise<string | null>
     onClose: () => void
   } = $props()
 
   let account = $state('')
   let invitation = $state('')
+  let rekey = $state(false)
 
   const members = $derived(ordered(ledger))
 
   async function invite() {
-    const made = await onInvite(account.trim())
+    const made = await onInvite(account.trim(), rekey && ledger.status === 'active')
     if (made) {
       invitation = made
       account = ''
@@ -77,9 +84,9 @@
             <span class={cn(member.role === 'owner' && 'font-medium text-forest')}>{t(roleLabel[member.role] ?? 'roleMember')}</span>
             · {t('joinedEpoch', { epoch: member.joined_epoch })}
           </p>
-          {#if member.can_rotate || member.history.length}
+          {#if mayRotate(ledger, member.account) || member.history.length}
             <div class="mt-1 flex flex-wrap gap-1">
-              {#if member.can_rotate}
+              {#if mayRotate(ledger, member.account)}
                 <span class="inline-flex items-center gap-1 rounded bg-wash px-1.5 text-[10.5px] leading-[18px] text-ink-2"><Icon name="epoch" class="size-3" />{t('canRotate')}</span>
               {/if}
               {#if member.history.length}
@@ -112,16 +119,18 @@
                       </DropdownMenu.RadioItem>
                     {/each}
                   </DropdownMenu.RadioGroup>
-                  <DropdownMenu.CheckboxItem
-                    checked={member.can_rotate}
-                    onCheckedChange={(on) => onControl({ type: 'role', account: member.account, role: member.role, can_rotate: on })}
-                    class={menuItemClass}
-                  >
-                    {#snippet children({ checked })}
-                      {t('allowRotate')}
-                      {#if checked}<Icon name="check" class="size-3.5" />{/if}
-                    {/snippet}
-                  </DropdownMenu.CheckboxItem>
+                  {#if member.role !== 'admin'}
+                    <DropdownMenu.CheckboxItem
+                      checked={member.can_rotate}
+                      onCheckedChange={(on) => onControl({ type: 'role', account: member.account, role: member.role, can_rotate: on })}
+                      class={menuItemClass}
+                    >
+                      {#snippet children({ checked })}
+                        {t('allowRotate')}
+                        {#if checked}<Icon name="check" class="size-3.5" />{/if}
+                      {/snippet}
+                    </DropdownMenu.CheckboxItem>
+                  {/if}
                   <DropdownMenu.Separator class="my-1 h-px bg-line" />
                 {/if}
                 {#if manages && member.joined_epoch > 1}
@@ -145,8 +154,14 @@
     <div class="grid gap-2 border-t border-line p-3">
       <div class="flex gap-1.5">
         <input bind:value={account} placeholder={t('accountId')} class="font-mono text-[12px] placeholder:font-sans" spellcheck="false" data-testid="invite-account" />
-        <button class={buttonClass('secondary')} disabled={busy || !account.trim()} onclick={invite}>{t('invite')}</button>
+        <button class={buttonClass('secondary')} disabled={busy || !account.trim()} onclick={invite} data-testid="invite-submit">{t('invite')}</button>
       </div>
+      {#if ledger.status === 'active'}
+        <p class="text-[11.5px] text-faint" data-testid="invite-reads">{t('inviteReads', { epoch: rekey ? ledger.epoch + 1 : ledger.epoch })}</p>
+        {#if rotates}<Checkbox bind:checked={rekey} class="text-[12px]" testid="invite-rekey">{t('inviteRekey')}</Checkbox>{/if}
+      {:else}
+        <p class="text-[11.5px] text-faint" data-testid="invite-reads">{t('inviteNext')}</p>
+      {/if}
       {#if invitation}
         <div class="grid gap-1.5 rounded-xl border border-line bg-surface p-2.5">
           <p class="text-[11.5px] text-muted">{t('invitationHint')}</p>
