@@ -15,7 +15,7 @@ use crate::client::Client;
 use crate::codec::{b64, canonical, unb64};
 use crate::crypto::{Key, random_id, sign, signing_public};
 use crate::now_ms;
-use crate::vault::Item;
+use crate::vault::{Field, Item};
 use agent_protocols::{
     delegation::{
         DELEGATION_GRANT, DELEGATION_REVOKE, DelegationCredential, DelegationGrantPayload,
@@ -522,19 +522,10 @@ impl Client {
     ) -> Result<Zeroizing<Key>> {
         let account = self.account()?.id.to_string();
         let id = controller_item(&account, generation);
-        let item = Item {
-            kind: "key".into(),
-            title: format!("dMsg controller #{generation}"),
-            tags: vec!["dmsg-controller".into()],
-            body: format!("Agent Delegation controller key of {account}, generation {generation}."),
-            username: String::new(),
-            secret: String::new(),
-            url: String::new(),
-            favorite: false,
-            created_at: now_ms(),
-            updated_at: now_ms(),
-            resolved_conflicts: None,
-        };
+        let mut item = Item::new("key", &format!("dMsg controller #{generation}"), now_ms());
+        item.tags = vec!["dmsg-controller".into()];
+        item.notes =
+            format!("Agent Delegation controller key of {account}, generation {generation}.");
         self.vault_key(&id, create.then_some(item))
     }
 
@@ -544,14 +535,15 @@ impl Client {
         let item = match (self.vault_show(id), new) {
             (Ok(entry), _) if !entry.deleted => entry.item,
             (Err(Error::NotFound), Some(mut item)) => {
-                item.secret = b64(&crate::crypto::random_key());
+                let seed = b64(&crate::crypto::random_key());
+                item.fields = vec![Field::new("key", "concealed", &seed)];
                 self.vault_item_with_id(id, &item)?;
                 item
             }
             (Ok(_) | Err(Error::NotFound), _) => return Err(Error::NotFound),
             (Err(error), _) => return Err(error),
         };
-        let seed = Zeroizing::new(unb64(&item.secret)?);
+        let seed = Zeroizing::new(unb64(item.value("key"))?);
         let seed: Key = seed
             .as_slice()
             .try_into()

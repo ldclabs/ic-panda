@@ -1,0 +1,7 @@
+EFF Large Wordlist for Passphrases
+https://www.eff.org/files/2016/07/18/eff_large_wordlist.txt
+(src/renderer/views/vault/words.ts keeps the words without their dice numbers)
+
+Copyright Electronic Frontier Foundation.
+Licensed under the Creative Commons Attribution 3.0 United States license
+(CC BY 3.0 US): https://creativecommons.org/licenses/by/3.0/us/

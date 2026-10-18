@@ -1,21 +1,12 @@
 use super::*;
 use crate::testing::{TempDir, unlocked};
-use crate::vault::Filter;
+use crate::vault::{Changes, Filter, Keep};
 use serde_json::json;
 
-fn item(title: &str) -> Item {
-    Item {
-        kind: "note".into(),
-        title: title.into(),
-        tags: vec![],
-        body: String::new(),
-        username: String::new(),
-        secret: String::new(),
-        url: String::new(),
-        favorite: false,
-        created_at: 1,
-        updated_at: 1,
-        resolved_conflicts: None,
+fn item(title: &str) -> Changes {
+    Changes {
+        title: Some(title.into()),
+        ..Changes::default()
     }
 }
 
@@ -147,13 +138,13 @@ fn concurrent_edits_become_conflict_copies() {
     let (da, db) = (TempDir::new(), TempDir::new());
     let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
     let mut relay = Relay::default();
-    let first = a.vault_put(None, None, &item("v1")).unwrap();
+    let first = a.vault_create("note", &item("v1")).unwrap();
     assert_eq!(relay.accept(&mut a), (1, 0));
     relay.deliver(&mut b).unwrap();
     assert_eq!(titles(&b, false), ["v1"]);
 
-    a.vault_put(Some(&first.id), None, &item("from a")).unwrap();
-    let theirs = b.vault_put(Some(&first.id), None, &item("from b")).unwrap();
+    a.vault_edit(&first.id, None, &item("from a")).unwrap();
+    let theirs = b.vault_edit(&first.id, None, &item("from b")).unwrap();
     assert_eq!(relay.accept(&mut a), (1, 0));
     // B pushes on a stale base: the relay keeps it as a conflict copy.
     assert_eq!(relay.accept(&mut b), (1, 0));
@@ -163,14 +154,14 @@ fn concurrent_edits_become_conflict_copies() {
         assert_eq!(titles(device, false), ["from a"]);
         let conflicts = device.vault_conflicts().unwrap();
         assert_eq!(conflicts.len(), 1);
-        assert_eq!(conflicts[0].revision, theirs.revision);
-        assert_eq!(conflicts[0].item.title, "from b");
+        assert_eq!(conflicts[0].copy.revision, theirs.revision);
+        assert_eq!(conflicts[0].copy.item.title, "from b");
         assert_eq!(device.status().unwrap().conflicts, 1);
     }
 
     // A adopts B's version; B learns the resolution from the new head.
     let key = format!("{}:{}", theirs.id, theirs.revision);
-    a.vault_resolve(&key, false).unwrap();
+    a.vault_resolve(&key, &Keep::Theirs).unwrap();
     assert_eq!(relay.accept(&mut a), (1, 0));
     relay.deliver(&mut b).unwrap();
     relay.deliver(&mut a).unwrap();
@@ -187,18 +178,14 @@ fn a_tombstone_takes_only_an_explicit_restore() {
     let mut b = unlocked(&db.0, false, None);
     let mut c = unlocked(&dc.0, false, None);
     let mut relay = Relay::default();
-    let first = a.vault_put(None, None, &item("v1")).unwrap();
+    let first = a.vault_create("note", &item("v1")).unwrap();
     relay.accept(&mut a);
     relay.deliver(&mut b).unwrap();
     relay.deliver(&mut c).unwrap();
 
     a.vault_delete(&first.id).unwrap();
-    let late = b
-        .vault_put(Some(&first.id), None, &item("late edit"))
-        .unwrap();
-    let later = c
-        .vault_put(Some(&first.id), None, &item("later edit"))
-        .unwrap();
+    let late = b.vault_edit(&first.id, None, &item("late edit")).unwrap();
+    let later = c.vault_edit(&first.id, None, &item("later edit")).unwrap();
     relay.accept(&mut a);
     // Pulled first, an older edit turns into a conflict copy, which the
     // relay then refuses against the tombstone.
@@ -222,7 +209,7 @@ fn a_tombstone_takes_only_an_explicit_restore() {
     assert_eq!(c.vault_conflicts().unwrap().len(), 1);
 
     // Adopting the late edit restores the item explicitly.
-    let restored = b.vault_resolve(&key, false).unwrap();
+    let restored = b.vault_resolve(&key, &Keep::Theirs).unwrap();
     assert!(!restored.deleted);
     assert_eq!(relay.accept(&mut b), (1, 0));
     relay.deliver(&mut a).unwrap();
@@ -234,12 +221,10 @@ fn local_edits_on_the_relay_head_stay() {
     let (da, db) = (TempDir::new(), TempDir::new());
     let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
     let mut relay = Relay::default();
-    let first = a.vault_put(None, None, &item("v1")).unwrap();
+    let first = a.vault_create("note", &item("v1")).unwrap();
     relay.accept(&mut a);
     relay.deliver(&mut b).unwrap();
-    let edit = b
-        .vault_put(Some(&first.id), None, &item("pending"))
-        .unwrap();
+    let edit = b.vault_edit(&first.id, None, &item("pending")).unwrap();
     relay.deliver(&mut b).unwrap();
     assert_eq!(b.vault_show(&first.id).unwrap().revision, edit.revision);
     assert_eq!(b.status().unwrap().pending_sync, 1);
@@ -253,8 +238,8 @@ fn rollback_and_omission_are_refused() {
     let (da, db) = (TempDir::new(), TempDir::new());
     let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
     let mut relay = Relay::default();
-    a.vault_put(None, None, &item("v1")).unwrap();
-    a.vault_put(None, None, &item("v2")).unwrap();
+    a.vault_create("note", &item("v1")).unwrap();
+    a.vault_create("note", &item("v2")).unwrap();
     relay.accept(&mut a);
     relay.deliver(&mut b).unwrap();
 
@@ -275,24 +260,24 @@ fn a_diverged_branch_is_one_conflict() {
     let (da, db) = (TempDir::new(), TempDir::new());
     let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
     let mut relay = Relay::default();
-    let first = a.vault_put(None, None, &item("v1")).unwrap();
+    let first = a.vault_create("note", &item("v1")).unwrap();
     relay.accept(&mut a);
     relay.deliver(&mut b).unwrap();
-    a.vault_put(Some(&first.id), None, &item("from a")).unwrap();
-    b.vault_put(Some(&first.id), None, &item("b one")).unwrap();
-    let tip = b.vault_put(Some(&first.id), None, &item("b two")).unwrap();
+    a.vault_edit(&first.id, None, &item("from a")).unwrap();
+    b.vault_edit(&first.id, None, &item("b one")).unwrap();
+    let tip = b.vault_edit(&first.id, None, &item("b two")).unwrap();
     relay.accept(&mut a);
     relay.deliver(&mut b).unwrap();
     assert_eq!(titles(&b, false), ["from a"]);
     let conflicts = b.vault_conflicts().unwrap();
     assert_eq!(conflicts.len(), 1);
-    assert_eq!(conflicts[0].revision, tip.revision);
+    assert_eq!(conflicts[0].copy.revision, tip.revision);
     assert_eq!(relay.accept(&mut b), (2, 0));
     relay.deliver(&mut a).unwrap();
     assert_eq!(a.vault_conflicts().unwrap().len(), 1);
     // Keeping A's version settles the whole branch everywhere.
     let key = format!("{}:{}", tip.id, tip.revision);
-    let kept = a.vault_resolve(&key, true).unwrap();
+    let kept = a.vault_resolve(&key, &Keep::Current).unwrap();
     assert_eq!(kept.item.title, "from a");
     assert_eq!(kept.item.resolved_conflicts.as_ref().unwrap().len(), 2);
     relay.accept(&mut a);
@@ -309,13 +294,13 @@ fn collection_keeps_what_a_pull_or_an_upload_needs() {
     let (da, db) = (TempDir::new(), TempDir::new());
     let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
     let mut relay = Relay::default();
-    a.vault_put(None, None, &item("note")).unwrap();
+    a.vault_create("note", &item("note")).unwrap();
     relay.accept(&mut a);
     relay.deliver(&mut b).unwrap();
 
     // B has an unsent edit, a cached attachment and two channel uploads,
     // one of them lapsed.
-    b.vault_put(None, None, &item("unsent")).unwrap();
+    b.vault_create("note", &item("unsent")).unwrap();
     let put = |client: &Client, bytes: &[u8]| {
         let digest = hex::encode(*sha256(bytes));
         client.workspace.store.put_chunk(&digest, bytes).unwrap();

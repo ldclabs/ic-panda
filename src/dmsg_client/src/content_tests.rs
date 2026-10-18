@@ -2,7 +2,7 @@ use super::*;
 use crate::codec::{decode_value, unb64};
 use crate::files::FileChunk;
 use crate::upload::ChunkRef;
-use crate::vault::Item;
+use crate::vault::{Item, open_item};
 use crate::vectors::{bytes, key, load, text, value};
 
 #[test]
@@ -21,13 +21,14 @@ fn opens_exported_objects() {
         );
         assert_eq!(object_container(&record), bytes(&case["object_hex"]));
         assert_eq!(read_container(&bytes(&case["object_hex"])).unwrap(), record);
-        // Items re-encode byte for byte. The file entries stay as object
-        // and chunk vectors; the vault has no file items any more.
+        // The items are in the format before fields, which every account's
+        // history keeps and the vault still opens. The file entries stay
+        // as object and chunk vectors; the vault has no file items any more.
         if !text(&case["name"]).contains("file") {
-            let item: Item = decode(&plaintext, MAX_OBJECT).unwrap();
+            assert_eq!(canonical(&value(&case["payload"])), *plaintext);
+            let item = open_item(&plaintext).unwrap();
             item.validate().unwrap();
-            assert_eq!(canonical(&item), *plaintext);
-            assert_eq!(canonical(&item), canonical(&value(&case["payload"])));
+            assert!(decode::<Item>(&plaintext, MAX_OBJECT).is_err());
         }
         let mut changed = record.clone();
         changed.tombstone = !changed.tombstone;

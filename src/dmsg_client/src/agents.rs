@@ -344,19 +344,9 @@ impl Client {
         ensure(agents.list.len() < MAX_AGENTS, Error::QuotaExceeded)?;
         let account = self.account()?.id.to_string();
         let now = now_ms();
-        let item = Item {
-            kind: "key".into(),
-            title: format!("Agent ID {label}"),
-            tags: vec!["dmsg-agent".into()],
-            body: format!("Agent Protocols identity \"{label}\" of {account}."),
-            username: String::new(),
-            secret: String::new(),
-            url: String::new(),
-            favorite: false,
-            created_at: now,
-            updated_at: now,
-            resolved_conflicts: None,
-        };
+        let mut item = Item::new("key", &format!("Agent ID {label}"), now);
+        item.tags = vec!["dmsg-agent".into()];
+        item.notes = format!("Agent Protocols identity \"{label}\" of {account}.");
         let seed = self.vault_key(&agent_item(&account, label), Some(item))?;
         let entry = AgentEntry {
             label: label.into(),

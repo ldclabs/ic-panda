@@ -92,6 +92,7 @@ hpke = { version = "0.14", default-features = false }
 image = { version = "0.25", default-features = false }
 infer = "0.22"
 http = "1"
+sha1 = "0.11"
 sha2 = "0.11"
 sha3 = "0.12"
 ripemd = { version = "0.2", default-features = false }
@@ -129,10 +130,12 @@ getrandom = "0.4"
 # Pinned as in anda-bot: credential-store initialization has regressed in
 # patch releases, so upgrades are validated explicitly.
 keyring = "=4.2.0"
+rqrr = { version = "0.11", default-features = false }
 rusqlite = "0.40"
 toml = "1"
 url = "2.5"
 urlencoding = "2.1"
+zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [workspace.metadata.cargo-shear]
 ignored = ["ic-dummy-getrandom-for-wasm", "lib_dummy_getrandom"]

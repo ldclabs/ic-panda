@@ -5,55 +5,84 @@
   import { buttonClass, cn } from '../../components/ui'
   import { t, type Label } from '../../i18n/index.svelte'
   import { call, code, when } from '../../rpc'
-  import { differences, lineDiff, type Compared } from './vault'
+  import SecretField from './SecretField.svelte'
+  import { differences, fieldName, isHidden, lineDiff, type Field, type Part } from './vault'
 
   /**
-   * Conflict copies side by side with the current version, one at a time:
-   * the fields that differ, the body line by line. Keeping one settles the
-   * copy; the daemon records it as resolved either way, and its
-   * `vault/changed` reloads the list.
+   * Conflict copies beside the current version, one at a time: each part
+   * that differs, the notes line by line. Keep one side whole, or pick a
+   * side part by part (and edit the merged notes) and save the merge as
+   * the new current version. Hidden values that differ say so; both are
+   * shown only on request. The daemon records the copy as resolved either
+   * way, and its `vault/changed` reloads the list.
    */
   let { open = $bindable(false), conflicts, start = 0 }: { open?: boolean; conflicts: any[]; start?: number } = $props()
 
   let index = $state(0)
-  let head = $state<any>(null)
   let busy = $state(false)
   let error = $state('')
+  let picks = $state<Record<string, 'current' | 'theirs'>>({})
+  let notes = $state<string | null>(null)
 
   /** The copy shown, kept within the list as settled copies leave it. */
   const at = $derived(Math.max(0, Math.min(index, conflicts.length - 1)))
-  const copy = $derived(conflicts[at])
-  const changed = $derived<Compared[]>(head && copy ? differences(head, copy) : [])
-  const body = $derived(head && copy && changed.includes('body') ? lineDiff(head.item.body, copy.item.body) : null)
+  const conflict = $derived(conflicts[at])
+  const head = $derived(conflict?.head)
+  const copy = $derived(conflict?.copy)
+  const parts = $derived<Part[]>(conflict ? differences(head, copy, conflict.hidden) : [])
+  const mergeable = $derived(!!conflict && !head.deleted && !copy.deleted)
+  const body = $derived(parts.includes('notes') ? lineDiff(head.item.notes, copy.item.notes) : null)
 
-  const names: Record<Compared, Label> = { title: 'title', username: 'username', url: 'url', tags: 'tags', favorite: 'starred', body: 'body', deleted: 'inTrash' }
+  const names: Record<string, Label> = { title: 'title', tags: 'tags', notes: 'notes', favorite: 'starred', files: 'attachments', deleted: 'inTrash' }
 
   $effect(() => {
     if (open) index = start
   })
 
-  // The current version, deleted or not, as the daemon holds it.
+  // Each copy starts from the current version, part by part.
   $effect(() => {
-    const id = open ? copy?.id : null
-    head = null
+    void conflict?.copy.revision
+    picks = {}
+    notes = null
     error = ''
-    if (!id) return
-    call('vault/show', { id })
-      .then((entry) => {
-        if (copy?.id === id) head = entry
-      })
-      .catch((e) => (error = `${t('error')}: ${code(e)}`))
   })
 
   $effect(() => {
     if (open && !conflicts.length) open = false
   })
 
-  async function resolve(keep: 'current' | 'theirs') {
+  const fieldOf = (entry: any, part: string): Field | undefined => entry.item.fields.find((f: Field) => `field:${f.id}` === part)
+
+  function label(part: Part): string {
+    if (part.startsWith('field:')) {
+      const field = fieldOf(head, part) ?? fieldOf(copy, part)
+      return field ? fieldName(field, t) : part.slice(6)
+    }
+    return t(names[part])
+  }
+
+  function value(entry: any, part: Part): string {
+    if (part === 'deleted') return entry.deleted ? t('inTrash') : '-'
+    if (part === 'favorite') return entry.item.favorite ? t('starred') : '-'
+    if (part === 'tags') return entry.item.tags.map((tag: string) => `#${tag}`).join(' ') || '-'
+    if (part === 'files') return t('fileCount', { n: entry.item.files?.length ?? 0 })
+    if (part.startsWith('field:')) {
+      const field = fieldOf(entry, part)
+      return field ? field.value || '-' : t('noSuchField')
+    }
+    return String(entry.item[part] || '-')
+  }
+
+  async function resolve(keep: 'current' | 'theirs' | 'merge') {
     busy = true
     try {
-      await call('vault/resolve', { key: `${copy.id}:${copy.revision}`, keep })
-      toast(() => (keep === 'current' ? t('keptCurrent') : t('usedCopy')))
+      const params: Record<string, unknown> = { key: `${copy.id}:${copy.revision}`, keep }
+      if (keep === 'merge') {
+        params.picks = picks
+        if (notes !== null) params.notes = notes
+      }
+      await call('vault/resolve', params)
+      toast(() => (keep === 'current' ? t('keptCurrent') : keep === 'theirs' ? t('usedCopy') : t('merged')))
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
     } finally {
@@ -61,33 +90,42 @@
     }
   }
 
-  function value(entry: any, field: Compared): string {
-    if (field === 'deleted') return entry.deleted ? t('inTrash') : '-'
-    if (field === 'favorite') return entry.item.favorite ? t('starred') : '-'
-    if (field === 'tags') return entry.item.tags.map((tag: string) => `#${tag}`).join(' ') || '-'
-    return String(entry.item[field] || '-')
+  function choose(part: Part, side: 'current' | 'theirs') {
+    picks = { ...picks, [part]: side }
+    if (part === 'notes') notes = null
   }
 </script>
 
-{#snippet side(label: string, entry: any, tone: 'current' | 'copy')}
-  <div class="min-w-0">
-    <div class="mb-2 flex items-baseline justify-between gap-2 border-b border-line pb-1.5">
-      <b class="text-[12.5px] font-semibold">{label}</b>
-      <span class="text-[11.5px] text-faint">{when(entry.item.updatedAt)}</span>
-    </div>
-    {#each changed.filter((field) => field !== 'body') as field (field)}
-      <div class="mb-2">
-        <div class="text-[11.5px] text-faint">{t(names[field])}</div>
-        <div class={cn('rounded-md px-1.5 py-0.5 text-[13px] [overflow-wrap:anywhere]', tone === 'current' ? 'bg-danger-pale' : 'bg-ok-pale')}>{value(entry, field)}</div>
-      </div>
-    {/each}
-    {#if body}
-      <div class="text-[11.5px] text-faint">{t('body')}</div>
-      <ol class="mt-0.5 rounded-md border border-line bg-surface font-mono text-[12px] leading-relaxed">
+{#snippet side(part: Part, entry: any, tone: 'current' | 'theirs')}
+  {@const picked = (picks[part] ?? 'current') === tone}
+  {@const field = part.startsWith('field:') ? fieldOf(entry, part) : undefined}
+  <div class={cn('min-w-0 rounded-lg border px-2.5 py-1.5 text-[12.5px] transition-colors', picked ? 'border-forest bg-pale' : 'border-line bg-surface')}>
+    {#if mergeable}
+      <button
+        class={cn('mb-1 flex items-center gap-1.5 text-[11.5px] outline-none focus-visible:underline', picked ? 'text-forest' : 'text-faint hover:text-ink')}
+        onclick={() => choose(part, tone)}
+        aria-pressed={picked}
+        data-testid={`conflict-pick-${tone}`}
+        data-part={part}
+      >
+        <span class={cn('grid size-3.5 place-items-center rounded-full border', picked ? 'border-forest' : 'border-edge')}>
+          {#if picked}<span class="size-1.5 rounded-full bg-forest"></span>{/if}
+        </span>
+        {t('takeThis')}
+      </button>
+    {/if}
+    {#if field && isHidden(field) && field.value}
+      {#if field.type === 'concealed'}
+        <SecretField id={entry.id} field={field.id} revision={entry.revision} unlocked copyable={false} />
+      {:else}
+        <span class="font-mono text-faint">••••••</span>
+      {/if}
+    {:else if part === 'notes' && body}
+      <ol class="font-mono text-[12px] leading-relaxed">
         {#each tone === 'current' ? body.current : body.copy as line, i (i)}
           <li
             class={cn(
-              'min-h-[1.6em] px-2 whitespace-pre-wrap [overflow-wrap:anywhere]',
+              'min-h-[1.6em] px-1 whitespace-pre-wrap [overflow-wrap:anywhere]',
               line.changed && (tone === 'current' ? 'bg-danger-pale text-danger line-through decoration-danger/40' : 'bg-ok-pale text-ok')
             )}
           >
@@ -95,24 +133,46 @@
           </li>
         {/each}
       </ol>
+    {:else}
+      <span class="block whitespace-pre-wrap select-text [overflow-wrap:anywhere]">{value(entry, part)}</span>
     {/if}
   </div>
 {/snippet}
 
-{#if copy}
+{#if conflict}
   <Dialog bind:open title={t('conflictTitle', { title: copy.item.title })} description={t('conflictDialogHint')} icon="conflict" tone="warn" wide testid="conflict-dialog">
-    {#if head}
-      {#if changed.length}
-        <div class="grid gap-5 sm:grid-cols-2">
-          {@render side(t('currentVersion'), head, 'current')}
-          {@render side(t('theCopy'), copy, 'copy')}
+    {#if parts.length}
+      <div class="grid gap-3">
+        <div class="grid grid-cols-[1fr_1fr] gap-3 border-b border-line pb-1.5 text-[12px]">
+          <span><b class="font-semibold">{t('currentVersion')}</b> <span class="text-faint">{when(head.item.updatedAt)}</span></span>
+          <span><b class="font-semibold">{t('theCopy')}</b> <span class="text-faint">{when(copy.item.updatedAt)}</span></span>
         </div>
-      {:else}
-        <p class="text-[13px] text-muted">{t('hiddenOnly')}</p>
-      {/if}
-    {:else if !error}
-      <p class="shimmer text-[13px]">{t('loading')}</p>
+        {#each parts as part (part)}
+          <div class="grid gap-1" data-testid="conflict-part" data-part={part}>
+            <div class="flex items-center gap-1.5 text-[11.5px] text-faint">
+              {label(part)}
+              {#if conflict.hidden.includes(part.slice(6))}<span class="rounded bg-warn-pale px-1 text-[10.5px] text-warn">{t('hiddenDiffers')}</span>{/if}
+            </div>
+            <div class="grid grid-cols-[1fr_1fr] gap-3">
+              {@render side(part, head, 'current')}
+              {@render side(part, copy, 'theirs')}
+            </div>
+            {#if part === 'notes' && mergeable}
+              {#if notes === null}
+                <button class={buttonClass('ghost', 'xs', 'justify-self-start')} onclick={() => (notes = picks.notes === 'theirs' ? copy.item.notes : head.item.notes)} data-testid="conflict-edit-notes">
+                  <Icon name="edit" />{t('editMergedNotes')}
+                </button>
+              {:else}
+                <textarea bind:value={notes} rows="5" class="text-[13px] text-ink" data-testid="conflict-notes"></textarea>
+              {/if}
+            {/if}
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <p class="text-[13px] text-muted">{t('sameContent')}</p>
     {/if}
+    {#if !mergeable}<p class="mt-3 text-[12.5px] text-muted">{t('mergeDeleted')}</p>{/if}
     {#if error}<p class="mt-2 text-[12.5px] text-danger">{error}</p>{/if}
     {#snippet footer()}
       {#if conflicts.length > 1}
@@ -126,11 +186,12 @@
           </button>
         </span>
       {/if}
-      <span class="min-w-0 flex-1 truncate text-[12px] text-faint">
-        {changed.length ? `${t('differs')}: ${changed.map((field) => t(names[field])).join(', ')}` : ''}
-      </span>
-      <button class={buttonClass()} disabled={busy || !head} onclick={() => resolve('current')} data-testid="conflict-keep">{t('keepCurrent')}</button>
-      <button class={buttonClass()} disabled={busy || !head} onclick={() => resolve('theirs')} data-testid="conflict-use">{t('useCopy')}</button>
+      <span class="min-w-0 flex-1"></span>
+      <button class={buttonClass()} disabled={busy} onclick={() => resolve('current')} data-testid="conflict-keep">{t('keepCurrent')}</button>
+      <button class={buttonClass()} disabled={busy} onclick={() => resolve('theirs')} data-testid="conflict-use">{t('useCopy')}</button>
+      {#if mergeable && parts.length}
+        <button class={buttonClass('primary')} disabled={busy} onclick={() => resolve('merge')} data-testid="conflict-merge">{t('saveMerge')}</button>
+      {/if}
     {/snippet}
   </Dialog>
 {/if}

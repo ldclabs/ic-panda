@@ -1,20 +1,11 @@
 use super::*;
 use crate::testing::{MemoryStorage, TempDir, unlocked};
-use crate::vault::{Filter, Item};
+use crate::vault::{Changes, Filter};
 
-fn note(title: &str) -> Item {
-    Item {
-        kind: "note".into(),
-        title: title.into(),
-        tags: vec![],
-        body: String::new(),
-        username: String::new(),
-        secret: "s".into(),
-        url: String::new(),
-        favorite: false,
-        created_at: 1,
-        updated_at: 1,
-        resolved_conflicts: None,
+fn note(title: &str) -> Changes {
+    Changes {
+        title: Some(title.into()),
+        ..Changes::default()
     }
 }
 
@@ -23,7 +14,7 @@ async fn fast_unlock_works_offline_for_thirty_days() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
-    client.vault_put(None, None, &note("kept")).unwrap();
+    client.vault_create("note", &note("kept")).unwrap();
     assert!(client.enable_fast_unlock().unwrap().fast_unlock);
     client.lock();
     assert_eq!(client.status().unwrap().state, "locked");
@@ -215,7 +206,7 @@ fn reset_starts_a_new_device() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
-    client.vault_put(None, None, &note("gone")).unwrap();
+    client.vault_create("note", &note("gone")).unwrap();
     client.enable_fast_unlock().unwrap();
     let name = client.fast_name().unwrap();
     let before = client.status().unwrap().device_id;
@@ -244,7 +235,7 @@ fn accounts_keep_separate_workspaces() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
     let first = crate::testing::account();
-    client.vault_put(None, None, &note("first")).unwrap();
+    client.vault_create("note", &note("first")).unwrap();
     let first_device = client.status().unwrap().device_id;
 
     // A second account on the same device: its own device and data.
@@ -262,7 +253,7 @@ fn accounts_keep_separate_workspaces() {
     client.root = Some(root);
     assert_ne!(client.status().unwrap().device_id, first_device);
     assert!(client.vault_list(&Filter::default()).unwrap().is_empty());
-    client.vault_put(None, None, &note("second")).unwrap();
+    client.vault_create("note", &note("second")).unwrap();
 
     let listed = client.accounts().unwrap();
     assert_eq!(listed.len(), 2);

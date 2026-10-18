@@ -32,6 +32,7 @@ mod release;
 mod remote;
 mod secure;
 mod vault_commands;
+mod vault_methods;
 mod wallet_commands;
 mod wallet_methods;
 

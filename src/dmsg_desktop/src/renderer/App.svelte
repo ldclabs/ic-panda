@@ -223,7 +223,7 @@
           {:else if view === views.settings || view === views.legacy}
             <Settings {status} {refresh} {route} {go} />
           {:else}
-            <Vault {status} {mod} />
+            <Vault {status} {mod} {go} />
           {/if}
         </main>
       </div>

@@ -100,23 +100,70 @@ const messages = [
   { seq: 1, account: peer, device: '55'.repeat(32), message_id: '66'.repeat(32), epoch: 1, created_at: Date.now(), stored_at: Date.now(), text: 'Hello channel', file: null },
   { seq: 2, account: peer, device: '55'.repeat(32), message_id: '67'.repeat(32), epoch: 2, created_at: Date.now(), stored_at: Date.now(), text: 'The plan', file: { name: 'plan.pdf', size: 2048 } }
 ]
+/** A vault field, as the daemon gives it: a hidden value masked. */
+const fld = (id, type, value, label = '', section = '') => ({ id, type, label, section, value })
 const item = (id, revision, fields) => ({
   id,
   revision,
   synced: true,
   conflict: false,
   deleted: false,
-  item: { tags: [], body: '', username: '', secret: '', url: '', favorite: false, createdAt: Date.now(), updatedAt: Date.now(), ...fields }
+  at: Date.now(),
+  item: { tags: [], notes: '', fields: [], files: [], favorite: false, createdAt: Date.now() - 3_600_000, updatedAt: Date.now(), ...fields }
 })
 const SECRET = 'smoke-secret-value'
+/** The templates of `vault/templates`, as the daemon gives them. */
+const TEMPLATES = {
+  login: { fields: [{ id: 'username', type: 'text' }, { id: 'password', type: 'concealed' }, { id: 'url', type: 'url' }], secret: 'password' },
+  api: { fields: [{ id: 'username', type: 'text' }, { id: 'credential', type: 'concealed' }, { id: 'url', type: 'url' }, { id: 'expires', type: 'date' }], secret: 'credential' },
+  key: { fields: [{ id: 'key', type: 'concealed' }], secret: 'key' },
+  ssh: { fields: [{ id: 'private_key', type: 'concealed' }, { id: 'public_key', type: 'text' }, { id: 'fingerprint', type: 'text' }], secret: 'private_key' },
+  wallet: { fields: [{ id: 'phrase', type: 'concealed' }, { id: 'private_key', type: 'concealed' }, { id: 'address', type: 'text' }, { id: 'network', type: 'text' }, { id: 'password', type: 'concealed' }], secret: 'phrase' },
+  card: { fields: [{ id: 'cardholder', type: 'text' }, { id: 'number', type: 'concealed' }, { id: 'expiry', type: 'month' }, { id: 'cvv', type: 'concealed' }, { id: 'pin', type: 'concealed' }], secret: 'number' },
+  identity: { fields: [{ id: 'name', type: 'text' }, { id: 'email', type: 'email' }, { id: 'phone', type: 'phone' }, { id: 'address', type: 'text' }, { id: 'birthday', type: 'date' }, { id: 'id_number', type: 'concealed' }], secret: 'id_number' },
+  server: { fields: [{ id: 'url', type: 'url' }, { id: 'username', type: 'text' }, { id: 'password', type: 'concealed' }], secret: 'password' },
+  database: { fields: [{ id: 'engine', type: 'text' }, { id: 'host', type: 'text' }, { id: 'port', type: 'text' }, { id: 'database', type: 'text' }, { id: 'username', type: 'text' }, { id: 'password', type: 'concealed' }], secret: 'password' },
+  license: { fields: [{ id: 'license_key', type: 'concealed' }, { id: 'licensed_to', type: 'text' }, { id: 'email', type: 'email' }, { id: 'purchased', type: 'date' }, { id: 'expires', type: 'date' }], secret: 'license_key' },
+  note: { fields: [], secret: null }
+}
+const hidden = (f) => f.type === 'concealed' || f.type === 'otp'
+const masked = (fields) => fields.map((f) => (hidden(f) && f.value ? { ...f, value: '********' } : f))
 const vault = [
-  item('22'.repeat(32), 'r1', { title: 'Smoke note', type: 'note', body: 'hello' }),
-  item('24'.repeat(32), 'r3', { title: 'Smoke login', type: 'login', tags: ['work'], username: 'panda', secret: '********', url: 'https://example.com' }),
+  item('22'.repeat(32), 'r1', { title: 'Smoke note', type: 'note', notes: 'hello' }),
+  item('24'.repeat(32), 'r3', {
+    title: 'Smoke login',
+    type: 'login',
+    tags: ['work'],
+    fields: [fld('username', 'text', 'panda'), fld('password', 'concealed', '********'), fld('url', 'url', 'https://example.com'), fld('otp', 'otp', '********')],
+    files: ['23'.repeat(32)]
+  }),
   // Agents and the CLI may write a tag twice; the daemon keeps it as given.
-  item('27'.repeat(32), 'r1', { title: 'Tagged twice', type: 'note', tags: ['team', 'team'], updatedAt: Date.now() - 60_000 })
+  item('27'.repeat(32), 'r1', { title: 'Tagged twice', type: 'note', tags: ['team', 'team'], updatedAt: Date.now() - 60_000 }),
+  item('29'.repeat(32), 'r1', { title: 'Agent ID smoke', type: 'key', tags: ['dmsg-agent'], fields: [fld('key', 'concealed', '********')], updatedAt: Date.now() - 120_000 })
 ]
-let conflicts = [{ ...item('22'.repeat(32), 'r9', { title: 'Smoke note', type: 'note', body: 'hello\nfrom the laptop' }), conflict: true }]
+let conflicts = [
+  {
+    copy: { ...item('22'.repeat(32), 'r9', { title: 'Smoke note', type: 'note', notes: 'hello\nfrom the laptop' }), conflict: true },
+    head: vault[0],
+    hidden: []
+  }
+]
 const trash = []
+/** Items `vault/create` added, for their IDs. */
+let vaultCreated = 0
+/** Apply `vault/create` or `vault/edit` changes as the daemon does: a field named by an ID it has keeps what the change leaves out. */
+function applyChanges(target, changes) {
+  for (const key of ['title', 'notes', 'tags', 'favorite', 'files']) if (key in changes) target[key] = changes[key]
+  if (changes.add_tags) target.tags = [...new Set([...target.tags, ...changes.add_tags])]
+  if (changes.remove_tags) target.tags = target.tags.filter((t) => !changes.remove_tags.includes(t))
+  if (changes.fields)
+    target.fields = changes.fields.map((c, i) => {
+      const old = target.fields.find((f) => f.id === c.id) ?? fld(c.id ?? `f${i}`, c.type ?? 'text', '')
+      return { ...old, ...c, id: c.id ?? old.id, value: 'value' in c ? c.value : old.value }
+    })
+  target.fields = masked(target.fields)
+  target.updatedAt = Date.now()
+}
 /** The file library: files of the root folder, as `files/list` and `files/show` give them. */
 const libraryFile = (id, name, size, status = 'local') => ({
   id,
@@ -290,28 +337,88 @@ const methods = {
     return { url: 'https://dmsg.net/_/login#smoke', expires_at: Date.now() + 600_000 }
   },
   'session/login_result': () => ({ ...loginResult, status: status() }),
+  'vault/templates': () => ({ types: Object.keys(TEMPLATES), templates: TEMPLATES }),
   'vault/show': (p) => {
-    const entry = vault.find((e) => e.id === p.id)
-    return p.reveal ? { ...entry, item: { ...entry.item, secret: SECRET } } : entry
+    const entry = vault.find((e) => e.id === p.id) ?? trash.find((e) => e.id === p.id)
+    const shown = p.revision && p.revision !== entry.revision ? { ...entry, revision: p.revision, item: { ...entry.item, title: `${entry.item.title} (old)` } } : entry
+    return p.reveal ? { ...shown, item: { ...shown.item, fields: shown.item.fields.map((f) => (hidden(f) ? { ...f, value: SECRET } : f)) } } : shown
   },
-  'vault/put': (p) => {
-    const entry = item('25'.repeat(32), 'r5', { ...p.item, secret: p.item.secret ? '********' : '' })
+  'vault/reveal': (p) => {
+    const entry = vault.find((e) => e.id === p.id)
+    const field = entry.item.fields.find((f) => f.id === (p.field ?? TEMPLATES[entry.item.type].secret))
+    return { field: field.id, type: field.type, value: field.type === 'otp' ? 'otpauth://totp/x?secret=JBSWY3DPEHPK3PXP' : SECRET }
+  },
+  'vault/otp': (p) => ({ field: p.field ?? 'otp', code: '123456', period_ms: 30_000, remaining_ms: 20_000 }),
+  'vault/history': (p) => {
+    const entry = vault.find((e) => e.id === p.id)
+    return [
+      { revision: entry.revision, parent: 'r0', at: Date.now(), device: '11'.repeat(32), deleted: false, conflict: false, synced: true, current: true },
+      { revision: 'r0', parent: null, at: Date.now() - 86_400_000, device: '12'.repeat(32), deleted: false, conflict: false, synced: true, current: false }
+    ]
+  },
+  'vault/revert': (p) => {
+    const entry = vault.find((e) => e.id === p.id)
+    entry.revision = `${entry.revision}+`
+    return entry
+  },
+  'vault/health': () => [{ id: '24'.repeat(32), field: 'password', issue: 'weak' }],
+  'vault/create': (p) => {
+    const entry = item(`c${vaultCreated++}`.repeat(32), 'r5', { type: p.type, fields: TEMPLATES[p.type].fields.map((f) => fld(f.id, f.type, '')) })
+    applyChanges(entry.item, p.changes)
     vault.push(entry)
     return entry
   },
   'vault/edit': (p) => {
     const entry = vault.find((e) => e.id === p.id)
-    assert.equal(p.base, entry.revision)
-    Object.assign(entry.item, p.changes, p.changes.secret ? { secret: '********' } : {})
+    if (p.base) assert.equal(p.base, entry.revision)
+    applyChanges(entry.item, p.changes)
     entry.revision = `${entry.revision}+`
     return entry
   },
-  'vault/delete': (p) => {
-    const at = vault.findIndex((e) => e.id === p.id)
-    const [entry] = vault.splice(at, 1)
-    trash.push({ ...entry, deleted: true })
+  'vault/duplicate': (p) => {
+    const source = vault.find((e) => e.id === p.id)
+    const entry = item('26'.repeat(32), 'r1', { ...structuredClone(source.item), title: p.title })
+    vault.push(entry)
     return entry
   },
+  'vault/tags': (p) => p.ids.map((id) => {
+    const entry = vault.find((e) => e.id === id)
+    applyChanges(entry.item, { add_tags: p.add, remove_tags: p.remove })
+    return entry
+  }),
+  'vault/delete': (p) =>
+    (p.ids ?? [p.id]).map((id) => {
+      const at = vault.findIndex((e) => e.id === id)
+      const [entry] = vault.splice(at, 1)
+      trash.push({ ...entry, deleted: true, at: Date.now() })
+      return entry
+    }),
+  'vault/restore': (p) => {
+    const at = trash.findIndex((e) => e.id === p.id)
+    const [entry] = trash.splice(at, 1)
+    vault.push({ ...entry, deleted: false })
+    return entry
+  },
+  'vault/import_preview': () => ({
+    format: 'csv',
+    digest: 'd1',
+    skipped: 1,
+    items: [
+      { index: 0, type: 'login', title: 'Imported mail', username: 'mira', url: 'https://mail.example', tags: [], fields: 3, duplicate: false },
+      { index: 1, type: 'login', title: 'Smoke login', username: 'panda', url: 'https://example.com', tags: [], fields: 3, duplicate: true }
+    ]
+  }),
+  'vault/import': (p) => {
+    assert.equal(p.digest, 'd1')
+    const ids = p.picks.map((i) => {
+      const entry = item(`3${i}`.repeat(32), 'r1', { title: i === 0 ? 'Imported mail' : 'Smoke login', type: 'login', fields: [fld('username', 'text', 'mira')] })
+      vault.push(entry)
+      return entry.id
+    })
+    return { ids }
+  },
+  'vault/otp_scan': () => ({ uri: 'otpauth://totp/dMsg:smoke?secret=JBSWY3DPEHPK3PXP' }),
+  'vault/ssh_keygen': () => ({ private_key: '-----BEGIN OPENSSH PRIVATE KEY-----\nb3Bl\n-----END OPENSSH PRIVATE KEY-----\n', public_key: 'ssh-ed25519 AAAA smoke', fingerprint: 'SHA256:smoke' }),
   'files/tree': () => libraryFolders,
   'files/list': (p) => (p?.trash ? { folder: null, folders: [], files: libraryTrash } : { folder: null, folders: libraryFolders, files: library }),
   'files/search': () => library,
@@ -707,10 +814,15 @@ const methods = {
 }
 /** The events a method's success announces before its reply, as the daemon's `events_of` names them. */
 const announced = {
-  'vault/put': ['vault/changed'],
+  'vault/create': ['vault/changed'],
   'vault/edit': ['vault/changed'],
+  'vault/duplicate': ['vault/changed'],
   'vault/delete': ['vault/changed'],
+  'vault/restore': ['vault/changed'],
+  'vault/tags': ['vault/changed'],
+  'vault/revert': ['vault/changed'],
   'vault/resolve': ['vault/changed'],
+  'vault/import': ['vault/changed'],
   'sync/run': ['sync/changed', 'vault/changed'],
   'files/import': ['files/changed'],
   'files/restore': ['files/changed'],
@@ -825,6 +937,7 @@ await mkdir(picks, { recursive: true })
 await writeFile(join(picks, 'action.cbor'), 'prepared action')
 await writeFile(join(picks, 'bundle.json'), JSON.stringify({ format: 'dmsg-attestation/1' }))
 await writeFile(join(picks, 'release.tar'), 'release bytes')
+await writeFile(join(picks, 'export.csv'), 'name,url,username,password')
 await mkdir(join(picks, 'develop'))
 await writeFile(join(picks, 'develop', 'deploy.pem'), 'pem bytes')
 await writeFile(join(picks, 'develop', 'notes.txt'), 'notes')
@@ -836,6 +949,11 @@ await app.evaluate(({ dialog, clipboard, Notification, shell }) => {
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [globalThis.__open.shift()] })
   dialog.showSaveDialog = async () => ({ canceled: false, filePath: globalThis.__save.shift() })
   clipboard.writeText = async (text) => void (globalThis.__clip = text)
+  // A secret is copied with markers that keep it out of clipboard histories.
+  clipboard.write = async (items) => {
+    globalThis.__clipTypes = items[0].types
+    globalThis.__clip = await (await items[0].getType('text/plain')).text()
+  }
   clipboard.readText = async () => globalThis.__clip
   clipboard.clear = () => void (globalThis.__clip = '')
   Notification.prototype.show = function () {
@@ -1160,18 +1278,22 @@ try {
   )
   await assert.rejects(main.evaluate(() => window.dmsg.openLegacy('https://evil.example/legacy#pair=x')), /INVALID_INPUT/)
 
-  // Vault: a secret is shown or copied only on a second click, and the copy
-  // goes from the daemon to the clipboard through the main process; an edit
-  // names the version it replaces; a new item comes from its dialog; a
-  // conflict copy is adopted from the side-by-side dialog.
+  // Vault: a hidden field is shown or copied only on a second click, and
+  // the copy goes from the daemon to the clipboard through the main process,
+  // marked to stay out of clipboard histories; a one-time password shows its
+  // code. An edit keeps the hidden values it never loaded and names the
+  // version it replaces; a new item comes from its dialog with its type's
+  // fields, a multi-line key keeping its lines; history restores a version;
+  // dMsg's own keys are read-only; the security check, an import and the
+  // actions on many items; a conflict copy is merged part by part.
   await main.click('nav >> text=/Vault|秘密库/')
   // An item that carries a tag twice opens like any other.
   await main.click('[data-testid="vault-list"] >> text=Tagged twice')
   await main.waitForSelector('[data-testid="vault-item-title"] >> text=Tagged twice')
   assert.equal(await main.locator('[data-testid="vault-inspector"] header span', { hasText: /^#team$/ }).count(), 2)
   await main.click('[data-testid="vault-list"] >> text=Smoke login')
-  await main.waitForSelector('[data-testid="vault-secret"][data-shown="false"]')
-  const revealed = () => calls.filter((c) => c.method === 'vault/show' && c.params.reveal).length
+  await main.waitForSelector('[data-testid="vault-secret"][data-field="password"][data-shown="false"]')
+  const revealed = () => calls.filter((c) => c.method === 'vault/reveal').length
   await main.click('[data-testid="reveal-secret"]')
   await main.waitForSelector('[data-testid="reveal-secret"][data-armed="true"]')
   assert.equal(revealed(), 0)
@@ -1182,41 +1304,115 @@ try {
   await main.click('[data-testid="copy-secret"]')
   await main.waitForSelector('[data-testid="secret-copied"]')
   assert.equal(await app.evaluate(() => globalThis.__clip), SECRET)
+  if (process.platform === 'darwin')
+    assert.ok((await app.evaluate(() => globalThis.__clipTypes)).some((type) => type.includes('org.nspasteboard.ConcealedType')))
   assert.equal(revealed(), 2)
+  await main.waitForSelector('[data-testid="vault-otp-code"] >> text=123 456')
+  await main.waitForSelector('[data-testid="vault-issue"]')
+  await main.waitForSelector('[data-testid="vault-attachments"] >> text=report.pdf')
   await main.screenshot({ path: join(shots, 'vault.png') })
   await main.click('[data-testid="vault-edit-open"]')
-  await main.fill('[data-testid="vault-edit"] input >> nth=0', 'Smoke login 2')
+  await main.fill('[data-testid="vault-form"] [data-testid="vault-title"]', 'Smoke login 2')
   await main.click('[data-testid="vault-save"]')
   await waitFor(() => latest('vault/edit'))
   assert.deepEqual(latest('vault/edit').params, {
     id: '24'.repeat(32),
     base: 'r3',
-    changes: { title: 'Smoke login 2', tags: ['work'], body: '', username: 'panda', url: 'https://example.com' }
+    changes: {
+      title: 'Smoke login 2',
+      tags: ['work'],
+      notes: '',
+      files: ['23'.repeat(32)],
+      fields: [
+        { id: 'username', type: 'text', label: '', section: '', value: 'panda' },
+        { id: 'password', type: 'concealed', label: '', section: '' },
+        { id: 'url', type: 'url', label: '', section: '', value: 'https://example.com' },
+        { id: 'otp', type: 'otp', label: '', section: '' }
+      ]
+    }
   })
+  await main.waitForSelector('[data-testid="vault-item-title"] >> text=Smoke login 2')
+  // History opens below the item; an earlier version becomes current again.
+  await main.click('[data-testid="vault-revision"]')
+  await main.click('[data-testid="vault-version"] >> nth=1')
+  await main.waitForSelector('[data-testid="vault-version-detail"] >> text=(old)')
+  await main.click('[data-testid="vault-revert"]')
+  await waitFor(() => latest('vault/revert'))
+  assert.deepEqual(latest('vault/revert').params, { id: '24'.repeat(32), revision: 'r0' })
+  // dMsg's own key reads, and offers nothing to change.
+  await main.click('[data-testid="vault-list"] >> text=Agent ID smoke')
+  await main.waitForSelector('[data-testid="vault-managed"]')
+  assert.equal(await main.locator('[data-testid="vault-edit-open"]').count(), 0)
+  // The security check lists what it flags.
+  await main.click('[data-testid="vault-scope-health"]')
+  await main.waitForSelector('[data-testid="vault-list"] >> text=Smoke login 2')
+  assert.equal(await main.locator('[data-testid="vault-list"] li').count(), 1)
+  await main.click('[data-testid="vault-scope-all"]')
   await main.keyboard.press(`${mod}+n`)
   await main.waitForSelector('[data-testid="vault-new-dialog"]')
   await main.click('[data-testid="vault-type-login"]')
-  await main.fill('[data-testid="vault-title"]', 'New login')
-  await main.fill('[data-testid="vault-new-secret"]', 'new-secret')
+  await main.fill('[data-testid="vault-new-dialog"] [data-testid="vault-title"]', 'New login')
+  await main.fill('[data-testid="field-password"]', 'new-secret')
   await settled(main, '[data-testid="vault-new-dialog"]')
   await main.screenshot({ path: join(shots, 'vault-new.png') })
   // The button clicked turns a ring while its call is under way.
-  const release = hold('vault/put')
+  const release = hold('vault/create')
   await main.click('[data-testid="vault-add"]')
   await main.waitForSelector('[data-testid="vault-add"][data-pending]')
   await main.locator('[data-testid="vault-new-dialog"]').screenshot({ path: join(shots, 'vault-new-pending.png') })
   await release()
-  await waitFor(() => latest('vault/put'))
-  assert.equal(latest('vault/put').params.item.type, 'login')
-  assert.equal(latest('vault/put').params.item.secret, 'new-secret')
+  await waitFor(() => latest('vault/create'))
+  assert.equal(latest('vault/create').params.type, 'login')
+  assert.deepEqual(
+    latest('vault/create').params.changes.fields.find((f) => f.id === 'password'),
+    { id: 'password', type: 'concealed', label: '', section: '', value: 'new-secret' }
+  )
   await main.waitForSelector('[data-testid="vault-item-title"] >> text=New login')
+  // A key pasted over several lines keeps every line.
+  const pem = '-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIA\n-----END PRIVATE KEY-----'
+  await main.keyboard.press(`${mod}+n`)
+  await main.click('[data-testid="vault-type-key"]')
+  await main.fill('[data-testid="vault-new-dialog"] [data-testid="vault-title"]', 'Deploy key')
+  await main.fill('[data-testid="field-key"]', pem)
+  await main.click('[data-testid="vault-add"]')
+  await waitFor(() => latest('vault/create')?.params.type === 'key')
+  assert.equal(latest('vault/create').params.changes.fields[0].value, pem)
+  await main.waitForSelector('[data-testid="vault-new-dialog"]', { state: 'detached' })
+  // Closing a new item with something typed asks first.
+  await main.keyboard.press(`${mod}+n`)
+  await main.fill('[data-testid="vault-new-dialog"] [data-testid="vault-title"]', 'Half typed')
+  await main.keyboard.press('Escape')
+  await main.waitForSelector('[data-testid="vault-new-leave"]')
+  await main.click('[data-testid="vault-new-discard"]')
+  await main.waitForSelector('[data-testid="vault-new-dialog"]', { state: 'detached' })
+  // An import reads the export the person picked and adds the ticked items.
+  await main.click('[data-testid="vault-import-open"]')
+  await answer('__open', join(picks, 'export.csv'))
+  await main.click('[data-testid="vault-import-choose"]')
+  await main.waitForSelector('[data-testid="vault-import-items"] >> text=Imported mail')
+  assert.equal(await main.locator('[data-testid="vault-import-tick"][data-state="checked"]').count(), 1)
+  await main.click('[data-testid="vault-import-add"]')
+  await waitFor(() => latest('vault/import'))
+  assert.deepEqual(latest('vault/import').params, { path: join(picks, 'export.csv'), digest: 'd1', picks: [0] })
+  // Many items at once: a tag for two of them.
+  await main.click('[data-testid="vault-choose"]')
+  await main.click('[data-testid="vault-list"] >> text=Smoke note')
+  await main.click('[data-testid="vault-list"] >> text=New login')
+  await main.click('[data-testid="vault-batch-tag"]')
+  await main.fill('[data-testid="vault-batch-tags-input"] input', 'shared')
+  await main.press('[data-testid="vault-batch-tags-input"] input', 'Enter')
+  await main.click('[data-testid="vault-batch-tags-save"]')
+  await waitFor(() => latest('vault/tags'))
+  assert.deepEqual(latest('vault/tags').params, { ids: ['22'.repeat(32), 'c0'.repeat(32)], add: ['shared'] })
+  await main.click('[data-testid="vault-choose"]')
   await main.click('[data-testid="vault-conflicts-review"]')
   await main.waitForSelector('[data-testid="conflict-dialog"] >> text=from the laptop')
   await settled(main, '[data-testid="conflict-dialog"]')
   await main.screenshot({ path: join(shots, 'vault-conflict.png') })
-  await main.click('[data-testid="conflict-use"]')
+  await main.click('[data-testid="conflict-pick-theirs"][data-part="notes"]')
+  await main.click('[data-testid="conflict-merge"]')
   await waitFor(() => latest('vault/resolve'))
-  assert.deepEqual(latest('vault/resolve').params, { key: `${'22'.repeat(32)}:r9`, keep: 'theirs' })
+  assert.deepEqual(latest('vault/resolve').params, { key: `${'22'.repeat(32)}:r9`, keep: 'merge', picks: { notes: 'theirs' } })
   await main.waitForSelector('[data-testid="conflict-dialog"]', { state: 'detached' })
 
   // The palette finds an item by its title.

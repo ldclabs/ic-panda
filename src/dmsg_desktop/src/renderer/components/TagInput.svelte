@@ -5,17 +5,18 @@
 
   /**
    * Tags as chips: Enter, a comma or leaving the field adds what was typed,
-   * Backspace in an empty field takes the last one off. Duplicates and
-   * blanks are dropped; an item may already carry a tag twice, so chips go
+   * Backspace in an empty field takes the last one off. Duplicates,
+   * blanks and tags longer than `maxLength` are dropped; an item may already carry a tag twice, so chips go
    * by position.
    */
   let {
     tags = $bindable<string[]>([]),
     placeholder = '',
     max = 20,
+    maxLength,
     testid,
     class: className
-  }: { tags?: string[]; placeholder?: string; max?: number; testid?: string; class?: string } = $props()
+  }: { tags?: string[]; placeholder?: string; max?: number; maxLength?: number; testid?: string; class?: string } = $props()
 
   let text = $state('')
   let input = $state<HTMLInputElement | null>(null)
@@ -25,7 +26,7 @@
       text
         .split(',')
         .map((tag) => tag.trim())
-        .filter((tag) => tag && !tags.includes(tag))
+        .filter((tag) => tag && !tags.includes(tag) && (!maxLength || [...tag].length <= maxLength))
     )
     if (added.size) tags = [...tags, ...added].slice(0, max)
     text = ''
@@ -73,6 +74,7 @@
     class="h-6 min-w-24 flex-1 border-0 bg-transparent px-1 py-0 text-[13px] shadow-none focus-visible:shadow-none focus-visible:ring-0"
     placeholder={tags.length ? '' : placeholder}
     disabled={tags.length >= max}
+    maxlength={maxLength}
     onkeydown={onKey}
     onblur={commit}
   />

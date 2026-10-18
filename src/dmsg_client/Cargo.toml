@@ -35,19 +35,23 @@ ic-agent.workspace = true
 icrc-ledger-types.workspace = true
 ic-vetkeys.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
+rqrr.workspace = true
 reqwest = { workspace = true, features = ["rustls", "json"] }
 rusqlite = { workspace = true, features = ["bundled"] }
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
 serde_json.workspace = true
+sha1.workspace = true
 sha2.workspace = true
 sha3.workspace = true
 url.workspace = true
 zeroize.workspace = true
+zip.workspace = true
 
 [features]
 # Offline unlocked clients for the tests of crates built on this one.
 testing = []
 
 [dev-dependencies]
+qrcode = { version = "0.14", default-features = false }
 tokio = { workspace = true }

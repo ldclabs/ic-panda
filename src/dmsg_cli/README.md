@@ -211,10 +211,13 @@ dmsg legacy shared view <key|record.json> | commit <key> | activate <key> | join
 dmsg legacy shared claim-request <key|record.json> --member P | claim <key|record.json> --request <request.json> --approval <approval.json>
 dmsg legacy shared grant <key> --archive <id> --member P | receive <key> --grant <id>
 dmsg device list | pair-request [--member] | approve <request> --device <id>
-dmsg vault add --title T [--type note|login|api|key] [--body B] [--username U] [--url L] [--tag T]... [--secret-stdin]
-dmsg vault edit <id> [--title T] [--body B] [--username U] [--url L] [--tag T]... [--secret-stdin]
-dmsg vault rm <id> | restore <id> | list [--trash] | search <text> | show <id> [--reveal]
-dmsg vault conflicts | resolve <id:revision> [--keep-current]
+dmsg vault add --title T [--type login|api|key|ssh|wallet|card|identity|server|database|license|note] [--generate]
+                [--notes N] [--username U] [--url L] [--tag T]... [--field [TYPE:]LABEL=VALUE]... [--otp URI] [--secret-stdin]
+dmsg vault edit <id> [--title T] [--notes N] [--username U] [--url L] [--tag T]... [--clear-tags] [--favorite|--no-favorite]
+                [--field [TYPE:]LABEL=VALUE]... [--rm-field ID|LABEL]... [--otp URI] [--secret-stdin]
+dmsg vault rm <id>... | restore <id> | duplicate <id> [--title T] | list [--trash] | search <text>
+dmsg vault show <id> [--reveal] [--revision R] | history <id> | revert <id> <revision> | otp <id> [--field F]
+dmsg vault conflicts | resolve <id:revision> [--keep-current] | import <export> [--yes [--all]] | health
 dmsg files ls [folder] [--trash] | tree | show <id> | search <text>
 dmsg files add <path>... [--to <folder>] [--keep-both] | mkdir <path> | mv <id>... <folder> | rename <id> <name>
 dmsg files tag <id> +t|-t... | note <id> [text] | star <id> [--off]
@@ -279,8 +282,29 @@ daemon runs.
 A new device: `login`, then `account create` for a new account, or
 `device pair-request` and, on an administrator device,
 `device approve <request> --device <id>`, which also rotates the content root
-to the new device; `unlock` on the new device then binds it. Secrets leave the
-daemon only with `vault show --reveal`; file keys never do.
+to the new device; `unlock` on the new device then binds it. Hidden values
+leave the daemon only with `vault show --reveal` (the desktop asks for one
+field at a time); file keys never do.
+
+Vault items. An item has a type, a title, tags, notes, attached library files
+and an ordered list of fields; a new item starts with its type's fields
+(a login's user name, password and website, a card's holder, number, expiry,
+security code and PIN, and so on), and `--field` adds others: text, url,
+email, phone, date (`YYYY-MM-DD`), month (`YYYY-MM`) or concealed. Concealed
+fields and one-time passwords (`--otp`, an `otpauth://totp/…` URI or a base32
+key; `vault otp` prints the current code) are hidden. `--secret-stdin` sets
+the type's main secret and keeps every line, so a PEM or SSH key survives;
+`--type ssh --generate` makes a new Ed25519 key, and a pasted OpenSSH private
+key fills in its public key and fingerprint. Items tagged `dmsg-` are dMsg's
+own keys (Agent IDs, Agent Delegation controllers): nothing edits, duplicates
+or trashes them. `history` lists every version and `revert` makes an earlier
+one current again as a new version. `import` reads a 1Password (`.1pux`,
+CSV), Bitwarden (unencrypted JSON, CSV), Chrome, Firefox or Safari export on
+this device and shows what it holds; `--yes` adds the items not already here
+(same title, user name and website), `--all` those too. Delete the export
+afterwards: it holds every secret in plain text. `health` lists weak and
+reused passwords, addresses without TLS and expiry dates passed or within 30
+days, by item and field, never by value.
 
 Accounts. Each account keeps its own workspace on this device, with its own
 device keys: a login selects the workspace of the account it is bound to, or
@@ -310,7 +334,7 @@ Unlocking through a login opens the root and syncs once. Every write waits
 for `dmsg sync` or the scheduled sync; `status` shows pending versions and
 conflict copies. An edit that lost a race is kept as a conflict copy on every
 device; `vault resolve` adopts it, or keeps the current version with
-`--keep-current`. An item in the trash takes only `vault restore` (or
+`--keep-current` (the desktop also merges them part by part). An item in the trash takes only `vault restore` (or
 adopting a copy) back. `profile publish` publishes exactly the fields given and keeps the avatar;
 `profile avatar` publishes an image (PNG, JPEG or WebP, at most 512 KiB) as
 the public avatar, which the relay serves to anyone unencrypted, and keeps the

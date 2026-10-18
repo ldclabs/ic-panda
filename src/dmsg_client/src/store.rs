@@ -912,6 +912,14 @@ impl Store {
         )
     }
 
+    /// Every stored version of one item, oldest first.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn versions(&self, item: &str) -> Result<Vec<ObjectRow>> {
+        self.select("item = ?1", item)
+    }
+
     /// How many [`Self::conflicts`] there are.
     ///
     /// # Errors

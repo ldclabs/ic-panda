@@ -56,7 +56,6 @@ use dmsg_client::{
     login::{DEFAULT_TTL_MS, LoginSession},
     now_ms,
     profile::ProfileFields,
-    vault::{Filter, Item, VaultEntry},
 };
 use dmsg_types::{Error, Result, user::ControllerRole};
 use futures_util::{SinkExt, StreamExt};
@@ -87,7 +86,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 54] = [
+const METHODS: [&str; 46] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -100,14 +99,6 @@ const METHODS: [&str; 54] = [
     "account/show",
     "device/pair_request",
     "device/approve",
-    "vault/put",
-    "vault/edit",
-    "vault/delete",
-    "vault/restore",
-    "vault/list",
-    "vault/show",
-    "vault/conflicts",
-    "vault/resolve",
     "sync/run",
     "sync/status",
     "profile/show",
@@ -158,11 +149,12 @@ enum Module {
     Files,
     Mount,
     Wallet,
+    Vault,
 }
 
 /// The module that serves `method`; `None` for an unknown method.
 fn route(method: &str) -> Option<Module> {
-    let modules: [(Module, &[&str]); 10] = [
+    let modules: [(Module, &[&str]); 11] = [
         (Module::Daemon, &METHODS),
         (Module::More, &crate::methods::METHODS),
         (Module::Account, &crate::account_methods::METHODS),
@@ -173,6 +165,7 @@ fn route(method: &str) -> Option<Module> {
         (Module::Files, &crate::files_methods::METHODS),
         (Module::Mount, &crate::mount::METHODS),
         (Module::Wallet, &crate::wallet_methods::METHODS),
+        (Module::Vault, &crate::vault_methods::METHODS),
     ];
     modules
         .into_iter()
@@ -797,6 +790,7 @@ impl Daemon {
             Module::Files => self.call_files(method, params).await,
             Module::Mount => self.call_mount(method, params).await,
             Module::Wallet => self.call_wallet(method, params).await,
+            Module::Vault => self.call_vault(method, params).await,
             // An agent's credential reaches these, never the owner's.
             Module::Agent => Err(Error::Forbidden),
         }
@@ -804,7 +798,6 @@ impl Daemon {
 
     /// Run one of [`METHODS`].
     async fn call_daemon(&self, method: &str, params: &Value) -> Result<Value> {
-        let reveal = params["reveal"].as_bool().unwrap_or(false);
         match method {
             "session/status" => self.status().await,
             "session/login" => self.start_login(params).await,
@@ -911,68 +904,6 @@ impl Daemon {
                 Ok(
                     json!({"device_id": hex::encode(*request.device.device_id), "root_generation": generation}),
                 )
-            }
-            "vault/put" => {
-                let item: Item = parse(params, "item")?;
-                let entry = self.client.lock().await.vault_put(
-                    params["id"].as_str(),
-                    params["base"].as_str(),
-                    &item,
-                )?;
-                Ok(to_json(&entry.masked(false)))
-            }
-            "vault/edit" => {
-                let id = text(params, "id")?;
-                let mut client = self.client.lock().await;
-                let mut item = client.vault_show(&id)?.item;
-                edit(&mut item, &params["changes"])?;
-                let entry = client.vault_put(Some(&id), params["base"].as_str(), &item)?;
-                Ok(to_json(&entry.masked(false)))
-            }
-            "vault/delete" => {
-                let entry = self
-                    .client
-                    .lock()
-                    .await
-                    .vault_delete(&text(params, "id")?)?;
-                Ok(to_json(&entry.masked(false)))
-            }
-            "vault/restore" => {
-                let entry = self
-                    .client
-                    .lock()
-                    .await
-                    .vault_restore(&text(params, "id")?)?;
-                Ok(to_json(&entry.masked(false)))
-            }
-            "vault/list" => {
-                let filter = Filter {
-                    trash: params["trash"].as_bool().unwrap_or(false),
-                    query: params["query"].as_str().map(str::to_string),
-                };
-                let entries = self.client.lock().await.vault_list(&filter)?;
-                Ok(masked_all(entries))
-            }
-            "vault/show" => {
-                let entry = self.client.lock().await.vault_show(&text(params, "id")?)?;
-                Ok(to_json(&entry.masked(reveal)))
-            }
-            "vault/conflicts" => {
-                let entries = self.client.lock().await.vault_conflicts()?;
-                Ok(masked_all(entries))
-            }
-            "vault/resolve" => {
-                let keep = match params["keep"].as_str() {
-                    Some("current") => true,
-                    Some("theirs") => false,
-                    _ => return Err(Error::InvalidInput("keep: current or theirs".into())),
-                };
-                let entry = self
-                    .client
-                    .lock()
-                    .await
-                    .vault_resolve(&text(params, "key")?, keep)?;
-                Ok(to_json(&entry.masked(false)))
             }
             "sync/run" => {
                 let report = self.client.lock().await.sync().await?;
@@ -1265,9 +1196,6 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
         Module::Daemon => match method {
             "session/switch" | "session/unlock" | "session/lock" | "workspace/reset"
             | "account/create" => &["session/changed", "approval/changed"],
-            "vault/put" | "vault/edit" | "vault/delete" | "vault/restore" | "vault/resolve" => {
-                &["vault/changed"]
-            }
             "sync/run" => &["sync/changed", "vault/changed"],
             "approval/respond"
             | "approval/cancel"
@@ -1290,41 +1218,8 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
         Module::Files => crate::files_methods::events_of(method),
         Module::Mount => crate::mount::events_of(method),
         Module::Wallet => crate::wallet_methods::events_of(method),
+        Module::Vault => crate::vault_methods::events_of(method),
     }
-}
-
-/// Apply the fields present in `changes` to an item.
-fn edit(item: &mut Item, changes: &Value) -> Result<()> {
-    let changes = changes
-        .as_object()
-        .ok_or_else(|| Error::InvalidInput("changes".into()))?;
-    for (name, value) in changes {
-        let text = || {
-            value
-                .as_str()
-                .map(str::to_string)
-                .ok_or_else(|| Error::InvalidInput(name.clone()))
-        };
-        match name.as_str() {
-            "title" => item.title = text()?,
-            "body" => item.body = text()?,
-            "username" => item.username = text()?,
-            "secret" => item.secret = text()?,
-            "url" => item.url = text()?,
-            "favorite" => {
-                item.favorite = value
-                    .as_bool()
-                    .ok_or_else(|| Error::InvalidInput(name.clone()))?
-            }
-            "tags" => {
-                item.tags = serde_json::from_value(value.clone())
-                    .map_err(|_| Error::InvalidInput(name.clone()))?
-            }
-            _ => return Err(Error::InvalidInput(name.clone())),
-        }
-    }
-    item.updated_at = now_ms();
-    Ok(())
 }
 
 /// The bearer credential of a request without an `Origin`: web pages
@@ -1350,15 +1245,6 @@ pub(crate) fn constant_time_eq(a: &str, b: &str) -> bool {
 }
 
 /// Entries as they leave the daemon: no secret, no file key.
-fn masked_all(entries: Vec<VaultEntry>) -> Value {
-    to_json(
-        &entries
-            .into_iter()
-            .map(|e| e.masked(false))
-            .collect::<Vec<_>>(),
-    )
-}
-
 async fn status(State(daemon): State<Arc<Daemon>>, headers: HeaderMap) -> Response {
     if !daemon.owner(&headers) {
         return StatusCode::UNAUTHORIZED.into_response();
@@ -1700,7 +1586,7 @@ mod tests {
 
     #[test]
     fn routes_methods_and_reads_announce_nothing() {
-        assert_eq!(route("vault/list"), Some(Module::Daemon));
+        assert_eq!(route("vault/list"), Some(Module::Vault));
         assert_eq!(route("channel/list"), Some(Module::More));
         assert_eq!(route("mcp/call"), Some(Module::Agent));
         assert_eq!(route("no/such"), None);
@@ -1715,6 +1601,7 @@ mod tests {
             &crate::files_methods::METHODS,
             &crate::mount::METHODS,
             &crate::wallet_methods::METHODS,
+            &crate::vault_methods::METHODS,
         ];
         let mut seen = std::collections::BTreeSet::new();
         for method in modules.into_iter().flatten() {
@@ -1724,7 +1611,12 @@ mod tests {
         for read in [
             "vault/list",
             "vault/show",
+            "vault/reveal",
+            "vault/history",
             "vault/conflicts",
+            "vault/otp",
+            "vault/health",
+            "vault/import_preview",
             "files/list",
             "files/search",
             "files/tags",
@@ -1733,7 +1625,7 @@ mod tests {
         ] {
             assert!(events_of(route(read).unwrap(), read).is_empty(), "{read}");
         }
-        assert_eq!(events_of(Module::Daemon, "vault/put"), ["vault/changed"]);
+        assert_eq!(events_of(Module::Vault, "vault/create"), ["vault/changed"]);
         // The windows show whether fast unlock is on from the session status.
         assert_eq!(
             events_of(Module::Daemon, "session/fast_unlock"),

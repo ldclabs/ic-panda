@@ -33,7 +33,8 @@ desktop is one of its clients, like the CLI.
   dark theme; `components/` is the kit the views compose: `ui.ts` (button
   and menu classes), Remix icons (`glyphs.ts`), and bits-ui checkboxes,
   radios, toggle groups, dropdowns, context menus, dialogs, tabs,
-  suggestions, collapsibles and toasts in place of native controls. Inter and the icons are bundled; their
+  suggestions, collapsibles and toasts in place of native controls. Inter, the icons and the EFF wordlist
+  of the password generator (loaded only for a passphrase) are bundled; their
   licenses ship in `public/licenses`. Motion stops when the system asks
   for reduced motion. The text is in `i18n/messages`, one catalog per
   language, each checked against the English one.
@@ -198,11 +199,21 @@ Rules (`src/main/policy.ts`):
   (`DESKTOP_TOOLS`) as a hosted Agent ID, in the connector session `gui`. The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for
   agents.
-- A vault secret is shown, or copied, only on a second click within three
-  seconds of the first; shown, it hides again after a minute. A copy goes
-  from the daemon to the clipboard through the main process, so the window
-  never holds it, and the clipboard is cleared after 30 seconds unless
-  something replaced it.
+- A vault item's hidden field is shown, or copied, only on a second click
+  within three seconds of the first (⌘⇧C, pressed twice, copies the main
+  secret); shown, it hides again after a minute. The window asks the daemon
+  for one field at a time (`vault/reveal`); an edit never loads a saved
+  hidden value, which stays unless the person changes or clears it. A copy
+  goes from the daemon to the clipboard through the main process, so the
+  window never holds it, marked to stay out of clipboard histories and the
+  universal clipboard (macOS `org.nspasteboard.ConcealedType` and
+  `TransientType`, Windows' history and cloud exclusions, KDE's password
+  hint), and leaves the clipboard after 30 seconds, or when dMsg locks or
+  quits, unless something replaced it. A one-time password copies as its
+  current code. Imports read only the export the person picked in the main
+  process's dialog, and QR codes only a picked image or the clipboard's;
+  items open their web addresses in the system browser, http and https
+  only. dMsg's own keys (tagged `dmsg-`) are read-only.
 - Revoking a device and changing its capabilities are approval requests.
 - Only a person's input in a window (a click, a key, a scroll) and a
   successful unlock are activity for the idle lock. The main process
@@ -297,10 +308,14 @@ and notifications instead of the system's. It covers:
   endpoint whose secret shows once, and a delivery notification without its
   content;
 - a web checkout that cannot be approved before it is quoted;
-- the vault: a secret shown and copied only on a second click, an edit that
-  names the version it replaces, a new login from its dialog, a conflict
-  copy adopted from the side-by-side dialog and an item found from the
-  palette;
+- the vault: a secret shown and copied only on a second click, with the
+  clipboard markers, a one-time code, an edit that keeps the hidden values
+  it never loaded and names the version it replaces, a version restored
+  from the history, dMsg's own key read-only, the security check's filter,
+  a new login from its dialog, a key pasted over several lines kept whole,
+  a new item closed with something typed asking first, an import, a tag
+  added to two items, a conflict copy merged part by part and an item found
+  from the palette;
 - the file library: a file added through the dialog, a file a page made
   refused, a backup cancelled from its card and a file moved to the trash
   from its row's menu;

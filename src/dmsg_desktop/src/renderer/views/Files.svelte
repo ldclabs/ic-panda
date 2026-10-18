@@ -23,6 +23,7 @@
   import Detail from './files/Detail.svelte'
   import { ancestorsOf, isSort, matchesFile, ordered, ROOT, sortKeys, statusOf, type Sort, type SortKey } from './files/files'
   import FolderDetail from './files/FolderDetail.svelte'
+  import { focus } from './files/focus.svelte'
   import FolderPicker from './files/FolderPicker.svelte'
   import GrantDialog from './files/GrantDialog.svelte'
   import Jobs from './files/Jobs.svelte'
@@ -176,6 +177,20 @@
     else if (next === 'trash') go('/files/trash')
     else if (route !== '/files') go('/files')
   }
+
+  // A vault item's attachment opens here: its folder, with the file selected.
+  $effect(() => {
+    const id = focus.id
+    if (!id || !loaded) return
+    focus.id = null
+    void call('files/show', { id })
+      .then((details: any) => {
+        pick(details.file.folder)
+        selected = [id]
+        anchor = id
+      })
+      .catch((e) => toast(() => errorText(e)))
+  })
 
   async function showDetails(id: string | null) {
     const next = id ? await call('files/show', { id }).catch(() => null) : null

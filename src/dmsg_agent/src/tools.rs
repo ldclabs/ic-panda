@@ -69,17 +69,18 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 32] = [
     ),
     (
         "dmsg_vault_read",
-        "One vault item; needs vault.read:<tag> for one of its tags. The secret field comes only with secret: true, which needs vault.secret:<id>.",
+        "One vault item: its type, title, tags, notes, fields (id, type, label, section, value) and attached file IDs; needs vault.read:<tag> for one of its tags. Concealed and one-time-password values read ******** unless secret: true, which needs vault.secret:<id> and adds the current one-time codes as codes.",
         true,
         r#"{"type":"object","required":["id"],"properties":{"id":{"type":"string"},"secret":{"type":"boolean"}}}"#,
     ),
     (
         "dmsg_vault_write",
-        "Add a vault item, or edit item id (fields left out keep their value). The item must keep a tag of a vault.write:<tag> grant. An edit replaces base, by default the current version; when another device moved past it, the edit is kept as a conflict copy for the owner. The item comes back only with vault.read:<tag> for one of its tags.",
+        "Add a vault item (type: login, api, key, ssh, wallet, card, identity, server, database, license or note; a new item starts with its type's fields), or edit item id. set changes fields by id or label, or adds them (type text, concealed, url, email, phone, date YYYY-MM-DD, month YYYY-MM or otp); remove takes fields off by id or label; what is left out stays. The item must keep a tag of a vault.write:<tag> grant. An edit replaces base, by default the current version; when another device moved past it, the edit is kept as a conflict copy for the owner. The item comes back only with vault.read:<tag> for one of its tags.",
         false,
         concat!(
-            r#"{"type":"object","properties":{"id":{"type":"string"},"base":{"type":"string"},"type":{"enum":["note","login","api","key"]},"title":{"type":"string"},"#,
-            r#""body":{"type":"string"},"username":{"type":"string"},"url":{"type":"string"},"secret":{"type":"string"},"tags":{"type":"array","items":{"type":"string"},"maxItems":20}}}"#
+            r#"{"type":"object","properties":{"id":{"type":"string"},"base":{"type":"string"},"type":{"enum":["login","api","key","ssh","wallet","card","identity","server","database","license","note"]},"title":{"type":"string"},"notes":{"type":"string"},"#,
+            r#""tags":{"type":"array","items":{"type":"string"},"maxItems":20},"set":{"type":"array","maxItems":64,"items":{"type":"object","properties":{"id":{"type":"string"},"label":{"type":"string"},"type":{"enum":["text","concealed","url","email","phone","date","month","otp"]},"section":{"type":"string"},"value":{"type":"string"}}}},"#,
+            r#""remove":{"type":"array","items":{"type":"string"}}}}"#
         ),
     ),
     (

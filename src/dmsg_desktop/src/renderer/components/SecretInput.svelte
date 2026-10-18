@@ -1,45 +1,55 @@
 <script lang="ts">
   import { t } from '../i18n/index.svelte'
+  import Generator from '../views/vault/Generator.svelte'
   import Icon from './Icon.svelte'
   import Tooltip from './Tooltip.svelte'
-  import { buttonClass } from './ui'
+  import { buttonClass, cn } from './ui'
 
   /**
-   * A field for a secret being typed: hidden until the eye is pressed, and
-   * with `generate`, a button that fills in a random 20-character one.
+   * A field for a secret being typed: dots until the eye is pressed. It
+   * keeps every line of what is typed or pasted, such as a PEM or SSH key
+   * or a recovery phrase (a single-line input would drop the line breaks);
+   * Enter adds a line only when `multiline`. With `generate`, the password
+   * generator fills it.
    */
   let {
     value = $bindable(''),
     placeholder = '',
     generate = false,
+    pin = false,
+    multiline = false,
     testid
-  }: { value?: string; placeholder?: string; generate?: boolean; testid?: string } = $props()
+  }: { value?: string; placeholder?: string; generate?: boolean; pin?: boolean; multiline?: boolean; testid?: string } = $props()
 
   let shown = $state(false)
+  const rows = $derived(Math.min(12, Math.max(multiline ? 3 : 1, value.split('\n').length)))
 
-  const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789-_.!@#%'
-
-  function fill() {
-    // 64 symbols, so a byte modulo 64 is uniform.
-    const bytes = crypto.getRandomValues(new Uint8Array(20))
-    value = Array.from(bytes, (byte) => ALPHABET[byte % ALPHABET.length]).join('')
-    shown = true
+  function onKey(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !multiline && !event.metaKey && !event.ctrlKey) event.preventDefault()
   }
 </script>
 
-<div class="relative flex items-center">
-  <input
-    type={shown ? 'text' : 'password'}
+<div class="relative flex items-start">
+  <textarea
     bind:value
     {placeholder}
+    {rows}
     autocomplete="off"
+    autocapitalize="off"
     spellcheck="false"
-    class="font-mono text-[12.5px] placeholder:font-sans placeholder:text-[13px] {generate ? 'pe-[104px]' : 'pe-9'}"
+    wrap={multiline ? 'off' : 'soft'}
+    class={cn(
+      'min-h-8 resize-none py-[5px] font-mono text-[12.5px] leading-[1.55] placeholder:font-sans placeholder:text-[13px]',
+      !shown && 'concealed',
+      generate ? 'pe-[112px]' : 'pe-9'
+    )}
+    onkeydown={onKey}
     data-testid={testid}
-  />
-  <div class="absolute end-1 flex items-center gap-0.5">
+    data-shown={shown}
+  ></textarea>
+  <div class="absolute end-1 top-1 flex items-center gap-0.5">
     {#if generate}
-      <button type="button" class={buttonClass('ghost', 'xs', 'text-forest')} onclick={fill}>{t('generate')}</button>
+      <Generator {pin} onUse={(secret) => ((value = secret), (shown = true))} testid={testid ? `${testid}-generate` : undefined} />
     {/if}
     <Tooltip content={shown ? t('hideSecret') : t('showTyped')}>
       {#snippet children(props)}
@@ -50,3 +60,10 @@
     </Tooltip>
   </div>
 </div>
+
+<style>
+  /* Dots over every line; the value itself keeps its line breaks. */
+  .concealed {
+    -webkit-text-security: disc;
+  }
+</style>

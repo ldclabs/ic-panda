@@ -21,10 +21,10 @@
 use crate::account::Security;
 use crate::client::Client;
 use crate::cloud::{Evidence, Presigned};
-use crate::codec::{canonical, decode, sha256};
+use crate::codec::{canonical, sha256};
 use crate::content::{
-    EncryptedObject, MAX_OBJECT, ManifestContent, Opened, VAULT, empty_file, object_container,
-    open_manifest, read_container, record, seal_manifest,
+    EncryptedObject, ManifestContent, Opened, VAULT, empty_file, object_container, open_manifest,
+    read_container, record, seal_manifest,
 };
 use crate::evidence::{Trust, under};
 use crate::files::{FileManifest, MAX_FILE, Source, read_file};
@@ -32,7 +32,6 @@ use crate::migration::MIGRATION_PART;
 use crate::now_ms;
 use crate::store::{BLOCKED, LOCAL, ObjectRow, REPLACED, SYNCED};
 use crate::upload::{ChunkRef, UploadPlan, hex_id, random_hex};
-use crate::vault::Item;
 use dmsg_types::{AccountId, Error, Hash, Result, ensure, user::VaultWriteState};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_bytes::ByteBuf;
@@ -1061,8 +1060,7 @@ impl Client {
             } else {
                 let payload = found.open(self.environment(), self.roots()?)?;
                 if found.kind == VAULT {
-                    let item: Item = decode(&payload, MAX_OBJECT)?;
-                    resolved.extend(item.resolved_conflicts.iter().flatten().cloned());
+                    resolved.extend(crate::vault::resolved_in(&payload));
                 }
                 if let Some(file) = &record_file(&found.kind, &payload)? {
                     let id = (file.id.clone(), file.version.clone());

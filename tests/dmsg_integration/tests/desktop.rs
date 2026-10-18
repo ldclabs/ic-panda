@@ -404,6 +404,16 @@ fn titles(device: &Desktop) -> Vec<String> {
         .collect()
 }
 
+/// The value of a vault entry's field `id`; null when it has none.
+fn field(entry: &Value, id: &str) -> Value {
+    entry["item"]["fields"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|f| f["id"] == id)
+        .map_or(Value::Null, |f| f["value"].clone())
+}
+
 /// Poll `check` every half second until it returns a value.
 type AppSocket = tungstenite::WebSocket<tungstenite::stream::MaybeTlsStream<std::net::TcpStream>>;
 
@@ -1344,14 +1354,14 @@ fn two_desktop_devices_share_an_account() {
             "add",
             "--title",
             "alpha",
-            "--body",
+            "--notes",
             "hello from A",
             "--secret-stdin",
         ],
         Some("s3cret\n"),
     );
     let item = entry["id"].as_str().unwrap().to_string();
-    assert_eq!(entry["item"]["secret"], "********");
+    assert_eq!(field(&entry, "secret"), "********");
     assert_eq!(a.run(&["status"])["pending_sync"], 1);
     assert_eq!(a.run(&["sync"])["sent"], 1);
     assert_eq!(a.run(&["status"])["pending_sync"], 0);
@@ -1390,13 +1400,13 @@ fn two_desktop_devices_share_an_account() {
     assert_eq!(b.run(&["sync"])["revisions"], 2);
     let shown = b.run(&["vault", "show", &item, "--reveal"]);
     assert_eq!(shown["item"]["title"], "alpha");
-    assert_eq!(shown["item"]["body"], "hello from A");
-    assert_eq!(shown["item"]["secret"], "s3cret");
+    assert_eq!(shown["item"]["notes"], "hello from A");
+    assert_eq!(field(&shown, "secret"), "s3cret");
     let devices = b.run(&["device", "list"]);
     assert_eq!(devices.as_array().unwrap().len(), 2);
 
     // B writes under the new root; A reads it after its own sync.
-    let reply = b.run(&["vault", "add", "--title", "beta", "--body", "hello from B"]);
+    let reply = b.run(&["vault", "add", "--title", "beta", "--notes", "hello from B"]);
     assert_eq!(b.run(&["sync"])["sent"], 1);
     a.run(&["sync"]);
     let listed = titles(a);
@@ -1407,7 +1417,7 @@ fn two_desktop_devices_share_an_account() {
             .all(|t| listed.contains(&t.to_string()))
     );
     assert_eq!(
-        a.run(&["vault", "show", reply["id"].as_str().unwrap()])["item"]["body"],
+        a.run(&["vault", "show", reply["id"].as_str().unwrap()])["item"]["notes"],
         "hello from B"
     );
 
@@ -1585,25 +1595,25 @@ fn desktop_content_and_sync() {
     let started = Instant::now();
 
     // AT06: concurrent edits leave a conflict copy on both devices.
-    let x = a.run(&["vault", "add", "--title", "shared", "--body", "v1"])["id"]
+    let x = a.run(&["vault", "add", "--title", "shared", "--notes", "v1"])["id"]
         .as_str()
         .unwrap()
         .to_string();
     assert_eq!(a.run(&["sync"])["sent"], 1);
     b.run(&["sync"]);
-    a.run(&["vault", "edit", &x, "--body", "from A"]);
-    b.run(&["vault", "edit", &x, "--body", "from B"]);
+    a.run(&["vault", "edit", &x, "--notes", "from A"]);
+    b.run(&["vault", "edit", &x, "--notes", "from B"]);
     assert_eq!(a.run(&["sync"])["sent"], 1);
     let report = b.run(&["sync"]);
     assert_eq!(
         (report["sent"].as_u64(), report["conflicts"].as_u64()),
         (Some(1), Some(1))
     );
-    assert_eq!(b.run(&["vault", "show", &x])["item"]["body"], "from A");
+    assert_eq!(b.run(&["vault", "show", &x])["item"]["notes"], "from A");
     assert_eq!(a.run(&["sync"])["conflicts"], 1);
     let conflicts = a.run(&["vault", "conflicts"]);
-    let copy = &conflicts.as_array().unwrap()[0];
-    assert_eq!(copy["item"]["body"], "from B");
+    let copy = &conflicts.as_array().unwrap()[0]["copy"];
+    assert_eq!(copy["item"]["notes"], "from B");
     let key = format!(
         "{}:{}",
         copy["id"].as_str().unwrap(),
@@ -1612,13 +1622,13 @@ fn desktop_content_and_sync() {
     a.run(&["vault", "resolve", &key]);
     assert_eq!(a.run(&["sync"])["conflicts"], 0);
     assert_eq!(b.run(&["sync"])["conflicts"], 0);
-    assert_eq!(b.run(&["vault", "show", &x])["item"]["body"], "from B");
+    assert_eq!(b.run(&["vault", "show", &x])["item"]["notes"], "from B");
 
     // AT06: a tombstone is not overwritten by an older edit; only an
     // explicit restore brings the item back.
     a.run(&["vault", "rm", &x]);
     assert_eq!(a.run(&["sync"])["sent"], 1);
-    b.run(&["vault", "edit", &x, "--body", "late edit"]);
+    b.run(&["vault", "edit", &x, "--notes", "late edit"]);
     let report = b.run(&["sync"]);
     assert_eq!(
         (report["sent"].as_u64(), report["conflicts"].as_u64()),
@@ -1633,10 +1643,10 @@ fn desktop_content_and_sync() {
         1
     );
     assert_eq!(
-        b.fail(&["vault", "edit", &x, "--body", "again"]),
+        b.fail(&["vault", "edit", &x, "--notes", "again"]),
         "NOT_FOUND"
     );
-    let late = &b.run(&["vault", "conflicts"])[0];
+    let late = &b.run(&["vault", "conflicts"])[0]["copy"];
     let late = format!(
         "{}:{}",
         late["id"].as_str().unwrap(),
@@ -1645,7 +1655,7 @@ fn desktop_content_and_sync() {
     b.run(&["vault", "resolve", &late]);
     assert_eq!(b.run(&["sync"])["sent"], 1);
     a.run(&["sync"]);
-    assert_eq!(a.run(&["vault", "show", &x])["item"]["body"], "late edit");
+    assert_eq!(a.run(&["vault", "show", &x])["item"]["notes"], "late edit");
     b.run(&["vault", "rm", &x]);
     b.run(&["vault", "restore", &x]);
     assert_eq!(b.run(&["sync"])["sent"], 2);
@@ -2018,7 +2028,7 @@ fn desktop_content_and_sync() {
             "add",
             "--title",
             "title-marker-4471",
-            "--body",
+            "--notes",
             "body-marker-4471",
             "--secret-stdin",
         ],
@@ -5050,11 +5060,15 @@ fn desktop_agents() {
     let written = mcp
         .tool(
             "dmsg_vault_write",
-            json!({"type": "login", "title": "CI token", "tags": ["work"], "username": "bot", "secret": "s3cret"}),
+            json!({"type": "login", "title": "CI token", "tags": ["work"], "set": [
+                {"id": "username", "value": "bot"},
+                {"id": "password", "value": "s3cret"},
+                {"label": "Recovery", "type": "otp", "value": "JBSWY3DPEHPK3PXP"}
+            ]}),
         )
         .unwrap();
     let item = written["id"].as_str().unwrap().to_string();
-    assert_eq!(written["item"]["secret"], "********");
+    assert_eq!(field(&written, "password"), "********");
     assert_eq!(
         mcp.tool(
             "dmsg_vault_write",
@@ -5066,13 +5080,13 @@ fn desktop_agents() {
     let edited = mcp
         .tool(
             "dmsg_vault_write",
-            json!({"id": item, "body": "rotates monthly"}),
+            json!({"id": item, "notes": "rotates monthly"}),
         )
         .unwrap();
-    assert_eq!(edited["item"]["body"], "rotates monthly");
-    assert_eq!(edited["item"]["username"], "bot");
+    assert_eq!(edited["item"]["notes"], "rotates monthly");
+    assert_eq!(field(&edited, "username"), "bot");
     let owned = a.run(&["vault", "show", &item, "--reveal"]);
-    assert_eq!(owned["item"]["secret"], "s3cret");
+    assert_eq!(field(&owned, "password"), "s3cret");
     assert_eq!(
         mcp.tool("dmsg_vault_read", json!({"id": item, "secret": true}))
             .unwrap_err()["code"],
@@ -5082,7 +5096,8 @@ fn desktop_agents() {
     let revealed = mcp
         .tool("dmsg_vault_read", json!({"id": item, "secret": true}))
         .unwrap();
-    assert_eq!(revealed["item"]["secret"], "s3cret");
+    assert_eq!(field(&revealed, "password"), "s3cret");
+    assert_eq!(revealed["codes"].as_object().unwrap().len(), 1);
     // dMsg's own keys stay out of reach, even with `*`.
     let controller = vault
         .as_array()

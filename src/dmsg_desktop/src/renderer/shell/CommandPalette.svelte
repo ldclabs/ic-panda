@@ -6,9 +6,11 @@
   import type { Glyph } from '../components/glyphs'
   import Icon from '../components/Icon.svelte'
   import { locale, setLocale, t } from '../i18n/index.svelte'
-  import { call } from '../rpc'
+  import { copyText } from '../components/clipboard'
+  import { toast } from '../components/toast.svelte'
+  import { bridge, call, errorText } from '../rpc'
   import { focus } from '../views/vault/focus.svelte'
-  import { typeIcon, typeLabel, typeOf } from '../views/vault/vault'
+  import { isManaged, otpField, typeIcon, typeLabel, typeOf, valueOf } from '../views/vault/vault'
   import { shortcuts, views } from './nav'
   import { startLogin } from './login.svelte'
   import { lock, nextStep, sync } from './session'
@@ -42,7 +44,7 @@
   }
 
   let search = $state('')
-  /** The vault's items while the palette is open on an unlocked device; they show once something is typed. */
+  /** The vault's items while the palette is open on an unlocked device; they and their actions show once something is typed. */
   let items = $state<any[]>([])
   const unlocked = $derived(status?.state === 'unlocked')
 
@@ -93,19 +95,40 @@
       run: () => setLocale(code)
     }))
     const found: Entry[] = search.trim()
-      ? items.map((entry) => {
+      ? items.flatMap((entry) => {
           const type = typeOf(entry.item)
-          return {
-            label: entry.item.title,
-            value: `${entry.item.title}\u2063${entry.id}`,
+          const title = entry.item.title
+          const keywords = [...entry.item.tags, valueOf(entry.item, 'username'), valueOf(entry.item, 'url')].filter(Boolean)
+          const open: Entry = {
+            label: title,
+            value: `${title}\u2063${entry.id}`,
             icon: typeIcon[type],
             hint: t(typeLabel[type]),
-            keywords: [...entry.item.tags, entry.item.username, entry.item.url].filter(Boolean),
+            keywords,
             run: () => {
               focus.id = entry.id
               go(views.vault.path)
             }
           }
+          // Actions on the item, found by its title too; dMsg's own keys only open.
+          if (isManaged(entry.item)) return [open]
+          const action = (label: string, icon: Glyph, run: () => unknown): Entry => ({
+            label: `${label} · ${title}`,
+            value: `${label}\u2063${title}\u2063${entry.id}`,
+            icon,
+            keywords: [title, ...keywords],
+            run
+          })
+          const actions: Entry[] = [open]
+          const username = valueOf(entry.item, 'username')
+          if (username) actions.push(action(t('copyUsername'), 'user', () => copyText(username)))
+          const secret = (entry.item.fields ?? []).find((f: any) => f.type === 'concealed' && f.value)
+          if (secret) actions.push(action(t('copySecret'), 'password', () => copySecret(entry.id, secret.id)))
+          const otp = otpField(entry.item)
+          if (otp) actions.push(action(t('copyCode'), 'otp', () => copySecret(entry.id, otp.id)))
+          const url = valueOf(entry.item, 'url')
+          if (/^https?:\/\//i.test(url)) actions.push(action(t('openWebsite'), 'external', () => window.dmsg.openUrl(url).catch((e) => toast(() => errorText(e)))))
+          return actions
         })
       : []
     return [
@@ -116,6 +139,16 @@
       { heading: t('language'), entries: languages }
     ]
   })
+
+  /** A hidden field (by default the item's main secret) to the clipboard, through the main process. */
+  async function copySecret(id: string, field: string | null) {
+    try {
+      const { clear_after_ms } = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copySecret(id, field, null))
+      toast((seconds) => t('copied', { seconds }), { ms: clear_after_ms, countdown: true, testid: 'secret-copied' })
+    } catch (e) {
+      toast(() => errorText(e))
+    }
+  }
 
   function run(entry: Entry) {
     open = false

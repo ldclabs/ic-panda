@@ -145,7 +145,7 @@ fn clean(text: &str) -> String {
 }
 
 /// `YYYY-MM-DDTHH:MM:SS.mmmZ`.
-fn timestamp(ms: u64) -> String {
+pub(crate) fn timestamp(ms: u64) -> String {
     let (y, m, d) = civil(ms / DAY_MS);
     let of_day = ms % DAY_MS;
     let (h, min, s, milli) = (

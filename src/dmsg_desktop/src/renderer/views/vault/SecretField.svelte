@@ -7,12 +7,19 @@
   import { bridge, call, code } from '../../rpc'
 
   /**
-   * A secret field: shown or copied only on a second click within three
-   * seconds of the first. Shown, it hides again after a minute; a copy goes
-   * from the daemon to the clipboard through the main process, so this
-   * window never holds it. A bar under the button shows the time left.
+   * A concealed field: shown or copied only on a second click within three
+   * seconds of the first. Shown, it hides again after a minute, every line
+   * of it; a copy goes from the daemon to the clipboard through the main
+   * process, so this window never holds it. A bar under the button shows
+   * the time left. `revision` reads an earlier version.
    */
-  let { id, unlocked }: { id: string; unlocked: boolean } = $props()
+  let {
+    id,
+    field,
+    revision = null,
+    unlocked,
+    copyable = true
+  }: { id: string; field: string; revision?: string | null; unlocked: boolean; copyable?: boolean } = $props()
 
   const ARMED_MS = 3000
   const SHOWN_MS = 60_000
@@ -41,8 +48,8 @@
     armed = null
     busy = true
     try {
-      const entry: any = await call('vault/show', { id, reveal: true })
-      secret = entry.item.secret
+      const shown: any = await call('vault/reveal', { id, field, revision })
+      secret = shown.value
       hideTimer = setTimeout(hide, SHOWN_MS)
     } catch (error) {
       toast(() => `${t('error')}: ${code(error)}`)
@@ -57,7 +64,7 @@
     armed = null
     busy = true
     try {
-      const { clear_after_ms } = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copySecret(id))
+      const { clear_after_ms } = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copySecret(id, field, revision))
       toast((seconds) => t('copied', { seconds }), { ms: clear_after_ms, countdown: true, testid: 'secret-copied' })
     } catch (error) {
       toast(() => `${t('error')}: ${code(error)}`)
@@ -80,10 +87,14 @@
   ></span>
 {/snippet}
 
-<div class="flex min-w-0 flex-1 items-center gap-1.5">
+<div class="flex min-w-0 flex-1 items-start gap-1.5">
   <span
-    class={cn('min-w-0 flex-1 font-mono text-[12.5px]', secret === null ? 'overflow-hidden tracking-[0.18em] whitespace-nowrap text-faint' : 'break-all text-ink select-text')}
+    class={cn(
+      'min-w-0 flex-1 py-1 font-mono text-[12.5px] leading-[1.55]',
+      secret === null ? 'overflow-hidden tracking-[0.18em] whitespace-nowrap text-faint' : 'max-h-64 overflow-auto break-all whitespace-pre-wrap text-ink select-text'
+    )}
     data-testid="vault-secret"
+    data-field={field}
     data-shown={secret !== null}
   >
     {secret ?? '••••••••••••'}
@@ -100,16 +111,18 @@
       {secret !== null ? t('hideSecret') : armed === 'reveal' ? t('clickAgainShow') : t('show')}
       {#if armed === 'reveal'}{@render bar(ARMED_MS)}{:else if secret !== null}{@render bar(SHOWN_MS)}{/if}
     </button>
-    <button
-      class={buttonClass(armed === 'copy' ? 'primary' : 'secondary', 'sm', 'relative overflow-hidden')}
-      disabled={busy}
-      onclick={copy}
-      data-testid="copy-secret"
-      data-armed={armed === 'copy'}
-    >
-      <Icon name="copy" />
-      {armed === 'copy' ? t('clickAgainCopy') : t('copy')}
-      {#if armed === 'copy'}{@render bar(ARMED_MS)}{/if}
-    </button>
+    {#if copyable}
+      <button
+        class={buttonClass(armed === 'copy' ? 'primary' : 'secondary', 'sm', 'relative overflow-hidden')}
+        disabled={busy}
+        onclick={copy}
+        data-testid="copy-secret"
+        data-armed={armed === 'copy'}
+      >
+        <Icon name="copy" />
+        {armed === 'copy' ? t('clickAgainCopy') : t('copy')}
+        {#if armed === 'copy'}{@render bar(ARMED_MS)}{/if}
+      </button>
+    {/if}
   {/if}
 </div>

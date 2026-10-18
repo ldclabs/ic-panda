@@ -5,8 +5,11 @@
   import { t } from '../../i18n/index.svelte'
   import { typeIcon, typeLabel, types, type Facets, type Scope } from './vault'
 
-  /** The vault's filters: everything, starred, each type and tag that has items, and the trash. */
-  let { scope = $bindable<Scope>('all'), facets }: { scope?: Scope; facets: Facets } = $props()
+  /**
+   * The vault's filters: everything, starred, what the security check
+   * flags, each type and tag that has items, and the trash.
+   */
+  let { scope = $bindable<Scope>('all'), facets, flagged }: { scope?: Scope; facets: Facets; flagged: number } = $props()
 </script>
 
 {#snippet entry(value: Scope, icon: Glyph | null, label: string, count?: number)}
@@ -32,6 +35,7 @@
 <nav class="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto overflow-x-hidden p-2.5" aria-label={t('vaultFilters')}>
   {@render entry('all', 'all', t('allItems'), facets.all)}
   {@render entry('starred', 'star', t('starred'), facets.starred)}
+  {@render entry('health', 'health', t('securityCheck'), flagged)}
   <div class="px-2 pt-3 pb-1 text-[11px] font-medium text-faint">{t('types')}</div>
   {#each types as type (type)}
     {#if facets.types[type]}{@render entry(`type:${type}`, typeIcon[type], t(typeLabel[type]), facets.types[type])}{/if}

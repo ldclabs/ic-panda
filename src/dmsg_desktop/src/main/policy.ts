@@ -17,7 +17,10 @@ import { DaemonError } from './error.ts'
  * dialogs or a drop the preload resolves to a path (`files/import`,
  * `files/export`, `files/open`), as do shared channel files, application
  * actions, attestation bundles, legacy transfer files, frozen-history files
- * and old attachments. The file library's settings change only through the
+ * and old attachments. Vault imports (`vault/import_preview`, `vault/import`)
+ * read only the export the person picked in the main process's dialog, and
+ * QR codes for one-time passwords (`vault/otp_scan`) come only from a picked
+ * image or the clipboard. The file library's settings change only through the
  * main process, which writes `preferences.json` (allowing the disk mount
  * after a system dialog) and has the daemon read it
  * (`files/preferences_reload`).
@@ -51,14 +54,23 @@ export const WINDOW_METHODS = new Set([
   'recovery/request',
   'recovery/complete',
   'recovery/dispute',
-  'vault/put',
+  'vault/templates',
+  'vault/create',
   'vault/edit',
+  'vault/duplicate',
   'vault/delete',
   'vault/restore',
+  'vault/tags',
   'vault/list',
   'vault/show',
+  'vault/reveal',
+  'vault/history',
+  'vault/revert',
   'vault/conflicts',
   'vault/resolve',
+  'vault/otp',
+  'vault/ssh_keygen',
+  'vault/health',
   'files/list',
   'files/tree',
   'files/show',

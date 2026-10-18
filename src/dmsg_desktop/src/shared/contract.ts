@@ -81,8 +81,22 @@ export interface DesktopBridge {
   filesOpen(id: string, version: string | null): Promise<unknown>
   /** Publish an image the person picks as the public avatar, or remove it; null when cancelled. */
   avatar(remove: boolean): Promise<unknown>
-  /** Copy a vault item's secret field to the clipboard, cleared after `clear_after_ms`; the main window only. */
-  copySecret(id: string): Promise<{ clear_after_ms: number }>
+  /**
+   * Copy a vault item's hidden field (by default its main secret; a
+   * one-time password as its current code) to the clipboard, marked to stay
+   * out of clipboard histories and cleared after `clear_after_ms`, or when
+   * dMsg locks or quits; `revision` reads an earlier version. The main
+   * window only.
+   */
+  copySecret(id: string, field?: string | null, revision?: string | null): Promise<{ clear_after_ms: number }>
+  /** Read a password manager's export the person picks, without hidden values; null when cancelled. */
+  vaultImportPreview(): Promise<unknown>
+  /** Add the items `picks` names of the export previewed last: `{ids}`. */
+  vaultImport(picks: number[]): Promise<{ ids: string[] }>
+  /** The text of a QR code in an image the person picks, or on the clipboard: `{uri}`; null when cancelled. */
+  vaultOtpScan(source: 'file' | 'clipboard'): Promise<{ uri: string } | null>
+  /** Open an http or https address in the system browser. */
+  openUrl(url: string): Promise<void>
   /** Save a channel message's file where the person picks; null when cancelled. */
   channelDownload(id: string, seq: number, name: string): Promise<unknown>
   /** Ask to attest an application action from a file the person picks; the approval request, or null. */

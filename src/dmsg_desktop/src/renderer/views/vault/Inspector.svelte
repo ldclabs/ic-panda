@@ -3,22 +3,25 @@
   import { localeDir } from '../../../shared/locales'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
-  import SecretInput from '../../components/SecretInput.svelte'
-  import TagInput from '../../components/TagInput.svelte'
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { ago, call, errorText, when } from '../../rpc'
+  import { ago, bridge, call, errorText, size, when } from '../../rpc'
+  import { focus as fileFocus } from '../files/focus.svelte'
+  import History from './History.svelte'
+  import ItemForm from './ItemForm.svelte'
+  import OtpField from './OtpField.svelte'
   import SecretField from './SecretField.svelte'
-  import { fields, typeIcon, typeLabel, typeOf } from './vault'
+  import { fieldName, isManaged, isMultiline, issueLabel, sections, typeIcon, typeLabel, typeOf, type Field } from './vault'
 
   /**
-   * One item, opened: its fields with their actions beside them, the body,
-   * and where the version stands. Edit turns the fields into a form whose
-   * save names the version it replaces; if another device moved on, the
-   * daemon keeps both as a conflict. The daemon's `vault/changed` reloads
-   * the vault after each change.
+   * One item, opened: its fields by section with their actions beside
+   * them, notes, attached files and where the version stands; its history
+   * on request. Edit turns it into the item form, whose save names the
+   * version it replaces: if another device moved on, the daemon keeps
+   * both as a conflict. dMsg's own keys are shown read-only. The daemon's
+   * `vault/changed` reloads the vault after each change.
    */
   let {
     entry,
@@ -26,22 +29,51 @@
     trash,
     unlocked,
     mod,
-    onCompare
+    device,
+    issues,
+    editing = $bindable(false),
+    dirty = $bindable(false),
+    go,
+    onCompare,
+    onDuplicated
   }: {
     entry: any
     conflict: boolean
     trash: boolean
     unlocked: boolean
     mod: string
+    device: string | null
+    issues: Map<string, string[]> | undefined
+    editing?: boolean
+    dirty?: boolean
+    go: (path: string) => void
     onCompare: () => void
+    onDuplicated: (id: string) => void
   } = $props()
 
-  let editing = $state<any>(null)
   let busy = $state(false)
+  let history = $state(false)
+  let base = $state('')
+  let names = $state<Record<string, any>>({})
 
   const item = $derived(entry.item)
   const type = $derived(typeOf(item))
-  const has = $derived(fields[type])
+  const managed = $derived(isManaged(item))
+  const shownFields = $derived((item.fields as Field[]).filter((f) => f.value))
+  const editable = $derived(unlocked && !trash && !managed)
+
+  $effect(() => {
+    if (!editing) dirty = false
+  })
+
+  // Attached files by name and size; one gone from the library says so.
+  $effect(() => {
+    for (const id of item.files ?? [])
+      if (!(id in names))
+        void call('files/show', { id })
+          .then((details: any) => (names = { ...names, [id]: details.file }))
+          .catch(() => (names = { ...names, [id]: null }))
+  })
 
   async function attempt(work: () => Promise<unknown>, done?: string) {
     busy = true
@@ -57,35 +89,51 @@
 
   const star = () => attempt(() => call('vault/edit', { id: entry.id, base: entry.revision, changes: { favorite: !item.favorite } }))
   const discard = () => attempt(() => call(trash ? 'vault/restore' : 'vault/delete', { id: entry.id }), trash ? t('restored') : t('movedToTrash'))
+  const duplicate = () =>
+    attempt(async () => {
+      const copy: any = await call('vault/duplicate', { id: entry.id, title: t('copyTitle', { title: item.title }) })
+      onDuplicated(copy.id)
+    }, t('duplicated'))
+
   /** The form keeps the version it started from: a version synced in meanwhile makes the save a conflict, not an overwrite. */
   function startEdit() {
-    editing = { base: entry.revision, title: item.title, tags: [...item.tags], body: item.body, username: item.username, url: item.url, secret: '' }
+    base = entry.revision
+    history = false
+    editing = true
   }
 
-  const save = () =>
+  const save = (changes: Record<string, unknown>) =>
     attempt(async () => {
-      const changes: Record<string, unknown> = { title: editing.title.trim(), tags: editing.tags, body: editing.body }
-      if (has.includes('username')) changes.username = editing.username
-      if (has.includes('url')) changes.url = editing.url
-      if (has.includes('secret') && editing.secret) changes.secret = editing.secret
-      await call('vault/edit', { id: entry.id, base: editing.base, changes })
-      editing = null
+      await call('vault/edit', { id: entry.id, base, changes })
+      dirty = false
+      editing = false
     }, t('saved'))
 
-  function onFormKey(event: KeyboardEvent) {
-    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey) && editing?.title.trim()) {
-      event.preventDefault()
-      void save()
-    } else if (event.key === 'Escape') {
-      event.stopPropagation()
-      editing = null
+  async function open(url: string) {
+    try {
+      await bridge(() => window.dmsg.openUrl(url))
+    } catch (e) {
+      toast(() => errorText(e))
     }
   }
-</script>
 
-{#snippet row(label: string)}
-  <dt class="pt-2 text-[12px] text-faint @min-[440px]:pt-0">{label}</dt>
-{/snippet}
+  function showFile(id: string) {
+    fileFocus.id = id
+    go('/files')
+  }
+
+  function formatted(field: Field): string {
+    if (field.type === 'date') {
+      const d = new Date(`${field.value}T00:00:00`)
+      return Number.isNaN(d.getTime()) ? field.value : d.toLocaleDateString(locale(), { dateStyle: 'medium' })
+    }
+    if (field.type === 'month') {
+      const d = new Date(`${field.value}-01T00:00:00`)
+      return Number.isNaN(d.getTime()) ? field.value : d.toLocaleDateString(locale(), { year: 'numeric', month: 'long' })
+    }
+    return field.value
+  }
+</script>
 
 {#snippet copyButton(text: string, label: string)}
   <Tooltip content={label}>
@@ -97,6 +145,56 @@
   </Tooltip>
 {/snippet}
 
+{#snippet fieldRow(field: Field)}
+  <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[132px_1fr] @min-[440px]:items-start" data-testid="vault-field" data-field={field.id}>
+    <dt class="flex flex-wrap items-center gap-1 pt-2 text-[12px] text-faint @min-[440px]:pt-1.5">
+      <span class="[overflow-wrap:anywhere]">{fieldName(field, t)}</span>
+      {#each issues?.get(field.id) ?? [] as issue (issue)}
+        <span class="rounded bg-warn-pale px-1 text-[10.5px] font-medium text-warn" data-testid="vault-issue">{t(issueLabel[issue] ?? 'warning')}</span>
+      {/each}
+    </dt>
+    <dd class="flex min-w-0 items-start gap-1.5">
+      {#if field.type === 'concealed'}
+        {#key entry.revision}
+          <SecretField id={entry.id} field={field.id} unlocked={unlocked && !trash} />
+        {/key}
+      {:else if field.type === 'otp'}
+        {#if unlocked && !trash}
+          {#key entry.revision}
+            <OtpField id={entry.id} field={field.id} {unlocked} />
+          {/key}
+        {:else}
+          <span class="py-1 font-mono text-faint">••• •••</span>
+        {/if}
+      {:else if field.type === 'url'}
+        <span class="min-w-0 flex-1 truncate py-1 text-forest select-text" dir="ltr" title={field.value}>{field.value}</span>
+        {#if /^https?:\/\//i.test(field.value)}
+          <Tooltip content={t('openWebsite')}>
+            {#snippet children(props)}
+              <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('openWebsite')} onclick={() => open(field.value)} data-testid="vault-open-url">
+                <Icon name="external" />
+              </button>
+            {/snippet}
+          </Tooltip>
+        {/if}
+        {@render copyButton(field.value, t('copy'))}
+      {:else}
+        <span
+          class={cn(
+            'min-w-0 flex-1 py-1 select-text [overflow-wrap:anywhere]',
+            isMultiline(field) ? 'max-h-64 overflow-auto whitespace-pre-wrap' : 'truncate',
+            ['public_key', 'fingerprint'].includes(field.id) && 'font-mono text-[12px] break-all'
+          )}
+          dir={field.type === 'email' || field.type === 'phone' ? 'ltr' : undefined}
+        >
+          {formatted(field)}
+        </span>
+        {@render copyButton(field.value, field.id === 'username' ? t('copyUsername') : t('copy'))}
+      {/if}
+    </dd>
+  </div>
+{/snippet}
+
 <section class="@container flex h-full min-w-0 flex-col" aria-label={item.title} data-testid="vault-inspector">
   <header class="flex items-start gap-3 px-6 pt-5 pb-4">
     <span class="grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest shadow-xs [&_svg]:size-5">
@@ -106,6 +204,7 @@
       <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="vault-item-title">{item.title}</h2>
       <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-faint">
         <span>{t(typeLabel[type])}</span>
+        {#if managed}<span class="rounded-md bg-pale px-1.5 py-px text-[11.5px] text-forest" data-testid="vault-managed">{t('managedByDmsg')}</span>{/if}
         {#each item.tags as tag, i (i)}
           <span class="rounded-md bg-wash px-1.5 py-px text-[11.5px] text-ink-2">#{tag}</span>
         {/each}
@@ -113,7 +212,11 @@
     </div>
     {#if unlocked && !editing}
       <div class="flex shrink-0 items-center gap-1">
-        {#if !trash}
+        {#if trash}
+          <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={discard} data-testid="vault-restore">
+            <Icon name="restore" />{t('restore')}
+          </button>
+        {:else if !managed}
           <Tooltip content={item.favorite ? t('unstar') : t('star')}>
             {#snippet children(props)}
               <button
@@ -132,10 +235,6 @@
           <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={startEdit} data-testid="vault-edit-open">
             <Icon name="edit" />{t('edit')}
           </button>
-        {:else}
-          <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={discard} data-testid="vault-restore">
-            <Icon name="restore" />{t('restore')}
-          </button>
         {/if}
         {#if !trash}
           <DropdownMenu.Root dir={localeDir(locale())}>
@@ -148,9 +247,18 @@
             </Tooltip>
             <DropdownMenu.Portal>
               <DropdownMenu.Content align="end" sideOffset={6} class={cn(menuContentClass, 'min-w-48')} data-testid="vault-more-menu">
-                <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={discard} data-testid="vault-trash">
-                  <span class="flex items-center gap-2"><Icon name="trash" />{t('moveToTrash')}</span>
+                <DropdownMenu.Item class={menuItemClass} onSelect={() => (history = !history)} data-testid="vault-history-open">
+                  <span class="flex items-center gap-2"><Icon name="history" class="text-faint" />{t('history')}</span>
                 </DropdownMenu.Item>
+                {#if !managed}
+                  <DropdownMenu.Item class={menuItemClass} onSelect={duplicate} data-testid="vault-duplicate">
+                    <span class="flex items-center gap-2"><Icon name="duplicate" class="text-faint" />{t('duplicate')}</span>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Separator class="my-1 h-px bg-line" />
+                  <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={discard} data-testid="vault-trash">
+                    <span class="flex items-center gap-2"><Icon name="trash" />{t('moveToTrash')}</span>
+                  </DropdownMenu.Item>
+                {/if}
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
@@ -169,73 +277,65 @@
   {#if trash}
     <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
       <Icon name="trash" class="shrink-0" />
-      <span>{t('inTrash')}</span>
+      <span>{t('inTrashSince', { time: when(entry.at) })}</span>
+    </div>
+  {/if}
+  {#if managed}
+    <div class="mx-6 mb-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-3 py-2 text-[12.5px] text-muted">
+      <Icon name="lock" class="shrink-0" />
+      <span>{t('managedHint')}</span>
     </div>
   {/if}
 
   <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
     {#if editing}
-      <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="grid gap-3" data-testid="vault-edit" onkeydown={onFormKey}>
-        <label class="grid gap-1 text-[12px] text-faint">{t('title')}<input bind:value={editing.title} class="text-[13.5px] text-ink" /></label>
-        {#if has.includes('username')}
-          <label class="grid gap-1 text-[12px] text-faint">{t('username')}<input bind:value={editing.username} class="text-[13.5px] text-ink" /></label>
-        {/if}
-        {#if has.includes('url')}
-          <label class="grid gap-1 text-[12px] text-faint">{t('url')}<input bind:value={editing.url} class="text-[13.5px] text-ink" spellcheck="false" /></label>
-        {/if}
-        {#if has.includes('secret')}
-          <div class="grid gap-1 text-[12px] text-faint">{t('secret')}<SecretInput bind:value={editing.secret} placeholder={t('newSecret')} generate /></div>
-        {/if}
-        <div class="grid gap-1 text-[12px] text-faint">{t('tags')}<TagInput bind:tags={editing.tags} placeholder={t('tagsAdd')} /></div>
-        <label class="grid gap-1 text-[12px] text-faint">{t('body')}<textarea bind:value={editing.body} rows="6" class="text-[13.5px] text-ink"></textarea></label>
-        <div class="flex items-center justify-end gap-2 pt-1">
-          <button class={buttonClass('ghost')} onclick={() => (editing = null)}>{t('cancel')}</button>
-          <button class={buttonClass('primary')} disabled={busy || !editing.title.trim()} onclick={save} data-testid="vault-save">
-            {t('save')}<kbd class="font-mono text-[10.5px] opacity-75">{mod}↵</kbd>
-          </button>
-        </div>
-      </div>
+      <ItemForm
+        kind={type}
+        initial={{ title: item.title, tags: item.tags, notes: item.notes, fields: item.fields, files: item.files ?? [] }}
+        edit
+        {busy}
+        {mod}
+        bind:dirty
+        onSubmit={save}
+        onCancel={() => (editing = false)}
+      />
     {:else}
-      {#if has.length}
-        <dl class="divide-y divide-line rounded-xl border border-line bg-surface px-4 shadow-xs" data-testid="vault-detail">
-          {#if item.username}
-            <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
-              {@render row(t('username'))}
-              <dd class="flex min-w-0 items-center gap-1.5">
-                <span class="min-w-0 flex-1 truncate select-text">{item.username}</span>
-                {@render copyButton(item.username, t('copyUsername'))}
-              </dd>
-            </div>
-          {/if}
-          {#if has.includes('secret') && item.secret}
-            <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
-              {@render row(t('secret'))}
-              <dd class="flex min-w-0 py-0.5">
-                {#key entry.revision}
-                  <SecretField id={entry.id} unlocked={unlocked && !trash} />
-                {/key}
-              </dd>
-            </div>
-          {/if}
-          {#if item.url}
-            <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
-              {@render row(t('url'))}
-              <dd class="flex min-w-0 items-center gap-1.5">
-                <span class="min-w-0 flex-1 truncate text-forest select-text" dir="ltr">{item.url}</span>
-                {@render copyButton(item.url, t('copy'))}
-              </dd>
-            </div>
-          {/if}
+      {#each sections(shownFields) as section (section.title)}
+        {#if section.title}<h3 class="mt-3 mb-1 text-[11.5px] font-semibold tracking-wide text-faint uppercase">{section.title}</h3>{/if}
+        <dl class={cn('divide-y divide-line rounded-xl border border-line bg-surface px-4 shadow-xs', !section.title && 'mb-3')} data-testid="vault-detail">
+          {#each section.fields as field (field.id)}
+            {@render fieldRow(field)}
+          {/each}
         </dl>
-      {/if}
-      {#if item.body}
-        <div class={cn('rounded-xl border border-line bg-surface px-4 py-3 shadow-xs', has.length && 'mt-3')}>
-          {#if has.length}<div class="mb-1 text-[12px] text-faint">{t('body')}</div>{/if}
-          <p class="text-[13.5px] leading-relaxed whitespace-pre-wrap select-text" data-testid="vault-body">{item.body}</p>
+      {/each}
+      {#if item.notes}
+        <div class="mt-3 rounded-xl border border-line bg-surface px-4 py-3 shadow-xs">
+          <div class="mb-1 text-[12px] text-faint">{t('notes')}</div>
+          <p class="text-[13.5px] leading-relaxed whitespace-pre-wrap select-text" data-testid="vault-notes-text">{item.notes}</p>
         </div>
-      {:else if !has.length}
+      {:else if !shownFields.length}
         <p class="text-[13px] text-faint">{t('emptyBody')}</p>
+      {/if}
+      {#if item.files?.length}
+        <div class="mt-3 grid gap-1.5" data-testid="vault-attachments">
+          <div class="text-[12px] text-faint">{t('attachments')}</div>
+          {#each item.files as id (id)}
+            <div class="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-[12.5px]">
+              <Icon name="attach" class="shrink-0 text-faint" />
+              {#if names[id]}
+                <span class="min-w-0 flex-1 truncate">{names[id].name}</span>
+                <span class="shrink-0 text-[11.5px] text-faint">{size(names[id].size)}</span>
+                <button class={buttonClass('ghost', 'xs')} onclick={() => bridge(() => window.dmsg.filesOpen(id, null)).catch((e) => toast(() => errorText(e)))}>{t('openFile')}</button>
+                <button class={buttonClass('ghost', 'xs')} onclick={() => showFile(id)}>{t('showInFiles')}</button>
+              {:else}
+                <span class="min-w-0 flex-1 truncate text-faint">{names[id] === null ? t('fileMissing') : '…'}</span>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+      {#if history}
+        <History id={entry.id} head={entry.revision} {device} {unlocked} {editable} onClose={() => (history = false)} />
       {/if}
     {/if}
   </div>
@@ -244,7 +344,10 @@
     <span class={cn('inline-flex items-center gap-1.5', !entry.synced && 'text-warn')}>
       <Icon name={entry.synced ? 'sync' : 'time'} class="size-3.5" />{entry.synced ? t('synced') : t('notSynced')}
     </span>
+    <span title={when(item.createdAt)}>{t('created')} {ago(item.createdAt)}</span>
     <span title={when(item.updatedAt)}>{t('updated')} {ago(item.updatedAt)}</span>
-    <span title={entry.revision}>{t('revision')} <bdi dir="ltr" class="font-mono">{entry.revision.slice(0, 10)}</bdi></span>
+    <button class="hover:text-ink" title={entry.revision} onclick={() => (history = !history)} data-testid="vault-revision">
+      {t('revision')} <bdi dir="ltr" class="font-mono">{entry.revision.slice(0, 10)}</bdi>
+    </button>
   </footer>
 </section>

@@ -11,6 +11,7 @@ import {
   app,
   BrowserWindow,
   clipboard,
+  ClipboardItem,
   dialog,
   ipcMain,
   Menu,
@@ -73,7 +74,7 @@ const updates = new Updates(() => {
   updateTray(trayState)
   broadcast('dmsg:event', { type: 'updates/changed' })
 })
-/** A copied secret leaves the clipboard after this long, unless something replaced it. */
+/** A copied secret leaves the clipboard after this long, unless something replaced it; locking or quitting clears it sooner. */
 const CLEAR_MS = 30_000
 /** A person's input in a window is the idle lock's activity, reported at most this often. */
 const ACTIVITY_MS = 10_000
@@ -424,16 +425,100 @@ handle('dmsg:legacy-file', 'main', async (_event, id: string, source: string, na
   const path = await pickSave({ defaultPath: basename(String(name)) })
   return path && daemon.call('legacy/file', { id: String(id), source: String(source), path })
 })
-/** The secret goes from the daemon to the clipboard; the window that asked never holds it. */
-handle('dmsg:copy-secret', 'main', async (_event, id: string) => {
-  const entry = (await daemon.call('vault/show', { id: String(id), reveal: true })) as { item: { secret: string } }
-  const secret = entry.item.secret
-  if (!secret) throw new DaemonError('NOT_FOUND', 'No secret field')
-  await clipboard.writeText(secret)
-  setTimeout(async () => {
-    if ((await clipboard.readText()) === secret) clipboard.clear()
-  }, CLEAR_MS)
+/**
+ * A copied secret: the text, and when it leaves the clipboard unless
+ * something replaced it. Locking dMsg or quitting the app clears it at once.
+ */
+let copied: { text: string; timer: ReturnType<typeof setTimeout> } | null = null
+
+/** Clear the clipboard if it still holds the secret dMsg copied. */
+async function forgetCopied() {
+  const last = copied
+  copied = null
+  if (!last) return
+  clearTimeout(last.timer)
+  if ((await clipboard.readText().catch(() => '')) === last.text) clipboard.clear()
+}
+
+/**
+ * Formats that keep a copied secret out of clipboard histories and the
+ * universal clipboard: macOS's `org.nspasteboard` markers, Windows'
+ * history and cloud exclusions, and KDE's password-manager hint.
+ */
+function concealing(): Record<string, string> {
+  const raw = (format: string) => `electron application/osclipboard;format="${format}"`
+  if (process.platform === 'darwin') return { [raw('org.nspasteboard.ConcealedType')]: '', [raw('org.nspasteboard.TransientType')]: '' }
+  if (process.platform === 'win32')
+    return { [raw('ExcludeClipboardContentFromMonitorProcessing')]: '', [raw('CanIncludeInClipboardHistory')]: '\0\0\0\0', [raw('CanUploadToCloudClipboard')]: '\0\0\0\0' }
+  return { [raw('x-kde-passwordManagerHint')]: 'secret' }
+}
+
+/**
+ * A hidden field goes from the daemon to the clipboard (a one-time
+ * password as its current code); the window that asked never holds it.
+ * `field` defaults to the item's main secret, `revision` to the current
+ * version.
+ */
+handle('dmsg:copy-secret', 'main', async (_event, id: string, field: string | null, revision: string | null) => {
+  const params = { id: String(id), field: field ? String(field) : undefined, revision: revision ? String(revision) : undefined }
+  const shown = (await daemon.call('vault/reveal', params)) as { type: string; value: string; field: string }
+  const secret = shown.type === 'otp' ? ((await daemon.call('vault/otp', { id: params.id, field: shown.field })) as { code: string }).code : shown.value
+  if (!secret) throw new DaemonError('NOT_FOUND', 'No value to copy')
+  await forgetCopied()
+  try {
+    await clipboard.write([new ClipboardItem({ 'text/plain': secret, ...concealing() })])
+  } catch {
+    // A platform that refuses a marker still gets the text.
+    await clipboard.writeText(secret)
+  }
+  copied = { text: secret, timer: setTimeout(() => void forgetCopied(), CLEAR_MS) }
   return { clear_after_ms: CLEAR_MS }
+})
+/** The export last previewed, by the path the person picked; the window never names a path. */
+let importing: { path: string; digest: string } | null = null
+handle('dmsg:vault-import-preview', 'main', async () => {
+  const path = await pickFile({
+    title: text.pickExport,
+    filters: [
+      { name: text.exportFile, extensions: ['1pux', 'csv', 'json'] },
+      { name: text.allFiles, extensions: ['*'] }
+    ]
+  })
+  if (!path) return null
+  const preview = (await daemon.call('vault/import_preview', { path })) as { digest: string }
+  importing = { path, digest: preview.digest }
+  return preview
+})
+handle('dmsg:vault-import', 'main', async (_event, picks: number[]) => {
+  if (!importing) throw new DaemonError('NOT_FOUND', 'Nothing previewed')
+  const chosen = Array.isArray(picks) ? picks.filter((n) => Number.isInteger(n) && n >= 0) : []
+  const added = await daemon.call('vault/import', { ...importing, picks: chosen })
+  importing = null
+  return added
+})
+/** The text of a QR code, from an image the person picks or the one on the clipboard. */
+handle('dmsg:vault-otp-scan', 'main', async (_event, source: string) => {
+  if (source === 'clipboard') {
+    const items = await clipboard.read()
+    const item = items.find((i) => i.types.includes('image/png'))
+    if (!item) throw new DaemonError('NOT_FOUND', 'No image on the clipboard')
+    const blob = (await item.getType('image/png')) as Blob
+    const image = Buffer.from(await blob.arrayBuffer()).toString('base64')
+    return daemon.call('vault/otp_scan', { image })
+  }
+  const path = await pickFile({ title: text.pickQrImage, filters: [{ name: text.images, extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }] })
+  return path && daemon.call('vault/otp_scan', { path })
+})
+/** An item's web address, in the system browser: only http and https. */
+handle('dmsg:open-url', 'main', async (_event, url: string) => {
+  let parsed: URL
+  try {
+    parsed = new URL(String(url))
+  } catch {
+    throw new DaemonError('INVALID_INPUT', 'Not a web address')
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new DaemonError('INVALID_INPUT', 'Not a web address')
+  await shell.openExternal(parsed.toString())
 })
 handle('dmsg:channel-download', 'main', async (_event, id: string, seq: number, name: string) => {
   const path = await pickSave({ defaultPath: basename(String(name)) })
@@ -522,6 +607,7 @@ const refreshWaiting = single(async () => {
   } catch {
     return
   }
+  if (status.state !== 'unlocked') void forgetCopied()
   const now = status.approvals_waiting ?? 0
   if ((now > waiting || hint) && Notification.isSupported()) {
     const note = new Notification({ title: 'dMsg', body: text.requestWaiting, silent: false })
@@ -699,6 +785,7 @@ app.on('web-contents-created', (_event, contents) => {
 })
 app.on('before-quit', () => {
   quitting = true
+  void forgetCopied()
   daemon.close()
 })
 app.on('window-all-closed', () => {

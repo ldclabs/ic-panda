@@ -13,7 +13,7 @@
 //! data, with who called, through which way in and on what.
 
 use crate::daemon::Daemon;
-use crate::params::{number, parse, source, text, to_json};
+use crate::params::{number, optional, parse, source, text, to_json};
 use dmsg_agent::Scope;
 use dmsg_agent::resources::{Resource, resource_list, resource_templates};
 use dmsg_agent::tools::{is_dmsg, is_read_only, is_standard, standard_capability, tool_list};
@@ -25,7 +25,7 @@ use dmsg_client::{
     codec::{b64, unb64},
     error_code,
     library::catalog::ROOT,
-    vault::{Filter, Item},
+    vault::{Changes, Filter, Item, otp},
 };
 use dmsg_types::{
     Error, Result,
@@ -548,16 +548,38 @@ impl Daemon {
                 // Never dMsg's own keys, not even with `vault.read:*`.
                 ensure(!entry.item.reserved(), Error::Forbidden)?;
                 tagged(&client, did, "vault.read", &entry.item)?;
-                // The secret field only with a grant naming the item.
+                // Hidden values only with a grant naming the item.
                 let reveal = input["secret"] == true;
-                if reveal {
-                    client.capability_check(did, &format!("vault.secret:{}", entry.id))?;
+                if !reveal {
+                    return Ok(to_json(&entry.masked(false)));
                 }
-                Ok(to_json(&entry.masked(reveal)))
+                client.capability_check(did, &format!("vault.secret:{}", entry.id))?;
+                let now = dmsg_client::now_ms();
+                let codes: serde_json::Map<String, Value> = entry
+                    .item
+                    .fields
+                    .iter()
+                    .filter(|f| f.kind == "otp" && !f.value.is_empty())
+                    .filter_map(|f| {
+                        let code = otp::parse(&f.value).ok()?.code(now).code;
+                        Some((f.id.clone(), code.into()))
+                    })
+                    .collect();
+                let mut read = to_json(&entry);
+                read["codes"] = codes.into();
+                Ok(read)
             }
             "dmsg_vault_write" => {
                 let id = input["id"].as_str();
-                let now = dmsg_client::now_ms();
+                let changes = Changes {
+                    title: optional(input, "title", text)?,
+                    notes: optional(input, "notes", text)?,
+                    tags: optional(input, "tags", parse)?,
+                    set: optional(input, "set", parse)?,
+                    remove: optional(input, "remove", parse)?,
+                    ..Changes::default()
+                };
+                let kind = input["type"].as_str().unwrap_or("note");
                 let mut item = match id {
                     Some(id) => {
                         let entry = client.vault_show(id)?;
@@ -566,41 +588,16 @@ impl Daemon {
                         tagged(&client, did, "vault.write", &entry.item)?;
                         entry.item
                     }
-                    None => Item {
-                        kind: "note".into(),
-                        title: String::new(),
-                        tags: Vec::new(),
-                        body: String::new(),
-                        username: String::new(),
-                        secret: String::new(),
-                        url: String::new(),
-                        favorite: false,
-                        created_at: now,
-                        updated_at: now,
-                        resolved_conflicts: None,
-                    },
+                    None => Item::new(kind, "", dmsg_client::now_ms()),
                 };
-                if let Some(kind) = input["type"].as_str() {
-                    item.kind = kind.into();
-                }
-                for (field, slot) in [
-                    ("title", &mut item.title),
-                    ("body", &mut item.body),
-                    ("username", &mut item.username),
-                    ("url", &mut item.url),
-                    ("secret", &mut item.secret),
-                ] {
-                    if let Some(value) = input[field].as_str() {
-                        *slot = value.into();
-                    }
-                }
-                if !input["tags"].is_null() {
-                    item.tags = parse(input, "tags")?;
-                }
-                item.updated_at = now;
+                changes.apply(&mut item);
+                item.normalize();
                 ensure(!item.reserved(), Error::Forbidden)?;
                 tagged(&client, did, "vault.write", &item)?;
-                let entry = client.vault_put(id, input["base"].as_str(), &item)?;
+                let entry = match id {
+                    Some(id) => client.vault_edit(id, input["base"].as_str(), &changes)?,
+                    None => client.vault_create(kind, &changes)?,
+                };
                 // Writing is not reading: the item comes back only to an
                 // agent that may read it.
                 match tagged(&client, did, "vault.read", &entry.item) {
