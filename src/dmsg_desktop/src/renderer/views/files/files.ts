@@ -68,10 +68,42 @@ export function previewable(mime: string | undefined): boolean {
   return fileIcon(mime) !== 'file'
 }
 
-/** Folders first, then files, each by name in the interface language. */
-export function ordered<T extends { name: string }>(folders: T[], files: T[], locale: string): T[] {
+/** What a folder's list is ordered by, and which way. */
+export type SortKey = 'name' | 'modified' | 'size' | 'type'
+export interface Sort {
+  key: SortKey
+  descending: boolean
+}
+
+export const sortKeys: SortKey[] = ['name', 'modified', 'size', 'type']
+
+export const isSort = (value: any): value is Sort => sortKeys.includes(value?.key) && typeof value?.descending === 'boolean'
+
+/**
+ * Folders first, then files, each by name in the interface language, or by
+ * `sort`. Folders have no size or type: by those they stay by name, A to Z.
+ * Ties go by name.
+ */
+export function ordered<T extends { name: string; updated_at?: number; size?: number; mime?: string }>(
+  folders: T[],
+  files: T[],
+  locale: string,
+  sort: Sort = { key: 'name', descending: false }
+): T[] {
   const byName = (a: T, b: T) => a.name.localeCompare(b.name, locale, { numeric: true, sensitivity: 'base' })
-  return [...[...folders].sort(byName), ...[...files].sort(byName)]
+  const by = (key: SortKey, descending: boolean) => (a: T, b: T) => {
+    const order =
+      key === 'modified'
+        ? (a.updated_at ?? 0) - (b.updated_at ?? 0)
+        : key === 'size'
+          ? (a.size ?? 0) - (b.size ?? 0)
+          : key === 'type'
+            ? (a.mime ?? '').localeCompare(b.mime ?? '')
+            : byName(a, b)
+    return (descending ? -order : order) || byName(a, b)
+  }
+  const named = sort.key === 'size' || sort.key === 'type'
+  return [...[...folders].sort(by(named ? 'name' : sort.key, named ? false : sort.descending)), ...[...files].sort(by(sort.key, sort.descending))]
 }
 
 /** The text a search looks in, as the daemon's own search: name, tags and note. */
@@ -81,11 +113,16 @@ export function matchesFile(file: { name?: string; tags?: string[]; note?: strin
   return [file.name, file.note, ...(file.tags ?? [])].some((field) => String(field ?? '').toLowerCase().includes(q))
 }
 
-/** The names of the folders down to `id`, from the folders the daemon lists with their paths. */
-export function pathOf(folders: { id: string; name: string; path: string[] }[], id: string): string[] {
-  if (id === ROOT) return []
-  const folder = folders.find((f) => f.id === id)
-  return folder ? [...folder.path, folder.name] : []
+/** The folders from the root down to `id`, itself included, by walking up the parents. */
+export function ancestorsOf(folders: { id: string; parent: string; name: string }[], id: string): { id: string; name: string }[] {
+  const chain: { id: string; name: string }[] = []
+  let cursor = folders.find((f) => f.id === id)
+  while (cursor && chain.length <= folders.length) {
+    chain.unshift({ id: cursor.id, name: cursor.name })
+    const parent: string = cursor.parent
+    cursor = folders.find((f) => f.id === parent)
+  }
+  return chain
 }
 
 /** A folder tree from the flat list: children by parent, each level by name. */

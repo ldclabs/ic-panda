@@ -62,10 +62,19 @@ export interface DesktopBridge {
    * Add files to the library's `folder`: those the person dropped on the
    * window, else the ones they pick in a system dialog (files, or with
    * `directory` one folder): `{names, files}`, what was picked and the
-   * daemon's imported files, or null when cancelled. A `files/adding` event
-   * names what was picked before the import starts.
+   * daemon's imported files, or null when cancelled, also at the question a
+   * name already in the folder asks. A `files/adding` event names what was
+   * picked, and the paths of the folders among it, before the import starts.
    */
   filesAdd(folder: string, dropped?: File[], directory?: boolean): Promise<unknown>
+  /** Export library files' current versions into a folder the person picks: `{dir, count}`, or null when cancelled. */
+  filesExportMany(items: { id: string; name: string }[]): Promise<unknown>
+  /**
+   * Change the file library's settings, `files_mount` (after the person
+   * allows it in a system dialog) and `files_trash_days`; resolves to the
+   * daemon's `files/preferences`, or null when the dialog was dismissed.
+   */
+  filesPreferences(changes: { files_mount?: boolean; files_trash_days?: number }): Promise<unknown>
   /** Export a library file's version to a place the person picks in a system dialog; null when cancelled. */
   filesExport(id: string, version: string | null, name: string): Promise<unknown>
   /** Open a library file's version in its program, from a temporary copy the daemon cleans up. */

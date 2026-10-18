@@ -15,6 +15,7 @@
   import { unlock } from '../shell/session'
   import About from './About.svelte'
   import Devices from './Devices.svelte'
+  import FilesSettings from './files/FilesSettings.svelte'
   import Legacy from './Legacy.svelte'
   import Onboarding from './Onboarding.svelte'
   import Profile from './Profile.svelte'
@@ -23,12 +24,12 @@
   /**
    * Settings in sections beside their list: this session and the device's
    * accounts, security, devices, the public profile, connected browsers, the
-   * legacy migration and the app's version and updates. Each section has its
-   * own route under /settings.
+   * file library, the legacy migration and the app's version and updates.
+   * Each section has its own route under /settings.
    */
   let { status, refresh, route, go }: { status: any; refresh: () => Promise<void>; route: string; go: (path: string) => void } = $props()
 
-  type Part = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'legacy' | 'about'
+  type Part = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'files' | 'legacy' | 'about'
 
   const parts: { value: Part; label: Label; icon: Glyph; locked?: boolean }[] = [
     { value: 'session', label: 'sessionAccounts', icon: 'account' },
@@ -36,6 +37,7 @@
     { value: 'devices', label: 'devices', icon: 'device' },
     { value: 'profile', label: 'publicProfile', icon: 'profile' },
     { value: 'browsers', label: 'browsers', icon: 'browser' },
+    { value: 'files', label: 'files', icon: 'folder' },
     { value: 'legacy', label: 'legacy', icon: 'legacy' },
     { value: 'about', label: 'aboutApp', icon: 'info' }
   ]
@@ -152,6 +154,8 @@
         {#if error}<Notice tone="danger">{error}</Notice>{/if}
         {#if part === 'legacy'}
           <Legacy {status} />
+        {:else if part === 'files'}
+          <FilesSettings />
         {:else if part === 'about'}
           <About />
         {:else if part === 'session'}

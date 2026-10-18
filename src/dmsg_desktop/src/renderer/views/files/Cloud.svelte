@@ -4,15 +4,16 @@
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
-  import { buttonClass, cn } from '../../components/ui'
+  import { buttonClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { ago, size, when } from '../../rpc'
   import { fileIcon } from './files'
 
   /**
    * The account's backups in the cloud, from every device: what the relay
-   * lists, read on request. A backup is fetched into the library, checked,
-   * or deleted for good; nothing here happens on its own.
+   * lists, read on request and once when the view first opens. A backup is
+   * fetched into the library, where it was or into a folder picked,
+   * checked, or deleted for good.
    */
   let {
     entries,
@@ -22,6 +23,7 @@
     loaded,
     onRefresh,
     onFetch,
+    onFetchTo,
     onVerify,
     onDelete
   }: {
@@ -32,6 +34,8 @@
     loaded: boolean
     onRefresh: () => void
     onFetch: (upload: string) => void
+    /** Fetch into a folder the person picks, instead of where it was. */
+    onFetchTo: (upload: string) => void
     onVerify: (upload: string) => void
     onDelete: (uploads: string[]) => void
   } = $props()
@@ -76,7 +80,7 @@
       </button>
     {/if}
     <button class={buttonClass('secondary', 'md')} disabled={busy || !unlocked} onclick={onRefresh} data-testid="files-cloud-refresh">
-      <Icon name="sync" class={cn(busy && 'animate-spin')} />{t('refreshCloud')}
+      <Icon name="sync" />{t('refreshCloud')}
     </button>
   </header>
 
@@ -115,6 +119,13 @@
                       {#snippet children(props)}
                         <button {...props} class={buttonClass('secondary', 'sm')} disabled={busy || entry.needs_root || entry.local} onclick={() => onFetch(entry.upload_id)} data-testid="files-cloud-fetch">
                           <Icon name="cloud-down" />{t('fetchFile')}
+                        </button>
+                      {/snippet}
+                    </Tooltip>
+                    <Tooltip content={t('fetchTo')}>
+                      {#snippet children(props)}
+                        <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('fetchTo')} disabled={busy || entry.needs_root || entry.local} onclick={() => onFetchTo(entry.upload_id)} data-testid="files-cloud-fetch-to">
+                          <Icon name="folder" />
                         </button>
                       {/snippet}
                     </Tooltip>

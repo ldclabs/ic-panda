@@ -32,7 +32,7 @@
 // Run with `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
-import { readdirSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -141,6 +141,16 @@ const library = [libraryFile('23'.repeat(32), 'report.pdf', 1234, 'backed_up')]
 const libraryTrash = []
 /** The library's folders, as `files/tree` lists them; an imported folder joins them. */
 const libraryFolders = []
+/** The file settings, as the daemon reads them from the `preferences.json` the main process writes. */
+function preferences() {
+  let kept = {}
+  try {
+    kept = JSON.parse(readFileSync(join(profile, 'home', 'preferences.json'), 'utf8'))
+  } catch {
+    /* none yet */
+  }
+  return { files_mount: kept.files_mount === true, files_mount_config: false, files_trash_days: kept.files_trash_days ?? 30, supported: true }
+}
 /** Backups under way, as `files/backup_status` lists them. */
 const backupJobs = []
 const version = (file) => ({ id: file.current, size: file.size, sha256: file.sha256, created_at: file.created_at, device: '11'.repeat(32), origin: { type: 'imported' }, local: true, backup: file.backup, current: true, status: file.status })
@@ -309,17 +319,41 @@ const methods = {
   },
   'files/import': (p) => {
     assert.equal(p.folder, 'root')
-    // A folder becomes a folder of the library holding its files, which the answer lists by their own names.
+    // A folder becomes a folder of the library holding its files, which the
+    // answer lists by their own names; a taken name takes a new version, or
+    // with keep_both stands beside it as `name (2)`.
     return p.paths.flatMap((path) => {
-      if (!statSync(path).isDirectory()) return [libraryFile('26'.repeat(32), basename(path), 4096)]
+      if (!statSync(path).isDirectory()) {
+        const taken = library.find((f) => f.name === basename(path))
+        if (taken && !p.keep_both) return [Object.assign(taken, { versions: taken.versions + 1 })]
+        return [taken ? libraryFile('2a'.repeat(32), basename(path).replace(/(\.\w+)$/, ' (2)$1'), 4096) : libraryFile('26'.repeat(32), basename(path), 4096)]
+      }
       const folder = { id: '29'.repeat(32), parent: 'root', name: basename(path), path: [], created_at: Date.now(), updated_at: Date.now() }
       libraryFolders.push(folder)
       return readdirSync(path).map((name, i) => ({ ...libraryFile(`3${i}`.repeat(32), name, 64), folder: folder.id, path: [folder.name] }))
     }).map((file) => {
-      library.push(file)
+      if (!library.includes(file)) library.push(file)
       return { file, version: 'v1', resumed: false, duplicate_of: [] }
     })
   },
+  'files/import_cancel': () => ({ cancelled: true }),
+  'files/tags': () => [],
+  'files/open_list': () => [],
+  'files/restore': (p) => {
+    for (const id of p.ids) {
+      const at = libraryTrash.findIndex((f) => f.id === id)
+      const [file] = libraryTrash.splice(at, 1)
+      library.push({ ...file, trashed_at: null })
+    }
+    return { restored: p.ids.length }
+  },
+  'files/purge': (p) => {
+    const ids = p.ids ?? libraryTrash.map((f) => f.id)
+    for (const id of ids) libraryTrash.splice(libraryTrash.findIndex((f) => f.id === id), 1)
+    return { removed: ids.length }
+  },
+  'files/preferences': () => preferences(),
+  'files/preferences_reload': () => preferences(),
   'files/move': (p) => {
     for (const file of library) if (p.ids.includes(file.id)) file.folder = p.folder
     return { moved: p.ids.length }
@@ -670,6 +704,9 @@ const announced = {
   'vault/resolve': ['vault/changed'],
   'sync/run': ['sync/changed', 'vault/changed'],
   'files/import': ['files/changed'],
+  'files/restore': ['files/changed'],
+  'files/purge': ['files/changed'],
+  'files/preferences_reload': ['files/changed', 'files/mount_changed'],
   'files/move': ['files/changed'],
   'files/update': ['files/changed'],
   'files/trash': ['files/changed'],
@@ -783,7 +820,9 @@ await mkdir(join(picks, 'develop'))
 await writeFile(join(picks, 'develop', 'deploy.pem'), 'pem bytes')
 await writeFile(join(picks, 'develop', 'notes.txt'), 'notes')
 await app.evaluate(({ dialog, clipboard, Notification, shell }) => {
-  Object.assign(globalThis, { __open: [], __save: [], __clip: '', __notes: [], __opened: [] })
+  Object.assign(globalThis, { __open: [], __save: [], __box: [], __clip: '', __notes: [], __opened: [] })
+  // A message box answers its first button unless the test queued another.
+  dialog.showMessageBox = async () => ({ response: globalThis.__box.shift() ?? 0 })
   shell.openExternal = async (url) => void globalThis.__opened.push(url)
   dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [globalThis.__open.shift()] })
   dialog.showSaveDialog = async () => ({ canceled: false, filePath: globalThis.__save.shift() })
@@ -1191,11 +1230,30 @@ try {
   await waitFor(() => latest('files/backup_cancel'))
   assert.deepEqual(latest('files/backup_cancel').params, { id: '23'.repeat(32), version: 'v1' })
   await main.waitForSelector('[data-testid="files-job"][data-kind="backup"]', { state: 'detached' })
+  const addFrom = async (item) => {
+    await main.click('[data-testid="files-add-menu"]')
+    await main.click(`[data-testid="${item}"]`)
+  }
   await answer('__open', join(picks, 'release.tar'))
-  await main.click('[data-testid="files-add"]')
+  await addFrom('files-add')
   await main.waitForSelector('[data-testid="files-job"][data-stage="done"] >> text=release.tar')
-  assert.deepEqual(latest('files/import').params, { paths: [join(picks, 'release.tar')], folder: 'root' })
+  assert.deepEqual(latest('files/import').params, { paths: [join(picks, 'release.tar')], folder: 'root', keep_both: false })
   await main.waitForSelector('[data-testid="files-name"] >> text=release.tar')
+  // The same name again: the main process asks, and Keep Both stands the
+  // file beside the first one.
+  await answer('__open', join(picks, 'release.tar'))
+  await answer('__box', 1)
+  await addFrom('files-add')
+  await waitFor(() => latest('files/import').params.keep_both === true)
+  await main.waitForSelector('[data-testid="files-list"] >> text=release (2).tar')
+  // Delete moves the selected row to the trash, and the notice takes it back.
+  await main.click('[data-testid="files-list"] >> text=release (2).tar')
+  await main.keyboard.press('Delete')
+  await waitFor(() => latest('files/trash')?.params.ids[0] === '2a'.repeat(32))
+  await main.click('[data-testid="files-trashed"] [data-testid="toast-action"]')
+  await waitFor(() => latest('files/restore'))
+  assert.deepEqual(latest('files/restore').params, { ids: ['2a'.repeat(32)] })
+  await main.waitForSelector('[data-testid="files-list"] >> text=release (2).tar')
   const imports = calls.filter((c) => c.method === 'files/import').length
   await main.evaluate(() => {
     const transfer = new DataTransfer()
@@ -1211,13 +1269,21 @@ try {
   assert.deepEqual(latest('files/trash').params, { ids: ['26'.repeat(32)] })
   await main.click('[data-testid="files-scope-trash"]')
   await main.waitForSelector('[data-testid="files-trash"] >> text=release.tar')
+  // Deleting for good asks first.
+  await main.click('[data-testid="files-trash-purge"]')
+  await main.waitForSelector('[data-testid="files-purge-dialog"]')
+  assert.equal(calls.filter((c) => c.method === 'files/purge').length, 0)
+  await main.click('[data-testid="files-purge-confirm"]')
+  await waitFor(() => latest('files/purge'))
+  assert.deepEqual(latest('files/purge').params, { ids: ['26'.repeat(32)] })
+  await main.waitForSelector('[data-testid="files-trash"] >> text=release.tar', { state: 'detached' })
   await main.click('[data-testid="files-scope-root"]')
   // A picked folder's card ends with the import, though its files carry
   // their own names; a row's menu then moves a file into that folder.
   await answer('__open', join(picks, 'develop'))
-  await main.click('[data-testid="files-add-folder"]')
+  await addFrom('files-add-folder')
   await main.waitForSelector('[data-testid="files-job"][data-stage="done"] >> text=develop')
-  assert.deepEqual(latest('files/import').params, { paths: [join(picks, 'develop')], folder: 'root' })
+  assert.deepEqual(latest('files/import').params, { paths: [join(picks, 'develop')], folder: 'root', keep_both: false })
   await main.waitForSelector('[data-testid="files-list"] >> text=deploy.pem')
   await main.click('[data-testid="files-list"] >> text=report.pdf', { button: 'right' })
   await main.click('[data-testid="files-row-menu"] >> text=/Move to…/')
@@ -1225,6 +1291,11 @@ try {
   await main.click('[data-testid="files-folder-pick"]')
   await waitFor(() => latest('files/move'))
   assert.deepEqual(latest('files/move').params, { ids: ['23'.repeat(32)], folder: '29'.repeat(32) })
+  // A selected folder shows what lies under it.
+  await main.click('[data-testid="files-list"] [data-kind="folder"] >> text=develop')
+  await main.waitForSelector('[data-testid="files-folder-facts"] >> text=/files/')
+  await settled(main, '[data-testid="files-folder-detail"]')
+  await main.screenshot({ path: join(shots, 'files-folder.png') })
   await main.click('nav >> text=/^(Vault|秘密库)$/')
 
   // Signatures: an application action and attestation bundles enter and
@@ -1256,6 +1327,14 @@ try {
   await main.waitForSelector('[data-testid="local-accounts"]')
   await main.waitForSelector('[data-testid="settings-legacy"]')
   assert.ok((await main.textContent('[data-testid="local-accounts"]')).includes(other))
+  // Files: allowing the disk mount asks in a system dialog, and the main
+  // process writes the choice for the daemon to read.
+  await main.click('[data-testid="settings-files"]')
+  await main.waitForSelector('[data-testid="files-settings"]')
+  await answer('__box', 0)
+  await main.click('[data-testid="files-settings-mount"]')
+  await waitFor(() => latest('files/preferences_reload'))
+  assert.deepEqual(JSON.parse(await readFile(join(profile, 'home', 'preferences.json'), 'utf8')), { files_mount: true })
   // About dMsg: the app's version; a development run checks for no updates,
   // and only the main window reaches them.
   await main.click('[data-testid="settings-about"]')

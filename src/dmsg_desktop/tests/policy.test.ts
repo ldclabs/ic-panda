@@ -14,6 +14,7 @@ test('windows never decide or grant, and never send human', () => {
     'files/import',
     'files/export',
     'files/open',
+    'files/preferences_reload',
     'profile/avatar',
     'legacy/import',
     'legacy/file',

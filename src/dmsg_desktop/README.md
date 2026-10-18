@@ -62,23 +62,41 @@ desktop is one of its clients, like the CLI.
     open item side by side, with a context menu on each row; new items in a
     dialog, edits in place; conflict copies compared side by side, line by
     line, and kept or adopted. The command palette finds items by title.
-  - Files: the library's folders, starred files, the cloud backups and the
-    trash on the left; the current folder in the middle (search within it,
-    or across the library once the text leaves it); the selected file on
-    the right with its preview, tags, note, versions and what each version
-    has (on this device, backed up, only in the cloud). Files come in from
-    the system dialog (files or a folder) or a drop into the folder shown,
-    encrypted as they arrive, and rows drag into the tree's folders.
-    Backing up asks first and shows the cloud's room; sharing to a channel
-    sends a fresh edition under its own key; the sidebar's foot mounts the
-    library as a disk when the daemon allows it (`files_mount`), after the
-    system's caveat; deleting a cloud copy is a
-    second, danger-toned confirmation and leaves the device alone, as the
-    trash leaves the cloud alone. A backup under way can be cancelled
-    from its card. Open hands a temporary copy to its
-    program; a copy another program changed is offered as a new version
-    before it is removed (`files/open_changed`). Routes `/files`,
-    `/files/cloud`, `/files/trash`.
+  - Files: the library's folders (each with a context menu), starred
+    files, the tags, the cloud backups and the trash on the left; the
+    current folder in the middle, with a breadcrumb back up, a sort (name,
+    time, size, type, kept per window) and its rows rendered a page at a
+    time (search within it, or across the library once the text leaves it,
+    the results showing where they lie); the selected file on the right
+    with a preview of any version, tags, note, file statements, versions
+    and what each version has (on this device, backed up, only in the
+    cloud), or the selected folder with its counts and backup states. The
+    + menu adds files or a folder from the system dialog, which comes in as
+    a folder, or makes a new one; drops go into the folder shown or the
+    folder of the list or tree they land on. A name already in the folder
+    is asked about in a system dialog (a new version, or both kept). An
+    import shows one card per file or picked folder and can be cancelled.
+    Rows drag into folders; several selected rows back up, move, export,
+    star or go to the trash together, and the keyboard selects (⌘A,
+    Shift+arrows), opens (Enter), renames (F2), trashes (Delete, ⌘⌫) and
+    goes up (⌘↑). Moving to the trash can be undone from its notice;
+    deleting for good, deleting a version and freeing a version's local
+    space ask first. Backing up asks first and shows the cloud's room and
+    what is not yet in it; sharing to a channel sends a fresh edition under
+    its own key; a file statement over a version's SHA-256 is signed in the
+    approval window and its bundle exported from the file; a folder's agent
+    access (`files.read`, `files.write`) is granted from its menu. The
+    sidebar's foot checks the whole library, lists the plaintext copies
+    still open, and mounts the library as a disk when allowed (`files_mount`
+    or Settings › Files, which asks in a system dialog), after the system's
+    caveat; deleting a cloud copy is a second, danger-toned confirmation
+    and leaves the device alone, as the trash leaves the cloud alone. The
+    cloud view reads the relay once when it first opens, and a backup is
+    fetched where it was or into a folder picked. A backup under way can be
+    cancelled from its card. Open hands a temporary copy to its program; a
+    copy another program changed is offered as a new version before it is
+    removed (`files/open_changed`). Routes `/files`, `/files/cloud`,
+    `/files/trash`.
   - Channels: the list, the open channel's timeline by day and its
     composer, and the members in a drawer. A channel opens with its latest
     200 messages and then reads only those after the last one shown. The
@@ -116,13 +134,14 @@ desktop is one of its clients, like the CLI.
     allowance as a meter; exporting bundles, and verifying one into a
     report.
   - Settings, in sections with their own routes (`/settings/session`,
-    `security`, `devices`, `profile`, `browsers`, `legacy`, `about`): this
-    session and the device's accounts, fast unlock (on after every login
-    unlock unless turned off here; it shows how it checks the person) and
-    when the login expires, creating or joining an account,
+    `security`, `devices`, `profile`, `browsers`, `files`, `legacy`,
+    `about`): this session and the device's accounts, fast unlock (on after
+    every login unlock unless turned off here; it shows how it checks the
+    person) and when the login expires, creating or joining an account,
     pairing and recovery, account security, devices, the public profile
-    with its avatar, connected browsers, the legacy migration, and About
-    dMsg with the app's version and its update.
+    with its avatar, connected browsers, the file library's settings (the
+    disk mount, the trash's days), the legacy migration, and About dMsg
+    with the app's version and its update.
 
   Every login, from the gate rail, a locked view, the account menu, the
   palette, Settings or "Bind another login", runs one flow

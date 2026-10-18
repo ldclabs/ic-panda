@@ -42,6 +42,8 @@ const api: DesktopBridge = {
       : Promise.reject(new Error('INVALID_INPUT: Not files on this device'))
   },
   filesExport: (id, version, name) => unwrap(ipcRenderer.invoke('dmsg:files-export', id, version, name)),
+  filesExportMany: (items) => unwrap(ipcRenderer.invoke('dmsg:files-export-many', items)),
+  filesPreferences: (changes) => unwrap(ipcRenderer.invoke('dmsg:files-preferences', changes)),
   filesOpen: (id, version) => unwrap(ipcRenderer.invoke('dmsg:files-open', id, version)),
   avatar: (remove) => unwrap(ipcRenderer.invoke('dmsg:avatar', remove === true)),
   copySecret: (id) => unwrap(ipcRenderer.invoke('dmsg:copy-secret', id)),

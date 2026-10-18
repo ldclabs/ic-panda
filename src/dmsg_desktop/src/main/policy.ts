@@ -17,7 +17,10 @@ import { DaemonError } from './error.ts'
  * dialogs or a drop the preload resolves to a path (`files/import`,
  * `files/export`, `files/open`), as do shared channel files, application
  * actions, attestation bundles, legacy transfer files, frozen-history files
- * and old attachments.
+ * and old attachments. The file library's settings change only through the
+ * main process, which writes `preferences.json` (allowing the disk mount
+ * after a system dialog) and has the daemon read it
+ * (`files/preferences_reload`).
  * `ap/call` runs only the Mail and Knowledge tools (`DESKTOP_TOOLS`) as a
  * hosted Agent ID; the MCP Events methods only manage endpoints, never read
  * or acknowledge deliveries. The agent methods (`mcp/*`) answer only an
@@ -60,11 +63,13 @@ export const WINDOW_METHODS = new Set([
   'files/tree',
   'files/show',
   'files/search',
+  'files/tags',
   'files/mkdir',
   'files/rename',
   'files/move',
   'files/update',
   'files/preview',
+  'files/open_list',
   'files/open_cleanup',
   'files/version_use',
   'files/version_delete',
@@ -88,6 +93,8 @@ export const WINDOW_METHODS = new Set([
   'files/mount',
   'files/unmount',
   'files/mount_status',
+  'files/preferences',
+  'files/import_cancel',
   'files/share_link',
   'files/share_links',
   'files/share_revoke',

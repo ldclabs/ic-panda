@@ -31,6 +31,16 @@
         ></span>
       {/if}
       <span class="min-w-0 flex-1">{item.text(left)}</span>
+      {#if item.action}
+        <button
+          class={buttonClass('ghost', 'xs', 'font-semibold text-paper hover:not-disabled:bg-paper/15 hover:not-disabled:text-paper')}
+          onclick={() => {
+            dismiss(item.id)
+            item.action?.run()
+          }}
+          data-testid="toast-action">{item.action.label}</button
+        >
+      {/if}
       <button
         class={buttonClass('ghost', 'xs', 'text-paper/75 hover:not-disabled:bg-paper/15 hover:not-disabled:text-paper')}
         aria-label={t('dismiss')}

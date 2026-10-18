@@ -22,7 +22,7 @@ import {
   type IpcMainInvokeEvent
 } from 'electron'
 import { readFileSync } from 'node:fs'
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { isAppearance, type Appearance } from '../shared/appearance'
@@ -293,9 +293,12 @@ handle('dmsg:open-login', 'main', async (_event, url: string) => {
 /**
  * Files reach the daemon only by paths the person picked in a system dialog
  * or dropped on the window: the preload resolves a dropped file to its path,
- * which a window cannot name. The window hears the names before the import
- * starts, for its progress; the daemon's `files/progress` events follow. The
- * answer names them again, since a folder's files carry their own names.
+ * which a window cannot name. A name already in the folder is asked about
+ * first: a new version of that file (or the files into that folder), or both
+ * kept. The window then hears the names, and the paths of the folders among
+ * them, before the import starts, for its progress; the daemon's
+ * `files/progress` events follow. The answer names them again, since a
+ * folder's files carry their own names.
  */
 handle('dmsg:files-add', 'main', async (event, folder: string, dropped: string[] | null, directory: boolean) => {
   let paths = Array.isArray(dropped) ? dropped.filter((p): p is string => typeof p === 'string' && !!p) : []
@@ -307,9 +310,82 @@ handle('dmsg:files-add', 'main', async (event, folder: string, dropped: string[]
     if (picked.canceled || !picked.filePaths.length) return null
     paths = picked.filePaths
   }
+  const target = String(folder || 'root')
+  const folders: string[] = []
+  for (const path of paths) if ((await stat(path).catch(() => null))?.isDirectory()) folders.push(path)
+  const listing = (await daemon.call('files/list', { folder: target })) as { files: { name: string }[]; folders: { name: string }[] }
+  const taken = paths.filter((p) => (folders.includes(p) ? listing.folders : listing.files).some((f) => f.name === basename(p)))
+  let keepBoth = false
+  if (taken.length) {
+    const { response } = await dialog.showMessageBox(main!, {
+      type: 'question',
+      message: text.nameTaken(taken.length, basename(taken[0])),
+      detail: text.nameTakenDetail,
+      buttons: [text.asNewVersion, text.keepBoth, text.cancel],
+      defaultId: 0,
+      cancelId: 2
+    })
+    if (response === 2) return null
+    keepBoth = response === 1
+  }
   const names = paths.map((p) => basename(p))
-  event.sender.send('dmsg:event', { type: 'files/adding', data: { names } })
-  return { names, files: await daemon.call('files/import', { paths, folder: String(folder || 'root') }) }
+  event.sender.send('dmsg:event', { type: 'files/adding', data: { names, folders } })
+  return { names, files: await daemon.call('files/import', { paths, folder: target, keep_both: keepBoth }) }
+})
+/** `name` in `dir`, or `name (2)` and so on when taken. */
+async function freePath(dir: string, name: string): Promise<string> {
+  const dot = name.lastIndexOf('.')
+  const [stem, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, '']
+  for (let n = 1; ; n++) {
+    const path = join(dir, n === 1 ? name : `${stem} (${n})${extension}`)
+    if (!(await stat(path).catch(() => null))) return path
+  }
+}
+/** Several library files at once, into a folder the person picks; null when cancelled. */
+handle('dmsg:files-export-many', 'main', async (_event, items: { id: string; name: string }[]) => {
+  const list = Array.isArray(items) ? items : []
+  const picked = await dialog.showOpenDialog(main!, { title: text.pickExportFolder, properties: ['openDirectory', 'createDirectory'] })
+  const dir = picked.canceled ? null : picked.filePaths[0]
+  if (!dir) return null
+  for (const item of list) await daemon.call('files/export', { id: String(item.id), version: null, path: await freePath(dir, basename(String(item.name))) })
+  return { dir, count: list.length }
+})
+/**
+ * The file library's settings, kept in the home's `preferences.json`, which
+ * the daemon reads and never takes from a request. Allowing the disk mount
+ * asks in a system dialog first, which no window can answer.
+ */
+handle('dmsg:files-preferences', 'main', async (_event, changes: { files_mount?: boolean; files_trash_days?: number }) => {
+  const path = join(home, 'preferences.json')
+  let kept: { files_mount?: boolean; files_trash_days?: number } = {}
+  try {
+    kept = JSON.parse(await readFile(path, 'utf8'))
+  } catch {
+    /* none yet */
+  }
+  const next = { files_mount: kept.files_mount === true, files_trash_days: kept.files_trash_days }
+  if (typeof changes?.files_mount === 'boolean' && changes.files_mount !== next.files_mount) {
+    if (changes.files_mount) {
+      const { response } = await dialog.showMessageBox(main!, {
+        type: 'warning',
+        message: text.mountAllow,
+        detail: text.mountAllowDetail,
+        buttons: [text.allow, text.cancel],
+        defaultId: 1,
+        cancelId: 1
+      })
+      if (response !== 0) return null
+    }
+    next.files_mount = changes.files_mount
+  }
+  if (changes?.files_trash_days !== undefined) {
+    const days = Number(changes.files_trash_days)
+    if (!Number.isInteger(days) || days < 1 || days > 365) throw new DaemonError('INVALID_INPUT', 'files_trash_days')
+    next.files_trash_days = days
+  }
+  await mkdir(home, { recursive: true })
+  await writeFile(path, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 })
+  return daemon.call('files/preferences_reload')
 })
 handle('dmsg:files-export', 'main', async (_event, id: string, version: string | null, name: string) => {
   const path = await pickSave({ defaultPath: basename(String(name)) })

@@ -1,29 +1,34 @@
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui'
+  import { onMount } from 'svelte'
   import { copyText } from '../../components/clipboard'
   import { localeDir } from '../../../shared/locales'
+  import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
+  import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import TagInput from '../../components/TagInput.svelte'
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { ago, call, errorText, size, when } from '../../rpc'
+  import { ago, bridge, call, errorText, onChange, size, when } from '../../rpc'
   import { fileIcon, originLabel, previewable, statusIcon, statusLabel, statusOf, statusTone, type Status } from './files'
 
   /**
-   * One file, opened: a preview, its tags and note, where each version
-   * stands (on this device, in the cloud, both) and what can be done with
-   * it. Backups, sharing and deleting are explicit actions here; nothing
-   * about the file leaves the device otherwise. Each change comes back
-   * through the daemon's `files/changed`.
+   * One file, opened: a preview of any version, its tags and note, where
+   * each version stands (on this device, in the cloud, both), the file
+   * statements signed over its versions, and what can be done with it.
+   * Backups, sharing, deleting and statements are explicit actions here;
+   * nothing about the file leaves the device otherwise. Each change comes
+   * back through the daemon's `files/changed`.
    */
   let {
     file,
     versions,
     trash,
     unlocked,
+    device,
     onOpen,
     onExport,
     onBackup,
@@ -34,6 +39,7 @@
     onRefreshLinks,
     onMove,
     onRename,
+    onReveal,
     onDiscard,
     onDeleteCloud
   }: {
@@ -41,6 +47,8 @@
     versions: any[]
     trash: boolean
     unlocked: boolean
+    /** This device's ID, to name the versions made here. */
+    device: string
     onOpen: (version: string | null) => void
     onExport: (version: string | null) => void
     onBackup: (allVersions: boolean) => void
@@ -51,6 +59,7 @@
     onRefreshLinks: () => void
     onMove: () => void
     onRename: () => void
+    onReveal: () => void
     onDiscard: () => void
     onDeleteCloud: (uploads: string[]) => void
   } = $props()
@@ -58,13 +67,22 @@
   let busy = $state(false)
   let preview = $state<{ kind: string; mime: string; url?: string; text?: string; thumbnail: boolean } | null>(null)
   let previewFor = $state('')
+  /** A version other than the current one being previewed. */
+  let previewing = $state<any | null>(null)
   let note = $state('')
   let editingNote = $state(false)
   let checked = $state('')
+  /** A version about to be deleted or have its local chunks freed. */
+  let confirming = $state<{ kind: 'delete' | 'evict'; version: any } | null>(null)
+  /** A statement being written over a version. */
+  let stating = $state<{ version: any; text: string } | null>(null)
+  let statements = $state<any[]>([])
 
   const status = $derived<Status>(statusOf(file.status))
   const current = $derived(versions.find((v) => v.current) ?? versions.at(-1))
   const canRead = $derived(unlocked && !trash && status !== 'cloud_only')
+  const digests = $derived(new Set(versions.map((v) => v.sha256)))
+  const mine = $derived(statements.filter((s) => s.statement?.profile === 'file_statement' && digests.has(s.statement.content?.sha256)))
 
   async function attempt(work: () => Promise<unknown>, done?: string) {
     busy = true
@@ -78,14 +96,15 @@
     }
   }
 
-  // The preview follows the current version; a failure leaves none.
+  // The preview follows the current version, or the one asked for; a failure leaves none.
   $effect(() => {
-    const key = `${file.id}:${file.current}:${status}`
+    const version = previewing?.id ?? null
+    const key = `${file.id}:${version ?? file.current}:${status}`
     if (previewFor === key) return
     previewFor = key
     preview = null
-    if (!canRead || !previewable(file.mime)) return
-    void call('files/preview', { id: file.id })
+    if (!unlocked || trash || (!version && status === 'cloud_only') || !previewable(file.mime)) return
+    void call('files/preview', { id: file.id, version })
       .then((p: any) => {
         if (previewFor !== key) return
         if (p.kind === 'image' && p.content_base64url) preview = { kind: 'image', mime: p.mime, url: `data:${p.mime};base64,${toBase64(p.content_base64url)}`, thumbnail: !!p.thumbnail }
@@ -105,6 +124,10 @@
     return new TextDecoder().decode(bytes)
   }
 
+  const loadStatements = async () => {
+    statements = unlocked ? await call<any[]>('attest/history').catch(() => []) : []
+  }
+
   const star = () => attempt(() => call('files/update', { id: file.id, starred: !file.starred }))
   const tags = (next: string[]) => attempt(() => call('files/update', { id: file.id, tags: next }))
   const saveNote = () =>
@@ -120,11 +143,38 @@
       checked = bad.length ? `${t('error')}: ${bad[0].error}` : `${t('verified')} · ${size(file.size)} · sha256 ${String(file.sha256).slice(0, 16)}…`
     })
   const useVersion = (version: string) => attempt(() => call('files/version_use', { id: file.id, version }))
-  const deleteVersion = (version: string) => attempt(() => call('files/version_delete', { id: file.id, version }))
-  const evict = (version: string) => attempt(() => call('files/evict', { id: file.id, version }))
+  const settleVersion = () =>
+    attempt(async () => {
+      if (!confirming) return
+      const { kind, version } = confirming
+      await call(kind === 'delete' ? 'files/version_delete' : 'files/evict', { id: file.id, version: version.id })
+      if (previewing?.id === version.id) previewing = null
+      confirming = null
+    })
+  /** A statement over a version's digest, signed in the approval window. */
+  const signStatement = () =>
+    attempt(async () => {
+      if (!stating?.text.trim()) return
+      const request: any = await call('attest/request', {
+        statement: { profile: 'file_statement', text: stating.text.trim(), sha256: stating.version.sha256, content_type: file.mime || null, subject: file.name }
+      })
+      stating = null
+      await bridge(() => window.dmsg.openApproval(request.id))
+    })
+  const exportBundle = (execution: string) =>
+    attempt(async () => {
+      const saved = await bridge<{ path: string } | null>(() => window.dmsg.exportBundle(execution))
+      if (saved) toast(() => `${t('bundleSaved')}: ${saved.path}`)
+    })
+
+  onMount(() => {
+    void loadStatements()
+    return onChange(['approval/changed'], loadStatements)
+  })
 
   const tones: Record<string, string> = { neutral: 'text-faint', forest: 'text-forest', gem: 'text-gem', warn: 'text-warn', danger: 'text-danger', ok: 'text-ok' }
   const dateFormat = $derived(new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }))
+  const deviceName = (id: string) => (id && device && id.toLowerCase() === device.toLowerCase() ? t('thisDevice') : t('fromDevice', { device: String(id ?? '').slice(0, 8) }))
 </script>
 
 {#snippet row(label: string)}
@@ -132,21 +182,27 @@
 {/snippet}
 
 <section class="@container flex h-full min-w-0 flex-col" aria-label={file.name} data-testid="files-detail">
-  <header class="flex items-start gap-3 px-6 pt-5 pb-4">
-    <span class="grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest shadow-xs [&_svg]:size-5">
-      <Icon name={fileIcon(file.mime)} />
-    </span>
-    <div class="min-w-0 flex-1">
-      <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="files-name">{file.name}</h2>
-      <div class="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-faint">
-        <span>{size(file.size)}</span>
-        <span>·</span>
-        <span class="truncate">/{[...(file.path ?? [])].join('/')}</span>
-        <Pill tone={statusTone[status]} testid="files-status"><Icon name={statusIcon[status]} />{t(statusLabel[status])}</Pill>
+  <header class="flex flex-wrap items-start gap-x-3 gap-y-2 px-6 pt-5 pb-4">
+    <div class="flex min-w-[min(100%,15rem)] flex-1 items-start gap-3">
+      <span class="grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest shadow-xs [&_svg]:size-5">
+        <Icon name={fileIcon(file.mime)} />
+      </span>
+      <div class="min-w-0 flex-1">
+        <h2 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]" data-testid="files-name">{file.name}</h2>
+        <div class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] text-faint">
+          <span class="whitespace-nowrap">{size(file.size)}</span>
+          <span>·</span>
+          {#if trash}
+            <span class="truncate" dir="ltr">/{[...(file.path ?? [])].join('/')}</span>
+          {:else}
+            <button class="truncate hover:text-ink hover:underline" dir="ltr" title={t('revealInFolder')} onclick={onReveal} data-testid="files-reveal">/{[...(file.path ?? [])].join('/')}</button>
+          {/if}
+          <Pill tone={statusTone[status]} testid="files-status"><Icon name={statusIcon[status]} />{t(statusLabel[status])}</Pill>
+        </div>
       </div>
     </div>
     {#if unlocked}
-      <div class="flex shrink-0 items-center gap-1">
+      <div class="ms-auto flex shrink-0 items-center gap-1">
         {#if trash}
           <button class={buttonClass('secondary', 'md')} disabled={busy} onclick={onDiscard} data-testid="files-restore">
             <Icon name="restore" />{t('restore')}
@@ -188,6 +244,9 @@
                 <DropdownMenu.Item class={menuItemClass} disabled={!canRead || status === 'too_large'} onSelect={() => onLink(null)} data-testid="files-link">
                   <span class="flex items-center gap-2"><Icon name="link" class="text-faint" />{t('shareByLink')}</span>
                 </DropdownMenu.Item>
+                <DropdownMenu.Item class={menuItemClass} disabled={!current} onSelect={() => (stating = { version: current, text: '' })} data-testid="files-state">
+                  <span class="flex items-center gap-2"><Icon name="signature" class="text-faint" />{t('fileStatement')}</span>
+                </DropdownMenu.Item>
                 <DropdownMenu.Item class={menuItemClass} disabled={!versions.some((v) => v.status === 'local')} onSelect={() => onBackup(true)}>
                   <span class="flex items-center gap-2"><Icon name="cloud-up" class="text-faint" />{t('backUpAll')}</span>
                 </DropdownMenu.Item>
@@ -226,6 +285,12 @@
   <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
     {#if preview}
       <div class="mb-3 overflow-hidden rounded-xl border border-line bg-surface-2 shadow-xs" data-testid="files-preview">
+        {#if previewing}
+          <div class="flex items-center gap-2 border-b border-line px-3 py-1.5 text-[11.5px] text-muted" data-testid="files-preview-version">
+            <span class="min-w-0 flex-1 truncate">{t('previewOf', { time: dateFormat.format(previewing.created_at) })}</span>
+            <button class="shrink-0 text-forest hover:underline" onclick={() => (previewing = null)}>{t('backToCurrent')}</button>
+          </div>
+        {/if}
         {#if preview.kind === 'image'}
           <img src={preview.url} alt={file.name} class="mx-auto max-h-72 object-contain" />
           {#if preview.thumbnail}<p class="px-3 py-1.5 text-[11px] text-faint">{t('thumbnail')}</p>{/if}
@@ -246,7 +311,10 @@
       </div>
       <div class="grid gap-x-4 py-1.5 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-center">
         {@render row('SHA-256')}
-        <dd class="min-w-0 truncate font-mono text-[12px] select-text" dir="ltr">{file.sha256}</dd>
+        <dd class="flex min-w-0 items-center gap-1">
+          <span class="min-w-0 flex-1 truncate font-mono text-[12px] select-text" dir="ltr">{file.sha256}</span>
+          <button class={buttonClass('ghost', 'xs', 'size-6 shrink-0 px-0')} aria-label={t('copy')} onclick={() => copyText(file.sha256)} data-testid="files-copy-sha"><Icon name="copy" /></button>
+        </dd>
       </div>
       <div class="grid gap-x-4 py-2 @min-[440px]:grid-cols-[112px_1fr] @min-[440px]:items-start">
         {@render row(t('tags'))}
@@ -264,13 +332,14 @@
         {@render row(t('noteLabel'))}
         <dd class="min-w-0">
           {#if editingNote}
-            <textarea bind:value={note} rows="3" class="text-[13px] text-ink" placeholder={t('notePlaceholder')} data-testid="files-note"></textarea>
+            <!-- svelte-ignore a11y_autofocus -->
+            <textarea bind:value={note} rows="3" class="text-[13px] text-ink" placeholder={t('notePlaceholder')} autofocus onkeydown={(event) => event.key === 'Escape' && (editingNote = false)} data-testid="files-note"></textarea>
             <div class="mt-1.5 flex justify-end gap-2">
               <button class={buttonClass('ghost', 'sm')} onclick={() => (editingNote = false)}>{t('cancel')}</button>
               <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={saveNote} data-testid="files-note-save">{t('save')}</button>
             </div>
           {:else}
-            <button class="w-full rounded-lg px-1 py-0.5 text-start text-[13px] leading-relaxed whitespace-pre-wrap hover:bg-wash disabled:hover:bg-transparent" disabled={!unlocked || trash} onclick={() => (editingNote = true)}>
+            <button class={cn('w-full rounded-lg px-1 py-0.5 text-start text-[13px] leading-relaxed whitespace-pre-wrap hover:bg-wash disabled:hover:bg-transparent', !file.note && 'text-faint')} disabled={!unlocked || trash} onclick={() => (editingNote = true)}>
               {file.note || (unlocked && !trash ? t('notePlaceholder') : '—')}
             </button>
           {/if}
@@ -295,7 +364,7 @@
             <Icon name="link" class="shrink-0 text-faint" />
             <span class="min-w-0 flex-1">
               <span class="block truncate">{link.state === 'active' ? t('linkStateActive') : link.state === 'revoked' ? t('linkStateRevoked') : t('linkStateExpired')} · {t('linkDownloads', { n: link.downloads })}{link.max_downloads ? ` / ${link.max_downloads}` : ''}{link.password ? ` · ${t('linkPassword')}` : ''}</span>
-              <span class="block truncate text-[11px] text-faint">{t('linkExpires', { time: new Date(link.expires_at).toLocaleString() })}</span>
+              <span class="block truncate text-[11px] text-faint">{t('linkExpires', { time: when(link.expires_at) })}</span>
             </span>
             {#if link.url && link.state === 'active'}
               <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(link.url)} aria-label={t('linkCopy')}><Icon name="copy" /></button>
@@ -307,6 +376,27 @@
         {/each}
       </ul>
     {/if}
+
+    {#if mine.length}
+      <h3 class="mt-5 mb-2 text-[12px] font-medium text-faint">{t('fileStatements')} · {mine.length}</h3>
+      <ul class="grid gap-1.5" data-testid="files-statements">
+        {#each mine as entry (entry.execution)}
+          {@const version = versions.find((v) => v.sha256 === entry.statement.content.sha256)}
+          <li class="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px]">
+            <Icon name="signature" class="shrink-0 text-faint" />
+            <span class="min-w-0 flex-1">
+              <span class="block truncate">{entry.statement.content.text ?? entry.statement.profile}</span>
+              <span class="block truncate text-[11px] text-faint">{when(entry.created_at)}{version ? ` · ${t('versionOf', { time: dateFormat.format(version.created_at) })}` : ''}</span>
+            </span>
+            <Pill tone={entry.stage === 'complete' ? 'ok' : entry.error ? 'danger' : 'neutral'}>{entry.stage}</Pill>
+            {#if entry.stage === 'complete'}
+              <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => exportBundle(entry.execution)}>{t('exportBundle')}</button>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+
     <h3 class="mt-5 mb-2 text-[12px] font-medium text-faint">{t('versions')} · {versions.length}</h3>
     <ol class="divide-y divide-line rounded-xl border border-line bg-surface shadow-xs" data-testid="files-versions">
       {#each [...versions].reverse() as version (version.id)}
@@ -319,9 +409,10 @@
             <div class="flex flex-wrap items-center gap-1.5 text-[13px]">
               <span title={when(version.created_at)}>{dateFormat.format(version.created_at)}</span>
               {#if version.current}<Pill tone="forest">{t('current')}</Pill>{/if}
+              {#if previewing?.id === version.id}<Pill>{t('previewVersion')}</Pill>{/if}
             </div>
             <div class="text-[11.5px] text-faint">
-              {size(version.size)} · {t(originLabel[version.origin?.type] ?? 'originImported')} · {t('fromDevice', { device: String(version.device ?? '').slice(0, 8) })} · {t(statusLabel[vs])}
+              {size(version.size)} · {t(originLabel[version.origin?.type] ?? 'originImported')} · {deviceName(version.device)} · {t(statusLabel[vs])}
               {#if version.backup}
                 · {t('statusBackedUp')} {ago(version.backup.backed_up_at)}
               {/if}
@@ -338,6 +429,9 @@
                     <DropdownMenu.Item class={menuItemClass} onSelect={() => useVersion(version.id)}>
                       <span class="flex items-center gap-2"><Icon name="check" class="text-faint" />{t('useVersion')}</span>
                     </DropdownMenu.Item>
+                    <DropdownMenu.Item class={menuItemClass} disabled={!version.local || !previewable(file.mime)} onSelect={() => (previewing = version)} data-testid="files-version-preview">
+                      <span class="flex items-center gap-2"><Icon name="eye" class="text-faint" />{t('previewVersion')}</span>
+                    </DropdownMenu.Item>
                   {/if}
                   <DropdownMenu.Item class={menuItemClass} disabled={!version.local} onSelect={() => onOpen(version.id)}>
                     <span class="flex items-center gap-2"><Icon name="external" class="text-faint" />{t('openFile')}</span>
@@ -348,9 +442,12 @@
                   <DropdownMenu.Item class={menuItemClass} disabled={!version.local || version.size > 100 * 1024 * 1024} onSelect={() => onShare(version.id)}>
                     <span class="flex items-center gap-2"><Icon name="send" class="text-faint rtl:-scale-x-100" />{t('shareToChannel')}</span>
                   </DropdownMenu.Item>
+                  <DropdownMenu.Item class={menuItemClass} onSelect={() => (stating = { version, text: '' })}>
+                    <span class="flex items-center gap-2"><Icon name="signature" class="text-faint" />{t('fileStatement')}</span>
+                  </DropdownMenu.Item>
                   <DropdownMenu.Separator class="my-1 h-px bg-line" />
                   {#if version.backup?.verified && version.local}
-                    <DropdownMenu.Item class={menuItemClass} onSelect={() => evict(version.id)}>
+                    <DropdownMenu.Item class={menuItemClass} onSelect={() => (confirming = { kind: 'evict', version })} data-testid="files-version-evict">
                       <span class="flex items-center gap-2"><Icon name="cloud-down" class="text-faint" />{t('releaseLocal')}</span>
                     </DropdownMenu.Item>
                   {/if}
@@ -360,7 +457,7 @@
                     </DropdownMenu.Item>
                   {/if}
                   {#if versions.length > 1}
-                    <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={() => deleteVersion(version.id)}>
+                    <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={() => (confirming = { kind: 'delete', version })} data-testid="files-version-delete">
                       <span class="flex items-center gap-2"><Icon name="trash" />{t('deleteVersion')}</span>
                     </DropdownMenu.Item>
                   {/if}
@@ -381,3 +478,47 @@
     {/if}
   </footer>
 </section>
+
+<Dialog
+  bind:open={() => !!confirming, (next) => !next && (confirming = null)}
+  title={confirming?.kind === 'evict' ? t('releaseLocalTitle') : t('deleteVersionTitle')}
+  description={confirming ? dateFormat.format(confirming.version.created_at) : undefined}
+  icon={confirming?.kind === 'evict' ? 'cloud-down' : 'trash'}
+  tone={confirming?.kind === 'evict' ? undefined : 'danger'}
+  testid="files-version-dialog"
+>
+  {#if confirming?.kind === 'evict'}
+    <p class="text-[13.5px] leading-relaxed">{t('releaseLocalHint')}</p>
+  {:else if confirming}
+    {#if confirming.version.backup}
+      <p class="text-[13.5px] leading-relaxed">{t('deleteVersionHint')}</p>
+    {:else}
+      <Notice tone="warn">{t('deleteVersionUnbacked')}</Notice>
+    {/if}
+  {/if}
+  {#snippet footer()}
+    <span class="flex-1"></span>
+    <button class={buttonClass('ghost')} onclick={() => (confirming = null)}>{t('cancel')}</button>
+    <button class={buttonClass(confirming?.kind === 'evict' ? 'primary' : 'danger')} disabled={busy} onclick={settleVersion} data-testid="files-version-confirm">
+      {confirming?.kind === 'evict' ? t('releaseLocal') : t('deleteVersion')}
+    </button>
+  {/snippet}
+</Dialog>
+
+<Dialog bind:open={() => !!stating, (next) => !next && (stating = null)} title={t('fileStatement')} description={file.name} icon="signature" testid="files-statement-dialog">
+  {#if stating}
+    <div class="grid gap-3">
+      <Notice tone="info">{t('fileStatementHint')}</Notice>
+      <p class="truncate font-mono text-[11.5px] text-faint" dir="ltr">sha256 {stating.version.sha256}</p>
+      <label class="grid gap-1 text-[12px] text-faint">
+        {t('fileStatementText')}
+        <textarea bind:value={stating.text} rows="3" maxlength="4096" class="text-[13.5px] text-ink" data-testid="files-statement-text"></textarea>
+      </label>
+    </div>
+  {/if}
+  {#snippet footer()}
+    <span class="flex-1"></span>
+    <button class={buttonClass('ghost')} onclick={() => (stating = null)}>{t('cancel')}</button>
+    <button class={buttonClass('primary')} disabled={busy || !stating?.text.trim()} onclick={signStatement} data-testid="files-statement-sign"><Icon name="signature" />{t('fileStatement')}</button>
+  {/snippet}
+</Dialog>

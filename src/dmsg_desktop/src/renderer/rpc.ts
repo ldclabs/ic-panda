@@ -85,7 +85,7 @@ export function ago(ms?: number | null, now = Date.now()): string {
   return new Date(ms).toLocaleDateString(locale(), { month: 'short', day: 'numeric', year: new Date(ms).getFullYear() === new Date(now).getFullYear() ? undefined : 'numeric' })
 }
 
-/** A size in bytes, as the interface language writes it, in decimal units (1 kB is 1000 bytes). */
+/** A size in bytes, as the interface language writes it, in decimal units (1 kB is 1000 bytes); the number and its unit stay on one line. */
 export function size(bytes: number): string {
   const units = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte'] as const
   let value = bytes
@@ -94,7 +94,7 @@ export function size(bytes: number): string {
     value /= 1000
     unit++
   }
-  return new Intl.NumberFormat(locale(), { style: 'unit', unit: units[unit], unitDisplay: 'short', maximumFractionDigits: unit ? 1 : 0 }).format(value)
+  return new Intl.NumberFormat(locale(), { style: 'unit', unit: units[unit], unitDisplay: 'short', maximumFractionDigits: unit ? 1 : 0 }).format(value).replace(/ /g, '\u00a0')
 }
 
 /** An amount in base units as a decimal with `decimals` places. */
