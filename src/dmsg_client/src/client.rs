@@ -367,6 +367,104 @@ async fn agent(ic: &mut Option<Ic>, config: &Config, made: &mut Option<Ic>) -> R
     Ok(anonymous)
 }
 
+/// Other accounts' certified security, read without holding the client:
+/// [`Client::peers_of`] takes the public agent, the user homes and the home
+/// each account was met at, [`Peers::read`] asks the homes, and
+/// [`Client::peers_met`] keeps what it learned. It holds no key.
+pub struct Peers {
+    accounts: Vec<AccountId>,
+    config: Config,
+    /// The login's agent or the anonymous one; `None` before there is one.
+    ic: Option<Ic>,
+    /// The anonymous agent made on the way.
+    anonymous: Option<Ic>,
+    homes: Option<Vec<Principal>>,
+    /// The user home each account was met at.
+    met: BTreeMap<AccountId, Principal>,
+}
+
+impl Peers {
+    /// The accounts' certified security from their user homes, with the
+    /// public queries: their device maps side by side, from the home each
+    /// was met at or else the first that knows it, then one certified batch
+    /// per home.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` when no user home knows an account.
+    pub(crate) async fn read(&mut self) -> Result<Vec<(AccountId, Security)>> {
+        let ic = agent(&mut self.ic, &self.config, &mut self.anonymous).await?;
+        let homes = match &self.homes {
+            Some(homes) => homes.clone(),
+            None => {
+                let config =
+                    crate::account::user_homes(&ic, self.config.handle, &self.config.user_homes)
+                        .await?;
+                self.homes = Some(config.user_homes.clone());
+                config.user_homes
+            }
+        };
+        let lookups = self.accounts.iter().map(|account| {
+            let candidates = self
+                .met
+                .get(account)
+                .map_or_else(|| homes.clone(), |home| vec![*home]);
+            let ic = &ic;
+            async move {
+                for home in candidates {
+                    if let Ok((_, devices)) = device_bundle(ic, home, account).await? {
+                        return Ok((home, devices));
+                    }
+                }
+                Err(Error::NotFound)
+            }
+        });
+        let mut by_home: BTreeMap<Principal, Vec<Peer>> = BTreeMap::new();
+        for (account, (home, devices)) in self.accounts.iter().zip(try_join_all(lookups).await?) {
+            by_home.entry(home).or_default().push((*account, devices));
+        }
+        let groups: Vec<(Principal, Vec<Peer>)> = by_home
+            .into_iter()
+            .flat_map(|(home, peers)| {
+                peers
+                    .chunks(dmsg_types::MAX_BATCH)
+                    .map(|chunk| (home, chunk.to_vec()))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        let batches = try_join_all(groups.iter().map(|(home, peers)| {
+            let ids: Vec<AccountId> = peers.iter().map(|(account, _)| *account).collect();
+            let ic = &ic;
+            async move {
+                let batch: Result<CertifiedBatch> =
+                    ic.query(*home, "security_snapshot_batch", (ids,)).await?;
+                batch
+            }
+        }))
+        .await?;
+        let (root_key, now) = (ic.root_key(), now_ms());
+        let mut found = Vec::with_capacity(self.accounts.len());
+        for ((home, peers), batch) in groups.into_iter().zip(batches) {
+            for (account, devices) in peers {
+                let entry = batch
+                    .entries
+                    .iter()
+                    .find(|e| e.key.as_slice() == account.as_slice())
+                    .ok_or(Error::IntegrityFailed)?;
+                let single = CertifiedBatch {
+                    schema: batch.schema,
+                    canister: batch.canister,
+                    certificate: batch.certificate.clone(),
+                    entries: vec![entry.clone()],
+                };
+                let security = verify_security(home, &account, &single, devices, &root_key, now)?;
+                self.met.insert(account, home);
+                found.push((account, security));
+            }
+        }
+        Ok(found)
+    }
+}
+
 /// Whether `state` is the account's and has more than ten seconds left.
 fn fresh(state: &Security, account: &AccountId) -> bool {
     state.snapshot.account_id == *account && state.expires_at() > now_ms() + 10_000
@@ -1371,10 +1469,7 @@ impl Client {
         Ok(found)
     }
 
-    /// Other accounts' certified security from their user homes, with the
-    /// public queries: their device maps side by side, from the home each
-    /// was met at or else the first that knows it, then one certified batch
-    /// per home.
+    /// [`Peers::read`] of `accounts`, waiting on the network with the client.
     ///
     /// # Errors
     /// Returns `Error::NotFound` when no user home knows an account.
@@ -1382,67 +1477,42 @@ impl Client {
         &mut self,
         accounts: &[AccountId],
     ) -> Result<Vec<(AccountId, Security)>> {
-        let ic = self.reader().await?;
-        let homes = self.homes().await?;
-        let lookups = accounts.iter().map(|account| {
-            let candidates = self
-                .peers
-                .get(account)
-                .map_or_else(|| homes.clone(), |home| vec![*home]);
-            let ic = &ic;
-            async move {
-                for home in candidates {
-                    if let Ok((_, devices)) = device_bundle(ic, home, account).await? {
-                        return Ok((home, devices));
-                    }
-                }
-                Err(Error::NotFound)
-            }
-        });
-        let mut by_home: BTreeMap<Principal, Vec<Peer>> = BTreeMap::new();
-        for (account, (home, devices)) in accounts.iter().zip(try_join_all(lookups).await?) {
-            by_home.entry(home).or_default().push((*account, devices));
+        let mut peers = self.peers_of(accounts);
+        let found = peers.read().await;
+        self.peers_met(peers);
+        found
+    }
+
+    /// What reads `accounts` without the client, for a caller that lets go
+    /// of it while the user homes answer; [`Self::peers_met`] keeps what it
+    /// learned.
+    pub fn peers_of(&self, accounts: &[AccountId]) -> Peers {
+        Peers {
+            accounts: accounts.to_vec(),
+            config: self.config.clone(),
+            ic: match self.session() {
+                Ok(login) => Some(login.ic.clone()),
+                Err(_) => self.anonymous.clone(),
+            },
+            anonymous: None,
+            homes: self.homes.clone(),
+            met: accounts
+                .iter()
+                .filter_map(|account| Some((*account, *self.peers.get(account)?)))
+                .collect(),
         }
-        let groups: Vec<(Principal, Vec<Peer>)> = by_home
-            .into_iter()
-            .flat_map(|(home, peers)| {
-                peers
-                    .chunks(dmsg_types::MAX_BATCH)
-                    .map(|chunk| (home, chunk.to_vec()))
-                    .collect::<Vec<_>>()
-            })
-            .collect();
-        let batches = try_join_all(groups.iter().map(|(home, peers)| {
-            let ids: Vec<AccountId> = peers.iter().map(|(account, _)| *account).collect();
-            let ic = &ic;
-            async move {
-                let batch: Result<CertifiedBatch> =
-                    ic.query(*home, "security_snapshot_batch", (ids,)).await?;
-                batch
-            }
-        }))
-        .await?;
-        let (root_key, now) = (ic.root_key(), now_ms());
-        let mut found = Vec::with_capacity(accounts.len());
-        for ((home, peers), batch) in groups.into_iter().zip(batches) {
-            for (account, devices) in peers {
-                let entry = batch
-                    .entries
-                    .iter()
-                    .find(|e| e.key.as_slice() == account.as_slice())
-                    .ok_or(Error::IntegrityFailed)?;
-                let single = CertifiedBatch {
-                    schema: batch.schema,
-                    canister: batch.canister,
-                    certificate: batch.certificate.clone(),
-                    entries: vec![entry.clone()],
-                };
-                let security = verify_security(home, &account, &single, devices, &root_key, now)?;
-                self.peers.insert(account, home);
-                found.push((account, security));
-            }
+    }
+
+    /// Keep what `peers` learned: the user homes, the anonymous agent made
+    /// on the way and the home each account was met at.
+    pub fn peers_met(&mut self, peers: Peers) {
+        if let Some(ic) = peers.anonymous {
+            self.anonymous.get_or_insert(ic);
         }
-        Ok(found)
+        if let Some(homes) = peers.homes {
+            self.homes = Some(homes);
+        }
+        self.peers.extend(peers.met);
     }
 }
 

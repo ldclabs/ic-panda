@@ -3237,6 +3237,46 @@ fn desktop_channels() {
     b.run(&["channel", "send", &id, "member reply"]);
     assert!(texts(&a.run(&["channel", "read", &id])).contains(&"member reply".to_string()));
 
+    // An image of two chunks shown in place on either device, and the
+    // names the accounts publish: the daemons wait on the relay and the
+    // user homes without holding their clients.
+    let mut png = vec![9u8; 1024 * 1024 + 8];
+    png[..8].copy_from_slice(&[137, 80, 78, 71, 13, 10, 26, 10]);
+    let picture = env.dir.join("channel-image.png");
+    std::fs::write(&picture, &png).unwrap();
+    let item = a.run(&["files", "add", picture.to_str().unwrap()])[0]["file"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let image = a.run(&["channel", "send", &id, "a picture", "--file", &item]);
+    b.run(&["channel", "read", &id]);
+    let url = format!(
+        "data:image/png;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(&png)
+    );
+    for desktop in [a, b] {
+        let shown = desktop
+            .rpc(
+                &http,
+                "channel/preview",
+                json!({"id": id, "seq": image["receipt"]["seq"]}),
+            )
+            .unwrap();
+        assert_eq!(shown["url"], url.as_str());
+    }
+    a.run(&["profile", "publish", "--name", "Channel owner"]);
+    let names = b
+        .rpc(&http, "channel/names", json!({"accounts": [owner, member]}))
+        .unwrap();
+    assert_eq!(
+        (
+            &names[&owner],
+            &names[&member],
+            names.as_object().map(|n| n.len())
+        ),
+        (&json!("Channel owner"), &Value::Null, Some(2))
+    );
+
     // B answers a message of A, A edits it and withdraws another; each shows
     // through the message it names, on B's device as on A's.
     let refer =

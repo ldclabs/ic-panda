@@ -33,7 +33,9 @@ use crate::crypto::{
     sign,
 };
 use crate::evidence::{Trust, Verified};
-use crate::files::{BlobStore, FileManifest, MAX_FILE, Source, export_manifest, read_file};
+use crate::files::{
+    BlobStore, FileManifest, MAX_FILE, Source, chunk_count, export_manifest, read_file,
+};
 use crate::library::catalog::Origin;
 use crate::library::import::Imported;
 use crate::now_ms;
@@ -64,7 +66,7 @@ const BILLING_TRANSFER: &str = "dmsg/channel/billing/transfer/v1";
 const CURSOR: &str = "dmsg/channel/cursor/v1";
 const LOCAL: &str = "channel:";
 const LOG: &str = "channel-control:";
-const INBOX: &str = "channel-msg:";
+pub(crate) const INBOX: &str = "channel-msg:";
 const JOB: &str = "channel-job:";
 /// The chunks of channel uploads in flight, by upload, until their plans lapse.
 const UPLOADS: &str = "channel-uploads";
@@ -531,6 +533,9 @@ pub struct Reading {
     /// Channel ID.
     pub channel: String,
     step: Step,
+    /// The control cursor this device held when the page of the log, or the
+    /// head, now on its way was asked for.
+    control: u64,
     /// Read messages after the control log.
     messages: bool,
     /// Messages read again in `(after, through]`, the cursor untouched.
@@ -562,6 +567,7 @@ impl Reading {
         Self {
             channel: channel.into(),
             step: Step::Control,
+            control: 0,
             messages: false,
             range: None,
             granting: false,
@@ -591,6 +597,19 @@ pub enum Posting {
     Done(Json),
     /// The request to send.
     Send(Prepared),
+}
+
+/// An image a message carries, downloaded without holding the client: the
+/// plan of its upload as checked, then its sealed manifest and the chunks
+/// not kept here, by path and digest. It holds no key; the image opens
+/// under the client's copy of the message.
+#[derive(Clone, Debug)]
+pub struct Fetching {
+    channel: String,
+    seq: u64,
+    plan: UploadPlan,
+    /// The sealed manifest first, then the chunks.
+    parts: Vec<(String, String)>,
 }
 
 /// An invitation the inviter hands to the invited account.
@@ -1382,7 +1401,8 @@ impl Client {
             if reading.step == Step::Done {
                 return Ok(());
             }
-            let page = self.relay_get(&self.channel_read_path(reading)?).await?;
+            let path = self.channel_read_path(reading)?;
+            let page = self.relay_get(&path).await?;
             self.channel_read_settle(reading, page).await?;
         }
         Err(Error::QuotaExceeded)
@@ -1400,14 +1420,19 @@ impl Client {
         })
     }
 
-    /// The relay path of `reading`'s next page.
-    fn channel_read_path(&self, reading: &Reading) -> Result<String> {
+    /// The relay path of `reading`'s next page. The log and the head are
+    /// asked for against the control cursor this device holds now, which
+    /// `reading` notes.
+    fn channel_read_path(&self, reading: &mut Reading) -> Result<String> {
         let base = base(&reading.channel)?;
+        if matches!(reading.step, Step::Control | Step::Head) {
+            reading.control = self.local(&reading.channel)?.control;
+        }
         let invitation = reading.invitation.as_deref();
         Ok(match reading.step {
             Step::Control => format!(
                 "{base}/sync?kind=control&after={}&limit=5{}",
-                self.local(&reading.channel)?.control,
+                reading.control,
                 invitation
                     .map(|i| format!("&invitation={i}"))
                     .unwrap_or_default()
@@ -1431,8 +1456,9 @@ impl Client {
     ///
     /// # Errors
     /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
-    pub fn channel_read_request(&self, reading: &Reading) -> Result<Prepared> {
-        self.signed_get(&self.channel_read_path(reading)?)
+    pub fn channel_read_request(&self, reading: &mut Reading) -> Result<Prepared> {
+        let path = self.channel_read_path(reading)?;
+        self.signed_get(&path)
     }
 
     /// Apply the page `reading` asked for and move it on.
@@ -1452,8 +1478,14 @@ impl Client {
     /// Verify and keep a page of the control log.
     async fn control_page(&mut self, reading: &mut Reading, page: &Json) -> Result<()> {
         let channel = reading.channel.clone();
-        let (_, ring) = self.keyring(&channel)?;
         let mut local = self.local(&channel)?;
+        // Another read of the channel kept this page, or more, while it was
+        // on its way: ask again from there. A page asked for against the
+        // cursor held now must continue it.
+        if local.control > reading.control {
+            return Ok(());
+        }
+        let (_, ring) = self.keyring(&channel)?;
         let trust = self.trust().await?;
         let me = self.me()?;
         let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
@@ -1530,6 +1562,12 @@ impl Client {
     fn head_page(&mut self, reading: &mut Reading, remote: &Json) -> Result<()> {
         let channel = reading.channel.clone();
         let mut local = self.local(&channel)?;
+        // Another read kept controls the relay's view may predate: read the
+        // log again, then the head.
+        if local.control > reading.control {
+            reading.step = Step::Control;
+            return Ok(());
+        }
         let mut ledger = local.ledger.clone().ok_or(Error::IntegrityFailed)?;
         ensure(
             remote["head"] == ledger.head.as_str()
@@ -2268,6 +2306,17 @@ impl Client {
         let value = self
             .relay_get(&format!("{}/objects/{upload}", base(channel)?))
             .await?;
+        self.plan_of(&value, upload, uploader).await
+    }
+
+    /// The plan in the relay's answer `value` for the upload `upload`, as
+    /// [`Self::descriptor`] checks it.
+    async fn plan_of(
+        &mut self,
+        value: &Json,
+        upload: &str,
+        uploader: Option<&str>,
+    ) -> Result<UploadPlan> {
         let event: Event = from(&json!({
             "signed": value["signed"],
             "head": "",
@@ -3185,9 +3234,12 @@ impl Client {
         }
         let reread = reading.range.is_some();
         let keys = self.keys()?;
-        // The page's messages and the cursor past them in one write.
+        // The page's messages and the cursor past them in one write. Another
+        // read of the channel may have kept the page first: only what is past
+        // the cursor is news, and the cursor never goes back.
         self.workspace.store.atomic(|_| {
             let mut local = self.local(&channel)?;
+            let cursor = local.message;
             for (epoch, seq) in &unread_epochs {
                 extend(&mut local.skipped, *epoch, *seq);
             }
@@ -3197,15 +3249,15 @@ impl Client {
                 }
                 self.workspace.put_private(keys, key, message)?;
                 self.amend(&channel, &mut local, message)?;
-                if !reread && !message.amends() {
+                if !reread && !message.amends() && message.seq > cursor {
                     local.last = Some(preview(message));
                     if message.account != me {
                         local.unread += 1;
                     }
                 }
             }
-            if !reread && next != local.message {
-                local.message = next;
+            if !reread {
+                local.message = cursor.max(next);
             }
             self.save_local(&channel, &local)
         })?;
@@ -3562,17 +3614,13 @@ impl Client {
         Ok(message.public())
     }
 
-    /// An image a message carries, as a data URL to show in place.
-    ///
-    /// # Errors
-    /// Returns `Error::NotFound` for a message without an image and
-    /// `Error::QuotaExceeded` for one over 4 MiB.
-    pub async fn channel_preview(&mut self, channel: &str, seq: u64) -> Result<Json> {
+    /// The image message `seq` of `channel` carries, and its author.
+    fn image(&self, channel: &str, seq: u64) -> Result<(FileRef, String)> {
         let message: Message = self
             .workspace
             .private(self.keys()?, &format!("{INBOX}{channel}:{seq:020}"))?
             .ok_or(Error::NotFound)?;
-        let reference = message.file.clone().ok_or(Error::NotFound)?;
+        let reference = message.file.ok_or(Error::NotFound)?;
         ensure(
             matches!(
                 reference.mime.as_str(),
@@ -3581,9 +3629,102 @@ impl Client {
             Error::NotFound,
         )?;
         ensure(reference.size <= PREVIEW, Error::QuotaExceeded)?;
-        let manifest = self
-            .channel_file(channel, &reference, &message.account)
+        Ok((reference, message.account))
+    }
+
+    /// An image a message carries, to show in place without holding the
+    /// client while the relay answers: this signs the read of its upload's
+    /// plan, [`Self::channel_preview_plan`] checks the plan,
+    /// [`Self::channel_preview_downloads`] signs what it still needs and
+    /// [`Self::channel_preview_settle`] opens the image.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for a message without an image,
+    /// `Error::QuotaExceeded` for one over 4 MiB and `Error::PolicyStale`
+    /// until a [`Self::warmup`] ran.
+    pub fn channel_preview_request(&self, channel: &str, seq: u64) -> Result<Prepared> {
+        let (reference, _) = self.image(channel, seq)?;
+        self.signed_get(&format!(
+            "{}/objects/{}",
+            base(channel)?,
+            reference.upload_id
+        ))
+    }
+
+    /// Check the plan [`Self::channel_preview_request`] read, which the
+    /// image's author signed for that very file, and list what is still to
+    /// download.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for the plan of anything else.
+    pub async fn channel_preview_plan(
+        &mut self,
+        channel: &str,
+        seq: u64,
+        value: Json,
+    ) -> Result<Fetching> {
+        let (reference, author) = self.image(channel, seq)?;
+        let plan = self
+            .plan_of(&value, &reference.upload_id, Some(&author))
             .await?;
+        ensure(of_file(&plan, &reference), Error::IntegrityFailed)?;
+        let objects = format!("{}/objects/{}/chunks", base(channel)?, reference.upload_id);
+        let mut parts = vec![(
+            format!("{objects}/manifest"),
+            reference.manifest_digest.clone(),
+        )];
+        // An empty file's plan holds a placeholder chunk nothing reads.
+        let count = chunk_count(reference.size) as usize;
+        for (index, chunk) in plan.chunks.iter().enumerate().take(count) {
+            if !self.workspace.store.has_chunk(&chunk.digest)? {
+                parts.push((format!("{objects}/{index}"), chunk.digest.clone()));
+            }
+        }
+        Ok(Fetching {
+            channel: channel.into(),
+            seq,
+            plan,
+            parts,
+        })
+    }
+
+    /// The downloads `fetching` still needs, each with the digest it must
+    /// have, signed to send without holding the client.
+    ///
+    /// # Errors
+    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
+    pub fn channel_preview_downloads(
+        &self,
+        fetching: &Fetching,
+    ) -> Result<Vec<(Prepared, String)>> {
+        fetching
+            .parts
+            .iter()
+            .map(|(path, digest)| Ok((self.signed_get(path)?, digest.clone())))
+            .collect()
+    }
+
+    /// Open the image `fetching` downloaded, `parts` in its order: the
+    /// sealed manifest is checked against the plan and the chunks are kept.
+    /// Returns a data URL to show in place.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for downloads that do not match.
+    pub fn channel_preview_settle(&self, fetching: &Fetching, parts: Vec<Vec<u8>>) -> Result<Json> {
+        let (reference, _) = self.image(&fetching.channel, fetching.seq)?;
+        ensure(
+            parts.len() == fetching.parts.len() && hex_sha256(&parts[0]) == fetching.parts[0].1,
+            Error::IntegrityFailed,
+        )?;
+        let file = shared_manifest(&fetching.channel, &reference, &fetching.plan, &parts[0])?;
+        // The store checks each chunk against its digest.
+        for ((_, digest), bytes) in fetching.parts.iter().zip(&parts).skip(1) {
+            self.workspace.store.put_chunk(digest, bytes)?;
+        }
+        let manifest = FileManifest {
+            key: reference.key.clone(),
+            ..file
+        };
         let mut plain = Zeroizing::new(Vec::with_capacity(manifest.size as usize));
         read_file(&self.workspace.store, &manifest, PREVIEW, Some(&mut *plain))?;
         use base64::Engine;
@@ -3672,14 +3813,7 @@ impl Client {
         let plan = self
             .descriptor(channel, &reference.upload_id, Some(uploader))
             .await?;
-        ensure(
-            plan.kind == "file"
-                && plan.object_id == reference.file_id
-                && plan.version_id == reference.version
-                && plan.epoch == reference.epoch
-                && plan.manifest_digest == reference.manifest_digest,
-            Error::IntegrityFailed,
-        )?;
+        ensure(of_file(&plan, reference), Error::IntegrityFailed)?;
         let sealed = self
             .channel_chunk(
                 channel,
@@ -3688,39 +3822,7 @@ impl Client {
                 &reference.manifest_digest,
             )
             .await?;
-        let key = key32(&unb64(&reference.key)?)?;
-        let plain = open_bytes(
-            &key,
-            &sealed,
-            &manifest_context(
-                channel,
-                reference.epoch,
-                &reference.upload_id,
-                &reference.file_id,
-                &reference.version,
-            ),
-        )?;
-        let shared: ChannelFile = decode(&plain, 65_536)?;
-        let file = shared.file;
-        ensure(
-            shared.format == "dmsg-channel-file/1"
-                && shared.channel == channel
-                && shared.epoch == reference.epoch
-                && file.id == reference.file_id
-                && file.version == reference.version
-                && file.key.is_empty()
-                && file.name == reference.name
-                && file.size == reference.size
-                && file.mime == reference.mime
-                && plan.chunks.len() == file.chunks.len().max(1)
-                && (file.chunks.is_empty()
-                    || plan
-                        .chunks
-                        .iter()
-                        .zip(&file.chunks)
-                        .all(|(p, f)| p.digest == f.digest)),
-            Error::IntegrityFailed,
-        )?;
+        let file = shared_manifest(channel, reference, &plan, &sealed)?;
         let objects = format!("{}/objects/{}/chunks", base(channel)?, reference.upload_id);
         let mut missing = vec![];
         for (index, chunk) in file.chunks.iter().enumerate() {
@@ -4603,6 +4705,60 @@ fn preview(message: &Message) -> Preview {
         stored_at: message.stored_at,
         text,
     }
+}
+
+/// Whether `plan` is the upload of the file `reference` names.
+fn of_file(plan: &UploadPlan, reference: &FileRef) -> bool {
+    plan.kind == "file"
+        && plan.object_id == reference.file_id
+        && plan.version_id == reference.version
+        && plan.epoch == reference.epoch
+        && plan.manifest_digest == reference.manifest_digest
+}
+
+/// The keyless manifest of the file `reference` names, opened from the
+/// `sealed` manifest of its upload and checked against the file and the
+/// upload's `plan`.
+fn shared_manifest(
+    channel: &str,
+    reference: &FileRef,
+    plan: &UploadPlan,
+    sealed: &[u8],
+) -> Result<FileManifest> {
+    let key = key32(&unb64(&reference.key)?)?;
+    let plain = open_bytes(
+        &key,
+        sealed,
+        &manifest_context(
+            channel,
+            reference.epoch,
+            &reference.upload_id,
+            &reference.file_id,
+            &reference.version,
+        ),
+    )?;
+    let shared: ChannelFile = decode(&plain, 65_536)?;
+    let file = shared.file;
+    ensure(
+        shared.format == "dmsg-channel-file/1"
+            && shared.channel == channel
+            && shared.epoch == reference.epoch
+            && file.id == reference.file_id
+            && file.version == reference.version
+            && file.key.is_empty()
+            && file.name == reference.name
+            && file.size == reference.size
+            && file.mime == reference.mime
+            && plan.chunks.len() == file.chunks.len().max(1)
+            && (file.chunks.is_empty()
+                || plan
+                    .chunks
+                    .iter()
+                    .zip(&file.chunks)
+                    .all(|(p, f)| p.digest == f.digest)),
+        Error::IntegrityFailed,
+    )?;
+    Ok(file)
 }
 
 /// Whether `amend` edits or withdraws `target`, the message `reference`

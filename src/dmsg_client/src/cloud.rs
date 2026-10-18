@@ -1028,12 +1028,18 @@ impl Cloud {
         digest: &str,
         now: u64,
     ) -> Result<Vec<u8>> {
-        let url = self.url(path)?;
-        let request_id = hex::encode(crate::crypto::random_id());
-        let deadline = signer.deadline(now)?;
-        let pop = sign_http(signer, &url, "GET", &[], &request_id, deadline)?;
+        self.send_chunk(self.prepare_get(signer, path, now)?, digest)
+            .await
+    }
+
+    /// [`Self::get_chunk`] signed earlier with [`Self::prepare_get`], sent
+    /// within its deadline.
+    ///
+    /// # Errors
+    /// As [`Self::get_chunk`].
+    pub async fn send_chunk(&self, request: Prepared, digest: &str) -> Result<Vec<u8>> {
         let Reply::Bytes(bytes) = self
-            .exchange(reqwest::Method::GET, url, None, Some(pop), true)
+            .exchange(request.method, request.url, None, Some(request.pop), true)
             .await?
         else {
             return Err(Error::IntegrityFailed);

@@ -695,7 +695,7 @@ impl Daemon {
     /// first, and again when it went stale while the request waited.
     pub(crate) async fn signed<T>(
         &self,
-        prepare: impl Fn(&Client) -> Result<T>,
+        mut prepare: impl FnMut(&Client) -> Result<T>,
     ) -> Result<(Cloud, T)> {
         let mut stale = false;
         loop {
@@ -1832,6 +1832,29 @@ mod tests {
         let work = tokio::spawn({
             let daemon = daemon.clone();
             async move { daemon.call_daemon("account/show", &Value::Null).await }
+        });
+        answers_beside(&daemon, &ic, work).await;
+    }
+
+    #[tokio::test]
+    async fn the_library_answers_while_channel_images_and_names_load() {
+        let account = dmsg_client::testing::account().id.to_string();
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, relay, ic) = stalled(&dir).await;
+        let channel = "c".repeat(64);
+        dmsg_client::testing::shared_image(&*daemon.client().lock().await, &channel, 7);
+        // An image shown in place: the relay holds its upload.
+        let params = json!({"id": channel, "seq": 7});
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.call_more("channel/preview", &params).await }
+        });
+        answers_beside(&daemon, &relay, work).await;
+        // Display names: the user homes certify the accounts' devices.
+        let params = json!({"accounts": [account]});
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.call_more("channel/names", &params).await }
         });
         answers_beside(&daemon, &ic, work).await;
     }

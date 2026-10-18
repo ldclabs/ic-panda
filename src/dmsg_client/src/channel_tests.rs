@@ -569,3 +569,132 @@ async fn a_body_that_does_not_open_leaves_its_message_unreadable() {
     assert_eq!(opened.text, "hello");
     assert_eq!(opened.agent.unwrap().name, "claude");
 }
+
+#[tokio::test]
+async fn reads_of_one_channel_settle_in_any_order() {
+    use crate::channel_log::Member;
+    use crate::testing::{TempDir, unlocked, warm};
+
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    warm(&mut client);
+    let channel = "c".repeat(64);
+    let me = client.me().unwrap();
+    let head = "a".repeat(64);
+    let genesis = Genesis {
+        channel_id: channel.clone(),
+        nonce: "b".repeat(64),
+        kind: ChannelType::Collaboration,
+    };
+    // This account joined in epoch 2: the relay skips epoch 1's messages
+    // for it, without their ciphertext.
+    let mut ledger = start(&genesis, "owner", &head).unwrap();
+    ledger.epoch = 2;
+    ledger.status = Status::Active;
+    ledger.members.insert(
+        me.clone(),
+        Member {
+            account: me.clone(),
+            role: Role::Member,
+            joined_epoch: 2,
+            can_rotate: false,
+            history: vec![],
+        },
+    );
+    client
+        .save_keyring(
+            None,
+            &Keyring {
+                format: FORMAT.into(),
+                id: channel.clone(),
+                name: "c".into(),
+                genesis: head.clone(),
+                keys: BTreeMap::new(),
+                muted: false,
+                hidden: false,
+            },
+        )
+        .unwrap();
+    let mut local = Local {
+        control: 5,
+        ledger: Some(ledger),
+        ..Local::default()
+    };
+    client.save_local(&channel, &local).unwrap();
+
+    // Two reads ask for the same page of the log, and the other one keeps
+    // it and the controls after it first. This one asks again from there,
+    // without looking at the page.
+    let mut slower = Reading::new(&channel);
+    client.channel_read_request(&mut slower).unwrap();
+    local.control = 9;
+    client.save_local(&channel, &local).unwrap();
+    let page = |cursor: u64| {
+        json!({
+            "entries": [{"cursor": cursor, "value": {}}],
+            "next_cursor": cursor,
+            "head": "d".repeat(64),
+        })
+    };
+    client
+        .channel_read_settle(&mut slower, page(6))
+        .await
+        .unwrap();
+    assert_eq!(
+        client.channel_read_path(&mut slower).unwrap(),
+        format!("/v1/channels/{channel}/sync?kind=control&after=9&limit=5")
+    );
+    // A page that does not continue the cursor it was asked against is
+    // still refused.
+    for back in [page(6), page(9)] {
+        assert_eq!(
+            client.channel_read_settle(&mut slower, back).await,
+            Err(Error::IntegrityFailed)
+        );
+    }
+    // A head asked for before newer controls were kept is asked for again
+    // after the log.
+    let mut reading = Reading {
+        step: Step::Head,
+        ..Reading::controls(&channel)
+    };
+    client.channel_read_request(&mut reading).unwrap();
+    local.control = 10;
+    client.save_local(&channel, &local).unwrap();
+    client
+        .channel_read_settle(&mut reading, json!({"head": head}))
+        .await
+        .unwrap();
+    assert_eq!(reading.step, Step::Control);
+
+    // Two reads of the messages: the slower one settles pages the other
+    // kept, and the cursor stays where the other took it.
+    let page = |after: u64, through: u64| {
+        json!({
+            "head": head,
+            "entries": [],
+            "skipped": (after + 1..=through)
+                .map(|seq| json!({"seq": seq, "epoch": 1}))
+                .collect::<Vec<_>>(),
+            "next_seq": through,
+            "latest_seq": 30,
+        })
+    };
+    let mut faster = client.message_reading(&channel).unwrap();
+    let mut slower = client.message_reading(&channel).unwrap();
+    for (after, through) in [(0, 20), (20, 30)] {
+        client
+            .channel_read_settle(&mut faster, page(after, through))
+            .await
+            .unwrap();
+    }
+    assert!(faster.done());
+    for (after, through) in [(0, 20), (20, 30)] {
+        client
+            .channel_read_settle(&mut slower, page(after, through))
+            .await
+            .unwrap();
+        assert_eq!(client.local(&channel).unwrap().message, 30);
+    }
+    assert!(slower.done());
+}

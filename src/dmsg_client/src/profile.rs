@@ -11,7 +11,7 @@
 //! so a lost reply is reconciled by its request ID, never signed twice.
 
 use crate::account::Security;
-use crate::client::Client;
+use crate::client::{Client, Peers};
 use crate::cloud::{Cloud, Evidence, Prepared, Presigned, verify_signed_command};
 use crate::codec::{canonical, decode, sha256, unb64};
 use crate::evidence::under;
@@ -142,6 +142,38 @@ pub async fn avatar(
             Ok((mime, b))
         })
         .transpose()
+}
+
+/// The display names the accounts of `peers` publish, each checked against
+/// the account's certified devices like [`Client::profile_resolve`]; an
+/// account without a profile, or whose profile does not verify, has none.
+/// It needs no key, so the caller holds only the relay client and `peers`
+/// (`Client::peers_of`) while the user homes and the relay answer, never
+/// the client.
+///
+/// # Errors
+/// Returns `Error::Unavailable` when the user homes cannot be read.
+pub async fn names(relay: &Cloud, peers: &mut Peers) -> Result<Vec<(String, Option<String>)>> {
+    let found = peers.read().await?;
+    let fetched = futures_util::future::join_all(found.iter().map(|(account, _)| {
+        let path = format!("/public/accounts/{account}/profile");
+        async move { relay.public(&path).await }
+    }))
+    .await;
+    Ok(found
+        .iter()
+        .zip(fetched)
+        .map(|((account, security), value)| {
+            let id = account.to_string();
+            let name = value
+                .ok()
+                .flatten()
+                .and_then(|value| verify_public(&id, &value, security).ok())
+                .map(|p| p.profile.display_name)
+                .filter(|name| !name.is_empty());
+            (id, name)
+        })
+        .collect())
 }
 
 /// The manifest of a public avatar upload; the relay stores it unread.
@@ -453,40 +485,6 @@ impl Client {
                 && receipt["hash"] == hash.as_str(),
             Error::IntegrityFailed,
         )
-    }
-
-    /// The display names `accounts` publish, each checked against the
-    /// account's certified devices like [`Self::profile_resolve`]; an account
-    /// without a profile, or whose profile does not verify, has none.
-    ///
-    /// # Errors
-    /// Returns `Error::Unavailable` when the user homes cannot be read.
-    pub async fn profile_names(
-        &mut self,
-        accounts: &[AccountId],
-    ) -> Result<Vec<(String, Option<String>)>> {
-        let peers = self.read_peers(accounts).await?;
-        let cloud = self.cloud.clone();
-        let fetched = futures_util::future::join_all(peers.iter().map(|(account, _)| {
-            let cloud = cloud.clone();
-            let path = format!("/public/accounts/{account}/profile");
-            async move { cloud.public(&path).await }
-        }))
-        .await;
-        Ok(peers
-            .iter()
-            .zip(fetched)
-            .map(|((account, security), value)| {
-                let id = account.to_string();
-                let name = value
-                    .ok()
-                    .flatten()
-                    .and_then(|value| verify_public(&id, &value, security).ok())
-                    .map(|p| p.profile.display_name)
-                    .filter(|name| !name.is_empty());
-                (id, name)
-            })
-            .collect())
     }
 
     /// Another account's published profile, checked against that account's

@@ -9,12 +9,15 @@
 //! removed, a device was revoked or a manager rekeyed, is rotated here when
 //! this account may coordinate it; the relay's lease lets one device win.
 //! The delivery cursor of what this device read goes to the relay at most
-//! every half minute per channel (C04).
+//! every half minute per channel (C04). Reads of one channel may overlap,
+//! such as this loop's and one after a send: each settles against what the
+//! others kept.
 
 use crate::daemon::Daemon;
 use dmsg_client::channel::Reading;
 use dmsg_client::channel_log::{Status, may_rotate};
 use dmsg_types::Result;
+use futures_util::future::try_join_all;
 use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -214,6 +217,41 @@ async fn rotate(daemon: &Daemon, channel: &str) {
     }
 }
 
+/// An image a message carries, as a data URL to show in place: the plan of
+/// its upload, then its sealed manifest and the chunks not kept here, each
+/// read without holding the client.
+///
+/// # Errors
+/// As [`dmsg_client::Client::channel_preview_request`] and the steps after
+/// it; relay errors as returned.
+pub(crate) async fn preview(daemon: &Daemon, channel: &str, seq: u64) -> Result<serde_json::Value> {
+    let (relay, request) = daemon
+        .signed(|client| client.channel_preview_request(channel, seq))
+        .await?;
+    let plan = relay.send(request).await?;
+    let fetching = daemon
+        .client()
+        .lock()
+        .await
+        .channel_preview_plan(channel, seq, plan)
+        .await?;
+    let (relay, downloads) = daemon
+        .signed(|client| client.channel_preview_downloads(&fetching))
+        .await?;
+    let relay = &relay;
+    let parts = try_join_all(
+        downloads
+            .into_iter()
+            .map(|(request, digest)| async move { relay.send_chunk(request, &digest).await }),
+    )
+    .await?;
+    daemon
+        .client()
+        .lock()
+        .await
+        .channel_preview_settle(&fetching, parts)
+}
+
 /// Display names of accounts, checked against their certified devices and
 /// kept for ten minutes.
 ///
@@ -238,7 +276,14 @@ pub(crate) async fn names(daemon: &Daemon, accounts: &[String]) -> Result<serde_
             .collect()
     };
     if !missing.is_empty() {
-        let found = daemon.client().lock().await.profile_names(&missing).await?;
+        // The user homes and the relay answer without the client.
+        let (relay, mut peers) = {
+            let client = daemon.client().lock().await;
+            (client.relay(), client.peers_of(&missing))
+        };
+        let found = dmsg_client::profile::names(&relay, &mut peers).await;
+        daemon.client().lock().await.peers_met(peers);
+        let found = found?;
         let mut known = cache.lock().expect("names");
         for account in &missing {
             let id = account.to_string();

@@ -101,7 +101,8 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
 impl Daemon {
     /// Run one of [`METHODS`].
     pub(crate) async fn call_more(&self, method: &str, params: &Value) -> Result<Value> {
-        // Relay reads signed under the client wait for the network without it.
+        // Relay reads signed under the client, and the user homes' public
+        // queries, wait for the network without it.
         match method {
             "channel/sync" if params["backfill"] != true => {
                 let channel = text(params, "id")?;
@@ -152,6 +153,10 @@ impl Daemon {
             "channel/names" => {
                 let accounts: Vec<String> = parse(params, "accounts")?;
                 return crate::channels::names(self, &accounts).await;
+            }
+            "channel/preview" => {
+                let (channel, seq) = (text(params, "id")?, number(params, "seq")?);
+                return crate::channels::preview(self, &channel, seq).await;
             }
             "inbox/policy" => {
                 let (relay, request) = self.signed(Client::inbox_policy_request).await?;
@@ -324,7 +329,6 @@ impl Daemon {
                 number(params, "seq")?,
                 params["hidden"].as_bool().unwrap_or(true),
             )?)),
-            "channel/preview" => client.channel_preview(&id()?, number(params, "seq")?).await,
             "channel/sponsor_cancel" => Ok(to_json(&client.channel_sponsor_cancel(&id()?).await?)),
             "channel/receipts" => client.channel_receipts(&id()?).await,
             "inbox/configure" => {

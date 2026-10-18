@@ -151,6 +151,36 @@ pub fn warm(client: &mut Client) {
     client.homes = Some(vec![account().home]);
 }
 
+/// Keep message `seq` of `channel`, a PNG the test account shared, in
+/// `client`'s workspace as a read of the channel keeps it; its upload is
+/// nowhere.
+pub fn shared_image(client: &Client, channel: &str, seq: u64) {
+    let message = crate::channel::Message {
+        seq,
+        account: account().id.to_string(),
+        file: Some(crate::channel::FileRef {
+            upload_id: "ab".repeat(32),
+            file_id: "cd".repeat(32),
+            version: "ef".repeat(32),
+            epoch: 1,
+            manifest_digest: "01".repeat(32),
+            name: "image.png".into(),
+            size: 1024,
+            mime: "image/png".into(),
+            key: crate::codec::b64(&[7; 32]),
+        }),
+        ..Default::default()
+    };
+    client
+        .workspace
+        .put_private(
+            client.keys().unwrap(),
+            &format!("{}{channel}:{seq:020}", crate::channel::INBOX),
+            &message,
+        )
+        .unwrap();
+}
+
 /// Device `n` of the test account: its seed is `[n; 32]`, and it signs
 /// content unless revoked at `revoked_at`.
 pub fn device(n: u8, revoked_at: Option<u64>) -> (Hash, Device) {
