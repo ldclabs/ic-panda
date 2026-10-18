@@ -3,9 +3,11 @@
 //!
 //! Internet Identity signs an unscoped delegation to the session key; the
 //! session key then delegates to a fresh key limited to the login targets,
-//! and only that fresh key is kept. The delegation's signatures are judged by
-//! the IC: the caller hands the identity to [`crate::Client::login`], whose
-//! read-only `my_account` queries discard it on any failure.
+//! and only that fresh key is kept, as a [`KeptLogin`] the client may seal
+//! to restore the login after a fast unlock with the person present. The
+//! delegation's signatures are judged by the IC: the caller hands the login
+//! to [`crate::Client::login`], whose read-only `my_account` queries discard
+//! it on any failure.
 
 use crate::codec::{b64, canonical, decode};
 use crate::config::Config;
@@ -13,19 +15,21 @@ use crate::crypto::{Key, random_id, random_key, signing_public};
 use candid::Principal;
 use dmsg_protocol::login::{ED25519_SPKI_PREFIX, validate_request};
 use dmsg_types::{
-    Error, Hash, MINUTE, Result, ensure, ensure_valid,
+    DAY, Error, Hash, MINUTE, Result, ensure, ensure_valid,
     login::{LOGIN_VERSION, LoginCallback, LoginErrorCode, LoginRequest},
 };
 use ic_agent::Identity;
 use ic_agent::identity::{BasicIdentity, DelegatedIdentity, Delegation, SignedDelegation};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use serde_bytes::{ByteArray, ByteBuf};
 use std::sync::Arc;
 use zeroize::Zeroizing;
 
 /// How long the callback listener lives.
 pub const LISTEN_MS: u64 = 10 * MINUTE;
-/// Default delegation lifetime (15 minutes).
-pub const DEFAULT_TTL_MS: u64 = 15 * MINUTE;
+/// The delegation lifetime a login asks for (30 days, as long as fast unlock
+/// lasts after it).
+pub const DEFAULT_TTL_MS: u64 = 30 * DAY;
 /// Most canisters a login delegation may reach.
 pub const MAX_TARGETS: usize = 32;
 const MAX_CALLBACK: usize = 64 * 1024;
@@ -51,6 +55,100 @@ pub struct Delegated {
     pub principal: Principal,
     /// When the delegation expires, in Unix milliseconds.
     pub expires_at: u64,
+    /// What restores this login.
+    pub kept: KeptLogin,
+}
+
+/// A login's scoped key and chain, which the client seals under the local
+/// data key to restore the login until it expires.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct KeptLogin {
+    /// The chain's first public key, which names the login Principal.
+    from: ByteBuf,
+    /// The scoped key's Ed25519 seed.
+    key: ByteArray<32>,
+    /// The chain as signed, the scoped link last.
+    links: Vec<KeptLink>,
+    /// When the delegation expires, in Unix milliseconds.
+    pub expires_at: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct KeptLink {
+    pubkey: ByteBuf,
+    /// Nanoseconds since the Unix epoch.
+    expiration: u64,
+    targets: Option<Vec<ByteBuf>>,
+    signature: ByteBuf,
+}
+
+impl KeptLogin {
+    fn new(from: Vec<u8>, key: &Key, links: &[SignedDelegation], expires_at: u64) -> Self {
+        Self {
+            from: from.into(),
+            key: ByteArray::new(*key),
+            links: links
+                .iter()
+                .map(|link| KeptLink {
+                    pubkey: link.delegation.pubkey.clone().into(),
+                    expiration: link.delegation.expiration,
+                    targets: link
+                        .delegation
+                        .targets
+                        .as_ref()
+                        .map(|t| t.iter().map(|p| p.as_slice().to_vec().into()).collect()),
+                    signature: link.signature.clone().into(),
+                })
+                .collect(),
+            expires_at,
+        }
+    }
+
+    /// The login again, as the callback delivered it.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a malformed record.
+    pub fn delegated(&self) -> Result<Delegated> {
+        let links = self
+            .links
+            .iter()
+            .map(|link| {
+                let targets = link
+                    .targets
+                    .as_ref()
+                    .map(|targets| {
+                        targets
+                            .iter()
+                            .map(|t| {
+                                Principal::try_from_slice(t).map_err(|_| Error::IntegrityFailed)
+                            })
+                            .collect::<Result<Vec<_>>>()
+                    })
+                    .transpose()?;
+                Ok(SignedDelegation {
+                    delegation: Delegation {
+                        pubkey: link.pubkey.to_vec(),
+                        expiration: link.expiration,
+                        targets,
+                        permissions: None,
+                    },
+                    signature: link.signature.to_vec(),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        ensure(!links.is_empty(), Error::IntegrityFailed)?;
+        let key = BasicIdentity::from_raw_key(&Zeroizing::new(*self.key));
+        Ok(Delegated {
+            identity: Arc::new(DelegatedIdentity::new_unchecked(
+                self.from.to_vec(),
+                Box::new(key),
+                links,
+            )),
+            principal: Principal::self_authenticating(&self.from),
+            expires_at: self.expires_at,
+            kept: self.clone(),
+        })
+    }
 }
 
 #[derive(Deserialize)]
@@ -204,7 +302,8 @@ impl LoginSession {
         )?;
         // Internet Identity ignores targets, so the session key, which
         // drops with this login, scopes the chain for the key that stays.
-        let key = BasicIdentity::from_raw_key(&Zeroizing::new(random_key()));
+        let seed = Zeroizing::new(random_key());
+        let key = BasicIdentity::from_raw_key(&seed);
         let scoped = Delegation {
             pubkey: key.public_key().ok_or(Error::IntegrityFailed)?,
             expiration,
@@ -220,18 +319,35 @@ impl LoginSession {
             delegation: scoped,
             signature,
         });
-        let from = unhex(&chain.public_key)?;
-        let principal = Principal::self_authenticating(&from);
-        Ok(Delegated {
-            identity: Arc::new(DelegatedIdentity::new_unchecked(
-                from,
-                Box::new(key),
-                signed,
-            )),
-            principal,
-            expires_at,
-        })
+        KeptLogin::new(unhex(&chain.public_key)?, &seed, &signed, expires_at).delegated()
     }
+}
+
+/// A login of the key `[seed; 32]`, delegated to a scoped key, for tests.
+#[cfg(test)]
+pub(crate) fn kept_for_tests(seed: u8, expires_at: u64) -> KeptLogin {
+    let root = BasicIdentity::from_raw_key(&[seed; 32]);
+    let scoped = [seed.wrapping_add(1); 32];
+    let delegation = Delegation {
+        pubkey: BasicIdentity::from_raw_key(&scoped).public_key().unwrap(),
+        expiration: expires_at * 1_000_000,
+        targets: None,
+        permissions: None,
+    };
+    let signature = root
+        .sign_delegation(&delegation)
+        .unwrap()
+        .signature
+        .unwrap();
+    KeptLogin::new(
+        root.public_key().unwrap(),
+        &scoped,
+        &[SignedDelegation {
+            delegation,
+            signature,
+        }],
+        expires_at,
+    )
 }
 
 #[cfg(test)]

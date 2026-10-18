@@ -101,6 +101,17 @@ in the system credential store (Keychain, Credential Manager, Secret Service)
 under the service `dmsg`. `"file"`, the default elsewhere, keeps the owner
 credential in `owner.token`; fast unlock is then unavailable.
 
+Fast unlock turns on with every login unlock unless `fast-unlock disable`
+turned it off, and lasts thirty days after the last login unlock, as long as
+the login (`dmsg login` asks Internet Identity for thirty days). On macOS the
+Secure Enclave keeps its key (`src/enclave.rs`, CryptoKit through
+`swift/Enclave.swift`, which `build.rs` compiles; building on macOS needs the
+Xcode Swift toolchain): each fast unlock asks for Touch ID, or the login
+password without it, and gives up after a minute unanswered; the login is
+kept sealed under the local data key and comes back with it. Elsewhere the
+key sits in the credential store, nothing asks for the person and no login is
+kept. Team-wallet cosigner keys use the Secure Enclave the same way.
+
 ## Install, start and update
 
 ```sh

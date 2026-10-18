@@ -47,7 +47,7 @@ LoginRequest = {
 }
 ```
 
-页面校验：字节是规范 CBOR、base64url 规范（无填充、尾位为零）；键集合闭合；`v` 为 1；`state` 非零；`session_pubkey` 是 Ed25519 SPKI DER（固定 12 字节前缀加 32 字节公钥）；`ttl_ms` 在 1 分钟到 8 小时之间；`derivation_origin` 在允许列表内；`next_url` 符合第 5 节。任一项不符时页面不联系 II，只显示错误，不跳转（因为 `next_url` 本身可能就是不合法的那一项）。
+页面校验：字节是规范 CBOR、base64url 规范（无填充、尾位为零）；键集合闭合；`v` 为 1；`state` 非零；`session_pubkey` 是 Ed25519 SPKI DER（固定 12 字节前缀加 32 字节公钥）；`ttl_ms` 在 1 分钟到 30 天之间（II 自身的上限；daemon 申请 30 天）；`derivation_origin` 在允许列表内；`next_url` 符合第 5 节。任一项不符时页面不联系 II，只显示错误，不跳转（因为 `next_url` 本身可能就是不合法的那一项）。
 
 页面以 `@icp-sdk/signer` 向 II 调用 `icrc34_delegation`，`publicKey` 为 `session_pubkey`，`maxTimeToLive` 取 `ttl_ms`，`derivationOrigin` 取 `derivation_origin`，不传 `targets`：II 忽略它，签出的 delegation 不限 canister，而 `@icp-sdk/signer` 会把"请求了 targets 却收到不限 targets 的链"当作错误。页面不生成也不持有会话私钥。
 
@@ -78,7 +78,7 @@ daemon 的 `GET /auth/callback` 返回回调页；回调页把 `location.hash` �
 3. `state` 等于本次登录生成的值。
 4. `delegation` 解析为 DelegationChain（JSON 中字节为 hex，`targets` 为 Principal 字节的 hex，`expiration` 为纳秒的 hex）：链首 `publicKey` 是登录的公钥，决定登录 Principal；最后一级 delegation 的 `pubkey` 等于会话公钥 DER；链长 1 到 8；各级的 `targets` 可有可无，按签名原样保留；不接受 `permissions`（II 中选择"仅查询"时会带上它）；链中最早的 `expiration` 晚于现在、且不晚于 `now + ttl_ms`。
 5. daemon 生成一把新的 Ed25519 密钥，用会话私钥签一级 delegation 给它：`targets` 为本次登录的 canister（注册表与 user home 列出的 canister，1 到 32 个），`expiration` 取链中最早的值。IC 对整条链取各级 `targets` 的交集，所以这条链只能调用这些 canister。会话私钥随登录结束丢弃，内存里只留新密钥与这条限定过的链。签名的有效性由 IC 裁决：daemon 用该身份对每个 user home 做只读的 `my_account` 查询，任一失败即丢弃；已绑定账户的工作区还要求查到的账户就是本机账户。
-6. 校验通过后把 delegation 保存在内存，不写盘；监听器关闭。
+6. 校验通过后把新密钥与限定过的链保存在内存；监听器关闭。账户工作区的快速解锁需要人在场（macOS 的 Secure Enclave 要求 Touch ID 或登录密码）时，daemon 解锁后再把它们用本机数据密钥（LDK）封存进工作区，锁定只清内存；之后一次需要人在场的快速解锁从中恢复这次登录，直到过期。快速解锁不检查人在场的设备不写盘。关闭快速解锁或重置工作区时删除封存的登录。
 
 POST 的应答：成功 200；`Origin` 或 `Content-Type` 不符 403；其他校验失败 400；没有进行中的登录 404。回调页自身带 `Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'` 与 `Referrer-Policy: no-referrer`。
 

@@ -245,9 +245,14 @@ out.
 `lock` drops the login and every key. With `background_online` the device
 signing key stays: presigned and already sealed versions are still sent and
 ciphertext is still fetched, while nothing can be read, decided or resealed.
-Fast unlock opens the stored root without a login for seven days after the
-last login unlock; online, the device then checks that it is still approved.
-A device its account revoked erases its workspace.
+Fast unlock opens the stored root without a login for thirty days after the
+last login unlock, which turns it on unless the person turned it off; online,
+the device then checks that it is still approved. With a `PresenceKey`
+(`secure::PresenceKey`, the Secure Enclave in the daemon) the credential
+store keeps only the hardware's handle and peer key, every fast unlock asks
+for the person, and the login of the last login unlock, sealed under the LDK,
+comes back until it expires. A device its account revoked erases its
+workspace.
 
 ```sh
 cargo test -p dmsg_client

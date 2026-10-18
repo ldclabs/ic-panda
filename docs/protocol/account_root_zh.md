@@ -37,8 +37,8 @@ fastWrapped = E(K_fast, LDK, ["dmsg/local-key/2", "fast:" + name])   // 可选
 
 - `unlock_secret(account_id, device_id)` 是 user home 的认证 query：caller 必须是账户的登录 Principal，设备必须存在且未撤销，返回 32 字节 `HKDF(master_secret, account_id, device_id)`。`master_secret` 在 home 初始化的 timer 中由 `raw_rand` 生成一次，升级保留。撤销设备后该设备的解锁材料不再发放。
 - 新工作台在绑定账户前只用一把明文保存的临时随机键封装 LDK；此时本机只有新生成的设备密钥，没有任何内容，写入被拒绝。账户创建或配对批准后，客户端取得 `unlock_secret`，用 LUK 重封 LDK 并删除临时键。
-- 日常解锁：经 dmsg.net 登录页的 II 登录（[dmsg-login/1](login-v1_zh.md)，默认 15 分钟 delegation，会话私钥由 daemon 持有）→ `unlock_secret` → LUK → LDK → Bundle，全部只在内存。`login_unlocked_at` 记录最近一次登录解锁。
-- 快速解锁：登录解锁后才能开启。随机 32 字节 `K_fast` 存入操作系统凭据库，只封装 LDK 的第二份副本；`secure_storage = "file"` 时没有快速解锁。距上次登录解锁超过 7 天时拒绝；快速解锁后一旦联网就核对认证设备表，已撤销则清空本机数据。尚无生物识别或用户在场验证。
+- 日常解锁：经 dmsg.net 登录页的 II 登录（[dmsg-login/1](login-v1_zh.md)，30 天 delegation，会话私钥由 daemon 持有）→ `unlock_secret` → LUK → LDK → Bundle，全部只在内存。`login_unlocked_at` 记录最近一次登录解锁。
+- 快速解锁：登录解锁后默认开启，人关闭后保持关闭；`secure_storage = "file"` 时没有快速解锁。`K_fast` 只封装 LDK 的第二份副本：macOS 上由 Secure Enclave 的密钥协商恢复，每次解锁要求 Touch ID 或 Mac 登录密码，并恢复以 LDK 封存的 30 天登录；其他平台是存于凭据库的随机 32 字节，没有用户在场验证，也不保存登录。距上次登录解锁超过 30 天时拒绝；快速解锁后一旦联网就核对认证设备表，已撤销则清空本机数据（封存的登录随之删除）。
 
 ## 不可变 RootBundle v2
 

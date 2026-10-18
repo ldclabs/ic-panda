@@ -43,7 +43,8 @@ desktop is one of its clients, like the CLI.
   groups (work; authorization; account) and Settings, and at its foot the
   gate rail: locked or not with the idle lock's countdown (`lock_at` from
   `daemon/status`), the step that opens the device when it is not (Log in,
-  Fast unlock, or Continue setup in Settings), the versions waiting to sync,
+  Unlock with Touch ID, Fast unlock, or Continue setup in Settings), the
+  versions waiting to sync,
   background online while it is on, the daemon connection, the language and
   appearance menus and Lock. Views the device cannot show yet offer the same
   step. A title bar names the view and opens the command palette (⌘K, or
@@ -112,9 +113,9 @@ desktop is one of its clients, like the CLI.
     report.
   - Settings, in sections with their own routes (`/settings/session`,
     `security`, `devices`, `profile`, `browsers`, `legacy`, `about`): this
-    session and the device's accounts, fast unlock (turned on while
-    unlocked; a locked account then opens from the OS keychain instead of
-    a login, until 7 days after the last login), creating or joining an account,
+    session and the device's accounts, fast unlock (on after every login
+    unlock unless turned off here; it shows how it checks the person) and
+    when the login expires, creating or joining an account,
     pairing and recovery, account security, devices, the public profile
     with its avatar, connected browsers, the legacy migration, and About
     dMsg with the app's version and its update.
@@ -128,6 +129,15 @@ desktop is one of its clients, like the CLI.
   network, cancelled in the browser, expired, refused) with the daemon's
   message and Retry; closing the dialog leaves a login finished later to
   open the device. A first login without an account goes on to Settings.
+
+  A locked device with fast unlock opens without a login
+  (`shell/session.ts`): the daemon asks for Touch ID, or the Mac password,
+  where the Secure Enclave keeps the key, and brings the login back too.
+  The main window asks once when it comes to the front, or opens locked in
+  front; never right after the person locked it there, and not again after
+  a decline, when the gate's Unlock with Touch ID asks. Locked views also
+  offer "Log in with Internet Identity". Fast unlock that has run out
+  (thirty days after the last login) goes to the login dialog.
 
   Pages share a small kit (`components/page`): sections, notices, state
   pills, ID chips that copy the whole ID, fields, facts, tab bars and the
@@ -273,7 +283,9 @@ and notifications instead of the system's. It covers:
   revocation as an approval request, the avatar shown, set from a picked
   image and removed (the window cannot name a path), the locked daemon's
   `inbox` and `channel` hints notified once each, fast unlock turned on
-  and a locked account opened with it instead of a login, switching to
+  and a locked account opened with it instead of a login; with Touch ID, the
+  locked window asking once as it comes to the front, a declined ask leaving
+  it locked without a login, and the gate asking again; switching to
   another account's workspace, and About dMsg with the app's version and no update
   check in a development run (only the main window reaches updates);
 - logging in: logged out, the gate rail, the account menu and the locked

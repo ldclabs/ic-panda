@@ -287,10 +287,13 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         &home.workspace(&settings.config),
         Home::secure(&settings),
     )?;
-    // Cosigner keys go to the Secure Enclave when the system keystore is in use.
+    // With the system keystore, the Secure Enclave keeps cosigner keys and
+    // the fast-unlock key, and asks for Touch ID or the login password.
     #[cfg(target_os = "macos")]
     if settings.storage == crate::home::Storage::System {
-        client.set_cosign_provider(std::sync::Arc::new(crate::enclave::SecureEnclave));
+        let enclave = std::sync::Arc::new(crate::enclave::SecureEnclave);
+        client.set_cosign_provider(enclave.clone());
+        client.set_presence_key(enclave);
     }
     let local_roots = match &settings.agent_ca {
         Some(path) => {
@@ -1570,10 +1573,7 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
                     }),
                 None => {
                     let mut client = daemon.client.lock().await;
-                    let login = client
-                        .login(delegated.identity, delegated.expires_at)
-                        .await
-                        .map(|_| ());
+                    let login = client.login(delegated).await.map(|_| ());
                     let state = client.session_state().state;
                     drop(client);
                     // The login may have selected another account.

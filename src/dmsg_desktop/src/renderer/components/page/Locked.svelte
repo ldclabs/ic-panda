@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t, type Label } from '../../i18n/index.svelte'
+  import { startLogin } from '../../shell/login.svelte'
   import { nextStep } from '../../shell/session'
   import Icon from '../Icon.svelte'
   import { buttonClass } from '../ui'
@@ -8,15 +9,18 @@
   let { status, testid }: { status: any; testid?: string } = $props()
 
   const step = $derived(nextStep(status))
+  const locked = $derived(status?.state === 'locked')
   // Without fast unlock a locked account opens only with a login; the hint says where to turn it on.
   const hint = $derived<Label>(
     status?.state === 'logged_out'
       ? 'loggedOutHint'
       : step?.label === 'continueSetup'
         ? 'setupHint'
-        : status?.state === 'locked' && !status.fast_unlock
+        : locked && !status.fast_unlock
           ? 'lockedNeedsLogin'
-          : 'locked'
+          : locked && status.fast_presence
+            ? 'lockedPresence'
+            : 'locked'
   )
 </script>
 
@@ -26,6 +30,9 @@
     <p class="text-[13.5px] text-muted">{t(hint)}</p>
     {#if step}
       <button class={buttonClass('primary')} onclick={step.run} data-testid="locked-step"><Icon name={step.icon} />{t(step.label)}</button>
+    {/if}
+    {#if locked && status.fast_unlock}
+      <button class={buttonClass('ghost', 'sm')} onclick={() => startLogin()} data-testid="locked-login">{t('loginWithIi')}</button>
     {/if}
   </div>
 </div>

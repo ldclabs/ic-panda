@@ -139,7 +139,9 @@ enum Command {
     },
     /// Unlock with the current login, or with --fast without one.
     Unlock {
-        /// Use fast unlock (up to seven days after a login unlock).
+        /// Use fast unlock (up to thirty days after a login unlock); with the
+        /// Secure Enclave it asks for Touch ID or the login password and
+        /// restores the login.
         #[arg(long)]
         fast: bool,
         /// Select this account's workspace first.
@@ -280,9 +282,10 @@ enum AutostartCommand {
 
 #[derive(Subcommand)]
 enum FastUnlockCommand {
-    /// Enable fast unlock while unlocked.
+    /// Enable fast unlock while unlocked; a login unlock enables it too.
     Enable,
-    /// Disable fast unlock and delete its key.
+    /// Disable fast unlock, delete its key and the kept login; a login
+    /// unlock then leaves it off.
     Disable,
 }
 

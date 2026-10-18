@@ -5,7 +5,7 @@ import { decode, encode } from 'cborg'
 
 export const DERIVATION_ORIGINS = ['https://dmsg.net', 'https://panda.fans']
 export const MIN_TTL_MS = 60_000
-export const MAX_TTL_MS = 8 * 60 * 60_000
+export const MAX_TTL_MS = 30 * 24 * 60 * 60_000
 const SPKI_PREFIX = [
   0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00
 ]

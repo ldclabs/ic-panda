@@ -11,9 +11,10 @@
 //! provisional key is deleted. Every later unlock needs the user home's
 //! login-gated `unlock_secret`.
 //!
-//! Fast unlock seals a second copy of the LDK under a random key the
-//! operating system keeps (encryption design §5.2; plan D-6); it is refused
-//! seven days after the last unlock through a login.
+//! Fast unlock seals a second copy of the LDK under a key the operating
+//! system keeps, or that hardware recovers only with the person present
+//! (encryption design §5.2; plan D-6); it is refused thirty days after the
+//! last unlock through a login.
 
 use crate::codec::{MAX_RECORD, canonical, decode};
 use crate::config::environment_name;
@@ -56,6 +57,12 @@ pub struct Meta {
     pub login_unlocked_at: Option<u64>,
     /// When fast unlock was enabled, if it is.
     pub fast_unlock: Option<u64>,
+    /// Fast unlock asks for the person: hardware keeps its key.
+    #[serde(default)]
+    pub fast_presence: bool,
+    /// The person turned fast unlock off; a login unlock leaves it off.
+    #[serde(default)]
+    pub fast_declined: bool,
 }
 
 /// The account a workspace belongs to.
@@ -125,6 +132,8 @@ impl Workspace {
             account: None,
             login_unlocked_at: None,
             fast_unlock: None,
+            fast_presence: false,
+            fast_declined: false,
         };
         let workspace = Self { store, meta };
         let keys = Keys { ldk, signing, hpke };
@@ -201,14 +210,17 @@ impl Workspace {
     }
 
     /// Seal a second copy of the LDK under `key`, which the caller keeps in
-    /// the operating system's credential store.
+    /// the operating system's credential store; `presence` when hardware
+    /// recovers it only with the person present.
     ///
     /// # Errors
     /// Returns `Error::RecoveryIncomplete` before the device has an account.
-    pub fn enable_fast(&mut self, keys: &Keys, key: &Key, now: u64) -> Result<()> {
+    pub fn enable_fast(&mut self, keys: &Keys, key: &Key, now: u64, presence: bool) -> Result<()> {
         let wrapped = seal(key, keys.ldk.as_slice(), &self.fast_context()?);
         let mut meta = self.meta.clone();
         meta.fast_unlock = Some(now);
+        meta.fast_presence = presence;
+        meta.fast_declined = false;
         self.store.atomic(|store| {
             store.set_sealed(FAST_LDK, &wrapped)?;
             store.set_meta(META, &meta)
@@ -234,6 +246,7 @@ impl Workspace {
     pub fn disable_fast(&mut self) -> Result<()> {
         let mut meta = self.meta.clone();
         meta.fast_unlock = None;
+        meta.fast_presence = false;
         self.store.atomic(|store| {
             store.delete_sealed(FAST_LDK)?;
             store.set_meta(META, &meta)

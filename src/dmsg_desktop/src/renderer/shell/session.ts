@@ -21,9 +21,11 @@ async function attempt(work: () => Promise<unknown>) {
 export const lock = () => attempt(() => call('session/lock'))
 
 /**
- * Open the account again: the OS keychain when fast unlock is on, else a
- * login in the system browser. Fast unlock that has run out (seven days
- * after the last login) or lost its key leads to a login instead.
+ * Open the account again: fast unlock when it is on (the daemon asks for
+ * Touch ID or the device password where the Secure Enclave keeps its key),
+ * else a login in the system browser. Fast unlock that has run out (thirty
+ * days after the last login) or lost its key leads to a login instead; a
+ * declined Touch ID leaves the device locked.
  */
 export async function unlock(status: any) {
   if (!status?.fast_unlock) return startLogin()
@@ -31,15 +33,37 @@ export async function unlock(status: any) {
     await call('session/unlock', { fast: true })
   } catch (error) {
     if (['AUTH_REQUIRED', 'NOT_FOUND'].includes(code(error))) return startLogin()
-    toast(() => `${t('error')}: ${code(error)}`)
+    if (code(error) !== 'FORBIDDEN') toast(() => `${t('error')}: ${code(error)}`)
   }
+}
+
+/** Whether this lock has offered its fast unlock; a new lock offers again. */
+let offered = false
+
+/**
+ * A device locked with fast unlock that asks for the person offers it once,
+ * when its window comes to the front; never right after the person locked
+ * it in front of the window, and not again once declined.
+ */
+export function offerUnlock(status: any) {
+  if (offered || status?.state !== 'locked' || !status.fast_presence) return
+  offered = true
+  void unlock(status)
+}
+
+/** A status that is not locked lets the next lock offer again. */
+export function settleOffer(status: any) {
+  if (status?.state !== 'locked') offered = false
 }
 
 /** The step that opens the device from its session state; null once unlocked. */
 export function nextStep(status: any): { label: Label; icon: Glyph; run: () => unknown } | null {
   const state = status?.state
   if (state === 'logged_out') return { label: 'login', icon: 'login', run: () => startLogin() }
-  if (state === 'locked') return { label: status.fast_unlock ? 'fastUnlock' : 'login', icon: 'unlock', run: () => unlock(status) }
+  if (state === 'locked') {
+    const label: Label = !status.fast_unlock ? 'login' : status.fast_presence === 'biometrics' ? 'touchIdUnlock' : 'fastUnlock'
+    return { label, icon: 'unlock', run: () => unlock(status) }
+  }
   if (setupStates.includes(state)) return { label: 'continueSetup', icon: 'settings', run: () => (location.hash = '/settings/session') }
   return null
 }

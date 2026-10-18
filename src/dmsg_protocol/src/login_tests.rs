@@ -201,7 +201,7 @@ fn build() -> Json {
             "ttl_ms",
         ),
         rejected(
-            "ttl above eight hours",
+            "ttl above thirty days",
             with("ttl_ms", Value::from(MAX_TTL_MS + 1)),
             "ttl_ms",
         ),

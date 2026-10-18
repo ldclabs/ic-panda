@@ -40,9 +40,9 @@ tokio-tungstenite = { workspace = true, features = [
 toml.workspace = true
 zeroize.workspace = true
 
-[target.'cfg(target_os = "macos")'.dependencies]
-security-framework = { version = "3", features = ["OSX_10_15"] }
-security-framework-sys = "2"
+# `build.rs` reads the Swift toolchain's library paths on macOS.
+[build-dependencies]
+serde_json.workspace = true
 
 [dev-dependencies]
 dmsg_client = { path = "../dmsg_client", features = ["testing"] }

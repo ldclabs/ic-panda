@@ -2441,8 +2441,6 @@ dependencies = [
  "reqwest",
  "rpassword",
  "rustls",
- "security-framework",
- "security-framework-sys",
  "serde",
  "serde_json",
  "sha2 0.11.1",

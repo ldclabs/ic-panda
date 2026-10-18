@@ -17,7 +17,7 @@
   import LoginDialog from './shell/LoginDialog.svelte'
   import Sidebar from './shell/Sidebar.svelte'
   import { shortcuts, viewOf, views } from './shell/nav'
-  import { lock } from './shell/session'
+  import { lock, offerUnlock, settleOffer } from './shell/session'
   import { call, onChange, single } from './rpc'
 
   let route = $state(location.hash.slice(1) || '/vault')
@@ -55,6 +55,9 @@
     }
   }
 
+  /** The first status: a window opened in front of a locked device offers its fast unlock. */
+  let first = true
+
   const refresh = single(async () => {
     ;({ connected, error: connectionError } = await window.dmsg.connection())
     try {
@@ -62,6 +65,9 @@
     } catch {
       status = null
     }
+    settleOffer(status)
+    if (first && status && document.hasFocus()) offerUnlock(status)
+    first = !status
   })
 
   // The offers change on unlock and with legacy state, never on a status refresh.
@@ -124,7 +130,7 @@
   })
 </script>
 
-<svelte:window onkeydown={onKey} />
+<svelte:window onkeydown={onKey} onfocus={() => isMain && offerUnlock(status)} />
 
 {#if !isMain}
   <main class="h-screen">

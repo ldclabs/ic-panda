@@ -203,6 +203,9 @@ let sockets = []
 /** The session the mock reports, the login under way and whether the next one fails to start. */
 let session = 'unlocked'
 let fastUnlock = false
+/** How fast unlock asks for the person, and whether the next ask is declined. */
+let fastPresence = null
+let declineUnlock = false
 let loginResult = null
 let failLogin = false
 function emit(type, data) {
@@ -223,6 +226,7 @@ function status() {
     pending_sync: 2,
     background_online: false,
     fast_unlock: fastUnlock,
+    fast_presence: fastPresence,
     lock_at: Date.now() + 14 * 60_000,
     idle_lock_ms: 15 * 60_000
   }
@@ -443,6 +447,7 @@ const methods = {
   },
   'session/unlock': (p) => {
     if (!(p?.fast && fastUnlock)) throw { code: 'AUTH_REQUIRED', message: 'Log in' }
+    if (declineUnlock) throw { code: 'FORBIDDEN', message: 'Declined' }
     session = 'unlocked'
     return status()
   },
@@ -788,8 +793,9 @@ await app.evaluate(({ dialog, clipboard, Notification, shell }) => {
 })
 const answer = (kind, path) => app.evaluate((_electron, [kind, path]) => globalThis[kind].push(path), [kind, path])
 const latest = (method) => calls.filter((c) => c.method === method).at(-1)
-/** Wait for an element's animations, such as a dialog fading in, to end before a screenshot. */
-const settled = (page, selector) => page.locator(selector).evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)))
+/** Wait for an element's animations, such as a dialog fading in, to end before a screenshot; a cancelled one has ended too. */
+const settled = (page, selector) =>
+  page.locator(selector).evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => null))))
 try {
   const main = await app.firstWindow()
   await main.waitForSelector('text=Smoke note', { timeout: 20_000 })
@@ -1293,6 +1299,26 @@ try {
   assert.deepEqual(latest('session/unlock').params, { fast: true })
   await main.waitForSelector('[data-testid="gate-state"] >> text=Unlocked')
   assert.equal(calls.filter((c) => c.method === 'session/login').length, logins)
+  // Where the Secure Enclave keeps the key, the locked window asks for Touch
+  // ID once when it comes to the front; declined, it stays locked without a
+  // login, and the gate asks again on request.
+  fastPresence = 'biometrics'
+  declineUnlock = true
+  session = 'locked'
+  emit('session/changed', { state: 'locked' })
+  await main.waitForSelector('[data-testid="gate-unlock"] >> text=Unlock with Touch ID')
+  const unlocks = calls.filter((c) => c.method === 'session/unlock').length
+  await main.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await waitFor(() => calls.filter((c) => c.method === 'session/unlock').length === unlocks + 1)
+  await main.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await new Promise((r) => setTimeout(r, 300))
+  assert.equal(calls.filter((c) => c.method === 'session/unlock').length, unlocks + 1)
+  assert.equal(await main.textContent('[data-testid="gate-state"]'), 'Locked')
+  declineUnlock = false
+  await main.click('[data-testid="gate-unlock"]')
+  await main.waitForSelector('[data-testid="gate-state"] >> text=Unlocked')
+  assert.equal(calls.filter((c) => c.method === 'session/login').length, logins)
+  assert.equal(await main.textContent('[data-testid="fast-unlock-method"]'), 'Touch ID or the Mac password')
   await main.click('[data-testid="local-accounts"] >> text=/^(Switch|切换)$/')
   await waitFor(() => calls.some((c) => c.method === 'session/switch'))
   assert.deepEqual(calls.find((c) => c.method === 'session/switch').params, { account: other })

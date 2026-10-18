@@ -179,8 +179,16 @@
               {#if status?.account}
                 <Fact label={t('fastUnlock')} testid="fast-unlock">
                   <Pill tone={status.fast_unlock ? 'forest' : 'neutral'}>{status.fast_unlock ? t('on') : t('off')}</Pill>
-                  <span class="text-[12px] text-faint">{t('fastUnlockHint')}</span>
+                  {#if status.fast_unlock}
+                    <span class="text-[12.5px]" data-testid="fast-unlock-method">
+                      {t(status.fast_presence === 'biometrics' ? 'presenceBiometrics' : status.fast_presence === 'password' ? 'presencePassword' : 'presenceKeychain')}
+                    </span>
+                  {/if}
+                  <span class="w-full text-[12px] text-faint">{t('fastUnlockHint')}</span>
                 </Fact>
+              {/if}
+              {#if status?.login_expires_at}
+                <Fact label={t('loginExpiresAt')} testid="login-expires">{when(status.login_expires_at)}</Fact>
               {/if}
             </dl>
             <div class="mt-3 flex flex-wrap gap-1.5">

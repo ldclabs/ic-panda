@@ -726,6 +726,7 @@ impl Client {
         self.located = None;
         // A login's own workspace becomes the account's.
         self.adopt(&account)?;
+        self.after_login_unlock()?;
         Ok(reference)
     }
 

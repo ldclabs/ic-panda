@@ -19,7 +19,7 @@ fn note(title: &str) -> Item {
 }
 
 #[tokio::test]
-async fn fast_unlock_works_offline_for_seven_days() {
+async fn fast_unlock_works_offline_for_thirty_days() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());
     let mut client = unlocked(&dir.0, false, Some(storage.clone()));
@@ -48,6 +48,139 @@ async fn fast_unlock_works_offline_for_seven_days() {
     assert_eq!(client.unlock_fast().await.err(), Some(Error::AuthRequired));
     assert!(!client.status().unwrap().fast_unlock);
     assert_eq!(client.unlock_fast().await.err(), Some(Error::NotFound));
+}
+
+/// A [`PresenceKey`] that answers as the person tells it to.
+#[derive(Default)]
+struct Hardware {
+    declines: std::sync::atomic::AtomicBool,
+    forgot: std::sync::atomic::AtomicBool,
+    opened: std::sync::atomic::AtomicU32,
+}
+
+impl PresenceKey for Hardware {
+    fn presence(&self) -> Option<Presence> {
+        Some(Presence::Biometrics)
+    }
+
+    fn create(&self) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<Key>)> {
+        Ok((vec![7; 10], vec![4; 65], Zeroizing::new([9; 32])))
+    }
+
+    fn open(&self, handle: &[u8], peer: &[u8]) -> Result<Zeroizing<Key>> {
+        use std::sync::atomic::Ordering::SeqCst;
+        assert_eq!((handle, peer), (&[7u8; 10][..], &[4u8; 65][..]));
+        self.opened.fetch_add(1, SeqCst);
+        match (self.declines.load(SeqCst), self.forgot.load(SeqCst)) {
+            (true, _) => Err(Error::Forbidden),
+            (_, true) => Err(Error::IntegrityFailed),
+            _ => Ok(Zeroizing::new([9; 32])),
+        }
+    }
+}
+
+/// Log `client` in as the test login `seed`, which expires at `expires_at`.
+async fn log_in(client: &mut Client, seed: u8, expires_at: u64) -> Principal {
+    let login = crate::login::kept_for_tests(seed, expires_at)
+        .delegated()
+        .unwrap();
+    let principal = login.principal;
+    client.login = Some(Login {
+        ic: Ic::connect(&client.config, login.identity).await.unwrap(),
+        principal,
+        expires_at,
+        kept: Some(login.kept),
+    });
+    principal
+}
+
+#[tokio::test]
+async fn fast_unlock_with_the_person_restores_the_login() {
+    use std::sync::atomic::Ordering::SeqCst;
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let hardware = Arc::new(Hardware::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    client.set_presence_key(hardware.clone());
+    let principal = log_in(&mut client, 3, now_ms() + DAY).await;
+
+    // A login unlock turns fast unlock on and keeps the login.
+    client.after_login_unlock().unwrap();
+    let status = client.status().unwrap();
+    assert!(status.fast_unlock);
+    assert_eq!(status.fast_presence, Some(Presence::Biometrics));
+    // The store keeps only the hardware's handle and peer.
+    let stored = storage.get(&client.fast_name().unwrap()).unwrap().unwrap();
+    assert!(matches!(
+        decode::<FastKey>(&stored, MAX_RECORD).unwrap(),
+        FastKey::Present { .. }
+    ));
+    client.lock();
+    assert_eq!(client.status().unwrap().principal, None);
+
+    // Declining leaves the device locked, with fast unlock on.
+    hardware.declines.store(true, SeqCst);
+    assert_eq!(client.unlock_fast().await.err(), Some(Error::Forbidden));
+    let status = client.status().unwrap();
+    assert_eq!(status.state, "locked");
+    assert!(status.fast_unlock);
+
+    hardware.declines.store(false, SeqCst);
+    let status = client.unlock_fast().await.unwrap();
+    assert_eq!(status.state, "unlocked");
+    assert_eq!(status.principal, Some(principal.to_text()));
+    assert_eq!(hardware.opened.load(SeqCst), 2);
+
+    // An expired login is not restored, and goes.
+    let expired = crate::login::kept_for_tests(3, now_ms() - 1);
+    client
+        .workspace
+        .put_private(client.keys().unwrap(), KEPT_LOGIN, &expired)
+        .unwrap();
+    client.lock();
+    assert_eq!(client.unlock_fast().await.unwrap().principal, None);
+    assert!(client.workspace.store.sealed(KEPT_LOGIN).unwrap().is_none());
+
+    // Turned off by the person: the kept login goes and a login unlock
+    // leaves fast unlock off.
+    log_in(&mut client, 3, now_ms() + DAY).await;
+    client.after_login_unlock().unwrap();
+    assert!(client.workspace.store.sealed(KEPT_LOGIN).unwrap().is_some());
+    assert!(!client.disable_fast_unlock().unwrap().fast_unlock);
+    assert!(client.workspace.store.sealed(KEPT_LOGIN).unwrap().is_none());
+    client.after_login_unlock().unwrap();
+    assert!(!client.status().unwrap().fast_unlock);
+    // Turned on again by the person, it keeps the login again.
+    assert!(client.enable_fast_unlock().unwrap().fast_unlock);
+    assert!(client.workspace.store.sealed(KEPT_LOGIN).unwrap().is_some());
+
+    // A key the hardware no longer opens turns fast unlock off.
+    client.lock();
+    hardware.forgot.store(true, SeqCst);
+    assert_eq!(client.unlock_fast().await.err(), Some(Error::AuthRequired));
+    assert!(!client.status().unwrap().fast_unlock);
+}
+
+#[tokio::test]
+async fn fast_unlock_without_the_person_keeps_no_login() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    log_in(&mut client, 3, now_ms() + DAY).await;
+    client.after_login_unlock().unwrap();
+    let status = client.status().unwrap();
+    assert!(status.fast_unlock);
+    assert_eq!(status.fast_presence, None);
+    assert!(client.workspace.store.sealed(KEPT_LOGIN).unwrap().is_none());
+    client.lock();
+    let status = client.unlock_fast().await.unwrap();
+    assert_eq!((status.state, status.principal), ("unlocked", None));
+
+    // A credential store that does not decode is a key that is gone.
+    storage.set(&client.fast_name().unwrap(), &[1; 32]).unwrap();
+    client.lock();
+    assert_eq!(client.unlock_fast().await.err(), Some(Error::AuthRequired));
+    assert!(!client.status().unwrap().fast_unlock);
 }
 
 #[test]

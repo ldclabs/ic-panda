@@ -1,68 +1,129 @@
-//! Team-wallet cosigner keys in the Secure Enclave (macOS). The private key
-//! never leaves the enclave and each signature asks for Touch ID or the
-//! login password. Creating one needs a code-signed build with a keychain
-//! entitlement; a plain `cargo build` falls back to a software key, which
-//! the wallet sees as weak.
+//! Keys in the Secure Enclave (macOS), through CryptoKit
+//! (`swift/Enclave.swift`): the fast-unlock key and team-wallet cosigner
+//! keys. A key leaves the enclave only as an opaque handle that just this
+//! Mac's enclave opens, so it needs no keychain item and no entitlement, and
+//! every use of it asks for Touch ID or the login password.
 
+use crate::locale::tr;
+use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use dmsg_client::crypto::Key;
+use dmsg_client::secure::{Presence, PresenceKey};
 use dmsg_client::wallet::cosign::CosignProvider;
 use dmsg_types::{Error, Result};
-use security_framework::access_control::{ProtectionMode, SecAccessControl};
-use security_framework::item::{
-    ItemClass, ItemSearchOptions, KeyClass, Location, Reference, SearchResult,
-};
-use security_framework::key::{Algorithm, GenerateKeyOptions, KeyType, SecKey, Token};
-use security_framework_sys::access_control::{
-    kSecAccessControlPrivateKeyUsage, kSecAccessControlUserPresence,
-};
+use std::ffi::{CString, c_char};
+use zeroize::Zeroizing;
+
+unsafe extern "C" {
+    fn dmsg_se_presence() -> i32;
+    fn dmsg_se_agreement_create(
+        handle: *mut u8,
+        capacity: isize,
+        length: *mut isize,
+        peer: *mut u8,
+        secret: *mut u8,
+    ) -> i32;
+    fn dmsg_se_agreement_open(
+        handle: *const u8,
+        length: isize,
+        peer: *const u8,
+        reason: *const c_char,
+        secret: *mut u8,
+    ) -> i32;
+    fn dmsg_se_signing_create(
+        handle: *mut u8,
+        capacity: isize,
+        length: *mut isize,
+        public_key: *mut u8,
+    ) -> i32;
+    fn dmsg_se_sign(
+        handle: *const u8,
+        length: isize,
+        message: *const u8,
+        message_length: isize,
+        reason: *const c_char,
+        signature: *mut u8,
+    ) -> i32;
+}
+
+/// Room for a key's handle, a few hundred bytes in practice.
+const HANDLE: usize = 4096;
+/// An X9.63 uncompressed P-256 public key.
+const POINT: usize = 65;
 
 /// The Secure Enclave of this Mac.
 pub struct SecureEnclave;
 
-fn unavailable(e: impl std::fmt::Display) -> Error {
-    Error::Unavailable(format!("secure enclave: {e}"))
+/// A result code of `swift/Enclave.swift`.
+fn checked(code: i32) -> Result<()> {
+    match code {
+        0 => Ok(()),
+        2 => Err(Error::Forbidden),
+        3 => Err(Error::IntegrityFailed),
+        _ => Err(Error::Unavailable("secure enclave".into())),
+    }
 }
 
-fn find(handle: &str) -> Result<SecKey> {
-    let found = ItemSearchOptions::new()
-        .class(ItemClass::key())
-        .key_class(KeyClass::private())
-        .label(handle)
-        .ignore_legacy_keychains()
-        .load_refs(true)
-        .search()
-        .map_err(unavailable)?;
-    found
-        .into_iter()
-        .find_map(|r| match r {
-            SearchResult::Ref(Reference::Key(key)) => Some(key),
+/// The text the system shows when it asks for the person.
+fn reason(text: String) -> CString {
+    CString::new(text).unwrap_or_default()
+}
+
+/// Wait for the person without holding up the daemon's other tasks.
+fn asking<T>(ask: impl FnOnce() -> T) -> T {
+    tokio::task::block_in_place(ask)
+}
+
+/// A new key's handle, written by `create` into a buffer of [`HANDLE`] bytes.
+fn handle(create: impl FnOnce(*mut u8, isize, *mut isize) -> i32) -> Result<Vec<u8>> {
+    let mut handle = vec![0u8; HANDLE];
+    let mut length: isize = 0;
+    checked(create(handle.as_mut_ptr(), HANDLE as isize, &mut length))?;
+    handle.truncate(usize::try_from(length).map_err(|_| Error::IntegrityFailed)?);
+    Ok(handle)
+}
+
+impl PresenceKey for SecureEnclave {
+    fn presence(&self) -> Option<Presence> {
+        match unsafe { dmsg_se_presence() } {
+            2 => Some(Presence::Biometrics),
+            1 => Some(Presence::Password),
             _ => None,
-        })
-        .ok_or(Error::NotFound)
-}
+        }
+    }
 
-/// `r || s` of a DER ECDSA signature.
-fn raw_signature(der: &[u8]) -> Result<Vec<u8>> {
-    let bad = || Error::IntegrityFailed;
-    let mut at = 2;
-    if der.len() < 8 || der[0] != 0x30 || usize::from(der[1]) != der.len() - 2 {
-        return Err(bad());
+    fn create(&self) -> Result<(Vec<u8>, Vec<u8>, Zeroizing<Key>)> {
+        let mut peer = vec![0u8; POINT];
+        let mut secret = Zeroizing::new([0u8; 32]);
+        let handle = handle(|handle, capacity, length| unsafe {
+            dmsg_se_agreement_create(
+                handle,
+                capacity,
+                length,
+                peer.as_mut_ptr(),
+                secret.as_mut_ptr(),
+            )
+        })?;
+        Ok((handle, peer, secret))
     }
-    let mut out = vec![];
-    for _ in 0..2 {
-        if der.get(at) != Some(&0x02) {
-            return Err(bad());
+
+    fn open(&self, handle: &[u8], peer: &[u8]) -> Result<Zeroizing<Key>> {
+        if peer.len() != POINT {
+            return Err(Error::IntegrityFailed);
         }
-        let len = usize::from(*der.get(at + 1).ok_or_else(bad)?);
-        let int = der.get(at + 2..at + 2 + len).ok_or_else(bad)?;
-        let int: Vec<u8> = int.iter().copied().skip_while(|b| *b == 0).collect();
-        if int.len() > 32 {
-            return Err(bad());
-        }
-        out.extend(std::iter::repeat_n(0, 32 - int.len()));
-        out.extend(int);
-        at += 2 + len;
+        let reason = reason(tr!("unlock dMsg", "解锁 dMsg"));
+        let mut secret = Zeroizing::new([0u8; 32]);
+        checked(asking(|| unsafe {
+            dmsg_se_agreement_open(
+                handle.as_ptr(),
+                handle.len() as isize,
+                peer.as_ptr(),
+                reason.as_ptr(),
+                secret.as_mut_ptr(),
+            )
+        }))?;
+        Ok(secret)
     }
-    Ok(out)
 }
 
 impl CosignProvider for SecureEnclave {
@@ -70,55 +131,64 @@ impl CosignProvider for SecureEnclave {
         "secure-enclave"
     }
 
-    fn create(&self, label: &str) -> Result<(Vec<u8>, String)> {
-        let handle = format!(
-            "dmsg-wallet-cosigner:{label}:{}",
-            hex::encode(&dmsg_client::crypto::random_id()[..8])
-        );
-        let access = SecAccessControl::create_with_protection(
-            Some(ProtectionMode::AccessibleWhenUnlockedThisDeviceOnly),
-            kSecAccessControlPrivateKeyUsage | kSecAccessControlUserPresence,
-        )
-        .map_err(unavailable)?;
-        let mut options = GenerateKeyOptions::default();
-        options
-            .set_key_type(KeyType::ec_sec_prime_random())
-            .set_size_in_bits(256)
-            .set_token(Token::SecureEnclave)
-            .set_location(Location::DataProtectionKeychain)
-            .set_access_control(access)
-            .set_label(handle.clone());
-        let key = SecKey::new(&options).map_err(unavailable)?;
-        let public = key
-            .public_key()
-            .and_then(|k| k.external_representation())
-            .ok_or_else(|| unavailable("no public key"))?;
-        let point = public.bytes();
-        if point.len() != 65 || point[0] != 0x04 {
+    fn create(&self, _label: &str) -> Result<(Vec<u8>, String)> {
+        let mut point = [0u8; POINT];
+        let handle = handle(|handle, capacity, length| unsafe {
+            dmsg_se_signing_create(handle, capacity, length, point.as_mut_ptr())
+        })?;
+        if point[0] != 0x04 {
             return Err(Error::IntegrityFailed);
         }
         let compressed = [&[0x02 | (point[64] & 1)][..], &point[1..33]].concat();
-        Ok((compressed, handle))
+        Ok((compressed, URL_SAFE_NO_PAD.encode(handle)))
     }
 
     fn sign(&self, handle: &str, message: &[u8]) -> Result<Vec<u8>> {
-        let key = find(handle)?;
-        let der = key
-            .create_signature(Algorithm::ECDSASignatureMessageX962SHA256, message)
-            .map_err(unavailable)?;
-        raw_signature(&der)
+        let handle = URL_SAFE_NO_PAD
+            .decode(handle)
+            .map_err(|_| Error::IntegrityFailed)?;
+        let reason = reason(tr!("sign for a team wallet", "为团队钱包签名"));
+        let mut signature = vec![0u8; 64];
+        let signed = checked(asking(|| unsafe {
+            dmsg_se_sign(
+                handle.as_ptr(),
+                handle.len() as isize,
+                message.as_ptr(),
+                message.len() as isize,
+                reason.as_ptr(),
+                signature.as_mut_ptr(),
+            )
+        }));
+        match signed {
+            Ok(()) => Ok(signature),
+            Err(Error::Forbidden) => Err(Error::Unavailable("secure enclave: declined".into())),
+            Err(error) => Err(error),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    /// Creating keys asks nothing; using them asks for the person, which a
+    /// test cannot answer.
     #[test]
-    fn der_signatures_become_fixed_width() {
-        let der = [0x30, 0x08, 0x02, 0x02, 0x00, 0x81, 0x02, 0x02, 0x01, 0x02];
-        let raw = super::raw_signature(&der).unwrap();
-        assert_eq!(raw.len(), 64);
-        assert_eq!(raw[31], 0x81);
-        assert_eq!(&raw[62..], &[0x01, 0x02]);
-        assert!(super::raw_signature(&der[..9]).is_err());
+    fn creates_keys_without_asking() {
+        let enclave = SecureEnclave;
+        if enclave.presence().is_none() {
+            return;
+        }
+        let (handle, peer, secret) = PresenceKey::create(&enclave).unwrap();
+        assert!(!handle.is_empty() && handle.len() < HANDLE);
+        assert_eq!((peer.len(), peer[0]), (POINT, 0x04));
+        assert_ne!(*secret, [0; 32]);
+        let (public, handle) = CosignProvider::create(&enclave, "test").unwrap();
+        assert_eq!(public.len(), 33);
+        assert!(URL_SAFE_NO_PAD.decode(handle).is_ok());
+        assert_eq!(
+            enclave.open(&[1, 2, 3], &[0; 64]).err(),
+            Some(Error::IntegrityFailed)
+        );
     }
 }

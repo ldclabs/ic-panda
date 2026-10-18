@@ -9,8 +9,9 @@ use dmsg_types::{login::*, *};
 pub const DERIVATION_ORIGINS: [&str; 2] = ["https://dmsg.net", "https://panda.fans"];
 /// Shortest delegation lifetime a request may ask for (one minute).
 pub const MIN_TTL_MS: u64 = MINUTE;
-/// Longest delegation lifetime a request may ask for (eight hours).
-pub const MAX_TTL_MS: u64 = 8 * 60 * MINUTE;
+/// Longest delegation lifetime a request may ask for (thirty days, Internet
+/// Identity's own limit).
+pub const MAX_TTL_MS: u64 = 30 * DAY;
 /// Path of the client's callback page.
 pub const CALLBACK_PATH: &str = "/auth/callback";
 /// DER prefix of an Ed25519 SubjectPublicKeyInfo; the raw key follows.

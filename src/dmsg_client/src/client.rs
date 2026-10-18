@@ -12,22 +12,28 @@
 //! Unlocking needs a login: the user home releases the device's unlock
 //! secret only to a Principal bound to the account. Fast unlock opens a
 //! second copy of the local data key with a key the operating system keeps,
-//! for seven days after the last login unlock. Locking drops the login
-//! together with every key; with "background online" (`background_online`,
-//! plan D-7) only the device signing key stays, so presigned and already
-//! sealed versions keep moving while nothing can be read.
+//! for thirty days after the last login unlock; a login unlock turns it on
+//! unless the person turned it off. Where hardware keeps that key and asks
+//! for the person (a [`PresenceKey`], such as the Secure Enclave behind Touch
+//! ID), the login is also kept, sealed under the local data key, and a fast
+//! unlock restores it until it expires. Locking drops the login together
+//! with every key; with "background online" (`background_online`, plan D-7)
+//! only the device signing key stays, so presigned and already sealed
+//! versions keep moving while nothing can be read.
 
 use crate::account::{Security, device_bundle, verify_security};
 use crate::cloud::{Cloud, Evidence, EvidenceEntry, Signer};
+use crate::codec::{MAX_RECORD, canonical, decode};
 use crate::config::{Config, environment_name};
 use crate::content::VAULT;
 use crate::crypto::Key;
 use crate::ic::Ic;
 use crate::library::blobs::Blobs;
 use crate::library::catalog::Catalog;
+use crate::login::{Delegated, KeptLogin};
 use crate::now_ms;
 use crate::root::RootKeys;
-use crate::secure::SecureStorage;
+use crate::secure::{Presence, PresenceKey, SecureStorage};
 use crate::storage;
 use crate::store::LOCAL;
 use crate::sync::LastSync;
@@ -37,16 +43,19 @@ use dmsg_types::{
     AccountId, CertifiedBatch, DAY, Environment, Error, Hash, Result, ensure, user::Device,
 };
 use futures_util::future::try_join_all;
-use ic_agent::Identity;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use serde_bytes::{ByteArray, ByteBuf};
 use serde_json::Value as Json;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use zeroize::Zeroizing;
 
-/// Fast unlock is refused this long after the last login unlock.
-pub const FAST_UNLOCK_MS: u64 = 7 * DAY;
+/// Fast unlock is refused this long after the last login unlock, as long as
+/// the login lasts.
+pub const FAST_UNLOCK_MS: u64 = 30 * DAY;
+/// The login kept sealed under the LDK.
+const KEPT_LOGIN: &str = "login";
 /// The agent connectors' state file in the workspace directory.
 const AGENT_RUNTIME: &str = "agents.sqlite";
 /// The workspace file in its directory.
@@ -72,6 +81,23 @@ pub(crate) struct Login {
     pub(crate) ic: Ic,
     pub(crate) principal: Principal,
     pub(crate) expires_at: u64,
+    /// What restores it, until it is sealed; none once restored.
+    kept: Option<KeptLogin>,
+}
+
+/// What the credential store keeps for fast unlock.
+#[derive(Serialize, Deserialize)]
+enum FastKey {
+    /// The key itself.
+    Plain(ByteArray<32>),
+    /// A [`PresenceKey`]'s handle and peer, which recover the key's secret
+    /// with the person present.
+    Present { handle: ByteBuf, peer: ByteBuf },
+}
+
+/// The fast-unlock key of a workspace from a [`PresenceKey`]'s secret.
+fn presence_key(secret: &Key, name: &str) -> Zeroizing<Key> {
+    crate::crypto::derive(secret, &("dmsg/fast-unlock/1", name))
 }
 
 /// What a client can do right now; nothing here is secret.
@@ -105,6 +131,8 @@ pub struct Status {
     pub resident: bool,
     /// Fast unlock is enabled.
     pub fast_unlock: bool,
+    /// How fast unlock checks the person, when hardware keeps its key.
+    pub fast_presence: Option<Presence>,
     /// The latest sync attempt.
     pub last_sync: Option<LastSync>,
     /// Approval requests waiting for a decision; counted while locked too.
@@ -175,6 +203,8 @@ pub struct Client {
     /// The environment's directory.
     dir: PathBuf,
     secure: Option<Arc<dyn SecureStorage>>,
+    /// Hardware that keeps the fast-unlock key and asks for the person.
+    presence: Option<Arc<dyn PresenceKey>>,
     slot: Slot,
     pub(crate) workspace: Workspace,
     pub(crate) cloud: Cloud,
@@ -234,6 +264,7 @@ impl Client {
             config,
             dir: dir.to_path_buf(),
             secure,
+            presence: None,
             slot: Slot::Idle,
             workspace,
             cloud,
@@ -269,6 +300,12 @@ impl Client {
             client.select(Slot::Account(account))?;
         }
         Ok(client)
+    }
+
+    /// Keep the fast-unlock key in `key`, which asks for the person; fast
+    /// unlock turned on from now on uses it.
+    pub fn set_presence_key(&mut self, key: Arc<dyn PresenceKey>) {
+        self.presence = Some(key);
     }
 
     /// The directory of a workspace.
@@ -446,6 +483,11 @@ impl Client {
             background_online: self.config.background_online,
             resident: session.resident,
             fast_unlock: meta.fast_unlock.is_some(),
+            fast_presence: self
+                .presence
+                .as_ref()
+                .filter(|_| meta.fast_unlock.is_some() && meta.fast_presence)
+                .and_then(|key| key.presence()),
             last_sync: self.last_sync()?,
             approvals_waiting: self.approvals_waiting()?,
             sealed_requests: self.sealed_requests()?,
@@ -496,15 +538,16 @@ impl Client {
     /// # Errors
     /// Query failures discard the login; a workspace bound to another
     /// account or home returns `Error::IntegrityFailed`.
-    pub async fn login(&mut self, identity: Arc<dyn Identity>, expires_at: u64) -> Result<Status> {
-        ensure(expires_at > now_ms(), Error::Expired)?;
-        let ic = Ic::connect(&self.config, identity).await?;
+    pub async fn login(&mut self, login: Delegated) -> Result<Status> {
+        ensure(login.expires_at > now_ms(), Error::Expired)?;
+        let ic = Ic::connect(&self.config, login.identity).await?;
         let principal = ic.principal()?;
         self.lock();
         self.login = Some(Login {
             ic,
             principal,
-            expires_at,
+            expires_at: login.expires_at,
+            kept: Some(login.kept),
         });
         self.enter().await
     }
@@ -565,6 +608,7 @@ impl Client {
             self.keys = Some(self.workspace.unlock(&secret)?);
             self.workspace.meta.login_unlocked_at = Some(now_ms());
             self.workspace.save_meta()?;
+            self.after_login_unlock()?;
         }
         if !self.workspace.provisional() {
             if let Err(error) = self.resume().await
@@ -578,31 +622,22 @@ impl Client {
     }
 
     /// Unlock without a login, with the fast-unlock key the operating
-    /// system keeps. Online, the device then checks it is still approved.
+    /// system keeps; hardware that keeps it asks for the person first, and
+    /// the login kept at the last login unlock comes back while it lasts.
+    /// Online, the device then checks it is still approved.
     ///
     /// # Errors
-    /// Returns `Error::NotFound` when fast unlock is off,
-    /// `Error::AuthRequired` seven days after the last login unlock or when
-    /// the key is gone, and `Error::DeviceNotApproved` for a revoked device,
-    /// whose workspace is then erased.
+    /// Returns `Error::NotFound` when fast unlock is off, `Error::Forbidden`
+    /// when the person declines, `Error::AuthRequired` thirty days after the
+    /// last login unlock or when the key is gone, and
+    /// `Error::DeviceNotApproved` for a revoked device, whose workspace is
+    /// then erased.
     pub async fn unlock_fast(&mut self) -> Result<Status> {
         let account = self.account()?.clone();
         ensure(self.workspace.meta.fast_unlock.is_some(), Error::NotFound)?;
         let unlocked = self.workspace.meta.login_unlocked_at.unwrap_or(0);
         ensure(now_ms() < unlocked + FAST_UNLOCK_MS, Error::AuthRequired)?;
-        let secure = self.secure.clone().ok_or(Error::NotFound)?;
-        let key = match secure.get(&self.fast_name()?)? {
-            Some(key) => key,
-            None => {
-                self.workspace.disable_fast()?;
-                return Err(Error::AuthRequired);
-            }
-        };
-        let key: Zeroizing<Key> = Zeroizing::new(
-            key.as_slice()
-                .try_into()
-                .map_err(|_| Error::IntegrityFailed)?,
-        );
+        let key = self.fast_key()?;
         let keys = self.workspace.unlock_fast(&key)?;
         self.lock();
         self.keys = Some(keys);
@@ -616,7 +651,86 @@ impl Client {
             }
         }
         self.open_root().await?;
+        if self.workspace.meta.fast_presence {
+            // Without its login the account still opens; the next login
+            // unlock keeps a new one.
+            let _ = self.restore_login().await;
+        }
         self.status()
+    }
+
+    /// The fast-unlock key from the credential store, through the hardware
+    /// that keeps it with the person present. A key that is gone, or that
+    /// the hardware no longer opens, turns fast unlock off and asks for a
+    /// login.
+    fn fast_key(&mut self) -> Result<Zeroizing<Key>> {
+        let secure = self.secure.clone().ok_or(Error::NotFound)?;
+        let name = self.fast_name()?;
+        let stored = secure
+            .get(&name)?
+            .and_then(|bytes| decode::<FastKey>(&bytes, MAX_RECORD).ok());
+        let key = match (stored, &self.presence) {
+            (Some(FastKey::Plain(key)), _) => Ok(Zeroizing::new(*key)),
+            (Some(FastKey::Present { handle, peer }), Some(hardware)) => hardware
+                .open(&handle, &peer)
+                .map(|secret| presence_key(&secret, &name)),
+            _ => Err(Error::IntegrityFailed),
+        };
+        if matches!(key, Err(Error::IntegrityFailed)) {
+            self.workspace.disable_fast()?;
+            return Err(Error::AuthRequired);
+        }
+        key
+    }
+
+    /// After an unlock through a login: turn fast unlock on unless the
+    /// person turned it off, and keep the login for the next fast unlock.
+    pub(crate) fn after_login_unlock(&mut self) -> Result<()> {
+        let meta = &self.workspace.meta;
+        if meta.fast_unlock.is_none() && !meta.fast_declined && self.secure.is_some() {
+            // A keystore that refuses leaves fast unlock off; the unlock
+            // stands.
+            if self.enable_fast_unlock().is_ok() {
+                return Ok(());
+            }
+        }
+        self.keep_login()
+    }
+
+    /// Seal the current login under the LDK while fast unlock asks for the
+    /// person; without that, no login stays on disk.
+    fn keep_login(&self) -> Result<()> {
+        let keys = self.keys()?;
+        match self.login.as_ref().and_then(|l| l.kept.as_ref()) {
+            Some(kept) if self.workspace.meta.fast_presence => {
+                self.workspace.put_private(keys, KEPT_LOGIN, kept)
+            }
+            Some(_) => self.workspace.delete_private(KEPT_LOGIN),
+            // A restored login is sealed already.
+            None => Ok(()),
+        }
+    }
+
+    /// Restore the kept login while it lasts; an expired one is deleted.
+    async fn restore_login(&mut self) -> Result<()> {
+        let Some(kept) = self
+            .workspace
+            .private::<KeptLogin>(self.keys()?, KEPT_LOGIN)?
+        else {
+            return Ok(());
+        };
+        if kept.expires_at <= now_ms() {
+            return self.workspace.delete_private(KEPT_LOGIN);
+        }
+        let login = kept.delegated()?;
+        let ic = Ic::connect(&self.config, login.identity).await?;
+        self.login = Some(Login {
+            ic,
+            principal: login.principal,
+            expires_at: login.expires_at,
+            kept: None,
+        });
+        Ok(())
     }
 
     /// Load the root, fetching a newer committed one, then sync once.
@@ -639,9 +753,11 @@ impl Client {
         Ok(format!("{}:fast-unlock", self.workspace.name()?))
     }
 
-    /// Enable fast unlock on this device: a random key goes to the
-    /// operating system's credential store and seals a copy of the local
-    /// data key.
+    /// Enable fast unlock on this device: a key in the operating system's
+    /// credential store seals a copy of the local data key. With a
+    /// [`PresenceKey`] the store keeps only what the hardware needs to
+    /// recover the key with the person present, and the current login is
+    /// kept too.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked and `Error::NotFound` without a
@@ -649,16 +765,34 @@ impl Client {
     pub fn enable_fast_unlock(&mut self) -> Result<Status> {
         let secure = self.secure.clone().ok_or(Error::NotFound)?;
         self.keys()?;
-        let key = Zeroizing::new(crate::crypto::random_key());
-        secure.set(&self.fast_name()?, key.as_slice())?;
+        let name = self.fast_name()?;
+        let hardware = self.presence.clone().filter(|key| key.presence().is_some());
+        let (stored, key) = match hardware {
+            Some(hardware) => {
+                let (handle, peer, secret) = hardware.create()?;
+                let stored = FastKey::Present {
+                    handle: handle.into(),
+                    peer: peer.into(),
+                };
+                (stored, presence_key(&secret, &name))
+            }
+            None => {
+                let key = Zeroizing::new(crate::crypto::random_key());
+                (FastKey::Plain(ByteArray::new(*key)), key)
+            }
+        };
+        let presence = matches!(stored, FastKey::Present { .. });
+        secure.set(&name, &Zeroizing::new(canonical(&stored)))?;
         let keys = self.keys.take().ok_or(Error::Locked)?;
-        let enabled = self.workspace.enable_fast(&keys, &key, now_ms());
+        let enabled = self.workspace.enable_fast(&keys, &key, now_ms(), presence);
         self.keys = Some(keys);
         enabled?;
+        self.keep_login()?;
         self.status()
     }
 
-    /// Disable fast unlock and delete its key.
+    /// Disable fast unlock, delete its key and the kept login; a later login
+    /// unlock leaves it off.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when storage fails.
@@ -667,6 +801,9 @@ impl Client {
             secure.delete(&name)?;
         }
         self.workspace.disable_fast()?;
+        self.workspace.delete_private(KEPT_LOGIN)?;
+        self.workspace.meta.fast_declined = true;
+        self.workspace.save_meta()?;
         self.status()
     }
 
