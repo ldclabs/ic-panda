@@ -132,16 +132,20 @@ impl Daemon {
                         .lock()
                         .await
                         .channel_send_settle(&channel, &message_id, reply)?;
-                crate::channels::read(self, &mut Reading::new(&channel)).await?;
+                // The relay stored it: a read that fails now never fails the
+                // send, and the next read takes the message.
+                let _ = crate::channels::read(self, &mut Reading::new(&channel)).await;
                 return Ok(json!({"message_id": message_id, "receipt": receipt}));
             }
             "channel/mark" => {
                 let channel = text(params, "id")?;
                 let through = number(params, "through")?;
                 let view = self.client().lock().await.channel_mark(&channel, through)?;
-                // A read receipt only when the account says so (C04).
+                // A read receipt only when the account says so (C04). The
+                // mark is kept either way, and the next one carries the
+                // receipt a lost one left behind.
                 if params["receipt"] == true {
-                    crate::channels::report(self, &channel, Some(view.read)).await?;
+                    let _ = crate::channels::report(self, &channel, Some(view.read)).await;
                 }
                 return Ok(to_json(&view));
             }

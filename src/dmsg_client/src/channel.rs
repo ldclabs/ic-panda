@@ -1883,11 +1883,14 @@ impl Client {
             .map(|_| ())
     }
 
-    /// Invite `account`; returns the invitation to hand to it. While the
-    /// epoch is active its key is sealed to the account's devices and goes
-    /// with the invitation, so the member reads that epoch from its start,
-    /// what was written before it joined included; a manager who wants
-    /// otherwise rekeys first. Otherwise the member joins the next epoch.
+    /// Invite `account`; returns the invitation to hand to it. The epoch's
+    /// key is sealed to the account's devices and goes with the invitation,
+    /// so the member reads that epoch from its start, what was written
+    /// before it joined included; a manager who wants otherwise rekeys
+    /// first. An invitation is accepted only in the epoch it was issued in,
+    /// so a channel waiting for keys rotates first; when this account may
+    /// not rotate it, the invitation carries no key and lapses with that
+    /// rotation.
     ///
     /// # Errors
     /// Returns `Error::Forbidden` unless this account manages the channel.
@@ -1899,9 +1902,18 @@ impl Client {
     ) -> Result<Invitation> {
         let invitation = random_hex();
         let target = account.to_string();
-        let expires_at = now_ms() + INVITATION_MS;
-        let ledger = self.channel_pull(channel, None, None).await?;
+        let me = self.me()?;
+        let mut ledger = self.channel_pull(channel, None, None).await?;
+        if ledger.status == Status::RotationRequired && may_rotate(&ledger, &me) {
+            ledger = self
+                .channel_rotate(channel)
+                .await?
+                .ledger
+                .ok_or(Error::IntegrityFailed)?;
+        }
         self.root_ready().await?;
+        let now = now_ms();
+        let expires_at = now + INVITATION_MS;
         let mut control = Control {
             expected_head: ledger.head.clone(),
             expected_acl_version: ledger.acl_version,
@@ -1913,7 +1925,7 @@ impl Client {
                 envelope_upload: None,
             },
         };
-        advance(&ledger, &control, &self.me()?, &"0".repeat(64), now_ms())?;
+        advance(&ledger, &control, &me, &"0".repeat(64), now)?;
         if ledger.status == Status::Active {
             self.channel_open_epoch(channel, ledger.epoch).await?;
             let current = self.recipients(std::slice::from_ref(&target)).await?;
@@ -1958,10 +1970,11 @@ impl Client {
             expires_at,
         };
         // Kept to hand over again while it is open.
+        let now = now_ms();
         let mut local = self.local(channel)?;
         local
             .invites
-            .retain(|id, i| i.expires_at > now_ms() && ledger.invitations.contains_key(id));
+            .retain(|id, i| i.expires_at > now && ledger.invitations.contains_key(id));
         local.invites.insert(invitation, packet.clone());
         self.save_local(channel, &local)?;
         Ok(packet)
@@ -2619,8 +2632,11 @@ impl Client {
             Posting::Send(request) => self.cloud.send(request).await,
         };
         let receipt = self.channel_send_settle(channel, &message_id, reply)?;
-        let mut reading = self.message_reading(channel)?;
-        self.channel_read(&mut reading).await?;
+        // The relay stored it: a read that fails now never fails the send,
+        // and the next read takes the message.
+        if let Ok(mut reading) = self.message_reading(channel) {
+            let _ = self.channel_read(&mut reading).await;
+        }
         Ok(json!({"message_id": message_id, "receipt": receipt}))
     }
 
@@ -2644,8 +2660,14 @@ impl Client {
         let key_name = format!("message:{message_id}");
         let send = format!("send:{message_id}");
         let mut outgoing = self.job::<Outgoing>(channel, &key_name)?;
+        let mut draft = draft.clone();
         if let Some(prior) = &outgoing {
-            ensure(prior.draft == *draft, Error::IdempotencyConflict)?;
+            // A retry resends the journaled message, with the Agent ID that
+            // wrote it, which a caller leaves out.
+            if draft.agent.is_none() {
+                draft.agent.clone_from(&prior.draft.agent);
+            }
+            ensure(prior.draft == draft, Error::IdempotencyConflict)?;
             let current = prior.payload.epoch == ledger.epoch
                 && prior.payload.control_head == ledger.head
                 && prior.payload.acl_version == ledger.acl_version;
@@ -2660,7 +2682,7 @@ impl Client {
         let outgoing = match outgoing {
             Some(outgoing) => outgoing,
             None => {
-                self.seal_message(channel, &ledger, draft, &message_id)
+                self.seal_message(channel, &ledger, &draft, &message_id)
                     .await?
             }
         };
@@ -3325,10 +3347,11 @@ impl Client {
                 epochs.push((*epoch, range));
             }
         }
+        // The skipped spans stay, so a read cut short starts again with the
+        // next one, which finds the grants still to read.
         for (epoch, (first, last)) in epochs {
             match self.channel_open_epoch(&channel, epoch).await {
                 Ok(_) => {
-                    local.skipped.remove(&epoch);
                     span = Some(span.map_or((first, last), |(a, b)| (a.min(first), b.max(last))));
                 }
                 // The relay or a user home is out of reach: the next read
@@ -3340,7 +3363,6 @@ impl Client {
         }
         match span {
             Some((first, last)) => {
-                self.save_local(&channel, &local)?;
                 reading.range = Some((first - 1, last));
                 reading.after = Some(first - 1);
                 reading.granting = true;
@@ -3791,7 +3813,7 @@ impl Client {
     }
 
     /// The envelopes of a history grant: per recipient device, the keys of
-    /// up to 32 epochs each.
+    /// up to 32 epochs each, at most 192 in all as the reader takes them.
     #[allow(clippy::too_many_arguments)]
     fn history_prepare(
         &self,
@@ -3803,9 +3825,10 @@ impl Client {
         recipients: &[Recipient],
         grant_id: &str,
     ) -> Result<Vec<Upload>> {
+        let spans = (to_epoch - from_epoch) / 32 + 1;
         ensure(
             !recipients.is_empty()
-                && recipients.len() <= 6
+                && recipients.len() as u64 * spans <= 192
                 && recipients
                     .iter()
                     .all(|r| r.recipient.starts_with(&format!("device:{target}:"))),
@@ -3827,7 +3850,6 @@ impl Client {
             ensure(plan.scope == scope, Error::IdempotencyConflict)?;
             return Ok(plan.uploads);
         }
-        let spans = (to_epoch - from_epoch) / 32 + 1;
         let groups: Vec<String> = (0..(recipients.len() as u64 * spans).div_ceil(GROUP as u64))
             .map(|_| random_hex())
             .collect();

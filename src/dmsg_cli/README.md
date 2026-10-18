@@ -472,8 +472,10 @@ Channels: `create` makes the first epoch at once. `invite` seals the current
 epoch's key to the invited account's devices, so after `accept` with the
 JSON printed it reads that epoch from its start, what was written before it
 joined included; `rekey` first when it should not, and `history` gives it
-older epochs. An invitation made while the channel waits for keys carries
-none, and the member reads from the next epoch. Removing a member, a member
+older epochs. An invitation is accepted only in the epoch it was issued
+in, so one made while the channel waits for keys rotates it first when this
+account may coordinate; otherwise it carries no key and lapses with that
+rotation. Removing a member, a member
 leaving, a revoked device or `rekey` leave the channel at
 `rotation_required`; an unlocked daemon whose account may coordinate (the
 owner, an admin or a member with `can_rotate`) rotates it on its own, and

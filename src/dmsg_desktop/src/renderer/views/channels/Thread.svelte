@@ -212,10 +212,16 @@
   const snippet = (message: any) => (message.retracted ? t('retracted') : message.text || message.file?.name || '')
   const isImage = (message: any) => /^image\/(png|jpeg|gif|webp)$/.test(message.file?.mime ?? '') && message.file.size <= 4 * 1024 * 1024
 
-  // Images show once their message is on screen.
-  $effect(() => {
-    for (const message of messages) if (isImage(message) && !(message.seq in images)) onPreview(message)
-  })
+  /** An image is read once its message comes on screen, not every image of the page at once. */
+  const preview = (message: any) => (node: Element) => {
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return
+      observer.disconnect()
+      if (!(message.seq in images)) onPreview(message)
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }
 </script>
 
 {#snippet author(account: string)}
@@ -340,7 +346,10 @@
                     <img src={images[message.seq]} alt={message.file.name} class="max-h-72 w-auto object-contain" data-testid="message-image" />
                   </button>
                 {/if}
-                <div class="mt-1.5 flex max-w-sm items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2 shadow-xs">
+                <div
+                  {@attach isImage(message) && preview(message)}
+                  class="mt-1.5 flex max-w-sm items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2 shadow-xs"
+                >
                   <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-faint"><Icon name={isImage(message) ? 'image' : 'file'} /></span>
                   <span class="min-w-0 flex-1">
                     <span class="block truncate text-[13px] font-medium">{message.file.name}</span>

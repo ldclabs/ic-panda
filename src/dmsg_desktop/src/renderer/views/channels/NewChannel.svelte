@@ -1,5 +1,6 @@
 <script lang="ts">
   import { RadioGroup, Tabs } from 'bits-ui'
+  import { untrack } from 'svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
   import type { Glyph } from '../../components/glyphs'
@@ -44,14 +45,17 @@
     { value: 'direct', icon: 'user' }
   ]
 
-  // A conversation started from a profile or a letter names its person.
+  // A conversation started from a profile or a letter names its person as
+  // the dialog opens; what is typed afterwards stays.
   $effect(() => {
-    if (open && peer) {
+    if (!open || !peer) return
+    const { account, name: called } = peer
+    untrack(() => {
       kind = 'direct'
-      target = peer.account
-      name ||= peer.name ?? ''
+      target = account
+      name ||= called ?? ''
       tab = 'create'
-    }
+    })
   })
 
   $effect(() => {

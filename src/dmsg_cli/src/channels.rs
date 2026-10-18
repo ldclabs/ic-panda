@@ -46,6 +46,8 @@ struct Seen {
     again: Option<Instant>,
     rotated: Option<Instant>,
     reported: Option<Instant>,
+    /// Messages came since the delivery cursor last went.
+    unreported: bool,
 }
 
 /// Read the channels the relay hints at and rotate the ones that wait for
@@ -76,10 +78,13 @@ pub async fn run(daemon: Arc<Daemon>) {
             {
                 state.again = named.then(Instant::now);
                 state.read = Some(Instant::now());
-                let report = due(state.reported, RETRY);
-                if sync(&daemon, &channel.id, report).await {
-                    state.reported = Some(Instant::now());
-                }
+                state.unreported |= sync(&daemon, &channel.id).await;
+            }
+            // Messages that came within half a minute of the last report
+            // go with the next.
+            if state.unreported && due(state.reported, RETRY) {
+                state.reported = Some(Instant::now());
+                state.unreported = report(&daemon, &channel.id, None).await.is_err();
             }
             if channel.rotate && due(state.rotated, RETRY) {
                 state.rotated = Some(Instant::now());
@@ -160,37 +165,42 @@ async fn joined(daemon: &Daemon) -> Vec<Joined> {
         .collect()
 }
 
-/// Read a channel's controls and messages and, when `report`, tell the
-/// relay what this device took; a change is announced. Whether a cursor
-/// went.
-async fn sync(daemon: &Daemon, channel: &str, report: bool) -> bool {
+/// Read a channel's controls and messages; a change is announced with the
+/// count of others' messages that came. Whether messages came, for the
+/// delivery cursor.
+async fn sync(daemon: &Daemon, channel: &str) -> bool {
+    // The log's head and status, the message cursor and the unread count.
     let state = |client: &dmsg_client::Client| {
         client
             .channel_view(channel)
-            .ok()
-            .and_then(|v| v.ledger)
-            .map(|l| (l.head, l.status))
+            .map(|v| {
+                (
+                    v.ledger.map(|l| (l.head, l.status)),
+                    v.message_cursor,
+                    v.unread,
+                )
+            })
+            .unwrap_or_default()
     };
-    let before = state(&*daemon.client().lock().await);
+    let (log, cursor, unread) = state(&*daemon.client().lock().await);
     let mut reading = Reading::new(channel);
-    let read = read(daemon, &mut reading).await;
-    let changed = state(&*daemon.client().lock().await) != before;
-    if reading.received > 0 || changed {
+    let _ = read(daemon, &mut reading).await;
+    let (log_after, cursor_after, unread_after) = state(&*daemon.client().lock().await);
+    if reading.received > 0 || log_after != log {
         let view = daemon.client().lock().await.channel_view(channel).ok();
         daemon.emit(
             "channel/changed",
             json!({
                 "id": channel,
-                "received": reading.received,
+                // This account's own messages from its other devices are
+                // no news.
+                "received": unread_after.saturating_sub(unread),
                 "name": view.as_ref().map(|v| v.name.clone()),
                 "muted": view.as_ref().is_some_and(|v| v.muted || v.hidden),
             }),
         );
     }
-    read.is_ok()
-        && report
-        && reading.received > 0
-        && self::report(daemon, channel, None).await.unwrap_or(false)
+    cursor_after > cursor
 }
 
 /// Seal a new epoch to the channel's members.

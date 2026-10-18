@@ -662,7 +662,10 @@ const methods = {
       ? messages.filter((m) => m.seq < p.before).slice(-(p.limit ?? 200))
       : messages.filter((m) => m.seq > (p.after ?? 0)).slice(0, p.limit ?? 200),
   'channel/send': (p) => {
-    messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text, digest: 'dd'.repeat(32) })
+    // An edit changes the message it names, as the daemon applies it.
+    const edited = p.edit_of && messages.find((m) => m.seq === p.edit_of.seq)
+    if (edited) Object.assign(edited, { text: p.text, edited_at: Date.now() })
+    else messages.push({ ...messages[0], seq: messages.length + 1, account, text: p.text, digest: 'dd'.repeat(32) })
     return { seq: messages.length }
   },
   'channel/outbox': () => [],
@@ -1096,10 +1099,19 @@ try {
   await waitFor(() => latest('channel/send'))
   await main.waitForSelector('[data-testid="channel-messages"] article:not([data-testid]) >> text=Reply from the desktop')
   assert.equal(await main.locator('[data-testid="message-outgoing"]').count(), 0)
-  // A channel opens with its latest page; later reads ask only for what follows the last message shown.
+  // ↑ edits this account's last message, and the timeline shows the edit.
+  await main.press('[data-testid="channel-text"]', 'ArrowUp')
+  await main.fill('[data-testid="channel-text"]', 'Edited from the desktop')
+  await main.keyboard.press('Enter')
+  await waitFor(() => latest('channel/send')?.params.edit_of)
+  assert.deepEqual(latest('channel/send').params.edit_of, { seq: 3, digest: 'dd'.repeat(32) })
+  await main.waitForSelector('[data-testid="channel-messages"] article >> text=Edited from the desktop')
+  await main.waitForSelector('[data-testid="message-edited"]')
+  // A channel opens with its latest page; later reads ask again for the last
+  // page shown and what follows it, as edits change messages already shown.
   const pages = calls.filter((c) => c.method === 'channel/messages').map((c) => c.params)
   assert.deepEqual(pages[0], { id: channel.id, before: channel.message_cursor + 1, limit: 200 })
-  assert.ok(pages.slice(1).some((p) => p.after === 2))
+  assert.ok(pages.slice(1).some((p) => p.after === 0 && p.limit === 400))
   // A message names its own ID, so a retry never sends it twice; members show their names.
   assert.match(latest('channel/send').params.message_id, /^[0-9a-f]{64}$/)
   await main.waitForSelector('[data-testid="channel-members"] >> text=Peer Person')

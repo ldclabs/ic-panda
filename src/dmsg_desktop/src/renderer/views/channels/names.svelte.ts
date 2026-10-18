@@ -17,15 +17,19 @@ function ask(account: string) {
   asked.add(account)
   waiting.push(account)
   timer ??= setTimeout(async () => {
-    const accounts = waiting
+    const all = waiting
     waiting = []
     timer = null
-    try {
-      const names = await call<Record<string, string | null>>('channel/names', { accounts })
-      for (const account of accounts) known[account] = names[account] ?? null
-    } catch {
-      // Asked again the next time a view shows them.
-      for (const account of accounts) asked.delete(account)
+    // The daemon reads at most 100 accounts a call.
+    for (let i = 0; i < all.length; i += 100) {
+      const accounts = all.slice(i, i + 100)
+      try {
+        const names = await call<Record<string, string | null>>('channel/names', { accounts })
+        for (const account of accounts) known[account] = names[account] ?? null
+      } catch {
+        // Asked again the next time a view shows them.
+        for (const account of accounts) asked.delete(account)
+      }
     }
   }, 30)
 }

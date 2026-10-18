@@ -135,14 +135,20 @@
     }
   })
 
-  /** A channel, its latest messages and outbox; the one already shown only gains the messages after its last. */
+  /**
+   * A channel, its latest messages and outbox. The one already shown reads
+   * its last page again with the messages after it, as edits, withdrawals
+   * and hides change messages already shown.
+   */
   async function open(id: string) {
     const switching = channel?.id !== id
     selected = id
-    const last = switching ? null : (messages.at(-1)?.seq ?? 0)
+    const from = switching ? null : (messages.at(-PAGE)?.seq ?? 1) - 1
     const next: any = await call('channel/show', { id })
     const [list, box] = await Promise.all([
-      last === null ? call<any[]>('channel/messages', { id, before: next.message_cursor + 1, limit: PAGE }) : call<any[]>('channel/messages', { id, after: last, limit: PAGE }),
+      from === null
+        ? call<any[]>('channel/messages', { id, before: next.message_cursor + 1, limit: PAGE })
+        : call<any[]>('channel/messages', { id, after: from, limit: 2 * PAGE }),
       call<Outgoing[]>('channel/outbox', { id }).catch(() => [])
     ])
     if (selected !== id) return
@@ -154,10 +160,10 @@
       highlight = null
       search = { open: false, query: '', results: null }
       drafts[id] ??= next.draft ?? ''
+      marked = 0
       void loadReceipts(id)
     } else {
       const after = messages.at(-1)?.seq ?? 0
-      // Edits, withdrawals and hides change messages already shown.
       const changed = new Map(list.map((m: any) => [m.seq, m]))
       messages = [...messages.map((m) => changed.get(m.seq) ?? m), ...list.filter((m: any) => m.seq > after)]
     }
@@ -253,7 +259,9 @@
     await attempt(async () => {
       const added: any = await bridge(() => window.dmsg.filesAdd('root', dropped))
       const fresh = (added?.files ?? []).map((f: any) => f.file).filter(Boolean)
-      attached[id] = [...(attached[id] ?? []), ...fresh.map((f: any) => ({ id: f.id, name: f.name }))]
+      // A file added again, as a new version, stays attached once and goes at its latest version.
+      const list = attached[id] ?? []
+      attached[id] = [...list, ...fresh.filter((f: any) => !list.some((a) => a.id === f.id)).map((f: any) => ({ id: f.id, name: f.name }))]
     })
   }
 
@@ -423,7 +431,7 @@
 </script>
 
 {#snippet item(entry: any)}
-  {@const draft = drafts[entry.id]?.trim() || entry.draft?.trim()}
+  {@const draft = (drafts[entry.id] ?? entry.draft)?.trim()}
   {@const at = entry.last?.stored_at}
   <li>
     <button
