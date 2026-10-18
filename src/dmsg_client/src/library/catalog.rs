@@ -585,7 +585,6 @@ impl Catalog {
     }
 }
 
-/// The IDs of the entries named `name` in `parent` of a name index.
 /// `name` unless `taken`, else `name (2)`, `name (3)`, … before the
 /// extension when `extension` keeps one.
 fn free(name: &str, extension: bool, taken: impl Fn(&str) -> bool) -> String {
@@ -602,6 +601,7 @@ fn free(name: &str, extension: bool, taken: impl Fn(&str) -> bool) -> String {
         .expect("an unbounded sequence has a free name")
 }
 
+/// The IDs of the entries named `name` in `parent` of a name index.
 fn named<'a>(
     index: &'a BTreeMap<String, BTreeSet<(String, String)>>,
     parent: &str,

@@ -147,7 +147,7 @@ pub struct Settings {
 
 /// `preferences.json`: the file settings the desktop's main process
 /// writes, read at start and when the daemon is told to read them again.
-#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Default, Clone, Debug, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]
 pub struct Preferences {
     /// Allows `files/mount` beside `config.toml`'s `files_mount`.

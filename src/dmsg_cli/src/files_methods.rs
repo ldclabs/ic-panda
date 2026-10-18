@@ -242,6 +242,11 @@ impl Daemon {
                 };
                 let done = run();
                 client.files_import_cancel(None);
+                // A cancelled or failed import keeps what it added before,
+                // which only a success would announce.
+                if done.is_err() {
+                    self.emit("files/changed", json!({"method": method}));
+                }
                 done.map(|()| to_json(&imported))
             }
             "files/export" => {

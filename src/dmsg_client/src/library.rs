@@ -112,8 +112,7 @@ pub struct VersionCheck {
 
 /// What a search keeps besides its text: files under a folder, starred
 /// ones, those carrying a tag.
-#[derive(Deserialize, Clone, Debug, Default, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SearchFilter {
     /// A folder; its files and those of every folder under it.
     pub folder: Option<String>,
