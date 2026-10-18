@@ -28,6 +28,10 @@
       "types": "./dist/statements.d.ts",
       "default": "./dist/statements.js"
     },
+    "./bundle": {
+      "types": "./dist/bundle.d.ts",
+      "default": "./dist/bundle.js"
+    },
     "./codec": {
       "types": "./dist/cose-codec.d.ts",
       "default": "./dist/cose-codec.js"

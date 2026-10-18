@@ -61,4 +61,13 @@ pub trait PresenceKey: Send + Sync {
     /// `Error::IntegrityFailed` for a key this hardware no longer opens and
     /// `Error::Unavailable` otherwise.
     fn open(&self, handle: &[u8], peer: &[u8]) -> Result<Zeroizing<Key>>;
+
+    /// Ask the person to confirm approving a high-risk request of type
+    /// `what` (such as `checkout` or `device_revoke`), which names the
+    /// system's question.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` when the person declines and
+    /// `Error::Unavailable` when the hardware cannot ask.
+    fn confirm(&self, what: &str) -> Result<()>;
 }

@@ -142,7 +142,8 @@ impl Daemon {
             }
             "account/policy" => {
                 // The fields given replace those in force.
-                let mut policy = client.account_policy().await?;
+                let previous = client.account_policy().await?;
+                let mut policy = previous.clone();
                 if let Some(frozen) = params["frozen"].as_bool() {
                     policy.frozen = frozen;
                 }
@@ -156,7 +157,13 @@ impl Daemon {
                         .collect::<Result<_>>()?;
                 }
                 client
-                    .account_request(source(params)?, AccountChange::Policy { policy })
+                    .account_request(
+                        source(params)?,
+                        AccountChange::Policy {
+                            policy,
+                            previous: Some(previous),
+                        },
+                    )
                     .await
             }
             "account/recovery_delay" => {

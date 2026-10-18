@@ -1104,5 +1104,34 @@ export default {
   'Save again': 'Enregistrer à nouveau',
   'What is dMsg?': 'Qu’est-ce que dMsg ?',
   'The relay could not be reached. Check your connection and try again.': 'Le relais est injoignable. Vérifiez votre connexion et réessayez.',
-  'Approve a request': 'Approuver une demande'
+  'Approve a request': 'Approuver une demande',
+  'Verify a dMsg signature': 'Vérifier une signature dMsg',
+  'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
+    'Vérifiez un paquet d’attestation exporté depuis dMsg. La vérification se fait dans ce navigateur : le fichier que vous comparez est haché ici et n’est jamais envoyé.',
+  'Attestation bundle': 'Paquet d’attestation',
+  'Original file (optional)': 'Fichier d’origine (facultatif)',
+  'Verify': 'Vérifier',
+  'Verifying…': 'Vérification…',
+  'The bundle verifies': 'Le paquet est vérifié',
+  'The bundle does not verify': 'Le paquet ne se vérifie pas',
+  'Content': 'Contenu',
+  'Key and account': 'Clé et compte',
+  'Authorization evidence': 'Preuve d’autorisation',
+  'The file matches the signed digest':
+    'Le fichier correspond à l’empreinte signée',
+  'The file does not match the signed digest':
+    'Le fichier ne correspond pas à l’empreinte signée',
+  'A text statement': 'Une déclaration texte',
+  'Only the digest was signed; add the original file to compare it':
+    'Seule l’empreinte a été signée ; ajoutez le fichier d’origine pour la comparer',
+  'An application action': 'Une action d’application',
+  'Unknown: the signature does not verify':
+    'Inconnu : la signature ne se vérifie pas',
+  'Device': 'Appareil',
+  'Whether the signing device is still active is not checked here. A device revoked later does not undo a signature that verifies.':
+    'Cette page ne vérifie pas si l’appareil signataire est toujours actif. Un appareil révoqué ensuite n’annule pas une signature qui se vérifie.',
+  'This is not a dMsg attestation bundle.':
+    'Ce n’est pas un paquet d’attestation dMsg.',
+  'Could not reach the Internet Computer. Try again.':
+    'Impossible de joindre l’Internet Computer. Réessayez.'
 } satisfies Messages

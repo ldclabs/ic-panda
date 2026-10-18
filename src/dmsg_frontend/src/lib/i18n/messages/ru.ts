@@ -1088,5 +1088,32 @@ export default {
   'Save again': 'Сохранить ещё раз',
   'What is dMsg?': 'Что такое dMsg?',
   'The relay could not be reached. Check your connection and try again.': 'Не удалось связаться с ретранслятором. Проверьте соединение и попробуйте снова.',
-  'Approve a request': 'Подтверждение запроса'
+  'Approve a request': 'Подтверждение запроса',
+  'Verify a dMsg signature': 'Проверка подписи dMsg',
+  'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
+    'Проверьте пакет заверения, экспортированный из dMsg. Проверка идёт в этом браузере: хеш сравниваемого файла вычисляется здесь, сам файл не загружается.',
+  'Attestation bundle': 'Пакет заверения',
+  'Original file (optional)': 'Исходный файл (необязательно)',
+  'Verify': 'Проверить',
+  'Verifying…': 'Проверка…',
+  'The bundle verifies': 'Пакет прошёл проверку',
+  'The bundle does not verify': 'Пакет не прошёл проверку',
+  'Content': 'Содержимое',
+  'Key and account': 'Ключ и аккаунт',
+  'Authorization evidence': 'Подтверждение полномочий',
+  'The file matches the signed digest': 'Файл совпадает с подписанным хешем',
+  'The file does not match the signed digest':
+    'Файл не совпадает с подписанным хешем',
+  'A text statement': 'Текстовое заявление',
+  'Only the digest was signed; add the original file to compare it':
+    'Подписан только хеш; добавьте исходный файл, чтобы сверить его',
+  'An application action': 'Действие приложения',
+  'Unknown: the signature does not verify':
+    'Неизвестно: подпись не проходит проверку',
+  'Device': 'Устройство',
+  'Whether the signing device is still active is not checked here. A device revoked later does not undo a signature that verifies.':
+    'Здесь не проверяется, активно ли ещё подписавшее устройство. Отзыв устройства позже не отменяет подпись, прошедшую проверку.',
+  'This is not a dMsg attestation bundle.': 'Это не пакет заверения dMsg.',
+  'Could not reach the Internet Computer. Try again.':
+    'Не удалось связаться с Internet Computer. Попробуйте ещё раз.'
 } satisfies Messages

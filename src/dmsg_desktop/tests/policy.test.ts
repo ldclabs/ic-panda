@@ -37,6 +37,13 @@ test('windows never decide or grant, and never send human', () => {
   assert.throws(() => windowParams('approval/respond', { id: 'x', human: true }), { code: 'FORBIDDEN' })
   assert.deepEqual(windowParams('vault/list', { trash: true, human: true }), { trash: true })
   assert.deepEqual(windowParams('attest/request', { source: 'cli', statement: {} }), { source: 'gui', statement: {} })
+  // A window names a library version, never a local path.
+  assert.deepEqual(windowParams('attest/request', { statement: {}, file: '/etc/hosts', library: { file: 'f', version: 'v' } }), {
+    source: 'gui',
+    statement: {},
+    library: { file: 'f', version: 'v' }
+  })
+  assert.equal(WINDOW_METHODS.has('approval/check_file'), false)
   for (const method of [
     'inbox/pay',
     'plan/checkout',

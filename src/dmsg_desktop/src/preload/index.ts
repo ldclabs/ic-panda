@@ -53,7 +53,25 @@ const api: DesktopBridge = {
   openUrl: (url) => unwrap(ipcRenderer.invoke('dmsg:open-url', url)),
   channelDownload: (id, seq, name) => unwrap(ipcRenderer.invoke('dmsg:channel-download', id, seq, name)),
   attestAction: () => unwrap(ipcRenderer.invoke('dmsg:attest-action')),
+  attestFile: (statement) => unwrap(ipcRenderer.invoke('dmsg:attest-file', statement)),
+  checkFile: (id) => unwrap(ipcRenderer.invoke('dmsg:check-file', id)),
+  showMain: (route) => unwrap(ipcRenderer.invoke('dmsg:show-main', route)),
   verifyBundle: (withFile) => unwrap(ipcRenderer.invoke('dmsg:verify-bundle', withFile === true)),
+  verifyDropped: (bundle, original) => {
+    // Only files the person dropped have paths; one a page made has none.
+    const path = (file?: File) => {
+      try {
+        return file ? webUtils.getPathForFile(file) || null : null
+      } catch {
+        return null
+      }
+    }
+    const bundlePath = path(bundle)
+    if (!bundlePath || (original && !path(original))) return Promise.reject(new Error('INVALID_INPUT: Not files on this device'))
+    return unwrap(ipcRenderer.invoke('dmsg:verify-dropped', bundlePath, path(original)))
+  },
+  verifyEntry: (execution) => unwrap(ipcRenderer.invoke('dmsg:verify-entry', execution)),
+  saveReport: (report) => unwrap(ipcRenderer.invoke('dmsg:save-report', report)),
   exportBundle: (execution) => unwrap(ipcRenderer.invoke('dmsg:export-bundle', execution)),
   openLegacy: (link) => unwrap(ipcRenderer.invoke('dmsg:open-legacy', link)),
   legacyImport: (nonce, fingerprint, principal) =>

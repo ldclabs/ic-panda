@@ -117,12 +117,21 @@ writes a new head that names it, and the earlier copies of its branch, in
 Every operation this device signs for a person waits in the approval center:
 a formal statement, a capability change or revocation, a web request.
 Anything may ask; only a person answers, by the digest of the request as it
-was shown. Approving executes once, and a finished request is forgotten 30
-days after it was made. A formal attestation is signed and journaled before
-it is sent, so a lost reply is settled by its execution ID and never signed
-again; its artifact and certified receipt are kept and export as a bundle
-that `attest::verify_bundle` checks without the device, against the
-deployment's user homes: any canister can certify a receipt.
+was shown. A high-risk request (payment, revocation, a capability, a
+wallet signature) also waits for the device owner's presence when the device
+has a presence key. Approving executes once, and a finished request is
+forgotten 30 days after it was made. A source other than the desktop and the
+CLI keeps at most five requests waiting. An application action is shown by
+its registered schema's labels, and only when the schema's hash matches; a
+file statement records the file's name, size and time, and a person can hash
+the file again before answering. A formal attestation is signed and journaled
+before it is sent, so a lost reply is settled by its execution ID and never
+signed again; past the result's lifetime it is `lost`. Its artifact and
+certified receipt are kept as an `attestation` object that syncs to the
+account's other devices, and export as a bundle that `attest::verify_bundle`
+checks without the device, check by check (content, signature, evidence,
+binding), against the deployment's user homes: any canister can certify a
+receipt.
 
 A web request (dmsg-connect/1) reaches the center only after the device
 opened it, checked the pairing grant against the certified devices, the

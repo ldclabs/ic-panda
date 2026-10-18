@@ -1075,7 +1075,35 @@ const en = {
   'Save again': 'Save again',
   'What is dMsg?': 'What is dMsg?',
   'The relay could not be reached. Check your connection and try again.': 'The relay could not be reached. Check your connection and try again.',
-  'Approve a request': 'Approve a request'
+  'Approve a request': 'Approve a request',
+  'Verify a dMsg signature': 'Verify a dMsg signature',
+  'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
+    'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.',
+  'Attestation bundle': 'Attestation bundle',
+  'Original file (optional)': 'Original file (optional)',
+  'Verify': 'Verify',
+  'Verifying…': 'Verifying…',
+  'The bundle verifies': 'The bundle verifies',
+  'The bundle does not verify': 'The bundle does not verify',
+  'Content': 'Content',
+  'Key and account': 'Key and account',
+  'Authorization evidence': 'Authorization evidence',
+  'The file matches the signed digest': 'The file matches the signed digest',
+  'The file does not match the signed digest':
+    'The file does not match the signed digest',
+  'A text statement': 'A text statement',
+  'Only the digest was signed; add the original file to compare it':
+    'Only the digest was signed; add the original file to compare it',
+  'An application action': 'An application action',
+  'Unknown: the signature does not verify':
+    'Unknown: the signature does not verify',
+  'Device': 'Device',
+  'Whether the signing device is still active is not checked here. A device revoked later does not undo a signature that verifies.':
+    'Whether the signing device is still active is not checked here. A device revoked later does not undo a signature that verifies.',
+  'This is not a dMsg attestation bundle.':
+    'This is not a dMsg attestation bundle.',
+  'Could not reach the Internet Computer. Try again.':
+    'Could not reach the Internet Computer. Try again.'
 }
 
 export type MessageKey = keyof typeof en

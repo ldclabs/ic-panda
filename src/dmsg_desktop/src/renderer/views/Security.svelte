@@ -12,6 +12,7 @@
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, onChange, single, when } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
+  import { purposeLabels } from '../approval'
 
   /** Bound logins, approvals of other devices and logins, the signing policy and recovery. Every change is an approval request. */
   let security = $state<any>(null)
@@ -129,7 +130,7 @@
 
   <Section title={t('signingPolicy')} description={t('signingPolicyHint')} icon="signature">
     {#snippet actions()}
-      <Pill tone={security.policy.frozen ? 'warn' : 'ok'}>{security.policy.frozen ? t('frozen') : t('formalOn')}</Pill>
+      <Pill tone={security.policy.frozen ? 'warn' : 'ok'}>{security.policy.frozen ? t('frozen') : t('policyOpen')}</Pill>
     {/snippet}
     <div class="grid gap-4">
       <div class="flex flex-wrap items-end gap-2">
@@ -146,7 +147,7 @@
         <span class="text-[12px] text-faint">{t('purposes')}</span>
         <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
           {#each ['FileAttestation', 'Statement', 'AppAction'] as p (p)}
-            <Checkbox checked={purposes.includes(p)} onCheckedChange={(on) => (purposes = on ? [...purposes, p] : purposes.filter((x) => x !== p))}>{p}</Checkbox>
+            <Checkbox checked={purposes.includes(p)} onCheckedChange={(on) => (purposes = on ? [...purposes, p] : purposes.filter((x) => x !== p))}>{t(purposeLabels[p])}</Checkbox>
           {/each}
           <span class="flex-1"></span>
           <button class={buttonClass('secondary')} disabled={busy} onclick={() => ask('account/policy', { allowed_purposes: purposes })}>{t('submit')}</button>

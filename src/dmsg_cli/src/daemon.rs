@@ -48,7 +48,8 @@ use base64::Engine;
 use dmsg_client::{
     Client,
     account::login_targets,
-    attest::{Bundle, StatementInput},
+    approval::Decision,
+    attest::{Bundle, FileSource, StatementInput},
     client::Warm,
     error_code,
     hold::Hold,
@@ -86,7 +87,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 46] = [
+const METHODS: [&str; 48] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -113,7 +114,9 @@ const METHODS: [&str; 46] = [
     "approval/respond",
     "approval/cancel",
     "approval/reconcile",
+    "approval/check_file",
     "attest/request",
+    "attest/readiness",
     "attest/action",
     "attest/history",
     "attest/export",
@@ -696,6 +699,49 @@ impl Daemon {
         dmsg_client::library::backup::backup_run(&self.hold(), budget_ms, &mut progress).await
     }
 
+    /// A person's decision, from the approval window or an interactive
+    /// terminal (`via`). The presence check of a high-risk approval and an
+    /// approved attestation's network steps wait outside the client, so
+    /// the other windows' reads go on meanwhile; any other approved request
+    /// carries itself out under the client.
+    async fn respond(&self, id: &str, digest: &str, approve: bool, via: &str) -> Result<Value> {
+        let mut confirmed = false;
+        if approve {
+            let ask = self.client.lock().await.approval_presence(id)?;
+            if let Some((key, what)) = ask {
+                // The system's prompt waits for the person, off the
+                // runtime's threads.
+                let answer = tokio::task::spawn_blocking(move || key.confirm(&what))
+                    .await
+                    .map_err(|e| Error::Unavailable(format!("presence: {e}")))?;
+                if let Err(error) = answer {
+                    self.client.lock().await.approval_unconfirmed(id, &error)?;
+                    return Err(error);
+                }
+                confirmed = true;
+            }
+        }
+        let decision = self
+            .under_lock(async |client| {
+                client
+                    .approval_decide(id, digest, approve, via, confirmed)
+                    .await
+            })
+            .await?;
+        match decision {
+            Decision::Done(view) => Ok(view),
+            Decision::Attest(run) => {
+                let mut run = *run;
+                // The windows see it executing while it runs.
+                self.emit("approval/changed", Value::Null);
+                let read = run.read().await;
+                self.client.lock().await.attest_sign(&mut run, read)?;
+                let sent = run.send().await;
+                self.client.lock().await.attest_settle(run, sent)
+            }
+        }
+    }
+
     /// The loopback port.
     pub(crate) fn port(&self) -> u16 {
         self.port
@@ -1034,31 +1080,30 @@ impl Daemon {
                 let approve = params["approve"]
                     .as_bool()
                     .ok_or_else(|| Error::InvalidInput("approve".into()))?;
-                let (id, digest, via) = (
-                    text(params, "id")?,
-                    text(params, "digest")?,
-                    source(params)?,
+                let id = text(params, "id")?;
+                let digest = text(params, "digest")?;
+                let via = source(params)?;
+                let outcome = self.respond(&id, &digest, approve, via).await;
+                // Who decided, through which way in, on whose request.
+                let mut client = self.client.lock().await;
+                let request = client.approval(&id).unwrap_or_default();
+                let detail = format!(
+                    "{} from {}",
+                    request["type"].as_str().unwrap_or("?"),
+                    request["source"].as_str().unwrap_or("?")
                 );
-                // An approved request carries itself out under the client.
-                self.under_lock(async |client| {
-                    let outcome = client.approval_respond(&id, &digest, approve).await;
-                    // Who decided, through which way in, on whose request.
-                    let request = client.approval(&id).unwrap_or_default();
-                    let detail = format!(
-                        "{} from {}",
-                        request["type"].as_str().unwrap_or("?"),
-                        request["source"].as_str().unwrap_or("?")
-                    );
-                    let action = if approve {
-                        "approval/approve"
-                    } else {
-                        "approval/reject"
-                    };
-                    let code = outcome.as_ref().err().map_or("ok".into(), error_code);
-                    client.audit("owner", via, action, Some(&id), Some(&detail), &code);
-                    outcome
-                })
-                .await
+                let action = if approve {
+                    "approval/approve"
+                } else {
+                    "approval/reject"
+                };
+                let code = outcome.as_ref().err().map_or("ok".into(), error_code);
+                client.audit("owner", via, action, Some(&id), Some(&detail), &code);
+                // A failure changes the request too: its state or its error.
+                if outcome.is_err() {
+                    self.emit("approval/changed", Value::Null);
+                }
+                outcome
             }
             "approval/cancel" => {
                 let mut client = self.client.lock().await;
@@ -1072,13 +1117,43 @@ impl Daemon {
                 })
                 .await
             }
-            "attest/request" => {
-                let input: StatementInput = parse(params, "statement")?;
-                let file = optional(params, "file", absolute)?;
+            // A file compared with a request's digest: hashed here, outside
+            // the client, since it may be large.
+            "approval/check_file" => {
+                let id = text(params, "id")?;
+                let path = absolute(params, "path")?;
+                let (size, _) = dmsg_client::approval::file_stamp(&path)?;
+                let sha256 = dmsg_client::attest::file_sha256(&path)?;
+                let name = dmsg_client::approval::file_name(&path);
                 self.client
                     .lock()
                     .await
-                    .attest_request(source(params)?, input, file.as_deref())
+                    .approval_file_checked(&id, &name, size, sha256)
+            }
+            "attest/request" => {
+                let input: StatementInput = parse(params, "statement")?;
+                let file = optional(params, "file", absolute)?;
+                let library = match &params["library"] {
+                    Value::Null => None,
+                    value => Some((text(value, "file")?, text(value, "version")?)),
+                };
+                let source_file = match (&file, &library) {
+                    (Some(path), None) => Some(FileSource::Path(path)),
+                    (None, Some((file, version))) => Some(FileSource::Library(file, version)),
+                    (None, None) => None,
+                    _ => {
+                        return Err(Error::InvalidInput(
+                            "give a file or a library version".into(),
+                        ));
+                    }
+                };
+                self.client
+                    .lock()
+                    .await
+                    .attest_request(source(params)?, input, source_file)
+            }
+            "attest/readiness" => {
+                dmsg_client::attest::attest_readiness(&self.hold(), params["id"].as_str()).await
             }
             "attest/action" => {
                 let action = dmsg_client::codec::unb64(&text(params, "action")?)?;
@@ -1199,6 +1274,7 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
             "approval/respond"
             | "approval/cancel"
             | "approval/reconcile"
+            | "approval/check_file"
             | "attest/request"
             | "attest/action"
             | "device/capabilities"

@@ -172,9 +172,12 @@ site's tokens (`src/dmsg_frontend/src/lib/legacy/ui`).
 - **R4 Consequence first, details after.** Approvals, grants and transfers
   say in one sentence what will happen; raw fields stay folded below.
 - **R5 Risk costs one more step.** Reject has the focus; Approve waits 1.2
-  seconds after a request appears or changes; payments, device revocation,
-  the signing policy, the recovery delay and binding or removing a login
-  are approved by holding the button for a second.
+  seconds after a request appears or changes, or the window comes back to
+  the front; what the daemon rates high-risk (payments, device revocation,
+  the signing policy, the recovery delay, binding or removing a login, the
+  Agent principal) is approved by holding the button for a second and,
+  where the Secure Enclave keeps the fast-unlock key, with Touch ID or the
+  login password.
 - **R6 Motion only shows cause and effect.** What pops springs, what arrives
   eases in, work under way shimmers. Buttons do not move or blink; one
   whose click is still waiting turns a ring. Everything stops under

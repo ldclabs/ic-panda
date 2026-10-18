@@ -9,9 +9,15 @@
 //! waits without learning what it is. Answering checks the digest the person
 //! was shown, the deadline and the state, then executes once: a lost reply
 //! is reconciled by its execution ID, never signed again.
+//!
+//! Requests that move money, revoke a device or change who controls the
+//! account are high-risk ([`high_risk`]): clients hold to approve them and,
+//! where this device can ask, the person confirms with Touch ID or the
+//! login password first (plan S03).
 
 use crate::client::Client;
 use crate::now_ms;
+use crate::secure::PresenceKey;
 use crate::store::ApprovalRow;
 use dmsg_protocol::digest;
 use dmsg_types::{
@@ -22,6 +28,7 @@ use dmsg_types::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
+use std::sync::Arc;
 
 /// How long a request from this device's own clients waits.
 pub const APPROVAL_TTL_MS: u64 = 10 * MINUTE;
@@ -29,8 +36,9 @@ pub const APPROVAL_TTL_MS: u64 = 10 * MINUTE;
 pub const HIGH_RISK_TTL_MS: u64 = 5 * MINUTE;
 /// Most requests waiting for a decision at once.
 pub const MAX_PENDING: usize = 20;
-/// Most web requests from one origin waiting at once.
-pub const MAX_PER_ORIGIN: usize = 5;
+/// Most requests one source other than the owner's own clients (an agent,
+/// a client or a web origin) has waiting at once, so none fills the queue.
+pub const MAX_PER_SOURCE: usize = 5;
 /// Finished requests, and the web operations behind them, are kept this
 /// long after they were made.
 pub const RETAIN_MS: u64 = 30 * DAY;
@@ -59,6 +67,9 @@ pub enum State {
     Failed,
     /// Another device of the account took it.
     Elsewhere,
+    /// Approved and perhaps executed, but its outcome can no longer be
+    /// read: the home keeps a result only a day past its approval.
+    Lost,
 }
 
 impl State {
@@ -74,6 +85,7 @@ impl State {
             State::Done => "done",
             State::Failed => "failed",
             State::Elsewhere => "elsewhere",
+            State::Lost => "lost",
         }
     }
 
@@ -86,14 +98,67 @@ impl State {
     }
 
     /// The names of the states with no further change.
-    const TERMINAL: [&'static str; 6] = [
+    const TERMINAL: [&'static str; 7] = [
         "rejected",
         "expired",
         "cancelled",
         "done",
         "failed",
         "elsewhere",
+        "lost",
     ];
+}
+
+/// The file a statement's digest names, as it was when hashed: a local
+/// file, hashed again on approval, or a version in the file library,
+/// checked against the library.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct AttestFile {
+    /// A local file's absolute path.
+    pub path: Option<String>,
+    /// A library file and its version, both IDs.
+    pub library: Option<(String, String)>,
+    /// Its name, as shown.
+    pub name: String,
+    /// Its size in bytes.
+    pub size: u64,
+    /// A local file's modification time when hashed, Unix milliseconds.
+    pub modified: Option<u64>,
+}
+
+/// A file a person compared with a request's digest before deciding.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct FileCheck {
+    /// Its name.
+    pub name: String,
+    /// Its size in bytes.
+    pub size: u64,
+    /// Whether its SHA-256 is the statement's.
+    pub matches: bool,
+    /// Unix milliseconds.
+    pub checked_at: u64,
+}
+
+/// A local file's size and modification time, which tell whether it
+/// changed since it was hashed.
+pub fn file_stamp(path: &std::path::Path) -> Result<(u64, Option<u64>)> {
+    let meta = std::fs::metadata(path).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => Error::NotFound,
+        _ => Error::Unavailable(format!("file: {e}")),
+    })?;
+    let modified = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64);
+    Ok((meta.len(), modified))
+}
+
+/// A path's last component, as shown.
+pub fn file_name(path: &std::path::Path) -> String {
+    path.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
 
 /// What a request asks the device to do.
@@ -107,8 +172,9 @@ pub enum Action {
         statement: Statement,
         /// `https://dmsg.net` for this device's own clients.
         origin: String,
-        /// The file a file statement or digest describes, re-hashed on approval.
-        file: Option<String>,
+        /// The file a file statement or digest describes, checked again on
+        /// approval.
+        file: Option<AttestFile>,
     },
     /// Attest an application action its product prepared. It is kept as
     /// its canonical CBOR: a candid Principal inside this internally
@@ -116,6 +182,9 @@ pub enum Action {
     AttestAction {
         /// The action's canonical CBOR.
         action: serde_bytes::ByteBuf,
+        /// The canonical CBOR of the certified registration's schema, which
+        /// renders the command for review.
+        schema: Option<serde_bytes::ByteBuf>,
     },
     /// Replace a device's capabilities.
     DeviceCapabilities {
@@ -237,12 +306,60 @@ pub struct Request {
     pub error: Option<String>,
     /// Past the point where it may have executed: a later failure is final.
     pub started: bool,
+    /// When a person decided it, Unix milliseconds.
+    pub decided_at: Option<u64>,
+    /// Where the person decided: `gui` or `cli`.
+    pub decided_via: Option<String>,
+    /// A file the person compared with its digest; not part of what is
+    /// approved.
+    pub file_check: Option<FileCheck>,
 }
 
 impl Request {
     /// The commitment a person approves: the request as shown.
     pub fn digest(&self) -> Hash {
         digest("dmsg/approval/v1", &(&self.id, &self.source, &self.action))
+    }
+}
+
+/// What a decision leaves to run.
+pub enum Decision {
+    /// Decided, and executed when approved: the request's view.
+    Done(Json),
+    /// An approved attestation, to run in steps.
+    Attest(Box<crate::attest::AttestRun>),
+}
+
+/// How long an attestation running in steps keeps the reconciler away;
+/// one left behind longer, such as by a dropped connection, is
+/// reconciled as any other.
+const RUN_MS: u64 = 5 * MINUTE;
+
+/// Whether approving moves money, revokes a device or changes who controls
+/// the account or its Agent Delegation principal, from the request and its
+/// `detail` view. Such a request is held to approve, and confirmed with the
+/// person present where the device can ask.
+pub fn high_risk(request: &Request, detail: &Json) -> bool {
+    match &request.action {
+        Action::Checkout { .. } | Action::Letter { .. } | Action::DeviceRevoke { .. } => true,
+        Action::Principal { .. } => true,
+        Action::Handle { .. } => !detail["total"].is_null(),
+        Action::Connect { .. } => detail["method"] == "checkout",
+        Action::Account { change } => !matches!(
+            change,
+            crate::security::AccountChange::DisputeRecovery { .. }
+        ),
+        Action::Wallet { .. } => {
+            let kind = detail["proposal"]["intent"]["kind"].as_str().unwrap_or("");
+            matches!(detail["action"].as_str(), Some("create" | "cosign"))
+                || (detail["action"] == "decide"
+                    && detail["decision"] == "approve"
+                    && ["transfer", "batch", "canister_call", "refuel"].contains(&kind))
+        }
+        Action::Attest { .. }
+        | Action::AttestAction { .. }
+        | Action::DeviceCapabilities { .. }
+        | Action::Delegation { .. } => false,
     }
 }
 
@@ -305,7 +422,7 @@ impl Client {
     ///
     /// # Errors
     /// Returns `Error::QuotaExceeded` beyond [`MAX_PENDING`] waiting requests,
-    /// or [`MAX_PER_ORIGIN`] from one web origin.
+    /// or [`MAX_PER_SOURCE`] from one agent, client or web origin.
     pub(crate) fn approval_create(
         &mut self,
         source: &str,
@@ -322,10 +439,12 @@ impl Client {
             .iter()
             .map(|row| self.approval_record(&row.id))
             .collect::<Result<_>>()?;
+        // The owner's own clients share the whole queue; any other source
+        // keeps room for them.
         ensure(
             waiting.len() < MAX_PENDING
-                && (!source.starts_with("connect:")
-                    || waiting.iter().filter(|r| r.source == source).count() < MAX_PER_ORIGIN),
+                && (matches!(source, "gui" | "cli")
+                    || waiting.iter().filter(|r| r.source == source).count() < MAX_PER_SOURCE),
             Error::QuotaExceeded,
         )?;
         let request = Request {
@@ -339,6 +458,9 @@ impl Client {
             execution: None,
             error: None,
             started: false,
+            decided_at: None,
+            decided_via: None,
+            file_check: None,
         };
         self.save_approval(&request)?;
         Ok(request)
@@ -443,27 +565,149 @@ impl Client {
     /// Returns `Error::Forbidden` for a web request and `Error::Expired`
     /// once it is decided.
     pub fn approval_cancel(&mut self, id: &str) -> Result<Json> {
+        let now = now_ms();
+        self.expire_approvals(now)?;
         let mut request = self.approval_record(id)?;
         ensure(
             !matches!(request.action, Action::Connect { .. }),
             Error::Forbidden,
         )?;
-        ensure(request.state == State::AwaitingUser, Error::Expired)?;
+        ensure(
+            request.state == State::AwaitingUser && now < request.expires_at,
+            Error::Expired,
+        )?;
         request.state = State::Cancelled;
-        request.updated_at = now_ms();
+        request.updated_at = now;
+        self.save_approval(&request)?;
+        self.approval_view(&request)
+    }
+
+    /// The hardware that must see the person approve `id` first, and the
+    /// request's type for its question: a high-risk request on a device
+    /// that can ask. `None` when no check is needed or possible.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked and `Error::NotFound` for an
+    /// unknown ID.
+    pub fn approval_presence(
+        &mut self,
+        id: &str,
+    ) -> Result<Option<(Arc<dyn PresenceKey>, String)>> {
+        let Some(key) = self.presence.clone().filter(|key| key.presence().is_some()) else {
+            return Ok(None);
+        };
+        let request = self.approval_record(id)?;
+        let view = self.approval_view(&request)?;
+        Ok(view["risk"]
+            .eq("high")
+            .then(|| (key, view["type"].as_str().unwrap_or_default().to_string())))
+    }
+
+    /// Note on a waiting request that the person did not confirm approving
+    /// it: `error` is the presence check's.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an unknown ID.
+    pub fn approval_unconfirmed(&mut self, id: &str, error: &Error) -> Result<()> {
+        let mut request = self.approval_record(id)?;
+        if request.state == State::AwaitingUser {
+            request.error = Some(match error {
+                Error::Forbidden => "PRESENCE_DECLINED".into(),
+                _ => "PRESENCE_UNAVAILABLE".into(),
+            });
+            request.updated_at = now_ms();
+            self.save_approval(&request)?;
+        }
+        Ok(())
+    }
+
+    /// Record a file the person compared with the digest of a waiting
+    /// request: its name, size and SHA-256, hashed by the caller. Nothing
+    /// that is approved changes.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` for a request without a digest and
+    /// `Error::Expired` once it is decided.
+    pub fn approval_file_checked(
+        &mut self,
+        id: &str,
+        name: &str,
+        size: u64,
+        sha256: Hash,
+    ) -> Result<Json> {
+        let now = now_ms();
+        self.expire_approvals(now)?;
+        let mut request = self.approval_record(id)?;
+        ensure(
+            request.state == State::AwaitingUser && now < request.expires_at,
+            Error::Expired,
+        )?;
+        let digest = match &request.action {
+            Action::Attest { statement, .. } => statement_digest(statement),
+            Action::Connect { operation, .. } => self.connect_document_digest(operation)?,
+            _ => None,
+        };
+        let expected = digest.ok_or_else(|| Error::InvalidInput("no digest".into()))?;
+        request.file_check = Some(FileCheck {
+            name: name.into(),
+            size,
+            matches: expected == sha256,
+            checked_at: now,
+        });
+        request.updated_at = now;
         self.save_approval(&request)?;
         self.approval_view(&request)
     }
 
     /// A person's decision on `id`, after seeing the request whose digest
-    /// is `shown`. Only the desktop approval window and an interactive
-    /// terminal call this; approving executes the operation once.
+    /// is `shown`, in the desktop approval window or an interactive
+    /// terminal (`via`). Approving executes the operation once. A
+    /// high-risk request on a device that can check the person needs
+    /// `confirmed` ([`Self::approval_presence`]).
     ///
     /// # Errors
     /// Returns `Error::IntegrityFailed` when the request changed since it was
-    /// shown, `Error::Expired` past its deadline or once decided, and the
+    /// shown, `Error::Expired` past its deadline or once decided,
+    /// `Error::Forbidden` for an unconfirmed high-risk approval, and the
     /// execution's errors.
-    pub async fn approval_respond(&mut self, id: &str, shown: &str, approve: bool) -> Result<Json> {
+    pub async fn approval_respond(
+        &mut self,
+        id: &str,
+        shown: &str,
+        approve: bool,
+        via: &str,
+        confirmed: bool,
+    ) -> Result<Json> {
+        match self
+            .approval_decide(id, shown, approve, via, confirmed)
+            .await?
+        {
+            Decision::Done(view) => Ok(view),
+            Decision::Attest(run) => {
+                let mut run = *run;
+                let read = run.read().await;
+                self.attest_sign(&mut run, read)?;
+                let sent = run.send().await;
+                self.attest_settle(run, sent)
+            }
+        }
+    }
+
+    /// [`Self::approval_respond`] up to an approved attestation, which is
+    /// returned to run in steps so that its network waits can happen
+    /// outside a lock on the client ([`crate::attest::AttestRun`]); every
+    /// other decision is executed here.
+    ///
+    /// # Errors
+    /// As [`Self::approval_respond`].
+    pub async fn approval_decide(
+        &mut self,
+        id: &str,
+        shown: &str,
+        approve: bool,
+        via: &str,
+        confirmed: bool,
+    ) -> Result<Decision> {
         let now = now_ms();
         self.expire_approvals(now)?;
         let mut request = self.approval_record(id)?;
@@ -475,6 +719,13 @@ impl Client {
             request.state == State::AwaitingUser && now < request.expires_at,
             Error::Expired,
         )?;
+        if approve && !confirmed && self.approval_presence(id)?.is_some() {
+            request.error = Some("PRESENCE_REQUIRED".into());
+            self.save_approval(&request)?;
+            return Err(Error::Forbidden);
+        }
+        request.decided_at = Some(now);
+        request.decided_via = Some(via.into());
         if let Action::Connect {
             operation,
             checkout: None,
@@ -494,35 +745,36 @@ impl Client {
             if let Action::Connect { operation, .. } = &request.action {
                 self.connect_reject(operation).await?;
             }
-            return self.approval_view(&request);
+            return self.approval_view(&request).map(Decision::Done);
         }
         request.state = State::Executing;
         request.updated_at = now;
         self.save_approval(&request)?;
+        if matches!(
+            request.action,
+            Action::Attest { .. } | Action::AttestAction { .. }
+        ) {
+            return match self.attest_run(&request) {
+                Ok(run) => {
+                    self.running.insert(request.id.clone(), now);
+                    Ok(Decision::Attest(Box::new(run)))
+                }
+                Err(error) => self
+                    .finish_approval(&mut request, Err(error))
+                    .map(Decision::Done),
+            };
+        }
         let outcome = self.execute_approval(&mut request).await;
         self.finish_approval(&mut request, outcome)
+            .map(Decision::Done)
     }
 
+    /// Execute an approved request other than an attestation, which runs
+    /// in steps ([`crate::attest::AttestRun`]).
     async fn execute_approval(&mut self, request: &mut Request) -> Result<()> {
         match request.action.clone() {
-            Action::Attest {
-                statement,
-                origin,
-                file,
-            } => {
-                if let Some(path) = &file {
-                    self.check_statement_file(&statement, std::path::Path::new(path))?;
-                }
-                let subject = crate::attest::Subject::Statement { statement, origin };
-                self.attest_execute(request, subject).await
-            }
-            Action::AttestAction { action } => {
-                let action: AppAction = dmsg_protocol::decode_canonical(&action)?;
-                // The product authority accepts this exact action first, as
-                // for a page's `signAction`.
-                self.inspect_action(&action).await?;
-                let subject = crate::attest::Subject::Action(Box::new(action));
-                self.attest_execute(request, subject).await
+            Action::Attest { .. } | Action::AttestAction { .. } => {
+                Err(Error::InvalidInput("an attestation runs in steps".into()))
             }
             Action::DeviceCapabilities {
                 device_id,
@@ -606,20 +858,13 @@ impl Client {
         }
     }
 
-    /// Sign and journal an approved attestation, then submit it.
-    async fn attest_execute(
+    /// Settle an executed request by `outcome`: done, failed, unknown and
+    /// reconciled later, or back to waiting when nothing ran.
+    pub(crate) fn finish_approval(
         &mut self,
         request: &mut Request,
-        subject: crate::attest::Subject,
-    ) -> Result<()> {
-        let attestation = self.attest_prepare(&request.id, subject).await?;
-        request.execution = Some(attestation.execution_id());
-        request.started = true;
-        self.save_approval(request)?;
-        self.attest_dispatch(attestation).await.map(|_| ())
-    }
-
-    fn finish_approval(&mut self, request: &mut Request, outcome: Result<()>) -> Result<Json> {
+        outcome: Result<()>,
+    ) -> Result<Json> {
         request.updated_at = now_ms();
         let result = match outcome {
             // An executor may settle the request itself, such as a web
@@ -633,6 +878,12 @@ impl Client {
             Err(Error::ExecutionUnknown) => {
                 request.state = State::Unknown;
                 Err(Error::ExecutionUnknown)
+            }
+            // It may have run, and nothing can tell any more.
+            Err(Error::ResultExpired) => {
+                request.state = State::Lost;
+                request.error = Some(crate::error_code(&Error::ResultExpired));
+                Err(Error::ResultExpired)
             }
             // Nothing ran: no login, no network or stale certified data.
             // The request keeps waiting for the person to try again.
@@ -661,10 +912,18 @@ impl Client {
     /// Returns `Error::Locked` while locked; each request's own failure is
     /// kept on it.
     pub async fn approvals_reconcile(&mut self) -> Result<usize> {
-        let rows = self
+        // Finished attestations the account does not keep yet, such as one
+        // signed while the root was being replaced.
+        let _ = self.attest_backfill();
+        let now = now_ms();
+        self.running.retain(|_, at| now < *at + RUN_MS);
+        let rows: Vec<ApprovalRow> = self
             .workspace
             .store
-            .approvals(&[State::Executing.name(), State::Unknown.name()])?;
+            .approvals(&[State::Executing.name(), State::Unknown.name()])?
+            .into_iter()
+            .filter(|row| !self.running.contains_key(&row.id))
+            .collect();
         let count = rows.len();
         for row in rows {
             let mut request = self.approval_record(&row.id)?;
@@ -924,15 +1183,23 @@ impl Client {
                 file,
             } => json!({
                 "statement": crate::attest::statement_view(statement),
+                "purpose": format!("{:?}", dmsg_protocol::statement_purpose(statement)),
                 "origin": origin,
-                "file": file,
-                "file_checked": file.as_ref().map(|path| {
-                    self.check_statement_file(statement, std::path::Path::new(path)).is_ok()
-                }),
+                "file": file.as_ref().map(|f| json!({
+                    "name": f.name,
+                    "size": f.size,
+                    "path": f.path,
+                    "library": f.library.as_ref().map(|(file, version)| json!({"file": file, "version": version})),
+                })),
+                // A local file is compared by size and time here, and hashed
+                // again on approval; a library version by its record.
+                "file_checked": file.as_ref().map(|f| self.attest_file_unchanged(statement, f)),
             }),
-            Action::AttestAction { action } => {
+            Action::AttestAction { action, schema } => {
                 let action: AppAction = dmsg_protocol::decode_canonical(action)?;
                 let origin = action.origin.clone();
+                let rendered =
+                    crate::attest::render_action(&action, schema.as_ref().map(|s| s.as_slice()));
                 let statement = Statement {
                     issuer: self.account()?.issuer.clone(),
                     subject: None,
@@ -941,6 +1208,8 @@ impl Client {
                 };
                 json!({
                     "statement": crate::attest::statement_view(&statement),
+                    "purpose": "AppAction",
+                    "action": rendered,
                     "origin": origin,
                     "file": null,
                     "file_checked": null,
@@ -1011,12 +1280,26 @@ impl Client {
                 Action::Wallet { .. } => "wallet",
             },
             "state": request.state.name(),
+            "risk": if high_risk(request, &detail) { "high" } else { "normal" },
             "created_at": request.created_at,
             "expires_at": request.expires_at,
+            "updated_at": request.updated_at,
+            "decided_at": request.decided_at,
+            "decided_via": request.decided_via,
             "digest": hex::encode(*request.digest()),
             "execution": request.execution,
             "error": request.error,
+            "file_check": request.file_check,
             "detail": detail,
         }))
+    }
+}
+
+/// The SHA-256 a document statement names, if any.
+pub(crate) fn statement_digest(statement: &Statement) -> Option<Hash> {
+    match &statement.content {
+        StatementContent::Digest { sha256, .. }
+        | StatementContent::FileStatement { sha256, .. } => Some(*sha256),
+        _ => None,
     }
 }

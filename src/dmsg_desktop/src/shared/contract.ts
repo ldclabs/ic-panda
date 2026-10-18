@@ -101,8 +101,27 @@ export interface DesktopBridge {
   channelDownload(id: string, seq: number, name: string): Promise<unknown>
   /** Ask to attest an application action from a file the person picks; the approval request, or null. */
   attestAction(): Promise<unknown>
+  /**
+   * Ask to attest a digest or file statement (`statement` without its
+   * `sha256`) over a file the person picks, hashed now and again on
+   * approval; the approval request, or null when cancelled.
+   */
+  attestFile(statement: Record<string, unknown>): Promise<unknown>
+  /**
+   * Compare a file the person picks with the digest of request `id`; the
+   * request with the comparison, or null when cancelled. The approval window only.
+   */
+  checkFile(id: string): Promise<unknown>
+  /** Show the main window at `route`, such as `/login` to log in; the approval window only. */
+  showMain(route: string): Promise<void>
   /** Verify an attestation bundle the person picks, with its original file when `withFile`; null when cancelled. */
   verifyBundle(withFile: boolean): Promise<unknown>
+  /** Verify a bundle the person dropped on the window, with the original file dropped with it. */
+  verifyDropped(bundle: File, original?: File): Promise<unknown>
+  /** Verify one of the account's own attestations by its execution ID, as a recipient would its bundle. */
+  verifyEntry(execution: string): Promise<unknown>
+  /** Save a verification report where the person picks; null when cancelled. */
+  saveReport(report: unknown): Promise<{ path: string } | null>
   /** Save a finished attestation's bundle where the person picks; null when cancelled. */
   exportBundle(execution: string): Promise<{ path: string } | null>
   /** Open an old-site migration link (`/legacy#pair=` or `#approve=`) in the system browser. */

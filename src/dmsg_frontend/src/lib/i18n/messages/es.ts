@@ -1099,5 +1099,34 @@ export default {
   'Save again': 'Guardar de nuevo',
   'What is dMsg?': '¿Qué es dMsg?',
   'The relay could not be reached. Check your connection and try again.': 'No se pudo contactar con el relé. Comprueba tu conexión e inténtalo de nuevo.',
-  'Approve a request': 'Aprobar una solicitud'
+  'Approve a request': 'Aprobar una solicitud',
+  'Verify a dMsg signature': 'Verificar una firma de dMsg',
+  'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
+    'Comprueba un paquete de atestación exportado desde dMsg. Se verifica en este navegador: el archivo que comparas se resume aquí y nunca se sube.',
+  'Attestation bundle': 'Paquete de atestación',
+  'Original file (optional)': 'Archivo original (opcional)',
+  'Verify': 'Verificar',
+  'Verifying…': 'Verificando…',
+  'The bundle verifies': 'El paquete se verifica',
+  'The bundle does not verify': 'El paquete no se verifica',
+  'Content': 'Contenido',
+  'Key and account': 'Clave y cuenta',
+  'Authorization evidence': 'Prueba de autorización',
+  'The file matches the signed digest':
+    'El archivo coincide con el resumen firmado',
+  'The file does not match the signed digest':
+    'El archivo no coincide con el resumen firmado',
+  'A text statement': 'Una declaración de texto',
+  'Only the digest was signed; add the original file to compare it':
+    'Solo se firmó el resumen; añade el archivo original para compararlo',
+  'An application action': 'Una acción de aplicación',
+  'Unknown: the signature does not verify':
+    'Desconocido: la firma no se verifica',
+  'Device': 'Dispositivo',
+  'Whether the signing device is still active is not checked here. A device revoked later does not undo a signature that verifies.':
+    'Aquí no se comprueba si el dispositivo que firmó sigue activo. Revocar el dispositivo después no anula una firma que se verifica.',
+  'This is not a dMsg attestation bundle.':
+    'Esto no es un paquete de atestación de dMsg.',
+  'Could not reach the Internet Computer. Try again.':
+    'No se pudo contactar con Internet Computer. Inténtalo de nuevo.'
 } satisfies Messages

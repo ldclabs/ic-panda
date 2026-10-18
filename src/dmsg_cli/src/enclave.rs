@@ -16,6 +16,7 @@ use zeroize::Zeroizing;
 
 unsafe extern "C" {
     fn dmsg_se_presence() -> i32;
+    fn dmsg_se_confirm(reason: *const c_char) -> i32;
     fn dmsg_se_agreement_create(
         handle: *mut u8,
         capacity: isize,
@@ -123,6 +124,25 @@ impl PresenceKey for SecureEnclave {
             )
         }))?;
         Ok(secret)
+    }
+
+    fn confirm(&self, what: &str) -> Result<()> {
+        let reason = reason(match what {
+            "checkout" | "letter" | "handle" | "connect" | "wallet" => {
+                tr!("approve a payment in dMsg", "在 dMsg 中批准付款")
+            }
+            "device_revoke" => tr!("revoke a device in dMsg", "在 dMsg 中撤销设备"),
+            "account" => tr!(
+                "change who controls your dMsg account",
+                "更改 dMsg 账户的控制设置"
+            ),
+            "principal" => tr!(
+                "change your dMsg Agent principal",
+                "更改 dMsg 的 Agent 主体"
+            ),
+            _ => tr!("approve a dMsg request", "批准 dMsg 请求"),
+        });
+        checked(asking(|| unsafe { dmsg_se_confirm(reason.as_ptr()) }))
     }
 }
 

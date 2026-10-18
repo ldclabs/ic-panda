@@ -101,6 +101,9 @@ pub enum AccountChange {
     Policy {
         /// The new policy.
         policy: SensitivePolicy,
+        /// The policy it replaces, as read when asked, so the review shows
+        /// what changes.
+        previous: Option<SensitivePolicy>,
     },
     /// Set the recovery delay.
     RecoveryDelay {
@@ -131,7 +134,7 @@ impl AccountChange {
             AccountChange::RemoveLogin { principal: p } => AccountCommand::RemoveAuth {
                 principal: principal_input(p)?,
             },
-            AccountChange::Policy { policy } => AccountCommand::SetPolicy {
+            AccountChange::Policy { policy, .. } => AccountCommand::SetPolicy {
                 policy: policy.clone(),
             },
             AccountChange::RecoveryDelay { delay_ms } => AccountCommand::SetRecoveryDelay {
@@ -155,12 +158,25 @@ impl AccountChange {
                 "change": "remove_login",
                 "principal": principal,
             }),
-            AccountChange::Policy { policy } => json!({
-                "change": "policy",
-                "frozen": policy.frozen,
-                "allowed_purposes": policy.allowed_purposes.iter().map(|p| format!("{p:?}")).collect::<Vec<_>>(),
-                "daily_executions": policy.daily_executions,
-            }),
+            AccountChange::Policy { policy, previous } => {
+                let purposes = |p: &SensitivePolicy| {
+                    p.allowed_purposes
+                        .iter()
+                        .map(|p| format!("{p:?}"))
+                        .collect::<Vec<_>>()
+                };
+                json!({
+                    "change": "policy",
+                    "frozen": policy.frozen,
+                    "allowed_purposes": purposes(policy),
+                    "daily_executions": policy.daily_executions,
+                    "previous": previous.as_ref().map(|p| json!({
+                        "frozen": p.frozen,
+                        "allowed_purposes": purposes(p),
+                        "daily_executions": p.daily_executions,
+                    })),
+                })
+            }
             AccountChange::RecoveryDelay { delay_ms } => json!({
                 "change": "recovery_delay",
                 "delay_ms": delay_ms,

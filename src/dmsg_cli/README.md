@@ -235,8 +235,9 @@ dmsg profile show | publish [--name N] [--bio B] [--link URL]... | resolve <acco
 dmsg profile avatar <png|jpeg|webp> | avatar --remove
 dmsg reset --yes
 dmsg approvals list [--all] | show <id> | approve <id> | reject <id> | cancel <id> | quote <id> <ledger|neuron>
+dmsg approvals check-file <id> <file> | reconcile
 dmsg attest text <text> | digest (--file F | --sha256 H) | file <path> --text T | action <file|->
-dmsg attest history | usage | export <execution> -o <path> | verify <bundle> [--file F]
+dmsg attest history | usage | readiness | export <execution> -o <path> | verify <bundle> [--file F]
 dmsg device capabilities <id> --set a,b,c | formal-approve on|off | revoke <id>
 dmsg connect browsers add [--copy-link] | list | revoke <pairing>
 dmsg connect requests | sync
@@ -453,10 +454,38 @@ the approval center (and the desktop's approval window). A request is named
 by its ID or a unique prefix of at least six characters. A web request shows
 its origin as relayed by the browser through connect.dmsg.net, the browser's
 label, the account and the payload. `approvals list --all` shows finished
-requests too, for 30 days after they were made. `attest verify` needs no
-daemon: it checks the signature, the receipt certificate under the
-configured root from one of the registry's user homes, their binding, the
-file when given, and the device's present status.
+requests too, for 30 days after they were made, with who decided them,
+where and when. Each source other than this device's own clients (an agent,
+a client, a web origin) has at most five requests waiting. A request the
+daemon rates high-risk (a payment, a revoked device, a change to the
+account's logins, signing policy, recovery delay or Agent principal) shows
+as such, and on a Mac whose Secure Enclave keeps the fast-unlock key
+approving it first asks for Touch ID or the login password; declined, the
+request keeps waiting. `approvals check-file <id> <file>` compares a file
+with the digest a request signs (a page's document, or a digest given in
+hex) without changing what is approved; `approvals reconcile` settles
+approved requests whose outcome is not known yet, which the daemon also does
+on its own. An attestation whose outcome the home no longer keeps (a day
+past its approval) ends as `lost`.
+
+`attest readiness` says whether this device can sign now: a login, formal
+approval on this device, a signing policy that is not frozen, and this
+month's allowance as last read. Finished attestations are kept by the
+account as encrypted content objects that sync like vault items, so `attest
+history` lists those of the account's other devices too and `attest export`
+writes their bundles; a device recovered after all were lost has them after
+its first sync.
+
+`attest verify` needs no daemon and reports each check on its own: the
+statement against the file (`matches_file`, `mismatch`, `digest_only`,
+`text` or `action`), the device's signature, the receipt's certificate under
+the configured root from one of the registry's user homes, the receipt's
+binding to the artifact, its key, account and request, and the device's
+present status; a device revoked since does not undo a signature that
+verifies. The command fails with `INTEGRITY_FAILED` after its report when a
+check fails. Whoever receives a bundle can also verify it in a browser at
+`https://dmsg.net/_/verify`, or with `verifyAttestationBundle` from
+`dmsg-sdk/bundle`.
 
 `attest action` takes an application action its product prepared, as the
 canonical CBOR a page would send to `signAction`
@@ -740,13 +769,15 @@ The daemon listens on `127.0.0.1` only.
   sends, attachments, downloads, previews, names and receipts; the
   library's backups, cloud copies and share links; profiles, the inbox,
   MCP Events endpoints, team wallets' reads, the plan's status, catalog
-  and assets, `account/show|security` and `connect/pairings|sync`; and the
+  and assets, `account/show|security`, `connect/pairings|sync` and
+  `attest/readiness`; a high-risk approval's presence prompt and an
+  approved attestation's reads, submission and receipt; and the
   background flush, mailbox read, backup passes and MCP Events fetch.
   Requests are signed under the client and sent after it, so a slow
   network does not hold up the library's reads. Work on the same thing
   takes turns: one backup pass, one profile publish, one MCP Events fetch
   and one send of a given message ID at a time. Account, device and channel
-  controls, payments, names, approved requests carrying themselves out,
+  controls, payments, names, other approved requests carrying themselves out,
   the content sync, unlocking, login checks and the legacy migration still
   wait under it.
 - Methods: `app/initialize {activity?}`, `app/activity`, `daemon/status`,
@@ -767,7 +798,8 @@ The daemon listens on `127.0.0.1` only.
   `sync/run|status`,
   `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`
   (`show`, `cancel` and `quote` take a unique ID prefix),
-  `attest/request|action {action: base64url CBOR}|history|usage|export|verify`,
+  `approval/check_file {id, path}`,
+  `attest/request {statement, file? | library: {file, version}?}|action {action: base64url CBOR}|history|usage|export|verify|readiness {id?}`,
   `connect/invite|candidates|grant|pairings|revoke|sync|status`,
   `channel/list|show|create|invite|join|control|leave|rotate|rekey|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
   `channel/outbox|discard|mark|draft|settings|search|hide|preview|names|receipts`,

@@ -11,7 +11,9 @@ import { DaemonError } from './error.ts'
  * Methods any window may call, and only those its views use; parameters
  * pass through without `human`.
  * Methods that name local files (`payer/use`, `channel/download`,
- * `attest/verify` with a file) and refunds to named blocks stay with the CLI
+ * `attest/verify`, `approval/check_file`, the `file` of `attest/request`,
+ * which a window's call loses; it names a library version instead) and
+ * refunds to named blocks stay with the CLI
  * (`wallet/refund` names only a quote, which the daemon returns to the payer);
  * files enter and leave the library only through the main process's file
  * dialogs or a drop the preload resolves to a path (`files/import`,
@@ -118,7 +120,10 @@ export const WINDOW_METHODS = new Set([
   'approval/list',
   'approval/show',
   'approval/quote',
+  'approval/cancel',
+  'approval/reconcile',
   'attest/request',
+  'attest/readiness',
   'attest/history',
   'attest/usage',
   'device/formal_approve',
@@ -318,6 +323,8 @@ export function windowParams(method: string, params: unknown): Record<string, un
     params && typeof params === 'object' && !Array.isArray(params) ? { ...(params as Record<string, unknown>) } : {}
   if (method === 'ap/call' && !DESKTOP_TOOLS.has(String(value.tool))) throw new DaemonError('FORBIDDEN', String(value.tool))
   delete value.human
+  // A local file reaches a statement only through the main process's dialog.
+  if (method === 'attest/request') delete value.file
   if (GUI_SOURCED.has(method)) value.source = 'gui'
   return value
 }

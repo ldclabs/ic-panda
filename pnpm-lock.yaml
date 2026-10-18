@@ -182,6 +182,9 @@ importers:
       debounce:
         specifier: ^3.0.0
         version: 3.0.0
+      dmsg-sdk:
+        specifier: workspace:*
+        version: link:../../packages/dmsg-sdk
       idb:
         specifier: ^8.0.3
         version: 8.0.3

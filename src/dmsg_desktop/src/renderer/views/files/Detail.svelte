@@ -151,12 +151,13 @@
       if (previewing?.id === version.id) previewing = null
       confirming = null
     })
-  /** A statement over a version's digest, signed in the approval window. */
+  /** A statement over a version, signed in the approval window: the daemon reads its digest from the library and checks it again on approval. */
   const signStatement = () =>
     attempt(async () => {
       if (!stating?.text.trim()) return
       const request: any = await call('attest/request', {
-        statement: { profile: 'file_statement', text: stating.text.trim(), sha256: stating.version.sha256, content_type: file.mime || null, subject: file.name }
+        statement: { profile: 'file_statement', text: stating.text.trim(), content_type: file.mime || null, subject: file.name },
+        library: { file: file.id, version: stating.version.id }
       })
       stating = null
       await bridge(() => window.dmsg.openApproval(request.id))

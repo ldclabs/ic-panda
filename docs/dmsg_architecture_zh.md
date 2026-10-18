@@ -104,7 +104,7 @@ flowchart LR
 
 ### 4.3 正式认证
 
-`attest` / `attest_app_action` 接收设备签名的 COSE_Sign1 和批准。user home 在一条消息内验签、扣减月度额度、保存产物并写入认证回执，没有跨 canister 的签名调用；月度额度租约过期时才向 commerce 刷新，至少每小时核对一次。验证方用 `get_execution_receipt` 的认证叶证明这次签名经过账户授权。
+`attest` / `attest_app_action` 接收设备签名的 COSE_Sign1 和批准。user home 在一条消息内验签、扣减月度额度、保存产物并写入认证回执，没有跨 canister 的签名调用；月度额度租约过期时才向 commerce 刷新，至少每小时核对一次。验证方用 `get_execution_receipt` 的认证叶证明这次签名经过账户授权。user home 只在批准期限后保留结果一天，客户端因此把产物与回执作为内容对象随内容根加密保存并同步到账户的其他设备；导出的证据包（`dmsg-attestation/1`）可由 CLI、`dmsg-sdk/bundle` 或网页 `dmsg.net/_/verify` 离开 dMsg 逐项核验。
 
 ### 4.4 云端读取认证证据
 

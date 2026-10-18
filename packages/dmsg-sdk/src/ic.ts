@@ -115,6 +115,22 @@ export async function verifyCertifiedLeaf(
   trustedIcRootDer: Uint8Array,
   nowMs: bigint,
 ): Promise<{ value: Uint8Array; at: bigint }> {
+  const found = await verifyRecordedLeaf(batch, path, trustedHome, trustedIcRootDer);
+  ensure(found.at <= nowMs && nowMs - found.at <= 60_000n, "EXPIRED");
+  return found;
+}
+
+/**
+ * Verify a single exact leaf kept as evidence, such as an execution receipt:
+ * as {@link verifyCertifiedLeaf}, at any certificate time. Whether that time
+ * is recent enough is the caller's decision.
+ */
+export async function verifyRecordedLeaf(
+  batch: CertifiedBatch,
+  path: Uint8Array,
+  trustedHome: Uint8Array,
+  trustedIcRootDer: Uint8Array,
+): Promise<{ value: Uint8Array; at: bigint }> {
   ensure(
     batch.schema === 1n &&
       equalBytes(batch.canister, trustedHome) &&
@@ -135,7 +151,6 @@ export async function verifyCertifiedLeaf(
   const time = lookupResultToBuffer(certificate.lookup_path(["time"]));
   ensure(time, "INTEGRITY_FAILED");
   const at = certificateTime(time);
-  ensure(at <= nowMs && nowMs - at <= 60_000n, "EXPIRED");
   const root = lookupResultToBuffer(
     certificate.lookup_path(["canister", trustedHome, "certified_data"]),
   );

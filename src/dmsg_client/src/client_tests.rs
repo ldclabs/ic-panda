@@ -68,6 +68,14 @@ impl PresenceKey for Hardware {
             _ => Ok(Zeroizing::new([9; 32])),
         }
     }
+
+    fn confirm(&self, _what: &str) -> Result<()> {
+        use std::sync::atomic::Ordering::SeqCst;
+        match self.declines.load(SeqCst) {
+            true => Err(Error::Forbidden),
+            false => Ok(()),
+        }
+    }
 }
 
 /// Log `client` in as the test login `seed`, which expires at `expires_at`.

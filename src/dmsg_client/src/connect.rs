@@ -464,6 +464,9 @@ pub(crate) struct Operation {
     kind: String,
     label: String,
     app_version: u64,
+    /// The canonical CBOR of the registration's action schema that admitted
+    /// a `signAction`, which renders it for review.
+    schema: Option<serde_bytes::ByteBuf>,
     approval: String,
     channels: Vec<Channel>,
     state: OpState,
@@ -1332,6 +1335,13 @@ impl Client {
                 .into(),
             label: pairing.label.clone(),
             app_version: app.config_version,
+            schema: match command.method.as_str() {
+                "signAction" => app
+                    .action_schema
+                    .as_ref()
+                    .map(|s| dmsg_protocol::canonical(s).into()),
+                _ => None,
+            },
             approval: String::new(),
             channels: vec![Channel {
                 request_id: request.request_id,
@@ -1901,6 +1911,31 @@ impl Client {
         Ok(self.operation(key)?.command.method)
     }
 
+    /// The SHA-256 a page's document statement names, if any.
+    pub(crate) fn connect_document_digest(&self, key: &str) -> Result<Option<Hash>> {
+        let op = self.operation(key)?;
+        if op.command.method != "signDocument" {
+            return Ok(None);
+        }
+        let payload = command_payload(&op.command)?;
+        let (statement, _) = self.document_statement(&op.command, &payload)?;
+        Ok(crate::approval::statement_digest(&statement))
+    }
+
+    /// The signing purpose of a page's document or action, if it signs.
+    pub(crate) fn connect_purpose(&self, key: &str) -> Result<Option<dmsg_types::KeyPurpose>> {
+        let op = self.operation(key)?;
+        Ok(match op.command.method.as_str() {
+            "signDocument" => {
+                let payload = command_payload(&op.command)?;
+                let (statement, _) = self.document_statement(&op.command, &payload)?;
+                Some(dmsg_protocol::statement_purpose(&statement))
+            }
+            "signAction" => Some(dmsg_types::KeyPurpose::AppAction),
+            _ => None,
+        })
+    }
+
     /// Quote the checkout of an operation waiting for approval.
     pub(crate) async fn connect_quote(
         &mut self,
@@ -2081,12 +2116,18 @@ impl Client {
             "signAction" => {
                 dmsg_protocol::decode_canonical::<dmsg_types::app_action::AppAction>(&payload)
                     .map(|a| {
-                        statement_view(&Statement {
+                        let rendered = crate::attest::render_action(
+                            &a,
+                            op.schema.as_ref().map(|s| s.as_slice()),
+                        );
+                        let mut view = statement_view(&Statement {
                             issuer: self.account().map(|a| a.issuer.clone()).unwrap_or_default(),
                             subject: None,
                             issued_at: None,
                             content: StatementContent::AppAction(Box::new(a)),
-                        })
+                        });
+                        view["action"] = rendered;
+                        view
                     })
                     .unwrap_or(Json::Null)
             }

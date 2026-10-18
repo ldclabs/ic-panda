@@ -17,7 +17,8 @@
     "markdown-it": "^15.0.0",
     "qr": "^0.6.0",
     "zod": "^4.5.4",
-    "@dmsg/legacy": "workspace:*"
+    "@dmsg/legacy": "workspace:*",
+    "dmsg-sdk": "workspace:*"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.10",

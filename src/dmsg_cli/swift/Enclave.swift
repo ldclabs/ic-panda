@@ -179,3 +179,36 @@ public func dmsgSeSign(
         return unavailable
     }
 }
+
+/// Ask the person to confirm an approval, with Touch ID or the login
+/// password: 0 confirmed, 2 declined, 1 no way to ask. A question left
+/// unanswered is withdrawn and counts as declined.
+@_cdecl("dmsg_se_confirm")
+public func dmsgSeConfirm(_ reason: UnsafePointer<CChar>) -> Int32 {
+    let context = LAContext()
+    guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil) else {
+        return unavailable
+    }
+    let outcome = Outcome()
+    let answered = DispatchSemaphore(value: 0)
+    context.evaluatePolicy(
+        .deviceOwnerAuthentication, localizedReason: String(cString: reason)
+    ) { success, error in
+        if success {
+            outcome.code = done
+        } else if let error = error as? LAError,
+            [
+                .userCancel, .appCancel, .systemCancel, .authenticationFailed, .userFallback,
+                .invalidContext,
+            ].contains(error.code)
+        {
+            outcome.code = declined
+        }
+        answered.signal()
+    }
+    if answered.wait(timeout: .now() + patience) == .timedOut {
+        context.invalidate()
+        answered.wait()
+    }
+    return outcome.code
+}

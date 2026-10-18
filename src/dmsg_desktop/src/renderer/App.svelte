@@ -19,6 +19,7 @@
   import WindowNav from './shell/WindowNav.svelte'
   import { shortcuts, viewOf, views } from './shell/nav'
   import { lock, offerUnlock, settleOffer } from './shell/session'
+  import { startLogin } from './shell/login.svelte'
   import { call, onChange, single } from './rpc'
 
   const opened = location.hash.slice(1) || '/vault'
@@ -154,7 +155,8 @@
 
   onMount(() => {
     // The route follows the hash only, so a view the hash still names opens again on a click.
-    const offNavigate = window.dmsg.onNavigate(go)
+    // `/login` is not a view: the approval window asks the main window to log in.
+    const offNavigate = window.dmsg.onNavigate((next) => (next === '/login' ? void startLogin() : go(next)))
     const onHash = () => visited(location.hash.slice(1) || '/vault')
     window.addEventListener('hashchange', onHash)
     const offs = [offNavigate, () => window.removeEventListener('hashchange', onHash)]

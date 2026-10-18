@@ -50,4 +50,6 @@ cargo run --locked --quiet -p dmsg_types --example integration_vectors > "$task_
 diff -u src/dmsg_types/tests/integration_vectors.json "$task_tmp/integration.json"
 cargo run --locked --quiet -p dmsg_protocol --example authentication_vector > "$task_tmp/authentication.json"
 diff -u src/dmsg_types/tests/authentication_vector.json "$task_tmp/authentication.json"
+cargo run --locked --quiet -p dmsg_protocol --example attestation_vector > "$task_tmp/attestation.json"
+diff -u src/dmsg_types/tests/attestation_vector.json "$task_tmp/attestation.json"
 node --test packages/dmsg-sdk/tests/*.test.ts

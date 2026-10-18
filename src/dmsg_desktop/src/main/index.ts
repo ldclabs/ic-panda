@@ -64,6 +64,8 @@ let tray: Tray | null = null
 let trayImages: { idle: Electron.NativeImage; waiting: Electron.NativeImage } | null = null
 let quitting = false
 let waiting = 0
+/** When a waiting request last notified. */
+let requestNotifiedAt = 0
 let pendingLink: string | null = null
 let trayState = 'connecting'
 /** English until the app is ready and knows its locale. */
@@ -536,6 +538,36 @@ handle('dmsg:attest-action', 'main', async () => {
   const path = await pickFile({ title: text.pickAction })
   return path && daemon.call('attest/action', { action: (await readFile(path)).toString('base64url'), source: 'gui' })
 })
+/** A digest or file statement over a local file the person picks; only this path names a local file for one. */
+handle('dmsg:attest-file', 'main', async (_event, statement: unknown) => {
+  const fields = statement && typeof statement === 'object' && !Array.isArray(statement) ? { ...(statement as Record<string, unknown>) } : {}
+  if (fields.profile !== 'digest' && fields.profile !== 'file_statement') throw new DaemonError('INVALID_INPUT', 'Not a file statement')
+  delete fields.sha256
+  const path = await pickFile({ title: text.pickSignFile })
+  return path && daemon.call('attest/request', { statement: fields, file: path, source: 'gui' })
+})
+/** Compare a file the person picks with the digest of the request the approval window shows; null when cancelled. */
+handle('dmsg:check-file', 'approval', async (_event, id: string) => {
+  const picked = await dialog.showOpenDialog(approval!, { properties: ['openFile'], title: text.pickCompare })
+  if (picked.canceled || !picked.filePaths[0]) return null
+  return daemon.call('approval/check_file', { id: String(id), path: picked.filePaths[0] })
+})
+/** The views the approval window sends the person to: a login, the signatures, the account's security, the plan. */
+const MAIN_ROUTES = ['/login', '/approvals', '/settings/session', '/settings/security', '/settings/devices', '/account']
+handle('dmsg:show-main', 'approval', (_event, route: string) => {
+  if (!MAIN_ROUTES.includes(String(route))) throw new DaemonError('INVALID_INPUT', 'Not a view')
+  showMain(String(route))
+})
+
+/** A bundle's JSON from a file. */
+async function readBundle(path: string): Promise<unknown> {
+  try {
+    return JSON.parse(await readFile(path, 'utf8'))
+  } catch {
+    throw new DaemonError('INVALID_INPUT', 'Not an attestation bundle')
+  }
+}
+
 /** Verify a bundle the person picks, with the original file of a digest or file statement when asked. */
 handle('dmsg:verify-bundle', 'main', async (_event, withFile: boolean) => {
   const path = await pickFile({
@@ -546,15 +578,27 @@ handle('dmsg:verify-bundle', 'main', async (_event, withFile: boolean) => {
     ]
   })
   if (!path) return null
-  let bundle: unknown
-  try {
-    bundle = JSON.parse(await readFile(path, 'utf8'))
-  } catch {
-    throw new DaemonError('INVALID_INPUT', 'Not an attestation bundle')
-  }
+  const bundle = await readBundle(path)
   const file = withFile === true ? await pickFile({ title: text.pickOriginal }) : undefined
   if (file === null) return null
   return daemon.call('attest/verify', { bundle, file })
+})
+/** Verify a bundle the person dropped on the window, with the original file dropped with it; the preload resolves both. */
+handle('dmsg:verify-dropped', 'main', async (_event, bundlePath: string, filePath: string | null) => {
+  const bundle = await readBundle(String(bundlePath))
+  return daemon.call('attest/verify', { bundle, file: typeof filePath === 'string' ? filePath : undefined })
+})
+/** Verify one of the account's own attestations as a recipient would its bundle. */
+handle('dmsg:verify-entry', 'main', async (_event, execution: string) => {
+  const bundle = await daemon.call('attest/export', { execution: String(execution) })
+  return daemon.call('attest/verify', { bundle })
+})
+/** Save a verification report where the person picks; null when cancelled. */
+handle('dmsg:save-report', 'main', async (_event, report: unknown) => {
+  const path = await pickSave({ defaultPath: 'dmsg-verification.json', filters: [{ name: text.reportFile, extensions: ['json'] }] })
+  if (!path) return null
+  await writeFile(path, JSON.stringify(report, null, 2))
+  return { path }
 })
 handle('dmsg:export-bundle', 'main', async (_event, execution: string) => {
   const bundle = await daemon.call('attest/export', { execution: String(execution) })
@@ -610,7 +654,10 @@ const refreshWaiting = single(async () => {
   }
   if (status.state !== 'unlocked') void forgetCopied()
   const now = status.approvals_waiting ?? 0
-  if ((now > waiting || hint) && Notification.isSupported()) {
+  // A burst of requests, such as an agent's, notifies once.
+  const quiet = Date.now() - requestNotifiedAt < 10_000
+  if ((now > waiting || hint) && !quiet && Notification.isSupported()) {
+    requestNotifiedAt = Date.now()
     const note = new Notification({ title: 'dMsg', body: text.requestWaiting, silent: false })
     note.on('click', async () => {
       try {
@@ -625,8 +672,9 @@ const refreshWaiting = single(async () => {
     note.show()
   }
   waiting = now
-  // The dock counts what is unread in channels that are not muted.
-  app.setBadgeCount(status.channels_unread ?? 0)
+  // The dock counts the requests waiting for a decision and what is unread
+  // in channels that are not muted.
+  app.setBadgeCount(now + (status.channels_unread ?? 0))
   updateTray(status.state ?? 'unknown')
 })
 

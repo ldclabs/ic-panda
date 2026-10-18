@@ -130,10 +130,20 @@ desktop is one of its clients, like the CLI.
     Agent ID reaches (the Agent Protocols services by origin, and other
     capabilities) with every grant, Agent Mail and Knowledge, MCP Events
     endpoints, and the audit record as a timeline.
-  - Signatures and approvals, in tabs: the requests waiting and decided;
-    new statements, application actions, formal approval and the month's
-    allowance as a meter; exporting bundles, and verifying one into a
-    report.
+  - Signatures and approvals, in tabs: the requests waiting (each opened,
+    or withdrawn when this device's own clients made it, with its time
+    left and why an approval did not run), running (reconciled now on
+    request) and decided (filtered by kind, opened read-only); signing,
+    after a readiness check (login, formal approval on this device, which
+    turns on or off here, the signing policy): text, a statement about a
+    file or a file's digest (the file picked in the main process's dialog,
+    or a digest in hex), application actions, and the month's allowance;
+    evidence: a bundle picked or dropped and verified check by check into a
+    report that can be saved, and the account's signatures, its other
+    devices' included, each verified in place or exported; and what the
+    account has authorized (devices that approve, paired browsers, web
+    sessions in force, agents' grants and credentials), each managed where
+    it lives.
   - Settings, in sections with their own routes (`/settings/session`,
     `security`, `devices`, `profile`, `browsers`, `files`, `legacy`,
     `about`): this session and the device's accounts, fast unlock (on after
@@ -258,11 +268,21 @@ Rules (`src/main/policy.ts`):
   window reads as a ticket: the kind of decision and the time left, who
   asks and the way the request came (a website's through the paired browser
   and connect.dmsg.net, drawn as relayed), what is signed, paid or changed,
-  what approving does, and the technical fields folded. Reject has the
-  focus; Approve opens 1.2 seconds after the request appears and again
-  after it changes (a quote, for one). Payments, revoking a device, the
-  signing policy and recovery delay, and binding or removing a login are
-  approved by holding the button for a second (`src/renderer/approval.ts`).
+  what approving does, and the technical fields folded. An application
+  action reads as its certified registration's schema words it; a file
+  statement names its file, and a digest without one can be compared with a
+  file the person picks. Reject has the focus; Approve opens 1.2 seconds
+  after the request appears, again after it changes (a quote, for one) and
+  when the window comes back to the front, and stays closed while the
+  readiness check finds a blocker, which it names with the way to fix it.
+  Requests the daemon rates high-risk (`risk`: payments, revoking a device,
+  binding or removing a login, the signing policy, the recovery delay, the
+  Agent principal) are approved by holding the button for a second and,
+  where the Secure Enclave keeps the fast-unlock key, with Touch ID or the
+  login password. After a decision the window shows each real step (for a
+  web request: the relay's authorization, the result, the page taking it)
+  and the way to the next waiting request. Locked, it shows nothing of the
+  request and offers the unlock.
 - `dmsg://connect/pair?account=…` and `dmsg://connect/request?account=…&request=…`
   only open a view; they execute nothing.
 - The system browser opens only the login page, the bridge's pairing page
@@ -319,8 +339,14 @@ and notifications instead of the system's. It covers:
 - the file library: a file added through the dialog, a file a page made
   refused, a backup cancelled from its card and a file moved to the trash
   from its row's menu;
-- signatures: an application action opened in the approval window, and a
-  bundle exported and verified through dialogs;
+- signatures: an application action shown by its schema's labels; the
+  readiness check; a file statement whose path only the main process's
+  dialog gives (a window's own path is dropped) and whose file the approval
+  window names; a digest compared with a picked file; a request withdrawn;
+  another device's signature listed, one verified in place, a bundle
+  exported, verified, verified against a changed file check by check and
+  its report saved; the authorizations in force; and the approval window
+  hiding its request while locked and showing it again once unlocked;
 - settings: an edit of the signing policy kept while events reload the
   page, a login binding approved in the approval window, a device
   revocation as an approval request, the avatar shown, set from a picked

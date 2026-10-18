@@ -104,7 +104,7 @@ An account's `home_user` and `home_cose` are fixed for its lifetime.
 
 ### 4.3 Formal Attestation
 
-`attest` / `attest_app_action` accept a device-signed COSE_Sign1 with its approval. In one message the user home verifies the signature, charges the monthly allowance, stores the artifact and writes a certified receipt; no inter-canister signing call is involved. The home refreshes its allowance lease from commerce only when the lease has expired, and rechecks at least hourly. Verifiers use the certified leaf from `get_execution_receipt` to prove that the account authorized the signature.
+`attest` / `attest_app_action` accept a device-signed COSE_Sign1 with its approval. In one message the user home verifies the signature, charges the monthly allowance, stores the artifact and writes a certified receipt; no inter-canister signing call is involved. The home refreshes its allowance lease from commerce only when the lease has expired, and rechecks at least hourly. Verifiers use the certified leaf from `get_execution_receipt` to prove that the account authorized the signature. The home keeps a result only a day past its approval deadline, so the client keeps the artifact and receipt as a content object encrypted under the content root and synced to the account's other devices; an exported bundle (`dmsg-attestation/1`) is verified check by check outside dMsg with the CLI, `dmsg-sdk/bundle` or the `dmsg.net/_/verify` page.
 
 ### 4.4 Certified Evidence for the Cloud
 

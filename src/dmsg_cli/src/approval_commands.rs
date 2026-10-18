@@ -47,6 +47,16 @@ pub enum ApprovalsCommand {
         /// Ledger Principal (cash) or neuron ID in hex (PANDA).
         selection: String,
     },
+    /// Compare a file with the digest a request asks to sign, such as a
+    /// page's document; what is approved does not change.
+    CheckFile {
+        /// Request ID or a unique prefix.
+        id: String,
+        /// The file.
+        file: PathBuf,
+    },
+    /// Settle approved requests whose outcome is not known yet.
+    Reconcile,
 }
 
 #[derive(Args)]
@@ -99,10 +109,12 @@ pub enum AttestCommand {
         /// The file holding the action, or `-` for standard input.
         path: PathBuf,
     },
-    /// Finished and pending attestations.
+    /// Finished and pending attestations, the account's other devices' included.
     History,
     /// This month's formal-execution allowance and the archived months.
     Usage,
+    /// Whether this device can sign now, and what stops it.
+    Readiness,
     /// Write a finished attestation as a self-contained bundle.
     Export {
         /// Execution ID.
@@ -150,6 +162,101 @@ pub enum BrowsersCommand {
     },
 }
 
+/// A label in the CLI's language, else English, else any.
+fn pick(labels: &Value) -> String {
+    let want = if crate::locale::zh() { "zh" } else { "en" };
+    let map = labels.as_object();
+    map.and_then(|m| {
+        m.iter()
+            .find(|(locale, _)| locale.starts_with(want))
+            .or_else(|| m.iter().find(|(locale, _)| locale.starts_with("en")))
+            .or_else(|| m.iter().next())
+    })
+    .and_then(|(_, text)| text.as_str())
+    .unwrap_or_default()
+    .to_string()
+}
+
+/// A value of an action rendered by its schema.
+fn action_value(value: &Value) -> String {
+    match value["type"].as_str() {
+        Some("bool") => pick(&value["label"]),
+        Some("choice") if value["label"].is_object() => pick(&value["label"]),
+        Some("null") => "-".into(),
+        Some("artifact") => format!(
+            "{} (sha256 {}, {} bytes)",
+            value["uri"].as_str().unwrap_or_default(),
+            value["sha256"].as_str().unwrap_or_default(),
+            value["size"]
+        ),
+        Some("list") => value["items"]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .map(action_value)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            })
+            .unwrap_or_default(),
+        Some("record") => value["fields"]
+            .as_array()
+            .map(|fields| {
+                fields
+                    .iter()
+                    .map(|f| format!("{}: {}", pick(&f["label"]), action_value(&f["value"])))
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            })
+            .unwrap_or_default(),
+        _ => value["text"].as_str().unwrap_or_default().to_string(),
+    }
+}
+
+/// An application action as its registered schema renders it: the title,
+/// then each labelled field, then the files.
+fn action_lines(rendered: &Value) -> Vec<String> {
+    let mut lines = vec![row("command", "命令", pick(&rendered["title"]))];
+    for field in rendered["fields"].as_array().into_iter().flatten() {
+        lines.push(format!(
+            "  {}: {}",
+            pick(&field["label"]),
+            action_value(&field["value"])
+        ));
+    }
+    for file in rendered["files"].as_array().into_iter().flatten() {
+        lines.push(row(
+            "file",
+            "文件",
+            format!(
+                "{} r{} sha256 {}",
+                file["name"].as_str().unwrap_or_default(),
+                file["revision"],
+                file["sha256"].as_str().unwrap_or_default()
+            ),
+        ));
+    }
+    lines.push(tr!(
+        "The application defined this wording; governance registered it.",
+        "以上措辞由应用定义，经治理登记。"
+    ));
+    lines
+}
+
+/// What is known of the file behind a digest: only the digest, or the file
+/// the person compared.
+fn file_check(request: &Value) -> String {
+    let check = &request["file_check"];
+    match (check["name"].as_str(), check["matches"].as_bool()) {
+        (Some(name), Some(true)) => tr!("{name} matches the digest", "{name} 与摘要一致"),
+        (Some(name), _) => tr!("{name} does NOT match the digest", "{name} 与摘要不一致"),
+        _ => tr!(
+            "only the digest is confirmed; the file was not checked",
+            "仅确认摘要，未核对原文件"
+        ),
+    }
+}
+
 /// A request rendered for review.
 fn render(request: &Value) -> String {
     let field = |v: &Value| match v {
@@ -168,6 +275,30 @@ fn render(request: &Value) -> String {
         row("state", "状态", field(&request["state"])),
         row("expires", "期限", field(&request["expires_at"])),
     ];
+    if request["risk"] == "high" {
+        lines.push(row(
+            "risk",
+            "风险",
+            tr!(
+                "high: confirmed with Touch ID or the login password where this Mac can ask",
+                "高：本机支持时须以 Touch ID 或登录密码确认"
+            ),
+        ));
+    }
+    if !request["error"].is_null() {
+        lines.push(row("error", "错误", field(&request["error"])));
+    }
+    if !request["decided_at"].is_null() {
+        let (at, via) = (
+            field(&request["decided_at"]),
+            field(&request["decided_via"]),
+        );
+        lines.push(row(
+            "decided",
+            "决定",
+            tr!("{at} via {via}", "{at}，经 {via}"),
+        ));
+    }
     match request["type"].as_str() {
         Some("attest") => {
             let s = &d["statement"];
@@ -181,9 +312,11 @@ fn render(request: &Value) -> String {
                 ),
             ));
             lines.push(row("origin", "网站", field(&d["origin"])));
+            lines.push(row("purpose", "用途", field(&d["purpose"])));
             if !s["subject"].is_null() {
                 lines.push(row("subject", "主题", field(&s["subject"])));
             }
+            let rendered = &d["action"];
             for name in [
                 "text",
                 "sha256",
@@ -194,24 +327,35 @@ fn render(request: &Value) -> String {
                 "args",
                 "operation_id",
             ] {
-                if !s["content"][name].is_null() {
+                let shown_by_schema = rendered.is_object() && matches!(name, "command" | "args");
+                if !s["content"][name].is_null() && !shown_by_schema {
                     lines.push(format!("{name:<9} {}", field(&s["content"][name])));
                 }
             }
-            let file = match (d["file"].as_str(), d["file_checked"].as_bool()) {
-                (Some(path), Some(true)) => tr!("{path} (digest matches)", "{path}（摘要一致）"),
-                (Some(path), _) => tr!(
-                    "{path} (CHANGED or unreadable)",
-                    "{path}（已变化或无法读取）"
-                ),
-                (None, _) if !s["content"]["sha256"].is_null() => tr!(
-                    "only the digest is confirmed; the file was not checked",
-                    "仅确认摘要，未核对原文件"
+            if rendered.is_object() {
+                lines.extend(action_lines(rendered));
+            }
+            let file = &d["file"];
+            let named = match (file["path"].as_str(), file["library"].is_object()) {
+                (Some(path), _) => path.to_string(),
+                (None, true) => tr!(
+                    "{} in the file library",
+                    "文件库中的 {}",
+                    field(&file["name"])
                 ),
                 _ => String::new(),
             };
-            if !file.is_empty() {
-                lines.push(row("file", "文件", file));
+            let line = match (named.is_empty(), d["file_checked"].as_bool()) {
+                (false, Some(true)) => tr!("{named} (digest matches)", "{named}（摘要一致）"),
+                (false, _) => tr!(
+                    "{named} (CHANGED or unreadable)",
+                    "{named}（已变化或无法读取）"
+                ),
+                (true, _) if !s["content"]["sha256"].is_null() => file_check(request),
+                _ => String::new(),
+            };
+            if !line.is_empty() {
+                lines.push(row("file", "文件", line));
             }
         }
         Some("device_revoke") => {
@@ -386,7 +530,14 @@ fn render(request: &Value) -> String {
                 format!("{} ({})", field(&d["method"]), field(&d["kind"])),
             ));
             lines.push(row("requested", "发起时间", field(&d["requested_at"])));
-            lines.push(row("content", "内容", pretty(&d["content"])));
+            let rendered = &d["content"]["action"];
+            match rendered.is_object() {
+                true => lines.extend(action_lines(rendered)),
+                false => lines.push(row("content", "内容", pretty(&d["content"]))),
+            }
+            if !d["content"]["statement"]["content"]["sha256"].is_null() {
+                lines.push(row("file", "文件", file_check(request)));
+            }
             if d["method"] == "checkout" {
                 lines.push(row(
                     "terms",
@@ -571,6 +722,20 @@ pub async fn approvals(
                 .await?;
             print(json, &request, render);
         }
+        ApprovalsCommand::CheckFile { id, file } => {
+            let request = remote.call("approval/show", json!({"id": id})).await?;
+            let checked = remote
+                .call(
+                    "approval/check_file",
+                    json!({"id": request["id"], "path": absolute(&file)?}),
+                )
+                .await?;
+            print(json, &checked, file_check);
+        }
+        ApprovalsCommand::Reconcile => {
+            let list = remote.call("approval/reconcile", Value::Null).await?;
+            print(json, &list, approval_lines);
+        }
     }
     Ok(())
 }
@@ -629,8 +794,12 @@ pub async fn attest(remote: &Remote, json: bool, command: AttestCommand) -> Resu
                     .into_iter()
                     .flatten()
                     .map(|a| {
+                        let device = match a["this_device"] == true {
+                            true => String::new(),
+                            false => tr!(" (another device)", "（其他设备）"),
+                        };
                         format!(
-                            "{} {:<9} {} {}",
+                            "{} {:<9} {} {}{device}",
                             a["execution"].as_str().unwrap_or_default(),
                             a["stage"].as_str().unwrap_or_default(),
                             a["statement"]["profile"].as_str().unwrap_or_default(),
@@ -645,6 +814,41 @@ pub async fn attest(remote: &Remote, json: bool, command: AttestCommand) -> Resu
         AttestCommand::Usage => {
             let usage = remote.call("attest/usage", Value::Null).await?;
             print(json, &usage, pretty);
+            return Ok(());
+        }
+        AttestCommand::Readiness => {
+            let ready = remote.call("attest/readiness", Value::Null).await?;
+            print(json, &ready, |r| {
+                let reason = |code: &str| match code {
+                    "AUTH_REQUIRED" => tr!("log in first (dmsg login)", "需要先登录（dmsg login）"),
+                    "FORMAL_APPROVE" => tr!(
+                        "this device cannot approve formal signatures: dmsg device formal-approve on",
+                        "本设备不能批准正式签名：dmsg device formal-approve on"
+                    ),
+                    "FROZEN" => tr!(
+                        "the account's signing policy is frozen",
+                        "账户的签名策略已冻结"
+                    ),
+                    "QUOTA" => tr!(
+                        "this month's allowance was used up when last read",
+                        "上次读取时本月额度已用完"
+                    ),
+                    other => other.to_string(),
+                };
+                let mut lines = vec![match r["ready"] == true {
+                    true => tr!("ready to sign", "可以签名"),
+                    false => tr!("not ready to sign", "暂不能签名"),
+                }];
+                for code in r["blockers"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .chain(r["warnings"].as_array().into_iter().flatten())
+                {
+                    lines.push(format!("- {}", reason(code.as_str().unwrap_or_default())));
+                }
+                lines.join("\n")
+            });
             return Ok(());
         }
         AttestCommand::Export { execution, out } => {
@@ -693,37 +897,88 @@ pub async fn verify(
         .await
         .map_err(failure)?
         .user_homes;
-    let report = dmsg_client::attest::verify_online(&ic, &homes, &bundle, file)
+    let verified = dmsg_client::attest::verify_online(&ic, &homes, &bundle, file)
         .await
         .map_err(failure)?;
-    let report = serde_json::to_value(&report).unwrap_or_default();
+    let report = serde_json::to_value(&verified).unwrap_or_default();
     print(json, &report, |r| {
-        let text = |name: &str| r[name].as_str().unwrap_or_default().to_string();
+        let text = |name: &str| r[name].as_str().unwrap_or("-").to_string();
+        let check = |ok: bool| match ok {
+            true => tr!("passed", "通过"),
+            false => tr!("FAILED", "未通过"),
+        };
+        let content = match r["content"].as_str() {
+            Some("matches_file") => tr!("matches the file", "与文件一致"),
+            Some("mismatch") => tr!("does NOT match the file", "与文件不一致"),
+            Some("digest_only") => tr!(
+                "digest only; the file was not checked",
+                "仅摘要，未核对原文件"
+            ),
+            Some("text") => tr!("a text statement", "文本声明"),
+            Some("action") => tr!("an application action", "应用动作"),
+            _ => tr!("unknown: the signature does not verify", "未知：签名未通过"),
+        };
+        let current = match r["current"].as_str() {
+            Some("active") => tr!("active", "仍有效"),
+            Some("revoked") => tr!(
+                "revoked since; the signature stays valid",
+                "之后已撤销；签名仍然有效"
+            ),
+            _ => tr!("unknown", "未知"),
+        };
         let (key, account, device) = (text("key_fingerprint"), text("account"), text("device_id"));
         let (at, epoch) = (&r["approved_at"], &r["security_epoch"]);
         [
-            row("content", "内容", text("content")),
+            row(
+                "result",
+                "结论",
+                match r["valid"] == true {
+                    true => tr!("valid", "有效"),
+                    false => tr!("NOT valid", "无效"),
+                },
+            ),
+            row("content", "内容", content),
             row(
                 "signature",
                 "签名",
-                tr!("valid (key {key})", "有效（密钥 {key}）"),
+                format!("{} ({key})", check(r["signature"] == true)),
             ),
             row(
-                "approved",
-                "批准",
-                tr!(
-                    "by account {account} with device {device} at {at} (epoch {epoch})",
-                    "账户 {account} 的设备 {device}，时间 {at}（安全纪元 {epoch}）"
+                "binding",
+                "绑定",
+                format!(
+                    "{}: {}",
+                    check(r["binding"] == true),
+                    tr!(
+                        "account {account}, device {device}, epoch {epoch}, at {at}",
+                        "账户 {account}，设备 {device}，安全纪元 {epoch}，时间 {at}"
+                    )
+                ),
+            ),
+            row(
+                "evidence",
+                "授权证据",
+                format!(
+                    "{} ({} {})",
+                    check(r["evidence"] == true),
+                    text("home"),
+                    r["certified_at"]
                 ),
             ),
             row("origin", "网站", text("origin")),
-            row("certified", "认证时间", &r["certified_at"]),
-            row("device", "设备现状", text("current")),
+            row("device", "设备现状", current),
             row("statement", "声明", pretty(&r["statement"])),
         ]
         .join("\n")
     });
-    Ok(())
+    // A bundle that does not verify fails the command, after its report.
+    match verified.valid {
+        true => Ok(()),
+        false => Err(Failure::new(
+            "INTEGRITY_FAILED",
+            format!("failed: {}", verified.failed().join(", ")),
+        )),
+    }
 }
 
 /// `dmsg connect`.

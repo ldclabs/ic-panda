@@ -1036,5 +1036,30 @@ export default {
   'Save again': '再次保存',
   'What is dMsg?': 'dMsg 是什么？',
   'The relay could not be reached. Check your connection and try again.': '无法连接中继。请检查网络后重试。',
-  'Approve a request': '批准请求'
+  'Approve a request': '批准请求',
+  'Verify a dMsg signature': '核验 dMsg 签名',
+  'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
+    '核验从 dMsg 导出的证据包。核验在本浏览器中完成：用于比对的文件只在这里计算摘要，不会上传。',
+  'Attestation bundle': '证据包',
+  'Original file (optional)': '原文件（可选）',
+  'Verify': '核验',
+  'Verifying…': '正在核验…',
+  'The bundle verifies': '证据包核验通过',
+  'The bundle does not verify': '证据包核验未通过',
+  'Content': '内容',
+  'Key and account': '密钥与账户',
+  'Authorization evidence': '授权证据',
+  'The file matches the signed digest': '文件与签署的摘要一致',
+  'The file does not match the signed digest': '文件与签署的摘要不一致',
+  'A text statement': '文本声明',
+  'Only the digest was signed; add the original file to compare it':
+    '只签署了摘要；添加原文件即可比对',
+  'An application action': '应用动作',
+  'Unknown: the signature does not verify': '未知：签名未通过',
+  'Device': '设备',
+  'Whether the signing device is still active is not checked here. A device revoked later does not undo a signature that verifies.':
+    '此处不检查签名设备当前是否有效；之后撤销设备不会使已通过核验的签名失效。',
+  'This is not a dMsg attestation bundle.': '这不是 dMsg 证据包。',
+  'Could not reach the Internet Computer. Try again.':
+    '无法连接 Internet Computer，请重试。'
 } satisfies Messages

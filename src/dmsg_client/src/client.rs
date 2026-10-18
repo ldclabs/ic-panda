@@ -208,8 +208,9 @@ pub struct Client {
     /// The environment's directory.
     dir: PathBuf,
     secure: Option<Arc<dyn SecureStorage>>,
-    /// Hardware that keeps the fast-unlock key and asks for the person.
-    presence: Option<Arc<dyn PresenceKey>>,
+    /// Hardware that keeps the fast-unlock key and asks for the person,
+    /// also before a high-risk approval.
+    pub(crate) presence: Option<Arc<dyn PresenceKey>>,
     slot: Slot,
     pub(crate) workspace: Workspace,
     pub(crate) cloud: Cloud,
@@ -224,6 +225,9 @@ pub struct Client {
     pub(crate) located: Option<(Principal, AccountId)>,
     /// The deployment's user homes, read once from the handle registry.
     pub(crate) homes: Option<Vec<Principal>>,
+    /// Approved attestations running in steps outside the client, by
+    /// request ID, with when they started.
+    pub(crate) running: BTreeMap<String, u64>,
     /// The user home of each other account read so far.
     peers: BTreeMap<AccountId, Principal>,
     /// The payer loaded from a PEM file, until the device locks.
@@ -501,6 +505,7 @@ impl Client {
             dir: dir.to_path_buf(),
             secure,
             presence: None,
+            running: BTreeMap::new(),
             slot: Slot::Idle,
             workspace,
             cloud,

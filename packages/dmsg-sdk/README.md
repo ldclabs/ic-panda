@@ -75,8 +75,17 @@ It must not grant rights from a redirect, screenshot, wallet response, browser
 ## Independent verification
 
 - `dmsg-sdk/ic`: verify IC root, fixed home, certificate time, witness and exact
-  authentication challenge or certified leaf.
+  authentication challenge or certified leaf; `verifyRecordedLeaf` checks a leaf
+  kept as evidence at any certificate time.
 - `dmsg-sdk/statements`: verify the original COSE signature and content profile.
+- `dmsg-sdk/bundle`: verify an attestation bundle (`dmsg-attestation/1`) the dMsg
+  desktop exports, check by check (`verifyAttestationBundle`): the statement
+  against the original file's bytes when given, the device signature, the
+  execution receipt's certificate by one of the deployment's user homes, and the
+  receipt's binding to the artifact, key, account and request. A failed check is
+  reported, not thrown; the caller supplies the trusted homes (the handle
+  registry's `get_handle_config`) and IC root key. The device's present status is
+  not checked.
 - `dmsg-sdk/codec`: the bounded canonical CBOR, base64url and hex codec used by
   those statements. `dmsg-sdk/errors` (also re-exported by `dmsg-sdk/connect`)
   provides the coded `DmsgError`.

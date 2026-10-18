@@ -15,6 +15,7 @@ fn changes_survive_the_approval_record() {
         },
         AccountChange::Policy {
             policy: SensitivePolicy::default(),
+            previous: Some(SensitivePolicy::default()),
         },
         AccountChange::RecoveryDelay { delay_ms: 2 * DAY },
         AccountChange::DisputeRecovery {

@@ -2232,9 +2232,17 @@ fn desktop_approvals_and_attestation() {
     stale["digest"] = "00".repeat(32).into();
     assert_eq!(a.decide(http, &stale, true), Err("INTEGRITY_FAILED".into()));
 
-    // Without FormalApprove the home refuses; nothing was signed.
+    // Without FormalApprove the readiness check says so up front, and the
+    // home refuses; nothing was signed.
+    let ready = a.run(&["attest", "readiness"]);
+    assert_eq!(ready["ready"], false);
+    assert_eq!(ready["blockers"], json!(["FORMAL_APPROVE"]));
     assert_eq!(a.decide(http, &request, true), Err("FORBIDDEN".into()));
-    assert_eq!(a.run(&["approvals", "show", id])["state"], "failed");
+    let failed = a.run(&["approvals", "show", id]);
+    assert_eq!(failed["state"], "failed");
+    // Who decided, where and when is kept with the request.
+    assert_eq!(failed["decided_via"], "cli");
+    assert!(failed["decided_at"].as_u64().is_some());
 
     // FormalApprove for this device: a single administrator approves itself.
     let enable = a.run(&["device", "formal-approve", "on"]);
@@ -2289,6 +2297,24 @@ fn desktop_approvals_and_attestation() {
         "-o",
         bundle.to_str().unwrap(),
     ]);
+    // The account keeps it: the other device lists and exports it after a sync.
+    a.run(&["sync"]);
+    b.run(&["sync"]);
+    let theirs = b.run(&["attest", "history"]);
+    let entry = theirs
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|h| h["execution"] == execution.as_str())
+        .expect("the signature reaches the account's other device");
+    assert_eq!(entry["this_device"], false);
+    assert_eq!(entry["stage"], "complete");
+    let copy = env.dir.join("release.copy.attestation.json");
+    b.run(&["attest", "export", &execution, "-o", copy.to_str().unwrap()]);
+    let read = |path: &std::path::Path| -> Value {
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
+    };
+    assert_eq!(read(&copy), read(&bundle));
     // Independent verification: another home, no daemon involved.
     b.run(&["stop"]);
     let report = b.run(&[
@@ -2298,8 +2324,16 @@ fn desktop_approvals_and_attestation() {
         "--file",
         file_text,
     ]);
+    assert_eq!(report["valid"], true);
     assert_eq!(report["content"], "matches_file");
-    assert_eq!(report["signature"], true);
+    assert_eq!(
+        (
+            &report["signature"],
+            &report["evidence"],
+            &report["binding"]
+        ),
+        (&json!(true), &json!(true), &json!(true))
+    );
     assert_eq!(report["origin"], "https://dmsg.net");
     assert_eq!(report["current"], "active");
     assert_eq!(report["statement"]["profile"], "file_statement");
@@ -2322,9 +2356,19 @@ fn desktop_approvals_and_attestation() {
         a.decide(http, &request, true),
         Err("INTEGRITY_FAILED".into())
     );
-    // A digest without the file: verifiable as "digest only".
+    // A digest without the file: the person may compare a file of theirs,
+    // which changes nothing approved; verifiable as "digest only".
     let digest = sha256_hex(b"document bytes");
     let request = a.run(&["attest", "digest", "--sha256", &digest]);
+    let id = request["id"].as_str().unwrap();
+    let checked = a.run(&["approvals", "check-file", id, file_text]);
+    assert_eq!(checked["file_check"]["matches"], false);
+    let document = env.dir.join("document.bin");
+    std::fs::write(&document, b"document bytes").unwrap();
+    let checked = a.run(&["approvals", "check-file", id, document.to_str().unwrap()]);
+    assert_eq!(checked["file_check"]["name"], "document.bin");
+    assert_eq!(checked["file_check"]["matches"], true);
+    assert_eq!(checked["digest"], request["digest"]);
     let done = a.decide(http, &request, true).unwrap();
     let bundle = env.dir.join("digest.attestation.json");
     a.run(&[
@@ -2740,6 +2784,10 @@ fn desktop_web_connect() {
     .unwrap();
     let shown = eventually(30, || web_request(&env.b, http, &accepted_id));
     assert_eq!(shown["detail"]["method"], "signAction");
+    // Reviewed as the registration's schema words it.
+    let rendered = &shown["detail"]["content"]["action"];
+    assert_eq!(rendered["title"]["en"], "Certify disclosure draft");
+    assert_eq!(rendered["fields"][0]["label"]["en"], "Draft revision");
     assert_eq!(env.b.decide(http, &shown, true).unwrap()["state"], "done");
     let signed = bridge
         .call(json!({"cmd": "get", "connection": connection, "operation_id": accepted_id, "wait_ms": 20000, "until": ["signed"]}))
@@ -2772,6 +2820,10 @@ fn desktop_web_connect() {
     assert_eq!(
         request["detail"]["statement"]["content"]["command"],
         "CertifyDisclosure"
+    );
+    assert_eq!(
+        request["detail"]["action"]["title"]["en"],
+        "Certify disclosure draft"
     );
     assert_eq!(env.b.decide(http, &request, true), Err("FORBIDDEN".into()));
     let failed = env

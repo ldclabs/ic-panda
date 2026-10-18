@@ -1,10 +1,22 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte'
-  import { t, stateLabel, type Label } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText, onChange, single, units, when } from '../rpc'
-  import { holdToApprove, kindOf, trailOf } from '../approval'
+  import { locale, t, stateLabel, type Label } from '../i18n/index.svelte'
+  import { bridge, call, code, errorText, onChange, single, size, units, when } from '../rpc'
+  import {
+    actionValue,
+    changeLabels,
+    holdToApprove,
+    kindOf,
+    pickLabel,
+    purposeLabels,
+    reasonLabels,
+    renderedAction,
+    statementOf,
+    stepsOf,
+    titleOf,
+    trailOf
+  } from '../approval'
   import Collapsible from '../components/Collapsible.svelte'
-  import type { Glyph } from '../components/glyphs'
   import Icon from '../components/Icon.svelte'
   import Select from '../components/Select.svelte'
   import { buttonClass, cn } from '../components/ui'
@@ -14,21 +26,32 @@
    * request came, what exactly is signed, paid or changed, what approving
    * does, and the technical fields folded below. Only this window decides,
    * with the digest of what it shows. Approve opens after a short delay and
-   * again whenever the request changes; Reject has the focus; payments,
-   * device revocation and control of the account take a one-second hold.
+   * again whenever the request changes or the window comes back to the
+   * front; Reject has the focus; requests the daemon rates high-risk take a
+   * one-second hold, and Touch ID or the login password where the Mac can
+   * ask. Locked, it shows nothing of the request and offers the unlock.
    */
   let { id }: { id: string } = $props()
   let request = $state<any>(null)
+  let status = $state<any>(null)
   let error = $state('')
   let busy = $state(false)
+  let approving = $state(false)
   let assets = $state<any[]>([])
   let selection = $state('')
+  let readiness = $state<any>(null)
+  let queue = $state<string[]>([])
+  let agents = $state<Record<string, string>>({})
   let now = $state(Date.now())
   let ready = $state(false)
   let held = $state(0)
   let rejectButton = $state<HTMLButtonElement>()
   let delay: ReturnType<typeof setTimeout> | undefined
   let frame = 0
+  /** This window read the device's state once already. */
+  let offered = false
+  /** The deadline passed here, and the daemon was asked once. */
+  let lapsed = false
 
   const APPROVE_DELAY_MS = 1200
   const HOLD_MS = 1000
@@ -52,24 +75,79 @@
         await tick()
         rejectButton?.focus()
       }
+      void loadReadiness()
+      void loadQueue()
+      if (first && String(next?.source).startsWith('agent:')) void loadAgents()
     } catch (e) {
+      // Locked: nothing of the request stays on screen.
+      if (code(e) === 'LOCKED') request = null
       error = errorText(e)
     }
   }
 
   const reload = single(load)
 
+  /** Whether signing can happen now: the request's purpose, this device's approval right, the policy and the login. */
+  const loadReadiness = single(async () => {
+    const signs = request?.type === 'attest' || (request?.type === 'connect' && ['signDocument', 'signAction'].includes(request?.detail?.method))
+    readiness = signs && request?.state === 'awaiting_user' ? await call('attest/readiness', { id }).catch(() => null) : null
+  })
+
+  /** The other requests waiting, for the way to the next one. */
+  const loadQueue = single(async () => {
+    const list: any[] = await call('approval/list', {}).catch(() => [])
+    queue = list.filter((r) => r.state === 'awaiting_user' && r.id !== id).map((r) => r.id)
+  })
+
+  /** The names of the Agent IDs this device hosts. */
+  async function loadAgents() {
+    const hosted: any = await call('agent/ids').catch(() => null)
+    agents = Object.fromEntries((hosted?.agents ?? []).map((a: any) => [a.agent_id, a.label]))
+  }
+
+  /** The device's state: locked, the request goes from the window; unlocked again, it comes back. */
+  const refreshStatus = single(async () => {
+    status = await call('daemon/status').catch(() => null)
+    const opening = !offered
+    offered = true
+    if (status && status.state !== 'unlocked') {
+      request = null
+      readiness = null
+      stopHold()
+      // Opened while locked: ask for the fast unlock once, as the main
+      // window does; a lock while it is open asks nothing.
+      if (opening && status.state === 'locked' && status.fast_presence) void unlockHere()
+    } else if (status && !request) {
+      error = ''
+      await load()
+    }
+  })
+
+  async function unlockHere() {
+    try {
+      await call('session/unlock', { fast: true })
+    } catch (e) {
+      if (!['FORBIDDEN'].includes(code(e))) error = errorText(e)
+    }
+  }
+
+  const showMain = (route: string) => bridge(() => window.dmsg.showMain(route)).catch((e) => (error = errorText(e)))
+
   /** Decide exactly what is shown: the digest of this view goes with the answer. */
   async function decide(approve: boolean) {
     busy = true
+    approving = approve
     error = ''
     try {
       request = await bridge(() => window.dmsg.decide(request.id, request.digest, approve))
+      void loadQueue()
     } catch (e) {
-      error = `${code(e)}: ${e instanceof Error ? e.message : String(e)}`
+      const label = reasonLabels[code(e)]
+      error = label ? t(label) : `${code(e)}: ${e instanceof Error ? e.message : String(e)}`
       await load()
     } finally {
       busy = false
+      approving = false
     }
   }
 
@@ -84,6 +162,30 @@
       error = `${t('error')}: ${code(e)}`
     } finally {
       busy = false
+    }
+  }
+
+  /** Compare a file the person has with the digest to sign; what is approved stays the same. */
+  async function checkFile() {
+    busy = true
+    error = ''
+    try {
+      const checked = await bridge(() => window.dmsg.checkFile(request.id))
+      if (checked) request = checked
+    } catch (e) {
+      error = errorText(e)
+    } finally {
+      busy = false
+    }
+  }
+
+  /** Turn on formal approval for this device: its own request, decided here first. */
+  async function enableFormal() {
+    try {
+      const created: any = await call('device/formal_approve', { enable: true })
+      location.hash = `/approval/${created.id}`
+    } catch (e) {
+      error = errorText(e)
     }
   }
 
@@ -116,26 +218,32 @@
     else if (!event.repeat) startHold()
   }
 
+  /** Back in front, the request is reviewed afresh: a click meant for another window does not approve. */
+  const refocus = () => request?.state === 'awaiting_user' && arm()
+
   onMount(() => {
-    void load().then(async () => {
+    void refreshStatus().then(async () => {
       if (request?.detail?.method === 'checkout' && request.detail.content?.method === 'Cash') {
         assets = await call('plan/assets').catch(() => [])
         if (assets.length) selection = assets[0].ledger
       }
     })
-    const off = onChange(['approval/changed'], reload)
+    const offs = [onChange(['approval/changed'], reload), onChange(['session/changed'], refreshStatus)]
     const clock = setInterval(() => (now = Date.now()), 1000)
+    window.addEventListener('focus', refocus)
     return () => {
-      off()
+      for (const off of offs) off()
       clearInterval(clock)
       clearTimeout(delay)
       stopHold()
+      window.removeEventListener('focus', refocus)
     }
   })
 
+  const locked = $derived(!!status && status.state !== 'unlocked')
   const d = $derived(request?.detail ?? {})
-  /** A statement to sign: this device's own, or a page's document or action. */
-  const s = $derived(d.statement ?? d.content?.statement ?? (d.method === 'signAction' ? d.content : null))
+  const s = $derived(statementOf(request))
+  const rendered = $derived(renderedAction(request))
   /** Terms of a checkout: a web checkout's quote, or this device's own. */
   const terms = $derived(request?.type === 'connect' ? d.checkout : request?.type === 'checkout' ? d : null)
   const unquoted = $derived(request?.type === 'connect' && d.method === 'checkout' && !d.checkout)
@@ -145,54 +253,34 @@
   /** How long the request had from its creation, for the bar of the time left. */
   const lifetime = $derived(Math.max(1, (request?.expires_at ?? 0) - (request?.created_at ?? (request?.expires_at ?? 0) - 600_000)))
   const hold = $derived(holdToApprove(request))
-  const canApprove = $derived(waiting && ready && !busy && !unquoted && !expired)
-  const trail = $derived(trailOf(request))
+  const blockers = $derived<string[]>(readiness?.blockers ?? [])
+  const canApprove = $derived(waiting && ready && !busy && !unquoted && !expired && !blockers.length)
+  const trail = $derived(trailOf(request, agents))
   const kind = $derived(kindOf(request))
+  const steps = $derived(stepsOf(request, approving))
+  const lang = $derived(locale())
 
-  /** An account security change for people; unknown changes show as they are. */
-  const change = (name: string): string =>
-    ({
-      bind_login: t('bindLogin'),
-      remove_login: `${t('remove')} ${t('loginPrincipal')}`,
-      policy: t('signingPolicy'),
-      recovery_delay: t('recoveryDelay'),
-      dispute_recovery: t('disputeRecovery')
-    })[name] ?? name
+  // The deadline passed while the window was open: the daemon says it expired.
+  $effect(() => {
+    if (waiting && expired && !lapsed) {
+      lapsed = true
+      void reload()
+    }
+  })
 
   const title = $derived.by(() => {
     if (!request) return ''
-    switch (request.type) {
-      case 'connect':
-      case 'attest':
-        if (d.method === 'checkout') return t('payPlan')
-        if (d.method === 'authenticate') return t('authenticateTitle')
-        if (s?.profile === 'app_action') return t('appAction')
-        return s?.content?.sha256 ? t('signFile') : t('newStatement')
-      case 'checkout':
-        return t('payPlan')
-      case 'letter':
-        return t('payLetter')
-      case 'handle':
-        return `${t('names')}: ${d.name}`
-      case 'delegation':
-        return d.kind?.type === 'revoke' ? t('delegationRevoke') : t('delegationGrant')
-      case 'principal':
-        return t('principalChange')
-      case 'account':
-        return change(d.change)
-      case 'device_capabilities':
-        return t('capabilities')
-      case 'device_revoke':
-        return `${t('revoke')} · ${t('device')}`
-      case 'wallet':
-        if (d.action === 'create') return t('twCreateTitle')
-        if (d.action === 'join') return t('twJoinTitle')
-        if (d.action === 'cosign') return t('twCosignTitle')
-        return d.decision === 'veto' ? t('twVetoTitle') : d.decision === 'reject' ? t('twRejectTitle') : t('twApproveTitle')
-      default:
-        return request.type
-    }
+    const found = titleOf(request)
+    return found.detail ? `${t(found.label)}: ${found.detail}` : t(found.label)
   })
+
+  /** An account security change for people; unknown changes show as they are. */
+  const change = (name: string): string => (changeLabels[name] ? t(changeLabels[name]) : name)
+  const purpose = (name: string): string => (purposeLabels[name] ? t(purposeLabels[name]) : name)
+  const purposes = (names?: string[]) => (names ?? []).map(purpose).join(', ')
+  const reason = (codeName: string): string => (reasonLabels[codeName] ? t(reasonLabels[codeName]) : `${t('error')}: ${codeName}`)
+  const authPurposes: Record<string, Label> = { Login: 'authLogin', Link: 'authLink', Reauthenticate: 'authReauthenticate' }
+  const method = (name?: string) => (name === 'Cash' ? t('methodCash') : name === 'Panda' ? t('methodPanda') : String(name ?? ''))
 
   /** Who asks: the web application, the agent, the terminal or this device's main window. */
   const who = $derived(
@@ -262,16 +350,14 @@
     }
   })
 
-  /** The decision's progress, from the daemon's states; each step is a real event. */
-  const steps = $derived.by((): { label: string; icon: Glyph; tone: string }[] => {
-    const state = request?.state
-    if (!state || state === 'awaiting_user') return []
-    if (['rejected', 'expired', 'cancelled', 'elsewhere'].includes(state)) return [{ label: stateLabel(state), icon: 'close', tone: 'muted' }]
-    const list = [{ label: t('stepApproved'), icon: 'check' as Glyph, tone: 'ok' }]
-    if (state === 'executing') list.push({ label: stateLabel(state), icon: 'pending', tone: 'pending' })
-    else list.push({ label: stateLabel(state), icon: state === 'done' ? 'check' : 'warning', tone: state === 'done' ? 'ok' : state === 'failed' ? 'danger' : 'warn' })
-    return list
-  })
+  /** Where the person can fix what stops a signature. */
+  const fixes: Record<string, { label: Label; run: () => unknown }> = {
+    AUTH_REQUIRED: { label: 'loginInMain', run: () => showMain('/login') },
+    FORMAL_APPROVE: { label: 'enableFormalHere', run: enableFormal },
+    FROZEN: { label: 'openSecurity', run: () => showMain('/settings/security') },
+    PURPOSE: { label: 'openSecurity', run: () => showMain('/settings/security') },
+    QUOTA: { label: 'openPlan', run: () => showMain('/account') }
+  }
 
   const clock = (ms: number) => {
     const seconds = Math.ceil(ms / 1000)
@@ -284,11 +370,40 @@
   <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', options.mono && 'font-mono text-xs leading-5')} data-testid={options.testid}>{value}</dd>
 {/snippet}
 
+{#snippet field(f: any)}
+  <dt class="text-faint">{pickLabel(f.label, lang)}</dt>
+  <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', ['hash', 'principal', 'artifact'].includes(f.value?.type) && 'font-mono text-xs leading-5', f.value?.multiline && 'whitespace-pre-wrap')}>
+    {#if f.value?.type === 'record'}
+      <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 border-s border-line ps-2.5">
+        {#each f.value.fields as inner (inner.name)}{@render field(inner)}{/each}
+      </dl>
+    {:else}
+      {actionValue(f.value, lang)}
+    {/if}
+  </dd>
+{/snippet}
+
 <div class="flex h-screen flex-col overflow-hidden bg-surface text-[13.5px] text-ink">
   {#if inset}
     <div class="h-9 shrink-0 border-b border-line bg-paper-dim text-center text-xs leading-9 text-faint [-webkit-app-region:drag]">{t('approvalWindow')}</div>
   {/if}
-  {#if !request}
+  {#if locked}
+    <div class="grid flex-1 place-items-center p-6" data-testid="approval-locked">
+      <div class="grid max-w-xs justify-items-center gap-3 text-center">
+        <span class="grid size-12 place-items-center rounded-2xl border border-line bg-paper text-faint [&_svg]:size-6"><Icon name="lock" /></span>
+        <p class="text-[13.5px] text-muted">{t('approvalLocked')}</p>
+        {#if status?.state === 'locked' && status.fast_unlock}
+          <button class={buttonClass('primary')} onclick={unlockHere} data-testid="approval-unlock">
+            <Icon name="unlock" />{t(status.fast_presence === 'biometrics' ? 'touchIdUnlock' : 'fastUnlock')}
+          </button>
+        {/if}
+        <button class={buttonClass('ghost', 'sm')} onclick={() => showMain(status?.state === 'locked' && status.fast_unlock ? '/approvals' : '/login')} data-testid="approval-main">
+          {t('openMainToUnlock')}
+        </button>
+        {#if error}<p class="text-[12.5px] text-danger">{error}</p>{/if}
+      </div>
+    </div>
+  {:else if !request}
     <p class="p-5 text-muted">{error || '…'}</p>
   {:else}
     <div class="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-5">
@@ -296,6 +411,8 @@
         <span class="inline-flex h-6 items-center gap-1.5 rounded-md bg-gem-pale px-2 text-xs font-semibold text-gem">
           <i class="size-[7px] rotate-45 rounded-[1px] bg-current"></i>{t(kind)}
         </span>
+        {#if request.risk === 'high'}<span class="inline-flex h-6 items-center rounded-md bg-warn-pale px-2 text-xs font-medium text-warn" data-testid="approval-risk">{t('highRisk')}</span>{/if}
+        {#if queue.length}<span class="text-xs text-faint" data-testid="approval-queue">{t('moreWaiting', { n: queue.length })}</span>{/if}
         {#if waiting && left !== null}
           <span class={cn('ms-auto inline-flex items-center gap-1.5 font-mono text-xs tabular-nums', left <= 60_000 ? 'text-warn' : 'text-faint')}>
             <Icon name="time" class="size-3.5" />{expired ? stateLabel('expired') : t('expiresIn', { time: clock(left) })}
@@ -338,31 +455,85 @@
         <p class="mt-2 flex gap-1.5 text-xs text-muted" data-testid="approval-relayed"><Icon name="info" class="mt-0.5 size-3.5 text-faint" />{t('relayed')}</p>
       {/if}
 
+      {#if waiting && request.error}
+        <div class="mt-4 flex items-start gap-2 rounded-xl bg-warn-pale p-3 text-[13px]" data-testid="approval-last-error">
+          <Icon name="warning" class="mt-0.5 size-[15px] shrink-0 text-warn" />
+          <div class="min-w-0 flex-1">
+            <p>{t('notRunYet')} {reason(request.error)}</p>
+            {#if request.error === 'AUTH_REQUIRED'}
+              <button class={cn(buttonClass('secondary', 'sm'), 'mt-2')} onclick={() => showMain('/login')}>{t('loginInMain')}</button>
+            {/if}
+          </div>
+        </div>
+      {/if}
+
+      {#if waiting && (blockers.length || readiness?.warnings?.length)}
+        <ul class="mt-4 grid gap-2 rounded-xl border border-warn/35 bg-warn-pale p-3 text-[13px]" data-testid="approval-blockers">
+          {#each [...blockers, ...(readiness?.warnings ?? [])] as blocker (blocker)}
+            <li class="flex flex-wrap items-center gap-2">
+              <Icon name="warning" class="size-[15px] text-warn" />
+              <span class="min-w-0 flex-1">{reason(blocker)}</span>
+              {#if fixes[blocker]}<button class={buttonClass('secondary', 'xs')} onclick={fixes[blocker].run}>{t(fixes[blocker].label)}</button>{/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
       <section class="mt-5">
         <h2 class="mb-2 text-xs font-semibold tracking-[0.03em] text-faint">{t(section)}</h2>
         {#if s}
           <div class="rounded-xl border border-line bg-paper px-4 py-3.5">
             <div class="font-mono text-[11px] text-faint">{s.profile}{s.subject ? ` · ${s.subject}` : ''}</div>
-            {#if s.content?.text}<p class="mt-1.5 text-base leading-normal [overflow-wrap:anywhere]" data-testid="approval-text">{s.content.text}</p>{/if}
+            {#if s.content?.text}<p class="mt-1.5 text-base leading-normal whitespace-pre-wrap [overflow-wrap:anywhere]" data-testid="approval-text">{s.content.text}</p>{/if}
             {#if s.content?.sha256}
               <p class="mt-1.5 font-mono text-xs break-all text-ink-2">sha256 {s.content.sha256}</p>
-              <p class={cn('mt-1.5 text-xs', d.file_checked ? 'text-ok' : 'text-warn')}>
-                {d.file ? (d.file_checked ? t('fileChecked') : t('fileChanged')) : t('digestOnly')}
-              </p>
+              {#if d.file}
+                <p class="mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs text-ink-2" data-testid="approval-file">
+                  <Icon name={d.file.library ? 'folder' : 'file'} class="size-3.5 text-faint" /><b class="font-medium">{d.file.name}</b>
+                  <span class="text-faint">{size(d.file.size)} · {d.file.library ? t('fromLibrary') : d.file.path}</span>
+                </p>
+                <p class={cn('mt-1 text-xs', d.file_checked ? 'text-ok' : 'text-warn')}>{d.file_checked ? t('fileChecked') : t('fileChanged')}</p>
+              {:else if request.file_check}
+                <p class={cn('mt-1.5 text-xs', request.file_check.matches ? 'text-ok' : 'text-danger')} data-testid="approval-file-check">
+                  {request.file_check.matches ? t('fileMatches', { name: request.file_check.name }) : t('fileDiffers', { name: request.file_check.name })}
+                </p>
+              {:else}
+                <p class="mt-1.5 text-xs text-warn">{t('digestOnly')}</p>
+              {/if}
+              {#if waiting && !d.file}
+                <button class={cn(buttonClass('secondary', 'sm'), 'mt-2')} disabled={busy} onclick={checkFile} data-testid="approval-check-file">
+                  <Icon name="file" />{t('compareFile')}
+                </button>
+              {/if}
             {/if}
             {#if s.profile === 'app_action'}
-              <dl class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
-                {@render row(t('application'), s.content.app_id, { testid: 'approval-app' })}
-                {@render row(t('command'), s.content.command, { testid: 'approval-command' })}
-                {#each s.content.args as arg (arg.name)}{@render row(arg.name, arg.value, { mono: true })}{/each}
-              </dl>
-              <p class="mt-2 text-xs text-warn">{t('appActionWarn')}</p>
+              {#if rendered}
+                <p class="mt-1.5 text-base font-semibold" data-testid="approval-command">{pickLabel(rendered.title, lang)}</p>
+                <dl class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]" data-testid="approval-fields">
+                  {@render row(t('application'), s.content.app_id, { testid: 'approval-app' })}
+                  {#each rendered.fields as f (f.name)}{@render field(f)}{/each}
+                  {#each rendered.files as f, i (i)}{@render row(t('file'), `${f.name} · r${f.revision} · ${size(f.size)} · sha256 ${f.sha256}`, { mono: true })}{/each}
+                </dl>
+                <p class="mt-2 text-xs text-warn">{t('appActionWarn')}</p>
+              {:else}
+                <dl class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
+                  {@render row(t('application'), s.content.app_id, { testid: 'approval-app' })}
+                  {@render row(t('command'), s.content.command, { testid: 'approval-command' })}
+                  {#each s.content.args as arg (arg.name)}{@render row(arg.name, arg.value, { mono: true })}{/each}
+                </dl>
+                <p class="mt-2 text-xs text-warn" data-testid="approval-unrendered">{t('actionUnrendered')}</p>
+              {/if}
             {/if}
           </div>
           <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
             {@render row(t('issuer'), s.issuer, { mono: true })}
             {#if request.type === 'connect'}{@render row(t('account'), d.account, { mono: true })}{/if}
             {#if d.origin && request.type === 'attest'}{@render row(t('origin'), d.origin)}{/if}
+            {#if d.purpose ?? readiness?.purpose}{@render row(t('purpose'), purpose(d.purpose ?? readiness?.purpose))}{/if}
+            {#if s.content?.content_type}{@render row(t('contentType'), s.content.content_type, { mono: true })}{/if}
+            {#if s.content?.location}{@render row(t('location'), s.content.location, { mono: true })}{/if}
+            {#if s.issued_at}{@render row(t('issuedAt'), when(s.issued_at * 1000))}{/if}
+            {#if readiness?.usage}{@render row(t('usage'), t('usageLeft', { n: readiness.usage.remaining, time: when(readiness.usage.read_at) }))}{/if}
           </dl>
         {:else if terms || request.type === 'letter' || (request.type === 'handle' && d.total) || unquoted}
           <div class="rounded-xl border border-line bg-paper px-4 py-3.5">
@@ -383,7 +554,7 @@
               <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums" data-testid="approval-amount">{units(d.total, 8)} PANDA</div>
             {:else}
               <div class="text-[28px] leading-tight font-[650] tracking-[-0.03em] tabular-nums">${units(d.content?.amount_usd_micros ?? '0', 6)}</div>
-              <div class="mt-0.5 text-xs text-faint">{d.content?.method}</div>
+              <div class="mt-0.5 text-xs text-faint">{method(d.content?.method)}</div>
             {/if}
           </div>
           <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
@@ -392,7 +563,7 @@
               {@render row(t('price'), `$${units(terms.amount_usd_micros, 6)}`)}
             {:else if request.type === 'connect'}
               {@render row(t('plan'), `${d.content?.product_id} · ${d.content?.sku}`)}
-              {@render row(t('price'), `$${units(d.content?.amount_usd_micros ?? '0', 6)} · ${d.content?.method}`)}
+              {@render row(t('price'), `$${units(d.content?.amount_usd_micros ?? '0', 6)} · ${method(d.content?.method)}`)}
             {/if}
             {#if request.type === 'letter'}
               {@render row(t('recipient'), d.recipient, { mono: true, testid: 'approval-recipient' })}
@@ -415,7 +586,7 @@
         {:else}
           <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 rounded-xl border border-line bg-paper px-4 py-3.5 text-[13px]">
             {#if authenticating}
-              {@render row(t('authPurpose'), String(d.content?.purpose ?? ''), { testid: 'approval-purpose' })}
+              {@render row(t('authPurpose'), authPurposes[d.content?.purpose] ? t(authPurposes[d.content?.purpose]) : String(d.content?.purpose ?? ''), { testid: 'approval-purpose' })}
               {@render row(t('account'), d.account, { mono: true })}
               {@render row(t('authReceiver'), String(d.content?.receiver ?? ''), { mono: true, testid: 'approval-receiver' })}
               {@render row(t('expires'), when(d.content?.expires_at))}
@@ -423,9 +594,12 @@
               {@render row(t('change'), change(d.change), { testid: 'approval-change' })}
               {#if d.principal}{@render row(t('loginPrincipal'), d.principal, { mono: true, testid: 'approval-principal' })}{/if}
               {#if d.change === 'policy'}
-                {@render row(t('signingPolicy'), `${d.frozen ? t('frozen') : t('formalOn')} · ${d.daily_executions} · ${d.allowed_purposes?.join(', ')}`)}
+                {@const was = d.previous}
+                {@render row(t('signingPolicy'), `${was ? `${was.frozen ? t('frozen') : t('policyOpen')} → ` : ''}${d.frozen ? t('frozen') : t('policyOpen')}`, { testid: 'approval-policy' })}
+                {@render row(t('dailyExecutions'), `${was ? `${was.daily_executions} → ` : ''}${d.daily_executions}`)}
+                {@render row(t('purposes'), `${was ? `${purposes(was.allowed_purposes)} → ` : ''}${purposes(d.allowed_purposes)}`)}
               {/if}
-              {#if d.delay_ms}{@render row(t('recoveryDelay'), String(Math.round(d.delay_ms / 86_400_000)))}{/if}
+              {#if d.delay_ms}{@render row(t('recoveryDelay'), t('daysCount', { n: Math.round(d.delay_ms / 86_400_000) }))}{/if}
               {#if d.op_id}{@render row(t('recovery'), d.op_id, { mono: true })}{/if}
             {:else if request.type === 'delegation'}
               {#if d.kind?.type === 'grant'}
@@ -447,7 +621,7 @@
               {@render row(t('device'), `${d.device_id}${d.this_device ? ` (${t('thisDevice')})` : ''}`, { mono: true })}
               {@render row(t('capabilities'), d.capabilities?.join(', ') ?? '')}
             {:else if request.type === 'device_revoke'}
-              {@render row(t('device'), d.device_id, { mono: true })}
+              {@render row(t('device'), `${d.device_id}${d.this_device ? ` (${t('thisDevice')})` : ''}`, { mono: true })}
             {:else if request.type === 'handle'}
               {@render row(t('names'), d.name)}
               {@render row(t('method'), d.action)}
@@ -489,13 +663,16 @@
                 <Icon name={warn ? 'warning' : 'info'} class={cn('mt-0.5 size-[15px]', !warn && 'text-faint')} /><span>{line}</span>
               </li>
             {/each}
+            {#if request.risk === 'high'}
+              <li class="grid grid-cols-[16px_minmax(0,1fr)] gap-2 text-[13px] text-ink-2"><Icon name="security" class="mt-0.5 size-[15px] text-faint" /><span>{t('afterPresence')}</span></li>
+            {/if}
           </ul>
         </section>
       {/if}
 
       <Collapsible class="mt-4 rounded-lg border border-line px-2.5 py-1">
         {#snippet title()}<span class="text-[12.5px] text-muted">{t('technical')}</span>{/snippet}
-        <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 pb-2 text-xs">
+        <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 pb-2 text-xs" data-testid="approval-technical">
           {@render row(t('requestId'), request.id, { mono: true })}
           {@render row(t('digest'), request.digest, { mono: true })}
           {@render row(t('from'), request.source, { mono: true, testid: 'approval-source' })}
@@ -510,6 +687,10 @@
           {/if}
           {#if request.type === 'delegation'}{@render row(t('controllers'), `#${d.generation} · ${d.kind?.id ?? ''}`, { mono: true })}{/if}
           {@render row(t('status'), stateLabel(request.state))}
+          {@render row(t('created'), when(request.created_at))}
+          {#if request.decided_at}{@render row(t('decided'), `${when(request.decided_at)} · ${request.decided_via}`, { testid: 'approval-decided' })}{/if}
+          {#if request.execution}{@render row(t('execution'), request.execution, { mono: true })}{/if}
+          {#if request.error}{@render row(t('error'), request.error, { mono: true })}{/if}
           {@render row(t('expires'), when(request.expires_at))}
         </dl>
       </Collapsible>
@@ -536,7 +717,7 @@
       <span class="absolute -top-2 -end-6 size-4 rounded-full border border-line bg-paper"></span>
     </div>
     <div class="shrink-0 px-5 pt-3.5 pb-4">
-      {#if waiting}
+      {#if waiting && !approving}
         {#if left !== null}
           <div class="h-[3px] overflow-hidden rounded-full bg-line" aria-hidden="true">
             <i
@@ -546,7 +727,7 @@
           </div>
         {/if}
         <div class="mt-3 grid grid-cols-[1fr_1.4fr] gap-2.5">
-          <button bind:this={rejectButton} class={buttonClass('secondary', 'lg')} disabled={busy} data-testid="reject" onclick={() => decide(false)}>
+          <button bind:this={rejectButton} class={buttonClass('secondary', 'lg')} disabled={busy || expired} data-testid="reject" onclick={() => decide(false)}>
             {t('reject')}
           </button>
           <button
@@ -569,7 +750,7 @@
           </button>
         </div>
         <p class="mt-2 text-center text-[11.5px] text-faint">
-          {unquoted ? t('quoteFirst') : !ready ? t('approveSoon') : hold ? t('holdHint') : t('approveHint')}
+          {blockers.length ? t('cannotSignYet') : unquoted ? t('quoteFirst') : !ready ? t('approveSoon') : hold ? t('holdHint') : t('approveHint')}
         </p>
       {:else}
         <ol class="grid gap-2" data-testid="approval-outcome">
@@ -585,10 +766,18 @@
                   step.tone === 'pending' && 'border-[1.5px] border-edge-soft text-faint'
                 )}><Icon name={step.icon} class={cn('size-3', step.tone === 'pending' && 'animate-spin motion-reduce:animate-none')} /></span
               >
-              {step.label}
+              {step.label ? t(step.label) : stateLabel(step.state ?? '')}
             </li>
           {/each}
         </ol>
+        {#if ['failed', 'lost', 'unknown'].includes(request.state) && request.error}
+          <p class="mt-2 text-[12.5px] text-muted" data-testid="approval-reason">{reason(request.error)}</p>
+        {/if}
+        {#if !approving && queue.length}
+          <button class={cn(buttonClass('secondary'), 'mt-3 w-full')} onclick={() => (location.hash = `/approval/${queue[0]}`)} data-testid="approval-next">
+            {t('nextRequest', { n: queue.length })}<Icon name="chevron-end" />
+          </button>
+        {/if}
       {/if}
     </div>
   {/if}

@@ -357,7 +357,14 @@ impl Client {
     /// `Error::DeviceNotApproved` for a revoked device, whose workspace is
     /// then erased.
     pub async fn sync(&mut self) -> Result<SyncReport> {
-        let result = self.sync_once().await;
+        let mut result = self.sync_once().await;
+        // Another device of the account may have published newer evidence,
+        // such as after a change to the account, which the relay now
+        // requires: hand it the newest and try once more.
+        if matches!(result, Err(Error::PolicyStale)) {
+            self.published = None;
+            result = self.sync_once().await;
+        }
         // The relay can know of a revocation before the evidence this device
         // cached expires: read the account again, and erase it if revoked.
         if matches!(result, Err(Error::DeviceNotApproved)) {

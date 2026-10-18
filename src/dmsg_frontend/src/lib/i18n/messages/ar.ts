@@ -1055,5 +1055,30 @@ export default {
   'Save again': 'حفظ مرة أخرى',
   'What is dMsg?': 'ما هو dMsg؟',
   'The relay could not be reached. Check your connection and try again.': 'تعذّر الوصول إلى المرحّل. تحقق من اتصالك وحاول مجددًا.',
-  'Approve a request': 'الموافقة على طلب'
+  'Approve a request': 'الموافقة على طلب',
+  'Verify a dMsg signature': 'التحقق من توقيع dMsg',
+  'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
+    'تحقّق من حزمة إثبات صُدّرت من dMsg. يجري التحقق في هذا المتصفح: تُحسب بصمة الملف الذي تقارنه هنا ولا يُرفع أبدًا.',
+  'Attestation bundle': 'حزمة الإثبات',
+  'Original file (optional)': 'الملف الأصلي (اختياري)',
+  'Verify': 'تحقّق',
+  'Verifying…': 'جارٍ التحقق…',
+  'The bundle verifies': 'اجتازت الحزمة التحقق',
+  'The bundle does not verify': 'لم تجتز الحزمة التحقق',
+  'Content': 'المحتوى',
+  'Key and account': 'المفتاح والحساب',
+  'Authorization evidence': 'دليل التفويض',
+  'The file matches the signed digest': 'الملف يطابق البصمة الموقّعة',
+  'The file does not match the signed digest': 'الملف لا يطابق البصمة الموقّعة',
+  'A text statement': 'بيان نصي',
+  'Only the digest was signed; add the original file to compare it':
+    'وُقّعت البصمة وحدها؛ أضف الملف الأصلي لمقارنته',
+  'An application action': 'إجراء تطبيق',
+  'Unknown: the signature does not verify': 'غير معروف: التوقيع لا يتحقق',
+  'Device': 'الجهاز',
+  'Whether the signing device is still active is not checked here. A device revoked later does not undo a signature that verifies.':
+    'لا يُفحص هنا ما إذا كان الجهاز الموقّع ما زال نشطًا. إلغاء الجهاز لاحقًا لا يُبطل توقيعًا اجتاز التحقق.',
+  'This is not a dMsg attestation bundle.': 'هذه ليست حزمة إثبات من dMsg.',
+  'Could not reach the Internet Computer. Try again.':
+    'تعذّر الوصول إلى Internet Computer. حاول مجددًا.'
 } satisfies Messages

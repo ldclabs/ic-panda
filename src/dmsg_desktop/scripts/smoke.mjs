@@ -216,6 +216,7 @@ const checkoutRequest = {
   ...request,
   id: 'c1'.repeat(32),
   digest: 'c2'.repeat(32),
+  risk: 'high',
   detail: {
     ...request.detail,
     requests: ['13'.repeat(32)],
@@ -263,6 +264,8 @@ let sockets = []
 /** The session the mock reports, the login under way and whether the next one fails to start. */
 let session = 'unlocked'
 let fastUnlock = false
+/** Whether this device approves formal signatures, as the readiness check reports it. */
+let formalApprove = true
 /** How fast unlock asks for the person, and whether the next ask is declined. */
 let fastPresence = null
 let declineUnlock = false
@@ -275,7 +278,9 @@ function emit(type, data) {
 }
 /** A request created from the main window, as the daemon would show it. */
 function created(id, type, detail) {
-  const r = { ...request, id, source: 'gui', state: 'awaiting_user', type, kind: type, digest: 'f0'.repeat(32), detail }
+  // The daemon rates the risk: payments, revocations and control of the account are held.
+  const risk = ['checkout', 'letter', 'device_revoke', 'account', 'principal'].includes(type) ? 'high' : 'normal'
+  const r = { ...request, id, source: 'gui', state: 'awaiting_user', type, kind: type, risk, digest: 'f0'.repeat(32), detail }
   requests.set(id, r)
   return r
 }
@@ -516,19 +521,49 @@ const methods = {
     emit('approval/changed')
     return r
   },
-  'attest/usage': () => ({ charged: 3, allowed: 100, remaining: 97, valid_until_ms: Date.now() + 86_400_000, history: [] }),
+  'approval/cancel': (p) => {
+    const r = requests.get(p.id)
+    assert.equal(r.state, 'awaiting_user')
+    r.state = 'cancelled'
+    return r
+  },
+  'approval/reconcile': () => [...requests.values()].filter((r) => ['awaiting_user', 'executing', 'unknown'].includes(r.state)),
+  // The main process hashes nothing itself: it passes the picked path.
+  'approval/check_file': (p) => {
+    const r = requests.get(p.id)
+    r.file_check = { name: basename(p.path), size: 12, matches: true, checked_at: Date.now() }
+    return r
+  },
+  'attest/usage': () => ({ charged: 3, allowed: 100, remaining: 97, valid_until_ms: Date.now() + 86_400_000, history: [{ month: 202609, allowed: 100, charged: 12 }] }),
+  'attest/readiness': (p) => ({
+    ready: formalApprove,
+    blockers: formalApprove ? [] : ['FORMAL_APPROVE'],
+    warnings: [],
+    login: true,
+    formal_approve: formalApprove,
+    purpose: p?.id ? 'Statement' : null,
+    policy: { frozen: false, allowed_purposes: ['FileAttestation', 'Statement', 'AppAction'], daily_executions: 20 },
+    usage: { allowed: 100, charged: 3, remaining: 97, read_at: Date.now() }
+  }),
   'attest/history': () => [
-    { execution: 'e1'.repeat(32), stage: 'complete', statement: { profile: 'text', content: { text: 'Signed before' } }, origin: 'https://dmsg.net', created_at: Date.now() }
+    { execution: 'e1'.repeat(32), approval: null, stage: 'complete', statement: { profile: 'text', content: { text: 'Signed before' } }, origin: 'https://dmsg.net', created_at: Date.now(), device_id: '11'.repeat(32), this_device: true },
+    { execution: 'e2'.repeat(32), approval: 'ff'.repeat(32), stage: 'complete', statement: { profile: 'text', content: { text: 'Signed on the laptop' } }, origin: 'https://dmsg.net', created_at: Date.now() - 60_000, device_id: '22'.repeat(32), this_device: false }
   ],
   'attest/export': (p) => ({ format: 'dmsg-attestation/1', account, home: 'aaaaa-aa', request_id: p.execution, cose_sign1: 'x', cose_key: 'y', receipt: 'z' }),
   'attest/verify': (p) => {
     assert.equal(p.bundle.format, 'dmsg-attestation/1')
+    // A bundle checked against a changed file: the signature stands, the content does not.
+    const mismatch = !!p.file
     return {
+      valid: !mismatch,
       statement: { profile: 'text', issuer: 'x', content: { text: 'Signed before' } },
-      content: 'text',
+      content: mismatch ? 'mismatch' : 'text',
       signature: true,
+      evidence: true,
+      binding: true,
       key_fingerprint: 'ab'.repeat(32),
       account,
+      home: 'aaaaa-aa',
       device_id: '11'.repeat(32),
       security_epoch: 3,
       approved_at: Date.now(),
@@ -543,10 +578,20 @@ const methods = {
     return created('a1'.repeat(32), 'attest', {
       origin: 'https://app.example',
       file: null,
+      purpose: 'AppAction',
       statement: {
         profile: 'app_action',
         issuer: 'x',
-        content: { app_id: 'token-list', origin: 'https://app.example', command: 'review', args: [{ name: 'score', value: 'Nat(5)' }], operation_id: 'cd'.repeat(32), expires_at: Date.now() + 300_000 }
+        content: { app_id: 'token-list', origin: 'https://app.example', command: 'review', args: [{ name: 'score', value: '5' }], operation_id: 'cd'.repeat(32), expires_at: Date.now() + 300_000 }
+      },
+      // As the registered schema renders it: the application's wording, by locale.
+      action: {
+        title: { en: 'Review the listing', zh: '审核上架' },
+        fields: [
+          { name: 'score', label: { en: 'Score', zh: '评分' }, value: { type: 'nat', text: '5' } },
+          { name: 'public', label: { en: 'Publish now' }, value: { type: 'bool', label: { en: 'Yes, publish' } } }
+        ],
+        files: []
       }
     })
   },
@@ -560,14 +605,30 @@ const methods = {
   },
   'attest/request': (p) => {
     assert.equal(p.source, 'gui')
+    const { profile, text, subject } = p.statement
+    const sha256 = profile === 'text' ? undefined : (p.statement.sha256 ?? '5a'.repeat(32))
+    const file = p.file
+      ? { name: basename(p.file), size: 12, path: p.file, library: null }
+      : p.library
+        ? { name: 'report.pdf', size: 2048, path: null, library: p.library }
+        : null
     const created = {
       ...request,
-      id: '99'.repeat(32),
+      id: { text: '99', file_statement: '9a', digest: '9b' }[profile].repeat(32),
       source: 'gui',
+      state: 'awaiting_user',
+      expires_at: Date.now() + 600_000,
       type: 'attest',
       kind: 'attest',
+      risk: 'normal',
       digest: '88'.repeat(32),
-      detail: { origin: 'https://dmsg.net', statement: { profile: 'text', issuer: 'x', content: { text: p.statement.text } } }
+      detail: {
+        origin: 'https://dmsg.net',
+        purpose: profile === 'digest' ? 'FileAttestation' : 'Statement',
+        statement: { profile, issuer: 'x', subject: subject ?? null, content: { text, sha256 } },
+        file,
+        file_checked: file ? true : null
+      }
     }
     requests.set(created.id, created)
     return created
@@ -617,6 +678,7 @@ const methods = {
       state: 'awaiting_user',
       type: 'account',
       kind: 'account',
+      risk: 'high',
       digest: 'b2'.repeat(32),
       detail: { change: 'bind_login', principal: p.principal, nonce: 'b3'.repeat(32) }
     }
@@ -827,6 +889,7 @@ const methods = {
       state: 'awaiting_user',
       type: 'checkout',
       kind: 'payment',
+      risk: 'high',
       digest: '97'.repeat(32),
       detail: { ...checkouts.find((c) => c.id === p.id), fresh: false }
     }
@@ -868,6 +931,9 @@ const announced = {
   'session/fast_unlock': ['session/changed'],
   'attest/request': ['approval/changed'],
   'attest/action': ['approval/changed'],
+  'approval/cancel': ['approval/changed'],
+  'approval/reconcile': ['approval/changed'],
+  'approval/check_file': ['approval/changed'],
   'device/capabilities': ['approval/changed'],
   'device/revoke': ['approval/changed'],
   'account/bind_approve': ['approval/changed'],
@@ -1304,7 +1370,8 @@ try {
   await app.evaluate(({ app }, url) => app.emit('open-url', { preventDefault() {} }, url), `dmsg://connect/request?account=${account}&request=${authRequest.detail.requests[0]}`)
   await approval.waitForSelector('[data-testid="approval-receiver"]', { timeout: 20_000 })
   assert.equal(await approval.textContent('[data-testid="approval-title"]'), 'Confirm your account to a website')
-  assert.equal(await approval.textContent('[data-testid="approval-purpose"]'), 'Login')
+  // The purpose in the interface language, not the protocol's name.
+  assert.equal(await approval.textContent('[data-testid="approval-purpose"]'), 'Sign in')
   assert.equal(await approval.textContent('[data-testid="approval-receiver"]'), 'aaaaa-aa')
   assert.ok(!(await approval.textContent('body')).includes('paying account'))
   await approval.screenshot({ path: join(shots, 'connect-authenticate.png') })
@@ -1574,20 +1641,93 @@ try {
   await answer('__open', join(picks, 'action.cbor'))
   await main.click('[data-testid="sign-action"]')
   await approval.waitForSelector('[data-testid="approval-command"]', { timeout: 20_000 })
-  assert.equal(await approval.textContent('[data-testid="approval-command"]'), 'review')
+  // The schema's wording, not the command's name, and every field by its label.
+  assert.equal(await approval.textContent('[data-testid="approval-command"]'), 'Review the listing')
   assert.equal(await approval.textContent('[data-testid="approval-app"]'), 'token-list')
+  assert.match(await approval.textContent('[data-testid="approval-fields"]'), /Score\s*5[\s\S]*Publish now\s*Yes, publish/)
   await approval.screenshot({ path: join(shots, 'app-action.png') })
+
+  // Readiness: what signing here needs, and the way to turn formal approval on.
+  await main.waitForSelector('[data-testid="readiness-state"] >> text=Ready')
+  await main.waitForSelector('[data-testid="readiness-formal"] [data-testid="formal-off"]')
+  // A statement about a local file: its path reaches the daemon only from
+  // the main process's dialog, and the approval window names the file.
+  await main.click('[data-testid="statement-profile"] [data-value="file_statement"]')
+  await main.fill('[data-testid="statement-text"]', 'I approve release 2.0')
+  assert.equal(await main.textContent('[data-testid="statement-bytes"]'), '21 / 4096')
+  await answer('__open', join(picks, 'release.tar'))
+  await main.click('[data-testid="statement-file"]')
+  await approval.waitForSelector('[data-testid="approval-file"] >> text=release.tar', { timeout: 20_000 })
+  const fileRequest = latest('attest/request').params
+  assert.deepEqual(
+    { profile: fileRequest.statement.profile, text: fileRequest.statement.text, file: fileRequest.file, sha256: fileRequest.statement.sha256 },
+    { profile: 'file_statement', text: 'I approve release 2.0', file: join(picks, 'release.tar'), sha256: undefined }
+  )
+  // A window cannot name a local file itself.
+  await main.evaluate(() => window.dmsg.call('attest/request', { statement: { profile: 'digest', sha256: '5c'.repeat(32) }, file: '/etc/hosts' }))
+  assert.equal(latest('attest/request').params.file, undefined)
+  // A digest given as such: only the digest is confirmed until the person
+  // compares a file of theirs with it, which changes nothing approved.
+  await main.click('[data-testid="statement-profile"] [data-value="digest"]')
+  await main.fill('[data-testid="statement-sha256"]', '5b'.repeat(32))
+  await main.click('[data-testid="statement-digest"]')
+  await approval.waitForSelector('[data-testid="approval-check-file"]', { timeout: 20_000 })
+  await answer('__open', join(picks, 'release.tar'))
+  await approval.click('[data-testid="approval-check-file"]')
+  await approval.waitForSelector('[data-testid="approval-file-check"] >> text=release.tar matches the digest')
+  assert.deepEqual(latest('approval/check_file').params, { id: '9b'.repeat(32), path: join(picks, 'release.tar') })
+  await approval.screenshot({ path: join(shots, 'digest-check.png') })
+
+  // Requests: waiting ones open or, when this device's clients made them,
+  // are withdrawn; decided ones open read-only.
+  await main.click('[data-testid="approvals-tab-requests"]')
+  await main.waitForSelector('[data-testid="waiting-list"] >> text=I approve release 2.0')
+  await main.locator('[data-testid="waiting-list"] li', { hasText: 'I approve release 2.0' }).locator('[data-testid="request-cancel"]').click()
+  await waitFor(() => latest('approval/cancel'))
+  assert.deepEqual(latest('approval/cancel').params, { id: '9a'.repeat(32) })
+  await main.waitForSelector('[data-testid="history-list"] >> text=Withdrawn')
+  await main.screenshot({ path: join(shots, 'requests.png') })
+
   const bundle = join(profile, 'bundle-out.json')
   await answer('__save', bundle)
   await main.click('[data-testid="approvals-tab-bundles"]')
-  await main.click('text=/^(Export bundle|导出证据包)$/')
+  // The account's other devices' signatures arrive with the account.
+  await main.waitForSelector('[data-testid="signed-list"] >> text=Another device')
+  await main.locator('[data-testid="signed-list"] li', { hasText: 'Signed before' }).locator('text=/^(Export bundle|导出证据包)$/').click()
   await main.waitForSelector('[data-testid="approvals-notice"]')
   assert.equal(JSON.parse(await readFile(bundle, 'utf8')).request_id, 'e1'.repeat(32))
   await answer('__open', join(picks, 'bundle.json'))
-  await main.click('[data-testid="verify-bundle"] button >> nth=0')
+  await main.click('[data-testid="verify-bundle"] button >> text=/^(Verify a bundle|核验证据包)$/')
   await main.waitForSelector('[data-testid="verify-report"]')
   assert.ok((await main.textContent('[data-testid="verify-report"]')).includes('https://dmsg.net'))
+  assert.equal(await main.textContent('[data-testid="verify-result"]'), 'The bundle verifies')
+  // Against a changed file, each check reports on its own: the content fails, the signature stands.
+  await answer('__open', join(picks, 'bundle.json'))
+  await answer('__open', join(picks, 'release.tar'))
+  await main.click('[data-testid="verify-bundle"] button >> text=/^(Verify with the original file|连同原文件核验)$/')
+  await main.waitForSelector('[data-testid="verify-result"] >> text=The bundle does not verify')
+  assert.match(await main.textContent('[data-testid="verify-checks"]'), /Content\s*The file does not match the signed digest[\s\S]*Signature/)
+  const report = join(profile, 'report.json')
+  await answer('__save', report)
+  await main.click('[data-testid="verify-save"]')
+  await waitFor(() => {
+    try {
+      return JSON.parse(readFileSync(report, 'utf8')).content === 'mismatch'
+    } catch {
+      return false
+    }
+  })
+  // One of the account's own, verified in place as a recipient would its bundle.
+  await main.locator('[data-testid="signed-list"] li', { hasText: 'Signed on the laptop' }).locator('[data-testid="signed-verify"]').click()
+  await main.waitForSelector('[data-testid="verify-result"] >> text=The bundle verifies')
+  assert.equal(latest('attest/export').params.execution, 'e2'.repeat(32))
   await main.screenshot({ path: join(shots, 'signatures.png') })
+
+  // Authorizations: what is in force, each managed where it lives.
+  await main.click('[data-testid="approvals-tab-grants"]')
+  await main.waitForSelector('[data-testid="grants-devices"] >> text=This device')
+  await main.waitForSelector('[data-testid="grants-agents"]')
+  await main.screenshot({ path: join(shots, 'authorizations.png') })
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
 
   // Settings lists this device's accounts, switches between them, and asks
@@ -1683,6 +1823,10 @@ try {
   session = 'locked'
   emit('session/changed', { state: 'locked' })
   await main.waitForSelector('[data-testid="gate-unlock"] >> text=Fast unlock')
+  // Locked, the approval window shows nothing of its request, and offers the unlock.
+  await approval.waitForSelector('[data-testid="approval-locked"]')
+  assert.equal(await approval.locator('[data-testid="approval-title"]').count(), 0)
+  await approval.waitForSelector('[data-testid="approval-unlock"]')
   // Locked, the page's connected browsers wait for the unlock instead of failing.
   await waitFor(() => calls.filter((c) => c.method === 'connect/pairings').length > pairingReads)
   await new Promise((r) => setTimeout(r, 300))
@@ -1691,6 +1835,8 @@ try {
   await waitFor(() => latest('session/unlock'))
   assert.deepEqual(latest('session/unlock').params, { fast: true })
   await main.waitForSelector('[data-testid="gate-state"] >> text=Unlocked')
+  // Unlocked again, the request comes back.
+  await approval.waitForSelector('[data-testid="approval-title"]')
   assert.equal(calls.filter((c) => c.method === 'session/login').length, logins)
   // Where the Secure Enclave keeps the key, the locked window asks for Touch
   // ID once when it comes to the front; declined, it stays locked without a

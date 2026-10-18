@@ -18,6 +18,8 @@ export const TOKEN_LEDGER_CANISTER_ID = 'druyg-tyaaa-aaaaq-aactq-cai' // ic & lo
 export const DMSG_LEDGER_CANISTER_ID = 'ocqzv-tyaaa-aaaar-qal4a-cai' // ic & local
 
 export const MESSAGE_CANISTER_ID = 'nscli-qiaaa-aaaaj-qa4pa-cai' // ic & local
+/** The dMsg handle registry, which lists the user homes that certify receipts. */
+export const DMSG_HANDLE_CANISTER_ID = 'wfxrt-2iaaa-aaaaj-qsjwa-cai' // ic
 export const MASTER_KEY_ID = IS_LOCAL ? 'ICPanda_Messages_Master_Key' : 'PANDA'
 
 export const ICPSWAP_TOKENS_CANISTER_ID = 'moe7a-tiaaa-aaaag-qclfq-cai'
