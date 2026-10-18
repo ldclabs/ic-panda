@@ -12,12 +12,33 @@ export class CallError extends Error {
   }
 }
 
+/** Bridge calls numbered as they start, and those under way: which work a click started, for its button. */
+let started = 0
+const running = new Set<number>()
+const settled = new Set<() => void>()
+
+export const startedCalls = () => started
+
+/** Whether a call started after `mark`, a count from `startedCalls`, is still under way. */
+export const runningSince = (mark: number) => [...running].some((id) => id > mark)
+
+/** Hear each bridge call end. Returns the unsubscribe. */
+export function onSettled(listener: () => void): () => void {
+  settled.add(listener)
+  return () => settled.delete(listener)
+}
+
 /** A bridge call other than `call`, such as a file dialog, with the daemon's error code split off. */
 export async function bridge<T = any>(work: () => Promise<unknown>): Promise<T> {
+  const id = ++started
+  running.add(id)
   try {
     return (await work()) as T
   } catch (error) {
     throw new CallError(error instanceof Error ? error.message : String(error))
+  } finally {
+    running.delete(id)
+    for (const listener of settled) listener()
   }
 }
 

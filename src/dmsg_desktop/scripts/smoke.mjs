@@ -675,6 +675,8 @@ const announced = {
   'grants/add': ['agent/changed'],
   'ap/call': ['agent/changed']
 }
+/** Methods whose next reply waits for the test (`hold`), to see a click's work under way. */
+const held = new Map()
 const server = createServer((_req, res) => res.writeHead(404).end())
 const wss = new WebSocketServer({ noServer: true })
 server.on('upgrade', (req, socket, head) => {
@@ -697,8 +699,12 @@ server.on('upgrade', (req, socket, head) => {
         // A handler throws `{code, message}` for a daemon error.
         reply = { jsonrpc: '2.0', id: message.id, error: { code: -32000, message: failure.message, data: { code: failure.code } } }
       }
-      if (handler && !reply.error) for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
-      ws.send(JSON.stringify(reply))
+      const send = () => {
+        if (handler && !reply.error) for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
+        ws.send(JSON.stringify(reply))
+      }
+      if (held.has(message.method)) held.set(message.method, send)
+      else send()
     })
     ws.on('close', () => (sockets = sockets.filter((s) => s !== ws)))
   })
@@ -706,6 +712,16 @@ server.on('upgrade', (req, socket, head) => {
 async function waitFor(check) {
   for (let i = 0; i < 100 && !check(); i++) await new Promise((r) => setTimeout(r, 100))
   assert.ok(check())
+}
+/** Hold `method`'s next reply; the returned function sends it once it arrived. */
+function hold(method) {
+  held.set(method, null)
+  return async () => {
+    await waitFor(() => held.get(method))
+    const send = held.get(method)
+    held.delete(method)
+    send()
+  }
 }
 /** Picks an option of a dropdown menu (`components/Select.svelte`, the language menu) by its value. */
 async function choose(page, testid, value) {
@@ -1079,7 +1095,12 @@ try {
   await main.fill('[data-testid="vault-new-secret"]', 'new-secret')
   await settled(main, '[data-testid="vault-new-dialog"]')
   await main.screenshot({ path: join(shots, 'vault-new.png') })
+  // The button clicked turns a ring while its call is under way.
+  const release = hold('vault/put')
   await main.click('[data-testid="vault-add"]')
+  await main.waitForSelector('[data-testid="vault-add"][data-pending]')
+  await main.locator('[data-testid="vault-new-dialog"]').screenshot({ path: join(shots, 'vault-new-pending.png') })
+  await release()
   await waitFor(() => latest('vault/put'))
   assert.equal(latest('vault/put').params.item.type, 'login')
   assert.equal(latest('vault/put').params.item.secret, 'new-secret')

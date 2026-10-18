@@ -14,7 +14,7 @@
   import Select from '../components/Select.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { call, errorText, onChange, single, when } from '../rpc'
+  import { bridge, call, errorText, onChange, single, when } from '../rpc'
 
   /**
    * Legacy migration: a one-time offer opens the old site in the system
@@ -80,14 +80,14 @@
   const pair = () =>
     attempt(async () => {
       offer = await call('legacy/pair', { origin })
-      await window.dmsg.openLegacy(offer.link)
+      await bridge(() => window.dmsg.openLegacy(offer.link))
       selected = offer.nonce
       confirmed = false
     })
 
   const importFile = () =>
     attempt(async () => {
-      const result = await window.dmsg.legacyImport(pairing.nonce, pairing.fingerprint, principal.trim())
+      const result = await bridge(() => window.dmsg.legacyImport(pairing.nonce, pairing.fingerprint, principal.trim()))
       if (!result) return
       report = result
       limit = 100
@@ -107,13 +107,13 @@
 
   const frozen = () =>
     attempt(async () => {
-      const result = await window.dmsg.legacyFrozen(report.id)
+      const result = await bridge(() => window.dmsg.legacyFrozen(report.id))
       if (result) report = await call('legacy/report', { id: report.id, limit })
     })
 
   const saveFile = (file: any) =>
     attempt(async () => {
-      await window.dmsg.legacyFile(report.id, file.source, file.name)
+      await bridge(() => window.dmsg.legacyFile(report.id, file.source, file.name))
     })
 
   const cancel = (nonce: string) =>

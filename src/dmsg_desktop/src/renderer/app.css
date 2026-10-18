@@ -260,6 +260,35 @@
     background-position: 0 0;
   }
 }
+/* A button whose click started work still under way (components/pending.ts): a ring turns over its hidden label; it stands still under reduced motion. */
+button[data-pending] {
+  cursor: progress;
+  opacity: 1;
+  -webkit-text-fill-color: transparent;
+}
+button[data-pending='static'] {
+  position: relative;
+}
+button[data-pending] * {
+  visibility: hidden;
+}
+button[data-pending]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 1.15em;
+  height: 1.15em;
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 9999px;
+  animation: pending-spin 0.7s linear infinite;
+}
+@keyframes pending-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   /* Menus, dialogs and notices appear without sliding or zooming. */
   *,

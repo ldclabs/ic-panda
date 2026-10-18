@@ -176,8 +176,9 @@ site's tokens (`src/dmsg_frontend/src/lib/legacy/ui`).
   the signing policy, the recovery delay and binding or removing a login
   are approved by holding the button for a second.
 - **R6 Motion only shows cause and effect.** What pops springs, what arrives
-  eases in, work under way shimmers. Buttons do not move or blink, and
-  everything stops under reduced motion.
+  eases in, work under way shimmers. Buttons do not move or blink; one
+  whose click is still waiting turns a ring. Everything stops under
+  reduced motion.
 
 ## Colors
 
@@ -272,7 +273,9 @@ restyle a control by hand.
 
 - **Buttons** — `buttonClass(variant, size)` in `ui.ts`: `primary` (one per
   area), `secondary`, `ghost` (toolbars, icon buttons), `danger` (a
-  destructive step, outlined with Danger text).
+  destructive step, outlined with Danger text). A button its click disabled
+  turns a ring over its label while the bridge calls that click started run
+  (`pending.ts`, after 150 ms); views only disable it by their `busy` flag.
 - **Menus** — bits-ui DropdownMenu and ContextMenu with `menuContentClass`
   and `menuItemClass`; destructive items last, after a separator, in Danger.
   `Select` is a dropdown that checks the chosen option.

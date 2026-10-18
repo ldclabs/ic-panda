@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte'
   import { t, stateLabel, type Label } from '../i18n/index.svelte'
-  import { call, code, errorText, onChange, single, units, when } from '../rpc'
+  import { bridge, call, code, errorText, onChange, single, units, when } from '../rpc'
   import { holdToApprove, kindOf, trailOf } from '../approval'
   import Collapsible from '../components/Collapsible.svelte'
   import type { Glyph } from '../components/glyphs'
@@ -64,9 +64,9 @@
     busy = true
     error = ''
     try {
-      request = await window.dmsg.decide(request.id, request.digest, approve)
+      request = await bridge(() => window.dmsg.decide(request.id, request.digest, approve))
     } catch (e) {
-      error = e instanceof Error ? e.message : String(e)
+      error = `${code(e)}: ${e instanceof Error ? e.message : String(e)}`
       await load()
     } finally {
       busy = false
