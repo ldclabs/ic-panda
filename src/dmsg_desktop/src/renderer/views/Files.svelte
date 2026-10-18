@@ -214,13 +214,13 @@
   async function add(dropped?: File[], directory = false) {
     const folder = folderScope ? scope : ROOT
     try {
-      const results: any = await bridge(() => window.dmsg.filesAdd(folder, dropped, directory))
-      if (results) {
-        added(results, (n) => t('duplicateOf', { n }))
+      const result: any = await bridge(() => window.dmsg.filesAdd(folder, dropped, directory))
+      if (result) {
+        added(result.names, result.files, (n) => t('duplicateOf', { n }))
         // A single file opens once the list holds it.
-        if (results.length === 1 && results[0].file) {
+        if (result.files.length === 1 && result.files[0].file) {
           await reload()
-          selected = [results[0].file.id]
+          selected = [result.files[0].file.id]
         }
       }
     } catch (e) {
@@ -426,7 +426,7 @@
               <Tooltip content={t('addFiles')}>
                 {#snippet children(props)}
                   <button {...props} class={buttonClass('primary', 'md', 'size-8 px-0')} aria-label={t('addFiles')} onclick={() => add()} data-testid="files-add">
-                    <Icon name="upload" />
+                    <Icon name="add" />
                   </button>
                 {/snippet}
               </Tooltip>
@@ -532,7 +532,7 @@
   {#if dragging}
     <div class="pointer-events-none absolute inset-2 z-20 grid place-items-center rounded-2xl border-2 border-dashed border-forest/60 bg-pale/85 text-forest backdrop-blur-[1px] animate-in fade-in-0">
       <div class="grid justify-items-center gap-2">
-        <Icon name="upload" class="size-7" />
+        <Icon name="add" class="size-7" />
         <b class="text-[14px] font-semibold">{t('dropToAdd')}</b>
         <span class="text-[12px] text-muted">{t('dropFilesDetail')}</span>
       </div>

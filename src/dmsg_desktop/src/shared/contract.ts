@@ -61,7 +61,8 @@ export interface DesktopBridge {
   /**
    * Add files to the library's `folder`: those the person dropped on the
    * window, else the ones they pick in a system dialog (files, or with
-   * `directory` one folder); null when cancelled. A `files/adding` event
+   * `directory` one folder): `{names, files}`, what was picked and the
+   * daemon's imported files, or null when cancelled. A `files/adding` event
    * names what was picked before the import starts.
    */
   filesAdd(folder: string, dropped?: File[], directory?: boolean): Promise<unknown>

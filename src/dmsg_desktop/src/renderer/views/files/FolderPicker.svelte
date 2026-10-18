@@ -75,8 +75,9 @@
     <button
       class={buttonClass('primary')}
       onclick={() => {
-        open = false
+        // Before closing: closing lets go of what the dialog acts on.
         onPick(picked)
+        open = false
       }}
       data-testid="files-folder-pick"
     >

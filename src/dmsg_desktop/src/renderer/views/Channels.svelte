@@ -158,8 +158,8 @@
   /** A new file enters the library through the system dialog, then goes with the next message. */
   const importFile = () =>
     attempt(async () => {
-      const results: any[] | null = await bridge(() => window.dmsg.filesAdd('root'))
-      const file = results?.[0]?.file
+      const added: any = await bridge(() => window.dmsg.filesAdd('root'))
+      const file = added?.files[0]?.file
       if (file) attached[channel.id] = { id: file.id, name: file.name }
     })
 

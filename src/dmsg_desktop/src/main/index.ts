@@ -265,7 +265,8 @@ handle('dmsg:open-login', 'main', async (_event, url: string) => {
  * Files reach the daemon only by paths the person picked in a system dialog
  * or dropped on the window: the preload resolves a dropped file to its path,
  * which a window cannot name. The window hears the names before the import
- * starts, for its progress; the daemon's `files/progress` events follow.
+ * starts, for its progress; the daemon's `files/progress` events follow. The
+ * answer names them again, since a folder's files carry their own names.
  */
 handle('dmsg:files-add', 'main', async (event, folder: string, dropped: string[] | null, directory: boolean) => {
   let paths = Array.isArray(dropped) ? dropped.filter((p): p is string => typeof p === 'string' && !!p) : []
@@ -277,8 +278,9 @@ handle('dmsg:files-add', 'main', async (event, folder: string, dropped: string[]
     if (picked.canceled || !picked.filePaths.length) return null
     paths = picked.filePaths
   }
-  event.sender.send('dmsg:event', { type: 'files/adding', data: { names: paths.map((p) => basename(p)) } })
-  return daemon.call('files/import', { paths, folder: String(folder || 'root') })
+  const names = paths.map((p) => basename(p))
+  event.sender.send('dmsg:event', { type: 'files/adding', data: { names } })
+  return { names, files: await daemon.call('files/import', { paths, folder: String(folder || 'root') }) }
 })
 handle('dmsg:files-export', 'main', async (_event, id: string, version: string | null, name: string) => {
   const path = await pickSave({ defaultPath: basename(String(name)) })

@@ -29,6 +29,7 @@
 // Run with `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
+import { readdirSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -135,6 +136,8 @@ const libraryFile = (id, name, size, status = 'local') => ({
 })
 const library = [libraryFile('23'.repeat(32), 'report.pdf', 1234, 'backed_up')]
 const libraryTrash = []
+/** The library's folders, as `files/tree` lists them; an imported folder joins them. */
+const libraryFolders = []
 /** Backups under way, as `files/backup_status` lists them. */
 const backupJobs = []
 const version = (file) => ({ id: file.current, size: file.size, sha256: file.sha256, created_at: file.created_at, device: '11'.repeat(32), origin: { type: 'imported' }, local: true, backup: file.backup, current: true, status: file.status })
@@ -288,8 +291,8 @@ const methods = {
     trash.push({ ...entry, deleted: true })
     return entry
   },
-  'files/tree': () => [],
-  'files/list': (p) => (p?.trash ? { folder: null, folders: [], files: libraryTrash } : { folder: null, folders: [], files: library }),
+  'files/tree': () => libraryFolders,
+  'files/list': (p) => (p?.trash ? { folder: null, folders: [], files: libraryTrash } : { folder: null, folders: libraryFolders, files: library }),
   'files/search': () => library,
   'files/show': (p) => {
     const file = library.find((f) => f.id === p.id) ?? libraryTrash.find((f) => f.id === p.id)
@@ -297,11 +300,20 @@ const methods = {
   },
   'files/import': (p) => {
     assert.equal(p.folder, 'root')
-    return p.paths.map((path) => {
-      const file = libraryFile('26'.repeat(32), basename(path), 4096)
+    // A folder becomes a folder of the library holding its files, which the answer lists by their own names.
+    return p.paths.flatMap((path) => {
+      if (!statSync(path).isDirectory()) return [libraryFile('26'.repeat(32), basename(path), 4096)]
+      const folder = { id: '29'.repeat(32), parent: 'root', name: basename(path), path: [], created_at: Date.now(), updated_at: Date.now() }
+      libraryFolders.push(folder)
+      return readdirSync(path).map((name, i) => ({ ...libraryFile(`3${i}`.repeat(32), name, 64), folder: folder.id, path: [folder.name] }))
+    }).map((file) => {
       library.push(file)
       return { file, version: 'v1', resumed: false, duplicate_of: [] }
     })
+  },
+  'files/move': (p) => {
+    for (const file of library) if (p.ids.includes(file.id)) file.folder = p.folder
+    return { moved: p.ids.length }
   },
   'files/preview': () => ({ kind: 'none', mime: 'application/pdf', size: 1234, content_base64url: null, thumbnail: false }),
   'files/update': (p) => {
@@ -639,6 +651,7 @@ const announced = {
   'vault/resolve': ['vault/changed'],
   'sync/run': ['sync/changed', 'vault/changed'],
   'files/import': ['files/changed'],
+  'files/move': ['files/changed'],
   'files/update': ['files/changed'],
   'files/trash': ['files/changed'],
   'files/save_shared': ['files/changed'],
@@ -729,6 +742,9 @@ await mkdir(picks, { recursive: true })
 await writeFile(join(picks, 'action.cbor'), 'prepared action')
 await writeFile(join(picks, 'bundle.json'), JSON.stringify({ format: 'dmsg-attestation/1' }))
 await writeFile(join(picks, 'release.tar'), 'release bytes')
+await mkdir(join(picks, 'develop'))
+await writeFile(join(picks, 'develop', 'deploy.pem'), 'pem bytes')
+await writeFile(join(picks, 'develop', 'notes.txt'), 'notes')
 await app.evaluate(({ dialog, clipboard, Notification, shell }) => {
   Object.assign(globalThis, { __open: [], __save: [], __clip: '', __notes: [], __opened: [] })
   shell.openExternal = async (url) => void globalThis.__opened.push(url)
@@ -1122,6 +1138,19 @@ try {
   await main.click('[data-testid="files-scope-trash"]')
   await main.waitForSelector('[data-testid="files-trash"] >> text=release.tar')
   await main.click('[data-testid="files-scope-root"]')
+  // A picked folder's card ends with the import, though its files carry
+  // their own names; a row's menu then moves a file into that folder.
+  await answer('__open', join(picks, 'develop'))
+  await main.click('[data-testid="files-add-folder"]')
+  await main.waitForSelector('[data-testid="files-job"][data-stage="done"] >> text=develop')
+  assert.deepEqual(latest('files/import').params, { paths: [join(picks, 'develop')], folder: 'root' })
+  await main.waitForSelector('[data-testid="files-list"] >> text=deploy.pem')
+  await main.click('[data-testid="files-list"] >> text=report.pdf', { button: 'right' })
+  await main.click('[data-testid="files-row-menu"] >> text=/Move to…/')
+  await main.click('[data-testid="files-folder-dialog"] >> text=develop')
+  await main.click('[data-testid="files-folder-pick"]')
+  await waitFor(() => latest('files/move'))
+  assert.deepEqual(latest('files/move').params, { ids: ['23'.repeat(32)], folder: '29'.repeat(32) })
   await main.click('nav >> text=/^(Vault|秘密库)$/')
 
   // Signatures: an application action and attestation bundles enter and

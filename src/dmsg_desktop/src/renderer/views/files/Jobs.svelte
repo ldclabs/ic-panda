@@ -9,7 +9,7 @@
 
   const label = (job: Job) => (job.kind === 'add' ? job.name : names[job.name] ?? job.name)
   const verb = (job: Job) => (job.kind === 'add' ? t('adding') : job.kind === 'backup' ? t('statusBackingUp') : job.kind === 'fetch' ? t('fetchFile') : t('verifying'))
-  const icon = (job: Job) => (job.kind === 'add' ? 'upload' : job.kind === 'backup' ? 'cloud-up' : job.kind === 'fetch' ? 'cloud-down' : 'verified')
+  const icon = (job: Job) => (job.kind === 'add' ? 'add' : job.kind === 'backup' ? 'cloud-up' : job.kind === 'fetch' ? 'cloud-down' : 'verified')
 </script>
 
 {#if jobs.length}

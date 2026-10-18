@@ -72,8 +72,12 @@ export function progress(data: { job?: string; path?: string; done?: number; tot
   if (job.total > 0 && job.done >= job.total) settle(job, 'done')
 }
 
-/** The daemon answered an import: each file added, with how many files already hold its bytes. */
-export function added(results: { file?: { name?: string }; duplicate_of?: string[] }[], duplicateNote: (n: number) => string) {
+/**
+ * The daemon answered an import of what the person picked (`names`): each
+ * file added, with how many files already hold its bytes. A picked folder's
+ * files carry their own names, so its card ends with the answer.
+ */
+export function added(names: string[], results: { file?: { name?: string }; duplicate_of?: string[] }[], duplicateNote: (n: number) => string) {
   for (const result of results) {
     const name = result.file?.name ?? ''
     // Its last chunk may have ended the card already.
@@ -83,8 +87,7 @@ export function added(results: { file?: { name?: string }; duplicate_of?: string
     job.note = result.duplicate_of?.length ? duplicateNote(result.duplicate_of.length) : undefined
     settle(job, 'done')
   }
-  // Names the main process announced that the daemon did not add (a folder's children carry their own names).
-  for (const job of jobs) if (job.kind === 'add' && job.stage === 'running' && job.total === 0 && !results.length) settle(job, 'done')
+  for (const job of jobs) if (job.kind === 'add' && job.stage === 'running' && names.includes(job.name)) settle(job, 'done')
 }
 
 /** An import failed: every file still running is marked with the code. */
