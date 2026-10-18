@@ -6,8 +6,10 @@
 use crate::daemon::Daemon;
 use crate::params::{absolute, account, number, optional, parse, source, text, to_json};
 use dmsg_client::{
+    Client,
     channel::{Invitation, OwnerTransfer, Sponsor},
     channel_log::{Action, ChannelType, Role},
+    cloud::found,
     inbox::PolicyInput,
 };
 use dmsg_types::{Error, Result, integration::SettlementMethod};
@@ -83,6 +85,28 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
 impl Daemon {
     /// Run one of [`METHODS`].
     pub(crate) async fn call_more(&self, method: &str, params: &Value) -> Result<Value> {
+        // Relay reads signed under the client wait for the network without it.
+        match method {
+            "inbox/policy" => {
+                let (relay, request) = self.signed(Client::inbox_policy_request).await?;
+                return Ok(found(relay.send(&request).await)?.unwrap_or(Value::Null));
+            }
+            "inbox/list" => {
+                let mut letters = std::collections::BTreeMap::new();
+                let mut after = 0;
+                for _ in 0..dmsg_client::inbox::INBOX_PAGES {
+                    let (relay, request) = self.signed(|c| c.inbox_page_request(after)).await?;
+                    let page = relay.send(&request).await?;
+                    let mut client = self.client().lock().await;
+                    match client.inbox_page_settle(after, &page, &mut letters).await? {
+                        Some(next) => after = next,
+                        None => return Ok(to_json(&letters.into_values().collect::<Vec<_>>())),
+                    }
+                }
+                return Err(Error::QuotaExceeded);
+            }
+            _ => {}
+        }
         let mut client = self.client().lock().await;
         let id = || text(params, "id");
         match method {
@@ -208,10 +232,6 @@ impl Daemon {
             "channel/reactivate" => Ok(to_json(&client.channel_reactivate(&id()?).await?)),
             "channel/pending" => Ok(Value::Array(client.channel_pending(&id()?)?)),
             "channel/resume" => client.channel_resume(&id()?, &text(params, "key")?).await,
-            "inbox/policy" => client
-                .inbox_policy()
-                .await
-                .map(|p| p.unwrap_or(Value::Null)),
             "inbox/configure" => {
                 let input: PolicyInput = serde_json::from_value(params.clone())
                     .map_err(|e| Error::InvalidInput(format!("policy: {e}")))?;
@@ -245,7 +265,6 @@ impl Daemon {
             }
             "inbox/escrow" => client.inbox_escrow(&text(params, "order")?).await,
             "inbox/refund" => client.inbox_refund(&text(params, "order")?).await,
-            "inbox/list" => Ok(to_json(&client.inbox_list().await?)),
             "inbox/mark" => {
                 client
                     .inbox_mark(

@@ -47,8 +47,10 @@ use axum::{
 use base64::Engine;
 use dmsg_client::{
     Client,
-    account::login_targets,
+    account::{Security, login_targets},
     attest::{Bundle, StatementInput},
+    client::Warm,
+    cloud::{Cloud, found},
     error_code,
     library::{Check, VersionCheck, blobs::Blobs},
     login::{DEFAULT_TTL_MS, LoginSession},
@@ -411,20 +413,21 @@ async fn background(daemon: Arc<Daemon>) {
         }
         drop(client);
         daemon.check_mount().await;
-        let mut client = daemon.client.lock().await;
         let interval = daemon.settings.sync_interval_ms;
         let unlocked = session.state == "unlocked";
         let ready = unlocked || session.resident;
+        // The relay is waited on without holding the client where the work
+        // allows it, so that the windows' reads go on meanwhile.
         if interval > 0 && now >= synced + interval && ready {
             synced = now;
             // Recorded in the status; a failure waits for the next round.
-            let synced = client.sync().await;
+            let synced = daemon.client.lock().await.sync().await;
             daemon.note("sync", &outcome(&synced));
             if synced.is_ok() {
                 daemon.emit("sync/changed", Value::Null);
             }
         } else {
-            let flushed = client.flush().await;
+            let flushed = daemon.flush_pass().await;
             daemon.note("flush", &outcome(&flushed));
             if let Ok(settled @ 1..) = flushed {
                 crate::logs::write("flush", &[("settled", &settled)]);
@@ -432,7 +435,7 @@ async fn background(daemon: Arc<Daemon>) {
         }
         if ready && now >= polled + CONNECT_POLL_MS {
             polled = now;
-            let report = client.connect_sync().await;
+            let report = daemon.connect_pass().await;
             daemon.note("connect", &outcome(&report));
             if let Ok(report) = report {
                 if report.fetched > 0 {
@@ -444,6 +447,7 @@ async fn background(daemon: Arc<Daemon>) {
             }
             // Only news is announced: windows reload on this event.
             if unlocked {
+                let mut client = daemon.client.lock().await;
                 let reconciled = client.approvals_reconcile().await.unwrap_or(0);
                 let count = client.approvals_waiting().unwrap_or(waiting);
                 if reconciled > 0 || count != waiting {
@@ -452,6 +456,7 @@ async fn background(daemon: Arc<Daemon>) {
                 waiting = count;
             }
         }
+        let mut client = daemon.client.lock().await;
         // Backups a person asked for keep moving while the device key is
         // there, locked or not, a slice per pass; nothing here starts one.
         if ready && client.library_jobs_running().unwrap_or(false) {
@@ -629,6 +634,65 @@ impl Daemon {
     /// The client, to share with a task that outlives a call.
     pub(crate) fn client_handle(&self) -> Arc<Mutex<Client>> {
         self.client.clone()
+    }
+
+    /// Bring the client's certified security to what `warm` asks for, and
+    /// read the user homes, waiting on the network without holding the
+    /// client, which every other request needs meanwhile. Returns the
+    /// security the relay holds, or the user home's answer.
+    pub(crate) async fn warm(&self, warm: Warm) -> Result<Option<Security>> {
+        let Some(warmup) = self.client.lock().await.warmup(warm)? else {
+            return Ok(None);
+        };
+        let warmed = Box::pin(warmup.run()).await?;
+        self.client.lock().await.warmed(warmed)
+    }
+
+    /// [`Client::flush`], each submission sent without holding the client.
+    async fn flush_pass(&self) -> Result<usize> {
+        let (relay, due) = {
+            let client = self.client.lock().await;
+            (client.relay(), client.flush_due()?)
+        };
+        let mut settled = 0;
+        for (key, dispatch) in due {
+            let sent = relay.submit(&dispatch, now_ms()).await;
+            let client = self.client.lock().await;
+            settled += usize::from(client.flush_settle(&key, &dispatch, sent)?);
+        }
+        Ok(settled)
+    }
+
+    /// [`Client::connect_sync`], the mailbox read without holding the client.
+    pub(crate) async fn connect_pass(&self) -> Result<dmsg_client::connect::ConnectReport> {
+        let mut fetched = 0;
+        loop {
+            let (relay, (request, after)) = self.signed(Client::connect_fetch_request).await?;
+            let page = relay.send(&request).await?;
+            match self.client.lock().await.connect_fetch_store(after, &page)? {
+                0 => break,
+                count => fetched += count,
+            }
+        }
+        self.client.lock().await.connect_entries(fetched).await
+    }
+
+    /// What `prepare` signs under the client, with the relay client to send
+    /// it without holding the client. The relay's evidence is made fresh
+    /// first, and again when it went stale while the request waited.
+    pub(crate) async fn signed<T>(
+        &self,
+        prepare: impl Fn(&Client) -> Result<T>,
+    ) -> Result<(Cloud, T)> {
+        let mut stale = false;
+        loop {
+            self.warm(Warm::Relay).await?;
+            let client = self.client.lock().await;
+            match prepare(&client) {
+                Err(Error::PolicyStale) if !stale => stale = true,
+                prepared => return prepared.map(|p| (client.relay(), p)),
+            }
+        }
     }
 
     /// The loopback port.
@@ -819,7 +883,8 @@ impl Daemon {
                 Ok(json!({"account": account.id.to_string(), "root_generation": generation}))
             }
             "account/show" => {
-                let view = self.client.lock().await.account_view().await?;
+                let state = self.warm(Warm::Home).await?.ok_or(Error::PolicyStale)?;
+                let view = self.client.lock().await.account_view_of(&state)?;
                 Ok(to_json(&view))
             }
             "device/pair_request" => {
@@ -924,7 +989,9 @@ impl Daemon {
                 }))
             }
             "profile/show" => {
-                let profile = self.client.lock().await.profile().await?;
+                let (relay, request) = self.signed(Client::profile_request).await?;
+                let value = found(relay.send(&request).await)?;
+                let profile = self.client.lock().await.profile_settle(value).await?;
                 Ok(to_json(&profile))
             }
             "profile/publish" => {
@@ -965,12 +1032,11 @@ impl Daemon {
             }
             "profile/avatar_image" => {
                 let account = account(params, "account")?;
-                let image = self
-                    .client
-                    .lock()
-                    .await
-                    .avatar(&account, &text(params, "upload")?)
-                    .await?;
+                let upload = text(params, "upload")?;
+                // A public download, which may take the relay's 30 seconds:
+                // every other request would wait behind it under the client.
+                let relay = self.client.lock().await.relay();
+                let image = dmsg_client::profile::avatar(&relay, &account, &upload).await?;
                 // A data URL the desktop shows without fetching anything.
                 Ok(image.map_or(Value::Null, |(mime, bytes)| {
                     let data = base64::engine::general_purpose::STANDARD.encode(bytes);
@@ -1142,7 +1208,15 @@ impl Daemon {
                     .connect_grant(&text(params, "invite")?, &text(params, "pairing")?)
                     .await
             }
-            "connect/pairings" => self.client.lock().await.connect_pairings().await,
+            "connect/pairings" => {
+                let (relay, request) = self.signed(Client::connect_pairings_request).await?;
+                let data = relay.send(&request).await?;
+                self.client
+                    .lock()
+                    .await
+                    .connect_pairings_settle(&data)
+                    .await
+            }
             "connect/revoke" => {
                 self.client
                     .lock()
@@ -1151,7 +1225,7 @@ impl Daemon {
                     .await
             }
             "connect/sync" => {
-                let report = to_json(&self.client.lock().await.connect_sync().await?);
+                let report = to_json(&self.connect_pass().await?);
                 *self.last_connect.lock().expect("connect report") = Some(report.clone());
                 Ok(report)
             }
@@ -1764,6 +1838,91 @@ mod tests {
             ),
             (&json!(false), &json!(false), &json!("unlocked"))
         );
+    }
+
+    /// A daemon whose relay and user homes take connections and never
+    /// answer, with their listeners; its client holds fresh relay state, so
+    /// its relay requests sign at once.
+    async fn stalled(
+        dir: &dmsg_client::testing::TempDir,
+    ) -> (
+        Arc<Daemon>,
+        tokio::net::TcpListener,
+        tokio::net::TcpListener,
+    ) {
+        let home = Home {
+            dir: dir.0.join("home"),
+        };
+        let relay = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let ic = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let mut client = dmsg_client::testing::unlocked(&dir.0.join("workspace"), false, None);
+        let origin = |l: &tokio::net::TcpListener| format!("http://{}", l.local_addr().unwrap());
+        dmsg_client::testing::relay_to(&mut client, &origin(&relay));
+        dmsg_client::testing::ic_to(&mut client, &origin(&ic));
+        dmsg_client::testing::warm(&mut client);
+        let daemon = Arc::new(Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        ));
+        (daemon, relay, ic)
+    }
+
+    /// The library answers while `work` waits on `server`, which took its
+    /// connection and never answers.
+    async fn answers_beside<T>(
+        daemon: &Daemon,
+        server: &tokio::net::TcpListener,
+        work: tokio::task::JoinHandle<T>,
+    ) {
+        let (_stalled, _) = server.accept().await.unwrap();
+        tokio::time::timeout(
+            Duration::from_secs(5),
+            daemon.call_files("files/tree", &Value::Null),
+        )
+        .await
+        .expect("an answer while the network is waited on")
+        .unwrap();
+        work.abort();
+    }
+
+    #[tokio::test]
+    async fn the_library_answers_while_the_network_is_waited_on() {
+        let account = dmsg_client::testing::account().id.to_string();
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, relay, ic) = stalled(&dir).await;
+        // A public avatar download.
+        let params = json!({"account": account, "upload": "ab".repeat(32)});
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.call_daemon("profile/avatar_image", &params).await }
+        });
+        answers_beside(&daemon, &relay, work).await;
+        // A signed relay read, the profile the shell shows on every unlock.
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.call_daemon("profile/show", &Value::Null).await }
+        });
+        answers_beside(&daemon, &relay, work).await;
+        // The background pass reading the dmsg-connect mailbox.
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.connect_pass().await }
+        });
+        answers_beside(&daemon, &relay, work).await;
+        // The user home's certified security, for the account's page.
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.call_daemon("account/show", &Value::Null).await }
+        });
+        answers_beside(&daemon, &ic, work).await;
     }
 
     #[tokio::test]

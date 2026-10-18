@@ -253,6 +253,31 @@ pub struct HandleConfig {
     pub ledger_fee: u128,
 }
 
+/// The account's certified security as its user home answers now, read
+/// with the public queries and verified, without a client.
+///
+/// # Errors
+/// As [`verify_security`].
+pub(crate) async fn fetch_security(
+    ic: &Ic,
+    home: Principal,
+    account: &AccountId,
+) -> Result<Security> {
+    let (batch, bundle) = Box::pin(join(
+        security_batch(ic, home, account),
+        device_bundle(ic, home, account),
+    ))
+    .await;
+    verify_security(
+        home,
+        account,
+        &batch??,
+        bundle??.1,
+        &ic.root_key(),
+        now_ms(),
+    )
+}
+
 /// The handle registry's user homes, checked against the configured pins.
 ///
 /// # Errors
@@ -400,6 +425,20 @@ impl Client {
     pub async fn account_view(&mut self) -> Result<AccountView> {
         let account = self.account()?.clone();
         let state = self.refresh_security(account.home, &account.id).await?;
+        self.account_view_of(&state)
+    }
+
+    /// [`Self::account_view`] of certified state already fetched, such as by
+    /// a refreshing [`Self::warmup`] that ran without the client.
+    ///
+    /// # Errors
+    /// Returns `Error::RecoveryIncomplete` before the device has an account.
+    pub fn account_view_of(&self, state: &Security) -> Result<AccountView> {
+        let account = self.account()?.clone();
+        ensure(
+            state.snapshot.account_id == account.id,
+            Error::Unavailable("the account changed".into()),
+        )?;
         let devices = state
             .devices
             .iter()
@@ -484,25 +523,13 @@ impl Client {
         account: &AccountId,
     ) -> Result<Security> {
         let ic = self.reader().await?;
-        let (batch, bundle) = Box::pin(join(
-            security_batch(&ic, home, account),
-            device_bundle(&ic, home, account),
-        ))
-        .await;
-        let security = verify_security(
-            home,
-            account,
-            &batch??,
-            bundle??.1,
-            &ic.root_key(),
-            now_ms(),
-        )?;
+        let security = fetch_security(&ic, home, account).await?;
         self.observe(account, &security)?;
         Ok(security)
     }
 
     /// Check this device's keys and the high-water mark, then keep `security`.
-    fn observe(&mut self, account: &AccountId, security: &Security) -> Result<()> {
+    pub(crate) fn observe(&mut self, account: &AccountId, security: &Security) -> Result<()> {
         if let Some(own) = security.device(&self.workspace.meta.device_id) {
             ensure(
                 own.input.signing_pub == self.workspace.meta.signing_pub

@@ -22,7 +22,7 @@
 //! versions keep moving while nothing can be read.
 
 use crate::account::{Security, device_bundle, verify_security};
-use crate::cloud::{Cloud, Evidence, EvidenceEntry, Signer};
+use crate::cloud::{Cloud, Evidence, EvidenceEntry, Prepared, Signer};
 use crate::codec::{MAX_RECORD, canonical, decode};
 use crate::config::{Config, environment_name};
 use crate::content::VAULT;
@@ -215,10 +215,11 @@ pub struct Client {
     resident: Option<Zeroizing<Key>>,
     pub(crate) root: Option<RootKeys>,
     pub(crate) security: Option<Security>,
-    published: Option<u64>,
+    /// When the security the relay holds was certified.
+    pub(crate) published: Option<u64>,
     pub(crate) located: Option<(Principal, AccountId)>,
     /// The deployment's user homes, read once from the handle registry.
-    homes: Option<Vec<Principal>>,
+    pub(crate) homes: Option<Vec<Principal>>,
     /// The user home of each other account read so far.
     peers: BTreeMap<AccountId, Principal>,
     /// The payer loaded from a PEM file, until the device locks.
@@ -242,6 +243,130 @@ pub struct Client {
     /// Set from outside the client to stop the imports under way; checked
     /// only while one is given.
     pub(crate) import_cancel: Option<Arc<AtomicBool>>,
+}
+
+/// The network a client's relay requests wait on, taken under the client by
+/// [`Client::warmup`] and run without it; [`Client::warmed`] keeps what it
+/// brings back. It holds public state and agents, never a key.
+pub struct Warmup {
+    account: AccountId,
+    home: Principal,
+    device: Hash,
+    config: Config,
+    cloud: Cloud,
+    /// The login's agent or the anonymous one; `None` before there is one.
+    ic: Option<Ic>,
+    /// What the security needs: nothing, the home's answer, or fresh state
+    /// handed to the relay, starting from the state at hand, if any.
+    security: Option<Warm>,
+    state: Option<Security>,
+    /// Whether the user homes are still to be read.
+    homes: bool,
+}
+
+/// What a [`Client::warmup`] brings the certified security to.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Warm {
+    /// Fresh evidence the relay holds, for signed relay requests.
+    Relay,
+    /// The user home's answer now, for display; the relay is not involved.
+    Home,
+}
+
+/// What a [`Warmup`] brought back.
+pub struct Warmed {
+    account: AccountId,
+    /// What the user home answered.
+    fetched: Option<Security>,
+    /// The state handed to the relay, and whether the relay took it.
+    handed: Option<(Security, Result<()>)>,
+    homes: Option<Vec<Principal>>,
+    /// The anonymous agent made on the way.
+    anonymous: Option<Ic>,
+}
+
+impl Warmup {
+    /// Ask the user home, and for [`Warm::Relay`] hand the state to the
+    /// relay, which asks for a newer one when it holds newer; read the user
+    /// homes. A failed read of the homes leaves them to whoever needs them
+    /// next.
+    ///
+    /// # Errors
+    /// Errors of the user home's queries; the relay's refusal is kept in
+    /// [`Warmed`] for [`Client::warmed`].
+    pub async fn run(self) -> Result<Warmed> {
+        let mut warmed = Warmed {
+            account: self.account,
+            fetched: None,
+            handed: None,
+            homes: None,
+            anonymous: None,
+        };
+        let mut ic = self.ic;
+        if self.homes {
+            let ic = agent(&mut ic, &self.config, &mut warmed.anonymous).await?;
+            let read =
+                crate::account::user_homes(&ic, self.config.handle, &self.config.user_homes).await;
+            warmed.homes = read.ok().map(|config| config.user_homes);
+        }
+        match self.security {
+            None => return Ok(warmed),
+            Some(Warm::Home) => {
+                let ic = agent(&mut ic, &self.config, &mut warmed.anonymous).await?;
+                let state = crate::account::fetch_security(&ic, self.home, &self.account).await?;
+                warmed.fetched = Some(state);
+                return Ok(warmed);
+            }
+            Some(Warm::Relay) => {}
+        }
+        let mut cached = self.state;
+        let mut attempts = 0;
+        loop {
+            let state = match cached.take() {
+                Some(state) => state,
+                None => {
+                    let ic = agent(&mut ic, &self.config, &mut warmed.anonymous).await?;
+                    let state =
+                        crate::account::fetch_security(&ic, self.home, &self.account).await?;
+                    warmed.fetched = Some(state.clone());
+                    state
+                }
+            };
+            // The relay refuses a revoked device, which goes before asking.
+            if state
+                .device(&self.device)
+                .is_some_and(|d| d.revoked_at.is_some())
+            {
+                warmed.handed = Some((state, Err(Error::DeviceNotApproved)));
+                return Ok(warmed);
+            }
+            match self.cloud.publish_security(&state.evidence).await {
+                // Replicas may answer with an older, still valid certificate.
+                Err(Error::PolicyStale) if attempts < 2 => attempts += 1,
+                handed => {
+                    warmed.handed = Some((state, handed));
+                    return Ok(warmed);
+                }
+            }
+        }
+    }
+}
+
+/// The agent of a [`Warmup`], an anonymous one made the first time it is
+/// needed when there is none; `made` keeps that one for the client.
+async fn agent(ic: &mut Option<Ic>, config: &Config, made: &mut Option<Ic>) -> Result<Ic> {
+    if let Some(ic) = ic {
+        return Ok(ic.clone());
+    }
+    let anonymous = Ic::anonymous(config).await?;
+    *made = Some(anonymous.clone());
+    *ic = Some(anonymous.clone());
+    Ok(anonymous)
+}
+
+/// Whether `state` is the account's and has more than ten seconds left.
+fn fresh(state: &Security, account: &AccountId) -> bool {
+    state.snapshot.account_id == *account && state.expires_at() > now_ms() + 10_000
 }
 
 impl Client {
@@ -958,37 +1083,124 @@ impl Client {
     /// Returns `Error::DeviceNotApproved` for a revoked device, whose
     /// workspace is then erased.
     pub(crate) async fn cloud_state(&mut self) -> Result<Security> {
+        if let Some(state) = self.fresh_state() {
+            return Ok(state);
+        }
+        let warmup = self
+            .warmup_for(Warm::Relay, false)?
+            .ok_or(Error::PolicyStale)?;
+        let warmed = Box::pin(warmup.run()).await?;
+        self.warmed(warmed)?.ok_or(Error::PolicyStale)
+    }
+
+    /// The certified security the relay holds, while it is fresh enough to
+    /// sign requests with.
+    fn fresh_state(&self) -> Option<Security> {
+        let account = self.account().ok()?;
+        let state = self.security.as_ref()?;
+        (self.published == Some(state.certified_at) && fresh(state, &account.id))
+            .then(|| state.clone())
+    }
+
+    /// What this client's requests wait on the network for, to run without
+    /// holding the client: the certified security `warm` asks for, and the
+    /// user homes. `None` when nothing is due.
+    ///
+    /// # Errors
+    /// Returns `Error::RecoveryIncomplete` before the device has an account.
+    pub fn warmup(&self, warm: Warm) -> Result<Option<Warmup>> {
+        self.warmup_for(warm, true)
+    }
+
+    fn warmup_for(&self, warm: Warm, homes: bool) -> Result<Option<Warmup>> {
         let account = self.account()?.clone();
-        let fresh = |state: &Security| {
-            state.snapshot.account_id == account.id && state.expires_at() > now_ms() + 10_000
+        let security = match warm {
+            Warm::Relay if self.fresh_state().is_some() => None,
+            warm => Some(warm),
         };
-        if let (Some(state), Some(at)) = (&self.security, self.published)
-            && state.certified_at == at
-            && fresh(state)
-        {
-            return Ok(state.clone());
+        let homes = homes && self.homes.is_none();
+        if security.is_none() && !homes {
+            return Ok(None);
         }
-        // State this device just read, such as on unlock, is handed over as
-        // it is; the relay asks for newer when it has seen newer.
-        let mut cached = self.security.clone().filter(|s| fresh(s));
-        let mut attempts = 0;
-        loop {
-            let state = match cached.take() {
-                Some(state) => state,
-                None => self.refresh_security(account.home, &account.id).await?,
-            };
-            // The relay refuses a revoked device; erase it here first.
-            self.check_revoked(&state)?;
-            match self.cloud.publish_security(&state.evidence).await {
-                Ok(()) => {
-                    self.published = Some(state.certified_at);
-                    return Ok(state);
-                }
-                // Replicas may answer with an older, still valid certificate.
-                Err(Error::PolicyStale) if attempts < 2 => attempts += 1,
-                Err(error) => return Err(error),
-            }
+        Ok(Some(Warmup {
+            home: account.home,
+            device: self.workspace.meta.device_id,
+            config: self.config.clone(),
+            cloud: self.cloud.clone(),
+            ic: match self.session() {
+                Ok(login) => Some(login.ic.clone()),
+                Err(_) => self.anonymous.clone(),
+            },
+            // State this device just read, such as on unlock, is handed over
+            // as it is; the relay asks for newer when it has seen newer.
+            state: match security {
+                Some(Warm::Relay) => self.security.clone().filter(|s| fresh(s, &account.id)),
+                _ => None,
+            },
+            account: account.id,
+            security,
+            homes,
+        }))
+    }
+
+    /// Keep what a [`Warmup`] brought back, unless the account changed while
+    /// it ran; returns the security the relay now holds, or the home's
+    /// answer when the relay was not involved.
+    ///
+    /// # Errors
+    /// Returns `Error::DeviceNotApproved` for a revoked device, whose
+    /// workspace is then erased, and the relay's refusal of the evidence.
+    pub fn warmed(&mut self, warmed: Warmed) -> Result<Option<Security>> {
+        ensure(
+            self.account()?.id == warmed.account,
+            Error::Unavailable("the account changed".into()),
+        )?;
+        if let Some(ic) = warmed.anonymous {
+            self.anonymous.get_or_insert(ic);
         }
+        if let Some(homes) = warmed.homes {
+            self.homes = Some(homes);
+        }
+        if let Some(state) = &warmed.fetched {
+            self.observe(&warmed.account, state)?;
+        }
+        let Some((state, handed)) = warmed.handed else {
+            return Ok(warmed.fetched);
+        };
+        // The relay refuses a revoked device; the workspace is erased here.
+        self.check_revoked(&state)?;
+        handed?;
+        self.published = Some(state.certified_at);
+        Ok(Some(state))
+    }
+
+    /// A device-authenticated GET signed now, for the caller to send without
+    /// the client; `Error::PolicyStale` until a [`Self::warmup`] made the
+    /// relay's evidence fresh.
+    pub(crate) fn signed_get(&self, path: &str) -> Result<Prepared> {
+        let state = self.fresh_state().ok_or(Error::PolicyStale)?;
+        self.cloud
+            .prepare_get(&self.signer(&state)?, path, now_ms())
+    }
+
+    /// A device command signed now, as [`Self::signed_get`].
+    pub(crate) fn signed_post<P: Serialize>(
+        &self,
+        path: &str,
+        action: &str,
+        payload: &P,
+        request_id: &Hash,
+    ) -> Result<Prepared> {
+        let state = self.fresh_state().ok_or(Error::PolicyStale)?;
+        self.cloud.prepare_post(
+            &self.signer(&state)?,
+            path,
+            action,
+            payload,
+            request_id,
+            None,
+            now_ms(),
+        )
     }
 
     pub(crate) fn signer<'a>(&'a self, state: &'a Security) -> Result<Signer<'a>> {
@@ -999,6 +1211,13 @@ impl Client {
             seed: self.signing()?,
             expires_at: state.expires_at(),
         })
+    }
+
+    /// The relay client, for the public reads that sign nothing, such as
+    /// [`crate::profile::avatar`]: a caller can let go of the client while
+    /// they wait on the network.
+    pub fn relay(&self) -> Cloud {
+        self.cloud.clone()
     }
 
     // Every relay request below signs with fresh evidence, so a long sequence

@@ -24,7 +24,7 @@ use crate::channel_log::{
     Recipient, Role, Status, advance, is_hash, may_publish, readable, recipients_digest, start,
 };
 use crate::client::Client;
-use crate::cloud::{CLOUD_PROTOCOL, Evidence, sign_command};
+use crate::cloud::{CLOUD_PROTOCOL, Evidence, Prepared, sign_command};
 use crate::codec::{MAX_RECORD, b64, canonical, decode, digest, hex_sha256, unb64};
 use crate::content::empty_file;
 use crate::crypto::{
@@ -3409,9 +3409,33 @@ impl Client {
                 &Hash::new(crate::crypto::random_id()),
             )
             .await?;
+        self.channel_ticket_url(channel, &ticket, &value)
+    }
+
+    /// [`Self::channel_ticket`]'s relay command, signed for the caller to
+    /// send without the client, and the ticket it asks for.
+    ///
+    /// # Errors
+    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
+    pub fn channel_ticket_request(&self, channel: &str) -> Result<(Prepared, String)> {
+        let ticket = random_hex();
+        let request = self.signed_post(
+            &format!("{}/ws-ticket", base(channel)?),
+            "dmsg/channel/ws-ticket/v1",
+            &json!({"ticket": ticket}),
+            &Hash::new(crate::crypto::random_id()),
+        )?;
+        Ok((request, ticket))
+    }
+
+    /// The live address of `channel` for `ticket`, once the relay's answer
+    /// `value` confirms it.
+    ///
+    /// # Errors
+    /// Returns `Error::Expired` when the relay did not take the ticket.
+    pub fn channel_ticket_url(&self, channel: &str, ticket: &str, value: &Json) -> Result<String> {
         ensure(
-            value["ticket"] == ticket.as_str()
-                && value["expires_at"].as_u64().is_some_and(|t| t > now_ms()),
+            value["ticket"] == ticket && value["expires_at"].as_u64().is_some_and(|t| t > now_ms()),
             Error::Expired,
         )?;
         let mut url = url::Url::parse(&self.config.relay_origin())
@@ -3420,7 +3444,7 @@ impl Client {
             .map_err(|_| Error::IntegrityFailed)?;
         let scheme = if url.scheme() == "https" { "wss" } else { "ws" };
         url.set_scheme(scheme).map_err(|_| Error::IntegrityFailed)?;
-        url.query_pairs_mut().append_pair("ticket", &ticket);
+        url.query_pairs_mut().append_pair("ticket", ticket);
         Ok(url.to_string())
     }
 

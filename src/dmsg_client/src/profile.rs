@@ -12,7 +12,7 @@
 
 use crate::account::Security;
 use crate::client::Client;
-use crate::cloud::{Evidence, Presigned, verify_signed_command};
+use crate::cloud::{Cloud, Evidence, Prepared, Presigned, verify_signed_command};
 use crate::codec::{canonical, decode, sha256, unb64};
 use crate::evidence::under;
 use crate::now_ms;
@@ -120,6 +120,30 @@ pub fn avatar_type(bytes: &[u8]) -> Result<&'static str> {
     }
 }
 
+/// The avatar an account's profile names, as the relay serves it to
+/// anyone: its media type and bytes, `None` when gone. It needs no key, so
+/// the caller holds only the relay client (`Client::relay`) while it
+/// downloads, never the client.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for bytes that are not an avatar.
+pub async fn avatar(
+    relay: &Cloud,
+    account: &AccountId,
+    upload: &str,
+) -> Result<Option<(&'static str, Vec<u8>)>> {
+    crate::upload::hex_id(upload)?;
+    let bytes = relay
+        .public_bytes(&format!("/public/accounts/{account}/avatar/{upload}"))
+        .await?;
+    bytes
+        .map(|b| {
+            let mime = avatar_type(&b).map_err(|_| Error::IntegrityFailed)?;
+            Ok((mime, b))
+        })
+        .transpose()
+}
+
 /// The manifest of a public avatar upload; the relay stores it unread.
 #[derive(Serialize)]
 struct AvatarManifest<'a> {
@@ -210,10 +234,31 @@ impl Client {
     /// A relay that loses or rolls back a profile this device saw returns
     /// `Error::IntegrityFailed`.
     pub async fn profile(&mut self) -> Result<Option<PublishedProfile>> {
-        let account = self.account()?.id;
         let value = self
             .relay_find(&format!("{}/profile", self.base()?))
             .await?;
+        self.profile_settle(value).await
+    }
+
+    /// [`Self::profile`]'s relay read, signed for the caller to send without
+    /// the client; [`Self::profile_settle`] checks the answer.
+    ///
+    /// # Errors
+    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
+    pub fn profile_request(&self) -> Result<Prepared> {
+        self.signed_get(&format!("{}/profile", self.base()?))
+    }
+
+    /// Check and keep what the relay answered for [`Self::profile`]; after a
+    /// [`Self::warmup`], without the network.
+    ///
+    /// # Errors
+    /// As [`Self::profile`].
+    pub async fn profile_settle(
+        &mut self,
+        value: Option<Json>,
+    ) -> Result<Option<PublishedProfile>> {
+        let account = self.account()?.id;
         let known: Option<(u64, String)> = self.workspace.store.meta(HEAD)?;
         let Some(value) = value else {
             ensure(known.is_none(), Error::IntegrityFailed)?;
@@ -282,29 +327,6 @@ impl Client {
             links: current.map(|c| c.links.clone()).unwrap_or_default(),
         })
         .await
-    }
-
-    /// The avatar an account's profile names, as the relay serves it to
-    /// anyone: its media type and bytes, `None` when gone.
-    ///
-    /// # Errors
-    /// Returns `Error::IntegrityFailed` for bytes that are not an avatar.
-    pub async fn avatar(
-        &self,
-        account: &AccountId,
-        upload: &str,
-    ) -> Result<Option<(&'static str, Vec<u8>)>> {
-        crate::upload::hex_id(upload)?;
-        let bytes = self
-            .cloud
-            .public_bytes(&format!("/public/accounts/{account}/avatar/{upload}"))
-            .await?;
-        bytes
-            .map(|b| {
-                let mime = avatar_type(&b).map_err(|_| Error::IntegrityFailed)?;
-                Ok((mime, b))
-            })
-            .transpose()
     }
 
     /// Upload an avatar; returns its upload ID.

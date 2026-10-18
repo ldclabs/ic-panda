@@ -456,23 +456,50 @@ impl Client {
     /// Storage failures; relay failures leave the job for later.
     pub async fn flush(&mut self) -> Result<usize> {
         let mut settled = 0;
-        for (key, job) in self.workspace.store.jobs::<ContentJob>()? {
-            let Some(dispatch) = job.dispatch.as_ref().filter(|d| d.deadline > now_ms()) else {
-                continue;
-            };
-            match self.cloud.submit(dispatch, now_ms()).await {
-                Ok(verdict) => {
-                    self.settle(&key, &verdict)?;
-                    settled += 1;
-                }
-                Err(Error::VersionConflict) => {
-                    self.block(&key)?;
-                    settled += 1;
-                }
-                Err(_) => {}
-            }
+        for (key, dispatch) in self.flush_due()? {
+            let sent = self.cloud.submit(&dispatch, now_ms()).await;
+            settled += usize::from(self.flush_settle(&key, &dispatch, sent)?);
         }
         Ok(settled)
+    }
+
+    /// What [`Self::flush`] submits, by job: the presigned revisions whose
+    /// deadline has not passed. They need no key, so a caller can submit
+    /// them without holding the client, then [`Self::flush_settle`].
+    ///
+    /// # Errors
+    /// Storage failures.
+    pub fn flush_due(&self) -> Result<Vec<(String, Presigned)>> {
+        let now = now_ms();
+        Ok(self
+            .workspace
+            .store
+            .jobs::<ContentJob>()?
+            .into_iter()
+            .filter_map(|(key, job)| Some((key, job.dispatch.filter(|d| d.deadline > now)?)))
+            .collect())
+    }
+
+    /// Apply the relay's answer to a submission of [`Self::flush_due`],
+    /// unless its job changed meanwhile; whether it settled.
+    ///
+    /// # Errors
+    /// Storage failures and a verdict that does not match the revision.
+    pub fn flush_settle(
+        &self,
+        key: &str,
+        dispatch: &Presigned,
+        sent: Result<Json>,
+    ) -> Result<bool> {
+        let job: Option<ContentJob> = self.workspace.store.job(key)?;
+        if job.and_then(|j| j.dispatch).as_ref() != Some(dispatch) {
+            return Ok(false);
+        }
+        match sent {
+            Ok(verdict) => self.settle(key, &verdict).map(|()| true),
+            Err(Error::VersionConflict) => self.block(key).map(|()| true),
+            Err(_) => Ok(false),
+        }
     }
 
     /// Settle every submitted revision the relay already decided, with

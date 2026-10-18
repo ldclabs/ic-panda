@@ -460,7 +460,31 @@ fn relay_error(code: &str, message: &str) -> Error {
     }
 }
 
-/// HTTP client of one relay origin.
+/// A device-signed relay request, signed under the client and sent after
+/// it: it holds a proof of possession until its deadline, never the key,
+/// so the daemon can wait on the network without holding the client.
+pub struct Prepared {
+    method: reqwest::Method,
+    url: Url,
+    /// Canonical CBOR of a POST.
+    body: Option<Vec<u8>>,
+    pop: String,
+}
+
+/// A relay answer with an absent resource as `None`.
+///
+/// # Errors
+/// Relay errors other than `NotFound`.
+pub fn found(reply: Result<Json>) -> Result<Option<Json>> {
+    match reply {
+        Ok(value) => Ok(Some(value)),
+        Err(Error::NotFound) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+/// HTTP client of one relay origin; a clone shares its connections.
+#[derive(Clone)]
 pub struct Cloud {
     http: reqwest::Client,
     origin: Url,
@@ -685,13 +709,7 @@ impl Cloud {
     /// # Errors
     /// Relay errors as returned; `Error::NotFound` for an absent resource.
     pub async fn get(&self, signer: &Signer<'_>, path: &str, now: u64) -> Result<Json> {
-        let url = self.url(path)?;
-        let request_id = hex::encode(crate::crypto::random_id());
-        let deadline = signer.deadline(now)?;
-        let pop = sign_http(signer, &url, "GET", &[], &request_id, deadline)?;
-        self.exchange(reqwest::Method::GET, url, None, Some(pop), false)
-            .await?
-            .json()
+        self.send(&self.prepare_get(signer, path, now)?).await
     }
 
     /// [`Self::get`] reporting an absent resource as `None`.
@@ -699,11 +717,47 @@ impl Cloud {
     /// # Errors
     /// Relay errors other than `NotFound`.
     pub async fn find(&self, signer: &Signer<'_>, path: &str, now: u64) -> Result<Option<Json>> {
-        match self.get(signer, path, now).await {
-            Ok(value) => Ok(Some(value)),
-            Err(Error::NotFound) => Ok(None),
-            Err(error) => Err(error),
-        }
+        found(self.get(signer, path, now).await)
+    }
+
+    /// [`Self::get`] signed now and sent later with [`Self::send`].
+    pub(crate) fn prepare_get(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        now: u64,
+    ) -> Result<Prepared> {
+        let url = self.url(path)?;
+        let request_id = hex::encode(crate::crypto::random_id());
+        let deadline = signer.deadline(now)?;
+        let pop = sign_http(signer, &url, "GET", &[], &request_id, deadline)?;
+        Ok(Prepared {
+            method: reqwest::Method::GET,
+            url,
+            body: None,
+            pop,
+        })
+    }
+
+    /// Send a request signed earlier, within its deadline.
+    ///
+    /// # Errors
+    /// Relay errors as returned; `Error::NotFound` for an absent resource, and
+    /// a lost response to a POST is `Error::ExecutionUnknown`.
+    pub async fn send(&self, request: &Prepared) -> Result<Json> {
+        let body = request
+            .body
+            .as_ref()
+            .map(|bytes| (bytes.clone(), "application/cbor"));
+        self.exchange(
+            request.method.clone(),
+            request.url.clone(),
+            body,
+            Some(request.pop.clone()),
+            false,
+        )
+        .await?
+        .json()
     }
 
     /// Sign and post a device command. The HTTP proof and the command share
@@ -740,6 +794,22 @@ impl Cloud {
         sealed: Option<&[u8]>,
         now: u64,
     ) -> Result<Json> {
+        let request = self.prepare_post(signer, path, action, payload, request_id, sealed, now)?;
+        self.send(&request).await
+    }
+
+    /// [`Self::post_sealed`] signed now and sent later with [`Self::send`].
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare_post<P: Serialize>(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        action: &str,
+        payload: &P,
+        request_id: &Hash,
+        sealed: Option<&[u8]>,
+        now: u64,
+    ) -> Result<Prepared> {
         let url = self.url(path)?;
         let request_id = hex::encode(**request_id);
         let deadline = signer.deadline(now)?;
@@ -753,15 +823,12 @@ impl Cloud {
             Error::QuotaExceeded,
         )?;
         let pop = sign_http(signer, &url, "POST", &body, &request_id, deadline)?;
-        self.exchange(
-            reqwest::Method::POST,
+        Ok(Prepared {
+            method: reqwest::Method::POST,
             url,
-            Some((body, "application/cbor")),
-            Some(pop),
-            false,
-        )
-        .await?
-        .json()
+            body: Some(body),
+            pop,
+        })
     }
 
     /// Post a command signed earlier, such as one whose exact bytes another

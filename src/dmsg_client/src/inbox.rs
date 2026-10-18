@@ -15,7 +15,7 @@
 //! deadline the payer recovers the funds from the canister alone.
 
 use crate::client::Client;
-use crate::cloud::{Evidence, sign_command};
+use crate::cloud::{Evidence, Prepared, sign_command};
 use crate::codec::{MAX_RECORD, b64, canonical, decode, digest, sha256, unb64};
 use crate::crypto::{HpkeEnvelope, hpke_open, hpke_public, hpke_seal, random_key, sign};
 use crate::now_ms;
@@ -215,6 +215,9 @@ pub struct Letter {
     pub abort_reason: Option<String>,
 }
 
+/// Most pages of letters [`Client::inbox_list`] reads before it gives up.
+pub const INBOX_PAGES: usize = 10_000;
+
 impl Client {
     /// The own user home's configuration.
     pub(crate) async fn home_config(&mut self) -> Result<dmsg_types::user::UserInit> {
@@ -376,6 +379,16 @@ impl Client {
     pub async fn inbox_policy(&mut self) -> Result<Option<Json>> {
         let me = self.account()?.id;
         self.relay_find(&format!("/v1/inboxes/{me}/policy")).await
+    }
+
+    /// [`Self::inbox_policy`]'s relay read, signed for the caller to send
+    /// without the client; an absent policy is `Error::NotFound`.
+    ///
+    /// # Errors
+    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
+    pub fn inbox_policy_request(&self) -> Result<Prepared> {
+        let me = self.account()?.id;
+        self.signed_get(&format!("/v1/inboxes/{me}/policy"))
     }
 
     /// Publish a contact policy with a fresh inbox key; a paid policy also
@@ -1186,129 +1199,158 @@ impl Client {
     /// # Errors
     /// Returns `Error::RecoveryIncomplete` when an inbox key is missing.
     pub async fn inbox_list(&mut self) -> Result<Vec<Letter>> {
-        let me = self.account()?.id.to_string();
-        let trust = self.trust().await?;
-        let mut letters: std::collections::BTreeMap<String, Letter> =
-            std::collections::BTreeMap::new();
+        let mut letters = std::collections::BTreeMap::new();
         let mut after = 0;
-        for _ in 0..10_000 {
+        for _ in 0..INBOX_PAGES {
+            let me = self.account()?.id;
             let page = self
                 .relay_get(&format!("/v1/inboxes/{me}?after={after}&limit=20"))
                 .await?;
-            let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
-            let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
-            ensure(next >= after, Error::IntegrityFailed)?;
-            let mut changed = vec![];
-            for row in entries {
-                let cursor = row["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
-                ensure(cursor > after && cursor <= next, Error::IntegrityFailed)?;
-                let value = &row["value"];
-                let order = value["order_id"]
-                    .as_str()
-                    .ok_or(Error::IntegrityFailed)?
-                    .to_string();
-                ensure(
-                    crate::channel_log::is_hash(&order)
-                        && value["recipient"] == me.as_str()
-                        && matches!(value["state"].as_str(), Some("visible" | "aborted")),
-                    Error::Forbidden,
-                )?;
-                let cached: Option<Letter> = self
-                    .workspace
-                    .private(self.keys()?, &format!("{LETTER}{order}"))?;
-                let letter = match value["state"].as_str() {
-                    // Relay management metadata, never an authenticated letter.
-                    Some("aborted") => {
-                        ensure(value.get("ciphertext").is_none(), Error::IntegrityFailed)?;
-                        Letter {
-                            order_id: order.clone(),
-                            sender: value["sender"].as_str().unwrap_or_default().into(),
-                            state: "aborted".into(),
-                            text: String::new(),
-                            created_at: value["created_at"].as_u64().unwrap_or_default(),
-                            read: value["read"] == true,
-                            archived: value["archived"] == true,
-                            signed: None,
-                            abort_reason: value["abort_reason"].as_str().map(str::to_string),
-                        }
-                    }
-                    _ => {
-                        let cose = value["signed"]["cose_sign1"]
-                            .as_str()
-                            .ok_or(Error::IntegrityFailed)?
-                            .to_string();
-                        let text = match cached
-                            .as_ref()
-                            .filter(|l| l.signed.as_deref() == Some(&cose))
-                        {
-                            Some(letter) => letter.text.clone(),
-                            None => {
-                                let evidence: Evidence =
-                                    serde_json::from_value(value["evidence"].clone())
-                                        .map_err(|_| Error::IntegrityFailed)?;
-                                let created =
-                                    value["created_at"].as_u64().ok_or(Error::IntegrityFailed)?;
-                                let verified: crate::evidence::Verified<ContactPayload> = trust
-                                    .command(&cose, &evidence, created, Some(CONTACT), now_ms())?;
-                                let payload = &verified.body.payload;
-                                ensure(
-                                    value["sender"] == verified.account.to_string().as_str()
-                                        && payload.order_id == order
-                                        && payload.recipient == me
-                                        && value["ciphertext"] == payload.ciphertext.as_str(),
-                                    Error::IntegrityFailed,
-                                )?;
-                                let envelope: HpkeEnvelope =
-                                    decode(&unb64(&payload.ciphertext)?, 16_384)?;
-                                let sender = verified.account.to_string();
-                                let context =
-                                    letter_context(&sender, &me, &order, payload.inbox_key_version);
-                                let mut opened = None;
-                                for seed in self.inbox_seeds(payload.inbox_key_version)? {
-                                    if let Ok(plain) = hpke_open(&seed, &envelope, &context) {
-                                        opened = Some(plain);
-                                        break;
-                                    }
-                                }
-                                let plain = opened.ok_or(Error::IntegrityFailed)?;
-                                let body: LetterBody = decode(&plain, 16_384)?;
-                                body.text
-                            }
-                        };
-                        Letter {
-                            order_id: order.clone(),
-                            sender: value["sender"].as_str().unwrap_or_default().into(),
-                            state: "visible".into(),
-                            text,
-                            created_at: value["created_at"].as_u64().unwrap_or_default(),
-                            read: value["read"] == true,
-                            archived: value["archived"] == true,
-                            signed: Some(cose),
-                            abort_reason: None,
-                        }
-                    }
-                };
-                if cached.as_ref() != Some(&letter) {
-                    changed.push(letter.clone());
-                }
-                letters.insert(order, letter);
-                after = cursor;
+            match self.inbox_page_settle(after, &page, &mut letters).await? {
+                Some(next) => after = next,
+                None => return Ok(letters.into_values().collect()),
             }
-            // Only what changed is written, in one go.
-            let keys = self.keys()?;
-            self.workspace.store.atomic(|_| {
-                for letter in &changed {
-                    let name = format!("{LETTER}{}", letter.order_id);
-                    self.workspace.put_private(keys, &name, letter)?;
-                }
-                Ok(())
-            })?;
-            if next == after || entries.is_empty() {
-                return Ok(letters.into_values().collect());
-            }
-            after = next;
         }
         Err(Error::QuotaExceeded)
+    }
+
+    /// The page of [`Self::inbox_list`] after `after`, signed for the caller
+    /// to send without the client.
+    ///
+    /// # Errors
+    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
+    pub fn inbox_page_request(&self, after: u64) -> Result<Prepared> {
+        let me = self.account()?.id;
+        self.signed_get(&format!("/v1/inboxes/{me}?after={after}&limit=20"))
+    }
+
+    /// Open the page of [`Self::inbox_list`] read after `after` into
+    /// `letters`, keeping what changed; the cursor of the next page, `None`
+    /// after the last. After a [`Self::warmup`], without the network.
+    ///
+    /// # Errors
+    /// As [`Self::inbox_list`].
+    pub async fn inbox_page_settle(
+        &mut self,
+        after: u64,
+        page: &Json,
+        letters: &mut std::collections::BTreeMap<String, Letter>,
+    ) -> Result<Option<u64>> {
+        let me = self.account()?.id.to_string();
+        let trust = self.trust().await?;
+        let mut after = after;
+        let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
+        let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
+        ensure(next >= after, Error::IntegrityFailed)?;
+        let mut changed = vec![];
+        for row in entries {
+            let cursor = row["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
+            ensure(cursor > after && cursor <= next, Error::IntegrityFailed)?;
+            let value = &row["value"];
+            let order = value["order_id"]
+                .as_str()
+                .ok_or(Error::IntegrityFailed)?
+                .to_string();
+            ensure(
+                crate::channel_log::is_hash(&order)
+                    && value["recipient"] == me.as_str()
+                    && matches!(value["state"].as_str(), Some("visible" | "aborted")),
+                Error::Forbidden,
+            )?;
+            let cached: Option<Letter> = self
+                .workspace
+                .private(self.keys()?, &format!("{LETTER}{order}"))?;
+            let letter = match value["state"].as_str() {
+                // Relay management metadata, never an authenticated letter.
+                Some("aborted") => {
+                    ensure(value.get("ciphertext").is_none(), Error::IntegrityFailed)?;
+                    Letter {
+                        order_id: order.clone(),
+                        sender: value["sender"].as_str().unwrap_or_default().into(),
+                        state: "aborted".into(),
+                        text: String::new(),
+                        created_at: value["created_at"].as_u64().unwrap_or_default(),
+                        read: value["read"] == true,
+                        archived: value["archived"] == true,
+                        signed: None,
+                        abort_reason: value["abort_reason"].as_str().map(str::to_string),
+                    }
+                }
+                _ => {
+                    let cose = value["signed"]["cose_sign1"]
+                        .as_str()
+                        .ok_or(Error::IntegrityFailed)?
+                        .to_string();
+                    let text = match cached
+                        .as_ref()
+                        .filter(|l| l.signed.as_deref() == Some(&cose))
+                    {
+                        Some(letter) => letter.text.clone(),
+                        None => {
+                            let evidence: Evidence =
+                                serde_json::from_value(value["evidence"].clone())
+                                    .map_err(|_| Error::IntegrityFailed)?;
+                            let created =
+                                value["created_at"].as_u64().ok_or(Error::IntegrityFailed)?;
+                            let verified: crate::evidence::Verified<ContactPayload> = trust
+                                .command(&cose, &evidence, created, Some(CONTACT), now_ms())?;
+                            let payload = &verified.body.payload;
+                            ensure(
+                                value["sender"] == verified.account.to_string().as_str()
+                                    && payload.order_id == order
+                                    && payload.recipient == me
+                                    && value["ciphertext"] == payload.ciphertext.as_str(),
+                                Error::IntegrityFailed,
+                            )?;
+                            let envelope: HpkeEnvelope =
+                                decode(&unb64(&payload.ciphertext)?, 16_384)?;
+                            let sender = verified.account.to_string();
+                            let context =
+                                letter_context(&sender, &me, &order, payload.inbox_key_version);
+                            let mut opened = None;
+                            for seed in self.inbox_seeds(payload.inbox_key_version)? {
+                                if let Ok(plain) = hpke_open(&seed, &envelope, &context) {
+                                    opened = Some(plain);
+                                    break;
+                                }
+                            }
+                            let plain = opened.ok_or(Error::IntegrityFailed)?;
+                            let body: LetterBody = decode(&plain, 16_384)?;
+                            body.text
+                        }
+                    };
+                    Letter {
+                        order_id: order.clone(),
+                        sender: value["sender"].as_str().unwrap_or_default().into(),
+                        state: "visible".into(),
+                        text,
+                        created_at: value["created_at"].as_u64().unwrap_or_default(),
+                        read: value["read"] == true,
+                        archived: value["archived"] == true,
+                        signed: Some(cose),
+                        abort_reason: None,
+                    }
+                }
+            };
+            if cached.as_ref() != Some(&letter) {
+                changed.push(letter.clone());
+            }
+            letters.insert(order, letter);
+            after = cursor;
+        }
+        // Only what changed is written, in one go.
+        let keys = self.keys()?;
+        self.workspace.store.atomic(|_| {
+            for letter in &changed {
+                let name = format!("{LETTER}{}", letter.order_id);
+                self.workspace.put_private(keys, &name, letter)?;
+            }
+            Ok(())
+        })?;
+        if next == after || entries.is_empty() {
+            return Ok(None);
+        }
+        Ok(Some(next))
     }
 
     /// Mark a letter read or archived; archiving reopens contact for its

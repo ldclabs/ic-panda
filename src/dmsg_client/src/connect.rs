@@ -14,7 +14,7 @@
 use crate::approval::{self, Action, State};
 use crate::attest::{Subject, statement_view};
 use crate::client::Client;
-use crate::cloud::{sig_structure, verify_signed_command};
+use crate::cloud::{Prepared, sig_structure, verify_signed_command};
 use crate::codec::{b64, canonical, decode, sha256, unb64};
 use crate::crypto::{
     HpkeEnvelope, Key, aes_gcm_open, hpke_open_info, hpke_seal_auth, p256_verify, random_id,
@@ -776,9 +776,27 @@ impl Client {
     /// # Errors
     /// Relay errors.
     pub async fn connect_pairings(&mut self) -> Result<Json> {
-        let security = self.cloud_state().await?;
         let path = self.connect_path("/pairings")?;
         let data = self.relay_get(&path).await?;
+        self.connect_pairings_settle(&data).await
+    }
+
+    /// [`Self::connect_pairings`]' relay read, signed for the caller to send
+    /// without the client.
+    ///
+    /// # Errors
+    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
+    pub fn connect_pairings_request(&self) -> Result<Prepared> {
+        self.signed_get(&self.connect_path("/pairings")?)
+    }
+
+    /// Check what the relay answered for [`Self::connect_pairings`]; after
+    /// a [`Self::warmup`], without the network.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a malformed answer.
+    pub async fn connect_pairings_settle(&mut self, data: &Json) -> Result<Json> {
+        let security = self.cloud_state().await?;
         let now = now_ms();
         let mut list = Vec::new();
         for p in data["pairings"].as_array().ok_or(Error::IntegrityFailed)? {
@@ -854,8 +872,19 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` without the device key and relay errors.
     pub async fn connect_sync(&mut self) -> Result<ConnectReport> {
+        let fetched = self.connect_fetch().await?;
+        self.connect_entries(fetched).await
+    }
+
+    /// [`Self::connect_sync`] of the entries already stored, `fetched` of
+    /// them just now, such as by pages read with
+    /// [`Self::connect_fetch_request`] without the client.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` without the device key and relay errors.
+    pub async fn connect_entries(&mut self, fetched: u64) -> Result<ConnectReport> {
         let mut report = ConnectReport {
-            fetched: self.connect_fetch().await?,
+            fetched,
             ..ConnectReport::default()
         };
         if self.keys.is_none() {
@@ -900,34 +929,64 @@ impl Client {
     async fn connect_fetch(&mut self) -> Result<u64> {
         let mut fetched = 0;
         loop {
-            let after: u64 = self.workspace.store.meta(CURSOR)?.unwrap_or(0);
-            let path = self.connect_path(&format!("/requests?after={after}&limit=100"))?;
-            let data = self.relay_get(&path).await?;
-            let items = data["requests"].as_array().ok_or(Error::IntegrityFailed)?;
-            if items.is_empty() {
-                return Ok(fetched);
+            let after = self.connect_cursor()?;
+            let page = self.relay_get(&self.connect_page(after)?).await?;
+            match self.connect_fetch_store(after, &page)? {
+                0 => return Ok(fetched),
+                count => fetched += count,
             }
-            let mut cursor = after;
-            for item in items {
-                let entry = Entry::parse(item)?;
-                ensure(
-                    entry.envelope.len() <= MAX_ENVELOPE && entry.seq > after,
-                    Error::IntegrityFailed,
-                )?;
-                let id = hex::encode(*entry.request_id);
-                let done = self
-                    .workspace
-                    .store
-                    .inbox::<Entry>(&id)?
-                    .is_some_and(|(_, done)| done);
-                cursor = cursor.max(entry.seq);
-                self.workspace
-                    .store
-                    .put_inbox(&id, entry.seq, &entry, done)?;
-                fetched += 1;
-            }
+        }
+    }
+
+    /// The next page of the mailbox after the cursor, signed for the caller
+    /// to send without the client, and that cursor for
+    /// [`Self::connect_fetch_store`].
+    ///
+    /// # Errors
+    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
+    pub fn connect_fetch_request(&self) -> Result<(Prepared, u64)> {
+        let after = self.connect_cursor()?;
+        Ok((self.signed_get(&self.connect_page(after)?)?, after))
+    }
+
+    /// Store a page of mailbox entries read after `after`; returns how many,
+    /// none at its end. A read beside it may have moved the cursor, and the
+    /// entries are kept by their request IDs.
+    ///
+    /// # Errors
+    /// Returns `Error::IntegrityFailed` for a malformed page.
+    pub fn connect_fetch_store(&mut self, after: u64, page: &Json) -> Result<u64> {
+        let items = page["requests"].as_array().ok_or(Error::IntegrityFailed)?;
+        let mut cursor = after.max(self.connect_cursor()?);
+        for item in items {
+            let entry = Entry::parse(item)?;
+            ensure(
+                entry.envelope.len() <= MAX_ENVELOPE && entry.seq > after,
+                Error::IntegrityFailed,
+            )?;
+            let id = hex::encode(*entry.request_id);
+            let done = self
+                .workspace
+                .store
+                .inbox::<Entry>(&id)?
+                .is_some_and(|(_, done)| done);
+            cursor = cursor.max(entry.seq);
+            self.workspace
+                .store
+                .put_inbox(&id, entry.seq, &entry, done)?;
+        }
+        if !items.is_empty() {
             self.workspace.store.set_meta(CURSOR, &cursor)?;
         }
+        Ok(items.len() as u64)
+    }
+
+    fn connect_cursor(&self) -> Result<u64> {
+        Ok(self.workspace.store.meta(CURSOR)?.unwrap_or(0))
+    }
+
+    fn connect_page(&self, after: u64) -> Result<String> {
+        self.connect_path(&format!("/requests?after={after}&limit=100"))
     }
 
     /// The account's pairings, verified against fresh certified security.

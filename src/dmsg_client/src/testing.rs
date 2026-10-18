@@ -130,6 +130,27 @@ pub fn unlocked(
     client
 }
 
+/// Point `client`'s relay at `origin`, a loopback server the test runs.
+pub fn relay_to(client: &mut Client, origin: &str) {
+    client.cloud = crate::cloud::Cloud::new(origin, true).unwrap();
+}
+
+/// Point `client`'s queries at `origin`, a loopback server the test runs.
+pub fn ic_to(client: &mut Client, origin: &str) {
+    client.config.ic_host = origin.into();
+}
+
+/// Give `client` fresh certified security the relay is taken to hold, and
+/// the user homes, as a warmup brings them: its relay requests are signed
+/// at once.
+pub fn warm(client: &mut Client) {
+    let mut state = security(1, BTreeMap::new());
+    state.certified_at = crate::now_ms();
+    client.published = Some(state.certified_at);
+    client.security = Some(state);
+    client.homes = Some(vec![account().home]);
+}
+
 /// Device `n` of the test account: its seed is `[n; 32]`, and it signs
 /// content unless revoked at `revoked_at`.
 pub fn device(n: u8, revoked_at: Option<u64>) -> (Hash, Device) {

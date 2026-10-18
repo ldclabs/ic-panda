@@ -687,7 +687,14 @@ The daemon listens on `127.0.0.1` only.
   is refused with 401. A request or WebSocket message may be up to 16 MiB.
   Errors carry `error.data.code` such as `AUTH_REQUIRED`, `LOCKED`,
   `VERSION_CONFLICT` or `EXECUTION_UNKNOWN`. Reads announce no event, since
-  windows reload on them.
+  windows reload on them. Requests run side by side, and the client is held
+  only for local work. Several calls wait on the relay or a user home
+  without it: `profile/show|avatar_image`, `account/show`,
+  `connect/pairings|sync`, `inbox/list|policy`, the channels' live tickets,
+  the background flush and the mailbox read. They are signed under the
+  client and sent after it, so a slow network does not hold up the
+  library's reads. Writes, whose answers change local state, still wait
+  under it.
 - Methods: `app/initialize {activity?}`, `app/activity`, `daemon/status`,
   `events/poll`,
   `session/status|login {origin, bind?}|login_result|accounts|switch|unlock {fast?, account?}|lock|fast_unlock`,

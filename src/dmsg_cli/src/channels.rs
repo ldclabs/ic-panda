@@ -75,7 +75,7 @@ pub async fn run(daemon: Arc<Daemon>) {
                 }
                 None => None,
             };
-            let url = match daemon.client().lock().await.channel_ticket(&channel).await {
+            let url = match ticket(&daemon, &channel).await {
                 Ok(url) => url,
                 Err(_) => continue,
             };
@@ -97,6 +97,20 @@ pub async fn run(daemon: Arc<Daemon>) {
             );
         }
     }
+}
+
+/// A live address of `channel`: the relay's ticket is asked for without
+/// holding the client.
+async fn ticket(daemon: &Daemon, channel: &str) -> dmsg_types::Result<String> {
+    let (relay, (request, ticket)) = daemon
+        .signed(|client| client.channel_ticket_request(channel))
+        .await?;
+    let value = relay.send(&request).await?;
+    daemon
+        .client()
+        .lock()
+        .await
+        .channel_ticket_url(channel, &ticket, &value)
 }
 
 /// Active channels, while unlocked; none otherwise.
