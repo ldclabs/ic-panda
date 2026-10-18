@@ -1,5 +1,6 @@
 <script lang="ts">
   import Checkbox from '../../components/Checkbox.svelte'
+  import Confirm from '../../components/Confirm.svelte'
   import Icon from '../../components/Icon.svelte'
   import Field from '../../components/page/Field.svelte'
   import Pill from '../../components/page/Pill.svelte'
@@ -9,13 +10,15 @@
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { when } from '../../rpc'
-  import { matrix, profileWrite, services, vocabulary } from './agents'
+  import { grantState, matrix, profileWrite, sensitive, services, unknownCapabilities } from './agents'
 
   /**
    * What each hosted Agent ID may reach, as a matrix of the Agent Protocols
    * services and the origins they are granted at, then every grant with its
    * revoke, and a new grant: services ticked at a chosen origin and other
-   * capabilities typed.
+   * capabilities typed from the daemon's vocabulary, for a number of days or
+   * until revoked. A grant reaching every target, a secret's value or a
+   * wallet's execution asks once more.
    */
   let {
     hosted,
@@ -36,6 +39,9 @@
   let origin = $state('*')
   let ticked = $state<Record<string, boolean>>({})
   let capabilities = $state('')
+  /** Days, or empty until revoked. */
+  let days = $state('')
+  let confirming = $state(false)
 
   const reach = $derived(matrix(grants))
   const columns = [...services.flatMap((s) => [s.read, s.write]), profileWrite]
@@ -51,11 +57,17 @@
     ])
   ])
 
+  const vocabulary = $derived<string[]>(hosted.vocabulary ?? [])
+  const unknown = $derived(vocabulary.length ? unknownCapabilities(chosen, vocabulary) : [])
+  const wide = $derived(chosen.filter(sensitive))
+
   async function grant() {
-    await run('grants/add', { agent: grantee, capabilities: chosen })
+    await run('grants/add', { agent: grantee, capabilities: chosen, days: days ? Number(days) : null })
     ticked = {}
     capabilities = ''
   }
+
+  const submit = () => (wide.length ? (confirming = true) : grant())
 </script>
 
 {#snippet cell(origins: string[] | undefined)}
@@ -147,15 +159,27 @@
           <Checkbox bind:checked={() => ticked[profileWrite] ?? false, (on) => (ticked[profileWrite] = on)} testid="service-{profileWrite}">{t('publishProfile')}</Checkbox>
         </div>
       </div>
-      <Field label={t('capabilityList')} hint={`${t('capabilityVocabulary')}${vocabulary.join(' ')}`}>
+      <Field label={t('capabilityList')} hint={`${t('capabilityVocabulary')}${vocabulary.filter((v) => !services.some((s) => v.startsWith(`${s.read}:`) || v.startsWith(`${s.write}:`)) && !v.startsWith(profileWrite)).join(' ')}`}>
         <input bind:value={capabilities} class="font-mono text-[12.5px]" spellcheck="false" data-testid="grant-other" />
       </Field>
       <div class="flex flex-wrap items-center gap-2">
-        <div class="flex min-w-0 flex-1 flex-wrap gap-1">
-          {#each chosen as capability (capability)}<Pill tone="forest" class="font-mono font-normal">{capability}</Pill>{/each}
+        <div class="flex min-w-0 flex-1 flex-wrap gap-1" data-testid="grant-chosen">
+          {#each chosen as capability (capability)}
+            <Pill tone={unknown.includes(capability) ? 'danger' : sensitive(capability) ? 'warn' : 'forest'} class="font-mono font-normal">{capability}</Pill>
+          {/each}
         </div>
-        <button class={buttonClass('primary')} data-testid="grant-capabilities" disabled={busy || !grantee || !chosen.length} onclick={grant}>{t('grant')}</button>
+        <Select
+          bind:value={days}
+          testid="grant-days"
+          label={t('grantLifetime')}
+          options={[
+            { value: '', label: t('untilRevoked') },
+            ...[7, 30, 90, 366].map((n) => ({ value: String(n), label: t('daysCount', { n }) }))
+          ]}
+        />
+        <button class={buttonClass('primary')} data-testid="grant-capabilities" disabled={busy || !grantee || !chosen.length || unknown.length > 0} onclick={submit}>{t('grant')}</button>
       </div>
+      {#if unknown.length}<p class="text-[12px] text-danger" data-testid="grant-unknown">{t('unknownCapabilities', { list: unknown.join(' ') })}</p>{/if}
     </div>
   </Section>
 {/if}
@@ -163,17 +187,24 @@
 <Section title={t('grantsList')} icon="audit" flush>
   <ul class="divide-y divide-line border-t border-line" data-testid="capability-grants">
     {#each grants as g (g.id)}
+      {@const state = grantState(g)}
       <li class="flex items-start gap-3 px-5 py-3">
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-1.5">
             <b class="text-[13px] font-medium">{labelOf(g.grantee)}</b>
-            {#if g.revoked_at}<Pill>{t('retired')}</Pill>{:else if g.expires_at}<span class="text-[11.5px] text-faint">{t('expires')} {when(g.expires_at)}</span>{/if}
+            {#if state === 'revoked'}
+              <Pill testid="grant-revoked">{t('revoked')} {when(g.revoked_at)}</Pill>
+            {:else if state === 'expired'}
+              <Pill>{t('grantExpired')} {when(g.expires_at)}</Pill>
+            {:else}
+              <span class="text-[11.5px] text-faint">{g.expires_at ? `${t('expires')} ${when(g.expires_at)}` : t('untilRevoked')}</span>
+            {/if}
           </div>
           <div class="mt-1 flex flex-wrap gap-1">
-            {#each g.capabilities as capability, i (i)}<Pill class={cn('font-mono font-normal', g.revoked_at && 'line-through opacity-60')}>{capability}</Pill>{/each}
+            {#each g.capabilities as capability, i (i)}<Pill class={cn('font-mono font-normal', state !== 'live' && 'line-through opacity-60')}>{capability}</Pill>{/each}
           </div>
         </div>
-        {#if !g.revoked_at && unlocked}
+        {#if state === 'live' && unlocked}
           <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => run('grants/revoke', { id: g.id })}>{t('revoke')}</button>
         {/if}
       </li>
@@ -182,3 +213,18 @@
     {/each}
   </ul>
 </Section>
+
+<Confirm
+  bind:open={confirming}
+  title={t('wideGrantTitle', { label: labelOf(grantee) })}
+  description={t('wideGrantHint')}
+  confirm={t('grant')}
+  tone="warn"
+  {busy}
+  testid="grant-confirm-dialog"
+  onConfirm={grant}
+>
+  {#snippet body()}
+    <div class="flex flex-wrap gap-1">{#each wide as capability (capability)}<Pill tone="warn" class="font-mono font-normal">{capability}</Pill>{/each}</div>
+  {/snippet}
+</Confirm>

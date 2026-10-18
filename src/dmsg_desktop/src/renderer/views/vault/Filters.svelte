@@ -7,9 +7,15 @@
 
   /**
    * The vault's filters: everything, starred, what the security check
-   * flags, each type and tag that has items, and the trash.
+   * flags, each type and tag that has items, and the trash. The chosen tag
+   * opens what this account's Agent IDs may do with its items.
    */
-  let { scope = $bindable<Scope>('all'), facets, flagged }: { scope?: Scope; facets: Facets; flagged: number } = $props()
+  let {
+    scope = $bindable<Scope>('all'),
+    facets,
+    flagged,
+    onAccess
+  }: { scope?: Scope; facets: Facets; flagged: number; onAccess?: (tag: string) => void } = $props()
 </script>
 
 {#snippet entry(value: Scope, icon: Glyph | null, label: string, count?: number)}
@@ -44,6 +50,13 @@
     <div class="px-2 pt-3 pb-1 text-[11px] font-medium text-faint">{t('tags')}</div>
     {#each facets.tags as [tag, count] (tag)}
       {@render entry(`tag:${tag}`, null, tag, count)}
+      {#if onAccess && scope === `tag:${tag}` && !tag.startsWith('dmsg-')}
+        <button
+          class="ms-6 flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] text-muted hover:bg-wash hover:text-ink"
+          onclick={() => onAccess?.(tag)}
+          data-testid="vault-tag-access"><Icon name="agents" class="size-3.5" />{t('agentAccessButton')}</button
+        >
+      {/if}
     {/each}
   {/if}
   <div class="mt-auto pt-3">

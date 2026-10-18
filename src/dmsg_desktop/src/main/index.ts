@@ -630,6 +630,8 @@ handle('dmsg:set-appearance', 'main', async (_event, next: string) => {
   applyAppearance(next)
 })
 handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError }))
+/** What an MCP client runs to reach this daemon: the installed binary and its home. */
+handle('dmsg:runtime', 'main', () => ({ binary: daemon.options.binary, home: daemon.options.home }))
 handle('dmsg:fullscreen', 'main', () => main?.isFullScreen() === true)
 handle('dmsg:updates', 'main', () => ({ version: app.getVersion(), state: updates.state }))
 handle('dmsg:check-updates', 'main', () => updates.check())

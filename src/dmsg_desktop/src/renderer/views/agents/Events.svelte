@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
   import Field from '../../components/page/Field.svelte'
@@ -14,7 +15,8 @@
   /**
    * MCP Events endpoints on the relay: an upstream subscription posts to the
    * URL with the secret, shown once; agents read the deliveries. This view
-   * manages endpoints and never reads or acknowledges deliveries.
+   * manages endpoints and never reads or acknowledges deliveries; rotating
+   * a secret or deleting an endpoint asks first.
    */
   let { agents, unlocked }: { agents: any[]; unlocked: boolean } = $props()
 
@@ -24,6 +26,8 @@
   let agent = $state('')
   let session = $state('')
   let secret = $state<{ endpoint_id: string; secret: string } | null>(null)
+  let rotating = $state<any>(null)
+  let removing = $state<any>(null)
   let error = $state('')
   let busy = $state(false)
 
@@ -109,8 +113,8 @@
           <span class="text-[12px] text-faint">{labelOf(endpoint.agent ?? endpoint.context?.agent)} · {when(endpoint.created_at)}</span>
           <span class="flex-1"></span>
           {#if endpoint.state === 'active' && unlocked}
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => rotate(endpoint.endpoint_id)}>{t('rotateSecret')}</button>
-            <button class={buttonClass('danger', 'xs')} disabled={busy} onclick={() => remove(endpoint.endpoint_id)}>{t('remove')}</button>
+            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => (rotating = endpoint)} data-testid="endpoint-rotate">{t('rotateSecret')}</button>
+            <button class={buttonClass('danger', 'xs')} disabled={busy} onclick={() => (removing = endpoint)} data-testid="endpoint-remove">{t('remove')}</button>
           {/if}
         </div>
         <div class="flex items-center gap-1.5">
@@ -150,3 +154,24 @@
     </div>
   {/if}
 </Section>
+
+<Confirm
+  bind:open={() => !!rotating, (open) => !open && (rotating = null)}
+  title={t('rotateSecretTitle', { label: rotating?.context?.label ?? rotating?.endpoint_id?.slice(0, 12) ?? '' })}
+  description={t('rotateSecretHint')}
+  confirm={t('rotateSecret')}
+  tone="warn"
+  {busy}
+  testid="endpoint-rotate-dialog"
+  onConfirm={() => rotating && rotate(rotating.endpoint_id)}
+/>
+
+<Confirm
+  bind:open={() => !!removing, (open) => !open && (removing = null)}
+  title={t('removeEndpointTitle', { label: removing?.context?.label ?? removing?.endpoint_id?.slice(0, 12) ?? '' })}
+  description={t('removeEndpointHint')}
+  confirm={t('remove')}
+  {busy}
+  testid="endpoint-remove-dialog"
+  onConfirm={() => removing && remove(removing.endpoint_id)}
+/>

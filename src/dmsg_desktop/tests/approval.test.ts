@@ -18,6 +18,11 @@ test('the chip names the kind of decision', () => {
   assert.equal(kindOf(request('handle', {})), 'kindName')
   assert.equal(kindOf(request('device_revoke')), 'kindSecurity')
   assert.equal(kindOf(request('delegation')), 'kindAgent')
+  // An agent asking for capabilities is an Agent decision, titled as such.
+  const asked = request('grant', { grantee: 'did:agent:z6Mk', capabilities: ['vault.read:work', 'inbox.read'], days: 7 }, 'agent:did:agent:z6Mk')
+  assert.equal(kindOf(asked), 'kindAgent')
+  assert.deepEqual(titleOf(asked), { label: 'capabilityRequest' })
+  assert.equal(summaryOf(asked), 'vault.read:work inbox.read')
   assert.equal(kindOf(request('wallet', { action: 'join' })), 'kindWallet')
   assert.equal(kindOf(request('something')), 'kindOther')
 })

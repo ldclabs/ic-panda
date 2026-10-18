@@ -35,7 +35,7 @@
 
   onMount(() => {
     void reload()
-    return onChange(['agent/changed', 'approval/changed'], reload)
+    return onChange(['agent/changed', 'approval/changed', 'audit/changed'], reload)
   })
 
   const labelOf = (who: string) => (who === 'owner' ? t('owner') : (agents.find((a) => a.agent_id === who)?.label ?? who))

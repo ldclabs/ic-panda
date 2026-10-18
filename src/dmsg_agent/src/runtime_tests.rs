@@ -767,3 +767,59 @@ fn unchanged_state_is_not_written_and_turns_are_per_agent() {
         );
     });
 }
+
+#[test]
+fn sessions_are_listed_and_a_removed_agent_is_forgotten() {
+    let dir = Temp::new();
+    with_room(&dir);
+    let hosted = runtime(&dir);
+    let Hosted(runtime, path) = &hosted;
+    let agent = signer(1).agent_id().to_string();
+    block_on(async {
+        call_in(
+            &hosted,
+            "older",
+            "agent_protocols_identity_current",
+            json!({}),
+        )
+        .await
+        .unwrap();
+        call_in(
+            &hosted,
+            "newer",
+            "agent_protocols_identity_current",
+            json!({}),
+        )
+        .await
+        .unwrap();
+        let sessions = runtime.sessions(path, &agent).unwrap();
+        let names: Vec<&str> = sessions
+            .iter()
+            .map(|s| s["session"].as_str().unwrap())
+            .collect();
+        assert_eq!(names.len(), 2);
+        assert!(names.contains(&"older") && names.contains(&"newer"));
+        assert!(
+            sessions
+                .iter()
+                .all(|s| s["updated_at"].as_i64().unwrap() > 0)
+        );
+
+        let turn = runtime.turn(&agent).await;
+        runtime.forget(&turn, path).unwrap();
+        drop(turn);
+        assert!(runtime.sessions(path, &agent).unwrap().is_empty());
+        let conn = rusqlite::Connection::open(path).unwrap();
+        let kept: i64 = conn
+            .query_row("SELECT COUNT(*) FROM connectors", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(kept, 0);
+        // The room it knew is gone with it.
+        assert_eq!(
+            read(&hosted, "older", "agent-protocols://rooms/room1")
+                .await
+                .unwrap_err(),
+            dmsg_types::Error::NotFound
+        );
+    });
+}

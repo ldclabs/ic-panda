@@ -14,6 +14,7 @@
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single, units, when } from '../rpc'
+  import AgentAccess from './agents/AgentAccess.svelte'
 
   /**
    * Team wallets: one canister per team. Proposing, executing what members
@@ -53,6 +54,10 @@
   let maxFee = $state('10000')
   // Cosigner key.
   let cosignerLabel = $state('')
+  // This account's Agent IDs: their names, what they may do here, and which propose for this member.
+  let hosted = $state<any[]>([])
+  let access = $state(false)
+  let delegating = $state<Record<string, boolean> | null>(null)
   /** The wallet whose balances and audit are shown; they are read again only on request. */
   let opened = ''
 
@@ -101,7 +106,14 @@
   const reload = single(async () => {
     if (!unlocked) return
     try {
-      const [list, mine, keys, paid] = await Promise.all([call('wallet/list'), call('wallet/principal'), call('wallet/cosigners'), readDeposits()])
+      const [list, mine, keys, paid, ids] = await Promise.all([
+        call('wallet/list'),
+        call('wallet/principal'),
+        call('wallet/cosigners'),
+        readDeposits(),
+        call<any>('agent/ids').catch(() => null)
+      ])
+      hosted = ids?.agents ?? []
       wallets = list
       principal = mine.principal
       cosigners = keys
@@ -134,6 +146,17 @@
   }
 
   const approve = async (request: any) => bridge(() => window.dmsg.openApproval(request.id))
+
+  const agentName = (did: string) => hosted.find((a) => a.agent_id === did)?.label ?? did
+
+  /** Which of this account's Agent IDs may propose for its member: a membership proposal the admins approve. */
+  const proposeAgents = () =>
+    attempt(async () => {
+      const agent_ids = Object.keys(delegating ?? {}).filter((id) => delegating?.[id])
+      await call('wallet/member_agents', { wallet: selected, agent_ids })
+      delegating = null
+      toast(() => t('twAgentsProposed'))
+    })
 
   const getQuote = () => attempt(async () => (quote = await call('wallet/quote')))
 
@@ -354,18 +377,64 @@
         </Section>
       {/if}
 
-      <Section title={t('members')} icon="user" flush>
+      <Section title={t('members')} description={t('twMembersAgentsHint')} icon="user" flush testid="wallet-members">
+        {#snippet actions()}
+          {#if unlocked}<button class={buttonClass('secondary', 'sm')} onclick={() => (access = true)} data-testid="wallet-agent-access"><Icon name="agents" />{t('agentAccessButton')}</button>{/if}
+        {/snippet}
         <ul class="divide-y divide-line border-t border-line">
           {#each wallet.members as m (m.id)}
-            <li class="flex flex-wrap items-center gap-2 px-5 py-2.5">
-              <Id id={m.id} />
-              <Pill>{m.role}</Pill>
-              {#if m.status !== 'Active'}<Pill tone="warn">{m.status}</Pill>{/if}
-              <span class="text-[12.5px] text-muted">{m.label}</span>
+            <li class="grid gap-1 px-5 py-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <Id id={m.id} />
+                <Pill>{m.role}</Pill>
+                {#if m.status !== 'Active'}<Pill tone="warn">{m.status}</Pill>{/if}
+                <span class="text-[12.5px] text-muted">{m.label}</span>
+                {#if me?.id === m.id && unlocked && hosted.length}
+                  <span class="flex-1"></span>
+                  <button
+                    class={buttonClass('ghost', 'xs')}
+                    onclick={() => (delegating = Object.fromEntries(hosted.map((a) => [a.agent_id, m.agent_ids.includes(a.agent_id)])))}
+                    data-testid="wallet-member-agents">{t('twMemberAgents')}</button
+                  >
+                {/if}
+              </div>
+              {#if m.agent_ids?.length}
+                <div class="flex flex-wrap items-center gap-1 text-[11.5px] text-faint">
+                  {t('twProposesFor')}
+                  {#each m.agent_ids as id (id)}<Pill class="font-mono font-normal">{agentName(id)}</Pill>{/each}
+                </div>
+              {/if}
+              {#if me?.id === m.id && delegating}
+                <div class="mt-1 grid gap-2 rounded-lg border border-line bg-surface-2 p-2.5">
+                  <div class="flex flex-wrap gap-3">
+                    {#each hosted as a (a.agent_id)}
+                      <label class="inline-flex items-center gap-1.5 text-[12.5px]">
+                        <input type="checkbox" bind:checked={() => delegating?.[a.agent_id] ?? false, (on) => delegating && (delegating[a.agent_id] = on)} />{a.label}
+                      </label>
+                    {/each}
+                  </div>
+                  <p class="text-[11.5px] text-faint">{t('twMemberAgentsHint')}</p>
+                  <div class="flex justify-end gap-2">
+                    <button class={buttonClass('ghost', 'sm')} onclick={() => (delegating = null)}>{t('cancel')}</button>
+                    <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={proposeAgents} data-testid="wallet-member-agents-propose">{t('twPropose')}</button>
+                  </div>
+                </div>
+              {/if}
             </li>
           {/each}
         </ul>
       </Section>
+      <AgentAccess
+        bind:open={access}
+        title={t('walletAgentAccess', { name: wallet.name })}
+        description={t('walletAgentAccessHint')}
+        testid="wallet-access"
+        choices={[
+          { capability: 'wallet.read', label: t('walletRead') },
+          { capability: `wallet.propose:${wallet.wallet}`, label: t('walletPropose') },
+          { capability: `wallet.execute:${wallet.wallet}`, label: t('walletExecute') }
+        ]}
+      />
     {/if}
 
     <Section title={t('twNew')} description={t('twNewHint')} icon="add">

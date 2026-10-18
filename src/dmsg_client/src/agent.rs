@@ -19,7 +19,7 @@ use crate::vault::{Field, Item};
 use agent_protocols::{
     delegation::{
         DELEGATION_GRANT, DELEGATION_REVOKE, DelegationCredential, DelegationGrantPayload,
-        DelegationPayload, DelegationRevokePayload, PROTOCOL, validate_audience,
+        DelegationPayload, DelegationRevokePayload, DelegationStatus, PROTOCOL, validate_audience,
         validate_delegation_grant_payload,
     },
     error::SdkError,
@@ -223,6 +223,43 @@ fn check_list(values: &[String], name: &str, valid: impl Fn(&str) -> bool) -> Re
     )
 }
 
+/// Whether a controller's ceiling covers a grant of `scopes` for `audiences`.
+fn covers(authority: &DelegationAuthority, scopes: &[String], audiences: &[String]) -> bool {
+    match authority {
+        DelegationAuthority::Unrestricted => true,
+        DelegationAuthority::Restricted {
+            scopes: ceiling,
+            audiences: parties,
+        } => {
+            scopes.iter().all(|s| ceiling.contains(s))
+                && audiences.iter().all(|a| parties.contains(a))
+        }
+    }
+}
+
+/// The current controller to sign for `scopes` and `audiences`: the
+/// `requested` one, which must cover them, else the newest that does.
+///
+/// # Errors
+/// Returns `Error::Forbidden` when the requested one is retired or unknown,
+/// or no current controller covers them.
+pub(crate) fn controller_for(
+    info: &PrincipalInfo,
+    requested: Option<u32>,
+    scopes: &[String],
+    audiences: &[String],
+) -> Result<u32> {
+    info.state
+        .controllers
+        .iter()
+        .filter(|c| c.retired_at.is_none())
+        .filter(|c| requested.is_none_or(|g| c.generation == g))
+        .filter(|c| covers(&c.delegation, scopes, audiences))
+        .map(|c| c.generation)
+        .max()
+        .ok_or(Error::Forbidden)
+}
+
 /// Sign `kind` for principal `principal_id` with a controller seed whose
 /// binding starts at `valid_from`, taking the nonce from `next` (Agent
 /// Identity §6.2: `max(last + 1, created_at)`). Returns the envelope and
@@ -375,7 +412,9 @@ impl Client {
             .ic
             .update(account.home, "publish_principal", (account.id,))
             .await?;
-        version
+        let version = version?;
+        self.principal_settled().await;
+        Ok(version)
     }
 
     /// Let the delegation service drop its cached principal document, after
@@ -551,22 +590,28 @@ impl Client {
         Ok(Zeroizing::new(seed))
     }
 
-    /// Ask to grant `subject` a credential signed by controller `generation`.
+    /// Ask to grant `subject` a credential, or with `replaces` to replace
+    /// that credential under its ID: the same subject, scopes and audiences
+    /// among the old ones, and a new lifetime. Controller `generation`
+    /// signs it, by default the newest whose ceiling covers it.
     ///
     /// # Errors
     /// Returns `Error::InvalidInput` for an invalid subject, scope,
-    /// audience or lifetime, and `Error::Forbidden` for a retired or
-    /// unknown controller.
+    /// audience or lifetime, or a replacement that widens the credential or
+    /// changes its subject; `Error::Forbidden` when no current controller
+    /// (or not the requested one) covers it; `Error::NotFound` for an
+    /// unknown credential.
     #[allow(clippy::too_many_arguments)]
     pub async fn delegation_grant_request(
         &mut self,
         source: &str,
-        generation: u32,
+        generation: Option<u32>,
         subject: &str,
         scopes: Vec<String>,
         audiences: Vec<String>,
         days: u64,
         relationship: Option<String>,
+        replaces: Option<&str>,
     ) -> Result<Json> {
         self.keys()?;
         let account = self.account()?.id.to_string();
@@ -577,55 +622,86 @@ impl Client {
         let subject_id: AgentId = subject
             .parse()
             .map_err(|_| dmsg_types::invalid("subject"))?;
+        let id = match replaces {
+            Some(id) => {
+                let old = self.delegation_credential(&account, id).await?;
+                ensure_valid(
+                    old.subject == subject_id
+                        && old.status != DelegationStatus::Revoked
+                        && scopes.iter().all(|s| old.scopes.contains(s))
+                        && audiences.iter().all(|a| old.audiences.contains(a)),
+                    "replaces",
+                )?;
+                id.to_string()
+            }
+            None => format!("{account}.{}", b64(&random_id()[..16])),
+        };
+        let generation = controller_for(&info, generation, &scopes, &audiences)?;
         let now = now_ms();
         let kind = DelegationKind::Grant {
-            id: format!("{account}.{}", b64(&random_id()[..16])),
+            id,
             subject: subject_id.to_string(),
             scopes,
             audiences,
             expires_at: now + days * DAY,
             relationship,
         };
-        self.delegation_prepare(source, &info, generation, kind, now)
+        self.delegation_prepare(source, generation, kind, now)
     }
 
-    /// Ask to revoke credential `id` with controller `generation`.
+    /// Ask to revoke credential `id`. Controller `generation` signs it, by
+    /// default the newest whose ceiling covers the credential.
     ///
     /// # Errors
-    /// Returns `Error::InvalidInput` for another principal's credential.
+    /// Returns `Error::InvalidInput` for another principal's credential,
+    /// `Error::NotFound` for an unknown one and `Error::Forbidden` when no
+    /// current controller (or not the requested one) covers it.
     pub async fn delegation_revoke_request(
         &mut self,
         source: &str,
-        generation: u32,
+        generation: Option<u32>,
         id: &str,
         reason: Option<String>,
     ) -> Result<Json> {
         self.keys()?;
         let account = self.account()?.id.to_string();
-        ensure_valid(id.starts_with(&format!("{account}.")), "id")?;
         let info = self.principal().await?.ok_or(Error::NotFound)?;
+        let credential = self.delegation_credential(&account, id).await?;
+        let generation =
+            controller_for(&info, generation, &credential.scopes, &credential.audiences)?;
         let kind = DelegationKind::Revoke {
             id: id.into(),
             reason,
         };
-        self.delegation_prepare(source, &info, generation, kind, now_ms())
+        self.delegation_prepare(source, generation, kind, now_ms())
+    }
+
+    /// Credential `id` of this account's principal, as the delegation
+    /// service holds it.
+    async fn delegation_credential(
+        &mut self,
+        account: &str,
+        id: &str,
+    ) -> Result<DelegationCredential> {
+        ensure_valid(id.starts_with(&format!("{account}.")), "id")?;
+        let service = DelegationClient::with_client(self.config.relay_origin(), self.cloud.http());
+        match service.delegation(id).await {
+            Ok(credential) => Ok(credential),
+            Err(SdkError::HttpStatus { status: 404, .. }) => Err(Error::NotFound),
+            Err(SdkError::HttpStatus { status, code, .. }) if status < 500 => {
+                Err(refusal(&code.unwrap_or_else(|| format!("http_{status}"))))
+            }
+            Err(error) => Err(Error::Unavailable(error.to_string())),
+        }
     }
 
     fn delegation_prepare(
         &mut self,
         source: &str,
-        info: &PrincipalInfo,
         generation: u32,
         kind: DelegationKind,
         now: u64,
     ) -> Result<Json> {
-        ensure(
-            info.state
-                .controllers
-                .iter()
-                .any(|c| c.generation == generation && c.retired_at.is_none()),
-            Error::Forbidden,
-        )?;
         let job = DelegationJob {
             id: hex::encode(random_id()),
             generation,

@@ -58,6 +58,8 @@ export interface DesktopBridge {
   login(origin: string, bind?: boolean): Promise<{ url: string; expires_at: number }>
   /** Open a started login's page again, such as after its browser tab was closed. */
   openLogin(url: string): Promise<void>
+  /** The `dmsg` binary and home an MCP client runs `dmsg mcp` with. */
+  runtime(): Promise<{ binary: string; home: string }>
   /**
    * Add files to the library's `folder`: those the person dropped on the
    * window, else the ones they pick in a system dialog (files, or with

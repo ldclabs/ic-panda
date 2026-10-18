@@ -100,6 +100,28 @@ pub const HOST_CAPABILITIES: [&str; 7] = [
 /// What every agent may do without a grant.
 pub const DEFAULT_CAPABILITIES: [&str; 1] = ["profile.read"];
 
+/// The vocabulary as people type it: each capability, with the kind of
+/// target it names after the colon.
+pub fn vocabulary() -> Vec<String> {
+    CAPABILITIES
+        .iter()
+        .map(|c| match c.strip_suffix(':') {
+            None => c.to_string(),
+            Some(name) => {
+                let target = match name {
+                    "vault.read" | "vault.write" => "tag",
+                    "vault.secret" => "item",
+                    "files.read" | "files.write" => "folder",
+                    "channel.read" | "channel.publish" => "channel",
+                    "wallet.propose" | "wallet.execute" => "wallet",
+                    _ => "origin",
+                };
+                format!("{name}:<{target}>")
+            }
+        })
+        .collect()
+}
+
 /// Mail decryption keys: public key to secret, both base64url.
 type MailKeys = std::collections::BTreeMap<String, String>;
 
@@ -114,6 +136,12 @@ pub struct AgentEntry {
     pub resident: bool,
     /// SHA-256 of the agent's credential, hex.
     pub credential: Option<String>,
+    /// When the credential was issued, Unix milliseconds.
+    #[serde(default)]
+    pub credential_at: Option<u64>,
+    /// The owner paused it: its credential reaches nothing until resumed.
+    #[serde(default)]
+    pub paused: bool,
     /// Unix milliseconds.
     pub created_at: u64,
 }
@@ -126,6 +154,8 @@ impl AgentEntry {
             "agent_id": self.agent_id,
             "resident": self.resident,
             "credential": self.credential.is_some(),
+            "credential_at": self.credential_at,
+            "paused": self.paused,
             "created_at": self.created_at,
         })
     }
@@ -200,6 +230,30 @@ pub fn validate_capability(capability: &str) -> Result<()> {
         None => capability == *c,
     });
     ensure_valid(known, "capability")
+}
+
+/// Check a grant's capabilities and lifetime: 1 to 16 capabilities from the
+/// vocabulary, for 1 to 366 days or until revoked.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for anything else.
+pub fn check_grant(capabilities: &[String], days: Option<u64>) -> Result<()> {
+    ensure_valid(
+        !capabilities.is_empty() && capabilities.len() <= 16,
+        "capabilities",
+    )?;
+    for capability in capabilities {
+        validate_capability(capability)?;
+    }
+    ensure_valid(days.is_none_or(|d| (1..=366).contains(&d)), "days")
+}
+
+/// Whether granting `capability` deserves a second look: one naming every
+/// target, a secret's value, or carrying out a wallet's transactions.
+pub fn sensitive(capability: &str) -> bool {
+    capability.ends_with(":*")
+        || capability.starts_with("vault.secret:")
+        || capability.starts_with("wallet.execute:")
 }
 
 /// Whether `granted` covers `needed`: equal, or `<name>:*` for any target.
@@ -353,6 +407,8 @@ impl Client {
             agent_id: agent_id(&signing_public(&seed)),
             resident: false,
             credential: None,
+            credential_at: None,
+            paused: false,
             created_at: now,
         };
         agents.list.push(entry.clone());
@@ -432,8 +488,80 @@ impl Client {
         let mut entry = self.agent_find(name)?;
         let credential = format!("dmsg-agent-{}", hex::encode(random_id()));
         entry.credential = Some(credential_digest(&credential));
+        entry.credential_at = Some(now_ms());
         self.agent_update(&entry)?;
         Ok(credential)
+    }
+
+    /// Withdraw an Agent ID's credential without issuing another: its MCP
+    /// sessions reach nothing from their next call.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an unknown Agent ID.
+    pub fn agent_credential_revoke(&mut self, name: &str) -> Result<AgentEntry> {
+        let mut entry = self.agent_find(name)?;
+        entry.credential = None;
+        entry.credential_at = None;
+        self.agent_update(&entry)?;
+        Ok(entry)
+    }
+
+    /// Pause an Agent ID, or resume it: while paused its credential reaches
+    /// nothing, whatever its grants.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an unknown Agent ID.
+    pub fn agent_pause(&mut self, name: &str, paused: bool) -> Result<AgentEntry> {
+        let mut entry = self.agent_find(name)?;
+        entry.paused = paused;
+        self.agent_update(&entry)?;
+        Ok(entry)
+    }
+
+    /// Stop hosting an Agent ID on this device: its grants are revoked, its
+    /// credential and resident copies go, and so do its mail keys. Its key
+    /// stays in the vault, where other devices of the account may host it;
+    /// the same label brings it back. The caller forgets its connector
+    /// state.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked and `Error::NotFound` for an
+    /// unknown Agent ID.
+    pub fn agent_remove(&mut self, via: &str, name: &str) -> Result<AgentEntry> {
+        let entry = self.agent_find(name)?;
+        let keys = self.keys()?;
+        let now = now_ms();
+        let mut grants = self.capability_grants()?;
+        for grant in grants
+            .iter_mut()
+            .filter(|g| g.grantee == entry.agent_id && g.live(now))
+        {
+            grant.revoked_at = Some(now);
+            self.audit_grant(via, "grants/revoke", grant);
+        }
+        if entry.resident
+            && let Some(secure) = self.secure()
+        {
+            self.forget_resident(secure.as_ref(), &entry.agent_id)?;
+        }
+        self.workspace.put_private(keys, GRANTS, &grants)?;
+        self.workspace
+            .delete_private(&format!("{MAIL_KEYS}{}", entry.agent_id))?;
+        let mut agents = self.agents()?;
+        agents.list.retain(|a| a.agent_id != entry.agent_id);
+        if agents.active.as_deref() == Some(entry.agent_id.as_str()) {
+            agents.active = None;
+        }
+        self.save_agents(&agents)?;
+        self.audit(
+            "owner",
+            via,
+            "agent/remove",
+            Some(&entry.agent_id),
+            None,
+            "ok",
+        );
+        Ok(entry)
     }
 
     /// The Agent ID whose credential this is; readable while locked.
@@ -568,16 +696,27 @@ impl Client {
         capabilities: Vec<String>,
         days: Option<u64>,
     ) -> Result<CapabilityGrant> {
+        let id = hex::encode(&random_id()[..16]);
+        self.capability_grant_as(via, id, grantee, capabilities, days)
+    }
+
+    /// [`Self::capability_grant`] under a given grant ID; a grant already
+    /// kept under it is returned as it is, so an approved request that
+    /// runs again grants once.
+    pub(crate) fn capability_grant_as(
+        &mut self,
+        via: &str,
+        id: String,
+        grantee: &str,
+        capabilities: Vec<String>,
+        days: Option<u64>,
+    ) -> Result<CapabilityGrant> {
         let grantee = self.agent_find(grantee)?.agent_id;
-        ensure_valid(
-            !capabilities.is_empty() && capabilities.len() <= 16,
-            "capabilities",
-        )?;
-        for capability in &capabilities {
-            validate_capability(capability)?;
-        }
-        ensure_valid(days.is_none_or(|d| (1..=366).contains(&d)), "days")?;
+        check_grant(&capabilities, days)?;
         let mut grants = self.capability_grants()?;
+        if let Some(kept) = grants.iter().find(|g| g.id == id) {
+            return Ok(kept.clone());
+        }
         let now = now_ms();
         // The audit record keeps what the revoked and expired ones were.
         if grants.len() >= MAX_GRANTS {
@@ -585,7 +724,7 @@ impl Client {
         }
         ensure(grants.len() < MAX_GRANTS, Error::QuotaExceeded)?;
         let grant = CapabilityGrant {
-            id: hex::encode(&random_id()[..16]),
+            id,
             grantee,
             capabilities,
             created_at: now,
@@ -598,6 +737,33 @@ impl Client {
         // After the grants, so the copy never allows more than they do.
         self.grants_changed(&grant.grantee, &grants)?;
         Ok(grant)
+    }
+
+    /// An Agent ID asks for capabilities: an approval request the owner
+    /// decides, which grants them once approved.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` for an unknown capability or lifetime,
+    /// `Error::Locked` while locked and `Error::QuotaExceeded` while the
+    /// agent's earlier requests fill its share of the queue.
+    pub fn capability_request(
+        &mut self,
+        grantee: &str,
+        capabilities: Vec<String>,
+        days: Option<u64>,
+    ) -> Result<Json> {
+        let grantee = self.agent_find(grantee)?.agent_id;
+        check_grant(&capabilities, days)?;
+        let request = self.approval_create(
+            &format!("agent:{grantee}"),
+            crate::approval::Action::Grant {
+                grantee: grantee.clone(),
+                capabilities,
+                days,
+            },
+            now_ms() + crate::approval::APPROVAL_TTL_MS,
+        )?;
+        self.approval_view(&request)
     }
 
     /// Renew the copy of a resident grantee's grants from `grants`.
@@ -644,7 +810,7 @@ impl Client {
             return Ok(());
         }
         let granted = self
-            .live_grants(grantee)?
+            .capability_live(grantee)?
             .iter()
             .any(|g| g.capabilities.iter().any(|c| covers(c, needed)));
         ensure(granted, Error::Forbidden)
@@ -661,7 +827,7 @@ impl Client {
         name: &str,
         targets: Vec<String>,
     ) -> Result<Vec<String>> {
-        let grants = self.live_grants(grantee)?;
+        let grants = self.capability_live(grantee)?;
         Ok(targets
             .into_iter()
             .filter(|target| {
@@ -675,7 +841,10 @@ impl Client {
 
     /// `grantee`'s live grants, from the sealed ones or while locked from a
     /// resident Agent ID's copy.
-    fn live_grants(&self, grantee: &str) -> Result<Vec<CapabilityGrant>> {
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked for an Agent ID that is not resident.
+    pub fn capability_live(&self, grantee: &str) -> Result<Vec<CapabilityGrant>> {
         let grants = match self.keys {
             Some(_) => self.capability_grants()?,
             None => self.resident_grants(grantee)?,

@@ -22,6 +22,7 @@ export function kindOf(request: any): Label {
       return d.total ? 'kindPayment' : 'kindName'
     case 'delegation':
     case 'principal':
+    case 'grant':
       return 'kindAgent'
     case 'account':
     case 'device_capabilities':
@@ -105,6 +106,8 @@ export function titleOf(request: any): Title {
       return { label: d.kind?.type === 'revoke' ? 'delegationRevoke' : 'delegationGrant' }
     case 'principal':
       return { label: 'principalChange' }
+    case 'grant':
+      return { label: 'capabilityRequest' }
     case 'account':
       return changeLabels[d.change] ? { label: changeLabels[d.change] } : { label: 'kindSecurity', detail: String(d.change ?? '') }
     case 'device_capabilities':
@@ -144,6 +147,8 @@ export function summaryOf(request: any): string {
       return String(d.kind?.subject ?? d.kind?.id ?? '')
     case 'principal':
       return String(d.change ?? '')
+    case 'grant':
+      return (d.capabilities ?? []).join(' ')
     case 'account':
       return String(d.principal ?? d.op_id ?? '')
     case 'device_capabilities':

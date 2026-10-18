@@ -254,14 +254,30 @@ Rules (`src/main/policy.ts`):
   window; the approval window shows its amount, ledger and payer. A web
   application's checkout is quoted in the approval window (an asset, or a
   PANDA neuron) before it can be approved.
-- The Agents view enables the account's principal, registers and retires
-  controllers, grants and revokes credentials (each an approval request; the
-  approval window shows the agent, scopes, relying parties and expiry), hosts
-  Agent IDs (residency, the MCP credential, shown once) and grants them
-  capabilities. The host allowlist is shown, never edited. Its audit record
-  lists, locked or not, who did what on this device and through which way in
-  (`audit/list`): the owner's grants, credentials, residency and decisions,
-  marked `gui` when they came from a window, and what agents called.
+- The Agents view enables the account's principal, registers, renames,
+  rotates, retires and marks controllers compromised, grants, renews (under
+  the same ID, never wider) and revokes credentials, grouped by agent with
+  the profile hint an agent publishes (each change an approval request; the
+  approval window shows the agent by name, scopes, relying parties,
+  relationship and expiry), and lists what this device signed for them. It
+  hosts Agent IDs: residency, pausing, the MCP credential, shown once with
+  the Claude Code command and the `mcpServers` entry that run `dmsg mcp` with
+  the installed binary and home (`dmsg:runtime`), withdrawing it, the
+  sessions last used, the Agent Profile each published (signature checked,
+  self-described) and removal. It grants capabilities from the daemon's
+  vocabulary, checked before they are sent, for days or until revoked, and
+  asks again for a grant reaching every target, a secret or a wallet's
+  execution; vault tags and team wallets open the same grants for
+  themselves, and a wallet member names the Agent IDs that propose for it.
+  Agent Discourse shows what a connector holds (rooms, latest records, held
+  drafts, pending inbox) through `ap/read`, which fetches and marks nothing;
+  Agent Mail and Agent Knowledge run their tools as an Agent ID. The host
+  allowlist and the blocked senders are shown, never edited. Each part
+  loads on its own, so the Agent IDs show while locked or offline. Its audit
+  record lists, locked or not, who did what on this device and through which
+  way in (`audit/list`, followed through `audit/changed`): the owner's
+  grants, credentials, residency and decisions, marked `gui` when they came
+  from a window, and what agents called.
 - Only the approval window decides a request (`approval/respond` with the
   digest of what it showed and `human: true`, added by the main process);
   only the main window confirms a browser pairing (`connect/grant`). The

@@ -29,11 +29,13 @@
 use crate::resources::{Resource, RoomPart};
 use agent_protocols::{
     error::SdkError,
+    http_client::ProfileClient,
     identity::{AgentId, AgentSigner, service_origin},
     local_connector::{
         AgentProtocolsHost, DiscoveryCache, LocalConnector, TOOL_DRAFTS_LIST, TOOL_NAMES,
         TOOL_ROOMS_LIST,
     },
+    profile::materialize_profile,
 };
 use dmsg_types::{Error, Result, ensure, ensure_valid};
 use rusqlite::{Connection, OptionalExtension, params};
@@ -242,6 +244,99 @@ impl Runtime {
     /// The configured hosts.
     pub fn hosts(&self) -> &[AgentProtocolsHost] {
         &self.hosts
+    }
+
+    /// The configured senders whose mail is deleted unopened.
+    pub fn blocked_senders(&self) -> Vec<String> {
+        self.blocked_senders
+            .iter()
+            .map(ToString::to_string)
+            .collect()
+    }
+
+    /// The sessions of an Agent ID the state file at `path` remembers,
+    /// newest first: `[{session, updated_at}]`.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when storage fails.
+    pub fn sessions(&self, path: &Path, agent_id: &str) -> Result<Vec<Value>> {
+        let conn = open(path)?;
+        let mut statement = conn
+            .prepare(
+                "SELECT session, updated_at FROM sessions WHERE agent_id = ?1
+                 ORDER BY updated_at DESC",
+            )
+            .map_err(storage)?;
+        let rows = statement
+            .query_map(params![agent_id], |r| {
+                Ok(json!({"session": r.get::<_, String>(0)?, "updated_at": r.get::<_, i64>(1)?}))
+            })
+            .map_err(storage)?;
+        rows.collect::<std::result::Result<_, _>>().map_err(storage)
+    }
+
+    /// Delete everything the state file at `path` keeps of the Agent ID
+    /// whose turn this is: its connector and its sessions.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when storage fails.
+    pub fn forget(&self, turn: &Turn, path: &Path) -> Result<()> {
+        let conn = open(path)?;
+        let tx = conn.unchecked_transaction().map_err(storage)?;
+        tx.execute(
+            "DELETE FROM connectors WHERE agent_id = ?1",
+            params![turn.agent_id],
+        )
+        .map_err(storage)?;
+        tx.execute(
+            "DELETE FROM sessions WHERE agent_id = ?1",
+            params![turn.agent_id],
+        )
+        .map_err(storage)?;
+        tx.commit().map_err(storage)
+    }
+
+    /// The Agent Profile `agent_id` published, at each profile service the
+    /// configured hosts name: `[{service, profile}]`, or `{service, error}`
+    /// where reading failed. A profile is the latest accepted update, its
+    /// signature checked here (Agent Profile §8); a service without one
+    /// answers `profile: null`.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` for an invalid Agent ID.
+    pub async fn profiles(&self, agent_id: &str) -> Result<Vec<Value>> {
+        let id: AgentId = agent_id.parse().map_err(|_| dmsg_types::invalid("agent"))?;
+        let mut services: Vec<String> = Vec::new();
+        for service in self.hosts.iter().filter_map(|h| h.profile_service.clone()) {
+            if !services.contains(&service) {
+                services.push(service);
+            }
+        }
+        let mut found = Vec::new();
+        for service in services {
+            let client = ProfileClient::discover_with_client(&service, self.http.clone()).await;
+            let read = match client.profile_events(&id, Some(1)).await {
+                Ok(page) => match page.result.first() {
+                    None => Ok(Value::Null),
+                    Some(envelope) => materialize_profile(envelope)
+                        .map_err(ToolError::from)
+                        .and_then(|profile| match profile.id == id {
+                            true => Ok(json!(profile)),
+                            false => {
+                                Err(SdkError::InvalidActor("another Agent ID's profile".into())
+                                    .into())
+                            }
+                        }),
+                },
+                Err(SdkError::HttpStatus { status: 404, .. }) => Ok(Value::Null),
+                Err(error) => Err(ToolError::from(error)),
+            };
+            found.push(match read {
+                Ok(profile) => json!({"service": service, "profile": profile}),
+                Err(error) => json!({"service": service, "error": error}),
+            });
+        }
+        Ok(found)
     }
 
     /// The origins a grant of `capability` may reach: the configured hosts,

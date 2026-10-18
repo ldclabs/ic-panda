@@ -27,8 +27,10 @@ import { DaemonError } from './error.ts'
  * after a system dialog) and has the daemon read it
  * (`files/preferences_reload`).
  * `ap/call` runs only the Mail and Knowledge tools (`DESKTOP_TOOLS`) as a
- * hosted Agent ID; the MCP Events methods only manage endpoints, never read
- * or acknowledge deliveries. The agent methods (`mcp/*`) answer only an
+ * hosted Agent ID; `ap/read` shows what an Agent ID's connector holds
+ * (rooms, timelines, held drafts) without fetching or saving anything. The
+ * MCP Events methods only manage endpoints, never read or acknowledge
+ * deliveries. The agent methods (`mcp/*`) answer only an
  * agent's own credential. The `app/*` methods are the main process's, which
  * declares at `app/initialize` that only a person's input is activity.
  */
@@ -184,6 +186,7 @@ export const WINDOW_METHODS = new Set([
   'wallet/refund',
   'wallet/join',
   'wallet/proposals',
+  'wallet/member_agents',
   'wallet/send',
   'wallet/approve',
   'wallet/reject',
@@ -226,19 +229,28 @@ export const WINDOW_METHODS = new Set([
   'agent/enable',
   'agent/register',
   'agent/retire',
+  'agent/compromise',
+  'agent/rename',
   'agent/publish',
+  'agent/refresh',
   'agent/grant',
   'agent/revoke',
   'agent/credentials',
+  'agent/delegations',
   'agent/ids',
   'agent/create',
   'agent/use',
   'agent/resident',
   'agent/credential',
+  'agent/credential_revoke',
+  'agent/pause',
+  'agent/remove',
+  'agent/profile',
   'grants/list',
   'grants/add',
   'grants/revoke',
   'ap/call',
+  'ap/read',
   'audit/list',
   'mcp-events/create',
   'mcp-events/list',
@@ -286,14 +298,20 @@ const GUI_SOURCED = new Set([
   'agent/enable',
   'agent/register',
   'agent/retire',
+  'agent/compromise',
+  'agent/rename',
   'agent/grant',
   'agent/revoke',
   'agent/create',
   'agent/resident',
   'agent/credential',
+  'agent/credential_revoke',
+  'agent/pause',
+  'agent/remove',
   'grants/add',
   'grants/revoke',
   'ap/call',
+  'ap/read',
   'wallet/create',
   'wallet/join',
   'wallet/approve',

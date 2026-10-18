@@ -4999,6 +4999,74 @@ fn desktop_agents() {
     assert_eq!(credentials.as_array().unwrap().len(), 1);
     assert_eq!(credentials[0]["status"], "active");
 
+    // A restricted controller signs only within its ceiling: a grant goes to
+    // the newest controller that covers it, and a credential is renewed
+    // under its own ID, never widened.
+    let request = a.run(&[
+        "agent",
+        "controller",
+        "register",
+        "--name",
+        "screen",
+        "--scope",
+        "inbox.screen",
+        "--audience",
+        "https://dmsg.net",
+    ]);
+    assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
+    let before = credentials[0]["expires_at"].as_i64().unwrap();
+    let renew = a.run(&[
+        "agent",
+        "grant",
+        "claude",
+        "--scope",
+        "message.draft",
+        "--audience",
+        "https://dmsg.net",
+        "--days",
+        "30",
+        "--replaces",
+        &id,
+    ]);
+    assert_eq!(renew["detail"]["generation"], 1);
+    assert_eq!(renew["detail"]["kind"]["id"], id.as_str());
+    assert_eq!(a.decide(&http, &renew, true).unwrap()["state"], "done");
+    let credentials = a.run(&["agent", "credentials"]);
+    assert_eq!(credentials.as_array().unwrap().len(), 1);
+    assert!(credentials[0]["expires_at"].as_i64().unwrap() > before);
+    assert_eq!(
+        a.fail(&[
+            "agent",
+            "grant",
+            "claude",
+            "--scope",
+            "inbox.screen",
+            "--audience",
+            "https://dmsg.net",
+            "--replaces",
+            &id,
+        ]),
+        "INVALID_INPUT"
+    );
+    assert_eq!(
+        a.fail(&[
+            "agent",
+            "grant",
+            "claude",
+            "--scope",
+            "message.draft",
+            "--audience",
+            "https://dmsg.net",
+            "--generation",
+            "2",
+        ]),
+        "FORBIDDEN"
+    );
+    assert_eq!(
+        delegation_verdict(&env, &account, &id, "https://dmsg.net")["usable"],
+        true
+    );
+
     // Claude Code's side: `dmsg mcp` with the agent's own credential.
     let credential = a.run(&["agent", "id", "credential", "claude"])["credential"]
         .as_str()
@@ -5012,7 +5080,7 @@ fn desktop_agents() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names.len(), 65);
+    assert_eq!(names.len(), 67);
     assert!(names.contains(&"agent_protocols_room_join") && names.contains(&"dmsg_vault_list"));
     assert!(names.contains(&"agent_protocols_mail_send"));
     for name in [
@@ -5023,6 +5091,8 @@ fn desktop_agents() {
         "dmsg_inbox_contact",
         "dmsg_action_request",
         "dmsg_delegations_list",
+        "dmsg_capabilities",
+        "dmsg_capabilities_request",
     ] {
         assert!(names.contains(&name), "{name}");
     }
@@ -5066,6 +5136,14 @@ fn desktop_agents() {
             "{method}"
         );
     }
+    // Paused, its credential reaches nothing at all; resumed, it works again.
+    a.run(&["agent", "id", "pause", "claude", "on"]);
+    assert_eq!(
+        agent_rpc("mcp/tools", Value::Null)["error"]["data"]["code"],
+        "FORBIDDEN"
+    );
+    a.run(&["agent", "id", "pause", "claude", "off"]);
+    assert!(agent_rpc("mcp/tools", Value::Null)["result"]["tools"].is_array());
     let status = http
         .get(format!("http://127.0.0.1:{}/daemon/status", a.port()))
         .bearer_auth(&credential)
@@ -5142,6 +5220,16 @@ fn desktop_agents() {
         .tool("agent_protocols_room_state", json!({"room_id": room}))
         .unwrap();
     assert_eq!(state["room"]["topic"], "W6");
+    // The owner reads what Claude's connector holds without moving it.
+    let rooms = a.run(&["ap", "--agent", "claude", "agent-protocols://rooms"]);
+    assert!(
+        rooms["rooms"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|r| r["room_id"] == room.as_str()),
+        "{rooms}"
+    );
 
     // Resources show the agent's own connector state; a subscriber hears
     // when one changes (local connector §4.4).
@@ -5267,6 +5355,55 @@ fn desktop_agents() {
         mcp.tool("dmsg_vault_list", json!({})).unwrap_err()["code"],
         "FORBIDDEN"
     );
+    // An agent may ask; only the owner's approval grants, for the days asked.
+    let mine = mcp.tool("dmsg_capabilities", json!({})).unwrap();
+    assert!(
+        mine["vocabulary"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("vault.read:<tag>"))
+    );
+    let asked = mcp
+        .tool(
+            "dmsg_capabilities_request",
+            json!({"capabilities": ["account.read"], "days": 1}),
+        )
+        .unwrap();
+    assert_eq!(asked["type"], "grant");
+    assert_eq!(asked["source"], format!("agent:{claude}"));
+    assert_eq!(
+        mcp.tool(
+            "dmsg_capabilities_request",
+            json!({"capabilities": ["payment"]})
+        )
+        .unwrap_err()["code"],
+        "INVALID_INPUT"
+    );
+    assert_eq!(
+        mcp.tool("dmsg_account_status", json!({})).unwrap_err()["code"],
+        "FORBIDDEN"
+    );
+    assert_eq!(a.decide(&http, &asked, true).unwrap()["state"], "done");
+    mcp.tool("dmsg_account_status", json!({})).unwrap();
+    let mine = mcp.tool("dmsg_capabilities", json!({})).unwrap();
+    let asked = mine["grants"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["capabilities"] == json!(["account.read"]))
+        .unwrap();
+    assert!(asked["expires_at"].as_u64().unwrap() > now_ms());
+    let granted = a.run(&["grants", "list"]);
+    let id_of = granted
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["capabilities"] == json!(["account.read"]))
+        .unwrap()["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    a.run(&["grants", "revoke", &id_of]);
     a.run(&[
         "grants",
         "add",
@@ -5578,7 +5715,7 @@ fn desktop_agents() {
     let listed = modern.request("tools/list", json!({"_meta": meta}));
     assert_eq!(listed["result"]["resultType"], "complete");
     assert_eq!(listed["result"]["cacheScope"], "private");
-    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 65);
+    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 67);
     let unknown = modern.request(
         "tools/list",
         json!({"_meta": {"io.modelcontextprotocol/protocolVersion": "2099-01-01", "io.modelcontextprotocol/clientCapabilities": {}}}),
@@ -5655,12 +5792,45 @@ fn desktop_agents() {
     assert!(timeline["items"].as_array().unwrap().len() >= 4);
     drop(mcp);
 
-    // Revoking the grant: the credential is no longer usable.
+    // Revoking the grant: the credential is no longer usable. The
+    // unrestricted controller signs it, the newest that covers it.
     let request = a.run(&["agent", "revoke", &id]);
+    assert_eq!(request["detail"]["generation"], 1);
     assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
     let verdict = delegation_verdict(&env, &account, &id, "https://dmsg.net");
     assert_eq!(verdict["usable"], false, "{verdict}");
     assert_eq!(a.run(&["agent", "credentials"])[0]["status"], "revoked");
+
+    // No longer hosted: its grants are revoked and its credential reaches
+    // nothing; its key stays in the vault, so the label brings it back.
+    let removed = a.run(&["agent", "id", "remove", "claude"]);
+    assert_eq!(removed["agent_id"], claude.as_str());
+    let listed = a.run(&["agent", "id", "list"]);
+    assert!(
+        listed["agents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|e| e["agent_id"] != claude.as_str())
+    );
+    assert!(
+        a.run(&["grants", "list"])
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|g| g["grantee"] == claude.as_str())
+            .all(|g| !g["revoked_at"].is_null())
+    );
+    let refused = http
+        .post(format!("http://127.0.0.1:{}/app/v1", a.port()))
+        .bearer_auth(&credential)
+        .header("content-type", "application/json")
+        .body(json!({"jsonrpc": "2.0", "id": 1, "method": "mcp/tools"}).to_string())
+        .send()
+        .unwrap();
+    assert_eq!(refused.status(), 401);
+    let back = a.run(&["agent", "id", "create", "claude"]);
+    assert_eq!(back["agent_id"], claude.as_str());
     env.finish();
 }
 

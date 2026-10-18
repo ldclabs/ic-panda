@@ -36,6 +36,10 @@ pub enum AgentCommand {
         /// How the agent relates to this account, shown to relying parties.
         #[arg(long)]
         relationship: Option<String>,
+        /// Replace this credential under its ID instead: the same subject,
+        /// scopes and audiences among its own, a new lifetime.
+        #[arg(long)]
+        replaces: Option<String>,
     },
     /// Revoke a credential.
     Revoke {
@@ -140,6 +144,31 @@ pub enum IdCommand {
         /// Label or `did:agent:…`.
         agent: String,
     },
+    /// Withdraw the credential without issuing another.
+    Uncredential {
+        /// Label or `did:agent:…`.
+        agent: String,
+    },
+    /// Pause the Agent ID, so its credential reaches nothing, or resume it.
+    Pause {
+        /// Label or `did:agent:…`.
+        agent: String,
+        /// on or off.
+        state: String,
+    },
+    /// Stop hosting the Agent ID here: its grants are revoked, its
+    /// credential, resident copies, mail keys and connector state go. Its
+    /// key stays in the vault; the same label brings it back.
+    Remove {
+        /// Label or `did:agent:…`.
+        agent: String,
+    },
+    /// The Agent Profile it published, signature checked, at each profile
+    /// service the hosts name.
+    Profile {
+        /// Label or `did:agent:…`.
+        agent: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -228,6 +257,7 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
             days,
             generation,
             relationship,
+            replaces,
         } => {
             return request(
                 remote,
@@ -235,7 +265,7 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
                 "agent/grant",
                 json!({
                     "subject": subject, "scopes": scopes, "audiences": audiences, "days": days,
-                    "generation": generation, "relationship": relationship,
+                    "generation": generation, "relationship": relationship, "replaces": replaces,
                 }),
             )
             .await;
@@ -258,21 +288,36 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
         AgentCommand::Id(IdCommand::Create { label }) => ("agent/create", json!({"label": label})),
         AgentCommand::Id(IdCommand::List) => ("agent/ids", Value::Null),
         AgentCommand::Id(IdCommand::Use { agent }) => ("agent/use", json!({"agent": agent})),
-        AgentCommand::Id(IdCommand::Resident { agent, state }) => {
-            let on = match state.as_str() {
-                "on" => true,
-                "off" => false,
-                _ => return Err(Failure::new("INVALID_INPUT", "state: on or off")),
-            };
-            ("agent/resident", json!({"agent": agent, "on": on}))
-        }
+        AgentCommand::Id(IdCommand::Resident { agent, state }) => (
+            "agent/resident",
+            json!({"agent": agent, "on": on_off(&state)?}),
+        ),
         AgentCommand::Id(IdCommand::Credential { agent }) => {
             ("agent/credential", json!({"agent": agent}))
+        }
+        AgentCommand::Id(IdCommand::Uncredential { agent }) => {
+            ("agent/credential_revoke", json!({"agent": agent}))
+        }
+        AgentCommand::Id(IdCommand::Pause { agent, state }) => (
+            "agent/pause",
+            json!({"agent": agent, "on": on_off(&state)?}),
+        ),
+        AgentCommand::Id(IdCommand::Remove { agent }) => ("agent/remove", json!({"agent": agent})),
+        AgentCommand::Id(IdCommand::Profile { agent }) => {
+            ("agent/profile", json!({"agent": agent}))
         }
     };
     let value = remote.call(method, params).await?;
     print(json, &value, pretty);
     Ok(())
+}
+
+fn on_off(state: &str) -> Result<bool, Failure> {
+    match state {
+        "on" => Ok(true),
+        "off" => Ok(false),
+        _ => Err(Failure::new("INVALID_INPUT", "state: on or off")),
+    }
 }
 
 pub async fn grants(remote: &Remote, json: bool, command: GrantsCommand) -> Result<(), Failure> {
@@ -349,7 +394,8 @@ fn actor(actor: &str) -> String {
 /// Agent ID, with the same input and result, in a named connector session
 /// whose presented heads persist between commands. `tools` lists them;
 /// `agent_protocols_` and `dmsg_` may be left out of standard and dMsg
-/// names alike.
+/// names alike. An `agent-protocols://` URI instead reads that resource
+/// from the connector's local state, changing nothing.
 pub async fn ap(
     remote: &Remote,
     json: bool,
@@ -358,6 +404,16 @@ pub async fn ap(
     tool: String,
     input: Option<String>,
 ) -> Result<(), Failure> {
+    if tool.starts_with("agent-protocols://") {
+        let read = remote
+            .call(
+                "ap/read",
+                json!({"agent": agent, "session": session, "uri": tool}),
+            )
+            .await?;
+        print(json, &read["value"], pretty);
+        return Ok(());
+    }
     if tool == "tools" {
         let list = dmsg_agent::tools::tool_list();
         print(json, &Value::Array(list.clone()), |_| {

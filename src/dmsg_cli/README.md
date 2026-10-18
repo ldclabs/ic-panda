@@ -259,7 +259,7 @@ dmsg payment transfers <escrow> | revise <escrow> <leg>
 dmsg payer use [pem] | balance <ledger>
 dmsg wallet list | show <wallet> | principal | quote | create <quote> --name N [--member id:role[:label]]... | refund <quote> | join <wallet>
 dmsg wallet proposals <wallet> | proposal <wallet> <id> | send <wallet> --from A --asset X --to T --amount N --max-fee F
-dmsg wallet propose <wallet> <intent.json> | approve|reject|veto|cancel <wallet> <id> | freeze <wallet>
+dmsg wallet propose <wallet> <intent.json> | member-agents <wallet> [--agent did:agent:…]... | approve|reject|veto|cancel <wallet> <id> | freeze <wallet>
 dmsg wallet execute|broadcast|settle|reconcile <wallet> <id> | report <wallet> <id> <plan> broadcast|settled|failed
 dmsg wallet balances|audit|refuel <wallet> | cosigners | cosigner-new <label> [--hardware]
 dmsg plan catalog | status | quote <sku> <ledger|neuron> [--method cash|panda]
@@ -270,12 +270,13 @@ dmsg ops orders | transfers | claims [--after ID] | reconcile-order <id> | proce
 dmsg ops revise-transfer <id> --fee F | claim <id> [--refresh] | sweep
 dmsg agent principal show | enable [--type person|organization|team|project|other] | publish | refresh
 dmsg agent controller register [--name N] [--scope S]... [--audience A]... | retire <gen> | compromise <gen> --from <ms> | rename <gen> [--name N]
-dmsg agent grant <subject> --scope S... --audience A... [--days 30] [--generation G] [--relationship R]
+dmsg agent grant <subject> --scope S... --audience A... [--days 30] [--generation G] [--relationship R] [--replaces ID]
 dmsg agent revoke <id> [--generation G] [--reason R] | credentials | delegations
 dmsg agent id create <label> | list | use <agent> | resident <agent> on|off | credential <agent>
+dmsg agent id uncredential <agent> | pause <agent> on|off | remove <agent> | profile <agent>
 dmsg grants list | add <agent> <capability>... [--days D] | revoke <id>
 dmsg audit [--agent owner|A] [--before SEQ] [--limit 50]
-dmsg ap [--agent A] [--session S] tools | <tool> [json-input]
+dmsg ap [--agent A] [--session S] tools | <tool> [json-input] | agent-protocols://<resource>
 dmsg mcp                         # stdio MCP server; needs DMSG_AGENT_TOKEN
 ```
 
@@ -578,10 +579,16 @@ account changes an administrator device approves; the user home publishes
 the principal document to the directory (`published: false` in `principal
 show` means it has not yet, and `principal publish` retries). `controller
 register` creates the key in the vault; without `--scope`/`--audience` its
-ceiling is `*`. `agent grant` and `revoke` sign with the newest current
-controller (or `--generation`) on a device with `FormalApprove`, after
-approval; `delegations` shows where each signed event stands and
-`credentials` what the delegation service holds.
+ceiling is `*`. `agent grant` and `revoke` sign, on a device with
+`FormalApprove` and after approval, with the newest current controller whose
+ceiling covers the grant, or the revoked credential's scopes and relying
+parties (`--generation` names one, which must cover it); no such controller
+is `FORBIDDEN` before anything is approved. `agent grant --replaces <id>`
+replaces a credential under its ID for a new lifetime, with the same
+subject and scopes and relying parties among its own (anything wider is
+`INVALID_INPUT`). `delegations` shows where each signed event stands and
+`credentials` what the delegation service holds. `principal publish`
+also has the delegation service read the published document again.
 
 `agent id create <label>` hosts an Agent ID; the same label on another device
 of the account brings the same Agent ID. `agent id use` picks the one `dmsg ap`
@@ -592,14 +599,22 @@ and never in the connector state; a resident Agent ID keeps a copy beside its
 key, and `resident off` folds the keys it made while locked back in, so it
 needs the device unlocked then.
 `agent id credential` prints, once, the credential an MCP client gives
-`dmsg mcp`; issuing a new one disables the old. `grants add` gives an agent
+`dmsg mcp`; issuing a new one disables the old, and `uncredential` withdraws
+it without a new one. `pause on` makes the credential reach nothing, whatever
+the grants, until `pause off`. `remove` stops hosting the Agent ID on this
+device: its grants are revoked, its credential, resident copies, mail keys
+and connector state go, and its key stays in the vault, so the same label
+brings it back (unlocked only). `profile` shows the Agent Profile it
+published at each profile service the hosts name, its signature checked.
+`grants add` gives an agent
 capabilities over this account: `account.read`, `vault.list`,
 `vault.read:<tag>`, `vault.write:<tag>`, `vault.secret:<item>`,
 `files.read:<folder>`, `files.write:<folder>` (a folder ID or `root`,
 covering the folders under it), `channel.read:<channel>`,
 `channel.publish:<channel>`,
 `inbox.read`, `inbox.contact`, `attest.request`, `action.request`,
-`agent.delegation.read`, `events.endpoint` (`<name>:*` covers every
+`agent.delegation.read`, `events.endpoint`, `wallet.read`,
+`wallet.propose:<wallet>`, `wallet.execute:<wallet>` (`<name>:*` covers every
 target); and at the allowed hosts, each `:<origin>` or `:*` for every
 host: `agent.profile.write` (its Agent Profile, at a host or a host's
 profile service), `discourse.read`, `discourse.write`, `mail.read`,
@@ -619,7 +634,10 @@ controller keys), not even with `*`, and such a tag cannot be granted. A
 resident Agent ID's live grants are copied beside its key, and while the
 device is locked it is checked against the copy. A device keeps 64 grants;
 a new one takes the room of those revoked or expired, which the audit
-record still names.
+record still names. An agent may ask for capabilities
+(`dmsg_capabilities_request`): an approval request the owner decides, which
+grants them once approved; `dmsg_capabilities` shows the agent its live
+grants and the vocabulary.
 
 `dmsg audit` shows who did what on this device, newest first: the owner's
 capability grants and revocations, Agent ID creation, credentials and
@@ -633,6 +651,8 @@ device, is readable while locked, and keeps a year or 10,000 entries.
 `dmsg ap <tool> [input]` runs one MCP tool as an Agent ID with the same input
 and result; the tool name may leave out `agent_protocols_` or `dmsg_`, and
 `dmsg ap tools` lists them. The owner needs no grant for a standard tool.
+`dmsg ap agent-protocols://rooms` (or another resource URI) reads what the
+connector holds instead, from local state, changing nothing.
 Each command runs in the connector session
 `--session` (`cli` by default; the desktop's is `gui`), which keeps what that
 session was shown of each room, so its writes are checked against its own
@@ -700,7 +720,10 @@ recipient who charges only returns a quote (`inbox.contact`);
 `dmsg_action_request` asks the owner to sign an application action, the
 canonical CBOR a web page passes to `signAction` (`action.request`); and
 `dmsg_delegations_list` lists the principal's credentials
-(`agent.delegation.read`). 59 tools in all.
+(`agent.delegation.read`). Without any grant, `dmsg_capabilities` shows the
+agent its live grants and what may be granted, and
+`dmsg_capabilities_request` asks the owner for more: an approval request,
+never the decision. 67 tools in all, team wallets and MCP Events included.
 
 Resources (local connector §4.4): `agent-protocols://identity/current`,
 `hosts`, `rooms`, `inbox/pending`, `drafts/held`, `mail/mailboxes`,
@@ -809,7 +832,7 @@ The daemon listens on `127.0.0.1` only.
   `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit|sponsor_cancel`,
   `inbox/policy|configure|send|order|outgoing|pay|escrow|refund|list|mark`,
   `payment/transfers|revise`, `payer/use|balance`,
-  `wallet/list|show|principal|quote|create|join|proposals|proposal|propose|send|approve|reject|veto|cancel|freeze`,
+  `wallet/list|show|principal|quote|create|join|proposals|proposal|propose|member_agents|send|approve|reject|veto|cancel|freeze`,
   `wallet/execute|broadcast|settle|report|reconcile|balances|audit|refuel|cosigners|cosigner_new|policy_default|intent`,
   `plan/catalog|status|assets|quote|checkout|advance|order|checkouts|cancel|reconcile|refund`,
   `handle/resolve|price|claim|register|transfer|accept|transfer_commit|operations|reconcile`,
@@ -819,8 +842,10 @@ The daemon listens on `127.0.0.1` only.
   `legacy/shared_source|shared_prepare|shared_check|shared_request|shared_propose|shared_consent|shared_view|shared_commit|shared_activate|shared_claim_request|shared_claim|shared_joined|shared_grant|shared_receive`,
   `agent/principal|enable|register|retire|compromise|rename|publish|refresh`,
   `agent/grant|revoke|credentials|delegations`,
-  `agent/ids|create|use|resident|credential`, `grants/list|add|revoke`,
+  `agent/ids|create|use|resident|credential|credential_revoke|pause|remove|profile`,
+  `grants/list|add|revoke`,
   `audit/list {agent?, before?, limit?}`, `ap/call {agent?, session?, tool, input}`,
+  `ap/read {agent?, session?, uri}` (a resource from local state, changing nothing),
   `mcp-events/create|list|rotate|delete|bind|poll|ack|status`,
   `hint/status`, `workspace/reset`, `daemon/stop {if_idle?}` →
   `{stopped, in_flight: {approvals, account_update, root_rotation}}`. While a
@@ -832,8 +857,11 @@ The daemon listens on `127.0.0.1` only.
   count of connector calls, waiting up to 25 seconds for it to pass `after`),
   as that Agent ID; a waiting `dmsg_events_next` or `mcp/changed` is not
   activity; the owner credential never reaches those. A tool answers
-  `{"result": …}` or `{"error": {code, message, data?}}`. Events of agent
-  changes: `agent/changed`.
+  `{"result": …}` or `{"error": {code, message, data?}}`; a paused Agent ID's
+  credential reaches none of them (`FORBIDDEN`). Events of agent changes:
+  `agent/changed` for the owner's; a tool call announces only an entry in
+  the audit record (`audit/changed`), so a polling agent does not have the
+  windows read the principal again.
 - `approval/respond` and `connect/grant` require `human: true`, which only
   the desktop approval window and an interactive terminal send; the daemon
   cannot tell them from another holder of the owner credential, so the owner

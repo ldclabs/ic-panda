@@ -1,6 +1,7 @@
 //! The MCP tool catalog `dmsg mcp` serves: the 33 standard Agent Protocols
 //! local connector tools, Agent Mail and Agent Knowledge among them, and the
-//! 32 `dmsg_*` tools over this account's data, team wallets and its MCP Events endpoints
+//! 34 `dmsg_*` tools over this account's data, team wallets, the agent's own
+//! capabilities and its MCP Events endpoints
 //! (plan §6.8, §6.11). A `dmsg_*` call needs a capability the owner granted the
 //! agent (§6.9); a sensitive one only creates an approval request, which
 //! no tool can answer. So does each standard Agent Discourse, Mail and
@@ -54,7 +55,7 @@ const STANDARD_CAPABILITIES: [(&str, &str); 25] = [
 ];
 
 /// The `dmsg_*` tools: name, description, read-only, input schema.
-const DMSG_TOOLS: [(&str, &str, bool, &str); 32] = [
+const DMSG_TOOLS: [(&str, &str, bool, &str); 34] = [
     (
         "dmsg_account_status",
         "This account's lock, sync and approval state; needs account.read.",
@@ -166,6 +167,18 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 32] = [
         "The Agent Delegation credentials of this account's principal, as the delegation service lists them; needs agent.delegation.read.",
         true,
         r#"{"type":"object","properties":{}}"#,
+    ),
+    (
+        "dmsg_capabilities",
+        "What the owner granted this agent: each live grant's capabilities and expiry, and those every agent has. Call it before asking for more; needs none.",
+        true,
+        r#"{"type":"object","properties":{}}"#,
+    ),
+    (
+        "dmsg_capabilities_request",
+        "Ask the owner to grant this agent capabilities (from dmsg_capabilities' vocabulary, such as vault.read:<tag> or discourse.write:<origin>), for days or until revoked; returns the approval request, never the decision. Needs none.",
+        false,
+        r#"{"type":"object","required":["capabilities"],"properties":{"capabilities":{"type":"array","minItems":1,"maxItems":16,"uniqueItems":true,"items":{"type":"string"}},"days":{"type":"integer","minimum":1,"maximum":366}}}"#,
     ),
     (
         "dmsg_approval_status",

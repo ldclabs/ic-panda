@@ -8,25 +8,33 @@
   import AgentIds from './agents/AgentIds.svelte'
   import Audit from './agents/Audit.svelte'
   import Capabilities from './agents/Capabilities.svelte'
+  import Discourse from './agents/Discourse.svelte'
   import Events from './agents/Events.svelte'
+  import Knowledge from './agents/Knowledge.svelte'
   import Mail from './agents/Mail.svelte'
   import Overview from './agents/Overview.svelte'
 
   /**
    * Agents in parts: the account's principal with its controllers and
-   * credentials, the hosted Agent IDs, what each may reach, Agent Mail and
-   * Knowledge, MCP Events endpoints, and the audit record. Each change
-   * comes back through the daemon's `agent/changed` or `approval/changed`.
+   * credentials, the hosted Agent IDs, what each may reach, what their
+   * connectors hold of Agent Discourse, Agent Mail and Knowledge, MCP
+   * Events endpoints, and the audit record. Each part loads on its own, so
+   * the Agent IDs show while locked or offline; owner changes come back
+   * through the daemon's `agent/changed` or `approval/changed`.
    */
   let { status }: { status: any } = $props()
 
-  type Tab = 'overview' | 'ids' | 'capabilities' | 'mail' | 'events' | 'audit'
+  type Tab = 'overview' | 'ids' | 'capabilities' | 'discourse' | 'mail' | 'knowledge' | 'events' | 'audit'
 
   let tab = $state<Tab>('overview')
   let principal = $state<any>(null)
+  let principalError = $state('')
   let credentials = $state<any[]>([])
-  let hosted = $state<any>({ agents: [], hosts: [] })
+  let delegations = $state<any[]>([])
+  let hosted = $state<any>({ agents: [], hosts: [], vocabulary: [], blocked_senders: [] })
   let grants = $state<any[]>([])
+  /** An Agent ID the principal tab grants a credential to next. */
+  let delegate = $state('')
   let busy = $state(false)
 
   const unlocked = $derived(status?.state === 'unlocked')
@@ -44,14 +52,39 @@
     }
   }
 
-  const reload = single(async () => {
+  /** What only a lock or another account hides is no error. */
+  const quiet = (e: unknown) => ['LOCKED', 'AUTH_REQUIRED', 'RECOVERY_INCOMPLETE'].includes(code(e))
+
+  const loadHosted = single(async () => {
     try {
-      ;[hosted, principal, grants] = await Promise.all([call('agent/ids'), call('agent/principal'), call('grants/list')])
-      credentials = principal ? await call('agent/credentials') : []
+      hosted = await call('agent/ids')
     } catch (e) {
-      if (code(e) !== 'LOCKED') fail(e)
+      if (!quiet(e)) fail(e)
     }
   })
+
+  const loadGrants = single(async () => {
+    grants = await call<any[]>('grants/list').catch(() => [])
+  })
+
+  /** The principal, then what the service and this device keep of its credentials; an error stays on the card. */
+  const loadPrincipal = single(async () => {
+    try {
+      principal = await call('agent/principal')
+      principalError = ''
+    } catch (e) {
+      principalError = quiet(e) ? '' : errorText(e)
+      return
+    }
+    delegations = await call<any[]>('agent/delegations').catch(() => [])
+    try {
+      credentials = principal ? await call<any[]>('agent/credentials') : []
+    } catch (e) {
+      principalError = errorText(e)
+    }
+  })
+
+  const reload = () => Promise.all([loadHosted(), loadGrants(), loadPrincipal()])
 
   /** Principal changes and grants are approval requests the approval window decides. */
   const request = (method: string, params: Record<string, unknown> = {}) =>
@@ -64,14 +97,26 @@
 
   onMount(() => {
     void reload()
-    return onChange(['approval/changed', 'session/changed', 'agent/changed'], reload)
+    const offs = [
+      onChange(['agent/changed', 'session/changed'], reload),
+      // A decided request may change the principal, its credentials or the grants.
+      onChange(['approval/changed'], () => Promise.all([loadPrincipal(), loadGrants()]))
+    ]
+    return () => offs.forEach((off) => off())
   })
+
+  function delegateTo(agent: string) {
+    delegate = agent
+    tab = 'overview'
+  }
 
   const tabs = $derived([
     { value: 'overview', label: t('tabPrincipal'), icon: 'plan' as const },
     { value: 'ids', label: t('tabAgentIds'), icon: 'agents' as const, count: hosted.agents.length },
     { value: 'capabilities', label: t('tabCapabilities'), icon: 'security' as const },
+    { value: 'discourse', label: t('tabDiscourse'), icon: 'members' as const },
     { value: 'mail', label: t('mail'), icon: 'mail' as const },
+    { value: 'knowledge', label: t('knowledge'), icon: 'knowledge' as const },
     { value: 'events', label: t('tabEvents'), icon: 'webhook' as const },
     { value: 'audit', label: t('tabAudit'), icon: 'audit' as const }
   ])
@@ -81,13 +126,17 @@
   <TabBar bind:value={() => tab, (next) => (tab = next as Tab)} items={tabs} label={t('agents')} testid="agents-tab" />
   <div class="min-h-0 flex-1">
     {#if tab === 'overview'}
-      <Page><Overview {principal} {credentials} {hosted} {unlocked} {busy} {request} {run} /></Page>
+      <Page wide><Overview {principal} {principalError} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {run} bind:delegate /></Page>
     {:else if tab === 'ids'}
-      <Page><AgentIds {hosted} {unlocked} {busy} {run} {attempt} /></Page>
+      <Page><AgentIds {hosted} {unlocked} {busy} {run} {attempt} {delegateTo} /></Page>
     {:else if tab === 'capabilities'}
       <Page wide><Capabilities {hosted} {grants} {unlocked} {busy} {run} /></Page>
+    {:else if tab === 'discourse'}
+      <Page wide><Discourse agents={hosted.agents} active={hosted.active} /></Page>
     {:else if tab === 'mail'}
-      <Page><Mail agents={hosted.agents} active={hosted.active} {unlocked} /></Page>
+      <Page><Mail agents={hosted.agents} active={hosted.active} blocked={hosted.blocked_senders ?? []} {unlocked} /></Page>
+    {:else if tab === 'knowledge'}
+      <Page><Knowledge agents={hosted.agents} active={hosted.active} hosts={hosted.hosts} {unlocked} /></Page>
     {:else if tab === 'events'}
       <Page><Events agents={hosted.agents} {unlocked} /></Page>
     {:else}

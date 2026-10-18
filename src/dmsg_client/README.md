@@ -202,7 +202,12 @@ are Ed25519 seeds kept as vault items whose IDs their generation determines,
 so every device holding the root signs with them. Enabling the principal and
 registering, retiring, distrusting or renaming a controller are account
 mutations an administrator device approves; registration proves possession
-of the new key over the request ID. A grant or revocation is approved in the
+of the new key over the request ID. A grant or revocation goes to the newest
+current controller whose ceiling covers its scopes and relying parties (for
+a revocation, those of the credential as the delegation service holds it),
+so a restricted controller is never asked for what the service would
+refuse; a grant may replace a credential under its ID, for the same subject
+and no more than its scopes and relying parties. It is approved in the
 center, then signed on a device with `FormalApprove` with the nonce
 `max(last + 1, created_at)`, journaled with that nonce, and submitted. A lost
 reply or a 5xx/408/429 answer resubmits the same envelope; any other refusal
@@ -213,10 +218,15 @@ Agent IDs this device hosts are vault items too, named by a label: the same
 label on another device of the account brings the same Agent ID. Unlocked,
 the daemon signs with the vault copy; locked, only an Agent ID made resident,
 whose seed the credential store also keeps. Each Agent ID may have one
-credential for its MCP sessions, of which only a digest is kept. Capability
-grants are sealed under the LDK, and one for an Agent Protocols service
-names the origins it covers; without one an agent reads only public
-profiles and reaches no service's content. A resident Agent ID's live
+credential for its MCP sessions, of which only a digest is kept; the owner
+may withdraw it, or pause the Agent ID so it reaches nothing until resumed.
+Removing an Agent ID revokes its grants and deletes its credential, resident
+copies and mail keys; its key stays in the vault for the same label to bring
+it back. Capability grants are sealed under the LDK, and one for an Agent
+Protocols service names the origins it covers; without one an agent reads
+only public profiles and reaches no service's content. An agent may ask for
+capabilities: an approval request that grants them, once, under the
+request's own ID when a person approves it. A resident Agent ID's live
 grants are copied beside its seed, and it is checked against the copy while
 locked. The Agent Mail decryption keys of an Agent ID's mailboxes come from
 its connector, which keeps none: they are sealed under the LDK and never

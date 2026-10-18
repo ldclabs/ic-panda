@@ -12,6 +12,7 @@
   import { t } from '../i18n/index.svelte'
   import { bridge, call, closed, errorText, onChange, single } from '../rpc'
   import Conflict from './vault/Conflict.svelte'
+  import AgentAccess from './agents/AgentAccess.svelte'
   import Filters from './vault/Filters.svelte'
   import { focus } from './vault/focus.svelte'
   import Import from './vault/Import.svelte'
@@ -51,6 +52,8 @@
   let findings = $state<any[]>([])
   let templates = $state<Templates | null>(null)
   let scope = $state<Scope>('all')
+  /** The tag whose Agent access is open. */
+  let accessTag = $state<string | null>(null)
   let query = $state('')
   let sort = $state<Sort>(readSort())
   let selected = $state<string | null>(null)
@@ -322,7 +325,7 @@
     <Locked {status} testid="vault-locked" />
   {:else}
     <aside class="hidden w-[184px] shrink-0 flex-col border-e border-line @min-[860px]:flex">
-      <Filters bind:scope {facets} flagged={flagged.size} />
+      <Filters bind:scope {facets} flagged={flagged.size} onAccess={(tag) => (accessTag = tag)} />
     </aside>
 
     <section class="relative flex w-[264px] shrink-0 flex-col border-e border-line @min-[860px]:w-[296px]">
@@ -508,3 +511,14 @@
     <button class={buttonClass('primary')} disabled={!batchTags.length} onclick={retag} data-testid="vault-batch-tags-save">{t('save')}</button>
   {/snippet}
 </Dialog>
+
+<AgentAccess
+  bind:open={() => !!accessTag, (open) => !open && (accessTag = null)}
+  title={t('vaultAgentAccess', { tag: accessTag ?? '' })}
+  description={t('vaultAgentAccessHint')}
+  testid="vault-access"
+  choices={[
+    { capability: `vault.read:${accessTag}`, label: t('canRead') },
+    { capability: `vault.write:${accessTag}`, label: t('canWrite') }
+  ]}
+/>

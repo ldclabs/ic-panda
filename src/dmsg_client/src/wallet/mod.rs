@@ -505,6 +505,7 @@ pub fn wallet_view(view: &WalletView, me: Option<&MemberId>) -> Json {
         "audit_head": hex::encode(*view.audit_head),
         "channel_hint": view.channel_hint,
         "me": me.and_then(|me| view.members.iter().find(|m| m.id == *me)).map(|m| json!({
+            "id": member_id_text(&m.id),
             "role": format!("{:?}", m.role),
             "status": format!("{:?}", m.status),
         })),
@@ -811,6 +812,33 @@ impl Client {
         };
         let p: Result<Proposal> = ic.update(wallet, "propose", (args,)).await?;
         Ok(proposal_view(&p?))
+    }
+
+    /// Propose that this account's member lets `agent_ids` propose on its
+    /// behalf, keeping its role and label: the wallet accepts an agent's
+    /// proposal only for a member that lists its Agent ID.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` when this account is not a member.
+    pub async fn wallet_member_agents(
+        &mut self,
+        wallet: Principal,
+        agent_ids: Vec<String>,
+    ) -> Result<Json> {
+        let me = self.wallet_member()?;
+        let view = self.wallet_state(wallet).await?;
+        let member = view
+            .members
+            .iter()
+            .find(|m| m.id == me)
+            .ok_or(Error::NotFound)?;
+        let intent = Intent::UpdateMember(MemberInput {
+            id: me,
+            role: member.role,
+            label: member.label.clone(),
+            agent_ids,
+        });
+        self.wallet_propose(wallet, intent, None).await
     }
 
     /// Propose a transfer from string arguments: an asset as

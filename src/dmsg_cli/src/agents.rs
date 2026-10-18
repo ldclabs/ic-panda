@@ -10,7 +10,9 @@
 //!
 //! The audit record (plan R38) gets the owner's grants, credentials and
 //! residency changes, and every call that writes or reaches the owner's
-//! data, with who called, through which way in and on what.
+//! data, with who called, through which way in and on what. A paused Agent
+//! ID's credential reaches nothing; an agent may ask for capabilities, which
+//! only the owner's approval grants.
 
 use crate::daemon::Daemon;
 use crate::params::{number, optional, parse, source, text, to_json};
@@ -55,7 +57,7 @@ const TARGETS: [&str; 9] = [
 ];
 
 /// The owner's methods this module serves.
-pub(crate) const METHODS: [&str; 22] = [
+pub(crate) const METHODS: [&str; 27] = [
     "agent/principal",
     "agent/enable",
     "agent/register",
@@ -73,10 +75,15 @@ pub(crate) const METHODS: [&str; 22] = [
     "agent/use",
     "agent/resident",
     "agent/credential",
+    "agent/credential_revoke",
+    "agent/pause",
+    "agent/remove",
+    "agent/profile",
     "grants/list",
     "grants/add",
     "grants/revoke",
     "ap/call",
+    "ap/read",
     "audit/list",
 ];
 
@@ -102,14 +109,24 @@ struct Caller<'a> {
     mcp_session: Option<&'a str>,
 }
 
-/// The events a method's success announces.
+/// The events a method's success announces. A tool call announces only
+/// what it entered in the audit record (`audit/changed`), so an agent that
+/// polls does not have every window read the principal again.
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
         "agent/enable" | "agent/register" | "agent/retire" | "agent/compromise"
         | "agent/rename" | "agent/grant" | "agent/revoke" => &["approval/changed"],
-        "agent/publish" | "agent/create" | "agent/use" | "agent/resident" | "agent/credential"
-        | "grants/add" | "grants/revoke" => &["agent/changed"],
-        "ap/call" | "mcp/call" => &["agent/changed"],
+        "agent/publish"
+        | "agent/refresh"
+        | "agent/create"
+        | "agent/use"
+        | "agent/resident"
+        | "agent/credential"
+        | "agent/credential_revoke"
+        | "agent/pause"
+        | "agent/remove"
+        | "grants/add"
+        | "grants/revoke" => &["agent/changed"],
         _ => &[],
     }
 }
@@ -146,6 +163,48 @@ impl Daemon {
                 )
                 .await;
         }
+        if method == "ap/read" {
+            let agent = {
+                let client = self.client().lock().await;
+                match params["agent"].as_str() {
+                    Some(name) => client.agent_find(name)?,
+                    None => client.agent_active()?,
+                }
+            };
+            // The owner reads what the connector holds, from every host.
+            let session = params["session"].as_str().unwrap_or(source(params)?);
+            let uri = text(params, "uri")?;
+            let value = self.read(&agent, session, &uri, None).await?;
+            return Ok(json!({"uri": uri, "value": value}));
+        }
+        if method == "agent/profile" {
+            let agent = self
+                .client()
+                .lock()
+                .await
+                .agent_find(&text(params, "agent")?)?;
+            let profiles = self.agents().profiles(&agent.agent_id).await?;
+            return Ok(json!({"agent_id": agent.agent_id, "profiles": profiles}));
+        }
+        if method == "agent/remove" {
+            let via = source(params)?;
+            let agent = self
+                .client()
+                .lock()
+                .await
+                .agent_find(&text(params, "agent")?)?;
+            // No call of it runs while its state goes.
+            let turn = self.agents().turn(&agent.agent_id).await;
+            let (removed, path) = {
+                let mut client = self.client().lock().await;
+                (
+                    client.agent_remove(via, &agent.agent_id)?,
+                    client.agent_runtime()?,
+                )
+            };
+            self.agents().forget(&turn, &path)?;
+            return Ok(removed.view());
+        }
         if method == "audit/list" {
             let client = self.client().lock().await;
             let actor = match params["agent"].as_str() {
@@ -165,10 +224,22 @@ impl Daemon {
             let mut client = self.client().lock().await;
             match method {
                 "agent/delegations" => Some(client.delegations().map(Value::Array)),
-                "agent/ids" => Some(client.agent_list().map(|mut list| {
+                "agent/ids" => Some((|| {
+                    let mut list = client.agent_list()?;
                     list["hosts"] = to_json(self.agents().hosts());
-                    list
-                })),
+                    list["blocked_senders"] = to_json(&self.agents().blocked_senders());
+                    list["vocabulary"] = to_json(&dmsg_client::agents::vocabulary());
+                    // The connector sessions each one was last used in.
+                    if let Ok(path) = client.agent_runtime()
+                        && let Some(agents) = list["agents"].as_array_mut()
+                    {
+                        for agent in agents {
+                            let id = agent["agent_id"].as_str().unwrap_or_default();
+                            agent["sessions"] = to_json(&self.agents().sessions(&path, id)?);
+                        }
+                    }
+                    Ok(list)
+                })()),
                 "agent/create" => Some((|| {
                     let entry = client.agent_create(&text(params, "label")?)?;
                     let via = source(params)?;
@@ -199,6 +270,29 @@ impl Daemon {
                     let via = source(params)?;
                     client.audit("owner", via, method, Some(&agent.agent_id), None, "ok");
                     Ok(json!({"agent_id": agent.agent_id, "credential": credential}))
+                })()),
+                "agent/credential_revoke" => Some((|| {
+                    let entry = client.agent_credential_revoke(&text(params, "agent")?)?;
+                    let via = source(params)?;
+                    client.audit("owner", via, method, Some(&entry.agent_id), None, "ok");
+                    Ok(entry.view())
+                })()),
+                "agent/pause" => Some((|| {
+                    let on = params["on"]
+                        .as_bool()
+                        .ok_or_else(|| Error::InvalidInput("on".into()))?;
+                    let entry = client.agent_pause(&text(params, "agent")?, on)?;
+                    let detail = if on { "on" } else { "off" };
+                    let via = source(params)?;
+                    client.audit(
+                        "owner",
+                        via,
+                        method,
+                        Some(&entry.agent_id),
+                        Some(detail),
+                        "ok",
+                    );
+                    Ok(entry.view())
                 })()),
                 "grants/list" => Some(client.capability_grants().map(|g| to_json(&g))),
                 "grants/add" => Some((|| {
@@ -279,8 +373,8 @@ impl Daemon {
                 "agent/refresh" => client.principal_refresh().await,
                 "agent/grant" => {
                     let generation = match params["generation"].is_null() {
-                        true => latest_controller(client).await?,
-                        false => number(params, "generation")?,
+                        true => None,
+                        false => Some(number(params, "generation")?),
                     };
                     // The subject may name a hosted Agent ID by its label.
                     let subject = text(params, "subject")?;
@@ -294,13 +388,14 @@ impl Daemon {
                             parse(params, "audiences")?,
                             params["days"].as_u64().unwrap_or(30),
                             params["relationship"].as_str().map(str::to_string),
+                            params["replaces"].as_str(),
                         )
                         .await
                 }
                 "agent/revoke" => {
                     let generation = match params["generation"].is_null() {
-                        true => latest_controller(client).await?,
-                        false => number(params, "generation")?,
+                        true => None,
+                        false => Some(number(params, "generation")?),
                     };
                     client
                         .delegation_revoke_request(
@@ -327,6 +422,14 @@ impl Daemon {
     ) -> Result<Value> {
         let mcp_session = params["mcp_session"].as_str();
         let session = mcp_session.unwrap_or("mcp");
+        // The entry as it is now: the owner may have paused it since.
+        let paused = self
+            .client()
+            .lock()
+            .await
+            .agent_find(&agent.agent_id)?
+            .paused;
+        ensure(!paused, Error::Forbidden)?;
         match method {
             "mcp/tools" => Ok(json!({"tools": tool_list(), "agent_id": agent.agent_id})),
             "mcp/call" => {
@@ -346,7 +449,10 @@ impl Daemon {
             }
             "mcp/resources" => {
                 // Without discourse.read an agent is shown no rooms.
-                let rooms = match self.read(agent, session, "agent-protocols://rooms").await {
+                let rooms = match self
+                    .read(agent, session, "agent-protocols://rooms", Some(agent))
+                    .await
+                {
                     Err(Error::Forbidden) => Value::Null,
                     rooms => rooms?,
                 };
@@ -354,7 +460,9 @@ impl Daemon {
             }
             "mcp/read" => {
                 let uri = text(params, "uri")?;
-                Ok(json!({"uri": uri, "value": self.read(agent, session, &uri).await?}))
+                Ok(
+                    json!({"uri": uri, "value": self.read(agent, session, &uri, Some(agent)).await?}),
+                )
             }
             "mcp/changed" => {
                 let after = params["after"].as_u64();
@@ -375,18 +483,25 @@ impl Daemon {
         }
     }
 
-    /// One resource of `agent`'s connector as `session` sees it, within
-    /// the grant the tool behind it needs.
-    async fn read(&self, agent: &AgentEntry, session: &str, uri: &str) -> Result<Value> {
+    /// One resource of `agent`'s connector as `session` sees it: for an
+    /// agent `caller`, within the grant the tool behind it needs; for the
+    /// owner, from every host.
+    async fn read(
+        &self,
+        agent: &AgentEntry,
+        session: &str,
+        uri: &str,
+        caller: Option<&AgentEntry>,
+    ) -> Result<Value> {
         let tool = Resource::parse(uri).map(|r| r.tool());
         let (path, signer, reach) = {
             let mut client = self.client().lock().await;
             (
                 client.agent_runtime()?,
                 client.agent_signer(&agent.agent_id)?,
-                match tool {
-                    Some(tool) => self.reach(&client, agent, tool)?,
-                    None => None,
+                match (tool, caller) {
+                    (Some(tool), Some(caller)) => self.reach(&client, caller, tool)?,
+                    _ => None,
                 },
             )
         };
@@ -453,6 +568,7 @@ impl Daemon {
                 detail,
                 &outcome,
             );
+            self.emit("audit/changed", Value::Null);
         }
         reply
     }
@@ -724,6 +840,28 @@ impl Daemon {
                 client.capability_check(did, "account.read")?;
                 Ok(to_json(&client.status()?))
             }
+            "dmsg_capabilities" => {
+                let grants: Vec<Value> = client
+                    .capability_live(did)?
+                    .iter()
+                    .map(|g| json!({"capabilities": g.capabilities, "expires_at": g.expires_at}))
+                    .collect();
+                Ok(json!({
+                    "grants": grants,
+                    "default": dmsg_client::agents::DEFAULT_CAPABILITIES,
+                    "vocabulary": dmsg_client::agents::vocabulary(),
+                }))
+            }
+            "dmsg_capabilities_request" => {
+                let request = client.capability_request(
+                    did,
+                    parse(input, "capabilities")?,
+                    input["days"].as_u64(),
+                )?;
+                drop(client);
+                self.emit("approval/changed", Value::Null);
+                Ok(request)
+            }
             "dmsg_vault_list" => {
                 client.capability_check(did, "vault.list")?;
                 let filter = Filter {
@@ -980,18 +1118,6 @@ fn tagged(client: &Client, did: &str, name: &str, item: &Item) -> Result<()> {
         true => Ok(()),
         false => client.capability_check(did, &format!("{name}:*")),
     }
-}
-
-/// The newest current controller.
-async fn latest_controller(client: &mut dmsg_client::Client) -> Result<u32> {
-    let info = client.principal().await?.ok_or(Error::NotFound)?;
-    info.state
-        .controllers
-        .iter()
-        .filter(|c| c.retired_at.is_none())
-        .map(|c| c.generation)
-        .max()
-        .ok_or(Error::NotFound)
 }
 
 #[cfg(test)]

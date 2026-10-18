@@ -255,6 +255,8 @@ const deposits = [
   { quote_id: 'b2'.repeat(32), state: 'unused', refundable: false, refund_e8s: '999990000', ledger_fee_e8s: '10000', expires_at: Date.now() + 600_000, reason: null }
 ]
 const calls = []
+/** Whether the hosted Agent ID is paused. */
+let agentPaused = false
 // The checkout comes first, so a link finds its request, not the first one.
 const requests = new Map([
   [checkoutRequest.id, checkoutRequest],
@@ -808,9 +810,46 @@ const methods = {
   },
   'agent/ids': () => ({
     active: claude,
-    agents: [{ label: 'claude', agent_id: claude, resident: false, credential: true, created_at: Date.now() }],
-    hosts: [{ host: 'https://api.al.ink', label: 'alink', allowed: true }]
+    agents: [
+      {
+        label: 'claude',
+        agent_id: claude,
+        resident: false,
+        credential: true,
+        credential_at: Date.now() - 3_600_000,
+        paused: agentPaused,
+        created_at: Date.now(),
+        sessions: [{ session: 'mcp-1', updated_at: Date.now() - 60_000 }]
+      }
+    ],
+    hosts: [{ host: 'https://api.al.ink', label: 'alink', allowed: true }],
+    blocked_senders: [],
+    vocabulary: ['account.read', 'vault.list', 'vault.read:<tag>', 'vault.secret:<item>', 'files.read:<folder>', 'discourse.read:<origin>', 'mail.write:<origin>']
   }),
+  'agent/credential': (p) => ({ agent_id: p.agent, credential: 'dmsg-agent-smoke' }),
+  'agent/pause': (p) => {
+    agentPaused = p.on
+    return { label: 'claude', agent_id: claude, paused: p.on }
+  },
+  'agent/remove': (p) => ({ label: 'claude', agent_id: p.agent }),
+  'agent/profile': (p) => ({
+    agent_id: p.agent,
+    profiles: [{ service: 'https://api.dmsg.net', profile: { id: claude, name: 'Claude', description: 'Research agent', updated_at: Date.now(), event_id: 'e1' } }]
+  }),
+  'agent/delegations': () => [
+    { id: '91'.repeat(32), generation: 1, kind: { type: 'grant', id: `${account}.c1`, subject: claude }, stage: 'accepted', created_at: Date.now() - 86_400_000 }
+  ],
+  'ap/read': (p) => {
+    const reads = {
+      'agent-protocols://rooms': { rooms: [{ room_id: 'r1', host: 'https://api.al.ink', topic: 'Planning', status: 'active', unread_count: 2, pending_inbox_count: 0 }] },
+      'agent-protocols://drafts/held': { drafts: [] },
+      'agent-protocols://inbox/pending': { items: [] },
+      'agent-protocols://rooms/r1': { room: { host: 'https://api.al.ink', room_id: 'r1', status: 'active', topic: 'Planning' } },
+      'agent-protocols://rooms/r1/members': { members: [{ agent_id: claude, role: 'owner', status: 'active', is_creator: true }] },
+      'agent-protocols://rooms/r1/timeline': { items: [{ room_id: 'r1', seq: 1, type: 'message.create', kind: 'durable', actor: claude, accepted_at: Date.now(), summary: 'Kickoff notes' }] }
+    }
+    return { uri: p.uri, value: reads[p.uri] }
+  },
   'agent/principal': () => ({
     principal_id: `https://id.dmsg.net/${account}`,
     type: 'Person',
@@ -822,7 +861,18 @@ const methods = {
       { generation: 1, agent_id: 'did:agent:' + 'C'.repeat(43), name: 'desktop', delegation: '*', valid_from: Date.now(), retired_at: null }
     ]
   }),
-  'agent/credentials': () => [],
+  'agent/credentials': () => [
+    {
+      id: `${account}.c1`,
+      subject: claude,
+      scopes: ['message.draft'],
+      audiences: ['https://dmsg.net'],
+      status: 'active',
+      controller: 'did:agent:' + 'C'.repeat(43),
+      expires_at: Date.now() + 86_400_000,
+      accepted_at: Date.now() - 86_400_000
+    }
+  ],
   'ap/call': (p) => {
     switch (p.tool) {
       case 'agent_protocols_mail_mailboxes_list':
@@ -852,7 +902,7 @@ const methods = {
   },
   'grants/list': () => grants,
   'grants/add': (p) => {
-    const grant = { id: 'ab'.repeat(8), grantee: p.agent, capabilities: p.capabilities, created_at: Date.now(), expires_at: null, revoked_at: null }
+    const grant = { id: `ab${grants.length}`.padEnd(16, '0'), grantee: p.agent, capabilities: p.capabilities, created_at: Date.now(), expires_at: p.days ? Date.now() + p.days * 86_400_000 : null, revoked_at: null }
     grants.push(grant)
     return grant
   },
@@ -941,7 +991,9 @@ const announced = {
   'plan/checkout': ['approval/changed'],
   'agent/grant': ['approval/changed'],
   'grants/add': ['agent/changed'],
-  'ap/call': ['agent/changed']
+  'agent/credential': ['agent/changed'],
+  'agent/pause': ['agent/changed'],
+  'agent/remove': ['agent/changed']
 }
 /** Methods whose next reply waits for the test (`hold`), to see a click's work under way. */
 const held = new Map()
@@ -1292,9 +1344,19 @@ try {
   await main.fill('[data-testid="grant-audiences"]', 'https://dmsg.net')
   await main.click('[data-testid="grant-submit"]')
   await approval.waitForSelector('[data-testid="approval-subject"]', { timeout: 20_000 })
-  assert.equal(await approval.textContent('[data-testid="approval-subject"]'), claude)
+  // A hosted Agent ID shows by its name as well.
+  assert.equal(await approval.textContent('[data-testid="approval-subject"]'), `claude · ${claude}`)
   await approval.screenshot({ path: join(shots, 'delegation.png') })
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
+  // A credential is renewed under its own ID, which another approval decides;
+  // what this device signed is listed with where it stands.
+  await main.waitForSelector('[data-testid="delegation-journal"]')
+  await main.locator('[data-testid="credentials"]').screenshot({ path: join(shots, 'credentials.png') })
+  await main.click('[data-testid="credential-renew"]')
+  await main.fill('[data-testid="renew-days"]', '90')
+  await main.click('[data-testid="renew-confirm"]')
+  await waitFor(() => latest('agent/grant').params.replaces === `${account}.c1`)
+  assert.equal(latest('agent/grant').params.days, 90)
 
   // Mail as a hosted Agent ID; a window runs only the Mail and Knowledge tools.
   await main.click('[data-testid="agents-tab-mail"]')
@@ -1309,6 +1371,33 @@ try {
     /FORBIDDEN/
   )
   assert.ok(calls.filter((c) => c.method === 'ap/call').every((c) => /^agent_protocols_(mail|knowledge)_/.test(c.params.tool)))
+  await main.click('[data-testid="agents-tab-knowledge"]')
+  await main.waitForSelector('[data-testid="knowledge-payload"]')
+  // Discourse shows what the connector holds, read from its local state only.
+  await main.click('[data-testid="agents-tab-discourse"]')
+  await main.click('[data-testid="discourse-rooms"] >> text=Planning')
+  await main.waitForSelector('[data-testid="discourse-timeline"] >> text=Kickoff notes')
+  assert.ok(calls.filter((c) => c.method === 'ap/read').every((c) => c.params.uri.startsWith('agent-protocols://') && c.params.source === 'gui'))
+  await main.locator('[data-testid="agent-discourse"]').screenshot({ path: join(shots, 'discourse.png') })
+  // An Agent ID shows its profile as signed, how an MCP client connects as
+  // it, and pauses and stops being hosted only on request.
+  await main.click('[data-testid="agents-tab-ids"]')
+  await main.click('[data-testid="agent-profile"]')
+  await main.waitForSelector('[data-testid="agent-profile-view"] >> text=Research agent')
+  await main.click('[data-testid="agent-connect"]')
+  await main.waitForSelector('[data-testid="agent-connect-command"]')
+  const command = await main.textContent('[data-testid="agent-connect-command"]')
+  assert.ok(command.startsWith('claude mcp add dmsg-claude --env DMSG_AGENT_TOKEN=dmsg-agent-smoke -- ') && command.endsWith(' mcp'), command)
+  assert.equal(JSON.parse(await main.textContent('[data-testid="agent-connect-config"]')).mcpServers['dmsg-claude'].env.DMSG_AGENT_TOKEN, 'dmsg-agent-smoke')
+  await main.locator('[data-testid="agent-connect-dialog"]').screenshot({ path: join(shots, 'agent-connect.png') })
+  await main.click('[data-testid="agent-connect-dialog"] >> text=/^(Done|完成)$/')
+  await main.click('[data-testid="agent-pause"]')
+  await main.waitForSelector('[data-testid="agent-paused"]')
+  assert.deepEqual(latest('agent/pause').params, { agent: claude, on: true, source: 'gui' })
+  await main.click('[data-testid="agent-remove"]')
+  await main.click('[data-testid="agent-remove-dialog-confirm"]')
+  await waitFor(() => calls.some((c) => c.method === 'agent/remove'))
+  assert.deepEqual(latest('agent/remove').params, { agent: claude, source: 'gui' })
   // An MCP Events endpoint shows its secret once; a delivery notifies how
   // many arrived, never what or from where.
   await main.click('[data-testid="agents-tab-events"]')
@@ -1349,9 +1438,23 @@ try {
   assert.deepEqual(latest('grants/add').params, {
     agent: claude,
     capabilities: ['discourse.read:https://api.al.ink', 'mail.write:https://api.al.ink', 'vault.list'],
+    days: null,
     source: 'gui'
   })
   assert.equal(await main.isChecked('[data-testid="service-discourse.read"]'), false)
+  // What the vocabulary does not name is never sent; a grant reaching every
+  // target asks once more, for the days chosen.
+  await main.fill('[data-testid="grant-other"]', 'file.read:work')
+  await main.waitForSelector('[data-testid="grant-unknown"]')
+  assert.equal(await main.isDisabled('[data-testid="grant-capabilities"]'), true)
+  await main.fill('[data-testid="grant-other"]', 'vault.read:*')
+  await choose(main, 'grant-days', '30')
+  await main.click('[data-testid="grant-capabilities"]')
+  await main.click('[data-testid="grant-confirm-dialog-confirm"]')
+  await waitFor(() => latest('grants/add').params.capabilities[0] === 'vault.read:*')
+  assert.equal(latest('grants/add').params.days, 30)
+  await main.waitForSelector('[data-testid="grant-confirm-dialog"]', { state: 'detached' })
+  await main.waitForSelector('[data-testid="capability-grants"] >> text=vault.read:*')
   await main.screenshot({ path: join(shots, 'agents.png') })
 
   // A web checkout cannot be approved before it is quoted, and the quote is what is approved.

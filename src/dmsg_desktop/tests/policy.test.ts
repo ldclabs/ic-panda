@@ -59,8 +59,13 @@ test('windows never decide or grant, and never send human', () => {
     'agent/enable',
     'agent/register',
     'agent/retire',
+    'agent/compromise',
+    'agent/rename',
     'agent/grant',
     'agent/revoke',
+    'agent/credential_revoke',
+    'agent/pause',
+    'agent/remove',
     'device/capabilities',
     'device/formal_approve',
     'device/revoke',
@@ -91,6 +96,12 @@ test('windows run only the Mail and Knowledge tools as an Agent ID', () => {
     undefined
   ])
     assert.throws(() => windowParams('ap/call', { tool, input: {} }), { code: 'FORBIDDEN' }, String(tool))
+  // Reading what a connector holds changes nothing, from the desktop's own session.
+  assert.deepEqual(windowParams('ap/read', { agent: 'claude', uri: 'agent-protocols://rooms' }), {
+    agent: 'claude',
+    uri: 'agent-protocols://rooms',
+    source: 'gui'
+  })
 })
 
 test('dmsg links only navigate', () => {

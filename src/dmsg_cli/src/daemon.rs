@@ -1712,6 +1712,12 @@ mod tests {
             assert!(events_of(route(read).unwrap(), read).is_empty(), "{read}");
         }
         assert_eq!(events_of(Module::Vault, "vault/create"), ["vault/changed"]);
+        // A tool call announces only its audit entry, sent as it is made:
+        // a polling agent has no window read the principal again.
+        assert!(events_of(Module::Agent, "mcp/call").is_empty());
+        assert!(events_of(Module::Agents, "ap/call").is_empty());
+        assert!(events_of(Module::Agents, "ap/read").is_empty());
+        assert_eq!(events_of(Module::Agents, "agent/remove"), ["agent/changed"]);
         // The windows show whether fast unlock is on from the session status.
         assert_eq!(
             events_of(Module::Daemon, "session/fast_unlock"),

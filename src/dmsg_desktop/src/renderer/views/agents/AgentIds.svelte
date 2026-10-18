@@ -1,5 +1,7 @@
 <script lang="ts">
+  import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
+  import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import Field from '../../components/page/Field.svelte'
   import Id from '../../components/page/Id.svelte'
@@ -8,45 +10,70 @@
   import Section from '../../components/page/Section.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { call } from '../../rpc'
+  import { ago, bridge, call, errorText, when } from '../../rpc'
+  import { mcpSetup } from './agents'
 
   /**
    * The Agent IDs this device hosts: which one acts for the desktop, which
-   * keep their key resident while locked, and the MCP credential, shown
-   * once. The hosts they may reach are listed, never edited here.
+   * keep their key resident while locked, which are paused, the sessions
+   * they were last used in, and their MCP credential, shown once with what
+   * an MCP client runs. Each one's published Agent Profile is shown as it
+   * signed it. The hosts they may reach are listed, never edited here.
    */
   let {
     hosted,
     unlocked,
     busy,
     run,
-    attempt
+    attempt,
+    delegateTo
   }: {
     hosted: any
     unlocked: boolean
     busy: boolean
     run: (method: string, params?: Record<string, unknown>) => Promise<void>
     attempt: (work: () => Promise<unknown>) => Promise<void>
+    delegateTo: (agent: string) => void
   } = $props()
 
   let label = $state('')
-  let issued = $state<{ agent_id: string; credential: string } | null>(null)
+  let issued = $state<{ label: string; credential: string; command: string; config: string } | null>(null)
+  let removing = $state<any>(null)
+  let withdrawing = $state<any>(null)
+  /** Published profiles by Agent ID, once asked for. */
+  let profiles = $state<Record<string, { profiles?: any[]; error?: string; loading?: boolean }>>({})
 
-  const issue = (agent: string) =>
+  const issue = (agent: any) =>
     attempt(async () => {
-      issued = await call('agent/credential', { agent })
+      const [created, runtime]: any[] = await Promise.all([call('agent/credential', { agent: agent.agent_id }), bridge(() => window.dmsg.runtime())])
+      issued = { label: agent.label, credential: created.credential, ...mcpSetup(runtime, agent.label, created.credential) }
     })
 
   async function create() {
     await run('agent/create', { label: label.trim() })
     label = ''
   }
+
+  async function profile(agent: string) {
+    if (profiles[agent]?.profiles && !profiles[agent].loading) {
+      delete profiles[agent]
+      return
+    }
+    profiles[agent] = { loading: true }
+    try {
+      const read: any = await call('agent/profile', { agent })
+      profiles[agent] = { profiles: read.profiles }
+    } catch (e) {
+      profiles[agent] = { error: errorText(e) }
+    }
+  }
 </script>
 
 <Section title={t('agentIds')} description={t('agentIdsHint')} icon="agents" flush>
   <ul class="divide-y divide-line border-t border-line" data-testid="agent-ids">
     {#each hosted.agents as a (a.agent_id)}
-      <li class="px-5 py-3.5">
+      {@const shown = profiles[a.agent_id]}
+      <li class="px-5 py-3.5" data-testid="agent-id">
         <div class="flex items-start gap-3">
           <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-pale text-forest"><Icon name="agents" /></span>
           <div class="min-w-0 flex-1">
@@ -54,27 +81,73 @@
               <b class="text-[13.5px] font-semibold">{a.label}</b>
               {#if hosted.active === a.agent_id}<Pill tone="forest">{t('active')}</Pill>{/if}
               {#if a.resident}<Pill tone="gem"><Icon name="background" />{t('resident')}</Pill>{/if}
+              {#if a.paused}<Pill tone="warn" testid="agent-paused">{t('paused')}</Pill>{/if}
             </div>
             <div class="mt-1"><Id id={a.agent_id} /></div>
+            <p class="mt-1 text-[11.5px] text-faint">
+              {a.credential ? t('credentialIssued', { at: when(a.credential_at) }) : t('noCredential')}
+              {#if a.sessions?.length}· {t('sessionsLine', { n: a.sessions.length, at: ago(a.sessions[0].updated_at) })}{/if}
+            </p>
           </div>
           <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
             {#if hosted.active !== a.agent_id}
-              <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => run('agent/use', { agent: a.agent_id })}>{t('use')}</button>
+              <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => run('agent/use', { agent: a.agent_id })}>{t('use')}</button>
             {/if}
             <button class={buttonClass('secondary', 'sm')} disabled={busy || !unlocked} onclick={() => run('agent/resident', { agent: a.agent_id, on: !a.resident })}>
               {a.resident ? t('residentOff') : t('residentOn')}
             </button>
-            <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => issue(a.agent_id)}>{t('issueCredential')}</button>
+            <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => run('agent/pause', { agent: a.agent_id, on: !a.paused })} data-testid="agent-pause">
+              {a.paused ? t('resume') : t('pause')}
+            </button>
+            <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => issue(a)} data-testid="agent-connect">
+              <Icon name="plug" />{a.credential ? t('reissueCredential') : t('connectAgent')}
+            </button>
           </div>
         </div>
-        {#if issued?.agent_id === a.agent_id}
-          <Notice tone="warn" class="mt-3">
-            <p>{t('credentialOnce')}</p>
-            <pre class="mt-1.5 rounded-lg bg-surface px-2.5 py-2 font-mono text-[11.5px] break-all whitespace-pre-wrap text-ink select-all" data-testid="agent-credential">{issued?.credential}</pre>
-            {#snippet action()}
-              <button class={buttonClass('secondary', 'xs')} onclick={() => issued && copyText(issued.credential)}><Icon name="copy" />{t('copy')}</button>
-            {/snippet}
-          </Notice>
+        <div class="mt-2 flex flex-wrap gap-1.5 ps-12">
+          <button class={buttonClass('ghost', 'xs')} onclick={() => profile(a.agent_id)} data-testid="agent-profile"><Icon name="profile" />{t('agentProfile')}</button>
+          {#if unlocked}<button class={buttonClass('ghost', 'xs')} onclick={() => delegateTo(a.label)}><Icon name="epoch" />{t('delegateTo')}</button>{/if}
+          {#if a.credential}<button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => (withdrawing = a)} data-testid="agent-withdraw">{t('withdrawCredential')}</button>{/if}
+          {#if unlocked}<button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy} onclick={() => (removing = a)} data-testid="agent-remove">{t('removeAgent')}</button>{/if}
+        </div>
+        {#if shown}
+          <div class="mt-3 ms-12 grid gap-2" data-testid="agent-profile-view">
+            {#if shown.loading}
+              <p class="text-[12px] text-faint">{t('loading')}</p>
+            {:else if shown.error}
+              <Notice tone="danger">{shown.error}</Notice>
+            {:else if !shown.profiles?.length}
+              <p class="text-[12px] text-faint">{t('noProfileServices')}</p>
+            {:else}
+              {#each shown.profiles as entry (entry.service)}
+                <div class="rounded-xl border border-line p-3 text-[12.5px]">
+                  <p class="font-mono text-[11.5px] text-faint">{entry.service}</p>
+                  {#if entry.error}
+                    <p class="mt-1 text-danger">{t('error')}: {entry.error.code}</p>
+                  {:else if !entry.profile}
+                    <p class="mt-1 text-faint">{t('noProfile')}</p>
+                  {:else}
+                    {@const p = entry.profile}
+                    <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                      <b class="text-[13px] font-semibold">{p.name}</b>
+                      {#if p.provider}<span class="text-faint">· {p.provider}</span>{/if}
+                      <Pill tone="ok"><Icon name="verified" />{t('signatureChecked')}</Pill>
+                    </div>
+                    {#if p.description}<p class="mt-1 whitespace-pre-wrap text-muted">{p.description}</p>{/if}
+                    {#if p.capabilities?.length}
+                      <div class="mt-1.5 flex flex-wrap gap-1">{#each p.capabilities as c (c)}<Pill class="font-mono font-normal">{c}</Pill>{/each}</div>
+                    {/if}
+                    {#each p.service_endpoints ?? [] as e (e.url)}<p class="mt-1 font-mono text-[11.5px] text-muted">{e.kind} · {e.url}</p>{/each}
+                    {#each p.links ?? [] as l (l.url)}<p class="mt-1 text-[11.5px] text-muted">{l.name} ({l.rel}) · <span class="font-mono">{l.url}</span></p>{/each}
+                    {#each p.delegations ?? [] as d, i (i)}
+                      <p class="mt-1 text-[11.5px] text-muted">{t('delegationHintLine')}: <span class="font-mono">{d.principal.id}</span>{d.scopes ? ` · ${d.scopes.join(', ')}` : ''}</p>
+                    {/each}
+                    <p class="mt-1.5 text-[11px] text-faint">{t('selfDescribed')} · {when(p.updated_at)}</p>
+                  {/if}
+                </div>
+              {/each}
+            {/if}
+          </div>
         {/if}
       </li>
     {:else}
@@ -102,3 +175,49 @@
     {/each}
   </ul>
 </Section>
+
+{#snippet block(title: string, value: string, testid: string)}
+  <div class="grid gap-1">
+    <div class="flex items-center justify-between gap-2">
+      <h3 class="text-[12px] font-medium text-faint">{title}</h3>
+      <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(value)}><Icon name="copy" />{t('copy')}</button>
+    </div>
+    <pre class="rounded-lg bg-surface-2 px-2.5 py-2 font-mono text-[11.5px] break-all whitespace-pre-wrap text-ink select-all" data-testid={testid}>{value}</pre>
+  </div>
+{/snippet}
+
+<Dialog bind:open={() => !!issued, (open) => !open && (issued = null)} title={t('connectTitle', { label: issued?.label ?? '' })} description={t('credentialOnce')} icon="plug" wide testid="agent-connect-dialog">
+  {#if issued}
+    <div class="grid gap-3">
+      {@render block(t('connectClaudeCode'), issued.command, 'agent-connect-command')}
+      {@render block(t('connectConfig'), issued.config, 'agent-connect-config')}
+      {@render block('DMSG_AGENT_TOKEN', issued.credential, 'agent-credential')}
+      <p class="text-[12px] text-muted">{t('connectNext')}</p>
+    </div>
+  {/if}
+  {#snippet footer()}
+    <span class="flex-1"></span>
+    <button class={buttonClass('primary')} onclick={() => (issued = null)}>{t('done')}</button>
+  {/snippet}
+</Dialog>
+
+<Confirm
+  bind:open={() => !!withdrawing, (open) => !open && (withdrawing = null)}
+  title={t('withdrawTitle', { label: withdrawing?.label ?? '' })}
+  description={t('withdrawHint')}
+  confirm={t('withdrawCredential')}
+  tone="warn"
+  {busy}
+  testid="agent-withdraw-dialog"
+  onConfirm={() => withdrawing && run('agent/credential_revoke', { agent: withdrawing.agent_id })}
+/>
+
+<Confirm
+  bind:open={() => !!removing, (open) => !open && (removing = null)}
+  title={t('agentRemoveTitle', { label: removing?.label ?? '' })}
+  description={t('agentRemoveHint')}
+  confirm={t('removeAgent')}
+  {busy}
+  testid="agent-remove-dialog"
+  onConfirm={() => removing && run('agent/remove', { agent: removing.agent_id })}
+/>

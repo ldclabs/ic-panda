@@ -1,5 +1,9 @@
-use crate::agent::{DelegationKind, MAX_GRANT_DAYS, agent_id, controller_item, sign_delegation};
-use crate::agents::{MAX_GRANTS, agent_item, covers, validate_capability};
+use crate::agent::{
+    DelegationKind, MAX_GRANT_DAYS, agent_id, controller_for, controller_item, sign_delegation,
+};
+use crate::agents::{
+    MAX_GRANTS, agent_item, check_grant, covers, sensitive, validate_capability, vocabulary,
+};
 use crate::crypto::signing_public;
 use crate::secure::SecureStorage;
 use crate::testing::{MemoryStorage, TempDir, account, unlocked};
@@ -12,7 +16,10 @@ use candid::Principal;
 use dmsg_protocol::agent::render_principal_document;
 use dmsg_types::{
     DAY, Environment, Error, Hash,
-    agent::{DelegationAuthority, DirectoryInit, HostedController, PrincipalState, PrincipalType},
+    agent::{
+        DelegationAuthority, DirectoryInit, HostedController, PrincipalInfo, PrincipalState,
+        PrincipalType,
+    },
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -485,4 +492,160 @@ fn capabilities_cover_only_what_was_granted() {
         client.capability_check(&agent, "vault.list").unwrap_err(),
         Error::Locked
     );
+}
+
+#[test]
+fn the_signing_controller_covers_what_it_signs() {
+    let controller =
+        |generation: u32, delegation: DelegationAuthority, retired: bool| HostedController {
+            generation,
+            public_key: Hash::new([generation as u8; 32]),
+            name: None,
+            valid_from: NOW,
+            delegation,
+            retired_at: retired.then_some(NOW + 1),
+            invalid_from: None,
+        };
+    let drafts = DelegationAuthority::Restricted {
+        scopes: vec!["message.draft".into()],
+        audiences: vec!["https://dmsg.net".into()],
+    };
+    let info = PrincipalInfo {
+        principal_id: "https://id.dmsg.test/a".into(),
+        state: PrincipalState {
+            principal_type: PrincipalType::Person,
+            controllers: vec![
+                controller(1, DelegationAuthority::Unrestricted, false),
+                controller(2, drafts, false),
+                controller(3, DelegationAuthority::Unrestricted, true),
+            ],
+            version: 3,
+            updated_at: NOW,
+        },
+        published_version: 3,
+    };
+    let list = |items: &[&str]| items.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    let (draft, dmsg) = (list(&["message.draft"]), list(&["https://dmsg.net"]));
+    // The newest current controller whose ceiling covers it.
+    assert_eq!(controller_for(&info, None, &draft, &dmsg), Ok(2));
+    // A wider grant falls to the unrestricted one, never the retired one.
+    let other = list(&["inbox.screen"]);
+    assert_eq!(controller_for(&info, None, &other, &dmsg), Ok(1));
+    // A requested controller must cover it and be current.
+    assert_eq!(controller_for(&info, Some(1), &draft, &dmsg), Ok(1));
+    assert_eq!(
+        controller_for(&info, Some(2), &other, &dmsg),
+        Err(Error::Forbidden)
+    );
+    assert_eq!(
+        controller_for(&info, Some(3), &draft, &dmsg),
+        Err(Error::Forbidden)
+    );
+}
+
+#[test]
+fn an_agent_is_withdrawn_paused_and_removed() {
+    let dir = TempDir::new();
+    let storage = Arc::new(MemoryStorage::default());
+    let mut client = unlocked(&dir.0, false, Some(storage.clone()));
+    let agent = client.agent_create("worker").unwrap();
+    client.agent_use("worker").unwrap();
+
+    let credential = client.agent_credential("worker").unwrap();
+    assert!(client.agent_find("worker").unwrap().credential_at.is_some());
+    let entry = client.agent_credential_revoke("worker").unwrap();
+    assert!(entry.credential.is_none() && entry.credential_at.is_none());
+    assert!(client.agent_by_credential(&credential).unwrap().is_none());
+    assert!(client.agent_pause("worker", true).unwrap().paused);
+    assert_eq!(client.agent_list().unwrap()["agents"][0]["paused"], true);
+    assert!(!client.agent_pause("worker", false).unwrap().paused);
+
+    let grant = client
+        .capability_grant("gui", "worker", vec!["vault.list".into()], None)
+        .unwrap();
+    client.agent_resident("worker", true).unwrap();
+    client.lock();
+    // Removing it revokes grants, which needs the device unlocked.
+    assert_eq!(
+        client.agent_remove("gui", "worker").unwrap_err(),
+        Error::Locked
+    );
+    reopen(&mut client);
+    let removed = client.agent_remove("gui", "worker").unwrap();
+    assert_eq!(removed.agent_id, agent.agent_id);
+    assert_eq!(client.agent_find("worker").unwrap_err(), Error::NotFound);
+    assert!(client.agent_list().unwrap()["active"].is_null());
+    let grants = client.capability_grants().unwrap();
+    assert!(
+        grants
+            .iter()
+            .all(|g| g.id != grant.id || g.revoked_at.is_some())
+    );
+    let slot = client.resident_name(&agent.agent_id).unwrap();
+    assert!(storage.get(&slot).unwrap().is_none());
+    let audit = client.audit_list(None, Some("owner"), 3).unwrap();
+    let actions: Vec<&str> = audit.iter().map(|e| e.action.as_str()).collect();
+    assert_eq!(actions, ["agent/remove", "grants/revoke", "grants/add"]);
+    // Its key stays in the vault: the same label brings it back.
+    assert_eq!(
+        client.agent_create("worker").unwrap().agent_id,
+        agent.agent_id
+    );
+    assert!(
+        client
+            .capability_check(&agent.agent_id, "vault.list")
+            .is_err()
+    );
+}
+
+#[test]
+fn an_agent_asks_and_an_approved_request_grants_once() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let agent = client.agent_create("asker").unwrap().agent_id;
+    let wanted = vec!["vault.read:work".to_string()];
+    let request = client
+        .capability_request(&agent, wanted.clone(), Some(7))
+        .unwrap();
+    assert_eq!(request["type"], "grant");
+    assert_eq!(request["source"], format!("agent:{agent}"));
+    assert_eq!(request["detail"]["capabilities"], json!(wanted));
+    assert_eq!(request["risk"], "normal");
+    let wide = client
+        .capability_request(&agent, vec!["vault.read:*".into()], None)
+        .unwrap();
+    assert_eq!(wide["risk"], "high");
+    assert_eq!(
+        client
+            .capability_request(&agent, vec!["payment".into()], None)
+            .unwrap_err(),
+        dmsg_types::invalid("capability")
+    );
+    // Run twice, as a reconciled request would, it grants once.
+    let id = "ab".repeat(16);
+    for _ in 0..2 {
+        client
+            .capability_grant_as("gui", id.clone(), &agent, wanted.clone(), Some(7))
+            .unwrap();
+    }
+    assert_eq!(client.capability_grants().unwrap().len(), 1);
+    client.capability_check(&agent, "vault.read:work").unwrap();
+}
+
+#[test]
+fn the_vocabulary_names_what_can_be_granted() {
+    for entry in vocabulary() {
+        let capability = entry
+            .replace("<origin>", "https://discourse.dmsg.net")
+            .replace(['<', '>'], "");
+        validate_capability(&capability).unwrap();
+    }
+    assert!(vocabulary().contains(&"files.read:<folder>".to_string()));
+    assert!(vocabulary().contains(&"wallet.propose:<wallet>".to_string()));
+    assert!(sensitive("vault.read:*"));
+    assert!(sensitive("vault.secret:item1"));
+    assert!(sensitive("wallet.execute:aaaaa-aa"));
+    assert!(!sensitive("vault.read:work"));
+    assert!(check_grant(&[], None).is_err());
+    assert!(check_grant(&["vault.list".into()], Some(367)).is_err());
 }

@@ -251,6 +251,15 @@ pub enum Action {
         /// The change.
         change: crate::agent::PrincipalChange,
     },
+    /// Grant one of this device's Agent IDs the capabilities it asked for.
+    Grant {
+        /// The Agent ID, `did:agent:…`.
+        grantee: String,
+        /// What it asked for.
+        capabilities: Vec<String>,
+        /// Lifetime in days, or until revoked.
+        days: Option<u64>,
+    },
     /// Sign a grant or revocation with a controller key and submit it.
     Delegation {
         /// Journal ID.
@@ -276,7 +285,7 @@ impl Action {
             | Action::DeviceRevoke { .. }
             | Action::Account { .. }
             | Action::Principal { .. } => "account",
-            Action::Delegation { .. } => "agent",
+            Action::Delegation { .. } | Action::Grant { .. } => "agent",
             Action::Wallet { .. } => "wallet",
             Action::Connect { .. } => "connect",
             Action::Checkout { .. } | Action::Letter { .. } | Action::Handle { .. } => "payment",
@@ -344,6 +353,9 @@ pub fn high_risk(request: &Request, detail: &Json) -> bool {
     match &request.action {
         Action::Checkout { .. } | Action::Letter { .. } | Action::DeviceRevoke { .. } => true,
         Action::Principal { .. } => true,
+        Action::Grant { capabilities, .. } => {
+            capabilities.iter().any(|c| crate::agents::sensitive(c))
+        }
         Action::Handle { .. } => !detail["total"].is_null(),
         Action::Connect { .. } => detail["method"] == "checkout",
         Action::Account { change } => !matches!(
@@ -830,6 +842,22 @@ impl Client {
             }
             Action::Account { change } => self.account_execute(&change).await,
             Action::Principal { change } => self.principal_execute(&change).await,
+            // Under the request's own ID, so running it again grants once.
+            Action::Grant {
+                grantee,
+                capabilities,
+                days,
+            } => {
+                let via = request.decided_via.clone().unwrap_or_else(|| "gui".into());
+                self.capability_grant_as(
+                    &via,
+                    request.id[..32].into(),
+                    &grantee,
+                    capabilities,
+                    days,
+                )
+                .map(|_| ())
+            }
             // The job's journal decides: approving again only resubmits
             // what was signed, so nothing here is past the point of no return.
             Action::Delegation { job, digest } => {
@@ -980,6 +1008,16 @@ impl Client {
                 Action::Handle { id, .. } => self.handle_execute(&id).await.map(|_| ()),
                 Action::Account { change } => self.account_reconcile(&change).await,
                 Action::Principal { .. } => self.resume().await.map(|_| ()),
+                Action::Grant {
+                    grantee,
+                    capabilities,
+                    days,
+                } => {
+                    let via = request.decided_via.clone().unwrap_or_else(|| "gui".into());
+                    let id = request.id[..32].to_string();
+                    self.capability_grant_as(&via, id, &grantee, capabilities, days)
+                        .map(|_| ())
+                }
                 Action::Delegation { job, .. } => self.delegation_execute(&job).await.map(|_| ()),
                 Action::Wallet { job, .. } => self.wallet_job_execute(&job).await,
                 Action::Attest { .. } | Action::AttestAction { .. } => continue,
@@ -1166,6 +1204,11 @@ impl Client {
             Action::Handle { id, .. } => self.handle_operation(id)?.view(),
             Action::Account { change } => change.view(),
             Action::Principal { change } => json!(change),
+            Action::Grant {
+                grantee,
+                capabilities,
+                days,
+            } => json!({"grantee": grantee, "capabilities": capabilities, "days": days}),
             Action::Delegation { job, .. } => self.delegation(job)?.view(),
             Action::Wallet { job, .. } => self.wallet_job_view(job)?,
         };
@@ -1184,6 +1227,7 @@ impl Client {
                 Action::Account { .. } => "account",
                 Action::Principal { .. } => "principal",
                 Action::Delegation { .. } => "delegation",
+                Action::Grant { .. } => "grant",
                 Action::Wallet { .. } => "wallet",
             },
             "state": request.state.name(),

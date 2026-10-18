@@ -93,6 +93,15 @@ pub enum WalletCommand {
         #[arg(long)]
         memo: Option<String>,
     },
+    /// Propose that this account's member lets these Agent IDs propose on
+    /// its behalf (none clears them), keeping its role and label.
+    MemberAgents {
+        /// Wallet canister ID.
+        wallet: String,
+        /// `did:agent:…`; repeat for more.
+        #[arg(long = "agent")]
+        agents: Vec<String>,
+    },
     /// Propose any intent, given as JSON.
     Propose {
         /// Wallet canister ID.
@@ -414,6 +423,15 @@ pub async fn wallet(remote: &Remote, json: bool, command: WalletCommand) -> Resu
                 json!({"wallet": wallet, "from": from, "asset": asset, "to": to, "amount": amount, "max_fee": max_fee, "memo": memo}),
             )
             .await?;
+            print(json, &p, proposal_line);
+        }
+        WalletCommand::MemberAgents { wallet, agents } => {
+            let p = remote
+                .call(
+                    "wallet/member_agents",
+                    json!({"wallet": wallet, "agent_ids": agents}),
+                )
+                .await?;
             print(json, &p, proposal_line);
         }
         WalletCommand::Propose { wallet, intent } => {

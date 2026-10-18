@@ -77,7 +77,8 @@
       }
       void loadReadiness()
       void loadQueue()
-      if (first && String(next?.source).startsWith('agent:')) void loadAgents()
+      // An agent's request, a grant to an agent or its credential names Agent IDs.
+      if (first && (String(next?.source).startsWith('agent:') || ['delegation', 'grant'].includes(next?.type))) void loadAgents()
     } catch (e) {
       // Locked: nothing of the request stays on screen.
       if (code(e) === 'LOCKED') request = null
@@ -322,6 +323,8 @@
           : [[t('afterGrant'), false]]
       case 'principal':
         return [[t('afterController'), false]]
+      case 'grant':
+        return [[t('afterCapabilityGrant'), false]]
       case 'account': {
         const line = ({
           bind_login: t('afterBindLogin'),
@@ -365,9 +368,9 @@
   }
 </script>
 
-{#snippet row(label: string, value: string, options: { mono?: boolean; testid?: string } = {})}
+{#snippet row(label: string, value: string, options: { mono?: boolean; multiline?: boolean; testid?: string } = {})}
   <dt class="text-faint">{label}</dt>
-  <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', options.mono && 'font-mono text-xs leading-5')} data-testid={options.testid}>{value}</dd>
+  <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', options.mono && 'font-mono text-xs leading-5', options.multiline && 'whitespace-pre-wrap')} data-testid={options.testid}>{value}</dd>
 {/snippet}
 
 {#snippet field(f: any)}
@@ -603,14 +606,20 @@
               {#if d.op_id}{@render row(t('recovery'), d.op_id, { mono: true })}{/if}
             {:else if request.type === 'delegation'}
               {#if d.kind?.type === 'grant'}
-                {@render row(t('grantee'), d.kind.subject, { mono: true, testid: 'approval-subject' })}
+                {@render row(t('grantee'), agents[d.kind.subject] ? `${agents[d.kind.subject]} · ${d.kind.subject}` : d.kind.subject, { mono: true, testid: 'approval-subject' })}
                 {@render row(t('scopeLabel'), d.kind.scopes.join(', '), { mono: true })}
                 {@render row(t('audienceLabel'), d.kind.audiences.join(', '), { mono: true })}
                 {@render row(t('expires'), when(d.kind.expires_at))}
-                {#if d.kind.relationship}{@render row(t('subject'), d.kind.relationship)}{/if}
+                {#if d.kind.relationship}{@render row(t('relationship'), d.kind.relationship, { testid: 'approval-relationship' })}{/if}
+                {@render row('ID', d.kind.id, { mono: true })}
               {:else}
                 {@render row('ID', d.kind?.id ?? '', { mono: true })}
+                {#if d.kind?.reason}{@render row(t('revokeReason'), d.kind.reason)}{/if}
               {/if}
+            {:else if request.type === 'grant'}
+              {@render row(t('grantee'), agents[d.grantee] ? `${agents[d.grantee]} · ${d.grantee}` : d.grantee, { mono: true, testid: 'approval-grantee' })}
+              {@render row(t('capabilities'), (d.capabilities ?? []).join('\n'), { mono: true, multiline: true, testid: 'approval-capabilities' })}
+              {@render row(t('grantLifetime'), d.days ? t('daysCount', { n: d.days }) : t('untilRevoked'))}
             {:else if request.type === 'principal'}
               {@render row(t('method'), d.change, { testid: 'approval-change' })}
               {#if d.generation}{@render row(t('controllers'), `#${d.generation}${d.name ? ` · ${d.name}` : ''}`)}{/if}
