@@ -180,7 +180,7 @@ fn statement_requests_wait_for_a_person() {
     std::fs::write(&file, b"artifact").unwrap();
     let input = file_statement("I approve this build", None);
     let request = client
-        .attest_request("gui", input, Some(FileSource::Path(&file)))
+        .attest_request("gui", input, Some(local_file(&file).unwrap()))
         .unwrap();
     assert_eq!(request["detail"]["file_checked"], true);
     assert_eq!(request["detail"]["file"]["name"], "release.bin");
@@ -206,7 +206,7 @@ fn statement_requests_wait_for_a_person() {
     let both = file_statement("both", Some("ab".repeat(32)));
     assert!(
         client
-            .attest_request("gui", both, Some(FileSource::Path(&file)))
+            .attest_request("gui", both, Some(local_file(&file).unwrap()))
             .is_err()
     );
 }
@@ -359,12 +359,15 @@ async fn a_high_risk_approval_waits_for_the_person() {
         fn presence(&self) -> Option<Presence> {
             Some(Presence::Biometrics)
         }
+
         fn create(&self) -> Result<(Vec<u8>, Vec<u8>, zeroize::Zeroizing<crate::crypto::Key>)> {
             Err(Error::Unavailable("test".into()))
         }
+
         fn open(&self, _: &[u8], _: &[u8]) -> Result<zeroize::Zeroizing<crate::crypto::Key>> {
             Err(Error::Unavailable("test".into()))
         }
+
         fn confirm(&self, what: &str) -> Result<()> {
             assert_eq!(what, "device_revoke");
             match self.0.load(SeqCst) {
@@ -775,6 +778,85 @@ fn an_attestation_past_its_result_is_lost() {
         (shown["state"].as_str(), shown["error"].as_str()),
         (Some("lost"), Some("RESULT_EXPIRED"))
     );
+}
+
+#[test]
+fn a_sequence_another_attestation_holds_is_not_signed_again() {
+    use dmsg_types::user::{
+        AccountInfo, ControllerRole, Device, DeviceInput, SensitivePolicy, VaultWriteState,
+    };
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let account = crate::testing::account();
+    let device_id = client.workspace.meta.device_id;
+    let device = Device {
+        input: DeviceInput {
+            device_id,
+            signing_pub: client.workspace.meta.signing_pub,
+            hpke_pub: client.workspace.meta.hpke_pub,
+            role: ControllerRole::Administrator,
+            capabilities: vec![Capability::FormalApprove],
+        },
+        added_at: 1,
+        added_by: None,
+        revoked_at: None,
+        next_sequence: 4,
+    };
+    let devices = std::collections::BTreeMap::from([(device_id, device)]);
+    let state = crate::account::AccountState {
+        info: AccountInfo {
+            created_at_ms: 1,
+            issuer: account.issuer.clone(),
+            account_id: account.id,
+            home_user: account.home,
+            home_cose: account.home,
+            auth_bindings: vec![],
+            account_version: 1,
+            security_epoch: 1,
+            devices: devices.clone(),
+            recovery_delay_ms: 0,
+            pending_recovery: None,
+            recovered_device: None,
+            current_root: None,
+            root_slot: None,
+            vault_write_state: VaultWriteState::Ready,
+            sensitive_policy: SensitivePolicy::default(),
+        },
+        security: crate::testing::security(1, devices),
+    };
+    let subject = |text: &str| Subject::Statement {
+        statement: Statement {
+            issuer: account.issuer.clone(),
+            subject: None,
+            issued_at: None,
+            content: StatementContent::Text(text.into()),
+        },
+        origin: DMSG_ORIGIN.into(),
+    };
+    // Two approvals read the account before either signed: the second does
+    // not sign under the sequence the first took, nor replace its journal.
+    let first = client
+        .attest_sign_with("one", subject("one"), &state)
+        .unwrap();
+    assert_eq!(
+        client.attest_sign_with("two", subject("two"), &state).err(),
+        Some(Error::PolicyStale)
+    );
+    assert_eq!(
+        client.attestation(&first.execution_id()).unwrap(),
+        Some(first.clone())
+    );
+    // A sequence the home refused is free again.
+    client
+        .save_attestation(&Attestation {
+            stage: Stage::Failed,
+            ..first
+        })
+        .unwrap();
+    let second = client
+        .attest_sign_with("two", subject("two"), &state)
+        .unwrap();
+    assert_eq!(second.approval, "two");
 }
 
 #[tokio::test]

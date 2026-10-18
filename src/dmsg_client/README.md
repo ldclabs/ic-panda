@@ -117,9 +117,11 @@ writes a new head that names it, and the earlier copies of its branch, in
 Every operation this device signs for a person waits in the approval center:
 a formal statement, a capability change or revocation, a web request.
 Anything may ask; only a person answers, by the digest of the request as it
-was shown. A high-risk request (payment, revocation, a capability, a
-wallet signature) also waits for the device owner's presence when the device
-has a presence key. Approving executes once, and a finished request is
+was shown. A high-risk request also waits for the device owner's presence
+when the device has a presence key: a payment, a device revocation, a
+change to the account's logins, signing policy or recovery delay or to its
+Agent principal, and a team wallet's creation, cosignature or transfer, but
+not a capability change. Approving executes once, and a finished request is
 forgotten 30 days after it was made. A source other than the desktop and the
 CLI keeps at most five requests waiting. An application action is shown by
 its registered schema's labels, and only when the schema's hash matches; a

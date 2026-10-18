@@ -2249,7 +2249,6 @@ enum Handled {
     Ignored,
 }
 
-/// The page-visible refusal of an admission failure.
 /// The certified registration of `app_id` from the commerce canister of
 /// the user `home`, fresh within 60 seconds, read with the anonymous agent
 /// `ic`; `commerce` keeps the canister.
@@ -2286,6 +2285,7 @@ pub(crate) async fn registration(
     Ok(app)
 }
 
+/// The page-visible refusal of an admission failure.
 fn admission_refusal(error: &Error) -> Refusal {
     match error {
         Error::InvalidInput(code) => Refusal(match code.as_str() {

@@ -469,12 +469,35 @@ pub fn file_sha256(path: &Path) -> Result<Hash> {
 }
 
 /// The file a digest or file statement is about.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub enum FileSource<'a> {
-    /// A local file, hashed now and again on approval.
-    Path(&'a Path),
+    /// A local file and its SHA-256 as [`local_file`] read them, hashed
+    /// again on approval.
+    Local(Hash, AttestFile),
     /// A version in the file library: the file's ID and the version's.
     Library(&'a str, &'a str),
+}
+
+/// A local file a digest or file statement names, hashed now; a caller that
+/// shares the client reads it without holding the client, since it may be
+/// large.
+///
+/// # Errors
+/// Returns `Error::NotFound` or `Error::Unavailable` when the file cannot be read.
+pub fn local_file(path: &Path) -> Result<FileSource<'static>> {
+    let path = std::path::absolute(path).map_err(|e| Error::InvalidInput(format!("file: {e}")))?;
+    let (size, modified) = file_stamp(&path)?;
+    let sha256 = file_sha256(&path)?;
+    Ok(FileSource::Local(
+        sha256,
+        AttestFile {
+            name: file_name(&path),
+            path: Some(path.to_string_lossy().into_owned()),
+            library: None,
+            size,
+            modified,
+        },
+    ))
 }
 
 /// A statement this device's clients may ask it to attest.
@@ -737,8 +760,8 @@ impl Client {
 
     /// Ask this device to attest a statement under [`DMSG_ORIGIN`]; the
     /// request waits in the approval center. A digest or file statement
-    /// names its file by `file`, hashed now and checked again on approval,
-    /// or gives the digest itself.
+    /// names its file by `file`, a local one hashed by [`local_file`] and
+    /// checked again on approval, or gives the digest itself.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked and statement validation errors.
@@ -751,22 +774,7 @@ impl Client {
         self.keys()?;
         let issuer = self.account()?.issuer.clone();
         let described = match file {
-            Some(FileSource::Path(path)) => {
-                let path = std::path::absolute(path)
-                    .map_err(|e| Error::InvalidInput(format!("file: {e}")))?;
-                let (size, modified) = file_stamp(&path)?;
-                let sha256 = file_sha256(&path)?;
-                Some((
-                    sha256,
-                    AttestFile {
-                        name: file_name(&path),
-                        path: Some(path.to_string_lossy().into_owned()),
-                        library: None,
-                        size,
-                        modified,
-                    },
-                ))
-            }
+            Some(FileSource::Local(sha256, file)) => Some((sha256, file)),
             Some(FileSource::Library(id, version)) => Some(self.library_file(id, version)?),
             None => None,
         };
@@ -897,6 +905,13 @@ impl Client {
             expires_at: now + APPROVAL_MS,
             signature: Ed25519Signature::new([0; 64]),
         };
+        // The state may have been read before another attestation took this
+        // sequence: one still open or recorded keeps its journal, and this
+        // one waits for a fresh read. A sequence the home refused is free.
+        let held = self
+            .attestation(&hex::encode(*approval_fields.request_id))?
+            .is_some_and(|a| matches!(a.stage, Stage::Unknown | Stage::Complete | Stage::Lost));
+        ensure(!held, Error::PolicyStale)?;
         let (statement, origin) = match &subject {
             Subject::Statement { statement, origin } => (statement.clone(), origin.clone()),
             Subject::Action(action) => {

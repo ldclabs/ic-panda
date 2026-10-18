@@ -467,14 +467,19 @@ async fn background(daemon: Arc<Daemon>) {
         }
         // Backups a person asked for keep moving while the device key is
         // there, locked or not, a slice per pass; nothing here starts one.
+        // A pass under way, such as the person's own, runs on without this
+        // loop, which does not wait for it.
         let backing_up = daemon
             .client
             .lock()
             .await
             .library_jobs_running()
             .unwrap_or(false);
-        if ready && backing_up {
-            let run = daemon.backup_pass(Some(BACKUP_SLICE_MS)).await;
+        if ready
+            && backing_up
+            && let Some(turn) = daemon.try_turn("backup")
+        {
+            let run = daemon.backup_pass(turn, Some(BACKUP_SLICE_MS)).await;
             daemon.note("backup", &outcome(&run));
             if run.as_ref().is_ok_and(|r| r.completed > 0) {
                 daemon.emit("files/changed", Value::Null);
@@ -682,13 +687,14 @@ impl Daemon {
         &self.turns
     }
 
-    /// One pass over the backup jobs, in their turn: each chunk waits on the
-    /// relay without the client; with `budget_ms`, a slice of it.
+    /// One pass over the backup jobs, in the turn the caller took: each
+    /// chunk waits on the relay without the client; with `budget_ms`, a
+    /// slice of it.
     pub(crate) async fn backup_pass(
         &self,
+        _turn: tokio::sync::OwnedMutexGuard<()>,
         budget_ms: Option<u64>,
     ) -> Result<dmsg_client::library::backup::BackupRun> {
-        let _turn = self.turn("backup").await;
         let mut progress = |file: &str, done, total| {
             self.emit(
                 "files/progress",
@@ -1143,7 +1149,8 @@ impl Daemon {
                     value => Some((text(value, "file")?, text(value, "version")?)),
                 };
                 let source_file = match (&file, &library) {
-                    (Some(path), None) => Some(FileSource::Path(path)),
+                    // Hashed here, outside the client, since it may be large.
+                    (Some(path), None) => Some(dmsg_client::attest::local_file(path)?),
                     (None, Some((file, version))) => Some(FileSource::Library(file, version)),
                     (None, None) => None,
                     _ => {
@@ -1203,6 +1210,8 @@ impl Daemon {
                 let device = hash(params, "device")?;
                 dmsg_client::approval::revoke_request(&self.hold(), source(params)?, device).await
             }
+            // Pairing and revoking browsers still wait on the relay under the
+            // client.
             "connect/invite" => {
                 self.under_lock(async |client| client.connect_invite().await)
                     .await

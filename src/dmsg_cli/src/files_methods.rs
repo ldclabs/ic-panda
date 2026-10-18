@@ -374,7 +374,10 @@ impl Daemon {
                     backup::backup_cancel(&h, &id()?, &text(params, "version")?).await?;
                     json!({"cancelled": true})
                 }
-                "files/backup_run" => to_json(&self.backup_pass(None).await?),
+                "files/backup_run" => {
+                    let turn = self.turn("backup").await;
+                    to_json(&self.backup_pass(turn, None).await?)
+                }
                 "files/cloud_refresh" => to_json(&cloud::cloud_refresh(&h).await?),
                 "files/cloud_fetch" => {
                     let upload = text(params, "upload_id")?;

@@ -63,12 +63,20 @@ impl Daemon {
 
     /// Wait for the right to run one operation on `resource`.
     pub(crate) async fn turn(&self, resource: &str) -> OwnedMutexGuard<()> {
-        let lock = {
-            let mut turns = self.turns().0.lock().expect("turns");
-            // A resource nobody holds or waits for is forgotten.
-            turns.retain(|_, lock| Arc::strong_count(lock) > 1);
-            turns.entry(resource.to_string()).or_default().clone()
-        };
-        lock.lock_owned().await
+        self.turn_lock(resource).lock_owned().await
+    }
+
+    /// The right to run one operation on `resource` now; `None` while
+    /// another operation has it.
+    pub(crate) fn try_turn(&self, resource: &str) -> Option<OwnedMutexGuard<()>> {
+        self.turn_lock(resource).try_lock_owned().ok()
+    }
+
+    /// What the operations on `resource` take turns on.
+    fn turn_lock(&self, resource: &str) -> Arc<Mutex<()>> {
+        let mut turns = self.turns().0.lock().expect("turns");
+        // A resource nobody holds or waits for is forgotten.
+        turns.retain(|_, lock| Arc::strong_count(lock) > 1);
+        turns.entry(resource.to_string()).or_default().clone()
     }
 }

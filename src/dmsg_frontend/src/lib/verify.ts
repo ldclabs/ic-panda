@@ -54,9 +54,14 @@ export async function verifyBundle(
   }
   const rootKey = dynAgent.rootKey
   if (!rootKey) throw new VerifyError('unreachable')
-  return verifyAttestationBundle(bundle, {
-    homes,
-    rootKey: Uint8Array.from(rootKey),
-    file
-  })
+  try {
+    return await verifyAttestationBundle(bundle, {
+      homes,
+      rootKey: Uint8Array.from(rootKey),
+      file
+    })
+  } catch {
+    // Only a malformed bundle throws here; a check that fails is reported.
+    throw new VerifyError('not_bundle')
+  }
 }

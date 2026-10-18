@@ -3707,6 +3707,7 @@ impl Client {
         }
         Ok(())
     }
+
     /// Apply `message` when it edits or withdraws an earlier message of its
     /// author, and the edits and withdrawals of `message` read before it.
     fn amend(&self, channel: &str, local: &mut Local, message: &Message) -> Result<()> {
