@@ -2,12 +2,14 @@
 //!
 //! `dmsg start` runs `dmsg daemon` in the background; its run log is
 //! `<home>/logs/dmsg-<day>.log` ([`crate::logs`]) and its stderr, only what
-//! fails before that log opens, `<home>/logs/stderr.log`. `restart` and `update` stop the daemon only
-//! when nothing approved, no account update and no root rotation is left
-//! unsettled: they wait for it (`--wait`, 60 seconds) and otherwise refuse
-//! with `BUSY`, unless `--interrupt`; the running operation always finishes
-//! first, and everything unsettled is journaled and resumes after the
-//! restart (plan DT10). An update replaces the binary only after its
+//! fails before that log opens, `<home>/logs/stderr.log`. A running daemon
+//! older than the binary that starts it is restarted the way `restart` does
+//! without waiting, and left running when busy. `restart` and `update` stop
+//! the daemon only when nothing approved, no account update and no root
+//! rotation is left unsettled: they wait for it (`--wait`, 60 seconds) and
+//! otherwise refuse with `BUSY`, unless `--interrupt`; the running operation
+//! always finishes first, and everything unsettled is journaled and resumes
+//! after the restart (plan DT10). An update replaces the binary only after its
 //! checksum (and, on macOS, its signer) checked, and only once the daemon
 //! stopped; it then starts the new daemon and checks its version.
 
@@ -30,9 +32,17 @@ async fn running(home: &Home) -> Option<Value> {
 }
 
 /// Start the daemon in the background unless one runs; returns its status.
+/// A running daemon older than this binary, such as one left running while
+/// its binary was upgraded, gives way once nothing is in flight; a busy one
+/// keeps running until a later start.
 pub async fn start(home: &Home, exe: &Path) -> Result<Value, Failure> {
     if let Some(status) = running(home).await {
-        return Ok(status);
+        let older = status["version"]
+            .as_str()
+            .is_some_and(|version| release::newer(VERSION, version));
+        if !older || drain(home, false, Duration::ZERO).await.is_err() {
+            return Ok(status);
+        }
     }
     // Report a bad configuration here, not in the log.
     home.settings()

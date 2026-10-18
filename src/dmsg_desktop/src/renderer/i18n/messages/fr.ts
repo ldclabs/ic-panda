@@ -248,6 +248,7 @@ export default {
     presencePassword: 'Le mot de passe du Mac',
     presenceKeychain: 'Le trousseau de cet appareil',
     loginExpiresAt: 'Connexion valable jusqu’au',
+    securityNeedsLogin: 'La sécurité du compte demande une connexion, et ce déverrouillage n’en a pas. Connectez-vous avec Internet Identity pour la consulter et la modifier.',
     lockedNeedsLogin: 'Verrouillé : le déverrouillage demande une connexion. Une fois déverrouillé, activez le déverrouillage rapide dans Paramètres › Session et comptes pour l’ouvrir depuis le trousseau de cet appareil.',
     sync: 'Synchroniser',
     browsers: 'Navigateurs connectés',

@@ -165,7 +165,10 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
   first, or use `--interrupt`: the work is journaled and resumes after the
   restart. An update starts the new daemon and checks the version it reports;
   the new daemon is locked. Requests waiting for a person and unsynced
-  versions are kept either way.
+  versions are kept either way. `dmsg start`, which the desktop app runs on
+  every connection, also restarts a running daemon older than its binary,
+  such as one left running while the app upgraded the installed binary: it
+  asks once and, when work is in flight, leaves that daemon running.
 - **Diagnostics** (plan §13). `dmsg doctor` checks, without changing
   anything: `config.toml`; the home's permissions (and `owner.token`'s with
   `secure_storage = "file"`); the owner credential in its store; the daemon

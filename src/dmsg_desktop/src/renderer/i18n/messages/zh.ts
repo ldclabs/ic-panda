@@ -248,6 +248,7 @@ export default {
     presencePassword: 'Mac 登录密码',
     presenceKeychain: '本机凭据库',
     loginExpiresAt: '登录有效期至',
+    securityNeedsLogin: '账户安全需要登录，而这次解锁没有登录。用 Internet Identity 登录后即可查看和修改。',
     lockedNeedsLogin: '已锁定：需要登录才能解锁。解锁后可在“设置 › 会话与账户”开启快速解锁，之后用本机凭据库解锁。',
     sync: '立即同步',
     browsers: '已连接的浏览器',

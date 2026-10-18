@@ -46,7 +46,8 @@
 
   let account = $state<any>(null)
   let accounts = $state<any[]>([])
-  let pairings = $state<any[]>([])
+  /** Null while the device cannot sign for them: locked without a resident key. */
+  let pairings = $state<any[] | null>([])
   let invite = $state<any>(null)
   let candidates = $state<any[]>([])
   let error = $state('')
@@ -60,7 +61,11 @@
     error = ''
     try {
       accounts = await call('session/accounts')
-      if (opened) [account, pairings] = await Promise.all([call('account/show'), call('connect/pairings')])
+      if (opened)
+        [account, pairings] = await Promise.all([
+          call('account/show'),
+          call('connect/pairings').catch((e) => (code(e) === 'LOCKED' ? null : Promise.reject(e)))
+        ])
     } catch (e) {
       error = `${t('error')}: ${code(e)}`
     }
@@ -231,7 +236,7 @@
           {/if}
           <Onboarding {status} {refresh} />
         {:else if part === 'browsers'}
-          {#if opened}
+          {#if opened && pairings}
             <Section title={t('browsers')} description={t('browsersHint')} icon="browser" flush>
               {#snippet actions()}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>

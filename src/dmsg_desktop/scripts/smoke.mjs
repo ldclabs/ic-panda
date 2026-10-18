@@ -219,6 +219,8 @@ let fastUnlock = false
 /** How fast unlock asks for the person, and whether the next ask is declined. */
 let fastPresence = null
 let declineUnlock = false
+/** Unlocked without a login, as a fast unlock without Touch ID is. */
+let noLogin = false
 let loginResult = null
 let failLogin = false
 function emit(type, data) {
@@ -488,13 +490,16 @@ const methods = {
     session = 'unlocked'
     return status()
   },
-  'account/security': () => ({
-    logins: [{ principal: login, current: true }],
-    policy: { frozen: false, allowed_purposes: ['FileAttestation', 'Statement', 'AppAction'], daily_executions: 20 },
-    recovery_delay_ms: 3 * 86_400_000,
-    pending_recovery: null,
-    recovered_device: null
-  }),
+  'account/security': () => {
+    if (noLogin) throw { code: 'AUTH_REQUIRED', message: 'Log in' }
+    return {
+      logins: [{ principal: login, current: true }],
+      policy: { frozen: false, allowed_purposes: ['FileAttestation', 'Statement', 'AppAction'], daily_executions: 20 },
+      recovery_delay_ms: 3 * 86_400_000,
+      pending_recovery: null,
+      recovered_device: null
+    }
+  },
   'account/bind_approve': (p) => {
     assert.equal(p.source, 'gui')
     assert.equal(p.token, 'binding-token')
@@ -537,7 +542,11 @@ const methods = {
     return published
   },
   'profile/avatar_image': () => ({ mime: 'image/png', url: `data:image/png;base64,${PIXEL}` }),
-  'connect/pairings': () => [],
+  'connect/pairings': () => {
+    // Signed with the device key, which a lock drops.
+    if (session !== 'unlocked') throw { code: 'LOCKED', message: 'Locked' }
+    return []
+  },
   'connect/sync': () => ({ fetched: 0 }),
   'channel/list': () => [channel],
   'channel/show': () => channel,
@@ -1351,8 +1360,14 @@ try {
   assert.equal(await main.locator('[data-testid="check-updates"]').count(), 0)
   assert.equal((await main.evaluate(() => window.dmsg.checkUpdates())).kind, 'off')
   await assert.rejects(approval.evaluate(() => window.dmsg.checkUpdates()), /FORBIDDEN/)
+  // Unlocked without a login, account security says it needs one and offers it.
+  noLogin = true
   await main.click('[data-testid="settings-security"]')
+  await main.waitForSelector('[data-testid="security-needs-login"] [data-testid="security-login"]')
+  noLogin = false
+  emit('session/changed', { state: 'unlocked' })
   await main.waitForSelector('[data-testid="logins"]')
+  await main.waitForSelector('[data-testid="security-needs-login"]', { state: 'detached' })
   // An edit under way stays when the daemon's events reload the page.
   await main.fill('[data-testid="daily-executions"]', '7')
   const securityReads = calls.filter((c) => c.method === 'account/security').length
@@ -1411,9 +1426,14 @@ try {
   await waitFor(() => latest('session/fast_unlock'))
   assert.deepEqual(latest('session/fast_unlock').params, { enable: true })
   await main.waitForSelector('[data-testid="fast-unlock"] >> text=On')
+  const pairingReads = calls.filter((c) => c.method === 'connect/pairings').length
   session = 'locked'
   emit('session/changed', { state: 'locked' })
   await main.waitForSelector('[data-testid="gate-unlock"] >> text=Fast unlock')
+  // Locked, the page's connected browsers wait for the unlock instead of failing.
+  await waitFor(() => calls.filter((c) => c.method === 'connect/pairings').length > pairingReads)
+  await new Promise((r) => setTimeout(r, 300))
+  assert.equal(await main.locator('text=/Error: LOCKED/').count(), 0)
   await main.click('[data-testid="gate-unlock"]')
   await waitFor(() => latest('session/unlock'))
   assert.deepEqual(latest('session/unlock').params, { fast: true })

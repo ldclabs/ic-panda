@@ -69,7 +69,8 @@ enum Command {
     },
     /// Show the daemon and session status.
     Status,
-    /// Start the daemon in the background; see `dmsg logs` for its run log.
+    /// Start the daemon in the background, or restart a running one older
+    /// than this binary when it is idle; see `dmsg logs` for its run log.
     Start,
     /// Stop the daemon after the running operation.
     Stop,

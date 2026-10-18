@@ -22,6 +22,8 @@
   let days = $state('')
   let error = $state('')
   let busy = $state(false)
+  /** Unlocked without a login, as a fast unlock without Touch ID is; the login opens the page. */
+  let needsLogin = $state(false)
 
   // A field follows the account only when the account's value changed, so an edit under way stays.
   const reload = single(async () => {
@@ -31,9 +33,11 @@
       if (String(next.policy.allowed_purposes) !== String(security?.policy.allowed_purposes)) purposes = [...next.policy.allowed_purposes]
       if (next.recovery_delay_ms !== security?.recovery_delay_ms) days = String(Math.round(next.recovery_delay_ms / 86_400_000))
       security = next
+      needsLogin = false
     } catch (e) {
       security = null
-      error = code(e) === 'AUTH_REQUIRED' ? '' : `${t('error')}: ${code(e)}`
+      needsLogin = code(e) === 'AUTH_REQUIRED'
+      error = needsLogin ? '' : `${t('error')}: ${code(e)}`
     }
   })
 
@@ -82,6 +86,14 @@
 </script>
 
 {#if error}<Notice tone="danger">{error}</Notice>{/if}
+{#if needsLogin}
+  <Notice icon="login" testid="security-needs-login">
+    {t('securityNeedsLogin')}
+    {#snippet action()}
+      <button class={buttonClass('primary', 'sm')} onclick={() => startLogin()} data-testid="security-login"><Icon name="login" />{t('loginWithIi')}</button>
+    {/snippet}
+  </Notice>
+{/if}
 {#if security}
   <Section title={t('logins')} description={t('bindLoginHint')} icon="login" flush testid="security">
     {#snippet actions()}

@@ -250,6 +250,7 @@ const messages = {
   presencePassword: 'The Mac password',
   presenceKeychain: 'This device’s keychain',
   loginExpiresAt: 'Login valid until',
+  securityNeedsLogin: 'Account security needs a login, and this unlock has none. Log in with Internet Identity to see and change it.',
   lockedNeedsLogin: 'Locked: unlocking takes a login. Once unlocked, turn on fast unlock in Settings › Session & accounts to open it from this device’s keychain.',
   sync: 'Sync now',
   browsers: 'Connected browsers',

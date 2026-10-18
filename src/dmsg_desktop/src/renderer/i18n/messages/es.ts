@@ -248,6 +248,7 @@ export default {
     presencePassword: 'La contraseña del Mac',
     presenceKeychain: 'El llavero de este dispositivo',
     loginExpiresAt: 'Sesión válida hasta',
+    securityNeedsLogin: 'La seguridad de la cuenta requiere iniciar sesión, y este desbloqueo no tiene sesión. Inicia sesión con Internet Identity para verla y cambiarla.',
     lockedNeedsLogin: 'Bloqueado: desbloquear requiere iniciar sesión. Una vez desbloqueado, activa el desbloqueo rápido en Ajustes › Sesión y cuentas para abrirla desde el llavero de este dispositivo.',
     sync: 'Sincronizar ahora',
     browsers: 'Navegadores conectados',
