@@ -1,0 +1,6 @@
+# The daemon's one client: a guard held across an `.await` keeps every other
+# request waiting on the network too. Steps take it without awaiting
+# (`dmsg_client::hold::Hold`); `Daemon::under_lock` is the one exception.
+await-holding-invalid-types = [
+  { path = "tokio::sync::MutexGuard", reason = "wait on the network without the client: Hold, or Daemon::under_lock" },
+]

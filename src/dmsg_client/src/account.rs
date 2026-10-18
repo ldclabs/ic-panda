@@ -481,24 +481,8 @@ impl Client {
     /// # Errors
     /// As [`verify_account`]; an older answer returns `Error::PolicyStale`.
     pub async fn refresh(&mut self, home: Principal, account: &AccountId) -> Result<AccountState> {
-        let ic = &self.session()?.ic;
-        // Boxed: the queries side by side would otherwise sit inside every
-        // future that refreshes, on the runtime's small stacks.
-        let (info, batch, bundle) = Box::pin(join3(
-            ic.query::<_, Result<AccountInfo>>(home, "get_account", (account,)),
-            security_batch(ic, home, account),
-            device_bundle(ic, home, account),
-        ))
-        .await;
-        let state = verify_account(
-            home,
-            account,
-            info??,
-            &batch??,
-            bundle??.1,
-            &ic.root_key(),
-            now_ms(),
-        )?;
+        let ic = self.session()?.ic.clone();
+        let state = read_account(&ic, home, account).await?;
         self.observe(account, &state.security)?;
         Ok(state)
     }
@@ -942,6 +926,35 @@ impl Client {
         )
         .await
     }
+}
+
+/// The account's current state, fetched with the login's agent `ic` and
+/// verified; [`Client::refresh`] keeps it.
+///
+/// # Errors
+/// As [`verify_account`].
+pub(crate) async fn read_account(
+    ic: &Ic,
+    home: Principal,
+    account: &AccountId,
+) -> Result<AccountState> {
+    // Boxed: the queries side by side would otherwise sit inside every
+    // future that refreshes, on the runtime's small stacks.
+    let (info, batch, bundle) = Box::pin(join3(
+        ic.query::<_, Result<AccountInfo>>(home, "get_account", (account,)),
+        security_batch(ic, home, account),
+        device_bundle(ic, home, account),
+    ))
+    .await;
+    verify_account(
+        home,
+        account,
+        info??,
+        &batch??,
+        bundle??.1,
+        &ic.root_key(),
+        now_ms(),
+    )
 }
 
 #[cfg(test)]

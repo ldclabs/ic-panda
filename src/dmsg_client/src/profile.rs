@@ -12,9 +12,10 @@
 
 use crate::account::Security;
 use crate::client::{Client, Peers};
-use crate::cloud::{Cloud, Evidence, Prepared, Presigned, verify_signed_command};
+use crate::cloud::{Cloud, Evidence, Presigned, verify_signed_command};
 use crate::codec::{canonical, decode, sha256, unb64};
-use crate::evidence::under;
+use crate::evidence::{Trust, under};
+use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan, random_hex};
 use dmsg_types::{AccountId, Error, Hash, Result, ensure, ensure_valid};
@@ -208,7 +209,7 @@ struct Body {
     cose_sign1: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct ProfileJob {
     profile: Profile,
     request_id: Hash,
@@ -275,37 +276,13 @@ fn published(
 }
 
 impl Client {
-    /// This account's published profile, checked against the account's
-    /// certified devices when the relay accepted it and against the newest
-    /// version this device has seen.
-    ///
-    /// # Errors
-    /// A relay that loses or rolls back a profile this device saw returns
-    /// `Error::IntegrityFailed`.
-    pub async fn profile(&mut self) -> Result<Option<PublishedProfile>> {
-        let value = self
-            .relay_find(&format!("{}/profile", self.base()?))
-            .await?;
-        self.profile_settle(value).await
-    }
-
-    /// [`Self::profile`]'s relay read, signed for the caller to send without
-    /// the client; [`Self::profile_settle`] checks the answer.
-    ///
-    /// # Errors
-    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
-    pub fn profile_request(&self) -> Result<Prepared> {
-        self.signed_get(&format!("{}/profile", self.base()?))
-    }
-
-    /// Check and keep what the relay answered for [`Self::profile`]; after a
-    /// [`Self::warmup`], without the network.
-    ///
-    /// # Errors
-    /// As [`Self::profile`].
-    pub async fn profile_settle(
+    /// Check and keep what the relay answered for [`show`]: the profile,
+    /// checked against the account's certified devices when the relay
+    /// accepted it and against the newest version this device has seen.
+    fn profile_settle(
         &mut self,
         value: Option<Json>,
+        trust: &Trust,
     ) -> Result<Option<PublishedProfile>> {
         let account = self.account()?.id;
         let known: Option<(u64, String)> = self.workspace.store.meta(HEAD)?;
@@ -316,9 +293,7 @@ impl Client {
         let evidence: Evidence = serde_json::from_value(value["evidence"].clone())
             .map_err(|_| Error::IntegrityFailed)?;
         let stored_at = value["stored_at"].as_u64().ok_or(Error::IntegrityFailed)?;
-        let security = self
-            .trust()
-            .await?
+        let security = trust
             .account(&evidence, &account, stored_at, now_ms())
             .map_err(|_| Error::IntegrityFailed)?;
         let published = verify_own(&account.to_string(), &value, &security, stored_at)?;
@@ -335,51 +310,9 @@ impl Client {
         Ok(Some(published))
     }
 
-    /// Publish exactly `fields` as the next profile version; the avatar, if
-    /// any, stays. An earlier publish still pending is settled first.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked and `Error::VersionConflict`
-    /// when another device published in between.
-    pub async fn publish_profile(&mut self, fields: &ProfileFields) -> Result<PublishedProfile> {
-        self.publish_next(|current| Profile {
-            version: 0,
-            prev_hash: None,
-            display_name: fields.display_name.trim().into(),
-            bio: fields.bio.clone(),
-            avatar_upload: current.and_then(|c| c.avatar_upload.clone()),
-            links: fields.links.clone(),
-        })
-        .await
-    }
-
-    /// Upload `image` (PNG, JPEG or WebP, at most 512 KiB) as a public
-    /// avatar and publish the next profile version with it; `None` removes
-    /// the avatar. The other fields stay. The relay serves the image to
-    /// anyone, unencrypted; earlier versions keep naming their avatars.
-    ///
-    /// # Errors
-    /// Returns `Error::InvalidInput` for another format or size, and as
-    /// [`Self::publish_profile`].
-    pub async fn publish_avatar(&mut self, image: Option<&[u8]>) -> Result<PublishedProfile> {
-        self.keys()?;
-        let upload = match image {
-            Some(bytes) => Some(self.upload_avatar(bytes).await?),
-            None => None,
-        };
-        self.publish_next(|current| Profile {
-            version: 0,
-            prev_hash: None,
-            display_name: current.map(|c| c.display_name.clone()).unwrap_or_default(),
-            bio: current.map(|c| c.bio.clone()).unwrap_or_default(),
-            avatar_upload: upload,
-            links: current.map(|c| c.links.clone()).unwrap_or_default(),
-        })
-        .await
-    }
-
-    /// Upload an avatar; returns its upload ID.
-    async fn upload_avatar(&mut self, bytes: &[u8]) -> Result<String> {
+    /// The avatar's upload: its plan and manifest, the image kept in the
+    /// store for the upload to read, collected after it.
+    fn avatar_upload(&self, bytes: &[u8]) -> Result<(UploadPlan, Vec<u8>)> {
         let mime = avatar_type(bytes)?;
         let account = self.account()?.id.to_string();
         let upload_id = random_hex();
@@ -391,7 +324,7 @@ impl Client {
         });
         let digest = hex::encode(*sha256(bytes));
         let plan = UploadPlan {
-            upload_id: upload_id.clone(),
+            upload_id,
             object_id: random_hex(),
             version_id: random_hex(),
             root_generation: 0,
@@ -406,118 +339,197 @@ impl Client {
             manifest_size: manifest.len() as u64,
             expires_at: now_ms() + dmsg_types::DAY,
         };
-        // Read from the store by the upload, then collected after it.
         self.workspace.store.put_chunk(&digest, bytes)?;
-        self.upload(
-            &self.base()?,
-            &plan,
-            &manifest,
-            0,
-            crate::files::Source::Store,
-            |_, _| Ok(()),
-        )
+        Ok((plan, manifest))
+    }
+}
+
+/// This account's published profile, checked against the account's
+/// certified devices when the relay accepted it and against the newest
+/// version this device has seen.
+///
+/// # Errors
+/// A relay that loses or rolls back a profile this device saw returns
+/// `Error::IntegrityFailed`.
+pub async fn show<H: Hold>(h: &H) -> Result<Option<PublishedProfile>> {
+    let base = h.with(|c| c.base()).await?;
+    let value = h.find(&format!("{base}/profile")).await?;
+    let trust = h.trust().await?;
+    h.with(|c| c.profile_settle(value, &trust)).await
+}
+
+/// Another account's published profile as [`resolve`] reads it, the user
+/// home and the relay waited on without the client.
+///
+/// # Errors
+/// Returns `Error::NotFound` when no user home knows the account.
+pub async fn resolve_account<H: Hold>(
+    h: &H,
+    account: &AccountId,
+) -> Result<Option<PublishedProfile>> {
+    let (relay, mut peers) = h
+        .with(|c| Ok((c.relay(), c.peers_of(std::slice::from_ref(account)))))
         .await?;
-        Ok(upload_id)
-    }
+    let found = resolve(&relay, &mut peers).await;
+    h.with(|c| {
+        c.peers_met(peers);
+        Ok(())
+    })
+    .await?;
+    found
+}
 
-    /// Publish the next profile version, which `build` makes from the
-    /// current one; an earlier publish still pending is settled first.
-    async fn publish_next(
-        &mut self,
-        build: impl FnOnce(Option<&Profile>) -> Profile,
-    ) -> Result<PublishedProfile> {
-        self.keys()?;
-        if let Some(job) = self.workspace.store.meta::<ProfileJob>(JOB)? {
-            // Whatever became of it, the next version builds on the relay's.
-            let _ = self.send_profile(job).await;
-            self.workspace.store.delete_meta(JOB)?;
-        }
-        let current = self.profile().await?;
-        let profile = Profile {
-            version: current.as_ref().map_or(0, |c| c.profile.version) + 1,
-            prev_hash: current.as_ref().map(|c| c.hash.clone()),
-            ..build(current.as_ref().map(|c| &c.profile))
-        };
-        profile.validate()?;
-        let job = ProfileJob {
-            profile,
-            request_id: Hash::new(crate::crypto::random_id()),
-            dispatch: None,
-        };
-        self.workspace.store.set_meta(JOB, &job)?;
-        let version = job.profile.version;
-        let sent = self.send_profile(job).await;
-        if !matches!(sent, Err(Error::ExecutionUnknown)) {
-            self.workspace.store.delete_meta(JOB)?;
-        }
-        sent?;
-        let published = self.profile().await?.ok_or(Error::IntegrityFailed)?;
-        ensure(published.profile.version >= version, Error::IntegrityFailed)?;
-        Ok(published)
-    }
+/// Publish exactly `fields` as the next profile version; the avatar, if
+/// any, stays. An earlier publish still pending is settled first.
+///
+/// # Errors
+/// Returns `Error::Locked` while locked and `Error::VersionConflict` when
+/// another device published in between.
+pub async fn publish<H: Hold>(h: &H, fields: &ProfileFields) -> Result<PublishedProfile> {
+    publish_next(h, |current| Profile {
+        version: 0,
+        prev_hash: None,
+        display_name: fields.display_name.trim().into(),
+        bio: fields.bio.clone(),
+        avatar_upload: current.and_then(|c| c.avatar_upload.clone()),
+        links: fields.links.clone(),
+    })
+    .await
+}
 
-    /// Submit a profile job: its stored outcome, its presigned command
-    /// before the deadline, or, once that lapsed unanswered, a new one.
-    async fn send_profile(&mut self, mut job: ProfileJob) -> Result<()> {
-        let base = self.base()?;
-        let request = hex::encode(*job.request_id);
-        let status = format!("{base}/operations/{request}");
-        let fresh = job
-            .dispatch
-            .as_ref()
-            .filter(|d| d.deadline > now_ms() + 5_000);
-        let dispatch = match fresh {
-            Some(dispatch) => dispatch.clone(),
-            None => {
-                if let Some(found) = self
-                    .relay_find(&status)
-                    .await?
-                    .filter(|f| f["found"] == true)
-                {
-                    return ensure(
-                        found["result"]["version"].as_u64() == Some(job.profile.version),
-                        Error::VersionConflict,
-                    );
-                }
-                let security = self.cloud_state().await?;
-                let dispatch = self.cloud.presign(
-                    &self.signer(&security)?,
-                    &format!("{base}/profile"),
-                    "dmsg/profile/v1",
-                    &job.profile,
-                    &job.request_id,
-                    &status,
-                    now_ms(),
-                )?;
-                job.dispatch = Some(dispatch.clone());
-                self.workspace.store.set_meta(JOB, &job)?;
-                dispatch
+/// Upload `image` (PNG, JPEG or WebP, at most 512 KiB) as a public avatar
+/// and publish the next profile version with it; `None` removes the
+/// avatar. The other fields stay. The relay serves the image to anyone,
+/// unencrypted; earlier versions keep naming their avatars.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for another format or size, and as
+/// [`publish`].
+pub async fn publish_avatar<H: Hold>(h: &H, image: Option<&[u8]>) -> Result<PublishedProfile> {
+    h.with(|c| c.keys().map(|_| ())).await?;
+    let upload = match image {
+        Some(bytes) => {
+            let (base, (plan, manifest)) =
+                h.with(|c| Ok((c.base()?, c.avatar_upload(bytes)?))).await?;
+            crate::upload::upload(
+                h,
+                &base,
+                &plan,
+                &manifest,
+                0,
+                crate::files::Source::Store,
+                |_, _| Ok(()),
+            )
+            .await?;
+            Some(plan.upload_id)
+        }
+        None => None,
+    };
+    publish_next(h, |current| Profile {
+        version: 0,
+        prev_hash: None,
+        display_name: current.map(|c| c.display_name.clone()).unwrap_or_default(),
+        bio: current.map(|c| c.bio.clone()).unwrap_or_default(),
+        avatar_upload: upload,
+        links: current.map(|c| c.links.clone()).unwrap_or_default(),
+    })
+    .await
+}
+
+/// Publish the next profile version, which `build` makes from the current
+/// one; an earlier publish still pending is settled first.
+async fn publish_next<H: Hold>(
+    h: &H,
+    build: impl FnOnce(Option<&Profile>) -> Profile,
+) -> Result<PublishedProfile> {
+    let pending = h
+        .with(|c| {
+            c.keys()?;
+            c.workspace.store.meta::<ProfileJob>(JOB)
+        })
+        .await?;
+    if let Some(job) = pending {
+        // Whatever became of it, the next version builds on the relay's.
+        let _ = send_profile(h, job).await;
+        h.with(|c| c.workspace.store.delete_meta(JOB)).await?;
+    }
+    let current = show(h).await?;
+    let profile = Profile {
+        version: current.as_ref().map_or(0, |c| c.profile.version) + 1,
+        prev_hash: current.as_ref().map(|c| c.hash.clone()),
+        ..build(current.as_ref().map(|c| &c.profile))
+    };
+    profile.validate()?;
+    let job = ProfileJob {
+        profile,
+        request_id: Hash::new(crate::crypto::random_id()),
+        dispatch: None,
+    };
+    h.with(|c| c.workspace.store.set_meta(JOB, &job)).await?;
+    let version = job.profile.version;
+    let sent = send_profile(h, job).await;
+    if !matches!(sent, Err(Error::ExecutionUnknown)) {
+        h.with(|c| c.workspace.store.delete_meta(JOB)).await?;
+    }
+    sent?;
+    let published = show(h).await?.ok_or(Error::IntegrityFailed)?;
+    ensure(published.profile.version >= version, Error::IntegrityFailed)?;
+    Ok(published)
+}
+
+/// Submit a profile job: its stored outcome, its presigned command before
+/// the deadline, or, once that lapsed unanswered, a new one.
+async fn send_profile<H: Hold>(h: &H, mut job: ProfileJob) -> Result<()> {
+    let base = h.with(|c| c.base()).await?;
+    let request = hex::encode(*job.request_id);
+    let status = format!("{base}/operations/{request}");
+    let fresh = job
+        .dispatch
+        .as_ref()
+        .filter(|d| d.deadline > now_ms() + 5_000);
+    let (relay, dispatch) = match fresh {
+        Some(dispatch) => (h.with(|c| Ok(c.relay())).await?, dispatch.clone()),
+        None => {
+            if let Some(found) = h.find(&status).await?.filter(|f| f["found"] == true) {
+                return ensure(
+                    found["result"]["version"].as_u64() == Some(job.profile.version),
+                    Error::VersionConflict,
+                );
             }
-        };
-        let receipt = self.cloud.submit(&dispatch, now_ms()).await?;
-        let body: Body = decode(&dispatch.body, 262_144)?;
-        let hash = hex::encode(*sha256(&unb64(&body.cose_sign1)?));
-        ensure(
-            receipt["version"].as_u64() == Some(job.profile.version)
-                && receipt["hash"] == hash.as_str(),
-            Error::IntegrityFailed,
-        )
-    }
-
-    /// Another account's published profile as [`resolve`] reads it, for a
-    /// caller that holds the client anyway.
-    ///
-    /// # Errors
-    /// Returns `Error::NotFound` when no user home knows the account.
-    pub async fn profile_resolve(
-        &mut self,
-        account: &AccountId,
-    ) -> Result<Option<PublishedProfile>> {
-        let mut peers = self.peers_of(std::slice::from_ref(account));
-        let found = resolve(&self.cloud, &mut peers).await;
-        self.peers_met(peers);
-        found
-    }
+            let (relay, dispatch) = h
+                .signed(|c| {
+                    let security = c.fresh()?;
+                    let dispatch = c.cloud.presign(
+                        &c.signer(&security)?,
+                        &format!("{base}/profile"),
+                        "dmsg/profile/v1",
+                        &job.profile,
+                        &job.request_id,
+                        &status,
+                        now_ms(),
+                    )?;
+                    c.workspace.store.set_meta(
+                        JOB,
+                        &ProfileJob {
+                            dispatch: Some(dispatch.clone()),
+                            ..job.clone()
+                        },
+                    )?;
+                    Ok(dispatch)
+                })
+                .await?;
+            job.dispatch = Some(dispatch.clone());
+            (relay, dispatch)
+        }
+    };
+    let receipt = relay.submit(&dispatch, now_ms()).await?;
+    let body: Body = decode(&dispatch.body, 262_144)?;
+    let hash = hex::encode(*sha256(&unb64(&body.cose_sign1)?));
+    ensure(
+        receipt["version"].as_u64() == Some(job.profile.version)
+            && receipt["hash"] == hash.as_str(),
+        Error::IntegrityFailed,
+    )
 }
 
 #[cfg(test)]

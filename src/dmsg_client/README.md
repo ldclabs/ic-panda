@@ -20,6 +20,7 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`workspace`] | Device keys, the local data key and the unlock chain: a provisional key before the device belongs to an account, then `LUK = HKDF(unlock_secret, ["dmsg/local-unlock/2", name])`; fast unlock seals a second copy under a key the credential store keeps |
 | [`secure`] | The credential-store trait: the desktop daemon uses the system store, mobile apps the Keychain or Keystore |
 | [`ic`] | `ic-agent` calls with Candid-typed replies; a lost update reply is `ExecutionUnknown` |
+| [`hold`] | Where an operation finds the client: held by its one caller throughout (`Client::hold`), or taken for each synchronous step by a caller that shares it, as the daemon does. Relay requests are signed in a step and sent after it, and the agents for the IC and the user homes leave the client the same way, so a shared client never waits on the network |
 | [`account`] | Certified security (public, no login needed) and account state (with the login), the encrypted operation journal, account creation, device-approved mutations and pairing |
 | [`security`] | Bound logins (`BindAuth` and `accept_auth_binding`, across devices by a token or on one device with a second login), removing a login, the sensitive-execution policy, the recovery delay and disputes, each through the approval center |
 | [`recovery`] | Recovery after every device is lost: the delayed takeover request, its completion, the one vetKD derivation of the committed root and opening the bundle's recovery envelope, then a new root |

@@ -6,7 +6,7 @@
 
 use crate::daemon::Daemon;
 use crate::params::{number, optional, parse, source, text, to_json};
-use dmsg_client::wallet::{default_policy, parse_wallet};
+use dmsg_client::wallet::{self as wallets, default_policy, parse_wallet};
 use dmsg_types::{
     Error, Result,
     wallet::{ChainOutcome, Decision, Intent, MemberId, MemberInput, Role, WalletSpec},
@@ -144,29 +144,61 @@ fn outcome(text: &str) -> Result<ChainOutcome> {
 impl Daemon {
     /// Run one of [`METHODS`].
     pub(crate) async fn call_wallet(&self, method: &str, params: &Value) -> Result<Value> {
-        let mut client = self.client().lock().await;
         let wallet = || parse_wallet(&text(params, "wallet")?);
         let id = || number::<u64>(params, "proposal");
+        // The wallet's reads wait on the IC without the client.
+        let h = self.hold();
         match method {
-            "wallet/list" => client.wallet_list().await,
-            "wallet/show" => client.wallet_show(wallet()?).await,
-            "wallet/principal" => client.wallet_principal().await,
-            "wallet/quote" => client.wallet_quote().await,
-            "wallet/create" => client.wallet_create_request(
-                source(params)?,
-                &text(params, "quote")?,
-                spec(params)?,
-            ),
-            "wallet/deposits" => client.wallet_deposits().await,
-            "wallet/refund" => client.wallet_refund(&text(params, "quote")?).await,
-            "wallet/join" => client.wallet_join_request(source(params)?, wallet()?).await,
+            "wallet/list" => return wallets::list(&h).await,
+            "wallet/show" => return wallets::show(&h, wallet()?).await,
+            "wallet/principal" => return wallets::principal(&h).await,
+            "wallet/deposits" => return wallets::deposits(&h).await,
             "wallet/proposals" => {
                 let limit = params["limit"].as_u64().unwrap_or(50).min(100) as u16;
-                client
-                    .wallet_proposals(wallet()?, params["before"].as_u64(), limit)
-                    .await
+                return wallets::proposals(&h, wallet()?, params["before"].as_u64(), limit).await;
             }
-            "wallet/proposal" => client.wallet_proposal(wallet()?, id()?).await,
+            "wallet/proposal" => return wallets::proposal(&h, wallet()?, id()?).await,
+            "wallet/balances" => return wallets::balances(&h, wallet()?).await,
+            "wallet/audit" => return wallets::audit(&h, wallet()?).await,
+            _ => {}
+        }
+        // The client alone, without the network.
+        let answered = {
+            let mut client = self.client().lock().await;
+            match method {
+                "wallet/create" => Some(client.wallet_create_request(
+                    source(params)?,
+                    &text(params, "quote")?,
+                    spec(params)?,
+                )),
+                "wallet/cosigners" => Some(client.wallet_cosigners_local()),
+                "wallet/cosigner_new" => Some(client.wallet_cosigner_new(
+                    &text(params, "label")?,
+                    params["hardware"].as_bool().unwrap_or(false),
+                )),
+                "wallet/policy_default" => Some(Ok(to_json(&default_policy(
+                    threshold(params, "approvals")?,
+                    threshold(params, "admin_approvals")?,
+                )))),
+                // The JSON shape of an intent, for building one by hand.
+                "wallet/intent" => {
+                    let intent: Intent = parse(params, "intent")?;
+                    Some(Ok(
+                        json!({"intent": dmsg_client::wallet::intent_view(&intent)}),
+                    ))
+                }
+                _ => None,
+            }
+        };
+        if let Some(answer) = answered {
+            return answer;
+        }
+        // Proposals, decisions and executions still wait on the IC and the
+        // chains under the client.
+        self.under_lock(async |client| match method {
+            "wallet/quote" => client.wallet_quote().await,
+            "wallet/refund" => client.wallet_refund(&text(params, "quote")?).await,
+            "wallet/join" => client.wallet_join_request(source(params)?, wallet()?).await,
             "wallet/propose" => {
                 let intent: Intent = parse(params, "intent")?;
                 client.wallet_propose(wallet()?, intent, None).await
@@ -219,25 +251,10 @@ impl Daemon {
                     .await
             }
             "wallet/reconcile" => client.wallet_reconcile(wallet()?, id()?).await,
-            "wallet/balances" => client.wallet_balances(wallet()?).await,
-            "wallet/audit" => client.wallet_audit(wallet()?).await,
             "wallet/refuel" => client.wallet_refuel(wallet()?).await,
-            "wallet/cosigners" => client.wallet_cosigners_local(),
-            "wallet/cosigner_new" => client.wallet_cosigner_new(
-                &text(params, "label")?,
-                params["hardware"].as_bool().unwrap_or(false),
-            ),
-            "wallet/policy_default" => Ok(to_json(&default_policy(
-                threshold(params, "approvals")?,
-                threshold(params, "admin_approvals")?,
-            ))),
-            // The JSON shape of an intent, for building one by hand.
-            "wallet/intent" => {
-                let intent: Intent = parse(params, "intent")?;
-                Ok(json!({"intent": dmsg_client::wallet::intent_view(&intent)}))
-            }
             _ => Err(Error::NotFound),
-        }
+        })
+        .await
     }
 }
 

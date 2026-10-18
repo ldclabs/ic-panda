@@ -16,6 +16,7 @@ use crate::codec::{canonical, unb64};
 use crate::content::empty_file;
 use crate::crypto::{Key, open, seal, seal_bytes};
 use crate::files::{BlobStore, FileManifest, MAX_FILE, Source};
+use crate::hold::Hold;
 use crate::upload::{ChunkRef, UploadPlan, hex_id, random_hex};
 use dmsg_types::{DAY, Error, Hash, MINUTE, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
@@ -252,37 +253,17 @@ impl Client {
         }
     }
 
-    /// Share a version by link: upload a fresh edition of it as a `share`
-    /// object and have the relay publish the link, good for `expires_in_ms`
-    /// (the default week, at most 30 days) and `max_downloads` starts (0 for
-    /// no limit). With a password the link carries no key; the key travels
-    /// wrapped under the password, and the person needs both.
-    ///
-    /// # Errors
-    /// Returns `Error::NotFound` for an unknown file or version,
-    /// `Error::QuotaExceeded` for a version over 100 MiB or a cloud without
-    /// room, `Error::RekeyRequired` while the account waits for a new root
-    /// and `Error::InvalidInput` for a bad expiry or an empty password.
-    pub async fn files_share_link(
+    /// The shared edition a link hands out, under a new upload of the
+    /// account; nothing goes to the relay yet.
+    fn share_edition_upload(
         &mut self,
         id: &str,
         version: Option<&str>,
-        expires_in_ms: Option<u64>,
-        max_downloads: u64,
         password: Option<&str>,
-        progress: &mut (dyn FnMut(u64, u64) + Send),
-    ) -> Result<LinkView> {
-        let expires_in = expires_in_ms.unwrap_or(LINK_DEFAULT_MS);
-        ensure_valid((1..=LINK_MAX_MS).contains(&expires_in), "expires_in_ms")?;
-        ensure_valid(max_downloads <= 1_000_000, "max_downloads")?;
+    ) -> Result<Sharing> {
         let (_, record, manifest) = self.library_manifest(id, version)?;
         ensure(record.local, Error::RecoveryIncomplete)?;
         ensure(manifest.size <= MAX_FILE, Error::QuotaExceeded)?;
-        let security = self.cloud_state().await?;
-        ensure(
-            security.snapshot.vault_write_state == dmsg_types::user::VaultWriteState::Ready,
-            Error::RekeyRequired,
-        )?;
         let edition = self.share_edition(&manifest)?;
         let key = Zeroizing::new(
             <[u8; 32]>::try_from(Zeroizing::new(unb64(&edition.key)?).as_slice())
@@ -324,7 +305,7 @@ impl Client {
             &share_manifest_aad(&share_id, &upload_id, &edition.id, &edition.version),
         );
         let plan = UploadPlan {
-            upload_id: upload_id.clone(),
+            upload_id,
             object_id: edition.id.clone(),
             version_id: edition.version.clone(),
             root_generation: 0,
@@ -336,80 +317,15 @@ impl Client {
             manifest_size: manifest_bytes.len() as u64,
             expires_at: now + PLAN_MS,
         };
-        let total = plan.chunks.len() as u64;
-        let base = self.base()?;
-        let uploaded = self
-            .upload(
-                &base,
-                &plan,
-                &manifest_bytes,
-                0,
-                Source::Library,
-                |_, sent| {
-                    progress(sent as u64, total);
-                    Ok(())
-                },
-            )
-            .await;
-        if let Err(error) = uploaded {
-            // The edition's chunks are nobody's now; the collector takes them.
-            let _ = self.cancel_upload(&upload_id).await;
-            return Err(error);
-        }
-        // The relay bounds the expiry by its own clock; a minute's margin
-        // keeps the longest link within it.
-        let now = crate::now_ms();
-        let expires_at = now + expires_in.min(LINK_MAX_MS - MINUTE);
-        let published = match self
-            .relay_post(
-                &format!("{base}/shares"),
-                "dmsg/share/create/v1",
-                &json!({
-                    "share_id": share_id,
-                    "upload_id": upload_id,
-                    "expires_at": expires_at,
-                    "max_downloads": max_downloads,
-                    "key_wrap": key_wrap,
-                }),
-                &Hash::new(crate::crypto::random_id()),
-            )
-            .await
-        {
-            Ok(published) => published,
-            Err(error) => {
-                // Without its link nothing would retire the committed edition.
-                let _ = self
-                    .relay_post(
-                        &format!("{base}/objects/collect"),
-                        "dmsg/object/collect/v1",
-                        &json!({"upload_id": upload_id, "generation": 0}),
-                        &Hash::new(crate::crypto::random_id()),
-                    )
-                    .await;
-                return Err(error);
-            }
-        };
-        ensure(
-            published["share_id"] == share_id.as_str(),
-            Error::IntegrityFailed,
-        )?;
-        let link = LinkRecord {
-            file: id.into(),
-            version: manifest.version.clone(),
-            name: manifest.name.clone(),
-            size: manifest.size,
+        Ok(Sharing {
+            base: self.base()?,
+            manifest,
             share_id,
-            upload_id,
+            key_wrap,
             key: edition.key,
-            expires_at,
-            max_downloads,
-            password: password.is_some(),
-            created_at: published["created_at"].as_u64().unwrap_or(now),
-            revoked_at: None,
-            downloads: 0,
-        };
-        self.save_link(&link)?;
-        Ok(self.link_view(&link, crate::now_ms()))
+            plan,
+            manifest_bytes,
+        })
     }
 
     /// The links this device made, newest first, as last known.
@@ -426,39 +342,178 @@ impl Client {
         views.sort_by_key(|a| std::cmp::Reverse(a.created_at));
         Ok(views)
     }
+}
 
-    /// Read the account's links from the relay: this device's records take
-    /// the download counts and revocations; links other devices made are
-    /// listed without a URL, since their keys never left those devices.
-    ///
-    /// # Errors
-    /// Relay errors as returned.
-    pub async fn files_share_links_refresh(&mut self) -> Result<Vec<LinkView>> {
-        let base = self.base()?;
-        let mut remote = Vec::new();
-        let mut after = 0;
-        loop {
-            let page: RemotePage = serde_json::from_value(
-                self.relay_get(&format!("{base}/shares?after={after}&limit=100"))
-                    .await?,
-            )
-            .map_err(|_| Error::IntegrityFailed)?;
-            remote.extend(page.entries);
-            if page.end {
-                break;
-            }
-            after = page.next_cursor;
+/// A shared edition on its way to a link.
+struct Sharing {
+    base: String,
+    /// The library version shared.
+    manifest: FileManifest,
+    share_id: String,
+    key_wrap: Option<String>,
+    /// The edition's key, base64url.
+    key: String,
+    plan: UploadPlan,
+    manifest_bytes: Vec<u8>,
+}
+
+/// Share a version by link: upload a fresh edition of it as a `share`
+/// object and have the relay publish the link, good for `expires_in_ms`
+/// (the default week, at most 30 days) and `max_downloads` starts (0 for
+/// no limit). With a password the link carries no key; the key travels
+/// wrapped under the password, and the person needs both.
+///
+/// # Errors
+/// Returns `Error::NotFound` for an unknown file or version,
+/// `Error::QuotaExceeded` for a version over 100 MiB or a cloud without
+/// room, `Error::RekeyRequired` while the account waits for a new root and
+/// `Error::InvalidInput` for a bad expiry or an empty password.
+pub async fn share_link<H: Hold>(
+    h: &H,
+    id: &str,
+    version: Option<&str>,
+    expires_in_ms: Option<u64>,
+    max_downloads: u64,
+    password: Option<&str>,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<LinkView> {
+    let expires_in = expires_in_ms.unwrap_or(LINK_DEFAULT_MS);
+    ensure_valid((1..=LINK_MAX_MS).contains(&expires_in), "expires_in_ms")?;
+    ensure_valid(max_downloads <= 1_000_000, "max_downloads")?;
+    h.with(|c| {
+        let (_, record, manifest) = c.library_manifest(id, version)?;
+        ensure(record.local, Error::RecoveryIncomplete)?;
+        ensure(manifest.size <= MAX_FILE, Error::QuotaExceeded)
+    })
+    .await?;
+    let (_, security) = h.signed(Client::fresh).await?;
+    ensure(
+        security.snapshot.vault_write_state == dmsg_types::user::VaultWriteState::Ready,
+        Error::RekeyRequired,
+    )?;
+    let Sharing {
+        base,
+        manifest,
+        share_id,
+        key_wrap,
+        key,
+        plan,
+        manifest_bytes,
+    } = h
+        .with(|c| c.share_edition_upload(id, version, password))
+        .await?;
+    let upload_id = plan.upload_id.clone();
+    let total = plan.chunks.len() as u64;
+    let uploaded = crate::upload::upload(
+        h,
+        &base,
+        &plan,
+        &manifest_bytes,
+        0,
+        Source::Library,
+        |_, sent| {
+            progress(sent as u64, total);
+            Ok(())
+        },
+    )
+    .await;
+    if let Err(error) = uploaded {
+        // The edition's chunks are nobody's now; the collector takes them.
+        let _ = crate::upload::cancel_upload(h, &upload_id).await;
+        return Err(error);
+    }
+    // The relay bounds the expiry by its own clock; a minute's margin keeps
+    // the longest link within it.
+    let now = crate::now_ms();
+    let expires_at = now + expires_in.min(LINK_MAX_MS - MINUTE);
+    let published = match h
+        .post(
+            &format!("{base}/shares"),
+            "dmsg/share/create/v1",
+            &json!({
+                "share_id": share_id,
+                "upload_id": upload_id,
+                "expires_at": expires_at,
+                "max_downloads": max_downloads,
+                "key_wrap": key_wrap,
+            }),
+            &Hash::new(crate::crypto::random_id()),
+        )
+        .await
+    {
+        Ok(published) => published,
+        Err(error) => {
+            // Without its link nothing would retire the committed edition.
+            let _ = h
+                .post(
+                    &format!("{base}/objects/collect"),
+                    "dmsg/object/collect/v1",
+                    &json!({"upload_id": upload_id, "generation": 0}),
+                    &Hash::new(crate::crypto::random_id()),
+                )
+                .await;
+            return Err(error);
         }
+    };
+    ensure(
+        published["share_id"] == share_id.as_str(),
+        Error::IntegrityFailed,
+    )?;
+    let link = LinkRecord {
+        file: id.into(),
+        version: manifest.version.clone(),
+        name: manifest.name.clone(),
+        size: manifest.size,
+        share_id,
+        upload_id,
+        key,
+        expires_at,
+        max_downloads,
+        password: password.is_some(),
+        created_at: published["created_at"].as_u64().unwrap_or(now),
+        revoked_at: None,
+        downloads: 0,
+    };
+    h.with(|c| {
+        c.save_link(&link)?;
+        Ok(c.link_view(&link, crate::now_ms()))
+    })
+    .await
+}
+
+/// Read the account's links from the relay: this device's records take
+/// the download counts and revocations; links other devices made are
+/// listed without a URL, since their keys never left those devices.
+///
+/// # Errors
+/// Relay errors as returned.
+pub async fn share_links_refresh<H: Hold>(h: &H) -> Result<Vec<LinkView>> {
+    let base = h.with(|c| c.base()).await?;
+    let mut remote = Vec::new();
+    let mut after = 0;
+    loop {
+        let page: RemotePage = serde_json::from_value(
+            h.get(&format!("{base}/shares?after={after}&limit=100"))
+                .await?,
+        )
+        .map_err(|_| Error::IntegrityFailed)?;
+        remote.extend(page.entries);
+        if page.end {
+            break;
+        }
+        after = page.next_cursor;
+    }
+    h.with(|c| {
         let now = crate::now_ms();
         let mut views = Vec::with_capacity(remote.len());
-        let mut records = self.link_records()?;
+        let mut records = c.link_records()?;
         for entry in remote {
             match records.iter_mut().find(|r| r.share_id == entry.share_id) {
                 Some(record) => {
                     record.downloads = entry.downloads;
                     record.revoked_at = entry.revoked_at;
-                    self.save_link(record)?;
-                    views.push(self.link_view(record, now));
+                    c.save_link(record)?;
+                    views.push(c.link_view(record, now));
                 }
                 None => views.push(LinkView {
                     share_id: entry.share_id,
@@ -479,27 +534,30 @@ impl Client {
         }
         views.sort_by_key(|a| std::cmp::Reverse(a.created_at));
         Ok(views)
-    }
+    })
+    .await
+}
 
-    /// Revoke a link: the relay retires its edition at once, and the link
-    /// answers nothing from then on. The library's own copy stays.
-    ///
-    /// # Errors
-    /// Returns `Error::NotFound` for a link the relay does not know.
-    pub async fn files_share_revoke(&mut self, share_id: &str) -> Result<LinkView> {
-        hex_id(share_id).map_err(|_| dmsg_types::invalid("share_id"))?;
-        let base = self.base()?;
-        let revoked = self
-            .relay_post(
-                &format!("{base}/shares/revoke"),
-                "dmsg/share/revoke/v1",
-                &json!({ "share_id": share_id }),
-                &Hash::new(crate::crypto::random_id()),
-            )
-            .await?;
+/// Revoke a link: the relay retires its edition at once, and the link
+/// answers nothing from then on. The library's own copy stays.
+///
+/// # Errors
+/// Returns `Error::NotFound` for a link the relay does not know.
+pub async fn share_revoke<H: Hold>(h: &H, share_id: &str) -> Result<LinkView> {
+    hex_id(share_id).map_err(|_| dmsg_types::invalid("share_id"))?;
+    let base = h.with(|c| c.base()).await?;
+    let revoked = h
+        .post(
+            &format!("{base}/shares/revoke"),
+            "dmsg/share/revoke/v1",
+            &json!({ "share_id": share_id }),
+            &Hash::new(crate::crypto::random_id()),
+        )
+        .await?;
+    h.with(|c| {
         let now = crate::now_ms();
         let revoked_at = revoked["revoked_at"].as_u64().or(Some(now));
-        if let Some(mut record) = self
+        if let Some(mut record) = c
             .link_records()?
             .into_iter()
             .find(|r| r.share_id == share_id)
@@ -507,8 +565,8 @@ impl Client {
             // The relay's answer counts no downloads; the record keeps the
             // last count it reported.
             record.revoked_at = revoked_at;
-            self.save_link(&record)?;
-            return Ok(self.link_view(&record, now));
+            c.save_link(&record)?;
+            return Ok(c.link_view(&record, now));
         }
         Ok(LinkView {
             share_id: share_id.into(),
@@ -525,7 +583,8 @@ impl Client {
             state: "revoked",
             downloads: revoked["downloads"].as_u64().unwrap_or(0),
         })
-    }
+    })
+    .await
 }
 
 #[cfg(test)]

@@ -52,61 +52,77 @@ impl Daemon {
     /// The directory record a request names: a `view` handed over by another
     /// participant, or the relay's record of `key`.
     async fn shared_view_of(&self, params: &Value) -> Result<SharedView> {
-        let mut client = self.client().lock().await;
-        match params["view"].is_object() {
+        self.under_lock(async |client| match params["view"].is_object() {
             true => client.shared_check_view(parse(params, "view")?).await,
             false => client.shared_view(&text(params, "key")?).await,
-        }
+        })
+        .await
     }
 
     /// Run one of [`METHODS`].
     pub(crate) async fn call_legacy(&self, method: &str, params: &Value) -> Result<Value> {
-        if matches!(
-            method,
-            "legacy/shared_claim_request" | "legacy/shared_claim"
-        ) {
-            let view = self.shared_view_of(params).await?;
+        // The client alone, without the network.
+        let answered = {
             let mut client = self.client().lock().await;
-            return match method {
-                "legacy/shared_claim_request" => {
-                    client
-                        .shared_claim_request(view, &text(params, "member")?)
-                        .await
-                }
-                _ => {
-                    let claim: MemberClaim = parse(params, "claim")?;
-                    let approval: Approval = parse(params, "approval")?;
-                    Ok(to_json(
-                        &client.shared_claim(view, &claim, &approval).await?,
-                    ))
-                }
+            let mut answer = || -> Result<Option<Value>> {
+                Ok(Some(match method {
+                    "legacy/pair" => client.legacy_pair(&text(params, "origin")?)?,
+                    "legacy/pairs" => json!(client.legacy_pairs()?),
+                    "legacy/cancel" => {
+                        client.legacy_cancel(&text(params, "nonce")?)?;
+                        json!({"cancelled": true})
+                    }
+                    "legacy/import" => client.legacy_import(
+                        &absolute(params, "path")?,
+                        &text(params, "nonce")?,
+                        &text(params, "fingerprint")?,
+                        &text(params, "principal")?,
+                    )?,
+                    "legacy/list" => json!(client.legacy_list()?),
+                    "legacy/report" => client.legacy_report(
+                        &text(params, "id")?,
+                        params["offset"].as_u64().unwrap_or(0) as usize,
+                        params["limit"].as_u64().unwrap_or(100) as usize,
+                    )?,
+                    "legacy/file" => client.legacy_file(
+                        &text(params, "id")?,
+                        &text(params, "source")?,
+                        &absolute(params, "path")?,
+                    )?,
+                    _ => return Ok(None),
+                }))
             };
+            answer().transpose()
+        };
+        if let Some(answer) = answered {
+            return answer;
         }
-        let mut client = self.client().lock().await;
+        // The migration of shared data still waits on the IC and the relay
+        // under the client.
         match method {
-            "legacy/pair" => client.legacy_pair(&text(params, "origin")?),
-            "legacy/pairs" => Ok(json!(client.legacy_pairs()?)),
-            "legacy/cancel" => {
-                client.legacy_cancel(&text(params, "nonce")?)?;
-                Ok(json!({"cancelled": true}))
+            "legacy/shared_view" => return Ok(to_json(&self.shared_view_of(params).await?)),
+            "legacy/shared_claim_request" | "legacy/shared_claim" => {
+                let view = self.shared_view_of(params).await?;
+                return self
+                    .under_lock(async |client| match method {
+                        "legacy/shared_claim_request" => {
+                            client
+                                .shared_claim_request(view, &text(params, "member")?)
+                                .await
+                        }
+                        _ => {
+                            let claim: MemberClaim = parse(params, "claim")?;
+                            let approval: Approval = parse(params, "approval")?;
+                            Ok(to_json(
+                                &client.shared_claim(view, &claim, &approval).await?,
+                            ))
+                        }
+                    })
+                    .await;
             }
-            "legacy/import" => client.legacy_import(
-                &absolute(params, "path")?,
-                &text(params, "nonce")?,
-                &text(params, "fingerprint")?,
-                &text(params, "principal")?,
-            ),
-            "legacy/list" => Ok(json!(client.legacy_list()?)),
-            "legacy/report" => client.legacy_report(
-                &text(params, "id")?,
-                params["offset"].as_u64().unwrap_or(0) as usize,
-                params["limit"].as_u64().unwrap_or(100) as usize,
-            ),
-            "legacy/file" => client.legacy_file(
-                &text(params, "id")?,
-                &text(params, "source")?,
-                &absolute(params, "path")?,
-            ),
+            _ => {}
+        }
+        self.under_lock(async |client| match method {
             "legacy/frozen" => {
                 client
                     .legacy_frozen(&text(params, "id")?, &absolute(params, "path")?)
@@ -143,10 +159,6 @@ impl Daemon {
                 };
                 Ok(to_json(&view))
             }
-            "legacy/shared_view" => {
-                drop(client);
-                Ok(to_json(&self.shared_view_of(params).await?))
-            }
             "legacy/shared_commit" => {
                 Ok(to_json(&client.shared_commit(&text(params, "key")?).await?))
             }
@@ -172,6 +184,7 @@ impl Daemon {
                     .await
             }
             _ => Err(Error::NotFound),
-        }
+        })
+        .await
     }
 }

@@ -27,6 +27,7 @@ use crate::codec::{MAX_RECORD, canonical, decode};
 use crate::config::{Config, environment_name};
 use crate::content::VAULT;
 use crate::crypto::Key;
+use crate::hold::Hold;
 use crate::ic::Ic;
 use crate::library::blobs::Blobs;
 use crate::library::catalog::Catalog;
@@ -213,7 +214,7 @@ pub struct Client {
     pub(crate) workspace: Workspace,
     pub(crate) cloud: Cloud,
     pub(crate) login: Option<Login>,
-    anonymous: Option<Ic>,
+    pub(crate) anonymous: Option<Ic>,
     pub(crate) keys: Option<Keys>,
     resident: Option<Zeroizing<Key>>,
     pub(crate) root: Option<RootKeys>,
@@ -265,6 +266,8 @@ pub struct Warmup {
     state: Option<Security>,
     /// Whether the user homes are still to be read.
     homes: bool,
+    /// Whether a public agent is still to be made.
+    reader: bool,
 }
 
 /// What a [`Client::warmup`] brings the certified security to.
@@ -306,11 +309,14 @@ impl Warmup {
             anonymous: None,
         };
         let mut ic = self.ic;
-        if self.homes {
+        if self.homes || self.reader {
             let ic = agent(&mut ic, &self.config, &mut warmed.anonymous).await?;
-            let read =
-                crate::account::user_homes(&ic, self.config.handle, &self.config.user_homes).await;
-            warmed.homes = read.ok().map(|config| config.user_homes);
+            if self.homes {
+                let read =
+                    crate::account::user_homes(&ic, self.config.handle, &self.config.user_homes)
+                        .await;
+                warmed.homes = read.ok().map(|config| config.user_homes);
+            }
         }
         match self.security {
             None => return Ok(warmed),
@@ -1188,19 +1194,19 @@ impl Client {
     /// Returns `Error::DeviceNotApproved` for a revoked device, whose
     /// workspace is then erased.
     pub(crate) async fn cloud_state(&mut self) -> Result<Security> {
-        if let Some(state) = self.fresh_state() {
-            return Ok(state.clone());
-        }
-        let warmup = self
-            .warmup_for(Warm::Relay, false)?
-            .ok_or(Error::PolicyStale)?;
-        let warmed = Box::pin(warmup.run()).await?;
-        self.warmed(warmed)?.ok_or(Error::PolicyStale)
+        let (_, state) = self.hold().signed(Client::fresh).await?;
+        Ok(state)
+    }
+
+    /// [`Self::fresh_state`], or `Error::PolicyStale` until a
+    /// [`Self::warmup`] made it fresh.
+    pub(crate) fn fresh(&mut self) -> Result<Security> {
+        self.fresh_state().cloned().ok_or(Error::PolicyStale)
     }
 
     /// The certified security the relay holds, while it is fresh enough to
     /// sign requests with.
-    fn fresh_state(&self) -> Option<&Security> {
+    pub(crate) fn fresh_state(&self) -> Option<&Security> {
         let account = self.account().ok()?;
         let state = self.security.as_ref()?;
         (self.published == Some(state.certified_at) && fresh(state, &account.id)).then_some(state)
@@ -1213,17 +1219,21 @@ impl Client {
     /// # Errors
     /// Returns `Error::RecoveryIncomplete` before the device has an account.
     pub fn warmup(&self, warm: Warm) -> Result<Option<Warmup>> {
-        self.warmup_for(warm, true)
+        self.warmup_for(Some(warm), true)
     }
 
-    fn warmup_for(&self, warm: Warm, homes: bool) -> Result<Option<Warmup>> {
+    /// [`Self::warmup`] of what `warm` asks for, if anything, and with
+    /// `trust` of what checks other accounts' evidence: the user homes and
+    /// a public agent.
+    pub(crate) fn warmup_for(&self, warm: Option<Warm>, trust: bool) -> Result<Option<Warmup>> {
         let account = self.account()?.clone();
         let security = match warm {
-            Warm::Relay if self.fresh_state().is_some() => None,
-            warm => Some(warm),
+            Some(Warm::Relay) if self.fresh_state().is_some() => None,
+            warm => warm,
         };
-        let homes = homes && self.homes.is_none();
-        if security.is_none() && !homes {
+        let homes = trust && self.homes.is_none();
+        let reader = trust && self.session().is_err() && self.anonymous.is_none();
+        if security.is_none() && !homes && !reader {
             return Ok(None);
         }
         Ok(Some(Warmup {
@@ -1244,6 +1254,7 @@ impl Client {
             account: account.id,
             security,
             homes,
+            reader,
         }))
     }
 
@@ -1294,6 +1305,18 @@ impl Client {
         payload: &P,
         request_id: &Hash,
     ) -> Result<Prepared> {
+        self.signed_post_sealed(path, action, payload, request_id, None)
+    }
+
+    /// [`Self::signed_post`] with a sealed reply beside the command.
+    pub(crate) fn signed_post_sealed<P: Serialize>(
+        &self,
+        path: &str,
+        action: &str,
+        payload: &P,
+        request_id: &Hash,
+        sealed: Option<&[u8]>,
+    ) -> Result<Prepared> {
         let state = self.fresh_state().ok_or(Error::PolicyStale)?;
         self.cloud.prepare_post(
             &self.signer(state)?,
@@ -1301,9 +1324,16 @@ impl Client {
             action,
             payload,
             request_id,
-            None,
+            sealed,
             now_ms(),
         )
+    }
+
+    /// The upload of a chunk signed now, as [`Self::signed_get`].
+    pub(crate) fn signed_put(&self, path: &str, bytes: &[u8]) -> Result<Prepared> {
+        let state = self.fresh_state().ok_or(Error::PolicyStale)?;
+        self.cloud
+            .prepare_put(&self.signer(state)?, path, bytes, now_ms())
     }
 
     pub(crate) fn signer<'a>(&'a self, state: &'a Security) -> Result<Signer<'a>> {
@@ -1328,38 +1358,27 @@ impl Client {
 
     /// A device-authenticated GET; `None` for an absent resource.
     pub(crate) async fn relay_find(&mut self, path: &str) -> Result<Option<Json>> {
-        let state = self.cloud_state().await?;
-        self.cloud.find(&self.signer(&state)?, path, now_ms()).await
+        self.hold().find(path).await
     }
 
     /// A device-authenticated GET.
     pub(crate) async fn relay_get(&mut self, path: &str) -> Result<Json> {
-        self.relay_find(path).await?.ok_or(Error::NotFound)
+        self.hold().get(path).await
     }
 
     /// A signed device command.
-    pub(crate) async fn relay_post<P: Serialize>(
+    pub(crate) async fn relay_post<P: Serialize + Sync>(
         &mut self,
         path: &str,
         action: &str,
         payload: &P,
         request_id: &Hash,
     ) -> Result<Json> {
-        let state = self.cloud_state().await?;
-        self.cloud
-            .post(
-                &self.signer(&state)?,
-                path,
-                action,
-                payload,
-                request_id,
-                now_ms(),
-            )
-            .await
+        self.hold().post(path, action, payload, request_id).await
     }
 
     /// A signed device command with a sealed reply beside it.
-    pub(crate) async fn relay_post_sealed<P: Serialize>(
+    pub(crate) async fn relay_post_sealed<P: Serialize + Sync>(
         &mut self,
         path: &str,
         action: &str,
@@ -1367,33 +1386,8 @@ impl Client {
         request_id: &Hash,
         sealed: Option<&[u8]>,
     ) -> Result<Json> {
-        let state = self.cloud_state().await?;
-        self.cloud
-            .post_sealed(
-                &self.signer(&state)?,
-                path,
-                action,
-                payload,
-                request_id,
-                sealed,
-                now_ms(),
-            )
-            .await
-    }
-
-    /// Upload one chunk.
-    pub(crate) async fn relay_put(&mut self, path: &str, bytes: &[u8]) -> Result<()> {
-        let state = self.cloud_state().await?;
-        self.cloud
-            .put_chunk(&self.signer(&state)?, path, bytes, now_ms())
-            .await
-    }
-
-    /// Download one chunk and check its digest.
-    pub(crate) async fn relay_chunk(&mut self, path: &str, digest: &str) -> Result<Vec<u8>> {
-        let state = self.cloud_state().await?;
-        self.cloud
-            .get_chunk(&self.signer(&state)?, path, digest, now_ms())
+        self.hold()
+            .send(|c| c.signed_post_sealed(path, action, payload, request_id, sealed))
             .await
     }
 
@@ -1415,15 +1409,30 @@ impl Client {
 
     /// What other accounts' relay evidence is checked against.
     pub(crate) async fn trust(&mut self) -> Result<crate::evidence::Trust> {
-        let account = self.account()?.clone();
+        self.hold().trust().await
+    }
+
+    /// [`Self::trust`] once the user homes and a public agent are here;
+    /// `None` before.
+    pub(crate) fn trust_now(&self) -> Result<Option<crate::evidence::Trust>> {
+        let account = self.account()?;
         let namespace = account
             .issuer
             .strip_suffix(&account.id.to_string())
             .ok_or(Error::IntegrityFailed)?
             .to_string();
-        let homes = self.homes().await?;
-        let root_key = self.reader().await?.root_key();
-        Ok(crate::evidence::Trust::new(homes, namespace, root_key))
+        let reader = match self.session() {
+            Ok(login) => Some(&login.ic),
+            Err(_) => self.anonymous.as_ref(),
+        };
+        let (Some(homes), Some(reader)) = (&self.homes, reader) else {
+            return Ok(None);
+        };
+        Ok(Some(crate::evidence::Trust::new(
+            homes.clone(),
+            namespace,
+            reader.root_key(),
+        )))
     }
 
     /// Another account's certified security from its user home, with the

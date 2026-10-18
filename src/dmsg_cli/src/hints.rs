@@ -41,18 +41,26 @@ pub async fn run(daemon: Arc<Daemon>) {
 /// registering one when the device key is available; `None` before the
 /// device has an account.
 async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, Option<String>> {
-    let mut client = daemon.client().lock().await;
-    let session = client.session_state();
+    let (session, stored) = {
+        let client = daemon.client().lock().await;
+        (
+            client.session_state(),
+            client
+                .stored_hint_token()
+                .map_err(|e| Some(e.to_string()))?,
+        )
+    };
     let Some(account) = session.account else {
         return Ok(None);
     };
-    let token = match client
-        .stored_hint_token()
-        .map_err(|e| Some(e.to_string()))?
-    {
+    let token = match stored {
         Some(token) if token.expires_at > now_ms() + 7 * dmsg_types::DAY => token,
+        // A new token, about weekly, still registers under the client.
         stored if session.state == "unlocked" || session.resident => {
-            match client.hint_token().await {
+            match daemon
+                .under_lock(async |client| client.hint_token().await)
+                .await
+            {
                 Ok(token) => token,
                 Err(_) if stored.is_some() => stored.expect("stored token"),
                 Err(error) => return Err(Some(error.to_string())),

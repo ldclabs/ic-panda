@@ -242,10 +242,17 @@ impl Daemon {
             let keys = self.mcp().keys(&origin, now).await;
             jwks.insert(origin, keys);
         }
-        let mut client = self.client().lock().await;
-        let report = client.mcp_events_fetch(&jwks).await;
-        let due = client.mcp_refresh_due(now_ms()).unwrap_or_default();
-        drop(client);
+        // Each page waits on the relay without the client; one pass at a time.
+        let report = {
+            let _turn = self.turn("mcp-events").await;
+            dmsg_client::mcp_events::fetch(&self.hold(), &jwks).await
+        };
+        let due = self
+            .client()
+            .lock()
+            .await
+            .mcp_refresh_due(now_ms())
+            .unwrap_or_default();
         let stored = report.as_ref().map_or(0, |r| r.stored);
         self.note("mcp-events", &crate::daemon::outcome(&report));
         {
@@ -333,42 +340,53 @@ impl Daemon {
                     .await;
             }
             "mcp-events/status" => return self.events_status().await,
+            // The relay's view waits without the client.
+            "mcp-events/list" => {
+                return dmsg_client::mcp_events::endpoint_list(&self.hold(), None).await;
+            }
+            "mcp-events/bind" => {
+                return self.client().lock().await.mcp_endpoint_bind(
+                    None,
+                    None,
+                    &text(params, "endpoint_id")?,
+                    params["server"].as_str().map(str::to_string),
+                    params["subscription_id"].as_str().map(str::to_string),
+                    instant(&params["refresh_before"])?,
+                    params["session"].as_str().map(str::to_string),
+                );
+            }
+            "mcp-events/ack" => {
+                let (filter, through) = (filter(None, None, params)?, cursor(&params["through"])?);
+                return self.client().lock().await.mcp_events_ack(&filter, through);
+            }
             _ => {}
         }
-        let mut client = self.client().lock().await;
-        match method {
-            "mcp-events/create" => {
-                client
-                    .mcp_endpoint_create(None, None, context(params)?)
-                    .await
-            }
-            "mcp-events/list" => client.mcp_endpoint_list(None).await,
-            "mcp-events/rotate" => {
-                client
-                    .mcp_endpoint_rotate(None, &text(params, "endpoint_id")?)
-                    .await
-            }
-            "mcp-events/delete" => {
-                let deleted = client
-                    .mcp_endpoint_delete(None, &text(params, "endpoint_id")?)
-                    .await;
-                self.mcp().arrived.notify_waiters();
-                deleted
-            }
-            "mcp-events/bind" => client.mcp_endpoint_bind(
-                None,
-                None,
-                &text(params, "endpoint_id")?,
-                params["server"].as_str().map(str::to_string),
-                params["subscription_id"].as_str().map(str::to_string),
-                instant(&params["refresh_before"])?,
-                params["session"].as_str().map(str::to_string),
-            ),
-            "mcp-events/ack" => {
-                client.mcp_events_ack(&filter(None, None, params)?, cursor(&params["through"])?)
-            }
-            _ => Err(Error::NotFound),
+        // Creating, rotating and deleting an endpoint still wait on the
+        // relay under the client.
+        let outcome = self
+            .under_lock(async |client| match method {
+                "mcp-events/create" => {
+                    client
+                        .mcp_endpoint_create(None, None, context(params)?)
+                        .await
+                }
+                "mcp-events/rotate" => {
+                    client
+                        .mcp_endpoint_rotate(None, &text(params, "endpoint_id")?)
+                        .await
+                }
+                "mcp-events/delete" => {
+                    client
+                        .mcp_endpoint_delete(None, &text(params, "endpoint_id")?)
+                        .await
+                }
+                _ => Err(Error::NotFound),
+            })
+            .await;
+        if method == "mcp-events/delete" {
+            self.mcp().arrived.notify_waiters();
         }
+        outcome
     }
 
     /// A `dmsg_events_*` tool for `agent`, which needs `events.endpoint`
@@ -395,41 +413,57 @@ impl Daemon {
                 )
                 .await;
         }
-        let mut client = self.client().lock().await;
         match tool {
-            "dmsg_events_endpoint_create" => {
-                client
-                    .mcp_endpoint_create(Some(did), mcp_session, context(input)?)
-                    .await
+            // The relay's view waits without the client.
+            "dmsg_events_endpoint_list" => {
+                return dmsg_client::mcp_events::endpoint_list(&self.hold(), Some(did)).await;
             }
-            "dmsg_events_endpoint_list" => client.mcp_endpoint_list(Some(did)).await,
-            "dmsg_events_endpoint_rotate" => {
-                client
-                    .mcp_endpoint_rotate(Some(did), &text(input, "endpoint_id")?)
-                    .await
+            "dmsg_events_bind" => {
+                return self.client().lock().await.mcp_endpoint_bind(
+                    Some(did),
+                    mcp_session,
+                    &text(input, "endpoint_id")?,
+                    input["server"].as_str().map(str::to_string),
+                    input["subscription_id"].as_str().map(str::to_string),
+                    instant(&input["refresh_before"])?,
+                    input["session"].as_str().map(str::to_string),
+                );
             }
-            "dmsg_events_endpoint_delete" => {
-                let deleted = client
-                    .mcp_endpoint_delete(Some(did), &text(input, "endpoint_id")?)
-                    .await;
-                self.mcp().arrived.notify_waiters();
-                deleted
+            "dmsg_events_ack" => {
+                let (filter, through) = (
+                    filter(Some(did), mcp_session, input)?,
+                    cursor(&input["through"])?,
+                );
+                return self.client().lock().await.mcp_events_ack(&filter, through);
             }
-            "dmsg_events_bind" => client.mcp_endpoint_bind(
-                Some(did),
-                mcp_session,
-                &text(input, "endpoint_id")?,
-                input["server"].as_str().map(str::to_string),
-                input["subscription_id"].as_str().map(str::to_string),
-                instant(&input["refresh_before"])?,
-                input["session"].as_str().map(str::to_string),
-            ),
-            "dmsg_events_ack" => client.mcp_events_ack(
-                &filter(Some(did), mcp_session, input)?,
-                cursor(&input["through"])?,
-            ),
-            _ => Err(Error::NotFound),
+            _ => {}
         }
+        // Creating, rotating and deleting an endpoint still wait on the
+        // relay under the client.
+        let outcome = self
+            .under_lock(async |client| match tool {
+                "dmsg_events_endpoint_create" => {
+                    client
+                        .mcp_endpoint_create(Some(did), mcp_session, context(input)?)
+                        .await
+                }
+                "dmsg_events_endpoint_rotate" => {
+                    client
+                        .mcp_endpoint_rotate(Some(did), &text(input, "endpoint_id")?)
+                        .await
+                }
+                "dmsg_events_endpoint_delete" => {
+                    client
+                        .mcp_endpoint_delete(Some(did), &text(input, "endpoint_id")?)
+                        .await
+                }
+                _ => Err(Error::NotFound),
+            })
+            .await;
+        if tool == "dmsg_events_endpoint_delete" {
+            self.mcp().arrived.notify_waiters();
+        }
+        outcome
     }
 }
 

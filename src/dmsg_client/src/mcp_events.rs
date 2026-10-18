@@ -16,6 +16,7 @@
 use crate::client::Client;
 use crate::codec::{canonical, decode};
 use crate::crypto::{HpkeEnvelope, hpke_open, random_key};
+use crate::hold::Hold;
 use crate::now_ms;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use dmsg_types::{DAY, Error, Hash, MINUTE, Result, ensure};
@@ -455,36 +456,9 @@ impl Client {
             .put_private(self.keys()?, CREATING, &creating)
     }
 
-    /// Submit a creation, again on a lost reply up to [`CREATE_TRIES`]
-    /// times; each try is the same command, so at most one endpoint results.
+    /// [`submit_create`] for a caller that holds the client throughout.
     async fn submit_create(&mut self, creating: &Creating) -> Result<Json> {
-        let path = format!("{}/mcp-events/endpoints", self.base()?);
-        let callback = callback_bytes(&creating.callback_id)?;
-        let request_id = Hash::new(
-            hex::decode(&creating.request_id)
-                .ok()
-                .and_then(|b| b.try_into().ok())
-                .ok_or(Error::IntegrityFailed)?,
-        );
-        let mut tries = 0;
-        loop {
-            tries += 1;
-            let outcome = self
-                .relay_post(
-                    &path,
-                    CREATE_ACTION,
-                    &CreateCommand {
-                        callback_id: &callback,
-                        secret: &creating.secret,
-                    },
-                    &request_id,
-                )
-                .await;
-            match outcome {
-                Err(error) if !refused(&error) && tries < CREATE_TRIES => continue,
-                outcome => return outcome,
-            }
-        }
+        submit_create(&self.hold(), creating).await
     }
 
     /// Create a callback endpoint on the relay for `agent` (`None` for the
@@ -564,65 +538,9 @@ impl Client {
         Ok(view)
     }
 
-    /// Settle the creations whose reply was lost: resubmit each, and delete
-    /// the endpoint it turns out to have created, since its caller never
-    /// got the secret. Returns how many are still open.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked.
-    pub async fn mcp_endpoint_settle(&mut self) -> Result<usize> {
-        let creating = self.creating()?;
-        if creating.is_empty() {
-            return Ok(0);
-        }
-        let now = now_ms();
-        let mut open = Vec::new();
-        for pending in creating {
-            let settled = match self.submit_create(&pending).await {
-                Ok(_) => {
-                    let path = format!(
-                        "{}/mcp-events/endpoints/{}/delete",
-                        self.base()?,
-                        pending.callback_id
-                    );
-                    let deleted = self
-                        .relay_post(
-                            &path,
-                            DELETE_ACTION,
-                            &DeleteCommand {
-                                callback_id: &callback_bytes(&pending.callback_id)?,
-                            },
-                            &Hash::new(crate::crypto::random_id()),
-                        )
-                        .await;
-                    matches!(deleted, Ok(_) | Err(Error::NotFound))
-                }
-                Err(error) => refused(&error),
-            };
-            if !settled && pending.created_at + CREATING_MS > now {
-                open.push(pending);
-            }
-        }
-        self.save_creating(&open)?;
-        Ok(open.len())
-    }
-
-    /// The caller's endpoints, with the relay's view of each when it answers.
-    /// The owner also sees the creations still settling, and the endpoints
-    /// of this device on the relay that it never handed out (`unknown`): they
-    /// hold quota and receive nothing until a fetch pass settles them.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked.
-    pub async fn mcp_endpoint_list(&mut self, agent: Option<&str>) -> Result<Json> {
+    /// [`endpoint_list`] once the relay's view, `relay`, is here.
+    fn endpoint_listing(&self, agent: Option<&str>, relay: &[Json]) -> Result<Json> {
         let endpoints = self.endpoints()?;
-        let relay = match self
-            .relay_get(&format!("{}/mcp-events/endpoints", self.base()?))
-            .await
-        {
-            Ok(list) => list["endpoints"].as_array().cloned().unwrap_or_default(),
-            Err(_) => Vec::new(),
-        };
         let listed: Vec<Json> = endpoints
             .iter()
             .filter(|e| agent.is_none() || e.agent.as_deref() == agent)
@@ -835,117 +753,72 @@ impl Client {
         )
     }
 
-    /// Fetch, open, check and store what the relay holds for every live
-    /// endpoint, then let the relay forget it. `jwks` maps a server origin
-    /// to the `v1a` keys it publishes.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked; an endpoint the relay refuses is
-    /// reported in [`FetchReport::deferred`].
-    pub async fn mcp_events_fetch(
-        &mut self,
-        jwks: &BTreeMap<String, Vec<Hash>>,
-    ) -> Result<FetchReport> {
-        // Creations whose reply was lost are settled on every pass.
-        self.mcp_endpoint_settle().await?;
-        let mut endpoints = self.endpoints()?;
+    /// Keep a page of `records` the relay holds for endpoint `id` after
+    /// `after`, and the cursor past them, in one write; `false` when the
+    /// endpoint ended or another pass kept the page meanwhile.
+    #[allow(clippy::too_many_arguments)]
+    fn keep_records(
+        &self,
+        id: &str,
+        after: u64,
+        cursor: u64,
+        records: &[Json],
+        keys: Option<&[Hash]>,
+        report: &mut FetchReport,
+    ) -> Result<bool> {
         let account = self.account()?.id.to_string();
         let device = hex::encode(*self.workspace.meta.device_id);
-        let local = self.config.environment == dmsg_types::Environment::Local;
-        let mut report = FetchReport::default();
-        for index in 0..endpoints.len() {
-            if endpoints[index].state != "active" {
-                continue;
-            }
-            let id = endpoints[index].endpoint_id.clone();
-            let keys = endpoints[index]
-                .binding
-                .server
-                .as_deref()
-                .and_then(|s| server_origin(s, local).ok())
-                .and_then(|origin| jwks.get(&origin))
-                .filter(|keys| !keys.is_empty());
-            loop {
-                let after = endpoints[index].relay_seq;
-                let path = format!(
-                    "{}/mcp-events?after={after}&endpoint={id}&limit=100",
-                    self.base()?
-                );
-                let page = match self.relay_get(&path).await {
-                    Ok(page) => page,
-                    Err(error) => {
-                        report.deferred.push(format!("{id}: {error}"));
-                        break;
-                    }
-                };
-                let records = page["events"].as_array().cloned().unwrap_or_default();
-                let cursor = page["cursor"].as_u64().unwrap_or(after);
-                // The page's records and the cursor past them in one write.
-                self.workspace.store.atomic(|_| {
-                    for record in &records {
-                        report.fetched += 1;
-                        // A record that does not open or verify is dropped:
-                        // only the relay could have made it so.
-                        match self.store_relay_record(
-                            &endpoints[index],
-                            record,
-                            &account,
-                            &device,
-                            keys.map(Vec::as_slice),
-                        ) {
-                            Ok(Some(true)) => report.stored += 1,
-                            Ok(Some(false)) => {}
-                            Ok(None) | Err(Error::IntegrityFailed) => report.rejected += 1,
-                            Err(error) => return Err(error),
-                        }
-                    }
-                    if cursor > after {
-                        endpoints[index].relay_seq = cursor;
-                        self.save_endpoints(&endpoints)?;
-                    }
-                    Ok(())
-                })?;
-                if cursor > after {
-                    let path = format!("{}/mcp-events/ack", self.base()?);
-                    // A lost acknowledgement is repeated by the next pass.
-                    let _ = self
-                        .relay_post(
-                            &path,
-                            ACK_ACTION,
-                            &AckCommand {
-                                callback_id: &callback_bytes(&id)?,
-                                through_seq: cursor,
-                            },
-                            &Hash::new(crate::crypto::random_id()),
-                        )
-                        .await;
-                }
-                if page["state"] != "active" && page["state"].is_string() {
-                    let state = if page["state"] == "deleted" {
-                        "deleted"
-                    } else {
-                        "suspended"
-                    };
-                    self.end_endpoint(&mut endpoints[index], state, now_ms())?;
-                    self.save_endpoints(&endpoints)?;
-                    break;
-                }
-                if records.is_empty() || cursor == after {
-                    break;
+        let mut endpoints = self.endpoints()?;
+        let Some(index) = endpoints
+            .iter()
+            .position(|e| e.endpoint_id == id && e.state == "active" && e.relay_seq == after)
+        else {
+            return Ok(false);
+        };
+        self.workspace.store.atomic(|_| {
+            for record in records {
+                report.fetched += 1;
+                // A record that does not open or verify is dropped: only the
+                // relay could have made it so.
+                match self.store_relay_record(&endpoints[index], record, &account, &device, keys) {
+                    Ok(Some(true)) => report.stored += 1,
+                    Ok(Some(false)) => {}
+                    Ok(None) | Err(Error::IntegrityFailed) => report.rejected += 1,
+                    Err(error) => return Err(error),
                 }
             }
+            if cursor > after {
+                endpoints[index].relay_seq = cursor;
+                self.save_endpoints(&endpoints)?;
+            }
+            Ok(())
+        })?;
+        Ok(true)
+    }
+
+    /// End endpoint `id` as the relay says, `deleted` or `suspended`.
+    fn ended(&self, id: &str, state: &str) -> Result<()> {
+        let mut endpoints = self.endpoints()?;
+        if let Some(endpoint) = endpoints.iter_mut().find(|e| e.endpoint_id == id) {
+            self.end_endpoint(endpoint, state, now_ms())?;
+            self.save_endpoints(&endpoints)?;
         }
+        Ok(())
+    }
+
+    /// Forget old records, and ended endpoints with their last ones.
+    fn prune_events(&self) -> Result<()> {
         self.workspace
             .store
             .prune_mcp_events(now_ms().saturating_sub(RETAIN_MS), KEEP)?;
-        // Ended endpoints are forgotten with their last records.
+        let mut endpoints = self.endpoints()?;
         let before = endpoints.len();
         let cutoff = now_ms().saturating_sub(RETAIN_MS);
         endpoints.retain(|e| e.ended_at.is_none_or(|at| at > cutoff));
         if endpoints.len() != before {
             self.save_endpoints(&endpoints)?;
         }
-        Ok(report)
+        Ok(())
     }
 
     /// Store one relay record; `Some(false)` when already stored and `None`
@@ -1143,6 +1016,193 @@ impl Client {
         let acked = self.workspace.store.delete_mcp_events(&ids, through)?;
         Ok(json!({"acked": acked, "through": through.to_string()}))
     }
+}
+
+/// Submit a creation, again on a lost reply up to [`CREATE_TRIES`] times;
+/// each try is the same command, so at most one endpoint results.
+async fn submit_create<H: Hold>(h: &H, creating: &Creating) -> Result<Json> {
+    let path = format!("{}/mcp-events/endpoints", h.with(|c| c.base()).await?);
+    let callback = callback_bytes(&creating.callback_id)?;
+    let request_id = Hash::new(
+        hex::decode(&creating.request_id)
+            .ok()
+            .and_then(|b| b.try_into().ok())
+            .ok_or(Error::IntegrityFailed)?,
+    );
+    let mut tries = 0;
+    loop {
+        tries += 1;
+        let outcome = h
+            .post(
+                &path,
+                CREATE_ACTION,
+                &CreateCommand {
+                    callback_id: &callback,
+                    secret: &creating.secret,
+                },
+                &request_id,
+            )
+            .await;
+        match outcome {
+            Err(error) if !refused(&error) && tries < CREATE_TRIES => continue,
+            outcome => return outcome,
+        }
+    }
+}
+
+/// Settle the creations whose reply was lost: resubmit each, and delete the
+/// endpoint it turns out to have created, since its caller never got the
+/// secret. Returns how many are still open.
+///
+/// # Errors
+/// Returns `Error::Locked` while locked.
+pub async fn endpoint_settle<H: Hold>(h: &H) -> Result<usize> {
+    let (creating, base) = h.with(|c| Ok((c.creating()?, c.base()?))).await?;
+    if creating.is_empty() {
+        return Ok(0);
+    }
+    let now = now_ms();
+    let mut done = Vec::new();
+    for pending in creating {
+        let settled = match submit_create(h, &pending).await {
+            Ok(_) => {
+                let path = format!("{base}/mcp-events/endpoints/{}/delete", pending.callback_id);
+                let deleted = h
+                    .post(
+                        &path,
+                        DELETE_ACTION,
+                        &DeleteCommand {
+                            callback_id: &callback_bytes(&pending.callback_id)?,
+                        },
+                        &Hash::new(crate::crypto::random_id()),
+                    )
+                    .await;
+                matches!(deleted, Ok(_) | Err(Error::NotFound))
+            }
+            Err(error) => refused(&error),
+        };
+        if settled || pending.created_at + CREATING_MS <= now {
+            done.push(pending);
+        }
+    }
+    // Creations kept meanwhile stay.
+    h.with(|c| {
+        let mut open = c.creating()?;
+        open.retain(|p| !done.contains(p));
+        c.save_creating(&open)?;
+        Ok(open.len())
+    })
+    .await
+}
+
+/// The caller's endpoints, with the relay's view of each when it answers.
+/// The owner also sees the creations still settling, and the endpoints of
+/// this device on the relay that it never handed out (`unknown`): they hold
+/// quota and receive nothing until a fetch pass settles them.
+///
+/// # Errors
+/// Returns `Error::Locked` while locked.
+pub async fn endpoint_list<H: Hold>(h: &H, agent: Option<&str>) -> Result<Json> {
+    let base = h
+        .with(|c| {
+            c.endpoints()?;
+            c.base()
+        })
+        .await?;
+    let relay = match h.get(&format!("{base}/mcp-events/endpoints")).await {
+        Ok(list) => list["endpoints"].as_array().cloned().unwrap_or_default(),
+        Err(_) => Vec::new(),
+    };
+    h.with(|c| c.endpoint_listing(agent, &relay)).await
+}
+
+/// Fetch, open, check and store what the relay holds for every live
+/// endpoint, then let the relay forget it, each page waited for without
+/// the client. `jwks` maps a server origin to the `v1a` keys it publishes.
+///
+/// # Errors
+/// Returns `Error::Locked` while locked; an endpoint the relay refuses is
+/// reported in [`FetchReport::deferred`].
+pub async fn fetch<H: Hold>(h: &H, jwks: &BTreeMap<String, Vec<Hash>>) -> Result<FetchReport> {
+    // Creations whose reply was lost are settled on every pass.
+    endpoint_settle(h).await?;
+    let (endpoints, base, local) = h
+        .with(|c| {
+            Ok((
+                c.endpoints()?,
+                c.base()?,
+                c.config.environment == dmsg_types::Environment::Local,
+            ))
+        })
+        .await?;
+    let mut report = FetchReport::default();
+    for endpoint in endpoints.iter().filter(|e| e.state == "active") {
+        let id = &endpoint.endpoint_id;
+        let keys = endpoint
+            .binding
+            .server
+            .as_deref()
+            .and_then(|s| server_origin(s, local).ok())
+            .and_then(|origin| jwks.get(&origin))
+            .filter(|keys| !keys.is_empty());
+        let mut after = endpoint.relay_seq;
+        loop {
+            let path = format!("{base}/mcp-events?after={after}&endpoint={id}&limit=100");
+            let page = match h.get(&path).await {
+                Ok(page) => page,
+                Err(error) => {
+                    report.deferred.push(format!("{id}: {error}"));
+                    break;
+                }
+            };
+            let records = page["events"].as_array().cloned().unwrap_or_default();
+            let cursor = page["cursor"].as_u64().unwrap_or(after);
+            let kept = h
+                .with(|c| {
+                    c.keep_records(
+                        id,
+                        after,
+                        cursor,
+                        &records,
+                        keys.map(Vec::as_slice),
+                        &mut report,
+                    )
+                })
+                .await?;
+            if !kept {
+                break;
+            }
+            if cursor > after {
+                // A lost acknowledgement is repeated by the next pass.
+                let _ = h
+                    .post(
+                        &format!("{base}/mcp-events/ack"),
+                        ACK_ACTION,
+                        &AckCommand {
+                            callback_id: &callback_bytes(id)?,
+                            through_seq: cursor,
+                        },
+                        &Hash::new(crate::crypto::random_id()),
+                    )
+                    .await;
+            }
+            if page["state"] != "active" && page["state"].is_string() {
+                let state = if page["state"] == "deleted" {
+                    "deleted"
+                } else {
+                    "suspended"
+                };
+                h.with(|c| c.ended(id, state)).await?;
+                break;
+            }
+            if records.is_empty() || cursor == after {
+                break;
+            }
+            after = cursor;
+        }
+    }
+    h.with(|c| c.prune_events()).await?;
+    Ok(report)
 }
 
 #[cfg(test)]

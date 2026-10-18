@@ -466,7 +466,7 @@ fn relay_error(code: &str, message: &str) -> Error {
 pub struct Prepared {
     method: reqwest::Method,
     url: Url,
-    /// Canonical CBOR of a POST.
+    /// Canonical CBOR of a POST, or the ciphertext of a PUT.
     body: Option<Vec<u8>>,
     pop: String,
 }
@@ -745,10 +745,20 @@ impl Cloud {
     /// Relay errors as returned; `Error::NotFound` for an absent resource, and
     /// a lost response to a POST is `Error::ExecutionUnknown`.
     pub async fn send(&self, request: Prepared) -> Result<Json> {
-        let body = request.body.map(|bytes| (bytes, "application/cbor"));
-        self.exchange(request.method, request.url, body, Some(request.pop), false)
-            .await?
-            .json()
+        let put = request.method == reqwest::Method::PUT;
+        let kind = match put {
+            true => "application/octet-stream",
+            false => "application/cbor",
+        };
+        let body = request.body.map(|bytes| (bytes, kind));
+        let reply = self
+            .exchange(request.method, request.url, body, Some(request.pop), put)
+            .await?;
+        match put {
+            // A stored chunk is all a PUT says.
+            true => Ok(Json::Null),
+            false => reply.json(),
+        }
     }
 
     /// Sign and post a device command. The HTTP proof and the command share
@@ -998,6 +1008,19 @@ impl Cloud {
         bytes: &[u8],
         now: u64,
     ) -> Result<()> {
+        self.send(self.prepare_put(signer, path, bytes, now)?)
+            .await
+            .map(|_| ())
+    }
+
+    /// [`Self::put_chunk`] signed now and sent later with [`Self::send`].
+    pub(crate) fn prepare_put(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        bytes: &[u8],
+        now: u64,
+    ) -> Result<Prepared> {
         ensure(
             !bytes.is_empty() && bytes.len() <= MAX_CHUNK,
             Error::QuotaExceeded,
@@ -1006,15 +1029,12 @@ impl Cloud {
         let request_id = hex::encode(crate::crypto::random_id());
         let deadline = signer.deadline(now)?;
         let pop = sign_http(signer, &url, "PUT", bytes, &request_id, deadline)?;
-        self.exchange(
-            reqwest::Method::PUT,
+        Ok(Prepared {
+            method: reqwest::Method::PUT,
             url,
-            Some((bytes.to_vec(), "application/octet-stream")),
-            Some(pop),
-            true,
-        )
-        .await
-        .map(|_| ())
+            body: Some(bytes.to_vec()),
+            pop,
+        })
     }
 
     /// Download one chunk or manifest and check its SHA-256.

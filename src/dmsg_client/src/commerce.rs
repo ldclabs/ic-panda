@@ -12,6 +12,7 @@
 use crate::client::Client;
 use crate::codec::decode;
 use crate::crypto::sign;
+use crate::hold::Hold;
 use crate::ic::Ic;
 use crate::now_ms;
 use crate::payer::{memo, transfer_call};
@@ -211,12 +212,7 @@ impl Order {
 
 impl Client {
     async fn services(&mut self) -> Result<Services> {
-        let init: UserInit = self.home_config().await?;
-        Ok(Services {
-            home: self.account()?.home,
-            commerce: init.commerce_canister,
-            membership: init.membership_canister,
-        })
+        services(&self.hold()).await
     }
 
     fn beneficiary(&self) -> Result<Beneficiary> {
@@ -241,11 +237,7 @@ impl Client {
             Some(ic) => ic,
             None => self.anonymous().await?,
         };
-        let batch: Result<CertifiedBatch> = ic.query(canister, method, args).await?;
-        let batch = batch?;
-        certified_leaf(&batch, key, canister, &ic.root_key(), now_ms())?
-            .map(|value| decode(&value, 1 << 20))
-            .transpose()
+        certified_by(&ic, canister, method, args, key).await
     }
 
     /// The certified catalog.
@@ -253,96 +245,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::IntegrityFailed` for an uncertified answer.
     pub async fn plan_catalog(&mut self) -> Result<Catalog> {
-        let services = self.services().await?;
-        self.certified(
-            None,
-            services.commerce,
-            "get_catalog",
-            (),
-            billing::catalog_key().as_slice(),
-        )
-        .await?
-        .ok_or(Error::IntegrityFailed)
-    }
-
-    /// The settlement assets checkouts may pay with.
-    ///
-    /// # Errors
-    /// Query failures return `Error::Unavailable`.
-    pub async fn plan_assets(&mut self) -> Result<Json> {
-        let services = self.services().await?;
-        let assets: Vec<SettlementAssetView> = self
-            .anonymous()
-            .await?
-            .query(services.commerce, "settlement_assets", ())
-            .await?;
-        Ok(Json::Array(
-            assets
-                .iter()
-                .filter(|a| a.ledger_verified && a.policy.enabled)
-                .map(|a| {
-                    json!({
-                        "ledger": a.policy.ledger.to_text(),
-                        "asset": format!("{:?}", a.policy.asset),
-                        "decimals": a.policy.decimals,
-                        "network_fee": a.policy.network_fee_atomic.to_string(),
-                    })
-                })
-                .collect(),
-        ))
-    }
-
-    /// This account's entitlement, refreshed first with `refresh`; a
-    /// certified absence means the catalog's Free plan.
-    ///
-    /// # Errors
-    /// Returns `Error::IntegrityFailed` for an uncertified answer.
-    pub async fn plan_status(&mut self, refresh: bool) -> Result<Json> {
-        let services = self.services().await?;
-        let beneficiary = self.beneficiary()?;
-        if refresh {
-            let ic = self.anonymous().await?;
-            let refreshed: Result<Result<EntitlementView>> = ic
-                .update(services.commerce, "refresh_entitlement", (&beneficiary,))
-                .await;
-            match refreshed {
-                Ok(Ok(_)) | Ok(Err(Error::NotFound)) => {}
-                Ok(Err(error)) => return Err(error),
-                Err(error) => return Err(error),
-            }
-        }
-        let view: Option<EntitlementView> = self
-            .certified(
-                None,
-                services.commerce,
-                "get_entitlement_batch",
-                (vec![&beneficiary],),
-                billing::entitlement_key(&beneficiary).as_slice(),
-            )
-            .await?;
-        Ok(match view {
-            Some(view) => json!({
-                "plan": format!("{:?}", view.plan_snapshot.plan_id),
-                "source": format!("{:?}", view.source_status),
-                "eligibility": format!("{:?}", view.eligibility_status),
-                "valid_until_ms": view.valid_until_ms,
-                "storage_bytes": view.effective_limits.storage_bytes,
-                "effective_stop_at_ms": view.effective_stop_at_ms,
-            }),
-            None => {
-                let catalog = self.plan_catalog().await?;
-                let free = catalog
-                    .plans
-                    .iter()
-                    .find(|p| p.plan_id == dmsg_types::billing::PlanId::Free)
-                    .ok_or(Error::IntegrityFailed)?;
-                json!({
-                    "plan": "Free",
-                    "source": "Free",
-                    "storage_bytes": free.limits.storage_bytes,
-                })
-            }
-        })
+        catalog(&self.hold()).await
     }
 
     /// The certified registrations of dMsg's own application and product.
@@ -1187,4 +1090,128 @@ impl Client {
             .await?;
         swept
     }
+}
+
+/// A certified leaf of a commerce or membership batch `ic` reads, decoded.
+async fn certified_by<
+    T: serde::de::DeserializeOwned + Serialize,
+    A: candid::utils::ArgumentEncoder,
+>(
+    ic: &Ic,
+    canister: Principal,
+    method: &str,
+    args: A,
+    key: &[u8],
+) -> Result<Option<T>> {
+    let batch: Result<CertifiedBatch> = ic.query(canister, method, args).await?;
+    let batch = batch?;
+    certified_leaf(&batch, key, canister, &ic.root_key(), now_ms())?
+        .map(|value| decode(&value, 1 << 20))
+        .transpose()
+}
+
+/// The canisters of this account's user home, read without the client.
+async fn services<H: Hold>(h: &H) -> Result<Services> {
+    let home = h.with(|c| Ok(c.account()?.home)).await?;
+    let init: UserInit = h.reader().await?.query(home, "user_config", ()).await?;
+    Ok(Services {
+        home,
+        commerce: init.commerce_canister,
+        membership: init.membership_canister,
+    })
+}
+
+/// The certified catalog, read without the client.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for an uncertified answer.
+pub async fn catalog<H: Hold>(h: &H) -> Result<Catalog> {
+    let services = services(h).await?;
+    certified_by(
+        &h.anonymous().await?,
+        services.commerce,
+        "get_catalog",
+        (),
+        billing::catalog_key().as_slice(),
+    )
+    .await?
+    .ok_or(Error::IntegrityFailed)
+}
+
+/// The settlement assets checkouts may pay with, read without the client.
+///
+/// # Errors
+/// Query failures return `Error::Unavailable`.
+pub async fn plan_assets<H: Hold>(h: &H) -> Result<Json> {
+    let services = services(h).await?;
+    let assets: Vec<SettlementAssetView> = h
+        .anonymous()
+        .await?
+        .query(services.commerce, "settlement_assets", ())
+        .await?;
+    Ok(Json::Array(
+        assets
+            .iter()
+            .filter(|a| a.ledger_verified && a.policy.enabled)
+            .map(|a| {
+                json!({
+                    "ledger": a.policy.ledger.to_text(),
+                    "asset": format!("{:?}", a.policy.asset),
+                    "decimals": a.policy.decimals,
+                    "network_fee": a.policy.network_fee_atomic.to_string(),
+                })
+            })
+            .collect(),
+    ))
+}
+
+/// This account's entitlement, refreshed first with `refresh`; a certified
+/// absence means the catalog's Free plan. The IC is waited on without the
+/// client.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for an uncertified answer.
+pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
+    let beneficiary = h.with(|c| c.beneficiary()).await?;
+    let commerce = services(h).await?.commerce;
+    let ic = h.anonymous().await?;
+    if refresh {
+        let refreshed: Result<EntitlementView> = ic
+            .update(commerce, "refresh_entitlement", (&beneficiary,))
+            .await?;
+        match refreshed {
+            Ok(_) | Err(Error::NotFound) => {}
+            Err(error) => return Err(error),
+        }
+    }
+    let view: Option<EntitlementView> = certified_by(
+        &ic,
+        commerce,
+        "get_entitlement_batch",
+        (vec![&beneficiary],),
+        billing::entitlement_key(&beneficiary).as_slice(),
+    )
+    .await?;
+    Ok(match view {
+        Some(view) => json!({
+            "plan": format!("{:?}", view.plan_snapshot.plan_id),
+            "source": format!("{:?}", view.source_status),
+            "eligibility": format!("{:?}", view.eligibility_status),
+            "valid_until_ms": view.valid_until_ms,
+            "storage_bytes": view.effective_limits.storage_bytes,
+            "effective_stop_at_ms": view.effective_stop_at_ms,
+        }),
+        None => {
+            let plans = catalog(h).await?.plans;
+            let free = plans
+                .iter()
+                .find(|p| p.plan_id == dmsg_types::billing::PlanId::Free)
+                .ok_or(Error::IntegrityFailed)?;
+            json!({
+                "plan": "Free",
+                "source": "Free",
+                "storage_bytes": free.limits.storage_bytes,
+            })
+        }
+    })
 }

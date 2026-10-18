@@ -47,15 +47,15 @@ use axum::{
 use base64::Engine;
 use dmsg_client::{
     Client,
-    account::{Security, login_targets},
+    account::login_targets,
     attest::{Bundle, StatementInput},
     client::Warm,
-    cloud::{Cloud, found},
     error_code,
+    hold::Hold,
     library::{Check, VersionCheck, blobs::Blobs},
     login::{DEFAULT_TTL_MS, LoginSession},
     now_ms,
-    profile::ProfileFields,
+    profile::{self, ProfileFields},
 };
 use dmsg_types::{Error, Result, user::ControllerRole};
 use futures_util::{SinkExt, StreamExt};
@@ -246,6 +246,9 @@ pub(crate) struct Daemon {
     channel_hints: tokio::sync::mpsc::UnboundedSender<String>,
     /// The loop's end of `channel_hints`, until it takes it.
     channel_hinted: std::sync::Mutex<Option<tokio::sync::mpsc::UnboundedReceiver<String>>>,
+    /// What operations waiting on the network without the client take
+    /// turns on.
+    turns: crate::held::Turns,
 }
 
 /// Who presented a credential.
@@ -398,17 +401,19 @@ async fn background(daemon: Arc<Daemon>) {
             continue;
         }
         let now = now_ms();
-        let mut client = daemon.client.lock().await;
-        let before = client.session_state().state;
-        if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
-            client.lock();
-        }
-        let session = client.session_state();
-        if session.state != before {
-            crate::logs::write("session/changed", &[("state", &session.state)]);
-            daemon.emit("session/changed", json!({"state": session.state}));
-        }
-        drop(client);
+        let session = {
+            let mut client = daemon.client.lock().await;
+            let before = client.session_state().state;
+            if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
+                client.lock();
+            }
+            let session = client.session_state();
+            if session.state != before {
+                crate::logs::write("session/changed", &[("state", &session.state)]);
+                daemon.emit("session/changed", json!({"state": session.state}));
+            }
+            session
+        };
         daemon.check_mount().await;
         let interval = daemon.settings.sync_interval_ms;
         let unlocked = session.state == "unlocked";
@@ -418,7 +423,7 @@ async fn background(daemon: Arc<Daemon>) {
         if interval > 0 && now >= synced + interval && ready {
             synced = now;
             // Recorded in the status; a failure waits for the next round.
-            let synced = daemon.client.lock().await.sync().await;
+            let synced = daemon.under_lock(async |client| client.sync().await).await;
             daemon.note("sync", &outcome(&synced));
             if synced.is_ok() {
                 daemon.emit("sync/changed", Value::Null);
@@ -442,30 +447,32 @@ async fn background(daemon: Arc<Daemon>) {
                     daemon.emit("approval/changed", json!({"connect": report}));
                 }
             }
-            // Only news is announced: windows reload on this event.
+            // Only news is announced: windows reload on this event. An
+            // approved request carries itself out under the client.
             if unlocked {
-                let mut client = daemon.client.lock().await;
-                let reconciled = client.approvals_reconcile().await.unwrap_or(0);
-                let count = client.approvals_waiting().unwrap_or(waiting);
+                let (reconciled, count) = daemon
+                    .under_lock(async |client| {
+                        let reconciled = client.approvals_reconcile().await.unwrap_or(0);
+                        Ok((reconciled, client.approvals_waiting().unwrap_or(waiting)))
+                    })
+                    .await
+                    .unwrap_or((0, waiting));
                 if reconciled > 0 || count != waiting {
                     daemon.emit("approval/changed", Value::Null);
                 }
                 waiting = count;
             }
         }
-        let mut client = daemon.client.lock().await;
         // Backups a person asked for keep moving while the device key is
         // there, locked or not, a slice per pass; nothing here starts one.
-        if ready && client.library_jobs_running().unwrap_or(false) {
-            let mut progress = |file: &str, done, total| {
-                daemon.emit(
-                    "files/progress",
-                    json!({"job": "backup", "path": file, "done": done, "total": total}),
-                );
-            };
-            let run = client
-                .files_backup_run(Some(BACKUP_SLICE_MS), &mut progress)
-                .await;
+        let backing_up = daemon
+            .client
+            .lock()
+            .await
+            .library_jobs_running()
+            .unwrap_or(false);
+        if ready && backing_up {
+            let run = daemon.backup_pass(Some(BACKUP_SLICE_MS)).await;
             daemon.note("backup", &outcome(&run));
             if run.as_ref().is_ok_and(|r| r.completed > 0) {
                 daemon.emit("files/changed", Value::Null);
@@ -474,29 +481,34 @@ async fn background(daemon: Arc<Daemon>) {
                 pause = 0;
             }
         }
-        if unlocked {
-            // The file library's housekeeping: expired trash and unreferenced
-            // chunks every ten minutes, opened copies every pass.
-            let maintained = client.files_maintain(now);
-            daemon.note("files", &outcome(&maintained));
-            if let Ok(Some(report)) = &maintained
-                && report.purged_files + report.purged_folders > 0
-            {
-                daemon.emit("files/changed", json!({"maintenance": report}));
-            }
-            if let Ok(changed) = client.files_open_sweep(now) {
-                for copy in changed {
-                    daemon.emit("files/open_changed", to_json(&copy));
-                }
-            }
-        }
         // The library's self-check, once a day while nobody is at the
         // device.
         let quiet = now > daemon.activity.load(Ordering::Relaxed) + CHECK_IDLE_MS;
-        if quiet && now >= checking + CHECK_RETRY_MS && client.files_check_due(now).unwrap_or(false)
-        {
+        let check = {
+            let mut client = daemon.client.lock().await;
+            if unlocked {
+                // The file library's housekeeping: expired trash and
+                // unreferenced chunks every ten minutes, opened copies every
+                // pass.
+                let maintained = client.files_maintain(now);
+                daemon.note("files", &outcome(&maintained));
+                if let Ok(Some(report)) = &maintained
+                    && report.purged_files + report.purged_folders > 0
+                {
+                    daemon.emit("files/changed", json!({"maintenance": report}));
+                }
+                if let Ok(changed) = client.files_open_sweep(now) {
+                    for copy in changed {
+                        daemon.emit("files/open_changed", to_json(&copy));
+                    }
+                }
+            }
+            quiet
+                && now >= checking + CHECK_RETRY_MS
+                && client.files_check_due(now).unwrap_or(false)
+        };
+        if check {
             checking = now;
-            drop(client);
             let checked = daemon.check_library().await;
             daemon.note("check", &outcome(&checked));
             if let Ok((check, _)) = checked {
@@ -561,6 +573,7 @@ impl Daemon {
             import_cancel: Arc::new(AtomicBool::new(false)),
             channel_hints,
             channel_hinted: std::sync::Mutex::new(Some(channel_hinted)),
+            turns: Default::default(),
         }
     }
 
@@ -648,64 +661,39 @@ impl Daemon {
         self.client.clone()
     }
 
-    /// Bring the client's certified security to what `warm` asks for, and
-    /// read the user homes, waiting on the network without holding the
-    /// client, which every other request needs meanwhile. Returns the
-    /// security the relay holds, or the user home's answer.
-    pub(crate) async fn warm(&self, warm: Warm) -> Result<Option<Security>> {
-        let Some(warmup) = self.client.lock().await.warmup(warm)? else {
-            return Ok(None);
-        };
-        let warmed = Box::pin(warmup.run()).await?;
-        self.client.lock().await.warmed(warmed)
-    }
-
-    /// [`Client::flush`], each submission sent without holding the client.
+    /// [`dmsg_client::sync::flush`], each submission sent without holding
+    /// the client.
     async fn flush_pass(&self) -> Result<usize> {
-        let (relay, due) = {
-            let client = self.client.lock().await;
-            (client.relay(), client.flush_due()?)
-        };
-        let mut settled = 0;
-        for (key, dispatch) in due {
-            let sent = relay.submit(&dispatch, now_ms()).await;
-            let client = self.client.lock().await;
-            settled += usize::from(client.flush_settle(&key, &dispatch, sent)?);
-        }
-        Ok(settled)
+        dmsg_client::sync::flush(&self.hold()).await
     }
 
     /// Read the dmsg-connect mailbox without holding the client, then handle
-    /// its entries ([`Client::connect_entries`]).
+    /// its entries ([`Client::connect_entries`]), which reply and verify
+    /// under it while there are any.
     pub(crate) async fn connect_pass(&self) -> Result<dmsg_client::connect::ConnectReport> {
-        let mut fetched = 0;
-        loop {
-            let (relay, (request, from)) = self.signed(Client::connect_fetch_request).await?;
-            let page = relay.send(request).await?;
-            match self.client.lock().await.connect_fetch_store(from, &page)? {
-                0 => break,
-                count => fetched += count,
-            }
-        }
-        self.client.lock().await.connect_entries(fetched).await
+        let fetched = dmsg_client::connect::fetch_mailbox(&self.hold()).await?;
+        self.under_lock(async |client| client.connect_entries(fetched).await)
+            .await
     }
 
-    /// What `prepare` signs under the client, with the relay client to send
-    /// it without holding the client. The relay's evidence is made fresh
-    /// first, and again when it went stale while the request waited.
-    pub(crate) async fn signed<T>(
+    pub(crate) fn turns(&self) -> &crate::held::Turns {
+        &self.turns
+    }
+
+    /// One pass over the backup jobs, in their turn: each chunk waits on the
+    /// relay without the client; with `budget_ms`, a slice of it.
+    pub(crate) async fn backup_pass(
         &self,
-        mut prepare: impl FnMut(&Client) -> Result<T>,
-    ) -> Result<(Cloud, T)> {
-        let mut stale = false;
-        loop {
-            self.warm(Warm::Relay).await?;
-            let client = self.client.lock().await;
-            match prepare(&client) {
-                Err(Error::PolicyStale) if !stale => stale = true,
-                prepared => return prepared.map(|p| (client.relay(), p)),
-            }
-        }
+        budget_ms: Option<u64>,
+    ) -> Result<dmsg_client::library::backup::BackupRun> {
+        let _turn = self.turn("backup").await;
+        let mut progress = |file: &str, done, total| {
+            self.emit(
+                "files/progress",
+                json!({"job": "backup", "path": file, "done": done, "total": total}),
+            );
+        };
+        dmsg_client::library::backup::backup_run(&self.hold(), budget_ms, &mut progress).await
     }
 
     /// The loopback port.
@@ -856,27 +844,32 @@ impl Daemon {
                 Ok(to_json(&status))
             }
             "session/unlock" => {
-                let mut client = self.client.lock().await;
-                // Fast unlock of another account here selects it first.
-                if let Some(account) = optional(params, "account", account)? {
-                    client.switch_account(&account)?;
-                    *self.last_connect.lock().expect("connect report") = None;
-                }
-                let status = match params["fast"].as_bool().unwrap_or(false) {
-                    true => client.unlock_fast().await?,
-                    false => client.unlock().await?,
-                };
+                let selected = optional(params, "account", account)?;
+                let fast = params["fast"].as_bool().unwrap_or(false);
+                // Nothing reads the workspace before it opens.
+                let status = self
+                    .under_lock(async |client| {
+                        // Fast unlock of another account here selects it
+                        // first.
+                        if let Some(account) = &selected {
+                            client.switch_account(account)?;
+                            *self.last_connect.lock().expect("connect report") = None;
+                        }
+                        match fast {
+                            true => client.unlock_fast().await,
+                            false => client.unlock().await,
+                        }
+                    })
+                    .await?;
                 // Unlocking is the person's activity: a window that asks for
                 // Touch ID as it comes to the front has no input to report.
                 self.activity.store(now_ms(), Ordering::Relaxed);
                 Ok(to_json(&status))
             }
             "session/lock" => {
-                let mut client = self.client.lock().await;
-                client.lock();
+                self.client.lock().await.lock();
                 // Versions already signed for submission still go out.
-                let _ = client.flush().await;
-                drop(client);
+                let _ = self.flush_pass().await;
                 self.unmount_library().await;
                 self.status().await
             }
@@ -889,14 +882,22 @@ impl Daemon {
                 };
                 Ok(to_json(&status))
             }
+            // Account and device changes, and the content sync, still wait
+            // on the IC and the relay under the client.
             "account/create" => {
-                let mut client = self.client.lock().await;
-                let account = client.create_account().await?;
-                let generation = client.rotate_root().await?;
-                Ok(json!({"account": account.id.to_string(), "root_generation": generation}))
+                self.under_lock(async |client| {
+                    let account = client.create_account().await?;
+                    let generation = client.rotate_root().await?;
+                    Ok(json!({"account": account.id.to_string(), "root_generation": generation}))
+                })
+                .await
             }
             "account/show" => {
-                let state = self.warm(Warm::Home).await?.ok_or(Error::PolicyStale)?;
+                let state = self
+                    .hold()
+                    .warm(Warm::Home)
+                    .await?
+                    .ok_or(Error::PolicyStale)?;
                 let view = self.client.lock().await.account_view_of(&state)?;
                 Ok(to_json(&view))
             }
@@ -905,27 +906,33 @@ impl Daemon {
                     Some("member") => ControllerRole::Member,
                     _ => ControllerRole::Administrator,
                 };
-                let mut client = self.client.lock().await;
-                let token = client.pair_request(role).await?;
-                Ok(json!({"token": token, "device_id": client.status()?.device_id}))
+                self.under_lock(async |client| {
+                    let token = client.pair_request(role).await?;
+                    Ok(json!({"token": token, "device_id": client.status()?.device_id}))
+                })
+                .await
             }
             "device/approve" => {
-                let mut client = self.client.lock().await;
-                let request = client.inspect_pairing(&text(params, "token")?)?;
-                // The owner names the device shown on the new device's screen.
-                if hex::encode(*request.device.device_id) != text(params, "device")? {
-                    return Err(Error::InvalidInput(
-                        "device does not match the request".into(),
-                    ));
-                }
-                client.approve_pairing(&request).await?;
-                let generation = client.rotate_root().await?;
-                Ok(
-                    json!({"device_id": hex::encode(*request.device.device_id), "root_generation": generation}),
-                )
+                let (token, device) = (text(params, "token")?, text(params, "device")?);
+                self.under_lock(async |client| {
+                    let request = client.inspect_pairing(&token)?;
+                    // The owner names the device shown on the new device's
+                    // screen.
+                    if hex::encode(*request.device.device_id) != device {
+                        return Err(Error::InvalidInput(
+                            "device does not match the request".into(),
+                        ));
+                    }
+                    client.approve_pairing(&request).await?;
+                    let generation = client.rotate_root().await?;
+                    Ok(
+                        json!({"device_id": hex::encode(*request.device.device_id), "root_generation": generation}),
+                    )
+                })
+                .await
             }
             "sync/run" => {
-                let report = self.client.lock().await.sync().await?;
+                let report = self.under_lock(async |client| client.sync().await).await?;
                 Ok(to_json(&report))
             }
             "sync/status" => {
@@ -939,31 +946,18 @@ impl Daemon {
                     "interval_ms": self.settings.sync_interval_ms,
                 }))
             }
-            "profile/show" => {
-                let (relay, request) = self.signed(Client::profile_request).await?;
-                let value = found(relay.send(request).await)?;
-                let profile = self.client.lock().await.profile_settle(value).await?;
-                Ok(to_json(&profile))
-            }
+            "profile/show" => Ok(to_json(&profile::show(&self.hold()).await?)),
             "profile/publish" => {
                 let fields: ProfileFields = serde_json::from_value(params.clone())
                     .map_err(|e| Error::InvalidInput(format!("profile: {e}")))?;
-                let profile = self.client.lock().await.publish_profile(&fields).await?;
-                Ok(to_json(&profile))
+                let _turn = self.turn("profile").await;
+                Ok(to_json(&profile::publish(&self.hold(), &fields).await?))
             }
             "profile/resolve" => {
                 let account = account(params, "account")?;
-                // The user home and the relay answer without the client.
-                let (relay, mut peers) = {
-                    let client = self.client.lock().await;
-                    (
-                        client.relay(),
-                        client.peers_of(std::slice::from_ref(&account)),
-                    )
-                };
-                let profile = dmsg_client::profile::resolve(&relay, &mut peers).await;
-                self.client.lock().await.peers_met(peers);
-                Ok(to_json(&profile?))
+                Ok(to_json(
+                    &profile::resolve_account(&self.hold(), &account).await?,
+                ))
             }
             "profile/avatar" => {
                 let image = match params["remove"] == true {
@@ -982,13 +976,10 @@ impl Daemon {
                         )
                     }
                 };
-                let profile = self
-                    .client
-                    .lock()
-                    .await
-                    .publish_avatar(image.as_deref())
-                    .await?;
-                Ok(to_json(&profile))
+                let _turn = self.turn("profile").await;
+                Ok(to_json(
+                    &profile::publish_avatar(&self.hold(), image.as_deref()).await?,
+                ))
             }
             "profile/avatar_image" => {
                 let account = account(params, "account")?;
@@ -996,7 +987,7 @@ impl Daemon {
                 // A public download, which may take the relay's 30 seconds:
                 // every other request would wait behind it under the client.
                 let relay = self.client.lock().await.relay();
-                let image = dmsg_client::profile::avatar(&relay, &account, &upload).await?;
+                let image = profile::avatar(&relay, &account, &upload).await?;
                 // A data URL the desktop shows without fetching anything.
                 Ok(image.map_or(Value::Null, |(mime, bytes)| {
                     let data = base64::engine::general_purpose::STANDARD.encode(bytes);
@@ -1043,33 +1034,31 @@ impl Daemon {
                 let approve = params["approve"]
                     .as_bool()
                     .ok_or_else(|| Error::InvalidInput("approve".into()))?;
-                let id = text(params, "id")?;
-                let mut client = self.client.lock().await;
-                let outcome = client
-                    .approval_respond(&id, &text(params, "digest")?, approve)
-                    .await;
-                // Who decided, through which way in, on whose request.
-                let request = client.approval(&id).unwrap_or_default();
-                let detail = format!(
-                    "{} from {}",
-                    request["type"].as_str().unwrap_or("?"),
-                    request["source"].as_str().unwrap_or("?")
-                );
-                let action = if approve {
-                    "approval/approve"
-                } else {
-                    "approval/reject"
-                };
-                let code = outcome.as_ref().err().map_or("ok".into(), error_code);
-                client.audit(
-                    "owner",
+                let (id, digest, via) = (
+                    text(params, "id")?,
+                    text(params, "digest")?,
                     source(params)?,
-                    action,
-                    Some(&id),
-                    Some(&detail),
-                    &code,
                 );
-                outcome
+                // An approved request carries itself out under the client.
+                self.under_lock(async |client| {
+                    let outcome = client.approval_respond(&id, &digest, approve).await;
+                    // Who decided, through which way in, on whose request.
+                    let request = client.approval(&id).unwrap_or_default();
+                    let detail = format!(
+                        "{} from {}",
+                        request["type"].as_str().unwrap_or("?"),
+                        request["source"].as_str().unwrap_or("?")
+                    );
+                    let action = if approve {
+                        "approval/approve"
+                    } else {
+                        "approval/reject"
+                    };
+                    let code = outcome.as_ref().err().map_or("ok".into(), error_code);
+                    client.audit("owner", via, action, Some(&id), Some(&detail), &code);
+                    outcome
+                })
+                .await
             }
             "approval/cancel" => {
                 let mut client = self.client.lock().await;
@@ -1077,9 +1066,11 @@ impl Daemon {
                 client.approval_cancel(&id)
             }
             "approval/reconcile" => {
-                let mut client = self.client.lock().await;
-                client.approvals_reconcile().await?;
-                Ok(Value::Array(client.approvals(false)?))
+                self.under_lock(async |client| {
+                    client.approvals_reconcile().await?;
+                    Ok(Value::Array(client.approvals(false)?))
+                })
+                .await
             }
             "attest/request" => {
                 let input: StatementInput = parse(params, "statement")?;
@@ -1091,10 +1082,8 @@ impl Daemon {
             }
             "attest/action" => {
                 let action = dmsg_client::codec::unb64(&text(params, "action")?)?;
-                self.client
-                    .lock()
-                    .await
-                    .attest_action_request(source(params)?, &action)
+                let via = source(params)?;
+                self.under_lock(async |client| client.attest_action_request(via, &action).await)
                     .await
             }
             "attest/history" => Ok(Value::Array(self.client.lock().await.attest_history()?)),
@@ -1110,10 +1099,7 @@ impl Daemon {
                 let bundle: Bundle = parse(params, "bundle")?;
                 let file = optional(params, "file", absolute)?;
                 let report = self
-                    .client
-                    .lock()
-                    .await
-                    .attest_verify(&bundle, file.as_deref())
+                    .under_lock(async |client| client.attest_verify(&bundle, file.as_deref()).await)
                     .await?;
                 Ok(to_json(&report))
             }
@@ -1125,36 +1111,33 @@ impl Daemon {
                     .iter()
                     .map(|c| capability(c.as_str().unwrap_or_default()))
                     .collect::<Result<Vec<_>>>()?;
-                self.client
-                    .lock()
-                    .await
-                    .capabilities_request(source(params)?, device, capabilities)
-                    .await
+                let via = source(params)?;
+                self.under_lock(async |client| {
+                    client.capabilities_request(via, device, capabilities).await
+                })
+                .await
             }
             "device/formal_approve" => {
                 let enable = params["enable"]
                     .as_bool()
                     .ok_or_else(|| Error::InvalidInput("enable".into()))?;
-                self.client
-                    .lock()
-                    .await
-                    .formal_approve_request(source(params)?, enable)
+                let via = source(params)?;
+                self.under_lock(async |client| client.formal_approve_request(via, enable).await)
                     .await
             }
             "device/revoke" => {
                 let device = hash(params, "device")?;
-                self.client
-                    .lock()
-                    .await
-                    .revoke_request(source(params)?, device)
+                let via = source(params)?;
+                self.under_lock(async |client| client.revoke_request(via, device).await)
                     .await
             }
-            "connect/invite" => self.client.lock().await.connect_invite().await,
-            "connect/candidates" => {
-                self.client
-                    .lock()
+            "connect/invite" => {
+                self.under_lock(async |client| client.connect_invite().await)
                     .await
-                    .connect_candidates(&text(params, "invite")?)
+            }
+            "connect/candidates" => {
+                let invite = text(params, "invite")?;
+                self.under_lock(async |client| client.connect_candidates(&invite).await)
                     .await
             }
             "connect/grant" => {
@@ -1162,26 +1145,14 @@ impl Daemon {
                 if params["human"] != true {
                     return Err(Error::Forbidden);
                 }
-                self.client
-                    .lock()
-                    .await
-                    .connect_grant(&text(params, "invite")?, &text(params, "pairing")?)
+                let (invite, pairing) = (text(params, "invite")?, text(params, "pairing")?);
+                self.under_lock(async |client| client.connect_grant(&invite, &pairing).await)
                     .await
             }
-            "connect/pairings" => {
-                let (relay, request) = self.signed(Client::connect_pairings_request).await?;
-                let data = relay.send(request).await?;
-                self.client
-                    .lock()
-                    .await
-                    .connect_pairings_settle(&data)
-                    .await
-            }
+            "connect/pairings" => dmsg_client::connect::pairings(&self.hold()).await,
             "connect/revoke" => {
-                self.client
-                    .lock()
-                    .await
-                    .connect_revoke(&text(params, "pairing")?)
+                let pairing = text(params, "pairing")?;
+                self.under_lock(async |client| client.connect_revoke(&pairing).await)
                     .await
             }
             "connect/sync" => {
@@ -1558,23 +1529,29 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
     } else {
         match session.accept(&body, now) {
             // A second login for the unlocked account: it waits for the
-            // person to approve binding it.
+            // person to approve binding it. Either checks the login on the
+            // IC under the client, which `session/login_result` answers
+            // beside.
             Ok(delegated) => match bind {
                 Some(source) => daemon
-                    .client
-                    .lock()
-                    .await
-                    .bind_login(&source, delegated.identity, delegated.expires_at)
+                    .under_lock(async |client| {
+                        client
+                            .bind_login(&source, delegated.identity, delegated.expires_at)
+                            .await
+                    })
                     .await
                     .map(|approval| {
                         daemon.login.lock().expect("login state").approval = Some(approval);
                         daemon.emit("approval/changed", Value::Null);
                     }),
                 None => {
-                    let mut client = daemon.client.lock().await;
-                    let login = client.login(delegated).await.map(|_| ());
-                    let state = client.session_state().state;
-                    drop(client);
+                    let (login, state) = daemon
+                        .under_lock(async |client| {
+                            let login = client.login(delegated).await.map(|_| ());
+                            Ok((login, client.session_state().state))
+                        })
+                        .await
+                        .unwrap_or_else(|error| (Err(error), "logged_out"));
                     // The login may have selected another account.
                     *daemon.last_connect.lock().expect("connect report") = None;
                     // No method call carries it, so the windows hear of it
@@ -1716,6 +1693,10 @@ mod tests {
     }
 
     #[tokio::test]
+    #[expect(
+        clippy::await_holding_invalid_type,
+        reason = "the test holds the client as a login check does"
+    )]
     async fn login_result_answers_while_the_callback_checks() {
         let dir = dmsg_client::testing::TempDir::new();
         let home = Home {
@@ -1886,6 +1867,52 @@ mod tests {
         let work = tokio::spawn({
             let daemon = daemon.clone();
             async move { daemon.call_more("channel/receipts", &params).await }
+        });
+        answers_beside(&daemon, &relay, work).await;
+    }
+
+    /// Each call has its own daemon, so the server's first connection is
+    /// the call's.
+    #[tokio::test]
+    async fn the_library_answers_while_wallets_plans_events_and_letters_load() {
+        let cases = [
+            // The relay: the cloud's room, the event endpoints, the letters.
+            ("files/cloud_usage", Value::Null, false),
+            ("mcp-events/list", Value::Null, false),
+            ("inbox/list", Value::Null, false),
+            // The IC: a team wallet, the plan.
+            ("wallet/show", json!({"wallet": "aaaaa-aa"}), true),
+            ("plan/status", json!({"refresh": false}), true),
+        ];
+        for (method, params, on_ic) in cases {
+            let dir = dmsg_client::testing::TempDir::new();
+            let (daemon, relay, ic) = stalled(&dir).await;
+            let work = tokio::spawn({
+                let daemon = daemon.clone();
+                async move {
+                    let module = route(method).expect("a method");
+                    daemon.call(module, method, &params).await
+                }
+            });
+            answers_beside(&daemon, if on_ic { &ic } else { &relay }, work).await;
+        }
+    }
+
+    #[tokio::test]
+    async fn the_library_answers_while_a_backup_starts() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, relay, _ic) = stalled(&dir).await;
+        let path = dir.0.join("note.txt");
+        std::fs::write(&path, b"a note").unwrap();
+        let imported = daemon
+            .call_files("files/import", &json!({"path": path}))
+            .await
+            .unwrap();
+        // The backup reads the cloud's room, then uploads.
+        let params = json!({"ids": [imported[0]["file"]["id"]]});
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.call_files("files/backup", &params).await }
         });
         answers_beside(&daemon, &relay, work).await;
     }

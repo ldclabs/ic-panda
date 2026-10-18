@@ -16,6 +16,7 @@ mod enclave;
 mod event_commands;
 mod files_commands;
 mod files_methods;
+mod held;
 mod hints;
 mod home;
 mod legacy_commands;

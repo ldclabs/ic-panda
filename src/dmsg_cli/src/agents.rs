@@ -160,144 +160,162 @@ impl Daemon {
             )?;
             return Ok(json!({"entries": entries}));
         }
-        let mut client = self.client().lock().await;
-        let principal = match method {
-            "agent/enable" => Some(PrincipalChange::Enable {
-                principal_type: match params["type"].as_str().unwrap_or("person") {
-                    "person" => PrincipalType::Person,
-                    "organization" => PrincipalType::Organization,
-                    "team" => PrincipalType::Team,
-                    "project" => PrincipalType::Project,
-                    "other" => PrincipalType::Other,
-                    _ => return Err(Error::InvalidInput("type".into())),
-                },
-            }),
-            "agent/register" => {
-                let delegation = match (params.get("scopes"), params.get("audiences")) {
-                    (None | Some(Value::Null), None | Some(Value::Null)) => {
-                        DelegationAuthority::Unrestricted
-                    }
-                    _ => DelegationAuthority::Restricted {
-                        scopes: parse(params, "scopes")?,
-                        audiences: parse(params, "audiences")?,
-                    },
-                };
-                let info = client.principal().await?.ok_or(Error::NotFound)?;
-                Some(PrincipalChange::Register {
-                    generation: dmsg_client::agent::next_generation(&info),
-                    name: params["name"].as_str().map(str::to_string),
-                    delegation,
-                })
-            }
-            "agent/retire" => Some(PrincipalChange::Retire {
-                generation: number(params, "generation")?,
-            }),
-            "agent/compromise" => Some(PrincipalChange::Compromise {
-                generation: number(params, "generation")?,
-                invalid_from: params["invalid_from"]
-                    .as_u64()
-                    .ok_or_else(|| Error::InvalidInput("invalid_from".into()))?,
-            }),
-            "agent/rename" => Some(PrincipalChange::Rename {
-                generation: number(params, "generation")?,
-                name: params["name"].as_str().map(str::to_string),
-            }),
-            _ => None,
-        };
-        if let Some(change) = principal {
-            return client.principal_request(source(params)?, change).await;
-        }
-        match method {
-            "agent/principal" => client.principal_view().await,
-            "agent/publish" => Ok(json!({"published_version": client.principal_publish().await?})),
-            "agent/refresh" => client.principal_refresh().await,
-            "agent/grant" => {
-                let generation = match params["generation"].is_null() {
-                    true => latest_controller(&mut client).await?,
-                    false => number(params, "generation")?,
-                };
-                // The subject may name a hosted Agent ID by its label.
-                let subject = text(params, "subject")?;
-                let subject = client.agent_find(&subject).map_or(subject, |a| a.agent_id);
-                client
-                    .delegation_grant_request(
+        // The client alone, without the network.
+        let answered = {
+            let mut client = self.client().lock().await;
+            match method {
+                "agent/delegations" => Some(client.delegations().map(Value::Array)),
+                "agent/ids" => Some(client.agent_list().map(|mut list| {
+                    list["hosts"] = to_json(self.agents().hosts());
+                    list
+                })),
+                "agent/create" => Some((|| {
+                    let entry = client.agent_create(&text(params, "label")?)?;
+                    let via = source(params)?;
+                    client.audit("owner", via, method, Some(&entry.agent_id), None, "ok");
+                    Ok(entry.view())
+                })()),
+                "agent/use" => Some((|| Ok(client.agent_use(&text(params, "agent")?)?.view()))()),
+                "agent/resident" => Some((|| {
+                    let on = params["on"]
+                        .as_bool()
+                        .ok_or_else(|| Error::InvalidInput("on".into()))?;
+                    let entry = client.agent_resident(&text(params, "agent")?, on)?;
+                    let detail = if on { "on" } else { "off" };
+                    let via = source(params)?;
+                    client.audit(
+                        "owner",
+                        via,
+                        method,
+                        Some(&entry.agent_id),
+                        Some(detail),
+                        "ok",
+                    );
+                    Ok(entry.view())
+                })()),
+                "agent/credential" => Some((|| {
+                    let agent = client.agent_find(&text(params, "agent")?)?;
+                    let credential = client.agent_credential(&agent.agent_id)?;
+                    let via = source(params)?;
+                    client.audit("owner", via, method, Some(&agent.agent_id), None, "ok");
+                    Ok(json!({"agent_id": agent.agent_id, "credential": credential}))
+                })()),
+                "grants/list" => Some(client.capability_grants().map(|g| to_json(&g))),
+                "grants/add" => Some((|| {
+                    let grant = client.capability_grant(
                         source(params)?,
-                        generation,
-                        &subject,
-                        parse(params, "scopes")?,
-                        parse(params, "audiences")?,
-                        params["days"].as_u64().unwrap_or(30),
-                        params["relationship"].as_str().map(str::to_string),
-                    )
-                    .await
-            }
-            "agent/revoke" => {
-                let generation = match params["generation"].is_null() {
-                    true => latest_controller(&mut client).await?,
-                    false => number(params, "generation")?,
-                };
-                client
-                    .delegation_revoke_request(
+                        &text(params, "agent")?,
+                        parse(params, "capabilities")?,
+                        params["days"].as_u64(),
+                    )?;
+                    Ok(to_json(&grant))
+                })()),
+                "grants/revoke" => Some((|| {
+                    Ok(to_json(&client.capability_revoke(
                         source(params)?,
-                        generation,
                         &text(params, "id")?,
-                        params["reason"].as_str().map(str::to_string),
-                    )
-                    .await
+                    )?))
+                })()),
+                _ => None,
             }
-            "agent/credentials" => Ok(Value::Array(client.delegation_credentials().await?)),
-            "agent/delegations" => Ok(Value::Array(client.delegations()?)),
-            "agent/ids" => {
-                let mut list = client.agent_list()?;
-                list["hosts"] = to_json(self.agents().hosts());
-                Ok(list)
-            }
-            "agent/create" => {
-                let entry = client.agent_create(&text(params, "label")?)?;
-                let via = source(params)?;
-                client.audit("owner", via, method, Some(&entry.agent_id), None, "ok");
-                Ok(entry.view())
-            }
-            "agent/use" => Ok(client.agent_use(&text(params, "agent")?)?.view()),
-            "agent/resident" => {
-                let on = params["on"]
-                    .as_bool()
-                    .ok_or_else(|| Error::InvalidInput("on".into()))?;
-                let entry = client.agent_resident(&text(params, "agent")?, on)?;
-                let detail = if on { "on" } else { "off" };
-                let via = source(params)?;
-                client.audit(
-                    "owner",
-                    via,
-                    method,
-                    Some(&entry.agent_id),
-                    Some(detail),
-                    "ok",
-                );
-                Ok(entry.view())
-            }
-            "agent/credential" => {
-                let agent = client.agent_find(&text(params, "agent")?)?;
-                let credential = client.agent_credential(&agent.agent_id)?;
-                let via = source(params)?;
-                client.audit("owner", via, method, Some(&agent.agent_id), None, "ok");
-                Ok(json!({"agent_id": agent.agent_id, "credential": credential}))
-            }
-            "grants/list" => Ok(to_json(&client.capability_grants()?)),
-            "grants/add" => {
-                let grant = client.capability_grant(
-                    source(params)?,
-                    &text(params, "agent")?,
-                    parse(params, "capabilities")?,
-                    params["days"].as_u64(),
-                )?;
-                Ok(to_json(&grant))
-            }
-            "grants/revoke" => Ok(to_json(
-                &client.capability_revoke(source(params)?, &text(params, "id")?)?,
-            )),
-            _ => Err(Error::NotFound),
+        };
+        if let Some(answer) = answered {
+            return answer;
         }
+        // The Agent Delegation principal and its delegations still wait on
+        // the IC under the client.
+        self.under_lock(async |client| {
+            let principal = match method {
+                "agent/enable" => Some(PrincipalChange::Enable {
+                    principal_type: match params["type"].as_str().unwrap_or("person") {
+                        "person" => PrincipalType::Person,
+                        "organization" => PrincipalType::Organization,
+                        "team" => PrincipalType::Team,
+                        "project" => PrincipalType::Project,
+                        "other" => PrincipalType::Other,
+                        _ => return Err(Error::InvalidInput("type".into())),
+                    },
+                }),
+                "agent/register" => {
+                    let delegation = match (params.get("scopes"), params.get("audiences")) {
+                        (None | Some(Value::Null), None | Some(Value::Null)) => {
+                            DelegationAuthority::Unrestricted
+                        }
+                        _ => DelegationAuthority::Restricted {
+                            scopes: parse(params, "scopes")?,
+                            audiences: parse(params, "audiences")?,
+                        },
+                    };
+                    let info = client.principal().await?.ok_or(Error::NotFound)?;
+                    Some(PrincipalChange::Register {
+                        generation: dmsg_client::agent::next_generation(&info),
+                        name: params["name"].as_str().map(str::to_string),
+                        delegation,
+                    })
+                }
+                "agent/retire" => Some(PrincipalChange::Retire {
+                    generation: number(params, "generation")?,
+                }),
+                "agent/compromise" => Some(PrincipalChange::Compromise {
+                    generation: number(params, "generation")?,
+                    invalid_from: params["invalid_from"]
+                        .as_u64()
+                        .ok_or_else(|| Error::InvalidInput("invalid_from".into()))?,
+                }),
+                "agent/rename" => Some(PrincipalChange::Rename {
+                    generation: number(params, "generation")?,
+                    name: params["name"].as_str().map(str::to_string),
+                }),
+                _ => None,
+            };
+            if let Some(change) = principal {
+                return client.principal_request(source(params)?, change).await;
+            }
+            match method {
+                "agent/principal" => client.principal_view().await,
+                "agent/publish" => {
+                    Ok(json!({"published_version": client.principal_publish().await?}))
+                }
+                "agent/refresh" => client.principal_refresh().await,
+                "agent/grant" => {
+                    let generation = match params["generation"].is_null() {
+                        true => latest_controller(client).await?,
+                        false => number(params, "generation")?,
+                    };
+                    // The subject may name a hosted Agent ID by its label.
+                    let subject = text(params, "subject")?;
+                    let subject = client.agent_find(&subject).map_or(subject, |a| a.agent_id);
+                    client
+                        .delegation_grant_request(
+                            source(params)?,
+                            generation,
+                            &subject,
+                            parse(params, "scopes")?,
+                            parse(params, "audiences")?,
+                            params["days"].as_u64().unwrap_or(30),
+                            params["relationship"].as_str().map(str::to_string),
+                        )
+                        .await
+                }
+                "agent/revoke" => {
+                    let generation = match params["generation"].is_null() {
+                        true => latest_controller(client).await?,
+                        false => number(params, "generation")?,
+                    };
+                    client
+                        .delegation_revoke_request(
+                            source(params)?,
+                            generation,
+                            &text(params, "id")?,
+                            params["reason"].as_str().map(str::to_string),
+                        )
+                        .await
+                }
+                "agent/credentials" => Ok(Value::Array(client.delegation_credentials().await?)),
+                _ => Err(Error::NotFound),
+            }
+        })
+        .await
     }
 
     /// Run one of [`AGENT_METHODS`] for the agent whose credential called.
@@ -511,8 +529,195 @@ impl Daemon {
     /// A `dmsg_*` tool, after the capability it needs.
     async fn dmsg_tool(&self, agent: &AgentEntry, tool: &str, input: &Value) -> Result<Value> {
         let did = agent.agent_id.as_str();
-        let mut client = self.client().lock().await;
         let channel = || text(input, "channel");
+        let granted =
+            async |capability: &str| self.client().lock().await.capability_check(did, capability);
+        let wallet = || dmsg_client::wallet::parse_wallet(&text(input, "wallet")?);
+        let proposal = || {
+            input["proposal"]
+                .as_u64()
+                .ok_or_else(|| Error::InvalidInput("proposal".into()))
+        };
+        // These wait on the relay and the IC without the client, as the
+        // owner's methods do.
+        let h = self.hold();
+        match tool {
+            "dmsg_channel_publish" => {
+                let id = channel()?;
+                granted(&format!("channel.publish:{id}")).await?;
+                // Members see which Agent ID wrote it through this device.
+                let draft = dmsg_client::channel::Draft {
+                    text: text(input, "text")?,
+                    agent: Some(dmsg_client::channel::AgentRef {
+                        id: agent.agent_id.clone(),
+                        name: agent.label.clone(),
+                    }),
+                    ..Default::default()
+                };
+                return dmsg_client::channel::send(&h, &id, &draft, None).await;
+            }
+            "dmsg_inbox_list" => {
+                granted("inbox.read").await?;
+                let letters = dmsg_client::inbox::list(&h).await?;
+                return Ok(Value::Array(
+                    letters
+                        .iter()
+                        .map(|l| {
+                            json!({
+                                "order_id": l.order_id,
+                                "sender": l.sender,
+                                "state": l.state,
+                                "created_at": l.created_at,
+                                "read": l.read,
+                                "archived": l.archived,
+                                "abort_reason": l.abort_reason,
+                            })
+                        })
+                        .collect(),
+                ));
+            }
+            "dmsg_inbox_read" => {
+                granted("inbox.read").await?;
+                let order = text(input, "order_id")?;
+                let letter = dmsg_client::inbox::list(&h)
+                    .await?
+                    .into_iter()
+                    .find(|l| l.order_id == order)
+                    .ok_or(Error::NotFound)?;
+                let mark = input["mark_read"] == true && !letter.read;
+                if mark {
+                    // A mark still goes to the relay under the client.
+                    self.under_lock(async |client| {
+                        client.inbox_mark(&order, true, letter.archived).await
+                    })
+                    .await?;
+                }
+                return Ok(json!({
+                    "order_id": letter.order_id,
+                    "sender": letter.sender,
+                    "state": letter.state,
+                    "text": letter.text,
+                    "created_at": letter.created_at,
+                    "read": letter.read || mark,
+                    "archived": letter.archived,
+                    "abort_reason": letter.abort_reason,
+                }));
+            }
+            "dmsg_profile_read" => {
+                granted("profile.read").await?;
+                return Ok(match input["account"].as_str() {
+                    Some(account) => {
+                        let account = account
+                            .parse()
+                            .map_err(|_| Error::InvalidInput("account".into()))?;
+                        to_json(&dmsg_client::profile::resolve_account(&h, &account).await?)
+                    }
+                    None => to_json(&dmsg_client::profile::show(&h).await?),
+                });
+            }
+            "dmsg_wallet_list" => {
+                granted("wallet.read").await?;
+                let list = dmsg_client::wallet::list(&h).await?;
+                let mut wallets = vec![];
+                for w in list.as_array().cloned().unwrap_or_default() {
+                    let id = dmsg_client::wallet::parse_wallet(
+                        w["wallet"].as_str().unwrap_or_default(),
+                    )?;
+                    wallets.push(dmsg_client::wallet::show(&h, id).await?);
+                }
+                return Ok(Value::Array(wallets));
+            }
+            "dmsg_wallet_balances" => {
+                granted("wallet.read").await?;
+                return dmsg_client::wallet::balances(&h, wallet()?).await;
+            }
+            "dmsg_wallet_proposal_status" => {
+                granted("wallet.read").await?;
+                return dmsg_client::wallet::proposal(&h, wallet()?, proposal()?).await;
+            }
+            _ => {}
+        }
+        // These still wait on the relay and the IC under the client:
+        // contacts, signed actions, delegations and the wallet's proposals
+        // and executions.
+        let networked = matches!(
+            tool,
+            "dmsg_inbox_contact"
+                | "dmsg_action_request"
+                | "dmsg_delegations_list"
+                | "dmsg_wallet_propose_transfer"
+                | "dmsg_wallet_execute"
+                | "dmsg_wallet_report_broadcast"
+        );
+        if networked {
+            let via = format!("agent:{did}");
+            let result = self
+                .under_lock(async |client| match tool {
+                    "dmsg_inbox_contact" => {
+                        client.capability_check(did, "inbox.contact")?;
+                        let to = text(input, "to")?
+                            .parse()
+                            .map_err(|_| Error::InvalidInput("to".into()))?;
+                        // Never paid: a quote comes back and nothing is sent.
+                        client
+                            .inbox_send(&to, &text(input, "text")?, None, None, false)
+                            .await
+                    }
+                    "dmsg_action_request" => {
+                        client.capability_check(did, "action.request")?;
+                        let action = unb64(&text(input, "action")?)?;
+                        client.attest_action_request(&via, &action).await
+                    }
+                    "dmsg_delegations_list" => {
+                        client.capability_check(did, "agent.delegation.read")?;
+                        Ok(Value::Array(client.delegation_credentials().await?))
+                    }
+                    "dmsg_wallet_propose_transfer" => {
+                        let id = text(input, "wallet")?;
+                        client.capability_check(did, &format!("wallet.propose:{id}"))?;
+                        let from = input["from"]
+                            .as_u64()
+                            .and_then(|f| u32::try_from(f).ok())
+                            .ok_or_else(|| Error::InvalidInput("from".into()))?;
+                        client
+                            .wallet_send(
+                                wallet()?,
+                                from,
+                                &text(input, "asset")?,
+                                &text(input, "to")?,
+                                &text(input, "amount")?,
+                                &text(input, "max_fee")?,
+                                input["memo"].as_str(),
+                                Some(did.to_string()),
+                            )
+                            .await
+                    }
+                    "dmsg_wallet_execute" => {
+                        let id = text(input, "wallet")?;
+                        client.capability_check(did, &format!("wallet.execute:{id}"))?;
+                        client.wallet_execute(&via, wallet()?, proposal()?).await
+                    }
+                    "dmsg_wallet_report_broadcast" => {
+                        let id = text(input, "wallet")?;
+                        client.capability_check(did, &format!("wallet.execute:{id}"))?;
+                        match input["rebroadcast"] == true {
+                            true => client.wallet_broadcast(wallet()?, proposal()?, None).await,
+                            false => client.wallet_settle(wallet()?, proposal()?).await,
+                        }
+                    }
+                    _ => Err(Error::NotFound),
+                })
+                .await?;
+            if matches!(tool, "dmsg_action_request" | "dmsg_wallet_execute") {
+                self.emit("approval/changed", Value::Null);
+            }
+            if tool.starts_with("dmsg_wallet_") {
+                self.emit("wallet/changed", Value::Null);
+            }
+            return Ok(result);
+        }
+        // The client alone, without the network.
+        let mut client = self.client().lock().await;
         match tool {
             "dmsg_account_status" => {
                 client.capability_check(did, "account.read")?;
@@ -720,86 +925,6 @@ impl Daemon {
                 let after = input["after"].as_u64().unwrap_or(0);
                 Ok(to_json(&client.channel_messages(&id, after, 200)?))
             }
-            "dmsg_channel_publish" => {
-                let id = channel()?;
-                client.capability_check(did, &format!("channel.publish:{id}"))?;
-                // Members see which Agent ID wrote it through this device.
-                let draft = dmsg_client::channel::Draft {
-                    text: text(input, "text")?,
-                    agent: Some(dmsg_client::channel::AgentRef {
-                        id: agent.agent_id.clone(),
-                        name: agent.label.clone(),
-                    }),
-                    ..Default::default()
-                };
-                client.channel_send(&id, &draft, None).await
-            }
-            "dmsg_inbox_list" => {
-                client.capability_check(did, "inbox.read")?;
-                let letters = client.inbox_list().await?;
-                Ok(Value::Array(
-                    letters
-                        .iter()
-                        .map(|l| {
-                            json!({
-                                "order_id": l.order_id,
-                                "sender": l.sender,
-                                "state": l.state,
-                                "created_at": l.created_at,
-                                "read": l.read,
-                                "archived": l.archived,
-                                "abort_reason": l.abort_reason,
-                            })
-                        })
-                        .collect(),
-                ))
-            }
-            "dmsg_inbox_read" => {
-                client.capability_check(did, "inbox.read")?;
-                let order = text(input, "order_id")?;
-                let letter = client
-                    .inbox_list()
-                    .await?
-                    .into_iter()
-                    .find(|l| l.order_id == order)
-                    .ok_or(Error::NotFound)?;
-                let mark = input["mark_read"] == true && !letter.read;
-                if mark {
-                    client.inbox_mark(&order, true, letter.archived).await?;
-                }
-                Ok(json!({
-                    "order_id": letter.order_id,
-                    "sender": letter.sender,
-                    "state": letter.state,
-                    "text": letter.text,
-                    "created_at": letter.created_at,
-                    "read": letter.read || mark,
-                    "archived": letter.archived,
-                    "abort_reason": letter.abort_reason,
-                }))
-            }
-            "dmsg_inbox_contact" => {
-                client.capability_check(did, "inbox.contact")?;
-                let to = text(input, "to")?
-                    .parse()
-                    .map_err(|_| Error::InvalidInput("to".into()))?;
-                // Never paid: a quote comes back and nothing is sent.
-                client
-                    .inbox_send(&to, &text(input, "text")?, None, None, false)
-                    .await
-            }
-            "dmsg_profile_read" => {
-                client.capability_check(did, "profile.read")?;
-                match input["account"].as_str() {
-                    Some(account) => {
-                        let account = account
-                            .parse()
-                            .map_err(|_| Error::InvalidInput("account".into()))?;
-                        Ok(to_json(&client.profile_resolve(&account).await?))
-                    }
-                    None => Ok(to_json(&client.profile().await?)),
-                }
-            }
             "dmsg_attest_request" => {
                 client.capability_check(did, "attest.request")?;
                 let statement = StatementInput::Text {
@@ -810,99 +935,6 @@ impl Daemon {
                 drop(client);
                 self.emit("approval/changed", Value::Null);
                 Ok(request)
-            }
-            "dmsg_action_request" => {
-                client.capability_check(did, "action.request")?;
-                let action = unb64(&text(input, "action")?)?;
-                let request = client
-                    .attest_action_request(&format!("agent:{did}"), &action)
-                    .await?;
-                drop(client);
-                self.emit("approval/changed", Value::Null);
-                Ok(request)
-            }
-            "dmsg_delegations_list" => {
-                client.capability_check(did, "agent.delegation.read")?;
-                Ok(Value::Array(client.delegation_credentials().await?))
-            }
-            "dmsg_wallet_list" => {
-                client.capability_check(did, "wallet.read")?;
-                let list = client.wallet_list().await?;
-                let mut wallets = vec![];
-                for w in list.as_array().cloned().unwrap_or_default() {
-                    let id = dmsg_client::wallet::parse_wallet(
-                        w["wallet"].as_str().unwrap_or_default(),
-                    )?;
-                    wallets.push(client.wallet_show(id).await?);
-                }
-                Ok(Value::Array(wallets))
-            }
-            "dmsg_wallet_balances" => {
-                client.capability_check(did, "wallet.read")?;
-                let wallet = dmsg_client::wallet::parse_wallet(&text(input, "wallet")?)?;
-                client.wallet_balances(wallet).await
-            }
-            "dmsg_wallet_propose_transfer" => {
-                let id = text(input, "wallet")?;
-                client.capability_check(did, &format!("wallet.propose:{id}"))?;
-                let wallet = dmsg_client::wallet::parse_wallet(&id)?;
-                let from = input["from"]
-                    .as_u64()
-                    .and_then(|f| u32::try_from(f).ok())
-                    .ok_or_else(|| Error::InvalidInput("from".into()))?;
-                let proposal = client
-                    .wallet_send(
-                        wallet,
-                        from,
-                        &text(input, "asset")?,
-                        &text(input, "to")?,
-                        &text(input, "amount")?,
-                        &text(input, "max_fee")?,
-                        input["memo"].as_str(),
-                        Some(did.to_string()),
-                    )
-                    .await?;
-                drop(client);
-                self.emit("wallet/changed", Value::Null);
-                Ok(proposal)
-            }
-            "dmsg_wallet_proposal_status" => {
-                client.capability_check(did, "wallet.read")?;
-                let wallet = dmsg_client::wallet::parse_wallet(&text(input, "wallet")?)?;
-                let proposal = input["proposal"]
-                    .as_u64()
-                    .ok_or_else(|| Error::InvalidInput("proposal".into()))?;
-                client.wallet_proposal(wallet, proposal).await
-            }
-            "dmsg_wallet_execute" => {
-                let id = text(input, "wallet")?;
-                client.capability_check(did, &format!("wallet.execute:{id}"))?;
-                let wallet = dmsg_client::wallet::parse_wallet(&id)?;
-                let proposal = input["proposal"]
-                    .as_u64()
-                    .ok_or_else(|| Error::InvalidInput("proposal".into()))?;
-                let result = client
-                    .wallet_execute(&format!("agent:{did}"), wallet, proposal)
-                    .await?;
-                drop(client);
-                self.emit("wallet/changed", Value::Null);
-                self.emit("approval/changed", Value::Null);
-                Ok(result)
-            }
-            "dmsg_wallet_report_broadcast" => {
-                let id = text(input, "wallet")?;
-                client.capability_check(did, &format!("wallet.execute:{id}"))?;
-                let wallet = dmsg_client::wallet::parse_wallet(&id)?;
-                let proposal = input["proposal"]
-                    .as_u64()
-                    .ok_or_else(|| Error::InvalidInput("proposal".into()))?;
-                let result = match input["rebroadcast"] == true {
-                    true => client.wallet_broadcast(wallet, proposal, None).await?,
-                    false => client.wallet_settle(wallet, proposal).await?,
-                };
-                drop(client);
-                self.emit("wallet/changed", Value::Null);
-                Ok(result)
             }
             "dmsg_approval_status" => {
                 let request = client.approval(&text(input, "id")?)?;

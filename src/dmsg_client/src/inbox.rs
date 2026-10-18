@@ -15,9 +15,11 @@
 //! deadline the payer recovers the funds from the canister alone.
 
 use crate::client::Client;
-use crate::cloud::{Evidence, Prepared, sign_command};
+use crate::cloud::{Evidence, sign_command};
 use crate::codec::{MAX_RECORD, b64, canonical, decode, digest, sha256, unb64};
 use crate::crypto::{HpkeEnvelope, hpke_open, hpke_public, hpke_seal, random_key, sign};
+use crate::evidence::Trust;
+use crate::hold::Hold;
 use crate::now_ms;
 use crate::payer::{memo, transfer_call};
 use crate::payment::{
@@ -215,7 +217,7 @@ pub struct Letter {
     pub abort_reason: Option<String>,
 }
 
-/// Most pages of letters [`Client::inbox_list`] reads before it gives up.
+/// Most pages of letters [`list`] reads before it gives up.
 pub const INBOX_PAGES: usize = 10_000;
 
 impl Client {
@@ -377,18 +379,7 @@ impl Client {
     /// # Errors
     /// Relay errors as returned.
     pub async fn inbox_policy(&mut self) -> Result<Option<Json>> {
-        let me = self.account()?.id;
-        self.relay_find(&format!("/v1/inboxes/{me}/policy")).await
-    }
-
-    /// [`Self::inbox_policy`]'s relay read, signed for the caller to send
-    /// without the client; an absent policy is `Error::NotFound`.
-    ///
-    /// # Errors
-    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
-    pub fn inbox_policy_request(&self) -> Result<Prepared> {
-        let me = self.account()?.id;
-        self.signed_get(&format!("/v1/inboxes/{me}/policy"))
+        policy(&self.hold()).await
     }
 
     /// Publish a contact policy with a fresh inbox key; a paid policy also
@@ -1193,51 +1184,16 @@ impl Client {
         Ok(json!({"escrow": escrow_view(&escrow), "refund_leg": leg.map(|l| l.leg_id)}))
     }
 
-    /// Letters to this account, newest state of each, opened with the
-    /// synced inbox keys; each is checked against the sender's evidence.
-    ///
-    /// # Errors
-    /// Returns `Error::RecoveryIncomplete` when an inbox key is missing.
-    pub async fn inbox_list(&mut self) -> Result<Vec<Letter>> {
-        let mut letters = std::collections::BTreeMap::new();
-        let mut after = 0;
-        for _ in 0..INBOX_PAGES {
-            let me = self.account()?.id;
-            let page = self
-                .relay_get(&format!("/v1/inboxes/{me}?after={after}&limit=20"))
-                .await?;
-            match self.inbox_page_settle(after, &page, &mut letters).await? {
-                Some(next) => after = next,
-                None => return Ok(letters.into_values().collect()),
-            }
-        }
-        Err(Error::QuotaExceeded)
-    }
-
-    /// The page of [`Self::inbox_list`] after `after`, signed for the caller
-    /// to send without the client.
-    ///
-    /// # Errors
-    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
-    pub fn inbox_page_request(&self, after: u64) -> Result<Prepared> {
-        let me = self.account()?.id;
-        self.signed_get(&format!("/v1/inboxes/{me}?after={after}&limit=20"))
-    }
-
-    /// Open the page of [`Self::inbox_list`] read after `after` into
-    /// `letters`, keeping what changed; the cursor of the next page, `None`
-    /// after the last. After a [`Self::warmup`], without the network.
-    ///
-    /// # Errors
-    /// As [`Self::inbox_list`].
-    pub async fn inbox_page_settle(
+    /// Open the page of [`list`] read after `after` into `letters`, keeping
+    /// what changed; the cursor of the next page, `None` after the last.
+    fn inbox_page_settle(
         &mut self,
         after: u64,
         page: &Json,
+        trust: &Trust,
         letters: &mut std::collections::BTreeMap<String, Letter>,
     ) -> Result<Option<u64>> {
         let me = self.account()?.id.to_string();
-        let trust = self.trust().await?;
         let mut after = after;
         let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
         let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
@@ -1370,6 +1326,41 @@ impl Client {
         )
         .await
     }
+}
+
+/// This account's contact policy at the relay.
+///
+/// # Errors
+/// Relay errors as returned.
+pub async fn policy<H: Hold>(h: &H) -> Result<Option<Json>> {
+    let me = h.with(|c| Ok(c.account()?.id)).await?;
+    h.find(&format!("/v1/inboxes/{me}/policy")).await
+}
+
+/// Letters to this account, newest state of each, opened with the synced
+/// inbox keys; each is checked against the sender's evidence. Each page
+/// waits on the relay without the client.
+///
+/// # Errors
+/// Returns `Error::RecoveryIncomplete` when an inbox key is missing.
+pub async fn list<H: Hold>(h: &H) -> Result<Vec<Letter>> {
+    let me = h.with(|c| Ok(c.account()?.id)).await?;
+    let trust = h.trust().await?;
+    let mut letters = std::collections::BTreeMap::new();
+    let mut after = 0;
+    for _ in 0..INBOX_PAGES {
+        let page = h
+            .get(&format!("/v1/inboxes/{me}?after={after}&limit=20"))
+            .await?;
+        match h
+            .with(|c| c.inbox_page_settle(after, &page, &trust, &mut letters))
+            .await?
+        {
+            Some(next) => after = next,
+            None => return Ok(letters.into_values().collect()),
+        }
+    }
+    Err(Error::QuotaExceeded)
 }
 
 #[cfg(test)]

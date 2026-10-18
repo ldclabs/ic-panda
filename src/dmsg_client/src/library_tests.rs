@@ -1295,8 +1295,7 @@ async fn backup_jobs_stay_apart_from_the_vault_jobs_and_keep_their_chunks() {
     // The vault's sync jobs read as before, and the failed backup waits for
     // its next attempt instead of going again at once.
     assert_eq!(client.flush().await, Ok(0));
-    let run = client
-        .files_backup_run(None, &mut |_, _, _| {})
+    let run = super::backup::backup_run(&client.hold(), None, &mut |_, _, _| {})
         .await
         .unwrap();
     assert_eq!((run.failed, run.pending), (0, 1));
@@ -1377,9 +1376,7 @@ async fn the_last_copy_of_a_released_version_stays_in_the_cloud() {
         .save_version(&imported.file.id, &imported.version, &released)
         .unwrap();
     assert!(matches!(
-        client
-            .files_cloud_delete(std::slice::from_ref(&upload))
-            .await,
+        super::cloud::cloud_delete(&client.hold(), std::slice::from_ref(&upload)).await,
         Err(Error::InvalidInput(_))
     ));
     assert!(client.cloud_entry(&upload).unwrap().is_some());

@@ -24,6 +24,7 @@ use crate::content::{Opened, empty_file, open_manifest};
 use crate::crypto::Key;
 use crate::evidence::{Trust, Verified};
 use crate::files::{BlobStore, MAX_FILE, Source, read_file};
+use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan};
 use dmsg_types::{AccountId, Error, Hash, Result, ensure, ensure_valid};
@@ -230,129 +231,6 @@ impl Client {
         Ok(())
     }
 
-    /// The manifest of a committed backup, opened with the root of its
-    /// generation; `None` while this device lacks that root.
-    async fn open_backup(
-        &mut self,
-        account: &str,
-        upload_id: &str,
-        plan: &UploadPlan,
-    ) -> Result<Option<BackupManifest>> {
-        let root: Option<Zeroizing<Key>> = self
-            .roots()?
-            .key(plan.root_generation)
-            .map(|k| Zeroizing::new(*k));
-        let Some(root) = root else {
-            return Ok(None);
-        };
-        let bytes = self
-            .download(upload_id, "manifest", &plan.manifest_digest)
-            .await?;
-        match open_manifest(&root, account, plan, &bytes)? {
-            Opened::Backup(manifest) => Ok(Some(manifest)),
-            _ => Err(Error::IntegrityFailed),
-        }
-    }
-
-    /// Read the relay's backup inventory from this device's cursor on:
-    /// check every entry's signed plan against the evidence of its
-    /// reservation ([`verify_entry`]), open each new manifest with the root
-    /// of its generation and cache it; forget the ones deleted. Cached
-    /// entries that lacked their root open once the root is here. A local
-    /// version a backup is of is marked backed up.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked and `Error::IntegrityFailed`
-    /// for an entry that does not verify.
-    pub async fn files_cloud_refresh(&mut self) -> Result<CloudRefresh> {
-        self.roots()?;
-        let id = self.account()?.id;
-        let account = id.to_string();
-        let trust = self.trust().await?;
-        let base = self.base()?;
-        let mut cursor: u64 = self.workspace.private(self.keys()?, CURSOR)?.unwrap_or(0);
-        let mut report = CloudRefresh::default();
-        // Entries an earlier refresh cached without their root.
-        let rootless: Vec<String> = self
-            .cloud_entries()?
-            .into_iter()
-            .filter(|(_, entry)| entry.manifest.is_none())
-            .map(|(upload_id, _)| upload_id)
-            .collect();
-        loop {
-            let page = self
-                .relay_get(&format!("{base}/backups?after={cursor}&limit=100"))
-                .await?;
-            let now = now_ms();
-            let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
-            ensure(entries.len() <= 100, Error::IntegrityFailed)?;
-            for entry in entries {
-                let at = entry["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
-                ensure(at > cursor, Error::IntegrityFailed)?;
-                cursor = at;
-                let (plan, device) = verify_entry(&trust, &id, entry, now)?;
-                let upload_id = plan.upload_id.clone();
-                if entry["state"] != "committed" {
-                    if self.cloud_entry(&upload_id)?.is_some() {
-                        self.forget_cloud(&upload_id)?;
-                        report.deleted += 1;
-                    }
-                    continue;
-                }
-                if self.cloud_entry(&upload_id)?.is_some() {
-                    continue;
-                }
-                let committed_at = entry["committed_at"].as_u64();
-                let manifest = self.open_backup(&account, &upload_id, &plan).await?;
-                match &manifest {
-                    Some(manifest) => self.mark_backed_up(
-                        manifest,
-                        &upload_id,
-                        plan.root_generation,
-                        committed_at.unwrap_or(now),
-                    )?,
-                    None => report.needs_root += 1,
-                }
-                self.save_cloud_entry(
-                    &upload_id,
-                    &CloudEntry {
-                        plan,
-                        device,
-                        committed_at,
-                        manifest,
-                    },
-                )?;
-                report.added += 1;
-            }
-            self.workspace.put_private(self.keys()?, CURSOR, &cursor)?;
-            if page["end"] == true {
-                break;
-            }
-            ensure(!entries.is_empty(), Error::IntegrityFailed)?;
-        }
-        // Those still listed open once their root is here.
-        let now = now_ms();
-        for upload_id in rootless {
-            let Some(mut entry) = self.cloud_entry(&upload_id)? else {
-                continue;
-            };
-            let Some(manifest) = self.open_backup(&account, &upload_id, &entry.plan).await? else {
-                report.needs_root += 1;
-                continue;
-            };
-            self.mark_backed_up(
-                &manifest,
-                &upload_id,
-                entry.plan.root_generation,
-                entry.committed_at.unwrap_or(now),
-            )?;
-            entry.manifest = Some(manifest);
-            self.save_cloud_entry(&upload_id, &entry)?;
-        }
-        report.cursor = cursor;
-        Ok(report)
-    }
-
     /// The backups this device knows of, by path and name.
     ///
     /// # Errors
@@ -399,65 +277,16 @@ impl Client {
         Ok(views)
     }
 
-    /// Download the chunks of a backup this device lacks into the blob
-    /// directory, checking each against its digest and the whole against
-    /// the manifest.
-    async fn fetch_chunks(
-        &mut self,
-        upload_id: &str,
-        plan: &UploadPlan,
-        manifest: &BackupManifest,
-        progress: &mut (dyn FnMut(u64, u64) + Send),
-    ) -> Result<()> {
-        let file = &manifest.file;
-        ensure(file.size <= MAX_FILE, Error::IntegrityFailed)?;
-        let empty = hex::encode(*sha256(&empty_file()));
-        let planned: Vec<&str> = plan.chunks.iter().map(|c| c.digest.as_str()).collect();
-        let own: Vec<&str> = file.chunks.iter().map(|c| c.digest.as_str()).collect();
-        ensure(
-            planned == own || (own.is_empty() && planned == [empty.as_str()]),
-            Error::IntegrityFailed,
-        )?;
-        let count = file.chunks.len() as u64;
-        let objects = format!("{}/objects/{upload_id}/chunks", self.base()?);
-        let mut missing = vec![];
-        for (index, chunk) in file.chunks.iter().enumerate() {
-            if !self.blobs()?.has_chunk(&chunk.digest)? {
-                missing.push((format!("{objects}/{index}"), &chunk.digest));
-            }
-        }
-        let mut done = count - missing.len() as u64;
-        progress(done, count);
-        self.download_chunks(Source::Library, &missing, |n| {
-            done += n as u64;
-            progress(done, count);
-        })
-        .await?;
-        read_file(self.blobs()?, file, MAX_FILE, None)
-    }
-
-    /// Fetch a backup into the library: its chunks are downloaded and
-    /// checked, then the version joins its file here, or a new file is made
-    /// in `folder`, else where the backup says it was. A version already
-    /// here gets its chunks back. Backed-up status is kept.
-    ///
-    /// # Errors
-    /// Returns `Error::NotFound` for an unknown backup,
-    /// `Error::RecoveryIncomplete` for one whose root this device lacks and
-    /// `Error::IntegrityFailed` for anything that does not verify.
-    pub async fn files_cloud_fetch(
+    /// Keep a backup [`cloud_fetch`] downloaded: the version joins its file
+    /// here, or a new file is made in `folder`, else where the backup says
+    /// it was. A version already here gets its chunks back.
+    fn fetched(
         &mut self,
         upload_id: &str,
         folder: Option<&str>,
-        progress: &mut (dyn FnMut(u64, u64) + Send),
+        entry: &CloudEntry,
+        manifest: &BackupManifest,
     ) -> Result<FileView> {
-        let entry = self.cloud_entry(upload_id)?.ok_or(Error::NotFound)?;
-        let manifest = entry.manifest.clone().ok_or(Error::RecoveryIncomplete)?;
-        if let Some(folder) = folder {
-            self.catalog()?.live_folder(folder)?;
-        }
-        self.fetch_chunks(upload_id, &entry.plan, &manifest, progress)
-            .await?;
         let now = now_ms();
         let file = &manifest.file;
         let backup = Backup {
@@ -573,17 +402,49 @@ impl Client {
         Ok(self.files_show(&file.id)?.file)
     }
 
-    /// Delete cloud copies: an explicit, signed collection of each object on
-    /// the relay, which frees its quota. Files on this device stay; their
-    /// versions only lose the backup mark. The copy a version released from
-    /// this device ([`Self::files_evict`]) reads from is its last one, so
-    /// it is refused until the version is fetched back or deleted here.
-    ///
-    /// # Errors
-    /// Returns `Error::InvalidInput` for such a last copy, before anything
-    /// goes. Relay refusals, such as an object an export lease still
-    /// protects, stop at that object; the ones before it are gone.
-    pub async fn files_cloud_delete(&mut self, upload_ids: &[String]) -> Result<u64> {
+    /// The chunks of a backup this device lacks, after checking the plan
+    /// against the manifest.
+    fn missing_chunks(
+        &self,
+        upload_id: &str,
+        plan: &UploadPlan,
+        manifest: &BackupManifest,
+    ) -> Result<(u64, Vec<(String, String)>)> {
+        let file = &manifest.file;
+        ensure(file.size <= MAX_FILE, Error::IntegrityFailed)?;
+        let empty = hex::encode(*sha256(&empty_file()));
+        let planned: Vec<&str> = plan.chunks.iter().map(|c| c.digest.as_str()).collect();
+        let own: Vec<&str> = file.chunks.iter().map(|c| c.digest.as_str()).collect();
+        ensure(
+            planned == own || (own.is_empty() && planned == [empty.as_str()]),
+            Error::IntegrityFailed,
+        )?;
+        let objects = format!("{}/objects/{upload_id}/chunks", self.base()?);
+        let mut missing = vec![];
+        for (index, chunk) in file.chunks.iter().enumerate() {
+            if !self.blobs()?.has_chunk(&chunk.digest)? {
+                missing.push((format!("{objects}/{index}"), chunk.digest.clone()));
+            }
+        }
+        Ok((file.chunks.len() as u64, missing))
+    }
+
+    /// Mark a version of a verified backup as checked, with its chunks here.
+    fn verified(&mut self, upload_id: &str, manifest: &BackupManifest) -> Result<()> {
+        let file = &manifest.file;
+        if let Ok(mut version) = self.version(&file.id, &file.version) {
+            version.local = true;
+            if let Some(backup) = version.backup.as_mut().filter(|b| b.upload_id == upload_id) {
+                backup.verified = true;
+            }
+            self.save_version(&file.id, &file.version, &version)?;
+        }
+        Ok(())
+    }
+
+    /// Check a deletion of cloud copies before anything goes: the copy a
+    /// version released from this device reads from is its last one.
+    fn deletable(&self, upload_ids: &[String]) -> Result<()> {
         ensure_valid(!upload_ids.is_empty(), "upload_ids")?;
         for upload_id in upload_ids {
             let Some(manifest) = self.cloud_entry(upload_id)?.and_then(|e| e.manifest) else {
@@ -597,54 +458,73 @@ impl Client {
                 "upload_ids: the only copy of a version freed here; fetch it first",
             )?;
         }
-        let base = self.base()?;
-        let mut deleted = 0;
-        for upload_id in upload_ids {
-            self.relay_post(
-                &format!("{base}/objects/collect"),
-                "dmsg/object/collect/v1",
-                &json!({"upload_id": upload_id, "generation": 0}),
-                &Hash::new(crate::crypto::random_id()),
-            )
-            .await?;
-            self.forget_cloud(upload_id)?;
-            deleted += 1;
-        }
-        Ok(deleted)
+        Ok(())
     }
 
-    /// Download every chunk of a backup and check the whole file against
-    /// its manifest. A version of it on this device is then marked verified,
-    /// with its chunks present.
-    ///
-    /// # Errors
-    /// As [`Self::files_cloud_fetch`].
-    pub async fn files_cloud_verify(
+    /// Keep one inventory entry the relay listed; whether its manifest must
+    /// still be opened.
+    fn inventory_entry(
         &mut self,
-        upload_id: &str,
-        progress: &mut (dyn FnMut(u64, u64) + Send),
-    ) -> Result<VersionCheck> {
-        let entry = self.cloud_entry(upload_id)?.ok_or(Error::NotFound)?;
-        let manifest = entry.manifest.clone().ok_or(Error::RecoveryIncomplete)?;
-        let checked = self
-            .fetch_chunks(upload_id, &entry.plan, &manifest, progress)
-            .await;
-        let file = &manifest.file;
-        if checked.is_ok()
-            && let Ok(mut version) = self.version(&file.id, &file.version)
-        {
-            version.local = true;
-            if let Some(backup) = version.backup.as_mut().filter(|b| b.upload_id == upload_id) {
-                backup.verified = true;
+        report: &mut CloudRefresh,
+        trust: &Trust,
+        entry: &Json,
+        cursor: &mut u64,
+    ) -> Result<Option<(UploadPlan, String, Option<u64>)>> {
+        let id = self.account()?.id;
+        let at = entry["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
+        ensure(at > *cursor, Error::IntegrityFailed)?;
+        *cursor = at;
+        let (plan, device) = verify_entry(trust, &id, entry, now_ms())?;
+        let upload_id = plan.upload_id.clone();
+        if entry["state"] != "committed" {
+            if self.cloud_entry(&upload_id)?.is_some() {
+                self.forget_cloud(&upload_id)?;
+                report.deleted += 1;
             }
-            self.save_version(&file.id, &file.version, &version)?;
+            return Ok(None);
         }
-        Ok(VersionCheck {
-            file: file.id.clone(),
-            version: file.version.clone(),
-            ok: checked.is_ok(),
-            error: checked.err().as_ref().map(crate::error_code),
-        })
+        if self.cloud_entry(&upload_id)?.is_some() {
+            return Ok(None);
+        }
+        Ok(Some((plan, device, entry["committed_at"].as_u64())))
+    }
+
+    /// Cache a new inventory entry, its manifest opened when this device
+    /// has the root of its generation.
+    fn keep_entry(
+        &mut self,
+        report: &mut CloudRefresh,
+        plan: UploadPlan,
+        device: String,
+        committed_at: Option<u64>,
+        manifest: Option<BackupManifest>,
+    ) -> Result<()> {
+        let upload_id = plan.upload_id.clone();
+        match &manifest {
+            Some(manifest) => self.mark_backed_up(
+                manifest,
+                &upload_id,
+                plan.root_generation,
+                committed_at.unwrap_or(now_ms()),
+            )?,
+            None => report.needs_root += 1,
+        }
+        self.save_cloud_entry(
+            &upload_id,
+            &CloudEntry {
+                plan,
+                device,
+                committed_at,
+                manifest,
+            },
+        )?;
+        report.added += 1;
+        Ok(())
+    }
+
+    /// The root of `generation`, while this device has it.
+    fn root_of(&self, generation: u64) -> Result<Option<Zeroizing<Key>>> {
+        Ok(self.roots()?.key(generation).map(|k| Zeroizing::new(*k)))
     }
 
     /// Free a version's chunks on this device, keeping only its verified
@@ -663,15 +543,230 @@ impl Client {
         self.collect_blobs()?;
         Ok(self.files_show(id)?.file)
     }
+}
 
-    /// The cloud's room as the relay projects it, with what this device
-    /// knows of the backups in it.
-    ///
-    /// # Errors
-    /// Relay failures; `Error::Locked` while locked.
-    pub async fn files_cloud_usage(&mut self) -> Result<CloudUsage> {
-        let base = self.base()?;
-        let quota = self.relay_get(&format!("{base}/quota")).await?;
+/// The manifest of a committed backup, opened with the root of its
+/// generation; `None` while this device lacks that root.
+async fn open_backup<H: Hold>(
+    h: &H,
+    account: &str,
+    upload_id: &str,
+    plan: &UploadPlan,
+) -> Result<Option<BackupManifest>> {
+    let Some(root) = h.with(|c| c.root_of(plan.root_generation)).await? else {
+        return Ok(None);
+    };
+    let bytes = crate::upload::download(h, upload_id, "manifest", &plan.manifest_digest).await?;
+    match open_manifest(&root, account, plan, &bytes)? {
+        Opened::Backup(manifest) => Ok(Some(manifest)),
+        _ => Err(Error::IntegrityFailed),
+    }
+}
+
+/// Read the relay's backup inventory from this device's cursor on: check
+/// every entry's signed plan against the evidence of its reservation
+/// ([`verify_entry`]), open each new manifest with the root of its
+/// generation and cache it; forget the ones deleted. Cached entries that
+/// lacked their root open once the root is here. A local version a backup
+/// is of is marked backed up.
+///
+/// # Errors
+/// Returns `Error::Locked` while locked and `Error::IntegrityFailed` for an
+/// entry that does not verify.
+pub async fn cloud_refresh<H: Hold>(h: &H) -> Result<CloudRefresh> {
+    let (account, base, mut cursor, rootless) = h
+        .with(|c| {
+            c.roots()?;
+            let cursor: u64 = c.workspace.private(c.keys()?, CURSOR)?.unwrap_or(0);
+            // Entries an earlier refresh cached without their root.
+            let rootless: Vec<String> = c
+                .cloud_entries()?
+                .into_iter()
+                .filter(|(_, entry)| entry.manifest.is_none())
+                .map(|(upload_id, _)| upload_id)
+                .collect();
+            Ok((c.account()?.id.to_string(), c.base()?, cursor, rootless))
+        })
+        .await?;
+    let trust = h.trust().await?;
+    let mut report = CloudRefresh::default();
+    loop {
+        let page = h
+            .get(&format!("{base}/backups?after={cursor}&limit=100"))
+            .await?;
+        let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
+        ensure(entries.len() <= 100, Error::IntegrityFailed)?;
+        for entry in entries {
+            let Some((plan, device, committed_at)) = h
+                .with(|c| c.inventory_entry(&mut report, &trust, entry, &mut cursor))
+                .await?
+            else {
+                continue;
+            };
+            let manifest = open_backup(h, &account, &plan.upload_id, &plan).await?;
+            h.with(|c| c.keep_entry(&mut report, plan, device, committed_at, manifest))
+                .await?;
+        }
+        h.with(|c| c.workspace.put_private(c.keys()?, CURSOR, &cursor))
+            .await?;
+        if page["end"] == true {
+            break;
+        }
+        ensure(!entries.is_empty(), Error::IntegrityFailed)?;
+    }
+    // Those still listed open once their root is here.
+    for upload_id in rootless {
+        let Some(entry) = h.with(|c| c.cloud_entry(&upload_id)).await? else {
+            continue;
+        };
+        let Some(manifest) = open_backup(h, &account, &upload_id, &entry.plan).await? else {
+            report.needs_root += 1;
+            continue;
+        };
+        h.with(|c| {
+            c.mark_backed_up(
+                &manifest,
+                &upload_id,
+                entry.plan.root_generation,
+                entry.committed_at.unwrap_or(now_ms()),
+            )?;
+            c.save_cloud_entry(
+                &upload_id,
+                &CloudEntry {
+                    manifest: Some(manifest),
+                    ..entry
+                },
+            )
+        })
+        .await?;
+    }
+    report.cursor = cursor;
+    Ok(report)
+}
+
+/// Download the chunks of a backup this device lacks into the blob
+/// directory, checking each against its digest and the whole against the
+/// manifest.
+async fn fetch_chunks<H: Hold>(
+    h: &H,
+    upload_id: &str,
+    plan: &UploadPlan,
+    manifest: &BackupManifest,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<()> {
+    let (count, missing) = h
+        .with(|c| c.missing_chunks(upload_id, plan, manifest))
+        .await?;
+    let mut done = count - missing.len() as u64;
+    progress(done, count);
+    crate::upload::download_chunks(h, Source::Library, &missing, |n| {
+        done += n as u64;
+        progress(done, count);
+    })
+    .await?;
+    h.with(|c| read_file(c.blobs()?, &manifest.file, MAX_FILE, None))
+        .await
+}
+
+/// Fetch a backup into the library: its chunks are downloaded and checked,
+/// then the version joins its file here, or a new file is made in
+/// `folder`, else where the backup says it was. A version already here
+/// gets its chunks back. Backed-up status is kept.
+///
+/// # Errors
+/// Returns `Error::NotFound` for an unknown backup,
+/// `Error::RecoveryIncomplete` for one whose root this device lacks and
+/// `Error::IntegrityFailed` for anything that does not verify.
+pub async fn cloud_fetch<H: Hold>(
+    h: &H,
+    upload_id: &str,
+    folder: Option<&str>,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<FileView> {
+    let entry = h
+        .with(|c| {
+            let entry = c.cloud_entry(upload_id)?.ok_or(Error::NotFound)?;
+            if let Some(folder) = folder {
+                c.catalog()?.live_folder(folder)?;
+            }
+            Ok(entry)
+        })
+        .await?;
+    let manifest = entry.manifest.clone().ok_or(Error::RecoveryIncomplete)?;
+    fetch_chunks(h, upload_id, &entry.plan, &manifest, progress).await?;
+    h.with(|c| c.fetched(upload_id, folder, &entry, &manifest))
+        .await
+}
+
+/// Delete cloud copies: an explicit, signed collection of each object on
+/// the relay, which frees its quota. Files on this device stay; their
+/// versions only lose the backup mark. The copy a version released from
+/// this device ([`Client::files_evict`]) reads from is its last one, so it
+/// is refused until the version is fetched back or deleted here.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for such a last copy, before anything
+/// goes. Relay refusals, such as an object an export lease still protects,
+/// stop at that object; the ones before it are gone.
+pub async fn cloud_delete<H: Hold>(h: &H, upload_ids: &[String]) -> Result<u64> {
+    let base = h
+        .with(|c| {
+            c.deletable(upload_ids)?;
+            c.base()
+        })
+        .await?;
+    let mut deleted = 0;
+    for upload_id in upload_ids {
+        h.post(
+            &format!("{base}/objects/collect"),
+            "dmsg/object/collect/v1",
+            &json!({"upload_id": upload_id, "generation": 0}),
+            &Hash::new(crate::crypto::random_id()),
+        )
+        .await?;
+        h.with(|c| c.forget_cloud(upload_id)).await?;
+        deleted += 1;
+    }
+    Ok(deleted)
+}
+
+/// Download every chunk of a backup and check the whole file against its
+/// manifest. A version of it on this device is then marked verified, with
+/// its chunks present.
+///
+/// # Errors
+/// As [`cloud_fetch`].
+pub async fn cloud_verify<H: Hold>(
+    h: &H,
+    upload_id: &str,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<VersionCheck> {
+    let entry = h
+        .with(|c| c.cloud_entry(upload_id)?.ok_or(Error::NotFound))
+        .await?;
+    let manifest = entry.manifest.clone().ok_or(Error::RecoveryIncomplete)?;
+    let checked = fetch_chunks(h, upload_id, &entry.plan, &manifest, progress).await;
+    if checked.is_ok() {
+        h.with(|c| c.verified(upload_id, &manifest)).await?;
+    }
+    let file = &manifest.file;
+    Ok(VersionCheck {
+        file: file.id.clone(),
+        version: file.version.clone(),
+        ok: checked.is_ok(),
+        error: checked.err().as_ref().map(crate::error_code),
+    })
+}
+
+/// The cloud's room as the relay projects it, with what this device knows
+/// of the backups in it.
+///
+/// # Errors
+/// Relay failures; `Error::Locked` while locked.
+pub async fn cloud_usage<H: Hold>(h: &H) -> Result<CloudUsage> {
+    let base = h.with(|c| c.base()).await?;
+    let quota = h.get(&format!("{base}/quota")).await?;
+    h.with(|c| {
         let mut usage = CloudUsage {
             reserved: quota["reserved"].as_u64().unwrap_or(0),
             committed: quota["committed"].as_u64().unwrap_or(0),
@@ -682,10 +777,11 @@ impl Client {
                 .to_string(),
             ..CloudUsage::default()
         };
-        for (_, entry) in self.cloud_entries()? {
+        for (_, entry) in c.cloud_entries()? {
             usage.backups += 1;
             usage.backup_bytes += plan_bytes(&entry.plan);
         }
         Ok(usage)
-    }
+    })
+    .await
 }

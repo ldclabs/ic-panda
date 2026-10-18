@@ -16,8 +16,8 @@
 use crate::daemon::Daemon;
 use dmsg_client::channel::Reading;
 use dmsg_client::channel_log::{Status, may_rotate};
+use dmsg_client::hold::Hold;
 use dmsg_types::Result;
-use futures_util::future::try_join_all;
 use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -97,26 +97,6 @@ pub async fn run(daemon: Arc<Daemon>) {
     }
 }
 
-/// Carry out `reading` without holding the client while the relay answers.
-///
-/// # Errors
-/// As [`dmsg_client::Client::channel_read_settle`].
-pub(crate) async fn read(daemon: &Daemon, reading: &mut Reading) -> Result<()> {
-    while !reading.done() {
-        let (relay, request) = daemon
-            .signed(|client| client.channel_read_request(reading))
-            .await?;
-        let page = relay.send(request).await?;
-        daemon
-            .client()
-            .lock()
-            .await
-            .channel_read_settle(reading, page)
-            .await?;
-    }
-    Ok(())
-}
-
 /// Report this device's delivery cursor, and the read one when given,
 /// without holding the client; whether one went.
 ///
@@ -129,10 +109,10 @@ pub(crate) async fn report(daemon: &Daemon, channel: &str, read: Option<u64>) ->
         (None, Some(_)) => 0,
         (None, None) => return Ok(false),
     };
-    let (relay, request) = daemon
-        .signed(|client| client.channel_cursor_request(channel, delivered, read))
+    daemon
+        .hold()
+        .send(|client| client.channel_cursor_request(channel, delivered, read))
         .await?;
-    relay.send(request).await?;
     daemon
         .client()
         .lock()
@@ -187,7 +167,7 @@ async fn sync(daemon: &Daemon, channel: &str) -> bool {
     };
     let (log, cursor, unread) = state(&*daemon.client().lock().await);
     let mut reading = Reading::new(channel);
-    let _ = read(daemon, &mut reading).await;
+    let _ = dmsg_client::channel::read(&daemon.hold(), &mut reading).await;
     let (log_after, cursor_after, unread_after) = state(&*daemon.client().lock().await);
     if reading.received > 0 || log_after != log {
         let view = daemon.client().lock().await.channel_view(channel).ok();
@@ -206,50 +186,18 @@ async fn sync(daemon: &Daemon, channel: &str) -> bool {
     cursor_after > cursor
 }
 
-/// Seal a new epoch to the channel's members.
+/// Seal a new epoch to the channel's members, which still waits on the
+/// relay and the user homes under the client.
 async fn rotate(daemon: &Daemon, channel: &str) {
-    let result = daemon.client().lock().await.channel_rotate(channel).await;
+    let result = daemon
+        .under_lock(async |client| client.channel_rotate(channel).await)
+        .await;
     if let Ok(view) = result {
         daemon.emit(
             "channel/changed",
             json!({"id": channel, "epoch": view.ledger.map(|l| l.epoch)}),
         );
     }
-}
-
-/// An image a message carries, as a data URL to show in place: the plan of
-/// its upload, then its sealed manifest and the chunks not kept here, each
-/// read without holding the client.
-///
-/// # Errors
-/// As [`dmsg_client::Client::channel_preview_request`] and the steps after
-/// it; relay errors as returned.
-pub(crate) async fn preview(daemon: &Daemon, channel: &str, seq: u64) -> Result<serde_json::Value> {
-    let (relay, request) = daemon
-        .signed(|client| client.channel_preview_request(channel, seq))
-        .await?;
-    let plan = relay.send(request).await?;
-    let fetching = daemon
-        .client()
-        .lock()
-        .await
-        .channel_preview_plan(channel, seq, plan)
-        .await?;
-    let (relay, downloads) = daemon
-        .signed(|client| client.channel_preview_downloads(&fetching))
-        .await?;
-    let relay = &relay;
-    let parts = try_join_all(
-        downloads
-            .into_iter()
-            .map(|(request, digest)| async move { relay.send_chunk(request, &digest).await }),
-    )
-    .await?;
-    daemon
-        .client()
-        .lock()
-        .await
-        .channel_preview_settle(&fetching, parts)
 }
 
 /// Display names of accounts, checked against their certified devices and

@@ -28,6 +28,7 @@ use crate::content::{
 };
 use crate::evidence::{Trust, under};
 use crate::files::{FileManifest, MAX_FILE, Source, read_file};
+use crate::hold::Hold;
 use crate::migration::MIGRATION_PART;
 use crate::now_ms;
 use crate::store::{BLOCKED, LOCAL, ObjectRow, REPLACED, SYNCED};
@@ -448,27 +449,17 @@ impl Client {
         Ok(garbage.len() as u64)
     }
 
-    /// Submit presigned revisions whose deadline has not passed; no key is
-    /// needed. Returns how many settled.
+    /// [`flush`] for a caller that holds the client throughout.
     ///
     /// # Errors
-    /// Storage failures; relay failures leave the job for later.
+    /// As [`flush`].
     pub async fn flush(&mut self) -> Result<usize> {
-        let mut settled = 0;
-        for (key, dispatch) in self.flush_due()? {
-            let sent = self.cloud.submit(&dispatch, now_ms()).await;
-            settled += usize::from(self.flush_settle(&key, &dispatch, sent)?);
-        }
-        Ok(settled)
+        flush(&self.hold()).await
     }
 
-    /// What [`Self::flush`] submits, by job: the presigned revisions whose
-    /// deadline has not passed. They need no key, so a caller can submit
-    /// them without holding the client, then [`Self::flush_settle`].
-    ///
-    /// # Errors
-    /// Storage failures.
-    pub fn flush_due(&self) -> Result<Vec<(String, Presigned)>> {
+    /// What [`flush`] submits, by job: the presigned revisions whose
+    /// deadline has not passed. They need no key.
+    fn flush_due(&self) -> Result<Vec<(String, Presigned)>> {
         let now = now_ms();
         Ok(self
             .workspace
@@ -481,15 +472,7 @@ impl Client {
 
     /// Apply the relay's answer to a submission of [`Self::flush_due`],
     /// unless its job changed meanwhile; whether it settled.
-    ///
-    /// # Errors
-    /// Storage failures and a verdict that does not match the revision.
-    pub fn flush_settle(
-        &self,
-        key: &str,
-        dispatch: &Presigned,
-        sent: Result<Json>,
-    ) -> Result<bool> {
+    fn flush_settle(&self, key: &str, dispatch: &Presigned, sent: Result<Json>) -> Result<bool> {
         let job: Option<ContentJob> = self.workspace.store.job(key)?;
         if job.and_then(|j| j.dispatch).as_ref() != Some(dispatch) {
             return Ok(false);
@@ -974,7 +957,7 @@ impl Client {
             for (name, digest) in parts {
                 if seen.insert(digest) && !self.workspace.store.has_chunk(digest)? {
                     let path = format!("{base}/objects/{}/chunks/{name}", plan.upload_id);
-                    missing.push((path, digest));
+                    missing.push((path, digest.clone()));
                 }
             }
         }
@@ -1152,6 +1135,22 @@ impl Client {
         }
         Ok(false)
     }
+}
+
+/// Submit the presigned revisions whose deadline has not passed, each
+/// without the client, and settle them; how many settled. They need no key,
+/// so a locked device with the resident signing key flushes too.
+///
+/// # Errors
+/// Storage failures; relay failures leave the job for later.
+pub async fn flush<H: Hold>(h: &H) -> Result<usize> {
+    let (relay, due) = h.with(|c| Ok((c.relay(), c.flush_due()?))).await?;
+    let mut settled = 0;
+    for (key, dispatch) in due {
+        let sent = relay.submit(&dispatch, now_ms()).await;
+        settled += usize::from(h.with(|c| c.flush_settle(&key, &dispatch, sent)).await?);
+    }
+    Ok(settled)
 }
 
 #[cfg(test)]

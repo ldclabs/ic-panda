@@ -499,16 +499,16 @@ fn drafts_name_messages_read_here_and_amend_only_their_own() {
     );
 }
 
-#[tokio::test]
-async fn a_body_that_does_not_open_leaves_its_message_unreadable() {
+#[test]
+fn a_body_that_does_not_open_leaves_its_message_unreadable() {
     use crate::testing::{TempDir, unlocked};
 
     let dir = TempDir::new();
-    let mut client = unlocked(&dir.0, false, None);
+    let client = unlocked(&dir.0, false, None);
     let channel = "c".repeat(64);
     let me = client.me().unwrap();
     let root = [7u8; 32];
-    let mut ring = Keyring {
+    let ring = Keyring {
         format: FORMAT.into(),
         id: channel.clone(),
         name: "c".into(),
@@ -533,20 +533,14 @@ async fn a_body_that_does_not_open_leaves_its_message_unreadable() {
         device: device.clone(),
         ..written(1, &me, "")
     };
-    let opened = client
-        .open_message(&channel, &mut ring, message.clone(), &payload)
-        .await
-        .unwrap();
+    let opened = open_message(&channel, &ring, message.clone(), &payload);
     assert!(opened.unreadable && opened.text.is_empty());
     // A body that opens but says something malformed is unreadable too.
     let key = message_key(&root, &channel, 1, &message_id, &device);
     let header = payload.clone();
     let aad = message_aad(&me, &device, &header);
     payload.ciphertext = seal(&key, &canonical(&json!({"text": 7})), &aad);
-    let opened = client
-        .open_message(&channel, &mut ring, message.clone(), &payload)
-        .await
-        .unwrap();
+    let opened = open_message(&channel, &ring, message.clone(), &payload);
     assert!(opened.unreadable);
     let body = Body {
         text: "hello".into(),
@@ -561,10 +555,7 @@ async fn a_body_that_does_not_open_leaves_its_message_unreadable() {
         packet: None,
     };
     payload.ciphertext = seal(&key, &canonical(&body), &aad);
-    let opened = client
-        .open_message(&channel, &mut ring, message, &payload)
-        .await
-        .unwrap();
+    let opened = open_message(&channel, &ring, message, &payload);
     assert!(!opened.unreadable);
     assert_eq!(opened.text, "hello");
     assert_eq!(opened.agent.unwrap().name, "claude");
@@ -574,6 +565,9 @@ async fn a_body_that_does_not_open_leaves_its_message_unreadable() {
 async fn reads_of_one_channel_settle_in_any_order() {
     use crate::channel_log::Member;
     use crate::testing::{TempDir, unlocked, warm};
+
+    // No page here carries evidence to check.
+    let trust = crate::evidence::Trust::new(vec![], String::new(), vec![]);
 
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
@@ -637,8 +631,7 @@ async fn reads_of_one_channel_settle_in_any_order() {
         })
     };
     client
-        .channel_read_settle(&mut slower, page(6))
-        .await
+        .channel_read_settle(&mut slower, page(6), &trust)
         .unwrap();
     assert_eq!(
         client.channel_read_path(&mut slower).unwrap(),
@@ -648,7 +641,7 @@ async fn reads_of_one_channel_settle_in_any_order() {
     // still refused.
     for back in [page(6), page(9)] {
         assert_eq!(
-            client.channel_read_settle(&mut slower, back).await,
+            client.channel_read_settle(&mut slower, back, &trust),
             Err(Error::IntegrityFailed)
         );
     }
@@ -662,8 +655,7 @@ async fn reads_of_one_channel_settle_in_any_order() {
     local.control = 10;
     client.save_local(&channel, &local).unwrap();
     client
-        .channel_read_settle(&mut reading, json!({"head": head}))
-        .await
+        .channel_read_settle(&mut reading, json!({"head": head}), &trust)
         .unwrap();
     assert_eq!(reading.step, Step::Control);
 
@@ -684,15 +676,13 @@ async fn reads_of_one_channel_settle_in_any_order() {
     let mut slower = client.message_reading(&channel).unwrap();
     for (after, through) in [(0, 20), (20, 30)] {
         client
-            .channel_read_settle(&mut faster, page(after, through))
-            .await
+            .channel_read_settle(&mut faster, page(after, through), &trust)
             .unwrap();
     }
     assert!(faster.done());
     for (after, through) in [(0, 20), (20, 30)] {
         client
-            .channel_read_settle(&mut slower, page(after, through))
-            .await
+            .channel_read_settle(&mut slower, page(after, through), &trust)
             .unwrap();
         assert_eq!(client.local(&channel).unwrap().message, 30);
     }

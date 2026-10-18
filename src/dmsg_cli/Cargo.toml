@@ -11,6 +11,9 @@ publish = false
 name = "dmsg"
 path = "src/main.rs"
 
+[lints.clippy]
+await_holding_invalid_type = "deny"
+
 [dependencies]
 axum = { workspace = true, features = ["http1", "json", "tokio", "ws"] }
 base64.workspace = true

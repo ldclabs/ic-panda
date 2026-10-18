@@ -86,9 +86,29 @@ fn after(params: &Value) -> Result<Option<Hash>> {
 impl Daemon {
     /// Run one of [`METHODS`].
     pub(crate) async fn call_account(&self, method: &str, params: &Value) -> Result<Value> {
-        let mut client = self.client().lock().await;
         match method {
-            "account/security" => client.account_security().await,
+            // The user home answers without the client.
+            "account/security" => {
+                return dmsg_client::security::account_security(&self.hold()).await;
+            }
+            "handle/transfer_commit" => {
+                let id = text(params, "id")?;
+                return self
+                    .client()
+                    .lock()
+                    .await
+                    .handle_request(source(params)?, &id);
+            }
+            "handle/operations" => {
+                return Ok(Value::Array(
+                    self.client().lock().await.handle_operations()?,
+                ));
+            }
+            _ => {}
+        }
+        // Account changes, recovery, handles and payments still wait on the
+        // IC under the client.
+        self.under_lock(async |client| match method {
             "account/bind_request" => {
                 let token = client.bind_request(&account(params, "account")?).await?;
                 Ok(json!({"token": token}))
@@ -171,16 +191,12 @@ impl Daemon {
                     .await?;
                 Ok(json!({"operation": job.view(), "token": token}))
             }
-            "handle/transfer_commit" => {
-                client.handle_request(source(params)?, &text(params, "id")?)
-            }
             "handle/accept" => {
                 let job = client
                     .handle_accept_prepare(&text(params, "token")?)
                     .await?;
                 client.handle_request(source(params)?, &job.id)
             }
-            "handle/operations" => Ok(Value::Array(client.handle_operations()?)),
             "handle/reconcile" => {
                 client
                     .handle_reconcile(&text(params, "id")?, number(params, "block")?)
@@ -228,6 +244,7 @@ impl Daemon {
             }
             "ops/sweep" => Ok(json!({"swept": client.commerce_sweep().await?})),
             _ => Err(Error::NotFound),
-        }
+        })
+        .await
     }
 }

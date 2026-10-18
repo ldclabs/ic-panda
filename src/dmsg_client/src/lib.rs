@@ -21,6 +21,7 @@ pub mod crypto;
 pub mod evidence;
 pub mod files;
 pub mod handle;
+pub mod hold;
 pub mod ic;
 pub mod inbox;
 pub mod legacy;

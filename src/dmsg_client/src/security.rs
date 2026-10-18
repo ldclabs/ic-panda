@@ -13,9 +13,11 @@
 //! which accepts as soon as the administrator's change commits. Across
 //! devices the request travels as a token.
 
+use crate::account::AccountState;
 use crate::approval::{Action, HIGH_RISK_TTL_MS};
 use crate::client::{Client, Status};
 use crate::codec::{b64, canonical, decode, principal_input, unb64};
+use crate::hold::Hold;
 use crate::ic::Ic;
 use crate::now_ms;
 use candid::Principal;
@@ -172,16 +174,8 @@ impl AccountChange {
 }
 
 impl Client {
-    /// The account's security as the login reads it: bound logins, the
-    /// sensitive-execution policy, the recovery delay and any pending
-    /// recovery.
-    ///
-    /// # Errors
-    /// Returns `Error::AuthRequired` without a login.
-    pub async fn account_security(&mut self) -> Result<Json> {
-        self.session()?;
-        let account = self.account()?.clone();
-        let state = self.refresh(account.home, &account.id).await?;
+    /// The view [`account_security`] returns of `state`.
+    fn security_view(&self, state: &AccountState) -> Result<Json> {
         let info = &state.info;
         let principal = self.session()?.principal;
         Ok(json!({
@@ -439,6 +433,24 @@ fn check_policy(policy: &SensitivePolicy) -> Result<()> {
                 .all(|(i, p)| !policy.allowed_purposes[..i].contains(p)),
         Error::QuotaExceeded,
     )
+}
+
+/// The account's security as the login reads it: bound logins, the
+/// sensitive-execution policy, the recovery delay and any pending recovery.
+/// The user home is waited on without the client.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` without a login.
+pub async fn account_security<H: Hold>(h: &H) -> Result<Json> {
+    let (ic, account) = h
+        .with(|c| Ok((c.session()?.ic.clone(), c.account()?.clone())))
+        .await?;
+    let state = crate::account::read_account(&ic, account.home, &account.id).await?;
+    h.with(|c| {
+        c.observe(&account.id, &state.security)?;
+        c.security_view(&state)
+    })
+    .await
 }
 
 #[cfg(test)]

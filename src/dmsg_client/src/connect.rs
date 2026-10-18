@@ -20,6 +20,7 @@ use crate::crypto::{
     HpkeEnvelope, Key, aes_gcm_open, hpke_open_info, hpke_seal_auth, p256_verify, random_id,
     random_key,
 };
+use crate::hold::Hold;
 use crate::now_ms;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use candid::Principal;
@@ -80,6 +81,37 @@ pub fn es256_header(kid: &Hash, typ: &str) -> Vec<u8> {
         (4.into(), Value::Bytes(kid.to_vec())),
         (16.into(), typ.into()),
     ]))
+}
+
+/// The account's browser pairings, each grant checked against the
+/// certified devices; the relay is waited on without the client.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for a malformed answer.
+pub async fn pairings<H: Hold>(h: &H) -> Result<Json> {
+    let data = h
+        .send(|c| c.signed_get(&c.connect_path("/pairings")?))
+        .await?;
+    let (_, list) = h.signed(|c| c.pairings_of(&data)).await?;
+    Ok(list)
+}
+
+/// Read the mailbox from the cursor on, each page waited for without the
+/// client and stored under it; returns how many entries came, for
+/// [`Client::connect_entries`] to handle.
+///
+/// # Errors
+/// Relay errors as returned; `Error::Unavailable` when the account changed.
+pub async fn fetch_mailbox<H: Hold>(h: &H) -> Result<u64> {
+    let mut fetched = 0;
+    loop {
+        let (relay, (request, from)) = h.signed(|c| c.connect_fetch_request()).await?;
+        let page = relay.send(request).await?;
+        match h.with(|c| c.connect_fetch_store(from, &page)).await? {
+            0 => return Ok(fetched),
+            count => fetched += count,
+        }
+    }
 }
 
 /// A tagged COSE_Sign1 signed by a P-256 scalar (RFC 6979), as the bridge
@@ -777,24 +809,10 @@ impl Client {
         }))
     }
 
-    /// The relay read of the account's browser pairings, signed for the
-    /// caller to send without the client; [`Self::connect_pairings_settle`]
-    /// checks the answer.
-    ///
-    /// # Errors
-    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
-    pub fn connect_pairings_request(&self) -> Result<Prepared> {
-        self.signed_get(&self.connect_path("/pairings")?)
-    }
-
-    /// The account's browser pairings the relay answered, each grant checked
-    /// against the certified devices; after a [`Self::warmup`], without the
-    /// network.
-    ///
-    /// # Errors
-    /// Returns `Error::IntegrityFailed` for a malformed answer.
-    pub async fn connect_pairings_settle(&mut self, data: &Json) -> Result<Json> {
-        let security = self.cloud_state().await?;
+    /// The browser pairings the relay answered for [`pairings`], each grant
+    /// checked against the certified devices the relay holds.
+    fn pairings_of(&mut self, data: &Json) -> Result<Json> {
+        let security = self.fresh()?;
         let now = now_ms();
         let mut list = Vec::new();
         for p in data["pairings"].as_array().ok_or(Error::IntegrityFailed)? {
@@ -919,7 +937,7 @@ impl Client {
     ///
     /// # Errors
     /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
-    pub fn connect_fetch_request(&self) -> Result<(Prepared, MailboxCursor)> {
+    fn connect_fetch_request(&self) -> Result<(Prepared, MailboxCursor)> {
         let after = self.connect_cursor()?;
         let request = self.signed_get(&self.connect_page(after)?)?;
         let account = self.account()?.id;
@@ -934,7 +952,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::IntegrityFailed` for a malformed page and
     /// `Error::Unavailable` when the account changed.
-    pub fn connect_fetch_store(&mut self, from: MailboxCursor, page: &Json) -> Result<u64> {
+    fn connect_fetch_store(&mut self, from: MailboxCursor, page: &Json) -> Result<u64> {
         ensure(
             self.account()?.id == from.account,
             Error::Unavailable("the account changed".into()),

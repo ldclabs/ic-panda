@@ -12,7 +12,8 @@ use crate::daemon::Daemon;
 use crate::params::{absolute, number, optional, parse, text, to_json};
 use dmsg_client::{
     Client,
-    library::{SearchFilter, VerifyReport, catalog::ROOT},
+    channel::{self, Draft},
+    library::{SearchFilter, VerifyReport, backup, catalog::ROOT, cloud, link},
 };
 use dmsg_types::{Error, Result};
 use serde_json::{Value, json};
@@ -132,6 +133,9 @@ impl Daemon {
         if method == "files/import_cancel" {
             self.import_cancel.store(true, Ordering::SeqCst);
             return Ok(json!({"cancelled": true}));
+        }
+        if let Some(answer) = self.call_files_cloud(method, params).await {
+            return answer;
         }
         let mut client = self.client().lock().await;
         let id = || text(params, "id");
@@ -305,129 +309,108 @@ impl Daemon {
             }
             "files/verify" => Ok(to_json(&client.files_verify(&id()?, version)?)),
             "files/usage" => Ok(to_json(&client.files_usage()?)),
-            "files/share_channel" => {
-                client
-                    .channel_send_file(
-                        &text(params, "channel")?,
-                        &id()?,
-                        version,
-                        &dmsg_client::channel::Draft {
-                            text: params["text"].as_str().unwrap_or_default().into(),
-                            ..Default::default()
-                        },
-                        params["message_id"].as_str(),
-                    )
-                    .await
+            "files/share_links" => Ok(to_json(&client.files_share_links()?)),
+            "files/backup_status" => Ok(to_json(&client.files_backup_status()?)),
+            "files/cloud_list" => Ok(to_json(&client.files_cloud_list()?)),
+            "files/evict" => Ok(to_json(&client.files_evict(&id()?, version)?)),
+            _ => Err(Error::NotFound),
+        }
+    }
+
+    /// The methods of [`METHODS`] that reach the relay: uploads, downloads
+    /// and the cloud's records, each waited on without the client; `None`
+    /// for the others.
+    async fn call_files_cloud(&self, method: &str, params: &Value) -> Option<Result<Value>> {
+        let h = self.hold();
+        let id = || text(params, "id");
+        let version = params["version"].as_str();
+        let progress = |job: &'static str, path: Value| {
+            move |done: u64, total: u64| {
+                self.emit(
+                    "files/progress",
+                    json!({"job": job, "path": path, "done": done, "total": total}),
+                );
             }
-            "files/share_link" => {
-                let name = client.files_show(&id()?)?.file.name;
-                let mut progress = |done, total| {
-                    self.emit(
-                        "files/progress",
-                        json!({"job": "share", "path": name, "done": done, "total": total}),
-                    );
-                };
-                let link = client
-                    .files_share_link(
+        };
+        let answer = async || -> Result<Option<Value>> {
+            Ok(Some(match method {
+                "files/share_channel" => {
+                    let message_id = params["message_id"].as_str();
+                    let _turn = self.message_turn(message_id).await;
+                    let draft = Draft {
+                        text: params["text"].as_str().unwrap_or_default().into(),
+                        ..Default::default()
+                    };
+                    let channel = text(params, "channel")?;
+                    channel::send_file(&h, &channel, &id()?, version, &draft, message_id).await?
+                }
+                "files/share_link" => {
+                    let name = self.client().lock().await.files_show(&id()?)?.file.name;
+                    let link = link::share_link(
+                        &h,
                         &id()?,
                         version,
                         params["expires_in_ms"].as_u64(),
                         params["max_downloads"].as_u64().unwrap_or(0),
                         params["password"].as_str().filter(|p| !p.is_empty()),
-                        &mut progress,
+                        &mut progress("share", name.into()),
                     )
                     .await?;
-                Ok(to_json(&link))
-            }
-            "files/share_links" => {
-                let links = match params["refresh"].as_bool().unwrap_or(false) {
-                    true => client.files_share_links_refresh().await?,
-                    false => client.files_share_links()?,
-                };
-                Ok(to_json(&links))
-            }
-            "files/share_revoke" => Ok(to_json(
-                &client
-                    .files_share_revoke(&text(params, "share_id")?)
-                    .await?,
-            )),
-            "files/backup" => {
-                let ids = ids(params)?;
-                let all = params["all_versions"].as_bool().unwrap_or(false);
-                let request = client.files_backup(&ids, all).await?;
-                Ok(to_json(&request))
-            }
-            "files/backup_status" => Ok(to_json(&client.files_backup_status()?)),
-            "files/backup_cancel" => {
-                client
-                    .files_backup_cancel(&id()?, &text(params, "version")?)
-                    .await?;
-                Ok(json!({"cancelled": true}))
-            }
-            "files/backup_run" => {
-                let mut progress = |file: &str, done, total| {
-                    self.emit(
-                        "files/progress",
-                        json!({"job": "backup", "path": file, "done": done, "total": total}),
-                    );
-                };
-                Ok(to_json(
-                    &client.files_backup_run(None, &mut progress).await?,
-                ))
-            }
-            "files/cloud_list" => Ok(to_json(&client.files_cloud_list()?)),
-            "files/cloud_refresh" => Ok(to_json(&client.files_cloud_refresh().await?)),
-            "files/cloud_fetch" => {
-                let upload = text(params, "upload_id")?;
-                let target = match params["folder"].is_null() {
-                    true => None,
-                    false => Some(folder(&mut client, &params["folder"], true)?),
-                };
-                let mut progress = |done, total| {
-                    self.emit(
-                        "files/progress",
-                        json!({"job": "fetch", "path": upload, "done": done, "total": total}),
-                    );
-                };
-                let file = client
-                    .files_cloud_fetch(&upload, target.as_deref(), &mut progress)
-                    .await?;
-                Ok(to_json(&file))
-            }
-            "files/cloud_delete" => {
-                let uploads: Vec<String> = parse(params, "upload_ids")?;
-                let deleted = client.files_cloud_delete(&uploads).await?;
-                Ok(json!({"deleted": deleted}))
-            }
-            "files/cloud_verify" => {
-                let upload = text(params, "upload_id")?;
-                let mut progress = |done, total| {
-                    self.emit(
-                        "files/progress",
-                        json!({"job": "verify", "path": upload, "done": done, "total": total}),
-                    );
-                };
-                Ok(to_json(
-                    &client.files_cloud_verify(&upload, &mut progress).await?,
-                ))
-            }
-            "files/cloud_usage" => Ok(to_json(&client.files_cloud_usage().await?)),
-            "files/evict" => Ok(to_json(&client.files_evict(&id()?, version)?)),
-            "files/save_shared" => {
-                let seq = number(params, "seq")?;
-                let target = folder(&mut client, &params["folder"], true)?;
-                let mut progress = |done, total| {
-                    self.emit(
-                        "files/progress",
-                        json!({"job": "save", "path": params["channel"], "done": done, "total": total}),
-                    );
-                };
-                let imported = client
-                    .files_save_shared(&text(params, "channel")?, seq, &target, &mut progress)
-                    .await?;
-                Ok(to_json(&imported))
-            }
-            _ => Err(Error::NotFound),
-        }
+                    to_json(&link)
+                }
+                "files/share_links" if params["refresh"] == true => {
+                    to_json(&link::share_links_refresh(&h).await?)
+                }
+                "files/share_revoke" => {
+                    to_json(&link::share_revoke(&h, &text(params, "share_id")?).await?)
+                }
+                "files/backup" => {
+                    let ids = ids(params)?;
+                    let all = params["all_versions"].as_bool().unwrap_or(false);
+                    let _turn = self.turn("backup").await;
+                    to_json(&backup::backup(&h, &ids, all).await?)
+                }
+                "files/backup_cancel" => {
+                    backup::backup_cancel(&h, &id()?, &text(params, "version")?).await?;
+                    json!({"cancelled": true})
+                }
+                "files/backup_run" => to_json(&self.backup_pass(None).await?),
+                "files/cloud_refresh" => to_json(&cloud::cloud_refresh(&h).await?),
+                "files/cloud_fetch" => {
+                    let upload = text(params, "upload_id")?;
+                    let target = match params["folder"].is_null() {
+                        true => None,
+                        false => Some(folder(
+                            &mut *self.client().lock().await,
+                            &params["folder"],
+                            true,
+                        )?),
+                    };
+                    let mut progress = progress("fetch", upload.clone().into());
+                    to_json(
+                        &cloud::cloud_fetch(&h, &upload, target.as_deref(), &mut progress).await?,
+                    )
+                }
+                "files/cloud_delete" => {
+                    let uploads: Vec<String> = parse(params, "upload_ids")?;
+                    json!({"deleted": cloud::cloud_delete(&h, &uploads).await?})
+                }
+                "files/cloud_verify" => {
+                    let upload = text(params, "upload_id")?;
+                    let mut progress = progress("verify", upload.clone().into());
+                    to_json(&cloud::cloud_verify(&h, &upload, &mut progress).await?)
+                }
+                "files/cloud_usage" => to_json(&cloud::cloud_usage(&h).await?),
+                "files/save_shared" => {
+                    let seq = number(params, "seq")?;
+                    let target = folder(&mut *self.client().lock().await, &params["folder"], true)?;
+                    let channel = text(params, "channel")?;
+                    let mut progress = progress("save", params["channel"].clone());
+                    to_json(&channel::save_shared(&h, &channel, seq, &target, &mut progress).await?)
+                }
+                _ => return Ok(None),
+            }))
+        };
+        answer().await.transpose()
     }
 }

@@ -735,13 +735,20 @@ The daemon listens on `127.0.0.1` only.
   Errors carry `error.data.code` such as `AUTH_REQUIRED`, `LOCKED`,
   `VERSION_CONFLICT` or `EXECUTION_UNKNOWN`. Reads announce no event, since
   windows reload on them. Requests run side by side, and the client is held
-  only for local work. Several calls wait on the relay or a user home
-  without it: `profile/show|avatar_image`, `account/show`,
-  `connect/pairings|sync`, `inbox/list|policy`, the channels' live tickets,
-  the background flush and the mailbox read. They are signed under the
-  client and sent after it, so a slow network does not hold up the
-  library's reads. Writes, whose answers change local state, still wait
-  under it.
+  only for local work. Calls that wait on the relay, a user home or the IC
+  take it for each step alone and wait without it: the channels' reads,
+  sends, attachments, downloads, previews, names and receipts; the
+  library's backups, cloud copies and share links; profiles, the inbox,
+  MCP Events endpoints, team wallets' reads, the plan's status, catalog
+  and assets, `account/show|security` and `connect/pairings|sync`; and the
+  background flush, mailbox read, backup passes and MCP Events fetch.
+  Requests are signed under the client and sent after it, so a slow
+  network does not hold up the library's reads. Work on the same thing
+  takes turns: one backup pass, one profile publish, one MCP Events fetch
+  and one send of a given message ID at a time. Account, device and channel
+  controls, payments, names, approved requests carrying themselves out,
+  the content sync, unlocking, login checks and the legacy migration still
+  wait under it.
 - Methods: `app/initialize {activity?}`, `app/activity`, `daemon/status`,
   `events/poll`,
   `session/status|login {origin, bind?}|login_result|accounts|switch|unlock {fast?, account?}|lock|fast_unlock`,
