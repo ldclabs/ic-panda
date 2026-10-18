@@ -113,6 +113,22 @@ export function matchesFile(file: { name?: string; tags?: string[]; note?: strin
   return [file.name, file.note, ...(file.tags ?? [])].some((field) => String(field ?? '').toLowerCase().includes(q))
 }
 
+/** What a dragged row carries: the IDs of the rows dragged, as JSON. */
+export const DRAG_TYPE = 'application/x-dmsg-files'
+
+/** Whether a drag carries library rows or files from the system. */
+export const carries = (event: DragEvent) => !!event.dataTransfer?.types.some((type) => type === DRAG_TYPE || type === 'Files')
+
+/** The library rows a drag carries; none for anything else. */
+export function draggedIds(event: DragEvent): string[] {
+  try {
+    const ids = JSON.parse(event.dataTransfer?.getData(DRAG_TYPE) || '[]')
+    return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 /** The folders from the root down to `id`, itself included, by walking up the parents. */
 export function ancestorsOf(folders: { id: string; parent: string; name: string }[], id: string): { id: string; name: string }[] {
   const chain: { id: string; name: string }[] = []

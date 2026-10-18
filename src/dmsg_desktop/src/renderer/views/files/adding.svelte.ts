@@ -26,6 +26,12 @@ export interface Job {
   /** The files of a picked folder added so far, and the one arriving. */
   files?: number
   current?: string
+  /**
+   * An import this window started, which Cancel stops and its failure
+   * ends; work that only reports progress, such as a version saved from
+   * an opened copy, is neither.
+   */
+  cancellable?: boolean
   /** A cancel was asked for. */
   cancelling?: boolean
 }
@@ -58,8 +64,8 @@ export function picked(names: string[], folders: string[] = []) {
   for (const name of names) {
     const folder = folders.find((path) => basename(path) === name)
     const running = jobs.find((job) => job.kind === 'add' && job.stage === 'running' && job.name === name)
-    if (!running) start('add', name)
-    const job = running ?? jobs[jobs.length - 1]
+    const job = running ?? start('add', name)
+    job.cancellable = true
     if (folder && !job.folder) Object.assign(job, { folder, files: 0 })
   }
 }
@@ -132,9 +138,9 @@ export function forget(names: string[]) {
   for (const job of jobs.filter((j) => j.kind === 'add' && j.stage === 'running' && names.includes(j.name))) dismiss(job.key)
 }
 
-/** An import failed or was cancelled: every file still being added is marked. */
+/** An import failed or was cancelled: every file this window is still adding is marked. */
 export function failed(code: string, cancelled = false) {
-  for (const job of jobs) if (job.kind === 'add' && job.stage === 'running') settle(job, cancelled ? 'cancelled' : 'error', code)
+  for (const job of jobs) if (job.kind === 'add' && job.stage === 'running' && job.cancellable) settle(job, cancelled ? 'cancelled' : 'error', code)
 }
 
 /** Backups the daemon reports in flight, from `files/backup_status`. */

@@ -4,7 +4,7 @@
   import Icon from '../../components/Icon.svelte'
   import { cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { childrenOf, ROOT } from './files'
+  import { carries, childrenOf, DRAG_TYPE, draggedIds, ROOT } from './files'
 
   /**
    * The library's places: the root and its folders as a tree, the starred
@@ -37,16 +37,6 @@
   let collapsed = $state<Record<string, boolean>>({})
   let over = $state<string | null>(null)
 
-  const ids = (event: DragEvent): string[] => {
-    try {
-      const text = event.dataTransfer?.getData('application/x-dmsg-files')
-      return text ? (JSON.parse(text) as string[]) : []
-    } catch {
-      return []
-    }
-  }
-  const carries = (event: DragEvent) => !!event.dataTransfer?.types.some((type) => type === 'application/x-dmsg-files' || type === 'Files')
-
   function onDragOver(event: DragEvent, folder: string) {
     if (!carries(event) || !unlocked) return
     event.preventDefault()
@@ -62,8 +52,8 @@
     event.stopPropagation()
     over = null
     if (!unlocked) return
-    if (event.dataTransfer?.types.includes('application/x-dmsg-files')) {
-      const moved = ids(event).filter((id) => id !== folder)
+    if (event.dataTransfer?.types.includes(DRAG_TYPE)) {
+      const moved = draggedIds(event).filter((id) => id !== folder)
       if (moved.length) onDropMove(moved, folder)
     } else {
       const files = Array.from(event.dataTransfer?.files ?? [])

@@ -20,7 +20,14 @@ export function reasonOf(error: unknown): string {
   return (typeof stderr === 'string' && stderr.trim()) || (error instanceof Error ? error.message : String(error))
 }
 
-type Waiting = { resolve(value: unknown): void; reject(error: Error): void; timer: NodeJS.Timeout }
+type Waiting = { resolve(value: unknown): void; reject(error: Error): void; timer?: NodeJS.Timeout }
+
+/**
+ * Library work that lasts as long as its bytes: a folder imported, a file
+ * written out, the whole library checked. It has no time limit; a daemon
+ * that goes away still fails it.
+ */
+const UNTIMED = new Set(['files/import', 'files/export', 'files/open', 'files/verify'])
 
 export interface DaemonOptions {
   /** The `dmsg` binary; `runtime.ts` sets the installed one. */
@@ -123,16 +130,18 @@ export class Daemon extends EventEmitter {
     else waiting.resolve(message.result)
   }
 
-  /** One method; approvals that execute may take a while. */
+  /** One method, answered within three minutes, as approvals that execute may take a while; `UNTIMED` work takes what it needs. */
   call(method: string, params: unknown = null): Promise<unknown> {
     const socket = this.socket
     if (!socket || !this.connected) return Promise.reject(new DaemonError('UNAVAILABLE', 'Not connected to the dmsg daemon'))
     const id = ++this.next
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.waiting.delete(id)
-        reject(new DaemonError('UNAVAILABLE', `${method} timed out`))
-      }, 180_000)
+      const timer = UNTIMED.has(method)
+        ? undefined
+        : setTimeout(() => {
+            this.waiting.delete(id)
+            reject(new DaemonError('UNAVAILABLE', `${method} timed out`))
+          }, 180_000)
       this.waiting.set(id, { resolve, reject, timer })
       socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }))
     })

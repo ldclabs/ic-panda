@@ -65,7 +65,7 @@ desktop is one of its clients, like the CLI.
   - Files: the library's folders (each with a context menu), starred
     files, the tags, the cloud backups and the trash on the left; the
     current folder in the middle, with a breadcrumb back up, a sort (name,
-    time, size, type, kept per window) and its rows rendered a page at a
+    time, size or type, remembered) and its rows rendered a page at a
     time (search within it, or across the library once the text leaves it,
     the results showing where they lie); the selected file on the right
     with a preview of any version, tags, note, file statements, versions

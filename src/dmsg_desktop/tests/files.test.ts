@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ancestorsOf, isSort, matchesFile, ordered, within } from '../src/renderer/views/files/files.ts'
+import { ancestorsOf, carries, DRAG_TYPE, draggedIds, isSort, matchesFile, ordered, within } from '../src/renderer/views/files/files.ts'
 
 const file = (name: string, updated_at: number, size: number, mime = 'application/octet-stream') => ({ name, updated_at, size, mime })
 
@@ -33,6 +33,17 @@ test('a folder knows its ancestors and what lies under it', () => {
   assert.equal(ancestorsOf([{ id: 'x', parent: 'y', name: 'x' }, { id: 'y', parent: 'x', name: 'y' }], 'x').length <= 3, true)
   assert.equal(within(folders, 'c', 'a'), true)
   assert.equal(within(folders, 'a', 'c'), false)
+})
+
+test('a drag carries library rows by their IDs, or files from the system', () => {
+  const drag = (types: string[], data = '') => ({ dataTransfer: { types, getData: (type: string) => (type === DRAG_TYPE ? data : '') } }) as unknown as DragEvent
+  assert.deepEqual(draggedIds(drag([DRAG_TYPE], '["a","b"]')), ['a', 'b'])
+  assert.deepEqual(draggedIds(drag([DRAG_TYPE], '{"a":1}')), [])
+  assert.deepEqual(draggedIds(drag([DRAG_TYPE], 'not json')), [])
+  assert.deepEqual(draggedIds(drag(['Files'])), [])
+  assert.equal(carries(drag(['Files'])), true)
+  assert.equal(carries(drag([DRAG_TYPE])), true)
+  assert.equal(carries(drag(['text/plain'])), false)
 })
 
 test('a search looks in the name, tags and note', () => {

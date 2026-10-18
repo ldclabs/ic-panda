@@ -40,7 +40,9 @@
     onDelete: (uploads: string[]) => void
   } = $props()
 
-  let picked = $state<string[]>([])
+  let ticked = $state<string[]>([])
+  /** The ticked backups still listed: what was deleted leaves the selection. */
+  const picked = $derived(ticked.filter((id) => entries.some((e) => e.upload_id === id)))
 
   const dateFormat = $derived(new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }))
   const groups = $derived.by(() => {
@@ -52,13 +54,8 @@
     return [...map].sort(([a], [b]) => a.localeCompare(b, locale()))
   })
 
-  // What was deleted leaves the selection.
-  $effect(() => {
-    picked = picked.filter((id) => entries.some((e) => e.upload_id === id))
-  })
-
   function toggle(id: string, on: boolean) {
-    picked = on ? [...new Set([...picked, id])] : picked.filter((p) => p !== id)
+    ticked = on ? [...new Set([...picked, id])] : picked.filter((p) => p !== id)
   }
 </script>
 

@@ -25,7 +25,8 @@
   let busy = $state(false)
 
   const names = $derived(folder ? [`files.read:${folder.id}`, `files.write:${folder.id}`] : [])
-  const here = $derived(grants.filter((g) => !g.revoked_at && g.capabilities.some((c: string) => names.includes(c))))
+  /** The live grants naming the folder: neither revoked nor expired. */
+  const here = $derived(grants.filter((g) => !g.revoked_at && !(g.expires_at && g.expires_at <= Date.now()) && g.capabilities.some((c: string) => names.includes(c))))
   const labelOf = (did: string) => agents.find((a) => a.agent_id === did)?.label ?? did
 
   const load = async () => {

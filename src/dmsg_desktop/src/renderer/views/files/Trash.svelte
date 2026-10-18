@@ -35,16 +35,13 @@
     onEmpty: () => void
   } = $props()
 
-  let picked = $state<string[]>([])
+  let ticked = $state<string[]>([])
 
   const rows = $derived(listing ? ordered(listing.folders.map((f) => ({ ...f, kind: 'folder' })), listing.files.map((f) => ({ ...f, kind: 'file' })), locale()) : [])
+  /** The ticked rows still in the trash: what left it leaves the selection. */
+  const picked = $derived(ticked.filter((id) => rows.some((r) => r.id === id)))
 
-  // What left the trash leaves the selection.
-  $effect(() => {
-    picked = picked.filter((id) => rows.some((r) => r.id === id))
-  })
-
-  const toggle = (id: string, on: boolean) => (picked = on ? [...new Set([...picked, id])] : picked.filter((p) => p !== id))
+  const toggle = (id: string, on: boolean) => (ticked = on ? [...new Set([...picked, id])] : picked.filter((p) => p !== id))
 </script>
 
 <section class="flex h-full min-w-0 flex-col" data-testid="files-trash">

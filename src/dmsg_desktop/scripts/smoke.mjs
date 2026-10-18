@@ -840,6 +840,10 @@ const settled = (page, selector) =>
   page.locator(selector).evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => null))))
 try {
   const main = await app.firstWindow()
+  // An uncaught error in a window fails the run, such as an effect that
+  // writes what it reads and so runs until Svelte gives up on it.
+  const pageErrors = []
+  main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.waitForSelector('text=Smoke note', { timeout: 20_000 })
   assert.equal(await main.textContent('[data-testid="waiting-count"]'), '2')
   // The gate rail keeps the lock, its countdown and what waits to sync in view.
@@ -1269,7 +1273,9 @@ try {
   assert.deepEqual(latest('files/trash').params, { ids: ['26'.repeat(32)] })
   await main.click('[data-testid="files-scope-trash"]')
   await main.waitForSelector('[data-testid="files-trash"] >> text=release.tar')
-  // Deleting for good asks first.
+  // Deleting for good asks first; what leaves the trash leaves the selection.
+  await main.click('[data-testid="files-trash-pick"]')
+  await main.waitForSelector('[data-testid="files-trash-purge-picked"]')
   await main.click('[data-testid="files-trash-purge"]')
   await main.waitForSelector('[data-testid="files-purge-dialog"]')
   assert.equal(calls.filter((c) => c.method === 'files/purge').length, 0)
@@ -1277,6 +1283,7 @@ try {
   await waitFor(() => latest('files/purge'))
   assert.deepEqual(latest('files/purge').params, { ids: ['26'.repeat(32)] })
   await main.waitForSelector('[data-testid="files-trash"] >> text=release.tar', { state: 'detached' })
+  await main.waitForSelector('[data-testid="files-trash-purge-picked"]', { state: 'detached' })
   await main.click('[data-testid="files-scope-root"]')
   // A picked folder's card ends with the import, though its files carry
   // their own names; a row's menu then moves a file into that folder.
@@ -1526,6 +1533,8 @@ try {
   await approval.mouse.up()
   await approval.waitForSelector('[data-testid="approval-outcome"]')
   await approval.screenshot({ path: join(shots, 'approval-held.png') })
+
+  assert.deepEqual(pageErrors, [])
 
   // Closing the main window hides it. In macOS full screen it leaves full
   // screen first, since hiding it there leaves its Space behind, black; a

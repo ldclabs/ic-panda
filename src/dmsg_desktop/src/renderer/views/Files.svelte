@@ -117,7 +117,11 @@
   /** The details follow the selected file's ID, not each new row object a reload or search makes. */
   const currentId = $derived<string | null>(current?.id ?? null)
   const ancestors = $derived(ancestorsOf(folders, folderScope ? scope : ROOT))
-  const chosenFiles = $derived(rows.filter((r) => selected.includes(r.id) && r.kind === 'file'))
+  /** The selection as a set: a folder of thousands, all selected, stays cheap. */
+  const chosen = $derived(new Set(selected))
+  const chosenFiles = $derived(rows.filter((r) => chosen.has(r.id) && r.kind === 'file'))
+  /** What an export can write: a file only in the cloud has no bytes here. */
+  const exportable = $derived(chosenFiles.filter((f) => statusOf(f.status) !== 'cloud_only'))
 
   function readSort(): Sort {
     try {
@@ -228,7 +232,8 @@
       error = closed(e, status) ? 'LOCKED' : errorText(e)
     }
     loaded = true
-    selected = selected.filter((id) => rows.some((r) => r.id === id))
+    const present = new Set(rows.map((r) => r.id))
+    selected = selected.filter((id) => present.has(id))
     if (trashOpened && !trashListing?.files.some((f) => f.id === trashOpened)) trashOpened = null
     await Promise.all([showDetails(currentId), showTrashed(trashOpened)])
   })
@@ -284,7 +289,15 @@
     job.kind === 'add' ? job.name : job.kind === 'backup' ? names[job.name] || resolved[job.name] || `${job.name.slice(0, 12)}…` : cloudNames[job.name] || `${job.name.slice(0, 12)}…`
 
   function select(id: string, event?: MouseEvent) {
-    if (event && (event.metaKey || event.ctrlKey)) selected = selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]
+    // A right-click inside the selection keeps it, for the row's menu to act on.
+    if (event?.type === 'contextmenu') {
+      if (!chosen.has(id)) {
+        selected = [id]
+        anchor = id
+      }
+      return
+    }
+    if (event && (event.metaKey || event.ctrlKey)) selected = chosen.has(id) ? selected.filter((s) => s !== id) : [...selected, id]
     else if (event?.shiftKey && anchor) selected = range(anchor, id)
     else selected = [id]
     if (!event?.shiftKey) anchor = id
@@ -392,7 +405,7 @@
   /** The import under way stops at its next chunk; what it added so far stays. */
   async function cancelImport() {
     cancelling = true
-    for (const job of jobs) if (job.kind === 'add' && job.stage === 'running') job.cancelling = true
+    for (const job of jobs) if (job.kind === 'add' && job.stage === 'running' && job.cancellable) job.cancelling = true
     await call('files/import_cancel').catch(fail)
   }
 
@@ -496,8 +509,9 @@
     let count = known?.count ?? 0
     let bytes = known?.bytes ?? 0
     if (!known) {
-      const inside = await Promise.all(ids.filter((id) => folders.some((f) => f.id === id)).map((id) => call<any[]>('files/search', { query: '', folder: id }).catch(() => [])))
-      const all = new Map([...rows.filter((r) => ids.includes(r.id) && r.kind === 'file'), ...inside.flat()].map((f) => [f.id, f]))
+      const wanted = new Set(ids)
+      const inside = await Promise.all(folders.filter((f) => wanted.has(f.id)).map((f) => call<any[]>('files/search', { query: '', folder: f.id }).catch(() => [])))
+      const all = new Map([...rows.filter((r) => wanted.has(r.id) && r.kind === 'file'), ...inside.flat()].map((f) => [f.id, f]))
       const pending = [...all.values()].filter((f) => ['local', 'failed'].includes(statusOf(f.status)))
       count = pending.length
       bytes = pending.reduce((n, f) => n + (f.size ?? 0), 0)
@@ -802,7 +816,7 @@
             </Tooltip>
             <Tooltip content={t('exportFile')}>
               {#snippet children(props)}
-                <button {...props} class={buttonClass('secondary', 'xs', 'size-6 px-0')} aria-label={t('exportFile')} disabled={!chosenFiles.length} onclick={() => exportMany(chosenFiles)} data-testid="files-export-many"><Icon name="download" /></button>
+                <button {...props} class={buttonClass('secondary', 'xs', 'size-6 px-0')} aria-label={t('exportFile')} disabled={!exportable.length} onclick={() => exportMany(exportable)} data-testid="files-export-many"><Icon name="download" /></button>
               {/snippet}
             </Tooltip>
             <Tooltip content={chosenFiles.every((f) => f.starred) ? t('unstar') : t('star')}>
@@ -829,24 +843,24 @@
             <Row
               entry={row}
               folder={row.kind === 'folder'}
-              selected={selected.includes(row.id)}
+              selected={chosen.has(row.id)}
               {unlocked}
               showPath={spread}
               onSelect={(event) => select(row.id, event)}
               onOpenFolder={() => pick(row.id)}
               onOpen={() => open(row.id, null)}
               onExport={() => exportFile(row.id, null, row.name)}
-              onBackup={() => askBackup(selected.includes(row.id) && selected.length > 1 ? selected : [row.id], false)}
+              onBackup={() => askBackup(chosen.has(row.id) && selected.length > 1 ? selected : [row.id], false)}
               onShare={() => askShare(row.id, null, row.name)}
-              onMove={() => (moving = selected.includes(row.id) && selected.length > 1 ? selected : [row.id])}
+              onMove={() => (moving = chosen.has(row.id) && selected.length > 1 ? selected : [row.id])}
               onRename={() => renameItem(row)}
               onStar={() => star(row)}
               onGrant={() => (granting = folders.find((f) => f.id === row.id) ?? row)}
               onNewFolder={() => newFolderIn(row.id)}
-              onDiscard={() => trash(selected.includes(row.id) && selected.length > 1 ? selected : [row.id])}
+              onDiscard={() => trash(chosen.has(row.id) && selected.length > 1 ? selected : [row.id])}
               onDropMove={(ids) => move(ids, row.id)}
               onDropFiles={(dropped) => dropFiles(dropped, row.id)}
-              dragIds={() => (selected.includes(row.id) ? selected : [row.id])}
+              dragIds={() => (chosen.has(row.id) ? selected : [row.id])}
             />
           {:else}
             {#if loaded}

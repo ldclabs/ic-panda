@@ -42,7 +42,7 @@
           <span class="text-[11px] text-faint tabular-nums">{job.stage === 'running' ? count(job) : ''}</span>
           {#if job.kind === 'backup' && job.stage !== 'done' && job.version}
             <button class={buttonClass('ghost', 'xs', '-me-1 h-6 px-1.5')} onclick={() => onCancel(job)} data-testid="files-job-cancel">{t('cancelBackup')}</button>
-          {:else if job.kind === 'add' && job.stage === 'running'}
+          {:else if job.kind === 'add' && job.stage === 'running' && job.cancellable}
             <button class={buttonClass('ghost', 'xs', '-me-1 h-6 px-1.5')} disabled={job.cancelling} onclick={onCancelImport} data-testid="files-job-cancel-import">{t('cancel')}</button>
           {:else if job.stage !== 'running'}
             <button class={buttonClass('ghost', 'xs', '-me-1 size-6 px-0')} aria-label={t('dismiss')} onclick={() => dismiss(job.key)}>

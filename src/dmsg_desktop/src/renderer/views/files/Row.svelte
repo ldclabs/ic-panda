@@ -6,7 +6,7 @@
   import { cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { ago, size } from '../../rpc'
-  import { fileIcon, statusIcon, statusLabel, statusOf, statusTone } from './files'
+  import { carries, DRAG_TYPE, draggedIds, fileIcon, statusIcon, statusLabel, statusOf, statusTone } from './files'
 
   /**
    * One row of a folder: a file with its status, or a folder. Click selects,
@@ -65,11 +65,9 @@
   const tones: Record<string, string> = { neutral: 'text-faint', forest: 'text-forest', gem: 'text-gem', warn: 'text-warn', danger: 'text-danger', ok: 'text-ok' }
   const where = $derived(`/${(entry.path ?? []).join('/')}`)
 
-  const carries = (event: DragEvent) => !!event.dataTransfer?.types.some((type) => type === 'application/x-dmsg-files' || type === 'Files')
-
   function onDragStart(event: DragEvent) {
     if (!unlocked) return event.preventDefault()
-    event.dataTransfer?.setData('application/x-dmsg-files', JSON.stringify(dragIds()))
+    event.dataTransfer?.setData(DRAG_TYPE, JSON.stringify(dragIds()))
     event.dataTransfer!.effectAllowed = 'move'
   }
 
@@ -87,14 +85,9 @@
     event.preventDefault()
     event.stopPropagation()
     over = false
-    const moved = event.dataTransfer?.getData('application/x-dmsg-files')
-    if (moved) {
-      try {
-        const ids = (JSON.parse(moved) as string[]).filter((id) => id !== entry.id)
-        if (ids.length) onDropMove(ids)
-      } catch {
-        /* not ours */
-      }
+    if (event.dataTransfer?.types.includes(DRAG_TYPE)) {
+      const ids = draggedIds(event).filter((id) => id !== entry.id)
+      if (ids.length) onDropMove(ids)
     } else {
       const files = Array.from(event.dataTransfer?.files ?? [])
       if (files.length) onDropFiles(files)
