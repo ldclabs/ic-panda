@@ -6,7 +6,8 @@
 // that the channel, inbox, plan and agent views reach the daemon with
 // payments and grants only as approval requests; that an activation payment
 // that created no wallet is refunded from the wallet view; that another account's
-// workspace is selected from Settings, that binding a login and a web
+// workspace is selected from Settings, which shows the app's version and
+// offers no update check in a development run, that binding a login and a web
 // checkout are approval requests, and that a web checkout is quoted before it
 // can be approved; that a web login shows what it proves and pays nothing;
 // that a kept legacy archive reads offline and transfer files never pass
@@ -1152,6 +1153,15 @@ try {
   await main.waitForSelector('[data-testid="local-accounts"]')
   await main.waitForSelector('[data-testid="settings-legacy"]')
   assert.ok((await main.textContent('[data-testid="local-accounts"]')).includes(other))
+  // About dMsg: the app's version; a development run checks for no updates,
+  // and only the main window reaches them.
+  await main.click('[data-testid="settings-about"]')
+  await main.waitForSelector('[data-testid="about"]')
+  assert.equal(await main.textContent('[data-testid="app-version"]'), await app.evaluate(({ app }) => app.getVersion()))
+  assert.equal((await main.textContent('[data-testid="update-state"]')).trim(), 'A development run does not check for updates')
+  assert.equal(await main.locator('[data-testid="check-updates"]').count(), 0)
+  assert.equal((await main.evaluate(() => window.dmsg.checkUpdates())).kind, 'off')
+  await assert.rejects(approval.evaluate(() => window.dmsg.checkUpdates()), /FORBIDDEN/)
   await main.click('[data-testid="settings-security"]')
   await main.waitForSelector('[data-testid="logins"]')
   // An edit under way stays when the daemon's events reload the page.

@@ -57,6 +57,9 @@ const api: DesktopBridge = {
   pair: (copyLink) => unwrap(ipcRenderer.invoke('dmsg:pair', copyLink)),
   openApproval: (id) => unwrap(ipcRenderer.invoke('dmsg:open-approval', id)),
   connection: () => unwrap(ipcRenderer.invoke('dmsg:connection')),
+  updates: () => unwrap(ipcRenderer.invoke('dmsg:updates')),
+  checkUpdates: () => unwrap(ipcRenderer.invoke('dmsg:check-updates')),
+  applyUpdate: () => unwrap(ipcRenderer.invoke('dmsg:apply-update')),
   onEvent: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, data: DaemonEvent) => listener(data)
     ipcRenderer.on('dmsg:event', handler)

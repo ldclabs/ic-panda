@@ -15,6 +15,23 @@ export interface Connection {
   error?: string
 }
 
+/**
+ * Where the app's own update stands: `off` in a development run; `available`
+ * when this package cannot install it (built without the update feed) and
+ * its release page has it; `ready` once downloaded, to install after the
+ * daemon stopped for it.
+ */
+export type UpdateState =
+  | { kind: 'off' | 'idle' | 'checking' | 'latest' }
+  | { kind: 'downloading' | 'available' | 'ready'; version: string }
+  | { kind: 'error'; message: string }
+
+/** The app's version and its update. */
+export interface AppUpdates {
+  version: string
+  state: UpdateState
+}
+
 export interface DesktopBridge {
   /** Which window this is: the main window or the approval window. */
   role: 'main' | 'approval'
@@ -77,6 +94,12 @@ export interface DesktopBridge {
   /** Open the approval window on a request. */
   openApproval(id: string): Promise<void>
   connection(): Promise<Connection>
+  /** The app's version and where its update stands; the main window only. `updates/changed` events follow it. */
+  updates(): Promise<AppUpdates>
+  /** Check for an update now; resolves with where the update then stands. */
+  checkUpdates(): Promise<UpdateState>
+  /** Restart into a downloaded update once the daemon stopped for it, or open the release page of one this package cannot install. */
+  applyUpdate(): Promise<void>
   onEvent(listener: (event: DaemonEvent) => void): () => void
   onNavigate(listener: (route: string) => void): () => void
   onLocale(listener: (locale: Locale) => void): () => void

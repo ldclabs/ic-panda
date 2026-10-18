@@ -58,16 +58,24 @@
     }
   })
 
+  /** Settings › About dMsg shows what the check finds. */
+  function checkUpdates() {
+    go('/settings/about')
+    void window.dmsg.checkUpdates().catch(() => {})
+  }
+
   const groups = $derived.by(() => {
     const places: Entry[] = [
       ...shortcuts.map((view) => ({ label: t(view.label), icon: view.icon, hint: `${mod}${view.key}`, run: () => go(view.path) })),
-      { label: `${t('settings')} › ${t('legacy')}`, icon: views.legacy.icon, run: () => go(views.legacy.path) }
+      { label: `${t('settings')} › ${t('legacy')}`, icon: views.legacy.icon, run: () => go(views.legacy.path) },
+      { label: `${t('settings')} › ${t('aboutApp')}`, icon: 'info', run: () => go('/settings/about') }
     ]
     const step = nextStep(status)
     const offered: (Entry | null)[] = [
       unlocked ? { label: t('lock'), icon: 'lock', hint: `${mod}L`, run: lock } : step ? { label: t(step.label), icon: step.icon, run: step.run } : null,
       status?.account ? { label: t('sync'), icon: 'sync-now', run: sync } : null,
       status?.state && status.state !== 'logged_out' ? { label: t('loginOther'), icon: 'login', run: () => startLogin() } : null,
+      { label: t('checkUpdates'), icon: 'sync-now', run: checkUpdates },
       { label: collapsed ? t('expandSidebar') : t('collapseSidebar'), icon: collapsed ? 'sidebar-unfold' : 'sidebar-fold', run: onToggleSidebar }
     ]
     const commands = offered.filter((entry): entry is Entry => !!entry)

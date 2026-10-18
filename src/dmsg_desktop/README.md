@@ -111,10 +111,11 @@ desktop is one of its clients, like the CLI.
     allowance as a meter; exporting bundles, and verifying one into a
     report.
   - Settings, in sections with their own routes (`/settings/session`,
-    `security`, `devices`, `profile`, `browsers`, `legacy`): this session
-    and the device's accounts, creating or joining an account, pairing and
-    recovery, account security, devices, the public profile with its
-    avatar, connected browsers, and the legacy migration.
+    `security`, `devices`, `profile`, `browsers`, `legacy`, `about`): this
+    session and the device's accounts, creating or joining an account,
+    pairing and recovery, account security, devices, the public profile
+    with its avatar, connected browsers, the legacy migration, and About
+    dMsg with the app's version and its update.
 
   Every login, from the gate rail, a locked view, the account menu, the
   palette, Settings or "Bind another login", runs one flow
@@ -269,8 +270,9 @@ and notifications instead of the system's. It covers:
   page, a login binding approved in the approval window, a device
   revocation as an approval request, the avatar shown, set from a picked
   image and removed (the window cannot name a path), the locked daemon's
-  `inbox` and `channel` hints notified once each, and switching to another
-  account's workspace;
+  `inbox` and `channel` hints notified once each, switching to another
+  account's workspace, and About dMsg with the app's version and no update
+  check in a development run (only the main window reaches updates);
 - logging in: logged out, the gate rail, the account menu and the locked
   vault offer Log in; a start that fails shows its reason and retries, the
   page opens again on request, and the dialog follows the daemon's check to
@@ -303,12 +305,20 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   NSIS installer on Windows) besides `setAsDefaultProtocolClient` at run time.
   The Windows app installs per user under `%LOCALAPPDATA%\Programs\dMsg`,
   apart from the shared `dmsg`.
-- A package with a feed checks it at start and every six hours and downloads
-  in the background (`src/main/updater.ts`); it never installs on quit. The
-  tray then offers "Restart to Update", which first stops the daemon with
+- A packaged app checks for updates at start and every six hours
+  (`src/main/updater.ts`); the tray's "Check for Updates", the palette's
+  command and Settings › About dMsg check on request, and a check from the
+  tray says what it found. A package with the feed downloads the update in
+  the background and never installs on quit. The tray and About dMsg then
+  offer "Restart to Update", which first stops the daemon with
   `daemon/stop {if_idle: true}` (`src/main/update.ts`): only when no approved
   request, account update or root rotation is left unsettled, asking every two
   seconds for a minute; otherwise it says what is in flight and keeps both
   running. The new app installs and starts its own `dmsg`.
+- A package without the feed (a local package, or a macOS release built
+  without the Developer ID) checks the same GitHub release feed but cannot
+  install a signed release: the tray and About dMsg offer "Download dMsg
+  <version>", which opens that release's page. A development run does not
+  check.
 - The tray's "Open at Login" is the app's login item; opened at login, the
   app starts in the tray. `dmsg autostart` starts only the daemon.

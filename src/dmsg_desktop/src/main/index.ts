@@ -3,8 +3,9 @@
  * credential; windows are sandboxed renderers that reach the daemon only
  * through `policy.ts`. The approval window is the only place a request is
  * decided; `dmsg://` links and notifications only open views. A packaged
- * app installs its bundled `dmsg` first (`runtime.ts`) and updates itself
- * from the tray once the daemon stopped for it (`updater.ts`).
+ * app installs its bundled `dmsg` first (`runtime.ts`) and checks for its
+ * updates; the tray and Settings › About dMsg apply one once the daemon
+ * stopped for it (`updater.ts`).
  */
 import {
   app,
@@ -66,7 +67,10 @@ let trayState = 'connecting'
 let locale: Locale = 'en'
 let text = textFor(locale)
 let appearance: Appearance = 'system'
-const updates = new Updates(() => updateTray(trayState))
+const updates = new Updates(() => {
+  updateTray(trayState)
+  broadcast('dmsg:event', { type: 'updates/changed' })
+})
 /** A copied secret leaves the clipboard after this long, unless something replaced it. */
 const CLEAR_MS = 30_000
 /** A person's input in a window is the idle lock's activity, reported at most this often. */
@@ -389,6 +393,9 @@ handle('dmsg:set-appearance', 'main', async (_event, next: string) => {
   applyAppearance(next)
 })
 handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError }))
+handle('dmsg:updates', 'main', () => ({ version: app.getVersion(), state: updates.state }))
+handle('dmsg:check-updates', 'main', () => updates.check())
+handle('dmsg:apply-update', 'main', () => applyUpdate())
 
 function broadcast(channel: string, payload: unknown) {
   for (const window of [main, approval]) if (window && !window.isDestroyed()) window.webContents.send(channel, payload)
@@ -426,32 +433,55 @@ const refreshWaiting = single(async () => {
   updateTray(status.state ?? 'unknown')
 })
 
-/** The tray's update item: nothing without a feed, else the feed's state. */
+/** Restart into a downloaded update, or open the release page of one this package cannot install. */
+function applyUpdate() {
+  return updates.apply(
+    (method, params) => daemon.call(method, params),
+    () => {
+      quitting = true
+      daemon.close()
+    },
+    text
+  )
+}
+
+/** A check asked for from the tray says what it found; the window shows it in Settings › About dMsg. */
+async function checkFromTray() {
+  const state = await updates.check()
+  if (state.kind === 'latest') {
+    await dialog.showMessageBox({ type: 'info', message: text.upToDate(app.getVersion()) })
+  } else if (state.kind === 'error') {
+    await dialog.showMessageBox({ type: 'warning', message: text.updateFailed, detail: state.message })
+  } else if (state.kind === 'downloading') {
+    await dialog.showMessageBox({ type: 'info', message: text.updateAvailable(state.version), detail: text.updateDownloading })
+  } else if (state.kind === 'available') {
+    const { response } = await dialog.showMessageBox({
+      type: 'info',
+      message: text.updateAvailable(state.version),
+      detail: text.updateManual,
+      buttons: [text.downloadUpdate(state.version), text.later],
+      defaultId: 0,
+      cancelId: 1
+    })
+    if (response === 0) await applyUpdate()
+  }
+}
+
+/** The tray's update item: nothing in a development run, else where the update stands. */
 function updateItem(): Electron.MenuItemConstructorOptions[] {
   const state = updates.state
   switch (state.kind) {
     case 'off':
       return []
     case 'ready':
-      return [
-        {
-          label: text.restartToUpdate(state.version),
-          click: () =>
-            void updates.apply(
-              (method, params) => daemon.call(method, params),
-              () => {
-                quitting = true
-                daemon.close()
-              },
-              text
-            )
-        }
-      ]
+      return [{ label: text.restartToUpdate(state.version), click: () => void applyUpdate() }]
+    case 'available':
+      return [{ label: text.downloadUpdate(state.version), click: () => void applyUpdate() }]
     case 'checking':
     case 'downloading':
       return [{ label: state.kind === 'checking' ? text.checking : text.downloading, enabled: false }]
     default:
-      return [{ label: text.checkUpdates, click: () => void updates.check() }]
+      return [{ label: text.checkUpdates, click: () => void checkFromTray() }]
   }
 }
 

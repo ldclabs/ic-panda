@@ -13,6 +13,7 @@
   import { bridge, call, code, onChange, single, when } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
   import { unlock } from '../shell/session'
+  import About from './About.svelte'
   import Devices from './Devices.svelte'
   import Legacy from './Legacy.svelte'
   import Onboarding from './Onboarding.svelte'
@@ -21,12 +22,13 @@
 
   /**
    * Settings in sections beside their list: this session and the device's
-   * accounts, security, devices, the public profile, connected browsers and
-   * the legacy migration. Each section has its own route under /settings.
+   * accounts, security, devices, the public profile, connected browsers, the
+   * legacy migration and the app's version and updates. Each section has its
+   * own route under /settings.
    */
   let { status, refresh, route, go }: { status: any; refresh: () => Promise<void>; route: string; go: (path: string) => void } = $props()
 
-  type Part = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'legacy'
+  type Part = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'legacy' | 'about'
 
   const parts: { value: Part; label: Label; icon: Glyph; locked?: boolean }[] = [
     { value: 'session', label: 'sessionAccounts', icon: 'account' },
@@ -34,7 +36,8 @@
     { value: 'devices', label: 'devices', icon: 'device' },
     { value: 'profile', label: 'publicProfile', icon: 'profile' },
     { value: 'browsers', label: 'browsers', icon: 'browser' },
-    { value: 'legacy', label: 'legacy', icon: 'legacy' }
+    { value: 'legacy', label: 'legacy', icon: 'legacy' },
+    { value: 'about', label: 'aboutApp', icon: 'info' }
   ]
 
   const part = $derived<Part>(parts.find((p) => route === `/settings/${p.value}`)?.value ?? 'session')
@@ -149,6 +152,8 @@
         {#if error}<Notice tone="danger">{error}</Notice>{/if}
         {#if part === 'legacy'}
           <Legacy {status} />
+        {:else if part === 'about'}
+          <About />
         {:else if part === 'session'}
           <Section title={t('status')} icon="account">
             {#snippet actions()}

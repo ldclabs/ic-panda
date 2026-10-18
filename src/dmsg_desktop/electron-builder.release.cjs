@@ -14,7 +14,8 @@ if (process.platform === 'darwin' && !signed)
   throw new Error('A macOS release needs the Developer ID certificate in CSC_LINK')
 config.forceCodeSigning = signed
 // dmsg-v* releases are the repository's latest release; canister releases are not.
-config.publish = [{ provider: 'github', owner: 'ldclabs', repo: 'ic-panda', releaseType: 'release' }]
+// Packages without this feed check the same one (FEED in src/main/updater.ts).
+config.publish =[{ provider: 'github', owner: 'ldclabs', repo: 'ic-panda', releaseType: 'release' }]
 delete config.mac.identity
 config.mac.entitlements = 'resources/entitlements.mac.plist'
 config.mac.entitlementsInherit = 'resources/entitlements.mac.plist'
