@@ -594,9 +594,9 @@ function updateItem(): Electron.MenuItemConstructorOptions[] {
 }
 
 /**
- * The tray shows the Gate: empty, or with its diamond while a request waits.
- * macOS tints template images for the menu bar; elsewhere the mark keeps its
- * tile so it shows on dark and light taskbars.
+ * The tray shows the Gate with its diamond, and a badge at the top right
+ * while a request waits. macOS tints template images for the menu bar;
+ * elsewhere the mark keeps its tile so it shows on dark and light taskbars.
  */
 function trayImage(waitingNow: boolean) {
   const mac = process.platform === 'darwin'

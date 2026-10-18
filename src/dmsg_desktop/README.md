@@ -266,8 +266,9 @@ Notifications say only that a request waits, never from where; clicking one
 opens the approval window. For agents' MCP Events they say how many
 deliveries arrived, or that a subscription needs renewing, never what or
 from where; clicking one opens the Agents view. The tray icon is the dMsg
-mark: its gate is empty, and its diamond appears while a request waits. On
-macOS it is a template image; on Windows it keeps its green tile.
+mark with its diamond; while a request waits, a badge cut out of its top
+right corner joins it. On macOS it is a template image; on Windows it keeps
+its green tile, and the badge is amber.
 
 ```sh
 pnpm --dir src/dmsg_desktop dev        # needs a dmsg binary on PATH or DMSG_BIN
@@ -338,11 +339,18 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   then runs the installed `dmsg` (`src/main/runtime.ts`). If the install
   fails, the main window shows its error and the next start tries again. On macOS the bundled
   file keeps the release binary's own signature (`signIgnore`).
-- `electron-builder.yml` makes local packages: ad hoc signed, no update feed.
-  `electron-builder.release.cjs` (the release workflow) adds the Developer ID
-  signature and notarization on macOS (required there), Authenticode on
-  Windows when a certificate is configured, and the update feed of the
-  GitHub release (`latest-mac.yml`, `latest.yml`).
+- `electron-builder.yml` is the base: ad hoc signed, no update feed;
+  `package:dir` uses it. `electron-builder.local.cjs` (`package`) signs a
+  local package with the keychain's Developer ID Application identity when
+  there is one, with the release entitlements and without notarization, and
+  gives it the release's update feed, so it downloads and installs releases
+  signed by the same team; without one, or with
+  `CSC_IDENTITY_AUTO_DISCOVERY=false`, it stays ad hoc with no feed. A
+  macOS package gets the feed only with its dmg or zip, never from `--dir`.
+  `electron-builder.release.cjs` (the release
+  workflow) adds the Developer ID signature and notarization on macOS
+  (required there), Authenticode on Windows when a certificate is configured,
+  and the update feed of the GitHub release (`latest-mac.yml`, `latest.yml`).
 - Packages register the `dmsg:` scheme (`CFBundleURLTypes` on macOS, the
   NSIS installer on Windows) besides `setAsDefaultProtocolClient` at run time.
   The Windows app installs per user under `%LOCALAPPDATA%\Programs\dMsg`,
@@ -357,8 +365,8 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   request, account update or root rotation is left unsettled, asking every two
   seconds for a minute; otherwise it says what is in flight and keeps both
   running. The new app installs and starts its own `dmsg`.
-- A package without the feed (a local package, or a macOS release built
-  without the Developer ID) checks the same GitHub release feed but cannot
+- A package without the feed (an ad hoc local package, or a macOS release
+  built without the Developer ID) checks the same GitHub release feed but cannot
   install a signed release: the tray and About dMsg offer "Download dMsg
   <version>", which opens that release's page. A development run does not
   check.

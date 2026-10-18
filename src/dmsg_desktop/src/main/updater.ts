@@ -3,9 +3,11 @@
  * release package carries the feed (electron-builder.release.cjs): its update
  * downloads in the background and is applied only on request, after the
  * daemon stopped for it (`update.ts`); the new app then installs and starts
- * its own `dmsg`. A package without the feed (a local one, or a macOS release
- * built without the Developer ID) cannot install a signed release, so its
- * check only finds the update, and the release page has it.
+ * its own `dmsg`. A local package signed with the Developer ID carries the
+ * feed too (electron-builder.local.cjs). A package without it (an ad hoc
+ * local one, or a macOS release built without the Developer ID) cannot
+ * install a signed release, so its check only finds the update, and the
+ * release page has it.
  */
 import { app, dialog, shell } from 'electron'
 import { existsSync } from 'node:fs'
