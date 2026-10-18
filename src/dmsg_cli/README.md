@@ -243,10 +243,13 @@ dmsg connect requests | sync
 dmsg channel list | show <id> | create <name> [--type direct|collaboration|distribution]
 dmsg channel invite <id> <account> [--role member|publisher] | accept <invitation>
 dmsg channel members <id> | role <id> <account> <role> | remove <id> <account> | leave <id> | archive <id>
-dmsg channel rotate <id> | reactivate <id> | history <id> <account> <from> <to>
+dmsg channel rotate <id> | rekey <id> | reactivate <id> | history <id> <account> <from> <to>
 dmsg channel send <id> [text] [--file <id[@version]>] [--message-id M] | read <id> [--after N] [--backfill]
 dmsg channel download <id> <seq> --out <path> | pending <id> [--key K]
+dmsg channel outbox <id> [--discard M] | search <id> <query> | receipts <id> | uninvite <id> <invitation>
+dmsg channel settings <id> [--name N] [--mute true|false] [--hide true|false]
 dmsg channel transfer|sponsor propose <id> <account> | accept <packet> | commit <packet>
+dmsg channel sponsor cancel <id>
 dmsg inbox policy | configure closed|contacts|free|paid [--price P] [--payee P] [--allow A]...
 dmsg inbox send <recipient> <text> [--pay] [--invitation I] [--order O] | pay <recipient> <order>
 dmsg inbox order <recipient> <order> | outgoing | escrow <order> | refund <order>
@@ -725,6 +728,7 @@ The daemon listens on `127.0.0.1` only.
   `files/progress {path, done, total}`, `files/open_changed`,
   `files/mount_changed`, `sync/changed`,
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
+  `channel/read`,
   `inbox/changed`, `legacy/changed`, `mcp-events/changed`, `resync`) need
   `Authorization: Bearer <owner token>`; any request with an `Origin` header
   is refused with 401. A request or WebSocket message may be up to 16 MiB.
@@ -758,8 +762,9 @@ The daemon listens on `127.0.0.1` only.
   (`show`, `cancel` and `quote` take a unique ID prefix),
   `attest/request|action {action: base64url CBOR}|history|usage|export|verify`,
   `connect/invite|candidates|grant|pairings|revoke|sync|status`,
-  `channel/list|show|create|invite|join|control|leave|rotate|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
-  `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit`,
+  `channel/list|show|create|invite|join|control|leave|rotate|rekey|send|send_file|sync|messages|download|history|reactivate|pending|resume`,
+  `channel/outbox|discard|mark|draft|settings|search|hide|preview|names|receipts`,
+  `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit|sponsor_cancel`,
   `inbox/policy|configure|send|order|outgoing|pay|escrow|refund|list|mark`,
   `payment/transfers|revise`, `payer/use|balance`,
   `wallet/list|show|principal|quote|create|join|proposals|proposal|propose|send|approve|reject|veto|cancel|freeze`,
