@@ -781,6 +781,9 @@ impl Daemon {
                     true => client.unlock_fast().await?,
                     false => client.unlock().await?,
                 };
+                // Unlocking is the person's activity: a window that asks for
+                // Touch ID as it comes to the front has no input to report.
+                self.activity.store(now_ms(), Ordering::Relaxed);
                 Ok(to_json(&status))
             }
             "session/lock" => {
@@ -1750,6 +1753,36 @@ mod tests {
             ),
             (&json!(false), &json!(false), &json!("unlocked"))
         );
+    }
+
+    #[tokio::test]
+    async fn an_unlock_moves_the_idle_lock() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = Home {
+            dir: dir.0.join("home"),
+        };
+        let storage = Arc::new(dmsg_client::testing::MemoryStorage::default());
+        let mut client =
+            dmsg_client::testing::unlocked(&dir.0.join("workspace"), false, Some(storage));
+        client.enable_fast_unlock().unwrap();
+        client.lock();
+        let daemon = Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        );
+        // The desktop reports only input in its windows, and a window that
+        // asks for Touch ID as it comes to the front has none.
+        daemon.activity.store(0, Ordering::Relaxed);
+        let status = daemon
+            .call_daemon("session/unlock", &json!({"fast": true}))
+            .await
+            .unwrap();
+        assert_eq!(status["state"], "unlocked");
+        assert!(daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms > now_ms());
     }
 
     fn request(method: &str, params: Value) -> RpcRequest {

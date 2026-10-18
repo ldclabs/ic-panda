@@ -89,7 +89,7 @@ async fn log_in(client: &mut Client, seed: u8, expires_at: u64) -> Principal {
         ic: Ic::connect(&client.config, login.identity).await.unwrap(),
         principal,
         expires_at,
-        kept: Some(login.kept),
+        kept: login.kept,
     });
     principal
 }
@@ -130,6 +130,10 @@ async fn fast_unlock_with_the_person_restores_the_login() {
     assert_eq!(status.state, "unlocked");
     assert_eq!(status.principal, Some(principal.to_text()));
     assert_eq!(hardware.opened.load(SeqCst), 2);
+    // Turned off and on again, the restored login is kept again.
+    client.disable_fast_unlock().unwrap();
+    client.enable_fast_unlock().unwrap();
+    assert!(client.workspace.store.sealed(KEPT_LOGIN).unwrap().is_some());
 
     // An expired login is not restored, and goes.
     let expired = crate::login::kept_for_tests(3, now_ms() - 1);

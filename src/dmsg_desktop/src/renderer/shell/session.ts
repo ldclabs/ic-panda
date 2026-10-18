@@ -20,6 +20,9 @@ async function attempt(work: () => Promise<unknown>) {
 /** Drop the login and every key now, as the idle lock would. */
 export const lock = () => attempt(() => call('session/lock'))
 
+/** Whether this lock has asked for its fast unlock; a new lock asks again. */
+let offered = false
+
 /**
  * Open the account again: fast unlock when it is on (the daemon asks for
  * Touch ID or the device password where the Secure Enclave keeps its key),
@@ -29,6 +32,8 @@ export const lock = () => attempt(() => call('session/lock'))
  */
 export async function unlock(status: any) {
   if (!status?.fast_unlock) return startLogin()
+  // The system's question takes the focus; the window it returns to does not ask again.
+  offered = true
   try {
     await call('session/unlock', { fast: true })
   } catch (error) {
@@ -37,17 +42,13 @@ export async function unlock(status: any) {
   }
 }
 
-/** Whether this lock has offered its fast unlock; a new lock offers again. */
-let offered = false
-
 /**
  * A device locked with fast unlock that asks for the person offers it once,
  * when its window comes to the front; never right after the person locked
- * it in front of the window, and not again once declined.
+ * it in front of the window, and not again once it asked.
  */
 export function offerUnlock(status: any) {
   if (offered || status?.state !== 'locked' || !status.fast_presence) return
-  offered = true
   void unlock(status)
 }
 

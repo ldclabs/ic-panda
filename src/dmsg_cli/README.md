@@ -743,7 +743,9 @@ The daemon listens on `127.0.0.1` only.
 - `idle_lock_minutes` without activity locks the daemon: the login and every
   key are dropped. Every request is activity except `app/initialize`,
   `daemon/status`, `events/poll`, `mcp-events/poll` and the waiting readers,
-  and so is a completed login. A WebSocket that sent
+  and so are a completed login and, from any client, a successful
+  `session/unlock`: a window that asks for Touch ID as it comes to the front
+  has no input to report. A WebSocket that sent
   `app/initialize {activity: "reported"}`, as the desktop does, reports a
   person's activity with `app/activity`, and its other requests are not
   activity: its windows read on events. While unlocked, `daemon/status`

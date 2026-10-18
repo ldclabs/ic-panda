@@ -55,11 +55,9 @@ impl Drop for TempDir {
 }
 
 /// A credential store in memory.
-#[cfg(test)]
 #[derive(Default)]
-pub(crate) struct MemoryStorage(std::sync::Mutex<std::collections::BTreeMap<String, Vec<u8>>>);
+pub struct MemoryStorage(std::sync::Mutex<std::collections::BTreeMap<String, Vec<u8>>>);
 
-#[cfg(test)]
 impl SecureStorage for MemoryStorage {
     fn get(&self, name: &str) -> dmsg_types::Result<Option<zeroize::Zeroizing<Vec<u8>>>> {
         Ok(self

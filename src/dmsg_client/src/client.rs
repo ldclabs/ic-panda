@@ -81,8 +81,8 @@ pub(crate) struct Login {
     pub(crate) ic: Ic,
     pub(crate) principal: Principal,
     pub(crate) expires_at: u64,
-    /// What restores it, until it is sealed; none once restored.
-    kept: Option<KeptLogin>,
+    /// What restores it after a fast unlock.
+    kept: KeptLogin,
 }
 
 /// What the credential store keeps for fast unlock.
@@ -547,7 +547,7 @@ impl Client {
             ic,
             principal,
             expires_at: login.expires_at,
-            kept: Some(login.kept),
+            kept: login.kept,
         });
         self.enter().await
     }
@@ -700,13 +700,13 @@ impl Client {
     /// Seal the current login under the LDK while fast unlock asks for the
     /// person; without that, no login stays on disk.
     fn keep_login(&self) -> Result<()> {
-        let keys = self.keys()?;
-        match self.login.as_ref().and_then(|l| l.kept.as_ref()) {
-            Some(kept) if self.workspace.meta.fast_presence => {
-                self.workspace.put_private(keys, KEPT_LOGIN, kept)
-            }
-            Some(_) => self.workspace.delete_private(KEPT_LOGIN),
-            // A restored login is sealed already.
+        if !self.workspace.meta.fast_presence {
+            return self.workspace.delete_private(KEPT_LOGIN);
+        }
+        match &self.login {
+            Some(login) => self
+                .workspace
+                .put_private(self.keys()?, KEPT_LOGIN, &login.kept),
             None => Ok(()),
         }
     }
@@ -728,7 +728,7 @@ impl Client {
             ic,
             principal: login.principal,
             expires_at: login.expires_at,
-            kept: None,
+            kept: login.kept,
         });
         Ok(())
     }
