@@ -639,6 +639,8 @@ const messages = {
   views: 'Views',
   collapseSidebar: 'Collapse the sidebar',
   expandSidebar: 'Expand the sidebar',
+  back: 'Back',
+  forward: 'Forward',
   legacyNotice: 'A legacy migration was started and is not imported yet.',
   searchOrCommand: 'Search or run a command',
   goTo: 'Go to',

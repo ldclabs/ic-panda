@@ -74,6 +74,13 @@ const api: DesktopBridge = {
     const handler = (_event: Electron.IpcRendererEvent, next: Locale) => listener(next)
     ipcRenderer.on('dmsg:locale', handler)
     return () => ipcRenderer.removeListener('dmsg:locale', handler)
+  },
+  onFullScreen: (listener) => {
+    const handler = (_event: Electron.IpcRendererEvent, fullScreen: boolean) => listener(fullScreen === true)
+    ipcRenderer.on('dmsg:fullscreen', handler)
+    // A reloaded window asks where it stands; the events tell each change.
+    ipcRenderer.invoke('dmsg:fullscreen').then(listener, () => {})
+    return () => ipcRenderer.removeListener('dmsg:fullscreen', handler)
   }
 }
 contextBridge.exposeInMainWorld('dmsg', api)

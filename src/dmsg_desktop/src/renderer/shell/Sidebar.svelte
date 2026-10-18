@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte'
   import Icon from '../components/Icon.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn } from '../components/ui'
@@ -8,33 +9,36 @@
   import { entryOf, groups, views, type View } from './nav'
 
   /**
-   * The main window's sidebar: the account at the top, the views in the
-   * groups of PRD §4, and the gate rail at the foot. Collapsed, it keeps the
-   * icons and names them in tooltips. A migration that was started and not
-   * imported shows a notice until it is dismissed.
+   * The main window's sidebar: the window's buttons in the title bar's line,
+   * the account, the views in the groups of PRD §4, and the gate rail at the
+   * foot. Collapsed, it keeps the icons and names them in tooltips, and the
+   * title bar covers its top with the window's buttons. A migration that was
+   * started and not imported shows a notice until it is dismissed.
    */
   let {
     route,
     status,
     connected,
     connectionError,
-    collapsed = $bindable(false),
+    collapsed,
     inset,
     mod,
     legacyNotice,
     onDismissLegacy,
-    go
+    go,
+    windowNav
   }: {
     route: string
     status: any
     connected: boolean
     connectionError?: string
-    collapsed?: boolean
+    collapsed: boolean
     inset: boolean
     mod: string
     legacyNotice: boolean
     onDismissLegacy: () => void
     go: (path: string) => void
+    windowNav: Snippet
   } = $props()
 
   const entry = $derived(entryOf(route))
@@ -77,38 +81,30 @@
     inset ? 'bg-paper-dim/55' : 'bg-paper-dim',
     collapsed ? 'w-16 items-center' : 'w-[236px]'
   )}
+  data-testid="sidebar"
 >
-  <!-- The window's drag area; on macOS the traffic lights sit at its start. -->
-  <div class={cn('flex h-[52px] shrink-0 items-center gap-2 [-webkit-app-region:drag]', collapsed ? 'justify-center' : 'ps-2.5')}>
-    {#if !inset && !collapsed}
-      <!-- The Gate, as on dmsg.net: a post and a dome, one request waiting between them. -->
-      <svg class="h-5 w-[17px] fill-forest" viewBox="0 0 42 48" aria-hidden="true">
-        <mask id="brand-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="42" height="48">
-          <rect width="42" height="48" fill="#fff" />
-          <path d="M12 17.5 18.5 24 12 30.5 5.5 24Z" stroke="#000" stroke-width="5" stroke-linejoin="round" />
-        </mask>
-        <g mask="url(#brand-cut)">
-          <path d="M4 0h4.5A1.5 1.5 0 0 1 10 1.5v45A1.5 1.5 0 0 1 8.5 48H4a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4Z" />
-          <path d="M15.5 0H18a24 24 0 0 1 0 48h-2.5a1.5 1.5 0 0 1-1.5-1.5v-45A1.5 1.5 0 0 1 15.5 0Z" />
-        </g>
-        <path class="fill-gem" d="M12 17.5 18.5 24 12 30.5 5.5 24Z" />
-      </svg>
-      <span class="text-lg leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
+  <!-- The window's drag area in the title bar's line, centred like the title
+       bar above its rule; on macOS the traffic lights sit at its start.
+       Collapsed, the title bar covers it. -->
+  <div class="flex h-[60px] shrink-0 items-center gap-2 ps-2 pb-px [-webkit-app-region:drag] lights:ltr:ps-[72px]">
+    {#if !collapsed}
+      {#if !inset}
+        <!-- The Gate, as on dmsg.net: a post and a dome, one request waiting between them. -->
+        <svg class="h-5 w-[17px] fill-forest" viewBox="0 0 42 48" aria-hidden="true">
+          <mask id="brand-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="42" height="48">
+            <rect width="42" height="48" fill="#fff" />
+            <path d="M12 17.5 18.5 24 12 30.5 5.5 24Z" stroke="#000" stroke-width="5" stroke-linejoin="round" />
+          </mask>
+          <g mask="url(#brand-cut)">
+            <path d="M4 0h4.5A1.5 1.5 0 0 1 10 1.5v45A1.5 1.5 0 0 1 8.5 48H4a4 4 0 0 1-4-4V4a4 4 0 0 1 4-4Z" />
+            <path d="M15.5 0H18a24 24 0 0 1 0 48h-2.5a1.5 1.5 0 0 1-1.5-1.5v-45A1.5 1.5 0 0 1 15.5 0Z" />
+          </g>
+          <path class="fill-gem" d="M12 17.5 18.5 24 12 30.5 5.5 24Z" />
+        </svg>
+        <span class="me-auto text-lg leading-none font-extrabold tracking-[-0.04em]">dMsg</span>
+      {/if}
+      {@render windowNav()}
     {/if}
-    <Tooltip content={collapsed ? t('expandSidebar') : t('collapseSidebar')} side="right">
-      {#snippet children(props)}
-        <button
-          {...props}
-          class={buttonClass('ghost', 'sm', cn('size-7 px-0 [-webkit-app-region:no-drag]', !collapsed && 'ms-auto'))}
-          aria-label={collapsed ? t('expandSidebar') : t('collapseSidebar')}
-          aria-expanded={!collapsed}
-          onclick={() => (collapsed = !collapsed)}
-          data-testid="sidebar-toggle"
-        >
-          <Icon name={collapsed ? 'sidebar-unfold' : 'sidebar-fold'} />
-        </button>
-      {/snippet}
-    </Tooltip>
   </div>
   <AccountSwitcher {status} {collapsed} />
   {#if legacyNotice && !collapsed}

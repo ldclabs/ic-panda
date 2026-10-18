@@ -16,11 +16,13 @@
   import Header from './shell/Header.svelte'
   import LoginDialog from './shell/LoginDialog.svelte'
   import Sidebar from './shell/Sidebar.svelte'
+  import WindowNav from './shell/WindowNav.svelte'
   import { shortcuts, viewOf, views } from './shell/nav'
   import { lock, offerUnlock, settleOffer } from './shell/session'
   import { call, onChange, single } from './rpc'
 
-  let route = $state(location.hash.slice(1) || '/vault')
+  const opened = location.hash.slice(1) || '/vault'
+  let route = $state(opened)
   let status = $state<any>(null)
   let connected = $state(true)
   let connectionError = $state<string | undefined>()
@@ -35,6 +37,9 @@
   /** On macOS the main window draws its own title bar over the sidebar's material. */
   const inset = window.dmsg.platform === 'darwin'
   const mod = inset ? '⌘' : 'Ctrl+'
+  /** Back and forward: ⌘[ and ⌘] on macOS, Alt+← and Alt+→ elsewhere. */
+  const travelKeys = inset ? { back: '⌘[', forward: '⌘]' } : { back: 'Alt+←', forward: 'Alt+→' }
+  const travelCodes: Record<string, -1 | 1> = inset ? { BracketLeft: -1, BracketRight: 1 } : { ArrowLeft: -1, ArrowRight: 1 }
   const view = $derived(viewOf(route))
   const unlocked = $derived(status?.state === 'unlocked')
   const legacyNotice = $derived(offers.some((nonce) => !dismissed.includes(nonce)))
@@ -99,9 +104,40 @@
 
   const go = (next: string) => (location.hash = next)
 
-  /** ⌘K opens the palette, ⌘1–⌘8 and ⌘, go to a view, ⌘L locks (Ctrl elsewhere). */
+  /** Back and forward walk the views this window showed, as in anda-bot. */
+  let visits = $state([opened])
+  let visit = $state(0)
+  let traveling = false
+
+  function visited(next: string) {
+    route = next
+    if (traveling) traveling = false
+    else if (next !== visits[visit]) {
+      visits = [...visits.slice(0, visit + 1), next].slice(-50)
+      visit = visits.length - 1
+    }
+  }
+
+  /** Neighbouring visits differ, so the hash changes and `visited` hears it. */
+  function travel(step: -1 | 1) {
+    const target = visits[visit + step]
+    if (target === undefined) return
+    traveling = true
+    visit += step
+    go(target)
+  }
+
+  /** ⌘K opens the palette, ⌘1–⌘8 and ⌘, go to a view, ⌘L locks (Ctrl elsewhere); ⌘[ and ⌘] go back and forward (Alt+arrows elsewhere). */
   function onKey(event: KeyboardEvent) {
     if (!isMain) return
+    const step = travelCodes[event.code]
+    const travelHeld = inset ? event.metaKey && !event.ctrlKey && !event.altKey : event.altKey && !event.ctrlKey && !event.metaKey
+    if (step && travelHeld && !event.shiftKey) {
+      palette = false
+      travel(step)
+      event.preventDefault()
+      return
+    }
     const held = inset ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
     if (!held || event.altKey || event.shiftKey) return
     const key = event.key.toLowerCase()
@@ -119,7 +155,7 @@
   onMount(() => {
     // The route follows the hash only, so a view the hash still names opens again on a click.
     const offNavigate = window.dmsg.onNavigate(go)
-    const onHash = () => (route = location.hash.slice(1) || '/vault')
+    const onHash = () => visited(location.hash.slice(1) || '/vault')
     window.addEventListener('hashchange', onHash)
     const offs = [offNavigate, () => window.removeEventListener('hashchange', onHash)]
     if (isMain) {
@@ -131,6 +167,17 @@
 </script>
 
 <svelte:window onkeydown={onKey} onfocus={() => isMain && offerUnlock(status)} />
+
+{#snippet windowNav()}
+  <WindowNav
+    {collapsed}
+    canBack={visit > 0}
+    canForward={visit < visits.length - 1}
+    keys={travelKeys}
+    onToggle={() => (collapsed = !collapsed)}
+    onTravel={travel}
+  />
+{/snippet}
 
 {#if !isMain}
   <main class="h-screen">
@@ -148,15 +195,16 @@
         {status}
         {connected}
         {connectionError}
-        bind:collapsed
+        {collapsed}
         {inset}
         {mod}
         {legacyNotice}
         onDismissLegacy={dismissLegacy}
         {go}
+        {windowNav}
       />
       <div class="flex min-w-0 flex-1 flex-col bg-paper">
-        <Header {view} {mod} {go} onPalette={() => (palette = true)} />
+        <Header {view} {mod} {collapsed} {windowNav} {go} onPalette={() => (palette = true)} />
         <main class="min-h-0 flex-1 overflow-hidden">
           {#if view === views.files}
             <Files {status} {mod} {route} {go} />

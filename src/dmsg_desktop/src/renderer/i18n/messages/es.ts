@@ -637,6 +637,8 @@ export default {
     views: 'Vistas',
     collapseSidebar: 'Contraer la barra lateral',
     expandSidebar: 'Expandir la barra lateral',
+    back: 'Atrás',
+    forward: 'Adelante',
     legacyNotice: 'Se inició una migración desde la versión anterior y aún no se ha importado.',
     searchOrCommand: 'Buscar o ejecutar un comando',
     goTo: 'Ir a',

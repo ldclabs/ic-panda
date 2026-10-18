@@ -50,10 +50,14 @@ desktop is one of its clients, like the CLI.
   step. A title bar names the view and opens the command palette (⌘K, or
   Ctrl+K elsewhere), which goes to any view and runs the session,
   appearance and language commands; ⌘1–⌘8 and ⌘, go to a view, ⌘L locks.
-  The sidebar collapses to icons. On macOS the window has no title bar of
-  its own: the traffic lights sit over the sidebar, on the window's
-  material. A legacy pairing that was started and not imported shows a
-  dismissible notice. The main window has these views:
+  Beside the sidebar toggle, back and forward (⌘[ and ⌘], or Alt+← and
+  Alt+→) walk the views the window showed. The sidebar collapses to icons,
+  and the title bar then takes the toggle and the arrows. On macOS the
+  window has no title bar of its own: the traffic lights sit over the
+  sidebar, on the window's material, and the buttons follow them; full
+  screen hides the lights and the buttons move to the edge. A legacy
+  pairing that was started and not imported shows a dismissible notice.
+  The main window has these views:
   - Vault: filters (starred, each type and tag, the trash), the list and the
     open item side by side, with a context menu on each row; new items in a
     dialog, edits in place; conflict copies compared side by side, line by
@@ -233,7 +237,9 @@ Rules (`src/main/policy.ts`):
   and the old site's migration links.
 - Renderers run sandboxed with context isolation, no Node integration, a
   strict CSP, no navigation and no new windows. Closing the main window keeps
-  the tray and the daemon; quitting does not stop the daemon.
+  the tray and the daemon; quitting does not stop the daemon. In macOS full
+  screen the window leaves full screen before it hides, since a window
+  hidden there leaves its Space behind, black.
 
 Notifications say only that a request waits, never from where; clicking one
 opens the approval window. For agents' MCP Events they say how many

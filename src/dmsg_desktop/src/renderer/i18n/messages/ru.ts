@@ -637,6 +637,8 @@ export default {
     views: 'Разделы',
     collapseSidebar: 'Свернуть боковую панель',
     expandSidebar: 'Развернуть боковую панель',
+    back: 'Назад',
+    forward: 'Вперёд',
     legacyNotice: 'Перенос из старой версии начат, но ещё не импортирован.',
     searchOrCommand: 'Поиск или команда',
     goTo: 'Перейти',

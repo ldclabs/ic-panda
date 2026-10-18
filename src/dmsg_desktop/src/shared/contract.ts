@@ -104,4 +104,6 @@ export interface DesktopBridge {
   onEvent(listener: (event: DaemonEvent) => void): () => void
   onNavigate(listener: (route: string) => void): () => void
   onLocale(listener: (locale: Locale) => void): () => void
+  /** Whether the main window is in full screen, now and at each change; macOS hides the traffic lights there. */
+  onFullScreen(listener: (fullScreen: boolean) => void): () => void
 }

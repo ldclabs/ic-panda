@@ -25,7 +25,10 @@
 // capability once) and manages MCP Events endpoints; that
 // a delivery notifies without its content; that application actions and
 // attestation bundles enter through the main process's dialogs; and that a
-// language and an appearance picked in the main window reach both windows.
+// language and an appearance picked in the main window reach both windows;
+// that back and forward walk the views shown, that the sidebar toggle stays
+// in place when it collapses the sidebar, and that closing the main window
+// hides it, after leaving macOS full screen.
 // Run with `pnpm test:e2e`.
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
@@ -825,9 +828,40 @@ try {
   await main.waitForSelector('[data-testid="view-title"] >> text=Signatures & approvals')
   await main.keyboard.press(`${mod}+1`)
   await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
+  // Back and forward walk the views the window showed, by the buttons
+  // beside the sidebar toggle and by ⌘[ and ⌘] (Alt+arrows elsewhere).
+  const title = (text) => main.waitForSelector(`[data-testid="view-title"] >> text=${text}`)
+  await main.click('[data-testid="nav-back"]')
+  await title('Signatures & approvals')
+  await main.click('[data-testid="nav-forward"]')
+  await title('Vault')
+  assert.ok(await main.isDisabled('[data-testid="nav-forward"]'))
+  const [backKey, forwardKey] = process.platform === 'darwin' ? ['Meta+BracketLeft', 'Meta+BracketRight'] : ['Alt+ArrowLeft', 'Alt+ArrowRight']
+  await main.keyboard.press(backKey)
+  await title('Signatures & approvals')
+  await main.keyboard.press(backKey)
+  await title('Vault')
+  await main.keyboard.press(forwardKey)
+  await title('Signatures & approvals')
+  // A view opened from there drops the visits ahead of it.
+  await main.keyboard.press(`${mod}+1`)
+  await title('Vault')
+  assert.ok(await main.isDisabled('[data-testid="nav-forward"]'))
+  // Collapsed, the title bar covers the rail's top and takes the window's
+  // buttons; on macOS the toggle stays where it was, after the traffic lights.
+  const toggleAt = async () => {
+    await settled(main, '[data-testid="sidebar"]')
+    const { x, y } = await main.locator('[data-testid="sidebar-toggle"]').boundingBox()
+    return { x, y }
+  }
+  const mac = process.platform === 'darwin'
+  if (mac) assert.deepEqual(await toggleAt(), { x: 82, y: 15.5 })
   await main.click('[data-testid="sidebar-toggle"]')
+  await main.waitForSelector('header [data-testid="sidebar-toggle"]')
+  assert.deepEqual(await toggleAt(), { x: mac ? 82 : 18, y: 15.5 })
   await main.screenshot({ path: join(shots, 'sidebar-collapsed.png') })
   await main.click('[data-testid="sidebar-toggle"]')
+  await main.waitForSelector('[data-testid="sidebar"] [data-testid="sidebar-toggle"]')
 
   // The main window cannot decide, even through the bridge's own methods.
   await assert.rejects(main.evaluate((id) => window.dmsg.decide(id, 'cd'.repeat(32), true), request.id), /FORBIDDEN/)
@@ -1369,6 +1403,8 @@ try {
   await approval.waitForSelector('html[lang="ar"][dir="rtl"]')
   await main.waitForSelector('nav >> text=الإعدادات')
   assert.equal(await readFile(join(profile, 'locale'), 'utf8'), 'ar')
+  // The traffic lights stay at the top left, over the title bar's end.
+  if (process.platform === 'darwin') assert.equal(await main.$eval('header', (el) => getComputedStyle(el).paddingLeft), '84px')
   await main.screenshot({ path: join(shots, 'locale-ar.png') })
   // The panes mirror right to left; IDs and code keep their own order.
   await main.keyboard.press(`${mod}+1`)
@@ -1411,6 +1447,51 @@ try {
   await approval.mouse.up()
   await approval.waitForSelector('[data-testid="approval-outcome"]')
   await approval.screenshot({ path: join(shots, 'approval-held.png') })
+
+  // Closing the main window hides it. In macOS full screen it leaves full
+  // screen first, since hiding it there leaves its Space behind, black; a
+  // second close during the exit changes nothing, and opening the window
+  // again cancels the hide. Full screen hides the traffic lights, so the
+  // window's buttons move to the edge.
+  const mainWindow = await app.browserWindow(main)
+  for (const mode of process.platform === 'darwin' ? ['windowed', 'fullscreen', 'reopen-during-exit'] : ['windowed']) {
+    const fullScreen = mode !== 'windowed'
+    await mainWindow.evaluate(async (window, fullScreen) => {
+      window.show()
+      if (!fullScreen) return
+      const entered = new Promise((resolve, reject) => {
+        setTimeout(() => reject(new Error('Window did not enter full screen')), 10_000)
+        window.once('enter-full-screen', resolve)
+      })
+      window.setFullScreen(true)
+      await entered
+    }, fullScreen)
+    if (fullScreen) {
+      await main.waitForSelector('html[data-fullscreen]')
+      assert.equal((await main.locator('[data-testid="sidebar-toggle"]').boundingBox()).x, 18)
+      if (mode === 'fullscreen') await main.screenshot({ path: join(shots, 'fullscreen.png') })
+    }
+    const closed = await app.evaluate(
+      async ({ app }, [window, mode]) => {
+        const event = mode === 'windowed' ? 'hide' : 'leave-full-screen'
+        const done = new Promise((resolve, reject) => {
+          setTimeout(() => reject(new Error(`Window did not emit ${event}`)), 10_000)
+          window.once(event, resolve)
+        })
+        window.close()
+        if (mode !== 'windowed') window.close()
+        if (mode === 'reopen-during-exit') app.emit('activate')
+        await done
+        const result = { hidden: !window.isVisible(), fullScreen: window.isFullScreen(), destroyed: window.isDestroyed() }
+        // The Dock brings back the same window and page.
+        app.emit('activate')
+        return { ...result, reopened: window.isVisible() }
+      },
+      [mainWindow, mode]
+    )
+    assert.deepEqual(closed, { hidden: mode !== 'reopen-during-exit', fullScreen: false, destroyed: false, reopened: true }, `close and reopen (${mode})`)
+    await main.waitForSelector('html:not([data-fullscreen])')
+  }
   console.log('desktop smoke test passed')
 } finally {
   await app.close()

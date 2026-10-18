@@ -637,6 +637,8 @@ export default {
     views: '视图',
     collapseSidebar: '收起侧栏',
     expandSidebar: '展开侧栏',
+    back: '后退',
+    forward: '前进',
     legacyNotice: '有一次旧版迁移已经开始，还没有导入。',
     searchOrCommand: '搜索或执行命令',
     goTo: '跳转',

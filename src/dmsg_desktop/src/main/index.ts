@@ -56,6 +56,8 @@ app.setName('dMsg')
 if (!app.requestSingleInstanceLock()) app.quit()
 
 let main: BrowserWindow | null = null
+/** The main window, closed in macOS full screen, hides once it left full screen; showing it cancels that. */
+let hideAfterFullScreen = false
 let approval: BrowserWindow | null = null
 let tray: Tray | null = null
 let trayImages: { idle: Electron.NativeImage; waiting: Electron.NativeImage } | null = null
@@ -138,34 +140,61 @@ const background = () => (nativeTheme.shouldUseDarkColors ? '#0e1512' : '#f7f8f4
 /** Show the main window; with a route, on that view, else on the one it showed. */
 function showMain(route?: string) {
   if (main && !main.isDestroyed()) {
+    hideAfterFullScreen = false
     if (route) main.webContents.send('dmsg:navigate', route)
+    if (main.isMinimized()) main.restore()
+    // A hidden window's page loses first responder, and macOS hands it back
+    // on show as if Tab were pressed: the first control, the sidebar toggle,
+    // took focus with its ring and tooltip. Focusing the page first keeps
+    // whatever it had focused.
+    main.webContents.focus()
     main.show()
     main.focus()
     return
   }
-  main = new BrowserWindow({
+  const window = new BrowserWindow({
     width: 1180,
     height: 760,
     minWidth: 760,
     minHeight: 540,
     title: 'dMsg',
-    // On macOS the sidebar sits on the window's own material, under the traffic lights.
+    // On macOS the sidebar sits on the window's own material; the traffic
+    // lights sit in the 60px title bar, centred on its line.
     ...(process.platform === 'darwin'
-      ? { titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 18, y: 18 }, vibrancy: 'sidebar', backgroundColor: '#00000000' }
+      ? { titleBarStyle: 'hidden', trafficLightPosition: { x: 18, y: 24 }, vibrancy: 'sidebar', backgroundColor: '#00000000' }
       : { backgroundColor: background() }),
     show: !testMode || process.env.DMSG_DESKTOP_SHOW === '1',
     webPreferences: webPreferences('main')
   })
-  harden(main)
-  load(main, route ?? '/vault')
-  main.on('close', (event) => {
-    // Closing keeps the tray and the daemon; quitting is explicit.
-    if (!quitting && !testMode) {
-      event.preventDefault()
-      main?.hide()
-    }
+  main = window
+  harden(window)
+  load(window, route ?? '/vault')
+  let leavingFullScreen = false
+  // Full screen hides the traffic lights; the title bar takes back their room.
+  window.on('enter-full-screen', () => window.webContents.send('dmsg:fullscreen', true))
+  window.on('leave-full-screen', () => {
+    window.webContents.send('dmsg:fullscreen', false)
+    leavingFullScreen = false
+    if (!hideAfterFullScreen) return
+    hideAfterFullScreen = false
+    if (!quitting) window.hide()
   })
-  main.on('closed', () => (main = null))
+  window.on('close', (event) => {
+    // Closing keeps the tray and the daemon; quitting is explicit.
+    if (quitting) return
+    event.preventDefault()
+    if (process.platform !== 'darwin' || !(leavingFullScreen || window.isFullScreen())) return window.hide()
+    // Hiding a window in full screen leaves its Space behind, black. It hides
+    // once the asynchronous exit finished, unless it is shown again first.
+    hideAfterFullScreen = true
+    if (leavingFullScreen) return
+    leavingFullScreen = true
+    window.setFullScreen(false)
+  })
+  window.on('closed', () => {
+    main = null
+    hideAfterFullScreen = false
+  })
 }
 
 /** The approval window shows one request from the daemon; it takes no outside parameters but the ID. */
@@ -395,6 +424,7 @@ handle('dmsg:set-appearance', 'main', async (_event, next: string) => {
   applyAppearance(next)
 })
 handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError }))
+handle('dmsg:fullscreen', 'main', () => main?.isFullScreen() === true)
 handle('dmsg:updates', 'main', () => ({ version: app.getVersion(), state: updates.state }))
 handle('dmsg:check-updates', 'main', () => updates.check())
 handle('dmsg:apply-update', 'main', () => applyUpdate())

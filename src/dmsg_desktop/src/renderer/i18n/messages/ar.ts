@@ -637,6 +637,8 @@ export default {
     views: 'الأقسام',
     collapseSidebar: 'طيّ الشريط الجانبي',
     expandSidebar: 'توسيع الشريط الجانبي',
+    back: 'رجوع',
+    forward: 'تقدّم',
     legacyNotice: 'بدأ ترحيل من الإصدار القديم ولم يُستورد بعد.',
     searchOrCommand: 'ابحث أو نفّذ أمرًا',
     goTo: 'انتقال',

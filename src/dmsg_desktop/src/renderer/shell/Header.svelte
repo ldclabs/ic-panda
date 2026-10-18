@@ -1,15 +1,36 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte'
   import Icon from '../components/Icon.svelte'
+  import { cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { views, type View } from './nav'
 
-  /** The view's title bar: its name, under Settings for Settings' own pages, a line on what it holds, and the command palette. */
-  let { view, mod, go, onPalette }: { view: View; mod: string; go: (path: string) => void; onPalette: () => void } = $props()
+  /**
+   * The view's title bar: its name, under Settings for Settings' own pages, a
+   * line on what it holds, and the command palette. With the sidebar
+   * collapsed it reaches over the rail's top and starts with the window's
+   * buttons, where the sidebar showed them. On macOS it leaves the traffic
+   * lights their room at the window's top left, its end in right-to-left text.
+   */
+  let {
+    view,
+    mod,
+    collapsed,
+    windowNav,
+    go,
+    onPalette
+  }: { view: View; mod: string; collapsed: boolean; windowNav: Snippet; go: (path: string) => void; onPalette: () => void } = $props()
 
   const parent = $derived(view === views.legacy ? views.settings : null)
 </script>
 
-<header class="flex h-[60px] shrink-0 items-center gap-3 border-b border-line bg-paper px-5 [-webkit-app-region:drag]">
+<header
+  class={cn(
+    'flex h-[60px] shrink-0 items-center gap-3 border-b border-line bg-paper px-5 [-webkit-app-region:drag] lights:rtl:pl-[84px]',
+    collapsed && '-ms-16 ps-4.5 lights:ltr:ps-[82px]'
+  )}
+>
+  {#if collapsed}{@render windowNav()}{/if}
   <span class="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-surface text-forest"><Icon name={view.icon} /></span>
   <div class="min-w-0 flex-1">
     <div class="flex min-w-0 items-center gap-1.5 text-[14.5px] leading-tight font-semibold">

@@ -68,6 +68,10 @@
   }
 }
 
+/* Where macOS shows the main window's traffic lights, at the window's top
+   left: not in full screen, which hides them. */
+@custom-variant lights (:root[data-chrome='inset']:not([data-fullscreen]) &);
+
 @theme inline {
   --color-paper: var(--paper);
   --color-paper-dim: var(--paper-dim);

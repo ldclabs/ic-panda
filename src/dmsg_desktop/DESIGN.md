@@ -220,8 +220,15 @@ monospace face: Arabic loses its letter joining there, so only the value
 ## Layout & Spacing
 
 - **Main window**: sidebar (236px, 64px collapsed) and a title bar (60px)
-  over the view. On macOS the window has no title bar of its own: the
-  traffic lights sit over the sidebar's vibrancy, and the title bar is the
+  over the view. The sidebar's top is the title bar's line, with the
+  window's buttons: the sidebar toggle, back and forward, 28px each. On
+  macOS the window has no title bar of its own: the traffic lights sit over
+  the sidebar's vibrancy, centred on that line, and the buttons follow them
+  (82px from the edge; 18px in full screen, which hides the lights). On the
+  other systems the mark leads and the buttons end the line. Collapsed, the
+  title bar reaches over the rail's top and takes the buttons, on macOS at
+  the same place. In right-to-left text the lights stay at the top left,
+  over the title bar's end, which leaves them 84px. The title bar is the
   drag region.
 - **Pane views** (vault, files, channels, inbox) run edge to edge: a filter
   or list column (248–320px), the open object, and for channels a members
