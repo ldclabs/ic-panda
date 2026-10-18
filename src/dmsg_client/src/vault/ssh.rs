@@ -134,15 +134,25 @@ pub fn inspect(private_key: &str) -> Option<(String, String)> {
     Some((public_line(blob, &comment)?, fingerprint(blob)))
 }
 
-/// Fill an `ssh` item's empty public key and fingerprint from its private
-/// key.
+/// Fill an `ssh` item's public key and fingerprint from its private key:
+/// empty ones, and ones of another key once the private key is replaced.
+/// A public key line of the same key keeps its comment.
 pub(crate) fn complete(item: &mut Item) {
     let Some((public, print)) = inspect(item.value("private_key")) else {
         return;
     };
-    for (id, value) in [("public_key", public), ("fingerprint", print)] {
+    let same_key = item
+        .value("public_key")
+        .split_whitespace()
+        .take(2)
+        .eq(public.split_whitespace().take(2));
+    let fresh = [
+        ("public_key", same_key, public),
+        ("fingerprint", item.value("fingerprint") == print, print),
+    ];
+    for (id, fresh, value) in fresh {
         if let Some(field) = item.fields.iter_mut().find(|f| f.id == id)
-            && field.value.is_empty()
+            && !fresh
         {
             field.value = value;
         }

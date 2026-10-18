@@ -289,11 +289,13 @@ field at a time); file keys never do.
 Vault items. An item has a type, a title, tags, notes, attached library files
 and an ordered list of fields; a new item starts with its type's fields
 (a login's user name, password and website, a card's holder, number, expiry,
-security code and PIN, and so on), and `--field` adds others: text, url,
-email, phone, date (`YYYY-MM-DD`), month (`YYYY-MM`) or concealed. Concealed
-fields and one-time passwords (`--otp`, an `otpauth://totp/…` URI or a base32
-key; `vault otp` prints the current code) are hidden. `--secret-stdin` sets
-the type's main secret and keeps every line, so a PEM or SSH key survives;
+security code and PIN, and so on). `--field` fills a field of that name,
+its label or a type's own field by ID (`--field host=db.example`), and adds
+others: text, url, email, phone, date (`YYYY-MM-DD`), month (`YYYY-MM`) or
+concealed. Concealed fields and one-time passwords (`--otp`, an
+`otpauth://totp/…` URI or a base32 key; `vault otp` prints the current code)
+are hidden. `--secret-stdin` sets the type's main secret and keeps every
+line, so a PEM or SSH key survives;
 `--type ssh --generate` makes a new Ed25519 key, and a pasted OpenSSH private
 key fills in its public key and fingerprint. Items tagged `dmsg-` are dMsg's
 own keys (Agent IDs, Agent Delegation controllers): nothing edits, duplicates
@@ -725,7 +727,8 @@ The daemon listens on `127.0.0.1` only.
   `account/create|show|security|bind_request|bind_accept|bind_approve|unbind|policy|recovery_delay`,
   `recovery/status|request|complete|dispute`,
   `device/pair_request|approve|capabilities|formal_approve|revoke`,
-  `vault/put|edit|delete|restore|list|show|conflicts|resolve`,
+  `vault/templates|create|edit|duplicate|delete|restore|tags|list|show|reveal|history|revert|conflicts|resolve|otp|ssh_keygen|health`,
+  `vault/otp_scan {image|path}`, `vault/import_preview|import` (absolute paths),
   `files/list|tree|show|search|mkdir|rename|move|update|versions|version_use|version_delete|trash|restore|purge|verify|usage`,
   `files/import|export|open|open_list|open_cleanup` (absolute paths),
   `files/share_channel|save_shared`,

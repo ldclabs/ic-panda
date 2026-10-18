@@ -74,13 +74,16 @@
     dirty = snapshot({ title, tags, notes, files, fields }) !== first
   })
 
-  // Attached files by name; one no longer in the library shows its ID.
+  // Attached files by name, each asked for once; one no longer in the library says so.
+  const asked = new Set<string>()
   $effect(() => {
     for (const id of files)
-      if (!(id in names))
+      if (!asked.has(id)) {
+        asked.add(id)
         void call('files/show', { id })
           .then((details: any) => (names = { ...names, [id]: `${details.file.name} · ${size(details.file.size)}` }))
           .catch(() => (names = { ...names, [id]: t('fileMissing') }))
+      }
   })
 
   export function submit() {
@@ -94,16 +97,19 @@
     list?.querySelector<HTMLInputElement>(`[data-index="${fields.length - 1}"] input[data-label]`)?.focus()
   }
 
+  // An open section input follows its field when fields move or go.
   function move(i: number, by: number) {
     const j = i + by
     if (j < 0 || j >= fields.length) return
     const next = [...fields]
     ;[next[i], next[j]] = [next[j], next[i]]
     fields = next
+    sectionOpen = new Set([...sectionOpen].map((k) => (k === i ? j : k === j ? i : k)))
   }
 
   function remove(i: number) {
     fields = fields.filter((_, k) => k !== i)
+    sectionOpen = new Set([...sectionOpen].filter((k) => k !== i).map((k) => (k > i ? k - 1 : k)))
   }
 
   function set(i: number, patch: Partial<Draft>) {

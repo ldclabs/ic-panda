@@ -153,7 +153,8 @@ fn field_id() -> String {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Field {
-    /// Stable within the item: a template field's own ID, or a random one.
+    /// Stable within the item: a template field's own ID, a random one, or
+    /// an imported field's place (`f3`).
     pub id: String,
     /// One of [`FIELD_TYPES`].
     #[serde(rename = "type")]
@@ -476,12 +477,18 @@ pub struct FieldChange {
 }
 
 impl FieldChange {
+    /// The field named by ID, else by its name: its label, or a template
+    /// field's ID when it has no label of its own.
     fn found_in(&self, fields: &[Field]) -> Option<usize> {
         match (&self.id, &self.label) {
             (Some(id), _) => fields.iter().position(|f| &f.id == id),
-            (None, Some(label)) => fields
-                .iter()
-                .position(|f| f.label.trim().eq_ignore_ascii_case(label.trim())),
+            (None, Some(label)) => fields.iter().position(|f| {
+                let name = match f.label.trim() {
+                    "" => f.id.as_str(),
+                    own => own,
+                };
+                name.eq_ignore_ascii_case(label.trim())
+            }),
             (None, None) => None,
         }
     }
@@ -597,6 +604,12 @@ impl Changes {
         }
         for change in self.set.iter().flatten() {
             match change.found_in(&item.fields) {
+                // A field found by its name keeps it as it is.
+                Some(at) if change.id.is_none() => FieldChange {
+                    label: None,
+                    ..change.clone()
+                }
+                .apply(&mut item.fields[at]),
                 Some(at) => change.apply(&mut item.fields[at]),
                 None => item.fields.push(change.create(&item.kind)),
             }
@@ -860,7 +873,6 @@ impl Client {
         ensure(!old.reserved(), Error::Forbidden)?;
         let mut item = old.clone();
         changes.apply(&mut item);
-        item.kind = old.kind.clone();
         item.normalize();
         ensure(!item.reserved(), Error::Forbidden)?;
         item.validate()?;
@@ -992,8 +1004,10 @@ impl Client {
     /// once, as its replacement.
     ///
     /// # Errors
-    /// Returns `Error::NotFound` for an unknown item.
+    /// Returns `Error::Locked` while locked and `Error::NotFound` for an
+    /// unknown item.
     pub fn vault_history(&self, id: &str) -> Result<Vec<Version>> {
+        self.roots()?;
         let (head, _) = self.current(id)?;
         let mut versions = Vec::new();
         for row in self.workspace.store.versions(id)? {

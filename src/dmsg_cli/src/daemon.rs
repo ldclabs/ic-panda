@@ -1244,7 +1244,6 @@ pub(crate) fn constant_time_eq(a: &str, b: &str) -> bool {
             == 0
 }
 
-/// Entries as they leave the daemon: no secret, no file key.
 async fn status(State(daemon): State<Arc<Daemon>>, headers: HeaderMap) -> Response {
     if !daemon.owner(&headers) {
         return StatusCode::UNAUTHORIZED.into_response();

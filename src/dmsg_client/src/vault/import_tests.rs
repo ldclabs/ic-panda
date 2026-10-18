@@ -186,11 +186,14 @@ fn reads_1password_1pux() {
 fn previews_then_imports_the_picked_items() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
-    let csv = "name,url,username,password\n\
-        One,https://one.example,a,pw1\n\
-        Two,https://two.example,b,pw2\n";
-    let path = write(&dir, "chrome.csv", csv.as_bytes());
+    let csv = "Title,Url,Username,Password,OTPAuth\n\
+        One,https://one.example,a,pw1,otpauth://totp/x?secret=JBSWY3DPEHPK3PXP\n\
+        Two,https://two.example,b,pw2,\n";
+    let path = write(&dir, "1p.csv", csv.as_bytes());
     let preview = client.vault_import_preview(&path).unwrap();
+    // A field of the export's own, such as a one-time password, reads the
+    // same each time, and so does the digest.
+    assert_eq!(client.vault_import_preview(&path).unwrap(), preview);
     assert_eq!(preview.items.len(), 2);
     assert!(preview.items.iter().all(|i| !i.duplicate));
     assert_eq!(preview.items[0].username, "a");
@@ -209,6 +212,7 @@ fn previews_then_imports_the_picked_items() {
     assert_eq!(ids.len(), 1);
     let added = client.vault_show(&ids[0]).unwrap();
     assert_eq!(added.item.value("password"), "pw1");
+    assert!(added.item.fields.iter().any(|f| f.kind == "otp"));
     assert!(added.item.created_at > 0);
 
     let again = client.vault_import_preview(&path).unwrap();

@@ -24,7 +24,7 @@ pub struct Imported {
     pub format: &'static str,
     /// The items it holds, valid as they are. Times the export lacks are 0.
     pub items: Vec<Item>,
-    /// Entries left out: archived, attachments only, or invalid.
+    /// Entries left out: archived or invalid.
     pub skipped: usize,
 }
 
@@ -107,6 +107,13 @@ fn keep(mut item: Item, items: &mut Vec<Item>, skipped: &mut usize) {
             })
             .unwrap_or_else(|| "Untitled".into());
         item.title = title.chars().take(200).collect();
+    }
+    // Fields of the export's own are named by their place, not at random,
+    // so that reading the file again gives the same items and digest.
+    for (n, field) in item.fields.iter_mut().enumerate() {
+        if field.id.is_empty() {
+            field.id = format!("f{n}");
+        }
     }
     item.normalize();
     // A value its type cannot hold is kept as concealed (a one-time

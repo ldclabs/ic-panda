@@ -27,7 +27,8 @@ pub struct ItemFields {
     tags: Vec<String>,
     /// A field, `[TYPE:]LABEL=VALUE`: TYPE is text (the default), url,
     /// email, phone, date (YYYY-MM-DD), month (YYYY-MM) or concealed. An
-    /// existing field with that label takes the value.
+    /// existing field of that name takes the value: its label, or a type's
+    /// own field by ID, such as host or cvv.
     #[arg(long = "field")]
     fields: Vec<String>,
     /// A one-time password field: an `otpauth://totp/…` URI or a base32

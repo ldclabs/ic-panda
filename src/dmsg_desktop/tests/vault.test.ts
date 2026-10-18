@@ -102,7 +102,12 @@ test('an edit keeps hidden values it never loaded, and changes or clears them on
     ]
   )
   assert.equal('value' in fieldChanges(form)[1], false)
-  form[1] = { ...form[1], hiddenState: 'clear' }
+  // A change left empty keeps the saved value; only Clear empties it.
+  form[1] = { ...form[1], hiddenState: 'change' }
+  assert.equal('value' in fieldChanges(form)[1], false)
+  form[1] = { ...form[1], value: 'new' }
+  assert.equal(fieldChanges(form)[1].value, 'new')
+  form[1] = { ...form[1], value: '', hiddenState: 'clear' }
   form[2] = { ...form[2], value: '1234' }
   const changes = fieldChanges(form)
   assert.equal(changes[1].value, '')

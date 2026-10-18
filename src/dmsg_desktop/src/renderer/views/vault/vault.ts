@@ -290,11 +290,15 @@ export interface Draft extends Field {
   hiddenState?: 'keep' | 'change' | 'clear'
 }
 
-/** The form's fields as `vault/edit` or `vault/create` field changes; a kept hidden value is left out, so the daemon keeps it. */
+/**
+ * The form's fields as `vault/edit` or `vault/create` field changes; a kept
+ * hidden value, or one opened for a change and left empty, is left out, so
+ * the daemon keeps it. Only Clear empties it.
+ */
 export function fieldChanges(drafts: Draft[]): Record<string, unknown>[] {
   return drafts.map((d) => {
     const change: Record<string, unknown> = { id: d.id || undefined, type: d.type, label: d.label, section: d.section }
-    if (d.hiddenState === 'keep') return change
+    if (d.hiddenState === 'keep' || (d.hiddenState === 'change' && !d.value)) return change
     change.value = d.hiddenState === 'clear' ? '' : d.value
     return change
   })

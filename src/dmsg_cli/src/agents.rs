@@ -584,6 +584,12 @@ impl Daemon {
                     Some(id) => {
                         let entry = client.vault_show(id)?;
                         ensure(!entry.deleted, Error::NotFound)?;
+                        // The edit applies to `base`: the grants must reach
+                        // the version it writes.
+                        let entry = match input["base"].as_str() {
+                            Some(base) => client.vault_version(id, base)?,
+                            None => entry,
+                        };
                         ensure(!entry.item.reserved(), Error::Forbidden)?;
                         tagged(&client, did, "vault.write", &entry.item)?;
                         entry.item

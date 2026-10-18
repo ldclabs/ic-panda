@@ -261,6 +261,24 @@ fn fields_change_by_id_or_label() {
     assert_eq!(item.fields.len(), 3);
     assert_eq!(item.fields[2].label, "Recovery");
     assert!(item.tags.is_empty());
+
+    // A type's own field, without a label, goes by its ID and keeps no label.
+    let mut database = Item::new("database", "x", 1);
+    let host = Changes {
+        set: Some(vec![FieldChange {
+            label: Some("Host".into()),
+            value: Some("db.example".into()),
+            ..FieldChange::default()
+        }]),
+        ..Changes::default()
+    };
+    host.apply(&mut database);
+    assert_eq!(database.fields.len(), 6);
+    let field = database.field("host").unwrap();
+    assert_eq!(
+        (field.value.as_str(), field.label.as_str()),
+        ("db.example", "")
+    );
 }
 
 #[test]
@@ -367,6 +385,8 @@ fn history_shows_and_reverts_versions() {
     );
     let history = client.vault_history(&first.id).unwrap();
     assert!(history[0].deleted && history[0].current);
+    client.lock();
+    assert_eq!(client.vault_history(&first.id).err(), Some(Error::Locked));
 }
 
 #[test]
@@ -472,24 +492,36 @@ fn ssh_items_fill_in_their_public_key() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
     let key = ssh::generate("me@host");
+    let set = |id: &str, value: &str| Changes {
+        title: Some("server".into()),
+        set: Some(vec![FieldChange {
+            id: Some(id.into()),
+            value: Some(value.into()),
+            ..FieldChange::default()
+        }]),
+        ..Changes::default()
+    };
     let entry = client
-        .vault_create(
-            "ssh",
-            &Changes {
-                title: Some("server".into()),
-                set: Some(vec![FieldChange {
-                    id: Some("private_key".into()),
-                    value: Some(key.private_key.clone()),
-                    ..FieldChange::default()
-                }]),
-                ..Changes::default()
-            },
-        )
+        .vault_create("ssh", &set("private_key", &key.private_key))
         .unwrap();
     assert_eq!(entry.item.value("public_key"), key.public_key);
     assert_eq!(entry.item.value("fingerprint"), key.fingerprint);
     // Multi-line values keep their lines.
     assert_eq!(entry.item.value("private_key"), key.private_key);
+
+    // A new private key brings its own public key and fingerprint; a
+    // comment of one's own on the same key stays.
+    let other = ssh::generate("other");
+    let edited = client
+        .vault_edit(&entry.id, None, &set("private_key", &other.private_key))
+        .unwrap();
+    assert_eq!(edited.item.value("public_key"), other.public_key);
+    assert_eq!(edited.item.value("fingerprint"), other.fingerprint);
+    let renamed = format!("{} laptop", other.public_key.rsplit_once(' ').unwrap().0);
+    let edited = client
+        .vault_edit(&entry.id, None, &set("public_key", &renamed))
+        .unwrap();
+    assert_eq!(edited.item.value("public_key"), renamed);
 }
 
 /// The cost of a large vault: `cargo test -p dmsg_client --release

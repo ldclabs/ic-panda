@@ -66,13 +66,16 @@
     if (!editing) dirty = false
   })
 
-  // Attached files by name and size; one gone from the library says so.
+  // Attached files by name and size, each asked for once; one gone from the library says so.
+  const asked = new Set<string>()
   $effect(() => {
     for (const id of item.files ?? [])
-      if (!(id in names))
+      if (!asked.has(id)) {
+        asked.add(id)
         void call('files/show', { id })
           .then((details: any) => (names = { ...names, [id]: details.file }))
           .catch(() => (names = { ...names, [id]: null }))
+      }
   })
 
   async function attempt(work: () => Promise<unknown>, done?: string) {
