@@ -68,7 +68,7 @@ export class Updates {
    * downloaded one, stop the daemon once idle, then quit and install,
    * otherwise say what holds it.
    */
-  async apply(call: (method: string, params: unknown) => Promise<unknown>, quit: () => void, text: Text) {
+  async apply(call: (method: string, params: unknown) => Promise<unknown>, quit: () => Promise<void>, text: Text) {
     const state = this.state
     if (state.kind === 'available') return shell.openExternal(releasePage(state.version))
     if (state.kind !== 'ready') return
@@ -81,7 +81,7 @@ export class Updates {
       })
       return
     }
-    quit()
+    await quit()
     autoUpdater.quitAndInstall()
   }
 

@@ -631,9 +631,11 @@ const refreshWaiting = single(async () => {
 function applyUpdate() {
   return updates.apply(
     (method, params) => daemon.call(method, params),
-    () => {
+    // A copied secret leaves first, so the installing quit is never held.
+    async () => {
       quitting = true
       daemon.close()
+      await forgetCopied()
     },
     text
   )
@@ -783,9 +785,16 @@ app.on('web-contents-created', (_event, contents) => {
     daemon.active()
   })
 })
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
   quitting = true
-  void forgetCopied()
+  // Whether the clipboard still holds a copied secret is read
+  // asynchronously, and Electron does not wait for that: without a window
+  // the read finished only after `quit`. The quit waits for it instead.
+  if (copied) {
+    event.preventDefault()
+    void forgetCopied().finally(() => app.quit())
+    return
+  }
   daemon.close()
 })
 app.on('window-all-closed', () => {
