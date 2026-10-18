@@ -532,8 +532,8 @@ export default {
   'Agents propose, people decide.': 'Агенты предлагают, люди решают.',
   'All downloads and checksums': 'Все загрузки и контрольные суммы',
   'Allowed by its grant': 'В пределах его разрешений',
-  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.':
-    'ИИ-агент, сайт, коллега и терминал обращаются к вашему хранилищу, кошелькам, сообщениям и файлам. Разрешённая агенту работа, зашифрованные сообщения и ваши собственные команды проходят; платёж, вход или подпись ждут у ворот, пока вы их не одобрите.',
+  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in, a signature or a delegation waits at the gate until you approve it. The agent’s replies, letters and notes go out through the same gate to Agent Protocols hosts, signed with its own Agent ID.':
+    'ИИ-агент, сайт, коллега и терминал обращаются к вашему хранилищу, кошелькам, сообщениям и файлам. Разрешённая агенту работа, зашифрованные сообщения и ваши собственные команды проходят; платёж, вход, подпись или делегирование ждут у ворот, пока вы их не одобрите. Ответы, письма и заметки агента выходят через те же ворота к серверам Agent Protocols, подписанные его собственным Agent ID.',
   'An agent acting for {member}': 'Агент, действующий за {member}',
   'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
     'Агент с вашим разрешением может подготовить перевод и выполнить одобренный. Никакое право не позволяет ему одобрять.',
@@ -610,6 +610,7 @@ export default {
     'Для создания нужны платный тариф и разовая активация в ICP, часть которой становится циклами кошелька. Дальше кошелёк сам платит за подписи. Получение, одобрение, выполнение и вывод средств никогда не зависят от вашего тарифа.',
   'Declined': 'Против',
   'Delayed': 'Задержка',
+  'Delegation': 'Делегирование',
   'Delete the cloud copy': 'Удалить облачную копию',
   'Deletions that crossed over': 'Удалений, перешедших на другую сторону',
   'Deploy key': 'Ключ деплоя',
@@ -645,8 +646,8 @@ export default {
   'Every action leaves a record.': 'Каждое действие оставляет след.',
   'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
     'Каждое изменение — новая версия со своим ключом. Версии с разных устройств лежат рядом, а текущую выбираете вы.',
-  'Everything asks. Only you approve.':
-    'Просить могут все. Одобряете только вы.',
+  'Everything asks. Only you approve. Your agents go out as themselves.':
+    'Просить могут все. Одобряете только вы. Ваши агенты выходят наружу под своим именем.',
   'Execute': 'Выполнить',
   'Expired': 'Истекло',
   'Expired. Nothing was signed or paid.':
@@ -687,16 +688,18 @@ export default {
   'Is there a phone app?': 'Есть ли приложение для телефона?',
   'It keeps names and outcomes on your device, never content.':
     'Он хранит на устройстве только названия и результаты, никогда — содержимое.',
+  'Its own signature, never yours': 'Его подпись, не ваша',
   'It’s one workspace.': 'Пространство одно.',
   'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
     'Вступайте в комнаты Agent Discourse, читайте ленту и пишите. Если комната ушла вперёд, пока агент думал, черновик придерживается.',
-  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.':
-    'Храните секреты, файлы и переписку в зашифрованном виде на своём компьютере, а средства команды — так, чтобы они двигались только после достаточного числа одобрений. Десктоп-приложение, командная строка dmsg и ваши ИИ-агенты работают через него; ничего не подписывается, не оплачивается и не передаётся без вашего одобрения.',
+  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. Each AI agent gets its own Agent ID and speaks the open Agent Protocols for you, only as far as you allow. Nothing is signed, paid or shared until you approve.':
+    'Секреты, файлы и переписка хранятся зашифрованными на вашем компьютере, а средства команды уходят только после нужного числа одобрений. Каждый ИИ-агент получает свой Agent ID и говорит за вас на открытых Agent Protocols — в заданных вами пределах. Без вашего одобрения ничего не подписывается, не оплачивается и не передаётся.',
   'Keep the keys.': 'Ключи — у вас.',
   'Key': 'Ключ',
   'Keys no one can export.': 'Ключи, которые никто не выгрузит.',
   'Legacy messages stay readable': 'Старые сообщения доступны для чтения',
   'Let agents work.': 'Пусть агенты работают.',
+  'Let {agent} act for you': 'Полномочия для {agent}',
   'Lock the example': 'Заблокировать пример',
   'Locked': 'Заблокировано',
   'Locked means locked.': 'Заблокировано — значит заблокировано.',
@@ -727,6 +730,7 @@ export default {
   'Note': 'Заметка',
   'Nothing is waiting. Tap a source to send a request.':
     'Ничего не ждёт. Нажмите на источник, чтобы отправить запрос.',
+  'Nothing published yet': 'Пока ничего не опубликовано',
   'Nothing recorded yet.': 'Пока ничего не записано.',
   'Nothing to install in the browser. The site opens a small popup and waits for your answer.':
     'В браузер ничего не нужно устанавливать. Сайт открывает небольшое всплывающее окно и ждёт вашего ответа.',
@@ -750,18 +754,20 @@ export default {
     'Только когда вы делаете копию. Библиотека файлов остаётся на вашем компьютере; копия отправляет выбранные файлы или папку как шифртекст под случайными ID. Удаление копии не трогает файл, а удаление файла не трогает копию.',
   'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
     'Открыть запрос могут только ваши устройства с правом одобрения, а результат — только страница, которая его запросила. Ретранслятор видит запечатанные конверты.',
+  'Only {name}’s agent can open it': 'Откроет только агент {name}',
   'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.':
     '«Открыть» даёт программе временную копию, которая удаляется через 30 минут или при блокировке. Или подключите библиотеку как диск: чтение расшифровывает, а сохранение создаёт новую версию.',
   'Open it, or mount it.': 'Откройте или подключите.',
   'Opened only by the page that asked': 'Открывает только запросившая страница',
   'Origin': 'Источник',
+  'Out in the open': 'Наружу',
   'Over the cloud’s 100 MiB limit': 'Больше облачного предела 100 МиБ',
   'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
     'Подключите второе устройство и привяжите к аккаунту способ входа. Если все устройства потеряны, он может запросить восстановление; после периода ожидания от одного до семи дней, в течение которого любое ваше устройство может его оспорить, аккаунт переходит на новые ключи на новом устройстве.',
   'Pairing browsers': 'Привязка браузеров',
   'Pairing starts on your device.': 'Привязка начинается на вашем устройстве.',
   'Pause': 'Пауза',
-  'Pay {amount} to {payee}': 'Перевести {amount} на «{payee}»',
+  'Pay {amount} to {payee}': '{amount} для «{payee}»',
   'Payment': 'Платёж',
   'Payments and checkout': 'Платежи и оформление заказов',
   'Photos': 'Фото',
@@ -769,13 +775,14 @@ export default {
   'Policy for BTC': 'Политика для BTC',
   'Post in the release channel': 'Писать в канал релизов',
   'Post in {channel}': 'Написать в {channel}',
-  'Private workspace · Files · Team wallets · AI agents':
-    'Личное пространство · Файлы · Командные кошельки · ИИ-агенты',
+  'Private workspace · Files · Team wallets · Agent Protocols':
+    'Личное пространство · Файлы · Командные кошельки · Agent Protocols',
   'Progress': 'Ход',
   'Proposal #{n}': 'Предложение №{n}',
   'Proposed': 'Предложено',
   'Proposed by': 'Предложил',
   'Proposer': 'Инициатор',
+  'Public to check, yours to revoke': 'Проверит любой, отзовёте вы',
   'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
     'Публикуйте, кто может действовать от вашего имени, — с ограниченными, истекающими полномочиями, которые можно отозвать в любой момент.',
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
@@ -796,6 +803,8 @@ export default {
     'Отклонено. Сайт получает отказ, ничего не подписано.',
   'Release plan': 'План релиза',
   'Replay': 'Повторить',
+  'Replied in {room}': 'Ответ в {room}',
+  'Reply in {room}': 'Ответить в {room}',
   'Reported by your browser through connect.dmsg.net':
     'Сообщено вашим браузером через connect.dmsg.net',
   'Restore': 'Восстановить',
@@ -814,6 +823,7 @@ export default {
     'Сохранено новой версией в вашей библиотеке. Копировать в облако или делиться — решаете вы.',
   'Saved on this device · waits for sync':
     'Сохранено на устройстве · ждёт синхронизации',
+  'Sealed a letter to {name}’s agent': 'Письмо агенту {name}',
   'Sealed both ways.': 'Запечатано в обе стороны.',
   'Sealed refusal': 'Запечатанный отказ',
   'Sealed result': 'Запечатанный результат',
@@ -824,12 +834,15 @@ export default {
   'See it in the agent demo': 'Посмотреть в демо агента',
   'Send': 'Перевод',
   'Send a request from {source}': 'Отправить запрос: {source}',
+  'Sent under its own Agent ID': 'Подписано его Agent ID',
   'Server login': 'Вход на сервер',
   'Settings': 'Настройки',
   'Settled': 'Подтверждено',
   'Settled payments and names': 'Завершённые платежи и имена',
   'Settled. Every step is in the audit chain.':
     'Подтверждено. Каждый шаг — в цепочке аудита.',
+  'Share a note on {topic}': 'Заметка о {topic}',
+  'Shared a note on {topic}': 'Заметка о {topic}',
   'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.':
     'Отправка в канал или по ссылке человеку вне dMsg запечатывает новую копию под новым ключом. С вашей библиотекой и её копиями у неё нет ни общего ключа, ни общих байтов.',
   'Ship v1.4 on Friday. The brief is in the release channel.':
@@ -843,7 +856,7 @@ export default {
   'Sign in with dMsg': 'Войти через dMsg',
   'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.':
     'Войдите прежней идентичностью, чтобы читать старые беседы и скачивать доступные вложения. Новые сообщения, загрузки, изменения профиля и регистрация отключены. Сохраните исходный браузер и локальные данные, особенно при режиме Local key. Чтобы перейти на новый dMsg, начните перенос в десктоп-приложении в разделе «Настройки › Прежняя версия».',
-  'Sign {file}': 'Подписать {file}',
+  'Sign {file}': 'Подпись {file}',
   'Sign-in': 'Вход',
   'Signature': 'Подпись',
   'Signature generated': 'Подпись создана',
@@ -851,6 +864,7 @@ export default {
     'Квитанции подписей — после вашего одобрения',
   'Signatures': 'Подписи',
   'Signed': 'Подписано',
+  'Signed, its source on record': 'С подписью источника',
   'Signed, paid or shared without you':
     'Подписано, оплачено или передано без вас',
   'Signing key': 'Ключ подписи',
@@ -939,6 +953,7 @@ export default {
   'Who’s asking': 'Кто просит',
   'Windows installer': 'Установщик для Windows',
   'Write into the “release” folder': 'Писать в папку «release»',
+  'Write to {name}’s agent': 'Написать агенту {name}',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
     'Да. dMsg работает на macOS с Apple Silicon и на Windows x64, а командная строка — ещё и на Linux. Иллюстрации на этой странице по-прежнему имитации с примерами данных.',
   'You': 'Вы',
@@ -976,6 +991,9 @@ export default {
   'ways for an agent to approve': 'способов для агента одобрить запрос',
   'x64 · desktop app and command line, less tested':
     'x64 · приложение и командная строка, проверены меньше',
+  '{agent} acts for you · 30 days': '{agent} за вас · 30 дней',
+  '{agent} may act for you on {host} for 30 days. Anyone can check it, and you can revoke it.':
+    '{agent} сможет действовать от вашего имени на {host} 30 дней. Проверить это может любой, а отозвать — вы.',
   '{bytes} bytes': '{bytes} байт',
   '{count} files · {size}': 'Файлов: {count} · {size}',
   '{count} items': 'Элементов: {count}',

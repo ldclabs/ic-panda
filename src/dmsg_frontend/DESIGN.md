@@ -57,7 +57,7 @@ colors:
 typography:
   display-hero:
     fontFamily: Inter
-    fontSize: 116px
+    fontSize: 92px
     fontWeight: '650'
     lineHeight: '0.98'
     letterSpacing: -0.066em
@@ -279,8 +279,10 @@ precision. A short address preview must have a way to inspect and copy the full
 value; matching abbreviations are not proof that two addresses are identical.
 
 The landing hero is intentionally oversized: desktop
-`clamp(62px, 8.6vw, 116px)`, 650 weight, 0.98 line height, and tight tracking,
-with the closing full stops in Forest Green. Use the two-line “Your space. /
+`clamp(56px, 6vw, 92px)`, 650 weight, 0.98 line height, and tight tracking,
+with the closing full stops in Forest Green. The cap leaves room for the whole
+hero, Fig. 1 and its caption included, in a 16-inch MacBook's first screen
+(1728 × 960 under the header) in every language. Use the two-line “Your space. /
 Your say.” composition. At the mobile breakpoint, use `clamp(54px, 15vw, 80px)`
 and check the complete heading at 320px. French, Spanish, Russian and Chinese
 have their own smaller scales; this exception belongs to short marketing
@@ -314,14 +316,24 @@ border to every object.
 
 The landing rhythm is:
 
-1. Editorial hero: headline on the left, explanation and CTA on the right, then
-   Fig. 1 — the gatehouse, labelled with the headline's own words: who's asking,
-   your space, your say. An AI agent, a website, a teammate and the terminal
-   ask on the left; the mark, drawn large, holds the vault, wallets, messages
-   and files in its dome; granted work, encrypted messages and the visitor's
-   own commands pass through the gap into a room, and a payment, a sign-in or
-   a signature waits there as the amber gem until the visitor decides in the
-   approval window on the right.
+1. Editorial hero: kicker and headline on the left, explanation and CTA on the
+   right, then Fig. 1 — the gatehouse, labelled with the headline's own words:
+   who's asking, your space, your say. An AI agent, a website, a teammate and
+   the terminal ask on the left; the mark, drawn large, holds the vault,
+   wallets, the agent's Agent ID (beside the gem), messages and files in its
+   dome; granted work, encrypted messages
+   and the visitor's own commands pass through the gap into a room, and a
+   delegation, a payment, a sign-in or a signature waits there as the amber gem
+   until the visitor decides in the approval window on the right. The gate
+   works both ways: under it, “Out in the open · Agent Protocols” shows four
+   hosts — Agent Discourse, Mail, Knowledge and Delegation — and the agent's
+   replies, letters and notes, signed with its own Agent ID (the room lights
+   as they pass), leave through the gap's lower end on a dashed wire to them,
+   as does a delegation once approved. Below 1061px of figure width the
+   approval window comes before the band, so the visitor decides before
+   anything goes out, and the wire runs past it on a rail. Cards and the
+   approval window keep one height whatever they show: every text a card or
+   window can show shares one cell, all but the current one hidden.
 2. 01 Desktop & command line: Fig. 2 links a desktop window and a terminal
    through one simulated daemon, followed by three practical notes.
 3. 02 Files: Fig. 3 puts the library on this device beside what the cloud
@@ -436,7 +448,8 @@ success state must follow the corresponding real result. Simulation must be
 clearly identified as simulation.
 
 On the landing page, rich motion is allowed inside working figures, which are
-captioned as simulations: requests drop through the gate's gap into its rooms,
+captioned as simulations: requests drop through the gate's gap into its rooms
+or leave through it to Agent Protocols hosts,
 typed text turns to ciphertext, a terminal types, a sealed envelope rides a
 sequence diagram.
 Nothing in a figure approves on its own: a request waits for the visitor and
@@ -632,9 +645,11 @@ protocol-heavy presentation from 1Pay.ing.
 > text, Inter with monospace kickers and captions. An oversized two-line “Your
 > space. Your say.” headline sits beside a short explanation and CTA. Below it a
 > framed diagram: an AI agent, a website, a teammate and a terminal ask on the
-> left; the dMsg mark, drawn large, holds the vault, wallets, messages and files
-> in its dome; granted work passes through the gap, and a payment waits there as
-> the amber gem until the approval window on the right is answered. Continue into a desktop window beside a terminal, a file library
+> left; the dMsg mark, drawn large, holds the vault, wallets, the agent's Agent
+> ID, messages and files in its dome; granted work passes through the gap, and
+> a delegation waits there as the amber gem until the approval window on the
+> right is answered. Under it, the agent's signed messages leave on a dashed
+> wire to four Agent Protocols hosts. Continue into a desktop window beside a terminal, a file library
 > beside what the cloud holds, a team wallet proposal with its policy, an agent
 > capability panel with an audit record, a website request sequence ending in
 > an approval window, a dark privacy band, trust evidence, release status, FAQ

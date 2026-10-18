@@ -524,8 +524,8 @@ const en = {
   'Agents propose, people decide.': 'Agents propose, people decide.',
   'All downloads and checksums': 'All downloads and checksums',
   'Allowed by its grant': 'Allowed by its grant',
-  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.':
-    'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.',
+  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in, a signature or a delegation waits at the gate until you approve it. The agent’s replies, letters and notes go out through the same gate to Agent Protocols hosts, signed with its own Agent ID.':
+    'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in, a signature or a delegation waits at the gate until you approve it. The agent’s replies, letters and notes go out through the same gate to Agent Protocols hosts, signed with its own Agent ID.',
   'An agent acting for {member}': 'An agent acting for {member}',
   'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
     'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.',
@@ -599,6 +599,7 @@ const en = {
     'Creating one takes a paid plan and a one-time ICP activation, part of which becomes the wallet’s cycles. The wallet then pays its own signing costs. Receiving, approving, executing and withdrawing never depend on your plan.',
   'Declined': 'Declined',
   'Delayed': 'Delayed',
+  'Delegation': 'Delegation',
   'Delete the cloud copy': 'Delete the cloud copy',
   'Deletions that crossed over': 'Deletions that crossed over',
   'Deploy key': 'Deploy key',
@@ -635,7 +636,8 @@ const en = {
   'Every action leaves a record.': 'Every action leaves a record.',
   'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
     'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.',
-  'Everything asks. Only you approve.': 'Everything asks. Only you approve.',
+  'Everything asks. Only you approve. Your agents go out as themselves.':
+    'Everything asks. Only you approve. Your agents go out as themselves.',
   'Execute': 'Execute',
   'Expired': 'Expired',
   'Expired. Nothing was signed or paid.':
@@ -676,16 +678,18 @@ const en = {
   'Is there a phone app?': 'Is there a phone app?',
   'It keeps names and outcomes on your device, never content.':
     'It keeps names and outcomes on your device, never content.',
+  'Its own signature, never yours': 'Its own signature, never yours',
   'It’s one workspace.': 'It’s one workspace.',
   'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
     'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.',
-  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.':
-    'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.',
+  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. Each AI agent gets its own Agent ID and speaks the open Agent Protocols for you, only as far as you allow. Nothing is signed, paid or shared until you approve.':
+    'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. Each AI agent gets its own Agent ID and speaks the open Agent Protocols for you, only as far as you allow. Nothing is signed, paid or shared until you approve.',
   'Keep the keys.': 'Keep the keys.',
   'Key': 'Key',
   'Keys no one can export.': 'Keys no one can export.',
   'Legacy messages stay readable': 'Legacy messages stay readable',
   'Let agents work.': 'Let agents work.',
+  'Let {agent} act for you': 'Let {agent} act for you',
   'Lock the example': 'Lock the example',
   'Locked': 'Locked',
   'Locked means locked.': 'Locked means locked.',
@@ -716,6 +720,7 @@ const en = {
   'Note': 'Note',
   'Nothing is waiting. Tap a source to send a request.':
     'Nothing is waiting. Tap a source to send a request.',
+  'Nothing published yet': 'Nothing published yet',
   'Nothing recorded yet.': 'Nothing recorded yet.',
   'Nothing to install in the browser. The site opens a small popup and waits for your answer.':
     'Nothing to install in the browser. The site opens a small popup and waits for your answer.',
@@ -739,11 +744,13 @@ const en = {
     'Only when you back them up. The file library stays on your computer; a backup sends the files or folder you chose, as ciphertext under random IDs. Deleting a backup leaves your file alone, and deleting a file leaves its backup alone.',
   'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
     'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.',
+  'Only {name}’s agent can open it': 'Only {name}’s agent can open it',
   'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.':
     'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.',
   'Open it, or mount it.': 'Open it, or mount it.',
   'Opened only by the page that asked': 'Opened only by the page that asked',
   'Origin': 'Origin',
+  'Out in the open': 'Out in the open',
   'Over the cloud’s 100 MiB limit': 'Over the cloud’s 100 MiB limit',
   'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
     'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.',
@@ -758,13 +765,14 @@ const en = {
   'Policy for BTC': 'Policy for BTC',
   'Post in the release channel': 'Post in the release channel',
   'Post in {channel}': 'Post in {channel}',
-  'Private workspace · Files · Team wallets · AI agents':
-    'Private workspace · Files · Team wallets · AI agents',
+  'Private workspace · Files · Team wallets · Agent Protocols':
+    'Private workspace · Files · Team wallets · Agent Protocols',
   'Progress': 'Progress',
   'Proposal #{n}': 'Proposal #{n}',
   'Proposed': 'Proposed',
   'Proposed by': 'Proposed by',
   'Proposer': 'Proposer',
+  'Public to check, yours to revoke': 'Public to check, yours to revoke',
   'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
     'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.',
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
@@ -784,6 +792,8 @@ const en = {
     'Rejected. The site is told no, and nothing is signed.',
   'Release plan': 'Release plan',
   'Replay': 'Replay',
+  'Replied in {room}': 'Replied in {room}',
+  'Reply in {room}': 'Reply in {room}',
   'Reported by your browser through connect.dmsg.net':
     'Reported by your browser through connect.dmsg.net',
   'Restore': 'Restore',
@@ -802,6 +812,7 @@ const en = {
     'Saved as a new version in your library. Backing it up or sharing it stays with you.',
   'Saved on this device · waits for sync':
     'Saved on this device · waits for sync',
+  'Sealed a letter to {name}’s agent': 'Sealed a letter to {name}’s agent',
   'Sealed both ways.': 'Sealed both ways.',
   'Sealed refusal': 'Sealed refusal',
   'Sealed result': 'Sealed result',
@@ -812,12 +823,15 @@ const en = {
   'See it in the agent demo': 'See it in the agent demo',
   'Send': 'Send',
   'Send a request from {source}': 'Send a request from {source}',
+  'Sent under its own Agent ID': 'Sent under its own Agent ID',
   'Server login': 'Server login',
   'Settings': 'Settings',
   'Settled': 'Settled',
   'Settled payments and names': 'Settled payments and names',
   'Settled. Every step is in the audit chain.':
     'Settled. Every step is in the audit chain.',
+  'Share a note on {topic}': 'Share a note on {topic}',
+  'Shared a note on {topic}': 'Shared a note on {topic}',
   'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.':
     'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.',
   'Ship v1.4 on Friday. The brief is in the release channel.':
@@ -839,6 +853,7 @@ const en = {
     'Signature receipts, after you approve',
   'Signatures': 'Signatures',
   'Signed': 'Signed',
+  'Signed, its source on record': 'Signed, its source on record',
   'Signed, paid or shared without you': 'Signed, paid or shared without you',
   'Signing key': 'Signing key',
   'Signing…': 'Signing…',
@@ -926,6 +941,7 @@ const en = {
   'Who’s asking': 'Who’s asking',
   'Windows installer': 'Windows installer',
   'Write into the “release” folder': 'Write into the “release” folder',
+  'Write to {name}’s agent': 'Write to {name}’s agent',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
     'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.',
   'You': 'You',
@@ -964,6 +980,9 @@ const en = {
   'ways for an agent to approve': 'ways for an agent to approve',
   'x64 · desktop app and command line, less tested':
     'x64 · desktop app and command line, less tested',
+  '{agent} acts for you · 30 days': '{agent} acts for you · 30 days',
+  '{agent} may act for you on {host} for 30 days. Anyone can check it, and you can revoke it.':
+    '{agent} may act for you on {host} for 30 days. Anyone can check it, and you can revoke it.',
   '{bytes} bytes': '{bytes} bytes',
   '{count} files · {size}': '{count} files · {size}',
   '{count} items': '{count} items',

@@ -542,8 +542,8 @@ export default {
     'Los agentes proponen, las personas deciden.',
   'All downloads and checksums': 'Todas las descargas y sumas de comprobación',
   'Allowed by its grant': 'Cubierta por su concesión',
-  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.':
-    'Un agente de IA, un sitio web, un miembro del equipo y el terminal piden cosas de tu bóveda, tus monederos, tus mensajes y tus archivos. El trabajo concedido al agente, los mensajes cifrados y tus propios comandos pasan; un pago, un inicio de sesión o una firma esperan en la puerta hasta que los apruebes.',
+  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in, a signature or a delegation waits at the gate until you approve it. The agent’s replies, letters and notes go out through the same gate to Agent Protocols hosts, signed with its own Agent ID.':
+    'Un agente de IA, un sitio web, un miembro del equipo y el terminal piden cosas de tu bóveda, tus monederos, tus mensajes y tus archivos. El trabajo concedido al agente, los mensajes cifrados y tus propios comandos pasan; un pago, un inicio de sesión, una firma o una delegación esperan en la puerta hasta que los apruebes. Las respuestas, cartas y notas del agente salen por la misma puerta hacia servicios de Agent Protocols, firmadas con su propio Agent ID.',
   'An agent acting for {member}': 'Un agente que actúa por {member}',
   'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
     'Un agente con permiso puede preparar una transferencia y ejecutar una aprobada. Ninguna capacidad le deja aprobar.',
@@ -619,6 +619,7 @@ export default {
     'Crear uno requiere un plan de pago y una activación única en ICP, parte de la cual se convierte en los cycles del monedero. Después, el monedero paga sus propias firmas. Recibir, aprobar, ejecutar y retirar nunca dependen de tu plan.',
   'Declined': 'Rechazado',
   'Delayed': 'En espera',
+  'Delegation': 'Delegación',
   'Delete the cloud copy': 'Eliminar la copia en la nube',
   'Deletions that crossed over': 'Borrados que pasaron al otro lado',
   'Deploy key': 'Clave de despliegue',
@@ -649,13 +650,14 @@ export default {
   'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
     'Cifrado en tu navegador con una clave AES-GCM desechable, solo como ilustración; el formato de dMsg es distinto. Fíjate en el tamaño: el cifrado oculta el contenido, no la longitud ni el momento.',
   'Encrypted on this computer': 'Cifrado en este ordenador',
-  'End-to-end encrypted': 'Cifrado de extremo a extremo',
+  'End-to-end encrypted': 'Cifrado de punta a punta',
   'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
     'Cartas cifradas de extremo a extremo entre agentes, a buzones que publicas y rotas.',
   'Every action leaves a record.': 'Cada acción deja un registro.',
   'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
     'Cada cambio es una versión nueva con su propia clave. Las versiones de distintos dispositivos conviven, y tú eliges la actual.',
-  'Everything asks. Only you approve.': 'Todos piden. Solo tú apruebas.',
+  'Everything asks. Only you approve. Your agents go out as themselves.':
+    'Todos piden. Solo tú apruebas. Tus agentes salen con su propio nombre.',
   'Execute': 'Ejecutar',
   'Expired': 'Caducada',
   'Expired. Nothing was signed or paid.':
@@ -696,16 +698,18 @@ export default {
   'Is there a phone app?': '¿Hay una app para el móvil?',
   'It keeps names and outcomes on your device, never content.':
     'Guarda nombres y resultados en tu dispositivo, nunca contenido.',
+  'Its own signature, never yours': 'Su propia firma, nunca la tuya',
   'It’s one workspace.': 'Es un solo espacio.',
   'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
     'Únete a salas de Agent Discourse, lee la cronología y publica. Un borrador queda retenido si la sala avanzó mientras el agente pensaba.',
-  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.':
-    'Guarda secretos, archivos y conversaciones cifrados en tu propio ordenador, y fondos de equipo que solo se mueven con aprobaciones suficientes. La app de escritorio, la línea de comandos dmsg y tus agentes de IA trabajan a través de él; nada se firma, se paga ni se comparte hasta que lo apruebes.',
+  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. Each AI agent gets its own Agent ID and speaks the open Agent Protocols for you, only as far as you allow. Nothing is signed, paid or shared until you approve.':
+    'Guarda secretos, archivos y conversaciones cifrados en tu propio ordenador, y fondos de equipo que solo se mueven con aprobaciones suficientes. Cada agente de IA recibe su propio Agent ID y habla por ti mediante los Agent Protocols abiertos, solo hasta donde lo permitas. Nada se firma, se paga ni se comparte hasta que lo apruebes.',
   'Keep the keys.': 'Quédate con las llaves.',
   'Key': 'Clave',
   'Keys no one can export.': 'Claves que nadie puede exportar.',
   'Legacy messages stay readable': 'Los mensajes antiguos siguen legibles',
   'Let agents work.': 'Deja trabajar a los agentes.',
+  'Let {agent} act for you': 'Delegar en {agent}',
   'Lock the example': 'Bloquear el ejemplo',
   'Locked': 'Bloqueado',
   'Locked means locked.': 'Bloqueado es bloqueado.',
@@ -736,6 +740,7 @@ export default {
   'Note': 'Nota',
   'Nothing is waiting. Tap a source to send a request.':
     'Nada pendiente. Toca un origen para enviar una solicitud.',
+  'Nothing published yet': 'Nada publicado todavía',
   'Nothing recorded yet.': 'Aún no hay registros.',
   'Nothing to install in the browser. The site opens a small popup and waits for your answer.':
     'Nada que instalar en el navegador. El sitio abre una pequeña ventana emergente y espera tu respuesta.',
@@ -759,18 +764,20 @@ export default {
     'Solo cuando haces una copia. La biblioteca se queda en tu ordenador; una copia envía los archivos o la carpeta que elegiste, cifrados con ID aleatorios. Borrar una copia no toca tu archivo, y borrar un archivo no toca su copia.',
   'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
     'Solo tus dispositivos con permiso de aprobación pueden abrir una solicitud, y solo la página que la hizo puede abrir el resultado. El relé ve sobres sellados.',
+  'Only {name}’s agent can open it': 'Solo el agente de {name} puede abrirla',
   'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.':
     '«Abrir» entrega al programa una copia temporal, que se borra a los 30 minutos o al bloquear. O monta la biblioteca como un disco: leer descifra y guardar crea una versión nueva.',
   'Open it, or mount it.': 'Ábrelo o móntalo.',
   'Opened only by the page that asked': 'Solo lo abre la página que lo pidió',
   'Origin': 'Origen',
+  'Out in the open': 'Hacia fuera',
   'Over the cloud’s 100 MiB limit': 'Supera el límite de 100 MiB de la nube',
   'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
     'Vincula un segundo dispositivo y mantén un inicio de sesión ligado a tu cuenta. Si pierdes todos los dispositivos, ese inicio de sesión puede pedir la recuperación; tras una espera de uno a siete días, durante la cual cualquiera de tus dispositivos puede impugnarla, la cuenta pasa a claves nuevas en el nuevo dispositivo.',
   'Pairing browsers': 'Vincular navegadores',
   'Pairing starts on your device.': 'La vinculación empieza en tu dispositivo.',
   'Pause': 'Pausa',
-  'Pay {amount} to {payee}': 'Pagar {amount} a «{payee}»',
+  'Pay {amount} to {payee}': 'Pagar {amount} a {payee}',
   'Payment': 'Pago',
   'Payments and checkout': 'Pagos y compras',
   'Photos': 'Fotos',
@@ -778,19 +785,20 @@ export default {
   'Policy for BTC': 'Política para BTC',
   'Post in the release channel': 'Publicar en el canal de lanzamientos',
   'Post in {channel}': 'Publicar en {channel}',
-  'Private workspace · Files · Team wallets · AI agents':
-    'Espacio privado · Archivos · Monederos de equipo · Agentes de IA',
+  'Private workspace · Files · Team wallets · Agent Protocols':
+    'Espacio privado · Archivos · Monederos de equipo · Agent Protocols',
   'Progress': 'Progreso',
   'Proposal #{n}': 'Propuesta n.º {n}',
   'Proposed': 'Propuesta',
   'Proposed by': 'Propuesto por',
   'Proposer': 'Proponente',
+  'Public to check, yours to revoke': 'Pública; solo tú la revocas',
   'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
     'Publica quién puede actuar en tu nombre, con credenciales acotadas y con caducidad que puedes revocar en cualquier momento.',
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
     'Publica, evalúa y retira conocimiento firmado, y consulta lo que han compartido otros agentes.',
   'Read items tagged “deploy”': 'Leer elementos con la etiqueta «deploy»',
-  'Read the deploy key': 'Leer la clave de despliegue',
+  'Read the deploy key': 'Leer clave de despliegue',
   'Readable, and only while unlocked':
     'Legible, y solo mientras está desbloqueado',
   'Ready': 'Lista',
@@ -806,6 +814,8 @@ export default {
     'Rechazado. El sitio recibe un no y no se firma nada.',
   'Release plan': 'Plan de lanzamiento',
   'Replay': 'Repetir',
+  'Replied in {room}': 'Respondió en {room}',
+  'Reply in {room}': 'Responder en {room}',
   'Reported by your browser through connect.dmsg.net':
     'Indicado por tu navegador a través de connect.dmsg.net',
   'Restore': 'Restaurar',
@@ -824,6 +834,7 @@ export default {
     'Guardado como versión nueva en tu biblioteca. Hacer copia o compartirlo sigue siendo cosa tuya.',
   'Saved on this device · waits for sync':
     'Guardado en este dispositivo · pendiente de sincronizar',
+  'Sealed a letter to {name}’s agent': 'Carta al agente de {name}',
   'Sealed both ways.': 'Sellado en ambos sentidos.',
   'Sealed refusal': 'Rechazo sellado',
   'Sealed result': 'Resultado sellado',
@@ -834,12 +845,15 @@ export default {
   'See it in the agent demo': 'Verlo en la demo del agente',
   'Send': 'Envío',
   'Send a request from {source}': 'Enviar una solicitud desde {source}',
+  'Sent under its own Agent ID': 'Firmado con su Agent ID',
   'Server login': 'Acceso al servidor',
   'Settings': 'Ajustes',
   'Settled': 'Liquidada',
   'Settled payments and names': 'Pagos liquidados y nombres',
   'Settled. Every step is in the audit chain.':
     'Liquidada. Cada paso está en la cadena de auditoría.',
+  'Share a note on {topic}': 'Compartir nota: {topic}',
+  'Shared a note on {topic}': 'Nota compartida: {topic}',
   'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.':
     'Compartir en un canal, o por enlace con alguien fuera de dMsg, sella una copia nueva con una clave nueva. No comparte ni clave ni bytes con tu biblioteca ni con sus copias.',
   'Ship v1.4 on Friday. The brief is in the release channel.':
@@ -861,6 +875,7 @@ export default {
     'Recibos de firma, después de que apruebes',
   'Signatures': 'Firmas',
   'Signed': 'Firmada',
+  'Signed, its source on record': 'Firmada, con su origen registrado',
   'Signed, paid or shared without you': 'Firmado, pagado o compartido sin ti',
   'Signing key': 'Clave de firma',
   'Signing…': 'Firmando…',
@@ -949,6 +964,7 @@ export default {
   'Who’s asking': 'Quién pide',
   'Windows installer': 'Instalador para Windows',
   'Write into the “release” folder': 'Escribir en la carpeta «release»',
+  'Write to {name}’s agent': 'Escribir al agente de {name}',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
     'Sí. dMsg funciona en macOS con Apple Silicon y en Windows x64, y su línea de comandos también en Linux. Las figuras de esta página siguen siendo simulaciones con datos de ejemplo.',
   'You': 'Tú',
@@ -987,6 +1003,9 @@ export default {
   'ways for an agent to approve': 'formas de que un agente apruebe',
   'x64 · desktop app and command line, less tested':
     'x64 · app de escritorio y línea de comandos, menos probadas',
+  '{agent} acts for you · 30 days': '{agent} delegado · 30 días',
+  '{agent} may act for you on {host} for 30 days. Anyone can check it, and you can revoke it.':
+    '{agent} podrá actuar en tu nombre en {host} durante 30 días. Cualquiera puede comprobarlo, y puedes revocarlo.',
   '{bytes} bytes': '{bytes} bytes',
   '{count} files · {size}': '{count} archivos · {size}',
   '{count} items': '{count} elementos',

@@ -150,11 +150,13 @@ html[dir='rtl'] .home .scroll-meter {
 }
 
 /* ——— Hero ——— */
+/* Sized so the headline and all of Fig. 1 fit a 16-inch MacBook's first
+   screen (a 1728 × 960 viewport under the header). */
 .home .hero {
-  padding: 52px 0 96px;
+  padding: 20px 0 88px;
 }
 .home .hero-kicker {
-  margin-bottom: 30px;
+  margin-bottom: 22px;
 }
 .home .hero-kicker::after {
   display: none;
@@ -176,13 +178,16 @@ html[dir='rtl'] .home .scroll-meter {
 }
 .home .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 600px);
   gap: 56px;
   align-items: end;
-  margin-bottom: 56px;
+  margin-bottom: 20px;
+}
+.home .hero-main {
+  min-width: 0;
 }
 .home .hero h1 {
-  font-size: clamp(62px, 8.6vw, 116px);
+  font-size: clamp(56px, 6vw, 92px);
   font-weight: 650;
   line-height: 0.98;
   letter-spacing: -0.066em;
@@ -206,9 +211,9 @@ html[dir='rtl'] .home .scroll-meter {
   animation: fade-up 0.9s var(--ease) 0.35s both;
 }
 .home .hero-lead {
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.6;
-  margin: 0 0 26px;
+  margin: 0 0 20px;
   color: var(--muted);
 }
 .home .hero-actions .text-link .glyph,
@@ -226,7 +231,7 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   translate: -3px 0;
 }
 .home .hero-note {
-  margin: 18px 0 0;
+  margin: 14px 0 0;
   font-size: 13px;
   display: flex;
   flex-wrap: wrap;
@@ -256,6 +261,9 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   margin-top: 16px;
   font: 12px/1.6 var(--mono);
   color: var(--muted);
+}
+.home .gate-fig figcaption {
+  margin-top: 12px;
 }
 .home .fig-no {
   color: var(--forest);
@@ -368,15 +376,16 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   border-radius: 18px;
   background: linear-gradient(180deg, #fbfcf9, #f3f6f1);
 }
-/* Who asks, the gate and your space, and your say, left to right. */
+/* Who asks, the gate and your space, and your say, left to right; below
+   them, out in the open, the hosts the agent signs at. */
 .home .gate-stage {
   position: relative;
   display: grid;
   grid-template-columns:
     minmax(220px, 250px) minmax(72px, 1.2fr) auto minmax(24px, 0.4fr)
     minmax(280px, 330px);
-  grid-template-areas: 'ask . gate . you';
-  padding: 30px 32px;
+  grid-template-areas: 'ask . gate . you' 'net net net net net';
+  padding: 20px 28px;
 }
 .home .gate-stage canvas {
   position: absolute;
@@ -400,7 +409,7 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   margin-block: auto;
 }
 .home .gh-label {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font: 500 11.5px/1.5 var(--mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -412,14 +421,14 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
 .home .gh-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .home .gh-asker {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
   column-gap: 10px;
   align-items: start;
-  padding: 10px 12px 10px 10px;
+  padding: 8px 12px 8px 10px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.96);
@@ -473,11 +482,23 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   font: 11px var(--mono);
   color: var(--muted);
 }
+/* Every text a card can show shares one cell; only the current one is
+   visible, so the card's height never changes under the pointer. */
+.home .gh-lines {
+  display: grid;
+  min-width: 0;
+}
+.home .gh-lines > * {
+  grid-area: 1 / 1;
+}
+.home .gh-lines > [aria-hidden='true'] {
+  visibility: hidden;
+}
 .home .gh-req {
   display: flex;
   align-items: baseline;
   gap: 7px;
-  margin-top: 3px;
+  margin-top: 1px;
   font-size: 14px;
   line-height: 1.35;
   color: var(--ink);
@@ -496,7 +517,7 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   transform: translateY(-1px) rotate(45deg);
 }
 .home .gh-state {
-  margin-top: 2px;
+  margin-top: 0;
   padding-inline-start: 14px;
   font-size: 12px;
   line-height: 1.4;
@@ -517,16 +538,18 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   margin-inline: 38% 0;
   text-align: center;
 }
+/* One line, which may reach past the dome into the gap beside it. */
 .home .gh-sub {
-  margin-block: 12px 0;
+  margin-block: 10px 0;
   font-size: 12.5px;
   line-height: 1.4;
+  white-space: nowrap;
   color: var(--muted);
 }
 .home .gh-mark {
   container: mark / size;
   position: relative;
-  height: 400px;
+  height: 300px;
   aspect-ratio: 42 / 48;
 }
 .home .gh-mark > svg {
@@ -623,7 +646,7 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   font: 0.8em var(--mono);
   color: rgba(231, 239, 233, 0.62);
 }
-@container mark (max-height: 330px) {
+@container mark (max-height: 280px) {
   .home .gh-room-text small {
     display: none;
   }
@@ -637,11 +660,20 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
 }
 .home .gh-tk {
   position: relative;
-  min-height: 218px;
+  padding: 12px 16px 16px;
+}
+/* Every request's title and consequence share one cell, and with nothing
+   waiting a hidden sheet keeps the space, so the window never resizes. */
+.home .gh-sheet.ghost {
+  visibility: hidden;
+}
+.home .gh-over {
+  position: absolute;
+  inset: 0;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  padding: 14px 16px 18px;
+  padding: 12px 16px 16px;
 }
 .home .gh-tk > :not(i) {
   animation: fade-up 0.35s var(--ease) both;
@@ -670,8 +702,17 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   transform: rotate(45deg);
 }
 .home .gh-more {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12px;
   color: var(--muted);
+}
+/* The top row stays one line: only the count gives way. */
+.home :is(.gh-kind, .gh-timer) {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .home .gh-timer {
   margin-inline-start: auto;
@@ -737,33 +778,153 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
 .home .gh-zero b {
   font: 600 15px var(--mono);
 }
+/* The label across, the hosts under it: the wire leaves the gap straight
+   down onto their bus, below the label, so nothing stands in its way. */
+.home .gh-net {
+  grid-area: net;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  margin-top: 18px;
+}
+.home .gh-net > .gh-label {
+  margin: 0;
+}
+.home .gh-label a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(20, 92, 69, 0.35);
+  text-underline-offset: 3px;
+}
+.home .gh-label a:hover {
+  text-decoration-color: currentColor;
+}
+.home .gh-hosts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  /* The bus runs in this margin, clear of the label. */
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.home .gh-host {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 8px 12px 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.home .gh-host.hit {
+  border-color: var(--forest);
+  box-shadow: 0 8px 22px -10px rgba(20, 92, 69, 0.45);
+}
+.home .gh-host-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.home .gh-host-name .glyph {
+  flex-shrink: 0;
+  color: var(--forest);
+}
+.home .gh-host :is(code, .gh-req, .gh-state) {
+  min-width: 0;
+}
+.home .gh-host code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 11px/1.4 var(--mono);
+  color: var(--muted);
+}
+.home .gh-host .gh-req {
+  margin-top: 2px;
+  font-size: 13px;
+  animation: fade-up 0.35s var(--ease) both;
+}
+.home .gh-host .gh-state {
+  margin-top: 1px;
+  font-size: 11.5px;
+}
+.home .gh-req.idle {
+  color: var(--muted);
+}
+.home .gh-req.idle i {
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--muted);
+}
+/* Your say moves under the askers and the gate, so you decide before the
+   request goes out; the band follows with its hosts in a column on a rail
+   at the left, and the wire comes down beside the approval window. */
 @container gatehouse (max-width: 1060px) {
   .home .gate-stage {
     grid-template-columns:
       minmax(220px, 280px) minmax(72px, 1fr) auto
       minmax(0, 0.3fr);
-    grid-template-areas: 'ask . gate .' 'you you you you';
+    grid-template-areas: 'ask . gate .' 'you you you you' 'net net net net';
     row-gap: 36px;
+  }
+  .home .gh-net {
+    margin-top: 0;
+  }
+  .home .gh-hosts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding-inline-start: 22px;
+  }
+  /* Each host a row: what it is on the left, what reached it on the right. */
+  .home .gh-host {
+    display: grid;
+    grid-template-columns: minmax(0, 13em) minmax(0, 1fr);
+    grid-auto-flow: column;
+    grid-template-rows: auto auto;
+    column-gap: 16px;
+  }
+  .home .gh-host .gh-req {
+    margin-top: 0;
   }
   .home .gh-mark {
     height: 360px;
   }
   .home .gh-say {
-    display: grid;
-    grid-template-columns: minmax(0, 440px) minmax(200px, 1fr);
-    column-gap: 32px;
-    align-items: end;
+    max-width: 400px;
   }
   .home .gh-zero {
-    margin: 0;
+    margin-top: 14px;
   }
 }
 @container gatehouse (max-width: 719px) {
   .home .gate-stage {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'ask' 'gate' 'you';
+    grid-template-areas: 'ask' 'gate' 'you' 'net';
     row-gap: 44px;
     padding: 24px 16px;
+  }
+  /* A lane at the left for the wire past the approval window. */
+  .home :is(.gh-you, .gh-net) {
+    margin-left: 20px;
+  }
+  .home .gh-hosts {
+    padding-inline-start: 0;
+  }
+  .home .gh-host {
+    display: flex;
+  }
+  .home .gh-host .gh-req {
+    margin-top: 2px;
   }
   .home .gh-gate {
     justify-self: center;
@@ -781,10 +942,7 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
     height: min(340px, calc((100cqw - 34px) * 48 / 42));
   }
   .home .gh-say {
-    display: block;
-  }
-  .home .gh-zero {
-    margin-top: 14px;
+    max-width: none;
   }
 }
 .home :is(.gc-actions, .as-actions, .aw-actions) {
@@ -894,6 +1052,16 @@ html[dir='rtl'] .home .button.primary:hover .glyph-arrow-right {
   font-weight: 650;
   font-size: 13px;
   letter-spacing: -0.01em;
+}
+/* A title alone after the lights centres on the whole bar, as on macOS. */
+.home .win-bar:has(> .win-title:last-child) {
+  position: relative;
+}
+.home .win-bar > .win-title:last-child {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  white-space: nowrap;
 }
 .home .lock-state {
   display: inline-flex;
@@ -3563,14 +3731,14 @@ html:is([lang='zh'], [lang='ar']) .home :is(h1, .sec-head h2, .closing h2) {
   letter-spacing: 0;
 }
 html[lang='zh'] .home .hero h1 {
-  font-size: clamp(48px, 6.6vw, 96px);
+  font-size: clamp(46px, 5.8vw, 88px);
   line-height: 1.12;
 }
 html:is([lang='fr'], [lang='es']) .home .hero h1 {
-  font-size: clamp(52px, 7.2vw, 104px);
+  font-size: clamp(50px, 6vw, 92px);
 }
 html[lang='ru'] .home .hero h1 {
-  font-size: clamp(40px, 5.4vw, 80px);
+  font-size: clamp(36px, 4.6vw, 70px);
   letter-spacing: -0.05em;
 }
 html[lang='ru'] .home :is(.sec-head h2, .closing h2) {

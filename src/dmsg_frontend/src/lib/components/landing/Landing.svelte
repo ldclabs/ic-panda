@@ -268,23 +268,25 @@
   <main id="main" tabindex="-1">
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="wrap">
-        <p class="kicker hero-kicker">
-          <i class="pulse"></i>{$t(
-            'Private workspace · Files · Team wallets · AI agents'
-          )}
-        </p>
         <div class="hero-grid">
-          <h1 id="hero-title">
-            {#each headline as [body, stop], i}
-              <span class="h1-line" style:--i={i}
-                ><span>{body}<em>{stop}</em></span></span
-              >
-            {/each}
-          </h1>
+          <div class="hero-main">
+            <p class="kicker hero-kicker">
+              <i class="pulse"></i>{$t(
+                'Private workspace · Files · Team wallets · Agent Protocols'
+              )}
+            </p>
+            <h1 id="hero-title">
+              {#each headline as [body, stop], i}
+                <span class="h1-line" style:--i={i}
+                  ><span>{body}<em>{stop}</em></span></span
+                >
+              {/each}
+            </h1>
+          </div>
           <div class="hero-side">
             <p class="hero-lead">
               {$t(
-                'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.'
+                'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. Each AI agent gets its own Agent ID and speaks the open Agent Protocols for you, only as far as you allow. Nothing is signed, paid or shared until you approve.'
               )}
             </p>
             <div class="hero-actions">

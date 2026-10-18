@@ -514,8 +514,8 @@ export default {
   'Agents propose, people decide.': '智能体提议，人来决定。',
   'All downloads and checksums': '全部下载与校验和',
   'Allowed by its grant': '在授权范围内',
-  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.':
-    'AI 智能体、网站、队友和终端都会向你的保险库、钱包、消息和文件提出请求。已授权给智能体的工作、加密送达的消息和你自己的命令会直接通过；付款、登录或签名则在门口等待，直到你批准。',
+  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in, a signature or a delegation waits at the gate until you approve it. The agent’s replies, letters and notes go out through the same gate to Agent Protocols hosts, signed with its own Agent ID.':
+    'AI 智能体、网站、队友和终端都会向你的保险库、钱包、消息和文件提出请求。已授权给智能体的工作、加密送达的消息和你自己的命令会直接通过；付款、登录、签名或委托则在门口等待，直到你批准。智能体的回复、信件和笔记也经由同一道门发往 Agent Protocols 服务，以它自己的 Agent ID 签名。',
   'An agent acting for {member}': '代表 {member} 行事的智能体',
   'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
     '经你授权的智能体可以起草转账，也可以执行已批准的转账，但没有任何能力能让它批准。',
@@ -586,6 +586,7 @@ export default {
     '创建钱包需要付费套餐，并一次性支付 ICP 激活费，其中一部分会转为钱包的 cycles。之后钱包自己支付签名成本。收款、批准、执行和提取都不取决于你的套餐。',
   'Declined': '已拒绝',
   'Delayed': '延时中',
+  'Delegation': '委托',
   'Delete the cloud copy': '删除云端副本',
   'Deletions that crossed over': '跨到另一边的删除',
   'Deploy key': '部署密钥',
@@ -621,7 +622,8 @@ export default {
   'Every action leaves a record.': '每个操作都有记录。',
   'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
     '每次修改都是一个新版本，各有独立的密钥。不同设备产生的版本并排保留，由你选择当前版本。',
-  'Everything asks. Only you approve.': '一切都要请示，唯有你能批准。',
+  'Everything asks. Only you approve. Your agents go out as themselves.':
+    '一切都要请示，唯有你能批准。你的智能体以自己的身份出门办事。',
   'Execute': '执行',
   'Expired': '已过期',
   'Expired. Nothing was signed or paid.': '已过期。没有签署或支付任何东西。',
@@ -660,16 +662,18 @@ export default {
   'Is there a phone app?': '有手机应用吗？',
   'It keeps names and outcomes on your device, never content.':
     '它只在你的设备上记录名称与结果，从不记录内容。',
+  'Its own signature, never yours': '用它自己的签名，绝不用你的',
   'It’s one workspace.': '都是同一个工作空间。',
   'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
     '加入 Agent Discourse 房间，阅读时间线并发言。若智能体思考期间房间已有新动态，草稿会先暂存。',
-  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.':
-    '把机密、文件和对话加密保存在你自己的电脑上，团队资金也只在获得足够批准后才会动用。桌面应用、dmsg 命令行和你的 AI 智能体都经由它工作；未经你批准，任何内容都不会被签署、支付或共享。',
+  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. Each AI agent gets its own Agent ID and speaks the open Agent Protocols for you, only as far as you allow. Nothing is signed, paid or shared until you approve.':
+    '把机密、文件和对话加密保存在你自己的电脑上，团队资金也只在获得足够批准后才会动用。每个 AI 智能体都有自己的 Agent ID，在你允许的范围内，用开放的 Agent Protocols 替你办事。未经你批准，任何内容都不会被签署、支付或共享。',
   'Keep the keys.': '密钥留给你。',
   'Key': '密钥',
   'Keys no one can export.': '谁也导不出的密钥。',
   'Legacy messages stay readable': '旧版消息仍可阅读',
   'Let agents work.': '让智能体去干活。',
+  'Let {agent} act for you': '让 {agent} 代表你',
   'Lock the example': '锁定示例',
   'Locked': '已锁定',
   'Locked means locked.': '锁定，就是真的锁定。',
@@ -700,6 +704,7 @@ export default {
   'Note': '笔记',
   'Nothing is waiting. Tap a source to send a request.':
     '暂无待批请求。点按任一来源即可发出请求。',
+  'Nothing published yet': '尚未发布',
   'Nothing recorded yet.': '尚无记录。',
   'Nothing to install in the browser. The site opens a small popup and waits for your answer.':
     '浏览器中无需安装任何东西。网站只会打开一个小弹窗，等待你的答复。',
@@ -723,11 +728,13 @@ export default {
     '只有在你备份时才会。文件库留在你的电脑上；备份只会以随机 ID 下的密文发送你选中的文件或文件夹。删除备份不影响你的文件，删除文件也不影响它的备份。',
   'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
     '只有你具备批准权的设备能打开请求，也只有发起请求的页面能打开结果。中继只看到密封的信封。',
+  'Only {name}’s agent can open it': '只有 {name} 的智能体能打开',
   'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.':
     '“打开”会把一份临时副本交给对应程序，30 分钟后或锁定时自动删除。也可以把文件库挂载为磁盘：读取即解密，保存即生成新版本。',
   'Open it, or mount it.': '打开它，或挂载它。',
   'Opened only by the page that asked': '只有发起请求的页面能打开',
   'Origin': '来源',
+  'Out in the open': '走向开放网络',
   'Over the cloud’s 100 MiB limit': '超过云端 100 MiB 上限',
   'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
     '配对第二台设备，并为账户绑定一个登录身份。即使所有设备都丢失，该登录身份也可以申请恢复；经过一到七天的等待期（期间你的任何设备都可以提出异议）后，账户会迁移到新设备上的全新密钥。',
@@ -742,13 +749,14 @@ export default {
   'Policy for BTC': 'BTC 策略',
   'Post in the release channel': '在发布频道发言',
   'Post in {channel}': '发布到 {channel}',
-  'Private workspace · Files · Team wallets · AI agents':
-    '私密工作空间 · 文件 · 团队钱包 · AI 智能体',
+  'Private workspace · Files · Team wallets · Agent Protocols':
+    '私密工作空间 · 文件 · 团队钱包 · Agent Protocols',
   'Progress': '进度',
   'Proposal #{n}': '提案 #{n}',
   'Proposed': '已提案',
   'Proposed by': '提案人',
   'Proposer': '提案人',
+  'Public to check, yours to revoke': '人人可核验，只有你能撤销',
   'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
     '公开声明谁可以代表你行事，凭证有范围、会过期，且随时可撤销。',
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
@@ -767,6 +775,8 @@ export default {
     '已拒绝。网站会收到拒绝结果，不会签署任何内容。',
   'Release plan': '发布计划',
   'Replay': '重播',
+  'Replied in {room}': '已在 {room} 中回复',
+  'Reply in {room}': '在 {room} 中回复',
   'Reported by your browser through connect.dmsg.net':
     '由你的浏览器经 connect.dmsg.net 转述',
   'Restore': '恢复',
@@ -782,6 +792,7 @@ export default {
   'Saved as a new version in your library. Backing it up or sharing it stays with you.':
     '已作为新版本存入你的文件库。要不要备份或分享，由你决定。',
   'Saved on this device · waits for sync': '已保存在本设备 · 等待同步',
+  'Sealed a letter to {name}’s agent': '已给 {name} 的智能体寄出密封信件',
   'Sealed both ways.': '往返全程密封。',
   'Sealed refusal': '密封的拒绝结果',
   'Sealed result': '密封的结果',
@@ -791,12 +802,15 @@ export default {
   'See it in the agent demo': '在智能体演示中查看',
   'Send': '转出',
   'Send a request from {source}': '从“{source}”发送请求',
+  'Sent under its own Agent ID': '以它自己的 Agent ID 发出',
   'Server login': '服务器登录',
   'Settings': '设置',
   'Settled': '已确认',
   'Settled payments and names': '已结算的付款与名称',
   'Settled. Every step is in the audit chain.':
     '已确认。每一步都记在审计链上。',
+  'Share a note on {topic}': '分享关于 {topic} 的笔记',
+  'Shared a note on {topic}': '已分享关于 {topic} 的笔记',
   'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.':
     '分享到频道，或通过链接分享给 dMsg 之外的人，都会用新密钥密封一份新副本。它与你的文件库及其备份既不共用密钥，也不共用字节。',
   'Ship v1.4 on Friday. The brief is in the release channel.':
@@ -817,6 +831,7 @@ export default {
   'Signature receipts, after you approve': '签名回执（经你批准后）',
   'Signatures': '签名',
   'Signed': '已签名',
+  'Signed, its source on record': '附有签名，来源可查',
   'Signed, paid or shared without you': '未经你签署、支付或分享',
   'Signing key': '签名密钥',
   'Signing…': '签名中…',
@@ -898,6 +913,7 @@ export default {
   'Who’s asking': '谁在敲门',
   'Windows installer': 'Windows 安装程序',
   'Write into the “release” folder': '写入“release”文件夹',
+  'Write to {name}’s agent': '给 {name} 的智能体写信',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
     '可以。dMsg 支持 Apple 芯片的 macOS 和 Windows x64，命令行还支持 Linux。本页的演示图仍是使用示例数据的模拟。',
   'You': '你',
@@ -935,6 +951,9 @@ export default {
   'ways for an agent to approve': '种让智能体代你批准的途径',
   'x64 · desktop app and command line, less tested':
     'x64 · 桌面应用与命令行，测试较少',
+  '{agent} acts for you · 30 days': '{agent} 代表你 · 30 天',
+  '{agent} may act for you on {host} for 30 days. Anyone can check it, and you can revoke it.':
+    '{agent} 可在 {host} 代表你 30 天。任何人都能核验，你也可以随时撤销。',
   '{bytes} bytes': '{bytes} 字节',
   '{count} files · {size}': '{count} 个文件 · {size}',
   '{count} items': '{count} 个条目',

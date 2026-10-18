@@ -515,8 +515,8 @@ export default {
   'Agents propose, people decide.': 'الوكلاء يقترحون، والبشر يقرّرون.',
   'All downloads and checksums': 'كل التنزيلات وقيم التحقق',
   'Allowed by its grant': 'ضمن ما مُنح له',
-  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.':
-    'يطلب وكيل ذكاء اصطناعي وموقع وعضو في الفريق والطرفية أشياء من خزنتك ومحافظك ورسائلك وملفاتك. يمر العمل المصرّح به للوكيل والرسائل المشفّرة وأوامرك أنت؛ أما الدفع أو تسجيل الدخول أو التوقيع فينتظر عند البوابة حتى توافق عليه.',
+  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in, a signature or a delegation waits at the gate until you approve it. The agent’s replies, letters and notes go out through the same gate to Agent Protocols hosts, signed with its own Agent ID.':
+    'يطلب وكيل ذكاء اصطناعي وموقع وعضو في الفريق والطرفية أشياء من خزنتك ومحافظك ورسائلك وملفاتك. يمر العمل المصرّح به للوكيل والرسائل المشفّرة وأوامرك أنت؛ أما الدفع أو تسجيل الدخول أو التوقيع أو التفويض فينتظر عند البوابة حتى توافق عليه. وتخرج ردود الوكيل ورسائله وملاحظاته عبر البوابة نفسها إلى خوادم Agent Protocols، موقّعةً بـ Agent ID الخاص به.',
   'An agent acting for {member}': 'وكيل يعمل نيابة عن {member}',
   'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
     'يستطيع الوكيل الذي تمنحه الإذن صياغة تحويل وتنفيذ تحويل معتمد. لا توجد صلاحية تسمح له بالموافقة.',
@@ -589,6 +589,7 @@ export default {
     'يتطلب إنشاؤها خطة مدفوعة وتفعيلًا بـ ICP لمرة واحدة، يصير جزء منه دورات (cycles) للمحفظة. بعدها تدفع المحفظة تكاليف توقيعها بنفسها. الاستلام والموافقة والتنفيذ والسحب لا تتوقف أبدًا على خطتك.',
   'Declined': 'رفض',
   'Delayed': 'في المهلة',
+  'Delegation': 'تفويض',
   'Delete the cloud copy': 'حذف النسخة السحابية',
   'Deletions that crossed over': 'عمليات حذف عبرت إلى الجانب الآخر',
   'Deploy key': 'مفتاح النشر',
@@ -624,7 +625,8 @@ export default {
   'Every action leaves a record.': 'كل إجراء يترك سجلًا.',
   'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
     'كل تغيير إصدار جديد بمفتاحه الخاص. تقف إصدارات الأجهزة المختلفة جنبًا إلى جنب، وأنت تختار الحالي منها.',
-  'Everything asks. Only you approve.': 'الجميع يطلب. وحدك توافق.',
+  'Everything asks. Only you approve. Your agents go out as themselves.':
+    'الجميع يطلب. وحدك توافق. ووكلاؤك يخرجون بهوياتهم الخاصة.',
   'Execute': 'تنفيذ',
   'Expired': 'انتهت مهلته',
   'Expired. Nothing was signed or paid.':
@@ -665,16 +667,18 @@ export default {
   'Is there a phone app?': 'هل يوجد تطبيق للهاتف؟',
   'It keeps names and outcomes on your device, never content.':
     'يحتفظ بالأسماء والنتائج على جهازك، ولا يحفظ المحتوى أبدًا.',
+  'Its own signature, never yours': 'بتوقيعه هو، لا بتوقيعك أبدًا',
   'It’s one workspace.': 'إنها مساحة عمل واحدة.',
   'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
     'انضم إلى غرف Agent Discourse، واقرأ الخط الزمني وانشر. تُحتجز المسودة إذا تقدّمت الغرفة بينما كان الوكيل يفكر.',
-  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. The desktop app, the dmsg command line and your AI agents all work through it; nothing is signed, paid or shared until you approve.':
-    'احفظ أسرارك وملفاتك ومحادثاتك مشفّرة على حاسوبك، وأموال فريقك بحيث لا تتحرك إلا بموافقات كافية. يعمل تطبيق سطح المكتب وسطر أوامر dmsg ووكلاء الذكاء الاصطناعي لديك جميعًا من خلاله؛ ولا يُوقَّع شيء أو يُدفع أو يُشارك حتى توافق.',
+  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. Each AI agent gets its own Agent ID and speaks the open Agent Protocols for you, only as far as you allow. Nothing is signed, paid or shared until you approve.':
+    'احفظ أسرارك وملفاتك ومحادثاتك مشفّرة على حاسوبك، وأموال فريقك بحيث لا تتحرك إلا بموافقات كافية. يحصل كل وكيل ذكاء اصطناعي على Agent ID خاص به، ويتحدث نيابةً عنك عبر Agent Protocols المفتوحة، في حدود ما تسمح به فقط. ولا يُوقَّع شيء أو يُدفع أو يُشارك حتى توافق.',
   'Keep the keys.': 'واحتفظ بالمفاتيح.',
   'Key': 'مفتاح',
   'Keys no one can export.': 'مفاتيح لا يستطيع أحد تصديرها.',
   'Legacy messages stay readable': 'الرسائل القديمة تبقى قابلة للقراءة',
   'Let agents work.': 'دع الوكلاء يعملون.',
+  'Let {agent} act for you': 'توكيل {agent}',
   'Lock the example': 'اقفل المثال',
   'Locked': 'مقفل',
   'Locked means locked.': 'المقفل مقفل حقًا.',
@@ -705,6 +709,7 @@ export default {
   'Note': 'ملاحظة',
   'Nothing is waiting. Tap a source to send a request.':
     'لا شيء ينتظر. انقر على مصدر لإرسال طلب.',
+  'Nothing published yet': 'لم يُنشر شيء بعد',
   'Nothing recorded yet.': 'لا شيء مسجّل بعد.',
   'Nothing to install in the browser. The site opens a small popup and waits for your answer.':
     'لا شيء للتثبيت في المتصفح. يفتح الموقع نافذة منبثقة صغيرة وينتظر ردك.',
@@ -728,11 +733,13 @@ export default {
     'فقط حين تنسخها احتياطيًا. تبقى مكتبة الملفات على حاسوبك؛ والنسخ الاحتياطي يرسل الملفات أو المجلد الذي اخترته نصًا مشفّرًا بمعرّفات عشوائية. حذف النسخة لا يمسّ ملفك، وحذف الملف لا يمسّ نسخته.',
   'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
     'لا تفتح الطلب إلا أجهزتك المخوّلة بالموافقة، ولا تفتح النتيجة إلا الصفحة التي طلبتها. يرى المرحّل مظاريف مختومة فقط.',
+  'Only {name}’s agent can open it': 'لا يفتحها إلا وكيل {name}',
   'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.':
     'يعطي «فتح» البرنامج نسخة مؤقتة تُحذف بعد 30 دقيقة أو عند القفل. أو اربط المكتبة كقرص: القراءة تفكّ التشفير، والحفظ يُنشئ إصدارًا جديدًا.',
   'Open it, or mount it.': 'افتحه، أو اربطه كقرص.',
   'Opened only by the page that asked': 'لا تفتحها إلا الصفحة التي طلبت',
   'Origin': 'المصدر',
+  'Out in the open': 'إلى الخارج',
   'Over the cloud’s 100 MiB limit': 'يتجاوز حد السحابة 100 ميبيبايت',
   'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
     'اقرن جهازًا ثانيًا، واحتفظ بهوية دخول مرتبطة بحسابك. إذا فُقدت كل الأجهزة، يمكن لتلك الهوية طلب الاستعادة؛ وبعد فترة انتظار من يوم إلى سبعة أيام يمكن خلالها لأي من أجهزتك الاعتراض، ينتقل الحساب إلى مفاتيح جديدة على الجهاز الجديد.',
@@ -747,13 +754,14 @@ export default {
   'Policy for BTC': 'سياسة BTC',
   'Post in the release channel': 'النشر في قناة الإصدارات',
   'Post in {channel}': 'النشر في {channel}',
-  'Private workspace · Files · Team wallets · AI agents':
-    'مساحة عمل خاصة · الملفات · محافظ الفريق · وكلاء الذكاء الاصطناعي',
+  'Private workspace · Files · Team wallets · Agent Protocols':
+    'مساحة عمل خاصة · الملفات · محافظ الفريق · Agent Protocols',
   'Progress': 'التقدّم',
   'Proposal #{n}': 'المقترح #{n}',
   'Proposed': 'مُقترَح',
   'Proposed by': 'اقترحه',
   'Proposer': 'مقترِح',
+  'Public to check, yours to revoke': 'يتحقق منه الجميع، وتلغيه أنت',
   'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
     'انشر من يمكنه التصرف نيابةً عنك، باعتمادات محددة النطاق ومنتهية الصلاحية يمكنك إلغاؤها في أي وقت.',
   'Publish, assess and retract signed knowledge, and query what other agents have shared.':
@@ -773,6 +781,8 @@ export default {
     'مرفوض. يُبلَّغ الموقع بالرفض، ولا يُوقَّع شيء.',
   'Release plan': 'خطة الإصدار',
   'Replay': 'إعادة التشغيل',
+  'Replied in {room}': 'ردّ في {room}',
+  'Reply in {room}': 'الرد في {room}',
   'Reported by your browser through connect.dmsg.net':
     'أبلغ به متصفحك عبر connect.dmsg.net',
   'Restore': 'استعادة',
@@ -791,6 +801,7 @@ export default {
     'حُفظ إصدارًا جديدًا في مكتبتك. نسخه احتياطيًا أو مشاركته قرار يبقى لك.',
   'Saved on this device · waits for sync':
     'محفوظ على هذا الجهاز · بانتظار المزامنة',
+  'Sealed a letter to {name}’s agent': 'رسالة مختومة إلى وكيل {name}',
   'Sealed both ways.': 'مختوم في الاتجاهين.',
   'Sealed refusal': 'رفض مختوم',
   'Sealed result': 'نتيجة مختومة',
@@ -800,12 +811,15 @@ export default {
   'See it in the agent demo': 'شاهده في عرض الوكيل',
   'Send': 'إرسال',
   'Send a request from {source}': 'أرسل طلبًا من {source}',
+  'Sent under its own Agent ID': 'أُرسل باسم Agent ID الخاص به',
   'Server login': 'دخول الخادم',
   'Settings': 'الإعدادات',
   'Settled': 'مُسوّى',
   'Settled payments and names': 'المدفوعات المسوّاة والأسماء',
   'Settled. Every step is in the audit chain.':
     'تمت التسوية. كل خطوة في سلسلة التدقيق.',
+  'Share a note on {topic}': 'مشاركة ملاحظة عن {topic}',
+  'Shared a note on {topic}': 'شارك ملاحظة عن {topic}',
   'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.':
     'المشاركة في قناة، أو برابط مع شخص خارج dMsg، تختم نسخة جديدة بمفتاح جديد. لا تشترك مع مكتبتك ولا مع نسخها الاحتياطية في مفتاح ولا في بايتات.',
   'Ship v1.4 on Friday. The brief is in the release channel.':
@@ -826,6 +840,7 @@ export default {
   'Signature receipts, after you approve': 'إيصالات التوقيع، بعد موافقتك',
   'Signatures': 'التوقيعات',
   'Signed': 'موقَّع',
+  'Signed, its source on record': 'موقّعة، ومصدرها مسجّل',
   'Signed, paid or shared without you': 'ما وُقّع أو دُفع أو شورك دونك',
   'Signing key': 'مفتاح التوقيع',
   'Signing…': 'جارٍ التوقيع…',
@@ -911,6 +926,7 @@ export default {
   'Who’s asking': 'من يطلب',
   'Windows installer': 'مثبّت Windows',
   'Write into the “release” folder': 'الكتابة في مجلد «release»',
+  'Write to {name}’s agent': 'الكتابة إلى وكيل {name}',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
     'نعم. يعمل dMsg على macOS مع Apple Silicon وعلى Windows x64، ويعمل سطر أوامره على Linux أيضًا. أما الأشكال في هذه الصفحة فما زالت محاكاة ببيانات تجريبية.',
   'You': 'أنت',
@@ -948,6 +964,9 @@ export default {
   'ways for an agent to approve': 'طرق يمكن بها لوكيل أن يوافق',
   'x64 · desktop app and command line, less tested':
     'x64 · تطبيق سطح المكتب وسطر الأوامر، باختبار أقل',
+  '{agent} acts for you · 30 days': '{agent} ينوب عنك · 30 يومًا',
+  '{agent} may act for you on {host} for 30 days. Anyone can check it, and you can revoke it.':
+    'يمكن لـ {agent} التصرف نيابةً عنك على {host} لمدة 30 يومًا. يمكن لأي أحد التحقق من ذلك، ويمكنك إلغاؤه.',
   '{bytes} bytes': '{bytes} بايت',
   '{count} files · {size}': 'الملفات: {count} · {size}',
   '{count} items': '{count} عناصر',

@@ -14,7 +14,18 @@
   // A path sampled finely, so a packet keeps a steady speed along it.
   type Track = { pts: Pt[]; cum: number[]; len: number }
   type Kind =
-    'read' | 'save' | 'post' | 'message' | 'add' | 'pay' | 'signin' | 'sign'
+    | 'read'
+    | 'save'
+    | 'post'
+    | 'message'
+    | 'add'
+    | 'pay'
+    | 'signin'
+    | 'sign'
+    | 'reply'
+    | 'letter'
+    | 'share'
+    | 'delegate'
   type Req = { asker: number; kind: Kind; object: string }
   type Status =
     | 'sending'
@@ -22,6 +33,7 @@
     | 'allowed'
     | 'encrypted'
     | 'saved'
+    | 'sent'
     | 'approved'
     | 'rejected'
     | 'expired'
@@ -29,8 +41,9 @@
     id: number
     req: Req
     formal: boolean
-    // In along the asker's lane, into a room, back out, or fading in place.
-    stage: 'in' | 'room' | 'back' | 'fade' | 'done'
+    // In along the asker's lane, into a room or out to a host, back out, or
+    // fading in place.
+    stage: 'in' | 'room' | 'out' | 'back' | 'fade' | 'done'
     d: number
     alpha: number
     approved: boolean
@@ -46,13 +59,27 @@
     'M15.5 0H18a24 24 0 0 1 0 48h-2.5a1.5 1.5 0 0 1-1.5-1.5v-45A1.5 1.5 0 0 1 15.5 0Z'
   const GEM = 'M12 17.5 18.5 24 12 30.5 5.5 24Z'
   // Rooms in the dome, in grid units: they clear the gem's cut-out and keep
-  // inside the dome's curve.
+  // inside the dome's curve. The agent's Agent ID sits by the gem: what it
+  // signs leaves through the gap.
   const ROOMS: { glyph: GlyphName; x: number; y: number; w: number }[] = [
-    { glyph: 'vault', x: 15.5, y: 8.5, w: 19.6 },
-    { glyph: 'coins', x: 21, y: 17.2, w: 18.8 },
-    { glyph: 'chat', x: 21, y: 25.8, w: 18.8 },
-    { glyph: 'folder', x: 15.5, y: 34.5, w: 19.6 }
+    { glyph: 'vault', x: 15.5, y: 6.9, w: 19 },
+    { glyph: 'coins', x: 19, y: 14.2, w: 19.5 },
+    { glyph: 'fingerprint', x: 22.5, y: 21.5, w: 18 },
+    { glyph: 'chat', x: 19, y: 28.8, w: 19.5 },
+    { glyph: 'folder', x: 15.5, y: 36.1, w: 19 }
   ]
+  const AGENT_ROOM = 2
+  // Out in the open: the production Agent Protocols hosts of `dmsg`
+  // (src/dmsg_cli/production.toml), where the agent signs as its Agent ID.
+  const HOSTS: { glyph: GlyphName; name: string; host: string }[] = [
+    { glyph: 'discuss', name: 'Agent Discourse', host: 'discourse.dmsg.net' },
+    { glyph: 'mail', name: 'Agent Mail', host: 'mail.dmsg.net' },
+    { glyph: 'book', name: 'Agent Knowledge', host: 'knowledge.dmsg.net' },
+    { glyph: 'link', name: 'Agent Delegation', host: 'api.dmsg.net' }
+  ]
+  const PROTOCOLS = 'Agent Protocols'
+  const AGENT_ID = 'Agent ID'
+  const SPECS = 'https://github.com/ldclabs/agent-protocols'
   // Sample data; names and files are identifiers, not copy.
   const AGENT = 'claude'
   const SITE = 'tokenlist.ing'
@@ -63,6 +90,9 @@
   const RELEASE = '#release'
   const DESIGN = '#design'
   const AMOUNT = '0.4 BTC'
+  // A non-breaking hyphen keeps the room's name on one line.
+  const ROOM = 'v1.4‑qa'
+  const TOPIC = 'caching'
   const ASKERS: { glyph: GlyphName | null; id: string }[] = [
     { glyph: 'robot', id: AGENT },
     { glyph: 'globe', id: SITE },
@@ -78,30 +108,55 @@
   const SAVE = req(0, 'save', NOTES)
   const PAY = req(0, 'pay', AMOUNT)
   const POST_RELEASE = req(0, 'post', RELEASE)
+  const REPLY = req(0, 'reply', ROOM)
+  const LETTER = req(0, 'letter', MEI)
+  const SHARE = req(0, 'share', TOPIC)
   const SIGN_IN = req(1, 'signin', SITE)
   const MESSAGE = req(2, 'message', RELEASE)
   const MESSAGE_DESIGN = req(2, 'message', DESIGN)
   const ADD = req(3, 'add', BUILD)
+  const DELEGATE = req(3, 'delegate', HOSTS[0]!.host)
   const SIGN = req(3, 'sign', BUILD)
   // What each asker sends when tapped, in turn.
   const SCRIPTS: Req[][] = [
-    [READ, SAVE, PAY, POST_RELEASE],
+    [PAY, REPLY, READ, LETTER, SAVE, SHARE, POST_RELEASE],
     [SIGN_IN],
     [MESSAGE, MESSAGE_DESIGN],
-    [ADD, SIGN]
+    [ADD, DELEGATE, SIGN]
   ]
   // What happens while nobody taps.
-  const ROUTINE = [MESSAGE, READ, ADD, SAVE, MESSAGE_DESIGN, POST_RELEASE]
-  const FORMAL = [PAY, SIGN_IN, SIGN]
+  const ROUTINE = [
+    MESSAGE,
+    REPLY,
+    READ,
+    ADD,
+    LETTER,
+    SAVE,
+    MESSAGE_DESIGN,
+    SHARE,
+    POST_RELEASE
+  ]
+  const FORMAL = [DELEGATE, PAY, SIGN_IN, SIGN]
   const ROOM_OF: Record<Kind, number> = {
     read: 0,
     pay: 1,
-    post: 2,
-    message: 2,
-    save: 3,
-    add: 3,
+    post: 3,
+    message: 3,
+    save: 4,
+    add: 4,
     signin: -1,
-    sign: -1
+    sign: -1,
+    reply: -1,
+    letter: -1,
+    share: -1,
+    delegate: -1
+  }
+  // What leaves through the gap, and the host it goes to.
+  const HOST_OF: Partial<Record<Kind, number>> = {
+    reply: 0,
+    letter: 1,
+    share: 2,
+    delegate: 3
   }
   // How each asker's everyday work passes: the agent's grant, end-to-end
   // encryption, or your own command. The website only asks for approvals.
@@ -112,14 +167,37 @@
   const MINT = '169, 213, 189'
   const AMBER = '180, 83, 9'
   const GREY = '78, 98, 87'
+  const WIRE = '#9cb9ab'
 
   const uid = $props.id()
   const cut = `${uid}-cut`
   const ltr = (text: string) =>
     String.fromCharCode(0x2066) + text + String.fromCharCode(0x2069)
   const isFormal = (r: Req) =>
-    r.kind === 'pay' || r.kind === 'signin' || r.kind === 'sign'
+    r.kind === 'pay' ||
+    r.kind === 'signin' ||
+    r.kind === 'sign' ||
+    r.kind === 'delegate'
+  const hostOf = (r: Req) => HOST_OF[r.kind] ?? -1
   const pad = (n: number) => String(n).padStart(2, '0')
+  // Everything each card can say. It all sits in one cell, hidden but for
+  // what is current, so a card keeps its height as its text changes.
+  const CAN_SAY = SCRIPTS.map((script, i) => {
+    const said = new Set<Status>(['sending', PASSED_AS[i] ?? 'allowed'])
+    for (const r of script) {
+      if (isFormal(r))
+        for (const s of ['waiting', 'approved', 'rejected', 'expired'] as const)
+          said.add(s)
+      else if (hostOf(r) >= 0) said.add('sent')
+    }
+    return [...said]
+  })
+  const HOST_SAYS: (Req | null)[][] = [
+    [REPLY],
+    [LETTER],
+    [SHARE],
+    [null, DELEGATE]
+  ]
 
   const dir = $derived(localeDir($locale))
   const space = $derived(splitStop($t('Your space.'))[0])
@@ -133,6 +211,7 @@
   const roomNames = $derived([
     $t('Vault'),
     $t('Wallets'),
+    AGENT_ID,
     $t('Messages'),
     $t('Files')
   ])
@@ -142,10 +221,18 @@
     allowed: $t('Allowed by its grant'),
     encrypted: $t('End-to-end encrypted'),
     saved: $t('Encrypted and saved'),
+    sent: $t('Sent under its own Agent ID'),
     approved: $t('Approved by you'),
     rejected: $t('Rejected'),
     expired: $t('Expired')
   })
+
+  const hostNotes = $derived([
+    $t('Its own signature, never yours'),
+    $t('Only {name}’s agent can open it', { name: MEI }),
+    $t('Signed, its source on record'),
+    $t('Public to check, yours to revoke')
+  ])
 
   let stage: HTMLDivElement
   let back: HTMLCanvasElement
@@ -153,8 +240,10 @@
   let mark: HTMLDivElement
   let ticket: HTMLDivElement
   let list: HTMLDivElement
+  let hostList: HTMLOListElement
   const cardEls: HTMLButtonElement[] = []
   const roomEls: HTMLElement[] = []
+  const hostEls: HTMLElement[] = []
 
   let cards = $state<{ req: Req; status: Status }[]>([
     { req: SAVE, status: 'allowed' },
@@ -162,8 +251,12 @@
     { req: MESSAGE, status: 'encrypted' },
     { req: ADD, status: 'saved' }
   ])
-  let touched = $state(['', '', RELEASE, NOTES])
-  let hits = $state([false, false, false, false])
+  let touched = $state(['', '', '', RELEASE, NOTES])
+  let hits = $state([false, false, false, false, false])
+  // The latest thing each host received from this computer.
+  let wire = $state<(Req | null)[]>([REPLY, LETTER, SHARE, null])
+  let reached = $state([false, false, false, false])
+  let arrivals = $state([0, 0, 0, 0])
   let head = $state<{
     id: number
     req: Req
@@ -181,9 +274,14 @@
     touched.map(
       (object, i) =>
         (object && ltr(object)) ||
-        (i === 0 ? $t('Deploy key') : $t('Team treasury'))
+        [$t('Deploy key'), $t('Team treasury'), AGENT][i] ||
+        ''
     )
   )
+
+  // The approval window always lays out a request, the current one or,
+  // hidden, the first, so it keeps one size whatever it shows.
+  const sheet = $derived(head?.req ?? FORMAL[0]!)
 
   const outcomeText = $derived(
     {
@@ -216,11 +314,35 @@
         return $t('Sign in with dMsg')
       case 'sign':
         return $t('Sign {file}', { file: object })
+      case 'reply':
+        return $t('Reply in {room}', { room: object })
+      case 'letter':
+        return $t('Write to {name}’s agent', { name: object })
+      case 'share':
+        return $t('Share a note on {topic}', { topic: object })
+      case 'delegate':
+        return $t('Let {agent} act for you', { agent: ltr(AGENT) })
+    }
+  }
+
+  // What a host shows once a request reached it.
+  function delivered(r: Req): string {
+    const object = ltr(r.object)
+    switch (r.kind) {
+      case 'reply':
+        return $t('Replied in {room}', { room: object })
+      case 'letter':
+        return $t('Sealed a letter to {name}’s agent', { name: object })
+      case 'share':
+        return $t('Shared a note on {topic}', { topic: object })
+      default:
+        return $t('{agent} acts for you · 30 days', { agent: ltr(AGENT) })
     }
   }
 
   function kindLabel(r: Req): string {
     if (r.kind === 'pay') return $t('Payment')
+    if (r.kind === 'delegate') return $t('Delegation')
     return r.kind === 'signin' ? $t('Sign-in') : $t('Signature')
   }
 
@@ -234,6 +356,11 @@
       return $t('{site} receives a signed sign-in for this account.', {
         site: ltr(SITE)
       })
+    if (r.kind === 'delegate')
+      return $t(
+        '{agent} may act for you on {host} for 30 days. Anyone can check it, and you can revoke it.',
+        { agent: ltr(AGENT), host: ltr(r.object) }
+      )
     return $t('The terminal receives your signature for this file.')
   }
 
@@ -263,6 +390,41 @@
   const cubic = (a: Pt, b: Pt, c: Pt, d: Pt): Pt[] =>
     Array.from({ length: 33 }, (_, i) => at([a, b, c, d], i / 32))
 
+  // A polyline whose corners are rounded with radius r.
+  function bend(corners: Pt[], r: number): Pt[] {
+    const pts = corners.filter(
+      (p, i) =>
+        !i || Math.hypot(p.x - corners[i - 1]!.x, p.y - corners[i - 1]!.y) > 0.5
+    )
+    const out = [pts[0]!]
+    for (let i = 1; i < pts.length - 1; i++) {
+      const a = pts[i - 1]!
+      const b = pts[i]!
+      const c = pts[i + 1]!
+      const ab = Math.hypot(a.x - b.x, a.y - b.y)
+      const bc = Math.hypot(c.x - b.x, c.y - b.y)
+      const k = Math.min(r, ab / 2, bc / 2)
+      const p = {
+        x: b.x + ((a.x - b.x) * k) / ab,
+        y: b.y + ((a.y - b.y) * k) / ab
+      }
+      const q = {
+        x: b.x + ((c.x - b.x) * k) / bc,
+        y: b.y + ((c.y - b.y) * k) / bc
+      }
+      for (let j = 0; j <= 8; j++) {
+        const t = j / 8
+        const m = 1 - t
+        out.push({
+          x: m * m * p.x + 2 * m * t * b.x + t * t * q.x,
+          y: m * m * p.y + 2 * m * t * b.y + t * t * q.y
+        })
+      }
+    }
+    out.push(pts[pts.length - 1]!)
+    return out
+  }
+
   function track(pts: Pt[]): Track {
     const cum = [0]
     for (let i = 1; i < pts.length; i++) {
@@ -291,6 +453,7 @@
     const none = (): Track => track([{ x: 0, y: 0 }])
     let lanes: Track[] = ASKERS.map(none)
     let toRoom: Track[] = ROOMS.map(none)
+    let toHost: Track[] = HOSTS.map(none)
     let ports: Pt[] = []
     let check: Pt = { x: 0, y: 0 }
     let s = 1
@@ -309,12 +472,14 @@
     let routineAt = 0
     let formalAt = 0
     let visible = false
-    // Each asker's next request when tapped: the agent asks to pay first.
-    const turn = [2, 0, 1, 1]
+    // Each asker's next request when tapped: the agent asks to pay first,
+    // and the terminal, whose delegation waits first, asks for a signature.
+    const turn = [0, 0, 1, 2]
     // When each asker's card last showed a decision, so it stays readable.
     const decided = [-9, -9, -9, -9]
     let outcomeTimer: ReturnType<typeof setTimeout> | undefined
     const hitTimers: (ReturnType<typeof setTimeout> | undefined)[] = []
+    const reachTimers: (ReturnType<typeof setTimeout> | undefined)[] = []
 
     function layout() {
       const frame = stage.getBoundingClientRect()
@@ -345,7 +510,8 @@
       const bottom = box.y + 48 * s
       check = { x: sx, y: box.y + 24 * s }
       const all = rel(list)
-      if (all.y + all.h <= top) {
+      const stacked = all.y + all.h <= top
+      if (stacked) {
         // Askers stacked above the gate share one path into the gap.
         const start = { x: sx, y: all.y + all.h + 6 }
         const trunk = track([start, { x: sx, y: top }, check])
@@ -392,6 +558,44 @@
           )
         )
       })
+      // Out of the gap's lower end: down onto a bus over a row of hosts, or
+      // over to a rail beside a column of them. Below a stacked gate the
+      // approval window comes first, so the wire turns at once and runs
+      // down the lane the layout leaves at the left.
+      const hosts = hostEls.map(rel)
+      const busY = Math.min(...hosts.map((h) => h.y)) - 10
+      const rail = Math.min(...hosts.map((h) => h.x)) - 14
+      const turn = stacked ? bottom + 10 : busY
+      const oneRow = hosts.every((h) => Math.abs(h.y - hosts[0]!.y) < 2)
+      toHost = hosts.map((h) => {
+        if (oneRow) {
+          const cx = h.x + h.w / 2
+          return track(
+            bend(
+              [
+                check,
+                { x: sx, y: busY },
+                { x: cx, y: busY },
+                { x: cx, y: h.y - 4 }
+              ],
+              12
+            )
+          )
+        }
+        const y = h.y + h.h / 2
+        return track(
+          bend(
+            [
+              check,
+              { x: sx, y: turn },
+              { x: rail, y: turn },
+              { x: rail, y },
+              { x: h.x - 4, y }
+            ],
+            12
+          )
+        )
+      })
       dots = []
       const gap = 22
       for (let y = gap / 2; y < height; y += gap) {
@@ -408,9 +612,11 @@
 
     const lane = (p: Packet) => lanes[p.req.asker] ?? lanes[0]!
     const room = (p: Packet) => toRoom[ROOM_OF[p.req.kind]] ?? toRoom[0]!
+    const host = (p: Packet) => toHost[hostOf(p.req)] ?? toHost[0]!
 
     function position(p: Packet): Pt {
-      return p.stage === 'room' ? pointAt(room(p), p.d) : pointAt(lane(p), p.d)
+      if (p.stage === 'room') return pointAt(room(p), p.d)
+      return p.stage === 'out' ? pointAt(host(p), p.d) : pointAt(lane(p), p.d)
     }
 
     // The front request waits in the gem; the next ones wait in the gap.
@@ -423,14 +629,27 @@
     function hit(index: number, object: string) {
       if (index < 0) return
       hits[index] = true
-      if (index >= 2) touched[index] = object
+      if (index > AGENT_ROOM) touched[index] = object
       clearTimeout(hitTimers[index])
       hitTimers[index] = setTimeout(() => (hits[index] = false), 1100)
     }
 
+    function reach(r: Req) {
+      const index = hostOf(r)
+      wire[index] = r
+      reached[index] = true
+      arrivals[index] = (arrivals[index] ?? 0) + 1
+      clearTimeout(reachTimers[index])
+      reachTimers[index] = setTimeout(() => (reached[index] = false), 1100)
+    }
+
     function pass(p: Packet) {
-      hit(ROOM_OF[p.req.kind], p.req.object)
-      const status = PASSED_AS[p.req.asker] ?? 'allowed'
+      const out = hostOf(p.req) >= 0
+      if (out) reach(p.req)
+      else hit(ROOM_OF[p.req.kind], p.req.object)
+      // Without motion the Agent ID signs as the request lands.
+      if (out && still) hit(AGENT_ROOM, '')
+      const status = out ? 'sent' : (PASSED_AS[p.req.asker] ?? 'allowed')
       if (!p.formal) cards[p.req.asker] = { req: p.req, status }
     }
 
@@ -538,6 +757,11 @@
         if (still) hit(1, '')
         p.stage = 'room'
         p.d = 0
+      } else if (approve && hostOf(p.req) >= 0) {
+        // An approved delegation is signed and published.
+        if (still) reach(p.req)
+        p.stage = 'out'
+        p.d = 0
       } else p.stage = 'back'
       if (still) packets = packets.filter((x) => x !== p)
       flash(approve ? 'approved' : 'rejected')
@@ -582,7 +806,10 @@
           p.d = Math.min(end, p.d + dt * (p.formal ? 170 : 210))
           if (p.d < end) break
           if (!p.formal) {
-            p.stage = 'room'
+            const out = hostOf(p.req) >= 0
+            // Its Agent ID signs it as it passes the gem.
+            if (out) hit(AGENT_ROOM, '')
+            p.stage = out ? 'out' : 'room'
             p.d = 0
           } else if (!p.parked) park(p)
           else if (queue[0] === p && !p.arrived) arrive(p)
@@ -592,6 +819,14 @@
           p.d += dt * 130
           if (p.d >= room(p).len) {
             if (p.formal) hit(1, '')
+            else pass(p)
+            p.stage = 'done'
+          }
+          break
+        case 'out':
+          p.d += dt * 230
+          if (p.d >= host(p).len) {
+            if (p.formal) reach(p.req)
             else pass(p)
             p.stage = 'done'
           }
@@ -693,7 +928,24 @@
         ctx.strokeStyle = hot ? `rgba(${FOREST}, 0.75)` : `rgba(${INK}, 0.22)`
         ctx.stroke()
       })
-      for (const p of ports) {
+      // The way out starts below the gem; shared stretches draw over each
+      // other in one opaque colour, so they don't darken.
+      ctx.setLineDash([3, 5])
+      ctx.lineWidth = 1.2
+      ctx.strokeStyle = WIRE
+      for (const path of toHost) {
+        const from = 9.2 * s
+        const start = pointAt(path, from)
+        ctx.beginPath()
+        ctx.moveTo(start.x, start.y)
+        path.pts.forEach((p, k) => {
+          if ((path.cum[k] ?? 0) > from) ctx.lineTo(p.x, p.y)
+        })
+        ctx.stroke()
+      }
+      ctx.setLineDash([])
+      const ends = toHost.map((path) => path.pts[path.pts.length - 1]!)
+      for (const p of [...ports, ...ends]) {
         ctx.beginPath()
         ctx.arc(p.x, p.y, 3, 0, Math.PI * 2)
         ctx.fillStyle = '#f7f8f4'
@@ -735,12 +987,23 @@
             ctx.fill()
             continue
           }
+          const path = p.stage === 'out' ? host(p) : lane(p)
           for (let k = 1; k < 5; k++) {
-            const t = pointAt(lane(p), p.d - k * 5)
+            const t = pointAt(path, p.d - k * 5)
             ctx.beginPath()
             ctx.arc(t.x, t.y, 2.6 - k * 0.45, 0, Math.PI * 2)
             ctx.fillStyle = `rgba(${FOREST}, ${0.32 - k * 0.06})`
             ctx.fill()
+          }
+          // Past the gate it goes out signed, ringed like a seal.
+          if (p.stage === 'out') {
+            ctx.beginPath()
+            ctx.arc(q.x, q.y, 6.5, 0, Math.PI * 2)
+            ctx.fillStyle = '#f7f8f4'
+            ctx.fill()
+            ctx.lineWidth = 1.4
+            ctx.strokeStyle = `rgba(${FOREST}, 0.7)`
+            ctx.stroke()
           }
           ctx.beginPath()
           ctx.arc(q.x, q.y, 3, 0, Math.PI * 2)
@@ -752,7 +1015,7 @@
           diamond(ctx, q, 6)
           ctx.fillStyle = `rgba(${MINT}, 1)`
           ctx.fill()
-        } else if (p.stage === 'back' && p.approved) {
+        } else if ((p.stage === 'back' && p.approved) || p.stage === 'out') {
           diamond(ctx, q, 6)
           ctx.fillStyle = `rgba(${FOREST}, 1)`
           ctx.fill()
@@ -783,8 +1046,7 @@
     redraw = draw
 
     function seedStill() {
-      spawn(PAY)
-      turn[0] = 3
+      spawn(FORMAL[0]!)
       formalAt = 1
     }
 
@@ -797,7 +1059,8 @@
     resize.observe(stage)
     resize.observe(mark)
     resize.observe(list)
-    for (const el of cardEls) resize.observe(el)
+    resize.observe(hostList)
+    for (const el of [...cardEls, ...hostEls]) resize.observe(el)
     const stopWatch = watchVisibility(stage, (value) => {
       visible = value
       loop.wake()
@@ -821,7 +1084,7 @@
       resize.disconnect()
       stopWatch()
       clearTimeout(outcomeTimer)
-      hitTimers.forEach((timer) => clearTimeout(timer))
+      for (const timer of [...hitTimers, ...reachTimers]) clearTimeout(timer)
       redraw = () => {}
       stage.removeEventListener('pointermove', onMove)
       stage.removeEventListener('pointerleave', onLeave)
@@ -868,14 +1131,28 @@
                 ><strong>{roles[i]}</strong><code>{asker.id}</code></span
               >
               {#if card}
-                <span class="gh-req"
-                  ><i class:formal={isFormal(card.req)}></i>{ask(
-                    card.req
-                  )}</span
-                >
-                <span class="gh-state {card.status}"
-                  >{statusText[card.status]}</span
-                >
+                <span class="gh-lines">
+                  {#each SCRIPTS[i] ?? [] as r}
+                    <span class="gh-req" aria-hidden="true"
+                      ><i class:formal={isFormal(r)}></i>{ask(r)}</span
+                    >
+                  {/each}
+                  <span class="gh-req"
+                    ><i class:formal={isFormal(card.req)}></i>{ask(
+                      card.req
+                    )}</span
+                  >
+                </span>
+                <span class="gh-lines">
+                  {#each CAN_SAY[i] ?? [] as status}
+                    <span class="gh-state {status}" aria-hidden="true"
+                      >{statusText[status]}</span
+                    >
+                  {/each}
+                  <span class="gh-state {card.status}"
+                    >{statusText[card.status]}</span
+                  >
+                </span>
               {/if}
             </button>
           {/each}
@@ -949,24 +1226,35 @@
               <span class="win-title">{$t('dMsg · Approval')}</span>
             </div>
             <div class="gh-tk">
-              {#if head}
-                {#key head.id}
+              {#key head?.id}
+                <div class="gh-sheet" class:ghost={!head} inert={!head}>
                   <div class="gh-tk-top">
-                    <span class="gh-kind"><i></i>{kindLabel(head.req)}</span>
-                    {#if head.more}
+                    <span class="gh-kind"><i></i>{kindLabel(sheet)}</span>
+                    {#if head?.more}
                       <span class="gh-more"
                         >{$t('{n} more waiting', { n: head.more })}</span
                       >
                     {/if}
-                    <span class="gh-timer">0:{pad(head.left)}</span>
+                    <span class="gh-timer"
+                      >0:{pad(head?.left ?? WAIT_SECONDS)}</span
+                    >
                   </div>
-                  <h4>{ask(head.req)}</h4>
+                  <h4 class="gh-lines">
+                    {#each FORMAL as r}
+                      <span aria-hidden="true">{ask(r)}</span>
+                    {/each}
+                    <span>{ask(sheet)}</span>
+                  </h4>
                   <p class="gh-from">
-                    {@render orb(head.req.asker)}<span
-                      >{roles[head.req.asker]}</span
-                    ><code>{ASKERS[head.req.asker]?.id}</code>
+                    {@render orb(sheet.asker)}<span>{roles[sheet.asker]}</span
+                    ><code>{ASKERS[sheet.asker]?.id}</code>
                   </p>
-                  <p class="gh-effect">{consequence(head.req)}</p>
+                  <p class="gh-effect gh-lines">
+                    {#each FORMAL as r}
+                      <span aria-hidden="true">{consequence(r)}</span>
+                    {/each}
+                    <span>{consequence(sheet)}</span>
+                  </p>
                   <div class="gc-actions">
                     <button
                       class="button secondary"
@@ -976,10 +1264,12 @@
                       >{$t('Approve')}</button
                     >
                   </div>
-                {/key}
+                </div>
+              {/key}
+              {#if head}
                 <i class="gc-expiry" style:transform="scaleX({head.share})"></i>
               {:else if outcome}
-                <p class="gh-outcome {outcome}">
+                <p class="gh-outcome gh-over {outcome}">
                   <Glyph
                     name={outcome === 'approved'
                       ? 'check'
@@ -990,7 +1280,7 @@
                   />{outcomeText}
                 </p>
               {:else}
-                <p class="gc-idle">
+                <p class="gc-idle gh-over">
                   {$t('Nothing is waiting. Tap a source to send a request.')}
                 </p>
               {/if}
@@ -1002,18 +1292,64 @@
         </div>
       </div>
 
+      <div class="gh-net">
+        <p class="gh-label" {dir}>
+          {$t('Out in the open')} ·
+          <a href={SPECS} target="_blank" rel="noopener noreferrer"
+            >{PROTOCOLS}<Glyph name="arrow-up-right" size={12} /></a
+          >
+        </p>
+        <ol class="gh-hosts" bind:this={hostList}>
+          {#each HOSTS as host, i}
+            {@const last = wire[i]}
+            <li
+              class="gh-host"
+              class:hit={reached[i]}
+              bind:this={hostEls[i]}
+              {dir}
+            >
+              <strong class="gh-host-name"
+                ><Glyph name={host.glyph} size={16} />{host.name}</strong
+              >
+              <code>{host.host}</code>
+              <span class="gh-lines">
+                {#each HOST_SAYS[i] ?? [] as r}
+                  <span class="gh-req" class:idle={!r} aria-hidden="true"
+                    ><i class:formal={r && isFormal(r)}></i>{r
+                      ? delivered(r)
+                      : $t('Nothing published yet')}</span
+                  >
+                {/each}
+                {#key arrivals[i]}
+                  <span class="gh-req" class:idle={!last}
+                    ><i class:formal={last && isFormal(last)}></i>{last
+                      ? delivered(last)
+                      : $t('Nothing published yet')}</span
+                  >
+                {/key}
+              </span>
+              <span class="gh-state">{hostNotes[i]}</span>
+            </li>
+          {/each}
+        </ol>
+      </div>
+
       <canvas class="front" bind:this={front} aria-hidden="true"></canvas>
     </div>
   </div>
   <p class="sr-only" aria-live="polite">{announce}</p>
   <p class="sr-only">
     {$t(
-      'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in or a signature waits at the gate until you approve it.'
+      'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in, a signature or a delegation waits at the gate until you approve it. The agent’s replies, letters and notes go out through the same gate to Agent Protocols hosts, signed with its own Agent ID.'
     )}
   </p>
   <figcaption>
     <span class="fig-no">{$t('Fig. {n}', { n: 1 })}</span>
-    <span>{$t('Everything asks. Only you approve.')}</span>
+    <span
+      >{$t(
+        'Everything asks. Only you approve. Your agents go out as themselves.'
+      )}</span
+    >
     <span class="fig-note"
       ><i class="live"></i>{$t('Simulation · nothing is signed')}</span
     >
