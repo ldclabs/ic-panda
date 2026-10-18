@@ -18,6 +18,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::Read;
 use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use zeroize::Zeroizing;
 
 pub(crate) const IMPORT: &str = "lib-import:";
@@ -127,6 +129,12 @@ fn thumbnail(bytes: &[u8]) -> Option<Vec<u8>> {
 }
 
 impl Client {
+    /// Let `cancel` stop the imports that follow, until it is taken away
+    /// with `None`. A stopped import leaves nothing: its job and chunks go.
+    pub fn files_import_cancel(&mut self, cancel: Option<Arc<AtomicBool>>) {
+        self.import_cancel = cancel;
+    }
+
     /// Import the file at `path` into `folder`. A file of the same name
     /// there takes it as a new version, unless `keep_both` names the import
     /// `name (2)` and so on. An interrupted import of the same file resumes.
@@ -232,6 +240,15 @@ impl Client {
         // Images small enough for a thumbnail are kept whole until the end.
         let mut image: Option<Zeroizing<Vec<u8>>> = None;
         for index in 0..count {
+            if self
+                .import_cancel
+                .as_ref()
+                .is_some_and(|cancel| cancel.load(Ordering::Relaxed))
+            {
+                self.workspace.delete_private(&job_key)?;
+                self.collect_blobs()?;
+                return Err(Error::Unavailable("import cancelled".into()));
+            }
             let length = fill(reader, &mut buffer)?;
             let expected = (size - index * CHUNK as u64).min(CHUNK as u64);
             ensure(length as u64 == expected, Error::IntegrityFailed)?;
@@ -388,8 +405,11 @@ impl Client {
         )?))
     }
 
-    /// Import a folder's ordinary files, recursing into its folders, as
-    /// [`Self::files_import`] does; returns what each produced.
+    /// Import the folder at `path` as a folder of the same name in
+    /// `folder`, its ordinary files and folders within, as
+    /// [`Self::files_import`] does; returns what each file produced. An
+    /// existing folder of that name takes the files, unless `keep_both`
+    /// names the new one `name (2)` and so on.
     ///
     /// # Errors
     /// As [`Self::files_import`]; the first failure stops the walk.
@@ -401,6 +421,15 @@ impl Client {
         progress: &mut dyn FnMut(&Path, u64, u64),
     ) -> Result<Vec<Imported>> {
         ensure_valid(path.is_absolute() && path.is_dir(), "path")?;
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .ok_or_else(|| dmsg_types::invalid("name"))?;
+        let name = match keep_both {
+            true => self.catalog()?.free_folder_name(folder, name),
+            false => name.to_string(),
+        };
+        let folder = &self.files_mkdir(folder, &name)?.id;
         let mut imported = Vec::new();
         let mut entries: Vec<_> = std::fs::read_dir(path)
             .map_err(io)?
@@ -419,8 +448,7 @@ impl Client {
             }
             let child = entry.path();
             if file_type.is_dir() {
-                let sub = self.files_mkdir(folder, name)?;
-                imported.extend(self.files_import_dir(&child, &sub.id, keep_both, progress)?);
+                imported.extend(self.files_import_dir(&child, folder, keep_both, progress)?);
             } else if file_type.is_file() {
                 let mut report = |done, total| progress(&child, done, total);
                 imported.push(self.files_import(&child, folder, keep_both, &mut report)?);

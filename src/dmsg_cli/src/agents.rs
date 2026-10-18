@@ -680,7 +680,10 @@ impl Daemon {
                 }))
             }
             "dmsg_files_search" => {
-                let found = client.files_search(&text(input, "query")?)?;
+                let found = client.files_search(
+                    &text(input, "query")?,
+                    &dmsg_client::library::SearchFilter::default(),
+                )?;
                 Ok(Value::Array(
                     found
                         .iter()

@@ -243,6 +243,10 @@ pub(crate) struct Daemon {
     outcomes: std::sync::Mutex<std::collections::BTreeMap<&'static str, String>>,
     /// The file library's loopback WebDAV mount, while mounted.
     pub(crate) mount: std::sync::Mutex<Option<crate::mount::Mount>>,
+    /// Whether the mount is allowed: `config.toml` or `preferences.json`.
+    pub(crate) files_mount: AtomicBool,
+    /// Stops the file imports under way; set without the client's lock.
+    pub(crate) import_cancel: Arc<AtomicBool>,
 }
 
 /// Who presented a credential.
@@ -316,6 +320,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
         .map_err(|e| Error::Unavailable(format!("listen: {e}")))?
         .port();
     let daemon = Arc::new(Daemon::new(token, port, settings, client, agents, mcp));
+    daemon.read_preferences().await?;
     home.publish(&Discovery {
         port,
         pid: std::process::id(),
@@ -528,6 +533,7 @@ impl Daemon {
         agents: dmsg_agent::Runtime,
         mcp: crate::mcp_events::McpEvents,
     ) -> Self {
+        let settings_mount = settings.files_mount;
         Self {
             token,
             instance: hex::encode(&dmsg_client::crypto::random_id()[..8]),
@@ -548,6 +554,8 @@ impl Daemon {
             mcp,
             outcomes: Default::default(),
             mount: std::sync::Mutex::new(None),
+            files_mount: AtomicBool::new(settings_mount),
+            import_cancel: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -1643,6 +1651,9 @@ mod tests {
             "vault/show",
             "vault/conflicts",
             "files/list",
+            "files/search",
+            "files/tags",
+            "files/preferences",
             "channel/list",
         ] {
             assert!(events_of(route(read).unwrap(), read).is_empty(), "{read}");

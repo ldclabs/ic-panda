@@ -235,10 +235,12 @@ pub enum StatementInput {
         /// What the file is about.
         subject: Option<String>,
     },
-    /// Text about one file.
+    /// Text about one file, given as the file or its hex digest.
     FileStatement {
         /// The text.
         text: String,
+        /// Hex SHA-256 when no file is given, such as a library version's.
+        sha256: Option<String>,
         /// Optional media type.
         content_type: Option<String>,
         /// Optional URI of the file.
@@ -418,6 +420,7 @@ impl Client {
             ),
             StatementInput::FileStatement {
                 text,
+                sha256,
                 content_type,
                 location,
                 subject,
@@ -425,7 +428,7 @@ impl Client {
                 subject,
                 StatementContent::FileStatement {
                     text,
-                    sha256: digest_of(None)?,
+                    sha256: digest_of(sha256)?,
                     content_type,
                     location,
                 },

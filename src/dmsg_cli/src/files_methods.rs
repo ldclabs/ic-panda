@@ -12,23 +12,26 @@ use crate::daemon::Daemon;
 use crate::params::{absolute, number, optional, parse, text, to_json};
 use dmsg_client::{
     Client,
-    library::{VerifyReport, catalog::ROOT},
+    library::{SearchFilter, VerifyReport, catalog::ROOT},
 };
 use dmsg_types::{Error, Result};
 use serde_json::{Value, json};
 use std::path::PathBuf;
+use std::sync::atomic::Ordering;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 38] = [
+pub(crate) const METHODS: [&str; 40] = [
     "files/list",
     "files/tree",
     "files/show",
     "files/search",
+    "files/tags",
     "files/mkdir",
     "files/rename",
     "files/move",
     "files/update",
     "files/import",
+    "files/import_cancel",
     "files/export",
     "files/preview",
     "files/open",
@@ -67,6 +70,8 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "files/tree"
         | "files/show"
         | "files/search"
+        | "files/tags"
+        | "files/import_cancel"
         | "files/export"
         | "files/preview"
         | "files/open_list"
@@ -123,6 +128,11 @@ impl Daemon {
                 blobs_bad: check.blobs_bad,
             }));
         }
+        // An import holds the client; it stops at its next chunk.
+        if method == "files/import_cancel" {
+            self.import_cancel.store(true, Ordering::SeqCst);
+            return Ok(json!({"cancelled": true}));
+        }
         let mut client = self.client().lock().await;
         let id = || text(params, "id");
         let version = params["version"].as_str();
@@ -134,7 +144,19 @@ impl Daemon {
             }
             "files/tree" => Ok(to_json(&client.files_tree()?)),
             "files/show" => Ok(to_json(&client.files_show(&id()?)?)),
-            "files/search" => Ok(to_json(&client.files_search(&text(params, "query")?)?)),
+            "files/search" => {
+                let filter = SearchFilter {
+                    folder: match params["folder"].is_null() {
+                        true => None,
+                        false => Some(folder(&mut client, &params["folder"], false)?),
+                    },
+                    starred: params["starred"].as_bool().unwrap_or(false),
+                    tag: params["tag"].as_str().map(str::to_string),
+                };
+                let query = params["query"].as_str().unwrap_or_default();
+                Ok(to_json(&client.files_search(query, &filter)?))
+            }
+            "files/tags" => Ok(to_json(&client.files_tags()?)),
             "files/mkdir" => match params["path"].as_str() {
                 Some(path) => Ok(to_json(&client.files_mkdir_path(path)?)),
                 None => {
@@ -182,38 +204,45 @@ impl Daemon {
                 };
                 let target = folder(&mut client, &params["folder"], true)?;
                 let keep_both = params["keep_both"].as_bool().unwrap_or(false);
+                self.import_cancel.store(false, Ordering::SeqCst);
+                client.files_import_cancel(Some(self.import_cancel.clone()));
                 let mut imported = Vec::new();
-                for path in &paths {
-                    let name = path.display().to_string();
-                    if path.is_dir() {
-                        let mut progress = |file: &std::path::Path, done, total| {
-                            self.emit(
-                                "files/progress",
-                                json!({"path": file.display().to_string(), "done": done, "total": total}),
-                            );
-                        };
-                        imported.extend(client.files_import_dir(
-                            path,
-                            &target,
-                            keep_both,
-                            &mut progress,
-                        )?);
-                    } else {
-                        let mut progress = |done, total| {
-                            self.emit(
-                                "files/progress",
-                                json!({"path": name, "done": done, "total": total}),
-                            );
-                        };
-                        imported.push(client.files_import(
-                            path,
-                            &target,
-                            keep_both,
-                            &mut progress,
-                        )?);
+                let mut run = || -> Result<()> {
+                    for path in &paths {
+                        let name = path.display().to_string();
+                        if path.is_dir() {
+                            let mut progress = |file: &std::path::Path, done, total| {
+                                self.emit(
+                                    "files/progress",
+                                    json!({"path": file.display().to_string(), "done": done, "total": total}),
+                                );
+                            };
+                            imported.extend(client.files_import_dir(
+                                path,
+                                &target,
+                                keep_both,
+                                &mut progress,
+                            )?);
+                        } else {
+                            let mut progress = |done, total| {
+                                self.emit(
+                                    "files/progress",
+                                    json!({"path": name, "done": done, "total": total}),
+                                );
+                            };
+                            imported.push(client.files_import(
+                                path,
+                                &target,
+                                keep_both,
+                                &mut progress,
+                            )?);
+                        }
                     }
-                }
-                Ok(to_json(&imported))
+                    Ok(())
+                };
+                let done = run();
+                client.files_import_cancel(None);
+                done.map(|()| to_json(&imported))
             }
             "files/export" => {
                 let out = absolute(params, "path")?;
@@ -224,10 +253,19 @@ impl Daemon {
             "files/open_list" => Ok(to_json(&client.files_open_list()?)),
             "files/open_cleanup" => {
                 let save = params["save"].as_bool().unwrap_or(false);
+                // The copy saved as a version shows under its file's name.
+                let name = match params["nonce"].as_str() {
+                    Some(nonce) => client
+                        .files_open_list()?
+                        .into_iter()
+                        .find(|copy| copy.nonce == nonce)
+                        .map(|copy| copy.name),
+                    None => None,
+                };
                 let mut progress = |done, total| {
                     self.emit(
                         "files/progress",
-                        json!({"path": params["nonce"], "done": done, "total": total}),
+                        json!({"path": name, "done": done, "total": total}),
                     );
                 };
                 Ok(to_json(&client.files_open_cleanup(
@@ -373,7 +411,7 @@ impl Daemon {
                 let mut progress = |done, total| {
                     self.emit(
                         "files/progress",
-                        json!({"path": params["channel"], "done": done, "total": total}),
+                        json!({"job": "save", "path": params["channel"], "done": done, "total": total}),
                     );
                 };
                 let imported = client

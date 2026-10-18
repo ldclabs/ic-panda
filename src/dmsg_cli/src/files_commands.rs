@@ -31,8 +31,10 @@ pub enum FilesCommand {
         /// The text.
         query: String,
     },
-    /// Import files and folders. A file of the same name in the target
-    /// folder takes the import as a new version, unless --keep-both.
+    /// Import files and folders; a folder comes in as a folder of the same
+    /// name. A file of the same name in the target folder takes the import
+    /// as a new version, and a folder of the same name the folder's files,
+    /// unless --keep-both.
     Add {
         /// Files or folders.
         #[arg(required = true)]
@@ -254,8 +256,9 @@ pub enum FilesCommand {
         share_id: String,
     },
     /// Mount the library as a disk through the daemon (needs
-    /// `files_mount = true` in config.toml): reading decrypts, writing makes
-    /// versions, locking unmounts. --status only shows the mount.
+    /// `files_mount = true` in config.toml, or the desktop's settings):
+    /// reading decrypts, writing makes versions, locking unmounts.
+    /// --status only shows the mount.
     Mount {
         /// Show the mount instead.
         #[arg(long)]
@@ -986,8 +989,8 @@ fn mount_line(m: &Value) -> String {
     }
     if m["enabled"] != true {
         return tr!(
-            "Not mounted; mounting is off (files_mount = true in config.toml turns it on).\n{note}",
-            "未挂载；挂载功能已关闭（在 config.toml 中设置 files_mount = true 开启）。\n{note}"
+            "Not mounted; mounting is off (files_mount = true in config.toml, or the desktop's settings, turns it on).\n{note}",
+            "未挂载；挂载功能已关闭（在 config.toml 中设置 files_mount = true，或在桌面端设置中开启）。\n{note}"
         );
     }
     if m["supported"] != true {

@@ -12,6 +12,7 @@ cryptography, storage and protocol logic live in
 | Path | Content |
 | --- | --- |
 | `config.toml` | Deployment parameters and policies; the only place to change them. Without it the production deployment built into the binary applies ([`production.toml`](production.toml)) |
+| `preferences.json` | The desktop's file settings: `files_mount` (allowed after a system dialog, beside `config.toml`'s) and `files_trash_days` (instead of `config.toml`'s). Only the desktop's main process writes it; the daemon reads it at start and on `files/preferences_reload`, never from a request's values |
 | `owner.token` | Owner credential with `secure_storage = "file"`, readable only by its owner |
 | `daemon.json` | Port, process and instance ID of the running daemon |
 | `dmsg-daemon.lock` | Held by the running daemon: one daemon per home |
@@ -45,7 +46,7 @@ background_online = false        # keep the device key while locked
 sync_interval_minutes = 0        # scheduled sync; 0 is off
 files_max_bytes = 4294967296     # largest file the file library takes (default 4 GiB)
 files_trash_days = 30            # days a trashed library file is kept, 1 to 365
-files_mount = false              # allow mounting the library as a disk (loopback WebDAV)
+files_mount = false              # allow mounting the library as a disk (loopback WebDAV); preferences.json may too
 secure_storage = "system"        # "system" (default on macOS and Windows) or "file"
 connect_url = "http://localhost:5174"  # local only; default https://connect.dmsg.net
 agent_hosts = [                  # Agent Protocols hosts the hosted agents may sign for
@@ -323,8 +324,14 @@ its backup, and a backup deleted there keeps the file here. `files add`
 encrypts files and folders in one pass through a 1 MiB buffer (up to
 `files_max_bytes`, 4 GiB by default), sniffs the type from the bytes, keeps
 a thumbnail of an image, and resumes an interrupted import of the same file
-on the same bytes; a file of the same name in the target folder takes the
-import as a new version unless `--keep-both`. `files get` writes only a
+on the same bytes; a folder comes in as a folder of the same name. A file of
+the same name in the target folder takes the import as a new version, and a
+folder of the same name the folder's files, unless `--keep-both` stands the
+new one beside it as `name (2)`. `files/import_cancel`, which needs no lock
+on the client, stops an import under way at its next chunk and drops its
+unfinished file; what it added before stays. `files/search` also keeps the
+files under a `folder`, the `starred` ones or those with a `tag`, and
+`files/tags` counts the files of each tag. `files get` writes only a
 fully verified version to a path that does not exist yet; `files open`
 exports a copy to `open/` for another program and removes it after 30
 minutes, on lock and on exit, asking first (`files/open_changed`) when the
@@ -384,7 +391,8 @@ without their URLs. `files link-revoke` retires the cloud copy at once;
 an expired link's copy goes by itself. The browser page at `/s/` decrypts
 by the chunk rules of `content-v1.json`.
 
-Mount. With `files_mount = true`, `files mount` serves the library as a
+Mount. With `files_mount = true`, or the desktop's settings allowing it,
+`files mount` serves the library as a
 loopback WebDAV share at `/dav/<token>/dMsg` and mounts it through the
 system (macOS `mount volume`, Windows `net use`, Linux `gio mount`), as the
 disk `dMsg`. The token is random for each mount and lives only in the

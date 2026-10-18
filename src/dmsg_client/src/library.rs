@@ -110,6 +110,28 @@ pub struct VersionCheck {
     pub error: Option<String>,
 }
 
+/// What a search keeps besides its text: files under a folder, starred
+/// ones, those carrying a tag.
+#[derive(Deserialize, Clone, Debug, Default, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct SearchFilter {
+    /// A folder; its files and those of every folder under it.
+    pub folder: Option<String>,
+    /// Starred files only.
+    pub starred: bool,
+    /// Files with exactly this tag.
+    pub tag: Option<String>,
+}
+
+/// A tag and how many files carry it.
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct TagCount {
+    /// The tag.
+    pub tag: String,
+    /// Files not in the trash with it.
+    pub files: u64,
+}
+
 /// A verification report.
 #[derive(Serialize, Clone, Debug, Default, PartialEq, Eq)]
 pub struct VerifyReport {
@@ -409,19 +431,31 @@ impl Client {
         Ok(Details { file, versions })
     }
 
-    /// Files not in the trash whose name, tags or note contain `query`, by
-    /// path and name; an empty query lists every file, newest first.
+    /// Files not in the trash that `filter` keeps and whose name, tags or
+    /// note contain `query`, by path and name; an empty query lists them
+    /// newest first.
     ///
     /// # Errors
-    /// Returns `Error::Locked` while locked.
-    pub fn files_search(&mut self, query: &str) -> Result<Vec<FileView>> {
+    /// Returns `Error::Locked` while locked and `Error::NotFound` for an
+    /// unknown or trashed folder.
+    pub fn files_search(&mut self, query: &str, filter: &SearchFilter) -> Result<Vec<FileView>> {
         let query = query.trim().to_lowercase();
         let ids: Vec<String> = {
             let catalog = self.catalog()?;
+            let within: Option<BTreeSet<String>> = match &filter.folder {
+                Some(folder) => {
+                    catalog.live_folder(folder)?;
+                    Some(catalog.subtree(folder).into_iter().collect())
+                }
+                None => None,
+            };
             catalog
                 .files
                 .iter()
                 .filter(|(_, f)| !catalog.file_trashed(f))
+                .filter(|(_, f)| within.as_ref().is_none_or(|w| w.contains(&f.folder)))
+                .filter(|(_, f)| !filter.starred || f.starred)
+                .filter(|(_, f)| filter.tag.as_ref().is_none_or(|t| f.tags.contains(t)))
                 .filter(|(_, f)| {
                     query.is_empty()
                         || f.name.to_lowercase().contains(&query)
@@ -440,6 +474,38 @@ impl Client {
             false => files.sort_by(|a, b| (&a.path, &a.name).cmp(&(&b.path, &b.name))),
         }
         Ok(files)
+    }
+
+    /// Keep trashed files `days`, 1 to 365, before they go, from now on.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` outside that range.
+    pub fn files_set_trash_days(&mut self, days: u64) -> Result<()> {
+        ensure_valid((1..=365).contains(&days), "files_trash_days")?;
+        self.config.files_trash_days = days;
+        Ok(())
+    }
+
+    /// The tags of the files not in the trash, by tag, with how many files
+    /// carry each.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn files_tags(&mut self) -> Result<Vec<TagCount>> {
+        let catalog = self.catalog()?;
+        let mut counts = std::collections::BTreeMap::<&str, u64>::new();
+        for file in catalog.files.values().filter(|f| !catalog.file_trashed(f)) {
+            for tag in file.tags.iter().collect::<BTreeSet<_>>() {
+                *counts.entry(tag).or_default() += 1;
+            }
+        }
+        Ok(counts
+            .into_iter()
+            .map(|(tag, files)| TagCount {
+                tag: tag.into(),
+                files,
+            })
+            .collect())
     }
 
     /// Create a folder under `parent`; an existing one of that name is

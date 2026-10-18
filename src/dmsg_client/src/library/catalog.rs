@@ -533,19 +533,19 @@ impl Catalog {
             .cloned()
     }
 
-    /// A name free in `folder`: `name`, else `name (2)`, `name (3)`, …
+    /// A file name free in `folder`: `name`, else `name (2)`, `name (3)`, …
     pub(crate) fn free_name(&self, folder: &str, name: &str) -> String {
-        if self.find(folder, name).is_none() {
-            return name.to_string();
-        }
-        let (stem, extension) = match name.rsplit_once('.') {
-            Some((stem, ext)) if !stem.is_empty() => (stem, format!(".{ext}")),
-            _ => (name, String::new()),
-        };
-        (2..)
-            .map(|n| format!("{stem} ({n}){extension}"))
-            .find(|candidate| self.find(folder, candidate).is_none())
-            .expect("an unbounded sequence has a free name")
+        free(name, true, |candidate| {
+            self.find(folder, candidate).is_some()
+        })
+    }
+
+    /// A folder name free under `parent`, as [`Self::free_name`] without
+    /// keeping an extension.
+    pub(crate) fn free_folder_name(&self, parent: &str, name: &str) -> String {
+        free(name, false, |candidate| {
+            self.find_folder(parent, candidate).is_some()
+        })
     }
 
     /// A folder view.
@@ -586,6 +586,22 @@ impl Catalog {
 }
 
 /// The IDs of the entries named `name` in `parent` of a name index.
+/// `name` unless `taken`, else `name (2)`, `name (3)`, … before the
+/// extension when `extension` keeps one.
+fn free(name: &str, extension: bool, taken: impl Fn(&str) -> bool) -> String {
+    if !taken(name) {
+        return name.to_string();
+    }
+    let (stem, suffix) = match name.rsplit_once('.') {
+        Some((stem, ext)) if extension && !stem.is_empty() => (stem, format!(".{ext}")),
+        _ => (name, String::new()),
+    };
+    (2..)
+        .map(|n| format!("{stem} ({n}){suffix}"))
+        .find(|candidate| !taken(candidate))
+        .expect("an unbounded sequence has a free name")
+}
+
 fn named<'a>(
     index: &'a BTreeMap<String, BTreeSet<(String, String)>>,
     parent: &str,

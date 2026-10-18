@@ -49,6 +49,7 @@ use serde_json::Value as Json;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use zeroize::Zeroizing;
 
 /// Fast unlock is refused this long after the last login unlock, as long as
@@ -238,6 +239,9 @@ pub struct Client {
     pub(crate) library_maintained_at: Option<u64>,
     /// When the library's unreferenced chunks were last collected.
     pub(crate) library_collected_at: Option<u64>,
+    /// Set from outside the client to stop the imports under way; checked
+    /// only while one is given.
+    pub(crate) import_cancel: Option<Arc<AtomicBool>>,
 }
 
 impl Client {
@@ -287,6 +291,7 @@ impl Client {
             library: None,
             library_maintained_at: None,
             library_collected_at: None,
+            import_cancel: None,
         };
         let current = std::fs::read_to_string(dir.join(CURRENT))
             .ok()

@@ -3,7 +3,11 @@
 //!
 //! Security settings live only in `config.toml`, or without one in the
 //! production configuration built into this binary (`production.toml`);
-//! nothing a running daemon receives can change them. Secrets that open the
+//! nothing a running daemon receives can change them. The desktop's file
+//! settings live beside it in `preferences.json`, which only the desktop's
+//! main process writes, allowing the disk mount after the person confirms
+//! in a system dialog; the daemon reads that file and never takes the
+//! values from a request. Secrets that open the
 //! workspace live in the system credential store (`secure_storage =
 //! "system"`), never in the home; with `"file"` the owner credential is a
 //! file only its owner can read and fast unlock is unavailable.
@@ -135,8 +139,36 @@ pub struct Settings {
     pub agent_ca: Option<PathBuf>,
     /// Whether the file library may be mounted as a disk (`files/mount`);
     /// off by default, since the systems' WebDAV clients cache plaintext
-    /// and bound file sizes.
+    /// and bound file sizes. `preferences.json` may allow it as well.
     pub files_mount: bool,
+    /// `preferences.json` of this home.
+    pub preferences: PathBuf,
+}
+
+/// `preferences.json`: the file settings the desktop's main process
+/// writes, read at start and when the daemon is told to read them again.
+#[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct Preferences {
+    /// Allows `files/mount` beside `config.toml`'s `files_mount`.
+    pub files_mount: bool,
+    /// Days trashed files stay, instead of `config.toml`'s.
+    pub files_trash_days: Option<u64>,
+}
+
+impl Preferences {
+    /// The preferences at `path`; none when there is no file.
+    ///
+    /// # Errors
+    /// Returns `Error::InvalidInput` for an unreadable or invalid file.
+    pub fn read(path: &Path) -> Result<Self> {
+        match fs::read(path) {
+            Ok(bytes) => serde_json::from_slice(&bytes)
+                .map_err(|e| Error::InvalidInput(format!("preferences.json: {e}"))),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
+            Err(e) => Err(Error::InvalidInput(format!("{}: {e}", path.display()))),
+        }
+    }
 }
 
 /// Where the running daemon listens.
@@ -269,6 +301,7 @@ impl Home {
             agent_blocked_senders: file.agent_blocked_senders,
             agent_ca: file.agent_ca,
             files_mount: file.files_mount,
+            preferences: self.dir.join("preferences.json"),
         })
     }
 
@@ -437,6 +470,27 @@ mod tests {
             ..dmsg_agent::Options::default()
         })
         .unwrap();
+        // No preferences.json reads as none; the desktop writes one.
+        assert_eq!(
+            Preferences::read(&settings.preferences).unwrap(),
+            Preferences::default()
+        );
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(
+            &settings.preferences,
+            r#"{"files_mount": true, "files_trash_days": 7}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            Preferences::read(&settings.preferences).unwrap(),
+            Preferences {
+                files_mount: true,
+                files_trash_days: Some(7)
+            }
+        );
+        fs::write(&settings.preferences, r#"{"relay": "x"}"#).unwrap();
+        assert!(Preferences::read(&settings.preferences).is_err());
+        fs::remove_file(&settings.preferences).unwrap();
         // A config.toml replaces the built-in settings whole.
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join("config.toml"), "environment = \"production\"\n").unwrap();

@@ -105,12 +105,63 @@ fn folders_files_and_versions_round_trip_through_a_reload() {
     assert_eq!(client.files_tree().unwrap().len(), 3);
     assert_eq!(
         client
-            .files_search("WORK")
+            .files_search("WORK", &SearchFilter::default())
             .unwrap()
             .iter()
             .map(|f| f.id.as_str())
             .collect::<Vec<_>>(),
         [report.id.as_str()]
+    );
+    // A search keeps a folder's subtree, the starred files or a tag.
+    let ids = |found: Vec<FileView>| found.into_iter().map(|f| f.name).collect::<Vec<_>>();
+    let filter = |folder: Option<&str>, starred: bool, tag: Option<&str>| SearchFilter {
+        folder: folder.map(str::to_string),
+        starred,
+        tag: tag.map(str::to_string),
+    };
+    assert_eq!(
+        ids(client
+            .files_search("", &filter(Some(&docs.id), true, None))
+            .unwrap()),
+        ["report.pdf"]
+    );
+    assert_eq!(
+        ids(client
+            .files_search("", &filter(None, false, Some("q4")))
+            .unwrap()),
+        ["report.pdf"]
+    );
+    assert!(
+        client
+            .files_search("", &filter(Some(&deep.id), false, None))
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        client
+            .files_search("", &filter(Some(ROOT), false, None))
+            .unwrap()
+            .len(),
+        3
+    );
+    assert_eq!(
+        client
+            .files_search("", &filter(Some("nowhere"), false, None))
+            .err(),
+        Some(Error::NotFound)
+    );
+    assert_eq!(
+        client.files_tags().unwrap(),
+        [
+            TagCount {
+                tag: "q4".into(),
+                files: 1
+            },
+            TagCount {
+                tag: "work".into(),
+                files: 1
+            }
+        ]
     );
 
     // Versions: either exports, the current one can be chosen, one can go.
@@ -238,6 +289,77 @@ fn an_interrupted_import_resumes_only_on_the_same_bytes() {
     let out = dir.path("resumed.bin");
     client.files_export(&imported.file.id, None, &out).unwrap();
     assert_eq!(std::fs::read(&out).unwrap(), data);
+}
+
+#[test]
+fn folders_import_as_folders_and_an_import_can_be_cancelled() {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let source = dir.path("develop");
+    std::fs::create_dir_all(source.join("keys")).unwrap();
+    std::fs::write(source.join("notes.txt"), b"notes").unwrap();
+    std::fs::write(source.join("keys").join("id.pem"), b"pem").unwrap();
+    std::fs::write(source.join(".DS_Store"), b"x").unwrap();
+    let mut seen = Vec::new();
+    let mut report = |path: &std::path::Path, _: u64, _: u64| seen.push(path.to_path_buf());
+    let imported = client
+        .files_import_dir(&source, ROOT, false, &mut report)
+        .unwrap();
+    assert_eq!(imported.len(), 2);
+    assert!(seen.contains(&source.join("keys").join("id.pem")));
+    let tree = client.files_tree().unwrap();
+    let develop = tree
+        .iter()
+        .find(|f| f.name == "develop" && f.parent == ROOT)
+        .unwrap();
+    assert_eq!(
+        tree.iter().find(|f| f.name == "keys").unwrap().parent,
+        develop.id
+    );
+    let listing = client.files_list(&develop.id, false).unwrap();
+    assert_eq!(listing.files.len(), 1);
+    assert_eq!(listing.files[0].name, "notes.txt");
+
+    // Again: the folder takes the files as new versions, or a second
+    // folder stands beside it.
+    let mut ignore = |_: &std::path::Path, _: u64, _: u64| {};
+    let again = client
+        .files_import_dir(&source, ROOT, false, &mut ignore)
+        .unwrap();
+    assert!(again.iter().all(|i| i.file.versions == 2));
+    client
+        .files_import_dir(&source, ROOT, true, &mut ignore)
+        .unwrap();
+    assert!(
+        client
+            .files_tree()
+            .unwrap()
+            .iter()
+            .any(|f| f.name == "develop (2)" && f.parent == ROOT)
+    );
+
+    // A cancelled import stops before its next chunk and leaves nothing.
+    let cancel = Arc::new(AtomicBool::new(true));
+    client.files_import_cancel(Some(cancel.clone()));
+    let big = write(&dir, "big.bin", &pattern(2 * CHUNK, 9));
+    assert!(matches!(
+        client.files_import(&big, ROOT, false, &mut no_progress),
+        Err(Error::Unavailable(_))
+    ));
+    assert!(client.import_jobs().unwrap().is_empty());
+    assert!(
+        client
+            .files_search("big.bin", &SearchFilter::default())
+            .unwrap()
+            .is_empty()
+    );
+    cancel.store(false, Ordering::Relaxed);
+    client
+        .files_import(&big, ROOT, false, &mut no_progress)
+        .unwrap();
+    client.files_import_cancel(None);
 }
 
 #[test]
@@ -371,7 +493,12 @@ fn the_trash_expires_and_collection_keeps_what_is_referenced() {
     let trash = client.files_list(ROOT, true).unwrap();
     assert_eq!(trash.folders.len(), 1);
     assert_eq!(trash.files.len(), 1);
-    assert!(client.files_search("a.bin").unwrap().is_empty());
+    assert!(
+        client
+            .files_search("a.bin", &SearchFilter::default())
+            .unwrap()
+            .is_empty()
+    );
     assert_eq!(client.files_usage().unwrap().trashed, 2);
     // Restoring brings the folder and its file back.
     client

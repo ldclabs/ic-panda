@@ -33,6 +33,7 @@ fn statement_requests_wait_for_a_person() {
     std::fs::write(&file, b"artifact").unwrap();
     let input = StatementInput::FileStatement {
         text: "I approve this build".into(),
+        sha256: None,
         content_type: None,
         location: None,
         subject: None,
@@ -48,6 +49,29 @@ fn statement_requests_wait_for_a_person() {
         client.approval(request["id"].as_str().unwrap()).unwrap()["detail"]["file_checked"],
         false
     );
+
+    // A library version's statement names its digest; no file is checked.
+    let input = StatementInput::FileStatement {
+        text: "I approve this version".into(),
+        sha256: Some("ab".repeat(32)),
+        content_type: Some("application/pdf".into()),
+        location: None,
+        subject: Some("report.pdf".into()),
+    };
+    let request = client.attest_request("gui", input, None).unwrap();
+    assert_eq!(
+        request["detail"]["statement"]["content"]["sha256"],
+        "ab".repeat(32)
+    );
+    assert!(request["detail"]["file_checked"].is_null());
+    let both = StatementInput::FileStatement {
+        text: "both".into(),
+        sha256: Some("ab".repeat(32)),
+        content_type: None,
+        location: None,
+        subject: None,
+    };
+    assert!(client.attest_request("gui", both, Some(&file)).is_err());
 }
 
 #[tokio::test]

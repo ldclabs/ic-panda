@@ -14,6 +14,7 @@
 //! `desktop.ini` and the like) is accepted and discarded.
 
 use crate::daemon::Daemon;
+use crate::home::Preferences;
 use axum::{
     body::Body,
     extract::{Path, Request, State},
@@ -46,12 +47,19 @@ use std::collections::HashMap;
 use std::io::{SeekFrom, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::Mutex;
 use zeroize::Zeroizing;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 3] = ["files/mount", "files/unmount", "files/mount_status"];
+pub(crate) const METHODS: [&str; 5] = [
+    "files/mount",
+    "files/unmount",
+    "files/mount_status",
+    "files/preferences",
+    "files/preferences_reload",
+];
 
 /// The volume's name: the last segment of the share's URL, which the
 /// systems take as the mount's name.
@@ -64,7 +72,8 @@ const COMMAND_TIMEOUT: Duration = Duration::from_secs(60);
 /// The events a method's success announces.
 pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
     match method {
-        "files/mount_status" => &[],
+        "files/mount_status" | "files/preferences" => &[],
+        "files/preferences_reload" => &["files/changed", "files/mount_changed"],
         _ => &["files/mount_changed"],
     }
 }
@@ -294,9 +303,14 @@ impl Daemon {
     /// Run one of [`METHODS`]. The client is not held while the system
     /// mounts, since the system reads the share to do so.
     pub(crate) async fn call_mount(&self, method: &str, _params: &Value) -> Result<Value> {
-        let enabled = self.settings().files_mount;
+        let enabled = self.files_mount.load(Ordering::SeqCst);
         match method {
             "files/mount_status" => Ok(self.mount_status()),
+            "files/preferences" => {
+                let days = self.client().lock().await.config().files_trash_days;
+                Ok(self.preferences_view(days))
+            }
+            "files/preferences_reload" => self.read_preferences().await,
             "files/unmount" => {
                 self.unmount_library().await;
                 Ok(unmounted_status(enabled))
@@ -373,9 +387,37 @@ impl Daemon {
         }
     }
 
+    /// Take `preferences.json` again, which only the desktop's main process
+    /// writes: whether the mount is allowed beside `config.toml`, and how
+    /// long trashed files stay. A mount no longer allowed is undone.
+    pub(crate) async fn read_preferences(&self) -> Result<Value> {
+        let preferences = Preferences::read(&self.settings().preferences)?;
+        let days = preferences
+            .files_trash_days
+            .unwrap_or(self.settings().config.files_trash_days);
+        self.client().lock().await.files_set_trash_days(days)?;
+        let allowed = self.settings().files_mount || preferences.files_mount;
+        self.files_mount.store(allowed, Ordering::SeqCst);
+        if !allowed {
+            self.unmount_library().await;
+        }
+        Ok(self.preferences_view(days))
+    }
+
+    /// The file settings as the desktop shows them; `files_mount_config`
+    /// says `config.toml` allows the mount, which no setting takes back.
+    fn preferences_view(&self, trash_days: u64) -> Value {
+        json!({
+            "files_mount": self.files_mount.load(Ordering::SeqCst),
+            "files_mount_config": self.settings().files_mount,
+            "files_trash_days": trash_days,
+            "supported": platform().1,
+        })
+    }
+
     /// The mount's status.
     pub(crate) fn mount_status(&self) -> Value {
-        let enabled = self.settings().files_mount;
+        let enabled = self.files_mount.load(Ordering::SeqCst);
         self.mount
             .lock()
             .expect("mount state")
