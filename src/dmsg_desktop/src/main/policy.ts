@@ -31,6 +31,7 @@ export const WINDOW_METHODS = new Set([
   'session/switch',
   'session/unlock',
   'session/lock',
+  'session/fast_unlock',
   'account/create',
   'account/show',
   'account/security',

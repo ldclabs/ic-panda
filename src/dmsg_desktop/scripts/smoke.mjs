@@ -202,6 +202,7 @@ const requests = new Map([
 let sockets = []
 /** The session the mock reports, the login under way and whether the next one fails to start. */
 let session = 'unlocked'
+let fastUnlock = false
 let loginResult = null
 let failLogin = false
 function emit(type, data) {
@@ -221,6 +222,7 @@ function status() {
     approvals_waiting: [...requests.values()].filter((r) => r.state === 'awaiting_user').length,
     pending_sync: 2,
     background_online: false,
+    fast_unlock: fastUnlock,
     lock_at: Date.now() + 14 * 60_000,
     idle_lock_ms: 15 * 60_000
   }
@@ -435,6 +437,15 @@ const methods = {
     { account: other, device_id: '12'.repeat(32), bound: true, fast_unlock: false, login_unlocked_at: Date.now() - 1, current: false }
   ],
   'session/switch': (p) => ({ ...status(), state: 'locked', account: p.account }),
+  'session/fast_unlock': (p) => {
+    fastUnlock = p.enable === true
+    return status()
+  },
+  'session/unlock': (p) => {
+    if (!(p?.fast && fastUnlock)) throw { code: 'AUTH_REQUIRED', message: 'Log in' }
+    session = 'unlocked'
+    return status()
+  },
   'account/security': () => ({
     logins: [{ principal: login, current: true }],
     policy: { frozen: false, allowed_purposes: ['FileAttestation', 'Statement', 'AppAction'], daily_executions: 20 },
@@ -664,6 +675,8 @@ const announced = {
   'channel/owner_propose': ['channel/changed'],
   'inbox/configure': ['inbox/changed'],
   'session/switch': ['session/changed', 'approval/changed'],
+  'session/unlock': ['session/changed', 'approval/changed'],
+  'session/fast_unlock': ['session/changed'],
   'attest/request': ['approval/changed'],
   'attest/action': ['approval/changed'],
   'device/capabilities': ['approval/changed'],
@@ -1265,6 +1278,21 @@ try {
   for (let i = 0; i < 50 && (await arrived()).length < 2; i++) await new Promise((r) => setTimeout(r, 100))
   assert.equal((await arrived()).length, 2)
   await main.click('[data-testid="settings-session"]')
+  // Fast unlock turns on in Settings; the locked account then opens from the
+  // keychain instead of a login.
+  const logins = calls.filter((c) => c.method === 'session/login').length
+  await main.click('[data-testid="fast-unlock-toggle"]')
+  await waitFor(() => latest('session/fast_unlock'))
+  assert.deepEqual(latest('session/fast_unlock').params, { enable: true })
+  await main.waitForSelector('[data-testid="fast-unlock"] >> text=On')
+  session = 'locked'
+  emit('session/changed', { state: 'locked' })
+  await main.waitForSelector('[data-testid="gate-unlock"] >> text=Fast unlock')
+  await main.click('[data-testid="gate-unlock"]')
+  await waitFor(() => latest('session/unlock'))
+  assert.deepEqual(latest('session/unlock').params, { fast: true })
+  await main.waitForSelector('[data-testid="gate-state"] >> text=Unlocked')
+  assert.equal(calls.filter((c) => c.method === 'session/login').length, logins)
   await main.click('[data-testid="local-accounts"] >> text=/^(Switch|切换)$/')
   await waitFor(() => calls.some((c) => c.method === 'session/switch'))
   assert.deepEqual(calls.find((c) => c.method === 'session/switch').params, { account: other })

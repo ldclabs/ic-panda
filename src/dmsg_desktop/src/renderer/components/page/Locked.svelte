@@ -8,7 +8,16 @@
   let { status, testid }: { status: any; testid?: string } = $props()
 
   const step = $derived(nextStep(status))
-  const hint = $derived<Label>(status?.state === 'logged_out' ? 'loggedOutHint' : step?.label === 'continueSetup' ? 'setupHint' : 'locked')
+  // Without fast unlock a locked account opens only with a login; the hint says where to turn it on.
+  const hint = $derived<Label>(
+    status?.state === 'logged_out'
+      ? 'loggedOutHint'
+      : step?.label === 'continueSetup'
+        ? 'setupHint'
+        : status?.state === 'locked' && !status.fast_unlock
+          ? 'lockedNeedsLogin'
+          : 'locked'
+  )
 </script>
 
 <div class="grid flex-1 place-items-center p-8" data-testid={testid}>

@@ -1190,7 +1190,7 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
             | "device/revoke"
             | "connect/sync" => &["approval/changed"],
             "connect/grant" | "connect/revoke" => &["connect/changed"],
-            "device/approve" => &["session/changed"],
+            "session/fast_unlock" | "device/approve" => &["session/changed"],
             _ => &[],
         },
         Module::More => crate::methods::events_of(method),
@@ -1645,6 +1645,11 @@ mod tests {
             assert!(events_of(route(read).unwrap(), read).is_empty(), "{read}");
         }
         assert_eq!(events_of(Module::Daemon, "vault/put"), ["vault/changed"]);
+        // The windows show whether fast unlock is on from the session status.
+        assert_eq!(
+            events_of(Module::Daemon, "session/fast_unlock"),
+            ["session/changed"]
+        );
     }
 
     #[tokio::test]

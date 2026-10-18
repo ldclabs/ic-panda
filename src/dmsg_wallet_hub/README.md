@@ -36,7 +36,7 @@ stable 记录用整数键的紧凑编码（`dmsg_runtime::stable_types::wallet` 
 
 ## 部署与上线
 
-1. 部署 hub（`HubInit`：environment、SNS governance、ICP 账本、CMC、commerce、issuer namespace、user homes、`key_1`、`Mainnet`、定价与配额、hub 以外的收入账户），给 hub 充足 cycles。保留 ID 上原有占位模块，首次安装须用 reinstall：升级会因没有 hub 状态而在 `post_upgrade` 中止。
+1. 部署 hub（`HubInit`：environment、SNS governance、ICP 账本、CMC、commerce、issuer namespace、user homes、`key_1`、`Mainnet`、定价与配额、hub 以外的收入账户），给 hub 充足 cycles。保留 ID 上没有模块（2026-10-18 核对），首次安装即普通安装。
 2. 治理在 commerce 登记产品 `dmsg-wallet`（`quote_authority = beneficiary_authorities = adapter = hub`，subject schema `dmsg-wallet-v1`，subject 10 字节）与应用 `dmsg-wallet`（origins 含 `https://dmsg.net`，capabilities `[Checkout]`），并把 hub 的 `admin_*` 方法与对应 `validate_*` 注册为 SNS generic function。
 3. 上传 release 中的 `dmsg_wallet.wasm.gz` 并以其 SHA-256 提案登记。
 4. ICPanda DAO 团队钱包由 Max 套餐成员创建，成员只有团队成员（产品设计 D-6：SNS governance 不作为成员，需要 SNS 治理的资金留在 SNS 国库）；hub 的收入账户可经治理改为该钱包的 ICP 地址。

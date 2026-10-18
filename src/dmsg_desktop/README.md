@@ -112,7 +112,9 @@ desktop is one of its clients, like the CLI.
     report.
   - Settings, in sections with their own routes (`/settings/session`,
     `security`, `devices`, `profile`, `browsers`, `legacy`, `about`): this
-    session and the device's accounts, creating or joining an account,
+    session and the device's accounts, fast unlock (turned on while
+    unlocked; a locked account then opens from the OS keychain instead of
+    a login, until 7 days after the last login), creating or joining an account,
     pairing and recovery, account security, devices, the public profile
     with its avatar, connected browsers, the legacy migration, and About
     dMsg with the app's version and its update.
@@ -270,8 +272,9 @@ and notifications instead of the system's. It covers:
   page, a login binding approved in the approval window, a device
   revocation as an approval request, the avatar shown, set from a picked
   image and removed (the window cannot name a path), the locked daemon's
-  `inbox` and `channel` hints notified once each, switching to another
-  account's workspace, and About dMsg with the app's version and no update
+  `inbox` and `channel` hints notified once each, fast unlock turned on
+  and a locked account opened with it instead of a login, switching to
+  another account's workspace, and About dMsg with the app's version and no update
   check in a development run (only the main window reaches updates);
 - logging in: logged out, the gate rail, the account menu and the locked
   vault offer Log in; a start that fails shows its reason and retries, the

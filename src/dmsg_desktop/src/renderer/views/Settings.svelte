@@ -176,6 +176,12 @@
               <Fact label={t('backgroundOnline')}>
                 {status?.background_online ? t('on') : t('off')}{status?.resident ? ` · ${t('deviceKeyResident')}` : ''}
               </Fact>
+              {#if status?.account}
+                <Fact label={t('fastUnlock')} testid="fast-unlock">
+                  <Pill tone={status.fast_unlock ? 'forest' : 'neutral'}>{status.fast_unlock ? t('on') : t('off')}</Pill>
+                  <span class="text-[12px] text-faint">{t('fastUnlockHint')}</span>
+                </Fact>
+              {/if}
             </dl>
             <div class="mt-3 flex flex-wrap gap-1.5">
               {#if status?.state === 'locked'}
@@ -183,6 +189,10 @@
               {/if}
               {#if unlocked}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => act('session/lock')}><Icon name="lock" />{t('lock')}</button>
+                <!-- Turning it on needs the open account's keys; its key goes to the OS keychain. -->
+                <button class={buttonClass('secondary', 'sm')} onclick={() => act('session/fast_unlock', { enable: !status.fast_unlock })} data-testid="fast-unlock-toggle">
+                  <Icon name="key" />{status.fast_unlock ? t('fastUnlockOff') : t('fastUnlockOn')}
+                </button>
               {/if}
               {#if status?.account}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => act('sync/run')}><Icon name="sync-now" />{t('sync')}</button>
