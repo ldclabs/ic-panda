@@ -1,6 +1,6 @@
 [package]
 name = "dmsg_cli"
-version = "0.2.3"
+version = "0.2.4"
 edition.workspace = true
 license.workspace = true
 description = "dmsg: the dMsg command line client and daemon"
@@ -10,9 +10,6 @@ publish = false
 [[bin]]
 name = "dmsg"
 path = "src/main.rs"
-
-[lints.clippy]
-await_holding_invalid_type = "deny"
 
 [dependencies]
 axum = { workspace = true, features = ["http1", "json", "tokio", "ws"] }

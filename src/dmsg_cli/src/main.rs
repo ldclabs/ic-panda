@@ -1,6 +1,10 @@
 //! `dmsg`: the dMsg command line client. `dmsg daemon` runs the daemon that
 //! holds every key and all state; every other command asks it over loopback.
 
+// `clippy.toml` names the guards no `.await` may hold. Denied here, not in
+// `[lints.clippy]`: editors' Cargo.toml schema checks reject that table.
+#![deny(clippy::await_holding_invalid_type)]
+
 mod account_commands;
 mod account_methods;
 mod agent_commands;
