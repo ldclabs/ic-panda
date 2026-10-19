@@ -16,7 +16,7 @@ desktop is one of its clients, like the CLI.
   Russian, Arabic, French and Spanish, as on the website. The main process
   resolves one (the person's choice, kept in the profile's `locale` file,
   else the system's preferred languages, else English) and passes it to
-  each window; the language menu in the main window changes it for the tray,
+  each window; the language picker in Settings changes it for the tray,
   dialogs and both windows at once. Arabic lays the windows out right to
   left: panes, menus and directional icons mirror, while IDs, code and
   numbers keep their left-to-right order.
@@ -42,15 +42,14 @@ desktop is one of its clients, like the CLI.
   The main window's shell (`shell/`) has a sidebar with the account
   switcher (this device's accounts, another login), the views in three
   groups (work; authorization; account) and Settings, and at its foot the
-  gate rail: locked or not with the idle lock's countdown (`lock_at` from
-  `daemon/status`), the step that opens the device when it is not (Log in,
-  Unlock with Touch ID, Fast unlock, or Continue setup in Settings), the
-  versions waiting to sync,
-  background online while it is on, the daemon connection, the language and
-  appearance menus and Lock. Views the device cannot show yet offer the same
-  step. A title bar names the view and opens the command palette (⌘K, or
-  Ctrl+K elsewhere), which goes to any view and runs the session,
-  appearance and language commands; ⌘1–⌘8 and ⌘, go to a view, ⌘L locks.
+  gate rail: while the device is not unlocked, its state and the step that
+  opens it (Log in, Unlock with Touch ID, Fast unlock, or Continue setup in
+  Settings); the versions waiting to sync, background online while it is
+  on, the daemon connection, and one Lock button while it is unlocked.
+  Views the device cannot show yet offer the same step. A title bar names
+  the view and opens the command palette (⌘K, or Ctrl+K elsewhere), which
+  goes to any view and runs the session, appearance and language commands;
+  ⌘1–⌘8 and ⌘, go to a view, ⌘L locks.
   Beside the sidebar toggle, back and forward (⌘[ and ⌘], or Alt+← and
   Alt+→) walk the views the window showed. The sidebar collapses to icons,
   and the title bar then takes the toggle and the arrows. On macOS the
@@ -145,14 +144,14 @@ desktop is one of its clients, like the CLI.
     sessions in force, agents' grants and credentials), each managed where
     it lives.
   - Settings, in sections with their own routes (`/settings/session`,
-    `security`, `devices`, `profile`, `browsers`, `files`, `legacy`,
-    `about`): this session and the device's accounts, fast unlock (on after
-    every login unlock unless turned off here; it shows how it checks the
-    person) and when the login expires, creating or joining an account,
-    pairing and recovery, account security, devices, the public profile
-    with its avatar, connected browsers, the file library's settings (the
-    disk mount, the trash's days), the legacy migration, and About dMsg
-    with the app's version and its update.
+    `security`, `devices`, `profile`, `browsers`, `files`, `appearance`,
+    `legacy`, `about`): this session and the device's accounts, fast unlock
+    (on after every login unlock unless turned off here; it shows how it
+    checks the person) and when the login expires, creating or joining an
+    account, pairing and recovery, account security, devices, the public
+    profile with its avatar, connected browsers, the file library's settings
+    (the disk mount, the trash's days), the interface language and appearance,
+    the legacy migration, and About dMsg with the app's version and its update.
 
   Every login, from the gate rail, a locked view, the account menu, the
   palette, Settings or "Bind another login", runs one flow
@@ -378,7 +377,7 @@ and notifications instead of the system's. It covers:
   vault offer Log in; a start that fails shows its reason and retries, the
   page opens again on request, and the dialog follows the daemon's check to
   the unlocked vault;
-- languages: picked only in the main window, kept, and followed by the
+- languages: picked in the main window's Settings, kept, and followed by the
   approval window, Arabic right to left.
 
 ## Packages and updates

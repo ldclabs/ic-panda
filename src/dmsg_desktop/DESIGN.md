@@ -138,9 +138,11 @@ selection and overlays.
 
 Three ideas decide the layout:
 
-1. **The gate rail keeps state in view.** Locked or not, the idle lock's
-   countdown, the versions waiting to sync, background online and the daemon
-   connection sit at the foot of the sidebar, always in the same place.
+1. **The gate rail keeps state in view.** Locked or not, the versions
+   waiting to sync, background online and the daemon connection sit at the
+   foot of the sidebar, always in the same place. The lock has one control:
+   its state and the step that opens the device while locked, a Lock button
+   once unlocked.
 2. **Objects first.** A view is a list beside the object it opens; new
    items, imports and transfers open in dialogs instead of sharing the page
    with the list.
@@ -345,8 +347,7 @@ restyle a control by hand.
   of the library leaves the device unless the person backs it up or shares
   it, and deleting on one side never deletes on the other.
 - The idle lock follows a person's input, which the main process reports;
-  what windows read, on events or the status refresh (every 10 seconds
-  while unlocked, for the countdown), never keeps the device unlocked.
+  what windows read on events never keeps the device unlocked.
 - Never present a pending or unknown result as success.
 
 ## Accessibility & Languages

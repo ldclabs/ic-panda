@@ -12,7 +12,7 @@ export type Locale = (typeof locales)[number]
 
 export const defaultLocale: Locale = 'en'
 
-/** Each language's name in itself, as the language menu shows it. */
+/** Each language's name in itself, as the language picker shows it. */
 export const localeNames: Record<Locale, string> = {
   en: 'English',
   zh: '中文',

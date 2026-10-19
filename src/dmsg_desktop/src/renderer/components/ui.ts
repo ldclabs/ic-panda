@@ -32,7 +32,7 @@ export function buttonClass(variant: ButtonVariant = 'secondary', size: ButtonSi
   return cn(buttonBase, buttonVariants[variant], buttonSizes[size], className)
 }
 
-/** A floating panel of choices: the dropdowns, the suggestions, the language and appearance menus. */
+/** A floating panel of choices: the dropdowns, the suggestions and the language menu. */
 export const menuContentClass =
   'z-50 max-h-[min(var(--bits-floating-available-height),360px)] min-w-(--bits-floating-anchor-width) max-w-[min(420px,calc(100vw-16px))] overflow-y-auto rounded-xl border border-line bg-surface p-1 text-ink shadow-pop outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95'
 

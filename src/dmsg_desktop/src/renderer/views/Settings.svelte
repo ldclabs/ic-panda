@@ -1,5 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { RadioGroup } from 'bits-ui'
+  import { appearances, isAppearance } from '../../shared/appearance'
+  import { isLocale, localeNames, locales } from '../../shared/locales'
   import type { Glyph } from '../components/glyphs'
   import Icon from '../components/Icon.svelte'
   import Fact from '../components/page/Fact.svelte'
@@ -8,8 +11,12 @@
   import Page from '../components/page/Page.svelte'
   import Pill from '../components/page/Pill.svelte'
   import Section from '../components/page/Section.svelte'
+  import Radio from '../components/Radio.svelte'
+  import Select from '../components/Select.svelte'
+  import { toast } from '../components/toast.svelte'
   import { buttonClass, cn } from '../components/ui'
-  import { sessionLabel, t, type Label } from '../i18n/index.svelte'
+  import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
+  import { locale, sessionLabel, setLocale, t, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, onChange, single, when } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
   import { unlock } from '../shell/session'
@@ -24,12 +31,13 @@
   /**
    * Settings in sections beside their list: this session and the device's
    * accounts, security, devices, the public profile, connected browsers, the
-   * file library, the legacy migration and the app's version and updates.
-   * Each section has its own route under /settings.
+   * file library, the interface language and appearance, the legacy migration
+   * and the app's version and updates. Each section has its own route under
+   * /settings.
    */
   let { status, refresh, route, go }: { status: any; refresh: () => Promise<void>; route: string; go: (path: string) => void } = $props()
 
-  type Part = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'files' | 'legacy' | 'about'
+  type Part = 'session' | 'security' | 'devices' | 'profile' | 'browsers' | 'files' | 'appearance' | 'legacy' | 'about'
 
   const parts: { value: Part; label: Label; icon: Glyph; locked?: boolean }[] = [
     { value: 'session', label: 'sessionAccounts', icon: 'account' },
@@ -38,6 +46,7 @@
     { value: 'profile', label: 'publicProfile', icon: 'profile' },
     { value: 'browsers', label: 'browsers', icon: 'browser' },
     { value: 'files', label: 'files', icon: 'folder' },
+    { value: 'appearance', label: 'languageAppearance', icon: 'system' },
     { value: 'legacy', label: 'legacy', icon: 'legacy' },
     { value: 'about', label: 'aboutApp', icon: 'info' }
   ]
@@ -56,6 +65,25 @@
   const unlocked = $derived(status?.state === 'unlocked')
   const opened = $derived(['unlocked', 'locked', 'root_required'].includes(status?.state))
   const own = $derived(account?.devices?.find((d: any) => d.current))
+
+  /** The main process keeps the interface language and appearance for every window. */
+  async function pickLanguage(next: string) {
+    if (!isLocale(next) || next === locale()) return
+    try {
+      await setLocale(next)
+    } catch {
+      toast(() => t('languageFailed'))
+    }
+  }
+
+  async function pickAppearance(next: string) {
+    if (!isAppearance(next) || next === appearance()) return
+    try {
+      await setAppearance(next)
+    } catch {
+      toast(() => t('appearanceFailed'))
+    }
+  }
 
   const reload = single(async () => {
     error = ''
@@ -161,6 +189,30 @@
           <Legacy {status} />
         {:else if part === 'files'}
           <FilesSettings />
+        {:else if part === 'appearance'}
+          <Section title={t('languageAppearance')} description={t('languageAppearanceHint')} icon="system" testid="language-appearance">
+            <dl class="divide-y divide-line">
+              <Fact label={t('language')}>
+                <Select
+                  value={locale()}
+                  options={locales.map((code) => ({ value: code, label: localeNames[code] }))}
+                  label={t('language')}
+                  onChange={pickLanguage}
+                  testid="settings-language"
+                  class="w-56"
+                />
+              </Fact>
+              <Fact label={t('appearance')}>
+                <RadioGroup.Root value={appearance()} onValueChange={pickAppearance} aria-label={t('appearance')} class="flex flex-wrap gap-x-5 gap-y-2">
+                  {#each appearances as choice (choice)}
+                    <Radio value={choice} testid={`appearance-${choice}`}>
+                      <span class="inline-flex items-center gap-1.5"><Icon name={choice} class="text-faint" />{t(appearanceLabel[choice])}</span>
+                    </Radio>
+                  {/each}
+                </RadioGroup.Root>
+              </Fact>
+            </dl>
+          </Section>
         {:else if part === 'about'}
           <About />
         {:else if part === 'session'}

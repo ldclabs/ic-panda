@@ -69,6 +69,7 @@
   const groups = $derived.by(() => {
     const places: Entry[] = [
       ...shortcuts.map((view) => ({ label: t(view.label), icon: view.icon, hint: `${mod}${view.key}`, run: () => go(view.path) })),
+      { label: `${t('settings')} › ${t('languageAppearance')}`, icon: 'system', run: () => go('/settings/appearance') },
       { label: `${t('settings')} › ${t('legacy')}`, icon: views.legacy.icon, run: () => go(views.legacy.path) },
       { label: `${t('settings')} › ${t('aboutApp')}`, icon: 'info', run: () => go('/settings/about') }
     ]

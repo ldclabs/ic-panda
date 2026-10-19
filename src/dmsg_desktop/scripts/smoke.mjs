@@ -1114,9 +1114,10 @@ try {
   main.on('pageerror', (error) => pageErrors.push(error.message))
   await main.waitForSelector('text=Smoke note', { timeout: 20_000 })
   assert.equal(await main.textContent('[data-testid="waiting-count"]'), '2')
-  // The gate rail keeps the lock, its countdown and what waits to sync in view.
-  assert.equal(await main.textContent('[data-testid="gate-state"]'), 'Unlocked')
-  assert.match(await main.textContent('[data-testid="gate-rail"]'), /1[34]:\d\d[\s\S]*2 versions to sync/)
+  // Unlocked, the gate rail keeps one Lock button and what waits to sync in view.
+  assert.equal(await main.locator('[data-testid="gate-lock"]').count(), 1)
+  assert.equal(await main.locator('[data-testid="gate-state"]').count(), 0)
+  assert.match(await main.textContent('[data-testid="gate-rail"]'), /2 versions to sync/)
   await main.screenshot({ path: join(shots, 'main.png') })
   // The palette goes to a view by name; ⌘1 comes back to the vault.
   const mod = process.platform === 'darwin' ? 'Meta' : 'Control'
@@ -1937,7 +1938,7 @@ try {
   await main.click('[data-testid="gate-unlock"]')
   await waitFor(() => latest('session/unlock'))
   assert.deepEqual(latest('session/unlock').params, { fast: true })
-  await main.waitForSelector('[data-testid="gate-state"] >> text=Unlocked')
+  await main.waitForSelector('[data-testid="gate-lock"]')
   // Unlocked again, the request comes back.
   await approval.waitForSelector('[data-testid="approval-title"]')
   assert.equal(calls.filter((c) => c.method === 'session/login').length, logins)
@@ -1958,7 +1959,7 @@ try {
   assert.equal(await main.textContent('[data-testid="gate-state"]'), 'Locked')
   declineUnlock = false
   await main.click('[data-testid="gate-unlock"]')
-  await main.waitForSelector('[data-testid="gate-state"] >> text=Unlocked')
+  await main.waitForSelector('[data-testid="gate-lock"]')
   assert.equal(calls.filter((c) => c.method === 'session/login').length, logins)
   assert.equal(await main.textContent('[data-testid="fast-unlock-method"]'), 'Touch ID or the Mac password')
   await main.click('[data-testid="local-accounts"] >> text=/^(Switch|切换)$/')
@@ -1998,15 +1999,18 @@ try {
   emit('login/changed', null)
   await main.waitForSelector('[data-testid="login-dialog"]', { state: 'detached' })
   await main.waitForSelector('text=Smoke note')
-  assert.equal(await main.textContent('[data-testid="gate-state"]'), 'Unlocked')
+  assert.equal(await main.locator('[data-testid="gate-state"]').count(), 0)
+  assert.equal(await main.locator('[data-testid="gate-lock"]').count(), 1)
 
-  // The language is picked in the main window only, kept in the profile, and
-  // both windows follow it; Arabic reads right to left.
+  // The language is picked in the main window's Settings only, kept in the
+  // profile, and both windows follow it; Arabic reads right to left.
   await assert.rejects(approval.evaluate(() => window.dmsg.setLocale('fr')), /FORBIDDEN/)
-  await main.click('[data-testid="locale"]')
-  await main.waitForSelector('[data-testid="locale-menu"]')
+  await main.keyboard.press(`${mod}+,`)
+  await main.click('[data-testid="settings-appearance"]')
+  await main.click('[data-testid="settings-language"]')
+  await main.waitForSelector('[data-testid="settings-language-menu"]')
   await main.screenshot({ path: join(shots, 'locale-menu.png') })
-  await main.click('[data-testid="locale-menu"] [data-value="ar"]')
+  await main.click('[data-testid="settings-language-menu"] [data-value="ar"]')
   await main.waitForSelector('html[lang="ar"][dir="rtl"]')
   await approval.waitForSelector('html[lang="ar"][dir="rtl"]')
   await main.waitForSelector('nav >> text=الإعدادات')
@@ -2026,20 +2030,20 @@ try {
   await main.waitForSelector('[data-testid="wallet-deposits"]')
   await main.locator('[data-testid="wallet-deposits"]').screenshot({ path: join(shots, 'wallet-deposits-ar.png') })
   await main.keyboard.press(`${mod}+,`)
-  await choose(main, 'locale', 'fr')
+  await main.click('[data-testid="settings-appearance"]')
+  await choose(main, 'settings-language', 'fr')
   await approval.waitForSelector('html[lang="fr"][dir="ltr"]')
   await main.waitForSelector('nav >> text=Paramètres')
   await main.screenshot({ path: join(shots, 'locale-fr.png') })
 
-  // The appearance is picked in the main window only and kept in the
-  // profile; both windows follow it through nativeTheme.
+  // The appearance is picked in the main window's Settings only and kept in
+  // the profile; both windows follow it through nativeTheme.
   await assert.rejects(approval.evaluate(() => window.dmsg.setAppearance('dark')), /FORBIDDEN/)
   assert.ok(!(await main.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)))
-  await choose(main, 'appearance', 'dark')
+  await main.click('[data-testid="appearance-dark"]')
   await main.waitForFunction(() => matchMedia('(prefers-color-scheme: dark)').matches)
   await approval.waitForFunction(() => matchMedia('(prefers-color-scheme: dark)').matches)
   assert.equal(await readFile(join(profile, 'appearance'), 'utf8'), 'dark')
-  await main.waitForSelector('[data-testid="appearance-menu"]', { state: 'detached' })
   await main.screenshot({ path: join(shots, 'appearance-dark.png') })
 
   // Revoking a device takes a hold: a short press decides nothing, a second's hold approves.

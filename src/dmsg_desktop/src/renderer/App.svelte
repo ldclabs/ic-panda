@@ -87,15 +87,6 @@
     if (isMain) void loadOffers()
   })
 
-  // The idle lock follows a person's input in any window, which the main
-  // process reports. While unlocked the status is read again as often as the
-  // daemon checks the lock, so the gate rail's countdown follows `lock_at`.
-  $effect(() => {
-    if (!isMain || !unlocked) return
-    const timer = setInterval(() => void refresh(), 10_000)
-    return () => clearInterval(timer)
-  })
-
   $effect(() => store('dmsg.sidebar', collapsed ? 'collapsed' : 'expanded'))
 
   function dismissLegacy() {
