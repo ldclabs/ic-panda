@@ -682,8 +682,18 @@ daemon runs the Agent ID's connector and checks its capabilities. For Claude
 Code, after `dmsg agent id create claude` and `dmsg agent id credential claude`:
 
 ```sh
-claude mcp add dmsg --env DMSG_AGENT_TOKEN=dmsg-agent-… -- dmsg mcp
+claude mcp add --scope user dmsg --env DMSG_AGENT_TOKEN=dmsg-agent-… -- dmsg mcp
 ```
+
+`--scope user` serves it in every project; Claude Code's default scope is the
+folder the command runs in. The credential then sits in `~/.claude.json` (and
+a typed command in the shell history): whoever reads it acts as this Agent ID
+until `dmsg agent id uncredential` withdraws it. The process finds the daemon
+at its first request and again when it stops answering: it starts while no
+daemon runs (`tools/list` then answers from its own catalog and each call
+with `DAEMON_STOPPED`), and a daemon restart, which moves it to another port,
+does not end the session. Only a refused connection is retried, so a call is
+never sent twice.
 
 Tools: the 33 standard `agent_protocols_*` tools of the Agent Protocols
 local connector (`agent-protocols` 0.12: identity, delegation, rooms, inbox
@@ -698,9 +708,12 @@ capability as their tools); and
 field only as below), `dmsg_channel_list|read|publish`, `dmsg_inbox_list`,
 `dmsg_profile_read`, `dmsg_attest_request` (an approval request with source
 `agent:<did>`, which only a person decides) and `dmsg_approval_status` (only
-the agent's own requests). A refused call returns `isError` with the
-protocol's `code`, such as `permission_denied`, `room_head_mismatch` or
-`FORBIDDEN`.
+the agent's own requests). Every standard tool declares the inputs the
+connector reads, their required members and choices. A refused call returns
+`isError` with the protocol's `code`, such as `permission_denied`,
+`room_head_mismatch` or `FORBIDDEN`; a Knowledge payload that does not
+match its type is refused before it is signed, with every failing member at
+its path (`invalid_event`, `data.errors`).
 
 More `dmsg_*` tools, each behind its capability: `dmsg_vault_read` with
 `secret: true` returns the secret field (`vault.secret:<item>`);
@@ -723,7 +736,7 @@ canonical CBOR a web page passes to `signAction` (`action.request`); and
 (`agent.delegation.read`). Without any grant, `dmsg_capabilities` shows the
 agent its live grants and what may be granted, and
 `dmsg_capabilities_request` asks the owner for more: an approval request,
-never the decision. 67 tools in all, team wallets and MCP Events included.
+never the decision, which waits an hour. 67 tools in all, team wallets and MCP Events included.
 
 Resources (local connector §4.4): `agent-protocols://identity/current`,
 `hosts`, `rooms`, `inbox/pending`, `drafts/held`, `mail/mailboxes`,
@@ -878,9 +891,10 @@ The daemon listens on `127.0.0.1` only.
   is null while pending. The check finishes even if the browser leaves
   before its answer.
 - `idle_lock_minutes` without activity locks the daemon: the login and every
-  key are dropped. Every request is activity except `app/initialize`,
-  `daemon/status`, `events/poll`, `mcp-events/poll` and the waiting readers,
-  and so are a completed login and, from any client, a successful
+  key are dropped. Every owner request is activity except `app/initialize`,
+  `daemon/status`, `events/poll` and `mcp-events/poll`; an agent's requests
+  never are, so an agent that polls does not keep the device unlocked (a
+  resident Agent ID works while locked). So are a completed login and, from any client, a successful
   `session/unlock`: a window that asks for Touch ID as it comes to the front
   has no input to report. A WebSocket that sent
   `app/initialize {activity: "reported"}`, as the desktop does, reports a

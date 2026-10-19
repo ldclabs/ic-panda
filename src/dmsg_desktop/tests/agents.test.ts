@@ -72,7 +72,7 @@ test('an MCP client runs dmsg mcp with the credential and the home', () => {
   const setup = mcpSetup({ binary: '/Users/me/Library/Application Support/dMsg/bin/dmsg', home: '/Users/me/.dmsg' }, 'claude', 'dmsg-agent-ab')
   assert.equal(
     setup.command,
-    "claude mcp add dmsg-claude --env DMSG_AGENT_TOKEN=dmsg-agent-ab -- '/Users/me/Library/Application Support/dMsg/bin/dmsg' --home /Users/me/.dmsg mcp"
+    "claude mcp add --scope user dmsg-claude --env DMSG_AGENT_TOKEN=dmsg-agent-ab -- '/Users/me/Library/Application Support/dMsg/bin/dmsg' --home /Users/me/.dmsg mcp"
   )
   assert.deepEqual(JSON.parse(setup.config), {
     mcpServers: {

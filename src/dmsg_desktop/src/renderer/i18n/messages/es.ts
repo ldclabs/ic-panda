@@ -997,6 +997,7 @@ export default {
     connectClaudeCode: 'Claude Code',
     connectConfig: 'Claude Desktop, Cursor y otros clientes (mcpServers)',
     connectNext: 'El cliente inicia dmsg mcp como este Agent ID. Concédele capacidades en la pestaña Capacidades; también puede pedirlas, y tú decides en la ventana de aprobación.',
+    connectStored: '--scope user lo deja disponible en todos los proyectos. Claude Code guarda la credencial en ~/.claude.json y un comando pegado queda en el historial del shell; quien lea cualquiera de los dos actúa como este Agent ID, así que retírala aquí si se filtra.',
     connectTitle: 'Conectar {label}',
     controllerAuto: 'El más reciente que lo cubre',
     controllersHint: 'Claves que firman concesiones para este principal. El techo de una clave es fijo: para cambiarlo, cambia a una clave nueva.',

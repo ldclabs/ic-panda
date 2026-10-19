@@ -1,7 +1,7 @@
 # dmsg_agent
 
 dMsg as an [Agent Protocols](https://github.com/ldclabs/agent-protocols)
-local connector host (`agent-protocols` 0.12.1). The daemon (`dmsg_cli`)
+local connector host (`agent-protocols` 0.12.2). The daemon (`dmsg_cli`)
 runs one connector per Agent ID it hosts; `dmsg mcp` and `dmsg ap` reach
 them through the daemon. Agent ID keys, their mail keys, their residency
 and the capability grants live in [`dmsg_client`](../dmsg_client/README.md).
@@ -53,6 +53,16 @@ move only by reading it. Sessions unused for 30 days, or beyond the newest
 256 of an Agent ID, are forgotten. Held drafts and inbox claims stay with the
 Agent ID: a restarted agent finishes what its previous session held, and a
 claim's lease keeps another session off the item.
+
+Every standard tool declares its full input schema, as local connector
+Section 4.3's tables list them, and none uses `oneOf`, `anyOf` or `allOf`,
+which Anthropic's API refuses in a tool's input schema, failing the whole
+request (the SDK's catalog; `tools::tool_list` adds each tool's
+capability). A test calls each tool with only its required inputs, and with
+none, so an SDK upgrade that changes what the connector reads shows. The
+connector refuses a Knowledge payload that does not match its type before
+signing, with every failing member at its path (`invalid_event`,
+`data.errors`).
 
 A resource read (`Runtime::read`) restores the connector the same way and
 runs the read-only tool that shows the resource, then drops the connector:

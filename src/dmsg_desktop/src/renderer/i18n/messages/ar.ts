@@ -997,6 +997,7 @@ export default {
     connectClaudeCode: 'Claude Code',
     connectConfig: 'Claude Desktop وCursor وعملاء آخرون (mcpServers)',
     connectNext: 'يشغّل العميل dmsg mcp باسم معرّف Agent ID هذا. امنحه القدرات من تبويب القدرات؛ ويمكنه أيضًا طلبها، وتقرّر أنت في نافذة الموافقة.',
+    connectStored: 'يجعله ‎--scope user متاحًا في كل المشاريع. يحفظ Claude Code بيانات الاعتماد في ‎~/.claude.json، ويبقى الأمر الملصوق في سجل الصدفة؛ من يقرأ أيًّا منهما يتصرف باسم معرّف Agent ID هذا، فاسحب بيانات الاعتماد هنا إن تسرّبت.',
     connectTitle: 'ربط {label}',
     controllerAuto: 'الأحدث الذي يغطيه',
     controllersHint: 'مفاتيح توقّع المنح لهذا principal. سقف المفتاح ثابت: لتغييره بدّل إلى مفتاح جديد.',

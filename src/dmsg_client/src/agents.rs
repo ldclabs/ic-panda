@@ -745,7 +745,8 @@ impl Client {
     }
 
     /// An Agent ID asks for capabilities: an approval request the owner
-    /// decides, which grants them once approved.
+    /// decides within [`crate::approval::AGENT_REQUEST_TTL_MS`], which
+    /// grants them once approved.
     ///
     /// # Errors
     /// Returns `Error::InvalidInput` for an unknown capability or lifetime,
@@ -766,7 +767,7 @@ impl Client {
                 capabilities,
                 days,
             },
-            now_ms() + crate::approval::APPROVAL_TTL_MS,
+            now_ms() + crate::approval::AGENT_REQUEST_TTL_MS,
         )?;
         self.approval_view(&request)
     }

@@ -7,7 +7,10 @@
 //! credential (`DMSG_AGENT_TOKEN`, issued by `dmsg agent id credential`) to
 //! the daemon, which runs the Agent ID's connector and checks its
 //! capabilities. The owner credential is never read, so no tool reaches an
-//! approval, the host allowlist or another Agent ID.
+//! approval, the host allowlist or another Agent ID. The daemon is found at
+//! the first request and again when it stops answering: a session starts
+//! before it, its calls answer `DAEMON_STOPPED` until it runs, and a
+//! restart, which moves it to another port, does not end the session.
 //!
 //! It serves the local connector's resources (local connector §4.4) and
 //! tells a subscriber when one changes, by `resources/subscribe` or a
@@ -270,12 +273,15 @@ async fn respond(session: &Arc<Session>, method: &str, params: &Value) -> Result
             }))
         }
         "ping" => Ok(json!({})),
-        "tools/list" => session
-            .remote
-            .call("mcp/tools", Value::Null)
-            .await
-            .map(|v| json!({"tools": v["tools"]}))
-            .map_err(|failure| internal(&failure)),
+        "tools/list" => match session.remote.call("mcp/tools", Value::Null).await {
+            Ok(listed) => Ok(json!({"tools": listed["tools"]})),
+            // The catalog is this binary's: a session that starts before the
+            // daemon still learns its tools, and each call says it stopped.
+            Err(failure) if failure.code == "DAEMON_STOPPED" => {
+                Ok(json!({"tools": dmsg_agent::tools::tool_list()}))
+            }
+            Err(failure) => Err(internal(&failure)),
+        },
         "tools/call" => {
             let input = match &params["arguments"] {
                 Value::Null => json!({}),
@@ -726,6 +732,35 @@ mod tests {
         let error = stateless(&unknown).unwrap_err();
         assert_eq!(error["code"], UNSUPPORTED_VERSION);
         assert_eq!(error["data"]["supported"][0], STATELESS);
+    }
+
+    #[tokio::test]
+    async fn serves_its_tools_before_the_daemon_runs() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = Home {
+            dir: dir.0.join("home"),
+        };
+        let (out, _lines) = tokio::sync::mpsc::unbounded_channel();
+        let session = Arc::new(Session {
+            remote: Remote::agent(&home, "agent").unwrap(),
+            id: "session".into(),
+            out,
+            watch: Mutex::new(Watch::default()),
+        });
+        let listed = respond(&session, "tools/list", &json!({})).await.unwrap();
+        assert_eq!(listed["tools"], json!(dmsg_agent::tools::tool_list()));
+        let called = respond(
+            &session,
+            "tools/call",
+            &json!({"name": "dmsg_capabilities"}),
+        )
+        .await
+        .unwrap();
+        assert_eq!(called["isError"], true);
+        assert_eq!(
+            called["structuredContent"]["error"]["code"],
+            "DAEMON_STOPPED"
+        );
     }
 
     #[test]

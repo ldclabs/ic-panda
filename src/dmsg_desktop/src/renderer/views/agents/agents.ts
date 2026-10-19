@@ -83,13 +83,16 @@ export const shellWord = (word: string) => (/^[\w./:@%+=,-]+$/.test(word) ? word
 
 /**
  * How an MCP client runs `dmsg mcp` as the Agent ID `label` with its
- * credential: the Claude Code command, and the `mcpServers` entry Claude
- * Desktop, Cursor and others read.
+ * credential: the Claude Code command, for every project (`--scope user`;
+ * its default scope is the one folder it runs in), and the `mcpServers`
+ * entry Claude Desktop, Cursor and others read.
  */
 export function mcpSetup(runtime: { binary: string; home: string }, label: string, credential: string) {
   const name = `dmsg-${label}`
   const args = ['--home', runtime.home, 'mcp']
-  const command = ['claude', 'mcp', 'add', name, '--env', `DMSG_AGENT_TOKEN=${credential}`, '--', runtime.binary, ...args].map(shellWord).join(' ')
+  const command = ['claude', 'mcp', 'add', '--scope', 'user', name, '--env', `DMSG_AGENT_TOKEN=${credential}`, '--', runtime.binary, ...args]
+    .map(shellWord)
+    .join(' ')
   const config = JSON.stringify({ mcpServers: { [name]: { command: runtime.binary, args, env: { DMSG_AGENT_TOKEN: credential } } } }, null, 2)
   return { command, config }
 }

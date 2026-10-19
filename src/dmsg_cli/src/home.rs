@@ -183,6 +183,7 @@ pub struct Discovery {
 }
 
 /// A home directory.
+#[derive(Clone)]
 pub struct Home {
     /// Its path.
     pub dir: PathBuf,

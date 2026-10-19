@@ -7,7 +7,8 @@
 //! callback is open only while a login is pending, accepts one POST from its
 //! own loopback origin and then closes (`docs/protocol/login-v1_zh.md` §4).
 //!
-//! Idle for `idle_lock_minutes`, the daemon locks; versions already signed
+//! Idle for `idle_lock_minutes`, the daemon locks (agents' calls are not
+//! the person's activity and never hold it off); versions already signed
 //! for submission are still sent by a keyless flush, and with
 //! `background_online` the device key stays for sending and fetching
 //! ciphertext. `sync_interval_minutes` adds a scheduled sync.
@@ -1359,21 +1360,20 @@ fn reply_failure(id: &Value, error: &Error) -> Value {
     })
 }
 
-/// Whether a request moves the idle lock. Waiting readers do not: a stream
-/// would otherwise keep the device unlocked forever. A client that
-/// `reports` its person's activity moves it only with `app/activity`.
+/// Whether an owner's request moves the idle lock. Waiting readers do not:
+/// a stream would otherwise keep the device unlocked forever. A client that
+/// `reports` its person's activity moves it only with `app/activity`. An
+/// agent's requests never do: an agent that polls is not the person, and a
+/// resident Agent ID works while locked.
 fn is_activity(request: &RpcRequest, reports: bool) -> bool {
     let method = request.method.as_str();
     if reports {
         return method == "app/activity";
     }
-    let waiting = (method == "mcp/call" && request.params["tool"] == "dmsg_events_next")
-        || method == "mcp/changed";
-    !waiting
-        && !matches!(
-            method,
-            "events/poll" | "daemon/status" | "app/initialize" | "mcp-events/poll"
-        )
+    !matches!(
+        method,
+        "events/poll" | "daemon/status" | "app/initialize" | "mcp-events/poll"
+    )
 }
 
 impl Daemon {
@@ -1400,7 +1400,7 @@ impl Daemon {
         if agent_method != matches!(session, Session::Agent(_)) {
             return reply_failure(id, &Error::Forbidden);
         }
-        if is_activity(&request, reports) {
+        if !agent_method && is_activity(&request, reports) {
             self.activity.store(now_ms(), Ordering::Relaxed);
         }
         let started = std::time::Instant::now();
@@ -2094,8 +2094,6 @@ mod tests {
     fn activity_of_requests() {
         assert!(is_activity(&request("vault/list", Value::Null), false));
         assert!(!is_activity(&request("daemon/status", Value::Null), false));
-        let waiting = request("mcp/call", json!({"tool": "dmsg_events_next"}));
-        assert!(!is_activity(&waiting, false));
         // A client that reports its person's activity: only the reports count.
         assert!(!is_activity(&request("vault/list", Value::Null), true));
         assert!(is_activity(&request("app/activity", Value::Null), true));

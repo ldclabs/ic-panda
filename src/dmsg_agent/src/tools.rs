@@ -383,4 +383,34 @@ mod tests {
                 .ends_with(" Needs discourse.write:<origin>.")
         );
     }
+
+    #[test]
+    fn no_input_schema_combines_schemas() {
+        // Anthropic refuses a tool whose input schema has oneOf, anyOf or
+        // allOf, and with it the whole request.
+        fn combined(value: &Value, path: String, found: &mut Vec<String>) {
+            match value {
+                Value::Object(map) => {
+                    for (key, value) in map {
+                        if matches!(key.as_str(), "oneOf" | "anyOf" | "allOf") {
+                            found.push(format!("{path}/{key}"));
+                        }
+                        combined(value, format!("{path}/{key}"), found);
+                    }
+                }
+                Value::Array(items) => {
+                    for (i, value) in items.iter().enumerate() {
+                        combined(value, format!("{path}/{i}"), found);
+                    }
+                }
+                _ => {}
+            }
+        }
+        let mut found = Vec::new();
+        for tool in tool_list() {
+            let name = tool["name"].as_str().unwrap().to_string();
+            combined(&tool["inputSchema"], name, &mut found);
+        }
+        assert_eq!(found, Vec::<String>::new());
+    }
 }

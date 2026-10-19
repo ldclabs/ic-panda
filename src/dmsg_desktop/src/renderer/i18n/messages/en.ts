@@ -999,6 +999,7 @@ const messages = {
   connectClaudeCode: 'Claude Code',
   connectConfig: 'Claude Desktop, Cursor and other clients (mcpServers)',
   connectNext: 'The client starts dmsg mcp as this Agent ID. Grant it capabilities in the Capabilities tab; it can also ask for them, and you decide in the approval window.',
+  connectStored: '--scope user makes it available in every project. Claude Code keeps the credential in ~/.claude.json, and a pasted command stays in your shell history; whoever reads either acts as this Agent ID, so withdraw the credential here if it leaks.',
   connectTitle: 'Connect {label}',
   controllerAuto: 'Newest that covers it',
   controllersHint: 'Keys that sign grants for this principal. A key’s ceiling is fixed: to change it, rotate to a new key.',

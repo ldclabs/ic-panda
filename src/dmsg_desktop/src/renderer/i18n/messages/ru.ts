@@ -997,6 +997,7 @@ export default {
     connectClaudeCode: 'Claude Code',
     connectConfig: 'Claude Desktop, Cursor и другие клиенты (mcpServers)',
     connectNext: 'Клиент запускает dmsg mcp от имени этого Agent ID. Выдайте ему возможности на вкладке «Возможности»; он также может запросить их сам, а решаете вы в окне подтверждения.',
+    connectStored: '--scope user делает его доступным во всех проектах. Claude Code хранит учётные данные в ~/.claude.json, а вставленная команда остаётся в истории оболочки; любой, кто их прочтёт, действует от имени этого Agent ID, поэтому при утечке отзовите их здесь.',
     connectTitle: 'Подключить {label}',
     controllerAuto: 'Новейший подходящий',
     controllersHint: 'Ключи, подписывающие разрешения для этого principal. Предел ключа неизменен: чтобы изменить его, смените ключ.',

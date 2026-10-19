@@ -193,6 +193,7 @@
       {@render block(t('connectConfig'), issued.config, 'agent-connect-config')}
       {@render block('DMSG_AGENT_TOKEN', issued.credential, 'agent-credential')}
       <p class="text-[12px] text-muted">{t('connectNext')}</p>
+      <p class="text-[12px] text-warn">{t('connectStored')}</p>
     </div>
   {/if}
   {#snippet footer()}

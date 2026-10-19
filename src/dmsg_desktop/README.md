@@ -261,8 +261,9 @@ Rules (`src/main/policy.ts`):
   approval window shows the agent by name, scopes, relying parties,
   relationship and expiry), and lists what this device signed for them. It
   hosts Agent IDs: residency, pausing, the MCP credential, shown once with
-  the Claude Code command and the `mcpServers` entry that run `dmsg mcp` with
-  the installed binary and home (`dmsg:runtime`), withdrawing it, the
+  the Claude Code command (for every project, `--scope user`) and the
+  `mcpServers` entry that run `dmsg mcp` with the installed binary and home
+  (`dmsg:runtime`), and where the client keeps it, withdrawing it, the
   sessions last used, the Agent Profile each published (signature checked,
   self-described) and removal. It grants capabilities from the daemon's
   vocabulary, checked before they are sent, for days or until revoked, and

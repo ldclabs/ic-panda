@@ -823,3 +823,154 @@ fn sessions_are_listed_and_a_removed_agent_is_forgotten() {
         );
     });
 }
+
+/// A value of `schema`'s type for required input `name`: the test host for
+/// an origin, the first choice of an enum.
+fn placeholder(name: &str, schema: &Value) -> Value {
+    if let Some(choices) = schema["enum"].as_array() {
+        return choices[0].clone();
+    }
+    match schema["type"].as_str() {
+        Some("integer") => json!(1),
+        Some("boolean") => json!(false),
+        Some("array") => json!([placeholder(name, &schema["items"])]),
+        Some("object") => required_only(schema),
+        _ if name.ends_with("service") || matches!(name, "services" | "host" | "url") => {
+            json!(HOST)
+        }
+        _ => json!("x"),
+    }
+}
+
+/// An input holding only the required fields of `schema`.
+fn required_only(schema: &Value) -> Value {
+    let mut input = serde_json::Map::new();
+    for name in schema["required"].as_array().into_iter().flatten() {
+        let name = name.as_str().unwrap();
+        input.insert(name.into(), placeholder(name, &schema["properties"][name]));
+    }
+    Value::Object(input)
+}
+
+/// The field a deserialization refusal names, if it is a missing one.
+fn missing_field(message: &str) -> Option<&str> {
+    let rest = message.split("missing field `").nth(1)?;
+    rest.split('`').next()
+}
+
+/// Every standard tool declares its inputs (local connector Section 4.3),
+/// and those are the ones the connector reads: a guard for SDK upgrades.
+#[test]
+fn every_declared_input_is_one_the_connector_reads() {
+    let dir = Temp::new();
+    let hosted = runtime(&dir);
+    block_on(async {
+        for tool in crate::tools::tool_list() {
+            let name = tool["name"].as_str().unwrap();
+            if !crate::tools::is_standard(name) {
+                continue;
+            }
+            let schema = &tool["inputSchema"];
+            let properties = schema["properties"].as_object();
+            assert!(properties.is_some(), "{name} declares its inputs");
+            let required: Vec<&str> = schema["required"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .map(|r| r.as_str().unwrap())
+                .collect();
+            for field in &required {
+                assert!(properties.unwrap().contains_key(*field), "{name}: {field}");
+            }
+            // The required fields are all the connector needs...
+            if let Err(refusal) = call(&hosted, name, required_only(schema)).await {
+                assert_eq!(missing_field(&refusal.message), None, "{name}: {refusal:?}");
+            }
+            // ... and none it can do without.
+            if let Err(refusal) = call(&hosted, name, json!({})).await
+                && let Some(field) = missing_field(&refusal.message)
+            {
+                assert!(required.contains(&field), "{name}: {field}");
+            }
+        }
+    });
+}
+
+/// The SDK checks a Knowledge payload against its type before signing; an
+/// agent learns every member it got wrong from one refusal.
+#[test]
+fn a_knowledge_payload_names_each_field_it_gets_wrong() {
+    let dir = Temp::new();
+    // Knowledge services are HTTPS only; this one refuses connections.
+    let service = "https://127.0.0.1:9";
+    let options = Options {
+        hosts: vec![Host {
+            host: service.into(),
+            label: Some("knowledge".into()),
+            profile_service: None,
+        }],
+        local: true,
+        ..Options::default()
+    };
+    let hosted = Hosted(Runtime::new(&options).unwrap(), dir.0.join("agents.sqlite"));
+    let submit = |payload: Value| json!({"services": [service], "type": "knowledge.publish", "payload": payload});
+    block_on(async {
+        let refused = call(
+            &hosted,
+            "agent_protocols_knowledge_submit",
+            submit(json!({"title": "Probe", "body": "text", "license": "CC-BY-4.0"})),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(refused.code, "invalid_event");
+        let message = &refused.message;
+        assert!(message.contains("knowledge.publish payload: "), "{message}");
+        for field in [
+            "kind",
+            "statement",
+            "language",
+            "context",
+            "basis",
+            "body",
+            "/license",
+        ] {
+            assert!(message.contains(field), "{field}: {message}");
+        }
+        let data = refused.data.unwrap();
+        assert!(
+            data["errors"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|e| e["path"] == "/license")
+        );
+
+        // A nested field, by its path.
+        let mut payload = json!({
+            "license": "https://creativecommons.org/licenses/by/4.0/",
+            "kind": "observation", "title": "Probe", "statement": "A statement.",
+            "language": "en", "basis": "A test.",
+            "context": {"conditions": [], "limitations": []},
+        });
+        let refused = call(
+            &hosted,
+            "agent_protocols_knowledge_submit",
+            submit(payload.clone()),
+        )
+        .await
+        .unwrap_err();
+        assert!(
+            refused.message.contains("/context: \"scope\""),
+            "{}",
+            refused.message
+        );
+
+        // A valid payload passes to the connector, which signs it and finds
+        // the service unreachable.
+        payload["context"]["scope"] = json!("The test.");
+        let reached = call(&hosted, "agent_protocols_knowledge_submit", submit(payload))
+            .await
+            .unwrap_err();
+        assert_ne!(reached.code, "invalid_event", "{reached:?}");
+    });
+}

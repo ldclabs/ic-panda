@@ -123,7 +123,10 @@ change to the account's logins, signing policy or recovery delay or to its
 Agent principal, and a team wallet's creation, cosignature or transfer, but
 not a capability change. Approving executes once, and a finished request is
 forgotten 30 days after it was made. A source other than the desktop and the
-CLI keeps at most five requests waiting. An application action is shown by
+CLI keeps at most five requests waiting. A request waits ten minutes, a
+high-risk one five, and an agent's request for capabilities an hour: its
+owner may be away, but its waiting requests hold part of the queue. An
+application action is shown by
 its registered schema's labels, and only when the schema's hash matches; a
 file statement records the file's name, size and time, and a person can hash
 the file again before answering. A formal attestation is signed and journaled

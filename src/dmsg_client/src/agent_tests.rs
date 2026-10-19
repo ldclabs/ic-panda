@@ -611,6 +611,11 @@ fn an_agent_asks_and_an_approved_request_grants_once() {
     assert_eq!(request["source"], format!("agent:{agent}"));
     assert_eq!(request["detail"]["capabilities"], json!(wanted));
     assert_eq!(request["risk"], "normal");
+    // It waits an hour for the owner, not the ten minutes of their own.
+    assert_eq!(
+        request["expires_at"].as_u64().unwrap() - request["created_at"].as_u64().unwrap(),
+        crate::approval::AGENT_REQUEST_TTL_MS
+    );
     let wide = client
         .capability_request(&agent, vec!["vault.read:*".into()], None)
         .unwrap();

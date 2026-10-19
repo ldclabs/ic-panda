@@ -1387,7 +1387,7 @@ try {
   await main.click('[data-testid="agent-connect"]')
   await main.waitForSelector('[data-testid="agent-connect-command"]')
   const command = await main.textContent('[data-testid="agent-connect-command"]')
-  assert.ok(command.startsWith('claude mcp add dmsg-claude --env DMSG_AGENT_TOKEN=dmsg-agent-smoke -- ') && command.endsWith(' mcp'), command)
+  assert.ok(command.startsWith('claude mcp add --scope user dmsg-claude --env DMSG_AGENT_TOKEN=dmsg-agent-smoke -- ') && command.endsWith(' mcp'), command)
   assert.equal(JSON.parse(await main.textContent('[data-testid="agent-connect-config"]')).mcpServers['dmsg-claude'].env.DMSG_AGENT_TOKEN, 'dmsg-agent-smoke')
   await main.locator('[data-testid="agent-connect-dialog"]').screenshot({ path: join(shots, 'agent-connect.png') })
   await main.click('[data-testid="agent-connect-dialog"] >> text=/^(Done|完成)$/')

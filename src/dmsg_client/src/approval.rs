@@ -35,6 +35,10 @@ use std::sync::Arc;
 pub const APPROVAL_TTL_MS: u64 = 10 * MINUTE;
 /// How long a high-risk request, such as an account change, waits.
 pub const HIGH_RISK_TTL_MS: u64 = 5 * MINUTE;
+/// How long an agent's request for capabilities waits: its owner may be
+/// away for a while, but each agent's waiting requests hold part of the
+/// queue the owner's own requests need ([`MAX_PER_SOURCE`]).
+pub const AGENT_REQUEST_TTL_MS: u64 = 60 * MINUTE;
 /// Most requests waiting for a decision at once.
 pub const MAX_PENDING: usize = 20;
 /// Most requests one source other than the owner's own clients (an agent,

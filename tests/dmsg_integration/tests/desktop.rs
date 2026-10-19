@@ -5101,10 +5101,23 @@ fn desktop_agents() {
     ] {
         assert!(names.contains(&name), "{name}");
     }
+    // Every standard tool declares what it reads.
+    let room_join = &tools["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["name"] == "agent_protocols_room_join")
+        .unwrap()["inputSchema"];
+    assert_eq!(room_join["required"], json!(["room_id", "role"]));
+    // An agent's calls are not the person's activity: the idle lock stays.
+    let lock_at = || a.rpc(&http, "daemon/status", Value::Null).unwrap()["lock_at"].clone();
+    let before = lock_at();
+    std::thread::sleep(Duration::from_millis(5));
     let identity = mcp
         .tool("agent_protocols_identity_current", json!({}))
         .unwrap();
     assert_eq!(identity["agent_id"], claude.as_str());
+    assert_eq!(lock_at(), before);
 
     // The agent's credential reaches only the MCP methods (DT01, DT02): no
     // approvals, no status, no other Agent ID, no host outside the config.

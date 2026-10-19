@@ -997,6 +997,7 @@ export default {
     connectClaudeCode: 'Claude Code',
     connectConfig: 'Claude Desktop、Cursor 等客户端（mcpServers）',
     connectNext: '客户端会以这个 Agent ID 启动 dmsg mcp。在“能力”标签页给它授权；它也可以自己申请，由你在审批窗口决定。',
+    connectStored: '--scope user 让它在所有项目中可用。Claude Code 把凭证保存在 ~/.claude.json，粘贴的命令也会留在 shell 历史里；读到其中任何一处的人都能以这个 Agent ID 行事，泄露时请在这里撤回凭证。',
     connectTitle: '连接 {label}',
     controllerAuto: '能覆盖的最新 controller',
     controllersHint: '为本 principal 签发凭证的密钥。密钥的上限不可更改：要改就换一把新钥。',
