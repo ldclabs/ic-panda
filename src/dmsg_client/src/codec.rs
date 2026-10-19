@@ -90,8 +90,10 @@ pub fn decode_value(bytes: &[u8], max: usize) -> Result<Value> {
 
 /// Decode one canonical CBOR item of at most `max` bytes into `T`.
 ///
-/// The bounds are those of [`decode_value`]. `T` must preserve the wire
-/// representation: unknown, missing or reordered fields fail the re-encoding.
+/// The bounds are those of [`decode_value`]. `T` must keep every entry of
+/// the item unchanged: unknown or altered fields fail. A field the item
+/// leaves out may be filled by `T`'s default, so a record written before
+/// the field existed still reads.
 ///
 /// # Errors
 /// As [`decode_value`], and `IntegrityFailed` when `T` cannot hold the item.
@@ -109,8 +111,33 @@ pub fn decode<T: DeserializeOwned + Serialize>(bytes: &[u8], max: usize) -> Resu
     ensure(scanner.offset == bytes.len(), Error::IntegrityFailed)?;
     let value: T = cbor2::from_slice(bytes).map_err(|_| Error::IntegrityFailed)?;
     let encoded = cbor2::to_canonical_vec(&value).map_err(|_| Error::IntegrityFailed)?;
-    ensure(encoded == bytes, Error::IntegrityFailed)?;
+    if encoded != bytes {
+        // The item itself is canonical, and what `T` holds adds to it only
+        // the fields it left out.
+        let item: Value = cbor2::from_slice(bytes).map_err(|_| Error::IntegrityFailed)?;
+        let canonical = cbor2::to_canonical_vec(&item).map_err(|_| Error::IntegrityFailed)?;
+        ensure(canonical == bytes, Error::IntegrityFailed)?;
+        let kept: Value = cbor2::from_slice(&encoded).map_err(|_| Error::IntegrityFailed)?;
+        ensure(holds(&kept, &item), Error::IntegrityFailed)?;
+    }
     Ok(value)
+}
+
+/// Whether `kept` has every entry of `item` unchanged; its maps may have
+/// more entries than the item's.
+fn holds(kept: &Value, item: &Value) -> bool {
+    match (kept, item) {
+        (Value::Map(kept), Value::Map(item)) => {
+            // Both are canonical, so shared keys come in the same order.
+            let mut kept = kept.iter();
+            item.iter()
+                .all(|(key, value)| kept.any(|(k, v)| k == key && holds(v, value)))
+        }
+        (Value::Array(kept), Value::Array(item)) => {
+            kept.len() == item.len() && kept.iter().zip(item).all(|(k, i)| holds(k, i))
+        }
+        _ => kept == item,
+    }
 }
 
 struct Scanner<'a> {

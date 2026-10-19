@@ -69,6 +69,56 @@ fn typed_decoding_rejects_unknown_fields() {
 }
 
 #[test]
+fn typed_decoding_fills_fields_an_older_record_lacks() {
+    #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+    struct Record {
+        a: u64,
+        #[serde(default)]
+        b: bool,
+        c: Option<u64>,
+    }
+    #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+    struct Records {
+        items: Vec<Record>,
+    }
+    #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+    struct Trimmed {
+        a: u64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        c: Option<u64>,
+    }
+    let a = |n: u64| std::collections::BTreeMap::from([("a", n)]);
+    let older = Record {
+        a: 1,
+        b: false,
+        c: None,
+    };
+    assert_eq!(
+        decode::<Record>(&canonical(&a(1)), MAX_RECORD).unwrap(),
+        older
+    );
+    let nested = canonical(&std::collections::BTreeMap::from([("items", vec![a(1)])]));
+    assert_eq!(
+        decode::<Records>(&nested, MAX_RECORD).unwrap(),
+        Records { items: vec![older] }
+    );
+    // Still canonical: `{"a": 1}` with a two-byte 1.
+    assert_eq!(
+        decode::<Record>(&[0xa1, 0x61, 0x61, 0x18, 0x01], MAX_RECORD).unwrap_err(),
+        Error::IntegrityFailed
+    );
+    // An entry the type would drop is not kept.
+    let null = canonical(&std::collections::BTreeMap::from([
+        ("a", Some(1u64)),
+        ("c", None),
+    ]));
+    assert_eq!(
+        decode::<Trimmed>(&null, MAX_RECORD).unwrap_err(),
+        Error::IntegrityFailed
+    );
+}
+
+#[test]
 fn base64url_is_canonical() {
     let vectors = load("primitives-v1.json");
     for case in vectors["base64url"]["accept"].as_array().unwrap() {

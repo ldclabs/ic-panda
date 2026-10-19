@@ -13,7 +13,7 @@ daemon in `src/dmsg_cli` owns one instance.
 
 | Module | Role |
 | --- | --- |
-| [`codec`] | Canonical CBOR (RFC 8949 core deterministic) through `dmsg_protocol::canonical`; a bounded decoder for incoming records (24 levels, 50,000 items, 25,000 entries per container, strictly ascending map keys, no floats or foreign tags); strict base64url |
+| [`codec`] | Canonical CBOR (RFC 8949 core deterministic) through `dmsg_protocol::canonical`; a bounded decoder for incoming records (24 levels, 50,000 items, 25,000 entries per container, strictly ascending map keys, no floats or foreign tags) whose type keeps every entry, refusing unknown fields while filling by default the fields an older record lacks; strict base64url |
 | [`crypto`] | `D(K, C)` (HKDF-SHA-256), untagged COSE_Encrypt0 with A256GCM, HPKE base mode (X25519, HKDF-SHA-256, AES-256-GCM) with the context as both info and AAD, Ed25519 device keys |
 | [`config`] | Deployment parameters and the background-online policy, fixed for a client's lifetime |
 | [`store`] | SQLite workspace: plaintext metadata, sealed records, encrypted objects with their sync state, item heads, ciphertext chunks by SHA-256, sync jobs, and the file library's backup jobs in a table of their own |

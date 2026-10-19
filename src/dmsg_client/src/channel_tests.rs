@@ -688,3 +688,28 @@ async fn reads_of_one_channel_settle_in_any_order() {
     }
     assert!(slower.done());
 }
+
+#[test]
+fn a_keyring_sealed_before_muting_existed_still_opens() {
+    // The shape devices sealed before `muted` and `hidden` (213f6d4e).
+    #[derive(Serialize)]
+    struct Older {
+        format: String,
+        id: String,
+        name: String,
+        genesis: String,
+        keys: BTreeMap<u64, String>,
+    }
+    let older = Older {
+        format: FORMAT.into(),
+        id: "c".repeat(64),
+        name: "c".into(),
+        genesis: "0".repeat(64),
+        keys: BTreeMap::from([(1, b64(&[7u8; 32]))]),
+    };
+    let ring: Keyring = decode(&canonical(&older), MAX_RECORD).unwrap();
+    assert_eq!(
+        (ring.name.as_str(), ring.muted, ring.hidden),
+        ("c", false, false)
+    );
+}
