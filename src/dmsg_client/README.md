@@ -204,11 +204,11 @@ registering, retiring, distrusting or renaming a controller are account
 mutations an administrator device approves; registration proves possession
 of the new key over the request ID. A grant or revocation goes to the newest
 current controller whose ceiling covers its scopes and relying parties (for
-a revocation, those of the credential as the delegation service holds it),
-so a restricted controller is never asked for what the service would
-refuse; a grant may replace a credential under its ID, for the same subject
-and no more than its scopes and relying parties. It is approved in the
-center, then signed on a device with `FormalApprove` with the nonce
+a revocation or a replacement, those of the credential as the delegation
+service holds it), so a restricted controller is never asked for what the
+service would refuse; a grant may replace a credential under its ID, for
+the same subject and no more than its scopes and relying parties. It is
+approved in the center, then signed on a device with `FormalApprove` with the nonce
 `max(last + 1, created_at)`, journaled with that nonce, and submitted. A lost
 reply or a 5xx/408/429 answer resubmits the same envelope; any other refusal
 is final, and a `Max-Seen-Nonce` within the protocol's bound moves the next

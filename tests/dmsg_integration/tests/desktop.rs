@@ -4972,6 +4972,8 @@ fn desktop_agents() {
         "claude",
         "--scope",
         "message.draft",
+        "--scope",
+        "inbox.screen",
         "--audience",
         "https://dmsg.net",
         "--days",
@@ -5001,7 +5003,9 @@ fn desktop_agents() {
 
     // A restricted controller signs only within its ceiling: a grant goes to
     // the newest controller that covers it, and a credential is renewed
-    // under its own ID, never widened.
+    // under its own ID, never widened. Narrowed to what the restricted one
+    // covers, the renewal still goes to a controller covering the credential
+    // it replaces, which the service requires of a replacement.
     let request = a.run(&[
         "agent",
         "controller",
@@ -5020,7 +5024,7 @@ fn desktop_agents() {
         "grant",
         "claude",
         "--scope",
-        "message.draft",
+        "inbox.screen",
         "--audience",
         "https://dmsg.net",
         "--days",
@@ -5034,13 +5038,14 @@ fn desktop_agents() {
     let credentials = a.run(&["agent", "credentials"]);
     assert_eq!(credentials.as_array().unwrap().len(), 1);
     assert!(credentials[0]["expires_at"].as_i64().unwrap() > before);
+    assert_eq!(credentials[0]["scopes"], json!(["inbox.screen"]));
     assert_eq!(
         a.fail(&[
             "agent",
             "grant",
             "claude",
             "--scope",
-            "inbox.screen",
+            "message.draft",
             "--audience",
             "https://dmsg.net",
             "--replaces",
@@ -5792,10 +5797,11 @@ fn desktop_agents() {
     assert!(timeline["items"].as_array().unwrap().len() >= 4);
     drop(mcp);
 
-    // Revoking the grant: the credential is no longer usable. The
-    // unrestricted controller signs it, the newest that covers it.
+    // Revoking the grant: the credential is no longer usable. The restricted
+    // controller signs it, the newest that covers what the credential grants
+    // now, and the service takes its revocation.
     let request = a.run(&["agent", "revoke", &id]);
-    assert_eq!(request["detail"]["generation"], 1);
+    assert_eq!(request["detail"]["generation"], 2);
     assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
     let verdict = delegation_verdict(&env, &account, &id, "https://dmsg.net");
     assert_eq!(verdict["usable"], false, "{verdict}");

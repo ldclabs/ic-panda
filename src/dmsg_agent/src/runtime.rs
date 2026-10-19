@@ -254,25 +254,29 @@ impl Runtime {
             .collect()
     }
 
-    /// The sessions of an Agent ID the state file at `path` remembers,
-    /// newest first: `[{session, updated_at}]`.
+    /// The sessions the state file at `path` remembers, by Agent ID, each
+    /// newest first: `{agent_id: [{session, updated_at}]}`.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when storage fails.
-    pub fn sessions(&self, path: &Path, agent_id: &str) -> Result<Vec<Value>> {
+    pub fn sessions(&self, path: &Path) -> Result<HashMap<String, Vec<Value>>> {
         let conn = open(path)?;
         let mut statement = conn
-            .prepare(
-                "SELECT session, updated_at FROM sessions WHERE agent_id = ?1
-                 ORDER BY updated_at DESC",
-            )
+            .prepare("SELECT agent_id, session, updated_at FROM sessions ORDER BY updated_at DESC")
             .map_err(storage)?;
         let rows = statement
-            .query_map(params![agent_id], |r| {
-                Ok(json!({"session": r.get::<_, String>(0)?, "updated_at": r.get::<_, i64>(1)?}))
+            .query_map([], |r| {
+                let session =
+                    json!({"session": r.get::<_, String>(1)?, "updated_at": r.get::<_, i64>(2)?});
+                Ok((r.get::<_, String>(0)?, session))
             })
             .map_err(storage)?;
-        rows.collect::<std::result::Result<_, _>>().map_err(storage)
+        let mut sessions: HashMap<String, Vec<Value>> = HashMap::new();
+        for row in rows {
+            let (agent_id, session) = row.map_err(storage)?;
+            sessions.entry(agent_id).or_default().push(session);
+        }
+        Ok(sessions)
     }
 
     /// Delete everything the state file at `path` keeps of the Agent ID

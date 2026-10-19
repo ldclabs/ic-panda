@@ -80,18 +80,22 @@
     try {
       credentials = principal ? await call<any[]>('agent/credentials') : []
     } catch (e) {
-      principalError = errorText(e)
+      principalError = quiet(e) ? '' : errorText(e)
     }
   })
 
   const reload = () => Promise.all([loadHosted(), loadGrants(), loadPrincipal()])
 
-  /** Principal changes and grants are approval requests the approval window decides. */
-  const request = (method: string, params: Record<string, unknown> = {}) =>
-    attempt(async () => {
+  /** Principal changes and grants are approval requests the approval window decides; whether one was made. */
+  async function request(method: string, params: Record<string, unknown> = {}) {
+    let made = false
+    await attempt(async () => {
       const created: any = await call(method, params)
+      made = true
       await bridge(() => window.dmsg.openApproval(created.id))
     })
+    return made
+  }
 
   const run = (method: string, params: Record<string, unknown> = {}) => attempt(() => call(method, params))
 

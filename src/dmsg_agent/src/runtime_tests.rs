@@ -792,7 +792,7 @@ fn sessions_are_listed_and_a_removed_agent_is_forgotten() {
         )
         .await
         .unwrap();
-        let sessions = runtime.sessions(path, &agent).unwrap();
+        let sessions = runtime.sessions(path).unwrap().remove(&agent).unwrap();
         let names: Vec<&str> = sessions
             .iter()
             .map(|s| s["session"].as_str().unwrap())
@@ -808,7 +808,7 @@ fn sessions_are_listed_and_a_removed_agent_is_forgotten() {
         let turn = runtime.turn(&agent).await;
         runtime.forget(&turn, path).unwrap();
         drop(turn);
-        assert!(runtime.sessions(path, &agent).unwrap().is_empty());
+        assert!(!runtime.sessions(path).unwrap().contains_key(&agent));
         let conn = rusqlite::Connection::open(path).unwrap();
         let kept: i64 = conn
             .query_row("SELECT COUNT(*) FROM connectors", [], |r| r.get(0))

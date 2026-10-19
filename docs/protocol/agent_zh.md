@@ -32,7 +32,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 1. 客户端把 controller 私钥作为 vault 条目保存（对象 ID `SHA256(CBOR(["dmsg/agent-controller/1", account, generation]))`），与内容根同级别受保护、随根同步；泄露处置与内容根相同：撤销设备、换根、退役 controller。
 2. 签名前核对 generation 为当前 controller、本机 vault 公钥等于已登记公钥、设备具备 `FormalApprove`（客户端规则）。`created_at = max(now, valid_from)`，nonce 为本机记录的 `max(last + 1, created_at)`。
 3. 对 `SHA3-256(JCS(event))` 做 Ed25519 签名，信封的 `hash` 与 `signature` 为二者的 base64url（无填充）。信封先写入加密日志再提交；服务 5xx/408/429 时保留 `signed` 状态原样重提，4xx 为终态，需要新签名。
-4. grant 的 scope、依赖方、`expires_at`（不超过 366 天）由 SDK 的 `validate_delegation_acceptance` 在服务端按认证文档检查。revoke 与替换同样由 delegation 服务在接收时检查，规则是 Delegation 第 5 节的上限：受限 controller 只能管理最新 grant 的 scope 与依赖方都在其上限内的凭证，`"*"` 可管理全部凭证，不记录凭证由哪把 key 签发。换钥时新 key 的上限覆盖旧凭证，即可替换或撤销旧 key 签出的凭证。客户端在创建审批前就按同一规则选 key：默认取上限覆盖该 grant（撤销时取服务所存凭证的 scope 与依赖方）的最新当前 controller，指定的 generation 也必须覆盖，否则返回 `Forbidden`，不会让服务在批准、签名之后才以 `delegation_ceiling_exceeded` 拒绝。
+4. grant 的 scope、依赖方、`expires_at`（不超过 366 天）由 SDK 的 `validate_delegation_acceptance` 在服务端按认证文档检查。revoke 与替换同样由 delegation 服务在接收时检查，规则是 Delegation 第 5 节的上限：受限 controller 只能管理最新 grant 的 scope 与依赖方都在其上限内的凭证，`"*"` 可管理全部凭证，不记录凭证由哪把 key 签发。换钥时新 key 的上限覆盖旧凭证，即可替换或撤销旧 key 签出的凭证。客户端在创建审批前就按同一规则选 key：默认取上限覆盖该 grant（撤销与替换时取服务所存原凭证的 scope 与依赖方，替换的新范围不超出它）的最新当前 controller，指定的 generation 也必须覆盖，否则返回 `Forbidden`，不会让服务在批准、签名之后才以 `delegation_ceiling_exceeded` 拒绝。
 5. delegation ID 为 `<account_id>.<后缀>`，前缀是该 principal 的规范账户 ID 文本，客户端使用 128 位随机后缀。替换（续期）沿用原 ID：客户端只为同一 subject 签发，scope 与依赖方不超出服务所存的原凭证，期限重新计算。服务按这个前缀把凭证读取路由到账户，不以本账户 ID 加 `.` 开头的提交被拒绝。
 
 ## Directory

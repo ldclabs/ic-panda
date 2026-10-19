@@ -581,9 +581,9 @@ show` means it has not yet, and `principal publish` retries). `controller
 register` creates the key in the vault; without `--scope`/`--audience` its
 ceiling is `*`. `agent grant` and `revoke` sign, on a device with
 `FormalApprove` and after approval, with the newest current controller whose
-ceiling covers the grant, or the revoked credential's scopes and relying
-parties (`--generation` names one, which must cover it); no such controller
-is `FORBIDDEN` before anything is approved. `agent grant --replaces <id>`
+ceiling covers the grant, or the scopes and relying parties of the credential
+revoked or replaced (`--generation` names one, which must cover it); no such
+controller is `FORBIDDEN` before anything is approved. `agent grant --replaces <id>`
 replaces a credential under its ID for a new lifetime, with the same
 subject and scopes and relying parties among its own (anything wider is
 `INVALID_INPUT`). `delegations` shows where each signed event stands and

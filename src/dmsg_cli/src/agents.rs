@@ -229,13 +229,15 @@ impl Daemon {
                     list["hosts"] = to_json(self.agents().hosts());
                     list["blocked_senders"] = to_json(&self.agents().blocked_senders());
                     list["vocabulary"] = to_json(&dmsg_client::agents::vocabulary());
-                    // The connector sessions each one was last used in.
+                    // The connector sessions each one was last used in, as far
+                    // as the state file tells them.
                     if let Ok(path) = client.agent_runtime()
+                        && let Ok(mut sessions) = self.agents().sessions(&path)
                         && let Some(agents) = list["agents"].as_array_mut()
                     {
                         for agent in agents {
                             let id = agent["agent_id"].as_str().unwrap_or_default();
-                            agent["sessions"] = to_json(&self.agents().sessions(&path, id)?);
+                            agent["sessions"] = to_json(&sessions.remove(id).unwrap_or_default());
                         }
                     }
                     Ok(list)
@@ -300,7 +302,7 @@ impl Daemon {
                         source(params)?,
                         &text(params, "agent")?,
                         parse(params, "capabilities")?,
-                        params["days"].as_u64(),
+                        optional(params, "days", number)?,
                     )?;
                     Ok(to_json(&grant))
                 })()),
@@ -856,7 +858,7 @@ impl Daemon {
                 let request = client.capability_request(
                     did,
                     parse(input, "capabilities")?,
-                    input["days"].as_u64(),
+                    optional(input, "days", number)?,
                 )?;
                 drop(client);
                 self.emit("approval/changed", Value::Null);

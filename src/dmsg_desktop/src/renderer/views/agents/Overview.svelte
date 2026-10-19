@@ -42,7 +42,8 @@
     hosted: any
     unlocked: boolean
     busy: boolean
-    request: (method: string, params?: Record<string, unknown>) => Promise<void>
+    /** Whether the approval request was made. */
+    request: (method: string, params?: Record<string, unknown>) => Promise<boolean>
     run: (method: string, params?: Record<string, unknown>) => Promise<void>
     delegate?: string
   } = $props()
@@ -95,9 +96,10 @@
 
   async function rotate() {
     if (!rotating) return
-    const from = rotating.from.generation
-    await request('agent/register', { name: rotating.name.trim() || null, ...ceiling(rotating.scopes, rotating.audiences) })
-    rotation = { from, after: principal.next_generation }
+    const [from, after] = [rotating.from.generation, principal.next_generation]
+    // A refused request leaves the dialog open and starts no rotation.
+    if (!(await request('agent/register', { name: rotating.name.trim() || null, ...ceiling(rotating.scopes, rotating.audiences) }))) return
+    rotation = { from, after }
     rotating = null
   }
 

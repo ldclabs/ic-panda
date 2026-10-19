@@ -389,11 +389,12 @@
                 <Pill>{m.role}</Pill>
                 {#if m.status !== 'Active'}<Pill tone="warn">{m.status}</Pill>{/if}
                 <span class="text-[12.5px] text-muted">{m.label}</span>
-                {#if me?.id === m.id && unlocked && hosted.length}
+                {#if me?.id === m.id && unlocked && (hosted.length || m.agent_ids.length)}
                   <span class="flex-1"></span>
+                  <!-- Those listed stay choices too: they may be hosted on another device. -->
                   <button
                     class={buttonClass('ghost', 'xs')}
-                    onclick={() => (delegating = Object.fromEntries(hosted.map((a) => [a.agent_id, m.agent_ids.includes(a.agent_id)])))}
+                    onclick={() => (delegating = Object.fromEntries([...m.agent_ids, ...hosted.map((a) => a.agent_id)].map((id) => [id, m.agent_ids.includes(id)])))}
                     data-testid="wallet-member-agents">{t('twMemberAgents')}</button
                   >
                 {/if}
@@ -407,9 +408,9 @@
               {#if me?.id === m.id && delegating}
                 <div class="mt-1 grid gap-2 rounded-lg border border-line bg-surface-2 p-2.5">
                   <div class="flex flex-wrap gap-3">
-                    {#each hosted as a (a.agent_id)}
+                    {#each Object.keys(delegating) as id (id)}
                       <label class="inline-flex items-center gap-1.5 text-[12.5px]">
-                        <input type="checkbox" bind:checked={() => delegating?.[a.agent_id] ?? false, (on) => delegating && (delegating[a.agent_id] = on)} />{a.label}
+                        <input type="checkbox" bind:checked={() => delegating?.[id] ?? false, (on) => delegating && (delegating[id] = on)} />{agentName(id)}
                       </label>
                     {/each}
                   </div>

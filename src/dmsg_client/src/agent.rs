@@ -593,7 +593,8 @@ impl Client {
     /// Ask to grant `subject` a credential, or with `replaces` to replace
     /// that credential under its ID: the same subject, scopes and audiences
     /// among the old ones, and a new lifetime. Controller `generation`
-    /// signs it, by default the newest whose ceiling covers it.
+    /// signs it, by default the newest whose ceiling covers it, and for a
+    /// replacement the credential it replaces.
     ///
     /// # Errors
     /// Returns `Error::InvalidInput` for an invalid subject, scope,
@@ -622,7 +623,10 @@ impl Client {
         let subject_id: AgentId = subject
             .parse()
             .map_err(|_| dmsg_types::invalid("subject"))?;
-        let id = match replaces {
+        // A replacement manages the credential it replaces, so the service
+        // takes it only from a controller covering that one (Delegation §5),
+        // which then covers the narrower grant too.
+        let (id, generation) = match replaces {
             Some(id) => {
                 let old = self.delegation_credential(&account, id).await?;
                 ensure_valid(
@@ -632,11 +636,14 @@ impl Client {
                         && audiences.iter().all(|a| old.audiences.contains(a)),
                     "replaces",
                 )?;
-                id.to_string()
+                let generation = controller_for(&info, generation, &old.scopes, &old.audiences)?;
+                (id.to_string(), generation)
             }
-            None => format!("{account}.{}", b64(&random_id()[..16])),
+            None => (
+                format!("{account}.{}", b64(&random_id()[..16])),
+                controller_for(&info, generation, &scopes, &audiences)?,
+            ),
         };
-        let generation = controller_for(&info, generation, &scopes, &audiences)?;
         let now = now_ms();
         let kind = DelegationKind::Grant {
             id,

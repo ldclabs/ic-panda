@@ -532,12 +532,13 @@ impl Client {
         let keys = self.keys()?;
         let now = now_ms();
         let mut grants = self.capability_grants()?;
+        let mut revoked = Vec::new();
         for grant in grants
             .iter_mut()
             .filter(|g| g.grantee == entry.agent_id && g.live(now))
         {
             grant.revoked_at = Some(now);
-            self.audit_grant(via, "grants/revoke", grant);
+            revoked.push(grant.clone());
         }
         if entry.resident
             && let Some(secure) = self.secure()
@@ -545,6 +546,10 @@ impl Client {
             self.forget_resident(secure.as_ref(), &entry.agent_id)?;
         }
         self.workspace.put_private(keys, GRANTS, &grants)?;
+        // Once kept, so the record never names a revocation that failed.
+        for grant in &revoked {
+            self.audit_grant(via, "grants/revoke", grant);
+        }
         self.workspace
             .delete_private(&format!("{MAIL_KEYS}{}", entry.agent_id))?;
         let mut agents = self.agents()?;

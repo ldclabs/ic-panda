@@ -6,13 +6,14 @@
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { call, errorText, when } from '../../rpc'
-  import { live, sensitive } from './agents'
+  import { live, sensitive, unknownCapabilities } from './agents'
 
   /**
    * What this account's Agent IDs may do with one thing, such as a vault
    * tag or a team wallet: the live grants that reach it with their revoke,
    * and a new grant of the `choices` ticked, for a number of days or until
-   * revoked. Grants of other things stay in Agents.
+   * revoked. A choice the daemon's vocabulary cannot name, such as a tag
+   * with a space, is not offered. Grants of other things stay in Agents.
    */
   let {
     open = $bindable(false),
@@ -31,6 +32,7 @@
 
   let agents = $state<any[]>([])
   let grants = $state<any[]>([])
+  let vocabulary = $state<string[]>([])
   let agent = $state('')
   let ticked = $state<Record<string, boolean>>({})
   let days = $state('')
@@ -40,12 +42,15 @@
   /** The capabilities that reach this thing: those offered, and their `name:*`. */
   const names = $derived([...new Set(choices.flatMap((c) => [c.capability, c.capability.replace(/:.*$/, ':*')]))])
   const reaching = $derived(grants.filter((g) => live(g) && g.capabilities.some((c: string) => names.includes(c))))
-  const chosen = $derived(choices.filter((c) => ticked[c.capability]).map((c) => c.capability))
+  const refused = $derived(vocabulary.length ? unknownCapabilities(choices.map((c) => c.capability), vocabulary) : [])
+  const offered = $derived(choices.filter((c) => !refused.includes(c.capability)))
+  const chosen = $derived(offered.filter((c) => ticked[c.capability]).map((c) => c.capability))
   const labelOf = (did: string) => agents.find((a) => a.agent_id === did)?.label ?? did
 
   async function load() {
     const [hosted, list] = await Promise.all([call<any>('agent/ids').catch(() => null), call<any[]>('grants/list').catch(() => [])])
     agents = hosted?.agents ?? []
+    vocabulary = hosted?.vocabulary ?? []
     grants = list
     agent ||= agents[0]?.agent_id ?? ''
   }
@@ -103,12 +108,13 @@
           />
         </div>
         <div class="flex flex-wrap gap-3">
-          {#each choices as choice (choice.capability)}
+          {#each offered as choice (choice.capability)}
             <Checkbox bind:checked={() => ticked[choice.capability] ?? false, (on) => (ticked[choice.capability] = on)} testid={testid ? `${testid}-${choice.capability.replace(/:.*$/, '')}` : undefined}>
               {choice.label}
             </Checkbox>
           {/each}
         </div>
+        {#if refused.length}<p class="text-[12px] text-faint" data-testid={testid ? `${testid}-refused` : undefined}>{t('unknownCapabilities', { list: refused.join(', ') })}</p>{/if}
         {#if chosen.some(sensitive)}<p class="text-[12px] text-warn">{t('wideGrantHint')}</p>{/if}
         <button
           class={buttonClass('primary', 'sm', 'justify-self-end')}
