@@ -166,12 +166,13 @@ qualification, not physical SNS custody. A claim reuses an observation for one
 minute before querying SNS again.
 
 A qualified application applies immediately with the approval that requested
-it. Activation performs one fresh `get_neuron` after the last external await and
-before the local decision; the one-minute cache cannot reuse the earlier
-observation for Apply. At most current and contiguous next-term references can
-occupy a neuron, and both must name the same beneficiary. Different products
-cannot reuse that neuron concurrently. One service-global occupancy table
-enforces this.
+it; if that device approval expired while the claim waited, the client signs a
+fresh one for the same immutable terms. Activation performs one fresh
+`get_neuron` after the last external await and before the local decision; the
+one-minute cache cannot reuse the earlier observation for Apply. At most current
+and contiguous next-term references can occupy a neuron, and both must name the
+same beneficiary. Different products cannot reuse that neuron concurrently. One
+service-global occupancy table enforces this.
 
 Before Apply, an unused application may cancel. Once Apply is prepared, Unknown
 cannot cancel or release on a timer. After successful Apply, including a future

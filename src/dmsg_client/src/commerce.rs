@@ -174,6 +174,11 @@ fn cash_total(amount: u128, fee_reserve: u128, network_fee: u128) -> Result<u128
         .ok_or(Error::IntegrityFailed)
 }
 
+/// Whether a saved device approval still covers a checkout at `at`.
+fn approval_live(application_expires_at_ms: u64, approval_expires_at: u64, at: u64) -> bool {
+    at < application_expires_at_ms && at < approval_expires_at
+}
+
 /// The canisters checkouts use.
 struct Services {
     home: Principal,
@@ -594,9 +599,23 @@ impl Client {
         Ok(order_view(&order))
     }
 
-    /// Sign the device approval of a checkout's exact terms, once.
-    async fn authorize_checkout(&mut self, job: &mut Checkout, services: &Services) -> Result<()> {
-        if job.approval.is_some() {
+    /// Sign the device approval of a checkout's exact terms, once; with
+    /// `renew`, sign a new one when the saved approval no longer covers the
+    /// checkout.
+    async fn authorize_checkout(
+        &mut self,
+        job: &mut Checkout,
+        services: &Services,
+        renew: bool,
+    ) -> Result<()> {
+        let now = now_ms();
+        let saved = job
+            .approval
+            .as_ref()
+            .is_some_and(|(application, approval)| {
+                approval_live(application.expires_at_ms, approval.expires_at, now)
+            });
+        if saved || (job.approval.is_some() && !renew) {
             return Ok(());
         }
         let (app, product) = self
@@ -618,7 +637,7 @@ impl Client {
             ),
         };
         ensure(
-            now < deadline && now < job.request.offer.accept_by_ms,
+            now < deadline && (renew || now < job.request.offer.accept_by_ms),
             Error::Expired,
         )?;
         let account = self.account()?.clone();
@@ -665,13 +684,18 @@ impl Client {
         );
         approval.signature = Ed25519Signature::new(sign(&self.keys()?.signing, message.as_slice()));
         job.approval = Some((application, approval));
-        job.stage = Stage::Authorized;
+        // A renewed approval advances an order the service may already hold;
+        // only the first signature moves the journal out of review.
+        if job.stage == Stage::Review {
+            job.stage = Stage::Authorized;
+        }
         self.save_checkout(job)
     }
 
     /// Approve and open a checkout, then fund a cash order from the payer.
     /// A retry reads the service's state first and repeats only what is
-    /// missing; the saved approval is sent again, never a new one.
+    /// missing; the saved approval is sent again, and a PANDA advance renews
+    /// it only after the saved one expired.
     ///
     /// # Errors
     /// Returns `Error::ExecutionUnknown` while a step's outcome is unknown.
@@ -695,7 +719,7 @@ impl Client {
                 Err(error) => return Err(error),
             }
         }
-        self.authorize_checkout(&mut job, &services).await?;
+        self.authorize_checkout(&mut job, &services, false).await?;
         let (application, approval) = job.approval.clone().ok_or(Error::IntegrityFailed)?;
         let login = self.session()?.ic.clone();
         let approved: Result<Hash> = login
@@ -829,7 +853,8 @@ impl Client {
     }
 
     /// Apply a qualified PANDA claim immediately, reusing the device approval
-    /// of the same terms when it is still valid.
+    /// of the same terms when it is still valid and signing a fresh one after
+    /// it expired.
     ///
     /// # Errors
     /// Returns `Error::Forbidden` for a cash order.
@@ -848,7 +873,7 @@ impl Client {
                 return Ok(order_view(&Order::Panda(view)));
             }
         }
-        self.authorize_checkout(&mut job, &services).await?;
+        self.authorize_checkout(&mut job, &services, true).await?;
         let (application, approval) = job.approval.clone().ok_or(Error::IntegrityFailed)?;
         let login = self.session()?.ic.clone();
         let approved: Result<Hash> = login

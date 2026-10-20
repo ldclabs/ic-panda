@@ -77,3 +77,12 @@ fn a_cash_checkout_needs_its_amount_reserve_and_network_fee() {
     assert_eq!(cash_total(1_000, 200, 3), Ok(1_203));
     assert_eq!(cash_total(u128::MAX, 1, 0), Err(Error::IntegrityFailed));
 }
+
+/// A saved approval covers the checkout up to, but not at, its deadline; both
+/// the application and the device signature must still be live.
+#[test]
+fn a_saved_approval_covers_only_its_remaining_window() {
+    assert!(approval_live(NOW + 1, NOW + 1, NOW));
+    assert!(!approval_live(NOW, NOW + 1, NOW));
+    assert!(!approval_live(NOW + 1, NOW, NOW));
+}

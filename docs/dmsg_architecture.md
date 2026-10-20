@@ -287,7 +287,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 | user expiry cleanup | `prune_executions(after)`, `prune_external_approvals(after)` | Periodically, paging to the end; account writes also clean up lazily |
 | COSE result cleanup | `prune_executions(after)`, or `scripts/cose-prune.mjs` | Periodically, paging to the end |
 | payment payout dispatch | `list_pending_transfers`, then `process_transfer` per leg | At least hourly, within 24 hours of each leg's creation |
-| commerce price publication | `publish_settlement_price` | For every enabled asset before the previous price expires; validity is at most 30 minutes |
+| commerce price publication | `publish_settlement_price` | Controller, governance or the price authority, before the previous price expires. Validity is at most one year, and a controller or governance may publish a long-lived price manually without a periodic job |
 | commerce revenue collection and archiving | `collectable_checkouts`, `collect_checkout_revenue`, `sweep_checkout_history` | Collect after the service period ends; archive periodically until it returns 0 |
 | commerce catalog certificate | `refresh_catalog` | Once after a new catalog takes effect |
 | membership release and compaction | `sweep_panda_commitments` | Every five minutes is suggested, until it returns 0 |

@@ -24,7 +24,7 @@ flowchart LR
   C -- "产品回调" --> P["外部产品 adapter"]
   P -- "get_checkout_for_product" --> C
   G["governance"] -- "注册、资产、目录、暂停" --> C
-  PA["价格权威"] -- "publish_settlement_price" --> C
+  PA["controller / governance / 价格权威"] -- "publish_settlement_price" --> C
   MER["商户"] -- "collect_checkout_revenue" --> C
   CL["私有云端"] -- "get_entitlement_batch<br/>get_catalog" --> C
 ```
@@ -476,7 +476,7 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_WASM_DIR=target/wasm32-unknown-unknown/rel
   cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane commerce -- --test-threads=1
 ```
 
-[commerce.rs](../../tests/dmsg_integration/tests/control_plane/commerce.rs) 与 [commerce_review.rs](../../tests/dmsg_integration/tests/control_plane/commerce_review.rs) 使用实际 Wasm 覆盖：两个账本与同号区块隔离、退款与收入归集、最后一次归集结清费用准备及由第三方退回准备金、跨升级的未知出金恢复、fee 上限内的修订、未开始续期的取消、PANDA 冷却与交付、membership 合并请求或调用失败时保留 PANDA 租约、新增 user home 的账户购买、第二个 commerce 实例服务自己的 user home（PANDA 与现金各一单）、商户按服务终点分页待归集订单与 `commerce_stats` 计数、现金租约 30 天与 10 分钟续期窗口、Free 账户不建记录、独立产品 adapter 的 ACK 丢失、伪造价格、价格发布与升级前后的旧报价、目录生效边界、商户读权限、每 caller 额度、冷历史与迟到退款、入金分页。[governance.rs](../../tests/dmsg_integration/tests/control_plane/governance.rs) 覆盖全部治理方法与 `validate_*`，包括价格发布之后执行的资产更新提案、`admin_set_limits` 与 membership 的 `commerce_homes` 校验。测试账本支持故障注入和公开 mint，测试 SNS 可以延迟神经元读取，二者都只用于测试。
+[commerce.rs](../../tests/dmsg_integration/tests/control_plane/commerce.rs) 与 [commerce_review.rs](../../tests/dmsg_integration/tests/control_plane/commerce_review.rs) 使用实际 Wasm 覆盖：两个账本与同号区块隔离、退款与收入归集、最后一次归集结清费用准备及由第三方退回准备金、跨升级的未知出金恢复、fee 上限内的修订、未开始续期的取消、PANDA 立即激活与交付、membership 合并请求或调用失败时保留 PANDA 租约、新增 user home 的账户购买、第二个 commerce 实例服务自己的 user home（PANDA 与现金各一单）、商户按服务终点分页待归集订单与 `commerce_stats` 计数、现金租约 30 天与 10 分钟续期窗口、Free 账户不建记录、独立产品 adapter 的 ACK 丢失、伪造价格、价格发布与升级前后的旧报价、目录生效边界、商户读权限、每 caller 额度、冷历史与迟到退款、入金分页。[governance.rs](../../tests/dmsg_integration/tests/control_plane/governance.rs) 覆盖全部治理方法与 `validate_*`，包括价格发布之后执行的资产更新提案、`admin_set_limits` 与 membership 的 `commerce_homes` 校验。测试账本支持故障注入和公开 mint，测试 SNS 可以延迟神经元读取，二者都只用于测试。
 
 容量 profile 分两步运行：先在主机构建镜像，再加载到 PocketIC 测量。`capacity_image` 依次写出 10 万和 100 万主体的镜像（后者约 2.3 GB）：
 

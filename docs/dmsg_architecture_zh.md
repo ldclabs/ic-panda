@@ -287,7 +287,7 @@ flowchart TB
 | user 过期数据清理 | `prune_executions(after)`、`prune_external_approvals(after)` | 定期，分页直到结束；账户写入时也会惰性清理 |
 | COSE 结果清理 | `prune_executions(after)`，或 `scripts/cose-prune.mjs` | 定期，分页直到结束 |
 | payment 出金派发 | `list_pending_transfers` 后逐条 `process_transfer` | 至少每小时，须在出金腿创建后 24 小时内 |
-| commerce 价格发布 | `publish_settlement_price` | 每个启用资产在上一价格过期前，有效期最长 30 分钟 |
+| commerce 价格发布 | `publish_settlement_price` | controller、governance 或价格权威，在上一价格过期前重发；有效期最长一年，controller 或 governance 可直接发布长期价格，不需要定时任务 |
 | commerce 收入归集与归档 | `collectable_checkouts`、`collect_checkout_revenue`、`sweep_checkout_history` | 服务期结束后归集；归档定期调用到返回 0 |
 | commerce 目录证书 | `refresh_catalog` | 新目录生效后一次 |
 | membership 释放与压缩 | `sweep_panda_commitments` | 建议每 5 分钟，调用到返回 0 |

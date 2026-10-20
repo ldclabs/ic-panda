@@ -252,7 +252,7 @@ handle 开发布局升级为 schema 10：`HandleInit` 增加收入账户 `revenu
 - **handle**：schema 11 新增 `OWNERS` 索引与 query `account_handles(account_id, after, take)`，按名称字节序分页列出账户名下的活跃名称（每页 1–64 条，不带证书，客户端逐个用 `resolve_handle_certified` 核验）。注册、认领、转移写名称记录时同步更新索引；从 schema 10 升级时 `post_upgrade` 遍历一次活跃名称建立索引。主网已导入的旧名预留在认领前没有 owner 账户，不进入索引，迁移成本只随已注册或已认领的名称数增长，未做规模实测。
 - **user**：转移任一方的 `AuthorizeHandle` 授权自提交起保留十分钟（`TRANSFER_AUTHORIZATION_MS`，原为随设备批准的 60 秒），同一意图再次授权即续期；注册与旧名认领不变。新增 query `get_handle_authorization(account_id, op_id)`，返回仍有效的授权截止时间，转移双方据此查看对方是否已授权。账户状态的布局不变。
 - **commerce**：新增 query `get_membership_terms(beneficiary)`，返回基础合同、未过期的存储包与首购退款窗口，供客户端显示到期日、来源和已排队的续期；权益仍只以认证的 `EntitlementView` 为准，所以没有改 `EntitlementView` 及中继的解码。主体的第一份基础合同若是现金购买，开始后 7 天内（`CASH_REFUND_WINDOW_MS`）付款方可经 `cancel_checkout` 提前退款：权利停止时间不早于已签发的资源租约，此前的部分计为收入，其余退回；窗口内资源租约与 PANDA 一样不超过一小时，退款很快生效。续期或升级会新增合同，窗口随之关闭。`CashCancellationReceipt.cancelled_at_ms` 改为权利停止的时间，`collectable_checkouts` 按服务实际结束时间排序。续期窗口命名为 `RENEWAL_WINDOW_MS`（到期前 30 天）。稳定布局不变。
-- **membership**：新增 query `panda_service()`，返回 PANDA SNS governance、账本、冷却期、是否暂停新申请与公布的费率，客户端报价前据此显示所需质押；测试 SNS 增加 `list_neurons`，客户端用它列出付款身份可用的神经元。
+- **membership**：新增 query `panda_service()`，返回 PANDA SNS governance、账本、是否暂停新申请与公布的费率，客户端报价前据此显示所需质押；测试 SNS 增加 `list_neurons`，客户端用它列出付款身份可用的神经元。
 
 ## 2026-10-20 团队钱包报价预览
 

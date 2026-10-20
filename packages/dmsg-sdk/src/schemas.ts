@@ -519,7 +519,7 @@ export const schemas = {
     "lease_until_ms": "u64",
     "max_issued_until_ms": "u64",
     "qualification": "Eligibility",
-    "observed_at_ms": "u64",
+    "observed_at_ms": "u64"
   },
   "CashCancellationReceipt": {
     "order_id": "Hash",
