@@ -16,6 +16,21 @@ type ActivationOrder = record {
   // Created wallet.
   wallet : opt principal;
 };
+// Activation terms before a quote is stored: the price, version and what
+// each plan still allows. The account's plan and the ledger fee are read by
+// the client, which asks for an authoritative quote only when it may create.
+type ActivationPreview = record {
+  // Version installed.
+  version : nat32;
+  // ICP ledger whose fee the payer adds.
+  icp_ledger : principal;
+  // Remaining wallets by plan; plans not listed have none.
+  plans : vec PlanAvailability;
+  // Price in ICP e8s.
+  price_e8s : nat64;
+  // Cycles given to the wallet.
+  cycles_to_wallet : nat;
+};
 // Activation terms for one account.
 type ActivationQuote = record {
   // Creating account.
@@ -307,6 +322,13 @@ type MemberInput = record {
   // Display label, at most 64 bytes.
   label : text;
 };
+// Wallets an account may still create on one plan.
+type PlanAvailability = record {
+  // Plan.
+  plan : PlanId;
+  // Wallets left, this one included.
+  remaining : nat32;
+};
 // Base resource tier; it grants no account or cryptographic permissions.
 type PlanId = variant {
   // Max base tier.
@@ -376,9 +398,10 @@ type Result_2 = variant { Ok : nat64; Err : Error };
 type Result_3 = variant { Ok : ActivationOrder; Err : Error };
 type Result_4 = variant { Ok : WalletRecord; Err : Error };
 type Result_5 = variant { Ok : ActivationQuote; Err : Error };
-type Result_6 = variant { Ok : StagedModule; Err : Error };
-type Result_7 = variant { Ok : text; Err : text };
-type Result_8 = variant { Ok : WalletHealth; Err : Error };
+type Result_6 = variant { Ok : ActivationPreview; Err : Error };
+type Result_7 = variant { Ok : StagedModule; Err : Error };
+type Result_8 = variant { Ok : text; Err : text };
+type Result_9 = variant { Ok : WalletHealth; Err : Error };
 // What a member may do. Roles are ordered: each includes the ones after it
 // except Recovery, which only proposes membership changes.
 type Role = variant {
@@ -513,8 +536,13 @@ service : (HubInit) -> {
   // Remove every controller of a wallet that accepted locking its code.
   lock_wallet : (principal) -> (Result_4);
   // Price and deposit account for the calling payer to create a wallet for
-  // `account_id`, within the account's plan quota.
+  // `account_id`; `remaining` shows what the account's plan still allows.
   quote_activation : (blob) -> (Result_5);
+  // Activation terms this account would get now, without storing a quote: the
+  // price, version and remaining wallets by plan. The client reads its plan and
+  // the ledger fee itself, so this is a local query and a person sees a plan's
+  // limit before asking for a quote.
+  quote_activation_preview : (blob) -> (Result_6) query;
   // Continue an activation after an interrupted creation or install.
   reconcile_activation : (blob) -> (Result_3);
   staged_wasm : () -> (StagedModule) query;
@@ -523,13 +551,13 @@ service : (HubInit) -> {
   // Install the version a wallet accepted. Anyone may call it.
   upgrade_wallet : (principal) -> (Result_4);
   // Append bytes to the module staged for registration.
-  upload_wasm_chunk : (blob) -> (Result_6);
-  validate_admin_add_user_home : (principal) -> (Result_7) query;
-  validate_admin_register_version : (blob, text) -> (Result_7) query;
-  validate_admin_remove_version : (nat32) -> (Result_7) query;
-  validate_admin_retire_version : (nat32) -> (Result_7) query;
-  validate_admin_set_pricing : (HubPricing) -> (Result_7) query;
-  validate_admin_set_revenue : (Account) -> (Result_7) query;
-  validate_admin_set_uploader : (opt principal) -> (Result_7) query;
-  wallet_health : (principal) -> (Result_8);
+  upload_wasm_chunk : (blob) -> (Result_7);
+  validate_admin_add_user_home : (principal) -> (Result_8) query;
+  validate_admin_register_version : (blob, text) -> (Result_8) query;
+  validate_admin_remove_version : (nat32) -> (Result_8) query;
+  validate_admin_retire_version : (nat32) -> (Result_8) query;
+  validate_admin_set_pricing : (HubPricing) -> (Result_8) query;
+  validate_admin_set_revenue : (Account) -> (Result_8) query;
+  validate_admin_set_uploader : (opt principal) -> (Result_8) query;
+  wallet_health : (principal) -> (Result_9);
 }

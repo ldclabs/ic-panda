@@ -1135,6 +1135,7 @@ export default {
     twNewHint: "تفعيل لمرة واحدة بعملة ICP ضمن حصة خطتك؛ تصبح مشرفًا.",
     twQuote: "الحصول على عرض سعر",
     twQuoteLine: "{price} ICP زائد رسوم {fee} ICP · يتبقى {left} في {plan}",
+    twQuoteNone: "لا تسمح خطتك بإنشاء محفظة فريق.",
     twName: "اسم المحفظة",
     twMembersHint: "واحد في كل سطر: معرّف حساب أو Principal، ودور (admin أو approver أو proposer أو viewer أو recovery) وتسمية اختيارية.",
     twApprovals: "موافقات الإنفاق",

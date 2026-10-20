@@ -13,7 +13,7 @@
   import { toast } from '../components/toast.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText, onChange, single, units, when } from '../rpc'
+  import { bridge, call, code, errorText, onChange, planAction, single, units, when } from '../rpc'
   import AgentAccess from './agents/AgentAccess.svelte'
 
   /**
@@ -34,7 +34,8 @@
   let audit = $state<any>(null)
   let principal = $state('')
   let cosigners = $state<any[]>([])
-  let quote = $state<any>(null)
+  // What the account's plan allows before a quote is stored.
+  let preview = $state<any>(null)
   // Activation payments this device made that created no wallet.
   let deposits = $state<any[]>([])
   let error = $state('')
@@ -94,7 +95,7 @@
     try {
       await work()
     } catch (e) {
-      toast(() => errorText(e))
+      toast(() => errorText(e), planAction(e))
     } finally {
       busy = false
     }
@@ -158,7 +159,8 @@
       toast(() => t('twAgentsProposed'))
     })
 
-  const getQuote = () => attempt(async () => (quote = await call('wallet/quote')))
+  /** The fast preview: price, fee and what the account's plan still allows. */
+  const getQuote = () => attempt(async () => (preview = await call('wallet/quote_preview')))
 
   /** `<account or principal> <role> [label]` per line. */
   function parsedMembers() {
@@ -174,6 +176,13 @@
 
   const create = () =>
     attempt(async () => {
+      // The preview only says what the plan allows; the hub stores the quote
+      // this approval and payment commit to.
+      const quote: any = await call('wallet/quote')
+      if (quote.remaining === 0) {
+        preview = quote
+        return
+      }
       await approve(
         await call('wallet/create', {
           quote: quote.quote_id,
@@ -183,7 +192,7 @@
           admin_approvals: Number(adminApprovals)
         })
       )
-      quote = null
+      preview = null
     })
 
   /** Back to the paying account, which the daemon names; no approval, the money goes nowhere else. */
@@ -439,21 +448,30 @@
     {/if}
 
     <Section title={t('twNew')} description={t('twNewHint')} icon="add">
-      {#if !quote}
+      {#if !preview}
         <button class={buttonClass('secondary')} disabled={busy} onclick={getQuote} data-testid="wallet-quote">{t('twQuote')}</button>
       {:else}
-        <Notice testid="wallet-quote-line">{t('twQuoteLine', { price: units(quote.price_e8s, 8), fee: units(quote.ledger_fee_e8s, 8), left: quote.remaining, plan: quote.plan })}</Notice>
-        <div class="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label={t('twName')} class="sm:col-span-2"><input bind:value={name} data-testid="wallet-name" /></Field>
-          <Field label={t('members')} hint={t('twMembersHint')} class="sm:col-span-2">
-            <textarea bind:value={members} rows="3" class="font-mono text-[12.5px]"></textarea>
-          </Field>
-          <Field label={t('twApprovals')}><input bind:value={approvals} inputmode="numeric" /></Field>
-          <Field label={t('twAdminApprovals')}><input bind:value={adminApprovals} inputmode="numeric" /></Field>
-        </div>
+        <Notice tone={preview.remaining > 0 ? 'info' : 'warn'} testid="wallet-quote-line">
+          {t('twQuoteLine', { price: units(preview.price_e8s, 8), fee: units(preview.ledger_fee_e8s, 8), left: preview.remaining, plan: preview.plan })}
+          {#if preview.remaining === 0}
+            <span class="mt-1 block">{t('twQuoteNone')} <a class="font-medium underline underline-offset-2" href="#/plan">{t('openPlan')}</a></span>
+          {/if}
+        </Notice>
+        {#if preview.remaining > 0}
+          <div class="mt-3 grid gap-3 sm:grid-cols-2">
+            <Field label={t('twName')} class="sm:col-span-2"><input bind:value={name} data-testid="wallet-name" /></Field>
+            <Field label={t('members')} hint={t('twMembersHint')} class="sm:col-span-2">
+              <textarea bind:value={members} rows="3" class="font-mono text-[12.5px]"></textarea>
+            </Field>
+            <Field label={t('twApprovals')}><input bind:value={approvals} inputmode="numeric" /></Field>
+            <Field label={t('twAdminApprovals')}><input bind:value={adminApprovals} inputmode="numeric" /></Field>
+          </div>
+        {/if}
         <div class="mt-3 flex justify-end gap-2">
-          <button class={buttonClass('ghost')} onclick={() => (quote = null)}>{t('cancel')}</button>
-          <button class={buttonClass('primary')} disabled={busy || !name.trim()} onclick={create} data-testid="wallet-create">{t('twCreate')}</button>
+          <button class={buttonClass('ghost')} onclick={() => (preview = null)}>{t('cancel')}</button>
+          {#if preview.remaining > 0}
+            <button class={buttonClass('primary')} disabled={busy || !name.trim()} onclick={create} data-testid="wallet-create">{t('twCreate')}</button>
+          {/if}
         </div>
       {/if}
     </Section>

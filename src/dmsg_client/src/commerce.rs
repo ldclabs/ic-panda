@@ -1165,6 +1165,26 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
     Ok(status)
 }
 
+/// The account's base plan from its certified entitlement; Free without a
+/// record. Unlike [`plan_status`] this reads no catalog or terms, so a caller
+/// that only needs the tier does not wait for the whole plan page.
+///
+/// # Errors
+/// Returns `Error::IntegrityFailed` for an uncertified answer.
+pub async fn plan<H: Hold>(h: &H) -> Result<PlanId> {
+    let beneficiary = h.with(|c| c.beneficiary()).await?;
+    let commerce = services(h).await?.commerce;
+    let view: Option<EntitlementView> = certified_by(
+        &h.anonymous().await?,
+        commerce,
+        "get_entitlement_batch",
+        (vec![&beneficiary],),
+        billing::entitlement_key(&beneficiary).as_slice(),
+    )
+    .await?;
+    Ok(view.map_or(PlanId::Free, |v| v.plan_snapshot.plan_id))
+}
+
 /// Ask the relay to read this account's entitlement again, so its storage
 /// and channel limits follow a purchase or refund now rather than within
 /// the hour.

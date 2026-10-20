@@ -1661,6 +1661,19 @@ fn hub_quota_and_creation_checks() {
     let f = Fixture::new();
     let hub = setup(&f);
     let a = create_member(&f, A);
+    // The preview reads the plan's limit without storing a quote.
+    let preview: Result<ActivationPreview> =
+        query(&f.ic, hub, person(A), "quote_activation_preview", (a,));
+    let preview = preview.unwrap();
+    assert_eq!(
+        preview
+            .plans
+            .iter()
+            .find(|p| p.plan == dmsg_types::billing::PlanId::Free)
+            .unwrap()
+            .remaining,
+        2
+    );
     // Another account's quote cannot be used, and an unpaid quote creates nothing.
     let quote: Result<ActivationQuote> = update(&f.ic, hub, person(A), "quote_activation", (a,));
     let quote = quote.unwrap();
@@ -1876,6 +1889,47 @@ fn hub_quota_and_creation_checks() {
         (resumed.status, resumed.wallet),
         (ActivationStatus::Ready, Some(wallet))
     );
+    // A used-up plan still quotes, so a person reads the limit and the way to
+    // change it; the quote cannot create a wallet.
     let none: Result<ActivationQuote> = update(&f.ic, hub, person(A), "quote_activation", (a,));
-    assert_eq!(none, Err(Error::QuotaExceeded));
+    let none = none.unwrap();
+    assert_eq!(none.remaining, 0);
+    let preview: Result<ActivationPreview> =
+        query(&f.ic, hub, person(A), "quote_activation_preview", (a,));
+    assert_eq!(
+        preview
+            .unwrap()
+            .plans
+            .iter()
+            .find(|p| p.plan == dmsg_types::billing::PlanId::Free)
+            .unwrap()
+            .remaining,
+        0
+    );
+    // Paying that quote does not create a third wallet.
+    let zero = spec(1);
+    let app = application(
+        &f,
+        hub,
+        hub,
+        a,
+        person(A),
+        ApprovalPurpose::WalletCreate,
+        activation_digest(&none, &zero),
+    );
+    let approval_id = approve_app(&f, A, &a, &app);
+    pay(&f, &none);
+    let refused: Result<ActivationOrder> = update(
+        &f.ic,
+        hub,
+        person(A),
+        "create_wallet",
+        (CreateWallet {
+            quote_id: none.quote_id,
+            spec: zero,
+            approval_id,
+            approval: app,
+        },),
+    );
+    assert_eq!(refused, Err(Error::QuotaExceeded));
 }

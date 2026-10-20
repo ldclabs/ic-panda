@@ -23,10 +23,12 @@ use crate::ic::Ic;
 use crate::now_ms;
 use crate::payer::Stage;
 use crate::payment::certified_leaf;
-use candid::Principal;
+use candid::{Nat, Principal};
 use dmsg_protocol::{approval_message, digest, integration::*, wallet::*};
 use dmsg_types::{
-    Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result, ensure,
+    Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
+    billing::PlanId,
+    ensure,
     integration::{AppRegistration, ApplicationApproval, ApprovalPurpose, ProductRegistration},
     user::Capability,
     wallet::*,
@@ -603,30 +605,6 @@ impl Client {
         proposal_raw(&self.hold(), wallet, id).await
     }
 
-    /// The hub's terms for creating a wallet for this account, paid by the
-    /// payer; kept for [`Self::wallet_create_request`].
-    pub async fn wallet_quote(&mut self) -> Result<Json> {
-        let hub = self.wallet_hub()?;
-        let account = self.account()?.id;
-        let (_, ic) = self.wallet_identity().await?;
-        let quote: Result<ActivationQuote> = ic.update(hub, "quote_activation", (account,)).await?;
-        let quote = quote?;
-        let id = hex::encode(*quote.quote_id);
-        self.workspace
-            .put_private(self.keys()?, &format!("{QUOTE}{id}"), &quote)?;
-        Ok(json!({
-            "quote_id": id,
-            "plan": format!("{:?}", quote.plan),
-            "remaining": quote.remaining,
-            "price_e8s": quote.price_e8s.to_string(),
-            "ledger_fee_e8s": quote.ledger_fee_e8s.to_string(),
-            "cycles_to_wallet": quote.cycles_to_wallet.to_string(),
-            "deposit": quote.deposit.to_string(),
-            "version": quote.version,
-            "expires_at": quote.expires_at_ms,
-        }))
-    }
-
     fn wallet_job(&self, id: &str) -> Result<WalletJob> {
         self.workspace
             .private(self.keys()?, &format!("{JOB}{id}"))?
@@ -676,7 +654,9 @@ impl Client {
     /// Ask to pay quote `quote_id` from the payer and create `spec`.
     ///
     /// # Errors
-    /// Returns `Error::NotFound` for a quote this device did not request.
+    /// Returns `Error::NotFound` for a quote this device did not request and
+    /// `Error::QuotaExceeded` when the quote's plan has no wallet left, so no
+    /// payment starts for a wallet the hub would refuse.
     pub fn wallet_create_request(
         &mut self,
         source: &str,
@@ -685,6 +665,7 @@ impl Client {
     ) -> Result<Json> {
         let quote = self.wallet_saved_quote(quote_id)?;
         validate_spec(&spec, &self.wallet_member()?)?;
+        ensure(quote.remaining > 0, Error::QuotaExceeded)?;
         ensure(now_ms() < quote.expires_at_ms, Error::Expired)?;
         self.wallet_request(
             source,
@@ -1689,6 +1670,76 @@ pub(crate) async fn identity<H: Hold>(h: &H) -> Result<(Principal, Ic)> {
     let pair = (ic.principal()?, ic);
     h.with(|c| Ok(c.wallet_ic.get_or_insert(pair).clone()))
         .await
+}
+
+/// The hub's terms for creating a wallet for this account, paid by this
+/// device's wallet key; kept for [`wallet_create_request`].
+///
+/// # Errors
+/// Returns `Error::Unavailable` without a hub.
+pub async fn quote<H: Hold>(h: &H) -> Result<Json> {
+    let (hub, account) = h.with(|c| Ok((c.wallet_hub()?, c.account()?.id))).await?;
+    let (_, ic) = identity(h).await?;
+    let quote: Result<ActivationQuote> = ic.update(hub, "quote_activation", (account,)).await?;
+    let quote = quote?;
+    let id = hex::encode(*quote.quote_id);
+    h.with(|c| {
+        c.workspace
+            .put_private(c.keys()?, &format!("{QUOTE}{id}"), &quote)
+    })
+    .await?;
+    Ok(json!({
+        "quote_id": id,
+        "plan": format!("{:?}", quote.plan),
+        "remaining": quote.remaining,
+        "price_e8s": quote.price_e8s.to_string(),
+        "ledger_fee_e8s": quote.ledger_fee_e8s.to_string(),
+        "cycles_to_wallet": quote.cycles_to_wallet.to_string(),
+        "deposit": quote.deposit.to_string(),
+        "version": quote.version,
+        "expires_at": quote.expires_at_ms,
+    }))
+}
+
+/// What this account's plan allows and what an activation costs now, read
+/// without a stored quote. The hub answers from its own pricing and quota
+/// records; the plan and ledger fee are read beside it, so the view is fast and
+/// a plan with no wallet left reads as zero instead of failing.
+///
+/// # Errors
+/// Returns `Error::Unavailable` without a hub.
+pub async fn quote_preview<H: Hold>(h: &H) -> Result<Json> {
+    let (hub, account) = h.with(|c| Ok((c.wallet_hub()?, c.account()?.id))).await?;
+    let ic = h.anonymous().await?;
+    let preview: ActivationPreview = ic
+        .query(hub, "quote_activation_preview", (account,))
+        .await?;
+    let (plan, fee) = join(
+        crate::commerce::plan(h),
+        ledger_fee(&ic, preview.icp_ledger),
+    )
+    .await;
+    let plan: PlanId = plan?;
+    let fee = fee?;
+    let remaining = preview
+        .plans
+        .iter()
+        .find(|p| p.plan == plan)
+        .map_or(0, |p| p.remaining);
+    Ok(json!({
+        "plan": format!("{plan:?}"),
+        "remaining": remaining,
+        "price_e8s": preview.price_e8s.to_string(),
+        "ledger_fee_e8s": fee.to_string(),
+        "cycles_to_wallet": preview.cycles_to_wallet.to_string(),
+        "version": preview.version,
+    }))
+}
+
+/// The ledger's current fee, in its atomic unit.
+async fn ledger_fee(ic: &Ic, ledger: Principal) -> Result<u128> {
+    let n: Nat = ic.query(ledger, "icrc1_fee", ()).await?;
+    u128::try_from(n.0).map_err(|_| Error::IntegrityFailed)
 }
 
 /// The wallet as this device's wallet key reads it, certified, so no single

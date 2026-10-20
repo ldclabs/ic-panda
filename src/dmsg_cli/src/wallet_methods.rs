@@ -14,11 +14,12 @@ use dmsg_types::{
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 30] = [
+pub(crate) const METHODS: [&str; 31] = [
     "wallet/list",
     "wallet/show",
     "wallet/principal",
     "wallet/quote",
+    "wallet/quote_preview",
     "wallet/create",
     "wallet/deposits",
     "wallet/refund",
@@ -154,6 +155,8 @@ impl Daemon {
             "wallet/list" => return wallets::list(&h).await,
             "wallet/show" => return wallets::show(&h, wallet()?).await,
             "wallet/principal" => return wallets::principal(&h).await,
+            "wallet/quote" => return wallets::quote(&h).await,
+            "wallet/quote_preview" => return wallets::quote_preview(&h).await,
             "wallet/deposits" => return wallets::deposits(&h).await,
             "wallet/proposals" => {
                 let limit = params["limit"].as_u64().unwrap_or(50).min(100) as u16;
@@ -198,7 +201,6 @@ impl Daemon {
         // Proposals, decisions and executions still wait on the IC and the
         // chains under the client.
         self.under_lock(async |client| match method {
-            "wallet/quote" => client.wallet_quote().await,
             "wallet/refund" => client.wallet_refund(&text(params, "quote")?).await,
             "wallet/join" => client.wallet_join_request(source(params)?, wallet()?).await,
             "wallet/propose" => {

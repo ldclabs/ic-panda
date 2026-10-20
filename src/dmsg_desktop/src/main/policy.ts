@@ -181,6 +181,7 @@ export const WINDOW_METHODS = new Set([
   'wallet/show',
   'wallet/principal',
   'wallet/quote',
+  'wallet/quote_preview',
   'wallet/create',
   'wallet/deposits',
   'wallet/refund',

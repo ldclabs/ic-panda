@@ -1135,6 +1135,7 @@ export default {
     twNewHint: "Una activación única en ICP dentro de la cuota de tu plan; serás administrador.",
     twQuote: "Pedir presupuesto",
     twQuoteLine: "{price} ICP más {fee} ICP de comisión · quedan {left} en {plan}",
+    twQuoteNone: "Tu plan no permite crear un monedero de equipo.",
     twName: "Nombre del monedero",
     twMembersHint: "Uno por línea: un ID de cuenta o un Principal, un rol (admin, approver, proposer, viewer, recovery) y una etiqueta opcional.",
     twApprovals: "Aprobaciones para gastar",

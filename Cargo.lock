@@ -2826,6 +2826,7 @@ dependencies = [
  "dmsg_protocol",
  "dmsg_runtime",
  "dmsg_types",
+ "futures-util",
  "ic-cdk",
  "ic-cdk-management-canister 0.3.0",
  "ic-stable-structures 0.7.2",

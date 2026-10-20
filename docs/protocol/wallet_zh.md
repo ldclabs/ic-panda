@@ -113,11 +113,12 @@
 
 ## hub 激活
 
-1. `quote_activation(account_id)`：hub 向 commerce `refresh_entitlement` 读取账户套餐（无记录为 Free），按 `quotas` 减去该账户已占用的创建数；报价 15 分钟有效，收款账户为 `(hub, deposit_subaccount(hub, quote_id))`。按当前账本手续费，收入的两笔转账付不出时不出报价。
-2. 付款人向收款账户转入 `price_e8s`；创建者设备批准 `WalletCreate`。
-3. `create_wallet(CreateWallet { quote_id, spec, approval_id, approval })`：调用者必须是报价时的调用者；hub 核对批准与余额，返回后重查报价期限、退款、暂停与配额，记为 `Paid`，再创建 canister（controller 仅 hub，冻结阈值 365 天，附 `cycles_to_wallet`）并以分块安装报价中的版本，状态 `Created → Ready`；创建 canister 失败为 `Failed`。安装中断时，付款人以同一请求再调 `create_wallet`，或任何人调 `reconcile_activation`，都会继续这次激活。
-4. `claim_activation_refund(quote_id, to)`：`Failed` 订单与过期未用的报价，由报价调用者把收款扣一次账本手续费后退到 `to`；已就绪订单的收款不退。`to` 由调用者指定，须在 hub 之外，所有者不能是匿名或管理 canister；客户端以本机钱包密钥报价与领取，`to` 为付款身份的默认账户。第一次领取确定账户与转账参数，之后的调用只完成这笔转账并返回同一区块。
-5. `collect_revenue(quote_id)`：已就绪订单的收款中，`cycles_share_e8s` 以 memo `TPUP` 转入 CMC 为 hub 充值 cycles，余额转入 `revenue` 账户；`collectable_activations(after, take)` 列出待归集的订单，任何人可归集。
+1. `quote_activation_preview(account_id)`（query）：hub 只读自己的定价、当前版本与该账户已占用的创建数，返回价格、cycles、账本和每个套餐的剩余额度；不写报价、不占配额。客户端另行读取自己的套餐与账本手续费，所以“获取报价”是快速查询，套餐额度为 0 时显示剩余 0 而不是报错。
+2. `quote_activation(account_id)`：hub 向 commerce `refresh_entitlement` 读取账户套餐（无记录为 Free），按 `quotas` 减去该账户已占用的创建数；报价 15 分钟有效，收款账户为 `(hub, deposit_subaccount(hub, quote_id))`。按当前账本手续费，收入的两笔转账付不出时不出报价。额度已用完时仍返回报价（`remaining = 0`），由 `create_wallet` 拒绝，用户能看到套餐限制。
+3. 付款人向收款账户转入 `price_e8s`；创建者设备批准 `WalletCreate`。
+4. `create_wallet(CreateWallet { quote_id, spec, approval_id, approval })`：调用者必须是报价时的调用者；hub 核对批准与余额，返回后重查报价期限、退款、暂停与配额，记为 `Paid`，再创建 canister（controller 仅 hub，冻结阈值 365 天，附 `cycles_to_wallet`）并以分块安装报价中的版本，状态 `Created → Ready`；创建 canister 失败为 `Failed`。安装中断时，付款人以同一请求再调 `create_wallet`，或任何人调 `reconcile_activation`，都会继续这次激活。配额在此时再次核对，`remaining = 0` 的报价不能创建钱包。
+5. `claim_activation_refund(quote_id, to)`：`Failed` 订单与过期未用的报价，由报价调用者把收款扣一次账本手续费后退到 `to`；已就绪订单的收款不退。`to` 由调用者指定，须在 hub 之外，所有者不能是匿名或管理 canister；客户端以本机钱包密钥报价与领取，`to` 为付款身份的默认账户。第一次领取确定账户与转账参数，之后的调用只完成这笔转账并返回同一区块。
+6. `collect_revenue(quote_id)`：已就绪订单的收款中，`cycles_share_e8s` 以 memo `TPUP` 转入 CMC 为 hub 充值 cycles，余额转入 `revenue` 账户；`collectable_activations(after, take)` 列出待归集的订单，任何人可归集。
 
 ## 升级与锁定
 

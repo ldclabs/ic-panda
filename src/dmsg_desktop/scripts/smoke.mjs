@@ -935,6 +935,7 @@ const methods = {
   'wallet/list': () => [],
   'wallet/principal': () => ({ principal: 'xkbqi-2qaaa-aaaah-qbpqq-cai' }),
   'wallet/cosigners': () => [],
+  'wallet/quote_preview': () => ({ plan: 'Free', remaining: 0, price_e8s: '1000000000', ledger_fee_e8s: '10000', cycles_to_wallet: '3000000000000', version: 1 }),
   'wallet/deposits': () => deposits,
   'wallet/refund': (p) => {
     const i = deposits.findIndex((d) => d.quote_id === p.quote && d.refundable)
@@ -1729,6 +1730,16 @@ try {
   await main.waitForFunction(() => document.querySelectorAll('[data-testid="wallet-deposit"]').length === 1)
   assert.equal(await main.locator('[data-testid="wallet-refund"]').count(), 0)
   assert.equal(requests.size, requested)
+
+  // A plan with no wallet left is shown, not raised as an error: the preview
+  // names the plan and opens Plans, and no create action starts.
+  await main.click('[data-testid="wallet-quote"]')
+  await main.waitForSelector('[data-testid="wallet-quote-line"]')
+  const quoteLine = await main.textContent('[data-testid="wallet-quote-line"]')
+  assert.match(quoteLine, /0 left on Free/)
+  assert.match(quoteLine, /Your plan cannot create a team wallet/)
+  assert.equal(await main.locator('[data-testid="wallet-create"]').count(), 0)
+  await waitFor(() => latest('wallet/quote_preview'))
 
   // A grant to a hosted Agent ID is signed only after the approval window agrees.
   await main.click('nav >> text=/Agents|Agent/')

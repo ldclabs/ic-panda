@@ -1135,6 +1135,7 @@ export default {
     twNewHint: "在套餐额度内一次性支付 ICP 激活费；你将成为管理员。",
     twQuote: "获取报价",
     twQuoteLine: "{price} ICP，另加 {fee} ICP 手续费 · {plan} 套餐还可创建 {left} 个",
+    twQuoteNone: "当前套餐不能创建团队钱包。",
     twName: "钱包名称",
     twMembersHint: "每行一位：账户 ID 或 Principal、角色（admin、approver、proposer、viewer、recovery）与可选标签。",
     twApprovals: "支出所需批准数",

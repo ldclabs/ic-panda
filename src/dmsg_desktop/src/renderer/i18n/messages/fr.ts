@@ -1135,6 +1135,7 @@ export default {
     twNewHint: "Une activation unique en ICP dans le quota de votre forfait ; vous devenez administrateur.",
     twQuote: "Obtenir un devis",
     twQuoteLine: "{price} ICP plus {fee} ICP de frais · encore {left} avec {plan}",
+    twQuoteNone: "Votre forfait ne permet pas de créer un portefeuille d’équipe.",
     twName: "Nom du portefeuille",
     twMembersHint: "Un par ligne : un identifiant de compte ou un Principal, un rôle (admin, approver, proposer, viewer, recovery) et une étiquette facultative.",
     twApprovals: "Approbations pour dépenser",

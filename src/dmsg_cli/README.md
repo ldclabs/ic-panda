@@ -546,10 +546,14 @@ wallet: the payment after the acceptance deadline, the unused fee reserve once
 every payout succeeded, and deposits the escrow did not take.
 
 Team wallets (`dmsg wallet`) are canisters of their own, created through
-the hub for a one-time ICP activation within the plan's quota. Proposing,
-executing what members approved, broadcasting and reporting run at once;
-`create`, `join`, `approve`, `reject`, `veto`, and a transaction this
-device must cosign, wait in the approval center. `refund <quote>` returns a
+the hub for a one-time ICP activation within the plan's quota. `quote` is
+an update because it stores the deposit and expiry it returns; a plan with
+no wallet left quotes `remaining` 0 instead of failing, and `create` refuses
+that quote. The desktop reads the stateless `wallet/quote_preview` for the
+fast price, fee and quota view. Proposing, executing what members approved,
+broadcasting and reporting run at once; `create`, `join`, `approve`,
+`reject`, `veto`, and a transaction this device must cosign, wait in the
+approval center. `refund <quote>` returns a
 quote's deposit, less the ledger fee, to the identity that paid it once the
 hub failed to create the wallet or the quote expired unused; the quote's ID
 is in the create request's approval details. The daemon calls wallets
@@ -845,7 +849,7 @@ The daemon listens on `127.0.0.1` only.
   `channel/owner_propose|owner_accept|owner_commit|sponsor_propose|sponsor_accept|sponsor_commit|sponsor_cancel`,
   `inbox/policy|configure|send|order|outgoing|pay|escrow|refund|list|mark`,
   `payment/transfers|revise`, `payer/use|balance`,
-  `wallet/list|show|principal|quote|create|join|proposals|proposal|propose|member_agents|send|approve|reject|veto|cancel|freeze`,
+  `wallet/list|show|principal|quote|quote_preview|create|join|proposals|proposal|propose|member_agents|send|approve|reject|veto|cancel|freeze`,
   `wallet/execute|broadcast|settle|report|reconcile|balances|audit|refuel|cosigners|cosigner_new|policy_default|intent`,
   `plan/catalog|status|assets|quote|checkout|advance|order|checkouts|cancel|reconcile|refund`,
   `handle/resolve|price|claim|register|transfer|accept|transfer_commit|operations|reconcile`,

@@ -1160,6 +1160,32 @@ pub struct PlanQuota {
     pub wallets: u32,
 }
 
+/// Wallets an account may still create on one plan.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PlanAvailability {
+    /// Plan.
+    pub plan: PlanId,
+    /// Wallets left, this one included.
+    pub remaining: u32,
+}
+
+/// Activation terms before a quote is stored: the price, version and what
+/// each plan still allows. The account's plan and the ledger fee are read by
+/// the client, which asks for an authoritative quote only when it may create.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ActivationPreview {
+    /// Price in ICP e8s.
+    pub price_e8s: u64,
+    /// Cycles given to the wallet.
+    pub cycles_to_wallet: u128,
+    /// ICP ledger whose fee the payer adds.
+    pub icp_ledger: Principal,
+    /// Version installed.
+    pub version: u32,
+    /// Remaining wallets by plan; plans not listed have none.
+    pub plans: Vec<PlanAvailability>,
+}
+
 /// Hub deployment.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct HubInit {

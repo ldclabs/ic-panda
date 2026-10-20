@@ -1137,6 +1137,7 @@ const messages = {
   twNewHint: "A one-time ICP activation within your plan’s quota; you become an Admin.",
   twQuote: "Get a quote",
   twQuoteLine: "{price} ICP plus a {fee} ICP fee · {left} left on {plan}",
+  twQuoteNone: "Your plan cannot create a team wallet.",
   twName: "Wallet name",
   twMembersHint: "One per line: an account ID or a Principal, a role (admin, approver, proposer, viewer, recovery) and an optional label.",
   twApprovals: "Approvals to spend",

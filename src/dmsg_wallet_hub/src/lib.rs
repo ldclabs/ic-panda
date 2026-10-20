@@ -152,6 +152,37 @@ fn hub_stats() -> HubStats {
     })
 }
 
+/// Activation terms this account would get now, without storing a quote: the
+/// price, version and remaining wallets by plan. The client reads its plan and
+/// the ledger fee itself, so this is a local query and a person sees a plan's
+/// limit before asking for a quote.
+#[ic_cdk::query]
+fn quote_activation_preview(account_id: AccountId) -> Result<ActivationPreview> {
+    store::with(|h| {
+        ensure(!h.init.pricing.paused, Error::Locked)?;
+        let version = h.current.ok_or_else(no_version)?;
+        // An account with no home cannot create a wallet.
+        home_of(h, &account_id)?;
+        let used = store::quota_used(&account_id);
+        Ok(ActivationPreview {
+            price_e8s: h.init.pricing.price_e8s,
+            cycles_to_wallet: h.init.pricing.cycles_to_wallet,
+            icp_ledger: h.init.icp_ledger,
+            version,
+            plans: h
+                .init
+                .pricing
+                .quotas
+                .iter()
+                .map(|q| PlanAvailability {
+                    plan: q.plan.clone(),
+                    remaining: q.wallets.saturating_sub(used),
+                })
+                .collect(),
+        })
+    })
+}
+
 #[ic_cdk::query]
 fn get_quote(id: Hash) -> Option<ActivationQuote> {
     store::quote(&id)
@@ -229,7 +260,7 @@ async fn plan_of(commerce: Principal, home: Principal, account: &AccountId) -> R
 }
 
 /// Price and deposit account for the calling payer to create a wallet for
-/// `account_id`, within the account's plan quota.
+/// `account_id`; `remaining` shows what the account's plan still allows.
 #[ic_cdk::update]
 async fn quote_activation(account_id: AccountId) -> Result<ActivationQuote> {
     let caller = ic_cdk::api::msg_caller();
@@ -240,8 +271,11 @@ async fn quote_activation(account_id: AccountId) -> Result<ActivationQuote> {
         ensure(h.current.is_some(), no_version())?;
         Ok::<_, Error>((home_of(h, &account_id)?, h.init.commerce, h.init.icp_ledger))
     })?;
-    let plan = plan_of(commerce, home, &account_id).await?;
-    let fee = fee(ledger).await?;
+    // Both reads answer independently; one round of calls, not two.
+    let (plan, fee) =
+        futures_util::future::join(plan_of(commerce, home, &account_id), fee(ledger)).await;
+    let plan = plan?;
+    let fee = fee?;
     // Pricing, versions and quota use are reread after the calls.
     let at = now();
     let quote = store::with(|h| {
@@ -256,7 +290,8 @@ async fn quote_activation(account_id: AccountId) -> Result<ActivationQuote> {
         )?;
         let quota = plan_quota(h, &plan);
         let used = store::quota_used(&account_id);
-        ensure(used < quota, Error::QuotaExceeded)?;
+        // A plan with no wallet left still gets a quote, so a person reads the
+        // limit and the way to change it; `create_wallet` refuses this quote.
         let quote_id = digest(
             "dmsg-wallet/quote/v1",
             &(me, &account_id, caller, store::quote_count(), at),
@@ -266,7 +301,7 @@ async fn quote_activation(account_id: AccountId) -> Result<ActivationQuote> {
             account_id,
             payer: caller,
             plan,
-            remaining: quota - used,
+            remaining: quota.saturating_sub(used),
             price_e8s: p.price_e8s,
             ledger_fee_e8s: fee.try_into().map_err(|_| Error::IntegrityFailed)?,
             cycles_to_wallet: p.cycles_to_wallet,

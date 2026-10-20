@@ -1135,6 +1135,7 @@ export default {
     twNewHint: "Разовая активация в ICP в пределах квоты тарифа; вы станете администратором.",
     twQuote: "Получить расчёт",
     twQuoteLine: "{price} ICP плюс комиссия {fee} ICP · осталось {left} на {plan}",
+    twQuoteNone: "Ваш тариф не позволяет создать командный кошелёк.",
     twName: "Название кошелька",
     twMembersHint: "По одному в строке: ID аккаунта или Principal, роль (admin, approver, proposer, viewer, recovery) и необязательная метка.",
     twApprovals: "Одобрений для расходов",
