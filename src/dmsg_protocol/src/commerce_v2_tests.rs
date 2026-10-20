@@ -32,6 +32,15 @@ fn cash_price_is_exact_and_admission_never_infers_a_dollar_peg() {
 }
 
 #[test]
+fn a_long_lived_price_is_bounded_to_a_year() {
+    let mut a = f::asset();
+    a.price_valid_until_ms = a.price_observed_at_ms + 364 * DAY;
+    validate_asset(&a).unwrap();
+    a.price_valid_until_ms = a.price_observed_at_ms + 366 * DAY;
+    assert!(validate_asset(&a).is_err());
+}
+
+#[test]
 fn a_new_price_observation_keeps_live_quotes_but_other_term_changes_do_not() {
     let quoted = f::asset();
     let mut current = quoted.clone();

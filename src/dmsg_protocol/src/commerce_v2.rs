@@ -4,8 +4,10 @@ use candid::Principal;
 use dmsg_types::{integration::*, integration_billing::*, membership::Eligibility, *};
 use icrc_ledger_types::icrc1::account::Account;
 
-/// Maximum accepted age/window of a governance-authenticated price observation.
-pub const PRICE_WINDOW_MS: u64 = 30 * MINUTE;
+/// Maximum accepted window of a governance-authenticated price observation.
+/// Prices are published manually and may stay valid for a year; governance
+/// pauses new quotes with `enabled = false` instead of relying on expiry.
+pub const PRICE_WINDOW_MS: u64 = 365 * DAY;
 /// Maximum deviation from the stable-asset unit USD price for new quotes.
 pub const MAX_DEPEG_USD_MICROS: u128 = 10_000;
 /// Known ineligibility accumulates seven days before rights terminate permanently.
@@ -38,7 +40,7 @@ pub fn validate_asset(asset: &SettlementAsset) -> Result<()> {
     Ok(())
 }
 
-/// Quote admission uses fresh explicit reference pricing; no implicit dollar peg.
+/// Quote admission uses an explicit reference price; no implicit dollar peg.
 pub fn asset_available(asset: &SettlementAsset, at: u64) -> Result<()> {
     validate_asset(asset)?;
     ensure(

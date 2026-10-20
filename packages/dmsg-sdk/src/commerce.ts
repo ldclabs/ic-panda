@@ -22,7 +22,7 @@ import {
   validateShape,
 } from "./validation.ts";
 
-export const PRICE_WINDOW_MS = 1_800_000n;
+export const PRICE_WINDOW_MS = 31_536_000_000n;
 export const MAX_DEPEG_USD_MICROS = 10_000n;
 const min = (a: bigint, b: bigint) => (a < b ? a : b);
 const same = (a: unknown, b: unknown) =>

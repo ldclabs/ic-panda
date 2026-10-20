@@ -88,6 +88,18 @@ test("Rust checkout terms independently match fixed asset, full amount and all d
     validateSettlementAsset(quote.asset, quote.asset.price_valid_until_ms),
   );
 });
+test("a long-lived settlement price is accepted up to a year", () => {
+  const observed = quote.asset.price_observed_at_ms,
+    day = 86_400_000n,
+    long = { ...quote.asset, price_valid_until_ms: observed + 300n * day };
+  validateSettlementAsset(long, observed);
+  assert.throws(() =>
+    validateSettlementAsset(
+      { ...long, price_valid_until_ms: observed + 366n * day },
+      observed,
+    ),
+  );
+});
 test("PANDA full waiver binds neuron, independent account, exact USD bill and original end", () => {
   const request: CheckoutRequest = {
     offer: terms.offer,

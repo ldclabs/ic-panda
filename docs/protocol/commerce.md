@@ -61,13 +61,15 @@ Only ckUSDT `cngnf-vqaaa-aaaar-qag4q-cai` and ckUSDC
 `xevnm-gaaaa-aaaar-qafnq-cai` are accepted outside Local. Both require six decimals,
 verified ICRC-1/ICRC-3 support and an actual supported transfer block. Asset
 identity comes from the fixed ledger, never its symbol. Governance registers the
-policy and verifies ledger metadata; a separately configured price authority may
-publish a fresh USD-micro reference observation. A governance update of a
-registered asset replaces only its non-price terms: it keeps the latest published
-price and takes the next policy version, so price publications made while a
-proposal waits cannot make it stale. New quotes require an enabled
-asset, a price window of at most 30 minutes and deviation of at most 1% from one
-USD. There is no implicit dollar peg.
+policy and verifies ledger metadata; the controller or governance publishes the
+USD-micro reference observation, and a separately configured price authority may
+also publish it. A governance update of a registered asset replaces only its
+non-price terms: it keeps the latest published price and takes the next policy
+version, so price publications made while a proposal waits cannot make it stale.
+New quotes require an enabled asset, a price window of at most one year and
+deviation of at most 1% from one USD; governance sets `enabled = false` to pause
+new quotes without changing the price, and accepted orders continue. There is no
+implicit dollar peg.
 
 `amount_atomic = ceil(amount_usd_micros * 10^decimals / price_usd_micros)` with
 arbitrary-width intermediates and one final rounding. `CheckoutQuote` freezes

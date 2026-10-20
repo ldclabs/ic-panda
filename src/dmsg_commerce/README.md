@@ -36,7 +36,7 @@ flowchart LR
 | ckUSDC / ckUSDT 账本  | `Local` 之外只接受这两个主网账本，要求 6 位小数、支持 ICRC-1 与 ICRC-3；入金只认 `1xfer`/`2xfer` 区块                                                                                                 |
 | 外部产品（TokenList） | 自己实现产品回调和受益权限，commerce 只做现金结算，参见 [account product 示例](../../examples/dmsg-account-product/README.md)                                                                         |
 | governance            | 初始化时固定的管理主体，与 controller 一起可调用全部治理方法                                                                                                                                          |
-| 价格权威              | governance 指定的 principal，定期发布资产的美元参考价                                                                                                                                                 |
+| 价格权威              | 可选；governance 指定的 principal 也可以发布，未指定时 controller/governance 手动发布长期价格                                                                                                         |
 | 商户                  | 产品注册中 `merchant` 账户的 owner，归集已赚取的收入                                                                                                                                                  |
 | 私有云端              | 读取认证目录和资源权益，不参与资金或交付决定                                                                                                                                                          |
 
@@ -73,9 +73,9 @@ flowchart LR
 
 ### 现金结账
 
-1. **报价**：dMsg 产品由 `prepare_account_subscription(app_id, beneficiary, sku, operation_id)` 生成 `BillingOffer`，15 分钟内有效。`quote_checkout(offer, ledger, payer)` 回调产品 `quote_authority` 的 `verify_billing_offer` 确认报价，再用价格权威发布的价格换算金额：`amount_atomic = ceil(amount_usd_micros × 10^6 / price_usd_micros)`。费用准备 `fee_reserve = 2 × max_network_fee`，付款期限 30 分钟，激活期限 24 小时，两者都不超过服务终点。报价不写状态。
+1. **报价**：dMsg 产品由 `prepare_account_subscription(app_id, beneficiary, sku, operation_id)` 生成 `BillingOffer`，15 分钟内有效。`quote_checkout(offer, ledger, payer)` 回调产品 `quote_authority` 的 `verify_billing_offer` 确认报价，再用已发布的价格换算金额：`amount_atomic = ceil(amount_usd_micros × 10^6 / price_usd_micros)`。费用准备 `fee_reserve = 2 × max_network_fee`，付款期限 30 分钟，激活期限 24 小时，两者都不超过服务终点。报价不写状态。
 2. **批准**：账户设备在 `dmsg_user` 批准 `ApplicationApproval`，其中 `action_digest = checkout_quote_hash(quote)`，`actor` 为付款人。
-3. **开单**：付款人调用 `open_checkout`。commerce 重建并比对报价，要求报价引用的价格快照确实由价格权威发布且仍有效；同时向受益主体自己的权威（必须列在产品注册的 `beneficiary_authorities` 中）和 user home 核验授权，回调后重读配置和价格。之后保存 `Reserving` 订单，请产品 adapter 预留服务区间，成功后进入 `AwaitingFunding`。
+3. **开单**：付款人调用 `open_checkout`。commerce 重建并比对报价，要求报价引用的价格快照确实已发布且仍有效；同时向受益主体自己的权威（必须列在产品注册的 `beneficiary_authorities` 中）和 user home 核验授权，回调后重读配置和价格。之后保存 `Reserving` 订单，请产品 adapter 预留服务区间，成功后进入 `AwaitingFunding`。
 4. **付款**：钱包向报价中的 `deposit`（owner 为 commerce，子账户为订单 ID）转入 `amount + fee_reserve`。只认 `icrc1_transfer` 或 `icrc2_transfer_from` 产生的转账区块。
 5. **核验入金**：任何人可调用 `check_checkout_funding(order_id, block)`。commerce 从账本读取区块（必要时沿账本返回的归档回调），以 `(ledger, block)` 去重。合格入金须满足：来自报价账本和付款人、金额足额、区块时间在 `[quoted_at, funding_deadline)` 内，并在激活期限前完成核验。满足时，同一消息内写入资金分类和不可变的 Apply 决定，随后调用 adapter。错账本、错来源、不足、多付、重复和迟到的入金，全部记为来源方的可退余额。
 6. **交付**：adapter 返回 `Applied` 回执，订单即为 `Applied`；返回拒绝回执，订单转为 `RefundCommitted`，价格和费用准备转为该笔入金的可退余额。调用结果未知时订单保持 `Applying`，`reconcile_checkout` 先查原决定的回执再重放；超过激活期限的 Apply 由 adapter 确定拒绝。
@@ -230,7 +230,7 @@ heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。
 
 ### 多实例
 
-commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce 的 `user_homes` 里，它的 `UserInit.commerce_canister` 指向该实例，账户的订单、主体和认证叶都只在该实例。每个实例独立持有注册表、结算资产、价格、目录和订单，因此治理要在每个实例分别登记产品、应用与资产，价格权威要向每个实例发布，商户也要在每个实例归集。共享的只有 `membership`：它的 `PandaServiceConfig.commerce_homes` 列出每个 user home 的 commerce，按申请所在的 home 读取注册并回调该实例的产品 adapter，神经元占用仍是全局唯一。
+commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce 的 `user_homes` 里，它的 `UserInit.commerce_canister` 指向该实例，账户的订单、主体和认证叶都只在该实例。每个实例独立持有注册表、结算资产、价格、目录和订单，因此治理要在每个实例分别登记产品、应用与资产，价格要在每个实例发布，商户也要在每个实例归集。共享的只有 `membership`：它的 `PandaServiceConfig.commerce_homes` 列出每个 user home 的 commerce，按申请所在的 home 读取注册并回调该实例的产品 adapter，神经元占用仍是全局唯一。
 
 私有云端把 `COMMERCE_CANISTER` 配置为按 user home 的映射（单实例仍可填一个 ID），目录和权益证明都按账户 home 的 commerce 验证。桌面客户端按 `dmsg_handle` 的 home 列表定位账户所在的 user home，并从该 home 的 `UserInit.commerce_canister` 取得 commerce，因此不同 home 可以指向不同实例。
 
@@ -335,7 +335,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
         action_schema = null; paused = false })'
       ```
 
-   3. 登记结算资产。`network_fee_atomic` 取账本当前的 `icrc1_fee`，`max_network_fee_atomic` 不低于它且不超过 10,000,000；价格观测窗口最长 30 分钟：
+   3. 登记结算资产。`network_fee_atomic` 取账本当前的 `icrc1_fee`，`max_network_fee_atomic` 不低于它且不超过 10,000,000；价格观测窗口最长一年（365 天）：
 
       ```sh
       icp canister call -n ic xevnm-gaaaa-aaaar-qafnq-cai icrc1_fee '()' --query
@@ -343,7 +343,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
         version = 2 : nat16; policy_version = 1 : nat64; environment = variant { Production };
         ledger = principal "xevnm-gaaaa-aaaar-qafnq-cai"; asset = variant { CkUsdc };
         decimals = 6 : nat16; price_usd_micros = 1_000_000 : nat;
-        price_observed_at_ms = <当前 Unix 毫秒> : nat64; price_valid_until_ms = <+30 分钟以内> : nat64;
+        price_observed_at_ms = <当前 Unix 毫秒> : nat64; price_valid_until_ms = <+364 天以内> : nat64;
         network_fee_atomic = <icrc1_fee> : nat; max_network_fee_atomic = <上限> : nat; enabled = true })'
       ```
 
@@ -354,7 +354,7 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
         '(principal "xevnm-gaaaa-aaaar-qafnq-cai", opt (<区块号> : nat))'
       ```
 
-   5. 指定价格权威：`set_settlement_price_authority(principal "<价格权威>")`，再启动价格发布任务（见“运维”）。
+   5. 价格权威可选：手动维护长期价格时，由 controller/governance 直接发布即可，不需要后台任务。若设置 `set_settlement_price_authority(principal "<价格权威>")`，该 principal 可以随时改价，必须按最小权限管理；脱锚或异常时用下面的资产暂停（见“治理变更”）。
 
 6. 客户端无需配置：它从账户所在 home 的 `UserInit` 读取 commerce 与 membership。同步更新私有云端信任的 commerce canister ID。
 
@@ -371,7 +371,7 @@ commerce 没有定时器，下列任务都需要外部调用：
 
 | 任务         | 方法                                                                                        | 调用方                 | 频率与要求                                                                                       |
 | ------------ | ------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
-| 发布价格     | `publish_settlement_price(ledger, price_usd_micros, valid_for_ms)`                          | 价格权威               | 每个启用资产都要在上一价格过期前发布，`valid_for_ms` 最长 30 分钟。没有有效价格时，现金报价和开单全部返回 `PolicyStale` |
+| 发布价格     | `publish_settlement_price(ledger, price_usd_micros, valid_for_ms)`                          | controller、governance 或价格权威 | 每个启用资产在上一价格过期前重发；`valid_for_ms` 最长一年（365 天）。长期价格可手动维护，不需要定时任务；没有有效价格时，现金报价和开单全部返回 `PolicyStale` |
 | 派发出金     | `process_checkout_transfer`                                                                 | 任何人（商户或运维）   | 腿创建后尽快派发，必须在 24 小时内；`InFlight`/`Unknown` 也要在窗口内重试                        |
 | 归集收入     | `collectable_checkouts` 找到服务期已结束的订单，逐单 `collect_checkout_revenue`，再派发      | 商户 owner             | 每单在服务期结束后归集一次，然后 `claim_checkout_fee_reserve` 退回剩余准备金。费用准备只够两条出金腿；更频繁地分期归集会留下小于一次网络费、无法转出的服务余额，订单因此不能归档 |
 | 监控         | `commerce_stats`                                                                            | 任何人（query）        | 主体、热/冷订单、出金腿、待归集订单、认证叶、稳定内存页和 cycles；与 `get_commerce_limits` 对照，接近上限 60% 时扩容或加实例 |
@@ -379,7 +379,7 @@ commerce 没有定时器，下列任务都需要外部调用：
 | 归档历史     | `sweep_checkout_history`                                                                    | 任何人                 | 定期调用，直到返回 0                                                                             |
 | 刷新目录证书 | `refresh_catalog`                                                                           | 任何人                 | 新目录生效后调用一次                                                                             |
 
-价格发布是现金结账的单点依赖：价格过期后所有报价和开单返回 `PolicyStale`，价格权威必须有失败告警和备用 principal（governance 也可以发布）。价格偏离 1 USD 超过 1% 时仍可发布，但新报价和使用旧报价的开单都会被拒绝，可用于脱锚保护。商户 owner 可以用 `checkout_operations`、`checkout_transfers` 分页查看自己的全部订单和出金腿；两者按订单 ID 排序，找待归集订单请用按服务终点排序的 `collectable_checkouts`。
+价格发布是现金结账的单点依赖：价格过期后所有报价和开单返回 `PolicyStale`。长期价格由 controller/governance 手动发布即可，不要求后台任务；如使用自动价格权威，必须有失败告警和备用 principal。脱锚或异常时用资产暂停（见“治理变更”），不要让后台 principal 成为唯一的改价者。价格偏离 1 USD 超过 1% 时仍可发布，但新报价和使用旧报价的开单都会被拒绝，可用于脱锚保护。商户 owner 可以用 `checkout_operations`、`checkout_transfers` 分页查看自己的全部订单和出金腿；两者按订单 ID 排序，找待归集订单请用按服务终点排序的 `collectable_checkouts`。
 
 派发出金的 principal 受 `calls_per_caller` 限制（初始 40 次/分钟，约 57,600 条腿/天）；年订单超过数百万时提高该值或使用多个派发 principal。
 
@@ -390,7 +390,17 @@ commerce 没有定时器，下列任务都需要外部调用：
 - **目录**：用 `schedule_policy` 提前至少 30 天安排，生效时间到后自动使用。
 - **条款**：登记后，该版本的条款文件不能再改；文件与 dmsg_frontend 的 `src/lib/legal/terms.json` 记录的摘要不一致时，前端构建会失败。修改条款时新增 `v<N+1>.txt`，运行 `node scripts/terms-digest.mjs --write` 更新清单，先部署前端，再把产品注册的 `terms_hash` 更新为新摘要。新条款随即用于报价，不需要与目录同步；下一份目录的 `terms_digest` 和 `terms_version` 随后跟进。
 - **注册**：每次更新须 `config_version + 1`。应用的 `app_id`、`environment`、`authentication_receiver`、`action_authority`，以及产品的 `product_id`、`environment`、`quote_authority`、`adapter`、`subject_schema`、`subject_size` 不可修改，`beneficiary_authorities` 只能在末尾追加。有 `SignAction` 能力的应用必须提供 `action_schema`（应用自己命令的 schema），可在新版本中修改；版本要求精确匹配，按旧版本准备的在途动作随之失效。现金报价包含完整的产品注册，注册变化后尚未开单的报价不能再开单，需要重新报价。商户账户在报价时冻结，修改只影响新订单。
-- **暂停**：`set_admission_pause(true)` 只停止新的现金报价和开单；对账、退款、出金、PANDA 和权益刷新照常进行。在注册中把应用或产品的 `paused` 设为 true，会同时停止现金和 PANDA 的新报价与批准。
+- **暂停**：`set_admission_pause(true)` 只停止新的现金报价和开单；对账、退款、出金、PANDA 和权益刷新照常进行。在注册中把应用或产品的 `paused` 设为 true，会同时停止现金和 PANDA 的新报价与批准。资产级暂停用 `register_settlement_asset` 把 `enabled` 设为 `false`：价格字段和 `policy_version` 在更新时被忽略，沿用最近发布的价格，已有订单继续；恢复时设为 `true`，价格已过期则先重发价格。
+
+  ```sh
+  icp canister call -e ic dmsg_commerce register_settlement_asset '(record {
+    version = 2 : nat16; policy_version = 1 : nat64; environment = variant { Production };
+    ledger = principal "xevnm-gaaaa-aaaar-qafnq-cai"; asset = variant { CkUsdc }; decimals = 6 : nat16;
+    price_usd_micros = 0 : nat; price_observed_at_ms = 0 : nat64; price_valid_until_ms = 0 : nat64;
+    network_fee_atomic = 10_000 : nat; max_network_fee_atomic = 100_000 : nat; enabled = false })'
+  ```
+
+  先跑 `validate_register_settlement_asset`（参数相同）可预检；`network_fee_atomic`/`max_network_fee_atomic` 用当前值。
 - **新增 user home**：依次调用 `admin_add_user_home`，把该 home 追加到 dMsg 产品登记的 `beneficiary_authorities`（`config_version + 1`），并在 membership 的 `configure_panda_service` 里追加 `{ user_home; commerce_canister }`。该 home 的账户随后即可购买。
 - **准入上限**：`admin_set_limits` 一次替换全部上限，`validate_admin_set_limits` 会显示当前值；`max_hot_orders` 不能大于 `max_orders`，`calls_per_caller` 不能大于 `calls_per_minute`。热订单约等于最近 13 个月的订单数（归集完成并过 30 天才归档），`max_hot_orders` 按年订单量的 1.2 倍预留。
 - **资产**：已登记资产的更新只替换非价格条款（fee、fee 上限、启用状态）：commerce 沿用最新发布的价格，并在执行时分配下一个 `policy_version`，提案中的价格字段和版本不生效，价格发布不会使提案过期。账本 fee 变化后，出金遇到 `BadFee` 会记录账本给出的 fee，新报价随之停止，直到 governance 登记新的 `network_fee_atomic` 并重新验证；已被拒绝的出金腿由收款人修订后重发。
