@@ -856,9 +856,20 @@ impl Client {
     /// of the same terms when it is still valid and signing a fresh one after
     /// it expired.
     ///
+    /// An unknown reply may mean the durable approval or Apply already
+    /// succeeded; both are idempotent, so one immediate retry settles the
+    /// common transport loss before the approval is left for reconciliation.
+    ///
     /// # Errors
     /// Returns `Error::Forbidden` for a cash order.
     pub(crate) async fn plan_advance(&mut self, id: &str) -> Result<Json> {
+        match self.plan_advance_once(id).await {
+            Err(Error::ExecutionUnknown) => self.plan_advance_once(id).await,
+            result => result,
+        }
+    }
+
+    async fn plan_advance_once(&mut self, id: &str) -> Result<Json> {
         let mut job = self.checkout(id)?;
         let Terms::Panda(_) = &job.terms else {
             return Err(Error::Forbidden);
