@@ -966,13 +966,14 @@ fn queued<'a>(live: &[&'a MembershipContract], now: u64) -> Option<&'a Membershi
 /// subscription, a renewal or a switch from the end of the current term
 /// (within [`RENEWAL_WINDOW_MS`] of it), an upgrade for the rest of a cash
 /// term, or why none is possible yet. A term that was refunded early ends
-/// with its lease; a new subscription starts at once.
+/// with its lease; a new subscription starts at once. Each offer names the
+/// term end (`ends_at_ms`) that a PANDA neuron's lock must cover.
 fn offers(
     catalog: &Catalog,
     current: Option<&MembershipContract>,
     next: Option<&MembershipContract>,
     now: u64,
-) -> Vec<Json> {
+) -> Result<Vec<Json>> {
     let price = |plan: &PlanId| {
         catalog
             .plans
@@ -985,33 +986,51 @@ fn offers(
         .plans
         .iter()
         .filter(|p| p.price_cents > 0)
-        .map(|p| {
+        .map(|p| -> Result<Json> {
             let plan = format!("{:?}", p.plan_id);
             let sku = plan.to_ascii_lowercase();
-            let offer = |action: &str, sku: String, starts: u64, methods: &[&str]| {
-                json!({
+            let offer = |action: &str,
+                         sku: String,
+                         starts: u64,
+                         ends: u64,
+                         methods: &[&str]|
+             -> Result<Json> {
+                Ok(json!({
                     "plan": plan,
                     "action": action,
                     "sku": sku,
                     "starts_at_ms": starts,
+                    "ends_at_ms": ends,
                     "methods": methods,
-                })
+                }))
             };
-            let wait = |reason: &str, from: Option<u64>| {
-                json!({
+            let wait = |reason: &str, from: Option<u64>| -> Result<Json> {
+                Ok(json!({
                     "plan": plan,
                     "action": "unavailable",
                     "reason": reason,
                     "available_at_ms": from,
-                })
+                }))
             };
             let Some(c) = current else {
-                return offer("subscribe", sku, now, &["Cash", "Panda"]);
+                return offer(
+                    "subscribe",
+                    sku,
+                    now,
+                    billing::next_year(now)?,
+                    &["Cash", "Panda"],
+                );
             };
             let same = c.plan.plan_id == p.plan_id;
             let higher = price(&c.plan.plan_id).is_some_and(|cents| p.price_cents > cents);
             if higher && matches!(c.source, ContractSource::Cash { .. }) {
-                return offer("upgrade", format!("upgrade-{sku}"), now, &["Cash"]);
+                return offer(
+                    "upgrade",
+                    format!("upgrade-{sku}"),
+                    now,
+                    c.expires_at_ms,
+                    &["Cash"],
+                );
             }
             if next.is_some() {
                 return wait("RENEWAL_QUEUED", None);
@@ -1027,7 +1046,13 @@ fn offers(
                 return wait(reason, Some(from));
             }
             let action = if same { "renew" } else { "switch" };
-            offer(action, sku, c.expires_at_ms, &["Cash", "Panda"])
+            offer(
+                action,
+                sku,
+                c.expires_at_ms,
+                billing::next_year(c.expires_at_ms)?,
+                &["Cash", "Panda"],
+            )
         })
         .collect()
 }
@@ -1115,7 +1140,7 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
     let next = queued(&live, now);
     status["current"] = current.map_or(Json::Null, contract_view);
     status["next"] = next.map_or(Json::Null, contract_view);
-    status["offers"] = offers(&catalog, current, next, now).into();
+    status["offers"] = offers(&catalog, current, next, now)?.into();
     // Storage packs extend a paid membership that qualifies now, to its end.
     status["storage_available"] = (current.is_some_and(|c| c.terminated_at_ms.is_none())
         && status["eligibility"] == "Eligible")

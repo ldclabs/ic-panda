@@ -8,9 +8,10 @@
   /**
    * An identifier as a neutral chip: shortened unless `full`, the whole of
    * it in a tooltip, copied on a click. It reads left to right in every
-   * language.
+   * language. `wrap` breaks a full identifier over lines instead of
+   * truncating it.
    */
-  let { id, full = false, testid, class: className }: { id: string; full?: boolean; testid?: string; class?: string } = $props()
+  let { id, full = false, wrap = false, testid, class: className }: { id: string; full?: boolean; wrap?: boolean; testid?: string; class?: string } = $props()
 </script>
 
 <Tooltip content={`${id} · ${t('copy')}`}>
@@ -24,7 +25,7 @@
       onclick={() => copyText(id)}
       data-testid={testid}
     >
-      <bdi dir="ltr" class="truncate">{full ? id : shortId(id)}</bdi>
+      <bdi dir="ltr" class={cn('min-w-0', wrap ? 'break-all' : 'truncate')}>{full ? id : shortId(id)}</bdi>
     </button>
   {/snippet}
 </Tooltip>

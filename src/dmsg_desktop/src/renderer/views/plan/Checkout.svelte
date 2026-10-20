@@ -15,7 +15,6 @@
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { bridge, call, errorText, size, units, when } from '../../rpc'
-  import { DAY } from './plan'
 
   /**
    * Paying for an offer: a plan card's subscription, renewal, switch or
@@ -37,6 +36,9 @@
   /** What this plan needs staked at the current rate; none without a rate. */
   const required = $derived<string | null>(panda?.plans?.find((p: any) => p.plan_id === offer?.plan)?.required_stake_e8s ?? null)
   const enough = (n: any) => required != null && BigInt(n.stake_e8s) >= BigInt(required)
+  /** The term end the neuron's lock must cover; the quote fixes it exactly. */
+  const lockUntil = $derived<number | null>(offer?.ends_at_ms ?? null)
+  const covered = (n: any) => lockUntil == null || Number(n.unlock_at_ms) >= Number(lockUntil)
 
   // Each offer opens on cash; the assets are read once.
   $effect(() => {
@@ -81,6 +83,20 @@
     try {
       const cash = method === 'Cash'
       const job: any = await call('plan/quote', { sku: offer.sku, method: cash ? 'cash' : 'panda', selection: cash ? ledger : neuron })
+      if (!cash) {
+        // The quote fixes the term end and stake; do not approve a neuron the claim will reject.
+        const chosen = panda?.neurons?.find((n: any) => n.id === neuron)
+        const stake = job?.terms?.required_stake_e8s
+        const end = Number(job?.expires_at_ms ?? 0)
+        if (chosen && stake != null && BigInt(chosen.stake_e8s) < BigInt(stake)) {
+          error = t('stakeTooLow')
+          return
+        }
+        if (chosen && end > 0 && Number(chosen.unlock_at_ms) < end) {
+          error = t('unlockTooEarly')
+          return
+        }
+      }
       const request: any = await call('plan/checkout', { id: job.id })
       await bridge(() => window.dmsg.openApproval(request.id))
       offer = null
@@ -128,12 +144,14 @@
           {#if panda.paused}<Notice tone="warn" icon="warning">{t('pandaPaused')}</Notice>{/if}
           <Notice tone="info" icon="info">
             <p>{t('pandaHotkeyHint')}</p>
-            <p class="mt-1"><Id id={panda.payer} full testid="checkout-payer" /></p>
+            <p class="mt-1"><Id id={panda.payer} full wrap testid="checkout-payer" /></p>
             {#snippet action()}<button class={buttonClass('secondary', 'xs')} onclick={() => copyText(panda.payer)}><Icon name="copy" />{t('copy')}</button>{/snippet}
           </Notice>
           <dl class="divide-y divide-line">
             <Fact label={t('stake')} testid="checkout-stake">{required != null ? `${units(required, 8)} PANDA` : t('pandaNoRate')}</Fact>
-            <Fact label={t('coolingPeriod')}>{t('daysCount', { n: Math.max(1, Math.ceil(panda.cooling_ms / DAY)) })}</Fact>
+            {#if lockUntil != null}
+              <Fact label={t('lockRequirement')} testid="checkout-lock">{t('lockNotBefore', { time: when(lockUntil) })}</Fact>
+            {/if}
           </dl>
           <p class="text-[12px] text-muted">{t('pandaTermsHint')}</p>
           {#if panda.neurons_error}
@@ -145,16 +163,14 @@
               <ul class="divide-y divide-line rounded-xl border border-line">
                 {#each panda.neurons as n (n.id)}
                   <li class={cn('px-3.5 py-2.5', neuron === n.id && 'bg-pale/60')}>
-                    <Radio value={n.id} disabled={n.dissolving || !enough(n)} testid="checkout-neuron">
+                    <Radio value={n.id} disabled={!enough(n) || !covered(n)} testid="checkout-neuron">
                       <span class="flex flex-wrap items-center gap-1.5 text-[12.5px]">
                         <span class="font-mono">{n.id.slice(0, 12)}…</span>
                         <span class="tabular-nums">{units(n.stake_e8s, 8)} PANDA</span>
-                        {#if n.dissolving}
-                          <Pill tone="warn">{t('dissolving')}</Pill>
-                        {:else}
-                          <span class="text-faint">{t('lockedUntil', { time: when(n.unlock_at_ms) })}</span>
-                        {/if}
+                        <span class="text-faint">{t('lockedUntil', { time: when(n.unlock_at_ms) })}</span>
+                        {#if n.dissolving}<Pill tone="warn">{t('dissolving')}</Pill>{/if}
                         {#if required != null && !enough(n)}<Pill tone="warn">{t('stakeTooLow')}</Pill>{/if}
+                        {#if !covered(n)}<Pill tone="warn">{t('unlockTooEarly')}</Pill>{/if}
                       </span>
                     </Radio>
                   </li>

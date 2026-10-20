@@ -264,6 +264,7 @@ const LIMITS = {
 const pack = 'e7'.repeat(32)
 /** `plan/status`, as the daemon gives it: the plan in force, its term and what each paid plan offers now. */
 function planStatus() {
+  const now = Date.now()
   if (membership === 'free') {
     return {
       plan: 'Free',
@@ -273,7 +274,7 @@ function planStatus() {
       addons: [],
       current: null,
       next: null,
-      offers: ['Plus', 'Pro', 'Max'].map((plan) => ({ plan, action: 'subscribe', sku: plan.toLowerCase(), starts_at_ms: Date.now(), methods: ['Cash', 'Panda'] })),
+      offers: ['Plus', 'Pro', 'Max'].map((plan) => ({ plan, action: 'subscribe', sku: plan.toLowerCase(), starts_at_ms: now, ends_at_ms: now + 365 * DAY, methods: ['Cash', 'Panda'] })),
       storage_available: false,
       renew_from_ms: null,
       refund: null
@@ -286,16 +287,16 @@ function planStatus() {
     eligibility: 'Eligible',
     limits: LIMITS.Plus,
     addons: [],
-    current: { contract, plan: 'Plus', method: 'Cash', source: 'Cash', term_starts_at_ms: Date.now() - DAY, starts_at_ms: Date.now() - DAY, expires_at_ms: termEnds, terminated_at_ms: null, ends_at_ms: termEnds },
+    current: { contract, plan: 'Plus', method: 'Cash', source: 'Cash', term_starts_at_ms: now - DAY, starts_at_ms: now - DAY, expires_at_ms: termEnds, terminated_at_ms: null, ends_at_ms: termEnds },
     next: null,
     offers: [
-      { plan: 'Plus', action: 'renew', sku: 'plus', starts_at_ms: termEnds, methods: ['Cash', 'Panda'] },
-      { plan: 'Pro', action: 'upgrade', sku: 'upgrade-pro', starts_at_ms: Date.now(), methods: ['Cash'] },
-      { plan: 'Max', action: 'upgrade', sku: 'upgrade-max', starts_at_ms: Date.now(), methods: ['Cash'] }
+      { plan: 'Plus', action: 'renew', sku: 'plus', starts_at_ms: termEnds, ends_at_ms: termEnds + 365 * DAY, methods: ['Cash', 'Panda'] },
+      { plan: 'Pro', action: 'upgrade', sku: 'upgrade-pro', starts_at_ms: now, ends_at_ms: termEnds, methods: ['Cash'] },
+      { plan: 'Max', action: 'upgrade', sku: 'upgrade-max', starts_at_ms: now, ends_at_ms: termEnds, methods: ['Cash'] }
     ],
     storage_available: true,
     renew_from_ms: termEnds - 30 * DAY,
-    refund: { order: '88'.repeat(32), contract, until_ms: Date.now() + 6 * DAY }
+    refund: { order: '88'.repeat(32), contract, until_ms: now + 6 * DAY }
   }
 }
 /** The service's view of an order, once it has one. */
@@ -1007,7 +1008,8 @@ const methods = {
     payer,
     neurons: [
       { id: '6b'.repeat(32), stake_e8s: '2500000000000', dissolving: false, unlock_at_ms: Date.now() + 400 * DAY },
-      { id: '6c'.repeat(32), stake_e8s: '100000000000', dissolving: true, unlock_at_ms: Date.now() + 10 * DAY }
+      { id: '6c'.repeat(32), stake_e8s: '2500000000000', dissolving: true, unlock_at_ms: Date.now() + 400 * DAY },
+      { id: '6d'.repeat(32), stake_e8s: '2500000000000', dissolving: false, unlock_at_ms: Date.now() + 10 * DAY }
     ]
   }),
   'plan/refund_quote': (p) => ({ order: p.id, refund: '450000000', received: '449990000', fee: '10000', asset: 'Icp', decimals: 8, stops_at_ms: Date.now(), until_ms: Date.now() + 6 * DAY }),
@@ -1574,12 +1576,25 @@ try {
   await main.click('[data-testid="plan-plus-renew"]')
   await main.click('[data-testid="checkout-method"] [data-value="Panda"]')
   await main.waitForSelector('[data-testid="checkout-panda"]')
-  assert.equal(await main.locator('[data-testid="checkout-neuron"]').count(), 2)
-  assert.equal(await main.locator('[data-testid="checkout-neuron"]').nth(1).isDisabled(), true)
-  await main.locator('[data-testid="checkout-neuron"]').first().click()
+  await main.waitForSelector('[data-testid="checkout-lock"]')
+  assert.match(await main.textContent('[data-testid="checkout-lock"]'), /No earlier than/)
+  // A long payer principal wraps inside the dialog instead of widening its body.
+  assert.equal(
+    await main.evaluate(() => {
+      const body = document.querySelector('[data-testid="checkout"] .overflow-y-auto')
+      return body ? body.scrollWidth > body.clientWidth + 1 : true
+    }),
+    false
+  )
+  assert.equal(await main.locator('[data-testid="checkout-neuron"]').count(), 3)
+  assert.equal(await main.locator('[data-testid="checkout-neuron"]').nth(1).isDisabled(), false)
+  assert.match(await main.locator('[data-testid="checkout-neuron"]').nth(1).textContent(), /Dissolving/)
+  assert.equal(await main.locator('[data-testid="checkout-neuron"]').nth(2).isDisabled(), true)
+  assert.match(await main.locator('[data-testid="checkout-neuron"]').nth(2).textContent(), /Unlocks before the term ends/)
+  await main.locator('[data-testid="checkout-neuron"]').nth(1).click()
   await main.click('[data-testid="checkout-pay"]')
   await waitFor(() => latest('plan/quote').params.method === 'panda')
-  assert.deepEqual(latest('plan/quote').params, { sku: 'plus', method: 'panda', selection: '6b'.repeat(32) })
+  assert.deepEqual(latest('plan/quote').params, { sku: 'plus', method: 'panda', selection: '6c'.repeat(32) })
   await approval.waitForSelector('[data-testid="approval-note"] >> text=/current term ends.*neuron must keep/')
   // An upgrade is paid in cash for the rest of the term, and so is a storage pack.
   await main.click('[data-testid="plan-pro-upgrade"]')
