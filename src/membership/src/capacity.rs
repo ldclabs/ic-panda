@@ -97,6 +97,7 @@ fn capacity_image() {
         paused: false,
         application_hour: 0,
         applications: 0,
+        claim_schema: store::CLAIM_SCHEMA,
     });
     for i in 0..DUE {
         let r = request(sns, u64::MAX - i);

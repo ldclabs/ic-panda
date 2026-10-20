@@ -6,6 +6,7 @@ mod claims;
 #[cfg(test)]
 #[path = "../../dmsg_types/tests/support/commerce.rs"]
 mod fixture;
+mod migration;
 mod rate;
 mod sns;
 mod store;

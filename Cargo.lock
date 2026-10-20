@@ -5644,6 +5644,7 @@ name = "membership"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "cbor2",
  "dmsg_protocol",
  "dmsg_runtime",
  "dmsg_types",

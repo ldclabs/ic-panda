@@ -35,17 +35,24 @@ fn init(args: MembershipInit) {
         paused: false,
         application_hour: 0,
         applications: 0,
+        claim_schema: store::CLAIM_SCHEMA,
     });
     store::publish();
 }
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
+    let mut c = store::config();
     assert_eq!(
-        store::config().schema,
+        c.schema,
         store::STABLE_SCHEMA,
         "explicit stable-state migration required"
     );
+    if c.claim_schema < store::CLAIM_SCHEMA {
+        crate::migration::claims();
+        c.claim_schema = store::CLAIM_SCHEMA;
+        store::save_config(&c);
+    }
     store::publish();
     ic_cdk::println!(
         "membership_upgrade live_claims={} instructions={}",
