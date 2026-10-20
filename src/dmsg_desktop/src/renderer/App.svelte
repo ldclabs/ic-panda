@@ -8,7 +8,7 @@
   import Settings from './views/Settings.svelte'
   import Channels from './views/Channels.svelte'
   import Inbox from './views/Inbox.svelte'
-  import Account from './views/Account.svelte'
+  import Plan from './views/Plan.svelte'
   import Agents from './views/Agents.svelte'
   import Wallet from './views/Wallet.svelte'
   import Toaster from './components/Toaster.svelte'
@@ -209,7 +209,7 @@
           {:else if view === views.inbox}
             <Inbox {status} {mod} />
           {:else if view === views.plan}
-            <Account {status} />
+            <Plan {status} {route} {go} />
           {:else if view === views.wallet}
             <Wallet {status} />
           {:else if view === views.agents}

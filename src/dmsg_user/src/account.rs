@@ -2,7 +2,11 @@ use crate::state::*;
 use candid::Principal;
 use dmsg_protocol::*;
 use dmsg_runtime::*;
-use dmsg_types::{user::*, *};
+use dmsg_types::{
+    handle::{HANDLE_AUTHORIZATION_MS, HandleAction, TRANSFER_AUTHORIZATION_MS},
+    user::*,
+    *,
+};
 use std::collections::BTreeMap;
 
 pub(crate) fn create(
@@ -462,19 +466,28 @@ pub(crate) fn apply(
                     && normalize_handle(&intent.handle)? == intent.handle,
                 Error::IntegrityFailed,
             )?;
-            expiry(now, m.approval.expires_at, MINUTE)?;
+            expiry(now, m.approval.expires_at, HANDLE_AUTHORIZATION_MS)?;
             nonzero(intent.op_id.as_slice())?;
+            // Either side of a transfer may authorize first and hand the token
+            // over, so its authorization outlives the approval; authorizing
+            // the same intent again renews it.
+            let expires_at = match intent.action {
+                HandleAction::Transfer | HandleAction::AcceptTransfer => {
+                    now.saturating_add(TRANSFER_AUTHORIZATION_MS)
+                }
+                HandleAction::Register | HandleAction::ClaimLegacy => m.approval.expires_at,
+            };
             next.handle_authorizations.retain(|_, a| a.expires_at > now);
             if let Some(a) = next.handle_authorizations.get_mut(&intent.op_id) {
                 ensure(a.intent == *intent, Error::IdempotencyConflict)?;
-                a.expires_at = m.approval.expires_at;
+                a.expires_at = expires_at;
             } else {
                 ensure(next.handle_authorizations.len() < 32, Error::QuotaExceeded)?;
                 next.handle_authorizations.insert(
                     intent.op_id,
                     HandleAuthorization {
                         intent: intent.clone(),
-                        expires_at: m.approval.expires_at,
+                        expires_at,
                     },
                 );
             }

@@ -275,7 +275,7 @@ fn offer(
             let plan = model::plan(&catalog, &id)?;
             let start = if let Some(current) = current {
                 ensure(
-                    at.saturating_add(30 * DAY) >= current.offer.expires_at_ms,
+                    at.saturating_add(RENEWAL_WINDOW_MS) >= current.offer.expires_at_ms,
                     Error::Expired,
                 )?;
                 current.offer.expires_at_ms
@@ -682,10 +682,32 @@ fn cancel_cash_contract(
     let mut s = store::load(&decision.offer.beneficiary)?;
     let mut b = book(&decision.offer, &s);
     let at = now();
-    let result = b.cancel_cash(order_id, contract_id, decision_hash, at)?;
+    // A first cash purchase may be refunded early: its rights stop once the
+    // resource lease it already supports runs out.
+    let refund_from = model::refund_window(&s, at)
+        .filter(|w| w.contract_id == contract_id)
+        .map(|_| {
+            s.view
+                .as_ref()
+                .filter(|v| v.lease_source_contract_ids.contains(&contract_id))
+                .map_or(at, |v| v.valid_until_ms.max(at))
+        });
+    let result = b.cancel_cash(order_id, contract_id, decision_hash, at, refund_from)?;
     if result.cancelled {
-        s.contracts.retain(|c| c.contract_id != contract_id);
-        s.addons.retain(|c| c.contract_id != contract_id);
+        match refund_from {
+            Some(_) => {
+                let c = s
+                    .contracts
+                    .iter_mut()
+                    .find(|c| c.contract_id == contract_id)
+                    .ok_or(Error::IntegrityFailed)?;
+                c.terminated_at_ms = Some(result.cancelled_at_ms);
+            }
+            None => {
+                s.contracts.retain(|c| c.contract_id != contract_id);
+                s.addons.retain(|c| c.contract_id != contract_id);
+            }
+        }
         s.business_revision = b.business_revision;
         model::project(
             home,

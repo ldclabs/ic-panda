@@ -32,7 +32,7 @@ import { isLocale, resolveLocale, type Locale } from '../shared/locales'
 import { single } from '../shared/single'
 import { Daemon, reasonOf } from './daemon'
 import { DaemonError } from './error'
-import { externalAllowed, legacyAllowed, parseLink, windowParams } from './policy'
+import { externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
 import { textFor } from './text'
 import { Updates } from './updater'
@@ -232,6 +232,7 @@ async function openLink(url: string) {
   if (!link) return
   if (link.route === 'browsers') return showMain('/settings/browsers')
   if (link.route === 'join') return showMain(`/channels?join=${link.invitation}`)
+  if (link.route === 'accept') return showMain(`/plan?accept=${link.token}`)
   // The request ID in a link is only a hint: find the daemon's request for
   // it, by the relay request a page links or by the approval's own ID.
   try {
@@ -533,6 +534,12 @@ handle('dmsg:avatar', 'main', async (_event, remove: boolean) => {
   const path = await pickFile({ title: text.pickAvatar, filters: [{ name: text.imageFile, extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
   return path && daemon.call('profile/avatar', { path })
 })
+/** Who pays: the key of a PEM file the person picks, or with `login` the login again; null when cancelled. */
+handle('dmsg:payer-pem', 'main', async (_event, login: boolean) => {
+  if (login === true) return daemon.call('payer/use', {})
+  const path = await pickFile({ title: text.pickPayerPem, filters: [{ name: text.pemFile, extensions: ['pem'] }] })
+  return path && daemon.call('payer/use', { pem: path })
+})
 /** An application action its product prepared, as the canonical CBOR in a file the person picks. */
 handle('dmsg:attest-action', 'main', async () => {
   const path = await pickFile({ title: text.pickAction })
@@ -553,7 +560,7 @@ handle('dmsg:check-file', 'approval', async (_event, id: string) => {
   return daemon.call('approval/check_file', { id: String(id), path: picked.filePaths[0] })
 })
 /** The views the approval window sends the person to: a login, the signatures, the account's security, the plan. */
-const MAIN_ROUTES = ['/login', '/approvals', '/settings/session', '/settings/security', '/settings/devices', '/account']
+const MAIN_ROUTES = ['/login', '/approvals', '/settings/session', '/settings/security', '/settings/devices', '/plan']
 handle('dmsg:show-main', 'approval', (_event, route: string) => {
   if (!MAIN_ROUTES.includes(String(route))) throw new DaemonError('INVALID_INPUT', 'Not a view')
   showMain(String(route))
@@ -821,8 +828,46 @@ function notifyHint(data: unknown) {
   note.show()
 }
 
+/** Which reminder each term showed last, in days before its end, so each shows once. */
+const remindersFile = () => join(app.getPath('userData'), 'reminders.json')
+/** When the plan was last read for a reminder: at most once an hour. */
+let remindedAt = 0
+
+/**
+ * A term that ends without a renewal queued: 30, 7 and 1 days before its
+ * end, once each, read while unlocked. Clicking opens the plan; paying is
+ * the approval window's.
+ */
+const remindPlan = single(async () => {
+  if (Date.now() - remindedAt < 3_600_000 || !Notification.isSupported()) return
+  type Term = { contract: string; plan: string; ends_at_ms: number; terminated_at_ms?: number | null }
+  let status: { current?: Term | null; next?: unknown }
+  try {
+    status = (await daemon.call('plan/status', { refresh: false })) as typeof status
+  } catch {
+    return
+  }
+  remindedAt = Date.now()
+  const current = status.current
+  if (!current || status.next || current.terminated_at_ms != null) return
+  let shown: Record<string, number> = {}
+  try {
+    shown = JSON.parse(await readFile(remindersFile(), 'utf8')) as Record<string, number>
+  } catch {
+    /* none shown yet */
+  }
+  const left = current.ends_at_ms - Date.now()
+  const due = reminderDue(left, shown[current.contract])
+  if (due === null) return
+  await writeFile(remindersFile(), JSON.stringify({ [current.contract]: due })).catch(() => undefined)
+  const note = new Notification({ title: 'dMsg', body: text.planEnds(Math.max(1, Math.ceil(left / 86_400_000)), current.plan) })
+  note.on('click', () => showMain('/plan'))
+  note.show()
+})
+
 daemon.on('event', (event: DaemonEvent) => {
   broadcast('dmsg:event', event)
+  if (event.type === 'session/changed') void remindPlan()
   if (event.type === 'connect/hint') hinted = true
   if (['approval/changed', 'session/changed', 'connect/hint', 'resync', 'channel/changed', 'channel/read'].includes(event.type)) void refreshWaiting()
   if (event.type === 'channel/changed') notifyChannel(event.data)
@@ -832,8 +877,10 @@ daemon.on('event', (event: DaemonEvent) => {
 // The tray follows the connection: the daemon's state once connected, else connecting again.
 daemon.on('state', () => {
   broadcast('dmsg:event', { type: 'connection/changed' })
-  if (daemon.connected) void refreshWaiting()
-  else updateTray('connecting')
+  if (daemon.connected) {
+    void refreshWaiting()
+    void remindPlan()
+  } else updateTray('connecting')
 })
 
 app.on('second-instance', (_event, argv) => {
@@ -910,6 +957,8 @@ app.whenReady().then(async () => {
   }
   updates.start()
   if (installed) await daemon.connect()
+  // A running app checks again for a term about to end every six hours.
+  setInterval(() => void remindPlan(), 6 * 3_600_000)
   const link = pendingLink ?? process.argv.find((a) => a.startsWith('dmsg://'))
   if (link) void openLink(link)
 })

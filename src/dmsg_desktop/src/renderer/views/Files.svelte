@@ -17,7 +17,7 @@
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
   import { copyText } from '../components/clipboard'
-  import { bridge, call, closed, code, errorText, onChange, single, size } from '../rpc'
+  import { bridge, call, closed, code, errorText, onChange, planAction, single, size } from '../rpc'
   import { added, backups, dismiss, failed, forget, jobs, picked, progress, type Job } from './files/adding.svelte'
   import Cloud from './files/Cloud.svelte'
   import Detail from './files/Detail.svelte'
@@ -145,7 +145,7 @@
 
   /** A failure for people; a name taken in the folder says so. */
   const failure = (e: unknown) => (code(e) === 'IDEMPOTENCY_CONFLICT' ? t('nameTaken') : errorText(e))
-  const fail = (e: unknown) => toast(() => failure(e))
+  const fail = (e: unknown) => toast(() => failure(e), planAction(e))
 
   async function attempt(work: () => Promise<unknown>, done?: string) {
     busy = true

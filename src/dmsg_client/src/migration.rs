@@ -437,7 +437,12 @@ impl Client {
             "stage": if checked.partial { "partial" } else { "content_verified" },
             "gaps": checked.gaps,
             "checks": checked.checks.len(),
-            "profile": { "name": summary.name, "bio": summary.bio, "image": summary.image },
+            "profile": {
+                "name": summary.name,
+                "username": summary.username,
+                "bio": summary.bio,
+                "image": summary.image,
+            },
             "files": summary.files,
             "resources": summary.resources,
             "entitlements": summary.entitlements,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte'
+  import { onMount, tick, untrack } from 'svelte'
   import { locale, t, stateLabel, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single, size, units, when } from '../rpc'
   import {
@@ -20,6 +20,7 @@
   import Icon from '../components/Icon.svelte'
   import Select from '../components/Select.svelte'
   import { buttonClass, cn } from '../components/ui'
+  import { callerLabels, nameActionLabels, skuOf } from './plan/plan'
 
   /**
    * The approval window, laid out as a ticket: who asks and the way the
@@ -248,6 +249,37 @@
   /** Terms of a checkout: a web checkout's quote, or this device's own. */
   const terms = $derived(request?.type === 'connect' ? d.checkout : request?.type === 'checkout' ? d : null)
   const unquoted = $derived(request?.type === 'connect' && d.method === 'checkout' && !d.checkout)
+
+  /** The catalog names a storage pack's size; read once a checkout shows. */
+  let catalog = $state<any>(null)
+  $effect(() => {
+    if (request?.type === 'checkout' && !catalog)
+      untrack(() => {
+        call('plan/catalog').then(
+          (read) => (catalog = read),
+          () => undefined
+        )
+      })
+  })
+
+  /** What a checkout buys, for people. */
+  function bought(view: any) {
+    const sku = skuOf(String(view.sku ?? ''), catalog)
+    if (sku.kind === 'upgrade') return t('upgradeTo', { plan: sku.plan ?? '' })
+    if (sku.kind === 'storage') return sku.bytes != null ? t('storagePackOf', { size: size(sku.bytes) }) : t('storagePack')
+    return sku.plan ?? String(view.sku ?? '')
+  }
+
+  /** What to know before paying: when a renewal starts, what an upgrade or a pack covers, what a stake commits. */
+  function checkoutNotes(view: any): string {
+    const sku = skuOf(String(view.sku ?? ''), catalog)
+    const notes: string[] = []
+    if (sku.kind === 'upgrade') notes.push(t('approvalUpgradeNote', { time: when(view.expires_at_ms) }))
+    else if (sku.kind === 'storage') notes.push(t('approvalStorageNote', { time: when(view.expires_at_ms) }))
+    else if (view.starts_at_ms > (view.created_at_ms ?? 0) + 60_000) notes.push(t('approvalRenewalNote', { time: when(view.starts_at_ms) }))
+    if (view.terms?.method === 'Panda') notes.push(t('approvalPandaNote', { time: when(view.terms.committed_until_ms) }))
+    return notes.join(' ')
+  }
   const waiting = $derived(request?.state === 'awaiting_user')
   const left = $derived(request?.expires_at ? Math.max(0, request.expires_at - now) : null)
   const expired = $derived(left === 0)
@@ -311,7 +343,8 @@
       case 'checkout':
         return [pay, final]
       case 'handle':
-        return d.total ? [pay, final] : [[t('afterName'), false]]
+        if (d.total) return [pay, final]
+        return d.action === 'Transfer' ? [[t('afterName'), false], [t('afterNoUndoName'), true]] : [[t('afterName'), false]]
       case 'letter':
         return [pay, [t('afterLetter'), false], final]
       case 'delegation':
@@ -359,7 +392,7 @@
     FORMAL_APPROVE: { label: 'enableFormalHere', run: enableFormal },
     FROZEN: { label: 'openSecurity', run: () => showMain('/settings/security') },
     PURPOSE: { label: 'openSecurity', run: () => showMain('/settings/security') },
-    QUOTA: { label: 'openPlan', run: () => showMain('/account') }
+    QUOTA: { label: 'openPlan', run: () => showMain('/plan') }
   }
 
   const clock = (ms: number) => {
@@ -371,6 +404,24 @@
 {#snippet row(label: string, value: string, options: { mono?: boolean; multiline?: boolean; testid?: string } = {})}
   <dt class="text-faint">{label}</dt>
   <dd class={cn('min-w-0 [overflow-wrap:anywhere] text-ink-2', options.mono && 'font-mono text-xs leading-5', options.multiline && 'whitespace-pre-wrap')} data-testid={options.testid}>{value}</dd>
+{/snippet}
+
+{#snippet nameRows()}
+  {@render row(t('names'), `@${d.name ?? ''}`)}
+  {@render row(t('nameAction'), nameActionLabels[d.action] ? t(nameActionLabels[d.action]) : String(d.action ?? ''), { testid: 'approval-name-action' })}
+  {@render row(callerLabels[d.caller_role] ? t(callerLabels[d.caller_role]) : t('payer'), String(d.caller ?? ''), { mono: true })}
+  {#if d.from}{@render row(t('fromAccount'), d.from, { mono: true })}{/if}
+  {#if d.to}{@render row(t('toAccount'), d.to, { mono: true, testid: 'approval-name-to' })}{/if}
+  {#if d.total}
+    {@render row(t('price'), `${units(d.total, 8)} PANDA`)}
+    {@render row(t('networkFee'), `${units(d.fee ?? '0', 8)} PANDA`)}
+    {@render row(t('atMost'), `${units(d.most ?? d.total, 8)} PANDA`)}
+  {/if}
+  {#if d.action === 'Transfer'}
+    {@render row(t('note'), t('approvalTransferNote'), { testid: 'approval-note' })}
+  {:else if d.action === 'AcceptTransfer'}
+    {@render row(t('note'), t('approvalAcceptNote'), { testid: 'approval-note' })}
+  {/if}
 {/snippet}
 
 {#snippet field(f: any)}
@@ -562,8 +613,10 @@
           </div>
           <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[13px]">
             {#if request.type === 'checkout'}
-              {@render row(t('plan'), `${terms.sku} · ${terms.origin}`, { testid: 'approval-sku' })}
+              {@render row(t('plan'), `${bought(terms)} · ${terms.origin}`, { testid: 'approval-sku' })}
               {@render row(t('price'), `$${units(terms.amount_usd_micros, 6)}`)}
+              {@render row(t('serviceTerm'), `${when(terms.starts_at_ms)} – ${when(terms.expires_at_ms)}`, { testid: 'approval-period' })}
+              {#if checkoutNotes(terms)}{@render row(t('note'), checkoutNotes(terms), { testid: 'approval-note' })}{/if}
             {:else if request.type === 'connect'}
               {@render row(t('plan'), `${d.content?.product_id} · ${d.content?.sku}`)}
               {@render row(t('price'), `$${units(d.content?.amount_usd_micros ?? '0', 6)} · ${method(d.content?.method)}`)}
@@ -573,9 +626,7 @@
               {@render row(t('ledger'), d.ledger, { mono: true })}
             {/if}
             {#if request.type === 'handle'}
-              {@render row(t('names'), d.name)}
-              {@render row(t('method'), d.action)}
-              {@render row(t('payer'), d.caller, { mono: true })}
+              {@render nameRows()}
             {/if}
             {#if terms?.terms?.method === 'Cash'}
               {@render row(t('ledger'), terms.terms.ledger, { mono: true })}
@@ -632,9 +683,7 @@
             {:else if request.type === 'device_revoke'}
               {@render row(t('device'), `${d.device_id}${d.this_device ? ` (${t('thisDevice')})` : ''}`, { mono: true })}
             {:else if request.type === 'handle'}
-              {@render row(t('names'), d.name)}
-              {@render row(t('method'), d.action)}
-              {@render row(t('payer'), d.caller, { mono: true })}
+              {@render nameRows()}
             {:else if request.type === 'wallet'}
               {@render row(t('twWallet'), `${d.name}${d.wallet ? ` · ${d.wallet}` : ''}`, { testid: 'approval-wallet' })}
               {#if d.action === 'create'}

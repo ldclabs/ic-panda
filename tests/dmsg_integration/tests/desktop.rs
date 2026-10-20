@@ -3768,6 +3768,31 @@ fn desktop_commerce() {
     let enable = a.run(&["device", "formal-approve", "on"]);
     assert_eq!(a.decide(&http, &enable, true).unwrap()["state"], "done");
     assert_eq!(a.run(&["plan", "status"])["plan"], "Free");
+    // The catalog the plan cards read, and what each paid plan offers a
+    // free account: a subscription from now, in cash or with PANDA.
+    let catalog = a.rpc(&http, "plan/catalog", Value::Null).unwrap();
+    let plans = catalog["plans"].as_array().unwrap();
+    assert!(
+        plans
+            .iter()
+            .any(|p| p["plan_id"] == "Plus" && p["price_cents"].as_u64().unwrap_or(0) > 0)
+    );
+    assert!(plans.iter().all(|p| p["limits"]["storage_bytes"].is_u64()));
+    assert!(catalog["storage_products"].is_array());
+    let status = a
+        .rpc(&http, "plan/status", json!({ "refresh": false }))
+        .unwrap();
+    let plus = status["offers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|o| o["plan"] == "Plus")
+        .unwrap()
+        .clone();
+    assert_eq!(plus["action"], "subscribe");
+    assert_eq!(plus["sku"], "plus");
+    assert_eq!(plus["methods"], json!(["Cash", "Panda"]));
+    assert_eq!(status["storage_available"], false);
 
     // Cash on ckUSDC. The merchant's reply to opening the order is lost,
     // then the ledger's reply to the funding transfer: each retry reads the
@@ -3934,7 +3959,7 @@ fn desktop_commerce() {
     assert_eq!(wallet["source"], "pem");
 
     // The name moves to the other account: the owner offers it, the target
-    // accepts, and the owner commits within the minute the acceptance lasts.
+    // accepts, and the owner commits within the acceptance's ten minutes.
     let offered = a.run(&["handle", "transfer", "legacy_probe", &second]);
     let accept = b.run(&["handle", "accept", offered["token"].as_str().unwrap()]);
     assert_eq!(accept["detail"]["action"], "AcceptTransfer");

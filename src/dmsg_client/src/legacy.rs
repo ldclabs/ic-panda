@@ -1241,6 +1241,9 @@ pub fn image_mime(bytes: &[u8]) -> Option<&'static str> {
 pub struct Summary {
     /// Old display name.
     pub name: String,
+    /// Old username, which a frozen name may now be claimed by; empty
+    /// without one.
+    pub username: String,
     /// Old bio.
     pub bio: String,
     /// Old avatar URL.
@@ -1274,6 +1277,17 @@ pub fn summary(archive: &Archive, verification: &Verification) -> Summary {
             .unwrap_or_default()
             .to_string()
     };
+    // An `opt text`: nothing, or the one text in it.
+    let username = user
+        .as_ref()
+        .and_then(|v| field(v, "username"))
+        .and_then(|v| match v {
+            Value::Array(items) => items.first(),
+            v => Some(v),
+        })
+        .and_then(text_of)
+        .unwrap_or_default()
+        .to_string();
     let verified = |source: &str| verification.checks.iter().any(|c| c.source == source);
     let mut files = vec![];
     let mut resources = vec![];
@@ -1318,6 +1332,7 @@ pub fn summary(archive: &Archive, verification: &Verification) -> Summary {
     }
     Summary {
         name: get(&user, "name"),
+        username,
         bio: get(&profile, "bio"),
         image: get(&user, "image"),
         resources,

@@ -22,6 +22,10 @@ pub const APPLICATION_TTL_MS: u64 = 24 * 60 * crate::MINUTE;
 pub const PANDA_COOLING_MS: u64 = 65 * crate::MINUTE;
 /// Maximum live qualification lease, always truncated to the contract end.
 pub const PANDA_LEASE_MS: u64 = 60 * crate::MINUTE;
+/// A beneficiary's first cash purchase of a base plan may be refunded for its
+/// unused time within this long after it starts, once. Its resource leases
+/// stay as short as PANDA leases until then, so a refund takes effect soon.
+pub const CASH_REFUND_WINDOW_MS: u64 = 7 * crate::DAY;
 /// A lease with at most this long left is renewed: commerce re-projects its
 /// resource lease and membership requalifies an eligible claim, so a consumer
 /// renewing a few minutes before expiry receives a later lease.

@@ -475,6 +475,11 @@ async fn check_checkout_funding(id: Hash, block: CashBlock) -> Result<CheckoutPr
 
 fn restore_refund(o: &mut Order) -> Result<()> {
     let amount = o.refund_price()?;
+    restore_deposit(o, amount)
+}
+
+/// Add `amount` back to the funding deposit's refundable obligation.
+fn restore_deposit(o: &Order, amount: u128) -> Result<()> {
     if amount > 0 {
         let block = o.funding.as_ref().ok_or(Error::IntegrityFailed)?;
         let mut d = deposit(o.id, block)?;
@@ -614,17 +619,29 @@ async fn cancel(id: Hash, reconcile: bool, caller: Principal, mut at: u64) -> Re
         result.order_id == id && result.contract_id == contract_id && result.decision_hash == hash,
         Error::IntegrityFailed,
     )?;
-    if result.cancelled {
-        ensure(
-            result.cancelled_at_ms < current.quote.offer.starts_at_ms
-                && current.earned_allocated == 0,
-            Error::IntegrityFailed,
-        )?;
-        current.status = CheckoutStatus::RefundCommitted;
-        restore_refund(&mut current)?;
-    }
+    let cancelled = result.cancelled;
     current.cancellation_pending = false;
     current.cancellation = Some(result);
+    if cancelled {
+        // The merchant keeps what the term earned before it stopped; an
+        // unstarted term earned nothing and is refunded with its fee reserve.
+        let kept = current.service_total()?;
+        ensure(kept >= current.earned_allocated, Error::IntegrityFailed)?;
+        if kept == 0 {
+            current.status = CheckoutStatus::RefundCommitted;
+            restore_refund(&mut current)?;
+        } else {
+            let refund = current
+                .quote
+                .cash
+                .amount_atomic
+                .checked_sub(kept)
+                .ok_or(Error::IntegrityFailed)?;
+            current.refund_unearned(refund)?;
+            restore_deposit(&current, refund)?;
+        }
+        ensure(current.conserved(), Error::IntegrityFailed)?;
+    }
     save(&mut current, at);
     Ok(())
 }
@@ -750,6 +767,7 @@ fn collect_checkout_revenue(id: Hash) -> Result<CashTransfer> {
     )?;
     let at = now();
     let earned = o.earned(at)?;
+    let total = o.service_total()?;
     let available = earned
         .checked_sub(o.earned_allocated)
         .ok_or(Error::IntegrityFailed)?;
@@ -760,7 +778,7 @@ fn collect_checkout_revenue(id: Hash) -> Result<CashTransfer> {
     let mut subsidized = balance.fees.min(a.fee);
     // The last collection also takes a fee-reserve remainder too small to be
     // returned on its own, so a settled order can be archived.
-    if earned == o.quote.cash.amount_atomic && balance.fees - subsidized <= a.fee {
+    if earned == total && balance.fees - subsidized <= a.fee {
         subsidized = balance.fees;
     }
     let debit = available
@@ -788,7 +806,9 @@ fn claim_checkout_fee_reserve(id: Hash) -> Result<CashTransfer> {
     let at = now();
     let mut o = order(id)?;
     ensure(
-        o.status == CheckoutStatus::Applied && o.earned_allocated == o.quote.cash.amount_atomic,
+        o.status == CheckoutStatus::Applied
+            && !o.cancellation_pending
+            && Ok(o.earned_allocated) == o.service_total(),
         Error::Pending,
     )?;
     let ledger = o.quote.cash.ledger;
@@ -1081,7 +1101,7 @@ fn checkout_transfers(after: Option<Hash>, take: u16) -> Result<CashTransfersPag
 
 /// The calling merchant's applied orders with uncollected revenue, earliest
 /// term end first, so a job that collects once per term stops at the first
-/// order whose `offer.expires_at_ms` lies ahead.
+/// order whose term end, or early refund, lies ahead.
 #[ic_cdk::query]
 fn collectable_checkouts(after: Option<Hash>, take: u16) -> Result<CheckoutOperationsPage> {
     collectable(ic_cdk::api::msg_caller(), after, take)

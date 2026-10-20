@@ -1067,8 +1067,36 @@ fn handle_batched_transfer_checks_both_approvals_and_commits_once() {
         (claim, snapshot.snapshot_id),
     );
     result.unwrap();
+    let names = |account: &AccountId| -> Vec<String> {
+        let r: Result<Vec<HandleRecord>> = query(
+            &f.ic,
+            f.handle,
+            person(9),
+            "account_handles",
+            (account, None::<String>, 64u16),
+        );
+        r.unwrap().into_iter().map(|r| r.handle).collect()
+    };
+    assert_eq!(names(&owner), vec!["transfername".to_string()]);
+    assert!(names(&target).is_empty());
     let (from, accept) = transfer_intents(&f, &owner, &target, "transfername", 1, 2);
     authorize(&f, 1, &from);
+    // Either side reads whether the other has authorized, and until when.
+    let authorized = |account: &AccountId| -> Option<u64> {
+        let r: Result<Option<u64>> = query(
+            &f.ic,
+            f.user,
+            person(9),
+            "get_handle_authorization",
+            (account, from.op_id),
+        );
+        r.unwrap()
+    };
+    assert_eq!(
+        authorized(&owner),
+        Some(time(&f.ic) + dmsg_types::handle::TRANSFER_AUTHORIZATION_MS)
+    );
+    assert_eq!(authorized(&target), None);
     let denied: Result<HandleRecord> = update(
         &f.ic,
         f.handle,
@@ -1078,7 +1106,12 @@ fn handle_batched_transfer_checks_both_approvals_and_commits_once() {
     );
     assert_eq!(denied, Err(Error::NotFound));
     // Renew only the receiver. The expired sender still rejects the whole pair.
-    f.ic.advance_time(Duration::from_secs(61));
+    f.ic.advance_time(Duration::from_millis(
+        dmsg_types::handle::TRANSFER_AUTHORIZATION_MS + 1_000,
+    ));
+    // A query reads the time of the last executed round.
+    f.ic.tick();
+    assert_eq!(authorized(&owner), None);
     authorize(&f, 2, &accept);
     let expired: Result<HandleRecord> = update(
         &f.ic,
@@ -1124,6 +1157,9 @@ fn handle_batched_transfer_checks_both_approvals_and_commits_once() {
         (&from, &accept),
     );
     assert_eq!(replay.unwrap().owner_account, target);
+    // The owner index follows the name to its new account.
+    assert!(names(&owner).is_empty());
+    assert_eq!(names(&target), vec!["transfername".to_string()]);
 }
 
 // Measures deployed public endpoints, without a privileged seeding API. Frozen

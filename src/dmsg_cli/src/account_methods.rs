@@ -7,14 +7,15 @@
 use crate::daemon::Daemon;
 use crate::params::{account, hash, number, optional, source, text, to_json};
 use dmsg_client::{
-    commerce::Records,
+    commerce::{self, Records},
+    handle,
     security::{AccountChange, account_request},
 };
 use dmsg_types::{DAY, Error, Hash, KeyPurpose, Result};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 28] = [
+pub(crate) const METHODS: [&str; 30] = [
     "account/security",
     "account/bind_request",
     "account/bind_accept",
@@ -31,6 +32,8 @@ pub(crate) const METHODS: [&str; 28] = [
     "handle/accept",
     "handle/operations",
     "handle/reconcile",
+    "handle/token",
+    "handle/forget",
     "payment/transfers",
     "payment/revise",
     "attest/usage",
@@ -102,10 +105,60 @@ impl Daemon {
                     .await
                     .handle_request(source(params)?, &id);
             }
+            // The registry and the user homes answer without the client.
             "handle/operations" => {
-                return Ok(Value::Array(
-                    self.client().lock().await.handle_operations()?,
-                ));
+                return Ok(Value::Array(handle::operations(&self.hold()).await?));
+            }
+            "handle/token" => {
+                let token = self
+                    .client()
+                    .lock()
+                    .await
+                    .handle_token(&text(params, "id")?)?;
+                return Ok(json!({"token": token}));
+            }
+            "handle/forget" => {
+                self.client()
+                    .lock()
+                    .await
+                    .handle_forget(&text(params, "id")?)?;
+                return Ok(json!({"forgotten": true}));
+            }
+            "attest/usage" => return dmsg_client::attest::execution_usage(&self.hold()).await,
+            "ops/orders" => {
+                return commerce::commerce_records(&self.hold(), Records::Orders, after(params)?)
+                    .await;
+            }
+            "ops/transfers" => {
+                return commerce::commerce_records(
+                    &self.hold(),
+                    Records::Transfers,
+                    after(params)?,
+                )
+                .await;
+            }
+            "ops/claims" => {
+                return commerce::commerce_records(&self.hold(), Records::Claims, after(params)?)
+                    .await;
+            }
+            "ops/reconcile_order" => {
+                return commerce::commerce_reconcile_order(&self.hold(), &hash(params, "id")?)
+                    .await;
+            }
+            "ops/process_transfer" => {
+                return commerce::commerce_process_transfer(&self.hold(), &hash(params, "id")?)
+                    .await;
+            }
+            "ops/revise_transfer" => {
+                let (id, fee) = (hash(params, "id")?, amount(params, "fee")?);
+                return commerce::commerce_revise_transfer(&self.hold(), &id, fee).await;
+            }
+            "ops/claim" => {
+                let refresh = params["refresh"].as_bool().unwrap_or(false);
+                return commerce::commerce_claim(&self.hold(), &hash(params, "id")?, refresh).await;
+            }
+            "ops/sweep" => {
+                return Ok(json!({"swept": commerce::commerce_sweep(&self.hold()).await?}));
             }
             // Requests for an account change read the account without the
             // client.
@@ -212,7 +265,6 @@ impl Daemon {
                     .payment_revise(&hash(params, "escrow")?, number(params, "leg")?)
                     .await
             }
-            "attest/usage" => client.execution_usage().await,
             "approval/quote" => {
                 // The CLI names a request by a unique prefix.
                 let id = client.approval_id(&text(params, "id")?)?;
@@ -220,33 +272,6 @@ impl Daemon {
                     .approval_quote(&id, &text(params, "selection")?)
                     .await
             }
-            "ops/orders" => {
-                client
-                    .commerce_records(Records::Orders, after(params)?)
-                    .await
-            }
-            "ops/transfers" => {
-                client
-                    .commerce_records(Records::Transfers, after(params)?)
-                    .await
-            }
-            "ops/claims" => {
-                client
-                    .commerce_records(Records::Claims, after(params)?)
-                    .await
-            }
-            "ops/reconcile_order" => client.commerce_reconcile_order(&hash(params, "id")?).await,
-            "ops/process_transfer" => client.commerce_process_transfer(&hash(params, "id")?).await,
-            "ops/revise_transfer" => {
-                client
-                    .commerce_revise_transfer(&hash(params, "id")?, amount(params, "fee")?)
-                    .await
-            }
-            "ops/claim" => {
-                let refresh = params["refresh"].as_bool().unwrap_or(false);
-                client.commerce_claim(&hash(params, "id")?, refresh).await
-            }
-            "ops/sweep" => Ok(json!({"swept": client.commerce_sweep().await?})),
             _ => Err(Error::NotFound),
         })
         .await

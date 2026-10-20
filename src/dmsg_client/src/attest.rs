@@ -1186,80 +1186,6 @@ impl Client {
         Ok(kept)
     }
 
-    /// This account's formal-execution allowance for the current month,
-    /// refreshed from its plan, and the months archived in the workspace.
-    /// The home keeps an account's ledgers for this month and the last, and
-    /// the first refresh of a month drops older ones, so finished months it
-    /// still holds are archived first.
-    ///
-    /// # Errors
-    /// Returns `Error::AuthRequired` without a login.
-    pub async fn execution_usage(&mut self) -> Result<Json> {
-        let account = self.account()?.clone();
-        let ic = self.session()?.ic.clone();
-        let keys = self.keys()?;
-        let now = now_ms();
-        let earlier = |month: u32| {
-            if month % 100 == 1 {
-                month - 89
-            } else {
-                month - 1
-            }
-        };
-        let last = earlier(dmsg_protocol::billing::month_utc(now)?);
-        for month in [last, earlier(last)] {
-            let found: Result<ExecutionUsage> = ic
-                .query(account.home, "get_execution_usage", (account.id, month))
-                .await?;
-            let usage = match found {
-                Err(Error::NotFound) => continue,
-                found => found?,
-            };
-            ensure(
-                usage.account_id == account.id && usage.month_utc == month,
-                Error::IntegrityFailed,
-            )?;
-            self.workspace
-                .put_private(keys, &format!("{USAGE}{month}"), &usage)?;
-        }
-        // An update reply is certified by the subnet; there is no separate proof.
-        let usage: Result<ExecutionUsage> = ic
-            .update(account.home, "refresh_execution_entitlement", (account.id,))
-            .await?;
-        let usage = usage?;
-        ensure(
-            usage.account_id == account.id && usage.valid_until_ms > now,
-            Error::IntegrityFailed,
-        )?;
-        self.workspace
-            .put_private(keys, USAGE_NOW, &(now, &usage))?;
-        let mut history = self
-            .workspace
-            .store
-            .sealed_keys(USAGE)?
-            .iter()
-            .map(|key| {
-                self.workspace
-                    .private::<ExecutionUsage>(self.keys()?, key)?
-                    .ok_or(Error::IntegrityFailed)
-            })
-            .collect::<Result<Vec<_>>>()?;
-        history.sort_by_key(|u| std::cmp::Reverse(u.month_utc));
-        let view = |u: &ExecutionUsage| {
-            json!({
-                "month": u.month_utc,
-                "allowed": u.allowed_units,
-                "charged": u.charged_units,
-                // A refund or downgrade may leave it below what was charged.
-                "remaining": u.allowed_units.saturating_sub(u.charged_units),
-                "valid_until_ms": u.valid_until_ms,
-            })
-        };
-        let mut current = view(&usage);
-        current["history"] = history.iter().map(view).collect();
-        Ok(current)
-    }
-
     /// This device's attestations and those the account keeps from its
     /// other devices, newest first.
     ///
@@ -1706,6 +1632,86 @@ fn prepare_attestation_thumbprint(signing_pub: &Hash) -> Result<Hash> {
         &[],
         signing_pub.as_slice(),
     )?)
+}
+
+/// This account's formal-execution allowance for the current month,
+/// refreshed from its plan, and the months archived in the workspace, the
+/// user home waited on without the client. The home keeps an account's
+/// ledgers for this month and the last, and the first refresh of a month
+/// drops older ones, so finished months it still holds are archived first.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` without a login.
+pub async fn execution_usage<H: Hold>(h: &H) -> Result<Json> {
+    let (account, ic) = h
+        .with(|c| Ok((c.account()?.clone(), c.session()?.ic.clone())))
+        .await?;
+    let now = now_ms();
+    let earlier = |month: u32| {
+        if month % 100 == 1 {
+            month - 89
+        } else {
+            month - 1
+        }
+    };
+    let last = earlier(dmsg_protocol::billing::month_utc(now)?);
+    for month in [last, earlier(last)] {
+        let found: Result<ExecutionUsage> = ic
+            .query(account.home, "get_execution_usage", (account.id, month))
+            .await?;
+        let usage = match found {
+            Err(Error::NotFound) => continue,
+            found => found?,
+        };
+        ensure(
+            usage.account_id == account.id && usage.month_utc == month,
+            Error::IntegrityFailed,
+        )?;
+        h.with(|c| {
+            c.workspace
+                .put_private(c.keys()?, &format!("{USAGE}{month}"), &usage)
+        })
+        .await?;
+    }
+    // An update reply is certified by the subnet; there is no separate proof.
+    let usage: Result<ExecutionUsage> = ic
+        .update(account.home, "refresh_execution_entitlement", (account.id,))
+        .await?;
+    let usage = usage?;
+    ensure(
+        usage.account_id == account.id && usage.valid_until_ms > now,
+        Error::IntegrityFailed,
+    )?;
+    h.with(|c| {
+        c.workspace
+            .put_private(c.keys()?, USAGE_NOW, &(now, &usage))?;
+        let mut history = c
+            .workspace
+            .store
+            .sealed_keys(USAGE)?
+            .iter()
+            .map(|key| {
+                c.workspace
+                    .private::<ExecutionUsage>(c.keys()?, key)?
+                    .ok_or(Error::IntegrityFailed)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        history.sort_by_key(|u| std::cmp::Reverse(u.month_utc));
+        let view = |u: &ExecutionUsage| {
+            json!({
+                "month": u.month_utc,
+                "allowed": u.allowed_units,
+                "charged": u.charged_units,
+                // A refund or downgrade may leave it below what was charged.
+                "remaining": u.allowed_units.saturating_sub(u.charged_units),
+                "valid_until_ms": u.valid_until_ms,
+            })
+        };
+        let mut current = view(&usage);
+        current["history"] = history.iter().map(view).collect();
+        Ok(current)
+    })
+    .await
 }
 
 #[cfg(test)]

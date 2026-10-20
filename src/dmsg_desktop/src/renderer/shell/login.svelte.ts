@@ -15,6 +15,8 @@ type Phase = 'idle' | 'starting' | 'browser' | 'checking' | 'failed'
 export const login = $state({
   phase: 'idle' as Phase,
   bind: false,
+  /** The derivation origin: https://dmsg.net, or https://panda.fans for an identity of the old site. */
+  origin: 'https://dmsg.net',
   url: '',
   expiresAt: 0,
   /** Why it failed, as a label so it follows the language. */
@@ -29,13 +31,17 @@ export const setupStates = ['no_account', 'pairing_required', 'root_required']
 let run = 0
 let expiry: ReturnType<typeof setTimeout> | undefined
 
-/** Start a login, or with `bind` a second login to bind to the unlocked account. */
-export async function startLogin(bind = false) {
+/**
+ * Start a login, or with `bind` a second login to bind to the unlocked
+ * account. `origin` https://panda.fans logs in with an identity of the old
+ * site, such as the holder of a frozen name.
+ */
+export async function startLogin(bind = false, origin = 'https://dmsg.net') {
   const id = ++run
   clearTimeout(expiry)
-  Object.assign(login, { phase: 'starting', bind, url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
+  Object.assign(login, { phase: 'starting', bind, origin, url: '', expiresAt: 0, reason: 'loginFailedHint', detail: '' })
   try {
-    const started = await bridge<{ url: string; expires_at: number }>(() => window.dmsg.login('https://dmsg.net', bind))
+    const started = await bridge<{ url: string; expires_at: number }>(() => window.dmsg.login(origin, bind))
     if (id !== run) return
     Object.assign(login, { phase: 'browser', url: started.url, expiresAt: started.expires_at })
     expiry = setTimeout(() => void checkLogin(), Math.max(0, started.expires_at - Date.now()) + 1000)

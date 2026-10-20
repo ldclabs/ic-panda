@@ -319,24 +319,21 @@ fn collection_prefix(merchant: Principal) -> Vec<u8> {
 
 /// Where the order sits in its merchant's collection index: by term end, then id.
 fn collection_suffix(o: &Order) -> Vec<u8> {
-    [
-        o.quote.offer.expires_at_ms.to_be_bytes().as_slice(),
-        o.id.as_slice(),
-    ]
-    .concat()
+    [o.service_end().to_be_bytes().as_slice(), o.id.as_slice()].concat()
 }
 
 /// Indexed while the merchant still has revenue to collect.
 fn collectable_key(o: &Order) -> Option<Vec<u8>> {
-    (o.status == CheckoutStatus::Applied && o.earned_allocated < o.quote.cash.amount_atomic).then(
-        || {
-            [
-                collection_prefix(o.quote.product.merchant.owner),
-                collection_suffix(o),
-            ]
-            .concat()
-        },
-    )
+    (o.status == CheckoutStatus::Applied
+        && o.service_total()
+            .is_ok_and(|total| o.earned_allocated < total))
+    .then(|| {
+        [
+            collection_prefix(o.quote.product.merchant.owner),
+            collection_suffix(o),
+        ]
+        .concat()
+    })
 }
 
 /// The caller's applied orders with uncollected revenue, earliest term end first.

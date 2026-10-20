@@ -142,7 +142,8 @@ export function summaryOf(request: any): string {
     case 'letter':
       return String(d.recipient ?? '')
     case 'handle':
-      return `${d.action ?? ''} · ${d.name ?? ''}`
+      // The action reads in the title; a transfer names where the name goes.
+      return d.to ? `@${d.name ?? ''} → ${d.to}` : `@${d.name ?? ''}`
     case 'delegation':
       return String(d.kind?.subject ?? d.kind?.id ?? '')
     case 'principal':

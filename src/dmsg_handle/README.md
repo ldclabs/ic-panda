@@ -47,7 +47,7 @@ handle 是全局唯一的名称注册表，所有 user home 共用。它不保�
 
 账户发起的名称操作分两步授权：
 
-1. 账户在 `dmsg_user` 调用 `mutate_account`，命令为 `AuthorizeHandle { intent }`。user 要求 caller 是该账户的认证绑定、账户处于 Active，并由具有 `RootManage` 能力的管理员设备签名整条命令；`intent.account_id` 必须是该账户，`intent.handle_canister` 必须是配置的 handle。批准最长有效 60 秒，每个账户最多同时保留 32 条。
+1. 账户在 `dmsg_user` 调用 `mutate_account`，命令为 `AuthorizeHandle { intent }`。user 要求 caller 是该账户的认证绑定、账户处于 Active，并由具有 `RootManage` 能力的管理员设备签名整条命令；`intent.account_id` 必须是该账户，`intent.handle_canister` 必须是配置的 handle。设备批准须在 60 秒内提交。注册与旧名认领的授权随批准一同到期；转移任一方的授权自提交起保留十分钟（`TRANSFER_AUTHORIZATION_MS`），同一意图再次授权即续期。每个账户最多同时保留 32 条。user 的 query `get_handle_authorization(account_id, op_id)` 返回仍有效的授权的截止时间，转移双方据此查看对方是否已授权。
 2. handle 处理业务调用时，向账户所在的 user home 调用 `consume_handle_authorization`。转移双方在同一 home 时改用 `consume_handle_transfer_authorizations` 一次核对双方，在不同 home 时分别核对。user 只接受配置的 handle 作为调用者，要求同一 `op_id` 下存有完全相同且未过期的意图。这一步只读，不再检查设备撤销或账户状态；重复执行由 handle 按 `(account_id, op_id)` 去重。
 
 账户所在的 home 由账户 ID 决定：user home 分配的每个 ID 在第 4–9 字节带有它的分配器指纹，即 `account_allocator_digest(environment, issuer_namespace, home)` 的前 5 字节（与 `dmsg_directory` 的路由相同）。handle 在 `user_homes` 中按指纹查找，找不到返回 `NotFound`。`user_homes` 只能追加：新增分片时由 controller 或 governance 调用 `admin_add_user_home`，各 home 的指纹必须互不相同，最多 64 个。cose、payment、directory 和 commerce 用同名方法登记同一 home，见 [dmsg_canisters](../../docs/dmsg_canisters_zh.md)。
@@ -108,6 +108,8 @@ handle 是全局唯一的名称注册表，所有 user home 共用。它不保�
 
 `transfer_handle(from, accept)` 需要原 owner 的 `Transfer` 意图和接收方的 `AcceptTransfer` 意图：两者的名称、预期版本、`op_id` 和 `terms_digest` 相同，账户互为对方的目标。handle 先核对当前 owner 和版本，再到双方所在的 user home 核对授权（同一 home 时一次调用），回调后要求记录未变，然后提交版本 +1。
 
+双方的授权都要在调用时有效。一方授权后把令牌交给另一方，令牌要经频道或链接送达，对方还要在自己的设备上批准，所以授权保留十分钟而不是随 60 秒的设备批准到期；缺少一方的授权时 `transfer_handle` 返回 `NotFound`，任一方过期时返回 `Expired`，重新授权同一意图即可。客户端的顺序是：owner 准备令牌（尚不授权），接收方授权 `AcceptTransfer`，owner 从接收方的 user home 读到这份授权后，在十分钟内授权自己的一侧并提交。转出名称在审批中按高风险处理。
+
 认领和转移按 `(account_id, op_id)` 保存请求摘要与原始权属回执：原请求重放返回原结果，即使名称后来又被转移；同一 ID 换了参数返回 `IdempotencyConflict`。
 
 ### 认证查询与事件
@@ -125,9 +127,11 @@ handle 是全局唯一的名称注册表，所有 user home 共用。它不保�
 
 `get_legacy_reservation`、`snapshot_progress`、`get_handle_operation`、`get_handle_config` 也是普通 query。认领会在链上重新核对完整冻结记录，伪造的预留查询结果只会让认领失败。
 
+`account_handles(account_id, after, take)` 按名称的字节序分页列出账户名下的活跃名称，每页 1–64 条，任何人可查。它不带证书，客户端逐个用 `resolve_handle_certified` 核验后再显示为“我的名称”。
+
 ### 存储
 
-稳定布局为 schema 10。相对 schema 9：配置增加收入账户 `revenue`，注册操作增加收款账户 `payee`；schema 9 没有迁移路径，2026-10-17 主网 handle 尚未导入旧名，直接重装。schema 9 相对 schema 8：配置用 `environment`、`issuer_namespace`、`user_homes` 取代单个 `home_user`；名称表的键加上桶号前缀；认证树从 heap 移到 memory 9；分配桶从 1 MiB 改为 8 MiB。`post_upgrade` 遇到其他 schema 直接失败，布局变化须编写显式迁移。`MemoryManager` 使用 128 页（8 MiB）分配桶，32,768 个桶可寻址 256 GiB。
+稳定布局为 schema 11。相对 schema 10：新增 memory 10 的 `OWNERS`（owner 账户 ID + 名称）索引，注册、认领和转移在写名称记录时同步更新它；从 schema 10 升级时，`post_upgrade` 遍历一次活跃名称建立索引。未认领的旧名预留没有 owner 账户，不进入索引，所以这次迁移的成本只随已注册或已认领的名称数增长。迁移没有做规模实测：活跃名称很多的实例升级前，先在 PocketIC 中以同规模状态测量指令数，必要时改成分批迁移。schema 10 相对 schema 9：配置增加收入账户 `revenue`，注册操作增加收款账户 `payee`；schema 9 没有迁移路径，2026-10-17 主网 handle 尚未导入旧名，直接重装。schema 9 相对 schema 8：配置用 `environment`、`issuer_namespace`、`user_homes` 取代单个 `home_user`；名称表的键加上桶号前缀；认证树从 heap 移到 memory 9；分配桶从 1 MiB 改为 8 MiB。`post_upgrade` 遇到其他 schema 直接失败，布局变化须编写显式迁移。`MemoryManager` 使用 128 页（8 MiB）分配桶，32,768 个桶可寻址 256 GiB。
 
 | Memory | 内容                                                                                                            |
 | -----: | --------------------------------------------------------------------------------------------------------------- |
@@ -140,8 +144,9 @@ handle 是全局唯一的名称注册表，所有 user home 共用。它不保�
 |      6 | `ACTIVE_ACCOUNTS`：有未决扣款的账户                                                                             |
 |      7 | `OWNERSHIP`：op key → 认领或转移回执                                                                            |
 |      9 | 认证树：2^21 个节点哈希的定长数组，`Empty` 节点存为全零                                                         |
+|     10 | `OWNERS`：owner 账户 ID + 名称，列出账户名下的活跃名称                                                          |
 
-op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的 `stable_codec.rs` 用 CBOR 整数 map key 保存记录，不影响公开 Candid、摘要和认证叶编码。heap 只保存已解码的配置（每次变更同步写入 stable cell）和调用 guard。没有 `pre_upgrade`；`post_upgrade` 只校验 schema 并重新发布根哈希，成本与名称数无关。操作、回执和事件只增不删，以保持幂等语义。
+op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的 `stable_codec.rs` 用 CBOR 整数 map key 保存记录，不影响公开 Candid、摘要和认证叶编码。heap 只保存已解码的配置（每次变更同步写入 stable cell）和调用 guard。没有 `pre_upgrade`；`post_upgrade` 校验 schema 并重新发布根哈希，除 schema 10 到 11 的一次性索引迁移外，成本与名称数无关。操作、回执和事件只增不删，以保持幂等语义。
 
 ### 容量与成本
 
@@ -149,7 +154,7 @@ op key 为 `digest("dmsg/handle-operation/v1", (account_id, op_id))`。私有的
 - 全局未决扣款不超过 `max_pending`（1–10,000），每个账户同时最多一笔。
 - 旧名快照不超过 1,000,000 条，每批导入 1–256 条，每条最多 16 个冻结管理员。
 
-升级不遍历名称：节点哈希留在 stable memory，`post_upgrade` 只重新发布根哈希。名称数影响的是 stable 存储、名称表 B 树的深度和证明大小。以下为 2026-10-06 在 schema 9、Rust 1.98.1、PocketIC 16.0.0、release 配置下的 `handle_active_name_capacity_profile` 实测，名称均为 20 字节（当时的上限，现为 19 字节，测试已改用 19 字节名称）；每个样本另有 1 条未认领旧名，未模拟同规模的收费操作、事件或回执历史：
+升级不遍历名称（schema 10 到 11 的一次性索引迁移除外）：节点哈希留在 stable memory，`post_upgrade` 只重新发布根哈希。名称数影响的是 stable 存储、名称表 B 树的深度和证明大小。以下为 2026-10-06 在 schema 9、Rust 1.98.1、PocketIC 16.0.0、release 配置下的 `handle_active_name_capacity_profile` 实测，名称均为 20 字节（当时的上限，现为 19 字节，测试已改用 19 字节名称）；每个样本另有 1 条未认领旧名，未模拟同规模的收费操作、事件或回执历史：
 
 | 活跃名称数 | 升级指令数 |   升级 cycles | 一次转移 cycles | heap 字节 |   stable 字节 | 64 名称响应字节 |
 | ---------: | ---------: | ------------: | --------------: | --------: | ------------: | --------------: |
@@ -421,7 +426,7 @@ POCKET_IC_BIN=/path/to/pocket-ic \
 - 并发注册只扣一次，额度提前拒绝，锁、事件日志和认证树的升级恢复，未知扣款跨时间和升级不释放名称。
 - 成功或拒绝的扣款回复到达前升级，执行中的重试与对账互斥，账本去重窗口过期后的并发对账，付款账户、收款账户、金额、memo、时间戳或 spender 不符的对账证据被拒绝。
 - 快照批量导入失败不部分写入、重叠导入重试、跳过前一批的导入被拒绝、冻结管理员与隔离名称、匿名管理员拒绝。
-- 认领回执跨转移和升级重放，双方授权过期与并发转移，名称包含与不存在证明（含尚无名称时的空树证明，旧名预留不进入认证树）及查询批量上限。
+- 认领回执跨转移和升级重放，双方授权过期（各十分钟）与并发转移，任一方经 `get_handle_authorization` 读取授权截止时间，`account_handles` 随认领和转移更新，名称包含与不存在证明（含尚无名称时的空树证明，旧名预留不进入认证树）及查询批量上限。
 - 账户按 ID 指纹路由到所属 user home：未登记 home 的账户返回 `NotFound`，追加 home 后同一操作成功，跨 home 转移在两边分别核对授权；`admin_add_user_home` 的权限、幂等与预演。
 - governance 执行快照导入、封存、手续费更新和收入账户设置，非管理者被拒绝；`validate_*` 按当前状态预演且不改状态，提前提交的后续导入批次在验证和执行时都被拒绝；注册费直接进入收入账户，handle 余额保持为 0，收入账户不能是 handle 自己或匿名 principal。
 

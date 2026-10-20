@@ -60,6 +60,9 @@ export const closed = (error: unknown, status: any) =>
 /** A failure for people: locked, or the error code. */
 export const errorText = (error: unknown) => (code(error) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(error)}`)
 
+/** A failure toast's options: one at the plan's limits offers the plan page. */
+export const planAction = (error: unknown) => (code(error) === 'QUOTA_EXCEEDED' ? { action: { label: t('openPlan'), run: () => (location.hash = '/plan') } } : {})
+
 /**
  * Reload on the daemon events that change what a view shows, and on
  * `resync`, which says events were missed. Returns the unsubscribe.

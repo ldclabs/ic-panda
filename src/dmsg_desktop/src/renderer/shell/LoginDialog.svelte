@@ -73,7 +73,7 @@
     {:else if login.phase === 'failed'}
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>
-      <button class={buttonClass('primary', 'sm')} onclick={() => startLogin(login.bind)} data-testid="login-retry"><Icon name="sync-now" />{t('retry')}</button>
+      <button class={buttonClass('primary', 'sm')} onclick={() => startLogin(login.bind, login.origin)} data-testid="login-retry"><Icon name="sync-now" />{t('retry')}</button>
     {:else}
       <span class="flex-1"></span>
       <button class={buttonClass('secondary', 'sm')} onclick={closeLogin}>{t('close')}</button>

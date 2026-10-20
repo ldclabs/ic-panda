@@ -61,6 +61,9 @@ thread_local! {
         StableBTreeMap<[u8; 32], CompactStored<OwnershipReceipt>, Memory>,
     > = RefCell::new(StableBTreeMap::init(memory(7)));
     pub(crate) static TREE: RefCell<NameTree<Memory>> = RefCell::new(NameTree::new(memory(9)));
+    // Owner account then name for every active name, so an account lists its names.
+    pub(crate) static OWNERS: RefCell<StableBTreeSet<Vec<u8>, Memory>> =
+        RefCell::new(StableBTreeSet::init(memory(10)));
 }
 
 pub(crate) fn cfg() -> Config {
@@ -79,6 +82,23 @@ pub(crate) fn save_cfg(c: Config) {
 // The name's certification bucket, big-endian, then the name.
 pub(crate) fn name_key(name: &str) -> Vec<u8> {
     [&handle_bucket(name).to_be_bytes()[..], name.as_bytes()].concat()
+}
+
+// The owner account, then the name.
+pub(crate) fn owner_key(account: &AccountId, name: &str) -> Vec<u8> {
+    [account.as_slice(), name.as_bytes()].concat()
+}
+
+/// Index every active name under its owner; run once when schema 10 adds it.
+pub(crate) fn index_owners() {
+    NAMES.with_borrow(|names| {
+        OWNERS.with_borrow_mut(|owners| {
+            for entry in names.iter() {
+                let r = entry.value().into_inner();
+                owners.insert(owner_key(&r.owner_account, &r.handle));
+            }
+        })
+    });
 }
 
 pub(crate) fn record(name: &str) -> Option<HandleRecord> {
@@ -144,7 +164,7 @@ pub(crate) fn op_key(account_id: &AccountId, op: Hash) -> Hash {
     digest("dmsg/handle-operation/v1", &(account_id, op))
 }
 
-pub(crate) const STABLE_SCHEMA: u16 = 10;
+pub(crate) const STABLE_SCHEMA: u16 = 11;
 
 // Largest active-name population verified by the capacity profile.
 pub(crate) const MAX_ACTIVE_NAMES: u64 = 10_000_000;

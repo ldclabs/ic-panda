@@ -205,17 +205,26 @@ export const WINDOW_METHODS = new Set([
   'plan/assets',
   'plan/quote',
   'plan/checkout',
+  'plan/advance',
   'plan/order',
   'plan/checkouts',
+  'plan/discard',
   'plan/cancel',
   'plan/reconcile',
+  'plan/refund_quote',
+  'plan/panda',
+  'plan/notice_ack',
+  'payer/status',
   'handle/price',
+  'handle/mine',
   'handle/claim',
   'handle/register',
   'handle/transfer',
   'handle/transfer_commit',
   'handle/accept',
   'handle/operations',
+  'handle/token',
+  'handle/forget',
   'handle/reconcile',
   'ops/orders',
   'ops/transfers',
@@ -291,6 +300,7 @@ const GUI_SOURCED = new Set([
   'device/revoke',
   'inbox/pay',
   'plan/checkout',
+  'plan/advance',
   'handle/claim',
   'handle/register',
   'handle/transfer_commit',
@@ -355,6 +365,7 @@ export type Link =
   | { route: 'browsers'; account: string | null }
   | { route: 'request'; account: string; request: string }
   | { route: 'join'; invitation: string }
+  | { route: 'accept'; token: string }
 
 export function parseLink(url: string): Link | null {
   let parsed: URL
@@ -367,6 +378,11 @@ export function parseLink(url: string): Link | null {
   if (parsed.protocol === 'dmsg:' && parsed.host === 'channel' && parsed.pathname === '/join') {
     const invitation = parsed.hash.slice(1)
     return /^[A-Za-z0-9_-]{16,8192}$/.test(invitation) ? { route: 'join', invitation } : null
+  }
+  // A name transfer's token opens the accept dialog with it; accepting is still an approval.
+  if (parsed.protocol === 'dmsg:' && parsed.host === 'handle' && parsed.pathname === '/accept') {
+    const token = parsed.hash.slice(1)
+    return /^[A-Za-z0-9_-]{16,8192}$/.test(token) ? { route: 'accept', token } : null
   }
   if (parsed.protocol !== 'dmsg:' || parsed.host !== 'connect') return null
   const account = parsed.searchParams.get('account') ?? ''
@@ -406,4 +422,18 @@ export function externalAllowed(url: string, login: string[], pairing: string[])
   }
   const page = `${parsed.origin}${parsed.pathname}`
   return login.includes(page) || pairing.some((p) => page === `${p}/v1/pair`)
+}
+
+/** The days before a term ends when the app reminds, once each. */
+export const REMIND_DAYS = [30, 7, 1]
+
+/**
+ * The reminder due when `left` milliseconds of a term remain: the nearest
+ * threshold reached, unless one as near was shown already (`shown`, in
+ * days); null otherwise.
+ */
+export function reminderDue(left: number, shown?: number): number | null {
+  if (left <= 0) return null
+  const due = REMIND_DAYS.filter((days) => left <= days * 86_400_000).pop()
+  return due !== undefined && (shown === undefined || due < shown) ? due : null
 }

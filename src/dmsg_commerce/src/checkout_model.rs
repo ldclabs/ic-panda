@@ -83,7 +83,7 @@ impl Order {
             return None;
         }
         let end = match self.status {
-            CheckoutStatus::Applied => self.quote.offer.expires_at_ms,
+            CheckoutStatus::Applied => self.service_end(),
             CheckoutStatus::RefundCommitted | CheckoutStatus::Rejected
                 if self.receipt.is_some() || self.reservation_released =>
             {
@@ -242,15 +242,70 @@ impl Order {
         Ok(total)
     }
 
-    /// A payer may cancel a delivered term only before it starts. An existing adapter
-    /// answer is final, so a repeated request never re-arms the pending marker.
+    /// A payer may ask to cancel a delivered term before it starts, or within
+    /// the refund window after it starts; the product decides whether it
+    /// allows an early refund. An existing adapter answer is final, so a
+    /// repeated request never re-arms the pending marker.
     pub fn begin_cancellation(&mut self, at: u64) -> Result<bool> {
         if self.cancellation.is_some() {
             return Ok(false);
         }
-        ensure(at < self.quote.offer.starts_at_ms, Error::Forbidden)?;
+        let start = self
+            .receipt
+            .as_ref()
+            .map_or(0, |r| r.applied_at_ms)
+            .max(self.quote.offer.starts_at_ms);
+        ensure(
+            at < start.saturating_add(CASH_REFUND_WINDOW_MS),
+            Error::Forbidden,
+        )?;
         self.cancellation_pending = true;
         Ok(true)
+    }
+
+    /// When the term's rights stop: its end, or the cancellation that ended it.
+    pub fn service_end(&self) -> u64 {
+        match &self.cancellation {
+            Some(c) if c.cancelled => c.cancelled_at_ms.min(self.quote.offer.expires_at_ms),
+            _ => self.quote.offer.expires_at_ms,
+        }
+    }
+
+    /// What the merchant earns in all: the price, or after an early refund
+    /// the part earned before the term stopped.
+    pub fn service_total(&self) -> Result<u128> {
+        match &self.cancellation {
+            Some(c) if c.cancelled => self.earned_by(c.cancelled_at_ms),
+            _ => Ok(self.quote.cash.amount_atomic),
+        }
+    }
+
+    fn earned_by(&self, at: u64) -> Result<u128> {
+        let receipt = self.receipt.as_ref().ok_or(Error::IntegrityFailed)?;
+        earned_atomic(
+            self.quote.cash.amount_atomic,
+            &self.quote.offer,
+            receipt.applied_at_ms,
+            at.min(self.service_end()),
+        )
+    }
+
+    /// Return the unearned part of a term refunded early, `refund`, to the
+    /// funding deposit's refundable balance; the earned part stays to collect.
+    pub fn refund_unearned(&mut self, refund: u128) -> Result<()> {
+        let balance = self
+            .balances
+            .get_mut(&self.quote.cash.ledger)
+            .ok_or(Error::IntegrityFailed)?;
+        balance.service = balance
+            .service
+            .checked_sub(refund)
+            .ok_or(Error::IntegrityFailed)?;
+        balance.refundable = balance
+            .refundable
+            .checked_add(refund)
+            .ok_or(Error::QuotaExceeded)?;
+        Ok(())
     }
 
     /// Allocate the next sequential outgoing-leg identity.
@@ -268,13 +323,7 @@ impl Order {
             self.status == CheckoutStatus::Applied && !self.cancellation_pending,
             Error::Pending,
         )?;
-        let receipt = self.receipt.as_ref().ok_or(Error::IntegrityFailed)?;
-        earned_atomic(
-            self.quote.cash.amount_atomic,
-            &self.quote.offer,
-            receipt.applied_at_ms,
-            at,
-        )
+        self.earned_by(at)
     }
 }
 
@@ -532,7 +581,10 @@ mod tests {
         })
         .unwrap();
         let start = o.quote.offer.starts_at_ms;
-        assert_eq!(o.begin_cancellation(start), Err(Error::Forbidden));
+        assert_eq!(
+            o.begin_cancellation(start + CASH_REFUND_WINDOW_MS),
+            Err(Error::Forbidden)
+        );
         assert!(o.begin_cancellation(start - 1).unwrap());
         assert_eq!(o.earned(start), Err(Error::Pending));
         o.cancellation_pending = false;
@@ -547,6 +599,57 @@ mod tests {
         assert!(!o.begin_cancellation(start - 1).unwrap());
         assert!(!o.cancellation_pending);
         assert_eq!(o.earned(start).unwrap(), 0);
+    }
+
+    #[test]
+    fn an_early_refund_keeps_only_what_the_term_earned() {
+        let mut o = order();
+        let total = o.quote.cash.amount_atomic + o.quote.cash.fee_reserve_atomic;
+        o.deposit(principal(6), &tx(&o, 9, total, NOW), NOW)
+            .unwrap();
+        let d = o.decision.clone().unwrap();
+        let contract_id = Hash::new([88; 32]);
+        let start = o.quote.offer.starts_at_ms;
+        o.accept(ProductReceipt {
+            version: 2,
+            decision_id: d.decision_id,
+            decision_hash: product_decision_hash(&d),
+            adapter: d.offer.adapter,
+            outcome: ProductOutcome::Applied {
+                business_revision: 10,
+                contract_id,
+                committed_until_ms: d.offer.expires_at_ms,
+            },
+            applied_at_ms: start,
+        })
+        .unwrap();
+        let stop = start + 3 * DAY;
+        assert!(o.begin_cancellation(stop - DAY).unwrap());
+        o.cancellation_pending = false;
+        o.cancellation = Some(CashCancellationReceipt {
+            order_id: o.id,
+            contract_id,
+            decision_hash: product_decision_hash(&d),
+            cancelled_at_ms: stop,
+            cancelled: true,
+            business_revision: 11,
+        });
+        let kept = o.service_total().unwrap();
+        assert_eq!(
+            kept,
+            earned_atomic(o.quote.cash.amount_atomic, &o.quote.offer, start, stop).unwrap()
+        );
+        assert!(kept > 0 && kept < o.quote.cash.amount_atomic);
+        o.refund_unearned(o.quote.cash.amount_atomic - kept)
+            .unwrap();
+        assert!(o.conserved());
+        let balance = &o.balances[&principal(6)];
+        assert_eq!(balance.service, kept);
+        assert_eq!(balance.refundable, o.quote.cash.amount_atomic - kept);
+        // Revenue stops at the refund and the order archives after it.
+        assert_eq!(o.earned(o.quote.offer.expires_at_ms).unwrap(), kept);
+        assert_eq!(o.service_end(), stop);
+        assert!(o.refund_unearned(kept + 1).is_err());
     }
 
     #[test]

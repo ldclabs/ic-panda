@@ -91,21 +91,55 @@ fn cash_delivery_and_unstarted_cancellation_advance_only_business_revision() {
     } else {
         unreachable!()
     };
-    assert!(
-        b.cancel_cash(order, c.contract_id, r.decision_hash, NOW)
-            .unwrap()
-            .cancelled
-    );
+    let unstarted = b
+        .cancel_cash(order, c.contract_id, r.decision_hash, NOW, None)
+        .unwrap();
+    assert!(unstarted.cancelled);
+    assert_eq!(unstarted.cancelled_at_ms, NOW);
     assert_eq!(b.business_revision, 11);
-    let mut b = ProductBook::new(offer().beneficiary, 9);
-    b.reserve(f::authorization(true), NOW + DAY, NOW).unwrap();
-    b.begin_apply(&d, NOW).unwrap();
-    let (c, r) = b.apply(&d, f::cash_source(&d), NOW).unwrap();
+    let started = |b: &mut ProductBook| {
+        *b = ProductBook::new(offer().beneficiary, 9);
+        b.reserve(f::authorization(true), NOW + DAY, NOW).unwrap();
+        b.begin_apply(&d, NOW).unwrap();
+        b.apply(&d, f::cash_source(&d), NOW).unwrap()
+    };
+    let (c, r) = started(&mut b);
+    let start = c.offer.starts_at_ms;
     assert!(
-        !b.cancel_cash(order, c.contract_id, r.decision_hash, c.offer.starts_at_ms)
+        !b.cancel_cash(order, c.contract_id, r.decision_hash, start, None)
             .unwrap()
             .cancelled
     );
+    // A started term ends early only when its product allows it, and never
+    // before now, before rights it issued, or at its natural end.
+    let (c, r) = started(&mut b);
+    let end = c.offer.expires_at_ms;
+    for from in [start - 1, end] {
+        assert!(
+            !b.cancel_cash(order, c.contract_id, r.decision_hash, start, Some(from))
+                .unwrap()
+                .cancelled
+        );
+    }
+    b.contracts[0].max_issued_until_ms = start + 60 * MINUTE;
+    assert!(
+        !b.cancel_cash(order, c.contract_id, r.decision_hash, start, Some(start))
+            .unwrap()
+            .cancelled
+    );
+    let early = b
+        .cancel_cash(
+            order,
+            c.contract_id,
+            r.decision_hash,
+            start,
+            Some(start + 60 * MINUTE),
+        )
+        .unwrap();
+    assert!(early.cancelled);
+    assert_eq!(early.cancelled_at_ms, start + 60 * MINUTE);
+    assert_eq!(b.contracts[0].status, SubscriptionStatus::Cancelled);
+    assert_eq!(b.business_revision, 11);
 }
 
 #[test]

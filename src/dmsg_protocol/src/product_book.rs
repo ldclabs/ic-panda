@@ -228,13 +228,18 @@ impl ProductBook {
         rejected(decision, reason, at)
     }
 
-    /// PANDA is never cancellable. Unstarted cash terms have not issued any rights.
+    /// Cancel a cash term. One whose interval has not started and whose
+    /// rights were never issued is cancelled now. A started one only when its
+    /// product allows an early refund: `refund_from` is when its rights stop,
+    /// no earlier than now or any right already issued, and before the term
+    /// ends. PANDA is never cancellable.
     pub fn cancel_cash(
         &mut self,
         order_id: Hash,
         contract_id: Hash,
         decision_hash: Hash,
         at: u64,
+        refund_from: Option<u64>,
     ) -> Result<CashCancellationReceipt> {
         let c = self
             .contracts
@@ -245,11 +250,19 @@ impl ProductBook {
             matches!(c.source,SubscriptionSource::Cash {order_id:id,..} if id==order_id),
             Error::Forbidden,
         )?;
-        let allowed = matches!(
+        let unstarted = matches!(
             c.status,
             SubscriptionStatus::Active | SubscriptionStatus::Terminated
         ) && at < c.offer.starts_at_ms
             && c.max_issued_until_ms <= at;
+        let early = refund_from.filter(|end| {
+            c.status == SubscriptionStatus::Active
+                && c.offer.starts_at_ms <= at
+                && at <= *end
+                && c.max_issued_until_ms <= *end
+                && *end < c.offer.expires_at_ms
+        });
+        let allowed = unstarted || early.is_some();
         let revision = if allowed {
             self.business_revision
                 .checked_add(1)
@@ -269,7 +282,7 @@ impl ProductBook {
             order_id,
             contract_id,
             decision_hash,
-            cancelled_at_ms: at,
+            cancelled_at_ms: early.unwrap_or(at),
             cancelled: allowed,
             business_revision: revision,
         })

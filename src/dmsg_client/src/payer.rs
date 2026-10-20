@@ -10,6 +10,7 @@
 //! journal unknown and the same arguments.
 
 use crate::client::Client;
+use crate::hold::Hold;
 use crate::ic::Ic;
 use candid::{Nat, Principal};
 use dmsg_types::{Error, Result, ensure};
@@ -174,18 +175,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::AuthRequired` without a login or payer.
     pub(crate) async fn payer(&mut self) -> Result<(Principal, Ic)> {
-        let Some(path) = self.workspace.store.meta::<String>(PAYER_PEM)? else {
-            let login = self.session()?;
-            return Ok((login.principal, login.ic.clone()));
-        };
-        self.keys()?;
-        if let Some(payer) = &self.payer {
-            return Ok(payer.clone());
-        }
-        let ic = Ic::connect(&self.config, pem_identity(std::path::Path::new(&path))?).await?;
-        let payer = (ic.principal()?, ic);
-        self.payer = Some(payer.clone());
-        Ok(payer)
+        payer(&self.hold()).await
     }
 
     /// Pay with the identity in the PEM file at `pem`, an absolute path the
@@ -338,22 +328,110 @@ impl Client {
             }
         }
     }
+}
 
-    /// The payer's Principal and its balance on `ledger`.
-    ///
-    /// # Errors
-    /// Returns `Error::AuthRequired` without a login.
-    pub async fn payer_balance(&mut self, ledger: Principal) -> Result<serde_json::Value> {
-        let (payer, ic) = self.payer().await?;
+/// The payer as [`Client::payer`] finds it, a PEM identity connected
+/// without the client the first time.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` without a login or payer.
+pub(crate) async fn payer<H: Hold>(h: &H) -> Result<(Principal, Ic)> {
+    let found = h
+        .with(|c| {
+            let Some(path) = c.workspace.store.meta::<String>(PAYER_PEM)? else {
+                let login = c.session()?;
+                return Ok(Ok((login.principal, login.ic.clone())));
+            };
+            c.keys()?;
+            Ok(match &c.payer {
+                Some(payer) => Ok(payer.clone()),
+                None => Err((path, c.config.clone())),
+            })
+        })
+        .await?;
+    let (path, config) = match found {
+        Ok(payer) => return Ok(payer),
+        Err(missing) => missing,
+    };
+    let ic = Ic::connect(&config, pem_identity(std::path::Path::new(&path))?).await?;
+    let payer = (ic.principal()?, ic);
+    h.with(|c| Ok(c.payer.get_or_insert(payer).clone())).await
+}
+
+/// The payer's Principal and its balance on `ledger`.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` without a login.
+pub async fn payer_balance<H: Hold>(h: &H, ledger: Principal) -> Result<serde_json::Value> {
+    let (payer, ic) = payer(h).await?;
+    let reader = Ledger {
+        ic: &ic,
+        canister: ledger,
+    };
+    Ok(serde_json::json!({
+        "principal": payer.to_text(),
+        "ledger": ledger.to_text(),
+        "balance": reader.balance(payer).await?.to_string(),
+        "fee": reader.fee().await?.to_string(),
+    }))
+}
+
+/// Who pays, the login or a PEM identity, and its balance on every
+/// settlement asset and on the name registry's PANDA ledger. A ledger that
+/// does not answer shows its error instead of a balance.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` without a login.
+pub async fn payer_status<H: Hold>(h: &H) -> Result<serde_json::Value> {
+    let (pem, registry) = h
+        .with(|c| {
+            Ok((
+                c.workspace.store.meta::<String>(PAYER_PEM)?.is_some(),
+                c.config.handle,
+            ))
+        })
+        .await?;
+    let (principal, ic) = payer(h).await?;
+    let mut ledgers: Vec<(Principal, String, u8)> = Vec::new();
+    if let serde_json::Value::Array(assets) = crate::commerce::plan_assets(h).await? {
+        for a in assets {
+            if let (Some(ledger), Some(asset), Some(decimals)) = (
+                a["ledger"]
+                    .as_str()
+                    .and_then(|l| Principal::from_text(l).ok()),
+                a["asset"].as_str(),
+                a["decimals"].as_u64(),
+            ) {
+                ledgers.push((ledger, asset.to_string(), decimals as u8));
+            }
+        }
+    }
+    let config: crate::account::HandleConfig = h
+        .reader()
+        .await?
+        .query(registry, "get_handle_config", ())
+        .await?;
+    ledgers.push((config.ledger, "PANDA".into(), 8));
+    let mut balances = Vec::new();
+    for (ledger, asset, decimals) in ledgers {
         let reader = Ledger {
             ic: &ic,
             canister: ledger,
         };
-        Ok(serde_json::json!({
-            "principal": payer.to_text(),
+        let mut row = serde_json::json!({
             "ledger": ledger.to_text(),
-            "balance": reader.balance(payer).await?.to_string(),
-            "fee": reader.fee().await?.to_string(),
-        }))
+            "asset": asset,
+            "decimals": decimals,
+        });
+        match reader.balance(principal).await {
+            Ok(balance) => row["balance"] = balance.to_string().into(),
+            Err(error) => row["error"] = crate::error_code(&error).into(),
+        }
+        balances.push(row);
     }
+    Ok(serde_json::json!({
+        "principal": principal.to_text(),
+        "source": if pem { "pem" } else { "login" },
+        "balances": balances,
+    }))
 }

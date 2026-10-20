@@ -47,6 +47,7 @@ const api: DesktopBridge = {
   filesPreferences: (changes) => unwrap(ipcRenderer.invoke('dmsg:files-preferences', changes)),
   filesOpen: (id, version) => unwrap(ipcRenderer.invoke('dmsg:files-open', id, version)),
   avatar: (remove) => unwrap(ipcRenderer.invoke('dmsg:avatar', remove === true)),
+  payerPem: (login) => unwrap(ipcRenderer.invoke('dmsg:payer-pem', login === true)),
   copySecret: (id, field, revision) => unwrap(ipcRenderer.invoke('dmsg:copy-secret', id, field ?? null, revision ?? null)),
   vaultImportPreview: () => unwrap(ipcRenderer.invoke('dmsg:vault-import-preview')),
   vaultImport: (picks) => unwrap(ipcRenderer.invoke('dmsg:vault-import', picks)),

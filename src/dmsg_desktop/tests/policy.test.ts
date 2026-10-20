@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { DESKTOP_TOOLS, externalAllowed, legacyAllowed, parseLink, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
+import { DESKTOP_TOOLS, externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
 
 test('windows never decide or grant, and never send human', () => {
   for (const method of [
@@ -73,7 +73,9 @@ test('windows never decide or grant, and never send human', () => {
     'wallet/join',
     'wallet/approve',
     'wallet/veto',
-    'wallet/execute'
+    'wallet/execute',
+    'plan/checkout',
+    'plan/advance'
   ])
     assert.equal(windowParams(method, { source: 'cli' }).source, 'gui', method)
 })
@@ -117,10 +119,14 @@ test('dmsg links only navigate', () => {
   // An invitation link only opens the join dialog with it.
   const invitation = 'eyJmb3JtYXQiOiJkbXNnLWNoYW5uZWwtaW52aXRhdGlvbi8xIn0'
   assert.deepEqual(parseLink(`dmsg://channel/join#${invitation}`), { route: 'join', invitation })
+  // A name transfer's link only opens the accept dialog with its token.
+  assert.deepEqual(parseLink(`dmsg://handle/accept#${invitation}`), { route: 'accept', token: invitation })
   for (const bad of [
     'dmsg://channel/join#short',
     'dmsg://channel/join#not+base64url!',
     `dmsg://channel/accept#${invitation}`,
+    'dmsg://handle/accept#not+base64url!',
+    `dmsg://handle/transfer#${invitation}`,
     'dmsg://connect/approve?account=x',
     'dmsg://connect/pair?account=x',
     `dmsg://connect/request?account=${account}&request=zz`,
@@ -154,4 +160,16 @@ test('only old-site migration links open from the legacy view', () => {
     'javascript:alert(1)'
   ])
     assert.equal(legacyAllowed(url), false, url)
+})
+
+test('a term ending reminds 30, 7 and 1 days before, each once', () => {
+  const day = 86_400_000
+  assert.equal(reminderDue(31 * day), null)
+  assert.equal(reminderDue(30 * day), 30)
+  assert.equal(reminderDue(20 * day, 30), null)
+  assert.equal(reminderDue(5 * day, 30), 7)
+  // Away for weeks, the nearest threshold reminds alone.
+  assert.equal(reminderDue(day / 2), 1)
+  assert.equal(reminderDue(day / 2, 1), null)
+  assert.equal(reminderDue(0), null)
 })

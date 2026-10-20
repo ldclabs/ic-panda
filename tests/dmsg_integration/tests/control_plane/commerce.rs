@@ -430,6 +430,47 @@ fn neuron(f: &Fixture, stake: u64) {
     );
 }
 #[test]
+fn the_panda_service_names_its_sns_and_rates_and_the_sns_lists_held_neurons() {
+    let f = Fixture::commercial();
+    let view: PandaServiceView = query(&f.ic, f.membership, person(9), "panda_service", ());
+    assert_eq!((view.governance, view.panda_ledger), (f.sns, f.sns));
+    assert!(!view.paused && view.cooling_ms >= PANDA_COOLING_MS);
+    assert!(
+        view.rates
+            .iter()
+            .any(|r| r.product_ids.iter().any(|p| p == "dmsg"))
+    );
+    // A client lists the neurons its payer is a hotkey of before it quotes.
+    #[derive(CandidType)]
+    struct List {
+        of_principal: Option<Principal>,
+        limit: u32,
+        start_page_at: Option<TestNeuronId>,
+    }
+    #[derive(CandidType, Deserialize)]
+    struct Listed {
+        neurons: Vec<TestNeuron>,
+    }
+    neuron(&f, 100_000_000_000_100);
+    let list = |who: u8| -> Vec<TestNeuron> {
+        let r: Listed = query(
+            &f.ic,
+            f.sns,
+            person(9),
+            "list_neurons",
+            (List {
+                of_principal: Some(person(who)),
+                limit: 10,
+                start_page_at: None,
+            },),
+        );
+        r.neurons
+    };
+    assert_eq!(list(1).len(), 1);
+    assert!(list(3).is_empty());
+}
+
+#[test]
 fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early() {
     let f = Fixture::commercial();
     let id = f.create(1);
@@ -1616,7 +1657,7 @@ fn an_account_of_an_added_user_home_buys_a_plan() {
 fn cash_leases_last_thirty_days_and_renew_inside_the_window() {
     let f = Fixture::commercial();
     let id = f.create(1);
-    pay(&f, &id, "plus", 242);
+    let (paid, _) = pay(&f, &id, "plus", 242);
     let refresh = || -> EntitlementView {
         let r: Result<EntitlementView> = update(
             &f.ic,
@@ -1627,9 +1668,22 @@ fn cash_leases_last_thirty_days_and_renew_inside_the_window() {
         );
         r.unwrap()
     };
+    // A first purchase stays refundable for a week, on hour-long leases.
     let view = refresh();
     assert_eq!(view.source_status, SourceStatus::Active);
+    assert_eq!(view.valid_until_ms, view.issued_at_ms + 60 * MINUTE);
+    f.ic.advance_time(Duration::from_millis(CASH_REFUND_WINDOW_MS));
+    let view = refresh();
     assert_eq!(view.valid_until_ms, view.issued_at_ms + 30 * DAY);
+    // Once the week is over the payer may not even ask to cancel.
+    let late: Result<CheckoutProgress> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "cancel_checkout",
+        (paid.progress.order_id,),
+    );
+    assert_eq!(late, Err(Error::Forbidden));
     // The execution allowance still rechecks business terms hourly.
     let usage: Result<ExecutionUsage> = update(
         &f.ic,
@@ -1650,6 +1704,138 @@ fn cash_leases_last_thirty_days_and_renew_inside_the_window() {
     let renewed = refresh();
     assert!(renewed.lease_revision > view.lease_revision);
     assert!(renewed.valid_until_ms > view.valid_until_ms);
+}
+
+#[test]
+fn a_first_cash_purchase_refunds_its_unused_time_within_a_week() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let b = beneficiary(f.user, &id);
+    let refresh = || -> EntitlementView {
+        let r: Result<EntitlementView> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (b.clone(),),
+        );
+        r.unwrap()
+    };
+    let terms = || -> MembershipTerms {
+        let r: Result<MembershipTerms> = query(
+            &f.ic,
+            f.commerce,
+            person(9),
+            "get_membership_terms",
+            (b.clone(),),
+        );
+        r.unwrap()
+    };
+    let cancel = |order: Hash| -> Result<CheckoutProgress> {
+        update(&f.ic, f.commerce, person(1), "cancel_checkout", (order,))
+    };
+    let collect = |order: Hash| -> CashTransfer {
+        let r: Result<CashTransfer> = update(
+            &f.ic,
+            f.commerce,
+            person(60),
+            "collect_checkout_revenue",
+            (order,),
+        );
+        let leg = r.unwrap();
+        let r: Result<CashTransferProgress> = update(
+            &f.ic,
+            f.commerce,
+            person(60),
+            "process_checkout_transfer",
+            (leg.transfer_id,),
+        );
+        assert_eq!(r.unwrap().status, CashTransferStatus::Succeeded);
+        leg
+    };
+    let empty: Result<MembershipTerms> = query(
+        &f.ic,
+        f.commerce,
+        person(9),
+        "get_membership_terms",
+        (b.clone(),),
+    );
+    assert_eq!(empty.unwrap().contracts, vec![]);
+    let (base, block) = pay(&f, &id, "plus", 250);
+    let order = base.progress.order_id;
+    let window = terms().refund.unwrap();
+    assert_eq!(window.order_id, order);
+    assert_eq!(terms().contracts.len(), 1);
+    // The merchant collects what the first days earned.
+    f.ic.advance_time(Duration::from_millis(3 * DAY));
+    collect(order);
+    let lease = refresh();
+    assert_eq!(lease.valid_until_ms, lease.issued_at_ms + 60 * MINUTE);
+    // Cancelling stops the term once the lease already issued runs out; the
+    // merchant keeps what it earned until then and the rest is refundable.
+    assert_eq!(cancel(order).unwrap().status, CheckoutStatus::Applied);
+    assert_eq!(cancel(order).unwrap().status, CheckoutStatus::Applied);
+    let stop = lease.valid_until_ms;
+    let applied_at = status(&f, order).receipt.unwrap().applied_at_ms;
+    let kept = earned_atomic(
+        base.quote.cash.amount_atomic,
+        &base.quote.offer,
+        applied_at,
+        stop,
+    )
+    .unwrap();
+    assert!(kept > 0);
+    let after = terms();
+    assert_eq!(after.refund, None);
+    assert_eq!(after.contracts[0].terminated_at_ms, Some(stop));
+    let refund: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "claim_checkout_refund",
+        (
+            order,
+            f.ledger,
+            vec![block.block_index],
+            Hash::new([252; 32]),
+        ),
+    );
+    let refund = refund.unwrap();
+    assert_eq!(
+        refund.amount_atomic + refund.fee_atomic,
+        base.quote.cash.amount_atomic - kept
+    );
+    // Rights last until the issued lease ends, then the account is Free.
+    let view = refresh();
+    assert_eq!(view.plan_snapshot.plan_id, PlanId::Plus);
+    assert!(view.valid_until_ms <= stop);
+    f.ic.advance_time(Duration::from_millis(stop - time(&f.ic)));
+    let view = refresh();
+    assert_eq!(view.plan_snapshot.plan_id, PlanId::Free);
+    // The last collection takes only the earned part, then the fee reserve returns.
+    collect(order);
+    assert_eq!(status(&f, order).service_reserve_atomic, 0);
+    let returned: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(99),
+        "claim_checkout_fee_reserve",
+        (order,),
+    );
+    assert_eq!(returned.unwrap().to, base.quote.cash.payer);
+    // A later purchase is not a first one and cannot be refunded.
+    reprice(&f);
+    let (again, _) = pay(&f, &id, "plus", 254);
+    assert_eq!(terms().refund, None);
+    assert_eq!(
+        cancel(again.progress.order_id).unwrap().status,
+        CheckoutStatus::Applied
+    );
+    assert_eq!(
+        status(&f, again.progress.order_id).service_reserve_atomic,
+        again.quote.cash.amount_atomic
+    );
+    assert_eq!(refresh().plan_snapshot.plan_id, PlanId::Plus);
 }
 
 /// An active PANDA subscription; uses operations `op` to `op + 2`.

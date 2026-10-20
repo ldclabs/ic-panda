@@ -282,6 +282,14 @@
       <dl class="divide-y divide-line">
         <Fact label={t('legacyPrincipal')}><Id id={report.principal} full /></Fact>
         <Fact label={t('displayName')}>{report.profile.name || '-'}</Fact>
+        {#if report.profile.username}
+          <Fact label={t('legacyUsername')} testid="legacy-username">
+            <span class="flex flex-wrap items-center gap-2">
+              <b class="font-semibold">@{report.profile.username}</b>
+              <a class={buttonClass('secondary', 'xs')} href={`#/plan?names=${encodeURIComponent(report.profile.username)}`} data-testid="legacy-claim-name">{t('claimOldName')}</a>
+            </span>
+          </Fact>
+        {/if}
         <Fact label={t('bio')}>{report.profile.bio || '-'}</Fact>
       </dl>
       {#if report.gaps.length}

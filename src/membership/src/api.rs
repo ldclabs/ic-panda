@@ -2,7 +2,12 @@
 use crate::{sns, store};
 use dmsg_protocol::authenticated;
 use dmsg_runtime::admin::{self, Validation, validation};
-use dmsg_types::{integration::*, integration_membership::PandaServiceConfig, membership::*, *};
+use dmsg_types::{
+    integration::*,
+    integration_membership::{PandaServiceConfig, PandaServiceView},
+    membership::*,
+    *,
+};
 use std::cell::Cell;
 
 thread_local! {
@@ -98,6 +103,24 @@ pub(crate) async fn fresh_sns(at: u64) -> Result<()> {
 async fn verify_sns_configuration() -> Result<()> {
     let at = nanos_to_millis(ic_cdk::api::time());
     fresh_sns(at).await
+}
+
+/// The SNS whose neurons qualify, its ledger, the cooling period, whether
+/// new applications are paused and the announced rates: what a client shows
+/// before it quotes.
+#[ic_cdk::query]
+fn panda_service() -> PandaServiceView {
+    let c = store::config();
+    PandaServiceView {
+        governance: c.init.governance,
+        panda_ledger: c.init.panda_ledger,
+        cooling_ms: c
+            .service
+            .as_ref()
+            .map_or(PANDA_COOLING_MS, |s| s.cooling_ms),
+        paused: c.paused,
+        rates: crate::rate::announced(),
+    }
 }
 
 /// Pause or resume new PANDA applications; existing claims keep refreshing.

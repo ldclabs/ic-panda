@@ -1,6 +1,11 @@
 use candid::Principal;
 use dmsg_protocol::billing::*;
-use dmsg_types::{billing::*, integration::PANDA_LEASE_MS, membership::*, *};
+use dmsg_types::{
+    billing::*,
+    integration::{CASH_REFUND_WINDOW_MS, PANDA_LEASE_MS},
+    membership::*,
+    *,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -45,6 +50,32 @@ pub fn end(c: &MembershipContract) -> u64 {
 
 /// Longest resource lease for rights that are never withdrawn once issued.
 pub const CASH_LEASE_MS: u64 = 30 * DAY;
+
+/// The subject's first cash base contract while its unused time can still be
+/// refunded: its only base contract ever, started, not ended, within
+/// [`CASH_REFUND_WINDOW_MS`] of its start. An upgrade or a renewal adds a
+/// second contract and closes the window.
+pub fn refund_window(s: &Subject, at: u64) -> Option<RefundWindow> {
+    let [c] = s.contracts.as_slice() else {
+        return None;
+    };
+    let ContractSource::Cash { order_id } = c.source else {
+        return None;
+    };
+    let until = c
+        .starts_at_ms
+        .saturating_add(CASH_REFUND_WINDOW_MS)
+        .min(end(c));
+    (s.last_service_end_ms.is_none()
+        && c.terminated_at_ms.is_none()
+        && c.starts_at_ms <= at
+        && at < until)
+        .then_some(RefundWindow {
+            contract_id: c.contract_id,
+            order_id,
+            until_ms: until,
+        })
+}
 
 /// Retained storage add-ons per subject; expired add-ons do not count.
 pub const MAX_ADDONS: usize = 64;
@@ -161,13 +192,15 @@ pub fn project(
     };
     let mut eligibility = Eligibility::Eligible;
     let mut sources = vec![];
-    // Issued cash and Free rights are never withdrawn: a started cash term has no
-    // refund and an unstarted one lies beyond the next boundary. A PANDA
-    // qualification can be lost at any time, so its lease stays short.
-    let panda = active
-        .as_ref()
-        .is_some_and(|c| matches!(c.source, ContractSource::Sns { .. }));
-    let mut until = at.saturating_add(if panda { PANDA_LEASE_MS } else { CASH_LEASE_MS });
+    // Issued Free and cash rights are withdrawn only by the early refund of a
+    // first cash purchase, whose leases stay short until its window closes; an
+    // unstarted term lies beyond the next boundary. A PANDA qualification can
+    // be lost at any time, so its lease stays short too.
+    let short = refund_window(s, at).is_some()
+        || active
+            .as_ref()
+            .is_some_and(|c| matches!(c.source, ContractSource::Sns { .. }));
+    let mut until = at.saturating_add(if short { PANDA_LEASE_MS } else { CASH_LEASE_MS });
     let mut observed = at;
     let mut repair = None;
     let mut terminated = s
@@ -453,14 +486,31 @@ mod tests {
         let mut s = subject(start, end + 365 * DAY);
         let v = project(HOME, &mut s, &catalog(), at, None).unwrap();
         assert_eq!(v.valid_until_ms, at + PANDA_LEASE_MS);
+        assert_eq!(refund_window(&s, at), None);
         s.contracts[0].source = ContractSource::Cash {
             order_id: Hash::new([5; 32]),
         };
+        // A first cash purchase stays refundable for a week, on short leases.
+        let window = refund_window(&s, at).unwrap();
+        assert_eq!(window.until_ms, start + CASH_REFUND_WINDOW_MS);
+        assert_eq!(window.order_id, Hash::new([5; 32]));
         let v = project(HOME, &mut s, &catalog(), at, None).unwrap();
-        assert_eq!(v.valid_until_ms, at + CASH_LEASE_MS);
+        assert_eq!(v.valid_until_ms, at + PANDA_LEASE_MS);
+        let later = start + CASH_REFUND_WINDOW_MS;
+        assert_eq!(refund_window(&s, later), None);
+        let v = project(HOME, &mut s, &catalog(), later, None).unwrap();
+        assert_eq!(v.valid_until_ms, later + CASH_LEASE_MS);
         // A known boundary, such as the next catalog, ends the lease earlier.
-        let v = project(HOME, &mut s, &catalog(), at, Some(at + DAY)).unwrap();
-        assert_eq!(v.valid_until_ms, at + DAY);
+        let v = project(HOME, &mut s, &catalog(), later, Some(later + DAY)).unwrap();
+        assert_eq!(v.valid_until_ms, later + DAY);
+        // A second contract, such as an upgrade, is not a first purchase.
+        let mut upgraded = s.clone();
+        upgraded.contracts[0].terminated_at_ms = Some(at);
+        upgraded.contracts.push(s.contracts[0].clone());
+        assert_eq!(refund_window(&upgraded, at), None);
+        let mut renewed = s.clone();
+        renewed.last_service_end_ms = Some(start);
+        assert_eq!(refund_window(&renewed, at), None);
     }
 
     #[test]

@@ -283,7 +283,8 @@ pub enum SubscriptionStatus {
     Terminated,
     /// Natural end reached.
     Expired,
-    /// Only an unstarted cash term may be cancelled.
+    /// A cash term cancelled before it started, or refunded early under its
+    /// product's policy.
     Cancelled,
 }
 
@@ -318,7 +319,8 @@ pub struct SubscriptionContract {
     pub repair_elapsed_ms: u64,
 }
 
-/// Durable permission to cancel exactly one unstarted cash term.
+/// Durable permission to cancel exactly one cash term: unstarted, or refunded
+/// early under its product's policy.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CashCancellationReceipt {
     /// Checkout order to refund.
@@ -327,7 +329,9 @@ pub struct CashCancellationReceipt {
     pub contract_id: Hash,
     /// Full original decision commitment.
     pub decision_hash: Hash,
-    /// Time of the cancellation.
+    /// Time the term's rights stop: the request time for an unstarted term,
+    /// otherwise no earlier than the last resource lease already issued.
+    /// Revenue is earned up to it and the rest of the price is refunded.
     pub cancelled_at_ms: u64,
     /// False is a durable refusal, not an unknown cancellation.
     pub cancelled: bool,

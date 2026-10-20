@@ -1315,6 +1315,13 @@ impl Client {
         self.cloud.prepare_get(&self.signer(state)?, path, now_ms())
     }
 
+    /// A device-authenticated POST without a body, as [`Self::signed_get`].
+    pub(crate) fn signed_post_empty(&self, path: &str) -> Result<Prepared> {
+        let state = self.fresh_state().ok_or(Error::PolicyStale)?;
+        self.cloud
+            .prepare_empty_post(&self.signer(state)?, path, now_ms())
+    }
+
     /// A device command signed now, as [`Self::signed_get`].
     pub(crate) fn signed_post<P: Serialize>(
         &self,

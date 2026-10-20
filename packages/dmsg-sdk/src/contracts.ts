@@ -538,6 +538,14 @@ export interface PandaServiceConfig {
   product_calls_per_minute: bigint
 }
 
+export interface PandaServiceView {
+  governance: Uint8Array
+  panda_ledger: Uint8Array
+  cooling_ms: bigint
+  paused: boolean
+  rates: PandaRatePolicy[]
+}
+
 export interface PandaApplicationTerms {
   home_membership: Uint8Array
   user_home: Uint8Array

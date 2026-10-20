@@ -451,7 +451,9 @@ fn cancel_cash_contract(
         applied.decision_hash == decision_hash,
         Error::IntegrityFailed,
     )?;
-    let r = s.book.cancel_cash(order, contract, decision_hash, now())?;
+    let r = s
+        .book
+        .cancel_cash(order, contract, decision_hash, now(), None)?;
     save(&s);
     CANCELLED.with_borrow_mut(|t| t.put(order.as_slice(), &r));
     Ok(r)

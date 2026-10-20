@@ -4,7 +4,9 @@
 // only the approval window decides, and that it decides what it
 // showed, that payments and device revocation take a hold to approve, and
 // that the channel, inbox, plan and agent views reach the daemon with
-// payments and grants only as approval requests; that an activation payment
+// payments and grants only as approval requests; that a plan is renewed
+// with PANDA, upgraded, extended with storage and refunded, and that a name
+// moves only once both accounts approved; that an activation payment
 // that created no wallet is refunded from the wallet view; that another account's
 // workspace is selected from Settings, which shows the app's version and
 // offers no update check in a development run, that binding a login and a web
@@ -248,6 +250,68 @@ let published = {
   self_asserted: true
 }
 const checkouts = []
+const DAY = 86_400_000
+/** The plan the mock reports: free at first, then a Plus term that ends in five days. */
+let membership = 'free'
+let termEnds = 0
+const LIMITS = {
+  Free: { storage_bytes: 1_000_000_000, active_channels: 3, monthly_execution_units: 10 },
+  Plus: { storage_bytes: 50_000_000_000, active_channels: 20, monthly_execution_units: 100 },
+  Pro: { storage_bytes: 200_000_000_000, active_channels: 50, monthly_execution_units: 500 },
+  Max: { storage_bytes: 1_000_000_000_000, active_channels: 200, monthly_execution_units: 2000 }
+}
+/** The catalog's storage pack. */
+const pack = 'e7'.repeat(32)
+/** `plan/status`, as the daemon gives it: the plan in force, its term and what each paid plan offers now. */
+function planStatus() {
+  if (membership === 'free') {
+    return {
+      plan: 'Free',
+      source: 'Free',
+      eligibility: null,
+      limits: LIMITS.Free,
+      addons: [],
+      current: null,
+      next: null,
+      offers: ['Plus', 'Pro', 'Max'].map((plan) => ({ plan, action: 'subscribe', sku: plan.toLowerCase(), starts_at_ms: Date.now(), methods: ['Cash', 'Panda'] })),
+      storage_available: false,
+      renew_from_ms: null,
+      refund: null
+    }
+  }
+  const contract = 'c7'.repeat(32)
+  return {
+    plan: 'Plus',
+    source: 'Active',
+    eligibility: 'Eligible',
+    limits: LIMITS.Plus,
+    addons: [],
+    current: { contract, plan: 'Plus', method: 'Cash', source: 'Cash', term_starts_at_ms: Date.now() - DAY, starts_at_ms: Date.now() - DAY, expires_at_ms: termEnds, terminated_at_ms: null, ends_at_ms: termEnds },
+    next: null,
+    offers: [
+      { plan: 'Plus', action: 'renew', sku: 'plus', starts_at_ms: termEnds, methods: ['Cash', 'Panda'] },
+      { plan: 'Pro', action: 'upgrade', sku: 'upgrade-pro', starts_at_ms: Date.now(), methods: ['Cash'] },
+      { plan: 'Max', action: 'upgrade', sku: 'upgrade-max', starts_at_ms: Date.now(), methods: ['Cash'] }
+    ],
+    storage_available: true,
+    renew_from_ms: termEnds - 30 * DAY,
+    refund: { order: '88'.repeat(32), contract, until_ms: Date.now() + 6 * DAY }
+  }
+}
+/** The service's view of an order, once it has one. */
+const orderViews = {}
+const pandaLedger = 'druyg-tyaaa-aaaaq-aactq-cai'
+/** Who pays: the login, or a PEM file's key. */
+let payerSource = 'login'
+/** The relay's notice of an account over its plan, until it is acknowledged. */
+const cloudNotice = { id: 'notice-1', detected_at: Date.now() - DAY, acknowledged_at: null, service_terminated_at: null, minimum_export_until: Date.now() + 30 * DAY }
+/** Name operations, as `handle/operations` lists them. */
+let nameOps = []
+const transferToken = 'o2RuYW1lZXNtb2tlZnRhcmdldA'
+const incomingToken = 'o2RuYW1lZGdpZnRmdGFyZ2V0cw'
+let requestSeq = 0xf1
+/** An approval request id the mock has not given yet. */
+const nextRequest = () => (requestSeq++).toString(16).repeat(32)
 // Activation payments that created no wallet: one refundable now, one once its quote expires.
 const payer = 'rwlgt-iiaaa-aaaaa-aaaaa-cai'
 const deposits = [
@@ -280,10 +344,27 @@ function emit(type, data) {
 }
 /** A request created from the main window, as the daemon would show it. */
 function created(id, type, detail) {
-  // The daemon rates the risk: payments, revocations and control of the account are held.
-  const risk = ['checkout', 'letter', 'device_revoke', 'account', 'principal'].includes(type) ? 'high' : 'normal'
+  // The daemon rates the risk: payments, revocations, control of the account and moving a name are held.
+  const named = type === 'handle' && (detail.total != null || detail.action === 'Transfer')
+  const risk = named || ['checkout', 'letter', 'device_revoke', 'account', 'principal'].includes(type) ? 'high' : 'normal'
   const r = { ...request, id, source: 'gui', state: 'awaiting_user', type, kind: type, risk, digest: 'f0'.repeat(32), detail }
   requests.set(id, r)
+  return r
+}
+/** A plan checkout's approval request, as `plan/checkout` and `plan/advance` open it. */
+function payment(id, fresh) {
+  const r = {
+    ...request,
+    id: nextRequest(),
+    source: 'gui',
+    state: 'awaiting_user',
+    type: 'checkout',
+    kind: 'payment',
+    risk: 'high',
+    digest: '97'.repeat(32),
+    detail: { ...checkouts.find((c) => c.id === id), fresh }
+  }
+  requests.set(r.id, r)
   return r
 }
 function status() {
@@ -499,7 +580,17 @@ const methods = {
   'files/share_links': () => [],
   'files/mount_status': () => ({ mounted: false, enabled: false, os: 'macos', supported: true, note: '' }),
   'files/cloud_list': () => [],
-  'files/cloud_usage': () => ({ reserved: 0, committed: 1300, storage_limit: 104857600, status: 'within_limit', backups: 1, backup_bytes: 1300 }),
+  'files/cloud_usage': () => ({
+    reserved: 0,
+    committed: 1300,
+    storage_limit: 104857600,
+    status: 'within_limit',
+    channel_limit: 3,
+    active_channels: 2,
+    notice: cloudNotice,
+    backups: 1,
+    backup_bytes: 1300
+  }),
   'files/save_shared': (p) => {
     const file = libraryFile('28'.repeat(32), 'plan.pdf', 2048)
     library.push(file)
@@ -705,7 +796,73 @@ const methods = {
     requests.set(quoted.id, quoted)
     return quoted
   },
-  'handle/operations': () => [],
+  'handle/operations': () => nameOps,
+  'handle/mine': () => [{ name: 'smoke', version: 1 }],
+  'handle/price': (p) => {
+    const quote = { name: p.name, price: '10000000000', fee: '10000', most: '10000020000', ledger: pandaLedger, owner: null, reserved: false }
+    if (p.name === 'smoke') return { ...quote, owner: account }
+    if (p.name === 'taken') return { ...quote, owner: peer }
+    if (p.name === 'oldpanda') return { ...quote, reserved: true, claim: { claimable: false, quarantined: false, login: 'aaaaa-aa', holders: ['2vxsx-fae'] } }
+    return quote
+  },
+  'handle/register': (p) =>
+    created(nextRequest(), 'handle', {
+      id: 'b7'.repeat(32),
+      name: p.name,
+      action: 'Register',
+      caller: account,
+      caller_role: 'login',
+      total: '10000000000',
+      fee: '10000',
+      most: '10000020000',
+      from: null,
+      to: account,
+      phase: 'prepared'
+    }),
+  'handle/transfer': (p) => {
+    const op = {
+      id: 'b8'.repeat(32),
+      name: p.name,
+      action: 'Transfer',
+      caller: account,
+      caller_role: 'login',
+      total: null,
+      fee: null,
+      most: null,
+      from: account,
+      to: p.target,
+      phase: 'prepared',
+      expired: false,
+      until_ms: null,
+      created_at_ms: Date.now(),
+      token: transferToken,
+      accepted_until_ms: null
+    }
+    nameOps = [op]
+    return { operation: op.id, token: transferToken }
+  },
+  'handle/transfer_commit': (p) => {
+    const { token: _token, accepted_until_ms: _until, ...op } = nameOps.find((o) => o.id === p.id)
+    return created(nextRequest(), 'handle', op)
+  },
+  'handle/accept': () =>
+    created(nextRequest(), 'handle', {
+      id: 'b9'.repeat(32),
+      name: 'gift',
+      action: 'AcceptTransfer',
+      caller: account,
+      caller_role: 'login',
+      total: null,
+      fee: null,
+      most: null,
+      from: peer,
+      to: account,
+      phase: 'prepared'
+    }),
+  'handle/forget': (p) => {
+    nameOps = nameOps.filter((op) => op.id !== p.id)
+    return { forgotten: true }
+  },
   'profile/show': () => published,
   'profile/avatar': (p) => {
     const upload = p.remove ? null : 'a1'.repeat(32)
@@ -784,29 +941,104 @@ const methods = {
     deposits.splice(i, 1)
     return { quote_id: p.quote, to: payer, block: 42 }
   },
-  'plan/status': () => ({ plan: 'Free', storage_bytes: 1_000_000_000 }),
+  'plan/status': () => planStatus(),
   'plan/catalog': () => ({
     version: 1,
+    effective_at_ms: Date.now() - 30 * DAY,
     plans: [
-      { plan_id: 'Free', price_cents: 0, limits: { storage_bytes: 1_000_000_000, active_channels: 3, monthly_execution_units: 10 } },
-      { plan_id: 'Plus', price_cents: 500, limits: { storage_bytes: 50_000_000_000, active_channels: 20, monthly_execution_units: 100 } }
-    ]
+      { plan_id: 'Free', price_cents: 0, limits: LIMITS.Free, terms_version: 1 },
+      { plan_id: 'Plus', price_cents: 500, limits: LIMITS.Plus, terms_version: 1 },
+      { plan_id: 'Pro', price_cents: 1500, limits: LIMITS.Pro, terms_version: 1 },
+      { plan_id: 'Max', price_cents: 5000, limits: LIMITS.Max, terms_version: 1 }
+    ],
+    storage_products: [{ product_id: pack, storage_bytes: 100_000_000_000, price_cents: 1000 }]
   }),
   'plan/assets': () => [{ ledger, asset: 'Icp', decimals: 8, network_fee: '10000' }],
   'plan/checkouts': () => checkouts,
   'plan/quote': (p) => {
-    assert.deepEqual(p, { sku: 'plus', method: 'cash', selection: ledger })
+    const now = Date.now()
+    // A renewal starts when the term ends; an upgrade and a storage pack last until then.
+    const renewal = membership !== 'free' && p.sku === 'plus'
+    const partial = p.sku.startsWith('upgrade-') || p.sku === pack
     const job = {
-      id: '88'.repeat(32),
+      id: ['88', '89', '8a', '8b', '8c', '8d'][checkouts.length].repeat(32),
       actor: 'aaaaa-aa',
       origin: 'https://dmsg.net',
-      sku: 'plus',
+      sku: p.sku,
       amount_usd_micros: '5000000',
-      terms: { method: 'Cash', ledger, asset: 'Icp', amount: '500000000', fee_reserve: '20000', decimals: 8, funding_deadline_ms: Date.now() + 600_000 },
-      stage: 'review'
+      starts_at_ms: renewal ? termEnds : now,
+      expires_at_ms: renewal ? termEnds + 365 * DAY : partial ? termEnds : now + 365 * DAY,
+      terms:
+        p.method === 'cash'
+          ? {
+              method: 'Cash',
+              ledger,
+              asset: 'Icp',
+              amount: '500000000',
+              fee_reserve: '20000',
+              network_fee: '10000',
+              decimals: 8,
+              funding_deadline_ms: now + 600_000,
+              activation_deadline_ms: now + 1_200_000
+            }
+          : { method: 'Panda', neuron: p.selection, required_stake_e8s: '2000000000000', application_deadline_ms: now + DAY, committed_until_ms: termEnds + 365 * DAY },
+      stage: 'review',
+      created_at_ms: now + checkouts.length,
+      digest: 'de'.repeat(32)
     }
     checkouts.push(job)
     return job
+  },
+  'plan/order': (p) => {
+    if (!orderViews[p.id]) throw { code: 'NOT_FOUND', message: 'Not found' }
+    return orderViews[p.id]
+  },
+  'plan/panda': () => ({
+    governance: 'dwv6s-6aaaa-aaaaq-aacta-cai',
+    ledger: pandaLedger,
+    cooling_ms: 3_900_000,
+    paused: false,
+    rate: { policy_version: 1, r_num: '1', r_den: '1', effective_at_ms: Date.now() - DAY },
+    plans: [
+      { plan_id: 'Plus', required_stake_e8s: '2000000000000' },
+      { plan_id: 'Pro', required_stake_e8s: '6000000000000' },
+      { plan_id: 'Max', required_stake_e8s: null }
+    ],
+    payer,
+    neurons: [
+      { id: '6b'.repeat(32), stake_e8s: '2500000000000', dissolving: false, unlock_at_ms: Date.now() + 400 * DAY },
+      { id: '6c'.repeat(32), stake_e8s: '100000000000', dissolving: true, unlock_at_ms: Date.now() + 10 * DAY }
+    ]
+  }),
+  'plan/refund_quote': (p) => ({ order: p.id, refund: '450000000', received: '449990000', fee: '10000', asset: 'Icp', decimals: 8, stops_at_ms: Date.now(), until_ms: Date.now() + 6 * DAY }),
+  'plan/cancel': (p) => {
+    membership = 'free'
+    orderViews[p.id] = { ...orderViews[p.id], id: p.id, method: 'Cash', status: 'RefundCommitted' }
+    return { ...orderViews[p.id], refunds: [{ to: payer, amount: '449990000', block: 7 }] }
+  },
+  'plan/discard': (p) => {
+    checkouts.splice(
+      checkouts.findIndex((job) => job.id === p.id),
+      1
+    )
+    return { discarded: true }
+  },
+  'plan/notice_ack': (p) => {
+    assert.equal(p.id, cloudNotice.id)
+    cloudNotice.acknowledged_at = Date.now()
+    return { acknowledged: true }
+  },
+  'payer/status': () => ({
+    principal: payerSource === 'pem' ? '2vxsx-fae' : payer,
+    source: payerSource,
+    balances: [
+      { ledger, asset: 'Icp', decimals: 8, balance: '1200000000' },
+      { ledger: pandaLedger, asset: 'PANDA', decimals: 8, balance: '50000000000' }
+    ]
+  }),
+  'payer/use': (p) => {
+    payerSource = p.pem ? 'pem' : 'login'
+    return { principal: payerSource === 'pem' ? '2vxsx-fae' : payer, source: payerSource }
   },
   'agent/ids': () => ({
     active: claude,
@@ -932,19 +1164,12 @@ const methods = {
   },
   'plan/checkout': (p) => {
     assert.equal(p.source, 'gui')
-    const created = {
-      ...request,
-      id: '98'.repeat(32),
-      source: 'gui',
-      state: 'awaiting_user',
-      type: 'checkout',
-      kind: 'payment',
-      risk: 'high',
-      digest: '97'.repeat(32),
-      detail: { ...checkouts.find((c) => c.id === p.id), fresh: false }
-    }
-    requests.set(created.id, created)
-    return created
+    return payment(p.id, false)
+  },
+  // A PANDA application past its cooling period is approved once more.
+  'plan/advance': (p) => {
+    assert.equal(p.source, 'gui')
+    return payment(p.id, true)
   }
 }
 /** The events a method's success announces before its reply, as the daemon's `events_of` names them. */
@@ -989,6 +1214,11 @@ const announced = {
   'account/bind_approve': ['approval/changed'],
   'approval/quote': ['approval/changed'],
   'plan/checkout': ['approval/changed'],
+  'plan/advance': ['approval/changed'],
+  'handle/claim': ['approval/changed'],
+  'handle/register': ['approval/changed'],
+  'handle/accept': ['approval/changed'],
+  'handle/transfer_commit': ['approval/changed'],
   'agent/grant': ['approval/changed'],
   'grants/add': ['agent/changed'],
   'agent/credential': ['agent/changed'],
@@ -1309,7 +1539,20 @@ try {
   await main.click('nav >> text=/Plan & names|会员与名称/')
   await main.waitForSelector('[data-testid="plan-name"]')
   assert.equal(await main.textContent('[data-testid="plan-name"]'), 'Free')
-  await main.click('button:has-text("Subscribe"), button:has-text("订阅")')
+  // Each part reads on its own: the usage against the plan, the plan cards and the storage packs.
+  await main.waitForSelector('[data-testid="usage-channels"]')
+  assert.match(await main.textContent('[data-testid="usage-channels"]'), /2\s*\/\s*3/)
+  assert.equal(await main.locator('[data-testid="plan-pack-buy"]').isDisabled(), true)
+  // The relay's notice of an account over its plan is acknowledged once, which starts its export window.
+  await main.click('[data-testid="plan-notice-ack"]')
+  await waitFor(() => latest('plan/notice_ack'))
+  await main.waitForFunction(() => !document.querySelector('[data-testid="plan-notice-ack"]'))
+  await main.click('[data-testid="plan-plus-subscribe"]')
+  await main.waitForSelector('[data-testid="checkout"] >> text=Starts now, for a year')
+  assert.equal(await main.locator('[data-testid="checkout-method"]').count(), 1)
+  await main.click('[data-testid="checkout-pay"]')
+  await waitFor(() => latest('plan/quote'))
+  assert.deepEqual(latest('plan/quote').params, { sku: 'plus', method: 'cash', selection: ledger })
   await approval.waitForSelector('[data-testid="approval-sku"]', { timeout: 20_000 })
   assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('5 Icp'))
   await approval.waitForSelector('[data-testid="approve"]')
@@ -1317,7 +1560,142 @@ try {
   // A payment is approved by holding the button: a click alone decides nothing.
   await approval.click('[data-testid="approve"]')
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
-  await main.screenshot({ path: join(shots, 'account.png') })
+
+  // Paid, the plan shows its term, a renewal from its end, upgrades for the rest of it and storage packs.
+  membership = 'plus'
+  termEnds = Date.now() + 5 * DAY - 60_000
+  emit('approval/changed', {})
+  await main.waitForSelector('[data-testid="plan-name"] >> text=Plus')
+  assert.match(await main.textContent('[data-testid="plan-ends"]'), /5 days left/)
+  // A payment just made has the relay read the plan anew.
+  assert.ok(calls.some((c) => c.method === 'plan/status' && c.params?.refresh === true))
+  await main.screenshot({ path: join(shots, 'plan.png') })
+  // A renewal through PANDA picks a neuron the payer may act for, whose stake and lock cover the term.
+  await main.click('[data-testid="plan-plus-renew"]')
+  await main.click('[data-testid="checkout-method"] [data-value="Panda"]')
+  await main.waitForSelector('[data-testid="checkout-panda"]')
+  assert.equal(await main.locator('[data-testid="checkout-neuron"]').count(), 2)
+  assert.equal(await main.locator('[data-testid="checkout-neuron"]').nth(1).isDisabled(), true)
+  await main.locator('[data-testid="checkout-neuron"]').first().click()
+  await main.click('[data-testid="checkout-pay"]')
+  await waitFor(() => latest('plan/quote').params.method === 'panda')
+  assert.deepEqual(latest('plan/quote').params, { sku: 'plus', method: 'panda', selection: '6b'.repeat(32) })
+  await approval.waitForSelector('[data-testid="approval-note"] >> text=/current term ends.*neuron must keep/')
+  // An upgrade is paid in cash for the rest of the term, and so is a storage pack.
+  await main.click('[data-testid="plan-pro-upgrade"]')
+  await main.waitForSelector('[data-testid="checkout"] >> text=Upgrade to Pro')
+  assert.equal(await main.locator('[data-testid="checkout-method"]').count(), 0)
+  await main.click('[data-testid="checkout-pay"]')
+  await waitFor(() => latest('plan/quote').params.sku === 'upgrade-pro')
+  await main.click('[data-testid="plan-pack-buy"]')
+  await main.click('[data-testid="checkout-pay"]')
+  await waitFor(() => latest('plan/quote').params.sku === pack)
+  assert.equal(latest('plan/quote').params.method, 'cash')
+  // The first purchase is refunded within its window, what comes back quoted first.
+  await main.click('[data-testid="plan-refund-quote"]')
+  await main.waitForSelector('[data-testid="refund-amount"] >> text=4.5 Icp')
+  assert.deepEqual(latest('plan/refund_quote').params, { id: '88'.repeat(32) })
+  await main.click('[data-testid="refund-confirm"]')
+  await waitFor(() => latest('plan/cancel'))
+  assert.deepEqual(latest('plan/cancel').params, { id: '88'.repeat(32) })
+  await main.waitForSelector('[data-testid="plan-name"] >> text=Free')
+
+  // Payments, newest first: each order with its state and only what that state allows.
+  checkouts[0].stage = 'accepted'
+  checkouts[1].stage = 'accepted'
+  orderViews['89'.repeat(32)] = {
+    id: '89'.repeat(32),
+    method: 'Panda',
+    status: 'CoolingDown',
+    eligibility: 'Eligible',
+    cooling_until_ms: Date.now() - 1000,
+    actor: 'aaaaa-aa',
+    neuron: '6b'.repeat(32)
+  }
+  await main.click('[data-testid="plan-tab-payments"]')
+  await main.waitForSelector('[data-testid="order-advance"]')
+  assert.equal(await main.locator('[data-testid="order"]').count(), 4)
+  assert.match(await main.locator('[data-testid="order-title"]').first().textContent(), /Storage pack/)
+  assert.deepEqual(await main.locator('[data-testid="order-state"]').allTextContents(), ['Quote', 'Quote', 'Cooling down', 'Refunded'])
+  await main.click('[data-testid="order-advance"]')
+  await waitFor(() => latest('plan/advance'))
+  assert.deepEqual(latest('plan/advance').params, { id: '89'.repeat(32), source: 'gui' })
+  await main.locator('[data-testid="order-discard"]').first().click()
+  await waitFor(() => latest('plan/discard'))
+  assert.deepEqual(latest('plan/discard').params, { id: '8b'.repeat(32) })
+  await main.waitForFunction(() => document.querySelectorAll('[data-testid="order"]').length === 3)
+  // The wallet pays from the login, or from a PEM file the main process picks.
+  await main.waitForSelector('[data-testid="payer-source"] >> text=Login')
+  assert.equal(await main.locator('[data-testid="wallet-balance"]').count(), 2)
+  const payerPem = join(picks, 'develop', 'deploy.pem')
+  await answer('__open', payerPem)
+  await main.click('[data-testid="payer-pem"]')
+  await waitFor(() => latest('payer/use'))
+  assert.deepEqual(latest('payer/use').params, { pem: payerPem })
+  await main.waitForSelector('[data-testid="payer-source"] >> text=PEM file')
+  await main.click('[data-testid="payer-login"]')
+  await waitFor(() => calls.filter((c) => c.method === 'payer/use').length === 2)
+  assert.deepEqual(latest('payer/use').params, {})
+  await main.waitForSelector('[data-testid="payer-source"] >> text=Login')
+  await main.screenshot({ path: join(shots, 'plan-payments.png') })
+
+  // Names: this account's own, a name looked up with its price or its owner, and a transfer both accounts approve.
+  await main.click('[data-testid="plan-tab-names"]')
+  await main.waitForSelector('[data-testid="my-name"] >> text=@smoke')
+  await main.fill('[data-testid="handle-name"]', '_smoke')
+  await main.waitForSelector('[data-testid="handle-problem"] >> text=cannot start with _')
+  assert.equal(await main.locator('[data-testid="handle-lookup"]').isDisabled(), true)
+  await main.fill('[data-testid="handle-name"]', '@Panda123')
+  assert.match(await main.textContent('[data-testid="handle-tier"]'), /8 characters cost 100 PANDA/)
+  await main.click('[data-testid="handle-lookup"]')
+  await main.waitForSelector('[data-testid="handle-price"] >> text=100 PANDA')
+  assert.deepEqual(latest('handle/price').params, { name: 'panda123' })
+  await main.click('[data-testid="handle-register"]')
+  await waitFor(() => latest('handle/register'))
+  assert.deepEqual(latest('handle/register').params, { name: 'panda123', source: 'gui' })
+  await main.fill('[data-testid="handle-name"]', 'taken')
+  await main.click('[data-testid="handle-lookup"]')
+  await main.waitForSelector('[data-testid="handle-message"]')
+  await main.fill('[data-testid="handle-name"]', 'oldpanda')
+  await main.click('[data-testid="handle-lookup"]')
+  await main.waitForSelector('[data-testid="handle-holders"] >> text=panda.fans')
+  await main.click('[data-testid="name-transfer"]')
+  await main.fill('[data-testid="transfer-target"]', peer)
+  await main.click('[data-testid="transfer-offer"]')
+  await main.waitForSelector(`[data-testid="transfer-token"] >> text=${transferToken}`)
+  assert.deepEqual(latest('handle/transfer').params, { name: 'smoke', target: peer })
+  await main.click('[data-testid="transfer-done"]')
+  await main.waitForSelector('[data-testid="name-state"] >> text=Waiting for the target')
+  // Once the target accepted, the owner completes it within ten minutes, in a held approval.
+  nameOps[0].accepted_until_ms = Date.now() + 600_000
+  emit('approval/changed', {})
+  await main.waitForSelector('[data-testid="name-complete"]')
+  await main.click('[data-testid="name-complete"]')
+  await waitFor(() => latest('handle/transfer_commit'))
+  assert.deepEqual(latest('handle/transfer_commit').params, { id: 'b8'.repeat(32), source: 'gui' })
+  await approval.waitForSelector('[data-testid="approval-note"] >> text=moves to the target account at once')
+  await main.click('[data-testid="name-forget"]')
+  await waitFor(() => latest('handle/forget'))
+  assert.deepEqual(latest('handle/forget').params, { id: 'b8'.repeat(32) })
+  await main.waitForSelector('text=No name operations yet.')
+  // A transfer link opens the accept dialog with its token; accepting is an approval too.
+  await app.evaluate(({ app }, url) => app.emit('open-url', { preventDefault() {} }, url), `dmsg://handle/accept#${incomingToken}`)
+  await main.waitForSelector('[data-testid="accept-token"]')
+  assert.equal(await main.inputValue('[data-testid="accept-token"]'), incomingToken)
+  await main.click('[data-testid="accept-continue"]')
+  await waitFor(() => latest('handle/accept'))
+  assert.deepEqual(latest('handle/accept').params, { token: incomingToken, source: 'gui' })
+  await approval.waitForSelector('[data-testid="approval-note"] >> text=within ten minutes')
+  // Once accepted, the receiver waits for the owner and can tell them in a conversation.
+  nameOps = [{ id: 'b9'.repeat(32), name: 'gift', action: 'AcceptTransfer', caller: account, caller_role: 'login', total: null, fee: null, most: null, from: peer, to: account, phase: 'accepted', expired: false, until_ms: Date.now() + 600_000, created_at_ms: Date.now() }]
+  emit('approval/changed', {})
+  await main.waitForSelector('[data-testid="name-waiting"]')
+  await main.screenshot({ path: join(shots, 'plan-names.png') })
+  await main.click('[data-testid="name-tell-owner"]')
+  await main.waitForSelector('[data-testid="channel-new-dialog"]')
+  assert.match(await main.evaluate(() => location.hash), /^#\/channels/)
+  await main.keyboard.press('Escape')
+  await main.waitForSelector('[data-testid="channel-new-dialog"]', { state: 'detached' })
 
   // An activation payment that created no wallet goes back to the payer at
   // once, without an approval; an unused quote's waits for its expiry.

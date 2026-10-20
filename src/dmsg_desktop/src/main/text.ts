@@ -73,7 +73,10 @@ const en = {
   imageFile: 'Images',
   newMessages: 'New channel messages in dMsg.',
   channelMessages: (n: number) => `${n} new message(s)`,
-  newLetter: 'A new letter arrived in dMsg.'
+  newLetter: 'A new letter arrived in dMsg.',
+  pickPayerPem: 'Choose the PEM key that pays',
+  pemFile: 'PEM keys',
+  planEnds: (days: number, plan: string) => `Your ${plan} plan ends in ${days} day(s). Renew it under Plan & names.`
 }
 
 type Text = typeof en
@@ -146,7 +149,10 @@ const zh: Text = {
   imageFile: '图片',
   newMessages: 'dMsg 有新的频道消息。',
   channelMessages: (n: number) => `${n} 条新消息`,
-  newLetter: 'dMsg 有新来信。'
+  newLetter: 'dMsg 有新来信。',
+  pickPayerPem: '选择用于付款的 PEM 密钥',
+  pemFile: 'PEM 密钥',
+  planEnds: (days: number, plan: string) => `你的 ${plan} 会员将在 ${days} 天后到期，可在“会员与名称”中续费。`
 }
 
 const ruStates: Record<string, string> = {
@@ -219,7 +225,10 @@ const ru: Text = {
   imageFile: 'Изображения',
   newMessages: 'Новые сообщения в каналах dMsg.',
   channelMessages: (n: number) => `Новых сообщений: ${n}`,
-  newLetter: 'В dMsg пришло новое письмо.'
+  newLetter: 'В dMsg пришло новое письмо.',
+  pickPayerPem: 'Выберите PEM-ключ для оплаты',
+  pemFile: 'Ключи PEM',
+  planEnds: (days: number, plan: string) => `Тариф ${plan} закончится через ${days} дн. Продлить его можно в разделе «Тариф и имена».`
 }
 
 const arStates: Record<string, string> = {
@@ -290,7 +299,10 @@ const ar: Text = {
   imageFile: 'الصور',
   newMessages: 'رسائل جديدة في قنوات dMsg.',
   channelMessages: (n: number) => `رسائل جديدة: ${n}`,
-  newLetter: 'وصلت رسالة جديدة إلى dMsg.'
+  newLetter: 'وصلت رسالة جديدة إلى dMsg.',
+  pickPayerPem: 'اختر مفتاح PEM الذي يدفع',
+  pemFile: 'مفاتيح PEM',
+  planEnds: (days: number, plan: string) => `تنتهي خطة ${plan} قريبًا (الأيام المتبقية: ${days}). جدّدها من «الخطة والأسماء».`
 }
 
 const frStates: Record<string, string> = {
@@ -363,7 +375,10 @@ const fr: Text = {
   imageFile: 'Images',
   newMessages: 'Nouveaux messages de canal dans dMsg.',
   channelMessages: (n: number) => `${n} nouveau(x) message(s)`,
-  newLetter: 'Une nouvelle lettre est arrivée dans dMsg.'
+  newLetter: 'Une nouvelle lettre est arrivée dans dMsg.',
+  pickPayerPem: 'Choisissez la clé PEM qui paie',
+  pemFile: 'Clés PEM',
+  planEnds: (days: number, plan: string) => `Votre forfait ${plan} se termine dans ${days} jour(s). Renouvelez-le dans Forfait et noms.`
 }
 
 const esStates: Record<string, string> = {
@@ -435,7 +450,10 @@ const es: Text = {
   imageFile: 'Imágenes',
   newMessages: 'Mensajes nuevos en los canales de dMsg.',
   channelMessages: (n: number) => `${n} mensaje(s) nuevo(s)`,
-  newLetter: 'Llegó una carta nueva a dMsg.'
+  newLetter: 'Llegó una carta nueva a dMsg.',
+  pickPayerPem: 'Elige la clave PEM que paga',
+  pemFile: 'Claves PEM',
+  planEnds: (days: number, plan: string) => `Tu plan ${plan} termina en ${days} día(s). Renuévalo en Plan y nombres.`
 }
 
 const texts: Record<Locale, Text> = { en, zh, ru, ar, fr, es }

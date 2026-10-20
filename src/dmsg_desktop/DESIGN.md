@@ -324,6 +324,15 @@ restyle a control by hand.
 - **Message states** — sending (shimmer) until the relay stores it, then a
   check with its sequence number; refused messages stay with Retry and
   Discard.
+- **Plan and names** — Membership, Names and Payments tabs; each section
+  loads on its own and shows the locked state when it needs the device
+  unlocked. A plan card says what buying it does now (subscribe, renew from
+  the end date, upgrade for the difference, switch at the end) or why not
+  and when. An order is a pill for its state with only the actions that
+  state allows. Moving a name is a dialog that gives the token to copy, a
+  `dmsg://handle/accept#…` link or a direct conversation; the receiver
+  accepts in its own dialog and can tell the owner in a conversation, and
+  the owner completes within ten minutes.
 - **Approval ticket** — kind chip with the gem diamond, the requester, the
   trail (relayed hops dashed), the content, "when you approve", folded
   technical fields, then the stub: expiry line, Reject, Approve or Hold to
@@ -345,7 +354,9 @@ restyle a control by hand.
 - Files enter through the main process's dialogs or a drop the preload
   resolves to a path; a file a page made has none and is refused. Nothing
   of the library leaves the device unless the person backs it up or shares
-  it, and deleting on one side never deletes on the other.
+  it, and deleting on one side never deletes on the other. A payer's PEM
+  key enters only through the main process's dialog; a window never names
+  its path.
 - The idle lock follows a person's input, which the main process reports;
   what windows read on events never keeps the device unlocked.
 - Never present a pending or unknown result as success.
@@ -366,6 +377,6 @@ restyle a control by hand.
 ## Checking a Change
 
 `pnpm check`, `pnpm test` (pure rules: approval, vault, channels, agents,
-policy, languages) and `pnpm test:e2e`, which runs the built app against a
+plan, policy, languages) and `pnpm test:e2e`, which runs the built app against a
 mock daemon and saves screenshots in `test-results/` (light, dark, French
 and Arabic). Look at the screenshots of the views a change touches.

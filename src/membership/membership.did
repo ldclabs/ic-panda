@@ -366,6 +366,21 @@ type PandaServiceConfig = record {
   // Commerce canister of each user home; entries are only appended.
   commerce_homes : vec CommerceHome;
 };
+// What a client shows before quoting a PANDA subscription: the SNS whose
+// neurons qualify, its ledger, the cooling period, whether new applications
+// are paused and the announced conversion rates.
+type PandaServiceView = record {
+  // Eight-decimal PANDA ledger.
+  panda_ledger : principal;
+  // Waiting time between an accepted application and its activation.
+  cooling_ms : nat64;
+  // PANDA SNS governance, which lists the qualifying neurons.
+  governance : principal;
+  // Announced rate policies, current and scheduled.
+  rates : vec PandaRatePolicy;
+  // New applications are paused; existing claims keep refreshing.
+  paused : bool;
+};
 // Explicit product permission; not a claim that the payer has a project role.
 type ProductApproval = record {
   // Accepted settlement method.
@@ -467,6 +482,10 @@ service : (MembershipInit) -> {
   membership_stats : () -> (MembershipStats) query;
   panda_claim_certificate : (blob) -> (Result_2) query;
   panda_operations : (opt blob, nat16) -> (Result_3) query;
+  // The SNS whose neurons qualify, its ledger, the cooling period, whether
+  // new applications are paused and the announced rates: what a client shows
+  // before it quotes.
+  panda_service : () -> (PandaServiceView) query;
   quote_panda_subscription : (BillingOffer, principal, blob, blob) -> (
       Result_4,
     );

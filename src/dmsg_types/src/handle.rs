@@ -8,6 +8,13 @@ use candid::{CandidType, Principal};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 
+/// Longest an account's authorization of a registration or legacy claim lasts.
+pub const HANDLE_AUTHORIZATION_MS: u64 = MINUTE;
+/// Longest an authorization of either side of a transfer lasts: one account
+/// authorizes its side and hands the token over, and the other completes the
+/// transfer within this time.
+pub const TRANSFER_AUTHORIZATION_MS: u64 = 10 * MINUTE;
+
 /// Name ownership operation authorized by an account.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum HandleAction {

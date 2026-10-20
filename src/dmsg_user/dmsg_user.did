@@ -1001,13 +1001,14 @@ type RecoveryRequest = record {
 type Result = variant { Ok; Err : Error };
 type Result_1 = variant { Ok : blob; Err : Error };
 type Result_10 = variant { Ok : ExecutionUsage; Err : Error };
-type Result_11 = variant { Ok : OperationReceipt; Err : Error };
-type Result_12 = variant { Ok : PrincipalInfo; Err : Error };
-type Result_13 = variant { Ok : opt PendingRecovery; Err : Error };
-type Result_14 = variant { Ok : opt ContentRootRef; Err : Error };
-type Result_15 = variant { Ok : nat64; Err : Error };
-type Result_16 = variant { Ok : text; Err : text };
-type Result_17 = variant { Ok : ApplicationAuthorization; Err : Error };
+type Result_11 = variant { Ok : opt nat64; Err : Error };
+type Result_12 = variant { Ok : OperationReceipt; Err : Error };
+type Result_13 = variant { Ok : PrincipalInfo; Err : Error };
+type Result_14 = variant { Ok : opt PendingRecovery; Err : Error };
+type Result_15 = variant { Ok : opt ContentRootRef; Err : Error };
+type Result_16 = variant { Ok : nat64; Err : Error };
+type Result_17 = variant { Ok : text; Err : text };
+type Result_18 = variant { Ok : ApplicationAuthorization; Err : Error };
 type Result_2 = variant { Ok : AuthenticationResult; Err : Error };
 type Result_3 = variant { Ok : SignedArtifact; Err : Error };
 type Result_4 = variant { Ok : CertifiedBatch; Err : Error };
@@ -1248,13 +1249,17 @@ service : (UserInit) -> {
   get_execution : (blob, blob) -> (Result_7) query;
   get_execution_receipt : (blob, blob) -> (Result_4) query;
   get_execution_usage : (blob, nat32) -> (Result_10) query;
-  get_operation : (blob, blob) -> (Result_11) query;
+  // When the account's authorization of the name operation `op_id` expires,
+  // if it is still live: either side of a transfer reads whether the other has
+  // authorized its side. The handle canister checks the intent itself.
+  get_handle_authorization : (blob, blob) -> (Result_11) query;
+  get_operation : (blob, blob) -> (Result_12) query;
   // Public principal state and publication progress.
-  get_principal : (blob) -> (Result_12) query;
-  get_recovery_request : (blob) -> (Result_13) query;
-  get_root_ref : (blob) -> (Result_14) query;
+  get_principal : (blob) -> (Result_13) query;
+  get_recovery_request : (blob) -> (Result_14) query;
+  get_root_ref : (blob) -> (Result_15) query;
   inspect_app_action : (blob, AppAction) -> (Result);
-  mutate_account : (AccountMutation) -> (Result_11);
+  mutate_account : (AccountMutation) -> (Result_12);
   my_account : () -> (opt blob) query;
   // Release expired terminal results across accounts, one page of execution
   // records after the cursor; anyone may run it. Start from an empty cursor and
@@ -1264,7 +1269,7 @@ service : (UserInit) -> {
   prune_external_approvals : (blob) -> (opt blob);
   // Push the account's current principal state to the directory. Anyone may
   // retry a publication; it is idempotent and never rolls the document back.
-  publish_principal : (blob) -> (Result_15);
+  publish_principal : (blob) -> (Result_16);
   reconcile_execution : (blob, blob) -> (Result_7);
   refresh_execution_entitlement : (blob) -> (Result_10);
   // Begin a delayed takeover from a bound login: after the account's recovery
@@ -1281,11 +1286,11 @@ service : (UserInit) -> {
   // Account count, capacity, today's admissions, unlock readiness, stable
   // pages, the cycle balance and monthly formal-execution totals.
   user_stats : () -> (UserStats) query;
-  validate_admin_set_account_limits : (nat64, nat32) -> (Result_16) query;
-  validate_admin_set_admission_key : (opt blob) -> (Result_16) query;
+  validate_admin_set_account_limits : (nat64, nat32) -> (Result_17) query;
+  validate_admin_set_admission_key : (opt blob) -> (Result_17) query;
   // Read-only revalidation by the fixed consumer. It creates no product order or claim.
-  verify_application_authorization : (blob, ApplicationApproval) -> (Result_17);
-  verify_payment_offer : (SignedOffer) -> (Result_15);
+  verify_application_authorization : (blob, ApplicationApproval) -> (Result_18);
+  verify_payment_offer : (SignedOffer) -> (Result_16);
   // A registered product may check whether its own account beneficiary still exists.
   verify_product_account : (text, Beneficiary) -> (Result);
 }

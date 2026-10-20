@@ -468,6 +468,24 @@ fn high_risk_requests_are_the_ones_held() {
         }),
         "normal"
     );
+    let request = client
+        .approval_create(
+            "gui",
+            Action::Handle {
+                id: "a".repeat(64),
+                digest: Hash::new([3; 32]),
+            },
+            now_ms() + 60_000,
+        )
+        .unwrap();
+    // Paying for a name or giving one away is held; accepting or claiming one is not.
+    let name = |action: &str, total: Json| {
+        crate::approval::high_risk(&request, &json!({"action": action, "total": total}))
+    };
+    assert!(name("Transfer", Json::Null));
+    assert!(name("Register", json!("10000000000")));
+    assert!(!name("AcceptTransfer", Json::Null));
+    assert!(!name("ClaimLegacy", Json::Null));
 }
 
 #[test]

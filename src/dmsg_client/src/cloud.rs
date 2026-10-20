@@ -727,12 +727,33 @@ impl Cloud {
         path: &str,
         now: u64,
     ) -> Result<Prepared> {
+        self.prepare_empty(signer, reqwest::Method::GET, path, now)
+    }
+
+    /// A device-authenticated POST without a body, as [`Self::prepare_get`]:
+    /// a request that asks the relay to act on what it already holds.
+    pub(crate) fn prepare_empty_post(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        now: u64,
+    ) -> Result<Prepared> {
+        self.prepare_empty(signer, reqwest::Method::POST, path, now)
+    }
+
+    fn prepare_empty(
+        &self,
+        signer: &Signer<'_>,
+        method: reqwest::Method,
+        path: &str,
+        now: u64,
+    ) -> Result<Prepared> {
         let url = self.url(path)?;
         let request_id = hex::encode(crate::crypto::random_id());
         let deadline = signer.deadline(now)?;
-        let pop = sign_http(signer, &url, "GET", &[], &request_id, deadline)?;
+        let pop = sign_http(signer, &url, method.as_str(), &[], &request_id, deadline)?;
         Ok(Prepared {
-            method: reqwest::Method::GET,
+            method,
             url,
             body: None,
             pop,

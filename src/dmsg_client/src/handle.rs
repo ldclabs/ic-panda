@@ -9,12 +9,15 @@
 //! authorized again only after the name is proven absent.
 //!
 //! A transfer needs both accounts' authorizations at once, each valid for
-//! about a minute: the owner prepares a token naming the target, the target
-//! account accepts it, and the owner then authorizes its side and moves the
-//! name within that minute.
+//! ten minutes ([`TRANSFER_AUTHORIZATION_MS`]): the owner prepares a token
+//! naming the target, the target account accepts it, and the owner then
+//! authorizes its side and moves the name while the acceptance lasts. Either
+//! side reads whether the other has authorized from the other's user home.
 
 use crate::account::HandleConfig;
 use crate::client::Client;
+use crate::hold::Hold;
+use crate::ic::Ic;
 use crate::now_ms;
 use crate::payer::{approve_call, memo};
 use candid::Principal;
@@ -25,7 +28,7 @@ use dmsg_types::{
     AccountId, Error, Hash, Result, ensure,
     handle::{
         HandleAction, HandleIntent, HandleOperation, HandlePhase, HandleRecord, LegacyReservation,
-        Registration, SnapshotProgress,
+        Registration, SnapshotProgress, TRANSFER_AUTHORIZATION_MS,
     },
     user::AccountCommand,
 };
@@ -36,6 +39,8 @@ use serde_json::{Value as Json, json};
 const JOURNAL: &str = "handle:";
 /// Format of a transfer token.
 pub const TRANSFER: &str = "dmsg-handle-transfer/1";
+/// Most names the registry lists or proves in one call.
+const PAGE: u16 = 64;
 
 #[derive(Serialize, Deserialize)]
 struct TransferPacket {
@@ -79,7 +84,9 @@ pub enum Phase {
     Prepared,
     /// Sent; the registry's answer was not seen.
     Unknown,
-    /// The name is this account's.
+    /// This account accepted a transfer; the owner has yet to move the name.
+    Accepted,
+    /// The name is this account's, or the owner's transfer committed.
     Done,
     /// The registry definitely refused it.
     Rejected,
@@ -100,6 +107,12 @@ pub struct HandleJob {
     pub kind: Kind,
     /// Progress.
     pub phase: Phase,
+    /// When this device prepared it, in Unix milliseconds.
+    #[serde(default)]
+    pub created_at_ms: Option<u64>,
+    /// When an accepted transfer's authorization lapses, in Unix milliseconds.
+    #[serde(default)]
+    pub until_ms: Option<u64>,
 }
 
 impl HandleJob {
@@ -111,29 +124,139 @@ impl HandleJob {
         )
     }
 
-    /// The operation for display.
+    /// The operation for display. A registration lists what the registry
+    /// charges, the ledger fee in it, and at most what the payer spends with
+    /// the allowance's own fee; a transfer names both accounts.
     pub fn view(&self) -> Json {
+        let (total, fee) = match &self.kind {
+            Kind::Register {
+                total,
+                registration,
+                ..
+            } => (Some(*total), Some(registration.fee)),
+            _ => (None, None),
+        };
+        let (from, to) = match &self.kind {
+            Kind::Transfer { from, accept } => (
+                Some(from.account_id.to_string()),
+                Some(accept.account_id.to_string()),
+            ),
+            _ => (None, None),
+        };
         json!({
             "id": self.id,
             "name": self.name,
             "action": format!("{:?}", self.intent.action),
             "caller": self.caller.to_text(),
-            "total": match &self.kind {
-                Kind::Register { total, .. } => Some(total.to_string()),
-                _ => None,
+            // Who calls the registry: the legacy holder claims, the payer
+            // pays, the login moves a name.
+            "caller_role": match self.kind {
+                Kind::Claim { .. } => "holder",
+                Kind::Register { .. } => "payer",
+                Kind::Transfer { .. } => "login",
             },
-            "from": match &self.kind {
-                Kind::Transfer { from, .. } => Some(from.account_id.to_string()),
-                _ => None,
-            },
-            "to": match &self.kind {
-                Kind::Transfer { accept, .. } => Some(accept.account_id.to_string()),
-                _ => None,
-            },
+            "total": total.map(|t| t.to_string()),
+            "fee": fee.map(|f| f.to_string()),
+            "most": total.zip(fee).map(|(t, f)| (t + f).to_string()),
+            "from": from,
+            "to": to,
             "phase": self.phase,
+            "expired": self.phase == Phase::Accepted
+                && self.until_ms.is_some_and(|until| until <= now_ms()),
+            "until_ms": self.until_ms,
+            "created_at_ms": self.created_at_ms,
             "digest": hex::encode(*self.digest()),
         })
     }
+
+    /// The token of a transfer this account offers, for the target to accept.
+    pub fn token(&self) -> Option<String> {
+        match &self.kind {
+            Kind::Transfer { from, accept } if self.intent == **from => {
+                Some(transfer_token(from, accept))
+            }
+            _ => None,
+        }
+    }
+}
+
+/// The token that hands a transfer's two intents to its target.
+fn transfer_token(from: &HandleIntent, accept: &HandleIntent) -> String {
+    crate::codec::b64(&crate::codec::canonical(&TransferPacket {
+        format: TRANSFER.into(),
+        from: from.clone(),
+        accept: accept.clone(),
+    }))
+}
+
+/// Whether `caller` may claim the frozen name `r`: its legacy owner, or for
+/// a name owned by its own name principal one of the frozen admins.
+fn may_claim(r: &LegacyReservation, caller: Principal) -> bool {
+    if r.legacy_name_principal == Some(r.legacy_owner) {
+        caller != r.legacy_owner && r.frozen_admins.contains(&caller)
+    } else {
+        caller == r.legacy_owner
+    }
+}
+
+/// The certified records of `names`, in order; `None` for a name nobody owns.
+async fn certified_records(
+    ic: &Ic,
+    registry: Principal,
+    names: &[String],
+) -> Result<Vec<Option<HandleRecord>>> {
+    let batch: Result<dmsg_types::CertifiedBatch> = ic
+        .query(registry, "resolve_handle_certified", (names,))
+        .await?;
+    let batch = batch?;
+    let root = ic.root_key();
+    let now = now_ms();
+    names
+        .iter()
+        .map(|name| {
+            let bits = bucket_path(name);
+            let mut path: Vec<&[u8]> = bits.iter().map(|b| b.as_slice()).collect();
+            path.push(name.as_bytes());
+            let value = crate::certified::certified_path(
+                &batch,
+                name.as_bytes(),
+                &path,
+                registry,
+                &root,
+                now,
+            )?;
+            let Some(value) = value else {
+                return Ok(None);
+            };
+            let record: HandleRecord = crate::codec::decode(&value, 4096)?;
+            ensure(
+                record.handle == *name && record.version > 0,
+                Error::IntegrityFailed,
+            )?;
+            Ok(Some(record))
+        })
+        .collect()
+}
+
+/// When `account`'s authorization of the name operation `op_id` lapses, if
+/// it is live, read from whichever user home holds the account.
+async fn authorized_until(
+    ic: &Ic,
+    registry: Principal,
+    account: AccountId,
+    op_id: Hash,
+) -> Result<Option<u64>> {
+    let config: HandleConfig = ic.query(registry, "get_handle_config", ()).await?;
+    for home in config.user_homes {
+        let found: Result<Option<u64>> = ic
+            .query(home, "get_handle_authorization", (account, op_id))
+            .await?;
+        match found {
+            Err(Error::NotFound) => {}
+            found => return found,
+        }
+    }
+    Err(Error::NotFound)
 }
 
 /// The commitment both sides of a transfer authorize.
@@ -177,55 +300,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::InvalidInput` for an invalid name.
     pub async fn handle_resolve(&mut self, name: &str) -> Result<Option<HandleRecord>> {
-        let name = normalize_handle(name)?;
-        let ic = self.reader().await?;
-        let batch: Result<dmsg_types::CertifiedBatch> = ic
-            .query(
-                self.config.handle,
-                "resolve_handle_certified",
-                (vec![&name],),
-            )
-            .await?;
-        let batch = batch?;
-        let bits = bucket_path(&name);
-        let mut path: Vec<&[u8]> = bits.iter().map(|b| b.as_slice()).collect();
-        path.push(name.as_bytes());
-        let value = crate::certified::certified_path(
-            &batch,
-            name.as_bytes(),
-            &path,
-            self.config.handle,
-            &ic.root_key(),
-            now_ms(),
-        )?;
-        let Some(value) = value else {
-            return Ok(None);
-        };
-        let record: HandleRecord = crate::codec::decode(&value, 4096)?;
-        ensure(
-            record.handle == name && record.version > 0,
-            Error::IntegrityFailed,
-        )?;
-        Ok(Some(record))
-    }
-
-    /// A name's price and whether it can be registered.
-    ///
-    /// # Errors
-    /// Returns `Error::InvalidInput` for an invalid name.
-    pub async fn handle_price(&mut self, name: &str) -> Result<Json> {
-        let name = normalize_handle(name)?;
-        let ic = self.reader().await?;
-        let reserved: Result<Option<LegacyReservation>> = ic
-            .query(self.config.handle, "get_legacy_reservation", (&name,))
-            .await?;
-        let owner = self.handle_resolve(&name).await?;
-        Ok(json!({
-            "name": name,
-            "price": price(&name).to_string(),
-            "owner": owner.map(|r| r.owner_account.to_string()),
-            "reserved": reserved?.is_some(),
-        }))
+        resolve(&self.hold(), name).await
     }
 
     /// Prepare claiming a name the login's Principal owned in the legacy
@@ -252,15 +327,7 @@ impl Client {
         let reservation = reservation?.ok_or(Error::NotFound)?;
         ensure(reservation.handle == name, Error::IntegrityFailed)?;
         ensure(!reservation.quarantined, Error::Locked)?;
-        let owner_is_name = reservation.legacy_name_principal == Some(reservation.legacy_owner);
-        ensure(
-            if owner_is_name {
-                caller != reservation.legacy_owner && reservation.frozen_admins.contains(&caller)
-            } else {
-                caller == reservation.legacy_owner
-            },
-            Error::Forbidden,
-        )?;
+        ensure(may_claim(&reservation, caller), Error::Forbidden)?;
         let intent = HandleIntent {
             handle_canister: self.config.handle,
             action: HandleAction::ClaimLegacy,
@@ -283,6 +350,8 @@ impl Client {
                 snapshot: snapshot.snapshot_id,
             },
             phase: Phase::Prepared,
+            created_at_ms: Some(now_ms()),
+            until_ms: None,
         };
         self.save_handle_job(&job)?;
         Ok(job)
@@ -353,6 +422,8 @@ impl Client {
                 total,
             },
             phase: Phase::Prepared,
+            created_at_ms: Some(now_ms()),
+            until_ms: None,
         };
         self.save_handle_job(&job)?;
         Ok(job)
@@ -360,7 +431,7 @@ impl Client {
 
     /// Prepare transferring a name this account owns to `target`: a token
     /// for the target account to accept. Once it has, the owner approves
-    /// the transfer within a minute.
+    /// the transfer within ten minutes.
     ///
     /// # Errors
     /// Returns `Error::Forbidden` for a name this account does not own.
@@ -394,11 +465,7 @@ impl Client {
             target_account: Some(owner),
             ..from.clone()
         };
-        let token = crate::codec::b64(&crate::codec::canonical(&TransferPacket {
-            format: TRANSFER.into(),
-            from: from.clone(),
-            accept: accept.clone(),
-        }));
+        let token = transfer_token(&from, &accept);
         let job = HandleJob {
             id: hex::encode(*op_id),
             name,
@@ -409,6 +476,8 @@ impl Client {
                 accept: Box::new(accept),
             },
             phase: Phase::Prepared,
+            created_at_ms: Some(now_ms()),
+            until_ms: None,
         };
         self.save_handle_job(&job)?;
         Ok((job, token))
@@ -468,6 +537,8 @@ impl Client {
                 accept: Box::new(accept),
             },
             phase: Phase::Prepared,
+            created_at_ms: Some(now_ms()),
+            until_ms: None,
         };
         self.save_handle_job(&job)?;
         Ok(job)
@@ -481,22 +552,63 @@ impl Client {
         self.handle_job(id)
     }
 
-    /// Every name operation of this account, for display and settling.
+    /// Every name operation of this device, newest first.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
-    pub fn handle_operations(&self) -> Result<Vec<Json>> {
-        self.workspace
+    pub fn handle_jobs(&self) -> Result<Vec<HandleJob>> {
+        let mut jobs = self
+            .workspace
             .store
             .sealed_keys(JOURNAL)?
             .iter()
             .map(|key| {
                 self.workspace
                     .private::<HandleJob>(self.keys()?, key)?
-                    .map(|job| job.view())
                     .ok_or(Error::IntegrityFailed)
             })
-            .collect()
+            .collect::<Result<Vec<_>>>()?;
+        // Journals from before the field come last.
+        jobs.sort_by_key(|job| std::cmp::Reverse(job.created_at_ms));
+        Ok(jobs)
+    }
+
+    /// Every name operation of this device for display, newest first; a
+    /// transfer this account offers carries its token again.
+    ///
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn handle_operations(&self) -> Result<Vec<Json>> {
+        Ok(self.handle_jobs()?.iter().map(operation_view).collect())
+    }
+
+    /// The token of a transfer this account offered and has not moved yet.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` for any other operation.
+    pub fn handle_token(&self, id: &str) -> Result<String> {
+        let job = self.handle_job(id)?;
+        ensure(job.phase == Phase::Prepared, Error::Forbidden)?;
+        job.token().ok_or(Error::Forbidden)
+    }
+
+    /// Forget an operation that moved nothing: one never authorized, a
+    /// transfer offered or accepted that the owner never committed, or one
+    /// the registry refused. An acceptance already authorized lapses by
+    /// itself within [`TRANSFER_AUTHORIZATION_MS`].
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` while the outcome may still change.
+    pub fn handle_forget(&self, id: &str) -> Result<()> {
+        let job = self.handle_job(id)?;
+        ensure(
+            matches!(
+                job.phase,
+                Phase::Prepared | Phase::Accepted | Phase::Rejected
+            ),
+            Error::Forbidden,
+        )?;
+        self.workspace.delete_private(&format!("{JOURNAL}{id}"))
     }
 
     /// Settle a registration whose charge is unknown with the ledger block
@@ -635,7 +747,7 @@ impl Client {
         };
         let commit = job.intent == *from;
         let record = self.handle_resolve(&job.name).await?;
-        if commit && record.as_ref().map(|r| r.owner_account) == Some(accept.account_id) {
+        if record.as_ref().map(|r| r.owner_account) == Some(accept.account_id) {
             job.phase = Phase::Done;
             self.save_handle_job(&job)?;
             return Ok(job.view());
@@ -646,6 +758,13 @@ impl Client {
             }),
             Error::VersionConflict,
         )?;
+        if commit {
+            // The target accepts first; the owner's side alone moves nothing.
+            let ic = self.reader().await?;
+            let accepted =
+                authorized_until(&ic, self.config.handle, accept.account_id, accept.op_id).await?;
+            ensure(accepted.is_some(), Error::Pending)?;
+        }
         if self.pending()?.is_some() {
             self.resume().await?;
         }
@@ -657,8 +776,9 @@ impl Client {
         )
         .await?;
         if !commit {
-            // Accepted: the owner has about a minute to move the name.
-            job.phase = Phase::Done;
+            // Accepted: the owner moves the name while the acceptance lasts.
+            job.phase = Phase::Accepted;
+            job.until_ms = Some(now_ms() + TRANSFER_AUTHORIZATION_MS);
             self.save_handle_job(&job)?;
             return Ok(job.view());
         }
@@ -772,4 +892,162 @@ impl Client {
             _ => Err(Error::ExecutionUnknown),
         }
     }
+}
+
+/// An operation for the list: a transfer this account offers carries its
+/// token while it can still be accepted.
+fn operation_view(job: &HandleJob) -> Json {
+    let mut view = job.view();
+    if job.phase == Phase::Prepared
+        && let Some(token) = job.token()
+    {
+        view["token"] = token.into();
+    }
+    view
+}
+
+/// The certified owner of a name, if any, read without the client.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for an invalid name.
+pub async fn resolve<H: Hold>(h: &H, name: &str) -> Result<Option<HandleRecord>> {
+    let name = normalize_handle(name)?;
+    let registry = h.with(|c| Ok(c.config.handle)).await?;
+    let ic = h.reader().await?;
+    Ok(
+        certified_records(&ic, registry, std::slice::from_ref(&name))
+            .await?
+            .pop()
+            .flatten(),
+    )
+}
+
+/// A name's price and who may take it, read without the client: its owner,
+/// what registering it costs the payer, and for a name frozen in the legacy
+/// snapshot whether the current login is the holder that may claim it.
+///
+/// # Errors
+/// Returns `Error::InvalidInput` for an invalid name.
+pub async fn price_view<H: Hold>(h: &H, name: &str) -> Result<Json> {
+    let name = normalize_handle(name)?;
+    let (registry, login) = h
+        .with(|c| Ok((c.config.handle, c.session().ok().map(|l| l.principal))))
+        .await?;
+    let ic = h.reader().await?;
+    let reserved: Result<Option<LegacyReservation>> = ic
+        .query(registry, "get_legacy_reservation", (&name,))
+        .await?;
+    let reserved = reserved?;
+    let config: HandleConfig = ic.query(registry, "get_handle_config", ()).await?;
+    let owner = certified_records(&ic, registry, std::slice::from_ref(&name))
+        .await?
+        .pop()
+        .flatten();
+    let total = price(&name);
+    let mut view = json!({
+        "name": name,
+        "price": total.to_string(),
+        "fee": config.ledger_fee.to_string(),
+        // The allowance the registry charges from costs one more fee.
+        "most": (total + config.ledger_fee).to_string(),
+        "ledger": config.ledger.to_text(),
+        "owner": owner.map(|r| r.owner_account.to_string()),
+        "reserved": reserved.is_some(),
+    });
+    if let Some(r) = reserved {
+        let by_admins = r.legacy_name_principal == Some(r.legacy_owner);
+        view["claim"] = json!({
+            "claimable": !r.quarantined && login.is_some_and(|p| may_claim(&r, p)),
+            "quarantined": r.quarantined,
+            "login": login.map(|p| p.to_text()),
+            // Who must sign in to claim it: the legacy owner, or one of the
+            // name's frozen admins.
+            "holders": if by_admins {
+                r.frozen_admins.iter().map(|p| p.to_text()).collect::<Vec<_>>()
+            } else {
+                vec![r.legacy_owner.to_text()]
+            },
+        });
+    }
+    Ok(view)
+}
+
+/// This account's names as the registry lists them, each proven by its
+/// certified record, so every device of the account sees them.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` without an account.
+pub async fn mine<H: Hold>(h: &H) -> Result<Vec<Json>> {
+    let (registry, account) = h.with(|c| Ok((c.config.handle, c.account()?.id))).await?;
+    let ic = h.reader().await?;
+    let mut names = Vec::new();
+    let mut after: Option<String> = None;
+    loop {
+        let page: Result<Vec<HandleRecord>> = ic
+            .query(registry, "account_handles", (account, &after, PAGE))
+            .await?;
+        let page: Vec<String> = page?.into_iter().map(|r| r.handle).collect();
+        let full = page.len() == usize::from(PAGE);
+        after = page.last().cloned();
+        // The list is uncertified: only a certified record counts.
+        for record in certified_records(&ic, registry, &page)
+            .await?
+            .into_iter()
+            .flatten()
+        {
+            if record.owner_account == account {
+                names.push(json!({"name": record.handle, "version": record.version}));
+            }
+        }
+        if !full {
+            break;
+        }
+    }
+    Ok(names)
+}
+
+/// Every name operation of this device, newest first, brought up to date
+/// without the client: an accepted transfer whose name arrived is done, and
+/// a transfer this account offers says until when the target's acceptance
+/// lasts, so the owner knows to commit.
+///
+/// # Errors
+/// Returns `Error::Locked` while locked.
+pub async fn operations<H: Hold>(h: &H) -> Result<Vec<Json>> {
+    let (jobs, registry) = h.with(|c| Ok((c.handle_jobs()?, c.config.handle))).await?;
+    let ic = h.reader().await?;
+    let mut views = Vec::with_capacity(jobs.len());
+    for mut job in jobs {
+        let mut accepted = None;
+        if let Kind::Transfer { from, accept } = &job.kind {
+            let offered = job.intent == **from;
+            if job.phase == Phase::Accepted || (offered && job.phase == Phase::Prepared) {
+                let moved = certified_records(&ic, registry, std::slice::from_ref(&job.name))
+                    .await?
+                    .pop()
+                    .flatten()
+                    .is_some_and(|r| r.owner_account == accept.account_id);
+                if moved && job.phase == Phase::Accepted {
+                    job.phase = Phase::Done;
+                    let done = job.clone();
+                    h.with(|c| match c.handle_job(&done.id) {
+                        Ok(saved) if saved.phase == Phase::Accepted => c.save_handle_job(&done),
+                        _ => Ok(()),
+                    })
+                    .await?;
+                } else if offered && !moved {
+                    accepted = authorized_until(&ic, registry, accept.account_id, accept.op_id)
+                        .await
+                        .ok()
+                        .flatten();
+                }
+            }
+        }
+        let mut view = operation_view(&job);
+        if let Some(until) = accepted {
+            view["accepted_until_ms"] = until.into();
+        }
+        views.push(view);
+    }
+    Ok(views)
 }

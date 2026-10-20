@@ -198,7 +198,7 @@
       <div class="h-2 overflow-hidden rounded-full bg-wash">
         <div class={cn('h-full rounded-full transition-[width] duration-500', share > 0.9 ? 'bg-warn' : 'bg-forest')} style:width="{share * 100}%"></div>
       </div>
-      {#if !usage.allowed}<p class="text-[12.5px] text-warn">{t('noAllowance')} <a class="text-forest hover:underline" href="#/account">{t('openPlan')}</a></p>{/if}
+      {#if !usage.allowed}<p class="text-[12.5px] text-warn">{t('noAllowance')} <a class="text-forest hover:underline" href="#/plan">{t('openPlan')}</a></p>{/if}
       {#if usage.history.length}
         <ul class="mt-2 grid gap-1 text-[12px]">
           {#each usage.history as month (month.month)}

@@ -15,19 +15,22 @@ use crate::crypto::sign;
 use crate::hold::Hold;
 use crate::ic::Ic;
 use crate::now_ms;
-use crate::payer::{memo, transfer_call};
+use crate::payer::{memo, payer, transfer_call};
 use crate::payment::certified_leaf;
 use crate::upload::hex_id;
 use candid::Principal;
 use dmsg_protocol::{
     approval_message, billing, commerce_v2, digest,
     integration::{
-        validate_app, validate_application_approval, validate_billing_offer, validate_product,
+        self, validate_app, validate_application_approval, validate_billing_offer, validate_product,
     },
 };
 use dmsg_types::{
     Approval, CertifiedBatch, Ed25519Signature, Error, Hash, Result,
-    billing::{Catalog, EntitlementView},
+    billing::{
+        Catalog, ContractSource, EntitlementView, MembershipContract, MembershipTerms, PlanId,
+        RENEWAL_WINDOW_MS, ResourceLimits, StorageAddon,
+    },
     ensure, ensure_valid,
     integration::{
         AppRegistration, ApplicationApproval, ApprovalPurpose, BillingOffer, ProductRegistration,
@@ -35,12 +38,13 @@ use dmsg_types::{
     },
     integration_billing::{
         CashBlock, CashTransfer, CashTransferProgress, CashTransferStatus, CashTransfersPage,
-        CheckoutOperationsPage, CheckoutProgress, CheckoutQuote, CheckoutRequest, CheckoutStatus,
-        CheckoutView, OpenCheckout, ProductAuthorizationRequest, SettlementAssetView,
+        CheckoutDepositsPage, CheckoutOperationsPage, CheckoutProgress, CheckoutQuote,
+        CheckoutRequest, CheckoutStatus, CheckoutView, OpenCheckout, ProductAuthorizationRequest,
+        SettlementAssetView,
     },
     integration_membership::{
         PandaApplicationTerms, PandaClaimRequest, PandaClaimStatus, PandaClaimView,
-        PandaOperationsPage,
+        PandaOperationsPage, PandaServiceView,
     },
     membership::Beneficiary,
     user::{Capability, UserInit},
@@ -98,6 +102,9 @@ pub struct Checkout {
     pub approval: Option<(ApplicationApproval, Approval)>,
     /// Progress.
     pub stage: Stage,
+    /// When this device quoted it, in Unix milliseconds.
+    #[serde(default)]
+    pub created_at_ms: Option<u64>,
 }
 
 impl Checkout {
@@ -144,8 +151,17 @@ impl Checkout {
             "expires_at_ms": offer.expires_at_ms,
             "terms": terms,
             "stage": self.stage,
+            "created_at_ms": self.created_at_ms,
             "digest": hex::encode(*self.digest()),
         })
+    }
+
+    /// The deadline after which the terms can no longer be approved or paid.
+    pub fn deadline_ms(&self) -> u64 {
+        match &self.terms {
+            Terms::Cash(q) => q.cash.funding_deadline_ms,
+            Terms::Panda(t) => t.quote.application_deadline_ms,
+        }
     }
 }
 
@@ -179,6 +195,15 @@ fn order_view(state: &Order) -> Json {
             "method": "Cash",
             "status": status_name(view),
             "receipt": view.receipt.is_some(),
+            "sku": view.quote.offer.sku,
+            "amount": view.quote.cash.amount_atomic.to_string(),
+            "asset": format!("{:?}", view.quote.asset.asset),
+            "decimals": view.quote.asset.decimals,
+            "starts_at_ms": view.quote.offer.starts_at_ms,
+            "expires_at_ms": view.quote.offer.expires_at_ms,
+            "funding_deadline_ms": view.quote.cash.funding_deadline_ms,
+            "applied_at_ms": view.receipt.as_ref().map(|r| r.applied_at_ms),
+            "service_reserve": view.service_reserve_atomic.to_string(),
         }),
         Order::Panda(view) => json!({
             "id": hex::encode(*view.claim_id),
@@ -218,26 +243,6 @@ impl Client {
     fn beneficiary(&self) -> Result<Beneficiary> {
         let account = self.account()?;
         Ok(billing::beneficiary(account.home, &account.id))
-    }
-
-    /// A certified leaf of a commerce or membership batch, decoded; read
-    /// anonymously unless `ic` is given.
-    async fn certified<
-        T: serde::de::DeserializeOwned + Serialize,
-        A: candid::utils::ArgumentEncoder,
-    >(
-        &mut self,
-        ic: Option<Ic>,
-        canister: Principal,
-        method: &str,
-        args: A,
-        key: &[u8],
-    ) -> Result<Option<T>> {
-        let ic = match ic {
-            Some(ic) => ic,
-            None => self.anonymous().await?,
-        };
-        certified_by(&ic, canister, method, args, key).await
     }
 
     /// The certified catalog.
@@ -476,6 +481,7 @@ impl Client {
             terms,
             approval: None,
             stage: Stage::Review,
+            created_at_ms: Some(now_ms()),
         };
         if let Ok(old) = self.checkout(&job.id) {
             ensure(
@@ -504,7 +510,8 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub fn plan_checkouts(&self) -> Result<Vec<Checkout>> {
-        self.workspace
+        let mut jobs = self
+            .workspace
             .store
             .sealed_keys(JOURNAL)?
             .iter()
@@ -513,7 +520,25 @@ impl Client {
                     .private(self.keys()?, key)?
                     .ok_or(Error::IntegrityFailed)
             })
-            .collect()
+            .collect::<Result<Vec<Checkout>>>()?;
+        // Newest first; journals from before the field come last.
+        jobs.sort_by_key(|job| std::cmp::Reverse(job.created_at_ms));
+        Ok(jobs)
+    }
+
+    /// Forget a checkout nothing was sent for: a quote nobody approved, or an
+    /// approved one whose deadline passed before it reached the service.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` once the service may hold the order.
+    pub fn plan_discard(&self, id: &str) -> Result<()> {
+        let job = self.checkout(id)?;
+        ensure(
+            job.stage == Stage::Review
+                || (job.stage == Stage::Authorized && now_ms() >= job.deadline_ms()),
+            Error::Forbidden,
+        )?;
+        self.workspace.delete_private(&format!("{JOURNAL}{id}"))
     }
 
     /// The order's state at the service, checked against the journal.
@@ -521,35 +546,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` before the service has the order.
     pub async fn plan_order(&mut self, id: &str) -> Result<Order> {
-        let job = self.checkout(id)?;
-        let services = self.services().await?;
-        let raw = hex_id(id)?;
-        match &job.terms {
-            Terms::Cash(quote) => {
-                let ic = self.actor(job.actor).await?;
-                let view: Result<CheckoutView> =
-                    ic.query(services.commerce, "get_checkout", (raw,)).await?;
-                let view = view?;
-                ensure(view.quote == **quote, Error::IntegrityFailed)?;
-                Ok(Order::Cash(Box::new(view)))
-            }
-            Terms::Panda(terms) => {
-                // Only the claim's actor reads its certificate.
-                let ic = self.actor(job.actor).await?;
-                let view: PandaClaimView = self
-                    .certified(
-                        Some(ic),
-                        services.membership,
-                        "panda_claim_certificate",
-                        (raw,),
-                        digest("dmsg/panda/claim-certificate/v2", &raw).as_slice(),
-                    )
-                    .await?
-                    .ok_or(Error::NotFound)?;
-                ensure(view.terms == **terms, Error::IntegrityFailed)?;
-                Ok(Order::Panda(Box::new(view)))
-            }
-        }
+        order(&self.hold(), id).await
     }
 
     /// The order's state for display.
@@ -811,94 +808,6 @@ impl Client {
         advanced?;
         self.plan_order_view(id).await
     }
-
-    /// Cancel an order before it is applied.
-    ///
-    /// # Errors
-    /// The service's verdict; an applied order is `Error::Forbidden`.
-    pub async fn plan_cancel(&mut self, id: &str) -> Result<Json> {
-        let job = self.checkout(id)?;
-        let services = self.services().await?;
-        let ic = self.actor(job.actor).await?;
-        let raw = hex_id(id)?;
-        match job.terms {
-            Terms::Cash(_) => {
-                let cancelled: Result<CheckoutProgress> = ic
-                    .update(services.commerce, "cancel_checkout", (raw,))
-                    .await?;
-                cancelled?;
-            }
-            Terms::Panda(_) => {
-                let cancelled: Result<PandaClaimView> = ic
-                    .update(services.membership, "cancel_panda_application", (raw,))
-                    .await?;
-                cancelled?;
-            }
-        }
-        self.plan_order_view(id).await
-    }
-
-    /// Advance an order whose delivery is being applied.
-    ///
-    /// # Errors
-    /// The service's verdict.
-    pub async fn plan_reconcile(&mut self, id: &str) -> Result<Json> {
-        let job = self.checkout(id)?;
-        let services = self.services().await?;
-        let ic = self.actor(job.actor).await?;
-        let raw = hex_id(id)?;
-        match job.terms {
-            Terms::Cash(_) => {
-                let r: Result<CheckoutProgress> = ic
-                    .update(services.commerce, "reconcile_checkout", (raw,))
-                    .await?;
-                r?;
-            }
-            Terms::Panda(_) => {
-                let r: Result<PandaClaimView> = ic
-                    .update(services.membership, "reconcile_panda_claim", (raw,))
-                    .await?;
-                r?;
-            }
-        }
-        self.plan_order_view(id).await
-    }
-
-    /// Refund the deposits of a cash order the service refunds, to their
-    /// original accounts.
-    ///
-    /// # Errors
-    /// The service's verdict.
-    pub async fn plan_refund(&mut self, id: &str, blocks: &[u64]) -> Result<Json> {
-        ensure_valid(!blocks.is_empty() && blocks.len() <= 32, "blocks")?;
-        let job = self.checkout(id)?;
-        let Terms::Cash(quote) = &job.terms else {
-            return Err(Error::Forbidden);
-        };
-        let services = self.services().await?;
-        let ic = self.actor(job.actor).await?;
-        let mut selected: Vec<u128> = blocks.iter().map(|b| u128::from(*b)).collect();
-        selected.sort_unstable();
-        selected.dedup();
-        let raw = hex_id(id)?;
-        let operation = digest(
-            "dmsg/refund-selection/v2",
-            &(raw, quote.cash.ledger, &selected),
-        );
-        let transfer: Result<dmsg_types::integration_billing::CashTransfer> = ic
-            .update(
-                services.commerce,
-                "claim_checkout_refund",
-                (raw, quote.cash.ledger, selected, operation),
-            )
-            .await?;
-        let transfer = transfer?;
-        Ok(json!({
-            "transfer_id": hex::encode(*transfer.transfer_id),
-            "amount": transfer.amount_atomic.to_string(),
-            "status": format!("{:?}", transfer.status),
-        }))
-    }
 }
 
 /// What the maintenance pages list.
@@ -910,186 +819,6 @@ pub enum Records {
     Transfers,
     /// PANDA claims and their eligibility leases.
     Claims,
-}
-
-/// The commerce and membership records the payer may read and repair: as
-/// payer, merchant, adapter or operator. Each action repeats an original
-/// operation with its frozen parameters; none creates a new payment.
-impl Client {
-    /// One page of `records` visible to the payer, after `after`.
-    ///
-    /// # Errors
-    /// The service's verdict.
-    pub async fn commerce_records(
-        &mut self,
-        records: Records,
-        after: Option<Hash>,
-    ) -> Result<Json> {
-        let services = self.services().await?;
-        let (caller, ic) = self.payer().await?;
-        let units = |n: u128| n.to_string();
-        Ok(match records {
-            Records::Orders => {
-                let page: Result<CheckoutOperationsPage> = ic
-                    .query(services.commerce, "checkout_operations", (after, 16u16))
-                    .await?;
-                let page = page?;
-                json!({
-                    "orders": page.orders.iter().map(|row| json!({
-                        "order_id": hex::encode(*row.order.progress.order_id),
-                        "product_id": row.order.quote.offer.product_id,
-                        "sku": row.order.quote.offer.sku,
-                        "status": format!("{:?}", row.order.progress.status),
-                        "receipt": row.order.receipt.is_some(),
-                        "balances": row.balances.iter().map(|b| json!({
-                            "ledger": b.ledger.to_text(),
-                            "incoming": units(b.incoming_atomic),
-                            "refundable": units(b.refundable_atomic),
-                            "service_reserve": units(b.service_reserve_atomic),
-                            "fee_reserve": units(b.fee_reserve_atomic),
-                            "outgoing": units(b.outgoing_atomic),
-                        })).collect::<Vec<_>>(),
-                    })).collect::<Vec<_>>(),
-                    "next": page.next.map(|h| hex::encode(*h)),
-                })
-            }
-            Records::Transfers => {
-                let page: Result<CashTransfersPage> = ic
-                    .query(services.commerce, "checkout_transfers", (after, 16u16))
-                    .await?;
-                let page = page?;
-                json!({
-                    "transfers": page.transfers.iter().map(|t| json!({
-                        "transfer_id": hex::encode(*t.transfer_id),
-                        "order_id": hex::encode(*t.order_id),
-                        "ledger": t.ledger.to_text(),
-                        "to": t.to.owner.to_text(),
-                        "amount": units(t.amount_atomic),
-                        "fee": units(t.fee_atomic),
-                        "max_fee": units(t.max_fee_atomic),
-                        "expected_fee": t.expected_fee_atomic.map(units),
-                        "status": format!("{:?}", t.status),
-                        "error_code": t.error_code,
-                        "block": t.block_index.map(units),
-                        // Only the recipient revises a refused transfer, within its fee limit.
-                        "revisable": t.status == CashTransferStatus::Rejected
-                            && t.to.owner == caller
-                            && t.expected_fee_atomic.is_some_and(|f| f <= t.max_fee_atomic),
-                    })).collect::<Vec<_>>(),
-                    "next": page.next.map(|h| hex::encode(*h)),
-                })
-            }
-            Records::Claims => {
-                let page: Result<PandaOperationsPage> = ic
-                    .query(services.membership, "panda_operations", (after, 16u16))
-                    .await?;
-                let page = page?;
-                json!({
-                    "claims": page.claims.iter().map(|c| json!({
-                        "claim_id": hex::encode(*c.claim_id),
-                        "product_id": c.terms.offer.product_id,
-                        "sku": c.terms.offer.sku,
-                        "status": format!("{:?}", c.status),
-                        "eligibility": format!("{:?}", c.eligibility),
-                        "observed_at_ms": c.observed_at_ms,
-                        "valid_until_ms": c.valid_until_ms,
-                        "committed_until_ms": c.committed_until_ms,
-                        "amount_usd_micros": units(c.terms.offer.amount_usd_micros),
-                        // A live claim refreshes its lease; others reconcile.
-                        "refreshable": matches!(c.status, PandaClaimStatus::Active | PandaClaimStatus::Terminated),
-                    })).collect::<Vec<_>>(),
-                    "next": page.next.map(|h| hex::encode(*h)),
-                })
-            }
-        })
-    }
-
-    /// Read or replay an order's original decision after a lost reply.
-    ///
-    /// # Errors
-    /// The service's verdict.
-    pub async fn commerce_reconcile_order(&mut self, id: &Hash) -> Result<Json> {
-        let services = self.services().await?;
-        let (_, ic) = self.payer().await?;
-        let progress: Result<CheckoutProgress> = ic
-            .update(services.commerce, "reconcile_checkout", (id,))
-            .await?;
-        let progress = progress?;
-        Ok(
-            json!({"order_id": hex::encode(*progress.order_id), "status": format!("{:?}", progress.status)}),
-        )
-    }
-
-    /// Send a transfer again with its original memo, time, amount and fee.
-    ///
-    /// # Errors
-    /// The service's verdict.
-    pub async fn commerce_process_transfer(&mut self, id: &Hash) -> Result<Json> {
-        let services = self.services().await?;
-        let (_, ic) = self.payer().await?;
-        let progress: Result<CashTransferProgress> = ic
-            .update(services.commerce, "process_checkout_transfer", (id,))
-            .await?;
-        let progress = progress?;
-        Ok(json!({
-            "transfer_id": hex::encode(*progress.transfer_id),
-            "status": format!("{:?}", progress.status),
-            "block": progress.block_index.map(|b| b.to_string()),
-        }))
-    }
-
-    /// Replace a transfer the ledger refused with one at the fee it asked
-    /// for, as its recipient; the total obligation does not grow.
-    ///
-    /// # Errors
-    /// The service's verdict.
-    pub async fn commerce_revise_transfer(&mut self, id: &Hash, fee: u128) -> Result<Json> {
-        let services = self.services().await?;
-        let (_, ic) = self.payer().await?;
-        let revised: Result<CashTransfer> = ic
-            .update(services.commerce, "revise_checkout_transfer_fee", (id, fee))
-            .await?;
-        let revised = revised?;
-        Ok(json!({
-            "transfer_id": hex::encode(*revised.transfer_id),
-            "replaces": revised.replaces.map(|h| hex::encode(*h)),
-            "status": format!("{:?}", revised.status),
-        }))
-    }
-
-    /// Refresh a live PANDA claim's eligibility, or reconcile any other.
-    ///
-    /// # Errors
-    /// The service's verdict.
-    pub async fn commerce_claim(&mut self, id: &Hash, refresh: bool) -> Result<Json> {
-        let services = self.services().await?;
-        let (_, ic) = self.payer().await?;
-        let method = match refresh {
-            true => "refresh_panda_claim",
-            false => "reconcile_panda_claim",
-        };
-        let view: Result<PandaClaimView> = ic.update(services.membership, method, (id,)).await?;
-        let view = view?;
-        Ok(json!({
-            "claim_id": hex::encode(*view.claim_id),
-            "status": format!("{:?}", view.status),
-            "eligibility": format!("{:?}", view.eligibility),
-            "valid_until_ms": view.valid_until_ms,
-        }))
-    }
-
-    /// Release or compact expired PANDA commitments; anyone may.
-    ///
-    /// # Errors
-    /// The service's verdict.
-    pub async fn commerce_sweep(&mut self) -> Result<u32> {
-        let services = self.services().await?;
-        let ic = self.reader().await?;
-        let swept: Result<u32> = ic
-            .update(services.membership, "sweep_panda_commitments", ())
-            .await?;
-        swept
-    }
 }
 
 /// A certified leaf of a commerce or membership batch `ic` reads, decoded.
@@ -1165,9 +894,148 @@ pub async fn plan_assets<H: Hold>(h: &H) -> Result<Json> {
     ))
 }
 
-/// This account's entitlement, refreshed first with `refresh`; a certified
-/// absence means the catalog's Free plan. The IC is waited on without the
-/// client.
+/// Resource limits for display.
+fn limits_view(l: &ResourceLimits) -> Json {
+    json!({
+        "storage_bytes": l.storage_bytes,
+        "active_channels": l.active_channels,
+        "monthly_execution_units": l.monthly_execution_units,
+    })
+}
+
+/// The certified catalog for display: the plans with their limits and the
+/// storage products, by product ID hex.
+pub fn catalog_view(c: &Catalog) -> Json {
+    json!({
+        "version": c.version,
+        "effective_at_ms": c.effective_at_ms,
+        "plans": c.plans.iter().map(|p| json!({
+            "plan_id": format!("{:?}", p.plan_id),
+            "price_cents": p.price_cents,
+            "limits": limits_view(&p.limits),
+            "terms_version": p.terms_version,
+        })).collect::<Vec<_>>(),
+        "storage_products": c.storage_products.iter().map(|p| json!({
+            "product_id": hex::encode(*p.product_id),
+            "storage_bytes": p.storage_bytes,
+            "price_cents": p.price_cents,
+        })).collect::<Vec<_>>(),
+    })
+}
+
+/// When a contract's rights end: its term, or an earlier termination.
+fn contract_end(c: &MembershipContract) -> u64 {
+    c.expires_at_ms.min(c.terminated_at_ms.unwrap_or(u64::MAX))
+}
+
+/// A base contract for display.
+fn contract_view(c: &MembershipContract) -> Json {
+    let (method, source) = match &c.source {
+        ContractSource::Cash { order_id } => ("Cash", hex::encode(**order_id)),
+        ContractSource::Sns { claim_id } => ("Panda", hex::encode(**claim_id)),
+        ContractSource::Compensation => ("Compensation", String::new()),
+    };
+    json!({
+        "contract": hex::encode(*c.contract_id),
+        "plan": format!("{:?}", c.plan.plan_id),
+        "method": method,
+        "source": source,
+        "term_starts_at_ms": c.term_starts_at_ms,
+        "starts_at_ms": c.starts_at_ms,
+        "expires_at_ms": c.expires_at_ms,
+        "terminated_at_ms": c.terminated_at_ms,
+        "ends_at_ms": contract_end(c),
+    })
+}
+
+/// What each paid plan's card offers this account now: a first
+/// subscription, a renewal or a switch from the end of the current term
+/// (within [`RENEWAL_WINDOW_MS`] of it), an upgrade for the rest of a cash
+/// term, or why none is possible yet. A term that was refunded early ends
+/// with its lease; a new subscription starts at once.
+fn offers(
+    catalog: &Catalog,
+    current: Option<&MembershipContract>,
+    next: Option<&MembershipContract>,
+    now: u64,
+) -> Vec<Json> {
+    let price = |plan: &PlanId| {
+        catalog
+            .plans
+            .iter()
+            .find(|p| p.plan_id == *plan)
+            .map(|p| p.price_cents)
+    };
+    let current = current.filter(|c| c.terminated_at_ms.is_none());
+    catalog
+        .plans
+        .iter()
+        .filter(|p| p.price_cents > 0)
+        .map(|p| {
+            let plan = format!("{:?}", p.plan_id);
+            let sku = plan.to_ascii_lowercase();
+            let offer = |action: &str, sku: String, starts: u64, methods: &[&str]| {
+                json!({
+                    "plan": plan,
+                    "action": action,
+                    "sku": sku,
+                    "starts_at_ms": starts,
+                    "methods": methods,
+                })
+            };
+            let wait = |reason: &str, from: Option<u64>| {
+                json!({
+                    "plan": plan,
+                    "action": "unavailable",
+                    "reason": reason,
+                    "available_at_ms": from,
+                })
+            };
+            let Some(c) = current else {
+                return offer("subscribe", sku, now, &["Cash", "Panda"]);
+            };
+            let same = c.plan.plan_id == p.plan_id;
+            let higher = price(&c.plan.plan_id).is_some_and(|cents| p.price_cents > cents);
+            if higher && matches!(c.source, ContractSource::Cash { .. }) {
+                return offer("upgrade", format!("upgrade-{sku}"), now, &["Cash"]);
+            }
+            if next.is_some() {
+                return wait("RENEWAL_QUEUED", None);
+            }
+            let from = c.expires_at_ms.saturating_sub(RENEWAL_WINDOW_MS);
+            if now < from {
+                let reason = match (same, higher) {
+                    (true, _) => "RENEWAL_WINDOW",
+                    // Only a cash term is upgraded midway.
+                    (false, true) => "UPGRADE_CASH_ONLY",
+                    (false, false) => "SWITCH_AT_RENEWAL",
+                };
+                return wait(reason, Some(from));
+            }
+            let action = if same { "renew" } else { "switch" };
+            offer(action, sku, c.expires_at_ms, &["Cash", "Panda"])
+        })
+        .collect()
+}
+
+fn addon_view(a: &StorageAddon) -> Json {
+    json!({
+        "contract": hex::encode(*a.contract_id),
+        "order": hex::encode(*a.order_id),
+        "storage_bytes": a.storage_bytes,
+        "starts_at_ms": a.starts_at_ms,
+        "expires_at_ms": a.expires_at_ms,
+    })
+}
+
+/// This account's entitlement and terms, refreshed first with `refresh`; a
+/// certified absence means the catalog's Free plan. The terms come from an
+/// uncertified query and are only shown: the current and the next base
+/// contract, when a renewal may be bought, what each plan's card offers,
+/// whether storage packs may be bought and the first purchase's refund
+/// window. With `refresh` the relay is asked to read the entitlement again,
+/// so its limits follow a purchase at once; `synced` says whether it did.
+/// The IC is waited on without the client.
 ///
 /// # Errors
 /// Returns `Error::IntegrityFailed` for an uncertified answer.
@@ -1192,26 +1060,653 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
         billing::entitlement_key(&beneficiary).as_slice(),
     )
     .await?;
-    Ok(match view {
+    let terms: Result<MembershipTerms> = ic
+        .query(commerce, "get_membership_terms", (&beneficiary,))
+        .await?;
+    let terms = terms?;
+    let catalog = catalog(h).await?;
+    let mut status = match view {
         Some(view) => json!({
             "plan": format!("{:?}", view.plan_snapshot.plan_id),
             "source": format!("{:?}", view.source_status),
             "eligibility": format!("{:?}", view.eligibility_status),
-            "valid_until_ms": view.valid_until_ms,
-            "storage_bytes": view.effective_limits.storage_bytes,
-            "effective_stop_at_ms": view.effective_stop_at_ms,
+            "limits": limits_view(&view.effective_limits),
+            "addons": view.addons.iter().map(addon_view).collect::<Vec<_>>(),
+            "lease_until_ms": view.valid_until_ms,
+            "next_change_at_ms": view.next_limit_change_at_ms,
+            "repair_deadline_ms": view.repair_deadline_ms,
+            "service_terminated_at_ms": view.service_terminated_at_ms,
         }),
         None => {
-            let plans = catalog(h).await?.plans;
-            let free = plans
+            let free = catalog
+                .plans
                 .iter()
-                .find(|p| p.plan_id == dmsg_types::billing::PlanId::Free)
+                .find(|p| p.plan_id == PlanId::Free)
                 .ok_or(Error::IntegrityFailed)?;
             json!({
                 "plan": "Free",
                 "source": "Free",
-                "storage_bytes": free.limits.storage_bytes,
+                "limits": limits_view(&free.limits),
+                "addons": [],
+            })
+        }
+    };
+    let now = now_ms();
+    let live: Vec<&MembershipContract> = terms
+        .contracts
+        .iter()
+        .filter(|c| contract_end(c) > now)
+        .collect();
+    let current = live.iter().find(|c| c.starts_at_ms <= now);
+    let next = live.iter().find(|c| c.starts_at_ms > now);
+    status["current"] = current.map_or(Json::Null, |c| contract_view(c));
+    status["next"] = next.map_or(Json::Null, |c| contract_view(c));
+    status["offers"] = offers(&catalog, current.copied(), next.copied(), now).into();
+    // Storage packs extend a paid membership that qualifies now, to its end.
+    status["storage_available"] = (current.is_some_and(|c| c.terminated_at_ms.is_none())
+        && status["eligibility"] == "Eligible")
+        .into();
+    // Only a term running to its end is continued; one renewal at a time.
+    status["renew_from_ms"] = match (current, next) {
+        (Some(c), None) if c.terminated_at_ms.is_none() => {
+            c.expires_at_ms.saturating_sub(RENEWAL_WINDOW_MS).into()
+        }
+        _ => Json::Null,
+    };
+    status["refund"] = terms.refund.map_or(Json::Null, |w| {
+        json!({
+            "order": hex::encode(*w.order_id),
+            "contract": hex::encode(*w.contract_id),
+            "until_ms": w.until_ms,
+        })
+    });
+    if refresh {
+        status["synced"] = relay_refresh(h).await.is_ok().into();
+    }
+    Ok(status)
+}
+
+/// Ask the relay to read this account's entitlement again, so its storage
+/// and channel limits follow a purchase or refund now rather than within
+/// the hour.
+///
+/// # Errors
+/// Relay failures.
+pub async fn relay_refresh<H: Hold>(h: &H) -> Result<()> {
+    let base = h.with(|c| c.base()).await?;
+    let path = format!("{base}/membership/refresh");
+    h.send(|c| c.signed_post_empty(&path)).await.map(|_| ())
+}
+
+/// Acknowledge the relay's over-limit notice `id`; the export window it
+/// guarantees starts now at the latest.
+///
+/// # Errors
+/// Relay failures; `Error::VersionConflict` for a notice no longer open.
+pub async fn notice_ack<H: Hold>(h: &H, id: &str) -> Result<Json> {
+    ensure(
+        id.len() == 64 && id.bytes().all(|b| b.is_ascii_hexdigit()),
+        dmsg_types::invalid("notice"),
+    )?;
+    let base = h.with(|c| c.base()).await?;
+    h.post(
+        &format!("{base}/membership/notice-ack"),
+        "dmsg/membership/notice-ack/v1",
+        &json!({"notice_id": id.to_ascii_lowercase()}),
+        &Hash::new(crate::crypto::random_id()),
+    )
+    .await
+}
+
+/// The order `id`'s state at the service: checked against this device's
+/// journal when it has one, otherwise read as the payer's cash order.
+///
+/// # Errors
+/// Returns `Error::NotFound` before the service has the order.
+pub(crate) async fn order<H: Hold>(h: &H, id: &str) -> Result<Order> {
+    let job = h.with(|c| Ok(c.checkout(id).ok())).await?;
+    let services = services(h).await?;
+    let (payer, ic) = payer(h).await?;
+    let raw = hex_id(id)?;
+    if let Some(job) = &job {
+        ensure(job.actor == payer, Error::Forbidden)?;
+    }
+    match job.as_ref().map(|j| &j.terms) {
+        Some(Terms::Panda(terms)) => {
+            // Only the claim's actor reads its certificate.
+            let view: PandaClaimView = certified_by(
+                &ic,
+                services.membership,
+                "panda_claim_certificate",
+                (raw,),
+                digest("dmsg/panda/claim-certificate/v2", &raw).as_slice(),
+            )
+            .await?
+            .ok_or(Error::NotFound)?;
+            ensure(view.terms == **terms, Error::IntegrityFailed)?;
+            Ok(Order::Panda(Box::new(view)))
+        }
+        quoted => {
+            let view: Result<CheckoutView> =
+                ic.query(services.commerce, "get_checkout", (raw,)).await?;
+            let view = view?;
+            if let Some(Terms::Cash(quote)) = quoted {
+                ensure(view.quote == **quote, Error::IntegrityFailed)?;
+            }
+            Ok(Order::Cash(Box::new(view)))
+        }
+    }
+}
+
+/// The order `id`'s state for display, read without the client.
+///
+/// # Errors
+/// As [`order`].
+pub async fn plan_order_view<H: Hold>(h: &H, id: &str) -> Result<Json> {
+    Ok(order_view(&order(h, id).await?))
+}
+
+/// Whether this device quoted `id` as a PANDA claim.
+async fn is_panda<H: Hold>(h: &H, id: &str) -> Result<bool> {
+    h.with(|c| {
+        Ok(c.checkout(id)
+            .is_ok_and(|job| matches!(job.terms, Terms::Panda(_))))
+    })
+    .await
+}
+
+/// Cancel an order: one not yet paid or applied, a renewal that has not
+/// started, or the first purchase within its refund window, whose rights
+/// stop once the lease already issued runs out. What becomes refundable is
+/// claimed back to the payer and sent at once.
+///
+/// # Errors
+/// The service's verdict; a started term otherwise is `Error::Forbidden`.
+pub async fn plan_cancel<H: Hold>(h: &H, id: &str) -> Result<Json> {
+    let services = services(h).await?;
+    let (payer, ic) = payer(h).await?;
+    let raw = hex_id(id)?;
+    let mut refunds = Vec::new();
+    if is_panda(h, id).await? {
+        let cancelled: Result<PandaClaimView> = ic
+            .update(services.membership, "cancel_panda_application", (raw,))
+            .await?;
+        cancelled?;
+    } else {
+        let cancelled: Result<CheckoutProgress> = ic
+            .update(services.commerce, "cancel_checkout", (raw,))
+            .await?;
+        cancelled?;
+        refunds = refund_deposits(&ic, services.commerce, raw, payer, None).await?;
+    }
+    let mut view = plan_order_view(h, id).await?;
+    view["refunds"] = refunds.into();
+    // The relay follows the shorter entitlement now; it rereads within the
+    // hour otherwise.
+    let _ = relay_refresh(h).await;
+    Ok(view)
+}
+
+/// What cancelling the first purchase `order` would refund now: the price
+/// it has not earned when its rights stop, at the end of the lease already
+/// issued, less the refund transfer's network fee.
+///
+/// # Errors
+/// Returns `Error::Forbidden` when the order is not the refundable one.
+pub async fn plan_refund_quote<H: Hold>(h: &H, order: &str) -> Result<Json> {
+    let status = plan_status(h, false).await?;
+    ensure(
+        status["refund"]["order"].as_str() == Some(order),
+        Error::Forbidden,
+    )?;
+    let services = services(h).await?;
+    let (_, ic) = payer(h).await?;
+    let view: Result<CheckoutView> = ic
+        .query(services.commerce, "get_checkout", (hex_id(order)?,))
+        .await?;
+    let view = view?;
+    let applied = view.receipt.as_ref().ok_or(Error::NotFound)?.applied_at_ms;
+    let stop = status["lease_until_ms"]
+        .as_u64()
+        .unwrap_or_default()
+        .max(now_ms());
+    let amount = view.quote.cash.amount_atomic;
+    let refund = amount - commerce_v2::earned_atomic(amount, &view.quote.offer, applied, stop)?;
+    let fee = view.quote.asset.network_fee_atomic;
+    Ok(json!({
+        "order": order,
+        "refund": refund.to_string(),
+        "received": refund.saturating_sub(fee).to_string(),
+        "fee": fee.to_string(),
+        "asset": format!("{:?}", view.quote.asset.asset),
+        "decimals": view.quote.asset.decimals,
+        "stops_at_ms": stop,
+        "until_ms": status["refund"]["until_ms"],
+    }))
+}
+
+/// Claim back the deposits to order `raw` at `blocks`, or every refundable
+/// one the payer made, at most 32 per refund on one ledger, and send each
+/// refund to its source. A refund the service refuses, such as one smaller
+/// than the network fee, is reported in its place.
+async fn refund_deposits(
+    ic: &Ic,
+    commerce: Principal,
+    raw: Hash,
+    payer: Principal,
+    blocks: Option<&[u64]>,
+) -> Result<Vec<Json>> {
+    let mut selected: std::collections::BTreeMap<Principal, Vec<u128>> = Default::default();
+    let mut after = None;
+    loop {
+        let page: Result<CheckoutDepositsPage> = ic
+            .query(commerce, "checkout_deposits", (raw, after, 128u16))
+            .await?;
+        let page = page?;
+        for d in page.deposits {
+            let chosen = match blocks {
+                Some(blocks) => blocks.iter().any(|b| u128::from(*b) == d.block.block_index),
+                None => d.from.owner == payer && d.refundable_atomic > 0,
+            };
+            if chosen {
+                selected
+                    .entry(d.block.ledger)
+                    .or_default()
+                    .push(d.block.block_index);
+            }
+        }
+        match page.next {
+            Some(next) => after = Some(next),
+            None => break,
+        }
+    }
+    let mut refunds = Vec::new();
+    for (ledger, mut blocks) in selected {
+        blocks.sort_unstable();
+        blocks.dedup();
+        for group in blocks.chunks(32) {
+            let operation = digest("dmsg/refund-selection/v2", &(raw, ledger, group));
+            let claimed: Result<CashTransfer> = ic
+                .update(
+                    commerce,
+                    "claim_checkout_refund",
+                    (raw, ledger, group.to_vec(), operation),
+                )
+                .await?;
+            let transfer = match claimed {
+                Ok(transfer) => transfer,
+                Err(error) => {
+                    refunds.push(json!({
+                        "ledger": ledger.to_text(),
+                        "error": crate::error_code(&error),
+                    }));
+                    continue;
+                }
+            };
+            let sent: Result<Result<CashTransferProgress>> = ic
+                .update(
+                    commerce,
+                    "process_checkout_transfer",
+                    (transfer.transfer_id,),
+                )
+                .await;
+            refunds.push(json!({
+                "transfer_id": hex::encode(*transfer.transfer_id),
+                "ledger": ledger.to_text(),
+                "amount": transfer.amount_atomic.to_string(),
+                "status": match sent.and_then(|r| r) {
+                    Ok(progress) => format!("{:?}", progress.status),
+                    Err(error) => crate::error_code(&error),
+                },
+            }));
+        }
+    }
+    Ok(refunds)
+}
+
+/// Refund the deposits to order `id` the service refunds: those at
+/// `blocks`, or every refundable one the payer made, each sent back to its
+/// source.
+///
+/// # Errors
+/// The service's verdict.
+pub async fn plan_refund<H: Hold>(h: &H, id: &str, blocks: &[u64]) -> Result<Json> {
+    ensure_valid(blocks.len() <= 32, "blocks")?;
+    let services = services(h).await?;
+    let (payer, ic) = payer(h).await?;
+    let selection = (!blocks.is_empty()).then_some(blocks);
+    Ok(Json::Array(
+        refund_deposits(&ic, services.commerce, hex_id(id)?, payer, selection).await?,
+    ))
+}
+
+/// Advance an order whose delivery is being applied.
+///
+/// # Errors
+/// The service's verdict.
+pub async fn plan_reconcile<H: Hold>(h: &H, id: &str) -> Result<Json> {
+    let services = services(h).await?;
+    let (_, ic) = payer(h).await?;
+    let raw = hex_id(id)?;
+    if is_panda(h, id).await? {
+        let r: Result<PandaClaimView> = ic
+            .update(services.membership, "reconcile_panda_claim", (raw,))
+            .await?;
+        r?;
+    } else {
+        let r: Result<CheckoutProgress> = ic
+            .update(services.commerce, "reconcile_checkout", (raw,))
+            .await?;
+        r?;
+    }
+    plan_order_view(h, id).await
+}
+
+#[derive(candid::CandidType, Deserialize)]
+struct NeuronId {
+    id: serde_bytes::ByteBuf,
+}
+
+#[derive(candid::CandidType, Deserialize)]
+struct ListNeurons {
+    of_principal: Option<Principal>,
+    limit: u32,
+    start_page_at: Option<NeuronId>,
+}
+
+#[derive(candid::CandidType, Deserialize)]
+enum DissolveState {
+    DissolveDelaySeconds(u64),
+    WhenDissolvedTimestampSeconds(u64),
+}
+
+/// What the client reads of an SNS neuron; the SNS sends more fields.
+#[derive(candid::CandidType, Deserialize)]
+struct Neuron {
+    id: Option<NeuronId>,
+    cached_neuron_stake_e8s: u64,
+    neuron_fees_e8s: u64,
+    dissolve_state: Option<DissolveState>,
+}
+
+#[derive(candid::CandidType, Deserialize)]
+struct ListNeuronsResponse {
+    neurons: Vec<Neuron>,
+}
+
+/// The PANDA path before a quote: the SNS whose neurons qualify, the
+/// cooling period, the current rate and what each plan needs staked, and
+/// the payer's neurons on that SNS with the stake and the lock that count.
+/// The payer must be a principal of the neuron, for example a hotkey.
+///
+/// # Errors
+/// Returns `Error::AuthRequired` without a payer.
+pub async fn plan_panda<H: Hold>(h: &H) -> Result<Json> {
+    let services = services(h).await?;
+    let ic = h.anonymous().await?;
+    let service: PandaServiceView = ic.query(services.membership, "panda_service", ()).await?;
+    let now = now_ms();
+    let rate = service
+        .rates
+        .iter()
+        .filter(|r| r.effective_at_ms <= now && r.product_ids.iter().any(|p| p == DMSG_APP))
+        .max_by_key(|r| r.effective_at_ms);
+    let plans = catalog(h)
+        .await?
+        .plans
+        .iter()
+        .filter(|p| p.price_cents > 0)
+        .map(|p| {
+            let required = rate
+                .map(|r| {
+                    integration::required_panda_stake(
+                        u128::from(p.price_cents) * 10_000,
+                        r.r_num,
+                        r.r_den,
+                    )
+                })
+                .transpose()?;
+            Ok(json!({
+                "plan_id": format!("{:?}", p.plan_id),
+                "required_stake_e8s": required.map(|r| r.to_string()),
+            }))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let (payer, _) = payer(h).await?;
+    let listed: Result<ListNeuronsResponse> = ic
+        .query(
+            service.governance,
+            "list_neurons",
+            (ListNeurons {
+                of_principal: Some(payer),
+                limit: 100,
+                start_page_at: None,
+            },),
+        )
+        .await;
+    let mut view = json!({
+        "governance": service.governance.to_text(),
+        "ledger": service.panda_ledger.to_text(),
+        "cooling_ms": service.cooling_ms,
+        "paused": service.paused,
+        "rate": rate.map(|r| json!({
+            "policy_version": r.policy_version,
+            "r_num": r.r_num.to_string(),
+            "r_den": r.r_den.to_string(),
+            "effective_at_ms": r.effective_at_ms,
+        })),
+        "plans": plans,
+        "payer": payer.to_text(),
+    });
+    match listed {
+        Ok(listed) => {
+            let neurons: Vec<Json> = listed
+                .neurons
+                .iter()
+                .filter_map(|n| {
+                    let id = n.id.as_ref()?;
+                    // A neuron that is not dissolving unlocks no earlier than its delay from now.
+                    let (dissolving, unlock_at_ms) = match n.dissolve_state {
+                        Some(DissolveState::DissolveDelaySeconds(delay)) => {
+                            (false, now.saturating_add(delay.saturating_mul(1000)))
+                        }
+                        Some(DissolveState::WhenDissolvedTimestampSeconds(at)) => {
+                            (true, at.saturating_mul(1000))
+                        }
+                        None => (true, now),
+                    };
+                    Some(json!({
+                        "id": hex::encode(&id.id),
+                        "stake_e8s": n
+                            .cached_neuron_stake_e8s
+                            .saturating_sub(n.neuron_fees_e8s)
+                            .to_string(),
+                        "dissolving": dissolving,
+                        "unlock_at_ms": unlock_at_ms,
+                    }))
+                })
+                .collect();
+            view["neurons"] = neurons.into();
+        }
+        Err(error) => view["neurons_error"] = crate::error_code(&error).into(),
+    }
+    Ok(view)
+}
+
+/// One page of `records` visible to the payer, after `after`: as payer,
+/// merchant, adapter or operator. Read without the client.
+///
+/// # Errors
+/// The service's verdict.
+pub async fn commerce_records<H: Hold>(
+    h: &H,
+    records: Records,
+    after: Option<Hash>,
+) -> Result<Json> {
+    let services = services(h).await?;
+    let (caller, ic) = payer(h).await?;
+    let units = |n: u128| n.to_string();
+    Ok(match records {
+        Records::Orders => {
+            let page: Result<CheckoutOperationsPage> = ic
+                .query(services.commerce, "checkout_operations", (after, 16u16))
+                .await?;
+            let page = page?;
+            json!({
+                "orders": page.orders.iter().map(|row| json!({
+                    "order_id": hex::encode(*row.order.progress.order_id),
+                    "product_id": row.order.quote.offer.product_id,
+                    "sku": row.order.quote.offer.sku,
+                    "status": format!("{:?}", row.order.progress.status),
+                    "receipt": row.order.receipt.is_some(),
+                    "asset": format!("{:?}", row.order.quote.asset.asset),
+                    "decimals": row.order.quote.asset.decimals,
+                    "balances": row.balances.iter().map(|b| json!({
+                        "ledger": b.ledger.to_text(),
+                        "incoming": units(b.incoming_atomic),
+                        "refundable": units(b.refundable_atomic),
+                        "service_reserve": units(b.service_reserve_atomic),
+                        "fee_reserve": units(b.fee_reserve_atomic),
+                        "outgoing": units(b.outgoing_atomic),
+                    })).collect::<Vec<_>>(),
+                })).collect::<Vec<_>>(),
+                "next": page.next.map(|h| hex::encode(*h)),
+            })
+        }
+        Records::Transfers => {
+            let page: Result<CashTransfersPage> = ic
+                .query(services.commerce, "checkout_transfers", (after, 16u16))
+                .await?;
+            let page = page?;
+            json!({
+                "transfers": page.transfers.iter().map(|t| json!({
+                    "transfer_id": hex::encode(*t.transfer_id),
+                    "order_id": hex::encode(*t.order_id),
+                    "ledger": t.ledger.to_text(),
+                    "to": t.to.owner.to_text(),
+                    "amount": units(t.amount_atomic),
+                    "fee": units(t.fee_atomic),
+                    "max_fee": units(t.max_fee_atomic),
+                    "expected_fee": t.expected_fee_atomic.map(units),
+                    "status": format!("{:?}", t.status),
+                    "error_code": t.error_code,
+                    "block": t.block_index.map(units),
+                    // Only the recipient revises a refused transfer, within its fee limit.
+                    "revisable": t.status == CashTransferStatus::Rejected
+                        && t.to.owner == caller
+                        && t.expected_fee_atomic.is_some_and(|f| f <= t.max_fee_atomic),
+                })).collect::<Vec<_>>(),
+                "next": page.next.map(|h| hex::encode(*h)),
+            })
+        }
+        Records::Claims => {
+            let page: Result<PandaOperationsPage> = ic
+                .query(services.membership, "panda_operations", (after, 16u16))
+                .await?;
+            let page = page?;
+            json!({
+                "claims": page.claims.iter().map(|c| json!({
+                    "claim_id": hex::encode(*c.claim_id),
+                    "product_id": c.terms.offer.product_id,
+                    "sku": c.terms.offer.sku,
+                    "status": format!("{:?}", c.status),
+                    "eligibility": format!("{:?}", c.eligibility),
+                    "observed_at_ms": c.observed_at_ms,
+                    "valid_until_ms": c.valid_until_ms,
+                    "committed_until_ms": c.committed_until_ms,
+                    "amount_usd_micros": units(c.terms.offer.amount_usd_micros),
+                    // A live claim refreshes its lease; others reconcile.
+                    "refreshable": matches!(c.status, PandaClaimStatus::Active | PandaClaimStatus::Terminated),
+                })).collect::<Vec<_>>(),
+                "next": page.next.map(|h| hex::encode(*h)),
             })
         }
     })
+}
+
+/// Read or replay an order's original decision after a lost reply.
+///
+/// # Errors
+/// The service's verdict.
+pub async fn commerce_reconcile_order<H: Hold>(h: &H, id: &Hash) -> Result<Json> {
+    let services = services(h).await?;
+    let (_, ic) = payer(h).await?;
+    let progress: Result<CheckoutProgress> = ic
+        .update(services.commerce, "reconcile_checkout", (id,))
+        .await?;
+    let progress = progress?;
+    Ok(
+        json!({"order_id": hex::encode(*progress.order_id), "status": format!("{:?}", progress.status)}),
+    )
+}
+
+/// Send a transfer again with its original memo, time, amount and fee.
+///
+/// # Errors
+/// The service's verdict.
+pub async fn commerce_process_transfer<H: Hold>(h: &H, id: &Hash) -> Result<Json> {
+    let services = services(h).await?;
+    let (_, ic) = payer(h).await?;
+    let progress: Result<CashTransferProgress> = ic
+        .update(services.commerce, "process_checkout_transfer", (id,))
+        .await?;
+    let progress = progress?;
+    Ok(json!({
+        "transfer_id": hex::encode(*progress.transfer_id),
+        "status": format!("{:?}", progress.status),
+        "block": progress.block_index.map(|b| b.to_string()),
+    }))
+}
+
+/// Replace a transfer the ledger refused with one at the fee it asked
+/// for, as its recipient; the total obligation does not grow.
+///
+/// # Errors
+/// The service's verdict.
+pub async fn commerce_revise_transfer<H: Hold>(h: &H, id: &Hash, fee: u128) -> Result<Json> {
+    let services = services(h).await?;
+    let (_, ic) = payer(h).await?;
+    let revised: Result<CashTransfer> = ic
+        .update(services.commerce, "revise_checkout_transfer_fee", (id, fee))
+        .await?;
+    let revised = revised?;
+    Ok(json!({
+        "transfer_id": hex::encode(*revised.transfer_id),
+        "replaces": revised.replaces.map(|h| hex::encode(*h)),
+        "status": format!("{:?}", revised.status),
+    }))
+}
+
+/// Refresh a live PANDA claim's eligibility, or reconcile any other.
+///
+/// # Errors
+/// The service's verdict.
+pub async fn commerce_claim<H: Hold>(h: &H, id: &Hash, refresh: bool) -> Result<Json> {
+    let services = services(h).await?;
+    let (_, ic) = payer(h).await?;
+    let method = match refresh {
+        true => "refresh_panda_claim",
+        false => "reconcile_panda_claim",
+    };
+    let view: Result<PandaClaimView> = ic.update(services.membership, method, (id,)).await?;
+    let view = view?;
+    Ok(json!({
+        "claim_id": hex::encode(*view.claim_id),
+        "status": format!("{:?}", view.status),
+        "eligibility": format!("{:?}", view.eligibility),
+        "valid_until_ms": view.valid_until_ms,
+    }))
+}
+
+/// Release or compact expired PANDA commitments; anyone may.
+///
+/// # Errors
+/// The service's verdict.
+pub async fn commerce_sweep<H: Hold>(h: &H) -> Result<u32> {
+    let services = services(h).await?;
+    let ic = h.reader().await?;
+    let swept: Result<u32> = ic
+        .update(services.membership, "sweep_panda_commitments", ())
+        .await?;
+    swept
 }

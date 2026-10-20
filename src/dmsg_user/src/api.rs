@@ -416,6 +416,19 @@ fn consume_handle_transfer_authorizations(from: HandleIntent, accept: HandleInte
     check_handle_authorization(&accept, caller, at)
 }
 
+/// When the account's authorization of the name operation `op_id` expires,
+/// if it is still live: either side of a transfer reads whether the other has
+/// authorized its side. The handle canister checks the intent itself.
+#[ic_cdk::query]
+fn get_handle_authorization(account_id: AccountId, op_id: Hash) -> Result<Option<u64>> {
+    let at = now();
+    let s = load(&account_id)?;
+    Ok(s.handle_authorizations
+        .get(&op_id)
+        .map(|a| a.expires_at)
+        .filter(|expires_at| at < *expires_at))
+}
+
 fn check_handle_authorization(intent: &HandleIntent, caller: Principal, at: u64) -> Result<()> {
     ensure(intent.handle_canister == caller, Error::Forbidden)?;
     let s = load(&intent.account_id)?;

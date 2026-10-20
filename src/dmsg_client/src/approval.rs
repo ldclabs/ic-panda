@@ -10,10 +10,10 @@
 //! was shown, the deadline and the state, then executes once: a lost reply
 //! is reconciled by its execution ID, never signed again.
 //!
-//! Requests that move money, revoke a device or change who controls the
-//! account are high-risk ([`high_risk`]): clients hold to approve them and,
-//! where this device can ask, the person confirms with Touch ID or the
-//! login password first (plan S03).
+//! Requests that move money, give a name away, revoke a device or change who
+//! controls the account are high-risk ([`high_risk`]): clients hold to
+//! approve them and, where this device can ask, the person confirms with
+//! Touch ID or the login password first (plan S03).
 
 use crate::client::Client;
 use crate::hold::Hold;
@@ -349,10 +349,10 @@ pub enum Decision {
 /// reconciled as any other.
 const RUN_MS: u64 = 5 * MINUTE;
 
-/// Whether approving moves money, revokes a device or changes who controls
-/// the account or its Agent Delegation principal, from the request and its
-/// `detail` view. Such a request is held to approve, and confirmed with the
-/// person present where the device can ask.
+/// Whether approving moves money, gives a name away, revokes a device or
+/// changes who controls the account or its Agent Delegation principal, from
+/// the request and its `detail` view. Such a request is held to approve, and
+/// confirmed with the person present where the device can ask.
 pub fn high_risk(request: &Request, detail: &Json) -> bool {
     match &request.action {
         Action::Checkout { .. } | Action::Letter { .. } | Action::DeviceRevoke { .. } => true,
@@ -360,7 +360,8 @@ pub fn high_risk(request: &Request, detail: &Json) -> bool {
         Action::Grant { capabilities, .. } => {
             capabilities.iter().any(|c| crate::agents::sensitive(c))
         }
-        Action::Handle { .. } => !detail["total"].is_null(),
+        // A name is worth what it cost: paying for one or giving one away.
+        Action::Handle { .. } => !detail["total"].is_null() || detail["action"] == "Transfer",
         Action::Connect { .. } => detail["method"] == "checkout",
         Action::Account { change } => !matches!(
             change,

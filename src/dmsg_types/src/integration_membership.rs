@@ -38,6 +38,23 @@ pub struct PandaServiceConfig {
     pub product_calls_per_minute: u64,
 }
 
+/// What a client shows before quoting a PANDA subscription: the SNS whose
+/// neurons qualify, its ledger, the cooling period, whether new applications
+/// are paused and the announced conversion rates.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct PandaServiceView {
+    /// PANDA SNS governance, which lists the qualifying neurons.
+    pub governance: Principal,
+    /// Eight-decimal PANDA ledger.
+    pub panda_ledger: Principal,
+    /// Waiting time between an accepted application and its activation.
+    pub cooling_ms: u64,
+    /// New applications are paused; existing claims keep refreshing.
+    pub paused: bool,
+    /// Announced rate policies, current and scheduled.
+    pub rates: Vec<PandaRatePolicy>,
+}
+
 /// Complete neuron, economic owner, dMsg account and bill selected before device approval.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]

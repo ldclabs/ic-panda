@@ -42,6 +42,8 @@ test('titles and summaries say what a request asks, the same in the list and the
   assert.deepEqual(titleOf(request('account', { change: 'something_new' })), { label: 'kindSecurity', detail: 'something_new' })
   assert.deepEqual(titleOf(request('handle', { name: 'alice' })), { label: 'names', detail: 'alice' })
   assert.equal(summaryOf(request('connect', { app_id: 'shop', origin: 'https://shop.example', method: 'checkout' })), 'shop · https://shop.example')
+  assert.equal(summaryOf(request('handle', { action: 'Register', name: 'alice' })), '@alice')
+  assert.equal(summaryOf(request('handle', { action: 'Transfer', name: 'alice', from: 'a', to: 'b' })), '@alice → b')
 })
 
 test('a decision shows each real step of its outcome', () => {

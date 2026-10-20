@@ -9,15 +9,16 @@ use dmsg_client::{
     Client,
     channel::{self, Draft, Invitation, MessageRef, OwnerTransfer, Sponsor},
     channel_log::{Action, ChannelType, Role},
-    commerce,
+    commerce, handle,
     hold::Hold,
     inbox::{self, PolicyInput},
+    payer,
 };
 use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 62] = [
+pub(crate) const METHODS: [&str; 68] = [
     "channel/list",
     "channel/show",
     "channel/create",
@@ -65,6 +66,7 @@ pub(crate) const METHODS: [&str; 62] = [
     "inbox/mark",
     "payer/use",
     "payer/balance",
+    "payer/status",
     "plan/catalog",
     "plan/status",
     "plan/assets",
@@ -76,8 +78,13 @@ pub(crate) const METHODS: [&str; 62] = [
     "plan/cancel",
     "plan/reconcile",
     "plan/refund",
+    "plan/refund_quote",
+    "plan/panda",
+    "plan/notice_ack",
+    "plan/discard",
     "handle/resolve",
     "handle/price",
+    "handle/mine",
     "handle/claim",
     "handle/register",
 ];
@@ -159,22 +166,36 @@ impl Daemon {
             }
             "inbox/policy" => return Ok(inbox::policy(&h).await?.unwrap_or(Value::Null)),
             "inbox/list" => return Ok(to_json(&inbox::list(&h).await?)),
-            "plan/catalog" => {
-                let catalog = commerce::catalog(&h).await?;
-                return Ok(json!({
-                    "version": catalog.version,
-                    "plans": catalog.plans.iter().map(|p| json!({
-                        "plan": format!("{:?}", p.plan_id),
-                        "price_cents": p.price_cents,
-                        "storage_bytes": p.limits.storage_bytes,
-                    })).collect::<Vec<_>>(),
-                }));
-            }
+            "plan/catalog" => return Ok(commerce::catalog_view(&commerce::catalog(&h).await?)),
             "plan/status" => {
                 let refresh = params["refresh"].as_bool().unwrap_or(true);
                 return commerce::plan_status(&h, refresh).await;
             }
             "plan/assets" => return commerce::plan_assets(&h).await,
+            "plan/order" => return commerce::plan_order_view(&h, &id()?).await,
+            "plan/cancel" => return commerce::plan_cancel(&h, &id()?).await,
+            "plan/reconcile" => return commerce::plan_reconcile(&h, &id()?).await,
+            "plan/refund" => {
+                let blocks: Vec<u64> = parse(params, "blocks")?;
+                return commerce::plan_refund(&h, &id()?, &blocks).await;
+            }
+            "plan/refund_quote" => return commerce::plan_refund_quote(&h, &id()?).await,
+            "plan/panda" => return commerce::plan_panda(&h).await,
+            "plan/notice_ack" => return commerce::notice_ack(&h, &id()?).await,
+            "payer/balance" => {
+                let ledger = candid::Principal::from_text(text(params, "ledger")?)
+                    .map_err(|_| Error::InvalidInput("ledger".into()))?;
+                return payer::payer_balance(&h, ledger).await;
+            }
+            "payer/status" => return payer::payer_status(&h).await,
+            "handle/resolve" => {
+                let record = handle::resolve(&h, &text(params, "name")?).await?;
+                return Ok(record.map_or(Value::Null, |r| {
+                    json!({"name": r.handle, "account": r.owner_account.to_string(), "version": r.version})
+                }));
+            }
+            "handle/price" => return handle::price_view(&h, &text(params, "name")?).await,
+            "handle/mine" => return Ok(Value::Array(handle::mine(&h).await?)),
             _ => {}
         }
         // The client alone, without the network.
@@ -183,183 +204,161 @@ impl Daemon {
             return answer;
         }
         // These still wait on the relay and the IC under the client:
-        // channel controls and rotations, payments and name operations.
-        self.under_lock(async |client| {
-            match method {
-                "channel/create" => {
-                    let kind = match params["type"].as_str().unwrap_or("collaboration") {
-                        "direct" => ChannelType::Direct,
-                        "collaboration" => ChannelType::Collaboration,
-                        "distribution" => ChannelType::Distribution,
-                        _ => return Err(Error::InvalidInput("type".into())),
-                    };
-                    let channel = client.channel_create(&text(params, "name")?, kind).await?;
-                    Ok(to_json(&client.channel_view(&channel)?))
-                }
-                "channel/invite" => {
-                    let role = match params["role"].as_str().unwrap_or("member") {
-                        "member" => Role::Member,
-                        "publisher" => Role::Publisher,
-                        _ => return Err(Error::InvalidInput("role".into())),
-                    };
-                    let invitation = client
-                        .channel_invite(&id()?, &account(params, "account")?, role)
-                        .await?;
-                    Ok(to_json(&invitation))
-                }
-                "channel/join" => {
-                    let invitation: Invitation = parse(params, "invitation")?;
-                    Ok(to_json(&client.channel_join(&invitation).await?))
-                }
-                "channel/control" => {
-                    let action: Action = parse(params, "action")?;
-                    let operation = params["operation"].as_str().map_or_else(
-                        || hex::encode(dmsg_client::crypto::random_id()),
-                        str::to_string,
-                    );
-                    Ok(to_json(
-                        &client.channel_control(&id()?, action, &operation).await?,
-                    ))
-                }
-                "channel/leave" => {
-                    let operation = params["operation"].as_str().map_or_else(
-                        || hex::encode(dmsg_client::crypto::random_id()),
-                        str::to_string,
-                    );
-                    client.channel_leave(&id()?, &operation).await?;
-                    Ok(json!({"left": true}))
-                }
-                "channel/rotate" => Ok(to_json(&client.channel_rotate(&id()?).await?)),
-                "channel/rekey" => Ok(to_json(&client.channel_rekey(&id()?).await?)),
-                "channel/history" => {
-                    let ledger = client
-                        .channel_grant_history(
-                            &id()?,
-                            &account(params, "account")?,
-                            number(params, "from")?,
-                            number(params, "to")?,
-                        )
-                        .await?;
-                    Ok(to_json(&ledger))
-                }
-                "channel/owner_propose" => Ok(to_json(
-                    &client
-                        .channel_owner_propose(&id()?, &account(params, "account")?)
-                        .await?,
-                )),
-                "channel/owner_accept" => {
-                    let packet: OwnerTransfer = parse(params, "packet")?;
-                    Ok(to_json(&client.channel_owner_accept(&packet).await?))
-                }
-                "channel/owner_commit" => {
-                    let packet: OwnerTransfer = parse(params, "packet")?;
-                    Ok(to_json(&client.channel_owner_commit(&packet).await?))
-                }
-                "channel/sponsor_propose" => Ok(to_json(
-                    &client
-                        .channel_sponsor_propose(&id()?, &account(params, "account")?)
-                        .await?,
-                )),
-                "channel/sponsor_accept" => {
-                    let packet: Sponsor = parse(params, "packet")?;
-                    Ok(to_json(&client.channel_sponsor_accept(&packet).await?))
-                }
-                "channel/sponsor_commit" => {
-                    let packet: Sponsor = parse(params, "packet")?;
-                    client.channel_sponsor_commit(&packet).await
-                }
-                "channel/reactivate" => Ok(to_json(&client.channel_reactivate(&id()?).await?)),
-                "channel/resume" => client.channel_resume(&id()?, &text(params, "key")?).await,
-                "channel/sponsor_cancel" => {
-                    Ok(to_json(&client.channel_sponsor_cancel(&id()?).await?))
-                }
-                "inbox/configure" => {
-                    let input: PolicyInput = serde_json::from_value(params.clone())
-                        .map_err(|e| Error::InvalidInput(format!("policy: {e}")))?;
-                    client.inbox_configure(&input).await
-                }
-                "inbox/send" => {
-                    client
-                        .inbox_send(
-                            &account(params, "recipient")?,
-                            &text(params, "text")?,
-                            params["order"].as_str(),
-                            params["invitation"].as_str(),
-                            params["pay"].as_bool().unwrap_or(false),
-                        )
-                        .await
-                }
-                "inbox/order" => {
-                    client
-                        .inbox_order(&account(params, "recipient")?, &text(params, "order")?)
-                        .await
-                }
-                "inbox/pay" => {
-                    client
-                        .letter_request(
-                            source(params)?,
-                            &account(params, "recipient")?,
-                            &text(params, "order")?,
-                        )
-                        .await
-                }
-                "inbox/escrow" => client.inbox_escrow(&text(params, "order")?).await,
-                "inbox/refund" => client.inbox_refund(&text(params, "order")?).await,
-                "inbox/mark" => {
-                    client
-                        .inbox_mark(
-                            &text(params, "order")?,
-                            params["read"].as_bool().unwrap_or(true),
-                            params["archived"].as_bool().unwrap_or(false),
-                        )
-                        .await
-                }
-                "payer/use" => {
-                    let pem = optional(params, "pem", absolute)?;
-                    client.payer_use(pem.as_deref()).await
-                }
-                "payer/balance" => {
-                    let ledger = candid::Principal::from_text(text(params, "ledger")?)
-                        .map_err(|_| Error::InvalidInput("ledger".into()))?;
-                    client.payer_balance(ledger).await
-                }
-                "plan/quote" => {
-                    let method = match params["method"].as_str().unwrap_or("cash") {
-                        "cash" | "Cash" => SettlementMethod::Cash,
-                        "panda" | "Panda" => SettlementMethod::Panda,
-                        _ => return Err(Error::InvalidInput("method".into())),
-                    };
-                    let job = client
-                        .plan_quote(&text(params, "sku")?, method, &text(params, "selection")?)
-                        .await?;
-                    Ok(job.view())
-                }
-                "plan/order" => client.plan_order_view(&id()?).await,
-                "plan/cancel" => client.plan_cancel(&id()?).await,
-                "plan/reconcile" => client.plan_reconcile(&id()?).await,
-                "plan/refund" => {
-                    let blocks: Vec<u64> = parse(params, "blocks")?;
-                    client.plan_refund(&id()?, &blocks).await
-                }
-                "handle/resolve" => {
-                    let record = client.handle_resolve(&text(params, "name")?).await?;
-                    Ok(record.map_or(Value::Null, |r| {
-                        json!({"name": r.handle, "account": r.owner_account.to_string(), "version": r.version})
-                    }))
-                }
-                "handle/price" => client.handle_price(&text(params, "name")?).await,
-                "handle/claim" => {
-                    let job = client.handle_claim_prepare(&text(params, "name")?).await?;
-                    client.handle_request(source(params)?, &job.id)
-                }
-                "handle/register" => {
-                    let job = client
-                        .handle_register_prepare(&text(params, "name")?)
-                        .await?;
-                    client.handle_request(source(params)?, &job.id)
-                }
-                _ => Err(Error::NotFound),
+        // channel controls and rotations, quotes, payments and preparing
+        // name operations.
+        self.under_lock(async |client| match method {
+            "channel/create" => {
+                let kind = match params["type"].as_str().unwrap_or("collaboration") {
+                    "direct" => ChannelType::Direct,
+                    "collaboration" => ChannelType::Collaboration,
+                    "distribution" => ChannelType::Distribution,
+                    _ => return Err(Error::InvalidInput("type".into())),
+                };
+                let channel = client.channel_create(&text(params, "name")?, kind).await?;
+                Ok(to_json(&client.channel_view(&channel)?))
             }
+            "channel/invite" => {
+                let role = match params["role"].as_str().unwrap_or("member") {
+                    "member" => Role::Member,
+                    "publisher" => Role::Publisher,
+                    _ => return Err(Error::InvalidInput("role".into())),
+                };
+                let invitation = client
+                    .channel_invite(&id()?, &account(params, "account")?, role)
+                    .await?;
+                Ok(to_json(&invitation))
+            }
+            "channel/join" => {
+                let invitation: Invitation = parse(params, "invitation")?;
+                Ok(to_json(&client.channel_join(&invitation).await?))
+            }
+            "channel/control" => {
+                let action: Action = parse(params, "action")?;
+                let operation = params["operation"].as_str().map_or_else(
+                    || hex::encode(dmsg_client::crypto::random_id()),
+                    str::to_string,
+                );
+                Ok(to_json(
+                    &client.channel_control(&id()?, action, &operation).await?,
+                ))
+            }
+            "channel/leave" => {
+                let operation = params["operation"].as_str().map_or_else(
+                    || hex::encode(dmsg_client::crypto::random_id()),
+                    str::to_string,
+                );
+                client.channel_leave(&id()?, &operation).await?;
+                Ok(json!({"left": true}))
+            }
+            "channel/rotate" => Ok(to_json(&client.channel_rotate(&id()?).await?)),
+            "channel/rekey" => Ok(to_json(&client.channel_rekey(&id()?).await?)),
+            "channel/history" => {
+                let ledger = client
+                    .channel_grant_history(
+                        &id()?,
+                        &account(params, "account")?,
+                        number(params, "from")?,
+                        number(params, "to")?,
+                    )
+                    .await?;
+                Ok(to_json(&ledger))
+            }
+            "channel/owner_propose" => Ok(to_json(
+                &client
+                    .channel_owner_propose(&id()?, &account(params, "account")?)
+                    .await?,
+            )),
+            "channel/owner_accept" => {
+                let packet: OwnerTransfer = parse(params, "packet")?;
+                Ok(to_json(&client.channel_owner_accept(&packet).await?))
+            }
+            "channel/owner_commit" => {
+                let packet: OwnerTransfer = parse(params, "packet")?;
+                Ok(to_json(&client.channel_owner_commit(&packet).await?))
+            }
+            "channel/sponsor_propose" => Ok(to_json(
+                &client
+                    .channel_sponsor_propose(&id()?, &account(params, "account")?)
+                    .await?,
+            )),
+            "channel/sponsor_accept" => {
+                let packet: Sponsor = parse(params, "packet")?;
+                Ok(to_json(&client.channel_sponsor_accept(&packet).await?))
+            }
+            "channel/sponsor_commit" => {
+                let packet: Sponsor = parse(params, "packet")?;
+                client.channel_sponsor_commit(&packet).await
+            }
+            "channel/reactivate" => Ok(to_json(&client.channel_reactivate(&id()?).await?)),
+            "channel/resume" => client.channel_resume(&id()?, &text(params, "key")?).await,
+            "channel/sponsor_cancel" => Ok(to_json(&client.channel_sponsor_cancel(&id()?).await?)),
+            "inbox/configure" => {
+                let input: PolicyInput = serde_json::from_value(params.clone())
+                    .map_err(|e| Error::InvalidInput(format!("policy: {e}")))?;
+                client.inbox_configure(&input).await
+            }
+            "inbox/send" => {
+                client
+                    .inbox_send(
+                        &account(params, "recipient")?,
+                        &text(params, "text")?,
+                        params["order"].as_str(),
+                        params["invitation"].as_str(),
+                        params["pay"].as_bool().unwrap_or(false),
+                    )
+                    .await
+            }
+            "inbox/order" => {
+                client
+                    .inbox_order(&account(params, "recipient")?, &text(params, "order")?)
+                    .await
+            }
+            "inbox/pay" => {
+                client
+                    .letter_request(
+                        source(params)?,
+                        &account(params, "recipient")?,
+                        &text(params, "order")?,
+                    )
+                    .await
+            }
+            "inbox/escrow" => client.inbox_escrow(&text(params, "order")?).await,
+            "inbox/refund" => client.inbox_refund(&text(params, "order")?).await,
+            "inbox/mark" => {
+                client
+                    .inbox_mark(
+                        &text(params, "order")?,
+                        params["read"].as_bool().unwrap_or(true),
+                        params["archived"].as_bool().unwrap_or(false),
+                    )
+                    .await
+            }
+            "payer/use" => {
+                let pem = optional(params, "pem", absolute)?;
+                client.payer_use(pem.as_deref()).await
+            }
+            "plan/quote" => {
+                let method = match params["method"].as_str().unwrap_or("cash") {
+                    "cash" | "Cash" => SettlementMethod::Cash,
+                    "panda" | "Panda" => SettlementMethod::Panda,
+                    _ => return Err(Error::InvalidInput("method".into())),
+                };
+                let job = client
+                    .plan_quote(&text(params, "sku")?, method, &text(params, "selection")?)
+                    .await?;
+                Ok(job.view())
+            }
+            "handle/claim" => {
+                let job = client.handle_claim_prepare(&text(params, "name")?).await?;
+                client.handle_request(source(params)?, &job.id)
+            }
+            "handle/register" => {
+                let job = client
+                    .handle_register_prepare(&text(params, "name")?)
+                    .await?;
+                client.handle_request(source(params)?, &job.id)
+            }
+            _ => Err(Error::NotFound),
         })
         .await
     }
@@ -426,6 +425,10 @@ fn local(client: &mut Client, method: &str, params: &Value) -> Option<Result<Val
             "plan/advance" => client.checkout_request(source(params)?, &id()?, true)?,
             "plan/checkouts" => {
                 Value::Array(client.plan_checkouts()?.iter().map(|c| c.view()).collect())
+            }
+            "plan/discard" => {
+                client.plan_discard(&id()?)?;
+                json!({"discarded": true})
             }
             _ => return Ok(None),
         }))

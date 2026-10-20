@@ -68,6 +68,11 @@
           {t('cloudUsageLine', { backups: usage.backups, bytes: size(usage.backup_bytes) })}
           {#if usage.storage_limit}· {t('cloudRoom', { used: size(usage.reserved + usage.committed), limit: size(usage.storage_limit) })}{/if}
         </p>
+        {#if usage.status === 'over_limit'}
+          <p class="mt-0.5 text-[12px] text-warn" data-testid="files-cloud-over">
+            {t('overLimit')} <a class="font-medium underline underline-offset-2" href="#/plan">{t('openPlan')}</a>
+          </p>
+        {/if}
       {/if}
     </div>
     {#if picked.length}

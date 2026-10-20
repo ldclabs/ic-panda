@@ -37,6 +37,16 @@ struct Request {
     neuron_id: Option<NeuronId>,
 }
 #[derive(CandidType, Deserialize)]
+struct ListNeurons {
+    of_principal: Option<Principal>,
+    limit: u32,
+    start_page_at: Option<NeuronId>,
+}
+#[derive(CandidType, Deserialize)]
+struct ListNeuronsResponse {
+    neurons: Vec<Neuron>,
+}
+#[derive(CandidType, Deserialize)]
 struct Empty {}
 #[derive(CandidType, Deserialize)]
 struct SnsCanisters {
@@ -86,6 +96,26 @@ async fn get_neuron(request: Request) -> Response {
             .with_borrow(|t| t.get().0.clone())
             .filter(|n| n.id.as_ref().map(|n| &n.id) == request.neuron_id.as_ref().map(|n| &n.id))
             .map(NeuronResult::Neuron),
+    }
+}
+
+/// The fixture neuron when `of_principal` is listed on it, as the SNS lists
+/// the neurons a principal holds a permission on.
+#[ic_cdk::query]
+fn list_neurons(request: ListNeurons) -> ListNeuronsResponse {
+    let listed = |n: &Neuron| {
+        request.start_page_at.is_none()
+            && request.limit > 0
+            && request
+                .of_principal
+                .is_none_or(|p| n.permissions.iter().any(|q| q.principal == Some(p)))
+    };
+    ListNeuronsResponse {
+        neurons: STATE
+            .with_borrow(|t| t.get().0.clone())
+            .filter(listed)
+            .into_iter()
+            .collect(),
     }
 }
 

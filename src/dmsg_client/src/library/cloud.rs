@@ -151,6 +151,14 @@ pub struct CloudUsage {
     pub storage_limit: Option<u64>,
     /// `within_limit`, `over_limit` or `unknown`.
     pub status: String,
+    /// The plan's active-channel limit, when the relay knows it.
+    pub channel_limit: Option<u64>,
+    /// Channels this account pays for.
+    pub active_channels: Option<u64>,
+    /// The relay's open over-limit notice: `id`, `detected_at`,
+    /// `acknowledged_at`, `service_terminated_at` and
+    /// `minimum_export_until`, in Unix milliseconds.
+    pub notice: Option<Json>,
     /// Backups this device knows of.
     pub backups: u64,
     /// Their ciphertext bytes.
@@ -775,6 +783,11 @@ pub async fn cloud_usage<H: Hold>(h: &H) -> Result<CloudUsage> {
                 .as_str()
                 .unwrap_or("unknown")
                 .to_string(),
+            channel_limit: quota["lifecycle"]["channel_limit"].as_u64(),
+            active_channels: quota["lifecycle"]["active_channels"].as_u64(),
+            notice: Some(&quota["lifecycle"]["notice"])
+                .filter(|n| n.is_object() && n["resolved"] != true)
+                .cloned(),
             ..CloudUsage::default()
         };
         for (_, entry) in c.cloud_entries()? {

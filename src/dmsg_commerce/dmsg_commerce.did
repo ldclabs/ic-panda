@@ -154,7 +154,8 @@ type CashBlock = record {
   // Authenticated ledger source.
   ledger : principal;
 };
-// Durable permission to cancel exactly one unstarted cash term.
+// Durable permission to cancel exactly one cash term: unstarted, or refunded
+// early under its product's policy.
 type CashCancellationReceipt = record {
   // Full original decision commitment.
   decision_hash : blob;
@@ -164,7 +165,9 @@ type CashCancellationReceipt = record {
   business_revision : nat64;
   // Product contract cancelled atomically.
   contract_id : blob;
-  // Time of the cancellation.
+  // Time the term's rights stop: the request time for an unstarted term,
+  // otherwise no earlier than the last resource lease already issued.
+  // Revenue is earned up to it and the rest of the price is refunded.
   cancelled_at_ms : nat64;
   // Checkout order to refund.
   order_id : blob;
@@ -480,6 +483,21 @@ type CommerceStats = record {
   // Certified keys: registrations, the catalog and one leaf per subject.
   certified_leaves : nat64;
 };
+// Source of the base benefit; SNS qualification is not cash revenue.
+type ContractSource = variant {
+  // Benefit supported by a qualification claim.
+  Sns : record {
+    // Stable qualification claim identity.
+    claim_id : blob;
+  };
+  // Benefit funded by a merchant order.
+  Cash : record {
+    // Stable merchant order identity.
+    order_id : blob;
+  };
+  // Product-granted compensation benefit.
+  Compensation;
+};
 // Qualification observation; unverifiable is distinct from known ineligibility.
 type Eligibility = variant {
   // Current supporting facts cannot be verified.
@@ -678,6 +696,45 @@ type FieldType = variant {
     item : FieldType;
   };
 };
+// Fixed base contract and its separately observed resource qualification.
+type MembershipContract = record {
+  // Known or unverifiable qualification loss; closed intervals preserve monthly history.
+  resource_pauses : vec record { nat64; opt nat64 };
+  // Service termination time in Unix milliseconds, when present.
+  terminated_at_ms : opt nat64;
+  // Cash, SNS or compensation origin of this contract.
+  source : ContractSource;
+  // Exclusive known qualification deadline in Unix milliseconds.
+  qualified_until_ms : nat64;
+  // Requested tier or fixed plan snapshot.
+  plan : PlanVersion;
+  // Time the supporting qualification observation began, in Unix milliseconds.
+  observed_at_ms : nat64;
+  // Known-ineligibility repair deadline in Unix milliseconds, when applicable.
+  repair_deadline_ms : opt nat64;
+  // Product contract identity.
+  contract_id : blob;
+  // Inclusive interval start in Unix milliseconds.
+  starts_at_ms : nat64;
+  // Most recent qualification assessment.
+  eligibility : Eligibility;
+  // Original annual interval anchor, retained across cash upgrades.
+  term_starts_at_ms : nat64;
+  // Exclusive interval end in Unix milliseconds.
+  expires_at_ms : nat64;
+};
+// A beneficiary's base contracts and storage add-ons for display: terms,
+// sources and renewals. Rights come only from the certified
+// [`EntitlementView`].
+type MembershipTerms = record {
+  // Base contracts ending this month or later, oldest first; a renewal
+  // follows the term it continues.
+  contracts : vec MembershipContract;
+  // Storage add-ons not yet expired.
+  addons : vec StorageAddon;
+  // The first cash purchase while it can still be refunded.
+  refund : opt RefundWindow;
+};
 // Versioned monthly quota calculation; retain prior segments when terms change.
 type MonthEntitlement = record {
   // Revision of business terms or qualification, independent of lease refreshes.
@@ -861,6 +918,16 @@ type ProductRejection = variant {
   // Delivery deadline or permitted interval has passed.
   Expired;
 };
+// The first cash base contract of a beneficiary, refundable for its unused
+// time until `until_ms`.
+type RefundWindow = record {
+  // Exclusive end of the self-service refund window in Unix milliseconds.
+  until_ms : nat64;
+  // Product contract identity.
+  contract_id : blob;
+  // Merchant order whose payer may cancel it.
+  order_id : blob;
+};
 // Logical storage, active-channel and formal-execution resource limits.
 type ResourceLimits = record {
   // Number of active sponsored channel slots.
@@ -874,18 +941,19 @@ type Result = variant { Ok; Err : Error };
 type Result_1 = variant { Ok : ProductReceipt; Err : Error };
 type Result_10 = variant { Ok : CheckoutView; Err : Error };
 type Result_11 = variant { Ok : ExecutionEntitlement; Err : Error };
-type Result_12 = variant { Ok : opt ProductReceipt; Err : Error };
-type Result_13 = variant { Ok : BillingOffer; Err : Error };
-type Result_14 = variant { Ok : CashTransferProgress; Err : Error };
-type Result_15 = variant { Ok : SettlementAsset; Err : Error };
-type Result_16 = variant { Ok : CheckoutQuote; Err : Error };
-type Result_17 = variant {
+type Result_12 = variant { Ok : MembershipTerms; Err : Error };
+type Result_13 = variant { Ok : opt ProductReceipt; Err : Error };
+type Result_14 = variant { Ok : BillingOffer; Err : Error };
+type Result_15 = variant { Ok : CashTransferProgress; Err : Error };
+type Result_16 = variant { Ok : SettlementAsset; Err : Error };
+type Result_17 = variant { Ok : CheckoutQuote; Err : Error };
+type Result_18 = variant {
   Ok : record { AppRegistration; opt ProductRegistration };
   Err : Error;
 };
-type Result_18 = variant { Ok : EntitlementView; Err : Error };
-type Result_19 = variant { Ok : text; Err : text };
+type Result_19 = variant { Ok : EntitlementView; Err : Error };
 type Result_2 = variant { Ok : CashCancellationReceipt; Err : Error };
+type Result_20 = variant { Ok : text; Err : text };
 type Result_3 = variant { Ok : CheckoutProgress; Err : Error };
 type Result_4 = variant { Ok : CheckoutDepositsPage; Err : Error };
 type Result_5 = variant { Ok : CheckoutOperationsPage; Err : Error };
@@ -1067,7 +1135,7 @@ service : (CommerceInit) -> {
   collect_checkout_revenue : (blob) -> (Result_7);
   // The calling merchant's applied orders with uncollected revenue, earliest
   // term end first, so a job that collects once per term stops at the first
-  // order whose `offer.expires_at_ms` lies ahead.
+  // order whose term end, or early refund, lies ahead.
   collectable_checkouts : (opt blob, nat16) -> (Result_5) query;
   // Record counts against the limits, with the stable size and cycle balance.
   commerce_stats : () -> (CommerceStats) query;
@@ -1080,23 +1148,27 @@ service : (CommerceInit) -> {
   get_commerce_limits : () -> (CommerceLimits) query;
   get_entitlement_batch : (vec Beneficiary) -> (Result_9) query;
   get_execution_entitlement : (Beneficiary, nat32, nat64) -> (Result_11);
-  get_product_decision : (blob) -> (Result_12);
+  // A beneficiary's base contracts and storage add-ons for display, with the
+  // refund window of its first cash purchase. An account that never bought
+  // anything has none; its rights are the certified Free entitlement.
+  get_membership_terms : (Beneficiary) -> (Result_12) query;
+  get_product_decision : (blob) -> (Result_13);
   // Public, authenticated discovery. A paused configuration remains discoverable.
   integration_configuration_certificate : (text, opt text) -> (Result_9) query;
   list_catalogs : (opt nat64) -> (vec Catalog) query;
   open_checkout : (OpenCheckout) -> (Result_10);
-  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_13);
-  process_checkout_transfer : (blob) -> (Result_14);
+  prepare_account_subscription : (text, Beneficiary, text, blob) -> (Result_14);
+  process_checkout_transfer : (blob) -> (Result_15);
   // Publish a reference price observed now; the price authority calls this routinely.
-  publish_settlement_price : (principal, nat, nat64) -> (Result_15);
-  quote_checkout : (BillingOffer, principal, Account) -> (Result_16);
+  publish_settlement_price : (principal, nat, nat64) -> (Result_16);
+  quote_checkout : (BillingOffer, principal, Account) -> (Result_17);
   // Replicated response used by the pinned user home during exact approval.
-  read_integration_configuration : (text, opt text) -> (Result_17);
+  read_integration_configuration : (text, opt text) -> (Result_18);
   // Safe progress can be advanced without revealing the payer or private bill.
   reconcile_checkout : (blob) -> (Result_3);
-  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_14);
+  reconcile_checkout_transfer : (blob, CashBlock) -> (Result_15);
   refresh_catalog : () -> (Catalog);
-  refresh_entitlement : (Beneficiary) -> (Result_18);
+  refresh_entitlement : (Beneficiary) -> (Result_19);
   // Register or replace an app at the next config version. Every listed product
   // must already be registered.
   register_integration_app : (AppRegistration) -> (Result);
@@ -1119,20 +1191,20 @@ service : (CommerceInit) -> {
   settlement_assets : () -> (vec SettlementAssetView) query;
   // Bounded maintenance; funds, original-source refunds and idempotency survive archival.
   sweep_checkout_history : () -> (CheckoutHistorySweep);
-  validate_admin_add_user_home : (principal) -> (Result_19) query;
-  validate_admin_set_limits : (CommerceLimits) -> (Result_19) query;
+  validate_admin_add_user_home : (principal) -> (Result_20) query;
+  validate_admin_set_limits : (CommerceLimits) -> (Result_20) query;
   validate_publish_settlement_price : (principal, nat, nat64) -> (
-      Result_19,
+      Result_20,
     ) query;
-  validate_register_integration_app : (AppRegistration) -> (Result_19) query;
+  validate_register_integration_app : (AppRegistration) -> (Result_20) query;
   validate_register_integration_product : (ProductRegistration) -> (
-      Result_19,
+      Result_20,
     ) query;
-  validate_register_settlement_asset : (SettlementAsset) -> (Result_19) query;
-  validate_schedule_policy : (Catalog) -> (Result_19) query;
-  validate_set_admission_pause : (bool) -> (Result_19) query;
-  validate_set_settlement_price_authority : (principal) -> (Result_19) query;
-  validate_verify_settlement_asset : (principal, opt nat) -> (Result_19) query;
+  validate_register_settlement_asset : (SettlementAsset) -> (Result_20) query;
+  validate_schedule_policy : (Catalog) -> (Result_20) query;
+  validate_set_admission_pause : (bool) -> (Result_20) query;
+  validate_set_settlement_price_authority : (principal) -> (Result_20) query;
+  validate_verify_settlement_asset : (principal, opt nat) -> (Result_20) query;
   verify_billing_offer : (BillingOffer) -> (Result);
   // Check the ledger's live decimals, fee, standards and, outside Local, one
   // real transfer block before quotes may use it.

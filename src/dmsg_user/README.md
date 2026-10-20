@@ -46,7 +46,7 @@ flowchart LR
 | 服务回调 | `consume_handle_authorization`、`consume_handle_transfer_authorizations`、`verify_payment_offer`、`verify_application_authorization`、`authorize_product_billing`、`verify_product_account` | 初始化固定的 handle、payment、commerce 或 membership；`verify_product_account` 为已登记产品的 adapter |
 | 发布     | `publish_principal`                                                                                                                                                                    | 任何人，幂等                                                                   |
 | 维护     | `prune_executions`、`prune_external_approvals`                                                                                                                                         | 任何人，按游标分页，每页有界                                                   |
-| 公开查询 | `security_snapshot_batch`、`get_device_bundle`、`get_principal`、`my_account`、`user_stats`、`user_config`                                                                             | 任何人                                                                         |
+| 公开查询 | `security_snapshot_batch`、`get_device_bundle`、`get_principal`、`my_account`、`user_stats`、`user_config`、`get_handle_authorization`                                                 | 任何人                                                                         |
 | 本人查询 | `get_account`、`get_operation`、`get_root_ref`、`get_execution`、`get_attestation`、`get_execution_receipt`、`get_execution_usage`、`authentication_certificate`、`get_recovery_request`、`unlock_secret` | 账户的登录 Principal；`unlock_secret` 只对未撤销设备返回                      |
 
 管理入口是 `admin_set_account_limits(max_accounts, daily_new_accounts)` 与 `admin_set_admission_key(key)`，接受 controller 和初始化固定的 `governance`，各有同参数的 `validate_*` 供 SNS 通用提案预演。controller 还负责安装和升级，升级可以替换全部授权逻辑，也能读出 `master_secret`，因此 controller 等同于全部账户的最终权限。
@@ -80,7 +80,7 @@ flowchart LR
 | `SetRecoveryDelay`                                                              | 恢复等待期 1–7 天；存在待处理的恢复申请时拒绝                                                              |        +1        | 不变                |
 | `SetPolicy`                                                                     | 设置正式执行政策：允许的用途、每日次数、`frozen`                                                           | +1，并清除候选根槽 | 不变              |
 | `ReserveRoot`、`CommitRoot`                                                     | 内容根 CAS，见下文                                                                                         |       不变       | `CommitRoot` 置 `Ready` |
-| `AuthorizeHandle`                                                               | 保存精确的名称意图，批准期限不超过 60 秒，每账户最多 32 条                                                 |       不变       | 不变                |
+| `AuthorizeHandle`                                                               | 保存精确的名称意图，批准期限不超过 60 秒；转移任一方的意图自提交起保留十分钟，可续期；每账户最多 32 条     |       不变       | 不变                |
 | `DisputeRecovery`                                                               | 任意未撤销设备可提交，取消待处理的恢复申请                                                                 |       不变       | 不变                |
 | `EnablePrincipal`、`RetireController`、`MarkControllerCompromised`、`RenameController` | 修改 Agent principal 记录                                                                           |       不变       | 不变                |
 | `RegisterController`                                                            | 附 controller 私钥对 `dmsg/controller-pop/v1` 的 PoP                                                       |       不变       | 不变                |
@@ -184,7 +184,7 @@ flowchart LR
 
 ### 名称、付款与第三方批准
 
-- **名称**：`AuthorizeHandle` 保存精确的 `HandleIntent`；handle 调用 `consume_handle_*` 只读核对意图，不再检查设备与账户状态。完整流程见 [dmsg_handle](../dmsg_handle/README.md)。
+- **名称**：`AuthorizeHandle` 保存精确的 `HandleIntent`；handle 调用 `consume_handle_*` 只读核对意图，不再检查设备与账户状态。注册与旧名认领的意图随 60 秒的设备批准到期；转移任一方的意图自提交起保留十分钟（`TRANSFER_AUTHORIZATION_MS`），因为令牌要经频道或链接交给对方、对方还要在自己的设备上批准，同一意图再次授权即续期。公开查询 `get_handle_authorization(account_id, op_id)` 返回仍有效的意图的截止时间，转移双方据此查看对方是否已授权。完整流程见 [dmsg_handle](../dmsg_handle/README.md)。
 - **付款报价**：`verify_payment_offer` 只接受配置的 payment canister，核对设备的 `PaymentOffer` 能力、账户状态、`security_epoch`、期限和签名。重复使用同一报价由 payment 去重。
 - **第三方认证**：`approve_authentication` 签发认证叶，最长 5 分钟；本人通过 `authentication_certificate` 取证书。
 - **应用批准**：`approve_application` 记录精确批准。commerce 或 membership 用 `verify_application_authorization` 和 `authorize_product_billing` 复核，产品 adapter 用 `verify_product_account` 确认账户可用。
@@ -246,7 +246,7 @@ flowchart LR
 | 注册准入                     | 配置 `admission_key` 后每个新账户须附票据，期限 ≤ 10 分钟 |
 | 每账户待接受绑定             | 4 条，10 分钟                                           |
 | 每账户登录 / 活跃设备 / 设备 | 8 / 5 / 16                                              |
-| 设备批准期限                 | 5 分钟；名称意图 60 秒                                  |
+| 设备批准期限                 | 5 分钟；名称意图 60 秒，转移的意图十分钟                |
 | 每账户操作回执               | 最近 16 条                                              |
 | 每账户执行保留               | 64 条；每日次数上限同为 64                              |
 | 单次执行                     | 派生 `max_cycles` ≤ 100B；签名输入 ≤ 64 KiB              |

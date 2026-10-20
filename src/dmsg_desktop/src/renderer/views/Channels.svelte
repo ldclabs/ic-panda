@@ -10,7 +10,7 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, t } from '../i18n/index.svelte'
-  import { bridge, call, closed, code, errorText, onChange, single } from '../rpc'
+  import { bridge, call, closed, code, errorText, onChange, planAction, single } from '../rpc'
   import Access from './channels/Access.svelte'
   import { arrange, kindLabel, powers, roleLabel, statusLabel } from './channels/channels'
   import LibraryPicker from './channels/LibraryPicker.svelte'
@@ -107,7 +107,7 @@
   $effect(() => store('dmsg.channels-other', showOther ? 'open' : 'closed'))
   $effect(() => store('dmsg.read-receipts', readReceipts ? 'on' : 'off'))
 
-  const fail = (e: unknown) => toast(() => errorText(e))
+  const fail = (e: unknown) => toast(() => errorText(e), planAction(e))
 
   async function attempt(work: () => Promise<unknown>) {
     busy = true

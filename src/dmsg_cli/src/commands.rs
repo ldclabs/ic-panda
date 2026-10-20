@@ -334,6 +334,9 @@ pub enum PayerCommand {
         /// The ledger canister.
         ledger: String,
     },
+    /// Who pays, the login or a PEM identity, and its balance on every
+    /// settlement asset and PANDA.
+    Status,
 }
 
 #[derive(Subcommand)]
@@ -386,6 +389,23 @@ pub enum PlanCommand {
         /// Ledger blocks of the deposits.
         blocks: Vec<u64>,
     },
+    /// What cancelling the first purchase within its refund window returns.
+    RefundQuote {
+        /// Checkout ID.
+        id: String,
+    },
+    /// Forget a quote nobody approved, or an approved one past its deadline.
+    Discard {
+        /// Checkout ID.
+        id: String,
+    },
+    /// The PANDA path: the stake each plan needs and the payer's neurons.
+    Panda,
+    /// Acknowledge the relay's over-limit notice; the export window starts.
+    NoticeAck {
+        /// Notice ID.
+        id: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -419,7 +439,7 @@ pub enum HandleCommand {
         target: String,
     },
     /// Accept a transfer token naming this account; goes through the
-    /// approval center. The owner then has about a minute to commit.
+    /// approval center. The owner then has ten minutes to commit.
     Accept {
         /// The token printed by `dmsg handle transfer`.
         token: String,
@@ -429,8 +449,20 @@ pub enum HandleCommand {
         /// Operation ID printed by `dmsg handle transfer`.
         id: String,
     },
-    /// This account's name operations.
+    /// This device's name operations.
     Operations,
+    /// This account's names, as the registry lists them.
+    Mine,
+    /// Print again the token of a transfer offered and not yet committed.
+    Token {
+        /// Operation ID.
+        id: String,
+    },
+    /// Forget an operation that moved nothing.
+    Forget {
+        /// Operation ID.
+        id: String,
+    },
     /// Settle a registration whose charge is unknown with its ledger block.
     Reconcile {
         /// Operation ID.
@@ -688,6 +720,7 @@ pub async fn payer(remote: &Remote, json: bool, command: PayerCommand) -> Result
         PayerCommand::Use { pem: Some(pem) } => ("payer/use", json!({"pem": absolute(pem)?})),
         PayerCommand::Use { pem: None } => ("payer/use", json!({})),
         PayerCommand::Balance { ledger } => ("payer/balance", json!({"ledger": ledger})),
+        PayerCommand::Status => ("payer/status", Value::Null),
     };
     let value = remote.call(method, params).await?;
     print(json, &value, pretty);
@@ -717,6 +750,10 @@ pub async fn plan(remote: &Remote, json: bool, command: PlanCommand) -> Result<(
         PlanCommand::Cancel { id } => ("plan/cancel", json!({"id": id})),
         PlanCommand::Reconcile { id } => ("plan/reconcile", json!({"id": id})),
         PlanCommand::Refund { id, blocks } => ("plan/refund", json!({"id": id, "blocks": blocks})),
+        PlanCommand::RefundQuote { id } => ("plan/refund_quote", json!({"id": id})),
+        PlanCommand::Discard { id } => ("plan/discard", json!({"id": id})),
+        PlanCommand::Panda => ("plan/panda", Value::Null),
+        PlanCommand::NoticeAck { id } => ("plan/notice_ack", json!({"id": id})),
     };
     let value = remote.call(method, params).await?;
     print(json, &value, pretty);
@@ -743,8 +780,8 @@ pub async fn handle(remote: &Remote, json: bool, command: HandleCommand) -> Resu
                     v["operation"]["id"].as_str().unwrap_or_default(),
                 );
                 tr!(
-                    "On a device of {target} run:\n  dmsg handle accept {token}\nthen here, within a minute of its approval:\n  dmsg handle commit {operation}",
-                    "在 {target} 的设备上运行：\n  dmsg handle accept {token}\n批准后一分钟内在这里运行：\n  dmsg handle commit {operation}"
+                    "On a device of {target} run:\n  dmsg handle accept {token}\nthen here, within ten minutes of its approval:\n  dmsg handle commit {operation}",
+                    "在 {target} 的设备上运行：\n  dmsg handle accept {token}\n批准后十分钟内在这里运行：\n  dmsg handle commit {operation}"
                 )
             });
             return Ok(());
@@ -756,6 +793,9 @@ pub async fn handle(remote: &Remote, json: bool, command: HandleCommand) -> Resu
             return request(remote, json, "handle/transfer_commit", json!({"id": id})).await;
         }
         HandleCommand::Operations => ("handle/operations", Value::Null),
+        HandleCommand::Mine => ("handle/mine", Value::Null),
+        HandleCommand::Token { id } => ("handle/token", json!({"id": id})),
+        HandleCommand::Forget { id } => ("handle/forget", json!({"id": id})),
         HandleCommand::Reconcile { id, block } => {
             ("handle/reconcile", json!({"id": id, "block": block}))
         }

@@ -1198,6 +1198,52 @@ fn stored_callbacks_preserve_concurrent_account_changes_and_other_executions() {
 }
 
 #[test]
+fn transfer_authorizations_outlive_their_approval_and_renew() {
+    use dmsg_types::handle::{HandleAction, HandleIntent, TRANSFER_AUTHORIZATION_MS};
+    let mut s = fixture();
+    let intent = |action, n: u8| HandleIntent {
+        handle_canister: p(7),
+        action,
+        account_id: s.account_id,
+        target_account: Some(AccountId([9; 12])),
+        handle: format!("name{n}"),
+        expected_version: 1,
+        op_id: Hash::new([n; 32]),
+        terms_digest: Hash::new([1; 32]),
+    };
+    let (transfer, register) = (
+        intent(HandleAction::Transfer, 1),
+        intent(HandleAction::Register, 2),
+    );
+    apply(
+        &mut s,
+        AccountCommand::AuthorizeHandle {
+            intent: transfer.clone(),
+        },
+        1,
+    )
+    .unwrap();
+    apply(
+        &mut s,
+        AccountCommand::AuthorizeHandle { intent: register },
+        1,
+    )
+    .unwrap();
+    let expires = |s: &AccountState, n: u8| s.handle_authorizations[&Hash::new([n; 32])].expires_at;
+    assert_eq!(expires(&s, 1), 1 + TRANSFER_AUTHORIZATION_MS);
+    assert_eq!(expires(&s, 2), 1 + MINUTE);
+    // Authorizing the same side again starts its window over.
+    apply(
+        &mut s,
+        AccountCommand::AuthorizeHandle { intent: transfer },
+        5 * MINUTE,
+    )
+    .unwrap();
+    assert_eq!(expires(&s, 1), 5 * MINUTE + TRANSFER_AUTHORIZATION_MS);
+    assert!(!s.handle_authorizations.contains_key(&Hash::new([2; 32])));
+}
+
+#[test]
 fn existing_handle_intent_can_be_reapproved_at_capacity() {
     let mut s = fixture();
     for n in 0..32 {

@@ -114,7 +114,7 @@ An account's `home_user` and `home_cose` are fixed for its lifetime.
 
 ### 4.5 Handles, Paid Delivery and Commerce
 
-- **Handles**: the account first records an exact handle intent, valid for 60 seconds, in its home; on registration, claim or transfer, handle consumes the intent from that home and charges through ICRC-2 on the PANDA ledger.
+- **Handles**: the account first records an exact handle intent in its home, valid for 60 seconds, or ten minutes for either side of a transfer; on registration, claim or transfer, handle consumes the intent from that home and charges through ICRC-2 on the PANDA ledger.
 - **Paid delivery**: the cloud signs a Quote from the recipient's signed payment offer. On `open_escrow`, payment verifies the offer with the recipient account's home, and the payer transfers to a subaccount unique to the escrow. Once the cloud admits the ciphertext it signs an admission receipt; `finalize_receipt` settles to the recipient and the platform, and escrows not settled by the admission deadline are refunded.
 - **Cash purchases**: commerce quotes, opens the order, verifies deposits to its subaccount, and on delivery writes the contract, resource entitlement and receipt in one message.
 - **PANDA waivers**: membership verifies the neuron's qualification and ensures that one neuron backs at most one entitlement across all products at a time, then calls back the product adapter. A PANDA-backed lease lasts at most one hour, and each active member causes roughly one SNS read per hour.

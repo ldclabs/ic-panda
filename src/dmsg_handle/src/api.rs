@@ -9,6 +9,7 @@ use icrc_ledger_types::{
     icrc1::account::Account,
     icrc2::transfer_from::{TransferFromArgs, TransferFromError},
 };
+use std::ops::Bound;
 
 fn now() -> u64 {
     nanos_to_millis(ic_cdk::api::time())
@@ -106,6 +107,13 @@ fn init(args: HandleInit) {
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
     let started = ic_cdk::api::performance_counter(0);
+    // Schema 11 adds the owner index, built once from the active names.
+    if with_cfg(|c| c.schema) == 10 {
+        index_owners();
+        let mut c = cfg();
+        c.schema = STABLE_SCHEMA;
+        save_cfg(c);
+    }
     assert_eq!(
         with_cfg(|c| c.schema),
         STABLE_SCHEMA,
@@ -448,6 +456,12 @@ fn commit_name(
         event_tip: tip,
     };
     NAMES.with_borrow_mut(|t| t.put(&name_key(name), &r));
+    OWNERS.with_borrow_mut(|t| {
+        if let Some(from) = &from {
+            t.remove(&owner_key(from, name));
+        }
+        t.insert(owner_key(&to, name));
+    });
     certify(name);
     r
 }
@@ -867,6 +881,36 @@ fn resolve_handle_certified(handles: Vec<String>) -> Result<CertifiedBatch> {
                 .map(|i| names[i].1.clone());
             (value, t.witness(bucket, names, key))
         })
+    })
+}
+
+/// The account's names in byte order after `after`, at most `take` (1–64).
+/// Uncertified: a client proves each with `resolve_handle_certified`.
+#[ic_cdk::query]
+fn account_handles(
+    account_id: AccountId,
+    after: Option<String>,
+    take: u16,
+) -> Result<Vec<HandleRecord>> {
+    ensure(
+        take > 0 && usize::from(take) <= MAX_BATCH,
+        Error::QuotaExceeded,
+    )?;
+    let prefix = account_id.as_slice().to_vec();
+    let start = match &after {
+        Some(name) => Bound::Excluded(owner_key(&account_id, &normalize_handle(name)?)),
+        None => Bound::Included(prefix.clone()),
+    };
+    OWNERS.with_borrow(|t| {
+        t.range((start, Bound::Unbounded))
+            .take_while(|key| key.starts_with(&prefix))
+            .take(usize::from(take))
+            .map(|key| {
+                let name = std::str::from_utf8(&key[prefix.len()..])
+                    .map_err(|_| Error::IntegrityFailed)?;
+                record(name).ok_or(Error::IntegrityFailed)
+            })
+            .collect()
     })
 }
 

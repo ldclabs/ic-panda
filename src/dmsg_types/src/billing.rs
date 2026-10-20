@@ -5,6 +5,10 @@ use crate::{Environment, Hash, membership::*};
 use candid::{CandidType, Principal};
 use serde::{Deserialize, Serialize};
 
+/// A base term may be renewed this long before it ends; the renewal starts
+/// where it ends.
+pub const RENEWAL_WINDOW_MS: u64 = 30 * crate::DAY;
+
 /// Base resource tier; it grants no account or cryptographic permissions.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum PlanId {
@@ -208,6 +212,32 @@ pub struct StorageAddon {
     pub expires_at_ms: u64,
     /// Latest resource-lease deadline already issued, in Unix milliseconds.
     pub last_issued_until_ms: u64,
+}
+
+/// The first cash base contract of a beneficiary, refundable for its unused
+/// time until `until_ms`.
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct RefundWindow {
+    /// Product contract identity.
+    pub contract_id: Hash,
+    /// Merchant order whose payer may cancel it.
+    pub order_id: Hash,
+    /// Exclusive end of the self-service refund window in Unix milliseconds.
+    pub until_ms: u64,
+}
+
+/// A beneficiary's base contracts and storage add-ons for display: terms,
+/// sources and renewals. Rights come only from the certified
+/// [`EntitlementView`].
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct MembershipTerms {
+    /// Base contracts ending this month or later, oldest first; a renewal
+    /// follows the term it continues.
+    pub contracts: Vec<MembershipContract>,
+    /// Storage add-ons not yet expired.
+    pub addons: Vec<StorageAddon>,
+    /// The first cash purchase while it can still be refunded.
+    pub refund: Option<RefundWindow>,
 }
 
 /// Current resource-source state, distinct from account security state.

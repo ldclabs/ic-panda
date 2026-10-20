@@ -587,6 +587,13 @@ export const schemas = {
     "authorizations_per_minute": "u64",
     "product_calls_per_minute": "u64"
   },
+  "PandaServiceView": {
+    "governance": "Principal",
+    "panda_ledger": "Principal",
+    "cooling_ms": "u64",
+    "paused": "bool",
+    "rates": "Vec<PandaRatePolicy>"
+  },
   "PandaApplicationTerms": {
     "home_membership": "Principal",
     "user_home": "Principal",

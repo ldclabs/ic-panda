@@ -122,6 +122,14 @@ fn superseded(p: &PandaRatePolicy, all: &[PandaRatePolicy], at: u64) -> bool {
     })
 }
 
+/// Every announced policy, current and scheduled, oldest effective first.
+pub fn announced() -> Vec<PandaRatePolicy> {
+    let mut all: Vec<PandaRatePolicy> =
+        POLICIES.with_borrow(|t| t.iter().map(|v| v.value().0).collect());
+    all.sort_by_key(|p| (p.effective_at_ms, p.policy_version));
+    all
+}
+
 pub fn current(product: &str, at: u64) -> Result<PandaRatePolicy> {
     POLICIES
         .with_borrow(|t| {

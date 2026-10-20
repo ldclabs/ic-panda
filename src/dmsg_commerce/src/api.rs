@@ -361,6 +361,35 @@ fn get_entitlement_batch(subjects: Vec<Beneficiary>) -> Result<CertifiedBatch> {
     })
 }
 
+/// A beneficiary's base contracts and storage add-ons for display, with the
+/// refund window of its first cash purchase. An account that never bought
+/// anything has none; its rights are the certified Free entitlement.
+#[ic_cdk::query]
+fn get_membership_terms(b: Beneficiary) -> Result<MembershipTerms> {
+    valid_subject(&b)?;
+    let at = now();
+    let s = match load(&b) {
+        Ok(s) => s,
+        Err(Error::NotFound) => {
+            return Ok(MembershipTerms {
+                contracts: vec![],
+                addons: vec![],
+                refund: None,
+            });
+        }
+        Err(e) => return Err(e),
+    };
+    Ok(MembershipTerms {
+        refund: model::refund_window(&s, at),
+        contracts: s.contracts,
+        addons: s
+            .addons
+            .into_iter()
+            .filter(|a| a.expires_at_ms > at)
+            .collect(),
+    })
+}
+
 #[ic_cdk::update]
 async fn get_execution_entitlement(
     b: Beneficiary,

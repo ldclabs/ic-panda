@@ -17,7 +17,7 @@ export const views = {
   inbox: { path: '/inbox', label: 'inbox', detail: 'inboxDetail', icon: 'inbox', key: '4' },
   approvals: { path: '/approvals', label: 'approvals', detail: 'approvalsDetail', icon: 'approvals', key: '5' },
   agents: { path: '/agents', label: 'agents', detail: 'agentsDetail', icon: 'agents', key: '6' },
-  plan: { path: '/account', label: 'planAndNames', detail: 'planDetail', icon: 'plan', key: '7' },
+  plan: { path: '/plan', label: 'planAndNames', detail: 'planDetail', icon: 'plan', key: '7' },
   wallet: { path: '/wallet', label: 'twNav', detail: 'twDetail', icon: 'coins', key: '8' },
   settings: { path: '/settings', label: 'settings', detail: 'settingsDetail', icon: 'settings', key: ',' },
   legacy: { path: '/settings/legacy', label: 'legacy', detail: 'legacyDetail', icon: 'legacy' }
