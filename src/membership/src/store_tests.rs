@@ -8,7 +8,7 @@ fn claim_for(index: u64, actor: Principal) -> Claim {
     request.terms.offer.operation_id = digest("membership/test-operation", &index);
     request.terms.neuron_id = digest("membership/test-neuron", &index);
     request.terms.actor = actor;
-    Claim::new(panda_claim_id(&request.terms), request, PANDA_COOLING_MS)
+    Claim::new(panda_claim_id(&request.terms), request)
 }
 
 #[test]
@@ -53,17 +53,11 @@ fn terminal_cleanup_is_bounded_and_preserves_live_commitments_and_replay_identit
     let mut unknown = claim_for(100, actor);
     unknown.product_reserved = true;
     unknown.observe(Eligibility::Eligible, at, at).unwrap();
-    unknown
-        .observe(
-            Eligibility::Eligible,
-            at + PANDA_COOLING_MS,
-            at + PANDA_COOLING_MS,
-        )
-        .unwrap();
-    unknown.preparing_apply(at + PANDA_COOLING_MS).unwrap();
+    unknown.preparing_apply(at).unwrap();
     save(&mut unknown, at);
     let mut committed = claim_for(101, actor);
-    committed.view.status = PandaClaimStatus::Terminated;
+    committed.view.status = PandaClaimStatus::Active;
+    committed.view.observed_at_ms = at;
     committed.view.committed_until_ms = at + 365 * DAY;
     save(&mut committed, at);
     assert_eq!(prune_history(until - 1), 0);
@@ -186,7 +180,7 @@ fn save_touches_indexes_and_certified_view_only_when_they_change() {
     let request = fixture::claim();
     let id = panda_claim_id(&request.terms);
     let n = neuron(&request.terms);
-    let mut c = Claim::new(id, request, PANDA_COOLING_MS);
+    let mut c = Claim::new(id, request);
     save(&mut c, fixture::base::NOW);
     let leaf = |id| CERT.with_borrow(|t| t.get(&key(id)));
     let certified = leaf(id);
@@ -215,14 +209,13 @@ fn applying_claims_keep_capacity_until_rejected_or_expired() {
         let mut request = fixture::claim();
         request.terms.offer.operation_id = Hash::new([if applied { 91 } else { 90 }; 32]);
         let id = panda_claim_id(&request.terms);
-        let mut c = Claim::new(id, request, PANDA_COOLING_MS);
+        let mut c = Claim::new(id, request);
         c.product_reserved = true;
         let start = fixture::base::NOW;
+        let at = start;
         c.observe(Eligibility::Eligible, start, start).unwrap();
         save(&mut c, fixture::base::NOW);
-        let at = start + PANDA_COOLING_MS;
-        c.observe(Eligibility::Eligible, at, at).unwrap();
-        c.preparing_apply(at).unwrap();
+        c.preparing_apply(start).unwrap();
         save(&mut c, fixture::base::NOW);
         assert_eq!(live_claims(), 1);
         assert_eq!(c.expire(at + 2 * DAY), Err(Error::ExecutionUnknown));
@@ -258,4 +251,26 @@ fn applying_claims_keep_capacity_until_rejected_or_expired() {
         }
         assert_eq!(live_claims(), 0);
     }
+}
+#[test]
+fn terminated_claim_releases_occupancy_after_its_issued_lease() {
+    let at = fixture::base::NOW;
+    let actor = fixture::base::principal(40);
+    let mut c = claim_for(200, actor);
+    c.view.status = PandaClaimStatus::Active;
+    c.view.observed_at_ms = at;
+    c.view.committed_until_ms = at + 365 * DAY;
+    save(&mut c, at);
+    c.observe(Eligibility::Ineligible, at, at).unwrap();
+    save(&mut c, at);
+    assert_eq!(c.view.status, PandaClaimStatus::Terminated);
+    assert_eq!(
+        check_occupancy(&c.view.terms, at + PANDA_LEASE_MS - 1),
+        Err(Error::NeuronOccupied)
+    );
+    assert_eq!(check_occupancy(&c.view.terms, at + PANDA_LEASE_MS), Ok(()));
+    assert_eq!(
+        load(c.view.claim_id).unwrap().view.status,
+        PandaClaimStatus::Released
+    );
 }

@@ -211,7 +211,7 @@ fn temporary_reservation_failures_retry_with_limits_and_archive_without_replayin
         "reconcile_panda_claim",
         (id,),
     );
-    assert_eq!(recovered.unwrap().status, PandaClaimStatus::CoolingDown);
+    assert_eq!(recovered.unwrap().status, PandaClaimStatus::Checking);
     assert_eq!(counters(&f).0, 11);
     assert!(counters(&f).2);
     let cancelled: Result<PandaClaimView> = update(
@@ -320,7 +320,7 @@ fn cancellation_during_reservation_ignores_late_errors_and_unlocks_recovery() {
 }
 
 #[test]
-fn activation_rechecks_a_neuron_observed_just_before_cooling_ended() {
+fn activation_rechecks_a_neuron_before_applying() {
     let f = Fixture::commercial();
     let account = f.create(1);
     neuron(&f, 100_000_000_000_100);
@@ -349,38 +349,21 @@ fn activation_rechecks_a_neuron_observed_just_before_cooling_ended() {
         "request_panda_claim",
         (PandaClaimRequest {
             terms: terms.clone(),
-            authorization,
+            authorization: authorization.clone(),
         },),
     );
-    let cooling = result.unwrap();
-    let ready = cooling.cooling_until_ms.unwrap();
-    f.ic.advance_time(Duration::from_millis(ready - time(&f.ic) - 30_000));
-    let checked: Result<PandaClaimView> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "reconcile_panda_claim",
-        (cooling.claim_id,),
-    );
-    assert!(checked.unwrap().observed_at_ms < ready);
+    let claim = result.unwrap();
+    assert_eq!(claim.status, PandaClaimStatus::Checking);
     let reads = counters(&f).4;
+    // The first observation was eligible; activation must not trust it after
+    // the neuron changes and must read the SNS once more before applying.
     neuron(&f, 0);
-    f.ic.advance_time(Duration::from_millis(ready - time(&f.ic) + 1));
-    let fresh = approve(
-        &f,
-        &account,
-        &bill,
-        f.membership,
-        ApprovalPurpose::PandaSubscription,
-        panda_application_hash(&terms),
-        222,
-    );
     let advanced: Result<PandaClaimView> = update(
         &f.ic,
         f.membership,
         person(1),
         "advance_panda_claim",
-        (cooling.claim_id, fresh),
+        (claim.claim_id, authorization),
     );
     assert_eq!(advanced, Err(Error::MembershipIneligible));
     assert_eq!(counters(&f).4, reads + 1);
@@ -389,7 +372,7 @@ fn activation_rechecks_a_neuron_observed_just_before_cooling_ended() {
         f.membership,
         person(1),
         "get_panda_claim",
-        (cooling.claim_id,),
+        (claim.claim_id,),
     );
     assert_eq!(rejected.unwrap().status, PandaClaimStatus::Rejected);
 }
@@ -513,7 +496,6 @@ fn a_neuron_read_returning_after_the_sns_verification_expired_issues_no_lease() 
     let claim = claim.unwrap();
     assert_eq!(claim.status, PandaClaimStatus::Checking);
     assert_eq!(claim.eligibility, Eligibility::Unverifiable);
-    assert!(claim.cooling_until_ms.is_none());
     assert!(claim.valid_until_ms <= time(&f.ic));
 }
 

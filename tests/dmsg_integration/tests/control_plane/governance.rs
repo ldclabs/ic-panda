@@ -420,7 +420,6 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         commerce_homes: vec![home.clone()],
         max_claims: 1000,
         hourly_applications: 100,
-        cooling_ms: PANDA_COOLING_MS,
         qualifications_per_minute: 200,
         authorizations_per_minute: 200,
         product_calls_per_minute: 200,

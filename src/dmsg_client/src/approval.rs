@@ -214,13 +214,13 @@ pub enum Action {
         checkout: Option<(String, Hash)>,
     },
     /// Approve a quoted checkout for the payer and pay it; with `fresh`,
-    /// approve a PANDA claim again after its cooling period.
+    /// advance a qualified PANDA claim.
     Checkout {
         /// Order or claim ID.
         id: String,
         /// The terms' commitment.
         digest: Hash,
-        /// A post-cooling approval.
+        /// Advance the PANDA claim instead of opening it.
         fresh: bool,
     },
     /// Pay for a quoted letter from the payer.
@@ -1077,7 +1077,7 @@ impl Client {
     }
 
     /// Ask to approve a quoted checkout and pay it from the payer; with
-    /// `fresh`, to approve a PANDA claim again after cooling. A cash
+    /// `fresh`, to advance a qualified PANDA claim. A cash
     /// checkout the payer cannot fund now gets no request.
     ///
     /// # Errors

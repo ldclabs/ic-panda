@@ -46,7 +46,7 @@ use dmsg_types::{
         PandaApplicationTerms, PandaClaimRequest, PandaClaimStatus, PandaClaimView,
         PandaOperationsPage, PandaServiceView,
     },
-    membership::Beneficiary,
+    membership::{Beneficiary, Eligibility},
     user::{Capability, UserInit},
 };
 use icrc_ledger_types::icrc1::{account::Account, transfer::TransferArg};
@@ -219,7 +219,6 @@ fn order_view(state: &Order) -> Json {
             "method": "Panda",
             "status": claim_name(view),
             "eligibility": format!("{:?}", view.eligibility),
-            "cooling_until_ms": view.cooling_until_ms,
             "actor": view.terms.actor.to_text(),
             "neuron": hex::encode(*view.terms.neuron_id),
         }),
@@ -595,15 +594,9 @@ impl Client {
         Ok(order_view(&order))
     }
 
-    /// Sign the device approval of a checkout's exact terms, once; a fresh
-    /// one after a PANDA claim's cooling period with `fresh`.
-    async fn authorize_checkout(
-        &mut self,
-        job: &mut Checkout,
-        services: &Services,
-        fresh: bool,
-    ) -> Result<()> {
-        if job.approval.is_some() && !fresh {
+    /// Sign the device approval of a checkout's exact terms, once.
+    async fn authorize_checkout(&mut self, job: &mut Checkout, services: &Services) -> Result<()> {
+        if job.approval.is_some() {
             return Ok(());
         }
         let (app, product) = self
@@ -625,7 +618,7 @@ impl Client {
             ),
         };
         ensure(
-            now < deadline && (fresh || now < job.request.offer.accept_by_ms),
+            now < deadline && now < job.request.offer.accept_by_ms,
             Error::Expired,
         )?;
         let account = self.account()?.clone();
@@ -690,6 +683,9 @@ impl Client {
                 // A checking PANDA application is progressed here, so the
                 // approval completes without the person reconciling it.
                 Ok(Order::Panda(view)) if view.status == PandaClaimStatus::Checking => {
+                    if view.eligibility == Eligibility::Eligible {
+                        return self.plan_advance(id).await;
+                    }
                     let view = self.reconcile_claim(id, job.actor).await?;
                     ensure(view.status != PandaClaimStatus::Checking, Error::Pending)?;
                     return Ok(order_view(&Order::Panda(Box::new(view))));
@@ -699,7 +695,7 @@ impl Client {
                 Err(error) => return Err(error),
             }
         }
-        self.authorize_checkout(&mut job, &services, false).await?;
+        self.authorize_checkout(&mut job, &services).await?;
         let (application, approval) = job.approval.clone().ok_or(Error::IntegrityFailed)?;
         let login = self.session()?.ic.clone();
         let approved: Result<Hash> = login
@@ -747,11 +743,19 @@ impl Client {
                     .await?;
                 // The claim is saved before a pending answer; keep the
                 // approval running and let the next pass reconcile it.
-                match requested {
-                    Ok(_) => {}
+                let view = match requested {
+                    Ok(view) => view,
                     Err(Error::Pending) => return Err(Error::Pending),
                     Err(error) => return Err(error),
+                };
+                job.stage = Stage::Accepted;
+                self.save_checkout(&job)?;
+                if view.status == PandaClaimStatus::Checking
+                    && view.eligibility == Eligibility::Eligible
+                {
+                    return self.plan_advance(id).await;
                 }
+                return Ok(order_view(&Order::Panda(Box::new(view))));
             }
         }
         job.stage = Stage::Accepted;
@@ -824,8 +828,8 @@ impl Client {
         view
     }
 
-    /// Advance a PANDA claim after its cooling period with a fresh device
-    /// approval of the same terms.
+    /// Apply a qualified PANDA claim immediately, reusing the device approval
+    /// of the same terms when it is still valid.
     ///
     /// # Errors
     /// Returns `Error::Forbidden` for a cash order.
@@ -836,27 +840,15 @@ impl Client {
         };
         let services = self.services().await?;
         if let Order::Panda(view) = self.plan_order(id).await? {
-            // A checking or applying claim is progressed here, so the
-            // approval completes without the person reconciling it.
-            if matches!(
-                view.status,
-                PandaClaimStatus::Checking | PandaClaimStatus::Applying
-            ) {
+            if view.status == PandaClaimStatus::Applying {
                 let view = self.reconcile_claim(id, job.actor).await?;
-                ensure(
-                    !matches!(
-                        view.status,
-                        PandaClaimStatus::Checking | PandaClaimStatus::Applying
-                    ),
-                    Error::Pending,
-                )?;
                 return Ok(order_view(&Order::Panda(Box::new(view))));
             }
-            if view.status != PandaClaimStatus::CoolingDown {
+            if view.status != PandaClaimStatus::Checking {
                 return Ok(order_view(&Order::Panda(view)));
             }
         }
-        self.authorize_checkout(&mut job, &services, true).await?;
+        self.authorize_checkout(&mut job, &services).await?;
         let (application, approval) = job.approval.clone().ok_or(Error::IntegrityFailed)?;
         let login = self.session()?.ic.clone();
         let approved: Result<Hash> = login
@@ -1577,8 +1569,8 @@ struct ListNeuronsResponse {
 }
 
 /// The PANDA path before a quote: the SNS whose neurons qualify, the
-/// cooling period, the current rate and what each plan needs staked, and
-/// the payer's neurons on that SNS with the stake and the lock that count.
+/// current rate and what each plan needs staked, and the payer's neurons on
+/// that SNS with the stake and the lock that count.
 /// The payer must be a principal of the neuron, for example a hotkey.
 ///
 /// # Errors
@@ -1629,7 +1621,6 @@ pub async fn plan_panda<H: Hold>(h: &H) -> Result<Json> {
     let mut view = json!({
         "governance": service.governance.to_text(),
         "ledger": service.panda_ledger.to_text(),
-        "cooling_ms": service.cooling_ms,
         "paused": service.paused,
         "rate": rate.map(|r| json!({
             "policy_version": r.policy_version,

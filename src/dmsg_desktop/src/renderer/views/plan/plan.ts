@@ -65,7 +65,6 @@ const statusLabels: Record<string, [Label, Tone]> = {
   RefundCommitted: ['orderRefunded', 'neutral'],
   Rejected: ['orderRejected', 'danger'],
   Checking: ['orderChecking', 'warn'],
-  CoolingDown: ['orderCooling', 'warn'],
   Active: ['orderApplied', 'ok'],
   Terminated: ['orderEnded', 'neutral'],
   Cancelled: ['orderCancelled', 'neutral'],
@@ -105,8 +104,8 @@ export type OrderAction = 'pay' | 'discard' | 'cancel' | 'refund' | 'advance' | 
  * What may be done with an order now: pay or remove a quote; remove an
  * approval whose deadline passed before it reached the service; cancel
  * what is not paid or applied yet, a renewal that has not started, or a
- * PANDA application before it applies; continue a PANDA application after
- * its cooling period; settle what is being applied; refund the first
+ * PANDA application before it applies; apply a qualified PANDA application
+ * immediately; settle what is being applied; refund the first
  * purchase within its window, the order `refundable` names.
  */
 export function orderActions(job: any, order: any, now: number, refundable?: string | null): OrderAction[] {
@@ -120,13 +119,12 @@ export function orderActions(job: any, order: any, now: number, refundable?: str
     case 'AwaitingFunding':
       return ['cancel']
     case 'Checking':
-      // A PANDA application's SNS qualification can be caught by another
-      // check in flight; reconciling it asks the service to try again.
-      return job.terms?.method === 'Panda' ? ['reconcile', 'cancel'] : ['cancel']
+      // A qualified PANDA application applies immediately. If its
+      // qualification is still unknown, reconciling asks the service to try again.
+      if (job.terms?.method !== 'Panda') return ['cancel']
+      return order.eligibility === 'Eligible' ? ['advance', 'cancel'] : ['reconcile', 'cancel']
     case 'Applying':
       return ['reconcile']
-    case 'CoolingDown':
-      return order.cooling_until_ms != null && now >= order.cooling_until_ms ? ['advance', 'cancel'] : ['cancel']
     case 'Applied':
       if (refundable && refundable === job.id) return ['refund']
       return job.starts_at_ms > now ? ['cancel'] : []

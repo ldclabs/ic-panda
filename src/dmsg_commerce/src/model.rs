@@ -81,7 +81,7 @@ pub fn refund_window(s: &Subject, at: u64) -> Option<RefundWindow> {
 pub const MAX_ADDONS: usize = 64;
 const MAX_PAUSES: usize = 128;
 
-/// Record a qualification result. Known and unverifiable losses both pause paid execution time.
+/// Record a qualification result. A loss pauses paid execution time immediately.
 pub fn set_eligibility(
     c: &mut MembershipContract,
     eligibility: Eligibility,
@@ -98,9 +98,6 @@ pub fn set_eligibility(
     } else if !open {
         ensure(c.resource_pauses.len() < MAX_PAUSES, Error::QuotaExceeded)?;
         c.resource_pauses.push((at, None));
-    }
-    if eligibility != Eligibility::Ineligible {
-        c.repair_deadline_ms = None;
     }
     c.eligibility = eligibility;
     Ok(())
@@ -202,7 +199,6 @@ pub fn project(
             .is_some_and(|c| matches!(c.source, ContractSource::Sns { .. }));
     let mut until = at.saturating_add(if short { PANDA_LEASE_MS } else { CASH_LEASE_MS });
     let mut observed = at;
-    let mut repair = None;
     let mut terminated = s
         .contracts
         .iter()
@@ -216,7 +212,6 @@ pub fn project(
     if let Some(c) = &active {
         eligibility = c.eligibility.clone();
         observed = c.observed_at_ms;
-        repair = c.repair_deadline_ms;
         if c.eligibility == Eligibility::Unverifiable
             || (c.eligibility == Eligibility::Eligible
                 && matches!(c.source, ContractSource::Sns { .. })
@@ -225,16 +220,9 @@ pub fn project(
             status = SourceStatus::Unverifiable;
             eligibility = Eligibility::Unverifiable;
         } else if c.eligibility == Eligibility::Ineligible {
-            match repair {
-                Some(d) if at >= d => {
-                    status = SourceStatus::Suspended;
-                    terminated = repair;
-                }
-                _ => {
-                    status = SourceStatus::RepairRequired;
-                    until = until.min(repair.unwrap_or(u64::MAX));
-                }
-            }
+            status = SourceStatus::Suspended;
+            terminated = Some(c.observed_at_ms);
+            until = at;
         } else {
             p = c.plan.clone();
             sources.push(c.contract_id);
@@ -306,7 +294,7 @@ pub fn project(
         issued_at_ms: at,
         valid_until_ms: until,
         effective_stop_at_ms: None,
-        repair_deadline_ms: repair,
+        repair_deadline_ms: None,
         service_terminated_at_ms: terminated,
     };
     s.view = Some(v.clone());
@@ -408,7 +396,6 @@ pub fn month(s: &Subject, catalogs: &[Catalog], month: u32) -> Result<MonthEntit
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dmsg_protocol::commerce_v2::REPAIR_WINDOW_MS;
 
     const HOME: Principal = Principal::from_slice(&[1]);
 
@@ -440,7 +427,6 @@ mod tests {
             eligibility: Eligibility::Eligible,
             observed_at_ms: start,
             qualified_until_ms: end,
-            repair_deadline_ms: None,
         });
         s
     }
@@ -463,20 +449,15 @@ mod tests {
     }
 
     #[test]
-    fn repair_deadline_moves_the_view_to_suspended() {
+    fn known_ineligibility_suspends_the_view_immediately() {
         let mut s = subject(1_000, 1_000 + 365 * DAY);
         let at = 2_000;
         set_eligibility(&mut s.contracts[0], Eligibility::Ineligible, at).unwrap();
-        s.contracts[0].repair_deadline_ms = Some(at + REPAIR_WINDOW_MS);
+        s.contracts[0].observed_at_ms = at;
         let v = project(HOME, &mut s, &catalog(), at, None).unwrap();
-        assert_eq!(v.source_status, SourceStatus::RepairRequired);
-        assert_eq!(v.repair_deadline_ms, Some(at + REPAIR_WINDOW_MS));
-        assert!(v.valid_until_ms <= at + REPAIR_WINDOW_MS);
-        let v = project(HOME, &mut s, &catalog(), at + REPAIR_WINDOW_MS, None).unwrap();
         assert_eq!(v.source_status, SourceStatus::Suspended);
-        assert_eq!(v.service_terminated_at_ms, Some(at + REPAIR_WINDOW_MS));
-        set_eligibility(&mut s.contracts[0], Eligibility::Eligible, at + 1).unwrap();
-        assert_eq!(s.contracts[0].repair_deadline_ms, None);
+        assert_eq!(v.valid_until_ms, at);
+        assert_eq!(v.service_terminated_at_ms, Some(at));
     }
 
     #[test]

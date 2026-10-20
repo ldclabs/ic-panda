@@ -10,8 +10,6 @@ use icrc_ledger_types::icrc1::account::Account;
 pub const PRICE_WINDOW_MS: u64 = 365 * DAY;
 /// Maximum deviation from the stable-asset unit USD price for new quotes.
 pub const MAX_DEPEG_USD_MICROS: u128 = 10_000;
-/// Known ineligibility accumulates seven days before rights terminate permanently.
-pub const REPAIR_WINDOW_MS: u64 = 7 * DAY;
 
 /// Validate immutable asset policy; verification of ledger decimals/fees is a service step.
 pub fn validate_asset(asset: &SettlementAsset) -> Result<()> {
@@ -336,7 +334,6 @@ pub fn contract(
         max_issued_until_ms: 0,
         qualification: Eligibility::Eligible,
         observed_at_ms: at,
-        repair_elapsed_ms: 0,
     })
 }
 
@@ -399,29 +396,17 @@ pub fn observe_contract(
         .lease_revision
         .checked_add(1)
         .ok_or(Error::QuotaExceeded)?;
-    let previous = contract.qualification.clone();
-    if eligibility != Eligibility::Unverifiable && previous == Eligibility::Ineligible {
-        contract.repair_elapsed_ms = contract
-            .repair_elapsed_ms
-            .saturating_add(observed_at_ms - contract.observed_at_ms);
-    }
     contract.qualification = eligibility.clone();
     contract.observed_at_ms = observed_at_ms;
     contract.lease_revision = revision;
-    if contract.repair_elapsed_ms >= REPAIR_WINDOW_MS {
-        contract.status = SubscriptionStatus::Terminated;
-        contract.lease_until_ms = at;
-        return Ok(());
-    }
     match eligibility {
         Eligibility::Eligible => {
             contract.status = SubscriptionStatus::Active;
             contract.lease_until_ms = lease_until_ms;
-            contract.repair_elapsed_ms = 0;
         }
         Eligibility::Ineligible => {
             contract.lease_until_ms = at;
-            contract.status = SubscriptionStatus::Repairing;
+            contract.status = SubscriptionStatus::Terminated;
         }
         Eligibility::Unverifiable => {
             contract.lease_until_ms = contract.lease_until_ms.min(at);

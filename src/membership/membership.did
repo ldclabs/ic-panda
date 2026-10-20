@@ -250,26 +250,24 @@ type PandaApplicationTerms = record {
   // Exact 32-byte SNS neuron ID.
   neuron_id : blob;
 };
-// Initial or post-cooling fresh approval of the same immutable terms.
+// Initial approval of the same immutable terms.
 type PandaClaimRequest = record {
   // Immutable terms; retries cannot replace them.
   terms : PandaApplicationTerms;
   // Fresh account proof and product operator approval.
   authorization : ProductAuthorizationRequest;
 };
-// Termination stops rights, while Released is reserved for the original commitment end.
+// Termination stops rights; Released follows once the issued lease has ended.
 type PandaClaimStatus = variant {
-  // Product rights ended permanently; the neuron remains occupied until E.
+  // Product rights ended permanently; the neuron stays occupied until its issued lease ends.
   Terminated;
-  // First eligible observation recorded; cooling and fresh approval are required.
-  CoolingDown;
   // Product applied the full waiver. Commitment is immutable.
   Active;
-  // Original commitment end reached and occupancy released exactly once.
+  // Rights ended and occupancy released exactly once.
   Released;
   // A definite rejection proves that no rights were delivered.
   Rejected;
-  // Accepted application; qualification has not been established.
+  // Accepted application; Apply has not been prepared.
   Checking;
   // Cancelled before any Apply was prepared.
   Cancelled;
@@ -296,10 +294,6 @@ type PandaClaimView = record {
   eligibility : Eligibility;
   // Protocol version two.
   version : nat16;
-  // Earliest time a fresh post-cooling approval can apply.
-  cooling_until_ms : opt nat64;
-  // Accumulated verified repair time; Unverifiable pauses it.
-  repair_elapsed_ms : nat64;
   // Zero before successful Apply; fixed to the original E afterwards.
   committed_until_ms : nat64;
 };
@@ -331,7 +325,8 @@ type PandaQuote = record {
 type PandaRatePolicy = record {
   // Products eligible for this policy.
   product_ids : vec text;
-  // Inclusive policy activation time, after the notice interval.
+  // Inclusive policy activation time; after the notice interval, except
+  // that the first policy may take effect at publication.
   effective_at_ms : nat64;
   // Policy publication time in Unix milliseconds.
   published_at_ms : nat64;
@@ -361,19 +356,15 @@ type PandaServiceConfig = record {
   authorizations_per_minute : nat64;
   // SNS neuron reads per UTC minute; every active claim needs about one per hour.
   qualifications_per_minute : nat64;
-  // At least 65 minutes; changing it cannot shorten an accepted application's cooling.
-  cooling_ms : nat64;
   // Commerce canister of each user home; entries are only appended.
   commerce_homes : vec CommerceHome;
 };
 // What a client shows before quoting a PANDA subscription: the SNS whose
-// neurons qualify, its ledger, the cooling period, whether new applications
-// are paused and the announced conversion rates.
+// neurons qualify, its ledger, whether new applications are paused and the
+// announced conversion rates.
 type PandaServiceView = record {
   // Eight-decimal PANDA ledger.
   panda_ledger : principal;
-  // Waiting time between an accepted application and its activation.
-  cooling_ms : nat64;
   // PANDA SNS governance, which lists the qualifying neurons.
   governance : principal;
   // Announced rate policies, current and scheduled.
@@ -482,9 +473,8 @@ service : (MembershipInit) -> {
   membership_stats : () -> (MembershipStats) query;
   panda_claim_certificate : (blob) -> (Result_2) query;
   panda_operations : (opt blob, nat16) -> (Result_3) query;
-  // The SNS whose neurons qualify, its ledger, the cooling period, whether
-  // new applications are paused and the announced rates: what a client shows
-  // before it quotes.
+  // The SNS whose neurons qualify, its ledger, whether new applications are
+  // paused and the announced rates: what a client shows before it quotes.
   panda_service : () -> (PandaServiceView) query;
   quote_panda_subscription : (BillingOffer, principal, blob, blob) -> (
       Result_4,

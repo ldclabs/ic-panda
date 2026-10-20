@@ -3,7 +3,6 @@ use crate::{sns, store};
 use dmsg_protocol::authenticated;
 use dmsg_runtime::admin::{self, Validation, validation};
 use dmsg_types::{
-    integration::*,
     integration_membership::{PandaServiceConfig, PandaServiceView},
     membership::*,
     *,
@@ -105,19 +104,14 @@ async fn verify_sns_configuration() -> Result<()> {
     fresh_sns(at).await
 }
 
-/// The SNS whose neurons qualify, its ledger, the cooling period, whether
-/// new applications are paused and the announced rates: what a client shows
-/// before it quotes.
+/// The SNS whose neurons qualify, its ledger, whether new applications are
+/// paused and the announced rates: what a client shows before it quotes.
 #[ic_cdk::query]
 fn panda_service() -> PandaServiceView {
     let c = store::config();
     PandaServiceView {
         governance: c.init.governance,
         panda_ledger: c.init.panda_ledger,
-        cooling_ms: c
-            .service
-            .as_ref()
-            .map_or(PANDA_COOLING_MS, |s| s.cooling_ms),
         paused: c.paused,
         rates: crate::rate::announced(),
     }
@@ -161,8 +155,6 @@ fn check_service(c: &store::Config, next: &PandaServiceConfig) -> Result<()> {
             && next.max_claims <= store::MAX_FULL_CLAIMS
             && next.hourly_applications > 0
             && next.hourly_applications <= 10_000
-            && next.cooling_ms >= PANDA_COOLING_MS
-            && next.cooling_ms < APPLICATION_TTL_MS
             && [
                 next.qualifications_per_minute,
                 next.authorizations_per_minute,
@@ -202,11 +194,10 @@ fn validate_configure_panda_service(next: PandaServiceConfig) -> Validation {
             .map(|h| format!("{} -> {}", h.user_home, h.commerce_canister))
             .collect();
         format!(
-            "Configure the PANDA service for user homes [{}]: at most {} claims, {} applications per hour, {} ms cooling; per minute {} SNS reads, {} authorizations and as many activations, {} product calls.{}",
+            "Configure the PANDA service for user homes [{}]: at most {} claims, {} applications per hour; per minute {} SNS reads, {} authorizations and as many activations, {} product calls.{}",
             homes.join(", "),
             next.max_claims,
             next.hourly_applications,
-            next.cooling_ms,
             next.qualifications_per_minute,
             next.authorizations_per_minute,
             next.product_calls_per_minute,

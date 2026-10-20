@@ -322,7 +322,6 @@ impl Deployment {
                 }],
                 max_claims: 100,
                 hourly_applications: 100,
-                cooling_ms: PANDA_COOLING_MS,
                 qualifications_per_minute: 200,
                 authorizations_per_minute: 200,
                 product_calls_per_minute: 200,

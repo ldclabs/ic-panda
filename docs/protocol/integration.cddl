@@ -399,7 +399,7 @@ CashTransfer = {
 
 SubscriptionSource = "Included" / { "Cash": { "order_id": Hash, "ledger": Principal, "block_index": u128, "amount_atomic": u128 } } / { "PandaClaim": { "claim_id": Hash, "quote": PandaQuote } }
 
-SubscriptionStatus = "Active" / "Repairing" / "Unverifiable" / "Terminated" / "Expired" / "Cancelled"
+SubscriptionStatus = "Active" / "Unverifiable" / "Terminated" / "Expired" / "Cancelled"
 
 SubscriptionContract = {
   "contract_id": Hash,
@@ -414,7 +414,6 @@ SubscriptionContract = {
   "max_issued_until_ms": u64,
   "qualification": Eligibility,
   "observed_at_ms": u64,
-  "repair_elapsed_ms": u64,
 }
 
 CashCancellationReceipt = {
@@ -487,7 +486,6 @@ PandaServiceConfig = {
   "commerce_homes": [* CommerceHome],
   "max_claims": u64,
   "hourly_applications": u64,
-  "cooling_ms": u64,
   "qualifications_per_minute": u64,
   "authorizations_per_minute": u64,
   "product_calls_per_minute": u64,
@@ -496,7 +494,6 @@ PandaServiceConfig = {
 PandaServiceView = {
   "governance": Principal,
   "panda_ledger": Principal,
-  "cooling_ms": u64,
   "paused": bool,
   "rates": [* PandaRatePolicy],
 }
@@ -517,7 +514,7 @@ PandaClaimRequest = {
   "authorization": ProductAuthorizationRequest,
 }
 
-PandaClaimStatus = "Checking" / "CoolingDown" / "Applying" / "Active" / "Terminated" / "Cancelled" / "Rejected" / "Released"
+PandaClaimStatus = "Checking" / "Applying" / "Active" / "Terminated" / "Cancelled" / "Rejected" / "Released"
 
 PandaClaimView = {
   "version": u16,
@@ -528,9 +525,7 @@ PandaClaimView = {
   "observed_at_ms": u64,
   "valid_until_ms": u64,
   "lease_revision": u64,
-  "cooling_until_ms": (u64 / null),
   "committed_until_ms": u64,
-  "repair_elapsed_ms": u64,
   "receipt": (ProductReceipt / null),
 }
 

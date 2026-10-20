@@ -31,7 +31,6 @@ export const COMMERCE_VERSION = 2n;
 export const AUTH_TTL_MS = 300_000n;
 export const MAX_SESSION_MS = 86_400_000n;
 export const OFFER_TTL_MS = 900_000n;
-export const PANDA_COOLING_MS = 3_900_000n;
 export const PANDA_LEASE_MS = 3_600_000n;
 export const CASH_FUNDING_MS = 1_800_000n;
 export const CASH_ACTIVATION_MS = 86_400_000n;
@@ -530,7 +529,7 @@ export function quotePanda(
     now + APPLICATION_TTL_MS < offer.expires_at_ms
       ? now + APPLICATION_TTL_MS
       : offer.expires_at_ms;
-  ensure(deadline - now > PANDA_COOLING_MS, "EXPIRED");
+  ensure(deadline > now, "EXPIRED");
   return {
     quoted_at_ms: now,
     version: COMMERCE_VERSION,

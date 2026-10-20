@@ -26,8 +26,6 @@ pub struct PandaServiceConfig {
     pub max_claims: u64,
     /// Successful new applications per UTC hour.
     pub hourly_applications: u64,
-    /// At least 65 minutes; changing it cannot shorten an accepted application's cooling.
-    pub cooling_ms: u64,
     /// SNS neuron reads per UTC minute; every active claim needs about one per hour.
     pub qualifications_per_minute: u64,
     /// Quote and application calls per UTC minute; activations have a separate
@@ -39,16 +37,14 @@ pub struct PandaServiceConfig {
 }
 
 /// What a client shows before quoting a PANDA subscription: the SNS whose
-/// neurons qualify, its ledger, the cooling period, whether new applications
-/// are paused and the announced conversion rates.
+/// neurons qualify, its ledger, whether new applications are paused and the
+/// announced conversion rates.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PandaServiceView {
     /// PANDA SNS governance, which lists the qualifying neurons.
     pub governance: Principal,
     /// Eight-decimal PANDA ledger.
     pub panda_ledger: Principal,
-    /// Waiting time between an accepted application and its activation.
-    pub cooling_ms: u64,
     /// New applications are paused; existing claims keep refreshing.
     pub paused: bool,
     /// Announced rate policies, current and scheduled.
@@ -77,7 +73,7 @@ pub struct PandaApplicationTerms {
     pub quote: PandaQuote,
 }
 
-/// Initial or post-cooling fresh approval of the same immutable terms.
+/// Initial approval of the same immutable terms.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct PandaClaimRequest {
@@ -87,24 +83,22 @@ pub struct PandaClaimRequest {
     pub authorization: ProductAuthorizationRequest,
 }
 
-/// Termination stops rights, while Released is reserved for the original commitment end.
+/// Termination stops rights; Released follows once the issued lease has ended.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum PandaClaimStatus {
-    /// Accepted application; qualification has not been established.
+    /// Accepted application; Apply has not been prepared.
     Checking,
-    /// First eligible observation recorded; cooling and fresh approval are required.
-    CoolingDown,
     /// Durable Apply exists; cancellation and timeout release are forbidden.
     Applying,
     /// Product applied the full waiver. Commitment is immutable.
     Active,
-    /// Product rights ended permanently; the neuron remains occupied until E.
+    /// Product rights ended permanently; the neuron stays occupied until its issued lease ends.
     Terminated,
     /// Cancelled before any Apply was prepared.
     Cancelled,
     /// A definite rejection proves that no rights were delivered.
     Rejected,
-    /// Original commitment end reached and occupancy released exactly once.
+    /// Rights ended and occupancy released exactly once.
     Released,
 }
 
@@ -127,12 +121,8 @@ pub struct PandaClaimView {
     pub valid_until_ms: u64,
     /// Monotone qualification/view revision.
     pub lease_revision: u64,
-    /// Earliest time a fresh post-cooling approval can apply.
-    pub cooling_until_ms: Option<u64>,
     /// Zero before successful Apply; fixed to the original E afterwards.
     pub committed_until_ms: u64,
-    /// Accumulated verified repair time; Unverifiable pauses it.
-    pub repair_elapsed_ms: u64,
     /// Durable terminal product receipt, if available.
     pub receipt: Option<ProductReceipt>,
 }

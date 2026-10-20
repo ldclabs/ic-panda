@@ -165,31 +165,31 @@ neuron stays locked for the whole paid interval `[start, E)`. This is
 qualification, not physical SNS custody. A claim reuses an observation for one
 minute before querying SNS again.
 
-The first **actual eligible observation** starts at least 65 minutes of cooling.
-A fresh account/device and product approval is required after cooling; it covers
-the original terms and a neuron observation starting at or after the cooling
-deadline. The one-minute cache cannot reuse a pre-deadline observation for Apply.
-A timeout does not start or
-shorten cooling. At most current and contiguous next-term references can occupy
-a neuron, and both must name the same beneficiary. Different products cannot
-reuse that neuron concurrently. One service-global occupancy table enforces this.
+A qualified application applies immediately with the approval that requested
+it. Activation performs one fresh `get_neuron` after the last external await and
+before the local decision; the one-minute cache cannot reuse the earlier
+observation for Apply. At most current and contiguous next-term references can
+occupy a neuron, and both must name the same beneficiary. Different products
+cannot reuse that neuron concurrently. One service-global occupancy table
+enforces this.
 
 Before Apply, an unused application may cancel. Once Apply is prepared, Unknown
 cannot cancel or release on a timer. After successful Apply, including a future
-renewal, `committed_until_ms = original E` is irreversible. No Upgrade, Replace,
-Buyout, early Close or governance edit shortens it. Product closure, unlinking,
-loss of qualification and termination of rights do not release occupancy or
-claim capacity early. Expiry releases each reference exactly once;
+renewal, `committed_until_ms = original E` is irreversible and no Upgrade,
+Replace, Buyout, early Close or governance edit shortens it. A terminated claim
+keeps its neuron occupied until the lease issued before the ineligible
+observation has expired, then releases it; the original commitment end alone
+does not hold the neuron. Expiry releases each remaining reference exactly once;
 releasing the current term does not remove an already committed next term.
 
 Qualification leases last at most one hour and never pass E. Known ineligibility
-stops new rights and starts a seven-day repair clock; `Unverifiable` pauses that
-clock and never extends an old lease. Repair expiry permanently terminates
-rights while retaining the commitment until E. A terminated term never revives.
-A neuron read that returns after its SNS configuration verification expired
-(after one hour) or failed issues no lease and clears no commitment.
-`refresh_panda_claim`/`reconcile_panda_claim` preserve the original claim/decision;
-only initial/new post-cooling approval can create a new device approval.
+stops new rights and terminates the claim immediately; `Unverifiable` stops new
+rights without terminating and never extends an old lease. A terminated term
+never revives; after the issued lease ends the user may apply again with a
+restored, qualified neuron. A neuron read that returns after its SNS
+configuration verification expired (after one hour) or failed issues no lease
+and clears no commitment. `refresh_panda_claim`/`reconcile_panda_claim` preserve
+the original claim/decision.
 
 Temporary product reservation failures preserve the accepted application for
 reconciliation. Reserve, receipt lookup, Apply and release each consume the
@@ -251,8 +251,8 @@ resources are projections of accepted contracts. Cash-only upgrades retire the
 old cash resource view at delivery; they cannot exit a PANDA commitment. An
 upgrade keeps the original annual term, and upgrade differences and storage
 add-ons are priced for the rest of that full term. Expired add-ons do not count
-toward the 64 retained add-ons. Unverifiable and known-ineligible periods both
-pause paid execution time; a known-ineligible view carries its repair deadline. Monthly
+toward the 64 retained add-ons. Unverifiable periods pause paid execution time; a known-ineligible view
+terminates the benefit immediately. Monthly
 execution allowance integrates the complete nonoverlapping UTC-month timeline,
 clips time before account creation and rounds down once. Free quota segments
 follow the catalogs actually effective during the month, with no retroactive

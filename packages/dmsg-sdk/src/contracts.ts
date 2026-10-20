@@ -440,7 +440,6 @@ export type SubscriptionSource =
 
 export type SubscriptionStatus =
   | 'Active'
-  | 'Repairing'
   | 'Unverifiable'
   | 'Terminated'
   | 'Expired'
@@ -459,7 +458,6 @@ export interface SubscriptionContract {
   max_issued_until_ms: bigint
   qualification: Eligibility
   observed_at_ms: bigint
-  repair_elapsed_ms: bigint
 }
 
 export interface CashCancellationReceipt {
@@ -532,7 +530,6 @@ export interface PandaServiceConfig {
   commerce_homes: CommerceHome[]
   max_claims: bigint
   hourly_applications: bigint
-  cooling_ms: bigint
   qualifications_per_minute: bigint
   authorizations_per_minute: bigint
   product_calls_per_minute: bigint
@@ -541,7 +538,6 @@ export interface PandaServiceConfig {
 export interface PandaServiceView {
   governance: Uint8Array
   panda_ledger: Uint8Array
-  cooling_ms: bigint
   paused: boolean
   rates: PandaRatePolicy[]
 }
@@ -564,7 +560,6 @@ export interface PandaClaimRequest {
 
 export type PandaClaimStatus =
   | 'Checking'
-  | 'CoolingDown'
   | 'Applying'
   | 'Active'
   | 'Terminated'
@@ -581,9 +576,7 @@ export interface PandaClaimView {
   observed_at_ms: bigint
   valid_until_ms: bigint
   lease_revision: bigint
-  cooling_until_ms: (bigint | null)
   committed_until_ms: bigint
-  repair_elapsed_ms: bigint
   receipt: (ProductReceipt | null)
 }
 

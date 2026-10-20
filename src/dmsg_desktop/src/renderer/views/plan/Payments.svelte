@@ -238,9 +238,6 @@
               {#if deadline && awaiting(job, order)}
                 <span class="text-warn" data-testid="order-deadline">{t(job.terms?.method === 'Cash' ? 'payBy' : 'applyBy', { time: when(deadline) })}</span>
               {/if}
-              {#if order?.status === 'CoolingDown' && order.cooling_until_ms}
-                <span data-testid="order-cooling">{t('coolingUntil', { time: when(order.cooling_until_ms) })}</span>
-              {/if}
               <span class="text-faint">{ago(job.created_at_ms, now)}</span>
             </div>
           </li>

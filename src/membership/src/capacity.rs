@@ -39,16 +39,10 @@ fn request(sns: Principal, i: u64) -> PandaClaimRequest {
 /// An applied full waiver: decision, Applied receipt and a one-hour lease from `AT`.
 fn active(sns: Principal, i: u64) -> Claim {
     let r = request(sns, i);
-    let mut c = Claim::new(panda_claim_id(&r.terms), r, PANDA_COOLING_MS);
+    let mut c = Claim::new(panda_claim_id(&r.terms), r);
     c.product_reserved = true;
-    c.observe(
-        Eligibility::Eligible,
-        AT - PANDA_COOLING_MS,
-        AT - PANDA_COOLING_MS,
-    )
-    .expect("first observation");
     c.observe(Eligibility::Eligible, AT, AT)
-        .expect("post-cooling observation");
+        .expect("eligible observation");
     c.preparing_apply(AT).expect("decision");
     let d = c.decision.clone().expect("decision");
     c.accept(ProductReceipt {
@@ -94,7 +88,6 @@ fn capacity_image() {
             }],
             max_claims: store::MAX_FULL_CLAIMS,
             hourly_applications: 10_000,
-            cooling_ms: PANDA_COOLING_MS,
             qualifications_per_minute: 200,
             authorizations_per_minute: 200,
             product_calls_per_minute: 200,
@@ -107,7 +100,7 @@ fn capacity_image() {
     });
     for i in 0..DUE {
         let r = request(sns, u64::MAX - i);
-        let mut c = Claim::new(panda_claim_id(&r.terms), r, PANDA_COOLING_MS);
+        let mut c = Claim::new(panda_claim_id(&r.terms), r);
         c.cancel().expect("cancel");
         c.reservation_released = true;
         store::save(&mut c, AT);

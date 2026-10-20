@@ -63,7 +63,7 @@ pub fn offer() -> BillingOffer {
         product_terms_hash: p.terms_hash,
         expected_business_revision: 9,
         amount_usd_micros: 1_000_001,
-        starts_at_ms: NOW + PANDA_COOLING_MS,
+        starts_at_ms: NOW + MINUTE,
         expires_at_ms: NOW + 365 * DAY,
         issued_at_ms: NOW,
         accept_by_ms: NOW + OFFER_TTL_MS,

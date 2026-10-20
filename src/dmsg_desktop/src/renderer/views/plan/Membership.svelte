@@ -180,7 +180,6 @@
       {#snippet action()}<button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={quoteRefund} data-testid="plan-refund-quote">{t('requestRefund')}</button>{/snippet}
     </Notice>
   {/if}
-  {#if plan?.repair_deadline_ms}<Notice tone="warn" icon="warning" testid="plan-repair">{t('repairBy', { time: when(plan.repair_deadline_ms) })}</Notice>{/if}
   {#if plan?.service_terminated_at_ms}<Notice tone="danger" icon="warning">{t('serviceEnded', { time: when(plan.service_terminated_at_ms) })}</Notice>{/if}
   {#if notice}
     <Notice tone="warn" icon="warning" testid="plan-notice" action={notice.acknowledged_at ? undefined : ack}>

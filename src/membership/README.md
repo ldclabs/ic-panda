@@ -52,27 +52,23 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
   [*] --> Checking: request_panda_claim
-  Checking --> CoolingDown: 首次合格观察
   Checking --> Rejected: 已知不合格 / 产品拒绝预留
-  CoolingDown --> Rejected: 已知不合格
   Checking --> Cancelled: cancel / 申请截止
-  CoolingDown --> Cancelled: cancel / 申请截止
-  CoolingDown --> Applying: advance_panda_claim
+  Checking --> Applying: advance_panda_claim
   Applying --> Active: 回执 Applied
   Applying --> Rejected: 回执 Rejected
-  Active --> Terminated: 累计 7 天已知不合格
+  Active --> Terminated: 已知不合格
   Active --> Released: 到达 E
-  Terminated --> Released: 到达 E
+  Terminated --> Released: 已发租约到期
 ```
 
-1. **报价**：`quote_panda_subscription(offer, user_home, approving_account, neuron_id)` 从该 home 的 commerce 读取应用与产品注册，请报价权威用 `verify_billing_offer` 确认账单，再按当前费率生成 `PandaQuote`。门槛 `required_stake_e8s = ceil(amount_usd_micros × 100 × r_num / r_den)`，只在最后取整一次；`application_deadline_ms = min(报价时间 + 24 小时, offer.expires_at_ms)`，且剩余时间必须超过 65 分钟冷却期。报价不预留任何东西。
+1. **报价**：`quote_panda_subscription(offer, user_home, approving_account, neuron_id)` 从该 home 的 commerce 读取应用与产品注册，请报价权威用 `verify_billing_offer` 确认账单，再按当前费率生成 `PandaQuote`。门槛 `required_stake_e8s = ceil(amount_usd_micros × 100 × r_num / r_den)`，只在最后取整一次；`application_deadline_ms = min(报价时间 + 24 小时, offer.expires_at_ms)`。报价不预留任何东西。
 2. **申请**：`actor` 提交 `PandaClaimRequest`，包含报价条款、dMsg 账户设备对条款摘要 `panda_application_hash(terms)` 的批准，以及产品授权请求。membership 重新读取注册，按原报价时间重算报价并核对费率仍是当前政策；然后同时向受益权威（`authorize_product_billing`）和 user home（`verify_application_authorization`）确认两份授权。最后一次等待结束后，在同一条消息内检查神经元占用、存储容量、`max_claims` 和每小时申请数，写入 `Checking`。随后向产品 adapter 调用 `reserve_product_billing`，预留区间到申请截止为止，并读取神经元。claim ID 由 `(membership, app_id, offer.operation_id)` 决定：同一条款重试返回原记录，不同条款返回 `IdempotencyConflict`。
-3. **冷却**：第一次合格观察记下 `cooling_until_ms = 观察时间 + cooling_ms`（至少 65 分钟），进入 `CoolingDown`。已知不合格直接 `Rejected` 并释放预留；不可核验时保持原状态。
-4. **激活**：冷却结束后、申请截止前，`actor` 用一份新的设备批准调用 `advance_panda_claim`。membership 要求一次开始于冷却结束之后的合格观察，更早的观察会重新读取；再次核验两份授权后写入固定的 `ProductDecision`（`decision_id = digest(claim_id)`，`apply_by_ms` 最多 5 分钟），进入 `Applying`，并调用 `apply_product_decision`。
+3. **激活**：首次合格观察后即可、申请截止前，`actor` 调用 `advance_panda_claim`，复用原设备批准。membership 在最后一次外部等待之后强制重新读取 SNS，确认仍合格后写入固定的 `ProductDecision`（`decision_id = digest(claim_id)`，`apply_by_ms` 最多 5 分钟），进入 `Applying`，并调用 `apply_product_decision`。已知不合格直接 `Rejected` 并释放预留；不可核验时保持 `Checking`。
 5. **交付**：回执 `Applied` 使申请变为 `Active`，`committed_until_ms` 固定为 offer 的 E；回执 `Rejected` 证明没有交付权益。没有回执时保持 `Applying`：`reconcile_panda_claim`、`refresh_panda_claim` 或再次调用 `advance_panda_claim`，都先用 `get_product_decision` 取原回执，取不到才用同一决定重发 Apply。`Applying` 不会因超时被释放。
-6. **持有**：`Active` 期间，产品通过 `refresh_panda_claim` 续租资格（见“资格与租约”）。累计 7 天已知不合格变为 `Terminated`：权益永久结束，但神经元仍占用到 E。到达 E 后，`sweep_panda_commitments`、`refresh_panda_claim` 或下一次占用检查会把申请改为 `Released`。
+6. **持有**：`Active` 期间，产品通过 `refresh_panda_claim` 续租资格（见“资格与租约”）。一次可信的已知不合格立即变为 `Terminated`：权益结束，不再签发新租约；神经元保留到终止前已签发租约到期，之后 `sweep_panda_commitments`、`refresh_panda_claim` 或下一次占用检查把申请改为 `Released`。用户恢复资格后可重新申请。到达 E 的 `Active` 同样转为 `Released`。
 
-没有提前关闭、替换、升级、买断或解除占用的接口。`cancel_panda_application` 只在 `Checking`/`CoolingDown` 有效，并释放产品预留。取消写入后总是返回视图。预留调用仍在进行时，该调用返回后自行释放；其他没有完成的释放（例如产品 adapter 暂不可用）由 `reconcile_panda_claim` 重试，预留最晚在申请截止时过期。`set_admission_pause(true)` 停止新的报价、申请和激活；已准备的 Apply、恢复、资格刷新和到期照常进行。
+没有提前关闭、替换、升级、买断或解除占用的接口。`cancel_panda_application` 只在 `Checking` 有效，并释放产品预留。取消写入后总是返回视图。预留调用仍在进行时，该调用返回后自行释放；其他没有完成的释放（例如产品 adapter 暂不可用）由 `reconcile_panda_claim` 重试，预留最晚在申请截止时过期。`set_admission_pause(true)` 停止新的报价、申请和激活；已准备的 Apply、恢复、资格刷新和到期照常进行。
 
 ### 资格与租约
 
@@ -85,12 +81,12 @@ stateDiagram-v2
 
 回复无法解码、缺少解散状态、数值溢出或 SNS 返回错误，结果都是 `Unverifiable`，与已知不合格的 `Ineligible` 分开处理。
 
-一个神经元同一时间只支撑一份权益，由全局占用保证（见“占用与期限”），与神经元上列了几个 principal 无关。反过来，凡是列在神经元上的 principal，都能用自己的 dMsg 账户以该神经元申请，并在 Apply 后占用它到 E；所有者只应添加自己的 principal。移除 `actor` 会使申请变为 `Ineligible`，7 天后 `Terminated`，占用仍保留到 E。
+一个神经元同一时间只支撑一份权益，由全局占用保证（见“占用与期限”），与神经元上列了几个 principal 无关。反过来，凡是列在神经元上的 principal，都能用自己的 dMsg 账户以该神经元申请；Apply 后占用该神经元，正常到期到 E，已知不合格终止后保留到已发租约到期。所有者只应添加自己的 principal。移除 `actor` 会使申请立即变为 `Terminated`，不再签发新租约，占用保留到已发租约到期。
 
 - 资格租约 `valid_until_ms = min(观察时间 + 1 小时, E)`，观察时间取查询开始的时间，而不是回调时间。同一申请 1 分钟内复用上一次观察。
 - `refresh_panda_claim` 只在租约剩余不超过 10 分钟（commerce 续期资源租约的同一窗口），或上一次结果不是合格时，才重新读取。因此续期后的资源租约一定晚于原租约。
-- `Ineligible` 立即结束租约，并按相邻两次观察的间隔累计修复时间，合格观察会清零；累计达到 7 天变为 `Terminated`，不可恢复。
-- `Unverifiable` 同样立即结束当前租约，但暂停修复时钟，不视为用户违约。
+- `Ineligible` 立即结束租约并变为 `Terminated`，不可恢复；已发租约到期后释放神经元，用户恢复资格后可重新申请。
+- `Unverifiable` 同样立即结束当前租约，但不终止申请；下一次可信观察可恢复，不视为用户违约。
 - 读取 SNS 之前先写入 `busy_until_ms` 并递增 `generation`。回调会核对 generation，因此取消、到期或并发读取之后到达的旧结果不会写回。
 
 ### SNS 配置核验
@@ -277,14 +273,13 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
      commerce_homes = vec { record { user_home = principal "<dmsg_user ID>"; commerce_canister = principal "<commerce ID>" } };
      max_claims = 10_000 : nat64;
      hourly_applications = 1_000 : nat64;
-     cooling_ms = 3_900_000 : nat64;
      qualifications_per_minute = 200 : nat64;
      authorizations_per_minute = 200 : nat64;
      product_calls_per_minute = 200 : nat64;
    })'
    ```
 
-   `cooling_ms` 至少 65 分钟（3,900,000 ms）且小于 24 小时。`qualifications_per_minute` 按在用会员数 ÷ 50 留出余量，并与 commerce 的 `refreshes_per_minute` 一起调整。每份申请约需 2 次授权（报价与申请）、1 次激活和 2–3 次产品调用。
+   `qualifications_per_minute` 按在用会员数 ÷ 50 留出余量，并与 commerce 的 `refreshes_per_minute` 一起调整。每份申请约需 1 次报价、1 次申请、1 次激活和 2–3 次产品调用。
 
 7. 发布第一份费率（`policy_version = 1`），它可立即生效；之后的费率至少提前 15 天发布。`published_at_ms` 会被替换为执行时间，`r_num / r_den` 是每美元的 PANDA 数：
 
@@ -300,7 +295,7 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
 9. 部署后检查：
 
    - `verify_sns_configuration` 返回 `Ok`；`validate_configure_panda_service` 以当前配置调用时显示 “no change”。
-   - 用一个真实 PANDA 神经元完成一次完整流程：报价、申请、等待冷却、激活，最终为 `Active`；commerce 的 `get_entitlement_batch` 显示对应套餐，`panda_claim_certificate` 能通过客户端验证。另起一份申请在冷却期取消，确认产品预留已释放。
+   - 用一个真实 PANDA 神经元完成一次完整流程：报价、申请、立即激活，最终为 `Active`；commerce 的 `get_entitlement_batch` 显示对应套餐，`panda_claim_certificate` 能通过客户端验证。另起一份未激活的申请取消，确认产品预留已释放。
    - 设置冻结阈值和 cycles 告警，把 `icp canister status` 中的 controllers 记入部署记录。
 
 ### 交给 SNS
@@ -332,7 +327,7 @@ membership 没有定时器，下列任务都需要外部调用：
 
 ### 治理变更
 
-- **服务配置**：`configure_panda_service` 一次替换全部字段。`commerce_homes` 只能追加；`max_claims` 不能低于当前占用数；`cooling_ms` 的变化只影响新申请，已接受的申请沿用自己的冷却时间。
+- **服务配置**：`configure_panda_service` 一次替换全部字段。`commerce_homes` 只能追加；`max_claims` 不能低于当前占用数。
 - **新增 user home**：在 commerce 上完成 `admin_add_user_home` 和产品登记更新后，在 `commerce_homes` 末尾追加 `{ user_home; commerce_canister }`，其他字段保持不变。
 - **费率**：见“费率政策”。新政策只影响之后的报价，已接受的申请保留原政策。
 - **暂停**：`set_admission_pause(true)` 停止新的报价、申请和激活，不影响已有承诺和恢复。
@@ -367,7 +362,7 @@ icp canister start membership -e ic
 | --------------- | ------------------------------------------------------------------------ |
 | `src/api.rs`    | 初始化与升级、SNS 配置核验、暂停与服务配置                               |
 | `src/rate.rs`   | 费率政策的发布、剪除与选择                                               |
-| `src/claim.rs`  | 单个申请的同步状态转换：观察、冷却、Apply、回执、取消与到期              |
+| `src/claim.rs`  | 单个申请的同步状态转换：观察、Apply、回执、取消、终止与到期              |
 | `src/claims.rs` | 报价、申请、激活、交付、取消、对账、刷新与查询的跨 canister 编排         |
 | `src/sns.rs`    | `get_neuron` 回复的最小 Candid 投影与资格判定                            |
 | `src/store.rs`  | 配置、调用额度、申请表与索引、神经元占用、sweep 与压缩、认证、统计       |
@@ -384,9 +379,9 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_WASM_DIR=$PWD/target/wasm32-unknown-unknow
 
 使用实际 Wasm 的回归测试：
 
-- [commerce.rs](../../tests/dmsg_integration/tests/control_plane/commerce.rs)：冷却与再次批准、不能提前退出、观察复用、跨产品独占、相邻两期、Apply 回执丢失后跨升级对账、`Terminated` 的权益、到期释放、取消后恢复容量、membership 合并请求或调用失败时 commerce 保留租约、10 分钟窗口内续期。
+- [commerce.rs](../../tests/dmsg_integration/tests/control_plane/commerce.rs)：立即激活与激活前重读、不能提前退出、观察复用、跨产品独占、相邻两期、Apply 回执丢失后跨升级对账、`Terminated` 的权益、租约到期释放、取消后恢复容量、membership 合并请求或调用失败时 commerce 保留租约、10 分钟窗口内续期。
 - PANDA 用例的 `neuron` 辅助函数构造 NNS dapp 形态的神经元：所有者持有 0–10 全部权限，`actor` 只是 `SubmitProposal` + `Vote` 热键。
-- [membership_review.rs](../../tests/dmsg_integration/tests/control_plane/membership_review.rs)：预留暂时失败的重试与限流、预留期间的重入取消（返回视图，预留调用返回后释放）、冷却刚结束前的观察须重新读取、读取神经元期间 SNS 核验过期不签发租约、并发 SNS 核验合并为一次及失败后重试、费率重试与已剪除版本跨升级保持、终态压缩跨升级。
+- [membership_review.rs](../../tests/dmsg_integration/tests/control_plane/membership_review.rs)：预留暂时失败的重试与限流、预留期间的重入取消（返回视图，预留调用返回后释放）、激活前必须重新读取神经元、读取神经元期间 SNS 核验过期不签发租约、并发 SNS 核验合并为一次及失败后重试、费率重试与已剪除版本跨升级保持、终态压缩跨升级。
 - [governance.rs](../../tests/dmsg_integration/tests/control_plane/governance.rs)：全部管理方法与 `validate_*`，包括 `commerce_homes` 校验。
 
 本地 SNS、测试账本与测试身份都不能证明主网钱包兼容。

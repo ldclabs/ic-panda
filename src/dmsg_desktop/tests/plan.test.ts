@@ -34,7 +34,7 @@ test('an order reads as the service reports it, or as its journal stands before 
 test('only what the service still moves is read again', () => {
   assert.equal(moving(cash('accepted'), { status: 'AwaitingFunding' }, now), true)
   assert.equal(moving(cash('accepted'), { status: 'Applied' }, now), false)
-  assert.equal(moving(panda('accepted'), { status: 'CoolingDown' }, now), false)
+  assert.equal(moving(panda('accepted'), { status: 'Checking' }, now), true)
   assert.equal(moving(cash('authorized'), undefined, now), true)
   assert.equal(moving(cash('authorized'), undefined, now + 120_000), false)
   assert.equal(moving(cash('review'), undefined, now), false)
@@ -57,9 +57,8 @@ test('each order offers what its state allows', () => {
   // A cash order is checked by the service; a PANDA application can be asked
   // to qualify again when another SNS check caught it in flight.
   assert.deepEqual(orderActions(cash('accepted'), { status: 'Checking' }, now), ['cancel'])
-  assert.deepEqual(orderActions(panda('accepted'), { status: 'Checking' }, now), ['reconcile', 'cancel'])
-  assert.deepEqual(orderActions(panda('accepted'), { status: 'CoolingDown', cooling_until_ms: now + 1 }, now), ['cancel'])
-  assert.deepEqual(orderActions(panda('accepted'), { status: 'CoolingDown', cooling_until_ms: now }, now), ['advance', 'cancel'])
+  assert.deepEqual(orderActions(panda('accepted'), { status: 'Checking', eligibility: 'Unverifiable' }, now), ['reconcile', 'cancel'])
+  assert.deepEqual(orderActions(panda('accepted'), { status: 'Checking', eligibility: 'Eligible' }, now), ['advance', 'cancel'])
   assert.deepEqual(orderActions(panda('accepted'), { status: 'Active' }, now), [])
 })
 

@@ -275,9 +275,7 @@ pub enum SubscriptionSource {
 pub enum SubscriptionStatus {
     /// Contract may issue rights inside its interval and source lease.
     Active,
-    /// Known ineligibility; new PANDA rights paused while repair is possible.
-    Repairing,
-    /// Qualification cannot be verified; repair clock is paused.
+    /// Qualification cannot be verified; no new rights are issued.
     Unverifiable,
     /// Rights ended permanently for this contract; original commitment remains.
     Terminated,
@@ -313,10 +311,8 @@ pub struct SubscriptionContract {
     pub max_issued_until_ms: u64,
     /// Latest trusted qualification observation.
     pub qualification: Eligibility,
-    /// Latest observation used for the repair clock.
+    /// Latest observation used for this contract.
     pub observed_at_ms: u64,
-    /// Accumulated known-ineligible time; Unverifiable intervals do not add time.
-    pub repair_elapsed_ms: u64,
 }
 
 /// Durable permission to cancel exactly one cash term: unstarted, or refunded

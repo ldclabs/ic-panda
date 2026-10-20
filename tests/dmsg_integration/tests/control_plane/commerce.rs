@@ -434,7 +434,7 @@ fn the_panda_service_names_its_sns_and_rates_and_the_sns_lists_held_neurons() {
     let f = Fixture::commercial();
     let view: PandaServiceView = query(&f.ic, f.membership, person(9), "panda_service", ());
     assert_eq!((view.governance, view.panda_ledger), (f.sns, f.sns));
-    assert!(!view.paused && view.cooling_ms >= PANDA_COOLING_MS);
+    assert!(!view.paused);
     assert!(
         view.rates
             .iter()
@@ -471,7 +471,7 @@ fn the_panda_service_names_its_sns_and_rates_and_the_sns_lists_held_neurons() {
 }
 
 #[test]
-fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early() {
+fn panda_full_waiver_applies_immediately_and_never_exits_early() {
     let f = Fixture::commercial();
     let id = f.create(1);
     neuron(&f, 100_000_000_000_100);
@@ -507,40 +507,15 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
             authorization: a.clone(),
         },),
     );
-    let cooling = r.unwrap();
-    assert_eq!(cooling.status, PandaClaimStatus::CoolingDown, "{cooling:?}");
-    let early: Result<PandaClaimView> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "advance_panda_claim",
-        (cooling.claim_id, a.clone()),
-    );
-    assert!(early.is_err());
-    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
-    let stale: Result<PandaClaimView> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "advance_panda_claim",
-        (cooling.claim_id, a),
-    );
-    assert!(stale.is_err());
-    let fresh = approve(
-        &f,
-        &id,
-        &bill,
-        f.membership,
-        ApprovalPurpose::PandaSubscription,
-        panda_application_hash(&terms),
-        92,
-    );
+    let checking = r.unwrap();
+    assert_eq!(checking.status, PandaClaimStatus::Checking, "{checking:?}");
+    // The initial approval applies immediately; no second approval is needed.
     let r: Result<PandaClaimView> = update(
         &f.ic,
         f.membership,
         person(1),
         "advance_panda_claim",
-        (cooling.claim_id, fresh),
+        (checking.claim_id, a),
     );
     let active = r.unwrap();
     assert_eq!(active.status, PandaClaimStatus::Active);
@@ -580,17 +555,9 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
         "refresh_panda_claim",
         (active.claim_id,),
     );
-    let repairing = r.unwrap();
-    assert_eq!(repairing.eligibility, Eligibility::Ineligible);
-    // A repeated refresh within a minute reuses the observation and leaves the view unchanged.
-    let r: Result<PandaClaimView> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "refresh_panda_claim",
-        (active.claim_id,),
-    );
-    assert_eq!(r.unwrap(), repairing);
+    let ended = r.unwrap();
+    assert_eq!(ended.status, PandaClaimStatus::Terminated);
+    assert_eq!(ended.committed_until_ms, bill.expires_at_ms);
     let r: Result<EntitlementView> = update(
         &f.ic,
         f.commerce,
@@ -599,30 +566,10 @@ fn panda_full_waiver_requires_fresh_post_cooling_approval_and_never_exits_early(
         (beneficiary(f.user, &id),),
     );
     let view = r.unwrap();
-    assert_eq!(view.source_status, SourceStatus::RepairRequired);
-    assert_eq!(
-        view.repair_deadline_ms,
-        Some(repairing.observed_at_ms + REPAIR_WINDOW_MS - repairing.repair_elapsed_ms)
-    );
-    f.ic.advance_time(Duration::from_millis(8 * DAY));
-    let r: Result<PandaClaimView> = update(
-        &f.ic,
-        f.membership,
-        person(1),
-        "refresh_panda_claim",
-        (active.claim_id,),
-    );
-    let ended = r.unwrap();
-    assert_eq!(ended.status, PandaClaimStatus::Terminated);
-    assert_eq!(ended.committed_until_ms, bill.expires_at_ms);
-    f.ic.upgrade_canister(
-        f.membership,
-        wasm("membership"),
-        candid::encode_args(()).unwrap(),
-        None,
-    )
-    .unwrap();
-    f.ic.advance_time(Duration::from_millis(bill.expires_at_ms - time(&f.ic) + 1));
+    assert_eq!(view.source_status, SourceStatus::Expired);
+    assert_eq!(view.service_terminated_at_ms, Some(ended.observed_at_ms));
+    // The old issued lease keeps the neuron occupied for one more lease only.
+    f.ic.advance_time(Duration::from_millis(PANDA_LEASE_MS + 1));
     let r: Result<u32> = update(
         &f.ic,
         f.membership,
@@ -894,7 +841,7 @@ fn one_neuron_cannot_serve_two_products_and_contiguous_commitments_survive_first
         },),
     );
     let pending = r.unwrap();
-    assert_eq!(pending.status, PandaClaimStatus::CoolingDown);
+    assert_eq!(pending.status, PandaClaimStatus::Checking);
     let bill = offer(&f, &account, 122);
     let other: Result<PandaApplicationTerms> = update(
         &f.ic,
@@ -924,7 +871,7 @@ fn one_neuron_cannot_serve_two_products_and_contiguous_commitments_survive_first
         },),
     );
     assert_eq!(r, Err(Error::NeuronOccupied));
-    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
+    f.ic.advance_time(Duration::from_millis(1));
     let mut a = approve(
         &f,
         &account,
@@ -993,8 +940,8 @@ fn one_neuron_cannot_serve_two_products_and_contiguous_commitments_survive_first
         },),
     );
     let next = r.unwrap();
-    assert_eq!(next.status, PandaClaimStatus::CoolingDown);
-    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
+    assert_eq!(next.status, PandaClaimStatus::Checking);
+    f.ic.advance_time(Duration::from_millis(1));
     let mut a = approve(
         &f,
         &account,
@@ -1182,7 +1129,6 @@ fn cancelled_applications_do_not_consume_claim_capacity() {
             }],
             max_claims: 1,
             hourly_applications: 100,
-            cooling_ms: PANDA_COOLING_MS,
             qualifications_per_minute: 200,
             authorizations_per_minute: 200,
             product_calls_per_minute: 200,
@@ -1220,7 +1166,7 @@ fn cancelled_applications_do_not_consume_claim_capacity() {
         )
     };
     let first = apply(170, 44).unwrap();
-    assert_eq!(first.status, PandaClaimStatus::CoolingDown);
+    assert_eq!(first.status, PandaClaimStatus::Checking);
     assert_eq!(apply(172, 45), Err(Error::QuotaExceeded));
     let r: Result<PandaClaimView> = update(
         &f.ic,
@@ -1230,10 +1176,7 @@ fn cancelled_applications_do_not_consume_claim_capacity() {
         (first.claim_id,),
     );
     assert_eq!(r.unwrap().status, PandaClaimStatus::Cancelled);
-    assert_eq!(
-        apply(174, 44).unwrap().status,
-        PandaClaimStatus::CoolingDown
-    );
+    assert_eq!(apply(174, 44).unwrap().status, PandaClaimStatus::Checking);
 }
 
 #[test]
@@ -1254,7 +1197,6 @@ fn lost_panda_apply_ack_keeps_capacity_across_upgrade_and_reconciliation() {
             }],
             max_claims: 1,
             hourly_applications: 100,
-            cooling_ms: PANDA_COOLING_MS,
             qualifications_per_minute: 200,
             authorizations_per_minute: 200,
             product_calls_per_minute: 200,
@@ -1294,8 +1236,8 @@ fn lost_panda_apply_ack_keeps_capacity_across_upgrade_and_reconciliation() {
         },),
     );
     let claim = r.unwrap();
-    assert_eq!(claim.status, PandaClaimStatus::CoolingDown);
-    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
+    assert_eq!(claim.status, PandaClaimStatus::Checking);
+    f.ic.advance_time(Duration::from_millis(1));
     let r: Result<()> = update(&f.ic, home, person(1), "lose_next_apply_ack", ());
     r.unwrap();
     let r: Result<PandaClaimView> = update(
@@ -1870,8 +1812,8 @@ fn activate_panda(f: &Fixture, id: &AccountId, op: u8) -> PandaClaimView {
             authorization: a,
         },),
     );
-    let cooling = r.unwrap();
-    f.ic.advance_time(Duration::from_millis(PANDA_COOLING_MS + 1));
+    let claim = r.unwrap();
+    f.ic.advance_time(Duration::from_millis(1));
     let fresh = approve(
         f,
         id,
@@ -1886,7 +1828,7 @@ fn activate_panda(f: &Fixture, id: &AccountId, op: u8) -> PandaClaimView {
         f.membership,
         person(1),
         "advance_panda_claim",
-        (cooling.claim_id, fresh),
+        (claim.claim_id, fresh),
     );
     let active = r.unwrap();
     assert_eq!(active.status, PandaClaimStatus::Active);
@@ -2246,7 +2188,6 @@ fn a_second_commerce_instance_serves_its_own_user_home() {
             ],
             max_claims: 1000,
             hourly_applications: 100,
-            cooling_ms: PANDA_COOLING_MS,
             qualifications_per_minute: 200,
             authorizations_per_minute: 200,
             product_calls_per_minute: 200,

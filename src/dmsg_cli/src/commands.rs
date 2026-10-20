@@ -360,7 +360,7 @@ pub enum PlanCommand {
         /// Checkout ID.
         id: String,
     },
-    /// Approve a PANDA claim again after its cooling period.
+    /// Apply a qualified PANDA claim immediately.
     Advance {
         /// Checkout ID.
         id: String,

@@ -106,7 +106,6 @@ half-open intervals: equality with expiry is already expired.
 | Cash funding | 30 minutes from acceptance |
 | Initial cash activation | 24 hours, bounded by contract end |
 | PANDA application | 24 hours, bounded by contract end |
-| New PANDA cooling | At least 65 minutes; application must outlive cooling |
 | PANDA qualification lease | At most one hour, truncated to the contract end |
 | Cash, expired and Free resource lease | At most 30 days, ending at the next known limit change |
 | Rate policy notice | At least 15 days; the first policy may take effect at publication |
@@ -127,7 +126,8 @@ an accepted operation never authorizes releasing an unknown Apply.
 The authoritative BillingOffer prices the **entire exact interval** in USD micro
 units. Free offers cannot consume a PANDA claim. Services fetch/verify the offer
 from the registered product authority, not from a browser's amount or expiry.
-Acceptance freezes the offer; cooling does not extend its expiry or reprice it.
+Acceptance freezes the offer; the delay before Apply does not extend its expiry
+or reprice it, and a qualified application applies immediately.
 
 PANDA stake is exactly
 `ceil(amount_usd_micros * r_num * 100_000_000 / (1_000_000 * r_den))`.

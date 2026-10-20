@@ -182,7 +182,7 @@ async fn request_panda_claim(request: PandaClaimRequest) -> Result<PandaClaimVie
     )?;
     c.applications += 1;
     store::save_config(&c);
-    save(&mut Claim::new(id, request, service.cooling_ms), at);
+    save(&mut Claim::new(id, request), at);
     let at = reserve_product(id, at).await?;
     qualify(id, at, false).await?;
     Ok(load(id)?.view)
@@ -230,8 +230,9 @@ async fn reserve_product(id: Hash, at: u64) -> Result<u64> {
     Ok(at)
 }
 
-/// Observe the neuron at `at`, reusing an observation younger than one minute.
-async fn qualify(id: Hash, at: u64, activating: bool) -> Result<()> {
+/// Observe the neuron at `at`, reusing an observation younger than one minute
+/// unless `force` asks for a check immediately before activation.
+async fn qualify(id: Hash, at: u64, force: bool) -> Result<()> {
     let mut c = load(id)?;
     if !c.holds()
         || matches!(
@@ -246,11 +247,7 @@ async fn qualify(id: Hash, at: u64, activating: bool) -> Result<()> {
         save(&mut c, at);
         return Ok(());
     }
-    let after_cooling = !activating
-        || c.view
-            .cooling_until_ms
-            .is_some_and(|ready| c.view.observed_at_ms >= ready);
-    if after_cooling && at < c.view.observed_at_ms.saturating_add(OBSERVATION_REUSE_MS) {
+    if !force && at < c.view.observed_at_ms.saturating_add(OBSERVATION_REUSE_MS) {
         return Ok(());
     }
     ensure(at >= c.busy_until_ms, Error::Pending)?;
@@ -336,16 +333,15 @@ async fn advance_panda_claim(
     ensure(c.holds(), Error::MembershipIneligible)?;
     admission()?;
     ensure(
-        c.view.cooling_until_ms.is_some_and(|ready| at >= ready)
-            && at < c.view.terms.quote.application_deadline_ms,
+        at < c.view.terms.quote.application_deadline_ms,
         Error::Pending,
     )?;
     store::reserve_call(at, store::CallBudget::Activation(caller))?;
     let at = reserve_product(id, at).await?;
-    qualify(id, at, true).await?;
+    qualify(id, at, false).await?;
     let checked = load(id)?;
     ensure(
-        checked.view.status == PandaClaimStatus::CoolingDown,
+        checked.view.status == PandaClaimStatus::Checking,
         Error::MembershipIneligible,
     )?;
     let request = PandaClaimRequest {
@@ -353,11 +349,21 @@ async fn advance_panda_claim(
         authorization,
     };
     let at = authorize(&request, home, false).await?;
-    let mut current = load(id)?;
+    let current = load(id)?;
     ensure(
         current.generation == checked.generation,
         Error::VersionConflict,
     )?;
+    // Activation is immediate, so close the approval window with one fresh
+    // SNS read after the last external await and before the local decision.
+    qualify(id, at, true).await?;
+    let mut current = load(id)?;
+    ensure(
+        current.view.status == PandaClaimStatus::Checking
+            && current.view.eligibility == Eligibility::Eligible,
+        Error::MembershipIneligible,
+    )?;
+    let at = nanos_to_millis(ic_cdk::api::time());
     current.preparing_apply(at)?;
     current.authorization = request.authorization;
     save(&mut current, at);
@@ -455,10 +461,7 @@ async fn reconcile_panda_claim(id: Hash) -> Result<PandaClaimView> {
         deliver(id, true, at).await?;
     } else if !c.holds() {
         release_product(id, at).await?;
-    } else if matches!(
-        c.view.status,
-        PandaClaimStatus::Checking | PandaClaimStatus::CoolingDown
-    ) {
+    } else if c.view.status == PandaClaimStatus::Checking {
         let at = reserve_product(id, at).await?;
         qualify(id, at, false).await?;
     }

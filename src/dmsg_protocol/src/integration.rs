@@ -266,10 +266,6 @@ pub fn quote_panda(
     let deadline = now
         .saturating_add(APPLICATION_TTL_MS)
         .min(offer.expires_at_ms);
-    ensure(
-        deadline.saturating_sub(now) > PANDA_COOLING_MS,
-        Error::Expired,
-    )?;
     Ok(PandaQuote {
         quoted_at_ms: now,
         version: COMMERCE_VERSION,

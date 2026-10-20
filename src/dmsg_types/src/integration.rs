@@ -18,8 +18,6 @@ pub const CASH_FUNDING_MS: u64 = 30 * crate::MINUTE;
 pub const CASH_ACTIVATION_MS: u64 = 24 * 60 * crate::MINUTE;
 /// Maximum PANDA application interval, also bounded by the contract end.
 pub const APPLICATION_TTL_MS: u64 = 24 * 60 * crate::MINUTE;
-/// Minimum cooling includes a five-minute margin beyond the one-hour lease.
-pub const PANDA_COOLING_MS: u64 = 65 * crate::MINUTE;
 /// Maximum live qualification lease, always truncated to the contract end.
 pub const PANDA_LEASE_MS: u64 = 60 * crate::MINUTE;
 /// A beneficiary's first cash purchase of a base plan may be refunded for its

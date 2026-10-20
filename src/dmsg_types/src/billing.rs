@@ -193,8 +193,6 @@ pub struct MembershipContract {
     pub observed_at_ms: u64,
     /// Exclusive known qualification deadline in Unix milliseconds.
     pub qualified_until_ms: u64,
-    /// Known-ineligibility repair deadline in Unix milliseconds, when applicable.
-    pub repair_deadline_ms: Option<u64>,
 }
 
 /// Paid storage entitlement with its own interval and issued-lease deadline.
@@ -251,7 +249,8 @@ pub enum SourceStatus {
     Expired,
     /// Benefit closure is in progress.
     Closing,
-    /// Known qualification loss is within the repair period.
+    /// Known qualification loss within a repair period; retained for the
+    /// existing commerce projection, never emitted after immediate termination.
     RepairRequired,
     /// New paid resource admission is suspended.
     Suspended,
@@ -297,6 +296,7 @@ pub struct EntitlementView {
     /// Known resource stop time in Unix milliseconds.
     pub effective_stop_at_ms: Option<u64>,
     /// Qualification repair deadline in Unix milliseconds, when applicable.
+    /// PANDA terminates immediately, so this is currently always `None`.
     pub repair_deadline_ms: Option<u64>,
     /// Known service termination time in Unix milliseconds.
     pub service_terminated_at_ms: Option<u64>,

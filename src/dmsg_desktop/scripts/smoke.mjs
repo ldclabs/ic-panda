@@ -998,7 +998,6 @@ const methods = {
   'plan/panda': () => ({
     governance: 'dwv6s-6aaaa-aaaaq-aacta-cai',
     ledger: pandaLedger,
-    cooling_ms: 3_900_000,
     paused: false,
     rate: { policy_version: 1, r_num: '1', r_den: '1', effective_at_ms: Date.now() - DAY },
     plans: [
@@ -1169,7 +1168,7 @@ const methods = {
     assert.equal(p.source, 'gui')
     return payment(p.id, false)
   },
-  // A PANDA application past its cooling period is approved once more.
+  // A qualified PANDA application is applied immediately.
   'plan/advance': (p) => {
     assert.equal(p.source, 'gui')
     return payment(p.id, true)
@@ -1622,9 +1621,8 @@ try {
   orderViews['89'.repeat(32)] = {
     id: '89'.repeat(32),
     method: 'Panda',
-    status: 'CoolingDown',
+    status: 'Checking',
     eligibility: 'Eligible',
-    cooling_until_ms: Date.now() - 1000,
     actor: 'aaaaa-aa',
     neuron: '6b'.repeat(32)
   }
@@ -1632,7 +1630,7 @@ try {
   await main.waitForSelector('[data-testid="order-advance"]')
   assert.equal(await main.locator('[data-testid="order"]').count(), 4)
   assert.match(await main.locator('[data-testid="order-title"]').first().textContent(), /Storage pack/)
-  assert.deepEqual(await main.locator('[data-testid="order-state"]').allTextContents(), ['Quote', 'Quote', 'Cooling down', 'Refunded'])
+  assert.deepEqual(await main.locator('[data-testid="order-state"]').allTextContents(), ['Quote', 'Quote', 'Checking the neuron', 'Refunded'])
   await main.click('[data-testid="order-advance"]')
   await waitFor(() => latest('plan/advance'))
   assert.deepEqual(latest('plan/advance').params, { id: '89'.repeat(32), source: 'gui' })

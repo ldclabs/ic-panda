@@ -5,7 +5,7 @@ use crate::commerce_v2::{
 use crate::integration::{panda_quote_hash, product_decision_hash};
 use crate::product_book::ProductBook;
 use dmsg_types::integration::{
-    PANDA_COOLING_MS, PANDA_LEASE_MS, ProductDecision, ProductRejection, SettlementSource,
+    PANDA_LEASE_MS, ProductDecision, ProductRejection, SettlementSource,
 };
 use dmsg_types::integration_billing::{SubscriptionSource, SubscriptionStatus};
 use dmsg_types::membership::Eligibility;
@@ -154,7 +154,7 @@ fn cash_delivery_and_unstarted_cancellation_advance_only_business_revision() {
 #[test]
 fn qualification_leases_do_not_bump_business_revision_or_revive_terminated_rights() {
     let terms = f::terms();
-    let at = NOW + PANDA_COOLING_MS;
+    let at = NOW + MINUTE;
     let d = ProductDecision {
         version: 2,
         offer: terms.offer.clone(),
@@ -182,6 +182,7 @@ fn qualification_leases_do_not_bump_business_revision_or_revive_terminated_right
     assert_eq!(entitlement_until(&mut c, at), Some(at + PANDA_LEASE_MS));
     assert_eq!(entitlement_until(&mut c, at + PANDA_LEASE_MS), None);
     observe_contract(&mut c, Eligibility::Ineligible, at + 1, at + 1, at + 1).unwrap();
+    assert_eq!(c.status, SubscriptionStatus::Terminated);
     assert_eq!(entitlement_until(&mut c, at + 1), None);
     observe_contract(
         &mut c,
@@ -191,31 +192,12 @@ fn qualification_leases_do_not_bump_business_revision_or_revive_terminated_right
         at + DAY,
     )
     .unwrap();
-    let elapsed = c.repair_elapsed_ms;
-    observe_contract(
-        &mut c,
-        Eligibility::Ineligible,
-        at + 10 * DAY,
-        at + 10 * DAY,
-        at + 10 * DAY,
-    )
-    .unwrap();
-    assert_eq!(c.repair_elapsed_ms, elapsed);
-    observe_contract(
-        &mut c,
-        Eligibility::Ineligible,
-        at + 18 * DAY,
-        at + 18 * DAY,
-        at + 18 * DAY,
-    )
-    .unwrap();
-    assert_eq!(c.status, SubscriptionStatus::Terminated);
     observe_contract(
         &mut c,
         Eligibility::Eligible,
-        at + 19 * DAY,
-        at + 19 * DAY + PANDA_LEASE_MS,
-        at + 19 * DAY,
+        at + 10 * DAY,
+        at + 10 * DAY + PANDA_LEASE_MS,
+        at + 10 * DAY,
     )
     .unwrap();
     assert_eq!(c.status, SubscriptionStatus::Terminated);

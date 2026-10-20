@@ -526,6 +526,7 @@ type EntitlementView = record {
   // Time the supporting qualification observation began, in Unix milliseconds.
   observed_at_ms : nat64;
   // Qualification repair deadline in Unix milliseconds, when applicable.
+  // PANDA terminates immediately, so this is currently always `None`.
   repair_deadline_ms : opt nat64;
   // Monotonic projection/lease revision, including refreshes.
   lease_revision : nat64;
@@ -710,8 +711,6 @@ type MembershipContract = record {
   plan : PlanVersion;
   // Time the supporting qualification observation began, in Unix milliseconds.
   observed_at_ms : nat64;
-  // Known-ineligibility repair deadline in Unix milliseconds, when applicable.
-  repair_deadline_ms : opt nat64;
   // Product contract identity.
   contract_id : blob;
   // Inclusive interval start in Unix milliseconds.
@@ -1082,7 +1081,8 @@ type SourceStatus = variant {
   Active;
   // New paid resource admission is suspended.
   Suspended;
-  // Known qualification loss is within the repair period.
+  // Known qualification loss within a repair period; retained for the
+  // existing commerce projection, never emitted after immediate termination.
   RepairRequired;
   // The source interval has expired.
   Expired;

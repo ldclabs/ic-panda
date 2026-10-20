@@ -44,7 +44,6 @@ fn subscriber(home: Principal, i: u64, catalog: &Catalog) -> Subject {
         eligibility: Eligibility::Eligible,
         observed_at_ms: started,
         qualified_until_ms: expires,
-        repair_deadline_ms: None,
     });
     model::project(home, &mut s, catalog, AT, None).expect("projection");
     s

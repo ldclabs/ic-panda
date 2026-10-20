@@ -167,8 +167,8 @@ fn policy_and_quote_expiry_are_checked_before_any_reservation() {
     );
     assert!(quote_panda(&offer(), &app(), &product(), &rate(), offer().accept_by_ms).is_err());
     let mut o = offer();
-    o.starts_at_ms = NOW;
-    o.expires_at_ms = NOW + PANDA_COOLING_MS;
+    o.starts_at_ms = NOW - DAY;
+    o.expires_at_ms = NOW;
     assert_eq!(
         quote_panda(&o, &app(), &product(), &rate(), NOW),
         Err(Error::Expired)

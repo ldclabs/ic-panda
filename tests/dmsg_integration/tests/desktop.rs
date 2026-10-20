@@ -4073,9 +4073,8 @@ fn desktop_commerce() {
     assert_eq!(b.run(&["plan", "status"])["plan"], "Plus");
 
     // A PANDA membership backed by the wallet's neuron, asked for by a web
-    // application: the device quotes it on the neuron the person picks; the
-    // application is accepted and cools down (activation follows the
-    // 65-minute cooling period).
+    // application: the device quotes it on the neuron the person picks, and
+    // the application applies as soon as its qualification is read.
     let (c, _) = env.desktop("c");
     let d = &env.deployment;
     assert_eq!(c.login(&http, 61).unwrap()["state"], "no_account");
@@ -4157,7 +4156,7 @@ fn desktop_commerce() {
     let claim = signed["result"]["orderId"].as_str().unwrap().to_string();
     assert!(signed["result"]["checkoutCbor"].is_string());
     let order = c.run(&["plan", "order", &claim]);
-    assert_eq!(order["status"], "CoolingDown");
+    assert_eq!(order["status"], "Active");
     assert_eq!(order["eligibility"], "Eligible");
     assert_eq!(order["neuron"], "4d".repeat(32));
     // The neuron's controller reads the commitment it backs.
@@ -4167,7 +4166,7 @@ fn desktop_commerce() {
             .as_array()
             .unwrap()
             .iter()
-            .any(|c| c["claim_id"] == claim.as_str() && c["status"] == "CoolingDown")
+            .any(|c| c["claim_id"] == claim.as_str() && c["status"] == "Active")
     );
     assert!(c.run(&["ops", "sweep"])["swept"].is_u64());
 

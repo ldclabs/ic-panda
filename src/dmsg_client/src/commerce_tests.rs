@@ -21,7 +21,6 @@ fn contract(seed: u8, plan: PlanId, starts_at_ms: u64, expires_at_ms: u64) -> Me
         eligibility: dmsg_types::membership::Eligibility::Eligible,
         observed_at_ms: starts_at_ms,
         qualified_until_ms: expires_at_ms,
-        repair_deadline_ms: None,
     }
 }
 

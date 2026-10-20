@@ -625,7 +625,6 @@ fn deliver(
             eligibility: Eligibility::Eligible,
             observed_at_ms: at,
             qualified_until_ms: contract.lease_until_ms,
-            repair_deadline_ms: None,
         });
     }
     s.business_revision = b.business_revision;
@@ -773,13 +772,6 @@ pub(crate) fn observe(view: &PandaClaimView, at: u64) -> Result<()> {
         native.terminated_at_ms.get_or_insert(at);
     }
     model::set_eligibility(native, view.eligibility.clone(), at)?;
-    if view.eligibility == Eligibility::Ineligible {
-        // Membership accumulates verified repair time up to this observation.
-        native.repair_deadline_ms = Some(
-            view.observed_at_ms
-                .saturating_add(REPAIR_WINDOW_MS.saturating_sub(view.repair_elapsed_ms)),
-        );
-    }
     native.observed_at_ms = view.observed_at_ms;
     native.qualified_until_ms = generic.lease_until_ms;
     store::save_subject(&s);

@@ -502,7 +502,6 @@ export const schemas = {
   ],
   "SubscriptionStatus": [
     "Active",
-    "Repairing",
     "Unverifiable",
     "Terminated",
     "Expired",
@@ -521,7 +520,6 @@ export const schemas = {
     "max_issued_until_ms": "u64",
     "qualification": "Eligibility",
     "observed_at_ms": "u64",
-    "repair_elapsed_ms": "u64"
   },
   "CashCancellationReceipt": {
     "order_id": "Hash",
@@ -582,7 +580,6 @@ export const schemas = {
     "commerce_homes": "Vec<CommerceHome>",
     "max_claims": "u64",
     "hourly_applications": "u64",
-    "cooling_ms": "u64",
     "qualifications_per_minute": "u64",
     "authorizations_per_minute": "u64",
     "product_calls_per_minute": "u64"
@@ -590,7 +587,6 @@ export const schemas = {
   "PandaServiceView": {
     "governance": "Principal",
     "panda_ledger": "Principal",
-    "cooling_ms": "u64",
     "paused": "bool",
     "rates": "Vec<PandaRatePolicy>"
   },
@@ -610,7 +606,6 @@ export const schemas = {
   },
   "PandaClaimStatus": [
     "Checking",
-    "CoolingDown",
     "Applying",
     "Active",
     "Terminated",
@@ -627,9 +622,7 @@ export const schemas = {
     "observed_at_ms": "u64",
     "valid_until_ms": "u64",
     "lease_revision": "u64",
-    "cooling_until_ms": "Option<u64>",
     "committed_until_ms": "u64",
-    "repair_elapsed_ms": "u64",
     "receipt": "Option<ProductReceipt>"
   },
   "PandaOperationsPage": {
