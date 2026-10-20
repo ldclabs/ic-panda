@@ -1913,7 +1913,8 @@ impl Client {
         })
     }
 
-    /// Quote the checkout of an operation waiting for approval.
+    /// Quote the checkout of an operation waiting for approval, once the
+    /// payer can fund it.
     pub(crate) async fn connect_quote(
         &mut self,
         key: &str,
@@ -1926,7 +1927,9 @@ impl Client {
         )?;
         let request: CheckoutRequest =
             dmsg_protocol::decode_canonical(&command_payload(&op.command)?)?;
-        self.quote_request(request, &op.origin, selection).await
+        let job = self.quote_request(request, &op.origin, selection).await?;
+        self.checkout_funds(&job).await?;
+        Ok(job)
     }
 
     /// Record an execution's outcome on the operation and reply it.

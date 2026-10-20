@@ -69,3 +69,12 @@ fn a_term_that_has_not_started_is_only_queued() {
         Some(future.contract_id)
     );
 }
+
+/// A funding transfer sends the amount and its fee reserve, and the ledger
+/// charges the network fee on top; an order needing more than a `u128`
+/// cannot be funded.
+#[test]
+fn a_cash_checkout_needs_its_amount_reserve_and_network_fee() {
+    assert_eq!(cash_total(1_000, 200, 3), Ok(1_203));
+    assert_eq!(cash_total(u128::MAX, 1, 0), Err(Error::IntegrityFailed));
+}

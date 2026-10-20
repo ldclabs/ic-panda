@@ -893,7 +893,8 @@ impl Client {
         request: &mut Request,
         outcome: Result<()>,
     ) -> Result<Json> {
-        request.updated_at = now_ms();
+        let now = now_ms();
+        request.updated_at = now;
         let result = match outcome {
             // An executor may settle the request itself, such as a web
             // request another device took first.
@@ -912,6 +913,19 @@ impl Client {
                 request.state = State::Lost;
                 request.error = Some(crate::error_code(&Error::ResultExpired));
                 Err(Error::ResultExpired)
+            }
+            // The service is still working through a step; retry within the
+            // request's window so a transient check finishes on its own.
+            Err(Error::Pending) if now < request.expires_at => {
+                request.state = State::Executing;
+                request.error = Some(crate::error_code(&Error::Pending));
+                Err(Error::Pending)
+            }
+            // Past the window, the order's reconcile remains for the person.
+            Err(Error::Pending) => {
+                request.state = State::Failed;
+                request.error = Some(crate::error_code(&Error::Pending));
+                Err(Error::Pending)
             }
             // Nothing ran: no login, no network or stale certified data.
             // The request keeps waiting for the person to try again.
@@ -1063,17 +1077,21 @@ impl Client {
     }
 
     /// Ask to approve a quoted checkout and pay it from the payer; with
-    /// `fresh`, to approve a PANDA claim again after cooling.
+    /// `fresh`, to approve a PANDA claim again after cooling. A cash
+    /// checkout the payer cannot fund now gets no request.
     ///
     /// # Errors
-    /// Returns `Error::NotFound` for an unknown checkout.
-    pub fn checkout_request(&mut self, source: &str, id: &str, fresh: bool) -> Result<Json> {
-        let digest = self.plan_checkout(id)?.digest();
+    /// Returns `Error::NotFound` for an unknown checkout, the client's
+    /// `INSUFFICIENT_FUNDS` code when the payer cannot cover it, and the
+    /// payer's or ledger's failure when either cannot be read.
+    pub async fn checkout_request(&mut self, source: &str, id: &str, fresh: bool) -> Result<Json> {
+        let job = self.plan_checkout(id)?;
+        self.checkout_funds(&job).await?;
         let request = self.approval_create(
             source,
             Action::Checkout {
                 id: id.into(),
-                digest,
+                digest: job.digest(),
                 fresh,
             },
             now_ms() + HIGH_RISK_TTL_MS,

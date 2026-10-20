@@ -4170,6 +4170,36 @@ fn desktop_commerce() {
             .any(|c| c["claim_id"] == claim.as_str() && c["status"] == "CoolingDown")
     );
     assert!(c.run(&["ops", "sweep"])["swept"].is_u64());
+
+    // A payer with no ckUSDC gets no approval request for a cash checkout:
+    // the balance is checked before the checkout can be approved.
+    let (broke, _) = env.desktop("broke");
+    assert_eq!(broke.login(&http, 43).unwrap()["state"], "no_account");
+    broke.run(&["account", "create"]);
+    let enable = broke.run(&["device", "formal-approve", "on"]);
+    assert_eq!(broke.decide(&http, &enable, true).unwrap()["state"], "done");
+    let quote = broke.run(&["plan", "quote", "plus", &ledger.to_text()]);
+    assert_eq!(quote["terms"]["method"], "Cash");
+    assert_eq!(
+        broke
+            .rpc(
+                &http,
+                "plan/checkout",
+                json!({"id": quote["id"].as_str().unwrap()}),
+            )
+            .unwrap_err(),
+        "INSUFFICIENT_FUNDS"
+    );
+    assert!(
+        broke
+            .rpc(&http, "approval/list", json!({}))
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|r| r["type"] != "checkout"),
+        "an unfunded checkout created an approval"
+    );
     env.finish();
 }
 
@@ -4498,8 +4528,11 @@ fn desktop_wallet() {
         assert_eq!(desktop.run(&["sync"])["sent"], 1);
     }
 
-    // Activation: a quote from the hub, then one approval pays it from the
-    // payer, signs the device approval and creates the wallet.
+    // Activation: the fast preview reads the plan and quota without storing
+    // a quote; the authoritative quote follows for the approval and payment.
+    let preview = a.rpc(&http, "wallet/quote_preview", json!({})).unwrap();
+    assert_eq!(preview["remaining"], 2);
+    assert_eq!(preview["plan"], "Free");
     let quote = a.run(&["wallet", "quote"]);
     assert_eq!(quote["remaining"], 2);
     assert_eq!(quote["plan"], "Free");

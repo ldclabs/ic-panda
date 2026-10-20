@@ -290,6 +290,8 @@ export const reasonLabels: Record<string, Label> = {
   FORBIDDEN: 'reasonForbidden',
   LOCKED: 'reasonFrozen',
   INTEGRITY_FAILED: 'reasonIntegrity',
+  INSUFFICIENT_FUNDS: 'reasonInsufficientFunds',
+  PENDING: 'reasonPending',
   EXPIRED: 'reasonExpired',
   RESULT_EXPIRED: 'reasonResultExpired'
 }

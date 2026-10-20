@@ -1711,9 +1711,10 @@ pub async fn quote<H: Hold>(h: &H) -> Result<Json> {
 pub async fn quote_preview<H: Hold>(h: &H) -> Result<Json> {
     let (hub, account) = h.with(|c| Ok((c.wallet_hub()?, c.account()?.id))).await?;
     let ic = h.anonymous().await?;
-    let preview: ActivationPreview = ic
+    let preview: Result<ActivationPreview> = ic
         .query(hub, "quote_activation_preview", (account,))
         .await?;
+    let preview = preview?;
     let (plan, fee) = join(
         crate::commerce::plan(h),
         ledger_fee(&ic, preview.icp_ledger),

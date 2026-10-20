@@ -1392,6 +1392,8 @@ export default {
     reasonFormalApprove: 'Cet appareil ne peut pas encore approuver les signatures formelles.',
     reasonFrozen: 'La politique de signature du compte est gelée.',
     reasonIntegrity: 'Ce qui serait signé a changé après l’affichage.',
+    reasonInsufficientFunds: 'Le solde du payeur ne couvre pas le montant et les frais de réseau.',
+    reasonPending: 'Le service vérifie encore ; la commande garde sa progression.',
     reasonPolicyStale: 'Le compte a changé pendant l’attente ; réessayez.',
     reasonPresenceDeclined: 'Touch ID ou le mot de passe de session n’a pas été confirmé.',
     reasonPresenceRequired: 'Il faut votre confirmation par Touch ID ou mot de passe de session.',
@@ -1549,6 +1551,9 @@ export default {
     sendMessage: 'Envoyer un message',
     atMost: 'Au plus',
     pandaShort: 'Le solde PANDA du payeur ne suffit pas.',
+    insufficientFunds:
+      'Le solde en {asset} du payeur ne couvre pas cette commande : {amount} {asset} sont nécessaires, frais de réseau compris. Rechargez dans l’onglet Paiements.',
+    openOrders: 'Ouvrir les commandes',
     openWallet: 'Ouvrir le portefeuille',
     nameQuarantined: 'Ce nom est en cours d’examen et ne peut pas être revendiqué pour l’instant.',
     claimHint: 'Seul son titulaire dans l’ancienne version peut le revendiquer. Connectez-vous avec cette identité panda.fans ; si ce n’est pas encore une connexion de ce compte, liez-la d’abord.',

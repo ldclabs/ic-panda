@@ -348,6 +348,12 @@ impl Daemon {
                     .await?;
                 Ok(job.view())
             }
+            "plan/checkout" => {
+                client
+                    .checkout_request(source(params)?, &id()?, false)
+                    .await
+            }
+            "plan/advance" => client.checkout_request(source(params)?, &id()?, true).await,
             "handle/claim" => {
                 let job = client.handle_claim_prepare(&text(params, "name")?).await?;
                 client.handle_request(source(params)?, &job.id)
@@ -421,8 +427,6 @@ fn local(client: &mut Client, method: &str, params: &Value) -> Option<Result<Val
                 params["hidden"].as_bool().unwrap_or(true),
             )?),
             "inbox/outgoing" => Value::Array(client.inbox_outgoing()?),
-            "plan/checkout" => client.checkout_request(source(params)?, &id()?, false)?,
-            "plan/advance" => client.checkout_request(source(params)?, &id()?, true)?,
             "plan/checkouts" => {
                 Value::Array(client.plan_checkouts()?.iter().map(|c| c.view()).collect())
             }

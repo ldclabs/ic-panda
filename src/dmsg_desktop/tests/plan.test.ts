@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import {
   acceptLink,
   canonicalName,
+  cashTotal,
   covers,
   DAY,
   daysLeft,
@@ -53,7 +54,10 @@ test('each order offers what its state allows', () => {
   assert.deepEqual(orderActions(cash('accepted'), { status: 'Applied' }, now, 'other'), [])
   // A renewal that has not started may be cancelled.
   assert.deepEqual(orderActions(cash('accepted', { starts_at_ms: now + DAY }), { status: 'Applied' }, now), ['cancel'])
-  assert.deepEqual(orderActions(panda('accepted'), { status: 'Checking' }, now), ['cancel'])
+  // A cash order is checked by the service; a PANDA application can be asked
+  // to qualify again when another SNS check caught it in flight.
+  assert.deepEqual(orderActions(cash('accepted'), { status: 'Checking' }, now), ['cancel'])
+  assert.deepEqual(orderActions(panda('accepted'), { status: 'Checking' }, now), ['reconcile', 'cancel'])
   assert.deepEqual(orderActions(panda('accepted'), { status: 'CoolingDown', cooling_until_ms: now + 1 }, now), ['cancel'])
   assert.deepEqual(orderActions(panda('accepted'), { status: 'CoolingDown', cooling_until_ms: now }, now), ['advance', 'cancel'])
   assert.deepEqual(orderActions(panda('accepted'), { status: 'Active' }, now), [])
@@ -85,6 +89,10 @@ test('a payer covers a registration only with a known balance', () => {
   assert.equal(covers(payer, 'panda', '10000000001'), false)
   assert.equal(covers(payer, 'icp', '1'), null)
   assert.equal(covers(null, 'panda', '1'), null)
+})
+
+test('a cash checkout needs its amount, fee reserve and network fee', () => {
+  assert.equal(cashTotal({ amount: '1000', fee_reserve: '200', network_fee: '3' }), 1203n)
 })
 
 test('a transfer waits for the target, then for its owner while the acceptance lasts', () => {

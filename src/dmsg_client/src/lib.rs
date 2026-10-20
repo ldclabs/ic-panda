@@ -60,9 +60,28 @@ pub(crate) fn storage(error: std::io::Error) -> Error {
     Error::Unavailable(format!("storage: {error}"))
 }
 
+/// The code of a payer whose ledger balance cannot cover a transfer. The
+/// ledger's typed refusal becomes `InvalidInput`, so the client tags this
+/// one with a stable code in its diagnostic.
+pub(crate) const INSUFFICIENT_FUNDS: &str = "INSUFFICIENT_FUNDS";
+
+/// A payer balance that does not cover the amount and the network fee.
+pub(crate) fn insufficient_funds() -> Error {
+    Error::InvalidInput(format!(
+        "{INSUFFICIENT_FUNDS}: the payer's balance does not cover the amount and the network fee"
+    ))
+}
+
 /// An error's variant name in `SCREAMING_SNAKE_CASE`, as the daemon and the
-/// status report it.
+/// status report it; a tagged client failure keeps its own code.
 pub fn error_code(error: &Error) -> String {
+    if let Error::InvalidInput(message) = error
+        && message
+            .strip_prefix(INSUFFICIENT_FUNDS)
+            .is_some_and(|rest| rest.is_empty() || rest.starts_with(':'))
+    {
+        return INSUFFICIENT_FUNDS.into();
+    }
     let name = format!("{error:?}");
     let name = name.split('(').next().unwrap_or_default();
     let mut code = String::new();
@@ -81,3 +100,33 @@ mod agent_tests;
 pub mod testing;
 #[cfg(test)]
 mod vectors;
+
+#[cfg(test)]
+mod error_tests {
+    use super::*;
+
+    #[test]
+    fn a_fundless_payer_keeps_its_code() {
+        assert_eq!(
+            insufficient_funds().to_string(),
+            format!(
+                "InvalidInput: {INSUFFICIENT_FUNDS}: the payer's balance does not cover the amount and the network fee"
+            )
+        );
+        assert_eq!(error_code(&insufficient_funds()), INSUFFICIENT_FUNDS);
+        assert_eq!(
+            error_code(&Error::InvalidInput(format!(
+                "{INSUFFICIENT_FUNDS}: balance 0"
+            ))),
+            INSUFFICIENT_FUNDS
+        );
+        assert_eq!(
+            error_code(&Error::InvalidInput("other: detail".into())),
+            "INVALID_INPUT"
+        );
+        assert_eq!(
+            error_code(&Error::InvalidInput("INSUFFICIENT_FUNDS_EXTRA".into())),
+            "INVALID_INPUT"
+        );
+    }
+}

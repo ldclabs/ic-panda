@@ -14,7 +14,8 @@
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { bridge, call, errorText, size, units, when } from '../../rpc'
+  import { bridge, call, code, errorText, size, units, when } from '../../rpc'
+  import { cashTotal } from './plan'
 
   /**
    * Paying for an offer: a plan card's subscription, renewal, switch or
@@ -31,6 +32,8 @@
   let neuron = $state('')
   let error = $state('')
   let busy = $state(false)
+  /** The quote this click fixed, for the amount a short balance needs. */
+  let quoted = $state<any>(null)
 
   const pandaAllowed = $derived<boolean>(offer?.methods?.includes('Panda') ?? false)
   /** What this plan needs staked at the current rate; none without a rate. */
@@ -47,6 +50,7 @@
       method = 'Cash'
       neuron = ''
       error = ''
+      quoted = null
       if (!assets.length) void readAssets()
     })
   })
@@ -80,9 +84,11 @@
   async function pay() {
     busy = true
     error = ''
+    quoted = null
     try {
       const cash = method === 'Cash'
       const job: any = await call('plan/quote', { sku: offer.sku, method: cash ? 'cash' : 'panda', selection: cash ? ledger : neuron })
+      quoted = job
       if (!cash) {
         // The quote fixes the term end and stake; do not approve a neuron the claim will reject.
         const chosen = panda?.neurons?.find((n: any) => n.id === neuron)
@@ -102,7 +108,14 @@
       offer = null
       onPaid()
     } catch (e) {
-      error = errorText(e)
+      // The daemon refuses an order the payer cannot fund; say what it needs.
+      error =
+        code(e) === 'INSUFFICIENT_FUNDS' && quoted?.terms?.method === 'Cash'
+          ? t('insufficientFunds', {
+              asset: quoted.terms.asset,
+              amount: units(cashTotal(quoted.terms).toString(), quoted.terms.decimals)
+            })
+          : errorText(e)
     } finally {
       busy = false
     }

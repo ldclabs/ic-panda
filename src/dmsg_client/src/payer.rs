@@ -12,6 +12,7 @@
 use crate::client::Client;
 use crate::hold::Hold;
 use crate::ic::Ic;
+use crate::{INSUFFICIENT_FUNDS, insufficient_funds};
 use candid::{Nat, Principal};
 use dmsg_types::{Error, Result, ensure};
 use icrc_ledger_types::icrc1::account::Account;
@@ -225,7 +226,8 @@ impl Client {
     ///
     /// # Errors
     /// Returns `Error::FeeBlocked` when the ledger's fee changed,
-    /// `Error::ExecutionUnknown` when the outcome is unknown and the
+    /// `Error::ExecutionUnknown` when the outcome is unknown, the client's
+    /// `INSUFFICIENT_FUNDS` code when the payer's balance is short, and the
     /// ledger's rejection otherwise.
     pub(crate) async fn pay(
         &mut self,
@@ -287,6 +289,9 @@ impl Client {
                 match reply {
                     Ok(Ok(n)) => Ok(block(&n)?),
                     Ok(Err(TransferError::Duplicate { duplicate_of })) => Ok(block(&duplicate_of)?),
+                    Ok(Err(TransferError::InsufficientFunds { balance })) => {
+                        Err(format!("{INSUFFICIENT_FUNDS}: balance {balance}"))
+                    }
                     Ok(Err(error)) => Err(format!("{error:?}")),
                     Err(_) => return Err(Error::ExecutionUnknown),
                 }
@@ -299,6 +304,9 @@ impl Client {
                 match reply {
                     Ok(Ok(n)) => Ok(block(&n)?),
                     Ok(Err(ApproveError::Duplicate { duplicate_of })) => Ok(block(&duplicate_of)?),
+                    Ok(Err(ApproveError::InsufficientFunds { balance })) => {
+                        Err(format!("{INSUFFICIENT_FUNDS}: balance {balance}"))
+                    }
                     Ok(Err(error)) => Err(format!("{error:?}")),
                     Err(_) => return Err(Error::ExecutionUnknown),
                 }
@@ -322,6 +330,8 @@ impl Client {
                 self.save_payment(key, &payment)?;
                 Err(if error.starts_with("BadFee") {
                     Error::FeeBlocked
+                } else if error.starts_with(INSUFFICIENT_FUNDS) {
+                    insufficient_funds()
                 } else {
                     Error::InvalidInput(format!("ledger: {error}"))
                 })

@@ -59,14 +59,16 @@ export const closed = (error: unknown, status: any) =>
   code(error) === 'LOCKED' || (code(error) === 'RECOVERY_INCOMPLETE' && status?.state !== 'unlocked')
 
 /**
- * A failure for people: locked, why a service was unavailable, or the code.
- * The daemon's message says why a call failed; a bare code leaves a person
- * with nothing to act on, so an unavailable service's own words are what the
- * notice shows.
+ * A failure for people: locked, the payer's short balance, a service still
+ * checking, why a service was unavailable, or the code. The daemon's message
+ * says why a call failed; a bare code leaves a person with nothing to act on,
+ * so an unavailable service's own words are what the notice shows.
  */
 export const errorText = (error: unknown) => {
   const failure = code(error)
   if (failure === 'LOCKED') return t('locked')
+  if (failure === 'INSUFFICIENT_FUNDS') return `${t('error')}: ${t('reasonInsufficientFunds')}`
+  if (failure === 'PENDING') return `${t('error')}: ${t('reasonPending')}`
   const said = failure === 'UNAVAILABLE' && error instanceof CallError ? reasonOf(error.message) : ''
   return `${t('error')}: ${said || failure}`
 }

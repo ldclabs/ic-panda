@@ -71,7 +71,11 @@
       const next: any = await call('approval/show', { id })
       if (next?.digest !== request?.digest) arm()
       const first = !request
+      const before = request?.state
       request = next
+      // A pending execution that settled no longer shows its old notice;
+      // a failure's reason is rendered with the outcome below.
+      if (before === 'executing' && next?.state !== 'executing') error = ''
       if (first && next?.state === 'awaiting_user') {
         await tick()
         rejectButton?.focus()
@@ -830,6 +834,11 @@
         </ol>
         {#if ['failed', 'lost', 'unknown'].includes(request.state) && request.error}
           <p class="mt-2 text-[12.5px] text-muted" data-testid="approval-reason">{reason(request.error)}</p>
+          {#if request.error === 'PENDING' && (request.type === 'checkout' || request.detail?.method === 'checkout')}
+            <button class={cn(buttonClass('secondary', 'sm'), 'mt-2')} onclick={() => showMain('/plan?tab=payments')} data-testid="approval-open-orders">
+              {t('openOrders')}
+            </button>
+          {/if}
         {/if}
         {#if !approving && queue.length}
           <button class={cn(buttonClass('secondary'), 'mt-3 w-full')} onclick={() => (location.hash = `/approval/${queue[0]}`)} data-testid="approval-next">

@@ -118,8 +118,11 @@ export function orderActions(job: any, order: any, now: number, refundable?: str
   switch (order.status) {
     case 'Reserving':
     case 'AwaitingFunding':
-    case 'Checking':
       return ['cancel']
+    case 'Checking':
+      // A PANDA application's SNS qualification can be caught by another
+      // check in flight; reconciling it asks the service to try again.
+      return job.terms?.method === 'Panda' ? ['reconcile', 'cancel'] : ['cancel']
     case 'Applying':
       return ['reconcile']
     case 'CoolingDown':
@@ -179,6 +182,11 @@ export function covers(payer: any, ledger: string, most: string): boolean | null
   const row = (payer?.balances ?? []).find((b: any) => b.ledger === ledger)
   if (row?.balance == null) return null
   return BigInt(row.balance) >= BigInt(most)
+}
+
+/** What a cash checkout's payer must hold: the amount, its fee reserve and the network fee. */
+export function cashTotal(terms: any): bigint {
+  return BigInt(terms.amount) + BigInt(terms.fee_reserve) + BigInt(terms.network_fee)
 }
 
 /** The link that opens the accept dialog with a transfer's token on the target's device. */

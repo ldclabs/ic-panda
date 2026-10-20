@@ -1394,6 +1394,8 @@ const messages = {
   reasonFormalApprove: 'This device cannot approve formal signatures yet.',
   reasonFrozen: "The account's signing policy is frozen.",
   reasonIntegrity: 'What would be signed changed after it was shown.',
+  reasonInsufficientFunds: "The payer's balance does not cover the amount and the network fee.",
+  reasonPending: 'The service is still checking; the order keeps its progress.',
   reasonPolicyStale: 'The account changed while it waited; try again.',
   reasonPresenceDeclined: 'Touch ID or the login password was not confirmed.',
   reasonPresenceRequired: 'It needs your confirmation with Touch ID or the login password.',
@@ -1551,6 +1553,9 @@ const messages = {
   sendMessage: 'Send a message',
   atMost: 'At most',
   pandaShort: "The payer's PANDA balance does not cover this.",
+  insufficientFunds:
+    "The payer's {asset} balance does not cover this order: {amount} {asset} is needed, including the network fee. Top up on the Payments tab.",
+  openOrders: 'Open orders',
   openWallet: 'Open wallet',
   nameQuarantined: 'This name is under review and cannot be claimed now.',
   claimHint: 'Only its holder in the old app may claim it. Log in with that panda.fans identity; if it is not a login of this account yet, bind it first.',

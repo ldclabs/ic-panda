@@ -15,7 +15,7 @@ use crate::crypto::sign;
 use crate::hold::Hold;
 use crate::ic::Ic;
 use crate::now_ms;
-use crate::payer::{memo, payer, transfer_call};
+use crate::payer::{Ledger, memo, payer, transfer_call};
 use crate::payment::certified_leaf;
 use crate::upload::hex_id;
 use candid::Principal;
@@ -165,6 +165,15 @@ impl Checkout {
     }
 }
 
+/// What a cash quote's funding transfer costs the payer: the amount and fee
+/// reserve the transfer sends, plus the network fee the ledger charges.
+fn cash_total(amount: u128, fee_reserve: u128, network_fee: u128) -> Result<u128> {
+    amount
+        .checked_add(fee_reserve)
+        .and_then(|total| total.checked_add(network_fee))
+        .ok_or(Error::IntegrityFailed)
+}
+
 /// The canisters checkouts use.
 struct Services {
     home: Principal,
@@ -296,6 +305,34 @@ impl Client {
         let (payer, ic) = self.payer().await?;
         ensure(payer == actor, Error::Forbidden)?;
         Ok(ic)
+    }
+
+    /// Refuse a cash checkout the payer cannot fund now. The balance on its
+    /// ledger must cover the amount, the fee reserve and the network fee the
+    /// funding transfer costs; a PANDA checkout moves no cash.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` when the payer changed since the quote,
+    /// `Error::Unavailable` when the ledger cannot answer, the client's
+    /// `INSUFFICIENT_FUNDS` code when the balance is short, and
+    /// `Error::IntegrityFailed` when the fixed terms do not add up.
+    pub(crate) async fn checkout_funds(&mut self, job: &Checkout) -> Result<()> {
+        let Terms::Cash(quote) = &job.terms else {
+            return Ok(());
+        };
+        let ic = self.actor(job.actor).await?;
+        let balance = Ledger {
+            ic: &ic,
+            canister: quote.cash.ledger,
+        }
+        .balance(job.actor)
+        .await?;
+        let total = cash_total(
+            quote.cash.amount_atomic,
+            quote.cash.fee_reserve_atomic,
+            quote.asset.network_fee_atomic,
+        )?;
+        ensure(balance >= total, crate::insufficient_funds())
     }
 
     fn checkout(&self, id: &str) -> Result<Checkout> {
@@ -650,6 +687,13 @@ impl Client {
         let services = self.services().await?;
         if job.stage != Stage::Review {
             match self.plan_order(id).await {
+                // A checking PANDA application is progressed here, so the
+                // approval completes without the person reconciling it.
+                Ok(Order::Panda(view)) if view.status == PandaClaimStatus::Checking => {
+                    let view = self.reconcile_claim(id, job.actor).await?;
+                    ensure(view.status != PandaClaimStatus::Checking, Error::Pending)?;
+                    return Ok(order_view(&Order::Panda(Box::new(view))));
+                }
                 Ok(order) => return self.plan_fund(&job, order).await,
                 Err(Error::NotFound) => {}
                 Err(error) => return Err(error),
@@ -701,7 +745,13 @@ impl Client {
                         },),
                     )
                     .await?;
-                requested?;
+                // The claim is saved before a pending answer; keep the
+                // approval running and let the next pass reconcile it.
+                match requested {
+                    Ok(_) => {}
+                    Err(Error::Pending) => return Err(Error::Pending),
+                    Err(error) => return Err(error),
+                }
             }
         }
         job.stage = Stage::Accepted;
@@ -763,6 +813,17 @@ impl Client {
         self.plan_order_view(&job.id).await
     }
 
+    /// Ask membership to finish a checking PANDA claim's qualification.
+    /// `Error::Pending` means another SNS or product check is still running.
+    async fn reconcile_claim(&mut self, id: &str, actor: Principal) -> Result<PandaClaimView> {
+        let services = self.services().await?;
+        let ic = self.actor(actor).await?;
+        let view: Result<PandaClaimView> = ic
+            .update(services.membership, "reconcile_panda_claim", (hex_id(id)?,))
+            .await?;
+        view
+    }
+
     /// Advance a PANDA claim after its cooling period with a fresh device
     /// approval of the same terms.
     ///
@@ -774,10 +835,26 @@ impl Client {
             return Err(Error::Forbidden);
         };
         let services = self.services().await?;
-        if let Order::Panda(view) = self.plan_order(id).await?
-            && view.status != PandaClaimStatus::CoolingDown
-        {
-            return Ok(order_view(&Order::Panda(view)));
+        if let Order::Panda(view) = self.plan_order(id).await? {
+            // A checking or applying claim is progressed here, so the
+            // approval completes without the person reconciling it.
+            if matches!(
+                view.status,
+                PandaClaimStatus::Checking | PandaClaimStatus::Applying
+            ) {
+                let view = self.reconcile_claim(id, job.actor).await?;
+                ensure(
+                    !matches!(
+                        view.status,
+                        PandaClaimStatus::Checking | PandaClaimStatus::Applying
+                    ),
+                    Error::Pending,
+                )?;
+                return Ok(order_view(&Order::Panda(Box::new(view))));
+            }
+            if view.status != PandaClaimStatus::CoolingDown {
+                return Ok(order_view(&Order::Panda(view)));
+            }
         }
         self.authorize_checkout(&mut job, &services, true).await?;
         let (application, approval) = job.approval.clone().ok_or(Error::IntegrityFailed)?;
@@ -805,7 +882,13 @@ impl Client {
                 (hex_id(id)?, authorization),
             )
             .await?;
-        advanced?;
+        // The claim is saved before a pending answer; keep the approval
+        // running and let the next pass retry the application.
+        match advanced {
+            Ok(_) => {}
+            Err(Error::Pending) => return Err(Error::Pending),
+            Err(error) => return Err(error),
+        }
         self.plan_order_view(id).await
     }
 }

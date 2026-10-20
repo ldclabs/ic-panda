@@ -1392,6 +1392,8 @@ export default {
     reasonFormalApprove: 'لا يستطيع هذا الجهاز الموافقة على التوقيعات الرسمية بعد.',
     reasonFrozen: 'سياسة التوقيع في الحساب مجمّدة.',
     reasonIntegrity: 'تغيّر ما سيُوقَّع بعد عرضه.',
+    reasonInsufficientFunds: 'رصيد الدافع لا يغطي المبلغ ورسوم الشبكة.',
+    reasonPending: 'لا تزال الخدمة تتحقق؛ يحتفظ الطلب بتقدمه.',
     reasonPolicyStale: 'تغيّر الحساب أثناء الانتظار؛ حاول مجددًا.',
     reasonPresenceDeclined: 'لم يُؤكَّد Touch ID أو كلمة مرور الدخول.',
     reasonPresenceRequired: 'يحتاج إلى تأكيدك بـ Touch ID أو كلمة مرور الدخول.',
@@ -1549,6 +1551,9 @@ export default {
     sendMessage: 'إرسال رسالة',
     atMost: 'بحد أقصى',
     pandaShort: 'رصيد PANDA لدى الدافع لا يكفي.',
+    insufficientFunds:
+      'رصيد {asset} لدى الدافع لا يغطي هذا الطلب: يلزم {amount} {asset} شاملة رسوم الشبكة. اشحن الرصيد من تبويب «المدفوعات».',
+    openOrders: 'فتح الطلبات',
     openWallet: 'فتح المحفظة',
     nameQuarantined: 'هذا الاسم قيد المراجعة ولا يمكن المطالبة به الآن.',
     claimHint: 'لا يطالب به إلا مالكه في الإصدار القديم. سجّل الدخول بهوية panda.fans تلك؛ وإن لم تكن بعدُ هوية دخول لهذا الحساب، فاربطها أولًا.',

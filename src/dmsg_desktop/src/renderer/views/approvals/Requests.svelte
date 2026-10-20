@@ -40,7 +40,12 @@
 
   const waiting = $derived(requests.filter((r) => r.state === 'awaiting_user'))
   const running = $derived(requests.filter((r) => r.state === 'executing' || r.state === 'unknown'))
-  const decided = $derived(requests.filter((r) => !['awaiting_user', 'executing', 'unknown'].includes(r.state) && (kind === 'all' || kindOf(r) === kind)))
+  const decided = $derived(
+    requests
+      .filter((r) => !['awaiting_user', 'executing', 'unknown'].includes(r.state) && (kind === 'all' || kindOf(r) === kind))
+      // The latest decision first; the list shows when each was decided.
+      .sort((a, b) => (b.decided_at ?? b.updated_at) - (a.decided_at ?? a.updated_at))
+  )
 
   const title = (r: any) => {
     const found = titleOf(r)

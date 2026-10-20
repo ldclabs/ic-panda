@@ -1392,6 +1392,8 @@ export default {
     reasonFormalApprove: 'Este dispositivo aún no puede aprobar firmas formales.',
     reasonFrozen: 'La política de firma de la cuenta está congelada.',
     reasonIntegrity: 'Lo que se firmaría cambió después de mostrarse.',
+    reasonInsufficientFunds: 'El saldo del pagador no cubre el importe y la comisión de red.',
+    reasonPending: 'El servicio aún está comprobando; el pedido conserva su progreso.',
     reasonPolicyStale: 'La cuenta cambió mientras esperaba; vuelve a intentarlo.',
     reasonPresenceDeclined: 'No se confirmó Touch ID ni la contraseña de inicio de sesión.',
     reasonPresenceRequired: 'Necesita tu confirmación con Touch ID o la contraseña de inicio de sesión.',
@@ -1549,6 +1551,9 @@ export default {
     sendMessage: 'Enviar un mensaje',
     atMost: 'Como máximo',
     pandaShort: 'El saldo de PANDA del pagador no alcanza.',
+    insufficientFunds:
+      'El saldo de {asset} del pagador no cubre este pedido: se necesitan {amount} {asset}, incluida la comisión de red. Recarga en la pestaña Pagos.',
+    openOrders: 'Abrir pedidos',
     openWallet: 'Abrir la cartera',
     nameQuarantined: 'Este nombre está en revisión y no se puede reclamar ahora.',
     claimHint: 'Solo su titular en la versión anterior puede reclamarlo. Inicia sesión con esa identidad de panda.fans; si aún no es un inicio de sesión de esta cuenta, vincúlala primero.',
