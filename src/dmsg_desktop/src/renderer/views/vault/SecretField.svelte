@@ -4,7 +4,7 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { bridge, call, code } from '../../rpc'
+  import { bridge, call, errorText } from '../../rpc'
 
   /**
    * A concealed field: shown or copied only on a second click within three
@@ -52,7 +52,7 @@
       secret = shown.value
       hideTimer = setTimeout(hide, SHOWN_MS)
     } catch (error) {
-      toast(() => `${t('error')}: ${code(error)}`)
+      toast(() => errorText(error))
     } finally {
       busy = false
     }
@@ -67,7 +67,7 @@
       const { clear_after_ms } = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copySecret(id, field, revision))
       toast((seconds) => t('copied', { seconds }), { ms: clear_after_ms, countdown: true, testid: 'secret-copied' })
     } catch (error) {
-      toast(() => `${t('error')}: ${code(error)}`)
+      toast(() => errorText(error))
     } finally {
       busy = false
     }

@@ -1,3 +1,4 @@
+import { reasonOf } from './failure'
 import { locale, t } from './i18n/index.svelte'
 
 export { single } from '../shared/single'
@@ -57,8 +58,18 @@ export function code(error: unknown): string {
 export const closed = (error: unknown, status: any) =>
   code(error) === 'LOCKED' || (code(error) === 'RECOVERY_INCOMPLETE' && status?.state !== 'unlocked')
 
-/** A failure for people: locked, or the error code. */
-export const errorText = (error: unknown) => (code(error) === 'LOCKED' ? t('locked') : `${t('error')}: ${code(error)}`)
+/**
+ * A failure for people: locked, why a service was unavailable, or the code.
+ * The daemon's message says why a call failed; a bare code leaves a person
+ * with nothing to act on, so an unavailable service's own words are what the
+ * notice shows.
+ */
+export const errorText = (error: unknown) => {
+  const failure = code(error)
+  if (failure === 'LOCKED') return t('locked')
+  const said = failure === 'UNAVAILABLE' && error instanceof CallError ? reasonOf(error.message) : ''
+  return `${t('error')}: ${said || failure}`
+}
 
 /** A failure toast's options: one at the plan's limits offers the plan page. */
 export const planAction = (error: unknown) => (code(error) === 'QUOTA_EXCEEDED' ? { action: { label: t('openPlan'), run: () => (location.hash = '/plan') } } : {})

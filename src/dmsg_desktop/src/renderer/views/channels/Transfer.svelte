@@ -6,7 +6,7 @@
   import Suggest from '../../components/Suggest.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { call, code } from '../../rpc'
+  import { call, errorText } from '../../rpc'
   import { label } from './names.svelte'
 
   /**
@@ -53,7 +53,7 @@
         onSent()
       }
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

@@ -865,6 +865,7 @@ export default {
     usedCopy: 'تُستخدم النسخة الآن',
     copy: 'نسخ',
     copiedText: 'تم النسخ',
+    copyFailed: 'تعذّر النسخ',
     copyUsername: 'نسخ اسم المستخدم',
     show: 'إظهار',
     showTyped: 'أظهر ما كتبته',

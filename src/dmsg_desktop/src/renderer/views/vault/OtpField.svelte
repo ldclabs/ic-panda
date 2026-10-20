@@ -5,7 +5,7 @@
   import Tooltip from '../../components/Tooltip.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { bridge, call, code } from '../../rpc'
+  import { bridge, call, code, errorText } from '../../rpc'
   import { spaced } from './vault'
 
   /**
@@ -42,7 +42,7 @@
       const { clear_after_ms } = await bridge<{ clear_after_ms: number }>(() => window.dmsg.copySecret(id, field, null))
       toast((seconds) => t('copied', { seconds }), { ms: clear_after_ms, countdown: true, testid: 'otp-copied' })
     } catch (e) {
-      toast(() => `${t('error')}: ${code(e)}`)
+      toast(() => errorText(e))
     }
   }
 

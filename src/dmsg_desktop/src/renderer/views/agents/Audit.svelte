@@ -6,7 +6,7 @@
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { call, code, onChange, single, when } from '../../rpc'
+  import { call, errorText, onChange, single, when } from '../../rpc'
   import { days } from '../channels/channels'
   import { outcomeTone } from './agents'
 
@@ -26,7 +26,7 @@
       entries = before ? [...entries, ...page.entries] : page.entries
       more = page.entries.length === PAGE
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
   }
 

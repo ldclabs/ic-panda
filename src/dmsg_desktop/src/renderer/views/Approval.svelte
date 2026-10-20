@@ -161,7 +161,7 @@
       request = await call('approval/quote', { id: request.id, selection: selection.trim() })
       arm()
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

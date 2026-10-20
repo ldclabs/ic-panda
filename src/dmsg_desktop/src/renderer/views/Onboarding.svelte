@@ -6,7 +6,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { call, code, when } from '../rpc'
+  import { call, errorText, when } from '../rpc'
 
   /** What a login without a ready workspace does next: create or join an account, pair, or recover. */
   let { status, refresh }: { status: any; refresh: () => Promise<void> } = $props()
@@ -25,7 +25,7 @@
     try {
       await work()
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
       await refresh()

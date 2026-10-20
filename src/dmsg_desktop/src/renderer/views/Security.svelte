@@ -10,7 +10,7 @@
   import Segmented from '../components/Segmented.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, onChange, single, when } from '../rpc'
+  import { bridge, call, code, errorText, onChange, single, when } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
   import { purposeLabels } from '../approval'
 
@@ -38,7 +38,7 @@
     } catch (e) {
       security = null
       needsLogin = code(e) === 'AUTH_REQUIRED'
-      error = needsLogin ? '' : `${t('error')}: ${code(e)}`
+      error = needsLogin ? '' : errorText(e)
     }
   })
 
@@ -48,7 +48,7 @@
     try {
       await work()
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

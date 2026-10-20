@@ -4,7 +4,7 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t, type Label } from '../../i18n/index.svelte'
-  import { call, code, when } from '../../rpc'
+  import { call, errorText, when } from '../../rpc'
   import SecretField from './SecretField.svelte'
   import { differences, fieldName, isHidden, lineDiff, type Field, type Part } from './vault'
 
@@ -84,7 +84,7 @@
       await call('vault/resolve', params)
       toast(() => (keep === 'current' ? t('keptCurrent') : keep === 'theirs' ? t('usedCopy') : t('merged')))
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

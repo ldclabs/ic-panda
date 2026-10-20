@@ -9,7 +9,7 @@
   import Segmented from '../../components/Segmented.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
-  import { bridge, call, code, onChange, single, when } from '../../rpc'
+  import { bridge, call, code, errorText, onChange, single, when } from '../../rpc'
   import { startLogin } from '../../shell/login.svelte'
   import { monthText, purposeLabels, reasonLabels } from '../../approval'
 
@@ -65,7 +65,7 @@
     try {
       await work()
     } catch (e) {
-      error = reasonLabels[code(e)] ? t(reasonLabels[code(e)]) : `${t('error')}: ${code(e)}`
+      error = reasonLabels[code(e)] ? t(reasonLabels[code(e)]) : errorText(e)
     } finally {
       busy = false
     }

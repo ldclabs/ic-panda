@@ -8,7 +8,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, code, onChange, single } from '../rpc'
+  import { bridge, errorText, onChange, single } from '../rpc'
 
   /** The app's version and its update, as the tray offers it; the main process checks and applies it. */
   let info = $state<AppUpdates | null>(null)
@@ -21,7 +21,7 @@
     try {
       info = await bridge(() => window.dmsg.updates())
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
   })
 
@@ -31,7 +31,7 @@
     try {
       await bridge(work)
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
   }
 

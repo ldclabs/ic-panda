@@ -865,6 +865,7 @@ export default {
     usedCopy: 'Ahora se usa la copia',
     copy: 'Copiar',
     copiedText: 'Copiado',
+    copyFailed: 'No se pudo copiar',
     copyUsername: 'Copiar el nombre de usuario',
     show: 'Mostrar',
     showTyped: 'Mostrar lo escrito',

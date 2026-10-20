@@ -867,6 +867,7 @@ const messages = {
   usedCopy: 'Using the copy now',
   copy: 'Copy',
   copiedText: 'Copied',
+  copyFailed: 'Could not copy',
   copyUsername: 'Copy user name',
   show: 'Show',
   showTyped: 'Show what you typed',

@@ -7,6 +7,6 @@ export async function copyText(text: string) {
     await navigator.clipboard.writeText(text)
     toast(() => t('copiedText'))
   } catch {
-    toast(() => `${t('error')}: UNAVAILABLE`)
+    toast(() => t('copyFailed'))
   }
 }

@@ -1,7 +1,7 @@
 import type { Glyph } from '../components/glyphs'
 import { toast } from '../components/toast.svelte'
 import { t, type Label } from '../i18n/index.svelte'
-import { call, code } from '../rpc'
+import { call, code, errorText } from '../rpc'
 import { setupStates, startLogin } from './login.svelte'
 
 /**
@@ -13,7 +13,7 @@ async function attempt(work: () => Promise<unknown>) {
   try {
     await work()
   } catch (error) {
-    toast(() => `${t('error')}: ${code(error)}`)
+    toast(() => errorText(error))
   }
 }
 
@@ -38,7 +38,7 @@ export async function unlock(status: any) {
     await call('session/unlock', { fast: true })
   } catch (error) {
     if (['AUTH_REQUIRED', 'NOT_FOUND'].includes(code(error))) return startLogin()
-    if (code(error) !== 'FORBIDDEN') toast(() => `${t('error')}: ${code(error)}`)
+    if (code(error) !== 'FORBIDDEN') toast(() => errorText(error))
   }
 }
 

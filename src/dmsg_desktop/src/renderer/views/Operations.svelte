@@ -5,7 +5,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { call, code, when } from '../rpc'
+  import { call, errorText, when } from '../rpc'
 
   /**
    * Orders, cash transfers and PANDA commitments the wallet may read as payer,
@@ -26,7 +26,7 @@
     try {
       await work()
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

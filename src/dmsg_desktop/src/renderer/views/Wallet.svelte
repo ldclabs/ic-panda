@@ -122,7 +122,7 @@
       error = ''
       if (selected) await open(selected)
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
   })
 
@@ -141,7 +141,7 @@
       wallet = null
       proposals = []
       // A wallet listing this account but not joined yet reads nothing.
-      error = code(e) === 'FORBIDDEN' ? t('twNotJoined') : `${t('error')}: ${code(e)}`
+      error = code(e) === 'FORBIDDEN' ? t('twNotJoined') : errorText(e)
     }
   }
 

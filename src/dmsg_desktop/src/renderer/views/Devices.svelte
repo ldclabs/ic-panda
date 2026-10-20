@@ -8,7 +8,7 @@
   import Section from '../components/page/Section.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, onChange, single, when } from '../rpc'
+  import { bridge, call, code, errorText, onChange, single, when } from '../rpc'
 
   /** The account's devices as the user home certified them; changes are approval requests. */
   let { status }: { status: any } = $props()
@@ -26,7 +26,7 @@
       view = await call('account/show')
     } catch (e) {
       view = null
-      error = code(e) === 'AUTH_REQUIRED' ? '' : `${t('error')}: ${code(e)}`
+      error = code(e) === 'AUTH_REQUIRED' ? '' : errorText(e)
     }
   })
 
@@ -39,7 +39,7 @@
       editing = null
       await bridge(() => window.dmsg.openApproval(created.id))
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

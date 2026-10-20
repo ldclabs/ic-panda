@@ -1,6 +1,6 @@
 import { toast } from '../components/toast.svelte'
 import { t, type Label } from '../i18n/index.svelte'
-import { bridge, call, CallError, code } from '../rpc'
+import { bridge, call, CallError, code, errorText } from '../rpc'
 
 /**
  * The login, wherever it starts: the daemon opens the login page in the
@@ -62,7 +62,7 @@ export async function reopenLogin() {
   try {
     await bridge(() => window.dmsg.openLogin(login.url))
   } catch (error) {
-    toast(() => `${t('error')}: ${code(error)}`)
+    toast(() => errorText(error))
   }
 }
 

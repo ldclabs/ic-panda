@@ -30,7 +30,7 @@
           aria-hidden="true"
         ></span>
       {/if}
-      <span class="min-w-0 flex-1">{item.text(left)}</span>
+      <span class="min-w-0 flex-1 [overflow-wrap:anywhere]">{item.text(left)}</span>
       {#if item.action}
         <button
           class={buttonClass('ghost', 'xs', 'font-semibold text-paper hover:not-disabled:bg-paper/15 hover:not-disabled:text-paper')}

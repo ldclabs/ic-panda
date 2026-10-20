@@ -865,6 +865,7 @@ export default {
     usedCopy: '已采用这份副本',
     copy: '复制',
     copiedText: '已复制',
+    copyFailed: '复制失败',
     copyUsername: '复制用户名',
     show: '显示',
     showTyped: '显示输入内容',

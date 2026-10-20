@@ -865,6 +865,7 @@ export default {
     usedCopy: 'Теперь используется копия',
     copy: 'Копировать',
     copiedText: 'Скопировано',
+    copyFailed: 'Не удалось скопировать',
     copyUsername: 'Копировать имя пользователя',
     show: 'Показать',
     showTyped: 'Показать введённое',

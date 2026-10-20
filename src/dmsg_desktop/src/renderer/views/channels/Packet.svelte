@@ -5,7 +5,7 @@
   import { toast } from '../../components/toast.svelte'
   import { buttonClass } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { call, CallError, code } from '../../rpc'
+  import { call, CallError, errorText } from '../../rpc'
 
   /**
    * A transfer packet another device handed over: a proposal to this
@@ -50,7 +50,7 @@
         open = false
       }
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     } finally {
       busy = false
     }

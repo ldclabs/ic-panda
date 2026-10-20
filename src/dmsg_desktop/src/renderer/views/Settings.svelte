@@ -17,7 +17,7 @@
   import { buttonClass, cn } from '../components/ui'
   import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
   import { locale, sessionLabel, setLocale, t, type Label } from '../i18n/index.svelte'
-  import { bridge, call, code, onChange, single, when } from '../rpc'
+  import { bridge, call, code, errorText, onChange, single, when } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
   import { unlock } from '../shell/session'
   import About from './About.svelte'
@@ -95,7 +95,7 @@
           call('connect/pairings').catch((e) => (code(e) === 'LOCKED' ? null : Promise.reject(e)))
         ])
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
   })
 
@@ -104,7 +104,7 @@
     try {
       await call(method, params)
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
   }
 
@@ -119,7 +119,7 @@
     try {
       invite = await bridge(() => window.dmsg.pair(copy))
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
       return
     }
     candidates = []
@@ -136,7 +136,7 @@
     try {
       await bridge(() => window.dmsg.grant(invite.invite_id, candidate.pairing_id))
     } catch (e) {
-      error = `${t('error')}: ${code(e)}`
+      error = errorText(e)
     }
     clearInterval(timer)
     invite = null
