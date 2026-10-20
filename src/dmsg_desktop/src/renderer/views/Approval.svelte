@@ -276,7 +276,7 @@
     const notes: string[] = []
     if (sku.kind === 'upgrade') notes.push(t('approvalUpgradeNote', { time: when(view.expires_at_ms) }))
     else if (sku.kind === 'storage') notes.push(t('approvalStorageNote', { time: when(view.expires_at_ms) }))
-    else if (view.starts_at_ms > (view.created_at_ms ?? 0) + 60_000) notes.push(t('approvalRenewalNote', { time: when(view.starts_at_ms) }))
+    else if (view.created_at_ms != null && view.starts_at_ms > view.created_at_ms + 60_000) notes.push(t('approvalRenewalNote', { time: when(view.starts_at_ms) }))
     if (view.terms?.method === 'Panda') notes.push(t('approvalPandaNote', { time: when(view.terms.committed_until_ms) }))
     return notes.join(' ')
   }

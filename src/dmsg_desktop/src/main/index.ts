@@ -859,7 +859,8 @@ const remindPlan = single(async () => {
   const left = current.ends_at_ms - Date.now()
   const due = reminderDue(left, shown[current.contract])
   if (due === null) return
-  await writeFile(remindersFile(), JSON.stringify({ [current.contract]: due })).catch(() => undefined)
+  shown[current.contract] = due
+  await writeFile(remindersFile(), JSON.stringify(shown)).catch(() => undefined)
   const note = new Notification({ title: 'dMsg', body: text.planEnds(Math.max(1, Math.ceil(left / 86_400_000)), current.plan) })
   note.on('click', () => showMain('/plan'))
   note.show()

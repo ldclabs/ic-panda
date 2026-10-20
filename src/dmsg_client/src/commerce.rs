@@ -948,6 +948,20 @@ fn contract_view(c: &MembershipContract) -> Json {
     })
 }
 
+/// The base contract in force now: the newest one that has started, as
+/// commerce's own projection picks it. An early refund keeps its contract
+/// until the lease it already issued runs out, so a purchase made after it
+/// is the one in force.
+fn in_force<'a>(live: &[&'a MembershipContract], now: u64) -> Option<&'a MembershipContract> {
+    live.iter().rev().find(|c| c.starts_at_ms <= now).copied()
+}
+
+/// The one renewal queued after the term in force: contracts come oldest
+/// first, so it is the first that has not started.
+fn queued<'a>(live: &[&'a MembershipContract], now: u64) -> Option<&'a MembershipContract> {
+    live.iter().find(|c| c.starts_at_ms > now).copied()
+}
+
 /// What each paid plan's card offers this account now: a first
 /// subscription, a renewal or a switch from the end of the current term
 /// (within [`RENEWAL_WINDOW_MS`] of it), an upgrade for the rest of a cash
@@ -1097,11 +1111,11 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
         .iter()
         .filter(|c| contract_end(c) > now)
         .collect();
-    let current = live.iter().find(|c| c.starts_at_ms <= now);
-    let next = live.iter().find(|c| c.starts_at_ms > now);
-    status["current"] = current.map_or(Json::Null, |c| contract_view(c));
-    status["next"] = next.map_or(Json::Null, |c| contract_view(c));
-    status["offers"] = offers(&catalog, current.copied(), next.copied(), now).into();
+    let current = in_force(&live, now);
+    let next = queued(&live, now);
+    status["current"] = current.map_or(Json::Null, contract_view);
+    status["next"] = next.map_or(Json::Null, contract_view);
+    status["offers"] = offers(&catalog, current, next, now).into();
     // Storage packs extend a paid membership that qualifies now, to its end.
     status["storage_available"] = (current.is_some_and(|c| c.terminated_at_ms.is_none())
         && status["eligibility"] == "Eligible")
@@ -1710,3 +1724,7 @@ pub async fn commerce_sweep<H: Hold>(h: &H) -> Result<u32> {
         .await?;
     swept
 }
+
+#[cfg(test)]
+#[path = "commerce_tests.rs"]
+mod tests;
