@@ -155,6 +155,8 @@ fn policy_and_quote_expiry_are_checked_before_any_reservation() {
         Err(Error::PolicyStale)
     );
     p = rate();
+    // The first policy may take effect at publication; later ones may not.
+    p.policy_version = 2;
     p.published_at_ms += 1;
     assert!(quote_panda(&offer(), &app(), &product(), &p, NOW).is_err());
     let mut a = app();
@@ -174,6 +176,24 @@ fn policy_and_quote_expiry_are_checked_before_any_reservation() {
     o = offer();
     o.amount_usd_micros = 0;
     assert!(quote_panda(&o, &app(), &product(), &rate(), NOW).is_err());
+}
+
+#[test]
+fn only_the_first_rate_policy_skips_the_notice() {
+    let mut first = rate();
+    first.published_at_ms = NOW;
+    first.effective_at_ms = NOW;
+    validate_rate_policy(&first).unwrap();
+    let quote = quote_panda(&offer(), &app(), &product(), &first, NOW).unwrap();
+    assert_eq!(quote.policy, first);
+    let mut later = first;
+    later.policy_version = 2;
+    assert_eq!(
+        validate_rate_policy(&later),
+        Err(Error::InvalidInput("policy notice".into()))
+    );
+    later.published_at_ms = NOW - POLICY_NOTICE_MS;
+    validate_rate_policy(&later).unwrap();
 }
 
 #[test]

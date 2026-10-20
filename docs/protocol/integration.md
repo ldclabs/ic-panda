@@ -109,7 +109,7 @@ half-open intervals: equality with expiry is already expired.
 | New PANDA cooling | At least 65 minutes; application must outlive cooling |
 | PANDA qualification lease | At most one hour, truncated to the contract end |
 | Cash, expired and Free resource lease | At most 30 days, ending at the next known limit change |
-| Rate policy notice | At least 30 days |
+| Rate policy notice | At least 15 days; the first policy may take effect at publication |
 | Per-account pending operations | 32 |
 | Successful external approvals | 60 per account per UTC hour |
 | App origins / products | At most 16 of each |

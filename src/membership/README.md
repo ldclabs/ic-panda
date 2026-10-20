@@ -115,11 +115,11 @@ governance 模块不固定。主网 PANDA SNS 开启了 `automatically_advance_t
 
 `schedule_panda_rate` 发布不可变的 `PandaRatePolicy`，`r_num / r_den` 是每美元对应的 PANDA 数，并列出适用产品。
 
-- `Local` 之外，发布时间取执行时的共识时间，生效时间至少要晚 30 天。版本号严格递增；最高版本单独保存，旧版本被剪除后也不能复用。
+- `Local` 之外，发布时间取执行时的共识时间；首份费率（`policy_version = 1`）可立即生效，之后的费率生效时间至少晚 15 天。版本号严格递增；最高版本单独保存，旧版本被剪除后也不能复用。
 - 用同一版本和相同业务字段重试，返回原政策（保留原发布时间）；字段不同返回 `IdempotencyConflict`。
 - 同一产品在同一生效时间只能有一个政策，每个产品取已生效的最新政策。所列产品都已有更晚生效政策的旧政策，在下次发布时被剪除；未剪除的政策最多 64 个。
 - 申请冻结报价时的政策。首次申请时费率必须仍是当前政策，激活时不再比较。
-- 第一份费率也要提前 30 天发布。生效之前，PANDA 报价返回 `NotFound`。
+- 第一份费率不要求提前发布，可在发布时立即生效。生效之前，PANDA 报价返回 `NotFound`。
 
 ### 多 commerce 实例与 user home
 
@@ -286,13 +286,13 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
 
    `cooling_ms` 至少 65 分钟（3,900,000 ms）且小于 24 小时。`qualifications_per_minute` 按在用会员数 ÷ 50 留出余量，并与 commerce 的 `refreshes_per_minute` 一起调整。每份申请约需 2 次授权（报价与申请）、1 次激活和 2–3 次产品调用。
 
-7. 至少在 PANDA 开放前 30 天发布第一份费率。`published_at_ms` 会被替换为执行时间，`r_num / r_den` 是每美元的 PANDA 数：
+7. 发布第一份费率（`policy_version = 1`），它可立即生效；之后的费率至少提前 15 天发布。`published_at_ms` 会被替换为执行时间，`r_num / r_den` 是每美元的 PANDA 数：
 
    ```sh
    icp canister call membership schedule_panda_rate -e ic '(record {
      version = 2 : nat16; policy_version = 1 : nat64; environment = variant { Production };
-     product_ids = vec { "dmsg" }; r_num = <PANDA 数> : nat; r_den = 1 : nat;
-     published_at_ms = 0 : nat64; effective_at_ms = <执行时间 30 天之后的 Unix 毫秒> : nat64 })'
+     product_ids = vec { "dmsg" }; r_num = 10000 : nat; r_den = 1 : nat;
+     published_at_ms = 0 : nat64; effective_at_ms = <当前 Unix 毫秒> : nat64 })'
    ```
 
 8. dMsg 产品登记的 `allowed_settlement_methods` 要包含 `Panda`（见 commerce README）。客户端从账户所在 home 的 `UserInit.membership_canister` 取得本 canister，无需配置。
@@ -314,7 +314,7 @@ membership 只保存 PANDA 抵扣申请。Free 账户、现金订阅和名称注
 | `set_admission_pause`     | `validate_set_admission_pause`     | `ApplicationBusinessLogic`（应急，需尽快通过） |
 
 - SNS 执行时只判断调用是否得到回复，不解析返回的 `Result`。执行后再调用对应的 `validate_*`，应显示 “no change”。
-- 费率提案的验证在提交时运行，发布时间却取执行时间。`effective_at_ms` 要比预计执行时间晚 30 天以上（PANDA SNS 的初始投票期为 4 天），否则提案会在执行时失败。
+- 除首份费率外，费率提案的验证在提交时运行，发布时间却取执行时间。`effective_at_ms` 要比预计执行时间晚 15 天以上（PANDA SNS 的初始投票期为 4 天），否则提案会在执行时失败。
 - 升级改用 `UpgradeSnsControlledCanister` 提案，`canister_upgrade_arg` 留空（`post_upgrade` 不读参数）；SNS 默认先停止 canister 再升级。
 
 ### 运维

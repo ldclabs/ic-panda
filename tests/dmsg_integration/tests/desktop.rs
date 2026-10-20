@@ -3911,6 +3911,10 @@ fn desktop_commerce() {
     // The wallet paid the deposit and its fee and got the refund back.
     assert_eq!(before - balance(a, &ledger), 5_000 + 10 - returned);
 
+    // An account with no names reads an empty page; the registry refuses to
+    // certify an empty batch.
+    assert!(a.run(&["handle", "mine"]).as_array().unwrap().is_empty());
+
     // The legacy owner claims its name; the registry's reply is lost and
     // the certified owner settles it.
     ic_proxy.lose_next("POST", &format!("/canister/{handle}/call"));
@@ -3926,6 +3930,7 @@ fn desktop_commerce() {
         a.run(&["handle", "resolve", "legacy_probe"])["account"],
         account.as_str()
     );
+    assert_eq!(a.run(&["handle", "mine"])[0]["name"], "legacy_probe");
 
     // A new name, paid from the wallet: an allowance the registry charges
     // once.

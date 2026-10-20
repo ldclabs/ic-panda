@@ -109,6 +109,14 @@ test('PANDA exact ceiling and wide intermediates match Rust', () => {
 })
 
 
+test('only the first rate policy skips the notice', () => {
+  const policy = fixture('panda_quote')[2].policy
+  validateRatePolicy({ ...policy, policy_version: 1n, published_at_ms: now, effective_at_ms: now })
+  const later = { ...policy, policy_version: 2n, published_at_ms: now, effective_at_ms: now }
+  assert.throws(() => validateRatePolicy(later), { code: 'INVALID_INPUT' })
+  validateRatePolicy({ ...later, published_at_ms: now - 1_296_000_000n })
+})
+
 test('quotations, approval and receipt bindings match the Rust admission rules', () => {
   const expected = fixture('panda_quote')[2]
   assert.deepEqual(quotePanda(offer, app, product, expected.policy, now), expected)

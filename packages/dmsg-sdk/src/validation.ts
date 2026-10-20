@@ -36,7 +36,7 @@ export const PANDA_LEASE_MS = 3_600_000n;
 export const CASH_FUNDING_MS = 1_800_000n;
 export const CASH_ACTIVATION_MS = 86_400_000n;
 export const APPLICATION_TTL_MS = 86_400_000n;
-export const POLICY_NOTICE_MS = 2_592_000_000n;
+export const POLICY_NOTICE_MS = 1_296_000_000n;
 export const CKUSDT_LEDGER = "cngnf-vqaaa-aaaar-qag4q-cai";
 export const CKUSDC_LEDGER = "xevnm-gaaaa-aaaar-qafnq-cai";
 export const MAX_ACTION_SCHEMA_BYTES = 16 * 1024;
@@ -482,7 +482,8 @@ export function validateRatePolicy(policy: PandaRatePolicy): void {
     policy.policy_version > 0n &&
       policy.r_num > 0n &&
       policy.r_den > 0n &&
-      policy.effective_at_ms - policy.published_at_ms >= POLICY_NOTICE_MS,
+      (policy.policy_version === 1n ||
+        policy.effective_at_ms - policy.published_at_ms >= POLICY_NOTICE_MS),
     "INVALID_INPUT",
   );
   unique(policy.product_ids, 16);

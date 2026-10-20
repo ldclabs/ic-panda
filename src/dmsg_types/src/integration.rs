@@ -30,8 +30,8 @@ pub const CASH_REFUND_WINDOW_MS: u64 = 7 * crate::DAY;
 /// resource lease and membership requalifies an eligible claim, so a consumer
 /// renewing a few minutes before expiry receives a later lease.
 pub const LEASE_RENEW_WINDOW_MS: u64 = 10 * crate::MINUTE;
-/// Advance notice required for ordinary PANDA rate changes.
-pub const POLICY_NOTICE_MS: u64 = 30 * crate::DAY;
+/// Advance notice required for PANDA rate changes after the first policy.
+pub const POLICY_NOTICE_MS: u64 = 15 * crate::DAY;
 /// Maximum retained in-flight external operations per account.
 pub const MAX_ACCOUNT_OPERATIONS: usize = 32;
 /// Maximum successful external approvals per account per UTC hour.
@@ -268,7 +268,8 @@ pub struct PandaRatePolicy {
     pub r_den: u128,
     /// Policy publication time in Unix milliseconds.
     pub published_at_ms: u64,
-    /// Inclusive policy activation time, after the notice interval.
+    /// Inclusive policy activation time; after the notice interval, except
+    /// that the first policy may take effect at publication.
     pub effective_at_ms: u64,
 }
 

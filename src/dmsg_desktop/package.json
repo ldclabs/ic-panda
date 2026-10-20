@@ -1,7 +1,7 @@
 {
   "name": "@dmsg/desktop",
   "private": true,
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "dMsg desktop: the vault, signatures and approvals of a dMsg device, on its local daemon",
   "author": "LDC Labs",
   "license": "Apache-2.0",

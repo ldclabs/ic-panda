@@ -205,7 +205,9 @@ pub fn validate_billing_offer(
     nonzero(&offer.operation_id[..])
 }
 
-/// Require a published positive rate with at least thirty days' advance notice.
+/// Require a published positive rate; every policy after the first needs at
+/// least fifteen days' advance notice. The first policy has no earlier rate to
+/// replace, so it may take effect at publication.
 pub fn validate_rate_policy(policy: &PandaRatePolicy) -> Result<()> {
     ensure(
         policy.version == COMMERCE_VERSION,
@@ -216,10 +218,11 @@ pub fn validate_rate_policy(policy: &PandaRatePolicy) -> Result<()> {
         "PANDA rate",
     )?;
     ensure_valid(
-        policy
-            .effective_at_ms
-            .checked_sub(policy.published_at_ms)
-            .is_some_and(|v| v >= POLICY_NOTICE_MS),
+        policy.policy_version == 1
+            || policy
+                .effective_at_ms
+                .checked_sub(policy.published_at_ms)
+                .is_some_and(|v| v >= POLICY_NOTICE_MS),
         "policy notice",
     )?;
     unique(&policy.product_ids, MAX_APP_BINDINGS, true)?;

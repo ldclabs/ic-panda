@@ -141,10 +141,11 @@ PANDA never becomes a discount basis-point value, partial payment, cash balance
 or withdrawable rebate. Customer cash principal is zero.
 
 The immutable quote records rate policy/version, quoted time, required stake,
-application deadline and original E. Ordinary R publication has at least 30
-days' notice. There is no USD subsidy budget: admission is bounded by the
-service's concurrent claim capacity and hourly application limit. New admission
-reserves the global `(SNS governance, neuron_id)` occupancy before qualification.
+application deadline and original E. The first policy may take effect at
+publication; later R publications have at least 15 days' notice. There is no
+USD subsidy budget: admission is bounded by the service's concurrent claim
+capacity and hourly application limit. New admission reserves the global
+`(SNS governance, neuron_id)` occupancy before qualification.
 
 New policy versions strictly increase, including after superseded records are
 pruned. Retrying a retained version with identical business fields returns its

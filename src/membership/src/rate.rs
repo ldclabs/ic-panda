@@ -72,6 +72,7 @@ fn check(policy: PandaRatePolicy, environment: Environment, at: u64) -> Result<S
     if environment != Environment::Local {
         policy.published_at_ms = at;
     }
+    // The first policy may take effect at publication; later ones need fifteen days' notice.
     validate_rate_policy(&policy)?;
     ensure(
         policy.environment == environment && policy.published_at_ms <= at,
@@ -166,6 +167,27 @@ mod tests {
         assert_eq!(
             schedule(p, Environment::Staging, at + DAY),
             Err(Error::IdempotencyConflict)
+        );
+    }
+
+    #[test]
+    fn first_policy_may_take_effect_at_publication() {
+        let at = crate::fixture::base::NOW;
+        let mut p = crate::fixture::base::rate();
+        p.environment = Environment::Staging;
+        p.published_at_ms = 0;
+        p.effective_at_ms = at;
+        let stored = schedule(p.clone(), Environment::Staging, at).unwrap();
+        // Publication is the execution time, and the first policy is still valid.
+        assert_eq!(stored.published_at_ms, at);
+        assert_eq!(stored.effective_at_ms, at);
+        // A later policy must still give the required notice.
+        let mut next = p;
+        next.policy_version = 2;
+        next.effective_at_ms = at + MINUTE;
+        assert_eq!(
+            schedule(next, Environment::Staging, at),
+            Err(Error::InvalidInput("policy notice".into()))
         );
     }
 

@@ -2424,7 +2424,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_cli"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "axum",
  "base64 0.23.1",
@@ -2632,7 +2632,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_protocol"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "agent-protocols",
  "base64 0.23.1",
@@ -2743,7 +2743,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_types"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "candid",
  "cbor2",

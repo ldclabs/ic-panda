@@ -200,11 +200,15 @@ fn may_claim(r: &LegacyReservation, caller: Principal) -> bool {
 }
 
 /// The certified records of `names`, in order; `None` for a name nobody owns.
+/// An empty list asks the registry for nothing: it refuses an empty batch.
 async fn certified_records(
     ic: &Ic,
     registry: Principal,
     names: &[String],
 ) -> Result<Vec<Option<HandleRecord>>> {
+    if names.is_empty() {
+        return Ok(Vec::new());
+    }
     let batch: Result<dmsg_types::CertifiedBatch> = ic
         .query(registry, "resolve_handle_certified", (names,))
         .await?;
@@ -1050,4 +1054,20 @@ pub async fn operations<H: Hold>(h: &H) -> Result<Vec<Json>> {
         views.push(view);
     }
     Ok(views)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A page with no names asks the registry for nothing: it refuses an
+    /// empty batch with `QuotaExceeded`.
+    #[tokio::test]
+    async fn an_empty_page_asks_for_no_certified_records() {
+        let ic = Ic::anonymous(&crate::testing::config(false)).await.unwrap();
+        let records = certified_records(&ic, Principal::anonymous(), &[])
+            .await
+            .unwrap();
+        assert!(records.is_empty());
+    }
 }
