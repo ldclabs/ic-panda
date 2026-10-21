@@ -3,7 +3,7 @@
   import { t } from '$lib/i18n'
   import Glyph from './Glyph.svelte'
   import type { GlyphName } from './glyphs'
-  import { prefersReducedMotion, watchVisibility } from './motion'
+  import { prefersReducedMotion } from './motion'
 
   // dmsg-connect/1 in seven moves, between four parties.
   const ORIGIN = 'https://tokenlist.ing'
@@ -34,7 +34,6 @@
   let decision = $state<'' | 'approved' | 'rejected'>('')
   let playing = $state(false)
   let left = $state(600)
-  let root: HTMLDivElement
   let timer: ReturnType<typeof setTimeout> | undefined
 
   const labels = $derived([
@@ -103,26 +102,14 @@
     const tickTimer = setInterval(() => {
       if (waiting && left > 0) left--
     }, 1000)
-    let started = false
-    const stop = watchVisibility(
-      root,
-      (visible) => {
-        if (!visible || started) return
-        started = true
-        if (prefersReducedMotion()) shown = DECISION + 1
-        else play()
-      },
-      '-20% 0px'
-    )
     return () => {
       clearInterval(tickTimer)
       clearTimeout(timer)
-      stop()
     }
   })
 </script>
 
-<div class="connect-stage" bind:this={root}>
+<div class="connect-stage">
   <div class="seq" dir="ltr">
     {#each lanes as lane, i}
       <div class="seq-head" style:grid-column={i + 1}>

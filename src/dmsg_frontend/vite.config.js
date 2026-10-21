@@ -45,7 +45,7 @@ export default defineConfig({
         short_name: 'dMsg',
         name: 'dMsg.net',
         description:
-          'dMsg: a private workspace in development. Legacy messages are available read-only.',
+          'dMsg: private collaboration for people and agents. Private space, collaboration and an open agent network.',
         icons: [
           {
             src: '/_assets/dmsg/icon-192.png',

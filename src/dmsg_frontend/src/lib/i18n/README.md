@@ -36,8 +36,12 @@ available, and protects against out-of-order downloads. `app.html` also sets
 `lang` and `dir` before paint; its detection logic is checked against the registry.
 
 `app.html` includes a default title and description for the static SPA fallback.
-The root layout localizes that same description element in place, while page
-titles can override the localized default. Do not add a second description tag.
+The root layout localizes that same description element and the Open Graph /
+Twitter metadata in place, including the social card for the selected language.
+Page titles can override the localized default. Do not add duplicate meta tags.
+The static fallback is English for clients that do not execute JavaScript.
+Regenerate the six checked-in SVG/PNG social cards with `pnpm social-card`
+from this frontend directory; their text comes from the same catalogs.
 
 The locale store is a client-only SPA singleton. Root `+layout.ts` disables SSR.
 Before enabling SSR, move locale state into a per-request Svelte context.

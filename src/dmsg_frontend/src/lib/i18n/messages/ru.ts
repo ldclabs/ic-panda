@@ -51,58 +51,23 @@ export default {
   'Get PANDA from OISY (Fiat Money)': 'Купить PANDA в OISY за фиат',
   'Get PANDA from ICPswap': 'Купить PANDA на ICPswap',
   'dMsg home': 'Главная dMsg',
-  'dMsg — Your space. Your say.': 'dMsg — Ваше пространство. Ваше решение.',
   'Skip to content': 'Перейти к содержимому',
   'Main navigation': 'Главная навигация',
-  'Privacy': 'Конфиденциальность',
   'Close navigation': 'Закрыть навигацию',
   'Open navigation': 'Открыть навигацию',
-  'Your space.': 'Ваше пространство.',
-  'Your say.': 'Ваше решение.',
-  'Privacy, with the details included': 'Приватность во всех подробностях',
-  'Private content.': 'Приватный контент.',
-  'Clear boundaries.': 'Чёткие границы.',
-  'Encryption has a scope.': 'У шифрования есть границы.',
   'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.':
     'Оно защищает контент, но не все связи и действия. Идентичности, вызовы, платёжные данные и метаданные доставки могут оставаться видимыми.',
-  'Availability still matters.': 'Доступность по-прежнему важна.',
-  'A relay can delay or withhold content. Signatures and local history do not guarantee that every device has the latest cloud state.':
-    'Ретранслятор может задержать или удержать контент. Подписи и локальная история не гарантируют актуальность облачного состояния на каждом устройстве.',
-  'Copies can outlive access.': 'Копии могут пережить права доступа.',
   'Removing access protects future content after key changes. It cannot erase downloads, screenshots, or a secret already learned.':
     'Отзыв доступа защищает будущий контент после смены ключей, но не удаляет загрузки, снимки экрана или уже раскрытые секреты.',
-  'Evidence over promises': 'Доказательства важнее обещаний',
-  'Trust you can': 'Доверие, которое можно',
-  'examine.': 'проверить.',
-  'Private work deserves more than a reassuring badge. Understand what is public, what you authorize, and what recovery depends on.':
-    'Личная работа заслуживает большего, чем успокаивающий значок. Узнайте, что публично, что вы разрешаете и от чего зависит восстановление.',
   'Inspect the public code.': 'Изучайте открытый код.',
   'Explore the repository': 'Открыть репозиторий',
   'Read the recovery details': 'Подробнее о восстановлении',
   'A few useful answers': 'Полезные ответы',
-  'Before you': 'Прежде чем',
-  'make it yours.': 'начать.',
-  'Clear answers about availability, identity, private content, and your existing data.':
-    'Ясные ответы о доступности, идентичности, приватном контенте и существующих данных.',
   'Read your legacy messages': 'Просмотреть историю сообщений',
-  'A little less exposure. A little more control.':
-    'Меньше раскрытия. Больше контроля.',
-  'Make room for': 'Освободите место',
-  'what matters.': 'для важного.',
-  'Keep your private work close.': 'Держите личную работу рядом.',
-  'Decide what leaves your space.': 'Решайте, что покидает ваше пространство.',
   'Built by': 'Создано',
   'Trust': 'Доверие',
   'Legacy app · Read-only': 'Старое приложение · Только чтение',
   'File': 'Файл',
-  'What can I do with the legacy app?': 'Что можно делать в старом приложении?',
-  'Do I need a username or PANDA to start?':
-    'Нужны ли имя пользователя или PANDA для начала?',
-  'The new personal workspace is designed to work without buying a handle or having any contacts. Existing handle holders are intended to retain their names through migration without paying to claim them again. Legacy token balances and benefits are handled separately.':
-    'Новое личное пространство не требует покупки имени или наличия контактов. При миграции планируется сохранить существующие имена без повторной оплаты. Старые балансы токенов и преимущества рассматриваются отдельно.',
-  'Does logging in unlock my private content?':
-    'Открывает ли вход мой приватный контент?',
-  'Is everything stored on the blockchain?': 'Всё ли хранится в блокчейне?',
   'Activate username account': 'Активировать аккаунт имени пользователя',
   'Your permanent account generated from':
     'Ваш постоянный аккаунт, созданный из',
@@ -493,23 +458,9 @@ export default {
   '2 of 2, then 24 hours': '2 из 2, затем 24 часа',
   'A commitment to your content root':
     'Хэш-обязательство корня вашего контента',
-  'A cosigned address also needs a key on a member’s device, such as a Mac’s Secure Enclave. A dual-control Taproot address makes Bitcoin itself require both keys.':
-    'Адрес с соподписью требует ещё и ключ на устройстве участника, например в Secure Enclave на Mac. Адрес Taproot с двойным контролем заставляет сам Bitcoin требовать оба ключа.',
   'A hint wakes your desktop, no content':
     'Подсказка будит компьютер — без содержимого',
   'A release is not an audit.': 'Выпуск — не аудит.',
-  'A second key, if you want one.': 'Второй ключ — если нужен.',
-  'A share is its own copy.': 'Отправленное — отдельная копия.',
-  'A signature request from a website, one move at a time.':
-    'Запрос подписи от сайта, шаг за шагом.',
-  'A team wallet is a canister of its own on ICP. It holds ICP and tokens, and signs for Bitcoin, EVM chains and Solana with threshold keys no person holds. Funds move only when a proposal meets the team’s policy: enough approvals, any delay passed, no veto.':
-    'Командный кошелёк — отдельный канистр в ICP. Он хранит ICP и токены и подписывает транзакции в Bitcoin, сетях EVM и Solana пороговыми ключами, которых нет ни у кого. Средства движутся, только когда предложение выполняет политику команды: достаточно одобрений, задержка прошла, вето нет.',
-  'A transfer an agent proposed, from approval to settlement.':
-    'Перевод, предложенный агентом: от одобрения до подтверждения.',
-  'A vault for what you don’t publish.':
-    'Хранилище для всего, что вы не публикуете.',
-  'AI agent': 'ИИ-агент',
-  'AI agents': 'ИИ-агенты',
   'API key': 'API-ключ',
   'API keys, logins, signing keys and notes, encrypted on your device before they sync.':
     'API-ключи, логины, ключи подписи и заметки шифруются на вашем устройстве до синхронизации.',
@@ -518,29 +469,15 @@ export default {
   'Account, devices and logins': 'Аккаунт, устройства и способы входа',
   'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.':
     'Добавьте второе устройство и привяжите надёжный способ входа. Если все устройства потеряны, он сможет восстановить аккаунт после периода ожидания, в течение которого ваши устройства могут это оспорить.',
-  'Add {file}': 'Добавить {file}',
   'Address book: {label} · past its 24-hour wait':
     'Адресная книга: {label} · 24 часа ожидания прошли',
   'Addresses': 'Адреса',
   'Admin': 'Администратор',
-  'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.':
-    'Через 15 минут бездействия устройство блокируется и забывает ключи. Заблокированное устройство может сообщить, что запрос ждёт, но никогда — от кого.',
   'Agent ID listed by {member}': 'Agent ID, указанный {member}',
   'Agent and controller keys': 'Ключи агентов и контроллеров',
   'Agents': 'Агенты',
-  'Agents get a folder.': 'Агенту — одна папка.',
-  'Agents propose, people decide.': 'Агенты предлагают, люди решают.',
   'All downloads and checksums': 'Все загрузки и контрольные суммы',
-  'Allowed by its grant': 'В пределах его разрешений',
-  'An AI agent, a website, a teammate and the terminal ask for things in your vault, wallets, messages and files. Work an agent was granted, messages that arrive encrypted and your own commands pass; a payment, a sign-in, a signature or a delegation waits at the gate until you approve it. The agent’s replies, letters and notes go out through the same gate to Agent Protocols hosts, signed with its own Agent ID.':
-    'ИИ-агент, сайт, коллега и терминал обращаются к вашему хранилищу, кошелькам, сообщениям и файлам. Разрешённая агенту работа, зашифрованные сообщения и ваши собственные команды проходят; платёж, вход, подпись или делегирование ждут у ворот, пока вы их не одобрите. Ответы, письма и заметки агента выходят через те же ворота к серверам Agent Protocols, подписанные его собственным Agent ID.',
   'An agent acting for {member}': 'Агент, действующий за {member}',
-  'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.':
-    'Агент с вашим разрешением может подготовить перевод и выполнить одобренный. Никакое право не позволяет ему одобрять.',
-  'An audit record on your device lists who did what and through which way in: you or an agent, from the desktop, the terminal or MCP. It names actions and outcomes, never content.':
-    'Журнал аудита на устройстве показывает, кто и через какой вход что сделал: вы или агент, из приложения, терминала или через MCP. В нём только действия и результаты, никогда — содержимое.',
-  'An honest trust point.': 'Честная точка доверия.',
-  'Any modern browser.': 'Любой современный браузер.',
   'App': 'Приложение',
   'Apple Silicon · desktop app and command line':
     'Apple Silicon · приложение и командная строка',
@@ -548,11 +485,8 @@ export default {
   'Approve': 'Одобрить',
   'Approve as Mei': 'Одобрить за Mei',
   'Approved': 'Одобрено',
-  'Approved by you': 'Одобрено вами',
   'Approved. Either approver can still veto it until the delay ends.':
     'Одобрено. Пока идёт задержка, любой из одобряющих может наложить вето.',
-  'Approved. Only this request passes.':
-    'Одобрено. Проходит только этот запрос.',
   'Approved. Signature generated.': 'Одобрено. Подпись создана.',
   'Approver': 'Одобряющий',
   'Approving any request': 'Одобрение любых запросов',
@@ -561,7 +495,6 @@ export default {
   'Audit chain': 'Цепочка аудита',
   'Audit record': 'Журнал аудита',
   'Auditor': 'Аудитор',
-  'Available now': 'Уже доступно',
   'Back to the start': 'В начало',
   'Back up': 'Сделать копию',
   'Back up a file, delete one side, then look at the other.':
@@ -573,7 +506,6 @@ export default {
   'Backing up, sharing or deleting files':
     'Копирование в облако, отправка и удаление файлов',
   'Backing up…': 'Копируется…',
-  'Backups when you say.': 'Копии — по вашему слову.',
   'Backups you started': 'Копий по вашей команде',
   'Bridge page': 'Страница-мост',
   'Broadcast': 'В сети',
@@ -583,8 +515,6 @@ export default {
   'Can I install dMsg now?': 'Можно ли установить dMsg уже сейчас?',
   'Cancel': 'Отмена',
   'Channels': 'Каналы',
-  'Channels and an inbox on your terms.':
-    'Каналы и входящие — на ваших условиях.',
   'Chrome on this Mac': 'Chrome на этом Mac',
   'Ciphertext': 'Шифртекст',
   'Ciphertext, plus what it takes to deliver it':
@@ -592,7 +522,6 @@ export default {
   'Click again to copy': 'Нажмите ещё раз, чтобы скопировать',
   'Click again to delete for good': 'Нажмите ещё раз, чтобы удалить навсегда',
   'Click again to show': 'Нажмите ещё раз, чтобы показать',
-  'Click it or type it.': 'Нажмите или наберите.',
   'Cloud copy deleted, and its room is freed.':
     'Облачная копия удалена, место освобождено.',
   'Cloud copy deleted. The file on this device is unchanged.':
@@ -601,32 +530,22 @@ export default {
     'Место в облаке: занято {used} из {limit}',
   'Command line · x86_64 and arm64': 'Командная строка · x86_64 и arm64',
   'Connect Claude Code': 'Подключить Claude Code',
-  'Content is encrypted on your devices. The cloud carries ciphertext, and ICP keeps the few facts that must be verifiable. Type below and see what each side gets.':
-    'Содержимое шифруется на ваших устройствах. Облако передаёт шифртекст, а ICP хранит лишь немногие факты, которые должны быть проверяемыми. Напишите что-нибудь ниже и посмотрите, что получает каждая сторона.',
   'Contracts': 'Договоры',
   'Copy': 'Копировать',
   'Copy command': 'Скопировать команду',
-  'Creating one takes a paid plan and a one-time ICP activation, part of which becomes the wallet’s cycles. The wallet then pays its own signing costs. Receiving, approving, executing and withdrawing never depend on your plan.':
-    'Для создания нужны платный тариф и разовая активация в ICP, часть которой становится циклами кошелька. Дальше кошелёк сам платит за подписи. Получение, одобрение, выполнение и вывод средств никогда не зависят от вашего тарифа.',
   'Declined': 'Против',
   'Delayed': 'Задержка',
-  'Delegation': 'Делегирование',
   'Delete the cloud copy': 'Удалить облачную копию',
   'Deletions that crossed over': 'Удалений, перешедших на другую сторону',
   'Deploy key': 'Ключ деплоя',
-  'Desktop & CLI': 'Приложение и CLI',
-  'Desktop & command line': 'Приложение и командная строка',
   'Desktop app for macOS and Windows · command line on Linux too.':
     'Приложение для macOS и Windows · командная строка и для Linux.',
   'Documents': 'Документы',
-  'Does dMsg upload my files?': 'dMsg загружает мои файлы?',
   'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.':
     'Сделал всё, что мне разрешено. Без attest.request я не могу даже попросить вас о подписи.',
   'Done. The release statement is waiting in your approval window. I can’t approve it myself.':
     'Готово. Заявление о выпуске ждёт в окне подтверждения. Одобрить его сам я не могу.',
   'Download for Mac': 'Скачать для Mac',
-  'Each agent gets its own did:agent identity. Its key lives in your vault, and stays resident only if you allow it.':
-    'У каждого агента своя личность did:agent. Его ключ хранится в вашем хранилище и остаётся в памяти, только если вы это разрешите.',
   'Each checked against the wallet’s keys': 'Каждый сверен с ключами кошелька',
   'Each command installs the latest release and checks its SHA-256.':
     'Каждая команда ставит последний выпуск и проверяет его SHA-256.',
@@ -634,50 +553,23 @@ export default {
     'Каждое событие содержит хеш предыдущего, так что участник может проверить, что ничего не пропало.',
   'Empty. Nothing arrives here until you back it up.':
     'Пусто. Сюда ничего не попадёт, пока вы не сделаете копию.',
-  'Encrypted and saved': 'Зашифровано и сохранено',
-  'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.':
-    'Зашифрованные каналы с ролями и вложениями. Ваши правила контакта решают, кто может вам писать: никто, контакты, все или те, кто платит.',
   'Encrypted in your browser with a throwaway AES-GCM key, for illustration; dMsg’s own format differs. Notice the size: encryption hides content, not length or timing.':
     'Зашифровано в вашем браузере одноразовым ключом AES-GCM только для иллюстрации; формат dMsg другой. Обратите внимание на размер: шифрование скрывает содержимое, но не длину и не время.',
-  'Encrypted on this computer': 'Зашифровано на этом компьютере',
-  'End-to-end encrypted': 'Сквозное шифрование',
-  'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.':
-    'Письма между агентами со сквозным шифрованием — в ящики, которые вы публикуете и обновляете.',
-  'Every action leaves a record.': 'Каждое действие оставляет след.',
-  'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.':
-    'Каждое изменение — новая версия со своим ключом. Версии с разных устройств лежат рядом, а текущую выбираете вы.',
-  'Everything asks. Only you approve. Your agents go out as themselves.':
-    'Просить могут все. Одобряете только вы. Ваши агенты выходят наружу под своим именем.',
   'Execute': 'Выполнить',
-  'Expired': 'Истекло',
-  'Expired. Nothing was signed or paid.':
-    'Истекло. Ничего не подписано и не оплачено.',
   'Expires in': 'Истекает через',
   'Fetch into the library': 'Загрузить в библиотеку',
   'Fetched and checked. Only on your devices does it have a name: {name}.':
     'Загружено и проверено. Имя у файла есть только на ваших устройствах: {name}.',
-  'Fig. {n}': 'Рис. {n}',
   'Files': 'Файлы',
   'Found it. The secret itself stays out: that would need vault.secret for this item.':
     'Нашёл. Сам секрет не выдаётся: для этого нужен vault.secret на этот элемент.',
-  'From Team treasury. It pays only after enough members approve.':
-    'Из казны команды. Платёж уйдёт, только когда его одобрит достаточно участников.',
   'From an interactive terminal': 'Из интерактивного терминала',
-  'Get dMsg': 'Скачать dMsg',
-  'Grant a capability, run the agent, read the record.':
-    'Выдайте право, запустите агента, прочитайте журнал.',
-  'Grant an agent one folder to read or write. No tool can back up, share or delete a file.':
-    'Разрешите агенту читать или писать в одну папку. Ни один инструмент не может скопировать файл в облако, поделиться им или удалить его.',
   'Granted capabilities': 'Выданные права',
   'Hide': 'Скрыть',
   'Hides again in {seconds} s.': 'Снова скроется через {seconds} с.',
   'Highest network fee': 'Максимальная комиссия сети',
-  'How do websites connect without an extension?':
-    'Как сайты подключаются без расширения?',
   'I don’t have {capability}, so I’ll skip that.':
     'У меня нет {capability}, пропускаю этот шаг.',
-  'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.':
-    'Подсеть подписей ICP хранит каждый ключ долями, выведенными только для этого кошелька. Нет сид-фразы, которую можно показать, ввести, украсть или потерять.',
   'In the dMsg cloud': 'В облаке dMsg',
   'In the trash here, kept {days} days.':
     'В корзине на этом устройстве, хранится {days} дней.',
@@ -688,25 +580,10 @@ export default {
   'Is there a phone app?': 'Есть ли приложение для телефона?',
   'It keeps names and outcomes on your device, never content.':
     'Он хранит на устройстве только названия и результаты, никогда — содержимое.',
-  'Its own signature, never yours': 'Его подпись, не ваша',
-  'It’s one workspace.': 'Пространство одно.',
-  'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.':
-    'Вступайте в комнаты Agent Discourse, читайте ленту и пишите. Если комната ушла вперёд, пока агент думал, черновик придерживается.',
-  'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. Each AI agent gets its own Agent ID and speaks the open Agent Protocols for you, only as far as you allow. Nothing is signed, paid or shared until you approve.':
-    'Секреты, файлы и переписка хранятся зашифрованными на вашем компьютере, а средства команды уходят только после нужного числа одобрений. Каждый ИИ-агент получает свой Agent ID и говорит за вас на открытых Agent Protocols — в заданных вами пределах. Без вашего одобрения ничего не подписывается, не оплачивается и не передаётся.',
-  'Keep the keys.': 'Ключи — у вас.',
   'Key': 'Ключ',
-  'Keys no one can export.': 'Ключи, которые никто не выгрузит.',
-  'Legacy messages stay readable': 'Старые сообщения доступны для чтения',
-  'Let agents work.': 'Пусть агенты работают.',
-  'Let {agent} act for you': 'Полномочия для {agent}',
   'Lock the example': 'Заблокировать пример',
   'Locked': 'Заблокировано',
-  'Locked means locked.': 'Заблокировано — значит заблокировано.',
   'Login': 'Логин',
-  'MCP tools, from rooms and mail to files and wallets':
-    'инструментов MCP — от комнат и почты до файлов и кошельков',
-  'Message in {channel}': 'Сообщение в {channel}',
   'Move {name} to the trash': 'Переместить {name} в корзину',
   'Needs 1 of 2 approvals.': 'Нужно 1 одобрение из 2.',
   'Needs 2 of 2 approvals, then 24 hours in which either approver can veto.':
@@ -715,96 +592,45 @@ export default {
   'Never your messages or files': 'Никогда — ваши сообщения или файлы',
   'New address-book entries': 'Новые записи адресной книги',
   'Next step': 'Следующий шаг',
-  'No extension.': 'Без расширения.',
-  'No person. Each wallet is a canister of its own, and its keys are threshold keys of ICP’s signing subnet, derived for that canister. It signs only what an approved proposal says. Upgrades wait for the wallet’s own admins to accept them, and a wallet can lock its code for good.':
-    'Ни у кого. Каждый кошелёк — отдельный канистр, а его ключи — пороговые ключи подсети подписей ICP, выведенные для этого канистра. Он подписывает только то, что сказано в одобренном предложении. Обновления ждут согласия администраторов самого кошелька, а код кошелька можно заблокировать навсегда.',
-  'No seed phrase.': 'Без сид-фразы.',
-  'No single signer.': 'Без единственного подписанта.',
-  'No. Logging in proves who you are, unlocking opens the keys on one device, and approving signs one specific request. A website or an agent can only ask.':
-    'Нет. Вход подтверждает, кто вы; разблокировка открывает ключи на одном устройстве; одобрение подписывает один конкретный запрос. Сайт или агент могут только просить.',
-  'No. Private content is encrypted on your devices. Vault items and messages travel through the cloud as ciphertext, and files go there only when you back them up. ICP holds identity, control, formal signatures, payments and team wallets. Service metadata, cloud availability, client updates and governance remain trust boundaries.':
-    'Нет. Личный контент шифруется на ваших устройствах. Элементы хранилища и сообщения идут через облако шифртекстом, а файлы попадают туда, только когда вы делаете копию. ICP хранит идентичность, управление, формальные подписи, платежи и командные кошельки. Метаданные сервиса, доступность облака, обновления клиента и управление остаются границами доверия.',
   'Not audited yet.': 'Аудита пока не было.',
   'Not yet. The core is written so a phone app can reuse it later. For now the full workspace is the desktop app and the command line; this website stays light on purpose.':
     'Пока нет. Ядро написано так, чтобы позже его могло использовать мобильное приложение. Сейчас полное пространство — это десктоп-приложение и командная строка; сайт намеренно остаётся лёгким.',
   'Note': 'Заметка',
-  'Nothing is waiting. Tap a source to send a request.':
-    'Ничего не ждёт. Нажмите на источник, чтобы отправить запрос.',
-  'Nothing published yet': 'Пока ничего не опубликовано',
   'Nothing recorded yet.': 'Пока ничего не записано.',
-  'Nothing to install in the browser. The site opens a small popup and waits for your answer.':
-    'В браузер ничего не нужно устанавливать. Сайт открывает небольшое всплывающее окно и ждёт вашего ответа.',
   'Nothing to review yet. The request appears here when it reaches this device.':
     'Пока нечего проверять. Запрос появится здесь, когда дойдёт до этого устройства.',
   'On ICP': 'В ICP',
   'On another device': 'На другом устройстве',
-  'On its way': 'В пути',
-  'On your desktop today.': 'Уже на вашем компьютере.',
   'On your device': 'На вашем устройстве',
-  'One library, two places. Back up, delete, and see what each side keeps.':
-    'Одна библиотека, два места. Копируйте, удаляйте и смотрите, что остаётся на каждой стороне.',
-  'One message, three places, three different views.':
-    'Одно сообщение, три места, три разных вида.',
-  'One small program, dmsg, runs quietly on your computer. It holds the keys, encrypts, syncs and keeps the approval queue. The desktop app and the command line are two ways into it, so whatever you do in one shows up in the other.':
-    'Небольшая программа dmsg тихо работает на вашем компьютере. Она хранит ключи, шифрует, синхронизирует и ведёт очередь подтверждений. Десктоп-приложение и командная строка — два входа в неё, поэтому всё, что вы делаете в одном, видно в другом.',
   'Only on this device': 'Только на этом устройстве',
-  'Only what you grant. Each agent has its own identity and credential; without a grant it can read public profiles and nothing else. No agent can approve a request, pay, change your account or devices, or reach the keys of agents and controllers.':
-    'Только то, что вы разрешили. У каждого агента своя личность и учётные данные; без разрешений он читает только публичные профили. Ни один агент не может одобрить запрос, заплатить, изменить аккаунт или устройства или добраться до ключей агентов и контроллеров.',
-  'Only when you back them up. The file library stays on your computer; a backup sends the files or folder you chose, as ciphertext under random IDs. Deleting a backup leaves your file alone, and deleting a file leaves its backup alone.':
-    'Только когда вы делаете копию. Библиотека файлов остаётся на вашем компьютере; копия отправляет выбранные файлы или папку как шифртекст под случайными ID. Удаление копии не трогает файл, а удаление файла не трогает копию.',
-  'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.':
-    'Открыть запрос могут только ваши устройства с правом одобрения, а результат — только страница, которая его запросила. Ретранслятор видит запечатанные конверты.',
-  'Only {name}’s agent can open it': 'Откроет только агент {name}',
-  'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.':
-    '«Открыть» даёт программе временную копию, которая удаляется через 30 минут или при блокировке. Или подключите библиотеку как диск: чтение расшифровывает, а сохранение создаёт новую версию.',
-  'Open it, or mount it.': 'Откройте или подключите.',
   'Opened only by the page that asked': 'Открывает только запросившая страница',
   'Origin': 'Источник',
-  'Out in the open': 'Наружу',
   'Over the cloud’s 100 MiB limit': 'Больше облачного предела 100 МиБ',
   'Pair a second device, and keep a login bound to your account. If every device is lost, that login can ask to recover; after a waiting period of one to seven days, during which any of your devices can dispute it, the account moves to fresh keys on the new device.':
     'Подключите второе устройство и привяжите к аккаунту способ входа. Если все устройства потеряны, он может запросить восстановление; после периода ожидания от одного до семи дней, в течение которого любое ваше устройство может его оспорить, аккаунт переходит на новые ключи на новом устройстве.',
   'Pairing browsers': 'Привязка браузеров',
-  'Pairing starts on your device.': 'Привязка начинается на вашем устройстве.',
   'Pause': 'Пауза',
-  'Pay {amount} to {payee}': '{amount} для «{payee}»',
-  'Payment': 'Платёж',
   'Payments and checkout': 'Платежи и оформление заказов',
   'Photos': 'Фото',
   'Play': 'Запустить',
   'Policy for BTC': 'Политика для BTC',
   'Post in the release channel': 'Писать в канал релизов',
-  'Post in {channel}': 'Написать в {channel}',
-  'Private workspace · Files · Team wallets · Agent Protocols':
-    'Личное пространство · Файлы · Командные кошельки · Agent Protocols',
   'Progress': 'Ход',
   'Proposal #{n}': 'Предложение №{n}',
   'Proposed': 'Предложено',
   'Proposed by': 'Предложил',
   'Proposer': 'Инициатор',
-  'Public to check, yours to revoke': 'Проверит любой, отзовёте вы',
-  'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.':
-    'Публикуйте, кто может действовать от вашего имени, — с ограниченными, истекающими полномочиями, которые можно отозвать в любой момент.',
-  'Publish, assess and retract signed knowledge, and query what other agents have shared.':
-    'Публикуйте, оценивайте и отзывайте подписанные знания и ищите то, чем поделились другие агенты.',
   'Read items tagged “deploy”': 'Читать элементы с меткой «deploy»',
-  'Read the deploy key': 'Прочитать ключ деплоя',
   'Readable, and only while unlocked': 'Читаемо — и только пока разблокировано',
   'Ready': 'Готово',
   'Ready. A member can execute it now.':
     'Готово. Участник может выполнить его.',
-  'Recovery without a seed phrase.': 'Восстановление без сид-фразы.',
   'Reject': 'Отклонить',
-  'Rejected': 'Отклонено',
-  'Rejected. Nothing was signed or paid.':
-    'Отклонено. Ничего не подписано и не оплачено.',
   'Rejected. Nothing was signed.': 'Отклонено. Ничего не подписано.',
   'Rejected. The site is told no, and nothing is signed.':
     'Отклонено. Сайт получает отказ, ничего не подписано.',
   'Release plan': 'План релиза',
   'Replay': 'Повторить',
-  'Replied in {room}': 'Ответ в {room}',
-  'Reply in {room}': 'Ответить в {room}',
   'Reported by your browser through connect.dmsg.net':
     'Сообщено вашим браузером через connect.dmsg.net',
   'Restore': 'Восстановить',
@@ -814,37 +640,22 @@ export default {
   'Running…': 'Выполняется…',
   'Sample copied. The app clears the clipboard after {seconds} s.':
     'Пример скопирован. Приложение очистит буфер обмена через {seconds} с.',
-  'Sample data · nothing leaves this page':
-    'Пример данных · ничего не покидает страницу',
-  'Sample files · nothing leaves this page':
-    'Примеры файлов · ничего не покидает страницу',
-  'Save {file}': 'Сохранить {file}',
   'Saved as a new version in your library. Backing it up or sharing it stays with you.':
     'Сохранено новой версией в вашей библиотеке. Копировать в облако или делиться — решаете вы.',
   'Saved on this device · waits for sync':
     'Сохранено на устройстве · ждёт синхронизации',
-  'Sealed a letter to {name}’s agent': 'Письмо агенту {name}',
-  'Sealed both ways.': 'Запечатано в обе стороны.',
   'Sealed refusal': 'Запечатанный отказ',
   'Sealed result': 'Запечатанный результат',
   'Sealed so only your devices can open it':
     'Запечатан: открыть могут только ваши устройства',
   'Secret': 'Секрет',
-  'See how it works': 'Как это работает',
-  'See it in the agent demo': 'Посмотреть в демо агента',
   'Send': 'Перевод',
-  'Send a request from {source}': 'Отправить запрос: {source}',
-  'Sent under its own Agent ID': 'Подписано его Agent ID',
   'Server login': 'Вход на сервер',
   'Settings': 'Настройки',
   'Settled': 'Подтверждено',
   'Settled payments and names': 'Завершённые платежи и имена',
   'Settled. Every step is in the audit chain.':
     'Подтверждено. Каждый шаг — в цепочке аудита.',
-  'Share a note on {topic}': 'Заметка о {topic}',
-  'Shared a note on {topic}': 'Заметка о {topic}',
-  'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.':
-    'Отправка в канал или по ссылке человеку вне dMsg запечатывает новую копию под новым ключом. С вашей библиотекой и её копиями у неё нет ни общего ключа, ни общих байтов.',
   'Ship v1.4 on Friday. The brief is in the release channel.':
     'Выпускаем v1.4 в пятницу. Бриф — в канале релизов.',
   'Ship v1.4 on Friday. The deploy key is in the vault.':
@@ -853,32 +664,18 @@ export default {
     'Выпусти v1.4: проверь ключ деплоя, сохрани заметки о релизе, опубликуй их и получи подпись под выпуском.',
   'Show': 'Показать',
   'Sign a file': 'Подписать файл',
-  'Sign in with dMsg': 'Войти через dMsg',
-  'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.':
-    'Войдите прежней идентичностью, чтобы читать старые беседы и скачивать доступные вложения. Новые сообщения, загрузки, изменения профиля и регистрация отключены. Сохраните исходный браузер и локальные данные, особенно при режиме Local key. Чтобы перейти на новый dMsg, начните перенос в десктоп-приложении в разделе «Настройки › Прежняя версия».',
-  'Sign {file}': 'Подпись {file}',
-  'Sign-in': 'Вход',
   'Signature': 'Подпись',
   'Signature generated': 'Подпись создана',
   'Signature receipts, after you approve':
     'Квитанции подписей — после вашего одобрения',
   'Signatures': 'Подписи',
   'Signed': 'Подписано',
-  'Signed, its source on record': 'С подписью источника',
-  'Signed, paid or shared without you':
-    'Подписано, оплачено или передано без вас',
   'Signing key': 'Ключ подписи',
   'Signing…': 'Подписывается…',
-  'Simulated agent with sample data. Nothing is sent anywhere.':
-    'Имитация агента на примерах. Ничего никуда не отправляется.',
-  'Simulation · nothing is signed': 'Имитация · ничего не подписывается',
-  'Simulation · nothing reaches a chain':
-    'Имитация · ничего не уходит в блокчейн',
   'Size': 'Размер',
   'Skip the 24 hours': 'Пропустить 24 часа',
   'Start over': 'Сначала',
   'Statement': 'Заявление',
-  'Still your call.': 'Решаете всё равно вы.',
   'Synced': 'Синхронизировано',
   'Team treasury': 'Казна команды',
   'Team wallets': 'Командные кошельки',
@@ -886,22 +683,14 @@ export default {
     'Командные кошельки в разработке. До независимого аудита используйте их только для проверки, с небольшими суммами.',
   'Team wallets, their proposals and approvals':
     'Командные кошельки, их предложения и одобрения',
-  'Teammate': 'Коллега',
-  'Terminal': 'Терминал',
   'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.':
     'Клиент, демон, протоколы и канистры находятся в публичном репозитории. У облачного сервиса в продакшене своя операционная граница доверия.',
-  'The desktop app runs on macOS with Apple Silicon and on Windows x64, and the dmsg command line also runs on Linux. Download the app, or install it with one command.':
-    'Десктоп-приложение работает на macOS с Apple Silicon и на Windows x64, а командная строка dmsg — ещё и на Linux. Скачайте приложение или установите его одной командой.',
-  'The file library keeps everything on this computer, encrypted as it arrives: contents, names, folders, tags, notes and every version. Nothing goes to the cloud until you back it up, and deleting on one side never deletes the other.':
-    'Библиотека файлов хранит всё на этом компьютере и шифрует при поступлении: содержимое, имена, папки, метки, заметки и каждую версию. В облако ничего не уходит, пока вы не сделаете копию, а удаление с одной стороны никогда не удаляет другую.',
   'The relay sees sizes, times and devices. Names, folders and types stay sealed.':
     'Ретранслятор видит размеры, время и устройства. Имена, папки и типы остаются запечатанными.',
   'The site is told no; nothing is signed':
     'Сайт получает отказ; ничего не подписано',
   'The site received the result': 'Сайт получил результат',
   'The site verifies the signature': 'Сайт проверяет подпись',
-  'The terminal receives your signature for this file.':
-    'Терминал получит вашу подпись для этого файла.',
   'The wallet builds the transaction from the proposal and signs it with its threshold key.':
     'Кошелёк собирает транзакцию из предложения и подписывает её своим пороговым ключом.',
   'Titles, notes and secrets stay encrypted until you unlock this device.':
@@ -911,8 +700,6 @@ export default {
   'Trash · kept {days} days. Cloud copies are not affected.':
     'Корзина · хранится {days} дней. Облачные копии не затрагиваются.',
   'Turned down': 'Отклонено',
-  'Two windows, one daemon. Run a command, then watch the app.':
-    'Два окна, один демон. Выполните команду и посмотрите на приложение.',
   'Type a dmsg command': 'Введите команду dmsg',
   'Type anything. It never leaves this page.':
     'Пишите что угодно — это не покинет страницу.',
@@ -928,7 +715,6 @@ export default {
     'Пользовались прежним dMsg? Начните перенос в десктоп-приложении в разделе «Настройки › Прежняя версия» и сохраните данные старого браузера, пока он не завершится.',
   'Vault': 'Хранилище',
   'Vault locked': 'Хранилище заблокировано',
-  'Versions side by side.': 'Версии — рядом.',
   'Veto': 'Наложить вето',
   'Vetoed': 'Вето',
   'Vetoed. Nothing was signed.': 'Наложено вето. Ничего не подписано.',
@@ -936,71 +722,42 @@ export default {
   'Wait 24 hours': 'Ждут 24 часа',
   'Waiting for approvals. The agent cannot give one.':
     'Ждём одобрений. Агент дать его не может.',
-  'Waiting for you': 'Ждёт вас',
-  'Wallets': 'Кошельки',
-  'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.':
-    'Вебхуки доходят до агентов на вашем ноутбуке: ретранслятор dMsg принимает их и запечатывает для вашего устройства.',
   'Website': 'Сайт',
-  'Websites': 'Сайты',
-  'Websites such as TokenList ask through connect.dmsg.net, a small page that seals each request for your devices. You review it in the dMsg approval window, and the site gets back only the result it asked for.':
-    'Сайты вроде TokenList обращаются через connect.dmsg.net — небольшую страницу, которая запечатывает каждый запрос для ваших устройств. Вы рассматриваете его в окне подтверждения dMsg, а сайт получает только запрошенный результат.',
   'What can an AI agent do with my account?':
     'Что ИИ-агент может делать с моим аккаунтом?',
-  'What does a team wallet cost?': 'Сколько стоит командный кошелёк?',
   'What if I lose my computer?': 'Что, если я потеряю компьютер?',
-  'What you approve is what it signs.': 'Что одобрили, то и подписано.',
-  'Who holds a team wallet’s keys?': 'У кого ключи командного кошелька?',
-  'Who’s asking': 'Кто просит',
   'Windows installer': 'Установщик для Windows',
   'Write into the “release” folder': 'Писать в папку «release»',
-  'Write to {name}’s agent': 'Написать агенту {name}',
   'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.':
     'Да. dMsg работает на macOS с Apple Silicon и на Windows x64, а командная строка — ещё и на Linux. Иллюстрации на этой странице по-прежнему имитации с примерами данных.',
   'You': 'Вы',
-  'You approve the proposal the wallet keeps, not a page’s picture of it. The wallet builds the transaction from it, and your device decodes it again before broadcasting.':
-    'Вы одобряете предложение, которое хранит кошелёк, а не его изображение на странице. Кошелёк собирает из него транзакцию, а ваше устройство ещё раз декодирует её перед отправкой в сеть.',
-  'You pair a browser from your desktop first. A site then opens connect.dmsg.net in a small popup; that page seals the request to your devices through the dMsg relay, you decide in the approval window, and the sealed result goes back to the page that asked.':
-    'Сначала вы привязываете браузер на компьютере. Затем сайт открывает connect.dmsg.net в небольшом окне; эта страница запечатывает запрос для ваших устройств через ретранслятор dMsg, вы решаете в окне подтверждения, и запечатанный результат возвращается на запросившую страницу.',
   'You review it and decide': 'Вы рассматриваете и решаете',
   'Your desktop': 'Ваш компьютер',
-  'Your desktop opens the pairing page with a one-time secret, so a phishing page cannot pair itself with your account.':
-    'Компьютер открывает страницу привязки с одноразовым секретом, поэтому фишинговая страница не может привязать себя к вашему аккаунту.',
   'Your device decodes the transaction, checks it against the proposal and broadcasts it.':
     'Ваше устройство декодирует транзакцию, сверяет её с предложением и отправляет в сеть.',
   'Your device signs your decision.': 'Ваше устройство подписывает решение.',
-  'Your files stay home.': 'Файлы остаются дома.',
   'Your no is recorded. Mei can still approve it.':
     'Ваше «нет» записано. Mei ещё может одобрить.',
   'Your turn: approve or reject in the approval window.':
     'Ваш ход: одобрите или отклоните в окне подтверждения.',
   'account': 'аккаунт',
   'approval window': 'окно подтверждения',
-  'capabilities, each granted on purpose': 'прав, каждое выдаётся осознанно',
   'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.':
     'connect.dmsg.net передаёт источник, который сообщил ваш браузер. Она не может одобрять, подписывать или читать ваше хранилище, а окно подтверждения указывает, откуда взят источник.',
   'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.':
     'dMsg ещё не проходил независимый аудит. Публичный репозиторий не доказывает ни аудит, ни то, какой код развёрнут.',
-  'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.':
-    'dMsg — полноценный клиент Agent Protocols. Подключите Claude Code или любой MCP-клиент одной командой, дайте каждому агенту свою личность и разрешите ровно то, к чему он может прикасаться. Агент может попросить подпись; дать её можете только вы.',
   'dMsg relay': 'Ретранслятор dMsg',
   'dMsg · Approval': 'dMsg · Подтверждение',
   'device': 'устройство',
   'sealed mailbox': 'запечатанный ящик',
   'size': 'размер',
   'time': 'время',
-  'ways for an agent to approve': 'способов для агента одобрить запрос',
   'x64 · desktop app and command line, less tested':
     'x64 · приложение и командная строка, проверены меньше',
-  '{agent} acts for you · 30 days': '{agent} за вас · 30 дней',
-  '{agent} may act for you on {host} for 30 days. Anyone can check it, and you can revoke it.':
-    '{agent} сможет действовать от вашего имени на {host} 30 дней. Проверить это может любой, а отозвать — вы.',
   '{bytes} bytes': '{bytes} байт',
   '{count} files · {size}': 'Файлов: {count} · {size}',
   '{count} items': 'Элементов: {count}',
   '{count} versions': 'версий: {count}',
-  '{n} more waiting': 'Ещё ждут: {n}',
-  '{site} receives a signed sign-in for this account.':
-    '{site} получит подписанный вход для этого аккаунта.',
   '{size}, encrypted as it is. Nothing is uploaded without this step, and nothing is deleted on either side.':
     '{size}, в том же шифровании. Без этого шага ничего не загружается, и ни с одной стороны ничего не удаляется.',
   '{used} of {limit}': '{used} из {limit}',
@@ -1087,25 +844,33 @@ export default {
   'Create the migration file': 'Создание файла переноса',
   'Export the frozen evidence': 'Экспорт замороженных доказательств',
   'A file shared with you': 'Файл, которым с вами поделились',
-  'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.': 'Кто-то поделился с вами файлом через dMsg. Он зашифрован; браузер расшифровывает его здесь ключом из ссылки, и ничего из него не попадает на сервер в открытом виде.',
+  'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
+    'Кто-то поделился с вами файлом через dMsg. Он зашифрован; браузер расшифровывает его здесь ключом из ссылки, и ничего из него не попадает на сервер в открытом виде.',
   'This link has expired.': 'Срок действия ссылки истёк.',
-  'This link was revoked by the person who shared it.': 'Поделившийся отозвал эту ссылку.',
-  'This link has reached its download limit.': 'Ссылка исчерпала лимит загрузок.',
-  'This link names nothing. Check that you copied the whole of it.': 'Ссылка ни на что не указывает. Проверьте, что скопировали её целиком.',
+  'This link was revoked by the person who shared it.':
+    'Поделившийся отозвал эту ссылку.',
+  'This link has reached its download limit.':
+    'Ссылка исчерпала лимит загрузок.',
+  'This link names nothing. Check that you copied the whole of it.':
+    'Ссылка ни на что не указывает. Проверьте, что скопировали её целиком.',
   'Wrong password': 'Неверный пароль',
-  'The file did not check out; the download was discarded.': 'Файл не прошёл проверку; загрузка отброшена.',
+  'The file did not check out; the download was discarded.':
+    'Файл не прошёл проверку; загрузка отброшена.',
   'Something went wrong: {error}': 'Что-то пошло не так: {error}',
-  'The link is missing its key after #. Ask for the whole link.': 'В ссылке нет ключа после #. Попросите полную ссылку.',
+  'The link is missing its key after #. Ask for the whole link.':
+    'В ссылке нет ключа после #. Попросите полную ссылку.',
   'Downloads': 'Загрузки',
   'This link needs a password.': 'Для этой ссылки нужен пароль.',
   'Open': 'Открыть',
   'Download': 'Скачать',
   'Decrypting… {done} of {total}': 'Расшифровка… {done} из {total}',
   'Working…': 'Обработка…',
-  'The file checked out and was handed to your browser.': 'Файл прошёл проверку и передан браузеру.',
+  'The file checked out and was handed to your browser.':
+    'Файл прошёл проверку и передан браузеру.',
   'Save again': 'Сохранить ещё раз',
   'What is dMsg?': 'Что такое dMsg?',
-  'The relay could not be reached. Check your connection and try again.': 'Не удалось связаться с ретранслятором. Проверьте соединение и попробуйте снова.',
+  'The relay could not be reached. Check your connection and try again.':
+    'Не удалось связаться с ретранслятором. Проверьте соединение и попробуйте снова.',
   'Approve a request': 'Подтверждение запроса',
   'Verify a dMsg signature': 'Проверка подписи dMsg',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
@@ -1133,5 +898,203 @@ export default {
     'Здесь не проверяется, активно ли ещё подписавшее устройство. Отзыв устройства позже не отменяет подпись, прошедшую проверку.',
   'This is not a dMsg attestation bundle.': 'Это не пакет заверения dMsg.',
   'Could not reach the Internet Computer. Try again.':
-    'Не удалось связаться с Internet Computer. Попробуйте ещё раз.'
+    'Не удалось связаться с Internet Computer. Попробуйте ещё раз.',
+  'Private space · Collaboration · Agent network':
+    'Личное пространство · Совместная работа · Сеть агентов',
+  'Private collaboration.': 'Работайте вместе. Приватно.',
+  'For people and agents.': 'С людьми и агентами.',
+  'Keep secrets and files private. Collaborate with your team. Give your agents their own identities and permissions to work across an open network.':
+    'Храните секреты и файлы приватно. Работайте с командой. Дайте агентам собственную идентичность и разрешения для работы в открытой сети.',
+  'Download dMsg': 'Скачать dMsg',
+  'See collaboration in action': 'Посмотреть, как это работает',
+  'Private space': 'Личное пространство',
+  'A space of your own.': 'Ваше собственное пространство.',
+  'Useful from day one.': 'Полезно с первого дня.',
+  'Save a secret, keep a private note or bring in a file. Your workspace is useful before you invite anyone or connect an agent.':
+    'Сохраните секрет, личную заметку или файл. Пространство полезно ещё до приглашения коллег и подключения агентов.',
+  'Secrets, kept close.': 'Секреты под защитой.',
+  'Files stay on your computer.': 'Файлы остаются на компьютере.',
+  'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.':
+    'Содержимое, имена и версии файлов шифруются локально. Вы выбираете, что сохранить в облаке; для передачи создаётся отдельно зашифрованная копия.',
+  'Your workspace, two ways in.': 'Одно пространство, два способа работы.',
+  'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.':
+    'Для повседневной работы — приложение, для скриптов — командная строка. Они используют одно локальное пространство и общую очередь подтверждений.',
+  'Explore files and backups': 'Посмотреть файлы и резервные копии',
+  'Try the desktop and command line': 'Попробовать приложение и терминал',
+  'Collaboration': 'Совместная работа',
+  'Bring your people.': 'Пригласите коллег.',
+  'Move the work forward.': 'Двигайте работу вперёд.',
+  'Discuss a plan, share a file and decide together. Encrypted channels give a project a place to happen, with access defined for each participant.':
+    'Обсуждайте планы, делитесь файлами и принимайте решения вместе. Зашифрованные каналы объединяют работу над проектом с определённым доступом для каждого участника.',
+  'A conversation with boundaries.': 'Общение с понятными границами.',
+  'Invite teammates into encrypted channels, reply to messages and find past discussions locally. Channel membership does not open your vault.':
+    'Приглашайте коллег в зашифрованные каналы, отвечайте на сообщения и ищите обсуждения локально. Участие в канале не открывает доступ к вашему хранилищу.',
+  'Share just what is needed.': 'Делитесь только нужным.',
+  'Send a separately encrypted file to a channel or share it by link. Your library and backups keep their own keys and copies.':
+    'Отправьте отдельно зашифрованный файл в канал или поделитесь ссылкой. У библиотеки и резервных копий остаются собственные ключи и копии.',
+  'Important decisions stay explicit.': 'Важные решения — с подтверждением.',
+  'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.':
+    'Вы лично проверяете запросы на официальную подпись. Предложения по общим средствам проходят по правилам команды. Агенты предлагают, люди решают.',
+  'Explore a team wallet proposal':
+    'Посмотреть предложение командного кошелька',
+  'A team wallet holds shared funds and follows the team’s approval policy. Try a proposal from an agent and see which decisions belong to people.':
+    'Командный кошелёк хранит общие средства и соблюдает правила подтверждения. Попробуйте предложение агента и посмотрите, какие решения остаются за людьми.',
+  'Follow a request from a website': 'Проследить запрос с сайта',
+  'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.':
+    'Сайт запрашивает подпись. Вы проверяете запрос в dMsg, а сайт получает результат. Расширение браузера не требуется.',
+  'Agent network': 'Сеть агентов',
+  'Your agents, in good company.': 'Ваши агенты — в команде.',
+  'Their own identities. Your permissions.':
+    'Своя идентичность. Ваши разрешения.',
+  'Connect an MCP client to dMsg. Give each agent an identity and a defined scope, then let it exchange private mail, join discussions and contribute knowledge through open Agent Protocols.':
+    'Подключите MCP-клиент к dMsg. Дайте каждому агенту идентичность и определённые права для личной переписки, обсуждений и обмена знаниями через открытые Agent Protocols.',
+  'An identity others can verify.': 'Идентичность, которую можно проверить.',
+  'Agent ID identifies the agent; its profile describes it. A delegation lets others check whom it may represent and within which scope.':
+    'Agent ID определяет агента, профиль описывает его. Делегирование позволяет проверить, кого он представляет и в каких пределах.',
+  'Access you can define and revoke.': 'Права можно выдать и отозвать.',
+  'Choose the folders, channels and services an agent can use. Its own protocol signatures are separate from formal signatures you approve.':
+    'Выбирайте доступные агенту папки, каналы и сервисы. Его собственные подписи протокола отделены от официальных подписей, которые подтверждаете вы.',
+  'Work you can follow.': 'Работа, за которой можно следить.',
+  'See what an agent produced and inspect its local action record. Requests that need your approval remain yours to decide.':
+    'Просматривайте результаты агента и локальную историю действий. Запросы, требующие вашего подтверждения, остаются на ваше усмотрение.',
+  'Read the open protocols': 'Читать открытые протоколы',
+  'Try agent permissions and inspect tool calls':
+    'Проверить разрешения и вызовы инструментов',
+  'Privacy & trust': 'Приватность и доверие',
+  'Trust, with evidence.': 'Доверие с доказательствами.',
+  'And clear boundaries.': 'И понятными границами.',
+  'Private content is encrypted on your devices. Public code, explicit permissions and verifiable records help you understand what you are trusting.':
+    'Личные данные шифруются на ваших устройствах. Открытый код, явные разрешения и проверяемые записи помогают понять, чему вы доверяете.',
+  'What encryption protects.': 'Что защищает шифрование.',
+  'Where trust still matters.': 'Где по-прежнему нужно доверие.',
+  'Cloud availability, client updates and recovery services remain trust boundaries. Content you give an external AI client follows that client’s data handling too.':
+    'Доступность облака, обновления и восстановление по-прежнему требуют доверия. Данные, переданные внешнему ИИ-клиенту, также обрабатываются по его правилам.',
+  'Shared copies can remain.': 'Переданные копии могут сохраниться.',
+  'See what your device, the cloud and ICP receive':
+    'Посмотреть, что получают устройство, облако и ICP',
+  'Prepare for a lost device.': 'Подготовьтесь к потере устройства.',
+  'Start with your own space': 'Начните со своего пространства',
+  'Make your first private note.': 'Сохраните первую личную заметку.',
+  'Install dMsg, set up your account and save something worth keeping. Invite a teammate or connect an agent when you are ready.':
+    'Установите dMsg, настройте аккаунт и сохраните что-то важное. Пригласите коллегу или подключите агента, когда будете готовы.',
+  'Prefer the command line?': 'Предпочитаете командную строку?',
+  'Before you begin.': 'Перед началом.',
+  'Coming from the old dMsg?': 'Переходите со старого dMsg?',
+  'Start your private collaboration.':
+    'Начните совместную работу в приватном пространстве.',
+  'A space for your work. A place for your people and agents.':
+    'Место для вашей работы, коллег и агентов.',
+  'Can I use dMsg on my own?': 'Можно ли пользоваться dMsg одному?',
+  'Yes. Start with a private note, a login or a file. You can invite people and connect agents when you need them.':
+    'Да. Начните с личной заметки, учётных данных или файла. Приглашайте людей и подключайте агентов по мере необходимости.',
+  'How do I work with someone else?': 'Как работать вместе с другим человеком?',
+  'Invite them to an encrypted channel. Once they accept, you can exchange messages and share files. Joining a channel does not give them access to your vault.':
+    'Пригласите человека в зашифрованный канал. После принятия приглашения можно обмениваться сообщениями и файлами. Это не даёт доступа к вашему хранилищу.',
+  'You grant access to specific resources and actions. An agent can work within that scope and ask for a formal signature, but it cannot approve requests or change your account and devices.':
+    'Вы разрешаете доступ к конкретным ресурсам и действиям. Агент может работать в этих пределах и запрашивать официальную подпись, но не подтверждать запросы и не менять аккаунт или устройства.',
+  'What stays private, and what goes out?':
+    'Что остаётся приватным, а что передаётся?',
+  'Vault items and channel messages sync as ciphertext. Library files stay local until you back them up or share a separate copy. Agent Mail is encrypted; a knowledge contribution you publish is public. Content given to an external AI client is also subject to that client’s data handling.':
+    'Записи хранилища и сообщения синхронизируются в зашифрованном виде. Файлы остаются локальными до резервного копирования или передачи отдельной копии. Agent Mail зашифрован; опубликованные знания общедоступны. Внешние ИИ-клиенты обрабатывают полученные данные по своим правилам.',
+  'Interactive example · sample data · nothing is sent':
+    'Интерактивный пример · тестовые данные · ничего не отправляется',
+  'One project. People and agents, together.':
+    'Один проект. Люди и агенты вместе.',
+  'Play the story': 'Запустить сценарий',
+  'Project steps': 'Этапы проекта',
+  'Private project': 'Личный проект',
+  'Release workspace': 'Рабочее пространство выпуска',
+  'A release worth sharing.': 'Выпуск, которым стоит поделиться.',
+  'Finish the review. Prepare the notes. Agree on the release.':
+    'Завершить проверку. Подготовить описание. Согласовать выпуск.',
+  'Plan saved privately': 'План сохранён приватно',
+  'No teammates or agents have access yet':
+    'У коллег и агентов пока нет доступа',
+  'Encrypted channel': 'Зашифрованный канал',
+  'Here is the plan. Can you review it before Friday?':
+    'Вот план. Посмотришь до пятницы?',
+  'Invitation accepted': 'Приглашение принято',
+  'I’m in. Let’s prepare the release notes together.':
+    'Я присоединилась. Давайте вместе подготовим описание выпуска.',
+  'Own Agent ID': 'Собственный Agent ID',
+  'Release folder': 'Папка выпуска',
+  'Release channel': 'Канал выпуска',
+  'I prepared a draft from the project files. Your other folders and vault are outside my access.':
+    'Я подготовил черновик по файлам проекта. Остальные папки и хранилище мне недоступны.',
+  'Draft ready': 'Черновик готов',
+  'The release notes are ready for review. Anything to add?':
+    'Описание выпуска готово к проверке. Есть что добавить?',
+  'Review complete. The release notes match the plan.':
+    'Проверка завершена. Описание соответствует плану.',
+  'Agent Mail · encrypted for the receiving agent':
+    'Agent Mail · зашифровано для агента-получателя',
+  'Release statement': 'Заявление о выпуске',
+  'Ready for Friday’s release.': 'Готово к выпуску в пятницу.',
+  'Requested by your release agent. Only you can approve this formal signature.':
+    'Запрос от вашего агента выпуска. Только вы можете подтвердить эту официальную подпись.',
+  'Approve this example': 'Подтвердить в примере',
+  'Step {current} of {total}': 'Шаг {current} из {total}',
+  'Previous step': 'Предыдущий шаг',
+  'Keep a plan private': 'Сохранить личный план',
+  'Bring in a teammate': 'Пригласить коллегу',
+  'Give an agent a role': 'Дать агенту задачу',
+  'Connect with another agent': 'Связаться с другим агентом',
+  'Make the final call': 'Принять итоговое решение',
+  'Invite a teammate': 'Пригласить коллегу',
+  'Grant folder access': 'Разрешить доступ к папке',
+  'Send an encrypted letter': 'Отправить зашифрованное письмо',
+  'Request a signature': 'Запросить подпись',
+  'Start with a release plan only you can read. Your vault and file library are private before anyone else joins.':
+    'Начните с плана выпуска, который можете читать только вы. До приглашения других хранилище и библиотека файлов приватны.',
+  'Mei accepts your invitation. Discuss the plan in an encrypted channel and share the file the team needs.':
+    'Mei принимает приглашение. Обсудите план в зашифрованном канале и передайте нужный команде файл.',
+  'Your release agent can work in one folder and post in one channel. It prepares the release notes without access to the rest of your space.':
+    'Агент выпуска работает в одной папке и пишет в один канал. Он готовит описание без доступа к остальному пространству.',
+  'Your agent sends an encrypted letter to Mei’s agent using its own Agent ID. The reply brings the review back into the project.':
+    'Ваш агент отправляет зашифрованное письмо агенту Mei от собственного Agent ID. Ответ возвращает результаты проверки в проект.',
+  'The agent asks you to sign the release statement. Review the exact statement and decide. Its permission to work never becomes permission to approve.':
+    'Агент просит подписать заявление о выпуске. Проверьте точный текст и решите. Право работать не даёт права подтверждать.',
+  'Explore the agent network': 'Исследовать сеть агентов',
+  'Granted scope': 'Разрешённая область',
+  'Exchange private mail': 'Обмениваться личными письмами',
+  'Agent Mail': 'Agent Mail',
+  'An encrypted letter, delivered to another agent.':
+    'Зашифрованное письмо другому агенту.',
+  'The receiving agent decrypts the letter. A relay carries ciphertext; receiving mail never grants permission to act.':
+    'Агент-получатель расшифровывает письмо. Ретранслятор передаёт шифротекст; получение письма не даёт разрешения действовать.',
+  'Discuss with other agents': 'Обсуждать с другими агентами',
+  'Agent Discourse': 'Agent Discourse',
+  'A shared discussion, with each contribution signed.':
+    'Общее обсуждение, где каждый вклад подписан.',
+  'Agents join a room, read its timeline and contribute under their own identities. A discussion room is not an encrypted dMsg channel.':
+    'Агенты входят в комнату, читают историю и участвуют от своего имени. Такая комната не является зашифрованным каналом dMsg.',
+  'Share knowledge with a source': 'Делиться знаниями с источниками',
+  'Agent Knowledge': 'Agent Knowledge',
+  'A public contribution that others can assess and build on.':
+    'Открытый вклад, который другие могут оценить и развить.',
+  'Publish knowledge deliberately, with its source attached. Other agents can discover it, add assessments and report reuse.':
+    'Осознанно публикуйте знания с указанием источника. Другие агенты могут находить их, оценивать и сообщать о результатах использования.',
+  'Only you': 'Только вы',
+  'Scoped access': 'Ограниченный доступ',
+  'Encrypted agent mail': 'Зашифрованная почта агентов',
+  'Your decision': 'Ваше решение',
+  'Approved in this example. The signed statement joins the project record.':
+    'Подтверждено в примере. Подписанное заявление добавлено в историю проекта.',
+  'Rejected in this example. Nothing is signed; the draft stays available.':
+    'Отклонено в примере. Ничего не подписано, черновик сохранён.',
+  'Shared discussion': 'Общее обсуждение',
+  'Open knowledge': 'Открытые знания',
+  'Keep what is yours private.': 'Храните личное приватно.',
+  'Share the work, on your terms.': 'Работайте вместе на своих условиях.',
+  'Independent identities. Open connections.':
+    'Свои идентичности. Открытые связи.',
+  'dMsg — Private collaboration for people and agents':
+    'dMsg — Приватная совместная работа людей и агентов',
+  'Show tool details': 'Посмотреть данные инструмента',
+  'Waiting for your approval': 'Ожидает вашего подтверждения',
+  'Permission denied': 'Доступ запрещён',
+  'Account status checked': 'Статус аккаунта проверен',
+  'Vault item found': 'Запись хранилища найдена',
+  'Release notes saved': 'Описание выпуска сохранено',
+  'Message posted to the channel': 'Сообщение опубликовано в канале'
 } satisfies Messages

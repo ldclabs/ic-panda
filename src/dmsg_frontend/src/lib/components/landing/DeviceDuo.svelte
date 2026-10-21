@@ -3,7 +3,7 @@
   import { t, tr } from '$lib/i18n'
   import Glyph from './Glyph.svelte'
   import type { GlyphName } from './glyphs'
-  import { prefersReducedMotion, watchVisibility } from './motion'
+  import { prefersReducedMotion } from './motion'
 
   // One simulated daemon behind both panes, as on a real device.
   type Kind = 'api' | 'login' | 'note' | 'key'
@@ -465,25 +465,11 @@
     }
     const resize = new ResizeObserver(measure)
     resize.observe(root)
-    let started = false
-    const stop = watchVisibility(
-      root,
-      async (visible) => {
-        if (!visible || started) return
-        started = true
-        await sleep(500)
-        await type('dmsg status')
-        await sleep(700)
-        await type('dmsg vault list')
-      },
-      '-20% 0px'
-    )
     return () => {
       clearInterval(timer)
       clearTimeout(flowTimer)
       clearTimeout(armTimer)
       resize.disconnect()
-      stop()
     }
   })
 </script>

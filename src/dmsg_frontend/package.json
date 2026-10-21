@@ -80,6 +80,7 @@
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss,svelte}\"",
     "ncu": "npx npm-check-updates -u",
     "preview": "vite preview",
+    "social-card": "node scripts/social-card.mjs",
     "setup": "npm i && icp deploy",
     "start": "vite dev --port 3000",
     "test": "node --test ../../scripts/signer-heartbeat.test.mjs && vitest run"

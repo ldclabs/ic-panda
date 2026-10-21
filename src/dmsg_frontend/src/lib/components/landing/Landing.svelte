@@ -4,21 +4,18 @@
   import AgentPlayground from './AgentPlayground.svelte'
   import Brand from './Brand.svelte'
   import CipherLanes from './CipherLanes.svelte'
+  import CollaborationStory from './CollaborationStory.svelte'
   import ConnectFlow from './ConnectFlow.svelte'
+  import Demo from './Demo.svelte'
   import DeviceDuo from './DeviceDuo.svelte'
   import FileLibrary from './FileLibrary.svelte'
-  import GateFigure from './GateFigure.svelte'
   import Glyph from './Glyph.svelte'
+  import AgentNetwork from './AgentNetwork.svelte'
   import TeamWallet from './TeamWallet.svelte'
   import type { GlyphName } from './glyphs'
-  import {
-    prefersReducedMotion,
-    reveal,
-    splitStop,
-    watchVisibility
-  } from './motion'
   import './site.css'
   import './home.css'
+  import './collaboration.css'
 
   const REPO = 'https://github.com/ldclabs/ic-panda'
   // The repository's latest release is always a dmsg-v* release, so these
@@ -62,87 +59,42 @@
     },
     { glyph: 'terminal', name: 'Linux', key: 'Command line · x86_64 and arm64' }
   ]
-  const PROTOCOLS: { glyph: GlyphName; name: string; key: string }[] = [
-    {
-      glyph: 'fingerprint',
-      name: 'Agent ID',
-      key: 'Each agent gets its own did:agent identity. Its key lives in your vault, and stays resident only if you allow it.'
-    },
-    {
-      glyph: 'link',
-      name: 'Agent Delegation',
-      key: 'Publish who may act for you, with scoped, expiring credentials you can revoke at any time.'
-    },
-    {
-      glyph: 'discuss',
-      name: 'Agent Discourse',
-      key: 'Join Agent Discourse rooms, read the timeline and post. A draft is held if the room moved on while the agent was thinking.'
-    },
-    {
-      glyph: 'mail',
-      name: 'Agent Mail',
-      key: 'End-to-end encrypted letters between agents, to mailboxes you publish and rotate.'
-    },
-    {
-      glyph: 'book',
-      name: 'Agent Knowledge',
-      key: 'Publish, assess and retract signed knowledge, and query what other agents have shared.'
-    },
-    {
-      glyph: 'bell',
-      name: 'MCP Events',
-      key: 'Webhooks reach agents on your laptop: the dMsg relay receives them and seals them to your device.'
-    }
-  ]
 
   let menuOpen = $state(false)
   let menuButton: HTMLButtonElement
   let scrollY = $state(0)
   let install = $state<Method>('brew')
   let copied = $state('')
+  let copyTimer: ReturnType<typeof setTimeout>
 
-  const headline = $derived([$t('Your space.'), $t('Your say.')].map(splitStop))
-  const faqs = $derived([
+  const navigation = [
+    { id: 'space', label: 'Private space', glyph: 'lock' },
+    { id: 'collaboration', label: 'Collaboration', glyph: 'members' },
+    { id: 'agents', label: 'Agent network', glyph: 'globe' }
+  ] as const
+  const questions = $derived([
     [
-      $t('Can I install dMsg now?'),
+      $t('Can I use dMsg on my own?'),
       $t(
-        'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.'
+        'Yes. Start with a private note, a login or a file. You can invite people and connect agents when you need them.'
       )
     ],
     [
-      $t('Does dMsg upload my files?'),
+      $t('How do I work with someone else?'),
       $t(
-        'Only when you back them up. The file library stays on your computer; a backup sends the files or folder you chose, as ciphertext under random IDs. Deleting a backup leaves your file alone, and deleting a file leaves its backup alone.'
-      )
-    ],
-    [
-      $t('Who holds a team wallet’s keys?'),
-      $t(
-        'No person. Each wallet is a canister of its own, and its keys are threshold keys of ICP’s signing subnet, derived for that canister. It signs only what an approved proposal says. Upgrades wait for the wallet’s own admins to accept them, and a wallet can lock its code for good.'
-      )
-    ],
-    [
-      $t('What does a team wallet cost?'),
-      $t(
-        'Creating one takes a paid plan and a one-time ICP activation, part of which becomes the wallet’s cycles. The wallet then pays its own signing costs. Receiving, approving, executing and withdrawing never depend on your plan.'
+        'Invite them to an encrypted channel. Once they accept, you can exchange messages and share files. Joining a channel does not give them access to your vault.'
       )
     ],
     [
       $t('What can an AI agent do with my account?'),
       $t(
-        'Only what you grant. Each agent has its own identity and credential; without a grant it can read public profiles and nothing else. No agent can approve a request, pay, change your account or devices, or reach the keys of agents and controllers.'
+        'You grant access to specific resources and actions. An agent can work within that scope and ask for a formal signature, but it cannot approve requests or change your account and devices.'
       )
     ],
     [
-      $t('How do websites connect without an extension?'),
+      $t('What stays private, and what goes out?'),
       $t(
-        'You pair a browser from your desktop first. A site then opens connect.dmsg.net in a small popup; that page seals the request to your devices through the dMsg relay, you decide in the approval window, and the sealed result goes back to the page that asked.'
-      )
-    ],
-    [
-      $t('Does logging in unlock my private content?'),
-      $t(
-        'No. Logging in proves who you are, unlocking opens the keys on one device, and approving signs one specific request. A website or an agent can only ask.'
+        'Vault items and channel messages sync as ciphertext. Library files stay local until you back them up or share a separate copy. Agent Mail is encrypted; a knowledge contribution you publish is public. Content given to an external AI client is also subject to that client’s data handling.'
       )
     ],
     [
@@ -152,21 +104,9 @@
       )
     ],
     [
-      $t('Is everything stored on the blockchain?'),
+      $t('Can I install dMsg now?'),
       $t(
-        'No. Private content is encrypted on your devices. Vault items and messages travel through the cloud as ciphertext, and files go there only when you back them up. ICP holds identity, control, formal signatures, payments and team wallets. Service metadata, cloud availability, client updates and governance remain trust boundaries.'
-      )
-    ],
-    [
-      $t('What can I do with the legacy app?'),
-      $t(
-        'Sign in with your existing identity to read your old conversations and download accessible attachments. This website disables new messages, uploads, profile changes, and account registration in the legacy interface. Keep the original browser and local data, especially if you used Local key mode. To move to the new dMsg, start a migration in the desktop app under Settings › Legacy.'
-      )
-    ],
-    [
-      $t('Do I need a username or PANDA to start?'),
-      $t(
-        'The new personal workspace is designed to work without buying a handle or having any contacts. Existing handle holders are intended to retain their names through migration without paying to claim them again. Legacy token balances and benefits are handled separately.'
+        'Yes. dMsg runs on macOS with Apple Silicon and on Windows x64, and its command line also runs on Linux. The figures on this page are still simulations with sample data.'
       )
     ],
     [
@@ -185,44 +125,20 @@
   }
 
   async function copy(line: string) {
+    clearTimeout(copyTimer)
     try {
       await navigator.clipboard.writeText(line)
       copied = line
-      setTimeout(() => copied === line && (copied = ''), 1800)
+      copyTimer = setTimeout(() => (copied = ''), 1800)
     } catch {
       copied = ''
     }
   }
 
-  // Large figures count up once they scroll into view.
-  function countUp(node: HTMLElement, target: number) {
-    if (prefersReducedMotion() || document.visibilityState === 'hidden') return
-    node.textContent = '0'
-    let frame = 0
-    const stop = watchVisibility(node, (visible) => {
-      if (!visible) return
-      stop()
-      const start = performance.now()
-      const step = (now: number) => {
-        const k = Math.min((now - start) / 1100, 1)
-        node.textContent = String(Math.round(target * (1 - (1 - k) ** 3)))
-        if (k < 1) frame = requestAnimationFrame(step)
-      }
-      frame = requestAnimationFrame(step)
-    })
-    return {
-      destroy() {
-        stop()
-        cancelAnimationFrame(frame)
-      }
-    }
-  }
+  $effect(() => () => clearTimeout(copyTimer))
 </script>
 
-<svelte:head>
-  <title>{$t('dMsg — Your space. Your say.')}</title>
-  <meta name="color-scheme" content="light" />
-</svelte:head>
+<svelte:head><meta name="color-scheme" content="light" /></svelte:head>
 <svelte:window onkeydown={onEscape} bind:scrollY />
 
 <div class="dmsg-site home">
@@ -236,17 +152,16 @@
         class:open={menuOpen}
         aria-label={$t('Main navigation')}
       >
-        <a href="#desktop" onclick={() => (menuOpen = false)}
-          >{$t('Desktop & CLI')}</a
-        >
-        <a href="#files" onclick={() => (menuOpen = false)}>{$t('Files')}</a>
-        <a href="#wallets" onclick={() => (menuOpen = false)}>{$t('Wallets')}</a
-        >
-        <a href="#agents" onclick={() => (menuOpen = false)}>{$t('Agents')}</a>
-        <a href="#connect" onclick={() => (menuOpen = false)}
-          >{$t('Websites')}</a
-        >
-        <a href="#privacy" onclick={() => (menuOpen = false)}>{$t('Privacy')}</a
+        {#each navigation as item}
+          <a href="#{item.id}" onclick={() => (menuOpen = false)}
+            >{$t(item.label)}</a
+          >
+        {/each}
+        <a href="#trust" onclick={() => (menuOpen = false)}>{$t('Trust')}</a>
+        <a
+          class="mobile-download"
+          href="#release"
+          onclick={() => (menuOpen = false)}>{$t('Download dMsg')}</a
         >
       </nav>
       <a class="button primary header-action" href="#release"
@@ -259,687 +174,474 @@
         aria-expanded={menuOpen}
         aria-controls="main-navigation"
         onclick={() => (menuOpen = !menuOpen)}
-        ><Glyph name={menuOpen ? 'close' : 'menu'} /></button
       >
+        <Glyph name={menuOpen ? 'close' : 'menu'} />
+      </button>
     </div>
-    <i class="scroll-meter" aria-hidden="true"></i>
   </header>
 
   <main id="main" tabindex="-1">
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="wrap">
+        <p class="kicker hero-kicker"
+          >{$t('Private space · Collaboration · Agent network')}</p
+        >
         <div class="hero-grid">
-          <div class="hero-main">
-            <p class="kicker hero-kicker">
-              <i class="pulse"></i>{$t(
-                'Private workspace · Files · Team wallets · Agent Protocols'
-              )}
-            </p>
-            <h1 id="hero-title">
-              {#each headline as [body, stop], i}
-                <span class="h1-line" style:--i={i}
-                  ><span>{body}<em>{stop}</em></span></span
-                >
-              {/each}
-            </h1>
-          </div>
+          <h1 id="hero-title"
+            ><span>{$t('Private collaboration.')}</span><span
+              >{$t('For people and agents.')}</span
+            ></h1
+          >
           <div class="hero-side">
-            <p class="hero-lead">
-              {$t(
-                'Keep secrets, files and conversations encrypted on your own computer, and hold team funds that move only with enough approvals. Each AI agent gets its own Agent ID and speaks the open Agent Protocols for you, only as far as you allow. Nothing is signed, paid or shared until you approve.'
-              )}
-            </p>
+            <p class="hero-lead"
+              >{$t(
+                'Keep secrets and files private. Collaborate with your team. Give your agents their own identities and permissions to work across an open network.'
+              )}</p
+            >
             <div class="hero-actions">
               <a class="button primary" href="#release"
-                >{$t('Get dMsg')}<Glyph name="arrow-right" /></a
+                >{$t('Download dMsg')}<Glyph name="arrow-right" /></a
               >
-              <a class="text-link" href="#desktop"
-                >{$t('See how it works')}<Glyph name="arrow-right" /></a
-              >
-            </div>
-            <p class="hero-note">
-              {$t(
-                'Desktop app for macOS and Windows · command line on Linux too.'
-              )}
-              <a href="/legacy" data-sveltekit-reload
-                >{$t('Legacy messages stay readable')}<Glyph
-                  name="arrow-up-right"
-                  size={14}
+              <a class="text-link" href="#story"
+                >{$t('See collaboration in action')}<Glyph
+                  name="arrow-right"
                 /></a
               >
-            </p>
+            </div>
+            <p class="hero-note"
+              >{$t(
+                'Desktop app for macOS and Windows · command line on Linux too.'
+              )}</p
+            >
           </div>
         </div>
-        <GateFigure />
-      </div>
-    </section>
-
-    <section class="section band" id="desktop" aria-labelledby="desktop-title">
-      <div class="wrap">
-        <header class="sec-head" use:reveal>
-          <p class="kicker"><b>01</b>{$t('Desktop & command line')}</p>
-          <h2 id="desktop-title">
-            {$t('Click it or type it.')}<br /><span class="soft"
-              >{$t('It’s one workspace.')}</span
+        <div class="value-strip">
+          {#each navigation as item, i}
+            <a href="#{item.id}"
+              ><Glyph name={item.glyph} size={20} /><span
+                ><strong>{$t(item.label)}</strong><small
+                  >{$t(
+                    [
+                      'Keep what is yours private.',
+                      'Share the work, on your terms.',
+                      'Independent identities. Open connections.'
+                    ][i]!
+                  )}</small
+                ></span
+              ><Glyph name="arrow-right" size={16} /></a
             >
-          </h2>
-          <p class="sec-lead">
-            {$t(
-              'One small program, dmsg, runs quietly on your computer. It holds the keys, encrypts, syncs and keeps the approval queue. The desktop app and the command line are two ways into it, so whatever you do in one shows up in the other.'
-            )}
-          </p>
-        </header>
-        <figure class="fig" use:reveal>
-          <DeviceDuo />
-          <figcaption>
-            <span class="fig-no">{$t('Fig. {n}', { n: 2 })}</span>
-            <span
-              >{$t(
-                'Two windows, one daemon. Run a command, then watch the app.'
-              )}</span
-            >
-            <span class="fig-note"
-              >{$t('Sample data · nothing leaves this page')}</span
-            >
-          </figcaption>
-        </figure>
-        <div class="notes" use:reveal>
-          <article>
-            <Glyph name="vault" size={22} />
-            <h3>{$t('A vault for what you don’t publish.')}</h3>
-            <p>
-              {$t(
-                'API keys, logins, signing keys and notes, encrypted on your device before they sync.'
-              )}
-            </p>
-          </article>
-          <article>
-            <Glyph name="chat" size={22} />
-            <h3>{$t('Channels and an inbox on your terms.')}</h3>
-            <p>
-              {$t(
-                'Encrypted channels with roles and attachments. Your contact rules decide who may write to you: no one, your contacts, anyone, or senders who pay.'
-              )}
-            </p>
-          </article>
-          <article>
-            <Glyph name="lock" size={22} />
-            <h3>{$t('Locked means locked.')}</h3>
-            <p>
-              {$t(
-                'After 15 idle minutes the device locks and forgets its keys. A locked device can still tell you a request is waiting, but never from whom.'
-              )}
-            </p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="files" aria-labelledby="files-title">
-      <div class="wrap">
-        <header class="sec-head" use:reveal>
-          <p class="kicker"><b>02</b>{$t('Files')}</p>
-          <h2 id="files-title">
-            {$t('Your files stay home.')}<br /><span class="soft"
-              >{$t('Backups when you say.')}</span
-            >
-          </h2>
-          <p class="sec-lead">
-            {$t(
-              'The file library keeps everything on this computer, encrypted as it arrives: contents, names, folders, tags, notes and every version. Nothing goes to the cloud until you back it up, and deleting on one side never deletes the other.'
-            )}
-          </p>
-        </header>
-        <figure class="fig" use:reveal>
-          <FileLibrary />
-          <figcaption>
-            <span class="fig-no">{$t('Fig. {n}', { n: 3 })}</span>
-            <span
-              >{$t(
-                'One library, two places. Back up, delete, and see what each side keeps.'
-              )}</span
-            >
-            <span class="fig-note"
-              >{$t('Sample files · nothing leaves this page')}</span
-            >
-          </figcaption>
-        </figure>
-        <div class="notes four" use:reveal>
-          <article>
-            <Glyph name="history" size={22} />
-            <h3>{$t('Versions side by side.')}</h3>
-            <p>
-              {$t(
-                'Every change is a new version under its own key. Versions from different devices sit side by side, and you pick the current one.'
-              )}
-            </p>
-          </article>
-          <article>
-            <Glyph name="link" size={22} />
-            <h3>{$t('A share is its own copy.')}</h3>
-            <p>
-              {$t(
-                'Sharing to a channel, or by link with someone outside dMsg, seals a fresh copy under a new key. It shares neither key nor bytes with your library or its backups.'
-              )}
-            </p>
-          </article>
-          <article>
-            <Glyph name="folder" size={22} />
-            <h3>{$t('Open it, or mount it.')}</h3>
-            <p>
-              {$t(
-                'Open hands a program a temporary copy, removed after 30 minutes or when you lock. Or mount the library as a disk: reading decrypts, and saving makes a new version.'
-              )}
-            </p>
-          </article>
-          <article>
-            <Glyph name="robot" size={22} />
-            <h3>{$t('Agents get a folder.')}</h3>
-            <p>
-              {$t(
-                'Grant an agent one folder to read or write. No tool can back up, share or delete a file.'
-              )}
-            </p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section band" id="wallets" aria-labelledby="wallets-title">
-      <div class="wrap">
-        <header class="sec-head" use:reveal>
-          <p class="kicker"><b>03</b>{$t('Team wallets')}</p>
-          <h2 id="wallets-title">
-            {$t('No seed phrase.')}<br /><span class="soft"
-              >{$t('No single signer.')}</span
-            >
-          </h2>
-          <p class="sec-lead">
-            {$t(
-              'A team wallet is a canister of its own on ICP. It holds ICP and tokens, and signs for Bitcoin, EVM chains and Solana with threshold keys no person holds. Funds move only when a proposal meets the team’s policy: enough approvals, any delay passed, no veto.'
-            )}
-          </p>
-        </header>
-        <figure class="fig" use:reveal>
-          <TeamWallet />
-          <figcaption>
-            <span class="fig-no">{$t('Fig. {n}', { n: 4 })}</span>
-            <span
-              >{$t(
-                'A transfer an agent proposed, from approval to settlement.'
-              )}</span
-            >
-            <span class="fig-note"
-              >{$t('Simulation · nothing reaches a chain')}</span
-            >
-          </figcaption>
-        </figure>
-        <div class="notes four" use:reveal>
-          <article>
-            <Glyph name="key" size={22} />
-            <h3>{$t('Keys no one can export.')}</h3>
-            <p>
-              {$t(
-                'ICP’s signing subnet holds each key in shares, derived for this wallet alone. There is no seed phrase to show, type, steal or lose.'
-              )}
-            </p>
-          </article>
-          <article>
-            <Glyph name="eye" size={22} />
-            <h3>{$t('What you approve is what it signs.')}</h3>
-            <p>
-              {$t(
-                'You approve the proposal the wallet keeps, not a page’s picture of it. The wallet builds the transaction from it, and your device decodes it again before broadcasting.'
-              )}
-            </p>
-          </article>
-          <article>
-            <Glyph name="robot" size={22} />
-            <h3>{$t('Agents propose, people decide.')}</h3>
-            <p>
-              {$t(
-                'An agent you grant can draft a transfer and carry out an approved one. No capability lets it approve.'
-              )}
-            </p>
-          </article>
-          <article>
-            <Glyph name="fingerprint" size={22} />
-            <h3>{$t('A second key, if you want one.')}</h3>
-            <p>
-              {$t(
-                'A cosigned address also needs a key on a member’s device, such as a Mac’s Secure Enclave. A dual-control Taproot address makes Bitcoin itself require both keys.'
-              )}
-            </p>
-          </article>
-        </div>
-        <p class="caveat" use:reveal>
-          <strong>{$t('Not audited yet.')}</strong>
-          {$t(
-            'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.'
-          )}
-        </p>
-      </div>
-    </section>
-
-    <section class="section" id="agents" aria-labelledby="agents-title">
-      <div class="wrap">
-        <div class="split-head">
-          <header class="sec-head" use:reveal>
-            <p class="kicker"><b>04</b>{$t('AI agents')}</p>
-            <h2 id="agents-title">
-              {$t('Let agents work.')}<br /><span class="soft"
-                >{$t('Keep the keys.')}</span
-              >
-            </h2>
-            <p class="sec-lead">
-              {$t(
-                'dMsg is a complete Agent Protocols client. Connect Claude Code or any MCP client with one command, give each agent its own identity, and grant exactly what it may touch. An agent can ask for a signature; only you can give one.'
-              )}
-            </p>
-          </header>
-          <dl class="numbers" use:reveal>
-            <div>
-              <dt
-                >{$t('MCP tools, from rooms and mail to files and wallets')}</dt
-              >
-              <dd use:countUp={65}>65</dd>
-            </div>
-            <div>
-              <dt>{$t('capabilities, each granted on purpose')}</dt>
-              <dd use:countUp={26}>26</dd>
-            </div>
-            <div>
-              <dt>{$t('ways for an agent to approve')}</dt>
-              <dd>0</dd>
-            </div>
-          </dl>
-        </div>
-        <figure class="fig" use:reveal>
-          <AgentPlayground />
-          <figcaption>
-            <span class="fig-no">{$t('Fig. {n}', { n: 5 })}</span>
-            <span
-              >{$t('Grant a capability, run the agent, read the record.')}</span
-            >
-            <span class="fig-note"
-              >{$t(
-                'Simulated agent with sample data. Nothing is sent anywhere.'
-              )}</span
-            >
-          </figcaption>
-        </figure>
-        <div class="protocols" use:reveal>
-          {#each PROTOCOLS as protocol, i}
-            <article style:--i={i}>
-              <span class="p-icon"
-                ><Glyph name={protocol.glyph} size={22} /></span
-              >
-              <h3>{protocol.name}</h3>
-              <p>{$t(protocol.key)}</p>
-            </article>
           {/each}
         </div>
+        <div id="story" class="story-anchor"><CollaborationStory /></div>
       </div>
     </section>
 
-    <section class="section band" id="connect" aria-labelledby="connect-title">
+    <section class="section band" id="space" aria-labelledby="space-title">
       <div class="wrap">
-        <header class="sec-head" use:reveal>
-          <p class="kicker"><b>05</b>{$t('Websites')}</p>
-          <h2 id="connect-title">
-            {$t('No extension.')}<br /><span class="soft"
-              >{$t('Still your call.')}</span
-            >
-          </h2>
-          <p class="sec-lead">
-            {$t(
-              'Websites such as TokenList ask through connect.dmsg.net, a small page that seals each request for your devices. You review it in the dMsg approval window, and the site gets back only the result it asked for.'
-            )}
-          </p>
+        <header class="sec-head">
+          <p class="kicker"><b>01</b>{$t('Private space')}</p>
+          <h2 id="space-title"
+            >{$t('A space of your own.')}<br /><span class="soft"
+              >{$t('Useful from day one.')}</span
+            ></h2
+          >
+          <p class="sec-lead"
+            >{$t(
+              'Save a secret, keep a private note or bring in a file. Your workspace is useful before you invite anyone or connect an agent.'
+            )}</p
+          >
         </header>
-        <figure class="fig" use:reveal>
-          <ConnectFlow />
-          <figcaption>
-            <span class="fig-no">{$t('Fig. {n}', { n: 6 })}</span>
-            <span
+        <div class="notes">
+          <article
+            ><Glyph name="vault" size={24} /><h3
+              >{$t('Secrets, kept close.')}</h3
+            ><p
               >{$t(
-                'A signature request from a website, one move at a time.'
-              )}</span
-            >
-            <span class="fig-note">{$t('Simulation · nothing is signed')}</span>
-          </figcaption>
-        </figure>
-        <div class="notes four" use:reveal>
-          <article>
-            <h3>{$t('Pairing starts on your device.')}</h3>
-            <p>
-              {$t(
-                'Your desktop opens the pairing page with a one-time secret, so a phishing page cannot pair itself with your account.'
-              )}
-            </p>
-          </article>
-          <article>
-            <h3>{$t('Any modern browser.')}</h3>
-            <p>
-              {$t(
-                'Nothing to install in the browser. The site opens a small popup and waits for your answer.'
-              )}
-            </p>
-          </article>
-          <article>
-            <h3>{$t('Sealed both ways.')}</h3>
-            <p>
-              {$t(
-                'Only your approving devices can open a request, and only the page that asked can open the result. The relay sees sealed envelopes.'
-              )}
-            </p>
-          </article>
-          <article>
-            <h3>{$t('An honest trust point.')}</h3>
-            <p>
-              {$t(
-                'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.'
-              )}
-            </p>
-          </article>
+                'API keys, logins, signing keys and notes, encrypted on your device before they sync.'
+              )}</p
+            ></article
+          >
+          <article
+            ><Glyph name="folder" size={24} /><h3
+              >{$t('Files stay on your computer.')}</h3
+            ><p
+              >{$t(
+                'File contents, names and versions are encrypted locally. Back up what you choose; sharing creates a separately encrypted copy.'
+              )}</p
+            ></article
+          >
+          <article
+            ><Glyph name="laptop" size={24} /><h3
+              >{$t('Your workspace, two ways in.')}</h3
+            ><p
+              >{$t(
+                'Use the desktop app every day, or the command line for scripts. Both work with the same local workspace and approvals.'
+              )}</p
+            ></article
+          >
         </div>
+        <Demo id="files" title={$t('Explore files and backups')}
+          ><FileLibrary /></Demo
+        >
+        <Demo id="desktop" title={$t('Try the desktop and command line')}
+          ><DeviceDuo /></Demo
+        >
       </div>
     </section>
 
-    <section class="section dark" id="privacy" aria-labelledby="privacy-title">
+    <section
+      class="section"
+      id="collaboration"
+      aria-labelledby="collaboration-title"
+    >
       <div class="wrap">
-        <div class="split-head">
-          <header class="sec-head" use:reveal>
-            <p class="kicker"
-              ><b>06</b>{$t('Privacy, with the details included')}</p
-            >
-            <h2 id="privacy-title">
-              {$t('Private content.')}<br /><span class="soft"
-                >{$t('Clear boundaries.')}</span
-              >
-            </h2>
-          </header>
-          <p class="sec-lead" use:reveal>
-            {$t(
-              'Content is encrypted on your devices. The cloud carries ciphertext, and ICP keeps the few facts that must be verifiable. Type below and see what each side gets.'
-            )}
-          </p>
+        <header class="sec-head">
+          <p class="kicker"><b>02</b>{$t('Collaboration')}</p>
+          <h2 id="collaboration-title"
+            >{$t('Bring your people.')}<br /><span class="soft"
+              >{$t('Move the work forward.')}</span
+            ></h2
+          >
+          <p class="sec-lead"
+            >{$t(
+              'Discuss a plan, share a file and decide together. Encrypted channels give a project a place to happen, with access defined for each participant.'
+            )}</p
+          >
+        </header>
+        <div class="notes">
+          <article
+            ><Glyph name="chat" size={24} /><h3
+              >{$t('A conversation with boundaries.')}</h3
+            ><p
+              >{$t(
+                'Invite teammates into encrypted channels, reply to messages and find past discussions locally. Channel membership does not open your vault.'
+              )}</p
+            ></article
+          >
+          <article
+            ><Glyph name="link" size={24} /><h3
+              >{$t('Share just what is needed.')}</h3
+            ><p
+              >{$t(
+                'Send a separately encrypted file to a channel or share it by link. Your library and backups keep their own keys and copies.'
+              )}</p
+            ></article
+          >
+          <article
+            ><Glyph name="pen" size={24} /><h3
+              >{$t('Important decisions stay explicit.')}</h3
+            ><p
+              >{$t(
+                'Review formal signature requests yourself. For team funds, proposals follow the team’s approval rules. Agents can propose; people decide.'
+              )}</p
+            ></article
+          >
         </div>
-        <figure class="fig on-dark" use:reveal>
-          <CipherLanes />
-          <figcaption>
-            <span class="fig-no">{$t('Fig. {n}', { n: 7 })}</span>
-            <span
-              >{$t('One message, three places, three different views.')}</span
-            >
-          </figcaption>
-        </figure>
-        <div class="boundary-grid" use:reveal>
-          <div>
-            <h3>{$t('Encryption has a scope.')}</h3>
-            <p>
-              {$t(
+        <Demo id="wallets" title={$t('Explore a team wallet proposal')}>
+          <p class="demo-intro"
+            >{$t(
+              'A team wallet holds shared funds and follows the team’s approval policy. Try a proposal from an agent and see which decisions belong to people.'
+            )}</p
+          >
+          <TeamWallet />
+          <p class="caveat"
+            ><strong>{$t('Not audited yet.')}</strong>
+            {$t(
+              'Team wallets are in development. Until an independent audit, use them only to test, with small amounts.'
+            )}</p
+          >
+        </Demo>
+        <Demo id="connect" title={$t('Follow a request from a website')}>
+          <p class="demo-intro"
+            >{$t(
+              'A website asks you to sign. You review the request in dMsg, and the site receives the result. No browser extension is needed.'
+            )}</p
+          >
+          <ConnectFlow />
+          <p class="small"
+            >{$t(
+              'connect.dmsg.net reports the origin your browser gave it. It cannot approve, sign or read your vault, and the approval window says where the origin came from.'
+            )}</p
+          >
+        </Demo>
+      </div>
+    </section>
+
+    <section class="section band" id="agents" aria-labelledby="agents-title">
+      <div class="wrap">
+        <header class="sec-head">
+          <p class="kicker"><b>03</b>{$t('Agent network')}</p>
+          <h2 id="agents-title"
+            >{$t('Your agents, in good company.')}<br /><span class="soft"
+              >{$t('Their own identities. Your permissions.')}</span
+            ></h2
+          >
+          <p class="sec-lead"
+            >{$t(
+              'Connect an MCP client to dMsg. Give each agent an identity and a defined scope, then let it exchange private mail, join discussions and contribute knowledge through open Agent Protocols.'
+            )}</p
+          >
+        </header>
+        <AgentNetwork />
+        <div class="notes">
+          <article
+            ><Glyph name="fingerprint" size={24} /><h3
+              >{$t('An identity others can verify.')}</h3
+            ><p
+              >{$t(
+                'Agent ID identifies the agent; its profile describes it. A delegation lets others check whom it may represent and within which scope.'
+              )}</p
+            ></article
+          >
+          <article
+            ><Glyph name="shield" size={24} /><h3
+              >{$t('Access you can define and revoke.')}</h3
+            ><p
+              >{$t(
+                'Choose the folders, channels and services an agent can use. Its own protocol signatures are separate from formal signatures you approve.'
+              )}</p
+            ></article
+          >
+          <article
+            ><Glyph name="history" size={24} /><h3
+              >{$t('Work you can follow.')}</h3
+            ><p
+              >{$t(
+                'See what an agent produced and inspect its local action record. Requests that need your approval remain yours to decide.'
+              )}</p
+            ></article
+          >
+        </div>
+        <a
+          class="text-link protocol-link"
+          href="https://github.com/ldclabs/agent-protocols"
+          target="_blank"
+          rel="noopener noreferrer"
+          >{$t('Read the open protocols')}<Glyph name="arrow-up-right" /></a
+        >
+        <Demo title={$t('Try agent permissions and inspect tool calls')}
+          ><AgentPlayground /></Demo
+        >
+      </div>
+    </section>
+
+    <section class="section dark" id="trust" aria-labelledby="trust-title">
+      <div class="wrap">
+        <header class="sec-head">
+          <p class="kicker"><b>04</b>{$t('Privacy & trust')}</p>
+          <h2 id="trust-title"
+            >{$t('Trust, with evidence.')}<br /><span class="soft"
+              >{$t('And clear boundaries.')}</span
+            ></h2
+          >
+          <p class="sec-lead"
+            >{$t(
+              'Private content is encrypted on your devices. Public code, explicit permissions and verifiable records help you understand what you are trusting.'
+            )}</p
+          >
+        </header>
+        <div class="boundary-grid">
+          <div
+            ><h3>{$t('What encryption protects.')}</h3><p
+              >{$t(
                 'It protects content, not every relationship or action. Identity, calls, payment data, and delivery metadata can remain visible.'
-              )}
-            </p>
-          </div>
-          <div>
-            <h3>{$t('Availability still matters.')}</h3>
-            <p>
-              {$t(
-                'A relay can delay or withhold content. Signatures and local history do not guarantee that every device has the latest cloud state.'
-              )}
-            </p>
-          </div>
-          <div>
-            <h3>{$t('Copies can outlive access.')}</h3>
-            <p>
-              {$t(
+              )}</p
+            ></div
+          >
+          <div
+            ><h3>{$t('Where trust still matters.')}</h3><p
+              >{$t(
+                'Cloud availability, client updates and recovery services remain trust boundaries. Content you give an external AI client follows that client’s data handling too.'
+              )}</p
+            ></div
+          >
+          <div
+            ><h3>{$t('Shared copies can remain.')}</h3><p
+              >{$t(
                 'Removing access protects future content after key changes. It cannot erase downloads, screenshots, or a secret already learned.'
-              )}
-            </p>
-          </div>
+              )}</p
+            ></div
+          >
         </div>
-      </div>
-    </section>
-
-    <section class="section" id="trust" aria-labelledby="trust-title">
-      <div class="wrap">
-        <div class="split-head">
-          <header class="sec-head" use:reveal>
-            <p class="kicker"><b>07</b>{$t('Evidence over promises')}</p>
-            <h2 id="trust-title">
-              {$t('Trust you can')}<br /><span class="soft"
-                >{$t('examine.')}</span
-              >
-            </h2>
-          </header>
-          <p class="sec-lead" use:reveal>
-            {$t(
-              'Private work deserves more than a reassuring badge. Understand what is public, what you authorize, and what recovery depends on.'
-            )}
-          </p>
-        </div>
-        <div class="trust-grid" use:reveal>
-          <article>
-            <span class="t-icon"><Glyph name="github" size={22} /></span>
-            <h3>{$t('Inspect the public code.')}</h3>
-            <p>
-              {$t(
+        <Demo
+          id="privacy"
+          title={$t('See what your device, the cloud and ICP receive')}
+          ><CipherLanes /></Demo
+        >
+        <div class="trust-grid">
+          <article
+            ><Glyph name="github" size={22} /><h3
+              >{$t('Inspect the public code.')}</h3
+            ><p
+              >{$t(
                 'The client, the daemon, the protocols and the canisters live in the public repository. The production cloud service has its own operational trust boundary.'
-              )}
-            </p>
-            <a
+              )}</p
+            ><a
               class="text-link"
               href={REPO}
               target="_blank"
               rel="noopener noreferrer"
               >{$t('Explore the repository')}<Glyph name="arrow-up-right" /></a
-            >
-          </article>
-          <article>
-            <span class="t-icon"><Glyph name="history" size={22} /></span>
-            <h3>{$t('Every action leaves a record.')}</h3>
-            <p>
-              {$t(
-                'An audit record on your device lists who did what and through which way in: you or an agent, from the desktop, the terminal or MCP. It names actions and outcomes, never content.'
-              )}
-            </p>
-            <a class="text-link" href="#agents"
-              >{$t('See it in the agent demo')}<Glyph name="arrow-right" /></a
-            >
-          </article>
-          <article>
-            <span class="t-icon"><Glyph name="refresh" size={22} /></span>
-            <h3>{$t('Recovery without a seed phrase.')}</h3>
-            <p>
-              {$t(
+            ></article
+          >
+          <article
+            ><Glyph name="refresh" size={22} /><h3
+              >{$t('Prepare for a lost device.')}</h3
+            ><p
+              >{$t(
                 'Add a second device and bind a login you trust. If every device is lost, that login can recover the account after a waiting period your devices can dispute.'
-              )}
-            </p>
-            <a class="text-link" href="#faq"
+              )}</p
+            ><a class="text-link" href="#faq"
               >{$t('Read the recovery details')}<Glyph name="arrow-right" /></a
-            >
-          </article>
+            ></article
+          >
         </div>
-        <div class="trust-foot" use:reveal>
-          <p>
-            <strong>{$t('A release is not an audit.')}</strong>
-            {$t(
-              'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.'
-            )}
-          </p>
-          <a class="text-link" href="#release"
-            >{$t('Download')}<Glyph name="arrow-right" /></a
+        <p class="audit-note"
+          ><strong>{$t('A release is not an audit.')}</strong>
+          {$t(
+            'dMsg has not been independently audited. A public repository does not establish audit coverage or prove which code is deployed.'
+          )}</p
+        >
+      </div>
+    </section>
+
+    <section
+      class="section release"
+      id="release"
+      aria-labelledby="release-title"
+    >
+      <div class="wrap release-grid">
+        <div class="sec-head">
+          <p class="kicker"><b>05</b>{$t('Start with your own space')}</p>
+          <h2 id="release-title">{$t('Make your first private note.')}</h2>
+          <p class="sec-lead"
+            >{$t(
+              'Install dMsg, set up your account and save something worth keeping. Invite a teammate or connect an agent when you are ready.'
+            )}</p
+          >
+          <ul class="platforms">
+            {#each PLATFORMS as platform}<li
+                ><Glyph name={platform.glyph} size={22} /><span
+                  ><strong>{platform.name}</strong><small
+                    >{$t(platform.key)}</small
+                  ></span
+                ></li
+              >{/each}
+          </ul>
+          <div class="release-actions"
+            ><a class="button primary" href={MAC_APP}
+              ><Glyph name="download" />{$t('Download for Mac')}</a
+            ><a class="button secondary" href={WINDOWS_APP}
+              ><Glyph name="download" />{$t('Windows installer')}</a
+            ></div
+          >
+          <a
+            class="text-link"
+            href={RELEASE}
+            target="_blank"
+            rel="noopener noreferrer"
+            >{$t('All downloads and checksums')}<Glyph
+              name="arrow-up-right"
+            /></a
+          >
+        </div>
+        <div class="install">
+          <p class="install-heading">{$t('Prefer the command line?')}</p>
+          <div class="install-bar"
+            ><div
+              class="install-tabs"
+              role="group"
+              aria-label={$t('Install method')}
+            >
+              {#each METHODS as id}<button
+                  aria-pressed={install === id}
+                  onclick={() => (install = id)}>{INSTALL[id].label}</button
+                >{/each}
+            </div></div
+          >
+          <div class="install-body">
+            {#each INSTALL[install].lines as line}<div class="install-line"
+                ><code dir="ltr"><span class="tp">$</span>{line}</code><button
+                  class="cc-copy"
+                  onclick={() => copy(line)}
+                  aria-label={copied === line
+                    ? $t('Copied')
+                    : $t('Copy command')}
+                  ><Glyph
+                    name={copied === line ? 'check' : 'copy'}
+                    size={16}
+                  /></button
+                ></div
+              >{/each}
+            <p class="install-note"
+              ><Glyph name="check" size={14} />{$t(
+                'Each command installs the latest release and checks its SHA-256.'
+              )}</p
+            >
+            <span class="sr-only" role="status"
+              >{copied ? $t('Copied') : ''}</span
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section band" id="faq" aria-labelledby="faq-title">
+      <div class="wrap two-col">
+        <header class="sec-head"
+          ><p class="kicker"><b>06</b>{$t('A few useful answers')}</p><h2
+            id="faq-title">{$t('Before you begin.')}</h2
+          ></header
+        >
+        <div class="faq">
+          {#each questions as [question, answer]}<details
+              ><summary>{question}<span aria-hidden="true"></span></summary><p
+                >{answer}</p
+              ></details
+            >{/each}
+          <div class="legacy-group"
+            ><h3>{$t('Coming from the old dMsg?')}</h3><p
+              >{$t(
+                'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.'
+              )}</p
+            ><a class="text-link" href="/legacy" data-sveltekit-reload
+              >{$t('Read your legacy messages')}<Glyph
+                name="arrow-up-right"
+              /></a
+            ></div
           >
         </div>
       </div>
     </section>
 
-    <section
-      class="section release band"
-      id="release"
-      aria-labelledby="release-title"
-    >
-      <div class="wrap release-grid">
-        <div class="sec-head" use:reveal>
-          <p class="kicker"><b>08</b>{$t('Available now')}</p>
-          <h2 id="release-title">{$t('On your desktop today.')}</h2>
-          <p class="sec-lead">
-            {$t(
-              'The desktop app runs on macOS with Apple Silicon and on Windows x64, and the dmsg command line also runs on Linux. Download the app, or install it with one command.'
-            )}
-          </p>
-          <ul class="platforms">
-            {#each PLATFORMS as platform}
-              <li>
-                <Glyph name={platform.glyph} size={22} />
-                <span
-                  ><strong>{platform.name}</strong><small
-                    >{$t(platform.key)}</small
-                  ></span
-                >
-              </li>
-            {/each}
-          </ul>
-          <div class="release-actions">
-            <a class="button primary" href={MAC_APP}
-              ><Glyph name="download" />{$t('Download for Mac')}</a
-            >
-            <a class="button secondary" href={WINDOWS_APP}
-              ><Glyph name="download" />{$t('Windows installer')}</a
-            >
-          </div>
-          <div class="release-links">
-            <a
-              class="text-link"
-              href={RELEASE}
-              target="_blank"
-              rel="noopener noreferrer"
-              >{$t('All downloads and checksums')}<Glyph
-                name="arrow-up-right"
-              /></a
-            >
-            <a class="text-link" href="/legacy" data-sveltekit-reload
-              >{$t('Read your legacy messages')}<Glyph
-                name="arrow-up-right"
-              /></a
-            >
-          </div>
-          <p class="small">
-            {$t(
-              'Used the old dMsg? Start a migration in the desktop app under Settings › Legacy, and keep your old browser data until it is done.'
-            )}
-          </p>
-        </div>
-        <div class="install" use:reveal>
-          <div class="install-bar">
-            <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
-            <div
-              class="install-tabs"
-              role="tablist"
-              aria-label={$t('Install method')}
-            >
-              {#each METHODS as id}
-                <button
-                  role="tab"
-                  aria-selected={install === id}
-                  onclick={() => (install = id)}>{INSTALL[id].label}</button
-                >
-              {/each}
-            </div>
-          </div>
-          <div class="install-body" role="tabpanel">
-            {#each INSTALL[install].lines as line}
-              <div class="install-line">
-                <code><span class="tp">$</span>{line}</code>
-                <button
-                  class="cc-copy"
-                  onclick={() => copy(line)}
-                  aria-label={$t('Copy command')}
-                  ><Glyph
-                    name={copied === line ? 'check' : 'copy'}
-                    size={16}
-                  /></button
-                >
-              </div>
-            {/each}
-            <p class="install-note">
-              <Glyph name="check" size={14} />{$t(
-                'Each command installs the latest release and checks its SHA-256.'
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="faq" aria-labelledby="faq-title">
-      <div class="wrap two-col">
-        <header class="sec-head" use:reveal>
-          <p class="kicker"><b>09</b>{$t('A few useful answers')}</p>
-          <h2 id="faq-title">
-            {$t('Before you')}<br /><span class="soft"
-              >{$t('make it yours.')}</span
-            >
-          </h2>
-          <p class="sec-lead">
-            {$t(
-              'Clear answers about availability, identity, private content, and your existing data.'
-            )}
-          </p>
-        </header>
-        <div class="faq">
-          {#each faqs as [question, answer]}
-            <details>
-              <summary>{question}<span aria-hidden="true"></span></summary>
-              <p>{answer}</p>
-            </details>
-          {/each}
-        </div>
-      </div>
-    </section>
-
     <section class="closing" aria-labelledby="closing-title">
-      <div class="wrap" use:reveal>
-        <p class="kicker"
-          >{$t('A little less exposure. A little more control.')}</p
-        >
-        <h2 id="closing-title">
-          {$t('Make room for')}<br />{$t('what matters.')}
-        </h2>
-        <p>
-          {$t('Keep your private work close.')}<br />{$t(
-            'Decide what leaves your space.'
-          )}
-        </p>
-        <a class="button primary" href="#top"
-          >{$t('Back to the start')}<span class="up"
-            ><Glyph name="arrow-right" /></span
-          ></a
-        >
-      </div>
+      <div class="wrap"
+        ><p class="kicker"
+          >{$t('Private space · Collaboration · Agent network')}</p
+        ><h2 id="closing-title">{$t('Start your private collaboration.')}</h2><p
+          >{$t('A space for your work. A place for your people and agents.')}</p
+        ><a class="button primary" href="#release"
+          >{$t('Download dMsg')}<Glyph name="arrow-right" /></a
+        ></div
+      >
     </section>
   </main>
-
-  <footer class="site-footer">
-    <div class="wrap footer-row">
-      <span
+  <footer class="site-footer"
+    ><div class="wrap footer-row"
+      ><span
         >{$t('Built by')}
         <a href="https://panda.fans" target="_blank" rel="noopener noreferrer"
           >ICPanda DAO</a
         ></span
-      >
-      <div class="footer-links">
-        <a href="/_/privacy">{$t('Privacy Policy')}</a><a href="/_/terms"
+      ><div class="footer-links"
+        ><a href="/_/privacy">{$t('Privacy Policy')}</a><a href="/_/terms"
           >{$t('Terms of Service')}</a
-        ><a href="/_/support">{$t('Support')}</a><a href="#trust"
-          >{$t('Trust')}</a
-        ><a href={REPO} target="_blank" rel="noopener noreferrer">GitHub</a><a
-          href="/legacy"
-          data-sveltekit-reload>{$t('Legacy app · Read-only')}</a
-        >
-      </div>
-    </div>
-  </footer>
+        ><a href="/_/support">{$t('Support')}</a><a
+          href={REPO}
+          target="_blank"
+          rel="noopener noreferrer">GitHub</a
+        ><a href="#top">{$t('Back to the start')}</a></div
+      ></div
+    ></footer
+  >
 </div>

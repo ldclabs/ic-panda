@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f7f8f4"/>
+  <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MiIgaGVpZ2h0PSI0OCIgdmlld0JveD0iMCAwIDQyIDQ4Ij4KICA8IS0tIFRoZSBHYXRlOiBhIHBvc3QgYW5kIGEgZG9tZSB3aXRoIG9uZSByZXF1ZXN0IHdhaXRpbmcgYmV0d2VlbiB0aGVtLiAtLT4KICA8bWFzayBpZD0iY3V0IiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSIwIiB5PSIwIiB3aWR0aD0iNDIiIGhlaWdodD0iNDgiPgogICAgPHJlY3Qgd2lkdGg9IjQyIiBoZWlnaHQ9IjQ4IiBmaWxsPSIjZmZmIi8+CiAgICA8cGF0aCBkPSJNMTIgMTcuNSAxOC41IDI0IDEyIDMwLjUgNS41IDI0WiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8L21hc2s+CiAgPGcgbWFzaz0idXJsKCNjdXQpIiBmaWxsPSIjMTQ1YzQ1Ij4KICAgIDxwYXRoIGQ9Ik00IDBoNC41QTEuNSAxLjUgMCAwIDEgMTAgMS41djQ1QTEuNSAxLjUgMCAwIDEgOC41IDQ4SDRhNCA0IDAgMCAxLTQtNFY0YTQgNCAwIDAgMSA0LTRaIi8+CiAgICA8cGF0aCBkPSJNMTUuNSAwSDE4YTI0IDI0IDAgMCAxIDAgNDhoLTIuNWExLjUgMS41IDAgMCAxLTEuNS0xLjV2LTQ1QTEuNSAxLjUgMCAwIDEgMTUuNSAwWiIvPgogIDwvZz4KICA8cGF0aCBmaWxsPSIjYjQ1MzA5IiBkPSJNMTIgMTcuNSAxOC41IDI0IDEyIDMwLjUgNS41IDI0WiIvPgo8L3N2Zz4K" x="80" y="54" width="35" height="40"/>
+  <g font-family="Helvetica Neue, Arial, PingFang SC, sans-serif" fill="#10251f">
+  <text x="132" y="86" font-size="34" font-weight="700">dMsg</text>
+  <text x="1120" y="82" text-anchor="end" font-size="19" fill="#4e6257">dmsg.net</text>
+  <text x="80" y="245" text-anchor="start" direction="ltr" unicode-bidi="plaintext" font-size="60" font-weight="700">Collaborez en privé.</text>
+  <text x="80" y="340" text-anchor="start" direction="ltr" unicode-bidi="plaintext" font-size="60" font-weight="700" fill="#145c45">Entre personnes et agents.</text>
+  <path d="M80 424H1120" stroke="#c8d5ca"/>
+  <text x="80" y="490" text-anchor="start" direction="ltr" unicode-bidi="plaintext" font-size="26" font-weight="500">Espace privé</text>
+<text x="435" y="490" text-anchor="start" direction="ltr" unicode-bidi="plaintext" font-size="26" font-weight="500">Collaboration</text>
+<text x="790" y="490" text-anchor="start" direction="ltr" unicode-bidi="plaintext" font-size="26" font-weight="500">Réseau d’agents</text>
+  <text x="80" y="566" font-size="19" fill="#4e6257">macOS · Windows · Linux CLI</text>
+  </g></svg>

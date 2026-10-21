@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte'
-  import { t, tr } from '$lib/i18n'
+  import { onDestroy, tick } from 'svelte'
+  import { t } from '$lib/i18n'
   import Glyph from './Glyph.svelte'
-  import { prefersReducedMotion, watchVisibility } from './motion'
+  import { prefersReducedMotion } from './motion'
 
   // Tool names, inputs and results follow `dmsg mcp`; the data is a sample.
   type Call = { tool: string; input: string; cap: string; result: string }
   type Step =
     | { kind: 'call'; call: Call; state: 'running' | 'ok' | 'denied' }
-    | { kind: 'say'; text: string }
+    | { kind: 'say'; key: string; params?: { capability: string } }
   type Entry = {
     time: string
     who: string
@@ -18,6 +18,13 @@
     result: string
   }
 
+  const OUTCOMES: Record<string, string> = {
+    dmsg_account_status: 'Account status checked',
+    dmsg_vault_read: 'Vault item found',
+    dmsg_files_write: 'Release notes saved',
+    dmsg_channel_publish: 'Message posted to the channel',
+    dmsg_attest_request: 'Waiting for your approval'
+  }
   const AGENT = 'claude'
   const DID = 'did:agent:z6Mk…q3Lw'
   const GRANTS = [
@@ -79,10 +86,11 @@
   })
   let steps = $state<Step[]>([])
   let audit = $state<Entry[]>([])
+  const completion = $derived(steps.at(-1))
   let running = $state(false)
   let ran = $state(false)
   let copied = $state(false)
-  let root: HTMLDivElement
+  let destroyed = false
   let log: HTMLOListElement
 
   const COMMAND =
@@ -124,10 +132,12 @@
     const pause = (ms: number) => (still ? Promise.resolve() : sleep(ms))
     for (const call of CALLS) {
       await pause(380)
+      if (destroyed) return
       const step: Step = { kind: 'call', call, state: 'running' }
       steps.push(step)
       await follow()
       await pause(520)
+      if (destroyed) return
       const allowed = grants[call.cap] ?? false
       const index = steps.length - 1
       steps[index] = { ...step, state: allowed ? 'ok' : 'denied' }
@@ -141,36 +151,28 @@
       if (!allowed)
         steps.push({
           kind: 'say',
-          text: tr('I don’t have {capability}, so I’ll skip that.', {
-            capability: call.cap
-          })
+          key: 'I don’t have {capability}, so I’ll skip that.',
+          params: { capability: call.cap }
         })
       else if (call.tool === 'dmsg_files_write')
         steps.push({
           kind: 'say',
-          text: tr(
-            'Saved as a new version in your library. Backing it up or sharing it stays with you.'
-          )
+          key: 'Saved as a new version in your library. Backing it up or sharing it stays with you.'
         })
       else if (call.tool === 'dmsg_vault_read')
         steps.push({
           kind: 'say',
-          text: tr(
-            'Found it. The secret itself stays out: that would need vault.secret for this item.'
-          )
+          key: 'Found it. The secret itself stays out: that would need vault.secret for this item.'
         })
       await follow()
     }
     await pause(420)
+    if (destroyed) return
     steps.push({
       kind: 'say',
-      text: grants['attest.request']
-        ? tr(
-            'Done. The release statement is waiting in your approval window. I can’t approve it myself.'
-          )
-        : tr(
-            'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.'
-          )
+      key: grants['attest.request']
+        ? 'Done. The release statement is waiting in your approval window. I can’t approve it myself.'
+        : 'Done with what I’m allowed to do. Without attest.request I can’t even ask you to sign.'
     })
     await follow()
     running = false
@@ -186,15 +188,9 @@
     }
   }
 
-  onMount(() =>
-    watchVisibility(
-      root,
-      (visible) => {
-        if (visible && !ran) run()
-      },
-      '-25% 0px'
-    )
-  )
+  onDestroy(() => {
+    destroyed = true
+  })
 </script>
 
 <div class="connect-cmd">
@@ -206,7 +202,7 @@
   </button>
 </div>
 
-<div class="agent-lab" bind:this={root}>
+<div class="agent-lab">
   <aside class="lab-grants">
     <header class="lab-agent">
       <span class="agent-orb"><Glyph name="robot" size={20} /></span>
@@ -249,7 +245,15 @@
         {#if step.kind === 'call'}
           <li class="call {step.state}">
             <div class="call-head">
-              <code class="tool">{step.call.tool}</code>
+              <strong class="call-outcome"
+                >{$t(
+                  step.state === 'running'
+                    ? 'Running…'
+                    : step.state === 'denied'
+                      ? 'Permission denied'
+                      : OUTCOMES[step.call.tool]!
+                )}</strong
+              >
               <span class="call-state">
                 {#if step.state === 'running'}<i class="spin"
                   ></i>{:else if step.state === 'ok'}<Glyph
@@ -258,23 +262,36 @@
                   />{:else}<Glyph name="forbid" size={14} />{/if}
               </span>
             </div>
-            <code class="call-in">{step.call.input}</code>
-            {#if step.state !== 'running'}
-              <code class="call-out"
-                >{step.state === 'ok'
-                  ? step.call.result
-                  : denied(step.call.cap)}</code
-              >
-            {/if}
+            <details class="call-details"
+              ><summary>{$t('Show tool details')}</summary>
+              <code class="tool">{step.call.tool}</code>
+              <code class="call-in">{step.call.input}</code>
+              {#if step.state !== 'running'}
+                <code class="call-out"
+                  >{step.state === 'ok'
+                    ? step.call.result
+                    : denied(step.call.cap)}</code
+                >
+              {/if}
+            </details>
           </li>
         {:else}
-          <li class="say"><span class="who">{AGENT}</span>{step.text}</li>
+          <li class="say"
+            ><span class="who">{AGENT}</span>{$t(step.key, step.params)}</li
+          >
         {/if}
       {/each}
     </ol>
     {#if !steps.length}
       <p class="lab-hint">{$t('Toggle a capability, then run the agent.')}</p>
     {/if}
+    <p class="sr-only" role="status"
+      >{running
+        ? $t('Running…')
+        : completion?.kind === 'say'
+          ? $t(completion.key, completion.params)
+          : ''}</p
+    >
     <button class="button primary lab-go" onclick={run} disabled={running}>
       <Glyph name={ran ? 'refresh' : 'play'} size={16} />
       {running ? $t('Running…') : ran ? $t('Run again') : $t('Run the agent')}
