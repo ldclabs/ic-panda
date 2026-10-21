@@ -1106,5 +1106,14 @@ export default {
   'Account status checked': 'Estado de la cuenta comprobado',
   'Vault item found': 'Elemento de la bóveda encontrado',
   'Release notes saved': 'Notas del lanzamiento guardadas',
-  'Message posted to the channel': 'Mensaje publicado en el canal'
+  'Message posted to the channel': 'Mensaje publicado en el canal',
+  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
+    'Tú, tu compañero y tu agente accedéis a un espacio privado. El agente también se conecta a Discourse, Mail y Knowledge.',
+  'A private space. A connected world.':
+    'Un espacio privado. Un mundo conectado.',
+  'Pause animation': 'Pausar animación',
+  'Play animation': 'Reproducir animación',
+  'Teammate': 'Tu compañero',
+  'Your agent': 'Tu agente',
+  'Owner': 'Propietario'
 } satisfies Messages

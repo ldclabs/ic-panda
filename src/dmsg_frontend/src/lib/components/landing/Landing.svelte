@@ -10,6 +10,7 @@
   import DeviceDuo from './DeviceDuo.svelte'
   import FileLibrary from './FileLibrary.svelte'
   import Glyph from './Glyph.svelte'
+  import HeroArt from './HeroArt.svelte'
   import AgentNetwork from './AgentNetwork.svelte'
   import TeamWallet from './TeamWallet.svelte'
   import type { GlyphName } from './glyphs'
@@ -183,16 +184,16 @@
   <main id="main" tabindex="-1">
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="wrap">
-        <p class="kicker hero-kicker"
-          >{$t('Private space · Collaboration · Agent network')}</p
-        >
         <div class="hero-grid">
-          <h1 id="hero-title"
-            ><span>{$t('Private collaboration.')}</span><span
-              >{$t('For people and agents.')}</span
-            ></h1
-          >
-          <div class="hero-side">
+          <div class="hero-copy">
+            <p class="kicker hero-kicker"
+              >{$t('Private space · Collaboration · Agent network')}</p
+            >
+            <h1 id="hero-title"
+              ><span>{$t('Private collaboration.')}</span><span
+                >{$t('For people and agents.')}</span
+              ></h1
+            >
             <p class="hero-lead"
               >{$t(
                 'Keep secrets and files private. Collaborate with your team. Give your agents their own identities and permissions to work across an open network.'
@@ -214,6 +215,7 @@
               )}</p
             >
           </div>
+          <HeroArt />
         </div>
         <div class="value-strip">
           {#each navigation as item, i}

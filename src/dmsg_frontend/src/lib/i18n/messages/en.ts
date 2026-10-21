@@ -1084,7 +1084,15 @@ const en = {
   'Account status checked': 'Account status checked',
   'Vault item found': 'Vault item found',
   'Release notes saved': 'Release notes saved',
-  'Message posted to the channel': 'Message posted to the channel'
+  'Message posted to the channel': 'Message posted to the channel',
+  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
+    'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.',
+  'A private space. A connected world.': 'A private space. A connected world.',
+  'Pause animation': 'Pause animation',
+  'Play animation': 'Play animation',
+  'Teammate': 'Teammate',
+  'Your agent': 'Your agent',
+  'Owner': 'Owner'
 }
 
 export type MessageKey = keyof typeof en

@@ -1063,5 +1063,13 @@ export default {
   'Account status checked': 'تم فحص حالة الحساب',
   'Vault item found': 'عُثر على عنصر الخزنة',
   'Release notes saved': 'حُفظت ملاحظات الإصدار',
-  'Message posted to the channel': 'نُشرت الرسالة في القناة'
+  'Message posted to the channel': 'نُشرت الرسالة في القناة',
+  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
+    'تتعاون أنت وزميلك ووكيلك ضمن مساحة خاصة. ويتصل الوكيل أيضًا بخدمات Discourse وMail وKnowledge.',
+  'A private space. A connected world.': 'مساحة خاصة. عالم متصل.',
+  'Pause animation': 'إيقاف الحركة مؤقتًا',
+  'Play animation': 'تشغيل الحركة',
+  'Teammate': 'زميلك',
+  'Your agent': 'وكيلك',
+  'Owner': 'المالك'
 } satisfies Messages

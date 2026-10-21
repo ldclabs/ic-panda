@@ -1096,5 +1096,13 @@ export default {
   'Account status checked': 'Статус аккаунта проверен',
   'Vault item found': 'Запись хранилища найдена',
   'Release notes saved': 'Описание выпуска сохранено',
-  'Message posted to the channel': 'Сообщение опубликовано в канале'
+  'Message posted to the channel': 'Сообщение опубликовано в канале',
+  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
+    'Вы, коллега и ваш агент взаимодействуете с личным пространством. Агент также подключается к Discourse, Mail и Knowledge.',
+  'A private space. A connected world.': 'Личное пространство. Связанный мир.',
+  'Pause animation': 'Приостановить анимацию',
+  'Play animation': 'Включить анимацию',
+  'Teammate': 'Коллега',
+  'Your agent': 'Ваш агент',
+  'Owner': 'Владелец'
 } satisfies Messages

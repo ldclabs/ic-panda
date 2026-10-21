@@ -3,16 +3,16 @@
   --soft: #557260;
 }
 .home .hero {
-  padding: 54px 0 64px;
+  padding: 30px 0 64px;
 }
 .home .hero-grid {
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
+  gap: 14px;
   align-items: center;
-  margin-bottom: 36px;
+  margin-bottom: 24px;
 }
 .home .hero h1 {
-  font-size: clamp(42px, 4.6vw, 67px);
+  font-size: clamp(40px, 4.15vw, 59px);
   line-height: 1.08;
   letter-spacing: -0.05em;
 }
@@ -23,14 +23,25 @@
 .home .hero h1 > span + span {
   color: var(--forest);
 }
-.home .hero-side {
-  animation: none;
+.home .hero-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  padding-block: 30px;
 }
 .home .hero-kicker {
-  margin-bottom: 22px;
+  margin-bottom: 24px;
+  font-size: 11px;
+  gap: 8px;
+}
+.home .hero-kicker::after {
+  display: none;
 }
 .home .hero-lead {
-  font-size: 17px;
+  font-size: 16px;
+  line-height: 1.75;
+  max-width: 470px;
+  margin-top: 25px;
 }
 .home .hero-actions {
   flex-wrap: wrap;
@@ -627,7 +638,7 @@
   font-size: 17px;
 }
 html[lang='zh'] .home .hero h1 {
-  font-size: clamp(38px, 4.6vw, 60px);
+  font-size: clamp(36px, 4.1vw, 58px);
   line-height: 1.25;
   letter-spacing: 0;
 }
@@ -649,11 +660,7 @@ html[lang='ar'] .home .hero h1 {
   font-size: clamp(36px, 4.2vw, 58px);
 }
 @media (max-width: 1050px) {
-  .home .hero-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 26px;
-  }
-  .home .hero-side {
+  .home .hero-copy {
     max-width: 760px;
   }
   .home .hero h1 {
@@ -873,4 +880,147 @@ html[lang='ar'] .home .hero h1 {
 }
 .home .install-tabs button {
   min-height: 40px;
+}
+
+/* A living paper illustration of the same gate used by the dMsg brand. */
+.home .hero-art {
+  margin: 0 -20px 0 0;
+  min-width: 0;
+  position: relative;
+}
+.home .hero-art-scene {
+  position: relative;
+}
+.home .living-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.home .art-packet {
+  animation: art-travel var(--duration) linear var(--delay) infinite;
+  animation-play-state: paused;
+}
+.home .art-float {
+  animation: art-hover 7s ease-in-out infinite;
+  animation-play-state: paused;
+}
+.home .art-float-two {
+  animation-delay: -2.7s;
+  animation-duration: 8.2s;
+}
+.home .art-float-three {
+  animation-delay: -5s;
+  animation-duration: 9s;
+}
+.home .hero-art.playing :is(.art-packet, .art-float) {
+  animation-play-state: running;
+}
+.home .hero-art figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 20px 14px;
+  min-height: 44px;
+}
+.home .art-caption {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #53705a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.home .art-caption i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b78136;
+}
+.home .art-motion {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #cbd9c8;
+  border-radius: 50%;
+  color: #53705a;
+  background: #f9faf5;
+}
+.home .art-motion:hover {
+  color: #145c45;
+  border-color: #8da98e;
+  background: #eaf1e6;
+}
+.home .hero-art:hover .art-packet {
+  stroke-width: 4.5px;
+}
+@keyframes art-travel {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes art-hover {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+html[dir='rtl'] .home .hero-art {
+  margin: 0 0 0 -20px;
+}
+@media (max-width: 1050px) and (min-width: 801px) {
+  .home .hero-grid {
+    gap: 8px;
+  }
+  .home .hero h1 {
+    font-size: 40px;
+  }
+  html[lang='zh'] .home .hero h1 {
+    font-size: 36px;
+  }
+  html:is([lang='fr'], [lang='es'], [lang='ru']) .home .hero h1 {
+    font-size: 34px;
+  }
+  .home .hero-lead {
+    font-size: 15px;
+  }
+  .home .hero-actions .text-link {
+    font-size: 13px;
+  }
+}
+@media (max-width: 800px) {
+  .home .hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .home .hero-copy {
+    padding: 10px 0 0;
+    max-width: 620px;
+  }
+  .home .hero-art,
+  html[dir='rtl'] .home .hero-art {
+    width: min(100% + 24px, 620px);
+    margin: -4px -12px 12px;
+    justify-self: center;
+  }
+  .home .hero-lead {
+    margin-top: 20px;
+    max-width: 600px;
+  }
+  .home .hero-art figcaption {
+    padding-bottom: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home .hero-art :is(.art-packet, .art-float) {
+    animation: none !important;
+  }
 }

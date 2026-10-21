@@ -41,7 +41,8 @@ Twitter metadata in place, including the social card for the selected language.
 Page titles can override the localized default. Do not add duplicate meta tags.
 The static fallback is English for clients that do not execute JavaScript.
 Regenerate the six checked-in SVG/PNG social cards with `pnpm social-card`
-from this frontend directory; their text comes from the same catalogs.
+from this frontend directory; their text comes from the same catalogs and their
+vector scene is shared with the live Hero in `components/landing/hero-art.js`.
 
 The locale store is a client-only SPA singleton. Root `+layout.ts` disables SSR.
 Before enabling SSR, move locale state into a per-request Svelte context.

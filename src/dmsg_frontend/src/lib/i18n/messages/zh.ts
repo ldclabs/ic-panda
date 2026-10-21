@@ -1042,5 +1042,13 @@ export default {
   'Account status checked': '已检查账户状态',
   'Vault item found': '已找到保险库条目',
   'Release notes saved': '发布说明已保存',
-  'Message posted to the channel': '已在频道发布消息'
+  'Message posted to the channel': '已在频道发布消息',
+  'You, a teammate and your agent connect to a private workspace. The agent also connects to Discourse, Mail and Knowledge.':
+    '你、伙伴和你的智能体在私密空间中协作；智能体另行连接 Discourse、Mail 和 Knowledge。',
+  'A private space. A connected world.': '私密空间，连接更广阔的世界。',
+  'Pause animation': '暂停动效',
+  'Play animation': '播放动效',
+  'Teammate': '伙伴',
+  'Your agent': '你的智能体',
+  'Owner': '所有者'
 } satisfies Messages
