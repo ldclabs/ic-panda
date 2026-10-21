@@ -1343,16 +1343,26 @@ pub(crate) async fn order<H: Hold>(h: &H, id: &str) -> Result<Order> {
     }
     match job.as_ref().map(|j| &j.terms) {
         Some(Terms::Panda(terms)) => {
-            // Only the claim's actor reads its certificate.
-            let view: PandaClaimView = certified_by(
+            // The certificate is the normal read. A stale or incompletely
+            // migrated leaf must not hide the live claim from its actor.
+            let certified: Result<Option<PandaClaimView>> = certified_by(
                 &ic,
                 services.membership,
                 "panda_claim_certificate",
                 (raw,),
                 digest("dmsg/panda/claim-certificate/v2", &raw).as_slice(),
             )
-            .await?
-            .ok_or(Error::NotFound)?;
+            .await;
+            let view = match certified {
+                Ok(Some(view)) => view,
+                Ok(None) | Err(Error::IntegrityFailed) => {
+                    let direct: Result<PandaClaimView> = ic
+                        .query(services.membership, "get_panda_claim", (raw,))
+                        .await?;
+                    direct?
+                }
+                Err(error) => return Err(error),
+            };
             ensure(view.terms == **terms, Error::IntegrityFailed)?;
             Ok(Order::Panda(Box::new(view)))
         }
@@ -1559,16 +1569,17 @@ pub async fn plan_reconcile<H: Hold>(h: &H, id: &str) -> Result<Json> {
     let (_, ic) = payer(h).await?;
     let raw = hex_id(id)?;
     if is_panda(h, id).await? {
-        let r: Result<PandaClaimView> = ic
+        let view: Result<PandaClaimView> = ic
             .update(services.membership, "reconcile_panda_claim", (raw,))
             .await?;
-        r?;
-    } else {
-        let r: Result<CheckoutProgress> = ic
-            .update(services.commerce, "reconcile_checkout", (raw,))
-            .await?;
-        r?;
+        // The update already carries the trusted view. Do not turn a stale
+        // certificate into a failed reconcile after the claim settled.
+        return Ok(order_view(&Order::Panda(Box::new(view?))));
     }
+    let r: Result<CheckoutProgress> = ic
+        .update(services.commerce, "reconcile_checkout", (raw,))
+        .await?;
+    r?;
     plan_order_view(h, id).await
 }
 
