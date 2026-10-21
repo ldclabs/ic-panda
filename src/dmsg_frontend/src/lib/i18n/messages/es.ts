@@ -1,6 +1,9 @@
 import type { Messages } from './en'
 
 export default {
+  'This legacy handle is reserved and has not been linked to a new account.':
+    'Este alias antiguo está reservado y aún no se ha vinculado a una cuenta nueva.',
+  'View legacy profile': 'Ver perfil antiguo',
   'Public profile': 'Perfil público',
   'This is not a valid account ID or handle.':
     'El ID de cuenta o alias no es válido.',

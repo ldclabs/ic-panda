@@ -1,6 +1,9 @@
 import type { Messages } from './en'
 
 export default {
+  'This legacy handle is reserved and has not been linked to a new account.':
+    'Этот прежний псевдоним зарезервирован и пока не связан с новым аккаунтом.',
+  'View legacy profile': 'Открыть прежний профиль',
   'Public profile': 'Публичный профиль',
   'This is not a valid account ID or handle.':
     'Недопустимый ID аккаунта или псевдоним.',

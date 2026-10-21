@@ -52,6 +52,9 @@
       ? {
           invalid_target: $t('This is not a valid account ID or handle.'),
           not_found: $t('This account or handle was not found.'),
+          legacy_reserved: $t(
+            'This legacy handle is reserved and has not been linked to a new account.'
+          ),
           unavailable: $t('Could not load this profile. Try again.'),
           verification_failed: $t(
             'This profile could not be verified. Its content is not displayed.'
@@ -92,10 +95,21 @@
         >
       {:else if error}
         <section class="status" role="alert"
-          ><h1>{$t('Profile unavailable')}</h1><p>{message}</p><button
-            class="button primary"
-            onclick={() => retry++}>{$t('Try again')}</button
-          ></section
+          ><h1
+            >{error === 'legacy_reserved'
+              ? $t('Legacy profile · Read-only')
+              : $t('Profile unavailable')}</h1
+          ><p>{message}</p>
+          {#if error === 'legacy_reserved'}
+            <a
+              class="button primary"
+              href="/legacy/users/{encodeURIComponent(
+                identifier.toLowerCase()
+              )}">{$t('View legacy profile')}</a
+            >
+          {:else}<button class="button primary" onclick={() => retry++}
+              >{$t('Try again')}</button
+            >{/if}</section
         >
       {:else if result}
         <section class="identity" aria-labelledby="profile-name">

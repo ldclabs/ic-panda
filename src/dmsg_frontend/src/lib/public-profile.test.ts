@@ -43,7 +43,8 @@ const device = {
 }
 const registry = {
   get_handle_config: vi.fn(),
-  resolve_handle_certified: vi.fn()
+  resolve_handle_certified: vi.fn(),
+  get_legacy_reservation: vi.fn()
 }
 const user = { security_snapshot_batch: vi.fn(), get_device_bundle: vi.fn() }
 const network = vi.fn()
@@ -68,6 +69,7 @@ beforeEach(async () => {
     issuer_namespace: f.namespace,
     user_homes: [Principal.fromUint8Array(f.home)]
   })
+  registry.get_legacy_reservation.mockResolvedValue({ Ok: [] })
   registry.resolve_handle_certified.mockResolvedValue({
     Ok: candidBatch(
       await f.certified(
@@ -100,6 +102,7 @@ it('both root entrances read and verify the same account without legacy authenti
   expect(named.handle).toBe('alice')
   expect(named.published).toEqual(direct.published)
   expect(registry.resolve_handle_certified).toHaveBeenCalledWith(['alice'])
+  expect(registry.get_legacy_reservation).not.toHaveBeenCalled()
   expect(network).toHaveBeenCalledWith(
     `${API_ORIGIN}/public/accounts/${f.account}/profile`,
     expect.objectContaining({
@@ -129,6 +132,27 @@ it('a proven missing handle stops before reading a profile', async () => {
     )
   })
   await expect(read('alice')).rejects.toMatchObject({ reason: 'not_found' })
+  expect(network).not.toHaveBeenCalled()
+})
+
+it('distinguishes a reserved legacy name without treating it as a new account', async () => {
+  registry.resolve_handle_certified.mockResolvedValue({
+    Ok: candidBatch(
+      await f.certified(
+        Principal.fromText(DMSG_HANDLE_CANISTER_ID).toUint8Array(),
+        new TextEncoder().encode('alice'),
+        null
+      )
+    )
+  })
+  registry.get_legacy_reservation.mockResolvedValue({
+    Ok: [{ handle: 'alice', quarantined: false }]
+  })
+  await expect(read('ALICE')).rejects.toMatchObject({
+    reason: 'legacy_reserved'
+  })
+  expect(registry.get_legacy_reservation).toHaveBeenCalledWith('alice')
+  expect(user.security_snapshot_batch).not.toHaveBeenCalled()
   expect(network).not.toHaveBeenCalled()
 })
 

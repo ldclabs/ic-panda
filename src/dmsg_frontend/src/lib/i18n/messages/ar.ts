@@ -1,6 +1,9 @@
 import type { Messages } from './en'
 
 export default {
+  'This legacy handle is reserved and has not been linked to a new account.':
+    'هذا الاسم القديم محجوز ولم يُربط بحساب جديد بعد.',
+  'View legacy profile': 'عرض الملف القديم',
   'Public profile': 'الملف العام',
   'This is not a valid account ID or handle.':
     'معرّف الحساب أو الاسم غير صالح.',

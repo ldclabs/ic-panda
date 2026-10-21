@@ -174,4 +174,4 @@ webhook 入口只有 `POST /mcp-events/<callback_id>`（`application/json`，正
 
 已撤销但仍保留在认证设备表中的设备签名可以作为历史声明展示，页面单独显示撤销状态；已从设备表移除的签名设备无法通过当前公开证据验证。验签不证明资料最新、不证明简介内容真实，也不表示资料快照已上链锚定。账户存在但未发布资料、账户或名称不存在、网络失败、验证失败分别展示。
 
-旧公开资料迁至 `/legacy/users/<username>`，本人旧资料迁至 `/legacy/profile`；旧资料链接与二维码使用 legacy 路径，继续只读。
+旧公开资料迁至 `/legacy/users/<username>`，本人旧资料迁至 `/legacy/profile`；旧资料链接与二维码使用 legacy 路径，继续只读。 名称认证查询证明没有新版映射后，网页查询旧名称预留记录；已预留的名称显示“尚未关联新版账户”和旧资料入口，不将旧 owner 推断为新版账户。公开 profile/avatar 的 GET/HEAD 与 OPTIONS 支持无凭据跨域读取（`Access-Control-Allow-Origin: *`），写入和设备私有 API 保持原认证边界。

@@ -143,3 +143,16 @@ it('a late old request cannot overwrite a new route; navigation cancels its sign
   expect(target.textContent).not.toContain('Stale result')
   expect(target.textContent).toContain('Alice')
 })
+
+it('offers the legacy page for a reserved handle, without showing a new account or signature', async () => {
+  vi.mocked(readProfile).mockRejectedValueOnce(
+    new ProfileError('legacy_reserved')
+  )
+  render('PANDA')
+  await settled()
+  expect(target.textContent).toContain('has not been linked to a new account')
+  expect(
+    target.querySelector('a[href="/legacy/users/panda"]')?.textContent
+  ).toBe('View legacy profile')
+  expect(target.textContent).not.toContain('Device signature verified')
+})

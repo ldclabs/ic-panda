@@ -1,4 +1,7 @@
 const en = {
+  'This legacy handle is reserved and has not been linked to a new account.':
+    'This legacy handle is reserved and has not been linked to a new account.',
+  'View legacy profile': 'View legacy profile',
   'Public profile': 'Public profile',
   'This is not a valid account ID or handle.':
     'This is not a valid account ID or handle.',

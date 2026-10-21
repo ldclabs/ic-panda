@@ -1,6 +1,9 @@
 import type { Messages } from './en'
 
 export default {
+  'This legacy handle is reserved and has not been linked to a new account.':
+    'Cet ancien pseudonyme est réservé et n’a pas encore été lié à un nouveau compte.',
+  'View legacy profile': 'Voir l’ancien profil',
   'Public profile': 'Profil public',
   'This is not a valid account ID or handle.':
     'Cet identifiant de compte ou pseudonyme est invalide.',

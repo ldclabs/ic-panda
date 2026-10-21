@@ -27,7 +27,11 @@ import { API_ORIGIN, DMSG_HANDLE_CANISTER_ID, IS_LOCAL } from './constants'
 export class ProfileError extends Error {
   constructor(
     readonly reason:
-      'invalid_target' | 'not_found' | 'unavailable' | 'verification_failed'
+      | 'invalid_target'
+      | 'not_found'
+      | 'legacy_reserved'
+      | 'unavailable'
+      | 'verification_failed'
   ) {
     super(reason)
   }
@@ -168,7 +172,12 @@ export async function readProfile(
             rootKey,
             BigInt(Date.now())
           )
-    if (!account) throw new ProfileError('not_found')
+    if (!account) {
+      // Only after certified absence: a frozen legacy name is reserved, not
+      // an active mapping to a new account. Never infer identity from it.
+      const reserved = name && ok(await handle.get_legacy_reservation(name))[0]
+      throw new ProfileError(reserved ? 'legacy_reserved' : 'not_found')
+    }
     const home = accountHome(
       account,
       Object.keys(config.environment)[0]!,

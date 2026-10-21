@@ -1,6 +1,9 @@
 import type { Messages } from './en'
 
 export default {
+  'This legacy handle is reserved and has not been linked to a new account.':
+    '该旧名称已保留，尚未关联新版账户。',
+  'View legacy profile': '查看旧版资料',
   'Public profile': '公开资料',
   'This is not a valid account ID or handle.': '账户 ID 或 handle 格式无效。',
   'This account or handle was not found.': '未找到账户或 handle。',
