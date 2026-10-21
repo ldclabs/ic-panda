@@ -36,6 +36,7 @@ icrc-ledger-types.workspace = true
 ic-vetkeys.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 rqrr.workspace = true
+qrcode = { version = "0.14", default-features = false }
 reqwest = { workspace = true, features = ["rustls", "json"] }
 rusqlite = { workspace = true, features = ["bundled"] }
 serde = { workspace = true, features = ["derive"] }
@@ -53,5 +54,4 @@ zip.workspace = true
 testing = []
 
 [dev-dependencies]
-qrcode = { version = "0.14", default-features = false }
 tokio = { workspace = true }

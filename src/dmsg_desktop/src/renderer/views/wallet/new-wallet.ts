@@ -4,6 +4,7 @@
  * and what the form asks the hub to create. Pure, so they are tested under
  * node.
  */
+import { validPrincipal } from './model.ts'
 import type { Label } from '../../i18n/messages/en'
 
 /** One member line being edited. `key` keeps its input with its row. */
@@ -22,11 +23,10 @@ export const MAX_DRAFT_MEMBERS = 63
 /** Roles a wallet member may take, as the daemon reads them. */
 export const MEMBER_ROLES = ['admin', 'approver', 'proposer', 'viewer', 'recovery'] as const
 
-const ACCOUNT = /^[0-9a-v]{20}$/
-const PRINCIPAL = /^(?:[a-z2-7]{5}-)*[a-z2-7]{1,5}$/
+const ACCOUNT = /^[0-9a-v]{19}[0g]$/
 
 /** Whether text is a dMsg account ID (a 20-character Xid) or a Principal’s text form. */
-export const isMemberId = (id: string) => ACCOUNT.test(id) || PRINCIPAL.test(id)
+export const isMemberId = (id: string) => ACCOUNT.test(id) || (validPrincipal(id) && !['2vxsx-fae', 'aaaaa-aa'].includes(id))
 
 /** The rows that name someone; a blank row is an invitation to type, not a member. */
 export const namedMembers = (rows: MemberDraft[]) => rows.filter((row) => row.id.trim())

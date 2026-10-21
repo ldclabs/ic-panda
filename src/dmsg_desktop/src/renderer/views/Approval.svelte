@@ -16,6 +16,9 @@
     titleOf,
     trailOf
   } from '../approval'
+  import WalletIntent from './wallet/Intent.svelte'
+  import { knownIntent } from './wallet/model'
+  import { w } from './wallet/text'
   import Collapsible from '../components/Collapsible.svelte'
   import Icon from '../components/Icon.svelte'
   import Select from '../components/Select.svelte'
@@ -41,6 +44,8 @@
   let assets = $state<any[]>([])
   let selection = $state('')
   let readiness = $state<any>(null)
+  let walletAssets = $state<any[]>([])
+  let walletReadiness = $state<any>(null)
   let queue = $state<string[]>([])
   let agents = $state<Record<string, string>>({})
   let now = $state(Date.now())
@@ -81,6 +86,10 @@
         rejectButton?.focus()
       }
       void loadReadiness()
+      if (first && next?.type === 'wallet') {
+        if (next.detail?.wallet) void call<any>('wallet/assets', { wallet: next.detail.wallet }).then((r) => walletAssets = r.assets, () => undefined)
+        void call('wallet/readiness').then((r) => walletReadiness = r, () => walletReadiness = { blockers: ['WALLET_REGISTRATION_UNAVAILABLE'] })
+      }
       void loadQueue()
       // An agent's request, a grant to an agent or its credential names Agent IDs.
       if (first && (String(next?.source).startsWith('agent:') || ['delegation', 'grant'].includes(next?.type))) void loadAgents()
@@ -290,7 +299,7 @@
   /** How long the request had from its creation, for the bar of the time left. */
   const lifetime = $derived(Math.max(1, (request?.expires_at ?? 0) - (request?.created_at ?? (request?.expires_at ?? 0) - 600_000)))
   const hold = $derived(holdToApprove(request))
-  const blockers = $derived<string[]>(readiness?.blockers ?? [])
+  const blockers = $derived<string[]>([...(readiness?.blockers ?? []), ...(request?.type === 'wallet' && request?.detail?.action !== 'cosign' ? (walletReadiness?.blockers ?? ['WALLET_REGISTRATION_UNAVAILABLE']) : []), ...(request?.type === 'wallet' && request?.detail?.proposal && !knownIntent(request.detail.proposal.intent) ? ['WALLET_UNSUPPORTED_INTENT'] : [])])
   const canApprove = $derived(waiting && ready && !busy && !unquoted && !expired && !blockers.length)
   const trail = $derived(trailOf(request, agents))
   const kind = $derived(kindOf(request))
@@ -315,7 +324,7 @@
   const change = (name: string): string => (changeLabels[name] ? t(changeLabels[name]) : name)
   const purpose = (name: string): string => (purposeLabels[name] ? t(purposeLabels[name]) : name)
   const purposes = (names?: string[]) => (names ?? []).map(purpose).join(', ')
-  const reason = (codeName: string): string => (reasonLabels[codeName] ? t(reasonLabels[codeName]) : `${t('error')}: ${codeName}`)
+  const reason = (codeName: string): string => codeName.startsWith('WALLET_') ? (codeName==='WALLET_UNSUPPORTED_INTENT' ? w('unsupported') : w(codeName)) : (reasonLabels[codeName] ? t(reasonLabels[codeName]) : `${t('error')}: ${codeName}`)
   const authPurposes: Record<string, Label> = { Login: 'authLogin', Link: 'authLink', Reauthenticate: 'authReauthenticate' }
   const method = (name?: string) => (name === 'Cash' ? t('methodCash') : name === 'Panda' ? t('methodPanda') : String(name ?? ''))
 
@@ -695,22 +704,26 @@
               {#if d.action === 'create'}
                 {@render row(t('price'), `${units(d.price_e8s, 8)} ICP + ${units(d.ledger_fee_e8s, 8)}`, { testid: 'approval-amount' })}
                 {@render row(t('twPolicy'), t('twPolicyLine', { approvals: d.policy.approver_threshold, admin: d.policy.admin_threshold, version: d.policy.version }))}
-                {#each d.members as m (m.id)}{@render row(m.role, `${m.id}${m.label ? ` · ${m.label}` : ''}`, { mono: true })}{/each}
+                <div class="col-span-2"><WalletIntent intent={{kind:'set_policy',policy:d.policy}} /></div>
+                {#each d.members as m (m.id)}{@render row(w(m.role), `${m.id}${m.label ? ` · ${m.label}` : ''}${m.agent_ids?.length ? ` · ${m.agent_ids.join(', ')}` : ''}`, { mono: true })}{/each}
               {:else if d.proposal}
-                {@const intent = d.proposal.intent}
-                {@render row(t('twProposal'), `#${d.proposal.id} · ${intent.kind}`, { testid: 'approval-proposal' })}
-                {#if intent.asset}{@render row(t('twAsset'), `${intent.asset.asset}${intent.asset.chain_id ? ` · ${intent.asset.chain_id}` : ''}${intent.asset.token ?? intent.asset.mint ?? intent.asset.ledger ? ` · ${intent.asset.token ?? intent.asset.mint ?? intent.asset.ledger}` : ''}`)}{/if}
-                {#each intent.outputs ?? [] as o, i (i)}{@render row(t('recipient'), `${o.amount} → ${o.to}`, { mono: true, testid: 'approval-recipient' })}{/each}
-                {#if intent.max_fee}{@render row(t('twMaxFee'), intent.max_fee, { mono: true })}{/if}
-                {#if intent.method}{@render row(t('method'), `${intent.canister} · ${intent.method}`, { mono: true })}{/if}
-                {#if intent.consent}{@render row(t('twConsent'), intent.consent)}{/if}
-                {#if intent.member}{@render row(t('twMember'), typeof intent.member === 'string' ? intent.member : `${intent.member.id} · ${intent.member.role}`, { mono: true })}{/if}
-                {@render row(t('twApprovalsOf', { n: d.proposal.votes.filter((v: any) => v.decision === 'Approve').length, m: d.proposal.requirement.approvals }), d.proposal.proposer, { mono: true })}
+                <div class="col-span-2" data-testid="approval-proposal">
+                  <WalletIntent intent={d.proposal.intent} metadata={walletAssets} before={d.before} />
+                </div>
+                {@render row(t('twProposal'), `#${d.proposal.id}`)}
+                {@render row(t('twMember'), d.proposal.proposer, { mono: true })}
+                {#if d.proposal.via_agent}{@render row('Agent ID', d.proposal.via_agent, { mono: true })}{/if}
+                {@render row(t('twApprovals'), `${d.proposal.requirement.approvals} · ${w(d.proposal.requirement.admin ? 'Admin' : 'Approver')}`)}
+                {@render row(w('delay_ms'), String(d.proposal.requirement.delay_ms))}
+                {@render row(t('expires'), when(d.proposal.expires_at))}
                 {#if d.plan}
-                  {@render row(t('twChain'), `${d.plan.chain} · ${d.plan.from}`, { mono: true })}
-                  {@render row(t('fee'), d.plan.fee, { mono: true })}
+                  {@render row(w('plan'), `#${d.plan.seq} · ${d.plan.chain} · ${d.plan.from}`, { mono: true })}
+                  {@render row(w('fee'), `${d.plan.fee} ${w('atomic')}`, { mono: true })}
+                  {#each d.plan.outputs ?? [] as o,i (i)}{@render row(w('recipient'), `${o.amount} ${w('atomic')} → ${o.to}`, { mono: true })}{/each}
                   {#if d.plan.change}{@render row(t('twChange'), `${d.plan.change.amount} → ${d.plan.change.to}`, { mono: true })}{/if}
+                  {@render row(t('expires'), when(d.plan.expires_at))}
                 {/if}
+                {#if d.collect_only}{@render row(w('cosigners'), w('collectHint'))}{/if}
                 {@render row(t('digest'), d.proposal.digest, { mono: true })}
               {/if}
             {/if}

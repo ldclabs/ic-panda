@@ -232,6 +232,7 @@ async function openLink(url: string) {
   if (!link) return
   if (link.route === 'browsers') return showMain('/settings/browsers')
   if (link.route === 'join') return showMain(`/channels?join=${link.invitation}`)
+  if (link.route === 'wallet') return showMain(`/wallet/${link.wallet}${link.proposal==null?'':`/${link.proposal}`}`)
   if (link.route === 'accept') return showMain(`/plan?accept=${link.token}`)
   // The request ID in a link is only a hint: find the daemon's request for
   // it, by the relay request a page links or by the approval's own ID.

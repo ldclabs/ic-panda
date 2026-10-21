@@ -26,6 +26,7 @@ use dmsg_client::{
     attest::StatementInput,
     codec::{b64, unb64},
     error_code,
+    hold::Hold,
     library::catalog::ROOT,
     vault::{Changes, Filter, Item, otp},
 };
@@ -647,9 +648,13 @@ impl Daemon {
     /// A `dmsg_*` tool, after the capability it needs.
     async fn dmsg_tool(&self, agent: &AgentEntry, tool: &str, input: &Value) -> Result<Value> {
         let did = agent.agent_id.as_str();
+        let h = self.hold();
+        h.with(|_| Ok(())).await?;
         let channel = || text(input, "channel");
-        let granted =
-            async |capability: &str| self.client().lock().await.capability_check(did, capability);
+        let granted = async |capability: &str| {
+            h.with(|client| client.capability_check(did, capability))
+                .await
+        };
         let wallet = || dmsg_client::wallet::parse_wallet(&text(input, "wallet")?);
         let proposal = || {
             input["proposal"]
@@ -658,7 +663,6 @@ impl Daemon {
         };
         // These wait on the relay and the IC without the client, as the
         // owner's methods do.
-        let h = self.hold();
         match tool {
             "dmsg_channel_publish" => {
                 let id = channel()?;
@@ -763,18 +767,60 @@ impl Daemon {
             }
             _ => {}
         }
+        if matches!(
+            tool,
+            "dmsg_wallet_propose_transfer" | "dmsg_wallet_execute" | "dmsg_wallet_report_broadcast"
+        ) {
+            let _turn = self.turn(&format!("wallet:{}", wallet()?)).await;
+            let via = format!("agent:{did}");
+            let result = match tool {
+                "dmsg_wallet_propose_transfer" => {
+                    let id = text(input, "wallet")?;
+                    granted(&format!("wallet.propose:{id}")).await?;
+                    let from = input["from"]
+                        .as_u64()
+                        .and_then(|f| u32::try_from(f).ok())
+                        .ok_or_else(|| Error::InvalidInput("from".into()))?;
+                    dmsg_client::wallet::ops::send(
+                        &h,
+                        wallet()?,
+                        from,
+                        &text(input, "asset")?,
+                        &text(input, "to")?,
+                        &text(input, "amount")?,
+                        &text(input, "max_fee")?,
+                        input["memo"].as_str(),
+                        Some(did.to_string()),
+                    )
+                    .await
+                }
+                "dmsg_wallet_execute" => {
+                    let id = text(input, "wallet")?;
+                    granted(&format!("wallet.execute:{id}")).await?;
+                    dmsg_client::wallet::ops::execute(&h, &via, wallet()?, proposal()?).await
+                }
+                "dmsg_wallet_report_broadcast" => {
+                    let id = text(input, "wallet")?;
+                    granted(&format!("wallet.execute:{id}")).await?;
+                    match input["rebroadcast"] == true {
+                        true => {
+                            dmsg_client::wallet::ops::broadcast(&h, wallet()?, proposal()?, None)
+                                .await
+                        }
+                        false => dmsg_client::wallet::ops::settle(&h, wallet()?, proposal()?).await,
+                    }
+                }
+                _ => Err(Error::NotFound),
+            }?;
+            self.emit("wallet/changed", Value::Null);
+            self.emit("approval/changed", Value::Null);
+            return Ok(result);
+        }
+
         // These still wait on the relay and the IC under the client:
         // contacts, delegations and the wallet's proposals and executions.
-        let networked = matches!(
-            tool,
-            "dmsg_inbox_contact"
-                | "dmsg_delegations_list"
-                | "dmsg_wallet_propose_transfer"
-                | "dmsg_wallet_execute"
-                | "dmsg_wallet_report_broadcast"
-        );
+        let networked = matches!(tool, "dmsg_inbox_contact" | "dmsg_delegations_list");
         if networked {
-            let via = format!("agent:{did}");
             let result = self
                 .under_lock(async |client| match tool {
                     "dmsg_inbox_contact" => {
@@ -790,39 +836,6 @@ impl Daemon {
                     "dmsg_delegations_list" => {
                         client.capability_check(did, "agent.delegation.read")?;
                         Ok(Value::Array(client.delegation_credentials().await?))
-                    }
-                    "dmsg_wallet_propose_transfer" => {
-                        let id = text(input, "wallet")?;
-                        client.capability_check(did, &format!("wallet.propose:{id}"))?;
-                        let from = input["from"]
-                            .as_u64()
-                            .and_then(|f| u32::try_from(f).ok())
-                            .ok_or_else(|| Error::InvalidInput("from".into()))?;
-                        client
-                            .wallet_send(
-                                wallet()?,
-                                from,
-                                &text(input, "asset")?,
-                                &text(input, "to")?,
-                                &text(input, "amount")?,
-                                &text(input, "max_fee")?,
-                                input["memo"].as_str(),
-                                Some(did.to_string()),
-                            )
-                            .await
-                    }
-                    "dmsg_wallet_execute" => {
-                        let id = text(input, "wallet")?;
-                        client.capability_check(did, &format!("wallet.execute:{id}"))?;
-                        client.wallet_execute(&via, wallet()?, proposal()?).await
-                    }
-                    "dmsg_wallet_report_broadcast" => {
-                        let id = text(input, "wallet")?;
-                        client.capability_check(did, &format!("wallet.execute:{id}"))?;
-                        match input["rebroadcast"] == true {
-                            true => client.wallet_broadcast(wallet()?, proposal()?, None).await,
-                            false => client.wallet_settle(wallet()?, proposal()?).await,
-                        }
                     }
                     _ => Err(Error::NotFound),
                 })

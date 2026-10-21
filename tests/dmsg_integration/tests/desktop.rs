@@ -4540,6 +4540,26 @@ fn desktop_wallet() {
         .as_str()
         .unwrap()
         .to_string();
+    // No WalletApprove: creation is refused before the payer sends ICP.
+    let readiness = a.rpc(&http, "wallet/readiness", json!({})).unwrap();
+    assert!(
+        readiness["blockers"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("WALLET_APPROVE_REQUIRED"))
+    );
+    let unapproved_quote = a.run(&["wallet", "quote"]);
+    let before_permission = balance(a, &ledger);
+    let unapproved_create = a.run(&[
+        "wallet",
+        "create",
+        unapproved_quote["quote_id"].as_str().unwrap(),
+        "--name",
+        "Needs permission",
+    ]);
+    assert!(a.decide(&http, &unapproved_create, true).is_err());
+    assert_eq!(balance(a, &ledger), before_permission);
+
     // A holds every capability, six in all; B adds only WalletApprove. The
     // relay keeps syncing both accounts on their new security snapshots.
     let every = ["FormalApprove", "PaymentOffer", "WalletApprove"];
@@ -4580,6 +4600,24 @@ fn desktop_wallet() {
         .as_str()
         .unwrap()
         .to_string();
+    assert_eq!(balance(a, &ledger), before - u128::from(WALLET_PRICE) - fee);
+    let progress = a
+        .rpc(
+            &http,
+            "wallet/activation",
+            json!({"quote":quote["quote_id"]}),
+        )
+        .unwrap();
+    assert_eq!(progress["stage"], "ready");
+    assert_eq!(progress["wallet"], wallet);
+    let resumed = a
+        .rpc(
+            &http,
+            "wallet/activation_continue",
+            json!({"source":"cli","request":create["id"]}),
+        )
+        .unwrap();
+    assert_eq!(resumed["stage"], "ready");
     assert_eq!(balance(a, &ledger), before - u128::from(WALLET_PRICE) - fee);
     // The hub indexes the wallet under both accounts; A has one left.
     for desktop in [a, b] {
@@ -4652,6 +4690,26 @@ fn desktop_wallet() {
         owner: Principal::from_text(login_principal(77)).unwrap(),
         subaccount: None,
     };
+    let receive = a
+        .rpc(
+            &http,
+            "wallet/receive",
+            json!({"wallet":wallet,"address":0}),
+        )
+        .unwrap();
+    assert_eq!(receive["owner"], wallet);
+    assert_eq!(receive["account_identifier"].as_str().unwrap().len(), 64);
+    assert!(
+        receive["qr"]
+            .as_str()
+            .unwrap()
+            .starts_with("data:image/png;base64,")
+    );
+    let preview = a.rpc(&http,"wallet/preview",json!({"wallet":wallet,"draft":{"from":0,"asset":"icp","outputs":[{"to":to.to_string(),"amount":"100000000"}],"max_fee":"10000","memo":null}})).unwrap();
+    assert_eq!(preview["intent"]["outputs"][0]["amount"], "100000000");
+    assert_eq!(preview["requirement"]["approvals"], 1);
+    assert_eq!(preview["blockers"], json!([]));
+
     let proposed = a.run(&[
         "wallet",
         "send",
@@ -4716,6 +4774,115 @@ fn desktop_wallet() {
             assert!(kinds.contains(&kind), "{kind} in {kinds:?}");
         }
     }
+
+    // Two independent devices collect signatures for the same ICP plan.
+    // A fresh address needs no SetCosign delay, so this exercises the real
+    // workflow without advancing the daemon's wall clock.
+    let approve_admin = |proposal: &Value| {
+        let id = proposal["id"].as_u64().unwrap().to_string();
+        let request = a.run(&["wallet", "approve", &wallet, &id]);
+        assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
+        a.run(&["wallet", "proposal", &wallet, &id])
+    };
+    let mut cosigners = vec![];
+    for (desktop, label) in [(a, "desk-a"), (b, "desk-b")] {
+        desktop
+            .rpc(
+                &http,
+                "wallet/cosigner_new",
+                json!({"label":label,"hardware":false}),
+            )
+            .unwrap();
+        let proposal = desktop
+            .rpc(
+                &http,
+                "wallet/change",
+                json!({"wallet":wallet,"change":{"kind":"cosigner","label":label}}),
+            )
+            .unwrap();
+        let done = approve_admin(&proposal);
+        cosigners.push(done["outcome"]["cosigner"].as_u64().unwrap());
+    }
+    let address=a.rpc(&http,"wallet/change",json!({"wallet":wallet,"change":{"kind":"address","chain":"Icp","label":"Two devices","segwit":false,"cosign":{"threshold":2,"cosigners":cosigners}}})).unwrap();
+    approve_admin(&address);
+    let address_id = address["id"].as_u64().unwrap().to_string();
+    a.run(&["wallet", "execute", &wallet, &address_id]);
+    let address_done = a.run(&["wallet", "proposal", &wallet, &address_id]);
+    let from = address_done["outcome"]["address"].as_u64().unwrap() as u32;
+    mint(
+        d,
+        ledger,
+        dmsg_protocol::wallet::icp_account(owner, from),
+        20_000_000,
+    );
+    let transfer = a.run(&[
+        "wallet",
+        "send",
+        &wallet,
+        "--from",
+        &from.to_string(),
+        "--asset",
+        "icp",
+        "--to",
+        &to.to_string(),
+        "--amount",
+        "10000000",
+        "--max-fee",
+        "10000",
+    ]);
+    let id = transfer["id"].as_u64().unwrap();
+    let decision = b.run(&["wallet", "approve", &wallet, &id.to_string()]);
+    b.decide(&http, &decision, true).unwrap();
+    let first = a.run(&["wallet", "execute", &wallet, &id.to_string()]);
+    assert_eq!(first["detail"]["collect_only"], true);
+    a.decide(&http, &first, true).unwrap();
+    let first = a.run(&["approvals", "show", first["id"].as_str().unwrap()]);
+    let packet = first["detail"]["result"]["packet"].as_str().unwrap();
+    assert_eq!(first["detail"]["result"]["collected"], 1);
+    let second = b
+        .rpc(
+            &http,
+            "wallet/cosign",
+            json!({"source":"cli","wallet":wallet,"proposal":id,"plan":0}),
+        )
+        .unwrap();
+    b.decide(&http, &second, true).unwrap();
+    let collected = b
+        .rpc(
+            &http,
+            "wallet/cosign_import",
+            json!({"wallet":wallet,"proposal":id,"plan":0,"packet":packet}),
+        )
+        .unwrap();
+    assert_eq!(collected["collected"], 2);
+    assert_eq!(collected["ready"], true);
+    b.rpc(
+        &http,
+        "wallet/cosign_execute",
+        json!({"wallet":wallet,"proposal":id,"plan":0}),
+    )
+    .unwrap();
+    assert_eq!(ledger_balance(d, ledger, to), 110_000_000);
+    assert_eq!(
+        a.run(&["wallet", "proposal", &wallet, &id.to_string()])["status"],
+        "Settled"
+    );
+    // The incrementally verified audit still ends at the certified head.
+    assert_eq!(
+        a.rpc(&http, "wallet/audit_page", json!({"wallet":wallet}))
+            .unwrap()["verified"],
+        true
+    );
+
+    let empty_audit = a
+        .rpc(
+            &http,
+            "wallet/audit_page",
+            json!({"wallet":wallet,"before":0}),
+        )
+        .unwrap();
+    assert_eq!(empty_audit["recent"], json!([]));
+    assert_eq!(empty_audit["to"], 0);
 
     // A creation that fails after payment, here for want of the hub's
     // cycles: `wallet refund` claims the deposit with this device's wallet

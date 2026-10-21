@@ -5,6 +5,7 @@
  * for the approval window and the main window's confirmation; no window
  * sends it itself. `dmsg://` links only move the view (connect-v1 §8).
  */
+import { validPrincipal } from '../shared/principal.ts'
 import { DaemonError } from './error.ts'
 
 /**
@@ -177,6 +178,32 @@ export const WINDOW_METHODS = new Set([
   'inbox/mark',
   'payment/revise',
   'payer/balance',
+  'wallet/activation_continue',
+  'wallet/activation',
+  'wallet/assets',
+  'wallet/book',
+  'wallet/readiness',
+  'wallet/preview',
+  'wallet/transfer',
+  'wallet/change',
+  'wallet/receive',
+  'wallet/versions',
+  'wallet/health',
+  'wallet/upgrade',
+  'wallet/lock_code',
+  'wallet/rpc',
+  'wallet/rpc_set',
+  'wallet/rpc_check',
+  'wallet/audit_page',
+  'wallet/cosign',
+  'wallet/cosign_status',
+  'wallet/cosign_import',
+  'wallet/cosign_execute',
+  'wallet/channel',
+  'wallet/notify',
+  'wallet/proposal',
+  'wallet/refuel',
+  'wallet/reconcile',
   'wallet/list',
   'wallet/show',
   'wallet/principal',
@@ -328,7 +355,9 @@ const GUI_SOURCED = new Set([
   'wallet/approve',
   'wallet/reject',
   'wallet/veto',
-  'wallet/execute'
+  'wallet/execute',
+  'wallet/cosign',
+  'wallet/activation_continue'
 ])
 
 /** The tools the Agents view runs as a hosted Agent ID: Agent Mail and Agent Knowledge. */
@@ -367,6 +396,7 @@ export type Link =
   | { route: 'request'; account: string; request: string }
   | { route: 'join'; invitation: string }
   | { route: 'accept'; token: string }
+  | { route: 'wallet'; wallet: string; proposal?: number }
 
 export function parseLink(url: string): Link | null {
   let parsed: URL
@@ -374,6 +404,12 @@ export function parseLink(url: string): Link | null {
     parsed = new URL(url)
   } catch {
     return null
+  }
+  if(parsed.protocol==='dmsg:'&&parsed.host==='wallet'&&!parsed.search&&!parsed.hash){
+    const parts=parsed.pathname.split('/').filter(Boolean)
+    if(parts.length<1||parts.length>2||!validPrincipal(parts[0]))return null
+    const proposal=parts[1]===undefined?undefined:Number(parts[1])
+    return proposal===undefined || (/^\d+$/.test(parts[1])&&Number.isSafeInteger(proposal)) ? {route:'wallet',wallet:parts[0],proposal}:null
   }
   // A channel invitation opens the join dialog with it; joining is still the person's click.
   if (parsed.protocol === 'dmsg:' && parsed.host === 'channel' && parsed.pathname === '/join') {

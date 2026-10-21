@@ -868,6 +868,9 @@ The daemon listens on `127.0.0.1` only.
   `payment/transfers|revise`, `payer/use|balance`,
   `wallet/list|show|principal|quote|quote_preview|create|join|proposals|proposal|propose|member_agents|send|approve|reject|veto|cancel|freeze`,
   `wallet/execute|broadcast|settle|report|reconcile|balances|audit|refuel|cosigners|cosigner_new|policy_default|intent`,
+  `wallet/activation|activation_continue|assets|book|readiness|preview|transfer|change|receive|versions|health|upgrade|lock_code`,
+  `wallet/rpc|rpc_set|rpc_check|audit_page|cosign|cosign_status|cosign_import|cosign_execute|channel|notify`
+  (structured desktop forms and explicit cosignature collection; see [wallet desktop](../../docs/dmsg_wallet_desktop_zh.md)),
   `plan/catalog|status|assets|quote|checkout|advance|order|checkouts|cancel|reconcile|refund`,
   `handle/resolve|price|claim|register|transfer|accept|transfer_commit|operations|reconcile`,
   `ops/orders|transfers|claims|reconcile_order|process_transfer|revise_transfer|claim|sweep`,

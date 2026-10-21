@@ -803,6 +803,28 @@ async fn consent(canister: Principal, method: &str, arg: &[u8]) -> Option<Consen
     })
 }
 
+/// Preview the current policy without creating a proposal or reserving funds.
+#[ic_cdk::query]
+fn preview_intent(intent: Intent) -> Result<Requirement> {
+    let caller = ic_cdk::api::msg_caller();
+    let at = now();
+    validate_intent(&intent)?;
+    store::with(|w| {
+        let member = w.acting(caller)?;
+        check_state(w, &intent)?;
+        unlocked(w, &intent)?;
+        let (window, in_book) = window_and_book(w, &intent, at);
+        requirement(
+            &w.policy,
+            &intent,
+            member.role,
+            Voters::of(&w.members),
+            window,
+            in_book,
+        )
+    })
+}
+
 #[ic_cdk::update]
 async fn propose(args: ProposeArgs) -> Result<Proposal> {
     let caller = ic_cdk::api::msg_caller();

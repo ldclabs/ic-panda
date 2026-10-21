@@ -127,6 +127,8 @@ principal 的启用、controller 登记与退役在账户所在 home 提交，�
 
 hub 按 commerce 的套餐配额报价，核对创建者的 `WalletCreate` 设备批准与收款后创建并安装钱包，钱包只以 hub 为 controller。成员以 `WalletJoin` 批准绑定客户端的钱包密钥 Principal；提案的每个决定是一次 `WalletProposal` 设备批准，钱包向成员所在 home 核验。ICP/ICRC 由钱包直接转账；BTC/EVM/SOL 由钱包从意图构造交易、以 `key_1` 签名，客户端独立解码复核后广播并回报。升级与锁定须钱包先以管理类提案接受。合同见 [wallet_zh.md](protocol/wallet_zh.md)。
 
+桌面以结构化提案管理成员、策略、地址与运行资源；转账先读取 `preview_intent`，多设备协签绑定同一计划。daemon 的钱包网络步骤通过 Hold 释放共享客户端锁。审计页以认证链头核验，频道通知只传加密提示。实现与验证范围见 [桌面钱包记录](dmsg_wallet_desktop_zh.md)。
+
 ## 5. 链上负载画像
 
 | 操作 | ICP 上的工作 |

@@ -20,6 +20,8 @@
   import { buttonClass, cn, menuContentClass, menuItemClass } from '../../components/ui'
   import { locale, t } from '../../i18n/index.svelte'
   import { size, when } from '../../rpc'
+  import { validPrincipal, walletRoute } from '../wallet/model'
+  import { w } from '../wallet/text'
   import { bytes, days, MAX_TEXT, packetStep, receiptOf } from './channels'
   import { label } from './names.svelte'
 
@@ -256,7 +258,14 @@
 
 {#snippet packetCard(message: any)}
   {@const packet = packetStep(message.packet, ledger, channel?.billing, me)}
-  {#if packet}
+  {#if message.packet?.format==='dmsg-wallet-event/1' && validPrincipal(message.packet.wallet??'')}
+    <div class="mt-1.5 max-w-md rounded-xl border border-line bg-surface p-3" data-testid="message-wallet-event">
+      <p class="text-[13px] font-semibold">{message.packet.name}</p>
+      <p class="mt-1 text-[12px]">{message.packet.proposal!=null?`#${message.packet.proposal} · `:''}{w(message.packet.status??'proposals')}</p>
+      <p class="mt-1 text-[11px] text-faint">{w('channelHint')}</p>
+      <a class="mt-2 inline-flex text-[12px] font-medium text-forest underline" href={`#${walletRoute(message.packet.wallet,Number.isSafeInteger(message.packet.proposal)?message.packet.proposal:undefined)}`}>{w('details')}</a>
+    </div>
+  {:else if packet}
     <div class="mt-1.5 flex max-w-md items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 shadow-xs" data-testid="message-packet">
       <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-pale text-forest"><Icon name={packet.kind === 'owner' ? 'owner' : 'coins'} /></span>
       <span class="min-w-0 flex-1">

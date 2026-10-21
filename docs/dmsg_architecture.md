@@ -127,6 +127,8 @@ Principal activation, controller registration and retirement commit in the accou
 
 The hub quotes within the commerce plan quota, then creates and installs a wallet after checking the creator's `WalletCreate` device approval and the payment; a wallet's only controller is the hub. Members bind their client's wallet-key Principal with a `WalletJoin` approval; each decision on a proposal is a `WalletProposal` device approval that the wallet verifies at the member's home. The wallet transfers ICP/ICRC itself; for Bitcoin, EVM and Solana it builds the transaction from the intent and signs it with `key_1`, and the client decodes it independently before broadcasting and reporting it. Upgrades and locks need the wallet to accept them first by an admin proposal. Contract: [wallet_zh.md](protocol/wallet_zh.md) (Chinese).
 
+The desktop manages membership, policy, addresses and operations through structured proposals. Transfers query `preview_intent`; device cosignatures bind the same plan. Wallet network steps release the shared daemon client through Hold. Audit pages verify against a certified head; channel messages are encrypted hints. See the [desktop wallet implementation and validation record](dmsg_wallet_desktop_zh.md) (Chinese).
+
 ## 5. On-Chain Load Profile
 
 | Operation | Work on ICP |

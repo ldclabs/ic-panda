@@ -11,8 +11,12 @@
 //! device-approved joins. Only device approvals, verified by the user home,
 //! decide anything.
 
+pub mod audit;
 pub mod cosign;
 pub mod decode;
+pub mod desktop;
+pub mod ops;
+pub mod packets;
 pub mod rpc;
 
 use crate::client::Client;
@@ -71,6 +75,8 @@ pub enum JobKind {
         wallet: Principal,
         /// Its name.
         name: String,
+        /// Certified state against which the change is reviewed.
+        context: Box<WalletView>,
         /// The proposal as shown.
         proposal: Box<Proposal>,
         /// The decision.
@@ -83,12 +89,16 @@ pub enum JobKind {
         wallet: Principal,
         /// Its name.
         name: String,
+        /// Certified state against which the change is reviewed.
+        context: Box<WalletView>,
         /// The proposal.
         proposal: Box<Proposal>,
         /// The plan, checked by the decoder; none for ICP and ICRC.
         plan: Option<Box<ExecutionPlan>>,
         /// The wallet's cosigner ID of the local key.
-        cosigner: u32,
+        cosigners: Vec<u32>,
+        /// Collect a portable packet instead of executing immediately.
+        collect_only: bool,
     },
 }
 
@@ -135,26 +145,32 @@ impl WalletJob {
                 name,
                 proposal,
                 decision,
+                context,
             } => json!({
                 "action": "decide",
                 "decision": format!("{decision:?}").to_lowercase(),
                 "wallet": wallet.to_text(),
                 "name": name,
                 "proposal": proposal_view(proposal),
+                "before": wallet_view(context, None),
             }),
             JobKind::Cosign {
                 wallet,
                 name,
                 proposal,
                 plan,
-                cosigner,
+                cosigners,
+                collect_only,
+                context,
             } => json!({
                 "action": "cosign",
                 "wallet": wallet.to_text(),
                 "name": name,
                 "proposal": proposal_view(proposal),
+                "before": wallet_view(context, None),
                 "plan": plan.as_deref().map(plan_view),
-                "cosigner": cosigner,
+                "cosigners": cosigners,
+                "collect_only": collect_only,
             }),
         };
         view["result"] = self.result.clone().unwrap_or(Json::Null);
@@ -181,7 +197,7 @@ fn member_view(m: &MemberInput) -> Json {
 
 /// An asset's name and decimals for display.
 pub fn asset_view(asset: &AssetKey) -> Json {
-    match asset {
+    let mut out = match asset {
         AssetKey::Icp => json!({"asset": "ICP", "decimals": 8}),
         AssetKey::Icrc(ledger) => json!({"asset": "ICRC", "ledger": ledger.to_text()}),
         AssetKey::Btc => json!({"asset": "BTC", "decimals": 8}),
@@ -197,7 +213,9 @@ pub fn asset_view(asset: &AssetKey) -> Json {
         AssetKey::Sol { mint: Some(mint) } => {
             json!({"asset": "SPL", "mint": sol_address(&mint.into_array())})
         }
-    }
+    };
+    out["key"] = json!(desktop::asset_key(asset));
+    out
 }
 
 fn policy_view(p: &Policy) -> Json {
@@ -291,6 +309,7 @@ pub fn intent_view(intent: &Intent) -> Json {
             "kind": "add_address",
             "chain": format!("{chain:?}"),
             "control": format!("{kind:?}"),
+            "control_details": kind,
             "label": label,
             "cosign": cosign,
         }),
@@ -501,6 +520,7 @@ pub fn wallet_view(view: &WalletView, me: Option<&MemberId>) -> Json {
         "btc_network": format!("{:?}", view.btc_network),
         "frozen": view.frozen,
         "code": format!("{:?}", view.code),
+        "code_acceptance": view.code,
         "created_at": view.created_at_ms,
         "next_proposal": view.next_proposal,
         "audit_len": view.audit_len,
@@ -568,14 +588,6 @@ impl Client {
             .ok_or_else(|| Error::Unavailable("team wallets are not configured".into()))
     }
 
-    /// This device's wallet key: its Principal and agent, created once.
-    ///
-    /// # Errors
-    /// Returns `Error::Locked` while locked.
-    pub(crate) async fn wallet_identity(&mut self) -> Result<(Principal, Ic)> {
-        identity(&self.hold()).await
-    }
-
     /// The seed of this device's wallet key, made once.
     fn wallet_seed(&self) -> Result<serde_bytes::ByteArray<32>> {
         let keys = self.keys()?;
@@ -597,12 +609,6 @@ impl Client {
     /// single replica can show other addresses, members or policy.
     pub async fn wallet_state(&mut self, wallet: Principal) -> Result<WalletView> {
         state(&self.hold(), wallet).await
-    }
-
-    /// A proposal whose digest matches what it shows, so a decision or
-    /// cosignature commits to exactly that, whichever replica answered.
-    async fn wallet_proposal_raw(&mut self, wallet: Principal, id: u64) -> Result<Proposal> {
-        proposal_raw(&self.hold(), wallet, id).await
     }
 
     fn wallet_job(&self, id: &str) -> Result<WalletJob> {
@@ -687,27 +693,7 @@ impl Client {
     /// no longer keeps, or an empty deposit, and `Error::Forbidden` for a
     /// quote still usable or one that created its wallet.
     pub async fn wallet_refund(&mut self, quote_id: &str) -> Result<Json> {
-        let quote = self.wallet_saved_quote(quote_id)?;
-        let hub = self.wallet_hub()?;
-        // The journal names the identity that paid; a deposit paid some
-        // other way goes to the current payer.
-        let key = format!("{ACTIVATION}{}", hex::encode(*quote.quote_id));
-        let owner = match self.payment_journal(&key)? {
-            Some(payment) => payment.payer,
-            None => self.payer().await?.0,
-        };
-        let to = Account {
-            owner,
-            subaccount: None,
-        };
-        let (_, ic) = self.wallet_identity().await?;
-        let block: Result<u64> = ic
-            .update(hub, "claim_activation_refund", (quote.quote_id, to))
-            .await?;
-        let block = block?;
-        self.workspace
-            .delete_private(&format!("{QUOTE}{quote_id}"))?;
-        Ok(json!({"quote_id": quote_id, "to": to.to_string(), "block": block}))
+        ops::refund(&self.hold(), quote_id).await
     }
 
     /// The activation quotes this device paid, newest first.
@@ -733,21 +719,7 @@ impl Client {
     /// refreshes its member index from the wallet, which lists members
     /// added after creation only then.
     pub async fn wallet_join_request(&mut self, source: &str, wallet: Principal) -> Result<Json> {
-        let hub = self.wallet_hub()?;
-        let (_, ic) = self.wallet_identity().await?;
-        let record: Result<WalletRecord> = ic.update(hub, "sync_wallet", (wallet,)).await?;
-        let record = record?;
-        ensure(
-            record.members.contains(&self.wallet_member()?),
-            Error::Forbidden,
-        )?;
-        self.wallet_request(
-            source,
-            JobKind::Join {
-                wallet,
-                name: record.name,
-            },
-        )
+        ops::join_request(&self.hold(), source, wallet).await
     }
 
     /// Ask to decide on proposal `id`.
@@ -758,22 +730,7 @@ impl Client {
         id: u64,
         decision: Decision,
     ) -> Result<Json> {
-        let view = self.wallet_state(wallet).await?;
-        let proposal = self.wallet_proposal_raw(wallet, id).await?;
-        let wanted = match decision {
-            Decision::Veto => ProposalStatus::Delayed,
-            _ => ProposalStatus::Open,
-        };
-        ensure(proposal.status == wanted, Error::VersionConflict)?;
-        self.wallet_request(
-            source,
-            JobKind::Decide {
-                wallet,
-                name: view.name,
-                proposal: Box::new(proposal),
-                decision,
-            },
-        )
+        ops::decide_request(&self.hold(), source, wallet, id, decision).await
     }
 
     /// Propose `intent` with this device's wallet key; an agent proposing
@@ -784,15 +741,7 @@ impl Client {
         intent: Intent,
         via_agent: Option<String>,
     ) -> Result<Json> {
-        validate_intent(&intent)?;
-        let (_, ic) = self.wallet_identity().await?;
-        let args = ProposeArgs {
-            intent,
-            op_id: Hash::new(random_id()),
-            via_agent,
-        };
-        let p: Result<Proposal> = ic.update(wallet, "propose", (args,)).await?;
-        Ok(proposal_view(&p?))
+        ops::propose(&self.hold(), wallet, intent, via_agent).await
     }
 
     /// Propose that this account's member lets `agent_ids` propose on its
@@ -806,20 +755,7 @@ impl Client {
         wallet: Principal,
         agent_ids: Vec<String>,
     ) -> Result<Json> {
-        let me = self.wallet_member()?;
-        let view = self.wallet_state(wallet).await?;
-        let member = view
-            .members
-            .iter()
-            .find(|m| m.id == me)
-            .ok_or(Error::NotFound)?;
-        let intent = Intent::UpdateMember(MemberInput {
-            id: me,
-            role: member.role,
-            label: member.label.clone(),
-            agent_ids,
-        });
-        self.wallet_propose(wallet, intent, None).await
+        ops::member_agents(&self.hold(), wallet, agent_ids).await
     }
 
     /// Propose a transfer from string arguments: an asset as
@@ -837,55 +773,38 @@ impl Client {
         memo: Option<&str>,
         via_agent: Option<String>,
     ) -> Result<Json> {
-        let view = self.wallet_state(wallet).await?;
-        let asset = parse_asset(asset)?;
-        let to = parse_destination(&asset, to, view.btc_network)?;
-        let amount = amount.parse().map_err(|_| dmsg_types::invalid("amount"))?;
-        let max_fee = max_fee
-            .parse()
-            .map_err(|_| dmsg_types::invalid("max_fee"))?;
-        let memo = memo
-            .map(|m| hex::decode(m).map_err(|_| dmsg_types::invalid("memo")))
-            .transpose()?
-            .map(Into::into);
-        let intent = Intent::Transfer {
+        ops::send(
+            &self.hold(),
+            wallet,
             from,
             asset,
             to,
             amount,
             max_fee,
             memo,
-        };
-        self.wallet_propose(wallet, intent, via_agent).await
+            via_agent,
+        )
+        .await
     }
 
     /// Withdraw this member's own proposal.
     pub async fn wallet_cancel(&mut self, wallet: Principal, id: u64) -> Result<Json> {
-        let (_, ic) = self.wallet_identity().await?;
-        let p: Result<Proposal> = ic.update(wallet, "cancel_proposal", (id,)).await?;
-        Ok(proposal_view(&p?))
+        ops::cancel(&self.hold(), wallet, id).await
     }
 
     /// Stop the wallet's executions at once.
     pub async fn wallet_freeze(&mut self, wallet: Principal) -> Result<Json> {
-        let (_, ic) = self.wallet_identity().await?;
-        let r: Result<()> = ic.update(wallet, "freeze", ()).await?;
-        r?;
-        Ok(json!({"frozen": true}))
+        ops::freeze(&self.hold(), wallet).await
     }
 
     /// Top the wallet up under its refuel rule.
     pub async fn wallet_refuel(&mut self, wallet: Principal) -> Result<Json> {
-        let (_, ic) = self.wallet_identity().await?;
-        let r: Result<Option<u128>> = ic.update(wallet, "refuel", ()).await?;
-        Ok(json!({"cycles": r?.map(|c| c.to_string())}))
+        ops::refuel(&self.hold(), wallet).await
     }
 
     /// Resend an interrupted ICRC transfer or top-up with its exact arguments.
     pub async fn wallet_reconcile(&mut self, wallet: Principal, id: u64) -> Result<Json> {
-        let (_, ic) = self.wallet_identity().await?;
-        let r: Result<ExecuteResult> = ic.update(wallet, "reconcile", (id,)).await?;
-        Ok(proposal_view(&r?.proposal))
+        ops::reconcile(&self.hold(), wallet, id).await
     }
 
     /// Execute a ready proposal. ICP and internal changes run on the
@@ -899,136 +818,7 @@ impl Client {
         wallet: Principal,
         id: u64,
     ) -> Result<Json> {
-        let proposal = self.wallet_proposal_raw(wallet, id).await?;
-        let view = self.wallet_state(wallet).await?;
-        let Some((from, chain)) = external_source(&proposal.intent) else {
-            // An ICP source whose cosign policy names a key of this device
-            // needs the person too; the cosignature covers the proposal digest.
-            let icp_source = source_address(&proposal.intent)
-                .and_then(|from| view.addresses.iter().find(|a| a.id == from));
-            if let Some(address) = icp_source
-                && let Some(cosigner) = self.local_cosigner_of(&view, address)?
-            {
-                return self.wallet_request(
-                    source,
-                    JobKind::Cosign {
-                        wallet,
-                        name: view.name.clone(),
-                        proposal: Box::new(proposal),
-                        plan: None,
-                        cosigner,
-                    },
-                );
-            }
-            let (_, ic) = self.wallet_identity().await?;
-            let r: Result<ExecuteResult> = ic
-                .update(
-                    wallet,
-                    "execute",
-                    (ExecuteArgs {
-                        proposal: id,
-                        plan: None,
-                        cosigs: vec![],
-                    },),
-                )
-                .await?;
-            return Ok(proposal_view(&r?.proposal));
-        };
-        let address = view
-            .addresses
-            .iter()
-            .find(|a| a.id == from)
-            .cloned()
-            .ok_or(Error::NotFound)?;
-        let params = self
-            .wallet_params(&view, &proposal, &address, chain)
-            .await?;
-        let (_, ic) = self.wallet_identity().await?;
-        let plan: Result<ExecutionPlan> =
-            ic.update(wallet, "prepare_execution", (id, params)).await?;
-        let plan = plan?;
-        decode::verify_plan(&view, &proposal.intent, &plan)?;
-        // A cosign policy naming a key of this device needs the person.
-        if let Some(cosigner) = self.local_cosigner_of(&view, &address)? {
-            return self.wallet_request(
-                source,
-                JobKind::Cosign {
-                    wallet,
-                    name: view.name.clone(),
-                    proposal: Box::new(proposal),
-                    plan: Some(Box::new(plan)),
-                    cosigner,
-                },
-            );
-        }
-        self.wallet_sign_and_send(wallet, &view, &proposal, &plan, vec![])
-            .await
-    }
-
-    async fn wallet_sign_and_send(
-        &mut self,
-        wallet: Principal,
-        view: &WalletView,
-        proposal: &Proposal,
-        plan: &ExecutionPlan,
-        cosigs: Vec<CosignerSig>,
-    ) -> Result<Json> {
-        let (_, ic) = self.wallet_identity().await?;
-        let r: Result<ExecuteResult> = ic
-            .update(
-                wallet,
-                "execute",
-                (ExecuteArgs {
-                    proposal: proposal.id,
-                    plan: Some(plan.seq),
-                    cosigs,
-                },),
-            )
-            .await?;
-        let r = r?;
-        let signed = r.signed.ok_or(Error::IntegrityFailed)?;
-        let mut out = proposal_view(&r.proposal);
-        out["signed"] = json!({"plan": signed.plan, "txid": signed.txid});
-        match self.wallet_broadcast_signed(view, proposal, &signed).await {
-            Ok(txid) => {
-                let reported = self
-                    .wallet_report(
-                        wallet,
-                        proposal.id,
-                        signed.plan,
-                        ChainOutcome::Broadcast,
-                        &format!("broadcast {txid}"),
-                    )
-                    .await?;
-                out = reported;
-                out["broadcast"] = json!(txid);
-            }
-            // The signed transaction stays on the wallet; broadcast it again later.
-            Err(error) => out["broadcast_error"] = json!(error.to_string()),
-        }
-        Ok(out)
-    }
-
-    async fn wallet_broadcast_signed(
-        &mut self,
-        view: &WalletView,
-        proposal: &Proposal,
-        signed: &SignedTx,
-    ) -> Result<String> {
-        let chains = self.chains()?;
-        match external_source(&proposal.intent).map(|(_, c)| c) {
-            Some(Chain::Bitcoin) => chains.btc_broadcast(&signed.raw).await,
-            Some(Chain::Evm) => {
-                chains
-                    .evm_send(evm_chain(&proposal.intent)?, &signed.raw)
-                    .await
-            }
-            Some(Chain::Solana) => chains.sol_send(&signed.raw).await,
-            _ => {
-                let _ = view;
-                Err(Error::InvalidInput("not an external-chain proposal".into()))
-            }
-        }
+        ops::execute(&self.hold(), source, wallet, id).await
     }
 
     /// Broadcast a signed plan again and report it.
@@ -1038,74 +828,14 @@ impl Client {
         id: u64,
         plan: Option<u32>,
     ) -> Result<Json> {
-        let view = self.wallet_state(wallet).await?;
-        let proposal = self.wallet_proposal_raw(wallet, id).await?;
-        let signed = match plan {
-            Some(seq) => proposal.signed.iter().find(|s| s.plan == seq),
-            None => proposal.signed.last(),
-        }
-        .cloned()
-        .ok_or(Error::NotFound)?;
-        let txid = self
-            .wallet_broadcast_signed(&view, &proposal, &signed)
-            .await?;
-        let mut out = self
-            .wallet_report(
-                wallet,
-                id,
-                signed.plan,
-                ChainOutcome::Broadcast,
-                &format!("broadcast {txid}"),
-            )
-            .await?;
-        out["broadcast"] = json!(txid);
-        Ok(out)
+        ops::broadcast(&self.hold(), wallet, id, plan).await
     }
 
     /// Check the chain for each signed plan, newest first, and report the
     /// first one final as settled or failed: after a fee bump, an earlier
     /// version may be the one that lands.
     pub async fn wallet_settle(&mut self, wallet: Principal, id: u64) -> Result<Json> {
-        let proposal = self.wallet_proposal_raw(wallet, id).await?;
-        let latest = proposal.signed.last().cloned().ok_or(Error::NotFound)?;
-        let chain = external_source(&proposal.intent).map(|(_, c)| c);
-        let chains = self.chains()?;
-        let (mut pending, mut error) = (false, None);
-        for signed in proposal.signed.iter().rev() {
-            let status = match chain {
-                Some(Chain::Bitcoin) => chains
-                    .btc_confirmed(&signed.txid)
-                    .await
-                    .map(|confirmed| confirmed.then_some(true)),
-                Some(Chain::Evm) => {
-                    chains
-                        .evm_receipt(evm_chain(&proposal.intent)?, &signed.txid)
-                        .await
-                }
-                Some(Chain::Solana) => chains.sol_status(&signed.txid).await,
-                _ => return Err(Error::InvalidInput("not an external-chain proposal".into())),
-            };
-            let (outcome, note) = match status {
-                Ok(Some(true)) => (ChainOutcome::Settled, "final on chain"),
-                Ok(Some(false)) => (ChainOutcome::Failed, "failed on chain"),
-                Ok(None) => {
-                    pending = true;
-                    continue;
-                }
-                // A replaced transaction may be unknown to the endpoint.
-                Err(e) => {
-                    error.get_or_insert(e);
-                    continue;
-                }
-            };
-            return self
-                .wallet_report(wallet, id, signed.plan, outcome, note)
-                .await;
-        }
-        match error {
-            Some(e) if !pending => Err(e),
-            _ => Ok(json!({"pending": true, "txid": latest.txid})),
-        }
+        ops::settle(&self.hold(), wallet, id).await
     }
 
     /// Report a signed plan's fate.
@@ -1117,187 +847,17 @@ impl Client {
         outcome: ChainOutcome,
         note: &str,
     ) -> Result<Json> {
-        let (_, ic) = self.wallet_identity().await?;
-        let p: Result<Proposal> = ic
-            .update(
-                wallet,
-                "report",
-                (ChainReport {
-                    proposal: id,
-                    plan,
-                    outcome,
-                    note: note.chars().take(256).collect(),
-                },),
-            )
-            .await?;
-        Ok(proposal_view(&p?))
+        ops::report(&self.hold(), wallet, id, plan, outcome, note).await
     }
 
     /// The chain endpoints, over one HTTP client for the client's life.
     fn chains(&mut self) -> Result<rpc::Chains> {
         if self.chains.is_none() {
-            self.chains = Some(rpc::Chains::new(&self.config.wallet)?);
+            self.chains = Some(rpc::Chains::new(&desktop::settings(self)?)?);
         }
         self.chains
             .clone()
             .ok_or(Error::Unavailable("chains".into()))
-    }
-
-    /// Chain parameters for a plan, read fresh: UTXOs and a fee rate,
-    /// the pending nonce and fees, or a blockhash or durable nonce value.
-    async fn wallet_params(
-        &mut self,
-        view: &WalletView,
-        p: &Proposal,
-        a: &Address,
-        chain: Chain,
-    ) -> Result<ExecutionParams> {
-        let chains = self.chains()?;
-        Ok(match chain {
-            Chain::Bitcoin => {
-                // A replacement spends the first signed plan's inputs.
-                let utxos = match p.signed.first() {
-                    Some(first) => {
-                        let (_, ic) = self.wallet_identity().await?;
-                        let plan: Result<ExecutionPlan> = ic
-                            .query(view.wallet, "get_plan", (p.id, first.plan))
-                            .await?;
-                        match plan?.params {
-                            ExecutionParams::Bitcoin { utxos, .. } => utxos,
-                            _ => return Err(Error::IntegrityFailed),
-                        }
-                    }
-                    None => chains
-                        .btc_utxos(&a.text)
-                        .await?
-                        .into_iter()
-                        .take(MAX_BTC_INPUTS)
-                        .map(|u| {
-                            let mut txid: [u8; 32] = hex::decode(&u.txid)
-                                .ok()
-                                .and_then(|b| b.try_into().ok())
-                                .ok_or(Error::IntegrityFailed)?;
-                            txid.reverse();
-                            Ok(Utxo {
-                                txid: Hash::new(txid),
-                                vout: u.vout,
-                                value: u.value,
-                                address: a.id,
-                            })
-                        })
-                        .collect::<Result<_>>()?,
-                };
-                ensure(!utxos.is_empty(), Error::FeeBlocked)?;
-                let rate = chains.btc_fee_rate().await?;
-                ExecutionParams::Bitcoin {
-                    utxos,
-                    // A replacement must pay more than the transaction it replaces.
-                    fee_rate: if p.signed.is_empty() { rate } else { rate + 1 },
-                    locktime: 0,
-                    timelock: false,
-                }
-            }
-            Chain::Evm => {
-                let chain_id = evm_chain(&p.intent)?;
-                let nonce = match (&p.intent, p.signed.first()) {
-                    // A replacement keeps the nonce of the transaction it replaces.
-                    (_, Some(first)) => {
-                        let (_, ic) = self.wallet_identity().await?;
-                        let plan: Result<ExecutionPlan> = ic
-                            .query(view.wallet, "get_plan", (p.id, first.plan))
-                            .await?;
-                        match plan?.params {
-                            ExecutionParams::Evm { nonce, .. } => nonce,
-                            _ => return Err(Error::IntegrityFailed),
-                        }
-                    }
-                    // A cancellation takes the oldest nonce not yet mined.
-                    (Intent::CancelEvmNonce { .. }, None) => {
-                        let v = chains
-                            .evm(
-                                chain_id,
-                                "eth_getTransactionCount",
-                                json!([a.text, "latest"]),
-                            )
-                            .await?;
-                        u64::from_str_radix(
-                            v.as_str().unwrap_or_default().trim_start_matches("0x"),
-                            16,
-                        )
-                        .map_err(|_| Error::Unavailable("nonce".into()))?
-                    }
-                    _ => chains.evm_nonce(chain_id, &a.text).await?,
-                };
-                let (mut max_fee, mut tip) = chains.evm_fees(chain_id).await?;
-                if !p.signed.is_empty() || matches!(p.intent, Intent::CancelEvmNonce { .. }) {
-                    // Replacements need at least a tenth more.
-                    max_fee = max_fee * 12 / 10;
-                    tip = tip * 12 / 10;
-                }
-                let gas_limit = match &p.intent {
-                    Intent::Transfer {
-                        asset:
-                            AssetKey::Evm {
-                                token: Some(token), ..
-                            },
-                        to: Destination::Evm(to),
-                        amount,
-                        ..
-                    } => {
-                        let data = [
-                            &[0xa9, 0x05, 0x9c, 0xbb][..],
-                            &[0; 12],
-                            &to[..],
-                            &[0; 16],
-                            &amount.to_be_bytes(),
-                        ]
-                        .concat();
-                        chains
-                            .evm_gas(chain_id, &a.text, &eip55(&token.into_array()), &data, 0)
-                            .await
-                            .unwrap_or(100_000)
-                    }
-                    _ => 21_000,
-                };
-                ExecutionParams::Evm {
-                    nonce,
-                    max_fee_per_gas: max_fee,
-                    max_priority_fee_per_gas: tip,
-                    gas_limit,
-                }
-            }
-            Chain::Solana => {
-                let blockhash = match a.sol_nonce {
-                    Some(nonce) => chains.sol_nonce(&sol_address(&nonce.into_array())).await?,
-                    None => chains.sol_blockhash().await?,
-                };
-                let (decimals, create_ata) = match &p.intent {
-                    Intent::Transfer {
-                        asset: AssetKey::Sol { mint: Some(mint) },
-                        to: Destination::Solana(owner),
-                        ..
-                    } => {
-                        let mint_text = sol_address(&mint.into_array());
-                        let (_, decimals) = chains.sol_token(&a.text, &mint_text).await?;
-                        let target = decode::associated_token_account(
-                            &owner.into_array(),
-                            &mint.into_array(),
-                        );
-                        let exists = chains.sol_exists(&sol_address(&target)).await?;
-                        (decimals, !exists)
-                    }
-                    _ => (None, false),
-                };
-                ExecutionParams::Solana {
-                    blockhash,
-                    compute_unit_price: 1_000,
-                    compute_unit_limit: if create_ata { 60_000 } else { 20_000 },
-                    decimals,
-                    create_ata,
-                }
-            }
-            Chain::Icp => return Err(Error::InvalidInput("ICP needs no plan".into())),
-        })
     }
 
     /// The wallet cosigner ID of a key of this device named by `address`'s
@@ -1348,295 +908,6 @@ impl Client {
             .collect()
     }
 
-    /// The registration of the wallet application and product, certified.
-    async fn wallet_registrations(&mut self) -> Result<(AppRegistration, ProductRegistration)> {
-        let init: dmsg_types::user::UserInit = self.home_config().await?;
-        let commerce = init.commerce_canister;
-        let ic = self.anonymous().await?;
-        let batch: Result<CertifiedBatch> = ic
-            .query(
-                commerce,
-                "integration_configuration_certificate",
-                (WALLET_APP_ID, Some(WALLET_PRODUCT_ID)),
-            )
-            .await?;
-        let batch = batch?;
-        let root = ic.root_key();
-        let now = now_ms();
-        let app_key = digest("dmsg/registration/app/v1", &WALLET_APP_ID).to_vec();
-        let product_key = digest("dmsg/registration/product/v2", &WALLET_PRODUCT_ID).to_vec();
-        let app: AppRegistration = crate::codec::decode(
-            &certified_leaf(&batch, &app_key, commerce, &root, now)?.ok_or(Error::NotFound)?,
-            1 << 20,
-        )?;
-        let product: ProductRegistration = crate::codec::decode(
-            &certified_leaf(&batch, &product_key, commerce, &root, now)?.ok_or(Error::NotFound)?,
-            1 << 20,
-        )?;
-        validate_app(&app)?;
-        validate_product(&product)?;
-        ensure(
-            app.environment == self.config.environment && app.origins.iter().any(|o| o == ORIGIN),
-            Error::IntegrityFailed,
-        )?;
-        Ok((app, product))
-    }
-
-    /// Sign this device's approval of `purpose` for `service` and submit it
-    /// to the user home; the saved approval is sent again on a retry.
-    async fn wallet_authorize(
-        &mut self,
-        job: &mut WalletJob,
-        hub: Principal,
-        service: Principal,
-        purpose: ApprovalPurpose,
-        action_digest: Hash,
-    ) -> Result<(Hash, ApplicationApproval)> {
-        if job.approval.is_none() {
-            let (app, _) = self.wallet_registrations().await?;
-            let (actor, _) = self.wallet_identity().await?;
-            let account = self.account()?.clone();
-            let state = self.refresh(account.home, &account.id).await?;
-            let device = state.active(&self.workspace.meta.device_id)?;
-            ensure(
-                device
-                    .input
-                    .capabilities
-                    .contains(&Capability::WalletApprove),
-                Error::Forbidden,
-            )?;
-            let now = now_ms();
-            let application = ApplicationApproval {
-                version: 1,
-                environment: app.environment.clone(),
-                app_id: app.app_id.clone(),
-                app_config_version: app.config_version,
-                origin: ORIGIN.into(),
-                approving_account: account.id,
-                service,
-                beneficiary: wallet_beneficiary(hub, service),
-                actor,
-                purpose,
-                action_digest,
-                operation_id: digest("dmsg/wallet-operation/v1", &(&job.id, action_digest)),
-                nonce: Hash::new(random_id()),
-                expires_at_ms: now + APPROVAL_MS,
-            };
-            let mut approval = Approval {
-                device_id: self.workspace.meta.device_id,
-                security_epoch: state.info.security_epoch,
-                sequence: device.next_sequence,
-                request_id: Hash::new(random_id()),
-                expires_at: application.expires_at_ms,
-                signature: Ed25519Signature::new([0; 64]),
-            };
-            let message = approval_message(
-                account.home,
-                &account.id,
-                APPLICATION,
-                &application,
-                &approval,
-            );
-            approval.signature =
-                Ed25519Signature::new(sign(&self.keys()?.signing, message.as_slice()));
-            job.approval = Some((application, approval));
-            self.save_wallet_job(job)?;
-        }
-        let (application, approval) = job.approval.clone().ok_or(Error::IntegrityFailed)?;
-        let home = self.account()?.home;
-        let login = self.session()?.ic.clone();
-        let approved: Result<Hash> = login
-            .update(home, "approve_application", (&application, &approval))
-            .await?;
-        approved?;
-        Ok((approval.request_id, application))
-    }
-
-    /// Run an approved wallet job.
-    pub(crate) async fn wallet_job_execute(&mut self, id: &str) -> Result<()> {
-        let mut job = self.wallet_job(id)?;
-        let result = match job.kind.clone() {
-            JobKind::Create { quote, spec } => {
-                let hub = self.wallet_hub()?;
-                self.wallet_pay_quote(&quote).await?;
-                let digest = activation_digest(&quote, &spec);
-                let (approval_id, approval) = self
-                    .wallet_authorize(&mut job, hub, hub, ApprovalPurpose::WalletCreate, digest)
-                    .await?;
-                let (_, ic) = self.wallet_identity().await?;
-                let order: Result<ActivationOrder> = ic
-                    .update(
-                        hub,
-                        "create_wallet",
-                        (CreateWallet {
-                            quote_id: quote.quote_id,
-                            spec: *spec,
-                            approval_id,
-                            approval,
-                        },),
-                    )
-                    .await?;
-                let order = order?;
-                // A quote that created its wallet is spent.
-                if order.status == ActivationStatus::Ready {
-                    self.workspace
-                        .delete_private(&format!("{QUOTE}{}", hex::encode(*quote.quote_id)))?;
-                }
-                json!({
-                    "status": format!("{:?}", order.status),
-                    "wallet": order.wallet.map(|w| w.to_text()),
-                })
-            }
-            JobKind::Join { wallet, .. } => {
-                let hub = self.wallet_hub()?;
-                let (actor, _) = self.wallet_identity().await?;
-                let account = self.account()?.id;
-                let (approval_id, approval) = self
-                    .wallet_authorize(
-                        &mut job,
-                        hub,
-                        wallet,
-                        ApprovalPurpose::WalletJoin,
-                        join_digest(wallet, &account, actor),
-                    )
-                    .await?;
-                let (_, ic) = self.wallet_identity().await?;
-                let member: Result<Member> = ic
-                    .update(
-                        wallet,
-                        "join",
-                        (MemberApproval::Account {
-                            approval_id,
-                            approval,
-                        },),
-                    )
-                    .await?;
-                let member = member?;
-                json!({"joined": true, "role": format!("{:?}", member.role)})
-            }
-            JobKind::Decide {
-                wallet,
-                proposal,
-                decision,
-                ..
-            } => {
-                let hub = self.wallet_hub()?;
-                let (approval_id, approval) = self
-                    .wallet_authorize(
-                        &mut job,
-                        hub,
-                        wallet,
-                        ApprovalPurpose::WalletProposal,
-                        decision_digest(&proposal.digest, decision),
-                    )
-                    .await?;
-                let method = match decision {
-                    Decision::Approve => "approve_proposal",
-                    Decision::Reject => "reject_proposal",
-                    Decision::Veto => "veto_proposal",
-                };
-                let (_, ic) = self.wallet_identity().await?;
-                let p: Result<Proposal> = ic
-                    .update(
-                        wallet,
-                        method,
-                        (
-                            proposal.id,
-                            MemberApproval::Account {
-                                approval_id,
-                                approval,
-                            },
-                        ),
-                    )
-                    .await?;
-                match p {
-                    Ok(p) => proposal_view(&p),
-                    // A retry after the decision counted finds it recorded.
-                    Err(Error::IdempotencyConflict) => json!({"recorded": true}),
-                    Err(e) => return Err(e),
-                }
-            }
-            JobKind::Cosign {
-                wallet,
-                proposal,
-                plan,
-                cosigner,
-                ..
-            } => {
-                let view = self.wallet_state(wallet).await?;
-                match plan {
-                    Some(plan) => {
-                        decode::verify_plan(&view, &proposal.intent, &plan)?;
-                        let cosigs = self.local_cosigs(
-                            &view,
-                            cosigner,
-                            proposal.id,
-                            plan.seq,
-                            &plan.digests,
-                        )?;
-                        self.wallet_sign_and_send(wallet, &view, &proposal, &plan, cosigs)
-                            .await?
-                    }
-                    None => {
-                        let cosigs =
-                            self.local_cosigs(&view, cosigner, proposal.id, 0, &[proposal.digest])?;
-                        let (_, ic) = self.wallet_identity().await?;
-                        let r: Result<ExecuteResult> = ic
-                            .update(
-                                wallet,
-                                "execute",
-                                (ExecuteArgs {
-                                    proposal: proposal.id,
-                                    plan: None,
-                                    cosigs,
-                                },),
-                            )
-                            .await?;
-                        proposal_view(&r?.proposal)
-                    }
-                }
-            }
-        };
-        job.result = Some(result);
-        self.save_wallet_job(&job)
-    }
-
-    /// Pay a quote's price into its deposit from the payer, once. A first
-    /// payment needs a minute left on the quote for the hub to create the
-    /// wallet; [`Self::wallet_refund`] returns a deposit no wallet used.
-    async fn wallet_pay_quote(&mut self, quote: &ActivationQuote) -> Result<u64> {
-        let key = format!("{ACTIVATION}{}", hex::encode(*quote.quote_id));
-        let now = now_ms();
-        if self.payment_journal(&key)?.is_none() {
-            ensure(
-                now + dmsg_types::MINUTE < quote.expires_at_ms,
-                Error::Expired,
-            )?;
-        }
-        let hub = self.wallet_hub()?;
-        let reader = self.anonymous().await?;
-        let config: HubInit = reader.query(hub, "get_hub_config", ()).await?;
-        let deposit: Account = quote.deposit;
-        let amount = u128::from(quote.price_e8s);
-        let created_at = now * 1_000_000;
-        self.pay(
-            &key,
-            config.icp_ledger,
-            u128::from(quote.ledger_fee_e8s),
-            || {
-                crate::payer::transfer_call(&icrc_ledger_types::icrc1::transfer::TransferArg {
-                    from_subaccount: None,
-                    to: deposit,
-                    fee: Some(u128::from(quote.ledger_fee_e8s).into()),
-                    created_at_time: Some(created_at),
-                    memo: Some(crate::payer::memo(&quote.quote_id[..])),
-                    amount: amount.into(),
-                })
-            },
-        )
-        .await
-    }
-
     /// Generate a cosigner key on this device and return the input of the
     /// `AddCosigner` proposal that registers it for this account.
     pub fn wallet_cosigner_new(&mut self, label: &str, hardware: bool) -> Result<Json> {
@@ -1656,9 +927,12 @@ impl Client {
 /// Returns `Error::Locked` while locked.
 pub(crate) async fn identity<H: Hold>(h: &H) -> Result<(Principal, Ic)> {
     let (seed, config) = match h
-        .with(|c| match &c.wallet_ic {
-            Some(identity) => Ok(Err(identity.clone())),
-            None => Ok(Ok((c.wallet_seed()?, c.config.clone()))),
+        .with(|c| {
+            c.keys()?;
+            match &c.wallet_ic {
+                Some(identity) => Ok(Err(identity.clone())),
+                None => Ok(Ok((c.wallet_seed()?, c.config.clone()))),
+            }
         })
         .await?
     {
@@ -1668,8 +942,11 @@ pub(crate) async fn identity<H: Hold>(h: &H) -> Result<(Principal, Ic)> {
     let key = ic_agent::identity::BasicIdentity::from_raw_key(&seed.into_array());
     let ic = Ic::connect(&config, std::sync::Arc::new(key)).await?;
     let pair = (ic.principal()?, ic);
-    h.with(|c| Ok(c.wallet_ic.get_or_insert(pair).clone()))
-        .await
+    h.with(|c| {
+        c.keys()?;
+        Ok(c.wallet_ic.get_or_insert(pair).clone())
+    })
+    .await
 }
 
 /// The hub's terms for creating a wallet for this account, paid by this
@@ -1796,11 +1073,19 @@ pub async fn show<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
     let stats: WalletStats = ic.query(wallet, "wallet_stats", ()).await?;
     let me = h.with(|c| Ok(c.wallet_member().ok())).await?;
     let mut out = wallet_view(&view, me.as_ref());
+    out["environment"] = h
+        .with(|c| {
+            Ok(json!(crate::config::environment_name(
+                &c.config.environment
+            )))
+        })
+        .await?;
     out["stats"] = json!({
         "cycles": stats.cycles.to_string(),
         "signatures_today": stats.signatures_today,
         "proposals": stats.proposals,
         "active_proposals": stats.active_proposals,
+        "stable_pages": stats.stable_pages,
     });
     Ok(out)
 }
@@ -1916,31 +1201,7 @@ pub async fn deposits<H: Hold>(h: &H) -> Result<Json> {
 /// # Errors
 /// Returns `Error::IntegrityFailed` for a chain that does not end there.
 pub async fn audit<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
-    let view = state(h, wallet).await?;
-    let (_, ic) = identity(h).await?;
-    let mut events = vec![];
-    while (events.len() as u64) < view.audit_len {
-        let page: Result<Vec<AuditEvent>> = ic
-            .query(wallet, "audit", (events.len() as u64, 200u16))
-            .await?;
-        let page = page?;
-        ensure(!page.is_empty(), Error::IntegrityFailed)?;
-        events.extend(page);
-    }
-    let head = verify_audit(Hash::new([0; 32]), 0, &events)?;
-    ensure(head == view.audit_head, Error::IntegrityFailed)?;
-    Ok(json!({
-        "verified": true,
-        "events": events.len(),
-        "head": hex::encode(*head),
-        "recent": events.iter().rev().take(50).map(|e| json!({
-            "seq": e.seq,
-            "at": e.at_ms,
-            "actor": e.actor.as_ref().map(member_id_text),
-            "proposal": e.proposal,
-            "kind": format!("{:?}", e.kind),
-        })).collect::<Vec<_>>(),
-    }))
+    audit::read(h, wallet, None).await
 }
 
 /// This device's wallet key Principal, which joins bind.
@@ -1965,7 +1226,7 @@ pub async fn balances<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
             Ok((
                 c.wallet_hub()?,
                 c.chains()?,
-                c.config.wallet.bitcoin_api.clone(),
+                desktop::settings(c)?.bitcoin_api,
             ))
         })
         .await?;
@@ -1974,7 +1235,7 @@ pub async fn balances<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
     let (view, reader, chains) = (&view, &reader, &chains);
     let (icp_ledger, bitcoin_api) = (config.icp_ledger, &bitcoin_api);
     let assets = &view.policy.spendable_assets;
-    let out = join_all(view.addresses.iter().map(|a| async move {
+    let mut out = join_all(view.addresses.iter().map(|a| async move {
             let balances: Vec<Json> = match a.chain {
                 Chain::Icp => {
                     let icrc = assets.iter().filter_map(|asset| match asset {
@@ -2043,6 +1304,40 @@ pub async fn balances<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
             json!({"address": a.id, "chain": format!("{:?}", a.chain), "text": a.text, "balances": balances})
         }))
         .await;
+    let settings = h.with(|c| desktop::settings(c)).await?;
+    for address in &mut out {
+        for balance in address["balances"].as_array_mut().into_iter().flatten() {
+            let key = match balance["asset"].as_str().unwrap_or("") {
+                "ICP" => "icp".into(),
+                "ICRC" => format!("icrc:{}", balance["ledger"].as_str().unwrap_or("")),
+                "BTC" => "btc".into(),
+                "ETH" => format!("evm:{}", balance["chain_id"]),
+                "ERC20" => format!(
+                    "evm:{}:{}",
+                    balance["chain_id"],
+                    balance["token"].as_str().unwrap_or("")
+                ),
+                "SOL" => "sol".into(),
+                "SPL" => format!("sol:{}", balance["mint"].as_str().unwrap_or("")),
+                _ => continue,
+            };
+            let asset = parse_asset(&key)?;
+            balance["metadata"] = desktop::metadata(h, &asset, false).await?;
+            balance["key"] = json!(key);
+            balance["source"] = match asset {
+                AssetKey::Icp | AssetKey::Icrc(_) => balance["ledger"].clone(),
+                AssetKey::Btc => json!(settings.bitcoin_api),
+                AssetKey::Evm { chain_id, .. } => json!(
+                    settings
+                        .evm_rpc
+                        .iter()
+                        .find(|(id, _)| *id == chain_id)
+                        .map(|(_, url)| url)
+                ),
+                AssetKey::Sol { .. } => json!(settings.solana_rpc),
+            };
+        }
+    }
     Ok(json!({"wallet": wallet.to_text(), "read_at": now_ms(), "addresses": out}))
 }
 

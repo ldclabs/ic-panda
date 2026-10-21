@@ -257,3 +257,7 @@ handle 开发布局升级为 schema 10：`HandleInit` 增加收入账户 `revenu
 ## 2026-10-20 团队钱包报价预览
 
 hub 新增不写状态的 `quote_activation_preview(account_id)` query，只读自己的定价、当前版本与该账户已占用的创建数，按套餐返回剩余额度；客户端另行读取认证的套餐与账本手续费，所以桌面“获取报价”是快速查询。额度用完时 `quote_activation` 返回 `remaining = 0` 而不是 `QuotaExceeded`，客户端与 `create_wallet` 都拒绝该报价，Free 账户看到的是套餐限制和“会员方案”入口，而不是一个裸错误码。`quote_activation` 的 commerce 与账本读取改为并发，缩短付费套餐真正报价的等待。
+
+## 2026-10-21 团队钱包桌面闭环
+
+`dmsg_wallet` 新增 `preview_intent` query，按当前可变状态返回策略要求，不创建提案或预留资金。客户端在激活付款前完成 user home 批准核验；新增多设备协签包、结构化管理与转账预检、收款 QR/AccountIdentifier、增量审计与加密频道提示。实际接线、测试及未完成的发布门禁见 [团队钱包桌面实现](dmsg_wallet_desktop_zh.md)。新增 query 随钱包 Wasm 版本安装，源码提交不代表生产已升级。

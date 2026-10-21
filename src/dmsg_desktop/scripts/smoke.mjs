@@ -32,6 +32,7 @@
 // in place when it collapses the sidebar, and that closing the main window
 // hides it, after leaving macOS full screen.
 // Run with `pnpm test:e2e`.
+import { walletFixture } from './wallet-fixture.mjs'
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -394,7 +395,9 @@ const offer = {
   started: false
 }
 const archive = { id: '99'.repeat(32), principal: 'aaaaa-aa', mode: 'Local', objects: 7, gaps: 0, imported_at: Date.now(), parts: 1 }
+const wallets = walletFixture(account, created)
 const methods = {
+  ...wallets.methods,
   'legacy/pairs': () => [offer],
   'legacy/list': () => [archive],
   'legacy/report': (p) => ({
@@ -934,7 +937,8 @@ const methods = {
   'inbox/outgoing': () => [],
   'inbox/policy': () => ({ mode: 'paid', version: 1 }),
   'inbox/configure': (p) => ({ ...p, version: 2 }),
-  'wallet/list': () => [],
+  'wallet/readiness': () => ({blockers:[],payer:{principal:'xkbqi-2qaaa-aaaah-qbpqq-cai'},balance:{balance:'50000000000'}}),
+  'wallet/list': wallets.list,
   'wallet/principal': () => ({ principal: 'xkbqi-2qaaa-aaaah-qbpqq-cai' }),
   'wallet/cosigners': () => [],
   'wallet/quote_preview': () => walletPreview,
@@ -1784,6 +1788,102 @@ try {
   await main.click('[data-testid="wallet-create-cancel"]')
   await main.waitForSelector('[data-testid="wallet-new-form"]', { state: 'detached' })
 
+  // A populated wallet: exact amounts, full approvals, permissions and older pages.
+  wallets.state.enabled=true
+  emit('wallet/changed')
+  await main.waitForSelector('[data-testid="wallet-tab-overview"]')
+  await main.click('[data-testid="wallet-tab-proposals"]')
+  await main.waitForSelector('[data-testid="wallet-more"]')
+  assert.equal(await main.locator('[data-testid="wallet-proposal"]').count(),50)
+  await main.click('[data-testid="wallet-more"]')
+  await main.waitForFunction(()=>document.querySelectorAll('[data-testid="wallet-proposal"]').length===55)
+  await main.locator('[data-testid="wallet-proposal"]').first().getByRole('button',{name:'Details',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
+  assert.match(await main.textContent('[data-testid="wallet-proposal-detail"]'),/Publicly readable/)
+  assert.match(await main.textContent('[data-testid="wallet-proposal-detail"]'),/Spending approvals/)
+  await main.locator('[data-testid="wallet-proposal-detail"]').getByRole('button',{name:'Approve',exact:true}).click()
+  await approval.waitForSelector('[data-testid="wallet-intent"]')
+  assert.match(await approval.textContent('[data-testid="wallet-intent"]'),/Publicly readable/)
+  assert.match(await approval.textContent('[data-testid="wallet-intent"]'),/Yes/)
+  await main.keyboard.press('Escape')
+  wallets.state.role='Viewer'
+  emit('wallet/changed')
+  await main.waitForFunction(()=>document.querySelector('[data-testid="wallet-identity"]')?.textContent.includes('Viewer'))
+  await main.locator('[data-testid="wallet-proposal"]').nth(1).getByRole('button',{name:'Details',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
+  assert.equal(await main.locator('[data-testid="wallet-proposal-detail"]').getByRole('button',{name:'Execute',exact:true}).count(),0)
+  await main.keyboard.press('Escape')
+  wallets.state.role='Admin'
+  emit('wallet/changed')
+  await main.waitForFunction(()=>document.querySelector('[data-testid="wallet-identity"]')?.textContent.includes('Administrator'))
+  await main.click('[data-testid="wallet-tab-team"]')
+  await main.getByRole('button',{name:'Change policy',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-policy-editor"]')
+  await main.locator('[data-testid="wallet-manage"]').getByLabel('Spending approvals',{exact:true}).fill('1')
+  await main.click('[data-testid="wallet-manage-submit"]')
+  await waitFor(()=>wallets.state.changed?.change.kind==='policy')
+  assert.equal(wallets.state.changed.change.policy.version,2)
+  assert.deepEqual(wallets.state.changed.change.policy.spendable_assets,['icp','evm:1'])
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
+  await main.keyboard.press('Escape')
+  await main.click('[data-testid="wallet-tab-team"]')
+  await main.getByRole('button',{name:'Invite member',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-edit-member-id"]')
+  await main.fill('[data-testid="wallet-edit-member-id"]',peer)
+  await main.click('[data-testid="wallet-manage-submit"]')
+  await waitFor(()=>wallets.state.changed?.change.kind==='member')
+  assert.equal(wallets.state.changed.change.id,peer)
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
+  await main.keyboard.press('Escape')
+  await main.click('[data-testid="wallet-tab-activity"]')
+  await main.getByRole('button',{name:'Verify audit',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-audit"]')
+  assert.match(await main.textContent('[data-testid="wallet-audit"]'),/1/)
+  await main.click('[data-testid="wallet-tab-assets"]')
+  await main.getByRole('button',{name:'Read balances',exact:true}).click()
+  await main.waitForSelector('text=123.456789 ICP')
+  await main.screenshot({path:join(shots,'wallet-assets.png')})
+  await main.click('[data-testid="wallet-tab-overview"]')
+  await main.fill('[data-testid="wallet-to"]',wallets.b)
+  await main.fill('[data-testid="wallet-amount"]','1.00000001')
+  await main.click('[data-testid="wallet-estimate"]')
+  await main.waitForSelector('[data-testid="wallet-transfer-preview"]')
+  assert.equal(latest('wallet/preview').params.draft.outputs[0].amount,'100000001')
+  await main.fill('[data-testid="wallet-amount"]','2')
+  assert.equal(await main.locator('[data-testid="wallet-send"]').count(),0,'editing invalidates review')
+  await main.click('[data-testid="wallet-estimate"]')
+  await main.waitForSelector('[data-testid="wallet-send"]')
+  await main.click('[data-testid="wallet-send"]')
+  await waitFor(()=>wallets.state.transfer)
+  assert.equal(wallets.state.transfer.draft.outputs[0].amount,'200000000')
+  assert.equal(wallets.state.transfer.draft.max_fee,'12000')
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
+  await main.keyboard.press('Escape')
+  wallets.state.frozen=true
+  emit('wallet/changed')
+  await main.getByRole('button',{name:'Propose unfreezing',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-manage"]')
+  await main.click('[data-testid="wallet-manage-submit"]')
+  await waitFor(()=>wallets.state.changed?.change.kind==='unfreeze')
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
+  await main.keyboard.press('Escape')
+  wallets.state.frozen=false
+  // Late B replies cannot replace A, even when navigation changes before they arrive.
+  held.set('wallet/show',null); held.set('wallet/proposals',null)
+  await main.evaluate((id)=>location.hash=`/wallet/${id}`,wallets.b)
+  await waitFor(()=>typeof held.get('wallet/show')==='function'&&typeof held.get('wallet/proposals')==='function')
+  const lateWallet=held.get('wallet/show'),lateProposals=held.get('wallet/proposals')
+  held.delete('wallet/show');held.delete('wallet/proposals')
+  await main.evaluate((id)=>location.hash=`/wallet/${id}`,wallets.a)
+  await main.waitForFunction((id)=>document.querySelector('[data-testid="wallet-identity"]')?.textContent.includes(id),wallets.a)
+  lateWallet();lateProposals()
+  await main.waitForTimeout(150)
+  assert.match(await main.textContent('[data-testid="wallet-identity"]'),new RegExp(wallets.a))
+  await main.click('[data-testid="wallet-tab-overview"]')
+  await main.screenshot({path:join(shots,'wallet-overview.png')})
+  wallets.state.enabled=false
+  for(const [id,r] of requests)if(r.type==='wallet')requests.delete(id)
+
   // A grant to a hosted Agent ID is signed only after the approval window agrees.
   await main.click('nav >> text=/Agents|Agent/')
   await main.waitForSelector('[data-testid="principal-id"]')
@@ -2535,11 +2635,19 @@ try {
   // again cancels the hide. Full screen hides the traffic lights, so the
   // window's buttons move to the edge.
   const mainWindow = await app.browserWindow(main)
-  for (const mode of process.platform === 'darwin' ? ['windowed', 'fullscreen', 'reopen-during-exit'] : ['windowed']) {
+  // Native macOS Space transitions need a foreground application, unlike CDP clicks.
+  await app.evaluate(({ app }) => app.focus({ steal: true }))
+  const nativeFullscreen = process.platform === 'darwin' && process.env.DMSG_DESKTOP_NATIVE_FULLSCREEN !== '0'
+  for (const mode of nativeFullscreen ? ['windowed', 'fullscreen', 'reopen-during-exit'] : ['windowed']) {
     const fullScreen = mode !== 'windowed'
     await mainWindow.evaluate(async (window, fullScreen) => {
-      window.show()
+      if (!window.isVisible()) {
+        const shown = new Promise((resolve) => window.once('show', resolve))
+        window.show()
+        await shown
+      } else window.show()
       if (!fullScreen) return
+      window.focus()
       const entered = new Promise((resolve, reject) => {
         setTimeout(() => reject(new Error('Window did not enter full screen')), 10_000)
         window.once('enter-full-screen', resolve)
@@ -2555,11 +2663,20 @@ try {
     const closed = await app.evaluate(
       async ({ app }, [window, mode]) => {
         const event = mode === 'windowed' ? 'hide' : 'leave-full-screen'
+        let finished
         const done = new Promise((resolve, reject) => {
-          setTimeout(() => reject(new Error(`Window did not emit ${event}`)), 10_000)
-          window.once(event, resolve)
+          const timer = setTimeout(() => reject(new Error(`Window did not reach ${event}`)), 10_000)
+          finished = () => {
+            clearTimeout(timer)
+            window.removeListener(event, finished)
+            resolve()
+          }
+          window.once(event, finished)
         })
         window.close()
+        // macOS can hide synchronously without a separate hide notification.
+        // The assertions below still require a live hidden window that reopens.
+        if (mode === 'windowed' && !window.isDestroyed() && !window.isVisible()) finished()
         if (mode !== 'windowed') window.close()
         if (mode === 'reopen-during-exit') app.emit('activate')
         await done
@@ -2573,7 +2690,7 @@ try {
     assert.deepEqual(closed, { hidden: mode !== 'reopen-during-exit', fullScreen: false, destroyed: false, reopened: true }, `close and reopen (${mode})`)
     await main.waitForSelector('html:not([data-fullscreen])')
   }
-  console.log('desktop smoke test passed')
+  console.log(process.platform === 'darwin' && !nativeFullscreen ? 'desktop smoke test passed (native fullscreen checks explicitly skipped)' : 'desktop smoke test passed')
 } finally {
   await app.close()
   server.close()

@@ -54,6 +54,8 @@
 
 ## 策略与要求
 
+`preview_intent(intent)` 为已加入成员提供当前策略的只读预检，检查成员、意图、冻结、地址簿与滚动窗口后返回 `Requirement`；不写提案、不占用预算。该结果只是提示，提交、批准和执行仍按当时状态校验。
+
 提案时按当前策略算出 `Requirement { approvals, admin, delay_ms, window_amount }`。支出类在每次批准时按当时的 24 小时窗口再算一次，更严时提高 `approvals` 与 `delay_ms`，`expires_at_ms` 随延时延长：一笔支出拆成多个同时挂起的提案，后批准的仍落入合计金额的档。策略版本变化使未执行提案变为 `Stale`。
 
 - **支出类**（`Transfer`、`Batch`、`Refuel`）：资产须在 `spendable_assets`。`window_amount` = 该资产过去 24 小时已批准或执行的金额 + 本提案金额；取第一个 `up_to ≥ window_amount` 的档（`approvals`、`delay_ms`、`book_only`）；超出最高档为最高档 + 1 人（不超过活跃批准人数）；超过 `daily_limits` 时需要全部活跃批准人。`book_only` 档要求每个收款方是冷却期已过的地址簿条目。没有该资产的档时用 `approver_threshold`、无延时。
@@ -131,3 +133,7 @@
 ## 向量
 
 [tests/vectors/wallet](../../tests/vectors/wallet/README.md) 固定本合同的字节：`protocol-v1.json` 给出每种承诺（提案、决定、加入、激活、协签消息、收款子账户、审计事件）的 CBOR 值、完整原像与摘要，以及各链地址、Taproot 叶与控制块和收款脚本；`plans-v1.json` 给出钱包为各类外链意图构建的计划、签名与已签交易，客户端解码器须全部接受，并拒绝其中的篡改样例。两份文件由 Rust 实现生成，每次测试逐字节比对。
+
+## 桌面与本地协议
+
+桌面结构化方法、多设备协签包、增量审计和加密频道提示的实现及边界见 [团队钱包桌面实现](../dmsg_wallet_desktop_zh.md)。客户端在创建付款前完成 `WalletCreate` 的 user home 核验；协签包导入只收集签名，不自动执行。

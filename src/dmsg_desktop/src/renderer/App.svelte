@@ -211,7 +211,7 @@
           {:else if view === views.plan}
             <Plan {status} {route} {go} />
           {:else if view === views.wallet}
-            <Wallet {status} />
+            <Wallet {status} {route} {go} />
           {:else if view === views.agents}
             <Agents {status} />
           {:else if view === views.approvals}

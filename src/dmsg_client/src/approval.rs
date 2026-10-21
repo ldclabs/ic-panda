@@ -342,6 +342,8 @@ pub enum Decision {
     Done(Json),
     /// An approved attestation, to run in steps.
     Attest(Box<crate::attest::AttestRun>),
+    /// An approved wallet job, whose network waits release the client.
+    Wallet(Box<WalletRun>),
 }
 
 /// How long an attestation running in steps keeps the reconciler away;
@@ -702,6 +704,7 @@ impl Client {
         {
             Decision::Done(view) => Ok(view),
             Decision::Attest(run) => run.run(&self.hold()).await,
+            Decision::Wallet(run) => run.run(&self.hold()).await,
         }
     }
 
@@ -775,6 +778,16 @@ impl Client {
                     .finish_approval(&mut request, Err(error))
                     .map(Decision::Done),
             };
+        }
+        if let Action::Wallet { job, digest } = &request.action {
+            ensure(
+                self.wallet_job_digest(job)? == *digest,
+                Error::IntegrityFailed,
+            )?;
+            request.started = true;
+            self.save_approval(&request)?;
+            self.running.insert(request.id.clone(), now);
+            return Ok(Decision::Wallet(Box::new(WalletRun { request })));
         }
         let outcome = self.execute_approval(&mut request).await;
         self.finish_approval(&mut request, outcome)
@@ -872,16 +885,8 @@ impl Client {
                 )?;
                 self.delegation_execute(&job).await.map(|_| ())
             }
-            // Every step is idempotent on the hub and the wallet, and a
-            // signed approval is sent again rather than signed anew.
-            Action::Wallet { job, digest } => {
-                ensure(
-                    self.wallet_job_digest(&job)? == digest,
-                    Error::IntegrityFailed,
-                )?;
-                request.started = true;
-                self.save_approval(request)?;
-                self.wallet_job_execute(&job).await
+            Action::Wallet { .. } => {
+                Err(Error::InvalidInput("wallet approvals run in steps".into()))
             }
         }
     }
@@ -1003,7 +1008,18 @@ impl Client {
     /// Returns `Error::Locked` while locked; each request's own failure is
     /// kept on it.
     pub async fn approvals_reconcile(&mut self) -> Result<usize> {
-        let requests = self.unsettled(false)?;
+        let wallets = reconcile_wallets(&self.hold()).await?;
+        Ok(wallets + self.approvals_reconcile_others().await?)
+    }
+
+    /// Reconcile requests not handled by the wallet or attestation step runners.
+    /// The daemon runs the separate runners outside its client lock.
+    pub async fn approvals_reconcile_others(&mut self) -> Result<usize> {
+        let requests = self
+            .unsettled(false)?
+            .into_iter()
+            .filter(|r| !matches!(r.action, Action::Wallet { .. }))
+            .collect::<Vec<_>>();
         let count = requests.len();
         for mut request in requests {
             let outcome = match request.action.clone() {
@@ -1038,7 +1054,7 @@ impl Client {
                         .map(|_| ())
                 }
                 Action::Delegation { job, .. } => self.delegation_execute(&job).await.map(|_| ()),
-                Action::Wallet { job, .. } => self.wallet_job_execute(&job).await,
+                Action::Wallet { .. } => continue,
                 Action::Attest { .. } | Action::AttestAction { .. } => continue,
             };
             self.reconciled(&mut request, outcome)?;
@@ -1397,4 +1413,58 @@ pub(crate) fn statement_digest(statement: &Statement) -> Option<Hash> {
         | StatementContent::FileStatement { sha256, .. } => Some(*sha256),
         _ => None,
     }
+}
+
+/// An approved wallet job. Only the approval center constructs one.
+pub struct WalletRun {
+    request: Request,
+}
+
+impl WalletRun {
+    /// Run without a client lock and record the outcome on the same request.
+    pub async fn run<H: Hold>(self, h: &H) -> Result<Json> {
+        let Action::Wallet { job, digest } = &self.request.action else {
+            return Err(Error::IntegrityFailed);
+        };
+        h.with(|c| ensure(c.wallet_job_digest(job)? == *digest, Error::IntegrityFailed))
+            .await?;
+        let outcome = crate::wallet::ops::job_execute(h, job).await;
+        h.with(|c| {
+            c.running.remove(&self.request.id);
+            let mut request = c.approval_record(&self.request.id)?;
+            c.finish_approval(&mut request, outcome)
+        })
+        .await
+    }
+}
+
+/// Resume wallet jobs independently of unrelated local operations.
+pub async fn reconcile_wallets<H: Hold>(h: &H) -> Result<usize> {
+    let requests = h
+        .with(|c| {
+            Ok(c.unsettled(false)?
+                .into_iter()
+                .filter(|r| matches!(r.action, Action::Wallet { .. }))
+                .collect::<Vec<_>>())
+        })
+        .await?;
+    let count = requests.len();
+    for request in requests {
+        let Action::Wallet { job, .. } = &request.action else {
+            continue;
+        };
+        h.with(|c| {
+            c.running.insert(request.id.clone(), now_ms());
+            Ok(())
+        })
+        .await?;
+        let outcome = crate::wallet::ops::job_execute(h, job).await;
+        h.with(|c| {
+            c.running.remove(&request.id);
+            let mut request = c.approval_record(&request.id)?;
+            c.reconciled(&mut request, outcome)
+        })
+        .await?;
+    }
+    Ok(count)
 }

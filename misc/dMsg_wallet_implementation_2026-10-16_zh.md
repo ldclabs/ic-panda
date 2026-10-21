@@ -521,3 +521,7 @@ WT1 与 WT2 可并行（合同由 WT0 冻结）；WT3 可在 WT1 完成 ICP 路�
 | WT5 | MCP 工具 `dmsg_wallet_list|balances|propose_transfer|proposal_status|execute|report_broadcast`，能力 `wallet.read`、`wallet.propose:<wallet>`、`wallet.execute:<wallet>` | 审计模式 `attest_*`；`dmsg_frontend` 透明页 |
 | WT6 | 双控 Taproot（L1 双签、L2 时间锁、可选 L3 恢复叶）的地址、签名与见证 | EVM Safe、Solana Squads、硬件钱包协签 |
 | WT7 | 构建、测试、release 脚本与 icp.yaml 纳入 hub；`.icp` 映射改为 `dmsg_wallet_hub`；production.toml 指向 hub；文档同步 | 主网部署、commerce 登记与版本登记的 SNS 提案、ICPanda DAO 钱包创建与收款账户切换（运维操作） |
+
+## 17. 桌面补全记录（2026-10-21）
+
+第 16 节保留为 2026-10-17 的实施快照。后续桌面补全、Hold 网络步骤、同计划多设备协签、频道提示、增量审计和新增 `preview_intent` query 的当前实现与验证边界见 [团队钱包桌面实现](../docs/dmsg_wallet_desktop_zh.md)。Safe/Squads、其他硬件后端、公开透明页及链上审计模式仍按该文的独立工作包验收，不因桌面入口完善而视为已实现。

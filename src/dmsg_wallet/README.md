@@ -8,7 +8,7 @@ dMsg 团队钱包：每个团队一个 canister，由 [dmsg_wallet_hub](../dmsg_
 
 | 类别 | 方法 | 调用者 |
 | --- | --- | --- |
-| 读取 | `get_wallet`、`get_wallet_certified`、`get_proposal`、`get_proposal_certified`、`list_proposals`、`get_plan`、`address_book`、`audit`、`member_ids` | 已绑定的成员 Principal、hub、controller；`policy.public` 时任何人 |
+| 读取 | `preview_intent`（只读预检）、`get_wallet`、`get_wallet_certified`、`get_proposal`、`get_proposal_certified`、`list_proposals`、`get_plan`、`address_book`、`audit`、`member_ids` | 已绑定的成员 Principal、hub、controller；`policy.public` 时任何人 |
 | 运行 | `wallet_stats`、`accepted_upgrade` | 任何人 |
 | 引导 | `bootstrap`（读取三个链密钥根并建默认地址 1–3；安装与升级后由定时器执行，失败每分钟重试） | 任何人 |
 | 成员 | `join(MemberApproval)` | 被邀请或已加入的成员 |
@@ -65,3 +65,7 @@ POCKET_IC_BIN=/path/to/pocket-ic make test-dmsg
 - 审计模式的链上核对（`attest_btc` / `attest_evm` / `attest_sol`）。
 - EVM Safe 与 Solana Squads 的链上双控；ICP 账本的 AccountIdentifier 收款地址。
 - Taproot 双控的 L3 恢复叶由恢复密钥持有人自行构造并签名交易，钱包不构造这类交易。
+
+## 2026-10-21 桌面接线
+
+新增 `preview_intent` query：按当前成员、冻结、地址簿、滚动窗口和策略返回提案要求，不写状态。桌面、Hold 执行、多设备协签和验收记录见 [dmsg_wallet_desktop_zh.md](../../docs/dmsg_wallet_desktop_zh.md)。ICP AccountIdentifier 在客户端收款视图计算，不新增链上账户。

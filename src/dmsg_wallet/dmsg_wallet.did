@@ -966,7 +966,8 @@ type Result = variant { Ok : vec BookEntry; Err : Error };
 type Result_1 = variant { Ok : Proposal; Err : Error };
 type Result_10 = variant { Ok : ProposalPage; Err : Error };
 type Result_11 = variant { Ok : vec MemberId; Err : Error };
-type Result_12 = variant { Ok : opt nat; Err : Error };
+type Result_12 = variant { Ok : Requirement; Err : Error };
+type Result_13 = variant { Ok : opt nat; Err : Error };
 type Result_2 = variant { Ok : vec AuditEvent; Err : Error };
 type Result_3 = variant { Ok : KeyRoots; Err : Error };
 type Result_4 = variant { Ok : ExecuteResult; Err : Error };
@@ -1171,13 +1172,15 @@ service : (WalletInit) -> {
   member_ids : () -> (Result_11) query;
   // Build a plan from the executor's chain parameters. Nothing is signed.
   prepare_execution : (nat64, ExecutionParams) -> (Result_6);
+  // Preview the current policy without creating a proposal or reserving funds.
+  preview_intent : (Intent) -> (Result_12) query;
   propose : (ProposeArgs) -> (Result_1);
   // Remove up to 100 of the oldest finished proposals beyond the retained count.
   prune : () -> (nat32);
   // Resend the exact arguments of an interrupted transfer or top-up.
   reconcile : (nat64) -> (Result_4);
   // Top up cycles under the policy's refuel rule; anyone may call it.
-  refuel : () -> (Result_12);
+  refuel : () -> (Result_13);
   reject_proposal : (nat64, MemberApproval) -> (Result_1);
   // Record a member's report of a signed transaction.
   report : (ChainReport) -> (Result_1);

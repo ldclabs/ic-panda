@@ -3386,7 +3386,11 @@ impl Client {
                     p["channel"] == channel
                         && matches!(
                             p["format"].as_str(),
-                            Some("dmsg-channel-owner-transfer/1" | "dmsg-channel-sponsor/1")
+                            Some(
+                                "dmsg-channel-owner-transfer/1"
+                                    | "dmsg-channel-sponsor/1"
+                                    | "dmsg-wallet-event/1"
+                            )
                         )
                 })
                 && packet.is_none_or(|p| p.len() <= MAX_TEXT)

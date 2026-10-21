@@ -116,14 +116,18 @@ desktop is one of its clients, like the CLI.
   - Plan and names: the plan and its limits, the plans on offer as cards,
     checkouts, names with their transfers, the payer and the payment
     operations.
-  - Team wallets (`/wallet`): the account's wallets with members, policy
-    and addresses checked against the wallet's keys, proposals with their
-    approvals, balances, the audit chain and this device's cosigner keys;
-    proposing, executing and broadcasting run here, while creating,
-    joining, deciding and cosigning open the approval window. Activation
-    payments this device made that created no wallet are listed with
-    what comes back; a failed creation's or an expired quote's is refunded
-    to the paying account with one click.
+  - Team wallets (`/wallet/<wallet>/<proposal?>`): Overview, Proposals,
+    Assets and addresses, Members and policy, Audit, and Operations. Exact
+    asset-unit amounts and per-chain fee previews precede transfers; the
+    wallet rechecks policy. Member, policy, address-book, cosigner, unfreeze,
+    refuel and upgrade forms create typed proposals. Approval tickets show
+    every intent and its changes. Proposals page, show votes and receipts,
+    and distinguish execution, rebroadcast and replacement. Receive views
+    include verified QR codes and both ICP account formats. Cosignatures
+    from separate devices can be checked, collected and explicitly executed
+    for one plan. RPC preferences belong to this account on this device;
+    audit pages verify against a fresh certified head, and optional channel
+    cards are encrypted hints. See [the implementation and validation record](../../docs/dmsg_wallet_desktop_zh.md).
   - Agents, in tabs: the principal with its controllers and credentials,
     the hosted Agent IDs and the host allowlist, a matrix of what each
     Agent ID reaches (the Agent Protocols services by origin, and other
@@ -429,3 +433,9 @@ pnpm --dir src/dmsg_desktop package:dir   # the unpacked app only
   check.
 - The tray's "Open at Login" is the app's login item; opened at login, the
   app starts in the tray. `dmsg autostart` starts only the daemon.
+
+The smoke test normally checks native macOS fullscreen transitions as well.
+On an automation host that cannot enter a native Space,
+`DMSG_DESKTOP_NATIVE_FULLSCREEN=0 pnpm test:e2e` runs the functional window
+flows and windowed hide/reopen assertions, and explicitly reports fullscreen
+as skipped. This is not a passing native fullscreen validation.

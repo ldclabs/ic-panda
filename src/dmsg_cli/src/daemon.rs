@@ -737,6 +737,13 @@ impl Daemon {
             .await?;
         match decision {
             Decision::Done(view) => Ok(view),
+            Decision::Wallet(run) => {
+                let _turn = self.turn("wallet-approval").await;
+                self.emit("approval/changed", Value::Null);
+                let result = run.run(&self.hold()).await;
+                self.emit("wallet/changed", Value::Null);
+                result
+            }
             Decision::Attest(run) => {
                 // The windows see it executing while it runs.
                 self.emit("approval/changed", Value::Null);
@@ -752,10 +759,14 @@ impl Daemon {
     async fn reconcile_pass(&self) -> Result<usize> {
         let _turn = self.turn("reconcile").await;
         let attested = dmsg_client::approval::reconcile_attestations(&self.hold()).await?;
+        let wallets = {
+            let _turn = self.turn("wallet-approval").await;
+            dmsg_client::approval::reconcile_wallets(&self.hold()).await?
+        };
         let others = self
-            .under_lock(async |client| client.approvals_reconcile().await)
+            .under_lock(async |client| client.approvals_reconcile_others().await)
             .await?;
-        Ok(attested + others)
+        Ok(attested + wallets + others)
     }
 
     /// The loopback port.
@@ -1971,6 +1982,17 @@ mod tests {
             ("inbox/list", Value::Null, false),
             // The IC: a team wallet, the plan.
             ("wallet/show", json!({"wallet": "aaaaa-aa"}), true),
+            ("wallet/freeze", json!({"wallet":"aaaaa-aa"}), true),
+            (
+                "wallet/execute",
+                json!({"wallet":"aaaaa-aa","proposal":1,"source":"gui"}),
+                true,
+            ),
+            (
+                "wallet/settle",
+                json!({"wallet":"aaaaa-aa","proposal":1}),
+                true,
+            ),
             ("plan/status", json!({"refresh": false}), true),
         ];
         for (method, params, on_ic) in cases {
@@ -1985,6 +2007,54 @@ mod tests {
             });
             answers_beside(&daemon, if on_ic { &ic } else { &relay }, work).await;
         }
+    }
+
+    /// A queued wallet action belongs to the account that submitted it,
+    /// even when the selected workspace changes before its resource turn.
+    #[tokio::test]
+    async fn queued_wallet_work_does_not_follow_an_account_switch() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, _relay, _ic) = stalled(&dir).await;
+        let turn = daemon.turn("wallet:aaaaa-aa").await;
+        // Deliberately hold the client until the test operation queues its
+        // first step; this synchronization wait uses the explicit exception.
+        let work = daemon
+            .under_lock(async |_client| {
+                let (started, ready) = tokio::sync::oneshot::channel();
+                let work = tokio::spawn({
+                    let daemon = daemon.clone();
+                    async move {
+                        started.send(()).unwrap();
+                        daemon
+                            .call_wallet("wallet/freeze", &json!({"wallet":"aaaaa-aa"}))
+                            .await
+                    }
+                });
+                ready.await.unwrap();
+                Ok(work)
+            })
+            .await
+            .unwrap();
+        // The first client acquisition is already queued. Tokio's FIFO mutex
+        // lets it pin the account, then gives this task the following turn.
+        {
+            let mut client = daemon.client().lock().await;
+            *client = Client::open(
+                dmsg_client::testing::config(false),
+                &dir.path("other-account"),
+                None,
+            )
+            .unwrap();
+        }
+        drop(turn);
+        let result = tokio::time::timeout(Duration::from_secs(5), work)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            result.err(),
+            Some(Error::Unavailable("the account changed".into()))
+        );
     }
 
     /// Each call has its own daemon, as above.

@@ -179,3 +179,13 @@ test('approval recovery opens payments without permitting arbitrary routes', () 
   for (const route of ['/plan?tab=unknown', '/plan?tab=payments&other=1', 'https://example.com', '/settings/reset'])
     assert.equal(APPROVAL_MAIN_ROUTES.has(route), false)
 })
+
+test('wallet invitations navigate only, and structured actions cannot forge human approval', () => {
+  assert.deepEqual(parseLink('dmsg://wallet/rrkah-fqaaa-aaaaa-aaaaq-cai/12'),{route:'wallet',wallet:'rrkah-fqaaa-aaaaa-aaaaq-cai',proposal:12})
+  assert.equal(parseLink('dmsg://wallet/panda'),null)
+  assert.equal(parseLink('dmsg://wallet/rrkah-fqaaa-aaaaa-aaaaq-cai?execute=12'),null)
+  const params=windowParams('wallet/cosign',{source:'agent:untrusted',human:true,wallet:'rrkah-fqaaa-aaaaa-aaaaq-cai',proposal:12,plan:1})
+  assert.equal(params.human,undefined)
+  assert.equal(params.source,'gui')
+  assert.throws(()=>windowParams('wallet/propose',{intent:{Unfreeze:null}}),(e:any)=>e.code==='FORBIDDEN')
+})

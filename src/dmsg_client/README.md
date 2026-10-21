@@ -285,3 +285,7 @@ cargo test -p dmsg_client
 
 The end-to-end checks against real canisters and the relay are in
 `tests/dmsg_integration/tests/desktop.rs`.
+
+### Wallet execution and desktop forms
+
+`wallet::ops` and wallet approval jobs run through `Hold`; their IC and chain waits do not hold the daemon client. `wallet::desktop` implements typed management/transfer forms, precise amounts, metadata, previews, receive QR codes, account-local RPC preferences and encrypted channel hints. `wallet::packets` checks and collects signatures for one immutable plan; import never executes. `wallet::audit` verifies incremental checkpoints and bounded historical pages. The [implementation record](../../docs/dmsg_wallet_desktop_zh.md) distinguishes these paths from future hardware and chain extensions.

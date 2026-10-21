@@ -234,109 +234,9 @@ impl Client {
         key: &str,
         ledger: Principal,
         fee: u128,
-        create: impl Fn() -> Result<Call>,
+        create: impl Fn() -> Result<Call> + Send + Sync,
     ) -> Result<u64> {
-        let (payer, ic) = self.payer().await?;
-        let mut payment = match self.payment_journal(key)? {
-            Some(payment) => payment,
-            None => {
-                let payment = Payment {
-                    ledger,
-                    payer,
-                    call: create()?,
-                    stage: Stage::Prepared,
-                    block: None,
-                    error: None,
-                };
-                self.save_payment(key, &payment)?;
-                payment
-            }
-        };
-        if let Some(block) = payment.block {
-            return Ok(block);
-        }
-        ensure(
-            payment.ledger == ledger && payment.payer == payer,
-            Error::Forbidden,
-        )?;
-        let reader = Ledger {
-            ic: &ic,
-            canister: ledger,
-        };
-        if payment.stage == Stage::Rejected {
-            // The ledger refused these exact arguments: nothing was paid.
-            self.save_payment(&format!("{key}:rejected:{}", crate::now_ms()), &payment)?;
-            payment = Payment {
-                call: create()?,
-                stage: Stage::Prepared,
-                error: None,
-                ..payment
-            };
-        }
-        if payment.stage == Stage::Prepared {
-            ensure(reader.fee().await? == fee, Error::FeeBlocked)?;
-        }
-        // A rejection of a resend does not prove the first attempt failed.
-        let uncertain = payment.stage == Stage::Unknown;
-        payment.stage = Stage::Unknown;
-        self.save_payment(key, &payment)?;
-        let outcome = match &payment.call {
-            Call::Transfer(bytes) => {
-                let arg: TransferArg =
-                    candid::decode_one(bytes).map_err(|_| Error::IntegrityFailed)?;
-                let reply: Result<std::result::Result<Nat, TransferError>> =
-                    ic.update(ledger, "icrc1_transfer", (arg,)).await;
-                match reply {
-                    Ok(Ok(n)) => Ok(block(&n)?),
-                    Ok(Err(TransferError::Duplicate { duplicate_of })) => Ok(block(&duplicate_of)?),
-                    Ok(Err(TransferError::InsufficientFunds { balance })) => {
-                        Err(format!("{INSUFFICIENT_FUNDS}: balance {balance}"))
-                    }
-                    Ok(Err(error)) => Err(format!("{error:?}")),
-                    Err(_) => return Err(Error::ExecutionUnknown),
-                }
-            }
-            Call::Approve(bytes) => {
-                let arg: ApproveArgs =
-                    candid::decode_one(bytes).map_err(|_| Error::IntegrityFailed)?;
-                let reply: Result<std::result::Result<Nat, ApproveError>> =
-                    ic.update(ledger, "icrc2_approve", (arg,)).await;
-                match reply {
-                    Ok(Ok(n)) => Ok(block(&n)?),
-                    Ok(Err(ApproveError::Duplicate { duplicate_of })) => Ok(block(&duplicate_of)?),
-                    Ok(Err(ApproveError::InsufficientFunds { balance })) => {
-                        Err(format!("{INSUFFICIENT_FUNDS}: balance {balance}"))
-                    }
-                    Ok(Err(error)) => Err(format!("{error:?}")),
-                    Err(_) => return Err(Error::ExecutionUnknown),
-                }
-            }
-        };
-        match outcome {
-            Ok(block) => {
-                payment.block = Some(block);
-                payment.stage = Stage::Confirmed;
-                self.save_payment(key, &payment)?;
-                Ok(block)
-            }
-            Err(error) if uncertain => {
-                payment.error = Some(error);
-                self.save_payment(key, &payment)?;
-                Err(Error::ExecutionUnknown)
-            }
-            Err(error) => {
-                payment.stage = Stage::Rejected;
-                payment.error = Some(error.clone());
-                self.save_payment(key, &payment)?;
-                Err(if error.starts_with("BadFee") {
-                    Error::FeeBlocked
-                } else if error.starts_with(INSUFFICIENT_FUNDS) {
-                    insufficient_funds()
-                } else {
-                    Error::InvalidInput(format!("ledger: {error}"))
-                })
-            }
-        }
+        pay(&self.hold(), key, ledger, fee, create).await
     }
 }
 
@@ -444,4 +344,114 @@ pub async fn payer_status<H: Hold>(h: &H) -> Result<serde_json::Value> {
         "source": if pem { "pem" } else { "login" },
         "balances": balances,
     }))
+}
+
+/// Send a journaled payment without holding the shared client across network waits.
+pub(crate) async fn pay<H: Hold>(
+    h: &H,
+    key: &str,
+    ledger: Principal,
+    fee: u128,
+    create: impl Fn() -> Result<Call> + Send + Sync,
+) -> Result<u64> {
+    let (payer, ic) = payer(h).await?;
+    let mut payment = match h.with(|c| c.payment_journal(key)).await? {
+        Some(payment) => payment,
+        None => {
+            let payment = Payment {
+                ledger,
+                payer,
+                call: create()?,
+                stage: Stage::Prepared,
+                block: None,
+                error: None,
+            };
+            h.with(|c| c.save_payment(key, &payment)).await?;
+            payment
+        }
+    };
+    if let Some(block) = payment.block {
+        return Ok(block);
+    }
+    ensure(
+        payment.ledger == ledger && payment.payer == payer,
+        Error::Forbidden,
+    )?;
+    let reader = Ledger {
+        ic: &ic,
+        canister: ledger,
+    };
+    if payment.stage == Stage::Rejected {
+        // The ledger refused these exact arguments: nothing was paid.
+        h.with(|c| c.save_payment(&format!("{key}:rejected:{}", crate::now_ms()), &payment))
+            .await?;
+        payment = Payment {
+            call: create()?,
+            stage: Stage::Prepared,
+            error: None,
+            ..payment
+        };
+    }
+    if payment.stage == Stage::Prepared {
+        ensure(reader.fee().await? == fee, Error::FeeBlocked)?;
+    }
+    // A rejection of a resend does not prove the first attempt failed.
+    let uncertain = payment.stage == Stage::Unknown;
+    payment.stage = Stage::Unknown;
+    h.with(|c| c.save_payment(key, &payment)).await?;
+    let outcome = match &payment.call {
+        Call::Transfer(bytes) => {
+            let arg: TransferArg = candid::decode_one(bytes).map_err(|_| Error::IntegrityFailed)?;
+            let reply: Result<std::result::Result<Nat, TransferError>> =
+                ic.update(ledger, "icrc1_transfer", (arg,)).await;
+            match reply {
+                Ok(Ok(n)) => Ok(block(&n)?),
+                Ok(Err(TransferError::Duplicate { duplicate_of })) => Ok(block(&duplicate_of)?),
+                Ok(Err(TransferError::InsufficientFunds { balance })) => {
+                    Err(format!("{INSUFFICIENT_FUNDS}: balance {balance}"))
+                }
+                Ok(Err(error)) => Err(format!("{error:?}")),
+                Err(_) => return Err(Error::ExecutionUnknown),
+            }
+        }
+        Call::Approve(bytes) => {
+            let arg: ApproveArgs = candid::decode_one(bytes).map_err(|_| Error::IntegrityFailed)?;
+            let reply: Result<std::result::Result<Nat, ApproveError>> =
+                ic.update(ledger, "icrc2_approve", (arg,)).await;
+            match reply {
+                Ok(Ok(n)) => Ok(block(&n)?),
+                Ok(Err(ApproveError::Duplicate { duplicate_of })) => Ok(block(&duplicate_of)?),
+                Ok(Err(ApproveError::InsufficientFunds { balance })) => {
+                    Err(format!("{INSUFFICIENT_FUNDS}: balance {balance}"))
+                }
+                Ok(Err(error)) => Err(format!("{error:?}")),
+                Err(_) => return Err(Error::ExecutionUnknown),
+            }
+        }
+    };
+    match outcome {
+        Ok(block) => {
+            payment.block = Some(block);
+            payment.stage = Stage::Confirmed;
+            h.with(|c| c.save_payment(key, &payment)).await?;
+            Ok(block)
+        }
+        Err(error) if uncertain => {
+            payment.error = Some(error);
+            h.with(|c| c.save_payment(key, &payment)).await?;
+            Err(Error::ExecutionUnknown)
+        }
+        Err(error) => {
+            payment.stage = Stage::Rejected;
+            payment.error = Some(error.clone());
+            h.with(|c| c.save_payment(key, &payment)).await?;
+            Err(if error.starts_with("BadFee") {
+                Error::FeeBlocked
+            } else if error.starts_with(INSUFFICIENT_FUNDS) {
+                insufficient_funds()
+            } else {
+                Error::InvalidInput(format!("ledger: {error}"))
+            })
+        }
+    }
 }

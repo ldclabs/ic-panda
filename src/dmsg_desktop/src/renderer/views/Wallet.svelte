@@ -1,782 +1,839 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import Avatar from '../components/Avatar.svelte'
-  import { copyText } from '../components/clipboard'
+  import { onMount, untrack } from 'svelte'
   import Icon from '../components/Icon.svelte'
-  import Fact from '../components/page/Fact.svelte'
-  import Field from '../components/page/Field.svelte'
-  import Id from '../components/page/Id.svelte'
-  import Notice from '../components/page/Notice.svelte'
+  import Dialog from '../components/Dialog.svelte'
   import Page from '../components/page/Page.svelte'
-  import Pill from '../components/page/Pill.svelte'
   import Section from '../components/page/Section.svelte'
+  import Field from '../components/page/Field.svelte'
+  import Notice from '../components/page/Notice.svelte'
+  import Pill from '../components/page/Pill.svelte'
+  import Id from '../components/page/Id.svelte'
   import Select from '../components/Select.svelte'
+  import TabBar from '../components/page/TabBar.svelte'
+  import { buttonClass } from '../components/ui'
+  import { copyText } from '../components/clipboard'
   import { toast } from '../components/toast.svelte'
-  import Tooltip from '../components/Tooltip.svelte'
-  import { buttonClass, cn } from '../components/ui'
-  import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText, onChange, planAction, single, units, when } from '../rpc'
+  import { call, bridge, onChange, when, units } from '../rpc'
+  import { t, stateLabel } from '../i18n/index.svelte'
   import AgentAccess from './agents/AgentAccess.svelte'
+  import Create from './wallet/Create.svelte'
+  import Transfer from './wallet/Transfer.svelte'
+  import Manage from './wallet/Manage.svelte'
+  import ProposalDetail from './wallet/Proposal.svelte'
+  import Operations from './wallet/Operations.svelte'
+  import Intent from './wallet/Intent.svelte'
+  import { w } from './wallet/text'
+  import { walletError as errorText } from './wallet/errors'
   import {
-    activationTotal,
-    MAX_DRAFT_MEMBERS,
-    memberInputs,
-    memberProblem,
-    thresholdLimits,
-    type MemberDraft
-  } from './wallet/new-wallet'
-
-  /**
-   * Team wallets: one canister per team. Proposing, executing what members
-   * approved, broadcasting, reading and refunding an activation payment
-   * that created no wallet run here; creating, joining, deciding and
-   * cosigning open the approval window. The wallet signs every transaction;
-   * this device checks each plan with its own decoder first. Each change
-   * comes back through the daemon's `wallet/changed` or `approval/changed`.
-   */
-  let { status }: { status: any } = $props()
-
-  let wallets = $state<any[]>([])
-  let selected = $state('')
-  let wallet = $state<any>(null)
-  let proposals = $state<any[]>([])
-  let balances = $state<any>(null)
-  let audit = $state<any>(null)
-  let principal = $state('')
-  let cosigners = $state<any[]>([])
-  // What the account's plan allows before a quote is stored.
-  let preview = $state<any>(null)
-  // Activation payments this device made that created no wallet.
-  let deposits = $state<any[]>([])
-  let error = $state('')
-  let busy = $state(false)
-  // New wallet.
-  let name = $state('')
-  let nextDraft = 0
-  const blankDraft = (): MemberDraft => ({ key: nextDraft++, id: '', role: 'approver', label: '', touched: false })
-  let drafts = $state<MemberDraft[]>([blankDraft()])
-  let approvals = $state(1)
-  let adminApprovals = $state(1)
-  // A quote is read once when the view opens; the person may read it again.
-  let quoteAsked = false
-  let quoteLoading = $state(false)
-  // Join.
-  let joining = $state('')
-  // Transfer.
-  let from = $state('0')
-  let asset = $state('icp')
-  let to = $state('')
-  let amount = $state('')
-  let maxFee = $state('10000')
-  // Cosigner key.
-  let cosignerLabel = $state('')
-  // This account's Agent IDs: their names, what they may do here, and which propose for this member.
-  let hosted = $state<any[]>([])
-  let access = $state(false)
-  let delegating = $state<Record<string, boolean> | null>(null)
-  /** The wallet whose balances and audit are shown; they are read again only on request. */
-  let opened = ''
-
+    actions,
+    approvalCount,
+    amountText,
+    assetIdentity,
+    assetKey,
+    finalStates,
+    stateAt,
+    validPrincipal,
+    ViewScope,
+    walletRoute,
+    type Wallet,
+    type Proposal,
+    type Asset
+  } from './wallet/model'
+  let {
+    status,
+    route = '/wallet',
+    go = (path: string) => (location.hash = path)
+  }: { status: any; route?: string; go?: (path: string) => void } = $props()
+  let wallets = $state<any[]>([]),
+    wallet = $state<Wallet | null>(null),
+    selected = $state(''),
+    proposals = $state<Proposal[]>([]),
+    next = $state<number | null>(null)
+  let metadata = $state<Asset[]>([]),
+    balances = $state<any>(null),
+    audit = $state<any>(null),
+    book = $state<any[]>([]),
+    bookNext = $state<string | null>(null)
+  let readingExtras = $state(false)
+  let loading = $state(false),
+    busy = $state(false),
+    listLoading = $state(false),
+    error = $state(''),
+    balanceError = $state(''),
+    bookError = $state(''),
+    depositError = $state('')
+  let deposits = $state<any[]>([]),
+    principal = $state(''),
+    now = $state(Date.now()),
+    tab = $state('overview'),
+    filter = $state('all'),
+    find = $state('')
+  let newOpen = $state(false),
+    joinOpen = $state(false),
+    joining = $state(''),
+    freezeOpen = $state(false),
+    access = $state(false),
+    receive = $state<any>(null)
+  let manage = $state<{ kind: string; target?: any; key: number } | null>(null),
+    manageOpen = $state(false),
+    detailOpen = $state(false),
+    detailId = $state<number | null>(null)
+  let activation = $state<any>(null)
+  let pendingRead = false
+  let pending = $state<any>(null),
+    drafts = $state<Record<string, any>>({})
+  const scope = new ViewScope()
+  let epoch = 0,
+    listEpoch = 0,
+    account = '',
+    active = true,
+    manageKey = 0
   const unlocked = $derived(status?.state === 'unlocked')
-  const me = $derived(wallet?.me)
-  const role = $derived(me?.role ?? '')
-  const decider = $derived(['Admin', 'Approver'].includes(role))
-  const creator = $derived(String(status?.account ?? ''))
-  const roleOptions = $derived([
-    { value: 'admin', label: t('twRoleAdmin') },
-    { value: 'approver', label: t('twRoleApprover') },
-    { value: 'proposer', label: t('twRoleProposer') },
-    { value: 'viewer', label: t('twRoleViewer') },
-    { value: 'recovery', label: t('twRoleRecovery') }
-  ])
-  // The creator is an Admin; only Admins and Approvers count toward the thresholds.
-  const limits = $derived(thresholdLimits(drafts))
-  const memberCount = $derived(1 + drafts.filter((row) => row.id.trim()).length)
-  const problems = $derived(drafts.map((row) => memberProblem(row, drafts, creator)))
-  const invalid = $derived(problems.some((problem) => problem !== null))
-  const canCreate = $derived(!!name.trim() && !invalid)
-  const remaining = $derived(preview?.remaining ?? 0)
-  const total = $derived(preview ? activationTotal(preview.price_e8s, preview.ledger_fee_e8s) : '0')
+  const member = $derived(wallet?.me)
+  const mayPropose = $derived(member?.status === 'Active' && !['Viewer', 'Recovery'].includes(member?.role ?? ''))
+  const mayMembers = $derived(member?.status === 'Active' && member?.role !== 'Viewer')
+  const decider = $derived(member?.status === 'Active' && ['Admin', 'Approver'].includes(member?.role ?? ''))
+  const usable = $derived(!!wallet && !loading && !busy && wallet.wallet === selected && unlocked)
+  const tabs = $derived(['overview', 'proposals', 'assets', 'team', 'activity', 'settings'].map((value) => ({ value, label: w(value) })))
+  const shown = $derived(
+    proposals.filter(
+      (p) => filter === 'all' || (filter === 'waiting' ? actions(p, wallet!, now).approve : actions(p, wallet!, now).execute)
+    )
+  )
+  const waiting = $derived(wallet ? proposals.filter((p) => actions(p, wallet!, now).approve).length : 0)
+  const fresh = (generation: number) => active && scope.current(generation) && unlocked && status?.account === account
 
-  // A role may stop counting toward a threshold; the threshold never asks for more than there are.
   $effect(() => {
-    if (approvals > limits.approvers) approvals = limits.approvers
-    if (adminApprovals > limits.admins) adminApprovals = limits.admins
+    const current = unlocked ? String(status.account) : ''
+    if (current !== account)
+      untrack(() => {
+        account = current
+        epoch = scope.next()
+        listEpoch++
+        wallets = []
+        wallet = null
+        selected = ''
+        proposals = []
+        metadata = []
+        balances = null
+        audit = null
+        book = []
+        deposits = []
+        pending = null
+        activation = null
+        drafts = {}
+        error = ''
+        depositError = ''
+        detailOpen = false
+        manageOpen = false
+        newOpen = false
+        loading = false
+        readingExtras = false
+        busy = false
+        listLoading = false
+        receive = null
+        if (current) void loadList(true)
+      })
+  })
+  $effect(() => {
+    const parts = route.split('?')[0].split('/')
+    const id = parts[2] ?? ''
+    if (unlocked && validPrincipal(id) && id !== selected) untrack(() => void open(id))
+    const proposal = parts[3] && /^\d+$/.test(parts[3]) ? Number(parts[3]) : null
+    if (proposal !== null && Number.isSafeInteger(proposal)) {
+      detailId = proposal
+      detailOpen = true
+      tab = 'proposals'
+    }
   })
 
-  // The price is a fast read, so the form is ready when the view opens; a
-  // failed read leaves the Get a quote button as the way to try again.
-  $effect(() => {
-    if (!unlocked) {
-      quoteAsked = false
-      return
-    }
-    if (quoteAsked) return
-    quoteAsked = true
-    void loadQuote(true)
-  })
-
-  /** Assets an address can send, as `wallet/send` reads them. */
-  const assetsOf = (address: any): { value: string; label: string }[] => {
-    if (!address || !wallet) return []
-    const spendable: any[] = wallet.policy.spendable_assets
-    const list: { value: string; label: string }[] = []
-    for (const a of spendable) {
-      if (address.chain === 'Icp' && a.asset === 'ICP') list.push({ value: 'icp', label: 'ICP' })
-      if (address.chain === 'Icp' && a.asset === 'ICRC') list.push({ value: `icrc:${a.ledger}`, label: `ICRC ${a.ledger.slice(0, 10)}…` })
-      if (address.chain === 'Bitcoin' && a.asset === 'BTC') list.push({ value: 'btc', label: 'BTC' })
-      if (address.chain === 'Evm' && a.asset === 'ETH') list.push({ value: `evm:${a.chain_id}`, label: `ETH · ${a.chain_id}` })
-      if (address.chain === 'Evm' && a.asset === 'ERC20') list.push({ value: `evm:${a.chain_id}:${a.token}`, label: `ERC-20 ${a.token.slice(0, 10)}… · ${a.chain_id}` })
-      if (address.chain === 'Solana' && a.asset === 'SOL') list.push({ value: 'sol', label: 'SOL' })
-      if (address.chain === 'Solana' && a.asset === 'SPL') list.push({ value: `sol:${a.mint}`, label: `SPL ${a.mint.slice(0, 10)}…` })
-    }
-    return list
+  async function loadList(initial = false) {
+    const run = ++listEpoch,
+      owner = account
+    listLoading = true
+    const results = await Promise.allSettled([call<any[]>('wallet/list'), call<any>('wallet/principal'), call<any[]>('wallet/deposits')])
+    if (!active || run !== listEpoch || owner !== account || !unlocked) return
+    const [list, mine, paid] = results
+    if (list.status === 'fulfilled') {
+      wallets = list.value
+      if (!selected && wallets.length) {
+        const wanted = route.split('/')[2]
+        select(validPrincipal(wanted ?? '') ? wanted : wallets[0].wallet)
+      }
+    } else error = errorText(list.reason)
+    if (mine.status === 'fulfilled') principal = mine.value.principal
+    if (paid.status === 'fulfilled') {
+      deposits = paid.value
+      depositError = ''
+    } else depositError = errorText(paid.reason)
+    listLoading = false
   }
-  const source = $derived(wallet?.addresses.find((a: any) => String(a.id) === from))
-  const assets = $derived(assetsOf(source))
-
-  $effect(() => {
-    if (assets.length && !assets.some((a) => a.value === asset)) asset = assets[0].value
-  })
-
-  async function attempt(work: () => Promise<unknown>) {
-    busy = true
-    try {
-      await work()
-    } catch (e) {
-      toast(() => errorText(e), planAction(e))
-    } finally {
-      busy = false
-    }
+  function select(id: string) {
+    if (busy) return
+    go(walletRoute(id))
+    void open(id)
   }
-
-  /** The hub and ledger reads behind the deposits may fail on their own; the list waits for the next load. */
-  const readDeposits = () => call<any[]>('wallet/deposits').catch(() => [])
-
-  const reload = single(async () => {
-    if (!unlocked) return
-    try {
-      const [list, mine, keys, paid, ids] = await Promise.all([
-        call('wallet/list'),
-        call('wallet/principal'),
-        call('wallet/cosigners'),
-        readDeposits(),
-        call<any>('agent/ids').catch(() => null)
-      ])
-      hosted = ids?.agents ?? []
-      wallets = list
-      principal = mine.principal
-      cosigners = keys
-      deposits = paid
-      if (!selected && wallets.length) selected = wallets[0].wallet
-      error = ''
-      if (selected) await open(selected)
-    } catch (e) {
-      error = errorText(e)
-    }
-  })
-
+  async function pages(id: string, count: number) {
+    const rows: Proposal[] = []
+    let before: number | null = null
+    do {
+      const page: any = await call('wallet/proposals', { wallet: id, before, limit: Math.min(100, count - rows.length) })
+      rows.push(...page.proposals)
+      before = page.next ?? null
+    } while (before !== null && rows.length < count)
+    return { proposals: rows, next: before }
+  }
   async function open(id: string) {
+    const run = scope.next()
+    epoch = run
+    const changing = selected !== id
+    const count = changing ? 50 : Math.max(50, proposals.length)
     selected = id
-    if (opened !== id) {
-      opened = id
-      balances = null
-      audit = null
-    }
-    try {
-      const [shown, page] = await Promise.all([call('wallet/show', { wallet: id }), call('wallet/proposals', { wallet: id, limit: 50 })])
-      wallet = shown
-      proposals = page.proposals
-    } catch (e) {
+    loading = true
+    error = ''
+    if (changing) {
       wallet = null
       proposals = []
-      // A wallet listing this account but not joined yet reads nothing.
-      error = code(e) === 'FORBIDDEN' ? t('twNotJoined') : errorText(e)
+      next = null
+      metadata = []
+      balances = null
+      audit = null
+      book = []
+      bookNext = null
+      balanceError = ''
+      bookError = ''
+      manageOpen = false
+      receive = null
+      access = false
     }
-  }
-
-  const approve = async (request: any) => bridge(() => window.dmsg.openApproval(request.id))
-
-  const agentName = (did: string) => hosted.find((a) => a.agent_id === did)?.label ?? did
-
-  /** Which of this account's Agent IDs may propose for its member: a membership proposal the admins approve. */
-  const proposeAgents = () =>
-    attempt(async () => {
-      const agent_ids = Object.keys(delegating ?? {}).filter((id) => delegating?.[id])
-      await call('wallet/member_agents', { wallet: selected, agent_ids })
-      delegating = null
-      toast(() => t('twAgentsProposed'))
-    })
-
-  /** The fast preview; quiet when the view opens it, a notice when the person asks again. */
-  async function loadQuote(quiet: boolean) {
-    if (quoteLoading) return
-    quoteLoading = true
-    if (!quiet) busy = true
     try {
-      preview = await call('wallet/quote_preview')
-    } catch (e) {
-      if (!quiet) toast(() => errorText(e), planAction(e))
-    } finally {
-      quoteLoading = false
-      if (!quiet) busy = false
-    }
-  }
-
-  const getQuote = () => loadQuote(false)
-
-  function addMember() {
-    if (drafts.length >= MAX_DRAFT_MEMBERS) return
-    drafts = [...drafts, blankDraft()]
-  }
-
-  function removeMember(key: number) {
-    drafts = drafts.filter((row) => row.key !== key)
-    if (!drafts.length) drafts = [blankDraft()]
-  }
-
-  function resetDraft() {
-    name = ''
-    drafts = [blankDraft()]
-    approvals = 1
-    adminApprovals = 1
-  }
-
-  /** Back to the price panel; the next quote starts a new wallet. */
-  function cancelCreate() {
-    resetDraft()
-    preview = null
-  }
-
-  const create = () =>
-    attempt(async () => {
-      if (!canCreate) return
-      // The preview only says what the plan allows; the hub stores the quote
-      // this approval and payment commit to.
-      const quote: any = await call('wallet/quote')
-      if (quote.remaining === 0) {
-        preview = quote
-        return
+      const [shown, page] = await Promise.all([call<Wallet>('wallet/show', { wallet: id }), pages(id, count)])
+      if (!fresh(run) || id !== selected) return
+      if (wallet?.audit_head !== shown.audit_head) {
+        balances = null
+        audit = null
       }
-      await approve(
-        await call('wallet/create', {
-          quote: quote.quote_id,
-          name: name.trim(),
-          members: memberInputs(drafts),
-          approvals,
-          admin_approvals: adminApprovals
-        })
-      )
-      // The form closes so another wallet starts from a fresh quote; the draft
-      // stays for a retry when the approval window is dismissed.
-      preview = null
-    })
-
-  /** Back to the paying account, which the daemon names; no approval, the money goes nowhere else. */
-  const refund = (id: string) =>
-    attempt(async () => {
-      const refunded: any = await call('wallet/refund', { quote: id })
-      toast(() => t('twRefunded', { to: refunded.to, block: refunded.block }))
-      deposits = await readDeposits()
-    })
-
-  const join = () => attempt(async () => approve(await call('wallet/join', { wallet: joining.trim() })))
-
-  const decide = (method: string, proposal: number) => attempt(async () => approve(await call(method, { wallet: selected, proposal })))
-
-  const send = () =>
-    attempt(async () => {
-      await call('wallet/send', { wallet: selected, from: Number(from), asset, to: to.trim(), amount: amount.trim(), max_fee: maxFee.trim() })
-      to = ''
-      amount = ''
-    })
-
-  const execute = (proposal: number) =>
-    attempt(async () => {
-      const result: any = await call('wallet/execute', { wallet: selected, proposal })
-      // A plan this device cosigns waits in the approval window.
-      if (result.kind === 'wallet' && result.digest) await approve(result)
-      else if (result.broadcast_error) toast(() => `${t('twBroadcastFailed')}: ${result.broadcast_error}`)
-    })
-
-  const step = (method: string, proposal: number) => attempt(() => call(method, { wallet: selected, proposal }))
-
-  const freeze = () => attempt(() => call('wallet/freeze', { wallet: selected }))
-
-  const readBalances = () => attempt(async () => (balances = await call('wallet/balances', { wallet: selected })))
-
-  const verifyAudit = () => attempt(async () => (audit = await call('wallet/audit', { wallet: selected })))
-
-  const newCosigner = () =>
-    attempt(async () => {
-      const created: any = await call('wallet/cosigner_new', { label: cosignerLabel.trim() })
-      cosignerLabel = ''
-      await copyText(JSON.stringify(created.intent))
-      toast(() => t('twIntentCopied'))
-    })
-
-  onMount(() => {
-    void reload()
-    return onChange(['approval/changed', 'session/changed', 'wallet/changed'], reload)
-  })
-
-  /** An intent in a line. */
-  function intentLine(intent: any): string {
-    if (intent.kind === 'transfer' || intent.kind === 'batch') {
-      const outputs = intent.outputs.map((o: any) => `${o.amount} → ${o.to}`).join(', ')
-      return `${intent.asset.asset}${intent.asset.chain_id ? ` · ${intent.asset.chain_id}` : ''} ${outputs}`
+      wallet = shown
+      // Known native decimals are immediately usable; a slow token RPC must
+      // not hide the whole policy's asset list.
+      metadata = shown.policy.spendable_assets.map((asset: Asset) => metadata.find((known) => assetKey(known) === assetKey(asset)) ?? asset)
+      proposals = page.proposals
+      next = page.next ?? null
+      drafts[id] ??= { from: String(shown.addresses[0]?.id ?? 0), asset: '', outputs: [{ to: '', amount: '' }], maxFee: '', memo: '' }
+      loading = false
+      readingExtras = true
+      const extras = await Promise.allSettled([call<any>('wallet/assets', { wallet: id }), call<any>('wallet/book', { wallet: id })])
+      if (!fresh(run)) return
+      if (extras[0].status === 'fulfilled') metadata = extras[0].value.assets
+      else {
+        metadata = shown.policy.spendable_assets
+        balanceError = errorText(extras[0].reason)
+      }
+      if (extras[1].status === 'fulfilled') {
+        book = extras[1].value.entries
+        bookNext = extras[1].value.next
+      } else bookError = errorText(extras[1].reason)
+    } catch (e) {
+      if (fresh(run)) {
+        error = errorText(e)
+        wallet = null
+      }
+    } finally {
+      if (fresh(run)) { loading = false; readingExtras = false }
     }
-    return intent.kind
   }
-
-  const approvalsOf = (p: any) => p.votes.filter((v: any) => v.decision === 'Approve').length
-  const tone = (s: string) => (['Settled'].includes(s) ? 'ok' : ['Failed', 'Rejected', 'Vetoed', 'Expired', 'Stale', 'Cancelled'].includes(s) ? 'danger' : 'forest')
+  async function refresh() {
+    await loadList()
+    if (selected) await open(selected)
+  }
+  async function readBalances() {
+    const run = epoch,
+      id = selected
+    busy = true
+    balanceError = ''
+    try {
+      const result = await call('wallet/balances', { wallet: id })
+      if (fresh(run) && selected === id) balances = result
+    } catch (e) {
+      if (fresh(run)) balanceError = errorText(e)
+    } finally {
+      if (fresh(run)) busy = false
+    }
+  }
+  async function readBook(more = false) {
+    const run = epoch,
+      id = selected
+    busy = true
+    bookError = ''
+    try {
+      const result: any = await call('wallet/book', { wallet: id, after: more ? bookNext : null })
+      if (fresh(run)) {
+        book = more ? [...book, ...result.entries] : result.entries
+        bookNext = result.next
+      }
+    } catch (e) {
+      if (fresh(run)) bookError = errorText(e)
+    } finally {
+      if (fresh(run)) busy = false
+    }
+  }
+  async function readAudit(before?: number) {
+    const run = epoch,
+      id = selected
+    busy = true
+    error = ''
+    try {
+      const result = await call('wallet/audit_page', { wallet: id, before })
+      if (fresh(run)) audit = result
+    } catch (e) {
+      if (fresh(run)) error = errorText(e)
+    } finally {
+      if (fresh(run)) busy = false
+    }
+  }
+  async function more() {
+    if (next === null || !usable) return
+    const run = epoch
+    busy = true
+    try {
+      const page: any = await call('wallet/proposals', { wallet: selected, before: next, limit: 50 })
+      if (fresh(run)) {
+        proposals = [...proposals, ...page.proposals.filter((p: Proposal) => !proposals.some((old) => old.id === p.id))]
+        next = page.next ?? null
+      }
+    } catch (e) {
+      if (fresh(run)) error = errorText(e)
+    } finally {
+      if (fresh(run)) busy = false
+    }
+  }
+  function showProposal(id: number) {
+    detailId = id
+    detailOpen = true
+    go(walletRoute(selected, id))
+  }
+  function showManage(kind: string, target?: any) {
+    if (!usable) return
+    manage = { kind, target, key: manageKey++ }
+    manageOpen = true
+  }
+  function proposed(p: any) {
+    if (p.wallet && p.wallet !== selected) return
+    if (p.notification_error) toast(() => w('notificationFailed'))
+    void refresh()
+    if (p.id != null) showProposal(p.id)
+  }
+  function request(request: any, owner: string) {
+    if (owner !== account) return
+    pending = request
+    activation = null
+    void readPending()
+    newOpen = false
+  }
+  async function readPending() {
+    if (!pending || pendingRead) return
+    pendingRead = true
+    const requestId = pending.id
+    const owner = account
+    try {
+      const r: any = await call('approval/show', { id: requestId })
+      if (owner !== account || pending?.id !== requestId) return
+      const wasDone = pending.state === 'done'
+      pending = r
+      if (r.detail?.action === 'create' && r.detail.quote_id) {
+        const phase = await call('wallet/activation', { quote: r.detail.quote_id }).catch((e) => ({
+          stage: 'unknown',
+          reason: errorText(e)
+        }))
+        if (owner !== account || pending?.id !== requestId) return
+        activation = phase
+      } else activation = null
+      if (r.state === 'done' && !wasDone) {
+        const id = r.detail?.result?.wallet ?? r.detail?.wallet
+        if (id && validPrincipal(id)) {
+          joinOpen = false
+          joining = ''
+          select(id)
+          void loadList()
+        }
+      }
+    } catch (e) {
+      if (owner === account) error = errorText(e)
+    } finally {
+      pendingRead = false
+      if (active && unlocked && pending && pending.id !== requestId) void readPending()
+    }
+  }
+  async function run(method: string, params: any = {}) {
+    if (busy) return
+    const owner = account,
+      id = selected
+    busy = true
+    error = ''
+    try {
+      const result: any = await call(method, {
+        ...(id && !['wallet/refund', 'wallet/activation_continue'].includes(method) ? { wallet: id } : {}),
+        ...params
+      })
+      if (owner !== account) return
+      if (result.kind === 'wallet' && result.digest) {
+        pending = result
+        activation = null
+        void readPending()
+        await bridge(() => window.dmsg.openApproval(result.id))
+      }
+      if (method === 'wallet/activation_continue') {
+        if (result.stage === 'ready' && validPrincipal(result.wallet ?? '')) {
+          pending = null
+          activation = null
+          go(walletRoute(result.wallet))
+          void open(result.wallet)
+          void loadList()
+        } else void readPending()
+      } else if (method === 'wallet/receive' && id === selected) receive = result
+      else if (method === 'wallet/refund') {
+        toast(() => t('twRefunded', { to: result.to, block: result.block }))
+        await loadList()
+      } else if (method === 'wallet/freeze') {
+        freezeOpen = false
+        await open(id)
+      }
+    } catch (e) {
+      if (owner === account) error = errorText(e)
+    } finally {
+      if (owner === account) busy = false
+    }
+  }
+  onMount(() => {
+    const off = onChange(['wallet/changed', 'approval/changed', 'channel/changed'], () => {
+      if (unlocked) {
+        void readPending()
+        if (!busy) void refresh()
+      }
+    })
+    const focused = () => {
+      if (unlocked && !busy) void refresh()
+    }
+    window.addEventListener('focus', focused)
+    const clock = setInterval(() => (now = Date.now()), 1000)
+    const progress = setInterval(() => {
+      if (
+        unlocked &&
+        pending &&
+        (['executing', 'unknown'].includes(pending.state) || (pending.state === 'awaiting_user' && now >= pending.expires_at))
+      )
+        void readPending()
+    }, 5000)
+    const poll = setInterval(() => {
+      if (unlocked && selected && !busy && !loading && !readingExtras && document.visibilityState === 'visible') void open(selected)
+    }, 30_000)
+    return () => {
+      active = false
+      scope.clear()
+      listEpoch++
+      off()
+      clearInterval(clock)
+      clearInterval(poll)
+      clearInterval(progress)
+      window.removeEventListener('focus', focused)
+    }
+  })
 </script>
 
-<Page wide testid="wallet-view">
-  {#if error}<Notice tone="danger" testid="wallet-error">{error}</Notice>{/if}
-  {#if !unlocked}
-    <Notice>{t('locked')}</Notice>
-  {:else}
-    <section class="overflow-hidden rounded-2xl border border-line bg-surface shadow-xs">
-      <div class="flex flex-wrap items-center gap-3 bg-gradient-to-br from-pale to-surface px-6 py-5">
-        <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-forest text-on-forest [&_svg]:size-6"><Icon name="coins" /></span>
-        <div class="min-w-0 flex-1">
-          <p class="text-[12px] font-medium text-faint">{t('twNav')}</p>
-          {#if wallets.length}
-            <div class="mt-1 flex flex-wrap gap-1.5" data-testid="wallet-list">
-              {#each wallets as w (w.wallet)}
-                <button class={buttonClass(w.wallet === selected ? 'primary' : 'secondary', 'sm')} onclick={() => open(w.wallet)}>{w.name}</button>
-              {/each}
-            </div>
-          {:else}
-            <p class="text-[15px] text-muted">{t('twNone')}</p>
-          {/if}
-        </div>
-        <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt(reload)}><Icon name="sync-now" />{t('refresh')}</button>
-      </div>
-      {#if wallet}
-        <dl class="divide-y divide-line border-t border-line px-6">
-          <Fact label={t('twWallet')}><Id id={wallet.wallet} full /></Fact>
-          <Fact label={t('role')}>{role || '—'}{#if wallet.frozen}<Pill tone="danger" class="ms-2">{t('twFrozen')}</Pill>{/if}</Fact>
-          <Fact label={t('twPolicy')}>{t('twPolicyLine', { approvals: wallet.policy.approver_threshold, admin: wallet.policy.admin_threshold, version: wallet.policy.version })}</Fact>
-          <Fact label={t('twCycles')}>{wallet.stats ? units(wallet.stats.cycles, 12) : '—'} T</Fact>
-        </dl>
-      {/if}
-    </section>
-
-    {#if wallet}
-      <Section title={t('twAddresses')} icon="key" flush testid="wallet-addresses">
-        {#snippet actions()}
-          <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={readBalances}>{t('twBalances')}</button>
-        {/snippet}
-        <ul class="divide-y divide-line border-t border-line">
-          {#each wallet.addresses as a (a.id)}
-            {@const read = balances?.addresses.find((b: any) => b.address === a.id)}
-            <li class="flex flex-wrap items-start gap-3 px-5 py-3">
-              <Pill>{a.id}</Pill>
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <b class="text-[13px] font-medium">{a.label || a.chain}</b>
-                  <Pill>{a.chain}</Pill>
-                  {#if a.control !== 'chain_key'}<Pill tone="gem">{a.control}</Pill>{/if}
-                  {#if a.cosign}<Pill tone="gem">{t('twCosigned')}</Pill>{/if}
-                  {#if a.verified}<Pill tone="ok"><Icon name="verified" class="size-3" />{t('verified')}</Pill>{:else}<Pill tone="danger">{t('twUnverified')}</Pill>{/if}
-                </div>
-                <p class="mt-1 font-mono text-[11.5px] break-all text-ink-2 select-all">{a.text}</p>
-                {#if read}
-                  <p class="mt-1 flex flex-wrap gap-x-3 text-[12px] text-muted tabular-nums">
-                    {#each read.balances as b, i (i)}
-                      <span>{b.asset}{b.chain_id ? ` ${b.chain_id}` : ''}: {b.balance.Ok ?? b.balance.Err ?? b.balance}</span>
-                    {/each}
-                  </p>
-                {/if}
-              </div>
-              <button class={buttonClass('ghost', 'xs')} onclick={() => copyText(a.text)}><Icon name="copy" /></button>
-            </li>
-          {/each}
-        </ul>
-      </Section>
-
-      <Section title={t('twProposals')} icon="approvals" flush testid="wallet-proposals">
-        {#snippet actions()}
-          {#if decider && !wallet.frozen}<button class={buttonClass('danger', 'xs')} disabled={busy} onclick={freeze}>{t('freeze')}</button>{/if}
-          <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={verifyAudit}>{t('twAudit')}</button>
-        {/snippet}
-        {#if audit}<p class="px-5 pb-2 text-[12px] text-ok" data-testid="wallet-audit">{t('twAuditOk', { n: audit.events })}</p>{/if}
-        <ul class="divide-y divide-line border-t border-line">
-          {#each proposals as p (p.id)}
-            <li class="flex flex-wrap items-center gap-3 px-5 py-3" data-testid="wallet-proposal">
-              <Pill>#{p.id}</Pill>
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <Pill tone={tone(p.status)}>{p.status}</Pill>
-                  <span class="text-[12px] text-muted">{t('twApprovalsOf', { n: approvalsOf(p), m: p.requirement.approvals })}</span>
-                  {#if p.ready_at && p.status === 'Delayed'}<span class="text-[12px] text-faint">{t('twReadyAt')} {when(p.ready_at)}</span>{/if}
-                </div>
-                <p class="mt-1 text-[12.5px] [overflow-wrap:anywhere]">{intentLine(p.intent)}</p>
-                {#if p.signed.length}<p class="mt-0.5 font-mono text-[11px] break-all text-faint">{p.signed[p.signed.length - 1].txid}</p>{/if}
-                {#if p.failure}<p class="mt-0.5 text-[12px] text-danger">{p.failure}</p>{/if}
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                {#if p.status === 'Open' && decider}
-                  <button class={buttonClass('primary', 'xs')} disabled={busy} onclick={() => decide('wallet/approve', p.id)}>{t('approve')}</button>
-                  <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => decide('wallet/reject', p.id)}>{t('reject')}</button>
-                {/if}
-                {#if p.status === 'Delayed' && decider}
-                  <button class={buttonClass('danger', 'xs')} disabled={busy} onclick={() => decide('wallet/veto', p.id)}>{t('twVeto')}</button>
-                {/if}
-                {#if ['Ready', 'Executing', 'Signed', 'Broadcast'].includes(p.status) || (p.status === 'Delayed' && p.ready_at && p.ready_at <= Date.now())}
-                  <button class={buttonClass('primary', 'xs')} disabled={busy} onclick={() => execute(p.id)}>{t('twExecute')}</button>
-                {/if}
-                {#if ['Signed', 'Broadcast'].includes(p.status)}
-                  <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => step('wallet/broadcast', p.id)}>{t('twBroadcast')}</button>
-                  <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => step('wallet/settle', p.id)}>{t('twSettle')}</button>
-                {/if}
-                {#if ['Open', 'Delayed', 'Ready'].includes(p.status) && p.proposer === status?.account}
-                  <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => step('wallet/cancel', p.id)}>{t('cancel')}</button>
-                {/if}
-              </div>
-            </li>
-          {:else}
-            <li class="px-5 py-4 text-[13px] text-faint">{t('twNoProposals')}</li>
-          {/each}
-        </ul>
-      </Section>
-
-      {#if role && role !== 'Viewer' && role !== 'Recovery' && !wallet.frozen}
-        <Section title={t('twSend')} description={t('twSendHint')} icon="send">
-          <div class="grid gap-3 sm:grid-cols-2">
-            <Field label={t('twFrom')}>
-              <Select bind:value={from} options={wallet.addresses.map((a: any) => ({ value: String(a.id), label: `${a.id} · ${a.label || a.chain}` }))} testid="wallet-from" />
-            </Field>
-            <Field label={t('twAsset')}>
-              <Select bind:value={asset} options={assets} placeholder={t('choose')} testid="wallet-asset" />
-            </Field>
-            <Field label={t('recipient')} class="sm:col-span-2"><input bind:value={to} class="font-mono text-[12.5px]" data-testid="wallet-to" /></Field>
-            <Field label={t('twAmount')}><input bind:value={amount} inputmode="numeric" class="tabular-nums" data-testid="wallet-amount" /></Field>
-            <Field label={t('twMaxFee')}><input bind:value={maxFee} inputmode="numeric" class="tabular-nums" /></Field>
-          </div>
-          <div class="mt-3 flex justify-end">
-            <button class={buttonClass('primary')} disabled={busy || !to.trim() || !amount.trim() || !asset} onclick={send} data-testid="wallet-send">{t('twPropose')}</button>
-          </div>
-        </Section>
-      {/if}
-
-      <Section title={t('members')} description={t('twMembersAgentsHint')} icon="user" flush testid="wallet-members">
-        {#snippet actions()}
-          {#if unlocked}<button class={buttonClass('secondary', 'sm')} onclick={() => (access = true)} data-testid="wallet-agent-access"><Icon name="agents" />{t('agentAccessButton')}</button>{/if}
-        {/snippet}
-        <ul class="divide-y divide-line border-t border-line">
-          {#each wallet.members as m (m.id)}
-            <li class="grid gap-1 px-5 py-2.5">
-              <div class="flex flex-wrap items-center gap-2">
-                <Id id={m.id} />
-                <Pill>{m.role}</Pill>
-                {#if m.status !== 'Active'}<Pill tone="warn">{m.status}</Pill>{/if}
-                <span class="text-[12.5px] text-muted">{m.label}</span>
-                {#if me?.id === m.id && unlocked && (hosted.length || m.agent_ids.length)}
-                  <span class="flex-1"></span>
-                  <!-- Those listed stay choices too: they may be hosted on another device. -->
-                  <button
-                    class={buttonClass('ghost', 'xs')}
-                    onclick={() => (delegating = Object.fromEntries([...m.agent_ids, ...hosted.map((a) => a.agent_id)].map((id) => [id, m.agent_ids.includes(id)])))}
-                    data-testid="wallet-member-agents">{t('twMemberAgents')}</button
-                  >
-                {/if}
-              </div>
-              {#if m.agent_ids?.length}
-                <div class="flex flex-wrap items-center gap-1 text-[11.5px] text-faint">
-                  {t('twProposesFor')}
-                  {#each m.agent_ids as id (id)}<Pill class="font-mono font-normal">{agentName(id)}</Pill>{/each}
-                </div>
-              {/if}
-              {#if me?.id === m.id && delegating}
-                <div class="mt-1 grid gap-2 rounded-lg border border-line bg-surface-2 p-2.5">
-                  <div class="flex flex-wrap gap-3">
-                    {#each Object.keys(delegating) as id (id)}
-                      <label class="inline-flex items-center gap-1.5 text-[12.5px]">
-                        <input type="checkbox" bind:checked={() => delegating?.[id] ?? false, (on) => delegating && (delegating[id] = on)} />{agentName(id)}
-                      </label>
-                    {/each}
-                  </div>
-                  <p class="text-[11.5px] text-faint">{t('twMemberAgentsHint')}</p>
-                  <div class="flex justify-end gap-2">
-                    <button class={buttonClass('ghost', 'sm')} onclick={() => (delegating = null)}>{t('cancel')}</button>
-                    <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={proposeAgents} data-testid="wallet-member-agents-propose">{t('twPropose')}</button>
-                  </div>
-                </div>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-      </Section>
-      <AgentAccess
-        bind:open={access}
-        title={t('walletAgentAccess', { name: wallet.name })}
-        description={t('walletAgentAccessHint')}
-        testid="wallet-access"
-        choices={[
-          { capability: 'wallet.read', label: t('walletRead') },
-          { capability: `wallet.propose:${wallet.wallet}`, label: t('walletPropose') },
-          { capability: `wallet.execute:${wallet.wallet}`, label: t('walletExecute') }
-        ]}
-      />
-    {/if}
-
-    <Section title={t('twNew')} description={t('twNewHint')} icon="add" testid="wallet-new">
-      {#if !preview}
-        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3.5">
-          <span class="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest"><Icon name="coins" /></span>
-          <p class="min-w-0 flex-1 text-[12.5px] leading-relaxed text-muted">{t('twQuoteHint')}</p>
-          <button class={buttonClass('secondary')} disabled={busy || quoteLoading} onclick={getQuote} data-testid="wallet-quote">
-            <Icon name={quoteLoading ? 'pending' : 'coins'} class={quoteLoading ? 'animate-spin motion-reduce:animate-none' : ''} />
-            {t('twQuote')}
-          </button>
-        </div>
+<div class="flex h-full min-h-0 flex-col" data-testid="wallet-view">
+  {#if unlocked && wallet}
+    <div class="border-line bg-surface flex flex-wrap items-center gap-3 border-b px-8 py-4">
+      <span class="bg-pale text-forest grid size-10 place-items-center rounded-xl"><Icon name="coins" /></span>
+      <div class="min-w-0 flex-1" data-testid="wallet-list"
+        ><Select
+          value={selected}
+          disabled={busy}
+          onChange={select}
+          options={wallets.map((a) => ({ value: a.wallet, label: `${a.name} · ${a.wallet.slice(0, 5)}` }))}
+          label={t('twWallet')}
+          testid="wallet-select"
+        /><p data-testid="wallet-identity" class="text-faint mt-1 text-[11px]">{w(member?.role ?? 'unknown')} · {wallet.wallet}</p></div
+      >
+      <button class={buttonClass('secondary', 'sm')} disabled={busy || listLoading || loading} onclick={refresh} aria-label={t('refresh')}
+        ><Icon name="sync-now" /></button
+      >
+      <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => (newOpen = true)}>+ {w('newWallet')}</button>
+      <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => (joinOpen = true)}>{w('joinWallet')}</button>
+    </div>
+    <TabBar bind:value={tab} items={tabs} label={t('twNav')} testid="wallet-tab" />
+  {/if}
+  <div class="min-h-0 flex-1">
+    <Page wide>
+      {#if !unlocked}<Notice>{t('locked')}</Notice>
       {:else}
-        <div class="@container rounded-xl border border-line bg-surface-2 p-3.5" data-testid="wallet-quote-line">
-          <div class="flex flex-wrap items-start gap-3">
-            <span class="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest"><Icon name="coins" /></span>
-            <dl class="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-2 @min-[520px]:grid-cols-3">
-              <div class="min-w-0">
-                <dt class="text-[11px] text-faint">{t('twActivation')}</dt>
-                <dd class="text-[19px] leading-snug font-semibold tabular-nums">{units(preview.price_e8s, 8)}{'\u00a0'}<span class="text-[12px] font-normal text-muted">ICP</span></dd>
-              </div>
-              <div class="min-w-0">
-                <dt class="text-[11px] text-faint">{t('twFee')}</dt>
-                <dd class="text-[13.5px] font-medium tabular-nums">{units(preview.ledger_fee_e8s, 8)}{'\u00a0'}<span class="text-[12px] font-normal text-muted">ICP</span></dd>
-              </div>
-              <div class="min-w-0">
-                <dt class="text-[11px] text-faint">{t('twTotal')}</dt>
-                <dd class="text-[13.5px] font-semibold tabular-nums">{units(total, 8)}{'\u00a0'}<span class="text-[12px] font-normal text-muted">ICP</span></dd>
-              </div>
-            </dl>
-            <div class="flex items-center gap-1">
-              <Pill tone={remaining > 0 ? 'forest' : 'warn'}>{t('twQuotaLeft', { left: preview.remaining, plan: preview.plan })}</Pill>
-              <Tooltip content={t('refresh')}>
-                {#snippet children(props)}
-                  <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('refresh')} disabled={busy || quoteLoading} onclick={getQuote} data-testid="wallet-quote">
-                    <Icon name="sync-now" class={quoteLoading ? 'animate-spin motion-reduce:animate-none' : ''} />
-                  </button>
-                {/snippet}
-              </Tooltip>
-            </div>
-          </div>
-          {#if remaining === 0}
-            <p class="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-2.5 text-[12px] text-warn">
-              <Icon name="warning" class="size-3.5" />
-              <span>{t('twQuoteNone')}</span>
-              <a class="font-medium text-forest underline underline-offset-2" href="#/plan">{t('openPlan')}</a>
-            </p>
-          {/if}
-        </div>
-
-        {#if remaining > 0}
-          <div class="mt-4 grid gap-5" data-testid="wallet-new-form">
-            <Field label={t('twName')}>
-              <input bind:value={name} placeholder={t('twNameHint')} maxlength="64" autocomplete="off" data-testid="wallet-name" />
-            </Field>
-
-            <div class="grid gap-2">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <div class="flex items-baseline gap-2">
-                  <span class="text-[12px] text-faint">{t('members')}</span>
-                  <span class="text-[11px] text-faint tabular-nums">{memberCount}</span>
-                </div>
-                <button
-                  type="button"
-                  class={buttonClass('secondary', 'xs')}
-                  disabled={busy || drafts.length >= MAX_DRAFT_MEMBERS}
-                  onclick={addMember}
-                  data-testid="wallet-member-add"
-                >
-                  <Icon name="login" />{t('twAddMember')}
-                </button>
-              </div>
-              <div class="@container overflow-hidden rounded-xl border border-line" data-testid="wallet-members">
-                <div class="flex flex-wrap items-center gap-2 border-b border-line bg-pale/40 px-3 py-2.5" data-testid="wallet-creator">
-                  {#if creator}<Avatar id={creator} size="sm" />{/if}
-                  <div class="min-w-0 flex-1">
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <b class="text-[12.5px] font-medium">{t('you')}</b>
-                      <Pill tone="forest">{t('twRoleAdmin')}</Pill>
-                    </div>
-                    {#if creator}<div class="mt-0.5"><Id id={creator} /></div>{/if}
-                  </div>
-                </div>
-                <div class="hidden gap-2 border-b border-line bg-surface-2 px-2.5 py-1.5 text-[11px] font-medium text-faint @min-[560px]:grid @min-[560px]:grid-cols-[minmax(0,1fr)_10rem_10rem_1.75rem]">
-                  <span>{t('twMemberId')}</span>
-                  <span>{t('role')}</span>
-                  <span>{t('label')}</span>
-                  <span></span>
-                </div>
-                {#each drafts as row, i (row.key)}
-                  {@const problem = problems[i]}
-                  <div
-                    class="grid gap-2 border-b border-line p-2.5 last:border-0 @min-[560px]:grid-cols-[minmax(0,1fr)_10rem_10rem_1.75rem] @min-[560px]:items-start"
-                    data-testid="wallet-member"
-                  >
-                    <input
-                      bind:value={row.id}
-                      class="min-w-0 font-mono text-[12.5px] placeholder:font-sans"
-                      placeholder={t('twMemberId')}
-                      spellcheck="false"
-                      autocomplete="off"
-                      aria-label={t('twMemberId')}
-                      aria-invalid={problem ? 'true' : undefined}
-                      onblur={() => (row.touched = true)}
-                      data-testid="wallet-member-id"
-                    />
-                    <Select bind:value={row.role} options={roleOptions} label={t('role')} testid="wallet-member-role" class="w-full" />
-                    <input
-                      bind:value={row.label}
-                      class="min-w-0"
-                      placeholder={t('label')}
-                      maxlength="64"
-                      aria-label={t('label')}
-                      data-testid="wallet-member-label"
-                    />
-                    <button
-                      type="button"
-                      class={buttonClass('ghost', 'sm', 'size-7 justify-self-start px-0')}
-                      aria-label={t('twRemoveMember')}
-                      disabled={busy}
-                      onclick={() => removeMember(row.key)}
-                      data-testid="wallet-member-remove"><Icon name="close" /></button
-                    >
-                    {#if problem && (row.touched || problem !== 'twMemberInvalid')}
-                      <p class="text-[11.5px] text-danger @min-[560px]:col-span-4" data-testid="wallet-member-error">{t(problem)}</p>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-              <p class="text-[11.5px] leading-normal text-faint">{t('twMembersHint')}</p>
-            </div>
-
-            <div class="@container grid gap-2">
-              <span class="text-[12px] text-faint">{t('twPolicySection')}</span>
-              <div class="grid gap-2 @min-[560px]:grid-cols-2">
-                <div class="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-3.5">
-                  <div class="min-w-0 flex-1">
-                    <p class="text-[12.5px] font-medium">{t('twApprovals')}</p>
-                    <p class="mt-0.5 text-[11.5px] leading-normal text-faint">{t('twApprovalsHint', { max: limits.approvers })}</p>
-                  </div>
-                  <div class="flex shrink-0 items-center rounded-lg border border-edge-soft bg-surface p-0.5">
-                    <button
-                      type="button"
-                      class={buttonClass('ghost', 'sm', 'size-7 px-0')}
-                      aria-label={`${t('twDecrease')} ${t('twApprovals')}`}
-                      disabled={busy || approvals <= 1}
-                      onclick={() => (approvals -= 1)}
-                      data-testid="wallet-approvals-dec"><span aria-hidden="true" class="text-[15px] leading-none">−</span></button
-                    >
-                    <span class="w-8 text-center text-[13px] font-medium tabular-nums" data-testid="wallet-approvals">{approvals}</span>
-                    <button
-                      type="button"
-                      class={buttonClass('ghost', 'sm', 'size-7 px-0')}
-                      aria-label={`${t('twIncrease')} ${t('twApprovals')}`}
-                      disabled={busy || approvals >= limits.approvers}
-                      onclick={() => (approvals += 1)}
-                      data-testid="wallet-approvals-inc"><span aria-hidden="true" class="text-[15px] leading-none">+</span></button
-                    >
-                  </div>
-                </div>
-                <div class="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-3.5">
-                  <div class="min-w-0 flex-1">
-                    <p class="text-[12.5px] font-medium">{t('twAdminApprovals')}</p>
-                    <p class="mt-0.5 text-[11.5px] leading-normal text-faint">{t('twAdminApprovalsHint', { max: limits.admins })}</p>
-                  </div>
-                  <div class="flex shrink-0 items-center rounded-lg border border-edge-soft bg-surface p-0.5">
-                    <button
-                      type="button"
-                      class={buttonClass('ghost', 'sm', 'size-7 px-0')}
-                      aria-label={`${t('twDecrease')} ${t('twAdminApprovals')}`}
-                      disabled={busy || adminApprovals <= 1}
-                      onclick={() => (adminApprovals -= 1)}
-                      data-testid="wallet-admin-approvals-dec"><span aria-hidden="true" class="text-[15px] leading-none">−</span></button
-                    >
-                    <span class="w-8 text-center text-[13px] font-medium tabular-nums" data-testid="wallet-admin-approvals">{adminApprovals}</span>
-                    <button
-                      type="button"
-                      class={buttonClass('ghost', 'sm', 'size-7 px-0')}
-                      aria-label={`${t('twIncrease')} ${t('twAdminApprovals')}`}
-                      disabled={busy || adminApprovals >= limits.admins}
-                      onclick={() => (adminApprovals += 1)}
-                      data-testid="wallet-admin-approvals-inc"><span aria-hidden="true" class="text-[15px] leading-none">+</span></button
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2 border-t border-line pt-4">
-              <p class="min-w-0 flex-1 text-[11.5px] leading-normal text-faint">
-                {t('twCreateSummary', { total: units(total, 8), approvals, admin: adminApprovals })}
-              </p>
-              <button type="button" class={buttonClass('ghost')} disabled={busy} onclick={cancelCreate} data-testid="wallet-create-cancel">{t('cancel')}</button>
-              <button
-                type="button"
-                class={buttonClass('primary')}
-                disabled={busy || quoteLoading || !canCreate}
-                onclick={create}
-                data-testid="wallet-create"><Icon name="coins" />{t('twCreate')}</button
+        {#if error}<Notice tone="danger" testid="wallet-error"
+            >{error}<button class={buttonClass('ghost', 'sm')} onclick={refresh}>{w('retry')}</button></Notice
+          >{/if}
+        {#if loading}<p class="text-faint text-[12px]" role="status">{w('loading')}</p>{/if}
+        {#if pending}<Notice
+            ><span
+              >{w('openApproval')} · {activation && (['executing', 'unknown', 'done'].includes(pending.state) || ['paid', 'creating', 'installing', 'ready', 'failed', 'refunded'].includes(activation.stage))
+                ? w(`activation_${activation.stage}`)
+                : stateLabel(pending.state)}</span
+            ><button class={buttonClass('secondary', 'xs', 'ms-3')} onclick={() => bridge(() => window.dmsg.openApproval(pending.id))}
+              >{w('openApproval')}</button
+            >{#if pending.detail?.action === 'create' && ['unknown', 'failed', 'done'].includes(pending.state) && !['ready', 'refunded', 'failed'].includes(activation?.stage)}<button
+                class={buttonClass('secondary', 'xs', 'ms-2')}
+                disabled={busy}
+                onclick={() => run('wallet/activation_continue', { request: pending.id })}>{w('continue')}</button
+              >{/if}</Notice
+          >{/if}
+        {#if wallet}
+          {#if wallet.frozen}<Notice tone="warn"
+              ><b>{w('frozen')}</b> · {w('freezeHint')}{#if mayPropose}<button
+                  class={buttonClass('secondary', 'sm', 'mt-2')}
+                  disabled={!usable}
+                  onclick={() => showManage('unfreeze')}>{w('unfreeze')}</button
+                >{/if}</Notice
+            >{/if}
+          {#if tab === 'overview'}
+            <section class="grid gap-4 sm:grid-cols-3">
+              <div class="border-line bg-surface rounded-2xl border p-5"
+                ><p class="text-faint text-[12px]">{w('waiting')}</p><b class="text-[30px] font-semibold tabular-nums">{waiting}</b><button
+                  class={buttonClass('ghost', 'xs', 'mt-2 block')}
+                  onclick={() => {
+                    tab = 'proposals'
+                    filter = 'waiting'
+                  }}>{w('details')}</button
+                ></div
               >
-            </div>
-          </div>
+              <div class="border-line bg-surface rounded-2xl border p-5"
+                ><p class="text-faint text-[12px]">{w('cycles')}</p><b class="text-[30px] font-semibold tabular-nums"
+                  >{units(wallet.stats?.cycles ?? '0', 12)} <small class="text-[13px]">T</small></b
+                ><button class={buttonClass('ghost', 'xs', 'mt-2 block')} onclick={() => (tab = 'settings')}>{w('settings')}</button></div
+              >
+              <div class="border-line bg-surface rounded-2xl border p-5"
+                ><p class="text-faint text-[12px]">{w('policy')}</p><b class="text-[30px] font-semibold tabular-nums"
+                  >{wallet.policy.approver_threshold}</b
+                ><span class="text-muted ms-2 text-[12px]">{w('approvals')}</span><button
+                  class={buttonClass('ghost', 'xs', 'mt-2 block')}
+                  onclick={() => (tab = 'team')}>{w('editPolicy')}</button
+                ></div
+              >
+            </section>
+            <p class="text-faint text-[11px]">{w('activeHint')}</p>
+            {#if mayPropose && !wallet.frozen}
+              <Section title={w('send')} description={t('twSendHint')} icon="send">
+                {#key wallet.wallet}<Transfer {wallet} {metadata} {book} bind:draft={drafts[wallet.wallet]} onDone={proposed} />{/key}
+              </Section>
+            {/if}
+            <Section title={w('proposals')} icon="approvals" flush>
+              {#each proposals.filter((p) => !finalStates.has(stateAt(p, now))).slice(0, 5) as p (p.id)}<button
+                  class="border-line hover:bg-wash flex w-full items-center gap-3 border-t px-5 py-3 text-start"
+                  disabled={!usable}
+                  onclick={() => showProposal(p.id)}
+                  ><Pill>#{p.id}</Pill><span class="min-w-0 flex-1 text-[13px]">{w(p.intent.kind)}</span><Pill>{w(stateAt(p, now))}</Pill
+                  ></button
+                >{:else}<p class="text-faint px-5 py-4 text-[13px]">{t('twNoProposals')}</p>{/each}
+            </Section>
+          {:else if tab === 'proposals'}
+            <div class="flex flex-wrap items-center gap-2"
+              ><Select
+                bind:value={filter}
+                options={['all', 'waiting', 'executable'].map((f) => ({ value: f, label: w(f) }))}
+                label={w('proposals')}
+              /><input
+                class="min-w-0 flex-1"
+                bind:value={find}
+                inputmode="numeric"
+                placeholder={w('findProposal')}
+                aria-label={w('findProposal')}
+              /><button
+                class={buttonClass('secondary', 'sm')}
+                disabled={!usable || !/^\d+$/.test(find) || !Number.isSafeInteger(Number(find))}
+                onclick={() => showProposal(Number(find))}>{w('details')}</button
+              >{#if decider && !wallet.frozen}<button
+                  class={buttonClass('danger', 'sm')}
+                  disabled={!usable}
+                  onclick={() => (freezeOpen = true)}>{w('freeze')}</button
+                >{/if}</div
+            >
+            <Section title={w('proposals')} icon="approvals" flush testid="wallet-proposals">
+              {#each shown as p (p.id)}<div
+                  class="border-line flex flex-wrap items-start gap-3 border-t px-5 py-4"
+                  data-testid="wallet-proposal"
+                  ><Pill>#{p.id}</Pill><div class="min-w-0 flex-1"
+                    ><div class="mb-2 flex flex-wrap gap-2"
+                      ><Pill>{w(stateAt(p, now))}</Pill><span class="text-[12px]"
+                        >{approvalCount(p, wallet.members)} / {p.requirement.approvals} · {w(
+                          p.requirement.admin ? 'Admin' : 'Approver'
+                        )}</span
+                      >{#if actions(p, wallet, now).voted}<Pill>{w('voted')}</Pill>{/if}</div
+                    ><Intent intent={p.intent} {metadata} compact /><p class="text-faint mt-2 text-[11px]"
+                      >{when(p.created_at)} · {p.via_agent ?? p.proposer}</p
+                    ></div
+                  ><button class={buttonClass('secondary', 'sm')} disabled={!usable} onclick={() => showProposal(p.id)}
+                    >{w('details')}</button
+                  ></div
+                >{:else}<p class="text-faint px-5 py-4">{t('twNoProposals')}</p>{/each}
+            </Section>
+            {#if next !== null}<button
+                class={buttonClass('secondary', 'sm', 'justify-self-center')}
+                disabled={!usable}
+                onclick={more}
+                data-testid="wallet-more">{w('more')}</button
+              >{/if}
+          {:else if tab === 'assets'}
+            <Section title={w('assets')} icon="coins" flush testid="wallet-addresses">
+              {#snippet actions()}<button class={buttonClass('secondary', 'sm')} disabled={!usable} onclick={readBalances}
+                  >{t('twBalances')}</button
+                >{#if mayPropose}<button
+                    class={buttonClass('primary', 'sm')}
+                    disabled={!usable || wallet?.frozen}
+                    onclick={() => showManage('address')}>{w('addAddress')}</button
+                  >{/if}{/snippet}
+              {#if balanceError}<div class="px-5 py-3"><Notice tone="danger">{balanceError}</Notice></div>{/if}
+              {#if balances}<p class="text-faint px-5 py-2 text-[11px]">{w('readAt')}: {when(balances.read_at)}</p>{/if}
+              {#each wallet.addresses as a (a.id)}
+                <div class="border-line grid gap-2 border-t px-5 py-4"
+                  ><div class="flex flex-wrap items-center gap-2"
+                    ><b class="text-[14px]">{a.label || a.chain}</b><Pill
+                      >{a.chain === 'Icp' ? 'ICP' : a.chain === 'Evm' ? 'EVM' : a.chain}</Pill
+                    ><Pill tone={a.verified ? 'ok' : 'danger'}>{t(a.verified ? 'verified' : 'twUnverified')}</Pill>{#if a.cosign}<Pill
+                        >{w('cosign')} {a.cosign.threshold}/{a.cosign.cosigners.length}</Pill
+                      >{/if}<span class="flex-1"></span><button
+                      class={buttonClass('ghost', 'xs')}
+                      aria-label={`${t('copy')} ${a.label || a.chain}`}
+                      onclick={() => copyText(a.text)}><Icon name="copy" /></button
+                    ><button
+                      class={buttonClass('secondary', 'xs')}
+                      disabled={!usable || !a.verified}
+                      onclick={() => run('wallet/receive', { address: a.id })}>{w('receive')}</button
+                    >{#if mayPropose}<button class={buttonClass('ghost', 'xs')} disabled={!usable} onclick={() => showManage('cosign', a)}
+                        >{w('bindCosign')}</button
+                      >{/if}</div
+                  ><p class="font-mono text-[12px] break-all select-all" dir="ltr">{a.text}</p>
+                  {#each balances?.addresses.find((b: any) => b.address === a.id)?.balances ?? [] as b, i (i)}<div
+                      class="bg-surface-2 rounded-lg p-3 text-[12px]"
+                      ><p class="text-faint mb-1 break-all">{assetIdentity(b.metadata ?? b)}</p>{#if b.balance.Err}<p class="text-danger"
+                          >{b.balance.Err}</p
+                        >{:else}<b class="text-[16px] tabular-nums"
+                          >{amountText(String(b.balance.Ok ?? b.balance), b.metadata ?? b, w('atomic'))}</b
+                        >{/if}<p class="text-faint mt-1 text-[11px] break-all">{w('source')}: {b.source ?? '—'}</p></div
+                    >{/each}</div
+                >
+              {/each}
+            </Section>
+            <Section title={w('book')} icon="user" flush>
+              {#snippet actions()}<button class={buttonClass('secondary', 'sm')} disabled={!usable} onclick={() => readBook()}
+                  >{t('refresh')}</button
+                >{#if mayPropose}<button class={buttonClass('secondary', 'sm')} disabled={!usable} onclick={() => showManage('book')}
+                    >{w('addBook')}</button
+                  >{/if}{/snippet}
+              {#if bookError}<Notice tone="danger">{bookError}</Notice>{/if}
+              {#each book as b, i (i)}<div class="border-line flex flex-wrap items-center gap-2 border-t px-5 py-3"
+                  ><div class="min-w-0 flex-1"
+                    ><b class="text-[13px]">{b.label}</b><p class="font-mono text-[12px] break-all">{b.destination}</p><small
+                      class="text-faint">{w('cooldown')}: {when(b.added_at + wallet.policy.address_book_cooldown_ms)}</small
+                    ></div
+                  ><button class={buttonClass('ghost', 'xs')} onclick={() => copyText(b.destination)}>{t('copy')}</button
+                  >{#if mayPropose}<button
+                      class={buttonClass('ghost', 'xs')}
+                      disabled={!usable}
+                      onclick={() => showManage('book_remove', b)}>{w('remove')}</button
+                    >{/if}</div
+                >{:else}<p class="text-faint px-5 py-4 text-[12px]">{w('none')}</p>{/each}
+              {#if bookNext}<button class={buttonClass('secondary', 'sm', 'm-4')} disabled={!usable} onclick={() => readBook(true)}
+                  >{w('more')}</button
+                >{/if}
+            </Section>
+          {:else if tab === 'team'}
+            <Section title={t('members')} icon="user" flush testid="wallet-members">
+              {#snippet actions()}<button class={buttonClass('secondary', 'sm')} onclick={() => (access = true)}
+                  >{t('agentAccessButton')}</button
+                >{#if mayMembers}<button class={buttonClass('primary', 'sm')} disabled={!usable} onclick={() => showManage('member')}
+                    >{w('addMember')}</button
+                  >{/if}{/snippet}
+              {#if member?.role === 'Recovery'}<Notice>{w('recoveryHint')}</Notice>{/if}
+              {#each wallet.members as m (m.id)}<div class="border-line flex flex-wrap items-start gap-3 border-t px-5 py-4"
+                  ><div class="min-w-0 flex-1"
+                    ><div class="flex flex-wrap items-center gap-2"
+                      ><b>{m.label}</b><Pill>{w(m.role)}</Pill><Pill>{m.kind === 'principal' ? 'Principal' : t('account')}</Pill><Pill
+                        tone={m.status === 'Active' ? 'ok' : 'warn'}>{w(m.status)}</Pill
+                      ></div
+                    ><Id id={m.id} full />{#if m.principals?.length}<p class="text-faint mt-2 font-mono text-[11px] break-all"
+                        >{w('principals')}: {m.principals.join(', ')}</p
+                      >{/if}{#if m.agent_ids?.length}<p class="mt-1 text-[12px] break-all">{w('agent_ids')}: {m.agent_ids.join(', ')}</p
+                      >{/if}</div
+                  >{#if m.status === 'Invited'}<button
+                      class={buttonClass('secondary', 'xs')}
+                      onclick={() => copyText(`dmsg://wallet/${wallet!.wallet}`)}>{w('invite')}</button
+                    >{/if}{#if mayMembers}<button
+                      class={buttonClass('secondary', 'xs')}
+                      disabled={!usable}
+                      onclick={() => showManage('member', m)}>{w('editMember')}</button
+                    ><button class={buttonClass('ghost', 'xs')} disabled={!usable} onclick={() => showManage('remove_member', m)}
+                      >{w('remove')}</button
+                    >{/if}</div
+                >{/each}
+            </Section>
+            <Section title={w('policy')} icon="security"
+              >{#snippet actions()}{#if mayPropose}<button
+                    class={buttonClass('secondary', 'sm')}
+                    disabled={!usable || wallet?.frozen}
+                    onclick={() => showManage('policy')}>{w('editPolicy')}</button
+                  >{/if}{/snippet}<Intent intent={{ kind: 'set_policy', policy: wallet.policy }} /></Section
+            >
+            <AgentAccess
+              bind:open={access}
+              title={t('walletAgentAccess', { name: wallet.name })}
+              description={t('walletAgentAccessHint')}
+              testid="wallet-access"
+              choices={[
+                { capability: 'wallet.read', label: t('walletRead') },
+                { capability: `wallet.propose:${wallet.wallet}`, label: t('walletPropose') },
+                { capability: `wallet.execute:${wallet.wallet}`, label: t('walletExecute') }
+              ]}
+            />
+          {:else if tab === 'activity'}
+            <Section title={w('activity')} description={w('verifiedHint')} icon="approvals" flush>
+              {#snippet actions()}<button class={buttonClass('secondary', 'sm')} disabled={!usable} onclick={() => readAudit()}
+                  >{t('twAudit')}</button
+                >{#if audit}<button class={buttonClass('secondary', 'sm')} onclick={() => bridge(() => window.dmsg.saveReport(audit))}
+                    >{w('export')}</button
+                  >{/if}{/snippet}
+              {#if audit}<p class="text-ok px-5 py-3 text-[12px]" data-testid="wallet-audit"
+                  >{t('twAuditOk', { n: audit.events })} · {when(audit.read_at)}</p
+                ><p class="text-faint px-5 pb-3 font-mono text-[11px] break-all">{audit.head}</p>{#each audit.recent as e (e.seq)}<div
+                    class="border-line flex flex-wrap gap-3 border-t px-5 py-3 text-[12px]"
+                    ><span>#{e.seq}</span><div class="min-w-0 flex-1"
+                      ><b>{e.kind}</b><p class="text-faint break-all">{e.actor} · {when(e.at)}</p></div
+                    >{#if e.proposal != null}<button class={buttonClass('ghost', 'xs')} onclick={() => showProposal(e.proposal)}
+                        >#{e.proposal}</button
+                      >{/if}</div
+                  >{/each}{#if audit.next != null}<button
+                    class={buttonClass('secondary', 'sm', 'm-4')}
+                    disabled={!usable}
+                    onclick={() => readAudit(audit.next)}>{w('more')}</button
+                  >{/if}{/if}
+            </Section>
+          {:else if tab === 'settings'}{#key wallet.wallet}<Operations
+                {wallet}
+                onManage={showManage}
+                onUpdated={() => void refresh()}
+              />{/key}{/if}
+        {:else if !loading}
+          <Section title={t('twNav')} description={listLoading ? w('loading') : error ? w('retry') : t('twNone')} icon="coins"
+            ><div class="flex flex-wrap gap-2"
+              >{#each wallets as entry (entry.wallet)}<button class={buttonClass('secondary', 'sm')} onclick={() => select(entry.wallet)}
+                  >{entry.name}</button
+                >{/each}<button class={buttonClass('secondary', 'sm')} disabled={listLoading} onclick={refresh}>{t('refresh')}</button></div
+            ></Section
+          >
+          {#if selected && error.includes('FORBIDDEN')}<Notice
+              >{w('accessHint')}<button
+                class={buttonClass('secondary', 'sm', 'mt-2')}
+                disabled={busy}
+                onclick={() => {
+                  joining = selected
+                  joinOpen = true
+                }}>{w('joinWallet')}</button
+              ></Notice
+            >{/if}
+          <Create {status} onRequest={request} />
+          <Section title={w('joinWallet')} description={t('twJoinHint', { principal })} icon="link"
+            ><Field label={t('twWallet')}><input bind:value={joining} dir="ltr" data-testid="wallet-join-id" /></Field><button
+              class={buttonClass('secondary', 'sm', 'mt-3')}
+              disabled={busy || !validPrincipal(joining.trim())}
+              onclick={() => run('wallet/join', { wallet: joining.trim() })}>{t('join')}</button
+            ></Section
+          >
+        {/if}
+        {#if depositError}<Notice tone="danger"
+            >{w('newWallet')}: {depositError}<button class={buttonClass('ghost', 'xs')} onclick={() => loadList()}>{w('retry')}</button
+            ></Notice
+          >{/if}
+        {#if deposits.length}
+          <Section title={t('twDeposits')} description={t('twDepositsHint')} icon="restore" flush testid="wallet-deposits">
+            {#each deposits as d (d.quote_id)}<div
+                class="border-line flex flex-wrap items-center gap-3 border-t px-5 py-3"
+                data-testid="wallet-deposit"
+                ><div class="min-w-0 flex-1"
+                  ><Id id={d.quote_id} /><p>{t('twDepositAmount', { amount: units(d.refund_e8s, 8) })}</p><p class="text-faint text-[12px]"
+                    >{d.state === 'failed'
+                      ? t('twDepositFailed')
+                      : d.state === 'expired'
+                        ? t('twDepositExpired')
+                        : t('twDepositUnused', { time: when(d.expires_at) })}</p
+                  >{#if d.reason}<p class="text-danger text-[12px] break-all">{d.reason}</p>{/if}</div
+                >{#if d.refundable}<button
+                    class={buttonClass('primary', 'sm')}
+                    disabled={busy}
+                    onclick={() => run('wallet/refund', { quote: d.quote_id })}
+                    data-testid="wallet-refund">{t('twRefund')}</button
+                  >{:else if now >= d.expires_at}<button class={buttonClass('secondary', 'sm')} onclick={() => loadList()}
+                    >{t('refresh')}</button
+                  >{/if}</div
+              >{/each}
+          </Section>
         {/if}
       {/if}
-    </Section>
-
-    {#if deposits.length}
-      <Section title={t('twDeposits')} description={t('twDepositsHint')} icon="restore" flush testid="wallet-deposits">
-        <ul class="divide-y divide-line border-t border-line">
-          {#each deposits as d (d.quote_id)}
-            <li class="flex flex-wrap items-center gap-3 px-5 py-3" data-testid="wallet-deposit">
-              <Id id={d.quote_id} />
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <b class="text-[13px] font-medium tabular-nums">{t('twDepositAmount', { amount: units(d.refund_e8s, 8) })}</b>
-                  {#if d.state === 'failed'}
-                    <Pill tone="danger">{t('twDepositFailed')}</Pill>
-                  {:else if d.state === 'expired'}
-                    <Pill tone="warn">{t('twDepositExpired')}</Pill>
-                  {:else}
-                    <Pill>{t('twDepositUnused', { time: when(d.expires_at) })}</Pill>
-                  {/if}
-                </div>
-                {#if d.reason}<p class="mt-0.5 text-[12px] [overflow-wrap:anywhere] text-faint">{d.reason}</p>{/if}
-              </div>
-              {#if d.refundable}
-                <button class={buttonClass('primary', 'xs')} disabled={busy} onclick={() => refund(d.quote_id)} data-testid="wallet-refund">{t('twRefund')}</button>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-      </Section>
-    {/if}
-
-    <Section title={t('twJoin')} description={t('twJoinHint', { principal })} icon="link">
-      <div class="flex gap-2">
-        <input bind:value={joining} placeholder={t('twWallet')} class="min-w-0 flex-1 font-mono text-[12.5px]" data-testid="wallet-join-id" />
-        <button class={buttonClass('secondary')} disabled={busy || !joining.trim()} onclick={join}>{t('join')}</button>
-      </div>
-    </Section>
-
-    <Section title={t('twCosigners')} description={t('twCosignerHint')} icon="key" flush>
-      <ul class="divide-y divide-line border-t border-line">
-        {#each cosigners as c (c.label)}
-          <li class={cn('flex flex-wrap items-center gap-2 px-5 py-2.5')}>
-            <b class="text-[13px] font-medium">{c.label}</b>
-            <Pill tone={c.hardware ? 'ok' : 'warn'}>{c.backend}</Pill>
-            <span class="font-mono text-[11px] break-all text-faint">{c.public_key}</span>
-          </li>
-        {/each}
-      </ul>
-      <div class="flex gap-2 px-5 py-3">
-        <input bind:value={cosignerLabel} placeholder={t('label')} class="min-w-0 flex-1" />
-        <button class={buttonClass('secondary')} disabled={busy || !cosignerLabel.trim()} onclick={newCosigner}>{t('twNewCosigner')}</button>
-      </div>
-    </Section>
+    </Page>
+  </div>
+</div>
+{#if unlocked}
+  <Dialog bind:open={newOpen} title={w('newWallet')} icon="coins" wide
+    >{#if newOpen}<Create {status} onRequest={request} />{/if}</Dialog
+  >
+  <Dialog bind:open={joinOpen} title={w('joinWallet')} description={t('twJoinHint', { principal })} icon="link"
+    ><Field label={t('twWallet')}><input bind:value={joining} dir="ltr" /></Field>{#snippet footer()}<button
+        class={buttonClass('primary')}
+        disabled={busy || !validPrincipal(joining.trim())}
+        onclick={() => run('wallet/join', { wallet: joining.trim() })}>{t('join')}</button
+      >{/snippet}</Dialog
+  >
+  {#if wallet}
+    <Dialog bind:open={freezeOpen} title={w('freeze')} description={w('freezeHint')} icon="lock" tone="danger"
+      >{#snippet footer()}<button class={buttonClass('ghost')} onclick={() => (freezeOpen = false)}>{t('cancel')}</button><button
+          class={buttonClass('danger')}
+          disabled={!usable}
+          onclick={() => run('wallet/freeze')}>{w('freeze')}</button
+        >{/snippet}<Id id={wallet.wallet} full /></Dialog
+    >
+    {#if manage}{#key manage.key}<Manage
+          bind:open={manageOpen}
+          {wallet}
+          {metadata}
+          kind={manage.kind}
+          target={manage.target}
+          onDone={proposed}
+        />{/key}{/if}
+    {#if detailId !== null && detailOpen}{#key `${wallet.wallet}:${detailId}`}<ProposalDetail
+          bind:open={detailOpen}
+          {wallet}
+          id={detailId}
+          {metadata}
+          {now}
+          onUpdated={() => void open(selected)}
+        />{/key}{/if}
+    <Dialog
+      bind:open={
+        () => !!receive,
+        (on) => {
+          if (!on) receive = null
+        }
+      }
+      title={w('receive')}
+      icon="key"
+      >{#if receive}<div class="grid justify-items-center gap-4"
+          ><img src={receive.qr} alt={`${w('receive')} ${receive.text}`} class="size-48" /><p
+            class="font-mono text-[12px] break-all"
+            dir="ltr">{receive.text}</p
+          ><p class="text-[12px]">{receive.chain} {receive.network}</p><button
+            class={buttonClass('primary', 'sm')}
+            onclick={() => copyText(receive.text)}>{t('copy')}</button
+          >{#if receive.owner}<dl class="grid w-full gap-2 text-[12px] break-all"
+              ><dt>Owner</dt><dd class="font-mono">{receive.owner}</dd><dt>Subaccount</dt><dd class="font-mono">{receive.subaccount}</dd><dt
+                >AccountIdentifier</dt
+              ><dd class="font-mono">{receive.account_identifier}</dd></dl
+            >{/if}</div
+        >{/if}{#snippet footer()}<button class={buttonClass('secondary')} onclick={() => (receive = null)}>{t('close')}</button
+        >{/snippet}</Dialog
+    >
   {/if}
-</Page>
+{/if}

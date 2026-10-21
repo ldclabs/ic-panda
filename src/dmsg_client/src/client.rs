@@ -589,6 +589,7 @@ impl Client {
         self.located = None;
         self.payer = None;
         self.wallet_ic = None;
+        self.chains = None;
         self.binding = None;
         // Close the database before its directory moves or another opens.
         self.workspace = idle(&self.config.environment)?;
@@ -1085,6 +1086,7 @@ impl Client {
         self.located = None;
         self.payer = None;
         self.wallet_ic = None;
+        self.chains = None;
         self.binding = None;
     }
 
