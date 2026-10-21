@@ -1,6 +1,7 @@
 use super::*;
 use crate::approval::{MAX_PENDING, MAX_PER_SOURCE, State};
 use crate::testing::{TempDir, unlocked};
+use dmsg_types::MINUTE;
 use dmsg_types::app_action::{
     ActionArgs, ActionCommand, ChoiceOption, CommandSchema, SchemaFields,
 };
@@ -427,6 +428,81 @@ async fn a_high_risk_approval_waits_for_the_person() {
         .await
         .unwrap();
     assert_eq!(rejected["state"], "rejected");
+}
+
+#[test]
+fn approval_history_keeps_a_cancelled_request_without_its_checkout() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let now = now_ms();
+    let pending = client
+        .attest_request("gui", text("still waiting"), None)
+        .unwrap();
+    // The checkout journal was discarded, but its approval is retained.
+    let request = client
+        .approval_create(
+            "gui",
+            Action::Checkout {
+                id: hex::encode([42; 32]),
+                digest: [43; 32].into(),
+                fresh: false,
+            },
+            now + MINUTE,
+        )
+        .unwrap();
+    let cancelled = client.approval_cancel(&request.id).unwrap();
+    assert_eq!(cancelled["state"], "cancelled");
+    assert_eq!(cancelled["detail"], Json::Null);
+    assert_eq!(cancelled["digest"], hex::encode(*request.digest()));
+    assert_eq!(client.approval(&request.id).unwrap(), cancelled);
+    let history = client.approvals(true).unwrap();
+    assert_eq!(history.len(), 2);
+    assert!(history.contains(&cancelled));
+    assert!(history.contains(&pending));
+    assert_eq!(client.approvals(false).unwrap(), vec![pending]);
+}
+
+#[test]
+fn missing_approval_details_are_allowed_only_for_finished_requests() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let now = now_ms();
+    for action in [
+        Action::Checkout {
+            id: hex::encode([42; 32]),
+            digest: [43; 32].into(),
+            fresh: false,
+        },
+        Action::Handle {
+            id: hex::encode([44; 32]),
+            digest: [45; 32].into(),
+        },
+        Action::Connect {
+            operation: "forgotten".into(),
+            digest: [46; 32].into(),
+            checkout: None,
+        },
+    ] {
+        let mut request = client.approval_create("gui", action, now + MINUTE).unwrap();
+        for state in [State::AwaitingUser, State::Executing, State::Unknown] {
+            request.state = state;
+            assert_eq!(client.approval_view(&request), Err(Error::NotFound));
+        }
+        for state in [
+            State::Rejected,
+            State::Expired,
+            State::Cancelled,
+            State::Done,
+            State::Failed,
+            State::Elsewhere,
+            State::Lost,
+        ] {
+            request.state = state;
+            let view = client.approval_view(&request).unwrap();
+            assert_eq!(view["state"], state.name());
+            assert_eq!(view["detail"], Json::Null);
+        }
+    }
 }
 
 #[test]

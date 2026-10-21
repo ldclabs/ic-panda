@@ -1141,10 +1141,9 @@ impl Client {
         self.approval_view(&request)
     }
 
-    /// The view a client renders: the request, its digest and a summary of
-    /// what approving does.
-    pub(crate) fn approval_view(&self, request: &Request) -> Result<Json> {
-        let detail = match &request.action {
+    /// Read the operation behind a request for display.
+    fn approval_detail(&self, action: &Action) -> Result<Json> {
+        Ok(match action {
             Action::Attest {
                 statement,
                 origin,
@@ -1200,11 +1199,7 @@ impl Client {
                 checkout,
                 ..
             } => {
-                // A finished operation may be forgotten before its request.
-                let mut view = match self.connect_view(operation) {
-                    Err(Error::NotFound) => json!(null),
-                    view => view?,
-                };
+                let mut view = self.connect_view(operation)?;
                 if let Some((id, _)) = checkout {
                     view["checkout"] = self.plan_checkout(id)?.view();
                 }
@@ -1234,6 +1229,17 @@ impl Client {
             } => json!({"grantee": grantee, "capabilities": capabilities, "days": days}),
             Action::Delegation { job, .. } => self.delegation(job)?.view(),
             Action::Wallet { job, .. } => self.wallet_job_view(job)?,
+        })
+    }
+
+    /// The view a client renders: the request, its digest and a summary of
+    /// what approving does. A finished request outlives a discarded checkout,
+    /// forgotten name operation or expired web operation; its history remains
+    /// readable with null detail. Unsettled requests still require the detail.
+    pub(crate) fn approval_view(&self, request: &Request) -> Result<Json> {
+        let detail = match self.approval_detail(&request.action) {
+            Err(Error::NotFound) if request.state.terminal() => Json::Null,
+            detail => detail?,
         };
         Ok(json!({
             "id": request.id,

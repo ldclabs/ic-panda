@@ -2239,6 +2239,21 @@ try {
   await main.waitForSelector('[data-testid="history-list"] >> text=Withdrawn')
   await main.screenshot({ path: join(shots, 'requests.png') })
 
+  // Discarding a checkout leaves its decided request in history. It opens
+  // read-only with a missing-detail notice, never fabricated payment terms.
+  const discarded = { ...checkoutRequest, id: '9c'.repeat(32), source: 'gui', type: 'checkout', kind: 'payment', state: 'cancelled', detail: null }
+  requests.set(discarded.id, discarded)
+  emit('approval/changed')
+  const missingDetail = 'The related operation is no longer saved.'
+  const discardedRow = main.locator('[data-testid="history-list"] li', { hasText: missingDetail })
+  await discardedRow.waitFor()
+  assert.equal(await main.locator('[data-testid="approvals-error"]').count(), 0)
+  await discardedRow.locator('[data-testid="history-open"]').click()
+  await approval.waitForSelector('[data-testid="approval-detail-unavailable"]')
+  assert.match(await approval.textContent('[data-testid="approval-outcome"]'), /Withdrawn/)
+  assert.equal(await approval.locator('[data-testid="approval-amount"]').count(), 0)
+  assert.equal(await approval.locator('[data-testid="approve"]').count(), 0)
+
   const bundle = join(profile, 'bundle-out.json')
   await answer('__save', bundle)
   await main.click('[data-testid="approvals-tab-bundles"]')

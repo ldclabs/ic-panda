@@ -251,7 +251,7 @@
   const s = $derived(statementOf(request))
   const rendered = $derived(renderedAction(request))
   /** Terms of a checkout: a web checkout's quote, or this device's own. */
-  const terms = $derived(request?.type === 'connect' ? d.checkout : request?.type === 'checkout' ? d : null)
+  const terms = $derived(request?.type === 'connect' ? d.checkout : request?.type === 'checkout' ? request.detail : null)
   const unquoted = $derived(request?.type === 'connect' && d.method === 'checkout' && !d.checkout)
 
   /** The catalog names a storage pack's size; read once a checkout shows. */
@@ -331,7 +331,7 @@
 
   /** What approving does, in plain words; the last lines say what cannot be undone. */
   const after = $derived.by((): [string, boolean][] => {
-    if (!request) return []
+    if (!request || request.detail === null) return []
     if (s)
       return [
         [t('afterSign'), false],
@@ -539,7 +539,9 @@
 
       <section class="mt-5">
         <h2 class="mb-2 text-xs font-semibold tracking-[0.03em] text-faint">{t(section)}</h2>
-        {#if s}
+        {#if request.detail === null}
+          <p class="rounded-xl border border-line bg-paper px-4 py-3.5 text-[13px] text-muted" data-testid="approval-detail-unavailable">{t('approvalDetailUnavailable')}</p>
+        {:else if s}
           <div class="rounded-xl border border-line bg-paper px-4 py-3.5">
             <div class="font-mono text-[11px] text-faint">{s.profile}{s.subject ? ` · ${s.subject}` : ''}</div>
             {#if s.content?.text}<p class="mt-1.5 text-base leading-normal whitespace-pre-wrap [overflow-wrap:anywhere]" data-testid="approval-text">{s.content.text}</p>{/if}
@@ -738,7 +740,7 @@
           {@render row(t('requestId'), request.id, { mono: true })}
           {@render row(t('digest'), request.digest, { mono: true })}
           {@render row(t('from'), request.source, { mono: true, testid: 'approval-source' })}
-          {#if request.type === 'connect'}
+          {#if request.type === 'connect' && request.detail !== null}
             {@render row(t('method'), `${d.method} · v${d.app_version}`, { mono: true })}
             {@render row(t('operation'), d.operation_id ?? '', { mono: true })}
             {@render row(t('requested'), when(d.requested_at))}
@@ -747,7 +749,7 @@
             {@render row(t('operation'), s.content.operation_id, { mono: true })}
             {@render row(t('expires'), when(s.content.expires_at))}
           {/if}
-          {#if request.type === 'delegation'}{@render row(t('controllers'), `#${d.generation} · ${d.kind?.id ?? ''}`, { mono: true })}{/if}
+          {#if request.type === 'delegation' && request.detail !== null}{@render row(t('controllers'), `#${d.generation} · ${d.kind?.id ?? ''}`, { mono: true })}{/if}
           {@render row(t('status'), stateLabel(request.state))}
           {@render row(t('created'), when(request.created_at))}
           {#if request.decided_at}{@render row(t('decided'), `${when(request.decided_at)} · ${request.decided_via}`, { testid: 'approval-decided' })}{/if}

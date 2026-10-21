@@ -759,6 +759,7 @@ export default {
     channelsDetail: 'Échanges et fichiers chiffrés de bout en bout avec les personnes choisies',
     inboxDetail: 'Les lettres, et qui peut vous écrire',
     approvalsDetail: 'Les demandes qui attendent votre décision, les signatures et leur historique',
+    approvalDetailUnavailable: 'L’opération associée n’est plus conservée. L’état et la trace de cette demande restent disponibles.',
     agentsDetail: 'Les Agent ID, ce qu’ils peuvent faire et ce qu’ils ont fait',
     planDetail: 'Votre formule, vos noms et vos commandes',
     settingsDetail: 'Les comptes de cet appareil, la sécurité, la récupération et les navigateurs connectés',

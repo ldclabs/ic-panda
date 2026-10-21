@@ -761,6 +761,7 @@ const messages = {
   channelsDetail: 'End-to-end encrypted conversations and files with people you choose',
   inboxDetail: 'Letters, and who may write to you',
   approvalsDetail: 'Requests waiting for you, signatures and their records',
+  approvalDetailUnavailable: 'The related operation is no longer saved. This request’s status and record are still available.',
   agentsDetail: 'Agent IDs, what they may do and what they did',
   planDetail: 'Your plan, your names and your orders',
   settingsDetail: 'This device’s accounts, security, recovery and connected browsers',

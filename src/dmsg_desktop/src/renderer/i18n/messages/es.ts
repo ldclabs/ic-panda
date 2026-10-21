@@ -759,6 +759,7 @@ export default {
     channelsDetail: 'Conversaciones y archivos cifrados de extremo a extremo con quien elijas',
     inboxDetail: 'Las cartas, y quién puede escribirte',
     approvalsDetail: 'Solicitudes que esperan tu decisión, firmas y su registro',
+    approvalDetailUnavailable: 'La operación asociada ya no está guardada. El estado y el registro de esta solicitud siguen disponibles.',
     agentsDetail: 'Los Agent ID, qué pueden hacer y qué hicieron',
     planDetail: 'Tu plan, tus nombres y tus pedidos',
     settingsDetail: 'Las cuentas de este dispositivo, la seguridad, la recuperación y los navegadores conectados',

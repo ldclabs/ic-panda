@@ -759,6 +759,7 @@ export default {
     channelsDetail: '与选定的人端到端加密交流和共享文件',
     inboxDetail: '来信，以及谁可以给你写信',
     approvalsDetail: '等你决定的请求、签名及其记录',
+    approvalDetailUnavailable: '关联操作已不再保存，仍可查看此请求的状态和记录。',
     agentsDetail: 'Agent ID、它们能做什么、做过什么',
     planDetail: '会员、名称和订单',
     settingsDetail: '本机的账户、安全、恢复和已连接的浏览器',

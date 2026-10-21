@@ -120,7 +120,7 @@
         <button class="flex w-full items-center gap-3 px-5 py-2.5 text-start hover:bg-wash" onclick={() => open(request.id)} data-testid="history-open">
           <Pill tone={stateTone(request.state)}>{stateLabel(request.state)}</Pill>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[12.5px]">{title(request)} · {summaryOf(request)}</span>
+            <span class="block truncate text-[12.5px]">{title(request)} · {request.detail === null ? t('approvalDetailUnavailable') : summaryOf(request)}</span>
             {#if ['failed', 'lost'].includes(request.state) && request.error}<span class="block text-[11.5px] text-faint">{reason(request.error)}</span>{/if}
           </span>
           <span class="shrink-0 text-[11.5px] text-faint" title={when(request.decided_at ?? request.updated_at)}>{ago(request.decided_at ?? request.updated_at)}</span>
