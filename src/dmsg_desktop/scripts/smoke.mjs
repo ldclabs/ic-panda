@@ -33,6 +33,7 @@
 // hides it, after leaving macOS full screen.
 // Run with `pnpm test:e2e`.
 import { walletFixture } from './wallet-fixture.mjs'
+import { WALLET_CREATION_PAUSED } from '../src/shared/wallet-availability.ts'
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
@@ -1748,74 +1749,88 @@ try {
   assert.equal(await main.locator('[data-testid="wallet-refund"]').count(), 0)
   assert.equal(requests.size, requested)
 
-  // A plan with no wallet left is shown, not raised as an error: the preview
-  // names the plan and opens Plans, and no create action starts.
-  await main.click('[data-testid="wallet-quote"]')
-  await main.waitForSelector('[data-testid="wallet-quote-line"]')
-  const quoteLine = await main.textContent('[data-testid="wallet-quote-line"]')
-  assert.match(quoteLine, /0 left on Free/)
-  assert.match(quoteLine, /Your plan cannot create a team wallet/)
-  assert.equal(await main.locator('[data-testid="wallet-create"]').count(), 0)
-  await waitFor(() => latest('wallet/quote_preview'))
+  if (WALLET_CREATION_PAUSED) {
+    await main.waitForSelector('[data-testid="wallet-creation-paused"]')
+    assert.match(await main.textContent('[data-testid="wallet-creation-paused"]'), /being redesigned/)
+    assert.equal(await main.locator('[data-testid="wallet-new-form"], [data-testid="wallet-quote"]').count(), 0)
+    for (const method of ['wallet/create', 'wallet/quote', 'wallet/quote_preview']) {
+      assert.equal(calls.some((c) => c.method === method), false)
+      await assert.rejects(main.evaluate((method) => window.dmsg.call(method, {}), method), /FORBIDDEN/)
+      assert.equal(calls.some((c) => c.method === method), false, 'blocked before reaching the daemon')
+    }
+    await main.locator('[data-testid="wallet-view"]').screenshot({ path: join(shots, 'wallet-creation-paused.png') })
+    wallets.state.enabled = true
+    emit('wallet/changed')
+  } else {
+    // A plan with no wallet left is shown, not raised as an error: the preview
+    // names the plan and opens Plans, and no create action starts.
+    await main.click('[data-testid="wallet-quote"]')
+    await main.waitForSelector('[data-testid="wallet-quote-line"]')
+    const quoteLine = await main.textContent('[data-testid="wallet-quote-line"]')
+    assert.match(quoteLine, /0 left on Free/)
+    assert.match(quoteLine, /Your plan cannot create a team wallet/)
+    assert.equal(await main.locator('[data-testid="wallet-create"]').count(), 0)
+    await waitFor(() => latest('wallet/quote_preview'))
 
-  // A plan with room opens the form: the creator is an Admin, a member is
-  // chosen with a role and label instead of typed as a line of text, and a
-  // threshold may ask only for approvers the wallet has.
-  walletPreview = { ...walletPreview, plan: 'Max', remaining: 10, price_e8s: '200000000', ledger_fee_e8s: '10000' }
-  await main.click('[data-testid="wallet-quote"]')
-  await main.waitForSelector('[data-testid="wallet-new-form"]')
-  assert.match(await main.textContent('[data-testid="wallet-quote-line"]'), /2\.0001/)
-  assert.match(await main.textContent('[data-testid="wallet-quote-line"]'), /10 left on Max/)
-  assert.match(await main.textContent('[data-testid="wallet-creator"]'), /You[\s\S]*Admin/)
-  assert.equal(await main.locator('[data-testid="wallet-member"]').count(), 1)
-  await main.fill('[data-testid="wallet-name"]', 'Smoke team')
-  await main.fill('[data-testid="wallet-member-id"]', peer)
-  await main.fill('[data-testid="wallet-member-label"]', 'Peer')
-  // A new member is an Approver, so spending may ask for two people but changes for one.
-  assert.equal(await main.textContent('[data-testid="wallet-approvals"]'), '1')
-  assert.equal(await main.isDisabled('[data-testid="wallet-admin-approvals-inc"]'), true)
-  await main.click('[data-testid="wallet-approvals-inc"]')
-  assert.equal(await main.textContent('[data-testid="wallet-approvals"]'), '2')
-  // An Admin approves changes too, so both limits grow.
-  await choose(main, 'wallet-member-role', 'admin')
-  assert.equal(await main.isDisabled('[data-testid="wallet-admin-approvals-inc"]'), false)
-  await main.click('[data-testid="wallet-admin-approvals-inc"]')
-  assert.equal(await main.textContent('[data-testid="wallet-admin-approvals"]'), '2')
-  await main.locator('[data-testid="wallet-new"]').screenshot({ path: join(shots, 'wallet-new.png') })
-  // A role that no longer approves pulls both thresholds back to the creator alone.
-  await choose(main, 'wallet-member-role', 'viewer')
-  assert.equal(await main.textContent('[data-testid="wallet-approvals"]'), '1')
-  assert.equal(await main.textContent('[data-testid="wallet-admin-approvals"]'), '1')
-  // A member named twice is refused before the hub is asked; removing the
-  // row makes the draft createable again.
-  await main.click('[data-testid="wallet-member-add"]')
-  assert.equal(await main.locator('[data-testid="wallet-member"]').count(), 2)
-  await main.locator('[data-testid="wallet-member-id"]').nth(1).fill(peer)
-  await main.waitForSelector('[data-testid="wallet-member-error"]')
-  assert.match(await main.locator('[data-testid="wallet-member-error"]').first().textContent(), /already listed/)
-  assert.equal(await main.isDisabled('[data-testid="wallet-create"]'), true)
-  await main.locator('[data-testid="wallet-member-remove"]').nth(1).click()
-  assert.equal(await main.isDisabled('[data-testid="wallet-create"]'), false)
-  // Cancel clears the draft and returns to the price panel.
-  await main.click('[data-testid="wallet-create-cancel"]')
-  await main.waitForSelector('[data-testid="wallet-new-form"]', { state: 'detached' })
+    // A plan with room opens the form: the creator is an Admin, a member is
+    // chosen with a role and label instead of typed as a line of text, and a
+    // threshold may ask only for approvers the wallet has.
+    walletPreview = { ...walletPreview, plan: 'Max', remaining: 10, price_e8s: '200000000', ledger_fee_e8s: '10000' }
+    await main.click('[data-testid="wallet-quote"]')
+    await main.waitForSelector('[data-testid="wallet-new-form"]')
+    assert.match(await main.textContent('[data-testid="wallet-quote-line"]'), /2\.0001/)
+    assert.match(await main.textContent('[data-testid="wallet-quote-line"]'), /10 left on Max/)
+    assert.match(await main.textContent('[data-testid="wallet-creator"]'), /You[\s\S]*Admin/)
+    assert.equal(await main.locator('[data-testid="wallet-member"]').count(), 1)
+    await main.fill('[data-testid="wallet-name"]', 'Smoke team')
+    await main.fill('[data-testid="wallet-member-id"]', peer)
+    await main.fill('[data-testid="wallet-member-label"]', 'Peer')
+    // A new member is an Approver, so spending may ask for two people but changes for one.
+    assert.equal(await main.textContent('[data-testid="wallet-approvals"]'), '1')
+    assert.equal(await main.isDisabled('[data-testid="wallet-admin-approvals-inc"]'), true)
+    await main.click('[data-testid="wallet-approvals-inc"]')
+    assert.equal(await main.textContent('[data-testid="wallet-approvals"]'), '2')
+    // An Admin approves changes too, so both limits grow.
+    await choose(main, 'wallet-member-role', 'admin')
+    assert.equal(await main.isDisabled('[data-testid="wallet-admin-approvals-inc"]'), false)
+    await main.click('[data-testid="wallet-admin-approvals-inc"]')
+    assert.equal(await main.textContent('[data-testid="wallet-admin-approvals"]'), '2')
+    await main.locator('[data-testid="wallet-new"]').screenshot({ path: join(shots, 'wallet-new.png') })
+    // A role that no longer approves pulls both thresholds back to the creator alone.
+    await choose(main, 'wallet-member-role', 'viewer')
+    assert.equal(await main.textContent('[data-testid="wallet-approvals"]'), '1')
+    assert.equal(await main.textContent('[data-testid="wallet-admin-approvals"]'), '1')
+    // A member named twice is refused before the hub is asked; removing the
+    // row makes the draft createable again.
+    await main.click('[data-testid="wallet-member-add"]')
+    assert.equal(await main.locator('[data-testid="wallet-member"]').count(), 2)
+    await main.locator('[data-testid="wallet-member-id"]').nth(1).fill(peer)
+    await main.waitForSelector('[data-testid="wallet-member-error"]')
+    assert.match(await main.locator('[data-testid="wallet-member-error"]').first().textContent(), /already listed/)
+    assert.equal(await main.isDisabled('[data-testid="wallet-create"]'), true)
+    await main.locator('[data-testid="wallet-member-remove"]').nth(1).click()
+    assert.equal(await main.isDisabled('[data-testid="wallet-create"]'), false)
+    // Cancel clears the draft and returns to the price panel.
+    await main.click('[data-testid="wallet-create-cancel"]')
+    await main.waitForSelector('[data-testid="wallet-new-form"]', { state: 'detached' })
 
-  // A completed approval can still need installation; only a ready wallet clears the notice.
-  await main.click('[data-testid="wallet-quote"]')
-  await main.fill('[data-testid="wallet-name"]', 'Smoke team')
-  await main.click('[data-testid="wallet-create"]')
-  await main.waitForSelector('[data-testid="wallet-pending"]')
-  await approval.waitForSelector('[data-testid="approval-wallet"]')
-  wallets.state.creation.state = 'done'
-  wallets.state.activation = 'installing'
-  emit('approval/changed')
-  await main.waitForSelector('[data-testid="wallet-pending"] >> text=Installing wallet code')
-  assert.equal(await main.locator('[data-testid="wallet-pending"]').getByRole('button', { name: 'Open approval request' }).count(), 0)
-  assert.equal(await main.locator('[data-testid="wallet-pending"]').getByRole('button', { name: 'Continue', exact: true }).count(), 1)
-  wallets.state.enabled=true
-  wallets.state.activation = 'ready'
-  // Installation can finish without another local approval event; progress polling must notice it.
-  await main.waitForSelector('[data-testid="wallet-pending"]', { state: 'detached' })
+    // A completed approval can still need installation; only a ready wallet clears the notice.
+    await main.click('[data-testid="wallet-quote"]')
+    await main.fill('[data-testid="wallet-name"]', 'Smoke team')
+    await main.click('[data-testid="wallet-create"]')
+    await main.waitForSelector('[data-testid="wallet-pending"]')
+    await approval.waitForSelector('[data-testid="approval-wallet"]')
+    wallets.state.creation.state = 'done'
+    wallets.state.activation = 'installing'
+    emit('approval/changed')
+    await main.waitForSelector('[data-testid="wallet-pending"] >> text=Installing wallet code')
+    assert.equal(await main.locator('[data-testid="wallet-pending"]').getByRole('button', { name: 'Open approval request' }).count(), 0)
+    assert.equal(await main.locator('[data-testid="wallet-pending"]').getByRole('button', { name: 'Continue', exact: true }).count(), 1)
+    wallets.state.enabled=true
+    wallets.state.activation = 'ready'
+    // Installation can finish without another local approval event; progress polling must notice it.
+    await main.waitForSelector('[data-testid="wallet-pending"]', { state: 'detached' })
+  }
   await main.waitForSelector('[data-testid="wallet-tab-overview"]')
   assert.equal((await main.textContent('[data-testid="wallet-cycles"]')).trim(), '1.99 T')
 
@@ -1833,17 +1848,23 @@ try {
   await main.waitForSelector('[data-testid="wallet-health-cycles"] >> text=2.00 T')
   await main.click('[data-testid="wallet-tab-overview"]')
 
-  // Dismissing a notice does not cancel the request or let a late activation reply restore it.
-  await main.getByRole('button', { name: '+ New wallet', exact: true }).click()
-  await main.fill('[data-testid="wallet-name"]', 'Another team')
-  const finishActivation = hold('wallet/activation')
-  await main.click('[data-testid="wallet-create"]')
-  await waitFor(() => held.get('wallet/activation'))
-  await main.locator('[data-testid="wallet-pending"]').getByRole('button', { name: 'Close', exact: true }).click()
-  await finishActivation()
-  emit('approval/changed')
-  assert.equal(wallets.state.creation.state, 'awaiting_user')
-  await main.waitForSelector('[data-testid="wallet-pending"]', { state: 'detached' })
+  if (WALLET_CREATION_PAUSED) {
+    assert.equal(await main.isDisabled('[data-testid="wallet-new-button"]'), true)
+    await main.waitForSelector('[data-testid="wallet-creation-paused"]')
+  } else {
+    // Dismissing a notice does not cancel the request or let a late activation reply restore it.
+    await main.getByRole('button', { name: '+ New wallet', exact: true }).click()
+    await main.fill('[data-testid="wallet-name"]', 'Another team')
+    const finishActivation = hold('wallet/activation')
+    await main.click('[data-testid="wallet-create"]')
+    await waitFor(() => held.get('wallet/activation'))
+    await main.locator('[data-testid="wallet-pending"]').getByRole('button', { name: 'Close', exact: true }).click()
+    await finishActivation()
+    emit('approval/changed')
+    assert.equal(wallets.state.creation.state, 'awaiting_user')
+    await main.waitForSelector('[data-testid="wallet-pending"]', { state: 'detached' })
+
+  }
 
   // A populated wallet: exact amounts, full approvals, permissions and older pages.
   await main.click('[data-testid="wallet-tab-proposals"]')
@@ -2762,8 +2783,8 @@ try {
   await main.keyboard.press(`${mod}+8`)
   await main.waitForSelector('[data-testid="wallet-deposits"]')
   await main.locator('[data-testid="wallet-deposits"]').screenshot({ path: join(shots, 'wallet-deposits-ar.png') })
-  await main.waitForSelector('[data-testid="wallet-new-form"]')
-  await main.locator('[data-testid="wallet-new"]').screenshot({ path: join(shots, 'wallet-new-ar.png') })
+  await main.waitForSelector(WALLET_CREATION_PAUSED ? '[data-testid="wallet-creation-paused"]' : '[data-testid="wallet-new-form"]')
+  await main.locator(WALLET_CREATION_PAUSED ? '[data-testid="wallet-creation-paused"]' : '[data-testid="wallet-new"]').screenshot({ path: join(shots, `wallet-${WALLET_CREATION_PAUSED ? 'creation-paused' : 'new'}-ar.png`) })
   await main.keyboard.press(`${mod}+,`)
   await main.click('[data-testid="settings-appearance"]')
   await choose(main, 'settings-language', 'fr')
@@ -2781,8 +2802,8 @@ try {
   assert.equal(await readFile(join(profile, 'appearance'), 'utf8'), 'dark')
   await main.screenshot({ path: join(shots, 'appearance-dark.png') })
   await main.keyboard.press(`${mod}+8`)
-  await main.waitForSelector('[data-testid="wallet-new-form"]')
-  await main.locator('[data-testid="wallet-new"]').screenshot({ path: join(shots, 'wallet-new-dark.png') })
+  await main.waitForSelector(WALLET_CREATION_PAUSED ? '[data-testid="wallet-creation-paused"]' : '[data-testid="wallet-new-form"]')
+  await main.locator(WALLET_CREATION_PAUSED ? '[data-testid="wallet-creation-paused"]' : '[data-testid="wallet-new"]').screenshot({ path: join(shots, `wallet-${WALLET_CREATION_PAUSED ? 'creation-paused' : 'new'}-dark.png`) })
 
   // Revoking a device takes a hold: a short press decides nothing, a second's hold approves.
   const decisions = () => calls.filter((c) => c.method === 'approval/respond').length

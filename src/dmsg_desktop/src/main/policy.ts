@@ -6,6 +6,7 @@
  * sends it itself. `dmsg://` links only move the view (connect-v1 §8).
  */
 import { validPrincipal } from '../shared/principal.ts'
+import { WALLET_CREATION_PAUSED } from '../shared/wallet-availability.ts'
 import { DaemonError } from './error.ts'
 
 /**
@@ -208,9 +209,7 @@ export const WINDOW_METHODS = new Set([
   'wallet/list',
   'wallet/show',
   'wallet/principal',
-  'wallet/quote',
-  'wallet/quote_preview',
-  'wallet/create',
+  ...(!WALLET_CREATION_PAUSED ? ['wallet/quote', 'wallet/quote_preview', 'wallet/create'] : []),
   'wallet/deposits',
   'wallet/refund',
   'wallet/join',

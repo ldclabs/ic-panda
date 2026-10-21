@@ -17,6 +17,7 @@
 
   import { utf8Length } from './model'
   import { w } from './text'
+  import { WALLET_CREATION_PAUSED } from '../../../shared/wallet-availability'
   let { status, onRequest }: { status: any; onRequest: (request: any, owner: string) => void } = $props()
   let preview = $state<any>(null),
     readiness = $state<any>(null),
@@ -57,6 +58,7 @@
     if (adminApprovals > limits.admins) adminApprovals = limits.admins
   })
   async function getQuote() {
+    if (WALLET_CREATION_PAUSED) return
     quoteLoading = true
     error = ''
     try {
@@ -84,6 +86,7 @@
     preview = null
   }
   async function create() {
+    if (WALLET_CREATION_PAUSED) return
     if (submitted) {
       await bridge(() => window.dmsg.openApproval(submitted.id))
       return
@@ -125,6 +128,9 @@
   })
 </script>
 
+{#if WALLET_CREATION_PAUSED}
+  <Notice testid="wallet-creation-paused"><b>{w('creationPaused')}</b> · {w('creationPausedHint')}</Notice>
+{:else}
 {#if error}<Notice tone="danger">{error}<button class={buttonClass('ghost', 'xs')} onclick={getQuote}>{w('retry')}</button></Notice>{/if}
 {#if readiness}
   <div class="border-line bg-surface rounded-xl border p-4 text-[12px]">
@@ -374,3 +380,4 @@
     {/if}
   {/if}
 </Section>
+{/if}

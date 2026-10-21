@@ -23,6 +23,7 @@
   import Operations from './wallet/Operations.svelte'
   import Intent from './wallet/Intent.svelte'
   import { w } from './wallet/text'
+  import { WALLET_CREATION_PAUSED } from '../../shared/wallet-availability'
   import { walletError as errorText } from './wallet/errors'
   import {
     actions,
@@ -467,7 +468,7 @@
       <button class={buttonClass('secondary', 'sm')} disabled={busy || listLoading || loading} onclick={refresh} aria-label={t('refresh')}
         ><Icon name="sync-now" /></button
       >
-      <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => (newOpen = true)}>+ {w('newWallet')}</button>
+      <button class={buttonClass('secondary', 'sm')} disabled={busy || WALLET_CREATION_PAUSED} title={WALLET_CREATION_PAUSED ? w('creationPausedHint') : undefined} onclick={() => (newOpen = true)} data-testid="wallet-new-button">+ {w('newWallet')}</button>
       <button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={() => (joinOpen = true)}>{w('joinWallet')}</button>
     </div>
     <TabBar bind:value={tab} items={tabs} label={t('twNav')} testid="wallet-tab" />
@@ -476,6 +477,7 @@
     <Page wide>
       {#if !unlocked}<Notice>{t('locked')}</Notice>
       {:else}
+        {#if wallet && WALLET_CREATION_PAUSED}<Notice testid="wallet-creation-paused"><b>{w('creationPaused')}</b> · {w('creationPausedHint')}</Notice>{/if}
         {#if error}<Notice tone="danger" testid="wallet-error"
             >{error}<button class={buttonClass('ghost', 'sm')} onclick={refresh}>{w('retry')}</button></Notice
           >{/if}

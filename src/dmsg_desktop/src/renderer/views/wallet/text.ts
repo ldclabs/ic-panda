@@ -2,6 +2,8 @@ import { locale } from '../../i18n/index.svelte'
 
 /** Wallet vocabulary kept together so forms and approval tickets use identical names. */
 const rows = `
+creationPaused|New team wallets are paused|已暂停新建团队钱包|Создание командных кошельков приостановлено|إنشاء محافظ الفرق متوقف مؤقتًا|Création de portefeuilles d’équipe suspendue|Creación de monederos de equipo pausada
+creationPausedHint|Team wallets are being redesigned. Creating new wallets is temporarily unavailable.|团队钱包功能调整中，暂未开放新建。|Командные кошельки перерабатываются. Создание новых временно недоступно.|يجري إعادة تصميم محافظ الفرق. إنشاء محافظ جديدة غير متاح مؤقتًا.|Les portefeuilles d’équipe sont en cours de refonte. La création est temporairement indisponible.|Los monederos de equipo se están rediseñando. La creación no está disponible temporalmente.
 cosignDisabled|Cosigning disabled|不要求协签|Совместная подпись отключена|التوقيع المشترك معطّل|Cosignature désactivée|Cofirma desactivada
 softwareKey|Software key|软件密钥|Программный ключ|مفتاح برمجي|Clé logicielle|Clave de software
 cosignRemove|Remove address cosigning|移除地址协签要求|Отключить подписи адреса|إزالة شرط التوقيع المشترك|Retirer la cosignature de l’adresse|Quitar cofirma de la dirección
