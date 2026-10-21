@@ -238,6 +238,7 @@ export default {
     device: 'Устройство',
     login: 'Войти',
     lock: 'Заблокировать',
+    logout: 'Выйти',
     fastUnlock: 'Быстрая разблокировка',
     fastUnlockOn: 'Включить быструю разблокировку',
     fastUnlockOff: 'Выключить быструю разблокировку',

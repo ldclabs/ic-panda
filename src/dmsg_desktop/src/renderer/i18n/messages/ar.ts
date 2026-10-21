@@ -238,6 +238,7 @@ export default {
     device: 'الجهاز',
     login: 'تسجيل الدخول',
     lock: 'قفل',
+    logout: 'تسجيل الخروج',
     fastUnlock: 'الفتح السريع',
     fastUnlockOn: 'تشغيل الفتح السريع',
     fastUnlockOff: 'إيقاف الفتح السريع',

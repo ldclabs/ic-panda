@@ -238,6 +238,7 @@ export default {
     device: 'Appareil',
     login: 'Se connecter',
     lock: 'Verrouiller',
+    logout: 'Se déconnecter',
     fastUnlock: 'Déverrouillage rapide',
     fastUnlockOn: 'Activer le déverrouillage rapide',
     fastUnlockOff: 'Désactiver le déverrouillage rapide',

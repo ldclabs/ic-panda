@@ -240,6 +240,7 @@ const messages = {
   device: 'Device',
   login: 'Log in',
   lock: 'Lock',
+  logout: 'Log out',
   fastUnlock: 'Fast unlock',
   fastUnlockOn: 'Turn on fast unlock',
   fastUnlockOff: 'Turn off fast unlock',

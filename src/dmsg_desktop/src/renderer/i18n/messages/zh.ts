@@ -238,6 +238,7 @@ export default {
     device: '设备',
     login: '登录',
     lock: '锁定',
+    logout: '退出登录',
     fastUnlock: '快速解锁',
     fastUnlockOn: '开启快速解锁',
     fastUnlockOff: '关闭快速解锁',

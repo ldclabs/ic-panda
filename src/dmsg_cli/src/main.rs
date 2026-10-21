@@ -170,6 +170,8 @@ enum Command {
     },
     /// Lock: forget the login and every key.
     Lock,
+    /// Sign out and forget the saved login and fast-unlock key; keep local data.
+    Logout,
     /// Fast unlock on this device, kept in the system credential store.
     #[command(subcommand)]
     FastUnlock(FastUnlockCommand),
@@ -568,6 +570,7 @@ async fn remote_command(remote: &Remote, json: bool, command: Command) -> Result
             session(remote, json, "session/switch", json!({"account": account})).await
         }
         Command::Lock => session(remote, json, "session/lock", Value::Null).await,
+        Command::Logout => session(remote, json, "session/logout", Value::Null).await,
         Command::FastUnlock(command) => {
             let enable = matches!(command, FastUnlockCommand::Enable);
             session(

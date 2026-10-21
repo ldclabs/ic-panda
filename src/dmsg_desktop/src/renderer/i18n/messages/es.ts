@@ -238,6 +238,7 @@ export default {
     device: 'Dispositivo',
     login: 'Iniciar sesión',
     lock: 'Bloquear',
+    logout: 'Cerrar sesión',
     fastUnlock: 'Desbloqueo rápido',
     fastUnlockOn: 'Activar el desbloqueo rápido',
     fastUnlockOff: 'Desactivar el desbloqueo rápido',

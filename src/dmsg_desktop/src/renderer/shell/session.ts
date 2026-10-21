@@ -2,7 +2,7 @@ import type { Glyph } from '../components/glyphs'
 import { toast } from '../components/toast.svelte'
 import { t, type Label } from '../i18n/index.svelte'
 import { call, code, errorText } from '../rpc'
-import { setupStates, startLogin } from './login.svelte'
+import { closeLogin, setupStates, startLogin } from './login.svelte'
 
 /**
  * The session actions the sidebar, the locked pages and the command palette
@@ -19,6 +19,13 @@ async function attempt(work: () => Promise<unknown>) {
 
 /** Drop the login and every key now, as the idle lock would. */
 export const lock = () => attempt(() => call('session/lock'))
+
+/** Forget the saved login too; opening this account again takes a browser login. */
+export const logout = () =>
+  attempt(async () => {
+    await call('session/logout')
+    closeLogin()
+  })
 
 /** Whether this lock has asked for its fast unlock; a new lock asks again. */
 let offered = false

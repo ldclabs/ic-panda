@@ -747,6 +747,13 @@ const methods = {
     { account: other, device_id: '12'.repeat(32), bound: true, fast_unlock: false, login_unlocked_at: Date.now() - 1, current: false }
   ],
   'session/switch': (p) => ({ ...status(), state: 'locked', account: p.account }),
+  'session/logout': () => {
+    session = 'logged_out'
+    fastUnlock = false
+    fastPresence = null
+    loginResult = { pending: false, checking: false, done: false, error: null, approval: null }
+    return status()
+  },
   'session/fast_unlock': (p) => {
     fastUnlock = p.enable === true
     return status()
@@ -1213,6 +1220,7 @@ const announced = {
   'channel/owner_propose': ['channel/changed'],
   'inbox/configure': ['inbox/changed'],
   'session/switch': ['session/changed', 'approval/changed'],
+  'session/logout': ['session/changed', 'approval/changed', 'login/changed'],
   'session/unlock': ['session/changed', 'approval/changed'],
   'session/fast_unlock': ['session/changed'],
   'attest/request': ['approval/changed'],
@@ -2570,11 +2578,13 @@ try {
   // Logged out, the gate rail, the account menu and the locked vault offer
   // the login. Its dialog says why a start failed, opens the page on a
   // retry, and follows the browser's answer to the end.
-  session = 'logged_out'
-  emit('session/changed', { state: 'logged_out' })
+  await main.click('[data-testid="account-switcher"]')
+  await main.click('[data-testid="account-logout"]')
+  await waitFor(() => latest('session/logout'))
   await main.waitForSelector('[data-testid="gate-unlock"] >> text=Log in')
   await main.click('[data-testid="account-switcher"]')
   assert.equal((await main.textContent('[data-testid="account-login"]')).trim(), 'Log in')
+  assert.equal(await main.locator('[data-testid="account-logout"]').count(), 0)
   await main.keyboard.press('Escape')
   await main.keyboard.press(`${mod}+1`)
   await main.waitForSelector('[data-testid="vault-locked"] >> text=Log in to use dMsg on this device.')

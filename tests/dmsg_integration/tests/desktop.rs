@@ -4619,6 +4619,14 @@ fn desktop_wallet() {
         assert_eq!(desktop.run(&["sync"])["sent"], 1);
     }
 
+    // Explicit logout discards the kept login while preserving this account.
+    // The next browser login refreshes the ledger targets before creation.
+    let device = a.run(&["status"])["device_id"].clone();
+    assert_eq!(a.run(&["logout"])["state"], "logged_out");
+    let returned = a.login(&http, 42).unwrap();
+    assert_eq!(returned["account"], account_a);
+    assert_eq!(returned["device_id"], device);
+    assert_eq!(a.run(&["vault", "list"])[0]["item"]["title"], "a");
     // Activation: the fast preview reads the plan and quota without storing
     // a quote; the authoritative quote follows for the approval and payment.
     let preview = a.rpc(&http, "wallet/quote_preview", json!({})).unwrap();

@@ -165,6 +165,79 @@ async fn fast_unlock_with_the_person_restores_the_login() {
 }
 
 #[tokio::test]
+async fn logout_forgets_login_and_fast_unlock_but_keeps_account_data() {
+    for locked in [false, true] {
+        let dir = TempDir::new();
+        let storage = Arc::new(MemoryStorage::default());
+        let mut client = unlocked(&dir.0, true, Some(storage.clone()));
+        client.set_presence_key(Arc::new(Hardware::default()));
+        log_in(&mut client, 3, now_ms() + DAY).await;
+        client.after_login_unlock().unwrap();
+        client
+            .vault_create("note", &note("kept after logout"))
+            .unwrap();
+        let account = client.account().unwrap().id;
+        let device = client.workspace.meta.device_id;
+        let fast_name = client.fast_name().unwrap();
+        assert!(storage.get(&fast_name).unwrap().is_some());
+        assert!(
+            !client
+                .workspace
+                .store
+                .sealed_keys(KEPT_LOGIN)
+                .unwrap()
+                .is_empty()
+        );
+        if locked {
+            client.lock();
+            assert!(client.resident.is_some());
+        }
+        let status = client.logout().unwrap();
+        assert_eq!(status.state, "logged_out");
+        assert_eq!(status.account, None);
+        assert!(!status.fast_unlock);
+        assert!(!status.resident);
+        assert!(client.login.is_none());
+        assert!(storage.get(&fast_name).unwrap().is_none());
+        assert_eq!(client.accounts().unwrap().len(), 1);
+        assert_eq!(client.logout().unwrap().state, "logged_out");
+
+        drop(client);
+        let mut reopened =
+            Client::open(crate::testing::config(true), &dir.0, Some(storage)).unwrap();
+        assert_eq!(reopened.status().unwrap().state, "logged_out");
+        reopened.switch_account(&account).unwrap();
+        assert_eq!(reopened.workspace.meta.device_id, device);
+        assert!(
+            !reopened.workspace.meta.fast_declined,
+            "logout keeps the preference"
+        );
+        assert!(
+            reopened
+                .workspace
+                .store
+                .sealed_keys(KEPT_LOGIN)
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(reopened.unlock_fast().await.err(), Some(Error::NotFound));
+        // The new browser login opens the same encrypted workspace.
+        reopened.keys = Some(reopened.workspace.unlock(&crate::testing::SECRET).unwrap());
+        crate::testing::warm(&mut reopened);
+        reopened.load_root().await.unwrap();
+        assert_eq!(
+            reopened.vault_list(&Filter::default()).unwrap()[0]
+                .item
+                .title,
+            "kept after logout"
+        );
+        log_in(&mut reopened, 3, now_ms() + DAY).await;
+        reopened.after_login_unlock().unwrap();
+        assert!(reopened.status().unwrap().fast_unlock);
+    }
+}
+
+#[tokio::test]
 async fn fast_unlock_without_the_person_keeps_no_login() {
     let dir = TempDir::new();
     let storage = Arc::new(MemoryStorage::default());

@@ -1096,6 +1096,31 @@ impl Client {
         self.resident = None;
     }
 
+    /// Sign out of this account, forgetting its saved login and fast-unlock
+    /// key. Keep the workspace and the person's fast-unlock preference, so
+    /// a new browser login can open the same data and enable fast unlock again.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when local storage cannot be updated.
+    pub fn logout(&mut self) -> Result<Status> {
+        if let (Some(secure), Ok(name)) = (&self.secure, self.fast_name()) {
+            secure.delete(&name)?;
+        }
+        self.workspace.disable_fast()?;
+        self.workspace.delete_private(KEPT_LOGIN)?;
+        self.shutdown();
+        match std::fs::remove_file(self.dir.join(CURRENT)) {
+            Err(error) if error.kind() != std::io::ErrorKind::NotFound => {
+                return Err(storage(error));
+            }
+            _ => {}
+        }
+        self.workspace = idle(&self.config.environment)?;
+        self.slot = Slot::Idle;
+        self.blobs = None;
+        self.status()
+    }
+
     /// Erase the selected workspace and its fast-unlock key and start over
     /// as a new device in its place. Versions the relay has not accepted
     /// are lost; other accounts' workspaces stay.

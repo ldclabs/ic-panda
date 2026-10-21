@@ -88,7 +88,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 48] = [
+const METHODS: [&str; 49] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -96,6 +96,7 @@ const METHODS: [&str; 48] = [
     "session/switch",
     "session/unlock",
     "session/lock",
+    "session/logout",
     "session/fast_unlock",
     "account/create",
     "account/show",
@@ -946,6 +947,22 @@ impl Daemon {
                 let _ = self.unmount_library().await;
                 self.status().await
             }
+            "session/logout" => {
+                {
+                    let mut client = self.client.lock().await;
+                    let mut login = self.login.lock().expect("login state");
+                    // A callback already accepted must finish before signing
+                    // out; a browser page still waiting loses its session.
+                    if login.checking {
+                        return Err(Error::Pending);
+                    }
+                    *login = LoginState::default();
+                    client.logout()?;
+                }
+                *self.last_connect.lock().expect("connect report") = None;
+                let _ = self.unmount_library().await;
+                self.status().await
+            }
             "session/fast_unlock" => {
                 let mut client = self.client.lock().await;
                 let status = match params["enable"].as_bool() {
@@ -1287,6 +1304,7 @@ fn capability(name: &str) -> Result<dmsg_types::user::Capability> {
 fn events_of(module: Module, method: &str) -> &'static [&'static str] {
     match module {
         Module::Daemon => match method {
+            "session/logout" => &["session/changed", "approval/changed", "login/changed"],
             "session/switch" | "session/unlock" | "session/lock" | "workspace/reset"
             | "account/create" => &["session/changed", "approval/changed"],
             "sync/run" => &["sync/changed", "vault/changed"],
@@ -1838,6 +1856,37 @@ mod tests {
                 &result["status"]["state"]
             ),
             (&json!(false), &json!(false), &json!("unlocked"))
+        );
+        daemon.login.lock().expect("login state").checking = true;
+        assert_eq!(
+            daemon.call_daemon("session/logout", &Value::Null).await,
+            Err(Error::Pending)
+        );
+        {
+            let mut login = daemon.login.lock().expect("login state");
+            login.checking = false;
+            login.session = Some(
+                LoginSession::new(
+                    &[candid::Principal::anonymous()],
+                    "https://dmsg.net",
+                    1234,
+                    DEFAULT_TTL_MS,
+                    now_ms(),
+                )
+                .unwrap(),
+            );
+        }
+        assert_eq!(
+            daemon
+                .call_daemon("session/logout", &Value::Null)
+                .await
+                .unwrap()["state"],
+            "logged_out"
+        );
+        assert!(daemon.login.lock().expect("login state").session.is_none());
+        assert_eq!(
+            events_of(Module::Daemon, "session/logout"),
+            ["session/changed", "approval/changed", "login/changed"]
         );
     }
 

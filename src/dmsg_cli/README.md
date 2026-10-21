@@ -7,6 +7,11 @@ cryptography, storage and protocol logic live in
 
 ## Home
 
+`dmsg logout` signs out of the selected account and removes its saved login
+and fast-unlock key. Its encrypted workspace and other accounts stay on this
+device. The next browser login opens the same workspace with fresh delegation
+targets. The desktop exposes this action in the account menu as **Log out**.
+
 `--home <dir>`, else `$DMSG_HOME`, else `~/.dmsg`:
 
 | Path | Content |
