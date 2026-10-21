@@ -85,6 +85,12 @@ export function decimal(value: string, decimals: number): string {
   return `${BigInt(n.slice(0, -decimals))}${fraction ? `.${fraction}` : ''}`
 }
 
+/** Cycles reserves in trillions, rounded to two decimal places for display. */
+export function cyclesText(value: string): string {
+  const hundredths = (BigInt(value) + 5_000_000_000n) / 10_000_000_000n
+  return `${hundredths / 100n}.${(hundredths % 100n).toString().padStart(2, '0')}`
+}
+
 export const amountText = (value: string, asset: Asset, atomicLabel: string) =>
   asset.decimals == null
     ? `${value} ${atomicLabel} · ${assetIdentity(asset)}`

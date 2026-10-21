@@ -30,6 +30,7 @@
     amountText,
     assetIdentity,
     assetKey,
+    cyclesText,
     finalStates,
     stateAt,
     validPrincipal,
@@ -330,6 +331,10 @@
     void readPending()
     newOpen = false
   }
+  function dismissPending() {
+    pending = null
+    activation = null
+  }
   async function readPending() {
     if (!pending || pendingRead) return
     pendingRead = true
@@ -338,7 +343,6 @@
     try {
       const r: any = await call('approval/show', { id: requestId })
       if (owner !== account || pending?.id !== requestId) return
-      const wasDone = pending.state === 'done'
       pending = r
       if (r.detail?.action === 'create' && r.detail.quote_id) {
         const phase = await call('wallet/activation', { quote: r.detail.quote_id }).catch((e) => ({
@@ -348,8 +352,12 @@
         if (owner !== account || pending?.id !== requestId) return
         activation = phase
       } else activation = null
-      if (r.state === 'done' && !wasDone) {
-        const id = r.detail?.result?.wallet ?? r.detail?.wallet
+      const completed = r.detail?.action === 'create'
+        ? activation?.stage === 'ready' || (r.state === 'done' && r.detail?.result?.status === 'Ready')
+        : r.state === 'done'
+      if (completed) {
+        const id = activation?.wallet ?? r.detail?.result?.wallet ?? r.detail?.wallet
+        dismissPending()
         if (id && validPrincipal(id)) {
           joinOpen = false
           joining = ''
@@ -358,7 +366,7 @@
         }
       }
     } catch (e) {
-      if (owner === account) error = errorText(e)
+      if (owner === account && pending?.id === requestId) error = errorText(e)
     } finally {
       pendingRead = false
       if (active && unlocked && pending && pending.id !== requestId) void readPending()
@@ -420,7 +428,9 @@
       if (
         unlocked &&
         pending &&
-        (['executing', 'unknown'].includes(pending.state) || (pending.state === 'awaiting_user' && now >= pending.expires_at))
+        (['executing', 'unknown'].includes(pending.state) ||
+          (pending.state === 'done' && pending.detail?.action === 'create' && !['ready', 'failed', 'refunded'].includes(activation?.stage)) ||
+          (pending.state === 'awaiting_user' && now >= pending.expires_at))
       )
         void readPending()
     }, 5000)
@@ -469,19 +479,22 @@
         {#if error}<Notice tone="danger" testid="wallet-error"
             >{error}<button class={buttonClass('ghost', 'sm')} onclick={refresh}>{w('retry')}</button></Notice
           >{/if}
-        {#if loading}<p class="text-faint text-[12px]" role="status">{w('loading')}</p>{/if}
-        {#if pending}<Notice
+        {#if loading && !wallet}<p class="text-faint text-[12px]" role="status" data-testid="wallet-loading">{w('loading')}</p>{/if}
+        {#if pending}<Notice testid="wallet-pending"
             ><span
-              >{w('openApproval')} · {activation && (['executing', 'unknown', 'done'].includes(pending.state) || ['paid', 'creating', 'installing', 'ready', 'failed', 'refunded'].includes(activation.stage))
+              >{activation && (['executing', 'unknown', 'done'].includes(pending.state) || ['paid', 'creating', 'installing', 'ready', 'failed', 'refunded'].includes(activation.stage))
                 ? w(`activation_${activation.stage}`)
                 : stateLabel(pending.state)}</span
-            ><button class={buttonClass('secondary', 'xs', 'ms-3')} onclick={() => bridge(() => window.dmsg.openApproval(pending.id))}
+            >{#if pending.state === 'awaiting_user'}<button class={buttonClass('secondary', 'xs', 'ms-3')} onclick={() => bridge(() => window.dmsg.openApproval(pending.id))}
               >{w('openApproval')}</button
-            >{#if pending.detail?.action === 'create' && ['unknown', 'failed', 'done'].includes(pending.state) && !['ready', 'refunded', 'failed'].includes(activation?.stage)}<button
+            >{/if}{#if pending.detail?.action === 'create' && ['unknown', 'failed', 'done'].includes(pending.state) && !['ready', 'refunded', 'failed'].includes(activation?.stage)}<button
                 class={buttonClass('secondary', 'xs', 'ms-2')}
                 disabled={busy}
                 onclick={() => run('wallet/activation_continue', { request: pending.id })}>{w('continue')}</button
-              >{/if}</Notice
+              >{/if}
+            {#snippet action()}<button class={buttonClass('ghost', 'xs')} aria-label={t('close')} onclick={dismissPending}
+                ><Icon name="close" /></button
+              >{/snippet}</Notice
           >{/if}
         {#if wallet}
           {#if wallet.frozen}<Notice tone="warn"
@@ -503,8 +516,8 @@
                 ></div
               >
               <div class="border-line bg-surface rounded-2xl border p-5"
-                ><p class="text-faint text-[12px]">{w('cycles')}</p><b class="text-[30px] font-semibold tabular-nums"
-                  >{units(wallet.stats?.cycles ?? '0', 12)} <small class="text-[13px]">T</small></b
+                ><p class="text-faint text-[12px]">{w('cycles')}</p><b class="text-[30px] font-semibold whitespace-nowrap tabular-nums" data-testid="wallet-cycles"
+                  >{cyclesText(wallet.stats?.cycles ?? '0')} <small class="text-[13px]">T</small></b
                 ><button class={buttonClass('ghost', 'xs', 'mt-2 block')} onclick={() => (tab = 'settings')}>{w('settings')}</button></div
               >
               <div class="border-line bg-surface rounded-2xl border p-5"

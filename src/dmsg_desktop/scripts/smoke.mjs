@@ -952,6 +952,7 @@ const methods = {
   'wallet/principal': () => ({ principal: 'xkbqi-2qaaa-aaaah-qbpqq-cai' }),
   'wallet/cosigners': () => [],
   'wallet/quote_preview': () => walletPreview,
+  'wallet/quote': () => ({ ...walletPreview, quote_id: 'b3'.repeat(32) }),
   'wallet/deposits': () => deposits,
   'wallet/refund': (p) => {
     const i = deposits.findIndex((d) => d.quote_id === p.quote && d.refundable)
@@ -1799,12 +1800,55 @@ try {
   await main.click('[data-testid="wallet-create-cancel"]')
   await main.waitForSelector('[data-testid="wallet-new-form"]', { state: 'detached' })
 
-  // A populated wallet: exact amounts, full approvals, permissions and older pages.
+  // A completed approval can still need installation; only a ready wallet clears the notice.
+  await main.click('[data-testid="wallet-quote"]')
+  await main.fill('[data-testid="wallet-name"]', 'Smoke team')
+  await main.click('[data-testid="wallet-create"]')
+  await main.waitForSelector('[data-testid="wallet-pending"]')
+  await approval.waitForSelector('[data-testid="approval-wallet"]')
+  wallets.state.creation.state = 'done'
+  wallets.state.activation = 'installing'
+  emit('approval/changed')
+  await main.waitForSelector('[data-testid="wallet-pending"] >> text=Installing wallet code')
+  assert.equal(await main.locator('[data-testid="wallet-pending"]').getByRole('button', { name: 'Open approval request' }).count(), 0)
+  assert.equal(await main.locator('[data-testid="wallet-pending"]').getByRole('button', { name: 'Continue', exact: true }).count(), 1)
   wallets.state.enabled=true
-  emit('wallet/changed')
+  wallets.state.activation = 'ready'
+  // Installation can finish without another local approval event; progress polling must notice it.
+  await main.waitForSelector('[data-testid="wallet-pending"]', { state: 'detached' })
   await main.waitForSelector('[data-testid="wallet-tab-overview"]')
+  assert.equal((await main.textContent('[data-testid="wallet-cycles"]')).trim(), '1.99 T')
+
+  // An automatic refresh keeps the overview in place while its response is pending.
+  const cyclesPosition = await main.locator('[data-testid="wallet-cycles"]').boundingBox()
+  const finishRefresh = hold('wallet/show')
+  emit('wallet/changed')
+  await waitFor(() => held.get('wallet/show'))
+  assert.equal(await main.locator('[data-testid="wallet-loading"]').count(), 0)
+  assert.deepEqual(await main.locator('[data-testid="wallet-cycles"]').boundingBox(), cyclesPosition)
+  await finishRefresh()
+  await main.click('[data-testid="wallet-tab-settings"]')
+  assert.equal((await main.textContent('[data-testid="wallet-health-cycles"]')).trim(), '1.99 T')
+  await main.getByRole('button', { name: 'Read canister health', exact: true }).click()
+  await main.waitForSelector('[data-testid="wallet-health-cycles"] >> text=2.00 T')
+  await main.click('[data-testid="wallet-tab-overview"]')
+
+  // Dismissing a notice does not cancel the request or let a late activation reply restore it.
+  await main.getByRole('button', { name: '+ New wallet', exact: true }).click()
+  await main.fill('[data-testid="wallet-name"]', 'Another team')
+  const finishActivation = hold('wallet/activation')
+  await main.click('[data-testid="wallet-create"]')
+  await waitFor(() => held.get('wallet/activation'))
+  await main.locator('[data-testid="wallet-pending"]').getByRole('button', { name: 'Close', exact: true }).click()
+  await finishActivation()
+  emit('approval/changed')
+  assert.equal(wallets.state.creation.state, 'awaiting_user')
+  await main.waitForSelector('[data-testid="wallet-pending"]', { state: 'detached' })
+
+  // A populated wallet: exact amounts, full approvals, permissions and older pages.
   await main.click('[data-testid="wallet-tab-proposals"]')
   await main.waitForSelector('[data-testid="wallet-more"]')
+  assert.equal(await main.locator('[data-testid="wallet-pending"]').count(), 0)
   assert.equal(await main.locator('[data-testid="wallet-proposal"]').count(),50)
   await main.click('[data-testid="wallet-more"]')
   await main.waitForFunction(()=>document.querySelectorAll('[data-testid="wallet-proposal"]').length===55)
@@ -1918,6 +1962,7 @@ try {
   held.set('wallet/show',null); held.set('wallet/proposals',null)
   await main.evaluate((id)=>location.hash=`/wallet/${id}`,wallets.b)
   await waitFor(()=>typeof held.get('wallet/show')==='function'&&typeof held.get('wallet/proposals')==='function')
+  await main.waitForSelector('[data-testid="wallet-loading"]')
   const lateWallet=held.get('wallet/show'),lateProposals=held.get('wallet/proposals')
   held.delete('wallet/show');held.delete('wallet/proposals')
   await main.evaluate((id)=>location.hash=`/wallet/${id}`,wallets.a)

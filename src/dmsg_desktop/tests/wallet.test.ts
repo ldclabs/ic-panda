@@ -80,6 +80,7 @@ import {
   actions,
   approvalCount,
   assetIdentity,
+  cyclesText,
   decimal,
   knownIntent,
   leaves,
@@ -142,6 +143,13 @@ test('decimal amounts preserve u128 precision, reject rounding, exponents and ov
   assert.equal(toAtomic(((1n << 128n) - 1n).toString(), 0), ((1n << 128n) - 1n).toString())
   for (const value of ['1e9', '-1', '1.000000001', '1.', ' 1']) assert.throws(() => toAtomic(value, 8))
   assert.throws(() => toAtomic((1n << 128n).toString(), 0))
+})
+
+test('Cycles reserves round to two places in T without losing integer precision', () => {
+  assert.equal(cyclesText('1987788848105'), '1.99')
+  assert.equal(cyclesText('1995000000000'), '2.00')
+  assert.equal(cyclesText('0'), '0.00')
+  assert.equal(cyclesText('123456789012345678901234'), '123456789012.35')
 })
 
 test('wallet actions enforce roles, admin requirements, existing votes and freezing', () => {

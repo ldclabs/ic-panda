@@ -7,10 +7,10 @@
   import Select from '../../components/Select.svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import { buttonClass } from '../../components/ui'
-  import { call, units, when } from '../../rpc'
+  import { call, when } from '../../rpc'
   import { t } from '../../i18n/index.svelte'
   import { walletError as errorText } from './errors'
-  import { utf8Length, type Wallet } from './model'
+  import { cyclesText, utf8Length, type Wallet } from './model'
   import { w } from './text'
   let { wallet, onManage, onUpdated }: { wallet: Wallet; onManage: (kind: string, target?: any) => void; onUpdated: () => void } = $props()
   let versions = $state<any>(null),
@@ -86,8 +86,8 @@
   <Section title={w('cycles')} icon="coins">
     <div class="grid gap-3 sm:grid-cols-3">
       <div
-        ><p class="text-faint text-[12px]">{w('cycles')}</p><b class="text-[22px] tabular-nums"
-          >{units(health?.cycles ?? wallet.stats?.cycles ?? '0', 12)} T</b
+        ><p class="text-faint text-[12px]">{w('cycles')}</p><b class="text-[22px] whitespace-nowrap tabular-nums" data-testid="wallet-health-cycles"
+          >{cyclesText(health?.cycles ?? wallet.stats?.cycles ?? '0')} T</b
         ></div
       >
       <div

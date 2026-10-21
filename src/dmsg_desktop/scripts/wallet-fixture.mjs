@@ -23,7 +23,7 @@ export function walletFixture(account, created) {
     public: false
   }
   const state = { enabled: false, role: 'Admin', frozen: false, failBalances: false, changed: null, transfer: null, approval: 900,
-    readinessError: false, blockers: [], replacement: false, executed: null }
+    readinessError: false, blockers: [], replacement: false, executed: null, activation: 'unpaid', creation: null }
   const view = (id) => ({
     wallet: id,
     name: id === a ? 'Engineering' : 'Operations',
@@ -47,7 +47,7 @@ export function walletFixture(account, created) {
     ],
     cosigners: [],
     frozen: state.frozen,
-    stats: { cycles: '3000000000000', signatures_today: 2, proposals: 55, active_proposals: 3 },
+    stats: { cycles: '1987788848105', signatures_today: 2, proposals: 55, active_proposals: 3 },
     code: 'None',
     code_acceptance: 'None'
   })
@@ -78,7 +78,17 @@ export function walletFixture(account, created) {
   proposals[0].intent = { kind: 'set_policy', policy: { ...policy, approver_threshold: 1, public: true } }
   proposals[0].requirement.admin = true
   const methods = {
+    'wallet/create': (p) => {
+      state.activation = 'unpaid'
+      state.creation = created((state.approval++).toString(16).padStart(64, '0'), 'wallet', {
+        action: 'create', quote_id: p.quote, name: p.name, members: p.members, policy,
+        price_e8s: '200000000', ledger_fee_e8s: '10000'
+      })
+      return state.creation
+    },
+    'wallet/activation': () => ({ stage: state.activation, wallet: state.activation === 'ready' ? a : null }),
     'wallet/show': (p) => view(p.wallet),
+    'wallet/health': () => ({ cycles: '1995000000000', idle_days: 100, read_at: Date.now() }),
     'wallet/assets': (p) => ({ wallet: p.wallet, assets: policy.spendable_assets }),
     'wallet/book': () => ({ entries: [], next: null }),
     'wallet/proposals': (p) => {
