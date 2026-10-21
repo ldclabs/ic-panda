@@ -4,6 +4,85 @@ use base64::Engine;
 use dmsg_types::{wallet::*, *};
 use sha2::{Digest, Sha256};
 
+/// An address policy required before an intent may move assets.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CosignRequirement {
+    /// Address protected by this policy.
+    pub address: u32,
+    /// Its independent threshold; shared keys may satisfy multiple addresses.
+    pub policy: CosignPolicy,
+}
+
+/// General canister calls can spend from any ICP subaccount or grant an
+/// allowance, so they require every protected ICP address's policy.
+pub fn cosign_requirements(intent: &Intent, addresses: &[Address]) -> Vec<CosignRequirement> {
+    let source = match intent {
+        Intent::Transfer { from, .. }
+        | Intent::Batch { from, .. }
+        | Intent::Refuel { from, .. } => Some(*from),
+        Intent::CancelEvmNonce { address, .. } | Intent::InitSolNonce { address, .. } => {
+            Some(*address)
+        }
+        _ => None,
+    };
+    addresses
+        .iter()
+        .filter(|a| {
+            source == Some(a.id)
+                || (matches!(intent, Intent::CanisterCall { .. }) && a.chain == Chain::Icp)
+        })
+        .filter_map(|a| {
+            a.cosign.clone().map(|policy| CosignRequirement {
+                address: a.id,
+                policy,
+            })
+        })
+        .collect()
+}
+
+/// Verify provided signatures in digest order for each key, advancing its
+/// authenticator counter exactly as execution does. Partial packets are valid;
+/// only keys covering every digest are returned, with their final counter.
+///
+/// # Errors
+/// Rejects unknown keys, duplicate/out-of-range indices and invalid signatures.
+pub fn verify_cosignatures(
+    cosigners: &[Cosigner],
+    messages: &[Hash],
+    signatures: &[CosignerSig],
+) -> Result<Vec<(u32, u32)>> {
+    ensure(
+        !messages.is_empty() && signatures.len() <= MAX_COSIGNERS * MAX_BTC_INPUTS,
+        Error::QuotaExceeded,
+    )?;
+    let mut groups = std::collections::BTreeMap::<u32, Vec<&CosignerSig>>::new();
+    for sig in signatures {
+        groups.entry(sig.cosigner).or_default().push(sig);
+    }
+    let mut complete = vec![];
+    for (id, mut signatures) in groups {
+        let mut key = cosigners
+            .iter()
+            .find(|c| c.id == id)
+            .cloned()
+            .ok_or(Error::Forbidden)?;
+        signatures.sort_by_key(|s| s.digest_index);
+        let mut previous = None;
+        for sig in &signatures {
+            ensure(previous != Some(sig.digest_index), Error::IntegrityFailed)?;
+            let message = messages
+                .get(sig.digest_index as usize)
+                .ok_or(Error::IntegrityFailed)?;
+            key.counter = verify_cosign(&key, message, sig)?;
+            previous = Some(sig.digest_index);
+        }
+        if signatures.len() == messages.len() {
+            complete.push((id, key.counter));
+        }
+    }
+    Ok(complete)
+}
+
 /// Check a cosigner public key and envelope as proposed.
 ///
 /// # Errors

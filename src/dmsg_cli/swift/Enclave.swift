@@ -156,13 +156,14 @@ public func dmsgSeSigningCreate(
     }
 }
 
-/// ECDSA over the SHA-256 of `message` as `r || s` (64 bytes), with the
-/// person present.
-@_cdecl("dmsg_se_sign")
-public func dmsgSeSign(
+/// Sign a batch of 32-byte messages as `r || s` (64 bytes each), with one
+/// presence check and one key/context scoped to this batch.
+@_cdecl("dmsg_se_sign_batch")
+public func dmsgSeSignBatch(
     _ handle: UnsafePointer<UInt8>, _ length: Int, _ message: UnsafePointer<UInt8>,
-    _ messageLength: Int, _ reason: UnsafePointer<CChar>, _ signature: UnsafeMutablePointer<UInt8>
+    _ messageCount: Int, _ reason: UnsafePointer<CChar>, _ signature: UnsafeMutablePointer<UInt8>
 ) -> Int32 {
+    guard messageCount > 0 && messageCount <= 32 else { return unusable }
     let (context, outcome) = present(.useKeySign, reason)
     guard let context else { return outcome }
     let key: SecureEnclave.P256.Signing.PrivateKey
@@ -173,8 +174,11 @@ public func dmsgSeSign(
         return unusable
     }
     do {
-        let signed = try key.signature(for: Data(bytes: message, count: messageLength))
-        return copy(signed.rawRepresentation, signature, 64) ? done : unavailable
+        for index in 0..<messageCount {
+            let signed = try key.signature(for: Data(bytes: message.advanced(by: index * 32), count: 32))
+            guard copy(signed.rawRepresentation, signature.advanced(by: index * 64), 64) else { return unavailable }
+        }
+        return done
     } catch {
         return unavailable
     }

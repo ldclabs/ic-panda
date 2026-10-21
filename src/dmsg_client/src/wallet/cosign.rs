@@ -5,13 +5,17 @@
 //! requires hardware cosigners refuses it.
 use crate::client::Client;
 use crate::now_ms;
-use dmsg_types::{Error, Result, ensure, wallet::*};
+use dmsg_types::{Error, Hash, Result, ensure, wallet::*};
 use p256::ecdsa::{Signature, SigningKey, signature::Signer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
+use std::{future::Future, pin::Pin, sync::Arc};
 use zeroize::Zeroizing;
 
 const COSIGNERS: &str = "wallet-cosigners";
+
+/// A batch signature operation that may wait for user presence.
+pub type CosignFuture = Pin<Box<dyn Future<Output = Result<Vec<Vec<u8>>>> + Send>>;
 
 /// A platform keystore holding non-exportable P-256 cosigner keys.
 pub trait CosignProvider: Send + Sync {
@@ -25,12 +29,12 @@ pub trait CosignProvider: Send + Sync {
     /// Returns `Error::Unavailable` when the platform refuses.
     fn create(&self, label: &str) -> Result<(Vec<u8>, String)>;
 
-    /// Sign `message` (P-256 ECDSA over its SHA-256); returns `r || s`.
-    /// The platform asks for the person's presence.
+    /// Sign the exact batch of messages (P-256 ECDSA over each SHA-256).
+    /// Ask for presence once for this batch; never retain that authorization.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when the key is gone or the person declines.
-    fn sign(&self, handle: &str, message: &[u8]) -> Result<Vec<u8>>;
+    fn sign(&self, handle: String, messages: Vec<Hash>) -> CosignFuture;
 }
 
 /// Where a local cosigner key lives.
@@ -184,25 +188,184 @@ impl Client {
         Ok(cosigner)
     }
 
-    /// Sign a cosign message with the local key whose public key is `public_key`.
-    pub(crate) fn wallet_cosign(&self, public_key: &[u8], message: &[u8]) -> Result<Vec<u8>> {
+    /// Take the signer out of the client before waiting for user presence.
+    pub(crate) fn prepare_cosign(&self, public_key: &[u8]) -> Result<PreparedSigner> {
         let key = self
             .wallet_cosigner_keys()?
             .into_iter()
             .find(|k| k.public_key.as_slice() == public_key)
             .ok_or(Error::NotFound)?;
-        match &key.backend {
+        match key.backend {
             Backend::Software { secret } => {
-                let signing = SigningKey::from_slice(secret).map_err(|_| Error::IntegrityFailed)?;
-                let sig: Signature = signing.sign(message);
-                Ok(sig.to_bytes().to_vec())
+                Ok(PreparedSigner::Software(Zeroizing::new(secret.into_vec())))
             }
-            Backend::Platform { handle, .. } => {
-                let provider = self.cosign.as_ref().ok_or_else(|| {
-                    Error::Unavailable("the cosigner's keystore is not available".into())
-                })?;
-                provider.sign(handle, message)
+            Backend::Platform { handle, provider } => {
+                let available = self
+                    .cosign
+                    .clone()
+                    .filter(|p| p.name() == provider)
+                    .ok_or_else(|| {
+                        Error::Unavailable("the cosigner's keystore is not available".into())
+                    })?;
+                Ok(PreparedSigner::Platform {
+                    provider: available,
+                    handle,
+                })
             }
         }
+    }
+}
+
+/// A single batch, used without holding Client. Software material is erased on drop.
+pub(crate) enum PreparedSigner {
+    Software(Zeroizing<Vec<u8>>),
+    Platform {
+        provider: Arc<dyn CosignProvider>,
+        handle: String,
+    },
+}
+
+impl PreparedSigner {
+    pub(crate) async fn sign(self, messages: Vec<Hash>) -> Result<Vec<Vec<u8>>> {
+        match self {
+            Self::Software(secret) => {
+                let key = SigningKey::from_slice(&secret).map_err(|_| Error::IntegrityFailed)?;
+                Ok(messages
+                    .iter()
+                    .map(|m| {
+                        let signature: Signature = key.sign(&m[..]);
+                        signature.to_bytes().to_vec()
+                    })
+                    .collect())
+            }
+            Self::Platform { provider, handle } => provider.sign(handle, messages).await,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        hold::Hold,
+        testing::{TempDir, unlocked},
+    };
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use tokio::sync::{Mutex, Notify};
+
+    #[derive(Default)]
+    struct WaitingProvider {
+        started: Arc<Notify>,
+        release: Arc<Notify>,
+        calls: Arc<AtomicUsize>,
+    }
+
+    impl CosignProvider for WaitingProvider {
+        fn name(&self) -> &'static str {
+            "test-hardware"
+        }
+
+        fn create(&self, _: &str) -> Result<(Vec<u8>, String)> {
+            let key = SigningKey::from_slice(&[7; 32]).unwrap();
+            Ok((
+                key.verifying_key().to_sec1_point(true).as_bytes().to_vec(),
+                "key".into(),
+            ))
+        }
+
+        fn sign(&self, _: String, messages: Vec<Hash>) -> CosignFuture {
+            let started = self.started.clone();
+            let release = self.release.clone();
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            Box::pin(async move {
+                started.notify_one();
+                release.notified().await;
+                let key = SigningKey::from_slice(&[7; 32]).unwrap();
+                Ok(messages
+                    .iter()
+                    .map(|m| {
+                        let s: Signature = key.sign(&m[..]);
+                        s.to_bytes().to_vec()
+                    })
+                    .collect())
+            })
+        }
+    }
+
+    struct Shared(Mutex<Client>);
+
+    impl Hold for Shared {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut *self.0.lock().await)
+        }
+    }
+
+    #[tokio::test]
+    async fn hardware_batch_releases_client_and_discards_signatures_after_lock() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        let provider = Arc::new(WaitingProvider::default());
+        client.set_cosign_provider(provider.clone());
+        let key = client.wallet_cosigner_create("hardware", true).unwrap();
+        let vectors: Json = serde_json::from_str(include_str!(
+            "../../../../tests/vectors/wallet/plans-v1.json"
+        ))
+        .unwrap();
+        let mut view: WalletView = dmsg_protocol::decode_canonical(
+            &hex::decode(vectors["view_cbor_hex"].as_str().unwrap()).unwrap(),
+        )
+        .unwrap();
+        view.cosigners = vec![Cosigner {
+            id: 1,
+            input: key.input(client.wallet_member().unwrap()),
+            counter: 0,
+            added_at_ms: 0,
+        }];
+        let shared = Arc::new(Shared(Mutex::new(client)));
+        for lock in [false, true] {
+            let h = shared.clone();
+            let view = view.clone();
+            let task = tokio::spawn(async move {
+                crate::wallet::ops::local_cosigs(
+                    h.as_ref(),
+                    &view,
+                    1,
+                    1,
+                    1,
+                    &[Hash::new([1; 32]), Hash::new([2; 32])],
+                )
+                .await
+            });
+            provider.started.notified().await;
+            tokio::time::timeout(
+                std::time::Duration::from_secs(1),
+                shared.with(|c| {
+                    if lock {
+                        c.lock();
+                    } else {
+                        c.keys()?;
+                    }
+                    Ok(())
+                }),
+            )
+            .await
+            .expect("user presence must not hold the client")
+            .unwrap();
+            provider.release.notify_one();
+            let result = task.await.unwrap();
+            if lock {
+                assert_eq!(result.err(), Some(Error::Locked));
+            } else {
+                assert_eq!(result.unwrap().len(), 2);
+            }
+        }
+        assert_eq!(
+            provider.calls.load(Ordering::SeqCst),
+            2,
+            "one presence request per batch, not per digest"
+        );
     }
 }

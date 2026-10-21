@@ -1,5 +1,6 @@
 <script lang="ts">
   import { w } from './text'
+  import CosignPolicy from './CosignPolicy.svelte'
   import {
     amountText,
     assetIdentity,
@@ -9,12 +10,19 @@
     knownIntent,
     leaves,
     previousIntent,
+    cosignAddresses,
+    cosignerReferences,
+    removedMemberKeys,
     type Asset,
     type Wallet
   } from './model'
   let { intent, metadata = [], before, compact = false }: { intent: any; metadata?: Asset[]; before?: Wallet; compact?: boolean } = $props()
   const old = $derived(previousIntent(intent, before))
   const asset = $derived(intent.asset ? assetInfo(intent.asset, metadata) : undefined)
+  const requirements = $derived(cosignAddresses(intent, before))
+  const removed = $derived(intent.kind === 'remove_cosigner' ? [intent.cosigner]
+    : intent.kind === 'remove_member' && before ? removedMemberKeys(before, intent.member) : [])
+  const affected = $derived(before ? cosignerReferences(before, removed) : [])
   const primitive = (value: string) => (['true', 'false'].includes(value) ? w(value) : value)
 </script>
 
@@ -34,6 +42,9 @@
       {/each}
     {/if}
     {#if compact && !asset}
+      {#if intent.kind === 'set_cosign'}
+        <p class="text-muted text-[12px]">#{intent.address} · {intent.cosign ? `${w('threshold')}: ${intent.cosign.threshold} / ${intent.cosign.cosigners.length}` : w('cosignRemove')}</p>
+      {:else}
       <p class="text-muted text-[12px]"
         >{leaves(intent)
           .filter((r) => r.path[0] !== 'kind')
@@ -41,10 +52,25 @@
           .map((r) => `${r.path.map(w).join(' · ')}: ${primitive(r.value)}`)
           .join(' / ')}</p
       >
+      {/if}
     {/if}
     {#if !compact}
+      {#if intent.kind === 'set_cosign'}
+        {#if !intent.cosign}<p class="text-warn font-medium">{w('cosignRemove')} · {w('cosignRemoveHint')}</p>{/if}
+        <div class="grid gap-3 sm:grid-cols-2">
+          {#if before}<CosignPolicy policy={old.cosign} wallet={before} address={intent.address} title={w('before')} />{/if}
+          <CosignPolicy policy={intent.cosign} wallet={before} address={intent.address} title={w('after')} />
+        </div>
+      {/if}
+      {#if affected.length}<p class="text-warn">{w('cosignBound')}</p>
+        {#each affected as a (a.id)}<CosignPolicy policy={a.cosign} wallet={before} address={a.id} />{/each}
+      {/if}
+      {#if requirements.length}
+        {#if intent.kind === 'canister_call'}<p class="text-warn">{w('cosignCallHint')}</p>{/if}
+        {#each requirements as a (a.id)}<CosignPolicy policy={a.cosign} wallet={before} address={a.id} />{/each}
+      {/if}
       <dl class="grid grid-cols-[minmax(7rem,1fr)_minmax(0,2fr)] gap-x-4 gap-y-2 text-[12.5px]">
-        {#each intentFields(intent).filter((key) => !['asset', 'outputs'].includes(key)) as key (key)}
+        {#each intentFields(intent).filter((key) => !['asset', 'outputs'].includes(key) && intent.kind !== 'set_cosign') as key (key)}
           {#each leaves(intent[key], [key]) as row, i (`${key}-${i}`)}
             {@const prior = leaves(old[key], [key]).find((r) => r.path.join('.') === row.path.join('.'))?.value}
             <dt class="text-faint min-w-0 break-words">{row.path.map((p) => (/^\d+$/.test(p) ? `#${Number(p) + 1}` : w(p === 'cycles' ? 'attached_cycles' : p === 'refuel' ? 'refuel_rule' : p))).join(' · ')}</dt

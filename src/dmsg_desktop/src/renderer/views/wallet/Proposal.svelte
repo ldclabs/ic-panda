@@ -1,16 +1,17 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, untrack } from 'svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Field from '../../components/page/Field.svelte'
   import Pill from '../../components/page/Pill.svelte'
+  import Select from '../../components/Select.svelte'
   import { buttonClass } from '../../components/ui'
   import { copyText } from '../../components/clipboard'
   import { call, bridge, onChange, when } from '../../rpc'
   import { t } from '../../i18n/index.svelte'
   import { walletError as errorText } from './errors'
   import Intent from './Intent.svelte'
-  import { explorerUrl, actions, approvalCount, knownIntent, leaves, type Asset, type Wallet, type Proposal } from './model'
+  import { explorerUrl, actions, approvalCount, knownIntent, leaves, cosignAddresses, type Asset, type Wallet, type Proposal } from './model'
   import { w } from './text'
   let {
     open = $bindable(false),
@@ -29,21 +30,36 @@
     replace = $state(false)
   let alive = true,
     sequence = 0
-  const available = $derived(p ? actions(p, wallet, now) : null)
-  const address = $derived(p ? wallet.addresses.find((a) => a.id === (p!.intent.from ?? p!.intent.address)) : null)
-  const plan = $derived(p?.plans ?? 0)
+  let selectedPlan = $state<number | null>(null), collectionError = $state('')
+  const plan = $derived(selectedPlan ?? p?.plans ?? 0)
+  const available = $derived(p ? actions(p, wallet, now, plan) : null)
+  const required = $derived(p ? cosignAddresses(p.intent, wallet) : [])
+  const external = $derived(p ? ['transfer', 'batch'].includes(p.intent.kind)
+    ? !['ICP', 'ICRC'].includes(p.intent.asset?.asset) : ['cancel_evm_nonce', 'init_sol_nonce'].includes(p.intent.kind) : false)
+  const livePlans = $derived((p?.plan_details ?? []).filter((v) => v.expires_at > now && !p?.signed.some((s) => s.plan === v.seq)))
+  const livePlan = $derived(!external || livePlans.some((v) => v.seq === plan))
+  $effect(() => {
+    const current = wallet
+    if (current) untrack(() => void load())
+  })
   async function load() {
     const seq = ++sequence
     try {
       const result: Proposal = await call('wallet/proposal', { wallet: wallet.wallet, proposal: id })
       if (!alive || seq !== sequence) return
       p = result
-      if (address?.cosign && ['Ready', 'Delayed', 'Signed', 'Broadcast'].includes(result.status)) {
+      const readAt = Date.now()
+      if (selectedPlan === null || !result.plan_details?.some((v) => v.seq === selectedPlan && v.expires_at > readAt && !result.signed.some((s) => s.plan === v.seq))) selectedPlan = result.plans
+      const chosen = selectedPlan ?? result.plans
+      collection = null
+      collectionError = ''
+      const usablePlan = !external || result.plan_details?.some((v) => v.seq === chosen && v.expires_at > readAt && !result.signed.some((s) => s.plan === v.seq))
+      if (required.length && usablePlan && ['Ready', 'Delayed', 'Signed', 'Broadcast'].includes(result.status) && !wallet.frozen) {
         try {
-          const c = await call('wallet/cosign_status', { wallet: wallet.wallet, proposal: id, plan: result.plans })
+          const c = await call('wallet/cosign_status', { wallet: wallet.wallet, proposal: id, plan: chosen })
           if (alive && seq === sequence) collection = c
-        } catch {
-          if (alive && seq === sequence) collection = null
+        } catch (e) {
+          if (alive && seq === sequence) collectionError = errorText(e)
         }
       }
     } catch (e) {
@@ -56,8 +72,11 @@
     notice = ''
     try {
       const result: any = await call(method, { wallet: wallet.wallet, proposal: id, ...extra })
+      if (!alive) return
       if (result.kind === 'wallet' && result.digest) await bridge(() => window.dmsg.openApproval(result.id))
+      if (method === 'wallet/prepare') selectedPlan = result.plans
       if (result.pending) notice = w('pending')
+      if (result.cosign_required) notice = w('cosignNoLocalKey')
       if (result.broadcast_error) error = result.broadcast_error
       if (result.notification_error) notice = w('notificationFailed')
       await load()
@@ -70,7 +89,6 @@
     }
   }
   onMount(() => {
-    void load()
     const off = onChange(['wallet/changed', 'approval/changed'], load)
     return () => {
       alive = false
@@ -99,7 +117,7 @@
         <dt>{t('digest')}</dt><dd class="font-mono break-all">{p.digest}</dd>
       </dl>
       <section
-        ><h3 class="mb-2 text-[13px] font-semibold">{t('twApprovals')}</h3>{#each p.votes as v, i (i)}<p class="mb-1 text-[12px] break-all"
+        ><h3 class="mb-2 text-[13px] font-semibold">{w('votes')}</h3>{#each p.votes as v, i (i)}<p class="mb-1 text-[12px] break-all"
             >{wallet.members.find((m) => m.id === v.member)?.label || v.member} · {v.decision === 'Approve'
               ? t('approve')
               : v.decision === 'Reject'
@@ -135,39 +153,49 @@
         >{/each}
       {#each p.broadcasts ?? [] as b, i (i)}<p class="text-[12px] break-all">{when(b.at)} · {w(b.outcome)} · {b.member} · {b.note}</p
         >{/each}
-      {#if address?.cosign && ['Ready', 'Delayed', 'Signed', 'Broadcast'].includes(available.state)}
+      {#if required.length && ['Ready', 'Delayed', 'Signed', 'Broadcast'].includes(available.state)}
         <section class="border-line bg-surface-2 grid gap-3 rounded-xl border p-4" data-testid="wallet-cosign-collection">
           <h3 class="text-[13px] font-semibold">{w('cosigners')} · {w('plan')} #{plan}</h3><p class="text-muted text-[12px]"
             >{w('collectHint')}</p
           >
-          {#if collection}<p>{w('collected')}: {collection.collected} / {collection.required}</p><button
-              class={buttonClass('secondary', 'sm', 'justify-self-start')}
-              onclick={() => copyText(collection.packet)}>{w('copyPacket')}</button
-            >{/if}
+          {#if external && livePlans.length > 1}<Field label={w('plan')}><Select
+            value={String(plan)} options={livePlans.map((v) => ({value: String(v.seq), label: `#${v.seq} · ${when(v.expires_at)}`}))}
+            onChange={(value) => { selectedPlan = Number(value); void load() }} /></Field>{/if}
+          {#if !livePlan}<button class={buttonClass('secondary', 'sm', 'justify-self-start')}
+            disabled={busy || wallet.frozen || !available.execute && !available.resign}
+            onclick={() => run('wallet/prepare')}>{w(plan ? 'renewPlan' : 'preparePlan')}</button>
+          {:else if collection}
+            {#each collection.requirements ?? [{ address: required[0].id, collected: collection.collected, required: collection.required }] as r (r.address)}
+              <p>#{r.address} · {w('collected')}: {r.collected} / {r.required}</p>
+            {/each}
+            <button class={buttonClass('secondary', 'sm', 'justify-self-start')} onclick={() => copyText(collection.packet)}>{w('copyPacket')}</button>
+            {#if collection.can_cosign === false}<p class="text-muted text-[12px]">{w('cosignNoLocalKey')}</p>{/if}
+          {/if}
+          {#if collectionError}<Notice tone="danger">{collectionError}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice>{/if}
           <Field label={w('packet')}
             ><textarea bind:value={packet} rows="3" spellcheck="false" class="font-mono text-[11px]" dir="ltr"></textarea></Field
           >
           <div class="flex flex-wrap gap-2">
             <button
               class={buttonClass('secondary', 'sm')}
-              disabled={busy || !packet.trim()}
+              disabled={busy || wallet.frozen || !livePlan || !packet.trim()}
               onclick={() => run('wallet/cosign_import', { plan, packet: packet.trim() })}>{w('importPacket')}</button
             >
             <button
               class={buttonClass('secondary', 'sm')}
-              disabled={busy || wallet.me?.role === 'Viewer' || (address.chain !== 'Icp' && !plan)}
+              disabled={busy || wallet.frozen || !livePlan || wallet.me?.status !== 'Active' || wallet.me?.role === 'Viewer' || !collection?.can_cosign}
               onclick={() => run('wallet/cosign', { plan })}>{w('cosign')}</button
             >
             <button
               class={buttonClass('primary', 'sm')}
-              disabled={busy || !collection?.ready || !available.executeCollected}
+              disabled={busy || !livePlan || !collection?.ready || !available.executeCollected}
               onclick={() => run('wallet/cosign_execute', { plan })}>{w('executeCollected')}</button
             >
           </div>
         </section>
       {/if}
       {#if replace}<Notice tone="warn"
-          >{w('resignHint')}<button class={buttonClass('danger', 'sm', 'mt-2')} disabled={busy} onclick={() => run('wallet/execute')}
+          >{w('resignHint')}<button class={buttonClass('danger', 'sm', 'mt-2')} disabled={busy} onclick={() => run(required.length ? 'wallet/prepare' : 'wallet/execute')}
             >{w('continue')}</button
           ></Notice
         >{/if}
@@ -186,7 +214,7 @@
       {#if available.veto}<button class={buttonClass('danger', 'sm')} disabled={busy} onclick={() => run('wallet/veto')}
           >{t('twVeto')}</button
         >{/if}
-      {#if available.execute}<button
+      {#if available.execute && (!required.length || p.status === 'Executing')}<button
           class={buttonClass('primary', 'sm')}
           disabled={busy}
           onclick={() => run(p?.status === 'Executing' ? 'wallet/reconcile' : 'wallet/execute')}

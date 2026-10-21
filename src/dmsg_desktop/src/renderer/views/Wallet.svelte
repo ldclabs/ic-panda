@@ -603,7 +603,7 @@
               {#if balanceError}<div class="px-5 py-3"><Notice tone="danger">{balanceError}</Notice></div>{/if}
               {#if balances}<p class="text-faint px-5 py-2 text-[11px]">{w('readAt')}: {when(balances.read_at)}</p>{/if}
               {#each wallet.addresses as a (a.id)}
-                <div class="border-line grid gap-2 border-t px-5 py-4"
+                <div class="border-line grid gap-2 border-t px-5 py-4" data-testid={`wallet-address-${a.id}`}
                   ><div class="flex flex-wrap items-center gap-2"
                     ><b class="text-[14px]">{a.label || a.chain}</b><Pill
                       >{a.chain === 'Icp' ? 'ICP' : a.chain === 'Evm' ? 'EVM' : a.chain}</Pill
@@ -617,7 +617,7 @@
                       class={buttonClass('secondary', 'xs')}
                       disabled={!usable || !a.verified}
                       onclick={() => run('wallet/receive', { address: a.id })}>{w('receive')}</button
-                    >{#if mayPropose}<button class={buttonClass('ghost', 'xs')} disabled={!usable} onclick={() => showManage('cosign', a)}
+                    >{#if mayPropose && a.control !== 'taproot_2of2'}<button class={buttonClass('ghost', 'xs')} disabled={!usable} onclick={() => showManage('cosign', a)}
                         >{w('bindCosign')}</button
                       >{/if}</div
                   ><p class="font-mono text-[12px] break-all select-all" dir="ltr">{a.text}</p>
@@ -729,6 +729,7 @@
                 {wallet}
                 onManage={showManage}
                 onUpdated={() => void refresh()}
+                onProposed={proposed}
               />{/key}{/if}
         {:else if !loading}
           <Section title={t('twNav')} description={listLoading ? w('loading') : error ? w('retry') : t('twNone')} icon="coins"
@@ -815,6 +816,7 @@
           kind={manage.kind}
           target={manage.target}
           onDone={proposed}
+          onSetup={() => { manageOpen = false; tab = 'settings' }}
         />{/key}{/if}
     {#if detailId !== null && detailOpen}{#key `${wallet.wallet}:${detailId}`}<ProposalDetail
           bind:open={detailOpen}

@@ -928,18 +928,22 @@ fn wallet_signs_bitcoin_evm_and_solana() {
         create_ata: false,
     };
     let plan = t.prepare(p.id, sol_params(7)).unwrap();
-    // A version built before the first one is signed is checked again when
-    // signed: its blockhash cannot land beside the first's.
+    // Another device preparing before signing gets the same live plan,
+    // even if its RPC supplied another recent blockhash.
     let early = t.prepare(p.id, sol_params(8)).unwrap();
+    assert_eq!(early, plan);
     let tx = t
         .execute(p.id, Some(plan.seq), vec![])
         .unwrap()
         .signed
         .unwrap();
     assert_eq!(
-        t.execute(p.id, Some(early.seq), vec![]).err(),
-        Some(Error::Forbidden)
+        t.execute(p.id, Some(early.seq), vec![]).unwrap().signed,
+        Some(tx.clone())
     );
+    // A genuinely new version is still refused while the signed transaction
+    // may land; reusing the same plan did not weaken replacement constraints.
+    assert_eq!(t.prepare(p.id, sol_params(8)).err(), Some(Error::Forbidden));
     assert_eq!(&tx.raw[65..], &plan.unsigned[..]);
     let key = ed25519_dalek::VerifyingKey::from_bytes(&sol.public_key.to_vec().try_into().unwrap())
         .unwrap();
@@ -1261,6 +1265,11 @@ fn wallet_cosigners_freeze_veto_and_recovery() {
             },
         )
         .unwrap();
+    // Repeated prepare requests reuse the same bytes instead of consuming
+    // the eight-plan budget or splitting signatures across device plans.
+    for _ in 0..10 {
+        assert_eq!(t.prepare(p.id, plan.params.clone()).unwrap(), plan);
+    }
     assert_eq!(
         t.execute(p.id, Some(plan.seq), vec![]).err(),
         Some(Error::Forbidden)
@@ -1932,4 +1941,245 @@ fn hub_quota_and_creation_checks() {
         },),
     );
     assert_eq!(refused, Err(Error::QuotaExceeded));
+}
+
+#[test]
+fn wallet_general_calls_obey_every_icp_cosign_policy() {
+    use p256::ecdsa::signature::Signer as _;
+    let t = Team::new(1);
+    let mut policy = t.view().policy;
+    policy.version += 1;
+    policy.call_targets.push(t.f.ledger);
+    let set = t.approve_p(t.propose(P, Intent::SetPolicy(policy)).id);
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.execute(set.id, None, vec![]).unwrap();
+    let keys = [
+        p256::ecdsa::SigningKey::from_slice(&[21; 32]).unwrap(),
+        p256::ecdsa::SigningKey::from_slice(&[22; 32]).unwrap(),
+    ];
+    for (i, key) in keys.iter().enumerate() {
+        let added = t.approve_p(
+            t.propose(
+                P,
+                Intent::AddCosigner(CosignerInput {
+                    member: MemberId::Principal(person(P)),
+                    kind: CosignerKind::P256,
+                    public_key: key
+                        .verifying_key()
+                        .to_sec1_point(true)
+                        .as_bytes()
+                        .to_vec()
+                        .into(),
+                    envelope: CosignerEnvelope::Raw,
+                    hardware: i == 1,
+                    label: format!("key {i}"),
+                }),
+            )
+            .id,
+        );
+        assert_eq!(added.outcome, Some(Outcome::CosignerAdded(i as u32 + 1)));
+    }
+    let bind = t.approve_p(
+        t.propose(
+            P,
+            Intent::SetCosign {
+                address: 0,
+                cosign: Some(CosignPolicy {
+                    threshold: 1,
+                    cosigners: vec![1],
+                }),
+            },
+        )
+        .id,
+    );
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.execute(bind.id, None, vec![]).unwrap();
+    let second = t.approve_p(
+        t.propose(
+            P,
+            Intent::AddAddress {
+                chain: Chain::Icp,
+                kind: AddressKind::ChainKey,
+                label: "Other guarded address".into(),
+                cosign: Some(CosignPolicy {
+                    threshold: 1,
+                    cosigners: vec![2],
+                }),
+            },
+        )
+        .id,
+    );
+    t.execute(second.id, None, vec![]).unwrap();
+    let propose = |intent: Intent| -> Result<Proposal> {
+        update(
+            &t.f.ic,
+            t.wallet,
+            person(P),
+            "propose",
+            (ProposeArgs {
+                op_id: digest("cosign-test", &intent),
+                intent,
+                via_agent: None,
+            },),
+        )
+    };
+    let mut hardware_only = t.view().policy;
+    hardware_only.version += 1;
+    hardware_only.hardware_cosigners = true;
+    assert!(matches!(
+        propose(Intent::SetPolicy(hardware_only)),
+        Err(Error::InvalidInput(_))
+    ));
+    for intent in [
+        Intent::RemoveCosigner(1),
+        Intent::RemoveMember(MemberId::Principal(person(P))),
+        Intent::SetCosign {
+            address: 0,
+            cosign: Some(CosignPolicy {
+                threshold: 1,
+                cosigners: vec![1],
+            }),
+        },
+    ] {
+        assert!(matches!(propose(intent), Err(Error::InvalidInput(_))));
+    }
+    void(
+        &t.f.ic,
+        t.f.ledger,
+        person(1),
+        "mint_test",
+        (account(t.wallet), 1_000_000u128),
+    );
+    let recipient = account(person(80));
+    let signatures = |p: &Proposal, ids: &[usize]| {
+        ids.iter()
+            .map(|i| {
+                let signature: p256::ecdsa::Signature =
+                    keys[*i].sign(&cosign_message(t.wallet, p.id, 0, 0, &p.digest)[..]);
+                CosignerSig {
+                    cosigner: *i as u32 + 1,
+                    digest_index: 0,
+                    signature: signature.to_bytes().to_vec().into(),
+                    authenticator_data: None,
+                    client_data_json: None,
+                }
+            })
+            .collect::<Vec<_>>()
+    };
+    // A normal transfer only needs its source address's key.
+    let regular = t.approve_p(
+        t.propose(
+            P,
+            Intent::Transfer {
+                from: 0,
+                asset: AssetKey::Icp,
+                to: Destination::Icrc(recipient),
+                amount: 100_000,
+                max_fee: 10_000,
+                memo: None,
+            },
+        )
+        .id,
+    );
+    assert_eq!(
+        t.execute(regular.id, None, vec![]).err(),
+        Some(Error::Forbidden)
+    );
+    t.execute(regular.id, None, signatures(&regular, &[0]))
+        .unwrap();
+    // Both a transfer and an allowance can move assets through a general call.
+    let calls = [
+        (
+            "icrc1_transfer",
+            candid::encode_args((TransferArg {
+                from_subaccount: None,
+                to: recipient,
+                amount: Nat::from(100_000u64),
+                fee: None,
+                created_at_time: None,
+                memo: None,
+            },))
+            .unwrap(),
+        ),
+        (
+            "icrc2_approve",
+            candid::encode_args((icrc_ledger_types::icrc2::approve::ApproveArgs {
+                from_subaccount: None,
+                spender: recipient,
+                amount: Nat::from(100_000u64),
+                expected_allowance: None,
+                expires_at: None,
+                fee: None,
+                memo: None,
+                created_at_time: None,
+            },))
+            .unwrap(),
+        ),
+    ];
+    for (method, arg) in calls {
+        let p = t.approve_p(
+            t.propose(
+                P,
+                Intent::CanisterCall {
+                    canister: t.f.ledger,
+                    method: method.into(),
+                    arg: arg.into(),
+                    cycles: 0,
+                    consent: None,
+                },
+            )
+            .id,
+        );
+        assert_eq!(t.execute(p.id, None, vec![]).err(), Some(Error::Forbidden));
+        assert_eq!(
+            t.execute(p.id, None, signatures(&p, &[0])).err(),
+            Some(Error::Forbidden)
+        );
+        let done = t.execute(p.id, None, signatures(&p, &[0, 1])).unwrap();
+        assert_eq!(done.proposal.status, ProposalStatus::Settled);
+        let Some(Outcome::Replied { reply, .. }) = done.proposal.outcome else {
+            panic!("missing call result")
+        };
+        if method == "icrc1_transfer" {
+            assert!(
+                candid::decode_one::<std::result::Result<Nat, TransferError>>(&reply)
+                    .unwrap()
+                    .is_ok()
+            );
+        } else {
+            assert!(
+                candid::decode_one::<
+                    std::result::Result<Nat, icrc_ledger_types::icrc2::approve::ApproveError>,
+                >(&reply)
+                .unwrap()
+                .is_ok()
+            );
+        }
+    }
+    assert_eq!(t.balance(recipient), 200_000);
+    // Removing a guard is an explicit, delayed address policy change.
+    let disable = t.approve_p(
+        t.propose(
+            P,
+            Intent::SetCosign {
+                address: 0,
+                cosign: None,
+            },
+        )
+        .id,
+    );
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.execute(disable.id, None, vec![]).unwrap();
+    let remove = t.approve_p(t.propose(P, Intent::RemoveCosigner(1)).id);
+    t.f.ic
+        .advance_time(Duration::from_millis(SENSITIVE_DELAY_MS + MINUTE));
+    t.execute(remove.id, None, vec![]).unwrap();
+    assert!(t.view().addresses.iter().filter(|a| a.id != 0).any(|a| {
+        a.cosign
+            .as_ref()
+            .is_some_and(|p| p.threshold == 1 && p.cosigners == [2])
+    }));
 }

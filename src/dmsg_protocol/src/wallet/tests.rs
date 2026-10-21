@@ -721,3 +721,79 @@ fn approvals_must_match_the_consumer() {
         );
     }
 }
+
+#[test]
+fn cosign_packets_advance_authenticator_counters_in_digest_order() {
+    use base64::Engine as _;
+    use p256::ecdsa::signature::Signer as _;
+    let signer = p256::ecdsa::SigningKey::from_slice(&[11; 32]).unwrap();
+    let messages = [Hash::new([1; 32]), Hash::new([2; 32])];
+    let rp_id_hash = Hash::new(sha2::Sha256::digest(b"wallet.dmsg.net").into());
+    for web in [false, true] {
+        let key = cosigner(
+            CosignerKind::P256,
+            signer
+                .verifying_key()
+                .to_sec1_point(true)
+                .as_bytes()
+                .to_vec(),
+            if web {
+                CosignerEnvelope::WebAuthn {
+                    rp_id_hash,
+                    origins: vec!["https://wallet.dmsg.net".into()],
+                    user_verification: true,
+                }
+            } else {
+                CosignerEnvelope::Fido2 {
+                    rp_id_hash,
+                    user_verification: true,
+                }
+            },
+        );
+        let signed = |index: usize, counter| {
+            let data = auth_data("wallet.dmsg.net", 5, counter);
+            let client = web.then(|| serde_json::to_vec(&serde_json::json!({"type":"webauthn.get","origin":"https://wallet.dmsg.net","challenge":base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&messages[index][..])})).unwrap());
+            let hash = client
+                .as_ref()
+                .map(|c| Hash::new(sha2::Sha256::digest(c).into()))
+                .unwrap_or(messages[index]);
+            let signature: p256::ecdsa::Signature = signer.sign(&[&data[..], &hash[..]].concat());
+            CosignerSig {
+                digest_index: index as u32,
+                ..sig(signature.to_bytes().to_vec(), Some(data), client)
+            }
+        };
+        assert_eq!(
+            verify_cosignatures(
+                std::slice::from_ref(&key),
+                &messages,
+                &[signed(1, 2), signed(0, 1)]
+            ),
+            Ok(vec![(1, 2)])
+        );
+        assert_eq!(
+            verify_cosignatures(
+                std::slice::from_ref(&key),
+                &messages,
+                &[signed(0, 2), signed(1, 1)]
+            ),
+            Err(Error::IntegrityFailed)
+        );
+        assert_eq!(
+            verify_cosignatures(
+                std::slice::from_ref(&key),
+                &messages,
+                &[signed(0, 1), signed(1, 1)]
+            ),
+            Err(Error::IntegrityFailed)
+        );
+        assert_eq!(
+            verify_cosignatures(std::slice::from_ref(&key), &messages, &[signed(0, 1)]),
+            Ok(vec![])
+        );
+        assert_eq!(
+            verify_cosignatures(&[key], &messages, &[signed(0, 1), signed(0, 2)]),
+            Err(Error::IntegrityFailed)
+        );
+    }
+}

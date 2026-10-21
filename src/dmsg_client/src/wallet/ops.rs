@@ -197,51 +197,81 @@ pub async fn reconcile<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Jso
     Ok(proposal_view(&r?.proposal))
 }
 
-/// Execute: the client is taken only for synchronous steps.
-#[allow(clippy::too_many_arguments)]
-pub async fn execute<H: Hold>(h: &H, source: &str, wallet: Principal, id: u64) -> Result<Json> {
-    let proposal = proposal_raw(h, wallet, id).await?;
-    let view = state(h, wallet).await?;
-    let Some((from, chain)) = external_source(&proposal.intent) else {
-        // An ICP source whose cosign policy names a key of this device
-        // needs the person too; the cosignature covers the proposal digest.
-        let icp_source = source_address(&proposal.intent)
-            .and_then(|from| view.addresses.iter().find(|a| a.id == from));
-        if let Some(address) = icp_source
-            && let Some(cosigner) = h.with(|c| c.local_cosigner_of(&view, address)).await?
-        {
-            return h
-                .with(|c| {
-                    c.wallet_request(
-                        source,
-                        JobKind::Cosign {
-                            wallet,
-                            name: view.name.clone(),
-                            context: Box::new(view.clone()),
-                            proposal: Box::new(proposal),
-                            plan: None,
-                            cosigners: vec![cosigner],
-                            collect_only: address.cosign.as_ref().is_some_and(|p| p.threshold > 1),
-                        },
-                    )
-                })
-                .await;
+/// Reuse the live unsigned plan so repeated requests and other devices sign
+/// the same bytes. Only an expired or already signed plan needs a replacement.
+async fn execution_plan<H: Hold>(
+    h: &H,
+    view: &WalletView,
+    proposal: &Proposal,
+) -> Result<ExecutionPlan> {
+    let (from, chain) = external_source(&proposal.intent)
+        .ok_or_else(|| dmsg_types::invalid("not an external-chain proposal"))?;
+    let (_, ic) = identity(h).await?;
+    if proposal.plans > 0 && !proposal.signed.iter().any(|s| s.plan == proposal.plans) {
+        let existing: Result<ExecutionPlan> = ic
+            .query(view.wallet, "get_plan", (proposal.id, proposal.plans))
+            .await?;
+        let existing = existing?;
+        if now_ms() < existing.expires_at_ms {
+            decode::verify_plan(view, &proposal.intent, &existing)?;
+            return Ok(existing);
         }
-        return execute_icp(h, wallet, id, vec![]).await;
-    };
+    }
     let address = view
         .addresses
         .iter()
         .find(|a| a.id == from)
-        .cloned()
         .ok_or(Error::NotFound)?;
-    let params = params(h, &view, &proposal, &address, chain).await?;
-    let (_, ic) = identity(h).await?;
-    let plan: Result<ExecutionPlan> = ic.update(wallet, "prepare_execution", (id, params)).await?;
+    let params = params(h, view, proposal, address, chain).await?;
+    let plan: Result<ExecutionPlan> = ic
+        .update(view.wallet, "prepare_execution", (proposal.id, params))
+        .await?;
     let plan = plan?;
-    decode::verify_plan(&view, &proposal.intent, &plan)?;
-    // A cosign policy naming a key of this device needs the person.
-    if let Some(cosigner) = h.with(|c| c.local_cosigner_of(&view, &address)).await? {
+    decode::verify_plan(view, &proposal.intent, &plan)?;
+    Ok(plan)
+}
+
+/// Prepare an external plan without requesting a signature or executing it.
+pub async fn prepare<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Json> {
+    let p = proposal_raw(h, wallet, id).await?;
+    let view = state(h, wallet).await?;
+    execution_plan(h, &view, &p).await?;
+    let mut out = super::proposal(h, wallet, id).await?;
+    out["wallet"] = json!(wallet.to_text());
+    Ok(out)
+}
+
+/// Execute an unguarded intent, or request the local signatures for its exact
+/// plan. A device without an eligible key only prepares; it never sends an
+/// empty signature set to an address that requires cosigning.
+pub async fn execute<H: Hold>(h: &H, source: &str, wallet: Principal, id: u64) -> Result<Json> {
+    let proposal = proposal_raw(h, wallet, id).await?;
+    let view = state(h, wallet).await?;
+    let plan = if external_source(&proposal.intent).is_some() {
+        Some(execution_plan(h, &view, &proposal).await?)
+    } else {
+        None
+    };
+    let requirements = cosign_requirements(&proposal.intent, &view.addresses);
+    if !requirements.is_empty() {
+        let (view, proposal, plan, _, requirements) =
+            packets::context(h, wallet, id, plan.as_ref().map_or(0, |p| p.seq)).await?;
+        let cosigners = h
+            .with(|c| c.local_cosigners_for(&view, &requirements))
+            .await?;
+        if cosigners.is_empty() {
+            let mut out = proposal_view(&proposal);
+            out["wallet"] = json!(wallet.to_text());
+            out["cosign_required"] = json!(true);
+            return Ok(out);
+        }
+        let collect_only = requirements.iter().any(|r| {
+            cosigners
+                .iter()
+                .filter(|id| r.policy.cosigners.contains(id))
+                .count()
+                < usize::from(r.policy.threshold)
+        });
         return h
             .with(|c| {
                 c.wallet_request(
@@ -249,17 +279,20 @@ pub async fn execute<H: Hold>(h: &H, source: &str, wallet: Principal, id: u64) -
                     JobKind::Cosign {
                         wallet,
                         name: view.name.clone(),
-                        context: Box::new(view.clone()),
+                        context: Box::new(view),
                         proposal: Box::new(proposal),
-                        plan: Some(Box::new(plan)),
-                        cosigners: vec![cosigner],
-                        collect_only: address.cosign.as_ref().is_some_and(|p| p.threshold > 1),
+                        plan: plan.map(Box::new),
+                        cosigners,
+                        collect_only,
                     },
                 )
             })
             .await;
     }
-    sign_and_send(h, wallet, &view, &proposal, &plan, vec![]).await
+    match plan {
+        Some(plan) => sign_and_send(h, wallet, &view, &proposal, &plan, vec![]).await,
+        None => execute_icp(h, wallet, id, vec![]).await,
+    }
 }
 
 /// Execute or resume an ICP proposal; the canister returns an existing result
@@ -890,7 +923,6 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
             collect_only,
             ..
         } => {
-            let view = state(h, wallet).await?;
             let current = proposal_raw(h, wallet, proposal.id).await?;
             ensure(current.digest == proposal.digest, Error::IntegrityFailed)?;
             if !collect_only
@@ -905,23 +937,19 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
                 // for a proposal that is no longer awaiting execution.
                 execute_icp(h, wallet, proposal.id, vec![]).await?
             } else {
-                if let Some(plan) = &plan {
-                    ensure(now_ms() < plan.expires_at_ms, Error::Expired)?;
-                    decode::verify_plan(&view, &proposal.intent, plan)?;
-                }
                 let seq = plan.as_ref().map_or(0, |p| p.seq);
-                let digests = plan
-                    .as_ref()
-                    .map(|p| p.digests.clone())
-                    .unwrap_or_else(|| vec![proposal.digest]);
                 let mut signatures = vec![];
-                for cosigner in cosigners {
+                for cosigner in &cosigners {
+                    let (fresh, digests) =
+                        cosign_context(h, wallet, &proposal, plan.as_deref(), &cosigners).await?;
                     signatures.extend(
-                        local_cosigs(h, &view, cosigner, proposal.id, seq, &digests).await?,
+                        local_cosigs(h, &fresh, *cosigner, proposal.id, seq, &digests).await?,
                     );
                 }
+                let (fresh, _) =
+                    cosign_context(h, wallet, &proposal, plan.as_deref(), &cosigners).await?;
                 let collected =
-                    packets::keep(h, &view, &proposal, plan.as_deref(), signatures).await?;
+                    packets::keep(h, &fresh, &proposal, plan.as_deref(), signatures).await?;
                 if collect_only {
                     collected
                 } else {
@@ -997,7 +1025,48 @@ async fn home_config<H: Hold>(h: &H) -> Result<dmsg_types::user::UserInit> {
     h.reader().await?.query(home, "user_config", ()).await
 }
 
-async fn local_cosigs<H: Hold>(
+/// Re-read state before and after user presence. A cancelled request, changed
+/// policy, removed key, frozen wallet or switched/locked account must not sign
+/// or publish a packet under an earlier snapshot.
+async fn cosign_context<H: Hold>(
+    h: &H,
+    wallet: Principal,
+    approved: &Proposal,
+    plan: Option<&ExecutionPlan>,
+    cosigners: &[u32],
+) -> Result<(WalletView, Vec<Hash>)> {
+    let (view, p, current_plan, digests, requirements) =
+        packets::context(h, wallet, approved.id, plan.map_or(0, |p| p.seq)).await?;
+    ensure(
+        p.digest == approved.digest && current_plan.as_ref() == plan,
+        Error::IntegrityFailed,
+    )?;
+    let me = h
+        .with(|c| {
+            c.keys()?;
+            c.wallet_member()
+        })
+        .await?;
+    ensure(
+        view.members
+            .iter()
+            .any(|m| m.id == me && m.status == MemberStatus::Active && m.role != Role::Viewer),
+        Error::Forbidden,
+    )?;
+    for id in cosigners {
+        ensure(
+            requirements.iter().any(|r| r.policy.cosigners.contains(id))
+                && view
+                    .cosigners
+                    .iter()
+                    .any(|c| c.id == *id && (!view.policy.hardware_cosigners || c.input.hardware)),
+            Error::Forbidden,
+        )?;
+    }
+    Ok((view, digests))
+}
+
+pub(super) async fn local_cosigs<H: Hold>(
     h: &H,
     view: &WalletView,
     cosigner: u32,
@@ -1005,6 +1074,29 @@ async fn local_cosigs<H: Hold>(
     plan: u32,
     digests: &[Hash],
 ) -> Result<Vec<CosignerSig>> {
-    h.with(|c| c.local_cosigs(view, cosigner, proposal, plan, digests))
-        .await
+    let key = view
+        .cosigners
+        .iter()
+        .find(|c| c.id == cosigner)
+        .ok_or(Error::NotFound)?;
+    let signer = h.with(|c| c.prepare_cosign(&key.input.public_key)).await?;
+    let messages = digests
+        .iter()
+        .enumerate()
+        .map(|(i, d)| cosign_message(view.wallet, proposal, plan, i as u32, d))
+        .collect();
+    let signatures = signer.sign(messages).await?;
+    h.with(|c| c.keys().map(|_| ())).await?;
+    ensure(signatures.len() == digests.len(), Error::IntegrityFailed)?;
+    Ok(signatures
+        .into_iter()
+        .enumerate()
+        .map(|(i, signature)| CosignerSig {
+            cosigner,
+            digest_index: i as u32,
+            signature: signature.into(),
+            authenticator_data: None,
+            client_data_json: None,
+        })
+        .collect())
 }

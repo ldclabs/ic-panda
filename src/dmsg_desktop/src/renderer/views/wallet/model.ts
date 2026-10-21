@@ -123,7 +123,7 @@ export function approvalCount(p: Proposal, members: Member[]): number {
   ).length
 }
 
-export function actions(p: Proposal, w: Wallet, now: number) {
+export function actions(p: Proposal, w: Wallet, now: number, plan = p.plans) {
   const me = w.me
   const active = me?.status === 'Active'
   const state = stateAt(p, now)
@@ -141,7 +141,7 @@ export function actions(p: Proposal, w: Wallet, now: number) {
       active &&
       me?.role !== 'Viewer' &&
       permitted &&
-      (state === 'Ready' || (['Signed', 'Broadcast'].includes(state) && p.plans > 0 && !p.signed.some((s) => s.plan === p.plans))),
+      (state === 'Ready' || (['Signed', 'Broadcast'].includes(state) && plan > 0 && !p.signed.some((s) => s.plan === plan))),
     rebroadcast: active && me?.role !== 'Viewer' && ['Signed', 'Broadcast'].includes(state),
     resign: active && me?.role !== 'Viewer' && ['Signed', 'Broadcast'].includes(state) && permitted,
     cancel: active && p.proposer === me?.id && ['Open', 'Delayed', 'Ready'].includes(state),
@@ -189,6 +189,12 @@ export const knownIntent = (intent: any): boolean => {
   if (!intent || !Object.hasOwn(fields, intent.kind)) return false
   const optional = new Set(['memo', 'arg_text', 'consent', 'control_details'])
   if (fields[intent.kind].some((key) => !optional.has(key) && !Object.hasOwn(intent, key))) return false
+  if (['set_cosign', 'add_address'].includes(intent.kind)) {
+    const p = intent.cosign
+    if (intent.kind === 'set_cosign' && (!Number.isSafeInteger(intent.address) || intent.address < 0)) return false
+    if (p !== null && (!p || !Array.isArray(p.cosigners) || !Number.isInteger(p.threshold) || p.threshold < 1 || p.threshold > p.cosigners.length || p.cosigners.length > 16 ||
+      p.cosigners.some((id: any) => !Number.isSafeInteger(id) || id < 0) || new Set(p.cosigners).size !== p.cosigners.length)) return false
+  }
   if (['transfer', 'batch'].includes(intent.kind))
     return (
       !!intent.asset?.asset &&
@@ -206,6 +212,32 @@ export const knownIntent = (intent: any): boolean => {
   return true
 }
 export const intentFields = (intent: any) => fields[intent.kind] ?? []
+
+/** Match the canister: general calls can spend from any protected ICP address. */
+export function cosignAddresses(intent: any, wallet?: Wallet): any[] {
+  if (!wallet) return []
+  const from = ['transfer', 'batch', 'refuel'].includes(intent.kind) ? intent.from
+    : ['cancel_evm_nonce', 'init_sol_nonce'].includes(intent.kind) ? intent.address : undefined
+  return wallet.addresses.filter((a) => a.cosign && (a.id === from || (intent.kind === 'canister_call' && a.chain === 'Icp')))
+}
+
+export function sameCosign(a: any, b: any): boolean {
+  if (!a || !b) return !a && !b
+  return a.threshold === b.threshold && a.cosigners.length === b.cosigners.length && a.cosigners.every((id: number) => b.cosigners.includes(id))
+}
+
+export function cosignerReferences(wallet: Wallet, ids: number[]): any[] {
+  return wallet.addresses.filter((a) => a.cosign?.cosigners.some((id: number) => ids.includes(id)) || ids.includes(a.control_details?.cosigner))
+}
+
+/** Native Taproot keys stay registered when their member leaves. */
+export function removedMemberKeys(wallet: Wallet, member: string): number[] {
+  return wallet.cosigners.filter((c) => c.member === member && !wallet.addresses.some((a) => a.control === 'taproot_2of2' && a.control_details?.cosigner === c.id)).map((c) => c.id)
+}
+
+export function unreachableCosigners(wallet: Wallet, hardware: boolean): any[] {
+  return wallet.addresses.filter((a) => a.cosign && a.cosign.cosigners.filter((id: number) => wallet.cosigners.some((c) => c.id === id && (!hardware || c.hardware))).length < a.cosign.threshold)
+}
 
 /** Flatten every policy/member field, including empty collections and false values. */
 export function leaves(value: any, path: string[] = []): { path: string[]; value: string }[] {

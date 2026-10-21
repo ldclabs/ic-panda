@@ -15,7 +15,7 @@ use dmsg_types::{
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 54] = [
+pub(crate) const METHODS: [&str; 55] = [
     "wallet/activation_continue",
     "wallet/activation",
     "wallet/assets",
@@ -59,6 +59,7 @@ pub(crate) const METHODS: [&str; 54] = [
     "wallet/cancel",
     "wallet/freeze",
     "wallet/execute",
+    "wallet/prepare",
     "wallet/broadcast",
     "wallet/settle",
     "wallet/report",
@@ -97,6 +98,7 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "wallet/settle"
         | "wallet/report"
         | "wallet/reconcile"
+        | "wallet/prepare"
         | "wallet/refuel"
         | "wallet/cosigner_new" => &["wallet/changed"],
         _ => &[],
@@ -370,6 +372,7 @@ impl Daemon {
             }
             "wallet/cancel" => wallets::ops::cancel(&h, wallet()?, id()?).await,
             "wallet/freeze" => wallets::ops::freeze(&h, wallet()?).await,
+            "wallet/prepare" => wallets::ops::prepare(&h, wallet()?, id()?).await,
             "wallet/execute" => wallets::ops::execute(&h, source(params)?, wallet()?, id()?).await,
             "wallet/broadcast" => {
                 let plan = optional(params, "plan", number)?;

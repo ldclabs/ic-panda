@@ -950,7 +950,7 @@ const methods = {
   },
   'wallet/list': wallets.list,
   'wallet/principal': () => ({ principal: 'xkbqi-2qaaa-aaaah-qbpqq-cai' }),
-  'wallet/cosigners': () => [],
+  'wallet/cosigners': () => wallets.state.localKeys,
   'wallet/quote_preview': () => walletPreview,
   'wallet/quote': () => ({ ...walletPreview, quote_id: 'b3'.repeat(32) }),
   'wallet/deposits': () => deposits,
@@ -1499,11 +1499,11 @@ try {
   assert.match(shared.message_id, /^[0-9a-f]{64}$/)
   const saved = join(profile, 'plan.pdf')
   await answer('__save', saved)
-  await main.locator('[data-testid="message-download"]').first().click()
+  await main.locator('[data-seq="2"] [data-testid="message-download"]').click()
   await waitFor(() => latest('channel/download'))
   assert.deepEqual(latest('channel/download').params, { id: channel.id, seq: 2, path: saved })
   await main.waitForSelector('[data-testid="channel-notice"]')
-  await main.locator('[data-testid="message-save"]').first().click()
+  await main.locator('[data-seq="2"] [data-testid="message-save"]').click()
   await waitFor(() => latest('files/save_shared'))
   assert.deepEqual(latest('files/save_shared').params, { channel: channel.id, seq: 2 })
   await choose(main, 'member-actions', 'admin')
@@ -1972,6 +1972,84 @@ try {
   assert.match(await main.textContent('[data-testid="wallet-identity"]'),new RegExp(wallets.a))
   await main.click('[data-testid="wallet-tab-overview"]')
   await main.screenshot({path:join(shots,'wallet-overview.png')})
+  // Cosigning setup separates empty selection, registration, binding and explicit removal.
+  await main.click('[data-testid="wallet-tab-assets"]')
+  const openCosign = () => main.locator('[data-testid="wallet-address-1"]').getByRole('button', {name:'Set address cosigners', exact:true}).click()
+  await openCosign()
+  await main.waitForSelector('[data-testid="wallet-manage"]')
+  assert.equal(await main.isDisabled('[data-testid="wallet-manage-submit"]'), true)
+  assert.match(await main.textContent('[data-testid="wallet-manage"]'), /Create a local key/)
+  wallets.state.localKeys = [{label:'Alice key', public_key:'02'+'11'.repeat(32), hardware:true, backend:'secure-enclave'}]
+  await main.locator('[data-testid="wallet-manage"]').getByRole('button', {name:'Operations', exact:true}).click()
+  await main.getByRole('button', {name:'Register key', exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"] [data-testid="wallet-intent"]')
+  assert.equal(wallets.state.changed.change.kind, 'cosigner')
+  assert.match(await main.textContent('[data-testid="wallet-proposal-detail"]'), /Alice key/)
+  await main.keyboard.press('Escape')
+  wallets.state.cosigners = [
+    {id:1, member:account, ...wallets.state.localKeys[0]},
+    {id:2, member:peer, label:'Bob key', public_key:'03'+'22'.repeat(32), hardware:false}
+  ]
+  emit('wallet/changed')
+  await main.click('[data-testid="wallet-tab-assets"]')
+  await openCosign()
+  await main.getByRole('checkbox', {name:/Alice key/}).check()
+  await main.click('[data-testid="wallet-manage-submit"]')
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"] [data-testid="wallet-cosign-policy"]')
+  assert.deepEqual(wallets.state.changed.change.cosign, {cosigners:[1], threshold:1})
+  assert.match(await main.textContent('[data-testid="wallet-proposal-detail"]'), /Alice key/)
+  await main.keyboard.press('Escape')
+  wallets.state.btcCosign = {threshold:2, cosigners:[1,2]}
+  emit('wallet/changed')
+  await main.click('[data-testid="wallet-tab-assets"]')
+  await main.waitForSelector('[data-testid="wallet-address-1"] >> text=Cosigning 2/2')
+  await openCosign()
+  assert.equal(await main.isDisabled('[data-testid="wallet-manage-submit"]'), true, 'unchanged policy is not a proposal')
+  await main.getByRole('checkbox', {name:'Remove address cosigning', exact:true}).check()
+  await main.click('[data-testid="wallet-manage-submit"]')
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"] [data-testid="wallet-cosign-policy"]')
+  assert.equal(wallets.state.changed.change.cosign, null)
+  const policies = main.locator('[data-testid="wallet-proposal-detail"] [data-testid="wallet-cosign-policy"]')
+  assert.match(await policies.first().textContent(), /2 \/ 2[\s\S]*Alice key[\s\S]*Bob key/)
+  assert.match(await policies.last().textContent(), /Cosigning disabled/)
+  await main.locator('[data-testid="wallet-proposal-detail"]').screenshot({path:join(shots,'wallet-cosign-removal.png')})
+  // A remote change reaches the open dialog through a normal parent refresh.
+  const removal = wallets.proposals[0]
+  removal.status = 'Delayed'; removal.ready_at = Date.now()+86400000
+  const collectionReads = calls.filter((c)=>c.method==='wallet/cosign_status').length
+  await main.evaluate(()=>window.dispatchEvent(new Event('focus')))
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"] >> text=Delay in progress')
+  assert.equal(await main.locator('[data-testid="wallet-cosign-collection"]').count(), 0)
+  assert.equal(calls.filter((c)=>c.method==='wallet/cosign_status').length, collectionReads)
+  assert.match(await main.textContent('[data-testid="wallet-proposal-detail"]'), /Votes recorded/)
+  await main.keyboard.press('Escape')
+  const guarded = {...structuredClone(removal), id:removal.id+1, status:'Ready', ready_at:null,
+    intent:{kind:'transfer', from:1, asset:{asset:'BTC', decimals:8}, outputs:[{to:'bc1pdestination',amount:'100000'}], max_fee:'10000', memo:null}, plans:0, plan_details:[], signed:[]}
+  wallets.proposals.unshift(guarded)
+  wallets.state.collectionError = true
+  await main.evaluate(([w,p])=>location.hash=`/wallet/${w}/${p}`, [wallets.a, guarded.id])
+  await main.waitForSelector('[data-testid="wallet-cosign-collection"]')
+  assert.equal(await main.locator('[data-testid="wallet-proposal-detail"]').getByRole('button',{name:'Execute',exact:true}).count(),0)
+  await main.getByRole('button', {name:'Prepare signing plan',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-cosign-collection"] >> text=cosign collection unavailable')
+  wallets.state.collectionError = false
+  await main.locator('[data-testid="wallet-cosign-collection"]').getByRole('button',{name:'Retry',exact:true}).click()
+  await main.locator('[data-testid="wallet-cosign-collection"]').getByRole('button',{name:'Cosigning',exact:true}).click()
+  await approval.waitForSelector('text=This only collects your signatures.')
+  assert.doesNotMatch(await approval.textContent('body'), /The wallet signs this transaction and this device broadcasts it/)
+  await main.keyboard.press('Escape')
+  // Bound keys cannot be removed, and a hardware-only policy cannot strand an address.
+  await main.click('[data-testid="wallet-tab-settings"]')
+  await main.getByRole('button', {name:'Remove',exact:true}).first().click()
+  await main.waitForSelector('[data-testid="wallet-manage"] >> text=Update these address policies')
+  assert.equal(await main.isDisabled('[data-testid="wallet-manage-submit"]'),true)
+  await main.keyboard.press('Escape')
+  await main.click('[data-testid="wallet-tab-team"]')
+  await main.getByRole('button',{name:'Change policy',exact:true}).click()
+  await main.getByRole('checkbox',{name:'Require hardware cosigners',exact:true}).check()
+  await main.waitForSelector('[data-testid="wallet-manage"] >> text=The hardware keys cannot meet')
+  assert.equal(await main.isDisabled('[data-testid="wallet-manage-submit"]'),true)
+  await main.keyboard.press('Escape')
   wallets.state.enabled=false
   for(const [id,r] of requests)if(r.type==='wallet')requests.delete(id)
 

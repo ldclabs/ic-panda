@@ -81,6 +81,10 @@ import {
   approvalCount,
   assetIdentity,
   cyclesText,
+  cosignAddresses,
+  cosignerReferences,
+  sameCosign,
+  unreachableCosigners,
   decimal,
   knownIntent,
   leaves,
@@ -301,4 +305,22 @@ test('every supported management intent exposes all committed fields for review'
   }
   assert.equal(utf8Length('中'.repeat(21)), 63)
   assert.equal(utf8Length('中'.repeat(22)), 66)
+})
+
+test('cosigning applies to spending sources and all ICP addresses of a general call, not management proposals', () => {
+  const wallet = sampleWallet('Admin')
+  wallet.addresses = [
+    { id: 0, chain: 'Icp', cosign: { threshold: 1, cosigners: [1] } },
+    { id: 1, chain: 'Bitcoin', cosign: { threshold: 2, cosigners: [1, 2] } },
+    { id: 2, chain: 'Icp', cosign: { threshold: 1, cosigners: [2] } }
+  ]
+  wallet.cosigners = [{ id: 1, hardware: false }, { id: 2, hardware: true }]
+  assert.deepEqual(cosignAddresses({ kind: 'set_cosign', address: 1 }, wallet), [])
+  assert.deepEqual(cosignAddresses({ kind: 'canister_call' }, wallet).map((a) => a.id), [0, 2])
+  assert.deepEqual(cosignAddresses({ kind: 'transfer', from: 1 }, wallet).map((a) => a.id), [1])
+  assert.deepEqual(cosignerReferences(wallet, [1]).map((a) => a.id), [0, 1])
+  assert.deepEqual(unreachableCosigners(wallet, true).map((a) => a.id), [0, 1])
+  assert.deepEqual(unreachableCosigners(wallet, false), [])
+  assert.equal(sameCosign({threshold:2,cosigners:[1,2]}, {threshold:2,cosigners:[2,1]}), true)
+  assert.equal(sameCosign(wallet.addresses[0].cosign, null), false)
 })

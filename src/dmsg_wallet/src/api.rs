@@ -637,6 +637,7 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent) -> Result<()> {
         } => {
             let a = w.address(*id)?;
             ensure_valid(!matches!(a.kind, AddressKind::Taproot(_)), "native taproot")?;
+            ensure_valid(a.cosign != *cosign, "cosign policy unchanged")?;
             if let Some(policy) = cosign {
                 check_cosigners(w, &policy.cosigners)?;
             }
@@ -658,6 +659,7 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent) -> Result<()> {
         Intent::RemoveCosigner(id) => {
             w.cosigner(*id)?;
             ensure_valid(!w.taproot_cosigner(*id), "cosigner of a native address")?;
+            check_cosigner_removal(w, &[*id])?;
         }
         Intent::AddMember(input) => {
             ensure(w.members.len() < MAX_MEMBERS, Error::QuotaExceeded)?;
@@ -665,6 +667,13 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent) -> Result<()> {
         }
         Intent::RemoveMember(id) => {
             w.member(id).ok_or(Error::NotFound)?;
+            let owned: Vec<_> = w
+                .cosigners
+                .iter()
+                .filter(|c| c.input.member == *id && !w.taproot_cosigner(c.id))
+                .map(|c| c.id)
+                .collect();
+            check_cosigner_removal(w, &owned)?;
             let rest: Vec<Member> = w.members.iter().filter(|m| m.id != *id).cloned().collect();
             let (admins, approvers) = role_counts(&rest);
             validate_policy(&w.policy, admins, approvers)?;
@@ -685,6 +694,22 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent) -> Result<()> {
             )?;
             let (admins, approvers) = role_counts(&w.members);
             validate_policy(policy, admins, approvers)?;
+            for a in &w.addresses {
+                if let Some(required) = &a.cosign {
+                    let eligible = w
+                        .cosigners
+                        .iter()
+                        .filter(|c| {
+                            required.cosigners.contains(&c.id)
+                                && (!policy.hardware_cosigners || c.input.hardware)
+                        })
+                        .count();
+                    ensure_valid(
+                        eligible >= usize::from(required.threshold),
+                        "hardware cosigner threshold unreachable",
+                    )?;
+                }
+            }
             if let Some(r) = &policy.refuel {
                 address(r.from, Chain::Icp)?;
             }
@@ -730,6 +755,17 @@ pub(crate) fn check_state(w: &Wallet, intent: &Intent) -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn check_cosigner_removal(w: &Wallet, ids: &[u32]) -> Result<()> {
+    ensure_valid(
+        !w.addresses.iter().any(|a| {
+            a.cosign
+                .as_ref()
+                .is_some_and(|p| p.cosigners.iter().any(|id| ids.contains(id)))
+        }),
+        "cosigner still used by address",
+    )
 }
 
 fn check_cosigners(w: &Wallet, ids: &[u32]) -> Result<()> {

@@ -68,19 +68,9 @@ pub(crate) fn apply_ready(w: &mut Wallet, p: &mut Proposal, at: u64) {
     }
 }
 
-/// Remove cosigners from every cosign policy; a policy left without enough
-/// cosigners lowers its threshold, one left empty is dropped.
+/// References are rejected by check_state; removal never weakens a policy.
 fn strip_cosigners(w: &mut Wallet, removed: &[u32]) {
     w.cosigners.retain(|c| !removed.contains(&c.id));
-    for a in &mut w.addresses {
-        if let Some(policy) = &mut a.cosign {
-            policy.cosigners.retain(|c| !removed.contains(c));
-            policy.threshold = policy.threshold.min(policy.cosigners.len() as u8);
-            if policy.cosigners.is_empty() {
-                a.cosign = None;
-            }
-        }
-    }
 }
 
 fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
@@ -164,46 +154,48 @@ fn apply(w: &mut Wallet, intent: &Intent, at: u64) -> Result<Outcome> {
 fn check_cosigs(
     w: &mut Wallet,
     me: Principal,
-    address: &Address,
+    requirements: &[CosignRequirement],
     proposal: u64,
     plan: u32,
     digests: &[Hash],
     cosigs: &[CosignerSig],
 ) -> Result<()> {
-    let Some(policy) = &address.cosign else {
+    if requirements.is_empty() {
         return Ok(());
-    };
-    let mut satisfied = 0;
-    for id in &policy.cosigners {
-        let Ok(c) = w.cosigner(*id) else {
-            continue;
-        };
-        if w.policy.hardware_cosigners && !c.input.hardware {
-            continue;
-        }
-        let mut c = c.clone();
-        let mut complete = true;
-        for (i, d) in digests.iter().enumerate() {
-            let message = cosign_message(me, proposal, plan, i as u32, d);
-            match cosigs
+    }
+    let keys: Vec<_> = w
+        .cosigners
+        .iter()
+        .filter(|c| {
+            (!w.policy.hardware_cosigners || c.input.hardware)
+                && requirements
+                    .iter()
+                    .any(|r| r.policy.cosigners.contains(&c.id))
+        })
+        .cloned()
+        .collect();
+    let messages: Vec<_> = digests
+        .iter()
+        .enumerate()
+        .map(|(i, d)| cosign_message(me, proposal, plan, i as u32, d))
+        .collect();
+    let complete = verify_cosignatures(&keys, &messages, cosigs)?;
+    for r in requirements {
+        ensure(
+            complete
                 .iter()
-                .find(|s| s.cosigner == *id && s.digest_index == i as u32)
-            {
-                Some(sig) => c.counter = verify_cosign(&c, &message, sig)?,
-                None => {
-                    complete = false;
-                    break;
-                }
-            }
-        }
-        if complete {
-            satisfied += 1;
-            if let Some(stored) = w.cosigners.iter_mut().find(|x| x.id == *id) {
-                stored.counter = c.counter;
-            }
+                .filter(|(id, _)| r.policy.cosigners.contains(id))
+                .count()
+                >= usize::from(r.policy.threshold),
+            Error::Forbidden,
+        )?;
+    }
+    for (id, counter) in complete {
+        if let Some(stored) = w.cosigners.iter_mut().find(|c| c.id == id) {
+            stored.counter = counter;
         }
     }
-    ensure(satisfied >= policy.threshold, Error::Forbidden)
+    Ok(())
 }
 
 /// Native Taproot cosigner signatures over each input's sighash.
@@ -238,15 +230,6 @@ fn native_cosigs(
         .collect()
 }
 
-fn source(intent: &Intent) -> Option<u32> {
-    match intent {
-        Intent::Transfer { from, .. }
-        | Intent::Batch { from, .. }
-        | Intent::Refuel { from, .. } => Some(*from),
-        _ => chains::chain_source(intent).map(|(a, _)| a),
-    }
-}
-
 fn result(p: Proposal, signed: Option<SignedTx>) -> ExecuteResult {
     ExecuteResult {
         proposal: p,
@@ -275,10 +258,16 @@ async fn execute(args: ExecuteArgs) -> Result<ExecuteResult> {
         ProposalStatus::Settled => return Ok(result(p, None)),
         _ => return Err(Error::VersionConflict),
     }
-    if let Some(from) = source(&p.intent) {
-        let address = w.address(from)?.clone();
-        check_cosigs(&mut w, me, &address, p.id, 0, &[p.digest], &args.cosigs)?;
-    }
+    let requirements = cosign_requirements(&p.intent, &w.addresses);
+    check_cosigs(
+        &mut w,
+        me,
+        &requirements,
+        p.id,
+        0,
+        &[p.digest],
+        &args.cosigs,
+    )?;
     match p.intent.clone() {
         intent if internal(&intent) => {
             apply_ready(&mut w, &mut p, at);
@@ -802,6 +791,13 @@ fn prepare_execution(id: u64, params: ExecutionParams) -> Result<ExecutionPlan> 
         ),
         Error::VersionConflict,
     )?;
+    // All devices collect signatures for the same live unsigned plan.
+    if p.plans > 0 && !p.signed.iter().any(|s| s.plan == p.plans) {
+        let existing = store::plan(id, p.plans)?.plan;
+        if at < existing.expires_at_ms {
+            return Ok(existing);
+        }
+    }
     ensure(p.plans < MAX_PLANS, Error::QuotaExceeded)?;
     let pending_nonce = check_versions(&w, &p, address, &params, at)?;
     let built = chains::build(&w, &p.intent, &params, pending_nonce)?;
@@ -864,7 +860,8 @@ async fn sign_plan(
         w.signatures_today.saturating_add(count) <= w.policy.daily_signatures,
         Error::QuotaExceeded,
     )?;
-    check_cosigs(&mut w, me, &address, p.id, seq, digests, cosigs)?;
+    let requirements = cosign_requirements(&p.intent, &w.addresses);
+    check_cosigs(&mut w, me, &requirements, p.id, seq, digests, cosigs)?;
     let native = native_cosigs(&w, &record, cosigs)?;
     let back = waiting_status(&p);
     // Signatures count when signing starts, so concurrent signings share

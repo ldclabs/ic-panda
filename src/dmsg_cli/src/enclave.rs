@@ -9,8 +9,8 @@ use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use dmsg_client::crypto::Key;
 use dmsg_client::secure::{Presence, PresenceKey};
-use dmsg_client::wallet::cosign::CosignProvider;
-use dmsg_types::{Error, Result};
+use dmsg_client::wallet::cosign::{CosignFuture, CosignProvider};
+use dmsg_types::{Error, Hash, Result};
 use std::ffi::{CString, c_char};
 use zeroize::Zeroizing;
 
@@ -37,11 +37,11 @@ unsafe extern "C" {
         length: *mut isize,
         public_key: *mut u8,
     ) -> i32;
-    fn dmsg_se_sign(
+    fn dmsg_se_sign_batch(
         handle: *const u8,
         length: isize,
         message: *const u8,
-        message_length: isize,
+        message_count: isize,
         reason: *const c_char,
         signature: *mut u8,
     ) -> i32;
@@ -163,27 +163,41 @@ impl CosignProvider for SecureEnclave {
         Ok((compressed, URL_SAFE_NO_PAD.encode(handle)))
     }
 
-    fn sign(&self, handle: &str, message: &[u8]) -> Result<Vec<u8>> {
-        let handle = URL_SAFE_NO_PAD
-            .decode(handle)
-            .map_err(|_| Error::IntegrityFailed)?;
-        let reason = reason(tr!("sign for a team wallet", "为团队钱包签名"));
-        let mut signature = vec![0u8; 64];
-        let signed = checked(asking(|| unsafe {
-            dmsg_se_sign(
-                handle.as_ptr(),
-                handle.len() as isize,
-                message.as_ptr(),
-                message.len() as isize,
-                reason.as_ptr(),
-                signature.as_mut_ptr(),
-            )
-        }));
-        match signed {
-            Ok(()) => Ok(signature),
-            Err(Error::Forbidden) => Err(Error::Unavailable("secure enclave: declined".into())),
-            Err(error) => Err(error),
-        }
+    fn sign(&self, handle: String, messages: Vec<Hash>) -> CosignFuture {
+        Box::pin(async move {
+            tokio::task::spawn_blocking(move || {
+                let handle = URL_SAFE_NO_PAD
+                    .decode(handle)
+                    .map_err(|_| Error::IntegrityFailed)?;
+                let reason = reason(tr!("sign for a team wallet", "为团队钱包签名"));
+                let message: Vec<u8> = messages.iter().flat_map(|m| m.iter().copied()).collect();
+                let mut signatures = vec![0u8; 64 * messages.len()];
+                let signed = checked(unsafe {
+                    dmsg_se_sign_batch(
+                        handle.as_ptr(),
+                        handle.len() as isize,
+                        message.as_ptr(),
+                        messages.len() as isize,
+                        reason.as_ptr(),
+                        signatures.as_mut_ptr(),
+                    )
+                });
+                match signed {
+                    Ok(()) => Ok(signatures
+                        .as_chunks::<64>()
+                        .0
+                        .iter()
+                        .map(|s| s.to_vec())
+                        .collect()),
+                    Err(Error::Forbidden) => {
+                        Err(Error::Unavailable("secure enclave: declined".into()))
+                    }
+                    Err(error) => Err(error),
+                }
+            })
+            .await
+            .map_err(|e| Error::Unavailable(format!("cosigning: {e}")))?
+        })
     }
 }
 

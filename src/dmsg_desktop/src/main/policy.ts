@@ -223,6 +223,7 @@ export const WINDOW_METHODS = new Set([
   'wallet/cancel',
   'wallet/freeze',
   'wallet/execute',
+  'wallet/prepare',
   'wallet/broadcast',
   'wallet/settle',
   'wallet/balances',

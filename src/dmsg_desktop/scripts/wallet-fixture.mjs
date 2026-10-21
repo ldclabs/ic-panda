@@ -23,7 +23,7 @@ export function walletFixture(account, created) {
     public: false
   }
   const state = { enabled: false, role: 'Admin', frozen: false, failBalances: false, changed: null, transfer: null, approval: 900,
-    readinessError: false, blockers: [], replacement: false, executed: null, activation: 'unpaid', creation: null }
+    readinessError: false, blockers: [], replacement: false, executed: null, activation: 'unpaid', creation: null, cosigners: [], localKeys: [], btcCosign: null, collectionError: false }
   const view = (id) => ({
     wallet: id,
     name: id === a ? 'Engineering' : 'Operations',
@@ -35,6 +35,7 @@ export function walletFixture(account, created) {
     policy,
     addresses: [
       { id: 0, chain: 'Icp', control: 'chain_key', text: id, label: 'Operating account', verified: true, cosign: null },
+      { id: 1, chain: 'Bitcoin', control: 'chain_key', text: 'bc1pfixture', label: 'Bitcoin reserve', verified: true, cosign: state.btcCosign },
       {
         id: 2,
         chain: 'Evm',
@@ -45,7 +46,7 @@ export function walletFixture(account, created) {
         cosign: state.replacement ? { threshold: 2, cosigners: [1, 2] } : null
       }
     ],
-    cosigners: [],
+    cosigners: state.cosigners,
     frozen: state.frozen,
     stats: { cycles: '1987788848105', signatures_today: 2, proposals: 55, active_proposals: 3 },
     code: 'None',
@@ -95,7 +96,18 @@ export function walletFixture(account, created) {
       const rows = proposals.filter((v) => p.before == null || v.id < p.before).slice(0, p.limit ?? 50)
       return { proposals: rows, next: rows.length === (p.limit ?? 50) ? rows.at(-1).id : null }
     },
-    'wallet/proposal': (p) => ({ ...proposals.find((v) => v.id === p.proposal), plan_details: [] }),
+    'wallet/proposal': (p) => {
+      const v = proposals.find((v) => v.id === p.proposal)
+      return { ...v, plan_details: v.plan_details ?? Array.from({ length: v.plans }, (_, i) => ({ seq: i + 1, chain: 'Evm', from: '0x01', fee: '10000', expires_at: Date.now() + 600000 })) }
+    },
+    'wallet/prepare': (p) => {
+      const v = proposals.find((v) => v.id === p.proposal)
+      if (!v.plan_details?.some((v) => v.expires_at > Date.now())) {
+        v.plans++
+        v.plan_details = [{ seq: v.plans, chain: 'Bitcoin', from: 'bc1pfixture', fee: '10000', expires_at: Date.now() + 600000 }]
+      }
+      return v
+    },
     'wallet/balances': (p) => {
       if (state.failBalances) throw { code: 'UNAVAILABLE', message: 'simulated chain outage' }
       return {
@@ -114,7 +126,10 @@ export function walletFixture(account, created) {
       const v = proposal(proposals.length + 1)
       v.wallet = p.wallet
       v.status = 'Open'
-      v.intent = p.change.kind === 'unfreeze' ? { kind: 'unfreeze' } : { kind: 'set_policy', policy }
+      v.requirement = { approvals: policy.admin_threshold, admin: true, delay_ms: 86400000 }
+      v.intent = p.change.kind === 'cosign' ? { kind: 'set_cosign', address: p.change.address, cosign: p.change.cosign }
+        : p.change.kind === 'cosigner' ? { kind: 'add_cosigner', ...state.localKeys.find((k) => k.label === p.change.label), member: account, curve: 'P256', envelope: 'Raw' }
+        : p.change.kind === 'unfreeze' ? { kind: 'unfreeze' } : { kind: 'set_policy', policy }
       proposals.unshift(v)
       return v
     },
@@ -182,7 +197,14 @@ export function walletFixture(account, created) {
       solana_rpc: 'https://example.test/sol',
       evm_rpc: [[1, 'https://example.test/evm']]
     }),
-    'wallet/cosign_status': () => ({ collected: state.replacement ? 2 : 0, required: 2, ready: state.replacement, packet: '' }),
+    'wallet/cosign_status': () => {
+      if (state.collectionError) throw { code: 'UNAVAILABLE', message: 'cosign collection unavailable' }
+      return { collected: state.replacement ? 2 : 0, required: 2, ready: state.replacement, packet: '', can_cosign: true }
+    },
+    'wallet/cosign': (p) => created((state.approval++).toString(16).padStart(64, '0'), 'wallet', {
+      action: 'cosign', wallet: p.wallet, name: view(p.wallet).name, before: view(p.wallet),
+      proposal: proposals.find((v) => v.id === p.proposal), plan: {seq:p.plan, chain:'Bitcoin', from:'bc1pfixture', fee:'10000', outputs:[], expires_at:Date.now()+600000}, collect_only: true
+    }),
     'wallet/cosign_execute': (p) => {
       state.executed = p
       const proposal = proposals.find((v) => v.id === p.proposal)

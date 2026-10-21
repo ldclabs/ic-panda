@@ -403,7 +403,7 @@
       case 'wallet':
         if (d.action === 'create') return [[t('twAfterCreate'), false], final]
         if (d.action === 'join') return [[t('twAfterJoin'), false]]
-        if (d.action === 'cosign') return [[t('twAfterCosign'), false], final]
+        if (d.action === 'cosign') return d.collect_only ? [[w('collectOnlyAfter'), false]] : [[t('twAfterCosign'), false], final]
         return [[t('twAfterDecide'), false]]
       default:
         return []

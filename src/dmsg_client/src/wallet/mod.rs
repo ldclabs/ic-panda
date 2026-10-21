@@ -552,6 +552,7 @@ pub fn wallet_view(view: &WalletView, me: Option<&MemberId>) -> Json {
             "text": a.text,
             "label": a.label,
             "cosign": a.cosign,
+            "control_details": match &a.kind { AddressKind::Taproot(control) => serde_json::to_value(control).ok(), _ => None },
             "sol_nonce": a.sol_nonce.map(|n| sol_address(&n.into_array())),
             "verified": address_verified(view, a),
         })).collect::<Vec<_>>(),
@@ -860,52 +861,25 @@ impl Client {
             .ok_or(Error::Unavailable("chains".into()))
     }
 
-    /// The wallet cosigner ID of a key of this device named by `address`'s
-    /// cosign policy, if any.
-    fn local_cosigner_of(&self, view: &WalletView, address: &Address) -> Result<Option<u32>> {
-        let Some(policy) = &address.cosign else {
-            return Ok(None);
-        };
+    /// Eligible keys of this device used by any of the intent's address policies.
+    fn local_cosigners_for(
+        &self,
+        view: &WalletView,
+        requirements: &[CosignRequirement],
+    ) -> Result<Vec<u32>> {
         let local = self.wallet_cosigner_keys()?;
         Ok(view
             .cosigners
             .iter()
-            .filter(|c| policy.cosigners.contains(&c.id))
-            .find(|c| local.iter().any(|k| k.public_key == c.input.public_key))
-            .map(|c| c.id))
-    }
-
-    /// Cosignatures by this device's key of wallet cosigner `cosigner` over
-    /// `digests` of plan `plan`, plan 0 being an ICP proposal's digest.
-    fn local_cosigs(
-        &self,
-        view: &WalletView,
-        cosigner: u32,
-        proposal: u64,
-        plan: u32,
-        digests: &[Hash],
-    ) -> Result<Vec<CosignerSig>> {
-        let c = view
-            .cosigners
-            .iter()
-            .find(|c| c.id == cosigner)
-            .ok_or(Error::NotFound)?;
-        digests
-            .iter()
-            .enumerate()
-            .map(|(i, d)| {
-                let message = cosign_message(view.wallet, proposal, plan, i as u32, d);
-                Ok(CosignerSig {
-                    cosigner,
-                    digest_index: i as u32,
-                    signature: self
-                        .wallet_cosign(&c.input.public_key, &message[..])?
-                        .into(),
-                    authenticator_data: None,
-                    client_data_json: None,
-                })
+            .filter(|c| {
+                (!view.policy.hardware_cosigners || c.input.hardware)
+                    && requirements
+                        .iter()
+                        .any(|r| r.policy.cosigners.contains(&c.id))
+                    && local.iter().any(|k| k.public_key == c.input.public_key)
             })
-            .collect()
+            .map(|c| c.id)
+            .collect())
     }
 
     /// Generate a cosigner key on this device and return the input of the
@@ -1420,19 +1394,6 @@ pub fn default_policy(approvals: u8, admin_approvals: u8) -> Policy {
         refuel: None,
         hardware_cosigners: false,
         public: false,
-    }
-}
-
-/// The source address of an ICP or ICRC intent, which a cosign policy covers.
-fn source_address(intent: &Intent) -> Option<u32> {
-    match intent {
-        Intent::Transfer { from, asset, .. } | Intent::Batch { from, asset, .. }
-            if asset_chain(asset) == Chain::Icp =>
-        {
-            Some(*from)
-        }
-        Intent::Refuel { from, .. } => Some(*from),
-        _ => None,
     }
 }
 

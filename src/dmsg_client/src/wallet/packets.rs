@@ -18,7 +18,7 @@ fn key(wallet: Principal, id: u64, plan: u32) -> String {
     format!("wallet-cosigs:{wallet}:{id}:{plan}")
 }
 
-async fn context<H: Hold>(
+pub(super) async fn context<H: Hold>(
     h: &H,
     wallet: Principal,
     id: u64,
@@ -28,31 +28,13 @@ async fn context<H: Hold>(
     Proposal,
     Option<ExecutionPlan>,
     Vec<Hash>,
-    CosignPolicy,
+    Vec<CosignRequirement>,
 )> {
     let view = state(h, wallet).await?;
     let p = proposal_raw(h, wallet, id).await?;
-    ensure(
-        matches!(
-            p.status,
-            ProposalStatus::Ready
-                | ProposalStatus::Delayed
-                | ProposalStatus::Signed
-                | ProposalStatus::Broadcast
-        ),
-        Error::VersionConflict,
-    )?;
-    let from = source_address(&p.intent)
-        .or_else(|| external_source(&p.intent).map(|v| v.0))
-        .ok_or(Error::Forbidden)?;
-    let a = view
-        .addresses
-        .iter()
-        .find(|a| a.id == from)
-        .ok_or(Error::NotFound)?;
-    let policy = a.cosign.clone().ok_or(Error::NotFound)?;
+    let policy = signing_requirements(&view, &p, now_ms())?;
     let plan = if seq == 0 {
-        ensure(a.chain == Chain::Icp, Error::IntegrityFailed)?;
+        ensure(external_source(&p.intent).is_none(), Error::IntegrityFailed)?;
         None
     } else {
         let (_, ic) = identity(h).await?;
@@ -65,11 +47,41 @@ async fn context<H: Hold>(
         decode::verify_plan(&view, &p.intent, &read)?;
         Some(read)
     };
+    signing_requirements(&view, &p, now_ms())?;
     let digests = plan
         .as_ref()
         .map(|p| p.digests.clone())
         .unwrap_or_else(|| vec![p.digest]);
     Ok((view, p, plan, digests, policy))
+}
+
+/// Preconditions shared by request creation and execution after every wait.
+pub(super) fn signing_requirements(
+    view: &WalletView,
+    p: &Proposal,
+    now: u64,
+) -> Result<Vec<CosignRequirement>> {
+    ensure(!view.frozen, Error::Locked)?;
+    ensure(
+        matches!(
+            p.status,
+            ProposalStatus::Ready
+                | ProposalStatus::Delayed
+                | ProposalStatus::Signed
+                | ProposalStatus::Broadcast
+        ),
+        Error::VersionConflict,
+    )?;
+    if matches!(p.status, ProposalStatus::Ready | ProposalStatus::Delayed) {
+        ensure(
+            p.policy_version == view.policy.version,
+            Error::VersionConflict,
+        )?;
+        ensure(now < p.expires_at_ms, Error::Expired)?;
+    }
+    let requirements = cosign_requirements(&p.intent, &view.addresses);
+    ensure(!requirements.is_empty(), Error::NotFound)?;
+    Ok(requirements)
 }
 
 fn validate(
@@ -78,7 +90,7 @@ fn validate(
     p: &Proposal,
     plan: Option<&ExecutionPlan>,
     digests: &[Hash],
-    policy: &CosignPolicy,
+    policy: &[CosignRequirement],
 ) -> Result<()> {
     let seq = plan.map_or(0, |p| p.seq);
     ensure(
@@ -90,63 +102,46 @@ fn validate(
             && packet.plan_hash == digest("dmsg/wallet-cosign-packet/v1", &plan),
         Error::IntegrityFailed,
     )?;
-    ensure(packet.signatures.len() <= 64 * 32, Error::QuotaExceeded)?;
-    let mut seen = std::collections::BTreeSet::new();
-    for sig in &packet.signatures {
-        ensure(
-            seen.insert((sig.cosigner, sig.digest_index))
-                && policy.cosigners.contains(&sig.cosigner),
-            Error::IntegrityFailed,
-        )?;
-        let c = view
-            .cosigners
-            .iter()
-            .find(|c| c.id == sig.cosigner)
-            .ok_or(Error::NotFound)?;
-        ensure(
-            !view.policy.hardware_cosigners || c.input.hardware,
-            Error::Forbidden,
-        )?;
-        let d = digests
-            .get(sig.digest_index as usize)
-            .ok_or(Error::IntegrityFailed)?;
-        verify_cosign(
-            c,
-            &cosign_message(view.wallet, p.id, seq, sig.digest_index, d),
-            sig,
-        )?;
-    }
+    let keys: Vec<_> = view
+        .cosigners
+        .iter()
+        .filter(|c| {
+            (!view.policy.hardware_cosigners || c.input.hardware)
+                && policy.iter().any(|r| r.policy.cosigners.contains(&c.id))
+        })
+        .cloned()
+        .collect();
+    let messages: Vec<_> = digests
+        .iter()
+        .enumerate()
+        .map(|(i, d)| cosign_message(view.wallet, p.id, seq, i as u32, d))
+        .collect();
+    verify_cosignatures(&keys, &messages, &packet.signatures)?;
     Ok(())
 }
 
 fn merge(mut a: Packet, b: Packet) -> Packet {
     for sig in b.signatures {
-        if !a
-            .signatures
-            .iter()
-            .any(|s| s.cosigner == sig.cosigner && s.digest_index == sig.digest_index)
-        {
-            a.signatures.push(sig);
-        }
+        a.signatures
+            .retain(|s| s.cosigner != sig.cosigner || s.digest_index != sig.digest_index);
+        a.signatures.push(sig);
     }
     a
 }
 
-fn result(packet: &Packet, digests: &[Hash], policy: &CosignPolicy) -> Result<Json> {
-    let complete = policy
-        .cosigners
-        .iter()
-        .filter(|id| {
-            (0..digests.len()).all(|i| {
-                packet
-                    .signatures
-                    .iter()
-                    .any(|s| s.cosigner == **id && s.digest_index as usize == i)
-            })
-        })
-        .count();
+fn result(packet: &Packet, digests: &[Hash], policy: &[CosignRequirement]) -> Result<Json> {
+    let requirements: Vec<_> = policy.iter().map(|r| {
+        let collected = r.policy.cosigners.iter().filter(|id| {
+            (0..digests.len()).all(|i| packet.signatures.iter().any(|s| s.cosigner == **id && s.digest_index as usize == i))
+        }).count();
+        json!({"address":r.address,"collected":collected,"required":r.policy.threshold,"ready":collected>=usize::from(r.policy.threshold)})
+    }).collect();
     Ok(
-        json!({"wallet":packet.wallet.to_text(),"proposal":packet.proposal,"plan":packet.plan,"collected":complete,"required":policy.threshold,"ready":complete>=usize::from(policy.threshold),"packet":URL_SAFE_NO_PAD.encode(crate::codec::canonical(packet))}),
+        json!({"wallet":packet.wallet.to_text(),"proposal":packet.proposal,"plan":packet.plan,
+        "collected":requirements.iter().map(|r|r["collected"].as_u64().unwrap_or(0)).sum::<u64>(),
+        "required":requirements.iter().map(|r|r["required"].as_u64().unwrap_or(0)).sum::<u64>(),
+        "ready":requirements.iter().all(|r|r["ready"]==true),"requirements":requirements,
+        "packet":URL_SAFE_NO_PAD.encode(crate::codec::canonical(packet))}),
     )
 }
 
@@ -204,6 +199,7 @@ pub async fn import<H: Hold>(
                 }
                 _ => incoming,
             };
+            validate(&packet, &view, &p, plan.as_ref(), &digests, &policy)?;
             c.workspace
                 .put_private(c.keys()?, &key(wallet, id, seq), &packet)?;
             Ok(packet)
@@ -231,7 +227,19 @@ pub async fn status<H: Hold>(h: &H, wallet: Principal, id: u64, seq: u32) -> Res
             signatures: vec![],
         });
     validate(&packet, &view, &p, plan.as_ref(), &digests, &policy)?;
-    result(&packet, &digests, &policy)
+    let can_cosign = h
+        .with(|c| {
+            let me = c.wallet_member()?;
+            Ok(view
+                .members
+                .iter()
+                .any(|m| m.id == me && m.status == MemberStatus::Active && m.role != Role::Viewer)
+                && !c.local_cosigners_for(&view, &policy)?.is_empty())
+        })
+        .await?;
+    let mut out = result(&packet, &digests, &policy)?;
+    out["can_cosign"] = json!(can_cosign);
+    Ok(out)
 }
 
 /// Ask this device to cosign an existing plan rather than preparing a different one.
@@ -257,7 +265,8 @@ pub async fn request<H: Hold>(
                 .cosigners
                 .iter()
                 .filter(|key| {
-                    policy.cosigners.contains(&key.id)
+                    policy.iter().any(|r| r.policy.cosigners.contains(&key.id))
+                        && (!view.policy.hardware_cosigners || key.input.hardware)
                         && local.iter().any(|k| k.public_key == key.input.public_key)
                 })
                 .map(|c| c.id)
@@ -381,10 +390,43 @@ mod tests {
             failure: None,
             updated_at_ms: 0,
         };
-        let policy = CosignPolicy {
-            threshold: 2,
-            cosigners: vec![1, 2],
-        };
+        let policy = vec![CosignRequirement {
+            address: 0,
+            policy: CosignPolicy {
+                threshold: 2,
+                cosigners: vec![1, 2],
+            },
+        }];
+        view.addresses[0].id = 0;
+        view.addresses[0].cosign = Some(policy[0].policy.clone());
+        view.policy.version = p.policy_version;
+        assert!(signing_requirements(&view, &p, 1).is_ok());
+        for status in [
+            ProposalStatus::Cancelled,
+            ProposalStatus::Vetoed,
+            ProposalStatus::Expired,
+            ProposalStatus::Stale,
+            ProposalStatus::Settled,
+        ] {
+            let mut stale = p.clone();
+            stale.status = status;
+            assert!(signing_requirements(&view, &stale, 1).is_err());
+        }
+        let mut expired = p.clone();
+        expired.expires_at_ms = 1;
+        assert_eq!(
+            signing_requirements(&view, &expired, 1),
+            Err(Error::Expired)
+        );
+        view.frozen = true;
+        assert_eq!(signing_requirements(&view, &p, 1), Err(Error::Locked));
+        view.frozen = false;
+        view.policy.version += 1;
+        assert_eq!(
+            signing_requirements(&view, &p, 1),
+            Err(Error::VersionConflict)
+        );
+        view.policy.version = p.policy_version;
         let packet = |i: usize| {
             let signature: Signature =
                 keys[i].sign(&cosign_message(view.wallet, p.id, 0, 0, &p.digest)[..]);

@@ -12,7 +12,7 @@
   import { walletError as errorText } from './errors'
   import { cyclesText, utf8Length, type Wallet } from './model'
   import { w } from './text'
-  let { wallet, onManage, onUpdated }: { wallet: Wallet; onManage: (kind: string, target?: any) => void; onUpdated: () => void } = $props()
+  let { wallet, onManage, onUpdated, onProposed }: { wallet: Wallet; onManage: (kind: string, target?: any) => void; onUpdated: () => void; onProposed: (p: any) => void } = $props()
   let versions = $state<any>(null),
     health = $state<any>(null),
     rpc = $state<any>(null),
@@ -56,6 +56,10 @@
     try {
       const result: any = await call(method, { wallet: wallet.wallet, ...params })
       if (!alive) return
+      if (method === 'wallet/change') {
+        onProposed(result)
+        return
+      }
       if (method === 'wallet/health') health = result
       else if (method === 'wallet/rpc_check') checks = result
       else {
@@ -113,6 +117,7 @@
     >
   </Section>
   <Section title={w('cosigners')} icon="key">
+    <p class="text-muted mb-3 text-[12px]">{w('cosignSetupHint')}</p>
     <div class="grid gap-2"
       >{#each wallet.cosigners as c (c.id)}<div class="border-line flex flex-wrap items-center gap-2 rounded-lg border p-3"
           ><b class="text-[13px]">#{c.id} · {c.label}</b><Pill tone={c.hardware ? 'ok' : 'warn'}
