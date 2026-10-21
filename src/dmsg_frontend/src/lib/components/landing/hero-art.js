@@ -99,7 +99,7 @@ export function renderHeroArt({ prefix, labels, icons, rtl = false }) {
           `<g transform="translate(465 ${service.y}) rotate(${i === 1 ? 2 : -2} 82 26)"><g class="art-float art-float-${['one', 'two', 'three'][i]}" filter="url(#${id}-paper)"><rect width="164" height="54" rx="11" fill="#fff" stroke="#c9d8c8"/>${icon(service.glyph, 12, 17, 20)}<text x="41" y="33" font-size="${i === 1 ? 14 : 12.5}" font-weight="500" fill="#244b37">${service.name}</text></g></g>`
       )
       .join('')}
-    <g transform="translate(257 385)"><rect width="143" height="25" rx="12" fill="#f8f8ef" stroke="#c7d3b8"/>${icon('shield', 10, 6, 13, '#77895a')}<text x="79" y="17" text-anchor="middle" font-size="${labelSize(labels.scope, 110, 11)}" fill="#5c7048" direction="${rtl ? 'rtl' : 'ltr'}">${esc(labels.scope)}</text></g>
+    <g transform="translate(257 385)"><rect width="143" height="25" rx="12" fill="#f8f8ef" stroke="#c7d3b8"/>${icon('shield', 10, 6, 13, '#77895a')}<text x="86" y="17" text-anchor="middle" font-size="${labelSize(labels.scope, 100, 11)}" fill="#5c7048" direction="${rtl ? 'rtl' : 'ltr'}">${esc(labels.scope)}</text></g>
 
   </g>
   </svg>`

@@ -98,7 +98,7 @@ for (const locale of ['en', 'zh', 'fr', 'es', 'ru', 'ar']) {
   <rect width="1200" height="630" fill="url(#paper)"/>
   <rect x="${rtl ? 0 : 620}" width="580" height="630" fill="url(#paper-dots)" opacity=".42"/>
   <path d="M${rtl ? 580 : 620} 34V596" stroke="#d4dfcd" stroke-dasharray="2 7"/>
-  <g transform="translate(${rtl ? -14 : 572} 63) scale(.98)">${art}</g>
+  <g transform="translate(${rtl ? 14 : 572} 63) scale(.98)">${art}</g>
   <image href="data:image/svg+xml;base64,${mark}" x="${rtl ? 1102 : 64}" y="48" width="31" height="36"/>
   <g font-family="Helvetica Neue, Arial, PingFang SC, sans-serif">
   <text x="${rtl ? 1086 : 110}" y="78" text-anchor="${rtl ? 'end' : 'start'}" font-size="31" font-weight="700" fill="#123a2b">dMsg</text>
