@@ -1,0 +1,23 @@
+diff --git a/lib/esm/web/heartbeat/client.js b/lib/esm/web/heartbeat/client.js
+index ccdfc15453569df4b111e993bfb0a9014fc55a57..2a5db5b654ad609f0f77c0a10aab8d97474ccf45 100644
+--- a/lib/esm/web/heartbeat/client.js
++++ b/lib/esm/web/heartbeat/client.js
+@@ -61,7 +61,7 @@ export class HeartbeatClient {
+             const id = this.#options.crypto.randomUUID();
+             const time = Date.now();
+             // Cleanup ids outside disconnect window
+-            pending = pending.filter(entry => time - this.#options.disconnectTimeout > entry.time);
++            pending = pending.filter(entry => time - entry.time <= this.#options.disconnectTimeout);
+             // Insert and return new id
+             pending.push({ id, time });
+             return id;
+@@ -85,8 +85,8 @@ export class HeartbeatClient {
+                     this.#status = response.data.result;
+                     this.#options.onStatusChange(response.data.result);
+                 }
++                setTimeout(() => this.#sendStatusRequest(create()), this.#options.statusPollingRate);
+             }
+-            setTimeout(() => this.#sendStatusRequest(create()), this.#options.statusPollingRate);
+         });
+         // Init timeout and start sending requests
+         resetTimeout(status);

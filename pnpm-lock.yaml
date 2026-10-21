@@ -4,6 +4,14 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@icp-sdk/signer@5.6.3':
+    hash: b2232f70ce316f2ce8469686abaa082b500025fe5b1b9997e9a47fa8be50d372
+    path: patches/icp-sdk-signer-heartbeat.patch
+  '@icp-sdk/signer@6.0.0':
+    hash: b2232f70ce316f2ce8469686abaa082b500025fe5b1b9997e9a47fa8be50d372
+    path: patches/icp-sdk-signer-heartbeat.patch
+
 importers:
 
   .:
@@ -163,7 +171,7 @@ importers:
         version: 6.1.0
       '@icp-sdk/signer':
         specifier: ^6.0.0
-        version: 6.0.0(@icp-sdk/core@6.1.0)
+        version: 6.0.0(patch_hash=b2232f70ce316f2ce8469686abaa082b500025fe5b1b9997e9a47fa8be50d372)(@icp-sdk/core@6.1.0)
       '@icp-sdk/vetkeys':
         specifier: ^0.7.0
         version: 0.7.0(@icp-sdk/core@6.1.0)
@@ -7650,7 +7658,7 @@ snapshots:
   '@icp-sdk/auth@8.0.3(@icp-sdk/core@6.1.0)':
     dependencies:
       '@icp-sdk/core': 6.1.0
-      '@icp-sdk/signer': 5.6.3(@icp-sdk/core@6.1.0)
+      '@icp-sdk/signer': 5.6.3(patch_hash=b2232f70ce316f2ce8469686abaa082b500025fe5b1b9997e9a47fa8be50d372)(@icp-sdk/core@6.1.0)
       idb: 7.1.1
 
   '@icp-sdk/bindgen@0.4.1':
@@ -7675,11 +7683,11 @@ snapshots:
       '@scure/bip39': 2.4.0
       asn1js: 3.0.10
 
-  '@icp-sdk/signer@5.6.3(@icp-sdk/core@6.1.0)':
+  '@icp-sdk/signer@5.6.3(patch_hash=b2232f70ce316f2ce8469686abaa082b500025fe5b1b9997e9a47fa8be50d372)(@icp-sdk/core@6.1.0)':
     dependencies:
       '@icp-sdk/core': 6.1.0
 
-  '@icp-sdk/signer@6.0.0(@icp-sdk/core@6.1.0)':
+  '@icp-sdk/signer@6.0.0(patch_hash=b2232f70ce316f2ce8469686abaa082b500025fe5b1b9997e9a47fa8be50d372)(@icp-sdk/core@6.1.0)':
     dependencies:
       '@icp-sdk/core': 6.1.0
 

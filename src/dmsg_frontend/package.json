@@ -82,7 +82,7 @@
     "preview": "vite preview",
     "setup": "npm i && icp deploy",
     "start": "vite dev --port 3000",
-    "test": "vitest run"
+    "test": "node --test ../../scripts/signer-heartbeat.test.mjs && vitest run"
   },
   "type": "module",
   "version": "3.2.1"
