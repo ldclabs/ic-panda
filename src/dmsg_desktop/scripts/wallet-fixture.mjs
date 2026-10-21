@@ -22,7 +22,8 @@ export function walletFixture(account, created) {
     hardware_cosigners: false,
     public: false
   }
-  const state = { enabled: false, role: 'Admin', frozen: false, failBalances: false, changed: null, transfer: null, approval: 900 }
+  const state = { enabled: false, role: 'Admin', frozen: false, failBalances: false, changed: null, transfer: null, approval: 900,
+    readinessError: false, blockers: [], replacement: false, executed: null }
   const view = (id) => ({
     wallet: id,
     name: id === a ? 'Engineering' : 'Operations',
@@ -41,7 +42,7 @@ export function walletFixture(account, created) {
         text: '0x0000000000000000000000000000000000000001',
         label: 'Ethereum',
         verified: true,
-        cosign: null
+        cosign: state.replacement ? { threshold: 2, cosigners: [1, 2] } : null
       }
     ],
     cosigners: [],
@@ -171,7 +172,13 @@ export function walletFixture(account, created) {
       solana_rpc: 'https://example.test/sol',
       evm_rpc: [[1, 'https://example.test/evm']]
     }),
-    'wallet/cosign_status': () => ({ collected: 0, required: 2, ready: false, packet: '' })
+    'wallet/cosign_status': () => ({ collected: state.replacement ? 2 : 0, required: 2, ready: state.replacement, packet: '' }),
+    'wallet/cosign_execute': (p) => {
+      state.executed = p
+      const proposal = proposals.find((v) => v.id === p.proposal)
+      proposal.signed.push({ plan: p.plan, txid: 'replacement' })
+      return proposal
+    }
   }
   return {
     state,

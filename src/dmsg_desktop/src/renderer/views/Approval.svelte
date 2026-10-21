@@ -88,7 +88,6 @@
       void loadReadiness()
       if (first && next?.type === 'wallet') {
         if (next.detail?.wallet) void call<any>('wallet/assets', { wallet: next.detail.wallet }).then((r) => walletAssets = r.assets, () => undefined)
-        void call('wallet/readiness').then((r) => walletReadiness = r, () => walletReadiness = { blockers: ['WALLET_REGISTRATION_UNAVAILABLE'] })
       }
       void loadQueue()
       // An agent's request, a grant to an agent or its credential names Agent IDs.
@@ -104,8 +103,14 @@
 
   /** Whether signing can happen now: the request's purpose, this device's approval right, the policy and the login. */
   const loadReadiness = single(async () => {
-    const signs = request?.type === 'attest' || (request?.type === 'connect' && ['signDocument', 'signAction'].includes(request?.detail?.method))
-    readiness = signs && request?.state === 'awaiting_user' ? await call('attest/readiness', { id }).catch(() => null) : null
+    const current = request
+    const signs = current?.type === 'attest' || (current?.type === 'connect' && ['signDocument', 'signAction'].includes(current?.detail?.method))
+    readiness = signs && current?.state === 'awaiting_user' ? await call('attest/readiness', { id }).catch(() => null) : null
+    walletReadiness = null
+    if (current?.type === 'wallet' && current.detail?.action !== 'cosign' && current.state === 'awaiting_user') {
+      const result = await call('wallet/readiness').catch(() => ({ blockers: ['WALLET_REGISTRATION_UNAVAILABLE'] }))
+      if (request?.id === current.id && request?.state === 'awaiting_user') walletReadiness = result
+    }
   })
 
   /** The other requests waiting, for the way to the next one. */
@@ -128,6 +133,7 @@
     if (status && status.state !== 'unlocked') {
       request = null
       readiness = null
+      walletReadiness = null
       stopHold()
       // Opened while locked: ask for the fast unlock once, as the main
       // window does; a lock while it is open asks nothing.
@@ -234,7 +240,12 @@
   }
 
   /** Back in front, the request is reviewed afresh: a click meant for another window does not approve. */
-  const refocus = () => request?.state === 'awaiting_user' && arm()
+  const refocus = () => {
+    if (request?.state === 'awaiting_user') {
+      arm()
+      void loadReadiness()
+    }
+  }
 
   onMount(() => {
     void refreshStatus().then(async () => {
@@ -544,6 +555,9 @@
             </li>
           {/each}
         </ul>
+        {#if walletReadiness?.blockers?.length}
+          <button class={cn(buttonClass('secondary', 'sm'), 'mt-2')} onclick={loadReadiness} data-testid="approval-wallet-retry">{w('retry')}</button>
+        {/if}
       {/if}
 
       <section class="mt-5">

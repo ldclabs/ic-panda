@@ -227,19 +227,7 @@ pub async fn execute<H: Hold>(h: &H, source: &str, wallet: Principal, id: u64) -
                 })
                 .await;
         }
-        let (_, ic) = identity(h).await?;
-        let r: Result<ExecuteResult> = ic
-            .update(
-                wallet,
-                "execute",
-                (ExecuteArgs {
-                    proposal: id,
-                    plan: None,
-                    cosigs: vec![],
-                },),
-            )
-            .await?;
-        return Ok(proposal_view(&r?.proposal));
+        return execute_icp(h, wallet, id, vec![]).await;
     };
     let address = view
         .addresses
@@ -272,6 +260,29 @@ pub async fn execute<H: Hold>(h: &H, source: &str, wallet: Principal, id: u64) -
             .await;
     }
     sign_and_send(h, wallet, &view, &proposal, &plan, vec![]).await
+}
+
+/// Execute or resume an ICP proposal; the canister returns an existing result
+/// before checking cosignatures when the proposal already started or settled.
+pub(super) async fn execute_icp<H: Hold>(
+    h: &H,
+    wallet: Principal,
+    id: u64,
+    cosigs: Vec<CosignerSig>,
+) -> Result<Json> {
+    let (_, ic) = identity(h).await?;
+    let out: Result<ExecuteResult> = ic
+        .update(
+            wallet,
+            "execute",
+            (ExecuteArgs {
+                proposal: id,
+                plan: None,
+                cosigs,
+            },),
+        )
+        .await?;
+    Ok(proposal_view(&out?.proposal))
 }
 
 /// Sign and send: the client is taken only for synchronous steps.
@@ -882,25 +893,39 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
             let view = state(h, wallet).await?;
             let current = proposal_raw(h, wallet, proposal.id).await?;
             ensure(current.digest == proposal.digest, Error::IntegrityFailed)?;
-            if let Some(plan) = &plan {
-                ensure(now_ms() < plan.expires_at_ms, Error::Expired)?;
-                decode::verify_plan(&view, &proposal.intent, plan)?;
-            }
-            let seq = plan.as_ref().map_or(0, |p| p.seq);
-            let digests = plan
-                .as_ref()
-                .map(|p| p.digests.clone())
-                .unwrap_or_else(|| vec![proposal.digest]);
-            let mut signatures = vec![];
-            for cosigner in cosigners {
-                signatures
-                    .extend(local_cosigs(h, &view, cosigner, proposal.id, seq, &digests).await?);
-            }
-            let collected = packets::keep(h, &view, &proposal, plan.as_deref(), signatures).await?;
-            if collect_only {
-                collected
+            if !collect_only
+                && plan.is_none()
+                && matches!(
+                    current.status,
+                    ProposalStatus::Executing | ProposalStatus::Settled
+                )
+            {
+                // The previous execute may have committed before its reply was
+                // lost. Resume it without signing again or importing a packet
+                // for a proposal that is no longer awaiting execution.
+                execute_icp(h, wallet, proposal.id, vec![]).await?
             } else {
-                packets::execute(h, wallet, proposal.id, seq).await?
+                if let Some(plan) = &plan {
+                    ensure(now_ms() < plan.expires_at_ms, Error::Expired)?;
+                    decode::verify_plan(&view, &proposal.intent, plan)?;
+                }
+                let seq = plan.as_ref().map_or(0, |p| p.seq);
+                let digests = plan
+                    .as_ref()
+                    .map(|p| p.digests.clone())
+                    .unwrap_or_else(|| vec![proposal.digest]);
+                let mut signatures = vec![];
+                for cosigner in cosigners {
+                    signatures
+                        .extend(local_cosigs(h, &view, cosigner, proposal.id, seq, &digests).await?);
+                }
+                let collected =
+                    packets::keep(h, &view, &proposal, plan.as_deref(), signatures).await?;
+                if collect_only {
+                    collected
+                } else {
+                    packets::execute(h, wallet, proposal.id, seq).await?
+                }
             }
         }
     };

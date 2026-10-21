@@ -299,21 +299,7 @@ pub async fn execute<H: Hold>(h: &H, wallet: Principal, id: u64, seq: u32) -> Re
     )?;
     match plan {
         Some(plan) => ops::sign_and_send(h, wallet, &view, &p, &plan, packet.signatures).await,
-        None => {
-            let (_, ic) = identity(h).await?;
-            let out: Result<ExecuteResult> = ic
-                .update(
-                    wallet,
-                    "execute",
-                    (ExecuteArgs {
-                        proposal: id,
-                        plan: None,
-                        cosigs: packet.signatures,
-                    },),
-                )
-                .await?;
-            Ok(proposal_view(&out?.proposal))
-        }
+        None => ops::execute_icp(h, wallet, id, packet.signatures).await,
     }
 }
 

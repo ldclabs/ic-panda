@@ -4522,6 +4522,7 @@ fn desktop_wallet() {
         "wallet",
         Options {
             wallet: true,
+            proxies: true,
             ..Options::default()
         },
     );
@@ -4883,6 +4884,81 @@ fn desktop_wallet() {
         .unwrap();
     assert_eq!(empty_audit["recent"], json!([]));
     assert_eq!(empty_audit["to"], 0);
+
+    // A single-device cosign job must recover a lost execute reply without
+    // signing again or paying twice, both during execution and after settlement.
+    let address = a
+        .rpc(
+            &http,
+            "wallet/change",
+            json!({"wallet":wallet,"change":{
+                "kind":"address","chain":"Icp","label":"Retry cosigning","segwit":false,
+                "cosign":{"threshold":1,"cosigners":[cosigners[0]]}
+            }}),
+        )
+        .unwrap();
+    approve_admin(&address);
+    let address_id = address["id"].as_u64().unwrap().to_string();
+    a.run(&["wallet", "execute", &wallet, &address_id]);
+    let address_done = a.run(&["wallet", "proposal", &wallet, &address_id]);
+    let from = address_done["outcome"]["address"].as_u64().unwrap() as u32;
+    mint(
+        d,
+        ledger,
+        dmsg_protocol::wallet::icp_account(owner, from),
+        20_000_000,
+    );
+    for interrupted in [false, true] {
+        let before = ledger_balance(d, ledger, to);
+        let transfer = a.run(&[
+            "wallet",
+            "send",
+            &wallet,
+            "--from",
+            &from.to_string(),
+            "--asset",
+            "icp",
+            "--to",
+            &to.to_string(),
+            "--amount",
+            "1000000",
+            "--max-fee",
+            "10000",
+        ]);
+        let id = transfer["id"].as_u64().unwrap().to_string();
+        let decision = b.run(&["wallet", "approve", &wallet, &id]);
+        b.decide(&http, &decision, true).unwrap();
+        let request = a.run(&["wallet", "execute", &wallet, &id]);
+        assert_eq!(request["detail"]["collect_only"], false);
+        if interrupted {
+            d.ic.update_call(
+                ledger,
+                d.peer,
+                "lose_next_response",
+                candid::encode_args(()).unwrap(),
+            )
+            .unwrap();
+        }
+        let proxy = env.ic_proxy.as_ref().unwrap();
+        proxy.lose_next("POST", &format!("/canister/{wallet}/call"));
+        assert_eq!(
+            a.decide(&http, &request, true),
+            Err("EXECUTION_UNKNOWN".into())
+        );
+        assert_eq!(proxy.pending(), 0);
+        assert_eq!(approval_state(a, &request), "unknown");
+        assert_eq!(
+            a.run(&["wallet", "proposal", &wallet, &id])["status"],
+            if interrupted { "Executing" } else { "Settled" }
+        );
+        a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
+        assert_eq!(approval_state(a, &request), "done");
+        let completed = a.run(&["approvals", "show", request["id"].as_str().unwrap()]);
+        assert_eq!(completed["detail"]["result"]["status"], "Settled");
+        assert_eq!(ledger_balance(d, ledger, to), before + 1_000_000);
+        a.rpc(&http, "approval/reconcile", Value::Null).unwrap();
+        assert_eq!(ledger_balance(d, ledger, to), before + 1_000_000);
+    }
 
     // A creation that fails after payment, here for want of the hub's
     // cycles: `wallet refund` claims the deposit with this device's wallet

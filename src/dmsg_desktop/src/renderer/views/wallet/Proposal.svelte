@@ -160,7 +160,7 @@
             >
             <button
               class={buttonClass('primary', 'sm')}
-              disabled={busy || !collection?.ready || !available.execute}
+              disabled={busy || !collection?.ready || !available.executeCollected}
               onclick={() => run('wallet/cosign_execute', { plan })}>{w('executeCollected')}</button
             >
           </div>

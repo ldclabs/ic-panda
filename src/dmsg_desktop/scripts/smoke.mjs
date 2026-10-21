@@ -937,7 +937,10 @@ const methods = {
   'inbox/outgoing': () => [],
   'inbox/policy': () => ({ mode: 'paid', version: 1 }),
   'inbox/configure': (p) => ({ ...p, version: 2 }),
-  'wallet/readiness': () => ({blockers:[],payer:{principal:'xkbqi-2qaaa-aaaah-qbpqq-cai'},balance:{balance:'50000000000'}}),
+  'wallet/readiness': () => {
+    if (wallets.state.readinessError) throw { code: 'UNAVAILABLE', message: 'temporary wallet service outage' }
+    return {blockers:wallets.state.blockers,payer:{principal:'xkbqi-2qaaa-aaaah-qbpqq-cai'},balance:{balance:'50000000000'}}
+  },
   'wallet/list': wallets.list,
   'wallet/principal': () => ({ principal: 'xkbqi-2qaaa-aaaah-qbpqq-cai' }),
   'wallet/cosigners': () => [],
@@ -1801,10 +1804,25 @@ try {
   await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
   assert.match(await main.textContent('[data-testid="wallet-proposal-detail"]'),/Publicly readable/)
   assert.match(await main.textContent('[data-testid="wallet-proposal-detail"]'),/Spending approvals/)
+  wallets.state.readinessError = true
   await main.locator('[data-testid="wallet-proposal-detail"]').getByRole('button',{name:'Approve',exact:true}).click()
   await approval.waitForSelector('[data-testid="wallet-intent"]')
   assert.match(await approval.textContent('[data-testid="wallet-intent"]'),/Publicly readable/)
   assert.match(await approval.textContent('[data-testid="wallet-intent"]'),/Yes/)
+  // Recover a transient preflight failure in the same approval window.
+  await approval.waitForSelector('[data-testid="approval-wallet-retry"]')
+  assert.equal(await approval.isDisabled('[data-testid="approve"]'), true)
+  wallets.state.readinessError = false
+  await approval.click('[data-testid="approval-wallet-retry"]')
+  await approval.waitForSelector('[data-testid="approve"]:not([disabled])')
+  // Permission changes refresh readiness along with the request.
+  wallets.state.blockers = ['WALLET_APPROVE_REQUIRED']
+  emit('approval/changed')
+  await approval.waitForSelector('[data-testid="approval-blockers"] >> text=Enable WalletApprove')
+  assert.equal(await approval.isDisabled('[data-testid="approve"]'), true)
+  wallets.state.blockers = []
+  emit('approval/changed')
+  await approval.waitForSelector('[data-testid="approve"]:not([disabled])')
   await main.keyboard.press('Escape')
   wallets.state.role='Viewer'
   emit('wallet/changed')
@@ -1816,6 +1834,26 @@ try {
   wallets.state.role='Admin'
   emit('wallet/changed')
   await main.waitForFunction(()=>document.querySelector('[data-testid="wallet-identity"]')?.textContent.includes('Administrator'))
+  // A collected replacement executes its existing plan while the proposal
+  // is still Broadcast; it does not prepare yet another plan.
+  const replacement = wallets.proposals.find((p) => p.id === 54)
+  const originalProposal = structuredClone(replacement)
+  Object.assign(replacement, {
+    status: 'Broadcast', plans: 2, signed: [{ plan: 1, txid: 'old' }],
+    intent: { ...replacement.intent, from: 2, asset: { asset: 'ETH', key: 'evm:1', chain_id: 1, decimals: 18 } }
+  })
+  wallets.state.replacement = true
+  emit('wallet/changed')
+  await main.locator('[data-testid="wallet-proposal"]').nth(1).getByRole('button',{name:'Details',exact:true}).click()
+  await main.waitForSelector('[data-testid="wallet-cosign-collection"]')
+  await main.locator('[data-testid="wallet-cosign-collection"]').getByRole('button',{name:'Execute with signatures',exact:true}).click()
+  await waitFor(() => wallets.state.executed)
+  assert.equal(wallets.state.executed.proposal, 54)
+  assert.equal(wallets.state.executed.plan, 2)
+  await main.keyboard.press('Escape')
+  wallets.state.replacement = false
+  Object.assign(replacement, originalProposal)
+  emit('wallet/changed')
   await main.click('[data-testid="wallet-tab-team"]')
   await main.getByRole('button',{name:'Change policy',exact:true}).click()
   await main.waitForSelector('[data-testid="wallet-policy-editor"]')

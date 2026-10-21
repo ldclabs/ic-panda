@@ -172,6 +172,24 @@ test('clock transitions expire and release delayed proposals without another use
   assert.equal(stateAt({ ...p, status: 'Broadcast' }, 20000), 'Broadcast')
 })
 
+test('collected replacement signatures execute only an unsigned plan with current member permission', () => {
+  const wallet = sampleWallet()
+  for (const status of ['Signed', 'Broadcast']) {
+    const replacement = sampleProposal({ status, plans: 2, signed: [{ plan: 1, txid: 'old' }] })
+    assert.equal(actions(replacement, wallet, 100).execute, false)
+    assert.equal(actions(replacement, wallet, 100).executeCollected, true)
+    assert.equal(actions(replacement, { ...wallet, frozen: true }, 100).executeCollected, false)
+    assert.equal(actions(replacement, sampleWallet('Viewer'), 100).executeCollected, false)
+    assert.equal(actions(replacement, { ...wallet, me: { ...wallet.me!, status: 'Invited' } }, 100).executeCollected, false)
+    assert.equal(actions({ ...replacement, plans: 1 }, wallet, 100).executeCollected, false)
+  }
+  assert.equal(actions(sampleProposal({ status: 'Ready' }), wallet, 100).executeCollected, true)
+  for (const status of ['Open', 'Delayed', 'Executing', 'Settled', 'Failed', 'Expired']) {
+    assert.equal(actions(sampleProposal({ status, ready_at: 1000 }), wallet, 100).executeCollected, false, status)
+  }
+  assert.equal(actions(sampleProposal({ status: 'Ready' }), wallet, 10000).executeCollected, false)
+})
+
 test('approval counts exclude inactive and ineligible voters', () => {
   const p = sampleProposal({
     votes: [

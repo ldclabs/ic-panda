@@ -131,6 +131,11 @@ export function actions(p: Proposal, w: Wallet, now: number) {
     reject: state === 'Open' && eligible && !voted,
     veto: state === 'Delayed' && decider,
     execute: active && me?.role !== 'Viewer' && ['Ready', 'Executing'].includes(state) && permitted,
+    executeCollected:
+      active &&
+      me?.role !== 'Viewer' &&
+      permitted &&
+      (state === 'Ready' || (['Signed', 'Broadcast'].includes(state) && p.plans > 0 && !p.signed.some((s) => s.plan === p.plans))),
     rebroadcast: active && me?.role !== 'Viewer' && ['Signed', 'Broadcast'].includes(state),
     resign: active && me?.role !== 'Viewer' && ['Signed', 'Broadcast'].includes(state) && permitted,
     cancel: active && p.proposer === me?.id && ['Open', 'Delayed', 'Ready'].includes(state),
