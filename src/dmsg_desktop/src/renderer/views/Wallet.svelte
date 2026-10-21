@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import Avatar from '../components/Avatar.svelte'
   import { copyText } from '../components/clipboard'
   import Icon from '../components/Icon.svelte'
   import Fact from '../components/page/Fact.svelte'
@@ -11,10 +12,19 @@
   import Section from '../components/page/Section.svelte'
   import Select from '../components/Select.svelte'
   import { toast } from '../components/toast.svelte'
+  import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, planAction, single, units, when } from '../rpc'
   import AgentAccess from './agents/AgentAccess.svelte'
+  import {
+    activationTotal,
+    MAX_DRAFT_MEMBERS,
+    memberInputs,
+    memberProblem,
+    thresholdLimits,
+    type MemberDraft
+  } from './wallet/new-wallet'
 
   /**
    * Team wallets: one canister per team. Proposing, executing what members
@@ -42,9 +52,14 @@
   let busy = $state(false)
   // New wallet.
   let name = $state('')
-  let members = $state('')
-  let approvals = $state('1')
-  let adminApprovals = $state('1')
+  let nextDraft = 0
+  const blankDraft = (): MemberDraft => ({ key: nextDraft++, id: '', role: 'approver', label: '', touched: false })
+  let drafts = $state<MemberDraft[]>([blankDraft()])
+  let approvals = $state(1)
+  let adminApprovals = $state(1)
+  // A quote is read once when the view opens; the person may read it again.
+  let quoteAsked = false
+  let quoteLoading = $state(false)
   // Join.
   let joining = $state('')
   // Transfer.
@@ -66,6 +81,40 @@
   const me = $derived(wallet?.me)
   const role = $derived(me?.role ?? '')
   const decider = $derived(['Admin', 'Approver'].includes(role))
+  const creator = $derived(String(status?.account ?? ''))
+  const roleOptions = $derived([
+    { value: 'admin', label: t('twRoleAdmin') },
+    { value: 'approver', label: t('twRoleApprover') },
+    { value: 'proposer', label: t('twRoleProposer') },
+    { value: 'viewer', label: t('twRoleViewer') },
+    { value: 'recovery', label: t('twRoleRecovery') }
+  ])
+  // The creator is an Admin; only Admins and Approvers count toward the thresholds.
+  const limits = $derived(thresholdLimits(drafts))
+  const memberCount = $derived(1 + drafts.filter((row) => row.id.trim()).length)
+  const problems = $derived(drafts.map((row) => memberProblem(row, drafts, creator)))
+  const invalid = $derived(problems.some((problem) => problem !== null))
+  const canCreate = $derived(!!name.trim() && !invalid)
+  const remaining = $derived(preview?.remaining ?? 0)
+  const total = $derived(preview ? activationTotal(preview.price_e8s, preview.ledger_fee_e8s) : '0')
+
+  // A role may stop counting toward a threshold; the threshold never asks for more than there are.
+  $effect(() => {
+    if (approvals > limits.approvers) approvals = limits.approvers
+    if (adminApprovals > limits.admins) adminApprovals = limits.admins
+  })
+
+  // The price is a fast read, so the form is ready when the view opens; a
+  // failed read leaves the Get a quote button as the way to try again.
+  $effect(() => {
+    if (!unlocked) {
+      quoteAsked = false
+      return
+    }
+    if (quoteAsked) return
+    quoteAsked = true
+    void loadQuote(true)
+  })
 
   /** Assets an address can send, as `wallet/send` reads them. */
   const assetsOf = (address: any): { value: string; label: string }[] => {
@@ -159,23 +208,49 @@
       toast(() => t('twAgentsProposed'))
     })
 
-  /** The fast preview: price, fee and what the account's plan still allows. */
-  const getQuote = () => attempt(async () => (preview = await call('wallet/quote_preview')))
+  /** The fast preview; quiet when the view opens it, a notice when the person asks again. */
+  async function loadQuote(quiet: boolean) {
+    if (quoteLoading) return
+    quoteLoading = true
+    if (!quiet) busy = true
+    try {
+      preview = await call('wallet/quote_preview')
+    } catch (e) {
+      if (!quiet) toast(() => errorText(e), planAction(e))
+    } finally {
+      quoteLoading = false
+      if (!quiet) busy = false
+    }
+  }
 
-  /** `<account or principal> <role> [label]` per line. */
-  function parsedMembers() {
-    return members
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const [id, memberRole = 'approver', ...label] = line.split(/\s+/)
-        return { id, role: memberRole, label: label.join(' ') }
-      })
+  const getQuote = () => loadQuote(false)
+
+  function addMember() {
+    if (drafts.length >= MAX_DRAFT_MEMBERS) return
+    drafts = [...drafts, blankDraft()]
+  }
+
+  function removeMember(key: number) {
+    drafts = drafts.filter((row) => row.key !== key)
+    if (!drafts.length) drafts = [blankDraft()]
+  }
+
+  function resetDraft() {
+    name = ''
+    drafts = [blankDraft()]
+    approvals = 1
+    adminApprovals = 1
+  }
+
+  /** Back to the price panel; the next quote starts a new wallet. */
+  function cancelCreate() {
+    resetDraft()
+    preview = null
   }
 
   const create = () =>
     attempt(async () => {
+      if (!canCreate) return
       // The preview only says what the plan allows; the hub stores the quote
       // this approval and payment commit to.
       const quote: any = await call('wallet/quote')
@@ -187,11 +262,13 @@
         await call('wallet/create', {
           quote: quote.quote_id,
           name: name.trim(),
-          members: parsedMembers(),
-          approvals: Number(approvals),
-          admin_approvals: Number(adminApprovals)
+          members: memberInputs(drafts),
+          approvals,
+          admin_approvals: adminApprovals
         })
       )
+      // The form closes so another wallet starts from a fresh quote; the draft
+      // stays for a retry when the approval window is dismissed.
       preview = null
     })
 
@@ -447,32 +524,207 @@
       />
     {/if}
 
-    <Section title={t('twNew')} description={t('twNewHint')} icon="add">
+    <Section title={t('twNew')} description={t('twNewHint')} icon="add" testid="wallet-new">
       {#if !preview}
-        <button class={buttonClass('secondary')} disabled={busy} onclick={getQuote} data-testid="wallet-quote">{t('twQuote')}</button>
+        <div class="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface-2 px-4 py-3.5">
+          <span class="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest"><Icon name="coins" /></span>
+          <p class="min-w-0 flex-1 text-[12.5px] leading-relaxed text-muted">{t('twQuoteHint')}</p>
+          <button class={buttonClass('secondary')} disabled={busy || quoteLoading} onclick={getQuote} data-testid="wallet-quote">
+            <Icon name={quoteLoading ? 'pending' : 'coins'} class={quoteLoading ? 'animate-spin motion-reduce:animate-none' : ''} />
+            {t('twQuote')}
+          </button>
+        </div>
       {:else}
-        <Notice tone={preview.remaining > 0 ? 'info' : 'warn'} testid="wallet-quote-line">
-          {t('twQuoteLine', { price: units(preview.price_e8s, 8), fee: units(preview.ledger_fee_e8s, 8), left: preview.remaining, plan: preview.plan })}
-          {#if preview.remaining === 0}
-            <span class="mt-1 block">{t('twQuoteNone')} <a class="font-medium underline underline-offset-2" href="#/plan">{t('openPlan')}</a></span>
-          {/if}
-        </Notice>
-        {#if preview.remaining > 0}
-          <div class="mt-3 grid gap-3 sm:grid-cols-2">
-            <Field label={t('twName')} class="sm:col-span-2"><input bind:value={name} data-testid="wallet-name" /></Field>
-            <Field label={t('members')} hint={t('twMembersHint')} class="sm:col-span-2">
-              <textarea bind:value={members} rows="3" class="font-mono text-[12.5px]"></textarea>
-            </Field>
-            <Field label={t('twApprovals')}><input bind:value={approvals} inputmode="numeric" /></Field>
-            <Field label={t('twAdminApprovals')}><input bind:value={adminApprovals} inputmode="numeric" /></Field>
+        <div class="@container rounded-xl border border-line bg-surface-2 p-3.5" data-testid="wallet-quote-line">
+          <div class="flex flex-wrap items-start gap-3">
+            <span class="mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-forest"><Icon name="coins" /></span>
+            <dl class="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-2 @min-[520px]:grid-cols-3">
+              <div class="min-w-0">
+                <dt class="text-[11px] text-faint">{t('twActivation')}</dt>
+                <dd class="text-[19px] leading-snug font-semibold tabular-nums">{units(preview.price_e8s, 8)}{'\u00a0'}<span class="text-[12px] font-normal text-muted">ICP</span></dd>
+              </div>
+              <div class="min-w-0">
+                <dt class="text-[11px] text-faint">{t('twFee')}</dt>
+                <dd class="text-[13.5px] font-medium tabular-nums">{units(preview.ledger_fee_e8s, 8)}{'\u00a0'}<span class="text-[12px] font-normal text-muted">ICP</span></dd>
+              </div>
+              <div class="min-w-0">
+                <dt class="text-[11px] text-faint">{t('twTotal')}</dt>
+                <dd class="text-[13.5px] font-semibold tabular-nums">{units(total, 8)}{'\u00a0'}<span class="text-[12px] font-normal text-muted">ICP</span></dd>
+              </div>
+            </dl>
+            <div class="flex items-center gap-1">
+              <Pill tone={remaining > 0 ? 'forest' : 'warn'}>{t('twQuotaLeft', { left: preview.remaining, plan: preview.plan })}</Pill>
+              <Tooltip content={t('refresh')}>
+                {#snippet children(props)}
+                  <button {...props} class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('refresh')} disabled={busy || quoteLoading} onclick={getQuote} data-testid="wallet-quote">
+                    <Icon name="sync-now" class={quoteLoading ? 'animate-spin motion-reduce:animate-none' : ''} />
+                  </button>
+                {/snippet}
+              </Tooltip>
+            </div>
           </div>
-        {/if}
-        <div class="mt-3 flex justify-end gap-2">
-          <button class={buttonClass('ghost')} onclick={() => (preview = null)}>{t('cancel')}</button>
-          {#if preview.remaining > 0}
-            <button class={buttonClass('primary')} disabled={busy || !name.trim()} onclick={create} data-testid="wallet-create">{t('twCreate')}</button>
+          {#if remaining === 0}
+            <p class="mt-3 flex flex-wrap items-center gap-1.5 border-t border-line pt-2.5 text-[12px] text-warn">
+              <Icon name="warning" class="size-3.5" />
+              <span>{t('twQuoteNone')}</span>
+              <a class="font-medium text-forest underline underline-offset-2" href="#/plan">{t('openPlan')}</a>
+            </p>
           {/if}
         </div>
+
+        {#if remaining > 0}
+          <div class="mt-4 grid gap-5" data-testid="wallet-new-form">
+            <Field label={t('twName')}>
+              <input bind:value={name} placeholder={t('twNameHint')} maxlength="64" autocomplete="off" data-testid="wallet-name" />
+            </Field>
+
+            <div class="grid gap-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-baseline gap-2">
+                  <span class="text-[12px] text-faint">{t('members')}</span>
+                  <span class="text-[11px] text-faint tabular-nums">{memberCount}</span>
+                </div>
+                <button
+                  type="button"
+                  class={buttonClass('secondary', 'xs')}
+                  disabled={busy || drafts.length >= MAX_DRAFT_MEMBERS}
+                  onclick={addMember}
+                  data-testid="wallet-member-add"
+                >
+                  <Icon name="login" />{t('twAddMember')}
+                </button>
+              </div>
+              <div class="@container overflow-hidden rounded-xl border border-line" data-testid="wallet-members">
+                <div class="flex flex-wrap items-center gap-2 border-b border-line bg-pale/40 px-3 py-2.5" data-testid="wallet-creator">
+                  {#if creator}<Avatar id={creator} size="sm" />{/if}
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <b class="text-[12.5px] font-medium">{t('you')}</b>
+                      <Pill tone="forest">{t('twRoleAdmin')}</Pill>
+                    </div>
+                    {#if creator}<div class="mt-0.5"><Id id={creator} /></div>{/if}
+                  </div>
+                </div>
+                <div class="hidden gap-2 border-b border-line bg-surface-2 px-2.5 py-1.5 text-[11px] font-medium text-faint @min-[560px]:grid @min-[560px]:grid-cols-[minmax(0,1fr)_10rem_10rem_1.75rem]">
+                  <span>{t('twMemberId')}</span>
+                  <span>{t('role')}</span>
+                  <span>{t('label')}</span>
+                  <span></span>
+                </div>
+                {#each drafts as row, i (row.key)}
+                  {@const problem = problems[i]}
+                  <div
+                    class="grid gap-2 border-b border-line p-2.5 last:border-0 @min-[560px]:grid-cols-[minmax(0,1fr)_10rem_10rem_1.75rem] @min-[560px]:items-start"
+                    data-testid="wallet-member"
+                  >
+                    <input
+                      bind:value={row.id}
+                      class="min-w-0 font-mono text-[12.5px] placeholder:font-sans"
+                      placeholder={t('twMemberId')}
+                      spellcheck="false"
+                      autocomplete="off"
+                      aria-label={t('twMemberId')}
+                      aria-invalid={problem ? 'true' : undefined}
+                      onblur={() => (row.touched = true)}
+                      data-testid="wallet-member-id"
+                    />
+                    <Select bind:value={row.role} options={roleOptions} label={t('role')} testid="wallet-member-role" class="w-full" />
+                    <input
+                      bind:value={row.label}
+                      class="min-w-0"
+                      placeholder={t('label')}
+                      maxlength="64"
+                      aria-label={t('label')}
+                      data-testid="wallet-member-label"
+                    />
+                    <button
+                      type="button"
+                      class={buttonClass('ghost', 'sm', 'size-7 justify-self-start px-0')}
+                      aria-label={t('twRemoveMember')}
+                      disabled={busy}
+                      onclick={() => removeMember(row.key)}
+                      data-testid="wallet-member-remove"><Icon name="close" /></button
+                    >
+                    {#if problem && (row.touched || problem !== 'twMemberInvalid')}
+                      <p class="text-[11.5px] text-danger @min-[560px]:col-span-4" data-testid="wallet-member-error">{t(problem)}</p>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+              <p class="text-[11.5px] leading-normal text-faint">{t('twMembersHint')}</p>
+            </div>
+
+            <div class="@container grid gap-2">
+              <span class="text-[12px] text-faint">{t('twPolicySection')}</span>
+              <div class="grid gap-2 @min-[560px]:grid-cols-2">
+                <div class="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-3.5">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[12.5px] font-medium">{t('twApprovals')}</p>
+                    <p class="mt-0.5 text-[11.5px] leading-normal text-faint">{t('twApprovalsHint', { max: limits.approvers })}</p>
+                  </div>
+                  <div class="flex shrink-0 items-center rounded-lg border border-edge-soft bg-surface p-0.5">
+                    <button
+                      type="button"
+                      class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                      aria-label={`${t('twDecrease')} ${t('twApprovals')}`}
+                      disabled={busy || approvals <= 1}
+                      onclick={() => (approvals -= 1)}
+                      data-testid="wallet-approvals-dec"><span aria-hidden="true" class="text-[15px] leading-none">−</span></button
+                    >
+                    <span class="w-8 text-center text-[13px] font-medium tabular-nums" data-testid="wallet-approvals">{approvals}</span>
+                    <button
+                      type="button"
+                      class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                      aria-label={`${t('twIncrease')} ${t('twApprovals')}`}
+                      disabled={busy || approvals >= limits.approvers}
+                      onclick={() => (approvals += 1)}
+                      data-testid="wallet-approvals-inc"><span aria-hidden="true" class="text-[15px] leading-none">+</span></button
+                    >
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-3.5">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[12.5px] font-medium">{t('twAdminApprovals')}</p>
+                    <p class="mt-0.5 text-[11.5px] leading-normal text-faint">{t('twAdminApprovalsHint', { max: limits.admins })}</p>
+                  </div>
+                  <div class="flex shrink-0 items-center rounded-lg border border-edge-soft bg-surface p-0.5">
+                    <button
+                      type="button"
+                      class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                      aria-label={`${t('twDecrease')} ${t('twAdminApprovals')}`}
+                      disabled={busy || adminApprovals <= 1}
+                      onclick={() => (adminApprovals -= 1)}
+                      data-testid="wallet-admin-approvals-dec"><span aria-hidden="true" class="text-[15px] leading-none">−</span></button
+                    >
+                    <span class="w-8 text-center text-[13px] font-medium tabular-nums" data-testid="wallet-admin-approvals">{adminApprovals}</span>
+                    <button
+                      type="button"
+                      class={buttonClass('ghost', 'sm', 'size-7 px-0')}
+                      aria-label={`${t('twIncrease')} ${t('twAdminApprovals')}`}
+                      disabled={busy || adminApprovals >= limits.admins}
+                      onclick={() => (adminApprovals += 1)}
+                      data-testid="wallet-admin-approvals-inc"><span aria-hidden="true" class="text-[15px] leading-none">+</span></button
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 border-t border-line pt-4">
+              <p class="min-w-0 flex-1 text-[11.5px] leading-normal text-faint">
+                {t('twCreateSummary', { total: units(total, 8), approvals, admin: adminApprovals })}
+              </p>
+              <button type="button" class={buttonClass('ghost')} disabled={busy} onclick={cancelCreate} data-testid="wallet-create-cancel">{t('cancel')}</button>
+              <button
+                type="button"
+                class={buttonClass('primary')}
+                disabled={busy || quoteLoading || !canCreate}
+                onclick={create}
+                data-testid="wallet-create"><Icon name="coins" />{t('twCreate')}</button
+              >
+            </div>
+          </div>
+        {/if}
       {/if}
     </Section>
 

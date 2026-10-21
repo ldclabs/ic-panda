@@ -319,6 +319,8 @@ const deposits = [
   { quote_id: 'b1'.repeat(32), state: 'failed', refundable: true, refund_e8s: '999990000', ledger_fee_e8s: '10000', expires_at: Date.now() - 60_000, reason: 'insufficient liquid cycle balance' },
   { quote_id: 'b2'.repeat(32), state: 'unused', refundable: false, refund_e8s: '999990000', ledger_fee_e8s: '10000', expires_at: Date.now() + 600_000, reason: null }
 ]
+/** What the wallet view's quote preview says; the form is tested once it has room. */
+let walletPreview = { plan: 'Free', remaining: 0, price_e8s: '1000000000', ledger_fee_e8s: '10000', cycles_to_wallet: '3000000000000', version: 1 }
 const calls = []
 /** Whether the hosted Agent ID is paused. */
 let agentPaused = false
@@ -935,7 +937,7 @@ const methods = {
   'wallet/list': () => [],
   'wallet/principal': () => ({ principal: 'xkbqi-2qaaa-aaaah-qbpqq-cai' }),
   'wallet/cosigners': () => [],
-  'wallet/quote_preview': () => ({ plan: 'Free', remaining: 0, price_e8s: '1000000000', ledger_fee_e8s: '10000', cycles_to_wallet: '3000000000000', version: 1 }),
+  'wallet/quote_preview': () => walletPreview,
   'wallet/deposits': () => deposits,
   'wallet/refund': (p) => {
     const i = deposits.findIndex((d) => d.quote_id === p.quote && d.refundable)
@@ -1588,9 +1590,10 @@ try {
   )
   assert.equal(await main.locator('[data-testid="checkout-neuron"]').count(), 3)
   assert.equal(await main.locator('[data-testid="checkout-neuron"]').nth(1).isDisabled(), false)
-  assert.match(await main.locator('[data-testid="checkout-neuron"]').nth(1).textContent(), /Dissolving/)
+  // A neuron's details are the label around its radio button, which carries the testid.
+  assert.match(await main.locator('[data-testid="checkout-neuron"]').nth(1).locator('..').textContent(), /Dissolving/)
   assert.equal(await main.locator('[data-testid="checkout-neuron"]').nth(2).isDisabled(), true)
-  assert.match(await main.locator('[data-testid="checkout-neuron"]').nth(2).textContent(), /Unlocks before the term ends/)
+  assert.match(await main.locator('[data-testid="checkout-neuron"]').nth(2).locator('..').textContent(), /Unlocks before the term ends/)
   await main.locator('[data-testid="checkout-neuron"]').nth(1).click()
   await main.click('[data-testid="checkout-pay"]')
   await waitFor(() => latest('plan/quote').params.method === 'panda')
@@ -1738,6 +1741,48 @@ try {
   assert.match(quoteLine, /Your plan cannot create a team wallet/)
   assert.equal(await main.locator('[data-testid="wallet-create"]').count(), 0)
   await waitFor(() => latest('wallet/quote_preview'))
+
+  // A plan with room opens the form: the creator is an Admin, a member is
+  // chosen with a role and label instead of typed as a line of text, and a
+  // threshold may ask only for approvers the wallet has.
+  walletPreview = { ...walletPreview, plan: 'Max', remaining: 10, price_e8s: '200000000', ledger_fee_e8s: '10000' }
+  await main.click('[data-testid="wallet-quote"]')
+  await main.waitForSelector('[data-testid="wallet-new-form"]')
+  assert.match(await main.textContent('[data-testid="wallet-quote-line"]'), /2\.0001/)
+  assert.match(await main.textContent('[data-testid="wallet-quote-line"]'), /10 left on Max/)
+  assert.match(await main.textContent('[data-testid="wallet-creator"]'), /You[\s\S]*Admin/)
+  assert.equal(await main.locator('[data-testid="wallet-member"]').count(), 1)
+  await main.fill('[data-testid="wallet-name"]', 'Smoke team')
+  await main.fill('[data-testid="wallet-member-id"]', peer)
+  await main.fill('[data-testid="wallet-member-label"]', 'Peer')
+  // A new member is an Approver, so spending may ask for two people but changes for one.
+  assert.equal(await main.textContent('[data-testid="wallet-approvals"]'), '1')
+  assert.equal(await main.isDisabled('[data-testid="wallet-admin-approvals-inc"]'), true)
+  await main.click('[data-testid="wallet-approvals-inc"]')
+  assert.equal(await main.textContent('[data-testid="wallet-approvals"]'), '2')
+  // An Admin approves changes too, so both limits grow.
+  await choose(main, 'wallet-member-role', 'admin')
+  assert.equal(await main.isDisabled('[data-testid="wallet-admin-approvals-inc"]'), false)
+  await main.click('[data-testid="wallet-admin-approvals-inc"]')
+  assert.equal(await main.textContent('[data-testid="wallet-admin-approvals"]'), '2')
+  await main.locator('[data-testid="wallet-new"]').screenshot({ path: join(shots, 'wallet-new.png') })
+  // A role that no longer approves pulls both thresholds back to the creator alone.
+  await choose(main, 'wallet-member-role', 'viewer')
+  assert.equal(await main.textContent('[data-testid="wallet-approvals"]'), '1')
+  assert.equal(await main.textContent('[data-testid="wallet-admin-approvals"]'), '1')
+  // A member named twice is refused before the hub is asked; removing the
+  // row makes the draft createable again.
+  await main.click('[data-testid="wallet-member-add"]')
+  assert.equal(await main.locator('[data-testid="wallet-member"]').count(), 2)
+  await main.locator('[data-testid="wallet-member-id"]').nth(1).fill(peer)
+  await main.waitForSelector('[data-testid="wallet-member-error"]')
+  assert.match(await main.locator('[data-testid="wallet-member-error"]').first().textContent(), /already listed/)
+  assert.equal(await main.isDisabled('[data-testid="wallet-create"]'), true)
+  await main.locator('[data-testid="wallet-member-remove"]').nth(1).click()
+  assert.equal(await main.isDisabled('[data-testid="wallet-create"]'), false)
+  // Cancel clears the draft and returns to the price panel.
+  await main.click('[data-testid="wallet-create-cancel"]')
+  await main.waitForSelector('[data-testid="wallet-new-form"]', { state: 'detached' })
 
   // A grant to a hosted Agent ID is signed only after the approval window agrees.
   await main.click('nav >> text=/Agents|Agent/')
@@ -2431,6 +2476,8 @@ try {
   await main.keyboard.press(`${mod}+8`)
   await main.waitForSelector('[data-testid="wallet-deposits"]')
   await main.locator('[data-testid="wallet-deposits"]').screenshot({ path: join(shots, 'wallet-deposits-ar.png') })
+  await main.waitForSelector('[data-testid="wallet-new-form"]')
+  await main.locator('[data-testid="wallet-new"]').screenshot({ path: join(shots, 'wallet-new-ar.png') })
   await main.keyboard.press(`${mod}+,`)
   await main.click('[data-testid="settings-appearance"]')
   await choose(main, 'settings-language', 'fr')
@@ -2447,6 +2494,9 @@ try {
   await approval.waitForFunction(() => matchMedia('(prefers-color-scheme: dark)').matches)
   assert.equal(await readFile(join(profile, 'appearance'), 'utf8'), 'dark')
   await main.screenshot({ path: join(shots, 'appearance-dark.png') })
+  await main.keyboard.press(`${mod}+8`)
+  await main.waitForSelector('[data-testid="wallet-new-form"]')
+  await main.locator('[data-testid="wallet-new"]').screenshot({ path: join(shots, 'wallet-new-dark.png') })
 
   // Revoking a device takes a hold: a short press decides nothing, a second's hold approves.
   const decisions = () => calls.filter((c) => c.method === 'approval/respond').length
