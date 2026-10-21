@@ -39,6 +39,14 @@ fn check_purpose(r: &Reservation, decision: &ProductDecision) -> Result<()> {
     )
 }
 
+/// Only contracts that may still issue rights reserve a billing interval.
+fn live(c: &SubscriptionContract) -> bool {
+    matches!(
+        c.status,
+        SubscriptionStatus::Active | SubscriptionStatus::Unverifiable
+    )
+}
+
 impl ProductBook {
     /// New product subject with a defined CAS revision.
     pub fn new(beneficiary: Beneficiary, revision: u64) -> Self {
@@ -59,10 +67,18 @@ impl ProductBook {
         Ok(())
     }
 
+    /// The newest started contract that may still issue rights.
+    pub fn current(&self, at: u64) -> Option<&SubscriptionContract> {
+        self.contracts
+            .iter()
+            .rev()
+            .find(|c| live(c) && c.offer.starts_at_ms <= at && at < c.offer.expires_at_ms)
+    }
+
     /// Whether a live contract overlaps the half-open offer interval.
     fn overlaps(&self, offer: &BillingOffer) -> bool {
         self.contracts.iter().any(|c| {
-            c.status != SubscriptionStatus::Cancelled
+            live(c)
                 && c.offer.starts_at_ms < offer.expires_at_ms
                 && offer.starts_at_ms < c.offer.expires_at_ms
         })
@@ -71,7 +87,7 @@ impl ProductBook {
     /// Never evicts an unknown Apply. Historical records must already exist in the adapter archive.
     pub fn prune(&mut self, at: u64) {
         self.contracts
-            .retain(|c| c.offer.expires_at_ms > at && c.status != SubscriptionStatus::Cancelled);
+            .retain(|c| c.offer.expires_at_ms > at && live(c));
         if self
             .reservation
             .as_ref()
@@ -128,7 +144,7 @@ impl ProductBook {
         ensure(
             self.contracts
                 .iter()
-                .filter(|c| c.offer.expires_at_ms > at && c.status != SubscriptionStatus::Cancelled)
+                .filter(|c| c.offer.expires_at_ms > at && live(c))
                 .count()
                 < 2,
             Error::QuotaExceeded,

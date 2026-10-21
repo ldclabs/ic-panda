@@ -12,7 +12,7 @@
   import { t } from '../../i18n/index.svelte'
   import { call, errorText, onChange, single, size, units, when } from '../../rpc'
   import Checkout from './Checkout.svelte'
-  import { daysLeft, eligibilityLabels, methodLabels, offerLabels, sourceLabels, waitLabels } from './plan'
+  import { daysLeft, eligibilityLabels, methodLabels, offerLabels, refundOutcome, sourceLabels, waitLabels } from './plan'
 
   /**
    * The membership: the plan in force and its term, what it allows and what
@@ -93,8 +93,8 @@
     attempt(async () => {
       const done: any = await call('plan/cancel', { id: refund.order })
       refund = null
-      const failed = (done?.refunds ?? []).find((r: any) => r.error)
-      toast(() => (failed ? `${t('error')}: ${failed.error}` : t('refundSent')))
+      const outcome = refundOutcome(done?.refunds ?? [])
+      toast(() => outcome.error ? `${t('error')}: ${outcome.error}` : t(outcome.label))
       await load(true)
     })
 

@@ -442,6 +442,7 @@ export const schemas = {
     "progress": "CheckoutProgress",
     "quote": "CheckoutQuote",
     "receipt": "Option<ProductReceipt>",
+    "cancellation": "Option<CashCancellationReceipt>",
     "outgoing_atomic": "u128",
     "service_reserve_atomic": "u128",
     "fee_reserve_atomic": "u128"

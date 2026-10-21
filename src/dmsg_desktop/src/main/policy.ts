@@ -428,6 +428,11 @@ export function externalAllowed(url: string, login: string[], pairing: string[])
 /** The days before a term ends when the app reminds, once each. */
 export const REMIND_DAYS = [30, 7, 1]
 
+/** Exact destinations an approval window may open in the main window. */
+export const APPROVAL_MAIN_ROUTES = new Set([
+  '/login', '/approvals', '/settings/session', '/settings/security', '/settings/devices', '/plan', '/plan?tab=payments'
+])
+
 /**
  * The reminder due when `left` milliseconds of a term remain: the nearest
  * threshold reached, unless one as near was shown already (`shown`, in

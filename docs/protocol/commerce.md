@@ -112,9 +112,10 @@ A merchant can collect only its frozen order's earned portion, beginning at
 `max(actual_delivery, S)`. Another merchant's reserves and another ledger's
 assets cannot fund it. `claim_checkout_refund` aggregates caller-selected real
 deposits from the same ledger/source; the destination cannot be replaced.
-Cash cancellation requires a durable adapter receipt proving that the contract
-has not started or issued rights. Started cash service has no arbitrary-refund
-promise in this protocol.
+Cash cancellation requires a durable adapter receipt: an unstarted term may be
+cancelled, and the dMsg product permits an unused-time refund of the first cash
+base membership within seven days. Its rights stop no earlier than already
+issued leases; other started cash terms have no arbitrary-refund promise.
 
 Outgoing legs freeze their own source, ledger, recipient, net amount, fee, memo
 and timestamp. `Unknown`/`InFlight` is resolved by the same transfer or an exact
@@ -133,6 +134,16 @@ silently taken from someone else's principal or reserve. A live per-leg guard
 excludes concurrent dispatch, reconciliation and replacement, regardless of how
 long the first callback takes. Upgrades discard guards but retain `InFlight` and
 its frozen arguments; only the ledger result can resolve that uncertainty.
+
+### Checkout cancellation display
+
+`CheckoutView.cancellation` carries the product cancellation receipt separately
+from the cash settlement status. For an early refund, `Applied` may remain in the
+merchant book so earned revenue can still be collected. Clients use a successful
+cancellation receipt’s `cancelled_at_ms` as the service end and show closing
+until that instant, then cancelled. `RefundCommitted` means funds may be claimed;
+it does not prove a refund was sent. Only a `Succeeded` outgoing transfer
+confirms payment; rejected or unknown transfers remain visible for recovery.
 
 ## PANDA full-fee commitments
 
@@ -169,8 +180,10 @@ A qualified application applies immediately with the approval that requested
 it; if that device approval expired while the claim waited, the client signs a
 fresh one for the same immutable terms. Activation performs one fresh
 `get_neuron` after the last external await and before the local decision; the
-one-minute cache cannot reuse the earlier observation for Apply. At most current
-and contiguous next-term references can occupy a neuron, and both must name the
+one-minute cache cannot reuse the earlier observation for Apply. After that read
+returns, membership rechecks admission and the validity deadlines of both
+authority replies before preparing Apply; an expired check requires fresh
+authorization. At most current and contiguous next-term references can occupy a neuron, and both must name the
 same beneficiary. Different products cannot reuse that neuron concurrently. One
 service-global occupancy table enforces this.
 
@@ -187,8 +200,9 @@ Qualification leases last at most one hour and never pass E. Known ineligibility
 stops new rights and terminates the claim immediately; `Unverifiable` stops new
 rights without terminating and never extends an old lease. A terminated term
 never revives; after the issued lease ends the user may apply again with a
-restored, qualified neuron. A neuron read that returns after its SNS
-configuration verification expired (after one hour) or failed issues no lease
+restored, qualified neuron. Terminated product contracts no longer reserve their
+old billing intervals; their original terms and receipts remain historical
+evidence. A neuron read that returns after its SNS configuration verification expired (after one hour) or failed issues no lease
 and clears no commitment. `refresh_panda_claim`/`reconcile_panda_claim` preserve
 the original claim/decision.
 

@@ -203,4 +203,19 @@ fn qualification_leases_do_not_bump_business_revision_or_revive_terminated_right
     assert_eq!(c.status, SubscriptionStatus::Terminated);
     assert_eq!(c.offer.expires_at_ms, end);
     assert_eq!(c.business_revision, 10);
+
+    // Termination does not rewrite the original contract, but no longer
+    // reserves its interval against a new paid or qualified subscription.
+    let mut book = ProductBook::new(c.offer.beneficiary.clone(), 10);
+    book.contracts.push(c);
+    let later = at + 10 * DAY;
+    assert!(book.current(later).is_none());
+    let mut next = f::authorization(false);
+    next.offer.operation_id = Hash::new([99; 32]);
+    next.offer.expected_business_revision = 10;
+    next.offer.starts_at_ms = later;
+    next.offer.issued_at_ms = later;
+    next.offer.accept_by_ms = later + 15 * MINUTE;
+    book.reserve(next, later + DAY, later).unwrap();
+    assert!(book.contracts.is_empty());
 }

@@ -12,8 +12,10 @@ import {
   namePrice,
   nameProblem,
   nameState,
+  neuronUnlockAt,
   orderActions,
   orderState,
+  refundOutcome,
   skuOf,
   tokenOf
 } from '../src/renderer/views/plan/plan.ts'
@@ -27,7 +29,9 @@ test('an order reads as the service reports it, or as its journal stands before 
   assert.deepEqual(orderState(cash('accepted'), { status: 'AwaitingFunding' }), { label: 'orderAwaitingFunding', tone: 'warn' })
   assert.deepEqual(orderState(cash('accepted'), { status: 'Applied' }), { label: 'orderApplied', tone: 'ok' })
   assert.deepEqual(orderState(panda('accepted'), { status: 'Active' }), { label: 'orderApplied', tone: 'ok' })
-  assert.equal(orderState(cash('accepted'), { status: 'RefundCommitted' }).label, 'orderRefunded')
+  assert.equal(orderState(cash('accepted'), { status: 'RefundCommitted' }).label, 'orderRefundAvailable')
+  assert.equal(orderState(cash('accepted'), { status: 'Closing' }).label, 'sourceClosing')
+  assert.equal(orderState(cash('accepted'), { status: 'Cancelled' }).label, 'orderCancelled')
   assert.equal(orderState(cash('strange')).label, 'orderUnknown')
 })
 
@@ -114,4 +118,23 @@ test('time left rounds up to whole days; the page parts are known', () => {
   assert.equal(daysLeft(now - 1, now), 0)
   assert.equal(isTab('payments'), true)
   assert.equal(isTab('wallet'), false)
+})
+
+test('a fixed dissolve delay moves with the quote time; a dissolving deadline does not', () => {
+  const listed = Date.parse('2026-10-21T08:00:00Z')
+  const quoted = listed + 2000
+  const end = Date.parse('2027-10-21T08:00:02Z')
+  const neuron = { dissolve_delay_seconds: 365 * 86400, unlock_at_ms: listed + 365 * DAY }
+  assert.ok(neuron.unlock_at_ms < end)
+  assert.equal(neuronUnlockAt(neuron, quoted), end)
+  assert.ok(neuronUnlockAt({ ...neuron, dissolve_delay_seconds: null }, quoted) < end)
+  assert.ok(neuronUnlockAt({ ...neuron, dissolve_delay_seconds: 364 * 86400 }, quoted) < end)
+})
+
+test('refund notices distinguish successful, refused and unknown transfers', () => {
+  assert.equal(refundOutcome([{ status: 'Succeeded' }]).label, 'refundSent')
+  assert.equal(refundOutcome([{ status: 'Rejected' }]).error, 'Rejected')
+  assert.equal(refundOutcome([{ error: 'FEE_BLOCKED' }]).error, 'FEE_BLOCKED')
+  for (const refunds of [[], [{ status: 'Unknown' }], [{ status: 'EXECUTION_UNKNOWN' }], [{ status: 'Succeeded' }, { status: 'Unknown' }]])
+    assert.equal(refundOutcome(refunds).label, 'refundPending')
 })

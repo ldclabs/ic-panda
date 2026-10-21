@@ -594,6 +594,20 @@ fn panda_full_waiver_applies_immediately_and_never_exits_early() {
         (active.claim_id,),
     );
     assert_eq!(r.unwrap().status, PandaClaimStatus::Released);
+
+    // Restoring the same neuron opens a fresh term for the same account;
+    // the terminated product contract must not reserve the rest of its year.
+    let restored = activate_panda(&f, &id, 93);
+    assert_eq!(restored.status, PandaClaimStatus::Active);
+    assert_ne!(restored.claim_id, active.claim_id);
+    let refreshed: Result<EntitlementView> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "refresh_entitlement",
+        (beneficiary(f.user, &id),),
+    );
+    assert_eq!(refreshed.unwrap().plan_snapshot.plan_id, PlanId::Plus);
 }
 fn sample(f: &Fixture) -> (Principal, AccountId) {
     let canister = f.ic.create_canister();
@@ -1730,6 +1744,9 @@ fn a_first_cash_purchase_refunds_its_unused_time_within_a_week() {
     let after = terms();
     assert_eq!(after.refund, None);
     assert_eq!(after.contracts[0].terminated_at_ms, Some(stop));
+    let cancellation = status(&f, order).cancellation.unwrap();
+    assert!(cancellation.cancelled);
+    assert_eq!(cancellation.cancelled_at_ms, stop);
     let refund: Result<CashTransfer> = update(
         &f.ic,
         f.commerce,

@@ -408,6 +408,8 @@ type CheckoutView = record {
   progress : CheckoutProgress;
   // Amount of price still reserved, never withdrawable before earned.
   service_reserve_atomic : nat;
+  // Product cancellation result, including the actual end of an early-refunded term.
+  cancellation : opt CashCancellationReceipt;
 };
 // One allowed choice value and its displayed label.
 type ChoiceOption = record {

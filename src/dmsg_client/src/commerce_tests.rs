@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "../../dmsg_types/tests/support/commerce.rs"]
+mod fixture;
+
 const DAY_MS: u64 = 86_400_000;
 const NOW: u64 = 1_000 * DAY_MS;
 
@@ -85,4 +88,37 @@ fn a_saved_approval_covers_only_its_remaining_window() {
     assert!(approval_live(NOW + 1, NOW + 1, NOW));
     assert!(!approval_live(NOW, NOW + 1, NOW));
     assert!(!approval_live(NOW + 1, NOW, NOW));
+}
+
+#[test]
+fn an_early_refund_reports_when_the_term_closes() {
+    use dmsg_types::integration_billing::CashCancellationReceipt;
+    let stop = now_ms() + 60_000;
+    let view = CheckoutView {
+        progress: CheckoutProgress {
+            order_id: Hash::new([1; 32]),
+            status: CheckoutStatus::Applied,
+            decision_id: None,
+        },
+        quote: fixture::checkout(),
+        receipt: None,
+        cancellation: Some(CashCancellationReceipt {
+            order_id: Hash::new([1; 32]),
+            contract_id: Hash::new([2; 32]),
+            decision_hash: Hash::new([3; 32]),
+            cancelled: true,
+            cancelled_at_ms: stop,
+            business_revision: 2,
+        }),
+        outgoing_atomic: 100,
+        service_reserve_atomic: 10,
+        fee_reserve_atomic: 0,
+    };
+    assert_eq!(status_name(&view, stop - 1), "Closing");
+    assert_eq!(status_name(&view, stop), "Cancelled");
+    let output = order_view(&Order::Cash(Box::new(view.clone())));
+    assert_eq!(output["expires_at_ms"], stop);
+    let mut refused = view;
+    refused.cancellation.as_mut().unwrap().cancelled = false;
+    assert_eq!(status_name(&refused, stop), "Applied");
 }

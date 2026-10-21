@@ -3829,8 +3829,9 @@ fn desktop_commerce() {
         number(&terms["amount"]) + number(&terms["fee_reserve"]) + number(&terms["network_fee"])
     );
     assert_eq!(a.run(&["plan", "status"])["plan"], "Plus");
-    // An applied order cannot be cancelled into a refund.
-    assert_eq!(a.fail(&["plan", "cancel", &id]), "FORBIDDEN");
+    // A first cash purchase has an unused-time refund window.
+    let refundable = a.run(&["plan", "refund-quote", &id]);
+    assert_eq!(refundable["order"], id.as_str());
     assert_eq!(a.run(&["plan", "order", &id])["status"], "Applied");
 
     // A deposit beyond the order returns to its source. The ledger's fee
@@ -3873,11 +3874,10 @@ fn desktop_commerce() {
         )
         .unwrap();
     checked.unwrap();
-    let refund = a.run(&["plan", "refund", &id, &extra.to_string()]);
-    assert_eq!(refund["status"], "Pending");
-    let refund_id = refund["transfer_id"].as_str().unwrap().to_string();
     set_ledger_fee(d, ledger, 12);
-    a.run(&["ops", "process-transfer", &refund_id]);
+    let refund = a.run(&["plan", "refund", &id, &extra.to_string()]);
+    assert_eq!(refund[0]["status"], "Rejected");
+    let refund_id = refund[0]["transfer_id"].as_str().unwrap().to_string();
     let transfers = a.run(&["ops", "transfers"]);
     let refused = transfers["transfers"]
         .as_array()
@@ -3896,7 +3896,6 @@ fn desktop_commerce() {
         revised["transfer_id"].as_str().unwrap(),
     ]);
     assert_eq!(sent["status"], "Succeeded", "{sent}");
-    set_ledger_fee(d, ledger, 10);
     let returned = a.run(&["ops", "transfers"])["transfers"]
         .as_array()
         .unwrap()
@@ -3910,6 +3909,30 @@ fn desktop_commerce() {
     assert!(returned > 0 && returned <= 5_000 - 12);
     // The wallet paid the deposit and its fee and got the refund back.
     assert_eq!(before - balance(a, &ledger), 5_000 + 10 - returned);
+
+    // Cancelling the first term sends its refund and exposes the shortened
+    // service period, while retaining earned revenue in the merchant book.
+    let cancelled = a.run(&["plan", "cancel", &id]);
+    assert_eq!(cancelled["status"], "Closing");
+    assert_eq!(cancelled["refunds"][0]["status"], "Succeeded");
+    let closed = a.run(&["plan", "order", &id]);
+    assert_eq!(closed["status"], "Closing");
+    assert!(closed["expires_at_ms"].as_u64().unwrap() < quote["expires_at_ms"].as_u64().unwrap());
+    set_ledger_fee(d, ledger, 10);
+    // BadFee invalidated the settlement asset's verification; restoring the
+    // fixture fee also requires verifying it before later quotes use it.
+    let verified: dmsg_types::Result<()> = candid::decode_one(
+        &d.ic
+            .update_call(
+                commerce,
+                d.peer,
+                "verify_settlement_asset",
+                candid::encode_args((ledger, None::<u128>)).unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    verified.unwrap();
 
     // An account with no names reads an empty page; the registry refuses to
     // certify an empty batch.

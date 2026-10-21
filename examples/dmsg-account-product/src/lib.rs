@@ -500,21 +500,10 @@ async fn entitlement(id: AccountId) -> Result<Option<u64>> {
         .ok_or(Error::NotFound)?;
     ensure(ic_cdk::api::msg_caller() == s.owner, Error::Forbidden)?;
     let at = now();
-    let Some(c) = s
-        .book
-        .contracts
-        .iter()
-        .find(|c| {
-            c.offer.starts_at_ms <= at
-                && at < c.offer.expires_at_ms
-                && c.status != SubscriptionStatus::Cancelled
-        })
-        .cloned()
-    else {
+    let Some(c) = s.book.current(at).cloned() else {
         return Ok(None);
     };
     if let SubscriptionSource::PandaClaim { claim_id, .. } = c.source
-        && c.status != SubscriptionStatus::Terminated
         && c.lease_until_ms <= at.saturating_add(MINUTE)
     {
         let answer: Result<Result<PandaClaimView>> =

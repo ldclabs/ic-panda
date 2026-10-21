@@ -32,7 +32,7 @@ import { isLocale, resolveLocale, type Locale } from '../shared/locales'
 import { single } from '../shared/single'
 import { Daemon, reasonOf } from './daemon'
 import { DaemonError } from './error'
-import { externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams } from './policy'
+import { APPROVAL_MAIN_ROUTES, externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams } from './policy'
 import { resolveRuntime } from './runtime'
 import { textFor } from './text'
 import { Updates } from './updater'
@@ -560,9 +560,8 @@ handle('dmsg:check-file', 'approval', async (_event, id: string) => {
   return daemon.call('approval/check_file', { id: String(id), path: picked.filePaths[0] })
 })
 /** The views the approval window sends the person to: a login, the signatures, the account's security, the plan. */
-const MAIN_ROUTES = ['/login', '/approvals', '/settings/session', '/settings/security', '/settings/devices', '/plan']
 handle('dmsg:show-main', 'approval', (_event, route: string) => {
-  if (!MAIN_ROUTES.includes(String(route))) throw new DaemonError('INVALID_INPUT', 'Not a view')
+  if (!APPROVAL_MAIN_ROUTES.has(String(route))) throw new DaemonError('INVALID_INPUT', 'Not a view')
   showMain(String(route))
 })
 

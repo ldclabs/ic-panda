@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { DESKTOP_TOOLS, externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
+import { APPROVAL_MAIN_ROUTES, DESKTOP_TOOLS, externalAllowed, legacyAllowed, parseLink, reminderDue, windowParams, WINDOW_METHODS } from '../src/main/policy.ts'
 
 test('windows never decide or grant, and never send human', () => {
   for (const method of [
@@ -172,4 +172,10 @@ test('a term ending reminds 30, 7 and 1 days before, each once', () => {
   assert.equal(reminderDue(day / 2), 1)
   assert.equal(reminderDue(day / 2, 1), null)
   assert.equal(reminderDue(0), null)
+})
+
+test('approval recovery opens payments without permitting arbitrary routes', () => {
+  assert.equal(APPROVAL_MAIN_ROUTES.has('/plan?tab=payments'), true)
+  for (const route of ['/plan?tab=unknown', '/plan?tab=payments&other=1', 'https://example.com', '/settings/reset'])
+    assert.equal(APPROVAL_MAIN_ROUTES.has(route), false)
 })

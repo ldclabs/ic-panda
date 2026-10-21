@@ -89,7 +89,7 @@ flowchart LR
 | `RefundCommitted` | 确定不交付或已取消         | 来源方领取退款                                               |
 | `Rejected`        | 产品拒绝预留               | 释放预留；已有入金可退                                       |
 
-`cancel_checkout` 只能由付款人调用：`Reserving` 和 `AwaitingFunding` 直接转为 `RefundCommitted` 并释放预留；`Applied` 只在服务开始前（例如尚未开始的续期）可以取消，adapter 确认未发放过权益后，全部付款转为可退余额。已开始的服务没有退款接口。未付款的订单在激活期限（开单后 24 小时）前一直占用主体的产品区间，用户放弃购买时，客户端应调用 `cancel_checkout` 释放。
+`cancel_checkout` 只能由付款人调用：`Reserving` 和 `AwaitingFunding` 直接转为 `RefundCommitted` 并释放预留；未开始的 `Applied` 服务（例如未来续期）可以取消；首份现金基础会员还可在开始后七天内按未履约时间退款，停止点不得早于已签发的资源租约。`CheckoutView.cancellation` 返回取消回执和实际停止时间；部分退款后账务仍可为 `Applied`，以保留已赚收入的归集，客户端须据取消回执显示关闭中或已取消。退款转账只有 `Succeeded` 才算已发出，`RefundCommitted` 本身不代表到账。未付款的订单在激活期限（开单后 24 小时）前一直占用主体的产品区间，用户放弃购买时，客户端应调用 `cancel_checkout` 释放。
 
 ### 资金与出金
 
@@ -132,7 +132,7 @@ flowchart LR
 
 - 受益主体（`Beneficiary`，其 authority 必须在 `user_homes` 中）保存当月及以后的合同、存储包、最后一次服务结束时间和最近一次视图。主体只在首次购买时创建，之后不会删除，数量受 `max_subjects` 限制，因此只与付费过的账户数成正比。
 - 从未购买的账户没有主体，也没有认证叶：`get_entitlement_batch` 返回不存在证明，配合认证目录即为 Free。`get_execution_entitlement` 对这类账户按目录和 user home 提供的账户创建时间直接计算，不写状态，租约版本为 0；已保存主体的第一次投影是版本 1。
-- `EntitlementView` 是合同的投影：当前基础档（没有有效合同时为 Free）加上有效的存储包。租约长度取决于权益能否被收回：已开始的现金服务没有退款，未开始的续期在下一个边界之后，所以现金、已到期和 Free 租约最长 30 天；PANDA 资格可能丢失，由 PANDA 支撑的租约不超过 1 小时，也不超过 membership 的资格租约。所有租约都在下一个合同或存储包边界、下一个目录生效时间截止。资格不可核验时，视图截止时间等于签发时间，不会退化为可复用的 Free 租约。视图以 `entitlement_key(beneficiary)` 写入认证树。
+- `EntitlementView` 是合同的投影：当前基础档（没有有效合同时为 Free）加上有效的存储包。租约长度取决于权益能否被收回：首购现金退款窗口内的租约最长一小时；窗口外的现金、已到期和 Free 租约最长 30 天；PANDA 资格可能丢失，由 PANDA 支撑的租约不超过 1 小时，也不超过 membership 的资格租约。所有租约都在下一个合同或存储包边界、下一个目录生效时间截止。资格不可核验时，视图截止时间等于签发时间，不会退化为可复用的 Free 租约。视图以 `entitlement_key(beneficiary)` 写入认证树。
 - `refresh_entitlement` 在视图剩余不足 10 分钟、业务版本变化或目录切换时重新投影，否则返回原视图，所以消费者提前几分钟续期就能拿到更晚的租约。当前合同来自 PANDA 时，先调用 membership 的 `refresh_panda_claim`，它在同一个 10 分钟窗口内重新核验合格的认领：membership 返回 `Pending`、`QuotaExceeded`，或调用本身没有完成（membership 停止、`Unavailable`、`ExecutionUnknown`），都表示没有读取 SNS，原租约继续有效（PANDA 租约本来不超过 1 小时）；只有明确的否定答案把合同标为不可核验。两种情况都在 1 分钟内不再重试。
 - `get_execution_entitlement(beneficiary, month, account_created_at_ms)` 只接受该主体的 user home，返回视图和当月的 `MonthEntitlement`。当月按合同、资格暂停和实际生效的目录切分为最多 64 个片段；资格暂停期间按 Free 计算，从账户创建时间开始积分，最后向下取整。user home 最多缓存 1 小时，与资源租约长度无关。
 
@@ -445,7 +445,7 @@ icp canister start dmsg_commerce -e ic
 
 - `governance` 本身不能修改。
 - 只识别 `1xfer`/`2xfer` 入金。铸造到订单子账户等其他区块无法入账，也没有清扫接口。
-- 已开始的现金服务没有退款接口；PANDA 合同不能提前退出。
+- 已开始的现金服务仅首份基础会员有七天自助退款窗口；PANDA 合同不能主动提前退出，已知失格则终止，原租约结束后可重新申请。
 - 单个实例仍集中其全部 user home 的付费写入、逐单收入归集和 PANDA 刷新；PANDA 会员的 SNS 读取额度见“容量与成本”。
 - 客户端按 home 定位账户，但只连接构建配置中的一个 commerce；按账户 home 选择 commerce 实例尚未实现，多实例目前只在 canister 与私有云端可用。
 - 服务余额小于一次网络费时无法转出（见“运维”的归集节奏）。

@@ -14,7 +14,7 @@
   import { t, type Label } from '../../i18n/index.svelte'
   import { ago, bridge, call, errorText, onChange, single, size, units, when } from '../../rpc'
   import Operations from '../Operations.svelte'
-  import { deadlineOf, moving, orderActions, orderState, skuOf, type OrderAction } from './plan'
+  import { deadlineOf, moving, orderActions, orderState, refundOutcome, skuOf, type OrderAction } from './plan'
 
   /**
    * Payments: the orders this device opened, newest first, each with what
@@ -154,8 +154,8 @@
       const refund = cancelling?.quote != null
       const done: any = await call('plan/cancel', { id: cancelling!.job.id })
       cancelling = null
-      const failed = (done?.refunds ?? []).find((r: any) => r.error)
-      toast(() => (failed ? `${t('error')}: ${failed.error}` : refund ? t('refundSent') : t('orderCancelledNote')))
+      const outcome = refundOutcome(done?.refunds ?? [])
+      toast(() => outcome.error ? `${t('error')}: ${outcome.error}` : t(refund || done?.refunds?.length ? outcome.label : 'orderCancelledNote'))
       await reload()
     })
 
@@ -234,7 +234,7 @@
             </div>
             <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-muted tabular-nums">
               <span data-testid="order-amount">{amount(job)}</span>
-              <span data-testid="order-period">{t('servicePeriod', { from: when(job.starts_at_ms), to: when(job.expires_at_ms) })}</span>
+              <span data-testid="order-period">{t('servicePeriod', { from: when(order?.starts_at_ms ?? job.starts_at_ms), to: when(order?.expires_at_ms ?? job.expires_at_ms) })}</span>
               {#if deadline && awaiting(job, order)}
                 <span class="text-warn" data-testid="order-deadline">{t(job.terms?.method === 'Cash' ? 'payBy' : 'applyBy', { time: when(deadline) })}</span>
               {/if}

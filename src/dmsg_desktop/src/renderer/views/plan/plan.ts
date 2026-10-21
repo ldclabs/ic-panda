@@ -62,7 +62,8 @@ const statusLabels: Record<string, [Label, Tone]> = {
   AwaitingFunding: ['orderAwaitingFunding', 'warn'],
   Applying: ['orderApplying', 'warn'],
   Applied: ['orderApplied', 'ok'],
-  RefundCommitted: ['orderRefunded', 'neutral'],
+  RefundCommitted: ['orderRefundAvailable', 'warn'],
+  Closing: ['sourceClosing', 'warn'],
   Rejected: ['orderRejected', 'danger'],
   Checking: ['orderChecking', 'warn'],
   Active: ['orderApplied', 'ok'],
@@ -89,7 +90,7 @@ export function orderState(job: any, order?: any): { label: Label; tone: Tone } 
 export const deadlineOf = (job: any): number | undefined => (job.terms?.method === 'Cash' ? job.terms.funding_deadline_ms : job.terms?.application_deadline_ms)
 
 /** Statuses the service moves on by itself. */
-const MOVING = new Set(['Reserving', 'AwaitingFunding', 'Applying', 'Checking'])
+const MOVING = new Set(['Reserving', 'AwaitingFunding', 'Applying', 'Checking', 'Closing'])
 
 /** Whether an order is on its way, so the page reads it again. */
 export function moving(job: any, order: any, now: number): boolean {
@@ -185,6 +186,20 @@ export function covers(payer: any, ledger: string, most: string): boolean | null
 /** What a cash checkout's payer must hold: the amount, its fee reserve and the network fee. */
 export function cashTotal(terms: any): bigint {
   return BigInt(terms.amount) + BigInt(terms.fee_reserve) + BigInt(terms.network_fee)
+}
+
+/** A non-dissolving neuron's delay starts now; a dissolving one's end is fixed. */
+export function neuronUnlockAt(neuron: any, now = Date.now()): number {
+  return neuron.dissolve_delay_seconds != null
+    ? now + Number(neuron.dissolve_delay_seconds) * 1000
+    : Number(neuron.unlock_at_ms)
+}
+
+/** Only confirmed transfers count as sent; unknown outcomes need reconciliation. */
+export function refundOutcome(refunds: any[]): { label: Label; error?: string } {
+  const failed = refunds.find((r) => r.error || r.status === 'Rejected')
+  if (failed) return { label: 'error', error: failed.error ?? failed.status }
+  return { label: refunds.length > 0 && refunds.every((r) => r.status === 'Succeeded') ? 'refundSent' : 'refundPending' }
 }
 
 /** The link that opens the accept dialog with a transfer's token on the target's device. */

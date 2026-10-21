@@ -1017,8 +1017,8 @@ const methods = {
   'plan/refund_quote': (p) => ({ order: p.id, refund: '450000000', received: '449990000', fee: '10000', asset: 'Icp', decimals: 8, stops_at_ms: Date.now(), until_ms: Date.now() + 6 * DAY }),
   'plan/cancel': (p) => {
     membership = 'free'
-    orderViews[p.id] = { ...orderViews[p.id], id: p.id, method: 'Cash', status: 'RefundCommitted' }
-    return { ...orderViews[p.id], refunds: [{ to: payer, amount: '449990000', block: 7 }] }
+    orderViews[p.id] = { ...orderViews[p.id], id: p.id, method: 'Cash', status: 'Cancelled', expires_at_ms: Date.now() }
+    return { ...orderViews[p.id], refunds: [{ to: payer, amount: '449990000', status: 'Succeeded' }] }
   },
   'plan/discard': (p) => {
     checkouts.splice(
@@ -1633,7 +1633,7 @@ try {
   await main.waitForSelector('[data-testid="order-advance"]')
   assert.equal(await main.locator('[data-testid="order"]').count(), 4)
   assert.match(await main.locator('[data-testid="order-title"]').first().textContent(), /Storage pack/)
-  assert.deepEqual(await main.locator('[data-testid="order-state"]').allTextContents(), ['Quote', 'Quote', 'Checking the neuron', 'Refunded'])
+  assert.deepEqual(await main.locator('[data-testid="order-state"]').allTextContents(), ['Quote', 'Quote', 'Checking the neuron', 'Cancelled'])
   await main.click('[data-testid="order-advance"]')
   await waitFor(() => latest('plan/advance'))
   assert.deepEqual(latest('plan/advance').params, { id: '89'.repeat(32), source: 'gui' })

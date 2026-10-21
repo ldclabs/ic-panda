@@ -186,7 +186,16 @@ struct Services {
     membership: Principal,
 }
 
-fn status_name(view: &CheckoutView) -> &'static str {
+fn status_name(view: &CheckoutView, at: u64) -> &'static str {
+    if let Some(c) = &view.cancellation
+        && c.cancelled
+    {
+        return if at < c.cancelled_at_ms {
+            "Closing"
+        } else {
+            "Cancelled"
+        };
+    }
     match view.progress.status {
         CheckoutStatus::Reserving => "Reserving",
         CheckoutStatus::AwaitingFunding => "AwaitingFunding",
@@ -203,18 +212,21 @@ fn claim_name(view: &PandaClaimView) -> String {
 
 /// An order's state for display.
 fn order_view(state: &Order) -> Json {
+    let now = now_ms();
     match state {
         Order::Cash(view) => json!({
             "id": hex::encode(*view.progress.order_id),
             "method": "Cash",
-            "status": status_name(view),
+            "status": status_name(view, now),
             "receipt": view.receipt.is_some(),
             "sku": view.quote.offer.sku,
             "amount": view.quote.cash.amount_atomic.to_string(),
             "asset": format!("{:?}", view.quote.asset.asset),
             "decimals": view.quote.asset.decimals,
             "starts_at_ms": view.quote.offer.starts_at_ms,
-            "expires_at_ms": view.quote.offer.expires_at_ms,
+            "expires_at_ms": view.cancellation.as_ref()
+                .filter(|c| c.cancelled)
+                .map_or(view.quote.offer.expires_at_ms, |c| c.cancelled_at_ms.min(view.quote.offer.expires_at_ms)),
             "funding_deadline_ms": view.quote.cash.funding_deadline_ms,
             "applied_at_ms": view.receipt.as_ref().map(|r| r.applied_at_ms),
             "service_reserve": view.service_reserve_atomic.to_string(),
@@ -1686,14 +1698,17 @@ pub async fn plan_panda<H: Hold>(h: &H) -> Result<Json> {
                 .filter_map(|n| {
                     let id = n.id.as_ref()?;
                     // A neuron that is not dissolving unlocks no earlier than its delay from now.
-                    let (dissolving, unlock_at_ms) = match n.dissolve_state {
-                        Some(DissolveState::DissolveDelaySeconds(delay)) => {
-                            (false, now.saturating_add(delay.saturating_mul(1000)))
-                        }
+                    let (dissolving, unlock_at_ms, dissolve_delay_seconds) = match n.dissolve_state
+                    {
+                        Some(DissolveState::DissolveDelaySeconds(delay)) => (
+                            false,
+                            now.saturating_add(delay.saturating_mul(1000)),
+                            Some(delay),
+                        ),
                         Some(DissolveState::WhenDissolvedTimestampSeconds(at)) => {
-                            (true, at.saturating_mul(1000))
+                            (true, at.saturating_mul(1000), None)
                         }
-                        None => (true, now),
+                        None => (true, now, None),
                     };
                     Some(json!({
                         "id": hex::encode(&id.id),
@@ -1703,6 +1718,7 @@ pub async fn plan_panda<H: Hold>(h: &H) -> Result<Json> {
                             .to_string(),
                         "dissolving": dissolving,
                         "unlock_at_ms": unlock_at_ms,
+                        "dissolve_delay_seconds": dissolve_delay_seconds,
                     }))
                 })
                 .collect();

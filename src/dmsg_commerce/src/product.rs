@@ -214,13 +214,7 @@ fn offer(
     let (app, product) = registration(home, &app_id, &b.product_id)?;
     let catalog = store::catalog(at);
     let base = BOOKS.with_borrow(|t| t.load(base_key(&b).as_slice()));
-    let current = base.as_ref().and_then(|book| {
-        book.contracts.iter().rev().find(|c| {
-            c.offer.starts_at_ms <= at
-                && at < c.offer.expires_at_ms
-                && c.status != SubscriptionStatus::Cancelled
-        })
-    });
+    let current = base.as_ref().and_then(|book| book.current(at));
     let (start, end, amount, methods) = match Sku::parse(&sku)? {
         Sku::Upgrade(target) => {
             let current = current.ok_or(Error::NotFound)?;

@@ -15,7 +15,7 @@
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { bridge, call, code, errorText, size, units, when } from '../../rpc'
-  import { cashTotal } from './plan'
+  import { cashTotal, neuronUnlockAt } from './plan'
 
   /**
    * Paying for an offer: a plan card's subscription, renewal, switch or
@@ -41,7 +41,7 @@
   const enough = (n: any) => required != null && BigInt(n.stake_e8s) >= BigInt(required)
   /** The term end the neuron's lock must cover; the quote fixes it exactly. */
   const lockUntil = $derived<number | null>(offer?.ends_at_ms ?? null)
-  const covered = (n: any) => lockUntil == null || Number(n.unlock_at_ms) >= Number(lockUntil)
+  const covered = (n: any) => lockUntil == null || neuronUnlockAt(n) >= Number(lockUntil)
 
   // Each offer opens on cash; the assets are read once.
   $effect(() => {
@@ -98,7 +98,7 @@
           error = t('stakeTooLow')
           return
         }
-        if (chosen && end > 0 && Number(chosen.unlock_at_ms) < end) {
+        if (chosen && end > 0 && neuronUnlockAt(chosen) < end) {
           error = t('unlockTooEarly')
           return
         }
@@ -180,7 +180,7 @@
                       <span class="flex flex-wrap items-center gap-1.5 text-[12.5px]">
                         <span class="font-mono">{n.id.slice(0, 12)}…</span>
                         <span class="tabular-nums">{units(n.stake_e8s, 8)} PANDA</span>
-                        <span class="text-faint">{t('lockedUntil', { time: when(n.unlock_at_ms) })}</span>
+                        <span class="text-faint">{t('lockedUntil', { time: when(neuronUnlockAt(n)) })}</span>
                         {#if n.dissolving}<Pill tone="warn">{t('dissolving')}</Pill>{/if}
                         {#if required != null && !enough(n)}<Pill tone="warn">{t('stakeTooLow')}</Pill>{/if}
                         {#if !covered(n)}<Pill tone="warn">{t('unlockTooEarly')}</Pill>{/if}

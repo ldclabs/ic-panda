@@ -157,6 +157,8 @@ pub struct CheckoutView {
     pub quote: CheckoutQuote,
     /// Product receipt if obtained.
     pub receipt: Option<ProductReceipt>,
+    /// Product cancellation result, including the actual end of an early-refunded term.
+    pub cancellation: Option<CashCancellationReceipt>,
     /// Cumulative allocated transfers for the selected asset, including their fees.
     pub outgoing_atomic: u128,
     /// Amount of price still reserved, never withdrawable before earned.

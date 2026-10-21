@@ -80,8 +80,12 @@ async fn quote_panda_subscription(
     })
 }
 
-/// Check both approvals of the exact terms; returns the time read after the last await.
-async fn authorize(request: &PandaClaimRequest, home: Principal, initial: bool) -> Result<u64> {
+/// Check both approvals; return the observation time and their shared validity deadline.
+async fn authorize(
+    request: &PandaClaimRequest,
+    home: Principal,
+    initial: bool,
+) -> Result<(u64, u64)> {
     let t = &request.terms;
     let a = &request.authorization;
     let commerce = store::config().commerce(t.user_home)?;
@@ -143,7 +147,12 @@ async fn authorize(request: &PandaClaimRequest, home: Principal, initial: bool) 
             Error::PolicyStale,
         )?;
     }
-    Ok(at)
+    let until = approved
+        .valid_until_ms
+        .min(approved.verified_at_ms.saturating_add(MINUTE))
+        .min(product_auth.valid_until_ms)
+        .min(product_auth.verified_at_ms.saturating_add(MINUTE));
+    Ok((at, until))
 }
 
 #[ic_cdk::update]
@@ -161,7 +170,7 @@ async fn request_panda_claim(request: PandaClaimRequest) -> Result<PandaClaimVie
         canonical(&request).len() <= MAX_PAYLOAD,
         Error::QuotaExceeded,
     )?;
-    let at = authorize(&request, home, true).await?;
+    let (at, _) = authorize(&request, home, true).await?;
     if let Some(c) = store::replay(id, &request.terms)? {
         return Ok(c.view);
     }
@@ -348,7 +357,7 @@ async fn advance_panda_claim(
         terms: checked.view.terms.clone(),
         authorization,
     };
-    let at = authorize(&request, home, false).await?;
+    let (at, authorization_until) = authorize(&request, home, false).await?;
     let current = load(id)?;
     ensure(
         current.generation == checked.generation,
@@ -364,6 +373,8 @@ async fn advance_panda_claim(
         Error::MembershipIneligible,
     )?;
     let at = nanos_to_millis(ic_cdk::api::time());
+    admission()?;
+    ensure(at < authorization_until, Error::PolicyStale)?;
     current.preparing_apply(at)?;
     current.authorization = request.authorization;
     save(&mut current, at);

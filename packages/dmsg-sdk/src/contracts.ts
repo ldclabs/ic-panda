@@ -388,6 +388,7 @@ export interface CheckoutView {
   progress: CheckoutProgress
   quote: CheckoutQuote
   receipt: (ProductReceipt | null)
+  cancellation: (CashCancellationReceipt | null)
   outgoing_atomic: bigint
   service_reserve_atomic: bigint
   fee_reserve_atomic: bigint

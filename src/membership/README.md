@@ -350,7 +350,7 @@ icp canister start membership -e ic
 - `governance`、`sns_root`、`panda_ledger` 初始化后不能修改。
 - dMsg 客户端以 `derivationOrigins`（`dmsg.net`、`panda.fans`）的 II principal 作为 `actor`，用户须先在 NNS dapp 把它添加为神经元的热键，结账面板会提示这一步；主网钱包路径尚未验收。
 - 列在神经元上的任何 principal 都能用该神经元申请，并占用它到 E。
-- 没有提前退出；`Terminated` 的申请同样占用神经元到 E。
+- 没有主动提前退出；`Terminated` 的申请占用神经元到终止前已发租约结束。恢复资格后可申请新合同，已终止的产品合同不再阻塞新的订阅区间。
 - 产品 adapter 必须对每个决定给出确定的回执（超过 `apply_by_ms` 时给 `Rejected`）。一直没有回执的 `Applying` 会永久占用神经元和 `max_claims`，没有治理干预入口。
 - 完整记录上限 100 万、累计操作上限 1,000 万，tombstone 不回收。
 - 没有定时器，释放与压缩依赖外部的维护调用。

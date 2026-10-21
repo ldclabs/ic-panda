@@ -358,6 +358,7 @@ CheckoutView = {
   "progress": CheckoutProgress,
   "quote": CheckoutQuote,
   "receipt": (ProductReceipt / null),
+  "cancellation": (CashCancellationReceipt / null),
   "outgoing_atomic": u128,
   "service_reserve_atomic": u128,
   "fee_reserve_atomic": u128,

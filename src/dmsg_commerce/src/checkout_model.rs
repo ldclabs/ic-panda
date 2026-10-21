@@ -116,6 +116,7 @@ impl Order {
             progress: self.progress(),
             quote: self.quote.clone(),
             receipt: self.receipt.clone(),
+            cancellation: self.cancellation.clone(),
             outgoing_atomic: balance.outgoing,
             service_reserve_atomic: balance.service,
             fee_reserve_atomic: balance.fees,

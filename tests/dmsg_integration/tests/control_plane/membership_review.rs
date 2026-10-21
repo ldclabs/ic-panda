@@ -435,6 +435,103 @@ fn concurrent_sns_configuration_checks_share_one_call_and_retry_after_failure() 
 }
 
 #[test]
+fn activation_waiting_on_sns_cannot_outlive_its_authorizations() {
+    let f = Fixture::commercial();
+    let account = f.create(1);
+    neuron(&f, 100_000_000_000_100);
+    let bill = offer(&f, &account, 223);
+    let terms: Result<PandaApplicationTerms> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "quote_panda_subscription",
+        (bill.clone(), f.user, account, Hash::new([44; 32])),
+    );
+    let terms = terms.unwrap();
+    let authorization = approve(
+        &f,
+        &account,
+        &bill,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        224,
+    );
+    let requested: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "request_panda_claim",
+        (PandaClaimRequest {
+            terms: terms.clone(),
+            authorization: authorization.clone(),
+        },),
+    );
+    let claim = requested.unwrap();
+    // Refresh the observation just before the account approval expires, so
+    // advance's first qualification is cached and only its final read waits.
+    f.ic.advance_time(Duration::from_millis(
+        authorization.account_approval.expires_at_ms - time(&f.ic) - 30_000,
+    ));
+    let checked: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "reconcile_panda_claim",
+        (claim.claim_id,),
+    );
+    assert_eq!(checked.unwrap().eligibility, Eligibility::Eligible);
+    void(&f.ic, f.sns, person(1), "delay_neuron_read", (6u8,));
+    let reads = counters(&f).4;
+    let pending =
+        f.ic.submit_call(
+            f.membership,
+            person(1),
+            "advance_panda_claim",
+            candid::encode_args((claim.claim_id, authorization)).unwrap(),
+        )
+        .unwrap();
+    for _ in 0..100 {
+        if counters(&f).4 > reads {
+            break;
+        }
+        f.ic.tick();
+    }
+    assert_eq!(counters(&f).4, reads + 1);
+    f.ic.advance_time(Duration::from_millis(45_000));
+    let reply =
+        candid::decode_one::<Result<PandaClaimView>>(&f.ic.await_call(pending).unwrap()).unwrap();
+    assert_eq!(reply, Err(Error::PolicyStale));
+    let saved: Result<PandaClaimView> = query(
+        &f.ic,
+        f.membership,
+        person(1),
+        "get_panda_claim",
+        (claim.claim_id,),
+    );
+    let saved = saved.unwrap();
+    assert_eq!(saved.status, PandaClaimStatus::Checking);
+    assert!(saved.receipt.is_none());
+    let fresh = approve(
+        &f,
+        &account,
+        &bill,
+        f.membership,
+        ApprovalPurpose::PandaSubscription,
+        panda_application_hash(&terms),
+        225,
+    );
+    let applied: Result<PandaClaimView> = update(
+        &f.ic,
+        f.membership,
+        person(1),
+        "advance_panda_claim",
+        (claim.claim_id, fresh),
+    );
+    assert_eq!(applied.unwrap().status, PandaClaimStatus::Active);
+}
+
+#[test]
 fn a_neuron_read_returning_after_the_sns_verification_expired_issues_no_lease() {
     let f = Fixture::commercial();
     let account = f.create(1);
