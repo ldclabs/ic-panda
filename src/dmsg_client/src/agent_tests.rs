@@ -401,6 +401,7 @@ fn capabilities_cover_only_what_was_granted() {
         "discourse.read:*",
         "mail.write:https://mail.dmsg.net",
         "agent.profile.write:http://127.0.0.1:8787",
+        "agent.profile.read:https://profiles.example",
     ] {
         validate_capability(capability).unwrap();
     }
@@ -415,6 +416,8 @@ fn capabilities_cover_only_what_was_granted() {
         "file.read:dmsg-x",
         // A service capability names an origin, or every one.
         "discourse.read",
+        "agent.profile.read",
+        "agent.profile.read:https://profiles.example/path",
         "discourse.read:discourse.dmsg.net",
         "knowledge.read:https://knowledge.dmsg.net/",
         "mail.read:https://mail.dmsg.net/v1",
@@ -653,4 +656,40 @@ fn the_vocabulary_names_what_can_be_granted() {
     assert!(!sensitive("vault.read:work"));
     assert!(check_grant(&[], None).is_err());
     assert!(check_grant(&["vault.list".into()], Some(367)).is_err());
+}
+
+#[test]
+fn profile_read_grants_are_scoped_and_independent_of_write() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let agent = client.agent_create("profile-reader").unwrap().agent_id;
+    let origin = "https://profiles.example";
+    assert_eq!(
+        client.capability_check(&agent, &format!("agent.profile.read:{origin}")),
+        Err(Error::Forbidden)
+    );
+    let grant = client
+        .capability_grant(
+            "cli",
+            "profile-reader",
+            vec![format!("agent.profile.read:{origin}")],
+            None,
+        )
+        .unwrap();
+    client
+        .capability_check(&agent, &format!("agent.profile.read:{origin}"))
+        .unwrap();
+    assert_eq!(
+        client.capability_check(&agent, "agent.profile.read:https://other.example"),
+        Err(Error::Forbidden)
+    );
+    assert_eq!(
+        client.capability_check(&agent, &format!("agent.profile.write:{origin}")),
+        Err(Error::Forbidden)
+    );
+    client.capability_revoke("cli", &grant.id).unwrap();
+    assert_eq!(
+        client.capability_check(&agent, &format!("agent.profile.read:{origin}")),
+        Err(Error::Forbidden)
+    );
 }

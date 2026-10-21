@@ -481,10 +481,10 @@ fn a_call_reaches_only_the_origins_in_its_scope() {
     };
     let hosted = Hosted(Runtime::new(&options).unwrap(), dir.0.join("agents.sqlite"));
     assert_eq!(hosted.0.origins("discourse.read"), [HOST, OTHER]);
-    assert_eq!(
-        hosted.0.origins("agent.profile.write"),
-        [HOST, OTHER, PROFILES]
-    );
+    assert_eq!(hosted.0.origins("mail.read"), [HOST, OTHER]);
+    for capability in ["agent.profile.read", "agent.profile.write"] {
+        assert_eq!(hosted.0.origins(capability), [HOST, OTHER, PROFILES]);
+    }
     let here = [HOST.to_string()];
     let elsewhere = [OTHER.to_string()];
     let profiles = [PROFILES.to_string(), "https://unknown.example".to_string()];
@@ -521,6 +521,8 @@ fn a_call_reaches_only_the_origins_in_its_scope() {
             "agent_protocols_room_members_list",
             "agent_protocols_room_timeline",
             "agent_protocols_room_state",
+            "agent_protocols_room_archive",
+            "agent_protocols_room_watch",
         ] {
             let refused = call_within(
                 &hosted,
@@ -533,6 +535,16 @@ fn a_call_reaches_only_the_origins_in_its_scope() {
             .unwrap_err();
             assert_eq!(refused.code, "permission_denied", "{tool}");
         }
+        let schema = call_within(
+            &hosted,
+            "s",
+            Some(&elsewhere),
+            "agent_protocols_schema_get",
+            json!({"protocol":"agent-discourse/1.0","room_id":"room1"}),
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(schema.code, "permission_denied");
         let refused = call_within(
             &hosted,
             "s",

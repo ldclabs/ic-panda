@@ -10,7 +10,7 @@
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
   import { when } from '../../rpc'
-  import { grantState, matrix, profileWrite, sensitive, services, unknownCapabilities } from './agents'
+  import { grantState, matrix, serviceOrigins, sensitive, services, unknownCapabilities } from './agents'
 
   /**
    * What each hosted Agent ID may reach, as a matrix of the Agent Protocols
@@ -44,7 +44,7 @@
   let confirming = $state(false)
 
   const reach = $derived(matrix(grants))
-  const columns = [...services.flatMap((s) => [s.read, s.write]), profileWrite]
+  const columns = services.flatMap((s) => [s.read, s.write])
   const labelOf = (did: string) => hosted.agents.find((a: any) => a.agent_id === did)?.label ?? did
 
   /** The ticked services at the origin and the typed capabilities, each once. */
@@ -93,7 +93,6 @@
           {#each services as service (service.read)}
             <th colspan="2" class="border-s border-line px-2 pt-2 text-center font-medium text-ink-2">{service.name.replace('Agent ', '')}</th>
           {/each}
-          <th rowspan="2" class="border-s border-line px-2 py-2 text-center font-medium text-ink-2">{t('publishProfile')}</th>
           <th rowspan="2" class="border-s border-line px-3 py-2 text-start font-medium">{t('otherCapabilities')}</th>
         </tr>
         <tr class="text-[10.5px] text-faint">
@@ -109,7 +108,7 @@
           <tr class="border-t border-line">
             <td class="px-5 py-2.5 font-medium">{agent.label}</td>
             {#each columns as column, i (column)}
-              <td class={cn('px-2 py-2.5 text-center', (i % 2 === 0 || i === columns.length - 1) && 'border-s border-line')}>{@render cell(row?.services[column])}</td>
+              <td class={cn('px-2 py-2.5 text-center', (i % 2 === 0) && 'border-s border-line')}>{@render cell(row?.services[column])}</td>
             {/each}
             <td class="border-s border-line px-3 py-2">
               <div class="flex flex-wrap gap-1">
@@ -118,7 +117,7 @@
             </td>
           </tr>
         {:else}
-          <tr class="border-t border-line"><td colspan="9" class="px-5 py-3 text-faint">{t('noAgents')}</td></tr>
+          <tr class="border-t border-line"><td colspan={columns.length + 2} class="px-5 py-3 text-faint">{t('noAgents')}</td></tr>
         {/each}
       </tbody>
     </table>
@@ -139,7 +138,7 @@
             class="w-full"
             options={[
               { value: '*', label: t('everyHost') },
-              ...hosted.hosts.map((h: any) => ({ value: h.host, label: h.label ? `${h.host} · ${h.label}` : h.host, mono: true }))
+              ...serviceOrigins(hosted.hosts).map((h) => ({ value: h.host, label: h.label ? `${h.host} · ${h.label}` : h.host, mono: true }))
             ]}
           />
         </Field>
@@ -154,12 +153,8 @@
             </span>
           </div>
         {/each}
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <span class="text-[13px]">Agent Profile</span>
-          <Checkbox bind:checked={() => ticked[profileWrite] ?? false, (on) => (ticked[profileWrite] = on)} testid="service-{profileWrite}">{t('publishProfile')}</Checkbox>
-        </div>
       </div>
-      <Field label={t('capabilityList')} hint={`${t('capabilityVocabulary')}${vocabulary.filter((v) => !services.some((s) => v.startsWith(`${s.read}:`) || v.startsWith(`${s.write}:`)) && !v.startsWith(profileWrite)).join(' ')}`}>
+      <Field label={t('capabilityList')} hint={`${t('capabilityVocabulary')}${vocabulary.filter((v) => !services.some((s) => v.startsWith(`${s.read}:`) || v.startsWith(`${s.write}:`))).join(' ')}`}>
         <input bind:value={capabilities} class="font-mono text-[12.5px]" spellcheck="false" data-testid="grant-other" />
       </Field>
       <div class="flex flex-wrap items-center gap-2">

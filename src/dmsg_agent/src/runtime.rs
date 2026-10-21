@@ -344,10 +344,12 @@ impl Runtime {
     }
 
     /// The origins a grant of `capability` may reach: the configured hosts,
-    /// and for `agent.profile.write` the profile services they name.
+    /// and for Profile reads/writes, the profile services they name.
+    /// The daemon also uses that candidate set for mail_resolve, while
+    /// checking mail.read grants rather than implicitly granting a profile.
     pub fn origins(&self, capability: &str) -> Vec<String> {
         let mut origins: Vec<String> = self.hosts.iter().map(|h| h.host.clone()).collect();
-        if capability == "agent.profile.write" {
+        if matches!(capability, "agent.profile.read" | "agent.profile.write") {
             for service in self.hosts.iter().filter_map(|h| h.profile_service.clone()) {
                 if !origins.contains(&service) {
                     origins.push(service);

@@ -189,7 +189,7 @@ pub enum GrantsCommand {
         /// covers every target. Items tagged `dmsg-…` are dMsg's own keys
         /// and out of reach.
         /// At the allowed hosts, each :<origin> or :* for every host:
-        /// agent.profile.write, discourse.read, discourse.write, mail.read,
+        /// agent.profile.read, agent.profile.write, discourse.read, discourse.write, mail.read,
         /// mail.write, knowledge.read, knowledge.write.
         #[arg(required = true)]
         capabilities: Vec<String>,

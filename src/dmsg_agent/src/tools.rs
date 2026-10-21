@@ -1,11 +1,11 @@
-//! The MCP tool catalog `dmsg mcp` serves: the 33 standard Agent Protocols
+//! The MCP tool catalog `dmsg mcp` serves: the 41 standard Agent Protocols
 //! local connector tools, Agent Mail and Agent Knowledge among them, and the
 //! 34 `dmsg_*` tools over this account's data, team wallets, the agent's own
 //! capabilities and its MCP Events endpoints
 //! (plan §6.8, §6.11). A `dmsg_*` call needs a capability the owner granted the
 //! agent (§6.9); a sensitive one only creates an approval request, which
 //! no tool can answer. So does each standard Agent Discourse, Mail and
-//! Knowledge tool, and the profile update ([`standard_capability`]), at the
+//! Knowledge tool, and Profile reads/writes ([`standard_capability`]), at the
 //! origins the grant names: the host allowlist says where any agent may
 //! sign, an agent's grants what it may do at which of them.
 
@@ -13,20 +13,28 @@ use agent_protocols::local_connector::{
     TOOL_AGENT_STATUS_LIST, TOOL_AGENT_STATUS_SET, TOOL_DRAFT_COMMIT, TOOL_DRAFTS_LIST,
     TOOL_JOIN_REQUEST_REVIEW, TOOL_JOIN_REQUESTS_LIST, TOOL_KNOWLEDGE_GET, TOOL_KNOWLEDGE_QUERY,
     TOOL_KNOWLEDGE_SEARCH, TOOL_KNOWLEDGE_STATUS, TOOL_KNOWLEDGE_SUBMIT, TOOL_MAIL_LIST,
-    TOOL_MAIL_MAILBOX_PUBLISH, TOOL_MAIL_MAILBOXES_LIST, TOOL_MAIL_SEND, TOOL_MAIL_SYNC,
-    TOOL_NAMES, TOOL_PROFILE_UPDATE, TOOL_ROOM_CREATE, TOOL_ROOM_JOIN, TOOL_ROOM_MEMBERS_LIST,
+    TOOL_MAIL_MAILBOX_PUBLISH, TOOL_MAIL_MAILBOXES_LIST, TOOL_MAIL_RESOLVE, TOOL_MAIL_SEND,
+    TOOL_MAIL_SYNC, TOOL_NAMES, TOOL_PROFILE_HISTORY, TOOL_PROFILE_UPDATE, TOOL_PROFILES_GET,
+    TOOL_ROOM_ARCHIVE, TOOL_ROOM_CREATE, TOOL_ROOM_JOIN, TOOL_ROOM_MEMBERS_LIST,
     TOOL_ROOM_SEND_MESSAGE, TOOL_ROOM_STATE, TOOL_ROOM_SUBMIT_EVENT, TOOL_ROOM_TIMELINE,
-    TOOL_ROOMS_LIST, standard_tool_definitions,
+    TOOL_ROOM_WATCH, TOOL_ROOMS_LIST, TOOL_SCHEMA_GET, standard_tool_definitions,
 };
 use serde_json::{Value, json};
 
 /// The capability each standard Agent Discourse, Mail and Knowledge tool,
-/// and the profile update, needs. The others need none: the Agent ID's
-/// identity, the delegation tools (a grant or revocation needs the Agent ID
+/// and Profile reads/writes, needs. Schema lookup needs this grant only
+/// when it reads a room; bundled schemas are public. The others need none:
+/// identity and configured service discovery, the delegation tools (a grant or revocation needs the Agent ID
 /// to be a principal's controller) and the inbox, which holds only what the
 /// read tools fetched. `mail_sync` also delivers the letters already queued,
 /// which a revoked `mail.write` does not hold back.
-const STANDARD_CAPABILITIES: [(&str, &str); 25] = [
+const STANDARD_CAPABILITIES: [(&str, &str); 31] = [
+    (TOOL_PROFILES_GET, "agent.profile.read"),
+    (TOOL_PROFILE_HISTORY, "agent.profile.read"),
+    (TOOL_MAIL_RESOLVE, "mail.read"),
+    (TOOL_ROOM_ARCHIVE, "discourse.read"),
+    (TOOL_ROOM_WATCH, "discourse.read"),
+    (TOOL_SCHEMA_GET, "discourse.read"),
     (TOOL_PROFILE_UPDATE, "agent.profile.write"),
     (TOOL_ROOMS_LIST, "discourse.read"),
     (TOOL_ROOM_STATE, "discourse.read"),
@@ -313,14 +321,19 @@ pub fn is_read_only(name: &str) -> bool {
 /// Every tool as MCP `tools/list` declares it.
 pub fn tool_list() -> Vec<Value> {
     let standard = standard_tool_definitions().into_iter().map(|t| {
-        let description = match standard_capability(&t.name) {
-            Some(capability) => format!("{} Needs {capability}:<origin>.", t.description),
-            None => t.description,
+        let description = match t.name.as_str() {
+            TOOL_SCHEMA_GET => format!("{} Bundled protocol schemas need no grant; room_id needs discourse.read:<origin>.", t.description),
+            TOOL_MAIL_RESOLVE => format!("{} Needs mail.read:<origin> at each relay and, when used, the profile_service origin.", t.description),
+            _ => match standard_capability(&t.name) {
+                Some(capability) => format!("{} Needs {capability}:<origin>.", t.description),
+                None => t.description,
+            },
         };
         json!({
             "name": t.name,
             "description": description,
             "inputSchema": t.input_schema,
+            "outputSchema": t.output_schema,
             "annotations": {
                 "readOnlyHint": t.annotations.read_only_hint,
                 "idempotentHint": t.annotations.idempotent_hint,
@@ -356,6 +369,8 @@ mod tests {
         // Local or acting only as a principal's controller: no grant.
         let free = [
             "agent_protocols_identity_current",
+            "agent_protocols_services_list",
+            "agent_protocols_delegation_history",
             "agent_protocols_principal_resolve",
             "agent_protocols_delegation_check",
             "agent_protocols_delegations_list",
@@ -382,6 +397,35 @@ mod tests {
                 .unwrap()
                 .ends_with(" Needs discourse.write:<origin>.")
         );
+    }
+
+    #[test]
+    fn standard_tools_keep_input_and_output_contracts() {
+        let tools = tool_list();
+        assert_eq!(tools.len(), 75);
+        for tool in standard_tool_definitions() {
+            let advertised = tools.iter().find(|t| t["name"] == tool.name).unwrap();
+            assert_eq!(
+                advertised["inputSchema"], tool.input_schema,
+                "{}",
+                tool.name
+            );
+            assert_eq!(
+                advertised["outputSchema"], tool.output_schema,
+                "{}",
+                tool.name
+            );
+        }
+        for (name, capability) in [
+            (TOOL_PROFILES_GET, "agent.profile.read"),
+            (TOOL_PROFILE_HISTORY, "agent.profile.read"),
+            (TOOL_MAIL_RESOLVE, "mail.read"),
+            (TOOL_ROOM_ARCHIVE, "discourse.read"),
+            (TOOL_ROOM_WATCH, "discourse.read"),
+            (TOOL_SCHEMA_GET, "discourse.read"),
+        ] {
+            assert_eq!(standard_capability(name), Some(capability));
+        }
     }
 
     #[test]

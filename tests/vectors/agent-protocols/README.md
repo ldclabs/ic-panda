@@ -1,8 +1,9 @@
 # Agent Protocols vectors
 
 Normative vectors and schemas of [agent-protocols](https://github.com/ldclabs/agent-protocols)
-(MIT), copied unchanged from tag `v0.12.0` (`85abd0b`); SDK 0.12.1, which the
-workspace uses, left them and the five test files as they were. `src/dmsg_agent/tests/` runs the SDK's own conformance tests
+(MIT), copied unchanged from tag `v0.12.0` (`85abd0b`); SDK 0.12.3, which the
+workspace uses, leaves these eight protocol schema/vector files byte-identical
+to the current upstream originals; its changes concern the local connector. `src/dmsg_agent/tests/` runs the SDK's own conformance tests
 for Identity, Delegation, Profile, Agent Mail and Agent Knowledge against
 them, and `discourse_vectors.rs` checks the Discourse record chain, so an SDK
 upgrade that changes a byte rule fails here first. The Mail vectors come from

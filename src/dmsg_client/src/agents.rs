@@ -54,8 +54,8 @@ pub const MAX_GRANTS: usize = 64;
 /// wallet canister: `wallet.propose` only proposes, which the wallet
 /// accepts when the member lists the Agent ID, and `wallet.execute` only
 /// carries out what members approved; no capability approves. The last
-/// seven are the [`HOST_CAPABILITIES`].
-pub const CAPABILITIES: [&str; 26] = [
+/// eight are the [`HOST_CAPABILITIES`].
+pub const CAPABILITIES: [&str; 27] = [
     "account.read",
     "vault.list",
     "vault.read:",
@@ -75,6 +75,7 @@ pub const CAPABILITIES: [&str; 26] = [
     "wallet.read",
     "wallet.propose:",
     "wallet.execute:",
+    "agent.profile.read:",
     "agent.profile.write:",
     "discourse.read:",
     "discourse.write:",
@@ -84,10 +85,11 @@ pub const CAPABILITIES: [&str; 26] = [
     "knowledge.write:",
 ];
 
-/// The Agent Protocols services at the allowed hosts: publishing the Agent
+/// The Agent Protocols services at the allowed hosts: reading and publishing the Agent
 /// ID's profile, and reading from or writing to Agent Discourse, Agent Mail
 /// and Agent Knowledge. The target is an origin, or `*` for every one.
-pub const HOST_CAPABILITIES: [&str; 7] = [
+pub const HOST_CAPABILITIES: [&str; 8] = [
+    "agent.profile.read",
     "agent.profile.write",
     "discourse.read",
     "discourse.write",

@@ -10,13 +10,20 @@
 export const services = [
   { name: 'Agent Discourse', read: 'discourse.read', write: 'discourse.write' },
   { name: 'Agent Mail', read: 'mail.read', write: 'mail.write' },
-  { name: 'Agent Knowledge', read: 'knowledge.read', write: 'knowledge.write' }
+  { name: 'Agent Knowledge', read: 'knowledge.read', write: 'knowledge.write' },
+  { name: 'Agent Profile', read: 'agent.profile.read', write: 'agent.profile.write' }
 ] as const
 
-/** Publishing the agent's own profile. */
-export const profileWrite = 'agent.profile.write'
+const reaching = new Set<string>(services.flatMap((s) => [s.read, s.write]))
 
-const reaching = new Set<string>([...services.flatMap((s) => [s.read, s.write]), profileWrite])
+/** Include separately configured Profile origins when choosing a scoped grant. */
+export function serviceOrigins(hosts: { host: string; label?: string; profile_service?: string }[]) {
+  const origins = new Map(hosts.map((host) => [host.host, { host: host.host, label: host.label }]))
+  for (const host of hosts) {
+    if (host.profile_service && !origins.has(host.profile_service)) origins.set(host.profile_service, { host: host.profile_service, label: 'Agent Profile' })
+  }
+  return [...origins.values()]
+}
 
 export interface Reach {
   /** Each service capability with the origins it reaches, `*` for every allowed host. */

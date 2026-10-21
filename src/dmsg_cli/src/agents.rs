@@ -503,7 +503,7 @@ impl Daemon {
                 client.agent_runtime()?,
                 client.agent_signer(&agent.agent_id)?,
                 match (tool, caller) {
-                    (Some(tool), Some(caller)) => self.reach(&client, caller, tool)?,
+                    (Some(tool), Some(caller)) => self.reach(&client, caller, tool, None)?,
                     _ => None,
                 },
             )
@@ -524,11 +524,23 @@ impl Daemon {
         client: &Client,
         agent: &AgentEntry,
         tool: &str,
+        input: Option<&Value>,
     ) -> Result<Option<Vec<String>>> {
+        // Bundled schemas expose no room state. A room-specific lookup uses
+        // the same discourse.read origin gate as the room's other readers.
+        if tool == "agent_protocols_schema_get" && input.is_some_and(|v| v.get("room_id").is_none())
+        {
+            return Ok(None);
+        }
         let Some(name) = standard_capability(tool) else {
             return Ok(None);
         };
-        let origins = self.agents().origins(name);
+        // Resolving mailbox cards may also read Profile hints. Only this
+        // tool considers those extra origins, still under mail.read grants.
+        let origins = self.agents().origins(match tool {
+            "agent_protocols_mail_resolve" => "agent.profile.read",
+            _ => name,
+        });
         let granted = client.capability_targets(&agent.agent_id, name, origins)?;
         ensure(!granted.is_empty(), Error::Forbidden)?;
         Ok(Some(granted))
@@ -595,7 +607,7 @@ impl Daemon {
                 // one reaches every configured host.
                 let reach = match caller.actor {
                     "owner" => None,
-                    _ => match self.reach(&client, agent, tool) {
+                    _ => match self.reach(&client, agent, tool, Some(&input)) {
                         Ok(reach) => reach,
                         Err(error) => return Ok(refused(&error)),
                     },

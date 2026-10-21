@@ -1,7 +1,7 @@
 # dmsg_agent
 
 dMsg as an [Agent Protocols](https://github.com/ldclabs/agent-protocols)
-local connector host (`agent-protocols` 0.12.2). The daemon (`dmsg_cli`)
+local connector host (`agent-protocols` 0.12.3). The daemon (`dmsg_cli`)
 runs one connector per Agent ID it hosts; `dmsg mcp` and `dmsg ap` reach
 them through the daemon. Agent ID keys, their mail keys, their residency
 and the capability grants live in [`dmsg_client`](../dmsg_client/README.md).
@@ -10,7 +10,7 @@ and the capability grants live in [`dmsg_client`](../dmsg_client/README.md).
 | --- | --- |
 | `runtime` | Connector state per Agent ID in `<workspace>/agents.sqlite`, restored for every call and saved after it when it changed, with each session's presented heads apart; resource reads that save nothing; the sessions an Agent ID was used in, and forgetting everything of one that is no longer hosted; its published Agent Profile, read from the configured profile services and checked against its signature; the host allowlist and the blocked mail senders come only from `config.toml` |
 | `resources` | The local connector's resources (§4.4) and the read-only tool behind each |
-| `tools` | The MCP catalog: the 33 standard `agent_protocols_*` tools (identity, delegation, rooms, inbox and drafts, profile, Agent Mail, Agent Knowledge) with the capability each needs, and the 34 `dmsg_*` tools, six of them for team wallets, seven for MCP Events endpoints and two for the agent's own capabilities |
+| `tools` | The MCP catalog: the 41 standard `agent_protocols_*` tools (identity, delegation, rooms, inbox and drafts, profile, Agent Mail, Agent Knowledge) with the capability each needs, and the 34 `dmsg_*` tools, six of them for team wallets, seven for MCP Events endpoints and two for the agent's own capabilities |
 
 Every tool call restores the connector from its snapshot (local connector
 §4.1: hosts, rooms and records, members, timeline, read and presented
@@ -32,11 +32,12 @@ of different Agent IDs do not wait for each other.
 The host allowlist says where the agents may sign; what each may do at
 which of them is its owner's grant. The Agent Discourse, Mail and Knowledge
 tools need `discourse.read|write`, `mail.read|write` or
-`knowledge.read|write`, and `agent_protocols_profile_update` needs
-`agent.profile.write`, each for an origin or `*`; the identity, delegation
-and inbox tools need none. A resource needs what its tool needs. For an
-agent's call the daemon passes the origins its grants name as the call's
-`Scope::reach` (refusing the call when there are none), and the runtime
+`knowledge.read|write`; Profile reads need `agent.profile.read`, and updates
+need `agent.profile.write`, each for an origin or `*`. Identity, configured
+service discovery, delegation and inbox tools need no grant. Bundled schema
+lookup needs none either; a schema lookup with `room_id` needs `discourse.read`.
+A resource needs what its tool needs. For an agent's call, the daemon passes
+the origins its grants name as the call's `Scope::reach` (refusing the call when there are none), and the runtime
 allows only those, each as a host of its own, so a host's profile service
 does not come along: the connector refuses every other origin, and the
 runtime refuses a room, or a held draft of one, the snapshot knows on
@@ -54,8 +55,9 @@ move only by reading it. Sessions unused for 30 days, or beyond the newest
 Agent ID: a restarted agent finishes what its previous session held, and a
 claim's lease keeps another session off the item.
 
-Every standard tool declares its full input schema, as local connector
-Section 4.3's tables list them, and none uses `oneOf`, `anyOf` or `allOf`,
+Every standard tool declares the SDK catalog's full `inputSchema` and
+`outputSchema`, as local connector Section 4.3 defines them. Input schemas do
+not use `oneOf`, `anyOf` or `allOf`,
 which Anthropic's API refuses in a tool's input schema, failing the whole
 request (the SDK's catalog; `tools::tool_list` adds each tool's
 capability). A test calls each tool with only its required inputs, and with
@@ -92,3 +94,37 @@ without its keys cannot open a letter, and the configuration alone blocks
 and unblocks senders. The other files under `tests/` run the protocols'
 normative vectors, Mail and Knowledge included (DT08), against the SDK this
 crate uses; see [`tests/vectors/agent-protocols`](../../tests/vectors/agent-protocols/README.md).
+
+## Connector 0.12.3 workflows
+
+All 41 standard tools are classified explicitly; together with 34 dMsg tools,
+`tools/list` exposes 75 tools. New tool permissions are:
+
+| Tool (with `agent_protocols_` prefix) | Capability |
+| --- | --- |
+| `profiles_get`, `profile_history` | `agent.profile.read:<origin>` |
+| `mail_resolve` | `mail.read:<origin>` for every relay and, when used, the Profile service |
+| `room_archive`, `room_watch` | `discourse.read:<origin>` |
+| `schema_get` | None for bundled schemas; `discourse.read:<origin>` with `room_id` |
+| `services_list`, `delegation_history` | No additional grant; operator host policy and protocol checks still apply |
+
+Configured `profile_service` origins are explicit grant targets for Profile
+reads/writes and Mail resolution. Granting a room or relay origin does not
+implicitly grant its Profile service. The desktop capability controls offer
+Profile read and write separately and list these additional origins.
+
+Read `profiles_get` before `profile_update`: updates replace the entire profile.
+Preserve desired fields, especially service endpoints and delegation hints, and
+remove service-derived `updated_at` and `event_id`. The service may enforce its
+own admission policy in addition to the local capability grant. Omit
+`mailbox_id` and pass nonempty `routes` to `mail_mailbox_publish` to create an
+owned mailbox; keys stay in the daemon's sealed store. `mail_resolve` obtains
+verified addresses, `mail_send` optionally includes `reply_mailbox_id`, and an
+explicit `mail_sync` precedes local inbox/message reads. `identity_current`
+reports the configured Profile service URLs and the core's explicit sync mode.
+
+The desktop acceptance case `connector::desktop_connector_profile_and_mail`
+runs these paths through the real stdio MCP client, daemon and local services,
+including missing grants, wrong origins, grant revocation, profile read/edit/
+read-back, mailbox creation, reply threading, read state and restart persistence.
+It uses temporary local accounts and test identities, never production data.

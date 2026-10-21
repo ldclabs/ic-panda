@@ -8,6 +8,8 @@ import {
   mcpSetup,
   outcomeTone,
   profileHint,
+  serviceOrigins,
+  services,
   sensitive,
   shellWord,
   unknownCapabilities
@@ -105,4 +107,17 @@ test('credentials group by agent and give a profile hint', () => {
   assert.equal(covers(restricted, ['x'], ['https://a.example']), true)
   assert.equal(covers(restricted, ['y'], ['https://a.example']), false)
   assert.equal(covers({ delegation: '*' }, ['y'], ['https://b.example']), true)
+})
+
+
+test('Agent Profile has separate read/write grants and includes configured profile origins', () => {
+  assert.ok(services.some((service) => service.read === 'agent.profile.read' && service.write === 'agent.profile.write'))
+  assert.deepEqual(serviceOrigins([
+    { host: 'https://rooms.example', label: 'Rooms', profile_service: 'https://profiles.example' },
+    { host: 'https://mail.example', profile_service: 'https://profiles.example' }
+  ]).map((host) => host.host), ['https://rooms.example', 'https://mail.example', 'https://profiles.example'])
+  const reach = matrix([{ grantee: 'a', capabilities: ['agent.profile.read:https://profiles.example'] }]).get('a')!
+  assert.deepEqual(reach.services['agent.profile.read'], ['https://profiles.example'])
+  assert.equal(reach.services['agent.profile.write'], undefined)
+  assert.deepEqual(reach.other, [])
 })

@@ -15,6 +15,8 @@
 //! (`cargo build -p dmsg_cli`, or `DMSG_BIN`), `POCKET_IC_BIN`,
 //! `DMSG_CLOUD_DIR` pointing at the private relay checkout, and Node with
 //! `pnpm install` done for `src/dmsg_connect`.
+#[path = "desktop/connector.rs"]
+mod connector;
 mod support;
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -689,6 +691,9 @@ struct FrontState {
     answers: Vec<(String, String, String)>,
     /// `(path, JSON body)` of each write the service answered with 2xx.
     accepted: Vec<(String, Value)>,
+    /// The local Profile front advertises its own origin instead of the
+    /// fixture's unreachable canonical test domain. Signed bodies are unchanged.
+    profile_origin: Option<String>,
 }
 
 impl TlsFront {
@@ -815,13 +820,31 @@ impl TlsFront {
                 server.write_all(Proxy::closing(&head).as_bytes())?;
                 server.write_all(&body)?;
                 let mut response = BufReader::new(server);
-                let Some((reply_head, reply_body)) = Proxy::read_message(&mut response)? else {
+                let Some((mut reply_head, mut reply_body)) = Proxy::read_message(&mut response)?
+                else {
                     return Ok(());
                 };
                 let accepted = reply_head
                     .split(' ')
                     .nth(1)
                     .is_some_and(|status| status.starts_with('2'));
+                if method == "GET"
+                    && path == "/.well-known/agent-profile"
+                    && accepted
+                    && let Some(origin) = state.lock().unwrap().profile_origin.clone()
+                {
+                    // Discovery is transport metadata; all Profile operations
+                    // still reach the real Worker and retain their signed bytes.
+                    let mut discovery: Value =
+                        serde_json::from_slice(&reply_body).map_err(std::io::Error::other)?;
+                    discovery["service"] = json!(origin);
+                    discovery["endpoints"] = json!({"profiles":format!("{origin}/v1/profiles"),"profile_batch":format!("{origin}/v1/profiles/batch")});
+                    reply_body = serde_json::to_vec(&discovery).map_err(std::io::Error::other)?;
+                    reply_head = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                        reply_body.len()
+                    );
+                }
                 if method == "POST"
                     && accepted
                     && let Ok(value) = serde_json::from_slice(&body)
@@ -884,6 +907,8 @@ struct Env {
     ic_proxy: Option<Proxy>,
     /// The `dmsg-discourse` host the daemons may sign for, behind HTTPS.
     discourse: Option<TlsFront>,
+    /// The real relay's Profile API through a local HTTPS discovery front.
+    profiles: Option<TlsFront>,
     /// The Agent Mail relay and the Agent Knowledge service, if served.
     services: Option<Services>,
     /// The frozen old service, if installed.
@@ -1070,6 +1095,11 @@ impl Env {
             .or(ready["relay"].as_str())
             .unwrap()
             .to_string();
+        let profiles = options.agents.then(|| {
+            let front = TlsFront::start(relay.trim_start_matches("http://"));
+            front.state.lock().unwrap().profile_origin = Some(front.origin.clone());
+            front
+        });
         let ic_proxy = options.proxies.then(|| Proxy::start(&deployment.gateway));
         let ic_host = ic_proxy
             .as_ref()
@@ -1096,8 +1126,9 @@ impl Env {
         }
         if let Some(discourse) = &discourse {
             hosts.push(format!(
-                "{{ host = \"{}\", label = \"test\" }}",
-                discourse.origin
+                "{{ host = \"{}\", label = \"test\", profile_service = \"{}\" }}",
+                discourse.origin,
+                profiles.as_ref().unwrap().origin
             ));
         }
         if let Some(services) = &services {
@@ -1167,6 +1198,7 @@ impl Env {
             relay_proxy,
             ic_proxy,
             discourse,
+            profiles,
             services,
             legacy,
         }
@@ -5413,7 +5445,7 @@ fn desktop_agents() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names.len(), 67);
+    assert_eq!(names.len(), 75);
     assert!(names.contains(&"agent_protocols_room_join") && names.contains(&"dmsg_vault_list"));
     assert!(names.contains(&"agent_protocols_mail_send"));
     for name in [
@@ -6061,7 +6093,7 @@ fn desktop_agents() {
     let listed = modern.request("tools/list", json!({"_meta": meta}));
     assert_eq!(listed["result"]["resultType"], "complete");
     assert_eq!(listed["result"]["cacheScope"], "private");
-    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 67);
+    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 75);
     let unknown = modern.request(
         "tools/list",
         json!({"_meta": {"io.modelcontextprotocol/protocolVersion": "2099-01-01", "io.modelcontextprotocol/clientCapabilities": {}}}),
