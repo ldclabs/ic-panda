@@ -13,6 +13,7 @@
   --theme-font-family-base:
     Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --theme-font-color-dark: 16 37 31;
+  width: 100%;
   max-width: 1376px;
   margin: auto;
   height: 100dvh;

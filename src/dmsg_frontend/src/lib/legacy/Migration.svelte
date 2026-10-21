@@ -242,6 +242,7 @@
             class={field}
             bind:value={password}
             autocomplete="off"
+            data-1p-ignore
           />
         </label>{/if}
       <div class="flex flex-wrap items-center gap-3">

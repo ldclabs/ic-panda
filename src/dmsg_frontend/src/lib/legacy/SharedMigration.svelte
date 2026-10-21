@@ -298,6 +298,7 @@
             max="4294967295"
             class={[field, 'font-mono tabular-nums']}
             bind:value={channel}
+            data-1p-ignore
           />
         </label>
       </div>
@@ -320,7 +321,8 @@
         <span class="text-[14px] font-medium"
           >{$t('Approval request from the desktop app')}</span
         >
-        <textarea class={area} bind:value={requestText} rows="5"></textarea>
+        <textarea class={area} bind:value={requestText} rows="5" data-1p-ignore
+        ></textarea>
       </label>
       {#if request}<dl
           class="m-0 grid gap-x-6 gap-y-2 rounded-xl border border-[var(--accent)] bg-[var(--pale)] p-4 sm:grid-cols-[max-content_minmax(0,1fr)]"
@@ -373,8 +375,12 @@
           <span class="text-[14px] font-medium"
             >{$t('Approval result to copy into the desktop app')}</span
           >
-          <textarea class={area} readonly value={responseText} rows="5"
-          ></textarea>
+          <textarea
+            class={area}
+            readonly
+            value={responseText}
+            rows="5"
+            data-1p-ignore></textarea>
         </label>{/if}
     </Step>
   </ol>
