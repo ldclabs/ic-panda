@@ -170,7 +170,7 @@ The PocketIC `control_plane` (113 tests) and `directory` suites pass on the 16.0
 
 ## 2026-10-07 handle names capped at 19 bytes
 
-`normalize_handle` and the client's `canonicalHandle` accept only 1–19-byte names, so a handle can never match the 20-character Xid text of an `AccountId` and `/<handle>` cannot be confused with `/u/<account_id>`. Names of 7–19 bytes still cost 100 PANDA. A 2026-10-07 query of the mainnet legacy `ic_message` name blocks found 203 distinct names, the longest 17 bytes, so the legacy import is unaffected.
+`normalize_handle` and the client's `canonicalHandle` accept only 1–19-byte names, so a handle can never match the 20-character Xid text of an `AccountId` and `/<handle>` cannot be confused with `/<account_id>`. Public profile paths are aligned with the 2026-10-21 implementation: permanent links use `/<account_id>`; see the [public profile contract](protocol/cloud_zh.md#公开资料网页) (Chinese). Names of 7–19 bytes still cost 100 PANDA. A 2026-10-07 query of the mainnet legacy `ic_message` name blocks found 203 distinct names, the longest 17 bytes, so the legacy import is unaffected.
 
 ## 2026-10-08 directory production readiness
 

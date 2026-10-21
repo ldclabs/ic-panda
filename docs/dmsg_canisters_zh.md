@@ -185,7 +185,7 @@ PocketIC `control_plane`（113 项）与 `directory` 套件在 16.0.0 release Wa
 
 ## 2026-10-07 handle 名称上限改为 19 字节
 
-`normalize_handle` 与客户端 `canonicalHandle` 只接受 1–19 字节的名称，使名称不会与 `AccountId` 的 20 字符 Xid 文本重合，`/<handle>` 与 `/u/<account_id>` 不会产生歧义。7–19 字节价格仍为 100 PANDA。2026-10-07 查询主网旧 `ic_message` 的名称区块：203 个不同名称，最长 17 字节，旧名导入不受影响。
+`normalize_handle` 与客户端 `canonicalHandle` 只接受 1–19 字节的名称，使名称不会与 `AccountId` 的 20 字符 Xid 文本重合，`/<handle>` 与 `/<account_id>` 不会产生歧义。公开资料路径按 2026-10-21 实现对齐，永久链接使用 `/<account_id>`，见[公开资料网页](protocol/cloud_zh.md#公开资料网页)。7–19 字节价格仍为 100 PANDA。2026-10-07 查询主网旧 `ic_message` 的名称区块：203 个不同名称，最长 17 字节，旧名导入不受影响。
 
 ## 2026-10-08 directory 上线准备
 

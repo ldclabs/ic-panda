@@ -135,7 +135,9 @@ rusqlite = "0.40"
 toml = "1"
 url = "2.5"
 urlencoding = "2.1"
-zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+zip = { version = "9", default-features = false, features = [
+  "deflate-flate2-zlib-rs",
+] }
 
 [workspace.metadata.cargo-shear]
 ignored = ["ic-dummy-getrandom-for-wasm", "lib_dummy_getrandom"]

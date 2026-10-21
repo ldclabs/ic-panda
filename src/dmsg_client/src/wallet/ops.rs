@@ -916,8 +916,9 @@ pub(crate) async fn job_execute<H: Hold>(h: &H, id: &str) -> Result<()> {
                     .unwrap_or_else(|| vec![proposal.digest]);
                 let mut signatures = vec![];
                 for cosigner in cosigners {
-                    signatures
-                        .extend(local_cosigs(h, &view, cosigner, proposal.id, seq, &digests).await?);
+                    signatures.extend(
+                        local_cosigs(h, &view, cosigner, proposal.id, seq, &digests).await?,
+                    );
                 }
                 let collected =
                     packets::keep(h, &view, &proposal, plan.as_deref(), signatures).await?;
