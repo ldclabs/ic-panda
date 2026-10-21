@@ -1,5 +1,5 @@
 //! The file library as a disk: a loopback WebDAV share the daemon serves at
-//! `/dav/<token>/dMsg` and mounts through the operating system
+//! `/dav/<token>/<localized-name>` and mounts through the operating system
 //! (`files/mount`, `files/unmount`, `files/mount_status`). Reading decrypts
 //! chunk by chunk, with ranges at 1 MiB boundaries; a write becomes a new
 //! version once the whole file has arrived; folders map to folders, a
@@ -7,8 +7,8 @@
 //! (write a temporary file, move it over the original) becomes a new
 //! version of the original. The token is random for each mount and lives
 //! only in memory; on macOS the mount also carries a random Basic password,
-//! which the system keeps and the person never sees. A lock, an account
-//! switch and the daemon's exit unmount.
+//! which NetFS keeps and the person never sees. A lock, an account switch
+//! and the daemon's exit unmount.
 //!
 //! Finder's and Explorer's noise (`.DS_Store`, `._*`, `Thumbs.db`,
 //! `desktop.ini` and the like) is accepted and discarded.
@@ -22,35 +22,18 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use base64::Engine;
-use dav_server::{
-    DavHandler,
-    davpath::DavPath,
-    fakels::FakeLs,
-    fs::{
-        DavDirEntry, DavFile, DavFileSystem, DavMetaData, FsError, FsFuture, FsResult, FsStream,
-        OpenOptions, ReadDirMeta,
-    },
-};
-use dmsg_client::{
-    Client,
-    files::CHUNK,
-    library::{
-        catalog::{FileView, FolderView, ROOT, validate_name},
-        mount::Node,
-    },
-    now_ms,
-};
+use dav_server::{DavConfig, DavHandler, fakels::FakeLs};
+use dmsg_client::{library::catalog::validate_name, now_ms};
 use dmsg_types::{Error, Result};
-use futures_util::FutureExt;
 use serde_json::{Value, json};
 use std::collections::HashMap;
-use std::io::{SeekFrom, Write};
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tokio::sync::Mutex;
-use zeroize::Zeroizing;
+use std::time::Duration;
+
+#[path = "mount_fs.rs"]
+mod filesystem;
+use filesystem::LibraryFs;
 
 /// The methods this module serves.
 pub(crate) const METHODS: [&str; 5] = [
@@ -61,11 +44,8 @@ pub(crate) const METHODS: [&str; 5] = [
     "files/preferences_reload",
 ];
 
-/// The volume's name: the last segment of the share's URL, which the
-/// systems take as the mount's name.
-pub(crate) const VOLUME: &str = "dMsg";
 /// The Basic user, where a password is used.
-const USER: &str = "dmsg";
+pub(crate) const USER: &str = "dmsg";
 /// How long a system mount or unmount command may take.
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(60);
 
@@ -81,6 +61,8 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
 /// A mount in progress: what the route needs and what the status shows.
 pub(crate) struct Mount {
     token: String,
+    /// The caller's localized volume name, fixed until the next mount.
+    name: String,
     /// The Basic password, on macOS; the token alone elsewhere.
     password: Option<String>,
     /// The account whose library this is; another account's unlock revokes it.
@@ -89,6 +71,7 @@ pub(crate) struct Mount {
     /// Where the system mounted it, when known.
     point: Option<String>,
     since: u64,
+    ready: bool,
     handler: DavHandler,
 }
 
@@ -121,22 +104,52 @@ impl Mount {
     fn status(&self, enabled: bool) -> Value {
         let (os, supported, note) = platform();
         json!({
-            "mounted": true,
+            "mounted": self.ready,
+            "mounting": !self.ready,
             "enabled": enabled,
             "os": os,
             "supported": supported,
             "note": note,
             "url": self.url,
+            "name": self.name,
             "mount_point": self.point,
             "since": self.since,
         })
     }
 }
 
+/// A localized name supplied by the desktop or CLI. Direct RPC callers
+/// fall back to the daemon's language.
+fn volume_name(params: &Value) -> Result<String> {
+    let name = match params.get("name") {
+        None | Some(Value::Null) => crate::locale::tr!("dMsg Files", "dMsg 文件"),
+        Some(Value::String(name)) => name.clone(),
+        Some(_) => return Err(Error::InvalidInput("name".into())),
+    };
+    validate_name(&name)?;
+    if name.len() > 255 {
+        return Err(Error::InvalidInput("name".into()));
+    }
+    Ok(name)
+}
+
+/// DAV needs a decoded prefix while the system mount needs a URL with
+/// spaces and non-ASCII characters encoded as one path segment.
+fn share_location(port: u16, token: &str, name: &str) -> (String, String) {
+    let prefix = format!("/dav/{token}/{name}");
+    let mut url = reqwest::Url::parse(&format!("http://127.0.0.1:{port}")).expect("loopback URL");
+    url.path_segments_mut()
+        .expect("HTTP path")
+        .clear()
+        .extend(["dav", token, name]);
+    (prefix, url.into())
+}
+
 fn unmounted_status(enabled: bool) -> Value {
     let (os, supported, note) = platform();
     json!({
         "mounted": false,
+        "mounting": false,
         "enabled": enabled,
         "os": os,
         "supported": supported,
@@ -146,7 +159,10 @@ fn unmounted_status(enabled: bool) -> Value {
 
 /// Run a system command, feeding `stdin`, within [`COMMAND_TIMEOUT`];
 /// returns its standard output.
-async fn run(command: &mut tokio::process::Command, stdin: Option<&str>) -> Result<String> {
+pub(crate) async fn run(
+    command: &mut tokio::process::Command,
+    stdin: Option<&str>,
+) -> Result<String> {
     use std::process::Stdio;
     use tokio::io::AsyncWriteExt;
     command
@@ -173,31 +189,27 @@ async fn run(command: &mut tokio::process::Command, stdin: Option<&str>) -> Resu
         .map_err(|_| Error::Unavailable("mount: the system command timed out".into()))?
         .map_err(|e| Error::Unavailable(format!("mount: {e}")))?;
     if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        return Err(Error::Unavailable(format!("mount: {stderr}")));
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        // `dmsg --json` reports errors on stdout; system tools may use either.
+        let detail = if stderr.trim().is_empty() {
+            stdout.trim()
+        } else {
+            stderr.trim()
+        };
+        return Err(Error::Unavailable(format!(
+            "mount: {}: {detail}",
+            output.status
+        )));
     }
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
-/// Mount `url` through the system; returns the mount point when known.
+/// Mount `url` through NetFS; returns the mount point.
 #[cfg(target_os = "macos")]
-async fn system_mount(url: &str, token: &str, password: Option<&str>) -> Result<Option<String>> {
-    let script = format!(
-        "mount volume {url:?} as user name {USER:?} with password {:?}",
-        password.unwrap_or_default()
-    );
-    run(
-        &mut tokio::process::Command::new("osascript"),
-        Some(&script),
-    )
-    .await?;
-    let table = run(&mut tokio::process::Command::new("mount"), None).await?;
-    let marker = format!("/dav/{token}/");
-    Ok(table
-        .lines()
-        .find(|line| line.contains(&marker))
-        .and_then(|line| line.split(" on ").nth(1))
-        .and_then(|rest| rest.rsplit_once(" (").map(|(point, _)| point.to_string())))
+async fn system_mount(url: &str, _token: &str, password: Option<&str>) -> Result<Option<String>> {
+    let point = crate::mount_netfs::helper_mount(url, password.unwrap_or_default()).await?;
+    Ok(Some(point))
 }
 
 #[cfg(target_os = "macos")]
@@ -257,19 +269,18 @@ fn gvfs_uri(url: &str) -> String {
 }
 
 #[cfg(target_os = "linux")]
-async fn system_mount(url: &str, token: &str, _password: Option<&str>) -> Result<Option<String>> {
+async fn system_mount(url: &str, _token: &str, _password: Option<&str>) -> Result<Option<String>> {
     run(
         tokio::process::Command::new("gio").args(["mount", &gvfs_uri(url)]),
         None,
     )
     .await?;
-    let port = url
-        .rsplit_once(':')
-        .and_then(|(_, rest)| rest.split('/').next())
-        .unwrap_or_default();
+    let parsed = reqwest::Url::parse(url).expect("mount URL");
+    let port = parsed.port().expect("loopback port");
+    let prefix = parsed.path().replace('/', "%2F");
     let point = std::env::var_os("XDG_RUNTIME_DIR").map(|runtime| {
-        PathBuf::from(runtime).join("gvfs").join(format!(
-            "dav:host=127.0.0.1,port={port},ssl=false,prefix=%2Fdav%2F{token}%2F{VOLUME}"
+        std::path::PathBuf::from(runtime).join("gvfs").join(format!(
+            "dav:host=127.0.0.1,port={port},ssl=false,prefix={prefix}"
         ))
     });
     Ok(point
@@ -302,7 +313,7 @@ async fn system_unmount(_url: &str, _point: Option<&str>) -> Result<()> {
 impl Daemon {
     /// Run one of [`METHODS`]. The client is not held while the system
     /// mounts, since the system reads the share to do so.
-    pub(crate) async fn call_mount(&self, method: &str, _params: &Value) -> Result<Value> {
+    pub(crate) async fn call_mount(&self, method: &str, params: &Value) -> Result<Value> {
         let enabled = self.files_mount.load(Ordering::SeqCst);
         match method {
             "files/mount_status" => Ok(self.mount_status()),
@@ -312,10 +323,13 @@ impl Daemon {
             }
             "files/preferences_reload" => self.read_preferences().await,
             "files/unmount" => {
-                self.unmount_library().await;
+                self.unmount_library().await?;
                 Ok(unmounted_status(enabled))
             }
             "files/mount" => {
+                let name = volume_name(params)?;
+                let _turn = self.turn("mount").await;
+                let enabled = self.files_mount.load(Ordering::SeqCst);
                 if !enabled {
                     return Err(Error::Forbidden);
                 }
@@ -324,64 +338,82 @@ impl Daemon {
                         "mount: not supported on this system".into(),
                     ));
                 }
-                if let Some(status) = self
+                let existing = self
                     .mount
                     .lock()
                     .expect("mount state")
                     .as_ref()
-                    .map(|m| m.status(enabled))
-                {
-                    return Ok(status);
+                    .map(|m| (m.account.clone(), m.status(enabled)));
+                if let Some((account, status)) = existing {
+                    let session = self.client().lock().await.session_state();
+                    if session.unlocked_account() == Some(account.as_str()) {
+                        return Ok(status);
+                    }
+                    self.unmount_current().await?;
                 }
                 let account = {
                     let client = self.client().lock().await;
                     let session = client.session_state();
                     let account = session.unlocked_account().ok_or(Error::Locked)?;
                     client.files_mount_clean();
-                    client.files_mount_dir()?;
                     account.to_string()
                 };
                 let token = hex::encode(dmsg_client::crypto::random_id());
                 let password = cfg!(target_os = "macos")
                     .then(|| hex::encode(dmsg_client::crypto::random_id()));
-                let prefix = format!("/dav/{token}/{VOLUME}");
-                let url = format!("http://127.0.0.1:{}{prefix}", self.port());
+                let (prefix, url) = share_location(self.port(), &token, &name);
                 let handler = DavHandler::builder()
                     .strip_prefix(&prefix)
-                    .filesystem(Box::new(LibraryFs::new(self.client_handle())))
+                    .filesystem(Box::new(LibraryFs::new(
+                        self.client_handle(),
+                        account.clone(),
+                    )))
                     .locksystem(FakeLs::new())
                     .build_handler();
                 *self.mount.lock().expect("mount state") = Some(Mount {
                     token: token.clone(),
+                    name,
                     password: password.clone(),
-                    account,
+                    account: account.clone(),
                     url: url.clone(),
                     point: None,
                     since: now_ms(),
+                    ready: false,
                     handler,
                 });
                 let mounted = system_mount(&url, &token, password.as_deref()).await;
-                let mut state = self.mount.lock().expect("mount state");
-                match mounted {
-                    Ok(point) => {
-                        let mount = state.as_mut().filter(|m| m.token == token);
-                        let Some(mount) = mount else {
-                            return Err(Error::Locked);
-                        };
-                        mount.point = point;
-                        crate::logs::write(
-                            "files/mount",
-                            &[("point", &mount.point.as_deref().unwrap_or_default())],
-                        );
-                        Ok(mount.status(enabled))
-                    }
+                // The account or preference can change while NetFS is waiting.
+                let valid = self.files_mount.load(Ordering::SeqCst)
+                    && self
+                        .client()
+                        .lock()
+                        .await
+                        .session_state()
+                        .unlocked_account()
+                        == Some(account.as_str());
+                let point = match mounted {
+                    Ok(point) => point,
                     Err(error) => {
-                        if state.as_ref().is_some_and(|m| m.token == token) {
-                            *state = None;
-                        }
-                        Err(error)
+                        *self.mount.lock().expect("mount state") = None;
+                        return Err(error);
                     }
+                };
+                {
+                    let mut state = self.mount.lock().expect("mount state");
+                    let mount = state.as_mut().expect("mount attempt owns the state");
+                    mount.point = point.clone();
+                    mount.ready = true;
                 }
+                if !valid {
+                    // Keep failed unmounts available for the background retry.
+                    self.unmount_current().await?;
+                    return Err(Error::Locked);
+                }
+                crate::logs::write(
+                    "files/mount",
+                    &[("point", &point.as_deref().unwrap_or_default())],
+                );
+                Ok(self.mount_status())
             }
             _ => Err(Error::NotFound),
         }
@@ -399,7 +431,7 @@ impl Daemon {
         let allowed = self.settings().files_mount || preferences.files_mount;
         self.files_mount.store(allowed, Ordering::SeqCst);
         if !allowed {
-            self.unmount_library().await;
+            self.unmount_library().await?;
         }
         Ok(self.preferences_view(days))
     }
@@ -428,26 +460,37 @@ impl Daemon {
     /// Unmount if mounted: the system first, while the share still answers,
     /// then the token. Announces `files/mount_changed` when something was
     /// mounted.
-    pub(crate) async fn unmount_library(&self) {
+    pub(crate) async fn unmount_library(&self) -> Result<()> {
+        let _turn = self.turn("mount").await;
+        self.unmount_current().await
+    }
+
+    /// The caller owns the mount turn. A failed system unmount remains
+    /// tracked so a later attempt can retry it.
+    async fn unmount_current(&self) -> Result<()> {
         let mounted = self
             .mount
             .lock()
             .expect("mount state")
             .as_ref()
             .map(|m| (m.url.clone(), m.point.clone()));
-        let Some((url, point)) = mounted else { return };
+        let Some((url, point)) = mounted else {
+            return Ok(());
+        };
         if let Err(error) = system_unmount(&url, point.as_deref()).await {
             crate::logs::write("files/unmount", &[("error", &error.to_string())]);
-        } else {
-            crate::logs::write("files/unmount", &[]);
+            return Err(error);
         }
+        crate::logs::write("files/unmount", &[]);
         *self.mount.lock().expect("mount state") = None;
         self.emit("files/mount_changed", self.mount_status());
+        Ok(())
     }
 
     /// Unmount when the library it serves is no longer the unlocked one;
     /// the background pass.
     pub(crate) async fn check_mount(&self) {
+        let _turn = self.turn("mount").await;
         let account = self
             .mount
             .lock()
@@ -456,26 +499,21 @@ impl Daemon {
             .map(|m| m.account.clone());
         let Some(account) = account else { return };
         let session = self.client().lock().await.session_state();
-        if session.unlocked_account() != Some(account.as_str()) {
-            self.unmount_library().await;
+        if session.unlocked_account() != Some(account.as_str())
+            || !self.files_mount.load(Ordering::SeqCst)
+        {
+            let _ = self.unmount_current().await;
         }
     }
 
     /// The handler of a token, with what the route checks first.
-    fn mount_of(&self, token: &str) -> Option<(DavHandler, Option<String>, String, String)> {
+    fn mount_of(&self, token: &str, name: &str) -> Option<(DavHandler, Option<String>, String)> {
         self.mount
             .lock()
             .expect("mount state")
             .as_ref()
-            .filter(|m| m.token == token)
-            .map(|m| {
-                (
-                    m.handler.clone(),
-                    m.password.clone(),
-                    m.account.clone(),
-                    format!("/dav/{}/{VOLUME}", m.token),
-                )
-            })
+            .filter(|m| m.token == token && m.name == name)
+            .map(|m| (m.handler.clone(), m.password.clone(), m.account.clone()))
     }
 }
 
@@ -504,25 +542,16 @@ fn status(code: StatusCode) -> Response {
     code.into_response()
 }
 
-/// The decoded library path the request's `Destination` names, if it is
-/// on this share.
-fn destination(headers: &HeaderMap, prefix: &str) -> Option<String> {
-    let value = headers.get("destination")?.to_str().ok()?;
-    let rest = value.find(prefix).map(|i| &value[i + prefix.len()..])?;
-    let path = DavPath::new(if rest.is_empty() { "/" } else { rest }).ok()?;
-    String::from_utf8(path.as_bytes().to_vec()).ok()
-}
-
-/// `/dav/{token}/dMsg` and `/dav/{token}/dMsg/{*rest}`: every WebDAV
-/// method. A folder's DELETE and a move onto an existing file are answered
-/// here, as one trash and one new version; the rest goes to the handler.
+/// Every WebDAV request goes through the DAV handler, including its
+/// conditional headers and lock checks.
 pub(crate) async fn serve(
     State(daemon): State<Arc<Daemon>>,
     Path(params): Path<HashMap<String, String>>,
     request: Request,
 ) -> Response {
     let token = params.get("token").cloned().unwrap_or_default();
-    let Some((handler, password, account, prefix)) = daemon.mount_of(&token) else {
+    let name = params.get("volume").cloned().unwrap_or_default();
+    let Some((handler, password, account)) = daemon.mount_of(&token, &name) else {
         return status(StatusCode::NOT_FOUND);
     };
     if let Some(password) = &password
@@ -534,672 +563,32 @@ pub(crate) async fn serve(
         )
             .into_response();
     }
-    let rest = params.get("rest").cloned().unwrap_or_default();
-    let intercepted = {
-        let mut client = daemon.client().lock().await;
-        // Only the unlocked account's library is served.
+    {
+        let client = daemon.client().lock().await;
         if client.session_state().unlocked_account() != Some(account.as_str()) {
             return status(StatusCode::FORBIDDEN);
         }
-        intercept(
-            &mut client,
-            request.method().as_str(),
-            &rest,
-            request.headers(),
-            &prefix,
-        )
-    };
-    match intercepted {
-        Some(code) => status(code),
-        None => handler.handle(request).await.map(Body::new),
     }
-}
-
-/// What the share answers itself, before the handler: a folder's DELETE as
-/// one trash (the handler would delete file by file, each into the trash on
-/// its own), and a MOVE of a file onto an existing file as a new version of
-/// that file (an editor's safe save; the handler would trash the original
-/// and leave a new file without its history).
-pub(crate) fn intercept(
-    client: &mut Client,
-    method: &str,
-    path: &str,
-    headers: &HeaderMap,
-    prefix: &str,
-) -> Option<StatusCode> {
-    match method {
-        "DELETE" => match client.files_lookup(path) {
-            Ok(Some(Node::Folder(folder))) if folder.id == ROOT => Some(StatusCode::FORBIDDEN),
-            Ok(Some(Node::Folder(folder))) => {
-                Some(match client.files_trash(std::slice::from_ref(&folder.id)) {
-                    Ok(()) => StatusCode::NO_CONTENT,
-                    Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                })
-            }
-            _ => None,
-        },
-        "MOVE" => {
-            let overwrite = headers
-                .get("overwrite")
-                .and_then(|v| v.to_str().ok())
-                .is_none_or(|v| !v.trim().eq_ignore_ascii_case("F"));
-            let to = destination(headers, prefix).filter(|_| overwrite)?;
-            let from = client.files_lookup(path);
-            let into = client.files_lookup(&to);
-            let (Ok(Some(Node::File(from))), Ok(Some(Node::File(into)))) = (from, into) else {
-                return None;
-            };
-            if from.id == into.id {
-                return Some(StatusCode::FORBIDDEN);
-            }
-            Some(match client.files_replace(&from.id, &into.id) {
-                Ok(_) => StatusCode::NO_CONTENT,
-                Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-            })
-        }
-        _ => None,
+    if !daemon.files_mount.load(Ordering::SeqCst) {
+        return status(StatusCode::FORBIDDEN);
     }
-}
-
-/// Names the systems' file managers leave beside files; accepted and
-/// dropped, never listed.
-pub(crate) fn noise(name: &str) -> bool {
-    name.starts_with("._")
-        || matches!(
-            name,
-            ".DS_Store"
-                | "Thumbs.db"
-                | "desktop.ini"
-                | ".Spotlight-V100"
-                | ".Trashes"
-                | ".fseventsd"
-                | ".TemporaryItems"
-                | ".metadata_never_index"
-                | ".ql_disablethumbnails"
-                | ".ql_disablecache"
-                | ".hidden"
-                | ".apdisk"
-                | ".com.apple.timemachine.donotpresent"
-        )
-}
-
-fn fs_error(error: Error) -> FsError {
-    match error {
-        Error::NotFound => FsError::NotFound,
-        Error::IdempotencyConflict => FsError::Exists,
-        Error::QuotaExceeded => FsError::TooLarge,
-        Error::InvalidInput(_) | Error::Locked | Error::AuthRequired | Error::Forbidden => {
-            FsError::Forbidden
-        }
-        _ => FsError::GeneralFailure,
+    let method = request.method().as_str().to_string();
+    let changed = matches!(
+        method.as_str(),
+        "PUT" | "MKCOL" | "DELETE" | "MOVE" | "COPY"
+    );
+    if changed || method == "GET" {
+        daemon.note_activity();
     }
-}
-
-/// A library path from a share path.
-fn path_of(path: &DavPath) -> FsResult<String> {
-    String::from_utf8(path.as_bytes().to_vec()).map_err(|_| FsError::Forbidden)
-}
-
-/// A path's parent and name.
-fn split(path: &str) -> (String, String) {
-    let trimmed = path.trim_matches('/');
-    match trimmed.rsplit_once('/') {
-        Some((parent, name)) => (parent.to_string(), name.to_string()),
-        None => (String::new(), trimmed.to_string()),
+    let fs = LibraryFs::new(daemon.client_handle(), account).for_method(&method);
+    let response = handler
+        .handle_with(DavConfig::new().filesystem(Box::new(fs)), request)
+        .await
+        .map(Body::new);
+    if changed && response.status().is_success() {
+        daemon.emit("files/changed", json!({"method": method}));
     }
-}
-
-/// The library as a WebDAV filesystem.
-#[derive(Clone)]
-pub(crate) struct LibraryFs {
-    client: Arc<Mutex<Client>>,
-}
-
-/// What the share says of a folder or file.
-#[derive(Debug, Clone)]
-struct Meta {
-    len: u64,
-    /// Unix milliseconds.
-    modified: u64,
-    dir: bool,
-    /// The current version's SHA-256, for files.
-    sha256: Option<String>,
-}
-
-impl Meta {
-    fn of(node: &Node) -> Self {
-        match node {
-            Node::Folder(folder) => Self::folder(folder),
-            Node::File(file) => Self::file(file),
-        }
-    }
-
-    fn folder(folder: &FolderView) -> Self {
-        Meta {
-            len: 0,
-            modified: folder.updated_at,
-            dir: true,
-            sha256: None,
-        }
-    }
-
-    fn file(file: &FileView) -> Self {
-        Meta {
-            len: file.size,
-            modified: file.updated_at,
-            dir: false,
-            sha256: Some(file.sha256.clone()),
-        }
-    }
-}
-
-impl DavMetaData for Meta {
-    fn len(&self) -> u64 {
-        self.len
-    }
-
-    fn modified(&self) -> FsResult<SystemTime> {
-        Ok(UNIX_EPOCH + Duration::from_millis(self.modified))
-    }
-
-    fn is_dir(&self) -> bool {
-        self.dir
-    }
-
-    fn etag(&self) -> Option<String> {
-        match &self.sha256 {
-            Some(sha256) => Some(sha256[..32].to_string()),
-            None => Some(format!("{:x}", self.modified)),
-        }
-    }
-}
-
-struct Entry {
-    name: String,
-    meta: Meta,
-}
-
-impl DavDirEntry for Entry {
-    fn name(&self) -> Vec<u8> {
-        self.name.as_bytes().to_vec()
-    }
-
-    fn metadata(&'_ self) -> FsFuture<'_, Box<dyn DavMetaData>> {
-        let meta: Box<dyn DavMetaData> = Box::new(self.meta.clone());
-        std::future::ready(Ok(meta)).boxed()
-    }
-}
-
-impl LibraryFs {
-    pub(crate) fn new(client: Arc<Mutex<Client>>) -> Self {
-        Self { client }
-    }
-
-    async fn lookup(&self, path: &DavPath) -> FsResult<Option<Node>> {
-        let path = path_of(path)?;
-        let mut client = self.client.lock().await;
-        client.files_lookup(&path).map_err(fs_error)
-    }
-
-    /// The live folder at `path`.
-    async fn folder(&self, path: &str) -> FsResult<String> {
-        folder_at(&mut *self.client.lock().await, path)
-    }
-}
-
-/// The live folder at `path`.
-fn folder_at(client: &mut Client, path: &str) -> FsResult<String> {
-    match client.files_lookup(path).map_err(fs_error)? {
-        Some(Node::Folder(folder)) => Ok(folder.id),
-        Some(Node::File(_)) => Err(FsError::Forbidden),
-        None => Err(FsError::NotFound),
-    }
-}
-
-impl DavFileSystem for LibraryFs {
-    fn open<'a>(
-        &'a self,
-        path: &'a DavPath,
-        options: OpenOptions,
-    ) -> FsFuture<'a, Box<dyn DavFile>> {
-        async move {
-            let text = path_of(path)?;
-            if !options.write {
-                return match self.lookup(path).await? {
-                    Some(Node::File(file)) => {
-                        let reader: Box<dyn DavFile> = Box::new(Reader {
-                            client: self.client.clone(),
-                            meta: Meta::file(&file),
-                            id: file.id,
-                            version: file.current,
-                            pos: 0,
-                            cache: None,
-                        });
-                        Ok(reader)
-                    }
-                    Some(Node::Folder(_)) => Err(FsError::Forbidden),
-                    None => Err(FsError::NotFound),
-                };
-            }
-            if options.append {
-                return Err(FsError::NotImplemented);
-            }
-            let (parent, name) = split(&text);
-            if noise(&name) {
-                let discard: Box<dyn DavFile> = Box::new(Discard);
-                return Ok(discard);
-            }
-            validate_name(&name).map_err(|_| FsError::Forbidden)?;
-            let folder = self.folder(&parent).await?;
-            let dir = {
-                let mut client = self.client.lock().await;
-                match client.files_lookup(&text).map_err(fs_error)? {
-                    Some(Node::Folder(_)) => return Err(FsError::Forbidden),
-                    Some(Node::File(_)) if options.create_new => return Err(FsError::Exists),
-                    None if !options.create => return Err(FsError::NotFound),
-                    _ => client.files_mount_dir().map_err(fs_error)?,
-                }
-            };
-            let upload = dir.join(hex::encode(&dmsg_client::crypto::random_id()[..16]));
-            let mut open = std::fs::OpenOptions::new();
-            open.write(true).create_new(true);
-            #[cfg(unix)]
-            std::os::unix::fs::OpenOptionsExt::mode(&mut open, 0o600);
-            let file = open.open(&upload).map_err(|_| FsError::GeneralFailure)?;
-            let writer: Box<dyn DavFile> = Box::new(Writer {
-                client: self.client.clone(),
-                folder,
-                name,
-                path: upload,
-                file: Some(file),
-                written: 0,
-                done: false,
-            });
-            Ok(writer)
-        }
-        .boxed()
-    }
-
-    fn read_dir<'a>(
-        &'a self,
-        path: &'a DavPath,
-        _meta: ReadDirMeta,
-    ) -> FsFuture<'a, FsStream<Box<dyn DavDirEntry>>> {
-        async move {
-            let path = path_of(path)?;
-            let folder = self.folder(&path).await?;
-            let listing = {
-                let mut client = self.client.lock().await;
-                client.files_list(&folder, false).map_err(fs_error)?
-            };
-            let entries: Vec<FsResult<Box<dyn DavDirEntry>>> = listing
-                .folders
-                .iter()
-                .map(|f| Entry {
-                    name: f.name.clone(),
-                    meta: Meta::folder(f),
-                })
-                .chain(listing.files.iter().map(|f| Entry {
-                    name: f.name.clone(),
-                    meta: Meta::file(f),
-                }))
-                .map(|e| Ok(Box::new(e) as Box<dyn DavDirEntry>))
-                .collect();
-            let stream: FsStream<Box<dyn DavDirEntry>> =
-                Box::pin(futures_util::stream::iter(entries));
-            Ok(stream)
-        }
-        .boxed()
-    }
-
-    fn metadata<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, Box<dyn DavMetaData>> {
-        async move {
-            let (_, name) = split(&path_of(path)?);
-            if noise(&name) {
-                return Err(FsError::NotFound);
-            }
-            match self.lookup(path).await? {
-                Some(node) => {
-                    let meta: Box<dyn DavMetaData> = Box::new(Meta::of(&node));
-                    Ok(meta)
-                }
-                None => Err(FsError::NotFound),
-            }
-        }
-        .boxed()
-    }
-
-    fn create_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, ()> {
-        async move {
-            let (parent, name) = split(&path_of(path)?);
-            if noise(&name) {
-                return Err(FsError::Forbidden);
-            }
-            let folder = self.folder(&parent).await?;
-            let mut client = self.client.lock().await;
-            if client
-                .files_lookup(&format!("{parent}/{name}"))
-                .map_err(fs_error)?
-                .is_some()
-            {
-                return Err(FsError::Exists);
-            }
-            client.files_mkdir(&folder, &name).map_err(fs_error)?;
-            Ok(())
-        }
-        .boxed()
-    }
-
-    fn remove_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, ()> {
-        async move {
-            let path = path_of(path)?;
-            let folder = self.folder(&path).await?;
-            if folder == ROOT {
-                return Err(FsError::Forbidden);
-            }
-            let mut client = self.client.lock().await;
-            client
-                .files_trash(std::slice::from_ref(&folder))
-                .map_err(fs_error)
-        }
-        .boxed()
-    }
-
-    fn remove_file<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, ()> {
-        async move {
-            match self.lookup(path).await? {
-                Some(Node::File(file)) => {
-                    let mut client = self.client.lock().await;
-                    client
-                        .files_trash(std::slice::from_ref(&file.id))
-                        .map_err(fs_error)
-                }
-                Some(Node::Folder(_)) => Err(FsError::Forbidden),
-                None => Err(FsError::NotFound),
-            }
-        }
-        .boxed()
-    }
-
-    fn rename<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<'a, ()> {
-        async move {
-            let (from, to) = (path_of(from)?, path_of(to)?);
-            let (parent, name) = split(&to);
-            if noise(&name) {
-                return Err(FsError::Forbidden);
-            }
-            validate_name(&name).map_err(|_| FsError::Forbidden)?;
-            let mut client = self.client.lock().await;
-            let (id, current_parent) = match client.files_lookup(&from).map_err(fs_error)? {
-                Some(Node::Folder(folder)) if folder.id == ROOT => return Err(FsError::Forbidden),
-                Some(Node::Folder(folder)) => (folder.id, folder.parent),
-                Some(Node::File(file)) => (file.id, file.folder),
-                None => return Err(FsError::NotFound),
-            };
-            let folder = folder_at(&mut client, &parent)?;
-            if current_parent != folder {
-                client
-                    .files_move(std::slice::from_ref(&id), &folder)
-                    .map_err(fs_error)?;
-            }
-            let current_name = match client.files_lookup(&to).map_err(fs_error)? {
-                Some(Node::Folder(f)) if f.id == id => Some(f.name),
-                Some(Node::File(f)) if f.id == id => Some(f.name),
-                Some(_) => return Err(FsError::Exists),
-                None => None,
-            };
-            if current_name.as_deref() != Some(&name) {
-                client.files_rename(&id, &name).map_err(fs_error)?;
-            }
-            Ok(())
-        }
-        .boxed()
-    }
-
-    fn copy<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<'a, ()> {
-        async move {
-            let (parent, name) = split(&path_of(to)?);
-            if noise(&name) {
-                return Err(FsError::Forbidden);
-            }
-            let id = match self.lookup(from).await? {
-                Some(Node::File(file)) => file.id,
-                Some(Node::Folder(_)) => return Err(FsError::Forbidden),
-                None => return Err(FsError::NotFound),
-            };
-            let folder = self.folder(&parent).await?;
-            let mut client = self.client.lock().await;
-            client.files_copy(&id, &folder, &name).map_err(fs_error)?;
-            Ok(())
-        }
-        .boxed()
-    }
-
-    fn get_quota(&'_ self) -> FsFuture<'_, (u64, Option<u64>)> {
-        async move {
-            let mut client = self.client.lock().await;
-            Ok((client.files_mount_used().map_err(fs_error)?, None))
-        }
-        .boxed()
-    }
-}
-
-/// A file open for reading: one decrypted chunk at a time, all of the
-/// version current when it was opened.
-struct Reader {
-    client: Arc<Mutex<Client>>,
-    id: String,
-    version: String,
-    meta: Meta,
-    pos: u64,
-    /// The chunk the position is in.
-    cache: Option<(u64, Zeroizing<Vec<u8>>)>,
-}
-
-impl std::fmt::Debug for Reader {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Reader")
-            .field("id", &self.id)
-            .field("pos", &self.pos)
-            .finish_non_exhaustive()
-    }
-}
-
-impl DavFile for Reader {
-    fn metadata(&'_ mut self) -> FsFuture<'_, Box<dyn DavMetaData>> {
-        let meta: Box<dyn DavMetaData> = Box::new(self.meta.clone());
-        std::future::ready(Ok(meta)).boxed()
-    }
-
-    fn write_buf(&'_ mut self, _buf: Box<dyn bytes::Buf + Send>) -> FsFuture<'_, ()> {
-        std::future::ready(Err(FsError::Forbidden)).boxed()
-    }
-
-    fn write_bytes(&'_ mut self, _buf: bytes::Bytes) -> FsFuture<'_, ()> {
-        std::future::ready(Err(FsError::Forbidden)).boxed()
-    }
-
-    fn read_bytes(&'_ mut self, count: usize) -> FsFuture<'_, bytes::Bytes> {
-        async move {
-            if self.pos >= self.meta.len || count == 0 {
-                return Ok(bytes::Bytes::new());
-            }
-            let index = self.pos / CHUNK as u64;
-            if self.cache.as_ref().is_none_or(|(i, _)| *i != index) {
-                let chunk = {
-                    let mut client = self.client.lock().await;
-                    client
-                        .files_chunk(&self.id, &self.version, index)
-                        .map_err(fs_error)?
-                };
-                self.cache = Some((index, chunk));
-            }
-            let (_, chunk) = self.cache.as_ref().expect("cached chunk");
-            let offset = (self.pos - index * CHUNK as u64) as usize;
-            if offset >= chunk.len() {
-                return Err(FsError::GeneralFailure);
-            }
-            let take = count.min(chunk.len() - offset);
-            let bytes = bytes::Bytes::copy_from_slice(&chunk[offset..offset + take]);
-            self.pos += take as u64;
-            Ok(bytes)
-        }
-        .boxed()
-    }
-
-    fn seek(&'_ mut self, pos: SeekFrom) -> FsFuture<'_, u64> {
-        let next = match pos {
-            SeekFrom::Start(offset) => Some(offset),
-            SeekFrom::End(delta) => self.meta.len.checked_add_signed(delta),
-            SeekFrom::Current(delta) => self.pos.checked_add_signed(delta),
-        };
-        match next {
-            Some(next) => {
-                self.pos = next;
-                std::future::ready(Ok(next)).boxed()
-            }
-            None => std::future::ready(Err(FsError::GeneralFailure)).boxed(),
-        }
-    }
-
-    fn flush(&'_ mut self) -> FsFuture<'_, ()> {
-        std::future::ready(Ok(())).boxed()
-    }
-}
-
-/// A file open for writing: the bytes wait in the mount's upload
-/// directory and become a version at `flush`, which a PUT calls once the
-/// body has arrived. Nothing arrives in the library before that.
-struct Writer {
-    client: Arc<Mutex<Client>>,
-    folder: String,
-    name: String,
-    path: PathBuf,
-    file: Option<std::fs::File>,
-    written: u64,
-    done: bool,
-}
-
-impl std::fmt::Debug for Writer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Writer")
-            .field("name", &self.name)
-            .field("written", &self.written)
-            .finish_non_exhaustive()
-    }
-}
-
-impl Writer {
-    fn write(&mut self, bytes: &[u8]) -> FsResult<()> {
-        let file = self.file.as_mut().ok_or(FsError::GeneralFailure)?;
-        file.write_all(bytes).map_err(|e| match e.kind() {
-            std::io::ErrorKind::StorageFull => FsError::InsufficientStorage,
-            _ => FsError::GeneralFailure,
-        })?;
-        self.written += bytes.len() as u64;
-        Ok(())
-    }
-}
-
-impl Drop for Writer {
-    fn drop(&mut self) {
-        if !self.done {
-            self.file = None;
-            let _ = std::fs::remove_file(&self.path);
-        }
-    }
-}
-
-impl DavFile for Writer {
-    fn metadata(&'_ mut self) -> FsFuture<'_, Box<dyn DavMetaData>> {
-        let meta: Box<dyn DavMetaData> = Box::new(Meta {
-            len: self.written,
-            modified: now_ms(),
-            dir: false,
-            sha256: None,
-        });
-        std::future::ready(Ok(meta)).boxed()
-    }
-
-    fn write_buf(&'_ mut self, mut buf: Box<dyn bytes::Buf + Send>) -> FsFuture<'_, ()> {
-        let result = (|| {
-            while buf.has_remaining() {
-                let chunk = buf.chunk();
-                let len = chunk.len();
-                self.write(chunk)?;
-                buf.advance(len);
-            }
-            Ok(())
-        })();
-        std::future::ready(result).boxed()
-    }
-
-    fn write_bytes(&'_ mut self, buf: bytes::Bytes) -> FsFuture<'_, ()> {
-        std::future::ready(self.write(&buf)).boxed()
-    }
-
-    fn read_bytes(&'_ mut self, _count: usize) -> FsFuture<'_, bytes::Bytes> {
-        std::future::ready(Err(FsError::Forbidden)).boxed()
-    }
-
-    fn seek(&'_ mut self, _pos: SeekFrom) -> FsFuture<'_, u64> {
-        std::future::ready(Err(FsError::NotImplemented)).boxed()
-    }
-
-    fn flush(&'_ mut self) -> FsFuture<'_, ()> {
-        async move {
-            if self.done {
-                return Ok(());
-            }
-            if let Some(file) = self.file.take() {
-                file.sync_all().map_err(|_| FsError::GeneralFailure)?;
-            }
-            let imported = {
-                let mut client = self.client.lock().await;
-                client.files_write_mounted(&self.folder, &self.name, &self.path)
-            };
-            let _ = std::fs::remove_file(&self.path);
-            self.done = true;
-            imported.map(|_| ()).map_err(fs_error)
-        }
-        .boxed()
-    }
-}
-
-/// Where a file manager's noise goes.
-#[derive(Debug)]
-struct Discard;
-
-impl DavFile for Discard {
-    fn metadata(&'_ mut self) -> FsFuture<'_, Box<dyn DavMetaData>> {
-        let meta: Box<dyn DavMetaData> = Box::new(Meta {
-            len: 0,
-            modified: now_ms(),
-            dir: false,
-            sha256: None,
-        });
-        std::future::ready(Ok(meta)).boxed()
-    }
-
-    fn write_buf(&'_ mut self, _buf: Box<dyn bytes::Buf + Send>) -> FsFuture<'_, ()> {
-        std::future::ready(Ok(())).boxed()
-    }
-
-    fn write_bytes(&'_ mut self, _buf: bytes::Bytes) -> FsFuture<'_, ()> {
-        std::future::ready(Ok(())).boxed()
-    }
-
-    fn read_bytes(&'_ mut self, _count: usize) -> FsFuture<'_, bytes::Bytes> {
-        std::future::ready(Err(FsError::NotFound)).boxed()
-    }
-
-    fn seek(&'_ mut self, _pos: SeekFrom) -> FsFuture<'_, u64> {
-        std::future::ready(Ok(0)).boxed()
-    }
-
-    fn flush(&'_ mut self) -> FsFuture<'_, ()> {
-        std::future::ready(Ok(())).boxed()
-    }
+    response
 }
 
 #[cfg(test)]

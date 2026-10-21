@@ -355,7 +355,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
                 _ = stopping.stop.notified() => {}
             }
             // The system unmounts while the share still answers.
-            stopping.unmount_library().await;
+            let _ = stopping.unmount_library().await;
         })
         .await;
     daemon.client.lock().await.shutdown();
@@ -365,7 +365,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
 }
 
 /// The loopback routes.
-fn app(daemon: Arc<Daemon>) -> Router {
+pub(crate) fn app(daemon: Arc<Daemon>) -> Router {
     Router::new()
         .route("/daemon/status", get(status))
         .route(
@@ -374,14 +374,9 @@ fn app(daemon: Arc<Daemon>) -> Router {
         )
         .route("/ws/app/v1", get(socket))
         .route("/auth/callback", get(callback_page).post(callback))
-        .route(
-            &format!("/dav/{{token}}/{}", crate::mount::VOLUME),
-            any(crate::mount::serve),
-        )
-        .route(
-            &format!("/dav/{{token}}/{}/{{*rest}}", crate::mount::VOLUME),
-            any(crate::mount::serve),
-        )
+        .route("/dav/{token}/{volume}", any(crate::mount::serve))
+        .route("/dav/{token}/{volume}/", any(crate::mount::serve))
+        .route("/dav/{token}/{volume}/{*rest}", any(crate::mount::serve))
         .with_state(daemon)
 }
 
@@ -547,7 +542,7 @@ async fn terminated() {
 }
 
 impl Daemon {
-    fn new(
+    pub(crate) fn new(
         token: String,
         port: u16,
         settings: Settings,
@@ -583,6 +578,12 @@ impl Daemon {
             channel_hinted: std::sync::Mutex::new(Some(channel_hinted)),
             turns: Default::default(),
         }
+    }
+
+    /// Meaningful local use, including file reads/writes outside the app,
+    /// moves the idle-lock deadline. DAV metadata polling does not.
+    pub(crate) fn note_activity(&self) {
+        self.activity.store(now_ms(), Ordering::Relaxed);
     }
 
     /// Have the channel loop read `channel`, or every channel for `*`.
@@ -931,7 +932,7 @@ impl Daemon {
                 self.client.lock().await.lock();
                 // Versions already signed for submission still go out.
                 let _ = self.flush_pass().await;
-                self.unmount_library().await;
+                let _ = self.unmount_library().await;
                 self.status().await
             }
             "session/fast_unlock" => {
@@ -1056,7 +1057,7 @@ impl Daemon {
                 }))
             }
             "workspace/reset" => {
-                self.unmount_library().await;
+                self.unmount_library().await?;
                 let mut client = self.client.lock().await;
                 // The caller names this device, as shown in the status.
                 if Some(text(params, "device")?) != client.status()?.device_id {

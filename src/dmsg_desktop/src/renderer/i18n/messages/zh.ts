@@ -91,6 +91,7 @@ export default {
     localUsage: '{files} 个文件 · {versions} 个版本 · 本机占用 {bytes}',
     cloudUsageLine: '{backups} 个备份 · 云端占用 {bytes}',
     fileType: '类型',
+    filesVolumeName: 'dMsg 文件',
     mountDisk: '挂载为磁盘',
     unmountDisk: '卸载磁盘',
     mountedAt: '磁盘已挂载于 {point}',

@@ -929,7 +929,12 @@ pub async fn files(remote: &Remote, json: bool, command: FilesCommand) -> Result
             } else {
                 "files/mount"
             };
-            let mount = remote.call(method, Value::Null).await?;
+            let params = if status {
+                Value::Null
+            } else {
+                json!({"name": tr!("dMsg Files", "dMsg 文件")})
+            };
+            let mount = remote.call(method, params).await?;
             print(json, &mount, mount_line);
         }
         FilesCommand::Unmount => {

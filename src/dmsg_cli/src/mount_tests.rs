@@ -1,7 +1,18 @@
+use super::filesystem::{LibraryFs, noise, split};
 use super::*;
+use dav_server::{
+    davpath::DavPath,
+    fs::{DavFileSystem, FsError, OpenOptions},
+};
 use dmsg_client::library::catalog::Origin;
 use dmsg_client::testing::{TempDir, unlocked};
+use dmsg_client::{
+    Client,
+    files::CHUNK,
+    library::{catalog::ROOT, mount::Node},
+};
 use futures_util::StreamExt;
+use tokio::sync::Mutex;
 
 const PREFIX: &str = "/dav/t/dMsg";
 
@@ -16,7 +27,10 @@ fn share() -> Share {
     let client = Arc::new(Mutex::new(unlocked(&dir.0, false, None)));
     let handler = DavHandler::builder()
         .strip_prefix(PREFIX)
-        .filesystem(Box::new(LibraryFs::new(client.clone())))
+        .filesystem(Box::new(LibraryFs::new(
+            client.clone(),
+            dmsg_client::testing::account().id.to_string(),
+        )))
         .locksystem(FakeLs::new())
         .build_handler();
     Share {
@@ -47,7 +61,16 @@ async fn request(
     }
     let response = share
         .handler
-        .handle(builder.body(Body::from(body)).unwrap())
+        .handle_with(
+            DavConfig::new().filesystem(Box::new(
+                LibraryFs::new(
+                    share.client.clone(),
+                    dmsg_client::testing::account().id.to_string(),
+                )
+                .for_method(method),
+            )),
+            builder.body(Body::from(body)).unwrap(),
+        )
         .await;
     let (parts, mut body) = response.into_parts();
     let mut bytes = Vec::new();
@@ -326,38 +349,29 @@ async fn folders_moves_copies_and_deletes_map_to_the_library() {
     let (status, _, _) = request(&share, "DELETE", "/copy.bin", &[], vec![]).await;
     assert_eq!(status, StatusCode::NO_CONTENT);
     assert!(lookup(&share, "copy.bin").await.is_none());
-    let mut client = share.client.lock().await;
-    let trash = client.files_list(ROOT, true).unwrap();
-    assert_eq!(
-        trash
-            .files
-            .iter()
-            .map(|f| f.id.as_str())
-            .collect::<Vec<_>>(),
-        [copy.id.as_str()]
-    );
-    let archive = match client.files_lookup("archive").unwrap() {
-        Some(Node::Folder(folder)) => folder,
-        other => panic!("{other:?}"),
+    let archive = {
+        let mut client = share.client.lock().await;
+        let trash = client.files_list(ROOT, true).unwrap();
+        assert_eq!(
+            trash
+                .files
+                .iter()
+                .map(|f| f.id.as_str())
+                .collect::<Vec<_>>(),
+            [copy.id.as_str()]
+        );
+        match client.files_lookup("archive").unwrap() {
+            Some(Node::Folder(folder)) => folder,
+            other => panic!("{other:?}"),
+        }
     };
-    assert_eq!(
-        intercept(&mut client, "DELETE", "archive", &HeaderMap::new(), PREFIX),
-        Some(StatusCode::NO_CONTENT)
-    );
-    assert_eq!(
-        intercept(&mut client, "DELETE", "", &HeaderMap::new(), PREFIX),
-        Some(StatusCode::FORBIDDEN)
-    );
-    assert_eq!(
-        intercept(
-            &mut client,
-            "DELETE",
-            "docs/nothing",
-            &HeaderMap::new(),
-            PREFIX
-        ),
-        None
-    );
+    let (status, _, _) = request(&share, "DELETE", "/archive/", &[], vec![]).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (status, _, _) = request(&share, "DELETE", "/", &[], vec![]).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    let (status, _, _) = request(&share, "DELETE", "/docs/nothing", &[], vec![]).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let mut client = share.client.lock().await;
     let trash = client.files_list(ROOT, true).unwrap();
     assert_eq!(
         trash
@@ -410,41 +424,33 @@ async fn a_safe_save_becomes_a_version_of_the_original() {
     assert_eq!(status, StatusCode::CREATED);
     let temp = file(&share, "notes.txt.sb-1a2b").await;
 
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        "destination",
-        format!("http://127.0.0.1:1{PREFIX}/notes.txt")
-            .parse()
-            .unwrap(),
-    );
-    let mut client = share.client.lock().await;
-    // Without overwrite, or onto nothing, the handler takes it.
-    let mut no_overwrite = headers.clone();
-    no_overwrite.insert("overwrite", "F".parse().unwrap());
-    assert_eq!(
-        intercept(
-            &mut client,
+    let destination = format!("http://127.0.0.1:1{PREFIX}/notes.txt");
+    for extra in [
+        ("Overwrite", "F"),
+        ("If-Match", "\"stale\""),
+        ("If", "([\"stale\"])"),
+    ] {
+        let (status, _, _) = request(
+            &share,
             "MOVE",
-            "notes.txt.sb-1a2b",
-            &no_overwrite,
-            PREFIX
-        ),
-        None
-    );
-    let mut elsewhere = HeaderMap::new();
-    elsewhere.insert(
-        "destination",
-        format!("{PREFIX}/other.txt").parse().unwrap(),
-    );
-    assert_eq!(
-        intercept(&mut client, "MOVE", "notes.txt.sb-1a2b", &elsewhere, PREFIX),
-        None
-    );
-    // Onto the original: a new version of it, and the temporary file is gone.
-    assert_eq!(
-        intercept(&mut client, "MOVE", "notes.txt.sb-1a2b", &headers, PREFIX),
-        Some(StatusCode::NO_CONTENT)
-    );
+            "/notes.txt.sb-1a2b",
+            &[("Destination", &destination), extra],
+            vec![],
+        )
+        .await;
+        assert_eq!(status, StatusCode::PRECONDITION_FAILED);
+        assert!(lookup(&share, "notes.txt.sb-1a2b").await.is_some());
+    }
+    let (status, _, _) = request(
+        &share,
+        "MOVE",
+        "/notes.txt.sb-1a2b",
+        &[("Destination", &destination)],
+        vec![],
+    )
+    .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let mut client = share.client.lock().await;
     let details = client.files_show(&notes.id).unwrap();
     assert_eq!(details.versions.len(), 2);
     assert_eq!(details.versions[1].origin, Origin::Mounted);
@@ -464,7 +470,7 @@ async fn a_safe_save_becomes_a_version_of_the_original() {
 }
 
 #[test]
-fn credentials_destinations_and_noise() {
+fn credentials_and_noise() {
     let mut headers = HeaderMap::new();
     assert!(!authorized(&headers, "pw"));
     let basic = |user: &str, pass: &str| {
@@ -479,21 +485,6 @@ fn credentials_destinations_and_noise() {
     headers.insert(header::AUTHORIZATION, basic("other", "pw").parse().unwrap());
     assert!(!authorized(&headers, "pw"));
 
-    headers.insert(
-        "destination",
-        "http://127.0.0.1:9/dav/t/dMsg/docs/a%20b.txt"
-            .parse()
-            .unwrap(),
-    );
-    assert_eq!(
-        destination(&headers, PREFIX).as_deref(),
-        Some("/docs/a b.txt")
-    );
-    headers.insert("destination", "/dav/t/dMsg".parse().unwrap());
-    assert_eq!(destination(&headers, PREFIX).as_deref(), Some("/"));
-    headers.insert("destination", "/dav/other/dMsg/x".parse().unwrap());
-    assert_eq!(destination(&headers, PREFIX), None);
-
     assert!(
         noise(".DS_Store") && noise("._report.pdf") && noise("Thumbs.db") && noise("desktop.ini")
     );
@@ -501,4 +492,381 @@ fn credentials_destinations_and_noise() {
     assert_eq!(split("/docs/a/b.txt"), ("docs/a".into(), "b.txt".into()));
     assert_eq!(split("/b.txt"), (String::new(), "b.txt".into()));
     assert_eq!(split("/"), (String::new(), String::new()));
+}
+
+#[tokio::test]
+async fn put_returns_the_committed_etag_and_rejects_incomplete_versions() {
+    let share = share();
+    let (status, headers, _) = request(&share, "PUT", "/note.txt", &[], b"original".to_vec()).await;
+    assert_eq!(status, StatusCode::CREATED);
+    let etag = headers[header::ETAG].to_str().unwrap();
+    let (_, head, _) = request(&share, "HEAD", "/note.txt", &[], vec![]).await;
+    assert_eq!(head[header::ETAG], etag);
+    let (status, _, _) = request(
+        &share,
+        "PUT",
+        "/note.txt",
+        &[("If-Match", etag)],
+        b"complete".to_vec(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let original = file(&share, "note.txt").await;
+    for headers in [
+        vec![("X-Expected-Entity-Length", "10")],
+        vec![("Content-Length", "10")],
+        vec![("Content-Length", "18446744073709551615")],
+    ] {
+        let (status, _, _) = request(&share, "PUT", "/note.txt", &headers, b"short".to_vec()).await;
+        assert!(!status.is_success());
+        assert_eq!(file(&share, "note.txt").await.current, original.current);
+        assert_eq!(bytes_of(&share, &original.id).await, b"complete");
+    }
+}
+
+#[tokio::test]
+async fn moves_use_the_final_name_and_deletes_check_preconditions() {
+    let share = share();
+    let (source, folder) = {
+        let mut client = share.client.lock().await;
+        let source = client.files_write(ROOT, "old.txt", b"source").unwrap().file;
+        let folder = client.files_mkdir(ROOT, "docs").unwrap();
+        client
+            .files_write(&folder.id, "old.txt", b"unrelated")
+            .unwrap();
+        (source, folder)
+    };
+    let (status, _, _) = request(
+        &share,
+        "MOVE",
+        "/old.txt",
+        &[("Destination", &format!("{PREFIX}/docs/new.txt"))],
+        vec![],
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(file(&share, "docs/new.txt").await.id, source.id);
+    let old = file(&share, "docs/old.txt").await;
+    assert_eq!(bytes_of(&share, &old.id).await, b"unrelated");
+    let (status, _, _) = request(
+        &share,
+        "DELETE",
+        "/docs/",
+        &[("If-Match", "\"stale\"")],
+        vec![],
+    )
+    .await;
+    assert_eq!(status, StatusCode::PRECONDITION_FAILED);
+    assert!(lookup(&share, "docs/new.txt").await.is_some());
+    assert_eq!(
+        share
+            .client
+            .lock()
+            .await
+            .files_list(&folder.id, false)
+            .unwrap()
+            .files
+            .len(),
+        2
+    );
+}
+
+#[tokio::test]
+async fn an_open_reader_stops_at_lock_even_with_a_cached_chunk() {
+    let share = share();
+    share
+        .client
+        .lock()
+        .await
+        .files_write(ROOT, "note.txt", b"private")
+        .unwrap();
+    let fs = LibraryFs::new(
+        share.client.clone(),
+        dmsg_client::testing::account().id.to_string(),
+    );
+    let path = DavPath::new("/note.txt").unwrap();
+    let mut reader = fs
+        .open(
+            &path,
+            OpenOptions {
+                read: true,
+                ..OpenOptions::default()
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(reader.read_bytes(1).await.unwrap().as_ref(), b"p");
+    share.client.lock().await.lock();
+    assert_eq!(reader.read_bytes(1).await.unwrap_err(), FsError::Forbidden);
+}
+
+async fn daemon_share(
+    name: &str,
+) -> (
+    Arc<Daemon>,
+    TempDir,
+    tokio::task::JoinHandle<std::io::Result<()>>,
+    String,
+) {
+    let dir = TempDir::new();
+    let home = crate::home::Home {
+        dir: dir.0.join("home"),
+    };
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+        .await
+        .unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let daemon = Arc::new(Daemon::new(
+        "owner-token".into(),
+        port,
+        home.settings().unwrap(),
+        unlocked(&dir.0.join("workspace"), false, None),
+        dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+        crate::mcp_events::McpEvents::new(&[]).unwrap(),
+    ));
+    daemon.files_mount.store(true, Ordering::SeqCst);
+    let account = dmsg_client::testing::account().id.to_string();
+    let (prefix, url) = share_location(port, "t", name);
+    *daemon.mount.lock().unwrap() = Some(Mount {
+        token: "t".into(),
+        name: name.into(),
+        password: Some("test-password".into()),
+        account: account.clone(),
+        url: url.clone(),
+        point: None,
+        since: now_ms(),
+        ready: true,
+        handler: DavHandler::builder()
+            .strip_prefix(&prefix)
+            .filesystem(Box::new(LibraryFs::new(daemon.client_handle(), account)))
+            .locksystem(FakeLs::new())
+            .build_handler(),
+    });
+    let server =
+        tokio::spawn(axum::serve(listener, crate::daemon::app(daemon.clone())).into_future());
+    (daemon, dir, server, url)
+}
+
+#[tokio::test]
+async fn the_daemon_routes_both_forms_of_the_mount_root() {
+    let (daemon, _dir, server, url) = daemon_share("dMsg").await;
+    let http = reqwest::Client::builder().no_proxy().build().unwrap();
+    let rpc = async |method: &str| -> Value {
+        http.post(format!("http://127.0.0.1:{}/app/v1", daemon.port()))
+            .bearer_auth("owner-token")
+            .json(&json!({"jsonrpc": "2.0", "id": 1, "method": method, "params": null}))
+            .send()
+            .await
+            .unwrap()
+            .json::<Value>()
+            .await
+            .unwrap()["result"]
+            .clone()
+    };
+    let deadline = rpc("daemon/status").await["lock_at"].clone();
+    for suffix in ["", "/"] {
+        let response = http
+            .request(
+                reqwest::Method::from_bytes(b"PROPFIND").unwrap(),
+                format!("{url}{suffix}"),
+            )
+            .basic_auth(USER, Some("test-password"))
+            .header("Depth", "0")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(
+            response.status(),
+            StatusCode::MULTI_STATUS,
+            "suffix={suffix:?}"
+        );
+        assert!(response.text().await.unwrap().contains("/dav/t/dMsg/"));
+    }
+    // Metadata polling is not activity. A real disk write is, and the
+    // desktop's event cursor advances so its file view can refresh.
+    assert_eq!(rpc("daemon/status").await["lock_at"], deadline);
+    let before = rpc("events/poll").await["seq"].as_u64().unwrap();
+    tokio::time::sleep(Duration::from_millis(2)).await;
+    let response = http
+        .put(format!("{url}/note.txt"))
+        .basic_auth(USER, Some("test-password"))
+        .body("from disk")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    assert!(rpc("daemon/status").await["lock_at"].as_u64().unwrap() > deadline.as_u64().unwrap());
+    assert!(rpc("events/poll").await["seq"].as_u64().unwrap() > before);
+    assert_eq!(
+        http.get(format!("{url}/")).send().await.unwrap().status(),
+        StatusCode::UNAUTHORIZED
+    );
+    {
+        let mut state = daemon.mount.lock().unwrap();
+        let mount = state.as_mut().unwrap();
+        mount.ready = false;
+        assert_eq!(mount.status(true)["mounted"], false);
+        assert_eq!(mount.status(true)["mounting"], true);
+    }
+    server.abort();
+}
+
+#[tokio::test]
+async fn localized_volume_names_route_without_becoming_file_paths() {
+    let http = reqwest::Client::builder().no_proxy().build().unwrap();
+    for name in [
+        "dMsg Files",
+        "dMsg 文件",
+        "Файлы dMsg",
+        "ملفات dMsg",
+        "Fichiers dMsg",
+        "Archivos dMsg",
+    ] {
+        let (daemon, _dir, server, url) = daemon_share(name).await;
+        assert_eq!(daemon.mount_status()["name"], name);
+        for suffix in ["", "/"] {
+            let response = http
+                .request(
+                    reqwest::Method::from_bytes(b"PROPFIND").unwrap(),
+                    format!("{url}{suffix}"),
+                )
+                .basic_auth(USER, Some("test-password"))
+                .header("Depth", "0")
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::MULTI_STATUS, "{name}");
+        }
+        let response = http
+            .put(format!("{url}/note.txt"))
+            .basic_auth(USER, Some("test-password"))
+            .body("content")
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED, "{name}");
+        let file = daemon
+            .client()
+            .lock()
+            .await
+            .files_lookup("note.txt")
+            .unwrap();
+        assert!(matches!(file, Some(Node::File(_))));
+        let wrong = format!("http://127.0.0.1:{}/dav/t/wrong-volume/", daemon.port());
+        assert_eq!(
+            http.get(wrong)
+                .basic_auth(USER, Some("test-password"))
+                .send()
+                .await
+                .unwrap()
+                .status(),
+            StatusCode::NOT_FOUND
+        );
+        server.abort();
+    }
+}
+
+/// Run explicitly after `cargo build -p dmsg_cli`; requires macOS permission
+/// to mount a system volume. Only a temporary, offline test account is used.
+#[cfg(target_os = "macos")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "mounts a temporary macOS WebDAV volume; requires a built dmsg binary"]
+async fn native_mount_reads_writes_safe_saves_and_unmounts() {
+    let (daemon, dir, server, url) = daemon_share("dMsg 文件").await;
+    daemon
+        .client()
+        .lock()
+        .await
+        .files_write(ROOT, "note.txt", b"original")
+        .unwrap();
+    let binary = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("dmsg");
+    let request = json!({"url": url, "password": "test-password"}).to_string();
+    let output = run(
+        tokio::process::Command::new(binary).args(["--json", "mount-netfs"]),
+        Some(&request),
+    )
+    .await
+    .unwrap();
+    let point = serde_json::from_str::<Value>(&output).unwrap()["point"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    struct Cleanup(String);
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            let _ = std::process::Command::new("/usr/sbin/diskutil")
+                .args(["unmount", "force", &self.0])
+                .output();
+        }
+    }
+    let cleanup = Cleanup(point.clone());
+    assert!(
+        std::path::Path::new(&point)
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .starts_with("dMsg 文件"),
+        "{point}"
+    );
+    daemon.mount.lock().unwrap().as_mut().unwrap().point = Some(point.clone());
+    // An OS failure must not be reported as success or lose the mount.
+    daemon.mount.lock().unwrap().as_mut().unwrap().point = Some(
+        dir.path("not-a-mounted-volume")
+            .to_string_lossy()
+            .into_owned(),
+    );
+    let failed = daemon.unmount_library().await;
+    daemon.mount.lock().unwrap().as_mut().unwrap().point = Some(point.clone());
+    assert!(failed.is_err());
+    assert_eq!(daemon.mount_status()["mounted"], true);
+    tokio::task::spawn_blocking(move || {
+        use std::io::Write;
+        let root = std::path::Path::new(&point);
+        assert_eq!(std::fs::read(root.join("note.txt")).unwrap(), b"original");
+        let mut temp = std::fs::File::create(root.join("note.tmp")).unwrap();
+        temp.write_all(b"saved through WebDAV").unwrap();
+        // macOS WebDAV does not support F_FULLFSYNC (`File::sync_all`).
+        // Closing the native file completes its WebDAV PUT.
+        temp.flush().unwrap();
+        drop(temp);
+        std::fs::rename(root.join("note.tmp"), root.join("note.txt")).unwrap();
+        assert_eq!(
+            std::fs::read(root.join("note.txt")).unwrap(),
+            b"saved through WebDAV"
+        );
+        std::fs::create_dir(root.join("docs")).unwrap();
+        std::fs::write(root.join("docs/测试 file.txt"), b"nested").unwrap();
+        assert_eq!(
+            std::fs::read(root.join("docs/测试 file.txt")).unwrap(),
+            b"nested"
+        );
+    })
+    .await
+    .unwrap();
+    {
+        let mut client = daemon.client().lock().await;
+        let Some(Node::File(file)) = client.files_lookup("note.txt").unwrap() else {
+            panic!("saved file")
+        };
+        assert_eq!(
+            client
+                .files_read_range(&file.id, None, 0, u64::MAX)
+                .unwrap()
+                .1
+                .as_slice(),
+            b"saved through WebDAV"
+        );
+        assert!(file.versions >= 2);
+        client.lock();
+    }
+    daemon.check_mount().await;
+    assert_eq!(daemon.mount_status()["mounted"], false);
+    drop(cleanup);
+    server.abort();
 }

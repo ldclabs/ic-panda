@@ -32,6 +32,8 @@ mod mcp;
 mod mcp_events;
 mod methods;
 mod mount;
+#[cfg(target_os = "macos")]
+mod mount_netfs;
 mod params;
 mod release;
 mod remote;
@@ -67,6 +69,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Internal: mount a loopback WebDAV share through NetFS.
+    #[cfg(target_os = "macos")]
+    #[command(hide = true)]
+    MountNetfs,
     /// Run the daemon in the foreground.
     Daemon {
         /// Loopback port; 0 picks a free one.
@@ -445,6 +451,8 @@ async fn run(cli: Cli) -> Result<(), Failure> {
     let exe = || std::env::current_exe().map_err(|e| Failure::new("UNAVAILABLE", e.to_string()));
     // Commands that need no running daemon; the daemon serves the rest.
     match command {
+        #[cfg(target_os = "macos")]
+        Command::MountNetfs => mount_netfs::from_stdin(),
         Command::Daemon { port } => daemon::run(home, port)
             .await
             .map_err(|e| Failure::new("UNAVAILABLE", e.to_string())),

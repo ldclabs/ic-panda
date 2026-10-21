@@ -40,6 +40,10 @@ tokio-tungstenite = { workspace = true, features = [
 toml.workspace = true
 zeroize.workspace = true
 
+[target.'cfg(target_os = "macos")'.dependencies]
+# The macOS mount goes through NetFS, whose API takes Core Foundation values.
+core-foundation = "0.10"
+
 # `build.rs` reads the Swift toolchain's library paths on macOS.
 [build-dependencies]
 serde_json.workspace = true

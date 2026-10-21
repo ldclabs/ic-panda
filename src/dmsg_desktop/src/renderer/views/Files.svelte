@@ -572,7 +572,7 @@
 
   const mountDisk = () =>
     attempt(async () => {
-      mount = await call('files/mount')
+      mount = await call('files/mount', { name: t('filesVolumeName') })
       mounting = false
     }, t('diskMounted'))
   const unmountDisk = () => attempt(async () => (mount = await call('files/unmount')), t('diskUnmounted'))

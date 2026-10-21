@@ -37,6 +37,44 @@ pub enum Node {
 }
 
 impl Client {
+    /// Move and rename a mounted entry as one catalog change. Validate the
+    /// final name before saving, without reserving its old name at the target.
+    ///
+    /// # Errors
+    /// Returns `Error::IdempotencyConflict` when the destination is taken,
+    /// `Error::NotFound` for an unknown entry or folder, and
+    /// `Error::InvalidInput` for an invalid name or a folder moved into itself.
+    pub fn files_relocate(&mut self, id: &str, folder: &str, name: &str) -> Result<()> {
+        validate_name(name)?;
+        let catalog = self.catalog()?;
+        catalog.live_folder(folder)?;
+        for taken in [
+            catalog.find(folder, name),
+            catalog.find_folder(folder, name),
+        ] {
+            ensure(
+                taken.as_deref().is_none_or(|taken| taken == id),
+                Error::IdempotencyConflict,
+            )?;
+        }
+        let now = now_ms();
+        if let Some(mut file) = catalog.files.get(id).cloned() {
+            file.folder = folder.into();
+            file.name = name.into();
+            file.updated_at = now;
+            return self.save_file(id, file);
+        }
+        let mut moved = catalog.folders.get(id).cloned().ok_or(Error::NotFound)?;
+        ensure(
+            !catalog.within(folder, id),
+            Error::InvalidInput("folder".into()),
+        )?;
+        moved.parent = folder.into();
+        moved.name = name.into();
+        moved.updated_at = now;
+        self.save_folder(id, moved)
+    }
+
     /// The folder or file a `/`-separated path from the root names, outside
     /// the trash; a folder first when a folder and a file share a name.
     ///

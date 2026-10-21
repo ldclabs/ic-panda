@@ -93,6 +93,7 @@ const messages = {
   localUsage: '{files} files · {versions} versions · {bytes} on this device',
   cloudUsageLine: '{backups} backups · {bytes} in the cloud',
   fileType: 'Type',
+  filesVolumeName: 'dMsg Files',
   mountDisk: 'Mount as a disk',
   unmountDisk: 'Unmount the disk',
   mountedAt: 'Disk mounted at {point}',

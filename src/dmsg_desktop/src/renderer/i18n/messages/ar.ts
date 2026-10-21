@@ -91,6 +91,7 @@ export default {
     localUsage: '{files} ملف · {versions} إصدار · {bytes} على هذا الجهاز',
     cloudUsageLine: '{backups} نسخة احتياطية · {bytes} في السحابة',
     fileType: 'النوع',
+    filesVolumeName: 'ملفات dMsg',
     mountDisk: 'تركيب كقرص',
     unmountDisk: 'فصل القرص',
     mountedAt: 'القرص مركّب في {point}',

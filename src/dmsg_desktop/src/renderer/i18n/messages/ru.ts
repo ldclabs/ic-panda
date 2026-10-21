@@ -91,6 +91,7 @@ export default {
     localUsage: 'Файлов: {files} · версий: {versions} · {bytes} на этом устройстве',
     cloudUsageLine: 'Копий: {backups} · {bytes} в облаке',
     fileType: 'Тип',
+    filesVolumeName: 'Файлы dMsg',
     mountDisk: 'Подключить как диск',
     unmountDisk: 'Отключить диск',
     mountedAt: 'Диск подключён: {point}',

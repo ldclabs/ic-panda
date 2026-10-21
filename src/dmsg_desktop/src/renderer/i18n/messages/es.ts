@@ -91,6 +91,7 @@ export default {
     localUsage: '{files} archivos · {versions} versiones · {bytes} en este dispositivo',
     cloudUsageLine: '{backups} copias · {bytes} en la nube',
     fileType: 'Tipo',
+    filesVolumeName: 'Archivos dMsg',
     mountDisk: 'Montar como disco',
     unmountDisk: 'Desmontar el disco',
     mountedAt: 'Disco montado en {point}',

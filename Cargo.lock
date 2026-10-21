@@ -2431,6 +2431,7 @@ dependencies = [
  "bytes",
  "candid",
  "clap",
+ "core-foundation",
  "dav-server",
  "dmsg_agent",
  "dmsg_client",

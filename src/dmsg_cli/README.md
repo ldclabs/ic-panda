@@ -427,11 +427,18 @@ by the chunk rules of `content-v1.json`.
 
 Mount. With `files_mount = true`, or the desktop's settings allowing it,
 `files mount` serves the library as a
-loopback WebDAV share at `/dav/<token>/dMsg` and mounts it through the
-system (macOS `mount volume`, Windows `net use`, Linux `gio mount`), as the
-disk `dMsg`. The token is random for each mount and lives only in the
+loopback WebDAV share at `/dav/<token>/<volume-name>` and mounts it through the
+system (macOS NetFS, Windows `net use`, Linux `gio mount`), as the
+disk `dMsg Files` (`dMsg 文件` in Chinese). The desktop passes the volume
+name in its interface language; the CLI uses its own locale. The name is
+fixed for that mount, so a language change takes effect after remounting.
+Finder's separate server group uses the URL host (`127.0.0.1`); changing
+the volume name does not rename that system-managed group.
+The token is random for each mount and lives only in the
 daemon's memory; on macOS the mount also carries a random Basic password,
-which the system keeps and nobody sees. Reading decrypts one 1 MiB chunk at
+which NetFS takes without asking the person. The daemon sends it over stdin
+to a short-lived `dmsg mount-netfs` child; no helper app or credential file
+is created. Reading decrypts one 1 MiB chunk at
 a time, ranges included; a file written to the disk waits, owner-only, in
 `mount/` until the whole of it has arrived, then becomes a new version of
 the file of that name or a new file; a folder maps to a folder, a delete
@@ -446,7 +453,17 @@ while mounted; Windows refuses files over 50,000,000 bytes
 (`FileSizeLimitInBytes` of the WebClient service), so larger files go
 through `files get`; Linux mounts through GVFS, which programs not built on
 it reach through its FUSE path. `files mount --status` shows the mount
-with the system's note.
+with the system's note. A mount in progress reports `mounting: true` and
+`mounted: false`; failed unmounts return an error and remain tracked for
+retry. Reads and writes count as activity for idle locking; directory
+metadata polling does not. Changes through the disk notify desktop views.
+
+The mount tests cover the daemon's HTTP routes as well as the DAV filesystem.
+On macOS, after `cargo build -p dmsg_cli`, run
+`cargo test -p dmsg_cli native_mount_reads_writes_safe_saves_and_unmounts -- --ignored --nocapture`
+for an explicit system mount test using a temporary offline account. It needs
+permission to mount a volume and exercises reads, writes, safe saves and
+unmounting on lock. Windows and Linux require separate native validation.
 
 Approvals are decided by a person: `approvals approve|reject`, `connect
 browsers add` and the prompt after `attest …` or `device …` need an interactive
@@ -836,7 +853,7 @@ The daemon listens on `127.0.0.1` only.
   `files/share_channel|save_shared`,
   `files/backup|backup_status|backup_cancel|backup_run`,
   `files/cloud_list|cloud_refresh|cloud_fetch|cloud_delete|cloud_verify|cloud_usage`, `files/evict`,
-  `files/mount|unmount|mount_status`,
+  `files/mount {name?}|unmount|mount_status`,
   `files/share_link|share_links|share_revoke`,
   `sync/run|status`,
   `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`
