@@ -39,6 +39,10 @@
     "./errors": {
       "types": "./dist/cose-errors.d.ts",
       "default": "./dist/cose-errors.js"
+    },
+    "./profile": {
+      "types": "./dist/profile.d.ts",
+      "default": "./dist/profile.js"
     }
   },
   "files": [

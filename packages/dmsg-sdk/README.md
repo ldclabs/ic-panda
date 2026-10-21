@@ -122,3 +122,24 @@ See [integration](../../docs/protocol/integration.md),
 [app actions](../../docs/protocol/app-action.md),
 [commerce v2](../../docs/protocol/commerce.md), and the
 [independent account adapter](../../examples/dmsg-account-product/README.md).
+
+## Public profiles
+
+`dmsg-sdk/profile` supplies `profileTarget`, `accountHome`, `verifyHandle`,
+`verifyProfileSecurity` and `verifyPublicProfile` for anonymous public-profile
+readers. Root URLs are `/<account_id>` (canonical 20-character Xid) and `/<handle>`
+(1–19 ASCII characters). The website derives permanent links from the account
+ID; names resolve through the current certified handle record.
+
+The application pins the IC root and handle registry, reads its registered user
+homes, and verifies the handle's bucketed certificate path and the account's
+security leaf (schema 4). The complete device map must match `devices_root`.
+The public relay response's signature, issuer, device, action, hash, version and
+JSON projection must all agree. Use the deployment's relay origin for avatars;
+do not trust URLs supplied by a response.
+
+`verifyPublicProfile` accepts signatures by retained revoked devices as historical
+statements and reports `deviceActive` separately. A removed device cannot be
+verified with the current device map. An expired submission deadline does not
+invalidate previously published content. Verification establishes neither that
+the profile is the latest version nor that its contents were anchored on chain.

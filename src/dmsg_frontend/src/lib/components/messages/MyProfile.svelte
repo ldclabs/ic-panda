@@ -504,7 +504,7 @@
       <p class="relative space-x-1">
         <span class="font-bold">{display.name}</span>
         {#if display.username}
-          {@const link = `${APP_ORIGIN}/${display.username}`}
+          {@const link = `${APP_ORIGIN}/legacy/users/${display.username}`}
           <a
             class="hover:text-surface-900-50-token text-neutral-500 underline underline-offset-4"
             href={link}>@{display.username}</a
@@ -782,7 +782,7 @@
                   {#if member.username}
                     <a
                       class="text-neutral-500 underline underline-offset-4"
-                      href="{APP_ORIGIN}/{member.username}"
+                      href="{APP_ORIGIN}/legacy/users/{member.username}"
                       >@{member.username}</a
                     >
                   {/if}
@@ -819,7 +819,7 @@
           </div>
         </div>
       {/if}
-      {#if pathname.startsWith('/_/profile') && myState.principal.compareTo(PandaID) !== 'eq'}
+      {#if pathname.startsWith('/legacy/profile') && myState.principal.compareTo(PandaID) !== 'eq'}
         <div
           class="mx-auto mt-24 flex flex-col items-center space-y-2 self-end text-sm"
         >

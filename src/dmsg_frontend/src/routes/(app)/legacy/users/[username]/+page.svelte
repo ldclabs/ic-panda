@@ -16,7 +16,7 @@
   let pageKey = $derived($authStore.identity.getPrincipal() + ':' + username)
 
   function onCloseHandler() {
-    goto(myState?.api.myInfo ? '/_/messages' : '/')
+    goto('/legacy')
   }
 
   function onGobackHandler() {
@@ -27,6 +27,11 @@
     myState = await MyMessageState.load()
   })
 </script>
+
+<svelte:head>
+  <title>{$t('dMsg — Legacy profile')}</title>
+  <meta name="robots" content="noindex" />
+</svelte:head>
 
 <div class="mx-auto flex min-h-dvh w-full max-w-3xl flex-col">
   <div
@@ -48,6 +53,7 @@
     </header>
     {#key pageKey}
       {#if myState}
+        <p class="mb-6 text-sm">{$t('Legacy profile · Read-only')}</p>
         <ProfileDetail userId={username} {myState} />
       {:else}
         <div class="placeholder-circle mt-2 w-40 animate-pulse"></div>

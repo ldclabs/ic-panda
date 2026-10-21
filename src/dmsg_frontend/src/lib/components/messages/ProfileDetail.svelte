@@ -225,7 +225,7 @@
       await tick()
 
       if (!$userInfo) {
-        setTimeout(() => goto('/'), 1000)
+        setTimeout(() => goto('/legacy'), 1000)
       }
     })
     return abort
@@ -253,7 +253,7 @@
           onclick={() =>
             onQrHandler(
               display.name,
-              `${APP_ORIGIN}/${display.username}`,
+              `${APP_ORIGIN}/legacy/users/${display.username}`,
               display.image
             )}
         >

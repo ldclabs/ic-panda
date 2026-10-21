@@ -1,4 +1,30 @@
 const en = {
+  'Public profile': 'Public profile',
+  'This is not a valid account ID or handle.':
+    'This is not a valid account ID or handle.',
+  'This account or handle was not found.':
+    'This account or handle was not found.',
+  'Could not load this profile. Try again.':
+    'Could not load this profile. Try again.',
+  'This profile could not be verified. Its content is not displayed.':
+    'This profile could not be verified. Its content is not displayed.',
+  'Loading and verifying profile…': 'Loading and verifying profile…',
+  'Profile unavailable': 'Profile unavailable',
+  'Public profile avatar': 'Public profile avatar',
+  'Account ID': 'Account ID',
+  'Links': 'Links',
+  'Device signature verified': 'Device signature verified',
+  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
+    'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.',
+  'Signing device': 'Signing device',
+  'Device status at verification': 'Device status at verification',
+  'Active': 'Active',
+  'Revoked · historical signature': 'Revoked · historical signature',
+  'This account has not published a public profile.':
+    'This account has not published a public profile.',
+  'Link copied': 'Link copied',
+  'Copy permanent link': 'Copy permanent link',
+  'Get dMsg': 'Get dMsg',
   'New version available, click on "Reload" to update.':
     'New version available, click on "Reload" to update.',
   'Reload': 'Reload',

@@ -115,7 +115,12 @@ export async function verifyCertifiedLeaf(
   trustedIcRootDer: Uint8Array,
   nowMs: bigint,
 ): Promise<{ value: Uint8Array; at: bigint }> {
-  const found = await verifyRecordedLeaf(batch, path, trustedHome, trustedIcRootDer);
+  const found = await verifyRecordedLeaf(
+    batch,
+    path,
+    trustedHome,
+    trustedIcRootDer,
+  );
   ensure(found.at <= nowMs && nowMs - found.at <= 60_000n, "EXPIRED");
   return found;
 }
@@ -131,6 +136,38 @@ export async function verifyRecordedLeaf(
   trustedHome: Uint8Array,
   trustedIcRootDer: Uint8Array,
 ): Promise<{ value: Uint8Array; at: bigint }> {
+  const found = await verifyRecordedPath(
+    batch,
+    path,
+    [path],
+    trustedHome,
+    trustedIcRootDer,
+  );
+  ensure(found.value, "INTEGRITY_FAILED");
+  return { value: found.value, at: found.at };
+}
+
+/** Fresh membership or proven absence at an exact (possibly bucketed) path. */
+export async function verifyCertifiedPath(
+  batch: CertifiedBatch,
+  key: Uint8Array,
+  path: Uint8Array[],
+  canister: Uint8Array,
+  rootKey: Uint8Array,
+  nowMs: bigint,
+): Promise<{ value: Uint8Array | null; at: bigint }> {
+  const found = await verifyRecordedPath(batch, key, path, canister, rootKey);
+  ensure(found.at <= nowMs && nowMs - found.at <= 60_000n, "EXPIRED");
+  return found;
+}
+
+async function verifyRecordedPath(
+  batch: CertifiedBatch,
+  key: Uint8Array,
+  path: Uint8Array[],
+  trustedHome: Uint8Array,
+  trustedIcRootDer: Uint8Array,
+): Promise<{ value: Uint8Array | null; at: bigint }> {
   ensure(
     batch.schema === 1n &&
       equalBytes(batch.canister, trustedHome) &&
@@ -140,8 +177,8 @@ export async function verifyRecordedLeaf(
     "INVALID_INPUT",
   );
   const entry = batch.entries[0]!;
-  ensure(entry.value && entry.witness.length <= 65_536, "INVALID_INPUT");
-  ensure(equalBytes(entry.key, path), "INTEGRITY_FAILED");
+  ensure(entry.witness.length <= 262_144 && path.length > 0, "INVALID_INPUT");
+  ensure(equalBytes(entry.key, key), "INTEGRITY_FAILED");
   const certificate = await Certificate.create({
     certificate: Uint8Array.from(batch.certificate),
     rootKey: Uint8Array.from(trustedIcRootDer),
@@ -159,16 +196,46 @@ export async function verifyRecordedLeaf(
     root && equalBytes(root, await reconstruct(witness)),
     "INTEGRITY_FAILED",
   );
-  // Disclosed labels in this service have one raw segment. Avoid SDK find_label's
-  // byte-order issue; no absence proof is accepted for authentication.
-  const matches = flatten_forks(witness).filter(
-    (node) => node[0] === 2 && equalBytes(node[1], path),
-  );
-  ensure(matches.length === 1, "INTEGRITY_FAILED");
-  const node = matches[0]!;
+  const value = lookup(witness, path);
   ensure(
-    node[0] === 2 && node[2][0] === 3 && equalBytes(node[2][1], entry.value),
+    value === null
+      ? entry.value === null
+      : !!entry.value && equalBytes(value, entry.value),
     "INTEGRITY_FAILED",
   );
-  return { value: entry.value, at };
+  return { value, at };
+}
+
+// Ordered raw-byte labels, including pruned ranges. A pruned range can never
+// prove absence. Use byte order (not JS string/array comparison) at every level.
+function lookup(tree: HashTree, path: Uint8Array[]): Uint8Array | null {
+  if (path.length === 0) {
+    ensure(tree[0] === 3, "INTEGRITY_FAILED");
+    return tree[1];
+  }
+  let pruned = false;
+  for (const node of flatten_forks(tree)) {
+    if (node[0] === 4) {
+      pruned = true;
+      continue;
+    }
+    ensure(node[0] === 2, "INTEGRITY_FAILED");
+    const a = path[0]!,
+      b = node[1];
+    let order = a.length - b.length;
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      if (a[i] !== b[i]) {
+        order = a[i]! - b[i]!;
+        break;
+      }
+    }
+    if (order === 0) return lookup(node[2], path.slice(1));
+    if (order < 0) {
+      ensure(!pruned, "INTEGRITY_FAILED");
+      return null;
+    }
+    pruned = false;
+  }
+  ensure(!pruned, "INTEGRITY_FAILED");
+  return null;
 }

@@ -1,6 +1,30 @@
 import type { Messages } from './en'
 
 export default {
+  'Public profile': 'الملف العام',
+  'This is not a valid account ID or handle.':
+    'معرّف الحساب أو الاسم غير صالح.',
+  'This account or handle was not found.': 'لم يُعثر على هذا الحساب أو الاسم.',
+  'Could not load this profile. Try again.': 'تعذّر تحميل الملف. حاول مجددًا.',
+  'This profile could not be verified. Its content is not displayed.':
+    'تعذّر التحقق من الملف. لن يُعرض محتواه.',
+  'Loading and verifying profile…': 'جارٍ تحميل الملف والتحقق منه…',
+  'Profile unavailable': 'الملف غير متاح',
+  'Public profile avatar': 'صورة الملف العام',
+  'Account ID': 'معرّف الحساب',
+  'Links': 'الروابط',
+  'Device signature verified': 'تم التحقق من توقيع الجهاز',
+  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
+    'يطابق التوقيع جهازًا في قائمة الأجهزة الموثّقة لهذا الحساب. ينشر صاحب الحساب معلومات الملف بنفسه؛ ولا يثبت ذلك أنها أحدث نسخة أو أن لقطة الملف مثبّتة على السلسلة.',
+  'Signing device': 'الجهاز الموقّع',
+  'Device status at verification': 'حالة الجهاز عند التحقق',
+  'Active': 'نشط',
+  'Revoked · historical signature': 'ملغى · توقيع سابق',
+  'This account has not published a public profile.':
+    'لم ينشر هذا الحساب ملفًا عامًا بعد.',
+  'Link copied': 'تم نسخ الرابط',
+  'Copy permanent link': 'نسخ الرابط الدائم',
+  'Get dMsg': 'الحصول على dMsg',
   'New version available, click on "Reload" to update.':
     'يتوفر إصدار جديد. انقر «إعادة التحميل» للتحديث.',
   'Reload': 'إعادة التحميل',

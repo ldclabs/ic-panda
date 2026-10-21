@@ -1,6 +1,31 @@
 import type { Messages } from './en'
 
 export default {
+  'Public profile': 'Публичный профиль',
+  'This is not a valid account ID or handle.':
+    'Недопустимый ID аккаунта или псевдоним.',
+  'This account or handle was not found.': 'Аккаунт или псевдоним не найден.',
+  'Could not load this profile. Try again.':
+    'Не удалось загрузить профиль. Повторите попытку.',
+  'This profile could not be verified. Its content is not displayed.':
+    'Не удалось проверить профиль. Его содержимое не отображается.',
+  'Loading and verifying profile…': 'Загрузка и проверка профиля…',
+  'Profile unavailable': 'Профиль недоступен',
+  'Public profile avatar': 'Аватар публичного профиля',
+  'Account ID': 'ID аккаунта',
+  'Links': 'Ссылки',
+  'Device signature verified': 'Подпись устройства проверена',
+  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
+    'Подпись соответствует устройству из сертифицированного списка этого аккаунта. Владелец публикует сведения самостоятельно; проверка не доказывает, что версия последняя или снимок профиля закреплён в блокчейне.',
+  'Signing device': 'Подписавшее устройство',
+  'Device status at verification': 'Состояние устройства при проверке',
+  'Active': 'Активно',
+  'Revoked · historical signature': 'Отозвано · историческая подпись',
+  'This account has not published a public profile.':
+    'Этот аккаунт ещё не опубликовал публичный профиль.',
+  'Link copied': 'Ссылка скопирована',
+  'Copy permanent link': 'Копировать постоянную ссылку',
+  'Get dMsg': 'Скачать dMsg',
   'New version available, click on "Reload" to update.':
     'Доступна новая версия. Нажмите «Перезагрузить».',
   'Reload': 'Перезагрузить',

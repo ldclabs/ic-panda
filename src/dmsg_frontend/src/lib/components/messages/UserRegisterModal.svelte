@@ -259,7 +259,7 @@
       </label>
       <div class="text-success-600 h-10 text-sm"
         >{$t('Profile URL:')}<span class="ml-2"
-          >{APP_ORIGIN}/{usernameInput || '[username]'}</span
+          >{`${APP_ORIGIN}/legacy/users/${usernameInput || '[username]'}`}</span
         ></div
       >
       {#if usernameErr}

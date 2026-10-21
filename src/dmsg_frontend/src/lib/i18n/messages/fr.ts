@@ -1,6 +1,32 @@
 import type { Messages } from './en'
 
 export default {
+  'Public profile': 'Profil public',
+  'This is not a valid account ID or handle.':
+    'Cet identifiant de compte ou pseudonyme est invalide.',
+  'This account or handle was not found.':
+    'Ce compte ou pseudonyme est introuvable.',
+  'Could not load this profile. Try again.':
+    'Impossible de charger ce profil. Réessayez.',
+  'This profile could not be verified. Its content is not displayed.':
+    'Ce profil n’a pas pu être vérifié. Son contenu n’est pas affiché.',
+  'Loading and verifying profile…': 'Chargement et vérification du profil…',
+  'Profile unavailable': 'Profil indisponible',
+  'Public profile avatar': 'Avatar du profil public',
+  'Account ID': 'ID du compte',
+  'Links': 'Liens',
+  'Device signature verified': 'Signature de l’appareil vérifiée',
+  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
+    'La signature correspond à un appareil de la liste certifiée de ce compte. Le profil est publié par son propriétaire ; cela ne prouve ni qu’il est à jour ni qu’un instantané a été ancré.',
+  'Signing device': 'Appareil signataire',
+  'Device status at verification': 'État de l’appareil lors de la vérification',
+  'Active': 'Actif',
+  'Revoked · historical signature': 'Révoqué · signature historique',
+  'This account has not published a public profile.':
+    'Ce compte n’a pas encore publié de profil public.',
+  'Link copied': 'Lien copié',
+  'Copy permanent link': 'Copier le lien permanent',
+  'Get dMsg': 'Obtenir dMsg',
   'New version available, click on "Reload" to update.':
     'Une nouvelle version est disponible. Cliquez sur « Recharger ».',
   'Reload': 'Recharger',

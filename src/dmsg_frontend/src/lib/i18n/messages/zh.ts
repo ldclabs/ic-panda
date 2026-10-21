@@ -1,6 +1,29 @@
 import type { Messages } from './en'
 
 export default {
+  'Public profile': '公开资料',
+  'This is not a valid account ID or handle.': '账户 ID 或 handle 格式无效。',
+  'This account or handle was not found.': '未找到账户或 handle。',
+  'Could not load this profile. Try again.': '无法加载资料，请重试。',
+  'This profile could not be verified. Its content is not displayed.':
+    '资料验证失败，未显示其内容。',
+  'Loading and verifying profile…': '正在加载并验证资料…',
+  'Profile unavailable': '资料不可用',
+  'Public profile avatar': '公开资料头像',
+  'Account ID': '账户 ID',
+  'Links': '链接',
+  'Device signature verified': '设备签名已验证',
+  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
+    '签名与该账户经认证设备表中的设备匹配。资料由用户自行发布；验证不证明这是最新版本，也不代表资料快照已上链锚定。',
+  'Signing device': '签名设备',
+  'Device status at verification': '验证时的设备状态',
+  'Active': '有效',
+  'Revoked · historical signature': '已撤销 · 历史签名',
+  'This account has not published a public profile.':
+    '该账户尚未发布公开资料。',
+  'Link copied': '链接已复制',
+  'Copy permanent link': '复制永久链接',
+  'Get dMsg': '获取 dMsg',
   'New version available, click on "Reload" to update.':
     '检测到新版本可用，点击“重新加载”即可完成更新。',
   'Reload': '重新加载',

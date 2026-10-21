@@ -165,3 +165,13 @@ A2 需按此映射实现 writer/reader，并在开放 UI 前交付加密容器�
 webhook 入口只有 `POST /mcp-events/<callback_id>`（`application/json`，正文不超过 262,144 字节）与 `GET /.well-known/mcp-webhook-receiver.json`，不经设备 API 的 PoP 与 Origin 校验。时间戳超出 ±300 秒或 `v1` 签名不符返回 401，正文过大 413，非 JSON 415，未知、已删除或挂起的端点 410，单端点每分钟超过 120 次、或未确认记录超过 1,000 条或 16 MiB 返回 429；同一 `webhook-id` 的重复投递返回首次结果。`verification` 信封验签后回显 `{"challenge": …}`。每次新记录经提示通道发出 `mcp-event` 提示（connect-v1 §7.5）。
 
 设备取回后自行复验：`v1` 用本机保存的密钥、按 `received_at` 判断 5 分钟容差；上游服务器在其 origin 的 `/.well-known/mcp-webhook-jwks.json` 发布 Ed25519 JWK 时再验 `v1a`（同样覆盖 `id.timestamp.body`），`v1a` 不符的投递丢弃（中继持有 `v1` 密钥，只有它能造出这种投递）。
+
+## 公开资料网页
+
+`src/dmsg_frontend` 的公开入口为 `/<account_id>` 与 `/<handle>`：前者是规范 20 字符 Xid，后者是 1–19 字符 ASCII 名称，大小写按 handle 规则归一化。永久链接使用 `/<account_id>`，不使用 `/u/` 前缀。名称通过 `dmsg_handle.resolve_handle_certified` 的分桶认证路径解析到当前账户；账户按注册表配置和 ID 内嵌分配器指纹选择 user home。
+
+网页匿名读取账户认证叶与完整设备表，再读取 `GET /public/accounts/:account/profile`。`dmsg-sdk/profile` 验证 ICP 根、证书时效（60 秒）、指定 canister、认证路径、设备根，以及资料的 COSE 签名、issuer、设备、action、hash、version 与 JSON 投影。未通过验证的资料不显示；同一页面会话中已经见过的版本不允许回退或同版本换内容。头像只使用配置的 API origin 与已签名的上传 ID 拼接地址。
+
+已撤销但仍保留在认证设备表中的设备签名可以作为历史声明展示，页面单独显示撤销状态；已从设备表移除的签名设备无法通过当前公开证据验证。验签不证明资料最新、不证明简介内容真实，也不表示资料快照已上链锚定。账户存在但未发布资料、账户或名称不存在、网络失败、验证失败分别展示。
+
+旧公开资料迁至 `/legacy/users/<username>`，本人旧资料迁至 `/legacy/profile`；旧资料链接与二维码使用 legacy 路径，继续只读。
