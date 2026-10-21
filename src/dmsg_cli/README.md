@@ -459,16 +459,21 @@ while mounted; Windows refuses files over 50,000,000 bytes
 through `files get`; Linux mounts through GVFS, which programs not built on
 it reach through its FUSE path. `files mount --status` shows the mount
 with the system's note. A mount in progress reports `mounting: true` and
-`mounted: false`; failed unmounts return an error and remain tracked for
-retry. Reads and writes count as activity for idle locking; directory
+`mounted: false`. On macOS, status reads and the background pass check the
+system mount table: ejecting in Finder clears the share and notifies the
+desktop. Mount and unmount requests also reconcile this state, so an already
+ejected disk can be mounted again or unmounted successfully. Failed unmounts
+of disks still mounted return an error and remain tracked for retry.
+Reads and writes count as activity for idle locking; directory
 metadata polling does not. Changes through the disk notify desktop views.
 
 The mount tests cover the daemon's HTTP routes as well as the DAV filesystem.
 On macOS, after `cargo build -p dmsg_cli`, run
-`cargo test -p dmsg_cli native_mount_reads_writes_safe_saves_and_unmounts -- --ignored --nocapture`
-for an explicit system mount test using a temporary offline account. It needs
-permission to mount a volume and exercises reads, writes, safe saves and
-unmounting on lock. Windows and Linux require separate native validation.
+`cargo test -p dmsg_cli native_mount_ -- --ignored --nocapture --test-threads=1`
+for explicit system mount tests using temporary offline accounts. They need
+permission to mount a volume and exercise reads, writes, safe saves,
+unmounting on lock and reconciliation after an external eject.
+Windows and Linux require separate native validation.
 
 Approvals are decided by a person: `approvals approve|reject`, `connect
 browsers add` and the prompt after `attest …` or `device …` need an interactive

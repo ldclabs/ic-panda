@@ -766,19 +766,97 @@ async fn localized_volume_names_route_without_becoming_file_paths() {
     }
 }
 
-/// Run explicitly after `cargo build -p dmsg_cli`; requires macOS permission
-/// to mount a system volume. Only a temporary, offline test account is used.
 #[cfg(target_os = "macos")]
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "mounts a temporary macOS WebDAV volume; requires a built dmsg binary"]
-async fn native_mount_reads_writes_safe_saves_and_unmounts() {
-    let (daemon, dir, server, url) = daemon_share("dMsg 文件").await;
-    daemon
-        .client()
-        .lock()
-        .await
-        .files_write(ROOT, "note.txt", b"original")
-        .unwrap();
+#[tokio::test]
+async fn missing_system_mounts_are_cleared_and_announced() {
+    let http = reqwest::Client::builder().no_proxy().build().unwrap();
+    for method in ["files/mount_status", "files/unmount", "background"] {
+        let (daemon, dir, server, url) = daemon_share("dMsg 文件").await;
+        // An ordinary directory left behind after ejecting is not a mount.
+        let point = dir.path("leftover 文件");
+        std::fs::create_dir(&point).unwrap();
+        daemon.mount.lock().unwrap().as_mut().unwrap().point =
+            Some(point.to_string_lossy().into_owned());
+        let seq = async || {
+            http.post(format!("http://127.0.0.1:{}/app/v1", daemon.port()))
+                .bearer_auth("owner-token")
+                .json(&json!({"jsonrpc": "2.0", "id": 1, "method": "events/poll"}))
+                .send()
+                .await
+                .unwrap()
+                .json::<Value>()
+                .await
+                .unwrap()["result"]["seq"]
+                .as_u64()
+                .unwrap()
+        };
+        let before = seq().await;
+        assert_eq!(daemon.mount_status()["mounted"], true);
+        if method == "background" {
+            daemon.check_mount().await;
+        } else {
+            let status = daemon.call_mount(method, &Value::Null).await.unwrap();
+            assert_eq!(status["mounted"], false, "{method}");
+        }
+        assert_eq!(daemon.mount_status()["mounted"], false, "{method}");
+        assert_eq!(seq().await, before + 1, "{method}");
+        assert_eq!(
+            http.get(&url)
+                .basic_auth(USER, Some("test-password"))
+                .send()
+                .await
+                .unwrap()
+                .status(),
+            StatusCode::NOT_FOUND,
+            "{method}"
+        );
+        // Repeated reads/unmounts succeed without another change event.
+        daemon.unmount_library().await.unwrap();
+        daemon.check_mount().await;
+        assert_eq!(seq().await, before + 1);
+        assert!(point.is_dir());
+        server.abort();
+    }
+}
+
+#[cfg(target_os = "macos")]
+#[tokio::test]
+async fn system_mount_checks_preserve_mounts_in_progress() {
+    let (daemon, dir, server, _url) = daemon_share("dMsg 文件").await;
+    {
+        let mut state = daemon.mount.lock().unwrap();
+        let mount = state.as_mut().unwrap();
+        mount.ready = false;
+        mount.point = Some(dir.path("not-mounted-yet").to_string_lossy().into_owned());
+    }
+    let _turn = daemon.turn("mount").await;
+    let status = tokio::time::timeout(
+        Duration::from_secs(1),
+        daemon.call_mount("files/mount_status", &Value::Null),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(status["mounting"], true);
+    assert_eq!(status["mounted"], false);
+    assert!(daemon.mount_of("t", "dMsg 文件").is_some());
+    server.abort();
+}
+
+#[cfg(target_os = "macos")]
+struct NativeMount(String);
+
+#[cfg(target_os = "macos")]
+impl Drop for NativeMount {
+    fn drop(&mut self) {
+        let _ = std::process::Command::new("/usr/sbin/diskutil")
+            .args(["unmount", "force", &self.0])
+            .output();
+    }
+}
+
+#[cfg(target_os = "macos")]
+async fn native_mount(daemon: &Daemon, url: &str) -> NativeMount {
     let binary = std::env::current_exe()
         .unwrap()
         .parent()
@@ -797,15 +875,26 @@ async fn native_mount_reads_writes_safe_saves_and_unmounts() {
         .as_str()
         .unwrap()
         .to_string();
-    struct Cleanup(String);
-    impl Drop for Cleanup {
-        fn drop(&mut self) {
-            let _ = std::process::Command::new("/usr/sbin/diskutil")
-                .args(["unmount", "force", &self.0])
-                .output();
-        }
-    }
-    let cleanup = Cleanup(point.clone());
+    let cleanup = NativeMount(point.clone());
+    daemon.mount.lock().unwrap().as_mut().unwrap().point = Some(point);
+    cleanup
+}
+
+/// Run explicitly after `cargo build -p dmsg_cli`; requires macOS permission
+/// to mount a system volume. Only a temporary, offline test account is used.
+#[cfg(target_os = "macos")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "mounts a temporary macOS WebDAV volume; requires a built dmsg binary"]
+async fn native_mount_reads_writes_safe_saves_and_unmounts() {
+    let (daemon, _dir, server, url) = daemon_share("dMsg 文件").await;
+    daemon
+        .client()
+        .lock()
+        .await
+        .files_write(ROOT, "note.txt", b"original")
+        .unwrap();
+    let cleanup = native_mount(&daemon, &url).await;
+    let point = cleanup.0.clone();
     assert!(
         std::path::Path::new(&point)
             .file_name()
@@ -814,17 +903,12 @@ async fn native_mount_reads_writes_safe_saves_and_unmounts() {
             .starts_with("dMsg 文件"),
         "{point}"
     );
-    daemon.mount.lock().unwrap().as_mut().unwrap().point = Some(point.clone());
-    // An OS failure must not be reported as success or lose the mount.
-    daemon.mount.lock().unwrap().as_mut().unwrap().point = Some(
-        dir.path("not-a-mounted-volume")
-            .to_string_lossy()
-            .into_owned(),
-    );
-    let failed = daemon.unmount_library().await;
-    daemon.mount.lock().unwrap().as_mut().unwrap().point = Some(point.clone());
-    assert!(failed.is_err());
-    assert_eq!(daemon.mount_status()["mounted"], true);
+    assert!(crate::mount_netfs::is_mounted(&point).unwrap());
+    let status = daemon
+        .call_mount("files/mount_status", &Value::Null)
+        .await
+        .unwrap();
+    assert_eq!(status["mounted"], true);
     tokio::task::spawn_blocking(move || {
         use std::io::Write;
         let root = std::path::Path::new(&point);
@@ -869,4 +953,35 @@ async fn native_mount_reads_writes_safe_saves_and_unmounts() {
     assert_eq!(daemon.mount_status()["mounted"], false);
     drop(cleanup);
     server.abort();
+}
+
+#[cfg(target_os = "macos")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "mounts temporary macOS WebDAV volumes; requires a built dmsg binary"]
+async fn native_mount_external_eject_reconciles_status_and_unmount() {
+    for method in ["files/mount_status", "files/unmount", "background"] {
+        let (daemon, _dir, server, url) = daemon_share("dMsg 弹出测试").await;
+        let cleanup = native_mount(&daemon, &url).await;
+        assert!(crate::mount_netfs::is_mounted(&cleanup.0).unwrap());
+        run(
+            tokio::process::Command::new("/usr/sbin/diskutil").args(["unmount", &cleanup.0]),
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(!crate::mount_netfs::is_mounted(&cleanup.0).unwrap());
+        // The daemon has not observed the OS eject yet.
+        assert_eq!(daemon.mount_status()["mounted"], true);
+        if method == "background" {
+            daemon.check_mount().await;
+        } else {
+            let status = daemon.call_mount(method, &Value::Null).await.unwrap();
+            assert_eq!(status["mounted"], false, "{method}");
+        }
+        assert_eq!(daemon.mount_status()["mounted"], false, "{method}");
+        assert!(daemon.mount_of("t", "dMsg 弹出测试").is_none());
+        daemon.unmount_library().await.unwrap();
+        drop(cleanup);
+        server.abort();
+    }
 }

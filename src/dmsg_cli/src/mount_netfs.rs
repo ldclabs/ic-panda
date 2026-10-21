@@ -14,12 +14,43 @@ use core_foundation::string::{CFString, CFStringRef};
 use core_foundation::url::{CFURL, CFURLCreateWithString, CFURLRef};
 use dmsg_types::{Error, Result};
 use serde_json::{Value, json};
-use std::ffi::{c_int, c_void};
+use std::ffi::{CStr, c_int, c_void};
 use std::io::Read;
 use std::ptr;
 
 /// `EEXIST`: a volume of the name is mounted already.
 const EEXIST: c_int = 17;
+
+/// Read the kernel's mount table without touching the WebDAV filesystem.
+/// A leftover directory is not a mount, and an unresponsive disk must not
+/// block the daemon's status checks.
+pub(crate) fn is_mounted(point: &str) -> Result<bool> {
+    let error = || Error::Unavailable(format!("mount: {}", std::io::Error::last_os_error()));
+    // SAFETY: a null buffer requests only the number of mounted filesystems.
+    let mut count = unsafe { libc::getfsstat(ptr::null_mut(), 0, libc::MNT_NOWAIT) };
+    if count < 0 {
+        return Err(error());
+    }
+    loop {
+        // Leave room to detect a mount added between the two calls.
+        // SAFETY: statfs contains only integers and fixed-size byte arrays.
+        let mut mounts = vec![unsafe { std::mem::zeroed::<libc::statfs>() }; count as usize + 1];
+        let size = c_int::try_from(std::mem::size_of_val(mounts.as_slice()))
+            .map_err(|_| Error::Unavailable("mount: mount table is too large".into()))?;
+        // SAFETY: the buffer is writable for `size` bytes and owned by this call.
+        count = unsafe { libc::getfsstat(mounts.as_mut_ptr(), size, libc::MNT_NOWAIT) };
+        if count < 0 {
+            return Err(error());
+        }
+        if count as usize == mounts.len() {
+            continue;
+        }
+        return Ok(mounts[..count as usize].iter().any(|mount| {
+            // SAFETY: getfsstat returns a NUL-terminated mount-point name.
+            unsafe { CStr::from_ptr(mount.f_mntonname.as_ptr()) }.to_bytes() == point.as_bytes()
+        }));
+    }
+}
 
 #[link(name = "NetFS", kind = "framework")]
 unsafe extern "C" {

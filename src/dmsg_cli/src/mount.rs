@@ -316,7 +316,10 @@ impl Daemon {
     pub(crate) async fn call_mount(&self, method: &str, params: &Value) -> Result<Value> {
         let enabled = self.files_mount.load(Ordering::SeqCst);
         match method {
-            "files/mount_status" => Ok(self.mount_status()),
+            "files/mount_status" => {
+                self.refresh_mount()?;
+                Ok(self.mount_status())
+            }
             "files/preferences" => {
                 let days = self.client().lock().await.config().files_trash_days;
                 Ok(self.preferences_view(days))
@@ -338,6 +341,7 @@ impl Daemon {
                         "mount: not supported on this system".into(),
                     ));
                 }
+                self.refresh_mount()?;
                 let existing = self
                     .mount
                     .lock()
@@ -447,7 +451,32 @@ impl Daemon {
         })
     }
 
-    /// The mount's status.
+    /// Reconcile a completed macOS mount with the kernel's mount table.
+    /// This is synchronous and does not take the mount turn, so status
+    /// requests can still observe `mounting` while NetFS is working.
+    fn refresh_mount(&self) -> Result<()> {
+        #[cfg(target_os = "macos")]
+        {
+            let mut state = self.mount.lock().expect("mount state");
+            let Some(point) = state
+                .as_ref()
+                .filter(|mount| mount.ready)
+                .and_then(|mount| mount.point.as_deref())
+            else {
+                return Ok(());
+            };
+            if crate::mount_netfs::is_mounted(point)? {
+                return Ok(());
+            }
+            *state = None;
+            drop(state);
+            crate::logs::write("files/unmount", &[("reason", &"system unmounted")]);
+            self.emit("files/mount_changed", self.mount_status());
+        }
+        Ok(())
+    }
+
+    /// The tracked mount's status; RPC reads reconcile it first.
     pub(crate) fn mount_status(&self) -> Value {
         let enabled = self.files_mount.load(Ordering::SeqCst);
         self.mount
@@ -468,6 +497,7 @@ impl Daemon {
     /// The caller owns the mount turn. A failed system unmount remains
     /// tracked so a later attempt can retry it.
     async fn unmount_current(&self) -> Result<()> {
+        self.refresh_mount()?;
         let mounted = self
             .mount
             .lock()
@@ -478,19 +508,29 @@ impl Daemon {
             return Ok(());
         };
         if let Err(error) = system_unmount(&url, point.as_deref()).await {
+            // Finder may have ejected it after the first check. Only an
+            // actual remaining mount keeps the error and retry state.
+            self.refresh_mount()?;
+            if self.mount.lock().expect("mount state").is_none() {
+                return Ok(());
+            }
             crate::logs::write("files/unmount", &[("error", &error.to_string())]);
             return Err(error);
         }
         crate::logs::write("files/unmount", &[]);
-        *self.mount.lock().expect("mount state") = None;
-        self.emit("files/mount_changed", self.mount_status());
+        if self.mount.lock().expect("mount state").take().is_some() {
+            self.emit("files/mount_changed", self.mount_status());
+        }
         Ok(())
     }
 
-    /// Unmount when the library it serves is no longer the unlocked one;
-    /// the background pass.
+    /// Notice external ejects and unmount when the library it serves is
+    /// no longer the unlocked one; the background pass.
     pub(crate) async fn check_mount(&self) {
         let _turn = self.turn("mount").await;
+        if let Err(error) = self.refresh_mount() {
+            self.note("files/mount_status", &error.to_string());
+        }
         let account = self
             .mount
             .lock()
