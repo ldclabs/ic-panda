@@ -28,7 +28,7 @@ pub const STABLE_SCHEMA: u16 = 4;
 /// A successful SNS verification is reused for one hour.
 const SNS_FRESH_MS: u64 = 60 * MINUTE;
 /// Version of the stable claim record written by this build.
-pub const CLAIM_SCHEMA: u16 = 2;
+pub const CLAIM_SCHEMA: u16 = 3;
 /// Hard bounds include historical operations, independently of live admission limits.
 pub const MAX_FULL_CLAIMS: u64 = 1_000_000;
 const MAX_OPERATIONS: u64 = 10_000_000;

@@ -78,7 +78,9 @@ impl LegacyClaim {
                 observed_at_ms: self.view.observed_at_ms,
                 valid_until_ms: self.view.valid_until_ms,
                 lease_revision: self.view.lease_revision,
+                cooling_until_ms: None,
                 committed_until_ms: self.view.committed_until_ms,
+                repair_elapsed_ms: 0,
                 receipt: self.view.receipt,
             },
             authorization: self.authorization,
@@ -148,7 +150,10 @@ fn migrate_records<M: ic_stable_structures::Memory>(
                 claims.insert(key.clone(), Raw(bytes));
                 migrated(&claim);
             } else {
-                cbor2::from_slice::<Claim>(bytes).expect("claim schema");
+                let claim: Claim = cbor2::from_slice(bytes).expect("claim schema");
+                let bytes = cbor2::to_vec(&claim).expect("claim rewrite encoding");
+                claims.insert(key.clone(), Raw(bytes));
+                migrated(&claim);
             }
         }
         after = batch.last().map(|(key, _)| key.clone());
@@ -258,5 +263,72 @@ mod tests {
         let config: crate::store::Config =
             cbor2::from_slice(&bytes).expect("legacy config decoding");
         assert_eq!(config.claim_schema, 0);
+    }
+    #[derive(Serialize)]
+    struct V2View {
+        version: u16,
+        claim_id: Hash,
+        terms: PandaApplicationTerms,
+        status: PandaClaimStatus,
+        eligibility: Eligibility,
+        observed_at_ms: u64,
+        valid_until_ms: u64,
+        lease_revision: u64,
+        committed_until_ms: u64,
+        receipt: Option<ProductReceipt>,
+    }
+
+    #[derive(Serialize)]
+    struct V2Claim {
+        view: V2View,
+        authorization: ProductAuthorizationRequest,
+        decision: Option<ProductDecision>,
+        product_reserved: bool,
+        reservation_released: bool,
+        generation: u64,
+        busy_until_ms: u64,
+        retain_until_ms: Option<u64>,
+    }
+
+    #[test]
+    fn a_claim_written_without_the_legacy_fields_is_rewritten() {
+        let base = legacy_cooling_claim().into_claim();
+        let old = V2Claim {
+            view: V2View {
+                version: base.view.version,
+                claim_id: base.view.claim_id,
+                terms: base.view.terms.clone(),
+                status: base.view.status.clone(),
+                eligibility: base.view.eligibility.clone(),
+                observed_at_ms: base.view.observed_at_ms,
+                valid_until_ms: base.view.valid_until_ms,
+                lease_revision: base.view.lease_revision,
+                committed_until_ms: base.view.committed_until_ms,
+                receipt: None,
+            },
+            authorization: base.authorization,
+            decision: None,
+            product_reserved: true,
+            reservation_released: false,
+            generation: 0,
+            busy_until_ms: 0,
+            retain_until_ms: None,
+        };
+        let bytes = cbor2::to_vec(&old).expect("v2 encoding");
+        let decoded: Claim = cbor2::from_slice(&bytes).expect("v2 decoding");
+        assert_eq!(decoded.view.cooling_until_ms, None);
+        assert_eq!(decoded.view.repair_elapsed_ms, 0);
+        let id = decoded.view.claim_id;
+        let mut records: StableBTreeMap<Vec<u8>, Raw, _> =
+            StableBTreeMap::init(DefaultMemoryImpl::default());
+        records.insert(id.as_slice().to_vec(), Raw(bytes));
+        let mut migrated = vec![];
+        migrate_records(&mut records, |claim| migrated.push(claim.view.claim_id));
+        assert_eq!(migrated, vec![id]);
+        let bytes = records.get(&id.as_slice().to_vec()).expect("record").0;
+        let claim: Claim = cbor2::from_slice(&bytes).expect("rewritten claim");
+        assert_eq!(claim.view.status, PandaClaimStatus::Checking);
+        assert_eq!(claim.view.cooling_until_ms, None);
+        assert_eq!(claim.view.repair_elapsed_ms, 0);
     }
 }

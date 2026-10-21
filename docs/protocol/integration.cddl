@@ -525,7 +525,9 @@ PandaClaimView = {
   "observed_at_ms": u64,
   "valid_until_ms": u64,
   "lease_revision": u64,
+  "cooling_until_ms": (u64 / null),
   "committed_until_ms": u64,
+  "repair_elapsed_ms": u64,
   "receipt": (ProductReceipt / null),
 }
 

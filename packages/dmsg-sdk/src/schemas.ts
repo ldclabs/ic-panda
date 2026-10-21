@@ -622,7 +622,9 @@ export const schemas = {
     "observed_at_ms": "u64",
     "valid_until_ms": "u64",
     "lease_revision": "u64",
+    "cooling_until_ms": "Option<u64>",
     "committed_until_ms": "u64",
+    "repair_elapsed_ms": "u64",
     "receipt": "Option<ProductReceipt>"
   },
   "PandaOperationsPage": {

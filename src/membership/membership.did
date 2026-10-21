@@ -294,6 +294,10 @@ type PandaClaimView = record {
   eligibility : Eligibility;
   // Protocol version two.
   version : nat16;
+  // Legacy cooling deadline; always `None` after immediate activation.
+  cooling_until_ms : opt nat64;
+  // Legacy repair time; always zero after immediate termination.
+  repair_elapsed_ms : nat64;
   // Zero before successful Apply; fixed to the original E afterwards.
   committed_until_ms : nat64;
 };

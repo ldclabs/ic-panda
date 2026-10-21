@@ -576,7 +576,9 @@ export interface PandaClaimView {
   observed_at_ms: bigint
   valid_until_ms: bigint
   lease_revision: bigint
+  cooling_until_ms: (bigint | null)
   committed_until_ms: bigint
+  repair_elapsed_ms: bigint
   receipt: (ProductReceipt | null)
 }
 

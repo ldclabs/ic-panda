@@ -121,8 +121,14 @@ pub struct PandaClaimView {
     pub valid_until_ms: u64,
     /// Monotone qualification/view revision.
     pub lease_revision: u64,
+    /// Legacy cooling deadline; always `None` after immediate activation.
+    #[serde(default)]
+    pub cooling_until_ms: Option<u64>,
     /// Zero before successful Apply; fixed to the original E afterwards.
     pub committed_until_ms: u64,
+    /// Legacy repair time; always zero after immediate termination.
+    #[serde(default)]
+    pub repair_elapsed_ms: u64,
     /// Durable terminal product receipt, if available.
     pub receipt: Option<ProductReceipt>,
 }
