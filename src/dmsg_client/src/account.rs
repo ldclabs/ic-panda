@@ -334,8 +334,8 @@ pub(crate) async fn device_bundle(
 
 /// Every canister a login delegation must reach: the registry and its
 /// ledger, each user home with its COSE executor, payment, commerce and
-/// membership canisters, and the ledgers those settle on, so the login's
-/// Principal can also pay as the payer.
+/// membership canisters, the ledgers those settle on, and the configured
+/// wallet hub's ICP ledger, so the login's Principal can also pay as the payer.
 ///
 /// # Errors
 /// Returns `Error::Unavailable` when a query fails and
@@ -370,6 +370,10 @@ pub async fn login_targets(config: &Config) -> Result<Vec<Principal>> {
         for asset in assets {
             add(asset.policy.ledger);
         }
+    }
+    if let Some(hub) = config.wallet.hub {
+        let wallet: dmsg_types::wallet::HubInit = ic.query(hub, "get_hub_config", ()).await?;
+        add(wallet.icp_ledger);
     }
     ensure(
         targets.len() <= crate::login::MAX_TARGETS,

@@ -273,7 +273,9 @@ pub(crate) async fn payer<H: Hold>(h: &H) -> Result<(Principal, Ic)> {
 /// # Errors
 /// Returns `Error::AuthRequired` without a login.
 pub async fn payer_balance<H: Hold>(h: &H, ledger: Principal) -> Result<serde_json::Value> {
-    let (payer, ic) = payer(h).await?;
+    let (payer, _) = payer(h).await?;
+    // Balances and fees are public, including on ledgers outside the login targets.
+    let ic = h.anonymous().await?;
     let reader = Ledger {
         ic: &ic,
         canister: ledger,

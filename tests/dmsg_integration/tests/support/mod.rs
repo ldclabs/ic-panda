@@ -579,10 +579,25 @@ impl Deployment {
         candid::decode_one::<Result<()>>(&reply).unwrap().unwrap();
     }
 
+    /// Install an independent ledger, outside the existing login targets.
+    #[allow(dead_code)]
+    pub fn install_test_ledger(&self) -> Principal {
+        let subnet = self.ic.topology().get_app_subnets()[0];
+        let ledger = self.ic.create_canister_on_subnet(None, None, subnet);
+        self.ic.add_cycles(ledger, 100_000_000_000_000);
+        self.ic.install_canister(
+            ledger,
+            std::fs::read(wasm_dir().join("dmsg_test_ledger.wasm")).unwrap(),
+            candid::encode_args(()).unwrap(),
+            None,
+        );
+        ledger
+    }
+
     /// Install the team wallet hub with a test cycles minting canister,
     /// register the `dmsg-wallet` application and product with commerce and
     /// the current `dmsg_wallet` module with the hub. Activation costs
-    /// `price_e8s` on `self.ledger`; Free accounts may create two wallets.
+    /// `price_e8s` on a separate ICP ledger; Free accounts may create two wallets.
     #[allow(dead_code)]
     pub fn install_wallet_hub(&self, price_e8s: u64) -> Principal {
         use dmsg_types::{integration::*, wallet::*};
@@ -590,6 +605,7 @@ impl Deployment {
         use std::io::Write;
         let ic = &self.ic;
         let dir = wasm_dir();
+        let ledger = self.install_test_ledger();
         let subnet = ic.topology().get_app_subnets()[0];
         let cmc = ic.create_canister_on_subnet(None, None, subnet);
         let hub = ic.create_canister_on_subnet(None, None, subnet);
@@ -598,7 +614,7 @@ impl Deployment {
         ic.install_canister(
             cmc,
             std::fs::read(dir.join("dmsg_test_cmc.wasm")).unwrap(),
-            candid::encode_one(self.ledger).unwrap(),
+            candid::encode_one(ledger).unwrap(),
             None,
         );
         let revenue = Account {
@@ -611,7 +627,7 @@ impl Deployment {
             candid::encode_one(HubInit {
                 environment: Environment::Local,
                 governance: self.peer,
-                icp_ledger: self.ledger,
+                icp_ledger: ledger,
                 cmc,
                 commerce: self.commerce,
                 issuer_namespace: "https://dmsg.test/u/".into(),

@@ -4560,7 +4560,6 @@ fn desktop_wallet() {
     );
     let http = env.http.clone();
     let (a, b, d) = (&env.a, &env.b, &env.deployment);
-    let ledger = d.ledger;
     // Two accounts: A (login 42, the funded payer) creates and pays, B
     // (login 43) approves spending.
     assert_eq!(a.login(&http, 42).unwrap()["state"], "no_account");
@@ -4574,7 +4573,24 @@ fn desktop_wallet() {
         .unwrap()
         .to_string();
     // No WalletApprove: creation is refused before the payer sends ICP.
-    let readiness = a.rpc(&http, "wallet/readiness", json!({})).unwrap();
+    let readiness = a
+        .rpc(&http, "wallet/readiness", json!({"funding":true}))
+        .unwrap();
+    let ledger = Principal::from_text(readiness["balance"]["ledger"].as_str().unwrap()).unwrap();
+    // ICP is separate from subscription and name payments, as on mainnet.
+    assert!(![d.ledger, d.ledger_usdt, d.name_ledger].contains(&ledger));
+    assert_eq!(readiness["payer"]["principal"], login_principal(42));
+    assert_eq!(readiness["balance"]["balance"], "0");
+    mint(
+        d,
+        ledger,
+        Account::from(Principal::from_text(login_principal(42)).unwrap()),
+        10_000_000_000,
+    );
+    assert_eq!(balance(a, &ledger), 10_000_000_000);
+    // Public balance reads also work for ledgers absent from this login.
+    let unlisted_ledger = d.install_test_ledger();
+    assert_eq!(balance(a, &unlisted_ledger), 0);
     assert!(
         readiness["blockers"]
             .as_array()
