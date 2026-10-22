@@ -94,10 +94,11 @@ fn init(args: UserInit) {
 
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
-    let cfg = config();
-    assert_eq!(
-        cfg.schema, STABLE_SCHEMA,
-        "explicit stable-state migration required"
+    let mut cfg = config();
+    assert!(
+        matches!(cfg.schema, 14 | STABLE_SCHEMA),
+        "unsupported user stable schema {}",
+        cfg.schema,
     );
     xid::validate(
         &cfg.allocator,
@@ -107,6 +108,12 @@ fn post_upgrade() {
         ic_cdk::api::canister_self(),
     )
     .expect("immutable allocator");
+    if cfg.schema == 14 {
+        // The account/config layouts and certification bytes are unchanged.
+        // Old principal records acquire empty metadata in their stable decoder.
+        cfg.schema = STABLE_SCHEMA;
+        save_config(&cfg);
+    }
     // Certification nodes persist in stable memory; only the root is republished.
     CERT.with_borrow(|c| c.publish());
     ensure_master_secret();

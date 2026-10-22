@@ -79,7 +79,7 @@ flowchart LR
 - **路由**：与认证库的路径规则一致：先做百分号解码，忽略连续斜线产生的空段，尾斜线是不同的路径，忽略 query。`//<id>`、百分号编码等等价写法返回同一个认证响应；非规范的账户文本、`/<id>/` 和 `/<id>/x` 返回 404。principal 解析仍只认文档 `id` 那个规范 URL。
 - **认证树**：`http_expr` 下每个表达式路径的第一段是 [`dmsg_runtime::cert_map`](../dmsg_runtime/src/cert_map.rs) 中的一个 key，值为该段子树的哈希：每个账户一个 key（账户 ID 文本），`.well-known` 对应域名列表，`<*>` 对应兜底 404。树只存哈希，位于 stable memory，一次写入只重算一条路径。文档的子树哈希由记录中保存的正文 SHA-256 计算，查询时不重新哈希正文。
 - **证明**：200 响应的证明只披露该账户的段；404 证明还披露请求路径的第一段和各级更具体通配路径的第一段，以满足网关“精确路径和更具体的通配路径都不存在”的检查。
-- **响应格式固定**：查询时用当前代码重新构造响应，并与已认证的哈希核对，不一致就 trap。升级只重新认证 404 和域名列表，不访问文档；修改文档响应的头部或认证表达式时，必须同时重新认证所有文档（目前没有实现），否则所有文档请求都会失败。单元测试 `document_response_certification_is_pinned` 固定了文档响应的认证哈希，这类改动（包括升级 `ic-http-certification`）会先让它失败。
+- **响应格式固定**：查询时用当前代码重新构造响应，并与已认证的哈希核对，不一致就 trap。schema 7 内的常规升级只重新认证 404 和域名列表，不访问文档；修改文档响应的头部或认证表达式时，必须同时重新认证所有文档（目前没有实现），否则所有文档请求都会失败。单元测试 `document_response_certification_is_pinned` 固定了文档响应的认证哈希，这类改动（包括升级 `ic-http-certification`）会先让它失败。
 
 ### 存储
 
@@ -92,7 +92,9 @@ flowchart LR
 | 4 | JSON 文档认证 map 的叶：原始账户 ID → 正文 leaf hash |
 | 5 | JSON 文档认证 map 的内部节点，201 字节定长槽位 |
 
-`post_upgrade` 要求 schema 等于 7，重新认证 404 和域名列表并设置根哈希。它不读参数、不改配置，也不访问文档。更早的开发期 schema 直接拒绝，没有迁移代码。
+`post_upgrade` 支持 schema 6 → 7 的保留数据升级：逐条读取现有正文、核对其 SHA-256，在新 memory 4/5 建立文档认证树，保留原记录、HTTP 认证树、配置、正文、状态摘要、版本与时间。首次迁移需要遍历已发布文档，内存中每次只保留一条；发生 trap 时整个升级事务回滚。schema 7 的后续升级不再遍历，只重新认证 404 与域名列表。其他布局明确拒绝，升级不读参数。
+
+`publish` 的输入 `metadata` 为可选字段：旧 home 未发送时按 `{}` 处理，新 home 可以直接发送 bytes；这使 Candid 接口兼容旧版。原 schema 6 的同版本重试只在四个旧字段的摘要全部一致且元数据恰为 `{}` 时接受，不重写原正文；修改展示字段必须推进版本。
 
 ### 配置与治理
 
@@ -103,7 +105,7 @@ flowchart LR
 
 ### 容量与成本
 
-- 每个账户占一条记录（文档正文加约百字节的固定字段），并分别进入 HTTP 响应树和文档正文树。一次发布更新两条认证路径；升级成本不随账户数增长；key 分布均匀时单树证明约嵌套 log₂(n)+2 层，外加顶层分叉。
+- 每个账户占一条记录（文档正文加约百字节的固定字段），并分别进入 HTTP 响应树和文档正文树。一次发布更新两条认证路径；schema 7 内的常规升级成本不随账户数增长（首次 6 → 7 迁移需遍历）；key 分布均匀时单树证明约嵌套 log₂(n)+2 层，外加顶层分叉。
 - home 通过跨 canister 调用发布，消息的字节费由 home 承担，directory 支付执行和存储。HTTP 网关以非复制 query 调用 `http_request`。
 - ingress 由 `canister_inspect_message` 预过滤，其他人发送的 ingress 不产生接收费。
 - `directory_stats` 返回已发布账户数、stable 页数和 cycles 余额。
@@ -265,7 +267,7 @@ URL 字段不能含原始控制字符、双引号和反斜线，需要时用百�
 
 - **新增 user home**：先以相同的 `environment`、`issuer_namespace`、`principal_origin` 和指向本 canister 的 `directory_canister` 安装新 home，用 `icp canister call -n ic <home> user_config '()' --query` 核对，再由 controller 或 governance 调用 `admin_add_user_home(home)`；`validate_admin_add_user_home` 显示新 home 的分配器指纹。handle、cose、payment 和 commerce 也要登记，见 [dmsg_canisters](../../docs/dmsg_canisters_zh.md)。登记前，该 home 的账户发布返回 `Forbidden`，登记后用 `publish_principal` 补发。已有 home 不能移除。
 - **cycles**：发布的执行和文档存储由本 canister 付费。用 `directory_stats` 监控已发布账户数、stable 页数和余额，交给 SNS 后也可以看 SNS root 的汇总。
-- **升级**：要求 schema 不变。用 release 产物升级；交给 SNS 之前，每次升级前留一个快照：
+- **升级**：支持 schema 6 → 7 及 schema 7 后续升级。先升级 directory，再逐个升级 user home；用 release 产物升级，交给 SNS 之前，每次升级前留一个快照：
 
   ```sh
   icp canister metadata dmsg_directory candid:service -e ic > deployed.did

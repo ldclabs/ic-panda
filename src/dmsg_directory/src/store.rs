@@ -62,6 +62,23 @@ pub(crate) fn count() -> u64 {
     RECORDS.with_borrow(|t| t.len())
 }
 
+/// One-time schema 6 -> 7 migration. Read one document at a time, retain every
+/// original record and HTTP leaf, and build only the new document query tree.
+/// A trap rolls back the entire upgrade, including its schema marker.
+pub(crate) fn certify_existing_documents() {
+    RECORDS.with_borrow(|records| {
+        for entry in records.iter() {
+            let record = entry.value().into_inner();
+            assert_eq!(
+                dmsg_protocol::sha256(&record.document),
+                record.document_digest,
+                "stored principal document digest",
+            );
+            http::certify_document_body(entry.key(), &record.document);
+        }
+    });
+}
+
 /// Persist a publication and certify its response in the same message.
 pub(crate) fn save(id: &AccountId, record: &Record) {
     RECORDS.with_borrow_mut(|t| t.put(id.as_slice(), record));

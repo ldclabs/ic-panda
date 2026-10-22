@@ -90,6 +90,34 @@ pub struct PrincipalState {
     pub updated_at: u64,
 }
 
+/// Directory publication input. An optional metadata field keeps schema-14
+/// homes callable during a rolling upgrade; new homes send the field directly.
+#[derive(CandidType, Deserialize)]
+pub struct PrincipalPublicationInput {
+    /// Display type selected by the account home.
+    pub principal_type: PrincipalType,
+    /// Editable JSON members, absent in publications from schema-14 homes.
+    pub metadata: Option<serde_bytes::ByteBuf>,
+    /// Current and retired controllers in generation order.
+    pub controllers: Vec<HostedController>,
+    /// Monotonic publication version.
+    pub version: u64,
+    /// Monotonic document timestamp in milliseconds.
+    pub updated_at: u64,
+}
+
+impl From<PrincipalPublicationInput> for PrincipalState {
+    fn from(input: PrincipalPublicationInput) -> Self {
+        Self {
+            principal_type: input.principal_type,
+            metadata: input.metadata.unwrap_or_else(|| b"{}".to_vec().into()),
+            controllers: input.controllers,
+            version: input.version,
+            updated_at: input.updated_at,
+        }
+    }
+}
+
 /// Owner view of a principal, including publication state.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct PrincipalInfo {

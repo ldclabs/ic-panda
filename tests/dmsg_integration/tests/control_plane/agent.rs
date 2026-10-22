@@ -36,7 +36,7 @@ impl Fixture {
         )
     }
 
-    fn principal(&self, id: &AccountId) -> PrincipalInfo {
+    pub(super) fn principal(&self, id: &AccountId) -> PrincipalInfo {
         let info: Result<PrincipalInfo> = query(
             &self.ic,
             self.user,
@@ -48,7 +48,7 @@ impl Fixture {
     }
 
     /// Fetch a directory path and verify the response like an ICP HTTP gateway.
-    fn directory_get(&self, path: &str) -> HttpResponse<'static> {
+    pub(super) fn directory_get(&self, path: &str) -> HttpResponse<'static> {
         let request = HttpRequest::get(path).build();
         let response: HttpResponse<'static> = query(
             &self.ic,
@@ -76,7 +76,7 @@ impl Fixture {
         response
     }
 
-    fn document(&self, id: &AccountId) -> (sdk::PrincipalDocument, Vec<u8>) {
+    pub(super) fn document(&self, id: &AccountId) -> (sdk::PrincipalDocument, Vec<u8>) {
         let response = self.directory_get(&format!("/{id}"));
         assert_eq!(response.status_code().as_u16(), 200);
         let header = |name: &str| {

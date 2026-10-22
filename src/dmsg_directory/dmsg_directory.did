@@ -161,19 +161,18 @@ type HostedController = record {
   // Binding end (exclusive) once retired; None while current.
   retired_at : opt nat64;
 };
-// Account principal state published by the directory.
-// `version` and `updated_at` both increase strictly on every change.
-type PrincipalState = record {
-  // Document `updated_at`: `max(now, previous + 1)` on every change.
+// Directory publication input. An optional metadata field keeps schema-14
+// homes callable during a rolling upgrade; new homes send the field directly.
+type PrincipalPublicationInput = record {
+  // Monotonic document timestamp in milliseconds.
   updated_at : nat64;
   // Current and retired controllers in generation order.
   controllers : vec HostedController;
-  // Canonical JSON of the editable PrincipalDocument members. The directory
-  // derives identity, controllers, aliases, protocol and publication time.
-  metadata : blob;
-  // Display type of the principal.
+  // Editable JSON members, absent in publications from schema-14 homes.
+  metadata : opt blob;
+  // Display type selected by the account home.
   principal_type : PrincipalType;
-  // Publication version; the directory rejects rollback.
+  // Monotonic publication version.
   version : nat64;
 };
 // Display type of a principal; it grants no authority.
@@ -223,7 +222,7 @@ service : (DirectoryInit) -> {
   // afterwards, the recorded home. Versions only increase: the same version with
   // the same state is idempotent, an older version returns the current
   // publication, and the same version with other content is rejected.
-  publish : (blob, PrincipalState) -> (Result_1);
+  publish : (blob, PrincipalPublicationInput) -> (Result_1);
   validate_admin_add_user_home : (principal) -> (Result_3) query;
   validate_admin_set_custom_domains : (vec text) -> (Result_3) query;
 }

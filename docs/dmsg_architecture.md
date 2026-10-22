@@ -1,6 +1,6 @@
 # dMsg Technical Architecture
 
-> 2026-10-22: User profiles now use PrincipalDocument, updated on dmsg_user (schema 15) and published by dmsg_directory (schema 7). Display edits write on chain; avatar bytes remain in cloud storage. The separate user Profile pipeline is removed; Agent Profile is unchanged. Historical capacity samples do not include the new metadata. See [the public contract](protocol/agent_zh.md).
+> 2026-10-22: User profiles now use PrincipalDocument, updated on dmsg_user (schema 15) and published by dmsg_directory (schema 7). Display edits write on chain; avatar bytes remain in cloud storage. The separate user Profile pipeline is removed; Agent Profile is unchanged. In-place upgrades preserve data from user schema 14 and directory schema 6; reinstalling would erase it. Historical capacity samples do not include the new metadata. See [the public contract](protocol/agent_zh.md).
 
 English | [简体中文](dmsg_architecture_zh.md)
 
@@ -10,7 +10,7 @@ English | [简体中文](dmsg_architecture_zh.md)
 
 1. **Content off chain, authority on chain.** Plaintext and content keys stay on authorized devices (the dMsg client). The cloud stores and delivers ciphertext and runs channel collaboration and the inbox. ICP holds only the authoritative state that must be publicly verifiable and consistent across services: accounts and devices, content-root commitments, handle ownership, formal attestation receipts, settled funds and commercial entitlements.
 2. **Everyday work writes nothing on chain.** Messages, files, vault edits and channel control make no ICP update, vetKD derivation or threshold signature; the cloud only queries certified account security snapshots when it needs them.
-3. **Upgrades are independent of scale.** Records and certification trees live in stable memory and the heap holds no business state. An upgrade only republishes the root hash, so `post_upgrade` instructions do not grow with the number of records.
+3. **Upgrades are independent of scale.** Records and certification trees live in stable memory and the heap holds no business state. A routine upgrade only republishes the root hash, so `post_upgrade` instructions do not grow with the number of records. The initial directory schema 6-to-7 migration is an exception: it reads each existing document to build the additional certification tree.
 4. **Scale out by user home.** Every account ID embeds the fingerprint of the user home that allocated it, and every service routes by that fingerprint, so adding a home never remaps existing accounts. Services that need global uniqueness (handles, PANDA neuron occupancy, the principal document domain) stay single-instance.
 5. **Uniform governance, external maintenance.** Every administrative method accepts the controller and an SNS governance canister fixed at installation, and has a `validate_*` dry run taking the same arguments. Canisters do not rely on timers; external jobs drive cleanup, payouts and price publication through bounded entry points.
 

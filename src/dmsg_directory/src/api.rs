@@ -53,8 +53,16 @@ fn init(args: DirectoryInit) {
 /// Configuration changes go through administrative methods, never upgrades.
 #[ic_cdk::post_upgrade]
 fn post_upgrade() {
-    let c = config();
-    assert_eq!(c.schema, STABLE_SCHEMA, "incompatible development state");
+    let mut c = config();
+    match c.schema {
+        6 => {
+            certify_existing_documents();
+            c.schema = STABLE_SCHEMA;
+            save_config(&c);
+        }
+        STABLE_SCHEMA => {}
+        schema => panic!("unsupported directory stable schema {schema}"),
+    }
     // Document hashes persist in stable memory; only the fallback and domain
     // responses, which this code renders, are certified again.
     http::certify_fixed(&c.init.custom_domains);
@@ -135,7 +143,8 @@ fn publication(id: &AccountId, init: &DirectoryInit, record: &Record) -> Publica
 /// the same state is idempotent, an older version returns the current
 /// publication, and the same version with other content is rejected.
 #[ic_cdk::update]
-fn publish(account_id: AccountId, state: PrincipalState) -> Result<Publication> {
+fn publish(account_id: AccountId, state: PrincipalPublicationInput) -> Result<Publication> {
+    let state = PrincipalState::from(state);
     let caller = ic_cdk::api::msg_caller();
     let init = config().init;
     let current = load(&account_id);
@@ -161,7 +170,8 @@ fn publish(account_id: AccountId, state: PrincipalState) -> Result<Publication> 
     if let Some(record) = &current {
         if state.version == record.version {
             ensure(
-                state_digest == record.state_digest,
+                state_digest == record.state_digest
+                    || matches_legacy_state(&record.state_digest, &state),
                 Error::IdempotencyConflict,
             )?;
             return Ok(publication(&account_id, &init, record));
@@ -183,6 +193,29 @@ fn publish(account_id: AccountId, state: PrincipalState) -> Result<Publication> 
     };
     save(&account_id, &record);
     Ok(publication(&account_id, &init, &record))
+}
+
+/// Schema 6 hashed the four original state fields. Only an exactly empty
+/// metadata default may replay that digest; edited metadata needs a new version.
+fn matches_legacy_state(expected: &Hash, state: &PrincipalState) -> bool {
+    #[derive(serde::Serialize)]
+    struct LegacyState<'a> {
+        principal_type: &'a PrincipalType,
+        controllers: &'a [HostedController],
+        version: u64,
+        updated_at: u64,
+    }
+    state.metadata.as_ref() == b"{}"
+        && *expected
+            == digest(
+                "dmsg/principal-state/v1",
+                &LegacyState {
+                    principal_type: &state.principal_type,
+                    controllers: &state.controllers,
+                    version: state.version,
+                    updated_at: state.updated_at,
+                },
+            )
 }
 
 #[ic_cdk::query]
@@ -220,4 +253,36 @@ fn http_request(request: HttpRequest<'static>) -> HttpResponse<'static> {
     http::serve(&request, &config().init.custom_domains, |id| {
         load(id).map(|record| (record.document, record.document_digest))
     })
+}
+
+#[cfg(test)]
+mod migration_tests {
+    use super::*;
+
+    #[test]
+    fn legacy_replay_requires_every_original_field_and_empty_metadata() {
+        let mut state = PrincipalState {
+            principal_type: PrincipalType::Person,
+            metadata: b"{}".to_vec().into(),
+            controllers: vec![],
+            version: 4,
+            updated_at: 123,
+        };
+        let cbor2::Value::Map(mut fields) =
+            cbor2::from_slice(&dmsg_protocol::canonical(&state)).unwrap()
+        else {
+            panic!("state map")
+        };
+        fields.retain(|(key, _)| key != &cbor2::Value::Text("metadata".into()));
+        let old = digest("dmsg/principal-state/v1", &cbor2::Value::Map(fields));
+        assert!(matches_legacy_state(&old, &state));
+        state.metadata = br#"{"name":"Changed"}"#.to_vec().into();
+        assert!(!matches_legacy_state(&old, &state));
+        state.metadata = b"{}".to_vec().into();
+        state.updated_at += 1;
+        assert!(!matches_legacy_state(&old, &state));
+        state.updated_at -= 1;
+        state.principal_type = PrincipalType::Team;
+        assert!(!matches_legacy_state(&old, &state));
+    }
 }

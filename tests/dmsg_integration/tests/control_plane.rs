@@ -45,6 +45,9 @@ mod commerce;
 #[path = "control_plane/agent.rs"]
 mod agent;
 
+#[path = "control_plane/principal_upgrade.rs"]
+mod principal_upgrade;
+
 #[path = "control_plane/user_homes.rs"]
 mod user_homes;
 
@@ -257,6 +260,22 @@ impl Fixture {
         max_escrows: u64,
         configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
     ) -> Self {
+        Self::with_principal_modules(
+            generous,
+            daily_orders,
+            max_escrows,
+            configure_membership,
+            [wasm("dmsg_user"), wasm("dmsg_directory")],
+        )
+    }
+
+    fn with_principal_modules(
+        generous: bool,
+        daily_orders: u32,
+        max_escrows: u64,
+        configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
+        [user_module, directory_module]: [Vec<u8>; 2],
+    ) -> Self {
         let ic = PocketIcBuilder::new()
             .with_nns_subnet()
             .with_application_subnet()
@@ -300,7 +319,7 @@ impl Fixture {
         };
         ic.install_canister(
             user,
-            wasm("dmsg_user"),
+            user_module,
             candid::encode_args((UserInit {
                 commerce_canister: commerce,
                 membership_canister: membership,
@@ -321,7 +340,7 @@ impl Fixture {
         );
         ic.install_canister(
             directory,
-            wasm("dmsg_directory"),
+            directory_module,
             candid::encode_args((dmsg_types::agent::DirectoryInit {
                 environment: Environment::Local,
                 issuer_namespace: NAMESPACE.into(),

@@ -536,6 +536,9 @@ stable_struct!(HostedControllerRepr => HostedController {
 });
 
 stable_struct!(PrincipalStateRepr => PrincipalState {
+    // User schema 14 predates display metadata. Decode it lazily without
+    // rewriting accounts, controller records or publication versions.
+    #[serde(default = "empty_principal_metadata")]
     5 => metadata: serde_bytes::ByteBuf,
     1 => principal_type: PrincipalType,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -543,6 +546,10 @@ stable_struct!(PrincipalStateRepr => PrincipalState {
     3 => version: u64,
     4 => updated_at: u64,
 });
+
+fn empty_principal_metadata() -> ByteBuf {
+    b"{}".to_vec().into()
+}
 
 stable_struct!(BeneficiaryRepr => Beneficiary {
     1 => product_id: String,
@@ -579,6 +586,37 @@ pub mod wallet;
 mod tests {
     use super::*;
     use crate::storage::{compact_bytes, compact_from_bytes};
+
+    #[test]
+    fn schema_14_principal_defaults_only_the_new_metadata() {
+        let state = PrincipalState {
+            principal_type: PrincipalType::Organization,
+            metadata: b"{}".to_vec().into(),
+            controllers: vec![HostedController {
+                generation: 3,
+                public_key: Hash::new([9; 32]),
+                name: Some("Existing controller".into()),
+                valid_from: 100,
+                delegation: DelegationAuthority::Unrestricted,
+                retired_at: Some(200),
+                invalid_from: Some(150),
+            }],
+            version: 9,
+            updated_at: 300,
+        };
+        let cbor2::Value::Map(mut fields) = cbor2::from_slice(&compact_bytes(&state)).unwrap()
+        else {
+            panic!("principal record")
+        };
+        fields.retain(|(key, _)| key != &5u64.into());
+        let old = cbor2::to_vec(&cbor2::Value::Map(fields)).unwrap();
+        let decoded: PrincipalState = compact_from_bytes(&old);
+        assert_eq!(decoded, state);
+        assert_eq!(
+            compact_from_bytes::<PrincipalState>(&compact_bytes(&decoded)),
+            state
+        );
+    }
 
     fn integer_fields(value: &cbor2::Value) {
         let cbor2::Value::Map(fields) = value else {

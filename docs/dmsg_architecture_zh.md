@@ -1,6 +1,6 @@
 # dMsg 技术架构
 
-> 2026-10-22：用户公开资料统一为 PrincipalDocument，经 dmsg_user（schema 15）更新并由 dmsg_directory（schema 7）发布；资料更新允许写链，头像二进制仍在云端。原用户 Profile 链路移除，Agent Profile 协议不变。旧容量样本不覆盖新增展示元数据；合同见 [agent_zh.md](protocol/agent_zh.md)。
+> 2026-10-22：用户公开资料统一为 PrincipalDocument，经 dmsg_user（schema 15）更新并由 dmsg_directory（schema 7）发布；资料更新允许写链，头像二进制仍在云端。原用户 Profile 链路移除，Agent Profile 协议不变。已有数据支持 user 14 → 15、directory 6 → 7 原地升级，不能重装；旧容量样本不覆盖新增展示元数据；合同见 [agent_zh.md](protocol/agent_zh.md)。
 
 [English](dmsg_architecture.md) | 简体中文
 
@@ -10,7 +10,7 @@
 
 1. **内容离链，权威上链。** 明文和内容密钥只在已授权的设备（dMsg 客户端）上。云端保存并投递密文，承担频道协作和收件箱；ICP 只保存需要公开验证、跨服务一致的权威状态：账户与设备、内容根承诺、名称权属、正式认证回执、资金终态和商业权益。
 2. **日常操作不写链。** 消息、文件、vault 编辑和频道控制不产生 ICP update、vetKD 派生或阈值签名；云端只按需查询账户的认证安全快照。
-3. **规模与升级解耦。** 业务记录和认证树都在 stable memory，heap 不保存业务状态，升级只重新发布根哈希，`post_upgrade` 的指令数不随记录数增长。
+3. **规模与升级解耦。** 业务记录和认证树都在 stable memory，heap 不保存业务状态，常规升级只重新发布根哈希，`post_upgrade` 的指令数不随记录数增长；directory 6 → 7 首次迁移例外，需要逐条为原文档建立新增认证树。
 4. **按 user home 横向扩展。** 账户 ID 内嵌分配它的 user home 指纹，各服务据此路由，新增 home 不会重映射已有账户。需要全局唯一性的服务（名称、PANDA 神经元占用、principal 文档域名）保持单实例。
 5. **治理统一，维护外置。** 管理方法都接受 controller 和初始化固定的 SNS governance，并提供同参数的 `validate_*` 预演；canister 不依赖定时器，清理、派发和价格发布由外部任务调用每次有界的入口完成。
 

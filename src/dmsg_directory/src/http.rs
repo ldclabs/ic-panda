@@ -147,12 +147,17 @@ pub(crate) fn publish() {
 
 /// Replace the certified response of one account's document.
 pub(crate) fn certify_document(id: &AccountId, document_digest: Hash, document: &[u8]) {
-    DOCUMENTS.with_borrow_mut(|tree| tree.set(id.to_vec(), leaf_hash(document)));
+    certify_document_body(id.as_slice(), document);
     certify(
         document_path(id),
         &document_response(vec![]),
         Some(document_digest),
     );
+}
+
+/// Populate the new query branch from an existing record's exact HTTP body.
+pub(crate) fn certify_document_body(key: &[u8], document: &[u8]) {
+    DOCUMENTS.with_borrow_mut(|tree| tree.set(key.to_vec(), leaf_hash(document)));
 }
 
 /// Replace the certified domain list.

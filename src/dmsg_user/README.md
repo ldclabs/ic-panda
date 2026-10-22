@@ -217,7 +217,9 @@ flowchart LR
 
 ### 存储
 
-稳定布局为 schema 15，principal 状态增加官方文档的展示成员。`post_upgrade` 遇到其他 schema 直接失败；本开发版本不迁移旧布局，需与 directory schema 7 配套重装。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
+稳定布局为 schema 15，支持从 schema 14 保留数据原地升级。认证绑定、设备、根承诺、恢复状态、执行记录、Xid 分配器和 `master_secret` 保持不变，不重建账户表或认证树；旧 principal 的展示元数据在读取时默认为 `{}`，controller、版本和发布时间保持不变。升级只推进配置中的 schema 并重发原认证根，后续写入自然保存新字段。schema 14/15 之外的布局明确拒绝。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
+
+发布时先将 directory 从 schema 6 升级到 7，再升级各 user home，均使用 `upgrade`，不能 `reinstall`；已有账户的解锁主密钥必须保留。目录兼容旧 home 的发布参数，支持逐个升级。升级测试命令为 `scripts/test-dmsg-principal-upgrade.sh`，使用提交 `70d67c86` 的原始 Wasm 写入数据后升级到当前代码。
 
 | Memory | 内容                                                                    |
 | -----: | ----------------------------------------------------------------------- |
@@ -382,7 +384,7 @@ flowchart LR
 
   `prune_executions` 一页最多 64 条执行记录，用掉 20B 指令后在账户边界提前结束；100 万账户时一页约 1.7 亿 cycles。它只删除保留期已过的终态结果，不改动未终结执行、设备序号和月账。
 
-- **升级**：要求 schema 不变。先停止 canister，让在途的跨 canister 调用完成（全部调用都是 bounded-wait，会在超时后返回），创建快照，再升级、启动并查看日志：
+- **升级**：支持 schema 14 → 15 及 schema 15 后续升级；先完成 directory 6 → 7 升级。停止 user canister，让在途的跨 canister 调用完成（全部调用都是 bounded-wait，会在超时后返回），创建快照，再以 `upgrade` 升级、启动并查看日志：
 
   ```sh
   icp canister stop dmsg_user -e ic

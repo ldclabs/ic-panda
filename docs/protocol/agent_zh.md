@@ -38,7 +38,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 
 ## Directory
 
-- `publish(account_id, PrincipalState)`：调用者必须是已登记的 user home；首次发布要求账户 ID 字节 4..9 等于该 home 的 Xid 分配器指纹（`SHA-256` 承诺 `("dmsg", environment, issuer_namespace, home)` 的前 5 字节），此后只接受已记录的 home。版本更旧返回当前发布，同版本同内容幂等，同版本异内容为 `IdempotencyConflict`，新版本的 `updated_at` 必须更大。
+- `publish(account_id, PrincipalPublicationInput)`：接收 principal 状态，`metadata` 为 optional bytes 以兼容逐个升级的旧 home；新 home 可直接发送完整 `PrincipalState`。调用者必须是已登记的 user home；首次发布要求账户 ID 字节 4..9 等于该 home 的 Xid 分配器指纹（`SHA-256` 承诺 `("dmsg", environment, issuer_namespace, home)` 的前 5 字节），此后只接受已记录的 home。版本更旧返回当前发布，同版本同内容幂等，同版本异内容为 `IdempotencyConflict`，新版本的 `updated_at` 必须更大。
 - 渲染：principal 文档为 JCS JSON，`type` 为小写类型名，`controllers` 与 `retired_controllers` 使用配置的 `controller_source`，`delegation_service` 为配置的服务源，`aliases` 含稳定的 HTML 地址，`links` 原样保留用户具名链接；发布前用 SDK 的 `validate_principal_document` 校验。
 - 配置：`principal_origin`、`controller_source` 与 `delegation_service` 是不含路径的 HTTPS origin，最多 512 字节，`profile_url_prefix` 最多 2 KiB；URL 不允许原始控制字节、双引号或反斜线，需要时使用 URL 百分号编码。这四项写入每个 principal ID 或文档，安装后不可修改。`custom_domains` 最多 8 个小写域名，必须包含 `principal_origin` 的主机名，由 `admin_set_custom_domains` 整体替换。
 - HTTP：`GET /<account_id>` 返回 200 文档（`content-type: application/json`，`access-control-allow-origin: *`，`cache-control: public, max-age=30`）；其余路径返回认证 404 JSON；`/.well-known/ic-domains` 返回自定义域列表。所有响应按 response-only 方式认证全部响应头，HTTP 网关可验证。不做重定向，因为最终 URL 必须等于文档 `id`。
@@ -74,7 +74,11 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 
 资料发布现在是一次账户变更加一次 directory 推送；普通消息、内容授权和文件读写仍不因此写链。`updated_at` 与内部版本单调递增，不推进设备 `security_epoch`。失败或回复未知时保留已提交版本，使用 `publish_principal` 重试；客户端不能把提交成功等同目录已发布。
 
-`principal_document(account_id)` 返回 `CertifiedBatch`，值是与 HTTP 完全相同的 JSON bytes，认证路径为 `[b"documents", account_id[12]]`。认证根为 `fork(labeled("documents", documents_root), labeled("http_expr", http_root))`；两个读取面分别保留另一个分支的 pruned hash。SDK 与原生客户端独立核对 ICP 根、canister、60 秒证书时效、账户路径及规范文档 ID。HTTP 响应头与认证表达式不变。user 稳定布局为 schema 15、directory 为 schema 7；不支持旧开发布局升级。
+`principal_document(account_id)` 返回 `CertifiedBatch`，值是与 HTTP 完全相同的 JSON bytes，认证路径为 `[b"documents", account_id[12]]`。认证根为 `fork(labeled("documents", documents_root), labeled("http_expr", http_root))`；两个读取面分别保留另一个分支的 pruned hash。SDK 与原生客户端独立核对 ICP 根、canister、60 秒证书时效、账户路径及规范文档 ID。HTTP 响应头与认证表达式不变。user 稳定布局为 schema 15、directory 为 schema 7。
+
+已有线上数据使用原地 `upgrade`：directory 支持 6 → 7，逐条保留原 JSON 并建立新增认证树；user 支持 14 → 15，保留账户、解锁主密钥与全部原稳定表，仅为旧 principal 缺失的展示元数据提供 `{}` 默认值。先升级 directory，再升级各 home；目录发布输入的 `metadata` 为 optional bytes，缺省时兼容旧 home。旧状态摘要的同版本重试只接受原字段完全一致且元数据为空，不把已有文档改写成新渲染结果。后续新版本发布使用当前规则。其他旧 schema 不在本次迁移范围内。
+
+`scripts/test-dmsg-principal-upgrade.sh` 从固定提交 `70d67c86` 构建未修改的旧 Wasm，检查 Candid 升级兼容，并在 PocketIC 验证账户/设备/绑定、内容根、解锁密钥、执行证据、controller、原正文和认证查询在升级后保留，及后续编辑、重试和再次升级。
 
 原 `dmsg/profile/v1` 用户资料命令、COSE Profile 对象与云端 CRUD 已移除。智能体自己的 `agent-profile/1.0` 保持独立。头像仍是明确公开的上传对象：提交后 URL 不变且持续可读，文档取消引用不会删除图片；普通对象回收拒绝已提交头像。桌面上传只返回 URL，发布文档才更换资料，避免覆盖编辑草稿。
 
