@@ -823,8 +823,8 @@ export default {
   'Unlock and create the encrypted migration file':
     'Desbloquear y crear el archivo de migración cifrado',
   'Stop reading': 'Detener la lectura',
-  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
-    'Solo el dispositivo de escritorio de esta vinculación puede descifrar el archivo, y la vinculación es válida diez minutos. Conserva los datos del navegador original y el servicio antiguo hasta verificar una recuperación independiente. Las claves que faltan, los permisos y las subidas sin terminar se enumeran aparte.',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for one hour. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'Solo el dispositivo de escritorio de esta vinculación puede descifrar el archivo, y la vinculación es válida una hora. Conserva los datos del navegador original y el servicio antiguo hasta verificar una recuperación independiente. Las claves que faltan, los permisos y las subidas sin terminar se enumeran aparte.',
   'First compare the pairing fingerprint and the target device ID on both sides.':
     'Primero compara la huella de la vinculación y el ID del dispositivo de destino en ambos lados.',
   'The pairing has expired. Create a new one in the desktop app.':

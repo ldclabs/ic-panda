@@ -20,6 +20,23 @@ import {
 const target = 'a'.repeat(64),
   origin = 'https://dmsg.net' as const
 describe('bounded legacy migration transfer', () => {
+  it('allows a slow export and import within one hour, but rejects expired or overlong pairings', async () => {
+    const now = 1760000000000
+    const session = await createPairing(origin, target, now)
+    expect(session.offer.expiresAt).toBe(now + 3_600_000)
+    const expected = { origin, target, fingerprint: pairingFingerprint(session.offer) }
+    const plain = new Uint8Array([1, 2, 3])
+    const encoded = await sealTransfer(plain, session.offer, expected, now + 45 * 60_000)
+    expect(
+      (await openTransfer(encoded, session, expected, now + 59 * 60_000)).plain
+    ).toEqual(plain)
+    await expect(
+      openTransfer(encoded, session, expected, now + 3_600_000)
+    ).rejects.toMatchObject({ code: 'permission' })
+    const tooLong = offerLink({ ...session.offer, expiresAt: now + 3_600_001 })
+    expect(() => readOfferLink(new URL(tooLong).hash, origin, now)).toThrow()
+  })
+
   it('binds both origins, fingerprint, expiry and recipient, authenticating every ordered chunk', async () => {
     const session = await createPairing(origin, target)
     const expected = { origin, target, fingerprint: pairingFingerprint(session.offer) }

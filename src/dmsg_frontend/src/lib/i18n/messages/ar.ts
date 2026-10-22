@@ -789,8 +789,8 @@ export default {
   'Unlock and create the encrypted migration file':
     'افتح القفل وأنشئ ملف الترحيل المشفّر',
   'Stop reading': 'أوقف القراءة',
-  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
-    'لا يفك تشفير الملف إلا جهاز سطح المكتب في هذا الإقران، والإقران صالح لعشر دقائق. احتفظ ببيانات المتصفح الأصلي وبالخدمة القديمة حتى يُتحقق من الاستعادة المستقلة. تُدرج المفاتيح المفقودة والصلاحيات وعمليات الرفع غير المكتملة على حدة.',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for one hour. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'لا يفك تشفير الملف إلا جهاز سطح المكتب في هذا الإقران، والإقران صالح لمدة ساعة واحدة. احتفظ ببيانات المتصفح الأصلي وبالخدمة القديمة حتى يُتحقق من الاستعادة المستقلة. تُدرج المفاتيح المفقودة والصلاحيات وعمليات الرفع غير المكتملة على حدة.',
   'First compare the pairing fingerprint and the target device ID on both sides.':
     'قارن أولًا بصمة الإقران ومعرّف الجهاز المستهدف على الجانبين.',
   'The pairing has expired. Create a new one in the desktop app.':

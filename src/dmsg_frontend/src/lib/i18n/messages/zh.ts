@@ -775,8 +775,8 @@ export default {
   'Your original unlock password': '原来的解锁口令',
   'Unlock and create the encrypted migration file': '解锁并生成加密迁移文件',
   'Stop reading': '停止读取',
-  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
-    '文件仅能由本次配对的桌面设备解密；配对有效期十分钟。保留原浏览器数据和旧服务，直到独立恢复验证完成。缺钥、权限与未完成上传会单独列出。',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for one hour. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    '文件仅能由本次配对的桌面设备解密；配对有效期一小时。保留原浏览器数据和旧服务，直到独立恢复验证完成。缺钥、权限与未完成上传会单独列出。',
   'First compare the pairing fingerprint and the target device ID on both sides.':
     '先在两端核对配对指纹与目标设备 ID。',
   'The pairing has expired. Create a new one in the desktop app.':

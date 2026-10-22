@@ -30,6 +30,23 @@ fn opened_archive(vectors: &serde_json::Value) -> Archive {
 }
 
 #[test]
+fn pairing_validity_is_one_hour() {
+    let now = 1_760_000_000_000;
+    let origin = "https://dmsg.net";
+    let target = "a1".repeat(32);
+    let (mut offer, _) = new_offer(origin, &target, now).unwrap();
+    assert_eq!(offer.expires_at, now + 3_600_000);
+    assert!(offer.check(origin, &target, now).is_ok());
+    assert!(offer.check(origin, &target, now + 59 * 60_000).is_ok());
+    assert_eq!(
+        offer.check(origin, &target, now + 3_600_000),
+        Err(Error::Expired)
+    );
+    offer.expires_at += 1;
+    assert_eq!(offer.check(origin, &target, now), Err(Error::Expired));
+}
+
+#[test]
 fn opens_the_page_offer_and_refuses_other_offers_and_frames() {
     let vectors = load("legacy-v1.json");
     let transfer = &vectors["transfer"];

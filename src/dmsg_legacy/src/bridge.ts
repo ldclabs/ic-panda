@@ -24,6 +24,7 @@ const offerSchema = z
   })
   .strict()
 export type PairingOffer = z.infer<typeof offerSchema>
+export const PAIR_MS = 60 * 60 * 1000
 export const TRANSFER_CHUNK = 192 * 1024
 export const pairingFingerprint = (offer: PairingOffer) =>
   digest(pack(offerSchema.parse(offer)))
@@ -38,7 +39,7 @@ export function parseOffer(
     offer.origin === origin &&
       offer.target === target &&
       offer.expiresAt > now &&
-      offer.expiresAt <= now + 10 * 60 * 1000,
+      offer.expiresAt <= now + PAIR_MS,
     'permission',
     'Pairing origin, device target or expiry mismatch'
   )
@@ -58,7 +59,7 @@ export async function createPairing(
       publicKey: hex(new Uint8Array(await suite.kem.serializePublicKey(keys.publicKey))),
       origin,
       target,
-      expiresAt: now + 10 * 60 * 1000
+      expiresAt: now + PAIR_MS
     },
     origin,
     target,

@@ -265,7 +265,7 @@
         </p>{/if}
       <p class="mb-0! text-[14px]">
         {$t(
-          'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.'
+          'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for one hour. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.'
         )}
       </p>
     </Step>

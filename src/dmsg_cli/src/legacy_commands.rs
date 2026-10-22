@@ -253,8 +253,8 @@ pub async fn legacy(remote: &Remote, json: bool, command: LegacyCommand) -> Resu
                     text("nonce"),
                 );
                 tr!(
-                    "Open on the old site, in the browser that holds the old data:\n  {link}\n\ndevice:      {device}\nfingerprint: {fingerprint}\nnonce:       {nonce}\nvalid for ten minutes. Then:\n  dmsg legacy import <file> --nonce {nonce} --fingerprint {fingerprint} --principal <old principal>",
-                    "在保存旧数据的浏览器中打开旧网站：\n  {link}\n\n设备：  {device}\n指纹：  {fingerprint}\nnonce： {nonce}\n十分钟内有效。然后运行：\n  dmsg legacy import <文件> --nonce {nonce} --fingerprint {fingerprint} --principal <旧 Principal>"
+                    "Open on the old site, in the browser that holds the old data:\n  {link}\n\ndevice:      {device}\nfingerprint: {fingerprint}\nnonce:       {nonce}\nvalid for one hour. Then:\n  dmsg legacy import <file> --nonce {nonce} --fingerprint {fingerprint} --principal <old principal>",
+                    "在保存旧数据的浏览器中打开旧网站：\n  {link}\n\n设备：  {device}\n指纹：  {fingerprint}\nnonce： {nonce}\n一小时内有效。然后运行：\n  dmsg legacy import <文件> --nonce {nonce} --fingerprint {fingerprint} --principal <旧 Principal>"
                 )
             });
             return Ok(());

@@ -803,8 +803,8 @@ const en = {
   'Unlock and create the encrypted migration file':
     'Unlock and create the encrypted migration file',
   'Stop reading': 'Stop reading',
-  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
-    'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for one hour. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for one hour. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.',
   'First compare the pairing fingerprint and the target device ID on both sides.':
     'First compare the pairing fingerprint and the target device ID on both sides.',
   'The pairing has expired. Create a new one in the desktop app.':

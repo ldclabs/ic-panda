@@ -30,7 +30,7 @@ pub const MAX_ARCHIVE: usize = 256 * 1024 * 1024;
 /// Plaintext bytes per transfer frame.
 pub const TRANSFER_CHUNK: usize = 192 * 1024;
 /// How long a new offer stays valid.
-pub const PAIR_MS: u64 = 10 * 60 * 1000;
+pub const PAIR_MS: u64 = 60 * 60 * 1000;
 /// The two origins of the old site.
 pub const ORIGINS: [&str; 2] = ["https://dmsg.net", "https://panda.fans"];
 

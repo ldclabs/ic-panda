@@ -824,8 +824,8 @@ export default {
   'Unlock and create the encrypted migration file':
     'Déverrouiller et créer le fichier de migration chiffré',
   'Stop reading': 'Arrêter la lecture',
-  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
-    'Seul l’appareil de bureau de cette association peut déchiffrer le fichier, et l’association est valable dix minutes. Conservez les données du navigateur d’origine et l’ancien service jusqu’à ce qu’une récupération indépendante soit vérifiée. Les clés manquantes, les autorisations et les téléversements inachevés sont listés à part.',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for one hour. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'Seul l’appareil de bureau de cette association peut déchiffrer le fichier, et l’association est valable une heure. Conservez les données du navigateur d’origine et l’ancien service jusqu’à ce qu’une récupération indépendante soit vérifiée. Les clés manquantes, les autorisations et les téléversements inachevés sont listés à part.',
   'First compare the pairing fingerprint and the target device ID on both sides.':
     'Comparez d’abord l’empreinte de l’association et l’ID de l’appareil cible des deux côtés.',
   'The pairing has expired. Create a new one in the desktop app.':

@@ -187,6 +187,44 @@ fn imports_one_archive_once_and_reads_it_offline() {
 }
 
 #[test]
+fn imports_after_a_forty_five_minute_export() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let vectors = load("legacy-v1.json");
+    let original = vector_pair(&client, &vectors);
+    let state = client.pair_state(&original.nonce).unwrap();
+    let archive = legacy::open_transfer(
+        &unb64url(&vectors["transfer"]["file_b64"]),
+        &original,
+        state.seed.as_ref().unwrap(),
+        state.opened_at.unwrap(),
+    )
+    .unwrap();
+    let (offer, seed) = legacy::new_offer(
+        "https://dmsg.net",
+        &hex::encode(*client.workspace.meta.device_id),
+        crate::now_ms() - 45 * 60_000,
+    )
+    .unwrap();
+    client
+        .save_pair(&PairState {
+            offer: offer.clone(),
+            seed: Some(ByteArray::new(*seed)),
+            claimed: None,
+            opened_at: None,
+            result: None,
+        })
+        .unwrap();
+    let file = dir.path("slow-export.dmsg-migration");
+    std::fs::write(&file, seal_transfer(&archive.plain, &offer)).unwrap();
+    let report = client
+        .legacy_import(&file, &offer.nonce, &offer.fingerprint(), "kw6ia-hibai-bq")
+        .unwrap();
+    assert_eq!(report["profile"]["name"], "Old Panda");
+    assert!(client.pair_state(&offer.nonce).unwrap().seed.is_none());
+}
+
+#[test]
 fn offers_are_bounded_and_cancelled() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);

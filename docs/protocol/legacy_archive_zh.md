@@ -26,7 +26,7 @@ COSE 设置仅在明确 NotFound 时读取历史 namespace-owned 路径；权限
 
 ## `dmsg-legacy-pair/2` 与 `dmsg-legacy-transfer/1`
 
-接收设备（桌面端 `dmsg legacy pair`）生成随机一次性接收种子、X25519 公钥和 nonce。配对 offer 为 `{version: "dmsg-legacy-pair/2", nonce, publicKey, origin, target, expiresAt}`：`origin` 为 `https://dmsg.net` 或 `https://panda.fans`，`target` 为接收设备 ID（64 位小写十六进制），有效期十分钟。设备用系统浏览器打开 `<origin>/legacy#pair=<base64url(CBOR(offer))>`；fragment 不到达服务器，页面读取后从地址栏移除。页面只接受规范 CBOR、与自身 origin 一致且未过期的 offer。双方显示 offer CBOR 的 SHA-256 指纹、目标设备与旧身份，由用户逐项核对。种子只以设备本地数据密钥加密保存在设备工作区，不同步。
+接收设备（桌面端 `dmsg legacy pair`）生成随机一次性接收种子、X25519 公钥和 nonce。配对 offer 为 `{version: "dmsg-legacy-pair/2", nonce, publicKey, origin, target, expiresAt}`：`origin` 为 `https://dmsg.net` 或 `https://panda.fans`，`target` 为接收设备 ID（64 位小写十六进制），有效期一小时。设备用系统浏览器打开 `<origin>/legacy#pair=<base64url(CBOR(offer))>`；fragment 不到达服务器，页面读取后从地址栏移除。页面只接受规范 CBOR、与自身 origin 一致且未过期的 offer。双方显示 offer CBOR 的 SHA-256 指纹、目标设备与旧身份，由用户逐项核对。种子只以设备本地数据密钥加密保存在设备工作区，不同步。
 
 交接文件使用 RFC 9180 X25519/HKDF-SHA256/AES-256-GCM HPKE。每块至多 192 KiB 明文；HPKE info/AAD 为 CBOR `[header,index,previous]`，header 含格式、完整 offer、随机 transfer ID、块数和总长度，previous 为前一帧编码的 SHA-256（首帧为空）。文件内的 offer 必须与设备保存的 offer 完全一致；缺帧、乱序、重复、替换、错误目标、错误 origin、错误指纹或首次接收时已过期均拒绝。
 

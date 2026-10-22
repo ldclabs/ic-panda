@@ -812,8 +812,8 @@ export default {
   'Unlock and create the encrypted migration file':
     'Разблокировать и создать зашифрованный файл переноса',
   'Stop reading': 'Остановить чтение',
-  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for ten minutes. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
-    'Расшифровать файл может только настольное устройство этой привязки; привязка действует десять минут. Сохраняйте данные исходного браузера и старый сервис, пока независимое восстановление не проверено. Отсутствующие ключи, права и незавершённые загрузки перечисляются отдельно.',
+  'Only the desktop device of this pairing can decrypt the file, and the pairing is valid for one hour. Keep the original browser data and the old service until independent recovery has been verified. Missing keys, permissions and unfinished uploads are listed separately.':
+    'Расшифровать файл может только настольное устройство этой привязки; привязка действует один час. Сохраняйте данные исходного браузера и старый сервис, пока независимое восстановление не проверено. Отсутствующие ключи, права и незавершённые загрузки перечисляются отдельно.',
   'First compare the pairing fingerprint and the target device ID on both sides.':
     'Сначала сверьте отпечаток привязки и ID целевого устройства на обеих сторонах.',
   'The pairing has expired. Create a new one in the desktop app.':
