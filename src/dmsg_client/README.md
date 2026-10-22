@@ -255,6 +255,16 @@ relay holds `v1`. Kept deliveries are sealed under the LDK in
 newest 10,000; endpoints, secrets and the agents' context stay on this
 device and never sync. Fetching needs the device unlocked.
 
+Retention records each endpoint's highest deleted local sequence in the same
+SQLite transaction as the deletion. Reads whose cursor precedes that position
+return `truncated: true`, including when every record was pruned. Empty pages
+advance past the lost position; paginated reads still deliver surviving older
+records before advancing. Explicit acknowledgements create no loss marker,
+and gaps in the global sequence caused by another endpoint are not losses.
+The markers survive reopening the workspace and are removed when an ended
+endpoint expires locally. The stdio server propagates truncation to push
+subscribers before delivering the corresponding page.
+
 A creation is sealed before it is sent and sent up to three times on a lost
 reply; the relay replays a command with the same request ID and payload, so
 at most one endpoint results. When every reply is lost the caller gets

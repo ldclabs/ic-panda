@@ -149,6 +149,11 @@ pub async fn events(remote: &Remote, json: bool, command: EventsCommand) -> Resu
             params["wait_ms"] = crate::mcp_events::MAX_WAIT_MS.into();
             loop {
                 let page = remote.call("mcp-events/poll", params.clone()).await?;
+                if page["truncated"] == true {
+                    eprintln!(
+                        "MCP event history was truncated by local retention; some deliveries cannot be replayed"
+                    );
+                }
                 for event in page["events"].as_array().into_iter().flatten() {
                     println!("{event}");
                 }

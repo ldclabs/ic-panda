@@ -7055,6 +7055,14 @@ fn desktop_mcp_events() {
     mcp.tool(
         "dmsg_events_bind",
         json!({
+            "endpoint_id": id, "server": format!("{}/mcp", upstream.origin),
+            "subscription_id": "sub_1", "refresh_before": "2099-01-01T08:00:00+08:00"
+        }),
+    )
+    .unwrap();
+    mcp.tool(
+        "dmsg_events_bind",
+        json!({
             "endpoint_id": id,
             "server": format!("{}/mcp", upstream.origin),
             "subscription_id": "sub_1",
@@ -7062,6 +7070,35 @@ fn desktop_mcp_events() {
         }),
     )
     .unwrap();
+
+    // Bad parameters are rejected rather than silently acknowledging zero or
+    // clearing the binding. The subsequent v1a event verifies it stayed bound.
+    for input in [
+        json!({}),
+        json!({"cursor": "42"}),
+        json!({"through": null}),
+        json!({"through": ""}),
+        json!({"through": 42}),
+        json!({"through": "9223372036854775808"}),
+        json!({"through": "42", "endpoint_id": false}),
+    ] {
+        assert_eq!(
+            mcp.tool("dmsg_events_ack", input).unwrap_err()["code"],
+            "INVALID_INPUT"
+        );
+    }
+    for input in [
+        json!({"endpoint_id": id, "refreshBefore": 42}),
+        json!({"endpoint_id": id, "server": 42}),
+        json!({"endpoint_id": id, "server": "anda-local-id"}),
+        json!({"endpoint_id": id, "subscription_id": false}),
+        json!({"endpoint_id": id, "refresh_before": "2026-02-30T00:00:00Z"}),
+    ] {
+        assert_eq!(
+            mcp.tool("dmsg_events_bind", input).unwrap_err()["code"],
+            "INVALID_INPUT"
+        );
+    }
 
     // Push: the stream of this MCP session's endpoints starts with
     // `active`, then the verification, the first event, end-to-end signed,

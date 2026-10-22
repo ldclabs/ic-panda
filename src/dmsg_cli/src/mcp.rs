@@ -584,15 +584,16 @@ fn event_type() -> Value {
 }
 
 /// The tool input of an events request: its arguments and cursor.
-fn next_input(params: &Value, cursor: &Value, wait_ms: u64, max: u64) -> Value {
+fn next_input(params: &Value, cursor: &Value, wait_ms: u64, max: u64) -> Result<Value, Value> {
     let mut input = match &params["arguments"] {
         Value::Object(arguments) => Value::Object(arguments.clone()),
-        _ => json!({}),
+        Value::Null => json!({}),
+        _ => return Err(json!({"code": -32602, "message": "arguments must be an object"})),
     };
     input["cursor"] = cursor.clone();
     input["wait_ms"] = wait_ms.into();
     input["max"] = max.into();
-    input
+    Ok(input)
 }
 
 /// A tool refusal as an MCP Events error.
@@ -615,11 +616,20 @@ async fn poll(session: &Session, params: &Value) -> Result<Value, Value> {
             json!({"code": NOT_FOUND, "message": "unknown event", "data": {"kind": "event"}}),
         );
     }
-    let max = params["maxEvents"].as_u64().unwrap_or(100).clamp(1, 100);
+    let max = match &params["maxEvents"] {
+        Value::Null => 100,
+        value => value
+            .as_u64()
+            .filter(|max| *max > 0)
+            .ok_or_else(
+                || json!({"code": -32602, "message": "maxEvents must be a positive integer"}),
+            )?
+            .min(100),
+    };
     let outcome = call(
         session,
         "dmsg_events_next",
-        next_input(params, &params["cursor"], 0, max),
+        next_input(params, &params["cursor"], 0, max)?,
     )
     .await
     .map_err(|failure| internal(&failure))?;
@@ -650,15 +660,26 @@ async fn stream(session: &Session, message: &Value) {
         return;
     }
     let mut cursor = params["cursor"].clone();
-    send(
-        "notifications/events/active",
-        json!({"cursor": cursor, "truncated": false}),
-    );
+    let mut active = false;
     loop {
-        let input = next_input(params, &cursor, STREAM_WAIT_MS, 100);
+        // First inspect local history without waiting, so active can report a
+        // retention gap accurately before any event is delivered.
+        let input = match next_input(
+            params,
+            &cursor,
+            if active { STREAM_WAIT_MS } else { 0 },
+            100,
+        ) {
+            Ok(input) => input,
+            Err(error) => {
+                let _ = session.out.send(reply(id, Err(error)));
+                return;
+            }
+        };
         let outcome = match call(session, "dmsg_events_next", input).await {
             Ok(outcome) => outcome,
             Err(failure) => {
+                active = false;
                 send(
                     "notifications/events/error",
                     json!({"error": internal(&failure)}),
@@ -668,6 +689,7 @@ async fn stream(session: &Session, message: &Value) {
             }
         };
         if let Some(error) = outcome.get("error") {
+            active = false;
             if matches!(
                 error["code"].as_str(),
                 Some("FORBIDDEN" | "NOT_FOUND" | "INVALID_INPUT")
@@ -686,15 +708,32 @@ async fn stream(session: &Session, message: &Value) {
             tokio::time::sleep(Duration::from_millis(STREAM_WAIT_MS)).await;
             continue;
         }
-        let page = &outcome["result"];
-        let events = page["events"].as_array().cloned().unwrap_or_default();
-        for event in &events {
-            send("notifications/events/event", event.clone());
-        }
-        cursor = page["cursor"].clone();
-        if events.is_empty() {
-            send("notifications/events/heartbeat", json!({"cursor": cursor}));
-        }
+        publish_page(&outcome["result"], &mut cursor, &mut active, &send);
+    }
+}
+
+/// Report loss before delivering a page. Active carries the previous cursor:
+/// advancing it to the page end here could lose events on a client crash.
+fn publish_page(
+    page: &Value,
+    cursor: &mut Value,
+    active: &mut bool,
+    mut send: impl FnMut(&str, Value),
+) {
+    if !*active || page["truncated"] == true {
+        send(
+            "notifications/events/active",
+            json!({"cursor": cursor, "truncated": page["truncated"] == true}),
+        );
+        *active = true;
+    }
+    let events = page["events"].as_array().cloned().unwrap_or_default();
+    for event in &events {
+        send("notifications/events/event", event.clone());
+    }
+    *cursor = page["cursor"].clone();
+    if events.is_empty() {
+        send("notifications/events/heartbeat", json!({"cursor": cursor}));
     }
 }
 
@@ -747,6 +786,18 @@ mod tests {
             out,
             watch: Mutex::new(Watch::default()),
         });
+        for max in [json!(0), json!(-1), json!("100"), json!([])] {
+            let error = poll(&session, &json!({"name": EVENT_NAME, "maxEvents": max}))
+                .await
+                .unwrap_err();
+            assert_eq!(error["code"], -32602);
+        }
+        // A valid larger page request is capped, not rejected: keep the
+        // previous public behavior while validating the parameter's type.
+        let error = poll(&session, &json!({"name": EVENT_NAME, "maxEvents": 500}))
+            .await
+            .unwrap_err();
+        assert_eq!(error["data"]["code"], "DAEMON_STOPPED");
         let listed = respond(&session, "tools/list", &json!({})).await.unwrap();
         assert_eq!(listed["tools"], json!(dmsg_agent::tools::tool_list()));
         let called = respond(
@@ -777,5 +828,72 @@ mod tests {
         );
         assert_eq!(digest(&json!({"a": 1})), digest(&json!({"a": 1})));
         assert_ne!(digest(&json!({"a": 1})), digest(&json!({"a": 2})));
+    }
+
+    #[test]
+    fn stream_pages_report_loss_before_advancing_the_cursor() {
+        let mut cursor = json!("2");
+        let mut active = false;
+        let mut notices = Vec::new();
+        publish_page(
+            &json!({"events": [{"eventId": "e7", "cursor": "7"}], "cursor": "7", "truncated": true}),
+            &mut cursor,
+            &mut active,
+            |method, params| notices.push((method.to_string(), params)),
+        );
+        assert_eq!(
+            notices[0],
+            (
+                "notifications/events/active".into(),
+                json!({"cursor": "2", "truncated": true})
+            )
+        );
+        assert_eq!(notices[1].0, "notifications/events/event");
+        assert_eq!(cursor, "7");
+        notices.clear();
+        // Retention can also remove all rows while a stream is already active.
+        publish_page(
+            &json!({"events": [], "cursor": "9", "truncated": true}),
+            &mut cursor,
+            &mut active,
+            |method, params| notices.push((method.to_string(), params)),
+        );
+        assert_eq!(notices[0].1, json!({"cursor": "7", "truncated": true}));
+        assert_eq!(
+            notices[1],
+            (
+                "notifications/events/heartbeat".into(),
+                json!({"cursor": "9"})
+            )
+        );
+        notices.clear();
+        publish_page(
+            &json!({"events": [], "cursor": "9", "truncated": false}),
+            &mut cursor,
+            &mut active,
+            |method, params| notices.push((method.to_string(), params)),
+        );
+        assert_eq!(notices.len(), 1);
+        assert_eq!(notices[0].0, "notifications/events/heartbeat");
+        // A successful read after a transient error marks the stream active again.
+        active = false;
+        notices.clear();
+        publish_page(
+            &json!({"events": [], "cursor": "9", "truncated": false}),
+            &mut cursor,
+            &mut active,
+            |method, params| notices.push((method.to_string(), params)),
+        );
+        assert_eq!(notices[0].0, "notifications/events/active");
+    }
+
+    #[test]
+    fn invalid_event_arguments_do_not_silently_select_the_default_session() {
+        for args in [json!([]), json!(true), json!("endpoint")] {
+            assert_eq!(
+                next_input(&json!({"arguments": args}), &Value::Null, 0, 100).unwrap_err()["code"],
+                -32602
+            );
+        }
     }
 }

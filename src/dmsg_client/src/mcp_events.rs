@@ -808,15 +808,21 @@ impl Client {
 
     /// Forget old records, and ended endpoints with their last ones.
     fn prune_events(&self) -> Result<()> {
-        self.workspace
-            .store
-            .prune_mcp_events(now_ms().saturating_sub(RETAIN_MS), KEEP)?;
+        let cutoff = now_ms().saturating_sub(RETAIN_MS);
+        self.workspace.store.prune_mcp_events(cutoff, KEEP)?;
         let mut endpoints = self.endpoints()?;
         let before = endpoints.len();
-        let cutoff = now_ms().saturating_sub(RETAIN_MS);
+        let expired: Vec<_> = endpoints
+            .iter()
+            .filter(|e| e.ended_at.is_some_and(|at| at <= cutoff))
+            .map(|e| e.endpoint_id.clone())
+            .collect();
         endpoints.retain(|e| e.ended_at.is_none_or(|at| at > cutoff));
         if endpoints.len() != before {
-            self.save_endpoints(&endpoints)?;
+            self.workspace.store.atomic(|store| {
+                self.save_endpoints(&endpoints)?;
+                store.forget_mcp_event_loss(&expired)
+            })?;
         }
         Ok(())
     }
@@ -956,6 +962,7 @@ impl Client {
     /// endpoint that is not the caller's.
     pub fn mcp_events_read(&self, filter: &Filter, after: u64, limit: usize) -> Result<Json> {
         let ids = self.selected(filter)?;
+        let lost_through = self.workspace.store.mcp_event_loss(&ids)?;
         let endpoints = self.endpoints()?;
         let limit = limit.clamp(1, 100);
         let mut rows = self.workspace.store.mcp_events(&ids, after, limit + 1)?;
@@ -996,12 +1003,14 @@ impl Client {
                 "cursor": row.seq.to_string(),
             }));
         }
-        let cursor = rows.last().map_or(after, |r| r.seq);
+        // An empty truncated page must advance once, even when every row was
+        // pruned. With rows, never jump past undelivered records on another page.
+        let cursor = rows.last().map_or(after.max(lost_through), |r| r.seq);
         Ok(json!({
             "events": events,
             "cursor": cursor.to_string(),
             "hasMore": more,
-            "truncated": false,
+            "truncated": after < lost_through,
         }))
     }
 

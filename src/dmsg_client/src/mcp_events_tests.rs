@@ -215,6 +215,132 @@ fn sealed_record(client: &Client, id: &str, seq: u64, webhook: &str, body: &str)
 }
 
 #[test]
+fn local_retention_reports_loss_only_for_selected_endpoints() {
+    let dir = TempDir::new();
+    let client = unlocked(&dir.0, false, None);
+    client
+        .save_endpoints(&[
+            endpoint("a", Some("did:agent:a"), "a", None),
+            endpoint("b", Some("did:agent:b"), "b", None),
+        ])
+        .unwrap();
+    for (id, ep, at) in [
+        ("1", "a", 1),
+        ("2", "b", 100),
+        ("3", "a", 3),
+        ("4", "a", 100),
+    ] {
+        client
+            .store_record(
+                ep,
+                id,
+                &Record {
+                    kind: "event".into(),
+                    received_at: at,
+                    subscription_id: None,
+                    upstream: json!({"eventId": id}),
+                    verified: None,
+                    detail: Json::Null,
+                },
+            )
+            .unwrap();
+    }
+    client.workspace.store.prune_mcp_events(10, 100).unwrap();
+    let a = Filter {
+        agent: Some("did:agent:a".into()),
+        ..Default::default()
+    };
+    let b = Filter {
+        agent: Some("did:agent:b".into()),
+        ..Default::default()
+    };
+    let page = client.mcp_events_read(&a, 0, 100).unwrap();
+    assert_eq!(page["truncated"], true);
+    assert_eq!(page["events"][0]["eventId"], "a:4");
+    assert_eq!(page["cursor"], "4");
+    assert_eq!(
+        client.mcp_events_read(&a, 4, 100).unwrap()["truncated"],
+        false
+    );
+    assert_eq!(
+        client.mcp_events_read(&b, 0, 100).unwrap()["truncated"],
+        false
+    );
+    assert_eq!(
+        client.mcp_events_read(
+            &Filter {
+                agent: Some("did:agent:b".into()),
+                endpoint_ids: vec!["a".into()],
+                ..Default::default()
+            },
+            0,
+            100
+        ),
+        Err(Error::NotFound)
+    );
+    // A watermark must not skip an earlier surviving record on another endpoint.
+    let page = client.mcp_events_read(&Filter::default(), 0, 1).unwrap();
+    assert_eq!(page["events"][0]["eventId"], "b:2");
+    assert_eq!(page["cursor"], "2");
+    assert_eq!(page["hasMore"], true);
+    let next = client.mcp_events_read(&Filter::default(), 2, 1).unwrap();
+    assert_eq!(next["events"][0]["eventId"], "a:4");
+    // Explicit acknowledgement creates no loss on the unaffected endpoint.
+    client.mcp_events_ack(&b, 2).unwrap();
+    assert_eq!(
+        client.mcp_events_read(&b, 0, 100).unwrap()["truncated"],
+        false
+    );
+}
+
+#[test]
+fn an_empty_truncated_page_advances_once_and_nonprefix_loss_keeps_survivors() {
+    let dir = TempDir::new();
+    let client = unlocked(&dir.0, false, None);
+    client
+        .save_endpoints(&[endpoint("a", None, "a", None)])
+        .unwrap();
+    for (id, at) in [("1", 100), ("2", 100), ("3", 1), ("4", 1)] {
+        client
+            .store_record(
+                "a",
+                id,
+                &Record {
+                    kind: "event".into(),
+                    received_at: at,
+                    subscription_id: None,
+                    upstream: json!({"eventId": id}),
+                    verified: None,
+                    detail: Json::Null,
+                },
+            )
+            .unwrap();
+    }
+    client.workspace.store.prune_mcp_events(10, 2).unwrap();
+    for after in 0..2 {
+        let page = client
+            .mcp_events_read(&Filter::default(), after, 1)
+            .unwrap();
+        assert_eq!(page["events"][0]["eventId"], format!("a:{}", after + 1));
+        assert_eq!(page["cursor"], (after + 1).to_string());
+        assert_eq!(page["truncated"], true);
+    }
+    let empty = client.mcp_events_read(&Filter::default(), 2, 100).unwrap();
+    assert_eq!(empty["events"], json!([]));
+    assert_eq!(empty["truncated"], true);
+    assert_eq!(empty["cursor"], "4");
+    let resumed = client.mcp_events_read(&Filter::default(), 4, 100).unwrap();
+    assert_eq!(resumed["cursor"], "4");
+    assert_eq!(resumed["truncated"], false);
+    // A fully pruned inbox still has its durable loss position.
+    client.workspace.store.prune_mcp_events(101, 0).unwrap();
+    let empty = client.mcp_events_read(&Filter::default(), 0, 100).unwrap();
+    assert_eq!(empty["events"], json!([]));
+    assert_eq!(empty["cursor"], "4");
+    assert_eq!(empty["truncated"], true);
+}
+
+#[test]
 fn stores_reads_and_acknowledges_deliveries_per_caller() {
     let dir = TempDir::new();
     let client = unlocked(&dir.0, false, None);

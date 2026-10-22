@@ -259,9 +259,9 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 34] = [
     ),
     (
         "dmsg_events_bind",
-        "Register the upstream subscription behind an endpoint (server URL, subscription_id, refreshBefore) and bind the endpoint to this MCP session; session replaces context.session. dMsg reminds with a refresh_due delivery and never renews. Needs events.endpoint.",
+        "Register the upstream subscription behind an endpoint (server URL, subscription_id, refresh_before in Unix milliseconds or RFC 3339) and bind the endpoint to this MCP session; session replaces context.session. dMsg reminds with a refresh_due delivery and never renews. Needs events.endpoint.",
         false,
-        r#"{"type":"object","required":["endpoint_id"],"properties":{"endpoint_id":{"type":"string"},"server":{"type":"string"},"subscription_id":{"type":"string"},"refresh_before":{"type":["integer","string"]},"session":{"type":"string"}}}"#,
+        r#"{"type":"object","additionalProperties":false,"required":["endpoint_id"],"properties":{"endpoint_id":{"type":"string"},"server":{"type":["string","null"]},"subscription_id":{"type":["string","null"]},"refresh_before":{"type":["integer","string","null"],"minimum":0},"session":{"type":["string","null"]}}}"#,
     ),
     (
         "dmsg_events_next",
@@ -274,10 +274,10 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 34] = [
     ),
     (
         "dmsg_events_ack",
-        "Let dMsg forget the selected deliveries up to the cursor through. Needs events.endpoint.",
+        "Let dMsg forget the selected deliveries up to the required decimal cursor through (0 through 9223372036854775807); missing or invalid values are refused. Needs events.endpoint.",
         false,
         concat!(
-            r#"{"type":"object","required":["through"],"properties":{"through":{"type":"string"},"#,
+            r#"{"type":"object","additionalProperties":false,"required":["through"],"properties":{"through":{"type":"string","pattern":"^[0-9]+$"},"#,
             r#""endpoint_id":{"type":"string"},"endpoint_ids":{"type":"array","items":{"type":"string"},"maxItems":16},"session":{"type":"string"}}}"#
         ),
     ),
@@ -426,6 +426,47 @@ mod tests {
         ] {
             assert_eq!(standard_capability(name), Some(capability));
         }
+    }
+
+    #[test]
+    fn mcp_event_mutation_schemas_match_the_daemon_contract() {
+        let tools = tool_list();
+        let bind = tools
+            .iter()
+            .find(|tool| tool["name"] == "dmsg_events_bind")
+            .unwrap();
+        assert!(
+            bind["description"]
+                .as_str()
+                .unwrap()
+                .contains("refresh_before")
+        );
+        assert!(
+            !bind["description"]
+                .as_str()
+                .unwrap()
+                .contains("refreshBefore")
+        );
+        assert_eq!(bind["inputSchema"]["additionalProperties"], false);
+        assert!(
+            bind["inputSchema"]["properties"]
+                .get("refreshBefore")
+                .is_none()
+        );
+        assert_eq!(
+            bind["inputSchema"]["properties"]["refresh_before"]["type"],
+            serde_json::json!(["integer", "string", "null"])
+        );
+        let ack = tools
+            .iter()
+            .find(|tool| tool["name"] == "dmsg_events_ack")
+            .unwrap();
+        assert_eq!(
+            ack["inputSchema"]["required"],
+            serde_json::json!(["through"])
+        );
+        assert_eq!(ack["inputSchema"]["additionalProperties"], false);
+        assert!(ack["inputSchema"]["properties"].get("cursor").is_none());
     }
 
     #[test]

@@ -1,4 +1,4 @@
-//! MCP Events (plan §6.11): the daemon fetches what the relay holds for
+//! MCP Events: the daemon fetches what the relay holds for
 //! this device's callback endpoints, on the relay's `mcp-event` hint and
 //! every minute while unlocked, and hands it to agents as the
 //! `dmsg.relay.delivery` events of `dmsg mcp` or through the
@@ -14,6 +14,7 @@ use dmsg_client::agents::AgentEntry;
 use dmsg_client::mcp_events::{Filter, jwks_keys};
 use dmsg_client::now_ms;
 use dmsg_types::{Error, Hash, Result};
+use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -140,11 +141,116 @@ fn cursor(value: &Value) -> Result<u64> {
         Value::Null => Ok(0),
         Value::Number(n) => n
             .as_u64()
+            .filter(|n| *n <= i64::MAX as u64)
             .ok_or_else(|| Error::InvalidInput("cursor".into())),
         Value::String(s) if s.is_empty() => Ok(0),
-        Value::String(s) => s.parse().map_err(|_| Error::InvalidInput("cursor".into())),
+        Value::String(s) => sequence(s, "cursor"),
         _ => Err(Error::InvalidInput("cursor".into())),
     }
+}
+
+/// SQLite sequences are signed integers. A required acknowledgement never
+/// inherits the optional read cursor's missing/empty => start behavior.
+fn sequence(text: &str, field: &str) -> Result<u64> {
+    if text.is_empty() || !text.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(Error::InvalidInput(field.into()));
+    }
+    text.parse::<u64>()
+        .ok()
+        .filter(|n| *n <= i64::MAX as u64)
+        .ok_or_else(|| Error::InvalidInput(field.into()))
+}
+
+fn input<T: DeserializeOwned>(value: &Value) -> Result<T> {
+    serde_json::from_value(value.clone()).map_err(|err| Error::InvalidInput(err.to_string()))
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BindEndpoint {
+    endpoint_id: String,
+    server: Option<String>,
+    subscription_id: Option<String>,
+    #[serde(default, deserialize_with = "read_instant")]
+    refresh_before: Option<u64>,
+    session: Option<String>,
+}
+
+fn read_instant<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<u64>, D::Error> {
+    instant(&Value::deserialize(deserializer)?).map_err(serde::de::Error::custom)
+}
+
+#[derive(Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Selection {
+    endpoint_id: Option<String>,
+    endpoint_ids: Option<Vec<String>>,
+    session: Option<String>,
+}
+
+impl Selection {
+    fn filter(self, agent: Option<&str>, mcp_session: Option<&str>) -> Result<Filter> {
+        let mut endpoint_ids = self.endpoint_ids.unwrap_or_default();
+        endpoint_ids.extend(self.endpoint_id);
+        if endpoint_ids.len() > 16 || endpoint_ids.iter().any(|id| id.trim().is_empty()) {
+            return Err(Error::InvalidInput("endpoint_ids".into()));
+        }
+        if self
+            .session
+            .as_ref()
+            .is_some_and(|session| session.trim().is_empty())
+        {
+            return Err(Error::InvalidInput("session".into()));
+        }
+        Ok(Filter {
+            agent: agent.map(str::to_string),
+            endpoint_ids,
+            session: self.session,
+            mcp_session: mcp_session.map(str::to_string),
+        })
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AckEvents {
+    through: String,
+    endpoint_id: Option<String>,
+    endpoint_ids: Option<Vec<String>>,
+    session: Option<String>,
+}
+
+fn acknowledgement(
+    value: &Value,
+    agent: Option<&str>,
+    mcp_session: Option<&str>,
+) -> Result<(Filter, u64)> {
+    let args: AckEvents = input(value)?;
+    let through = sequence(&args.through, "through")?;
+    let filter = Selection {
+        endpoint_id: args.endpoint_id,
+        endpoint_ids: args.endpoint_ids,
+        session: args.session,
+    }
+    .filter(agent, mcp_session)?;
+    Ok((filter, through))
+}
+
+fn binding(value: &Value) -> Result<BindEndpoint> {
+    let args: BindEndpoint = input(value)?;
+    for (field, value) in [
+        ("endpoint_id", Some(args.endpoint_id.as_str())),
+        ("server", args.server.as_deref()),
+        ("subscription_id", args.subscription_id.as_deref()),
+        ("session", args.session.as_deref()),
+    ] {
+        if value.is_some_and(|value| value.trim().is_empty()) {
+            return Err(Error::InvalidInput(field.into()));
+        }
+    }
+    Ok(args)
 }
 
 /// Unix milliseconds, or an RFC 3339 UTC time as MCP servers give
@@ -159,62 +265,22 @@ fn instant(value: &Value) -> Result<Option<u64>> {
     }
 }
 
-/// `YYYY-MM-DDTHH:MM:SS[.fff]Z` as Unix milliseconds.
+/// RFC 3339 timestamps, including numeric offsets; reject pre-epoch values.
 fn parse_rfc3339(text: &str) -> Option<u64> {
-    let text = text.strip_suffix('Z')?;
-    let (date, time) = text.split_once('T')?;
-    let mut date = date.splitn(3, '-').map(|p| p.parse::<i64>().ok());
-    let (year, month, day) = (date.next()??, date.next()??, date.next()??);
-    let (time, fraction) = time.split_once('.').unwrap_or((time, ""));
-    let mut time = time.splitn(3, ':').map(|p| p.parse::<i64>().ok());
-    let (hour, minute, second) = (time.next()??, time.next()??, time.next()??);
-    if !(1..=12).contains(&month)
-        || !(1..=31).contains(&day)
-        || hour > 23
-        || minute > 59
-        || second > 60
-    {
-        return None;
-    }
-    let millis = match fraction.len() {
-        0 => 0,
-        _ => {
-            fraction.get(..3.min(fraction.len()))?.parse::<i64>().ok()?
-                * 10i64.pow(3 - 3.min(fraction.len()) as u32)
-        }
-    };
-    // Days since 1970-01-01 from the civil date (Howard Hinnant's algorithm).
-    let y = if month <= 2 { year - 1 } else { year };
-    let era = y.div_euclid(400);
-    let yoe = y.rem_euclid(400);
-    let mp = (month + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + day - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    let days = era * 146_097 + doe - 719_468;
-    let ms = ((days * 86_400 + hour * 3600 + minute * 60 + second) * 1000) + millis;
-    u64::try_from(ms).ok()
+    chrono::DateTime::parse_from_rfc3339(text)
+        .ok()
+        .and_then(|time| u64::try_from(time.timestamp_millis()).ok())
 }
 
 /// The endpoints an input names: `endpoint_id`, `endpoint_ids` or
 /// `session`; without them, those of the caller's MCP session.
-fn filter(agent: Option<&str>, mcp_session: Option<&str>, input: &Value) -> Result<Filter> {
-    let mut endpoint_ids: Vec<String> = match &input["endpoint_ids"] {
-        Value::Null => Vec::new(),
-        ids => serde_json::from_value(ids.clone())
-            .map_err(|_| Error::InvalidInput("endpoint_ids".into()))?,
-    };
-    if let Some(id) = input["endpoint_id"].as_str() {
-        endpoint_ids.push(id.to_string());
-    }
-    if endpoint_ids.len() > 16 {
-        return Err(Error::InvalidInput("endpoint_ids".into()));
-    }
-    Ok(Filter {
-        agent: agent.map(str::to_string),
-        endpoint_ids,
-        session: input["session"].as_str().map(str::to_string),
-        mcp_session: mcp_session.map(str::to_string),
-    })
+fn filter(agent: Option<&str>, mcp_session: Option<&str>, value: &Value) -> Result<Filter> {
+    let selection: Selection = input(&json!({
+        "endpoint_id": value["endpoint_id"],
+        "endpoint_ids": value["endpoint_ids"],
+        "session": value["session"],
+    }))?;
+    selection.filter(agent, mcp_session)
 }
 
 fn context(input: &Value) -> Result<BTreeMap<String, String>> {
@@ -302,7 +368,11 @@ impl Daemon {
                 .await
                 .mcp_events_read(filter, after, limit)?;
             let empty = page["events"].as_array().is_none_or(Vec::is_empty);
-            if !empty || tokio::time::Instant::now() >= deadline || self.stopping() {
+            if !empty
+                || page["truncated"] == true
+                || tokio::time::Instant::now() >= deadline
+                || self.stopping()
+            {
                 page["nextPollMs"] = if page["hasMore"] == true { 0 } else { 5_000 }.into();
                 return Ok(page);
             }
@@ -345,18 +415,19 @@ impl Daemon {
                 return dmsg_client::mcp_events::endpoint_list(&self.hold(), None).await;
             }
             "mcp-events/bind" => {
+                let args = binding(params)?;
                 return self.client().lock().await.mcp_endpoint_bind(
                     None,
                     None,
-                    &text(params, "endpoint_id")?,
-                    params["server"].as_str().map(str::to_string),
-                    params["subscription_id"].as_str().map(str::to_string),
-                    instant(&params["refresh_before"])?,
-                    params["session"].as_str().map(str::to_string),
+                    &args.endpoint_id,
+                    args.server,
+                    args.subscription_id,
+                    args.refresh_before,
+                    args.session,
                 );
             }
             "mcp-events/ack" => {
-                let (filter, through) = (filter(None, None, params)?, cursor(&params["through"])?);
+                let (filter, through) = acknowledgement(params, None, None)?;
                 return self.client().lock().await.mcp_events_ack(&filter, through);
             }
             _ => {}
@@ -419,21 +490,19 @@ impl Daemon {
                 return dmsg_client::mcp_events::endpoint_list(&self.hold(), Some(did)).await;
             }
             "dmsg_events_bind" => {
+                let args = binding(input)?;
                 return self.client().lock().await.mcp_endpoint_bind(
                     Some(did),
                     mcp_session,
-                    &text(input, "endpoint_id")?,
-                    input["server"].as_str().map(str::to_string),
-                    input["subscription_id"].as_str().map(str::to_string),
-                    instant(&input["refresh_before"])?,
-                    input["session"].as_str().map(str::to_string),
+                    &args.endpoint_id,
+                    args.server,
+                    args.subscription_id,
+                    args.refresh_before,
+                    args.session,
                 );
             }
             "dmsg_events_ack" => {
-                let (filter, through) = (
-                    filter(Some(did), mcp_session, input)?,
-                    cursor(&input["through"])?,
-                );
+                let (filter, through) = acknowledgement(input, Some(did), mcp_session)?;
                 return self.client().lock().await.mcp_events_ack(&filter, through);
             }
             _ => {}
@@ -472,6 +541,116 @@ mod tests {
     use super::*;
 
     #[test]
+    fn acknowledgements_require_a_valid_explicit_position_and_selection() {
+        for args in [
+            json!({}),
+            json!({"through": null}),
+            json!({"through": ""}),
+            json!({"through": 42}),
+            json!({"through": true}),
+            json!({"through": "-1"}),
+            json!({"through": " 42"}),
+            json!({"through": "+42"}),
+            json!({"through": "42x"}),
+            json!({"through": "9223372036854775808"}),
+            json!({"cursor": "42"}),
+            json!({"through": "42", "cursor": "42"}),
+            json!({"through": "42", "endpoint_id": 7}),
+            json!({"through": "42", "endpoint_ids": [1]}),
+            json!({"through": "42", "session": false}),
+        ] {
+            assert!(
+                matches!(
+                    acknowledgement(&args, Some("agent"), Some("mcp")),
+                    Err(Error::InvalidInput(_))
+                ),
+                "{args}"
+            );
+        }
+        for position in ["0", "42", "9223372036854775807"] {
+            let (filter, through) = acknowledgement(
+                &json!({"through": position, "endpoint_id": "ep"}),
+                Some("agent"),
+                Some("mcp"),
+            )
+            .unwrap();
+            assert_eq!(through, position.parse::<u64>().unwrap());
+            assert_eq!(filter.endpoint_ids, ["ep"]);
+            assert_eq!(filter.agent.as_deref(), Some("agent"));
+        }
+        assert!(cursor(&json!(u64::MAX)).is_err());
+        assert!(cursor(&json!(u64::MAX.to_string())).is_err());
+        assert_eq!(cursor(&Value::Null).unwrap(), 0);
+    }
+
+    #[test]
+    fn bindings_reject_unknown_fields_and_wrong_types() {
+        for args in [
+            json!({"endpoint_id": "ep", "refreshBefore": 42}),
+            json!({"endpoint_id": "ep", "server": 7}),
+            json!({"endpoint_id": "ep", "subscription_id": {}}),
+            json!({"endpoint_id": "ep", "refresh_before": false}),
+            json!({"endpoint_id": "ep", "session": []}),
+            json!({"endpoint_id": ""}),
+            json!({"endpoint_id": "ep", "session": " "}),
+        ] {
+            assert!(binding(&args).is_err(), "{args}");
+        }
+        for value in [
+            json!(1_790_000_000_123u64),
+            json!("2026-09-21T14:13:20.123Z"),
+            json!("2026-09-21T14:13:20.123+00:00"),
+            json!("2026-09-21T22:13:20.123+08:00"),
+        ] {
+            assert_eq!(
+                binding(&json!({"endpoint_id": "ep", "refresh_before": value}))
+                    .unwrap()
+                    .refresh_before,
+                Some(1_790_000_000_123)
+            );
+        }
+        assert_eq!(
+            binding(&json!({"endpoint_id": "ep", "refresh_before": null}))
+                .unwrap()
+                .refresh_before,
+            None
+        );
+        // Wrong selectors must never broaden an acknowledgement or a read.
+        for selection in [
+            json!({"endpoint_id": 7}),
+            json!({"endpoint_ids": [null]}),
+            json!({"session": false}),
+            json!({"endpoint_id": ""}),
+        ] {
+            assert!(filter(Some("agent"), None, &selection).is_err());
+        }
+    }
+
+    #[test]
+    fn timestamps_validate_dates_offsets_and_the_unix_epoch() {
+        for text in [
+            "2026-02-29T00:00:00Z",
+            "2026-02-30T00:00:00Z",
+            "2026-04-31T00:00:00Z",
+            "2026-01-01T-1:00:00Z",
+            "2026-01-01T24:00:00Z",
+            "2026-01-01T00:60:00Z",
+            "2026-01-01T00:00:00+24:00",
+            "2026-01-01T00:00:00",
+            "1969-12-31T23:59:59Z",
+        ] {
+            assert_eq!(parse_rfc3339(text), None, "{text}");
+        }
+        for text in [
+            "1970-01-01T00:00:00Z",
+            "1970-01-01T01:00:00+01:00",
+            "1969-12-31T23:00:00-01:00",
+        ] {
+            assert_eq!(parse_rfc3339(text), Some(0), "{text}");
+        }
+    }
+
+    #[test]
     fn reads_refresh_before_and_cursors() {
         assert_eq!(parse_rfc3339("1970-01-01T00:00:00Z"), Some(0));
         assert_eq!(
@@ -482,7 +661,10 @@ mod tests {
             parse_rfc3339("2000-02-29T00:00:00.5Z"),
             Some(951_782_400_500)
         );
-        assert_eq!(parse_rfc3339("2026-09-21T14:13:20+08:00"), None);
+        assert_eq!(
+            parse_rfc3339("2026-09-21T22:13:20.123+08:00"),
+            Some(1_790_000_000_123)
+        );
         assert_eq!(parse_rfc3339("2026-13-01T00:00:00Z"), None);
         assert_eq!(instant(&json!(42)).unwrap(), Some(42));
         assert_eq!(cursor(&json!("17")).unwrap(), 17);

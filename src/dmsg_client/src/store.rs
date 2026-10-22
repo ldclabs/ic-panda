@@ -61,6 +61,10 @@ CREATE TABLE IF NOT EXISTS mcp_events (
   UNIQUE (endpoint, webhook_id)
 );
 CREATE INDEX IF NOT EXISTS mcp_events_received ON mcp_events (received_at);
+CREATE TABLE IF NOT EXISTS mcp_event_loss (
+  endpoint TEXT PRIMARY KEY,
+  through_seq INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS audit (
   seq INTEGER PRIMARY KEY AUTOINCREMENT,
   at INTEGER NOT NULL,
@@ -732,6 +736,7 @@ impl Store {
         if endpoints.is_empty() {
             return Ok(Vec::new());
         }
+        let after = i64::try_from(after).map_err(|_| Error::InvalidInput("cursor".into()))?;
         let marks = marks(endpoints.len());
         let conn = self.conn();
         let mut statement = conn
@@ -739,7 +744,7 @@ impl Store {
                 "SELECT seq, endpoint, webhook_id, kind, received_at, value FROM mcp_events WHERE seq > ? AND endpoint IN ({marks}) ORDER BY seq LIMIT ?"
             ))
             .map_err(storage)?;
-        let mut values: Vec<rusqlite::types::Value> = vec![(after as i64).into()];
+        let mut values: Vec<rusqlite::types::Value> = vec![after.into()];
         values.extend(endpoints.iter().map(|e| e.clone().into()));
         values.push((limit as i64).into());
         let rows = statement
@@ -765,8 +770,9 @@ impl Store {
         if endpoints.is_empty() {
             return Ok(0);
         }
+        let through = i64::try_from(through).map_err(|_| Error::InvalidInput("through".into()))?;
         let marks = marks(endpoints.len());
-        let mut values: Vec<rusqlite::types::Value> = vec![(through as i64).into()];
+        let mut values: Vec<rusqlite::types::Value> = vec![through.into()];
         values.extend(endpoints.iter().map(|e| e.clone().into()));
         self.conn()
             .execute(
@@ -777,25 +783,72 @@ impl Store {
             .map_err(storage)
     }
 
+    /// Highest sequence lost to retention for these endpoints. Normal explicit
+    /// acknowledgements do not advance it; sparse global sequences are not gaps.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn mcp_event_loss(&self, endpoints: &[String]) -> Result<u64> {
+        if endpoints.is_empty() {
+            return Ok(0);
+        }
+        self.conn().query_row(
+            &format!("SELECT COALESCE(MAX(through_seq), 0) FROM mcp_event_loss WHERE endpoint IN ({})", marks(endpoints.len())),
+            rusqlite::params_from_iter(endpoints),
+            |row| row.get::<_, i64>(0),
+        ).map(|seq| seq as u64).map_err(storage)
+    }
+
+    /// Forget loss metadata when the corresponding endpoint expires locally.
+    ///
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn forget_mcp_event_loss(&self, endpoints: &[String]) -> Result<()> {
+        if endpoints.is_empty() {
+            return Ok(());
+        }
+        self.conn()
+            .execute(
+                &format!(
+                    "DELETE FROM mcp_event_loss WHERE endpoint IN ({})",
+                    marks(endpoints.len())
+                ),
+                rusqlite::params_from_iter(endpoints),
+            )
+            .map(|_| ())
+            .map_err(storage)
+    }
+
     /// Keep the MCP events received at or after `since`, at most `keep` of
-    /// the newest.
+    /// the newest. Record per-endpoint loss and delete rows in one transaction.
     ///
     /// # Errors
     /// Returns `Error::Unavailable` when SQLite fails.
     pub fn prune_mcp_events(&self, since: u64, keep: u64) -> Result<()> {
-        let conn = self.conn();
-        conn.execute(
-            "DELETE FROM mcp_events WHERE received_at < ?1",
-            [since as i64],
-        )
-        .map_err(storage)?;
-        conn.execute(
-            "DELETE FROM mcp_events WHERE seq <= \
-             (SELECT seq FROM mcp_events ORDER BY seq DESC LIMIT 1 OFFSET ?1)",
-            [keep as i64],
-        )
-        .map(|_| ())
-        .map_err(storage)
+        let mut conn = self.conn();
+        let tx = conn.transaction().map_err(storage)?;
+        // Apply age before count: expired rows must not consume the count budget.
+        for (predicate, value) in [
+            ("received_at < ?1", since),
+            (
+                "seq <= (SELECT seq FROM mcp_events ORDER BY seq DESC LIMIT 1 OFFSET ?1)",
+                keep,
+            ),
+        ] {
+            let value =
+                i64::try_from(value).map_err(|_| Error::InvalidInput("retention".into()))?;
+            tx.execute(&format!(
+                "INSERT INTO mcp_event_loss (endpoint, through_seq) \
+                 SELECT endpoint, MAX(seq) FROM mcp_events WHERE {predicate} GROUP BY endpoint \
+                 ON CONFLICT(endpoint) DO UPDATE SET through_seq = MAX(mcp_event_loss.through_seq, excluded.through_seq)"
+            ), [value]).map_err(storage)?;
+            tx.execute(
+                &format!("DELETE FROM mcp_events WHERE {predicate}"),
+                [value],
+            )
+            .map_err(storage)?;
+        }
+        tx.commit().map_err(storage)
     }
 
     /// Append an audit entry, keeping those at or after `since` and at most

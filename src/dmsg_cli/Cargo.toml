@@ -16,6 +16,7 @@ axum = { workspace = true, features = ["http1", "json", "tokio", "ws"] }
 base64.workspace = true
 bytes.workspace = true
 candid.workspace = true
+chrono.workspace = true
 clap.workspace = true
 dav-server.workspace = true
 dmsg_agent = { path = "../dmsg_agent" }

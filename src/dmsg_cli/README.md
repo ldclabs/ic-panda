@@ -811,7 +811,17 @@ received_at, verified: {v1, v1a}, context}`, `kind` one of `event`,
 heartbeat at most every 25 seconds and ends on `notifications/cancelled`.
 The cursor is the local sequence and survives restarts; a null cursor reads
 from the oldest delivery not yet acknowledged, and `dmsg_events_ack` lets the
-device forget. Without `endpoint_id`, `endpoint_ids` or `session` (the
+device forget. Local retention (30 days or the newest 10,000 records) records
+loss separately for each endpoint. A read behind a retained loss position
+returns `truncated: true`; an empty truncated page advances its cursor past
+that position, so the next read does not repeat the same gap. Explicit ack
+and sequence numbers used by other endpoints do not count as retention loss.
+A push stream reports loss with `notifications/events/active` and
+`truncated: true` before its events. That notice carries the preceding cursor;
+clients advance only after storing the events, or on the following heartbeat
+when the truncated page is empty. The CLI's `events stream` reports loss on
+stderr while preserving event JSON lines on stdout. Without `endpoint_id`,
+`endpoint_ids` or `session` (the
 endpoint's `context.session`), a reader gets the endpoints created in or
 bound to its own MCP session. Tools for clients without the events
 extension: `dmsg_events_endpoint_create|list|rotate|delete`,
@@ -820,6 +830,23 @@ extension: `dmsg_events_endpoint_create|list|rotate|delete`,
 untrusted input. The owner's `dmsg events endpoint
 create|list|rotate|delete`, `events bind|poll|stream|ack|status` give the
 same shapes.
+
+`dmsg_events_bind` and the owner's `mcp-events/bind` accept only
+`endpoint_id` (required), `server`, `subscription_id`, `refresh_before` and
+`session`. `server` is the upstream URL, not an MCP client's local server id.
+`refresh_before` is a nonnegative integer in Unix milliseconds or an RFC 3339
+string, including `Z`, `+00:00` and other numeric offsets. Invalid calendar
+dates and pre-epoch instants are refused. Omitted/null `server`,
+`subscription_id` and `refresh_before` clear those binding values; omitted/null
+`session` leaves `context.session` unchanged. The tool field is `refresh_before`; the
+upstream MCP response field is `refreshBefore`.
+
+`dmsg_events_ack` and `mcp-events/ack` require `through`, a nonempty decimal
+string from `0` through `9223372036854775807`, and accept the same endpoint
+selectors as reads. Missing/null/empty positions, wrong types, unknown fields
+(including `cursor` instead of `through`) and invalid selectors return
+`INVALID_INPUT`. Binding requests also reject unknown fields and wrong types;
+an invalid request never silently clears a binding or acknowledges zero.
 
 ## Daemon protocol
 
