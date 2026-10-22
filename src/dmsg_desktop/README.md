@@ -240,11 +240,13 @@ Rules (`src/main/policy.ts`):
   channel's new messages or a new letter (the relay's `channel` and `inbox`
   hints), each kind at most once a minute.
 - Legacy migration opens the old site (`https://dmsg.net/legacy` or
-  `https://panda.fans/legacy`) only with an offer (`#pair=`) or an approval
-  request (`#approve=`) in the fragment; the person compares the fingerprint,
-  this device's ID and the old Principal on both sides before importing. The
-  shared-channel documents (frozen source, proposal, directory record, the
-  old site's approvals) are pasted or read from a chosen file.
+  `https://panda.fans/legacy`) only with an offer (`#pair=`). Personal history
+  channels can be deleted after confirmation: the archive is rewritten
+  without their messages, files, channel keys and cached copies, and the
+  change syncs to the account's other devices. Old revision retention and
+  the original exported migration file are separate from this deletion.
+  Shared-channel inheritance has been removed. Empty, unactivated legacy
+  drafts without pending activation can be deleted from the channel menu.
 - Each account on the device keeps its own workspace. Logging in with another
   identity switches to its account; Settings lists the accounts here and
   switches between them (locked, then a login or fast unlock opens one).

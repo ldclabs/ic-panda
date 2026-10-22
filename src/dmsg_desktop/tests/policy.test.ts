@@ -157,7 +157,11 @@ test('only the login and pairing pages open in the browser', () => {
 
 test('only old-site migration links open from the legacy view', () => {
   assert.equal(legacyAllowed('https://dmsg.net/legacy#pair=pmVub25jZQ'), true)
-  assert.equal(legacyAllowed('https://panda.fans/legacy#approve=eyJmb3JtYXQiOjF9'), true)
+  assert.equal(legacyAllowed('https://panda.fans/legacy#approve=eyJmb3JtYXQiOjF9'), false)
+  assert.equal(WINDOW_METHODS.has('legacy/shared_prepare'), false)
+  assert.equal(WINDOW_METHODS.has('legacy/shared_activate'), false)
+  assert.equal(WINDOW_METHODS.has('legacy/delete_channel'), true)
+  assert.equal(WINDOW_METHODS.has('channel/delete_legacy_draft'), true)
   for (const url of [
     'https://dmsg.net/legacy',
     'https://dmsg.net/legacy?x=1#pair=abc',

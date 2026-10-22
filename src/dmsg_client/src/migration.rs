@@ -283,9 +283,38 @@ impl Client {
         archive_digest: &str,
         gaps: usize,
     ) -> Result<String> {
+        let parts = self.store_archive_parts(plain, archive_digest)?;
+        let record = ArchiveRecord {
+            format: STORAGE.into(),
+            archive_digest: archive_digest.into(),
+            content_id: archive.content_id(),
+            parts,
+            principal: archive.inventory.principal.clone(),
+            mode: archive.inventory.mode.clone(),
+            objects: archive.inventory.objects.len() as u64,
+            gaps: gaps as u64,
+            imported_at: now_ms(),
+            frozen: BTreeMap::new(),
+        };
+        let id = random_hex();
+        self.write(
+            MIGRATION,
+            id.clone(),
+            None,
+            false,
+            &canonical(&record),
+            None,
+        )?;
+        Ok(id)
+    }
+
+    fn store_archive_parts(&mut self, plain: &[u8], archive_digest: &str) -> Result<Vec<String>> {
         let mut existing = BTreeMap::new();
         for (id, _) in self.workspace.store.heads(MIGRATION_PART)? {
             let (_, record) = self.current(&id)?;
+            if record.tombstone {
+                continue;
+            }
             let part: PartRecord =
                 decode(&record.open(self.environment(), self.roots()?)?, MAX_OBJECT)?;
             if part.archive == archive_digest {
@@ -323,28 +352,7 @@ impl Client {
             )?;
             parts.push(id);
         }
-        let record = ArchiveRecord {
-            format: STORAGE.into(),
-            archive_digest: archive_digest.into(),
-            content_id: archive.content_id(),
-            parts,
-            principal: archive.inventory.principal.clone(),
-            mode: archive.inventory.mode.clone(),
-            objects: archive.inventory.objects.len() as u64,
-            gaps: gaps as u64,
-            imported_at: now_ms(),
-            frozen: BTreeMap::new(),
-        };
-        let id = random_hex();
-        self.write(
-            MIGRATION,
-            id.clone(),
-            None,
-            false,
-            &canonical(&record),
-            None,
-        )?;
-        Ok(id)
+        Ok(parts)
     }
 
     /// A kept archive's record.
@@ -393,6 +401,60 @@ impl Client {
             Error::IntegrityFailed,
         )?;
         Ok((record, plain))
+    }
+
+    /// Delete a personal history channel by rewriting the archive without
+    /// its content. The new parts are kept before their parent points to
+    /// them; old unreferenced parts then receive synced tombstones.
+    ///
+    /// # Errors
+    /// As [`Self::kept_archive`], or `Error::NotFound` for an absent channel.
+    pub fn legacy_delete_channel(&mut self, id: &str, channel: &str) -> Result<()> {
+        let (mut record, plain) = self.kept_archive(id)?;
+        let mut archive = Archive::decode(&plain)?;
+        archive.remove_channel(channel)?;
+        let encoded = Zeroizing::new(archive.encode()?);
+        let digest = hex::encode(*sha256(&encoded));
+        let old_parts = record.parts;
+        record.parts = self.store_archive_parts(&encoded, &digest)?;
+        record.archive_digest = digest;
+        record.content_id = archive.content_id();
+        record.objects = archive.inventory.objects.len() as u64;
+        record.gaps = legacy::verify(&archive).gaps.len() as u64;
+        record.frozen.remove(channel);
+        let (row, _) = self.current(id)?;
+        self.write(
+            MIGRATION,
+            id.into(),
+            Some(row.revision),
+            false,
+            &canonical(&record),
+            None,
+        )?;
+
+        // A part reused by another archive must stay available there.
+        let mut referenced = std::collections::BTreeSet::new();
+        for (archive, _) in self.workspace.store.heads(MIGRATION)? {
+            referenced.extend(self.archive_record(&archive)?.parts);
+        }
+        for part in old_parts
+            .into_iter()
+            .filter(|part| !referenced.contains(part))
+        {
+            let (row, stored) = self.current(&part)?;
+            if !stored.tombstone {
+                let payload = stored.open(self.environment(), self.roots()?)?;
+                self.write(
+                    MIGRATION_PART,
+                    part,
+                    Some(row.revision),
+                    true,
+                    &payload,
+                    None,
+                )?;
+            }
+        }
+        Ok(())
     }
 
     /// The kept archives.

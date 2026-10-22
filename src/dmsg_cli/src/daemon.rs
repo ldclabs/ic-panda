@@ -1704,6 +1704,16 @@ mod tests {
     fn routes_methods_and_reads_announce_nothing() {
         assert_eq!(route("vault/list"), Some(Module::Vault));
         assert_eq!(route("channel/list"), Some(Module::More));
+        assert_eq!(route("channel/delete_legacy_draft"), Some(Module::More));
+        assert_eq!(route("legacy/delete_channel"), Some(Module::Legacy));
+        for retired in [
+            "legacy/shared_prepare",
+            "legacy/shared_activate",
+            "legacy/shared_claim",
+            "legacy/shared_receive",
+        ] {
+            assert_eq!(route(retired), None);
+        }
         assert_eq!(route("mcp/call"), Some(Module::Agent));
         assert_eq!(route("no/such"), None);
         let modules = [

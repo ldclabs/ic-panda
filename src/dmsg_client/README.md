@@ -54,7 +54,6 @@ daemon in `src/dmsg_cli` owns one instance.
 | [`legacy`] | Legacy migration formats: the `dmsg-legacy-pair/2` offer and its fragment link, opening a `dmsg-legacy-transfer/1` file (offer, frame order and lengths checked), the `dmsg-legacy-archive/1` schema, offline verification of old COSE messages, attachments and avatars, and a shared channel's scoped archive |
 | [`legacy_proof`] | Frozen-source evidence: certified `legacy_snapshot` and `legacy_folder_manifest` ingress proofs and their page series, a shared channel's frozen source, old-identity approvals, the inheritance digests, and the frozen comparison of a personal archive |
 | [`migration`] | Personal archives: offers sealed on the device, import (the file's digest recorded first, duplicates by content), archives kept as `migration` and `migration_part` records that sync, offline reports, old attachments, frozen comparison |
-| [`shared_migration`] | The official successor of a shared old channel: drafts with a signed genesis, manager approvals, the directory checked against the frozen evidence, activation, member claims, and history grants sealed to the claimed device |
 
 The byte rules follow the [encryption design](../../docs/dmsg_encryption_zh.md),
 the [account and root contract](../../docs/protocol/account_root_zh.md), the

@@ -70,6 +70,7 @@
   let transfer = $state<{ open: boolean; kind: 'owner' | 'sponsor' }>({ open: false, kind: 'owner' })
   let history = $state<{ open: boolean; member: any; from: number; to: number }>({ open: false, member: null, from: 1, to: 1 })
   let leaving = $state(false)
+  let deletingLegacyDraft = $state(false)
   let archiving = $state(false)
   let retracting = $state<any>(null)
   let renaming = $state<{ open: boolean; name: string }>({ open: false, name: '' })
@@ -150,6 +151,7 @@
     try {
       const result: any = await call('legacy/channels')
       legacyChannels = result.channels
+      if (legacySelected && !legacyChannels.some((c) => c.archive === legacySelected.archive && c.source === legacySelected.source)) legacySelected = null
       legacyError = result.errors.map((e: any) => e.error).join('; ')
       if (legacyRequested) {
         const first = legacyChannels.find((c) => c.archive === legacyRequested)
@@ -395,6 +397,13 @@
       toast(() => t('left'))
     })
 
+  const deleteLegacyDraft = () => attempt(async () => {
+    await call('channel/delete_legacy_draft', { id: channel.id })
+    deletingLegacyDraft = false
+    selected = channel = null
+    await reload()
+  })
+
   /** An invitation by account ID or name, after a new epoch when what was written stays from the invited account. */
   async function invite(target: string, role: string, fresh: boolean): Promise<any | null> {
     try {
@@ -598,7 +607,7 @@
     <section class="flex min-w-0 flex-1 flex-col">
       {#if legacySelected}
         {#key `${legacySelected.archive}:${legacySelected.source}`}
-          <LegacyHistory entry={legacySelected} />
+          <LegacyHistory entry={legacySelected} onDeleted={() => { legacySelected = null; void readLegacy() }} />
         {/key}
       {:else if channel}
         <header class="flex min-h-14 shrink-0 items-center gap-3 border-b border-line px-5 py-2">
@@ -669,6 +678,11 @@
               </Tooltip>
               <DropdownMenu.Portal>
                 <DropdownMenu.Content align="end" sideOffset={6} class={cn(menuContentClass, 'min-w-60')} data-testid="channel-manage-menu">
+                  {#if channel.deletable_legacy_draft}
+                    <DropdownMenu.Item class={cn(menuItemClass, 'text-danger')} onSelect={() => (deletingLegacyDraft = true)} data-testid="legacy-draft-delete">
+                      <span class="flex items-center gap-2"><Icon name="trash" />{t('legacyDeleteDraft')}</span>
+                    </DropdownMenu.Item>
+                  {/if}
                   <DropdownMenu.Item class={menuItemClass} onSelect={() => (renaming = { open: true, name: channel.name })} data-testid="channel-rename">
                     <span class="flex items-center gap-2"><Icon name="edit" class="text-faint" />{t('renameChannel')}…</span>
                   </DropdownMenu.Item>
@@ -904,6 +918,14 @@
     {/snippet}
   </Dialog>
 {/if}
+<Dialog bind:open={deletingLegacyDraft} title={t('legacyDeleteDraft')} icon="trash" tone="danger" testid="legacy-draft-delete-dialog">
+  <p class="text-[13px] text-muted">{t('legacyDeleteDraftHint', { name: channel?.name ?? '' })}</p>
+  {#snippet footer()}
+    <span class="flex-1"></span>
+    <button class={buttonClass('ghost')} disabled={busy} onclick={() => (deletingLegacyDraft = false)}>{t('cancel')}</button>
+    <button class={buttonClass('danger')} disabled={busy} onclick={deleteLegacyDraft} data-testid="legacy-draft-delete-confirm">{t('remove')}</button>
+  {/snippet}
+</Dialog>
 {#if history.member}
   <Dialog bind:open={history.open} title={t('grantHistory')} description={t('historyHint')} icon="legacy" testid="history-dialog">
     <div class="flex items-end gap-2" data-testid="history-form">

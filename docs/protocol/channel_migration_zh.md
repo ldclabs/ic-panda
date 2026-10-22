@@ -16,19 +16,9 @@
 
 认证记录保留历史设备证据，不把“当前仍有权限”当成当时的证明。中继记录的接收时间不构成独立 TSA 时间戳。已取得的历史 key 无法远程收回；撤销隔离依赖新的 root/epoch，并受认证新鲜度窗口约束。
 
-## 唯一旧频道继承
+## 旧版个人历史
 
-来源键使用 `dmsg/legacy-channel-key/v1` 对完整 `(legacy canister, channel id)` 做规范摘要。来源包括冻结 ChannelAuthority、完整名称角色快照、cutover、原范围和加密 DEK 摘要。普通名称 delegator 不能代表冻结管理员。
-
-`dmsg-legacy-shared-proposal/1` 固定来源摘要、版本、目标账户、新频道、签名 genesis 摘要及 nonce。旧 manager 的批准摘要域为 `dmsg/legacy-manager-consent/v1`，同时绑定被代表的 manager；修改提案版本或任一目标字段会使旧批准失效。旧站 `legacy_snapshot(Attestation {digest, expires_at})` 在 ReadOnly 状态下为实际 caller 提供 ingress 证明，期限最多七天；它本身不授予管理员资格。
-
-目录按来源键执行 CAS，所有冻结 managers 同意后才固定 canonical 映射。新频道 ID 先预留，实际激活另外要求当前目标账户明确批准。原签名 genesis 和新的激活批准分别保留，跨步骤失败只能继续同一映射。
-
-`dmsg-legacy-member-claim/1` 绑定旧成员、新账户、设备、HPKE 公钥和安全版本；旧身份与新设备分别批准。未接受成员不会加入新 epoch。旧历史通过 `dmsg-legacy-history-grant/1` 另行交付，只包含该来源频道的消息、附件、KEK/DEK；不携带 MK、静态 ECDH 私钥、个人资料或其他频道。范围档案至多 8 段、每段 32 MiB，作为新频道当前 epoch 的文件上传；各段的文件引用（含 FileKey）以 GrantKey 封装为 `manifest`，GrantKey 只 HPKE 给指定已认领设备（`device:<account>:<device>`）。接收设备核对上传者、manifest 摘要、整份档案摘要，并按同一冻结来源重新裁剪核对后，才作为个人档案保存。
-
-批准请求 `dmsg-legacy-approval-request/1`（管理员同意或成员认领）由桌面端生成，经 `https://dmsg.net/legacy#approve=<base64url(JSON)>` 或 panda.fans 同路径在系统浏览器中打开；旧网页重新计算意图摘要后由旧身份调用 `legacy_snapshot(Attestation)`，把 `{proof, expires_at}` 交回桌面端。不是目录 reader 的成员使用其他参与者交来的完整目录记录，在本机逐项核验后认领。
-
-个人档案不会被全体管理员共识阻塞。无法建立官方继承时仍可保存个人档案或另建普通新频道；不会降低经理同意门槛。
+2026-10-22 产品范围调整：共享旧频道官方继承、管理员批准、成员认领和历史授权交接已从公开客户端、CLI 与 legacy 网页移除。个人历史的导入、阅读、按频道删除和同步继续提供，见 [legacy_archive_zh.md](legacy_archive_zh.md)。此前产生的未激活继承草稿提供单独删除入口；不再生成新草稿。
 
 ## 恢复和冻结对照
 

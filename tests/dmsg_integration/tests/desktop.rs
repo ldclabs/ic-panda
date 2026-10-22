@@ -7443,8 +7443,6 @@ struct Legacy {
     channel: Principal,
     identity: Principal,
     channel_id: u32,
-    /// A channel the owner manages with a second old identity.
-    shared_id: u32,
     /// The historical channel KEK and DEK as COSE_Keys, and the frozen
     /// DEK wrapper.
     kek: Vec<u8>,
@@ -7556,23 +7554,6 @@ impl Legacy {
         ))
         .unwrap();
         let channel_id = created.unwrap().id;
-        let created: Result<ChannelInfo, String> = candid::decode_one(&call(
-            channel,
-            gov,
-            "admin_create_channel",
-            candid::encode_args((CreateChannelInput {
-                name: "Frozen channel with two managers".into(),
-                image: String::new(),
-                description: String::new(),
-                managers: [(owner, none()), (old_identity(54), none())].into(),
-                dek: wrapped.clone().into(),
-                created_by: owner,
-                paid: 0,
-            },))
-            .unwrap(),
-        ))
-        .unwrap();
-        let shared_id = created.unwrap().id;
         let added: Result<(u64, Option<Message>), String> = candid::decode_one(&call(
             channel,
             owner,
@@ -7643,7 +7624,6 @@ impl Legacy {
             channel,
             identity,
             channel_id,
-            shared_id,
             kek,
             dek,
             wrapped,
@@ -7692,13 +7672,6 @@ fn strs(args: &[String]) -> Vec<&str> {
     args.iter().map(String::as_str).collect()
 }
 
-/// A JSON document written for a command.
-fn document(env: &Env, name: &str, value: &Value) -> String {
-    let path = env.dir.join(name);
-    std::fs::write(&path, value.to_string()).unwrap();
-    path.to_str().unwrap().to_string()
-}
-
 #[test]
 #[ignore = "needs the dmsg binary, the legacy canister Wasm, PocketIC, the private relay (DMSG_CLOUD_DIR) and Node"]
 fn desktop_legacy() {
@@ -7713,18 +7686,10 @@ fn desktop_legacy() {
     let legacy = env.legacy.take().unwrap();
     // C becomes a second device of X at the end.
     let (c, _) = env.desktop("c");
-    let (a, b) = (&env.a, &env.b);
+    let a = &env.a;
     let (owner, member) = (old_identity(52).to_text(), old_identity(53).to_text());
     assert_eq!(a.login(&http, 41).unwrap()["state"], "no_account");
-    let x = a.run(&["account", "create"])["account"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    assert_eq!(b.login(&http, 60).unwrap()["state"], "no_account");
-    let y = b.run(&["account", "create"])["account"]
-        .as_str()
-        .unwrap()
-        .to_string();
+    a.run(&["account", "create"]);
 
     // Personal archive: the offer opens the old site with the device as
     // target; the old site seals the owner's archive to it.
@@ -7783,140 +7748,6 @@ fn desktop_legacy() {
     let compared = a.run(&["legacy", "frozen", &archive, frozen.to_str().unwrap()]);
     assert_eq!(compared["matched"], true, "{compared}");
 
-    // Shared successor: the frozen source, a proposal by X, the old
-    // manager's approval on the old site, then commit and activation.
-    let source = legacy.old_site(&env, 52, "source", json!({}));
-    let source_file = document(&env, "source.json", &source);
-    let checked = a.run(&["legacy", "shared", "source", &source_file]);
-    assert_eq!(checked["managers"], json!([owner]));
-    assert!(
-        checked["members"]
-            .as_array()
-            .unwrap()
-            .contains(&json!(member))
-    );
-    let draft = a.run(&["legacy", "shared", "prepare", &source_file]);
-    let draft_file = document(&env, "draft.json", &draft);
-    let request = a.run(&[
-        "legacy",
-        "shared",
-        "request",
-        &draft_file,
-        "--manager",
-        &owner,
-    ]);
-    assert!(
-        request["links"][0]
-            .as_str()
-            .unwrap()
-            .starts_with("https://dmsg.net/legacy#approve=")
-    );
-    let approval = legacy.old_site(&env, 52, "approve", json!({"request": request["request"]}));
-    let approval_file = document(&env, "approval.json", &approval);
-    let view = a.run(&[
-        "legacy",
-        "shared",
-        "propose",
-        &draft_file,
-        "--manager",
-        &owner,
-        "--approval",
-        &approval_file,
-    ]);
-    assert_eq!(view["stage"], "pending");
-    let key = view["key"].as_str().unwrap().to_string();
-    // Another identity's approval of the same intent is refused.
-    assert_eq!(
-        a.fail(&[
-            "legacy",
-            "shared",
-            "consent",
-            &draft_file,
-            "--manager",
-            &member,
-            "--approval",
-            &approval_file,
-        ]),
-        "FORBIDDEN"
-    );
-    assert_eq!(
-        a.run(&["legacy", "shared", "commit", &key])["stage"],
-        "committed"
-    );
-    let active = a.run(&["legacy", "shared", "activate", &key]);
-    assert_eq!(active["stage"], "active");
-    let channel = active["proposal"]["channel_id"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    assert_eq!(a.run(&["channel", "show", &channel])["ledger"]["epoch"], 1);
-
-    // The old member claims account Y and B's device on the old site, with
-    // the record X handed over; B is not a reader of the directory yet.
-    assert_eq!(b.fail(&["legacy", "shared", "view", &key]), "FORBIDDEN");
-    let view_file = document(&env, "view.json", &active);
-    let claim_request = b.run(&[
-        "legacy",
-        "shared",
-        "claim-request",
-        &view_file,
-        "--member",
-        &member,
-    ]);
-    let claim_file = document(&env, "claim.json", &claim_request);
-    let approval = legacy.old_site(
-        &env,
-        53,
-        "approve",
-        json!({"request": claim_request["request"]}),
-    );
-    let approval_file = document(&env, "claim-approval.json", &approval);
-    let claimed = b.run(&[
-        "legacy",
-        "shared",
-        "claim",
-        &view_file,
-        "--request",
-        &claim_file,
-        "--approval",
-        &approval_file,
-    ]);
-    assert_eq!(claimed["claims"][&member]["claim"]["account"], y.as_str());
-
-    // X invites Y with the epoch's key; Y joins it at once and says so.
-    let invitation = a.run(&["channel", "invite", &channel, &y]);
-    let joined = b.run(&["channel", "accept", &invitation.to_string()]);
-    assert_eq!(joined["status"], "active");
-    assert_eq!(joined["members"][&y]["joined_epoch"], 1);
-    let joined = b.run(&["legacy", "shared", "joined", &key]);
-    assert_eq!(joined["claims"][&member]["joined"], true);
-
-    // X delivers the channel's history from its archive to B's device.
-    let granted = a.run(&[
-        "legacy",
-        "shared",
-        "grant",
-        &key,
-        "--archive",
-        &archive,
-        "--member",
-        &member,
-    ]);
-    let grant = granted["grants"]
-        .as_object()
-        .unwrap()
-        .keys()
-        .next()
-        .unwrap()
-        .clone();
-    let received = b.run(&["legacy", "shared", "receive", &key, "--grant", &grant]);
-    assert!(
-        expected.iter().all(|t| texts(&received).contains(t)),
-        "{received}"
-    );
-    assert_eq!(received["principal"], owner.as_str());
-    assert_eq!(b.run(&["legacy", "list"]).as_array().unwrap().len(), 1);
-
     // A second device of X gets the archive through sync and reads it offline.
     assert_eq!(c.login(&http, 41).unwrap()["state"], "pairing_required");
     let pairing = c.run(&["device", "pair-request"]);
@@ -7938,72 +7769,5 @@ fn desktop_legacy() {
     );
     assert_eq!(synced["frozen"]["matched"], true);
 
-    // A channel with two old managers: its successor commits only once
-    // both approved the same proposal.
-    let (a, second) = (&env.a, old_identity(54).to_text());
-    let source = legacy.old_site(&env, 52, "source", json!({"channel_id": legacy.shared_id}));
-    let source_file = document(&env, "source-two.json", &source);
-    let checked = a.run(&["legacy", "shared", "source", &source_file]);
-    let mut managers: Vec<String> = serde_json::from_value(checked["managers"].clone()).unwrap();
-    managers.sort();
-    let mut both = vec![owner.clone(), second.clone()];
-    both.sort();
-    assert_eq!(managers, both);
-    let draft = a.run(&["legacy", "shared", "prepare", &source_file]);
-    let draft_file = document(&env, "draft-two.json", &draft);
-    let mut approvals = vec![];
-    for (seed, manager) in [(52, &owner), (54, &second)] {
-        let request = a.run(&[
-            "legacy",
-            "shared",
-            "request",
-            &draft_file,
-            "--manager",
-            manager,
-        ]);
-        let approval = legacy.old_site(
-            &env,
-            seed,
-            "approve",
-            json!({"request": request["request"]}),
-        );
-        approvals.push(document(
-            &env,
-            &format!("approval-two-{seed}.json"),
-            &approval,
-        ));
-    }
-    let view = a.run(&[
-        "legacy",
-        "shared",
-        "propose",
-        &draft_file,
-        "--manager",
-        &owner,
-        "--approval",
-        &approvals[0],
-    ]);
-    assert_eq!(view["stage"], "pending");
-    let key = view["key"].as_str().unwrap().to_string();
-    assert_eq!(
-        a.fail(&["legacy", "shared", "commit", &key]),
-        "RECOVERY_INCOMPLETE"
-    );
-    let consented = a.run(&[
-        "legacy",
-        "shared",
-        "consent",
-        &draft_file,
-        "--manager",
-        &second,
-        "--approval",
-        &approvals[1],
-    ]);
-    assert_eq!(consented["votes"].as_object().unwrap().len(), 2);
-    assert_eq!(
-        a.run(&["legacy", "shared", "commit", &key])["stage"],
-        "committed"
-    );
-    let _ = x;
     env.finish();
 }

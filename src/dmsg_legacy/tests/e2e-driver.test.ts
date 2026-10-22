@@ -8,15 +8,11 @@ import {
   collectSnapshot,
   digest,
   encodeArchive,
-  managerConsentDigest,
-  memberClaimDigest,
-  memberClaimSchema,
   observation,
   pack,
   readOfferLink,
   sealTransfer,
   pairingFingerprint,
-  sharedProposalSchema,
   type LegacyArchive,
   type SnapshotProof
 } from '../src'
@@ -63,45 +59,6 @@ async function run() {
   const caller = await agent(input.seed)
   const channels = [input.channel]
   switch (input.action) {
-    case 'source': {
-      const control = await collectSnapshot(
-        caller,
-        input.channel,
-        { ChannelAuthority: input.channel_id },
-        channels
-      )
-      const names = await collectSnapshot(caller, input.identity, { Authorities: null }, [
-        input.identity
-      ])
-      return {
-        format: 'dmsg-legacy-shared-source/1',
-        source: input.channel,
-        identity: input.identity,
-        cutover: input.cutover_hex,
-        input: {
-          channel: input.channel_id,
-          authority: wire(control.proofs[0]!),
-          authorities: names.proofs.map(wire)
-        }
-      }
-    }
-    case 'approve': {
-      // As the page does: recompute the intent before the old identity signs.
-      const request = input.request
-      const proposal = sharedProposalSchema.parse(request.proposal)
-      const bytes =
-        request.kind === 'manager'
-          ? managerConsentDigest(proposal, request.identity)
-          : memberClaimDigest(memberClaimSchema.parse(request.claim))
-      expect(hex(bytes)).toBe(request.digest)
-      const result = await collectSnapshot(
-        caller,
-        proposal.source,
-        { Attestation: { digest: bytes, expires_at: BigInt(request.expires_at) } },
-        channels
-      )
-      return { proof: wire(result.proofs[0]!), expires_at: request.expires_at }
-    }
     case 'archive': {
       // The owner's archive of the frozen channel, observed as the
       // collector observes it, sealed to the desktop's offer.

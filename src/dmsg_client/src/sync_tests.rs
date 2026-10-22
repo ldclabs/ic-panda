@@ -181,6 +181,30 @@ fn partial_legacy_history_syncs_with_its_encrypted_parts_to_another_device() {
             .len(),
         2
     );
+    let removed = "nvdn4-5qaaa-aaaaj-qa4pq-cai/channel/1";
+    a.legacy_delete_channel(&id, removed).unwrap();
+    assert_eq!(relay.accept(&mut a), (3, 0));
+    relay.deliver(&mut b).unwrap();
+    let history = b.legacy_channels().unwrap();
+    assert_eq!(history["channels"].as_array().unwrap().len(), 1);
+    assert!(history["errors"].as_array().unwrap().is_empty());
+    let report = b.legacy_report(&id, 0, 100).unwrap();
+    assert_eq!(report["total_messages"], 0);
+    assert_eq!(report["profile"]["name"], "Old Panda");
+    assert_eq!(
+        b.legacy_channel_report(&id, Some(removed), 0, 100).err(),
+        Some(Error::NotFound)
+    );
+    a.legacy_delete_channel(&id, "nvdn4-5qaaa-aaaaj-qa4pq-cai/channel/2")
+        .unwrap();
+    assert_eq!(relay.accept(&mut a), (3, 0));
+    relay.deliver(&mut b).unwrap();
+    assert!(
+        b.legacy_channels().unwrap()["channels"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
 }
 
 #[test]

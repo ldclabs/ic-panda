@@ -823,36 +823,7 @@ export default {
   'The inventory did not finish.': 'Инвентаризация не завершена.',
   'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
     'Создайте привязку в разделе «Прежняя версия» настольного приложения dMsg; оно откроет в этом браузере ссылку с привязкой.',
-  'Shared channel succession and member claims':
-    'Преемство общих каналов и заявки участников',
-  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
-    'Для этого старый сервис должен быть заморожен. Единственный официальный преемник появляется только после того, как все замороженные администраторы согласятся на одного и того же нового владельца и исходную запись канала.',
-  'Source channel service': 'Исходный сервис каналов',
-  'Legacy channel number': 'Номер прежнего канала',
-  'Export frozen authority evidence':
-    'Экспортировать доказательство замороженных прав',
-  'Export final history evidence for this channel':
-    'Экспортировать итоговое доказательство истории этого канала',
-  'Approval request from the desktop app':
-    'Запрос на одобрение из настольного приложения',
-  'Approval type': 'Тип одобрения',
-  'Manager consent to the succession proposal':
-    'Согласие администратора с планом преемства',
-  'Former member claim': 'Заявка бывшего участника',
-  'Legacy channel': 'Прежний канал',
-  'New owner': 'Новый владелец',
-  'New channel': 'Новый канал',
-  'Proposal version': 'Версия плана',
-  'Legacy identity to act for':
-    'Прежняя личность, от имени которой действовать',
-  'Target account / device': 'Целевой аккаунт / устройство',
   'Expires': 'Истекает',
-  'Intent digest': 'Дайджест намерения',
-  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
-    'Подписывающая личность: {principal}. Общие имена должны одобряться исходным входом замороженного администратора.',
-  'I have checked it: approve this version': 'Проверено: одобрить эту версию',
-  'Approval result to copy into the desktop app':
-    'Результат одобрения для копирования в настольное приложение',
   'First check a complete proposal that has not expired.':
     'Сначала проверьте полный план, срок которого не истёк.',
   'The legacy identity changed. Check again.':
@@ -870,7 +841,6 @@ export default {
   'Take an inventory': 'Опись истории',
   'Compare with the desktop app': 'Сверка с настольным приложением',
   'Create the migration file': 'Создание файла переноса',
-  'Export the frozen evidence': 'Экспорт замороженных доказательств',
   'A file shared with you': 'Файл, которым с вами поделились',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     'Кто-то поделился с вами файлом через dMsg. Он зашифрован; браузер расшифровывает его здесь ключом из ссылки, и ничего из него не попадает на сервер в открытом виде.',
@@ -899,7 +869,6 @@ export default {
   'What is dMsg?': 'Что такое dMsg?',
   'The relay could not be reached. Check your connection and try again.':
     'Не удалось связаться с ретранслятором. Проверьте соединение и попробуйте снова.',
-  'Approve a request': 'Подтверждение запроса',
   'Verify a dMsg signature': 'Проверка подписи dMsg',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     'Проверьте пакет заверения, экспортированный из dMsg. Проверка идёт в этом браузере: хеш сравниваемого файла вычисляется здесь, сам файл не загружается.',

@@ -800,33 +800,7 @@ export default {
   'The inventory did not finish.': 'لم يكتمل الجرد.',
   'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
     'أنشئ إقرانًا في قسم «الإصدار القديم» في تطبيق dMsg لسطح المكتب؛ وسيفتح رابطًا يحمل الإقران في هذا المتصفح.',
-  'Shared channel succession and member claims':
-    'خلافة القنوات المشتركة ومطالبات الأعضاء',
-  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
-    'يتطلب ذلك أن تكون الخدمة القديمة مجمّدة. لا يوجد الخلف الرسمي الوحيد إلا بعد موافقة جميع المديرين المجمّدين على المالك الجديد نفسه وسجل القناة الأولي نفسه.',
-  'Source channel service': 'خدمة القناة المصدر',
-  'Legacy channel number': 'رقم القناة القديمة',
-  'Export frozen authority evidence': 'تصدير دليل الصلاحيات المجمّدة',
-  'Export final history evidence for this channel':
-    'تصدير الدليل النهائي لسجل هذه القناة',
-  'Approval request from the desktop app': 'طلب الموافقة من تطبيق سطح المكتب',
-  'Approval type': 'نوع الموافقة',
-  'Manager consent to the succession proposal':
-    'موافقة المدير على مقترح الخلافة',
-  'Former member claim': 'مطالبة عضو سابق',
-  'Legacy channel': 'القناة القديمة',
-  'New owner': 'المالك الجديد',
-  'New channel': 'القناة الجديدة',
-  'Proposal version': 'إصدار المقترح',
-  'Legacy identity to act for': 'الهوية القديمة التي يُتصرف باسمها',
-  'Target account / device': 'الحساب / الجهاز المستهدف',
   'Expires': 'ينتهي في',
-  'Intent digest': 'ملخص النية',
-  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
-    'هوية التوقيع: {principal}. يجب الموافقة على الأسماء المشتركة بهوية الدخول الأصلية للمدير المجمّد.',
-  'I have checked it: approve this version': 'تحققت منه: وافق على هذا الإصدار',
-  'Approval result to copy into the desktop app':
-    'نتيجة الموافقة لنسخها إلى تطبيق سطح المكتب',
   'First check a complete proposal that has not expired.':
     'تحقق أولًا من مقترح كامل لم تنتهِ صلاحيته.',
   'The legacy identity changed. Check again.':
@@ -843,7 +817,6 @@ export default {
   'Take an inventory': 'جرد السجل',
   'Compare with the desktop app': 'المطابقة مع تطبيق سطح المكتب',
   'Create the migration file': 'إنشاء ملف النقل',
-  'Export the frozen evidence': 'تصدير الأدلة المجمدة',
   'A file shared with you': 'ملف تمت مشاركته معك',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     'شارك معك شخص ما ملفًا عبر dMsg. الملف مشفّر؛ يفكّ متصفحك تشفيره هنا بالمفتاح الموجود في الرابط، ولا يصل منه شيء إلى أي خادم بشكل مكشوف.',
@@ -871,7 +844,6 @@ export default {
   'What is dMsg?': 'ما هو dMsg؟',
   'The relay could not be reached. Check your connection and try again.':
     'تعذّر الوصول إلى المرحّل. تحقق من اتصالك وحاول مجددًا.',
-  'Approve a request': 'الموافقة على طلب',
   'Verify a dMsg signature': 'التحقق من توقيع dMsg',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     'تحقّق من حزمة إثبات صُدّرت من dMsg. يجري التحقق في هذا المتصفح: تُحسب بصمة الملف الذي تقارنه هنا ولا يُرفع أبدًا.',

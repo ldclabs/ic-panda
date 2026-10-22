@@ -186,7 +186,7 @@
       <Page>
         {#if error}<Notice tone="danger">{error}</Notice>{/if}
         {#if part === 'legacy'}
-          <Legacy {status} />
+          <Legacy />
         {:else if part === 'files'}
           <FilesSettings />
         {:else if part === 'appearance'}

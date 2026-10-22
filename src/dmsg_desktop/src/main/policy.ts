@@ -138,6 +138,7 @@ export const WINDOW_METHODS = new Set([
   'connect/revoke',
   'channel/list',
   'channel/show',
+  'channel/delete_legacy_draft',
   'channel/create',
   'channel/invite',
   'channel/join',
@@ -300,21 +301,8 @@ export const WINDOW_METHODS = new Set([
   'legacy/cancel',
   'legacy/list',
   'legacy/channels',
+  'legacy/delete_channel',
   'legacy/report',
-  'legacy/shared_source',
-  'legacy/shared_prepare',
-  'legacy/shared_check',
-  'legacy/shared_request',
-  'legacy/shared_propose',
-  'legacy/shared_consent',
-  'legacy/shared_view',
-  'legacy/shared_commit',
-  'legacy/shared_activate',
-  'legacy/shared_claim_request',
-  'legacy/shared_claim',
-  'legacy/shared_joined',
-  'legacy/shared_grant',
-  'legacy/shared_receive'
 ])
 
 /** Methods whose requests the desktop marks as its own (`source: "gui"`). */
@@ -434,7 +422,7 @@ export function parseLink(url: string): Link | null {
   return null
 }
 
-/** The old site's migration pages; their links carry an offer or a request in the fragment. */
+/** The old site's migration pages; their links carry an offer in the fragment. */
 const LEGACY_PAGES = ['https://dmsg.net/legacy', 'https://panda.fans/legacy']
 
 export function legacyAllowed(url: string): boolean {
@@ -447,7 +435,7 @@ export function legacyAllowed(url: string): boolean {
   return (
     LEGACY_PAGES.includes(`${parsed.origin}${parsed.pathname}`) &&
     !parsed.search &&
-    /^#(pair|approve)=[A-Za-z0-9_-]+$/.test(parsed.hash)
+    /^#pair=[A-Za-z0-9_-]+$/.test(parsed.hash)
   )
 }
 

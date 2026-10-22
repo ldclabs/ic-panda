@@ -5,7 +5,6 @@
   import SignInModal from '$lib/components/core/SignInModal.svelte'
   import MoreMenuPopup from '$lib/components/core/MoreMenuPopup.svelte'
   import Brand from '$lib/components/landing/Brand.svelte'
-  import SharedMigration from '$lib/legacy/SharedMigration.svelte'
   import Migration from '$lib/legacy/Migration.svelte'
   import Icon from '$lib/components/landing/Icon.svelte'
   import { MyMessageState } from '$lib/stores/message'
@@ -106,7 +105,6 @@
         >{/if}
     </section>
     <Migration />
-    <SharedMigration />
     <section class="legacy-guidance rule"
       ><div
         ><span class="step-number">{$t('01 / KEEP YOUR BROWSER DATA')}</span><h2

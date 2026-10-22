@@ -11,7 +11,6 @@
   import Pill from '../components/page/Pill.svelte'
   import Section from '../components/page/Section.svelte'
   import Radio from '../components/Radio.svelte'
-  import Select from '../components/Select.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, errorText, onChange, single, when } from '../rpc'
@@ -19,15 +18,12 @@
   /**
    * Legacy migration: a one-time offer opens the old site in the system
    * browser, the old site saves an encrypted file sealed to this device,
-   * and the import keeps the checked archive as account content. Shared old
-   * channels get their official successor once every frozen manager agreed.
+   * and the import keeps the checked archive as account content.
    */
-  let { status }: { status: any } = $props()
   let offer = $state<any>(null)
   let pairs = $state<any[]>([])
   let archives = $state<any[]>([])
   let selected = $state('')
-  let sourceFile = $state<HTMLInputElement>()
   let principal = $state('')
   let confirmed = $state(false)
   let report = $state<any>(null)
@@ -36,26 +32,7 @@
   let error = $state('')
   let busy = $state(false)
 
-  // Shared channel inheritance.
-  let sourceText = $state('')
-  let source = $state<any>(null)
-  let version = $state('1')
-  let draftText = $state('')
-  let manager = $state('')
-  let request = $state<any>(null)
-  let approvalText = $state('')
-  let target = $state('')
-  let view = $state<any>(null)
-  let member = $state('')
-  let claimRequest = $state<any>(null)
-  let grantArchive = $state('')
-  let grantMember = $state('')
-  let invitation = $state('')
-
   const pairing = $derived(pairs.find((p) => p.nonce === selected))
-  const claims = $derived<any[]>(Object.values(view?.claims ?? {}))
-  const grants = $derived<any[]>(Object.values(view?.grants ?? {}))
-  const me = $derived(status?.account)
 
   async function attempt(work: () => Promise<void>, done = '') {
     busy = true
@@ -127,99 +104,13 @@
       if (selected === nonce) selected = ''
     })
 
-  const json = (text: string) => JSON.parse(text)
   const pretty = (value: unknown) => JSON.stringify(value, null, 2)
-
-  async function readFile(event: Event) {
-    const input = event.currentTarget as HTMLInputElement
-    const file = input.files?.[0]
-    input.value = ''
-    if (file && file.size <= 4 * 1024 * 1024) sourceText = await file.text()
-  }
-
-  const checkSource = () =>
-    attempt(async () => {
-      source = await call('legacy/shared_source', { source: json(sourceText) })
-    })
-
-  const prepare = () =>
-    attempt(async () => {
-      draftText = pretty(await call('legacy/shared_prepare', { source: json(sourceText), version: Number(version) }))
-    }, t('legacyDraftReady'))
-
-  const checkDraft = () =>
-    attempt(async () => {
-      source = await call('legacy/shared_check', { draft: json(draftText) })
-    }, t('legacyDraftChecked'))
-
-  const managerRequest = () =>
-    attempt(async () => {
-      request = await call('legacy/shared_request', { draft: json(draftText), manager: manager.trim() })
-    })
-
-  const vote = (method: string) =>
-    attempt(async () => {
-      view = await call(method, { draft: json(draftText), manager: manager.trim(), approval: json(approvalText) })
-      target = view.key
-      approvalText = ''
-    })
-
-  const viewParams = () => (target.trim().startsWith('{') ? { view: json(target) } : { key: target.trim() })
-
-  const read = () =>
-    attempt(async () => {
-      view = await call('legacy/shared_view', viewParams())
-    })
-
-  const act = (method: string, params: Record<string, unknown> = {}) =>
-    attempt(async () => {
-      view = await call(method, { key: view.key, ...params })
-    })
-
-  const askClaim = () =>
-    attempt(async () => {
-      claimRequest = await call('legacy/shared_claim_request', { ...viewParams(), member: member.trim() })
-    })
-
-  const claim = () =>
-    attempt(async () => {
-      view = await call('legacy/shared_claim', {
-        ...viewParams(),
-        claim: claimRequest.request.claim,
-        approval: json(approvalText)
-      })
-      approvalText = ''
-    })
-
-  const invite = (account: string) =>
-    attempt(async () => {
-      invitation = JSON.stringify(await call('channel/invite', { id: view.proposal.channel_id, account }))
-    })
-
-  const receive = (grant: string) =>
-    attempt(async () => {
-      report = await call('legacy/shared_receive', { key: view.key, grant })
-    }, t('legacyKept'))
 
   onMount(() => {
     void attempt(reload)
     return onChange(['legacy/changed', 'sync/changed'], () => reload().catch(() => {}))
   })
 </script>
-
-{#snippet step(n: number, title: string)}
-  <h3 class="mt-2 flex items-center gap-2 text-[13px] font-semibold">
-    <span class="grid size-5 place-items-center rounded-full bg-pale font-mono text-[11px] text-forest">{n}</span>{title}
-  </h3>
-{/snippet}
-
-{#snippet links(list: string[])}
-  <div class="flex flex-wrap gap-1.5">
-    {#each list as link (link)}
-      <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => window.dmsg.openLegacy(link)}><Icon name="external" />{new URL(link).host}</button>
-    {/each}
-  </div>
-{/snippet}
 
 {#if error}<Notice tone="danger">{error}</Notice>{/if}
 {#if notice}<Notice tone="ok">{notice}</Notice>{/if}
@@ -369,132 +260,3 @@
     </div>
   </Section>
 {/if}
-
-<Section title={t('legacyShared')} description={t('legacySharedHint')} icon="members" testid="legacy-shared">
-  <Collapsible>
-    {#snippet title()}<span class="text-[12.5px] font-medium">{t('legacySteps')}</span>{/snippet}
-    <div class="grid gap-3 pt-2 pb-1">
-      {@render step(1, t('legacySource'))}
-      <input bind:this={sourceFile} class="hidden" type="file" accept=".json,application/json" onchange={readFile} />
-      <div class="flex flex-wrap items-center gap-2">
-        <button class={buttonClass('secondary', 'sm')} onclick={() => sourceFile?.click()}><Icon name="upload" />{t('chooseFile')}</button>
-        <span class="text-[12px] text-faint">{t('legacyPasteOr')}</span>
-      </div>
-      <textarea bind:value={sourceText} rows="3" class="font-mono text-[11.5px]" placeholder="legacy-shared-source.json"></textarea>
-      <div class="flex flex-wrap items-end gap-2">
-        <button class={buttonClass('secondary')} disabled={busy || !sourceText.trim()} onclick={checkSource}>{t('legacyCheckSource')}</button>
-        <span class="flex-1"></span>
-        <Field label={t('legacyVersion')}><input bind:value={version} class="w-20 tabular-nums" /></Field>
-        <button class={buttonClass('primary')} disabled={busy || !sourceText.trim() || !/^\d+$/.test(version)} onclick={prepare}>{t('legacyPropose')}</button>
-      </div>
-      {#if source}
-        <dl class="divide-y divide-line rounded-xl border border-line px-3.5">
-          <Fact label={t('legacyManagers')}><span class="font-mono text-[11.5px] break-all">{source.managers.join(', ')}</span></Fact>
-          <Fact label={t('legacyMembers')}><span class="font-mono text-[11.5px] break-all">{source.members.join(', ')}</span></Fact>
-          <Fact label={t('legacyRange')}>{source.messageStart} – {source.messageEnd}</Fact>
-        </dl>
-      {/if}
-
-      {@render step(2, t('legacyDraft'))}
-      <textarea bind:value={draftText} rows="3" class="font-mono text-[11.5px]" placeholder="dmsg-shared-migration-draft/1"></textarea>
-      <div class="flex flex-wrap items-end gap-2">
-        <button class={buttonClass('secondary')} disabled={busy || !draftText.trim()} onclick={checkDraft}>{t('legacyCheckDraft')}</button>
-        <Field label={t('legacyManager')} class="min-w-48 flex-1"><input bind:value={manager} class="font-mono text-[12px]" /></Field>
-        <button class={buttonClass('secondary')} disabled={busy || !draftText.trim() || !manager.trim()} onclick={managerRequest}>{t('legacyRequest')}</button>
-      </div>
-      {#if request}
-        <textarea readonly rows="3" class="font-mono text-[11px]" value={pretty(request.request)}></textarea>
-        {@render links(request.links)}
-      {/if}
-      <Field label={t('legacyApproval')}><textarea bind:value={approvalText} rows="3" class="font-mono text-[11.5px]"></textarea></Field>
-      <div class="flex flex-wrap gap-2">
-        <button class={buttonClass('primary')} disabled={busy || !draftText.trim() || !approvalText.trim()} onclick={() => vote('legacy/shared_propose')}>{t('legacySubmitProposal')}</button>
-        <button class={buttonClass('secondary')} disabled={busy || !draftText.trim() || !approvalText.trim()} onclick={() => vote('legacy/shared_consent')}>{t('legacySubmitConsent')}</button>
-      </div>
-
-      {@render step(3, t('legacyDirectory'))}
-      <textarea bind:value={target} rows="2" class="font-mono text-[11.5px]" placeholder={t('legacyDirectoryHint')}></textarea>
-      <button class={buttonClass('secondary', 'md', 'justify-self-start')} disabled={busy || !target.trim()} onclick={read}><Icon name="sync-now" />{t('refresh')}</button>
-      {#if view}
-        <div class="grid gap-3 rounded-xl border border-line p-3.5">
-          <div class="flex flex-wrap items-center gap-2 text-[12.5px]">
-            <Pill tone={view.stage === 'active' ? 'ok' : 'neutral'}>{view.stage}</Pill>
-            <span>v{view.proposal.version}</span>
-            <span class="text-faint">· {Object.keys(view.votes).length}/{view.source.managers.length} {t('legacyVotes')}</span>
-            <span class="flex-1"></span>
-            {#if view.proposal.owner === me}
-              <button class={buttonClass('secondary', 'xs')} disabled={busy || view.stage !== 'pending'} onclick={() => act('legacy/shared_commit')}>{t('legacyCommit')}</button>
-              <button class={buttonClass('primary', 'xs')} disabled={busy || !['committed', 'active'].includes(view.stage)} onclick={() => act('legacy/shared_activate')}>{t('legacyActivate')}</button>
-            {/if}
-          </div>
-          <p class="font-mono text-[11px] break-all text-faint">{view.key}</p>
-          <Collapsible>
-            {#snippet title()}<span class="text-[12px]">{t('legacyExportView')}</span>{/snippet}
-            <textarea readonly rows="4" class="font-mono text-[11px]" value={pretty(view)}></textarea>
-          </Collapsible>
-        </div>
-
-        {@render step(4, t('legacyClaim'))}
-        <div class="flex flex-wrap items-end gap-2">
-          <Field label={t('legacyMember')} class="min-w-48 flex-1"><input bind:value={member} class="font-mono text-[12px]" /></Field>
-          <button class={buttonClass('secondary')} disabled={busy || !member.trim()} onclick={askClaim}>{t('legacyRequest')}</button>
-        </div>
-        {#if claimRequest}
-          <textarea readonly rows="3" class="font-mono text-[11px]" value={pretty(claimRequest.request)}></textarea>
-          <div class="flex flex-wrap items-center gap-2">
-            {@render links(claimRequest.links)}
-            <span class="flex-1"></span>
-            <button class={buttonClass('primary', 'sm')} disabled={busy || !approvalText.trim()} onclick={claim}>{t('legacySubmitClaim')}</button>
-          </div>
-        {/if}
-        {#if claims.length}
-          <ul class="divide-y divide-line rounded-xl border border-line">
-            {#each claims as c (c.claim.member)}
-              <li class="flex flex-wrap items-center gap-2 px-3.5 py-2">
-                <span class="min-w-0 flex-1 font-mono text-[11.5px] break-all">{c.claim.member} → {c.claim.account}</span>
-                {#if c.joined}<Pill tone="ok">{t('legacyJoined')}</Pill>{/if}
-                {#if view.proposal.owner === me && !c.joined}
-                  <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => invite(c.claim.account)}>{t('invite')}</button>
-                {/if}
-                {#if c.claim.account === me && !c.joined}
-                  <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => act('legacy/shared_joined')}>{t('legacyMarkJoined')}</button>
-                {/if}
-              </li>
-            {/each}
-          </ul>
-        {/if}
-        {#if invitation}<textarea readonly rows="3" class="font-mono text-[11px]" value={invitation}></textarea>{/if}
-        {#if view.stage === 'active'}
-          {@render step(5, t('legacyGrant'))}
-          <div class="flex flex-wrap items-center gap-2">
-            <Select
-              bind:value={grantArchive}
-              placeholder={t('legacyArchives')}
-              options={archives.map((a) => ({ value: a.id, label: `${a.principal} · ${a.objects}`, mono: true }))}
-            />
-            <Select
-              bind:value={grantMember}
-              placeholder={t('legacyMember')}
-              options={claims.filter((c) => c.joined).map((c) => ({ value: c.claim.member, label: c.claim.member, mono: true }))}
-            />
-            <button
-              class={buttonClass('primary')}
-              disabled={busy || !grantArchive || !grantMember}
-              onclick={() => act('legacy/shared_grant', { archive: grantArchive, member: grantMember })}
-            >
-              {t('legacyGrantSend')}
-            </button>
-          </div>
-          <ul class="divide-y divide-line rounded-xl border border-line">
-            {#each grants.filter((g) => g.grant.scope.account === me) as g (g.grant.scope.grant_id)}
-              <li class="flex items-center gap-2 px-3.5 py-2">
-                <span class="min-w-0 flex-1 font-mono text-[11.5px]">{g.grant.scope.member} · {g.grant.scope.archive_digest.slice(0, 16)}</span>
-                <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => receive(g.grant.scope.grant_id)}>{t('legacyReceive')}</button>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      {/if}
-    </div>
-  </Collapsible>
-</Section>

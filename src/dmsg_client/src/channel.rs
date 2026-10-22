@@ -489,6 +489,8 @@ pub struct ChannelView {
     pub muted: bool,
     /// Kept out of the channel list.
     pub hidden: bool,
+    /// An unactivated legacy draft that can be safely discarded.
+    pub deletable_legacy_draft: bool,
     /// Messages read through this sequence.
     pub read: u64,
     /// Others' messages after `read`.
@@ -1863,7 +1865,7 @@ impl Client {
     /// The synced record of a channel, with every key a conflict copy adds.
     fn keyring(&self, channel: &str) -> Result<(String, Keyring)> {
         let (row, record) = self.current(channel)?;
-        ensure(row.kind == CHANNEL, Error::NotFound)?;
+        ensure(row.kind == CHANNEL && !record.tombstone, Error::NotFound)?;
         let open = |record: &crate::content::EncryptedObject| -> Result<Keyring> {
             let ring: Keyring =
                 decode(&record.open(self.environment(), self.roots()?)?, MAX_RECORD)?;
@@ -2517,91 +2519,51 @@ impl Client {
         Ok(channel)
     }
 
-    /// Sign the genesis of a collaboration channel that the legacy
-    /// directory creates once every frozen manager agreed, and remember the
-    /// channel by it. Returns the channel ID and the signed genesis.
-    pub(crate) async fn legacy_genesis(&mut self, name: &str) -> Result<(String, String)> {
-        self.root_ready().await?;
-        let channel = random_hex();
-        let genesis = Genesis {
-            channel_id: channel.clone(),
-            nonce: random_hex(),
-            kind: ChannelType::Collaboration,
-        };
-        let job = self
-            .sign_operation(GENESIS, base(&channel)?, json(&genesis), random_hex())
-            .await?;
-        self.save_keyring(
-            None,
-            &Keyring {
-                format: FORMAT.into(),
-                id: channel.clone(),
-                name: name.into(),
-                genesis: hex_sha256(&unb64(&job.cose)?),
-                keys: BTreeMap::new(),
-                muted: false,
-                hidden: false,
-            },
-        )?;
-        Ok((channel, job.cose))
-    }
-
-    /// Remember a channel by the genesis digest the legacy directory names.
-    pub(crate) fn remember_channel(
-        &mut self,
-        channel: &str,
-        name: &str,
-        genesis: &str,
-    ) -> Result<()> {
-        match self.keyring(channel) {
-            Ok((_, ring)) => ensure(ring.genesis == genesis, Error::IntegrityFailed),
-            Err(Error::NotFound) => self.save_keyring(
-                None,
-                &Keyring {
-                    format: FORMAT.into(),
-                    id: channel.into(),
-                    name: name.into(),
-                    genesis: genesis.into(),
-                    keys: BTreeMap::new(),
-                    muted: false,
-                    hidden: false,
-                },
-            ),
-            Err(error) => Err(error),
-        }
-    }
-
-    /// Have the relay create the canonical successor of an old channel
-    /// from the directory's genesis, then read its log and open its first
-    /// epoch.
-    pub(crate) async fn channel_activate_legacy(
-        &mut self,
-        channel: &str,
-        payload: Json,
-    ) -> Result<ChannelView> {
-        self.channel_post(
-            channel,
-            "legacy-activate",
-            "dmsg/legacy/activate/v1",
-            payload,
-            "/legacy-activate",
-        )
-        .await?;
-        self.channel_pull(channel, None, None).await?;
-        self.channel_rotate(channel).await
-    }
-
     /// The channels this account knows.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub fn channel_list(&self) -> Result<Vec<ChannelView>> {
-        self.workspace
-            .store
-            .heads(CHANNEL)?
-            .iter()
-            .map(|(id, _)| self.channel_view(id))
-            .collect()
+        let mut channels = Vec::new();
+        for (id, _) in self.workspace.store.heads(CHANNEL)? {
+            if !self.current(&id)?.1.tombstone {
+                channels.push(self.channel_view(&id)?);
+            }
+        }
+        Ok(channels)
+    }
+
+    fn deletable_legacy_draft(&self, id: &str, ring: &Keyring, local: &Local) -> Result<bool> {
+        Ok(ring.keys.is_empty()
+            && local.ledger.is_none()
+            && local.control == 0
+            && local.message == 0
+            && self.job::<cbor2::Value>(id, "legacy-draft")?.is_some()
+            && self.workspace.store.sealed_keys(&format!("{JOB}{id}:"))?
+                == vec![format!("{JOB}{id}:legacy-draft")])
+    }
+
+    /// Remove a leftover legacy inheritance draft and sync its deletion.
+    /// Drafts with an activation in flight or any channel history are refused.
+    ///
+    /// # Errors
+    /// Returns `Error::Forbidden` unless the record is an unactivated draft.
+    pub fn channel_delete_legacy_draft(&mut self, id: &str) -> Result<()> {
+        let (parent, ring) = self.keyring(id)?;
+        ensure(
+            self.deletable_legacy_draft(id, &ring, &self.local(id)?)?,
+            Error::Forbidden,
+        )?;
+        self.write(
+            CHANNEL,
+            id.into(),
+            Some(parent),
+            true,
+            &canonical(&ring),
+            None,
+        )?;
+        self.forget_job(id, "legacy-draft")?;
+        self.workspace.delete_private(&format!("{LOCAL}{id}"))
     }
 
     /// Unread messages of the channels that are neither muted nor hidden.
@@ -2624,6 +2586,7 @@ impl Client {
     pub fn channel_view(&self, channel: &str) -> Result<ChannelView> {
         let (_, ring) = self.keyring(channel)?;
         let local = self.local(channel)?;
+        let deletable_legacy_draft = self.deletable_legacy_draft(channel, &ring, &local)?;
         let invites = local
             .invites
             .into_iter()
@@ -2644,6 +2607,7 @@ impl Client {
             readable_epochs: ring.keys.keys().copied().collect(),
             muted: ring.muted,
             hidden: ring.hidden,
+            deletable_legacy_draft,
             read: local.read,
             unread: local.unread,
             last: local.last,
@@ -4080,16 +4044,6 @@ impl Client {
         self.workspace
             .private(self.keys()?, &format!("{INBOX}{channel}:{seq:020}"))?
             .ok_or(Error::NotFound)
-    }
-
-    /// Fetch the file `reference` names, as [`fetch_file`].
-    pub(crate) async fn channel_file(
-        &mut self,
-        channel: &str,
-        reference: &FileRef,
-        uploader: &str,
-    ) -> Result<FileManifest> {
-        fetch_file(&self.hold(), channel, reference, uploader).await
     }
 
     /// Seal keys of epochs `from..=to` to `target`'s devices and grant them.

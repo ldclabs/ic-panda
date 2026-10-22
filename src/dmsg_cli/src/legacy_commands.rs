@@ -1,12 +1,11 @@
-//! `dmsg legacy`: personal archives from the old site and the official
-//! successor of shared old channels.
+//! `dmsg legacy`: personal archives from the old site.
 
 use crate::locale::tr;
 use crate::remote::{Failure, Remote};
-use crate::{absolute, pretty, print, read_json};
+use crate::{absolute, pretty, print};
 use clap::Subcommand;
 use serde_json::{Value, json};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Legacy migration.
 #[derive(Subcommand)]
@@ -42,6 +41,13 @@ pub enum LegacyCommand {
     },
     /// The kept archives.
     List,
+    /// Delete one channel and its content from a kept personal archive.
+    DeleteChannel {
+        /// Archive ID.
+        id: String,
+        /// Source channel, such as <canister>/channel/1.
+        channel: String,
+    },
     /// Check a kept archive offline again and show it.
     Report {
         /// Archive ID.
@@ -69,129 +75,6 @@ pub enum LegacyCommand {
         /// The `.cbor` file the old site exported after the freeze.
         file: PathBuf,
     },
-    /// The official successor of a shared old channel.
-    #[command(subcommand)]
-    Shared(SharedCommand),
-}
-
-/// Shared channel inheritance; documents are JSON files exchanged with the
-/// old site and the other participants.
-#[derive(Subcommand)]
-pub enum SharedCommand {
-    /// Verify the frozen source file the old site exported.
-    Source {
-        /// `legacy-shared-source.json`.
-        file: PathBuf,
-    },
-    /// Propose this account as the new owner; prints the draft.
-    Prepare {
-        /// `legacy-shared-source.json`.
-        file: PathBuf,
-        /// Proposal version, 1 for the first.
-        #[arg(long, default_value_t = 1)]
-        version: u64,
-    },
-    /// Check a draft another participant handed over.
-    Check {
-        /// The draft.
-        draft: PathBuf,
-    },
-    /// The request a frozen manager approves on the old site.
-    Request {
-        /// The draft.
-        draft: PathBuf,
-        /// The manager's old Principal.
-        #[arg(long)]
-        manager: String,
-    },
-    /// Submit the draft with the first manager's approval.
-    Propose {
-        /// The draft.
-        draft: PathBuf,
-        /// The manager's old Principal.
-        #[arg(long)]
-        manager: String,
-        /// The approval the old site printed.
-        #[arg(long)]
-        approval: PathBuf,
-    },
-    /// Record another manager's approval of the same draft.
-    Consent {
-        /// The draft.
-        draft: PathBuf,
-        /// The manager's old Principal.
-        #[arg(long)]
-        manager: String,
-        /// The approval the old site printed.
-        #[arg(long)]
-        approval: PathBuf,
-    },
-    /// The directory record: by key from the relay, or a record file.
-    View {
-        /// Directory key or record file.
-        target: String,
-    },
-    /// As the owner: fix the mapping once every manager approved.
-    Commit {
-        /// Directory key.
-        key: String,
-    },
-    /// As the owner: create the successor and open its first epoch.
-    Activate {
-        /// Directory key.
-        key: String,
-    },
-    /// The request an old member approves to claim this account and device.
-    ClaimRequest {
-        /// Directory key or record file.
-        target: String,
-        /// The member's old Principal.
-        #[arg(long)]
-        member: String,
-    },
-    /// Submit a claim with the old member's approval.
-    Claim {
-        /// Directory key or record file.
-        target: String,
-        /// The request printed by `claim-request`.
-        #[arg(long)]
-        request: PathBuf,
-        /// The approval the old site printed.
-        #[arg(long)]
-        approval: PathBuf,
-    },
-    /// Record that this account joined the successor.
-    Joined {
-        /// Directory key.
-        key: String,
-    },
-    /// Hand a joined member the channel's history from a kept archive.
-    Grant {
-        /// Directory key.
-        key: String,
-        /// Kept archive ID.
-        #[arg(long)]
-        archive: String,
-        /// The member's old Principal.
-        #[arg(long)]
-        member: String,
-    },
-    /// Receive a history grant to this device.
-    Receive {
-        /// Directory key.
-        key: String,
-        /// Grant ID.
-        #[arg(long)]
-        grant: String,
-    },
-}
-
-/// A directory key, or the record in a file.
-fn target(text: &str) -> Result<Value, Failure> {
-    match Path::new(text).is_file() {
-        true => Ok(json!({"view": read_json(Path::new(text))?})),
-        false => Ok(json!({"key": text})),
-    }
 }
 
 fn report(value: &Value) -> String {
@@ -282,6 +165,10 @@ pub async fn legacy(remote: &Remote, json: bool, command: LegacyCommand) -> Resu
             return Ok(());
         }
         LegacyCommand::List => ("legacy/list", Value::Null),
+        LegacyCommand::DeleteChannel { id, channel } => (
+            "legacy/delete_channel",
+            json!({"id": id, "channel": channel}),
+        ),
         LegacyCommand::Report { id, offset, limit } => {
             let value = remote
                 .call(
@@ -299,68 +186,6 @@ pub async fn legacy(remote: &Remote, json: bool, command: LegacyCommand) -> Resu
         LegacyCommand::Frozen { id, file } => {
             ("legacy/frozen", json!({"id": id, "path": absolute(&file)?}))
         }
-        LegacyCommand::Shared(command) => match command {
-            SharedCommand::Source { file } => {
-                ("legacy/shared_source", json!({"source": read_json(&file)?}))
-            }
-            SharedCommand::Prepare { file, version } => (
-                "legacy/shared_prepare",
-                json!({"source": read_json(&file)?, "version": version}),
-            ),
-            SharedCommand::Check { draft } => {
-                ("legacy/shared_check", json!({"draft": read_json(&draft)?}))
-            }
-            SharedCommand::Request { draft, manager } => (
-                "legacy/shared_request",
-                json!({"draft": read_json(&draft)?, "manager": manager}),
-            ),
-            SharedCommand::Propose {
-                draft,
-                manager,
-                approval,
-            } => (
-                "legacy/shared_propose",
-                json!({"draft": read_json(&draft)?, "manager": manager, "approval": read_json(&approval)?}),
-            ),
-            SharedCommand::Consent {
-                draft,
-                manager,
-                approval,
-            } => (
-                "legacy/shared_consent",
-                json!({"draft": read_json(&draft)?, "manager": manager, "approval": read_json(&approval)?}),
-            ),
-            SharedCommand::View { target: t } => ("legacy/shared_view", target(&t)?),
-            SharedCommand::Commit { key } => ("legacy/shared_commit", json!({"key": key})),
-            SharedCommand::Activate { key } => ("legacy/shared_activate", json!({"key": key})),
-            SharedCommand::ClaimRequest { target: t, member } => {
-                let mut params = target(&t)?;
-                params["member"] = member.into();
-                ("legacy/shared_claim_request", params)
-            }
-            SharedCommand::Claim {
-                target: t,
-                request,
-                approval,
-            } => {
-                let mut params = target(&t)?;
-                params["claim"] = read_json(&request)?["request"]["claim"].clone();
-                params["approval"] = read_json(&approval)?;
-                ("legacy/shared_claim", params)
-            }
-            SharedCommand::Joined { key } => ("legacy/shared_joined", json!({"key": key})),
-            SharedCommand::Grant {
-                key,
-                archive,
-                member,
-            } => (
-                "legacy/shared_grant",
-                json!({"key": key, "archive": archive, "member": member}),
-            ),
-            SharedCommand::Receive { key, grant } => {
-                ("legacy/shared_receive", json!({"key": key, "grant": grant}))
-            }
-        },
     };
     let value = remote.call(method, params).await?;
     print(json, &value, pretty);

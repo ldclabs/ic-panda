@@ -8,6 +8,62 @@ use crate::crypto::hpke_open;
 use crate::vectors::{bytes, field, key, load, text, value};
 
 #[test]
+fn only_empty_unactivated_legacy_drafts_can_be_deleted() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let id = "c1".repeat(32);
+    let ring = Keyring {
+        format: FORMAT.into(),
+        id: id.clone(),
+        name: "legacy draft".into(),
+        genesis: "00".repeat(32),
+        keys: BTreeMap::new(),
+        muted: false,
+        hidden: false,
+    };
+    client.save_keyring(None, &ring).unwrap();
+    assert_eq!(
+        client.channel_delete_legacy_draft(&id),
+        Err(Error::Forbidden)
+    );
+    client
+        .save_job(
+            &id,
+            "legacy-draft",
+            &json!({"format": "dmsg-shared-migration-draft/1"}),
+        )
+        .unwrap();
+    assert!(client.channel_view(&id).unwrap().deletable_legacy_draft);
+    client
+        .save_job(&id, "legacy-activate", &json!({"pending": true}))
+        .unwrap();
+    assert_eq!(
+        client.channel_delete_legacy_draft(&id),
+        Err(Error::Forbidden)
+    );
+    client.forget_job(&id, "legacy-activate").unwrap();
+    client
+        .save_local(
+            &id,
+            &Local {
+                message: 1,
+                ..Local::default()
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        client.channel_delete_legacy_draft(&id),
+        Err(Error::Forbidden)
+    );
+    client.save_local(&id, &Local::default()).unwrap();
+    client.channel_delete_legacy_draft(&id).unwrap();
+    assert!(client.channel_list().unwrap().is_empty());
+    assert_eq!(client.channel_view(&id).err(), Some(Error::NotFound));
+    assert!(client.current(&id).unwrap().1.tombstone);
+    assert!(client.job::<Json>(&id, "legacy-draft").unwrap().is_none());
+}
+
+#[test]
 fn epoch_envelopes_confirmation_and_manifest() {
     let v = load("channel-v1.json");
     let channel = text(&v["channel"]);

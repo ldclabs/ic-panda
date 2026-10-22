@@ -18,9 +18,10 @@ use dmsg_types::{Error, Result, integration::SettlementMethod};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 68] = [
+pub(crate) const METHODS: [&str; 69] = [
     "channel/list",
     "channel/show",
+    "channel/delete_legacy_draft",
     "channel/create",
     "channel/invite",
     "channel/join",
@@ -390,6 +391,10 @@ fn local(client: &mut Client, method: &str, params: &Value) -> Option<Result<Val
         Ok(Some(match method {
             "channel/list" => to_json(&client.channel_list()?),
             "channel/show" => to_json(&client.channel_view(&id()?)?),
+            "channel/delete_legacy_draft" => {
+                client.channel_delete_legacy_draft(&id()?)?;
+                json!({"deleted": true})
+            }
             "channel/messages" => {
                 let limit = params["limit"].as_u64().unwrap_or(200).min(1000) as usize;
                 to_json(&match params["before"].as_u64() {

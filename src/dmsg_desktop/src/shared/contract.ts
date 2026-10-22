@@ -128,7 +128,7 @@ export interface DesktopBridge {
   saveReport(report: unknown): Promise<{ path: string } | null>
   /** Save a finished attestation's bundle where the person picks; null when cancelled. */
   exportBundle(execution: string): Promise<{ path: string } | null>
-  /** Open an old-site migration link (`/legacy#pair=` or `#approve=`) in the system browser. */
+  /** Open an old-site migration link (`/legacy#pair=`) in the system browser. */
   openLegacy(link: string): Promise<void>
   /** Import a legacy transfer file the person picks in a system dialog; null when cancelled. */
   legacyImport(nonce: string, fingerprint: string, principal: string): Promise<unknown>

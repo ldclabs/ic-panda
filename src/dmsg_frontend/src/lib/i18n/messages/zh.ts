@@ -786,30 +786,7 @@ export default {
   'The inventory did not finish.': '清点未完成。',
   'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
     '请在 dMsg 桌面客户端的“旧版迁移”中生成配对，客户端会用本浏览器打开带配对信息的链接。',
-  'Shared channel succession and member claims': '共享频道继承与成员认领',
-  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
-    '需要旧服务已完成冻结。全部冻结管理员对同一新负责人和初始频道记录的同意齐全后，才可建立唯一官方继承。',
-  'Source channel service': '来源频道服务',
-  'Legacy channel number': '旧频道编号',
-  'Export frozen authority evidence': '导出冻结权限证明',
-  'Export final history evidence for this channel':
-    '导出此频道的最终历史对照证明',
-  'Approval request from the desktop app': '桌面客户端生成的批准请求',
-  'Approval type': '批准类型',
-  'Manager consent to the succession proposal': '管理员同意继承方案',
-  'Former member claim': '旧成员认领',
-  'Legacy channel': '旧频道',
-  'New owner': '新负责人',
-  'New channel': '新频道',
-  'Proposal version': '方案版本',
-  'Legacy identity to act for': '拟代表的旧身份',
-  'Target account / device': '目标账户 / 设备',
   'Expires': '到期时间',
-  'Intent digest': '意图摘要',
-  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
-    '当前签署身份：{principal}。共享名称必须用冻结管理员的原始登录身份批准。',
-  'I have checked it: approve this version': '我已核对，批准此版本的明确意图',
-  'Approval result to copy into the desktop app': '复制到桌面客户端的批准结果',
   'First check a complete proposal that has not expired.':
     '请先核对完整且未过期的方案。',
   'The legacy identity changed. Check again.': '旧身份已变化，请重新核对。',
@@ -825,7 +802,6 @@ export default {
   'Take an inventory': '清点可读历史',
   'Compare with the desktop app': '与桌面应用核对',
   'Create the migration file': '生成迁移文件',
-  'Export the frozen evidence': '导出冻结证据',
   'A file shared with you': '有人分享给你一个文件',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     '有人通过 dMsg 分享给你一个文件。文件是加密的；浏览器在这里用链接中的密钥解密，明文不会到达任何服务器。',
@@ -853,7 +829,6 @@ export default {
   'What is dMsg?': 'dMsg 是什么？',
   'The relay could not be reached. Check your connection and try again.':
     '无法连接中继。请检查网络后重试。',
-  'Approve a request': '批准请求',
   'Verify a dMsg signature': '核验 dMsg 签名',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     '核验从 dMsg 导出的证据包。核验在本浏览器中完成：用于比对的文件只在这里计算摘要，不会上传。',

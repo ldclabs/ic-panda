@@ -30,6 +30,89 @@ fn opened_archive(vectors: &serde_json::Value) -> Archive {
 }
 
 #[test]
+fn deleting_a_channel_removes_its_keys_files_and_browser_copies_only() {
+    let mut archive = opened_archive(&load("legacy-v1.json"));
+    let canister = "nvdn4-5qaaa-aaaaj-qa4pq-cai";
+    let source = format!("{canister}/channel/1");
+    let value = Value::Map(vec![
+        (
+            Value::Text("key".into()),
+            Value::Text(format!("KEK:{canister}:1")),
+        ),
+        (Value::Text("value".into()), Value::Bytes(vec![1, 2, 3])),
+    ]);
+    let bytes = canonical(&value);
+    archive.inventory.objects.push(SourceObject {
+        key: "local/Keys/test".into(),
+        kind: "local".into(),
+        digest: hex_sha256(&bytes),
+        bytes: bytes.into(),
+        trust: "local_cache".into(),
+        observed_at: 1,
+    });
+    for (store, field_name) in [("Channels", "id"), ("Messages", "channel")] {
+        let value = Value::Map(vec![(
+            Value::Text("value".into()),
+            Value::Map(vec![
+                (
+                    Value::Text("_canister".into()),
+                    Value::Map(vec![(
+                        Value::Text("bytes".into()),
+                        Value::Bytes(Principal::from_text(canister).unwrap().as_slice().to_vec()),
+                    )]),
+                ),
+                (Value::Text(field_name.into()), Value::Integer(1.into())),
+            ]),
+        )]);
+        let bytes = canonical(&value);
+        archive.inventory.objects.push(SourceObject {
+            key: format!("local/{store}/test"),
+            kind: "local".into(),
+            digest: hex_sha256(&bytes),
+            bytes: bytes.into(),
+            trust: "local_cache".into(),
+            observed_at: 1,
+        });
+    }
+    archive.remove_channel(&source).unwrap();
+    assert!(
+        archive
+            .inventory
+            .objects
+            .iter()
+            .all(|o| !o.key.starts_with(&source) && !o.key.ends_with("/test") && o.kind != "file")
+    );
+    assert!(
+        archive
+            .inventory
+            .objects
+            .iter()
+            .any(|o| o.key == "local/cache/settings")
+    );
+    assert!(archive.keys.iter().all(|k| k.source != source));
+    assert_eq!(summary(&archive, &verify(&archive)).name, "Old Panda");
+    assert!(
+        archive
+            .inventory
+            .objects
+            .iter()
+            .any(|o| o.key == format!("{canister}/channel/2"))
+    );
+    assert_eq!(archive.remove_channel(&source), Err(Error::NotFound));
+    // Missing channel keys do not prevent deleting that channel.
+    archive
+        .remove_channel(&format!("{canister}/channel/2"))
+        .unwrap();
+    assert!(
+        archive
+            .inventory
+            .objects
+            .iter()
+            .all(|o| o.kind != "channel")
+    );
+}
+
+#[test]
 fn pairing_validity_is_one_hour() {
     let now = 1_760_000_000_000;
     let origin = "https://dmsg.net";

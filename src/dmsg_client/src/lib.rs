@@ -37,7 +37,6 @@ pub mod recovery;
 pub mod root;
 pub mod secure;
 pub mod security;
-pub mod shared_migration;
 pub mod store;
 pub mod sync;
 pub mod upload;

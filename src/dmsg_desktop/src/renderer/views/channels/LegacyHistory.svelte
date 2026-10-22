@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
@@ -7,11 +8,12 @@
   import { t } from '../../i18n/index.svelte'
   import { bridge, call, errorText, onChange, single, when } from '../../rpc'
 
-  let { entry }: { entry: any } = $props()
+  let { entry, onDeleted }: { entry: any; onDeleted: () => void } = $props()
   let report = $state<any>(null)
   let messages = $state<any[]>([])
   let error = $state('')
   let busy = $state(false)
+  let deleting = $state(false)
 
   async function attempt(work: () => Promise<void>) {
     busy = true
@@ -35,6 +37,12 @@
     await bridge(() => window.dmsg.legacyFile(entry.archive, file.source, file.name))
   })
 
+  const remove = () => attempt(async () => {
+    await call('legacy/delete_channel', { id: entry.archive, channel: entry.source })
+    deleting = false
+    onDeleted()
+  })
+
   onMount(() => {
     void load()
     return onChange(['sync/changed', 'legacy/changed'], load)
@@ -45,6 +53,7 @@
   <Icon name="legacy" class="text-forest" />
   <h2 class="min-w-0 flex-1 truncate text-[15px] font-semibold" data-testid="legacy-channel-title">{entry.name || entry.source}</h2>
   <Pill>{t('legacyHistory')}</Pill>
+  <button class={buttonClass('danger', 'sm')} disabled={busy} onclick={() => (deleting = true)} data-testid="legacy-channel-delete">{t('legacyDeleteChannel')}</button>
 </header>
 <div class="min-h-0 flex-1 space-y-4 overflow-y-auto p-5" data-testid="legacy-channel-history">
   <Notice>{t('legacyHistoryHint')}</Notice>
@@ -71,3 +80,12 @@
     {#if messages.length < report.total_messages}<button class={buttonClass('ghost', 'sm')} disabled={busy} onclick={more}>{t('more')}</button>{/if}
   {/if}
 </div>
+
+<Dialog bind:open={deleting} title={t('legacyDeleteChannel')} icon="trash" tone="danger" testid="legacy-channel-delete-dialog">
+  <p class="text-[13px] text-muted">{t('legacyDeleteChannelHint', { name: entry.name || entry.source })}</p>
+  {#snippet footer()}
+    <span class="flex-1"></span>
+    <button class={buttonClass('ghost')} disabled={busy} onclick={() => (deleting = false)}>{t('cancel')}</button>
+    <button class={buttonClass('danger')} disabled={busy} onclick={remove} data-testid="legacy-channel-delete-confirm">{t('remove')}</button>
+  {/snippet}
+</Dialog>

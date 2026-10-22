@@ -802,6 +802,72 @@ impl Archive {
         unpack(&object.bytes, MAX_ARCHIVE).or(fault(Failure::Corrupt, "Invalid observation"))
     }
 
+    /// Remove one channel's records, attachments, keys and browser-cache
+    /// copies from the archive, preserving the profile and other channels.
+    ///
+    /// # Errors
+    /// Returns `Error::NotFound` for an absent channel.
+    pub fn remove_channel(&mut self, source: &str) -> Result<()> {
+        ensure(
+            self.inventory
+                .objects
+                .iter()
+                .any(|o| o.kind == "channel" && o.key == source),
+            Error::NotFound,
+        )?;
+        let (canister, id) = source
+            .rsplit_once("/channel/")
+            .ok_or(Error::IntegrityFailed)?;
+        let id: u32 = id.parse().map_err(|_| Error::IntegrityFailed)?;
+        let prefix = format!("{source}/");
+        let local_kek = format!("KEK:{canister}:{id}");
+        let local_file = format!("File:{canister}:{id}");
+        let mut removed = BTreeSet::new();
+        self.inventory.objects.retain(|object| {
+            let mut remove = object.key == source || object.key.starts_with(&prefix);
+            if let Ok(record) = Self::observation(object) {
+                remove |= object.kind == "file"
+                    && field(&record, "channel").and_then(text_of) == Some(source);
+                if object.kind == "local" {
+                    let key = field(&record, "key").and_then(text_of);
+                    remove |= key == Some(&local_kek) || key == Some(&local_file);
+                    if let Some(value) = field(&record, "value") {
+                        let owner = field(value, "canister").and_then(principal_of).or_else(|| {
+                            field(value, "_canister")
+                                .and_then(bytes_of)
+                                .filter(|b| b.len() <= 29)
+                                .map(|b| Principal::from_slice(&b).to_text())
+                        });
+                        let channel = field(
+                            value,
+                            if object.key.starts_with("local/Channels/") {
+                                "id"
+                            } else {
+                                "channel"
+                            },
+                        )
+                        .and_then(integer_of);
+                        remove |=
+                            owner.as_deref() == Some(canister) && channel == Some(i128::from(id));
+                    }
+                }
+            }
+            if remove {
+                removed.insert(object.key.clone());
+            }
+            !remove
+        });
+        self.keys
+            .retain(|key| key.source != source && !key.source.starts_with(&prefix));
+        self.checks.retain(|check| !removed.contains(&check.source));
+        self.inventory.gaps.retain(|gap| {
+            gap.source != source
+                && !gap.source.starts_with(&prefix)
+                && !removed.contains(&gap.source)
+        });
+        self.validate()
+    }
+
     /// The historical channel DEK of `channel`.
     fn channel_key(&self, channel: &str) -> Checked<Option<Zeroizing<Key>>> {
         self.keys

@@ -835,36 +835,7 @@ export default {
   'The inventory did not finish.': 'L’inventaire n’a pas abouti.',
   'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
     'Créez une association dans la section « Ancienne version » de l’application de bureau dMsg ; elle ouvre un lien d’association dans ce navigateur.',
-  'Shared channel succession and member claims':
-    'Succession des canaux partagés et revendications des membres',
-  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
-    'Il faut que l’ancien service soit gelé. Le seul successeur officiel n’existe qu’une fois que chaque gestionnaire gelé a accepté le même nouveau propriétaire et le même enregistrement initial du canal.',
-  'Source channel service': 'Service de canaux source',
-  'Legacy channel number': 'Numéro de l’ancien canal',
-  'Export frozen authority evidence':
-    'Exporter la preuve des autorisations gelées',
-  'Export final history evidence for this channel':
-    'Exporter la preuve finale de l’historique de ce canal',
-  'Approval request from the desktop app':
-    'Demande d’approbation de l’application de bureau',
-  'Approval type': 'Type d’approbation',
-  'Manager consent to the succession proposal':
-    'Accord du gestionnaire sur la proposition de succession',
-  'Former member claim': 'Revendication d’un ancien membre',
-  'Legacy channel': 'Ancien canal',
-  'New owner': 'Nouveau propriétaire',
-  'New channel': 'Nouveau canal',
-  'Proposal version': 'Version de la proposition',
-  'Legacy identity to act for': 'Ancienne identité représentée',
-  'Target account / device': 'Compte / appareil cible',
   'Expires': 'Expire le',
-  'Intent digest': 'Empreinte de l’intention',
-  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
-    'Identité de signature : {principal}. Les noms partagés doivent être approuvés avec l’identifiant de connexion d’origine du gestionnaire gelé.',
-  'I have checked it: approve this version':
-    'J’ai vérifié : approuver cette version',
-  'Approval result to copy into the desktop app':
-    'Résultat d’approbation à copier dans l’application de bureau',
   'First check a complete proposal that has not expired.':
     'Vérifiez d’abord une proposition complète et non expirée.',
   'The legacy identity changed. Check again.':
@@ -882,7 +853,6 @@ export default {
   'Take an inventory': 'Faire l’inventaire',
   'Compare with the desktop app': 'Comparer avec l’application de bureau',
   'Create the migration file': 'Créer le fichier de migration',
-  'Export the frozen evidence': 'Exporter les preuves gelées',
   'A file shared with you': 'Un fichier partagé avec vous',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     'Quelqu’un a partagé un fichier avec vous via dMsg. Il est chiffré ; votre navigateur le déchiffre ici avec la clé du lien, et rien n’en parvient en clair à un serveur.',
@@ -911,7 +881,6 @@ export default {
   'What is dMsg?': 'Qu’est-ce que dMsg ?',
   'The relay could not be reached. Check your connection and try again.':
     'Le relais est injoignable. Vérifiez votre connexion et réessayez.',
-  'Approve a request': 'Approuver une demande',
   'Verify a dMsg signature': 'Vérifier une signature dMsg',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     'Vérifiez un paquet d’attestation exporté depuis dMsg. La vérification se fait dans ce navigateur : le fichier que vous comparez est haché ici et n’est jamais envoyé.',

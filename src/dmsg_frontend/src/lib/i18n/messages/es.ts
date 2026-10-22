@@ -834,36 +834,7 @@ export default {
   'The inventory did not finish.': 'El inventario no terminó.',
   'Create a pairing in the Legacy section of the dMsg desktop app; it opens a link with the pairing in this browser.':
     'Crea una vinculación en la sección «Versión anterior» de la app de escritorio de dMsg; abrirá en este navegador un enlace con la vinculación.',
-  'Shared channel succession and member claims':
-    'Sucesión de canales compartidos y reclamaciones de miembros',
-  'This needs the old service to be frozen. The one official successor exists only after every frozen manager agrees to the same new owner and initial channel record.':
-    'Requiere que el servicio antiguo esté congelado. El único sucesor oficial existe solo cuando todos los administradores congelados aceptan el mismo nuevo propietario y el mismo registro inicial del canal.',
-  'Source channel service': 'Servicio de canales de origen',
-  'Legacy channel number': 'Número del canal anterior',
-  'Export frozen authority evidence':
-    'Exportar la prueba de permisos congelados',
-  'Export final history evidence for this channel':
-    'Exportar la prueba final del historial de este canal',
-  'Approval request from the desktop app':
-    'Solicitud de aprobación de la app de escritorio',
-  'Approval type': 'Tipo de aprobación',
-  'Manager consent to the succession proposal':
-    'Consentimiento del administrador a la propuesta de sucesión',
-  'Former member claim': 'Reclamación de un antiguo miembro',
-  'Legacy channel': 'Canal anterior',
-  'New owner': 'Nuevo propietario',
-  'New channel': 'Canal nuevo',
-  'Proposal version': 'Versión de la propuesta',
-  'Legacy identity to act for': 'Identidad anterior en cuyo nombre se actúa',
-  'Target account / device': 'Cuenta / dispositivo de destino',
   'Expires': 'Caduca',
-  'Intent digest': 'Resumen de la intención',
-  'Signing identity: {principal}. Shared names must be approved with the frozen manager’s original login.':
-    'Identidad de firma: {principal}. Los nombres compartidos deben aprobarse con el inicio de sesión original del administrador congelado.',
-  'I have checked it: approve this version':
-    'Lo he revisado: aprobar esta versión',
-  'Approval result to copy into the desktop app':
-    'Resultado de la aprobación para copiar en la app de escritorio',
   'First check a complete proposal that has not expired.':
     'Primero revisa una propuesta completa que no haya caducado.',
   'The legacy identity changed. Check again.':
@@ -881,7 +852,6 @@ export default {
   'Take an inventory': 'Hacer el inventario',
   'Compare with the desktop app': 'Comparar con la aplicación de escritorio',
   'Create the migration file': 'Crear el archivo de migración',
-  'Export the frozen evidence': 'Exportar las pruebas congeladas',
   'A file shared with you': 'Un archivo compartido contigo',
   'Someone shared a file with you through dMsg. It is encrypted; your browser decrypts it here with the key from the link, and nothing of it reaches a server in the clear.':
     'Alguien compartió un archivo contigo a través de dMsg. Está cifrado; tu navegador lo descifra aquí con la clave del enlace y nada de él llega a un servidor en claro.',
@@ -910,7 +880,6 @@ export default {
   'What is dMsg?': '¿Qué es dMsg?',
   'The relay could not be reached. Check your connection and try again.':
     'No se pudo contactar con el relé. Comprueba tu conexión e inténtalo de nuevo.',
-  'Approve a request': 'Aprobar una solicitud',
   'Verify a dMsg signature': 'Verificar una firma de dMsg',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     'Comprueba un paquete de atestación exportado desde dMsg. Se verifica en este navegador: el archivo que comparas se resume aquí y nunca se sube.',

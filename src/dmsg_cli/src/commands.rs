@@ -14,6 +14,11 @@ use std::path::PathBuf;
 pub enum ChannelCommand {
     /// Channels of this account.
     List,
+    /// Delete an unactivated legacy inheritance draft.
+    DeleteLegacyDraft {
+        /// Channel ID.
+        id: String,
+    },
     /// One channel: members, epoch and keys held.
     Show {
         /// Channel ID.
@@ -517,6 +522,9 @@ fn message_lines(list: &Value) -> String {
 pub async fn channel(remote: &Remote, json: bool, command: ChannelCommand) -> Result<(), Failure> {
     let (method, params) = match command {
         ChannelCommand::List => ("channel/list", Value::Null),
+        ChannelCommand::DeleteLegacyDraft { id } => {
+            ("channel/delete_legacy_draft", json!({"id": id}))
+        }
         ChannelCommand::Show { id } | ChannelCommand::Members { id } => {
             ("channel/show", json!({"id": id}))
         }

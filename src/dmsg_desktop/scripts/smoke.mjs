@@ -405,12 +405,19 @@ const legacyChannels = [
   { archive: archive.id, source: 'c/channel/1', name: 'Old friends', messages: 1, unreadable: 0, synced: false },
   { archive: archive.id, source: 'c/channel/2', name: 'Missing old key', messages: 0, unreadable: 1, synced: false }
 ]
+let legacyDrafts = []
 const wallets = walletFixture(account, created)
 const methods = {
   ...wallets.methods,
   'legacy/pairs': () => [offer],
   'legacy/list': () => [archive],
   'legacy/channels': () => ({ channels: legacyChannels, errors: [] }),
+  'legacy/delete_channel': (p) => {
+    const index = legacyChannels.findIndex((c) => c.archive === p.id && c.source === p.channel)
+    assert.ok(index >= 0)
+    legacyChannels.splice(index, 1)
+    return { deleted: true }
+  },
   'legacy/report': (p) => ({
     ...archive,
     id: p.id,
@@ -911,10 +918,15 @@ const methods = {
     return []
   },
   'connect/sync': () => ({ fetched: 0 }),
-  'channel/list': () => [channel],
-  'channel/show': () => channel,
+  'channel/list': () => [channel, ...legacyDrafts],
+  'channel/show': (p) => legacyDrafts.find((d) => d.id === p.id) ?? channel,
+  'channel/delete_legacy_draft': (p) => {
+    assert.ok(legacyDrafts.some((d) => d.id === p.id))
+    legacyDrafts = legacyDrafts.filter((d) => d.id !== p.id)
+    return { deleted: true }
+  },
   'channel/messages': (p) =>
-    p.before !== undefined
+    legacyDrafts.some((d) => d.id === p.id) ? [] : p.before !== undefined
       ? messages.filter((m) => m.seq < p.before).slice(-(p.limit ?? 200))
       : messages.filter((m) => m.seq > (p.after ?? 0)).slice(0, p.limit ?? 200),
   'channel/send': (p) => {
@@ -1235,6 +1247,8 @@ const announced = {
   'files/save_shared': ['files/changed'],
   'files/backup_cancel': ['files/changed'],
   'channel/send': ['channel/changed'],
+  'channel/delete_legacy_draft': ['channel/changed'],
+  'legacy/delete_channel': ['legacy/changed', 'sync/changed'],
   'channel/send_file': ['channel/changed'],
   'channel/control': ['channel/changed'],
   'channel/history': ['channel/changed'],
@@ -2297,6 +2311,8 @@ try {
   // A started migration that is not imported yet shows a notice; Legacy itself lives in Settings.
   await main.click('[data-testid="legacy-notice"] >> text=Open')
   await main.waitForSelector('[data-testid="legacy-archives"]')
+  assert.equal(await main.locator('[data-testid="legacy-shared"]').count(), 0)
+  await assert.rejects(main.evaluate(() => window.dmsg.call('legacy/shared_prepare', {})), /FORBIDDEN/)
   await main.check(`[data-testid="legacy-pick-${offer.nonce}"]`)
   await main.waitForSelector('[data-testid="legacy-offer"]')
   assert.ok((await main.textContent('[data-testid="legacy-offer"]')).includes(offer.fingerprint))
@@ -2325,6 +2341,34 @@ try {
   await waitFor(() => calls.some((c) => c.method === 'legacy/report' && c.params.channel === 'c/channel/1' && c.params.limit === 0))
   await main.waitForSelector('[data-testid="legacy-channel-messages"] >> text=Hello from the old app')
   await main.screenshot({ path: join(shots, 'legacy-channel-history.png') })
+  await main.click('[data-testid="legacy-channel-item"] >> text=Missing old key')
+  await main.waitForSelector('[data-testid="legacy-channel-title"] >> text=Missing old key')
+  await main.click('[data-testid="legacy-channel-delete"]')
+  await main.click('[data-testid="legacy-channel-delete-dialog"] >> text=Cancel')
+  assert.equal(latest('legacy/delete_channel'), undefined)
+  await main.click('[data-testid="legacy-channel-delete"]')
+  await main.click('[data-testid="legacy-channel-delete-confirm"]')
+  await waitFor(() => latest('legacy/delete_channel'))
+  assert.deepEqual(latest('legacy/delete_channel').params, { id: archive.id, channel: 'c/channel/2' })
+  await main.waitForFunction(() => document.querySelectorAll('[data-testid="legacy-channel-item"]').length === 1)
+  await main.click('[data-testid="legacy-channel-item"] >> text=Old friends')
+  await main.waitForSelector('[data-testid="legacy-channel-messages"] >> text=Hello from the old app')
+
+  legacyDrafts = [1, 2, 3].map((n) => ({ ...channel, id: String(n).repeat(64), name: 'Legacy inheritance draft', ledger: null, readable_epochs: [], message_cursor: 0, deletable_legacy_draft: true }))
+  emit('channel/changed', {})
+  await main.waitForSelector('[data-testid="channel-other-toggle"]')
+  const drafts = main.locator('[data-testid="channel-item"]').filter({ hasText: 'Legacy inheritance draft' })
+  if (!(await drafts.count())) await main.click('[data-testid="channel-other-toggle"]')
+  for (let remaining = 3; remaining > 0; remaining--) {
+    await drafts.first().click()
+    await main.waitForSelector('[data-testid="channel-title"] >> text=Legacy inheritance draft')
+    await main.click('[data-testid="channel-manage"]')
+    await main.click('[data-testid="legacy-draft-delete"]')
+    await main.click('[data-testid="legacy-draft-delete-confirm"]')
+    await waitFor(() => legacyDrafts.length === remaining - 1)
+    await main.waitForFunction((n) => [...document.querySelectorAll('[data-testid="channel-item"]')].filter((e) => e.textContent.includes('Legacy inheritance draft')).length === n, remaining - 1)
+  }
+  assert.equal(calls.filter((c) => c.method === 'channel/delete_legacy_draft').length, 3)
 
   // Vault: a hidden field is shown or copied only on a second click, and
   // the copy goes from the daemon to the clipboard through the main process,
