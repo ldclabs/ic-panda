@@ -400,25 +400,32 @@ const offer = {
   link: 'https://dmsg.net/legacy#pair=pmVub25jZQ',
   started: false
 }
-const archive = { id: '99'.repeat(32), principal: 'aaaaa-aa', mode: 'Local', objects: 7, gaps: 0, imported_at: Date.now(), parts: 1 }
+const archive = { id: '99'.repeat(32), principal: 'aaaaa-aa', mode: 'Local', objects: 7, gaps: 1, imported_at: Date.now(), parts: 1, synced: false }
+const legacyChannels = [
+  { archive: archive.id, source: 'c/channel/1', name: 'Old friends', messages: 1, unreadable: 0, synced: false },
+  { archive: archive.id, source: 'c/channel/2', name: 'Missing old key', messages: 0, unreadable: 1, synced: false }
+]
 const wallets = walletFixture(account, created)
 const methods = {
   ...wallets.methods,
   'legacy/pairs': () => [offer],
   'legacy/list': () => [archive],
+  'legacy/channels': () => ({ channels: legacyChannels, errors: [] }),
   'legacy/report': (p) => ({
     ...archive,
     id: p.id,
     snapshot: 'pre_migration',
-    stage: 'content_verified',
-    gaps: [],
+    stage: 'partial',
+    gaps: [{ source: 'c/channel/2', code: 'missing_key', detail: 'Historical channel key missing' }],
     checks: 5,
     profile: { name: 'Old Panda', bio: '', image: '' },
     files: [{ source: 'b/file/7', kind: 'file', name: 'notes.txt', verified: true, mime: null }],
     resources: [],
     entitlements: [],
-    messages: [{ source: 'c/channel/1/message/2', text: 'Hello from the old app', deleted: false, system: false, author: 'aaaaa-aa', time: '1700000000002', file: null }],
-    total_messages: 1,
+    messages: p.channel === 'c/channel/2' ? [] : [{ source: 'c/channel/1/message/2', text: 'Hello from the old app', deleted: false, system: false, author: 'aaaaa-aa', time: '1700000000002', file: null }],
+    total_messages: p.channel === 'c/channel/2' ? 0 : 1,
+    channels: legacyChannels,
+    channel: legacyChannels.find((c) => c.source === p.channel) ?? null,
     frozen: { checked_channels: 0, matched: false, total_changes: 1, changes: [] }
   }),
   'app/initialize': () => ({ protocol: 'dmsg-app/1', status: status() }),
@@ -2302,6 +2309,22 @@ try {
     /FORBIDDEN/
   )
   await assert.rejects(main.evaluate(() => window.dmsg.openLegacy('https://evil.example/legacy#pair=x')), /INVALID_INPUT/)
+  // Missing keys in one old channel leave the other channel's personal
+  // history usable in Channels, without a new shared membership or sender.
+  await main.click('[data-testid="legacy-open-channels"]')
+  await main.waitForSelector('[data-testid="legacy-channel-title"] >> text=Old friends')
+  await main.waitForSelector('[data-testid="legacy-channel-messages"] >> text=Hello from the old app')
+  assert.deepEqual(latest('legacy/report').params, { id: archive.id, channel: 'c/channel/1', limit: 100 })
+  await main.click('[data-testid="legacy-channel-item"] >> text=Missing old key')
+  await main.waitForSelector('[data-testid="legacy-channel-title"] >> text=Missing old key')
+  await main.waitForSelector('[data-testid="legacy-channel-history"] >> text=1 unreadable messages')
+  assert.equal(await main.locator('[data-testid="legacy-channel-messages"] li').count(), 0)
+  await main.click('[data-testid="legacy-channel-item"] >> text=Old friends')
+  await main.waitForSelector('[data-testid="legacy-channel-messages"] >> text=Hello from the old app')
+  emit('sync/changed', {})
+  await waitFor(() => calls.some((c) => c.method === 'legacy/report' && c.params.channel === 'c/channel/1' && c.params.limit === 0))
+  await main.waitForSelector('[data-testid="legacy-channel-messages"] >> text=Hello from the old app')
+  await main.screenshot({ path: join(shots, 'legacy-channel-history.png') })
 
   // Vault: a hidden field is shown or copied only on a second click, and
   // the copy goes from the daemon to the clipboard through the main process,
@@ -2717,6 +2740,10 @@ try {
   // removed; the window never names a path itself.
   await main.click('[data-testid="settings-profile"]')
   await main.waitForSelector('[data-testid="profile-avatar"]')
+  await main.click('[data-testid="profile-use-legacy"]')
+  await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]').value === 'Old Panda')
+  assert.equal(latest('profile/publish'), undefined)
+  assert.equal(published.profile.display_name, 'Smoke')
   await answer('__open', join(picks, 'me.png'))
   await main.click('[data-testid="avatar-set"]')
   await waitFor(() => latest('profile/avatar')?.params.path === join(picks, 'me.png'))

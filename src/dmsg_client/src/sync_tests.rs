@@ -134,6 +134,56 @@ fn titles(client: &Client, trash: bool) -> Vec<String> {
 }
 
 #[test]
+fn partial_legacy_history_syncs_with_its_encrypted_parts_to_another_device() {
+    use crate::legacy::{Archive, Offer};
+    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
+
+    let (da, db) = (TempDir::new(), TempDir::new());
+    let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));
+    let vectors = crate::vectors::load("legacy-v1.json");
+    let transfer = &vectors["transfer"];
+    let offer: Offer = serde_json::from_value(transfer["offer"].clone()).unwrap();
+    let seed = hex::decode(transfer["seed_hex"].as_str().unwrap())
+        .unwrap()
+        .try_into()
+        .unwrap();
+    let opened = crate::legacy::open_transfer(
+        &URL_SAFE_NO_PAD
+            .decode(transfer["file_b64"].as_str().unwrap())
+            .unwrap(),
+        &offer,
+        &seed,
+        transfer["now"].as_u64().unwrap(),
+    )
+    .unwrap();
+    let archive = Archive::decode(&opened.plain).unwrap();
+    let checked = crate::legacy::verify(&archive);
+    assert!(checked.partial);
+    let id = a
+        .keep_archive(
+            &opened.plain,
+            &archive,
+            &crate::codec::hex_sha256(&opened.plain),
+            checked.gaps.len(),
+        )
+        .unwrap();
+    let mut relay = Relay::default();
+    assert_eq!(relay.accept(&mut a), (2, 0));
+    relay.deliver(&mut b).unwrap();
+    let report = b.legacy_report(&id, 0, 100).unwrap();
+    assert_eq!(report["stage"], "partial");
+    assert_eq!(report["synced"], true);
+    assert_eq!(report["total_messages"], 4);
+    assert_eq!(
+        b.legacy_channels().unwrap()["channels"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
+}
+
+#[test]
 fn concurrent_edits_become_conflict_copies() {
     let (da, db) = (TempDir::new(), TempDir::new());
     let (mut a, mut b) = (unlocked(&da.0, false, None), unlocked(&db.0, false, None));

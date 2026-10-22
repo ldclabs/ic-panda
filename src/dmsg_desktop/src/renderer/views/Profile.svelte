@@ -7,6 +7,7 @@
   import Id from '../components/page/Id.svelte'
   import Notice from '../components/page/Notice.svelte'
   import Section from '../components/page/Section.svelte'
+  import Select from '../components/Select.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, errorText } from '../rpc'
@@ -22,6 +23,9 @@
   let found = $state<any>(undefined)
   let error = $state('')
   let busy = $state(false)
+  let archives = $state<any[]>([])
+  let archive = $state('')
+  let fromLegacy = $state(false)
   /** Data URLs of the avatars shown, by upload ID. */
   let images = $state<Record<string, string>>({})
 
@@ -53,7 +57,18 @@
     void avatarOf(mine)
   }
 
-  const load = () => attempt(async () => show(await call('profile/show')))
+  const load = () => attempt(async () => {
+    archives = (await call<any[]>('legacy/list')).sort((a, b) => b.imported_at - a.imported_at)
+    archive = archives[0]?.id ?? ''
+    show(await call('profile/show'))
+  })
+
+  const useLegacy = () => attempt(async () => {
+    const old: any = await call('legacy/report', { id: archive, limit: 0 })
+    displayName = old.profile.name
+    bio = old.profile.bio
+    fromLegacy = true
+  })
 
   const avatar = (remove: boolean) =>
     attempt(async () => {
@@ -71,6 +86,7 @@
           .map((l) => l.trim())
           .filter(Boolean)
       })
+      fromLegacy = false
     })
 
   const resolve = () =>
@@ -96,6 +112,13 @@
 <Section title={t('publicProfile')} description={t('avatarHint')} icon="profile" testid="profile">
   {#if status?.state === 'unlocked'}
     <div class="grid gap-4">
+      {#if archives.length}
+        <div class="flex flex-wrap items-center gap-2">
+          <Select bind:value={archive} label={t('legacyArchives')} options={archives.map((a) => ({ value: a.id, label: a.principal, mono: true }))} testid="profile-legacy-archive" />
+          <button class={buttonClass('secondary', 'sm')} disabled={busy || !archive} onclick={useLegacy} data-testid="profile-use-legacy">{t('legacyUseProfile')}</button>
+        </div>
+      {/if}
+      {#if fromLegacy}<Notice>{t('legacyProfileDraft')}</Notice>{/if}
       <div class="flex items-center gap-4">
         {@render picture(mine, 'size-16')}
         <div class="flex flex-wrap gap-1.5">

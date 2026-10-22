@@ -11,12 +11,13 @@ use dmsg_types::{Error, Result};
 use serde_json::{Value, json};
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 22] = [
+pub(crate) const METHODS: [&str; 23] = [
     "legacy/pair",
     "legacy/pairs",
     "legacy/cancel",
     "legacy/import",
     "legacy/list",
+    "legacy/channels",
     "legacy/report",
     "legacy/file",
     "legacy/frozen",
@@ -79,8 +80,10 @@ impl Daemon {
                         &text(params, "principal")?,
                     )?,
                     "legacy/list" => json!(client.legacy_list()?),
-                    "legacy/report" => client.legacy_report(
+                    "legacy/channels" => client.legacy_channels()?,
+                    "legacy/report" => client.legacy_channel_report(
                         &text(params, "id")?,
+                        params["channel"].as_str(),
                         params["offset"].as_u64().unwrap_or(0) as usize,
                         params["limit"].as_u64().unwrap_or(100) as usize,
                     )?,

@@ -342,15 +342,28 @@ export class LegacyReader {
             await this.persist()
             await onProgress?.(this.inventory)
           }
+          // The source returns a channel when either it or this member's
+          // settings changed; both timestamps belong to the captured snapshot.
+          const observedAt = info.my_setting?.updated_at > info.updated_at
+            ? info.my_setting.updated_at
+            : info.updated_at
           const latest = await this.call('channel', canister, 'get_channel_if_update', [
             id,
-            info.updated_at
+            observedAt
           ])
           if (latest.length)
             this.gap(
               key,
               new LegacyError('version', 'Channel changed during pre-migration snapshot')
             )
+          else {
+            // A resumed export may carry the old timestamp-only false
+            // warning. add() already required the saved snapshot to match.
+            this.inventory.gaps = this.inventory.gaps.filter(
+              (gap) => !(gap.source === key && gap.code === 'version' &&
+                gap.detail === 'Channel changed during pre-migration snapshot')
+            )
+          }
         } catch (cause) {
           this.gap(key, cause)
         }

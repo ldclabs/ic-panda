@@ -299,6 +299,7 @@ export const WINDOW_METHODS = new Set([
   'legacy/pairs',
   'legacy/cancel',
   'legacy/list',
+  'legacy/channels',
   'legacy/report',
   'legacy/shared_source',
   'legacy/shared_prepare',

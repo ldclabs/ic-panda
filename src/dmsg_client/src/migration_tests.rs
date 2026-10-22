@@ -187,6 +187,83 @@ fn imports_one_archive_once_and_reads_it_offline() {
 }
 
 #[test]
+fn partial_archives_expose_each_channel_and_track_all_sync_parts() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let vectors = load("legacy-v1.json");
+    let offer = vector_pair(&client, &vectors);
+    let file = dir.path("partial.dmsg-migration");
+    std::fs::write(&file, unb64url(&vectors["transfer"]["file_b64"])).unwrap();
+    let report = client
+        .legacy_import(&file, &offer.nonce, &offer.fingerprint(), "kw6ia-hibai-bq")
+        .unwrap();
+    let id = report["id"].as_str().unwrap();
+    assert_eq!(report["stage"], "partial");
+    assert_eq!(report["synced"], false);
+    let history = client.legacy_channels().unwrap();
+    assert!(history["errors"].as_array().unwrap().is_empty());
+    assert_eq!(history["channels"].as_array().unwrap().len(), 2);
+    let first = "nvdn4-5qaaa-aaaaj-qa4pq-cai/channel/1";
+    let second = "nvdn4-5qaaa-aaaaj-qa4pq-cai/channel/2";
+    let readable = client.legacy_channel_report(id, Some(first), 0, 2).unwrap();
+    assert_eq!(readable["total_messages"], 4);
+    assert_eq!(readable["messages"].as_array().unwrap().len(), 2);
+    assert!(
+        readable["messages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|m| m["source"].as_str().unwrap().starts_with(first))
+    );
+    let missing = client
+        .legacy_channel_report(id, Some(second), 0, 100)
+        .unwrap();
+    assert_eq!(missing["total_messages"], 0);
+    assert_eq!(missing["channel"]["unreadable"], 1);
+    assert_eq!(
+        client
+            .legacy_channel_report(id, Some("unknown"), 0, 100)
+            .err(),
+        Some(Error::NotFound)
+    );
+
+    // Metadata can arrive before its parts; it is not fully synced yet.
+    let record = client.archive_record(id).unwrap();
+    let (row, _) = client.current(id).unwrap();
+    client
+        .workspace
+        .store
+        .set_object(&row.key, SYNCED, false)
+        .unwrap();
+    assert_eq!(client.legacy_list().unwrap()[0]["synced"], false);
+    for part in &record.parts {
+        let (row, _) = client.current(part).unwrap();
+        client
+            .workspace
+            .store
+            .set_object(&row.key, SYNCED, false)
+            .unwrap();
+    }
+    assert_eq!(client.legacy_list().unwrap()[0]["synced"], true);
+    // A separate incomplete archive cannot hide already readable history.
+    let mut incomplete = record;
+    incomplete.parts = vec!["ab".repeat(32)];
+    client
+        .write(
+            MIGRATION,
+            random_hex(),
+            None,
+            false,
+            &canonical(&incomplete),
+            None,
+        )
+        .unwrap();
+    let history = client.legacy_channels().unwrap();
+    assert_eq!(history["errors"].as_array().unwrap().len(), 1);
+    assert_eq!(history["channels"].as_array().unwrap().len(), 2);
+}
+
+#[test]
 fn imports_after_a_forty_five_minute_export() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);

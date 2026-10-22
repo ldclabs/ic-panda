@@ -165,6 +165,39 @@ describe('legacy reader has no business write path', () => {
       report.calls.every((c) => !/^(create|update|leave|save|sign_in)/.test(c.method))
     ).toBe(true)
   })
+  it.each([false, true])('checks both channel and member timestamps for snapshot changes: %s', async (changed) => {
+    const channel = {
+      id: 1,
+      canister: Principal.fromText(canister),
+      message_start: 1,
+      latest_message_id: 0,
+      updated_at: 5n,
+      my_setting: { updated_at: 9n },
+      deleted_messages: []
+    }
+    const r = reader(async (method, args) => {
+      if (method === 'get_user')
+        return { Ok: { id: user, profile_canister: Principal.fromText(canister) } }
+      if (method === 'get_profile') return { Ok: {} }
+      if (method === 'get_state')
+        return { Ok: { channel_canisters: [Principal.fromText(canister)], matured_channel_canisters: [] } }
+      if (method === 'my_channel_ids') return { Ok: [1] }
+      if (method === 'get_channel_if_update') {
+        if (args[1] === 0n) return { Ok: [channel] }
+        expect(args[1]).toBe(9n)
+        return { Ok: changed ? [{ ...channel, updated_at: 10n }] : [] }
+      }
+      throw new Error('unexpected call')
+    })
+    if (!changed) r.inventory.gaps.push({
+      source: `${canister}/channel/1`, code: 'version',
+      detail: 'Channel changed during pre-migration snapshot'
+    })
+    const report = await r.collect()
+    expect(report.objects.filter((o) => o.kind === 'channel')).toHaveLength(1)
+    expect(report.gaps.filter((g) => g.code === 'version')).toHaveLength(changed ? 1 : 0)
+  })
+
   it('reassembles exact 256KiB transport chunks before whole-file AEAD, rejecting missing/reordered chunks', async () => {
     const key = AesGcmKey.fromSecret(new Uint8Array(32).fill(9))
     const plain = new Uint8Array(OSS_CHUNK + 33).fill(3)

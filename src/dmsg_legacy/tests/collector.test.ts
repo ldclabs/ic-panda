@@ -123,6 +123,7 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
     const stores = ['Keys', 'Channels', 'Messages']
     const before = await Promise.all(stores.map((store) => local.getAll(store)))
     const calls: string[] = []
+    let withMissingChannel = false
     const reader = new LegacyReader(
       {
         principal,
@@ -150,9 +151,9 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
             case 'get_state':
               return { Ok: { channel_canisters: [canister], matured_channel_canisters: [] } }
             case 'my_channel_ids':
-              return { Ok: [1] }
+              return { Ok: withMissingChannel ? [1, 2] : [1] }
             case 'get_channel_if_update':
-              return { Ok: args[1] ? [] : [channel] }
+              return { Ok: args[1] ? [] : [args[0] === 2 ? { ...channel, id: 2, files_state: [] } : channel] }
             case 'list_messages':
               return { Ok: [message] }
             case 'my_iv':
@@ -228,6 +229,15 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
         (method) => !/^(create|update|save|delete|leave|try_|setting_set)/.test(method)
       )
     ).toBe(true)
+    withMissingChannel = true
+    const partial = await collectArchive(reader, {
+      password, salt: principal, keyId, contextVersion: 1, keyName: 'test_key_1'
+    })
+    const checked = await verifyArchiveContent(partial)
+    expect(checked.partial).toBe(true)
+    expect(checked.gaps.some((gap) => gap.source === `${source}/channel/2` && gap.code === 'missing_key')).toBe(true)
+    expect(checked.messages.some((entry) => entry.file?.name === 'old.bin')).toBe(true)
+    expect((await openArchiveFile(partial, `${source}/file/0`)).bytes).toEqual(plaintext)
     local.close()
   }
 )

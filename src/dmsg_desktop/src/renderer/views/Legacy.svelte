@@ -98,6 +98,12 @@
       report = await call('legacy/report', { id, limit })
     })
 
+  const sync = () => attempt(async () => {
+    await call('sync/run')
+    await reload()
+    if (report) report = await call('legacy/report', { id: report.id, limit })
+  })
+
   const more = () =>
     attempt(async () => {
       limit += 100
@@ -197,7 +203,7 @@
 
   onMount(() => {
     void attempt(reload)
-    return onChange(['legacy/changed'], () => reload().catch(() => {}))
+    return onChange(['legacy/changed', 'sync/changed'], () => reload().catch(() => {}))
   })
 </script>
 
@@ -266,6 +272,8 @@
         <Pill>{a.mode}</Pill>
         <Id id={a.principal} full class="max-w-[50%]" />
         <span class="min-w-0 flex-1 text-[12px] text-faint">{a.objects} {t('legacyObjects')} · {a.gaps} {t('legacyGaps')}</span>
+        <Pill tone={a.synced ? 'ok' : 'neutral'}>{t(a.synced ? 'synced' : 'legacyWaitingSync')}</Pill>
+        <a class={buttonClass('secondary', 'xs')} href={`#/channels?legacy=${encodeURIComponent(a.id)}`} data-testid="legacy-open-channels">{t('legacyHistory')}</a>
         <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => open(a.id)}>{t('legacyRead')}</button>
       </li>
     {:else}
@@ -276,6 +284,11 @@
 
 {#if report}
   <Section title={report.stage === 'partial' ? t('legacyPartial') : t('legacyVerified')} description={t('legacyClaims')} icon={report.stage === 'partial' ? 'warning' : 'verified'} testid="legacy-report">
+    {#snippet actions()}
+      <a class={buttonClass('secondary', 'sm')} href="#/settings/profile">{t('legacyUseProfile')}</a>
+      <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={sync}>{t('sync')}</button>
+    {/snippet}
+    <Notice tone="ok">{t('legacyPartialHint')}</Notice>
     <div class="grid gap-4">
       <dl class="divide-y divide-line">
         <Fact label={t('legacyPrincipal')}><Id id={report.principal} full /></Fact>

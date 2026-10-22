@@ -14,6 +14,7 @@
   import Access from './channels/Access.svelte'
   import { arrange, kindLabel, powers, roleLabel, statusLabel } from './channels/channels'
   import LibraryPicker from './channels/LibraryPicker.svelte'
+  import LegacyHistory from './channels/LegacyHistory.svelte'
   import Members from './channels/Members.svelte'
   import { accountOf, label } from './channels/names.svelte'
   import NewChannel from './channels/NewChannel.svelte'
@@ -32,6 +33,10 @@
   let { status, route, go }: { status: any; route: string; go: (path: string) => void } = $props()
 
   let channels = $state<any[]>([])
+  let legacyChannels = $state<any[]>([])
+  let legacySelected = $state<any>(null)
+  let legacyError = $state('')
+  let legacyRequested: string | null = null
   let selected = $state<string | null>(null)
   let channel = $state<any>(null)
   let messages = $state<any[]>([])
@@ -79,6 +84,7 @@
   const ledger = $derived(channel?.ledger)
   const can = $derived(powers(ledger, me))
   const listed = $derived(arrange(channels.filter((c) => !query.trim() || c.name.toLowerCase().includes(query.trim().toLowerCase())), me))
+  const oldChannels = $derived(legacyChannels.filter((c) => !query.trim() || `${c.name} ${c.source}`.toLowerCase().includes(query.trim().toLowerCase())))
   const shownOutbox = $derived([
     ...sending,
     ...outbox.filter((o) => !sending.some((s) => s.message_id === o.message_id)).map((o) => ({ ...o, error: failures[o.message_id] }))
@@ -135,12 +141,35 @@
     }
   })
 
+  function pickLegacy(entry: any) {
+    selected = channel = null
+    legacySelected = entry
+  }
+
+  const readLegacy = single(async () => {
+    try {
+      const result: any = await call('legacy/channels')
+      legacyChannels = result.channels
+      legacyError = result.errors.map((e: any) => e.error).join('; ')
+      if (legacyRequested) {
+        const first = legacyChannels.find((c) => c.archive === legacyRequested)
+        if (first) pickLegacy(first)
+        legacyRequested = null
+      }
+    } catch (e) {
+      legacyChannels = []
+      legacySelected = null
+      legacyError = closed(e, status) ? '' : errorText(e)
+    }
+  })
+
   /**
    * A channel, its latest messages and outbox. The one already shown reads
    * its last page again with the messages after it, as edits, withdrawals
    * and hides change messages already shown.
    */
   async function open(id: string) {
+    legacySelected = null
     const switching = channel?.id !== id
     selected = id
     const from = switching ? null : (messages.at(-PAGE)?.seq ?? 1) - 1
@@ -407,6 +436,7 @@
     const join = params.get('join')
     const direct = params.get('direct')
     const target = params.get('open')
+    const legacy = params.get('legacy')
     if (join) {
       joinText = `dmsg://channel/join#${join}`
       createTab = 'join'
@@ -415,16 +445,22 @@
       peer = { account: direct, name: params.get('name') ?? label(direct) }
       creating = true
     } else if (target) void pick(target)
+    else if (legacy) {
+      legacyRequested = legacy
+      void readLegacy()
+    }
     go('/channels')
   })
 
   onMount(() => {
     void reload()
+    void readLegacy()
     const offs = [
       onChange(['channel/changed', 'session/changed', 'sync/changed'], () => {
         void reload()
         if (channel && Date.now() - receiptsAt > 10_000) void loadReceipts(channel.id)
-      })
+      }),
+      onChange(['legacy/changed', 'session/changed', 'sync/changed'], readLegacy)
     ]
     return () => offs.forEach((off) => off())
   })
@@ -519,7 +555,7 @@
         {#each listed.live as entry (entry.id)}
           {@render item(entry)}
         {:else}
-          {#if !listed.other.length}
+          {#if !listed.other.length && !oldChannels.length}
             <li class="grid justify-items-center gap-2 px-4 py-10 text-center">
               <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="channels" /></span>
               <p class="text-[13px] text-muted">{query ? t('noMatch', { query }) : t('noChannels')}</p>
@@ -541,11 +577,30 @@
             {/each}
           {/if}
         {/if}
+        {#if oldChannels.length}
+          <li class="px-2 pt-4 pb-1 text-[11.5px] font-medium text-faint">{t('legacyHistory')}</li>
+          {#each oldChannels as entry (`${entry.archive}:${entry.source}`)}
+            <li>
+              <button class={cn('flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start hover:bg-wash', legacySelected?.archive === entry.archive && legacySelected?.source === entry.source && 'bg-pale')} onclick={() => pickLegacy(entry)} data-testid="legacy-channel-item">
+                <Icon name="legacy" class="shrink-0 text-faint" />
+                <span class="min-w-0">
+                  <b class="block truncate text-[13px] font-medium">{entry.name || entry.source}</b>
+                  <span class="block text-[11px] text-faint">{t('legacyReadable', { n: entry.messages })}{entry.unreadable ? ` · ${t('legacyUnreadable', { n: entry.unreadable })}` : ''}</span>
+                </span>
+              </button>
+            </li>
+          {/each}
+        {/if}
+        {#if legacyError}<li class="px-2 py-2 text-[12px] text-danger">{legacyError}</li>{/if}
       </ul>
     </section>
 
     <section class="flex min-w-0 flex-1 flex-col">
-      {#if channel}
+      {#if legacySelected}
+        {#key `${legacySelected.archive}:${legacySelected.source}`}
+          <LegacyHistory entry={legacySelected} />
+        {/key}
+      {:else if channel}
         <header class="flex min-h-14 shrink-0 items-center gap-3 border-b border-line px-5 py-2">
           <Avatar id={channel.id} name={channel.name} size="lg" />
           <div class="min-w-0 flex-1">

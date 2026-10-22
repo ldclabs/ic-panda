@@ -20,6 +20,7 @@ use crate::files::{FileManifest, MAX_FILE, read_file, store_file};
 use crate::legacy::{self, Archive, Offer};
 use crate::legacy_proof::{self, Change, FrozenChannel, Trust};
 use crate::now_ms;
+use crate::store::SYNCED;
 use crate::upload::random_hex;
 use dmsg_types::{Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
@@ -119,6 +120,12 @@ fn pair_view(offer: &Offer, started: bool) -> Json {
 }
 
 impl Client {
+    fn archive_synced(&self, id: &str, record: &ArchiveRecord) -> bool {
+        std::iter::once(id)
+            .chain(record.parts.iter().map(String::as_str))
+            .all(|id| self.current(id).is_ok_and(|(row, _)| row.state == SYNCED))
+    }
+
     fn pair_state(&self, nonce: &str) -> Result<PairState> {
         ensure_valid(
             nonce.len() == 64 && nonce.bytes().all(|b| b.is_ascii_hexdigit()),
@@ -406,6 +413,7 @@ impl Client {
                 "gaps": record.gaps,
                 "imported_at": record.imported_at,
                 "parts": record.parts.len(),
+                "synced": self.archive_synced(&id, &record),
             }));
         }
         Ok(list)
@@ -418,21 +426,97 @@ impl Client {
     /// # Errors
     /// As [`Self::kept_archive`].
     pub fn legacy_report(&self, id: &str, offset: usize, limit: usize) -> Result<Json> {
+        self.legacy_channel_report(id, None, offset, limit)
+    }
+
+    /// Personal history from every kept archive, independent of gaps in
+    /// other channels. An archive still downloading does not hide the rest.
+    ///
+    /// # Errors
+    /// Returns a storage error if the archive index cannot be read.
+    pub fn legacy_channels(&self) -> Result<Json> {
+        let mut channels = Vec::new();
+        let mut errors = Vec::new();
+        for (id, _) in self.workspace.store.heads(MIGRATION)? {
+            match self.legacy_report(&id, 0, 0) {
+                Ok(report) => {
+                    for channel in report["channels"].as_array().into_iter().flatten() {
+                        let mut channel = channel.clone();
+                        channel["archive"] = id.clone().into();
+                        channel["principal"] = report["principal"].clone();
+                        channel["synced"] = report["synced"].clone();
+                        channels.push(channel);
+                    }
+                }
+                Err(error) => errors.push(json!({"archive": id, "error": format!("{error:?}")})),
+            }
+        }
+        Ok(json!({"channels": channels, "errors": errors}))
+    }
+
+    /// A kept archive, optionally limited to one old channel. This reads
+    /// personal history and never creates new shared-channel membership.
+    ///
+    /// # Errors
+    /// As [`Self::kept_archive`], or `Error::NotFound` for another channel.
+    pub fn legacy_channel_report(
+        &self,
+        id: &str,
+        channel: Option<&str>,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Json> {
         let (record, plain) = self.kept_archive(id)?;
         let archive = Archive::decode(&plain)?;
         let checked = legacy::verify(&archive);
         let summary = legacy::summary(&archive, &checked);
-        let messages: Vec<_> = checked
+        let channels: Vec<_> = summary
+            .resources
+            .iter()
+            .map(|resource| {
+                let source = resource["source"].as_str().unwrap_or_default();
+                let prefix = format!("{source}/message/");
+                let total = archive
+                    .inventory
+                    .objects
+                    .iter()
+                    .filter(|o| o.kind == "message" && o.key.starts_with(&prefix))
+                    .count();
+                let readable = checked
+                    .messages
+                    .iter()
+                    .filter(|m| m.source.starts_with(&prefix))
+                    .count();
+                json!({
+                    "source": source,
+                    "name": resource["name"],
+                    "messages": readable,
+                    "unreadable": total.saturating_sub(readable),
+                })
+            })
+            .collect();
+        let selected = channel
+            .map(|source| {
+                channels
+                    .iter()
+                    .find(|c| c["source"] == source)
+                    .cloned()
+                    .ok_or(Error::NotFound)
+            })
+            .transpose()?;
+        let prefix = channel.map(|source| format!("{source}/message/"));
+        let readable: Vec<_> = checked
             .messages
             .iter()
-            .skip(offset)
-            .take(limit.min(500))
+            .filter(|m| prefix.as_ref().is_none_or(|p| m.source.starts_with(p)))
             .collect();
+        let messages: Vec<_> = readable.iter().skip(offset).take(limit.min(500)).collect();
         Ok(json!({
             "id": id,
             "principal": record.principal,
             "mode": record.mode,
             "objects": record.objects,
+            "synced": self.archive_synced(id, &record),
             "snapshot": archive.inventory.snapshot,
             "stage": if checked.partial { "partial" } else { "content_verified" },
             "gaps": checked.gaps,
@@ -447,7 +531,9 @@ impl Client {
             "resources": summary.resources,
             "entitlements": summary.entitlements,
             "messages": messages,
-            "total_messages": checked.messages.len(),
+            "total_messages": readable.len(),
+            "channel": selected,
+            "channels": channels,
             "frozen": frozen_view(&archive, &record),
         }))
     }
