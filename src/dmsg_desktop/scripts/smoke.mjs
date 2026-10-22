@@ -416,6 +416,14 @@ const legacyChannels = [
 ]
 let legacyDrafts = []
 const wallets = walletFixture(account, created)
+let storageReleased = false
+const storageCopies = [
+  { id:'backup-copy', owner_kind:'account', resource:account, upload_id:'71'.repeat(32), kind:'backup', name:'Project archive.zip', source_file:'23'.repeat(32), bytes:4096, payer:account, charged_bytes:4096, reserved_bytes:0, generation:0, phase:'stored', can_delete:true, created_at:Date.now() },
+  { id:'link-copy', owner_kind:'account', resource:account, upload_id:'72'.repeat(32), kind:'share', name:'Shared report.pdf', source_file:'23'.repeat(32), bytes:2048, payer:account, charged_bytes:2048, reserved_bytes:0, generation:0, phase:'stored', can_revoke:true, share:{share_id:'73'.repeat(32),state:'active',expires_at:Date.now()+86400000,downloads:2}, url:'https://dmsg.test/s/example#test-key',created_at:Date.now() },
+  { id:'channel-copy', owner_kind:'channel', resource:'74'.repeat(32),upload_id:'75'.repeat(32),kind:'file',name:'Design notes.txt',channel_name:'Project channel',source_file:'23'.repeat(32),bytes:1024,payer:account,charged_bytes:1024,reserved_bytes:0,generation:0,phase:'stored',can_delete:true,created_at:Date.now() }
+]
+const storageReport = () => ({loaded:true, account, entries:storageCopies.map(e=>storageReleased && e.phase==='releasing' ? {...e,phase:'released',charged_bytes:0}:e), errors:[],links:[],usage:{committed:storageReleased?0:7168,reserved:0,lifecycle:{storage_limit:104857600}},categories:{backup:4096,share:2048,file:1024},pending_release:storageCopies.some(e=>e.phase==='releasing')&&!storageReleased?7168:0,refreshed_at:Date.now(),reconciliation:{consistent:true}})
+
 const methods = {
   ...wallets.methods,
   'legacy/pairs': () => [offer],
@@ -613,6 +621,17 @@ const methods = {
     backupJobs.splice(backupJobs.findIndex((j) => j.file === p.id && j.version === p.version), 1)
     return null
   },
+  'files/storage': storageReport,
+  'files/storage_refresh': storageReport,
+  'files/storage_action': (p) => {
+    for (const target of p.targets) {
+      const entry=storageCopies.find(e=>e.upload_id===target.upload_id)
+      assert.ok(entry)
+      entry.phase='releasing';entry.can_delete=false;entry.can_revoke=false
+    }
+    return {outcomes:p.targets.map(target=>({target,accepted:true}))}
+  },
+  'files/share_quote': () => ({payer:account,estimated_bytes:20000,existing:storageCopies.filter(e=>e.phase==='stored')}),
   'files/share_links': () => [],
   'files/mount_status': () => ({ mounted: false, enabled: false, os: 'macos', supported: true, note: '' }),
   'files/cloud_list': () => [],
@@ -2015,7 +2034,9 @@ try {
   await main.locator('[data-testid="wallet-proposal"]').nth(1).getByRole('button',{name:'Details',exact:true}).click()
   await main.waitForSelector('[data-testid="wallet-proposal-detail"]')
   assert.equal(await main.locator('[data-testid="wallet-proposal-detail"]').getByRole('button',{name:'Execute',exact:true}).count(),0)
+  await settled(main, '[data-testid="wallet-proposal-detail"]')
   await main.keyboard.press('Escape')
+  await main.waitForSelector('[data-testid="wallet-proposal-detail"]', { state: 'detached' })
   wallets.state.role='Admin'
   emit('wallet/changed')
   await main.waitForFunction(()=>document.querySelector('[data-testid="wallet-identity"]')?.textContent.includes('Administrator'))
@@ -2606,11 +2627,40 @@ try {
   await main.click('nav >> text=/^(Files|文件)$/')
   await main.waitForSelector('[data-testid="files-loading"]')
   assert.equal(await main.locator('[data-testid="files-empty"]').count(), 0)
+  await main.click('[data-testid="files-scope-storage"]')
+  await main.waitForSelector('[data-testid="storage-list"] [data-upload]')
+  assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(),3)
+  await settled(main,'[data-testid="files-storage"]')
+  while (await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').count()) await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').first().click()
+  await main.screenshot({path:join(shots,'cloud-storage.png')})
+  await main.getByRole('button',{name:'Select reclaimable items',exact:true}).click()
+  await main.click('[data-testid="storage-bulk-delete"]')
+  await main.waitForSelector('[data-testid="storage-confirm"]')
+  assert.match(await main.textContent('[data-testid="storage-confirm"]'),/already downloaded/)
+  await main.click('[data-testid="storage-confirm-delete"]')
+  await main.waitForSelector('[data-testid="storage-confirm"]',{state:'detached'})
+  await waitFor(()=>latest('files/storage_action'))
+  assert.equal(latest('files/storage_action').params.targets.length,3)
+  await main.getByTestId('storage-phase').filter({hasText:'awaiting quota release'}).first().waitFor()
+  storageReleased=true
+  await main.click('[data-testid="storage-refresh"]')
+  await main.getByTestId('storage-phase').filter({hasText:'Space released'}).first().waitFor()
+  await main.click('[data-testid="files-scope-links"]')
+  await main.waitForSelector('[data-testid="storage-list"] [data-upload]')
+  assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(),1)
+  await main.click('[data-testid="files-scope-root"]')
   await listing()
   await main.waitForSelector('[data-testid="files-list"] >> text=report.pdf')
   assert.equal(await main.locator('[data-testid="files-loading"]').count(), 0)
   await main.click('[data-testid="files-list"] >> text=report.pdf')
   await main.waitForSelector('[data-testid="files-status"] >> text=/Backed up/')
+  await main.click('[data-testid="files-more"]')
+  await main.click('[data-testid="files-link"]')
+  await main.waitForSelector('[data-testid="files-link-create"]:enabled')
+  assert.match(await main.textContent('[data-testid="files-link-dialog"]'), /new encrypted copy/)
+  assert.match(await main.textContent('[data-testid="files-link-dialog"]'), /charged to me/)
+  await main.locator('[data-testid="files-link-dialog"]').getByRole('button',{name:'Cancel',exact:true}).click()
+  await main.waitForSelector('[data-testid="files-link-dialog"]',{state:'detached'})
   await main.screenshot({ path: join(shots, 'files.png') })
   // A backup under way is cancelled from its card, which then leaves.
   backupJobs.push({ file: '23'.repeat(32), version: 'v1', upload_id: '72'.repeat(32), size: 1234, sent: 1, chunks: 4, created_at: Date.now(), error: null })

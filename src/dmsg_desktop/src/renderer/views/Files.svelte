@@ -20,6 +20,7 @@
   import { bridge, call, closed, code, errorText, onChange, planAction, single, size } from '../rpc'
   import { added, backups, dismiss, failed, forget, jobs, picked, progress, type Job } from './files/adding.svelte'
   import Cloud from './files/Cloud.svelte'
+  import Storage from './files/Storage.svelte'
   import Detail from './files/Detail.svelte'
   import { ancestorsOf, isSort, matchesFile, ordered, ROOT, sortKeys, statusOf, type Sort, type SortKey } from './files/files'
   import FolderDetail from './files/FolderDetail.svelte'
@@ -56,6 +57,8 @@
   let cloud = $state<any[]>([])
   let cloudLoaded = $state(false)
   let cloudUsage = $state<any>(null)
+  let cloudCopies = $state<any[]>([])
+  let copiesKnown = $state(false)
   let usage = $state<any>(null)
   let query = $state('')
   let selected = $state<string[]>([])
@@ -92,6 +95,10 @@
   /** `files/share_links`: the links this device made, for the detail's list. */
   let links = $state<any[]>([])
   let linking = $state<{ id: string; version: string | null; name: string; days: number; maxDownloads: number; password: string; result: any | null } | null>(null)
+  let quote = $state<any>(null)
+  let quoteError = $state('')
+  let quoting = $state(false)
+  let quoteSerial = 0
   let draft = $state('')
   /** The names of files a backup card names by ID, read once each. */
   let resolved = $state<Record<string, string>>({})
@@ -99,7 +106,7 @@
 
   const unlocked = $derived(status?.state === 'unlocked')
   const tag = $derived(scope.startsWith('tag:') ? scope.slice(4) : null)
-  const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && !tag)
+  const folderScope = $derived(scope !== 'starred' && scope !== 'cloud' && scope !== 'trash' && scope !== 'storage' && scope !== 'links' && !tag)
   const names = $derived(Object.fromEntries((listing?.files ?? []).concat(found ?? []).map((f: any) => [f.id, f.name])))
   const cloudNames = $derived(Object.fromEntries(cloud.map((e) => [e.upload_id, e.name])))
   /** Rows from across the library show where they lie. */
@@ -161,9 +168,9 @@
 
   // The route names the place; the place changes the route.
   $effect(() => {
-    const next = route.startsWith('/files/cloud') ? 'cloud' : route.startsWith('/files/trash') ? 'trash' : null
+    const next = route.startsWith('/files/storage') ? 'storage' : route.startsWith('/files/links') ? 'links' : route.startsWith('/files/cloud') ? 'cloud' : route.startsWith('/files/trash') ? 'trash' : null
     if (next && next !== scope) scope = next
-    if (!next && (scope === 'cloud' || scope === 'trash')) scope = ROOT
+    if (!next && ['cloud', 'trash', 'storage', 'links'].includes(scope)) scope = ROOT
   })
 
   function pick(next: string) {
@@ -173,7 +180,8 @@
     selected = []
     anchor = null
     trashOpened = null
-    if (next === 'cloud') go('/files/cloud')
+    if (next === 'storage' || next === 'links') go(`/files/${next}`)
+    else if (next === 'cloud') go('/files/cloud')
     else if (next === 'trash') go('/files/trash')
     else if (route !== '/files') go('/files')
   }
@@ -206,7 +214,7 @@
   const reload = single(async () => {
     const place = scope
     try {
-      const [tree, shown, trashed, cloudList, cloudRoom, local, disk, shares, running, tagList] = await Promise.all([
+      const [tree, shown, trashed, cloudList, cloudRoom, local, disk, shares, running, tagList, storage] = await Promise.all([
         call('files/tree'),
         folderScope ? call('files/list', { folder: place }) : place === 'starred' ? call<any[]>('files/search', { query: '', starred: true }) : tag ? call<any[]>('files/search', { query: '', tag }) : null,
         place === 'trash' ? call('files/list', { trash: true }) : null,
@@ -216,7 +224,8 @@
         call('files/mount_status').catch(() => null),
         call('files/share_links').catch(() => []),
         call('files/backup_status').catch(() => []),
-        call('files/tags').catch(() => [])
+        call('files/tags').catch(() => []),
+        call<any>('files/storage').catch(() => null)
       ])
       folders = tree
       tags = tagList
@@ -234,6 +243,8 @@
       usage = local
       mount = disk
       links = shares
+      cloudCopies = storage?.entries ?? []
+      copiesKnown = !!storage?.loaded
       backups(running)
       error = ''
     } catch (e) {
@@ -548,6 +559,21 @@
     const open = channels.filter((c) => c.ledger?.status === 'active')
     sharing = { id, version, name, channel: open[0]?.id ?? '', text: '', channels: open }
   }
+  $effect(() => {
+    const item = sharing ?? linking
+    const channel = sharing?.channel
+    const serial = ++quoteSerial
+    quote = null; quoteError = ''
+    if (!item) return
+    quoting = true
+    call('files/share_quote', { id: item.id, version: item.version, channel: channel || null })
+      .then((value) => { if (serial === quoteSerial) quote = value })
+      .catch((e) => { if (serial === quoteSerial) quoteError = errorText(e) })
+      .finally(() => { if (serial === quoteSerial) quoting = false })
+  })
+  $effect(() => {
+    if (!unlocked) { sharing = null; linking = null; quote = null; quoteSerial++ }
+  })
   const share = () =>
     attempt(async () => {
       if (!sharing?.channel) return
@@ -706,7 +732,9 @@
       {/if}
     </aside>
 
-    {#if scope === 'cloud'}
+    {#if scope === 'storage' || scope === 'links'}
+      <div class="min-w-0 flex-1 @container">{#key scope}<Storage {unlocked} linksOnly={scope === 'links'} sourceFile={new URLSearchParams(route.split('?')[1] ?? '').get('source') ?? ''} onSource={(id) => { focus.id = id; pick(ROOT) }} onChannel={(id) => go(`/channels/${id}`)} />{/key}</div>
+    {:else if scope === 'cloud'}
       <div class="min-w-0 flex-1">
         <Cloud
           entries={cloud}
@@ -919,6 +947,9 @@
               }}
               onShare={(version) => askShare(current.id, version, current.name)}
               links={links.filter((l) => l.file === current.id)}
+              copies={cloudCopies.filter((copy) => copy.source_file === current.id)}
+              {copiesKnown}
+              onManageCopies={() => go(`/files/storage?source=${current.id}`)}
               onLink={(version) => askLink(current.id, version, current.name)}
               onRevokeLink={revokeLink}
               onRefreshLinks={refreshLinks}
@@ -1022,6 +1053,14 @@
   {/snippet}
 </Dialog>
 
+{#snippet costQuote()}
+  {#if quoteError}<Notice tone="danger">{quoteError}</Notice>{/if}
+  {#if quoting}<p class="text-[12px] text-faint">{t('loading')}</p>{:else if quote}
+    <Notice tone="info">{t('storageQuote',{bytes:size(quote.estimated_bytes),payer:quote.payer === status?.account ? t('storageMe') : quote.payer})}</Notice>
+    {#if quote.existing?.length}<p class="mt-2 text-[12px] text-muted">{t('storageExisting',{n:quote.existing.length})} <button class="text-forest underline" onclick={() => { sharing=null; linking=null; pick('storage') }}>{t('storageManage')}</button></p>{/if}
+  {/if}
+{/snippet}
+
 <Dialog bind:open={() => !!linking, (next) => !next && (linking = null)} title={t('linkTitle')} description={linking?.name} icon="link" testid="files-link-dialog">
   {#if linking?.result}
     <div class="grid gap-3">
@@ -1035,6 +1074,7 @@
   {:else if linking}
     <div class="grid gap-3">
       <Notice tone="info">{t('linkHint')}</Notice>
+      {@render costQuote()}
       <div class="grid gap-1 text-[12px] text-faint">
         {t('linkDays')}
         <Select bind:value={() => String(linking?.days ?? 7), (next) => linking && (linking.days = Number(next))} options={[{ value: '1', label: t('days1') }, { value: '7', label: t('days7') }, { value: '30', label: t('days30') }]} label={t('linkDays')} testid="files-link-days" class="w-full" />
@@ -1056,7 +1096,7 @@
       <button class={buttonClass('primary')} onclick={() => (linking = null)}>{t('done')}</button>
     {:else}
       <button class={buttonClass('ghost')} onclick={() => (linking = null)}>{t('cancel')}</button>
-      <button class={buttonClass('primary')} disabled={busy} onclick={createLink} data-testid="files-link-create"><Icon name="link" />{t('createLink')}</button>
+      <button class={buttonClass('primary')} disabled={busy || quoting || !quote} onclick={createLink} data-testid="files-link-create"><Icon name="link" />{t('createLink')}</button>
     {/if}
   {/snippet}
 </Dialog>
@@ -1077,6 +1117,7 @@
   {#if sharing}
     <div class="grid gap-3">
       <Notice tone="info">{t('shareHint')}</Notice>
+      {@render costQuote()}
       <div class="grid gap-1 text-[12px] text-faint">
         {t('chooseChannel')}
         <Select bind:value={sharing.channel} options={sharing.channels.map((c) => ({ value: c.id, label: c.name }))} placeholder={t('pickChannel')} label={t('chooseChannel')} testid="files-share-channel" class="w-full" />
@@ -1087,12 +1128,12 @@
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (sharing = null)}>{t('cancel')}</button>
-    <button class={buttonClass('primary')} disabled={busy || !sharing?.channel} onclick={share} data-testid="files-share-send"><Icon name="send" class="rtl:-scale-x-100" />{t('share')}</button>
+    <button class={buttonClass('primary')} disabled={busy || quoting || !quote || !sharing?.channel} onclick={share} data-testid="files-share-send"><Icon name="send" class="rtl:-scale-x-100" />{t('share')}</button>
   {/snippet}
 </Dialog>
 
 <Dialog bind:open={() => !!deletingCloud, (next) => !next && (deletingCloud = null)} title={t('deleteCloudTitle', { n: deletingCloud?.length ?? 0 })} icon="cloud-off" tone="danger" testid="files-cloud-delete-dialog">
-  <p class="text-[13.5px] leading-relaxed">{t('deleteCloudHint')}</p>
+  <p class="text-[13.5px] leading-relaxed">{t('storageConfirmHint')}</p>
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (deletingCloud = null)}>{t('cancel')}</button>

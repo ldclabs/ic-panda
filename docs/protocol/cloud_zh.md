@@ -175,3 +175,20 @@ handle 查询和证明使用小写规范名；页面优先显示认证名称记�
 JSON 与 HTML 的内容来源、字段和更新时间一致；浏览器独立验证 directory 的 ICP 证书。链接名称和 `extra["dmsg.link_images"]` 图片一起展示。头像与链接图片按文档中的 HTTPS 地址加载（`referrerpolicy="no-referrer"`），部署的 CSP `img-src` 必须允许这些来源。旧资料导入先生成包含名称、简介、具名链接、图片扩展和头像 URL 的草稿，用户发布后才上链。
 
 旧公开资料保留在 `/legacy/users/<username>`，本人旧资料在 `/legacy/profile`。新版映射不存在时可查询冻结名称预留，提供旧资料入口；不能把旧 owner 当作新版账户。只有公开头像 GET/HEAD/OPTIONS 保留无凭据 CORS，设备 API 不对浏览器开放。详见 [PrincipalDocument 合同](agent_zh.md#统一公开身份文档2026-10-22)。
+
+## 云端副本管理（2026-10-22）
+
+UploadPlan 可带 `management:{generation,ciphertext}`（密文字节最多 16 KiB），由上传者用对应账户内容根加密 JSON 来源/恢复记录。COSE_Encrypt0 AES-256-GCM 的 external AAD 是规范 CBOR 数组 `['dmsg/storage-management/1',account_id,upload_id,object_id,version_id,generation]`。记录保存来源文件/版本、名称和大小，以及建立链接或发布附件所需的恢复信息；服务端不持有根密钥或明文。缺少旧根时只能显示 ID，不伪造名称或链接。可选字段缺省时不编码，既有签名向量不变。
+
+| 接口 | 合同 |
+| --- | --- |
+| `GET /v1/{accounts,channels}/:id/storage?after=&limit=` | 每页至多 100 条上传记录；entries/next_cursor/end，按当前账户或频道 epoch 权限过滤。条目包含 kind、bytes、payer/uploader、generation、status、charged_bytes/reserved_bytes（未知为 null）、回收能力、失败信息和本人管理密文；空页仍按 end 判断结束 |
+| `GET /v1/accounts/:id/storage/ledger` | 本人承担的分页账目及当前总量；consumer/charge/upload ID 和余额，不授予内容访问或删除权 |
+| `GET /v1/{accounts,channels}/:id/storage/deletions` | 按记录序号读取可见删除墓碑；客户端保留原消息，显示附件已删除 |
+| `POST /v1/{accounts,channels}/:id/storage/retry` | `dmsg/storage/retry/v1 {upload_id,generation}`，只重试既有清理，不创建新删除或提前释放额度 |
+
+`dmsg/channel/message/v1` 增加可选 `attachment_upload`；当前客户端的附件消息携带该字段，绑定当前 epoch 下本人已提交的 file 对象。同一原消息重放保持回执；同一附件再次发布或删除后发布拒绝。频道附件可由当前仍有该 epoch 阅读权的发送者或 owner/admin 按 `dmsg/object/collect/v1` 删除；账单转移期间以及 envelopes 均拒绝，付款人身份不授予权限。删除后对象读取返回 410，原消息与删除证据保留。
+
+删除命令成功仅表示已受理，物理 deleted 与额度 released 分别确认。只有 deleted 且 charged_bytes/reserved_bytes 均为 0 才显示空间已释放；未知余额或失败继续显示待处理。恢复沿用原 upload/share/message ID；客户端可以跨设备解密已上传管理记录并恢复未发布的链接或消息，已完成 publication 不重复发送。未确认预留的本地任务也保留；未过期时远端一次查无记录不能证明取消。
+
+桌面提供云端空间、全局分享链接和备份三个视图，支持来源关联、筛选、费用预览和逐项反馈的批量操作（每次最多 50）。文件仅在本机删除不影响云端副本；删除云端副本也不能收回他人已经下载的文件。明细扫描不是跨资源原子快照，差额须刷新核对，不能直接改配额。新增 Rust 互操作向量可由 `print_storage_management_vector` 测试输出。

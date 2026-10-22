@@ -212,7 +212,7 @@
   }
 
   const snippet = (message: any) => (message.retracted ? t('retracted') : message.text || message.file?.name || '')
-  const isImage = (message: any) => /^image\/(png|jpeg|gif|webp)$/.test(message.file?.mime ?? '') && message.file.size <= 4 * 1024 * 1024
+  const isImage = (message: any) => !message.file_deleted && /^image\/(png|jpeg|gif|webp)$/.test(message.file?.mime ?? '') && message.file.size <= 4 * 1024 * 1024
 
   /** An image is read once its message comes on screen, not every image of the page at once. */
   const preview = (message: any) => (node: Element) => {
@@ -349,7 +349,8 @@
                   {message.text}{#if message.edited_at}<span class="ms-1 text-[11px] text-faint" title={when(message.edited_at)} data-testid="message-edited">({t('edited')})</span>{/if}
                 </p>
               {/if}
-              {#if message.file}
+              {#if message.file_deleted}<p class="mt-2 text-[12px] text-faint" data-testid="attachment-deleted">{t('storageAttachmentDeleted')}</p>
+              {:else if message.file}
                 {#if isImage(message) && images[message.seq]}
                   <button class="mt-1.5 block max-w-sm overflow-hidden rounded-xl border border-line" onclick={() => onDownload(message)} title={message.file.name}>
                     <img src={images[message.seq]} alt={message.file.name} class="max-h-72 w-auto object-contain" data-testid="message-image" />

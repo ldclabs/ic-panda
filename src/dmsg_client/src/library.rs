@@ -27,6 +27,7 @@ pub mod link;
 pub mod mount;
 pub mod open;
 pub mod share;
+pub mod storage;
 
 use crate::client::Client;
 use crate::codec::b64;
@@ -1222,6 +1223,17 @@ impl Client {
         let mut keep = self.held_chunks(now_ms())?;
         for (_, job) in self.backup_jobs()? {
             keep.extend(job.plan.chunks.into_iter().map(|c| c.digest));
+        }
+        for key in self.workspace.store.sealed_keys("lib-share-job:")? {
+            if let Some(job) = self
+                .workspace
+                .private::<serde_json::Value>(self.keys()?, &key)?
+            {
+                let plan: crate::upload::UploadPlan =
+                    serde_json::from_value(job["plan"].clone())
+                        .map_err(|_| dmsg_types::Error::IntegrityFailed)?;
+                keep.extend(plan.chunks.into_iter().map(|c| c.digest));
+            }
         }
         Ok(keep)
     }

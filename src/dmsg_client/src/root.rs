@@ -889,6 +889,7 @@ impl Client {
         let plan = job
             .plan
             .get_or_insert_with(|| UploadPlan {
+                management: None,
                 upload_id: random_hex(),
                 // The relay serves the committed root by its certified digest.
                 object_id: hex::encode(*digests.bundle),

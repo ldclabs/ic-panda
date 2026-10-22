@@ -115,6 +115,7 @@ fn seals_objects_and_manifests_that_open() {
 
     let object = object_container(&record);
     let mut plan = UploadPlan {
+        management: None,
         upload_id: random_hex(),
         object_id: record.id.clone(),
         version_id: record.revision.clone(),
@@ -153,6 +154,7 @@ fn seals_objects_and_manifests_that_open() {
         key: crate::codec::b64(&[1; 32]),
     };
     let mut file_plan = UploadPlan {
+        management: None,
         upload_id: random_hex(),
         object_id: file.id.clone(),
         version_id: file.version.clone(),

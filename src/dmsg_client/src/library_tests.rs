@@ -1404,6 +1404,7 @@ fn cloud_entries_verify_only_against_their_reservation_evidence() {
         expires_at: u64::MAX,
     };
     let plan = UploadPlan {
+        management: None,
         upload_id: "11".repeat(32),
         object_id: "22".repeat(32),
         version_id: "33".repeat(32),

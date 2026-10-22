@@ -321,3 +321,24 @@ The end-to-end checks against real canisters and the relay are in
 ### Wallet execution and desktop forms
 
 `wallet::ops` and wallet approval jobs run through `Hold`; their IC and chain waits do not hold the daemon client. `wallet::desktop` implements typed management/transfer forms, precise amounts, metadata, previews, receive QR codes, account-local RPC preferences and encrypted channel hints. `wallet::packets` checks and collects signatures for one immutable plan; import never executes. `wallet::audit` verifies incremental checkpoints and bounded historical pages. The [implementation record](../../docs/dmsg_wallet_desktop_zh.md) distinguishes these paths from future hardware and chain extensions.
+
+## Cloud storage management
+
+`library::storage` provides an encrypted local inventory snapshot, explicit paginated
+refresh and quota reconciliation, sharing estimates, and bounded per-object management
+outcomes. Upload plans optionally carry account-root-encrypted source and recovery
+metadata, bound to the exact account/upload/object/version/generation context. The
+relay receives neither filenames nor link keys in plaintext. Link publication and
+channel attachment publication recover by their original IDs; local pending share
+jobs keep their chunks until completion or confirmed cancellation.
+
+Channel senders and owner/admin members with historical read access may retire file
+attachments. Signed messages remain; incremental deletion markers let readers show
+an unavailable attachment without treating it as an empty file. Epoch envelopes and
+other recovery material retain their protection. Payer accounting does not imply
+content access. UI release state requires both physical deletion and a settled zero
+charge; failed cleanup can retry without issuing a new deletion generation.
+
+The optional wire fields retain existing canonical vectors. To produce the public
+storage-management vector using fixed test-only keys, set `DMSG_STORAGE_VECTOR_OUT`
+and run `cargo test -p dmsg_client --lib print_storage_management_vector -- --ignored`.

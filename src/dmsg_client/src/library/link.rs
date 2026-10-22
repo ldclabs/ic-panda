@@ -226,7 +226,7 @@ impl Client {
         Ok(records)
     }
 
-    fn save_link(&self, record: &LinkRecord) -> Result<()> {
+    pub(crate) fn save_link(&self, record: &LinkRecord) -> Result<()> {
         self.workspace
             .put_private(self.keys()?, &format!("{LINK}{}", record.share_id), record)
     }
@@ -248,7 +248,15 @@ impl Client {
             password: record.password,
             created_at: record.created_at,
             revoked_at: record.revoked_at,
-            state: state(record.expires_at, record.revoked_at, now),
+            state: if record.revoked_at.is_none()
+                && record.expires_at > now
+                && record.max_downloads > 0
+                && record.downloads >= record.max_downloads
+            {
+                "exhausted".into()
+            } else {
+                state(record.expires_at, record.revoked_at, now)
+            },
             downloads: record.downloads,
         }
     }
@@ -305,6 +313,7 @@ impl Client {
             &share_manifest_aad(&share_id, &upload_id, &edition.id, &edition.version),
         );
         let plan = UploadPlan {
+            management: None,
             upload_id,
             object_id: edition.id.clone(),
             version_id: edition.version.clone(),
@@ -397,12 +406,41 @@ pub async fn share_link<H: Hold>(
         share_id,
         key_wrap,
         key,
-        plan,
+        mut plan,
         manifest_bytes,
     } = h
         .with(|c| c.share_edition_upload(id, version, password))
         .await?;
     let upload_id = plan.upload_id.clone();
+    let now = crate::now_ms();
+    let expires_at = now + expires_in.min(LINK_MAX_MS - MINUTE);
+    let link = LinkRecord {
+        file: id.into(),
+        version: manifest.version.clone(),
+        name: manifest.name.clone(),
+        size: manifest.size,
+        share_id: share_id.clone(),
+        upload_id: upload_id.clone(),
+        key: key.clone(),
+        expires_at,
+        max_downloads,
+        password: password.is_some(),
+        created_at: now,
+        revoked_at: None,
+        downloads: 0,
+    };
+    plan.management = Some(h.with(|c| c.seal_management(&plan, &json!({
+        "name":manifest.name,"source_file":id,"source_version":manifest.version,"plain_bytes":manifest.size,
+        "intent":{"kind":"link","record":link,"key_wrap":key_wrap}
+    }))).await?);
+    h.with(|c| {
+        c.workspace.put_private(
+            c.keys()?,
+            &format!("lib-share-job:{upload_id}"),
+            &json!({"plan":plan,"manifest":crate::codec::b64(&manifest_bytes)}),
+        )
+    })
+    .await?;
     let total = plan.chunks.len() as u64;
     let uploaded = crate::upload::upload(
         h,
@@ -417,15 +455,7 @@ pub async fn share_link<H: Hold>(
         },
     )
     .await;
-    if let Err(error) = uploaded {
-        // The edition's chunks are nobody's now; the collector takes them.
-        let _ = crate::upload::cancel_upload(h, &upload_id).await;
-        return Err(error);
-    }
-    // The relay bounds the expiry by its own clock; a minute's margin keeps
-    // the longest link within it.
-    let now = crate::now_ms();
-    let expires_at = now + expires_in.min(LINK_MAX_MS - MINUTE);
+    uploaded?;
     let published = match h
         .post(
             &format!("{base}/shares"),
@@ -442,40 +472,18 @@ pub async fn share_link<H: Hold>(
         .await
     {
         Ok(published) => published,
-        Err(error) => {
-            // Without its link nothing would retire the committed edition.
-            let _ = h
-                .post(
-                    &format!("{base}/objects/collect"),
-                    "dmsg/object/collect/v1",
-                    &json!({"upload_id": upload_id, "generation": 0}),
-                    &Hash::new(crate::crypto::random_id()),
-                )
-                .await;
-            return Err(error);
-        }
+        Err(error) => return Err(error),
     };
     ensure(
         published["share_id"] == share_id.as_str(),
         Error::IntegrityFailed,
     )?;
-    let link = LinkRecord {
-        file: id.into(),
-        version: manifest.version.clone(),
-        name: manifest.name.clone(),
-        size: manifest.size,
-        share_id,
-        upload_id,
-        key,
-        expires_at,
-        max_downloads,
-        password: password.is_some(),
-        created_at: published["created_at"].as_u64().unwrap_or(now),
-        revoked_at: None,
-        downloads: 0,
-    };
+    let mut link = link;
+    link.created_at = published["created_at"].as_u64().unwrap_or(now);
     h.with(|c| {
         c.save_link(&link)?;
+        c.workspace
+            .delete_private(&format!("lib-share-job:{upload_id}"))?;
         Ok(c.link_view(&link, crate::now_ms()))
     })
     .await
@@ -488,6 +496,11 @@ pub async fn share_link<H: Hold>(
 /// # Errors
 /// Relay errors as returned.
 pub async fn share_links_refresh<H: Hold>(h: &H) -> Result<Vec<LinkView>> {
+    super::storage::sync_metadata(h).await?;
+    share_links_remote(h).await
+}
+
+pub(crate) async fn share_links_remote<H: Hold>(h: &H) -> Result<Vec<LinkView>> {
     let base = h.with(|c| c.base()).await?;
     let mut remote = Vec::new();
     let mut after = 0;
@@ -527,7 +540,15 @@ pub async fn share_links_refresh<H: Hold>(h: &H) -> Result<Vec<LinkView>> {
                     password: entry.password,
                     created_at: entry.created_at,
                     revoked_at: entry.revoked_at,
-                    state: state(entry.expires_at, entry.revoked_at, now),
+                    state: if entry.revoked_at.is_none()
+                        && entry.expires_at > now
+                        && entry.max_downloads > 0
+                        && entry.downloads >= entry.max_downloads
+                    {
+                        "exhausted".into()
+                    } else {
+                        state(entry.expires_at, entry.revoked_at, now)
+                    },
                     downloads: entry.downloads,
                 }),
             }

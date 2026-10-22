@@ -20,10 +20,23 @@ pub struct ChunkRef {
     pub size: u64,
 }
 
+/// Account-root-encrypted source and recovery information; opaque to the relay.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ManagementEnvelope {
+    /// The account root generation used to encrypt the metadata.
+    pub generation: u64,
+    /// Authenticated encrypted metadata, base64url.
+    pub ciphertext: String,
+}
+
 /// The upload plan the device signs with `dmsg/upload/reserve/v1`.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct UploadPlan {
+    /// Optional encrypted management information of the uploader.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub management: Option<ManagementEnvelope>,
     /// Upload ID, lowercase hex.
     pub upload_id: String,
     /// Object ID: the item, file or root bundle digest.

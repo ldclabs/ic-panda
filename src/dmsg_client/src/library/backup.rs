@@ -220,6 +220,7 @@ impl Client {
                 .collect::<Result<_>>()?
         };
         let mut plan = UploadPlan {
+            management: None,
             upload_id: random_hex(),
             object_id: random_hex(),
             version_id: random_hex(),
@@ -243,6 +244,13 @@ impl Client {
             device: version.device.clone(),
         };
         let sealed = seal_manifest(root, &account, &mut plan, ManifestContent::Backup(&record));
+        plan.management = Some(self.seal_management(
+            &plan,
+            &serde_json::json!({
+                "name":record.file.name,"source_file":file_id,"source_version":version_id,
+                "plain_bytes":record.file.size,"intent":{"kind":"backup"}
+            }),
+        )?);
         Ok(BackupJob {
             file: file_id.into(),
             version: version_id.into(),

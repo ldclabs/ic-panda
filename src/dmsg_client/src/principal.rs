@@ -373,6 +373,7 @@ impl Client {
             mime,
         });
         let plan = UploadPlan {
+            management: None,
             upload_id,
             object_id: random_hex(),
             version_id: random_hex(),

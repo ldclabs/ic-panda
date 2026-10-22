@@ -394,7 +394,7 @@ chunk with the library's copy or a backup. `files save` keeps a shared file
 from a channel message as a file of the library, re-encrypted under a key of
 its own.
 
-Backups. `files backup` is the only way a library file reaches the cloud: it
+Backups. `files backup` explicitly stores the library version itself in the cloud: it
 uploads the current version (or every version) of the files named, folders
 recursively, as `kind=backup` objects whose chunks are the version's own
 and whose manifest, sealed under the current content root, holds the file's
@@ -434,8 +434,8 @@ person needs both. A link lasts `--days` (seven by default, thirty at
 most) and `--max-downloads` starts (unlimited by default); `files links`
 lists this device's links with the counts the relay last reported, and
 `--refresh` reads the relay, which also lists links other devices made,
-without their URLs. `files link-revoke` retires the cloud copy at once;
-an expired link's copy goes by itself. The browser page at `/s/` decrypts
+with names and URLs when this device holds the account root for their encrypted management record, and otherwise by ID. `files link-revoke` accepts asynchronous cleanup;
+an expired link's copy is queued for cleanup automatically. Space returns only after physical cleanup and quota settlement. The browser page at `/s/` decrypts
 by the chunk rules of `content-v1.json`.
 
 Mount. With `files_mount = true`, or the desktop's settings allowing it,
@@ -1023,3 +1023,28 @@ The returned `mailbox_id` and `address` identify the new mailbox. Include
 `mail_list` or `inbox_next` reads it. `mail_resolve` requires `mail.read` at its
 card routes; if using `profile_service`, grant `mail.read` for that configured
 Profile origin too. A grant on a relay never includes another origin implicitly.
+
+## Cloud-copy management
+
+The desktop Files view has separate Cloud storage, Links and Cloud backups pages.
+Cloud storage accounts for backups, shared editions, channel attachments and the
+accounting-only charges of channels this account sponsors. It shows who pays,
+reserved/used/pending bytes, and whether physical cleanup and quota release finished.
+A sender or channel owner/admin with access to the attachment epoch may delete a
+channel file; sponsorship alone grants no content permission. Messages retain an
+attachment-deleted marker. Downloaded copies cannot be recalled.
+
+Daemon methods: `files/storage` reads the encrypted local snapshot;
+`files/storage_refresh` refreshes inventory and accounting; `files/share_quote`
+accepts `{id,version?,channel?}` and returns payer, estimated bytes and existing
+copies; `files/storage_action` accepts at most 50 targets, each
+`{owner_kind,resource,upload_id,generation,action,share_id?}` with action
+`delete`, `cancel`, `retry` or `recover`. Outcomes are per target. `files/cloud_delete`
+now returns `accepted`, not a claim that physical deletion already completed.
+
+Names, source versions and publication recovery details travel only as account-root
+encrypted management records. After a lost reply, another unlocked device can recover
+the same share ID and link key; deleting the local source does not remove management.
+Unconfirmed reservations remain recoverable, and an absent server row does not prove
+cancellation before the upload plan expires. Refresh is explicit; the visible desktop
+management page polls only while cleanup is pending.

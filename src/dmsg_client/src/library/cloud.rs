@@ -452,7 +452,7 @@ impl Client {
 
     /// Check a deletion of cloud copies before anything goes: the copy a
     /// version released from this device reads from is its last one.
-    fn deletable(&self, upload_ids: &[String]) -> Result<()> {
+    pub(crate) fn deletable(&self, upload_ids: &[String]) -> Result<()> {
         ensure_valid(!upload_ids.is_empty(), "upload_ids")?;
         for upload_id in upload_ids {
             let Some(manifest) = self.cloud_entry(upload_id)?.and_then(|e| e.manifest) else {

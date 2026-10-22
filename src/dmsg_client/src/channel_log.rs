@@ -372,6 +372,9 @@ pub struct MessagePayload {
     pub message_id: String,
     /// The author's clock, Unix milliseconds.
     pub client_created_at: u64,
+    /// Committed attachment bound to this message for storage lifecycle management.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attachment_upload: Option<String>,
     /// The sealed body, base64url.
     pub ciphertext: String,
 }

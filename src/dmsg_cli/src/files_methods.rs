@@ -13,7 +13,7 @@ use crate::params::{absolute, number, optional, parse, text, to_json};
 use dmsg_client::{
     Client,
     channel::{self, Draft},
-    library::{SearchFilter, VerifyReport, backup, catalog::ROOT, cloud, link},
+    library::{SearchFilter, VerifyReport, backup, catalog::ROOT, cloud, link, storage},
 };
 use dmsg_types::{Error, Result};
 use serde_json::{Value, json};
@@ -21,7 +21,7 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
 /// The methods this module serves.
-pub(crate) const METHODS: [&str; 40] = [
+pub(crate) const METHODS: [&str; 44] = [
     "files/list",
     "files/tree",
     "files/show",
@@ -46,6 +46,10 @@ pub(crate) const METHODS: [&str; 40] = [
     "files/purge",
     "files/verify",
     "files/usage",
+    "files/storage",
+    "files/storage_refresh",
+    "files/storage_action",
+    "files/share_quote",
     "files/share_channel",
     "files/save_shared",
     "files/backup",
@@ -81,7 +85,9 @@ pub(crate) fn events_of(method: &str) -> &'static [&'static str] {
         | "files/backup_status"
         | "files/cloud_list"
         | "files/cloud_usage"
-        | "files/share_links" => &[],
+        | "files/share_links"
+        | "files/storage"
+        | "files/share_quote" => &[],
         "files/share_channel" => &["channel/changed", "files/changed"],
         _ => &["files/changed"],
     }
@@ -309,6 +315,7 @@ impl Daemon {
             }
             "files/verify" => Ok(to_json(&client.files_verify(&id()?, version)?)),
             "files/usage" => Ok(to_json(&client.files_usage()?)),
+            "files/storage" => client.files_storage(),
             "files/share_links" => Ok(to_json(&client.files_share_links()?)),
             "files/backup_status" => Ok(to_json(&client.files_backup_status()?)),
             "files/cloud_list" => Ok(to_json(&client.files_cloud_list()?)),
@@ -334,6 +341,13 @@ impl Daemon {
         };
         let answer = async || -> Result<Option<Value>> {
             Ok(Some(match method {
+                "files/storage_refresh" => storage::refresh(&h).await?,
+                "files/storage_action" => {
+                    storage::act(&h, &parse::<Vec<storage::Target>>(params, "targets")?).await?
+                }
+                "files/share_quote" => {
+                    storage::quote(&h, &id()?, version, params["channel"].as_str()).await?
+                }
                 "files/share_channel" => {
                     let message_id = params["message_id"].as_str();
                     let _turn = self.message_turn(message_id).await;
@@ -396,7 +410,7 @@ impl Daemon {
                 }
                 "files/cloud_delete" => {
                     let uploads: Vec<String> = parse(params, "upload_ids")?;
-                    json!({"deleted": cloud::cloud_delete(&h, &uploads).await?})
+                    json!({"accepted": cloud::cloud_delete(&h, &uploads).await?})
                 }
                 "files/cloud_verify" => {
                     let upload = text(params, "upload_id")?;

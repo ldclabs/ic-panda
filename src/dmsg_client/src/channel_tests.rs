@@ -265,6 +265,7 @@ fn messages_page_by_sequence_and_uploads_are_held_until_they_lapse() {
     assert!(seqs(11, 10).is_empty());
 
     let plan = |id: &str, expires_at: u64, digest: &str| UploadPlan {
+        management: None,
         upload_id: id.into(),
         object_id: channel.clone(),
         version_id: id.into(),
@@ -576,6 +577,7 @@ fn a_body_that_does_not_open_leaves_its_message_unreadable() {
     let device = "d".repeat(64);
     let message_id = "1".repeat(64);
     let mut payload = MessagePayload {
+        attachment_upload: None,
         channel_id: channel.clone(),
         epoch: 1,
         control_head: "0".repeat(64),

@@ -464,3 +464,18 @@ On an automation host that cannot enter a native Space,
 `DMSG_DESKTOP_NATIVE_FULLSCREEN=0 pnpm test:e2e` runs the functional window
 flows and windowed hide/reopen assertions, and explicitly reports fullscreen
 as skipped. This is not a passing native fullscreen validation.
+
+## Cloud copies and sharing
+
+Files → Cloud storage lists backups, link editions, channel attachments and read-only
+accounting for inaccessible sponsored channels. Filters cover source/name, type,
+state, channel and creation date, with size/date sorting and bounded bulk cleanup.
+Files → Links is independent of the source file and shows links from other devices
+when their encrypted metadata can be opened. File details link to associated copies.
+
+Before sharing, the dialog shows the estimated new storage and payer and points to
+existing copies. Deletion confirmation explains the effect on links/attachments and
+previously downloaded copies. Accepted deletion, physical cleanup and quota release
+have distinct states; failures can retry. Locking clears decrypted inventory and link
+information. The page only polls while visible with pending cleanup. Electron smoke
+covers the global inventory, links, bulk confirmation and delayed quota release.

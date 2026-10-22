@@ -7920,3 +7920,125 @@ fn desktop_legacy() {
 
     env.finish();
 }
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_storage_management() {
+    let env = Env::launch(
+        "storage-management",
+        Options {
+            proxies: true,
+            ..Options::default()
+        },
+    );
+    let account = env.pair();
+    let (a, b) = (&env.a, &env.b);
+    let file = env.dir.join("managed-private.txt");
+    std::fs::write(&file, b"managed encrypted contents").unwrap();
+    let added = a.run(&["files", "add", file.to_str().unwrap()]);
+    let id = added[0]["file"]["id"].as_str().unwrap();
+    a.run(&["files", "backup", id]);
+    let channel = a.run(&["channel", "create", "Storage management"]);
+    let channel_id = channel["id"].as_str().unwrap();
+    let sent = a.run(&["files", "share", channel_id, id, "attachment"]);
+    let seq = sent["receipt"]["seq"].as_u64().unwrap();
+    // Lose the reply after the edition commits, before a link is made.
+    env.relay_proxy
+        .as_ref()
+        .unwrap()
+        .lose_next("POST", "/uploads/finalize");
+    assert!(
+        a.rpc(&env.http, "files/share_link", json!({"id":id}))
+            .is_err()
+    );
+    let refresh = |device: &Desktop| {
+        device
+            .rpc(&env.http, "files/storage_refresh", Value::Null)
+            .unwrap()
+    };
+    let report = refresh(b);
+    let copies = report["entries"].as_array().unwrap();
+    let orphan = copies
+        .iter()
+        .find(|e| e["kind"] == "share" && e["phase"] == "unpublished")
+        .unwrap();
+    assert_eq!(orphan["name"], "managed-private.txt");
+    assert_eq!(orphan["source_file"], id);
+    assert_eq!(orphan["recoverable"], true);
+    let target = |e: &Value, action: &str| json!({"owner_kind":e["owner_kind"],"resource":e["resource"],"upload_id":e["upload_id"],"generation":e["generation"],"action":action,"share_id":e["share"]["share_id"]});
+    let recovery = b
+        .rpc(
+            &env.http,
+            "files/storage_action",
+            json!({"targets":[target(orphan,"recover")]}),
+        )
+        .unwrap();
+    assert_eq!(recovery["outcomes"][0]["accepted"], true, "{recovery}");
+    let report = refresh(b);
+    let share = report["entries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| e["kind"] == "share")
+        .unwrap();
+    assert!(share["url"].as_str().unwrap().contains('#'));
+    assert_eq!(share["can_revoke"], true);
+    let quote = a
+        .rpc(&env.http, "files/share_quote", json!({"id":id}))
+        .unwrap();
+    assert_eq!(quote["payer"], account);
+    assert!(!quote["existing"].as_array().unwrap().is_empty());
+    // The local source can disappear without losing cloud management or link keys.
+    a.run(&["files", "rm", id]);
+    a.run(&["files", "purge", id]);
+    let report = refresh(a);
+    let copies = report["entries"].as_array().unwrap();
+    let selected: Vec<_> = copies
+        .iter()
+        .filter(|e| {
+            e["source_file"] == id
+                && ["backup", "file", "share"].contains(&e["kind"].as_str().unwrap_or(""))
+        })
+        .map(|e| target(e, "delete"))
+        .collect();
+    assert_eq!(selected.len(), 3, "{report}");
+    let deleted = a
+        .rpc(
+            &env.http,
+            "files/storage_action",
+            json!({"targets":selected}),
+        )
+        .unwrap();
+    assert!(
+        deleted["outcomes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|r| r["accepted"] == true),
+        "{deleted}"
+    );
+    eventually(30, || {
+        let report = refresh(a);
+        let copies: Vec<_> = report["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|e| e["source_file"] == id)
+            .collect();
+        (copies.len() == 3 && copies.iter().all(|e| e["phase"] == "released")).then_some(())
+    });
+    a.rpc(&env.http, "channel/sync", json!({"id":channel_id}))
+        .unwrap();
+    let messages = a
+        .rpc(&env.http, "channel/messages", json!({"id":channel_id}))
+        .unwrap();
+    let message = messages
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|m| m["seq"] == seq)
+        .unwrap();
+    assert_eq!(message["file_deleted"], true, "{message}");
+    assert_eq!(message["text"], "attachment");
+    env.finish();
+}

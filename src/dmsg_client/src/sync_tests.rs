@@ -415,6 +415,7 @@ fn collection_keeps_what_a_pull_or_an_upload_needs() {
     let (live, lapsed) = (put(&b, b"an envelope"), put(&b, b"a lapsed envelope"));
     let now = now_ms();
     let plan = |digest: &str, expires_at: u64| UploadPlan {
+        management: None,
         upload_id: random_hex(),
         object_id: random_hex(),
         version_id: random_hex(),

@@ -34,6 +34,9 @@
     onBackup,
     onShare,
     links,
+    copies = [],
+    copiesKnown = false,
+    onManageCopies = () => {},
     onLink,
     onRevokeLink,
     onRefreshLinks,
@@ -54,6 +57,9 @@
     onBackup: (allVersions: boolean) => void
     onShare: (version: string | null) => void
     links: any[]
+    copies?: any[]
+    copiesKnown?: boolean
+    onManageCopies?: () => void
     onLink: (version: string | null) => void
     onRevokeLink: (shareId: string) => void
     onRefreshLinks: () => void
@@ -354,6 +360,11 @@
       {/if}
     </dl>
 
+    <div class="mt-5 flex items-center justify-between">
+      <h3 class="text-[12px] font-medium text-faint">{t('storageTitle')} · {copiesKnown ? copies.length : '—'}</h3>
+      <button class="text-[11.5px] text-forest hover:underline" onclick={onManageCopies}>{t('storageManage')}</button>
+    </div>
+    {#if copies.length}<ul class="mt-2 grid gap-1" data-testid="file-cloud-copies">{#each copies as copy (copy.id)}<li class="text-[12px] text-muted">{copy.kind === 'share' ? t('shareLinks') : copy.owner_kind === 'channel' ? t('storageAttachments') : t('cloudBackups')} · {size(copy.bytes)} · {copy.channel_name ?? copy.resource.slice(0,12)+'…'}</li>{/each}</ul>{/if}
     {#if links.length}
       <div class="mt-5 mb-2 flex items-center justify-between">
         <h3 class="text-[12px] font-medium text-faint">{t('shareLinks')} · {links.length}</h3>

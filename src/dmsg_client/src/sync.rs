@@ -167,6 +167,7 @@ pub struct LastSync {
 
 fn plan_of(record: &EncryptedObject, upload_id: String, generation: u64, now: u64) -> UploadPlan {
     UploadPlan {
+        management: None,
         upload_id,
         object_id: record.id.clone(),
         version_id: record.revision.clone(),
@@ -294,6 +295,7 @@ impl Client {
                     .collect::<Result<_>>()?
             };
             let mut plan = UploadPlan {
+                management: None,
                 upload_id: random_hex(),
                 object_id: file.id.clone(),
                 version_id: file.version.clone(),

@@ -413,6 +413,9 @@ struct ChannelFile {
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq, Eq)]
 #[serde(default)]
 pub struct Message {
+    /// The relay accepted deletion of this attachment; the message history remains.
+    #[serde(default)]
+    pub file_deleted: bool,
     /// Relay sequence.
     pub seq: u64,
     /// The author's account.
@@ -1478,8 +1481,12 @@ pub async fn send_file<H: Hold>(
             h.with(|c| {
                 ensure(ledger.status == Status::Active, Error::RekeyRequired)?;
                 let edition = c.share_edition(&manifest)?;
-                let (reference, upload) =
+                let (reference, mut upload) =
                     c.prepare_upload(channel, &ledger, &edition, c.blobs()?)?;
+                upload.plan.management = Some(c.seal_management(&upload.plan, &json!({
+                    "name":manifest.name,"source_file":file,"source_version":manifest.version,"plain_bytes":manifest.size,
+                    "intent":{"kind":"channel","message_id":message_id,"draft":draft,"reference":reference,"source":source}
+                }))?);
                 let attachment = Attachment {
                     source,
                     reference,
@@ -1493,6 +1500,71 @@ pub async fn send_file<H: Hold>(
     };
     send_upload(h, channel, &attachment.upload, Source::Library).await?;
     Box::pin(send(h, channel, draft, Some(&message_id))).await
+}
+
+/// Resume a committed attachment whose message publication was interrupted.
+/// The reference and draft were encrypted to the uploader's account root.
+pub async fn resume_file<H: Hold>(
+    h: &H,
+    channel: &str,
+    upload_id: &str,
+    intent: &Json,
+) -> Result<Json> {
+    let mut after = 0;
+    loop {
+        let page = h
+            .get(&format!(
+                "{}/storage?after={after}&limit=100",
+                base(channel)?
+            ))
+            .await?;
+        if let Some(item) = page["entries"]
+            .as_array()
+            .ok_or(Error::IntegrityFailed)?
+            .iter()
+            .find(|i| i["upload_id"] == upload_id)
+        {
+            if item["publication"].is_object() {
+                return Ok(item["publication"].clone());
+            }
+            break;
+        }
+        if page["end"] == true {
+            return Err(Error::NotFound);
+        }
+        let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
+        ensure(next > after, Error::IntegrityFailed)?;
+        after = next;
+    }
+    let reference: FileRef =
+        serde_json::from_value(intent["reference"].clone()).map_err(|_| Error::IntegrityFailed)?;
+    ensure(reference.upload_id == upload_id, Error::IntegrityFailed)?;
+    let draft: Draft =
+        serde_json::from_value(intent["draft"].clone()).map_err(|_| Error::IntegrityFailed)?;
+    let message_id = intent["message_id"]
+        .as_str()
+        .ok_or(Error::IntegrityFailed)?;
+    let plan = descriptor(h, channel, upload_id, None).await?;
+    h.with(|c| {
+        c.save_job(
+            channel,
+            &format!("file:{message_id}"),
+            &Attachment {
+                source: intent["source"]
+                    .as_str()
+                    .ok_or(Error::IntegrityFailed)?
+                    .to_owned(),
+                reference,
+                upload: Upload {
+                    plan,
+                    manifest: ByteBuf::new(),
+                    recipients: vec![],
+                },
+            },
+        )
+    })
+    .await?;
+    Box::pin(send(h, channel, &draft, Some(message_id))).await
 }
 
 /// Read new messages, or with `backfill` every readable one again. A
@@ -1510,10 +1582,46 @@ pub async fn sync<H: Hold>(h: &H, channel: &str, backfill: bool) -> Result<Chann
         reading.range = Some((0, through));
     }
     read(h, &mut reading).await?;
+    sync_file_deletions(h, channel).await?;
     Ok(ChannelSync {
         through: h.with(|c| Ok(c.local(channel)?.message)).await?,
         received: reading.received,
     })
+}
+
+async fn sync_file_deletions<H: Hold>(h: &H, channel: &str) -> Result<()> {
+    let key = format!("channel-deletions:{channel}");
+    let mut after = h
+        .with(|c| Ok(c.workspace.private::<u64>(c.keys()?, &key)?.unwrap_or(0)))
+        .await?;
+    loop {
+        let page = h
+            .get(&format!(
+                "{}/storage/deletions?after={after}&limit=100",
+                base(channel)?
+            ))
+            .await?;
+        let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
+        let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
+        h.with(|c| {
+            for entry in entries {
+                let upload = entry["upload_id"].as_str().ok_or(Error::IntegrityFailed)?;
+                hex_id(upload)?;
+                c.workspace.put_private(
+                    c.keys()?,
+                    &format!("channel-deleted:{channel}:{upload}"),
+                    entry,
+                )?;
+            }
+            c.workspace.put_private(c.keys()?, &key, &next)
+        })
+        .await?;
+        if page["end"] == true {
+            return Ok(());
+        }
+        ensure(next > after, Error::IntegrityFailed)?;
+        after = next;
+    }
 }
 
 /// Fetch the file `reference` names, uploaded by `uploader`: its plan,
@@ -3052,6 +3160,7 @@ impl Client {
                     });
                     groups.push(Upload {
                         plan: UploadPlan {
+                            management: None,
                             upload_id: random_hex(),
                             object_id: channel.into(),
                             version_id: random_hex(),
@@ -3293,6 +3402,7 @@ impl Client {
                 .ok_or(Error::RecoveryIncomplete)?,
         )?;
         let mut payload = MessagePayload {
+            attachment_upload: None,
             channel_id: channel.into(),
             epoch: ledger.epoch,
             control_head: ledger.head.clone(),
@@ -3301,6 +3411,7 @@ impl Client {
             client_created_at: now_ms(),
             ciphertext: String::new(),
         };
+        payload.attachment_upload = attachment.as_ref().map(|a| a.reference.upload_id.clone());
         let device = self.device_hex();
         let key = message_key(&root, channel, ledger.epoch, message_id, &device);
         let body = Zeroizing::new(canonical(&Body {
@@ -3470,6 +3581,7 @@ impl Client {
             &manifest_context(channel, ledger.epoch, &upload_id, &file.id, &file.version),
         );
         let plan = UploadPlan {
+            management: None,
             upload_id: upload_id.clone(),
             object_id: file.id.clone(),
             version_id: file.version.clone(),
@@ -3765,6 +3877,21 @@ impl Client {
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
+    fn public_message(&self, channel: &str, message: &Message) -> Result<Message> {
+        let mut result = message.public();
+        if let Some(file) = &result.file {
+            result.file_deleted = self
+                .workspace
+                .private::<Json>(
+                    self.keys()?,
+                    &format!("channel-deleted:{channel}:{}", file.upload_id),
+                )?
+                .is_some();
+        }
+        Ok(result)
+    }
+
+    /// Messages with local deletion markers applied; signed history is retained.
     pub fn channel_messages(
         &self,
         channel: &str,
@@ -3791,7 +3918,10 @@ impl Client {
             shown.extend(page.into_iter().filter(|m| !m.amends()));
         }
         shown.truncate(limit);
-        Ok(shown.iter().map(Message::public).collect())
+        shown
+            .iter()
+            .map(|m| self.public_message(channel, m))
+            .collect()
     }
 
     /// The `limit` messages before `before`, oldest first, as
@@ -3825,7 +3955,10 @@ impl Client {
             shown = kept;
         }
         let skip = shown.len().saturating_sub(limit);
-        Ok(shown[skip..].iter().map(Message::public).collect())
+        shown[skip..]
+            .iter()
+            .map(|m| self.public_message(channel, m))
+            .collect()
     }
 
     /// The messages of a channel whose text or file name holds `query`,
@@ -3863,7 +3996,10 @@ impl Client {
         }
         found.reverse();
         found.truncate(limit);
-        Ok(found.iter().map(Message::public).collect())
+        found
+            .iter()
+            .map(|m| self.public_message(channel, m))
+            .collect()
     }
 
     /// Mark the messages through `through` read; the unread count follows.
@@ -4223,6 +4359,7 @@ impl Client {
                     .collect();
                 Upload {
                     plan: UploadPlan {
+                        management: None,
                         upload_id: upload_id.clone(),
                         object_id: channel.into(),
                         version_id: random_hex(),

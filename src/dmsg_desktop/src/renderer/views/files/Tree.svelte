@@ -187,6 +187,8 @@
     {/each}
   {/if}
   <div class="mt-auto grid gap-px pt-3">
+    {@render place('storage', 'drive', t('storageTitle'), 'files-scope-storage')}
+    {@render place('links', 'link', t('shareLinks'), 'files-scope-links')}
     {@render place('cloud', 'cloud-down', t('cloudBackups'), 'files-scope-cloud')}
     {@render place('trash', 'trash', t('trash'), 'files-scope-trash')}
   </div>
