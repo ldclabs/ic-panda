@@ -280,6 +280,32 @@ impl Fixture {
         configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
         [user_module, directory_module, handle_module]: [Vec<u8>; 3],
     ) -> Self {
+        Self::with_modules(
+            generous,
+            daily_orders,
+            max_escrows,
+            configure_membership,
+            [
+                user_module,
+                directory_module,
+                handle_module,
+                wasm("dmsg_commerce"),
+            ],
+        )
+    }
+
+    fn with_modules(
+        generous: bool,
+        daily_orders: u32,
+        max_escrows: u64,
+        configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
+        [
+            user_module,
+            directory_module,
+            handle_module,
+            commerce_module,
+        ]: [Vec<u8>; 4],
+    ) -> Self {
         let ic = PocketIcBuilder::new()
             .with_nns_subnet()
             .with_application_subnet()
@@ -447,7 +473,7 @@ impl Fixture {
         };
         ic.install_canister(
             commerce,
-            wasm("dmsg_commerce"),
+            commerce_module,
             candid::encode_args((dmsg_types::billing::CommerceInit {
                 environment: Environment::Local,
                 governance: sns,

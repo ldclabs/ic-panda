@@ -285,7 +285,7 @@ flowchart TB
 ## 10. 治理与运维
 
 - **治理**：七类服务的管理方法都接受 controller 和初始化固定的 `governance`（生产为 PANDA SNS governance），每个管理方法都有同参数的 `validate_*` query，可登记为 SNS 通用函数的验证方法。`environment`、`issuer_namespace`、`governance` 等身份与派生相关的字段安装后不可修改；升级不读取初始化参数。
-- **定期任务**：canister 没有定时器，下列任务由运维或任何人调用：
+- **定期任务**：commerce 自动归集并派发已分配的出金；下表其余任务由运维或任何人调用：
 
 | 任务 | 入口 | 节奏 |
 | --- | --- | --- |
@@ -293,7 +293,7 @@ flowchart TB
 | COSE 结果清理 | `prune_executions(after)`，或 `scripts/cose-prune.mjs` | 定期，分页直到结束 |
 | payment 出金派发 | `list_pending_transfers` 后逐条 `process_transfer` | 至少每小时，须在出金腿创建后 24 小时内 |
 | commerce 价格发布 | `publish_settlement_price` | controller、governance 或价格权威，在上一价格过期前重发；有效期最长一年，controller 或 governance 可直接发布长期价格，不需要定时任务 |
-| commerce 收入归集与归档 | `collectable_checkouts`、`collect_checkout_revenue`、`sweep_checkout_history` | 服务期结束后归集；归档定期调用到返回 0 |
+| commerce 收入归集与归档 | canister 定时归集与派发；`collectable_checkouts` 监控，`sweep_checkout_history` 归档 | 服务实际结束后自动归集和退回费用准备；每分钟有界处理，异常出金保留对账；归档定期调用到返回 0 |
 | commerce 目录证书 | `refresh_catalog` | 新目录生效后一次 |
 | membership 释放与压缩 | `sweep_panda_commitments` | 建议每 5 分钟，调用到返回 0 |
 | directory 补发 | `publish_principal` | home 发布失败时 |

@@ -62,6 +62,7 @@ fn init(args: CommerceInit) {
     set_config(Config::new(args));
     persist_config();
     publish_certification(at);
+    crate::settlement::start();
 }
 
 #[ic_cdk::pre_upgrade]
@@ -76,6 +77,7 @@ fn post_upgrade() {
     config(|_| ());
     load_catalogs();
     publish_certification(now());
+    crate::settlement::start();
     ic_cdk::println!(
         "commerce_upgrade subjects={} instructions={}",
         SUBJECTS.with_borrow(|t| t.len()),

@@ -285,7 +285,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 ## 10. Governance and Operations
 
 - **Governance**: administrative methods of all seven services accept the controller and the `governance` fixed at installation (the PANDA SNS governance in production). Each has a `validate_*` query with the same arguments that can be registered as the validator of an SNS generic function. Identity- and derivation-related fields such as `environment`, `issuer_namespace` and `governance` cannot change after installation, and upgrades do not read initialization arguments.
-- **Recurring jobs**: canisters have no timers; operators or anyone run the following:
+- **Recurring jobs**: commerce automatically collects revenue and dispatches allocated transfers; operators or anyone run the other tasks below:
 
 | Job | Entry point | Cadence |
 | --- | --- | --- |
@@ -293,7 +293,7 @@ Each administrative call below accepts the controller or the SNS governance and 
 | COSE result cleanup | `prune_executions(after)`, or `scripts/cose-prune.mjs` | Periodically, paging to the end |
 | payment payout dispatch | `list_pending_transfers`, then `process_transfer` per leg | At least hourly, within 24 hours of each leg's creation |
 | commerce price publication | `publish_settlement_price` | Controller, governance or the price authority, before the previous price expires. Validity is at most one year, and a controller or governance may publish a long-lived price manually without a periodic job |
-| commerce revenue collection and archiving | `collectable_checkouts`, `collect_checkout_revenue`, `sweep_checkout_history` | Collect after the service period ends; archive periodically until it returns 0 |
+| commerce revenue collection and archiving | Automatic timer collection and dispatch; `collectable_checkouts` for monitoring, `sweep_checkout_history` for archiving | Settle earned revenue and unused fees after service ends, in bounded minute batches; reconcile blocked transfers; archive periodically until it returns 0 |
 | commerce catalog certificate | `refresh_catalog` | Once after a new catalog takes effect |
 | membership release and compaction | `sweep_panda_commitments` | Every five minutes is suggested, until it returns 0 |
 | directory republication | `publish_principal` | When a home's publication failed |
