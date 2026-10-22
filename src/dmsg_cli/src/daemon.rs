@@ -1050,6 +1050,9 @@ impl Daemon {
                 let info = self
                     .under_lock(async |client| client.publish_document(&document).await)
                     .await?;
+                if info.state.version == info.published_version {
+                    self.emit("profile/changed", Value::Null);
+                }
                 Ok(
                     json!({"version": info.state.version, "published_version": info.published_version, "published": info.state.version == info.published_version}),
                 )
@@ -1060,6 +1063,9 @@ impl Daemon {
                 let info = self
                     .under_lock(async |client| client.retry_document().await)
                     .await?;
+                if info.state.version == info.published_version {
+                    self.emit("profile/changed", Value::Null);
+                }
                 Ok(
                     json!({"version": info.state.version, "published_version": info.published_version, "published": info.state.version == info.published_version}),
                 )
@@ -1095,12 +1101,8 @@ impl Daemon {
                 Ok(to_json(&profile::upload_avatar(&hold, &bytes).await?))
             }
             "profile/avatar_image" => {
-                let account = account(params, "account")?;
-                let upload = text(params, "upload")?;
-                // A public download, which may take the relay's 30 seconds:
-                // every other request would wait behind it under the client.
-                let relay = self.client.lock().await.relay();
-                let image = profile::avatar(&relay, &account, &upload).await?;
+                let url = text(params, "avatar_url")?;
+                let image = profile::avatar(&self.hold(), &url).await?;
                 // A data URL the desktop shows without fetching anything.
                 Ok(image.map_or(Value::Null, |(mime, bytes)| {
                     let data = base64::engine::general_purpose::STANDARD.encode(bytes);
@@ -1984,7 +1986,7 @@ mod tests {
         let dir = dmsg_client::testing::TempDir::new();
         let (daemon, relay, ic) = stalled(&dir).await;
         // A public avatar download.
-        let params = json!({"account": account, "upload": "ab".repeat(32)});
+        let params = json!({"avatar_url": format!("http://{}/public/accounts/{account}/avatar/{}", relay.local_addr().unwrap(), "ab".repeat(32))});
         let work = tokio::spawn({
             let daemon = daemon.clone();
             async move { daemon.call_daemon("profile/avatar_image", &params).await }

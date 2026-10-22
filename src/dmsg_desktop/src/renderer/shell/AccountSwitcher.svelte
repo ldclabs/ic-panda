@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import { DropdownMenu } from 'bits-ui'
   import { localeDir } from '../../shared/locales'
   import Icon from '../components/Icon.svelte'
   import Tooltip from '../components/Tooltip.svelte'
   import { cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, sessionLabel, t } from '../i18n/index.svelte'
-  import { call } from '../rpc'
+  import { call, onChange } from '../rpc'
   import { startLogin } from './login.svelte'
   import { logout, shortId, switchAccount } from './session'
 
@@ -21,25 +22,33 @@
   let accounts = $state<any[]>([])
   let name = $state('')
   let avatar = $state<string | null>(null)
-  // The profile is read once per unlocked account, not on every status refresh.
+  // Read on unlock and publication, without polling on each status refresh.
   const unlockedAccount = $derived(status?.state === 'unlocked' ? (status.account as string) : null)
   const account = $derived<string | null>(status?.account ?? null)
+  let profileRead = 0
 
   $effect(() => {
     const id = unlockedAccount
     name = ''
     avatar = null
     if (id) void showProfile(id)
+    return () => { profileRead++ }
   })
 
+  onMount(() => onChange(['profile/changed'], () => {
+    if (unlockedAccount) void showProfile(unlockedAccount)
+  }))
+
   async function showProfile(id: string) {
+    const read = ++profileRead
+    const current = () => read === profileRead && unlockedAccount === id
     const published: any = await call('profile/show').catch(() => null)
-    if (!published || unlockedAccount !== id) return
+    if (!published || !current()) return
     name = published.name ?? ''
-    const upload = published.avatar_url?.split('/').pop()
-    if (!upload) return
-    const image: any = await call('profile/avatar_image', { account: id, upload }).catch(() => null)
-    if (unlockedAccount === id) avatar = image?.url ?? null
+    avatar = null
+    if (!published.avatar_url) return
+    const image: any = await call('profile/avatar_image', { avatar_url: published.avatar_url }).catch(() => null)
+    if (current()) avatar = image?.url ?? null
   }
 
   // Arrow keys move through the menu once its content has focus.

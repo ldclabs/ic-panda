@@ -33,7 +33,7 @@
   let archive = $state('')
   let fromLegacy = $state(false)
   let legacyAvatarReference = $state(false)
-  /** Data URLs of the avatars shown, by upload ID. */
+  /** Data URLs of the avatars shown, keyed by the document's complete URL. */
   let images = $state<Record<string, string>>({})
 
   async function attempt(work: () => Promise<void>) {
@@ -48,17 +48,13 @@
     }
   }
 
-  /** Public images are loaded through the daemon, from the configured relay. */
+  /** Public images, including legacy URLs, are loaded through the daemon. */
   async function avatarOf(document: PrincipalDocument | null) {
     if (!document?.id) return
     const url = document.avatar_url
     if (!url || images[url]) return
-    const account = document.id.split('/').pop()!
-    const upload = url.split('/').pop()!
-    if (/^[0-9a-f]{64}$/.test(upload)) {
-      const image: any = await call('profile/avatar_image', { account, upload }).catch(() => null)
-      if (image) images = { ...images, [url]: image.url }
-    }
+    const image: any = await call('profile/avatar_image', { avatar_url: url }).catch(() => null)
+    if (image) images = { ...images, [url]: image.url }
   }
 
   function show(document: PrincipalDocument) {
@@ -97,11 +93,8 @@
     if (image?.mime) {
       avatarUrl = await call('profile/avatar_legacy', { archive, source: image.source })
       legacyAvatarReference = false
-      await avatarOf({ ...mine!, avatar_url: avatarUrl! })
-    } else if (old.profile.image) {
-      // Preserve the recorded public URL when the binary could not be collected.
-      avatarUrl = old.profile.image
     }
+    await avatarOf({ ...mine!, avatar_url: avatarUrl ?? undefined })
   })
 
   const avatar = (remove: boolean) => attempt(async () => {
@@ -194,7 +187,7 @@
           {/if}
         </div>
       </div>
-      {#if avatarUrl && !images[avatarUrl]}<Field label={t('avatar')}><input value={avatarUrl} readonly class="font-mono text-[12px]" /></Field>{/if}
+      {#if avatarUrl}<Field label={t('avatarAddress')}><input value={avatarUrl} readonly class="font-mono text-[12px]" data-testid="profile-avatar-url" /></Field>{/if}
       <Select bind:value={kind} label={t('principalKind')} options={[
         {value:'person',label:t('principalPerson')}, {value:'organization',label:t('principalOrganization')},
         {value:'team',label:t('principalTeam')}, {value:'project',label:t('principalProject')}, {value:'other',label:t('principalOther')}

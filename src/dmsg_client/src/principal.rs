@@ -2,7 +2,7 @@
 //! Both JSON and human-facing readers consume the same certified bytes.
 use crate::codec::{canonical, sha256};
 use crate::upload::{ChunkRef, UploadPlan, random_hex};
-use crate::{Client, cloud::Cloud, config::Config, hold::Hold, ic::Ic, now_ms};
+use crate::{Client, config::Config, hold::Hold, ic::Ic, now_ms};
 pub use agent_protocols::delegation::PrincipalDocument;
 use agent_protocols::delegation::{validate_principal_document, validate_principal_resolution};
 use candid::Principal;
@@ -438,33 +438,185 @@ pub fn avatar_type(bytes: &[u8]) -> Result<&'static str> {
     }
 }
 
-/// The avatar an account's document names, as the relay serves it to
-/// anyone: its media type and bytes, `None` when gone. It needs no key, so
-/// the caller holds only the relay client (`Client::relay`) while it
-/// downloads, never the client.
+/// Read the complete `avatar_url`, including legacy and external HTTPS images.
+/// The anonymous HTTP client sends no credentials and follows no redirects.
+/// Network work happens outside the client lock; the image stays bounded.
 ///
 /// # Errors
-/// Returns `Error::IntegrityFailed` for bytes that are not an avatar.
-pub async fn avatar(
-    relay: &Cloud,
-    account: &AccountId,
-    upload: &str,
+/// Rejects invalid URLs, oversized responses and unsupported image bytes.
+pub async fn avatar<H: Hold>(h: &H, avatar_url: &str) -> Result<Option<(&'static str, Vec<u8>)>> {
+    let (config, http) = h.with(|c| Ok((c.config.clone(), c.relay().http()))).await?;
+    let local = config.environment == dmsg_types::Environment::Local;
+    let mut url = image_url(avatar_url, local.then_some(config.relay.as_str()))?;
+    // Local fixtures publish HTTPS identities but serve their relay on loopback.
+    // Only rewrite this directory's own avatar route, never a legacy/external URL.
+    if local && url.scheme() == "https" {
+        let parts: Vec<_> = url.path().split('/').collect();
+        if let ["", "public", "accounts", account, "avatar", upload] = parts.as_slice()
+            && let Ok(account) = account.parse::<AccountId>()
+            && crate::upload::hex_id(upload).is_ok()
+        {
+            let mut resolver = Resolver::new(&config).await?;
+            resolver.prepare([resolver.home(&account)?]).await;
+            let (_, _, directory) = resolver.context(&account)?;
+            if url.origin().ascii_serialization() == directory.delegation_service {
+                url = url::Url::parse(&format!(
+                    "{}{}",
+                    config.relay_origin(),
+                    &url[url::Position::BeforePath..]
+                ))
+                .map_err(|_| dmsg_types::invalid("avatar_url"))?;
+            }
+        }
+    }
+    download_avatar(&http, url).await
+}
+
+fn image_url(value: &str, local_relay: Option<&str>) -> Result<url::Url> {
+    ensure_valid(
+        value.len() <= 2048 && !value.chars().any(char::is_control),
+        "avatar_url",
+    )?;
+    let url = url::Url::parse(value).map_err(|_| dmsg_types::invalid("avatar_url"))?;
+    let local = local_relay.is_some_and(|relay| {
+        url.origin().ascii_serialization() == relay.trim_end_matches('/')
+            && matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "[::1]"))
+    });
+    ensure_valid(
+        (url.scheme() == "https" || (local && url.scheme() == "http"))
+            && url.host_str().is_some()
+            && url.username().is_empty()
+            && url.password().is_none(),
+        "avatar_url",
+    )?;
+    Ok(url)
+}
+
+async fn download_avatar(
+    http: &reqwest::Client,
+    url: url::Url,
 ) -> Result<Option<(&'static str, Vec<u8>)>> {
-    crate::upload::hex_id(upload)?;
-    let bytes = relay
-        .public_bytes(&format!("/public/accounts/{account}/avatar/{upload}"))
-        .await?;
-    bytes
-        .map(|b| {
-            let mime = avatar_type(&b).map_err(|_| Error::IntegrityFailed)?;
-            Ok((mime, b))
-        })
-        .transpose()
+    let failed = |e: reqwest::Error| Error::Unavailable(format!("avatar: {e}"));
+    let mut response = http.get(url).send().await.map_err(failed)?;
+    if matches!(response.status().as_u16(), 404 | 410) {
+        return Ok(None);
+    }
+    ensure(
+        response.status().is_success(),
+        Error::Unavailable(format!("avatar: HTTP {}", response.status())),
+    )?;
+    ensure(
+        response
+            .content_length()
+            .is_none_or(|n| n <= MAX_AVATAR as u64),
+        Error::QuotaExceeded,
+    )?;
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(failed)? {
+        ensure(
+            bytes.len() + chunk.len() <= MAX_AVATAR,
+            Error::QuotaExceeded,
+        )?;
+        bytes.extend_from_slice(&chunk);
+    }
+    let mime = avatar_type(&bytes).map_err(|_| Error::IntegrityFailed)?;
+    Ok(Some((mime, bytes)))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn avatar_addresses_keep_legacy_paths_and_queries() {
+        let old = "https://aaaaa-aa.icp0.io/f/0?inline&filename=legacy.webp";
+        assert_eq!(image_url(old, None).unwrap().as_str(), old);
+        for url in [
+            "file:///tmp/avatar.png",
+            "data:image/png;base64,AA",
+            "http://example.com/a.png",
+            "https://user:password@example.com/a",
+            "https://example.com/a\n",
+        ] {
+            assert!(image_url(url, None).is_err(), "{url}");
+        }
+        assert!(image_url("http://127.0.0.1:9000/a", Some("http://127.0.0.1:9000")).is_ok());
+        assert!(image_url("http://127.0.0.1:9001/a", Some("http://127.0.0.1:9000")).is_err());
+    }
+
+    async fn image_server(response: Vec<u8>) -> (url::Url, tokio::task::JoinHandle<String>) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = url::Url::parse(&format!(
+            "http://{}/f/0?inline&filename=old.webp",
+            listener.local_addr().unwrap()
+        ))
+        .unwrap();
+        let request = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut bytes = Vec::new();
+            let mut buf = [0; 4096];
+            while !bytes.windows(4).any(|b| b == b"\r\n\r\n") {
+                let read = socket.read(&mut buf).await.unwrap();
+                assert_ne!(read, 0);
+                bytes.extend_from_slice(&buf[..read]);
+            }
+            let _ = socket.write_all(&response).await;
+            String::from_utf8(bytes).unwrap()
+        });
+        (url, request)
+    }
+
+    #[tokio::test]
+    async fn avatar_downloads_are_anonymous_and_use_the_exact_url() {
+        let image = b"RIFF\x00\x00\x00\x00WEBPtest";
+        let response = [
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                image.len()
+            )
+            .as_bytes(),
+            image,
+        ]
+        .concat();
+        let (url, request) = image_server(response).await;
+        let http = crate::cloud::Cloud::new("https://api.dmsg.test", false)
+            .unwrap()
+            .http();
+        assert_eq!(
+            download_avatar(&http, url).await.unwrap(),
+            Some(("image/webp", image.to_vec()))
+        );
+        let request = request.await.unwrap().to_lowercase();
+        assert!(request.starts_with("get /f/0?inline&filename=old.webp http/1.1\r\n"));
+        for header in ["authorization:", "cookie:", "referer:", "x-dmsg-pop:"] {
+            assert!(!request.contains(header));
+        }
+    }
+
+    #[tokio::test]
+    async fn missing_redirected_and_invalid_avatars_do_not_become_images() {
+        let http = crate::cloud::Cloud::new("https://api.dmsg.test", false)
+            .unwrap()
+            .http();
+        for status in [404, 410] {
+            let (url, server) =
+                image_server(format!("HTTP/1.1 {status} Gone\r\nContent-Length: 0\r\n\r\n").into())
+                    .await;
+            assert_eq!(download_avatar(&http, url).await.unwrap(), None);
+            server.await.unwrap();
+        }
+        for response in [
+            b"HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:1/private\r\nContent-Length: 0\r\n\r\n".to_vec(),
+            b"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 13\r\n\r\n<html></html>".to_vec(),
+            format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n", MAX_AVATAR + 1).into_bytes(),
+            [b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n".as_slice(), &vec![0; MAX_AVATAR + 1]].concat(),
+        ] {
+            let (url, server) = image_server(response).await;
+            assert!(download_avatar(&http, url).await.is_err());
+            server.await.unwrap();
+        }
+    }
 
     fn document(account: &AccountId, origin: &str) -> PrincipalDocument {
         PrincipalDocument {

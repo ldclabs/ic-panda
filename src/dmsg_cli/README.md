@@ -350,6 +350,9 @@ the account mutation checks the original updated_at and reports directory
 publication separately. `dmsg profile retry` reconciles an uncertain document mutation and retries publication.
 `profile avatar` uploads a public raster image and returns its immutable URL;
 put that URL in avatar_url before publishing. Uploading never publishes a draft.
+The desktop reads `profile/avatar_image { avatar_url }` for both new uploads and
+legacy HTTPS image links. A successful publication (including a retry) emits
+`profile/changed` so the sidebar rereads the published name and avatar.
 
 
 Files. The file library (`dmsg files`) keeps files on this device only, in

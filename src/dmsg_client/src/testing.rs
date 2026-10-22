@@ -132,6 +132,7 @@ pub fn unlocked(
 
 /// Point `client`'s relay at `origin`, a loopback server the test runs.
 pub fn relay_to(client: &mut Client, origin: &str) {
+    client.config.relay = origin.into();
     client.cloud = crate::cloud::Cloud::new(origin, true).unwrap();
 }
 

@@ -215,7 +215,12 @@ Rules (`src/main/policy.ts`):
     (`legacy/import`, `legacy/frozen`, `legacy/file`);
   - the public avatar (`profile/avatar` for an upload; removing it only edits
     the draft). A window shows avatars as data URLs from
-    `profile/avatar_image`, so it loads nothing from the network.
+    `profile/avatar_image { avatar_url }`, using the full PrincipalDocument URL
+    for both uploaded images and retained legacy HTTPS links. The daemon reads
+    at most 512 KiB, accepts PNG/JPEG/WebP, sends no credentials and follows no
+    redirects; the window loads nothing from the network. Successful document
+    publication or retry emits `profile/changed`, refreshing the sidebar's
+    name and avatar. Uploading or editing an unpublished draft does not.
 - `ap/call` runs only the Agent Mail and Agent Knowledge tools
   (`DESKTOP_TOOLS`) as a hosted Agent ID, in the connector session `gui`. The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for

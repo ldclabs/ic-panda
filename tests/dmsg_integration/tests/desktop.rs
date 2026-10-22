@@ -1628,6 +1628,15 @@ fn sha256_hex(bytes: &[u8]) -> String {
 
 fn check_principal_documents(env: &Env, account: &str) {
     let (a, b) = (&env.a, &env.b);
+    let mut events = a.app_socket();
+    let published_event = |events: &mut AppSocket| loop {
+        if let tungstenite::Message::Text(text) = events.read().unwrap() {
+            let message: Value = serde_json::from_str(&text).unwrap();
+            if message["method"] == "event" && message["params"]["type"] == "profile/changed" {
+                break;
+            }
+        }
+    };
     // One PrincipalDocument, committed on chain and independently certified by the directory.
     let principal_file = env.dir.join("principal.json");
     let mut document = a.run(&["profile", "show"]);
@@ -1641,7 +1650,9 @@ fn check_principal_documents(env: &Env, account: &str) {
         a.run(&["profile", "publish", principal_file.to_str().unwrap()])["published"],
         true
     );
+    published_event(&mut events);
     assert_eq!(a.run(&["profile", "retry"])["published"], true);
+    published_event(&mut events);
     let shown = b.run(&["profile", "show"]);
     assert_eq!(shown["name"], "Desk Top");
     assert_eq!(shown["extra"], document["extra"]);
@@ -1662,7 +1673,7 @@ fn check_principal_documents(env: &Env, account: &str) {
         .rpc(
             &env.http,
             "profile/avatar_image",
-            json!({"account":account,"upload":upload}),
+            json!({"avatar_url":public}),
         )
         .unwrap();
     assert_eq!(

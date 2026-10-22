@@ -511,8 +511,8 @@ impl Cloud {
         Ok(Self { http, origin: url })
     }
 
-    /// The relay's HTTP client, for the services at its origin: it follows
-    /// no redirect and bounds every request's time.
+    /// Anonymous HTTP transport for relay services and public images: no
+    /// default credentials or cookies, no redirects, and a request timeout.
     pub(crate) fn http(&self) -> reqwest::Client {
         self.http.clone()
     }
@@ -654,32 +654,6 @@ impl Cloud {
             .and_then(Reply::json)
         {
             Ok(value) => Ok(Some(value)),
-            Err(Error::NotFound) => Ok(None),
-            Err(error) => Err(error),
-        }
-    }
-
-    /// The bytes of a public, unauthenticated resource under `/public/`,
-    /// such as an avatar; `None` when absent.
-    ///
-    /// # Errors
-    /// Relay errors other than `NotFound`.
-    pub async fn public_bytes(&self, path: &str) -> Result<Option<Vec<u8>>> {
-        ensure(
-            path.starts_with("/public/") && !path.contains("//") && !path.contains('\\'),
-            dmsg_types::invalid("path"),
-        )?;
-        let url = self
-            .origin
-            .join(path)
-            .map_err(|_| dmsg_types::invalid("path"))?;
-        ensure(url.origin() == self.origin.origin(), Error::Forbidden)?;
-        match self
-            .exchange(reqwest::Method::GET, url, None, None, true)
-            .await
-        {
-            Ok(Reply::Bytes(bytes)) => Ok(Some(bytes)),
-            Ok(Reply::Json(_)) => Err(Error::IntegrityFailed),
             Err(Error::NotFound) => Ok(None),
             Err(error) => Err(error),
         }

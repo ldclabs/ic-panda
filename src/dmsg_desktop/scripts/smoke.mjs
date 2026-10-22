@@ -354,6 +354,8 @@ const legacyHolder = '2vxsx-fae'
 function emit(type, data) {
   for (const s of sockets) s.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: 1, type, data } }))
 }
+const legacyAvatarUrl = 'https://aaaaa-aa.icp0.io/f/0?inline&filename=legacy.webp'
+let deferPrincipal = true
 /** A request created from the main window, as the daemon would show it. */
 function created(id, type, detail) {
   // The daemon rates the risk: payments, revocations, control of the account and moving a name are held.
@@ -427,7 +429,7 @@ const methods = {
     stage: 'partial',
     gaps: [{ source: 'c/channel/2', code: 'missing_key', detail: 'Historical channel key missing' }],
     checks: 5,
-    profile: { name: 'Old Panda', bio: 'Legacy bio', image: '', links: [{ name: 'Legacy link', url: 'https://example.test/', rel: 'related' }], extra: { 'dmsg.link_images': { 'https://example.test/': 'https://example.test/logo.png' } } },
+    profile: { name: 'Old Panda', bio: 'Legacy bio', image: legacyAvatarUrl, links: [{ name: 'Legacy link', url: 'https://example.test/', rel: 'related' }], extra: { 'dmsg.link_images': { 'https://example.test/': 'https://example.test/logo.png' } } },
     files: [{ source: 'b/file/7', kind: 'file', name: 'notes.txt', verified: true, mime: null }],
     resources: [],
     entitlements: [],
@@ -919,6 +921,11 @@ const methods = {
       principalUnknown = true
       throw { code: 'EXECUTION_UNKNOWN', message: 'Update reply lost after publication' }
     }
+    if (!deferPrincipal) {
+      published = pendingPrincipal
+      pendingPrincipal = null
+      return { published: true, version: published.updated_at, published_version: published.updated_at }
+    }
     return { published: false, version: pendingPrincipal.updated_at, published_version: published.updated_at }
   },
   'profile/retry': () => {
@@ -928,7 +935,11 @@ const methods = {
     return { published: true, version: published.updated_at, published_version: published.updated_at }
   },
   'profile/avatar': (p) => p.remove ? null : `https://api.dmsg.net/public/accounts/${account}/avatar/${'a1'.repeat(32)}`,
-  'profile/avatar_image': () => ({ mime: 'image/png', url: `data:image/png;base64,${PIXEL}` }),
+  'profile/avatar_image': (p) => {
+    assert.deepEqual(Object.keys(p), ['avatar_url'])
+    assert.ok(p.avatar_url.startsWith('https://'))
+    return { mime: 'image/png', url: `data:image/png;base64,${PIXEL}` }
+  },
   'connect/pairings': () => {
     // Signed with the device key, which a lock drops.
     if (session !== 'unlocked') throw { code: 'LOCKED', message: 'Locked' }
@@ -1323,6 +1334,7 @@ server.on('upgrade', (req, socket, head) => {
         reply = { jsonrpc: '2.0', id: message.id, error: { code: -32000, message: failure.message, data: { code: failure.code } } }
       }
       const send = () => {
+        if (['profile/publish', 'profile/retry'].includes(message.method) && reply.result?.published) emit('profile/changed')
         if (handler && !reply.error) for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
         ws.send(JSON.stringify(reply))
       }
@@ -2802,8 +2814,14 @@ try {
   // removed; the window never names a path itself.
   await main.click('[data-testid="settings-profile"]')
   await main.waitForSelector('[data-testid="profile-avatar"]')
+  assert.equal(await main.inputValue('[data-testid="profile-avatar-url"]'), published.avatar_url)
+  assert.match(await main.locator('[data-testid="avatar-set"]').innerText(), /Upload avatar|上传头像/)
   await main.click('[data-testid="profile-use-legacy"]')
   await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]').value === 'Old Panda')
+  await waitFor(() => latest('profile/avatar_image')?.params.avatar_url === legacyAvatarUrl)
+  await main.waitForSelector('[data-testid="profile-avatar"]')
+  assert.equal(await main.inputValue('[data-testid="profile-avatar-url"]'), legacyAvatarUrl)
+  assert.match(await main.locator('[data-testid="profile-avatar-url"]').locator('..').innerText(), /Avatar address|头像地址/)
   assert.equal(latest('profile/publish'), undefined)
   assert.equal(published.name, 'Smoke')
   await answer('__open', join(picks, 'me.png'))
@@ -2816,12 +2834,15 @@ try {
   await main.locator('[data-testid="profile"] button').filter({hasText: /Publish|发布/}).last().click()
   await waitFor(() => latest('profile/publish'))
   assert.equal(published.name, 'Smoke', 'the directory has not published the new document yet')
+  assert.match(await main.locator('[data-testid="account-switcher"]').innerText(), /Smoke/)
+  assert.equal(await main.locator('[data-testid="account-switcher"] img').count(), 1, 'unpublished removal does not change the sidebar')
   await main.locator('[data-testid="profile"] button').filter({hasText:/Retry|重试/}).last().click()
   await waitFor(() => latest('profile/retry'))
   assert.equal(published.name, 'Old Panda')
   assert.equal(published.links[0].name, 'Legacy link')
   assert.equal(published.extra['dmsg.link_images']['https://example.test/'], 'https://example.test/logo.png')
   assert.equal(published.avatar_url, undefined)
+  await main.waitForFunction(() => document.querySelector('[data-testid="account-switcher"]')?.textContent.includes('Old Panda') && !document.querySelector('[data-testid="account-switcher"] img'))
   // A committed update whose reply was lost still needs the local journal
   // reconciled after leaving and reopening the editor.
   const publishProfile = () => main.locator('[data-testid="profile"] button').filter({ hasText: /Publish|发布/ }).last().click()
@@ -2842,11 +2863,31 @@ try {
   await main.waitForFunction(() => !document.querySelector('[data-testid="profile"] fieldset').disabled)
   assert.equal(principalUnknown, false)
   assert.equal(calls.filter(c => c.method === 'profile/publish').length, profileWrites, 'recovery must not create another mutation')
+  await main.waitForFunction(() => document.querySelector('[data-testid="account-switcher"]')?.textContent.includes('Reply lost'))
   await main.fill('[data-testid="profile-name"]', 'After reconciliation')
   await publishProfile()
   await retryProfile()
   await main.waitForFunction(() => !document.querySelector('[data-testid="profile"] fieldset').disabled)
   assert.equal(published.name, 'After reconciliation')
+  // Immediate publication, including a retained legacy URL, refreshes the shell.
+  deferPrincipal = false
+  await main.click('[data-testid="profile-use-legacy"]')
+  await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]').value === 'Old Panda')
+  await publishProfile()
+  await main.waitForFunction(() => document.querySelector('[data-testid="account-switcher"]')?.textContent.includes('Old Panda') && !!document.querySelector('[data-testid="account-switcher"] img'))
+  assert.equal(published.avatar_url, legacyAvatarUrl)
+  assert.deepEqual(latest('profile/avatar_image').params, { avatar_url: legacyAvatarUrl })
+  // A slow older image cannot restore an avatar removed by a newer publication.
+  const releaseOldAvatar = hold('profile/avatar_image')
+  emit('profile/changed')
+  await waitFor(() => typeof held.get('profile/avatar_image') === 'function')
+  await main.click('[data-testid="avatar-remove"]')
+  await main.fill('[data-testid="profile-name"]', 'Avatar removed')
+  await publishProfile()
+  await main.waitForFunction(() => document.querySelector('[data-testid="account-switcher"]')?.textContent.includes('Avatar removed') && !document.querySelector('[data-testid="account-switcher"] img'))
+  await releaseOldAvatar()
+  await main.waitForTimeout(100)
+  assert.equal(await main.locator('[data-testid="account-switcher"] img').count(), 0)
   await assert.rejects(main.evaluate(() => window.dmsg.call('profile/avatar', { path: '/etc/hosts' })), /FORBIDDEN/)
   // A locked daemon's hints notify that something arrived, never from
   // whom, and each kind at most once a minute.
