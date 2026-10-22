@@ -534,7 +534,7 @@ async fn send_backup<H: Hold>(
     )
     .await
     {
-        Ok(()) => {
+        Ok(_) => {
             job.sent = chunks;
             Ok(())
         }

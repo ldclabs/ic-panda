@@ -1047,7 +1047,7 @@ async fn send_upload<H: Hold>(
         )
         .await
         {
-            Ok(()) => return h.with(|c| update(c, None)).await,
+            Ok(_) => return h.with(|c| update(c, None)).await,
             Err(Error::ResultExpired) if !replanned => {
                 h.with(|c| {
                     let job: ContentJob =

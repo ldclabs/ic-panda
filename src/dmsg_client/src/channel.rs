@@ -918,6 +918,7 @@ async fn send_upload<H: Hold>(h: &H, channel: &str, upload: &Upload, source: Sou
         |_, _| Ok(()),
     )
     .await
+    .map(|_| ())
 }
 
 /// A channel upload's signed plan, checked against the evidence the relay

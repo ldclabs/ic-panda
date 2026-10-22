@@ -55,6 +55,8 @@ struct UploadStatus {
     #[serde(default)]
     quota_state: Option<String>,
     #[serde(default)]
+    public_url: Option<String>,
+    #[serde(default)]
     lease_expires_at: Option<u64>,
 }
 
@@ -107,7 +109,9 @@ impl Client {
         source: Source,
         progress: impl FnMut(&Self, usize) -> Result<()> + Send,
     ) -> Result<()> {
-        upload(&self.hold(), base, plan, manifest, sent, source, progress).await
+        upload(&self.hold(), base, plan, manifest, sent, source, progress)
+            .await
+            .map(|_| ())
     }
 
     /// [`download`] by a caller that holds the client throughout.
@@ -126,7 +130,8 @@ impl Client {
 /// already stored, then `manifest`, then finalize. Each chunk is read and
 /// signed under the client and sent without it; `progress` records each
 /// stored chunk under the client. An upload the relay already committed
-/// under this plan returns at once.
+/// under this plan returns at once, except an avatar awaiting public publication.
+/// Returns the final public URL for avatars, and `None` for private uploads.
 ///
 /// # Errors
 /// A different plan under the same ID returns `Error::IdempotencyConflict`;
@@ -140,7 +145,7 @@ pub(crate) async fn upload<H: Hold>(
     mut sent: usize,
     source: Source,
     mut progress: impl FnMut(&Client, usize) -> Result<()> + Send,
-) -> Result<()> {
+) -> Result<Option<String>> {
     let path = format!("{base}/uploads/{}", plan.upload_id);
     let previous: Option<UploadStatus> = h
         .find(&path)
@@ -153,7 +158,10 @@ pub(crate) async fn upload<H: Hold>(
         Some(previous) => {
             ensure(previous.plan == *plan, Error::IdempotencyConflict)?;
             if previous.status == "committed" {
-                return Ok(());
+                if plan.kind == "avatar" && previous.public_url.is_none() {
+                    return finalize(h, base, plan).await;
+                }
+                return Ok(previous.public_url.clone());
             }
             ensure(
                 previous.status == "staging"
@@ -198,6 +206,12 @@ pub(crate) async fn upload<H: Hold>(
     }
     h.send(|c| c.signed_put(&format!("{path}/chunks/manifest"), manifest))
         .await?;
+    finalize(h, base, plan).await
+}
+
+// A committed avatar may still be waiting for its public object. Reuse the same
+// plan and finalize without reserving, uploading or charging again.
+async fn finalize<H: Hold>(h: &H, base: &str, plan: &UploadPlan) -> Result<Option<String>> {
     let result = h
         .post(
             &format!("{base}/uploads/finalize"),
@@ -214,7 +228,17 @@ pub(crate) async fn upload<H: Hold>(
             && result["object_id"] == plan.object_id.as_str()
             && result["version_id"] == plan.version_id.as_str(),
         Error::IntegrityFailed,
-    )
+    )?;
+    if plan.kind == "avatar" {
+        Ok(Some(
+            result["public_url"]
+                .as_str()
+                .ok_or(Error::IntegrityFailed)?
+                .to_owned(),
+        ))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Cancel a staging upload of the account that can no longer finish, so
@@ -277,3 +301,7 @@ pub(crate) async fn download<H: Hold>(
     )
     .await
 }
+
+#[cfg(test)]
+#[path = "upload_tests.rs"]
+mod tests;

@@ -14,12 +14,21 @@ use dmsg_types::{
     user::{AccountCommand, UserInit},
 };
 use futures_util::stream::StreamExt;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Query concurrency for account names, so one large channel does not flood
 /// a replica with a hundred agents at once.
 const QUERY_CONCURRENCY: usize = 16;
+const AVATAR_UPLOAD: &str = "avatar-upload";
+
+/// The last avatar attempt, retained across an unavailable relay or a lost reply.
+#[derive(Serialize, Deserialize)]
+struct AvatarUpload {
+    relay: String,
+    plan: UploadPlan,
+    manifest: Vec<u8>,
+}
 
 /// One name-registry read and the user/directory configs it leads to, shared by
 /// every account resolved in a batch.
@@ -339,11 +348,23 @@ impl Client {
         self.principal().await?.ok_or(Error::NotFound)
     }
 
-    /// The avatar's upload: its plan and manifest, the image kept in the
-    /// store for the upload to read, collected after it.
+    /// Reuse the last attempt for identical image bytes; never invent a new
+    /// upload ID just because its publication reply was lost.
     fn avatar_upload(&self, bytes: &[u8]) -> Result<(UploadPlan, Vec<u8>)> {
         let mime = avatar_type(bytes)?;
         let account = self.account()?.id.to_string();
+        let digest = hex::encode(*sha256(bytes));
+        self.workspace.store.put_chunk(&digest, bytes)?;
+        if let Some(previous) = self.workspace.store.meta::<AvatarUpload>(AVATAR_UPLOAD)?
+            && previous.relay == self.config.relay_origin()
+            && previous
+                .plan
+                .chunks
+                .first()
+                .is_some_and(|chunk| chunk.digest == digest)
+        {
+            return Ok((previous.plan, previous.manifest));
+        }
         let upload_id = random_hex();
         let manifest = canonical(&AvatarManifest {
             format: "dmsg-cloud-avatar/1",
@@ -351,7 +372,6 @@ impl Client {
             upload_id: &upload_id,
             mime,
         });
-        let digest = hex::encode(*sha256(bytes));
         let plan = UploadPlan {
             upload_id,
             object_id: random_hex(),
@@ -368,7 +388,14 @@ impl Client {
             manifest_size: manifest.len() as u64,
             expires_at: now_ms() + dmsg_types::DAY,
         };
-        self.workspace.store.put_chunk(&digest, bytes)?;
+        self.workspace.store.set_meta(
+            AVATAR_UPLOAD,
+            &AvatarUpload {
+                relay: self.config.relay_origin().to_owned(),
+                plan: plan.clone(),
+                manifest: manifest.clone(),
+            },
+        )?;
         Ok((plan, manifest))
     }
 }
@@ -395,26 +422,57 @@ pub async fn upload_avatar<H: Hold>(h: &H, bytes: &[u8]) -> Result<String> {
         config.environment == dmsg_types::Environment::Local || config.relay_origin() == origin,
         Error::IntegrityFailed,
     )?;
-    let (base, (plan, manifest)) = h
-        .with(|c| {
-            ensure(c.account()?.id == account, Error::VersionConflict)?;
-            Ok((c.base()?, c.avatar_upload(bytes)?))
-        })
-        .await?;
-    crate::upload::upload(
-        h,
-        &base,
-        &plan,
-        &manifest,
-        0,
-        crate::files::Source::Store,
-        |_, _| Ok(()),
-    )
-    .await?;
-    Ok(format!(
-        "{origin}/public/accounts/{account}/avatar/{}",
-        plan.upload_id
-    ))
+    let mut replanned = false;
+    loop {
+        let (base, (plan, manifest)) = h
+            .with(|c| {
+                ensure(c.account()?.id == account, Error::VersionConflict)?;
+                Ok((c.base()?, c.avatar_upload(bytes)?))
+            })
+            .await?;
+        let result = crate::upload::upload(
+            h,
+            &base,
+            &plan,
+            &manifest,
+            0,
+            crate::files::Source::Store,
+            |_, _| Ok(()),
+        )
+        .await;
+        let public_url = match result {
+            Err(Error::ResultExpired) if !replanned => {
+                // Only an uncommitted attempt may be replaced. Recheck after cancellation,
+                // since an overlapping finalize can have committed the same upload.
+                crate::upload::cancel_upload(h, &plan.upload_id).await?;
+                let status = h
+                    .find(&format!("{base}/uploads/{}", plan.upload_id))
+                    .await?;
+                if status.is_none_or(|s| s["status"] != "committed") {
+                    h.with(|c| {
+                        ensure(c.account()?.id == account, Error::VersionConflict)?;
+                        if c.workspace
+                            .store
+                            .meta::<AvatarUpload>(AVATAR_UPLOAD)?
+                            .is_some_and(|pending| pending.plan.upload_id == plan.upload_id)
+                        {
+                            c.workspace.store.delete_meta(AVATAR_UPLOAD)?;
+                        }
+                        Ok(())
+                    })
+                    .await?;
+                }
+                replanned = true;
+                continue;
+            }
+            result => result?.ok_or(Error::IntegrityFailed)?,
+        };
+        image_url(
+            &public_url,
+            (config.environment == dmsg_types::Environment::Local).then_some(config.relay.as_str()),
+        )?;
+        return Ok(public_url);
+    }
 }
 
 /// Largest public avatar: the relay's limit.
@@ -452,7 +510,7 @@ pub async fn avatar<H: Hold>(h: &H, avatar_url: &str) -> Result<Option<(&'static
     // Only rewrite this directory's own avatar route, never a legacy/external URL.
     if local && url.scheme() == "https" {
         let parts: Vec<_> = url.path().split('/').collect();
-        if let ["", "public", "accounts", account, "avatar", upload] = parts.as_slice()
+        if let ["", "avatars", account, upload] = parts.as_slice()
             && let Ok(account) = account.parse::<AccountId>()
             && crate::upload::hex_id(upload).is_ok()
         {
@@ -526,6 +584,36 @@ async fn download_avatar(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn avatar_attempts_reuse_the_persisted_plan_for_identical_bytes() {
+        let dir = crate::testing::TempDir::new();
+        let client = crate::testing::unlocked(&dir.0, false, None);
+        let image = b"RIFF0000WEBPfirst";
+        let (plan, manifest) = client.avatar_upload(image).unwrap();
+        assert_eq!(
+            client.avatar_upload(image).unwrap(),
+            (plan.clone(), manifest.clone())
+        );
+        // Reopen the same workspace; a retry must keep the original plan and expiry.
+        drop(client);
+        let mut client = Client::open(crate::testing::config(false), &dir.0, None).unwrap();
+        client
+            .select(crate::client::Slot::Account(crate::testing::account().id))
+            .unwrap();
+        assert_eq!(
+            client.avatar_upload(image).unwrap(),
+            (plan.clone(), manifest)
+        );
+        assert_ne!(
+            client
+                .avatar_upload(b"RIFF0000WEBPsecond")
+                .unwrap()
+                .0
+                .upload_id,
+            plan.upload_id
+        );
+    }
 
     #[test]
     fn avatar_addresses_keep_legacy_paths_and_queries() {

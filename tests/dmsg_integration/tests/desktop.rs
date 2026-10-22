@@ -1672,7 +1672,12 @@ fn check_principal_documents(env: &Env, account: &str) {
         shown,
         "uploading does not publish or overwrite a draft"
     );
+    assert_eq!(
+        a.run(&["profile", "avatar", picture.to_str().unwrap()]),
+        url
+    );
     let public = url.as_str().unwrap();
+    assert!(public.contains(&format!("/avatars/{account}/")));
     let upload = public.rsplit('/').next().unwrap();
     let image = b
         .rpc(
@@ -1688,7 +1693,7 @@ fn check_principal_documents(env: &Env, account: &str) {
             base64::engine::general_purpose::STANDARD.encode(&png)
         )
     );
-    let transport = format!("{}/public/accounts/{account}/avatar/{upload}", env.relay);
+    let transport = format!("{}/avatars/{account}/{upload}", env.relay);
     let served = env.http.get(&transport).send().unwrap();
     assert_eq!(served.bytes().unwrap().as_ref(), &png[..]);
     document = shown;
