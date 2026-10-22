@@ -234,6 +234,8 @@ pub(crate) struct Daemon {
     seq: AtomicU64,
     hints: std::sync::Mutex<HintState>,
     wake: Notify,
+    sync_requested: AtomicBool,
+    syncing: AtomicBool,
     /// The latest mailbox pass, refusal codes included; nothing secret.
     last_connect: std::sync::Mutex<Option<Value>>,
     /// The Agent Protocols connectors of the hosted Agent IDs.
@@ -404,7 +406,7 @@ async fn background(daemon: Arc<Daemon>) {
             continue;
         }
         let now = now_ms();
-        let session = {
+        let (session, requested) = {
             let mut client = daemon.client.lock().await;
             let before = client.session_state().state;
             if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
@@ -415,7 +417,10 @@ async fn background(daemon: Arc<Daemon>) {
                 crate::logs::write("session/changed", &[("state", &session.state)]);
                 daemon.emit("session/changed", json!({"state": session.state}));
             }
-            session
+            (
+                session,
+                daemon.sync_requested.swap(false, Ordering::Relaxed),
+            )
         };
         daemon.check_mount().await;
         let interval = daemon.settings.sync_interval_ms;
@@ -423,14 +428,11 @@ async fn background(daemon: Arc<Daemon>) {
         let ready = unlocked || session.resident;
         // The relay is waited on without holding the client where the work
         // allows it, so that the windows' reads go on meanwhile.
-        if interval > 0 && now >= synced + interval && ready {
+        if ready && ((requested && unlocked) || (interval > 0 && now >= synced + interval)) {
             synced = now;
             // Recorded in the status; a failure waits for the next round.
-            let synced = daemon.under_lock(async |client| client.sync().await).await;
+            let synced = daemon.sync_pass().await;
             daemon.note("sync", &outcome(&synced));
-            if synced.is_ok() {
-                daemon.emit("sync/changed", Value::Null);
-            }
         } else {
             let flushed = daemon.flush_pass().await;
             daemon.note("flush", &outcome(&flushed));
@@ -570,6 +572,8 @@ impl Daemon {
             seq: AtomicU64::new(0),
             hints: std::sync::Mutex::new(HintState::default()),
             wake: Notify::new(),
+            sync_requested: AtomicBool::new(false),
+            syncing: AtomicBool::new(false),
             last_connect: std::sync::Mutex::new(None),
             agents,
             connectors: tokio::sync::watch::channel(0).0,
@@ -677,7 +681,45 @@ impl Daemon {
     /// [`dmsg_client::sync::flush`], each submission sent without holding
     /// the client.
     async fn flush_pass(&self) -> Result<usize> {
+        let Some(_turn) = self.try_turn("sync") else {
+            return Ok(0);
+        };
         dmsg_client::sync::flush(&self.hold()).await
+    }
+
+    /// The automatic unlock sync starts after local content can be read,
+    /// even when periodic sync is disabled.
+    fn request_sync(&self) {
+        self.sync_requested.store(true, Ordering::Relaxed);
+        self.wake();
+    }
+
+    /// Serialize content submissions, but leave the client available to
+    /// local reads, edits and locking throughout every network wait.
+    async fn sync_pass(&self) -> Result<dmsg_client::sync::SyncReport> {
+        let h = self.hold();
+        // Bind the account before waiting for another pass to finish.
+        let before = h.with(|c| Ok(c.session_state())).await?;
+        let _turn = self.turn("sync").await;
+        self.syncing.store(true, Ordering::Relaxed);
+        self.emit("sync/progress", Value::Null);
+        let started = std::time::Instant::now();
+        let result = dmsg_client::sync::sync(&h).await;
+        self.syncing.store(false, Ordering::Relaxed);
+        crate::logs::write(
+            "sync/pass",
+            &[
+                ("outcome", &outcome(&result)),
+                ("ms", &started.elapsed().as_millis()),
+            ],
+        );
+        // Partial progress and failures also change the local list/status.
+        self.emit("sync/changed", Value::Null);
+        let after = self.client.lock().await.session_state();
+        if before.state != after.state || before.account != after.account {
+            self.emit("session/changed", Value::Null);
+        }
+        result
     }
 
     /// Read the dmsg-connect mailbox without holding the client, then handle
@@ -832,6 +874,9 @@ impl Daemon {
         value["version"] = env!("CARGO_PKG_VERSION").into();
         value["instance"] = self.instance.clone().into();
         value["port"] = self.port.into();
+        value["syncing"] = (self.syncing.load(Ordering::Relaxed)
+            || self.sync_requested.load(Ordering::Relaxed))
+        .into();
         value["hints"] = serde_json::to_value(self.hints.lock().expect("hint state").clone())
             .expect("hint state serializes");
         // While unlocked, when the idle lock comes; the background pass
@@ -917,6 +962,7 @@ impl Daemon {
             "session/switch" => {
                 let account = account(params, "account")?;
                 let status = self.client.lock().await.switch_account(&account)?;
+                self.sync_requested.store(false, Ordering::Relaxed);
                 *self.last_connect.lock().expect("connect report") = None;
                 Ok(to_json(&status))
             }
@@ -924,8 +970,18 @@ impl Daemon {
                 let selected = optional(params, "account", account)?;
                 let fast = params["fast"].as_bool().unwrap_or(false);
                 // Nothing reads the workspace before it opens.
-                let status = self
+                let (status, opened) = self
                     .under_lock(async |client| {
+                        // A second window or click may have queued behind
+                        // the same unlock. Do not ask for presence again.
+                        let session = client.session_state();
+                        if session.state == "unlocked"
+                            && selected.as_ref().is_none_or(|account| {
+                                session.account.as_deref() == Some(account.to_string().as_str())
+                            })
+                        {
+                            return Ok((client.status()?, false));
+                        }
                         // Fast unlock of another account here selects it
                         // first.
                         if let Some(account) = &selected {
@@ -936,17 +992,22 @@ impl Daemon {
                             true => client.unlock_fast().await,
                             false => client.unlock().await,
                         }
+                        .map(|status| (status, true))
                     })
                     .await?;
                 // Unlocking is the person's activity: a window that asks for
                 // Touch ID as it comes to the front has no input to report.
                 self.activity.store(now_ms(), Ordering::Relaxed);
+                if opened && status.state == "unlocked" {
+                    self.request_sync();
+                }
                 Ok(to_json(&status))
             }
             "session/lock" => {
                 self.client.lock().await.lock();
+                self.sync_requested.store(false, Ordering::Relaxed);
                 // Versions already signed for submission still go out.
-                let _ = self.flush_pass().await;
+                self.wake();
                 let _ = self.unmount_library().await;
                 self.status().await
             }
@@ -975,7 +1036,7 @@ impl Daemon {
                 };
                 Ok(to_json(&status))
             }
-            // Account and device changes, and the content sync, still wait
+            // Account and device changes still wait
             // on the IC and the relay under the client.
             "account/create" => {
                 self.under_lock(async |client| {
@@ -1025,7 +1086,7 @@ impl Daemon {
                 .await
             }
             "sync/run" => {
-                let report = self.under_lock(async |client| client.sync().await).await?;
+                let report = self.sync_pass().await?;
                 Ok(to_json(&report))
             }
             "sync/status" => {
@@ -1037,6 +1098,7 @@ impl Daemon {
                     "last_sync": status.last_sync,
                     "resident": status.resident,
                     "interval_ms": self.settings.sync_interval_ms,
+                    "syncing": self.syncing.load(Ordering::Relaxed) || self.sync_requested.load(Ordering::Relaxed),
                 }))
             }
             "profile/show" => Ok(to_json(&profile::show(&self.hold()).await?)),
@@ -1332,7 +1394,8 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
             "session/logout" => &["session/changed", "approval/changed", "login/changed"],
             "session/switch" | "session/unlock" | "session/lock" | "workspace/reset"
             | "account/create" => &["session/changed", "approval/changed"],
-            "sync/run" => &["sync/changed", "vault/changed"],
+            // sync_pass announces both progress and completion, including errors.
+            "sync/run" => &[],
             "approval/respond"
             | "approval/cancel"
             | "approval/reconcile"
@@ -1697,6 +1760,9 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
                     crate::logs::write("session/changed", &[("state", &state)]);
                     daemon.emit("session/changed", json!({"state": state}));
                     daemon.emit("approval/changed", Value::Null);
+                    if login.is_ok() && state == "unlocked" {
+                        daemon.request_sync();
+                    }
                     login
                 }
             },
@@ -2012,6 +2078,95 @@ mod tests {
         answers_beside(&daemon, &ic, work).await;
     }
 
+    #[tokio::test]
+    async fn local_reads_edits_and_lock_finish_while_sync_waits_on_the_relay() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, relay, _ic) = stalled(&dir).await;
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move { daemon.call_daemon("sync/run", &Value::Null).await }
+        });
+        let (mut socket, _) = tokio::time::timeout(Duration::from_secs(2), relay.accept())
+            .await
+            .unwrap()
+            .unwrap();
+        let mut request = [0; 8192];
+        assert!(socket.read(&mut request).await.unwrap() > 0);
+        let started = std::time::Instant::now();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            assert_eq!(daemon.status().await.unwrap()["syncing"], true);
+            daemon.call_files("files/tree", &Value::Null).await.unwrap();
+            daemon.call_vault("vault/list", &Value::Null).await.unwrap();
+            daemon
+                .client
+                .lock()
+                .await
+                .vault_create(
+                    "note",
+                    &dmsg_client::vault::Changes {
+                        title: Some("written during sync".into()),
+                        ..Default::default()
+                    },
+                )
+                .unwrap();
+            assert_eq!(
+                daemon
+                    .call_vault("vault/list", &Value::Null)
+                    .await
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .len(),
+                1
+            );
+            assert_eq!(
+                daemon
+                    .call_daemon("session/lock", &Value::Null)
+                    .await
+                    .unwrap()["state"],
+                "locked"
+            );
+        })
+        .await
+        .expect("local work and lock must not wait for the export response");
+        eprintln!(
+            "local reads, edit and lock during stalled sync: {:?}",
+            started.elapsed()
+        );
+        // The late export response cannot be applied or start another request.
+        let body = json!({"through": 0, "account": dmsg_client::testing::account().id.to_string(), "scope": "cloud_snapshot", "counts": []}).to_string();
+        socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(2), work)
+                .await
+                .unwrap()
+                .unwrap(),
+            Err(Error::Locked)
+        );
+        let status = daemon.status().await.unwrap();
+        assert_eq!(status["syncing"], false);
+        assert!(status["last_sync"].is_null());
+        assert_eq!(status["pending_sync"], 1);
+    }
+
+    #[tokio::test]
+    async fn an_already_open_account_does_not_unlock_again() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, _relay, _ic) = stalled(&dir).await;
+        // No keystore or login is configured: redoing the unlock would fail.
+        for params in [
+            json!({"fast": true}),
+            json!({"fast": true, "account": dmsg_client::testing::account().id.to_string()}),
+        ] {
+            assert_eq!(
+                daemon.call_daemon("session/unlock", &params).await.unwrap()["state"],
+                "unlocked"
+            );
+        }
+        assert!(!daemon.sync_requested.load(Ordering::Relaxed));
+    }
+
     /// Its own daemon, so the user home's first connection is the profile's.
     #[tokio::test]
     async fn the_library_answers_while_another_profile_resolves() {
@@ -2235,6 +2390,8 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(status["state"], "unlocked");
+        assert!(daemon.sync_requested.load(Ordering::Relaxed));
+        assert!(status["last_sync"].is_null());
         assert!(daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms > now_ms());
     }
 

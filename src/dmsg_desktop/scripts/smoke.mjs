@@ -336,6 +336,8 @@ const requests = new Map([
 let sockets = []
 /** The session the mock reports, the login under way and whether the next one fails to start. */
 let session = 'unlocked'
+let syncing = false
+let lastSync = null
 let fastUnlock = false
 /** Whether this device approves formal signatures, as the readiness check reports it. */
 let formalApprove = true
@@ -388,6 +390,8 @@ function status() {
     device_id: '11'.repeat(32),
     approvals_waiting: [...requests.values()].filter((r) => r.state === 'awaiting_user').length,
     pending_sync: 2,
+    syncing,
+    last_sync: lastSync,
     background_online: false,
     fast_unlock: fastUnlock,
     fast_presence: fastPresence,
@@ -2918,10 +2922,37 @@ try {
   await waitFor(() => calls.filter((c) => c.method === 'connect/pairings').length > pairingReads)
   await new Promise((r) => setTimeout(r, 300))
   assert.equal(await main.locator('text=/Error: LOCKED/').count(), 0)
+  const releaseUnlock = hold('session/unlock')
+  const beforeUnlock = calls.filter((c) => c.method === 'session/unlock').length
   await main.click('[data-testid="gate-unlock"]')
-  await waitFor(() => latest('session/unlock'))
+  await waitFor(() => typeof held.get('session/unlock') === 'function')
+  await main.waitForFunction(() => document.querySelector('[data-testid="gate-unlock"]')?.disabled)
+  assert.match(await main.textContent('[data-testid="gate-unlock"]'), /Unlocking/)
+  await main.evaluate(() => {
+    window.dispatchEvent(new Event('focus'))
+    document.querySelector('[data-testid="gate-unlock"]')?.click()
+  })
+  assert.equal(calls.filter((c) => c.method === 'session/unlock').length, beforeUnlock + 1)
+  await main.screenshot({ path: join(shots, 'unlocking.png') })
+  syncing = true
+  await releaseUnlock()
   assert.deepEqual(latest('session/unlock').params, { fast: true })
   await main.waitForSelector('[data-testid="gate-lock"]')
+  await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('Syncing'))
+  assert.equal(await main.locator('[data-testid="gate-sync"]').isDisabled(), true)
+  // Local content is usable while the automatic sync is still running.
+  await main.keyboard.press(`${mod}+1`)
+  await main.waitForSelector('[data-testid="vault-list"]')
+  await main.screenshot({ path: join(shots, 'unlock-syncing.png') })
+  syncing = false
+  lastSync = { at: Date.now(), error: 'UNAVAILABLE' }
+  emit('sync/changed')
+  await main.waitForFunction(() => document.querySelector('[data-testid="gate-sync"]')?.textContent.includes('Sync failed'))
+  assert.equal(await main.locator('[data-testid="gate-sync"]').isDisabled(), false)
+  lastSync = { at: Date.now(), error: null }
+  emit('sync/changed')
+  await main.keyboard.press(`${mod}+,`)
+  await main.click('[data-testid="settings-session"]')
   // Unlocked again, the request comes back.
   await approval.waitForSelector('[data-testid="approval-title"]')
   assert.equal(calls.filter((c) => c.method === 'session/login').length, logins)
@@ -3037,6 +3068,10 @@ try {
   await main.locator(WALLET_CREATION_PAUSED ? '[data-testid="wallet-creation-paused"]' : '[data-testid="wallet-new"]').screenshot({ path: join(shots, `wallet-${WALLET_CREATION_PAUSED ? 'creation-paused' : 'new'}-dark.png`) })
 
   // Revoking a device takes a hold: a short press decides nothing, a second's hold approves.
+  // The hold uses animation frames, which macOS may suspend in an occluded window.
+  await app.evaluate(({ app }) => app.focus({ steal: true }))
+  await (await app.browserWindow(approval)).evaluate((window) => { window.show(); window.focus() })
+  await approval.waitForFunction(() => !document.querySelector('[data-testid="approve"]')?.disabled)
   const decisions = () => calls.filter((c) => c.method === 'approval/respond').length
   const before = decisions()
   await approval.click('[data-testid="approve"]')

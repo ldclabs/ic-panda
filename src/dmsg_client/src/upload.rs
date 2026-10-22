@@ -110,21 +110,6 @@ impl Client {
         upload(&self.hold(), base, plan, manifest, sent, source, progress).await
     }
 
-    /// [`cancel_upload`] by a caller that holds the client throughout.
-    pub(crate) async fn cancel_upload(&mut self, upload_id: &str) -> Result<()> {
-        cancel_upload(&self.hold(), upload_id).await
-    }
-
-    /// [`download_chunks`] by a caller that holds the client throughout.
-    pub(crate) async fn download_chunks(
-        &mut self,
-        into: Source,
-        parts: &[(String, String)],
-        done: impl FnMut(usize) + Send,
-    ) -> Result<()> {
-        download_chunks(&self.hold(), into, parts, done).await
-    }
-
     /// [`download`] by a caller that holds the client throughout.
     pub(crate) async fn download(
         &mut self,

@@ -644,6 +644,18 @@ impl Client {
                     .collect(),
             });
         }
+        // Unlock already checked the user home's certified security. A
+        // matching local root needs no relay publication or request. When
+        // fast unlock is offline, keep reading the root stored on this device.
+        if let Some(root) = &self.root
+            && self.security.as_ref().is_none_or(|state| {
+                state.snapshot.content_root_digest.is_none()
+                    || (state.snapshot.content_root_generation == root.generation
+                        && state.snapshot.content_root_digest == Some(root.digest))
+            })
+        {
+            return Ok(());
+        }
         let state = self.cloud_state().await?;
         let snapshot = &state.snapshot;
         match snapshot.content_root_digest {

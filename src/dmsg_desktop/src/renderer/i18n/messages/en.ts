@@ -775,6 +775,8 @@ const messages = {
   paletteRun: 'Run',
   syncPending: '{n} versions to sync',
   synced: 'Synced',
+  unlocking: 'Unlocking…',
+  syncFailed: 'Sync failed · Retry',
   syncing: 'Syncing…',
   connected: 'Connected to dmsg',
   kindWeb: 'Web request',

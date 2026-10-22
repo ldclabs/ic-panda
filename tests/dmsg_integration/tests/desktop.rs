@@ -1308,6 +1308,11 @@ impl Env {
         let device = request["device_id"].as_str().unwrap();
         a.run(&["device", "approve", token, "--device", device]);
         assert_eq!(b.run(&["unlock"])["state"], "unlocked");
+        // Unlock exposes local data before its automatic sync completes.
+        eventually(30, || {
+            let status = b.run(&["status"]);
+            (status["syncing"] == false && status["last_sync"]["at"].is_number()).then_some(())
+        });
         created["account"].as_str().unwrap().to_string()
     }
 
@@ -1718,6 +1723,42 @@ fn desktop_principal_documents() {
     let env = Env::start("principal-documents", "background_online = true\n");
     let account = env.pair();
     check_principal_documents(&env, &account);
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_unlock_syncs_in_background_with_periodic_sync_disabled() {
+    let env = Env::start("unlock-sync", "sync_interval_minutes = 0\n");
+    env.pair();
+    let (a, b) = (&env.a, &env.b);
+    a.run(&["vault", "add", "--title", "already local"]);
+    a.run(&["sync"]);
+    b.run(&["sync"]);
+    b.run(&["lock"]);
+    a.run(&["vault", "add", "--title", "arrived while locked"]);
+    a.run(&["sync"]);
+    let since = now_ms();
+    let started = Instant::now();
+    assert_eq!(b.login(&env.http, 41).unwrap()["state"], "unlocked");
+    assert!(titles(b).contains(&"already local".to_string()));
+    eprintln!(
+        "login and cached content visible at {:?}",
+        started.elapsed()
+    );
+    // The second item arrives without a manual sync, although periodic
+    // sync is disabled. Failures and completion remain visible in status.
+    eventually(30, || {
+        let status = b.run(&["status"]);
+        (status["syncing"] == false
+            && status["last_sync"]["at"]
+                .as_u64()
+                .is_some_and(|at| at >= since)
+            && status["last_sync"]["error"].is_null()
+            && titles(b).contains(&"arrived while locked".to_string()))
+        .then_some(())
+    });
+    assert_eq!(b.run(&["sync", "status"])["interval_ms"], 0);
+    env.finish();
 }
 
 #[test]

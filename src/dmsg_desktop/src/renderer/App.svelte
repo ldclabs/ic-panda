@@ -154,7 +154,7 @@
     if (isMain) {
       void refresh()
       offs.push(
-        onChange(['session/changed', 'connection/changed', 'approval/changed', 'sync/changed', 'channel/changed', 'channel/read'], refresh),
+        onChange(['session/changed', 'connection/changed', 'approval/changed', 'sync/changed', 'sync/progress', 'channel/changed', 'channel/read'], refresh),
         onChange(['legacy/changed'], loadOffers)
       )
     }

@@ -8,7 +8,7 @@
   import { locale, sessionLabel, t } from '../i18n/index.svelte'
   import { call, onChange } from '../rpc'
   import { startLogin } from './login.svelte'
-  import { logout, shortId, switchAccount } from './session'
+  import { logout, shortId, switchAccount, unlocking } from './session'
 
   /**
    * The account this device works in, at the top of the sidebar: its public
@@ -76,6 +76,7 @@
           collapsed ? 'size-11 justify-center p-0' : 'px-2 py-1.5'
         )}
         aria-label={t('localAccounts')}
+        disabled={$unlocking}
         data-testid="account-switcher"
       >
         {#if avatar}

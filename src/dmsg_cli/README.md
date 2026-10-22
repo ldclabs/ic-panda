@@ -339,7 +339,14 @@ seven days, three by default). After the delay, `recovery complete` takes the
 account over, derives the committed root's key once, opens it and rotates to
 a root only this device holds; run again, it resumes.
 
-Unlocking through a login opens the root and syncs once. Every write waits
+Unlocking opens the root and returns as soon as local content is readable;
+the daemon then syncs once in the background, even with periodic sync disabled.
+A matching stored root uses the security already checked on unlock without
+contacting the relay. Content sync and flush passes serialize submissions,
+but release the client during network waits so local reads, edits and locking
+remain available. Status includes `syncing` and the last sync error; the log's
+`sync/pass` records each pass's duration without content or identifiers.
+Every write waits
 for `dmsg sync` or the scheduled sync; `status` shows pending versions and
 conflict copies. An edit that lost a race is kept as a conflict copy on every
 device; `vault resolve` adopts it, or keeps the current version with

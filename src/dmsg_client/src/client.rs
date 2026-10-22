@@ -204,6 +204,8 @@ impl InFlight {
 
 /// A device's client.
 pub struct Client {
+    /// Changes whenever keys are dropped, invalidating in-flight sync work.
+    pub(crate) session_generation: u64,
     pub(crate) config: Config,
     /// The environment's directory.
     dir: PathBuf,
@@ -517,6 +519,7 @@ impl Client {
         )?;
         let workspace = idle(&config.environment)?;
         let mut client = Self {
+            session_generation: 0,
             config,
             dir: dir.to_path_buf(),
             secure,
@@ -848,7 +851,8 @@ impl Client {
     /// Unlock with the current login: a bound workspace through its unlock
     /// secret, a provisional one with its provisional key. A provisional
     /// device the account has approved is bound on the way. A bound device
-    /// then settles its journal, opens the root and syncs once (R13).
+    /// then settles its journal and opens the root. The host schedules a
+    /// sync once local content is available, without delaying this answer.
     ///
     /// # Errors
     /// Returns `Error::AuthRequired` without a valid login and
@@ -998,7 +1002,7 @@ impl Client {
         Ok(())
     }
 
-    /// Load the root, fetching a newer committed one, then sync once.
+    /// Load the root, fetching a newer committed one when needed.
     async fn open_root(&mut self) -> Result<()> {
         match self.load_root().await {
             // Approved, but no root is wrapped to this device yet.
@@ -1006,10 +1010,6 @@ impl Client {
             // Offline after a fast unlock: the stored root still reads.
             Err(Error::Unavailable(_)) if self.root.is_some() && self.login.is_none() => {}
             result => result?,
-        }
-        if self.root.is_some() {
-            // The outcome is recorded in the status; it never fails the unlock.
-            let _ = self.sync().await;
         }
         Ok(())
     }
@@ -1076,6 +1076,9 @@ impl Client {
     /// device signing key stays, so presigned and sealed versions still go
     /// out; nothing can be read or decided.
     pub fn lock(&mut self) {
+        if self.keys.is_some() || self.login.is_some() {
+            self.session_generation = self.session_generation.wrapping_add(1);
+        }
         self.library_lock();
         let signing = self.keys.as_ref().map(|k| k.signing.clone());
         if self.config.background_online {
@@ -1413,11 +1416,6 @@ impl Client {
 
     // Every relay request below signs with fresh evidence, so a long sequence
     // of them never outlives the 60-second certificate.
-
-    /// A device-authenticated GET; `None` for an absent resource.
-    pub(crate) async fn relay_find(&mut self, path: &str) -> Result<Option<Json>> {
-        self.hold().find(path).await
-    }
 
     /// A device-authenticated GET.
     pub(crate) async fn relay_get(&mut self, path: &str) -> Result<Json> {

@@ -144,11 +144,16 @@
     }
   })
 
+  let unlocking = $state(false)
   async function unlockHere() {
+    if (unlocking) return
+    unlocking = true
     try {
       await call('session/unlock', { fast: true })
     } catch (e) {
       if (!['FORBIDDEN'].includes(code(e))) error = errorText(e)
+    } finally {
+      unlocking = false
     }
   }
 
@@ -471,8 +476,8 @@
         <span class="grid size-12 place-items-center rounded-2xl border border-line bg-paper text-faint [&_svg]:size-6"><Icon name="lock" /></span>
         <p class="text-[13.5px] text-muted">{t('approvalLocked')}</p>
         {#if status?.state === 'locked' && status.fast_unlock}
-          <button class={buttonClass('primary')} onclick={unlockHere} data-testid="approval-unlock">
-            <Icon name="unlock" />{t(status.fast_presence === 'biometrics' ? 'touchIdUnlock' : 'fastUnlock')}
+          <button class={buttonClass('primary')} disabled={unlocking} aria-busy={unlocking} onclick={unlockHere} data-testid="approval-unlock">
+            <Icon name={unlocking ? 'sync' : 'unlock'} class={unlocking ? 'motion-safe:animate-spin' : ''} />{t(unlocking ? 'unlocking' : status.fast_presence === 'biometrics' ? 'touchIdUnlock' : 'fastUnlock')}
           </button>
         {/if}
         <button class={buttonClass('ghost', 'sm')} onclick={() => showMain(status?.state === 'locked' && status.fast_unlock ? '/approvals' : '/login')} data-testid="approval-main">

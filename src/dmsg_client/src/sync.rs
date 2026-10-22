@@ -357,27 +357,7 @@ impl Client {
     /// `Error::DeviceNotApproved` for a revoked device, whose workspace is
     /// then erased.
     pub async fn sync(&mut self) -> Result<SyncReport> {
-        let mut result = self.sync_once().await;
-        // Another device of the account may have published newer evidence,
-        // such as after a change to the account, which the relay now
-        // requires: hand it the newest and try once more.
-        if matches!(result, Err(Error::PolicyStale)) {
-            self.published = None;
-            result = self.sync_once().await;
-        }
-        // The relay can know of a revocation before the evidence this device
-        // cached expires: read the account again, and erase it if revoked.
-        if matches!(result, Err(Error::DeviceNotApproved)) {
-            let account = self.account()?.clone();
-            let security = self.refresh_security(account.home, &account.id).await?;
-            self.check_revoked(&security)?;
-        }
-        let last = LastSync {
-            at: now_ms(),
-            error: result.as_ref().err().map(crate::error_code),
-        };
-        self.workspace.store.set_meta(LAST_SYNC, &last)?;
-        result
+        sync(&self.hold()).await
     }
 
     /// The latest sync attempt.
@@ -386,38 +366,6 @@ impl Client {
     /// Returns `Error::Unavailable` when storage fails.
     pub fn last_sync(&self) -> Result<Option<LastSync>> {
         self.workspace.store.meta(LAST_SYNC)
-    }
-
-    async fn sync_once(&mut self) -> Result<SyncReport> {
-        self.signing()?;
-        let security = self.cloud_state().await?;
-        self.check_revoked(&security)?;
-        let unlocked = self.keys.is_some();
-        if unlocked {
-            self.roots()?;
-        }
-        self.reconcile().await?;
-        let mut report = SyncReport::default();
-        let mut snapshot = self.fetch().await?;
-        if unlocked {
-            report.revisions = self.apply(&snapshot)?;
-        }
-        report.through = snapshot.through;
-        let (sent, blocked) = self.push().await?;
-        if unlocked && sent + blocked > 0 {
-            snapshot = self.fetch().await?;
-            report.revisions = self.apply(&snapshot)?;
-            report.through = snapshot.through;
-        }
-        report.sent = sent;
-        report.blocked = blocked;
-        report.pending = self.workspace.store.count_in(LOCAL)?;
-        report.conflicts = self.workspace.store.count_conflicts(VAULT)?;
-        if unlocked {
-            // Housekeeping: a failure keeps every chunk until the next sync.
-            report.collected = self.collect_chunks(&snapshot, now_ms()).unwrap_or(0);
-        }
-        Ok(report)
     }
 
     /// Delete the local chunks nothing needs any more: those of versions
@@ -491,24 +439,6 @@ impl Client {
         }
     }
 
-    /// Settle every submitted revision the relay already decided, with
-    /// fresh proofs; a lapsed submission that never committed stays queued
-    /// and is signed again.
-    async fn reconcile(&mut self) -> Result<()> {
-        self.flush().await?;
-        let base = self.base()?;
-        for (key, job) in self.workspace.store.jobs::<ContentJob>()? {
-            if job.dispatch.is_none() {
-                continue;
-            }
-            let path = format!("{base}/operations/{}", hex::encode(*job.request_id));
-            if let Some(found) = self.relay_find(&path).await?.filter(|f| f["found"] == true) {
-                self.settle(&key, &found["result"])?;
-            }
-        }
-        Ok(())
-    }
-
     /// Apply the relay's verdict on a version.
     fn settle(&self, key: &str, verdict: &Json) -> Result<()> {
         let verdict: Verdict =
@@ -563,215 +493,6 @@ impl Client {
         })
     }
 
-    /// Send every local version, parents first. Returns how many the relay
-    /// accepted and how many it refused.
-    async fn push(&mut self) -> Result<(usize, usize)> {
-        let (mut sent, mut blocked) = (0, 0);
-        for row in ordered(self.workspace.store.objects_in(LOCAL)?)? {
-            // A parent refused earlier in this run takes its children along.
-            if self
-                .workspace
-                .store
-                .object(&row.key)?
-                .is_none_or(|r| r.state != LOCAL)
-            {
-                continue;
-            }
-            match self.push_one(row).await {
-                Ok(true) => sent += 1,
-                Ok(false) => blocked += 1,
-                // Locked with a resident key: this one needs the root.
-                Err(Error::Locked) if self.keys.is_none() => {}
-                Err(error) => return Err(error),
-            }
-        }
-        Ok((sent, blocked))
-    }
-
-    /// Send one local version; `false` when the relay refused it.
-    async fn push_one(&mut self, mut row: ObjectRow) -> Result<bool> {
-        let security = self.cloud_state().await?;
-        let snapshot = &security.snapshot;
-        ensure(
-            snapshot.vault_write_state == VaultWriteState::Ready,
-            Error::RekeyRequired,
-        )?;
-        let generation = snapshot.content_root_generation;
-        let mut record = record(&row)?;
-        let job = match self.workspace.store.job::<ContentJob>(&row.key)? {
-            Some(job) => job,
-            None => {
-                let job = self.prepare_job(&record, self.version_file(&record)?.as_ref())?;
-                self.workspace.store.set_job(&row.key, &job)?;
-                job
-            }
-        };
-        ensure(
-            job.record_digest == record.digest,
-            Error::IdempotencyConflict,
-        )?;
-        let now = now_ms();
-        // Anything below changes what was signed, so the old submission must
-        // be unable to commit: past its deadline, and not stored.
-        let lapsed = job.dispatch.as_ref().is_none_or(|d| d.deadline <= now);
-        let parent_replaced = match &record.parent {
-            Some(parent) => self
-                .workspace
-                .store
-                .object(&format!("{}:{parent}", record.id))?
-                .is_some_and(|p| p.state == REPLACED),
-            None => false,
-        };
-        if record.generation != generation || parent_replaced {
-            ensure(lapsed, Error::ExecutionUnknown)?;
-            self.roots()?;
-            for upload in job.file.iter().chain([&job.vault]) {
-                if !upload.done {
-                    self.cancel_upload(&upload.plan.upload_id).await?;
-                }
-            }
-            // Of a chain never sent, only its newest version is resealed:
-            // the others are replaced by it.
-            let child = self.workspace.store.objects_in(LOCAL)?.iter().any(|r| {
-                r.item == record.id && record_parent(r).as_deref() == Some(&record.revision)
-            });
-            if child {
-                self.workspace.store.set_object(&row.key, REPLACED, false)?;
-                self.workspace.store.delete_job(&row.key)?;
-                return Ok(true);
-            }
-            let file = self.version_file(&record)?;
-            let payload = record.open(self.environment(), self.roots()?)?;
-            let parent = self.sent_ancestor(&record.id, record.parent.clone())?;
-            let (replacement, _) = self.reseal(&row, &record, parent, &payload, file.as_ref())?;
-            row = self
-                .workspace
-                .store
-                .object(&replacement.key)?
-                .ok_or(Error::IntegrityFailed)?;
-            record = replacement;
-        }
-        for file in [true, false] {
-            self.send_upload(&row.key, &record, file, lapsed).await?;
-        }
-        let mut job: ContentJob = self
-            .workspace
-            .store
-            .job(&row.key)?
-            .ok_or(Error::IntegrityFailed)?;
-        let base = self.base()?;
-        let fresh = job
-            .dispatch
-            .as_ref()
-            .filter(|d| d.deadline > now_ms() + 5_000);
-        let dispatch = match fresh {
-            Some(dispatch) => dispatch.clone(),
-            None => {
-                let revision = Revision {
-                    item_id: record.id.clone(),
-                    revision_id: record.revision.clone(),
-                    base_revision: record.parent.clone(),
-                    upload_id: (!record.tombstone).then(|| job.vault.plan.upload_id.clone()),
-                    tombstone: record.tombstone,
-                    restore: job.restore,
-                };
-                let security = self.cloud_state().await?;
-                let request = hex::encode(*job.request_id);
-                let dispatch = self.cloud.presign(
-                    &self.signer(&security)?,
-                    &format!("{base}/vault"),
-                    "dmsg/vault/revision/v1",
-                    &revision,
-                    &job.request_id,
-                    &format!("{base}/operations/{request}"),
-                    now_ms(),
-                )?;
-                job.dispatch = Some(dispatch.clone());
-                self.workspace.store.set_job(&row.key, &job)?;
-                dispatch
-            }
-        };
-        match self.cloud.submit(&dispatch, now_ms()).await {
-            Ok(verdict) => self.settle(&row.key, &verdict).map(|_| true),
-            Err(Error::VersionConflict) => self.block(&row.key).map(|_| false),
-            Err(error) => Err(error),
-        }
-    }
-
-    /// Finish the job's file or vault upload, resuming after the chunks the
-    /// job recorded; a lapsed upload is replanned once under a new ID.
-    async fn send_upload(
-        &mut self,
-        key: &str,
-        record: &EncryptedObject,
-        file: bool,
-        lapsed: bool,
-    ) -> Result<()> {
-        let mut replanned = false;
-        loop {
-            let job: ContentJob = self
-                .workspace
-                .store
-                .job(key)?
-                .ok_or(Error::IntegrityFailed)?;
-            let upload = if file { job.file } else { Some(job.vault) };
-            let Some(upload) = upload.filter(|u| !u.done) else {
-                return Ok(());
-            };
-            let progress = |client: &Self, sent: usize| {
-                let mut job: ContentJob = client
-                    .workspace
-                    .store
-                    .job(key)?
-                    .ok_or(Error::IntegrityFailed)?;
-                match file {
-                    true => job.file.as_mut().ok_or(Error::IntegrityFailed)?.sent = sent as u64,
-                    false => job.vault.sent = sent as u64,
-                }
-                client.workspace.store.set_job(key, &job)
-            };
-            let base = self.base()?;
-            match self
-                .upload(
-                    &base,
-                    &upload.plan,
-                    &upload.manifest,
-                    upload.sent as usize,
-                    Source::Store,
-                    progress,
-                )
-                .await
-            {
-                Ok(()) => {
-                    let mut job: ContentJob = self
-                        .workspace
-                        .store
-                        .job(key)?
-                        .ok_or(Error::IntegrityFailed)?;
-                    match file {
-                        true => job.file.as_mut().ok_or(Error::IntegrityFailed)?.done = true,
-                        false => job.vault.done = true,
-                    }
-                    return self.workspace.store.set_job(key, &job);
-                }
-                // A new vault upload changes the signed revision.
-                Err(Error::ResultExpired) if !replanned && (file || lapsed) => {
-                    replanned = true;
-                    self.cancel_upload(&upload.plan.upload_id).await?;
-                    let manifest = self.version_file(record)?;
-                    let mut job: ContentJob = self
-                        .workspace
-                        .store
-                        .job(key)?
-                        .ok_or(Error::IntegrityFailed)?;
-                    self.seal_uploads(&mut job, record, manifest.as_ref(), !file, file)?;
-                    self.workspace.store.set_job(key, &job)?;
-                }
-                Err(error) => return Err(error),
-            }
-        }
-    }
-
     /// The nearest ancestor from `parent` on that was sent, skipping
     /// versions replaced before they were.
     fn sent_ancestor(&self, item: &str, mut parent: Option<String>) -> Result<Option<String>> {
@@ -815,160 +536,6 @@ impl Client {
             payload,
             file,
         )
-    }
-
-    /// Read and verify the relay's export snapshot, caching every vault and
-    /// file chunk it lacks; nothing is opened yet.
-    async fn fetch(&mut self) -> Result<Snapshot> {
-        let id = self.account()?.id;
-        let account = id.to_string();
-        let trust = self.trust().await?;
-        let base = self.base()?;
-        let export_id = random_hex();
-        let start = self
-            .relay_post(
-                &format!("{base}/exports"),
-                "dmsg/export/start/v1",
-                &ExportStart {
-                    export_id: &export_id,
-                },
-                &Hash::new(crate::crypto::random_id()),
-            )
-            .await?;
-        let through = start["through"].as_u64().ok_or(Error::IntegrityFailed)?;
-        ensure(
-            start["account"] == account.as_str() && start["scope"] == "cloud_snapshot",
-            Error::IntegrityFailed,
-        )?;
-        let mut cursor = 0u64;
-        let mut counts: BTreeMap<String, u64> = BTreeMap::new();
-        let mut snapshot = Snapshot {
-            through,
-            plans: vec![],
-            revisions: vec![],
-        };
-        let mut epochs: BTreeMap<u64, Security> = BTreeMap::new();
-        loop {
-            let page = self
-                .relay_get(&format!(
-                    "{base}/exports/{export_id}?after={cursor}&limit=100"
-                ))
-                .await?;
-            let now = now_ms();
-            let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
-            ensure(entries.len() <= 100, Error::IntegrityFailed)?;
-            let mut fetched = Vec::new();
-            for entry in entries {
-                let at = entry["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
-                ensure(at > cursor && at <= through, Error::IntegrityFailed)?;
-                cursor = at;
-                let kind = entry["kind"].as_str().ok_or(Error::IntegrityFailed)?;
-                *counts.entry(kind.into()).or_default() += 1;
-                match kind {
-                    "object" => {
-                        ensure(
-                            entry["missing_chunks"].as_array().is_none_or(Vec::is_empty),
-                            Error::RecoveryIncomplete,
-                        )?;
-                        let plan: UploadPlan = serde_json::from_value(entry["plan"].clone())
-                            .map_err(|_| Error::IntegrityFailed)?;
-                        let signed: UploadPlan = verify_signed_entry(
-                            &trust,
-                            &id,
-                            &mut epochs,
-                            &page,
-                            entry,
-                            entry["signature"]["cose_sign1"]
-                                .as_str()
-                                .unwrap_or_default(),
-                            "dmsg/upload/reserve/v1",
-                            now,
-                        )?;
-                        ensure(
-                            signed == plan
-                                && entry["value"]["upload_id"] == plan.upload_id.as_str()
-                                && entry["value"]["digest"] == plan.manifest_digest.as_str(),
-                            Error::IntegrityFailed,
-                        )?;
-                        if matches!(plan.kind.as_str(), "vault" | "file") {
-                            ensure(
-                                snapshot.plans.len() + fetched.len() < MAX_PLANS,
-                                Error::QuotaExceeded,
-                            )?;
-                            fetched.push(plan);
-                        }
-                    }
-                    "revision" => {
-                        let value = &entry["value"];
-                        let revision: Revision = verify_signed_entry(
-                            &trust,
-                            &id,
-                            &mut epochs,
-                            &page,
-                            entry,
-                            value["signed"]["cose_sign1"].as_str().unwrap_or_default(),
-                            "dmsg/vault/revision/v1",
-                            now,
-                        )?;
-                        let fields =
-                            serde_json::to_value(&revision).map_err(|_| Error::IntegrityFailed)?;
-                        for (name, field) in fields.as_object().into_iter().flatten() {
-                            ensure(value[name] == *field, Error::IntegrityFailed)?;
-                        }
-                        let conflict = value["conflict"].as_bool().ok_or(Error::IntegrityFailed)?;
-                        ensure(
-                            snapshot.revisions.len() < MAX_REVISIONS,
-                            Error::QuotaExceeded,
-                        )?;
-                        snapshot.revisions.push((revision, conflict));
-                    }
-                    _ => {}
-                }
-            }
-            self.cache(&fetched).await?;
-            snapshot.plans.extend(fetched);
-            let end = page["inventory_end"]
-                .as_bool()
-                .ok_or(Error::IntegrityFailed)?;
-            ensure(
-                page["next_cursor"].as_u64() == Some(cursor) && (end || !entries.is_empty()),
-                Error::IntegrityFailed,
-            )?;
-            if end {
-                break;
-            }
-        }
-        for count in start["counts"].as_array().ok_or(Error::IntegrityFailed)? {
-            let kind = count["kind"].as_str().ok_or(Error::IntegrityFailed)?;
-            ensure(
-                counts.get(kind).copied().unwrap_or(0) == count["n"].as_u64().unwrap_or(u64::MAX),
-                Error::RecoveryIncomplete,
-            )?;
-        }
-        Ok(snapshot)
-    }
-
-    /// Download the manifests and chunks of committed uploads that the
-    /// store lacks; every one is checked against its digest.
-    async fn cache(&mut self, plans: &[UploadPlan]) -> Result<()> {
-        let base = self.base()?;
-        let mut seen = BTreeSet::new();
-        let mut missing = Vec::new();
-        for plan in plans {
-            let parts = plan
-                .chunks
-                .iter()
-                .enumerate()
-                .map(|(i, c)| (i.to_string(), &c.digest))
-                .chain([("manifest".to_string(), &plan.manifest_digest)]);
-            for (name, digest) in parts {
-                if seen.insert(digest) && !self.workspace.store.has_chunk(digest)? {
-                    let path = format!("{base}/objects/{}/chunks/{name}", plan.upload_id);
-                    missing.push((path, digest.clone()));
-                }
-            }
-        }
-        self.download_chunks(Source::Store, &missing, |_| {}).await
     }
 
     /// Open every new version of a fetched snapshot, then move the heads in
@@ -1142,6 +709,528 @@ impl Client {
         }
         Ok(false)
     }
+}
+
+/// Sync without holding the client during network waits. Callers serialize
+/// sync and flush passes for a workspace; local reads and edits may continue.
+///
+/// # Errors
+/// As [`Client::sync`]. A lock or account switch interrupts an unlocked pass.
+pub async fn sync<H: Hold>(h: &H) -> Result<SyncReport> {
+    // A pass must not apply an old response after lock, logout or an account
+    // switch. The generation also distinguishes locking and reopening the
+    // same account while a request is in flight.
+    let generation = h.with(|c| Ok(c.session_generation)).await?;
+    let session = SyncSession { h, generation };
+    let mut result = sync_once(&session).await;
+    if matches!(result, Err(Error::PolicyStale)) {
+        session
+            .with(|c| {
+                c.published = None;
+                Ok(())
+            })
+            .await?;
+        result = sync_once(&session).await;
+    }
+    if matches!(result, Err(Error::DeviceNotApproved)) {
+        let security = crate::account::refreshed_security(&session).await?;
+        session.with(|c| c.check_revoked(&security)).await?;
+    }
+    session
+        .with(|c| {
+            c.workspace.store.set_meta(
+                LAST_SYNC,
+                &LastSync {
+                    at: now_ms(),
+                    error: result.as_ref().err().map(crate::error_code),
+                },
+            )
+        })
+        .await?;
+    result
+}
+
+struct SyncSession<'a, H> {
+    h: &'a H,
+    generation: u64,
+}
+
+impl<H: Hold> Hold for SyncSession<'_, H> {
+    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
+        self.h
+            .with(|c| {
+                ensure(c.session_generation == self.generation, Error::Locked)?;
+                step(c)
+            })
+            .await
+    }
+}
+
+async fn sync_once<H: Hold>(h: &H) -> Result<SyncReport> {
+    h.with(|c| c.signing().map(|_| ())).await?;
+    h.signed(Client::fresh).await?;
+    let unlocked = h
+        .with(|c| {
+            let security = c.fresh()?;
+            c.check_revoked(&security)?;
+            if c.keys.is_some() {
+                c.roots()?;
+            }
+            Ok(c.keys.is_some())
+        })
+        .await?;
+    reconcile(h).await?;
+    let mut report = SyncReport::default();
+    let mut snapshot = fetch(h).await?;
+    if unlocked {
+        report.revisions = h.with(|c| c.apply(&snapshot)).await?;
+    }
+    report.through = snapshot.through;
+    let (sent, blocked) = push(h).await?;
+    if unlocked && sent + blocked > 0 {
+        snapshot = fetch(h).await?;
+        report.revisions = h.with(|c| c.apply(&snapshot)).await?;
+        report.through = snapshot.through;
+    }
+    h.with(|c| {
+        report.sent = sent;
+        report.blocked = blocked;
+        report.pending = c.workspace.store.count_in(LOCAL)?;
+        report.conflicts = c.workspace.store.count_conflicts(VAULT)?;
+        if unlocked {
+            report.collected = c.collect_chunks(&snapshot, now_ms()).unwrap_or(0);
+        }
+        Ok(report)
+    })
+    .await
+}
+
+async fn reconcile<H: Hold>(h: &H) -> Result<()> {
+    flush(h).await?;
+    let (base, jobs) = h
+        .with(|c| Ok((c.base()?, c.workspace.store.jobs::<ContentJob>()?)))
+        .await?;
+    for (key, job) in jobs {
+        let Some(dispatch) = job.dispatch else {
+            continue;
+        };
+        let path = format!("{base}/operations/{}", hex::encode(*job.request_id));
+        if let Some(found) = h.find(&path).await?.filter(|f| f["found"] == true) {
+            h.with(|c| c.flush_settle(&key, &dispatch, Ok(found["result"].clone())))
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+async fn push<H: Hold>(h: &H) -> Result<(usize, usize)> {
+    let rows = h
+        .with(|c| ordered(c.workspace.store.objects_in(LOCAL)?))
+        .await?;
+    let (mut sent, mut blocked) = (0, 0);
+    for row in rows {
+        if !h
+            .with(|c| {
+                Ok(c.workspace
+                    .store
+                    .object(&row.key)?
+                    .is_some_and(|r| r.state == LOCAL))
+            })
+            .await?
+        {
+            continue;
+        }
+        match push_one(h, row).await {
+            Ok(true) => sent += 1,
+            Ok(false) => blocked += 1,
+            Err(Error::Locked) if h.with(|c| Ok(c.keys.is_none())).await? => {}
+            Err(error) => return Err(error),
+        }
+    }
+    Ok((sent, blocked))
+}
+
+async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
+    let (_, (mut record, job, replace)) = h
+        .signed(|c| {
+            let security = c.fresh()?;
+            ensure(
+                security.snapshot.vault_write_state == VaultWriteState::Ready,
+                Error::RekeyRequired,
+            )?;
+            let record = record(&row)?;
+            let job = match c.workspace.store.job::<ContentJob>(&row.key)? {
+                Some(job) => job,
+                None => {
+                    let job = c.prepare_job(&record, c.version_file(&record)?.as_ref())?;
+                    c.workspace.store.set_job(&row.key, &job)?;
+                    job
+                }
+            };
+            ensure(
+                job.record_digest == record.digest,
+                Error::IdempotencyConflict,
+            )?;
+            let parent_replaced = match &record.parent {
+                Some(parent) => c
+                    .workspace
+                    .store
+                    .object(&format!("{}:{parent}", record.id))?
+                    .is_some_and(|p| p.state == REPLACED),
+                None => false,
+            };
+            let replace =
+                record.generation != security.snapshot.content_root_generation || parent_replaced;
+            if replace {
+                ensure(
+                    job.dispatch.as_ref().is_none_or(|d| d.deadline <= now_ms()),
+                    Error::ExecutionUnknown,
+                )?;
+                c.roots()?;
+            }
+            Ok((record, job, replace))
+        })
+        .await?;
+    if replace {
+        for upload in job.file.iter().chain([&job.vault]) {
+            if !upload.done {
+                crate::upload::cancel_upload(h, &upload.plan.upload_id).await?;
+            }
+        }
+        let replacement = h
+            .with(|c| {
+                c.roots()?;
+                let child = c.workspace.store.objects_in(LOCAL)?.iter().any(|r| {
+                    r.item == record.id && record_parent(r).as_deref() == Some(&record.revision)
+                });
+                if child {
+                    c.workspace.store.set_object(&row.key, REPLACED, false)?;
+                    c.workspace.store.delete_job(&row.key)?;
+                    return Ok(None);
+                }
+                let file = c.version_file(&record)?;
+                let payload = record.open(c.environment(), c.roots()?)?;
+                let parent = c.sent_ancestor(&record.id, record.parent.clone())?;
+                let (replacement, _) = c.reseal(&row, &record, parent, &payload, file.as_ref())?;
+                let row = c
+                    .workspace
+                    .store
+                    .object(&replacement.key)?
+                    .ok_or(Error::IntegrityFailed)?;
+                Ok(Some((row, replacement)))
+            })
+            .await?;
+        let Some(replacement) = replacement else {
+            return Ok(true);
+        };
+        (row, record) = replacement;
+    }
+    for file in [true, false] {
+        send_upload(h, &row.key, &record, file).await?;
+    }
+    let (relay, dispatch) = h
+        .signed(|c| {
+            let security = c.fresh()?;
+            ensure(
+                security.snapshot.vault_write_state == VaultWriteState::Ready
+                    && security.snapshot.content_root_generation == record.generation,
+                Error::RekeyRequired,
+            )?;
+            let mut job: ContentJob = c
+                .workspace
+                .store
+                .job(&row.key)?
+                .ok_or(Error::IntegrityFailed)?;
+            ensure(
+                job.record_digest == record.digest,
+                Error::IdempotencyConflict,
+            )?;
+            let now = now_ms();
+            if let Some(dispatch) = job.dispatch.as_ref().filter(|d| d.deadline > now + 5_000) {
+                return Ok(dispatch.clone());
+            }
+            let revision = Revision {
+                item_id: record.id.clone(),
+                revision_id: record.revision.clone(),
+                base_revision: record.parent.clone(),
+                upload_id: (!record.tombstone).then(|| job.vault.plan.upload_id.clone()),
+                tombstone: record.tombstone,
+                restore: job.restore,
+            };
+            let base = c.base()?;
+            let request = hex::encode(*job.request_id);
+            let dispatch = c.cloud.presign(
+                &c.signer(&security)?,
+                &format!("{base}/vault"),
+                "dmsg/vault/revision/v1",
+                &revision,
+                &job.request_id,
+                &format!("{base}/operations/{request}"),
+                now,
+            )?;
+            job.dispatch = Some(dispatch.clone());
+            c.workspace.store.set_job(&row.key, &job)?;
+            Ok(dispatch)
+        })
+        .await?;
+    let verdict = relay.submit(&dispatch, now_ms()).await;
+    h.with(|c| {
+        let job: ContentJob = c
+            .workspace
+            .store
+            .job(&row.key)?
+            .ok_or(Error::IntegrityFailed)?;
+        ensure(
+            job.dispatch.as_ref() == Some(&dispatch),
+            Error::IdempotencyConflict,
+        )?;
+        match verdict {
+            Ok(verdict) => c.settle(&row.key, &verdict).map(|_| true),
+            Err(Error::VersionConflict) => c.block(&row.key).map(|_| false),
+            Err(error) => Err(error),
+        }
+    })
+    .await
+}
+
+async fn send_upload<H: Hold>(
+    h: &H,
+    key: &str,
+    record: &EncryptedObject,
+    file: bool,
+) -> Result<()> {
+    let mut replanned = false;
+    loop {
+        let (base, job) = h
+            .with(|c| {
+                Ok((
+                    c.base()?,
+                    c.workspace
+                        .store
+                        .job::<ContentJob>(key)?
+                        .ok_or(Error::IntegrityFailed)?,
+                ))
+            })
+            .await?;
+        let upload = if file {
+            job.file.as_ref()
+        } else {
+            Some(&job.vault)
+        };
+        let Some(upload) = upload.filter(|u| !u.done) else {
+            return Ok(());
+        };
+        // Re-read the job at every write: another local action must not have
+        // replaced the upload while this request was waiting on the relay.
+        let update = |c: &Client, sent: Option<usize>| {
+            let mut job: ContentJob = c.workspace.store.job(key)?.ok_or(Error::IntegrityFailed)?;
+            let current = if file {
+                job.file.as_mut().ok_or(Error::IntegrityFailed)?
+            } else {
+                &mut job.vault
+            };
+            ensure(current.plan == upload.plan, Error::IdempotencyConflict)?;
+            match sent {
+                Some(sent) => current.sent = sent as u64,
+                None => current.done = true,
+            };
+            c.workspace.store.set_job(key, &job)
+        };
+        match crate::upload::upload(
+            h,
+            &base,
+            &upload.plan,
+            &upload.manifest,
+            upload.sent as usize,
+            Source::Store,
+            |c, sent| update(c, Some(sent)),
+        )
+        .await
+        {
+            Ok(()) => return h.with(|c| update(c, None)).await,
+            Err(Error::ResultExpired) if !replanned => {
+                h.with(|c| {
+                    let job: ContentJob =
+                        c.workspace.store.job(key)?.ok_or(Error::IntegrityFailed)?;
+                    ensure(
+                        file || job.dispatch.as_ref().is_none_or(|d| d.deadline <= now_ms()),
+                        Error::ExecutionUnknown,
+                    )
+                })
+                .await?;
+                replanned = true;
+                crate::upload::cancel_upload(h, &upload.plan.upload_id).await?;
+                h.with(|c| {
+                    let manifest = c.version_file(record)?;
+                    let mut job: ContentJob =
+                        c.workspace.store.job(key)?.ok_or(Error::IntegrityFailed)?;
+                    c.seal_uploads(&mut job, record, manifest.as_ref(), !file, file)?;
+                    c.workspace.store.set_job(key, &job)
+                })
+                .await?;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+/// Read and verify the relay's export snapshot, caching every vault and
+/// file chunk it lacks; nothing is opened yet.
+async fn fetch<H: Hold>(h: &H) -> Result<Snapshot> {
+    let id = h.with(|c| Ok(c.account()?.id)).await?;
+    let account = id.to_string();
+    let trust = h.trust().await?;
+    let base = h.with(|c| c.base()).await?;
+    let export_id = random_hex();
+    let start = h
+        .post(
+            &format!("{base}/exports"),
+            "dmsg/export/start/v1",
+            &ExportStart {
+                export_id: &export_id,
+            },
+            &Hash::new(crate::crypto::random_id()),
+        )
+        .await?;
+    let through = start["through"].as_u64().ok_or(Error::IntegrityFailed)?;
+    ensure(
+        start["account"] == account.as_str() && start["scope"] == "cloud_snapshot",
+        Error::IntegrityFailed,
+    )?;
+    let mut cursor = 0u64;
+    let mut counts: BTreeMap<String, u64> = BTreeMap::new();
+    let mut snapshot = Snapshot {
+        through,
+        plans: vec![],
+        revisions: vec![],
+    };
+    let mut epochs: BTreeMap<u64, Security> = BTreeMap::new();
+    loop {
+        let page = h
+            .get(&format!(
+                "{base}/exports/{export_id}?after={cursor}&limit=100"
+            ))
+            .await?;
+        let now = now_ms();
+        let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
+        ensure(entries.len() <= 100, Error::IntegrityFailed)?;
+        let mut fetched = Vec::new();
+        for entry in entries {
+            let at = entry["cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
+            ensure(at > cursor && at <= through, Error::IntegrityFailed)?;
+            cursor = at;
+            let kind = entry["kind"].as_str().ok_or(Error::IntegrityFailed)?;
+            *counts.entry(kind.into()).or_default() += 1;
+            match kind {
+                "object" => {
+                    ensure(
+                        entry["missing_chunks"].as_array().is_none_or(Vec::is_empty),
+                        Error::RecoveryIncomplete,
+                    )?;
+                    let plan: UploadPlan = serde_json::from_value(entry["plan"].clone())
+                        .map_err(|_| Error::IntegrityFailed)?;
+                    let signed: UploadPlan = verify_signed_entry(
+                        &trust,
+                        &id,
+                        &mut epochs,
+                        &page,
+                        entry,
+                        entry["signature"]["cose_sign1"]
+                            .as_str()
+                            .unwrap_or_default(),
+                        "dmsg/upload/reserve/v1",
+                        now,
+                    )?;
+                    ensure(
+                        signed == plan
+                            && entry["value"]["upload_id"] == plan.upload_id.as_str()
+                            && entry["value"]["digest"] == plan.manifest_digest.as_str(),
+                        Error::IntegrityFailed,
+                    )?;
+                    if matches!(plan.kind.as_str(), "vault" | "file") {
+                        ensure(
+                            snapshot.plans.len() + fetched.len() < MAX_PLANS,
+                            Error::QuotaExceeded,
+                        )?;
+                        fetched.push(plan);
+                    }
+                }
+                "revision" => {
+                    let value = &entry["value"];
+                    let revision: Revision = verify_signed_entry(
+                        &trust,
+                        &id,
+                        &mut epochs,
+                        &page,
+                        entry,
+                        value["signed"]["cose_sign1"].as_str().unwrap_or_default(),
+                        "dmsg/vault/revision/v1",
+                        now,
+                    )?;
+                    let fields =
+                        serde_json::to_value(&revision).map_err(|_| Error::IntegrityFailed)?;
+                    for (name, field) in fields.as_object().into_iter().flatten() {
+                        ensure(value[name] == *field, Error::IntegrityFailed)?;
+                    }
+                    let conflict = value["conflict"].as_bool().ok_or(Error::IntegrityFailed)?;
+                    ensure(
+                        snapshot.revisions.len() < MAX_REVISIONS,
+                        Error::QuotaExceeded,
+                    )?;
+                    snapshot.revisions.push((revision, conflict));
+                }
+                _ => {}
+            }
+        }
+        cache(h, &fetched).await?;
+        snapshot.plans.extend(fetched);
+        let end = page["inventory_end"]
+            .as_bool()
+            .ok_or(Error::IntegrityFailed)?;
+        ensure(
+            page["next_cursor"].as_u64() == Some(cursor) && (end || !entries.is_empty()),
+            Error::IntegrityFailed,
+        )?;
+        if end {
+            break;
+        }
+    }
+    for count in start["counts"].as_array().ok_or(Error::IntegrityFailed)? {
+        let kind = count["kind"].as_str().ok_or(Error::IntegrityFailed)?;
+        ensure(
+            counts.get(kind).copied().unwrap_or(0) == count["n"].as_u64().unwrap_or(u64::MAX),
+            Error::RecoveryIncomplete,
+        )?;
+    }
+    Ok(snapshot)
+}
+
+/// Download the manifests and chunks of committed uploads that the
+/// store lacks; every one is checked against its digest.
+async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<()> {
+    let missing = h
+        .with(|c| {
+            let base = c.base()?;
+            let mut seen = BTreeSet::new();
+            let mut missing = Vec::new();
+            for plan in plans {
+                let parts = plan
+                    .chunks
+                    .iter()
+                    .enumerate()
+                    .map(|(i, c)| (i.to_string(), &c.digest))
+                    .chain([("manifest".to_string(), &plan.manifest_digest)]);
+                for (name, digest) in parts {
+                    if seen.insert(digest) && !c.workspace.store.has_chunk(digest)? {
+                        let path = format!("{base}/objects/{}/chunks/{name}", plan.upload_id);
+                        missing.push((path, digest.clone()));
+                    }
+                }
+            }
+            Ok(missing)
+        })
+        .await?;
+    crate::upload::download_chunks(h, Source::Store, &missing, |_| {}).await
 }
 
 /// Submit the presigned revisions whose deadline has not passed, each

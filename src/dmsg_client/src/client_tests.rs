@@ -23,10 +23,10 @@ async fn fast_unlock_works_offline_for_thirty_days() {
         Some(Error::Locked)
     );
 
-    // Offline: the stored root still reads; the sync failure is recorded.
+    // Offline: the stored root reads before the host starts its background sync.
     let status = client.unlock_fast().await.unwrap();
     assert_eq!(status.state, "unlocked");
-    assert!(status.last_sync.unwrap().error.is_some());
+    assert!(status.last_sync.is_none());
     assert_eq!(client.vault_list(&Filter::default()).unwrap().len(), 1);
 
     client.lock();
@@ -39,6 +39,33 @@ async fn fast_unlock_works_offline_for_thirty_days() {
     assert_eq!(client.unlock_fast().await.err(), Some(Error::AuthRequired));
     assert!(!client.status().unwrap().fast_unlock);
     assert_eq!(client.unlock_fast().await.err(), Some(Error::NotFound));
+}
+
+#[tokio::test]
+async fn a_matching_local_root_opens_without_publishing_security_to_the_relay() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    crate::testing::warm(&mut client);
+    let root = client.root.as_ref().unwrap();
+    let state = client.security.as_mut().unwrap();
+    state.snapshot.content_root_generation = root.generation;
+    state.snapshot.content_root_digest = Some(root.digest);
+    client.root = None;
+    client.published = None;
+    // Both endpoints are unreachable. Local data still opens, without
+    // waiting for evidence publication, an export or an upload.
+    client.load_root().await.unwrap();
+    assert!(client.root.is_some());
+    assert_eq!(client.published, None);
+    assert!(client.last_sync().unwrap().is_none());
+    // A different certified root must still be fetched and verified.
+    client
+        .security
+        .as_mut()
+        .unwrap()
+        .snapshot
+        .content_root_generation += 1;
+    assert!(client.load_root().await.is_err());
 }
 
 /// A [`PresenceKey`] that answers as the person tells it to.

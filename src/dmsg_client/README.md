@@ -278,6 +278,13 @@ for the person, and the login of the last login unlock, sealed under the LDK,
 comes back until it expires. A device its account revoked erases its
 workspace.
 
+Unlock returns before content sync. Hosts must schedule `sync::sync(&hold)`
+after an unlocked result, as the daemon does. A matching stored root needs no
+relay request; the online device revocation check still precedes access.
+Content sync waits on the network outside `Hold::with`; callers serialize it
+with flush passes. Locking invalidates an in-flight pass, including when the
+same account is reopened before its response arrives.
+
 ```sh
 cargo test -p dmsg_client
 ```

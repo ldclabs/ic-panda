@@ -1,5 +1,6 @@
 import type { Glyph } from '../components/glyphs'
 import { toast } from '../components/toast.svelte'
+import { writable } from 'svelte/store'
 import { t, type Label } from '../i18n/index.svelte'
 import { call, code, errorText } from '../rpc'
 import { closeLogin, setupStates, startLogin } from './login.svelte'
@@ -30,6 +31,20 @@ export const logout = () =>
 /** Whether this lock has asked for its fast unlock; a new lock asks again. */
 let offered = false
 
+/** Shared by automatic unlock, the locked view and the account menu. */
+export const unlocking = writable(false)
+let opening: Promise<void> | null = null
+
+function openOnce(work: () => Promise<unknown>): Promise<void> {
+  if (opening) return opening
+  unlocking.set(true)
+  opening = Promise.resolve().then(work).then(() => {}).finally(() => {
+    opening = null
+    unlocking.set(false)
+  })
+  return opening
+}
+
 /**
  * Open the account again: fast unlock when it is on (the daemon asks for
  * Touch ID or the device password where the Secure Enclave keeps its key),
@@ -37,16 +52,19 @@ let offered = false
  * days after the last login) or lost its key leads to a login instead; a
  * declined Touch ID leaves the device locked.
  */
-export async function unlock(status: any) {
+export function unlock(status: any) {
+  if (status?.state === 'unlocked') return
   if (!status?.fast_unlock) return startLogin()
   // The system's question takes the focus; the window it returns to does not ask again.
   offered = true
-  try {
-    await call('session/unlock', { fast: true })
-  } catch (error) {
-    if (['AUTH_REQUIRED', 'NOT_FOUND'].includes(code(error))) return startLogin()
-    if (code(error) !== 'FORBIDDEN') toast(() => errorText(error))
-  }
+  return openOnce(async () => {
+    try {
+      await call('session/unlock', { fast: true })
+    } catch (error) {
+      if (['AUTH_REQUIRED', 'NOT_FOUND'].includes(code(error))) return startLogin()
+      if (code(error) !== 'FORBIDDEN') toast(() => errorText(error))
+    }
+  })
 }
 
 /**
@@ -55,13 +73,13 @@ export async function unlock(status: any) {
  * it in front of the window, and not again once it asked.
  */
 export function offerUnlock(status: any) {
-  if (offered || status?.state !== 'locked' || !status.fast_presence) return
+  if (opening || offered || status?.state !== 'locked' || !status.fast_presence) return
   void unlock(status)
 }
 
 /** A status that is not locked lets the next lock offer again. */
 export function settleOffer(status: any) {
-  if (status?.state !== 'locked') offered = false
+  if (!opening && status && status.state !== 'locked') offered = false
 }
 
 /** The step that opens the device from its session state; null once unlocked. */
@@ -80,7 +98,7 @@ export const sync = () => attempt(() => call('sync/run'))
 
 /** Another account's workspace opens locked; its fast unlock or a login opens it. */
 export const switchAccount = (account: string, fast: boolean) =>
-  attempt(() => call(fast ? 'session/unlock' : 'session/switch', fast ? { fast: true, account } : { account }))
+  openOnce(() => attempt(() => call(fast ? 'session/unlock' : 'session/switch', fast ? { fast: true, account } : { account })))
 
 /** An account ID shortened for display; the full ID stays one copy away. */
 export const shortId = (id: string) => (id.length > 12 ? `${id.slice(0, 4)}…${id.slice(-4)}` : id)

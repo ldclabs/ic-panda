@@ -773,6 +773,8 @@ export default {
     paletteRun: 'تنفيذ',
     syncPending: '{n} بانتظار المزامنة',
     synced: 'تمت المزامنة',
+    unlocking: 'جارٍ إلغاء القفل…',
+    syncFailed: 'فشلت المزامنة · إعادة المحاولة',
     syncing: 'جارٍ المزامنة…',
     connected: 'متصل بـ dmsg',
     kindWeb: 'طلب ويب',

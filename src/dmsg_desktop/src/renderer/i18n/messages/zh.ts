@@ -773,6 +773,8 @@ export default {
     paletteRun: '执行',
     syncPending: '{n} 个版本待同步',
     synced: '已同步',
+    unlocking: '正在解锁…',
+    syncFailed: '同步失败 · 重试',
     syncing: '正在同步…',
     connected: '已连接 dmsg',
     kindWeb: '网页请求',

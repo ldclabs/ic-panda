@@ -19,7 +19,7 @@
   import { locale, sessionLabel, setLocale, t, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single, when } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
-  import { unlock } from '../shell/session'
+  import { unlock, unlocking } from '../shell/session'
   import About from './About.svelte'
   import Devices from './Devices.svelte'
   import FilesSettings from './files/FilesSettings.svelte'
@@ -254,7 +254,7 @@
             </dl>
             <div class="mt-3 flex flex-wrap gap-1.5">
               {#if status?.state === 'locked'}
-                <button class={buttonClass('primary', 'sm')} onclick={() => unlock(status)}><Icon name="unlock" />{status.fast_unlock ? t('fastUnlock') : t('login')}</button>
+                <button class={buttonClass('primary', 'sm')} disabled={$unlocking} aria-busy={$unlocking} onclick={() => unlock(status)}><Icon name={$unlocking ? 'sync' : 'unlock'} class={$unlocking ? 'motion-safe:animate-spin' : ''} />{$unlocking ? t('unlocking') : status.fast_unlock ? t('fastUnlock') : t('login')}</button>
               {/if}
               {#if unlocked}
                 <button class={buttonClass('secondary', 'sm')} onclick={() => act('session/lock')}><Icon name="lock" />{t('lock')}</button>
@@ -264,7 +264,7 @@
                 </button>
               {/if}
               {#if status?.account}
-                <button class={buttonClass('secondary', 'sm')} onclick={() => act('sync/run')}><Icon name="sync-now" />{t('sync')}</button>
+                <button class={buttonClass('secondary', 'sm')} disabled={$unlocking || status.syncing} onclick={() => act('sync/run')}><Icon name="sync-now" />{status.syncing ? t('syncing') : t('sync')}</button>
               {/if}
             </div>
           </Section>
@@ -278,8 +278,8 @@
                     {#if !a.bound}<Pill tone="warn">{t('waitingDevice')}</Pill>{/if}
                     <span class="flex-1"></span>
                     {#if !a.current}
-                      {#if a.fast_unlock}<button class={buttonClass('secondary', 'xs')} onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
-                      <button class={buttonClass('secondary', 'xs')} onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
+                      {#if a.fast_unlock}<button class={buttonClass('secondary', 'xs')} disabled={$unlocking} onclick={() => switchTo(a.account, true)}>{t('fastUnlock')}</button>{/if}
+                      <button class={buttonClass('secondary', 'xs')} disabled={$unlocking} onclick={() => switchTo(a.account, false)}>{t('switchTo')}</button>
                     {/if}
                   </li>
                 {/each}

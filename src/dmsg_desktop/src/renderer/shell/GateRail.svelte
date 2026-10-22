@@ -4,7 +4,7 @@
   import { buttonClass, cn } from '../components/ui'
   import { sessionLabel, t } from '../i18n/index.svelte'
   import { when } from '../rpc'
-  import { lock, nextStep, sync } from './session'
+  import { lock, nextStep, sync, unlocking } from './session'
 
   /**
    * The gate rail at the foot of the sidebar: the step that opens the device
@@ -20,21 +20,23 @@
     mod
   }: { status: any; connected: boolean; connectionError?: string; collapsed?: boolean; mod: string } = $props()
 
-  let syncing = $state(false)
+  let requested = $state(false)
+  const syncing = $derived(requested || !!status?.syncing)
 
   const session = $derived<string>(status?.state ?? '')
   const unlocked = $derived(session === 'unlocked')
   /** A login, an unlock or the setup: what opens the device from here. */
   const step = $derived(nextStep(status))
   const pending = $derived<number>(status?.pending_sync ?? 0)
-  const syncText = $derived(syncing ? t('syncing') : pending ? t('syncPending', { n: pending }) : t('synced'))
-  const syncHint = $derived(status?.last_sync?.at ? `${t('sync')} · ${when(status.last_sync.at)}` : t('sync'))
+  const failed = $derived(!syncing && !!status?.last_sync?.error)
+  const syncText = $derived(syncing ? t('syncing') : failed ? t('syncFailed') : pending ? t('syncPending', { n: pending }) : status?.last_sync?.at ? t('synced') : t('sync'))
+  const syncHint = $derived(status?.last_sync?.at ? `${t('sync')} · ${when(status.last_sync.at)}${failed ? ` · ${status.last_sync.error}` : ''}` : t('sync'))
 
   async function syncNow() {
     if (syncing) return
-    syncing = true
+    requested = true
     await sync()
-    syncing = false
+    requested = false
   }
 </script>
 
@@ -49,18 +51,20 @@
           {...props}
           class={buttonClass('ghost', 'sm', 'relative size-8 px-0')}
           aria-label={sessionLabel(session)}
+          disabled={$unlocking}
+          aria-busy={$unlocking}
           onclick={() => (unlocked ? lock() : step?.run())}
           data-testid="gate-toggle"
         >
-          <Icon name={unlocked ? 'unlock' : 'lock'} />
+          <Icon name={$unlocking ? 'sync' : unlocked ? 'unlock' : 'lock'} class={$unlocking ? 'motion-safe:animate-spin' : ''} />
         </button>
       {/snippet}
     </Tooltip>
     {#if status?.account}
       <Tooltip content={`${syncText} · ${syncHint}`} side="right">
         {#snippet children(props)}
-          <button {...props} class={buttonClass('ghost', 'sm', 'relative size-8 px-0')} aria-label={syncText} onclick={syncNow}>
-            <Icon name="sync" />
+          <button {...props} class={buttonClass('ghost', 'sm', 'relative size-8 px-0')} aria-label={syncText} disabled={syncing || $unlocking} onclick={syncNow}>
+            <Icon name="sync" class={cn(syncing && 'motion-safe:animate-spin', failed && 'text-danger')} />
             {#if pending}<span class="absolute top-1.5 end-1.5 size-1.5 rounded-full bg-gem"></span>{/if}
           </button>
         {/snippet}
@@ -85,8 +89,8 @@
       <div class="flex min-h-6 items-center gap-2">
         <Icon name="lock" class="text-faint" />
         <b class="font-semibold" data-testid="gate-state">{session ? sessionLabel(session) : '-'}</b>
-        <button class={buttonClass(session === 'logged_out' ? 'primary' : 'secondary', 'xs', 'ms-auto')} onclick={step.run} data-testid="gate-unlock">
-          {t(step.label)}
+        <button class={buttonClass(session === 'logged_out' ? 'primary' : 'secondary', 'xs', 'ms-auto')} disabled={$unlocking} aria-busy={$unlocking} onclick={step.run} data-testid="gate-unlock">
+          {$unlocking ? t('unlocking') : t(step.label)}
         </button>
       </div>
     {/if}
@@ -97,10 +101,11 @@
             {...props}
             class="-my-0.5 flex min-h-6 items-center gap-2 rounded-md text-start text-ink-2 outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-focus/35"
             onclick={syncNow}
+            disabled={syncing || $unlocking}
             data-testid="gate-sync"
           >
-            <Icon name="sync" class="text-faint" />
-            <span class={cn(syncing && 'shimmer')}>{syncText}</span>
+            <Icon name="sync" class={cn('text-faint', syncing && 'motion-safe:animate-spin', failed && 'text-danger')} />
+            <span role="status" class={cn(syncing && 'shimmer', failed && 'text-danger')}>{syncText}</span>
           </button>
         {/snippet}
       </Tooltip>

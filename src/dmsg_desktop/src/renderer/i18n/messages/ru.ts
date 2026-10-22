@@ -773,6 +773,8 @@ export default {
     paletteRun: 'Выполнить',
     syncPending: 'Ждут синхронизации: {n}',
     synced: 'Синхронизировано',
+    unlocking: 'Разблокировка…',
+    syncFailed: 'Ошибка синхронизации · Повторить',
     syncing: 'Синхронизация…',
     connected: 'Подключено к dmsg',
     kindWeb: 'Веб-запрос',

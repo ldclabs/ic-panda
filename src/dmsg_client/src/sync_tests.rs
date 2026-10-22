@@ -10,6 +10,37 @@ fn item(title: &str) -> Changes {
     }
 }
 
+#[tokio::test]
+async fn a_sync_response_cannot_follow_a_lock_and_reopen_of_the_same_account() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let h = client.hold();
+    let generation = h.with(|c| Ok(c.session_generation)).await.unwrap();
+    let old = SyncSession { h: &h, generation };
+    h.with(|c| {
+        c.lock();
+        c.keys = Some(c.workspace.unlock(&crate::testing::SECRET)?);
+        c.root = Some(crate::root::RootKeys::single(1, [5; 32]));
+        Ok(())
+    })
+    .await
+    .unwrap();
+    let empty = Snapshot {
+        through: 0,
+        plans: vec![],
+        revisions: vec![],
+    };
+    assert_eq!(old.with(|c| c.apply(&empty)).await, Err(Error::Locked));
+    h.with(|c| {
+        assert_eq!(c.status()?.state, "unlocked");
+        assert_eq!(c.workspace.store.meta::<u64>(SNAPSHOT)?, None);
+        // A new pass under this unlock can apply the same valid response.
+        c.apply(&empty)
+    })
+    .await
+    .unwrap();
+}
+
 /// The relay's rules over vault revisions, in memory: a revision whose base
 /// is not the head is stored as a conflict copy; a tombstone needs the head
 /// as its base; a deleted item takes only an explicit restore.

@@ -773,6 +773,8 @@ export default {
     paletteRun: 'Lancer',
     syncPending: '{n} à synchroniser',
     synced: 'Synchronisé',
+    unlocking: 'Déverrouillage…',
+    syncFailed: 'Échec de la synchronisation · Réessayer',
     syncing: 'Synchronisation…',
     connected: 'Connecté à dmsg',
     kindWeb: 'Demande web',
