@@ -27,7 +27,6 @@ pub fn validate_quote(
         q.home_payment == id
             && q.payer.owner == payer
             && q.ledger == config.ledger
-            && q.platform == config.platform
             && q.created_at >= policy.effective_at_ms
             && q.service_fee
                 == dmsg_protocol::billing::delivery_service_fee(q.recipient_net, policy)?,
@@ -78,7 +77,7 @@ pub fn validate_quote(
     Ok(hash)
 }
 
-/// Recheck admission, fee requirements, active policy and signer revocation
+/// Recheck admission, revenue account, fee requirements, active policy and signer revocation
 /// after offer verification. Previously accepted escrow terms remain frozen.
 /// Signer keys/intervals are immutable within an epoch (rotation adds an epoch).
 pub fn quote_current(
@@ -91,6 +90,7 @@ pub fn quote_current(
     ensure(config.enabled, Error::Locked)?;
     let q = &input.quote;
     let o = &input.offer.offer;
+    ensure(q.platform == config.platform, Error::IntegrityFailed)?;
     ensure(q.created_at <= now && now < q.fund_by, Error::Expired)?;
     ensure(o.issued_at <= now && now < o.expires_at, Error::Expired)?;
     ensure(q.fee_policy_version == policy.version, Error::PolicyStale)?;

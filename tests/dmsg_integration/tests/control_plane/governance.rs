@@ -46,6 +46,41 @@ fn cose_and_payment_governance_run_validated_admin_operations() {
     assert!(unchanged(validate(&f, f.cose, "initialize_keys", ())));
 
     let governance = Principal::from_slice(&[90]);
+    for owner in [
+        Principal::anonymous(),
+        Principal::management_canister(),
+        f.payment,
+    ] {
+        let invalid = account(owner);
+        assert_eq!(
+            validate(&f, f.payment, "admin_set_revenue", (invalid,)),
+            Err("InvalidInput(\"revenue account\")".into()),
+        );
+        let rejected: Result<()> = update(
+            &f.ic,
+            f.payment,
+            governance,
+            "admin_set_revenue",
+            (invalid,),
+        );
+        assert_eq!(rejected, Err(Error::InvalidInput("revenue account".into())));
+    }
+    let revenue = Account {
+        owner: person(61),
+        subaccount: Some([7; 32]),
+    };
+    let rendered = validate(&f, f.payment, "admin_set_revenue", (revenue,)).unwrap();
+    assert!(rendered.contains(&revenue.to_string()));
+    assert!(rendered.contains(&account(person(60)).to_string()));
+    govern(&f, f.payment, governance, "admin_set_revenue", (revenue,));
+    assert!(unchanged(validate(
+        &f,
+        f.payment,
+        "admin_set_revenue",
+        (revenue,)
+    )));
+    govern(&f, f.payment, governance, "admin_set_revenue", (revenue,));
+
     assert_eq!(
         validate(&f, f.payment, "set_orders_enabled", (false,)),
         Ok("Disable new payment escrows.".into())

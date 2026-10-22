@@ -25,6 +25,7 @@ fn inspect_message() {
     let allowed = match ic_cdk::api::msg_method_name().as_str() {
         "admin_add_user_home"
         | "admin_set_limits"
+        | "admin_set_revenue"
         | "set_orders_enabled"
         | "set_ledger_fee"
         | "rotate_receipt_signer"
@@ -40,14 +41,22 @@ fn inspect_message() {
     }
 }
 
+fn check_revenue(account: &Account, canister_id: Principal) -> Result<()> {
+    ensure_valid(
+        authenticated(account.owner).is_ok() && account.owner != canister_id,
+        "revenue account",
+    )
+}
+
 #[ic_cdk::init]
 fn init(args: PaymentInit) {
     validate_namespace(&args.issuer_namespace).expect("issuer namespace");
     validate_user_homes(&args.environment, &args.issuer_namespace, &args.user_homes)
         .expect("user homes");
-    for p in [args.ledger, args.platform.owner, args.governance] {
+    for p in [args.ledger, args.governance] {
         authenticated(p).expect("canister/account");
     }
+    check_revenue(&args.platform, ic_cdk::api::canister_self()).expect("revenue account");
     check_limits(&args.limits).expect("payment limits");
     assert!(
         args.ledger_fee <= args.max_fee && args.max_fee <= 1_000_000_000,
@@ -123,7 +132,30 @@ fn validate_admin_set_limits(limits: PaymentLimits) -> Validation {
     }))
 }
 
-/// Installed configuration with the current homes, switch, network fee,
+/// Send new escrows' platform fees to `account`. Accepted escrows and their
+/// prepared transfers keep the platform account frozen in their quote.
+#[ic_cdk::update]
+fn admin_set_revenue(account: Account) -> Result<()> {
+    check_admin(ic_cdk::api::msg_caller())?;
+    check_revenue(&account, ic_cdk::api::canister_self())?;
+    if with_cfg(|c| c.init.platform != account) {
+        configure(|c| c.platform = account);
+    }
+    Ok(())
+}
+
+#[ic_cdk::query]
+fn validate_admin_set_revenue(account: Account) -> Validation {
+    let current = with_cfg(|c| c.init.platform);
+    validation(check_revenue(&account, ic_cdk::api::canister_self()).map(|()| {
+        format!(
+            "Send new payment escrow platform fees to {account} (currently {current}). Existing escrows keep their platform account.{}",
+            admin::unchanged(account != current, "Same account"),
+        )
+    }))
+}
+
+/// Installed configuration with the current homes, switch, platform account, network fee,
 /// signer and limits.
 #[ic_cdk::query]
 fn payment_config() -> PaymentInit {
@@ -334,7 +366,7 @@ async fn open_escrow(input: OpenEscrow) -> Result<EscrowInfo> {
     // The guard holds this payer and quote exclusively until commit. Other
     // messages can release the payer's slots, but cannot open another order.
     // Recheck the slots against limits governance may have lowered, and
-    // mutable fees, enablement, deadlines and revocation. Other payers can
+    // revenue account, fees, enablement, deadlines and revocation. Other payers can
     // consume the daily admission budget while verification is pending.
     config = with_cfg(|c| c.init.clone());
     ensure(

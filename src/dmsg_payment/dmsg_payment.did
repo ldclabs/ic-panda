@@ -504,6 +504,9 @@ service : (PaymentInit) -> {
   admin_add_user_home : (principal) -> (Result);
   // Replace the admission limits. Accepted escrows and their recovery are unaffected.
   admin_set_limits : (PaymentLimits) -> (Result);
+  // Send new escrows' platform fees to `account`. Accepted escrows and their
+  // prepared transfers keep the platform account frozen in their quote.
+  admin_set_revenue : (Account) -> (Result);
   check_funding : (blob, nat64) -> (Result_1);
   // Combine only allocations belonging to the same exact original account.
   // The payer or the owner of the refunded funds may claim.
@@ -531,7 +534,7 @@ service : (PaymentInit) -> {
     ) query;
   list_transfers : (blob, opt nat64) -> (Result_7) query;
   open_escrow : (OpenEscrow) -> (Result_1);
-  // Installed configuration with the current homes, switch, network fee,
+  // Installed configuration with the current homes, switch, platform account, network fee,
   // signer and limits.
   payment_config : () -> (PaymentInit) query;
   // Record counts against the limits, with the stable size and cycle balance.
@@ -558,6 +561,7 @@ service : (PaymentInit) -> {
   set_orders_enabled : (bool) -> (Result);
   validate_admin_add_user_home : (principal) -> (Result_9) query;
   validate_admin_set_limits : (PaymentLimits) -> (Result_9) query;
+  validate_admin_set_revenue : (Account) -> (Result_9) query;
   validate_revoke_receipt_signer : (nat64) -> (Result_9) query;
   validate_rotate_receipt_signer : (ReceiptSigner) -> (Result_9) query;
   validate_schedule_fee_policy : (DeliveryFeePolicy) -> (Result_9) query;

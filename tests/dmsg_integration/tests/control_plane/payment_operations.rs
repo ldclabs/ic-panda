@@ -116,6 +116,18 @@ fn governed_limits_bound_admission_and_admin_changes_persist_without_pre_upgrade
     disabled.unwrap();
     let fee: Result<()> = update(&f.ic, f.payment, governance, "set_ledger_fee", (15u128,));
     fee.unwrap();
+    let revenue = Account {
+        owner: person(61),
+        subaccount: Some([7; 32]),
+    };
+    let changed: Result<()> = update(
+        &f.ic,
+        f.payment,
+        governance,
+        "admin_set_revenue",
+        (revenue,),
+    );
+    changed.unwrap();
 
     upgrade_skipping_pre_upgrade(&f);
     let config: PaymentInit = query(
@@ -126,8 +138,13 @@ fn governed_limits_bound_admission_and_admin_changes_persist_without_pre_upgrade
         (),
     );
     assert_eq!(
-        (config.limits, config.enabled, config.ledger_fee),
-        (next, false, 15)
+        (
+            config.limits,
+            config.enabled,
+            config.ledger_fee,
+            config.platform
+        ),
+        (next, false, 15, revenue)
     );
     let certified: Result<CertifiedBatch> = query(
         &f.ic,
@@ -139,6 +156,16 @@ fn governed_limits_bound_admission_and_admin_changes_persist_without_pre_upgrade
     let leaf: PaymentConfiguration =
         cbor2::from_slice(certified.unwrap().entries[0].value.as_ref().unwrap()).unwrap();
     assert_eq!((leaf.max_escrows, leaf.enabled), (2, false));
+    assert_eq!(leaf.platform, revenue);
+
+    let restored: Result<()> = update(
+        &f.ic,
+        f.payment,
+        governance,
+        "admin_set_revenue",
+        (account(person(60)),),
+    );
+    restored.unwrap();
 
     let enabled: Result<()> = update(&f.ic, f.payment, governance, "set_orders_enabled", (true,));
     enabled.unwrap();

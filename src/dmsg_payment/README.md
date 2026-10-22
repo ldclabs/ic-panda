@@ -21,7 +21,7 @@ flowchart LR
   R["私有中继"] -- "签发 Quote 与 AdmissionReceipt<br/>get_escrow_certified" --> P
   B["收件人 / 平台"] -- "process_transfer<br/>revise_rejected_transfer" --> P
   D["出金派发任务"] -- "list_pending_transfers<br/>process_transfer" --> P
-  G["controller / governance"] -- "user home、限额、开关<br/>手续费、signer、费率" --> P
+  G["controller / governance"] -- "user home、限额、开关<br/>收款账户、手续费、signer、费率" --> P
 ```
 
 | 组件           | 与 payment 的关系                                                                                                                                                                   |
@@ -38,7 +38,7 @@ flowchart LR
 
 | 类别     | 方法                                                                                                                                                                                                 | 调用者                                       |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| 管理     | `admin_add_user_home`、`admin_set_limits`、`set_orders_enabled`、`set_ledger_fee`、`rotate_receipt_signer`、`revoke_receipt_signer`、`schedule_fee_policy`                                          | controller 或 `governance`                   |
+| 管理     | `admin_add_user_home`、`admin_set_limits`、`admin_set_revenue`、`set_orders_enabled`、`set_ledger_fee`、`rotate_receipt_signer`、`revoke_receipt_signer`、`schedule_fee_policy`                                          | controller 或 `governance`                   |
 | 提案预演 | 以上每个方法的 `validate_*`，参数相同                                                                                                                                                                | 任何人（query）                              |
 | 开单     | `open_escrow`                                                                                                                                                                                        | 付款 Principal，须为 `quote.payer.owner`     |
 | 入金     | `check_funding`                                                                                                                                                                                      | 任何人，计入调用方的账本读取额度             |
@@ -63,7 +63,7 @@ flowchart LR
    - 报价：签名属于未撤销且在有效区间内的 signer epoch，`home_payment` 是本 canister，账本、平台账户与配置一致，费率版本是当前生效版本且服务费按它计算，`max_network_fee == max_fee`，预留在允许区间内，金额拆分正确，期限符合上述固定值，`max_bytes ≤ 8192`，保留期 1–365 天；
    - offer 与报价的收款人、净额、范围和摘要一致；按收款账户 ID 内嵌的分配器指纹找到它的 home（不在 `user_homes` 中返回 `NotFound`，不消耗授权额度），再调用该 home 的 `verify_payment_offer`。
 
-   调用返回后，用新读取的时间和配置重新检查付款方未结订单数、开关、期限、signer 撤销、费率版本和容量，并要求 home 返回的观察时间与本地时间相差不超过 60 秒，然后才写入订单。
+   调用返回后，用新读取的时间和配置重新检查付款方未结订单数、平台账户、开关、期限、signer 撤销、费率版本和容量，并要求 home 返回的观察时间与本地时间相差不超过 60 秒，然后才写入订单。
 2. **付款**：付款方从 `quote.payer` 账户向 `(本 canister, escrow.subaccount)` 转账，子账户为 `digest(本 canister, escrow_id)`。
 3. **入金** `check_funding(escrow_id, block)`：从账本读取该区块，核对收款方是订单子账户，每个区块只能被认领一次。同时满足以下条件的第一笔入金成为主入金（`funding_ref`）：订单还没有资金决定、账本提交时间早于 `fund_by`、来源恰好是 `quote.payer`、金额不少于 `quote.amount`。主入金超出 `quote.amount` 的部分可以退回。少付、迟到、来源不同和重复的入金全额归实际出资账户。
 4. **结算** `finalize_receipt(SignedReceipt)`：要求订单已有主入金、还没有资金决定、`now < accept_by`。先做本地字段检查再验签：收据须绑定本订单、本 canister、报价摘要、密文摘要、signer epoch 和两个期限，`0 < size ≤ max_bytes`，`retain_until ≥ stored_at + retain_ms`，`stored_at` 落在 signer 有效区间内。成功后资金决定变为 `SettlementCommitted`，同时准备收件人和平台两条出金腿；服务费为 0 时只有收件人一条。结算不再查账，资金已由 `check_funding` 确认。
@@ -237,7 +237,7 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 | `issuer_namespace`   | 与所有 user home 的同名字段相同                                                                                              |
 | `user_homes`         | 1–64 个 `dmsg_user`，分配器指纹互不相同；之后只能用 `admin_add_user_home` 追加                                                |
 | `ledger`             | 见上；安装后不可修改                                                                                                         |
-| `platform`           | 服务费收款账户；安装后不可修改                                                                                               |
+| `platform`           | 服务费收款账户；之后由 `admin_set_revenue` 修改，只影响新订单                                                                                               |
 | `governance`         | 生产为 SNS governance `dwv6s-6aaaa-aaaaq-aacta-cai`（[sns_canister_ids.json](../../sns_canister_ids.json) 的 `governance_canister_id`），本地可填部署者 principal；安装后不可修改 |
 | `fee_policy`         | `version > 0`，`rate_bps ≤ 10000`，`effective_at_ms` 不晚于安装时间                                                          |
 | `ledger_fee`         | 账本 `icrc1_fee` 的当前值，不超过 `max_fee`；之后用 `set_ledger_fee` 维护                                                    |
@@ -246,7 +246,7 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 | `limits`             | 初始 `PaymentLimits`，取值范围见[上限](#上限)；之后用 `admin_set_limits` 整体替换                                             |
 | `enabled`            | 建议先填 `false`，主网验收后再打开                                                                                           |
 
-`ledger`、`platform.owner` 和 `governance` 不能是匿名 principal 或管理 canister，参数不合法时安装失败。安装后可以修改的只有 user home（只能追加）、限额、订单开关、`ledger_fee`、收据 signer 和费率政策，都通过管理方法；`post_upgrade` 不读参数。
+`ledger`、`platform.owner` 和 `governance` 不能是匿名 principal 或管理 canister，`platform.owner` 也不能是 payment 自己。参数不合法时安装失败。安装后可以修改 user home（只能追加）、限额、平台收款账户、订单开关、`ledger_fee`、收据 signer 和费率政策，都通过管理方法；`post_upgrade` 不读参数。
 
 ### 步骤
 
@@ -331,6 +331,20 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
    icp canister call -e ic dmsg_payment set_orders_enabled '(true)'
    ```
 
+### 更换平台收款账户
+
+使用完整 ICRC 账户参数，可将 owner 设置为团队钱包 canister；`subaccount = null` 表示其默认账户。先用 `validate_admin_set_revenue` 预检，确认返回的新旧账户，再由 controller 或 governance 调用同参数的 `admin_set_revenue`。相同账户重复设置不改状态。账户 owner 不能是匿名、管理 canister 或 payment 本身。
+
+```sh
+icp canister call -e ic dmsg_payment validate_admin_set_revenue \
+  '(record { owner = principal "<团队钱包 ID>"; subaccount = null })' --query
+icp canister call -e ic dmsg_payment admin_set_revenue \
+  '(record { owner = principal "<团队钱包 ID>"; subaccount = null })'
+icp canister call -e ic dmsg_payment payment_config '()' --query
+```
+
+配置字段仍为 `platform`，稳定布局仍为 schema 12，可以原地升级后调用，无需重装。同步更新私有中继 `PAYMENT_TERMS` 中该 canister 的 `platform`；尚未开单的旧报价会被拒绝，须重新报价。已建立的订单、幂等重放和已准备出金继续使用原报价账户。
+
 ### 交给 SNS
 
 主网验收完成后，按 [dmsg_handle](../dmsg_handle/README.md#交给-sns) 的流程把 SNS root 设为唯一 controller，并用 `AddGenericNervousSystemFunction` 提案登记通用函数，目标方法和验证方法都在本 canister 上。建议的主题：
@@ -338,6 +352,7 @@ payment 不保存账户。每个付款方只有未结订单和付款方索引的
 | 目标方法                | 验证方法                         | 主题                                         |
 | ----------------------- | -------------------------------- | -------------------------------------------- |
 | `admin_add_user_home`   | `validate_admin_add_user_home`   | `CriticalDappOperations`（关键主题）         |
+| `admin_set_revenue`     | `validate_admin_set_revenue`      | `CriticalDappOperations`（关键主题）         |
 | `admin_set_limits`      | `validate_admin_set_limits`      | `ApplicationBusinessLogic`                   |
 | `rotate_receipt_signer` | `validate_rotate_receipt_signer` | `CriticalDappOperations`（关键主题）         |
 | `revoke_receipt_signer` | `validate_revoke_receipt_signer` | `ApplicationBusinessLogic`（应急，需尽快通过） |
@@ -357,6 +372,7 @@ payment 没有定时器，以下任务都需要外部调用：
 | 修订被拒的出金 | `revise_rejected_transfer` 后 `process_transfer`         | 付款 Principal 或收款 owner    | 超过 24 小时未派发的腿会返回 `TooOld`，须修订                                                          |
 | 到期退款       | `expiry_refund`                                          | 任何人                         | `accept_by` 之后；同时释放付款方的未结订单名额                                                         |
 | 领取退款       | `claim_refund`，再 `process_transfer`                    | 付款方或出资账户 owner         | 到期退款、多付或其他入金之后；一次合并同一出资账户的余额。`process_transfer` 任何人都可以派发          |
+| 收款账户变更   | `admin_set_revenue(account)`                             | controller 或 governance       | 更新 `PaymentInit.platform` 并立即持久化、认证；只影响新开单，旧订单和出金保留原账户，中继同步更新报价配置 |
 | 网络费变化     | `set_ledger_fee(fee)`                                    | controller 或 governance       | 不超过 `max_fee`；只影响之后生成的出金腿，已准备的腿保留原 fee，遇到 `BadFee` 时修订                    |
 | signer 轮换    | `rotate_receipt_signer(signer)`                          | controller 或 governance       | 在当前 signer 的 `valid_until` 之前，epoch 须递增；旧 epoch 继续用于其有效区间内的报价，中继同步切换     |
 | 费率调整       | `schedule_fee_policy(policy)`                            | controller 或 governance       | 至少提前 30 天，版本和生效时间都递增；生效时刻中继改用新版本，跨越生效时刻的报价开单返回 `PolicyStale` |
@@ -411,7 +427,7 @@ home 路由与配置校验在 [dmsg_protocol::agent](../dmsg_protocol/src/agent.
 cargo test --locked -p dmsg_payment
 ```
 
-真实 Wasm 的 PocketIC 回归在 [tests/dmsg_integration/tests/control_plane](../../tests/dmsg_integration/tests/control_plane)：`payment_regressions.rs`、`payment_optimization.rs`、`payment_review.rs`、`payment_operations.rs`，另有 `control_plane.rs`、`review_regressions.rs` 与 `governance.rs` 中的支付用例。它们覆盖并发开单、查账与对账的去重，升级打断的出金只发一次，费率边界与证书，手续费维护，各类额度的隔离与升级保留，同源合并退款与分页，最后一个容量名额的并发竞争，治理限额及跳过 `pre_upgrade` 的升级后配置仍在，核验 offer 期间调低的付款方名额仍然生效，过期订单释放付款方名额，待派发出金分页，以及 ingress 预过滤：
+真实 Wasm 的 PocketIC 回归在 [tests/dmsg_integration/tests/control_plane](../../tests/dmsg_integration/tests/control_plane)：`payment_regressions.rs`、`payment_optimization.rs`、`payment_review.rs`、`payment_operations.rs`，另有 `control_plane.rs`、`review_regressions.rs` 与 `governance.rs` 中的支付用例。它们覆盖并发开单、查账与对账的去重，升级打断的出金只发一次，费率边界与证书，手续费和收款账户维护（认证配置、新旧订单分别到账、子账户、权限及非法账户拒绝），各类额度的隔离与升级保留，同源合并退款与分页，最后一个容量名额的并发竞争，治理限额及跳过 `pre_upgrade` 的升级后配置仍在，核验 offer 期间调低的付款方名额仍然生效，过期订单释放付款方名额，待派发出金分页，以及 ingress 预过滤：
 
 ```sh
 cargo build --locked --release --target wasm32-unknown-unknown -p dmsg_user -p dmsg_handle -p dmsg_cose -p dmsg_directory -p dmsg_payment -p membership -p dmsg_commerce -p dmsg_test_ledger -p dmsg_test_sns -p dmsg_account_product

@@ -83,6 +83,88 @@ fn fund(f: &Fixture, e: &EscrowInfo, fee: u64) -> EscrowInfo {
 }
 
 #[test]
+fn revenue_changes_preserve_old_escrows_and_payouts_and_update_certified_configuration() {
+    let f = Fixture::new();
+    let recipient = f.create(2);
+    let open = |input: OpenEscrow| -> Result<EscrowInfo> {
+        update(&f.ic, f.payment, person(40), "open_escrow", (input,))
+    };
+    let finalize = |e: &EscrowInfo| {
+        let result: Result<EscrowInfo> = update(
+            &f.ic,
+            f.payment,
+            person(99),
+            "finalize_receipt",
+            (f.receipt(e),),
+        );
+        result.unwrap();
+    };
+    let platform_leg = |id: Hash| -> TransferLeg {
+        let result: Result<TransferLeg> =
+            query(&f.ic, f.payment, person(99), "get_transfer", (id, 1u64));
+        result.unwrap()
+    };
+    let old_input = f.order(&recipient, 2, 1);
+    let old = fund(&f, &open(old_input.clone()).unwrap(), 10);
+    finalize(&old);
+    let prepared = platform_leg(old.escrow_id);
+    let accepted = fund(&f, &open(f.order(&recipient, 2, 2)).unwrap(), 10);
+    let revenue = Account {
+        owner: f.ic.create_canister(),
+        subaccount: Some([7; 32]),
+    };
+    // A controller may change the destination, including its subaccount.
+    let changed: Result<()> = update(
+        &f.ic,
+        f.payment,
+        Principal::anonymous(),
+        "admin_set_revenue",
+        (revenue,),
+    );
+    changed.unwrap();
+    assert_eq!(configuration(&f, None).0.platform, revenue);
+    upgrade(&f);
+    let config: PaymentInit = query(&f.ic, f.payment, person(99), "payment_config", ());
+    assert_eq!(config.platform, revenue);
+    assert_eq!(configuration(&f, None).0.platform, revenue);
+    assert_eq!(platform_leg(old.escrow_id), prepared);
+    // Replay and later settlement of already accepted orders retain their terms.
+    assert_eq!(open(old_input).unwrap().quote.platform, old.quote.platform);
+    finalize(&accepted);
+    assert_eq!(platform_leg(accepted.escrow_id).to, old.quote.platform);
+
+    let mut fresh = f.order(&recipient, 2, 3);
+    assert_eq!(open(fresh.clone()), Err(Error::IntegrityFailed));
+    fresh.quote.platform = revenue;
+    let fresh = fund(&f, &open(signed(fresh)).unwrap(), 10);
+    finalize(&fresh);
+    assert_eq!(platform_leg(fresh.escrow_id).to, revenue);
+    for e in [&old, &accepted, &fresh] {
+        let sent: Result<TransferLeg> = update(
+            &f.ic,
+            f.payment,
+            person(99),
+            "process_transfer",
+            (e.escrow_id, 1u64),
+        );
+        assert_eq!(sent.unwrap().status, LegStatus::Succeeded);
+    }
+    let old_balance: Nat = query(
+        &f.ic,
+        f.ledger,
+        person(99),
+        "icrc1_balance_of",
+        (old.quote.platform,),
+    );
+    let new_balance: Nat = query(&f.ic, f.ledger, person(99), "icrc1_balance_of", (revenue,));
+    assert_eq!(
+        old_balance,
+        Nat::from(old.quote.service_fee + accepted.quote.service_fee)
+    );
+    assert_eq!(new_balance, Nat::from(fresh.quote.service_fee));
+}
+
+#[test]
 fn current_fee_certificates_follow_time_without_an_order_and_survive_upgrade() {
     let f = Fixture::new();
     let now = time(&f.ic);

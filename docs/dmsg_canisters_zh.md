@@ -277,3 +277,7 @@ hub 新增不写状态的 `quote_activation_preview(account_id)` query，只读�
 任务与时间索引使用 memory 31–32，memory 33 保存旧热记录的补建游标；每分钟最多补建 32 条记录，原 schema 8 的订单和转账表示不变。升级恢复定时器及队列，不重装。未知出金在 24 小时窗口内只重试原参数，超窗未知结果和明确费用拒绝保留人工对账 / 修订，不生成第二笔付款。定时器从当前时间重新安排下一次，停机恢复不逐分钟补跑。
 
 PocketIC 覆盖 canister 商户自动到账、准备金退回、提前退款、重复定时执行、临时失败、丢失回复、旧 Wasm 升级后补建与原未决转账恢复。新增队列尚未做生产规模容量、积压吞吐或 cycles 压测；源码变更不代表主网已升级。
+
+## 2026-10-22 payment 平台收款账户管理
+
+新增 `admin_set_revenue(Account)` 与 `validate_admin_set_revenue(Account)`，由 controller / governance 更新现有 `PaymentInit.platform`，立即持久化并重新认证；validator 显示新旧账户。匿名、管理 canister 和 payment 自身不能作收款 owner。新订单按当前平台账户校验，旧订单、幂等重放及已准备的出金保留原报价账户。稳定布局保持 schema 12，无需重装；中继须同步更新报价使用的平台账户。源码变更不代表主网已升级。
