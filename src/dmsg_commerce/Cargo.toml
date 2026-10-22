@@ -18,6 +18,7 @@ dmsg_types = { path = "../dmsg_types" }
 candid.workspace = true
 serde = { workspace = true, features = ["derive"] }
 ic-cdk.workspace = true
+ic-cdk-timers.workspace = true
 icrc-ledger-types.workspace = true
 lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
 

@@ -8,6 +8,7 @@ mod checkout_store;
 mod model;
 mod product;
 mod registrations;
+mod settlement;
 mod stable_codec;
 mod store;
 use candid::Principal;

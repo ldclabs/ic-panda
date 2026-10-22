@@ -1134,10 +1134,8 @@ service : (CommerceInit) -> {
   // Anyone may trigger it: the destination is the payer frozen in the quote.
   claim_checkout_fee_reserve : (blob) -> (Result_7);
   claim_checkout_refund : (blob, principal, vec nat, blob) -> (Result_7);
-  collect_checkout_revenue : (blob) -> (Result_7);
-  // The calling merchant's applied orders with uncollected revenue, earliest
-  // term end first, so a job that collects once per term stops at the first
-  // order whose term end, or early refund, lies ahead.
+  // Monitor the calling merchant's applied orders still awaiting automatic
+  // collection, ordered by service end (including an early refund).
   collectable_checkouts : (opt blob, nat16) -> (Result_5) query;
   // Record counts against the limits, with the stable size and cycle balance.
   commerce_stats : () -> (CommerceStats) query;

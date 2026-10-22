@@ -25,7 +25,7 @@ flowchart LR
   P -- "get_checkout_for_product" --> C
   G["governance"] -- "注册、资产、目录、暂停" --> C
   PA["controller / governance / 价格权威"] -- "publish_settlement_price" --> C
-  MER["商户"] -- "collect_checkout_revenue" --> C
+  C -- "定时归集到固定 merchant" --> MER["商户账户"]
   CL["私有云端"] -- "get_entitlement_batch<br/>get_catalog" --> C
 ```
 
@@ -37,7 +37,7 @@ flowchart LR
 | 外部产品（TokenList） | 自己实现产品回调和受益权限，commerce 只做现金结算，参见 [account product 示例](../../examples/dmsg-account-product/README.md)                                                                         |
 | governance            | 初始化时固定的管理主体，与 controller 一起可调用全部治理方法                                                                                                                                          |
 | 价格权威              | 可选；governance 指定的 principal 也可以发布，未指定时 controller/governance 手动发布长期价格                                                                                                         |
-| 商户                  | 产品注册中 `merchant` 账户的 owner，归集已赚取的收入                                                                                                                                                  |
+| 商户                  | 产品注册中 `merchant` 账户的 owner，自动接收服务结束后的收入                                                                                                                                                  |
 | 私有云端              | 读取认证目录和资源权益，不参与资金或交付决定                                                                                                                                                          |
 
 ### 接口与调用者
@@ -53,7 +53,6 @@ flowchart LR
 | 结账          | `quote_checkout`、`check_checkout_funding`、`reconcile_checkout`                                                                                                                                    | 任何人                                         |
 |               | `open_checkout`、`cancel_checkout`                                                                                                                                                                  | 付款人（即账户批准的 actor）                   |
 | 出金          | `claim_checkout_refund`                                                                                                                                                                             | 入金来源 owner 或付款人                        |
-|               | `collect_checkout_revenue`                                                                                                                                                                          | 商户 owner                                     |
 |               | `collectable_checkouts`                                                                                                                                                                             | 商户 owner（query，按服务终点分页未归集完的订单） |
 |               | `claim_checkout_fee_reserve`                                                                                                                                                                        | 任何人（收款方固定为付款人）                   |
 |               | `process_checkout_transfer`、`reconcile_checkout_transfer`                                                                                                                                          | 任何人                                         |
@@ -98,21 +97,23 @@ flowchart LR
 | 出金       | 入口                                                         | 金额                                                                                          |
 | ---------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | 退款       | `claim_checkout_refund(order, ledger, blocks, operation_id)` | 同一账本、同一来源的 1–32 笔入金的可退余额之和，扣除一次网络费后转回来源账户                  |
-| 商户收入   | `collect_checkout_revenue(order)`                            | 已赚取额减已归集额。从实际交付与服务开始两者较晚者起，到服务结束线性赚取；网络费优先用费用准备补贴 |
-| 准备金退回 | `claim_checkout_fee_reserve(order)`                          | 收入全部归集后剩余的费用准备，转回付款人；任何人都可以触发                                    |
+| 商户收入   | canister 定时归集                                           | 在服务实际结束后一次分配剩余已赚收入，转入订单冻结的 `merchant`；网络费优先用费用准备补贴 |
+| 准备金退回 | 定时退回；`claim_checkout_fee_reserve(order)` 可手动推进       | 收入全部归集后剩余的费用准备，转回订单冻结的付款人账户 |
 
 完成全部已赚收入的那次归集会一并带走无法单独退回（不超过一笔账本 fee）的费用准备余额，更大的余额留待退回付款人，所以结清的订单余额都能归零。
 
-这三个入口只在本地分配一条 `Pending` 出金腿，不发起转账。每条腿冻结源子账户、收款账户、金额、fee、memo（等于腿 ID）和 `created_at_time`，需要另外调用 `process_checkout_transfer(id)` 派发：
+定时器每分钟最多处理 32 项到期工作：服务结束（含提前退款的实际停止时间）后分配收入和剩余费用准备的出金腿，并自动派发已分配的收入、退款和准备金退回。任务按时间索引，失败延后，不扫描全部订单；升级后恢复定时器。每条腿冻结源子账户、收款账户、金额、fee、memo（等于腿 ID）和 `created_at_time`。`process_checkout_transfer(id)` 保留为手动恢复入口，正常归集不需要商户调用。
 
 | 状态         | 含义                         | 后续                                                                                                                         |
 | ------------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `Pending`    | 已分配，未派发               | `process_checkout_transfer`                                                                                                  |
+| `Pending`    | 已分配，未派发               | 定时自动派发，也可用 `process_checkout_transfer`                                                                                                  |
 | `InFlight`   | 已派发，或回调被升级打断     | 用原参数重试，账本在 24 小时窗口内去重；或用 `reconcile_checkout_transfer(id, block)` 提交实际区块                           |
 | `Unknown`    | 结果未知                     | 同上；此后的明确拒绝不能证明转账未执行                                                                                       |
 | `Rejected`   | 账本明确拒绝，此前没有未知结果 | 临时故障可直接重试；`TooOld` 或 `BadFee` 由收款人调用 `revise_checkout_transfer_fee`，以新时间戳、原 fee 或账本期望的 fee（不超过原上限）重发 |
 | `Succeeded`  | 已确认区块                   | —                                                                                                                            |
 | `Superseded` | 已被修订后的新腿替代         | —                                                                                                                            |
+
+定时任务对 `TemporarilyUnavailable`、确定未执行的调用失败以及窗口内的 `InFlight` / `Unknown` 使用原参数重试；`BadFee`、其他明确拒绝、`TooOld` 与超出 24 小时窗口的未知结果保留供人工修订或对账，不自动更换时间戳。自动调用以 commerce 自己的 principal 计入现有资金类全局与每 caller 预算。
 
 `created_at_time` 在分配时就已固定，所以出金腿必须在 24 小时内派发；`InFlight` 和 `Unknown` 也要在这个窗口内用原参数重试，才能靠账本去重得到确定结果，超出窗口后只能凭实际区块对账。同一条腿的派发、对账和修订由内存 guard 互斥；升级只丢弃 guard，冻结参数仍保留。
 
@@ -178,7 +179,7 @@ flowchart LR
 - 出金腿在 `Succeeded` 或 `Superseded` 之后 30 天归档。`Unknown`、未完成的出金和未结清的资金不会归档。
 - 冷订单删除重复的授权与决定正文，保留输入摘要、完整报价、最终回执、入金引用和账本余额。直接读取和读者索引照常可用。迟到的入金会把原订单恢复为热记录，并原路退款。区块去重记录和订单 ID 永不回收。
 
-`Applied` 订单要等商户归集全部收入、费用准备清零后才能归档。最后一次归集带走无法单独退回的余额；更大的余额由任何人调用 `claim_checkout_fee_reserve` 退回付款人，归集任务可以顺带处理，避免订单长期占用热订单上限。
+`Applied` 订单要等自动归集全部收入、退回可支付的费用准备且所有出金完成后才能归档。最后一次归集带走无法单独退回的余额；更大的余额由定时任务自动退回付款人，`claim_checkout_fee_reserve` 仍可手动推进。
 
 ### 存储
 
@@ -205,9 +206,11 @@ flowchart LR
 | 22、23 | 订单、出金腿的读者索引                                     |
 | 26、27 | 订单、出金腿的归档到期索引                                 |
 |     30 | 商户归集索引：`(商户 owner, 服务终点, 订单)` → 未归集完的 `Applied` 订单 |
+| 31、32 | 自动结算截止时间索引与任务索引：订单收入 / 出金腿，固定批次处理 |
+|     33 | 自动结算索引补建游标，升级旧 schema 8 时每分钟最多补建 32 条热记录 |
 | 28、29 | 认证 map 的叶子（key → 认证值哈希）与按 id 定址的内部节点  |
 
-heap 只保存配置缓存（含调用计数）、目录缓存和调用 guard。认证树用 `dmsg_runtime::cert_map` 存放在 stable memory，只保存 key 与哈希；注册、目录和付费主体视图的认证值在查询时从记录重新生成，并与已认证哈希核对。订单、出金腿和资产没有认证叶。`post_upgrade` 加载目录缓存，按当前时间刷新目录叶后发布根，不扫描订单或主体，并在日志中记录 `commerce_upgrade subjects=… instructions=…`。
+heap 保存配置缓存（含调用计数）、目录缓存、调用 guard 和定时器运行状态。认证树用 `dmsg_runtime::cert_map` 存放在 stable memory，只保存 key 与哈希；注册、目录和付费主体视图的认证值在查询时从记录重新生成，并与已认证哈希核对。订单、出金腿和资产没有认证叶。`post_upgrade` 加载目录缓存，按当前时间刷新目录叶后发布根，不扫描订单或主体；新增结算索引由定时任务有界补建，已有订单和转账记录仍用 schema 8，补建游标跨升级保留。升级在日志中记录 `commerce_upgrade subjects=… instructions=…`。
 
 ## 部署流程
 
@@ -362,18 +365,18 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
 
    - `settlement_assets` 显示 `ledger_verified = true`，价格在有效期内。
    - `integration_configuration_certificate("dmsg", opt "dmsg")`、`get_catalog` 的证书能通过客户端验证，`get_commerce_limits` 与安装参数一致，`commerce_stats` 显示 `certified_leaves = 3`（产品、应用、目录）和 `cycles`。
-   - 用小额真实资金完成一次完整流程：报价、开单、付款、`check_checkout_funding` 后订单为 `Applied`，`get_entitlement_batch` 显示对应套餐；再向订单子账户多转一笔，完成 `claim_checkout_refund` 和 `process_checkout_transfer`；`collectable_checkouts` 列出该订单，服务期结束后 `collect_checkout_revenue` 归集并派发，`claim_checkout_fee_reserve` 退回准备金。
+   - 用小额真实资金完成一次完整流程：报价、开单、付款、`check_checkout_funding` 后订单为 `Applied`，`get_entitlement_batch` 显示对应套餐；再向订单子账户多转一笔，完成 `claim_checkout_refund` 和 `process_checkout_transfer`；`collectable_checkouts` 列出该订单；服务期结束后等待定时任务归集、派发并退回准备金，核对商户和付款人实际到账。
    - 为 canister 设置冻结阈值和 cycles 余额告警，并把 `icp canister status` 的 controllers 记录到部署记录。
 
 ### 运维
 
-commerce 没有定时器，下列任务都需要外部调用：
+commerce 自动执行收入归集、费用准备退回和已分配出金的派发；其余运维任务及异常恢复如下：
 
 | 任务         | 方法                                                                                        | 调用方                 | 频率与要求                                                                                       |
 | ------------ | ------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
 | 发布价格     | `publish_settlement_price(ledger, price_usd_micros, valid_for_ms)`                          | controller、governance 或价格权威 | 每个启用资产在上一价格过期前重发；`valid_for_ms` 最长一年（365 天）。长期价格可手动维护，不需要定时任务；没有有效价格时，现金报价和开单全部返回 `PolicyStale` |
-| 派发出金     | `process_checkout_transfer`                                                                 | 任何人（商户或运维）   | 腿创建后尽快派发，必须在 24 小时内；`InFlight`/`Unknown` 也要在窗口内重试                        |
-| 归集收入     | `collectable_checkouts` 找到服务期已结束的订单，逐单 `collect_checkout_revenue`，再派发      | 商户 owner             | 每单在服务期结束后归集一次，然后 `claim_checkout_fee_reserve` 退回剩余准备金。费用准备只够两条出金腿；更频繁地分期归集会留下小于一次网络费、无法转出的服务余额，订单因此不能归档 |
+| 派发出金     | 定时器自动派发，`process_checkout_transfer` 可手动恢复 | canister / 任何人 | 每分钟有界处理，窗口内按原参数重试；不可自动恢复的腿告警并对账 |
+| 归集收入     | 定时器自动分配收入及准备金退回；`collectable_checkouts` 用于监控 | canister | 每单在服务实际结束后归集一次，无需商户逐单调用；原出金参数、退款负债和旧商户账户保持不变 |
 | 监控         | `commerce_stats`                                                                            | 任何人（query）        | 主体、热/冷订单、出金腿、待归集订单、认证叶、稳定内存页和 cycles；与 `get_commerce_limits` 对照，接近上限 60% 时扩容或加实例 |
 | 推进订单     | `reconcile_checkout`                                                                        | 任何人                 | 处理停在 `Reserving`、`Applying` 或待释放预留的订单                                              |
 | 归档历史     | `sweep_checkout_history`                                                                    | 任何人                 | 定期调用，直到返回 0                                                                             |
@@ -381,9 +384,9 @@ commerce 没有定时器，下列任务都需要外部调用：
 
 价格发布是现金结账的单点依赖：价格过期后所有报价和开单返回 `PolicyStale`。长期价格由 controller/governance 手动发布即可，不要求后台任务；如使用自动价格权威，必须有失败告警和备用 principal。脱锚或异常时用资产暂停（见“治理变更”），不要让后台 principal 成为唯一的改价者。价格偏离 1 USD 超过 1% 时仍可发布，但新报价和使用旧报价的开单都会被拒绝，可用于脱锚保护。商户 owner 可以用 `checkout_operations`、`checkout_transfers` 分页查看自己的全部订单和出金腿；两者按订单 ID 排序，找待归集订单请用按服务终点排序的 `collectable_checkouts`。
 
-派发出金的 principal 受 `calls_per_caller` 限制（初始 40 次/分钟，约 57,600 条腿/天）；年订单超过数百万时提高该值或使用多个派发 principal。
+自动结算每分钟处理最多 32 项工作，并受 `calls_per_caller`（初始 40）及全局资金调用预算限制。大规模集中到期前应测量积压和消耗；这里不宣称新增队列的生产吞吐已经过压测。
 
-`collect_checkout_revenue` 只接受商户 owner 调用，而且需要逐单归集。因此 `merchant.owner` 必须是能运行归集任务的 principal，例如运维账户或转发 canister，再由它把收入转入金库；如果直接使用 SNS governance 作为 owner，每笔归集都需要一个提案。
+`merchant.owner` 可以直接设置为团队钱包或 SNS governance，无需为正常归集发起钱包 / SNS 提案。自动任务只向订单冻结的商户账户转账；修改产品登记只影响新订单。明确拒绝的异常出金若需 `revise_checkout_transfer_fee`，仍由该腿的收款 owner 批准。
 
 ### 治理变更
 
@@ -416,7 +419,7 @@ icp deploy dmsg_commerce -e ic
 icp canister start dmsg_commerce -e ic
 ```
 
-升级不传参数，`post_upgrade` 不读取参数，配置不会因此改变；`icp deploy` 安装前会比较新构建的接口与已部署的接口，不兼容时停下。`pre_upgrade` 保存调用计数，不能跳过。升级打断的出金腿停在 `InFlight`，用 `process_checkout_transfer` 以原参数重试；停在 `Reserving` 或 `Applying` 的订单用 `reconcile_checkout` 恢复。
+升级不传参数，`post_upgrade` 不读取参数，配置不会因此改变；`icp deploy` 安装前会比较新构建的接口与已部署的接口，不兼容时停下。`pre_upgrade` 保存调用计数，不能跳过。升级打断的出金腿停在 `InFlight`，定时任务在去重窗口内以原参数重试，也可用 `process_checkout_transfer` 手动恢复；停在 `Reserving` 或 `Applying` 的订单用 `reconcile_checkout` 恢复。
 
 升级不重建认证树，成本不随订单和主体数量增长，见“容量与成本”。
 
@@ -492,3 +495,17 @@ DMSG_COMMERCE_IMAGE_DIR=/tmp/commerce-images POCKET_IC_BIN=/path/to/pocket-ic \
 其他样本：`cargo test --locked -p dmsg_commerce checkout_history_profile -- --ignored --nocapture` 是原生历史与索引样本；`commerce::commerce_review::commerce_cost_profile` 对比基线与当前构建的 Wasm 成本，基线目录用 `DMSG_WASM_DIR` 指定，并只对旧构建设置 `DMSG_COMMERCE_BASELINE=1`。
 
 2026-10-07 在当前代码上完整运行 `scripts/test-dmsg.sh` 通过：Rust 单元与文档测试、Clippy `-D warnings`、Wasm/Candid 比对、跨语言协议向量、114 项 PocketIC 回归（`control_plane` 110 项、`directory` 4 项）和 26 项 SDK 测试；`dmsg_app` 的类型检查与 172 项单元测试也通过。容量 profile 按上文运行了 10 万与 100 万主体两种规模，其余默认忽略的 profile 本轮未运行。私有云端相关的 commerce、配额与会员测试通过；主网部署、真实资金和私有云端端到端未运行。
+
+### 自动结算升级回归
+
+使用修改前、同 schema 8 的 commerce Wasm 验证旧订单与未决转账原地升级。先按上面的步骤构建当前 Wasm，再运行：
+
+```sh
+DMSG_PRE_SETTLEMENT_WASM=/path/to/pre-automation-dmsg_commerce.wasm \
+POCKET_IC_BIN=/path/to/pocket-ic \
+cargo test --locked -p dmsg_integration --features pocketic-tests --test control_plane \
+  commerce::automatic_settlement_backfills_old_orders_and_pending_transfers_after_upgrade \
+  -- --exact --ignored
+```
+
+该测试在旧 Wasm 中创建订单和部分归集的未派发转账，更新产品商户登记后升级，验证原参数、原商户与剩余收入不变，定时任务自动恢复并结清。普通 commerce 回归覆盖新安装后的自动到账、退款和转账重试。

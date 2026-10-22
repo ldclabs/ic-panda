@@ -203,6 +203,33 @@ fn funding(f: &Fixture, id: Hash, b: CashBlock) -> CheckoutProgress {
     );
     r.unwrap()
 }
+
+/// Let the serial timer allocate and dispatch fixed obligations, with no
+/// ingress from the merchant (which may itself be a team wallet canister).
+fn settle(f: &Fixture) {
+    for _ in 0..3 {
+        f.ic.advance_time(Duration::from_millis(MINUTE));
+        for _ in 0..64 {
+            f.ic.tick();
+        }
+    }
+}
+
+fn order_transfers(f: &Fixture, id: Hash) -> Vec<CashTransfer> {
+    let r: Result<CashTransfersPage> = query(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "checkout_transfers",
+        (None::<Hash>, 32u16),
+    );
+    r.unwrap()
+        .transfers
+        .into_iter()
+        .filter(|t| t.order_id == id)
+        .collect()
+}
+
 #[test]
 fn checkout_two_ledgers_same_block_isolation_delivery_replay_and_revenue() {
     for second in [false, true] {
@@ -288,25 +315,23 @@ fn checkout_two_ledgers_same_block_isolation_delivery_replay_and_revenue() {
             (refund.transfer_id,),
         );
         assert_eq!(moved.unwrap().status, CashTransferStatus::Succeeded);
-        let denied: Result<CashTransfer> = update(
-            &f.ic,
-            f.commerce,
-            person(1),
-            "collect_checkout_revenue",
-            (o.progress.order_id,),
-        );
-        assert_eq!(denied, Err(Error::Forbidden));
         f.ic.advance_time(Duration::from_millis(200 * DAY));
-        let earned: Result<CashTransfer> = update(
-            &f.ic,
-            f.commerce,
-            person(60),
-            "collect_checkout_revenue",
-            (o.progress.order_id,),
+        settle(&f);
+        assert_eq!(
+            status(&f, o.progress.order_id).service_reserve_atomic,
+            o.quote.cash.amount_atomic
         );
-        let earned = earned.unwrap();
+        f.ic.advance_time(Duration::from_millis(
+            o.quote.offer.expires_at_ms - time(&f.ic) + 1,
+        ));
+        settle(&f);
+        let earned = order_transfers(&f, o.progress.order_id)
+            .into_iter()
+            .find(|t| t.to == o.quote.product.merchant)
+            .unwrap();
         assert_eq!(earned.ledger, ledger);
-        assert!(earned.amount_atomic < o.quote.cash.amount_atomic);
+        assert_eq!(earned.amount_atomic, o.quote.cash.amount_atomic);
+        assert_eq!(earned.status, CashTransferStatus::Succeeded);
         f.ic.upgrade_canister(
             f.commerce,
             wasm("dmsg_commerce"),
@@ -1385,14 +1410,8 @@ fn an_unstarted_renewal_cancels_once_and_refunds_the_original_payment() {
             update(&f.ic, f.commerce, person(1), "cancel_checkout", (order_id,));
         assert_eq!(r.unwrap().status, CheckoutStatus::RefundCommitted);
     }
-    let denied: Result<CashTransfer> = update(
-        &f.ic,
-        f.commerce,
-        person(60),
-        "collect_checkout_revenue",
-        (order_id,),
-    );
-    assert_eq!(denied, Err(Error::Pending));
+    settle(&f);
+    assert!(order_transfers(&f, order_id).is_empty());
     let refund: Result<CashTransfer> = update(
         &f.ic,
         f.commerce,
@@ -1690,25 +1709,6 @@ fn a_first_cash_purchase_refunds_its_unused_time_within_a_week() {
     let cancel = |order: Hash| -> Result<CheckoutProgress> {
         update(&f.ic, f.commerce, person(1), "cancel_checkout", (order,))
     };
-    let collect = |order: Hash| -> CashTransfer {
-        let r: Result<CashTransfer> = update(
-            &f.ic,
-            f.commerce,
-            person(60),
-            "collect_checkout_revenue",
-            (order,),
-        );
-        let leg = r.unwrap();
-        let r: Result<CashTransferProgress> = update(
-            &f.ic,
-            f.commerce,
-            person(60),
-            "process_checkout_transfer",
-            (leg.transfer_id,),
-        );
-        assert_eq!(r.unwrap().status, CashTransferStatus::Succeeded);
-        leg
-    };
     let empty: Result<MembershipTerms> = query(
         &f.ic,
         f.commerce,
@@ -1722,9 +1722,10 @@ fn a_first_cash_purchase_refunds_its_unused_time_within_a_week() {
     let window = terms().refund.unwrap();
     assert_eq!(window.order_id, order);
     assert_eq!(terms().contracts.len(), 1);
-    // The merchant collects what the first days earned.
+    // Income stays in the order until its service actually ends.
     f.ic.advance_time(Duration::from_millis(3 * DAY));
-    collect(order);
+    settle(&f);
+    assert!(order_transfers(&f, order).is_empty());
     let lease = refresh();
     assert_eq!(lease.valid_until_ms, lease.issued_at_ms + 60 * MINUTE);
     // Cancelling stops the term once the lease already issued runs out; the
@@ -1771,17 +1772,21 @@ fn a_first_cash_purchase_refunds_its_unused_time_within_a_week() {
     f.ic.advance_time(Duration::from_millis(stop - time(&f.ic)));
     let view = refresh();
     assert_eq!(view.plan_snapshot.plan_id, PlanId::Free);
-    // The last collection takes only the earned part, then the fee reserve returns.
-    collect(order);
+    // The timer takes only the earned part, then returns the fee reserve.
+    settle(&f);
     assert_eq!(status(&f, order).service_reserve_atomic, 0);
-    let returned: Result<CashTransfer> = update(
-        &f.ic,
-        f.commerce,
-        person(99),
-        "claim_checkout_fee_reserve",
-        (order,),
+    assert_eq!(status(&f, order).fee_reserve_atomic, 0);
+    let transfers = order_transfers(&f, order);
+    let revenue = transfers
+        .iter()
+        .find(|t| t.to == base.quote.product.merchant)
+        .unwrap();
+    assert_eq!(revenue.amount_atomic, kept);
+    assert!(
+        transfers
+            .iter()
+            .all(|t| t.status == CashTransferStatus::Succeeded)
     );
-    assert_eq!(returned.unwrap().to, base.quote.cash.payer);
     // A later purchase is not a first one and cannot be refunded.
     reprice(&f);
     let (again, _) = pay(&f, &id, "plus", 254);
@@ -1930,74 +1935,78 @@ fn a_panda_lease_renews_inside_the_window() {
 }
 
 #[test]
-fn the_last_collection_settles_the_fee_reserve() {
+fn automatic_settlement_pays_the_merchant_and_returns_unused_fees_once() {
     let f = Fixture::commercial();
-    let id = f.create(1);
-    let collect = |o: &CheckoutView| -> CashTransfer {
-        let r: Result<CashTransfer> = update(
-            &f.ic,
-            f.commerce,
-            person(60),
-            "collect_checkout_revenue",
-            (o.progress.order_id,),
-        );
-        let leg = r.unwrap();
-        let r: Result<CashTransferProgress> = update(
-            &f.ic,
-            f.commerce,
-            person(60),
-            "process_checkout_transfer",
-            (leg.transfer_id,),
-        );
-        assert_eq!(r.unwrap().status, CashTransferStatus::Succeeded);
-        leg
-    };
-    // One mid-term and one final collection leave a returnable reserve that anyone
-    // may send back to the payer.
-    let (first, _) = pay(&f, &id, "plus", 244);
-    let reserve = first.quote.cash.fee_reserve_atomic;
-    let term = first.quote.offer.expires_at_ms - first.quote.offer.starts_at_ms;
-    f.ic.advance_time(Duration::from_millis(term / 2));
-    collect(&first);
-    f.ic.advance_time(Duration::from_millis(
-        first.quote.offer.expires_at_ms - time(&f.ic) + 1,
-    ));
-    collect(&first);
-    assert_eq!(
-        status(&f, first.progress.order_id).fee_reserve_atomic,
-        reserve - 20
-    );
-    let returned: Result<CashTransfer> = update(
+    let (_, product) = registration(&f);
+    let mut product = product.unwrap();
+    product.config_version += 1;
+    product.merchant = account(f.ic.create_canister());
+    let changed: Result<()> = update(
         &f.ic,
         f.commerce,
-        person(99),
-        "claim_checkout_fee_reserve",
-        (first.progress.order_id,),
+        f.sns,
+        "register_integration_product",
+        (product,),
     );
-    let returned = returned.unwrap();
-    assert_eq!(returned.to, first.quote.cash.payer);
-    assert_eq!(returned.amount_atomic + returned.fee_atomic, reserve - 20);
-    // Three collections leave one fee of reserve, which the last one takes along.
-    reprice(&f);
-    let (second, _) = pay(&f, &id, "plus", 246);
-    let term = second.quote.offer.expires_at_ms - second.quote.offer.starts_at_ms;
-    let mut gross = 0;
-    for _ in 0..2 {
-        f.ic.advance_time(Duration::from_millis(term / 3));
-        let leg = collect(&second);
-        gross += leg.amount_atomic + leg.fee_atomic;
-    }
+    changed.unwrap();
+    let id = f.create(1);
+    let (paid, _) = pay(&f, &id, "plus", 244);
+    let order = paid.progress.order_id;
     f.ic.advance_time(Duration::from_millis(
-        second.quote.offer.expires_at_ms - time(&f.ic) + 1,
+        paid.quote.offer.expires_at_ms - time(&f.ic) + 1,
     ));
-    let leg = collect(&second);
-    gross += leg.amount_atomic + leg.fee_atomic;
-    let settled = status(&f, second.progress.order_id);
+    settle(&f);
+    let transfers = order_transfers(&f, order);
+    assert_eq!(transfers.len(), 2);
+    assert!(
+        transfers
+            .iter()
+            .all(|t| t.status == CashTransferStatus::Succeeded)
+    );
+    let merchant = transfers
+        .iter()
+        .find(|t| t.to == paid.quote.product.merchant)
+        .unwrap();
+    assert_eq!(merchant.amount_atomic, paid.quote.cash.amount_atomic);
+    let refund = transfers
+        .iter()
+        .find(|t| t.to == paid.quote.cash.payer)
+        .unwrap();
+    assert_eq!(
+        refund.amount_atomic + refund.fee_atomic + merchant.fee_atomic,
+        paid.quote.cash.fee_reserve_atomic
+    );
+    let balance: Nat = query(
+        &f.ic,
+        f.ledger,
+        person(9),
+        "icrc1_balance_of",
+        (paid.quote.product.merchant,),
+    );
+    assert_eq!(balance, Nat::from(paid.quote.cash.amount_atomic));
+    let settled = status(&f, order);
     assert_eq!(
         (settled.service_reserve_atomic, settled.fee_reserve_atomic),
         (0, 0)
     );
-    assert_eq!(gross, second.quote.cash.amount_atomic + reserve);
+    f.ic.upgrade_canister(
+        f.commerce,
+        wasm("dmsg_commerce"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    settle(&f);
+    assert_eq!(order_transfers(&f, order), transfers);
+    assert!(
+        f.ic.update_call(
+            f.commerce,
+            person(60),
+            "collect_checkout_revenue",
+            candid::encode_args((order,)).unwrap()
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -2097,17 +2106,10 @@ fn merchants_page_collectable_orders_by_term_end_and_stats_count_records() {
     f.ic.advance_time(Duration::from_millis(
         plan.quote.offer.expires_at_ms - time(&f.ic) + 1,
     ));
-    let r: Result<CashTransfer> = update(
-        &f.ic,
-        f.commerce,
-        person(60),
-        "collect_checkout_revenue",
-        (plan.progress.order_id,),
-    );
-    r.unwrap();
-    assert_eq!(ids(&page(None)), vec![addon.progress.order_id]);
+    settle(&f);
+    assert!(page(None).orders.is_empty());
     let s = stats();
-    assert_eq!((s.collectable_orders, s.hot_transfers), (1, 1));
+    assert_eq!((s.collectable_orders, s.hot_transfers), (0, 4));
 }
 
 #[test]
@@ -2247,4 +2249,128 @@ fn a_second_commerce_instance_serves_its_own_user_home() {
     let stats =
         |c: Principal| -> CommerceStats { query(&f.ic, c, person(9), "commerce_stats", ()) };
     assert_eq!((stats(first.1).subjects, stats(commerce).subjects), (0, 1));
+}
+
+#[test]
+fn automatic_settlement_retries_transient_failures_and_lost_replies_without_double_payment() {
+    for lost in [false, true] {
+        let f = Fixture::commercial();
+        let id = f.create(1);
+        let (paid, _) = pay(&f, &id, "plus", 210);
+        if lost {
+            void(&f.ic, f.ledger, person(1), "lose_next_response", ());
+        } else {
+            void(&f.ic, f.ledger, person(1), "reject_next_transfers", (3u32,));
+        }
+        f.ic.advance_time(Duration::from_millis(
+            paid.quote.offer.expires_at_ms - time(&f.ic) + 1,
+        ));
+        settle(&f);
+        f.ic.upgrade_canister(
+            f.commerce,
+            wasm("dmsg_commerce"),
+            candid::encode_args(()).unwrap(),
+            None,
+        )
+        .unwrap();
+        settle(&f);
+        let transfers = order_transfers(&f, paid.progress.order_id);
+        assert_eq!(transfers.len(), 2);
+        assert!(
+            transfers
+                .iter()
+                .all(|t| t.status == CashTransferStatus::Succeeded)
+        );
+        let balance: Nat = query(
+            &f.ic,
+            f.ledger,
+            person(9),
+            "icrc1_balance_of",
+            (paid.quote.product.merchant,),
+        );
+        assert_eq!(balance, Nat::from(paid.quote.cash.amount_atomic));
+    }
+}
+
+#[test]
+#[ignore = "requires DMSG_PRE_SETTLEMENT_WASM pointing to the pre-automation schema 8 Wasm"]
+fn automatic_settlement_backfills_old_orders_and_pending_transfers_after_upgrade() {
+    let old =
+        std::fs::read(std::env::var_os("DMSG_PRE_SETTLEMENT_WASM").expect("pre-automation Wasm"))
+            .unwrap();
+    let f = Fixture::with_modules(
+        false,
+        100,
+        MAX_PAYMENT_ESCROWS,
+        |_| {},
+        [
+            wasm("dmsg_user"),
+            wasm("dmsg_directory"),
+            wasm("dmsg_handle"),
+            old,
+        ],
+    );
+    let id = f.create(1);
+    let (paid, _) = pay(&f, &id, "plus", 210);
+    f.ic.advance_time(Duration::from_millis(100 * DAY));
+    let partial: Result<CashTransfer> = update(
+        &f.ic,
+        f.commerce,
+        person(60),
+        "collect_checkout_revenue",
+        (paid.progress.order_id,),
+    );
+    let partial = partial.unwrap();
+    // A new registration must not redirect an existing order or its pending leg.
+    let (_, product) = registration(&f);
+    let mut product = product.unwrap();
+    product.config_version += 1;
+    product.merchant = account(person(61));
+    let changed: Result<()> = update(
+        &f.ic,
+        f.commerce,
+        f.sns,
+        "register_integration_product",
+        (product,),
+    );
+    changed.unwrap();
+    f.ic.upgrade_canister(
+        f.commerce,
+        wasm("dmsg_commerce"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    settle(&f);
+    let existing = order_transfers(&f, paid.progress.order_id)
+        .into_iter()
+        .find(|t| t.transfer_id == partial.transfer_id)
+        .unwrap();
+    assert_eq!(existing.status, CashTransferStatus::Succeeded);
+    assert_eq!(existing.to, partial.to);
+    assert_eq!(existing.amount_atomic, partial.amount_atomic);
+    assert_eq!(existing.memo, partial.memo);
+    assert_eq!(existing.created_at_time_ns, partial.created_at_time_ns);
+    f.ic.advance_time(Duration::from_millis(
+        paid.quote.offer.expires_at_ms - time(&f.ic) + 1,
+    ));
+    settle(&f);
+    assert_eq!(status(&f, paid.progress.order_id).service_reserve_atomic, 0);
+    assert_eq!(status(&f, paid.progress.order_id).fee_reserve_atomic, 0);
+    let balance: Nat = query(
+        &f.ic,
+        f.ledger,
+        person(9),
+        "icrc1_balance_of",
+        (paid.quote.product.merchant,),
+    );
+    assert_eq!(balance, Nat::from(paid.quote.cash.amount_atomic));
+    let other: Nat = query(
+        &f.ic,
+        f.ledger,
+        person(9),
+        "icrc1_balance_of",
+        (account(person(61)),),
+    );
+    assert_eq!(other, Nat::from(0u8));
 }

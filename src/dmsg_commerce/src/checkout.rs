@@ -758,14 +758,11 @@ fn claim_checkout_refund(
     Ok(leg.view)
 }
 
-#[ic_cdk::update]
-fn collect_checkout_revenue(id: Hash) -> Result<CashTransfer> {
+/// Allocate the final earned income after service ends. The timer, rather than
+/// the merchant's signing identity, owns this fixed-destination operation.
+fn collect_revenue(id: Hash, at: u64) -> Result<CashTransfer> {
     let mut o = order(id)?;
-    ensure(
-        ic_cdk::api::msg_caller() == o.quote.product.merchant.owner,
-        Error::Forbidden,
-    )?;
-    let at = now();
+    ensure(at >= o.service_end(), Error::Pending)?;
     let earned = o.earned(at)?;
     let total = o.service_total()?;
     let available = earned
@@ -803,7 +800,10 @@ fn collect_checkout_revenue(id: Hash) -> Result<CashTransfer> {
 /// Anyone may trigger it: the destination is the payer frozen in the quote.
 #[ic_cdk::update]
 fn claim_checkout_fee_reserve(id: Hash) -> Result<CashTransfer> {
-    let at = now();
+    return_fee_reserve(id, now())
+}
+
+fn return_fee_reserve(id: Hash, at: u64) -> Result<CashTransfer> {
     let mut o = order(id)?;
     ensure(
         o.status == CheckoutStatus::Applied
@@ -823,6 +823,24 @@ fn claim_checkout_fee_reserve(id: Hash) -> Result<CashTransfer> {
     save_transfer(&mut leg, at);
     save(&mut o, at);
     Ok(leg.view)
+}
+
+/// Both allocations are idempotent through the order's remaining obligations.
+/// If returning the reserve fails, the next pass only retries that remainder.
+pub(crate) fn settle_revenue(id: Hash, at: u64) -> Result<()> {
+    let o = order(id)?;
+    ensure(at >= o.service_end(), Error::Pending)?;
+    if o.earned_allocated < o.service_total()? {
+        collect_revenue(id, at)?;
+    }
+    if order(id)?
+        .balances
+        .get(&o.quote.cash.ledger)
+        .is_some_and(|b| b.fees > 0)
+    {
+        return_fee_reserve(id, at)?;
+    }
+    Ok(())
 }
 
 #[ic_cdk::query]
@@ -862,11 +880,18 @@ fn complete_transfer(id: Hash, block: u128, at: u64) -> Result<CashTransfer> {
 
 #[ic_cdk::update]
 async fn process_checkout_transfer(id: Hash) -> Result<CashTransferProgress> {
-    dispatch_transfer(id).await.map(Into::into)
+    let caller = ic_cdk::api::msg_caller();
+    let mut at = now();
+    dispatch_transfer(id, caller, &mut at).await.map(Into::into)
 }
 
-async fn dispatch_transfer(id: Hash) -> Result<CashTransfer> {
-    let at = now();
+/// Share the execution segment's clock with the timer batch; refresh it once
+/// when the ledger reply resumes this message.
+pub(crate) async fn dispatch_transfer(
+    id: Hash,
+    caller: Principal,
+    at: &mut u64,
+) -> Result<CashTransfer> {
     let mut t = transfer(id)?;
     if t.view.status == CashTransferStatus::Succeeded {
         return Ok(t.view);
@@ -880,9 +905,9 @@ async fn dispatch_transfer(id: Hash) -> Result<CashTransfer> {
         t.view.status,
         CashTransferStatus::Unknown | CashTransferStatus::InFlight
     );
-    store::reserve_call(at, store::CallBudget::Funds(ic_cdk::api::msg_caller()))?;
+    store::reserve_call(*at, store::CallBudget::Funds(caller))?;
     t.view.status = CashTransferStatus::InFlight;
-    save_transfer(&mut t, at);
+    save_transfer(&mut t, *at);
     let v = &t.view;
     let result: std::result::Result<
         std::result::Result<Nat, TransferError>,
@@ -900,16 +925,16 @@ async fn dispatch_transfer(id: Hash) -> Result<CashTransfer> {
         },),
     )
     .await;
-    let at = now();
+    *at = now();
     let mut current = transfer(id)?;
     let outcome = model::transfer_result(&mut current, was_unknown, result);
     if let Ok(Some(block)) = outcome {
-        return complete_transfer(id, block, at);
+        return complete_transfer(id, block, *at);
     }
     if let Some(fee) = current.view.expected_fee_atomic {
         observe_fee(current.view.ledger, fee)?;
     }
-    save_transfer(&mut current, at);
+    save_transfer(&mut current, *at);
     outcome.map(|_| current.view)
 }
 
@@ -1099,9 +1124,8 @@ fn checkout_transfers(after: Option<Hash>, take: u16) -> Result<CashTransfersPag
     transfers(ic_cdk::api::msg_caller(), after, take)
 }
 
-/// The calling merchant's applied orders with uncollected revenue, earliest
-/// term end first, so a job that collects once per term stops at the first
-/// order whose term end, or early refund, lies ahead.
+/// Monitor the calling merchant's applied orders still awaiting automatic
+/// collection, ordered by service end (including an early refund).
 #[ic_cdk::query]
 fn collectable_checkouts(after: Option<Hash>, take: u16) -> Result<CheckoutOperationsPage> {
     collectable(ic_cdk::api::msg_caller(), after, take)

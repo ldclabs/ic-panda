@@ -269,3 +269,11 @@ hub 新增不写状态的 `quote_activation_preview(account_id)` query，只读�
 `Registration` 新增可选 `display_handle`。提供它时，账户批准的注册条款改用 `digest("dmsg/handle-charge/v2", (ledger, payer, amount, fee, display_handle))`；不提供时仍是 v1。注册成功后写法写入认证 `HandleRecord.display_handle`，转移保留；查询、唯一性、锁和权属索引仍用小写规范名，旧记录省略该字段并按规范名读取。stable schema 11 与 Candid 通过可选/缺省字段原地兼容，未决扣款按原编码重试；`scripts/test-dmsg-principal-upgrade.sh` 用旧 Wasm 验证名称、扣款和转移在升级后保留。
 
 `dmsg_directory` 在 schema 7 上新增认证 `/favicon.ico` 固定响应（`image/x-icon`，缓存 24 小时），升级只重新认证 404、域名列表与图标，不访问文档。公开资料页与 SDK 显示认证的 `display_handle`（旧记录保留访问 URL 的写法），只把简介中的显式 HTTP/HTTPS 地址转成链接；SDK 新增 `verifyHandleRecord`。名称价格查询只对仍可注册的名称保留请求的大小写。handle 与 directory 的 stable schema 均不变。
+
+## 2026-10-22 commerce 自动归集
+
+删除 `collect_checkout_revenue` update。commerce 定时器每分钟最多处理 32 项到期结算工作，在服务实际结束（含提前退款后的停止点）后一次分配剩余已赚收入，并自动退回剩余费用准备、派发已分配出金。收款方仍取订单冻结的 `merchant` 与付款账户，不要求商户发起调用，因此可直接向团队钱包收款。`collectable_checkouts` 保留为监控查询；手动派发、对账和明确拒绝后的修订入口保留。
+
+任务与时间索引使用 memory 31–32，memory 33 保存旧热记录的补建游标；每分钟最多补建 32 条记录，原 schema 8 的订单和转账表示不变。升级恢复定时器及队列，不重装。未知出金在 24 小时窗口内只重试原参数，超窗未知结果和明确费用拒绝保留人工对账 / 修订，不生成第二笔付款。定时器从当前时间重新安排下一次，停机恢复不逐分钟补跑。
+
+PocketIC 覆盖 canister 商户自动到账、准备金退回、提前退款、重复定时执行、临时失败、丢失回复、旧 Wasm 升级后补建与原未决转账恢复。新增队列尚未做生产规模容量、积压吞吐或 cycles 压测；源码变更不代表主网已升级。

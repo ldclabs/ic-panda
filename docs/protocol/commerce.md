@@ -108,8 +108,9 @@ Each order owns separate balances **for each ledger**:
 
 `incoming = refundable + service_reserve + fee_reserve + outgoing`.
 
-A merchant can collect only its frozen order's earned portion, beginning at
-`max(actual_delivery, S)`. Another merchant's reserves and another ledger's
+Income accrues from `max(actual_delivery, S)`. After service actually ends,
+the remaining earned portion automatically goes to the order's frozen merchant.
+Another merchant's reserves and another ledger's
 assets cannot fund it. `claim_checkout_refund` aggregates caller-selected real
 deposits from the same ledger/source; the destination cannot be replaced.
 Cash cancellation requires a durable adapter receipt: an unstarted term may be
@@ -123,10 +124,12 @@ trusted ledger block. Only a known rejection may be superseded: the recipient
 explicitly reissues it with a fresh ledger timestamp, keeping its fee or adopting
 the ledger's expected fee within the **original** maximum fee.
 
-Each merchant collection uses at most one ledger fee of the order's fee reserve.
+Each order is collected once after service ends, using at most one ledger fee
+of its fee reserve.
 The collection that completes the earned amount also takes a remainder too small
 to be returned on its own; a larger remainder returns to the frozen payer once all
-revenue is collected, and anyone may trigger that return. Settled orders thus
+revenue is collected. The timer returns it automatically; anyone may also
+trigger the recovery entry point. Settled orders thus
 reach zero balances and can be archived. This also recovers
 a leg first dispatched after the ledger's 24-hour deduplication window. The gross
 obligation stays fixed. An over-cap fee remains blocked; it is not
@@ -306,8 +309,13 @@ Unknown decisions, fee blockage, expired leases and retained commitments. These
 observations are not delivery receipts. A client must never offer to clear
 Unknown records or end an applied PANDA commitment. The merchant's
 `collectable_checkouts(after, take)` pages its applied orders with uncollected
-revenue by term end, so a collection job that runs once per term stops at the
-first order whose term has not ended; `commerce_stats` reports live record counts,
+revenue by term end for monitoring. A canister timer processes bounded batches
+each minute: once service actually ends it allocates earned revenue to the
+frozen merchant, returns unused fee reserves, and dispatches fixed outgoing
+legs. `collect_checkout_revenue` has been removed; routine settlement needs no
+merchant approval. Unknown replies retry only with their original parameters
+within the ledger window; definite fee rejections and expired unknowns retain
+the existing recovery methods. `commerce_stats` reports live record counts,
 stable size and cycles against `get_commerce_limits`.
 
 Funding/product/outgoing work has a governed global allowance per UTC minute

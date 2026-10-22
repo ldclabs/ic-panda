@@ -423,6 +423,7 @@ pub(crate) fn save(o: &mut Order, at: u64) {
             }
         });
     }
+    crate::settlement::schedule_order(o, at);
 }
 
 pub(crate) fn save_transfer(t: &mut Transfer, at: u64) {
@@ -446,6 +447,28 @@ pub(crate) fn save_transfer(t: &mut Transfer, at: u64) {
     if let Some(deadline) = transfer_expiry(t) {
         TRANSFER_EXPIRY.with_borrow_mut(|m| m.put(&expiry_key(deadline, t.view.transfer_id), &()));
     }
+    crate::settlement::schedule_transfer(t, at);
+}
+
+/// Bounded backfill for the automatic settlement indexes on an existing schema 8 instance.
+pub(crate) fn settlement_orders(after: Option<Hash>) -> Vec<Order> {
+    let start = after.map_or(Included(vec![]), |id| Excluded(id.to_vec()));
+    ORDERS.with_borrow(|t| {
+        t.range((start, std::ops::Bound::Unbounded))
+            .take(32)
+            .map(|row| row.value().value())
+            .collect()
+    })
+}
+
+pub(crate) fn settlement_transfers(after: Option<Hash>) -> Vec<Transfer> {
+    let start = after.map_or(Included(vec![]), |id| Excluded(id.to_vec()));
+    TRANSFERS.with_borrow(|t| {
+        t.range((start, std::ops::Bound::Unbounded))
+            .take(32)
+            .map(|row| row.value().value())
+            .collect()
+    })
 }
 
 fn due(t: &Table<Stored<()>>, at: u64) -> Vec<Vec<u8>> {
