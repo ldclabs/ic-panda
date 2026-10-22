@@ -44,7 +44,7 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 - HTTP：`GET /<account_id>` 返回 200 文档（`content-type: application/json`，`access-control-allow-origin: *`，`cache-control: public, max-age=30`）；`/.well-known/ic-domains` 返回自定义域列表；`/favicon.ico` 返回黑白 dMsg 图标（`image/x-icon`，缓存 24 小时）；其余路径返回认证 404 JSON。所有响应按 response-only 方式认证全部响应头，HTTP 网关可验证。不做重定向，因为最终 URL 必须等于文档 `id`。
 - HTTP 路由与认证树采用相同路径规则：百分号解码、忽略连续斜线产生的空段，保留尾斜线区别；等价路径返回相同认证响应。
 - 只接受两类 ingress：已登记 home 的 `publish`，以及 controller 或 governance 的调用；其余 ingress 在执行前被拒绝，查询请走 query。`directory_stats` 返回已发布账户数、stable 页数与 cycles 余额。
-- directory 稳定布局 schema 7 保存确切正文及其 SHA-256 摘要；认证树在 stable memory 中，升级只重新认证 404 与域名列表，不访问文档。home 迁移（`handoff`）尚未实现。
+- directory 稳定布局 schema 7 保存确切正文及其 SHA-256 摘要；认证树在 stable memory 中，升级只重新认证 404、域名列表与 favicon，不访问文档。home 迁移（`handoff`）尚未实现。
 
 ## 安全快照
 

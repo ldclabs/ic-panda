@@ -263,3 +263,9 @@ hub 新增不写状态的 `quote_activation_preview(account_id)` query，只读�
 ## 2026-10-21 团队钱包桌面闭环
 
 `dmsg_wallet` 新增 `preview_intent` query，按当前可变状态返回策略要求，不创建提案或预留资金。客户端在激活付款前完成 user home 批准核验；新增多设备协签包、结构化管理与转账预检、收款 QR/AccountIdentifier、增量审计与加密频道提示。实际接线、测试及未完成的发布门禁见 [团队钱包桌面实现](dmsg_wallet_desktop_zh.md)。新增 query 随钱包 Wasm 版本安装，源码提交不代表生产已升级。
+
+## 2026-10-22 handle 展示大小写与公开资料
+
+`Registration` 新增可选 `display_handle`。提供它时，账户批准的注册条款改用 `digest("dmsg/handle-charge/v2", (ledger, payer, amount, fee, display_handle))`；不提供时仍是 v1。注册成功后写法写入认证 `HandleRecord.display_handle`，转移保留；查询、唯一性、锁和权属索引仍用小写规范名，旧记录省略该字段并按规范名读取。stable schema 11 与 Candid 通过可选/缺省字段原地兼容，未决扣款按原编码重试；`scripts/test-dmsg-principal-upgrade.sh` 用旧 Wasm 验证名称、扣款和转移在升级后保留。
+
+`dmsg_directory` 在 schema 7 上新增认证 `/favicon.ico` 固定响应（`image/x-icon`，缓存 24 小时），升级只重新认证 404、域名列表与图标，不访问文档。公开资料页与 SDK 显示认证的 `display_handle`（旧记录保留访问 URL 的写法），只把简介中的显式 HTTP/HTTPS 地址转成链接；SDK 新增 `verifyHandleRecord`。名称价格查询只对仍可注册的名称保留请求的大小写。handle 与 directory 的 stable schema 均不变。

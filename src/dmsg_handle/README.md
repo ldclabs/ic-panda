@@ -60,11 +60,13 @@ handle 是全局唯一的名称注册表，所有 user home 共用。它不保�
 | `ClaimLegacy`                 | 快照 ID、完整冻结记录、目标账户                            | 冻结 owner；名称由名称账户持有时为冻结管理员 |
 | `Transfer` / `AcceptTransfer` | handle canister、名称、原 owner、接收方、预期版本、`op_id` | 不限                                         |
 
+`Register` 若带 `display_handle`，`terms_digest` 改用 v2 摘要并绑定该写法；不带时仍是表中的 v1 摘要。
+
 因此 handle 不检查 caller 与 `account_id` 的绑定：账户归属在批准时由 user 校验，handle 检查的是该动作需要的另一方。付款人可以不是账户的认证身份，客户端用单独连接的钱包付款；由他人代付时，也必须由账户批准一个写明该付款人的意图。
 
 ### 注册与收费
 
-名称为 1–19 字节的 ASCII 字母、数字或下划线，不能以下划线开头。查询、唯一性、锁和权属索引使用小写规范名；新注册可通过 `Registration.display_handle` 保留原始大小写，规范化后必须等于 `intent.handle`。展示值写入认证 `HandleRecord.display_handle`，转移时保留；旧记录没有该字段，继续按原规范名读取。上限比 `AccountId` 的 20 字符 Xid 文本少一个字节，名称不会与账户 ID 重合。价格只取决于字节长度：
+名称为 1–19 字节的 ASCII 字母、数字或下划线，不能以下划线开头。查询、唯一性、锁和权属索引使用小写规范名；新注册可通过 `Registration.display_handle` 保留原始大小写，规范化后必须等于 `intent.handle`。展示值写入认证 `HandleRecord.display_handle`，转移时保留；旧记录没有该字段，继续按原规范名读取。只有尚未被占用、也未被旧快照预留的名称，价格查询才原样返回请求的大小写，供注册使用。上限比 `AccountId` 的 20 字符 Xid 文本少一个字节，名称不会与账户 ID 重合。价格只取决于字节长度：
 
 提供展示值时，批准的 `terms_digest` 为 `digest("dmsg/handle-charge/v2", (ledger, payer, amount, fee, display_handle))`，其中 payer 沿用 ICRC Account 的公开 CBOR 表示；代付方不能修改批准的大小写。不提供时沿用 v1 摘要。注册操作、扣款去重和认证记录中的可选字段均以缺省/省略方式兼容旧编码，schema 11 原地升级不重写既有名称或证明，也保留未决扣款的重试字节。
 
@@ -118,7 +120,7 @@ handle 是全局唯一的名称注册表，所有 user home 共用。它不保�
 
 ### 认证查询与事件
 
-认证树只证明名称：叶是 `HandleRecord` 的规范 CBOR，包含当前 owner、版本和产生该权属的事件摘要 `event_tip`。名称按 `handle_bucket(name)`（`digest("dmsg/handle-bucket/v1", name)` 的前 20 位）分进 2^20 个桶，树分两层：
+认证树只证明名称：叶是 `HandleRecord` 的规范 CBOR，包含当前 owner、版本、产生该权属的事件摘要 `event_tip`，以及新注册的展示大小写 `display_handle`（旧记录省略该字段）。名称按 `handle_bucket(name)`（`digest("dmsg/handle-bucket/v1", name)` 的前 20 位）分进 2^20 个桶，树分两层：
 
 - 上层是按桶号位组成的二叉标签树：下面没有名称的节点是 `Empty`，否则是 `fork(labeled([0], 左), labeled([1], 右))`。
 - 每个桶是其名称按字节序组成的平衡 `fork` 树，叶为 `labeled(name, leaf(record))`。

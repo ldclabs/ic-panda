@@ -975,6 +975,22 @@ pub async fn resolve<H: Hold>(h: &H, name: &str) -> Result<Option<HandleRecord>>
     )
 }
 
+/// The spelling to show for a name quote: its certified display spelling, the
+/// requested spelling while the name is still available for registration, or
+/// the canonical name when it is owned without one or reserved by the legacy
+/// snapshot.
+fn price_display<'a>(
+    owner: Option<&'a HandleRecord>,
+    reserved: bool,
+    requested: &'a str,
+    canonical: &'a str,
+) -> &'a str {
+    owner
+        .and_then(|record| record.display_handle.as_deref())
+        .or_else(|| (!reserved && owner.is_none()).then_some(requested))
+        .unwrap_or(canonical)
+}
+
 /// A name's price and who may take it, read without the client: its owner,
 /// what registering it costs the payer, and for a name frozen in the legacy
 /// snapshot whether a live login can sign as its holder.
@@ -996,9 +1012,10 @@ pub async fn price_view<H: Hold>(h: &H, name: &str) -> Result<Json> {
         .pop()
         .flatten();
     let total = price(&name);
+    let display_handle = price_display(owner.as_ref(), reserved.is_some(), requested, &name);
     let mut view = json!({
         "name": name,
-        "display_handle": owner.as_ref().and_then(|r| r.display_handle.as_deref()).unwrap_or(requested),
+        "display_handle": display_handle,
         "price": total.to_string(),
         "fee": config.ledger_fee.to_string(),
         // The allowance the registry charges from costs one more fee.
@@ -1116,6 +1133,32 @@ pub async fn operations<H: Hold>(h: &H) -> Result<Vec<Json>> {
 mod tests {
     use super::*;
     use crate::testing::{TempDir, unlocked};
+
+    #[test]
+    fn price_shows_certified_casing_and_only_echoes_available_requests() {
+        let record = |display_handle: Option<&str>| HandleRecord {
+            handle: "alice".into(),
+            display_handle: display_handle.map(str::to_string),
+            owner_account: AccountId([1; 12]),
+            version: 1,
+            event_tip: Hash::new([2; 32]),
+        };
+        let registered = record(Some("Alice"));
+        assert_eq!(
+            price_display(Some(&registered), false, "ALICE", "alice"),
+            "Alice"
+        );
+        let legacy = record(None);
+        assert_eq!(
+            price_display(Some(&legacy), false, "ALICE", "alice"),
+            "alice"
+        );
+        assert_eq!(
+            price_display(None, true, "LegacyName", "legacyname"),
+            "legacyname"
+        );
+        assert_eq!(price_display(None, false, "NewName", "newname"), "NewName");
+    }
 
     #[tokio::test]
     async fn bound_holder_signs_claims_only_while_its_delegation_is_live() {

@@ -1,12 +1,13 @@
 //! ICP-certified HTTP for principal documents.
 //!
 //! Every response is certified as response-only with all headers, so an HTTP
-//! gateway rejects any document, 404 or domain list this canister did not
-//! commit. Under `http_expr`, the first segment of each certified expression
-//! path is a key of a stable-memory certified map holding that segment's
-//! subtree hash: one per account document, `.well-known` for the domain list
-//! and `<*>` for the fallback 404. Only hashes are stored, so an upgrade
-//! republishes the root without visiting the documents.
+//! gateway rejects any document, 404, domain list or favicon this canister
+//! did not commit. Under `http_expr`, the first segment of each certified
+//! expression path is a key of a stable-memory certified map holding that
+//! segment's subtree hash: one per account document, `.well-known` for the
+//! domain list, `favicon.ico` for the fixed icon and `<*>` for the fallback
+//! 404. Only hashes are stored, so an upgrade republishes the root without
+//! visiting the documents.
 use crate::store::{Memory, memory};
 use dmsg_runtime::cert_map::CertMap;
 use dmsg_types::*;
