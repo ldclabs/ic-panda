@@ -60,11 +60,13 @@ pub struct BindingRequest {
 
 /// A login waiting on this device for its binding: the identity that
 /// accepts once the administrator's approval commits.
+#[derive(Clone)]
 pub(crate) struct PendingBinding {
     principal: Principal,
     nonce: Hash,
     ic: Ic,
     expires_at: u64,
+    accept_until: u64,
 }
 
 /// A pending recovery for display.
@@ -312,11 +314,14 @@ impl Client {
             Error::IdempotencyConflict,
         )?;
         let nonce = Hash::new(crate::crypto::random_id());
+        let now = now_ms();
+        ensure(expires_at > now, Error::Expired)?;
         self.binding = Some(PendingBinding {
             principal,
             nonce,
             ic,
-            expires_at: expires_at.min(now_ms() + ACCEPT_MS),
+            expires_at,
+            accept_until: expires_at.min(now + ACCEPT_MS),
         });
         self.account_request(
             source,
@@ -411,22 +416,36 @@ impl Client {
 
     /// Accept with the waiting login the binding this device just approved.
     async fn accept_pending(&mut self, command: &AccountCommand) -> Result<()> {
+        if let AccountCommand::RemoveAuth { principal } = command {
+            self.bound_logins.remove(principal);
+            return Ok(());
+        }
         let AccountCommand::BindAuth { principal, nonce } = command else {
             return Ok(());
         };
         let Some(binding) = self
             .binding
-            .take_if(|b| b.principal == *principal && b.nonce == *nonce)
+            .as_ref()
+            .filter(|b| b.principal == *principal && b.nonce == *nonce)
+            .cloned()
         else {
             return Ok(());
         };
-        ensure(binding.expires_at > now_ms(), Error::Expired)?;
+        ensure(binding.accept_until > now_ms(), Error::Expired)?;
         let account = self.account()?.clone();
         let accepted: Result<()> = binding
             .ic
             .update(account.home, "accept_auth_binding", (account.id, *nonce))
             .await?;
-        accepted
+        accepted?;
+        self.binding = None;
+        let now = now_ms();
+        self.bound_logins.retain(|_, (_, expires)| *expires > now);
+        if binding.expires_at > now {
+            self.bound_logins
+                .insert(binding.principal, (binding.ic, binding.expires_at));
+        }
+        Ok(())
     }
 }
 

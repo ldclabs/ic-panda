@@ -1580,6 +1580,8 @@ export default {
     openWallet: 'Abrir la cartera',
     nameQuarantined: 'Este nombre está en revisión y no se puede reclamar ahora.',
     claimHint: 'Solo su titular en la versión anterior puede reclamarlo. Inicia sesión con esa identidad de panda.fans; si aún no es un inicio de sesión de esta cuenta, vincúlala primero.',
+    claimBoundHint: 'La identidad del titular ya está vinculada a esta cuenta. Inicia sesión con esa identidad de panda.fans para reclamar el nombre; no hace falta vincularla de nuevo.',
+    loginToClaim: 'Iniciar sesión para reclamar',
     loginPandaFans: 'Iniciar sesión con panda.fans',
     bindPandaFans: 'Vincular un inicio de sesión de panda.fans',
     noNameOperations: 'Aún no hay operaciones de nombres.',

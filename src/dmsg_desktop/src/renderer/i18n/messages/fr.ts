@@ -1580,6 +1580,8 @@ export default {
     openWallet: 'Ouvrir le portefeuille',
     nameQuarantined: 'Ce nom est en cours d’examen et ne peut pas être revendiqué pour l’instant.',
     claimHint: 'Seul son titulaire dans l’ancienne version peut le revendiquer. Connectez-vous avec cette identité panda.fans ; si ce n’est pas encore une connexion de ce compte, liez-la d’abord.',
+    claimBoundHint: 'L’identité du titulaire est déjà liée à ce compte. Connectez-vous avec cette identité panda.fans pour revendiquer le nom ; inutile de la lier à nouveau.',
+    loginToClaim: 'Se connecter pour revendiquer',
     loginPandaFans: 'Se connecter avec panda.fans',
     bindPandaFans: 'Lier une connexion panda.fans',
     noNameOperations: 'Aucune opération sur les noms pour l’instant.',

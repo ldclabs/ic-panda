@@ -251,8 +251,13 @@ Rules (`src/main/policy.ts`):
 - Binding another login, removing one, the signing policy, the recovery delay
   and disputing a recovery are approval requests. "Bind another login" starts
   a second login in the system browser, followed by the login dialog; once
-  it arrives the approval window opens on the binding. Approving another device's pairing takes the device
-  ID shown on that device.
+  it arrives the approval window opens on the binding. Its live login stays
+  in the daemon after acceptance, so a legacy holder can claim a name without
+  changing the account's current login. The Names lookup refreshes after
+  binding and approval; once the holder's credential is unavailable it offers
+  a login without asking to bind again. The credential expires with its
+  delegation and is discarded on removal, lock or account switch.
+  Approving another device's pairing takes the device ID shown on that device.
 - A payment (paid letter, checkout, name) is only a request from the main
   window; the approval window shows its amount, ledger and payer. A web
   application's checkout is quoted in the approval window (an asset, or a

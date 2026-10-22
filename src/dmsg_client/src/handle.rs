@@ -288,6 +288,37 @@ fn bucket_path(name: &str) -> Vec<[u8; 1]> {
 }
 
 impl Client {
+    /// Pick a live holder identity, including one just used to bind a
+    /// login. A binding alone never substitutes for its signing identity.
+    fn claim_login(&self, reservation: &LegacyReservation, now: u64) -> Option<Principal> {
+        self.login
+            .as_ref()
+            .filter(|l| l.expires_at > now && may_claim(reservation, l.principal))
+            .map(|l| l.principal)
+            .or_else(|| {
+                self.bound_logins
+                    .iter()
+                    .find(|(p, (_, expires))| *expires > now && may_claim(reservation, **p))
+                    .map(|(p, _)| *p)
+            })
+    }
+
+    /// Use the holder approved in the job, even if the account's current
+    /// login differs. An expired or discarded delegation needs a new login.
+    fn claim_ic(&self, caller: Principal, now: u64) -> Result<Ic> {
+        self.login
+            .as_ref()
+            .filter(|l| l.principal == caller && l.expires_at > now)
+            .map(|l| l.ic.clone())
+            .or_else(|| {
+                self.bound_logins
+                    .get(&caller)
+                    .filter(|(_, expires)| *expires > now)
+                    .map(|(ic, _)| ic.clone())
+            })
+            .ok_or(Error::AuthRequired)
+    }
+
     fn handle_job(&self, id: &str) -> Result<HandleJob> {
         self.workspace
             .private(self.keys()?, &format!("{JOURNAL}{id}"))?
@@ -307,16 +338,15 @@ impl Client {
         resolve(&self.hold(), name).await
     }
 
-    /// Prepare claiming a name the login's Principal owned in the legacy
-    /// registry; the claim runs once a person approves it.
+    /// Prepare claiming a name a live login owned in the legacy registry,
+    /// including an identity just bound here; the claim runs on approval.
     ///
     /// # Errors
-    /// Returns `Error::Forbidden` when the login is not the frozen owner and
+    /// Returns `Error::Forbidden` without a live frozen holder identity and
     /// `Error::Pending` before the snapshot is sealed.
     pub async fn handle_claim_prepare(&mut self, name: &str) -> Result<HandleJob> {
         let name = normalize_handle(name)?;
         let account = self.account()?.id;
-        let caller = self.session()?.principal;
         let ic = self.session()?.ic.clone();
         let progress: SnapshotProgress = ic
             .query(self.config.handle, "snapshot_progress", ())
@@ -331,7 +361,10 @@ impl Client {
         let reservation = reservation?.ok_or(Error::NotFound)?;
         ensure(reservation.handle == name, Error::IntegrityFailed)?;
         ensure(!reservation.quarantined, Error::Locked)?;
-        ensure(may_claim(&reservation, caller), Error::Forbidden)?;
+        let now = now_ms();
+        let caller = self
+            .claim_login(&reservation, now)
+            .ok_or(Error::Forbidden)?;
         let intent = HandleIntent {
             handle_canister: self.config.handle,
             action: HandleAction::ClaimLegacy,
@@ -354,7 +387,7 @@ impl Client {
                 snapshot: snapshot.snapshot_id,
             },
             phase: Phase::Prepared,
-            created_at_ms: Some(now_ms()),
+            created_at_ms: Some(now),
             until_ms: None,
         };
         self.save_handle_job(&job)?;
@@ -677,6 +710,9 @@ impl Client {
             }
         }
         // The name is proven absent: authorize the same intent again.
+        if let Kind::Claim { .. } = job.kind {
+            self.claim_ic(job.caller, now_ms())?;
+        }
         if self.pending()?.is_some() {
             self.resume().await?;
         }
@@ -690,12 +726,16 @@ impl Client {
             None,
         )
         .await?;
+        let ic = match &job.kind {
+            Kind::Claim { .. } => self.claim_ic(job.caller, now_ms())?,
+            Kind::Register { .. } => self.payer().await?.1,
+            Kind::Transfer { .. } => return Err(Error::IntegrityFailed),
+        };
         job.phase = Phase::Unknown;
         self.save_handle_job(&job)?;
         match job.kind.clone() {
             Kind::Transfer { .. } => Err(Error::IntegrityFailed),
             Kind::Claim { snapshot } => {
-                let ic = self.session()?.ic.clone();
                 let claimed: Result<Result<HandleRecord>> = ic
                     .update(
                         self.config.handle,
@@ -725,7 +765,6 @@ impl Client {
                 Ok(job.view())
             }
             Kind::Register { registration, .. } => {
-                let (_, ic) = self.payer().await?;
                 let registered: Result<Result<HandleOperation>> = ic
                     .update(self.config.handle, "register_handle", (&registration,))
                     .await;
@@ -928,15 +967,13 @@ pub async fn resolve<H: Hold>(h: &H, name: &str) -> Result<Option<HandleRecord>>
 
 /// A name's price and who may take it, read without the client: its owner,
 /// what registering it costs the payer, and for a name frozen in the legacy
-/// snapshot whether the current login is the holder that may claim it.
+/// snapshot whether a live login can sign as its holder.
 ///
 /// # Errors
 /// Returns `Error::InvalidInput` for an invalid name.
 pub async fn price_view<H: Hold>(h: &H, name: &str) -> Result<Json> {
     let name = normalize_handle(name)?;
-    let (registry, login) = h
-        .with(|c| Ok((c.config.handle, c.session().ok().map(|l| l.principal))))
-        .await?;
+    let registry = h.with(|c| Ok(c.config.handle)).await?;
     let ic = h.reader().await?;
     let reserved: Result<Option<LegacyReservation>> = ic
         .query(registry, "get_legacy_reservation", (&name,))
@@ -959,9 +996,16 @@ pub async fn price_view<H: Hold>(h: &H, name: &str) -> Result<Json> {
         "reserved": reserved.is_some(),
     });
     if let Some(r) = reserved {
+        let (login, caller) = h
+            .with(|c| {
+                let now = now_ms();
+                let login = c.login.as_ref().filter(|l| l.expires_at > now);
+                Ok((login.map(|l| l.principal), c.claim_login(&r, now)))
+            })
+            .await?;
         let by_admins = r.legacy_name_principal == Some(r.legacy_owner);
         view["claim"] = json!({
-            "claimable": !r.quarantined && login.is_some_and(|p| may_claim(&r, p)),
+            "claimable": !r.quarantined && login.is_some() && caller.is_some(),
             "quarantined": r.quarantined,
             "login": login.map(|p| p.to_text()),
             // Who must sign in to claim it: the legacy owner, or one of the
@@ -1059,6 +1103,66 @@ pub async fn operations<H: Hold>(h: &H) -> Result<Vec<Json>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::{TempDir, unlocked};
+
+    #[tokio::test]
+    async fn bound_holder_signs_claims_only_while_its_delegation_is_live() {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        let now = now_ms();
+        let expires = now + 60_000;
+        let delegated = crate::login::kept_for_tests(42, expires)
+            .delegated()
+            .unwrap();
+        let holder = delegated.principal;
+        let ic = Ic::connect(&client.config, delegated.identity)
+            .await
+            .unwrap();
+        let mut reservation = LegacyReservation {
+            handle: "oldpanda".into(),
+            legacy_owner: holder,
+            legacy_name_principal: None,
+            frozen_admins: vec![],
+            quarantined: false,
+        };
+        assert_eq!(client.claim_login(&reservation, now), None);
+        client.bound_logins.insert(holder, (ic.clone(), expires));
+        assert_eq!(client.claim_login(&reservation, now), Some(holder));
+        assert_eq!(
+            client.claim_ic(holder, now).unwrap().principal().unwrap(),
+            holder
+        );
+        assert_eq!(client.claim_login(&reservation, expires), None);
+        assert!(matches!(
+            client.claim_ic(holder, expires),
+            Err(Error::AuthRequired)
+        ));
+
+        // An ordinary bound login cannot act as another frozen owner or
+        // a name principal; only a listed frozen admin can claim the latter.
+        reservation.legacy_owner = Principal::from_slice(&[8; 29]);
+        assert_eq!(client.claim_login(&reservation, now), None);
+        reservation.legacy_name_principal = Some(reservation.legacy_owner);
+        assert_eq!(client.claim_login(&reservation, now), None);
+        reservation.frozen_admins.push(holder);
+        assert_eq!(client.claim_login(&reservation, now), Some(holder));
+        assert!(matches!(
+            client.claim_ic(reservation.legacy_owner, now),
+            Err(Error::AuthRequired)
+        ));
+
+        client.lock();
+        assert!(client.bound_logins.is_empty());
+        assert_eq!(client.claim_login(&reservation, now), None);
+        assert!(matches!(
+            client.claim_ic(holder, now),
+            Err(Error::AuthRequired)
+        ));
+
+        client.bound_logins.insert(holder, (ic, expires));
+        client.select(crate::client::Slot::Login(holder)).unwrap();
+        assert!(client.bound_logins.is_empty());
+    }
 
     /// A page with no names asks the registry for nothing: it refuses an
     /// empty batch with `QuotaExceeded`.

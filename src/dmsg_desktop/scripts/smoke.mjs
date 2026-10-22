@@ -344,6 +344,11 @@ let declineUnlock = false
 let noLogin = false
 let loginResult = null
 let failLogin = false
+let legacyHolderBound = false
+let legacyHolderCredential = false
+let legacyHolderLoggedIn = false
+let legacyNameClaimed = false
+const legacyHolder = '2vxsx-fae'
 function emit(type, data) {
   for (const s of sockets) s.send(JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { seq: 1, type, data } }))
 }
@@ -768,7 +773,7 @@ const methods = {
   'account/security': () => {
     if (noLogin) throw { code: 'AUTH_REQUIRED', message: 'Log in' }
     return {
-      logins: [{ principal: login, current: true }],
+      logins: [{ principal: login, current: !legacyHolderLoggedIn }, ...(legacyHolderBound ? [{ principal: legacyHolder, current: legacyHolderLoggedIn }] : [])],
       policy: { frozen: false, allowed_purposes: ['FileAttestation', 'Statement', 'AppAction'], daily_executions: 20 },
       recovery_delay_ms: 3 * 86_400_000,
       pending_recovery: null,
@@ -816,8 +821,17 @@ const methods = {
     const quote = { name: p.name, price: '10000000000', fee: '10000', most: '10000020000', ledger: pandaLedger, owner: null, reserved: false }
     if (p.name === 'smoke') return { ...quote, owner: account }
     if (p.name === 'taken') return { ...quote, owner: peer }
-    if (p.name === 'oldpanda') return { ...quote, reserved: true, claim: { claimable: false, quarantined: false, login: 'aaaaa-aa', holders: ['2vxsx-fae'] } }
+    if (p.name === 'oldpanda' || p.name === 'heldpanda') return {
+      ...quote,
+      owner: p.name === 'oldpanda' && legacyNameClaimed ? account : null,
+      reserved: true,
+      claim: { claimable: p.name === 'oldpanda' && (legacyHolderLoggedIn || legacyHolderCredential), quarantined: p.name === 'heldpanda', login: legacyHolderLoggedIn ? legacyHolder : login, holders: [legacyHolder] }
+    }
     return quote
+  },
+  'handle/claim': (p) => {
+    assert.equal(legacyHolderLoggedIn || legacyHolderCredential, true)
+    return created(nextRequest(), 'handle', { id: 'b6'.repeat(32), name: p.name, action: 'ClaimLegacy', caller: legacyHolder, caller_role: 'holder', phase: 'prepared' })
   },
   'handle/register': (p) =>
     created(nextRequest(), 'handle', {
@@ -1693,6 +1707,59 @@ try {
   await main.fill('[data-testid="handle-name"]', 'oldpanda')
   await main.click('[data-testid="handle-lookup"]')
   await main.waitForSelector('[data-testid="handle-holders"] >> text=panda.fans')
+  assert.equal(await main.locator('[data-testid="handle-claim"]').count(), 0)
+  assert.equal(await main.locator('[data-testid="handle-bind"]').count(), 1)
+  // Binding keeps the holder's credential: claim without changing the
+  // current login or looking the name up again.
+  legacyHolderBound = true
+  legacyHolderCredential = true
+  emit('approval/changed', {})
+  await main.waitForSelector('[data-testid="handle-claim"]')
+  assert.equal(await main.locator('[data-testid="handle-bind"]').count(), 0)
+  const beforeClaimLogins = calls.filter((c) => c.method === 'session/login').length
+  await main.click('[data-testid="handle-claim"]')
+  await waitFor(() => latest('handle/claim'))
+  assert.deepEqual(latest('handle/claim').params, { name: 'oldpanda', source: 'gui' })
+  await approval.waitForSelector('[data-testid="approval-title"] >> text=oldpanda')
+  assert.equal(calls.filter((c) => c.method === 'session/login').length, beforeClaimLogins)
+  await main.screenshot({ path: join(shots, 'name-bound-holder.png') })
+  // When that credential has expired, the binding is still recognized.
+  // A fresh holder login restores claiming without another binding.
+  legacyHolderCredential = false
+  emit('approval/changed', {})
+  await main.waitForSelector('[data-testid="handle-login-claim"]')
+  await main.waitForSelector('[data-testid="handle-holders"] >> text=already bound')
+  assert.equal(await main.locator('[data-testid="handle-bind"]').count(), 0)
+  assert.equal(await main.locator('[data-testid="handle-claim"]').count(), 0)
+  const claims = calls.filter((c) => c.method === 'handle/claim').length
+  await main.click('[data-testid="handle-login-claim"]')
+  await main.waitForSelector('[data-testid="login-steps"][data-phase="browser"]')
+  assert.deepEqual(latest('session/login').params, { origin: 'https://panda.fans', bind: false, source: 'gui' })
+  legacyHolderLoggedIn = true
+  loginResult = { pending: false, checking: false, done: true, error: null, approval: null }
+  emit('session/changed', { state: 'unlocked' })
+  emit('login/changed', null)
+  await main.waitForSelector('[data-testid="login-dialog"]', { state: 'detached' })
+  await main.waitForSelector('[data-testid="handle-claim"]')
+  assert.equal(await main.locator('[data-testid="handle-login-claim"]').count(), 0)
+  await main.click('[data-testid="handle-claim"]')
+  await waitFor(() => calls.filter((c) => c.method === 'handle/claim').length > claims)
+  assert.deepEqual(latest('handle/claim').params, { name: 'oldpanda', source: 'gui' })
+  await approval.waitForSelector('[data-testid="approval-title"] >> text=oldpanda')
+  // A completed claim refreshes ownership; even a bound holder cannot
+  // claim a quarantined name.
+  legacyNameClaimed = true
+  emit('approval/changed', {})
+  await main.waitForSelector('[data-testid="handle-yours"]')
+  assert.equal(await main.locator('[data-testid="handle-claim"]').count(), 0)
+  await main.fill('[data-testid="handle-name"]', 'heldpanda')
+  await main.click('[data-testid="handle-lookup"]')
+  await main.waitForSelector('[data-testid="handle-quarantined"]')
+  assert.equal(await main.locator('[data-testid="handle-claim"]').count(), 0)
+  assert.equal(await main.locator('[data-testid="handle-login-claim"]').count(), 0)
+  legacyHolderBound = false
+  legacyHolderLoggedIn = false
+  await app.evaluate(() => { globalThis.__opened = [] })
   await main.click('[data-testid="name-transfer"]')
   await main.fill('[data-testid="transfer-target"]', peer)
   await main.click('[data-testid="transfer-offer"]')

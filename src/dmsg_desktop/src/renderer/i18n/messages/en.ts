@@ -1582,6 +1582,8 @@ const messages = {
   openWallet: 'Open wallet',
   nameQuarantined: 'This name is under review and cannot be claimed now.',
   claimHint: 'Only its holder in the old app may claim it. Log in with that panda.fans identity; if it is not a login of this account yet, bind it first.',
+  claimBoundHint: 'The holder’s identity is already bound to this account. Log in with that panda.fans identity to claim the name; no need to bind it again.',
+  loginToClaim: 'Log in to claim',
   loginPandaFans: 'Log in with panda.fans',
   bindPandaFans: 'Bind a panda.fans login',
   noNameOperations: 'No name operations yet.',

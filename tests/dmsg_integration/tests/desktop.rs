@@ -3736,6 +3736,39 @@ fn approval_state(desktop: &Desktop, request: &Value) -> String {
 
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_bound_login_claims_legacy_name() {
+    let env = Env::start("bound-login-claim", "");
+    let a = &env.a;
+    let http = &env.http;
+    assert_eq!(a.login(http, 41).unwrap()["state"], "no_account");
+    let account = a.run(&["account", "create"])["account"].clone();
+    let price = || a.run(&["handle", "price", "legacy_probe"]);
+    assert_eq!(price()["claim"]["claimable"], false);
+
+    // The legacy owner is login 42. Binding proves control and supplies
+    // its live delegation without replacing login 41 on this account.
+    let binding = a.bind_login(http, 42);
+    assert_eq!(price()["claim"]["claimable"], false);
+    assert_eq!(a.decide(http, &binding, true).unwrap()["state"], "done");
+    assert_eq!(price()["claim"]["claimable"], true);
+    assert_eq!(price()["claim"]["login"], login_principal(41));
+
+    let claim = a.run(&["handle", "claim", "legacy_probe"]);
+    assert_eq!(claim["detail"]["caller"], login_principal(42));
+    assert_eq!(a.decide(http, &claim, true).unwrap()["state"], "done");
+    assert_eq!(
+        a.run(&["handle", "resolve", "legacy_probe"])["account"],
+        account
+    );
+    assert_eq!(price()["claim"]["login"], login_principal(41));
+
+    let removal = a.run(&["account", "unbind", &login_principal(42)]);
+    assert_eq!(a.decide(http, &removal, true).unwrap()["state"], "done");
+    assert_eq!(price()["claim"]["claimable"], false);
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_commerce() {
     use dmsg_types::integration::{AppCapability, AppRegistration};
     let mut env = Env::launch(

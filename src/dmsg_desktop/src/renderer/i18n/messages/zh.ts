@@ -1579,6 +1579,8 @@ export default {
     openWallet: '打开钱包',
     nameQuarantined: '该名称正在审核中，暂时无法认领。',
     claimHint: '只有旧版应用中的持有人可以认领。请用那个 panda.fans 身份登录；如果它还不是此账户的登录身份，请先绑定。',
+    claimBoundHint: '持有人身份已绑定到此账户。请用该 panda.fans 身份登录后认领，无需再次绑定。',
+    loginToClaim: '登录后认领',
     loginPandaFans: '用 panda.fans 登录',
     bindPandaFans: '绑定 panda.fans 登录身份',
     noNameOperations: '还没有名称操作。',

@@ -240,6 +240,9 @@ pub struct Client {
     pub(crate) cosign: Option<Arc<dyn crate::wallet::cosign::CosignProvider>>,
     /// A second login waiting for its binding to this account.
     pub(crate) binding: Option<crate::security::PendingBinding>,
+    /// Successfully bound logins and their delegation deadlines, kept
+    /// until lock so their holders can claim legacy names directly.
+    pub(crate) bound_logins: BTreeMap<Principal, (Ic, u64)>,
     /// The file library's chunk directory of the selected workspace.
     pub(crate) blobs: Option<Blobs>,
     /// The library's catalog, read on first use while unlocked.
@@ -537,6 +540,7 @@ impl Client {
             chains: None,
             cosign: None,
             binding: None,
+            bound_logins: BTreeMap::new(),
             blobs: None,
             library: None,
             library_maintained_at: None,
@@ -591,6 +595,7 @@ impl Client {
         self.wallet_ic = None;
         self.chains = None;
         self.binding = None;
+        self.bound_logins.clear();
         // Close the database before its directory moves or another opens.
         self.workspace = idle(&self.config.environment)?;
         self.slot = Slot::Idle;
@@ -1088,6 +1093,7 @@ impl Client {
         self.wallet_ic = None;
         self.chains = None;
         self.binding = None;
+        self.bound_logins.clear();
     }
 
     /// Drop everything, the resident key included, as the daemon exits.

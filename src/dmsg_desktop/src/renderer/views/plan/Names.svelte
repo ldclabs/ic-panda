@@ -32,6 +32,7 @@
   let mine = $state<any[] | null>(null)
   let operations = $state<any[] | null>(null)
   let payer = $state<any>(null)
+  let security = $state<any>(null)
   let errors = $state<Record<string, string>>({})
   let busy = $state(false)
   let now = $state(Date.now())
@@ -46,6 +47,7 @@
 
   const problem = $derived(nameProblem(name))
   const wanted = $derived(canonicalName(name))
+  const holderBound = $derived((security?.logins ?? []).some((login: any) => found?.claim?.holders?.includes(login.principal)))
   /** Whether the payer's PANDA covers registering the name found; null while unknown. */
   const enough = $derived(found && !found.owner && !found.reserved ? covers(payer, found.ledger, found.most) : null)
   /** A transfer waiting on either account changes without this window, so it is read again. */
@@ -76,6 +78,17 @@
       readOperations(),
       part('payer', async () => {
         payer = await call('payer/status')
+      }),
+      part('security', async () => {
+        security = await call('account/security')
+      }),
+      // Binding or changing the login, and completing a claim, changes
+      // the result even when the person has not looked the name up again.
+      part('lookup', async () => {
+        const queried = found?.name
+        if (!queried) return
+        const next = await call('handle/price', { name: queried })
+        if (found?.name === queried) found = next
       })
     ])
   )
@@ -97,6 +110,7 @@
   const lookup = () =>
     attempt(async () => {
       found = null
+      errors.lookup = ''
       found = await call('handle/price', { name: wanted })
     })
 
@@ -241,8 +255,12 @@
             <span class="flex-1"></span>
             {#if found.owner && found.owner !== status?.account}
               <button class={buttonClass('secondary', 'sm')} onclick={() => message(found.owner, found.name)} data-testid="handle-message"><Icon name="channels" />{t('sendMessage')}</button>
-            {:else if !found.owner && found.reserved && found.claim?.claimable}
-              <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={claim} data-testid="handle-claim">{t('claim')}</button>
+            {:else if !found.owner && found.reserved && !found.claim?.quarantined}
+              {#if found.claim?.claimable}
+                <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={claim} data-testid="handle-claim">{t('claim')}</button>
+              {:else if holderBound}
+                <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => startLogin(false, 'https://panda.fans')} data-testid="handle-login-claim"><Icon name="login" />{t('loginToClaim')}</button>
+              {/if}
             {:else if !found.owner && !found.reserved}
               <button class={buttonClass('primary', 'sm')} disabled={busy || enough === false} onclick={register} data-testid="handle-register">{t('register')}</button>
             {/if}
@@ -263,16 +281,20 @@
             <Notice tone="warn" icon="warning" testid="handle-quarantined">{t('nameQuarantined')}</Notice>
           {:else if !found.owner && found.claim && !found.claim.claimable}
             <Notice tone="info" icon="info" testid="handle-holders">
-              <p>{t('claimHint')}</p>
+              <p>{t(holderBound ? 'claimBoundHint' : 'claimHint')}</p>
               <ul class="mt-1.5 flex flex-wrap gap-1.5">
                 {#each found.claim.holders ?? [] as holder (holder)}<li><Id id={holder} /></li>{/each}
               </ul>
-              <div class="mt-2 flex flex-wrap gap-1.5">
-                <button class={buttonClass('secondary', 'xs')} onclick={() => startLogin(false, 'https://panda.fans')} data-testid="handle-login"><Icon name="login" />{t('loginPandaFans')}</button>
-                <button class={buttonClass('ghost', 'xs')} onclick={() => startLogin(true, 'https://panda.fans')} data-testid="handle-bind">{t('bindPandaFans')}</button>
-              </div>
+              {#if !holderBound}
+                <div class="mt-2 flex flex-wrap gap-1.5">
+                  <button class={buttonClass('secondary', 'xs')} onclick={() => startLogin(false, 'https://panda.fans')} data-testid="handle-login"><Icon name="login" />{t('loginPandaFans')}</button>
+                  <button class={buttonClass('ghost', 'xs')} onclick={() => startLogin(true, 'https://panda.fans')} data-testid="handle-bind">{t('bindPandaFans')}</button>
+                </div>
+              {/if}
             </Notice>
           {/if}
+          {#if errors.security}<Notice tone="danger">{errors.security}</Notice>{/if}
+          {#if errors.lookup}<Notice tone="danger">{errors.lookup}</Notice>{/if}
         </div>
       {/if}
     </div>

@@ -2,6 +2,26 @@ use super::*;
 use crate::approval::Action;
 use crate::codec::{canonical, decode};
 
+#[tokio::test]
+async fn removing_a_login_discards_its_retained_signing_identity() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let expires = now_ms() + 60_000;
+    let delegated = crate::login::kept_for_tests(42, expires)
+        .delegated()
+        .unwrap();
+    let principal = delegated.principal;
+    let ic = Ic::connect(&client.config, delegated.identity)
+        .await
+        .unwrap();
+    client.bound_logins.insert(principal, (ic, expires));
+    client
+        .accept_pending(&AccountCommand::RemoveAuth { principal })
+        .await
+        .unwrap();
+    assert!(client.bound_logins.is_empty());
+}
+
 #[test]
 fn changes_survive_the_approval_record() {
     let login = Principal::from_slice(&[7; 29]);
