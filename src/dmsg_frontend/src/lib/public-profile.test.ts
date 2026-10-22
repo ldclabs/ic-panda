@@ -87,9 +87,10 @@ it('account and handle render the exact same certified PrincipalDocument, withou
   expect(registry.resolve_handle_certified).not.toHaveBeenCalled()
   expect(await read('ALICE')).toMatchObject({
     account: f.account,
-    handle: 'alice',
+    handle: 'ALICE',
     document: f.document
   })
+  expect(registry.resolve_handle_certified).toHaveBeenCalledWith(['alice'])
   expect(fetch).not.toHaveBeenCalled()
 })
 it('requires the directory config to match the registry and home', async () => {
@@ -107,6 +108,25 @@ it('requires the directory config to match the registry and home', async () => {
     user_homes: []
   })
   await expect(read()).rejects.toMatchObject({ reason: 'verification_failed' })
+})
+
+it('uses certified registered casing even when the URL has another spelling', async () => {
+  registry.resolve_handle_certified.mockResolvedValue({
+    Ok: batch(
+      await f.certified(
+        Principal.fromText(DMSG_HANDLE_CANISTER_ID).toUint8Array(),
+        new TextEncoder().encode(f.handle),
+        canonical({
+          handle: f.handle,
+          display_handle: 'Alice',
+          version: 1,
+          owner_account: f.accountId
+        }),
+        handlePath(f.handle)
+      )
+    )
+  })
+  expect((await read('ALICE')).handle).toBe('Alice')
 })
 
 it('invalid IDs make no requests', async () => {

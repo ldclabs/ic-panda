@@ -22,7 +22,7 @@ use crate::now_ms;
 use crate::payer::{approve_call, memo};
 use candid::Principal;
 use dmsg_protocol::{
-    HANDLE_BUCKET_BITS, charge_terms_digest, digest, handle_bucket, normalize_handle, price,
+    HANDLE_BUCKET_BITS, digest, handle_bucket, normalize_handle, price, registration_terms_digest,
 };
 use dmsg_types::{
     AccountId, Error, Hash, Result, ensure,
@@ -145,7 +145,10 @@ impl HandleJob {
         };
         json!({
             "id": self.id,
-            "name": self.name,
+            "name": match &self.kind {
+                Kind::Register { registration, .. } => registration.display_handle.as_deref().unwrap_or(&self.name),
+                _ => &self.name,
+            },
             "action": format!("{:?}", self.intent.action),
             "caller": self.caller.to_text(),
             // Who calls the registry: the legacy holder claims, the payer
@@ -234,7 +237,11 @@ async fn certified_records(
             };
             let record: HandleRecord = crate::codec::decode(&value, 4096)?;
             ensure(
-                record.handle == *name && record.version > 0,
+                record.handle == *name
+                    && record.version > 0
+                    && record.display_handle.as_ref().is_none_or(|display| {
+                        normalize_handle(display).ok().as_deref() == Some(name)
+                    }),
                 Error::IntegrityFailed,
             )?;
             Ok(Some(record))
@@ -401,6 +408,7 @@ impl Client {
     /// Returns `Error::IdempotencyConflict` for a name already owned and
     /// `Error::VersionConflict` for one reserved by the legacy snapshot.
     pub async fn handle_register_prepare(&mut self, name: &str) -> Result<HandleJob> {
+        let display_handle = name.to_string();
         let name = normalize_handle(name)?;
         ensure(
             self.handle_resolve(&name).await?.is_none(),
@@ -437,11 +445,12 @@ impl Client {
             handle: name.clone(),
             expected_version: 0,
             op_id: Hash::new(crate::crypto::random_id()),
-            terms_digest: charge_terms_digest(
+            terms_digest: registration_terms_digest(
                 config.ledger,
                 &account,
                 total - config.ledger_fee,
                 config.ledger_fee,
+                Some(&display_handle),
             ),
         };
         let job = HandleJob {
@@ -454,6 +463,7 @@ impl Client {
                     intent,
                     payer: account,
                     fee: config.ledger_fee,
+                    display_handle: Some(display_handle),
                 }),
                 ledger: config.ledger,
                 total,
@@ -972,6 +982,7 @@ pub async fn resolve<H: Hold>(h: &H, name: &str) -> Result<Option<HandleRecord>>
 /// # Errors
 /// Returns `Error::InvalidInput` for an invalid name.
 pub async fn price_view<H: Hold>(h: &H, name: &str) -> Result<Json> {
+    let requested = name;
     let name = normalize_handle(name)?;
     let registry = h.with(|c| Ok(c.config.handle)).await?;
     let ic = h.reader().await?;
@@ -987,6 +998,7 @@ pub async fn price_view<H: Hold>(h: &H, name: &str) -> Result<Json> {
     let total = price(&name);
     let mut view = json!({
         "name": name,
+        "display_handle": owner.as_ref().and_then(|r| r.display_handle.as_deref()).unwrap_or(requested),
         "price": total.to_string(),
         "fee": config.ledger_fee.to_string(),
         // The allowance the registry charges from costs one more fee.
@@ -1044,7 +1056,7 @@ pub async fn mine<H: Hold>(h: &H) -> Result<Vec<Json>> {
             .flatten()
         {
             if record.owner_account == account {
-                names.push(json!({"name": record.handle, "version": record.version}));
+                names.push(json!({"name": record.handle, "display_handle": record.display_handle.as_ref().unwrap_or(&record.handle), "version": record.version}));
             }
         }
         if !full {

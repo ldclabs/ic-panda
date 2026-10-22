@@ -8,11 +8,48 @@ import {
   handlePath,
   profileTarget,
   verifyHandle,
+  verifyHandleRecord,
   verifyPrincipalDocument,
 } from "../src/principal.ts";
 import { b64, canonical, hash, unb64, utf8 } from "../src/cose-codec.ts";
 import { verifyCertifiedPath } from "../src/ic.ts";
 import * as f from "./principal-fixture.ts";
+
+test("certified handle display casing is bound to the canonical name", async () => {
+  const record = async (display_handle: unknown) =>
+    f.certified(
+      f.registry,
+      utf8(f.handle),
+      canonical({
+        handle: f.handle,
+        display_handle,
+        version: 1,
+        owner_account: f.accountId,
+      }),
+      handlePath(f.handle),
+    );
+  assert.deepEqual(
+    await verifyHandleRecord(
+      await record("Alice"),
+      f.handle,
+      f.registry,
+      f.rootKey,
+      f.now,
+    ),
+    { account: f.account, displayHandle: "Alice" },
+  );
+  for (const invalid of ["Bob", "Ａlice", "Alice!", null, 42]) {
+    await assert.rejects(
+      verifyHandleRecord(
+        await record(invalid),
+        f.handle,
+        f.registry,
+        f.rootKey,
+        f.now,
+      ),
+    );
+  }
+});
 
 test("root-path IDs and handles are disjoint; routing uses the account allocator", () => {
   assert.equal(accountText(accountBytes(f.account)), f.account);

@@ -166,6 +166,8 @@ webhook 入口只有 `POST /mcp-events/<callback_id>`（`application/json`，正
 
 ## 公开资料网页
 
+handle 查询和证明使用小写规范名；页面优先显示认证名称记录的 `display_handle`，旧记录无此字段时保留访问 URL 的大小写。简介只将显式 HTTP/HTTPS 地址转成可点击链接，其他内容仍按纯文本转义。
+
 公开入口为 `/<account_id>` 和 `/<handle>`，永久链接使用前者。handle 经 `dmsg_handle.resolve_handle_certified` 验证，账户按注册表的分配器指纹选择 home，再从其配置的 directory 读取认证 `PrincipalDocument`。网页不再读取 Cloudflare 用户 profile，也不再展示“设备签名已验证”标签。
 
 JSON 与 HTML 的内容来源、字段和更新时间一致；浏览器独立验证 directory 的 ICP 证书。链接名称和 `extra["dmsg.link_images"]` 图片一起展示。头像与链接图片按文档中的 HTTPS 地址加载（`referrerpolicy="no-referrer"`），部署的 CSP `img-src` 必须允许这些来源。旧资料导入先生成包含名称、简介、具名链接、图片扩展和头像 URL 的草稿，用户发布后才上链。

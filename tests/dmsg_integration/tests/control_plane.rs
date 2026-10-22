@@ -260,21 +260,25 @@ impl Fixture {
         max_escrows: u64,
         configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
     ) -> Self {
-        Self::with_principal_modules(
+        Self::with_identity_modules(
             generous,
             daily_orders,
             max_escrows,
             configure_membership,
-            [wasm("dmsg_user"), wasm("dmsg_directory")],
+            [
+                wasm("dmsg_user"),
+                wasm("dmsg_directory"),
+                wasm("dmsg_handle"),
+            ],
         )
     }
 
-    fn with_principal_modules(
+    fn with_identity_modules(
         generous: bool,
         daily_orders: u32,
         max_escrows: u64,
         configure_membership: impl FnOnce(&mut dmsg_types::membership::MembershipInit),
-        [user_module, directory_module]: [Vec<u8>; 2],
+        [user_module, directory_module, handle_module]: [Vec<u8>; 3],
     ) -> Self {
         let ic = PocketIcBuilder::new()
             .with_nns_subnet()
@@ -363,7 +367,7 @@ impl Fixture {
         );
         ic.install_canister(
             handle,
-            wasm("dmsg_handle"),
+            handle_module,
             candid::encode_args((HandleInit {
                 ledger,
                 environment: Environment::Local,
@@ -1620,6 +1624,7 @@ fn frozen_names_cannot_be_sold_and_transfers_require_both_subjects() {
     f.mint(person(1), amount + 10);
     f.approve_handle(person(1), amount + 10);
     let registration = Registration {
+        display_handle: None,
         intent,
         payer,
         fee: 10,

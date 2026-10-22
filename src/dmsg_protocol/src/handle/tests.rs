@@ -1,6 +1,23 @@
 use super::*;
 
 #[test]
+fn display_spelling_is_bound_without_changing_legacy_charge_terms() {
+    let ledger = Principal::from_slice(&[1]);
+    let payer = Account {
+        owner: Principal::from_slice(&[2]),
+        subaccount: None,
+    };
+    let old = charge_terms_digest(ledger, &payer, 90, 10);
+    assert_eq!(registration_terms_digest(ledger, &payer, 90, 10, None), old);
+    let mixed = registration_terms_digest(ledger, &payer, 90, 10, Some("MixedCase"));
+    assert_ne!(mixed, old);
+    assert_ne!(
+        mixed,
+        registration_terms_digest(ledger, &payer, 90, 10, Some("mixedcase"))
+    );
+}
+
+#[test]
 fn handles_normalize_only_ascii_and_enforce_limits() {
     for (input, expected) in [("A", "a"), ("ALIce_01", "alice_01"), ("9_", "9_")] {
         assert_eq!(normalize_handle(input).unwrap(), expected);

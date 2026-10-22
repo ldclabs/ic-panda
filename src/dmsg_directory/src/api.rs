@@ -63,8 +63,8 @@ fn post_upgrade() {
         STABLE_SCHEMA => {}
         schema => panic!("unsupported directory stable schema {schema}"),
     }
-    // Document hashes persist in stable memory; only the fallback and domain
-    // responses, which this code renders, are certified again.
+    // Document hashes persist in stable memory; only fixed responses rendered
+    // by this code (fallback, domains, favicon) are certified again.
     http::certify_fixed(&c.init.custom_domains);
 }
 

@@ -192,7 +192,7 @@ impl Daemon {
             "handle/resolve" => {
                 let record = handle::resolve(&h, &text(params, "name")?).await?;
                 return Ok(record.map_or(Value::Null, |r| {
-                    json!({"name": r.handle, "account": r.owner_account.to_string(), "version": r.version})
+                    json!({"name": r.handle, "display_handle": r.display_handle.as_ref().unwrap_or(&r.handle), "account": r.owner_account.to_string(), "version": r.version})
                 }));
             }
             "handle/price" => return handle::price_view(&h, &text(params, "name")?).await,

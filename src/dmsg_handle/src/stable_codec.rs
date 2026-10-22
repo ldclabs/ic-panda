@@ -116,6 +116,7 @@ mod tests {
         };
         let operation = HandleOperation {
             registration: Registration {
+                display_handle: None,
                 intent,
                 payer: Account {
                     owner: p(1),
@@ -135,6 +136,7 @@ mod tests {
             ledger_block: Some(99),
         };
         let record = HandleRecord {
+            display_handle: None,
             handle: "example-user".into(),
             owner_account: AccountId([1; 12]),
             version: 42,

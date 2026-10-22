@@ -4062,12 +4062,28 @@ fn desktop_commerce() {
     let price = a.run(&["handle", "price", "desktop_paid"]);
     let price: u128 = price["price"].as_str().unwrap().parse().unwrap();
     let before = balance(a, &d.name_ledger);
-    let request = a.run(&["handle", "register", "desktop_paid"]);
+    let request = a.run(&["handle", "register", "Desktop_Paid"]);
     assert_eq!(request["type"], "handle");
+    assert_eq!(request["detail"]["name"], "Desktop_Paid");
     assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
     assert_eq!(
         a.run(&["handle", "resolve", "desktop_paid"])["account"],
         account.as_str()
+    );
+    assert_eq!(
+        a.run(&["handle", "resolve", "DESKTOP_PAID"])["display_handle"],
+        "Desktop_Paid"
+    );
+    assert_eq!(
+        a.run(&["handle", "price", "DESKTOP_PAID"])["display_handle"],
+        "Desktop_Paid"
+    );
+    assert!(
+        a.run(&["handle", "mine"])
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|name| name["display_handle"] == "Desktop_Paid")
     );
     // The price, which pays the registry's transfer fee, and the approval's fee.
     assert_eq!(before - balance(a, &d.name_ledger), price + 10);

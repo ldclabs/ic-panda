@@ -198,6 +198,8 @@ stable_struct!(LegacyReservationRepr => LegacyReservation {
 
 stable_struct!(HandleRecordRepr => HandleRecord {
     1 => handle: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    5 => display_handle: Option<String>,
     2 => owner_account: AccountId,
     3 => version: u64,
     4 => event_tip: Hash,
@@ -229,6 +231,8 @@ stable_struct!(RegistrationRepr => Registration {
     1 => intent: HandleIntentRepr as codec,
     2 => payer: AccountRepr as codec,
     3 => fee: u128,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    4 => display_handle: Option<String>,
 });
 
 stable_struct!(HandleOperationRepr => HandleOperation {

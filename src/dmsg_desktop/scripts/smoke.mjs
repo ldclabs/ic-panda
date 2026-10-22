@@ -832,9 +832,9 @@ const methods = {
     return quoted
   },
   'handle/operations': () => nameOps,
-  'handle/mine': () => [{ name: 'smoke', version: 1 }],
+  'handle/mine': () => [{ name: 'smoke', display_handle: 'Smoke', version: 1 }],
   'handle/price': (p) => {
-    const quote = { name: p.name, price: '10000000000', fee: '10000', most: '10000020000', ledger: pandaLedger, owner: null, reserved: false }
+    const quote = { name: p.name.toLowerCase(), display_handle: p.name, price: '10000000000', fee: '10000', most: '10000020000', ledger: pandaLedger, owner: null, reserved: false }
     if (p.name === 'smoke') return { ...quote, owner: account }
     if (p.name === 'taken') return { ...quote, owner: peer }
     if (p.name === 'oldpanda' || p.name === 'heldpanda') return {
@@ -1727,7 +1727,7 @@ try {
 
   // Names: this account's own, a name looked up with its price or its owner, and a transfer both accounts approve.
   await main.click('[data-testid="plan-tab-names"]')
-  await main.waitForSelector('[data-testid="my-name"] >> text=@smoke')
+  await main.waitForSelector('[data-testid="my-name"] >> text=@Smoke')
   await main.fill('[data-testid="handle-name"]', '_smoke')
   await main.waitForSelector('[data-testid="handle-problem"] >> text=cannot start with _')
   assert.equal(await main.locator('[data-testid="handle-lookup"]').isDisabled(), true)
@@ -1735,10 +1735,11 @@ try {
   assert.match(await main.textContent('[data-testid="handle-tier"]'), /8 characters cost 100 PANDA/)
   await main.click('[data-testid="handle-lookup"]')
   await main.waitForSelector('[data-testid="handle-price"] >> text=100 PANDA')
-  assert.deepEqual(latest('handle/price').params, { name: 'panda123' })
+  assert.deepEqual(latest('handle/price').params, { name: 'Panda123' })
+  assert.match(await main.textContent('[data-testid="handle-state"]'), /@Panda123/)
   await main.click('[data-testid="handle-register"]')
   await waitFor(() => latest('handle/register'))
-  assert.deepEqual(latest('handle/register').params, { name: 'panda123', source: 'gui' })
+  assert.deepEqual(latest('handle/register').params, { name: 'Panda123', source: 'gui' })
   await main.fill('[data-testid="handle-name"]', 'taken')
   await main.click('[data-testid="handle-lookup"]')
   await main.waitForSelector('[data-testid="handle-message"]')
@@ -1802,7 +1803,7 @@ try {
   await main.fill('[data-testid="transfer-target"]', peer)
   await main.click('[data-testid="transfer-offer"]')
   await main.waitForSelector(`[data-testid="transfer-token"] >> text=${transferToken}`)
-  assert.deepEqual(latest('handle/transfer').params, { name: 'smoke', target: peer })
+  assert.deepEqual(latest('handle/transfer').params, { name: 'Smoke', target: peer })
   await main.click('[data-testid="transfer-done"]')
   await main.waitForSelector('[data-testid="name-state"] >> text=Waiting for the target')
   // Once the target accepted, the owner completes it within ten minutes, in a held approval.

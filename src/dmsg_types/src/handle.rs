@@ -115,6 +115,9 @@ pub struct LegacyReservation {
 pub struct HandleRecord {
     /// Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
     pub handle: String,
+    /// Registration spelling for display; absent in pre-casing records.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_handle: Option<String>,
     /// Stable dMsg account that currently owns the name.
     pub owner_account: AccountId,
     /// Revision of this record/authorization, used for stale-state checks.
@@ -154,6 +157,10 @@ pub struct Registration {
     pub payer: Account,
     /// Ledger network fee in integer base units.
     pub fee: u128,
+    /// Original spelling, bound by the account-authorized registration terms.
+    /// Its lowercase form must equal intent.handle. None preserves the v1 terms.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_handle: Option<String>,
 }
 
 /// Registration charge/commit lifecycle. Unknown charges require reconciliation.

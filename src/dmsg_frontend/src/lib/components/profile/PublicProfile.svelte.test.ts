@@ -86,6 +86,39 @@ it('distinguishes an unpublished document', async () => {
   expect(target.textContent).toContain('has not published')
   expect(target.textContent).not.toContain('Certified principal document')
 })
+it('keeps handle casing and links only explicit HTTP URLs in plain description text', async () => {
+  vi.mocked(readProfile).mockResolvedValue({
+    ...result,
+    handle: 'ICPandaDAO',
+    document: {
+      ...result.document!,
+      description:
+        'See https://Anda.AI | http://dMsg.net.\n<script>alert(1)</script> javascript:alert(1) plain.example'
+    }
+  })
+  render('ICPandaDAO')
+  await settled()
+  expect(target.querySelector('.handle')?.textContent).toBe('@ICPandaDAO')
+  const bio = target.querySelector('.bio')!
+  const links = [...bio.querySelectorAll('a')]
+  expect(links.map((link) => link.getAttribute('href'))).toEqual([
+    'https://Anda.AI',
+    'http://dMsg.net'
+  ])
+  expect(links.map((link) => link.textContent)).toEqual([
+    'https://Anda.AI',
+    'http://dMsg.net'
+  ])
+  expect(
+    links.every(
+      (link) => link.target === '_blank' && link.rel === 'noopener noreferrer'
+    )
+  ).toBe(true)
+  expect(bio.textContent).toBe(
+    'See https://Anda.AI | http://dMsg.net.\n<script>alert(1)</script> javascript:alert(1) plain.example'
+  )
+  expect(bio.querySelector('script')).toBeNull()
+})
 it('hides failed verification and retries explicitly', async () => {
   vi.mocked(readProfile).mockRejectedValueOnce(
     new ProfileError('verification_failed')

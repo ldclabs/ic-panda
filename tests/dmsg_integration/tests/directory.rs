@@ -270,6 +270,8 @@ fn http_routes_and_changed_documents_are_certified() {
     for missing in [
         "/".into(),
         "/unknown".into(),
+        "/favicon.ico/".into(),
+        "/favicon.ico/child".into(),
         format!("/{id}/"),
         format!("//{id}//"),
         format!("/{id}/child"),
@@ -283,6 +285,24 @@ fn http_routes_and_changed_documents_are_certified() {
     ] {
         assert_eq!(f.get(domains).body(), b"id.dmsg.test");
     }
+    let icon = f.get("/favicon.ico");
+    assert_eq!(icon.status_code().as_u16(), 200);
+    assert_eq!(
+        icon.body(),
+        include_bytes!("../../../src/dmsg_directory/assets/favicon.ico")
+    );
+    assert!(
+        icon.headers()
+            .iter()
+            .any(|(name, value)| name == "content-type" && value == "image/x-icon")
+    );
+    assert_eq!(f.get("/favicon.ico?version=1").body(), icon.body());
+    let tampered_icon = HttpResponse::builder()
+        .with_status_code(icon.status_code())
+        .with_headers(icon.headers().to_vec())
+        .with_body(b"wrong icon".to_vec())
+        .build();
+    assert!(!f.verify(HttpRequest::get("/favicon.ico").build(), tampered_icon));
     let mut changed = state(1);
     changed.version = 2;
     changed.updated_at += 1;
@@ -299,6 +319,7 @@ fn http_routes_and_changed_documents_are_certified() {
     assert!(!f.verify(HttpRequest::get(&path).build(), tampered));
     assert!(f.upgrade());
     assert_eq!(f.get(&path).body(), updated.body());
+    assert_eq!(f.get("/favicon.ico").body(), icon.body());
     assert_eq!(f.get("/unknown").status_code().as_u16(), 404);
 }
 

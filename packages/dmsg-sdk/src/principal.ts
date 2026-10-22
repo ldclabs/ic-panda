@@ -122,7 +122,9 @@ function validateDocumentMetadata(document: PrincipalDocument): void {
     if (value === undefined) return;
     ensure([...value].length <= max, "QUOTA_EXCEEDED");
     ensure(
-      ![...value].some((char) => CONTROL.test(char) && !(multiline && char === "\n")),
+      ![...value].some(
+        (char) => CONTROL.test(char) && !(multiline && char === "\n"),
+      ),
       "INTEGRITY_FAILED",
     );
   };
@@ -214,6 +216,20 @@ export async function verifyHandle(
   rootKey: Uint8Array,
   now: bigint,
 ): Promise<string | null> {
+  return (
+    (await verifyHandleRecord(batch, handle, registry, rootKey, now))
+      ?.account ?? null
+  );
+}
+
+/** Certified name ownership plus the owner's registered display spelling. */
+export async function verifyHandleRecord(
+  batch: CertifiedBatch,
+  handle: string,
+  registry: Uint8Array,
+  rootKey: Uint8Array,
+  now: bigint,
+): Promise<{ account: string; displayHandle?: string } | null> {
   const { value } = await verifyCertifiedPath(
     batch,
     utf8(handle),
@@ -225,6 +241,7 @@ export async function verifyHandle(
   if (value === null) return null;
   const record = decodeCanonical<{
     handle: string;
+    display_handle?: string;
     version: number | bigint;
     owner_account: Uint8Array;
   }>(value);
@@ -234,7 +251,18 @@ export async function verifyHandle(
       record.owner_account instanceof Uint8Array,
     "INTEGRITY_FAILED",
   );
-  return accountText(record.owner_account);
+  if (record.display_handle !== undefined) {
+    ensure(
+      typeof record.display_handle === "string" &&
+        /^[a-zA-Z0-9][a-zA-Z0-9_]{0,18}$/.test(record.display_handle) &&
+        record.display_handle.toLowerCase() === handle,
+      "INTEGRITY_FAILED",
+    );
+  }
+  return {
+    account: accountText(record.owner_account),
+    displayHandle: record.display_handle,
+  };
 }
 
 /** Select the registered home named by the account allocator fingerprint. */

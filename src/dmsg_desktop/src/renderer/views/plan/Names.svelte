@@ -85,10 +85,10 @@
       // Binding or changing the login, and completing a claim, changes
       // the result even when the person has not looked the name up again.
       part('lookup', async () => {
-        const queried = found?.name
+        const queried = found?.display_handle ?? found?.name
         if (!queried) return
         const next = await call('handle/price', { name: queried })
-        if (found?.name === queried) found = next
+        if ((found?.display_handle ?? found?.name) === queried) found = next
       })
     ])
   )
@@ -111,10 +111,10 @@
     attempt(async () => {
       found = null
       errors.lookup = ''
-      found = await call('handle/price', { name: wanted })
+      found = await call('handle/price', { name: name.trim().replace(/^@/, '') })
     })
 
-  const register = () => attempt(async () => approve(await call('handle/register', { name: found.name })))
+  const register = () => attempt(async () => approve(await call('handle/register', { name: found.display_handle ?? found.name })))
   const claim = () => attempt(async () => approve(await call('handle/claim', { name: found.name })))
 
   /** Offering prepares the transfer and its token; nothing moves until the owner completes it. */
@@ -199,8 +199,8 @@
       <ul class="divide-y divide-line rounded-xl border border-line">
         {#each mine as owned (owned.name)}
           <li class="flex items-center gap-3 px-4 py-2.5" data-testid="my-name">
-            <b class="min-w-0 flex-1 truncate text-[14px] font-semibold">@{owned.name}</b>
-            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => (moving = { name: owned.name, target: '' })} data-testid="name-transfer">
+            <b class="min-w-0 flex-1 truncate text-[14px] font-semibold">@{owned.display_handle ?? owned.name}</b>
+            <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => (moving = { name: owned.display_handle ?? owned.name, target: '' })} data-testid="name-transfer">
               <Icon name="transfer" />{t('moveName')}
             </button>
           </li>
@@ -242,7 +242,7 @@
       {#if found}
         <div class="grid gap-3 rounded-xl border border-line px-4 py-3" data-testid="handle-state">
           <div class="flex flex-wrap items-center gap-2">
-            <b class="text-[15px] font-semibold">@{found.name}</b>
+            <b class="text-[15px] font-semibold">@{found.display_handle ?? found.name}</b>
             {#if found.owner && found.owner === status?.account}
               <Pill tone="forest" testid="handle-yours">{t('yourName')}</Pill>
             {:else if found.owner}
@@ -254,7 +254,7 @@
             {/if}
             <span class="flex-1"></span>
             {#if found.owner && found.owner !== status?.account}
-              <button class={buttonClass('secondary', 'sm')} onclick={() => message(found.owner, found.name)} data-testid="handle-message"><Icon name="channels" />{t('sendMessage')}</button>
+              <button class={buttonClass('secondary', 'sm')} onclick={() => message(found.owner, found.display_handle ?? found.name)} data-testid="handle-message"><Icon name="channels" />{t('sendMessage')}</button>
             {:else if !found.owner && found.reserved && !found.claim?.quarantined}
               {#if found.claim?.claimable}
                 <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={claim} data-testid="handle-claim">{t('claim')}</button>

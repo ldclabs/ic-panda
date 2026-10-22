@@ -43,6 +43,7 @@ fn seal_snapshot(f: &Fixture, entries: &[LegacyReservation]) -> LegacySnapshot {
 fn registration(f: &Fixture, owner: &AccountId, name: &str, nonce: u8) -> Registration {
     let payer = account(person(1));
     Registration {
+        display_handle: None,
         intent: HandleIntent {
             handle_canister: f.handle,
             action: HandleAction::Register,
@@ -411,6 +412,7 @@ fn handle_concurrent_registrations_charge_once_and_rebuild_certificates() {
         assert_eq!(event.version, 1);
         previous = digest("dmsg/handle-event/v1", &event);
         records.push(HandleRecord {
+            display_handle: None,
             handle: event.handle,
             owner_account: owner,
             version: 1,
@@ -1266,6 +1268,136 @@ fn record_of(f: &Fixture, name: &str) -> HandleRecord {
 }
 
 #[test]
+#[ignore = "requires pre-casing Wasm; run scripts/test-dmsg-principal-upgrade.sh"]
+fn handle_display_casing_survives_old_schema_upgrade() {
+    let f = Fixture::with_identity_modules(
+        true,
+        100,
+        MAX_PAYMENT_ESCROWS,
+        |_| {},
+        [
+            wasm("dmsg_user"),
+            wasm("dmsg_directory"),
+            super::principal_upgrade::old_wasm("dmsg_handle"),
+        ],
+    );
+    let owner = f.create(1);
+    let target = f.create(2);
+    seal_snapshot(&f, &[]);
+    let total = price("beforecase") + price("pendingcase") + price("mixedcase");
+    f.mint(person(1), total);
+    f.approve_handle(person(1), total);
+    let before = registration(&f, &owner, "beforecase", 80);
+    authorize(&f, 1, &before.intent);
+    let committed = register(&f, &before).unwrap();
+    let original = record_of(&f, "beforecase");
+    assert!(original.display_handle.is_none());
+    let pending = registration(&f, &owner, "pendingcase", 81);
+    authorize(&f, 1, &pending.intent);
+    void(
+        &f.ic,
+        f.ledger,
+        Principal::anonymous(),
+        "lose_next_response",
+        (),
+    );
+    assert_eq!(register(&f, &pending), Err(Error::ExecutionUnknown));
+    let pending_before = operation(&f, &pending).unwrap();
+
+    upgrade(&f);
+    assert_eq!(record_of(&f, "BEFORECASE"), original);
+    verify_names(&f, std::slice::from_ref(&original));
+    assert_eq!(register(&f, &before).unwrap(), committed);
+    assert_eq!(operation(&f, &pending).unwrap(), pending_before);
+    assert_eq!(commit(&f, &pending).unwrap().phase, HandlePhase::Committed);
+    assert!(record_of(&f, "pendingcase").display_handle.is_none());
+
+    let mut mixed = registration(&f, &owner, "mixedcase", 82);
+    mixed.display_handle = Some("MixedCase".into());
+    mixed.intent.terms_digest = registration_terms_digest(
+        f.ledger,
+        &mixed.payer,
+        price("mixedcase") - 10,
+        10,
+        mixed.display_handle.as_deref(),
+    );
+    authorize(&f, 1, &mixed.intent);
+    let mut changed = mixed.clone();
+    changed.display_handle = Some("MIXEDCASE".into());
+    assert_eq!(register(&f, &changed), Err(Error::IntegrityFailed));
+    changed.display_handle = Some("OtherName".into());
+    assert!(matches!(
+        register(&f, &changed),
+        Err(Error::InvalidInput(_))
+    ));
+    let paid = register(&f, &mixed).unwrap();
+    assert_eq!(paid.phase, HandlePhase::Committed);
+    assert_eq!(register(&f, &mixed).unwrap(), paid);
+    let record = record_of(&f, "mIxEdCaSe");
+    assert_eq!(record.handle, "mixedcase");
+    assert_eq!(record.display_handle.as_deref(), Some("MixedCase"));
+    let proof: Result<CertifiedBatch> = query(
+        &f.ic,
+        f.handle,
+        person(99),
+        "resolve_handle_certified",
+        (vec!["MIXEDCASE"],),
+    );
+    let path = handle_path("mixedcase");
+    let path: Vec<&[u8]> = path.iter().map(Vec::as_slice).collect();
+    assert_eq!(
+        dmsg_client::certified::certified_path(
+            &proof.unwrap(),
+            b"mixedcase",
+            &path,
+            f.handle,
+            &f.ic.root_key().unwrap(),
+            time(&f.ic)
+        )
+        .unwrap(),
+        Some(canonical(&record))
+    );
+    // Another spelling is the same name and cannot be charged as a new one.
+    let mut duplicate = registration(&f, &owner, "mixedcase", 83);
+    duplicate.display_handle = Some("mIxEdCaSe".into());
+    duplicate.intent.terms_digest = registration_terms_digest(
+        f.ledger,
+        &duplicate.payer,
+        price("mixedcase") - 10,
+        10,
+        duplicate.display_handle.as_deref(),
+    );
+    authorize(&f, 1, &duplicate.intent);
+    assert_eq!(register(&f, &duplicate), Err(Error::VersionConflict));
+    let balance: Nat = query(
+        &f.ic,
+        f.ledger,
+        person(1),
+        "icrc1_balance_of",
+        (mixed.payer,),
+    );
+    assert_eq!(balance, Nat::from(0u64));
+
+    let (from, accept) = transfer_intents(&f, &owner, &target, "mixedcase", 1, 84);
+    authorize(&f, 1, &from);
+    authorize(&f, 2, &accept);
+    let moved: Result<HandleRecord> = update(
+        &f.ic,
+        f.handle,
+        person(1),
+        "transfer_handle",
+        (&from, &accept),
+    );
+    let moved = moved.unwrap();
+    assert_eq!(moved.display_handle, record.display_handle);
+    assert_eq!(moved.owner_account, target);
+    upgrade(&f);
+    assert_eq!(record_of(&f, "mixedcase"), moved);
+    assert_eq!(record_of(&f, "beforecase"), original);
+    verify_names(&f, &[original, moved]);
+}
+
+#[test]
 fn handle_claim_receipts_survive_transfer_and_reject_other_operations() {
     let f = Fixture::new();
     let owner = f.create(1);
@@ -1610,6 +1742,7 @@ fn handle_active_name_capacity_profile() {
         };
         let snapshot = seal_snapshot(&f, std::slice::from_ref(&legacy));
         let record = |n: u64| HandleRecord {
+            display_handle: None,
             handle: format!("capacity{n:011}"),
             owner_account: owner,
             version: 1,

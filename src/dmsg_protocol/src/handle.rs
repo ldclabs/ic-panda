@@ -20,6 +20,30 @@ pub fn charge_terms_digest(ledger: Principal, payer: &Account, amount: u128, fee
     )
 }
 
+/// Bind optional display casing to the account's approval of a registration.
+/// Registrations without it retain the original charge terms and replay bytes.
+pub fn registration_terms_digest(
+    ledger: Principal,
+    payer: &Account,
+    amount: u128,
+    fee: u128,
+    display_handle: Option<&str>,
+) -> Hash {
+    match display_handle {
+        None => charge_terms_digest(ledger, payer, amount, fee),
+        Some(display) => digest(
+            "dmsg/handle-charge/v2",
+            &(
+                ledger,
+                dmsg_types::account::account_cbor::value(payer),
+                amount,
+                fee,
+                display,
+            ),
+        ),
+    }
+}
+
 /// Validate a handle and convert ASCII letters to lowercase.
 ///
 /// Accepts 1..19 ASCII letters, digits or underscores, with no leading underscore.

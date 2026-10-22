@@ -71,15 +71,16 @@ flowchart LR
 | --- | --- | --- | --- |
 | `/<account_id>`（规范 Xid 文本） | 200，文档 | `application/json` | `public, max-age=30` |
 | `/.well-known/ic-domains` | 200，每行一个域名 | `text/plain` | `public, max-age=300` |
+| `/favicon.ico` | 200，黑白 dMsg 图标（16/32/48 px） | `image/x-icon` | `public, max-age=86400` |
 | 其他路径，包括未发布的账户 | 404，`{"error":{"code":"not_found",…}}` | `application/json` | `no-store` |
 
 所有响应另带 `access-control-allow-origin: *`、`x-content-type-options: nosniff` 和 `ic-certificateexpression`。不做内容协商，也不重定向。
 
 - **认证方式**：HTTP 认证 v2，response-only，认证全部响应头；请求方法和 query 不参与认证。
 - **路由**：与认证库的路径规则一致：先做百分号解码，忽略连续斜线产生的空段，尾斜线是不同的路径，忽略 query。`//<id>`、百分号编码等等价写法返回同一个认证响应；非规范的账户文本、`/<id>/` 和 `/<id>/x` 返回 404。principal 解析仍只认文档 `id` 那个规范 URL。
-- **认证树**：`http_expr` 下每个表达式路径的第一段是 [`dmsg_runtime::cert_map`](../dmsg_runtime/src/cert_map.rs) 中的一个 key，值为该段子树的哈希：每个账户一个 key（账户 ID 文本），`.well-known` 对应域名列表，`<*>` 对应兜底 404。树只存哈希，位于 stable memory，一次写入只重算一条路径。文档的子树哈希由记录中保存的正文 SHA-256 计算，查询时不重新哈希正文。
+- **认证树**：`http_expr` 下每个表达式路径的第一段是 [`dmsg_runtime::cert_map`](../dmsg_runtime/src/cert_map.rs) 中的一个 key，值为该段子树的哈希：每个账户一个 key（账户 ID 文本），`.well-known` 对应域名列表，`favicon.ico` 对应图标，`<*>` 对应兜底 404。树只存哈希，位于 stable memory，一次写入只重算一条路径。文档的子树哈希由记录中保存的正文 SHA-256 计算，查询时不重新哈希正文。
 - **证明**：200 响应的证明只披露该账户的段；404 证明还披露请求路径的第一段和各级更具体通配路径的第一段，以满足网关“精确路径和更具体的通配路径都不存在”的检查。
-- **响应格式固定**：查询时用当前代码重新构造响应，并与已认证的哈希核对，不一致就 trap。schema 7 内的常规升级只重新认证 404 和域名列表，不访问文档；修改文档响应的头部或认证表达式时，必须同时重新认证所有文档（目前没有实现），否则所有文档请求都会失败。单元测试 `document_response_certification_is_pinned` 固定了文档响应的认证哈希，这类改动（包括升级 `ic-http-certification`）会先让它失败。
+- **响应格式固定**：查询时用当前代码重新构造响应，并与已认证的哈希核对，不一致就 trap。schema 7 内的常规升级只重新认证 404、域名列表和 favicon，不访问文档；修改文档响应的头部或认证表达式时，必须同时重新认证所有文档（目前没有实现），否则所有文档请求都会失败。单元测试 `document_response_certification_is_pinned` 固定了文档响应的认证哈希，这类改动（包括升级 `ic-http-certification`）会先让它失败。
 
 ### 存储
 
@@ -92,7 +93,7 @@ flowchart LR
 | 4 | JSON 文档认证 map 的叶：原始账户 ID → 正文 leaf hash |
 | 5 | JSON 文档认证 map 的内部节点，201 字节定长槽位 |
 
-`post_upgrade` 支持 schema 6 → 7 的保留数据升级：逐条读取现有正文、核对其 SHA-256，在新 memory 4/5 建立文档认证树，保留原记录、HTTP 认证树、配置、正文、状态摘要、版本与时间。首次迁移需要遍历已发布文档，内存中每次只保留一条；发生 trap 时整个升级事务回滚。schema 7 的后续升级不再遍历，只重新认证 404 与域名列表。其他布局明确拒绝，升级不读参数。
+`post_upgrade` 支持 schema 6 → 7 的保留数据升级：逐条读取现有正文、核对其 SHA-256，在新 memory 4/5 建立文档认证树，保留原记录、HTTP 认证树、配置、正文、状态摘要、版本与时间。首次迁移需要遍历已发布文档，内存中每次只保留一条；发生 trap 时整个升级事务回滚。schema 7 的后续升级不再遍历，只重新认证 404、域名列表与 favicon。其他布局明确拒绝，升级不读参数。
 
 `publish` 的输入 `metadata` 为可选字段：旧 home 未发送时按 `{}` 处理，新 home 可以直接发送 bytes；这使 Candid 接口兼容旧版。原 schema 6 的同版本重试只在四个旧字段的摘要全部一致且元数据恰为 `{}` 时接受，不重写原正文；修改展示字段必须推进版本。
 

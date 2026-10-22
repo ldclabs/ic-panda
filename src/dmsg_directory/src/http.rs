@@ -22,6 +22,8 @@ use std::{cell::RefCell, sync::LazyLock};
 
 const ACCOUNT_PREFIX: &str = "/";
 const IC_DOMAINS: &str = "/.well-known/ic-domains";
+const FAVICON_PATH: &str = "/favicon.ico";
+const FAVICON: &[u8] = include_bytes!("../assets/favicon.ico");
 const NOT_FOUND: &[u8] =
     br#"{"error":{"code":"not_found","message":"principal document not found"}}"#;
 
@@ -97,6 +99,18 @@ fn domains(custom_domains: &[String]) -> (HttpCertificationPath<'static>, HttpRe
     )
 }
 
+fn favicon() -> (HttpCertificationPath<'static>, HttpResponse<'static>) {
+    (
+        HttpCertificationPath::exact(FAVICON_PATH),
+        response(
+            StatusCode::OK,
+            "image/x-icon",
+            "public, max-age=86400",
+            FAVICON.to_vec(),
+        ),
+    )
+}
+
 fn entry(
     path: HttpCertificationPath<'static>,
     response: &HttpResponse<'static>,
@@ -166,12 +180,14 @@ pub(crate) fn certify_domains(custom_domains: &[String]) {
     certify(path, &response, None);
 }
 
-/// Certify the fallback 404 and the domain list, which follow this code
+/// Certify the fallback 404, domain list and favicon, which follow this code
 /// rather than stored records; documents keep their certified hashes.
 pub(crate) fn certify_fixed(custom_domains: &[String]) {
     let (path, response) = not_found();
     certify(path, &response, None);
     certify_domains(custom_domains);
+    let (path, response) = favicon();
+    certify(path, &response, None);
 }
 
 /// Match the certification library's path segments: internal empty segments
@@ -210,6 +226,8 @@ pub(crate) fn serve(
         None => {
             let (path, response) = if route == IC_DOMAINS {
                 domains(custom_domains)
+            } else if route == FAVICON_PATH {
+                favicon()
             } else {
                 not_found()
             };
@@ -219,7 +237,7 @@ pub(crate) fn serve(
     let witness = witness(
         &path,
         &expr_path,
-        document_digest.is_none() && route != IC_DOMAINS,
+        document_digest.is_none() && route != IC_DOMAINS && route != FAVICON_PATH,
         custom_domains,
         &load,
     );
@@ -256,12 +274,16 @@ fn witness(
     }
     let (fallback, fallback_response) = not_found();
     let (listed, listed_response) = domains(custom_domains);
+    let (icon, icon_response) = favicon();
     let child = |key: &[u8]| {
         if key == segment(&fallback).as_slice() {
             return subtree(&entry(fallback.clone(), &fallback_response, None), key);
         }
         if key == segment(&listed).as_slice() {
             return subtree(&entry(listed.clone(), &listed_response, None), key);
+        }
+        if key == segment(&icon).as_slice() {
+            return subtree(&entry(icon.clone(), &icon_response, None), key);
         }
         let id = std::str::from_utf8(key)
             .ok()
@@ -351,6 +373,8 @@ mod tests {
             "/a/b",
             &format!("/{id}/"),
             "/.well-known/x",
+            "/favicon.ico/",
+            "/favicon.ico/missing",
             "/<*>",
         ] {
             let tree = witness(path, &fallback, true, &domains, &load);

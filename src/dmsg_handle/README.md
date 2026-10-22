@@ -64,7 +64,11 @@ handle 是全局唯一的名称注册表，所有 user home 共用。它不保�
 
 ### 注册与收费
 
-名称为 1–19 字节的 ASCII 字母、数字或下划线，不能以下划线开头，统一转为小写；上限比 `AccountId` 的 20 字符 Xid 文本少一个字节，名称不会与账户 ID 重合。价格只取决于字节长度：
+名称为 1–19 字节的 ASCII 字母、数字或下划线，不能以下划线开头。查询、唯一性、锁和权属索引使用小写规范名；新注册可通过 `Registration.display_handle` 保留原始大小写，规范化后必须等于 `intent.handle`。展示值写入认证 `HandleRecord.display_handle`，转移时保留；旧记录没有该字段，继续按原规范名读取。上限比 `AccountId` 的 20 字符 Xid 文本少一个字节，名称不会与账户 ID 重合。价格只取决于字节长度：
+
+提供展示值时，批准的 `terms_digest` 为 `digest("dmsg/handle-charge/v2", (ledger, payer, amount, fee, display_handle))`，其中 payer 沿用 ICRC Account 的公开 CBOR 表示；代付方不能修改批准的大小写。不提供时沿用 v1 摘要。注册操作、扣款去重和认证记录中的可选字段均以缺省/省略方式兼容旧编码，schema 11 原地升级不重写既有名称或证明，也保留未决扣款的重试字节。
+
+`scripts/test-dmsg-principal-upgrade.sh` 使用提交 `70d67c86` 的旧 Wasm 验证原地升级：旧名称与未决扣款保留，新展示值不能被代付方改写，不同大小写不能重复注册，转移和再次升级后仍保留原写法。部署时先升级 handle canister，再发布使用 v2 注册条款的客户端；不需要重装。
 
 | 长度  |         1 |       2 |    3–4 |    5–6 | 7–19 |
 | ----- | --------: | ------: | -----: | -----: | ---: |

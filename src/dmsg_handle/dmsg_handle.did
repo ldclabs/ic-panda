@@ -213,6 +213,8 @@ type HandleRecord = record {
   version : nat64;
   // Canonical name: lowercase ASCII letters/digits/underscore, 1..19 bytes; no leading underscore.
   handle : text;
+  // Registration spelling for display; absent in pre-casing records.
+  display_handle : opt text;
   // Stable dMsg account that currently owns the name.
   owner_account : blob;
 };
@@ -253,6 +255,9 @@ type Registration = record {
   intent : HandleIntent;
   // ICRC account whose allowance funds the registration charge.
   payer : Account;
+  // Original spelling, bound by the account-authorized registration terms.
+  // Its lowercase form must equal intent.handle. None preserves the v1 terms.
+  display_handle : opt text;
 };
 type Result = variant { Ok : vec HandleRecord; Err : Error };
 type Result_1 = variant { Ok; Err : Error };

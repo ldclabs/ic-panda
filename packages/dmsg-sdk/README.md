@@ -127,7 +127,9 @@ See [integration](../../docs/protocol/integration.md),
 
 `dmsg-sdk/principal` uses the official `agent-protocols` `PrincipalDocument`.
 `profileTarget`, `accountHome` and `verifyHandle` resolve root account/handle
-URLs. `verifyPrincipalDocument` verifies the directory's exact JSON at
+URLs. `verifyHandleRecord` also returns certified registration casing, checking
+that it normalizes to the same canonical name. `verifyPrincipalDocument`
+verifies the directory's exact JSON at
 `["documents", account_id]` against a pinned IC root, directory and canonical
 principal origin, with a 60-second certificate window. The HTTP JSON and
 human page consume the same bytes. Schema validation alone is not authentication.

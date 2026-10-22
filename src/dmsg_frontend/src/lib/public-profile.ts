@@ -13,7 +13,7 @@ import {
   accountBytes,
   accountHome,
   profileTarget,
-  verifyHandle,
+  verifyHandleRecord,
   verifyPrincipalDocument,
   type PrincipalDocument
 } from 'dmsg-sdk/principal'
@@ -99,16 +99,17 @@ export async function readProfile(
       'handle' in target
         ? batchView(ok(await handle.resolve_handle_certified([target.handle])))
         : undefined
-    const account =
-      'account' in target
-        ? target.account
-        : await verifyHandle(
+    const resolved =
+      'handle' in target
+        ? await verifyHandleRecord(
             routeProof!,
             target.handle,
             registry.toUint8Array(),
             rootKey,
             BigInt(Date.now())
           )
+        : null
+    const account = 'account' in target ? target.account : resolved?.account
     if (!account) {
       // Only after certified absence: a frozen legacy name is reserved, not
       // an active mapping to a new account. Never infer identity from it.
@@ -190,7 +191,7 @@ export async function readProfile(
     }
     // Recheck routing freshness after the directory request has returned.
     if (routeProof)
-      await verifyHandle(
+      await verifyHandleRecord(
         routeProof,
         name!,
         registry.toUint8Array(),
@@ -209,7 +210,13 @@ export async function readProfile(
       throw new ProfileError('verification_failed')
     if (document)
       seen.set(account, { updatedAt: document.updated_at, document: encoded })
-    return { account, handle: name, document }
+    // New registrations carry certified display casing. Older records fall
+    // back to the URL spelling; routing always uses the lowercase name.
+    return {
+      account,
+      handle: resolved?.displayHandle ?? (name ? input : undefined),
+      document
+    }
   } catch (error) {
     if (error instanceof ProfileError) throw error
     if (error instanceof DmsgError)

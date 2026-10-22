@@ -423,6 +423,7 @@ fn validate_seal_legacy_snapshot() -> Validation {
 fn commit_name(
     c: &mut Config,
     name: &str,
+    display_handle: Option<String>,
     from: Option<AccountId>,
     to: AccountId,
     version: u64,
@@ -451,6 +452,7 @@ fn commit_name(
     c.event_tip = tip;
     let r = HandleRecord {
         handle: name.into(),
+        display_handle,
         owner_account: to,
         version,
         event_tip: tip,
@@ -523,7 +525,7 @@ async fn claim_legacy_handle(intent: HandleIntent, snapshot_id: Hash) -> Result<
     let mut c = cfg();
     check_name_capacity(&c)?;
     let at = now();
-    let result = commit_name(&mut c, &intent.handle, None, intent.account_id, 1, at);
+    let result = commit_name(&mut c, &intent.handle, None, None, intent.account_id, 1, at);
     save_ownership(&key, fingerprint, result.clone());
     save_cfg(c);
     Ok(result)
@@ -589,6 +591,12 @@ fn registration_replay(key: &Hash, fingerprint: &Hash) -> Result<Option<HandleOp
 fn check_registration(c: &Config, registration: &Registration) -> Result<u128> {
     ensure(c.progress.sealed, Error::LegacyWriteDisabled)?;
     let i = &registration.intent;
+    if let Some(display) = &registration.display_handle {
+        ensure_valid(
+            normalize_handle(display)? == i.handle,
+            "handle display spelling",
+        )?;
+    }
     let amount = price(&i.handle)
         .checked_sub(c.init.ledger_fee)
         .ok_or(Error::FeeBlocked)?;
@@ -597,11 +605,12 @@ fn check_registration(c: &Config, registration: &Registration) -> Result<u128> {
         i.target_account.is_none()
             && i.expected_version == 0
             && i.terms_digest
-                == charge_terms_digest(
+                == registration_terms_digest(
                     c.init.ledger,
                     &registration.payer,
                     amount,
                     registration.fee,
+                    registration.display_handle.as_deref(),
                 ),
         Error::IntegrityFailed,
     )?;
@@ -711,7 +720,15 @@ fn finish_paid(key: &Hash, mut o: HandleOperation, block: u64, at: u64) -> Resul
     o.ledger_block = Some(block);
     let mut c = cfg();
     // Ownership, receipt and lock release commit in the same callback.
-    commit_name(&mut c, &i.handle, None, i.account_id, 1, at);
+    commit_name(
+        &mut c,
+        &i.handle,
+        o.registration.display_handle.clone(),
+        None,
+        i.account_id,
+        1,
+        at,
+    );
     o.phase = HandlePhase::Committed;
     save_op(key, &o);
     release(&mut c, &o);
@@ -845,6 +862,7 @@ async fn transfer_handle(from: HandleIntent, accept: HandleIntent) -> Result<Han
     let result = commit_name(
         &mut c,
         &from.handle,
+        r.display_handle.clone(),
         Some(from.account_id),
         accept.account_id,
         r.version + 1,

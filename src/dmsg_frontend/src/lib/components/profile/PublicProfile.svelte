@@ -4,6 +4,7 @@
   import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
   import { t } from '$lib/i18n'
   import { APP_ORIGIN } from '$lib/constants'
+  import { md } from '$lib/utils/markdown'
   import {
     readProfile,
     ProfileError,
@@ -42,6 +43,22 @@
   })
 
   const profile = $derived(result?.document)
+  const description = $derived.by(() => {
+    const text = profile?.description ?? ''
+    const parts: { text: string; href?: string }[] = []
+    let end = 0
+    for (const link of md.linkify.match(text) ?? []) {
+      if (link.schema !== 'http:' && link.schema !== 'https:') continue
+      parts.push({ text: text.slice(end, link.index) })
+      parts.push({
+        text: text.slice(link.index, link.lastIndex),
+        href: link.url
+      })
+      end = link.lastIndex
+    }
+    parts.push({ text: text.slice(end) })
+    return parts
+  })
   const title = $derived(
     profile?.name ||
       (result?.handle ? `@${result.handle}` : $t('Public profile'))
@@ -140,7 +157,14 @@
           </div>
         </section>
         {#if profile}
-          {#if profile.description}<p class="bio">{profile.description}</p>{/if}
+          {#if profile.description}<p class="bio"
+              >{#each description as part}{#if part.href}<a
+                    href={part.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    referrerpolicy="no-referrer">{part.text}</a
+                  >{:else}{part.text}{/if}{/each}</p
+            >{/if}
           {#if profile.links?.length}<ul
               class="profile-links"
               aria-label={$t('Links')}
@@ -260,6 +284,11 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     font-size: 18px;
+  }
+  .bio a {
+    color: var(--action);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
   }
   .profile-links {
     list-style: none;

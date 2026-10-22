@@ -58,7 +58,7 @@ struct OldInfo {
     published_version: u64,
 }
 
-fn old_wasm(name: &str) -> Vec<u8> {
+pub(super) fn old_wasm(name: &str) -> Vec<u8> {
     let directory = PathBuf::from(
         std::env::var_os("DMSG_PRE_PRINCIPAL_WASM_DIR")
             .expect("run scripts/test-dmsg-principal-upgrade.sh"),
@@ -162,12 +162,16 @@ fn upgrade(f: &Fixture) {
 #[test]
 #[ignore = "requires schema 14/6 Wasm; run scripts/test-dmsg-principal-upgrade.sh"]
 fn schema_14_and_6_upgrade_preserves_accounts_keys_documents_and_replays() {
-    let f = Fixture::with_principal_modules(
+    let f = Fixture::with_identity_modules(
         true,
         100,
         MAX_PAYMENT_ESCROWS,
         |_| {},
-        [old_wasm("dmsg_user"), old_wasm("dmsg_directory")],
+        [
+            old_wasm("dmsg_user"),
+            old_wasm("dmsg_directory"),
+            old_wasm("dmsg_handle"),
+        ],
     );
     let id = f.create(1);
     let without_principal = f.create(2);
@@ -362,6 +366,7 @@ fn schema_14_and_6_upgrade_preserves_accounts_keys_documents_and_replays() {
         directory_config
     );
     assert_eq!(f.document(&id).1, old_body);
+    assert_eq!(f.directory_get("/favicon.ico").status_code().as_u16(), 200);
     assert_eq!(f.document(&empty_principal).1, empty_body);
     let current = f.principal(&id);
     assert_eq!(current.principal_id, info.principal_id);

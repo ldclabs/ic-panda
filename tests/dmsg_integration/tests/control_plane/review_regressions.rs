@@ -450,6 +450,7 @@ fn transfer_from_loss_is_reconciled_using_a_standard_2xfer_block() {
         person(1),
         "register_handle",
         (Registration {
+            display_handle: None,
             intent,
             payer,
             fee: 10,
