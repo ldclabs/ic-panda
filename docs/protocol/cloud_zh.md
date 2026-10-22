@@ -192,3 +192,13 @@ UploadPlan 可带 `management:{generation,ciphertext}`（密文字节最多 16 K
 删除命令成功仅表示已受理，物理 deleted 与额度 released 分别确认。只有 deleted 且 charged_bytes/reserved_bytes 均为 0 才显示空间已释放；未知余额或失败继续显示待处理。恢复沿用原 upload/share/message ID；客户端可以跨设备解密已上传管理记录并恢复未发布的链接或消息，已完成 publication 不重复发送。未确认预留的本地任务也保留；未过期时远端一次查无记录不能证明取消。
 
 桌面提供云端空间、全局分享链接和备份三个视图，支持来源关联、筛选、费用预览和逐项反馈的批量操作（每次最多 50）。文件仅在本机删除不影响云端副本；删除云端副本也不能收回他人已经下载的文件。明细扫描不是跨资源原子快照，差额须刷新核对，不能直接改配额。新增 Rust 互操作向量可由 `print_storage_management_vector` 测试输出。
+
+## 私有文件直读（2026-10-23）
+
+普通 backup/file/share 的下载授权接口是 `GET /v1/{accounts|channels}/:resource/objects/:upload/download`，沿用 HTTP PoP；成功 data 为 `{upload_id,expires_at,manifest:{url,size,digest},chunks:[{url,size,digest},...]}`。URL 仅供精确对象 GET，最长 60 秒，期限不超过原请求和认证证据。客户端把上传者签名计划/已认证 manifest 的摘要作为预期值，核对响应对应关系、实际大小、SHA-256 与解密完整性。下载响应本身不替代上传者签名。
+
+字节直接从私有 S3 端点读取，不携带设备证明、Cookie、Referer，不跟随重定向。只接受 HTTPS 的 R2 账户域名（包括 jurisdiction）；本地开发可接受当前 loopback 中继的 `/__r2/` 适配器。URL 仅驻留本次操作内存，不写入本地目录或普通分享链接。403/404/暂时网络错误进行一次有界重新授权并仅重试失败块；撤销/删除由授权响应终止，授权仍成功但缺块是完整性失败。根、vault、epoch envelopes 保留逐次设备鉴权读取。
+
+分享 descriptor 仍是 `GET /public/shares/:share`。公开 `/manifest` 和 `/chunks/:index` 移除：页面生成非零随机 32 字节 session ID，`POST /public/shares/:share/downloads/:session` 开始或重试同一会话，`GET` 同一路径续签。data 增加 `session_expires_at`，会话固定最多一小时且不超过分享期限；续签不延长、不计新次数，不存在/过期拒绝。开始响应丢失仍用原 ID 重试，已知会话只能 GET 续签，显式新下载才生成新 ID。会话 ID 是 bearer secret，只保存在页面内存。
+
+次数限制表示新下载会话数；已经开始的会话在次数用尽后仍可完成。撤销/删除停止新签发，但原 URL 在截止或物理删除前可重复读取密文；URL 不含解密密钥，已开始的传输和已保存副本不可收回。客户端完成状态晚于全文件校验。跨语言样本由 `downloads::tests::print_download_vector` 输出，固定测试密钥不证明真实部署。

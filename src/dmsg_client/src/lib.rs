@@ -18,6 +18,7 @@ pub mod config;
 pub mod connect;
 pub mod content;
 pub mod crypto;
+mod downloads;
 pub mod evidence;
 pub mod files;
 pub mod handle;

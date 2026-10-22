@@ -126,3 +126,66 @@ async fn an_edge_error_page_is_a_lost_reply() {
         Err(Error::ExecutionUnknown)
     );
 }
+
+#[tokio::test]
+async fn direct_downloads_are_bounded_verified_and_send_no_device_credentials() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+    let server = tokio::spawn(async move {
+        for (status, body) in [(200, "abc"), (200, "bad"), (404, ""), (403, "")] {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut buffer = [0u8; 8192];
+            let n = socket.read(&mut buffer).await.unwrap();
+            let request = String::from_utf8_lossy(&buffer[..n]).to_lowercase();
+            assert!(request.starts_with("get /__r2/"));
+            assert!(
+                !request.contains("x-dmsg-pop")
+                    && !request.contains("cookie:")
+                    && !request.contains("authorization:")
+            );
+            let response = format!(
+                "HTTP/1.1 {status} Test\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            socket.write_all(response.as_bytes()).await.unwrap();
+        }
+    });
+    let cloud = Cloud::new(&origin, true).unwrap();
+    let slot = crate::downloads::Slot {
+        url: format!("{origin}/__r2/bucket/key?X-Amz-Signature=secret"),
+        digest: hex::encode(*sha256(b"abc")),
+        size: 3,
+    };
+    assert_eq!(
+        cloud.download_slot(&slot, &slot.digest).await.unwrap(),
+        b"abc"
+    );
+    assert_eq!(
+        cloud.download_slot(&slot, &slot.digest).await,
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!(
+        cloud.download_slot(&slot, &slot.digest).await,
+        Err(Error::NotFound)
+    );
+    assert_eq!(
+        cloud.download_slot(&slot, &slot.digest).await,
+        Err(Error::Expired)
+    );
+    server.await.unwrap();
+    for url in [
+        "http://169.254.169.254/key",
+        "https://evil.r2.cloudflarestorage.com/key",
+        "https://user@11111111111111111111111111111111.r2.cloudflarestorage.com/key",
+    ] {
+        let bad = crate::downloads::Slot {
+            url: url.into(),
+            ..slot.clone()
+        };
+        assert_eq!(
+            cloud.download_slot(&bad, &bad.digest).await,
+            Err(Error::IntegrityFailed)
+        );
+    }
+}

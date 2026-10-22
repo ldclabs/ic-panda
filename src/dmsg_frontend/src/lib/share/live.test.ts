@@ -5,6 +5,7 @@
 // desktop end-to-end test (`tests/dmsg_integration`, desktop.rs) names a JSON
 // file in DMSG_SHARE_LIVE with the links to open and the SHA-256 each must
 // give. Without it there is nothing to open and the test is skipped.
+import { ShareDownload } from './download'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
@@ -34,11 +35,11 @@ describe.skipIf(!input)('live share links', () => {
         expect(response.status, path).toBe(200)
         return response
       }
-      const bytes = async (path: string) =>
-        new Uint8Array(await (await get(path)).arrayBuffer())
       const descriptor = (
         (await (await get('')).json()) as { data: Descriptor }
       ).data
+      const download = new ShareDownload(relay, descriptor)
+      const bytes = (path: string) => download.bytes(path.slice(1))
       expect(descriptor.status).toBe('available')
       expect(descriptor.password).toBe(!!password)
       const key = password

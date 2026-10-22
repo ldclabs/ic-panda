@@ -2065,13 +2065,30 @@ fn desktop_content_and_sync() {
     let wrapped = published(&format!("{}/public/shares/{guarded_share}", env.relay));
     assert_eq!(wrapped["password"], true, "{wrapped}");
     assert!(wrapped["key_wrap"].is_string());
-    let manifest = env.http.get(format!("{public}/manifest")).send().unwrap();
+    let session = sha256_hex(b"desktop-file-download-session");
+    let grant = env
+        .http
+        .post(format!("{public}/downloads/{session}"))
+        .send()
+        .unwrap()
+        .json::<Value>()
+        .unwrap()["data"]
+        .clone();
+    let manifest = env
+        .http
+        .get(grant["manifest"]["url"].as_str().unwrap())
+        .send()
+        .unwrap();
     assert_eq!(manifest.status(), 200);
     assert_eq!(
         sha256_hex(&manifest.bytes().unwrap()),
         descriptor["manifest"]["digest"].as_str().unwrap()
     );
-    let chunk = env.http.get(format!("{public}/chunks/63")).send().unwrap();
+    let chunk = env
+        .http
+        .get(grant["chunks"][63]["url"].as_str().unwrap())
+        .send()
+        .unwrap();
     assert_eq!(
         sha256_hex(&chunk.bytes().unwrap()),
         descriptor["chunks"][63]["digest"].as_str().unwrap()
@@ -7974,6 +7991,22 @@ fn desktop_storage_management() {
     let added = a.run(&["files", "add", file.to_str().unwrap()]);
     let id = added[0]["file"]["id"].as_str().unwrap();
     a.run(&["files", "backup", id]);
+    // Direct reads lose a data reply; retry obtains a fresh grant and preserves the original file.
+    let proxy = env.relay_proxy.as_ref().unwrap();
+    proxy.lose_next("GET", "/__r2/");
+    let backups = b.run(&["files", "cloud", "ls", "--refresh"]);
+    assert_eq!(proxy.pending(), 0);
+    let backup_id = backups[0]["upload_id"].as_str().unwrap();
+    proxy.lose_next("GET", "/__r2/");
+    b.run(&["files", "cloud", "get", backup_id]);
+    assert_eq!(proxy.pending(), 0);
+    let direct = env.dir.join("direct-retried.txt");
+    b.run(&["files", "get", id, "-o", direct.to_str().unwrap()]);
+    assert_eq!(
+        std::fs::read(direct).unwrap(),
+        b"managed encrypted contents"
+    );
+
     let channel = a.run(&["channel", "create", "Storage management"]);
     let channel_id = channel["id"].as_str().unwrap();
     let sent = a.run(&["files", "share", channel_id, id, "attachment"]);

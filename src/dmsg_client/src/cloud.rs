@@ -488,6 +488,7 @@ pub fn found(reply: Result<Json>) -> Result<Option<Json>> {
 pub struct Cloud {
     http: reqwest::Client,
     origin: Url,
+    local: bool,
 }
 
 impl Cloud {
@@ -508,7 +509,11 @@ impl Cloud {
             .timeout(Duration::from_secs(30))
             .build()
             .map_err(|e| Error::Unavailable(format!("http: {e}")))?;
-        Ok(Self { http, origin: url })
+        Ok(Self {
+            http,
+            origin: url,
+            local,
+        })
     }
 
     /// Anonymous HTTP transport for relay services and public images: no
@@ -1045,6 +1050,76 @@ impl Cloud {
     ) -> Result<Vec<u8>> {
         self.send_chunk(self.prepare_get(signer, path, now)?, digest)
             .await
+    }
+
+    /// Fetch ciphertext from an authenticated control response. Never send the
+    /// device proof, cookies or URL-bearing network errors to callers/logs.
+    pub(crate) async fn download_slot(
+        &self,
+        slot: &crate::downloads::Slot,
+        digest: &str,
+    ) -> Result<Vec<u8>> {
+        let url = Url::parse(&slot.url).map_err(|_| Error::IntegrityFailed)?;
+        let host = url.host_str().unwrap_or_default();
+        let s3 = host
+            .strip_suffix(".r2.cloudflarestorage.com")
+            .is_some_and(|p| {
+                let account = p
+                    .strip_suffix(".eu")
+                    .or_else(|| p.strip_suffix(".fedramp"))
+                    .unwrap_or(p);
+                account.len() == 32
+                    && account
+                        .bytes()
+                        .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+            });
+        ensure(
+            url.username().is_empty()
+                && url.password().is_none()
+                && url.fragment().is_none()
+                && ((url.scheme() == "https" && url.port().is_none() && s3)
+                    || (self.local
+                        && url.origin() == self.origin.origin()
+                        && url.path().starts_with("/__r2/"))),
+            Error::IntegrityFailed,
+        )?;
+        ensure(
+            slot.digest == digest && slot.size <= MAX_CHUNK as u64,
+            Error::IntegrityFailed,
+        )?;
+        let mut response = self
+            .http
+            .get(url)
+            .send()
+            .await
+            .map_err(|_| Error::Unavailable("file download".into()))?;
+        match response.status().as_u16() {
+            200 => {}
+            403 => return Err(Error::Expired),
+            404 => return Err(Error::NotFound),
+            n if n >= 500 || n == 429 => return Err(Error::Unavailable("file download".into())),
+            _ => return Err(Error::IntegrityFailed),
+        }
+        if let Some(length) = response.content_length() {
+            ensure(length == slot.size, Error::IntegrityFailed)?;
+        }
+        let mut bytes = Vec::new();
+        while let Some(part) = response
+            .chunk()
+            .await
+            .map_err(|_| Error::Unavailable("file download".into()))?
+        {
+            ensure(
+                bytes.len() + part.len() <= slot.size as usize,
+                Error::IntegrityFailed,
+            )?;
+            bytes.extend_from_slice(&part);
+        }
+        ensure(
+            bytes.len() as u64 == slot.size && hex::encode(*sha256(&bytes)) == digest,
+            Error::IntegrityFailed,
+        )?;
+        Ok(bytes)
     }
 
     /// [`Self::get_chunk`] signed earlier with [`Self::prepare_get`], sent

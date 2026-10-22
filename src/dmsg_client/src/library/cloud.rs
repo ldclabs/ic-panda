@@ -564,7 +564,13 @@ async fn open_backup<H: Hold>(
     let Some(root) = h.with(|c| c.root_of(plan.root_generation)).await? else {
         return Ok(None);
     };
-    let bytes = crate::upload::download(h, upload_id, "manifest", &plan.manifest_digest).await?;
+    let base = h.with(|c| c.base()).await?;
+    let bytes = crate::downloads::one(
+        h,
+        format!("{base}/objects/{upload_id}/chunks/manifest"),
+        &plan.manifest_digest,
+    )
+    .await?;
     match open_manifest(&root, account, plan, &bytes)? {
         Opened::Backup(manifest) => Ok(Some(manifest)),
         _ => Err(Error::IntegrityFailed),
@@ -667,7 +673,7 @@ async fn fetch_chunks<H: Hold>(
         .await?;
     let mut done = count - missing.len() as u64;
     progress(done, count);
-    crate::upload::download_chunks(h, Source::Library, &missing, |n| {
+    crate::upload::download_file_chunks(h, Source::Library, &missing, |n| {
         done += n as u64;
         progress(done, count);
     })

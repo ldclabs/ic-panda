@@ -1,5 +1,7 @@
 # dMsg 技术架构
 
+> 2026-10-23：普通加密文件下载改为认证后领取短期 S3 GET URL，客户端直接取密文并验证大小、摘要及加密完整性；根/vault/epoch 信封仍逐次设备鉴权。分享会话的开始、续签和撤销窗口见 [公开云端合同](protocol/cloud_zh.md)。无新文件副本、域名或传输配额；生产验证仍独立进行。
+
 > 2026-10-22：用户公开资料统一为 PrincipalDocument，经 dmsg_user（schema 15）更新并由 dmsg_directory（schema 7）发布；资料更新允许写链，头像二进制仍在云端。原用户 Profile 链路移除，Agent Profile 协议不变。已有数据支持 user 14 → 15、directory 6 → 7 原地升级，不能重装；旧容量样本不覆盖新增展示元数据；合同见 [agent_zh.md](protocol/agent_zh.md)。
 
 [English](dmsg_architecture.md) | 简体中文

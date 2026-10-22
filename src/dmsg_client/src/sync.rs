@@ -1212,11 +1212,12 @@ async fn fetch<H: Hold>(h: &H) -> Result<Snapshot> {
 /// Download the manifests and chunks of committed uploads that the
 /// store lacks; every one is checked against its digest.
 async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<()> {
-    let missing = h
+    let (missing, files) = h
         .with(|c| {
             let base = c.base()?;
             let mut seen = BTreeSet::new();
             let mut missing = Vec::new();
+            let mut files = Vec::new();
             for plan in plans {
                 let parts = plan
                     .chunks
@@ -1227,14 +1228,19 @@ async fn cache<H: Hold>(h: &H, plans: &[UploadPlan]) -> Result<()> {
                 for (name, digest) in parts {
                     if seen.insert(digest) && !c.workspace.store.has_chunk(digest)? {
                         let path = format!("{base}/objects/{}/chunks/{name}", plan.upload_id);
-                        missing.push((path, digest.clone()));
+                        if matches!(plan.kind.as_str(), "file" | "backup" | "share") {
+                            files.push((path, digest.clone()));
+                        } else {
+                            missing.push((path, digest.clone()));
+                        }
                     }
                 }
             }
-            Ok(missing)
+            Ok((missing, files))
         })
         .await?;
-    crate::upload::download_chunks(h, Source::Store, &missing, |_| {}).await
+    crate::upload::download_chunks(h, Source::Store, &missing, |_| {}).await?;
+    crate::upload::download_file_chunks(h, Source::Store, &files, |_| {}).await
 }
 
 /// Submit the presigned revisions whose deadline has not passed, each

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { ShareDownload } from '$lib/share/download'
+  let downloader: ShareDownload | undefined
   import { page } from '$app/state'
   import Brand from '$lib/components/landing/Brand.svelte'
   import '$lib/components/landing/site.css'
@@ -20,8 +22,7 @@
 
   // The share page: the link's fragment (or the password) holds the key,
   // the relay holds ciphertext, and the browser does the opening. The
-  // manifest is read only when the person asks for the file, since the
-  // relay counts that as a download.
+  // download session starts only when the person asks for the file.
   type Phase =
     'loading' | 'password' | 'ready' | 'working' | 'done' | 'gone' | 'error'
 
@@ -31,7 +32,7 @@
   let key = $state<Uint8Array | null>(null)
   let password = $state('')
   let file = $state<ShareFile | null>(null)
-  /** The manifest once opened; the relay counts a download each time it is read. */
+  /** The verified manifest reused when a download resumes. */
   let opened: ShareFile | null = null
   let blob = $state<Blob | null>(null)
   let progress = $state({ done: 0, total: 0 })
@@ -95,17 +96,9 @@
   }
 
   async function fetchBytes(path: string): Promise<Uint8Array> {
-    const response = await fetch(
-      `${API_ORIGIN}/public/shares/${shareId}/${path}`
-    )
-    if (response.status === 410) {
-      const current = await fetchDescriptor()
-      throw Object.assign(new Error('gone'), {
-        gone: current?.status ?? 'missing'
-      })
-    }
-    if (!response.ok) throw new Error(`${response.status}`)
-    return new Uint8Array(await response.arrayBuffer())
+    if (!descriptor) throw new Error('Missing descriptor')
+    downloader ??= new ShareDownload(API_ORIGIN, descriptor)
+    return downloader.bytes(path)
   }
 
   onMount(async () => {
@@ -163,8 +156,7 @@
     error = ''
     progress = { done: 0, total: descriptor.chunks.length }
     try {
-      // A retry reuses the manifest already opened: the relay lets the
-      // chunks of a download under way be read past its limit.
+      // A retry reuses the verified manifest and the same counted download session.
       const manifest = (opened ??= await openManifest(
         key,
         descriptor,

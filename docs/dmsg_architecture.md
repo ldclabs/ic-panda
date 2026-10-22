@@ -1,5 +1,7 @@
 # dMsg Technical Architecture
 
+> 2026-10-23: Ordinary encrypted file downloads obtain short-lived S3 GET URLs through the authenticated API, then fetch and verify ciphertext directly. Root/vault/epoch envelopes retain device-authenticated reads. Share-session start, renewal and revocation windows are specified in the [public cloud contract](protocol/cloud_zh.md). This adds no file copy, custom domain or transfer quota; production validation remains separate.
+
 > 2026-10-22: User profiles now use PrincipalDocument, updated on dmsg_user (schema 15) and published by dmsg_directory (schema 7). Display edits write on chain; avatar bytes remain in cloud storage. The separate user Profile pipeline is removed; Agent Profile is unchanged. In-place upgrades preserve data from user schema 14 and directory schema 6; reinstalling would erase it. Historical capacity samples do not include the new metadata. See [the public contract](protocol/agent_zh.md).
 
 English | [简体中文](dmsg_architecture_zh.md)

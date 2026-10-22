@@ -296,6 +296,23 @@ pub(crate) async fn download_chunks<H: Hold>(
     .await
 }
 
+/// Download ordinary file parts directly, checking each expected digest.
+pub(crate) async fn download_file_chunks<H: Hold>(
+    h: &H,
+    into: Source,
+    parts: &[(String, String)],
+    mut done: impl FnMut(usize) + Send,
+) -> Result<()> {
+    crate::downloads::chunks(h, parts, |c, group, fetched| {
+        for ((_, digest), bytes) in group.iter().zip(fetched) {
+            c.source(into)?.put_chunk(digest, &bytes)?;
+        }
+        done(group.len());
+        Ok(())
+    })
+    .await
+}
+
 /// Download one chunk or the manifest of the account's committed upload
 /// and check its digest.
 ///

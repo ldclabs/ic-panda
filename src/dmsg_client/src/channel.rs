@@ -1634,11 +1634,13 @@ pub(crate) async fn fetch_file<H: Hold>(
 ) -> Result<FileManifest> {
     let plan = descriptor(h, channel, &reference.upload_id, Some(uploader)).await?;
     ensure(of_file(&plan, reference), Error::IntegrityFailed)?;
-    let sealed = channel_chunk(
+    let sealed = crate::downloads::one(
         h,
-        channel,
-        &reference.upload_id,
-        "manifest",
+        format!(
+            "{}/objects/{}/chunks/manifest",
+            base(channel)?,
+            reference.upload_id
+        ),
         &reference.manifest_digest,
     )
     .await?;
@@ -1655,7 +1657,7 @@ pub(crate) async fn fetch_file<H: Hold>(
             Ok(missing)
         })
         .await?;
-    crate::upload::download_chunks(h, Source::Store, &missing, |_| {}).await?;
+    crate::upload::download_file_chunks(h, Source::Store, &missing, |_| {}).await?;
     Ok(FileManifest {
         key: reference.key.clone(),
         ..file
@@ -1740,13 +1742,11 @@ pub async fn preview_image<H: Hold>(h: &H, channel: &str, seq: u64) -> Result<Js
     let fetching = h
         .with(|c| c.channel_preview_plan(channel, seq, &value, &trust))
         .await?;
-    let (relay, downloads) = h.signed(|c| c.channel_preview_downloads(&fetching)).await?;
-    let relay = &relay;
-    let parts = futures_util::future::try_join_all(
-        downloads
-            .into_iter()
-            .map(|(request, digest)| async move { relay.send_chunk(request, &digest).await }),
-    )
+    let mut parts = Vec::new();
+    crate::downloads::chunks(h, &fetching.parts, |_, _, fetched| {
+        parts.extend(fetched);
+        Ok(())
+    })
     .await?;
     h.with(|c| c.channel_preview_settle(&fetching, parts)).await
 }
@@ -4133,19 +4133,6 @@ impl Client {
             plan,
             parts,
         })
-    }
-
-    /// The downloads `fetching` still needs, each with the digest it must
-    /// have, signed to send without holding the client.
-    ///
-    /// # Errors
-    /// Returns `Error::PolicyStale` until a [`Self::warmup`] ran.
-    fn channel_preview_downloads(&self, fetching: &Fetching) -> Result<Vec<(Prepared, String)>> {
-        fetching
-            .parts
-            .iter()
-            .map(|(path, digest)| Ok((self.signed_get(path)?, digest.clone())))
-            .collect()
     }
 
     /// Open the image `fetching` downloaded, `parts` in its order: the

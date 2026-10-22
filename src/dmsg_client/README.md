@@ -342,3 +342,7 @@ charge; failed cleanup can retry without issuing a new deletion generation.
 The optional wire fields retain existing canonical vectors. To produce the public
 storage-management vector using fixed test-only keys, set `DMSG_STORAGE_VECTOR_OUT`
 and run `cargo test -p dmsg_client --lib print_storage_management_vector -- --ignored`.
+
+### Private file downloads (2026-10-23)
+
+Backups, channel files and their previews, and file objects in account synchronization use short-lived GET URLs from the authenticated `/objects/:upload/download` endpoint. The client authorizes an object once per fetch phase, batches up to eight direct reads, renews expiring grants, and retries failed blocks once after a fresh authority check. It bounds response sizes and verifies expected ciphertext digests before storing anything. URLs remain in operation memory; no device credentials or URL-bearing errors go to the data host. Root/vault/epoch-envelope reads retain device authentication. See the public [wire contract](../../docs/protocol/cloud_zh.md#私有文件直读2026-10-23) for expiry, deletion and bearer semantics. The independent download PoP fixture producer is an explicitly ignored test.
