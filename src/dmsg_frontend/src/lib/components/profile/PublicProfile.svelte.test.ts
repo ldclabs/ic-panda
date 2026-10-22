@@ -159,3 +159,24 @@ it('offers the legacy page only for reserved names', async () => {
   ).toBe('View legacy profile')
   expect(target.textContent).not.toContain('Certified principal document')
 })
+
+it('renders the page shell while background verification is pending and never shows rejected data', async () => {
+  let reject!: (error: ProfileError) => void
+  vi.mocked(readProfile).mockImplementationOnce(
+    () =>
+      new Promise((_resolve, fail) => {
+        reject = fail
+      })
+  )
+  render()
+  expect(target.querySelector('.site-header')).not.toBeNull()
+  expect(target.querySelector('[role="status"]')?.textContent).toContain(
+    'Loading and verifying profile'
+  )
+  expect(target.querySelector('.identity')).toBeNull()
+  expect(target.textContent).not.toContain('Certified principal document')
+  reject(new ProfileError('verification_failed'))
+  await settled()
+  expect(target.querySelector('[role="alert"]')).not.toBeNull()
+  expect(target.querySelector('.identity')).toBeNull()
+})
