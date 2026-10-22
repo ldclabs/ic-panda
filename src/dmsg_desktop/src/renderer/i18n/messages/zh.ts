@@ -10,7 +10,7 @@ export default {
     principalTeam: "团队",
     principalProject: "项目",
     principalOther: "其他",
-    principalPublicationPending: "已保存到链上，正在等待目录发布。请重试发布。",
+    principalPublicationPending: "资料更新尚未完成。请重试以确认结果并发布。",
     principalLinkRelation: "链接关系",
     principalAddLink: "添加链接",
     vault: '秘密库',

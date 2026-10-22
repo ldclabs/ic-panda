@@ -162,6 +162,8 @@ desktop is one of its clients, like the CLI.
   directory. It preserves link images in `extra["dmsg.link_images"]`, including
   legacy imports. Avatar uploads only change the draft; Publish commits the
   document. A delayed directory publication stays pending with a retry action.
+  Reopening the editor also checks the local account journal: a lost update
+  reply still requires reconciliation even when the directory already published it.
 
   Every login, from the gate rail, a locked view, the account menu, the
   palette, Settings or "Bind another login", runs one flow

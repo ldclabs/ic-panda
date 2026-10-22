@@ -10,7 +10,7 @@ export default {
     principalTeam: "فريق",
     principalProject: "مشروع",
     principalOther: "أخرى",
-    principalPublicationPending: "حُفظ على السلسلة؛ نشر الدليل قيد الانتظار. أعد المحاولة.",
+    principalPublicationPending: "تحديث الملف الشخصي قيد الانتظار. أعد المحاولة لتأكيد النتيجة والنشر.",
     principalLinkRelation: "علاقة الرابط",
     principalAddLink: "إضافة رابط",
     vault: 'الخزنة',

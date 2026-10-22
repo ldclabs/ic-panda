@@ -10,7 +10,7 @@ export default {
     principalTeam: "Команда",
     principalProject: "Проект",
     principalOther: "Другое",
-    principalPublicationPending: "Сохранено в блокчейне; публикация в каталоге ожидается. Повторите попытку.",
+    principalPublicationPending: "Обновление профиля ожидает завершения. Повторите попытку, чтобы подтвердить результат и опубликовать.",
     principalLinkRelation: "Отношение ссылки",
     principalAddLink: "Добавить ссылку",
     vault: 'Хранилище',

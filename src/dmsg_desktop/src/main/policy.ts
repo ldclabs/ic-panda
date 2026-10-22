@@ -119,6 +119,7 @@ export const WINDOW_METHODS = new Set([
   'files/share_revoke',
   'sync/run',
   'profile/show',
+  'profile/pending',
   'profile/publish',
   'profile/retry',
   'profile/resolve',

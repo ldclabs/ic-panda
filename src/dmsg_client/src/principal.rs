@@ -140,6 +140,16 @@ pub async fn names<H: Hold>(
 }
 
 impl Client {
+    /// Whether this workspace has a document mutation still awaiting confirmation.
+    /// Directory publication alone cannot settle the local account journal.
+    /// # Errors
+    /// Returns `Error::Locked` when the encrypted journal cannot be read.
+    pub fn document_pending(&self) -> Result<bool> {
+        Ok(self.pending()?.is_some_and(|journal| {
+            matches!(journal.request, crate::account::Request::Mutate(m) if matches!(m.command, AccountCommand::UpdatePrincipal { .. }))
+        }))
+    }
+
     /// Read the verified avatar bytes kept in a legacy archive.
     pub fn legacy_avatar(&self, id: &str, source: &str) -> Result<Vec<u8>> {
         let (_, bytes) = self.kept_archive(id)?;

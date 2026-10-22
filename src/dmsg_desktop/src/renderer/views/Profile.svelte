@@ -77,8 +77,9 @@
     archives = (await call<any[]>('legacy/list')).sort((a, b) => b.imported_at - a.imported_at)
     archive = archives[0]?.id ?? ''
     show(await call('profile/show'))
+    pending = await call<boolean>('profile/pending')
     const publication: any = await call('agent/principal')
-    pending = !!publication && !publication.published
+    pending ||= !!publication && !publication.published
   })
 
   const useLegacy = () => attempt(async () => {
@@ -132,6 +133,7 @@
         avatar_url: avatarUrl ?? undefined, links, extra: keptExtra
       }) } catch (cause) {
         if (code(cause) === 'EXECUTION_UNKNOWN') pending = true
+        if (code(cause) === 'PENDING') pending = await call<boolean>('profile/pending')
         throw cause
       }
       if (!outcome.published) { pending = true; return }

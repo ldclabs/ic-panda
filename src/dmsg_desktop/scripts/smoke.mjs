@@ -251,6 +251,8 @@ let published = {
 }
 
 let pendingPrincipal = null
+let principalUnknown = false
+let losePrincipalReply = false
 const checkouts = []
 const DAY = 86_400_000
 /** The plan the mock reports: free at first, then a Plus term that ends in five days. */
@@ -906,8 +908,25 @@ const methods = {
     return { forgotten: true }
   },
   'profile/show': () => published,
-  'profile/publish': (p) => { pendingPrincipal = { ...p, updated_at: published.updated_at + 1 }; return { published: false, version: pendingPrincipal.updated_at, published_version: published.updated_at } },
-  'profile/retry': () => { published = pendingPrincipal; pendingPrincipal = null; return { published: true, version: published.updated_at, published_version: published.updated_at } },
+  'profile/pending': () => principalUnknown,
+  'profile/publish': (p) => {
+    if (principalUnknown) throw { code: 'PENDING', message: 'Account journal awaiting confirmation' }
+    pendingPrincipal = { ...p, updated_at: published.updated_at + 1 }
+    if (losePrincipalReply) {
+      losePrincipalReply = false
+      published = pendingPrincipal
+      pendingPrincipal = null
+      principalUnknown = true
+      throw { code: 'EXECUTION_UNKNOWN', message: 'Update reply lost after publication' }
+    }
+    return { published: false, version: pendingPrincipal.updated_at, published_version: published.updated_at }
+  },
+  'profile/retry': () => {
+    if (pendingPrincipal) published = pendingPrincipal
+    pendingPrincipal = null
+    principalUnknown = false
+    return { published: true, version: published.updated_at, published_version: published.updated_at }
+  },
   'profile/avatar': (p) => p.remove ? null : `https://api.dmsg.net/public/accounts/${account}/avatar/${'a1'.repeat(32)}`,
   'profile/avatar_image': () => ({ mime: 'image/png', url: `data:image/png;base64,${PIXEL}` }),
   'connect/pairings': () => {
@@ -2802,6 +2821,31 @@ try {
   assert.equal(published.links[0].name, 'Legacy link')
   assert.equal(published.extra['dmsg.link_images']['https://example.test/'], 'https://example.test/logo.png')
   assert.equal(published.avatar_url, undefined)
+  // A committed update whose reply was lost still needs the local journal
+  // reconciled after leaving and reopening the editor.
+  const publishProfile = () => main.locator('[data-testid="profile"] button').filter({ hasText: /Publish|发布/ }).last().click()
+  const retryProfile = () => main.locator('[data-testid="profile"] button').filter({ hasText: /Retry|重试/ }).last().click()
+  await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]').disabled === false && !document.querySelector('[data-testid="profile"] fieldset').disabled)
+  losePrincipalReply = true
+  await main.fill('[data-testid="profile-name"]', 'Reply lost')
+  await publishProfile()
+  await waitFor(() => principalUnknown)
+  assert.equal(published.name, 'Reply lost')
+  assert.equal(methods['agent/principal']().published, true)
+  await main.click('[data-testid="settings-devices"]')
+  await main.waitForSelector('[data-testid="profile"]', { state: 'detached' })
+  await main.click('[data-testid="settings-profile"]')
+  await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]')?.value === 'Reply lost' && document.querySelector('[data-testid="profile"] fieldset')?.disabled)
+  const profileWrites = calls.filter(c => c.method === 'profile/publish').length
+  await retryProfile()
+  await main.waitForFunction(() => !document.querySelector('[data-testid="profile"] fieldset').disabled)
+  assert.equal(principalUnknown, false)
+  assert.equal(calls.filter(c => c.method === 'profile/publish').length, profileWrites, 'recovery must not create another mutation')
+  await main.fill('[data-testid="profile-name"]', 'After reconciliation')
+  await publishProfile()
+  await retryProfile()
+  await main.waitForFunction(() => !document.querySelector('[data-testid="profile"] fieldset').disabled)
+  assert.equal(published.name, 'After reconciliation')
   await assert.rejects(main.evaluate(() => window.dmsg.call('profile/avatar', { path: '/etc/hosts' })), /FORBIDDEN/)
   // A locked daemon's hints notify that something arrived, never from
   // whom, and each kind at most once a minute.

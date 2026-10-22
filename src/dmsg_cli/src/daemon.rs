@@ -88,7 +88,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 51] = [
+const METHODS: [&str; 52] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -105,6 +105,7 @@ const METHODS: [&str; 51] = [
     "sync/run",
     "sync/status",
     "profile/show",
+    "profile/pending",
     "profile/publish",
     "profile/retry",
     "profile/resolve",
@@ -1039,6 +1040,7 @@ impl Daemon {
                 }))
             }
             "profile/show" => Ok(to_json(&profile::show(&self.hold()).await?)),
+            "profile/pending" => Ok(json!(self.hold().with(|c| c.document_pending()).await?)),
             "profile/publish" => {
                 let document: PrincipalDocument = serde_json::from_value(params.clone())
                     .map_err(|e| Error::InvalidInput(format!("profile: {e}")))?;
@@ -1729,6 +1731,7 @@ mod tests {
         assert_eq!(route("channel/list"), Some(Module::More));
         assert_eq!(route("channel/delete_legacy_draft"), Some(Module::More));
         assert_eq!(route("legacy/delete_channel"), Some(Module::Legacy));
+        assert_eq!(route("profile/pending"), Some(Module::Daemon));
         for retired in [
             "legacy/shared_prepare",
             "legacy/shared_activate",
@@ -1758,6 +1761,7 @@ mod tests {
         }
         // Windows reload on these events: a read announcing one would loop.
         for read in [
+            "profile/pending",
             "vault/list",
             "vault/show",
             "vault/reveal",

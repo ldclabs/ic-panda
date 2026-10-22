@@ -12,7 +12,7 @@ const messages = {
     principalTeam: "Team",
     principalProject: "Project",
     principalOther: "Other",
-    principalPublicationPending: "Saved on chain; directory publication is pending. Retry to publish.",
+    principalPublicationPending: "The profile update is pending. Retry to confirm the result and publish.",
     principalLinkRelation: "Link relation",
     principalAddLink: "Add link",
   vault: 'Vault',

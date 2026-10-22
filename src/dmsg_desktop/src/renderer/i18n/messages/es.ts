@@ -10,7 +10,7 @@ export default {
     principalTeam: "Equipo",
     principalProject: "Proyecto",
     principalOther: "Otro",
-    principalPublicationPending: "Guardado en la cadena; publicación en el directorio pendiente. Reintenta.",
+    principalPublicationPending: "La actualización del perfil está pendiente. Reintenta para confirmar el resultado y publicar.",
     principalLinkRelation: "Relación del enlace",
     principalAddLink: "Añadir enlace",
     vault: 'Bóveda',

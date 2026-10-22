@@ -10,7 +10,7 @@ export default {
     principalTeam: "Équipe",
     principalProject: "Projet",
     principalOther: "Autre",
-    principalPublicationPending: "Enregistré sur la chaîne ; publication dans l’annuaire en attente. Réessayez.",
+    principalPublicationPending: "La mise à jour du profil est en attente. Réessayez pour confirmer le résultat et publier.",
     principalLinkRelation: "Relation du lien",
     principalAddLink: "Ajouter un lien",
     vault: 'Coffre',
