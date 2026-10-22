@@ -250,6 +250,9 @@ impl Desktop {
             .and_then(|r| r.json())
             // The daemon was stopped or killed mid-request.
             .map_err(|_| "TRANSPORT".to_string())?;
+        if std::env::var_os("DMSG_TEST_LOGS").is_some() && reply.get("error").is_some() {
+            eprintln!("test RPC {method}: {}", reply["error"]);
+        }
         match reply.get("error") {
             Some(error) => Err(error["data"]["code"]
                 .as_str()
@@ -8109,5 +8112,79 @@ fn desktop_storage_management() {
         .unwrap();
     assert_eq!(message["file_deleted"], true, "{message}");
     assert_eq!(message["text"], "attachment");
+    env.finish();
+}
+
+#[test]
+#[ignore = "needs the local daemon, PocketIC and private relay"]
+fn desktop_presigned_share() {
+    let env = Env::start("presigned-share", "background_online = true\n");
+    env.pair();
+    let file = env.dir.join("small.txt");
+    let source = pattern(64 * 1024 * 1024, 23);
+    std::fs::write(&file, &source).unwrap();
+    let added = env.a.run(&["files", "add", file.to_str().unwrap()]);
+    let id = added[0]["file"]["id"].as_str().unwrap();
+    let linked = env
+        .a
+        .rpc(
+            &env.http,
+            "files/share_link",
+            json!({"id":id,"password":"correct horse"}),
+        )
+        .unwrap();
+    let share = linked["share_id"].as_str().unwrap();
+    let public = format!("{}/public/shares/{share}", env.relay);
+    let descriptor = eventually(30, || {
+        let r = env.http.get(&public).send().unwrap();
+        (r.status() == 200).then(|| r.json::<Value>().unwrap()["data"].clone())
+    });
+    let session = sha256_hex(b"presigned integration session");
+    let route = format!("{public}/downloads/{session}");
+    let grant = env
+        .http
+        .post(&route)
+        .send()
+        .unwrap()
+        .json::<Value>()
+        .unwrap()["data"]
+        .clone();
+    let bytes = env
+        .http
+        .get(grant["manifest"]["url"].as_str().unwrap())
+        .send()
+        .unwrap()
+        .bytes()
+        .unwrap();
+    assert_eq!(
+        sha256_hex(&bytes),
+        descriptor["manifest"]["digest"].as_str().unwrap()
+    );
+    let renew = env.http.get(&route).send().unwrap();
+    assert_eq!(renew.status(), 200);
+    let count = env
+        .http
+        .get(&public)
+        .send()
+        .unwrap()
+        .json::<Value>()
+        .unwrap();
+    assert_eq!(count["data"]["downloads"], 1);
+    let live = env.dir.join("share-live.json");
+    std::fs::write(&live,json!([{"url":linked["url"],"relay":env.relay,"password":"correct horse","sha256":sha256_hex(&source)}]).to_string()).unwrap();
+    let opened = Command::new("node")
+        .args([
+            "node_modules/vitest/vitest.mjs",
+            "run",
+            "src/lib/share/live.test.ts",
+        ])
+        .current_dir(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../src/dmsg_frontend"))
+        .env("DMSG_SHARE_LIVE", &live)
+        .status()
+        .unwrap();
+    assert!(
+        opened.success(),
+        "share reader did not verify the original file"
+    );
     env.finish();
 }
