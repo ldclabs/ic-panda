@@ -9,6 +9,59 @@ type Grant = {
   chunks: Slot[]
 }
 
+class RetryableDownloadError extends Error {
+  constructor(readonly status?: number) {
+    super(status ? `File download: ${status}` : 'File download unavailable')
+  }
+}
+
+async function read(slot: Slot): Promise<Uint8Array> {
+  const response = await fetch(slot.url, {
+    credentials: 'omit',
+    redirect: 'error',
+    referrerPolicy: 'no-referrer',
+    cache: 'no-store',
+    signal: AbortSignal.timeout(30_000)
+  }).catch(() => {
+    // Network errors may include the bearer URL; keep it out of UI errors.
+    throw new RetryableDownloadError()
+  })
+  if (response.status !== 200) {
+    await response.body?.cancel().catch(() => {})
+    if ([403, 404, 429].includes(response.status) || response.status >= 500)
+      throw new RetryableDownloadError(response.status)
+    throw new Error(`File download: ${response.status}`)
+  }
+  const length = response.headers.get('content-length')
+  if (length !== null && Number(length) !== slot.size) {
+    await response.body?.cancel().catch(() => {})
+    throw new ShareError('INTEGRITY_FAILED', 'chunk size')
+  }
+  const reader = response.body?.getReader()
+  if (!reader) throw new ShareError('INTEGRITY_FAILED', 'missing body')
+  const bytes = new Uint8Array(slot.size)
+  let at = 0
+  try {
+    for (;;) {
+      const { done, value } = await reader.read().catch(() => {
+        throw new RetryableDownloadError()
+      })
+      if (done) break
+      if (at + value.length > bytes.length) {
+        await reader.cancel().catch(() => {})
+        throw new ShareError('INTEGRITY_FAILED', 'chunk size')
+      }
+      bytes.set(value, at)
+      at += value.length
+    }
+  } finally {
+    reader.releaseLock()
+  }
+  if (at !== bytes.length || (await sha256Hex(bytes)) !== slot.digest)
+    throw new ShareError('INTEGRITY_FAILED', 'chunk digest')
+  return bytes
+}
+
 /** A page-local download session. Retries reuse its random ID; URLs never persist. */
 export class ShareDownload {
   private readonly id = Array.from(
@@ -123,52 +176,16 @@ export class ShareDownload {
             ? grant.chunks[Number(path.slice(7))]
             : undefined
       if (!slot) throw new ShareError('INTEGRITY_FAILED', 'download slot')
-      const response = await fetch(slot.url, {
-        credentials: 'omit',
-        redirect: 'error',
-        referrerPolicy: 'no-referrer',
-        cache: 'no-store',
-        signal: AbortSignal.timeout(30_000)
-      })
-      if (
-        attempt === 0 &&
-        (response.status === 403 ||
-          response.status === 404 ||
-          response.status >= 500)
-      ) {
-        await response.body?.cancel()
-        continue
-      }
-      if (response.status === 404)
-        throw new ShareError('INTEGRITY_FAILED', 'missing committed chunk')
-      if (response.status !== 200)
-        throw new Error(`File download: ${response.status}`)
-      const length = response.headers.get('content-length')
-      if (length !== null && Number(length) !== slot.size) {
-        await response.body?.cancel()
-        throw new ShareError('INTEGRITY_FAILED', 'chunk size')
-      }
-      const reader = response.body?.getReader()
-      if (!reader) throw new ShareError('INTEGRITY_FAILED', 'missing body')
-      const bytes = new Uint8Array(slot.size)
-      let at = 0
       try {
-        for (;;) {
-          const { done, value } = await reader.read()
-          if (done) break
-          if (at + value.length > bytes.length) {
-            await reader.cancel()
-            throw new ShareError('INTEGRITY_FAILED', 'chunk size')
-          }
-          bytes.set(value, at)
-          at += value.length
+        return await read(slot)
+      } catch (error) {
+        if (error instanceof RetryableDownloadError) {
+          if (attempt === 0) continue
+          if (error.status === 404)
+            throw new ShareError('INTEGRITY_FAILED', 'missing committed chunk')
         }
-      } finally {
-        reader.releaseLock()
+        throw error
       }
-      if (at !== bytes.length || (await sha256Hex(bytes)) !== slot.digest)
-        throw new ShareError('INTEGRITY_FAILED', 'chunk digest')
-      return bytes
     }
     throw new Error('File download unavailable')
   }

@@ -134,3 +134,57 @@ it('fails missing committed bytes after one bounded renewal', async () => {
   ).rejects.toMatchObject({ code: 'INTEGRITY_FAILED' })
   expect(fetcher).toHaveBeenCalledTimes(4)
 })
+
+it.each(['connection', 'timeout', 'stream', 'throttled'])(
+  'renews the same session and retries only the failed block after %s failure',
+  async (failure) => {
+    const { descriptor, grant } = await sample()
+    let failed = false
+    const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.startsWith(api)) return json(grant)
+      if (url === grant.chunks[0]!.url && !failed) {
+        failed = true
+        if (failure === 'connection') throw new TypeError(`network: ${url}`)
+        if (failure === 'timeout')
+          throw new DOMException('timed out', 'TimeoutError')
+        if (failure === 'throttled') return new Response(null, { status: 429 })
+        let reads = 0
+        return new Response(
+          new ReadableStream({
+            pull(controller) {
+              if (reads++ === 0) controller.enqueue(data.slice(0, 1))
+              else controller.error(new TypeError(`network: ${url}`))
+            }
+          })
+        )
+      }
+      return new Response(data)
+    })
+    vi.stubGlobal('fetch', fetcher)
+    const download = new ShareDownload(api, descriptor)
+    expect(await download.bytes('manifest')).toEqual(data)
+    expect(await download.bytes('chunks/0')).toEqual(data)
+    const controls = fetcher.mock.calls.filter(([url]) => url.startsWith(api))
+    expect(controls.map(([, init]) => init?.method)).toEqual(['POST', 'GET'])
+    expect(controls[0]![0]).toBe(controls[1]![0])
+    expect(
+      fetcher.mock.calls.filter(([url]) => url === grant.manifest.url)
+    ).toHaveLength(1)
+    expect(
+      fetcher.mock.calls.filter(([url]) => url === grant.chunks[0]!.url)
+    ).toHaveLength(2)
+  }
+)
+
+it('bounds repeated network failures and hides the bearer URL in the error', async () => {
+  const { descriptor, grant } = await sample()
+  const fetcher = vi.fn(async (url: string) => {
+    if (url.startsWith(api)) return json(grant)
+    throw new TypeError(`network: ${url}`)
+  })
+  vi.stubGlobal('fetch', fetcher)
+  await expect(
+    new ShareDownload(api, descriptor).bytes('manifest')
+  ).rejects.toThrow(/^File download unavailable$/)
+  expect(fetcher).toHaveBeenCalledTimes(4)
+})
