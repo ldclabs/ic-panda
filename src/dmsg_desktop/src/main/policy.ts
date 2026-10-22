@@ -353,14 +353,12 @@ const GUI_SOURCED = new Set([
   'wallet/activation_continue'
 ])
 
-/** The tools the Agents view runs as a hosted Agent ID: Agent Mail and Agent Knowledge. */
+/** Owner inspection and mailbox maintenance; content authoring stays with Agents. */
 export const DESKTOP_TOOLS = new Set([
   'agent_protocols_mail_mailboxes_list',
   'agent_protocols_mail_mailbox_publish',
-  'agent_protocols_mail_send',
   'agent_protocols_mail_sync',
   'agent_protocols_mail_list',
-  'agent_protocols_knowledge_submit',
   'agent_protocols_knowledge_query',
   'agent_protocols_knowledge_get',
   'agent_protocols_knowledge_search',
@@ -373,6 +371,11 @@ export function windowParams(method: string, params: unknown): Record<string, un
   const value =
     params && typeof params === 'object' && !Array.isArray(params) ? { ...(params as Record<string, unknown>) } : {}
   if (method === 'ap/call' && !DESKTOP_TOOLS.has(String(value.tool))) throw new DaemonError('FORBIDDEN', String(value.tool))
+  if (method === 'ap/call' && value.tool === 'agent_protocols_mail_list') {
+    // Human inspection must not consume the Agent's unread queue.
+    const input = value.input as Record<string, unknown> | undefined
+    if (input?.mark_read !== undefined && input.mark_read !== false) throw new DaemonError('FORBIDDEN', 'mark_read')
+  }
   delete value.human
   // A local file reaches a statement only through the main process's dialog.
   if (method === 'attest/request') delete value.file

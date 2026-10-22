@@ -1,48 +1,65 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
-  import Field from '../../components/page/Field.svelte'
+  import Id from '../../components/page/Id.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import Section from '../../components/page/Section.svelte'
+  import Segmented from '../../components/Segmented.svelte'
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
-  import { t } from '../../i18n/index.svelte'
+  import { stateLabel, t } from '../../i18n/index.svelte'
   import { ago, call, code, when } from '../../rpc'
 
-  /**
-   * Agent Mail as a hosted Agent ID, with the connector's own tools: its
-   * mailboxes (open, renew, rotate the key, close), its letters page by
-   * page with read marks one by one or all at once, sending and replying.
-   * The senders whose mail is deleted unopened come from `config.toml`
-   * and are only shown.
-   */
-  let { agents, active, blocked, unlocked }: { agents: any[]; active: string | null; blocked: string[]; unlocked: boolean } = $props()
+  /** Owner inspection never consumes the Agent's unread queue. */
+  let {
+    agents,
+    active,
+    blocked,
+    unlocked,
+    manage,
+    selectAgent
+  }: {
+    agents: any[]
+    active: string | null
+    blocked: string[]
+    unlocked: boolean
+    manage: () => void
+    selectAgent: (id: string) => void
+  } = $props()
 
   const PAGE = 50
-
   let agent = $state('')
+  let folder = $state('received')
   let mailboxes = $state<any[]>([])
   let messages = $state<any[] | null>(null)
+  let selected = $state('')
   let cursor = $state<string | null>(null)
   let unread = $state(0)
   let routes = $state('')
   let synced = $state('')
-  let draft = $state({ to: '', subject: '', text: '', in_reply_to: '', reply_mailbox_id: '' })
   let closing = $state<any>(null)
   let error = $state('')
   let notice = $state('')
   let busy = $state(false)
+  const keyOf = (message: any) => `${message.direction}:${message.from}:${message.message_id}`
+  const current = $derived(messages?.find((message) => keyOf(message) === selected))
 
   $effect(() => {
-    if (!agent && agents.length && unlocked) {
-      agent = active ?? agents[0].agent_id
-      void loadMail()
-    }
+    if (!agent && agents.length) agent = active ?? agents[0].agent_id
+  })
+  $effect(() => {
+    if (unlocked && agent && folder)
+      untrack(() => {
+        messages = null
+        selected = ''
+        synced = ''
+        void loadMail()
+      })
   })
 
-  /** A standard tool's answer is `{result}` or `{error: {code, message}}`. */
   async function tool(name: string, input: Record<string, unknown> = {}) {
     const answer: any = await call('ap/call', { agent, tool: `agent_protocols_${name}`, input })
     if (answer.error) throw Object.assign(new Error(answer.error.message), { tool: answer.error.code })
@@ -62,78 +79,60 @@
     }
   }
 
-  /** The newest page again, or with `older` the page after the last one shown. */
-  async function list(older = false) {
-    const page = await tool('mail_list', { limit: PAGE, ...(older && cursor ? { cursor } : {}) })
-    messages = older ? [...(messages ?? []), ...page.messages] : page.messages
+  // The connector's cursor walks oldest to newest; filters apply on every page.
+  async function list(more = false) {
+    const page = await tool('mail_list', {
+      limit: PAGE,
+      direction: folder === 'sent' ? 'sent' : 'received',
+      ...(folder === 'unread' ? { unread_only: true } : {}),
+      ...(more && cursor ? { cursor } : {})
+    })
+    messages = more ? [...(messages ?? []), ...page.messages] : page.messages
     cursor = page.next_cursor ?? null
     unread = page.unread_count
+    if (!messages?.some((message) => keyOf(message) === selected)) selected = ''
   }
 
   const refreshBoxes = async () => (mailboxes = (await tool('mail_mailboxes_list')).mailboxes)
-
   const loadMail = () =>
     attempt(async () => {
       await refreshBoxes()
       await list()
     })
 
+  async function publishBox(input: Record<string, unknown>, done: string) {
+    const result = await tool('mail_mailbox_publish', input)
+    await refreshBoxes()
+    if (result.failed?.length) error = result.failed.map((failure: any) => `${failure.route}: ${failure.code}`).join('\n')
+    else notice = done
+  }
+
   const publish = () =>
     attempt(async () => {
-      await tool('mail_mailbox_publish', { routes: routes.split(',').map((r) => r.trim()).filter(Boolean) })
+      await publishBox(
+        {
+          routes: routes
+            .split(',')
+            .map((r) => r.trim())
+            .filter(Boolean)
+        },
+        t('mailboxCreated')
+      )
       routes = ''
-      await refreshBoxes()
     })
-
-  /** A replacement card: the same routes for a new lifetime, a new key, or none to close it. */
-  const replace = (box: any, change: Record<string, unknown>, done: string) =>
-    attempt(async () => {
-      await tool('mail_mailbox_publish', { mailbox_id: box.mailbox_id, routes: box.routes, ...change })
-      await refreshBoxes()
-      notice = done
-    })
-
+  const replace = (box: any, change: Record<string, unknown>, done: string) => attempt(() => publishBox({ mailbox_id: box.mailbox_id, routes: box.routes, ...change }, done))
   const sync = () =>
     attempt(async () => {
       const report = await tool('mail_sync')
-      synced = `${t('mailReceived')} ${report.received.length} · ${t('mailDelivered')} ${report.delivered.length} · ${t('mailQueued')} ${report.queued.length}${report.errors.length ? ` · ${t('error')} ${report.errors.map((e: any) => e.code).join(', ')}` : ''}`
+      synced = `${t('mailReceived')} ${report.received.length} · ${t('mailDelivered')} ${report.delivered.length} · ${t('mailQueued')} ${report.queued}`
+      if (report.errors.length) error = report.errors.map((e: any) => `${e.route}: ${e.code}`).join('\n')
+      await refreshBoxes()
       await list()
     })
-
-  const markAllRead = () =>
-    attempt(async () => {
-      await tool('mail_list', { unread_only: true, mark_read: true, limit: PAGE })
-      await list()
-    })
-
-  const markRead = (message: any) =>
-    attempt(async () => {
-      await tool('mail_list', { message_id: message.message_id, mark_read: true, limit: 1 })
-      message.read = true
-      unread = Math.max(0, unread - 1)
-    })
-
-  const send = () =>
-    attempt(async () => {
-      const input: Record<string, unknown> = { text: draft.text }
-      if (draft.to.trim()) input.to = draft.to.trim()
-      if (draft.subject.trim()) input.subject = draft.subject.trim()
-      if (draft.in_reply_to) input.in_reply_to = draft.in_reply_to
-      if (draft.reply_mailbox_id) input.reply_mailbox_id = draft.reply_mailbox_id
-      const sent = await tool('mail_send', input)
-      notice = `${t('mailSent')}: ${sent.status}`
-      draft = { to: '', subject: '', text: '', in_reply_to: '', reply_mailbox_id: draft.reply_mailbox_id }
-      await list()
-    })
-
-  const reply = (message: any) => {
-    draft = { ...draft, to: '', in_reply_to: message.message_id, subject: message.subject ? `Re: ${message.subject}` : '' }
-  }
-
   const textOf = (message: any) =>
     message.parts
-      .filter((p: any) => p.text)
-      .map((p: any) => p.text)
+      .filter((part: any) => part.text)
+      .map((part: any) => part.text)
       .join('\n')
   const labelOf = (did: string) => agents.find((a) => a.agent_id === did)?.label ?? did
 </script>
@@ -145,112 +144,171 @@
     {#snippet actions()}
       <Select
         bind:value={agent}
-        onChange={() => ((mailboxes = []), (messages = null), (cursor = null), void loadMail())}
+        onChange={selectAgent}
+        disabled={busy}
+        label={t('tabAgentIds')}
         testid="mail-agent"
         options={agents.map((a) => ({ value: a.agent_id, label: a.label }))}
       />
-      <button class={buttonClass('secondary', 'md')} disabled={busy || !agent} data-testid="mail-open" onclick={loadMail}><Icon name="sync-now" />{t('reload')}</button>
     {/snippet}
-    <div class="grid gap-3">
+    <div class="grid gap-4">
+      <div class="flex items-start gap-3 rounded-xl bg-surface-2 px-4 py-3">
+        <Icon name="lock" class="mt-0.5 shrink-0 text-forest" />
+        <div class="text-[12.5px] leading-relaxed text-muted">
+          <p class="font-medium text-ink">{t('mailExplained')}</p>
+          <p class="mt-1">{t('mailOwnerRole')}</p>
+        </div>
+      </div>
       {#if error}<Notice tone="danger" testid="mail-error">{error}</Notice>{/if}
       {#if notice}<Notice tone="ok">{notice}</Notice>{/if}
-      {#if messages}
-        <div class="flex flex-wrap items-center gap-1.5">
-          <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={sync}><Icon name="sync-now" />{t('sync')}</button>
-          {#if unread}<button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={markAllRead}><Icon name="check" />{t('markRead')} · {unread}</button>{/if}
-          {#if synced}<span class="text-[12px] text-faint">{synced}</span>{/if}
+      <div class="flex flex-wrap items-center gap-2">
+        <Segmented
+          bind:value={folder}
+          disabled={busy}
+          label={t('letters')}
+          testid="mail-folder"
+          options={[
+            { value: 'received', label: t('mailReceivedTab') },
+            { value: 'sent', label: t('mailSentTab') },
+            { value: 'unread', label: `${t('mailAgentUnread')} · ${unread}` }
+          ]}
+        />
+        <span class="flex-1"></span>
+        <button class={buttonClass('ghost', 'sm')} disabled={busy} data-testid="mail-open" onclick={loadMail}><Icon name="sync-now" />{t('reload')}</button>
+        <button class={buttonClass('secondary', 'sm')} disabled={busy} data-testid="mail-sync" onclick={sync}><Icon name="cloud-down" />{t('sync')}</button>
+      </div>
+      {#if synced}<p class="text-[12px] text-muted" role="status">{synced}</p>{/if}
+      {#if messages?.length}
+        <div class="grid min-h-80 overflow-hidden rounded-xl border border-line lg:grid-cols-[minmax(220px,0.85fr)_minmax(0,1.5fr)]">
+          <div class="min-w-0 border-b border-line lg:border-e lg:border-b-0">
+            <ul class="max-h-[520px] divide-y divide-line overflow-y-auto" data-testid="mail-messages">
+              {#each messages as message (keyOf(message))}
+                <li>
+                  <button
+                    class={cn(
+                      'grid w-full gap-1.5 px-4 py-3 text-start outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-forest',
+                      selected === keyOf(message) && 'bg-pale'
+                    )}
+                    aria-pressed={selected === keyOf(message)}
+                    onclick={() => (selected = keyOf(message))}
+                  >
+                    <span class="flex items-center gap-2">
+                      <span class="min-w-0 flex-1 truncate text-[13px] font-medium">{message.subject || t('mailNoSubject')}</span>
+                      {#if message.read === false}<span class="size-1.5 shrink-0 rounded-full bg-forest" title={t('mailAgentUnread')}></span>{/if}
+                    </span>
+                    <span class="truncate text-[11.5px] text-muted">{labelOf(message.direction === 'received' ? message.from : message.to)}</span>
+                    <span class="truncate text-[12px] text-faint">{textOf(message) || t('attachments')}</span>
+                    <span class="text-[11px] text-faint">{ago(message.received_at ?? message.created_at)}</span>
+                  </button>
+                </li>
+              {/each}
+            </ul>
+            {#if cursor}<button class={buttonClass('ghost', 'sm', 'm-2')} disabled={busy} onclick={() => attempt(() => list(true))} data-testid="mail-more"
+                >{t('agentLoadMore')}</button
+              >{/if}
+          </div>
+          <div class="min-w-0 p-5" data-testid="mail-detail">
+            {#if current}
+              <div class="mb-3 flex flex-wrap items-center gap-2">
+                <Pill tone="forest">{current.direction === 'received' ? t('mailReceivedTab') : t('mailSentTab')}</Pill>
+                {#if current.direction === 'received'}<Pill>{current.read === false ? t('mailAgentUnread') : t('mailAgentRead')}</Pill>{/if}
+                {#if current.delivery}<Pill tone={current.delivery.status === 'queued' ? 'warn' : 'neutral'}
+                    >{current.delivery.status === 'queued' ? t('mailQueued') : t('mailDelivered')}</Pill
+                  >{/if}
+              </div>
+              <h3 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]">{current.subject || t('mailNoSubject')}</h3>
+              <dl class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 text-[12px]">
+                <dt class="text-faint">{t('from')}</dt>
+                <dd><Id id={current.from} /></dd>
+                <dt class="text-faint">{t('to')}</dt>
+                <dd><Id id={current.to} /></dd>
+                <dt class="text-faint">{t('createdAt')}</dt>
+                <dd>{when(current.created_at)}</dd>
+              </dl>
+              <div class="mt-5 border-t border-line pt-4 text-[13px] leading-relaxed">
+                {#each current.parts as part}
+                  {#if part.text}<p class="mb-3 whitespace-pre-wrap [overflow-wrap:anywhere]">{part.text}</p>
+                  {:else}<div class="mb-2 flex items-center gap-2 rounded-lg bg-surface-2 p-2.5 text-[12px]">
+                      <Icon name="attach" /><span class="min-w-0 break-all">{part.name ?? part.media_type} · {part.size} B</span>
+                    </div>{/if}
+                {/each}
+              </div>
+              {#if current.delivery?.last_error}<Notice tone="warn">{current.delivery.last_error.code}: {current.delivery.last_error.message}</Notice>{/if}
+              <details class="mt-4 text-[11.5px] text-muted">
+                <summary class="cursor-pointer">{t('agentTechnicalDetails')}</summary>
+                <div class="mt-2 grid gap-2"><Id id={current.message_id} /><Id id={current.thread_id} /><span>{t('expires')} {when(current.expires_at)}</span></div>
+              </details>
+            {:else}
+              <div class="grid min-h-64 place-content-center gap-3 text-center">
+                <Icon name="mail" class="mx-auto size-7 text-faint" />
+                <p class="text-[13px] text-muted">{t('mailSelect')}</p>
+              </div>
+            {/if}
+          </div>
         </div>
-        <div>
-          <h3 class="mb-1.5 text-[12px] font-medium text-faint">{t('mailboxes')}</h3>
-          <ul class="grid gap-1.5" data-testid="mailboxes">
+      {:else}
+        <div class="grid min-h-60 place-content-center justify-items-center gap-3 rounded-xl border border-dashed border-line px-8 text-center" data-testid="mail-empty">
+          <Icon name="mail" class="size-8 text-faint" />
+          <h3 class="text-[14px] font-medium">{busy ? t('loading') : error ? t('agentLoadFailed') : t('noLetters')}</h3>
+          <p class="max-w-md text-[12.5px] leading-relaxed text-muted">{t('mailEmptyHint')}</p>
+        </div>
+      {/if}
+      <p class="text-[11.5px] text-faint">{t('mailReadHint')}</p>
+      <details class="rounded-xl border border-line" data-testid="mailbox-settings">
+        <summary class="cursor-pointer px-4 py-3 text-[12.5px] font-medium">{t('mailboxManagement')} · {mailboxes.length}</summary>
+        <div class="grid gap-3 border-t border-line p-4">
+          <ul class="grid gap-2" data-testid="mailboxes">
             {#each mailboxes as box (box.mailbox_id)}
-              <li class="grid gap-1 rounded-lg border border-line px-3 py-2 text-[12.5px]">
-                <div class="flex flex-wrap items-center gap-2">
-                  <bdi dir="ltr" class="min-w-0 flex-1 truncate font-mono">{box.address}</bdi>
-                  <button class={buttonClass('ghost', 'xs', 'size-6 px-0')} aria-label={t('copy')} onclick={() => copyText(box.address)}><Icon name="copy" /></button>
-                  <Pill tone={box.status === 'open' ? 'ok' : 'neutral'}>{box.status}</Pill>
+              <li class="grid gap-2 rounded-lg bg-surface-2 p-3 text-[12px]">
+                <div class="flex items-center gap-2">
+                  <bdi dir="ltr" class="min-w-0 flex-1 truncate font-mono">{box.address}</bdi><button
+                    class={buttonClass('ghost', 'xs')}
+                    aria-label={t('copy')}
+                    onclick={() => copyText(box.address)}><Icon name="copy" /></button
+                  ><Pill tone={box.status === 'open' ? 'ok' : 'neutral'}
+                    >{box.status === 'open' ? t('mailboxOpen') : box.status === 'expired' ? stateLabel('expired') : t('mailboxInactive')}</Pill
+                  >
                 </div>
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="text-faint">{t('unread')} {box.unread_count} · {t('expires')} {when(box.expires_at)}</span>
-                  <span class="flex-1"></span>
+                <span class="text-faint">{t('expires')} {when(box.expires_at)}</span>
+                <div class="flex flex-wrap gap-2">
                   {#if box.status !== 'closed'}
-                    <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => replace(box, {}, t('mailboxRenewed'))} data-testid="mailbox-renew">{t('renew')}</button>
-                    <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => replace(box, { rotate_key: true }, t('mailboxRotated'))} data-testid="mailbox-rotate">{t('rotateKey')}</button>
-                    <button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy} onclick={() => (closing = box)} data-testid="mailbox-close">{t('closeMailbox')}</button>
+                    <button class={buttonClass('secondary', 'xs')} disabled={busy} onclick={() => replace(box, {}, t('mailboxRenewed'))} data-testid="mailbox-renew"
+                      >{t('renew')}</button
+                    >
+                    <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => replace(box, { rotate_key: true }, t('mailboxRotated'))} data-testid="mailbox-rotate"
+                      >{t('rotateKey')}</button
+                    >
+                    <button class={buttonClass('ghost', 'xs', 'text-danger')} disabled={busy} onclick={() => (closing = box)} data-testid="mailbox-close"
+                      >{t('closeMailbox')}</button
+                    >
                   {/if}
                 </div>
               </li>
-            {:else}
-              <li class="text-[12.5px] text-faint">{t('noMailboxes')}</li>
-            {/each}
+            {:else}<li class="text-[12.5px] text-muted">{t('noMailboxes')}</li>{/each}
           </ul>
-          <div class="mt-2 flex gap-2">
-            <input placeholder={t('mailRoutes')} bind:value={routes} data-testid="mail-routes" />
-            <button class={buttonClass('secondary')} disabled={busy || !routes.trim()} onclick={publish}>{t('openMailbox')}</button>
+          <div class="flex flex-wrap gap-2">
+            <input class="min-w-48 flex-1" aria-label={t('mailRoutes')} placeholder={t('mailRoutes')} bind:value={routes} data-testid="mail-routes" /><button
+              class={buttonClass('secondary')}
+              disabled={busy || !routes.trim()}
+              onclick={publish}>{t('openMailbox')}</button
+            >
           </div>
+          <details class="text-[12px] text-muted" data-testid="mail-blocked">
+            <summary class="cursor-pointer">{t('blockedSenders', { n: blocked.length })}</summary>
+            <p class="mt-2">{t('blockedSendersHint')}</p>
+            <ul class="mt-2 grid gap-1 font-mono text-[11.5px]">
+              {#each blocked as sender (sender)}<li class="break-all">{sender}</li>{/each}
+            </ul>
+          </details>
         </div>
-        <ul class="divide-y divide-line rounded-xl border border-line" data-testid="mail-messages">
-          {#each messages as message (message.message_id)}
-            <li class="grid gap-1 px-3.5 py-3">
-              <div class="flex flex-wrap items-center gap-2">
-                <Pill tone={message.direction === 'received' ? 'forest' : 'neutral'}>{message.direction === 'received' ? t('mailIn') : t('mailOut')}</Pill>
-                {#if message.read === false}<span class="size-1.5 rounded-full bg-forest" title={t('unread')}></span>{/if}
-                <b class={cn('min-w-0 flex-1 truncate text-[13px]', message.read === false ? 'font-semibold' : 'font-medium')}>{message.subject ?? ''}</b>
-                <span class="text-[11.5px] text-faint" title={when(message.received_at ?? message.created_at)}>{ago(message.received_at ?? message.created_at)}</span>
-                {#if message.read === false}
-                  <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => markRead(message)} data-testid="mail-mark-read"><Icon name="check" />{t('markOneRead')}</button>
-                {/if}
-                {#if message.direction === 'received' && message.reply_address}
-                  <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => reply(message)}><Icon name="reply" />{t('reply')}</button>
-                {/if}
-              </div>
-              <span class="font-mono text-[11.5px] text-faint">{labelOf(message.direction === 'received' ? message.from : message.to)}</span>
-              <p class="text-[13px] whitespace-pre-wrap [overflow-wrap:anywhere]">{textOf(message)}</p>
-            </li>
-          {:else}
-            <li class="px-3.5 py-3 text-[12.5px] text-faint">{t('noLetters')}</li>
-          {/each}
-        </ul>
-        {#if cursor}
-          <button class={buttonClass('secondary', 'sm', 'justify-self-start')} disabled={busy} onclick={() => attempt(() => list(true))} data-testid="mail-older">{t('older')}</button>
-        {/if}
-        <div class="grid gap-2 rounded-xl border border-line bg-surface-2/60 p-3">
-          {#if draft.in_reply_to}
-            <div class="flex items-center gap-2 text-[12px] text-muted">
-              <Icon name="reply" />{t('replyingTo')} <span class="font-mono">{draft.in_reply_to.slice(0, 16)}</span>
-              <button class={buttonClass('ghost', 'xs')} onclick={() => (draft.in_reply_to = '')}>{t('cancel')}</button>
-            </div>
-          {:else}
-            <Field label={t('mailTo')}><input bind:value={draft.to} class="font-mono text-[12.5px]" data-testid="mail-to" /></Field>
-          {/if}
-          <Field label={t('subject')}><input bind:value={draft.subject} /></Field>
-          <Field label={t('message')}><textarea bind:value={draft.text} rows="4" data-testid="mail-text"></textarea></Field>
-          <div class="flex flex-wrap items-center justify-end gap-2">
-            <Select
-              bind:value={draft.reply_mailbox_id}
-              options={[
-                { value: '', label: t('noReplyCard') },
-                ...mailboxes.filter((b) => b.status === 'open').map((box) => ({ value: box.mailbox_id, label: `${t('replyCard')} ${box.mailbox_id.slice(0, 8)}` }))
-              ]}
-            />
-            <button class={buttonClass('primary')} disabled={busy || !draft.text.trim() || (!draft.to.trim() && !draft.in_reply_to)} data-testid="mail-send" onclick={send}>
-              <Icon name="send" class="rtl:-scale-x-100" />{t('send')}
-            </button>
-          </div>
-        </div>
-      {:else if busy}
-        <p class="text-[12.5px] text-faint">{t('loading')}</p>
-      {/if}
-      <details class="text-[12px] text-faint" data-testid="mail-blocked">
-        <summary class="cursor-pointer">{t('blockedSenders', { n: blocked.length })}</summary>
-        <p class="mt-1">{t('blockedSendersHint')}</p>
-        <ul class="mt-1 grid gap-0.5 font-mono text-[11.5px]">
-          {#each blocked as sender (sender)}<li class="break-all">{sender}</li>{/each}
-        </ul>
       </details>
+      <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+        <span class="text-[12px] text-muted">{t('agentPermissionsHint')}</span><button class={buttonClass('ghost', 'sm')} onclick={manage}
+          ><Icon name="security" />{t('tabCapabilities')}</button
+        >
+      </div>
     </div>
   </Section>
-
   <Confirm
     bind:open={() => !!closing, (open) => !open && (closing = null)}
     title={t('closeMailboxTitle')}

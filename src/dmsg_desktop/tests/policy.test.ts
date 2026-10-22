@@ -88,7 +88,7 @@ test('windows never decide or grant, and never send human', () => {
     assert.equal(windowParams(method, { source: 'cli' }).source, 'gui', method)
 })
 
-test('windows run only the Mail and Knowledge tools as an Agent ID', () => {
+test('windows inspect Agent content and maintain mailboxes without authoring or consuming unread mail', () => {
   // The audit record names the desktop as the way in.
   assert.deepEqual(windowParams('ap/call', { agent: 'claude', tool: 'agent_protocols_mail_sync', input: {} }), {
     agent: 'claude',
@@ -96,8 +96,12 @@ test('windows run only the Mail and Knowledge tools as an Agent ID', () => {
     input: {},
     source: 'gui'
   })
-  assert.equal(DESKTOP_TOOLS.size, 10)
+  assert.equal(DESKTOP_TOOLS.size, 8)
+  assert.throws(() => windowParams('ap/call', { tool: 'agent_protocols_mail_list', input: { mark_read: true } }), { code: 'FORBIDDEN' })
+  assert.deepEqual(windowParams('ap/call', { tool: 'agent_protocols_mail_list', input: { unread_only: true } }).input, { unread_only: true })
   for (const tool of [
+    'agent_protocols_mail_send',
+    'agent_protocols_knowledge_submit',
     'agent_protocols_room_send_message',
     'agent_protocols_delegation_grant',
     'agent_protocols_identity_current',

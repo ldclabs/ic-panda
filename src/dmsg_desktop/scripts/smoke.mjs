@@ -33,6 +33,7 @@
 // hides it, after leaving macOS full screen.
 // Run with `pnpm test:e2e`.
 import { walletFixture } from './wallet-fixture.mjs'
+import { agentFixture } from './agent-fixture.mjs'
 import { WALLET_CREATION_PAUSED } from '../src/shared/wallet-availability.ts'
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
@@ -1190,26 +1191,7 @@ const methods = {
       accepted_at: Date.now() - 86_400_000
     }
   ],
-  'ap/call': (p) => {
-    switch (p.tool) {
-      case 'agent_protocols_mail_mailboxes_list':
-        return { result: { mailboxes: [{ mailbox_id: 'mb1', address: 'mail:claude@relay.example', routes: [], status: 'open', unread_count: 1, expires_at: Date.now() + 86_400_000 }] } }
-      case 'agent_protocols_mail_list':
-        return {
-          result: {
-            unread_count: 1,
-            messages: [
-              { direction: 'received', message_id: 'm1', thread_id: 't1', from: 'did:agent:other', to: claude, mailbox_id: 'mb1', subject: 'Plan', created_at: Date.now(), expires_at: Date.now() + 86_400_000, received_at: Date.now(), reply_address: 'mail:other@relay.example', parts: [{ media_type: 'text/plain', size: 15, text: 'Mail for Claude' }], read: false }
-            ]
-          }
-        }
-      case 'agent_protocols_mail_send':
-        assert.deepEqual(p.input, { text: 'Reply from the desktop', subject: 'Re: Plan', in_reply_to: 'm1' })
-        return { result: { status: 'delivered', message: { message_id: 'm2' } } }
-      default:
-        return { error: { code: 'not_found', message: p.tool } }
-    }
-  },
+  'ap/call': agentFixture(claude),
   'mcp-events/status': () => ({ state: 'unlocked', fetching: true, last_fetch: null, rejected: 0 }),
   'mcp-events/list': () => ({ endpoints }),
   'mcp-events/create': (p) => {
@@ -2218,21 +2200,45 @@ try {
   await waitFor(() => latest('agent/grant').params.replaces === `${account}.c1`)
   assert.equal(latest('agent/grant').params.days, 90)
 
-  // Mail as a hosted Agent ID; a window runs only the Mail and Knowledge tools.
+  // Humans inspect correspondence without sending or consuming the Agent's unread queue.
   await main.click('[data-testid="agents-tab-mail"]')
-  await main.click('[data-testid="mail-open"]')
-  await main.waitForSelector('text=Mail for Claude')
-  await main.click('[data-testid="mail-messages"] >> text=/^(Reply|回复)$/')
-  await main.fill('[data-testid="mail-text"]', 'Reply from the desktop')
-  await main.click('[data-testid="mail-send"]')
-  await waitFor(() => calls.some((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_send'))
-  await assert.rejects(
-    main.evaluate(() => window.dmsg.call('ap/call', { tool: 'agent_protocols_room_send_message', input: {} })),
-    /FORBIDDEN/
-  )
-  assert.ok(calls.filter((c) => c.method === 'ap/call').every((c) => /^agent_protocols_(mail|knowledge)_/.test(c.params.tool)))
+  await main.waitForSelector('[data-testid="mail-messages"] >> text=Review the cache experiment')
+  await main.click('[data-testid="mail-messages"] >> text=Review the cache experiment')
+  await main.waitForSelector('[data-testid="mail-detail"] >> text=Unread by Agent')
+  assert.equal(await main.locator('[data-testid="mail-send"]').count(), 0)
+  assert.ok(calls.filter((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_list').every((c) => !c.params.input.mark_read))
+  await main.locator('[data-testid="agent-mail"]').screenshot({ path: join(shots, 'agent-mail.png') })
+  await main.click('[data-testid="mail-folder"] [data-value="sent"]')
+  await main.waitForSelector('[data-testid="mail-messages"] >> text=Experiment notes received')
+  assert.equal(latest('ap/call').params.input.direction, 'sent')
+  await main.click('[data-testid="mail-sync"]')
+  await main.waitForSelector('text=queued 1')
+  for (const tool of ['agent_protocols_room_send_message', 'agent_protocols_mail_send', 'agent_protocols_knowledge_submit']) {
+    await assert.rejects(main.evaluate((tool) => window.dmsg.call('ap/call', { tool, input: {} }), tool), /FORBIDDEN/)
+  }
+  await assert.rejects(main.evaluate(() => window.dmsg.call('ap/call', { tool: 'agent_protocols_mail_list', input: { mark_read: true } })), /FORBIDDEN/)
   await main.click('[data-testid="agents-tab-knowledge"]')
-  await main.waitForSelector('[data-testid="knowledge-payload"]')
+  await main.waitForSelector('[data-testid="knowledge-items"] >> text=Language belongs in the cache key')
+  assert.equal(latest('ap/call').params.input.actor, claude)
+  assert.equal(latest('ap/call').params.input.type, 'knowledge.publish')
+  await main.click('[data-testid="knowledge-more"]')
+  await main.waitForSelector('[data-testid="knowledge-items"] >> text=A follow-up observation')
+  assert.equal(latest('ap/call').params.input.cursor, '1')
+  await main.click('[data-testid="knowledge-items"] >> text=Language belongs in the cache key')
+  await main.waitForSelector('[data-testid="knowledge-found"] >> text=Retracted by author')
+  await main.waitForSelector('[data-testid="knowledge-found"] >> text=The two-language case reproduces the reported result.')
+  assert.equal(await main.locator('[data-testid="knowledge-submit"]').count(), 0)
+  await main.locator('[data-testid="agent-knowledge"]').screenshot({ path: join(shots, 'agent-knowledge.png') })
+  await main.click('[data-testid="knowledge-items"] >> text=A follow-up observation')
+  await main.waitForSelector('[data-testid="knowledge-found"] >> text=Status check incomplete')
+  assert.equal(await main.locator('[data-testid="knowledge-found"] >> text=Not retracted here').count(), 0)
+  await main.click('[data-testid="knowledge-mode"] [data-value="knowledge.assess"]')
+  await main.waitForSelector('[data-testid="knowledge-empty"]')
+  assert.equal(await main.locator('[data-testid="knowledge-found"]').count(), 0)
+  await main.click('[data-testid="knowledge-mode"] [data-value="search"]')
+  await main.fill('[data-testid="knowledge-text"]', 'cache')
+  await main.click('[data-testid="knowledge-look"]')
+  await main.waitForSelector('[data-testid="knowledge-items"] >> text=Language belongs in the cache key')
   // Discourse shows what the connector holds, read from its local state only.
   await main.click('[data-testid="agents-tab-discourse"]')
   await main.click('[data-testid="discourse-rooms"] >> text=Planning')

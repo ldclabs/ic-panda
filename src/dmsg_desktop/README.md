@@ -221,8 +221,12 @@ Rules (`src/main/policy.ts`):
     redirects; the window loads nothing from the network. Successful document
     publication or retry emits `profile/changed`, refreshing the sidebar's
     name and avatar. Uploading or editing an unpublished draft does not.
-- `ap/call` runs only the Agent Mail and Agent Knowledge tools
-  (`DESKTOP_TOOLS`) as a hosted Agent ID, in the connector session `gui`. The MCP Events methods only manage
+- `ap/call` allows mailbox maintenance and inspection of Agent Mail and public
+  Agent Knowledge (`DESKTOP_TOOLS`), in the connector session `gui`. The desktop
+  cannot send/reply, publish/assess/retract knowledge, or mark Agent mail read.
+  Mail viewing preserves the Agent’s unread queue; Knowledge defaults to the
+  selected Agent’s contributions and shows service-scoped lifecycle and evidence.
+  The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for
   agents.
 - A vault item's hidden field is shown, or copied, only on a second click
@@ -363,8 +367,9 @@ and notifications instead of the system's. It covers:
 - team wallets: an activation payment that created no wallet refunded
   with one click and no approval request, and one that waits for its
   quote to expire;
-- agents: a grant whose approval window shows the agent it names, mail read
-  and answered as an Agent ID, a refused non-Mail tool, an MCP Events
+- agents: a grant whose approval window shows the agent it names, mail inspected
+  without changing Agent read marks, public knowledge scoped by Agent and service,
+  refused authoring tools, an MCP Events
   endpoint whose secret shows once, and a delivery notification without its
   content;
 - a web checkout that cannot be approved before it is quoted;

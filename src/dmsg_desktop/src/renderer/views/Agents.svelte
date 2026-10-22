@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import Page from '../components/page/Page.svelte'
-  import TabBar from '../components/page/TabBar.svelte'
+  import Icon from '../components/Icon.svelte'
+  import { cn } from '../components/ui'
   import { toast } from '../components/toast.svelte'
   import { t } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single } from '../rpc'
@@ -27,6 +28,7 @@
   type Tab = 'overview' | 'ids' | 'capabilities' | 'discourse' | 'mail' | 'knowledge' | 'events' | 'audit'
 
   let tab = $state<Tab>('overview')
+  let inspectedAgent = $state<string | null>(null)
   let principal = $state<any>(null)
   let principalError = $state('')
   let credentials = $state<any[]>([])
@@ -38,6 +40,10 @@
   let busy = $state(false)
 
   const unlocked = $derived(status?.state === 'unlocked')
+
+  $effect(() => {
+    if (inspectedAgent && !hosted.agents.some((agent: any) => agent.agent_id === inspectedAgent)) inspectedAgent = null
+  })
 
   const fail = (e: unknown) => toast(() => errorText(e))
 
@@ -124,10 +130,38 @@
     { value: 'events', label: t('tabEvents'), icon: 'webhook' as const },
     { value: 'audit', label: t('tabAudit'), icon: 'audit' as const }
   ])
+  const groups = $derived([
+    { label: t('agentNavIdentity'), items: tabs.slice(0, 3) },
+    { label: t('agentNavActivity'), items: tabs.slice(3, 6) },
+    { label: t('agentNavOperations'), items: tabs.slice(6) }
+  ])
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-  <TabBar bind:value={() => tab, (next) => (tab = next as Tab)} items={tabs} label={t('agents')} testid="agents-tab" />
+  <nav class="flex shrink-0 gap-5 overflow-x-auto border-b border-line px-8 pt-3 [scrollbar-width:none]" aria-label={t('agents')}>
+    {#each groups as group}
+      <div class="shrink-0">
+        <p class="px-2 pb-1 text-[10.5px] font-medium text-faint">{group.label}</p>
+        <div class="flex gap-1">
+          {#each group.items as item (item.value)}
+            <button
+              class={cn(
+                'relative flex h-10 items-center gap-1.5 rounded-t-lg px-2.5 text-[13px] outline-none transition-colors hover:bg-wash focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-forest',
+                tab === item.value ? 'bg-pale font-medium text-forest' : 'text-muted'
+              )}
+              aria-current={tab === item.value ? 'page' : undefined}
+              onclick={() => (tab = item.value as Tab)}
+              data-testid={`agents-tab-${item.value}`}
+            >
+              <Icon name={item.icon} />{item.label}
+              {#if item.count}<span class="rounded-full bg-wash px-1.5 text-[10.5px] tabular-nums">{item.count}</span>{/if}
+              {#if tab === item.value}<span class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-forest"></span>{/if}
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/each}
+  </nav>
   <div class="min-h-0 flex-1">
     {#if tab === 'overview'}
       <Page wide><Overview {principal} {principalError} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {run} bind:delegate /></Page>
@@ -138,9 +172,27 @@
     {:else if tab === 'discourse'}
       <Page wide><Discourse agents={hosted.agents} active={hosted.active} /></Page>
     {:else if tab === 'mail'}
-      <Page><Mail agents={hosted.agents} active={hosted.active} blocked={hosted.blocked_senders ?? []} {unlocked} /></Page>
+      <Page wide
+        ><Mail
+          agents={hosted.agents}
+          active={inspectedAgent ?? hosted.active}
+          selectAgent={(id) => (inspectedAgent = id)}
+          blocked={hosted.blocked_senders ?? []}
+          {unlocked}
+          manage={() => (tab = 'capabilities')}
+        /></Page
+      >
     {:else if tab === 'knowledge'}
-      <Page><Knowledge agents={hosted.agents} active={hosted.active} hosts={hosted.hosts} {unlocked} /></Page>
+      <Page wide
+        ><Knowledge
+          agents={hosted.agents}
+          active={inspectedAgent ?? hosted.active}
+          selectAgent={(id) => (inspectedAgent = id)}
+          hosts={hosted.hosts}
+          {unlocked}
+          manage={() => (tab = 'capabilities')}
+        /></Page
+      >
     {:else if tab === 'events'}
       <Page><Events agents={hosted.agents} {unlocked} /></Page>
     {:else}
