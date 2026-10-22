@@ -66,6 +66,22 @@ the [account and root contract](../../docs/protocol/account_root_zh.md), the
 the language-independent vectors in
 [tests/vectors/client](../../tests/vectors/client/README.md).
 
+## Vault imports
+
+Vault imports parse 1Password (`.1pux`, CSV), Bitwarden (unencrypted JSON,
+CSV), and browser password CSV exports locally. Source files and the
+decompressed `export.data` are limited to 64 MiB. Previews never include
+hidden field values and confirm the digest of the entire source file;
+only identical item content is unticked as a duplicate. Selected items,
+encrypted chunks and sync jobs are saved in one transaction, so a failed
+batch leaves no partial import. Malformed CSV quoting is rejected and
+rows with the wrong column count are skipped. Bitwarden CSV custom fields
+are preserved together as one hidden field because that format lacks
+their types and unambiguous multiline boundaries. Attachments, passkeys,
+password history and unsupported fields are not imported; the preview
+counts affected items so people can check the originals before removing
+their plaintext exports.
+
 ## Sync
 
 Every local version gets a job when it is written: its uploads, with the

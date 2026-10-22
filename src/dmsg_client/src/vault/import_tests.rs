@@ -43,7 +43,10 @@ fn reads_csv_exports() {
         ,,note,Memo,remember this,,,,,,\n";
     let imported = read(&write(&dir, "bw.csv", bitwarden.as_bytes())).unwrap();
     assert_eq!(imported.items[0].tags, ["Social"]);
-    assert_eq!(imported.items[0].fields.len(), 5);
+    assert_eq!(imported.items[0].fields.len(), 4);
+    let extra = imported.items[0].fields.last().unwrap();
+    assert!(extra.hidden());
+    assert_eq!(extra.value, "PIN: 1234\nQ: A");
     assert_eq!(imported.items[1].kind, "note");
     assert_eq!(imported.items[1].notes, "remember this");
 
@@ -74,6 +77,7 @@ fn reads_bitwarden_json() {
     });
     let imported = read(&write(&dir, "bw.json", json.to_string().as_bytes())).unwrap();
     assert_eq!((imported.format, imported.items.len()), ("bitwarden", 5));
+    assert_eq!(imported.incomplete, 1);
     let git = &imported.items[0];
     assert_eq!((git.value("username"), git.value("password")), ("u", "p"));
     assert_eq!(git.value("url"), "https://git.example");
@@ -147,6 +151,7 @@ fn reads_1password_1pux() {
         (imported.format, imported.skipped, imported.items.len()),
         ("1pux", 1, 2)
     );
+    assert_eq!(imported.incomplete, 1);
     let mail = &imported.items[0];
     assert_eq!(
         (mail.value("username"), mail.value("password")),
@@ -218,4 +223,231 @@ fn previews_then_imports_the_picked_items() {
     let again = client.vault_import_preview(&path).unwrap();
     assert_eq!(again.digest, preview.digest);
     assert!(again.items[0].duplicate && !again.items[1].duplicate);
+}
+
+#[test]
+fn preserves_password_whitespace_and_multiline_custom_fields() {
+    let dir = TempDir::new();
+    let csv = "name,username,password\r\nMail,alice,\"secret\r\n\"\r\nSpaces,bob,   \r\n";
+    let parsed = read(&write(&dir, "passwords.csv", csv.as_bytes())).unwrap();
+    assert_eq!(parsed.items[0].value("password"), "secret\r\n");
+    assert_eq!(parsed.items[1].value("password"), "   ");
+    let parsed = bitwarden(&serde_json::json!({"items": [{
+        "type": 1, "name": "Mail", "login": {"password": " \t\r\n"},
+        "fields": [{"name": "Backup", "type": 1, "value": "first\nsecond\n"}]
+    }]}))
+    .unwrap();
+    assert_eq!(parsed.items[0].value("password"), " \t\r\n");
+    assert_eq!(
+        parsed.items[0].fields.last().unwrap().value,
+        "first\nsecond\n"
+    );
+}
+
+#[test]
+fn rejects_broken_csv_and_skips_misaligned_rows() {
+    for malformed in [
+        "name,username,password\nSite,alice,\"unfinished",
+        "name,username,password\nSite,alice,\"closed\"garbage\n",
+        "name,username,password\nSite,alice,unquoted\"quote\n",
+    ] {
+        assert_eq!(csv(malformed).err(), Some(invalid("format")));
+    }
+    let parsed =
+        csv("name,username,password\rMissing,alice\rExtra,bob,pw,shifted\rGood,carol,\"p,w\"\r")
+            .unwrap();
+    assert_eq!(parsed.skipped, 2);
+    assert_eq!(parsed.items.len(), 1);
+    assert_eq!(parsed.items[0].value("password"), "p,w");
+}
+
+#[test]
+fn duplicates_require_all_content_to_match() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let path = write(
+        &dir,
+        "export.csv",
+        b"name,username,password,url,notes\nSite,Alice,old,https://site.example/A,first\n",
+    );
+    let preview = client.vault_import_preview(&path).unwrap();
+    client.vault_import(&path, &preview.digest, &[0]).unwrap();
+    let cases = [
+        ("Site,Alice,old,https://site.example/A,first", true),
+        ("Site,Alice,new,https://site.example/A,first", false),
+        ("Site,alice,old,https://site.example/A,first", false),
+        ("Site,Alice,old,https://site.example/a,first", false),
+        ("Site,Alice,old,https://site.example/A,second", false),
+    ];
+    for (row, duplicate) in cases {
+        std::fs::write(
+            &path,
+            format!("name,username,password,url,notes\n{row}\n{row}\n"),
+        )
+        .unwrap();
+        let preview = client.vault_import_preview(&path).unwrap();
+        assert_eq!(preview.items[0].duplicate, duplicate, "{row}");
+        assert!(preview.items[1].duplicate);
+    }
+}
+
+#[test]
+fn reads_1password_form_types_and_keeps_hidden_template_fields_hidden() {
+    let entry = serde_json::json!({
+        "categoryUuid": "001", "overview": {"title": "Form"},
+        "details": {"loginFields": [
+            {"name": "count", "fieldType": "N", "value": "42"},
+            {"name": "comment", "fieldType": "A", "value": "line 1\nline 2\n"},
+            {"name": "phone", "fieldType": "TEL", "value": "+1 234"},
+            {"name": "password", "type": "P", "value": "hidden"},
+            {"designation": "username", "fieldType": "P", "value": "hidden-user"}
+        ]}
+    });
+    let item = onepux_item(&entry, &mut false);
+    for value in ["42", "line 1\nline 2\n", "+1 234"] {
+        assert!(item.fields.iter().any(|f| f.value == value));
+    }
+    assert!(
+        item.fields
+            .iter()
+            .find(|f| f.value == "hidden")
+            .unwrap()
+            .hidden()
+    );
+    assert!(item.field("username").unwrap().hidden());
+    assert_eq!(shown(&item, "username"), "");
+    let mut blank = item;
+    blank.title.clear();
+    let mut kept = Vec::new();
+    keep(blank, &mut kept, &mut 0);
+    assert_eq!(kept[0].title, "Untitled");
+}
+
+#[test]
+fn changed_file_is_rejected_and_locked_clients_do_not_read_exports() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let path = write(&dir, "export.csv", b"name,password\nSite,old\n");
+    let preview = client.vault_import_preview(&path).unwrap();
+    // Even a change that parses to the same items invalidates confirmation.
+    std::fs::write(&path, b"name,password\r\nSite,old\r\n").unwrap();
+    assert_eq!(
+        client.vault_import(&path, &preview.digest, &[0]).err(),
+        Some(Error::VersionConflict)
+    );
+    std::fs::write(&path, b"name,password\nSite,new\n").unwrap();
+    assert_eq!(
+        client.vault_import(&path, &preview.digest, &[0]).err(),
+        Some(Error::VersionConflict)
+    );
+    assert!(client.vault_list(&Filter::default()).unwrap().is_empty());
+    client.lock();
+    let missing = dir.0.join("missing.csv");
+    assert_eq!(
+        client.vault_import_preview(&missing).err(),
+        Some(Error::Locked)
+    );
+    assert_eq!(
+        client.vault_import(&missing, &preview.digest, &[0]).err(),
+        Some(Error::Locked)
+    );
+}
+
+#[test]
+fn export_size_limit_applies_to_archives_too() {
+    let dir = TempDir::new();
+    for (name, head) in [
+        ("large.csv", &b"name"[..]),
+        ("large.1pux", &b"PK\x03\x04"[..]),
+    ] {
+        let path = write(&dir, name, head);
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_len(MAX_EXPORT + 1)
+            .unwrap();
+        assert_eq!(read(&path).err(), Some(Error::QuotaExceeded));
+    }
+}
+
+#[test]
+fn a_failed_batch_leaves_no_items_or_sync_jobs() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let before = client.workspace.store.jobs::<cbor2::Value>().unwrap();
+    let good = Item::new("note", "Good", 1);
+    let bad = Item::new("note", "", 1);
+    assert!(client.vault_add_all(vec![good.clone(), bad]).is_err());
+    assert!(client.vault_list(&Filter::default()).unwrap().is_empty());
+    assert_eq!(
+        client.workspace.store.jobs::<cbor2::Value>().unwrap(),
+        before
+    );
+    assert_eq!(client.vault_add_all(vec![good]).unwrap().len(), 1);
+}
+
+#[test]
+fn a_storage_failure_rolls_back_the_whole_import_and_allows_retry() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let path = write(
+        &dir,
+        "export.csv",
+        b"name,password\nOne,secret1\nTwo,secret2\n",
+    );
+    let preview = client.vault_import_preview(&path).unwrap();
+    let database = dir
+        .0
+        .join("accounts")
+        .join(crate::testing::account().id.to_string())
+        .join("workspace.sqlite");
+    let db = rusqlite::Connection::open(database).unwrap();
+    let counts = || {
+        ["objects", "heads", "chunks", "jobs"].map(|table| {
+            db.query_row(&format!("SELECT count(*) FROM {table}"), [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap()
+        })
+    };
+    let before = counts();
+    db.execute_batch(
+        "CREATE TRIGGER fail_second_import BEFORE INSERT ON objects
+        WHEN NEW.kind = 'vault' AND (SELECT count(*) FROM objects WHERE kind = 'vault') = 1
+        BEGIN SELECT RAISE(FAIL, 'injected import storage failure'); END;",
+    )
+    .unwrap();
+    assert!(matches!(
+        client.vault_import(&path, &preview.digest, &[0, 1]),
+        Err(Error::Unavailable(_))
+    ));
+    assert_eq!(counts(), before);
+    assert!(client.vault_list(&Filter::default()).unwrap().is_empty());
+    db.execute_batch("DROP TRIGGER fail_second_import").unwrap();
+    let ids = client
+        .vault_import(&path, &preview.digest, &[0, 1])
+        .unwrap();
+    assert_eq!(ids.len(), 2);
+    assert_eq!(client.vault_list(&Filter::default()).unwrap().len(), 2);
+    assert_eq!(
+        client.vault_show(&ids[1]).unwrap().item.value("password"),
+        "secret2"
+    );
+}
+
+#[test]
+fn omitted_data_is_reported_and_invalid_json_entries_are_not_empty_notes() {
+    let imported = bitwarden(&serde_json::json!({"items": [
+        null,
+        {"type": 99, "name": "Future type"},
+        {"type": 1, "name": "Trashed", "deletedDate": "2026-01-01"},
+        {"type": 1, "name": "Passkey", "login": {"fido2Credentials": [{"keyValue": "secret"}]}},
+        {"type": 2, "name": "With history", "passwordHistory": [{"password": "old"}]},
+        {"type": 2, "name": "With file", "attachments": [{"fileName": "private.txt"}]}
+    ]}))
+    .unwrap();
+    assert_eq!(imported.skipped, 3);
+    assert_eq!(imported.incomplete, 3);
+    assert_eq!(imported.items.len(), 3);
 }

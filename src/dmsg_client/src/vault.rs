@@ -27,7 +27,7 @@ use crate::client::Client;
 use crate::codec::{canonical, decode, decode_value};
 use crate::content::{EncryptedObject, MAX_OBJECT, VAULT, record};
 use crate::crypto::random_key;
-use crate::store::{ObjectRow, REPLACED, SYNCED};
+use crate::store::{LOCAL, ObjectRow, REPLACED, SYNCED};
 use crate::upload::random_hex;
 use dmsg_types::{Error, Result, ensure, ensure_valid};
 use serde::{Deserialize, Serialize};
@@ -909,13 +909,60 @@ impl Client {
     /// Add items read from an export, each with a new ID. Returns their IDs.
     ///
     /// # Errors
-    /// As [`Self::vault_create`]; the items before a failing one stay.
+    /// As [`Self::vault_create`]; a failure leaves no items or sync jobs.
     pub fn vault_add_all(&mut self, items: Vec<Item>) -> Result<Vec<String>> {
-        let mut ids = Vec::with_capacity(items.len());
-        for item in items {
-            ids.push(self.vault_add(item)?.id);
-        }
-        Ok(ids)
+        let account = self.account()?.id.to_string();
+        let roots = self.roots()?;
+        let generation = roots.generation;
+        let root = roots.key(generation).ok_or(Error::RecoveryIncomplete)?;
+        let device = hex::encode(*self.workspace.meta.device_id);
+        let now = crate::now_ms();
+        self.workspace.store.atomic(|store| {
+            let mut ids = Vec::with_capacity(items.len());
+            for mut item in items {
+                item.resolved_conflicts = None;
+                if item.created_at == 0 {
+                    item.created_at = now;
+                }
+                if item.updated_at == 0 {
+                    item.updated_at = item.created_at;
+                }
+                item.normalize();
+                ensure(!item.reserved(), Error::Forbidden)?;
+                item.validate()?;
+                let payload = Zeroizing::new(canonical(&item));
+                ensure(payload.len() <= MAX_OBJECT, Error::QuotaExceeded)?;
+                let record = EncryptedObject::seal(
+                    self.environment(),
+                    (generation, root),
+                    &account,
+                    &device,
+                    VAULT,
+                    random_hex(),
+                    None,
+                    false,
+                    &payload,
+                    now,
+                );
+                let job = self.prepare_job(&record, None, now)?;
+                let row = ObjectRow {
+                    key: record.key.clone(),
+                    item: record.id.clone(),
+                    revision: record.revision.clone(),
+                    kind: VAULT.into(),
+                    frame: canonical(&record),
+                    state: LOCAL.into(),
+                    conflict: false,
+                    resolved: false,
+                    created_at: now,
+                };
+                store.put_object(&row)?;
+                store.set_job(&row.key, &job)?;
+                store.set_head(&row.item, &row.revision, VAULT)?;
+                ids.push(record.id);
+            }
+            Ok(ids)
+        })
     }
 
     /// Add an item under a fixed ID, such as a key whose ID its purpose

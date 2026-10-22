@@ -541,6 +541,13 @@ pub async fn vault(remote: &Remote, json: bool, command: VaultCommand) -> Result
                         "{format}: {n} items, {new} new, {skipped} left out. Add them with --yes.",
                         "{format}：{n} 个条目，{new} 个新条目，{skipped} 个未读入。加上 --yes 导入。"
                     ));
+                    let incomplete = p["incomplete"].as_u64().unwrap_or(0);
+                    if incomplete > 0 {
+                        lines.push(tr!(
+                            "{incomplete} items contain omitted attachments, passkeys, password history or unsupported fields. Check the originals.",
+                            "{incomplete} 个条目含未导入的附件、通行密钥、密码历史或不支持的字段，请与原始条目核对。"
+                        ));
+                    }
                     lines.join("\n")
                 });
                 return Ok(());
@@ -549,8 +556,8 @@ pub async fn vault(remote: &Remote, json: bool, command: VaultCommand) -> Result
                 eprintln!(
                     "{}",
                     tr!(
-                        "The export file still holds every secret in plain text; delete it once the import is done.",
-                        "导出文件仍以明文保存全部秘密；导入完成后请删除它。"
+                        "The export file holds secrets in plain text. Verify the import and safely preserve omitted data before deleting it.",
+                        "导出文件以明文保存秘密。请核对导入结果，并妥善保存未导入的内容后再删除它。"
                     )
                 );
             }

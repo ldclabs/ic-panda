@@ -526,6 +526,7 @@ const methods = {
     format: 'csv',
     digest: 'd1',
     skipped: 1,
+    incomplete: 1,
     items: [
       { index: 0, type: 'login', title: 'Imported mail', username: 'mira', url: 'https://mail.example', tags: [], fields: 3, duplicate: false },
       { index: 1, type: 'login', title: 'Smoke login', username: 'panda', url: 'https://example.com', tags: [], fields: 3, duplicate: true }
@@ -2517,15 +2518,50 @@ try {
   await main.waitForSelector('[data-testid="vault-new-leave"]')
   await main.click('[data-testid="vault-new-discard"]')
   await main.waitForSelector('[data-testid="vault-new-dialog"]', { state: 'detached' })
-  // An import reads the export the person picked and adds the ticked items.
+  // Closing while a file is being read must not revive its preview later.
   await main.click('[data-testid="vault-import-open"]')
+  const finishPreview = hold('vault/import_preview')
+  await answer('__open', join(picks, 'abandoned.csv'))
+  await main.click('[data-testid="vault-import-choose"]')
+  await waitFor(() => latest('vault/import_preview')?.params.path === join(picks, 'abandoned.csv'))
+  await main.keyboard.press('Escape')
+  await main.waitForSelector('[data-testid="vault-import"]', { state: 'detached' })
+  await finishPreview()
+  await main.click('[data-testid="vault-import-open"]')
+  await main.waitForSelector('[data-testid="vault-import-choose"]:enabled')
+  assert.equal(await main.locator('[data-testid="vault-import-items"]').count(), 0)
+  // An import reads the export the person picked and adds the ticked items.
   await answer('__open', join(picks, 'export.csv'))
   await main.click('[data-testid="vault-import-choose"]')
   await main.waitForSelector('[data-testid="vault-import-items"] >> text=Imported mail')
   assert.equal(await main.locator('[data-testid="vault-import-tick"][data-state="checked"]').count(), 1)
+  assert.match(await main.textContent('[data-testid="vault-import-incomplete"]'), /not imported/)
+  // Replacing the file clears its old selection; cancelling that picker leaves no stale preview.
+  await answer('__open', null)
+  await main.click('[data-testid="vault-import-rechoose"]')
+  await main.waitForSelector('[data-testid="vault-import-choose"]:enabled')
+  await answer('__open', join(picks, 'export.csv'))
+  await main.click('[data-testid="vault-import-choose"]')
+  await main.waitForSelector('[data-testid="vault-import-items"]')
   await main.click('[data-testid="vault-import-add"]')
   await waitFor(() => latest('vault/import'))
   assert.deepEqual(latest('vault/import').params, { path: join(picks, 'export.csv'), digest: 'd1', picks: [0] })
+  await main.waitForSelector('[data-testid="vault-import"]', { state: 'detached' })
+  // The main process rejects an obsolete preview, including after a session change,
+  // and consumes a preview before awaiting the daemon's reply.
+  await answer('__open', join(picks, 'export.csv'))
+  const oldPreview = await main.evaluate(() => window.dmsg.vaultImportPreview())
+  emit('session/changed')
+  await assert.rejects(main.evaluate((session) => window.dmsg.vaultImport(session, [0]), oldPreview.session), /VERSION_CONFLICT/)
+  await answer('__open', join(picks, 'export.csv'))
+  const freshPreview = await main.evaluate(() => window.dmsg.vaultImportPreview())
+  await assert.rejects(main.evaluate((session) => window.dmsg.vaultImport(session, [0]), oldPreview.session), /VERSION_CONFLICT/)
+  const finishImport = hold('vault/import')
+  const emptyImport = main.evaluate((session) => window.dmsg.vaultImport(session, []), freshPreview.session)
+  await waitFor(() => held.get('vault/import'))
+  await assert.rejects(main.evaluate((session) => window.dmsg.vaultImport(session, []), freshPreview.session), /VERSION_CONFLICT/)
+  await finishImport()
+  await emptyImport
   // Many items at once: a tag for two of them.
   await main.click('[data-testid="vault-choose"]')
   await main.click('[data-testid="vault-list"] >> text=Smoke note')

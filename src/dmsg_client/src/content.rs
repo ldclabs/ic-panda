@@ -436,7 +436,7 @@ impl Client {
             payload,
             crate::now_ms(),
         );
-        let job = self.prepare_job(&record, file)?;
+        let job = self.prepare_job(&record, file, record.created_at)?;
         let head = self.workspace.store.head(&record.id)?;
         let conflict = head != record.parent;
         let row = ObjectRow {

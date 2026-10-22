@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -20,26 +21,39 @@
   let ticked = $state<Set<number>>(new Set())
   let busy = $state(false)
   let error = $state('')
+  let generation = 0
 
   const count = $derived(ticked.size)
 
   $effect(() => {
     if (!open) {
+      generation += 1
       preview = null
+      ticked = new Set()
       error = ''
+      void window.dmsg.vaultImportCancel().catch(() => {})
     }
   })
 
+  onDestroy(() => {
+    generation += 1
+    void window.dmsg.vaultImportCancel().catch(() => {})
+  })
+
   async function choose() {
+    if (busy) return
+    const current = ++generation
     busy = true
+    preview = null
+    ticked = new Set()
     error = ''
     try {
       const read = await bridge<any>(() => window.dmsg.vaultImportPreview())
-      if (!read) return
+      if (!read || current !== generation || !open) return
       preview = read
       ticked = new Set(read.items.filter((i: any) => !i.duplicate).map((i: any) => i.index))
     } catch (e) {
-      error = errorText(e)
+      if (current === generation && open) error = errorText(e)
     } finally {
       busy = false
     }
@@ -53,14 +67,21 @@
   }
 
   async function add() {
+    if (busy || !preview) return
+    const current = generation
+    const session = preview.session
     busy = true
     error = ''
     try {
-      const added = await bridge<{ ids: string[] }>(() => window.dmsg.vaultImport([...ticked]))
-      open = false
+      const added = await bridge<{ ids: string[] }>(() => window.dmsg.vaultImport(session, [...ticked]))
+      if (current === generation) open = false
       toast(() => t('imported', { n: added.ids.length }), { ms: 8000 })
     } catch (e) {
-      error = errorText(e)
+      if (current === generation && open) {
+        preview = null
+        ticked = new Set()
+        error = errorText(e)
+      }
     } finally {
       busy = false
     }
@@ -79,8 +100,9 @@
         <span>{t('importRead', { n: preview.items.length, format: preview.format })}</span>
         {#if preview.skipped}<span class="text-warn">{t('importSkipped', { n: preview.skipped })}</span>{/if}
         <span class="min-w-0 flex-1"></span>
-        <button class={buttonClass('ghost', 'xs')} onclick={() => (ticked = new Set(preview.items.map((i: any) => i.index)))}>{t('selectAll')}</button>
-        <button class={buttonClass('ghost', 'xs')} onclick={() => (ticked = new Set())}>{t('selectNone')}</button>
+        <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={choose} data-testid="vault-import-rechoose">{t('chooseExport')}</button>
+        <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => (ticked = new Set(preview.items.map((i: any) => i.index)))}>{t('selectAll')}</button>
+        <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={() => (ticked = new Set())}>{t('selectNone')}</button>
       </div>
       <ul class="grid max-h-[50vh] gap-0.5 overflow-y-auto rounded-xl border border-line p-1" data-testid="vault-import-items">
         {#each preview.items as entry (entry.index)}
@@ -95,6 +117,7 @@
           </li>
         {/each}
       </ul>
+      {#if preview.incomplete}<p class="text-[12px] text-warn" data-testid="vault-import-incomplete">{t('importIncomplete', { n: preview.incomplete })}</p>{/if}
       <p class="flex items-start gap-1.5 text-[12px] text-warn"><Icon name="warning" class="mt-0.5 shrink-0" />{t('deleteExport')}</p>
     </div>
   {/if}

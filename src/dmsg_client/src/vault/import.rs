@@ -4,14 +4,14 @@
 //! hidden values, choose items, and the same file is read again to add
 //! them; the preview's digest makes sure it is still the same content.
 
-use super::{Field, Filter, Item, RESERVED_TAG, template};
+use super::{Field, Filter, Item, RESERVED_TAG};
 use crate::client::Client;
 use crate::codec::{canonical, sha256};
 use dmsg_types::{Error, Result, ensure};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::BTreeSet;
-use std::io::Read;
+use std::io::{Cursor, Read, Seek};
 use std::path::Path;
 use zeroize::Zeroizing;
 
@@ -20,12 +20,16 @@ const MAX_EXPORT: u64 = 64 * 1024 * 1024;
 
 /// An export, read.
 pub struct Imported {
+    /// Digest of the entire source file, including data left out of the import.
+    digest: String,
     /// `1pux`, `bitwarden` or `csv`.
     pub format: &'static str,
     /// The items it holds, valid as they are. Times the export lacks are 0.
     pub items: Vec<Item>,
     /// Entries left out: archived or invalid.
     pub skipped: usize,
+    /// Imported entries that also contain unsupported data.
+    pub incomplete: usize,
 }
 
 /// What an import would add, without hidden values.
@@ -37,6 +41,8 @@ pub struct Preview {
     pub digest: String,
     /// Entries left out.
     pub skipped: usize,
+    /// Entries whose attachments, history, passkeys or other fields were omitted.
+    pub incomplete: usize,
     /// The items, in the export's order.
     pub items: Vec<PreviewItem>,
 }
@@ -59,7 +65,7 @@ pub struct PreviewItem {
     pub tags: Vec<String>,
     /// How many fields have a value.
     pub fields: usize,
-    /// An item with the same title, user name and address is already here.
+    /// An item with the same content is already here or earlier in this export.
     pub duplicate: bool,
 }
 
@@ -74,29 +80,36 @@ fn invalid(what: &str) -> Error {
 /// formats, `Error::InvalidInput("encrypted")` for an encrypted export and
 /// `Error::QuotaExceeded` for one over 64 MiB.
 pub fn read(path: &Path) -> Result<Imported> {
-    let mut file = std::fs::File::open(path).map_err(crate::storage)?;
-    let size = file.metadata().map_err(crate::storage)?.len();
-    let mut head = [0u8; 4];
-    let read = file.read(&mut head).map_err(crate::storage)?;
-    if read == 4 && head == *b"PK\x03\x04" {
-        return onepux(path);
-    }
-    ensure(size <= MAX_EXPORT, Error::QuotaExceeded)?;
-    let bytes = Zeroizing::new(std::fs::read(path).map_err(crate::storage)?);
-    let text = std::str::from_utf8(&bytes).map_err(|_| invalid("format"))?;
-    let text = text.trim_start_matches('\u{feff}');
-    if text.trim_start().starts_with('{') {
-        let json: Value = serde_json::from_str(text).map_err(|_| invalid("format"))?;
-        return bitwarden(&json);
-    }
-    csv(text)
+    let file = std::fs::File::open(path).map_err(crate::storage)?;
+    let metadata = file.metadata().map_err(crate::storage)?;
+    ensure(metadata.is_file(), invalid("format"))?;
+    ensure(metadata.len() <= MAX_EXPORT, Error::QuotaExceeded)?;
+    let mut bytes = Zeroizing::new(Vec::new());
+    file.take(MAX_EXPORT + 1)
+        .read_to_end(&mut bytes)
+        .map_err(crate::storage)?;
+    ensure(bytes.len() as u64 <= MAX_EXPORT, Error::QuotaExceeded)?;
+    let mut imported = if bytes.starts_with(b"PK\x03\x04") {
+        onepux(Cursor::new(&bytes[..]))?
+    } else {
+        let text = std::str::from_utf8(&bytes).map_err(|_| invalid("format"))?;
+        let text = text.trim_start_matches('\u{feff}');
+        if text.trim_start().starts_with('{') {
+            let json: Value = serde_json::from_str(text).map_err(|_| invalid("format"))?;
+            bitwarden(&json)?
+        } else {
+            csv(text)?
+        }
+    };
+    imported.digest = hex::encode(*sha256(&bytes));
+    Ok(imported)
 }
 
 /// Keep an item that is valid once normalized; count it skipped otherwise.
 fn keep(mut item: Item, items: &mut Vec<Item>, skipped: &mut usize) {
     item.tags.retain(|t| !t.trim().starts_with(RESERVED_TAG));
     if item.title.trim().is_empty() {
-        let title: String = [item.value("url"), item.value("username")]
+        let title: String = [shown(&item, "url"), shown(&item, "username")]
             .into_iter()
             .find(|v| !v.is_empty())
             .map(|v| {
@@ -137,8 +150,7 @@ fn keep(mut item: Item, items: &mut Vec<Item>, skipped: &mut usize) {
 /// Put `value` in the template field `id` when the item has it and it is
 /// empty, else add a field.
 fn put(item: &mut Item, id: &str, kind: &str, label: &str, section: &str, value: &str) {
-    let value = value.trim_end_matches(['\r', '\n']);
-    if value.trim().is_empty() {
+    if value.is_empty() {
         return;
     }
     if let Some(field) = item
@@ -146,6 +158,11 @@ fn put(item: &mut Item, id: &str, kind: &str, label: &str, section: &str, value:
         .iter_mut()
         .find(|f| !id.is_empty() && f.id == id && f.value.is_empty())
     {
+        // A source's hidden field must stay hidden even when mapped to
+        // a template field normally displayed as text (such as a user name).
+        if matches!(kind, "concealed" | "otp") {
+            field.kind = kind.into();
+        }
         field.value = value.into();
         return;
     }
@@ -184,8 +201,7 @@ fn text(value: &Value) -> String {
 
 // 1Password
 
-fn onepux(path: &Path) -> Result<Imported> {
-    let file = std::fs::File::open(path).map_err(crate::storage)?;
+fn onepux(file: impl Read + Seek) -> Result<Imported> {
     let mut archive = zip::ZipArchive::new(file).map_err(|_| invalid("format"))?;
     let entry = archive
         .by_name("export.data")
@@ -198,25 +214,45 @@ fn onepux(path: &Path) -> Result<Imported> {
         .map_err(|_| invalid("format"))?;
     ensure(data.len() as u64 <= MAX_EXPORT, Error::QuotaExceeded)?;
     let json: Value = serde_json::from_slice(&data).map_err(|_| invalid("format"))?;
-    let (mut items, mut skipped) = (Vec::new(), 0);
-    for vault in json["accounts"]
+    let (mut items, mut skipped, mut incomplete) = (Vec::new(), 0, 0);
+    let mut vaults = Vec::new();
+    for account in json["accounts"]
         .as_array()
         .ok_or_else(|| invalid("format"))?
-        .iter()
-        .flat_map(|a| a["vaults"].as_array().into_iter().flatten())
     {
-        for entry in vault["items"].as_array().into_iter().flatten() {
+        vaults.extend(
+            account["vaults"]
+                .as_array()
+                .ok_or_else(|| invalid("format"))?,
+        );
+    }
+    for vault in vaults {
+        for entry in vault["items"].as_array().ok_or_else(|| invalid("format"))? {
             if entry["state"] == "archived" {
                 skipped += 1;
                 continue;
             }
-            keep(onepux_item(entry), &mut items, &mut skipped);
+            if !entry["overview"].is_object() || !entry["details"].is_object() {
+                skipped += 1;
+                continue;
+            }
+            let mut omitted = false;
+            let item = onepux_item(entry, &mut omitted);
+            if omitted && item.notes.is_empty() && item.fields.iter().all(|f| f.value.is_empty()) {
+                skipped += 1;
+                continue;
+            }
+            let before = items.len();
+            keep(item, &mut items, &mut skipped);
+            incomplete += usize::from(omitted && items.len() > before);
         }
     }
     Ok(Imported {
+        digest: String::new(),
         format: "1pux",
         items,
         skipped,
+        incomplete,
     })
 }
 
@@ -268,11 +304,15 @@ fn onepux_field(kind: &str, id: &str) -> &'static str {
     }
 }
 
-fn onepux_item(entry: &Value) -> Item {
+fn onepux_item(entry: &Value, omitted: &mut bool) -> Item {
     let overview = &entry["overview"];
     let details = &entry["details"];
+    *omitted |= ["documentAttributes", "passwordHistory", "passkeys"]
+        .iter()
+        .any(|key| populated(&details[*key]))
+        || populated(&entry["file"]);
     let kind = onepux_kind(entry["categoryUuid"].as_str().unwrap_or_default());
-    let seconds = |v: &Value| v.as_u64().unwrap_or(0) * 1000;
+    let seconds = |v: &Value| v.as_u64().and_then(|s| s.checked_mul(1000)).unwrap_or(0);
     let mut item = Item::new(
         kind,
         &text(&overview["title"]),
@@ -289,8 +329,22 @@ fn onepux_item(entry: &Value) -> Item {
     item.notes = text(&details["notesPlain"]);
     for field in details["loginFields"].as_array().into_iter().flatten() {
         let value = text(&field["value"]);
-        match (field["designation"].as_str(), field["fieldType"].as_str()) {
-            (Some("username"), _) => put(&mut item, "username", "text", "", "", &value),
+        let field_type = field["fieldType"]
+            .as_str()
+            .or_else(|| field["type"].as_str());
+        match (field["designation"].as_str(), field_type) {
+            (Some("username"), field_type) => put(
+                &mut item,
+                "username",
+                if field_type == Some("P") {
+                    "concealed"
+                } else {
+                    "text"
+                },
+                "",
+                "",
+                &value,
+            ),
             (Some("password"), _) => put(&mut item, "password", "concealed", "", "", &value),
             (_, Some("P")) => put(
                 &mut item,
@@ -302,10 +356,11 @@ fn onepux_item(entry: &Value) -> Item {
             ),
             (_, Some("E")) => put(&mut item, "", "email", &text(&field["name"]), "", &value),
             (_, Some("U")) => put(&mut item, "", "url", &text(&field["name"]), "", &value),
-            (_, Some("T" | "")) | (_, None) => {
+            (_, Some("TEL")) => put(&mut item, "", "phone", &text(&field["name"]), "", &value),
+            (_, Some("T" | "N" | "A" | "")) | (_, None) => {
                 put(&mut item, "", "text", &text(&field["name"]), "", &value)
             }
-            _ => {}
+            _ => *omitted |= !value.is_empty(),
         }
     }
     put(
@@ -346,11 +401,11 @@ fn onepux_item(entry: &Value) -> Item {
                 continue;
             };
             match (kind, id) {
-                ("identity", "firstname") => {
+                ("identity", "firstname") if variant != "concealed" => {
                     names.0 = text(value);
                     continue;
                 }
-                ("identity", "lastname") => {
+                ("identity", "lastname") if variant != "concealed" => {
                     names.1 = text(value);
                     continue;
                 }
@@ -416,7 +471,10 @@ fn onepux_item(entry: &Value) -> Item {
                     ("concealed", text(&value["privateKey"]))
                 }
                 "string" | "menu" | "gender" | "creditCardType" => ("text", text(value)),
-                _ => continue,
+                _ => {
+                    *omitted |= populated(value);
+                    continue;
+                }
             };
             let target = if variant == "sshKey" {
                 "private_key"
@@ -437,6 +495,16 @@ fn onepux_item(entry: &Value) -> Item {
 
 // Bitwarden
 
+fn populated(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::String(s) => !s.is_empty(),
+        Value::Array(a) => !a.is_empty(),
+        Value::Object(o) => !o.is_empty(),
+        _ => true,
+    }
+}
+
 fn bitwarden(json: &Value) -> Result<Imported> {
     ensure(json["encrypted"] != true, invalid("encrypted"))?;
     let items_json = json["items"].as_array().ok_or_else(|| invalid("format"))?;
@@ -446,15 +514,26 @@ fn bitwarden(json: &Value) -> Result<Imported> {
         .flatten()
         .map(|f| (text(&f["id"]), text(&f["name"])))
         .collect();
-    let (mut items, mut skipped) = (Vec::new(), 0);
+    let (mut items, mut skipped, mut incomplete) = (Vec::new(), 0, 0);
     for entry in items_json {
+        if populated(&entry["deletedDate"]) {
+            skipped += 1;
+            continue;
+        }
         let kind = match entry["type"].as_u64() {
             Some(1) => "login",
+            Some(2) => "note",
             Some(3) => "card",
             Some(4) => "identity",
             Some(5) => "ssh",
-            _ => "note",
+            _ => {
+                skipped += 1;
+                continue;
+            }
         };
+        let mut omitted = populated(&entry["attachments"])
+            || populated(&entry["passwordHistory"])
+            || populated(&entry["login"]["fido2Credentials"]);
         let mut item = Item::new(kind, &text(&entry["name"]), 0);
         item.notes = text(&entry["notes"]);
         item.favorite = entry["favorite"] == true;
@@ -601,8 +680,11 @@ fn bitwarden(json: &Value) -> Result<Imported> {
         for field in entry["fields"].as_array().into_iter().flatten() {
             let kind = match field["type"].as_u64() {
                 Some(1) => "concealed",
-                Some(3) => continue,
-                _ => "text",
+                Some(0 | 2) => "text",
+                _ => {
+                    omitted |= populated(&field["value"]) || populated(&field["linkedId"]);
+                    continue;
+                }
             };
             put(
                 &mut item,
@@ -613,51 +695,68 @@ fn bitwarden(json: &Value) -> Result<Imported> {
                 &text(&field["value"]),
             );
         }
+        let before = items.len();
         keep(item, &mut items, &mut skipped);
+        incomplete += usize::from(omitted && items.len() > before);
     }
     Ok(Imported {
+        digest: String::new(),
         format: "bitwarden",
         items,
         skipped,
+        incomplete,
     })
 }
 
 // CSV
 
-/// RFC 4180 records: quoted fields may hold commas, quotes and newlines.
-fn records(text: &str) -> Vec<Vec<String>> {
+/// RFC 4180 records: reject broken quoting instead of merging or shifting secrets.
+fn records(text: &str) -> Result<Vec<Vec<String>>> {
     let mut rows = Vec::new();
     let (mut row, mut field) = (Vec::new(), String::new());
     let mut chars = text.chars().peekable();
     let mut quoted = false;
+    let mut closed = false;
     while let Some(c) = chars.next() {
         match (quoted, c) {
             (true, '"') if chars.peek() == Some(&'"') => {
                 chars.next();
                 field.push('"');
             }
-            (true, '"') => quoted = false,
+            (true, '"') => {
+                quoted = false;
+                closed = true;
+            }
             (true, c) => field.push(c),
-            (false, '"') if field.is_empty() => quoted = true,
-            (false, ',') => row.push(std::mem::take(&mut field)),
-            (false, '\r') => {}
-            (false, '\n') => {
+            (false, '"') if field.is_empty() && !closed => quoted = true,
+            (false, ',') => {
+                row.push(std::mem::take(&mut field));
+                closed = false;
+            }
+            (false, '\r' | '\n') => {
+                if c == '\r' && chars.peek() == Some(&'\n') {
+                    chars.next();
+                }
                 row.push(std::mem::take(&mut field));
                 rows.push(std::mem::take(&mut row));
+                closed = false;
             }
+            (false, '"') => return Err(invalid("format")),
+            (false, _) if closed => return Err(invalid("format")),
             (false, c) => field.push(c),
         }
     }
-    if !field.is_empty() || !row.is_empty() {
+    ensure(!quoted, invalid("format"))?;
+    if closed || !field.is_empty() || !row.is_empty() {
         row.push(field);
         rows.push(row);
     }
-    rows.retain(|r| r.iter().any(|f| !f.trim().is_empty()));
-    rows
+    rows.retain(|r| r.iter().any(|f| !f.is_empty()));
+    Ok(rows)
 }
 
 fn csv(text: &str) -> Result<Imported> {
-    let rows = records(text);
+    let rows = records(text)?;
     let (header, rows) = rows.split_first().ok_or_else(|| invalid("format"))?;
     let column = |names: &[&str]| {
         header
@@ -681,6 +780,10 @@ fn csv(text: &str) -> Result<Imported> {
     )?;
     let (mut items, mut skipped) = (Vec::new(), 0);
     for row in rows {
+        if row.len() != header.len() {
+            skipped += 1;
+            continue;
+        }
         let get = |at: Option<usize>| at.and_then(|i| row.get(i)).map_or("", |s| s.as_str());
         let yes = |at| matches!(get(at).trim().to_lowercase().as_str(), "1" | "true" | "yes");
         if yes(archived) {
@@ -694,11 +797,9 @@ fn csv(text: &str) -> Result<Imported> {
             _ => "note",
         };
         let mut item = Item::new(item_kind, get(title), 0);
-        if !template(item_kind).is_empty() {
-            put(&mut item, "username", "text", "", "", get(username));
-            put(&mut item, "password", "concealed", "", "", get(password));
-            put(&mut item, "url", "url", "", "", get(url));
-        }
+        put(&mut item, "username", "text", "", "", get(username));
+        put(&mut item, "password", "concealed", "", "", get(password));
+        put(&mut item, "url", "url", "", "", get(url));
         put(&mut item, "", "otp", "", "", get(otp));
         item.notes = get(notes).into();
         item.favorite = yes(favorite);
@@ -707,17 +808,18 @@ fn csv(text: &str) -> Result<Imported> {
             .map(|t| t.trim().to_string())
             .filter(|t| !t.is_empty())
             .collect();
-        for line in get(extra).lines() {
-            if let Some((name, value)) = line.split_once(": ") {
-                put(&mut item, "", "text", name, "", value);
-            }
-        }
+        // Bitwarden CSV discards custom field types and allows multiline
+        // values. Keep the complete cell concealed; splitting it into
+        // lines loses data and can expose a field that was hidden.
+        put(&mut item, "", "concealed", "Custom fields", "", get(extra));
         keep(item, &mut items, &mut skipped);
     }
     Ok(Imported {
+        digest: String::new(),
         format: "csv",
         items,
         skipped,
+        incomplete: 0,
     })
 }
 
@@ -725,13 +827,20 @@ fn digest(items: &[Item]) -> String {
     hex::encode(*sha256(&Zeroizing::new(canonical(&items))))
 }
 
-fn key(item: &Item) -> (String, String, String) {
-    let norm = |s: &str| s.trim().to_lowercase();
-    (
-        norm(&item.title),
-        norm(item.value("username")),
-        norm(item.value("url")),
-    )
+fn key(item: &Item) -> String {
+    // Imports lacking timestamps receive them on save. All user content,
+    // including secrets, must match before an item is unticked by default.
+    let mut content = item.clone();
+    content.created_at = 0;
+    content.updated_at = 0;
+    content.resolved_conflicts = None;
+    digest(&[content])
+}
+
+fn shown<'a>(item: &'a Item, id: &str) -> &'a str {
+    item.field(id)
+        .filter(|f| !f.hidden())
+        .map_or("", |f| f.value.as_str())
 }
 
 impl Client {
@@ -740,16 +849,18 @@ impl Client {
     /// # Errors
     /// As [`read`], and `Error::Locked` while locked.
     pub fn vault_import_preview(&self, path: &Path) -> Result<Preview> {
+        self.roots()?;
         let imported = read(path)?;
-        let here: BTreeSet<_> = self
+        let mut here: BTreeSet<_> = self
             .vault_list(&Filter::default())?
             .iter()
             .map(|e| key(&e.item))
             .collect();
         Ok(Preview {
             format: imported.format,
-            digest: digest(&imported.items),
+            digest: imported.digest,
             skipped: imported.skipped,
+            incomplete: imported.incomplete,
             items: imported
                 .items
                 .iter()
@@ -758,11 +869,11 @@ impl Client {
                     index,
                     kind: item.kind.clone(),
                     title: item.title.clone(),
-                    username: item.value("username").into(),
-                    url: item.value("url").into(),
+                    username: shown(item, "username").into(),
+                    url: shown(item, "url").into(),
                     tags: item.tags.clone(),
                     fields: item.fields.iter().filter(|f| !f.value.is_empty()).count(),
-                    duplicate: here.contains(&key(item)),
+                    duplicate: !here.insert(key(item)),
                 })
                 .collect(),
         })
@@ -780,31 +891,20 @@ impl Client {
         digest_seen: &str,
         picks: &[usize],
     ) -> Result<Vec<String>> {
+        self.roots()?;
         let imported = read(path)?;
-        ensure(
-            digest(&imported.items) == digest_seen,
-            Error::VersionConflict,
-        )?;
+        ensure(imported.digest == digest_seen, Error::VersionConflict)?;
         let picked: BTreeSet<usize> = picks.iter().copied().collect();
         ensure(
             picked.iter().all(|i| *i < imported.items.len()),
             invalid("picks"),
         )?;
-        let now = crate::now_ms();
         let items = imported
             .items
             .into_iter()
             .enumerate()
             .filter(|(i, _)| picked.contains(i))
-            .map(|(_, mut item)| {
-                if item.created_at == 0 {
-                    item.created_at = now;
-                }
-                if item.updated_at == 0 {
-                    item.updated_at = item.created_at;
-                }
-                item
-            })
+            .map(|(_, item)| item)
             .collect();
         self.vault_add_all(items)
     }

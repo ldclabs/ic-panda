@@ -481,7 +481,15 @@ handle('dmsg:copy-secret', 'main', async (_event, id: string, field: string | nu
 })
 /** The export last previewed, by the path the person picked; the window never names a path. */
 let importing: { path: string; digest: string } | null = null
+let importSession = 0
+function cancelImport() {
+  importSession += 1
+  importing = null
+}
+handle('dmsg:vault-import-cancel', 'main', cancelImport)
 handle('dmsg:vault-import-preview', 'main', async () => {
+  cancelImport()
+  const session = importSession
   const path = await pickFile({
     title: text.pickExport,
     filters: [
@@ -489,17 +497,19 @@ handle('dmsg:vault-import-preview', 'main', async () => {
       { name: text.allFiles, extensions: ['*'] }
     ]
   })
-  if (!path) return null
+  if (!path || session !== importSession) return null
   const preview = (await daemon.call('vault/import_preview', { path })) as { digest: string }
+  if (session !== importSession) return null
   importing = { path, digest: preview.digest }
-  return preview
+  return { ...preview, session }
 })
-handle('dmsg:vault-import', 'main', async (_event, picks: number[]) => {
-  if (!importing) throw new DaemonError('NOT_FOUND', 'Nothing previewed')
+handle('dmsg:vault-import', 'main', async (_event, session: number, picks: number[]) => {
+  if (!importing || session !== importSession) throw new DaemonError('VERSION_CONFLICT', 'Preview expired')
   const chosen = Array.isArray(picks) ? picks.filter((n) => Number.isInteger(n) && n >= 0) : []
-  const added = await daemon.call('vault/import', { ...importing, picks: chosen })
+  const source = importing
+  // Consume before awaiting: two clicks must never submit the same batch twice.
   importing = null
-  return added
+  return daemon.call('vault/import', { ...source, picks: chosen })
 })
 /** The text of a QR code, from an image the person picks or the one on the clipboard. */
 handle('dmsg:vault-otp-scan', 'main', async (_event, source: string) => {
@@ -866,6 +876,7 @@ const remindPlan = single(async () => {
 })
 
 daemon.on('event', (event: DaemonEvent) => {
+  if (event.type === 'session/changed' || event.type === 'resync') cancelImport()
   broadcast('dmsg:event', event)
   if (event.type === 'session/changed') void remindPlan()
   if (event.type === 'connect/hint') hinted = true
@@ -876,6 +887,7 @@ daemon.on('event', (event: DaemonEvent) => {
 })
 // The tray follows the connection: the daemon's state once connected, else connecting again.
 daemon.on('state', () => {
+  if (!daemon.connected) cancelImport()
   broadcast('dmsg:event', { type: 'connection/changed' })
   if (daemon.connected) {
     void refreshWaiting()

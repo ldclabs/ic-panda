@@ -222,6 +222,7 @@ impl Client {
         &self,
         record: &EncryptedObject,
         file: Option<&FileManifest>,
+        now: u64,
     ) -> Result<ContentJob> {
         let restore = !record.tombstone
             && match &record.parent {
@@ -247,7 +248,7 @@ impl Client {
             },
             dispatch: None,
         };
-        self.seal_uploads(&mut job, record, file, true, true)?;
+        self.seal_uploads(&mut job, record, file, true, true, now)?;
         Ok(job)
     }
 
@@ -260,12 +261,12 @@ impl Client {
         file: Option<&FileManifest>,
         vault: bool,
         files: bool,
+        now: u64,
     ) -> Result<()> {
         let account = self.account()?.id.to_string();
         let roots = self.roots()?;
         let generation = roots.generation;
         let root = roots.key(generation).ok_or(Error::RecoveryIncomplete)?;
-        let now = now_ms();
         if let (Some(file), true) = (file, files) {
             let empty = empty_file();
             let chunks = if file.chunks.is_empty() {
@@ -862,7 +863,8 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
             let job = match c.workspace.store.job::<ContentJob>(&row.key)? {
                 Some(job) => job,
                 None => {
-                    let job = c.prepare_job(&record, c.version_file(&record)?.as_ref())?;
+                    let job =
+                        c.prepare_job(&record, c.version_file(&record)?.as_ref(), now_ms())?;
                     c.workspace.store.set_job(&row.key, &job)?;
                     job
                 }
@@ -1064,7 +1066,7 @@ async fn send_upload<H: Hold>(
                     let manifest = c.version_file(record)?;
                     let mut job: ContentJob =
                         c.workspace.store.job(key)?.ok_or(Error::IntegrityFailed)?;
-                    c.seal_uploads(&mut job, record, manifest.as_ref(), !file, file)?;
+                    c.seal_uploads(&mut job, record, manifest.as_ref(), !file, file, now_ms())?;
                     c.workspace.store.set_job(key, &job)
                 })
                 .await?;
