@@ -1,5 +1,6 @@
 // Synthetic test-only IC authority for PrincipalDocument proof tests.
 import { readFileSync } from "node:fs";
+import canonicalize from "canonicalize";
 import { bls12_381 } from "@noble/curves/bls12-381.js";
 import { reconstruct, type HashTree } from "@icp-sdk/core/agent";
 import { canonical, digest, utf8 } from "../src/cose-codec.ts";
@@ -113,7 +114,8 @@ export const document: PrincipalDocument = {
     },
   },
 };
-export const documentBytes = (value = document) => utf8(JSON.stringify(value));
+export const documentBytes = (value = document) =>
+  utf8(canonicalize(value)!);
 export const documentBatch = (value = document) =>
   certified(directory, accountId, documentBytes(value), [
     utf8("documents"),

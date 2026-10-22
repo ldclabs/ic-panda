@@ -131,7 +131,9 @@ URLs. `verifyPrincipalDocument` verifies the directory's exact JSON at
 `["documents", account_id]` against a pinned IC root, directory and canonical
 principal origin, with a 60-second certificate window. The HTTP JSON and
 human page consume the same bytes. Schema validation alone is not authentication.
-The SDK rejects duplicate JSON keys, wrong IDs, tampered leaves and stale proofs.
+The SDK requires those bytes to be canonical JCS, rejects duplicate JSON keys,
+wrong IDs, tampered leaves and stale proofs, and applies the user home's display
+bounds (64 KiB document, 32 KiB metadata, name/description/link limits).
 `extra["dmsg.link_images"]` retains HTTPS artwork by link URL.
 
 The retired cloud Profile verifier and `/profile` export have been removed.

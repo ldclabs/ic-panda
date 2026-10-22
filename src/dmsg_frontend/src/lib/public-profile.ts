@@ -131,6 +131,15 @@ export async function readProfile(
       agent,
       canisterId: userConfig.directory_canister
     })
+    const directoryConfig = await directory.directory_config()
+    if (
+      directoryConfig.principal_origin !== userConfig.principal_origin ||
+      Object.keys(directoryConfig.environment)[0] !==
+        Object.keys(config.environment)[0] ||
+      directoryConfig.issuer_namespace !== config.issuer_namespace ||
+      !directoryConfig.user_homes.some((h) => equal(h.toUint8Array(), home))
+    )
+      throw new ProfileError('verification_failed')
     const proof = batchView(
       ok(await directory.principal_document(accountBytes(account)))
     )

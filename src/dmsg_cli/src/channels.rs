@@ -200,9 +200,18 @@ async fn rotate(daemon: &Daemon, channel: &str) {
     }
 }
 
-/// Display names of accounts, read from their certified PrincipalDocuments
-/// and kept for ten minutes. A failed read is not cached, so the next call
-/// asks again.
+/// A found display name stays for ten minutes; a missing one is retried after
+/// one minute, so a later publication is visible without a reload.
+fn name_ttl(name: &Option<String>) -> Duration {
+    if name.is_some() {
+        Duration::from_secs(600)
+    } else {
+        Duration::from_secs(60)
+    }
+}
+
+/// Display names of accounts, read from their certified PrincipalDocuments.
+/// A failed read is not cached, so the next call asks again.
 ///
 /// # Errors
 /// Returns `Error::Locked` when the client cannot be read; failed per-account
@@ -219,7 +228,7 @@ pub(crate) async fn names(daemon: &Daemon, accounts: &[String]) -> Result<serde_
             .filter(|a| {
                 known
                     .get(*a)
-                    .is_none_or(|(_, at)| at.elapsed() >= Duration::from_secs(600))
+                    .is_none_or(|(name, at)| at.elapsed() >= name_ttl(name))
             })
             .filter_map(|a| a.parse().ok())
             .take(100)
@@ -239,4 +248,15 @@ pub(crate) async fn names(daemon: &Daemon, accounts: &[String]) -> Result<serde_
             .filter_map(|a| known.get(a).map(|(name, _)| (a.clone(), json!(name))))
             .collect::<serde_json::Map<_, _>>()
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_names_refresh_before_found_names() {
+        assert_eq!(name_ttl(&Some("Panda".into())), Duration::from_secs(600));
+        assert_eq!(name_ttl(&None), Duration::from_secs(60));
+    }
 }

@@ -449,8 +449,22 @@ impl Client {
         action: Action,
         expires_at: u64,
     ) -> Result<Request> {
+        self.approval_create_at(source, action, now_ms(), expires_at)
+    }
+
+    /// [`Self::approval_create`] with the execution's time already read, so a
+    /// derived deadline and `created_at` use the same instant.
+    ///
+    /// # Errors
+    /// As [`Self::approval_create`].
+    pub(crate) fn approval_create_at(
+        &mut self,
+        source: &str,
+        action: Action,
+        now: u64,
+        expires_at: u64,
+    ) -> Result<Request> {
         validate_source(source)?;
-        let now = now_ms();
         self.expire_approvals(now)?;
         let waiting: Vec<Request> = self
             .workspace

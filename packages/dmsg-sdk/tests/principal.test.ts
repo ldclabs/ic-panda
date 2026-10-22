@@ -151,6 +151,57 @@ test("the certified document preserves the official fields and legacy link artwo
   assert.deepEqual(document, f.document);
 });
 
+test("the document must be JCS and within the metadata bounds", async () => {
+  const check = (batch: Awaited<ReturnType<typeof f.documentBatch>>) =>
+    verifyPrincipalDocument(
+      batch,
+      f.account,
+      f.directory,
+      f.principalOrigin,
+      f.rootKey,
+      f.now,
+    );
+  const noncanonical = utf8(JSON.stringify(f.document, null, 2));
+  await assert.rejects(
+    check(
+      await f.certified(f.directory, f.accountId, noncanonical, [
+        utf8("documents"),
+        f.accountId,
+      ]),
+    ),
+  );
+  for (const document of [
+    { ...f.document, name: "x".repeat(81) },
+    {
+      ...f.document,
+      links: Array.from({ length: 101 }, (_, index) => ({
+        name: `Link ${index}`,
+        url: `https://example.test/${index}`,
+        rel: "related",
+      })),
+    },
+    {
+      ...f.document,
+      links: [{ name: "", url: "https://example.test/", rel: "related" }],
+    },
+    { ...f.document, avatar_url: "http://example.test/avatar.png" },
+    { ...f.document, unexpected: true },
+    {
+      ...f.document,
+      links: [{ ...f.document.links![0]!, unexpected: true }],
+    },
+  ])
+    await assert.rejects(check(await f.documentBatch(document)));
+  await assert.rejects(
+    check(
+      await f.documentBatch({
+        ...f.document,
+        description: "x".repeat(70_000),
+      }),
+    ),
+  );
+});
+
 test("the document binds exact bytes, directory, account, canonical ID and freshness", async () => {
   const proof = await f.documentBatch();
   const check = (

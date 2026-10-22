@@ -32,7 +32,7 @@ const registry = {
   get_legacy_reservation: vi.fn()
 }
 const user = { user_config: vi.fn(), security_snapshot_batch: vi.fn() }
-const directory = { principal_document: vi.fn() }
+const directory = { directory_config: vi.fn(), principal_document: vi.fn() }
 const read = (input = f.account) =>
   readProfile(input, new AbortController().signal)
 beforeEach(async () => {
@@ -66,6 +66,12 @@ beforeEach(async () => {
     directory_canister: Principal.fromUint8Array(f.directory),
     principal_origin: f.principalOrigin
   })
+  directory.directory_config.mockResolvedValue({
+    principal_origin: f.principalOrigin,
+    environment: { Local: null },
+    issuer_namespace: f.namespace,
+    user_homes: [Principal.fromUint8Array(f.home)]
+  })
   directory.principal_document.mockResolvedValue({
     Ok: batch(await f.documentBatch())
   })
@@ -86,6 +92,23 @@ it('account and handle render the exact same certified PrincipalDocument, withou
   })
   expect(fetch).not.toHaveBeenCalled()
 })
+it('requires the directory config to match the registry and home', async () => {
+  directory.directory_config.mockResolvedValueOnce({
+    principal_origin: f.principalOrigin,
+    environment: { Production: null },
+    issuer_namespace: f.namespace,
+    user_homes: [Principal.fromUint8Array(f.home)]
+  })
+  await expect(read()).rejects.toMatchObject({ reason: 'verification_failed' })
+  directory.directory_config.mockResolvedValueOnce({
+    principal_origin: f.principalOrigin,
+    environment: { Local: null },
+    issuer_namespace: f.namespace,
+    user_homes: []
+  })
+  await expect(read()).rejects.toMatchObject({ reason: 'verification_failed' })
+})
+
 it('invalid IDs make no requests', async () => {
   await expect(read('a'.repeat(20))).rejects.toMatchObject({
     reason: 'invalid_target'

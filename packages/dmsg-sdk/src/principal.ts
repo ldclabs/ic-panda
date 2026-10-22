@@ -1,4 +1,5 @@
 /** One public identity document for machine and human readers. */
+import canonicalize from "canonicalize";
 import { accountBytes } from "./bundle.ts";
 import { ensure } from "./cose-errors.ts";
 import { decodeCanonical, digest, equal, utf8 } from "./cose-codec.ts";
@@ -14,6 +15,159 @@ export type {
   PrincipalLink,
 } from "agent-protocols/delegation";
 export { accountBytes };
+
+const MAX_DOCUMENT_BYTES = 65_536;
+const MAX_METADATA_BYTES = 32_768;
+const MAX_URL_BYTES = 2_048;
+const CONTROL = /\p{Cc}/u;
+const DOCUMENT_FIELDS = new Set([
+  "id",
+  "type",
+  "name",
+  "description",
+  "avatar_url",
+  "aliases",
+  "links",
+  "protocol",
+  "controllers",
+  "retired_controllers",
+  "delegation_service",
+  "updated_at",
+  "extra",
+]);
+const LINK_FIELDS = new Set(["name", "url", "rel"]);
+
+/** JCS bytes of a parsed value, rejecting values JSON cannot represent. */
+function canonical(value: unknown): Uint8Array {
+  let text: string | undefined;
+  try {
+    text = canonicalize(value);
+  } catch {
+    ensure(false, "INTEGRITY_FAILED");
+  }
+  ensure(typeof text === "string", "INTEGRITY_FAILED");
+  return utf8(text);
+}
+
+function httpsUrl(value: string): void {
+  ensure(
+    utf8(value).length <= MAX_URL_BYTES &&
+      !/[\u0000-\u001f\u007f"\\]/.test(value),
+    "INTEGRITY_FAILED",
+  );
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    ensure(false, "INTEGRITY_FAILED");
+  }
+  ensure(
+    parsed.protocol === "https:" &&
+      parsed.hostname.length > 0 &&
+      parsed.username === "" &&
+      parsed.password === "",
+    "INTEGRITY_FAILED",
+  );
+}
+
+function hasControl(value: string): boolean {
+  return [...value].some((char) => CONTROL.test(char));
+}
+
+function validateDocumentShape(document: PrincipalDocument): void {
+  ensure(
+    Object.keys(document).every((field) => DOCUMENT_FIELDS.has(field)),
+    "INTEGRITY_FAILED",
+  );
+  ensure(
+    document.name === undefined || typeof document.name === "string",
+    "INTEGRITY_FAILED",
+  );
+  ensure(
+    document.description === undefined ||
+      typeof document.description === "string",
+    "INTEGRITY_FAILED",
+  );
+  ensure(
+    document.avatar_url === undefined ||
+      typeof document.avatar_url === "string",
+    "INTEGRITY_FAILED",
+  );
+  ensure(
+    document.links === undefined ||
+      (Array.isArray(document.links) &&
+        document.links.every(
+          (link) =>
+            typeof link === "object" &&
+            link !== null &&
+            Object.keys(link).every((field) => LINK_FIELDS.has(field)) &&
+            typeof link.name === "string" &&
+            typeof link.rel === "string" &&
+            typeof link.url === "string",
+        )),
+    "INTEGRITY_FAILED",
+  );
+  ensure(
+    document.extra === undefined ||
+      (typeof document.extra === "object" &&
+        document.extra !== null &&
+        !Array.isArray(document.extra)),
+    "INTEGRITY_FAILED",
+  );
+}
+
+/** The same display bounds the user home enforces before publishing. */
+function validateDocumentMetadata(document: PrincipalDocument): void {
+  const text = (value: string | undefined, max: number, multiline: boolean) => {
+    if (value === undefined) return;
+    ensure([...value].length <= max, "QUOTA_EXCEEDED");
+    ensure(
+      ![...value].some((char) => CONTROL.test(char) && !(multiline && char === "\n")),
+      "INTEGRITY_FAILED",
+    );
+  };
+  text(document.name, 80, false);
+  text(document.description, 2000, true);
+  if (document.avatar_url !== undefined) httpsUrl(document.avatar_url);
+  const links = document.links ?? [];
+  ensure(links.length <= 100, "QUOTA_EXCEEDED");
+  for (const link of links) {
+    ensure(
+      link.name.trim().length > 0 &&
+        [...link.name].length <= 128 &&
+        !hasControl(link.name) &&
+        link.rel.length > 0 &&
+        utf8(link.rel).length <= 64 &&
+        !hasControl(link.rel),
+      "INTEGRITY_FAILED",
+    );
+    httpsUrl(link.url);
+  }
+  const images = document.extra?.["dmsg.link_images"];
+  if (images !== undefined) {
+    ensure(
+      typeof images === "object" && images !== null && !Array.isArray(images),
+      "INTEGRITY_FAILED",
+    );
+    const entries = Object.entries(images);
+    ensure(entries.length <= 100, "QUOTA_EXCEEDED");
+    for (const [url, image] of entries) {
+      ensure(
+        links.some((link) => link.url === url) && typeof image === "string",
+        "INTEGRITY_FAILED",
+      );
+      httpsUrl(image);
+    }
+  }
+  const metadata = {
+    name: document.name ?? null,
+    description: document.description ?? null,
+    avatar_url: document.avatar_url ?? null,
+    links: document.links ?? [],
+    extra: document.extra ?? {},
+  };
+  ensure(canonical(metadata).length <= MAX_METADATA_BYTES, "QUOTA_EXCEEDED");
+}
 
 export function accountText(bytes: Uint8Array): string {
   ensure(bytes.length === 12, "INVALID_INPUT");
@@ -142,31 +296,14 @@ export async function verifyPrincipalDocument(
     now,
   );
   if (value === null) return null;
+  ensure(value.length <= MAX_DOCUMENT_BYTES, "QUOTA_EXCEEDED");
   const document = parseStrictJson(
     new TextDecoder("utf-8", { fatal: true }).decode(value),
   ) as PrincipalDocument;
+  ensure(equal(canonical(document), value), "INTEGRITY_FAILED");
   validatePrincipalDocument(document);
   validatePrincipalResolution(document, `${principalOrigin}/${account}`);
-  ensure(
-    document.name === undefined || typeof document.name === "string",
-    "INTEGRITY_FAILED",
-  );
-  ensure(
-    document.description === undefined ||
-      typeof document.description === "string",
-    "INTEGRITY_FAILED",
-  );
-  ensure(
-    document.links === undefined ||
-      (Array.isArray(document.links) &&
-        document.links.every(
-          (link) =>
-            typeof link.name === "string" &&
-            typeof link.rel === "string" &&
-            typeof link.url === "string" &&
-            new URL(link.url).protocol === "https:",
-        )),
-    "INTEGRITY_FAILED",
-  );
+  validateDocumentShape(document);
+  validateDocumentMetadata(document);
   return document;
 }

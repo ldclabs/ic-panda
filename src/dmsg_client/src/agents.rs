@@ -762,14 +762,16 @@ impl Client {
     ) -> Result<Json> {
         let grantee = self.agent_find(grantee)?.agent_id;
         check_grant(&capabilities, days)?;
-        let request = self.approval_create(
+        let now = now_ms();
+        let request = self.approval_create_at(
             &format!("agent:{grantee}"),
             crate::approval::Action::Grant {
                 grantee: grantee.clone(),
                 capabilities,
                 days,
             },
-            now_ms() + crate::approval::AGENT_REQUEST_TTL_MS,
+            now,
+            now + crate::approval::AGENT_REQUEST_TTL_MS,
         )?;
         self.approval_view(&request)
     }
