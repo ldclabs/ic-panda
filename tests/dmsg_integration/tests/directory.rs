@@ -30,6 +30,7 @@ fn wasm() -> Vec<u8> {
 
 fn state(count: u32) -> PrincipalState {
     PrincipalState {
+        metadata: b"{}".to_vec().into(),
         principal_type: PrincipalType::Person,
         version: 1,
         updated_at: NOW + u64::from(count) * 2,
@@ -79,7 +80,7 @@ impl Fixture {
             principal_origin: "https://id.dmsg.test".into(),
             controller_source: "https://dmsg.test".into(),
             delegation_service: "https://api.dmsg.test".into(),
-            profile_url_prefix: "https://dmsg.test/u/".into(),
+            profile_url_prefix: "https://dmsg.test/".into(),
             custom_domains: vec!["id.dmsg.test".into()],
             governance: governance(),
         };

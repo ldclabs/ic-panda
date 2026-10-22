@@ -7,7 +7,6 @@ import {
   type ProfilePage
 } from '$lib/public-profile'
 import PublicProfile from './PublicProfile.svelte'
-
 vi.mock('$lib/public-profile', () => ({
   readProfile: vi.fn(),
   ProfileError: class extends Error {
@@ -20,20 +19,19 @@ const account = '040g2081040g2081040g'
 const result: ProfilePage = {
   account,
   handle: 'alice',
-  avatar: null,
-  published: {
-    profile: {
-      version: 1,
-      prev_hash: null,
-      display_name: 'Alice',
-      bio: '<script>alert(1)</script>',
-      avatar_upload: null,
-      links: ['https://example.com/']
-    },
-    hash: 'aa'.repeat(32),
-    deviceId: '07'.repeat(32),
-    deviceActive: true,
-    certifiedAt: 1n
+  document: {
+    id: `https://id.dmsg.net/${account}`,
+    protocol: 'agent-delegation/1.0',
+    controllers: [],
+    updated_at: 1,
+    name: 'Alice',
+    description: '<script>alert(1)</script>',
+    links: [{ name: 'Website', url: 'https://example.com/', rel: 'related' }],
+    extra: {
+      'dmsg.link_images': {
+        'https://example.com/': 'https://example.com/logo.png'
+      }
+    }
   }
 }
 let target: HTMLDivElement
@@ -64,95 +62,66 @@ const settled = async () => {
     )
   })
 }
-
-it('displays verified identity, escaped content and a permanent account link', async () => {
+it('renders the official document and legacy link artwork, escaping text', async () => {
   render()
   await settled()
   expect(target.querySelector('h1')?.textContent).toBe('Alice')
-  expect(target.textContent).toContain('Device signature verified')
-  expect(target.textContent).toContain('does not prove the latest version')
+  expect(target.textContent).toContain('Certified principal document')
   expect(target.textContent).toContain('<script>alert(1)</script>')
   expect(target.querySelector('script')).toBeNull()
-  expect(target.querySelector(`a[href="/${account}"]`)).not.toBeNull()
   expect(
-    document.querySelector('link[rel="canonical"]')?.getAttribute('href')
-  ).toContain(`/${account}`)
+    target.querySelector('a[href="https://example.com/"]')?.textContent
+  ).toContain('Website')
+  expect(target.querySelector('.link-image')?.getAttribute('src')).toBe(
+    'https://example.com/logo.png'
+  )
   expect(
-    target.querySelector('a[href="https://example.com/"]')?.getAttribute('rel')
-  ).toBe('noopener noreferrer')
+    target.querySelector(`a[href="https://id.dmsg.net/${account}"]`)
+  ).not.toBeNull()
 })
-
-it('separates a revoked historical signature from an active device', async () => {
-  vi.mocked(readProfile).mockResolvedValue({
-    ...result,
-    published: { ...result.published!, deviceActive: false }
-  })
+it('distinguishes an unpublished document', async () => {
+  vi.mocked(readProfile).mockResolvedValue({ ...result, document: null })
   render()
   await settled()
-  expect(target.textContent).toContain('Device signature verified')
-  expect(target.textContent).toContain('Revoked · historical signature')
+  expect(target.textContent).toContain('has not published')
+  expect(target.textContent).not.toContain('Certified principal document')
 })
-
-it('shows an existing account without a profile without claiming a verified signature', async () => {
-  vi.mocked(readProfile).mockResolvedValue({ ...result, published: null })
-  render()
-  await settled()
-  expect(target.textContent).toContain('has not published a public profile')
-  expect(target.textContent).not.toContain('Device signature verified')
-})
-
 it('hides failed verification and retries explicitly', async () => {
   vi.mocked(readProfile).mockRejectedValueOnce(
     new ProfileError('verification_failed')
   )
   render()
   await settled()
-  expect(target.querySelector('[role="alert"]')?.textContent).toContain(
-    'could not be verified'
-  )
   expect(target.textContent).not.toContain('Alice')
   target.querySelector<HTMLButtonElement>('.status button')!.click()
   flushSync()
   await settled()
   expect(target.textContent).toContain('Alice')
 })
-
-it('a late old request cannot overwrite a new route; navigation cancels its signal', async () => {
-  let resolveOld!: (value: ProfilePage) => void
+it('late responses cannot overwrite navigation', async () => {
+  let resolveOld!: (v: ProfilePage) => void
   vi.mocked(readProfile).mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        resolveOld = resolve
-      })
+    () => new Promise((r) => (resolveOld = r))
   )
-  const props = render('alice')
-  const oldSignal = vi.mocked(readProfile).mock.calls[0]![1]
+  const props = render()
+  const signal = vi.mocked(readProfile).mock.calls[0]![1]
   props.identifier = account
   flushSync()
   await settled()
-  expect(oldSignal.aborted).toBe(true)
-  resolveOld({
-    ...result,
-    published: {
-      ...result.published!,
-      profile: { ...result.published!.profile, display_name: 'Stale result' }
-    }
-  })
+  expect(signal.aborted).toBe(true)
+  resolveOld({ ...result, document: { ...result.document!, name: 'Stale' } })
   await Promise.resolve()
   flushSync()
-  expect(target.textContent).not.toContain('Stale result')
-  expect(target.textContent).toContain('Alice')
+  expect(target.textContent).not.toContain('Stale')
 })
-
-it('offers the legacy page for a reserved handle, without showing a new account or signature', async () => {
+it('offers the legacy page only for reserved names', async () => {
   vi.mocked(readProfile).mockRejectedValueOnce(
     new ProfileError('legacy_reserved')
   )
   render('PANDA')
   await settled()
-  expect(target.textContent).toContain('has not been linked to a new account')
   expect(
     target.querySelector('a[href="/legacy/users/panda"]')?.textContent
   ).toBe('View legacy profile')
-  expect(target.textContent).not.toContain('Device signature verified')
+  expect(target.textContent).not.toContain('Certified principal document')
 })

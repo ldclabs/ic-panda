@@ -153,9 +153,15 @@ desktop is one of its clients, like the CLI.
     (on after every login unlock unless turned off here; it shows how it
     checks the person) and when the login expires, creating or joining an
     account, pairing and recovery, account security, devices, the public
-    profile with its avatar, connected browsers, the file library's settings
+    public PrincipalDocument (type, name, description, avatar and named links),
+    connected browsers, the file library's settings
     (the disk mount, the trash's days), the interface language and appearance,
     the legacy migration, and About dMsg with the app's version and its update.
+
+  The public document editor publishes through the account home and certified
+  directory. It preserves link images in `extra["dmsg.link_images"]`, including
+  legacy imports. Avatar uploads only change the draft; Publish commits the
+  document. A delayed directory publication stays pending with a retry action.
 
   Every login, from the gate rail, a locked view, the account menu, the
   palette, Settings or "Bind another login", runs one flow

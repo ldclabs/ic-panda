@@ -1,6 +1,10 @@
 import type { Messages } from './en'
 
 export default {
+  'Certified principal document': 'Сертифицированный документ личности',
+  'These details come from the same certified identity document read by agents. The account publishes its own claims.':
+    'Эти сведения взяты из того же сертифицированного документа личности, который читают агенты. Данные публикует сам аккаунт.',
+  'Updated': 'Обновлено',
   'This legacy handle is reserved and has not been linked to a new account.':
     'Этот прежний псевдоним зарезервирован и пока не связан с новым аккаунтом.',
   'View legacy profile': 'Открыть прежний профиль',
@@ -17,13 +21,7 @@ export default {
   'Public profile avatar': 'Аватар публичного профиля',
   'Account ID': 'ID аккаунта',
   'Links': 'Ссылки',
-  'Device signature verified': 'Подпись устройства проверена',
-  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
-    'Подпись соответствует устройству из сертифицированного списка этого аккаунта. Владелец публикует сведения самостоятельно; проверка не доказывает, что версия последняя или снимок профиля закреплён в блокчейне.',
-  'Signing device': 'Подписавшее устройство',
-  'Device status at verification': 'Состояние устройства при проверке',
   'Active': 'Активно',
-  'Revoked · historical signature': 'Отозвано · историческая подпись',
   'This account has not published a public profile.':
     'Этот аккаунт ещё не опубликовал публичный профиль.',
   'Link copied': 'Ссылка скопирована',

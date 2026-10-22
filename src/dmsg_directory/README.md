@@ -31,7 +31,7 @@ flowchart LR
 | 类别 | 方法 | 调用者 |
 | --- | --- | --- |
 | 发布 | `publish` | 账户所属的 user home，跨 canister 调用 |
-| 查询 | `get_publication`、`directory_config`、`directory_stats` | 任何人 |
+| 查询 | `principal_document`、`get_publication`、`directory_config`、`directory_stats` | 任何人 |
 | HTTP | `http_request`（Candid 中隐藏） | HTTP 网关 |
 | 管理 | `admin_add_user_home`、`admin_set_custom_domains` | controller 或 SNS governance |
 | 预演 | `validate_admin_add_user_home`、`validate_admin_set_custom_domains` | 任何人，只读 query |
@@ -59,7 +59,7 @@ flowchart LR
 
 ### 文档渲染
 
-[`render_principal_document`](../dmsg_protocol/src/agent.rs) 生成 JCS JSON：`id` 为 `principal_origin/<account_id>`；`type` 为小写类型名；当前与已退役的 controller 分列在 `controllers` 和 `retired_controllers`，`source` 为 `controller_source`；`delegation_service` 为配置的服务源；另有一条指向 `profile_url_prefix + account_id` 的 `rel: "profile"` 链接。输出先经 `agent-protocols` SDK 的 `validate_principal_document` 校验。
+[`render_principal_document`](../dmsg_protocol/src/agent.rs) 生成 JCS JSON：`id` 为 `principal_origin/<account_id>`；`type` 为小写类型名；当前与已退役的 controller 分列在 `controllers` 和 `retired_controllers`，`source` 为 `controller_source`；`delegation_service` 为配置的服务源；`aliases` 含 `profile_url_prefix + account_id`，`links` 保留用户具名链接。输出先经 `agent-protocols` SDK 的 `validate_principal_document` 校验。
 
 - directory 保存渲染后的确切字节，查询时不再渲染。渲染逻辑或 SDK 版本的变化只影响之后的发布，已有文档保持原样，直到 home 推送新版本。
 - directory 不保存 `PrincipalState`，不能自行重新渲染，所以写进文档的配置字段在安装后不可修改（见“初始化参数”）。
@@ -85,12 +85,14 @@ flowchart LR
 
 | memory | 内容 |
 | --- | --- |
-| 0 | `StableCell`：`schema = 6` 与 `DirectoryInit`，包括追加的 home 和当前域名 |
+| 0 | `StableCell`：`schema = 7` 与 `DirectoryInit`，包括追加的 home 和当前域名 |
 | 1 | `StableBTreeMap`：账户 ID（12 字节）→ `{home_user, version, updated_at, state_digest, document_digest, document}`，紧凑 CBOR |
 | 2 | 认证树的叶：第一段 → 子树哈希 |
-| 3 | 认证树的内部节点，201 字节定长槽位 |
+| 3 | HTTP 认证树的内部节点，201 字节定长槽位 |
+| 4 | JSON 文档认证 map 的叶：原始账户 ID → 正文 leaf hash |
+| 5 | JSON 文档认证 map 的内部节点，201 字节定长槽位 |
 
-`post_upgrade` 要求 schema 等于 6，重新认证 404 和域名列表并设置根哈希。它不读参数、不改配置，也不访问文档。更早的开发期 schema 直接拒绝，没有迁移代码。
+`post_upgrade` 要求 schema 等于 7，重新认证 404 和域名列表并设置根哈希。它不读参数、不改配置，也不访问文档。更早的开发期 schema 直接拒绝，没有迁移代码。
 
 ### 配置与治理
 
@@ -101,7 +103,7 @@ flowchart LR
 
 ### 容量与成本
 
-- 每个账户占一条记录（文档正文加约百字节的固定字段）、一个认证叶和一个 201 字节的节点槽位。一次发布只改这条记录并重算一条路径；升级成本不随账户数增长；key 分布均匀时证明约嵌套 log₂(n)+2 层。
+- 每个账户占一条记录（文档正文加约百字节的固定字段），并分别进入 HTTP 响应树和文档正文树。一次发布更新两条认证路径；升级成本不随账户数增长；key 分布均匀时单树证明约嵌套 log₂(n)+2 层，外加顶层分叉。
 - home 通过跨 canister 调用发布，消息的字节费由 home 承担，directory 支付执行和存储。HTTP 网关以非复制 query 调用 `http_request`。
 - ingress 由 `canister_inspect_message` 预过滤，其他人发送的 ingress 不产生接收费。
 - `directory_stats` 返回已发布账户数、stable 页数和 cycles 余额。
@@ -314,3 +316,10 @@ POCKET_IC_BIN=/path/to/pocket-ic cargo test --locked -p dmsg_integration --featu
 - [control_plane/agent.rs](../../tests/dmsg_integration/tests/control_plane/agent.rs) 的 `self_held_principal_publishes_certified_documents_and_its_grants_are_accepted`：真实 user home 发布到 directory，认证响应通过验证，grant 被 SDK 接受。[user_homes.rs](../../tests/dmsg_integration/tests/control_plane/user_homes.rs) 用 `user_config` 核对新 home 后再在各服务登记。二者需要 `scripts/test-dmsg.sh` 构建的全部 Wasm。
 
 2026-10-08 加入 ingress 过滤、域名检查、`directory_stats` 与 user `user_config` 后，完整的 `scripts/test-dmsg.sh` 在 PocketIC 16.0.0 上通过：Rust 单元与文档测试、Clippy `-D warnings`、Wasm 与 Candid 一致性、跨语言协议向量、PocketIC `control_plane` 113 项与 `directory` 4 项、SDK 26 项；profile 单独运行通过。此前（提交 `9d2bcd9`）部署命令在隔离的 dfx 0.32.0 本地副本上运行过：按 release.yml 加入 Candid 元数据、shrink 并 `gzip -n`（未运行 wasm-opt）后安装，模块哈希等于 gzip 产物的 SHA-256；`directory_config`；本地网关返回域名列表与 404；两个 `validate_*` 预演和管理方法；停止、快照、空参数升级和启动后配置与域名不变。`get_publication` 的验收命令、主网部署、自定义域登记和 SNS 提案没有运行。
+
+
+## PrincipalDocument 展示字段与认证查询（2026-10-22）
+
+目录现在发布完整的官方 PrincipalDocument，包括名称、简介、头像 URL、具名链接和 extra；规范 ID、控制者、服务地址、稳定 HTML alias 与更新时间仍由账户状态和固定配置生成。`principal_document(account_id)` 与 HTTP 返回相同 JSON，提供 `["documents", account_id]` 的认证批次。HTTP 与 JSON 查询共用 fork 认证根；稳定内存 4/5 保存新增文档认证 map。schema 升至 7，不兼容旧开发布局。HTTP 响应头未改变。
+
+新元数据计入 64 KiB 文档预算；上文历史容量/费用样本不代表带满额元数据的新账户。相关验证覆盖字段往返、控制者不被资料编辑覆盖、HTTP/查询内容一致和旧版本拒绝。

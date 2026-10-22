@@ -224,14 +224,7 @@ pub(crate) async fn names(daemon: &Daemon, accounts: &[String]) -> Result<serde_
             .collect()
     };
     if !missing.is_empty() {
-        // The user homes and the relay answer without the client.
-        let (relay, mut peers) = {
-            let client = daemon.client().lock().await;
-            (client.relay(), client.peers_of(&missing))
-        };
-        let found = dmsg_client::profile::names(&relay, &mut peers).await;
-        daemon.client().lock().await.peers_met(peers);
-        let found = found?;
+        let found = dmsg_client::principal::names(&daemon.hold(), &missing).await?;
         let mut known = cache.lock().expect("names");
         for account in &missing {
             let id = account.to_string();

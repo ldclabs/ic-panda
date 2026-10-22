@@ -1,5 +1,7 @@
 # dMsg 技术架构
 
+> 2026-10-22：用户公开资料统一为 PrincipalDocument，经 dmsg_user（schema 15）更新并由 dmsg_directory（schema 7）发布；资料更新允许写链，头像二进制仍在云端。原用户 Profile 链路移除，Agent Profile 协议不变。旧容量样本不覆盖新增展示元数据；合同见 [agent_zh.md](protocol/agent_zh.md)。
+
 [English](dmsg_architecture.md) | 简体中文
 
 > 核对基线：公开仓库 `main` 提交 `c707ade`（2026-10-08），user home 的容量、准入与绑定部分已按其后同日的 2,100 万容量改动更新。本文概述公开实现的整体架构、容量、扩容与多实例部署。数字取自各 canister README 记录的实测和代码常量，接口、状态机与验证细节以各自的 README 和 `.did` 为准；两者与本文不一致时以代码为准。配套云端的实现不公开，本文只按其公开合同描述。本文不证明生产部署、主网容量或安全审计已经完成。
@@ -7,7 +9,7 @@
 ## 1. 设计原则
 
 1. **内容离链，权威上链。** 明文和内容密钥只在已授权的设备（dMsg 客户端）上。云端保存并投递密文，承担频道协作和收件箱；ICP 只保存需要公开验证、跨服务一致的权威状态：账户与设备、内容根承诺、名称权属、正式认证回执、资金终态和商业权益。
-2. **日常操作不写链。** 消息、文件、vault 编辑、频道控制和 profile 不产生 ICP update、vetKD 派生或阈值签名；云端只按需查询账户的认证安全快照。
+2. **日常操作不写链。** 消息、文件、vault 编辑和频道控制不产生 ICP update、vetKD 派生或阈值签名；云端只按需查询账户的认证安全快照。
 3. **规模与升级解耦。** 业务记录和认证树都在 stable memory，heap 不保存业务状态，升级只重新发布根哈希，`post_upgrade` 的指令数不随记录数增长。
 4. **按 user home 横向扩展。** 账户 ID 内嵌分配它的 user home 指纹，各服务据此路由，新增 home 不会重映射已有账户。需要全局唯一性的服务（名称、PANDA 神经元占用、principal 文档域名）保持单实例。
 5. **治理统一，维护外置。** 管理方法都接受 controller 和初始化固定的 SNS governance，并提供同参数的 `validate_*` 预演；canister 不依赖定时器，清理、派发和价格发布由外部任务调用每次有界的入口完成。
@@ -19,7 +21,7 @@
 | dMsg 客户端（[dmsg_cli](../src/dmsg_cli/README.md) 的 daemon 与 CLI、[桌面应用](../src/dmsg_desktop/README.md)，核心为 [dmsg_client](../src/dmsg_client/README.md)） | 生成和使用内容根、对象与文件密钥；加解密；设备签名与批准（审批中心，含网页与智能体的请求）；本机 SQLite 工作区、同步任务与对账日志 | 客户端自报的设备、会员或付款状态不能代替认证证据 |
 | 桥接页（[dmsg_connect](../src/dmsg_connect/README.md)，connect.dmsg.net，资产 canister） | 网页应用与设备之间的 [dmsg-connect/1](protocol/connect-v1_zh.md)：核对应用登记，转述浏览器报告的 origin，保存本地操作索引与结果解封密钥 | 不持有账户或设备密钥，不能批准请求；它转述的 origin 不是密码学证明 |
 | 私有云端 | 保存与投递密文；频道控制、联系规则、收件箱和资源配额；验证 ICP 认证证据；签发付费来信的报价与受理收据；网页请求的连接邮箱（只见密文）、给锁定设备的提示通道、MCP Events 中继 | 账户根授权、名称权属、正式认证和资金终态 |
-| ICP canisters（本仓库） | 第 3 节的七类服务 | 不保存频道成员、消息、文件和 profile 正文，不在日常内容的热路径上 |
+| ICP canisters（本仓库） | 第 3 节的七类服务 | 不保存频道成员、消息和文件正文；用户 PrincipalDocument 展示字段随账户状态上链 |
 
 内容加密不隐藏运行元数据：云端和 canister 能看到路由、账户与设备标识、尺寸、时序，以及执行规则所需的成员和联系关系。云端可以拒绝服务、延迟或向不同设备呈现不同视图；客户端用签名、IC 证书和本地已知版本检测可检测的篡改与回滚。controller（交给 SNS 后为 SNS）可以升级 canister、改变规则，并能读出 user home 的 `master_secret`。加密设计见 [dmsg_encryption_zh.md](dmsg_encryption_zh.md)，云端 wire 合同见 [cloud_zh.md](protocol/cloud_zh.md)。
 
@@ -133,7 +135,8 @@ hub 按 commerce 的套餐配额报价，核对创建者的 `WalletCreate` 设�
 
 | 操作 | ICP 上的工作 |
 | --- | --- |
-| 消息、文件、vault 编辑、频道控制、profile | 没有 update；云端可能查询认证安全快照 |
+| 消息、文件、vault 编辑、频道控制 | 没有 update；云端可能查询认证安全快照 |
+| 用户 PrincipalDocument 编辑 | 账户 update 加 directory 发布；不调用 vetKD 或阈值签名 |
 | 登录解锁 | 一次 `unlock_secret` query |
 | 账户创建、新设备、换根、恢复 | user home 的低频 update；换根不调用链上密钥 |
 | 正式认证 | user home 一次 update；月度租约过期时另有一次 commerce 调用 |

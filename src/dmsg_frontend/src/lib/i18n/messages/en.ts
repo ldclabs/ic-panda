@@ -1,4 +1,8 @@
 const en = {
+  'Certified principal document': 'Certified principal document',
+  'These details come from the same certified identity document read by agents. The account publishes its own claims.':
+    'These details come from the same certified identity document read by agents. The account publishes its own claims.',
+  'Updated': 'Updated',
   'This legacy handle is reserved and has not been linked to a new account.':
     'This legacy handle is reserved and has not been linked to a new account.',
   'View legacy profile': 'View legacy profile',
@@ -16,13 +20,7 @@ const en = {
   'Public profile avatar': 'Public profile avatar',
   'Account ID': 'Account ID',
   'Links': 'Links',
-  'Device signature verified': 'Device signature verified',
-  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
-    'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.',
-  'Signing device': 'Signing device',
-  'Device status at verification': 'Device status at verification',
   'Active': 'Active',
-  'Revoked · historical signature': 'Revoked · historical signature',
   'This account has not published a public profile.':
     'This account has not published a public profile.',
   'Link copied': 'Link copied',

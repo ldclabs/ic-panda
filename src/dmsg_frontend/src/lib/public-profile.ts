@@ -7,22 +7,24 @@ import {
 } from '$declarations/dmsg_handle/dmsg_handle.did.js'
 import {
   idlFactory as userIdl,
-  type _SERVICE as UserService,
-  type Device
+  type _SERVICE as UserService
 } from '$declarations/dmsg_user/dmsg_user.did.js'
 import {
   accountBytes,
   accountHome,
   profileTarget,
   verifyHandle,
-  verifyProfileSecurity,
-  verifyPublicProfile,
-  type ProfileDevice,
-  type VerifiedProfile
-} from 'dmsg-sdk/profile'
+  verifyPrincipalDocument,
+  type PrincipalDocument
+} from 'dmsg-sdk/principal'
+import {
+  idlFactory as directoryIdl,
+  type _SERVICE as DirectoryService
+} from '$declarations/dmsg_directory/dmsg_directory.did.js'
 import { DmsgError } from 'dmsg-sdk/errors'
-import type { CertifiedBatch } from 'dmsg-sdk/ic'
-import { API_ORIGIN, DMSG_HANDLE_CANISTER_ID, IS_LOCAL } from './constants'
+import { verifyCertifiedPath, type CertifiedBatch } from 'dmsg-sdk/ic'
+import { decodeCanonical, equal } from 'dmsg-sdk/codec'
+import { DMSG_HANDLE_CANISTER_ID, IS_LOCAL } from './constants'
 
 export class ProfileError extends Error {
   constructor(
@@ -40,8 +42,7 @@ export class ProfileError extends Error {
 export interface ProfilePage {
   account: string
   handle?: string | undefined
-  published: VerifiedProfile | null
-  avatar: string | null
+  document: PrincipalDocument | null
 }
 
 function batchView(batch: CandidBatch): CertifiedBatch {
@@ -57,79 +58,13 @@ function batchView(batch: CandidBatch): CertifiedBatch {
   }
 }
 
-function deviceView(d: Device): ProfileDevice {
-  return {
-    input: {
-      device_id: Uint8Array.from(d.input.device_id),
-      signing_pub: Uint8Array.from(d.input.signing_pub),
-      hpke_pub: Uint8Array.from(d.input.hpke_pub),
-      role: Object.keys(d.input.role)[0]!,
-      capabilities: d.input.capabilities.map((c) => Object.keys(c)[0]!)
-    },
-    added_at: d.added_at,
-    added_by: d.added_by[0] ? Uint8Array.from(d.added_by[0]) : null,
-    revoked_at: d.revoked_at[0] ?? null,
-    next_sequence: d.next_sequence
-  }
-}
-
 function ok<T>(answer: { Ok: T } | { Err: unknown }): T {
   if ('Ok' in answer) return answer.Ok
   throw new ProfileError('unavailable')
 }
 
-// Remember only verified heads for this browser session; a relay cannot roll
-// back a profile already displayed here or replace a version with other bytes.
-const seen = new Map<string, { version: number; hash: string }>()
-
-async function publicRecord(
-  account: string,
-  signal: AbortSignal
-): Promise<unknown | null> {
-  const response = await fetch(
-    `${API_ORIGIN}/public/accounts/${account}/profile`,
-    {
-      signal,
-      credentials: 'omit',
-      redirect: 'error',
-      cache: 'no-store',
-      headers: { Accept: 'application/json' }
-    }
-  )
-  if (response.status === 404) return null
-  if (!response.ok || !response.body) throw new ProfileError('unavailable')
-  const reader = response.body.getReader()
-  const chunks: Uint8Array[] = []
-  let size = 0
-  try {
-    while (true) {
-      const { value, done } = await reader.read()
-      if (done) break
-      size += value.length
-      if (size > 131072) throw new ProfileError('verification_failed')
-      chunks.push(value)
-    }
-  } finally {
-    await reader.cancel()
-    reader.releaseLock()
-  }
-  const bytes = new Uint8Array(size)
-  let offset = 0
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset)
-    offset += chunk.length
-  }
-  try {
-    const body = JSON.parse(
-      new TextDecoder('utf-8', { fatal: true }).decode(bytes)
-    )
-    if (body.ok !== true || !body.data)
-      throw new Error('Invalid profile response')
-    return body.data
-  } catch {
-    throw new ProfileError('verification_failed')
-  }
-}
+// A session never accepts an older directory document after seeing a newer one.
+const seen = new Map<string, { updatedAt: number; document: string }>()
 
 /** Anonymous reads only. No legacy auth, daemon, or response-supplied URLs. */
 export async function readProfile(
@@ -160,13 +95,15 @@ export async function readProfile(
     })
     const config = await handle.get_handle_config()
     const name = 'handle' in target ? target.handle : undefined
+    const routeProof =
+      'handle' in target
+        ? batchView(ok(await handle.resolve_handle_certified([target.handle])))
+        : undefined
     const account =
       'account' in target
         ? target.account
         : await verifyHandle(
-            batchView(
-              ok(await handle.resolve_handle_certified([target.handle]))
-            ),
+            routeProof!,
             target.handle,
             registry.toUint8Array(),
             rootKey,
@@ -189,54 +126,81 @@ export async function readProfile(
       agent,
       canisterId: Principal.fromUint8Array(home)
     })
-    const id = accountBytes(account)
-    const batch = batchView(ok(await user.security_snapshot_batch([id])))
-    const entries = batch.entries[0]?.value
-      ? ok(await user.get_device_bundle(id))[1]
-      : []
-    const devices = new Map(
-      entries.map(([key, d]) => [Uint8Array.from(key), deviceView(d)])
+    const userConfig = await user.user_config()
+    const directory = Actor.createActor<DirectoryService>(directoryIdl, {
+      agent,
+      canisterId: userConfig.directory_canister
+    })
+    const proof = batchView(
+      ok(await directory.principal_document(accountBytes(account)))
     )
-    const security = await verifyProfileSecurity(
-      batch,
-      account,
-      home,
-      rootKey,
-      devices,
-      BigInt(Date.now())
-    )
-    if (!security) throw new ProfileError('not_found')
-    const record = await publicRecord(account, signal)
-    let published: VerifiedProfile | null
+    let document: PrincipalDocument | null
     try {
-      published = record === null ? null : verifyPublicProfile(record, security)
+      document = await verifyPrincipalDocument(
+        proof,
+        account,
+        userConfig.directory_canister.toUint8Array(),
+        userConfig.principal_origin,
+        rootKey,
+        BigInt(Date.now())
+      )
     } catch {
       throw new ProfileError('verification_failed')
     }
+    if (!document && !seen.has(account)) {
+      const id = accountBytes(account)
+      const proof = batchView(ok(await user.security_snapshot_batch([id])))
+      let exists: boolean
+      try {
+        const found = await verifyCertifiedPath(
+          proof,
+          id,
+          [id],
+          home,
+          rootKey,
+          BigInt(Date.now())
+        )
+        exists = found.value !== null
+        if (found.value) {
+          const snapshot = decodeCanonical<{
+            schema: number
+            account_id: Uint8Array
+            home_user: Uint8Array
+          }>(found.value)
+          if (
+            snapshot.schema !== 4 ||
+            !equal(snapshot.account_id, id) ||
+            !equal(snapshot.home_user, home)
+          )
+            throw new Error('Account binding')
+        }
+      } catch {
+        throw new ProfileError('verification_failed')
+      }
+      if (!exists) throw new ProfileError('not_found')
+    }
+    // Recheck routing freshness after the directory request has returned.
+    if (routeProof)
+      await verifyHandle(
+        routeProof,
+        name!,
+        registry.toUint8Array(),
+        rootKey,
+        BigInt(Date.now())
+      )
     signal.throwIfAborted()
     const known = seen.get(account)
+    const encoded = JSON.stringify(document)
     if (
       known &&
-      (!published ||
-        published.profile.version < known.version ||
-        (published.profile.version === known.version &&
-          published.hash !== known.hash))
+      (!document ||
+        document.updated_at < known.updatedAt ||
+        (document.updated_at === known.updatedAt && encoded !== known.document))
     )
       throw new ProfileError('verification_failed')
-    if (published)
-      seen.set(account, {
-        version: published.profile.version,
-        hash: published.hash
-      })
-    const upload = published?.profile.avatar_upload
-    return {
-      account,
-      handle: name,
-      published,
-      avatar: upload
-        ? `${API_ORIGIN}/public/accounts/${account}/avatar/${upload}`
-        : null
-    }
+    if (document)
+      seen.set(account, { updatedAt: document.updated_at, document: encoded })
+    return { account, handle: name, document }
   } catch (error) {
     if (error instanceof ProfileError) throw error
     if (error instanceof DmsgError)

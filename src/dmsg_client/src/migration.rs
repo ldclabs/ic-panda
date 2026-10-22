@@ -588,6 +588,8 @@ impl Client {
                 "username": summary.username,
                 "bio": summary.bio,
                 "image": summary.image,
+                "links": summary.links,
+                "extra": summary.extra,
             },
             "files": summary.files,
             "resources": summary.resources,

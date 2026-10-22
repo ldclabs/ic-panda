@@ -10,10 +10,10 @@ use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
 // Stable layout: config=0, published documents=1, certified segment hashes=2,
-// certification nodes=3.
+// HTTP certification nodes=3; document certification metadata=4, nodes=5.
 pub(crate) type Memory = VirtualMemory<DefaultMemoryImpl>;
 
-pub(crate) const STABLE_SCHEMA: u16 = 6;
+pub(crate) const STABLE_SCHEMA: u16 = 7;
 
 #[derive(Clone)]
 pub(crate) struct Config {
@@ -65,5 +65,5 @@ pub(crate) fn count() -> u64 {
 /// Persist a publication and certify its response in the same message.
 pub(crate) fn save(id: &AccountId, record: &Record) {
     RECORDS.with_borrow_mut(|t| t.put(id.as_slice(), record));
-    http::certify_document(id, record.document_digest);
+    http::certify_document(id, record.document_digest, &record.document);
 }

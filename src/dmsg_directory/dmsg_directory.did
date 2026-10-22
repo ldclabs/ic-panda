@@ -1,3 +1,26 @@
+// IC-certified query response. Merely decoding this value authenticates nothing.
+// Verify the IC certificate against a trusted root, the expected canister and
+// certificate time, then each witness, requested path and exact leaf bytes.
+type CertifiedBatch = record {
+  // IC data certificate bytes; verify against a trusted IC root key.
+  certificate : blob;
+  // Version of this public certified-leaf format, not the storage schema.
+  schema : nat16;
+  // Requested leaves and their membership/absence witnesses.
+  entries : vec CertifiedEntry;
+  // Canister identity to match against the expected service and certificate.
+  canister : principal;
+};
+// One requested leaf and its IC hash-tree witness.
+// A missing value must be checked as an absence proof, not treated as an empty leaf.
+type CertifiedEntry = record {
+  // Raw requested leaf path segment; compare with the exact expected path.
+  key : blob;
+  // Exact serialized leaf bytes, or None for requested absence.
+  value : opt blob;
+  // CBOR-encoded IC hash-tree witness for this requested leaf.
+  witness : blob;
+};
 // Delegation ceiling of a controller, immutable once published.
 type DelegationAuthority = variant {
   // Only the listed exact scopes and relying-party audiences, and management of
@@ -145,6 +168,9 @@ type PrincipalState = record {
   updated_at : nat64;
   // Current and retired controllers in generation order.
   controllers : vec HostedController;
+  // Canonical JSON of the editable PrincipalDocument members. The directory
+  // derives identity, controllers, aliases, protocol and publication time.
+  metadata : blob;
   // Display type of the principal.
   principal_type : PrincipalType;
   // Publication version; the directory rejects rollback.
@@ -178,7 +204,8 @@ type Publication = record {
 };
 type Result = variant { Ok; Err : Error };
 type Result_1 = variant { Ok : Publication; Err : Error };
-type Result_2 = variant { Ok : text; Err : text };
+type Result_2 = variant { Ok : CertifiedBatch; Err : Error };
+type Result_3 = variant { Ok : text; Err : text };
 service : (DirectoryInit) -> {
   // Append a user home. Its `dmsg_user` must name this canister as
   // `directory_canister` and share the environment, namespace and origin.
@@ -190,12 +217,13 @@ service : (DirectoryInit) -> {
   // Published accounts, stable pages and the cycle balance.
   directory_stats : () -> (DirectoryStats) query;
   get_publication : (blob) -> (Result_1) query;
+  principal_document : (blob) -> (Result_2) query;
   // Publish an account's principal state. Only the account's home may publish:
   // the first time, the home whose allocator fingerprint the account ID carries;
   // afterwards, the recorded home. Versions only increase: the same version with
   // the same state is idempotent, an older version returns the current
   // publication, and the same version with other content is rejected.
   publish : (blob, PrincipalState) -> (Result_1);
-  validate_admin_add_user_home : (principal) -> (Result_2) query;
-  validate_admin_set_custom_domains : (vec text) -> (Result_2) query;
+  validate_admin_add_user_home : (principal) -> (Result_3) query;
+  validate_admin_set_custom_domains : (vec text) -> (Result_3) query;
 }

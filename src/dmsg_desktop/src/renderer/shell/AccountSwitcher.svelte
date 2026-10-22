@@ -35,8 +35,8 @@
   async function showProfile(id: string) {
     const published: any = await call('profile/show').catch(() => null)
     if (!published || unlockedAccount !== id) return
-    name = published.profile?.display_name ?? ''
-    const upload = published.profile?.avatar_upload
+    name = published.name ?? ''
+    const upload = published.avatar_url?.split('/').pop()
     if (!upload) return
     const image: any = await call('profile/avatar_image', { account: id, upload }).catch(() => null)
     if (unlockedAccount === id) avatar = image?.url ?? null

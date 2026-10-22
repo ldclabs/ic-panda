@@ -1,5 +1,7 @@
 # dMsg canisters：公开接口与参考实现
 
+> 2026-10-22：用户公开资料统一为 PrincipalDocument，经 dmsg_user（schema 15）更新并由 dmsg_directory（schema 7）发布；资料更新允许写链，头像二进制仍在云端。原用户 Profile 链路移除，Agent Profile 协议不变。旧容量样本不覆盖新增展示元数据；合同见 [agent_zh.md](protocol/agent_zh.md)。
+
 [English](dmsg_canisters.md) | 简体中文
 
 本目录记录实际实现。整体架构、容量、扩容与多实例部署见 [dmsg_architecture_zh.md](dmsg_architecture_zh.md)。公开协议及语言无关的字节规则见 [protocol/README_zh.md](protocol/README_zh.md)，声明的 CDDL 见 [statements.cddl](protocol/statements.cddl)。内部设计依据的定位方式见 [AGENTS.md](../AGENTS.md)。

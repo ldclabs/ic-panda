@@ -192,6 +192,15 @@ fn get_publication(account_id: AccountId) -> Result<Publication> {
 }
 
 #[ic_cdk::query]
+fn principal_document(account_id: AccountId) -> Result<CertifiedBatch> {
+    http::document_batch(
+        ic_cdk::api::canister_self(),
+        &account_id,
+        load(&account_id).map(|r| r.document.into_vec()),
+    )
+}
+
+#[ic_cdk::query]
 fn directory_config() -> DirectoryInit {
     config().init
 }

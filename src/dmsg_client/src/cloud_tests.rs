@@ -5,6 +5,8 @@ use std::collections::BTreeMap;
 
 #[test]
 fn reproduces_commands_and_http_proofs() {
+    // Preserve the historical fixture's exact encoding; the retired profile
+    // command is no longer accepted by the relay's business protocol.
     let v = load("cloud-v1.json");
     let c = &v["context"];
     // Seed 7 is the fixture's test-only device key.
@@ -110,7 +112,7 @@ async fn an_edge_error_page_is_a_lost_reply() {
     });
     let cloud = Cloud::new(&origin, true).unwrap();
     assert!(matches!(
-        cloud.public("/public/accounts/x/profile").await,
+        cloud.public("/public/accounts/x/avatar/y").await,
         Err(Error::Unavailable(_))
     ));
     let evidence = Evidence {

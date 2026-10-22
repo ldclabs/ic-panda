@@ -2,6 +2,7 @@
 .vscode/
 .idea/
 **/*~
+.pnpm-store
 
 # Mac OSX temporary files
 .DS_Store

@@ -42,6 +42,7 @@ pub(crate) fn is_command(command: &AccountCommand) -> bool {
     matches!(
         command,
         AccountCommand::EnablePrincipal { .. }
+            | AccountCommand::UpdatePrincipal { .. }
             | AccountCommand::RegisterController { .. }
             | AccountCommand::RetireController { .. }
             | AccountCommand::MarkControllerCompromised { .. }
@@ -93,6 +94,7 @@ pub(crate) fn prepare(
     let mut next = match (&m.command, principal) {
         (AccountCommand::EnablePrincipal { principal_type }, None) => AgentPrincipal {
             state: PrincipalState {
+                metadata: b"{}".to_vec().into(),
                 principal_type: principal_type.clone(),
                 controllers: vec![],
                 version: 0,
@@ -101,11 +103,51 @@ pub(crate) fn prepare(
             published_version: 0,
         },
         (AccountCommand::EnablePrincipal { .. }, Some(_)) => return Err(Error::VersionConflict),
+        (AccountCommand::UpdatePrincipal { .. }, None) => AgentPrincipal {
+            state: PrincipalState {
+                metadata: b"{}".to_vec().into(),
+                principal_type: PrincipalType::Person,
+                controllers: vec![],
+                version: 0,
+                updated_at: 0,
+            },
+            published_version: 0,
+        },
         (_, None) => return Err(Error::NotFound),
         (_, Some(p)) => p,
     };
     match &m.command {
         AccountCommand::EnablePrincipal { .. } => {}
+        AccountCommand::UpdatePrincipal { document } => {
+            ensure(
+                document.len() <= agent::MAX_PRINCIPAL_DOCUMENT_BYTES,
+                Error::QuotaExceeded,
+            )?;
+            let document: agent_protocols::delegation::PrincipalDocument =
+                serde_json::from_slice(document).map_err(|e| invalid(&e.to_string()))?;
+            let origin = store::config().init.principal_origin;
+            ensure_valid(
+                document.id == agent::principal_id(&origin, &s.account_id),
+                "principal id",
+            )?;
+            ensure_valid(
+                document.protocol == AGENT_DELEGATION_PROTOCOL,
+                "principal protocol",
+            )?;
+            ensure(
+                document.updated_at >= 0 && document.updated_at as u64 == next.state.updated_at,
+                Error::VersionConflict,
+            )?;
+            next.state.principal_type = match document.kind.as_deref() {
+                Some("person") | None => PrincipalType::Person,
+                Some("organization") => PrincipalType::Organization,
+                Some("team") => PrincipalType::Team,
+                Some("project") => PrincipalType::Project,
+                Some("other") => PrincipalType::Other,
+                _ => return Err(invalid("principal type")),
+            };
+            next.state.metadata = agent::principal_metadata(&document)?.into();
+        }
         AccountCommand::RegisterController {
             generation,
             public_key,

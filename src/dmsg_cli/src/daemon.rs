@@ -57,7 +57,7 @@ use dmsg_client::{
     library::{Check, VersionCheck, blobs::Blobs},
     login::{DEFAULT_TTL_MS, LoginSession},
     now_ms,
-    profile::{self, ProfileFields},
+    principal::{self as profile, PrincipalDocument},
 };
 use dmsg_types::{Error, Result, user::ControllerRole};
 use futures_util::{SinkExt, StreamExt};
@@ -88,7 +88,7 @@ const APP_PROTOCOL: &str = "dmsg-app/1";
 const MAX_REQUEST: usize = 16 * 1024 * 1024;
 
 /// The JSON-RPC methods of `/app/v1` and `/ws/app/v1`.
-const METHODS: [&str; 49] = [
+const METHODS: [&str; 51] = [
     "session/status",
     "session/login",
     "session/login_result",
@@ -106,9 +106,11 @@ const METHODS: [&str; 49] = [
     "sync/status",
     "profile/show",
     "profile/publish",
+    "profile/retry",
     "profile/resolve",
     "profile/avatar",
     "profile/avatar_image",
+    "profile/avatar_legacy",
     "workspace/reset",
     "daemon/stop",
     "approval/list",
@@ -1038,10 +1040,27 @@ impl Daemon {
             }
             "profile/show" => Ok(to_json(&profile::show(&self.hold()).await?)),
             "profile/publish" => {
-                let fields: ProfileFields = serde_json::from_value(params.clone())
+                let document: PrincipalDocument = serde_json::from_value(params.clone())
                     .map_err(|e| Error::InvalidInput(format!("profile: {e}")))?;
                 let _turn = self.turn("profile").await;
-                Ok(to_json(&profile::publish(&self.hold(), &fields).await?))
+                // The account's mutation journal and approval sequence must settle
+                // together; use the existing serialized account-mutation path.
+                let info = self
+                    .under_lock(async |client| client.publish_document(&document).await)
+                    .await?;
+                Ok(
+                    json!({"version": info.state.version, "published_version": info.published_version, "published": info.state.version == info.published_version}),
+                )
+            }
+            "profile/retry" => {
+                let _turn = self.turn("profile").await;
+                // Settles the same account mutation journal before republishing.
+                let info = self
+                    .under_lock(async |client| client.retry_document().await)
+                    .await?;
+                Ok(
+                    json!({"version": info.state.version, "published_version": info.published_version, "published": info.state.version == info.published_version}),
+                )
             }
             "profile/resolve" => {
                 let account = account(params, "account")?;
@@ -1050,25 +1069,29 @@ impl Daemon {
                 ))
             }
             "profile/avatar" => {
-                let image = match params["remove"] == true {
-                    true => None,
-                    false => {
-                        let path = absolute(params, "path")?;
-                        let size = std::fs::metadata(&path)
-                            .map_err(|e| Error::InvalidInput(format!("path: {e}")))?
-                            .len();
-                        if size > dmsg_client::profile::MAX_AVATAR as u64 {
-                            return Err(Error::InvalidInput("avatar".into()));
-                        }
-                        Some(
-                            std::fs::read(&path)
-                                .map_err(|e| Error::InvalidInput(format!("path: {e}")))?,
-                        )
-                    }
-                };
+                let path = absolute(params, "path")?;
+                let size = std::fs::metadata(&path)
+                    .map_err(|e| Error::InvalidInput(format!("path: {e}")))?
+                    .len();
+                if size > dmsg_client::principal::MAX_AVATAR as u64 {
+                    return Err(Error::InvalidInput("avatar".into()));
+                }
+                let image =
+                    std::fs::read(&path).map_err(|e| Error::InvalidInput(format!("path: {e}")))?;
                 let _turn = self.turn("profile").await;
                 Ok(to_json(
-                    &profile::publish_avatar(&self.hold(), image.as_deref()).await?,
+                    &profile::upload_avatar(&self.hold(), &image).await?,
+                ))
+            }
+            "profile/avatar_legacy" => {
+                let archive = text(params, "archive")?;
+                let source = text(params, "source")?;
+                let bytes = self
+                    .hold()
+                    .with(|c| c.legacy_avatar(&archive, &source))
+                    .await?;
+                Ok(to_json(
+                    &profile::upload_avatar(&self.hold(), &bytes).await?,
                 ))
             }
             "profile/avatar_image" => {
@@ -1965,12 +1988,12 @@ mod tests {
             async move { daemon.call_daemon("profile/avatar_image", &params).await }
         });
         answers_beside(&daemon, &relay, work).await;
-        // A signed relay read, the profile the shell shows on every unlock.
+        // A certified directory read, the document the shell shows on unlock.
         let work = tokio::spawn({
             let daemon = daemon.clone();
             async move { daemon.call_daemon("profile/show", &Value::Null).await }
         });
-        answers_beside(&daemon, &relay, work).await;
+        answers_beside(&daemon, &ic, work).await;
         // The background pass reading the dmsg-connect mailbox.
         let work = tokio::spawn({
             let daemon = daemon.clone();

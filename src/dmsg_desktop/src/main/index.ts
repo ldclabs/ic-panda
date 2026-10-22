@@ -530,8 +530,7 @@ handle('dmsg:channel-download', 'main', async (_event, id: string, seq: number, 
   return path && daemon.call('channel/download', { id: String(id), seq: Number(seq), path })
 })
 /** The public avatar: an image the person picks, or none. */
-handle('dmsg:avatar', 'main', async (_event, remove: boolean) => {
-  if (remove === true) return daemon.call('profile/avatar', { remove: true })
+handle('dmsg:avatar', 'main', async () => {
   const path = await pickFile({ title: text.pickAvatar, filters: [{ name: text.imageFile, extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })
   return path && daemon.call('profile/avatar', { path })
 })

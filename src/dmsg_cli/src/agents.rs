@@ -744,9 +744,9 @@ impl Daemon {
                         let account = account
                             .parse()
                             .map_err(|_| Error::InvalidInput("account".into()))?;
-                        to_json(&dmsg_client::profile::resolve_account(&h, &account).await?)
+                        to_json(&dmsg_client::principal::resolve_account(&h, &account).await?)
                     }
-                    None => to_json(&dmsg_client::profile::show(&h).await?),
+                    None => to_json(&dmsg_client::principal::show(&h).await?),
                 });
             }
             "dmsg_wallet_list" => {

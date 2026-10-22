@@ -1,6 +1,10 @@
 import type { Messages } from './en'
 
 export default {
+  'Certified principal document': 'Documento de identidad certificado',
+  'These details come from the same certified identity document read by agents. The account publishes its own claims.':
+    'Estos datos proceden del mismo documento de identidad certificado que leen los agentes. La cuenta publica sus propias declaraciones.',
+  'Updated': 'Actualizado',
   'This legacy handle is reserved and has not been linked to a new account.':
     'Este alias antiguo está reservado y aún no se ha vinculado a una cuenta nueva.',
   'View legacy profile': 'Ver perfil antiguo',
@@ -18,13 +22,7 @@ export default {
   'Public profile avatar': 'Avatar del perfil público',
   'Account ID': 'ID de cuenta',
   'Links': 'Enlaces',
-  'Device signature verified': 'Firma del dispositivo verificada',
-  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
-    'La firma corresponde a un dispositivo de la lista certificada de esta cuenta. El perfil lo publica su propietario; esto no demuestra que sea la última versión ni que exista una instantánea anclada.',
-  'Signing device': 'Dispositivo firmante',
-  'Device status at verification': 'Estado del dispositivo al verificar',
   'Active': 'Activo',
-  'Revoked · historical signature': 'Revocado · firma histórica',
   'This account has not published a public profile.':
     'Esta cuenta aún no ha publicado un perfil público.',
   'Link copied': 'Enlace copiado',

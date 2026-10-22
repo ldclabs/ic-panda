@@ -163,7 +163,13 @@ impl Desktop {
         let output = self.command(args).output().unwrap();
         assert!(!output.status.success(), "dmsg {args:?} succeeded");
         let stdout = String::from_utf8(output.stdout).unwrap();
-        let value: Value = serde_json::from_str(stdout.lines().last().unwrap()).unwrap();
+        let line = stdout.lines().last().unwrap_or_else(|| {
+            panic!(
+                "dmsg {args:?} failed without JSON: {}",
+                String::from_utf8_lossy(&output.stderr)
+            )
+        });
+        let value: Value = serde_json::from_str(line).unwrap();
         value["error"]["code"].as_str().unwrap().to_string()
     }
 
@@ -1618,6 +1624,89 @@ fn sha256_hex(bytes: &[u8]) -> String {
     hex::encode(dmsg_protocol::sha256(bytes).as_slice())
 }
 
+fn check_principal_documents(env: &Env, account: &str) {
+    let (a, b) = (&env.a, &env.b);
+    // One PrincipalDocument, committed on chain and independently certified by the directory.
+    let principal_file = env.dir.join("principal.json");
+    let mut document = a.run(&["profile", "show"]);
+    document["name"] = "Desk Top".into();
+    document["description"] = "Published on chain".into();
+    document["links"] = json!([{"name":"My site","url":"https://example.com/me","rel":"related"}]);
+    document["extra"] =
+        json!({"dmsg.link_images":{"https://example.com/me":"https://example.com/logo.png"}});
+    std::fs::write(&principal_file, serde_json::to_vec(&document).unwrap()).unwrap();
+    assert_eq!(
+        a.run(&["profile", "publish", principal_file.to_str().unwrap()])["published"],
+        true
+    );
+    assert_eq!(a.run(&["profile", "retry"])["published"], true);
+    let shown = b.run(&["profile", "show"]);
+    assert_eq!(shown["name"], "Desk Top");
+    assert_eq!(shown["extra"], document["extra"]);
+    assert_eq!(b.run(&["profile", "resolve", account]), shown);
+    let png = [&[137u8, 80, 78, 71, 13, 10, 26, 10][..], &[7u8; 200]].concat();
+    let picture = env.dir.join("avatar.png");
+    std::fs::write(&picture, &png).unwrap();
+    let url = a.run(&["profile", "avatar", picture.to_str().unwrap()]);
+    assert!(url.is_string());
+    assert_eq!(
+        a.run(&["profile", "show"]),
+        shown,
+        "uploading does not publish or overwrite a draft"
+    );
+    let public = url.as_str().unwrap();
+    let upload = public.rsplit('/').next().unwrap();
+    let image = b
+        .rpc(
+            &env.http,
+            "profile/avatar_image",
+            json!({"account":account,"upload":upload}),
+        )
+        .unwrap();
+    assert_eq!(
+        image["url"],
+        format!(
+            "data:image/png;base64,{}",
+            base64::engine::general_purpose::STANDARD.encode(&png)
+        )
+    );
+    let transport = format!("{}/public/accounts/{account}/avatar/{upload}", env.relay);
+    let served = env.http.get(&transport).send().unwrap();
+    assert_eq!(served.bytes().unwrap().as_ref(), &png[..]);
+    document = shown;
+    document["avatar_url"] = url.clone();
+    std::fs::write(&principal_file, serde_json::to_vec(&document).unwrap()).unwrap();
+    assert_eq!(
+        a.run(&["profile", "publish", principal_file.to_str().unwrap()])["published"],
+        true
+    );
+    assert_eq!(b.run(&["profile", "resolve", account])["avatar_url"], url);
+    let gif = env.dir.join("avatar.gif");
+    std::fs::write(&gif, b"GIF89a-not-an-avatar").unwrap();
+    assert_eq!(
+        a.fail(&["profile", "avatar", gif.to_str().unwrap()]),
+        "INVALID_INPUT"
+    );
+    // Immutable avatar bytes remain public; removing a document reference does not delete them.
+    document = a.run(&["profile", "show"]);
+    document.as_object_mut().unwrap().remove("avatar_url");
+    std::fs::write(&principal_file, serde_json::to_vec(&document).unwrap()).unwrap();
+    assert_eq!(
+        a.run(&["profile", "publish", principal_file.to_str().unwrap()])["published"],
+        true
+    );
+    assert!(b.run(&["profile", "resolve", account])["avatar_url"].is_null());
+    assert_eq!(env.http.get(&transport).send().unwrap().status(), 200);
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_principal_documents() {
+    let env = Env::start("principal-documents", "background_online = true\n");
+    let account = env.pair();
+    check_principal_documents(&env, &account);
+}
+
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_content_and_sync() {
@@ -1982,72 +2071,7 @@ fn desktop_content_and_sync() {
     }
     eprintln!("share link done at {:?}", started.elapsed());
 
-    // Profile: only the published fields, readable by anyone.
-    let profile = a.run(&[
-        "profile",
-        "publish",
-        "--name",
-        "Desk Top",
-        "--link",
-        "https://example.com/me",
-    ]);
-    assert_eq!(profile["profile"]["version"], 1);
-    assert_eq!(
-        b.run(&["profile", "show"])["profile"]["display_name"],
-        "Desk Top"
-    );
-    let other = b.run(&["profile", "resolve", &account]);
-    assert_eq!(other["profile"]["links"][0], "https://example.com/me");
-    assert_eq!(other["self_asserted"], true);
-    assert_eq!(
-        a.run(&["profile", "publish", "--bio", "only a bio"])["profile"]["display_name"],
-        ""
-    );
-
-    // A public avatar (A4.4): the relay serves the image to anyone, and
-    // publishing fields again keeps it; removing it keeps the fields.
-    let png = [&[137u8, 80, 78, 71, 13, 10, 26, 10][..], &[7u8; 200]].concat();
-    let picture = env.dir.join("avatar.png");
-    std::fs::write(&picture, &png).unwrap();
-    let with = a.run(&["profile", "avatar", picture.to_str().unwrap()]);
-    assert_eq!(with["profile"]["version"], 3);
-    assert_eq!(with["profile"]["bio"], "only a bio");
-    let upload = with["profile"]["avatar_upload"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    let image = b
-        .rpc(
-            &env.http,
-            "profile/avatar_image",
-            json!({"account": account, "upload": upload}),
-        )
-        .unwrap();
-    assert_eq!(
-        image["url"],
-        format!(
-            "data:image/png;base64,{}",
-            base64::engine::general_purpose::STANDARD.encode(&png)
-        )
-    );
-    let public = format!("{}/public/accounts/{account}/avatar/{upload}", env.relay);
-    let served = env.http.get(&public).send().unwrap();
-    assert_eq!(served.headers()["content-type"], "image/png");
-    assert_eq!(served.bytes().unwrap().as_ref(), &png[..]);
-    let kept = a.run(&["profile", "publish", "--name", "Desk Top"]);
-    assert_eq!(kept["profile"]["avatar_upload"], upload.as_str());
-    let gif = env.dir.join("avatar.gif");
-    std::fs::write(&gif, b"GIF89a-not-an-avatar").unwrap();
-    assert_eq!(
-        a.fail(&["profile", "avatar", gif.to_str().unwrap()]),
-        "INVALID_INPUT"
-    );
-    // The relay's edge cache may keep serving the old bytes at the public
-    // address for its max-age (an hour); the profile no longer names them.
-    let removed = a.run(&["profile", "avatar", "--remove"]);
-    assert!(removed["profile"]["avatar_upload"].is_null());
-    assert_eq!(removed["profile"]["display_name"], "Desk Top");
-    assert!(b.run(&["profile", "resolve", &account])["profile"]["avatar_upload"].is_null());
+    check_principal_documents(&env, &account);
 
     // AT04: after locking, the home holds no plaintext.
     let marker = b"FILE-PLAINTEXT-MARKER-4471";
@@ -2073,7 +2097,14 @@ fn desktop_content_and_sync() {
     assert_eq!(a.fail(&["files", "verify", &medium_id]), "LOCKED");
     assert_eq!(a.fail(&["files", "ls"]), "LOCKED");
     assert_eq!(a.fail(&["sync"]), "LOCKED");
-    assert_eq!(a.fail(&["profile", "publish", "--name", "x"]), "LOCKED");
+    assert_eq!(
+        a.fail(&[
+            "profile",
+            "publish",
+            env.dir.join("principal.json").to_str().unwrap()
+        ]),
+        "LOCKED"
+    );
     assert_eq!(a.fail(&["fast-unlock", "enable"]), "NOT_FOUND");
     for (path, bytes) in files_under(&a.home) {
         for needle in [
@@ -3348,7 +3379,11 @@ fn desktop_channels() {
             .unwrap();
         assert_eq!(shown["url"], url.as_str());
     }
-    a.run(&["profile", "publish", "--name", "Channel owner"]);
+    let mut principal = a.run(&["profile", "show"]);
+    principal["name"] = "Channel owner".into();
+    let path = env.dir.join("channel-owner-principal.json");
+    std::fs::write(&path, serde_json::to_vec(&principal).unwrap()).unwrap();
+    a.run(&["profile", "publish", path.to_str().unwrap()]);
     let names = b
         .rpc(&http, "channel/names", json!({"accounts": [owner, member]}))
         .unwrap();

@@ -1314,6 +1314,10 @@ pub struct Summary {
     pub bio: String,
     /// Old avatar URL.
     pub image: String,
+    /// Named links preserved as PrincipalDocument links.
+    pub links: Vec<agent_protocols::delegation::PrincipalLink>,
+    /// PrincipalDocument extensions; legacy link artwork is keyed by link URL.
+    pub extra: std::collections::BTreeMap<String, serde_json::Value>,
     /// Old channels with their recorded payments, as raw values.
     pub resources: Vec<serde_json::Value>,
     /// Old balances and entitlements, not settled here.
@@ -1396,7 +1400,37 @@ pub fn summary(archive: &Archive, verification: &Verification) -> Summary {
             _ => {}
         }
     }
+    let mut links = Vec::new();
+    let mut images = serde_json::Map::new();
+    if let Some(Value::Array(values)) = profile.as_ref().and_then(|p| field(p, "links")) {
+        for value in values {
+            let Some(uri) = field(value, "uri").and_then(text_of) else {
+                continue;
+            };
+            let title = field(value, "title").and_then(text_of).unwrap_or(uri);
+            links.push(agent_protocols::delegation::PrincipalLink {
+                name: title.into(),
+                url: uri.into(),
+                rel: "related".into(),
+            });
+            let image = field(value, "image")
+                .and_then(|v| match v {
+                    Value::Array(items) => items.first(),
+                    v => Some(v),
+                })
+                .and_then(text_of);
+            if let Some(image) = image {
+                images.insert(uri.into(), image.into());
+            }
+        }
+    }
+    let mut extra = std::collections::BTreeMap::new();
+    if !images.is_empty() {
+        extra.insert("dmsg.link_images".into(), images.into());
+    }
     Summary {
+        links,
+        extra,
         name: get(&user, "name"),
         username,
         bio: get(&profile, "bio"),

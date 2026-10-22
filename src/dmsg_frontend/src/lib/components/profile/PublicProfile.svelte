@@ -41,10 +41,13 @@
     return () => controller.abort()
   })
 
-  const profile = $derived(result?.published?.profile)
+  const profile = $derived(result?.document)
   const title = $derived(
-    profile?.display_name ||
+    profile?.name ||
       (result?.handle ? `@${result.handle}` : $t('Public profile'))
+  )
+  const linkImages = $derived(
+    (profile?.extra?.['dmsg.link_images'] ?? {}) as Record<string, string>
   )
   const permalink = $derived(result ? `${APP_ORIGIN}/${result.account}` : '')
   const message = $derived(
@@ -113,17 +116,17 @@
         >
       {:else if result}
         <section class="identity" aria-labelledby="profile-name">
-          {#if result.avatar && !avatarFailed}
+          {#if profile?.avatar_url && !avatarFailed}
             <img
               class="avatar"
-              src={result.avatar}
+              src={profile?.avatar_url}
               alt={$t('Public profile avatar')}
               referrerpolicy="no-referrer"
               onerror={() => (avatarFailed = true)}
             />
           {:else}<div class="avatar monogram" aria-hidden="true"
               >{[
-                ...(profile?.display_name || result.handle || result.account)
+                ...(profile?.name || result.handle || result.account)
               ][0]?.toUpperCase()}</div
             >{/if}
           <div class="identity-text"
@@ -137,43 +140,49 @@
           </div>
         </section>
         {#if profile}
-          {#if profile.bio}<p class="bio">{profile.bio}</p>{/if}
-          {#if profile.links.length}<ul
+          {#if profile.description}<p class="bio">{profile.description}</p>{/if}
+          {#if profile.links?.length}<ul
               class="profile-links"
               aria-label={$t('Links')}
             >
-              {#each profile.links as link}<li
+              {#each profile.links ?? [] as link}<li
                   ><a
-                    href={link}
+                    href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     referrerpolicy="no-referrer"
-                    >{link}<span aria-hidden="true">↗</span></a
+                    >{#if linkImages[link.url]}<img
+                        class="link-image"
+                        src={linkImages[link.url]}
+                        alt=""
+                        referrerpolicy="no-referrer"
+                      />{/if}{link.name}<span aria-hidden="true">↗</span></a
                   ></li
                 >{/each}
             </ul>{/if}
           <section class="verification" aria-labelledby="verification-title">
             <h2 id="verification-title"
               ><span aria-hidden="true">✓</span>
-              {$t('Device signature verified')}</h2
+              {$t('Certified principal document')}</h2
             >
             <p
               >{$t(
-                'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.'
+                'These details come from the same certified identity document read by agents. The account publishes its own claims.'
               )}</p
             >
-            <dl
-              ><div><dt>{$t('Version')}</dt><dd>{profile.version}</dd></div>
+            <dl>
               <div
-                ><dt>{$t('Signing device')}</dt><dd
-                  ><code dir="ltr">{result.published!.deviceId}</code></dd
+                ><dt>{$t('Principal ID')}</dt><dd
+                  ><a
+                    href={profile.id}
+                    target="_blank"
+                    rel="noopener noreferrer">{profile.id}</a
+                  ></dd
                 ></div
               >
               <div
-                ><dt>{$t('Device status at verification')}</dt><dd
-                  >{result.published!.deviceActive
-                    ? $t('Active')
-                    : $t('Revoked · historical signature')}</dd
+                ><dt>{$t('Updated')}</dt><dd
+                  >{new Date(profile.updated_at).toLocaleString()}</dd
                 ></div
               >
             </dl>
@@ -257,6 +266,12 @@
     padding: 0;
     margin: 28px 0;
   }
+  .link-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
   .profile-links li {
     border-bottom: 1px solid var(--line);
   }
@@ -294,9 +309,6 @@
   dd {
     margin: 0;
     overflow-wrap: anywhere;
-  }
-  code {
-    font-size: 11px;
   }
   .profile-actions {
     display: flex;

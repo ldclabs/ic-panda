@@ -78,6 +78,12 @@ type AccountCommand = variant {
     // Account-authorized name operation.
     intent : HandleIntent;
   };
+  // Replace the public display members of an SDK PrincipalDocument.
+  // The canonical ID must match this account. Authority fields are not applied.
+  UpdatePrincipal : record {
+    // UTF-8 PrincipalDocument JSON; bounded and validated by the user home.
+    document : blob;
+  };
   // Enroll a device with proof of possession.
   AddDevice : record {
     // New device identity, keys and permissions to enroll.
@@ -927,6 +933,9 @@ type PrincipalState = record {
   updated_at : nat64;
   // Current and retired controllers in generation order.
   controllers : vec HostedController;
+  // Canonical JSON of the editable PrincipalDocument members. The directory
+  // derives identity, controllers, aliases, protocol and publication time.
+  metadata : blob;
   // Display type of the principal.
   principal_type : PrincipalType;
   // Publication version; the directory rejects rollback.

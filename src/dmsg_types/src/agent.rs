@@ -79,6 +79,9 @@ pub struct HostedController {
 pub struct PrincipalState {
     /// Display type of the principal.
     pub principal_type: PrincipalType,
+    /// Canonical JSON of the editable PrincipalDocument members. The directory
+    /// derives identity, controllers, aliases, protocol and publication time.
+    pub metadata: serde_bytes::ByteBuf,
     /// Current and retired controllers in generation order.
     pub controllers: Vec<HostedController>,
     /// Publication version; the directory rejects rollback.

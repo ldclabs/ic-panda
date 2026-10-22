@@ -27,6 +27,97 @@ pub const MAX_DIRECTORY_URL_BYTES: usize = 2_048;
 /// Maximum principal document (64 KiB), including future retirement fields.
 pub const MAX_PRINCIPAL_DOCUMENT_BYTES: usize = 65_536;
 
+/// Validate and retain only the editable members of the official document.
+/// Identity and authority always come from the account and its controllers.
+pub fn principal_metadata(document: &sdk::PrincipalDocument) -> Result<Vec<u8>> {
+    let text = |value: &Option<String>, max: usize, multiline: bool| {
+        value.as_ref().is_none_or(|s| {
+            s.chars().count() <= max
+                && !s
+                    .chars()
+                    .any(|c| c.is_control() && !(multiline && c == '\n'))
+        })
+    };
+    ensure_valid(text(&document.name, 80, false), "principal name")?;
+    ensure_valid(
+        text(&document.description, 2000, true),
+        "principal description",
+    )?;
+    let url = |value: &str| -> Result<()> {
+        validate_document_url_bytes(value, 2048)?;
+        let parsed = url::Url::parse(value).map_err(|_| invalid("principal URL"))?;
+        ensure_valid(
+            parsed.scheme() == "https"
+                && parsed.host_str().is_some()
+                && parsed.username().is_empty()
+                && parsed.password().is_none(),
+            "principal URL",
+        )
+    };
+    if let Some(avatar) = &document.avatar_url {
+        url(avatar)?;
+    }
+    ensure(document.links.len() <= 100, Error::QuotaExceeded)?;
+    for link in &document.links {
+        ensure_valid(
+            !link.name.trim().is_empty()
+                && link.name.chars().count() <= 128
+                && !link.name.chars().any(char::is_control)
+                && !link.rel.is_empty()
+                && link.rel.len() <= 64
+                && !link.rel.chars().any(char::is_control),
+            "principal link",
+        )?;
+        url(&link.url)?;
+    }
+    // extra remains the SDK's open JSON object; dMsg's link_images extension
+    // maps a link URL to its HTTPS image URL, preserving legacy artwork.
+    if let Some(images) = document.extra.get("dmsg.link_images") {
+        let images = images.as_object().ok_or_else(|| invalid("link images"))?;
+        ensure(images.len() <= 100, Error::QuotaExceeded)?;
+        for (link, image) in images {
+            ensure_valid(
+                document.links.iter().any(|l| &l.url == link),
+                "link image target",
+            )?;
+            url(image.as_str().ok_or_else(|| invalid("link image URL"))?)?;
+        }
+    }
+    let metadata = serde_json::json!({
+        "name": document.name, "description": document.description,
+        "avatar_url": document.avatar_url, "links": document.links, "extra": document.extra,
+    });
+    let bytes = serde_jcs::to_vec(&metadata).map_err(|e| invalid(&e.to_string()))?;
+    ensure(bytes.len() <= 32768, Error::QuotaExceeded)?;
+    sdk_id::parse_strict_json(std::str::from_utf8(&bytes).expect("JCS UTF-8"))
+        .map_err(sdk_error)?;
+    Ok(bytes)
+}
+
+/// Read the bounded display members into the official document type.
+fn metadata_document(bytes: &[u8]) -> Result<sdk::PrincipalDocument> {
+    ensure(bytes.len() <= 32768, Error::QuotaExceeded)?;
+    let mut value: serde_json::Value =
+        serde_json::from_slice(bytes).map_err(|e| invalid(&e.to_string()))?;
+    let fields = value
+        .as_object_mut()
+        .ok_or_else(|| invalid("principal metadata"))?;
+    ensure_valid(
+        fields
+            .keys()
+            .all(|k| ["name", "description", "avatar_url", "links", "extra"].contains(&k.as_str())),
+        "principal metadata fields",
+    )?;
+    fields.insert("id".into(), "https://id.invalid/account".into());
+    fields.insert("protocol".into(), AGENT_DELEGATION_PROTOCOL.into());
+    fields.insert("controllers".into(), serde_json::json!([]));
+    fields.insert("updated_at".into(), 0.into());
+    let document: sdk::PrincipalDocument =
+        serde_json::from_value(value).map_err(|e| invalid(&e.to_string()))?;
+    principal_metadata(&document)?;
+    Ok(document)
+}
+
 fn sdk_error(error: agent_protocols::SdkError) -> Error {
     Error::InvalidInput(error.to_string())
 }
@@ -123,6 +214,7 @@ pub fn validate_principal_state(state: &PrincipalState) -> Result<()> {
                 <= MAX_CURRENT_CONTROLLERS,
         Error::QuotaExceeded,
     )?;
+    metadata_document(&state.metadata)?;
     millis(state.updated_at)?;
     let mut keys = BTreeSet::new();
     for (index, c) in state.controllers.iter().enumerate() {
@@ -162,7 +254,8 @@ pub fn validate_principal_state(state: &PrincipalState) -> Result<()> {
 /// 512 bytes per controller covers syntax, Agent ID, a maximally escaped name
 /// and three full-width timestamps. Variable immutable fields are added below.
 fn principal_document_size_bound(state: &PrincipalState) -> usize {
-    let mut bytes = 1_024 + 2 * MAX_PRINCIPAL_ORIGIN_BYTES + MAX_DIRECTORY_URL_BYTES;
+    let mut bytes =
+        1_024 + 2 * MAX_PRINCIPAL_ORIGIN_BYTES + 2 * MAX_DIRECTORY_URL_BYTES + state.metadata.len();
     for c in &state.controllers {
         bytes += 512 + MAX_PRINCIPAL_ORIGIN_BYTES;
         if let DelegationAuthority::Restricted { scopes, audiences } = &c.delegation {
@@ -235,24 +328,22 @@ pub fn render_principal_document(
             controllers.push(record);
         }
     }
+    let metadata = metadata_document(&state.metadata)?;
+    let profile_url = format!("{}{account_id}", config.profile_url_prefix);
     let document = sdk::PrincipalDocument {
         id: principal_id(&config.principal_origin, account_id),
         kind: Some(principal_type(&state.principal_type).into()),
-        name: None,
-        description: None,
-        avatar_url: None,
-        aliases: vec![],
-        links: vec![sdk::PrincipalLink {
-            name: "dMsg".into(),
-            url: format!("{}{account_id}", config.profile_url_prefix),
-            rel: "profile".into(),
-        }],
+        name: metadata.name,
+        description: metadata.description,
+        avatar_url: metadata.avatar_url,
+        aliases: vec![profile_url],
+        links: metadata.links,
         protocol: AGENT_DELEGATION_PROTOCOL.into(),
         controllers,
         retired_controllers,
         delegation_service: Some(config.delegation_service.clone()),
         updated_at: millis(state.updated_at)?,
-        extra: Default::default(),
+        extra: metadata.extra,
     };
     sdk::validate_principal_document(&document).map_err(sdk_error)?;
     serde_jcs::to_vec(&document).map_err(|error| Error::InvalidInput(error.to_string()))

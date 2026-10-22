@@ -1405,7 +1405,7 @@ impl Client {
     }
 
     /// The relay client, for the public reads that sign nothing, such as
-    /// [`crate::profile::avatar`]: a caller can let go of the client while
+    /// [`crate::principal::avatar`]: a caller can let go of the client while
     /// they wait on the network.
     pub fn relay(&self) -> Cloud {
         self.cloud.clone()

@@ -10,7 +10,8 @@
 use crate::store::{Memory, memory};
 use dmsg_runtime::cert_map::CertMap;
 use dmsg_types::*;
-use ic_certification::{HashTree, SubtreeLookupResult, labeled, labeled_hash};
+use ic_certification::hash_tree::{fork_hash, leaf_hash};
+use ic_certification::{HashTree, SubtreeLookupResult, fork, labeled, labeled_hash, leaf, pruned};
 use ic_http_certification::{
     CERTIFICATE_EXPRESSION_HEADER_NAME, DefaultCelBuilder, DefaultResponseCertification,
     DefaultResponseOnlyCelExpression, HttpCertification, HttpCertificationPath,
@@ -33,8 +34,10 @@ static CEL: LazyLock<DefaultResponseOnlyCelExpression<'static>> = LazyLock::new(
 });
 
 const PATH_PREFIX: &[u8] = b"http_expr";
+const DOCUMENT_PREFIX: &[u8] = b"documents";
 
 thread_local! {
+    static DOCUMENTS: RefCell<CertMap<Memory>> = RefCell::new(CertMap::new(memory(4), memory(5)));
     static TREE: RefCell<CertMap<Memory>> = RefCell::new(CertMap::new(memory(2), memory(3)));
 }
 
@@ -132,7 +135,10 @@ fn certify(
 }
 
 pub(crate) fn publish() {
-    let root = TREE.with_borrow(|tree| labeled_hash(PATH_PREFIX, &tree.root_hash()));
+    let root = fork_hash(
+        &DOCUMENTS.with_borrow(|tree| labeled_hash(DOCUMENT_PREFIX, &tree.root_hash())),
+        &TREE.with_borrow(|tree| labeled_hash(PATH_PREFIX, &tree.root_hash())),
+    );
     #[cfg(target_arch = "wasm32")]
     ic_cdk::api::certified_data_set(root);
     #[cfg(not(target_arch = "wasm32"))]
@@ -140,7 +146,8 @@ pub(crate) fn publish() {
 }
 
 /// Replace the certified response of one account's document.
-pub(crate) fn certify_document(id: &AccountId, document_digest: Hash) {
+pub(crate) fn certify_document(id: &AccountId, document_digest: Hash, document: &[u8]) {
+    DOCUMENTS.with_borrow_mut(|tree| tree.set(id.to_vec(), leaf_hash(document)));
     certify(
         document_path(id),
         &document_response(vec![]),
@@ -262,10 +269,37 @@ fn witness(
         )
     };
     let keys: Vec<&[u8]> = keys.iter().map(Vec::as_slice).collect();
-    labeled(
-        PATH_PREFIX,
-        TREE.with_borrow(|tree| tree.witness(&keys, child)),
+    fork(
+        pruned(DOCUMENTS.with_borrow(|tree| labeled_hash(DOCUMENT_PREFIX, &tree.root_hash()))),
+        labeled(
+            PATH_PREFIX,
+            TREE.with_borrow(|tree| tree.witness(&keys, child)),
+        ),
     )
+}
+
+/// The exact same JSON bytes as the certified HTTP document, for independent
+/// browser and native readers using the deployment's pinned IC root.
+pub(crate) fn document_batch(
+    canister: candid::Principal,
+    id: &AccountId,
+    document: Option<Vec<u8>>,
+) -> Result<CertifiedBatch> {
+    let certificate = dmsg_runtime::query_certificate()?;
+    dmsg_runtime::certified_batch(canister, vec![id.to_vec()], certificate, |key| {
+        let proof = DOCUMENTS.with_borrow(|tree| {
+            tree.witness(&[key], |_| {
+                leaf(document.clone().expect("certified document"))
+            })
+        });
+        (
+            document.clone(),
+            fork(
+                labeled(DOCUMENT_PREFIX, proof),
+                pruned(TREE.with_borrow(|tree| labeled_hash(PATH_PREFIX, &tree.root_hash()))),
+            ),
+        )
+    })
 }
 
 #[cfg(test)]
@@ -298,10 +332,13 @@ mod tests {
         certify_fixed(&domains);
         let id = AccountId([9; 12]);
         let digest = dmsg_protocol::sha256(b"{}");
-        certify_document(&id, digest);
+        certify_document(&id, digest, b"{}");
         let load =
             |found: &AccountId| (*found == id).then(|| (serde_bytes::ByteBuf::new(), digest));
-        let root = TREE.with_borrow(|tree| labeled_hash(PATH_PREFIX, &tree.root_hash()));
+        let root = fork_hash(
+            &DOCUMENTS.with_borrow(|tree| labeled_hash(DOCUMENT_PREFIX, &tree.root_hash())),
+            &TREE.with_borrow(|tree| labeled_hash(PATH_PREFIX, &tree.root_hash())),
+        );
         let (fallback, _) = not_found();
         for path in [
             "/unknown",

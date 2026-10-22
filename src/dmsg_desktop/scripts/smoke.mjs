@@ -245,12 +245,12 @@ const authRequest = {
 /** A 1×1 PNG. */
 const PIXEL = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 let published = {
-  account,
-  profile: { version: 1, prev_hash: null, display_name: 'Smoke', bio: '', avatar_upload: 'a0'.repeat(32), links: [] },
-  hash: 'aa'.repeat(32),
-  device_id: '11'.repeat(32),
-  self_asserted: true
+  id: `https://id.dmsg.net/${account}`, protocol: 'agent-delegation/1.0', type: 'person',
+  name: 'Smoke', description: '', avatar_url: `https://api.dmsg.net/public/accounts/${account}/avatar/${'a0'.repeat(32)}`,
+  links: [], controllers: [], updated_at: 1, extra: {}
 }
+
+let pendingPrincipal = null
 const checkouts = []
 const DAY = 86_400_000
 /** The plan the mock reports: free at first, then a Plus term that ends in five days. */
@@ -425,7 +425,7 @@ const methods = {
     stage: 'partial',
     gaps: [{ source: 'c/channel/2', code: 'missing_key', detail: 'Historical channel key missing' }],
     checks: 5,
-    profile: { name: 'Old Panda', bio: '', image: '' },
+    profile: { name: 'Old Panda', bio: 'Legacy bio', image: '', links: [{ name: 'Legacy link', url: 'https://example.test/', rel: 'related' }], extra: { 'dmsg.link_images': { 'https://example.test/': 'https://example.test/logo.png' } } },
     files: [{ source: 'b/file/7', kind: 'file', name: 'notes.txt', verified: true, mime: null }],
     resources: [],
     entitlements: [],
@@ -906,11 +906,9 @@ const methods = {
     return { forgotten: true }
   },
   'profile/show': () => published,
-  'profile/avatar': (p) => {
-    const upload = p.remove ? null : 'a1'.repeat(32)
-    published = { ...published, profile: { ...published.profile, version: published.profile.version + 1, avatar_upload: upload } }
-    return published
-  },
+  'profile/publish': (p) => { pendingPrincipal = { ...p, updated_at: published.updated_at + 1 }; return { published: false, version: pendingPrincipal.updated_at, published_version: published.updated_at } },
+  'profile/retry': () => { published = pendingPrincipal; pendingPrincipal = null; return { published: true, version: published.updated_at, published_version: published.updated_at } },
+  'profile/avatar': (p) => p.remove ? null : `https://api.dmsg.net/public/accounts/${account}/avatar/${'a1'.repeat(32)}`,
   'profile/avatar_image': () => ({ mime: 'image/png', url: `data:image/png;base64,${PIXEL}` }),
   'connect/pairings': () => {
     // Signed with the device key, which a lock drops.
@@ -2787,14 +2785,23 @@ try {
   await main.click('[data-testid="profile-use-legacy"]')
   await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]').value === 'Old Panda')
   assert.equal(latest('profile/publish'), undefined)
-  assert.equal(published.profile.display_name, 'Smoke')
+  assert.equal(published.name, 'Smoke')
   await answer('__open', join(picks, 'me.png'))
   await main.click('[data-testid="avatar-set"]')
   await waitFor(() => latest('profile/avatar')?.params.path === join(picks, 'me.png'))
   await main.locator('[data-testid="profile"]').screenshot({ path: join(shots, 'profile.png') })
   await main.click('[data-testid="avatar-remove"]')
-  await waitFor(() => latest('profile/avatar')?.params.remove === true)
+  assert.equal(await main.inputValue('[data-testid="profile-name"]'), 'Old Panda', 'avatar changes preserve imported drafts')
   await main.waitForSelector('[data-testid="avatar-remove"]', { state: 'detached' })
+  await main.locator('[data-testid="profile"] button').filter({hasText: /Publish|发布/}).last().click()
+  await waitFor(() => latest('profile/publish'))
+  assert.equal(published.name, 'Smoke', 'the directory has not published the new document yet')
+  await main.locator('[data-testid="profile"] button').filter({hasText:/Retry|重试/}).last().click()
+  await waitFor(() => latest('profile/retry'))
+  assert.equal(published.name, 'Old Panda')
+  assert.equal(published.links[0].name, 'Legacy link')
+  assert.equal(published.extra['dmsg.link_images']['https://example.test/'], 'https://example.test/logo.png')
+  assert.equal(published.avatar_url, undefined)
   await assert.rejects(main.evaluate(() => window.dmsg.call('profile/avatar', { path: '/etc/hosts' })), /FORBIDDEN/)
   // A locked daemon's hints notify that something arrived, never from
   // whom, and each kind at most once a minute.

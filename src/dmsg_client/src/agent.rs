@@ -512,9 +512,10 @@ impl Client {
 
     /// After a committed change, tell the delegation service once the
     /// directory has it; a failure only delays the service's view.
-    async fn principal_settled(&mut self) {
+    pub(crate) async fn principal_settled(&mut self) {
         if let Ok(Some(info)) = self.principal().await
             && info.published_version == info.state.version
+            && !info.state.controllers.is_empty()
         {
             let _ = self.principal_refresh().await;
         }

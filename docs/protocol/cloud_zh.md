@@ -35,9 +35,9 @@
 
 dmsg-connect/1 与设备提示通道新增七个 action（路由与规则见 [connect-v1](connect-v1_zh.md) §7.3、§7.5）：`dmsg/connect/invite/v1`、`dmsg/connect/pairing/grant/v1`、`dmsg/connect/pairing/revoke/v1`、`dmsg/connect/authorize/v1`、`dmsg/connect/respond/v1`、`dmsg/hint/token/create/v1`、`dmsg/hint/token/revoke/v1`。其中配对授予、配对撤销、授权与回复要求签发设备在认证设备表中具备 `FormalApprove`，这是命令管线第一次按 action 要求设备能力。`dmsg/connect/respond/v1` 的请求 body 是 `{cose_sign1, sealed}`：密封回复与命令并列（最多 512 KiB），命令 payload 只承诺它的 SHA-256，因此这是唯一允许在 `cose_sign1` 之外附带字段的命令 body。
 
-允许的 action 由公开 SDK 的 `cloudActions` 固定。`signCloudCommand` 构造通用信封；`profileSchema` 对 profile 提供严格字段校验。其它 action 仍必须使用对应资源合同，通用信封不是任意字段都能被服务器接受的保证。
+允许的 action 由公开 SDK 的 `cloudActions` 固定。`signCloudCommand` 构造通用信封；用户公开资料不再使用此命令通道。其它 action 仍必须使用对应资源合同，通用信封不是任意字段都能被服务器接受的保证。
 
-`CloudClient` 提供证据提交、签名 GET/POST、密文块 PUT/GET、readiness 和 profile 写入。它限制响应大小、禁止重定向/携带 cookies，保留错误 code/retryable/request_id，不自动重试。资金和会员刷新等非命令 POST 的专用适配由后续客户端工作包接入，不能用 profile 方法替代。
+`CloudClient` 提供证据提交、签名 GET/POST、密文块 PUT/GET、readiness 和设备内容命令。它限制响应大小、禁止重定向/携带 cookies，保留错误 code/retryable/request_id，不自动重试。资金和会员刷新等非命令 POST 的专用适配由后续客户端工作包接入，不能用 profile 方法替代。
 
 ## 注册准入票据
 
@@ -68,9 +68,7 @@ body: { home: bstr(user home Principal), principal: bstr(创建账户的登录 P
 
 value/witness/certificate 使用原始认证字节，devices 是完整设备 map 的规范 CBOR。缓存截止是 certificate 时间加 60 秒；不能以读取或提交时间续命。调用者只可从验证后的设备记录选择未撤销且具有所需能力的设备，不能将返回的所有记录均当作有效授权。
 
-profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、issuer/device/action、原 COSE 摘要、version 与投影一致性。调用者必须提供已认证的设备公钥；数学验证不证明中继给出了最新版本。历史命令的签名验证不因提交 deadline 已过而失效，当前写授权独立判断。
-
-本人 profile 的签名依据（2026-10-16）：`GET /v1/accounts/:account/profile` 只供本账户设备读取，在公开字段之外带 `evidence` 与 `stored_at`，即中继接受该版本时核对的认证证据与接受时间。客户端用 `stored_at` 核对证据（证书、账户叶与设备表），在其中找签名设备（当时未吊销、有 `content_sign`），命令体的 `security_epoch` 须等于证据中的纪元、deadline 须晚于 `stored_at`，投影中的 `signer.device_id` 须是该设备。全设备丢失恢复会替换所有设备，设备表满 16 条时加设备会移除最早吊销的一台；按当前设备集合验签时，它们签署的最新版本无法读取，也就无法按 `prev_hash` 续写。其他账户经 `/public/accounts/:account/profile` 读取，响应不带证据，仍按该账户当前认证的设备核对；签名设备已不在设备表中的版本不再被视为该账户的资料，直到本人发布新版本。
+用户公开资料改为由 `dmsg_user` 管理、`dmsg_directory` 发布的官方 `PrincipalDocument`，读取和认证见 [agent_zh.md](agent_zh.md#统一公开身份文档2026-10-22)。云端不再保存另一份用户 Profile，也不接受 `dmsg/profile/v1` 命令。头像上传仍经设备 PoP 与对象提交验证。
 
 ## R0 本地内容到云端的映射
 
@@ -89,7 +87,7 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 | 本地文件块 ID `file:version:index` | `upload_id + index` | object_id/version_id 对应文件来源；上传 ID 独立且幂等；原文件块 AAD 仍需保留并验证 |
 | 文件 key/name/MIME/明文摘要 | 加密 manifest / vault 内容 | 不放公开 upload plan。manifest_digest/size 指加密 manifest 的实际 bytes；不明文上传 FileKey |
 | 空文件 | 加密 manifest + 满足非空块计划的格式容器 | 当前云端要求至少一个非空块；A2 显式表示零长度文件，不能伪造一个明文数据块 |
-| 本地 `Profile` | `{version,prev_hash,display_name,bio,avatar_upload,links}` | 仅发布明确选中的公开字段；name→display_name，link→links；contact 另走 inbox policy；头像必须是明确公开的 avatar 对象 |
+| 用户公开资料 | 官方 `PrincipalDocument`，经 user/directory 上链发布 | 云端仅保存公开头像二进制，不保存用户资料投影；inbox policy 独立 |
 | 本地 channel/message 草稿 | 签名 genesis/control/epoch/message | 先创建正式频道、接受成员并取得新 epoch；不把本地 `active`、签名或序号直接当在线授权 |
 | 本地 outbox receipt | 资源操作查询和实际服务回执 | 使用资源级回执，按原 request ID 对账；没有单独的通用发送队列实现 |
 
@@ -111,7 +109,7 @@ profile 响应包含签名和 JSON 投影。`verifyCloudProfile` 校验签名、
 
 内容根（`kind=root`）例外：manifest 是原始 RootBundle 字节（见[账户与根合同](account_root_zh.md)），`object_id` 取链上 `bundle_digest` 的 hex。`bundle_digest` 覆盖接收者与 body，不等于字节摘要；`GET /v1/accounts/:account/root` 按认证安全快照的 `content_root_generation` 与 `content_root_digest` 匹配 `root_generation` 与 `object_id` 返回对象，客户端下载后仍按 `bundle_digest` 验证。
 
-公开头像（`kind=avatar`）也是例外，内容不加密：唯一的块是 PNG、JPEG 或 WebP 原图（12 字节至 512 KiB，中继按文件头核对），`root_generation` 为 0，`epoch` 为 0，`control_head` 为 null，`object_id`、`version_id` 是随机 ID；manifest 是明文规范 CBOR `{format:"dmsg-cloud-avatar/1", account_id, upload_id, mime}`，中继只保存不读取。上传提交后，下一个 profile 版本的 `avatar_upload` 指向该上传 ID；`GET /public/accounts/:account/avatar/:upload` 只在它是当前 profile 的头像时返回原图（带 `content-type` 与 `etag`），否则 404。客户端按配置的中继 origin 拼出这个地址，不采用响应里的 `avatar_url`。更换或移除头像不删除旧上传：历史 profile 版本仍引用它，只是不再公开提供。
+公开头像（`kind=avatar`）也是例外，内容不加密：唯一的块是 PNG、JPEG 或 WebP 原图（12 字节至 512 KiB，中继按文件头核对），`root_generation` 为 0，`epoch` 为 0，`control_head` 为 null，`object_id`、`version_id` 是随机 ID；manifest 是明文规范 CBOR `{format:"dmsg-cloud-avatar/1", account_id, upload_id, mime}`，中继只保存不读取。上传提交后生成固定的 `GET /public/accounts/:account/avatar/:upload` URL（带 `content-type` 与 `etag`），由 PrincipalDocument 的 `avatar_url` 引用。只有已提交的 avatar 类型可以公开读取；取消文档引用不会删除或关闭这个公开 URL，普通对象回收拒绝头像。
 
 空文件的 manifest 保留 `size=0`、空文件摘要及空文件块列表；上传层使用一个规范 CBOR 容器 `{format:"dmsg-cloud-empty-file/1"}` 作为非空占位块。它不计作明文文件块。恢复程序必须检查空文件标志、零长度和摘要一致性，不能把占位 bytes 返回为文件内容。
 
@@ -168,10 +166,8 @@ webhook 入口只有 `POST /mcp-events/<callback_id>`（`application/json`，正
 
 ## 公开资料网页
 
-`src/dmsg_frontend` 的公开入口为 `/<account_id>` 与 `/<handle>`：前者是规范 20 字符 Xid，后者是 1–19 字符 ASCII 名称，大小写按 handle 规则归一化。永久链接使用 `/<account_id>`，不使用 `/u/` 前缀。名称通过 `dmsg_handle.resolve_handle_certified` 的分桶认证路径解析到当前账户；账户按注册表配置和 ID 内嵌分配器指纹选择 user home。
+公开入口为 `/<account_id>` 和 `/<handle>`，永久链接使用前者。handle 经 `dmsg_handle.resolve_handle_certified` 验证，账户按注册表的分配器指纹选择 home，再从其配置的 directory 读取认证 `PrincipalDocument`。网页不再读取 Cloudflare 用户 profile，也不再展示“设备签名已验证”标签。
 
-网页匿名读取账户认证叶与完整设备表，再读取 `GET /public/accounts/:account/profile`。`dmsg-sdk/profile` 验证 ICP 根、证书时效（60 秒）、指定 canister、认证路径、设备根，以及资料的 COSE 签名、issuer、设备、action、hash、version 与 JSON 投影。未通过验证的资料不显示；同一页面会话中已经见过的版本不允许回退或同版本换内容。头像只使用配置的 API origin 与已签名的上传 ID 拼接地址。
+JSON 与 HTML 的内容来源、字段和更新时间一致；浏览器独立验证 directory 的 ICP 证书。链接名称和 `extra["dmsg.link_images"]` 图片一起展示。旧资料导入先生成包含名称、简介、具名链接、图片扩展和头像 URL 的草稿，用户发布后才上链。
 
-已撤销但仍保留在认证设备表中的设备签名可以作为历史声明展示，页面单独显示撤销状态；已从设备表移除的签名设备无法通过当前公开证据验证。验签不证明资料最新、不证明简介内容真实，也不表示资料快照已上链锚定。账户存在但未发布资料、账户或名称不存在、网络失败、验证失败分别展示。
-
-旧公开资料迁至 `/legacy/users/<username>`，本人旧资料迁至 `/legacy/profile`；旧资料链接与二维码使用 legacy 路径，继续只读。 名称认证查询证明没有新版映射后，网页查询旧名称预留记录；已预留的名称显示“尚未关联新版账户”和旧资料入口，不将旧 owner 推断为新版账户。公开 profile/avatar 的 GET/HEAD 与 OPTIONS 支持无凭据跨域读取（`Access-Control-Allow-Origin: *`），写入和设备私有 API 保持原认证边界。
+旧公开资料保留在 `/legacy/users/<username>`，本人旧资料在 `/legacy/profile`。新版映射不存在时可查询冻结名称预留，提供旧资料入口；不能把旧 owner 当作新版账户。只有公开头像 GET/HEAD/OPTIONS 保留无凭据 CORS，设备 API 不对浏览器开放。详见 [PrincipalDocument 合同](agent_zh.md#统一公开身份文档2026-10-22)。

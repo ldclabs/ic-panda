@@ -217,7 +217,7 @@ flowchart LR
 
 ### 存储
 
-稳定布局为 schema 14，`post_upgrade` 遇到其他 schema 直接失败，布局变化须编写显式迁移。开发阶段不迁移 schema 13 的全局待绑定表、64 条回执窗口与哈希键月账。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
+稳定布局为 schema 15，principal 状态增加官方文档的展示成员。`post_upgrade` 遇到其他 schema 直接失败；本开发版本不迁移旧布局，需与 directory schema 7 配套重装。`MemoryManager` 使用默认的 128 页（8 MiB）分配桶，32,768 个桶共可寻址 256 GiB。
 
 | Memory | 内容                                                                    |
 | -----: | ----------------------------------------------------------------------- |

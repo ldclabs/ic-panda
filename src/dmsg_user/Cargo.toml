@@ -9,6 +9,7 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+agent-protocols.workspace = true
 dmsg_protocol = { path = "../dmsg_protocol" }
 dmsg_runtime = { path = "../dmsg_runtime" }
 ic-stable-structures.workspace = true
@@ -18,6 +19,7 @@ ic_auth_types.workspace = true
 candid.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_bytes.workspace = true
+serde_json.workspace = true
 ic-cdk.workspace = true
 ic-cdk-timers.workspace = true
 ic-cdk-management-canister.workspace = true

@@ -82,7 +82,7 @@ export interface DesktopBridge {
   /** Open a library file's version in its program, from a temporary copy the daemon cleans up. */
   filesOpen(id: string, version: string | null): Promise<unknown>
   /** Publish an image the person picks as the public avatar, or remove it; null when cancelled. */
-  avatar(remove: boolean): Promise<unknown>
+  avatar(): Promise<unknown>
   /** Pay with the key of a PEM file the person picks, or with `login` with the login again; null when cancelled. */
   payerPem(login: boolean): Promise<unknown>
   /**

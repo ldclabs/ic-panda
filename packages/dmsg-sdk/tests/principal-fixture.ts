@@ -1,17 +1,14 @@
-// Synthetic test-only authority. Never a production IC root or account.
+// Synthetic test-only IC authority for PrincipalDocument proof tests.
 import { readFileSync } from "node:fs";
 import { bls12_381 } from "@noble/curves/bls12-381.js";
-import { ed25519 } from "@noble/curves/ed25519.js";
 import { reconstruct, type HashTree } from "@icp-sdk/core/agent";
-import { canonical, digest, utf8, b64, hash, hex } from "../src/cose-codec.ts";
+import { canonical, digest, utf8 } from "../src/cose-codec.ts";
 import {
   accountText,
   handlePath,
-  type ProfileDevice,
-  type PublicProfile,
-} from "../src/profile.ts";
+  type PrincipalDocument,
+} from "../src/principal.ts";
 import type { CertifiedBatch } from "../src/ic.ts";
-
 const auth = JSON.parse(
   readFileSync(
     new URL(
@@ -45,77 +42,6 @@ accountId.set(
 export const account = accountText(accountId),
   issuer = namespace + account,
   handle = "alice";
-export const seed = new Uint8Array(32).fill(7),
-  deviceId = new Uint8Array(32).fill(7);
-export const device: ProfileDevice = {
-  input: {
-    device_id: deviceId,
-    signing_pub: ed25519.getPublicKey(seed),
-    hpke_pub: new Uint8Array(32).fill(8),
-    role: "Administrator",
-    capabilities: ["ContentSign"],
-  },
-  added_at: 1,
-  added_by: null,
-  revoked_at: null,
-  next_sequence: 1,
-};
-export const devices = new Map([[deviceId, device]]);
-export const snapshot = {
-  schema: 4,
-  account_id: accountId,
-  home_user: home,
-  home_cose: home,
-  issuer,
-  security_epoch: 4,
-  devices_root: digest("dmsg/devices/v1", devices),
-};
-export const profile: PublicProfile = {
-  version: 1,
-  prev_hash: null,
-  display_name: "Alice · Public profile",
-  bio: "A signed public profile.\nFor people and agents.",
-  avatar_upload: null,
-  links: ["https://example.com/"],
-};
-export const command = {
-  protocol: "dmsg-cloud/1",
-  action: "dmsg/profile/v1",
-  security_epoch: 4,
-  request_id: "09".repeat(32),
-  deadline: Number(now) - 60000,
-  payload: profile,
-};
-export function signedRecord(body = command, owner = issuer) {
-  const headers = canonical(
-    new Map<number, unknown>([
-      [1, -19],
-      [2, [15, 16]],
-      [3, "application/cbor"],
-      [4, deviceId],
-      [15, new Map([[1, owner]])],
-      [16, "application/vnd.dmsg.command+cose;v=1"],
-    ]),
-  );
-  const payload = canonical(body);
-  const signature = ed25519.sign(
-    canonical(["Signature1", headers, new Uint8Array(), payload]),
-    seed,
-  );
-  const encoded = Uint8Array.from([
-    0xd2,
-    ...canonical([headers, new Map(), payload, signature]),
-  ]);
-  return {
-    signed: { cose_sign1: b64(encoded) },
-    payload: body.payload,
-    version: body.payload.version,
-    hash: hash(encoded),
-    signer: { device_id: hex(deviceId) },
-  };
-}
-export const record = signedRecord();
-
 export async function certified(
   canister: Uint8Array,
   key: Uint8Array,
@@ -169,8 +95,30 @@ export async function certified(
     entries: [{ key, value, witness: canonical(witness) }],
   };
 }
-export const securityBatch = () =>
-  certified(home, accountId, canonical(snapshot));
+export const directory = Uint8Array.of(3, 1);
+export const principalOrigin = "https://id.dmsg.test";
+export const document: PrincipalDocument = {
+  id: `${principalOrigin}/${account}`,
+  type: "person",
+  protocol: "agent-delegation/1.0",
+  name: "Alice",
+  description: "A public identity for people and agents.",
+  aliases: [`https://dmsg.test/${account}`],
+  links: [{ name: "Website", url: "https://example.com/", rel: "related" }],
+  controllers: [],
+  updated_at: Number(now),
+  extra: {
+    "dmsg.link_images": {
+      "https://example.com/": "https://example.com/image.png",
+    },
+  },
+};
+export const documentBytes = (value = document) => utf8(JSON.stringify(value));
+export const documentBatch = (value = document) =>
+  certified(directory, accountId, documentBytes(value), [
+    utf8("documents"),
+    accountId,
+  ]);
 export const handleBatch = (owner = accountId) =>
   certified(
     registry,

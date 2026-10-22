@@ -329,7 +329,7 @@ impl Fixture {
                 principal_origin: PRINCIPAL_ORIGIN.into(),
                 controller_source: "https://dmsg.net".into(),
                 delegation_service: DELEGATION_SERVICE.into(),
-                profile_url_prefix: "https://dmsg.test/u/".into(),
+                profile_url_prefix: "https://dmsg.test/".into(),
                 custom_domains: vec!["id.dmsg.test".into()],
                 governance: sns,
             },))

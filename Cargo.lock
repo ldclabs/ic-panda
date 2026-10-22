@@ -2487,6 +2487,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_bytes",
+ "serde_jcs",
  "serde_json",
  "sha1 0.11.0",
  "sha2 0.11.1",
@@ -2781,6 +2782,7 @@ dependencies = [
  "lib_dummy_getrandom",
  "serde",
  "serde_bytes",
+ "serde_json",
 ]
 
 [[package]]

@@ -536,6 +536,7 @@ stable_struct!(HostedControllerRepr => HostedController {
 });
 
 stable_struct!(PrincipalStateRepr => PrincipalState {
+    5 => metadata: serde_bytes::ByteBuf,
     1 => principal_type: PrincipalType,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     2 => controllers: Vec<HostedControllerRepr> as codec,

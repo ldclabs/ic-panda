@@ -499,6 +499,7 @@ pub(crate) fn apply(
             next.pending_recovery = None;
         }
         AccountCommand::EnablePrincipal { .. }
+        | AccountCommand::UpdatePrincipal { .. }
         | AccountCommand::RegisterController { .. }
         | AccountCommand::RetireController { .. }
         | AccountCommand::MarkControllerCompromised { .. }

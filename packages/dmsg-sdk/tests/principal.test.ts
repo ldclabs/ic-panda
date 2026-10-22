@@ -8,20 +8,11 @@ import {
   handlePath,
   profileTarget,
   verifyHandle,
-  verifyProfileSecurity,
-  verifyPublicProfile,
-} from "../src/profile.ts";
+  verifyPrincipalDocument,
+} from "../src/principal.ts";
 import { b64, canonical, hash, unb64, utf8 } from "../src/cose-codec.ts";
 import { verifyCertifiedPath } from "../src/ic.ts";
-import * as f from "./profile-fixture.ts";
-
-const security = {
-  account: f.account,
-  issuer: f.issuer,
-  epoch: 4n,
-  devices: f.devices,
-  certifiedAt: f.now,
-};
+import * as f from "./principal-fixture.ts";
 
 test("root-path IDs and handles are disjoint; routing uses the account allocator", () => {
   assert.equal(accountText(accountBytes(f.account)), f.account);
@@ -148,130 +139,82 @@ test("absence requires a known empty range, including nested bucket paths", asyn
   );
 });
 
-test("account evidence binds the full device map, home and exact account", async () => {
-  const batch = await f.securityBatch();
-  const verified = await verifyProfileSecurity(
-    batch,
+test("the certified document preserves the official fields and legacy link artwork", async () => {
+  const document = await verifyPrincipalDocument(
+    await f.documentBatch(),
     f.account,
-    f.home,
+    f.directory,
+    f.principalOrigin,
     f.rootKey,
-    f.devices,
     f.now,
   );
-  assert.equal(verified!.issuer, f.issuer);
-  assert.equal(
-    verifyPublicProfile(f.record, verified!).profile.display_name,
-    f.profile.display_name,
-  );
-  const changed = new Map([[f.deviceId, { ...f.device, next_sequence: 2 }]]);
-  await assert.rejects(
-    verifyProfileSecurity(batch, f.account, f.home, f.rootKey, changed, f.now),
-  );
-  await assert.rejects(
-    verifyProfileSecurity(
+  assert.deepEqual(document, f.document);
+});
+
+test("the document binds exact bytes, directory, account, canonical ID and freshness", async () => {
+  const proof = await f.documentBatch();
+  const check = (
+    batch = proof,
+    directory = f.directory,
+    origin = f.principalOrigin,
+    now = f.now,
+  ) =>
+    verifyPrincipalDocument(
       batch,
       f.account,
-      f.registry,
+      directory,
+      origin,
       f.rootKey,
-      f.devices,
-      f.now,
+      now,
+    );
+  await assert.rejects(check(proof, f.home));
+  await assert.rejects(check(proof, f.directory, "https://other.test"));
+  await assert.rejects(
+    check(proof, f.directory, f.principalOrigin, f.now + 60001n),
+  );
+  const tampered = structuredClone(proof);
+  tampered.entries[0].value![5] ^= 1;
+  await assert.rejects(check(tampered));
+  const invalid = { ...f.document, id: "https://evil.test/" + f.account };
+  await assert.rejects(check(await f.documentBatch(invalid)));
+  const duplicate = utf8(
+    JSON.stringify(f.document).replace(
+      '"name":"Alice"',
+      '"name":"Alice","name":"Mallory"',
     ),
   );
   await assert.rejects(
-    verifyProfileSecurity(
+    check(
+      await f.certified(f.directory, f.accountId, duplicate, [
+        utf8("documents"),
+        f.accountId,
+      ]),
+    ),
+  );
+  const missing = await f.certified(f.directory, f.accountId, null);
+  assert.equal(await check(missing), null);
+});
+
+test(
+  "browser SDK independently verifies the real directory Wasm document",
+  { skip: !process.env.DMSG_PRINCIPAL_FIXTURE },
+  async () => {
+    const sample = JSON.parse(
+      readFileSync(process.env.DMSG_PRINCIPAL_FIXTURE!, "utf8"),
+    );
+    const { Principal } = await import("@icp-sdk/core/principal");
+    const { decodeCanonical, unhex } = await import("../src/cose-codec.ts");
+    const batch = decodeCanonical<any>(unhex(sample.batch_hex));
+    batch.schema = BigInt(batch.schema);
+    const document = await verifyPrincipalDocument(
       batch,
-      accountText(new Uint8Array(12).fill(5)),
-      f.home,
-      f.rootKey,
-      f.devices,
-      f.now,
-    ),
-  );
-  await assert.rejects(
-    verifyProfileSecurity(
-      batch,
-      f.account,
-      f.home,
-      f.rootKey,
-      f.devices,
-      f.now + 60001n,
-    ),
-  );
-});
-
-test("the existing Rust cloud vector verifies; expired submission deadlines do not undo it", () => {
-  const v = JSON.parse(
-    readFileSync(
-      new URL("../../../tests/vectors/client/cloud-v1.json", import.meta.url),
-      "utf8",
-    ),
-  );
-  const d = {
-    ...f.device,
-    input: {
-      ...f.device.input,
-      signing_pub: Uint8Array.from(Buffer.from(v.public_key_hex, "hex")),
-    },
-  };
-  const record = {
-    signed: v.command,
-    payload: v.profile,
-    version: 1,
-    hash: hash(unb64(v.command.cose_sign1)),
-    signer: { device_id: v.context.deviceId },
-  };
-  assert.deepEqual(
-    verifyPublicProfile(record, {
-      ...security,
-      issuer: v.context.issuer,
-      devices: new Map([[f.deviceId, d]]),
-    }).profile,
-    v.profile,
-  );
-});
-
-test("tampered signatures, projections, hashes, issuer, action, epoch and device are refused", () => {
-  const encoded = unb64(f.record.signed.cose_sign1);
-  encoded[encoded.length - 1] ^= 1;
-  for (const changed of [
-    { ...f.record, signed: { cose_sign1: b64(encoded) } },
-    { ...f.record, payload: { ...f.profile, bio: "injected" } },
-    { ...f.record, version: 2 },
-    { ...f.record, hash: "00".repeat(32) },
-    { ...f.record, signer: { device_id: "00".repeat(32) } },
-    f.signedRecord({ ...f.command, action: "dmsg/channel/v1" }),
-    f.signedRecord({ ...f.command, security_epoch: 5 }),
-    f.signedRecord(f.command, "https://attacker.test/"),
-    f.signedRecord({
-      ...f.command,
-      payload: { ...f.profile, links: ["javascript:alert(1)"] },
-    }),
-  ])
-    assert.throws(() => verifyPublicProfile(changed, security));
-  assert.throws(() =>
-    verifyPublicProfile(f.record, { ...security, devices: new Map() }),
-  );
-});
-
-test("a retained revoked device is reported as a historical signer", () => {
-  const devices = new Map([[f.deviceId, { ...f.device, revoked_at: 123 }]]);
-  assert.equal(
-    verifyPublicProfile(f.record, { ...security, devices }).deviceActive,
-    false,
-  );
-});
-
-test("noncanonical COSE outer encoding cannot change the signed record hash", () => {
-  const bytes = unb64(f.record.signed.cose_sign1);
-  const noncanonical = Uint8Array.from([0xd2, 0x98, 4, ...bytes.slice(2)]);
-  assert.throws(() =>
-    verifyPublicProfile(
-      {
-        ...f.record,
-        signed: { cose_sign1: b64(noncanonical) },
-        hash: hash(noncanonical),
-      },
-      security,
-    ),
-  );
-});
+      sample.account,
+      Principal.fromText(sample.directory).toUint8Array(),
+      sample.origin,
+      unhex(sample.root_hex),
+      BigInt(sample.now_ms),
+    );
+    assert.deepEqual(document, sample.document);
+    assert.ok(document?.extra?.["dmsg.link_images"]);
+  },
+);

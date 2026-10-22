@@ -1,6 +1,10 @@
 import type { Messages } from './en'
 
 export default {
+  'Certified principal document': '经认证的身份资料',
+  'These details come from the same certified identity document read by agents. The account publishes its own claims.':
+    '这些资料来自智能体读取的同一份认证身份文档，内容由账户本人发布。',
+  'Updated': '更新于',
   'This legacy handle is reserved and has not been linked to a new account.':
     '该旧名称已保留，尚未关联新版账户。',
   'View legacy profile': '查看旧版资料',
@@ -15,13 +19,7 @@ export default {
   'Public profile avatar': '公开资料头像',
   'Account ID': '账户 ID',
   'Links': '链接',
-  'Device signature verified': '设备签名已验证',
-  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
-    '签名与该账户经认证设备表中的设备匹配。资料由用户自行发布；验证不证明这是最新版本，也不代表资料快照已上链锚定。',
-  'Signing device': '签名设备',
-  'Device status at verification': '验证时的设备状态',
   'Active': '有效',
-  'Revoked · historical signature': '已撤销 · 历史签名',
   'This account has not published a public profile.':
     '该账户尚未发布公开资料。',
   'Link copied': '链接已复制',

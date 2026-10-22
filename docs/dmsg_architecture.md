@@ -1,5 +1,7 @@
 # dMsg Technical Architecture
 
+> 2026-10-22: User profiles now use PrincipalDocument, updated on dmsg_user (schema 15) and published by dmsg_directory (schema 7). Display edits write on chain; avatar bytes remain in cloud storage. The separate user Profile pipeline is removed; Agent Profile is unchanged. Historical capacity samples do not include the new metadata. See [the public contract](protocol/agent_zh.md).
+
 English | [简体中文](dmsg_architecture_zh.md)
 
 > Baseline: public repository `main` at commit `c707ade` (2026-10-08), with the user home's capacity, admission and binding parts updated for the 21-million-account change later that day. This document gives an overview of the public implementation: its architecture, capacity, scaling and multi-instance deployment. Figures come from the measurements and code constants recorded in each canister README. Each README and `.did` file remains authoritative for interfaces, state machines and validation details; where either disagrees with this document, the code wins. The companion cloud service is not public and is described here only through its public contracts. This document does not certify a production deployment, mainnet capacity or a security audit.
@@ -7,7 +9,7 @@ English | [简体中文](dmsg_architecture_zh.md)
 ## 1. Design Principles
 
 1. **Content off chain, authority on chain.** Plaintext and content keys stay on authorized devices (the dMsg client). The cloud stores and delivers ciphertext and runs channel collaboration and the inbox. ICP holds only the authoritative state that must be publicly verifiable and consistent across services: accounts and devices, content-root commitments, handle ownership, formal attestation receipts, settled funds and commercial entitlements.
-2. **Everyday work writes nothing on chain.** Messages, files, vault edits, channel control and profiles make no ICP update, vetKD derivation or threshold signature; the cloud only queries certified account security snapshots when it needs them.
+2. **Everyday work writes nothing on chain.** Messages, files, vault edits and channel control make no ICP update, vetKD derivation or threshold signature; the cloud only queries certified account security snapshots when it needs them.
 3. **Upgrades are independent of scale.** Records and certification trees live in stable memory and the heap holds no business state. An upgrade only republishes the root hash, so `post_upgrade` instructions do not grow with the number of records.
 4. **Scale out by user home.** Every account ID embeds the fingerprint of the user home that allocated it, and every service routes by that fingerprint, so adding a home never remaps existing accounts. Services that need global uniqueness (handles, PANDA neuron occupancy, the principal document domain) stay single-instance.
 5. **Uniform governance, external maintenance.** Every administrative method accepts the controller and an SNS governance canister fixed at installation, and has a `validate_*` dry run taking the same arguments. Canisters do not rely on timers; external jobs drive cleanup, payouts and price publication through bounded entry points.
@@ -19,7 +21,7 @@ English | [简体中文](dmsg_architecture_zh.md)
 | dMsg client (the daemon and CLI of [dmsg_cli](../src/dmsg_cli/README.md), the [desktop app](../src/dmsg_desktop/README.md), with [dmsg_client](../src/dmsg_client/README.md) at the core) | Generates and uses content roots, object and file keys; encrypts and decrypts; signs and approves with device keys (the approval centre, including requests from web pages and agents); keeps the local SQLite workspace, sync jobs and reconciliation journals | Self-reported device, membership or payment state never replaces certified evidence |
 | Bridge page ([dmsg_connect](../src/dmsg_connect/README.md), connect.dmsg.net, an asset canister) | [dmsg-connect/1](protocol/connect-v1_zh.md) between web applications and devices: checks the application registration, relays the browser-reported origin, keeps a local operation index and result-unsealing keys | Holds no account or device key and cannot approve; the origin it relays is not a cryptographic proof |
 | Private cloud | Stores and delivers ciphertext; runs channel control, contact rules, the inbox and resource quotas; verifies ICP certified evidence; signs paid-delivery quotes and admission receipts; runs the connect mailbox for web requests (ciphertext only), the hint channel to locked devices and the MCP Events relay | Account root authorization, handle ownership, formal attestation, settled funds |
-| ICP canisters (this repository) | The seven services of section 3 | Holds no channel membership, messages, files or profile bodies and stays off the everyday content path |
+| ICP canisters (this repository) | The seven services of section 3 | Holds no channel membership, messages or file bodies; user PrincipalDocument display fields are stored with account principal state |
 
 Content encryption does not hide operational metadata: the cloud and the canisters see routing, account and device identifiers, sizes, timing, and the membership and contact relations needed to enforce rules. The cloud can deny service, delay, or show different devices different views; clients detect the tampering and rollback they can through signatures, IC certificates and locally known versions. The controller (the SNS once handed over) can upgrade canisters, change their rules, and read a user home's `master_secret`. See the [encryption design](dmsg_encryption_zh.md) (Chinese) and the [cloud wire contract](protocol/cloud_zh.md) (Chinese).
 
@@ -133,7 +135,8 @@ The desktop manages membership, policy, addresses and operations through structu
 
 | Operation | Work on ICP |
 | --- | --- |
-| Messages, files, vault edits, channel control, profiles | No update; the cloud may query certified security snapshots |
+| Messages, files, vault edits, channel control | No update; the cloud may query certified security snapshots |
+| User PrincipalDocument edits | Account update plus directory publication; no vetKD or threshold signature |
 | Login unlock | One `unlock_secret` query |
 | Account creation, new devices, root rotation, recovery | Infrequent updates on the user home; rotations make no chain-key calls |
 | Formal attestation | One update on the user home, plus one commerce call when the monthly lease has expired |

@@ -1,6 +1,10 @@
 import type { Messages } from './en'
 
 export default {
+  'Certified principal document': 'وثيقة هوية موثّقة',
+  'These details come from the same certified identity document read by agents. The account publishes its own claims.':
+    'تأتي هذه التفاصيل من وثيقة الهوية الموثّقة نفسها التي تقرؤها الوكلاء. ينشر الحساب بياناته بنفسه.',
+  'Updated': 'آخر تحديث',
   'This legacy handle is reserved and has not been linked to a new account.':
     'هذا الاسم القديم محجوز ولم يُربط بحساب جديد بعد.',
   'View legacy profile': 'عرض الملف القديم',
@@ -16,13 +20,7 @@ export default {
   'Public profile avatar': 'صورة الملف العام',
   'Account ID': 'معرّف الحساب',
   'Links': 'الروابط',
-  'Device signature verified': 'تم التحقق من توقيع الجهاز',
-  'The signature matches a device in this account’s certified device list. Profile claims are self-published; this does not prove the latest version or an anchored profile snapshot.':
-    'يطابق التوقيع جهازًا في قائمة الأجهزة الموثّقة لهذا الحساب. ينشر صاحب الحساب معلومات الملف بنفسه؛ ولا يثبت ذلك أنها أحدث نسخة أو أن لقطة الملف مثبّتة على السلسلة.',
-  'Signing device': 'الجهاز الموقّع',
-  'Device status at verification': 'حالة الجهاز عند التحقق',
   'Active': 'نشط',
-  'Revoked · historical signature': 'ملغى · توقيع سابق',
   'This account has not published a public profile.':
     'لم ينشر هذا الحساب ملفًا عامًا بعد.',
   'Link copied': 'تم نسخ الرابط',

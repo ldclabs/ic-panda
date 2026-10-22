@@ -89,11 +89,45 @@ impl Fixture {
         assert_eq!(header("content-type").as_deref(), Some("application/json"));
         assert_eq!(header("access-control-allow-origin").as_deref(), Some("*"));
         let bytes = response.body().to_vec();
+        let batch: Result<CertifiedBatch> = query(
+            &self.ic,
+            self.directory,
+            Principal::anonymous(),
+            "principal_document",
+            (id,),
+        );
+        let batch = batch.unwrap();
+        let json = dmsg_client::certified::certified_path(
+            &batch,
+            id.as_slice(),
+            &[b"documents", id.as_slice()],
+            self.directory,
+            &self.ic.root_key().unwrap(),
+            self.ic.get_time().as_nanos_since_unix_epoch() / 1_000_000,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            json, bytes,
+            "human and machine readers receive identical certified JSON"
+        );
         let text = std::str::from_utf8(&bytes).unwrap();
         let document: sdk::PrincipalDocument =
             serde_json::from_value(sdk_id::parse_strict_json(text).unwrap()).unwrap();
         sdk::validate_principal_document(&document).unwrap();
         sdk::validate_principal_resolution(&document, &format!("{PRINCIPAL_ORIGIN}/{id}")).unwrap();
+        if document.name.is_some()
+            && let Some(path) = std::env::var_os("DMSG_PRINCIPAL_FIXTURE")
+        {
+            let fixture = serde_json::json!({
+                "test_only": true, "account": id.to_string(), "origin": PRINCIPAL_ORIGIN,
+                "directory": self.directory.to_text(), "batch_hex": hex::encode(canonical(&batch)),
+                "root_hex": hex::encode(self.ic.root_key().unwrap()),
+                "now_ms": self.ic.get_time().as_nanos_since_unix_epoch() / 1_000_000,
+                "document": document,
+            });
+            std::fs::write(path, serde_json::to_vec_pretty(&fixture).unwrap()).unwrap();
+        }
         (document, bytes)
     }
 }
@@ -368,4 +402,42 @@ fn self_held_principal_publishes_certified_documents_and_its_grants_are_accepted
     .unwrap();
     assert_eq!(f.document(&id).1, bytes);
     assert_eq!(f.directory_get("/unknown").status_code().as_u16(), 404);
+}
+
+#[test]
+fn principal_details_publish_one_document_for_both_readers() {
+    let f = Fixture::new();
+    let id = f.create(1);
+    let document: sdk::PrincipalDocument = serde_json::from_value(serde_json::json!({
+        "id": format!("{PRINCIPAL_ORIGIN}/{id}"), "protocol":"agent-delegation/1.0", "type":"person",
+        "controllers":[], "updated_at":0, "name":"Imported Panda", "description":"One public identity",
+        "avatar_url":"https://api.dmsg.test/public/avatar.png",
+        "links":[{"name":"Original link title","url":"https://example.test/","rel":"related"}],
+        "extra":{"dmsg.link_images":{"https://example.test/":"https://example.test/image.png"}}
+    })).unwrap();
+    let update = |doc: &sdk::PrincipalDocument| AccountCommand::UpdatePrincipal {
+        document: serde_json::to_vec(doc).unwrap().into(),
+    };
+    f.mutate(1, &id, update(&document)).unwrap();
+    let (published, _) = f.document(&id);
+    assert_eq!(published.name, document.name);
+    assert_eq!(published.avatar_url, document.avatar_url);
+    assert_eq!(published.extra, document.extra);
+    assert_eq!(published.controllers.len(), 0);
+    let info = f.principal(&id);
+    assert_eq!((info.state.version, info.published_version), (1, 1));
+    assert_eq!(
+        f.mutate(1, &id, update(&document)),
+        Err(Error::VersionConflict)
+    );
+    f.register_controller(1, &id, 1, 20).unwrap();
+    let (mut edit, _) = f.document(&id);
+    let controllers = edit.controllers.clone();
+    edit.name = Some("Renamed Panda".into());
+    edit.controllers.clear();
+    f.mutate(1, &id, update(&edit)).unwrap();
+    let (latest, _) = f.document(&id);
+    assert_eq!(latest.name, edit.name);
+    assert_eq!(latest.controllers, controllers);
+    assert_eq!(latest.extra, document.extra);
 }

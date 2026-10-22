@@ -44,7 +44,7 @@ fn config() -> DirectoryInit {
         principal_origin: ORIGIN.into(),
         controller_source: "https://dmsg.net".into(),
         delegation_service: "https://api.dmsg.test".into(),
-        profile_url_prefix: "https://dmsg.test/u/".into(),
+        profile_url_prefix: "https://dmsg.test/".into(),
         custom_domains: vec!["id.dmsg.test".into()],
         governance: Principal::from_slice(&[9]),
     }
@@ -59,6 +59,7 @@ fn state() -> PrincipalState {
     second.public_key = public(2);
     second.valid_from = NOW;
     PrincipalState {
+        metadata: b"{}".to_vec().into(),
         principal_type: PrincipalType::Person,
         controllers: vec![first, second],
         version: 3,
@@ -86,11 +87,12 @@ fn rendered_document_passes_sdk_validation_and_is_jcs() {
         Some("https://api.dmsg.test")
     );
     assert_eq!(
-        document.links[0].url,
-        format!("https://dmsg.test/u/{}", account())
+        document.aliases[0],
+        format!("https://dmsg.test/{}", account())
     );
 
     let empty = PrincipalState {
+        metadata: b"{}".to_vec().into(),
         principal_type: PrincipalType::Project,
         controllers: vec![],
         version: 1,
@@ -253,6 +255,7 @@ fn document_budget_covers_maximum_urls_and_later_safety_changes() {
     );
     validate_directory_init(&config).unwrap();
     let mut state = PrincipalState {
+        metadata: b"{}".to_vec().into(),
         principal_type: PrincipalType::Organization,
         controllers: vec![],
         version: 1,
@@ -379,4 +382,44 @@ fn register_controller_approval_digest_vector() {
         )),
         "992ec6d7a7075d69c4c911aa4f218bbe884ca882d223d4e8f789d92c51089f31"
     );
+}
+
+#[test]
+fn principal_document_retains_metadata_and_link_images_with_one_identity() {
+    let document: sdk::PrincipalDocument = serde_json::from_value(serde_json::json!({
+        "id":format!("{ORIGIN}/{}", account()), "type":"person", "protocol":AGENT_DELEGATION_PROTOCOL,
+        "controllers":[], "updated_at":NOW, "name":"Panda", "description":"hello",
+        "avatar_url":"https://api.dmsg.test/public/avatar.png",
+        "links":[{"name":"Website","url":"https://example.test/","rel":"related"}],
+        "extra":{"dmsg.link_images":{"https://example.test/":"https://example.test/logo.png"}}
+    })).unwrap();
+    let state = PrincipalState {
+        metadata: principal_metadata(&document).unwrap().into(),
+        principal_type: PrincipalType::Person,
+        controllers: vec![controller(restricted())],
+        version: 1,
+        updated_at: NOW,
+    };
+    let bytes = render_principal_document(&config(), &account(), &state).unwrap();
+    let published: sdk::PrincipalDocument = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(published.name, document.name);
+    assert_eq!(published.description, document.description);
+    assert_eq!(published.avatar_url, document.avatar_url);
+    assert_eq!(published.extra, document.extra);
+    assert_eq!(published.links, document.links);
+    assert_eq!(published.controllers.len(), 1);
+    assert_eq!(
+        published.aliases,
+        vec![format!("https://dmsg.test/{}", account())]
+    );
+    for url in ["javascript:alert(1)", "http://example.test/"] {
+        let mut invalid = document.clone();
+        invalid.links[0].url = url.into();
+        assert!(principal_metadata(&invalid).is_err());
+    }
+    let mut invalid = document.clone();
+    invalid
+        .extra
+        .insert("oversized".into(), "x".repeat(32768).into());
+    assert_eq!(principal_metadata(&invalid), Err(Error::QuotaExceeded));
 }

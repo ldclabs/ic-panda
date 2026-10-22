@@ -42,6 +42,7 @@ fn document() -> (PrincipalDocument, String) {
         governance: Principal::from_slice(&[9]),
     };
     let state = PrincipalState {
+        metadata: b"{}".to_vec().into(),
         principal_type: PrincipalType::Person,
         controllers: vec![HostedController {
             generation: 1,
@@ -516,6 +517,7 @@ fn the_signing_controller_covers_what_it_signs() {
     let info = PrincipalInfo {
         principal_id: "https://id.dmsg.test/a".into(),
         state: PrincipalState {
+            metadata: b"{}".to_vec().into(),
             principal_type: PrincipalType::Person,
             controllers: vec![
                 controller(1, DelegationAuthority::Unrestricted, false),

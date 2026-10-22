@@ -1833,7 +1833,7 @@ fn principal_document_budget_rejects_registration_before_commit_and_reserves_saf
         principal_origin: "https://id.dmsg.test".into(),
         controller_source: "https://dmsg.test".into(),
         delegation_service: "https://api.dmsg.test".into(),
-        profile_url_prefix: "https://dmsg.test/u/".into(),
+        profile_url_prefix: "https://dmsg.test/".into(),
         custom_domains: vec![],
         governance: p(9),
     };
@@ -2025,4 +2025,59 @@ fn home_totals_keep_the_latest_charged_months() {
             .iter()
             .all(|m| (m.accounts, m.attestations, m.charged_units) == (1, 1, 2))
     );
+}
+
+#[test]
+fn principal_details_initialize_cas_and_preserve_controller_authority() {
+    CONFIG.with_borrow_mut(|t| {
+        t.set(CompactStored::new(&Some(Config {
+            schema: STABLE_SCHEMA,
+            init: test_init(),
+            allocator: XidGenerator::new([1; 5]),
+            allocator_namespace_digest: Hash::new([1; 32]),
+            day: 0,
+            created_today: 0,
+            master_secret: None,
+            execution_months: vec![],
+        })))
+    });
+    let mut s = fixture();
+    let mut principal = None;
+    let mut document = serde_json::json!({
+        "id": format!("https://id.dmsg.test/{}", s.account_id),
+        "protocol": "agent-delegation/1.0", "type": "person", "updated_at": 0,
+        "name": "Panda", "description": "Public details", "controllers": [],
+        "links": [{"name":"Home","url":"https://example.test/","rel":"related"}],
+        "extra": {"dmsg.link_images":{"https://example.test/":"https://example.test/logo.png"}}
+    });
+    let command = |doc: &serde_json::Value| AccountCommand::UpdatePrincipal {
+        document: serde_json::to_vec(doc).unwrap().into(),
+    };
+    let epoch = s.security_epoch;
+    principal_apply(&mut s, &mut principal, command(&document), 10).unwrap();
+    assert_eq!(principal.as_ref().unwrap().state.version, 1);
+    assert_eq!(s.security_epoch, epoch);
+    assert_eq!(s.principal_updated_at, Some(10));
+    assert_eq!(
+        principal_apply(&mut s, &mut principal, command(&document), 11),
+        Err(Error::VersionConflict)
+    );
+    let registration = register(&s, 1, 9, restricted(), 12);
+    crate::principal::apply(&mut s, &mut principal, p(1), &registration, 12).unwrap();
+    let controllers = principal.as_ref().unwrap().state.controllers.clone();
+    document["updated_at"] = 12.into();
+    document["name"] = "New name".into();
+    // A stale/empty authority projection in the form cannot remove controllers.
+    principal_apply(&mut s, &mut principal, command(&document), 13).unwrap();
+    assert_eq!(principal.as_ref().unwrap().state.controllers, controllers);
+    let stored: serde_json::Value =
+        serde_json::from_slice(&principal.as_ref().unwrap().state.metadata).unwrap();
+    assert_eq!(stored["name"], "New name");
+    assert_eq!(stored["extra"], document["extra"]);
+    assert!(stored.get("controllers").is_none());
+    document["updated_at"] = 13.into();
+    document["id"] = "https://impostor.test/account".into();
+    let before = principal.clone();
+    assert!(principal_apply(&mut s, &mut principal, command(&document), 14).is_err());
+    assert_eq!(principal, before);
 }

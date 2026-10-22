@@ -233,8 +233,8 @@ dmsg files evict <id> [--version V]
 dmsg files link <id> [--version V] [--days 7] [--max-downloads N] [--password] | links [--refresh] | link-revoke <share_id>
 dmsg files mount [--status] | unmount
 dmsg sync | sync status
-dmsg profile show | publish [--name N] [--bio B] [--link URL]... | resolve <account>
-dmsg profile avatar <png|jpeg|webp> | avatar --remove
+dmsg profile show | publish <document.json> | retry | resolve <account>
+dmsg profile avatar <png|jpeg|webp>
 dmsg reset --yes
 dmsg approvals list [--all] | show <id> | approve <id> | reject <id> | cancel <id> | quote <id> <ledger|neuron>
 dmsg approvals check-file <id> <file> | reconcile
@@ -344,14 +344,13 @@ for `dmsg sync` or the scheduled sync; `status` shows pending versions and
 conflict copies. An edit that lost a race is kept as a conflict copy on every
 device; `vault resolve` adopts it, or keeps the current version with
 `--keep-current` (the desktop also merges them part by part). An item in the trash takes only `vault restore` (or
-adopting a copy) back. `profile publish` publishes exactly the fields given and keeps the avatar;
-`profile avatar` publishes an image (PNG, JPEG or WebP, at most 512 KiB) as
-the public avatar, which the relay serves to anyone unencrypted, and keeps the
-other fields. At the end of a sync while unlocked, chunks nothing needs any
-more are deleted (`collected` in the report): replaced versions', lapsed or
-abandoned uploads' and channel downloads'. `reset`
-erases the workspace, unsent versions included, and starts over as a new
-device; a device its account revoked does this on its own.
+adopting a copy) back. `profile show` and `profile resolve` return the official PrincipalDocument.
+Edit its display fields in a JSON file and run `dmsg profile publish <file>`;
+the account mutation checks the original updated_at and reports directory
+publication separately. `dmsg profile retry` reconciles an uncertain document mutation and retries publication.
+`profile avatar` uploads a public raster image and returns its immutable URL;
+put that URL in avatar_url before publishing. Uploading never publishes a draft.
+
 
 Files. The file library (`dmsg files`) keeps files on this device only, in
 folders, each file as a set of versions with its own key, and nothing of it

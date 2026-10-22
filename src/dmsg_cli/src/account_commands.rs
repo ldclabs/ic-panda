@@ -15,32 +15,22 @@ use std::time::Duration;
 pub enum ProfileCommand {
     /// The published profile of this account.
     Show,
-    /// Publish exactly the given fields; anything left out is unpublished.
+    /// Publish an edited PrincipalDocument JSON file (from `profile show --json`).
     Publish {
-        /// Display name.
-        #[arg(long, default_value = "")]
-        name: String,
-        /// Bio.
-        #[arg(long, default_value = "")]
-        bio: String,
-        /// HTTPS links.
-        #[arg(long = "link")]
-        links: Vec<String>,
+        /// UTF-8 PrincipalDocument JSON.
+        document: PathBuf,
     },
-    /// Another account's published profile, checked against its devices.
+    /// Reconcile an uncertain document update and retry directory publication.
+    Retry,
+    /// Another account's independently certified PrincipalDocument.
     Resolve {
         /// Account ID.
         account: String,
     },
-    /// Publish an image (PNG, JPEG or WebP, at most 512 KiB) as the public
-    /// avatar, which the relay serves to anyone; the other fields stay.
+    /// Upload a public raster image and print its URL; publish the document separately.
     Avatar {
-        /// The image.
-        #[arg(required_unless_present = "remove")]
-        file: Option<PathBuf>,
-        /// Remove the avatar instead.
-        #[arg(long, conflicts_with = "file")]
-        remove: bool,
+        /// PNG, JPEG or WebP, at most 512 KiB.
+        file: PathBuf,
     },
 }
 
@@ -585,30 +575,19 @@ pub async fn device(remote: &Remote, json: bool, command: DeviceCommand) -> Resu
 pub async fn profile(remote: &Remote, json: bool, command: ProfileCommand) -> Result<(), Failure> {
     let (method, params) = match command {
         ProfileCommand::Show => ("profile/show", Value::Null),
-        ProfileCommand::Publish { name, bio, links } => (
-            "profile/publish",
-            json!({"display_name": name, "bio": bio, "links": links}),
-        ),
+        ProfileCommand::Retry => ("profile/retry", Value::Null),
+        ProfileCommand::Publish { document } => {
+            let bytes = std::fs::read(document)
+                .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+            let value: Value = serde_json::from_slice(&bytes)
+                .map_err(|e| Failure::new("INVALID_INPUT", e.to_string()))?;
+            ("profile/publish", value)
+        }
         ProfileCommand::Resolve { account } => ("profile/resolve", json!({"account": account})),
-        ProfileCommand::Avatar { file, remove } => {
-            let params = match file {
-                Some(file) => json!({"path": absolute(file)?}),
-                None => json!({"remove": remove}),
-            };
-            let profile = remote.call("profile/avatar", params).await?;
-            print(json, &profile, |p| {
-                let version = &p["profile"]["version"];
-                match p["profile"]["avatar_upload"].as_str() {
-                    Some(upload) => tr!(
-                        "published version {version} with avatar {upload}",
-                        "已发布版本 {version}，头像 {upload}"
-                    ),
-                    None => tr!(
-                        "published version {version} without an avatar",
-                        "已发布版本 {version}，不带头像"
-                    ),
-                }
-            });
+        ProfileCommand::Avatar { file } => {
+            let params = json!({"path": absolute(file)?});
+            let url = remote.call("profile/avatar", params).await?;
+            print(json, &url, pretty);
             return Ok(());
         }
     };

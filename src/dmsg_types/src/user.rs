@@ -410,6 +410,12 @@ pub enum AccountCommand {
         /// Display type of the principal.
         principal_type: PrincipalType,
     },
+    /// Replace the public display members of an SDK PrincipalDocument.
+    /// The canonical ID must match this account. Authority fields are not applied.
+    UpdatePrincipal {
+        /// UTF-8 PrincipalDocument JSON; bounded and validated by the user home.
+        document: serde_bytes::ByteBuf,
+    },
     /// Bind the next self-held controller key, proving possession of its
     /// private key with the matching protocol digest helper.
     RegisterController {
