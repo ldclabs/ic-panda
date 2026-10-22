@@ -81,10 +81,23 @@ type UserConfig = Awaited<ReturnType<UserService['user_config']>>
 type DirectoryConfig = Awaited<ReturnType<DirectoryService['directory_config']>>
 type ProfileHint = { home: string; directory: string }
 
+/** A hint can only save a request; a malformed one must not fail every read. */
+function usableHint(hint: ProfileHint | null): ProfileHint | null {
+  if (!hint) return null
+  try {
+    Principal.fromText(hint.home)
+    Principal.fromText(hint.directory)
+    return hint
+  } catch {
+    return null
+  }
+}
+
 /** Each reader owns its short-lived cache and session rollback protection. */
 export function createProfileReader(
-  hint: ProfileHint | null = IS_LOCAL ? null : DMSG_PROFILE_HINT
+  input: ProfileHint | null = IS_LOCAL ? null : DMSG_PROFILE_HINT
 ) {
+  const hint = usableHint(input)
   const seen = new Map<string, { updatedAt: number; document: string }>()
   const registryConfigs = new FreshCache<RegistryConfig>()
   const userConfigs = new FreshCache<UserConfig>()

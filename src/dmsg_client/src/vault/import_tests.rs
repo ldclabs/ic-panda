@@ -70,7 +70,8 @@ fn reads_bitwarden_json() {
             {"type": 3, "name": "Visa", "card": {"cardholderName": "A B", "brand": "Visa",
              "number": "4111111111111111", "expMonth": "7", "expYear": "29", "code": "123"}},
             {"type": 4, "name": "Me", "identity": {"firstName": "Ann", "lastName": "Lee",
-             "email": "ann@example.com", "address1": "1 Road", "city": "Town", "ssn": "123"}},
+             "email": "ann@example.com", "address1": "1 Road", "city": "Town", "ssn": "123",
+             "passportNumber": "P123", "licenseNumber": "L456"}},
             {"type": 5, "name": "Box", "sshKey": {"privateKey": "k", "publicKey": "p", "keyFingerprint": "f"}},
             {"type": 2, "name": "Note", "notes": "text"}
         ]
@@ -100,6 +101,13 @@ fn reads_bitwarden_json() {
     let me = &imported.items[2];
     assert_eq!(me.value("name"), "Ann Lee");
     assert_eq!(me.value("address"), "1 Road\nTown");
+    for (label, value) in [("Passport", "P123"), ("License", "L456")] {
+        assert!(
+            me.fields
+                .iter()
+                .any(|f| f.label == label && f.hidden() && f.value == value)
+        );
+    }
     assert_eq!(imported.items[3].value("private_key"), "k");
     assert_eq!(imported.items[4].notes, "text");
 

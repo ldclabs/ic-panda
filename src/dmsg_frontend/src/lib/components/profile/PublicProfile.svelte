@@ -16,6 +16,7 @@
   let error = $state<ProfileError['reason'] | null>(null)
   let busy = $state(true)
   let retry = $state(0)
+  let refreshFor = $state<string | null>(null)
   let avatarFailed = $state(false)
   let copied = $state(false)
 
@@ -28,7 +29,7 @@
     error = null
     avatarFailed = false
     copied = false
-    readProfile(input, controller.signal, { refresh: retry > 0 })
+    readProfile(input, controller.signal, { refresh: refreshFor === input })
       .then((value) => {
         if (!controller.signal.aborted) result = value
       })
@@ -127,8 +128,12 @@
                 identifier.toLowerCase()
               )}">{$t('View legacy profile')}</a
             >
-          {:else}<button class="button primary" onclick={() => retry++}
-              >{$t('Try again')}</button
+          {:else}<button
+              class="button primary"
+              onclick={() => {
+                refreshFor = identifier
+                retry++
+              }}>{$t('Try again')}</button
             >{/if}</section
         >
       {:else if result}

@@ -644,13 +644,13 @@ fn bitwarden(json: &Value) -> Result<Imported> {
             "",
             &text(&identity["ssn"]),
         );
-        for (key, label) in [
-            ("company", "Company"),
-            ("username", "Username"),
-            ("passportNumber", "Passport"),
-            ("licenseNumber", "License"),
+        for (key, label, kind) in [
+            ("company", "Company", "text"),
+            ("username", "Username", "text"),
+            ("passportNumber", "Passport", "concealed"),
+            ("licenseNumber", "License", "concealed"),
         ] {
-            put(&mut item, "", "text", label, "", &text(&identity[key]));
+            put(&mut item, "", kind, label, "", &text(&identity[key]));
         }
         let ssh = &entry["sshKey"];
         put(

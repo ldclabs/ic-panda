@@ -102,7 +102,7 @@
       <DropdownMenu.Group>
         <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('localAccounts')}</DropdownMenu.GroupHeading>
         {#each accounts as a (a.account)}
-          {@const accountName = a.account === unlockedAccount ? name : nameOf(a.account)}
+          {@const accountName = (a.account === unlockedAccount && name) || nameOf(a.account)}
           <DropdownMenu.Item
             class={cn(menuItemClass, 'data-disabled:cursor-default data-disabled:opacity-100')}
             disabled={a.current}

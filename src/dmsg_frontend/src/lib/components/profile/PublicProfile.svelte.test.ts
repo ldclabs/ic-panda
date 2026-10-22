@@ -123,7 +123,7 @@ it('hides failed verification and retries explicitly', async () => {
   vi.mocked(readProfile).mockRejectedValueOnce(
     new ProfileError('verification_failed')
   )
-  render()
+  const props = render()
   await settled()
   expect(target.textContent).not.toContain('Alice')
   target.querySelector<HTMLButtonElement>('.status button')!.click()
@@ -131,6 +131,11 @@ it('hides failed verification and retries explicitly', async () => {
   await settled()
   expect(target.textContent).toContain('Alice')
   expect(vi.mocked(readProfile).mock.calls[1]?.[2]).toEqual({ refresh: true })
+  // A retry applies to the profile that failed, not to the next one shown.
+  props.identifier = account
+  flushSync()
+  await settled()
+  expect(vi.mocked(readProfile).mock.calls[2]?.[2]).toEqual({ refresh: false })
 })
 it('late responses cannot overwrite navigation', async () => {
   let resolveOld!: (v: ProfilePage) => void

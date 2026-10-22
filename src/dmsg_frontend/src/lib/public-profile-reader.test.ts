@@ -258,6 +258,16 @@ it('falls back when deployment hints are obsolete or fail', async () => {
   expect(directory.directory_config).toHaveBeenCalledTimes(1)
 })
 
+it('ignores a malformed deployment hint instead of failing the read', async () => {
+  readProfile = createProfileReader({
+    home: 'not-a-principal',
+    directory: '2vxsx-fae'
+  })
+  expect((await read('alice', false)).document).toEqual(f.document)
+  expect(user.user_config).toHaveBeenCalledTimes(1)
+  expect(directory.directory_config).toHaveBeenCalledTimes(1)
+})
+
 it('reopens verified profiles without network reads and respects explicit refresh', async () => {
   readProfile = createProfileReader(hint())
   await read('alice', false)
