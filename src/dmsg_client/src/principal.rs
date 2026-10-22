@@ -27,8 +27,8 @@ const QUERY_CONCURRENCY: usize = 16;
 struct Resolver {
     ic: Ic,
     registry: HandleInit,
-    users: BTreeMap<Principal, UserInit>,
-    directories: BTreeMap<Principal, DirectoryInit>,
+    users: BTreeMap<Principal, Result<UserInit>>,
+    directories: BTreeMap<Principal, Result<DirectoryInit>>,
 }
 
 impl Resolver {
@@ -61,9 +61,9 @@ impl Resolver {
         .ok_or(Error::NotFound)
     }
 
-    /// Read each distinct home and directory once, then check the directory
-    /// against the registry and the home it serves.
-    async fn prepare(&mut self, homes: impl IntoIterator<Item = Principal>) -> Result<()> {
+    /// Read each distinct home and directory once. Keep failures with their
+    /// canister so unrelated accounts can still resolve in the same batch.
+    async fn prepare(&mut self, homes: impl IntoIterator<Item = Principal>) {
         let homes: BTreeSet<Principal> = homes.into_iter().collect();
         let missing: Vec<Principal> = homes
             .iter()
@@ -81,12 +81,18 @@ impl Resolver {
             }))
             .await;
             for (home, user) in fetched {
-                self.users.insert(home, user?);
+                self.users.insert(home, user);
             }
         }
         let directories: BTreeSet<Principal> = homes
             .iter()
-            .filter_map(|home| self.users.get(home).map(|user| user.directory_canister))
+            .filter_map(|home| {
+                self.users
+                    .get(home)?
+                    .as_ref()
+                    .ok()
+                    .map(|user| user.directory_canister)
+            })
             .collect();
         let missing: Vec<Principal> = directories
             .iter()
@@ -105,39 +111,33 @@ impl Resolver {
             }))
             .await;
             for (directory, config) in fetched {
-                self.directories.insert(directory, config?);
+                self.directories.insert(directory, config);
             }
         }
-        for home in homes {
-            let user = self
-                .users
-                .get(&home)
-                .ok_or_else(|| Error::Unavailable("user config".into()))?;
-            let directory = self
-                .directories
-                .get(&user.directory_canister)
-                .ok_or_else(|| Error::Unavailable("directory config".into()))?;
-            ensure(
-                directory.principal_origin == user.principal_origin
-                    && directory.environment == self.registry.environment
-                    && directory.issuer_namespace == self.registry.issuer_namespace
-                    && directory.user_homes.contains(&home),
-                Error::IntegrityFailed,
-            )?;
-        }
-        Ok(())
     }
 
+    /// Check the directory binding and propagate only this account's errors.
     fn context(&self, account: &AccountId) -> Result<(Principal, &UserInit, &DirectoryInit)> {
         let home = self.home(account)?;
         let user = self
             .users
             .get(&home)
-            .ok_or_else(|| Error::Unavailable("user config".into()))?;
+            .ok_or_else(|| Error::Unavailable("user config".into()))?
+            .as_ref()
+            .map_err(Clone::clone)?;
         let directory = self
             .directories
             .get(&user.directory_canister)
-            .ok_or_else(|| Error::Unavailable("directory config".into()))?;
+            .ok_or_else(|| Error::Unavailable("directory config".into()))?
+            .as_ref()
+            .map_err(Clone::clone)?;
+        ensure(
+            directory.principal_origin == user.principal_origin
+                && directory.environment == self.registry.environment
+                && directory.issuer_namespace == self.registry.issuer_namespace
+                && directory.user_homes.contains(&home),
+            Error::IntegrityFailed,
+        )?;
         Ok((home, user, directory))
     }
 
@@ -193,7 +193,7 @@ fn parse_document(
 pub async fn resolve(config: &Config, account: &AccountId) -> Result<Option<PrincipalDocument>> {
     let mut resolver = Resolver::new(config).await?;
     let home = resolver.home(account)?;
-    resolver.prepare([home]).await?;
+    resolver.prepare([home]).await;
     resolver.document(account).await
 }
 
@@ -211,7 +211,7 @@ pub async fn show<H: Hold>(h: &H) -> Result<PrincipalDocument> {
     let (config, account) = h.with(|c| Ok((c.config.clone(), c.account()?.id))).await?;
     let mut resolver = Resolver::new(&config).await?;
     let home = resolver.home(&account)?;
-    resolver.prepare([home]).await?;
+    resolver.prepare([home]).await;
     if let Some(document) = resolver.document(&account).await? {
         return Ok(document);
     }
@@ -254,7 +254,7 @@ pub async fn names<H: Hold>(
             Err(error) => return Err(error),
         }
     }
-    resolver.prepare(located.values().copied()).await?;
+    resolver.prepare(located.values().copied()).await;
     let results: BTreeMap<AccountId, Result<Option<PrincipalDocument>>> =
         futures_util::stream::iter(located.keys().copied())
             .map(|account| {
@@ -387,7 +387,7 @@ pub async fn upload_avatar<H: Hold>(h: &H, bytes: &[u8]) -> Result<String> {
     let (config, account) = h.with(|c| Ok((c.config.clone(), c.account()?.id))).await?;
     let mut resolver = Resolver::new(&config).await?;
     let home = resolver.home(&account)?;
-    resolver.prepare([home]).await?;
+    resolver.prepare([home]).await;
     let (_, _, directory) = resolver.context(&account)?;
     let origin = directory.delegation_service.clone();
     // Local replicas use a loopback transport while documents keep HTTPS IDs.

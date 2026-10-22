@@ -17,6 +17,8 @@
 //! `pnpm install` done for `src/dmsg_connect`.
 #[path = "desktop/connector.rs"]
 mod connector;
+#[path = "desktop/principal_names.rs"]
+mod principal_names;
 mod support;
 
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
