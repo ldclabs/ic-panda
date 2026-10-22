@@ -346,9 +346,9 @@ contacting the relay. Content sync and flush passes serialize submissions,
 but release the client during network waits so local reads, edits and locking
 remain available. Status includes `syncing` and the last sync error; the log's
 `sync/pass` records each pass's duration without content or identifiers.
-Every write waits
-for `dmsg sync` or the scheduled sync; `status` shows pending versions and
-conflict copies. An edit that lost a race is kept as a conflict copy on every
+Every write waits for the next sync pass (`dmsg sync`, the scheduled sync, or
+the one after unlock); `status` shows pending versions and conflict copies.
+An edit that lost a race is kept as a conflict copy on every
 device; `vault resolve` adopts it, or keeps the current version with
 `--keep-current` (the desktop also merges them part by part). An item in the trash takes only `vault restore` (or
 adopting a copy) back. `profile show` and `profile resolve` return the official PrincipalDocument.
@@ -830,7 +830,7 @@ The daemon listens on `127.0.0.1` only.
   `{seq, type, data}`: `session/changed`, `login/changed`, `vault/changed`,
   `files/changed`,
   `files/progress {path, done, total}`, `files/open_changed`,
-  `files/mount_changed`, `sync/changed`,
+  `files/mount_changed`, `sync/changed`, `sync/progress`, `profile/changed`,
   `approval/changed`, `connect/changed`, `connect/hint`, `channel/changed`,
   `channel/read`,
   `inbox/changed`, `legacy/changed`, `mcp-events/changed`, `resync`) need
@@ -850,14 +850,14 @@ The daemon listens on `127.0.0.1` only.
   `device/capabilities|formal_approve|revoke`); a high-risk approval's
   presence prompt, an approved attestation's reads, submission and receipt,
   and the reconciling of attestations whose outcome is unknown; and the
-  background flush, mailbox read, backup passes and MCP Events fetch.
-  Requests are signed under the client and sent after it, so a slow
+  content sync and flush passes, mailbox read, backup passes and MCP Events
+  fetch. Requests are signed under the client and sent after it, so a slow
   network does not hold up the library's reads. Work on the same thing
-  takes turns: one backup pass, one profile publish, one MCP Events fetch,
-  one reconcile pass and one send of a given message ID at a time. Login
-  binding, recovery, device pairing, channel controls, payments, names,
-  other approved requests carrying themselves out, the content sync,
-  unlocking, login checks and the legacy migration still wait under it.
+  takes turns: one content sync or flush pass, one backup pass, one profile
+  publish, one MCP Events fetch, one reconcile pass and one send of a given
+  message ID at a time. Login binding, recovery, device pairing, channel
+  controls, payments, names, other approved requests carrying themselves
+  out, unlocking, login checks and the legacy migration still wait under it.
 - Methods: `app/initialize {activity?}`, `app/activity`, `daemon/status`,
   `events/poll`,
   `session/status|login {origin, bind?}|login_result|accounts|switch|unlock {fast?, account?}|lock|fast_unlock`,

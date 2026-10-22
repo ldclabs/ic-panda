@@ -19,7 +19,7 @@
   import { locale, sessionLabel, setLocale, t, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single, when } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
-  import { unlock, unlocking } from '../shell/session'
+  import { switchAccount, unlock, unlocking } from '../shell/session'
   import About from './About.svelte'
   import Devices from './Devices.svelte'
   import FilesSettings from './files/FilesSettings.svelte'
@@ -112,7 +112,7 @@
   async function switchTo(id: string, fast: boolean) {
     account = null
     pairings = []
-    await act(fast ? 'session/unlock' : 'session/switch', fast ? { fast: true, account: id } : { account: id })
+    await switchAccount(id, fast)
   }
 
   async function pair(copy: boolean) {

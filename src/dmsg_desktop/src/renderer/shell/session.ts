@@ -79,7 +79,9 @@ export function offerUnlock(status: any) {
 
 /** A status that is not locked lets the next lock offer again. */
 export function settleOffer(status: any) {
-  if (!opening && status && status.state !== 'locked') offered = false
+  // `offerUnlock` itself waits for `opening`, so an unlock under way must not
+  // keep a later lock from offering.
+  if (status && status.state !== 'locked') offered = false
 }
 
 /** The step that opens the device from its session state; null once unlocked. */

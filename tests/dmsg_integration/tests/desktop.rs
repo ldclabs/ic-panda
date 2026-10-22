@@ -1436,7 +1436,7 @@ fn two_desktop_devices_share_an_account() {
         "gamma"
     );
 
-    // B binds, opens the rotated root and, syncing on unlock, reads A's items.
+    // B binds, opens the rotated root, and reads A's items in the explicit sync.
     let status = b.run(&["unlock"]);
     assert_eq!(status["state"], "unlocked");
     assert_eq!(status["account"], account.as_str());
