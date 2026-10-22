@@ -23,7 +23,6 @@
    * channels get their official successor once every frozen manager agreed.
    */
   let { status }: { status: any } = $props()
-  let origin = $state('https://dmsg.net')
   let offer = $state<any>(null)
   let pairs = $state<any[]>([])
   let archives = $state<any[]>([])
@@ -79,7 +78,7 @@
 
   const pair = () =>
     attempt(async () => {
-      offer = await call('legacy/pair', { origin })
+      offer = await call('legacy/pair', { origin: 'https://dmsg.net' })
       await bridge(() => window.dmsg.openLegacy(offer.link))
       selected = offer.nonce
       confirmed = false
@@ -221,7 +220,6 @@
 
 <Section title={t('legacyTitle')} description={t('legacyHint')} icon="legacy" testid="legacy">
   {#snippet actions()}
-    <Select bind:value={origin} label={t('legacyTitle')} options={['https://dmsg.net', 'https://panda.fans'].map((o) => ({ value: o, label: o, mono: true }))} />
     <button class={buttonClass('primary')} disabled={busy} onclick={pair} data-testid="legacy-pair"><Icon name="external" />{t('legacyPair')}</button>
   {/snippet}
   {#if pairs.length}
