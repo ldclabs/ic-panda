@@ -11,6 +11,7 @@
     type PairingOffer
   } from '@dmsg/legacy'
   import { createLegacyReader } from './reader'
+  import IconCircleSpin from '$lib/components/icons/IconCircleSpin.svelte'
   import { authStore } from '$lib/stores/auth'
   import { t } from '$lib/i18n'
   import Check from './ui/Check.svelte'
@@ -24,8 +25,9 @@
     linkError = $state(''),
     confirmed = $state(false)
   let report = $state<Inventory | null>(null),
-    error = $state(''),
-    busy = $state(false)
+    error = $state('')
+  let operation = $state<'inventory' | 'export' | null>(null)
+  const busy = $derived(operation !== null)
   let objectCount = $state(0)
   let abort: AbortController | null = null
   // The desktop client opens this page with its pairing offer in the URL
@@ -61,7 +63,7 @@
 
   async function run(exporting: boolean) {
     if (busy) return
-    busy = true
+    operation = exporting ? 'export' : 'inventory'
     error = ''
     abort = new AbortController()
     try {
@@ -126,7 +128,7 @@
         cause instanceof Error ? cause.message : 'The inventory did not finish.'
     } finally {
       password = ''
-      busy = false
+      operation = null
       abort = null
     }
   }
@@ -164,8 +166,12 @@
         <button
           class="button secondary disabled:cursor-not-allowed disabled:opacity-60"
           disabled={busy || anonymous}
+          aria-busy={operation === 'inventory'}
           onclick={() => run(false)}
-          >{$t('Take inventory of readable history')}</button
+          >{#if operation === 'inventory'}<span
+              class="inline-flex shrink-0 *:size-4"
+              aria-hidden="true"><IconCircleSpin /></span
+            >{/if}{$t('Take inventory of readable history')}</button
         >
         <button
           class="text-link disabled:cursor-not-allowed disabled:opacity-60"
@@ -249,8 +255,12 @@
         <button
           class="button primary disabled:cursor-not-allowed disabled:opacity-60"
           disabled={busy || !offer || !confirmed || anonymous}
+          aria-busy={operation === 'export'}
           onclick={() => run(true)}
-          >{$t('Unlock and create the encrypted migration file')}</button
+          >{#if operation === 'export'}<span
+              class="inline-flex shrink-0 *:size-4"
+              aria-hidden="true"><IconCircleSpin /></span
+            >{/if}{$t('Unlock and create the encrypted migration file')}</button
         >
         {#if busy}<button
             class="button secondary disabled:cursor-not-allowed disabled:opacity-60"
