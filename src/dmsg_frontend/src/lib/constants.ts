@@ -20,6 +20,11 @@ export const DMSG_LEDGER_CANISTER_ID = 'ocqzv-tyaaa-aaaar-qal4a-cai' // ic & loc
 export const MESSAGE_CANISTER_ID = 'nscli-qiaaa-aaaaj-qa4pa-cai' // ic & local
 /** The dMsg handle registry, which lists the user homes that certify receipts. */
 export const DMSG_HANDLE_CANISTER_ID = 'wfxrt-2iaaa-aaaaj-qsjwa-cai' // ic
+/** Request scheduling hints only; the profile reader verifies all live bindings. */
+export const DMSG_PROFILE_HINT = {
+  home: 'wqqa6-3aaaa-aaaaj-qsjvq-cai',
+  directory: 'wlv43-byaaa-aaaaj-qsjxa-cai'
+}
 export const MASTER_KEY_ID = IS_LOCAL ? 'ICPanda_Messages_Master_Key' : 'PANDA'
 
 export const ICPSWAP_TOKENS_CANISTER_ID = 'moe7a-tiaaa-aaaag-qclfq-cai'

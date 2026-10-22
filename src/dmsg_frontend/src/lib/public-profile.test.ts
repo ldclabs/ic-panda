@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { Actor, HttpAgent } from '@icp-sdk/core/agent'
 import { Principal } from '@icp-sdk/core/principal'
-import { readProfile } from './public-profile'
+import { createProfileReader } from './public-profile'
 import { DMSG_HANDLE_CANISTER_ID } from './constants'
 import { handlePath, accountText } from 'dmsg-sdk/principal'
 import { canonical } from 'dmsg-sdk/codec'
@@ -33,9 +33,11 @@ const registry = {
 }
 const user = { user_config: vi.fn(), security_snapshot_batch: vi.fn() }
 const directory = { directory_config: vi.fn(), principal_document: vi.fn() }
-const read = (input = f.account) =>
-  readProfile(input, new AbortController().signal)
+let readProfile: ReturnType<typeof createProfileReader>
+const read = (input = f.account, refresh = true) =>
+  readProfile(input, new AbortController().signal, { refresh })
 beforeEach(async () => {
+  readProfile = createProfileReader(null)
   vi.spyOn(Date, 'now').mockReturnValue(Number(f.now))
   vi.mocked(HttpAgent.create).mockResolvedValue({ rootKey: f.rootKey } as never)
   vi.mocked(Actor.createActor).mockImplementation(
@@ -196,4 +198,187 @@ it('refuses rollback after seeing a newer certified document', async () => {
   })
   expect((await read()).document?.name).toBe('New name')
   await expect(read()).rejects.toMatchObject({ reason: 'verification_failed' })
+})
+
+const hint = () => ({
+  home: Principal.fromUint8Array(f.home).toText(),
+  directory: Principal.fromUint8Array(f.directory).toText()
+})
+const deferred = <T>() => {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((done) => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
+it('starts all ID reads together using hints, but waits for the verified registry binding', async () => {
+  readProfile = createProfileReader(hint())
+  const config = await registry.get_handle_config()
+  registry.get_handle_config.mockClear()
+  const waiting = deferred<typeof config>()
+  registry.get_handle_config.mockReturnValueOnce(waiting.promise)
+  let finished = false
+  const result = read(f.account, false).then((value) => {
+    finished = true
+    return value
+  })
+  await vi.waitFor(() => {
+    expect(user.user_config).toHaveBeenCalledTimes(1)
+    expect(directory.directory_config).toHaveBeenCalledTimes(1)
+    expect(directory.principal_document).toHaveBeenCalledTimes(1)
+  })
+  expect(finished).toBe(false)
+  waiting.resolve(config)
+  expect((await result).document).toEqual(f.document)
+  expect(user.user_config).toHaveBeenCalledTimes(1)
+  expect(directory.directory_config).toHaveBeenCalledTimes(1)
+  expect(directory.principal_document).toHaveBeenCalledTimes(1)
+})
+
+it('starts handle resolution before registry config returns', async () => {
+  const config = await registry.get_handle_config()
+  const waiting = deferred<typeof config>()
+  registry.get_handle_config.mockReturnValueOnce(waiting.promise)
+  const result = read('alice', false)
+  await vi.waitFor(() =>
+    expect(registry.resolve_handle_certified).toHaveBeenCalledTimes(1)
+  )
+  waiting.resolve(config)
+  expect((await result).account).toBe(f.account)
+})
+
+it('falls back when deployment hints are obsolete or fail', async () => {
+  readProfile = createProfileReader({
+    home: 'aaaaa-aa',
+    directory: '2vxsx-fae'
+  })
+  expect((await read('alice', false)).document).toEqual(f.document)
+  expect(user.user_config).toHaveBeenCalledTimes(1)
+  expect(directory.directory_config).toHaveBeenCalledTimes(1)
+})
+
+it('reopens verified profiles without network reads and respects explicit refresh', async () => {
+  readProfile = createProfileReader(hint())
+  await read('alice', false)
+  vi.clearAllMocks()
+  expect(await read('ALICE', false)).toMatchObject({
+    handle: 'ALICE',
+    document: f.document
+  })
+  for (const query of [
+    registry.get_handle_config,
+    registry.resolve_handle_certified,
+    user.user_config,
+    directory.directory_config,
+    directory.principal_document
+  ])
+    expect(query).not.toHaveBeenCalled()
+  // A caller cannot mutate the cached document by editing a previous result.
+  const result = await read(f.account, false)
+  result.document!.name = 'Tampered'
+  expect((await read(f.account, false)).document!.name).toBe('Alice')
+  await read('alice', true)
+  expect(registry.resolve_handle_certified).toHaveBeenCalledTimes(1)
+  expect(directory.principal_document).toHaveBeenCalledTimes(1)
+})
+
+it('expires configuration and document caches after thirty seconds', async () => {
+  await read(f.account, false)
+  vi.spyOn(Date, 'now').mockReturnValue(Number(f.now) + 30_001)
+  await read(f.account, false)
+  expect(registry.get_handle_config).toHaveBeenCalledTimes(2)
+  expect(user.user_config).toHaveBeenCalledTimes(2)
+  expect(directory.principal_document).toHaveBeenCalledTimes(2)
+})
+
+it('refetches cached certificates that expire before their cache TTL', async () => {
+  vi.spyOn(Date, 'now').mockReturnValue(Number(f.now) + 59_000)
+  await read(f.account, false)
+  vi.spyOn(Date, 'now').mockReturnValue(Number(f.now) + 61_000)
+  const next = {
+    ...f.document,
+    name: 'Updated',
+    updated_at: Number(f.now) + 61_000
+  }
+  directory.principal_document.mockResolvedValue({
+    Ok: batch(
+      await f.certified(
+        f.directory,
+        f.accountId,
+        f.documentBytes(next),
+        [new TextEncoder().encode('documents'), f.accountId],
+        f.now + 61_000n
+      )
+    )
+  })
+  expect((await read(f.account, false)).document!.name).toBe('Updated')
+  expect(directory.principal_document).toHaveBeenCalledTimes(2)
+  expect(registry.get_handle_config).toHaveBeenCalledTimes(1)
+})
+
+it('does not cache failed reads or unverified document bytes', async () => {
+  directory.principal_document.mockRejectedValueOnce(new TypeError('offline'))
+  await expect(read(f.account, false)).rejects.toMatchObject({
+    reason: 'unavailable'
+  })
+  expect((await read(f.account, false)).document).toEqual(f.document)
+  expect(directory.principal_document).toHaveBeenCalledTimes(2)
+})
+
+it('refreshes a transferred handle without displaying the former owner’s cached document', async () => {
+  readProfile = createProfileReader(hint())
+  await read('alice', false)
+  const id = f.accountId.slice()
+  id[11] = 44
+  const account = accountText(id)
+  const now = f.now + 30_001n
+  vi.spyOn(Date, 'now').mockReturnValue(Number(now))
+  registry.resolve_handle_certified.mockResolvedValue({
+    Ok: batch(
+      await f.certified(
+        Principal.fromText(DMSG_HANDLE_CANISTER_ID).toUint8Array(),
+        new TextEncoder().encode('alice'),
+        canonical({ handle: 'alice', version: 2, owner_account: id }),
+        handlePath('alice'),
+        now
+      )
+    )
+  })
+  const next = {
+    ...f.document,
+    id: `${f.principalOrigin}/${account}`,
+    name: 'New owner',
+    updated_at: Number(now)
+  }
+  directory.principal_document.mockResolvedValue({
+    Ok: batch(
+      await f.certified(
+        f.directory,
+        id,
+        f.documentBytes(next),
+        [new TextEncoder().encode('documents'), id],
+        now
+      )
+    )
+  })
+  expect(await read('alice', false)).toMatchObject({ account, document: next })
+  expect(directory.principal_document).toHaveBeenLastCalledWith(id)
+})
+
+it('checks document freshness after slower parallel configuration reads finish', async () => {
+  readProfile = createProfileReader(hint())
+  const config = await directory.directory_config()
+  const waiting = deferred<typeof config>()
+  directory.directory_config.mockReturnValueOnce(waiting.promise)
+  const result = read(f.account, false)
+  const rejected = expect(result).rejects.toMatchObject({
+    reason: 'verification_failed'
+  })
+  await vi.waitFor(() =>
+    expect(directory.principal_document).toHaveBeenCalledTimes(1)
+  )
+  vi.spyOn(Date, 'now').mockReturnValue(Number(f.now) + 60_001)
+  waiting.resolve(config)
+  await rejected
 })

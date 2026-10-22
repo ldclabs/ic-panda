@@ -130,6 +130,7 @@ it('hides failed verification and retries explicitly', async () => {
   flushSync()
   await settled()
   expect(target.textContent).toContain('Alice')
+  expect(vi.mocked(readProfile).mock.calls[1]?.[2]).toEqual({ refresh: true })
 })
 it('late responses cannot overwrite navigation', async () => {
   let resolveOld!: (v: ProfilePage) => void

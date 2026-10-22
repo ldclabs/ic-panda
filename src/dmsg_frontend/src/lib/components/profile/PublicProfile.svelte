@@ -28,7 +28,7 @@
     error = null
     avatarFailed = false
     copied = false
-    readProfile(input, controller.signal)
+    readProfile(input, controller.signal, { refresh: retry > 0 })
       .then((value) => {
         if (!controller.signal.aborted) result = value
       })
@@ -136,6 +136,8 @@
           {#if profile?.avatar_url && !avatarFailed}
             <img
               class="avatar"
+              fetchpriority="high"
+              decoding="async"
               src={profile?.avatar_url}
               alt={$t('Public profile avatar')}
               referrerpolicy="no-referrer"
@@ -177,6 +179,8 @@
                     referrerpolicy="no-referrer"
                     >{#if linkImages[link.url]}<img
                         class="link-image"
+                        loading="lazy"
+                        decoding="async"
                         src={linkImages[link.url]}
                         alt=""
                         referrerpolicy="no-referrer"

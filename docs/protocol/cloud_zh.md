@@ -170,6 +170,8 @@ handle 查询和证明使用小写规范名；页面优先显示认证名称记�
 
 公开入口为 `/<account_id>` 和 `/<handle>`，永久链接使用前者。handle 经 `dmsg_handle.resolve_handle_certified` 验证，账户按注册表的分配器指纹选择 home，再从其配置的 directory 读取认证 `PrincipalDocument`。网页不再读取 Cloudflare 用户 profile，也不再展示“设备签名已验证”标签。
 
+公开网页并行读取配置、handle 与文档。部署中的 home/directory ID 仅作为提前发起请求的提示，仍以注册表及 home 的实际配置核对绑定，提示失效时回退。浏览器仅在内存中短暂缓存已验证配置和资料证明（30 秒）；命中后仍重新校验证明及其原始 60 秒新鲜度，过期即重新获取，未发布/未找到或失败结果不缓存。显式重试绕过缓存，已见文档的防回退检查保持不变。
+
 JSON 与 HTML 的内容来源、字段和更新时间一致；浏览器独立验证 directory 的 ICP 证书。链接名称和 `extra["dmsg.link_images"]` 图片一起展示。头像与链接图片按文档中的 HTTPS 地址加载（`referrerpolicy="no-referrer"`），部署的 CSP `img-src` 必须允许这些来源。旧资料导入先生成包含名称、简介、具名链接、图片扩展和头像 URL 的草稿，用户发布后才上链。
 
 旧公开资料保留在 `/legacy/users/<username>`，本人旧资料在 `/legacy/profile`。新版映射不存在时可查询冻结名称预留，提供旧资料入口；不能把旧 owner 当作新版账户。只有公开头像 GET/HEAD/OPTIONS 保留无凭据 CORS，设备 API 不对浏览器开放。详见 [PrincipalDocument 合同](agent_zh.md#统一公开身份文档2026-10-22)。
