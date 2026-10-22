@@ -35,7 +35,7 @@
     <ToggleGroup.Item
       value={option.value}
       data-value={option.value}
-      class="h-7 min-w-8 rounded-lg px-2 text-[13px] text-ink-2 tabular-nums outline-none transition-colors duration-150 hover:not-disabled:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=on]:bg-forest data-[state=on]:font-semibold data-[state=on]:text-on-forest"
+      class="h-7 min-w-8 rounded-lg px-2 text-[13px] text-ink-2 tabular-nums outline-none transition-colors duration-150 data-[state=off]:hover:not-disabled:bg-wash focus-visible:ring-3 focus-visible:ring-focus/35 data-[state=on]:bg-forest data-[state=on]:hover:not-disabled:bg-forest-hover data-[state=on]:font-semibold data-[state=on]:text-on-forest"
     >
       {option.label}
     </ToggleGroup.Item>

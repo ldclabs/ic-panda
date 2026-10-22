@@ -130,36 +130,24 @@
     { value: 'events', label: t('tabEvents'), icon: 'webhook' as const },
     { value: 'audit', label: t('tabAudit'), icon: 'audit' as const }
   ])
-  const groups = $derived([
-    { label: t('agentNavIdentity'), items: tabs.slice(0, 3) },
-    { label: t('agentNavActivity'), items: tabs.slice(3, 6) },
-    { label: t('agentNavOperations'), items: tabs.slice(6) }
-  ])
 </script>
 
 <div class="flex h-full min-h-0 flex-col">
-  <nav class="flex shrink-0 gap-5 overflow-x-auto border-b border-line px-8 pt-3 [scrollbar-width:none]" aria-label={t('agents')}>
-    {#each groups as group}
-      <div class="shrink-0">
-        <p class="px-2 pb-1 text-[10.5px] font-medium text-faint">{group.label}</p>
-        <div class="flex gap-1">
-          {#each group.items as item (item.value)}
-            <button
-              class={cn(
-                'relative flex h-10 items-center gap-1.5 rounded-t-lg px-2.5 text-[13px] outline-none transition-colors hover:bg-wash focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-forest',
-                tab === item.value ? 'bg-pale font-medium text-forest' : 'text-muted'
-              )}
-              aria-current={tab === item.value ? 'page' : undefined}
-              onclick={() => (tab = item.value as Tab)}
-              data-testid={`agents-tab-${item.value}`}
-            >
-              <Icon name={item.icon} />{item.label}
-              {#if item.count}<span class="rounded-full bg-wash px-1.5 text-[10.5px] tabular-nums">{item.count}</span>{/if}
-              {#if tab === item.value}<span class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-forest"></span>{/if}
-            </button>
-          {/each}
-        </div>
-      </div>
+  <nav class="flex shrink-0 gap-1 overflow-x-auto border-b border-line px-8 [scrollbar-width:none]" aria-label={t('agents')}>
+    {#each tabs as item (item.value)}
+      <button
+        class={cn(
+          'relative flex h-10 shrink-0 items-center gap-1.5 rounded-t-lg px-2.5 text-[13px] outline-none transition-colors hover:bg-wash focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-forest',
+          tab === item.value ? 'bg-pale font-medium text-forest' : 'text-muted'
+        )}
+        aria-current={tab === item.value ? 'page' : undefined}
+        onclick={() => (tab = item.value as Tab)}
+        data-testid={`agents-tab-${item.value}`}
+      >
+        <Icon name={item.icon} />{item.label}
+        {#if item.count}<span class="rounded-full bg-wash px-1.5 text-[10.5px] tabular-nums">{item.count}</span>{/if}
+        {#if tab === item.value}<span class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-forest"></span>{/if}
+      </button>
     {/each}
   </nav>
   <div class="min-h-0 flex-1">

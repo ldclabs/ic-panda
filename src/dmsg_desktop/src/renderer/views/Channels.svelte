@@ -61,6 +61,7 @@
   let highlight = $state<number | null>(null)
   let membersOpen = $state(stored('dmsg.members') !== 'closed')
   let showOther = $state(stored('dmsg.channels-other') === 'open')
+  let showLegacy = $state(false)
   let readReceipts = $state(stored('dmsg.read-receipts') === 'on')
   let creating = $state(false)
   let createTab = $state<'create' | 'join'>('create')
@@ -145,6 +146,7 @@
   function pickLegacy(entry: any) {
     selected = channel = null
     legacySelected = entry
+    showLegacy = true
   }
 
   const readLegacy = single(async () => {
@@ -587,18 +589,24 @@
           {/if}
         {/if}
         {#if oldChannels.length}
-          <li class="px-2 pt-4 pb-1 text-[11.5px] font-medium text-faint">{t('legacyHistory')}</li>
-          {#each oldChannels as entry (`${entry.archive}:${entry.source}`)}
-            <li>
-              <button class={cn('flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start hover:bg-wash', legacySelected?.archive === entry.archive && legacySelected?.source === entry.source && 'bg-pale')} onclick={() => pickLegacy(entry)} data-testid="legacy-channel-item">
-                <Icon name="legacy" class="shrink-0 text-faint" />
-                <span class="min-w-0">
-                  <b class="block truncate text-[13px] font-medium">{entry.name || entry.source}</b>
-                  <span class="block text-[11px] text-faint">{t('legacyReadable', { n: entry.messages })}{entry.unreadable ? ` · ${t('legacyUnreadable', { n: entry.unreadable })}` : ''}</span>
-                </span>
-              </button>
-            </li>
-          {/each}
+          <li class="px-2 pt-4 pb-1">
+            <button class="flex w-full items-center gap-1 text-[11.5px] font-medium text-faint hover:text-ink" aria-expanded={showLegacy} onclick={() => (showLegacy = !showLegacy)} data-testid="legacy-channel-toggle">
+              <Icon name={showLegacy ? 'chevron-down' : 'chevron-end'} class="size-3.5" />{t('legacyHistory')} · {oldChannels.length}
+            </button>
+          </li>
+          {#if showLegacy}
+            {#each oldChannels as entry (`${entry.archive}:${entry.source}`)}
+              <li>
+                <button class={cn('flex w-full items-center gap-2 rounded-lg px-2 py-2 text-start hover:bg-wash', legacySelected?.archive === entry.archive && legacySelected?.source === entry.source && 'bg-pale')} onclick={() => pickLegacy(entry)} data-testid="legacy-channel-item">
+                  <Icon name="legacy" class="shrink-0 text-faint" />
+                  <span class="min-w-0">
+                    <b class="block truncate text-[13px] font-medium">{entry.name || entry.source}</b>
+                    <span class="block text-[11px] text-faint">{t('legacyReadable', { n: entry.messages })}{entry.unreadable ? ` · ${t('legacyUnreadable', { n: entry.unreadable })}` : ''}</span>
+                  </span>
+                </button>
+              </li>
+            {/each}
+          {/if}
         {/if}
         {#if legacyError}<li class="px-2 py-2 text-[12px] text-danger">{legacyError}</li>{/if}
       </ul>

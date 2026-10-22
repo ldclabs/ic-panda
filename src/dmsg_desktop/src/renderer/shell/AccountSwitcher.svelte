@@ -7,6 +7,7 @@
   import { cn, menuContentClass, menuItemClass } from '../components/ui'
   import { locale, sessionLabel, t } from '../i18n/index.svelte'
   import { call, onChange } from '../rpc'
+  import { nameOf } from '../views/channels/names.svelte'
   import { startLogin } from './login.svelte'
   import { logout, shortId, switchAccount, unlocking } from './session'
 
@@ -97,21 +98,23 @@
     {/snippet}
   </Tooltip>
   <DropdownMenu.Portal>
-    <DropdownMenu.Content bind:ref={content} class={cn(menuContentClass, 'w-64')} align="start" sideOffset={6} collisionPadding={8}>
+    <DropdownMenu.Content bind:ref={content} class={cn(menuContentClass, 'w-72')} align="start" sideOffset={6} collisionPadding={8} data-testid="account-menu">
       <DropdownMenu.Group>
         <DropdownMenu.GroupHeading class="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-faint">{t('localAccounts')}</DropdownMenu.GroupHeading>
         {#each accounts as a (a.account)}
+          {@const accountName = a.account === unlockedAccount ? name : nameOf(a.account)}
           <DropdownMenu.Item
             class={cn(menuItemClass, 'data-disabled:cursor-default data-disabled:opacity-100')}
             disabled={a.current}
             onSelect={() => switchAccount(a.account, a.fast_unlock)}
             data-value={a.account}
           >
-            <span class="min-w-0">
-              <span class="block truncate font-mono text-xs"><bdi dir="ltr">{shortId(a.account)}</bdi></span>
+            <span class="min-w-0 flex-1">
+              {#if accountName}<span class="block truncate text-[13px] font-medium" title={accountName}>{accountName}</span>{/if}
+              <span class={cn('block truncate font-mono text-xs', accountName && 'text-faint')} title={a.account}><bdi dir="ltr">{shortId(a.account)}</bdi></span>
               {#if !a.bound}<span class="block text-[11.5px] text-faint">{t('waitingDevice')}</span>{/if}
             </span>
-            {#if a.current}<Icon name="check" class="size-3.5 text-forest" />{:else if a.fast_unlock}<span class="text-[11.5px] text-faint">{t('fastUnlock')}</span>{/if}
+            {#if a.current}<Icon name="check" class="size-3.5 shrink-0 text-forest" />{:else if a.fast_unlock}<span class="shrink-0 text-[11.5px] text-faint">{t('fastUnlock')}</span>{/if}
           </DropdownMenu.Item>
         {/each}
       </DropdownMenu.Group>

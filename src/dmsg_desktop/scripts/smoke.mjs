@@ -972,7 +972,7 @@ const methods = {
   },
   'channel/outbox': () => [],
   'channel/receipts': () => ({ latest_seq: messages.length, cursors: { [peer]: { delivered: messages.length, read: 1 } } }),
-  'channel/names': (p) => Object.fromEntries(p.accounts.map((a) => [a, a === peer ? 'Peer Person' : null])),
+  'channel/names': (p) => Object.fromEntries(p.accounts.map((a) => [a, a === peer ? 'Peer Person' : a === account ? published.name : a === other ? 'Work account' : null])),
   'channel/mark': (p) => ({ ...channel, read: p.through, unread: 0 }),
   'channel/draft': () => ({ saved: true }),
   'channel/settings': (p) => {
@@ -1436,6 +1436,13 @@ try {
   assert.equal(await main.textContent('[data-testid="view-title"]'), 'Inbox')
   await main.keyboard.press(`${mod}+1`)
   await main.waitForSelector('[data-testid="view-title"] >> text=Vault')
+  // Local account choices show public names as well as their distinct IDs.
+  await main.click('[data-testid="account-switcher"]')
+  await main.waitForSelector(`[data-testid="account-menu"] [data-value="${account}"] >> text=Smoke`)
+  await main.waitForSelector(`[data-testid="account-menu"] [data-value="${other}"] >> text=Work account`)
+  assert.ok(await main.locator(`[data-testid="account-menu"] [data-value="${other}"] [title="${other}"]`).isVisible())
+  await main.locator('[data-testid="account-menu"]').screenshot({ path: join(shots, 'account-menu.png') })
+  await main.keyboard.press('Escape')
   // A view the main process opens (the tray, a notification) leaves the one
   // the window showed before a click away.
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.send('dmsg:navigate', '/approvals'))

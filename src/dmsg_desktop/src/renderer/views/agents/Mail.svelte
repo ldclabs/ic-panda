@@ -31,6 +31,7 @@
   } = $props()
 
   const PAGE = 50
+  const DEFAULT_RELAY = 'https://mail.dmsg.net'
   let agent = $state('')
   let folder = $state('received')
   let mailboxes = $state<any[]>([])
@@ -38,7 +39,7 @@
   let selected = $state('')
   let cursor = $state<string | null>(null)
   let unread = $state(0)
-  let routes = $state('')
+  let routes = $state(DEFAULT_RELAY)
   let synced = $state('')
   let closing = $state<any>(null)
   let error = $state('')
@@ -118,7 +119,7 @@
         },
         t('mailboxCreated')
       )
-      routes = ''
+      routes = DEFAULT_RELAY
     })
   const replace = (box: any, change: Record<string, unknown>, done: string) => attempt(() => publishBox({ mailbox_id: box.mailbox_id, routes: box.routes, ...change }, done))
   const sync = () =>
