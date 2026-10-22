@@ -4,6 +4,8 @@ export default {
   messages: {
     legacyAvatarReference: "L’URL publique de l’ancien avatar est conservée. Choisissez une nouvelle image pour la copier vers le service actuel.",
     principalLinkImage: "URL de l’image du lien (facultatif)",
+    principalLinkName: "Nom du lien",
+    principalId: "ID du principal",
     principalKind: "Type d’identité",
     principalPerson: "Personne",
     principalOrganization: "Organisation",

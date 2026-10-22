@@ -1407,7 +1407,10 @@ pub fn summary(archive: &Archive, verification: &Verification) -> Summary {
             let Some(uri) = field(value, "uri").and_then(text_of) else {
                 continue;
             };
-            let title = field(value, "title").and_then(text_of).unwrap_or(uri);
+            let title = field(value, "title")
+                .and_then(text_of)
+                .filter(|title| !title.trim().is_empty())
+                .unwrap_or(uri);
             links.push(agent_protocols::delegation::PrincipalLink {
                 name: title.into(),
                 url: uri.into(),

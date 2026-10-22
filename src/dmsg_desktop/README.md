@@ -213,9 +213,9 @@ Rules (`src/main/policy.ts`):
     (`attest/export`, `attest/verify`);
   - legacy transfer files, frozen-history files and old attachments
     (`legacy/import`, `legacy/frozen`, `legacy/file`);
-  - the public avatar (`profile/avatar`; removing it goes the same way). A
-    window shows avatars as data URLs from `profile/avatar_image`, so it
-    loads nothing from the network.
+  - the public avatar (`profile/avatar` for an upload; removing it only edits
+    the draft). A window shows avatars as data URLs from
+    `profile/avatar_image`, so it loads nothing from the network.
 - `ap/call` runs only the Agent Mail and Agent Knowledge tools
   (`DESKTOP_TOOLS`) as a hosted Agent ID, in the connector session `gui`. The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for

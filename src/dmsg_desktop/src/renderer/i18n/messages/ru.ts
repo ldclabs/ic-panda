@@ -4,6 +4,8 @@ export default {
   messages: {
     legacyAvatarReference: "Исходный публичный URL аватара сохранён. Выберите новое изображение, чтобы скопировать его в текущий сервис.",
     principalLinkImage: "URL изображения ссылки (необязательно)",
+    principalLinkName: "Название ссылки",
+    principalId: "ID Principal",
     principalKind: "Тип личности",
     principalPerson: "Человек",
     principalOrganization: "Организация",

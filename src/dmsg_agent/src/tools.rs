@@ -154,7 +154,7 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 34] = [
     ),
     (
         "dmsg_profile_read",
-        "This account's public profile, or another account's with its signature checked.",
+        "This account's certified PrincipalDocument, or another account's, from dmsg_directory.",
         true,
         r#"{"type":"object","properties":{"account":{"type":"string"}}}"#,
     ),

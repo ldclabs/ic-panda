@@ -6,6 +6,8 @@
 const messages = {
     legacyAvatarReference: "The original public avatar URL is preserved. Choose a new image to copy it to the current service.",
     principalLinkImage: "Link image URL (optional)",
+    principalLinkName: "Link name",
+    principalId: "Principal ID",
     principalKind: "Identity type",
     principalPerson: "Person",
     principalOrganization: "Organization",

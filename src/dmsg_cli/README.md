@@ -864,7 +864,8 @@ The daemon listens on `127.0.0.1` only.
   `files/mount {name?}|unmount|mount_status`,
   `files/share_link|share_links|share_revoke`,
   `sync/run|status`,
-  `profile/show|publish|resolve`, `approval/list|show|respond|cancel|quote`
+  `profile/show|pending|publish|retry|resolve|avatar|avatar_image|avatar_legacy`,
+  `approval/list|show|respond|cancel|quote`
   (`show`, `cancel` and `quote` take a unique ID prefix),
   `approval/check_file {id, path}`,
   `attest/request {statement, file? | library: {file, version}?}|action {action: base64url CBOR}|history|usage|export|verify|readiness {id?}`,

@@ -13,7 +13,8 @@ use std::time::Duration;
 
 #[derive(Subcommand)]
 pub enum ProfileCommand {
-    /// The published profile of this account.
+    /// The official PrincipalDocument of this account, or an empty draft
+    /// before the first publication.
     Show,
     /// Publish an edited PrincipalDocument JSON file (from `profile show --json`).
     Publish {
@@ -587,7 +588,9 @@ pub async fn profile(remote: &Remote, json: bool, command: ProfileCommand) -> Re
         ProfileCommand::Avatar { file } => {
             let params = json!({"path": absolute(file)?});
             let url = remote.call("profile/avatar", params).await?;
-            print(json, &url, pretty);
+            print(json, &url, |url| {
+                url.as_str().unwrap_or_default().to_string()
+            });
             return Ok(());
         }
     };

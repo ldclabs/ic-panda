@@ -289,8 +289,9 @@ fn principal_type(value: &PrincipalType) -> &'static str {
 ///
 /// The document names `principal_origin/<account_id>` as its `id`, lists
 /// current and retired hosted controllers with the configured `source`, the
-/// configured `delegation_service` origin, and one `profile` link. It is checked with
-/// the SDK's `validate_principal_document` before the bytes are returned.
+/// configured `delegation_service` origin, the stable HTML alias and the
+/// user's display fields and named links. It is checked with the SDK's
+/// `validate_principal_document` before the bytes are returned.
 ///
 /// # Errors
 /// Invalid state or configuration returns `Error::InvalidInput` or `Error::QuotaExceeded`.

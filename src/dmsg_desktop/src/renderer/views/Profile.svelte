@@ -50,9 +50,10 @@
 
   /** Public images are loaded through the daemon, from the configured relay. */
   async function avatarOf(document: PrincipalDocument | null) {
-    const url = document?.avatar_url
+    if (!document?.id) return
+    const url = document.avatar_url
     if (!url || images[url]) return
-    const account = document!.id.split('/').pop()!
+    const account = document.id.split('/').pop()!
     const upload = url.split('/').pop()!
     if (/^[0-9a-f]{64}$/.test(upload)) {
       const image: any = await call('profile/avatar_image', { account, upload }).catch(() => null)
@@ -203,7 +204,7 @@
       <div class="grid gap-2">
         {#each links as link, index (index)}
           <div class="grid gap-2 rounded-xl border border-line p-3">
-            <Field label={t('displayName')}><input bind:value={link.name} /></Field>
+            <Field label={t('principalLinkName')}><input bind:value={link.name} /></Field>
             <Field label={t('link')}><input value={link.url} oninput={(event) => changeLinkUrl(index, event.currentTarget.value)} type="url" /></Field>
             <Field label={t('principalLinkImage')}><input value={linkImages[link.url] ?? ''} oninput={(event) => linkImages[link.url] = event.currentTarget.value} type="url" /></Field>
             <Field label={t('principalLinkRelation')}><input bind:value={link.rel} /></Field>
@@ -235,7 +236,7 @@
           <Fact label={t('displayName')}>{found.name || '-'}</Fact>
           <Fact label={t('bio')}>{found.description || '-'}</Fact>
           {#each (found.links ?? []) as link, i (i)}<Fact label={t('link')}><bdi dir="ltr" class="font-mono text-[12px]">{link.name} · {link.url}</bdi></Fact>{/each}
-          <Fact label={t('device')}><Id id={found.id} /></Fact>
+          <Fact label={t('principalId')}><Id id={found.id} /></Fact>
         </dl>
         {#if status?.state === 'unlocked' && found.id.split('/').pop() !== status.account}
           <button

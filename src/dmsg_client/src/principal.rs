@@ -116,6 +116,9 @@ pub async fn show<H: Hold>(h: &H) -> Result<PrincipalDocument> {
 }
 
 /// Public names, fetched concurrently from the same documents as profile pages.
+/// A missing account or a document that fails verification has no name; a
+/// failed read is omitted so the caller retries instead of caching an empty
+/// name.
 pub async fn names<H: Hold>(
     h: &H,
     accounts: &[AccountId],
@@ -123,20 +126,22 @@ pub async fn names<H: Hold>(
     let config = h.with(|c| Ok(c.config.clone())).await?;
     let results =
         futures_util::future::join_all(accounts.iter().map(|id| resolve(&config, id))).await;
-    Ok(accounts
-        .iter()
-        .zip(results)
-        .map(|(id, result)| {
-            (
+    let mut found = Vec::with_capacity(accounts.len());
+    for (id, result) in accounts.iter().zip(results) {
+        match result {
+            Ok(document) => found.push((
                 id.to_string(),
-                result
-                    .ok()
-                    .flatten()
+                document
                     .and_then(|d| d.name)
-                    .filter(|s| !s.is_empty()),
-            )
-        })
-        .collect())
+                    .filter(|name| !name.is_empty()),
+            )),
+            Err(Error::NotFound | Error::IntegrityFailed) => {
+                found.push((id.to_string(), None));
+            }
+            Err(_) => {}
+        }
+    }
+    Ok(found)
 }
 
 impl Client {
@@ -296,7 +301,7 @@ pub fn avatar_type(bytes: &[u8]) -> Result<&'static str> {
     }
 }
 
-/// The avatar an account's profile names, as the relay serves it to
+/// The avatar an account's document names, as the relay serves it to
 /// anyone: its media type and bytes, `None` when gone. It needs no key, so
 /// the caller holds only the relay client (`Client::relay`) while it
 /// downloads, never the client.

@@ -375,7 +375,8 @@ fn legacy_link_titles_and_images_survive_as_principal_document_metadata() {
     archive.inventory.objects.retain(|o| o.kind != "profile");
     let record = serde_json::json!({"bio":"Imported bio", "links":[
         {"title":"Panda site","uri":"https://example.test/","image":["https://example.test/logo.png"]},
-        {"title":"Other site","uri":"https://other.test/","image":[]}
+        {"title":"Other site","uri":"https://other.test/","image":[]},
+        {"title":"","uri":"https://untitled.test/"}
     ]});
     let bytes = canonical(&record);
     archive.inventory.objects.push(SourceObject {
@@ -388,9 +389,13 @@ fn legacy_link_titles_and_images_survive_as_principal_document_metadata() {
     });
     let report = summary(&archive, &verify(&archive));
     assert_eq!(report.bio, "Imported bio");
-    assert_eq!(report.links.len(), 2);
+    assert_eq!(report.links.len(), 3);
     assert_eq!(report.links[0].name, "Panda site");
     assert_eq!(report.links[0].rel, "related");
+    assert_eq!(
+        report.links[2].name, "https://untitled.test/",
+        "an empty legacy title falls back to the link URL"
+    );
     assert_eq!(
         report.extra["dmsg.link_images"]["https://example.test/"],
         "https://example.test/logo.png"

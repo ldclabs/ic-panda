@@ -200,11 +200,13 @@ async fn rotate(daemon: &Daemon, channel: &str) {
     }
 }
 
-/// Display names of accounts, checked against their certified devices and
-/// kept for ten minutes.
+/// Display names of accounts, read from their certified PrincipalDocuments
+/// and kept for ten minutes. A failed read is not cached, so the next call
+/// asks again.
 ///
 /// # Errors
-/// Returns `Error::Unavailable` when the user homes cannot be read.
+/// Returns `Error::Locked` when the client cannot be read; failed per-account
+/// reads are omitted and asked for again on a later call.
 pub(crate) async fn names(daemon: &Daemon, accounts: &[String]) -> Result<serde_json::Value> {
     use std::sync::{Mutex, OnceLock};
     type Cache = Mutex<BTreeMap<String, (Option<String>, Instant)>>;
@@ -226,12 +228,7 @@ pub(crate) async fn names(daemon: &Daemon, accounts: &[String]) -> Result<serde_
     if !missing.is_empty() {
         let found = dmsg_client::principal::names(&daemon.hold(), &missing).await?;
         let mut known = cache.lock().expect("names");
-        for account in &missing {
-            let id = account.to_string();
-            let name = found
-                .iter()
-                .find(|(a, _)| *a == id)
-                .and_then(|(_, n)| n.clone());
+        for (id, name) in found {
             known.insert(id, (name, Instant::now()));
         }
     }

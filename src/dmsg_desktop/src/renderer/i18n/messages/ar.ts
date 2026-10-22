@@ -4,6 +4,8 @@ export default {
   messages: {
     legacyAvatarReference: "حُفظ الرابط العام للصورة الأصلية. اختر صورة جديدة لنسخها إلى الخدمة الحالية.",
     principalLinkImage: "رابط صورة الرابط (اختياري)",
+    principalLinkName: "اسم الرابط",
+    principalId: "معرّف الـ Principal",
     principalKind: "نوع الهوية",
     principalPerson: "شخص",
     principalOrganization: "مؤسسة",

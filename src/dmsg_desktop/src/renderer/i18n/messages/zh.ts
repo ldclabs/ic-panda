@@ -4,6 +4,8 @@ export default {
   messages: {
     legacyAvatarReference: "已保留旧头像的原公开地址。如需转存到当前服务，请设置新头像。",
     principalLinkImage: "链接图片地址（可选）",
+    principalLinkName: "链接名称",
+    principalId: "Principal ID",
     principalKind: "身份类型",
     principalPerson: "个人",
     principalOrganization: "组织",

@@ -2,10 +2,9 @@ import { call } from '../../rpc'
 import { shortId } from '../../shell/session'
 
 /**
- * Display names of accounts, as their own profiles publish them and the
- * daemon checks against their certified devices. A name is asked for the
- * first time a view shows the account, in batches; an account without a
- * profile shows its short ID.
+ * Display names of accounts, as their own certified PrincipalDocuments
+ * publish them. A name is asked for the first time a view shows the account,
+ * in batches; an account without a document shows its short ID.
  */
 const known = $state<Record<string, string | null>>({})
 const asked = new Set<string>()
@@ -25,7 +24,11 @@ function ask(account: string) {
       const accounts = all.slice(i, i + 100)
       try {
         const names = await call<Record<string, string | null>>('channel/names', { accounts })
-        for (const account of accounts) known[account] = names[account] ?? null
+        for (const account of accounts) {
+          // A failed read is omitted so the next view asks for it again.
+          if (account in names) known[account] = names[account] ?? null
+          else asked.delete(account)
+        }
       } catch {
         // Asked again the next time a view shows them.
         for (const account of accounts) asked.delete(account)

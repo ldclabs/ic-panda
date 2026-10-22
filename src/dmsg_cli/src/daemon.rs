@@ -1088,13 +1088,11 @@ impl Daemon {
             "profile/avatar_legacy" => {
                 let archive = text(params, "archive")?;
                 let source = text(params, "source")?;
-                let bytes = self
-                    .hold()
-                    .with(|c| c.legacy_avatar(&archive, &source))
-                    .await?;
-                Ok(to_json(
-                    &profile::upload_avatar(&self.hold(), &bytes).await?,
-                ))
+                // The archive read and the upload stay on the same account.
+                let hold = self.hold();
+                let bytes = hold.with(|c| c.legacy_avatar(&archive, &source)).await?;
+                let _turn = self.turn("profile").await;
+                Ok(to_json(&profile::upload_avatar(&hold, &bytes).await?))
             }
             "profile/avatar_image" => {
                 let account = account(params, "account")?;
