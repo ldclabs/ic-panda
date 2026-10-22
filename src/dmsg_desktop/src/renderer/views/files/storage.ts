@@ -15,5 +15,5 @@ export function filtered(entries: any[], filter: { text: string; kind: string; p
 }
 export function targetOf(entry: any, action: string) {
   return { owner_kind: entry.owner_kind, resource: entry.resource, upload_id: entry.upload_id, generation: entry.generation ?? 0, action,
-    share_id: action === 'delete' ? entry.share?.share_id ?? null : null }
+    share_id: action === 'delete' && entry.can_revoke ? entry.share?.share_id ?? null : null }
 }

@@ -1603,10 +1603,18 @@ async fn sync_file_deletions<H: Hold>(h: &H, channel: &str) -> Result<()> {
             .await?;
         let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
         let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
-        h.with(|c| {
-            for entry in entries {
+        let end = page["end"] == true;
+        ensure(end || next > after, Error::IntegrityFailed)?;
+        let uploads = entries
+            .iter()
+            .map(|entry| {
                 let upload = entry["upload_id"].as_str().ok_or(Error::IntegrityFailed)?;
                 hex_id(upload)?;
+                Ok(upload.to_owned())
+            })
+            .collect::<Result<Vec<_>>>()?;
+        h.with(|c| {
+            for (entry, upload) in entries.iter().zip(uploads) {
                 c.workspace.put_private(
                     c.keys()?,
                     &format!("channel-deleted:{channel}:{upload}"),
@@ -1616,10 +1624,9 @@ async fn sync_file_deletions<H: Hold>(h: &H, channel: &str) -> Result<()> {
             c.workspace.put_private(c.keys()?, &key, &next)
         })
         .await?;
-        if page["end"] == true {
+        if end {
             return Ok(());
         }
-        ensure(next > after, Error::IntegrityFailed)?;
         after = next;
     }
 }

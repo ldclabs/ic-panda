@@ -10,6 +10,8 @@ test('live links remain revocable while their underlying objects are protected',
  assert.deepEqual(candidates(copies,['a','b','c']).map(e=>e.id),['a','c'])
  assert.equal(releaseBytes(candidates(copies,['a','c'])),60)
  assert.deepEqual(targetOf(copies[0],'delete'),{owner_kind:'account',resource:'owner',upload_id:'11',generation:0,action:'delete',share_id:'link'})
+ const retired={...copies[0],can_revoke:false,can_delete:true,share:{share_id:'old',state:'revoked'}}
+ assert.equal(targetOf(retired,'delete').share_id,null)
 })
 test('storage filters source association, kind, state and channel without changing the inventory',()=>{
  const filter={text:'',kind:'',phase:'',resource:'',before:'',sort:'size'}

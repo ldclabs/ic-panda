@@ -514,6 +514,7 @@ pub(crate) async fn share_links_remote<H: Hold>(h: &H) -> Result<Vec<LinkView>> 
         if page.end {
             break;
         }
+        ensure(page.next_cursor > after, Error::IntegrityFailed)?;
         after = page.next_cursor;
     }
     h.with(|c| {

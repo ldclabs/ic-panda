@@ -402,4 +402,22 @@ mod tests {
         schedule_transfer(&t, at);
         assert!(due(at + MINUTE).is_empty());
     }
+
+    #[test]
+    fn a_settled_order_drops_the_slot_reserved_before_settlement() {
+        use crate::checkout_model::fixture;
+        store::set_config(store::Config::new(fixture::init()));
+        let at = fixture::base::NOW;
+        let mut o = Order::new(fixture::base::principal(8), fixture::open());
+        o.status = CheckoutStatus::Applied;
+        o.earned_allocated = o.quote.cash.amount_atomic;
+        let deadline = o.quote.offer.expires_at_ms;
+        checkout_store::save(&mut o, at);
+        let job = Job::Order(o.id);
+        schedule(job, Some(deadline));
+        assert_eq!(due(deadline), vec![(job, deadline)]);
+        crate::checkout::settle_revenue(o.id, deadline).unwrap();
+        assert!(JOBS.with_borrow(|t| t.load(&job.key())).is_none());
+        assert!(due(deadline).is_empty());
+    }
 }

@@ -112,7 +112,7 @@
               {#if entry.url && entry.share?.state === 'active'}<button class={buttonClass('ghost','xs')} onclick={() => copyText(entry.url)}>{t('linkCopy')}</button>{/if}
               {#if entry.recoverable && ['staging','unpublished'].includes(entry.phase)}<button class={buttonClass('secondary','xs')} disabled={busy} onclick={() => act([entry],'recover')}>{t('storageResume')}</button>{/if}
               {#if ['deleting','retrying','releasing','cancelling'].includes(entry.phase)}<button class={buttonClass('secondary','xs')} disabled={busy} onclick={() => act([entry],'retry')}>{t('storageRetry')}</button>{/if}
-              {#if entry.can_delete || entry.can_cancel || entry.can_revoke}<button class={buttonClass('ghost','xs','text-danger')} disabled={busy} onclick={() => confirmation=[entry]} data-testid="storage-delete">{t(entry.can_cancel ? 'cancel' : entry.share ? 'linkRevoke' : 'deleteCloudCopy')}</button>{/if}
+              {#if entry.can_delete || entry.can_cancel || entry.can_revoke}<button class={buttonClass('ghost','xs','text-danger')} disabled={busy} onclick={() => confirmation=[entry]} data-testid="storage-delete">{t(entry.can_cancel ? 'cancel' : entry.can_revoke ? 'linkRevoke' : 'deleteCloudCopy')}</button>{/if}
             </div>
           </li>
         {/each}

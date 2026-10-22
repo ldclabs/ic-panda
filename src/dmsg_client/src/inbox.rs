@@ -856,8 +856,6 @@ impl Client {
                 && quote.payer.owner == payer
                 && quote.home_payment == canister
                 && quote.envelope_digest == sha256(&ciphertext)
-                && terms.config.enabled
-                && !terms.signer.revoked
                 && terms.signer.valid_from <= quote.created_at
                 && quote.accept_by < terms.signer.valid_until
                 && Some(quote.amount)
@@ -918,10 +916,20 @@ impl Client {
             )?;
             return Ok(escrow);
         }
-        // Only new escrows must use the current revenue account. Recovery
-        // follows the certified terms already accepted for this operation.
+        // Only a new escrow must satisfy the mutable current policy. An
+        // existing escrow keeps the terms already accepted for this operation,
+        // even while new orders are disabled or a signer is revoked.
+        let (current_canister, current) = self
+            .payment_terms(
+                Some(job.input.quote.signer_epoch),
+                Some(job.input.quote.fee_policy_version),
+            )
+            .await?;
+        ensure(current_canister == canister, Error::IntegrityFailed)?;
+        ensure(current.config.enabled, Error::Locked)?;
+        ensure(!current.signer.revoked, Error::Forbidden)?;
         ensure(
-            job.input.quote.platform == terms.config.platform,
+            job.input.quote.platform == current.config.platform,
             Error::IntegrityFailed,
         )?;
         let opened = payment.open(&job.input).await?;

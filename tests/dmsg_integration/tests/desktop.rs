@@ -4518,6 +4518,19 @@ fn desktop_paid_letters() {
     )
     .unwrap();
     changed.unwrap();
+    // Recovery and funding keep working when only new orders are paused.
+    let paused: dmsg_types::Result<()> = candid::decode_one(
+        &d.ic
+            .update_call(
+                d.payment,
+                Principal::anonymous(),
+                "set_orders_enabled",
+                candid::encode_one(false).unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    paused.unwrap();
 
     // Paying: the ledger's reply to the escrow funding is lost, then the
     // relay's reply to the admission. Each retry reads back what committed;
@@ -4548,6 +4561,18 @@ fn desktop_paid_letters() {
     assert_eq!(status["state"], "visible");
     let escrow = a.run(&["inbox", "escrow", &order_id]);
     assert_eq!(escrow["escrow"]["decision"], "SettlementCommitted");
+    let resumed: dmsg_types::Result<()> = candid::decode_one(
+        &d.ic
+            .update_call(
+                d.payment,
+                Principal::anonymous(),
+                "set_orders_enabled",
+                candid::encode_one(true).unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    resumed.unwrap();
     // Restore the relay's configured destination for subsequent new orders.
     let old_platform =
         dmsg_client::payment::Wire::quote(&serde_json::from_value(order["quote"].clone()).unwrap())

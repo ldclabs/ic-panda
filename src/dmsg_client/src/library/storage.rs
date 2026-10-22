@@ -315,8 +315,14 @@ pub async fn refresh<H: Hold>(h: &H) -> Result<Value> {
             "kind":plan.kind,"status":"staging","local_only":true,"generation":0,"created_at":plan.expires_at.saturating_sub(dmsg_types::DAY),
             "management":plan.management,"bytes":plan.chunks.iter().map(|c|c.size).sum::<u64>()+plan.manifest_size,
             "payer":account,"uploader":account,"charged_bytes":null,"reserved_bytes":null,"charge_id":format!("local:{}",plan.upload_id),"can_cancel":true,"can_delete":false});
-        h.with(|c| decorate(c, &mut item, "account", &account))
-            .await?;
+        h.with(|c| {
+            ensure(
+                c.account()?.id.to_string() == account,
+                Error::VersionConflict,
+            )?;
+            decorate(c, &mut item, "account", &account)
+        })
+        .await?;
         entries.push(item);
     }
     let links = super::link::share_links_remote(h).await?;
@@ -490,13 +496,20 @@ async fn act_one<H: Hold>(h: &H, target: &Target) -> Result<Value> {
         ),
         _ => return Err(dmsg_types::invalid("action")),
     };
-    h.post(
-        &format!("{path}/{suffix}"),
-        action,
-        &payload,
-        &Hash::new(crate::crypto::random_id()),
-    )
-    .await
+    let response = h
+        .post(
+            &format!("{path}/{suffix}"),
+            action,
+            &payload,
+            &Hash::new(crate::crypto::random_id()),
+        )
+        .await?;
+    if target.action == "delete" && target.owner_kind == "account" {
+        // The relay accepted retirement; the local backup cache must stop
+        // claiming this copy is live, as `files/cloud_delete` already does.
+        h.with(|c| c.forget_cloud(&target.upload_id)).await?;
+    }
+    Ok(response)
 }
 
 async fn recover<H: Hold>(h: &H, target: &Target) -> Result<Value> {
@@ -512,12 +525,16 @@ async fn recover<H: Hold>(h: &H, target: &Target) -> Result<Value> {
                 .ok_or(Error::RecoveryIncomplete)
         })
         .await?;
-    let pending: Option<Value> = h
-        .with(|c| {
+    let links = metadata["intent"]["kind"] == "link";
+    let pending: Option<Value> = if links && target.owner_kind == "account" {
+        h.with(|c| {
             c.workspace
                 .private(c.keys()?, &format!("lib-share-job:{}", target.upload_id))
         })
-        .await?;
+        .await?
+    } else {
+        None
+    };
     if let Some(pending) = pending {
         let plan: UploadPlan =
             serde_json::from_value(pending["plan"].clone()).map_err(|_| Error::IntegrityFailed)?;
@@ -541,9 +558,14 @@ async fn recover<H: Hold>(h: &H, target: &Target) -> Result<Value> {
     )
     .await?;
     if metadata["intent"]["kind"] == "link" {
+        ensure(
+            target.owner_kind == "account",
+            Error::InvalidInput("link target must be an account".into()),
+        )?;
         let record: super::link::LinkRecord =
             serde_json::from_value(metadata["intent"]["record"].clone())
                 .map_err(|_| Error::IntegrityFailed)?;
+        ensure(record.upload_id == target.upload_id, Error::IntegrityFailed)?;
         let existing = super::link::share_links_remote(h).await?;
         if existing.iter().any(|link| link.share_id == record.share_id) {
             return Ok(json!({"published":true}));
@@ -552,6 +574,10 @@ async fn recover<H: Hold>(h: &H, target: &Target) -> Result<Value> {
         return h.post(&format!("{path}/shares"),"dmsg/share/create/v1",&json!({"share_id":record.share_id,"upload_id":record.upload_id,"expires_at":record.expires_at,"max_downloads":record.max_downloads,"key_wrap":metadata["intent"]["key_wrap"]}),&Hash::new(crate::crypto::random_id())).await;
     }
     if metadata["intent"]["kind"] == "channel" {
+        ensure(
+            target.owner_kind == "channel",
+            Error::InvalidInput("attachment target must be a channel".into()),
+        )?;
         return crate::channel::resume_file(
             h,
             &target.resource,
@@ -595,6 +621,10 @@ pub async fn quote<H: Hold>(
     });
     let mut copies = pages(h, &format!("{}/storage", base(owner_kind, resource)?)).await?;
     h.with(|c| {
+        ensure(
+            c.account()?.id.to_string() == account,
+            Error::VersionConflict,
+        )?;
         for item in &mut copies {
             decorate(c, item, owner_kind, resource)?;
         }

@@ -840,6 +840,9 @@ pub(crate) fn settle_revenue(id: Hash, at: u64) -> Result<()> {
     {
         return_fee_reserve(id, at)?;
     }
+    // The timer reserved this batch slot before settlement. Resync it so a
+    // fully settled order stops waking every minute.
+    crate::settlement::schedule_order(&order(id)?, at);
     Ok(())
 }
 
