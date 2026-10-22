@@ -16,6 +16,11 @@ import {
   openArchiveFile,
   legacyDerive,
   pack,
+  readObservation,
+  createPairing,
+  pairingFingerprint,
+  sealTransfer,
+  openTransfer,
   OSS_CHUNK
 } from '../src'
 beforeEach(() => {
@@ -56,12 +61,13 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
     const name = `ICPanda_${principal}`,
       local = await openDB(name, 1, {
         upgrade(db) {
-          for (const key of ['My', 'Keys', 'Channels', 'Messages']) db.createObjectStore(key)
+          for (const key of ['My', 'Keys']) db.createObjectStore(key)
+          db.createObjectStore('Channels', { keyPath: ['_canister', 'id'] })
+          db.createObjectStore('Messages', { keyPath: ['_canister', 'channel', 'id'] })
         }
       })
     await local.put('Keys', [root], 'MK')
     await local.put('Keys', await encrypt(master, kek.toBytes()), `KEK:${source}:1`)
-    const before = await local.getAll('Keys')
     const plaintext = new Uint8Array(OSS_CHUNK + 23).fill(37),
       ciphertext = await encrypt(dek, plaintext)
     const message = {
@@ -95,6 +101,27 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
       dek: await encrypt(kek, dek.toBytes()),
       files_state: [{ file_storage: [canister, 1] }]
     }
+    // Match MessageAgent's real cache: IndexedDB returns the binary part of
+    // compound cursor keys as ArrayBuffer, even though _canister is Uint8Array.
+    await local.put('Channels', { ...channel, _canister: canister.toUint8Array() })
+    await local.put('Messages', {
+      ...message,
+      canister,
+      _canister: canister.toUint8Array(),
+      channel: channel.id
+    })
+    await local.put('Messages', {
+      ...message,
+      id: 2,
+      payload: await encrypt(dek, pack('History only in the browser cache')),
+      canister,
+      _canister: canister.toUint8Array(),
+      channel: channel.id
+    })
+    const cursor = await local.transaction('Channels').store.openCursor()
+    expect((cursor!.key as IDBValidKey[])[0]).toBeInstanceOf(ArrayBuffer)
+    const stores = ['Keys', 'Channels', 'Messages']
+    const before = await Promise.all(stores.map((store) => local.getAll(store)))
     const calls: string[] = []
     const reader = new LegacyReader(
       {
@@ -167,12 +194,35 @@ it.each(['Local', 'ECDH', 'VetKey'] as const)(
       contextVersion: 1,
       keyName: 'test_key_1'
     })
-    const recovered = decodeArchive(encodeArchive(archive)),
+    const session = await createPairing('https://dmsg.net', 'ab'.repeat(32))
+    const expected = {
+      origin: session.offer.origin,
+      target: session.offer.target,
+      fingerprint: pairingFingerprint(session.offer)
+    }
+    const encrypted = await sealTransfer(encodeArchive(archive), session.offer, expected)
+    const { plain } = await openTransfer(encrypted, session, expected)
+    const recovered = decodeArchive(plain),
       report = await verifyArchiveContent(recovered)
     expect(report.partial).toBe(false)
     expect(report.messages[0]?.file?.name).toBe('old.bin')
+    expect(
+      report.messages.some(
+        (message) => message.text === 'History only in the browser cache'
+      )
+    ).toBe(true)
+    const cachedObjects = recovered.inventory.objects
+      .filter((object) => /^local\/(Channels|Messages)\//.test(object.key))
+      .map((object) => readObservation(object.bytes))
+    expect(cachedObjects).toHaveLength(3)
+    expect(
+      cachedObjects.every(
+        (object) =>
+          object.key[0] instanceof Uint8Array && object.value.canister.toText() === source
+      )
+    ).toBe(true)
     expect((await openArchiveFile(recovered, `${source}/file/0`)).bytes).toEqual(plaintext)
-    expect(await local.getAll('Keys')).toEqual(before)
+    expect(await Promise.all(stores.map((store) => local.getAll(store)))).toEqual(before)
     expect(
       calls.every(
         (method) => !/^(create|update|save|delete|leave|try_|setting_set)/.test(method)

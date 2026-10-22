@@ -55,6 +55,8 @@ export function observation(value: unknown, depth = 0): unknown {
   }
   if (typeof value === 'bigint') return { integer: value.toString() }
   if (value instanceof Uint8Array) return { bytes: value }
+  // IndexedDB returns binary (including compound) keys as ArrayBuffer.
+  if (value instanceof ArrayBuffer) return { bytes: new Uint8Array(value) }
   if (value instanceof Uint32Array) return Array.from(value)
   if (value && typeof (value as Principal).toText === 'function')
     return { principal: principal(value as Principal) }
