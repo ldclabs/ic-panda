@@ -1170,10 +1170,7 @@ pub async fn continue_activation<H: Hold>(h: &H, source: &str, request: &str) ->
                 json!({"stage":if order.status==ActivationStatus::Ready {"ready"}else{"installing"},"wallet":order.wallet.map(|w|w.to_text())}),
             )
         }
-        None => {
-            h.with(|c| c.wallet_create_request(source, &hex::encode(*quote.quote_id), *spec))
-                .await
-        }
+        None => ops::create_request(h, source, &hex::encode(*quote.quote_id), *spec).await,
     }
 }
 

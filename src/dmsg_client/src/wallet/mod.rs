@@ -641,13 +641,15 @@ impl Client {
             result: None,
         };
         self.save_wallet_job(&job)?;
-        let request = self.approval_create(
+        let now = now_ms();
+        let request = self.approval_create_at(
             source,
             crate::approval::Action::Wallet {
                 job: job.id.clone(),
                 digest: job.digest(),
             },
-            now_ms() + crate::approval::HIGH_RISK_TTL_MS,
+            now,
+            now + crate::approval::HIGH_RISK_TTL_MS,
         )?;
         self.approval_view(&request)
     }
@@ -663,24 +665,15 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` for a quote this device did not request and
     /// `Error::QuotaExceeded` when the quote's plan has no wallet left, so no
-    /// payment starts for a wallet the hub would refuse.
-    pub fn wallet_create_request(
+    /// payment starts for a wallet the hub would refuse. An unfunded quote
+    /// returns `INSUFFICIENT_FUNDS` without creating an approval request.
+    pub async fn wallet_create_request(
         &mut self,
         source: &str,
         quote_id: &str,
         spec: WalletSpec,
     ) -> Result<Json> {
-        let quote = self.wallet_saved_quote(quote_id)?;
-        validate_spec(&spec, &self.wallet_member()?)?;
-        ensure(quote.remaining > 0, Error::QuotaExceeded)?;
-        ensure(now_ms() < quote.expires_at_ms, Error::Expired)?;
-        self.wallet_request(
-            source,
-            JobKind::Create {
-                quote: Box::new(quote),
-                spec: Box::new(spec),
-            },
-        )
+        ops::create_request(&self.hold(), source, quote_id, spec).await
     }
 
     /// Return the deposit of quote `quote_id`, less the ledger fee, to the

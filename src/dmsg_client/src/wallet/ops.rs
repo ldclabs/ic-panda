@@ -1,6 +1,68 @@
 //! Wallet operations wait on the network without holding the shared client.
 use super::*;
 
+/// Check an unpaid activation's balance before creating its approval request.
+/// Confirmed or uncertain payments must continue through their original journal.
+pub async fn create_request<H: Hold>(
+    h: &H,
+    source: &str,
+    quote_id: &str,
+    spec: WalletSpec,
+) -> Result<Json> {
+    let key = format!("{ACTIVATION}{quote_id}");
+    let (quote, hub, payment) = h
+        .with(|c| {
+            let quote = c.wallet_saved_quote(quote_id)?;
+            validate_spec(&spec, &c.wallet_member()?)?;
+            ensure(quote.remaining > 0, Error::QuotaExceeded)?;
+            ensure(now_ms() < quote.expires_at_ms, Error::Expired)?;
+            Ok((quote, c.wallet_hub()?, c.payment_journal(&key)?))
+        })
+        .await?;
+    let paid = payment
+        .as_ref()
+        .is_some_and(|p| matches!(p.stage, Stage::Confirmed | Stage::Unknown));
+    let payer = if paid {
+        None
+    } else {
+        let (payer, _) = crate::payer::payer(h).await?;
+        let ic = h.anonymous().await?;
+        let config: HubInit = ic.query(hub, "get_hub_config", ()).await?;
+        let ledger = crate::payer::Ledger {
+            ic: &ic,
+            canister: config.icp_ledger,
+        };
+        let (balance, fee) = futures_util::try_join!(ledger.balance(payer), ledger.fee())?;
+        ensure(fee == u128::from(quote.ledger_fee_e8s), Error::FeeBlocked)?;
+        ensure(
+            balance >= u128::from(quote.price_e8s) + fee,
+            crate::insufficient_funds(),
+        )?;
+        Some(payer)
+    };
+    h.with(|c| {
+        ensure(
+            c.wallet_hub()? == hub
+                && c.wallet_saved_quote(quote_id)? == quote
+                && c.payment_journal(&key)? == payment,
+            Error::VersionConflict,
+        )?;
+        if let Some(payer) = payer {
+            c.ensure_payer(payer)?;
+        }
+        validate_spec(&spec, &c.wallet_member()?)?;
+        ensure(now_ms() < quote.expires_at_ms, Error::Expired)?;
+        c.wallet_request(
+            source,
+            JobKind::Create {
+                quote: Box::new(quote),
+                spec: Box::new(spec),
+            },
+        )
+    })
+    .await
+}
+
 /// Refund: the client is taken only for synchronous steps.
 #[allow(clippy::too_many_arguments)]
 pub async fn refund<H: Hold>(h: &H, quote_id: &str) -> Result<Json> {

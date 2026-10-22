@@ -1157,18 +1157,10 @@ impl Client {
     /// Ask to authorize and run a prepared name operation.
     ///
     /// # Errors
-    /// Returns `Error::NotFound` for an unknown operation.
-    pub fn handle_request(&mut self, source: &str, id: &str) -> Result<Json> {
-        let digest = self.handle_operation(id)?.digest();
-        let request = self.approval_create(
-            source,
-            Action::Handle {
-                id: id.into(),
-                digest,
-            },
-            now_ms() + HIGH_RISK_TTL_MS,
-        )?;
-        self.approval_view(&request)
+    /// Returns `Error::NotFound` for an unknown operation, or
+    /// `INSUFFICIENT_FUNDS` when a registration cannot be funded.
+    pub async fn handle_request(&mut self, source: &str, id: &str) -> Result<Json> {
+        crate::handle::request(&self.hold(), source, id).await
     }
 
     /// Read the operation behind a request for display.

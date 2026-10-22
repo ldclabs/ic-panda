@@ -255,11 +255,6 @@ impl Daemon {
                         wallet()?,
                         params["channel"].as_str(),
                     )),
-                    "wallet/create" => Some(client.wallet_create_request(
-                        source(params)?,
-                        &text(params, "quote")?,
-                        spec(params)?,
-                    )),
                     "wallet/cosigners" => Some(client.wallet_cosigners_local()),
                     "wallet/cosigner_new" => Some(client.wallet_cosigner_new(
                         &text(params, "label")?,
@@ -290,6 +285,15 @@ impl Daemon {
         );
         let _turn = self.turn(&resource).await;
         let mut result = match method {
+            "wallet/create" => {
+                wallets::ops::create_request(
+                    &h,
+                    source(params)?,
+                    &text(params, "quote")?,
+                    spec(params)?,
+                )
+                .await
+            }
             "wallet/activation_continue" => {
                 wallets::desktop::continue_activation(
                     &h,

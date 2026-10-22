@@ -99,8 +99,12 @@
       readiness = await call('wallet/readiness', { funding: true })
       if (readiness.blockers.length) return
       const quote: any = await call('wallet/quote')
+      preview = quote
       if (!quote.remaining) {
-        preview = quote
+        return
+      }
+      if (BigInt(readiness.balance.balance) < BigInt(activationTotal(quote.price_e8s, quote.ledger_fee_e8s))) {
+        error = w('INSUFFICIENT_NATIVE_BALANCE')
         return
       }
       const request = await call('wallet/create', {

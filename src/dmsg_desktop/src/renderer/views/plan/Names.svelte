@@ -262,7 +262,7 @@
                 <button class={buttonClass('primary', 'sm')} disabled={busy} onclick={() => startLogin(false, 'https://panda.fans')} data-testid="handle-login-claim"><Icon name="login" />{t('loginToClaim')}</button>
               {/if}
             {:else if !found.owner && !found.reserved}
-              <button class={buttonClass('primary', 'sm')} disabled={busy || enough === false} onclick={register} data-testid="handle-register">{t('register')}</button>
+              <button class={buttonClass('primary', 'sm')} disabled={busy || enough !== true} onclick={register} data-testid="handle-register">{t('register')}</button>
             {/if}
           </div>
           {#if !found.owner && !found.reserved}

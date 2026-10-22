@@ -197,6 +197,15 @@ impl Daemon {
             }
             "handle/price" => return handle::price_view(&h, &text(params, "name")?).await,
             "handle/mine" => return Ok(Value::Array(handle::mine(&h).await?)),
+            "handle/register" => {
+                // Preparation still serializes the name journal; the funding
+                // preflight releases the client while the ledger answers.
+                let name = text(params, "name")?;
+                let job = self
+                    .under_lock(async |client| client.handle_register_prepare(&name).await)
+                    .await?;
+                return handle::request(&h, source(params)?, &job.id).await;
+            }
             _ => {}
         }
         // The client alone, without the network.
@@ -357,13 +366,7 @@ impl Daemon {
             "plan/advance" => client.checkout_request(source(params)?, &id()?, true).await,
             "handle/claim" => {
                 let job = client.handle_claim_prepare(&text(params, "name")?).await?;
-                client.handle_request(source(params)?, &job.id)
-            }
-            "handle/register" => {
-                let job = client
-                    .handle_register_prepare(&text(params, "name")?)
-                    .await?;
-                client.handle_request(source(params)?, &job.id)
+                client.handle_request(source(params)?, &job.id).await
             }
             _ => Err(Error::NotFound),
         })

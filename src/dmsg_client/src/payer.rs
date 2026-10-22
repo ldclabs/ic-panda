@@ -179,6 +179,16 @@ impl Client {
         payer(&self.hold()).await
     }
 
+    /// Recheck the selected payer after a preflight released the client.
+    pub(crate) fn ensure_payer(&self, expected: Principal) -> Result<()> {
+        let current = if self.workspace.store.meta::<String>(PAYER_PEM)?.is_some() {
+            self.payer.as_ref().map(|(principal, _)| *principal)
+        } else {
+            Some(self.session()?.principal)
+        };
+        ensure(current == Some(expected), Error::Forbidden)
+    }
+
     /// Pay with the identity in the PEM file at `pem`, an absolute path the
     /// daemon reads when it pays; with `None`, with the login. Only the
     /// path is stored.

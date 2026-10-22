@@ -99,11 +99,7 @@ impl Daemon {
             }
             "handle/transfer_commit" => {
                 let id = text(params, "id")?;
-                return self
-                    .client()
-                    .lock()
-                    .await
-                    .handle_request(source(params)?, &id);
+                return handle::request(&self.hold(), source(params)?, &id).await;
             }
             // The registry and the user homes answer without the client.
             "handle/operations" => {
@@ -252,7 +248,7 @@ impl Daemon {
                 let job = client
                     .handle_accept_prepare(&text(params, "token")?)
                     .await?;
-                client.handle_request(source(params)?, &job.id)
+                client.handle_request(source(params)?, &job.id).await
             }
             "handle/reconcile" => {
                 client

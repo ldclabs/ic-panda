@@ -17,6 +17,8 @@
 //! `pnpm install` done for `src/dmsg_connect`.
 #[path = "desktop/connector.rs"]
 mod connector;
+#[path = "desktop/payment_preflight.rs"]
+mod payment_preflight;
 #[path = "desktop/principal_names.rs"]
 mod principal_names;
 mod support;

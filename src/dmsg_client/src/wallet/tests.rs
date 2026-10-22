@@ -1,6 +1,74 @@
 use super::decode::*;
 use super::*;
 
+#[tokio::test]
+async fn an_activation_already_sent_can_be_reviewed_without_funding_it_again() {
+    use crate::payer::{Call, Payment};
+    use crate::testing::{TempDir, unlocked};
+
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let hub = Principal::from_slice(&[1; 10]);
+    client.config.wallet.hub = Some(hub);
+    let quote = ActivationQuote {
+        quote_id: Hash::new([2; 32]),
+        account_id: client.account().unwrap().id,
+        payer: Principal::from_slice(&[3; 10]),
+        plan: PlanId::Plus,
+        remaining: 1,
+        price_e8s: 1_000_000_000,
+        ledger_fee_e8s: 10_000,
+        cycles_to_wallet: 1_000_000_000_000,
+        deposit: Account::from(hub),
+        version: 1,
+        issued_at_ms: now_ms(),
+        expires_at_ms: now_ms() + 60_000,
+    };
+    let id = hex::encode(*quote.quote_id);
+    client
+        .workspace
+        .put_private(client.keys().unwrap(), &format!("{QUOTE}{id}"), &quote)
+        .unwrap();
+    for stage in [Stage::Confirmed, Stage::Unknown] {
+        let payment = Payment {
+            ledger: Principal::from_slice(&[4; 10]),
+            payer: quote.payer,
+            call: Call::Transfer(vec![].into()),
+            stage,
+            block: (stage == Stage::Confirmed).then_some(1),
+            error: None,
+        };
+        client
+            .workspace
+            .put_private(
+                client.keys().unwrap(),
+                &format!("payer:{ACTIVATION}{id}"),
+                &payment,
+            )
+            .unwrap();
+        let request = client
+            .wallet_create_request(
+                "cli",
+                &id,
+                WalletSpec {
+                    name: "Already paid".into(),
+                    members: vec![],
+                    policy: default_policy(1, 1),
+                    channel_hint: None,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(request["type"], "wallet");
+        assert_eq!(
+            client
+                .payment_journal(&format!("{ACTIVATION}{id}"))
+                .unwrap(),
+            Some(payment)
+        );
+    }
+}
+
 #[test]
 fn bitcoin_transactions_parse_exactly() {
     // Version 2, one input, two outputs, lock time 7.

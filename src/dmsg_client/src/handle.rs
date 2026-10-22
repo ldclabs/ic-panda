@@ -32,7 +32,10 @@ use dmsg_types::{
     },
     user::AccountCommand,
 };
-use icrc_ledger_types::{icrc1::account::Account, icrc2::approve::ApproveArgs};
+use icrc_ledger_types::{
+    icrc1::account::Account,
+    icrc2::{allowance::Allowance, approve::ApproveArgs},
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
 
@@ -873,13 +876,8 @@ impl Client {
             canister: ledger,
         };
         let current = reader.allowance(payer, self.config.handle).await?;
-        let now_ns = now_ms() * 1_000_000;
         let allowance = u128::try_from(current.allowance.0.clone()).unwrap_or(0);
-        if allowance >= total
-            && current
-                .expires_at
-                .is_none_or(|t| t > now_ns + 60_000_000_000)
-        {
+        if allowance_covers(&current, total, now_ms()) {
             return Ok(());
         }
         let fee = reader.fee().await?;
@@ -989,6 +987,73 @@ fn price_display<'a>(
         .and_then(|record| record.display_handle.as_deref())
         .or_else(|| (!reserved && owner.is_none()).then_some(requested))
         .unwrap_or(canonical)
+}
+
+fn allowance_covers(allowance: &Allowance, total: u128, now: u64) -> bool {
+    allowance.allowance >= total
+        && allowance
+            .expires_at
+            .is_none_or(|t| t > (now + dmsg_types::MINUTE) * 1_000_000)
+}
+
+/// Ask to approve a name operation, checking a registration's full cost first.
+/// Public ledger queries run without the shared client or login delegation.
+pub async fn request<H: Hold>(h: &H, source: &str, id: &str) -> Result<Json> {
+    let job = h.with(|c| c.handle_operation(id)).await?;
+    let funds = if let Kind::Register {
+        registration,
+        ledger,
+        total,
+    } = &job.kind
+    {
+        let (payer, _) = crate::payer::payer(h).await?;
+        ensure(payer == job.caller, Error::Forbidden)?;
+        let ic = h.anonymous().await?;
+        let reader = crate::payer::Ledger {
+            ic: &ic,
+            canister: *ledger,
+        };
+        let (balance, fee, allowance) = futures_util::try_join!(
+            reader.balance(payer),
+            reader.fee(),
+            reader.allowance(payer, job.intent.handle_canister)
+        )?;
+        ensure(fee == registration.fee, Error::FeeBlocked)?;
+        Some((balance, fee, allowance, *total))
+    } else {
+        None
+    };
+    h.with(|c| {
+        ensure(c.handle_operation(id)? == job, Error::VersionConflict)?;
+        ensure(
+            c.account()?.id == job.intent.account_id
+                && c.config.handle == job.intent.handle_canister,
+            Error::Forbidden,
+        )?;
+        let now = now_ms();
+        if let Some((balance, fee, allowance, total)) = funds {
+            c.ensure_payer(job.caller)?;
+            let needed = total
+                .checked_add(if allowance_covers(&allowance, total, now) {
+                    0
+                } else {
+                    fee
+                })
+                .ok_or(Error::IntegrityFailed)?;
+            ensure(balance >= needed, crate::insufficient_funds())?;
+        }
+        let request = c.approval_create_at(
+            source,
+            crate::approval::Action::Handle {
+                id: id.into(),
+                digest: job.digest(),
+            },
+            now,
+            now + crate::approval::HIGH_RISK_TTL_MS,
+        )?;
+        c.approval_view(&request)
+    })
+    .await
 }
 
 /// A name's price and who may take it, read without the client: its owner,
@@ -1133,6 +1198,21 @@ pub async fn operations<H: Hold>(h: &H) -> Result<Vec<Json>> {
 mod tests {
     use super::*;
     use crate::testing::{TempDir, unlocked};
+
+    #[test]
+    fn registration_allowance_must_cover_the_charge_and_execution_window() {
+        let now = 1_000_000;
+        let mut allowance = Allowance {
+            allowance: 100u128.into(),
+            expires_at: None,
+        };
+        assert!(allowance_covers(&allowance, 100, now));
+        assert!(!allowance_covers(&allowance, 101, now));
+        allowance.expires_at = Some((now + dmsg_types::MINUTE) * 1_000_000);
+        assert!(!allowance_covers(&allowance, 100, now));
+        allowance.expires_at = allowance.expires_at.map(|t| t + 1);
+        assert!(allowance_covers(&allowance, 100, now));
+    }
 
     #[test]
     fn price_shows_certified_casing_and_only_echoes_available_requests() {
