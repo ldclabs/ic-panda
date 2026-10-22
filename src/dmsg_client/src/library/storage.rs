@@ -189,14 +189,15 @@ fn decorate(c: &mut Client, item: &mut Value, kind: &str, resource: &str) -> Res
             item["metadata_error"] = "INTEGRITY_FAILED".into();
         }
     }
-    if item["name"].is_null() && kind == "account" && item["kind"] == "backup" {
-        if let Some(entry) = c.cloud_entry(string(item, "upload_id")?)? {
-            if let Some(manifest) = entry.manifest {
-                item["name"] = manifest.file.name.into();
-                item["source_file"] = manifest.file.id.into();
-                item["source_version"] = manifest.file.version.into();
-            }
-        }
+    if item["name"].is_null()
+        && kind == "account"
+        && item["kind"] == "backup"
+        && let Some(entry) = c.cloud_entry(string(item, "upload_id")?)?
+        && let Some(manifest) = entry.manifest
+    {
+        item["name"] = manifest.file.name.into();
+        item["source_file"] = manifest.file.id.into();
+        item["source_version"] = manifest.file.version.into();
     }
     if let Some(source) = item["source_file"].as_str() {
         let available = c.files_show(source).is_ok();

@@ -871,7 +871,6 @@ impl Client {
                 && quote.fee_reserve <= quote.max_network_fee * 3
                 && quote.service_fee == service
                 && quote.ledger == terms.config.ledger
-                && quote.platform == terms.config.platform
                 && offer.offer.account_id.to_string() == local.recipient
                 && quote.home_payment == offer.offer.home_payment
                 && quote.ledger == offer.offer.ledger
@@ -911,8 +910,20 @@ impl Client {
         };
         let payment = Payment { ic: &ic, canister };
         if let Some(found) = payment.by_operation(payer, &op_id).await? {
-            return payment.escrow(&found.escrow_id).await;
+            let escrow = payment.escrow(&found.escrow_id).await?;
+            ensure(
+                escrow.escrow_id == digest("dmsg/escrow-id/v1", &(canister, payer, op_id))
+                    && escrow.quote == job.input.quote,
+                Error::IntegrityFailed,
+            )?;
+            return Ok(escrow);
         }
+        // Only new escrows must use the current revenue account. Recovery
+        // follows the certified terms already accepted for this operation.
+        ensure(
+            job.input.quote.platform == terms.config.platform,
+            Error::IntegrityFailed,
+        )?;
         let opened = payment.open(&job.input).await?;
         job.escrow = Some(opened.escrow_id);
         self.save_inbox_job(&key, &job)?;

@@ -253,7 +253,7 @@ impl Client {
                 && record.max_downloads > 0
                 && record.downloads >= record.max_downloads
             {
-                "exhausted".into()
+                "exhausted"
             } else {
                 state(record.expires_at, record.revoked_at, now)
             },
@@ -545,7 +545,7 @@ pub(crate) async fn share_links_remote<H: Hold>(h: &H) -> Result<Vec<LinkView>> 
                         && entry.max_downloads > 0
                         && entry.downloads >= entry.max_downloads
                     {
-                        "exhausted".into()
+                        "exhausted"
                     } else {
                         state(entry.expires_at, entry.revoked_at, now)
                     },

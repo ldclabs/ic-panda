@@ -451,21 +451,21 @@ pub(crate) fn save_transfer(t: &mut Transfer, at: u64) {
 }
 
 /// Bounded backfill for the automatic settlement indexes on an existing schema 8 instance.
-pub(crate) fn settlement_orders(after: Option<Hash>) -> Vec<Order> {
+pub(crate) fn settlement_orders(after: Option<Hash>, take: usize) -> Vec<Order> {
     let start = after.map_or(Included(vec![]), |id| Excluded(id.to_vec()));
     ORDERS.with_borrow(|t| {
         t.range((start, std::ops::Bound::Unbounded))
-            .take(32)
+            .take(take)
             .map(|row| row.value().value())
             .collect()
     })
 }
 
-pub(crate) fn settlement_transfers(after: Option<Hash>) -> Vec<Transfer> {
+pub(crate) fn settlement_transfers(after: Option<Hash>, take: usize) -> Vec<Transfer> {
     let start = after.map_or(Included(vec![]), |id| Excluded(id.to_vec()));
     TRANSFERS.with_borrow(|t| {
         t.range((start, std::ops::Bound::Unbounded))
-            .take(32)
+            .take(take)
             .map(|row| row.value().value())
             .collect()
     })

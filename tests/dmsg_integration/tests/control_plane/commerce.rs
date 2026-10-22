@@ -2374,3 +2374,65 @@ fn automatic_settlement_backfills_old_orders_and_pending_transfers_after_upgrade
     );
     assert_eq!(other, Nat::from(0u8));
 }
+
+#[test]
+#[ignore = "requires DMSG_PRE_SETTLEMENT_INDEX_WASM pointing to the original automatic-settlement Wasm"]
+fn automatic_settlement_reindexes_existing_jobs_after_upgrade() {
+    let old = std::fs::read(
+        std::env::var_os("DMSG_PRE_SETTLEMENT_INDEX_WASM").expect("original settlement Wasm"),
+    )
+    .unwrap();
+    let f = Fixture::with_modules(
+        false,
+        100,
+        MAX_PAYMENT_ESCROWS,
+        |_| {},
+        [
+            wasm("dmsg_user"),
+            wasm("dmsg_directory"),
+            wasm("dmsg_handle"),
+            old,
+        ],
+    );
+    let id = f.create(1);
+    let (paid, _) = pay(&f, &id, "plus", 210);
+    f.ic.advance_time(Duration::from_millis(
+        paid.quote.offer.expires_at_ms - time(&f.ic) + 1,
+    ));
+    for _ in 0..64 {
+        f.ic.tick();
+    }
+    let pending = order_transfers(&f, paid.progress.order_id);
+    assert_eq!(pending.len(), 2);
+    assert!(
+        pending
+            .iter()
+            .all(|t| t.status == CashTransferStatus::Pending)
+    );
+    f.ic.upgrade_canister(
+        f.commerce,
+        wasm("dmsg_commerce"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    settle(&f);
+    let sent = order_transfers(&f, paid.progress.order_id);
+    assert_eq!(sent.len(), pending.len());
+    for (before, after) in pending.iter().zip(&sent) {
+        assert_eq!(after.status, CashTransferStatus::Succeeded);
+        assert_eq!(after.transfer_id, before.transfer_id);
+        assert_eq!(after.to, before.to);
+        assert_eq!(after.amount_atomic, before.amount_atomic);
+        assert_eq!(after.memo, before.memo);
+        assert_eq!(after.created_at_time_ns, before.created_at_time_ns);
+    }
+    let balance: Nat = query(
+        &f.ic,
+        f.ledger,
+        person(9),
+        "icrc1_balance_of",
+        (paid.quote.product.merchant,),
+    );
+    assert_eq!(balance, Nat::from(paid.quote.cash.amount_atomic));
+}

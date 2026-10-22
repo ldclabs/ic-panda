@@ -4480,6 +4480,25 @@ fn desktop_paid_letters() {
     assert_eq!(balance(a, &d.ledger), before);
     set_ledger_fee(d, d.ledger, 10);
 
+    // The escrow already exists. Changing the platform account must not
+    // prevent the payer from resuming its original approved quote.
+    let revenue = icrc_ledger_types::icrc1::account::Account {
+        owner: d.peer,
+        subaccount: Some([7; 32]),
+    };
+    let changed: dmsg_types::Result<()> = candid::decode_one(
+        &d.ic
+            .update_call(
+                d.payment,
+                Principal::anonymous(),
+                "admin_set_revenue",
+                candid::encode_one(revenue).unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    changed.unwrap();
+
     // Paying: the ledger's reply to the escrow funding is lost, then the
     // relay's reply to the admission. Each retry reads back what committed;
     // the wallet pays once and the escrow settles.
@@ -4509,6 +4528,23 @@ fn desktop_paid_letters() {
     assert_eq!(status["state"], "visible");
     let escrow = a.run(&["inbox", "escrow", &order_id]);
     assert_eq!(escrow["escrow"]["decision"], "SettlementCommitted");
+    // Restore the relay's configured destination for subsequent new orders.
+    let old_platform =
+        dmsg_client::payment::Wire::quote(&serde_json::from_value(order["quote"].clone()).unwrap())
+            .unwrap()
+            .platform;
+    let restored: dmsg_types::Result<()> = candid::decode_one(
+        &d.ic
+            .update_call(
+                d.payment,
+                Principal::anonymous(),
+                "admin_set_revenue",
+                candid::encode_one(old_platform).unwrap(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    restored.unwrap();
     let amount: u128 = order["quote"]["amount"].as_str().unwrap().parse().unwrap();
     assert_eq!(before - balance(a, &d.ledger), amount + 10);
 
