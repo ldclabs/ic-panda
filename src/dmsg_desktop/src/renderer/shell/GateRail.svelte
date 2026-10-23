@@ -29,7 +29,7 @@
   const step = $derived(nextStep(status))
   const pending = $derived<number>(status?.pending_sync ?? 0)
   const failed = $derived(!syncing && !!status?.last_sync?.error)
-  const syncText = $derived(syncing ? t('syncing') : failed ? t('syncFailed') : pending ? t('syncPending', { n: pending }) : status?.last_sync?.at ? t('synced') : t('sync'))
+  const syncText = $derived(syncing ? t('syncing') : failed ? t('syncFailed') : pending ? t('syncPending', { n: pending }) : status?.last_sync?.at ? t('accountSynced') : t('sync'))
   const syncHint = $derived(status?.last_sync?.at ? `${t('sync')} · ${when(status.last_sync.at)}${failed ? ` · ${status.last_sync.error}` : ''}` : t('sync'))
 
   async function syncNow() {

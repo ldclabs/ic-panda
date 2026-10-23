@@ -345,7 +345,7 @@
 
   <footer class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-6 py-2.5 text-[11.5px] text-faint">
     <span class={cn('inline-flex items-center gap-1.5', !entry.synced && 'text-warn')}>
-      <Icon name={entry.synced ? 'sync' : 'time'} class="size-3.5" />{entry.synced ? t('synced') : t('notSynced')}
+      <Icon name={entry.synced ? 'sync' : 'time'} class="size-3.5" />{entry.synced ? t('itemSynced') : t('itemNotSynced')}
     </span>
     <span title={when(item.createdAt)}>{t('created')} {ago(item.createdAt)}</span>
     <span title={when(item.updatedAt)}>{t('updated')} {ago(item.updatedAt)}</span>
