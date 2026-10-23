@@ -171,6 +171,12 @@ fn print_storage_management_vector() {
 
 #[tokio::test]
 async fn device_envelopes_upload_together_and_finalize_only_after_all_acks() {
+    for kind in ["envelopes", "file", "backup"] {
+        concurrent_upload(kind).await;
+    }
+}
+
+async fn concurrent_upload(kind: &str) {
     use crate::codec::hex_sha256;
     use crate::testing::{TempDir, relay_to, unlocked, warm};
     use std::sync::{Arc, Mutex};
@@ -191,7 +197,11 @@ async fn device_envelopes_upload_together_and_finalize_only_after_all_acks() {
         }
 
         async fn find(&self, _: &str) -> Result<Option<Value>> {
-            Ok(Some(json!({"status": "staging", "plan": self.plan})))
+            // A healthy existing reservation can have less than five minutes
+            // left. Continuing it must not discard its uploaded chunks.
+            Ok(Some(
+                json!({"status": "staging", "plan": self.plan, "lease_expires_at":crate::now_ms() + 60_000}),
+            ))
         }
 
         async fn post<P: Serialize + Sync>(
@@ -217,7 +227,7 @@ async fn device_envelopes_upload_together_and_finalize_only_after_all_acks() {
         &format!("http://{}", listener.local_addr().unwrap()),
     );
     warm(&mut client);
-    let (mut plan, _) = fixture("envelopes", false);
+    let (mut plan, _) = fixture(kind, false);
     plan.expires_at = crate::now_ms() + 600_000;
     for bytes in [b"one".as_slice(), b"two", b"three"] {
         let digest = hex_sha256(bytes);
@@ -309,4 +319,82 @@ async fn device_envelopes_upload_together_and_finalize_only_after_all_acks() {
     .unwrap();
     server.await.unwrap();
     assert_eq!(progress, vec![3]);
+}
+
+#[tokio::test]
+async fn an_expired_upload_lease_is_not_resumed() {
+    let (mut plan, mut relay) = fixture("backup", false);
+    plan.expires_at = crate::now_ms() + 600_000;
+    relay.status = json!({"status":"staging", "plan":plan, "lease_expires_at":crate::now_ms()});
+    assert_eq!(
+        upload(
+            &relay,
+            "/v1/accounts/test",
+            &plan,
+            &[],
+            0,
+            Source::Store,
+            |_, _| Ok(())
+        )
+        .await,
+        Err(Error::ResultExpired)
+    );
+}
+
+#[tokio::test]
+async fn upload_status_retries_one_unavailable_read_without_repeating_a_mutation() {
+    struct StatusRead {
+        relay: Relay,
+        calls: AtomicUsize,
+        error: Error,
+        recover: bool,
+    }
+    impl Hold for StatusRead {
+        async fn with<T: Send>(
+            &self,
+            _: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            panic!("a committed upload must not upload or sign again")
+        }
+
+        async fn find(&self, _: &str) -> Result<Option<Value>> {
+            let call = self.calls.fetch_add(1, Ordering::SeqCst);
+            if call == 0 || !self.recover {
+                Err(self.error.clone())
+            } else {
+                Ok(Some(self.relay.status.clone()))
+            }
+        }
+    }
+    for (error, recover, calls, succeeds) in [
+        (
+            Error::Unavailable("connection closed".into()),
+            true,
+            2,
+            true,
+        ),
+        (Error::Unavailable("offline".into()), false, 2, false),
+        (Error::Forbidden, true, 1, false),
+        (Error::IntegrityFailed, true, 1, false),
+    ] {
+        let (plan, relay) = fixture("backup", false);
+        let h = StatusRead {
+            relay,
+            calls: 0.into(),
+            error,
+            recover,
+        };
+        let result = upload(
+            &h,
+            "/v1/accounts/test",
+            &plan,
+            &[],
+            0,
+            Source::Store,
+            |_, _| Ok(()),
+        )
+        .await;
+        assert_eq!(result.is_ok(), succeeds);
+        assert_eq!(h.calls.load(Ordering::SeqCst), calls);
+    }
 }

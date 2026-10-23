@@ -41,7 +41,13 @@
     if (busy || !unlocked) return
     busy = true; error = ''
     const current = ++revision
-    try { const next = await call('files/storage_refresh'); if (unlocked && current === revision) report = next } catch (e) { error = errorText(e) } finally { busy = false }
+    // The last verified inventory is useful immediately while the relay refreshes it.
+    if (!report) void call('files/storage').then((cached) => {
+      if (unlocked && current === revision && !report && cached?.loaded) report = cached
+    }).catch(() => {})
+    try { const next = await call('files/storage_refresh'); if (unlocked && current === revision) report = next }
+    catch (e) { if (current === revision) error = errorText(e) }
+    finally { if (current === revision) busy = false }
   }
   async function act(entries: any[], action: string) {
     if (!unlocked || busy) return

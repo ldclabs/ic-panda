@@ -6,7 +6,6 @@
 //! blob directory until its message is stored, then the collector takes
 //! them.
 
-use super::Client;
 use crate::codec::b64;
 use crate::crypto::random_key;
 use crate::files::{
@@ -46,38 +45,69 @@ pub(crate) fn reencrypt(
     Ok(chunks)
 }
 
-impl Client {
-    /// A shared edition of a library version: the same bytes under a new
-    /// key and a new identity, in the blob directory. The returned manifest
-    /// carries the edition's key.
-    ///
-    /// # Errors
-    /// Returns `Error::QuotaExceeded` for a version over 100 MiB, the cloud
-    /// contract's bound, otherwise as [`read_chunks`].
-    pub(crate) fn share_edition(&self, source: &FileManifest) -> Result<FileManifest> {
-        ensure(source.size <= MAX_FILE, Error::QuotaExceeded)?;
-        let key = Zeroizing::new(random_key());
-        let id = random_hex();
-        let version = random_hex();
-        let blobs = self.blobs()?;
-        let chunks = reencrypt(
-            blobs,
-            source,
-            self.config.files_max_bytes,
-            blobs,
-            &id,
-            &version,
-            &key,
-        )?;
-        Ok(FileManifest {
-            id,
-            version,
-            name: source.name.clone(),
-            mime: source.mime.clone(),
-            size: source.size,
-            sha256: source.sha256.clone(),
-            chunks,
-            key: b64(&key[..]),
+/// Re-encrypt a shared edition one chunk at a time. Temporary references keep
+/// completed chunks alive until the caller journals the final upload plan.
+pub(crate) async fn edition<H: crate::hold::Hold>(
+    h: &H,
+    source: &FileManifest,
+) -> Result<FileManifest> {
+    use sha2::{Digest, Sha256};
+    ensure(source.size <= MAX_FILE, Error::QuotaExceeded)?;
+    ensure(
+        source.chunks.len() as u64 == chunk_count(source.size),
+        Error::IntegrityFailed,
+    )?;
+    let generation = h
+        .with(|c| {
+            c.keys()?;
+            Ok(c.session_generation)
         })
+        .await?;
+    let key = Zeroizing::new(random_key());
+    let id = random_hex();
+    let version = random_hex();
+    let expires_at = crate::now_ms() + 60 * dmsg_types::MINUTE;
+    let count = chunk_count(source.size);
+    let mut chunks = Vec::with_capacity(count as usize);
+    let mut overall = Sha256::new();
+    for index in 0..count {
+        h.with(|c| {
+            c.keys()?;
+            ensure(c.session_generation == generation, Error::Locked)?;
+            let plain = crate::files::read_chunk(c.blobs()?, source, index)?;
+            overall.update(plain.as_slice());
+            let (sealed, digest) = seal_chunk(&key, &id, &version, index, count, &plain);
+            c.blobs()?.put_chunk(&digest, &sealed)?;
+            chunks.push(FileChunk {
+                id: format!("{id}:{version}:{index}"),
+                digest,
+                size: plain.len() as u64,
+            });
+            c.hold_chunks([(
+                id.clone(),
+                expires_at,
+                chunks.iter().map(|c| c.digest.clone()).collect(),
+            )])
+        })
+        .await?;
     }
+    ensure(
+        hex::encode(overall.finalize()) == source.sha256,
+        Error::IntegrityFailed,
+    )?;
+    h.with(|c| {
+        c.keys()?;
+        ensure(c.session_generation == generation, Error::Locked)
+    })
+    .await?;
+    Ok(FileManifest {
+        id,
+        version,
+        name: source.name.clone(),
+        mime: source.mime.clone(),
+        size: source.size,
+        sha256: source.sha256.clone(),
+        chunks,
+        key: b64(&key[..]),
+    })
 }

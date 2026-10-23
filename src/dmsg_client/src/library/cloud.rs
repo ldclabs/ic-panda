@@ -23,7 +23,7 @@ use crate::codec::sha256;
 use crate::content::{Opened, empty_file, open_manifest};
 use crate::crypto::Key;
 use crate::evidence::{Trust, Verified};
-use crate::files::{BlobStore, MAX_FILE, Source, read_file};
+use crate::files::{BlobStore, MAX_FILE, Source};
 use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, UploadPlan};
@@ -678,8 +678,7 @@ async fn fetch_chunks<H: Hold>(
         progress(done, count);
     })
     .await?;
-    h.with(|c| read_file(c.blobs()?, &manifest.file, MAX_FILE, None))
-        .await
+    super::reading::check_manifest(h, &manifest.file, MAX_FILE).await
 }
 
 /// Fetch a backup into the library: its chunks are downloaded and checked,

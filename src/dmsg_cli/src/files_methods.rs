@@ -13,7 +13,11 @@ use crate::params::{absolute, number, optional, parse, text, to_json};
 use dmsg_client::{
     Client,
     channel::{self, Draft},
-    library::{SearchFilter, VerifyReport, backup, catalog::ROOT, cloud, link, storage},
+    hold::Hold,
+    library::{
+        SearchFilter, VerifyReport, backup, catalog::ROOT, cloud, import, link, open, reading,
+        storage,
+    },
 };
 use dmsg_types::{Error, Result};
 use serde_json::{Value, json};
@@ -135,10 +139,44 @@ impl Daemon {
                 blobs_bad: check.blobs_bad,
             }));
         }
-        // An import holds the client; it stops at its next chunk.
+        // Cancellation does not wait for the import's next client step.
         if method == "files/import_cancel" {
             self.import_cancel.store(true, Ordering::SeqCst);
             return Ok(json!({"cancelled": true}));
+        }
+        if method == "files/import" {
+            return self.import_files(params).await;
+        }
+        let h = self.hold();
+        match method {
+            "files/open" => {
+                return Ok(to_json(
+                    &open::open(&h, &text(params, "id")?, params["version"].as_str()).await?,
+                ));
+            }
+            "files/usage" => return Ok(to_json(&reading::usage(&h).await?)),
+            "files/export" => {
+                return Ok(to_json(
+                    &reading::export(
+                        &h,
+                        &text(params, "id")?,
+                        params["version"].as_str(),
+                        &absolute(params, "path")?,
+                    )
+                    .await?,
+                ));
+            }
+            "files/preview" => {
+                return Ok(to_json(
+                    &reading::preview(&h, &text(params, "id")?, params["version"].as_str()).await?,
+                ));
+            }
+            "files/verify" => {
+                return Ok(to_json(
+                    &reading::verify(&h, &text(params, "id")?, params["version"].as_str()).await?,
+                ));
+            }
+            _ => {}
         }
         if let Some(answer) = self.call_files_cloud(method, params).await {
             return answer;
@@ -198,73 +236,6 @@ impl Daemon {
                     starred,
                 )?))
             }
-            "files/import" => {
-                let paths: Vec<PathBuf> = match params["paths"].as_array() {
-                    Some(list) => list
-                        .iter()
-                        .map(|p| {
-                            let path = PathBuf::from(p.as_str().unwrap_or_default());
-                            match path.is_absolute() {
-                                true => Ok(path),
-                                false => Err(Error::InvalidInput("paths must be absolute".into())),
-                            }
-                        })
-                        .collect::<Result<_>>()?,
-                    None => vec![absolute(params, "path")?],
-                };
-                let target = folder(&mut client, &params["folder"], true)?;
-                let keep_both = params["keep_both"].as_bool().unwrap_or(false);
-                self.import_cancel.store(false, Ordering::SeqCst);
-                client.files_import_cancel(Some(self.import_cancel.clone()));
-                let mut imported = Vec::new();
-                let mut run = || -> Result<()> {
-                    for path in &paths {
-                        let name = path.display().to_string();
-                        if path.is_dir() {
-                            let mut progress = |file: &std::path::Path, done, total| {
-                                self.emit(
-                                    "files/progress",
-                                    json!({"path": file.display().to_string(), "done": done, "total": total}),
-                                );
-                            };
-                            imported.extend(client.files_import_dir(
-                                path,
-                                &target,
-                                keep_both,
-                                &mut progress,
-                            )?);
-                        } else {
-                            let mut progress = |done, total| {
-                                self.emit(
-                                    "files/progress",
-                                    json!({"path": name, "done": done, "total": total}),
-                                );
-                            };
-                            imported.push(client.files_import(
-                                path,
-                                &target,
-                                keep_both,
-                                &mut progress,
-                            )?);
-                        }
-                    }
-                    Ok(())
-                };
-                let done = run();
-                client.files_import_cancel(None);
-                // A cancelled or failed import keeps what it added before,
-                // which only a success would announce.
-                if done.is_err() {
-                    self.emit("files/changed", json!({"method": method}));
-                }
-                done.map(|()| to_json(&imported))
-            }
-            "files/export" => {
-                let out = absolute(params, "path")?;
-                Ok(to_json(&client.files_export(&id()?, version, &out)?))
-            }
-            "files/preview" => Ok(to_json(&client.files_preview(&id()?, version)?)),
-            "files/open" => Ok(to_json(&client.files_open(&id()?, version)?)),
             "files/open_list" => Ok(to_json(&client.files_open_list()?)),
             "files/open_cleanup" => {
                 let save = params["save"].as_bool().unwrap_or(false);
@@ -313,8 +284,6 @@ impl Daemon {
                 };
                 Ok(to_json(&client.files_purge(ids.as_deref())?))
             }
-            "files/verify" => Ok(to_json(&client.files_verify(&id()?, version)?)),
-            "files/usage" => Ok(to_json(&client.files_usage()?)),
             "files/storage" => client.files_storage(),
             "files/share_links" => Ok(to_json(&client.files_share_links()?)),
             "files/backup_status" => Ok(to_json(&client.files_backup_status()?)),
@@ -322,6 +291,73 @@ impl Daemon {
             "files/evict" => Ok(to_json(&client.files_evict(&id()?, version)?)),
             _ => Err(Error::NotFound),
         }
+    }
+
+    /// Import in bounded steps; only imports take turns, so local reads and
+    /// locking remain available while a large file is processed.
+    async fn import_files(&self, params: &Value) -> Result<Value> {
+        let h = self.hold();
+        h.with(|c| Ok(c.session_state())).await?;
+        let _turn = self.turn("import").await;
+        let paths: Vec<PathBuf> = match params["paths"].as_array() {
+            Some(list) => list
+                .iter()
+                .map(|p| {
+                    let path = PathBuf::from(p.as_str().unwrap_or_default());
+                    if path.is_absolute() {
+                        Ok(path)
+                    } else {
+                        Err(Error::InvalidInput("paths must be absolute".into()))
+                    }
+                })
+                .collect::<Result<_>>()?,
+            None => vec![absolute(params, "path")?],
+        };
+        let target = h
+            .with(|c| {
+                let target = folder(c, &params["folder"], true)?;
+                self.import_cancel.store(false, Ordering::SeqCst);
+                c.files_import_cancel(Some(self.import_cancel.clone()));
+                Ok(target)
+            })
+            .await?;
+        let keep_both = params["keep_both"].as_bool().unwrap_or(false);
+        let result = async {
+            let mut imported = Vec::new();
+            for path in &paths {
+                let mut report = |file: &std::path::Path, done, total| {
+                    self.emit(
+                        "files/progress",
+                        json!({"path": file.display().to_string(), "done": done, "total": total}),
+                    );
+                };
+                if path.is_dir() {
+                    imported.extend(
+                        import::directory(&h, path, &target, keep_both, &mut report).await?,
+                    );
+                } else {
+                    imported.push(
+                        import::file(&h, path, &target, keep_both, &mut |done, total| {
+                            report(path, done, total)
+                        })
+                        .await?,
+                    );
+                }
+                self.emit("files/changed", json!({"method":"files/import"}));
+            }
+            Ok(to_json(&imported))
+        }
+        .await;
+        let _ = h
+            .with(|c| {
+                c.files_import_cancel(None);
+                Ok(())
+            })
+            .await;
+        if result.is_err() {
+            self.emit("files/changed", json!({"method":"files/import"}));
+        }
+        result
     }
 
     /// The methods of [`METHODS`] that reach the relay: uploads, downloads
@@ -381,8 +417,11 @@ impl Daemon {
                 "files/backup" => {
                     let ids = ids(params)?;
                     let all = params["all_versions"].as_bool().unwrap_or(false);
-                    let _turn = self.turn("backup").await;
-                    to_json(&backup::backup(&h, &ids, all).await?)
+                    h.with(|c| Ok(c.session_state())).await?;
+                    let _turn = self.turn("backup-plan").await;
+                    let queued = backup::backup(&h, &ids, all).await?;
+                    self.wake();
+                    to_json(&queued)
                 }
                 "files/backup_cancel" => {
                     backup::backup_cancel(&h, &id()?, &text(params, "version")?).await?;

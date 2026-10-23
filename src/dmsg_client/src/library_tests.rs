@@ -637,8 +637,8 @@ fn opened_copies_report_changes_and_are_cleaned_up() {
     assert!(!std::path::Path::new(&opened.path).exists());
 }
 
-#[test]
-fn previews_verification_and_shared_editions() {
+#[tokio::test]
+async fn previews_verification_and_shared_editions() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
     let text = "line one\nline two\n".repeat(5000);
@@ -784,7 +784,7 @@ fn previews_verification_and_shared_editions() {
     // A shared edition has the same bytes under another key and identity:
     // no chunk digest in common with the library's copy.
     let (_, _, manifest) = client.library_manifest(&note.file.id, None).unwrap();
-    let edition = client.share_edition(&manifest).unwrap();
+    let edition = share::edition(&client.hold(), &manifest).await.unwrap();
     assert_ne!(edition.id, manifest.id);
     assert_ne!(edition.key, manifest.key);
     assert_eq!(edition.sha256, manifest.sha256);
@@ -799,7 +799,9 @@ fn previews_verification_and_shared_editions() {
     let mut out = Vec::new();
     crate::files::read_file(client.blobs().unwrap(), &edition, MAX_FILE, Some(&mut out)).unwrap();
     assert_eq!(out, text.as_bytes());
-    // Nothing references the edition: the collector takes it.
+    // Preparation pins the chunks until the upload has its own journal.
+    assert_eq!(client.collect_blobs().unwrap().0, 0);
+    client.release_chunks(&edition.id).unwrap();
     assert_eq!(client.collect_blobs().unwrap().0, 1);
     assert!(
         !client
@@ -814,7 +816,10 @@ fn previews_verification_and_shared_editions() {
         size: MAX_FILE + 1,
         ..manifest.clone()
     };
-    assert_eq!(client.share_edition(&big).err(), Some(Error::QuotaExceeded));
+    assert_eq!(
+        share::edition(&client.hold(), &big).await.err(),
+        Some(Error::QuotaExceeded)
+    );
     let _ = random_hex();
 }
 
@@ -1448,4 +1453,426 @@ fn cloud_entries_verify_only_against_their_reservation_evidence() {
         verify_entry(&trust, &account, &foreign, 20).unwrap_err(),
         Error::IntegrityFailed
     );
+}
+
+/// A caller that can lock the client between two file-I/O steps.
+struct FileSteps {
+    client: std::sync::Mutex<Client>,
+    steps: std::sync::atomic::AtomicUsize,
+    lock_after: std::sync::atomic::AtomicUsize,
+}
+
+impl crate::hold::Hold for FileSteps {
+    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
+        use std::sync::atomic::Ordering;
+        let result = {
+            let mut client = self.client.lock().unwrap();
+            let result = step(&mut client);
+            if self.steps.fetch_add(1, Ordering::SeqCst) + 1
+                == self.lock_after.load(Ordering::SeqCst)
+            {
+                client.lock();
+            }
+            result
+        };
+        tokio::task::yield_now().await;
+        result
+    }
+}
+
+impl FileSteps {
+    fn new(client: Client, lock_after: usize) -> Self {
+        Self {
+            client: std::sync::Mutex::new(client),
+            steps: 0.into(),
+            lock_after: lock_after.into(),
+        }
+    }
+}
+
+#[tokio::test]
+async fn file_operations_release_the_client_and_preserve_complete_integrity_checks() {
+    let dir = TempDir::new();
+    let h = FileSteps::new(unlocked(&dir.0, false, None), usize::MAX);
+    let bytes = vec![b'a'; 2 * CHUNK + 17];
+    let source = write(&dir, "streamed.txt", &bytes);
+    let imported = import::file(&h, &source, ROOT, false, &mut no_progress)
+        .await
+        .unwrap();
+    let id = &imported.file.id;
+    let preview = reading::preview(&h, id, None).await.unwrap();
+    assert_eq!(
+        crate::codec::unb64(preview.content_base64url.as_deref().unwrap()).unwrap(),
+        vec![b'a'; PREVIEW_TEXT]
+    );
+    let out = dir.path("exported.txt");
+    reading::export(&h, id, None, &out).await.unwrap();
+    assert_eq!(std::fs::read(&out).unwrap(), bytes);
+    assert_eq!(reading::usage(&h).await.unwrap().files, 1);
+    let report = reading::verify(&h, id, None).await.unwrap();
+    assert_eq!(report.versions.len(), 1);
+    assert!(report.versions[0].ok);
+    let (whole, _) = reading::verify_library(&h, 3, vec![]).await.unwrap();
+    assert_eq!(whole.versions_checked, 1);
+    assert!(whole.ok());
+    let opened = open::open(&h, id, None).await.unwrap();
+    std::fs::write(&opened.path, b"edited elsewhere").unwrap();
+    assert_eq!(open::sweep(&h).await.unwrap()[0].nonce, opened.nonce);
+
+    // Preview still checks the last chunk, even though only its first 64 KiB
+    // is shown. Export must not leave a final or partial file on failure.
+    {
+        let mut c = h.client.lock().unwrap();
+        let (_, _, manifest) = c.library_manifest(id, None).unwrap();
+        c.blobs()
+            .unwrap()
+            .delete(&manifest.chunks.last().unwrap().digest)
+            .unwrap();
+    }
+    assert_eq!(
+        reading::preview(&h, id, None).await.unwrap_err(),
+        Error::RecoveryIncomplete
+    );
+    let broken = dir.path("broken.txt");
+    assert_eq!(
+        reading::export(&h, id, None, &broken).await.unwrap_err(),
+        Error::RecoveryIncomplete
+    );
+    assert!(!broken.exists() && !dir.path(".broken.txt.dmsg-part").exists());
+    // An existing partial belongs to someone else and must not be removed.
+    std::fs::write(dir.path(".broken.txt.dmsg-part"), b"other operation").unwrap();
+    assert!(reading::export(&h, id, None, &broken).await.is_err());
+    assert_eq!(
+        std::fs::read(dir.path(".broken.txt.dmsg-part")).unwrap(),
+        b"other operation"
+    );
+}
+
+#[tokio::test]
+async fn locking_stops_an_import_between_chunks_and_the_same_file_can_resume() {
+    let dir = TempDir::new();
+    let h = FileSteps::new(unlocked(&dir.0, false, None), 4);
+    let data = pattern(2 * CHUNK + 10, 3);
+    let source = write(&dir, "resume.bin", &data);
+    assert_eq!(
+        import::file(&h, &source, ROOT, false, &mut no_progress)
+            .await
+            .unwrap_err(),
+        Error::Locked
+    );
+    {
+        let mut c = h.client.lock().unwrap();
+        c.keys = Some(c.workspace.unlock(&crate::testing::SECRET).unwrap());
+        c.root = Some(RootKeys_single());
+        assert!(c.files_list(ROOT, false).unwrap().files.is_empty());
+        assert_eq!(c.import_jobs().unwrap()[0].chunks.len(), 1);
+    }
+    let imported = import::file(&h, &source, ROOT, false, &mut no_progress)
+        .await
+        .unwrap();
+    assert!(imported.resumed);
+    let out = dir.path("resumed.bin");
+    reading::export(&h, &imported.file.id, None, &out)
+        .await
+        .unwrap();
+    assert_eq!(std::fs::read(out).unwrap(), data);
+}
+
+#[tokio::test]
+async fn locking_cancels_export_and_never_publishes_partial_plaintext() {
+    let dir = TempDir::new();
+    let mut c = unlocked(&dir.0, false, None);
+    let source = write(&dir, "large.txt", &vec![b'x'; CHUNK + 1]);
+    let id = c
+        .files_import(&source, ROOT, false, &mut no_progress)
+        .unwrap()
+        .file
+        .id;
+    let h = FileSteps::new(c, 2);
+    let out = dir.path("stopped.txt");
+    assert_eq!(
+        reading::export(&h, &id, None, &out).await.unwrap_err(),
+        Error::Locked
+    );
+    assert!(!out.exists() && !dir.path(".stopped.txt.dmsg-part").exists());
+}
+
+#[tokio::test]
+async fn backup_planning_returns_a_durable_job_without_uploading_it() {
+    use crate::hold::Hold;
+    struct Queue(std::sync::Mutex<Client>);
+    impl Hold for Queue {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.0.lock().unwrap())
+        }
+
+        async fn get(&self, path: &str) -> Result<serde_json::Value> {
+            assert!(path.ends_with("/quota"));
+            Ok(
+                serde_json::json!({"reserved":0,"committed":0,"lifecycle":{"storage_limit":100_000_000}}),
+            )
+        }
+
+        async fn send(
+            &self,
+            _: impl FnMut(&mut Client) -> Result<crate::cloud::Prepared> + Send,
+        ) -> Result<serde_json::Value> {
+            panic!("queueing a backup must not wait for any upload")
+        }
+    }
+    let dir = TempDir::new();
+    let mut c = unlocked(&dir.0, false, None);
+    crate::testing::warm(&mut c);
+    let source = write(&dir, "queued.txt", b"durable job");
+    let id = c
+        .files_import(&source, ROOT, false, &mut no_progress)
+        .unwrap()
+        .file
+        .id;
+    let h = Queue(std::sync::Mutex::new(c));
+    let queued = backup::backup(&h, std::slice::from_ref(&id), false)
+        .await
+        .unwrap();
+    assert_eq!(queued.started.len(), 1);
+    assert_eq!(queued.started[0].sent, 0);
+    let mut c = h.0.lock().unwrap();
+    assert_eq!(c.files_backup_status().unwrap().len(), 1);
+    assert_eq!(c.files_show(&id).unwrap().file.status, "backing_up");
+}
+
+#[tokio::test]
+async fn a_failed_backup_batch_keeps_its_checkpoint_and_retries_only_remaining_chunks() {
+    use crate::hold::Hold;
+    use crate::library::backup::BackupJob;
+    use crate::upload::UploadPlan;
+    use serde::Serialize;
+    use serde_json::{Value, json};
+    use std::sync::Mutex;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    struct Relay {
+        client: Mutex<Client>,
+        plan: UploadPlan,
+    }
+    impl Hold for Relay {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+
+        async fn find(&self, _: &str) -> Result<Option<Value>> {
+            Ok(Some(json!({"status":"staging", "plan":self.plan})))
+        }
+
+        async fn post<P: Serialize + Sync>(
+            &self,
+            path: &str,
+            _: &str,
+            _: &P,
+            _: &dmsg_types::Hash,
+        ) -> Result<Value> {
+            assert!(path.ends_with("/uploads/finalize"));
+            Ok(
+                json!({"upload_id":self.plan.upload_id,"object_id":self.plan.object_id,"version_id":self.plan.version_id,"digest":self.plan.manifest_digest}),
+            )
+        }
+    }
+    let dir = TempDir::new();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut c = unlocked(&dir.0, false, None);
+    crate::testing::relay_to(
+        &mut c,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    );
+    crate::testing::warm(&mut c);
+    let source = write(&dir, "retry.bin", &vec![9; 6 * CHUNK]);
+    let imported = c
+        .files_import(&source, ROOT, false, &mut no_progress)
+        .unwrap();
+    let job = c
+        .plan_backup(&imported.file.id, &imported.version, crate::now_ms())
+        .unwrap();
+    let key = format!("{BACKUP_JOB}{}:{}", imported.file.id, imported.version);
+    c.workspace.store.set_library_job(&key, &job).unwrap();
+    let h = Relay {
+        client: Mutex::new(c),
+        plan: job.plan,
+    };
+    let server = tokio::spawn(async move {
+        let mut batches = Vec::new();
+        for (count, success) in [(4, true), (3, false), (3, true)] {
+            let mut sockets = Vec::new();
+            let mut paths = Vec::new();
+            for _ in 0..count {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut bytes = Vec::new();
+                loop {
+                    let mut buf = [0; 8192];
+                    let n = socket.read(&mut buf).await.unwrap();
+                    assert!(n > 0);
+                    bytes.extend_from_slice(&buf[..n]);
+                    let Some(end) = bytes.windows(4).position(|b| b == b"\r\n\r\n") else {
+                        continue;
+                    };
+                    let head = String::from_utf8_lossy(&bytes[..end]).to_lowercase();
+                    let length: usize = head
+                        .lines()
+                        .find_map(|l| l.strip_prefix("content-length:"))
+                        .unwrap()
+                        .trim()
+                        .parse()
+                        .unwrap();
+                    if bytes.len() < end + 4 + length {
+                        continue;
+                    }
+                    paths.push(
+                        head.split_whitespace()
+                            .nth(1)
+                            .unwrap()
+                            .rsplit('/')
+                            .next()
+                            .unwrap()
+                            .to_string(),
+                    );
+                    break;
+                }
+                sockets.push(socket);
+            }
+            paths.sort();
+            batches.push(paths);
+            let (status, body) = if success {
+                (200, json!({"ok":true,"data":{}}))
+            } else {
+                (
+                    503,
+                    json!({"ok":false,"error":{"code":"UNAVAILABLE","message":"retry"}}),
+                )
+            };
+            let body = body.to_string();
+            for mut socket in sockets {
+                let _ = socket.write_all(format!("HTTP/1.1 {status} Test\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await;
+            }
+        }
+        batches
+    });
+    let mut progress = Vec::new();
+    let failed = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        backup::backup_run(&h, None, &mut |_, sent, _| progress.push(sent)),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(failed.failed, 1);
+    assert_eq!(progress, vec![4]);
+    h.with(|c| {
+        let mut job: BackupJob = c.workspace.store.library_job(&key)?.unwrap();
+        assert_eq!(job.sent, 4);
+        job.failed_at = None;
+        c.workspace.store.set_library_job(&key, &job)
+    })
+    .await
+    .unwrap();
+    let retried = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        backup::backup_run(&h, None, &mut |_, sent, _| progress.push(sent)),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(retried.completed, 1);
+    assert_eq!(progress, vec![4, 6]);
+    let batches = server.await.unwrap();
+    assert_eq!(
+        batches,
+        vec![
+            vec!["0", "1", "2", "3"],
+            vec!["4", "5", "manifest"],
+            vec!["4", "5", "manifest"]
+        ]
+    );
+    assert_eq!(h.with(|c| c.files_backup_status()).await.unwrap().len(), 0);
+}
+
+#[tokio::test]
+async fn an_imported_version_keeps_concurrent_renames_moves_and_metadata() {
+    use crate::hold::Hold;
+    use std::sync::{
+        Mutex,
+        atomic::{AtomicUsize, Ordering},
+    };
+    struct Editing {
+        client: Mutex<Client>,
+        steps: AtomicUsize,
+        id: String,
+        folder: String,
+    }
+    impl Hold for Editing {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            let mut c = self.client.lock().unwrap();
+            let result = step(&mut c);
+            if self.steps.fetch_add(1, Ordering::SeqCst) == 1 {
+                c.files_rename(&self.id, "renamed.txt")?;
+                c.files_move(std::slice::from_ref(&self.id), &self.folder)?;
+                c.files_update(&self.id, None, Some("new note".into()), Some(true))?;
+            }
+            result
+        }
+    }
+    let dir = TempDir::new();
+    let mut c = unlocked(&dir.0, false, None);
+    let source = write(&dir, "original.txt", b"old version");
+    let id = c
+        .files_import(&source, ROOT, false, &mut no_progress)
+        .unwrap()
+        .file
+        .id;
+    let folder = c.files_mkdir(ROOT, "moved").unwrap().id;
+    std::fs::write(&source, vec![b'x'; CHUNK + 5]).unwrap();
+    let h = Editing {
+        client: Mutex::new(c),
+        steps: 0.into(),
+        id: id.clone(),
+        folder: folder.clone(),
+    };
+    let imported = import::file(&h, &source, ROOT, false, &mut no_progress)
+        .await
+        .unwrap();
+    assert_eq!(imported.file.id, id);
+    assert_eq!(imported.file.name, "renamed.txt");
+    assert_eq!(imported.file.folder, folder);
+    assert_eq!(imported.file.note, "new note");
+    assert!(imported.file.starred);
+    assert_eq!(imported.file.versions, 2);
+}
+
+#[tokio::test]
+async fn sharing_releases_the_client_and_pins_prepared_chunks_until_journaled() {
+    let dir = TempDir::new();
+    let mut c = unlocked(&dir.0, false, None);
+    let source = write(&dir, "share.bin", &vec![7; CHUNK + 5]);
+    let file = c
+        .files_import(&source, ROOT, false, &mut no_progress)
+        .unwrap();
+    let (_, _, manifest) = c.library_manifest(&file.file.id, None).unwrap();
+    let h = FileSteps::new(c, 2);
+    assert_eq!(
+        share::edition(&h, &manifest).await.unwrap_err(),
+        Error::Locked
+    );
+    let mut c = h.client.lock().unwrap();
+    c.keys = Some(c.workspace.unlock(&crate::testing::SECRET).unwrap());
+    c.root = Some(RootKeys_single());
+    assert_eq!(c.collect_blobs().unwrap().0, 0);
+    c.held_chunks(u64::MAX).unwrap();
+    assert_eq!(c.collect_blobs().unwrap().0, 1);
+    assert!(c.files_verify(&file.file.id, None).unwrap().versions[0].ok);
 }

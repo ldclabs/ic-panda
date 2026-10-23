@@ -127,6 +127,27 @@ but an explicit restore, so an older edit never revives it. Resolving a copy
 writes a new head that names it, and the earlier copies of its branch, in
 `resolvedConflicts`.
 
+## File operation responsiveness
+
+The daemon uses `library::import` and `library::reading` through `Hold` for
+imports, exports, previews and verification. Each encrypted chunk is handled
+in a bounded client step; session checks stop work after locking or account
+changes. Imports retain resumable jobs, and exports become visible only
+after complete integrity verification. Thumbnail decoding, disk-usage scans
+and checking copies opened in another program run outside the client lock.
+Shared editions are also re-encrypted in chunk-sized steps, and password
+derivation runs outside the lock. Temporary chunk references protect an
+edition from collection until its upload plan has been journaled.
+
+Backup planning persists jobs and returns without waiting for uploads.
+Ordinary uploads send four chunks at a time, with progress recorded only
+after a complete acknowledged batch. Failed passes preserve that cursor.
+Existing upload reservations resume until their actual plan/lease deadline;
+a lease with less than five minutes remaining is not prematurely discarded.
+Cloud storage inventories read up to four independent channels together;
+source failures remain explicit and deletion still requires confirmed
+physical cleanup and quota release.
+
 ## Approvals
 
 Every operation this device signs for a person waits in the approval center:

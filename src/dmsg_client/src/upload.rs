@@ -79,7 +79,8 @@ struct UploadRef<'a> {
     upload_id: &'a str,
 }
 
-/// An unfinished upload must leave this much time to finish.
+/// A new plan should leave this much time to start. Existing reservations
+/// remain resumable until their actual deadline; their leases may be shorter.
 const UPLOAD_MARGIN_MS: u64 = 300_000;
 
 /// A random nonzero ID as lowercase hex.
@@ -149,7 +150,7 @@ impl Client {
 ///
 /// # Errors
 /// A different plan under the same ID returns `Error::IdempotencyConflict`;
-/// an ended or nearly lapsed upload returns `Error::ResultExpired`, and the
+/// an ended upload or a new plan too near expiry returns `Error::ResultExpired`, and the
 /// caller replans it under a new ID.
 pub(crate) async fn upload<H: Hold>(
     h: &H,
@@ -161,9 +162,14 @@ pub(crate) async fn upload<H: Hold>(
     mut progress: impl FnMut(&Client, usize) -> Result<()> + Send,
 ) -> Result<Option<String>> {
     let path = format!("{base}/uploads/{}", plan.upload_id);
-    let previous: Option<UploadStatus> = h
-        .find(&path)
-        .await?
+    // A pooled connection can close while a large edition is prepared.
+    // Recheck this read once with fresh request authentication, keeping the
+    // same upload ID. Mutation replies are still reconciled by their caller.
+    let status = match h.find(&path).await {
+        Err(Error::Unavailable(_)) => h.find(&path).await?,
+        result => result?,
+    };
+    let previous: Option<UploadStatus> = status
         .map(serde_json::from_value)
         .transpose()
         .map_err(|_| Error::IntegrityFailed)?;
@@ -180,10 +186,8 @@ pub(crate) async fn upload<H: Hold>(
             ensure(
                 previous.status == "staging"
                     && previous.quota_state.as_deref() != Some("released")
-                    && plan.expires_at > now + UPLOAD_MARGIN_MS
-                    && previous
-                        .lease_expires_at
-                        .is_none_or(|t| t > now + UPLOAD_MARGIN_MS),
+                    && plan.expires_at > now
+                    && previous.lease_expires_at.is_none_or(|t| t > now),
                 Error::ResultExpired,
             )?;
             previous.quota_state.as_deref() == Some("pending")
@@ -206,15 +210,16 @@ pub(crate) async fn upload<H: Hold>(
         )
         .await?;
     }
-    // Invitations and rotations contain many small, independent device
-    // envelopes. Send a bounded group together, including the manifest in
-    // the last group. A failed group is safe to resend under the same plan.
-    let width = if plan.kind == "envelopes" { 8 } else { 1 };
+    // Chunks are independent. Bound file batches to four MiB-sized chunks;
+    // invitations can send eight small envelopes together. Progress advances
+    // only after the whole batch is acknowledged, so a failed batch resumes
+    // safely under the same immutable plan.
+    let width = if plan.kind == "envelopes" { 8 } else { 4 };
     sent = sent.min(plan.chunks.len());
     let mut manifest_sent = false;
     for group in plan.chunks[sent..].chunks(width) {
         let through = sent + group.len();
-        let with_manifest = width > 1 && through == plan.chunks.len();
+        let with_manifest = through == plan.chunks.len();
         let (relay, requests) = h
             .signed(|c| {
                 let mut requests = Vec::with_capacity(group.len() + usize::from(with_manifest));

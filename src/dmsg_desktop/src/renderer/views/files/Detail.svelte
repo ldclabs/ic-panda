@@ -116,7 +116,7 @@
         if (p.kind === 'image' && p.content_base64url) preview = { kind: 'image', mime: p.mime, url: `data:${p.mime};base64,${toBase64(p.content_base64url)}`, thumbnail: !!p.thumbnail }
         else if (p.kind === 'text' && p.content_base64url) preview = { kind: 'text', mime: p.mime, text: decodeText(p.content_base64url), thumbnail: false }
       })
-      .catch(() => (preview = null))
+      .catch(() => { if (previewFor === key) preview = null })
   })
 
   $effect(() => {

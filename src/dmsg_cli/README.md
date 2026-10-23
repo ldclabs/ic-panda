@@ -394,7 +394,17 @@ chunk with the library's copy or a backup. `files save` keeps a shared file
 from a channel message as a file of the library, re-encrypted under a key of
 its own.
 
-Backups. `files backup` explicitly stores the library version itself in the cloud: it
+File imports, exports, previews and verification release the client between
+chunks, so other local requests and locking can proceed during large files.
+The desktop renders local listings and cached cloud inventories before
+waiting for quota and remote refreshes; a late response cannot replace a
+different folder or account's listing.
+
+Backups. `files backup` queues the requested versions durably and returns;
+`files backup-status` reports their progress, and the `files/backup_run` RPC
+runs an explicit upload pass. The daemon wakes to run queued jobs in the background.
+A successful queue response does not mean the upload has finished.
+The backup explicitly stores the library version itself in the cloud: it
 uploads the current version (or every version) of the files named, folders
 recursively, as `kind=backup` objects whose chunks are the version's own
 and whose manifest, sealed under the current content root, holds the file's

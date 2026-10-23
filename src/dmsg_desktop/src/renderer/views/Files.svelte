@@ -1,6 +1,6 @@
 <script module lang="ts">
   /** The cloud view reads the relay once per window by itself; later reads are asked for. */
-  let cloudRead = false
+  const cloudRead = new Set<string>()
 </script>
 
 <script lang="ts">
@@ -210,45 +210,63 @@
     if (trashOpened === id) trashDetails = next
   }
 
-  /** The place shown and the library around it, read together. */
+  /** Cloud accounting is ancillary; an offline relay must not hold up local navigation. */
+  const refreshCloudUsage = single(async () => {
+    const account = status?.account
+    if (!unlocked || scope !== 'cloud') return
+    const next = await call('files/cloud_usage').catch(() => null)
+    if (unlocked && status?.account === account && scope === 'cloud' && next) cloudUsage = next
+  })
+
+  const reloadMetadata = single(async () => {
+    const account = status?.account
+    const [local, disk, shares, running, tagList, storage] = await Promise.all([
+      call('files/usage').catch(() => null),
+      call('files/mount_status').catch(() => null),
+      call('files/share_links').catch(() => []),
+      call('files/backup_status').catch(() => []),
+      call('files/tags').catch(() => []),
+      call<any>('files/storage').catch(() => null)
+    ])
+    if (!unlocked || status?.account !== account) return
+    usage = local
+    mount = disk
+    links = shares
+    tags = tagList
+    cloudCopies = storage?.entries ?? []
+    copiesKnown = !!storage?.loaded
+    backups(running)
+  })
+
+  /** Show the selected place before loading ancillary counts and cloud quota. */
   const reload = single(async () => {
     const place = scope
+    const account = status?.account
+    const current = () => scope === place && status?.account === account
     try {
-      const [tree, shown, trashed, cloudList, cloudRoom, local, disk, shares, running, tagList, storage] = await Promise.all([
+      const [tree, shown, trashed, cloudList] = await Promise.all([
         call('files/tree'),
         folderScope ? call('files/list', { folder: place }) : place === 'starred' ? call<any[]>('files/search', { query: '', starred: true }) : tag ? call<any[]>('files/search', { query: '', tag }) : null,
         place === 'trash' ? call('files/list', { trash: true }) : null,
-        place === 'cloud' ? call('files/cloud_list') : null,
-        place === 'cloud' ? call('files/cloud_usage').catch(() => null) : null,
-        call('files/usage').catch(() => null),
-        call('files/mount_status').catch(() => null),
-        call('files/share_links').catch(() => []),
-        call('files/backup_status').catch(() => []),
-        call('files/tags').catch(() => []),
-        call<any>('files/storage').catch(() => null)
+        place === 'cloud' ? call('files/cloud_list') : null
       ])
+      if (!current() || !unlocked) return
       folders = tree
-      tags = tagList
       listing = Array.isArray(shown) ? { folder: null, folders: [], files: shown } : shown
       if (trashed) trashListing = trashed
       if (cloudList) {
         cloud = cloudList
-        cloudUsage = cloudRoom ?? cloudUsage
         cloudLoaded = true
-        if (!cloudRead) {
-          cloudRead = true
-          void call('files/cloud_refresh').catch(() => {})
+        void refreshCloudUsage()
+        if (account && !cloudRead.has(account)) {
+          cloudRead.add(account)
+          void call('files/cloud_refresh').catch(() => cloudRead.delete(account))
         }
       }
-      usage = local
-      mount = disk
-      links = shares
-      cloudCopies = storage?.entries ?? []
-      copiesKnown = !!storage?.loaded
-      backups(running)
       error = ''
+      void reloadMetadata()
     } catch (e) {
-      // A folder trashed elsewhere is gone from here too.
+      if (!current()) return
       if (code(e) === 'NOT_FOUND' && folderScope && place !== ROOT) {
         loaded = true
         return pick(ROOT)
@@ -733,7 +751,7 @@
     </aside>
 
     {#if scope === 'storage' || scope === 'links'}
-      <div class="min-w-0 flex-1 @container">{#key scope}<Storage {unlocked} linksOnly={scope === 'links'} sourceFile={new URLSearchParams(route.split('?')[1] ?? '').get('source') ?? ''} onSource={(id) => { focus.id = id; pick(ROOT) }} onChannel={(id) => go(`/channels/${id}`)} />{/key}</div>
+      <div class="min-w-0 flex-1 @container">{#key `${scope}:${status?.account}`}<Storage {unlocked} linksOnly={scope === 'links'} sourceFile={new URLSearchParams(route.split('?')[1] ?? '').get('source') ?? ''} onSource={(id) => { focus.id = id; pick(ROOT) }} onChannel={(id) => go(`/channels/${id}`)} />{/key}</div>
     {:else if scope === 'cloud'}
       <div class="min-w-0 flex-1">
         <Cloud

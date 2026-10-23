@@ -1865,8 +1865,10 @@ fn desktop_content_and_sync() {
     );
     let backup = a.run(&["files", "backup", &file_id]);
     assert_eq!(backup["started"].as_array().unwrap().len(), 1, "{backup}");
-    let shown = a.run(&["files", "show", &file_id]);
-    assert_eq!(shown["file"]["status"], "backed_up", "{shown}");
+    let shown = eventually(120, || {
+        let shown = a.run(&["files", "show", &file_id]);
+        (shown["file"]["status"] == "backed_up").then_some(shown)
+    });
     let upload = shown["versions"][0]["backup"]["upload_id"]
         .as_str()
         .unwrap()
@@ -1935,13 +1937,20 @@ fn desktop_content_and_sync() {
         .as_str()
         .unwrap()
         .to_string();
-    let mut backup = a
-        .command(&["files", "backup", &medium_id])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
-    std::thread::sleep(Duration::from_millis(1000));
+    let queued = a.run(&["files", "backup", &medium_id]);
+    assert_eq!(queued["started"].as_array().unwrap().len(), 1);
+    eventually(60, || {
+        let jobs = a.run(&["files", "backup-status"]);
+        jobs.as_array()
+            .unwrap()
+            .iter()
+            .any(|job| {
+                job["sent"]
+                    .as_u64()
+                    .is_some_and(|sent| sent > 0 && sent < job["chunks"].as_u64().unwrap())
+            })
+            .then_some(())
+    });
     let index = env.daemons[0];
     let mut killed = env.children.0.remove(index);
     killed.kill().unwrap();
@@ -1949,10 +1958,6 @@ fn desktop_content_and_sync() {
     if env.daemons[1] > index {
         env.daemons[1] -= 1;
     }
-    assert!(
-        !backup.wait().unwrap().success(),
-        "the backup finished first"
-    );
     env.daemons[0] = a.spawn(&mut env.children);
     assert_eq!(a.run(&["status"])["state"], "locked");
     assert_eq!(
@@ -2018,7 +2023,7 @@ fn desktop_content_and_sync() {
     // through its outbox; anyone reads the public descriptor, a manifest
     // read counts a download, the share page's decryption (dmsg_frontend
     // `$lib/share`) opens both to the shared bytes, and after the revoke
-    // the link answers 410 while A keeps the last count.
+    // new download sessions and renewals answer 410 while A keeps the last count.
     let link = a.run(&[
         "files",
         "link",
@@ -2146,10 +2151,25 @@ fn desktop_content_and_sync() {
         let response = env.http.get(&public).send().unwrap();
         (response.json::<Value>().unwrap()["data"]["status"] == "revoked").then_some(())
     });
-    for path in ["manifest", "chunks/0"] {
-        let response = env.http.get(format!("{public}/{path}")).send().unwrap();
-        assert_eq!(response.status(), 410, "{path}");
-    }
+    // Revocation stops new grants; already signed data URLs retain their
+    // original expiry. The retired manifest/chunk routes are not this check.
+    let new_session = sha256_hex(b"download-after-revocation");
+    assert_eq!(
+        env.http
+            .post(format!("{public}/downloads/{new_session}"))
+            .send()
+            .unwrap()
+            .status(),
+        410
+    );
+    assert_eq!(
+        env.http
+            .get(format!("{public}/downloads/{session}"))
+            .send()
+            .unwrap()
+            .status(),
+        410
+    );
     eprintln!("share link done at {:?}", started.elapsed());
 
     check_principal_documents(&env, &account);
@@ -8004,6 +8024,54 @@ fn desktop_legacy() {
 
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_large_file_sharing() {
+    let env = Env::start("large-file-sharing", "");
+    env.pair();
+    let path = env.dir.join("large-shared.bin");
+    std::fs::write(&path, pattern(64 * 1024 * 1024, 17)).unwrap();
+    let added = env.a.run(&["files", "add", path.to_str().unwrap()]);
+    let id = added[0]["file"]["id"].as_str().unwrap();
+    let plain = env
+        .a
+        .rpc(&env.http, "files/share_link", json!({"id":id}))
+        .unwrap();
+    let guarded = env
+        .a
+        .rpc(
+            &env.http,
+            "files/share_link",
+            json!({"id":id,"password":"correct horse"}),
+        )
+        .unwrap();
+    assert!(plain["url"].as_str().unwrap().contains('#'));
+    assert!(!guarded["url"].as_str().unwrap().contains('#'));
+    for link in [&plain, &guarded] {
+        let public = format!(
+            "{}/public/shares/{}",
+            env.relay,
+            link["share_id"].as_str().unwrap()
+        );
+        let descriptor = eventually(30, || {
+            let response = env.http.get(&public).send().unwrap();
+            (response.status() == 200).then(|| response.json::<Value>().unwrap()["data"].clone())
+        });
+        assert_eq!(descriptor["chunks"].as_array().unwrap().len(), 64);
+        assert_eq!(descriptor["password"], link["password"]);
+    }
+    let listed = env.a.run(&["files", "links", "--refresh"]);
+    assert_eq!(listed.as_array().unwrap().len(), 2);
+    assert!(
+        listed
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|link| link["state"] == "active")
+    );
+    env.finish();
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
 fn desktop_storage_management() {
     let env = Env::launch(
         "storage-management",
@@ -8019,6 +8087,9 @@ fn desktop_storage_management() {
     let added = a.run(&["files", "add", file.to_str().unwrap()]);
     let id = added[0]["file"]["id"].as_str().unwrap();
     a.run(&["files", "backup", id]);
+    eventually(60, || {
+        (a.run(&["files", "show", id])["file"]["status"] == "backed_up").then_some(())
+    });
     // Direct reads lose a data reply; retry obtains a fresh grant and preserves the original file.
     let proxy = env.relay_proxy.as_ref().unwrap();
     proxy.lose_next("GET", "/__r2/");

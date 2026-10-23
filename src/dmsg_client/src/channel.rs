@@ -1704,7 +1704,7 @@ pub async fn send<H: Hold>(
 
 /// Share a library file's version under the current epoch as a shared
 /// edition: the version re-encrypted under a fresh key with a fresh
-/// identity ([`Client::share_edition`]), uploaded to the channel with a
+/// identity ([`crate::library::share::edition`]), uploaded to the channel with a
 /// manifest sealed under that key, which the message carries. The edition
 /// shares neither its key nor a chunk byte with the library's own copy or
 /// a backup, so no one can relate the two. A retry after the epoch changed
@@ -1741,9 +1741,10 @@ pub async fn send_file<H: Hold>(
     let attachment = match attachment {
         Some(attachment) => attachment,
         None => {
+            ensure(ledger.status == Status::Active, Error::RekeyRequired)?;
+            let edition = crate::library::share::edition(h, &manifest).await?;
             h.with(|c| {
-                ensure(ledger.status == Status::Active, Error::RekeyRequired)?;
-                let edition = c.share_edition(&manifest)?;
+                c.check_channel_head(channel, &ledger)?;
                 let (reference, mut upload) =
                     c.prepare_upload(channel, &ledger, &edition, c.blobs()?)?;
                 upload.plan.management = Some(c.seal_management(&upload.plan, &json!({
@@ -1756,6 +1757,7 @@ pub async fn send_file<H: Hold>(
                     upload,
                 };
                 c.save_job(channel, &key_name, &attachment)?;
+                c.release_chunks(&edition.id)?;
                 Ok(attachment)
             })
             .await?
@@ -2327,18 +2329,34 @@ impl Client {
         &self,
         plans: impl IntoIterator<Item = &'a UploadPlan>,
     ) -> Result<()> {
+        self.hold_chunks(plans.into_iter().map(|plan| {
+            (
+                plan.upload_id.clone(),
+                plan.expires_at,
+                plan.chunks.iter().map(|c| c.digest.clone()).collect(),
+            )
+        }))
+    }
+
+    /// Pin chunks while a shared edition is being prepared or uploaded.
+    pub(crate) fn hold_chunks(
+        &self,
+        entries: impl IntoIterator<Item = (String, u64, Vec<String>)>,
+    ) -> Result<()> {
         let keys = self.keys()?;
         let mut held: BTreeMap<String, Held> =
             self.workspace.private(keys, UPLOADS)?.unwrap_or_default();
-        for plan in plans {
-            held.insert(
-                plan.upload_id.clone(),
-                Held {
-                    expires_at: plan.expires_at,
-                    chunks: plan.chunks.iter().map(|c| c.digest.clone()).collect(),
-                },
-            );
+        for (id, expires_at, chunks) in entries {
+            held.insert(id, Held { expires_at, chunks });
         }
+        self.workspace.put_private(keys, UPLOADS, &held)
+    }
+
+    pub(crate) fn release_chunks(&self, id: &str) -> Result<()> {
+        let keys = self.keys()?;
+        let mut held: BTreeMap<String, Held> =
+            self.workspace.private(keys, UPLOADS)?.unwrap_or_default();
+        held.remove(id);
         self.workspace.put_private(keys, UPLOADS, &held)
     }
 

@@ -506,16 +506,16 @@ async fn background(daemon: Arc<Daemon>) {
                 {
                     daemon.emit("files/changed", json!({"maintenance": report}));
                 }
-                if let Ok(changed) = client.files_open_sweep(now) {
-                    for copy in changed {
-                        daemon.emit("files/open_changed", to_json(&copy));
-                    }
-                }
             }
             quiet
                 && now >= checking + CHECK_RETRY_MS
                 && client.files_check_due(now).unwrap_or(false)
         };
+        if unlocked && let Ok(changed) = dmsg_client::library::open::sweep(&daemon.hold()).await {
+            for copy in changed {
+                daemon.emit("files/open_changed", to_json(&copy));
+            }
+        }
         if check {
             checking = now;
             let checked = daemon.check_library().await;
@@ -610,14 +610,12 @@ impl Daemon {
     /// the client, which needs no key, then every local version through
     /// its key while unlocked; the check is recorded.
     pub(crate) async fn check_library(&self) -> Result<(Check, Vec<VersionCheck>)> {
-        let dir = self.client.lock().await.files_blobs_dir()?;
+        let h = self.hold();
+        let dir = h.with(|c| c.files_blobs_dir()).await?;
         let (count, bad) = tokio::task::spawn_blocking(move || Blobs::new(dir).verify())
             .await
             .map_err(|e| Error::Unavailable(format!("check: {e}")))??;
-        self.client
-            .lock()
-            .await
-            .files_check_record(now_ms(), count, bad)
+        dmsg_client::library::reading::verify_library(&h, count, bad).await
     }
 
     /// Publish an event to every WebSocket client.
@@ -2427,6 +2425,58 @@ mod tests {
             });
             answers_beside(&daemon, &ic, work).await;
         }
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_large_file_import_leaves_local_reads_and_lock_available() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, _relay, _ic) = stalled(&dir).await;
+        let path = dir.0.join("large-import.bin");
+        std::fs::File::create(&path)
+            .unwrap()
+            .set_len(128 * 1024 * 1024)
+            .unwrap();
+        let mut events = daemon.events.subscribe();
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move {
+                daemon
+                    .call_files("files/import", &json!({"path":path}))
+                    .await
+            }
+        });
+        tokio::time::timeout(Duration::from_secs(10), async {
+            loop {
+                if events.recv().await.unwrap()["type"] == "files/progress" {
+                    break;
+                }
+            }
+        })
+        .await
+        .expect("import progress");
+        tokio::time::timeout(Duration::from_secs(2), async {
+            daemon.call_files("files/tree", &Value::Null).await.unwrap();
+            assert!(
+                !work.is_finished(),
+                "local reads must finish before the import does"
+            );
+            assert_eq!(
+                daemon
+                    .call_daemon("session/lock", &Value::Null)
+                    .await
+                    .unwrap()["state"],
+                "locked"
+            );
+        })
+        .await
+        .expect("local reads and locking must not wait for the whole file");
+        assert_eq!(
+            tokio::time::timeout(Duration::from_secs(3), work)
+                .await
+                .unwrap()
+                .unwrap(),
+            Err(Error::Locked)
+        );
     }
 
     #[tokio::test]

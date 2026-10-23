@@ -11,6 +11,21 @@ fn item(title: &str) -> Changes {
 }
 
 #[tokio::test]
+async fn a_locked_resident_sync_keeps_its_cursor_without_fetching_content() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, true, None);
+    client.workspace.store.set_meta(SNAPSHOT, &42u64).unwrap();
+    client.lock();
+    crate::testing::warm(&mut client);
+    // All endpoints are unreachable. With no pending writes, a locked
+    // pass needs no relay content read, and retains its last verified cursor.
+    let report = sync(&client.hold()).await.unwrap();
+    assert_eq!((report.through, report.revisions, report.sent), (42, 0, 0));
+    assert!(client.keys.is_none());
+    assert_eq!(client.last_sync().unwrap().unwrap().error, None);
+}
+
+#[tokio::test]
 async fn a_sync_response_cannot_follow_a_lock_and_reopen_of_the_same_account() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);

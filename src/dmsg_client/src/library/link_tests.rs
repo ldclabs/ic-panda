@@ -1,5 +1,5 @@
 use super::*;
-use crate::codec::{b64, decode, sha256};
+use crate::codec::{b64, decode, sha256, unb64};
 use crate::content::MAX_MANIFEST;
 use crate::crypto::{open, seal_with_nonce};
 use crate::files::{FileChunk, chunk_aad, nonce};

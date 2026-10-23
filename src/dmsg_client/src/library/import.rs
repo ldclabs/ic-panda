@@ -11,6 +11,7 @@ use super::catalog::{FILE, FileRecord, Origin, Version, VersionRef, validate_nam
 use crate::codec::{b64, sha256, unb64};
 use crate::crypto::{open_bytes, random_key, seal_bytes};
 use crate::files::{BlobStore, CHUNK, FileManifest, chunk_count, io, seal_chunk};
+use crate::hold::Hold;
 use crate::now_ms;
 use crate::upload::{ChunkRef, random_hex};
 use dmsg_types::{Error, Result, ensure, ensure_valid};
@@ -20,7 +21,7 @@ use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, Zeroizing};
 
 pub(crate) const IMPORT: &str = "lib-import:";
 /// Largest image a thumbnail is made of.
@@ -51,6 +52,36 @@ pub(crate) struct ImportJob {
     /// SHA-256 of each sealed chunk's plaintext.
     plain: Vec<String>,
     started_at: u64,
+}
+
+/// One import's state between bounded client steps. No account key leaves
+/// the client; the version key and plaintext buffers are erased on drop.
+struct Importing {
+    job: ImportJob,
+    resumed: bool,
+    generation: u64,
+    key: Zeroizing<[u8; 32]>,
+    overall: Sha256,
+    image: Option<Zeroizing<Vec<u8>>>,
+}
+
+impl Drop for Importing {
+    fn drop(&mut self) {
+        self.job.key.zeroize();
+    }
+}
+
+impl Importing {
+    /// Decode and seal a thumbnail without holding the client.
+    fn thumbnail(&self) -> Option<(String, Vec<u8>)> {
+        let png = self.image.as_deref().and_then(|bytes| thumbnail(bytes))?;
+        let sealed = seal_bytes(
+            &self.key,
+            &png,
+            &thumb_aad(&self.job.file_id, &self.job.version),
+        );
+        Some((hex::encode(*sha256(&sealed)), sealed))
+    }
 }
 
 /// What an import produced.
@@ -196,6 +227,30 @@ impl Client {
         origin: Origin,
         progress: &mut dyn FnMut(u64, u64),
     ) -> Result<Imported> {
+        let mut importing = self.import_start(size, name, folder, into, origin)?;
+        let count = chunk_count(size);
+        let mut buffer = Zeroizing::new(vec![0u8; CHUNK]);
+        for index in 0..count {
+            self.import_check(&importing)?;
+            let length = fill(reader, &mut buffer)?;
+            self.import_part(&mut importing, index, &buffer[..length])?;
+            if (index + 1) % PROGRESS_EVERY == 0 || index + 1 == count {
+                progress(index + 1, count);
+            }
+        }
+        ensure(fill(reader, &mut buffer[..1])? == 0, Error::IntegrityFailed)?;
+        let thumbnail = importing.thumbnail();
+        self.import_finish(importing, thumbnail)
+    }
+
+    fn import_start(
+        &mut self,
+        size: u64,
+        name: &str,
+        folder: &str,
+        into: Option<String>,
+        origin: Origin,
+    ) -> Result<Importing> {
         ensure(size <= self.config.files_max_bytes, Error::QuotaExceeded)?;
         validate_name(name)?;
         self.catalog()?.live_folder(folder)?;
@@ -207,7 +262,7 @@ impl Client {
             )?;
         }
         let now = now_ms();
-        let (mut job, resumed) = match self.import_job(folder, name, size, into.as_deref())? {
+        let (job, resumed) = match self.import_job(folder, name, size, into.as_deref())? {
             Some(job) => (job, true),
             None => (
                 ImportJob {
@@ -227,82 +282,129 @@ impl Client {
                 false,
             ),
         };
-        let file_id = job.file_id.clone();
         let job_key = format!("{IMPORT}{}", job.version);
         self.workspace.put_private(self.keys()?, &job_key, &job)?;
         let key = Zeroizing::new(
             <[u8; 32]>::try_from(Zeroizing::new(unb64(&job.key)?).as_slice())
                 .map_err(|_| Error::IntegrityFailed)?,
         );
-        let count = chunk_count(size);
-        let mut overall = Sha256::new();
-        let mut buffer = Zeroizing::new(vec![0u8; CHUNK]);
-        // Images small enough for a thumbnail are kept whole until the end.
-        let mut image: Option<Zeroizing<Vec<u8>>> = None;
-        for index in 0..count {
-            if self
-                .import_cancel
-                .as_ref()
-                .is_some_and(|cancel| cancel.load(Ordering::Relaxed))
-            {
-                self.workspace.delete_private(&job_key)?;
-                self.collect_blobs()?;
-                return Err(Error::Unavailable("import cancelled".into()));
-            }
-            let length = fill(reader, &mut buffer)?;
-            let expected = (size - index * CHUNK as u64).min(CHUNK as u64);
-            ensure(length as u64 == expected, Error::IntegrityFailed)?;
-            let plaintext = &buffer[..length];
-            if index == 0 {
-                let mime = sniff(&plaintext[..length.min(SNIFF)], name);
-                ensure(
-                    job.mime.is_empty() || job.mime == mime,
-                    Error::IntegrityFailed,
-                )?;
-                job.mime = mime;
-                if job.mime.starts_with("image/") && size <= MAX_THUMBNAIL_SOURCE {
-                    image = Some(Zeroizing::new(Vec::with_capacity(size as usize)));
-                }
-            }
-            if let Some(image) = image.as_mut() {
-                image.extend_from_slice(plaintext);
-            }
-            overall.update(plaintext);
-            let plain = hex::encode(*sha256(plaintext));
-            if let Some(stored) = job.chunks.get(index as usize) {
-                ensure(
-                    job.plain[index as usize] == plain
-                        && self.blobs()?.has_chunk(&stored.digest)?,
-                    Error::IntegrityFailed,
-                )?;
-            } else {
-                let (sealed, digest) =
-                    seal_chunk(&key, &file_id, &job.version, index, count, plaintext);
-                self.blobs()?.put_chunk(&digest, &sealed)?;
-                job.chunks.push(ChunkRef {
-                    digest,
-                    size: length as u64,
-                });
-                job.plain.push(plain);
-                self.workspace.put_private(self.keys()?, &job_key, &job)?;
-            }
-            if (index + 1) % PROGRESS_EVERY == 0 || index + 1 == count {
-                progress(index + 1, count);
+        Ok(Importing {
+            job,
+            resumed,
+            generation: self.session_generation,
+            key,
+            overall: Sha256::new(),
+            image: None,
+        })
+    }
+
+    fn import_check(&mut self, importing: &Importing) -> Result<()> {
+        self.keys()?;
+        ensure(
+            self.session_generation == importing.generation,
+            Error::Locked,
+        )?;
+        if self
+            .import_cancel
+            .as_ref()
+            .is_some_and(|cancel| cancel.load(Ordering::Relaxed))
+        {
+            self.workspace
+                .delete_private(&format!("{IMPORT}{}", importing.job.version))?;
+            self.collect_blobs()?;
+            return Err(Error::Unavailable("import cancelled".into()));
+        }
+        Ok(())
+    }
+
+    fn import_part(
+        &mut self,
+        importing: &mut Importing,
+        index: u64,
+        plaintext: &[u8],
+    ) -> Result<()> {
+        self.import_check(importing)?;
+        let job = &mut importing.job;
+        let length = plaintext.len();
+        let count = chunk_count(job.size);
+        let expected = (job.size - index * CHUNK as u64).min(CHUNK as u64);
+        ensure(length as u64 == expected, Error::IntegrityFailed)?;
+        if index == 0 {
+            let mime = sniff(&plaintext[..length.min(SNIFF)], &job.name);
+            ensure(
+                job.mime.is_empty() || job.mime == mime,
+                Error::IntegrityFailed,
+            )?;
+            job.mime = mime;
+            if job.mime.starts_with("image/") && job.size <= MAX_THUMBNAIL_SOURCE {
+                importing.image = Some(Zeroizing::new(Vec::with_capacity(job.size as usize)));
             }
         }
-        ensure(fill(reader, &mut buffer[..1])? == 0, Error::IntegrityFailed)?;
+        if let Some(image) = importing.image.as_mut() {
+            image.extend_from_slice(plaintext);
+        }
+        importing.overall.update(plaintext);
+        let plain = hex::encode(*sha256(plaintext));
+        if let Some(stored) = job.chunks.get(index as usize) {
+            ensure(
+                job.plain[index as usize] == plain && self.blobs()?.has_chunk(&stored.digest)?,
+                Error::IntegrityFailed,
+            )?;
+        } else {
+            let (sealed, digest) = seal_chunk(
+                &importing.key,
+                &job.file_id,
+                &job.version,
+                index,
+                count,
+                plaintext,
+            );
+            self.blobs()?.put_chunk(&digest, &sealed)?;
+            job.chunks.push(ChunkRef {
+                digest,
+                size: length as u64,
+            });
+            job.plain.push(plain);
+            self.workspace
+                .put_private(self.keys()?, &format!("{IMPORT}{}", job.version), &job)?;
+        }
+        Ok(())
+    }
+
+    fn import_finish(
+        &mut self,
+        mut importing: Importing,
+        thumbnail: Option<(String, Vec<u8>)>,
+    ) -> Result<Imported> {
+        self.import_check(&importing)?;
+        let job = &mut importing.job;
+        // Existing files keep a rename, move or metadata edit made while
+        // their new version was read. A new file still needs its name free.
+        if let Some(id) = &job.file {
+            let current = self.file_record(id)?;
+            ensure(current.trashed_at.is_none(), Error::VersionConflict)?;
+            self.catalog()?.live_folder(&current.folder)?;
+        } else {
+            let catalog = self.catalog()?;
+            catalog.live_folder(&job.folder)?;
+            ensure(
+                catalog.find(&job.folder, &job.name).is_none(),
+                Error::VersionConflict,
+            )?;
+        }
+        let now = now_ms();
+        let size = job.size;
+        let file_id = job.file_id.clone();
+        let job_key = format!("{IMPORT}{}", job.version);
         if size == 0 {
-            job.mime = sniff(&[], name);
+            job.mime = sniff(&[], &job.name);
         }
-        let digest = hex::encode(overall.finalize());
-        let thumbnail = match image.as_deref().and_then(|bytes| thumbnail(bytes)) {
-            Some(png) => {
-                let sealed = seal_bytes(&key, &png, &thumb_aad(&file_id, &job.version));
-                let digest = hex::encode(*sha256(&sealed));
-                self.blobs()?.put_chunk(&digest, &sealed)?;
-                Some(digest)
-            }
-            None => None,
+        let digest = hex::encode(importing.overall.clone().finalize());
+        let thumbnail = if let Some((digest, sealed)) = thumbnail {
+            self.blobs()?.put_chunk(&digest, &sealed)?;
+            Some(digest)
+        } else {
+            None
         };
         let version = Version {
             size,
@@ -316,11 +418,11 @@ impl Client {
             local: true,
             backup: None,
         };
-        let mut file = match &into {
+        let mut file = match &job.file {
             Some(id) => self.file_record(id)?,
             None => FileRecord {
-                folder: folder.into(),
-                name: name.into(),
+                folder: job.folder.clone(),
+                name: job.name.clone(),
                 mime: job.mime.clone(),
                 tags: vec![],
                 note: String::new(),
@@ -352,8 +454,8 @@ impl Client {
         let view = self.files_show(&file_id)?.file;
         Ok(Imported {
             file: view,
-            version: job.version,
-            resumed,
+            version: job.version.clone(),
+            resumed: importing.resumed,
             duplicate_of,
         })
     }
@@ -431,29 +533,123 @@ impl Client {
         };
         let folder = &self.files_mkdir(folder, &name)?.id;
         let mut imported = Vec::new();
-        let mut entries: Vec<_> = std::fs::read_dir(path)
-            .map_err(io)?
-            .collect::<std::io::Result<_>>()
-            .map_err(io)?;
-        entries.sort_by_key(|e| e.file_name());
-        for entry in entries {
-            let file_type = entry.file_type().map_err(io)?;
-            let name = entry.file_name();
-            let Some(name) = name.to_str() else {
-                continue;
-            };
-            // Finder's and Explorer's bookkeeping files are not content.
-            if matches!(name, ".DS_Store" | "Thumbs.db" | "desktop.ini") || name.starts_with("._") {
-                continue;
-            }
-            let child = entry.path();
-            if file_type.is_dir() {
+        for (child, is_dir) in directory_entries(path)? {
+            if is_dir {
                 imported.extend(self.files_import_dir(&child, folder, keep_both, progress)?);
-            } else if file_type.is_file() {
+            } else {
                 let mut report = |done, total| progress(&child, done, total);
                 imported.push(self.files_import(&child, folder, keep_both, &mut report)?);
             }
         }
         Ok(imported)
     }
+}
+
+/// Import a local file in bounded steps, releasing the client between chunks.
+/// # Errors
+/// As [`Client::files_import`]; locking or changing accounts stops the import.
+pub async fn file<H: Hold>(
+    h: &H,
+    path: &Path,
+    folder: &str,
+    keep_both: bool,
+    progress: &mut (dyn FnMut(u64, u64) + Send),
+) -> Result<Imported> {
+    ensure_valid(path.is_absolute(), "path")?;
+    let metadata = std::fs::metadata(path).map_err(io)?;
+    ensure_valid(metadata.is_file(), "path")?;
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| dmsg_types::invalid("name"))?;
+    let size = metadata.len();
+    let mut importing = h
+        .with(|c| {
+            let catalog = c.catalog()?;
+            catalog.live_folder(folder)?;
+            let (into, name) = if keep_both {
+                (None, catalog.free_name(folder, name))
+            } else {
+                (catalog.find(folder, name), name.to_owned())
+            };
+            c.import_start(size, &name, folder, into, Origin::Imported)
+        })
+        .await?;
+    let mut reader = std::fs::File::open(path).map_err(io)?;
+    let count = chunk_count(size);
+    let mut buffer = Zeroizing::new(vec![0u8; CHUNK]);
+    for index in 0..count {
+        h.with(|c| c.import_check(&importing)).await?;
+        let length = fill(&mut reader, &mut buffer)?;
+        h.with(|c| c.import_part(&mut importing, index, &buffer[..length]))
+            .await?;
+        if (index + 1) % PROGRESS_EVERY == 0 || index + 1 == count {
+            progress(index + 1, count);
+        }
+    }
+    ensure(
+        fill(&mut reader, &mut buffer[..1])? == 0,
+        Error::IntegrityFailed,
+    )?;
+    let thumbnail = importing.thumbnail();
+    h.with(|c| c.import_finish(importing, thumbnail)).await
+}
+
+/// Import a directory in the same order as [`Client::files_import_dir`],
+/// releasing the client between files and chunks.
+/// # Errors
+/// As [`file`].
+pub async fn directory<H: Hold>(
+    h: &H,
+    path: &Path,
+    parent: &str,
+    keep_both: bool,
+    progress: &mut (dyn FnMut(&Path, u64, u64) + Send),
+) -> Result<Vec<Imported>> {
+    ensure_valid(path.is_absolute() && path.is_dir(), "path")?;
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| dmsg_types::invalid("name"))?;
+    let folder = h
+        .with(|c| {
+            let name = if keep_both {
+                c.catalog()?.free_folder_name(parent, name)
+            } else {
+                name.to_owned()
+            };
+            Ok(c.files_mkdir(parent, &name)?.id)
+        })
+        .await?;
+    let mut imported = Vec::new();
+    for (child, is_dir) in directory_entries(path)? {
+        if is_dir {
+            imported.extend(Box::pin(directory(h, &child, &folder, keep_both, progress)).await?);
+        } else {
+            let mut report = |done, total| progress(&child, done, total);
+            imported.push(file(h, &child, &folder, keep_both, &mut report).await?);
+        }
+    }
+    Ok(imported)
+}
+
+fn directory_entries(path: &Path) -> Result<Vec<(std::path::PathBuf, bool)>> {
+    let mut entries: Vec<_> = std::fs::read_dir(path)
+        .map_err(io)?
+        .collect::<std::io::Result<_>>()
+        .map_err(io)?;
+    entries.sort_by_key(|e| e.file_name());
+    let mut children = Vec::new();
+    for entry in entries {
+        let kind = entry.file_type().map_err(io)?;
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        if matches!(name, ".DS_Store" | "Thumbs.db" | "desktop.ini") || name.starts_with("._") {
+            continue;
+        }
+        if kind.is_dir() || kind.is_file() {
+            children.push((entry.path(), kind.is_dir()));
+        }
+    }
+    Ok(children)
 }

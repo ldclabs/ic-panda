@@ -4,6 +4,7 @@ use crate::crypto::{open, seal};
 use crate::upload::{ManagementEnvelope, UploadPlan, hex_id};
 use crate::{Client, hold::Hold};
 use dmsg_types::{Error, Hash, Result, ensure, ensure_valid};
+use futures_util::{StreamExt, stream};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
@@ -237,8 +238,11 @@ pub async fn refresh<H: Hold>(h: &H) -> Result<Value> {
             Ok((c.account()?.id.to_string(), c.base()?, c.channel_list()?))
         })
         .await?;
-    let ledger = pages(h, &format!("{path}/storage/ledger")).await?;
-    let own = pages(h, &format!("{path}/storage")).await?;
+    // Warm shared evidence once before independent reads start together.
+    h.signed(|_| Ok(())).await?;
+    let ledger_path = format!("{path}/storage/ledger");
+    let own_path = format!("{path}/storage");
+    let (ledger, own) = futures_util::try_join!(pages(h, &ledger_path), pages(h, &own_path))?;
     let mut sources = BTreeSet::new();
     for channel in &channels {
         sources.insert(channel.id.clone());
@@ -261,8 +265,16 @@ pub async fn refresh<H: Hold>(h: &H) -> Result<Value> {
         .await?;
         entries.push(item);
     }
-    for channel in sources {
-        match pages(h, &format!("/v1/channels/{channel}/storage")).await {
+    let fetched: Vec<_> = stream::iter(sources)
+        .map(|channel| async move {
+            let result = pages(h, &format!("/v1/channels/{channel}/storage")).await;
+            (channel, result)
+        })
+        .buffer_unordered(4)
+        .collect()
+        .await;
+    for (channel, result) in fetched {
+        match result {
             Ok(items) => {
                 for mut item in items {
                     h.with(|c| {
@@ -682,5 +694,69 @@ mod tests {
         assert_eq!(client.open_management(&item).unwrap(), Some(value));
         item["upload_id"] = "ff".repeat(32).into();
         assert!(client.open_management(&item).is_err());
+    }
+    #[tokio::test]
+    async fn storage_reads_four_channels_together_and_keeps_partial_errors() {
+        use std::sync::{
+            Mutex,
+            atomic::{AtomicUsize, Ordering},
+        };
+        struct Relay {
+            client: Mutex<Client>,
+            barrier: tokio::sync::Barrier,
+            started: AtomicUsize,
+            active: AtomicUsize,
+            peak: AtomicUsize,
+        }
+        impl Hold for Relay {
+            async fn with<T: Send>(
+                &self,
+                step: impl FnOnce(&mut Client) -> Result<T> + Send,
+            ) -> Result<T> {
+                step(&mut self.client.lock().unwrap())
+            }
+
+            async fn get(&self, path: &str) -> Result<Value> {
+                if path.starts_with("/v1/channels/") {
+                    let active = self.active.fetch_add(1, Ordering::SeqCst) + 1;
+                    self.peak.fetch_max(active, Ordering::SeqCst);
+                    let index = self.started.fetch_add(1, Ordering::SeqCst);
+                    if index < 4 {
+                        self.barrier.wait().await;
+                    }
+                    tokio::task::yield_now().await;
+                    self.active.fetch_sub(1, Ordering::SeqCst);
+                    if index == 4 {
+                        return Err(Error::Forbidden);
+                    }
+                }
+                if path.ends_with("/quota") {
+                    return Ok(json!({"reserved":0,"committed":0}));
+                }
+                Ok(json!({"entries":[],"end":true,"next_cursor":0}))
+            }
+        }
+        let dir = crate::testing::TempDir::new();
+        let mut client = crate::testing::unlocked(&dir.0, false, None);
+        crate::testing::warm(&mut client);
+        for n in 1..=5 {
+            crate::testing::joined_channel(&mut client, &format!("{n:064x}"));
+        }
+        let relay = Relay {
+            client: Mutex::new(client),
+            barrier: tokio::sync::Barrier::new(4),
+            started: 0.into(),
+            active: 0.into(),
+            peak: 0.into(),
+        };
+        let result = tokio::time::timeout(std::time::Duration::from_secs(3), refresh(&relay))
+            .await
+            .expect("independent channel inventories must not wait for each other")
+            .unwrap();
+        assert_eq!(relay.peak.load(Ordering::SeqCst), 4);
+        assert_eq!(relay.started.load(Ordering::SeqCst), 5);
+        assert_eq!(result["errors"].as_array().unwrap().len(), 1);
+        assert_eq!(result["errors"][0]["error"], "FORBIDDEN");
+        assert_eq!(result["reconciliation"]["consistent"], true);
     }
 }

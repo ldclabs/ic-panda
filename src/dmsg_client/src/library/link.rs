@@ -12,7 +12,7 @@
 //! share neither a key nor a byte with it.
 
 use super::Client;
-use crate::codec::{canonical, unb64};
+use crate::codec::canonical;
 use crate::content::empty_file;
 use crate::crypto::{Key, open, seal, seal_bytes};
 use crate::files::{BlobStore, FileManifest, MAX_FILE, Source};
@@ -264,23 +264,13 @@ impl Client {
     /// The shared edition a link hands out, under a new upload of the
     /// account; nothing goes to the relay yet.
     fn share_edition_upload(
-        &mut self,
-        id: &str,
-        version: Option<&str>,
-        password: Option<&str>,
+        &self,
+        manifest: FileManifest,
+        edition: FileManifest,
+        key_wrap: Option<String>,
     ) -> Result<Sharing> {
-        let (_, record, manifest) = self.library_manifest(id, version)?;
-        ensure(record.local, Error::RecoveryIncomplete)?;
-        ensure(manifest.size <= MAX_FILE, Error::QuotaExceeded)?;
-        let edition = self.share_edition(&manifest)?;
-        let key = Zeroizing::new(
-            <[u8; 32]>::try_from(Zeroizing::new(unb64(&edition.key)?).as_slice())
-                .map_err(|_| Error::IntegrityFailed)?,
-        );
+        let key = edition.file_key()?;
         let share_id = edition.id.clone();
-        let key_wrap = password
-            .map(|password| wrap_key(&key, password, &share_id))
-            .transpose()?;
         let blobs = self.blobs()?;
         let mut chunks = Vec::with_capacity(edition.chunks.len());
         for chunk in &edition.chunks {
@@ -389,17 +379,25 @@ pub async fn share_link<H: Hold>(
     let expires_in = expires_in_ms.unwrap_or(LINK_DEFAULT_MS);
     ensure_valid((1..=LINK_MAX_MS).contains(&expires_in), "expires_in_ms")?;
     ensure_valid(max_downloads <= 1_000_000, "max_downloads")?;
-    h.with(|c| {
-        let (_, record, manifest) = c.library_manifest(id, version)?;
-        ensure(record.local, Error::RecoveryIncomplete)?;
-        ensure(manifest.size <= MAX_FILE, Error::QuotaExceeded)
-    })
-    .await?;
+    let manifest = h
+        .with(|c| {
+            let (_, record, manifest) = c.library_manifest(id, version)?;
+            ensure(record.local, Error::RecoveryIncomplete)?;
+            ensure(manifest.size <= MAX_FILE, Error::QuotaExceeded)?;
+            Ok(manifest)
+        })
+        .await?;
     let (_, security) = h.signed(Client::fresh).await?;
     ensure(
         security.snapshot.vault_write_state == dmsg_types::user::VaultWriteState::Ready,
         Error::RekeyRequired,
     )?;
+    let edition = super::share::edition(h, &manifest).await?;
+    // Password derivation and full-file re-encryption do not hold the client.
+    let key_wrap = password
+        .map(|password| wrap_key(&*edition.file_key()?, password, &edition.id))
+        .transpose()?;
+    h.signed(Client::root_now).await?;
     let Sharing {
         base,
         manifest,
@@ -409,7 +407,7 @@ pub async fn share_link<H: Hold>(
         mut plan,
         manifest_bytes,
     } = h
-        .with(|c| c.share_edition_upload(id, version, password))
+        .with(|c| c.share_edition_upload(manifest, edition, key_wrap))
         .await?;
     let upload_id = plan.upload_id.clone();
     let now = crate::now_ms();
@@ -438,7 +436,8 @@ pub async fn share_link<H: Hold>(
             c.keys()?,
             &format!("lib-share-job:{upload_id}"),
             &json!({"plan":plan,"manifest":crate::codec::b64(&manifest_bytes)}),
-        )
+        )?;
+        c.release_chunks(&share_id)
     })
     .await?;
     let total = plan.chunks.len() as u64;

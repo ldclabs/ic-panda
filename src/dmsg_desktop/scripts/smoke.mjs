@@ -2226,6 +2226,7 @@ try {
   for(const [id,r] of requests)if(r.type==='wallet')requests.delete(id)
 
   // A grant to a hosted Agent ID is signed only after the approval window agrees.
+  const decisionsBeforeGrant = calls.filter((c) => c.method === 'approval/respond').length
   await main.click('nav >> text=/Agents|Agent/')
   await main.waitForSelector('[data-testid="principal-id"]')
   await main.fill('[data-testid="grant-subject"]', 'claude')
@@ -2236,7 +2237,7 @@ try {
   // A hosted Agent ID shows by its name as well.
   assert.equal(await approval.textContent('[data-testid="approval-subject"]'), `claude · ${claude}`)
   await approval.screenshot({ path: join(shots, 'delegation.png') })
-  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
+  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, decisionsBeforeGrant)
   // A credential is renewed under its own ID, which another approval decides;
   // what this device signed is listed with where it stands.
   await main.waitForSelector('[data-testid="delegation-journal"]')
@@ -2645,9 +2646,12 @@ try {
   await main.click('nav >> text=/^(Files|文件)$/')
   await main.waitForSelector('[data-testid="files-loading"]')
   assert.equal(await main.locator('[data-testid="files-empty"]').count(), 0)
+  const finishStorageRefresh = hold('files/storage_refresh')
   await main.click('[data-testid="files-scope-storage"]')
   await main.waitForSelector('[data-testid="storage-list"] [data-upload]')
   assert.equal(await main.locator('[data-testid="storage-list"] [data-upload]').count(),3)
+  // Cached copies appear before the slow remote inventory returns.
+  await finishStorageRefresh()
   await settled(main,'[data-testid="files-storage"]')
   while (await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').count()) await main.locator('[role="status"][aria-live="polite"] button[aria-label="Dismiss"]').first().click()
   await main.screenshot({path:join(shots,'cloud-storage.png')})
@@ -2670,6 +2674,13 @@ try {
   await listing()
   await main.waitForSelector('[data-testid="files-list"] >> text=report.pdf')
   assert.equal(await main.locator('[data-testid="files-loading"]').count(), 0)
+  const finishCloudQuota = hold('files/cloud_usage')
+  await main.click('[data-testid="files-scope-cloud"]')
+  await main.waitForSelector('[data-testid="files-cloud-empty"]')
+  await main.click('[data-testid="files-scope-root"]')
+  await main.waitForSelector('[data-testid="files-list"] >> text=report.pdf')
+  // Slow cloud quota cannot delay the cached cloud list or local navigation.
+  await finishCloudQuota()
   await main.click('[data-testid="files-list"] >> text=report.pdf')
   await main.waitForSelector('[data-testid="files-status"] >> text=/Backed up/')
   await main.click('[data-testid="files-more"]')

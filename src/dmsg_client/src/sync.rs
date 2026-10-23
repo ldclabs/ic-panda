@@ -784,7 +784,20 @@ async fn sync_once<H: Hold>(h: &H) -> Result<SyncReport> {
         .await?;
     reconcile(h).await?;
     let mut report = SyncReport::default();
-    let mut snapshot = fetch(h).await?;
+    let mut snapshot = if unlocked {
+        fetch(h).await?
+    } else {
+        // A resident device may send its already sealed jobs while locked,
+        // but must not start an export or download new content.
+        h.with(|c| {
+            Ok(Snapshot {
+                through: c.workspace.store.meta(SNAPSHOT)?.unwrap_or(0),
+                plans: vec![],
+                revisions: vec![],
+            })
+        })
+        .await?
+    };
     if unlocked {
         report.revisions = h.with(|c| c.apply(&snapshot)).await?;
     }

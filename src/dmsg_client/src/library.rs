@@ -26,6 +26,7 @@ pub mod import;
 pub mod link;
 pub mod mount;
 pub mod open;
+pub mod reading;
 pub mod share;
 pub mod storage;
 
@@ -1099,16 +1100,20 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub fn files_usage(&mut self) -> Result<Usage> {
+        let entries = self.blobs()?.entries()?;
+        let mut usage = self.usage_metadata()?;
+        usage.blobs = entries.len() as u64;
+        usage.blob_bytes = entries.iter().map(|(_, size)| size).sum();
+        Ok(usage)
+    }
+
+    fn usage_metadata(&mut self) -> Result<Usage> {
         let mut usage = Usage {
             max_file_bytes: self.config.files_max_bytes,
             trash_days: self.config.files_trash_days,
             last_check: self.files_last_check()?,
             ..Usage::default()
         };
-        for (_, size) in self.blobs()?.entries()? {
-            usage.blobs += 1;
-            usage.blob_bytes += size;
-        }
         usage.open_copies = self.files_open_list()?.len() as u64;
         let ids: Vec<(String, Vec<String>, bool)> = {
             let catalog = self.catalog()?;
@@ -1218,7 +1223,7 @@ impl Client {
 
     /// The chunk digests the library's cloud work still needs: every backup
     /// in flight (a lapsed plan is planned again from the same chunks), and
-    /// shared editions of attachments whose upload plan has not lapsed.
+    /// shared editions being prepared or held by an unexpired upload plan.
     pub(crate) fn library_job_blobs(&self) -> Result<BTreeSet<String>> {
         let mut keep = self.held_chunks(now_ms())?;
         for (_, job) in self.backup_jobs()? {

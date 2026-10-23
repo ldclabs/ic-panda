@@ -365,8 +365,8 @@ impl Client {
 /// Back up files and folders to the cloud: each file's current version, or
 /// every version with `all_versions`; folders recursively. A version
 /// already backed up, in flight, over the cloud's 100 MiB bound or not on
-/// this device is skipped and named. The jobs start at once and continue in
-/// the background, locked too with a resident device key.
+/// this device is skipped and named. Persist the jobs and return; the daemon
+/// runs them in the background, locked too with a resident device key.
 ///
 /// # Errors
 /// Returns `Error::RekeyRequired` while the account waits for a new root,
@@ -401,7 +401,17 @@ pub async fn backup<H: Hold>(h: &H, ids: &[String], all_versions: bool) -> Resul
             )?;
         }
     }
-    h.with(|c| {
+    h.signed(|c| {
+        c.root_now()?;
+        let generation = c.roots()?.generation;
+        for job in &jobs {
+            ensure(job.plan.root_generation == generation, Error::RekeyRequired)?;
+            let version = c.version(&job.file, &job.version)?;
+            ensure(
+                version.local && version.backup.is_none(),
+                Error::VersionConflict,
+            )?;
+        }
         for job in &jobs {
             c.workspace
                 .store
@@ -411,18 +421,14 @@ pub async fn backup<H: Hold>(h: &H, ids: &[String], all_versions: bool) -> Resul
     })
     .await?;
     request.started = jobs.iter().map(view).collect();
-    if !jobs.is_empty() {
-        // Failures stay in the jobs for the next pass.
-        let _ = backup_run(h, None, &mut |_, _, _| {}).await;
-    }
     Ok(request)
 }
 
 /// One pass over the backup jobs: upload what is left of each, commit, and
 /// record the version's backup. Works locked with a resident device key;
 /// the version record then follows at the next pass after an unlock. A job
-/// that failed less than [`RETRY_MS`] ago waits. With `budget_ms`, no chunk
-/// starts after that long and the pass says it `paused`. Each chunk waits
+/// that failed less than [`RETRY_MS`] ago waits. With `budget_ms`, no batch
+/// starts after that long and the pass says it `paused`. Each batch waits
 /// on the relay without the client. `progress(file, sent, chunks)` follows
 /// each upload.
 ///
@@ -488,7 +494,17 @@ pub async fn backup_run<H: Hold>(
                 // A job cancelled meanwhile stays gone.
                 h.with(
                     |c| match c.workspace.store.library_job::<BackupJob>(&key)? {
-                        Some(_) => c.workspace.store.set_library_job(&key, &job),
+                        Some(stored) => {
+                            // Progress was persisted by each completed upload
+                            // batch. An error must not overwrite it with the
+                            // cursor from before this pass.
+                            let failed = BackupJob {
+                                error: job.error.clone(),
+                                failed_at: job.failed_at,
+                                ..stored
+                            };
+                            c.workspace.store.set_library_job(&key, &failed)
+                        }
                         None => Ok(()),
                     },
                 )

@@ -258,3 +258,98 @@ impl Client {
         Ok(())
     }
 }
+
+/// Open a verified local copy without holding the client across the full read.
+/// # Errors
+/// As [`Client::files_open`]; locking cancels the operation.
+pub async fn open<H: crate::hold::Hold>(
+    h: &H,
+    id: &str,
+    version: Option<&str>,
+) -> Result<OpenView> {
+    let (nonce, path, version, generation) = h
+        .with(|c| {
+            let (_, _, manifest) = c.library_manifest(id, version)?;
+            let nonce = hex::encode(&crate::crypto::random_id()[..16]);
+            let dir = c.open_dir()?.join(&nonce);
+            super::blobs::create_private_dir(&dir)?;
+            Ok((
+                nonce,
+                dir.join(&manifest.name),
+                manifest.version,
+                c.session_generation,
+            ))
+        })
+        .await?;
+    let result = async {
+        let manifest = super::reading::export(h, id, Some(&version), &path).await?;
+        h.with(|c| {
+            c.keys()?;
+            ensure(c.session_generation == generation, Error::Locked)?;
+            let copy = OpenCopy {
+                file: id.into(),
+                version: manifest.version,
+                name: manifest.name,
+                path: path.display().to_string(),
+                size: manifest.size,
+                sha256: manifest.sha256,
+                opened_at: now_ms(),
+                changed: false,
+            };
+            c.save_copy(&nonce, &copy)?;
+            Ok(view(&nonce, &copy))
+        })
+        .await
+    }
+    .await;
+    if result.is_err() {
+        remove_copy(&path.display().to_string());
+    }
+    result
+}
+
+/// Check copies edited by other programs without holding the client during
+/// their disk reads. A copy changed or removed by another operation is left alone.
+/// # Errors
+/// As [`Client::files_open_sweep`].
+pub async fn sweep<H: crate::hold::Hold>(h: &H) -> Result<Vec<OpenView>> {
+    let (copies, generation) = h.with(|c| Ok((c.copies()?, c.session_generation))).await?;
+    let mut changed = Vec::new();
+    for (nonce, mut copy) in copies {
+        let current = digest_of(&copy.path)?;
+        let update = h
+            .with(|c| {
+                c.keys()?;
+                ensure(c.session_generation == generation, Error::Locked)?;
+                let key = format!("{OPEN}{nonce}");
+                let stored: Option<OpenCopy> = c.workspace.private(c.keys()?, &key)?;
+                if stored.as_ref() != Some(&copy) {
+                    return Ok(None);
+                }
+                let Some((digest, size)) = current else {
+                    c.workspace.delete_private(&key)?;
+                    return Ok(None);
+                };
+                if digest != copy.sha256 || size != copy.size {
+                    if !copy.changed {
+                        copy.changed = true;
+                        c.save_copy(&nonce, &copy)?;
+                        return Ok(Some(view(&nonce, &copy)));
+                    }
+                } else {
+                    if copy.changed {
+                        copy.changed = false;
+                        c.save_copy(&nonce, &copy)?;
+                    }
+                    if copy.opened_at + OPEN_TTL_MS <= now_ms() {
+                        remove_copy(&copy.path);
+                        c.workspace.delete_private(&key)?;
+                    }
+                }
+                Ok(None)
+            })
+            .await?;
+        changed.extend(update);
+    }
+    Ok(changed)
+}
