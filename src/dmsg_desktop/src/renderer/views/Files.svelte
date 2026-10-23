@@ -1065,8 +1065,8 @@
   {#if linking?.result}
     <div class="grid gap-3">
       <p class="text-[13.5px] leading-relaxed">{t('linkReady')}</p>
-      <div class="flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2">
-        <code class="min-w-0 flex-1 truncate font-mono text-[12px] text-ink" data-testid="files-link-url">{linking.result.url}</code>
+      <div class="flex min-w-0 items-start gap-2 rounded-xl border border-line bg-surface-2 px-3 py-2">
+        <code class="min-w-0 flex-1 whitespace-normal font-mono text-[12px] leading-relaxed text-ink [overflow-wrap:anywhere]" data-testid="files-link-url">{linking.result.url}</code>
         <button class={buttonClass('secondary', 'xs')} onclick={() => copyText(linking?.result.url)} data-testid="files-link-copy"><Icon name="copy" />{t('linkCopy')}</button>
       </div>
       <Notice tone="info">{linking.result.password ? t('linkPasswordSent') : t('linkSendHint')}</Notice>
