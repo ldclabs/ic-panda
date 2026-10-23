@@ -1,6 +1,6 @@
 <script lang="ts">
   import { t } from '$lib/i18n'
-  import { goto } from '$app/navigation'
+  import IconUser from '$lib/components/icons/IconUser1.svelte'
   import { page } from '$app/state'
   import { authStore } from '$lib/stores/auth'
   import { shortId } from '$lib/utils/auth'
@@ -56,69 +56,40 @@
   }
 </script>
 
-<div class="flex flex-col items-center justify-center p-4">
-  <div
-    class="w-full max-w-2xl space-y-8 rounded-lg bg-white p-6 shadow-md dark:bg-neutral-900"
-  >
-    <div class="text-center">
-      <h1 class="text-2xl font-normal text-gray-900 dark:text-white"
-        >{$t('Choose Identity 🔑')}</h1
+<svelte:head><title>{`${$t('Choose identity')} | dMsg`}</title></svelte:head>
+
+<div class="utility-icon" aria-hidden="true"><IconUser /></div>
+<h1>{$t('Choose identity')}</h1>
+{#if error}
+  <p class="utility-status error" role="alert">{$t(error)}</p>
+{:else}
+  <p class="utility-lead">{$t('to connect to')}</p>
+  <p class="utility-domain"><bdi>{origin}</bdi></p>
+  {#if identity.isAuthenticated}
+    <button
+      type="button"
+      class="button primary utility-action"
+      disabled={submitting}
+      onclick={handleDeepLinkSignIn}
+    >
+      <bdi>{shortId(identity.getPrincipal().toText(), true)}</bdi>
+      {#if identity.username}<span>({identity.username})</span>{/if}
+    </button>
+    {#if Date.now() >= identity.expiration - 1000 * 3600 * 48}
+      <p class="utility-status warning"
+        >{$t(
+          'Your identity will expire in less than 48 hours. Please sign in again.'
+        )}</p
       >
-      <p class="mt-2 text-gray-600 dark:text-gray-400">
-        {$t('to connect to')}
-        <span class="text-2xl font-bold text-pretty break-words">{origin}</span>
-      </p>
-    </div>
-
-    {#if identity.isAuthenticated}
-      <div class="!mt-8 flex flex-col items-center">
-        <button
-          type="button"
-          class="variant-filled-primary btn w-96 max-w-full"
-          disabled={submitting || error != ''}
-          onclick={handleDeepLinkSignIn}
-        >
-          <span>{shortId(identity.getPrincipal().toText(), true)}</span>
-          {#if identity.username}
-            <span class="truncate">
-              ({identity.username})
-            </span>
-          {/if}
-        </button>
-        {#if Date.now() >= identity.expiration - 1000 * 3600 * 48}
-          <p class="text-error-500 mt-2 text-sm">
-            {$t(
-              'Your identity will expire in less than 48 hours. Please sign in again.'
-            )}
-          </p>
-        {/if}
-      </div>
     {/if}
-    {#if !identity.isAuthenticated || Date.now() >= identity.expiration - 1000 * 3600 * 24}
-      <div class="!mt-8 flex flex-col items-center space-y-6">
-        <button
-          type="button"
-          class="variant-filled-primary btn btn-lg w-80"
-          disabled={submitting}
-          onclick={() => {
-            authStore.signIn2('https://id.ai/authorize')
-          }}
-        >
-          Internet Identity
-        </button>
-      </div>
-    {/if}
-    {#if error}
-      <div class="mt-8 flex flex-col items-center space-y-4">
-        <p class="text-error-500 mt-2 text-lg">{$t(error)}</p>
-      </div>
-    {/if}
-
-    <div class="mt-6 text-center">
-      <button class="text-sm" onclick={() => goto('/')}>
-        {$t('Return to the')} <span class="font-bold">dMsg.net</span>
-        {$t('home page')}
-      </button>
-    </div>
-  </div>
-</div>
+  {/if}
+  {#if !identity.isAuthenticated || Date.now() >= identity.expiration - 1000 * 3600 * 24}
+    <button
+      type="button"
+      class="button primary utility-action"
+      disabled={submitting}
+      onclick={() => authStore.signIn2('https://id.ai/authorize')}
+      >Internet Identity</button
+    >
+  {/if}
+{/if}

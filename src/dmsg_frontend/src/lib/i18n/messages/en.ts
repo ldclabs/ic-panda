@@ -324,7 +324,7 @@ const en = {
   'Back to archive information': 'Back to archive information',
   'Loading legacy messages…': 'Loading legacy messages…',
   'Could not load legacy messages.': 'Could not load legacy messages.',
-  'Choose Identity 🔑': 'Choose Identity 🔑',
+  'Choose identity': 'Choose identity',
   'to connect to': 'to connect to',
   'Your identity will expire in less than 48 hours. Please sign in again.':
     'Your identity will expire in less than 48 hours. Please sign in again.',
@@ -858,6 +858,33 @@ const en = {
   'What is dMsg?': 'What is dMsg?',
   'The relay could not be reached. Check your connection and try again.':
     'The relay could not be reached. Check your connection and try again.',
+  'Check who signed, what was signed, and whether the evidence verifies.':
+    'Check who signed, what was signed, and whether the evidence verifies.',
+  'Choose the JSON bundle exported from dMsg.':
+    'Choose the JSON bundle exported from dMsg.',
+  'Add the original file to compare its signed digest.':
+    'Add the original file to compare its signed digest.',
+  'Verification runs in your browser. Your files are never uploaded.':
+    'Verification runs in your browser. Your files are never uploaded.',
+  'Choose file': 'Choose file',
+  'Change file': 'Change file',
+  'Remove file': 'Remove file',
+  'Signer': 'Signer',
+  'View profile': 'View profile',
+  'Not checked': 'Not checked',
+  'Passed': 'Passed',
+  'Failed': 'Failed',
+  'Verification details': 'Verification details',
+  'Account in bundle': 'Account in bundle',
+  'Signing key fingerprint': 'Signing key fingerprint',
+  'User home': 'User home',
+  'Certified at': 'Certified at',
+  'Could not verify': 'Could not verify',
+  'Ready to verify': 'Ready to verify',
+  'Checking the signature and authorization evidence…':
+    'Checking the signature and authorization evidence…',
+  'Select an attestation bundle to see the signer and verification results here.':
+    'Select an attestation bundle to see the signer and verification results here.',
   'Verify a dMsg signature': 'Verify a dMsg signature',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.',

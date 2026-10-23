@@ -334,7 +334,7 @@ export default {
   'Loading legacy messages…': 'Chargement des anciens messages…',
   'Could not load legacy messages.':
     'Impossible de charger les anciens messages.',
-  'Choose Identity 🔑': 'Choisir une identité 🔑',
+  'Choose identity': 'Choisir une identité',
   'to connect to': 'pour se connecter à',
   'Your identity will expire in less than 48 hours. Please sign in again.':
     'Votre identité expire dans moins de 48 heures. Reconnectez-vous.',
@@ -879,6 +879,33 @@ export default {
   'What is dMsg?': 'Qu’est-ce que dMsg ?',
   'The relay could not be reached. Check your connection and try again.':
     'Le relais est injoignable. Vérifiez votre connexion et réessayez.',
+  'Check who signed, what was signed, and whether the evidence verifies.':
+    'Vérifiez qui a signé, le contenu signé et les preuves associées.',
+  'Choose the JSON bundle exported from dMsg.':
+    'Sélectionnez le fichier JSON exporté depuis dMsg.',
+  'Add the original file to compare its signed digest.':
+    'Ajoutez le fichier original pour comparer son empreinte à celle signée.',
+  'Verification runs in your browser. Your files are never uploaded.':
+    'La vérification se fait dans votre navigateur. Vos fichiers ne sont jamais envoyés.',
+  'Choose file': 'Choisir un fichier',
+  'Change file': 'Changer de fichier',
+  'Remove file': 'Retirer le fichier',
+  'Signer': 'Signataire',
+  'View profile': 'Voir le profil',
+  'Not checked': 'Non vérifié',
+  'Passed': 'Validé',
+  'Failed': 'Échec',
+  'Verification details': 'Détails de la vérification',
+  'Account in bundle': 'Compte indiqué dans le fichier',
+  'Signing key fingerprint': 'Empreinte de la clé de signature',
+  'User home': 'Service du compte',
+  'Certified at': 'Date de certification',
+  'Could not verify': 'Vérification impossible',
+  'Ready to verify': 'Prêt à vérifier',
+  'Checking the signature and authorization evidence…':
+    'Vérification de la signature et des preuves d’autorisation…',
+  'Select an attestation bundle to see the signer and verification results here.':
+    'Sélectionnez un fichier d’attestation pour afficher le signataire et les résultats ici.',
   'Verify a dMsg signature': 'Vérifier une signature dMsg',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     'Vérifiez un paquet d’attestation exporté depuis dMsg. La vérification se fait dans ce navigateur : le fichier que vous comparez est haché ici et n’est jamais envoyé.',

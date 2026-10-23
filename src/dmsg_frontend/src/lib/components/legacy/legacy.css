@@ -95,10 +95,13 @@
   font-size: 14px;
 }
 .legacy-app .archive-empty {
-  padding: 32px;
+  padding: 28px;
   max-width: 560px;
-  margin: auto;
-  text-align: center;
+  margin: 40px auto;
+  text-align: start;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--canvas);
 }
 .legacy-app .archive-empty p {
   margin-top: 16px;
@@ -151,5 +154,32 @@
   .legacy-app .archive-header nav {
     order: 3;
     gap: 12px;
+  }
+}
+
+.legacy-app .archive-empty h1 {
+  font-size: 26px;
+  line-height: 1.35;
+}
+.legacy-app .archive-empty .button {
+  margin-top: 20px;
+}
+.legacy-app .archive-empty .text-link {
+  display: flex;
+  margin-top: 12px;
+}
+.legacy-app .archive-header nav > a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.legacy-app .archive-header nav > a[aria-current='page'] {
+  text-decoration: underline;
+  text-underline-offset: 8px;
+}
+@media (max-width: 600px) {
+  .legacy-app .archive-empty {
+    margin: 24px 16px;
+    padding: 20px;
   }
 }

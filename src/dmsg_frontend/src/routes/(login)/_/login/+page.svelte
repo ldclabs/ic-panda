@@ -4,6 +4,8 @@
   // session and holds no key, and returns only to a loopback callback.
   // Internet Identity ignores ICRC-34 targets, so none are asked for here:
   // the client limits the chain to its canisters itself.
+  import UtilityPage from '$lib/components/site/UtilityPage.svelte'
+  import IconUser from '$lib/components/icons/IconUser1.svelte'
   import { t } from '$lib/i18n'
   import { complete, takeFragment } from '$lib/login/flow'
   import {
@@ -59,43 +61,43 @@
   <title>{$t('Sign in to dMsg on this computer')}</title>
 </svelte:head>
 
-<main class="flex min-h-screen items-center justify-center p-4">
-  <div
-    class="w-full max-w-lg space-y-6 rounded-lg bg-white p-6 text-center shadow-md dark:bg-neutral-900"
-  >
-    <h1 class="text-2xl text-gray-900 dark:text-white">
-      {$t('Sign in to dMsg on this computer')}
-    </h1>
-    {#if invalid}
-      <p class="text-error-500">
-        {$t(
-          'This login link is invalid or incomplete. Start the login again from the dMsg app.'
-        )}
-      </p>
-    {:else if request}
-      <p class="text-gray-600 dark:text-gray-400">
-        {$t('Connecting to dMsg on this computer (port {port}).', {
-          port: callbackPort(request.next_url)
-        })}
-      </p>
-      <p class="text-sm break-all text-gray-500">
-        {$t('Identity domain: {origin}', { origin: request.derivation_origin })}
-      </p>
-      <button
-        type="button"
-        class="variant-filled-primary btn w-80 max-w-full"
-        disabled={busy}
-        onclick={start}
-      >
-        {busy
-          ? $t('Waiting for Internet Identity…')
-          : $t('Continue with Internet Identity')}
-      </button>
-      <p class="text-xs text-gray-500">
-        {$t(
-          'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.'
-        )}
-      </p>
-    {/if}
-  </div>
-</main>
+<UtilityPage>
+  <div class="utility-icon" aria-hidden="true"><IconUser /></div>
+  <h1>{$t('Sign in to dMsg on this computer')}</h1>
+  {#if invalid}
+    <p class="utility-status error" role="alert">
+      {$t(
+        'This login link is invalid or incomplete. Start the login again from the dMsg app.'
+      )}
+    </p>
+  {:else if request}
+    <p class="utility-lead"
+      >{$t('Connecting to dMsg on this computer (port {port}).', {
+        port: callbackPort(request.next_url)
+      })}</p
+    >
+    <p class="utility-domain"
+      >{$t('Identity domain: {origin}', {
+        origin: request.derivation_origin
+      })}</p
+    >
+    <button
+      type="button"
+      class="button primary utility-action"
+      disabled={busy}
+      onclick={start}
+      aria-busy={busy}
+    >
+      {busy
+        ? $t('Waiting for Internet Identity…')
+        : $t('Continue with Internet Identity')}
+    </button>
+    <p class="utility-note"
+      >{$t(
+        'Internet Identity lets the dMsg app on this computer act for you. This page keeps no session.'
+      )}</p
+    >
+  {:else}
+    <p class="utility-status" role="status">{$t('Loading…')}</p>
+  {/if}
+</UtilityPage>

@@ -94,7 +94,6 @@
   <header class="site-header">
     <div class="wrap nav-wrap">
       <Brand />
-      <LocaleSwitcher />
       <nav class="legal-nav" aria-label={$t('Policies and help')}>
         {#each pages as item (item.kind)}
           <a
@@ -104,6 +103,7 @@
           >
         {/each}
       </nav>
+      <LocaleSwitcher />
     </div>
   </header>
 
@@ -117,54 +117,74 @@
           dir={doc ? localeDir(doc.locale) : undefined}
           >{doc?.title || page.label}</h1
         >
+        <p class="legal-description">{page.description}</p>
         {#if kind === 'terms'}
-          <div class="terms-digest">
-            <dl>
-              <div>
-                <dt>{$t('Version')}</dt>
-                <dd>{currentTerms.version}</dd>
-              </div>
-              <div>
-                <dt>SHA-256</dt>
-                <dd class="digest-value">
-                  <code dir="ltr">{currentTerms.sha256}</code>
-                  <button
-                    class="icon-button"
-                    onclick={copyDigest}
-                    aria-label={copied ? $t('Copied') : $t('Copy SHA-256')}
-                    ><Icon name={copied ? 'check' : 'copy'} /></button
-                  >
-                </dd>
-              </div>
-            </dl>
-            <p class="small"
-              >{$t(
-                'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:'
-              )}</p
+          <details class="terms-digest">
+            <summary
+              ><span>{$t('Version')} {currentTerms.version}</span>{$t(
+                'Verification details'
+              )}</summary
             >
-            <pre dir="ltr"><code>{verifyCommand}</code></pre>
-            <div class="terms-links">
-              <a
-                class="text-link"
-                href={currentTerms.path}
-                target="_blank"
-                rel="noopener"
-                >{$t('Open the English text')}<Icon name="arrow-up-right" /></a
+            <div class="digest-body">
+              <dl>
+                <div>
+                  <dt>{$t('Version')}</dt>
+                  <dd>{currentTerms.version}</dd>
+                </div>
+                <div>
+                  <dt>SHA-256</dt>
+                  <dd class="digest-value">
+                    <code dir="ltr">{currentTerms.sha256}</code>
+                    <button
+                      class="icon-button"
+                      onclick={copyDigest}
+                      aria-label={copied ? $t('Copied') : $t('Copy SHA-256')}
+                      ><Icon name={copied ? 'check' : 'copy'} /></button
+                    >
+                  </dd>
+                </div>
+              </dl>
+              <p class="small"
+                >{$t(
+                  'dMsg commerce records this digest with every purchase. To check it, download the English text and compute its SHA-256:'
+                )}</p
               >
-              {#if earlierTerms.length > 0}
-                <span class="small">{$t('Earlier versions')}</span>
-                {#each earlierTerms as version (version.version)}
-                  <a class="text-link" href={version.path} target="_blank"
-                    >{`v${version.version}`}</a
-                  >
-                {/each}
-              {/if}
+              <pre dir="ltr"><code>{verifyCommand}</code></pre>
+              <div class="terms-links">
+                <a
+                  class="text-link"
+                  href={currentTerms.path}
+                  target="_blank"
+                  rel="noopener"
+                  >{$t('Open the English text')}<Icon
+                    name="arrow-up-right"
+                  /></a
+                >
+                {#if earlierTerms.length > 0}
+                  <span class="small">{$t('Earlier versions')}</span>
+                  {#each earlierTerms as version (version.version)}
+                    <a class="text-link" href={version.path} target="_blank"
+                      >{`v${version.version}`}</a
+                    >
+                  {/each}
+                {/if}
+              </div>
             </div>
-          </div>
+          </details>
         {/if}
       </section>
 
       <div class="legal-layout">
+        {#if doc && doc.sections.length > 0}
+          <details class="legal-mobile-toc">
+            <summary>{$t('On this page')}</summary>
+            <nav aria-label={$t('On this page')}>
+              {#each doc.sections as section (section.id)}
+                <a href={`#${section.id}`}>{section.title}</a>
+              {/each}
+            </nav>
+          </details>
+        {/if}
         <article
           class="legal-doc"
           lang={doc?.locale}

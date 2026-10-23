@@ -1,30 +1,30 @@
 <script lang="ts">
   import { t } from '$lib/i18n'
-  import { goto } from '$app/navigation'
   import { page } from '$app/state'
-  import IconArrowLeftSLine from '$lib/components/icons/IconArrowLeftSLine.svelte'
-  import IconClose from '$lib/components/icons/IconClose.svelte'
+  import UtilityPage from '$lib/components/site/UtilityPage.svelte'
   import { authStore } from '$lib/stores/auth'
   import { MyMessageState } from '$lib/stores/message'
   import ProfileDetail from '$src/lib/components/messages/ProfileDetail.svelte'
   import { onMount } from 'svelte'
 
-  const year = new Date().getFullYear()
   let myState: MyMessageState | undefined = $state()
-  let isDark = $derived(document.documentElement.classList.contains('dark'))
+  let error = $state('')
   let username = $derived((page?.params || {})['username'] || '')
   let pageKey = $derived($authStore.identity.getPrincipal() + ':' + username)
 
-  function onCloseHandler() {
-    goto('/legacy')
+  async function load() {
+    error = ''
+    try {
+      myState = await MyMessageState.load()
+    } catch (cause) {
+      error =
+        cause instanceof Error
+          ? cause.message
+          : 'Could not load legacy profile.'
+    }
   }
-
-  function onGobackHandler() {
-    window.history.back()
-  }
-
-  onMount(async () => {
-    myState = await MyMessageState.load()
+  onMount(() => {
+    void load()
   })
 </script>
 
@@ -33,64 +33,34 @@
   <meta name="robots" content="noindex" />
 </svelte:head>
 
-<div class="mx-auto flex min-h-dvh w-full max-w-3xl flex-col">
-  <div
-    class="relative flex w-full flex-[1_0_auto] flex-col items-center px-4 pb-12"
-  >
-    <header
-      class="sticky top-0 flex h-[60px] w-full flex-row items-center justify-between px-0 py-2"
-    >
-      <button
-        aria-label={$t('Back')}
-        class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
-        onclick={onGobackHandler}><IconArrowLeftSLine /></button
-      >
-      <button
-        aria-label={$t('Close dialog')}
-        class="text-surface-900-50-token btn btn-icon hover:scale-125 hover:text-black dark:hover:text-white"
-        onclick={onCloseHandler}><IconClose /></button
-      >
-    </header>
+<UtilityPage>
+  <h1>{$t('Legacy profile · Read-only')}</h1>
+  <div class="legacy-profile-content">
     {#key pageKey}
       {#if myState}
-        <p class="mb-6 text-sm">{$t('Legacy profile · Read-only')}</p>
         <ProfileDetail userId={username} {myState} />
+      {:else if error}
+        <p class="utility-status error" role="alert">{$t(error)}</p>
+        <button class="button secondary utility-action" onclick={load}
+          >{$t('Try again')}</button
+        >
       {:else}
-        <div class="placeholder-circle mt-2 w-40 animate-pulse"></div>
+        <p class="utility-status" role="status"
+          >{$t('Loading legacy profile…')}</p
+        >
       {/if}
     {/key}
   </div>
-  <footer
-    id="page-footer"
-    class="text-surface-900-50-token shrink-0 px-4 py-12"
+  <a class="text-link archive-back" href="/legacy"
+    >{$t('Back to archive information')}</a
   >
-    <div class="flex h-16 flex-col items-center">
-      <p class="flex flex-row items-center gap-1">
-        <span class="text-sm">© 2024-{year}</span>
-        <a class="" href="https://panda.fans" target="_blank"
-          ><img
-            class="w-28"
-            src={isDark
-              ? '/_assets/icpanda-dao-white.svg'
-              : '/_assets/icpanda-dao.svg'}
-            alt="ICPanda DAO"
-          /></a
-        >
-      </p>
-      <p class="mt-2 text-center text-sm antialiased">
-        {$t('Breathing life into sovereign AI.')}<br />{$t(
-          'We are building the open-source stack for agents to remember, transact, and evolve as first-class citizens in Web3.'
-        )}<br />
-        <a
-          class="underline underline-offset-4"
-          href="https://anda.ai"
-          target="_blank">Anda.AI</a
-        >
-        <span class="mx-1">|</span>
-        <a class="underline underline-offset-4" href="https://dmsg.net"
-          >dMsg.net</a
-        >
-      </p>
-    </div>
-  </footer>
-</div>
+</UtilityPage>
+
+<style>
+  .legacy-profile-content {
+    margin-top: 28px;
+  }
+  .archive-back {
+    margin-top: 24px;
+  }
+</style>

@@ -318,7 +318,7 @@ export default {
   'Back to archive information': 'العودة إلى معلومات الأرشيف',
   'Loading legacy messages…': 'جارٍ تحميل الرسائل القديمة…',
   'Could not load legacy messages.': 'تعذّر تحميل الرسائل القديمة.',
-  'Choose Identity 🔑': 'اختر الهوية 🔑',
+  'Choose identity': 'اختر الهوية',
   'to connect to': 'للاتصال بـ',
   'Your identity will expire in less than 48 hours. Please sign in again.':
     'تنتهي صلاحية هويتك خلال أقل من 48 ساعة. سجّل الدخول مجددًا.',
@@ -842,6 +842,33 @@ export default {
   'What is dMsg?': 'ما هو dMsg؟',
   'The relay could not be reached. Check your connection and try again.':
     'تعذّر الوصول إلى المرحّل. تحقق من اتصالك وحاول مجددًا.',
+  'Check who signed, what was signed, and whether the evidence verifies.':
+    'تحقّق من هوية الموقّع والمحتوى الموقّع وصحة الأدلة.',
+  'Choose the JSON bundle exported from dMsg.':
+    'اختر حزمة JSON المصدّرة من dMsg.',
+  'Add the original file to compare its signed digest.':
+    'أضف الملف الأصلي لمقارنة بصمته بالبصمة الموقّعة.',
+  'Verification runs in your browser. Your files are never uploaded.':
+    'يتم التحقّق في متصفحك. لا تُرفع ملفاتك إلى أي خادم.',
+  'Choose file': 'اختيار ملف',
+  'Change file': 'تغيير الملف',
+  'Remove file': 'إزالة الملف',
+  'Signer': 'الموقّع',
+  'View profile': 'عرض الملف الشخصي',
+  'Not checked': 'لم يُتحقّق منه',
+  'Passed': 'اجتاز التحقّق',
+  'Failed': 'فشل التحقّق',
+  'Verification details': 'تفاصيل التحقّق',
+  'Account in bundle': 'الحساب الوارد في الحزمة',
+  'Signing key fingerprint': 'بصمة مفتاح التوقيع',
+  'User home': 'خدمة حساب المستخدم',
+  'Certified at': 'وقت التصديق',
+  'Could not verify': 'تعذّر التحقّق',
+  'Ready to verify': 'جاهز للتحقّق',
+  'Checking the signature and authorization evidence…':
+    'جارٍ التحقّق من التوقيع وأدلة التفويض…',
+  'Select an attestation bundle to see the signer and verification results here.':
+    'اختر حزمة إثبات لعرض الموقّع ونتائج التحقّق هنا.',
   'Verify a dMsg signature': 'التحقق من توقيع dMsg',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     'تحقّق من حزمة إثبات صُدّرت من dMsg. يجري التحقق في هذا المتصفح: تُحسب بصمة الملف الذي تقارنه هنا ولا يُرفع أبدًا.',

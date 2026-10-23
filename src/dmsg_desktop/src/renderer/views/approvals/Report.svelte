@@ -2,9 +2,10 @@
   import Icon from '../../components/Icon.svelte'
   import Fact from '../../components/page/Fact.svelte'
   import Id from '../../components/page/Id.svelte'
+  import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t, type Label } from '../../i18n/index.svelte'
-  import { when } from '../../rpc'
+  import { bridge, errorText, when } from '../../rpc'
 
   /**
    * A bundle's verification, check by check (PRD S05): content against the
@@ -13,6 +14,23 @@
    * present status, which never undoes a signature that verifies.
    */
   let { report, save }: { report: any; save?: () => unknown } = $props()
+
+  const signerProfile = $derived(
+    report.signature && report.evidence && report.binding
+      ? `https://dmsg.net/${encodeURIComponent(report.account)}`
+      : null
+  )
+
+  async function openProfile(event: MouseEvent) {
+    event.preventDefault()
+    const url = signerProfile
+    if (!url) return
+    try {
+      await bridge(() => window.dmsg.openUrl(url))
+    } catch (e) {
+      toast(() => errorText(e))
+    }
+  }
 
   const contents: Record<string, Label> = {
     matches_file: 'contentMatches',
@@ -63,6 +81,11 @@
   </ul>
   <dl class="divide-y divide-line px-4">
     <Fact label={t('account')}><Id id={report.account} full /></Fact>
+    {#if signerProfile}
+      <Fact label={t('publicProfile')}>
+        <a href={signerProfile} onclick={openProfile} class="inline-flex min-h-8 items-center gap-1.5 text-forest underline underline-offset-4 hover:text-ink" data-testid="verify-signer-profile"><bdi dir="ltr">{signerProfile}</bdi><Icon name="external" /></a>
+      </Fact>
+    {/if}
     {#if report.approved_at}<Fact label={t('approvedAt')}>{when(report.approved_at)}</Fact>{/if}
     {#if report.origin}<Fact label={t('origin')}><bdi dir="ltr" class="font-mono text-[12.5px]">{report.origin}</bdi></Fact>{/if}
     {#if report.statement}<Fact label={t('statement')}>{report.statement.profile}: {summary(report.statement)}</Fact>{/if}

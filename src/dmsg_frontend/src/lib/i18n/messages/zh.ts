@@ -315,7 +315,7 @@ export default {
   'Back to archive information': '返回归档说明',
   'Loading legacy messages…': '正在加载旧版消息…',
   'Could not load legacy messages.': '无法加载旧版消息。',
-  'Choose Identity 🔑': '选择身份 🔑',
+  'Choose identity': '选择身份',
   'to connect to': '以连接至',
   'Your identity will expire in less than 48 hours. Please sign in again.':
     '你的身份将在 48 小时内过期，请重新登录。',
@@ -827,6 +827,33 @@ export default {
   'What is dMsg?': 'dMsg 是什么？',
   'The relay could not be reached. Check your connection and try again.':
     '无法连接中继。请检查网络后重试。',
+  'Check who signed, what was signed, and whether the evidence verifies.':
+    '查看签发人、签署内容与证据核验结果。',
+  'Choose the JSON bundle exported from dMsg.':
+    '选择从 dMsg 导出的 JSON 证据包。',
+  'Add the original file to compare its signed digest.':
+    '添加原文件，比对签署时的文件摘要。',
+  'Verification runs in your browser. Your files are never uploaded.':
+    '核验在浏览器中完成，文件不会上传。',
+  'Choose file': '选择文件',
+  'Change file': '更换文件',
+  'Remove file': '移除文件',
+  'Signer': '签发人',
+  'View profile': '查看个人主页',
+  'Not checked': '待核验',
+  'Passed': '通过',
+  'Failed': '未通过',
+  'Verification details': '核验详情',
+  'Account in bundle': '证据包中的账户',
+  'Signing key fingerprint': '签名密钥指纹',
+  'User home': '用户所属服务',
+  'Certified at': '认证时间',
+  'Could not verify': '暂时无法核验',
+  'Ready to verify': '等待核验',
+  'Checking the signature and authorization evidence…':
+    '正在核对签名与授权证据…',
+  'Select an attestation bundle to see the signer and verification results here.':
+    '选择证据包并开始核验，即可在这里查看签发人与核验结果。',
   'Verify a dMsg signature': '核验 dMsg 签名',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     '核验从 dMsg 导出的证据包。核验在本浏览器中完成：用于比对的文件只在这里计算摘要，不会上传。',

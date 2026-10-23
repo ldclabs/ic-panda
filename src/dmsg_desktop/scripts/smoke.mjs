@@ -3099,6 +3099,12 @@ smoke: try {
   await main.waitForSelector('[data-testid="verify-report"]')
   assert.ok((await main.textContent('[data-testid="verify-report"]')).includes('https://dmsg.net'))
   assert.equal(await main.textContent('[data-testid="verify-result"]'), 'The bundle verifies')
+  const signerProfile = `https://dmsg.net/${account}`
+  assert.equal(await main.getAttribute('[data-testid="verify-signer-profile"]', 'href'), signerProfile)
+  await main.click('[data-testid="verify-signer-profile"]')
+  for (let i = 0; i < 50 && !(await app.evaluate(() => globalThis.__opened)).includes(signerProfile); i++) await new Promise((r) => setTimeout(r, 100))
+  assert.ok((await app.evaluate(() => globalThis.__opened)).includes(signerProfile))
+  await app.evaluate(() => { globalThis.__opened.pop() })
   // Against a changed file, each check reports on its own: the content fails, the signature stands.
   await answer('__open', join(picks, 'bundle.json'))
   await answer('__open', join(picks, 'release.tar'))

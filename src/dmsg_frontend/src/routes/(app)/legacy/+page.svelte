@@ -62,7 +62,7 @@
       ></div
     ></header
   >
-  <main class="wrap">
+  <main class="wrap legacy-main">
     <section class="section legacy-intro">
       <div class="eyebrow section-label">{$t('Legacy app / Read-only')}</div>
       <h1>{$t('Your history.')}<br />{$t('Still in your hands.')}</h1>
@@ -135,32 +135,50 @@
 </div>
 
 <style>
+  .legacy-main {
+    max-width: 1040px;
+  }
   .legacy-intro {
-    max-width: 780px;
+    max-width: 760px;
+    padding-block: 40px 36px;
   }
   .legacy-intro h1 {
-    font-size: clamp(44px, 7vw, 80px);
+    font-size: clamp(30px, 4.4vw, 44px);
     font-weight: 650;
-    margin-bottom: 32px;
+    margin-bottom: 20px;
   }
   .legacy-intro .lead {
-    font-size: 21px;
+    font-size: 17px;
     max-width: 580px;
   }
   .legacy-intro > p {
     max-width: 620px;
   }
   .hero-actions {
-    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+    margin-top: 24px;
+  }
+  .legacy-entry :global(.migration) {
+    padding-block: 32px;
+  }
+  .legacy-entry :global(.migration h2) {
+    font-size: 24px;
+    line-height: 1.4;
+  }
+  .legacy-entry :global(.migration > div > p) {
+    font-size: 14px;
   }
   .legacy-guidance {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 40px;
+    gap: 28px;
     padding: 40px 0 80px;
   }
   .legacy-guidance h2 {
-    font-size: 22px;
+    font-size: 20px;
     margin-bottom: 16px;
   }
   .legacy-guidance p {
@@ -185,7 +203,7 @@
       gap: 24px;
     }
     .legacy-intro .lead {
-      font-size: 19px;
+      font-size: 16px;
     }
   }
   @media (max-width: 600px) {

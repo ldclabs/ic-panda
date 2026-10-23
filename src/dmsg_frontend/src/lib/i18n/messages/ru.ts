@@ -328,7 +328,7 @@ export default {
   'Back to archive information': 'Назад к информации об архиве',
   'Loading legacy messages…': 'Загрузка старых сообщений…',
   'Could not load legacy messages.': 'Не удалось загрузить старые сообщения.',
-  'Choose Identity 🔑': 'Выберите идентичность 🔑',
+  'Choose identity': 'Выберите идентичность',
   'to connect to': 'для подключения к',
   'Your identity will expire in less than 48 hours. Please sign in again.':
     'Ваша идентичность истечёт менее чем через 48 часов. Войдите снова.',
@@ -867,6 +867,33 @@ export default {
   'What is dMsg?': 'Что такое dMsg?',
   'The relay could not be reached. Check your connection and try again.':
     'Не удалось связаться с ретранслятором. Проверьте соединение и попробуйте снова.',
+  'Check who signed, what was signed, and whether the evidence verifies.':
+    'Узнайте, кто и что подписал, и проверьте подтверждающие данные.',
+  'Choose the JSON bundle exported from dMsg.':
+    'Выберите JSON-пакет, экспортированный из dMsg.',
+  'Add the original file to compare its signed digest.':
+    'Добавьте исходный файл для сравнения с подписанным хешем.',
+  'Verification runs in your browser. Your files are never uploaded.':
+    'Проверка выполняется в браузере. Файлы никуда не загружаются.',
+  'Choose file': 'Выбрать файл',
+  'Change file': 'Заменить файл',
+  'Remove file': 'Убрать файл',
+  'Signer': 'Подписант',
+  'View profile': 'Открыть профиль',
+  'Not checked': 'Не проверено',
+  'Passed': 'Пройдено',
+  'Failed': 'Не пройдено',
+  'Verification details': 'Подробности проверки',
+  'Account in bundle': 'Аккаунт в пакете',
+  'Signing key fingerprint': 'Отпечаток ключа подписи',
+  'User home': 'Сервис аккаунта',
+  'Certified at': 'Время сертификации',
+  'Could not verify': 'Не удалось проверить',
+  'Ready to verify': 'Готово к проверке',
+  'Checking the signature and authorization evidence…':
+    'Проверка подписи и подтверждения авторизации…',
+  'Select an attestation bundle to see the signer and verification results here.':
+    'Выберите пакет подтверждения, чтобы увидеть подписанта и результаты проверки.',
   'Verify a dMsg signature': 'Проверка подписи dMsg',
   'Check an attestation bundle exported from dMsg. It is verified in this browser: a file you compare is hashed here and never uploaded.':
     'Проверьте пакет заверения, экспортированный из dMsg. Проверка идёт в этом браузере: хеш сравниваемого файла вычисляется здесь, сам файл не загружается.',

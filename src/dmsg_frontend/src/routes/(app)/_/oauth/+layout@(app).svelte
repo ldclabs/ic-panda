@@ -1,38 +1,7 @@
 <script lang="ts">
-  import { t } from '$lib/i18n'
-  let { children } = $props()
-  const year = new Date().getFullYear()
-  let isDark = $derived(document.documentElement.classList.contains('dark'))
+  import UtilityPage from '$lib/components/site/UtilityPage.svelte'
+  import type { Snippet } from 'svelte'
+  let { children }: { children: Snippet } = $props()
 </script>
 
-{@render children()}
-<footer id="page-footer" class="text-surface-400 px-4 pt-12 pb-24">
-  <div class="flex h-16 flex-col items-center">
-    <p class="flex flex-row items-center gap-1">
-      <span class="text-sm">© 2024-{year}</span>
-      <a class="" href="https://panda.fans" target="_blank"
-        ><img
-          class="w-28"
-          src={isDark
-            ? '/_assets/icpanda-dao-white.svg'
-            : '/_assets/icpanda-dao.svg'}
-          alt="ICPanda DAO"
-        /></a
-      >
-    </p>
-    <p class="mt-2 text-center text-sm antialiased">
-      {$t('Breathing life into sovereign AI.')}<br />{$t(
-        'We are building the open-source stack for agents to remember, transact, and evolve as first-class citizens in Web3.'
-      )}<br />
-      <a
-        class="underline underline-offset-4"
-        href="https://anda.ai"
-        target="_blank">Anda.AI</a
-      >
-      <span class="mx-1">|</span>
-      <a class="underline underline-offset-4" href="https://dmsg.net"
-        >dMsg.net</a
-      >
-    </p>
-  </div>
-</footer>
+<UtilityPage>{@render children()}</UtilityPage>

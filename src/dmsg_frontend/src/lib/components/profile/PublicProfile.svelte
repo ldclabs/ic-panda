@@ -2,7 +2,7 @@
   import Brand from '$lib/components/landing/Brand.svelte'
   import '$lib/components/landing/site.css'
   import LocaleSwitcher from '$lib/i18n/LocaleSwitcher.svelte'
-  import { t } from '$lib/i18n'
+  import { locale, t } from '$lib/i18n'
   import { APP_ORIGIN } from '$lib/constants'
   import { md } from '$lib/utils/markdown'
   import {
@@ -215,7 +215,7 @@
               >
               <div
                 ><dt>{$t('Updated')}</dt><dd
-                  >{new Date(profile.updated_at).toLocaleString()}</dd
+                  >{new Date(profile.updated_at).toLocaleString($locale)}</dd
                 ></div
               >
             </dl>
@@ -242,8 +242,12 @@
 <style>
   .profile-wrap {
     max-width: 760px;
-    margin: auto;
-    padding: 64px 28px 48px;
+    width: calc(100% - 48px);
+    margin: 40px auto;
+    padding: 32px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #fff;
   }
   .eyebrow {
     font-size: 12px;
@@ -252,30 +256,30 @@
   }
   .identity {
     display: flex;
-    gap: 28px;
+    gap: 24px;
     align-items: center;
-    margin: 36px 0;
+    margin: 24px 0;
   }
   .identity-text {
     min-width: 0;
   }
   h1 {
-    font-size: clamp(28px, 5vw, 44px);
+    font-size: clamp(28px, 4vw, 36px);
     overflow-wrap: anywhere;
   }
   .avatar {
-    width: 112px;
-    height: 112px;
+    width: 88px;
+    height: 88px;
     border-radius: 50%;
     object-fit: cover;
-    flex: 0 0 112px;
+    flex: 0 0 88px;
     background: var(--pale);
   }
   .monogram {
     display: grid;
     place-items: center;
     color: var(--action);
-    font-size: 44px;
+    font-size: 36px;
   }
   .identity .handle {
     margin: 8px 0;
@@ -292,7 +296,7 @@
   .bio {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    font-size: 18px;
+    font-size: 16px;
   }
   .bio a {
     color: var(--action);
@@ -315,15 +319,18 @@
   }
   .profile-links a {
     display: flex;
-    gap: 20px;
+    align-items: center;
+    gap: 16px;
     justify-content: space-between;
-    padding: 14px 0;
+    padding: 16px 0;
     overflow-wrap: anywhere;
   }
   .verification {
-    border-top: 1px solid var(--line);
-    padding-top: 24px;
-    margin: 36px 0 28px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--canvas);
+    margin: 24px 0;
   }
   .verification h2 {
     font-size: 17px;
@@ -359,15 +366,14 @@
     overflow-wrap: anywhere;
   }
   .status {
-    min-height: 320px;
-    padding-top: 28px;
+    padding-block: 16px;
   }
   .status h1 {
     margin-bottom: 24px;
   }
   .placeholder {
-    width: 112px;
-    height: 112px;
+    width: 88px;
+    height: 88px;
     border-radius: 50%;
     background: var(--pale);
     margin-bottom: 28px;
@@ -380,19 +386,34 @@
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 28px;
+    gap: 24px;
     padding: 28px;
     font-size: 12px;
     border-top: 1px solid var(--line);
   }
   @media (max-width: 540px) {
     .profile-wrap {
-      padding-top: 36px;
+      width: calc(100% - 32px);
+      margin-block: 24px;
+      padding: 24px 20px;
     }
     .identity {
       align-items: flex-start;
-      flex-direction: column;
-      gap: 18px;
+      gap: 16px;
+    }
+    .avatar {
+      width: 64px;
+      height: 64px;
+      flex-basis: 64px;
+    }
+    h1 {
+      font-size: 26px;
+    }
+    .profile-actions {
+      display: grid;
+    }
+    .verification {
+      padding: 16px;
     }
     dl div {
       grid-template-columns: minmax(0, 1fr);
