@@ -2183,6 +2183,91 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn channel_readers_keep_running_while_scheduler_waits_for_client() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, relay, _ic) = stalled(&dir).await;
+        let mut ledgers = std::collections::BTreeMap::new();
+        {
+            let mut client = daemon.client().lock().await;
+            for n in 1..=5 {
+                let id = format!("{n:064x}");
+                ledgers.insert(
+                    id.clone(),
+                    dmsg_client::testing::joined_channel(&mut client, &id),
+                );
+            }
+        }
+        let background = tokio::spawn(crate::channels::run(daemon.clone()));
+        let mut sockets = vec![];
+        for _ in 0..4 {
+            let (mut socket, _) = tokio::time::timeout(Duration::from_secs(5), relay.accept())
+                .await
+                .expect("four channels should start without waiting for each other's response")
+                .unwrap();
+            let mut bytes = vec![];
+            loop {
+                let mut buffer = [0; 4096];
+                let n = socket.read(&mut buffer).await.unwrap();
+                assert!(n > 0);
+                bytes.extend_from_slice(&buffer[..n]);
+                if bytes.windows(4).any(|b| b == b"\r\n\r\n") {
+                    break;
+                }
+            }
+            let request = String::from_utf8(bytes).unwrap();
+            let path = request.split_whitespace().nth(1).unwrap();
+            let id = path.strip_prefix("/v1/channels/").unwrap();
+            sockets.push((socket, ledgers[id].clone()));
+        }
+        assert!(
+            tokio::time::timeout(Duration::from_millis(50), relay.accept())
+                .await
+                .is_err(),
+            "the fifth channel waits for a slot"
+        );
+        let (mut socket, ledger) = sockets.pop().unwrap();
+        // Deliberately hold the client until a reader has queued to settle
+        // its reply, then make the scheduler queue for the same client.
+        daemon.under_lock(async |_| {
+            let body = json!({"ok": true, "data": ledger}).to_string();
+            socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            daemon.hint_channel("*");
+            tokio::time::sleep(Duration::from_millis(50)).await;
+            Ok(())
+        }).await.unwrap();
+        tokio::time::timeout(
+            Duration::from_secs(2),
+            daemon.call_files("files/tree", &Value::Null),
+        )
+        .await
+        .expect("reader and scheduler must not deadlock on the queued mutex permit")
+        .unwrap();
+        background.abort();
+        let _ = background.await;
+    }
+
+    #[tokio::test]
+    async fn channel_invites_and_rotations_do_not_block_local_reads() {
+        for method in ["channel/invite", "channel/rotate", "channel/rekey"] {
+            let dir = dmsg_client::testing::TempDir::new();
+            let (daemon, relay, _ic) = stalled(&dir).await;
+            let params = json!({"id": "c".repeat(64), "account": dmsg_client::testing::account().id.to_string()});
+            let work = tokio::spawn({
+                let daemon = daemon.clone();
+                async move { daemon.call_more(method, &params).await }
+            });
+            tokio::time::timeout(
+                Duration::from_secs(10),
+                answers_beside(&daemon, &relay, work),
+            )
+            .await
+            .expect("channel network waits must leave the client available");
+        }
+    }
+
+    #[tokio::test]
     async fn the_library_answers_while_channel_images_names_and_receipts_load() {
         let account = dmsg_client::testing::account().id.to_string();
         let dir = dmsg_client::testing::TempDir::new();

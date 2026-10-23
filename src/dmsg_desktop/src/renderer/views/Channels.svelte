@@ -176,11 +176,11 @@
     legacySelected = null
     const switching = channel?.id !== id
     selected = id
-    const from = switching ? null : (messages.at(-PAGE)?.seq ?? 1) - 1
+    const from = switching ? null : Math.min((messages.at(-PAGE)?.seq ?? 1) - 1, channel.message_cursor)
     const next: any = await call('channel/show', { id })
     const [list, box] = await Promise.all([
       from === null
-        ? call<any[]>('channel/messages', { id, before: next.message_cursor + 1, limit: PAGE })
+        ? call<any[]>('channel/messages', { id, before: Number.MAX_SAFE_INTEGER, limit: PAGE })
         : call<any[]>('channel/messages', { id, after: from, limit: 2 * PAGE }),
       call<Outgoing[]>('channel/outbox', { id }).catch(() => [])
     ])
@@ -195,10 +195,14 @@
       drafts[id] ??= next.draft ?? ''
       marked = 0
       void loadReceipts(id)
+      // Show local history immediately, then catch up this channel without
+      // waiting for its place in the background pass.
+      if (next.ledger?.members?.[me ?? '']) void call('channel/sync', { id }).catch(fail)
     } else {
-      const after = messages.at(-1)?.seq ?? 0
-      const changed = new Map(list.map((m: any) => [m.seq, m]))
-      messages = [...messages.map((m) => changed.get(m.seq) ?? m), ...list.filter((m: any) => m.seq > after)]
+      // A local send can be acknowledged before earlier incoming messages
+      // arrive. Merge by sequence so those gaps appear in the right place.
+      const changed = new Map([...messages, ...list].map((m: any) => [m.seq, m]))
+      messages = [...changed.values()].sort((a, b) => a.seq - b.seq)
     }
     channel = next
     outbox = box
@@ -207,7 +211,8 @@
   let receiptsAt = 0
   async function loadReceipts(id: string) {
     receiptsAt = Date.now()
-    receipts = await call('channel/receipts', { id }).catch(() => null)
+    const loaded = await call('channel/receipts', { id }).catch(() => null)
+    if (selected === id) receipts = loaded
   }
 
   const pick = (id: string) => attempt(() => open(id))
@@ -344,6 +349,7 @@
   let marked = 0
   /** The messages shown through `seq` are read; a read receipt goes only when chosen (C04). */
   function markRead(seq: number) {
+    seq = Math.min(seq, channel?.message_cursor ?? 0)
     if (!channel || seq <= Math.max(channel.read ?? 0, marked)) return
     marked = seq
     const id = channel.id

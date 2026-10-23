@@ -771,3 +771,361 @@ fn a_keyring_sealed_before_muting_existed_still_opens() {
         ("c", false, false)
     );
 }
+
+fn active_channel(client: &mut Client) -> (String, Ledger) {
+    crate::testing::warm(client);
+    let channel = "c1".repeat(32);
+    let head = "a1".repeat(32);
+    let mut ledger = start(
+        &Genesis {
+            channel_id: channel.clone(),
+            nonce: "b1".repeat(32),
+            kind: ChannelType::Collaboration,
+        },
+        &client.me().unwrap(),
+        &head,
+    )
+    .unwrap();
+    ledger.epoch = 1;
+    ledger.status = Status::Active;
+    client
+        .save_keyring(
+            None,
+            &Keyring {
+                format: FORMAT.into(),
+                id: channel.clone(),
+                name: "test".into(),
+                genesis: head.clone(),
+                keys: BTreeMap::from([(1, b64(&[7; 32]))]),
+                muted: false,
+                hidden: false,
+            },
+        )
+        .unwrap();
+    client
+        .save_local(
+            &channel,
+            &Local {
+                ledger: Some(ledger.clone()),
+                heads: BTreeMap::from([(head, 0)]),
+                ..Local::default()
+            },
+        )
+        .unwrap();
+    (channel, ledger)
+}
+
+#[test]
+fn unchanged_head_skips_the_log_but_changed_heads_and_pins_still_verify() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, ledger) = active_channel(&mut client);
+    let trust = Trust::new(vec![], String::new(), vec![]);
+    let head = json(&ledger);
+    let mut reading = Reading::new(&channel);
+    assert_eq!(
+        client.channel_read_path(&mut reading).unwrap(),
+        base(&channel).unwrap()
+    );
+    client
+        .channel_read_settle(&mut reading, head.clone(), &trust)
+        .unwrap();
+    assert_eq!(reading.step, Step::Messages);
+    assert_eq!(
+        client.channel_read_path(&mut reading).unwrap(),
+        format!("{}/sync?after=0&limit=20", base(&channel).unwrap())
+    );
+    client
+        .channel_read_settle(
+            &mut reading,
+            json!({
+                "head": ledger.head, "entries": [], "skipped": [], "next_seq": 0, "latest_seq": 0,
+            }),
+            &trust,
+        )
+        .unwrap();
+    assert!(reading.done()); // Two requests, no empty control page.
+
+    let mut reading = Reading::controls(&channel);
+    client.channel_read_request(&mut reading).unwrap();
+    let mut newer = head.clone();
+    newer["head"] = "d1".repeat(32).into();
+    newer["control_seq"] = (ledger.control_seq + 1).into();
+    client
+        .channel_read_settle(&mut reading, newer.clone(), &trust)
+        .unwrap();
+    assert_eq!(reading.step, Step::Control);
+    // A missing control cannot be replaced by the relay's unverified head.
+    assert_eq!(
+        client.channel_read_settle(
+            &mut reading,
+            json!({
+                "head": newer["head"], "entries": [], "next_cursor": 0,
+            }),
+            &trust
+        ),
+        Err(Error::IntegrityFailed)
+    );
+
+    for field in ["head", "epoch", "acl_version"] {
+        let mut reading = Reading::controls(&channel);
+        client.channel_read_request(&mut reading).unwrap();
+        let mut forged = head.clone();
+        forged[field] = if field == "head" {
+            Json::String("d1".repeat(32))
+        } else {
+            99.into()
+        };
+        assert_eq!(
+            client.channel_read_settle(&mut reading, forged, &trust),
+            Err(Error::IntegrityFailed)
+        );
+    }
+    let mut reading = Reading {
+        pinned: Some("d1".repeat(32)),
+        ..Reading::controls(&channel)
+    };
+    client.channel_read_request(&mut reading).unwrap();
+    assert_eq!(
+        client.channel_read_settle(&mut reading, head, &trust),
+        Err(Error::IntegrityFailed)
+    );
+}
+
+fn outgoing_receipt(
+    client: &Client,
+    channel: &str,
+    ledger: &Ledger,
+    draft: Draft,
+    id: &str,
+    seq: u64,
+) -> Json {
+    let outgoing = client.seal_message(channel, ledger, &draft, id).unwrap();
+    let operation = client
+        .sign_now(
+            MESSAGE,
+            format!("{}/messages", base(channel).unwrap()),
+            json(&outgoing.payload),
+            random_hex(),
+        )
+        .unwrap();
+    let receipt = json!({"seq": seq, "stored_at": now_ms(), "digest": hex_sha256(&unb64(&operation.cose).unwrap())});
+    client
+        .save_job(channel, &format!("send:{id}"), &operation)
+        .unwrap();
+    receipt
+}
+
+#[test]
+fn durable_ack_shows_the_message_without_skipping_gaps_or_losing_edits() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, ledger) = active_channel(&mut client);
+    let id = "e1".repeat(32);
+    let receipt = outgoing_receipt(
+        &client,
+        &channel,
+        &ledger,
+        Draft {
+            text: "hello".into(),
+            ..Draft::default()
+        },
+        &id,
+        3,
+    );
+    let mut forged = receipt.clone();
+    forged["digest"] = "ff".repeat(32).into();
+    assert_eq!(
+        client.channel_send_settle(&channel, &id, Ok(forged)),
+        Err(Error::IntegrityFailed)
+    );
+    assert_eq!(client.channel_outbox(&channel).unwrap().len(), 1);
+    assert!(
+        client
+            .channel_messages_before(&channel, u64::MAX, 10)
+            .unwrap()
+            .is_empty()
+    );
+    client
+        .channel_send_settle(&channel, &id, Ok(receipt))
+        .unwrap();
+    assert!(client.channel_outbox(&channel).unwrap().is_empty());
+    let messages = client
+        .channel_messages_before(&channel, u64::MAX, 10)
+        .unwrap();
+    assert_eq!(messages.len(), 1);
+    assert_eq!(messages[0].text, "hello");
+    assert_eq!(client.local(&channel).unwrap().message, 0);
+    assert_eq!(client.channel_mark(&channel, 3).unwrap().read, 0);
+
+    let id = "e2".repeat(32);
+    let receipt = outgoing_receipt(
+        &client,
+        &channel,
+        &ledger,
+        Draft {
+            text: "edited".into(),
+            edit_of: Some(reference(&messages[0])),
+            ..Draft::default()
+        },
+        &id,
+        4,
+    );
+    client
+        .channel_send_settle(&channel, &id, Ok(receipt))
+        .unwrap();
+    assert_eq!(kept(&client, &channel, 3).text, "edited");
+    assert_eq!(client.local(&channel).unwrap().last.unwrap().text, "edited");
+    let id = "e3".repeat(32);
+    let receipt = outgoing_receipt(
+        &client,
+        &channel,
+        &ledger,
+        Draft {
+            retract: Some(reference(&messages[0])),
+            ..Draft::default()
+        },
+        &id,
+        5,
+    );
+    client
+        .channel_send_settle(&channel, &id, Ok(receipt))
+        .unwrap();
+    assert!(kept(&client, &channel, 3).retracted);
+    assert_eq!(client.local(&channel).unwrap().message, 0);
+}
+
+#[test]
+fn ack_keeps_a_message_already_read_and_does_not_replace_a_newer_preview() {
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, ledger) = active_channel(&mut client);
+    let id = "e1".repeat(32);
+    let receipt = outgoing_receipt(
+        &client,
+        &channel,
+        &ledger,
+        Draft {
+            text: "first".into(),
+            ..Draft::default()
+        },
+        &id,
+        1,
+    );
+    let mut already_read = written(1, &client.me().unwrap(), "edited elsewhere");
+    already_read.digest = receipt["digest"].as_str().unwrap().into();
+    already_read.hidden = true;
+    let mut local = client.local(&channel).unwrap();
+    local.message = 3;
+    local.last = Some(preview(&written(3, "other", "newer")));
+    keep(&client, &channel, &mut local, &already_read);
+    client.save_local(&channel, &local).unwrap();
+    client
+        .channel_send_settle(&channel, &id, Ok(receipt))
+        .unwrap();
+    let kept = kept(&client, &channel, 1);
+    assert_eq!(kept.text, "edited elsewhere");
+    assert!(kept.hidden);
+    assert_eq!(client.local(&channel).unwrap().message, 3);
+    assert_eq!(client.local(&channel).unwrap().last.unwrap().text, "newer");
+}
+
+#[tokio::test]
+async fn a_warm_send_finishes_at_the_ack_without_waiting_for_a_sync() {
+    use std::sync::{
+        Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+    };
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::time::{Duration, timeout};
+
+    struct Sender {
+        client: Mutex<Client>,
+        head: Json,
+        reads: AtomicUsize,
+    }
+    impl Hold for Sender {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+
+        async fn trust(&self) -> Result<Trust> {
+            Ok(Trust::new(vec![], String::new(), vec![]))
+        }
+
+        async fn send(
+            &self,
+            mut sign: impl FnMut(&mut Client) -> Result<Prepared> + Send,
+        ) -> Result<Json> {
+            self.with(|c| sign(c)).await?;
+            if self.reads.fetch_add(1, Ordering::SeqCst) == 0 {
+                return Ok(self.head.clone());
+            }
+            // The control view is current; any further read is unrelated
+            // to the durable send and must not hold up its completion.
+            std::future::pending().await
+        }
+    }
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    let (channel, ledger) = active_channel(&mut client);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    crate::testing::relay_to(
+        &mut client,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    );
+    let h = Arc::new(Sender {
+        client: Mutex::new(client),
+        head: json(&ledger),
+        reads: AtomicUsize::new(0),
+    });
+    let id = "f1".repeat(32);
+    let server = tokio::spawn({
+        let h = h.clone();
+        let channel = channel.clone();
+        let id = id.clone();
+        async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut buffer = [0; 8192];
+            let n = socket.read(&mut buffer).await.unwrap();
+            assert!(
+                String::from_utf8_lossy(&buffer[..n])
+                    .starts_with(&format!("POST /v1/channels/{channel}/messages "))
+            );
+            let receipt = h.with(|c| {
+                let op = c.job::<Operation>(&channel, &format!("send:{id}"))?.unwrap();
+                Ok(json!({"seq": 3, "stored_at": now_ms(), "digest": hex_sha256(&unb64(&op.cose)?)}))
+            }).await.unwrap();
+            let body = json!({"ok":true, "data":receipt}).to_string();
+            socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+        }
+    });
+    let result = timeout(
+        Duration::from_secs(5),
+        send(
+            &*h,
+            &channel,
+            &Draft {
+                text: "hello".into(),
+                ..Draft::default()
+            },
+            Some(&id),
+        ),
+    )
+    .await
+    .expect("a stored send must not wait for message sync")
+    .unwrap();
+    assert_eq!(result["receipt"]["seq"], 3);
+    assert_eq!(h.reads.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        h.with(|c| c.channel_messages_before(&channel, u64::MAX, 10))
+            .await
+            .unwrap()[0]
+            .text,
+        "hello"
+    );
+    server.await.unwrap();
+}

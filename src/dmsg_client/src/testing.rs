@@ -152,6 +152,50 @@ pub fn warm(client: &mut Client) {
     client.homes = Some(vec![account().home]);
 }
 
+/// Keep an active, empty channel owned by the test account, without network setup.
+pub fn joined_channel(client: &mut Client, channel: &str) -> crate::channel_log::Ledger {
+    use crate::channel_log::{ChannelType, Genesis, Status, start};
+    use crate::codec::canonical;
+    use serde_json::json;
+    let head = "a1".repeat(32);
+    let mut ledger = start(
+        &Genesis {
+            channel_id: channel.into(),
+            nonce: "b1".repeat(32),
+            kind: ChannelType::Collaboration,
+        },
+        &account().id.to_string(),
+        &head,
+    )
+    .unwrap();
+    ledger.epoch = 1;
+    ledger.status = Status::Active;
+    client
+        .write(
+            crate::channel::CHANNEL,
+            channel.into(),
+            None,
+            false,
+            &canonical(&json!({
+                "format": "dmsg-channel-client/2", "id": channel, "name": "test channel",
+                "genesis": head, "keys": {}, "muted": false, "hidden": false,
+            })),
+            None,
+        )
+        .unwrap();
+    client
+        .workspace
+        .put_private(
+            client.keys().unwrap(),
+            &format!("channel:{channel}"),
+            &json!({
+                "ledger": ledger, "heads": {head: 0},
+            }),
+        )
+        .unwrap();
+    ledger
+}
+
 /// Keep message `seq` of `channel`, a PNG the test account shared, in
 /// `client`'s workspace as a read of the channel keeps it; its upload is
 /// nowhere.

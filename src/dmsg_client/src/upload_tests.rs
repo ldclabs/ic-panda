@@ -168,3 +168,145 @@ fn print_storage_management_vector() {
         println!("{}", serde_json::to_string_pretty(&vector).unwrap());
     }
 }
+
+#[tokio::test]
+async fn device_envelopes_upload_together_and_finalize_only_after_all_acks() {
+    use crate::codec::hex_sha256;
+    use crate::testing::{TempDir, relay_to, unlocked, warm};
+    use std::sync::{Arc, Mutex};
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::time::{Duration, timeout};
+
+    struct Uploading {
+        client: Mutex<Client>,
+        plan: UploadPlan,
+        acknowledged: Arc<AtomicUsize>,
+    }
+    impl Hold for Uploading {
+        async fn with<T: Send>(
+            &self,
+            step: impl FnOnce(&mut Client) -> Result<T> + Send,
+        ) -> Result<T> {
+            step(&mut self.client.lock().unwrap())
+        }
+
+        async fn find(&self, _: &str) -> Result<Option<Value>> {
+            Ok(Some(json!({"status": "staging", "plan": self.plan})))
+        }
+
+        async fn post<P: Serialize + Sync>(
+            &self,
+            path: &str,
+            _: &str,
+            _: &P,
+            _: &Hash,
+        ) -> Result<Value> {
+            assert!(path.ends_with("/uploads/finalize"));
+            assert_eq!(self.acknowledged.load(Ordering::SeqCst), 4);
+            Ok(
+                json!({"upload_id": self.plan.upload_id, "object_id": self.plan.object_id,
+                "version_id": self.plan.version_id, "digest": self.plan.manifest_digest}),
+            )
+        }
+    }
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    relay_to(
+        &mut client,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    );
+    warm(&mut client);
+    let (mut plan, _) = fixture("envelopes", false);
+    plan.expires_at = crate::now_ms() + 600_000;
+    for bytes in [b"one".as_slice(), b"two", b"three"] {
+        let digest = hex_sha256(bytes);
+        client.workspace.store.put_chunk(&digest, bytes).unwrap();
+        plan.chunks.push(ChunkRef {
+            digest,
+            size: bytes.len() as u64,
+        });
+    }
+    let acknowledged = Arc::new(AtomicUsize::new(0));
+    let counted = acknowledged.clone();
+    let server = tokio::spawn(async move {
+        let mut sockets = vec![];
+        let mut paths = std::collections::BTreeSet::new();
+        // No request gets an answer until all three envelopes and the
+        // manifest arrive. Sequential uploads would time out here.
+        for _ in 0..4 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut bytes = vec![];
+            loop {
+                let mut buffer = [0; 4096];
+                let n = socket.read(&mut buffer).await.unwrap();
+                assert!(n > 0);
+                bytes.extend_from_slice(&buffer[..n]);
+                let Some(end) = bytes.windows(4).position(|b| b == b"\r\n\r\n") else {
+                    continue;
+                };
+                let headers = String::from_utf8_lossy(&bytes[..end]).to_lowercase();
+                let length = headers
+                    .lines()
+                    .find_map(|l| l.strip_prefix("content-length:"))
+                    .unwrap()
+                    .trim()
+                    .parse::<usize>()
+                    .unwrap();
+                if bytes.len() < end + 4 + length {
+                    continue;
+                }
+                assert!(headers.starts_with("put "));
+                paths.insert(
+                    headers
+                        .lines()
+                        .next()
+                        .unwrap()
+                        .split_whitespace()
+                        .nth(1)
+                        .unwrap()
+                        .to_string(),
+                );
+                break;
+            }
+            sockets.push(socket);
+        }
+        assert_eq!(paths.len(), 4);
+        assert!(paths.iter().any(|p| p.ends_with("/manifest")));
+        for mut socket in sockets {
+            counted.fetch_add(1, Ordering::SeqCst);
+            let body = r#"{"ok":true,"data":{}}"#;
+            let response = format!(
+                "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            socket.write_all(response.as_bytes()).await.unwrap();
+        }
+    });
+    let h = Uploading {
+        client: Mutex::new(client),
+        plan: plan.clone(),
+        acknowledged,
+    };
+    let mut progress = vec![];
+    timeout(
+        Duration::from_secs(5),
+        upload(
+            &h,
+            "/v1/channels/test",
+            &plan,
+            b"manifest",
+            0,
+            Source::Store,
+            |_, through| {
+                progress.push(through);
+                Ok(())
+            },
+        ),
+    )
+    .await
+    .expect("envelopes must not wait for each other's ACK")
+    .unwrap();
+    server.await.unwrap();
+    assert_eq!(progress, vec![3]);
+}

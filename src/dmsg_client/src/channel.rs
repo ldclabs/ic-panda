@@ -580,7 +580,7 @@ impl Reading {
     pub fn controls(channel: &str) -> Self {
         Self {
             channel: channel.into(),
-            step: Step::Control,
+            step: Step::Head,
             control: 0,
             messages: false,
             range: None,
@@ -1325,6 +1325,274 @@ pub(crate) async fn journaled<H: Hold>(
     Ok(posting)
 }
 
+/// Invite an account without holding the client during network requests.
+/// # Errors
+/// As [`Client::channel_invite`].
+pub async fn invite<H: Hold>(
+    h: &H,
+    channel: &str,
+    account: &AccountId,
+    role: Role,
+) -> Result<Invitation> {
+    let invitation = random_hex();
+    let target = account.to_string();
+    let me = h.with(|c| c.me()).await?;
+    let mut ledger = pull(h, channel, None, None).await?;
+    if ledger.status == Status::RotationRequired && may_rotate(&ledger, &me) {
+        ledger = rotate(h, channel)
+            .await?
+            .ledger
+            .ok_or(Error::IntegrityFailed)?;
+    }
+    h.signed(Client::root_now).await?;
+    let now = now_ms();
+    let expires_at = now + INVITATION_MS;
+    let mut control = Control {
+        expected_head: ledger.head.clone(),
+        expected_acl_version: ledger.acl_version,
+        action: Action::Invite {
+            invitation_id: invitation.clone(),
+            account: target.clone(),
+            role,
+            expires_at,
+            envelope_upload: None,
+        },
+    };
+    advance(&ledger, &control, &me, &"0".repeat(64), now)?;
+    if ledger.status == Status::Active {
+        open_epoch(h, channel, ledger.epoch).await?;
+        let current = recipients(h, std::slice::from_ref(&target)).await?;
+        let uploads = h
+            .with(|c| {
+                c.check_channel_head(channel, &ledger)?;
+                c.history_prepare(
+                    channel,
+                    &ledger,
+                    &target,
+                    ledger.epoch,
+                    ledger.epoch,
+                    &current.recipients,
+                    &invitation,
+                )
+            })
+            .await?;
+        for upload in &uploads {
+            send_upload(h, channel, upload, Source::Store).await?;
+        }
+        if let Action::Invite {
+            envelope_upload, ..
+        } = &mut control.action
+        {
+            *envelope_upload = Some(uploads[0].plan.upload_id.clone());
+        }
+    }
+    post(
+        h,
+        channel,
+        &format!("control:{invitation}"),
+        CONTROL,
+        json(&control),
+        "/control",
+    )
+    .await?;
+    h.with(|c| c.forget_job(channel, &format!("history-plan:{invitation}")))
+        .await?;
+    let ledger = pull_changed(h, channel).await?;
+    h.with(|c| {
+        c.check_channel_head(channel, &ledger)?;
+        let (_, ring) = c.keyring(channel)?;
+        let packet = Invitation {
+            format: "dmsg-channel-invitation/1".into(),
+            channel: channel.into(),
+            genesis: ring.genesis,
+            head: ledger.head,
+            invitation: invitation.clone(),
+            account: account.to_string(),
+            name: ring.name,
+            expires_at,
+        };
+        // Kept to hand over again while it is open.
+        let now = now_ms();
+        let mut local = c.local(channel)?;
+        local
+            .invites
+            .retain(|id, i| i.expires_at > now && ledger.invitations.contains_key(id));
+        local.invites.insert(invitation, packet.clone());
+        c.save_local(channel, &local)?;
+        Ok(packet)
+    })
+    .await
+}
+
+async fn recipients<H: Hold>(h: &H, accounts: &[String]) -> Result<Current> {
+    let mut current = Current {
+        recipients: vec![],
+        versions: BTreeMap::new(),
+        expires_at: u64::MAX,
+    };
+    let ids = accounts
+        .iter()
+        .map(|a| AccountId::from_str(a).map_err(|_| Error::IntegrityFailed))
+        .collect::<Result<Vec<_>>>()?;
+    for (id, security) in crate::client::peers_security(h, &ids).await? {
+        let account = id.to_string();
+        current.expires_at = current.expires_at.min(security.expires_at());
+        current.recipients.extend(devices_of(&account, &security));
+        current
+            .versions
+            .insert(account, security.snapshot.security_epoch);
+    }
+    current.recipients.sort();
+    Ok(current)
+}
+
+/// Rotate a channel without holding the client during network requests.
+/// # Errors
+/// As [`Client::channel_rotate`].
+pub async fn rotate<H: Hold>(h: &H, channel: &str) -> Result<ChannelView> {
+    let mut ledger = pull(h, channel, None, None).await?;
+    h.signed(Client::root_now).await?;
+    if ledger.status == Status::Active {
+        h.with(|c| c.forget_rotation(channel)).await?;
+        open_epoch(h, channel, ledger.epoch).await?;
+        return h.with(|c| c.channel_view(channel)).await;
+    }
+    let members: Vec<String> = ledger.members.keys().cloned().collect();
+    let mut current = recipients(h, &members).await?;
+    let observed = ledger.head.clone();
+    ledger = pull(h, channel, None, None).await?;
+    if ledger.head != observed {
+        let members: Vec<String> = ledger.members.keys().cloned().collect();
+        current = recipients(h, &members).await?;
+    }
+    if ledger.status == Status::Active {
+        h.with(|c| c.forget_rotation(channel)).await?;
+        open_epoch(h, channel, ledger.epoch).await?;
+        return h.with(|c| c.channel_view(channel)).await;
+    }
+    ensure(ledger.status == Status::RotationRequired, Error::Forbidden)?;
+    let mut pending = h
+        .with(|c| {
+            c.check_channel_head(channel, &ledger)?;
+            let now = now_ms();
+            let pending = match c.job::<Rotation>(channel, "rotation")? {
+                Some(p)
+                    if p.head == ledger.head
+                        && p.lease.as_ref().is_none_or(|l| l.expires_at > now) =>
+                {
+                    p
+                }
+                _ => Rotation {
+                    head: ledger.head.clone(),
+                    lease_id: random_hex(),
+                    lease: None,
+                },
+            };
+            c.save_job(channel, "rotation", &pending)?;
+            Ok(pending)
+        })
+        .await?;
+    let result = post(
+        h,
+        channel,
+        &format!("lease:{}", pending.lease_id),
+        "dmsg/channel/lease/v1",
+        json!({"expected_head": ledger.head, "lease_id": pending.lease_id}),
+        "/rotation/lease",
+    )
+    .await?;
+    let lease: Lease = from(&result["lease"])?;
+    let recipients: Vec<Recipient> = from(&result["recipients"])?;
+    ensure(
+        recipients == current.recipients
+            && recipients_digest(&current.recipients) == lease.recipients_digest
+            && current.versions == lease.security_versions
+            && lease.expires_at <= current.expires_at
+            && lease.expires_at > now_ms(),
+        Error::PolicyStale,
+    )?;
+    pending.lease = Some(lease.clone());
+    let (activation, uploads) = h
+        .with(|c| {
+            c.check_channel_head(channel, &ledger)?;
+            c.save_job(channel, "rotation", &pending)?;
+            c.rotation_prepare(channel, &ledger, &lease, &recipients)
+        })
+        .await?;
+    for upload in &uploads {
+        send_upload(h, channel, upload, Source::Store).await?;
+    }
+    post(
+        h,
+        channel,
+        &format!("activate:{}", lease.id),
+        ACTIVATE,
+        json(&activation),
+        "/rotation/activate",
+    )
+    .await?;
+    pull_changed(h, channel).await?;
+    h.with(|c| c.forget_rotation(channel)).await?;
+    open_epoch(h, channel, activation.epoch).await?;
+    h.with(|c| c.channel_view(channel)).await
+}
+
+/// Request a fresh epoch, then rotate without holding the client.
+/// # Errors
+/// As [`Client::channel_rekey`].
+pub async fn rekey<H: Hold>(h: &H, channel: &str) -> Result<ChannelView> {
+    let ledger = pull(h, channel, None, None).await?;
+    if ledger.status == Status::Active {
+        let control = Control {
+            expected_head: ledger.head.clone(),
+            expected_acl_version: ledger.acl_version,
+            action: Action::Rekey {},
+        };
+        h.with(|c| {
+            c.check_channel_head(channel, &ledger)?;
+            advance(&ledger, &control, &c.me()?, &"0".repeat(64), now_ms()).map(|_| ())
+        })
+        .await?;
+        post(
+            h,
+            channel,
+            &format!("control:rekey:{}", ledger.head),
+            CONTROL,
+            json(&control),
+            "/control",
+        )
+        .await?;
+    }
+    rotate(h, channel).await
+}
+
+async fn post<H: Hold>(
+    h: &H,
+    channel: &str,
+    key: &str,
+    action: &str,
+    payload: Json,
+    suffix: &str,
+) -> Result<Json> {
+    match journaled(h, channel, key, &base(channel)?, action, payload, suffix).await? {
+        Posting::Done(result) => Ok(result),
+        Posting::Send(request) => {
+            let reply = h.with(|c| Ok(c.relay())).await?.send(request).await;
+            h.with(|c| c.journaled_settle(channel, key, reply)).await
+        }
+    }
+}
+
+/// A successful control write is already known to have changed the head.
+async fn pull_changed<H: Hold>(h: &H, channel: &str) -> Result<Ledger> {
+    let mut reading = Reading {
+        step: Step::Control,
+        ..Reading::controls(channel)
+    };
+    read(h, &mut reading).await?;
+    reading.ledger.ok_or(Error::IntegrityFailed)
+}
+
 /// Whether the relay stored the journaled command `key`.
 async fn committed<H: Hold>(h: &H, channel: &str, key: &str) -> Result<bool> {
     let Some(job) = h.with(|c| c.job::<Operation>(channel, key)).await? else {
@@ -1353,8 +1621,8 @@ async fn committed<H: Hold>(h: &H, channel: &str, key: &str) -> Result<bool> {
 /// the current epoch, after the control log is read. The message is
 /// journaled before it is signed, so a retry with the same ID sends the
 /// same message; one the channel moved past before the relay stored it is
-/// sealed again under what holds now (C06). The new messages are read once
-/// the relay stored it.
+/// sealed again under what holds now (C06). A checked durable receipt keeps
+/// this device's message locally; reading other messages is independent.
 ///
 /// # Errors
 /// Returns `Error::Forbidden` for a member who may not publish and
@@ -1431,11 +1699,6 @@ pub async fn send<H: Hold>(
     let receipt = h
         .with(|c| c.channel_send_settle(channel, &message_id, reply))
         .await?;
-    // The relay stored it: a read that fails now never fails the send, and
-    // the next read takes the message.
-    if let Ok(mut reading) = h.with(|c| c.message_reading(channel)).await {
-        let _ = Box::pin(read(h, &mut reading)).await;
-    }
     Ok(json!({"message_id": message_id, "receipt": receipt}))
 }
 
@@ -2385,6 +2648,7 @@ impl Client {
     }
 
     /// The new messages, against the control log as last read.
+    #[cfg(test)]
     fn message_reading(&self, channel: &str) -> Result<Reading> {
         let local = self.local(channel)?;
         Ok(Reading {
@@ -2402,7 +2666,13 @@ impl Client {
     fn channel_read_path(&self, reading: &mut Reading) -> Result<String> {
         let base = base(&reading.channel)?;
         if matches!(reading.step, Step::Control | Step::Head) {
-            reading.control = self.local(&reading.channel)?.control;
+            let local = self.local(&reading.channel)?;
+            reading.control = local.control;
+            // An established channel asks for its current view first. Only
+            // a changed head needs a control-log request.
+            if local.ledger.is_none() {
+                reading.step = Step::Control;
+            }
         }
         let invitation = reading.invitation.as_deref();
         Ok(match reading.step {
@@ -2550,6 +2820,14 @@ impl Client {
             return Ok(());
         }
         let mut ledger = local.ledger.clone().ok_or(Error::IntegrityFailed)?;
+        if remote["head"] != ledger.head.as_str()
+            && remote["control_seq"]
+                .as_u64()
+                .is_some_and(|seq| seq > ledger.control_seq)
+        {
+            reading.step = Step::Control;
+            return Ok(());
+        }
         ensure(
             remote["head"] == ledger.head.as_str()
                 && remote["control_seq"].as_u64() == Some(ledger.control_seq)
@@ -2562,6 +2840,9 @@ impl Client {
             Error::IntegrityFailed,
         )?;
         let status: Status = from(&remote["status"])?;
+        if let Some(pinned) = &reading.pinned {
+            ensure(local.heads.contains_key(pinned), Error::IntegrityFailed)?;
+        }
         // The relay asks for a new epoch when a member's device goes.
         if status == Status::RotationRequired && ledger.status == Status::Active {
             ledger.status = status;
@@ -2881,108 +3162,13 @@ impl Client {
         account: &AccountId,
         role: Role,
     ) -> Result<Invitation> {
-        let invitation = random_hex();
-        let target = account.to_string();
-        let me = self.me()?;
-        let mut ledger = self.channel_pull(channel, None, None).await?;
-        if ledger.status == Status::RotationRequired && may_rotate(&ledger, &me) {
-            ledger = self
-                .channel_rotate(channel)
-                .await?
-                .ledger
-                .ok_or(Error::IntegrityFailed)?;
-        }
-        self.root_ready().await?;
-        let now = now_ms();
-        let expires_at = now + INVITATION_MS;
-        let mut control = Control {
-            expected_head: ledger.head.clone(),
-            expected_acl_version: ledger.acl_version,
-            action: Action::Invite {
-                invitation_id: invitation.clone(),
-                account: target.clone(),
-                role,
-                expires_at,
-                envelope_upload: None,
-            },
-        };
-        advance(&ledger, &control, &me, &"0".repeat(64), now)?;
-        if ledger.status == Status::Active {
-            self.channel_open_epoch(channel, ledger.epoch).await?;
-            let current = self.recipients(std::slice::from_ref(&target)).await?;
-            let uploads = self.history_prepare(
-                channel,
-                &ledger,
-                &target,
-                ledger.epoch,
-                ledger.epoch,
-                &current.recipients,
-                &invitation,
-            )?;
-            for upload in &uploads {
-                self.channel_upload(channel, upload, Source::Store).await?;
-            }
-            if let Action::Invite {
-                envelope_upload, ..
-            } = &mut control.action
-            {
-                *envelope_upload = Some(uploads[0].plan.upload_id.clone());
-            }
-        }
-        self.channel_post(
-            channel,
-            &format!("control:{invitation}"),
-            CONTROL,
-            json(&control),
-            "/control",
-        )
-        .await?;
-        self.forget_job(channel, &format!("history-plan:{invitation}"))?;
-        let ledger = self.channel_pull(channel, None, None).await?;
-        let (_, ring) = self.keyring(channel)?;
-        let packet = Invitation {
-            format: "dmsg-channel-invitation/1".into(),
-            channel: channel.into(),
-            genesis: ring.genesis,
-            head: ledger.head,
-            invitation: invitation.clone(),
-            account: account.to_string(),
-            name: ring.name,
-            expires_at,
-        };
-        // Kept to hand over again while it is open.
-        let now = now_ms();
-        let mut local = self.local(channel)?;
-        local
-            .invites
-            .retain(|id, i| i.expires_at > now && ledger.invitations.contains_key(id));
-        local.invites.insert(invitation, packet.clone());
-        self.save_local(channel, &local)?;
-        Ok(packet)
+        invite(&self.hold(), channel, account, role).await
     }
 
     /// The recipients of an epoch for `accounts`, from their certified
     /// security; the relay is handed the same evidence.
     async fn recipients(&mut self, accounts: &[String]) -> Result<Current> {
-        let mut current = Current {
-            recipients: vec![],
-            versions: BTreeMap::new(),
-            expires_at: u64::MAX,
-        };
-        let ids = accounts
-            .iter()
-            .map(|a| AccountId::from_str(a).map_err(|_| Error::IntegrityFailed))
-            .collect::<Result<Vec<_>>>()?;
-        for (id, security) in self.peers_security(&ids).await? {
-            let account = id.to_string();
-            current.expires_at = current.expires_at.min(security.expires_at());
-            current.recipients.extend(devices_of(&account, &security));
-            current
-                .versions
-                .insert(account, security.snapshot.security_epoch);
-        }
-        current.recipients.sort();
-        Ok(current)
+        recipients(&self.hold(), accounts).await
     }
 
     /// Start a new epoch now and seal it to the members' devices: who joins
@@ -2992,12 +3178,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::Forbidden` unless this account may rotate.
     pub async fn channel_rekey(&mut self, channel: &str) -> Result<ChannelView> {
-        let ledger = self.channel_pull(channel, None, None).await?;
-        if ledger.status == Status::Active {
-            self.control_post(channel, Action::Rekey {}, &format!("rekey:{}", ledger.head))
-                .await?;
-        }
-        self.channel_rotate(channel).await
+        rekey(&self.hold(), channel).await
     }
 
     /// Bring the channel to an active epoch this device can read: rotate
@@ -3008,71 +3189,15 @@ impl Client {
     /// Returns `Error::Forbidden` for a device that may not coordinate and
     /// `Error::PolicyStale` when the members' devices changed meanwhile.
     pub async fn channel_rotate(&mut self, channel: &str) -> Result<ChannelView> {
-        let mut ledger = self.channel_pull(channel, None, None).await?;
-        self.root_ready().await?;
-        let members: Vec<String> = ledger.members.keys().cloned().collect();
-        let mut current = self.recipients(&members).await?;
-        let observed = ledger.head.clone();
-        ledger = self.channel_pull(channel, None, None).await?;
-        if ledger.head != observed {
-            let members: Vec<String> = ledger.members.keys().cloned().collect();
-            current = self.recipients(&members).await?;
-        }
-        if ledger.status == Status::Active {
-            self.forget_rotation(channel)?;
-            return self.channel_open_epoch(channel, ledger.epoch).await;
-        }
-        ensure(ledger.status == Status::RotationRequired, Error::Forbidden)?;
-        let now = now_ms();
-        let mut pending = match self.job::<Rotation>(channel, "rotation")? {
-            Some(p)
-                if p.head == ledger.head && p.lease.as_ref().is_none_or(|l| l.expires_at > now) =>
-            {
-                p
-            }
-            _ => Rotation {
-                head: ledger.head.clone(),
-                lease_id: random_hex(),
-                lease: None,
-            },
-        };
-        self.save_job(channel, "rotation", &pending)?;
-        let result = self
-            .channel_post(
-                channel,
-                &format!("lease:{}", pending.lease_id),
-                "dmsg/channel/lease/v1",
-                json!({"expected_head": ledger.head, "lease_id": pending.lease_id}),
-                "/rotation/lease",
-            )
-            .await?;
-        let lease: Lease = from(&result["lease"])?;
-        let recipients: Vec<Recipient> = from(&result["recipients"])?;
+        rotate(&self.hold(), channel).await
+    }
+
+    /// A network wait may have allowed another operation to change this channel.
+    fn check_channel_head(&self, channel: &str, ledger: &Ledger) -> Result<()> {
         ensure(
-            recipients == current.recipients
-                && recipients_digest(&current.recipients) == lease.recipients_digest
-                && current.versions == lease.security_versions
-                && lease.expires_at <= current.expires_at
-                && lease.expires_at > now_ms(),
+            self.local(channel)?.ledger.as_ref() == Some(ledger),
             Error::PolicyStale,
-        )?;
-        pending.lease = Some(lease.clone());
-        self.save_job(channel, "rotation", &pending)?;
-        let (activation, uploads) = self.rotation_prepare(channel, &ledger, &lease, &recipients)?;
-        for upload in &uploads {
-            self.channel_upload(channel, upload, Source::Store).await?;
-        }
-        self.channel_post(
-            channel,
-            &format!("activate:{}", lease.id),
-            ACTIVATE,
-            json(&activation),
-            "/rotation/activate",
         )
-        .await?;
-        self.channel_pull(channel, None, None).await?;
-        self.forget_rotation(channel)?;
-        self.channel_open_epoch(channel, activation.epoch).await
     }
 
     /// Forget the journals of a rotation that ended, by this device or by
@@ -3352,18 +3477,66 @@ impl Client {
         let send = format!("send:{message_id}");
         let receipt = self.journaled_settle(channel, &send, reply)?;
         let operation: Operation = self.job(channel, &send)?.ok_or(Error::IntegrityFailed)?;
+        let digest = hex_sha256(&unb64(&operation.cose)?);
+        let seq = receipt["seq"]
+            .as_u64()
+            .filter(|s| *s > 0)
+            .ok_or(Error::IntegrityFailed)?;
+        let stored_at = receipt["stored_at"]
+            .as_u64()
+            .ok_or(Error::IntegrityFailed)?;
+        ensure(receipt["digest"] == digest, Error::IntegrityFailed)?;
+        let outgoing: Outgoing = self
+            .job(channel, &format!("message:{message_id}"))?
+            .ok_or(Error::IntegrityFailed)?;
         ensure(
-            receipt["digest"] == hex_sha256(&unb64(&operation.cose)?).as_str()
-                && receipt["seq"].as_u64().is_some_and(|s| s > 0),
+            operation.payload == json(&outgoing.payload),
             Error::IntegrityFailed,
         )?;
-        for key in [
-            format!("message:{message_id}"),
-            send,
-            format!("file:{message_id}"),
-        ] {
-            self.forget_job(channel, &key)?;
+        let keys = self.keys()?;
+        let name = format!("{INBOX}{channel}:{seq:020}");
+        let existing = self.workspace.private::<Message>(keys, &name)?;
+        if let Some(existing) = &existing {
+            ensure(existing.digest == digest, Error::IntegrityFailed)?;
         }
+        self.workspace.store.atomic(|_| {
+            if existing.is_none() {
+                let message = open_message(
+                    channel,
+                    &self.keyring(channel)?.1,
+                    Message {
+                        seq,
+                        account: self.me()?,
+                        device: self.device_hex(),
+                        message_id: message_id.into(),
+                        epoch: outgoing.payload.epoch,
+                        created_at: outgoing.payload.client_created_at,
+                        stored_at,
+                        digest,
+                        ..Message::default()
+                    },
+                    &outgoing.payload,
+                );
+                ensure(!message.unreadable, Error::IntegrityFailed)?;
+                let mut local = self.local(channel)?;
+                self.workspace.put_private(keys, &name, &message)?;
+                self.amend(channel, &mut local, &message)?;
+                if !message.amends() && local.last.as_ref().is_none_or(|last| last.seq < seq) {
+                    local.last = Some(preview(&message));
+                }
+                // The contiguous cursor stays: earlier messages may still
+                // be on their way. A later sync verifies and fills the gap.
+                self.save_local(channel, &local)?;
+            }
+            for key in [
+                format!("message:{message_id}"),
+                send,
+                format!("file:{message_id}"),
+            ] {
+                self.forget_job(channel, &key)?;
+            }
+            Ok(())
+        })?;
         Ok(receipt)
     }
 
@@ -3767,7 +3940,13 @@ impl Client {
                 self.workspace.put_private(keys, key, message)?;
                 self.amend(&channel, &mut local, message)?;
                 if !reread && !message.amends() && message.seq > cursor {
-                    local.last = Some(preview(message));
+                    if local
+                        .last
+                        .as_ref()
+                        .is_none_or(|last| last.seq < message.seq)
+                    {
+                        local.last = Some(preview(message));
+                    }
                     if message.account != me {
                         local.unread += 1;
                     }

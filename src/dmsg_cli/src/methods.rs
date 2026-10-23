@@ -114,6 +114,28 @@ impl Daemon {
         // These wait on the relay and the IC without the client.
         let h = self.hold();
         match method {
+            "channel/invite" => {
+                let role = match params["role"].as_str().unwrap_or("member") {
+                    "member" => Role::Member,
+                    "publisher" => Role::Publisher,
+                    _ => return Err(Error::InvalidInput("role".into())),
+                };
+                let channel = id()?;
+                let _turn = self.turn(&format!("channel-control:{channel}")).await;
+                return Ok(to_json(
+                    &channel::invite(&h, &channel, &account(params, "account")?, role).await?,
+                ));
+            }
+            "channel/rotate" | "channel/rekey" => {
+                let channel = id()?;
+                let _turn = self.turn(&format!("channel-control:{channel}")).await;
+                let view = if method == "channel/rekey" {
+                    channel::rekey(&h, &channel).await?
+                } else {
+                    channel::rotate(&h, &channel).await?
+                };
+                return Ok(to_json(&view));
+            }
             "channel/sync" => {
                 let backfill = params["backfill"].as_bool().unwrap_or(false);
                 return Ok(to_json(&channel::sync(&h, &id()?, backfill).await?));
@@ -121,20 +143,26 @@ impl Daemon {
             "channel/send" => {
                 let message_id = params["message_id"].as_str();
                 let _turn = self.message_turn(message_id).await;
-                return channel::send(&h, &id()?, &draft(params)?, message_id).await;
+                let channel = id()?;
+                let result = channel::send(&h, &channel, &draft(params)?, message_id).await;
+                self.hint_channel(&channel);
+                return result;
             }
             "channel/send_file" => {
                 let message_id = params["message_id"].as_str();
                 let _turn = self.message_turn(message_id).await;
-                return channel::send_file(
+                let channel = id()?;
+                let result = channel::send_file(
                     &h,
-                    &id()?,
+                    &channel,
                     &text(params, "file")?,
                     params["version"].as_str(),
                     &draft(params)?,
                     message_id,
                 )
                 .await;
+                self.hint_channel(&channel);
+                return result;
             }
             "channel/download" => {
                 let seq = number(params, "seq")?;
@@ -227,17 +255,6 @@ impl Daemon {
                 let channel = client.channel_create(&text(params, "name")?, kind).await?;
                 Ok(to_json(&client.channel_view(&channel)?))
             }
-            "channel/invite" => {
-                let role = match params["role"].as_str().unwrap_or("member") {
-                    "member" => Role::Member,
-                    "publisher" => Role::Publisher,
-                    _ => return Err(Error::InvalidInput("role".into())),
-                };
-                let invitation = client
-                    .channel_invite(&id()?, &account(params, "account")?, role)
-                    .await?;
-                Ok(to_json(&invitation))
-            }
             "channel/join" => {
                 let invitation: Invitation = parse(params, "invitation")?;
                 Ok(to_json(&client.channel_join(&invitation).await?))
@@ -260,8 +277,6 @@ impl Daemon {
                 client.channel_leave(&id()?, &operation).await?;
                 Ok(json!({"left": true}))
             }
-            "channel/rotate" => Ok(to_json(&client.channel_rotate(&id()?).await?)),
-            "channel/rekey" => Ok(to_json(&client.channel_rekey(&id()?).await?)),
             "channel/history" => {
                 let ledger = client
                     .channel_grant_history(

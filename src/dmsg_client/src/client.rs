@@ -1499,46 +1499,7 @@ impl Client {
         &mut self,
         accounts: &[AccountId],
     ) -> Result<Vec<(AccountId, Security)>> {
-        let found = self.read_peers(accounts).await?;
-        // One request per certificate, of at most 16 accounts' evidence.
-        let mut grouped: BTreeMap<(&str, &str), Vec<EvidenceEntry>> = BTreeMap::new();
-        for (_, security) in &found {
-            let evidence = &security.evidence;
-            grouped
-                .entry((&evidence.canister, &evidence.certificate))
-                .or_default()
-                .extend(evidence.entries.iter().cloned());
-        }
-        let requests: Vec<Evidence> = grouped
-            .into_iter()
-            .flat_map(|((canister, certificate), entries)| {
-                entries
-                    .chunks(16)
-                    .map(|chunk| Evidence {
-                        schema: 1,
-                        canister: canister.into(),
-                        certificate: certificate.into(),
-                        entries: chunk.to_vec(),
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect();
-        try_join_all(requests.iter().map(|e| self.cloud.publish_security(e))).await?;
-        Ok(found)
-    }
-
-    /// [`Peers::read`] of `accounts`, waiting on the network with the client.
-    ///
-    /// # Errors
-    /// Returns `Error::NotFound` when no user home knows an account.
-    pub(crate) async fn read_peers(
-        &mut self,
-        accounts: &[AccountId],
-    ) -> Result<Vec<(AccountId, Security)>> {
-        let mut peers = self.peers_of(accounts);
-        let found = peers.read().await;
-        self.peers_met(peers);
-        found
+        peers_security(&self.hold(), accounts).await
     }
 
     /// What reads `accounts` without the client, for a caller that lets go
@@ -1572,6 +1533,47 @@ impl Client {
         }
         self.peers.extend(peers.met);
     }
+}
+
+/// Read and publish peers' certified security without holding the client.
+pub(crate) async fn peers_security<H: Hold>(
+    h: &H,
+    accounts: &[AccountId],
+) -> Result<Vec<(AccountId, Security)>> {
+    let mut peers = h.with(|c| Ok(c.peers_of(accounts))).await?;
+    let found = peers.read().await;
+    h.with(|c| {
+        c.peers_met(peers);
+        Ok(())
+    })
+    .await?;
+    let found = found?;
+    let cloud = h.with(|c| Ok(c.relay())).await?;
+    // One request per certificate, of at most 16 accounts' evidence.
+    let mut grouped: BTreeMap<(&str, &str), Vec<EvidenceEntry>> = BTreeMap::new();
+    for (_, security) in &found {
+        let evidence = &security.evidence;
+        grouped
+            .entry((&evidence.canister, &evidence.certificate))
+            .or_default()
+            .extend(evidence.entries.iter().cloned());
+    }
+    let requests: Vec<Evidence> = grouped
+        .into_iter()
+        .flat_map(|((canister, certificate), entries)| {
+            entries
+                .chunks(16)
+                .map(|chunk| Evidence {
+                    schema: 1,
+                    canister: canister.into(),
+                    certificate: certificate.into(),
+                    entries: chunk.to_vec(),
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    try_join_all(requests.iter().map(|e| cloud.publish_security(e))).await?;
+    Ok(found)
 }
 
 /// Another account and the device map its home returned.

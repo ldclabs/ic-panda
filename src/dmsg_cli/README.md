@@ -565,6 +565,15 @@ lost is kept in `pending`, and running it again, or `pending --key`, settles it
 under the same request ID. After `leave` the relay serves the channel no more
 to this account; the device keeps the last state it verified.
 
+The channel loop reads up to four independent channels concurrently and
+prioritizes hints over periodic reads. A hint during a read queues another
+pass; the follow-up for the relay's five-second hint window remains.
+Inviting and rotating hold only the channel's control-operation turn, so
+other channels and local reads remain responsive during network waits.
+The desktop opens cached messages immediately and refreshes the selected
+channel in the background. A sent message appears on its durable ACK,
+while earlier incoming messages are merged into their sequence positions.
+
 Payments go through the approval center like signatures: `inbox pay`,
 `plan checkout|advance` and `handle claim|register` only create the request,
 which a person approves at the terminal or in the desktop's approval window,

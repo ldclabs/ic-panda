@@ -22,10 +22,13 @@ use serde_json::json;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::task::JoinSet;
 use tokio::time::{Instant, MissedTickBehavior};
 
 /// How often the set of channels is checked.
-const TICK: Duration = Duration::from_secs(5);
+const TICK: Duration = Duration::from_secs(1);
+/// Independent channels may wait on the relay side by side.
+const READERS: usize = 4;
 /// Each channel is read at least this often.
 const READ: Duration = Duration::from_secs(600);
 /// A hinted channel is read again after this long, for the messages the
@@ -51,6 +54,8 @@ struct Seen {
     reported: Option<Instant>,
     /// Messages came since the delivery cursor last went.
     unreported: bool,
+    running: bool,
+    pending: bool,
 }
 
 /// Read the channels the relay hints at and rotate the ones that wait for
@@ -60,39 +65,87 @@ pub async fn run(daemon: Arc<Daemon>) {
         return;
     };
     let mut seen: BTreeMap<String, Seen> = BTreeMap::new();
-    // A steady tick, which reads in between do not postpone.
+    // Readers must keep polling independently while this scheduler reads
+    // the channel list. A queued client-lock acquisition can already own
+    // the next mutex permit before its future is polled again.
+    let mut work = JoinSet::new();
     let mut tick = tokio::time::interval(TICK);
     tick.set_missed_tick_behavior(MissedTickBehavior::Delay);
     loop {
         let hinted = tokio::select! {
             _ = tick.tick() => None,
             Some(channel) = hints.recv() => Some(channel),
+            Some(Ok((id, unreported, reported))) = work.join_next(), if !work.is_empty() => {
+                if let Some(state) = seen.get_mut(&id) {
+                    state.running = false;
+                    state.unreported = unreported;
+                    if let Some(at) = reported {
+                        state.reported = Some(at);
+                    }
+                }
+                None
+            }
         };
         let channels = joined(&daemon).await;
-        seen.retain(|id, _| channels.iter().any(|c| c.id == *id));
+        seen.retain(|id, state| state.running || channels.iter().any(|c| c.id == *id));
         for channel in &channels {
             let state = seen.entry(channel.id.clone()).or_default();
-            let named = hinted
+            if hinted
                 .as_deref()
-                .is_some_and(|h| h == channel.id || h == "*");
+                .is_some_and(|h| h == channel.id || h == "*")
+            {
+                state.pending = true;
+                state.again = Some(Instant::now());
+            }
+        }
+        // Hints get a free slot before periodic maintenance. Hints arriving
+        // during an in-flight read stay pending for the next read.
+        let mut channels = channels;
+        channels.sort_by_key(|c| !seen[&c.id].pending);
+        for channel in channels {
+            if work.len() >= READERS {
+                break;
+            }
+            let state = seen.get_mut(&channel.id).expect("joined channel");
+            if state.running {
+                continue;
+            }
             let due =
                 |at: Option<Instant>, every: Duration| at.is_none_or(|at| at.elapsed() >= every);
-            if named || due(state.read, READ) || state.again.is_some_and(|at| at.elapsed() >= AGAIN)
-            {
-                state.again = named.then(Instant::now);
+            let again = state.again.is_some_and(|at| at.elapsed() >= AGAIN);
+            let read = state.pending || due(state.read, READ) || again;
+            let report_due = due(state.reported, RETRY);
+            let rotate_due = channel.rotate && due(state.rotated, RETRY);
+            if !read && !(state.unreported && report_due) && !rotate_due {
+                continue;
+            }
+            if read {
+                state.pending = false;
                 state.read = Some(Instant::now());
-                state.unreported |= sync(&daemon, &channel.id).await;
+                if again {
+                    state.again = None;
+                }
             }
-            // Messages that came within half a minute of the last report
-            // go with the next.
-            if state.unreported && due(state.reported, RETRY) {
-                state.reported = Some(Instant::now());
-                state.unreported = report(&daemon, &channel.id, None).await.is_err();
-            }
-            if channel.rotate && due(state.rotated, RETRY) {
+            if rotate_due {
                 state.rotated = Some(Instant::now());
-                rotate(&daemon, &channel.id).await;
             }
+            state.running = true;
+            let mut unreported = state.unreported;
+            let daemon = daemon.clone();
+            work.spawn(async move {
+                if read {
+                    unreported |= sync(&daemon, &channel.id).await;
+                }
+                let mut reported = None;
+                if unreported && report_due {
+                    reported = Some(Instant::now());
+                    unreported = report(&daemon, &channel.id, None).await.is_err();
+                }
+                if rotate_due {
+                    rotate(&daemon, &channel.id).await;
+                }
+                (channel.id, unreported, reported)
+            });
         }
     }
 }
@@ -169,7 +222,7 @@ async fn sync(daemon: &Daemon, channel: &str) -> bool {
     let mut reading = Reading::new(channel);
     let _ = dmsg_client::channel::read(&daemon.hold(), &mut reading).await;
     let (log_after, cursor_after, unread_after) = state(&*daemon.client().lock().await);
-    if reading.received > 0 || log_after != log {
+    if reading.received > 0 || log_after != log || cursor_after > cursor {
         let view = daemon.client().lock().await.channel_view(channel).ok();
         daemon.emit(
             "channel/changed",
@@ -186,12 +239,12 @@ async fn sync(daemon: &Daemon, channel: &str) -> bool {
     cursor_after > cursor
 }
 
-/// Seal a new epoch to the channel's members, which still waits on the
-/// relay and the user homes under the client.
+/// Seal a new epoch to the channel's members without blocking other channels.
 async fn rotate(daemon: &Daemon, channel: &str) {
-    let result = daemon
-        .under_lock(async |client| client.channel_rotate(channel).await)
-        .await;
+    let Some(_turn) = daemon.try_turn(&format!("channel-control:{channel}")) else {
+        return;
+    };
+    let result = dmsg_client::channel::rotate(&daemon.hold(), channel).await;
     if let Ok(view) = result {
         daemon.emit(
             "channel/changed",

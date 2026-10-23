@@ -973,6 +973,7 @@ const methods = {
   'connect/sync': () => ({ fetched: 0 }),
   'channel/list': () => [channel, ...legacyDrafts],
   'channel/show': (p) => legacyDrafts.find((d) => d.id === p.id) ?? channel,
+  'channel/sync': () => ({ through: channel.message_cursor, received: 0 }),
   'channel/delete_legacy_draft': (p) => {
     assert.ok(legacyDrafts.some((d) => d.id === p.id))
     legacyDrafts = legacyDrafts.filter((d) => d.id !== p.id)
@@ -1539,8 +1540,11 @@ try {
   // Channels read and write through the daemon; a message shows as sending
   // until the relay stores it.
   await main.click('nav >> text=/Channels|频道/')
+  const finishChannelSync = hold('channel/sync')
   await main.click('[data-testid="channel-list"] >> text=Smoke channel')
   await main.waitForSelector('text=Hello channel')
+  // A stalled refresh must not delay the cached timeline or the composer.
+  await waitFor(() => latest('channel/sync'))
   await main.fill('[data-testid="channel-text"]', 'Reply from the desktop')
   await main.keyboard.press('Enter')
   await waitFor(() => latest('channel/send'))
@@ -1557,11 +1561,25 @@ try {
   // A channel opens with its latest page; later reads ask again for the last
   // page shown and what follows it, as edits change messages already shown.
   const pages = calls.filter((c) => c.method === 'channel/messages').map((c) => c.params)
-  assert.deepEqual(pages[0], { id: channel.id, before: channel.message_cursor + 1, limit: 200 })
+  assert.deepEqual(pages[0], { id: channel.id, before: Number.MAX_SAFE_INTEGER, limit: 200 })
+  assert.ok(latest('channel/sync'), 'opening a channel refreshes it immediately')
+  await finishChannelSync()
   assert.ok(pages.slice(1).some((p) => p.after === 0 && p.limit === 400))
   // A message names its own ID, so a retry never sends it twice; members show their names.
   assert.match(latest('channel/send').params.message_id, /^[0-9a-f]{64}$/)
   await main.waitForSelector('[data-testid="channel-members"] >> text=Peer Person')
+
+  // Acknowledged outgoing messages may arrive before an earlier incoming
+  // message. Filling that gap must keep both messages, sorted by sequence.
+  channel.message_cursor = 3
+  messages.push({ ...messages[0], seq: 5, account, text: 'Acknowledged ahead of sync', digest: 'de'.repeat(32) })
+  emit('channel/changed', {})
+  await main.waitForSelector('[data-testid="channel-messages"] article >> text=Acknowledged ahead of sync')
+  messages.splice(3, 0, { ...messages[0], seq: 4, account: peer, text: 'Earlier incoming message', digest: 'df'.repeat(32) })
+  channel.message_cursor = 5
+  emit('channel/changed', {})
+  await main.waitForSelector('[data-testid="channel-messages"] article >> text=Earlier incoming message')
+  assert.deepEqual(await main.locator('[data-testid="channel-messages"] article[data-seq]').evaluateAll((rows) => rows.map((r) => Number(r.dataset.seq))), [1, 2, 3, 4, 5])
 
   // A library file goes with a message as a shared edition; a shared file
   // is saved where the main process's dialog says, or into the library;

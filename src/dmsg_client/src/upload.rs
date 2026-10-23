@@ -8,6 +8,7 @@ use crate::client::Client;
 use crate::files::{BlobStore, Source};
 use crate::hold::Hold;
 use dmsg_types::{Error, Hash, Result, ensure};
+use futures_util::future::try_join_all;
 use serde::{Deserialize, Serialize};
 
 /// One ciphertext chunk of a plan.
@@ -205,20 +206,42 @@ pub(crate) async fn upload<H: Hold>(
         )
         .await?;
     }
-    for (index, chunk) in plan.chunks.iter().enumerate().skip(sent) {
-        h.send(|c| {
-            let bytes = c
-                .source(source)?
-                .chunk(&chunk.digest)?
-                .ok_or(Error::RecoveryIncomplete)?;
-            ensure(bytes.len() as u64 == chunk.size, Error::IntegrityFailed)?;
-            c.signed_put(&format!("{path}/chunks/{index}"), &bytes)
-        })
-        .await?;
-        h.with(|c| progress(c, index + 1)).await?;
+    // Invitations and rotations contain many small, independent device
+    // envelopes. Send a bounded group together, including the manifest in
+    // the last group. A failed group is safe to resend under the same plan.
+    let width = if plan.kind == "envelopes" { 8 } else { 1 };
+    sent = sent.min(plan.chunks.len());
+    let mut manifest_sent = false;
+    for group in plan.chunks[sent..].chunks(width) {
+        let through = sent + group.len();
+        let with_manifest = width > 1 && through == plan.chunks.len();
+        let (relay, requests) = h
+            .signed(|c| {
+                let mut requests = Vec::with_capacity(group.len() + usize::from(with_manifest));
+                for (offset, chunk) in group.iter().enumerate() {
+                    let bytes = c
+                        .source(source)?
+                        .chunk(&chunk.digest)?
+                        .ok_or(Error::RecoveryIncomplete)?;
+                    ensure(bytes.len() as u64 == chunk.size, Error::IntegrityFailed)?;
+                    requests
+                        .push(c.signed_put(&format!("{path}/chunks/{}", sent + offset), &bytes)?);
+                }
+                if with_manifest {
+                    requests.push(c.signed_put(&format!("{path}/chunks/manifest"), manifest)?);
+                }
+                Ok(requests)
+            })
+            .await?;
+        try_join_all(requests.into_iter().map(|request| relay.send(request))).await?;
+        h.with(|c| progress(c, through)).await?;
+        sent = through;
+        manifest_sent |= with_manifest;
     }
-    h.send(|c| c.signed_put(&format!("{path}/chunks/manifest"), manifest))
-        .await?;
+    if !manifest_sent {
+        h.send(|c| c.signed_put(&format!("{path}/chunks/manifest"), manifest))
+            .await?;
+    }
     finalize(h, base, plan).await
 }
 

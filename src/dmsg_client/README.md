@@ -182,6 +182,16 @@ different operation. The journals of a sent message, a finished rotation
 and a history grant go once their outcome is stored; the relay then refuses
 the message's ID with other bytes.
 
+An established channel reads the current head first and fetches control
+pages only when it changed, still verifying every new control. With fresh
+security and an unchanged head, sending text takes one head read and one
+publish request. The checked durable ACK stores the outgoing message
+locally without advancing the contiguous receive cursor; history sync fills
+any earlier gap independently. Invitations and rotations use `Hold` during
+network waits, and uploads batch up to eight device envelopes plus their
+manifest before finalizing. These are client optimizations; they neither
+change the wire contract nor relax security-evidence freshness.
+
 ## Team wallets
 
 A team wallet signs every transaction itself; this client never holds a
