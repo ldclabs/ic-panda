@@ -7,7 +7,7 @@
   import Select from '../../components/Select.svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import { buttonClass } from '../../components/ui'
-  import { call, when } from '../../rpc'
+  import { call, single, when } from '../../rpc'
   import { t } from '../../i18n/index.svelte'
   import { walletError as errorText } from './errors'
   import { cyclesText, utf8Length, type Wallet } from './model'
@@ -27,28 +27,22 @@
     notice = $state(''),
     lockConfirmed = $state(false)
   let alive = true
-  async function load() {
-    try {
-      const results = await Promise.allSettled([
-        call('wallet/versions', { wallet: wallet.wallet }),
-        call('wallet/rpc'),
-        call('wallet/cosigners'),
-        call('channel/list'),
-        call('wallet/channel', { wallet: wallet.wallet })
-      ])
+  let errors = $state<Record<string, string>>({})
+  function reader(key: string, method: string, apply: (value: any) => void) {
+    return single(async () => {
       if (!alive) return
-      const [v, r, k, c, b] = results
-      if (v.status === 'fulfilled') versions = v.value
-      else error = errorText(v.reason)
-      if (r.status === 'fulfilled') rpc = r.value
-      else error = errorText(r.reason)
-      if (k.status === 'fulfilled') keys = k.value
-      if (c.status === 'fulfilled') channels = c.value
-      if (b.status === 'fulfilled') channel = b.value.channel ?? wallet.channel_hint ?? ''
-    } catch (e) {
-      if (alive) error = errorText(e)
-    }
+      try {
+        const value = await call(method, { wallet: wallet.wallet })
+        if (alive) { apply(value); errors[key] = '' }
+      } catch (e) { if (alive) errors[key] = errorText(e) }
+    })
   }
+  const readVersions = reader('versions', 'wallet/versions', (value) => (versions = value))
+  const readRpc = reader('rpc', 'wallet/rpc', (value) => (rpc = value))
+  const readKeys = reader('keys', 'wallet/cosigners', (value) => (keys = value))
+  const readChannels = reader('channels', 'channel/list', (value) => (channels = value))
+  const readBinding = reader('binding', 'wallet/channel', (value) => (channel = value.channel ?? wallet.channel_hint ?? ''))
+  function load() { void readVersions(); void readRpc(); void readKeys(); void readChannels(); void readBinding() }
   async function run(method: string, params: any = {}) {
     busy = true
     error = ''
@@ -65,10 +59,14 @@
       else {
         notice = w('saved')
         onUpdated()
-        await load()
+        if (method === 'wallet/rpc_set') void readRpc()
+        else if (method.startsWith('wallet/cosigner')) void readKeys()
+        else if (method === 'wallet/channel') void readBinding()
+        else load()
       }
       if (result.notification_error) notice = w('notificationFailed')
     } catch (e) {
+      if (!alive) return
       error = errorText(e)
     } finally {
       busy = false
@@ -85,6 +83,7 @@
 </script>
 
 <div class="grid gap-5">
+  {#each Object.values(errors).filter(Boolean) as failure}<Notice tone="danger">{failure}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice>{/each}
   {#if error}<Notice tone="danger">{error}<button class={buttonClass('ghost', 'xs')} onclick={load}>{w('retry')}</button></Notice>{/if}
   {#if notice}<Notice>{notice}</Notice>{/if}
   <Section title={w('cycles')} icon="coins">

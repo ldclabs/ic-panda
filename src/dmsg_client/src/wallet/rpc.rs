@@ -201,15 +201,12 @@ impl Chains {
     /// # Errors
     /// As [`Self::evm`].
     pub async fn evm_fees(&self, chain_id: u64) -> Result<(u128, u128)> {
-        let block = self
-            .evm(chain_id, "eth_getBlockByNumber", json!(["latest", false]))
-            .await?;
-        let base = quantity(&block["baseFeePerGas"])?;
-        let tip = quantity(
-            &self
-                .evm(chain_id, "eth_maxPriorityFeePerGas", json!([]))
-                .await?,
+        let (block, tip) = futures_util::try_join!(
+            self.evm(chain_id, "eth_getBlockByNumber", json!(["latest", false])),
+            self.evm(chain_id, "eth_maxPriorityFeePerGas", json!([]))
         )?;
+        let base = quantity(&block["baseFeePerGas"])?;
+        let tip = quantity(&tip)?;
         Ok((base * 2 + tip, tip))
     }
 

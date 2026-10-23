@@ -33,6 +33,7 @@ pub async fn read<H: Hold>(h: &H, wallet: Principal, before: Option<u64>) -> Res
         cache = Checkpoints::default();
     }
     let (_, ic) = identity(h).await?;
+    let mut last_page = None;
     while cache.count < view.audit_len {
         let end = ((cache.count / PAGE + 1) * PAGE).min(view.audit_len);
         let page: Result<Vec<AuditEvent>> = ic
@@ -44,6 +45,7 @@ pub async fn read<H: Hold>(h: &H, wallet: Principal, before: Option<u64>) -> Res
             Error::IntegrityFailed,
         )?;
         cache.head = verify_audit(cache.head, cache.count, &page)?;
+        last_page = Some((cache.count, end, page));
         cache.count = end;
         if end % PAGE == 0 {
             cache.pages.push(cache.head);
@@ -56,6 +58,10 @@ pub async fn read<H: Hold>(h: &H, wallet: Principal, before: Option<u64>) -> Res
     let start = end.saturating_sub(1) / PAGE * PAGE;
     let page = if end == 0 {
         vec![]
+    } else if let Some((_, _, page)) =
+        last_page.filter(|(from, to, _)| *from == start && *to == end)
+    {
+        page
     } else {
         let page: Result<Vec<AuditEvent>> = ic
             .query(wallet, "audit", (start, (end - start) as u16))

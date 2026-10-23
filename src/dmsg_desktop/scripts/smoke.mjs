@@ -2011,7 +2011,19 @@ smoke: try {
 
   // An activation payment that created no wallet goes back to the payer at
   // once, without an approval; an unused quote's waits for its expiry.
+  const finishWalletDeposits = hold('wallet/deposits')
+  const finishFirstProposals = WALLET_CREATION_PAUSED ? hold('wallet/proposals') : null
+  if (WALLET_CREATION_PAUSED) wallets.state.enabled = true
   await main.click('nav >> text=Team wallets')
+  await waitFor(() => held.get('wallet/deposits'))
+  if (WALLET_CREATION_PAUSED) {
+    // Main wallet details are independent of deposits and the proposal list.
+    await main.waitForSelector('[data-testid="wallet-cycles"]')
+    await waitFor(() => held.get('wallet/proposals'))
+    assert.equal(await main.locator('[data-testid="wallet-loading"]').count(), 0)
+    await finishFirstProposals()
+  }
+  await finishWalletDeposits()
   await main.waitForSelector('[data-testid="wallet-deposits"]')
   assert.equal(await main.locator('[data-testid="wallet-deposit"]').count(), 2)
   assert.equal(await main.locator('[data-testid="wallet-refund"]').count(), 1)
@@ -2117,10 +2129,18 @@ smoke: try {
   const finishRefresh = hold('wallet/show')
   emit('wallet/changed')
   await waitFor(() => held.get('wallet/show'))
+  const walletRefreshes = calls.filter((c) => c.method === 'wallet/show').length
+  for (let i = 0; i < 6; i++) emit('wallet/changed')
+  await new Promise((r) => setTimeout(r, 150))
+  assert.equal(calls.filter((c) => c.method === 'wallet/show').length, walletRefreshes)
   assert.equal(await main.locator('[data-testid="wallet-loading"]').count(), 0)
   assert.deepEqual(await main.locator('[data-testid="wallet-cycles"]').boundingBox(), cyclesPosition)
   await finishRefresh()
+  const finishVersions = hold('wallet/versions')
   await main.click('[data-testid="wallet-tab-settings"]')
+  await waitFor(() => held.get('wallet/versions'))
+  await main.waitForFunction(() => [...document.querySelectorAll('input[type="url"]')].some((input) => input.value === 'https://example.test/btc'))
+  await finishVersions()
   assert.equal((await main.textContent('[data-testid="wallet-health-cycles"]')).trim(), '1.99 T')
   await main.getByRole('button', { name: 'Read canister health', exact: true }).click()
   await main.waitForSelector('[data-testid="wallet-health-cycles"] >> text=2.00 T')
@@ -2231,7 +2251,13 @@ smoke: try {
   await main.waitForSelector('[data-testid="wallet-audit"]')
   assert.match(await main.textContent('[data-testid="wallet-audit"]'),/1/)
   await main.click('[data-testid="wallet-tab-assets"]')
+  const finishBalances = hold('wallet/balances')
   await main.getByRole('button',{name:'Read balances',exact:true}).click()
+  await waitFor(() => held.get('wallet/balances'))
+  assert.equal(await main.isDisabled('[data-testid="wallet-select"]'), false)
+  await main.click('[data-testid="wallet-tab-team"]')
+  await main.click('[data-testid="wallet-tab-assets"]')
+  await finishBalances()
   await main.waitForSelector('text=123.456789 ICP')
   await main.screenshot({path:join(shots,'wallet-assets.png')})
   await main.click('[data-testid="wallet-tab-overview"]')

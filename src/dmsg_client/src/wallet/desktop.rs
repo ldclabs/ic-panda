@@ -834,6 +834,8 @@ fn transfer_intent(input: &TransferInput, view: &WalletView, fee: u128) -> Resul
 /// Estimate a transfer and ask the wallet for its current policy requirement.
 /// The final proposal and execution still re-evaluate current state.
 pub async fn preview<H: Hold>(h: &H, wallet: Principal, input: TransferInput) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let view = state(h, wallet).await?;
     let asset = parse_asset(&input.asset)?;
     let _provisional = transfer_intent(&input, &view, u128::MAX)?;
@@ -844,117 +846,145 @@ pub async fn preview<H: Hold>(h: &H, wallet: Principal, input: TransferInput) ->
         .ok_or(Error::NotFound)?;
     let (_, ic) = identity(h).await?;
     let chains = h.with(|c| c.chains()).await?;
-    let hub = h.with(|c| c.wallet_hub()).await?;
-    let config: HubInit = h
-        .anonymous()
-        .await?
-        .query(hub, "get_hub_config", ())
-        .await?;
-    let (estimate, native, decimals, balance, extra) = match &asset {
-        AssetKey::Icp | AssetKey::Icrc(_) => {
-            let ledger = match asset {
-                AssetKey::Icrc(p) => p,
-                _ => config.icp_ledger,
-            };
-            let fee = ledger_fee(&ic, ledger).await?;
-            let b: Nat = ic
-                .query(
-                    ledger,
-                    "icrc1_balance_of",
-                    (icp_account(wallet, input.from),),
-                )
-                .await?;
-            let meta = metadata(h, &asset, false).await?;
-            (
-                fee.checked_mul(input.outputs.len() as u128)
-                    .ok_or_else(|| dmsg_types::invalid("fee overflow"))?,
-                meta["symbol"].as_str().unwrap_or("ICRC").to_string(),
-                meta["decimals"].as_u64().unwrap_or(0) as u8,
-                u128::try_from(b.0).map_err(|_| Error::IntegrityFailed)?,
-                0,
-            )
-        }
-        AssetKey::Btc => {
-            let utxos = chains.btc_utxos(&address.text).await?;
-            let count = utxos.len().min(MAX_BTC_INPUTS);
-            let balance = utxos
-                .iter()
-                .take(MAX_BTC_INPUTS)
-                .try_fold(0u128, |sum, u| {
-                    sum.checked_add(u128::from(u.value))
-                        .ok_or(Error::IntegrityFailed)
-                })?;
-            let rate = chains.btc_fee_rate().await?;
-            (
-                u128::from(rate)
-                    * (count as u128 * 110 + (input.outputs.len() as u128 + 1) * 43 + 16),
-                "BTC".into(),
-                8,
-                balance,
-                0,
-            )
-        }
-        AssetKey::Evm { chain_id, token } => {
-            let amount: u128 = integer(&input.outputs[0].amount)?;
-            let destination = eip55(&parse_evm_address(&input.outputs[0].to)?);
-            let (to, data, value) = match token {
-                Some(token) => (
-                    eip55(&token.into_array()),
-                    [
-                        &[0xa9, 0x05, 0x9c, 0xbb][..],
-                        &[0; 12],
-                        &parse_evm_address(&destination)?,
-                        &[0; 16],
-                        &amount.to_be_bytes(),
-                    ]
-                    .concat(),
+    let estimate_read = async {
+        Ok::<_, Error>(match &asset {
+            AssetKey::Icp | AssetKey::Icrc(_) => {
+                let ledger = match asset {
+                    AssetKey::Icrc(p) => p,
+                    _ => {
+                        let hub = h.with(|c| c.wallet_hub()).await?;
+                        let config: HubInit = h
+                            .anonymous()
+                            .await?
+                            .query(hub, "get_hub_config", ())
+                            .await?;
+                        config.icp_ledger
+                    }
+                };
+                let (fee, b, meta) = futures_util::try_join!(
+                    ledger_fee(&ic, ledger),
+                    ic.query::<_, Nat>(
+                        ledger,
+                        "icrc1_balance_of",
+                        (icp_account(wallet, input.from),)
+                    ),
+                    metadata(h, &asset, false)
+                )?;
+                (
+                    fee.checked_mul(input.outputs.len() as u128)
+                        .ok_or_else(|| dmsg_types::invalid("fee overflow"))?,
+                    meta["symbol"].as_str().unwrap_or("ICRC").to_string(),
+                    meta["decimals"].as_u64().unwrap_or(0) as u8,
+                    u128::try_from(b.0).map_err(|_| Error::IntegrityFailed)?,
                     0,
-                ),
-                None => (destination, vec![], amount),
-            };
-            let gas = chains
-                .evm_gas(*chain_id, &address.text, &to, &data, value)
-                .await?;
-            let (fee, _) = chains.evm_fees(*chain_id).await?;
-            let balance = chains.evm_balance(*chain_id, &address.text, None).await?;
-            (
-                fee.checked_mul(u128::from(gas))
-                    .ok_or_else(|| dmsg_types::invalid("fee overflow"))?,
-                if [1, 8453].contains(chain_id) {
-                    "ETH".into()
-                } else {
-                    format!("Native · {chain_id}")
-                },
-                18,
-                balance,
-                0,
-            )
-        }
-        AssetKey::Sol { mint } => {
-            let mut extra = 0u128;
-            if let Some(mint) = mint {
-                let rent = chains
-                    .sol("getMinimumBalanceForRentExemption", json!([165]))
-                    .await?
-                    .as_u64()
-                    .ok_or(Error::IntegrityFailed)? as u128;
-                for output in &input.outputs {
-                    let owner = parse_sol_address(&output.to)?;
-                    let ata = decode::associated_token_account(&owner, &mint.into_array());
-                    if !chains.sol_exists(&sol_address(&ata)).await? {
-                        extra = extra.checked_add(rent).ok_or(Error::IntegrityFailed)?;
+                )
+            }
+            AssetKey::Btc => {
+                let (utxos, rate) = futures_util::try_join!(
+                    chains.btc_utxos(&address.text),
+                    chains.btc_fee_rate()
+                )?;
+                let count = utxos.len().min(MAX_BTC_INPUTS);
+                let balance = utxos
+                    .iter()
+                    .take(MAX_BTC_INPUTS)
+                    .try_fold(0u128, |sum, u| {
+                        sum.checked_add(u128::from(u.value))
+                            .ok_or(Error::IntegrityFailed)
+                    })?;
+                (
+                    u128::from(rate)
+                        * (count as u128 * 110 + (input.outputs.len() as u128 + 1) * 43 + 16),
+                    "BTC".into(),
+                    8,
+                    balance,
+                    0,
+                )
+            }
+            AssetKey::Evm { chain_id, token } => {
+                let amount: u128 = integer(&input.outputs[0].amount)?;
+                let destination = eip55(&parse_evm_address(&input.outputs[0].to)?);
+                let (to, data, value) = match token {
+                    Some(token) => (
+                        eip55(&token.into_array()),
+                        [
+                            &[0xa9, 0x05, 0x9c, 0xbb][..],
+                            &[0; 12],
+                            &parse_evm_address(&destination)?,
+                            &[0; 16],
+                            &amount.to_be_bytes(),
+                        ]
+                        .concat(),
+                        0,
+                    ),
+                    None => (destination, vec![], amount),
+                };
+                let (gas, (fee, _), balance) = futures_util::try_join!(
+                    chains.evm_gas(*chain_id, &address.text, &to, &data, value),
+                    chains.evm_fees(*chain_id),
+                    chains.evm_balance(*chain_id, &address.text, None)
+                )?;
+                (
+                    fee.checked_mul(u128::from(gas))
+                        .ok_or_else(|| dmsg_types::invalid("fee overflow"))?,
+                    if [1, 8453].contains(chain_id) {
+                        "ETH".into()
+                    } else {
+                        format!("Native · {chain_id}")
+                    },
+                    18,
+                    balance,
+                    0,
+                )
+            }
+            AssetKey::Sol { mint } => {
+                let mut extra = 0u128;
+                if let Some(mint) = mint {
+                    let rent = chains
+                        .sol("getMinimumBalanceForRentExemption", json!([165]))
+                        .await?
+                        .as_u64()
+                        .ok_or(Error::IntegrityFailed)? as u128;
+                    for output in &input.outputs {
+                        let owner = parse_sol_address(&output.to)?;
+                        let ata = decode::associated_token_account(&owner, &mint.into_array());
+                        if !chains.sol_exists(&sol_address(&ata)).await? {
+                            extra = extra.checked_add(rent).ok_or(Error::IntegrityFailed)?;
+                        }
                     }
                 }
+                (
+                    5_000 + 60 * input.outputs.len() as u128,
+                    "SOL".into(),
+                    9,
+                    chains.sol_balance(&address.text).await?,
+                    extra,
+                )
             }
-            (
-                5_000 + 60 * input.outputs.len() as u128,
-                "SOL".into(),
-                9,
-                chains.sol_balance(&address.text).await?,
-                extra,
-            )
-        }
+        })
     };
+    let token_read = async {
+        let balance = match &asset {
+            AssetKey::Evm {
+                chain_id,
+                token: Some(token),
+            } => {
+                chains
+                    .evm_balance(*chain_id, &address.text, Some(&eip55(&token.into_array())))
+                    .await?
+            }
+            AssetKey::Sol { mint: Some(mint) } => {
+                chains
+                    .sol_token(&address.text, &sol_address(&mint.into_array()))
+                    .await?
+                    .0
+            }
+            _ => return Ok(None),
+        };
+        Ok::<_, Error>(Some(balance))
+    };
+    let ((estimate, native, decimals, balance, extra), token_balance) =
+        futures_util::try_join!(estimate_read, token_read)?;
     let recommended = estimate
         .checked_add(estimate / 5)
         .ok_or_else(|| dmsg_types::invalid("fee overflow"))?;
@@ -989,30 +1019,12 @@ pub async fn preview<H: Hold>(h: &H, wallet: Principal, input: TransferInput) ->
     {
         blockers.push("INSUFFICIENT_NATIVE_BALANCE");
     }
-    if !native_asset {
-        let b = match &asset {
-            AssetKey::Evm {
-                chain_id,
-                token: Some(token),
-            } => {
-                chains
-                    .evm_balance(*chain_id, &address.text, Some(&eip55(&token.into_array())))
-                    .await?
-            }
-            AssetKey::Sol { mint: Some(mint) } => {
-                chains
-                    .sol_token(&address.text, &sol_address(&mint.into_array()))
-                    .await?
-                    .0
-            }
-            _ => 0,
-        };
-        if b < total {
-            blockers.push("INSUFFICIENT_ASSET_BALANCE");
-        }
+    if token_balance.is_some_and(|b| b < total) {
+        blockers.push("INSUFFICIENT_ASSET_BALANCE");
     }
     let requirement: Result<Requirement> = ic.query(wallet, "preview_intent", (&intent,)).await?;
     let requirement = requirement?;
+    h.with(|_| Ok(())).await?;
     let requirement = json!({"approvals":requirement.approvals,"admin":requirement.admin,"delay_ms":requirement.delay_ms,"window_amount":requirement.window_amount.to_string()});
     Ok(json!({
         "wallet":wallet.to_text(), "policy_version":view.policy.version,

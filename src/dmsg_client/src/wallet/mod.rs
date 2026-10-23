@@ -22,7 +22,7 @@ pub mod rpc;
 use crate::client::Client;
 use crate::codec::principal_input;
 use crate::crypto::{random_id, sign};
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::ic::Ic;
 use crate::now_ms;
 use crate::payer::Stage;
@@ -38,6 +38,7 @@ use dmsg_types::{
     wallet::*,
 };
 use futures_util::future::{join, join_all, try_join_all};
+use futures_util::stream::{self, StreamExt, TryStreamExt};
 use icrc_ledger_types::icrc1::account::Account;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
@@ -1035,9 +1036,11 @@ pub async fn list<H: Hold>(h: &H) -> Result<Json> {
 /// # Errors
 /// As [`state`].
 pub async fn show<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
-    let view = state(h, wallet).await?;
     let (_, ic) = identity(h).await?;
-    let stats: WalletStats = ic.query(wallet, "wallet_stats", ()).await?;
+    let (view, stats) = futures_util::try_join!(
+        state(h, wallet),
+        ic.query::<_, WalletStats>(wallet, "wallet_stats", ())
+    )?;
     let me = h.with(|c| Ok(c.wallet_member().ok())).await?;
     let mut out = wallet_view(&view, me.as_ref());
     out["environment"] = h
@@ -1125,42 +1128,52 @@ pub async fn proposal<H: Hold>(h: &H, wallet: Principal, id: u64) -> Result<Json
 /// # Errors
 /// Query failures return `Error::Unavailable`.
 pub async fn deposits<H: Hold>(h: &H) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
     let (hub, paid) = h.with(|c| Ok((c.wallet_hub()?, c.paid_quotes()?))).await?;
-    let mut out = vec![];
     if paid.is_empty() {
-        return Ok(Json::Array(out));
+        return Ok(Json::Array(vec![]));
     }
     let reader = h.anonymous().await?;
     let config: HubInit = reader.query(hub, "get_hub_config", ()).await?;
-    let now = now_ms();
-    for quote in paid {
-        let order: Option<ActivationOrder> =
-            reader.query(hub, "get_order", (quote.quote_id,)).await?;
-        let (state, reason) = match order.map(|o| o.status) {
-            Some(ActivationStatus::Failed(reason)) => ("failed", Some(reason)),
-            // Created, refunded, or still being created.
-            Some(_) => continue,
-            None if now >= quote.expires_at_ms => ("expired", None),
-            None => ("unused", None),
-        };
-        let held: candid::Nat = reader
-            .query(config.icp_ledger, "icrc1_balance_of", (quote.deposit,))
-            .await?;
-        let held = u128::try_from(held.0).map_err(|_| Error::IntegrityFailed)?;
-        let fee = u128::from(quote.ledger_fee_e8s);
-        if held > fee {
-            out.push(json!({
-                "quote_id": hex::encode(*quote.quote_id),
-                "state": state,
-                "refundable": state != "unused",
-                "refund_e8s": (held - fee).to_string(),
-                "ledger_fee_e8s": quote.ledger_fee_e8s.to_string(),
-                "expires_at": quote.expires_at_ms,
-                "reason": reason,
-            }));
+    // Preserve the journal's order, with at most four deposits in flight.
+    let rows: Vec<Option<Json>> = stream::iter(paid.into_iter().map(|quote| {
+        let reader = &reader;
+        async move {
+            let order: Option<ActivationOrder> =
+                reader.query(hub, "get_order", (quote.quote_id,)).await?;
+            let reason = match order.map(|o| o.status) {
+                Some(ActivationStatus::Failed(reason)) => Some(reason),
+                Some(_) => return Ok(None),
+                None => None,
+            };
+            let held: candid::Nat = reader
+                .query(config.icp_ledger, "icrc1_balance_of", (quote.deposit,))
+                .await?;
+            let held = u128::try_from(held.0).map_err(|_| Error::IntegrityFailed)?;
+            let now = now_ms();
+            let state = if reason.is_some() {
+                "failed"
+            } else if now >= quote.expires_at_ms {
+                "expired"
+            } else {
+                "unused"
+            };
+            let fee = u128::from(quote.ledger_fee_e8s);
+            Ok::<_, Error>((held > fee).then(|| {
+                json!({
+                    "quote_id": hex::encode(*quote.quote_id), "state": state,
+                    "refundable": state != "unused", "refund_e8s": (held - fee).to_string(),
+                    "ledger_fee_e8s": quote.ledger_fee_e8s.to_string(),
+                    "expires_at": quote.expires_at_ms, "reason": reason,
+                })
+            }))
         }
-    }
-    Ok(Json::Array(out))
+    }))
+    .buffered(4)
+    .try_collect()
+    .await?;
+    h.with(|_| Ok(Json::Array(rows.into_iter().flatten().collect())))
+        .await
 }
 
 /// Verify the whole audit chain against the wallet's head.
@@ -1187,6 +1200,8 @@ pub async fn principal<H: Hold>(h: &H) -> Result<Json> {
 /// # Errors
 /// As [`state`].
 pub async fn balances<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let view = state(h, wallet).await?;
     let (hub, chains, bitcoin_api) = h
         .with(|c| {
@@ -1206,7 +1221,7 @@ pub async fn balances<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
             let balances: Vec<Json> = match a.chain {
                 Chain::Icp => {
                     let icrc = assets.iter().filter_map(|asset| match asset {
-                        AssetKey::Icrc(ledger) => Some(*ledger),
+                        AssetKey::Icrc(ledger) if *ledger != icp_ledger => Some(*ledger),
                         _ => None,
                     });
                     join_all(std::iter::once(icp_ledger).chain(icrc).map(|ledger| async move {
@@ -1272,6 +1287,7 @@ pub async fn balances<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
         }))
         .await;
     let settings = h.with(|c| desktop::settings(c)).await?;
+    let mut assets = std::collections::BTreeMap::new();
     for address in &mut out {
         for balance in address["balances"].as_array_mut().into_iter().flatten() {
             let key = match balance["asset"].as_str().unwrap_or("") {
@@ -1289,7 +1305,7 @@ pub async fn balances<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
                 _ => continue,
             };
             let asset = parse_asset(&key)?;
-            balance["metadata"] = desktop::metadata(h, &asset, false).await?;
+            assets.insert(key.clone(), asset.clone());
             balance["key"] = json!(key);
             balance["source"] = match asset {
                 AssetKey::Icp | AssetKey::Icrc(_) => balance["ledger"].clone(),
@@ -1305,6 +1321,21 @@ pub async fn balances<H: Hold>(h: &H, wallet: Principal) -> Result<Json> {
             };
         }
     }
+    let metadata: std::collections::BTreeMap<String, Json> =
+        stream::iter(assets.into_iter().map(|(key, asset)| async move {
+            Ok::<_, Error>((key, desktop::metadata(h, &asset, false).await?))
+        }))
+        .buffered(4)
+        .try_collect()
+        .await?;
+    for address in &mut out {
+        for balance in address["balances"].as_array_mut().into_iter().flatten() {
+            if let Some(value) = balance["key"].as_str().and_then(|key| metadata.get(key)) {
+                balance["metadata"] = value.clone();
+            }
+        }
+    }
+    h.with(|_| Ok(())).await?;
     Ok(json!({"wallet": wallet.to_text(), "read_at": now_ms(), "addresses": out}))
 }
 

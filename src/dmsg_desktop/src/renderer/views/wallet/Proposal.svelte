@@ -7,7 +7,7 @@
   import Select from '../../components/Select.svelte'
   import { buttonClass } from '../../components/ui'
   import { copyText } from '../../components/clipboard'
-  import { call, bridge, onChange, when } from '../../rpc'
+  import { call, bridge, single, when } from '../../rpc'
   import { t } from '../../i18n/index.svelte'
   import { walletError as errorText } from './errors'
   import Intent from './Intent.svelte'
@@ -38,35 +38,37 @@
     ? !['ICP', 'ICRC'].includes(p.intent.asset?.asset) : ['cancel_evm_nonce', 'init_sol_nonce'].includes(p.intent.kind) : false)
   const livePlans = $derived((p?.plan_details ?? []).filter((v) => v.expires_at > now && !p?.signed.some((s) => s.plan === v.seq)))
   const livePlan = $derived(!external || livePlans.some((v) => v.seq === plan))
-  $effect(() => {
-    const current = wallet
-    if (current) untrack(() => void load())
+  // The parent owns wallet events, focus and polling. Every completed
+  // wallet refresh also refreshes this open detail, even if its head matches.
+  $effect(() => { wallet; untrack(() => void load()) })
+  const readCollection = single(async () => {
+    if (!alive || !p) return
+    const seq = sequence, chosen = plan, digest = p.digest
+    const readAt = Date.now()
+    collection = null; collectionError = ''
+    const usablePlan = !external || p.plan_details?.some((v) => v.seq === chosen && v.expires_at > readAt && !p?.signed.some((s) => s.plan === v.seq))
+    if (!required.length || !usablePlan || !['Ready', 'Delayed', 'Signed', 'Broadcast'].includes(p.status) || wallet.frozen) return
+    try {
+      const result = await call('wallet/cosign_status', { wallet: wallet.wallet, proposal: id, plan: chosen })
+      if (alive && seq === sequence && chosen === plan && digest === p?.digest) collection = result
+    } catch (e) { if (alive && seq === sequence && chosen === plan) collectionError = errorText(e) }
   })
-  async function load() {
+  const load = single(async () => {
+    if (!alive) return
     const seq = ++sequence
+    collection = null
     try {
       const result: Proposal = await call('wallet/proposal', { wallet: wallet.wallet, proposal: id })
       if (!alive || seq !== sequence) return
-      p = result
+      p = result; error = ''
       const readAt = Date.now()
       if (selectedPlan === null || !result.plan_details?.some((v) => v.seq === selectedPlan && v.expires_at > readAt && !result.signed.some((s) => s.plan === v.seq))) selectedPlan = result.plans
-      const chosen = selectedPlan ?? result.plans
-      collection = null
-      collectionError = ''
-      const usablePlan = !external || result.plan_details?.some((v) => v.seq === chosen && v.expires_at > readAt && !result.signed.some((s) => s.plan === v.seq))
-      if (required.length && usablePlan && ['Ready', 'Delayed', 'Signed', 'Broadcast'].includes(result.status) && !wallet.frozen) {
-        try {
-          const c = await call('wallet/cosign_status', { wallet: wallet.wallet, proposal: id, plan: chosen })
-          if (alive && seq === sequence) collection = c
-        } catch (e) {
-          if (alive && seq === sequence) collectionError = errorText(e)
-        }
-      }
-    } catch (e) {
-      if (alive && seq === sequence) error = errorText(e)
-    }
-  }
+      void readCollection()
+    } catch (e) { if (alive && seq === sequence) error = errorText(e) }
+  })
   async function run(method: string, extra: Record<string, unknown> = {}) {
+    if (busy) return
+    sequence++
     busy = true
     error = ''
     notice = ''
@@ -82,6 +84,7 @@
       await load()
       onUpdated()
     } catch (e) {
+      if (!alive) return
       error = errorText(e)
     } finally {
       busy = false
@@ -89,11 +92,9 @@
     }
   }
   onMount(() => {
-    const off = onChange(['wallet/changed', 'approval/changed'], load)
     return () => {
       alive = false
       sequence++
-      off()
     }
   })
 </script>
@@ -160,7 +161,7 @@
           >
           {#if external && livePlans.length > 1}<Field label={w('plan')}><Select
             value={String(plan)} options={livePlans.map((v) => ({value: String(v.seq), label: `#${v.seq} · ${when(v.expires_at)}`}))}
-            onChange={(value) => { selectedPlan = Number(value); void load() }} /></Field>{/if}
+            onChange={(value) => { selectedPlan = Number(value); collection = null; void readCollection() }} /></Field>{/if}
           {#if !livePlan}<button class={buttonClass('secondary', 'sm', 'justify-self-start')}
             disabled={busy || wallet.frozen || !available.execute && !available.resign}
             onclick={() => run('wallet/prepare')}>{w(plan ? 'renewPlan' : 'preparePlan')}</button>

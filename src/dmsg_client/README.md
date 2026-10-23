@@ -359,6 +359,13 @@ The end-to-end checks against real canisters and the relay are in
 
 `wallet::ops` and wallet approval jobs run through `Hold`; their IC and chain waits do not hold the daemon client. `wallet::desktop` implements typed management/transfer forms, precise amounts, metadata, previews, receive QR codes, account-local RPC preferences and encrypted channel hints. `wallet::packets` checks and collects signatures for one immutable plan; import never executes. `wallet::audit` verifies incremental checkpoints and bounded historical pages. The [implementation record](../../docs/dmsg_wallet_desktop_zh.md) distinguishes these paths from future hardware and chain extensions.
 
+Wallet display reads certified state and statistics together. Transfer previews
+run independent fee, balance and token-metadata reads concurrently; explicit
+ICRC ledgers and external chains do not depend on a hub-config lookup. Activation
+deposits and distinct balance metadata use bounded concurrency, with time checks
+after responses. Audit pages reuse the final page verified in the same read;
+certified heads and execution-time validation remain authoritative.
+
 ## Cloud storage management
 
 `library::storage` provides an encrypted local inventory snapshot, explicit paginated

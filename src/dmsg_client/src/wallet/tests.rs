@@ -238,3 +238,94 @@ fn decodes_the_wallet_plan_vectors() {
         );
     }
 }
+
+/// Read one complete HTTP request while keeping its reply blocked.
+async fn held_request(listener: &tokio::net::TcpListener) -> (tokio::net::TcpStream, Vec<u8>) {
+    use tokio::io::AsyncReadExt;
+    let (mut socket, _) =
+        tokio::time::timeout(std::time::Duration::from_secs(3), listener.accept())
+            .await
+            .expect("independent wallet queries should start together")
+            .unwrap();
+    let mut bytes = Vec::new();
+    loop {
+        let mut chunk = [0; 8192];
+        let n = socket.read(&mut chunk).await.unwrap();
+        assert!(n > 0);
+        bytes.extend_from_slice(&chunk[..n]);
+        if let Some(end) = bytes.windows(4).position(|b| b == b"\r\n\r\n") {
+            let headers = String::from_utf8_lossy(&bytes[..end]).to_lowercase();
+            let length: usize = headers
+                .lines()
+                .find_map(|l| l.strip_prefix("content-length: "))
+                .unwrap()
+                .parse()
+                .unwrap();
+            if bytes.len() >= end + 4 + length {
+                return (socket, bytes);
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn wallet_state_and_stats_start_together_and_reject_invalid_evidence() {
+    use tokio::io::AsyncWriteExt;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let dir = crate::testing::TempDir::new();
+    let mut client = crate::testing::unlocked(&dir.0, false, None);
+    crate::testing::ic_to(
+        &mut client,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    );
+    let work =
+        tokio::spawn(async move { show(&client.hold(), Principal::from_slice(&[7; 10])).await });
+    let mut sockets = Vec::new();
+    let mut requests = String::new();
+    // Each query also starts a subnet-proof read.
+    for _ in 0..4 {
+        let (socket, bytes) = held_request(&listener).await;
+        requests.push_str(&String::from_utf8_lossy(&bytes));
+        sockets.push(socket);
+    }
+    assert!(requests.contains("get_wallet_certified") && requests.contains("wallet_stats"));
+    for mut socket in sockets {
+        let _ = socket
+            .write_all(
+                b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            )
+            .await;
+    }
+    assert!(work.await.unwrap().is_err());
+}
+
+#[tokio::test]
+async fn evm_fee_reads_run_together_and_preserve_the_estimate() {
+    use tokio::io::AsyncWriteExt;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let settings = crate::config::WalletSettings {
+        evm_rpc: vec![(1, format!("http://{}", listener.local_addr().unwrap()))],
+        ..Default::default()
+    };
+    let chains = rpc::Chains::new(&settings).unwrap();
+    let work = tokio::spawn(async move { chains.evm_fees(1).await });
+    let mut replies = Vec::new();
+    for _ in 0..2 {
+        let (socket, bytes) = held_request(&listener).await;
+        let end = bytes.windows(4).position(|b| b == b"\r\n\r\n").unwrap() + 4;
+        let request: Json = serde_json::from_slice(&bytes[end..]).unwrap();
+        let result = match request["method"].as_str().unwrap() {
+            "eth_getBlockByNumber" => json!({"baseFeePerGas":"0x64"}),
+            "eth_maxPriorityFeePerGas" => json!("0xa"),
+            method => panic!("unexpected RPC {method}"),
+        };
+        replies.push((
+            socket,
+            json!({"jsonrpc":"2.0","id":request["id"],"result":result}).to_string(),
+        ));
+    }
+    for (mut socket, body) in replies {
+        socket.write_all(format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+    }
+    assert_eq!(work.await.unwrap().unwrap(), (210, 10));
+}
