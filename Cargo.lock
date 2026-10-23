@@ -2507,6 +2507,7 @@ dependencies = [
  "cbor2",
  "dmsg_protocol",
  "dmsg_runtime",
+ "dmsg_test_support",
  "dmsg_types",
  "ed25519-dalek 3.0.0",
  "futures",
@@ -2744,6 +2745,16 @@ dependencies = [
  "ic-stable-structures 0.7.2",
  "lib_dummy_getrandom",
  "serde",
+]
+
+[[package]]
+name = "dmsg_test_support"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "dmsg_protocol",
+ "dmsg_types",
+ "icrc-ledger-types 0.2.0",
 ]
 
 [[package]]

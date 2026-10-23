@@ -452,8 +452,8 @@ pub fn transfer_result(
 }
 
 #[cfg(test)]
-#[path = "../../dmsg_types/tests/support/commerce.rs"]
-pub(crate) mod fixture;
+pub(crate) use dmsg_test_support as fixture;
+
 #[cfg(test)]
 mod tests {
     use super::*;

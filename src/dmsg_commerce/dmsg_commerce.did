@@ -1182,7 +1182,8 @@ service : (CommerceInit) -> {
   // The recipient may reissue a definitely rejected leg with a fresh ledger timestamp,
   // keeping its fee or adopting the ledger's expected fee within the original cap.
   revise_checkout_transfer_fee : (blob, nat) -> (Result_7);
-  // Announce a catalog at least 30 days before it takes effect.
+  // Announce a catalog at least 7 days ahead. With effective_at_ms = 0,
+  // apply a limits-only increase now, preserving prices, terms and weights.
   schedule_policy : (Catalog) -> (Result);
   // Pause or resume new cash checkouts; reconciliation, refunds, lease
   // refresh and expiry continue.

@@ -263,12 +263,14 @@ pub fn next_catalog_at(at: u64) -> Option<u64> {
 
 pub fn same_catalog(a: u64, b: u64) -> bool {
     CATALOG_CACHE.with_borrow(|cache| {
-        cache.partition_point(|c| c.effective_at_ms <= a)
-            == cache.partition_point(|c| c.effective_at_ms <= b)
+        let current = cache.partition_point(|c| c.effective_at_ms <= b);
+        cache.partition_point(|c| c.effective_at_ms <= a) == current
+            // An immediate publication may share a timestamp with an older view.
+            && cache[current.saturating_sub(1)].effective_at_ms < a
     })
 }
 
-/// Free quota history through the current observation. A scheduled future policy
+/// Quota history through the current observation. A scheduled future policy
 /// does not rewrite an already issued month until that policy actually takes effect.
 pub fn month_catalogs(month: u32, at: u64) -> Result<Vec<Catalog>> {
     let start = month_bounds(month)?.0;

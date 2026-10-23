@@ -171,6 +171,22 @@ pub fn validate_catalog(c: &Catalog) -> Result<()> {
     Ok(())
 }
 
+/// Existing contracts keep their price and terms, while higher current limits
+/// are available to the same tier. Never lower the contract's promised limits.
+fn plan_limits(snapshot: &PlanVersion, catalog: &Catalog) -> Result<ResourceLimits> {
+    let current = plan(catalog, &snapshot.plan_id)?;
+    let mut limits = snapshot.limits.clone();
+    limits.storage_bytes = limits.storage_bytes.max(current.limits.storage_bytes);
+    limits.active_channels = limits.active_channels.max(current.limits.active_channels);
+    // Only compare allowances expressed in the same execution-cost units.
+    if snapshot.weights == current.weights {
+        limits.monthly_execution_units = limits
+            .monthly_execution_units
+            .max(current.limits.monthly_execution_units);
+    }
+    Ok(limits)
+}
+
 pub fn project(
     home: Principal,
     s: &mut Subject,
@@ -230,7 +246,7 @@ pub fn project(
             until = until.min(end(c)).min(c.qualified_until_ms);
         }
     }
-    let mut limits = p.limits.clone();
+    let mut limits = plan_limits(&p, catalog)?;
     let mut addons = vec![];
     for a in &s.addons {
         if a.starts_at_ms <= at && at < a.expires_at_ms {
@@ -357,13 +373,12 @@ pub fn month(s: &Subject, catalogs: &[Catalog], month: u32) -> Result<MonthEntit
                 .iter()
                 .any(|(a, b)| *a <= w[0] && w[0] < b.unwrap_or(u64::MAX))
         });
+        let index = catalogs.partition_point(|c| c.effective_at_ms <= w[0]);
+        let catalog = &catalogs[index.saturating_sub(1)];
         let units = if let Some(c) = c {
-            c.plan.limits.monthly_execution_units
+            plan_limits(&c.plan, catalog)?.monthly_execution_units
         } else {
-            let index = catalogs.partition_point(|c| c.effective_at_ms <= w[0]);
-            plan(&catalogs[index.saturating_sub(1)], &PlanId::Free)?
-                .limits
-                .monthly_execution_units
+            plan(catalog, &PlanId::Free)?.limits.monthly_execution_units
         };
         let source = c.map(|c| c.contract_id);
         if let Some(last) = segments
@@ -446,6 +461,70 @@ mod tests {
         assert_eq!(m.segments[1].source_contract_id, None);
         assert_eq!(m.segments[1].monthly_units, 3);
         assert!(m.allowed_units < 200);
+    }
+
+    #[test]
+    fn current_limits_benefit_existing_contracts_without_rewriting_their_terms_or_history() {
+        let (start, end) = month_bounds(202609).unwrap();
+        let mid = start + (end - start) / 2;
+        let old = catalog();
+        let mut next = old.clone();
+        next.version = 2;
+        next.effective_at_ms = mid;
+        for (p, units) in next.plans.iter_mut().zip([5, 20, 100, 10_000]) {
+            p.catalog_version = 2;
+            p.limits.active_channels = units;
+            p.limits.monthly_execution_units = units;
+        }
+        for tier in [PlanId::Plus, PlanId::Pro, PlanId::Max] {
+            for cash in [false, true] {
+                let mut s = subject(start, end + DAY);
+                s.contracts[0].plan = plan(&old, &tier).unwrap();
+                if cash {
+                    s.contracts[0].source = ContractSource::Cash {
+                        order_id: Hash::new([5; 32]),
+                    };
+                }
+                let contract = s.contracts[0].clone();
+                let view = project(HOME, &mut s, &next, mid, None).unwrap();
+                let increased = plan(&next, &tier).unwrap().limits;
+                assert_eq!(view.effective_limits, increased);
+                assert_eq!(view.plan_snapshot, contract.plan);
+                assert_eq!(s.contracts[0], contract);
+                let m = month(&s, &[old.clone(), next.clone()], 202609).unwrap();
+                assert_eq!(m.segments.len(), 2);
+                assert_eq!(
+                    m.segments[0].monthly_units,
+                    contract.plan.limits.monthly_execution_units
+                );
+                assert_eq!(
+                    m.segments[1].monthly_units,
+                    increased.monthly_execution_units
+                );
+                assert_eq!(
+                    m.allowed_units,
+                    (contract.plan.limits.monthly_execution_units
+                        + increased.monthly_execution_units)
+                        / 2
+                );
+            }
+        }
+        let free = free(
+            HOME,
+            beneficiary(HOME, &AccountId([7; 12])),
+            start,
+            &[old.clone(), next.clone()],
+            mid,
+            None,
+        )
+        .unwrap();
+        assert_eq!(free.view.effective_limits.active_channels, 5);
+        assert_eq!(free.month.allowed_units, 4);
+        // A later lower offer cannot take away the limits frozen in a contract.
+        assert_eq!(
+            plan_limits(&plan(&next, &PlanId::Max).unwrap(), &old).unwrap(),
+            plan(&next, &PlanId::Max).unwrap().limits
+        );
     }
 
     #[test]

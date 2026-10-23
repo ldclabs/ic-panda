@@ -136,11 +136,13 @@ flowchart LR
 - `EntitlementView` 是合同的投影：当前基础档（没有有效合同时为 Free）加上有效的存储包。租约长度取决于权益能否被收回：首购现金退款窗口内的租约最长一小时；窗口外的现金、已到期和 Free 租约最长 30 天；PANDA 资格可能丢失，由 PANDA 支撑的租约不超过 1 小时，也不超过 membership 的资格租约。所有租约都在下一个合同或存储包边界、下一个目录生效时间截止。资格不可核验时，视图截止时间等于签发时间，不会退化为可复用的 Free 租约。视图以 `entitlement_key(beneficiary)` 写入认证树。
 - `refresh_entitlement` 在视图剩余不足 10 分钟、业务版本变化或目录切换时重新投影，否则返回原视图，所以消费者提前几分钟续期就能拿到更晚的租约。当前合同来自 PANDA 时，先调用 membership 的 `refresh_panda_claim`，它在同一个 10 分钟窗口内重新核验合格的认领：membership 返回 `Pending`、`QuotaExceeded`，或调用本身没有完成（membership 停止、`Unavailable`、`ExecutionUnknown`），都表示没有读取 SNS，原租约继续有效（PANDA 租约本来不超过 1 小时）；只有明确的否定答案把合同标为不可核验。两种情况都在 1 分钟内不再重试。
 - `get_execution_entitlement(beneficiary, month, account_created_at_ms)` 只接受该主体的 user home，返回视图和当月的 `MonthEntitlement`。当月按合同、资格暂停和实际生效的目录切分为最多 64 个片段；资格暂停期间按 Free 计算，从账户创建时间开始积分，最后向下取整。user home 最多缓存 1 小时，与资源租约长度无关。
+- 新老会员都可享受当前同档套餐更高的资源额度：`effective_limits` 取合同快照与当前目录的逐项较大值，执行额度只比较相同执行权重下的单位；合同价格、期限和 `plan_snapshot` 保持原样。月签名额度按目录实际生效时间分段折算，不追溯改写之前的片段，也不重置已用次数。已有账户刷新权益即可领取新额度，无需重新购买。
 
 ### 目录
 
 - 目录固定 4 个套餐（Free 价格为 0），最多 16 个存储产品；同一目录内所有套餐的执行权重相同。
-- `schedule_policy` 只能安排至少 30 天后生效、版本和生效时间都递增的新目录；执行权重只能在 UTC 月初变化。最多保留 256 个目录。
+- `schedule_policy` 通常安排至少 7 天后生效、版本和生效时间都递增的新目录；执行权重只能在 UTC 月初变化。最多保留 256 个目录。
+- 仅提高额度时可把 `effective_at_ms` 设为 `0`，由 canister 写入发布时刻并立即生效：全部套餐价格、条款摘要/版本、执行权重和存储包必须不变，各项额度都不得降低，且至少一项增加；已有未来排期时不能插入即时目录。发布同时更新当前目录的认证叶，新老会员均可使用增加的额度。
 - 到达生效时间后，新目录自动用于报价和投影；认证叶 `get_catalog` 需要在生效后由任何人调用一次 `refresh_catalog` 更新，升级时也会刷新。
 - dMsg 报价的条款摘要取产品注册的 `terms_hash`，条款随注册更新生效，与目录排期无关；目录的 `terms_digest` 只描述该目录版本。两者都是服务条款英文原文的 SHA-256，见[部署步骤](#步骤)第 3 步。
 
@@ -391,7 +393,7 @@ commerce 自动执行收入归集、费用准备退回和已分配出金的派�
 
 ### 治理变更
 
-- **目录**：用 `schedule_policy` 提前至少 30 天安排，生效时间到后自动使用。
+- **目录**：用 `schedule_policy` 提前至少 7 天安排；仅提高额度可传 `effective_at_ms = 0` 立即发布，规则见上文“目录”。
 - **条款**：登记后，该版本的条款文件不能再改；文件与 dmsg_frontend 的 `src/lib/legal/terms.json` 记录的摘要不一致时，前端构建会失败。修改条款时新增 `v<N+1>.txt`，运行 `node scripts/terms-digest.mjs --write` 更新清单，先部署前端，再把产品注册的 `terms_hash` 更新为新摘要。新条款随即用于报价，不需要与目录同步；下一份目录的 `terms_digest` 和 `terms_version` 随后跟进。
 - **注册**：每次更新须 `config_version + 1`。应用的 `app_id`、`environment`、`authentication_receiver`、`action_authority`，以及产品的 `product_id`、`environment`、`quote_authority`、`adapter`、`subject_schema`、`subject_size` 不可修改，`beneficiary_authorities` 只能在末尾追加。有 `SignAction` 能力的应用必须提供 `action_schema`（应用自己命令的 schema），可在新版本中修改；版本要求精确匹配，按旧版本准备的在途动作随之失效。现金报价包含完整的产品注册，注册变化后尚未开单的报价不能再开单，需要重新报价。商户账户在报价时冻结，修改只影响新订单。
 - **暂停**：`set_admission_pause(true)` 只停止新的现金报价和开单；对账、退款、出金、PANDA 和权益刷新照常进行。在注册中把应用或产品的 `paused` 设为 true，会同时停止现金和 PANDA 的新报价与批准。资产级暂停用 `register_settlement_asset` 把 `enabled` 设为 `false`：价格字段和 `policy_version` 在更新时被忽略，沿用最近发布的价格，已有订单继续；恢复时设为 `true`，价格已过期则先重发价格。

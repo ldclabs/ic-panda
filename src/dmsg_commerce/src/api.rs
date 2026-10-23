@@ -150,13 +150,40 @@ fn validate_admin_add_user_home(home: Principal) -> Validation {
     )
 }
 
-fn check_policy(c: &Catalog, at: u64) -> Result<()> {
-    model::validate_catalog(c)?;
+fn check_policy(mut c: Catalog, at: u64) -> Result<Catalog> {
+    model::validate_catalog(&c)?;
     let old = latest_catalog();
+    if c.effective_at_ms == 0 {
+        ensure_valid(old.effective_at_ms < at, "pending catalog")?;
+        ensure_valid(
+            c.terms_digest == old.terms_digest && c.storage_products == old.storage_products,
+            "immediate increase preserves terms and storage products",
+        )?;
+        let mut increased = false;
+        for previous in &old.plans {
+            let next = model::plan(&c, &previous.plan_id)?;
+            ensure_valid(
+                next.price_cents == previous.price_cents
+                    && next.terms_version == previous.terms_version
+                    && next.weights == previous.weights
+                    && next.limits.storage_bytes >= previous.limits.storage_bytes
+                    && next.limits.active_channels >= previous.limits.active_channels
+                    && next.limits.monthly_execution_units
+                        >= previous.limits.monthly_execution_units,
+                "immediate policy must only increase limits",
+            )?;
+            increased |= next.limits != previous.limits;
+        }
+        ensure_valid(increased, "unchanged limits")?;
+        c.effective_at_ms = at;
+    } else {
+        ensure_valid(
+            c.effective_at_ms >= at.saturating_add(7 * DAY),
+            "catalog notice",
+        )?;
+    }
     ensure_valid(
-        c.effective_at_ms >= at.saturating_add(30 * DAY)
-            && c.effective_at_ms > old.effective_at_ms
-            && c.version > old.version,
+        c.effective_at_ms > old.effective_at_ms && c.version > old.version,
         "catalog notice",
     )?;
     ensure(
@@ -168,21 +195,25 @@ fn check_policy(c: &Catalog, at: u64) -> Result<()> {
         c.plans[0].weights == old.plans[0].weights
             || month_bounds(month_utc(c.effective_at_ms)?)?.0 == c.effective_at_ms,
         "weight change at UTC month boundary",
-    )
+    )?;
+    Ok(c)
 }
 
-/// Announce a catalog at least 30 days before it takes effect.
+/// Announce a catalog at least 7 days ahead. With effective_at_ms = 0,
+/// apply a limits-only increase now, preserving prices, terms and weights.
 #[ic_cdk::update]
 fn schedule_policy(c: Catalog) -> Result<()> {
     check_admin(ic_cdk::api::msg_caller())?;
-    check_policy(&c, now())?;
+    let at = now();
+    let c = check_policy(c, at)?;
     save_catalog(&c);
+    publish_certification(at);
     Ok(())
 }
 
 #[ic_cdk::query]
 fn validate_schedule_policy(c: Catalog) -> Validation {
-    validation(check_policy(&c, now()).map(|()| {
+    validation(check_policy(c, now()).map(|c| {
         let plans: Vec<String> = c
             .plans
             .iter()
@@ -432,4 +463,99 @@ async fn get_execution_entitlement(
     ensure(month_utc(at)? == month, Error::MembershipStale)?;
     let month = model::month(&s, &month_catalogs(month, at)?, month)?;
     Ok(ExecutionEntitlement { view, month })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::checkout_model::fixture;
+
+    #[test]
+    fn catalog_notice_requires_seven_days() {
+        let at = fixture::base::NOW;
+        let mut next = fixture::init().catalog;
+        save_catalog(&next);
+        next.version += 1;
+        for plan in &mut next.plans {
+            plan.catalog_version = next.version;
+        }
+
+        next.effective_at_ms = at + 7 * DAY - 1;
+        assert_eq!(
+            check_policy(next.clone(), at),
+            Err(Error::InvalidInput("catalog notice".into()))
+        );
+        next.effective_at_ms += 1;
+        assert_eq!(check_policy(next.clone(), at), Ok(next.clone()));
+        next.effective_at_ms = at + 8 * DAY;
+        assert_eq!(check_policy(next.clone(), at), Ok(next));
+    }
+
+    #[test]
+    fn an_immediate_catalog_does_not_reuse_a_view_issued_at_the_same_timestamp() {
+        let at = fixture::base::NOW;
+        let mut c = fixture::init().catalog;
+        save_catalog(&c);
+        assert!(same_catalog(at, at));
+        c.version += 1;
+        c.effective_at_ms = at;
+        save_catalog(&c);
+        assert!(!same_catalog(at, at));
+        assert!(!same_catalog(at - 1, at + 1));
+        assert!(same_catalog(at + 1, at + 2));
+    }
+
+    #[test]
+    fn immediate_policy_only_accepts_increases_without_repricing_or_pending_catalogs() {
+        let at = fixture::base::NOW;
+        let old = fixture::init().catalog;
+        save_catalog(&old);
+        let mut next = old.clone();
+        next.version += 1;
+        for plan in &mut next.plans {
+            plan.catalog_version = next.version;
+        }
+        assert!(check_policy(next.clone(), at).is_err());
+        next.plans[1].limits.active_channels = 20;
+        next.plans[1].limits.monthly_execution_units = 20;
+        let accepted = check_policy(next.clone(), at).unwrap();
+        assert_eq!(accepted.effective_at_ms, at);
+
+        let mut invalid = next.clone();
+        invalid.plans[2].limits.active_channels -= 1;
+        assert!(check_policy(invalid, at).is_err());
+        let mut invalid = next.clone();
+        invalid.plans[1].price_cents += 1;
+        assert!(check_policy(invalid, at).is_err());
+        let mut invalid = next.clone();
+        invalid.plans[1].terms_version += 1;
+        assert!(check_policy(invalid, at).is_err());
+        let mut invalid = next.clone();
+        invalid.terms_digest = Hash::new([7; 32]);
+        assert!(check_policy(invalid, at).is_err());
+        let mut invalid = next.clone();
+        for plan in &mut invalid.plans {
+            plan.weights.version += 1;
+        }
+        assert!(check_policy(invalid, at).is_err());
+        let mut invalid = next.clone();
+        invalid.storage_products.push(StorageProduct {
+            product_id: Hash::new([1; 32]),
+            storage_bytes: 100,
+            price_cents: 100,
+        });
+        assert!(check_policy(invalid, at).is_err());
+
+        let mut scheduled = next.clone();
+        scheduled.effective_at_ms = at + 8 * DAY;
+        save_catalog(&scheduled);
+        next.version += 1;
+        for plan in &mut next.plans {
+            plan.catalog_version = next.version;
+        }
+        assert_eq!(
+            check_policy(next, at),
+            Err(Error::InvalidInput("pending catalog".into()))
+        );
+    }
 }

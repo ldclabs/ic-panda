@@ -188,6 +188,111 @@ fn catalog_activation_keeps_lease_and_month_consistent() {
 }
 
 #[test]
+fn immediate_limits_reach_existing_members_without_resetting_usage_or_contracts() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    let free_id = f.create(2);
+    pay(&f, &id, "plus", 210);
+    let refresh = || -> ExecutionUsage {
+        let r: Result<ExecutionUsage> = update(
+            &f.ic,
+            f.user,
+            person(1),
+            "refresh_execution_entitlement",
+            (id,),
+        );
+        r.unwrap()
+    };
+    let terms = || -> MembershipTerms {
+        let r: Result<MembershipTerms> = query(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "get_membership_terms",
+            (beneficiary(f.user, &id),),
+        );
+        r.unwrap()
+    };
+    let before = refresh();
+    let original = terms();
+    f.attest(
+        1,
+        &id,
+        Statement {
+            issuer: f.account_id(1, &id).issuer,
+            subject: None,
+            issued_at: None,
+            content: StatementContent::Text("before the limit increase".into()),
+        },
+    )
+    .unwrap();
+    let catalogs: Vec<Catalog> = query(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "list_catalogs",
+        (None::<u64>,),
+    );
+    let mut next = catalogs[0].clone();
+    next.version += 1;
+    next.effective_at_ms = 0;
+    for (plan, units) in next.plans.iter_mut().zip([5, 20, 100, 10_000]) {
+        plan.catalog_version = next.version;
+        plan.limits.active_channels = units;
+        plan.limits.monthly_execution_units = units;
+    }
+    let denied: Result<()> = update(&f.ic, f.commerce, person(1), "schedule_policy", (&next,));
+    assert_eq!(denied, Err(Error::Forbidden));
+    let earliest = time(&f.ic);
+    let applied: Result<()> = update(&f.ic, f.commerce, f.sns, "schedule_policy", (&next,));
+    applied.unwrap();
+    // The certified catalog changes during publication; no later refresh is needed.
+    let certified: Result<CertifiedBatch> = query(&f.ic, f.commerce, person(1), "get_catalog", ());
+    let active: Catalog =
+        cbor2::from_slice(certified.unwrap().entries[0].value.as_ref().unwrap()).unwrap();
+    assert_eq!(active.version, next.version);
+    assert!(active.effective_at_ms >= earliest && active.effective_at_ms <= time(&f.ic));
+
+    let after = refresh();
+    assert!(after.allowed_units > before.allowed_units);
+    assert_eq!(after.charged_units, 1);
+    assert!(after.lease_revision > before.lease_revision);
+    assert_eq!(terms(), original);
+    let view: Result<EntitlementView> = update(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "refresh_entitlement",
+        (beneficiary(f.user, &id),),
+    );
+    let view = view.unwrap();
+    assert_eq!(view.effective_limits.active_channels, 20);
+    assert_eq!(view.effective_limits.monthly_execution_units, 20);
+    assert_eq!(view.plan_snapshot.catalog_version, 1);
+    assert_eq!(view.plan_snapshot.price_cents, 1_000);
+    let free: Result<ExecutionUsage> = update(
+        &f.ic,
+        f.user,
+        person(2),
+        "refresh_execution_entitlement",
+        (free_id,),
+    );
+    assert!(free.unwrap().allowed_units > 3);
+
+    f.ic.upgrade_canister(
+        f.commerce,
+        wasm("dmsg_commerce"),
+        candid::encode_args(()).unwrap(),
+        None,
+    )
+    .unwrap();
+    let again = refresh();
+    assert_eq!(again.allowed_units, after.allowed_units);
+    assert_eq!(again.charged_units, after.charged_units);
+    assert_eq!(terms(), original);
+}
+
+#[test]
 fn merchants_read_only_their_orders() {
     let f = Fixture::commercial();
     let id = f.create(1);

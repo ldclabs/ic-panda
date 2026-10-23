@@ -421,7 +421,9 @@ fn commerce_and_membership_governance_run_validated_admin_operations() {
         plan.catalog_version = catalog.version;
     }
     assert!(validate(&f, f.commerce, "schedule_policy", (&catalog,)).is_err());
-    catalog.effective_at_ms = time(&f.ic) + 31 * DAY;
+    catalog.effective_at_ms = time(&f.ic) + 6 * DAY;
+    assert!(validate(&f, f.commerce, "schedule_policy", (&catalog,)).is_err());
+    catalog.effective_at_ms = time(&f.ic) + 8 * DAY;
     assert!(
         validate(&f, f.commerce, "schedule_policy", (&catalog,))
             .unwrap()

@@ -272,10 +272,20 @@ add-ons are priced for the rest of that full term. Expired add-ons do not count
 toward the 64 retained add-ons. Unverifiable periods pause paid execution time; a known-ineligible view
 terminates the benefit immediately. Monthly
 execution allowance integrates the complete nonoverlapping UTC-month timeline,
-clips time before account creation and rounds down once. Free quota segments
+clips time before account creation and rounds down once. Both Free and paid quota segments
 follow the catalogs actually effective during the month, with no retroactive
 replacement of earlier segments. A catalog boundary ends the previous resource
 lease and a refreshed projection advances its lease revision.
+
+Existing paid contracts retain their price, term and plan snapshot. Effective
+resource limits take the per-field maximum of that snapshot and the current
+same-tier catalog; execution allowances are compared only with equal execution
+weights. Higher allowances start at the catalog's actual activation time without
+resetting charged units. Governance may publish a limits-only increase immediately
+through `schedule_policy` with `effective_at_ms = 0`: the canister records its
+current time and certifies the catalog in that call. All prices, terms, execution
+weights and storage products must stay unchanged, no limit may decrease, and no
+future catalog may already be scheduled. Other updates require seven days' notice.
 
 Resource leases follow what can still be withdrawn. A started cash term has no
 refund and an unstarted renewal lies beyond the next boundary, so cash, expired

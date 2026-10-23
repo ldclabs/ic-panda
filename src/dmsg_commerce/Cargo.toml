@@ -25,4 +25,5 @@ lib_dummy_getrandom = { path = "../lib_dummy_getrandom" }
 serde_bytes.workspace = true
 
 [dev-dependencies]
+dmsg_test_support = { path = "../../tests/dmsg_test_support" }
 ed25519-dalek.workspace = true

@@ -16,6 +16,7 @@ members = [
   "src/dmsg_wallet",
   "src/dmsg_wallet_hub",
   "tests/dmsg_integration",
+  "tests/dmsg_test_support",
   "tests/dmsg_test_ledger",
   "tests/dmsg_test_sns",
   "tests/dmsg_test_cmc",
