@@ -80,9 +80,9 @@ dependencies = [
 
 [[package]]
 name = "agent-protocols"
-version = "0.12.4"
+version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d026b81d5b6c44c7af84e7406ef14c7fd5a9ca5126c99b8aef196431ae81e2d"
+checksum = "f3535a00ad05b4e5552609574bec6d7c7ce9ddf9cee54273b7200549d58f4103"
 dependencies = [
  "base64 0.23.1",
  "ed25519-dalek 3.0.0",
@@ -2424,7 +2424,7 @@ dependencies = [
 
 [[package]]
 name = "dmsg_cli"
-version = "0.3.3"
+version = "1.0.0"
 dependencies = [
  "axum",
  "base64 0.23.1",
