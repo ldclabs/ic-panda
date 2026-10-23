@@ -6576,6 +6576,7 @@ fn desktop_system_credentials() {
         format!("{workspace}:agent:{agent}"),
         format!("{workspace}:agent-mail:{agent}"),
         format!("{workspace}:agent-grants:{agent}"),
+        format!("{workspace}:agent-mail-push:{agent}"),
     ];
     keychain.0.extend(resident.iter().cloned());
     a.run(&["agent", "id", "resident", "bot", "on"]);

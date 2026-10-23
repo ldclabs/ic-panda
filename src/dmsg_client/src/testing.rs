@@ -136,6 +136,35 @@ pub fn relay_to(client: &mut Client, origin: &str) {
     client.cloud = crate::cloud::Cloud::new(origin, true).unwrap();
 }
 
+/// Keep a dedicated Mail callback without creating an external relay endpoint.
+pub fn mail_push_callback(client: &mut Client, agent: &str) -> crate::mail_push::Callback {
+    use crate::mcp_events::{Binding, Endpoint, Secret};
+    let endpoint = Endpoint {
+        endpoint_id: "callback".into(),
+        url: "https://callback.example/mcp-events/callback".into(),
+        secrets: vec![Secret {
+            secret: "test-secret".into(),
+            created_at: crate::now_ms(),
+            retire_at: None,
+        }],
+        agent: Some(agent.into()),
+        mcp_session: Some("mail-push".into()),
+        context: BTreeMap::from([("label".into(), "dMsg Mail push".into())]),
+        binding: Binding::default(),
+        state: "active".into(),
+        relay_seq: 0,
+        created_at: crate::now_ms(),
+        ended_at: None,
+    };
+    let endpoints = vec![endpoint];
+    client
+        .workspace
+        .put_private(client.keys().unwrap(), "mcp-endpoints", &endpoints)
+        .unwrap();
+    client.mail_push_endpoints_changed(&endpoints).unwrap();
+    client.mail_push_endpoint(agent).unwrap().unwrap()
+}
+
 /// Point `client`'s queries at `origin`, a loopback server the test runs.
 pub fn ic_to(client: &mut Client, origin: &str) {
     client.config.ic_host = origin.into();

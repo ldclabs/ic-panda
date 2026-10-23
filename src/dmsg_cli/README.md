@@ -871,7 +871,8 @@ end-to-end `v1a`, dropping a delivery whose `v1a` fails. `dmsg mcp` declares
 received_at, verified: {v1, v1a}, context}`, `kind` one of `event`,
 `verification`, `gap`, `terminated`, `relay_gap` (the relay dropped
 `dropped` unfetched deliveries) and `refresh_due` (the bound
-`refreshBefore` is near; the daemon renews nothing). `events/stream` pushes
+`refreshBefore` is near; generic bindings only get reminders, while
+`mail-watch` manages its own renewals). `events/stream` pushes
 `notifications/events/active|event|heartbeat|error|terminated` with a
 heartbeat at most every 25 seconds and ends on `notifications/cancelled`.
 The cursor is the local sequence and survives restarts; a null cursor reads
@@ -1129,8 +1130,12 @@ management page polls only while cleanup is pending.
 `dmsg agent mail-watch <agent> on` enables relay notifications; `off` stops them,
 and omitting the state shows subscriptions and safe diagnostic status. The Agent
 must already have `mail.read:<relay>` and `events.endpoint`. The desktop Mail
-switch uses the same lifecycle. Subscriptions renew while unlocked; existing
-hints can wake resident agents while locked, with periodic Mail sync as fallback.
+switch uses the same lifecycle. Maintenance checks every ten minutes and renews
+within sixty minutes of `refresh_before`, requesting seven days bounded by the
+Mail/endpoint grants and mailbox expiry. Resident, unpaused and authorized Agents
+also renew while locked using a dedicated subscription key in the credential
+store. Creating or deleting account callback endpoints waits for unlock.
+Periodic Mail sync remains the fallback.
 
 `dmsg mcp` also serves `dmsg.mail.received` by native `events/poll` and
 `events/stream`. Its durable, metadata-only log commits with the connector

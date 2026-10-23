@@ -85,6 +85,13 @@ pub struct Keys {
     pub hpke: Zeroizing<Key>,
 }
 
+impl Keys {
+    /// A purpose-scoped local key; retaining it cannot open other LDK records.
+    pub(crate) fn derive<C: Serialize>(&self, context: &C) -> Zeroizing<Key> {
+        crate::crypto::derive(self.ldk.as_slice(), context)
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 struct DeviceSecrets {
     signing: ByteArray<32>,

@@ -5,8 +5,8 @@
 //! `dmsg_events_*` tools. Locked, nothing is fetched: deliveries wait on
 //! the relay for seven days.
 //!
-//! The daemon only relays: it never subscribes upstream or renews a
-//! subscription, it reminds with `refresh_due` records.
+//! Generic upstream bindings only get `refresh_due` reminders. The separate
+//! Mail watch manager owns Mail subscription creation and renewal.
 
 use crate::daemon::Daemon;
 use crate::params::text;

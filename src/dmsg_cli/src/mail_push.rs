@@ -4,13 +4,16 @@
 use crate::daemon::Daemon;
 use dmsg_client::{
     hold::Hold,
-    mail_push::{Subscription, Watch},
+    mail_push::{Callback, Subscription, Watch},
     now_ms,
 };
 use dmsg_types::{Error, Result, ensure};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use tokio::sync::Notify;
+
+const CHECK_INTERVAL: Duration = Duration::from_secs(10 * 60);
+const RENEW_BEFORE_MS: u64 = 60 * 60 * 1000;
 
 #[derive(Default)]
 pub(crate) struct MailPush {
@@ -19,7 +22,7 @@ pub(crate) struct MailPush {
 }
 
 pub(crate) async fn run(daemon: Arc<Daemon>) {
-    let mut tick = tokio::time::interval(Duration::from_secs(60));
+    let mut tick = tokio::time::interval(CHECK_INTERVAL);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
         tokio::select! { _=tick.tick()=>{}, _=daemon.mail_push().maintain.notified()=>{} }
@@ -181,7 +184,10 @@ impl Daemon {
             }
         }
         if desired.is_empty() {
-            if let Some(endpoint) = endpoint {
+            let unlocked = h
+                .with(|c| Ok(c.session_state().unlocked_account().is_some()))
+                .await?;
+            if let Some(endpoint) = endpoint.as_ref().filter(|_| unlocked) {
                 // Reuse the existing journaled endpoint lifecycle. This rare
                 // cleanup still uses its documented under-lock implementation.
                 self.under_lock(async |c| {
@@ -194,13 +200,24 @@ impl Daemon {
                 })
                 .await?;
             }
-            watch.endpoint_id = None;
+            // Resident Agents can unsubscribe while locked. Account-owned
+            // endpoint deletion waits for unlock; retain its cleanup target.
+            if unlocked {
+                watch.endpoint_id = None;
+            }
             watch.subscriptions.clear();
             watch.last_error = None;
             h.with(|c| c.mail_push_save(agent, &watch)).await?;
             return Ok(());
         }
         if endpoint.is_none() {
+            h.with(|c| {
+                ensure(
+                    c.session_state().unlocked_account().is_some(),
+                    Error::Locked,
+                )
+            })
+            .await?;
             // Endpoint creation already journals unknown outcomes; its stable
             // context lets us recover a successful creation after a restart.
             self.under_lock(async |c| {
@@ -243,32 +260,43 @@ impl Daemon {
         h: &impl Hold,
         agent: &str,
         watch: &mut Watch,
-        endpoint: &dmsg_client::mcp_events::Endpoint,
+        endpoint: &Callback,
         desired: BTreeMap<String, Subscription>,
     ) -> Result<()> {
         let http = self.agents().http_client();
-        let secret = endpoint
-            .secrets
-            .last()
-            .ok_or(Error::IntegrityFailed)?
-            .secret
-            .clone();
+        let now = now_ms();
+        let due: Vec<_> = desired
+            .into_iter()
+            .filter(|(key, _)| {
+                watch
+                    .subscriptions
+                    .get(key)
+                    .is_none_or(|s| s.refresh_before <= now.saturating_add(RENEW_BEFORE_MS))
+            })
+            .collect();
         let mut failure = None;
-        for (key, proposed) in desired {
+        for (key, proposed) in due {
             let sub = watch
                 .subscriptions
                 .entry(key.clone())
                 .or_insert(proposed)
                 .clone();
-            if sub.refresh_before > now_ms() + 10 * 60 * 1000 {
-                continue;
-            }
             // Persist the target before subscribing so disable/restart can clean
             // up even if the response or process is lost.
-            h.with(|c| c.mail_push_save(agent, watch)).await?;
+            h.with(|c| {
+                ensure(
+                    c.mail_push_endpoint(agent)?.as_ref() == Some(endpoint),
+                    Error::PolicyStale,
+                )?;
+                c.mail_push_save(agent, watch)
+            })
+            .await?;
             let renewed = async {
                 let ttl = h
-                    .with(|c| c.mail_push_ttl(agent, &sub.service, now_ms()))
+                    .with(|c| {
+                        ensure(c.mail_push_endpoint(agent)?.as_ref() == Some(endpoint), Error::PolicyStale)?;
+                        c.mail_push_ttl(agent, &sub.service, now_ms())
+                    })
                     .await?;
                 let response = dmsg_client::mail_push::request(
                     h,
@@ -279,7 +307,7 @@ impl Daemon {
                     json!({
                         "name": "dmsg.mail.available",
                         "arguments": {"mailbox_id": sub.mailbox_id},
-                        "delivery": {"mode": "webhook", "url": endpoint.url, "secret": secret},
+                        "delivery": {"mode": "webhook", "url": endpoint.url, "secret": endpoint.secret},
                         "ttlMs": ttl,
                         "cursor": sub.cursor,
                     }),
@@ -312,7 +340,14 @@ impl Daemon {
             current.id = Some(id);
             current.refresh_before = refresh;
             current.cursor = cursor;
-            h.with(|c| c.mail_push_save(agent, watch)).await?;
+            h.with(|c| {
+                ensure(
+                    c.mail_push_endpoint(agent)?.as_ref() == Some(endpoint),
+                    Error::PolicyStale,
+                )?;
+                c.mail_push_save(agent, watch)
+            })
+            .await?;
             // Subscribe before the bootstrap read, covering mail that arrived
             // before or during callback verification and any replay gap.
             self.mail_push().receive.notify_one();
@@ -321,7 +356,14 @@ impl Daemon {
             return Err(error);
         }
         watch.last_error = None;
-        h.with(|c| c.mail_push_save(agent, watch)).await
+        h.with(|c| {
+            ensure(
+                c.mail_push_endpoint(agent)?.as_ref() == Some(endpoint),
+                Error::PolicyStale,
+            )?;
+            c.mail_push_save(agent, watch)
+        })
+        .await
     }
 }
 
@@ -329,7 +371,6 @@ impl Daemon {
 mod tests {
     use super::*;
     use axum::{Json, Router, routing::post};
-    use dmsg_client::mcp_events::{Endpoint, Secret};
     use std::sync::{
         Mutex,
         atomic::{AtomicBool, Ordering},
@@ -386,14 +427,20 @@ mod tests {
                 let failed = failed.clone();
                 let requests = requests.clone();
                 async move {
+                    assert_eq!(input["params"]["ttlMs"], 7 * 86_400_000u64);
                     let mailbox = input["params"]["arguments"]["mailbox_id"].as_str().unwrap();
-                    requests.lock().unwrap().push(mailbox.to_owned());
+                    let mut seen = requests.lock().unwrap();
+                    if mailbox == "second" && seen.iter().any(|name| name == "second") {
+                        assert_eq!(input["params"]["cursor"], "head");
+                    }
+                    seen.push(mailbox.to_owned());
+                    drop(seen);
                     if mailbox == "first" && failed.load(Ordering::SeqCst) {
                         Json(json!({"jsonrpc":"2.0","id":1,"error":{"code":-32027}}))
                     } else {
                         Json(json!({"jsonrpc":"2.0","id":1,"result":{
                             "id":format!("subscription-{mailbox}"),
-                            "refreshBefore":dmsg_client::mcp_events::timestamp(now_ms()+3_600_000),
+                            "refreshBefore":dmsg_client::mcp_events::timestamp(now_ms()+7*86_400_000),
                             "cursor":"head"
                         }}))
                     }
@@ -405,7 +452,11 @@ mod tests {
         let home = crate::home::Home {
             dir: dir.path("home"),
         };
-        let mut client = dmsg_client::testing::unlocked(&dir.path("workspace"), false, None);
+        let mut client = dmsg_client::testing::unlocked(
+            &dir.path("workspace"),
+            false,
+            Some(Arc::new(dmsg_client::testing::MemoryStorage::default())),
+        );
         let agent = client.agent_create("mail-test").unwrap().agent_id;
         client
             .capability_grant(
@@ -417,6 +468,9 @@ mod tests {
             .unwrap();
         client.mail_push_set(&agent, true).unwrap();
         let mut watch = client.mail_push_watches().unwrap().remove(&agent).unwrap();
+        let endpoint = dmsg_client::testing::mail_push_callback(&mut client, &agent);
+        client.agent_resident(&agent, true).unwrap();
+        client.lock();
         let daemon = Daemon::new(
             "owner-token".into(),
             0,
@@ -425,23 +479,6 @@ mod tests {
             dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
             crate::mcp_events::McpEvents::new(&[]).unwrap(),
         );
-        let endpoint = Endpoint {
-            endpoint_id: "callback".into(),
-            url: "https://callback.example/mcp-events/callback".into(),
-            secrets: vec![Secret {
-                secret: "test-secret".into(),
-                created_at: now_ms(),
-                retire_at: None,
-            }],
-            agent: Some(agent.clone()),
-            mcp_session: None,
-            context: BTreeMap::new(),
-            binding: Default::default(),
-            state: "active".into(),
-            relay_seq: 0,
-            created_at: now_ms(),
-            ended_at: None,
-        };
         let desired: BTreeMap<_, _> = ["first", "second"]
             .into_iter()
             .map(|id| {
@@ -486,10 +523,77 @@ mod tests {
         assert!(saved.subscriptions[&format!("{origin}/first")].id.is_none());
         failed.store(false, Ordering::SeqCst);
         daemon
-            .renew_mail_push(&daemon.hold(), &agent, &mut watch, &endpoint, desired)
+            .renew_mail_push(
+                &daemon.hold(),
+                &agent,
+                &mut watch,
+                &endpoint,
+                desired.clone(),
+            )
             .await
             .unwrap();
         assert_eq!(*requests.lock().unwrap(), ["first", "second", "first"]);
+        // A valid weekly lease stays untouched outside the one-hour window.
+        watch
+            .subscriptions
+            .get_mut(&format!("{origin}/second"))
+            .unwrap()
+            .refresh_before = now_ms() + RENEW_BEFORE_MS + 60_000;
+        daemon
+            .renew_mail_push(
+                &daemon.hold(),
+                &agent,
+                &mut watch,
+                &endpoint,
+                desired.clone(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(requests.lock().unwrap().len(), 3);
+        watch
+            .subscriptions
+            .get_mut(&format!("{origin}/second"))
+            .unwrap()
+            .refresh_before = now_ms() + RENEW_BEFORE_MS;
+        daemon
+            .renew_mail_push(
+                &daemon.hold(),
+                &agent,
+                &mut watch,
+                &endpoint,
+                desired.clone(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            *requests.lock().unwrap(),
+            ["first", "second", "first", "second"]
+        );
+        assert_eq!(
+            watch.subscriptions[&format!("{origin}/second")]
+                .cursor
+                .as_deref(),
+            Some("head")
+        );
+        // Pausing a resident Agent blocks even a due renewal while locked.
+        daemon
+            .client()
+            .lock()
+            .await
+            .agent_pause(&agent, true)
+            .unwrap();
+        watch
+            .subscriptions
+            .get_mut(&format!("{origin}/second"))
+            .unwrap()
+            .refresh_before = 0;
+        assert_eq!(
+            daemon
+                .renew_mail_push(&daemon.hold(), &agent, &mut watch, &endpoint, desired)
+                .await,
+            Err(Error::Forbidden)
+        );
+        assert_eq!(requests.lock().unwrap().len(), 4);
         server.abort();
         let _ = server.await;
     }

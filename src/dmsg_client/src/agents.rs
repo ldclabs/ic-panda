@@ -296,9 +296,10 @@ impl Client {
 
     /// Delete every copy a resident Agent ID keeps in the credential store:
     /// its grants first, so a copy never allows more than the grants do,
-    /// then its mail keys and its seed.
+    /// then its Mail subscription key, mail decryption keys and seed.
     pub(crate) fn forget_resident(&self, secure: &dyn SecureStorage, agent_id: &str) -> Result<()> {
         secure.delete(&self.resident_grants_name(agent_id)?)?;
+        self.mail_push_forget_resident(secure, agent_id)?;
         secure.delete(&self.resident_mail_name(agent_id)?)?;
         secure.delete(&self.resident_name(agent_id)?)
     }
@@ -440,7 +441,7 @@ impl Client {
         self.save_agents(&agents)
     }
 
-    /// Keep a copy of an Agent ID's seed, mail keys and grants in the
+    /// Keep an Agent ID's seed, mail keys, subscription key and grants in the
     /// credential store so it works while locked, or delete the copies.
     ///
     /// # Errors
@@ -462,6 +463,7 @@ impl Client {
                 &Zeroizing::new(serde_json::to_vec(&keys).expect("serializable")),
             )?;
             self.resident_grants_save(&entry.agent_id, &self.capability_grants()?)?;
+            self.mail_push_keep_resident(&entry.agent_id)?;
         } else {
             // Keys made while locked live only in the copy: fold them in first.
             let resident = self.resident_mail_keys(&entry.agent_id)?;

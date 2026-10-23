@@ -392,7 +392,8 @@ impl Client {
 
     fn save_endpoints(&self, endpoints: &[Endpoint]) -> Result<()> {
         self.workspace
-            .put_private(self.keys()?, ENDPOINTS, &endpoints)
+            .put_private(self.keys()?, ENDPOINTS, &endpoints)?;
+        self.mail_push_endpoints_changed(endpoints)
     }
 
     /// The caller's endpoint `id`; another agent's is `NotFound`.
@@ -916,7 +917,7 @@ impl Client {
 
     /// Write a `refresh_due` record for every binding whose `refreshBefore`
     /// is near: `min(10 minutes, 20%)` of the time it was granted. The
-    /// daemon renews nothing itself.
+    /// generic binding does not renew itself; Mail watches have a separate manager.
     ///
     /// # Errors
     /// Returns `Error::Locked` while locked.
