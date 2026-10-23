@@ -25,7 +25,7 @@ export const views = {
 
 /** The sidebar's groups (PRD §4); devices, recovery and migration live in Settings. */
 export const groups: { label: Label; views: View[] }[] = [
-  { label: 'navWork', views: [views.vault, views.files, views.channels, views.inbox] },
+  { label: 'navWork', views: [views.channels, views.files, views.vault, views.inbox] },
   { label: 'navAuthorization', views: [views.approvals, views.agents] },
   { label: 'navAccount', views: [views.plan, views.wallet] }
 ]
