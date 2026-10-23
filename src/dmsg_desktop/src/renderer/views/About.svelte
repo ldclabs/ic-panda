@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import type { AppUpdates } from '../../shared/contract'
   import Icon from '../components/Icon.svelte'
   import Fact from '../components/page/Fact.svelte'
@@ -11,6 +11,8 @@
   import { bridge, errorText, onChange, single } from '../rpc'
 
   /** The app's version and its update, as the tray offers it; the main process checks and applies it. */
+  let alive = true
+  onDestroy(() => { alive = false })
   let info = $state<AppUpdates | null>(null)
   let error = $state('')
 
@@ -18,9 +20,14 @@
   const busy = $derived(update?.kind === 'checking' || update?.kind === 'downloading')
 
   const reload = single(async () => {
+    if (!alive) return
     try {
-      info = await bridge(() => window.dmsg.updates())
+      const next = await bridge(() => window.dmsg.updates())
+      if (!alive) return
+      info = next
+      error = ''
     } catch (e) {
+      if (!alive) return
       error = errorText(e)
     }
   })
@@ -31,6 +38,7 @@
     try {
       await bridge(work)
     } catch (e) {
+      if (!alive) return
       error = errorText(e)
     }
   }

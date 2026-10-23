@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, untrack } from 'svelte'
   import { RadioGroup } from 'bits-ui'
   import { appearances, isAppearance } from '../../shared/appearance'
   import { isLocale, localeNames, locales } from '../../shared/locales'
@@ -17,7 +17,7 @@
   import { buttonClass, cn } from '../components/ui'
   import { appearance, appearanceLabel, setAppearance } from '../appearance.svelte'
   import { locale, sessionLabel, setLocale, t, type Label } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText, onChange, single, when } from '../rpc'
+  import { bridge, call, code, errorText, single, when } from '../rpc'
   import { startLogin } from '../shell/login.svelte'
   import { switchAccount, unlock, unlocking } from '../shell/session'
   import About from './About.svelte'
@@ -60,7 +60,16 @@
   let invite = $state<any>(null)
   let candidates = $state<any[]>([])
   let error = $state('')
-  let timer: ReturnType<typeof setInterval> | undefined
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let alive = true
+  let generation = 0
+  let pairingRevision = 0
+  let pairingBusy = $state(false)
+  let lastSession: string | undefined
+  let errors = $state<Record<string, string>>({})
+  let loaded = $state<Record<string, boolean>>({})
+  const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
+  const current = (turn: number) => alive && generation === turn
 
   const unlocked = $derived(status?.state === 'unlocked')
   const opened = $derived(['unlocked', 'locked', 'root_required'].includes(status?.state))
@@ -85,26 +94,32 @@
     }
   }
 
-  const reload = single(async () => {
-    error = ''
-    try {
-      accounts = await call('session/accounts')
-      if (opened)
-        [account, pairings] = await Promise.all([
-          call('account/show'),
-          call('connect/pairings').catch((e) => (code(e) === 'LOCKED' ? null : Promise.reject(e)))
-        ])
-    } catch (e) {
-      error = errorText(e)
-    }
-  })
+  function reader(key: string, method: string, visible: () => boolean, apply: (value: any) => void) {
+    return single(async () => {
+      if (!alive || !visible()) return
+      const turn = generation
+      try {
+        const value = await call(method)
+        if (current(turn)) { apply(value); errors[key] = '' }
+      } catch (e) {
+        if (!current(turn)) return
+        if (key === 'pairings' && code(e) === 'LOCKED') { pairings = null; errors[key] = '' }
+        else errors[key] = errorText(e)
+      } finally { if (current(turn)) loaded[key] = true }
+    })
+  }
+  const loadAccounts = reader('accounts', 'session/accounts', () => part === 'session', (value) => (accounts = value))
+  const loadAccount = reader('account', 'account/show', () => part === 'session' && opened, (value) => (account = value))
+  const loadPairings = reader('pairings', 'connect/pairings', () => part === 'browsers' && opened, (value) => (pairings = value))
+  function reload() { void loadAccounts(); void loadAccount(); void loadPairings() }
 
   /** A session or browser change; its daemon event reloads what it changed. */
   async function act(method: string, params?: unknown) {
+    const turn = generation
     try {
       await call(method, params)
     } catch (e) {
-      error = errorText(e)
+      if (current(turn)) error = errorText(e)
     }
   }
 
@@ -115,42 +130,82 @@
     await switchAccount(id, fast)
   }
 
-  async function pair(copy: boolean) {
+  function stopPairing() {
+    pairingRevision++
+    clearTimeout(timer)
+    invite = null; candidates = []; pairingBusy = false
+  }
+
+  async function poll(invitation: any, revision: number) {
+    const valid = () => alive && part === 'browsers' && revision === pairingRevision && invite === invitation
+    if (!valid() || Date.now() >= invitation.expires_at) return
     try {
-      invite = await bridge(() => window.dmsg.pair(copy))
-    } catch (e) {
-      error = errorText(e)
-      return
+      const found: any = await call('connect/candidates', { invite: invitation.invite_id })
+      if (valid()) { candidates = found.candidates; error = '' }
+    } catch (e) { if (valid()) error = errorText(e) }
+    finally {
+      if (valid() && Date.now() < invitation.expires_at) timer = setTimeout(() => void poll(invitation, revision), 2000)
     }
-    candidates = []
-    clearInterval(timer)
-    timer = setInterval(async () => {
-      if (!invite || Date.now() > invite.expires_at) return clearInterval(timer)
-      const found: any = await call('connect/candidates', { invite: invite.invite_id }).catch(() => null)
-      if (found) candidates = found.candidates
-    }, 2000)
+  }
+
+  async function pair(copy: boolean) {
+    if (pairingBusy) return
+    stopPairing()
+    const revision = pairingRevision
+    const turn = generation
+    pairingBusy = true
+    error = ''
+    try {
+      const value = await bridge(() => window.dmsg.pair(copy))
+      if (!current(turn) || revision !== pairingRevision || part !== 'browsers') return
+      invite = value
+      timer = setTimeout(() => void poll(invite, revision), 2000)
+    } catch (e) { if (current(turn) && revision === pairingRevision) error = errorText(e) }
+    finally { if (current(turn) && revision === pairingRevision) pairingBusy = false }
   }
 
   /** The person compares the label with the browser that opened the link. */
   async function grant(candidate: any) {
+    if (pairingBusy || !invite) return
+    const revision = ++pairingRevision
+    const turn = generation
+    const invitation = invite
+    clearTimeout(timer)
+    pairingBusy = true
+    error = ''
     try {
-      await bridge(() => window.dmsg.grant(invite.invite_id, candidate.pairing_id))
+      await bridge(() => window.dmsg.grant(invitation.invite_id, candidate.pairing_id))
+      if (current(turn) && revision === pairingRevision) stopPairing()
     } catch (e) {
-      error = errorText(e)
-    }
-    clearInterval(timer)
-    invite = null
-    candidates = []
+      if (current(turn) && revision === pairingRevision) {
+        error = errorText(e)
+        timer = setTimeout(() => void poll(invitation, revision), 2000)
+      }
+    } finally { if (current(turn) && revision === pairingRevision) pairingBusy = false }
   }
 
   onMount(() => {
-    void reload()
-    const off = onChange(['session/changed', 'connect/changed'], reload)
-    return () => {
-      off()
-      clearInterval(timer)
-    }
+    const off = window.dmsg.onEvent((event) => {
+      if (['resync', 'session/changed', 'connect/changed', 'approval/changed'].includes(event.type)) reload()
+    })
+    return () => { alive = false; generation++; off(); stopPairing() }
   })
+
+  $effect(() => {
+    const next = sessionKey
+    part
+    untrack(() => {
+      error = ''
+      if (lastSession !== next) {
+        lastSession = next
+        generation++
+        account = null; accounts = []; pairings = []; error = ''; errors = {}; loaded = {}
+        stopPairing()
+      } else if (part !== 'browsers') stopPairing()
+      reload()
+    })
+  })
+
 </script>
 
 <div class="@container flex h-full min-h-0">
@@ -184,6 +239,8 @@
     </div>
     <div class="min-h-0 flex-1">
       <Page>
+        {#key sessionKey}
+        {#each (part === 'session' ? [errors.account, errors.accounts] : part === 'browsers' ? [errors.pairings] : []).filter(Boolean) as failure}<Notice tone="danger">{failure}</Notice>{/each}
         {#if error}<Notice tone="danger">{error}</Notice>{/if}
         {#if part === 'legacy'}
           <Legacy />
@@ -230,7 +287,7 @@
               <Fact label={t('device')}>{#if status?.device_id}<Id id={status.device_id} />{:else}-{/if}</Fact>
               <Fact label={t('formal')}>
                 <Pill tone={own?.capabilities?.includes('FormalApprove') ? 'forest' : 'neutral'}>
-                  {own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff')}
+                  {!loaded.account ? t('loading') : account ? own?.capabilities?.includes('FormalApprove') ? t('formalOn') : t('formalOff') : '-'}
                 </Pill>
               </Fact>
               <Fact label={t('syncState')}>{t('pendingSync', { n: status?.pending_sync ?? 0 })} · {when(status?.last_sync?.at)}</Fact>
@@ -291,8 +348,8 @@
           {#if opened && pairings}
             <Section title={t('browsers')} description={t('browsersHint')} icon="browser" flush>
               {#snippet actions()}
-                <button class={buttonClass('secondary', 'sm')} onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>
-                <button class={buttonClass('primary', 'sm')} onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>
+                <button class={buttonClass('secondary', 'sm')} disabled={pairingBusy || !unlocked} data-testid="browser-copy" onclick={() => pair(true)}><Icon name="copy" />{t('copyLink')}</button>
+                <button class={buttonClass('primary', 'sm')} disabled={pairingBusy || !unlocked} data-testid="browser-pair" onclick={() => pair(false)}><Icon name="add" />{t('connectBrowser')}</button>
               {/snippet}
               {#if invite}
                 <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
@@ -302,7 +359,7 @@
                     <div class="flex flex-wrap items-center gap-2 rounded-xl border border-forest/30 bg-pale px-3 py-2.5">
                       <Icon name="browser" class="text-forest" />
                       <span class="min-w-0 flex-1 text-[13px]">{t('confirmBrowser')} <b>{c.label}</b> <span class="font-mono text-[11.5px] text-faint">{c.pairing_id.slice(0, 12)}</span></span>
-                      <button class={buttonClass('primary', 'sm')} onclick={() => grant(c)}>{t('connect')}</button>
+                      <button class={buttonClass('primary', 'sm')} disabled={pairingBusy} data-testid="browser-grant" onclick={() => grant(c)}>{t('connect')}</button>
                     </div>
                   {/each}
                 </div>
@@ -313,7 +370,7 @@
                     <Pill tone={p.state === 'active' ? 'ok' : 'neutral'}>{p.state}</Pill>
                     <b class="text-[13px] font-medium">{p.label ?? p.pairing_id.slice(0, 12)}</b>
                     <span class="min-w-0 flex-1 text-[12px] text-faint">
-                      {t('issuedBy')} <bdi dir="ltr" class="font-mono">{p.issued_by?.slice(0, 8) ?? '-'}</bdi>{p.issued_by === own?.device_id ? ` (${t('thisDevice')})` : ''}
+                      {t('issuedBy')} <bdi dir="ltr" class="font-mono">{p.issued_by?.slice(0, 8) ?? '-'}</bdi>{p.issued_by === status?.device_id ? ` (${t('thisDevice')})` : ''}
                       · {t('granted')} {when(p.granted_at)} · {t('lastUsed')} {when(p.last_used_at)}
                     </span>
                     {#if p.state === 'active'}
@@ -321,7 +378,7 @@
                     {/if}
                   </li>
                 {:else}
-                  <li class="px-5 py-3 text-[13px] text-faint">{t('noBrowsers')}</li>
+                  <li class="px-5 py-3 text-[13px] text-faint">{!loaded.pairings ? t('loading') : errors.pairings ? '' : t('noBrowsers')}</li>
                 {/each}
               </ul>
             </Section>
@@ -337,6 +394,7 @@
         {:else}
           {#key status.account}<Profile {status} />{/key}
         {/if}
+        {/key}
       </Page>
     </div>
   </div>

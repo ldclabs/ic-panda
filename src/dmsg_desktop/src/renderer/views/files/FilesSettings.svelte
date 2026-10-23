@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Section from '../../components/page/Section.svelte'
   import Select from '../../components/Select.svelte'
   import { t } from '../../i18n/index.svelte'
-  import { bridge, call, errorText, onChange } from '../../rpc'
+  import { bridge, call, errorText, onChange, single } from '../../rpc'
 
   /**
    * The file library's settings: whether it may be mounted as a disk and how
@@ -13,6 +13,9 @@
    * system dialog before allowing the mount; `config.toml` may allow the
    * mount too, which no setting here takes back.
    */
+  let alive = true
+  let request = 0
+  onDestroy(() => { alive = false; request++ })
   let prefs = $state<any>(null)
   let error = $state('')
   let busy = $state(false)
@@ -22,22 +25,31 @@
   const DAYS = [7, 14, 30, 90, 180, 365]
   const options = $derived([...new Set([...DAYS, prefs?.files_trash_days ?? 30])].sort((a, b) => a - b).map((n) => ({ value: String(n), label: t('daysN', { n }) })))
 
-  const load = async () => {
+  const load = single(async () => {
+    if (!alive) return
+    const turn = request
     try {
-      prefs = await call('files/preferences')
+      const value = await call('files/preferences')
+      if (!alive || turn !== request) return
+      prefs = value
       error = ''
     } catch (e) {
-      error = errorText(e)
+      if (alive && turn === request) error = errorText(e)
     }
-  }
+  })
 
   async function save(changes: { files_mount?: boolean; files_trash_days?: number }) {
+    if (busy) return
+    const turn = ++request
     busy = true
     try {
-      prefs = (await bridge(() => window.dmsg.filesPreferences(changes))) ?? prefs
+      const value = await bridge(() => window.dmsg.filesPreferences(changes))
+      if (!alive || turn !== request) return
+      request++
+      prefs = value ?? prefs
       error = ''
     } catch (e) {
-      error = errorText(e)
+      if (alive) error = errorText(e)
     } finally {
       busy = false
       revision++
@@ -73,6 +85,7 @@
           bind:value={() => String(prefs.files_trash_days), (next) => void save({ files_trash_days: Number(next) })}
           {options}
           label={t('trashDays')}
+          disabled={busy}
           testid="files-settings-trash"
           class="w-full"
         />

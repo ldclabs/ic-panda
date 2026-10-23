@@ -176,9 +176,16 @@ desktop is one of its clients, like the CLI.
     connected browsers, the file library's settings
     (the disk mount, the trash's days), the interface language and appearance,
     the legacy migration, and About dMsg with the app's version and its update.
+    Each section loads only what it uses: local accounts do not wait for account
+    queries, and Devices does not repeat the parent page's account read. Browser
+    pairing polls finish before scheduling the next poll and stop on leaving the
+    section or changing sessions; late replies cannot restore an old invitation.
+    File settings coalesce refreshes and reject reads superseded by a save.
 
-  The public document editor publishes through the account home and certified
-  directory. It preserves link images in `extra["dmsg.link_images"]`, including
+  The public document editor reads its document, publication state and optional
+  legacy archives independently; delayed archives cannot block editing. Lookup
+  of another profile has its own loading state. Publication uses the account
+  home and certified directory. It preserves link images in `extra["dmsg.link_images"]`, including
   legacy imports. Avatar uploads only change the draft; Publish commits the
   document. A delayed directory publication stays pending with a retry action.
   Reopening the editor also checks the local account journal: a lost update

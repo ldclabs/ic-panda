@@ -2,7 +2,13 @@
 //! Both JSON and human-facing readers consume the same certified bytes.
 use crate::codec::{canonical, sha256};
 use crate::upload::{ChunkRef, UploadPlan, random_hex};
-use crate::{Client, config::Config, hold::Hold, ic::Ic, now_ms};
+use crate::{
+    Client,
+    config::Config,
+    hold::{Hold, Unlocked},
+    ic::Ic,
+    now_ms,
+};
 pub use agent_protocols::delegation::PrincipalDocument;
 use agent_protocols::delegation::{validate_principal_document, validate_principal_resolution};
 use candid::Principal;
@@ -344,8 +350,7 @@ impl Client {
             None,
         )
         .await?;
-        self.principal_settled().await;
-        self.principal().await?.ok_or(Error::NotFound)
+        self.principal_settled().await
     }
 
     /// Reuse the last attempt for identical image bytes; never invent a new
@@ -412,6 +417,8 @@ struct AvatarManifest<'a> {
 /// Upload a public image and return its URL. Publishing the document is a
 /// separate explicit operation, so uploading never overwrites editor drafts.
 pub async fn upload_avatar<H: Hold>(h: &H, bytes: &[u8]) -> Result<String> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let (config, account) = h.with(|c| Ok((c.config.clone(), c.account()?.id))).await?;
     let mut resolver = Resolver::new(&config).await?;
     let home = resolver.home(&account)?;

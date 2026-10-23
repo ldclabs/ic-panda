@@ -518,6 +518,14 @@ approved requests whose outcome is not known yet, which the daemon also does
 on its own. An attestation whose outcome the home no longer keeps (a day
 past its approval) ends as `lost`.
 
+Settings read and prepare browser invitations, candidates, grants and revocations
+without holding the client during relay requests. Candidate reads and grants
+recheck the local invitation and its expiry after the wait; granting still
+requires fresh FormalApprove authority and explicit human confirmation. Policy
+edits reuse one account read for their previous policy and approval checks.
+Profile publication reuses its final principal read; account mutations retain
+the existing serialized account journal.
+
 Approval lists read in short local steps and omit filesystem metadata checks;
 the selected request's detail and execution still check its file. The desktop
 uses `approval/list {ids_only:true}` for waiting-request navigation, without

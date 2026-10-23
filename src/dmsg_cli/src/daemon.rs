@@ -1163,19 +1163,21 @@ impl Daemon {
                 ))
             }
             "profile/avatar" => {
+                let shared = self.hold();
+                let h = Unlocked::new(&shared).await?;
                 let path = absolute(params, "path")?;
-                let size = std::fs::metadata(&path)
-                    .map_err(|e| Error::InvalidInput(format!("path: {e}")))?
-                    .len();
-                if size > dmsg_client::principal::MAX_AVATAR as u64 {
-                    return Err(Error::InvalidInput("avatar".into()));
-                }
-                let image =
-                    std::fs::read(&path).map_err(|e| Error::InvalidInput(format!("path: {e}")))?;
+                let image = blocking(move || {
+                    let size = std::fs::metadata(&path)
+                        .map_err(|e| Error::InvalidInput(format!("path: {e}")))?
+                        .len();
+                    if size > dmsg_client::principal::MAX_AVATAR as u64 {
+                        return Err(Error::InvalidInput("avatar".into()));
+                    }
+                    std::fs::read(&path).map_err(|e| Error::InvalidInput(format!("path: {e}")))
+                })
+                .await?;
                 let _turn = self.turn("profile").await;
-                Ok(to_json(
-                    &profile::upload_avatar(&self.hold(), &image).await?,
-                ))
+                Ok(to_json(&profile::upload_avatar(&h, &image).await?))
             }
             "profile/avatar_legacy" => {
                 let archive = text(params, "archive")?;
@@ -1375,31 +1377,23 @@ impl Daemon {
                 let device = hash(params, "device")?;
                 dmsg_client::approval::revoke_request(&self.hold(), source(params)?, device).await
             }
-            // Pairing and revoking browsers still wait on the relay under the
-            // client.
-            "connect/invite" => {
-                self.under_lock(async |client| client.connect_invite().await)
-                    .await
-            }
+            "connect/invite" => dmsg_client::connect::invite(&self.hold()).await,
             "connect/candidates" => {
-                let invite = text(params, "invite")?;
-                self.under_lock(async |client| client.connect_candidates(&invite).await)
-                    .await
+                dmsg_client::connect::candidates(&self.hold(), &text(params, "invite")?).await
             }
             "connect/grant" => {
-                // The person confirmed the label shown on this device.
                 if params["human"] != true {
                     return Err(Error::Forbidden);
                 }
                 let (invite, pairing) = (text(params, "invite")?, text(params, "pairing")?);
-                self.under_lock(async |client| client.connect_grant(&invite, &pairing).await)
-                    .await
+                let shared = self.hold();
+                let h = Unlocked::new(&shared).await?;
+                let _turn = self.turn(&format!("connect/invite:{invite}")).await;
+                dmsg_client::connect::grant(&h, &invite, &pairing).await
             }
             "connect/pairings" => dmsg_client::connect::pairings(&self.hold()).await,
             "connect/revoke" => {
-                let pairing = text(params, "pairing")?;
-                self.under_lock(async |client| client.connect_revoke(&pairing).await)
-                    .await
+                dmsg_client::connect::revoke(&self.hold(), &text(params, "pairing")?).await
             }
             "connect/sync" => {
                 let report = to_json(&self.connect_pass().await?);
@@ -2413,6 +2407,79 @@ mod tests {
                 }
             });
             answers_beside(&daemon, if on_ic { &ic } else { &relay }, work).await;
+        }
+    }
+
+    #[tokio::test]
+    async fn browser_pairing_waits_leave_local_reads_and_lock_available() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        for method in [
+            "connect/invite",
+            "connect/candidates",
+            "connect/grant",
+            "connect/revoke",
+        ] {
+            let dir = dmsg_client::testing::TempDir::new();
+            let (daemon, relay, _ic) = stalled(&dir).await;
+            let invite = if matches!(method, "connect/candidates" | "connect/grant") {
+                let creating = tokio::spawn({
+                    let daemon = daemon.clone();
+                    async move { daemon.call_daemon("connect/invite", &Value::Null).await }
+                });
+                let (mut socket, _) = tokio::time::timeout(Duration::from_secs(3), relay.accept())
+                    .await
+                    .unwrap()
+                    .unwrap();
+                let mut bytes = [0; 8192];
+                assert!(socket.read(&mut bytes).await.unwrap() > 0);
+                socket
+                    .write_all(
+                        b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 21\r\nConnection: close\r\n\r\n{\"ok\":true,\"data\":{}}",
+                    )
+                    .await
+                    .unwrap();
+                drop(socket);
+                creating.await.unwrap().unwrap()["invite_id"]
+                    .as_str()
+                    .unwrap()
+                    .to_string()
+            } else {
+                "ab".repeat(32)
+            };
+            let work = tokio::spawn({
+                let daemon = daemon.clone();
+                async move {
+                    daemon
+                        .call_daemon(
+                            method,
+                            &json!({"invite":invite,"pairing":"cd".repeat(32),"human":true}),
+                        )
+                        .await
+                }
+            });
+            let (mut socket, _) = tokio::time::timeout(Duration::from_secs(3), relay.accept())
+                .await
+                .expect(method)
+                .unwrap();
+            let mut bytes = [0; 8192];
+            assert!(socket.read(&mut bytes).await.unwrap() > 0);
+            tokio::time::timeout(Duration::from_secs(1), async {
+                daemon.call_vault("vault/list", &Value::Null).await.unwrap();
+                daemon.client().lock().await.lock();
+            })
+            .await
+            .expect(method);
+            socket
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 21\r\nConnection: close\r\n\r\n{\"ok\":true,\"data\":{}}")
+                .await
+                .unwrap();
+            drop(socket);
+            let result = work.await.unwrap();
+            if method == "connect/revoke" {
+                assert!(result.is_ok());
+            } else {
+                assert_eq!(result, Err(Error::Locked), "{method}");
+            }
         }
     }
 

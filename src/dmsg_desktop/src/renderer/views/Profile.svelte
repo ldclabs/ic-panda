@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import type { PrincipalDocument, PrincipalLink } from 'agent-protocols/delegation'
   import Avatar from '../components/Avatar.svelte'
   import Icon from '../components/Icon.svelte'
@@ -11,11 +11,20 @@
   import Select from '../components/Select.svelte'
   import { buttonClass } from '../components/ui'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText } from '../rpc'
+  import { bridge, call, code, errorText, single } from '../rpc'
 
   /** The same certified PrincipalDocument used by JSON and human readers. */
   let { status }: { status: any } = $props()
 
+  let alive = true
+  onDestroy(() => { alive = false })
+  let loaded = $state({ document: false, status: false })
+  let loadErrors = $state<Record<string, string>>({})
+  let lookupBusy = $state(false)
+  let lookupError = $state('')
+  let lookupRevision = 0
+  const imageReads = new Set<string>()
+  const ready = $derived(loaded.document && loaded.status)
   let mine = $state<PrincipalDocument | null>(null)
   let avatarUrl = $state<string | null>(null)
   let extra = $state<Record<string, unknown>>({})
@@ -42,6 +51,7 @@
     try {
       await work()
     } catch (e) {
+      if (!alive) return
       error = errorText(e)
     } finally {
       busy = false
@@ -52,12 +62,16 @@
   async function avatarOf(document: PrincipalDocument | null) {
     if (!document?.id) return
     const url = document.avatar_url
-    if (!url || images[url]) return
-    const image: any = await call('profile/avatar_image', { avatar_url: url }).catch(() => null)
-    if (image) images = { ...images, [url]: image.url }
+    if (!url || images[url] || imageReads.has(url)) return
+    imageReads.add(url)
+    try {
+      const image: any = await call('profile/avatar_image', { avatar_url: url }).catch(() => null)
+      if (alive && image) images = { ...images, [url]: image.url }
+    } finally { imageReads.delete(url) }
   }
 
   function show(document: PrincipalDocument) {
+    if (!alive) return
     mine = document
     legacyAvatarReference = false
     kind = document.type ?? 'person'
@@ -70,17 +84,41 @@
     void avatarOf(document)
   }
 
-  const load = () => attempt(async () => {
-    archives = (await call<any[]>('legacy/list')).sort((a, b) => b.imported_at - a.imported_at)
-    archive = archives[0]?.id ?? ''
-    show(await call('profile/show'))
-    pending = await call<boolean>('profile/pending')
-    const publication: any = await call('agent/principal')
-    pending ||= !!publication && !publication.published
+  const loadDocument = single(async () => {
+    if (!alive) return
+    try {
+      const document = await call('profile/show')
+      if (alive) { show(document); loaded.document = true; loadErrors.document = '' }
+    } catch (e) { if (alive) loadErrors.document = errorText(e) }
   })
+  const loadStatus = single(async () => {
+    if (!alive) return
+    try {
+      const [journal, publication] = await Promise.all([call<boolean>('profile/pending'), call('agent/principal')])
+      if (alive) { pending = journal || (!!publication && !publication.published); loaded.status = true; loadErrors.status = '' }
+    } catch (e) { if (alive) loadErrors.status = errorText(e) }
+  })
+  const loadArchives = single(async () => {
+    if (!alive) return
+    try {
+      const list = await call<any[]>('legacy/list')
+      if (alive) {
+        archives = list.sort((a, b) => b.imported_at - a.imported_at)
+        archive = archives[0]?.id ?? ''; loadErrors.archives = ''
+      }
+    } catch (e) { if (alive) loadErrors.archives = errorText(e) }
+  })
+  function load() { void loadDocument(); void loadStatus(); void loadArchives() }
+  function retryLoad() {
+    if (loadErrors.document) void loadDocument()
+    if (loadErrors.status) void loadStatus()
+    if (loadErrors.archives) void loadArchives()
+  }
 
   const useLegacy = () => attempt(async () => {
-    const old: any = await call('legacy/report', { id: archive, limit: 0 })
+    const selected = archive
+    const old: any = await call('legacy/report', { id: selected, limit: 0 })
+    if (!alive || selected !== archive) return
     displayName = old.profile.name
     bio = old.profile.bio
     links = old.profile.links ?? []
@@ -91,7 +129,9 @@
     if (old.profile.image) { avatarUrl = old.profile.image; legacyAvatarReference = true }
     const image = old.files.find((file: any) => file.kind === 'avatar' && file.verified)
     if (image?.mime) {
-      avatarUrl = await call('profile/avatar_legacy', { archive, source: image.source })
+      const url = await call('profile/avatar_legacy', { archive: selected, source: image.source })
+      if (!alive || selected !== archive) return
+      avatarUrl = url
       legacyAvatarReference = false
     }
     await avatarOf({ ...mine!, avatar_url: avatarUrl ?? undefined })
@@ -100,6 +140,7 @@
   const avatar = (remove: boolean) => attempt(async () => {
     if (remove) { avatarUrl = null; legacyAvatarReference = false; return }
     const url = await bridge(() => window.dmsg.avatar())
+    if (!alive) return
     if (typeof url === 'string') {
       avatarUrl = url
       legacyAvatarReference = false
@@ -108,14 +149,14 @@
   })
 
   const publish = () => attempt(async () => {
-    if (!mine) return
+    if (!mine || !ready) return
     if (pending) {
       let outcome: any
       try { outcome = await call('profile/retry') } catch (cause) {
         if (code(cause) === 'EXPIRED') pending = false
         throw cause
       }
-      if (!outcome.published) return
+      if (!alive || !outcome.published) return
     } else {
       const keptExtra = { ...extra }
       const artwork = Object.fromEntries(Object.entries(linkImages).filter(([url, image]) => image && links.some(link => link.url === url)))
@@ -130,6 +171,7 @@
         if (code(cause) === 'PENDING') pending = await call<boolean>('profile/pending')
         throw cause
       }
+      if (!alive) return
       if (!outcome.published) { pending = true; return }
     }
     pending = false
@@ -145,11 +187,18 @@
     if (!links.some(link => link.url === old)) delete linkImages[old]
   }
 
-  const resolve = () =>
-    attempt(async () => {
-      found = await call('profile/resolve', { account: other.trim() })
-      void avatarOf(found)
-    })
+  async function resolve() {
+    const turn = ++lookupRevision
+    const account = other.trim()
+    lookupBusy = true; lookupError = ''
+    try {
+      const result = await call('profile/resolve', { account })
+      if (!alive || turn !== lookupRevision || account !== other.trim()) return
+      found = result
+      void avatarOf(result)
+    } catch (e) { if (alive && turn === lookupRevision) lookupError = errorText(e) }
+    finally { if (alive && turn === lookupRevision) lookupBusy = false }
+  }
 
   onMount(() => {
     if (status?.state === 'unlocked') void load()
@@ -165,19 +214,21 @@
 {/snippet}
 
 {#if error}<Notice tone="danger">{error}</Notice>{/if}
+{#each Object.values(loadErrors).filter(Boolean) as failure}<Notice tone="danger">{failure}<button class={buttonClass('secondary','sm')} onclick={retryLoad}>{t('retry')}</button></Notice>{/each}
 <Section title={t('publicProfile')} description={t('avatarHint')} icon="profile" testid="profile">
   {#if status?.state === 'unlocked'}
     <div class="grid gap-4">
       {#if archives.length}
         <div class="flex flex-wrap items-center gap-2">
           <Select bind:value={archive} label={t('legacyArchives')} options={archives.map((a) => ({ value: a.id, label: a.principal, mono: true }))} testid="profile-legacy-archive" />
-          <button class={buttonClass('secondary', 'sm')} disabled={busy || pending || !archive} onclick={useLegacy} data-testid="profile-use-legacy">{t('legacyUseProfile')}</button>
+          <button class={buttonClass('secondary', 'sm')} disabled={busy || pending || !ready || !archive} onclick={useLegacy} data-testid="profile-use-legacy">{t('legacyUseProfile')}</button>
         </div>
       {/if}
       {#if fromLegacy}<Notice>{t('legacyProfileDraft')}</Notice>{/if}
       {#if legacyAvatarReference}<Notice>{t('legacyAvatarReference')}</Notice>{/if}
       {#if pending}<Notice tone="warn">{t('principalPublicationPending')}</Notice>{/if}
-      <fieldset disabled={busy || pending} class="contents">
+      {#if !ready && !Object.values(loadErrors).some(Boolean)}<p class="text-[13px] text-muted">{t('loading')}</p>{/if}
+      <fieldset disabled={busy || pending || !ready} class="contents">
       <div class="flex items-center gap-4">
         {@render picture(mine ? { ...mine, avatar_url: avatarUrl, name: displayName } : null, 'size-16')}
         <div class="flex flex-wrap gap-1.5">
@@ -210,7 +261,7 @@
       <div class="flex flex-wrap items-center gap-3">
         {#if mine?.updated_at}<span class="text-[12px] text-faint">{new Date(mine.updated_at).toLocaleString()}</span>{/if}
         <span class="flex-1"></span>
-        <button class={buttonClass('primary')} disabled={busy} onclick={publish}>{pending ? t('retry') : t('publish')}</button>
+        <button class={buttonClass('primary')} disabled={busy || !ready} onclick={publish}>{pending ? t('retry') : t('publish')}</button>
       </div>
     </div>
   {/if}
@@ -220,8 +271,9 @@
   <div class="grid gap-3">
     <div class="flex gap-2">
       <input placeholder={t('accountId')} bind:value={other} class="font-mono text-[12.5px] placeholder:font-sans" />
-      <button class={buttonClass('secondary')} disabled={busy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
+      <button class={buttonClass('secondary')} disabled={lookupBusy || !other.trim()} onclick={resolve}>{t('lookUp')}</button>
     </div>
+    {#if lookupError}<Notice tone="danger">{lookupError}</Notice>{/if}
     {#if found}
       <div class="flex items-start gap-3 rounded-xl border border-line p-3.5" data-testid="profile-found">
         {@render picture(found, 'size-12')}

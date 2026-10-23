@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Icon from '../components/Icon.svelte'
   import Id from '../components/page/Id.svelte'
@@ -13,6 +13,8 @@
   /** The account's devices as the user home certified them; changes are approval requests. */
   let { status }: { status: any } = $props()
 
+  let alive = true
+  onDestroy(() => { alive = false })
   let view = $state<any>(null)
   let editing = $state<string | null>(null)
   let chosen = $state<string[]>([])
@@ -22,9 +24,14 @@
   const CAPABILITIES = ['ContentSign', 'VaultUnlock', 'RootManage', 'FormalApprove', 'PaymentOffer', 'WalletApprove']
 
   const reload = single(async () => {
+    if (!alive) return
     try {
-      view = await call('account/show')
+      const next = await call('account/show')
+      if (!alive) return
+      view = next
+      error = ''
     } catch (e) {
+      if (!alive) return
       view = null
       error = code(e) === 'AUTH_REQUIRED' ? '' : errorText(e)
     }
@@ -36,9 +43,11 @@
     error = ''
     try {
       const created: any = await call(method, params)
+      if (!alive) return
       editing = null
       await bridge(() => window.dmsg.openApproval(created.id))
     } catch (e) {
+      if (!alive) return
       error = errorText(e)
     } finally {
       busy = false

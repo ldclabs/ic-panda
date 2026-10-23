@@ -467,19 +467,19 @@ impl Client {
             }
         };
         self.mutate(command, None).await?;
-        self.principal_settled().await;
+        let _ = self.principal_settled().await;
         Ok(())
     }
 
     /// After a committed change, tell the delegation service once the
-    /// directory has it; a failure only delays the service's view.
-    pub(crate) async fn principal_settled(&mut self) {
-        if let Ok(Some(info)) = self.principal().await
-            && info.published_version == info.state.version
-            && !info.state.controllers.is_empty()
-        {
+    /// directory has it; a notification failure only delays the service's view.
+    /// Return the publication state so profile saves need no second query.
+    pub(crate) async fn principal_settled(&mut self) -> Result<PrincipalInfo> {
+        let info = self.principal().await?.ok_or(Error::NotFound)?;
+        if info.published_version == info.state.version && !info.state.controllers.is_empty() {
             let _ = self.principal_refresh().await;
         }
+        Ok(info)
     }
 
     async fn controller_register(
@@ -510,7 +510,7 @@ impl Client {
         };
         self.mutate(command, Some((request_id, state.info.account_version)))
             .await?;
-        self.principal_settled().await;
+        let _ = self.principal_settled().await;
         Ok(())
     }
 

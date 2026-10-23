@@ -17,7 +17,7 @@ use crate::account::AccountState;
 use crate::approval::{Action, HIGH_RISK_TTL_MS};
 use crate::client::{Client, Status};
 use crate::codec::{b64, canonical, decode, principal_input, unb64};
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::ic::Ic;
 use crate::now_ms;
 use candid::Principal;
@@ -468,20 +468,46 @@ fn check_policy(policy: &SensitivePolicy) -> Result<()> {
 /// The user home is waited on without the client.
 ///
 /// # Errors
-/// Returns `Error::AuthRequired` without a login.
+/// Returns `Error::Locked` without an open account and `Error::AuthRequired`
+/// without a login.
 pub async fn account_security<H: Hold>(h: &H) -> Result<Json> {
-    let state = crate::account::refreshed(h).await?;
+    let h = Unlocked::new(h).await?;
+    let state = crate::account::refreshed(&h).await?;
     h.with(|c| c.security_view(&state)).await
 }
 
-/// The account's sensitive-execution policy in force, as its user home
-/// answers the login now, waited on without the client.
-///
+/// Prepare a policy edit from one fresh account read, retaining its previous
+/// policy for the approval-time conflict check.
 /// # Errors
-/// Returns `Error::AuthRequired` without a login.
-pub async fn account_policy<H: Hold>(h: &H) -> Result<SensitivePolicy> {
-    let state = crate::account::refreshed(h).await?;
-    Ok(state.info.sensitive_policy)
+/// As [`account_request`].
+pub async fn policy_request<H: Hold>(
+    h: &H,
+    source: &str,
+    frozen: Option<bool>,
+    daily: Option<u32>,
+    purposes: Option<Vec<dmsg_types::KeyPurpose>>,
+) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    let state = crate::account::refreshed(&h).await?;
+    h.with(|c| {
+        let previous = state.info.sensitive_policy.clone();
+        let mut policy = previous.clone();
+        if let Some(value) = frozen {
+            policy.frozen = value;
+        }
+        if let Some(value) = daily {
+            policy.daily_executions = value;
+        }
+        if let Some(value) = purposes {
+            policy.allowed_purposes = value;
+        }
+        let change = AccountChange::Policy {
+            policy,
+            previous: Some(previous),
+        };
+        c.account_change_request(source, change.clone(), &change.command()?, &state)
+    })
+    .await
 }
 
 /// Ask to change the account's security: bind or remove a login, set the
@@ -494,8 +520,8 @@ pub async fn account_policy<H: Hold>(h: &H) -> Result<SensitivePolicy> {
 /// `Error::InvalidInput` for one the home would refuse.
 pub async fn account_request<H: Hold>(h: &H, source: &str, change: AccountChange) -> Result<Json> {
     let command = change.command()?;
-    h.with(|c| c.keys().map(|_| ())).await?;
-    let state = crate::account::refreshed(h).await?;
+    let h = Unlocked::new(h).await?;
+    let state = crate::account::refreshed(&h).await?;
     h.with(|c| c.account_change_request(source, change, &command, &state))
         .await
 }

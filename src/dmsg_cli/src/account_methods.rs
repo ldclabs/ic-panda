@@ -217,27 +217,23 @@ impl Daemon {
                 return account_request(&self.hold(), source(params)?, change).await;
             }
             "account/policy" => {
-                // The fields given replace those in force.
-                let h = self.hold();
-                let previous = dmsg_client::security::account_policy(&h).await?;
-                let mut policy = previous.clone();
-                if let Some(frozen) = params["frozen"].as_bool() {
-                    policy.frozen = frozen;
-                }
-                if let Some(daily) = optional(params, "daily_executions", number)? {
-                    policy.daily_executions = daily;
-                }
-                if let Some(purposes) = params["allowed_purposes"].as_array() {
-                    policy.allowed_purposes = purposes
-                        .iter()
-                        .map(|p| purpose(p.as_str().unwrap_or_default()))
-                        .collect::<Result<_>>()?;
-                }
-                let change = AccountChange::Policy {
-                    policy,
-                    previous: Some(previous),
-                };
-                return account_request(&h, source(params)?, change).await;
+                let purposes = params["allowed_purposes"]
+                    .as_array()
+                    .map(|values| {
+                        values
+                            .iter()
+                            .map(|p| purpose(p.as_str().unwrap_or_default()))
+                            .collect::<Result<Vec<_>>>()
+                    })
+                    .transpose()?;
+                return dmsg_client::security::policy_request(
+                    &self.hold(),
+                    source(params)?,
+                    params["frozen"].as_bool(),
+                    optional(params, "daily_executions", number)?,
+                    purposes,
+                )
+                .await;
             }
             "account/recovery_delay" => {
                 let days = number::<u64>(params, "days")?;

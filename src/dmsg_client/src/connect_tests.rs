@@ -502,3 +502,41 @@ fn a_mailbox_page_read_before_an_account_switch_is_refused() {
     assert_eq!(client.connect_fetch_store(from, &page), Ok(1));
     assert_eq!(client.connect_cursor(), Ok(7));
 }
+
+#[test]
+fn browser_candidates_keep_mac_expiry_and_consumption_checks_after_network_reads() {
+    let dir = crate::testing::TempDir::new();
+    let mut c = crate::testing::unlocked(&dir.0, false, None);
+    let (_, command, view) = c.prepare_invite().unwrap();
+    let id = view["invite_id"].as_str().unwrap();
+    let now = now_ms();
+    let (_, invitation) = c.invitation(id, now).unwrap();
+    let pairing_pub = p256_public(&seed("browser")).unwrap();
+    let mac = pairing_mac(
+        &invitation.secret,
+        &c.config.environment,
+        &c.account().unwrap().id,
+        &command.invite_id,
+        &pairing_pub,
+        "Browser",
+    );
+    let valid =
+        json!({"pairing_pub":b64(&pairing_pub), "label":"Browser", "mac":hex::encode(*mac)});
+    let mut tampered = valid.clone();
+    tampered["label"] = json!("Changed browser");
+    let data = json!({"candidates":[valid,tampered]});
+    let (_, candidates, rejected) = c.verified_candidates(id, &data, now).unwrap();
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(rejected, 1);
+    assert!(matches!(
+        c.verified_candidates(id, &data, invitation.expires_at),
+        Err(Error::Expired)
+    ));
+    c.workspace
+        .delete_private(&format!("{INVITE}{id}"))
+        .unwrap();
+    assert!(matches!(
+        c.verified_candidates(id, &data, now),
+        Err(Error::NotFound)
+    ));
+}

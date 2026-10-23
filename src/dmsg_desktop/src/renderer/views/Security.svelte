@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import Checkbox from '../components/Checkbox.svelte'
   import Icon from '../components/Icon.svelte'
   import Field from '../components/page/Field.svelte'
@@ -15,6 +15,8 @@
   import { purposeLabels } from '../approval'
 
   /** Bound logins, approvals of other devices and logins, the signing policy and recovery. Every change is an approval request. */
+  let alive = true
+  onDestroy(() => { alive = false })
   let security = $state<any>(null)
   let request = $state('')
   let shown = $state('')
@@ -28,14 +30,18 @@
 
   // A field follows the account only when the account's value changed, so an edit under way stays.
   const reload = single(async () => {
+    if (!alive) return
     try {
       const next: any = await call('account/security')
+      if (!alive) return
+      error = ''
       if (next.policy.daily_executions !== security?.policy.daily_executions) daily = String(next.policy.daily_executions)
       if (String(next.policy.allowed_purposes) !== String(security?.policy.allowed_purposes)) purposes = [...next.policy.allowed_purposes]
       if (next.recovery_delay_ms !== security?.recovery_delay_ms) days = String(Math.round(next.recovery_delay_ms / 86_400_000))
       security = next
       needsLogin = false
     } catch (e) {
+      if (!alive) return
       security = null
       needsLogin = code(e) === 'AUTH_REQUIRED'
       error = needsLogin ? '' : errorText(e)
@@ -48,6 +54,7 @@
     try {
       await work()
     } catch (e) {
+      if (!alive) return
       error = errorText(e)
     } finally {
       busy = false
@@ -58,6 +65,7 @@
   const ask = (method: string, params: unknown) =>
     guard(async () => {
       const created: any = await call(method, params)
+      if (!alive) return
       if (created?.id) await bridge(() => window.dmsg.openApproval(created.id))
     })
 
@@ -68,6 +76,7 @@
         await call('device/approve', { token: request.trim(), device: shown.trim() })
       } else {
         const created: any = await call('account/bind_approve', { token: request.trim(), principal: shown.trim() })
+        if (!alive) return
         await bridge(() => window.dmsg.openApproval(created.id))
       }
       request = ''

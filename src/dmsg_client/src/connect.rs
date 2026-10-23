@@ -20,7 +20,7 @@ use crate::crypto::{
     HpkeEnvelope, Key, aes_gcm_open, hpke_open_info, hpke_seal_auth, p256_verify, random_id,
     random_key,
 };
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::now_ms;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use candid::Principal;
@@ -94,6 +94,85 @@ pub async fn pairings<H: Hold>(h: &H) -> Result<Json> {
         .await?;
     let (_, list) = h.signed(|c| c.pairings_of(&data)).await?;
     Ok(list)
+}
+
+/// Create a browser invitation without holding the client during relay I/O.
+/// # Errors
+/// As [`Client::connect_invite`]; a session change discards the result.
+pub async fn invite<H: Hold>(h: &H) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    let (path, command, view) = h.with(Client::prepare_invite).await?;
+    h.post(&path, INVITE_ACTION, &command, &Hash::new(random_id()))
+        .await?;
+    h.with(|_| {
+        ensure(now_ms() < command.expires_at, Error::Expired)?;
+        Ok(view)
+    })
+    .await
+}
+
+async fn candidate_data<H: Hold>(h: &H, invite: &str) -> Result<Json> {
+    let path = h
+        .with(|c| {
+            // Validate local ownership and lifetime before contacting the relay.
+            c.invitation(invite, now_ms())?;
+            c.connect_path(&format!("/invites/{invite}"))
+        })
+        .await?;
+    h.get(&path).await
+}
+
+/// Read and verify browser candidates, rechecking the local invitation after I/O.
+/// # Errors
+/// As [`Client::connect_candidates`].
+pub async fn candidates<H: Hold>(h: &H, invite: &str) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    let data = candidate_data(&h, invite).await?;
+    h.with(|c| {
+        let (invite_id, candidates, rejected) = c.verified_candidates(invite, &data, now_ms())?;
+        Ok(json!({
+            "invite_id": hex::encode(*invite_id),
+            "candidates": candidates.iter().map(|c| json!({"pairing_id": hex::encode(*pairing_id(&c.pairing_pub)), "label":c.label})).collect::<Vec<_>>(),
+            "rejected": rejected,
+        }))
+    }).await
+}
+
+/// Grant the browser a person confirmed, signing only with fresh device authority.
+/// # Errors
+/// As [`Client::connect_grant`].
+pub async fn grant<H: Hold>(h: &H, invite: &str, pairing: &str) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    let data = candidate_data(&h, invite).await?;
+    let request_id = Hash::new(random_id());
+    let (relay, (request, grant)) = h
+        .signed(|c| c.prepare_grant(invite, pairing, &data, &request_id))
+        .await?;
+    relay.send(request).await?;
+    h.with(|c| {
+        c.workspace.delete_private(&format!("{INVITE}{invite}"))?;
+        Ok(json!({"pairing_id":hex::encode(*grant.pairing_id), "label":grant.label, "expires_at":grant.expires_at}))
+    }).await
+}
+
+/// Revoke a browser pairing without holding the client during the relay request.
+/// # Errors
+/// As [`Client::connect_revoke`].
+pub async fn revoke<H: Hold>(h: &H, pairing: &str) -> Result<Json> {
+    let pairing_id =
+        hex_hash(&Json::String(pairing.into())).map_err(|_| dmsg_types::invalid("pairing"))?;
+    let path = h
+        .with(|c| c.connect_path(&format!("/pairings/{pairing}/revoke")))
+        .await?;
+    let result = h
+        .post(
+            &path,
+            REVOKE_ACTION,
+            &RevokePairing { pairing_id },
+            &Hash::new(random_id()),
+        )
+        .await?;
+    h.with(|_| Ok(result)).await
 }
 
 /// Read the mailbox from the cursor on, each page waited for without the
@@ -665,6 +744,10 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` while locked and relay errors.
     pub async fn connect_invite(&mut self) -> Result<Json> {
+        invite(&self.hold()).await
+    }
+
+    fn prepare_invite(&mut self) -> Result<(String, InviteCommand, Json)> {
         self.keys()?;
         let account = self.account()?.clone();
         let invite_id = Hash::new(random_id());
@@ -676,16 +759,6 @@ impl Client {
             &Invitation { secret, expires_at },
         )?;
         let path = self.connect_path("/invites")?;
-        self.relay_post(
-            &path,
-            INVITE_ACTION,
-            &InviteCommand {
-                invite_id,
-                expires_at,
-            },
-            &Hash::new(random_id()),
-        )
-        .await?;
         let invite = PairingInvite {
             v: 1,
             environment: self.config.environment.clone(),
@@ -698,40 +771,45 @@ impl Client {
             self.config.connect_url.trim_end_matches('/'),
             b64(&canonical(&invite))
         );
-        Ok(json!({"invite_id": hex::encode(*invite_id), "url": url, "expires_at": expires_at}))
+        Ok((
+            path,
+            InviteCommand {
+                invite_id,
+                expires_at,
+            },
+            json!({"invite_id": hex::encode(*invite_id), "url": url, "expires_at": expires_at}),
+        ))
     }
 
     /// The candidates submitted for an invitation whose MAC proves they come
     /// from the page that opened its link.
     ///
     /// # Errors
-    /// Returns `Error::NotFound` for an unknown or expired invitation.
+    /// Returns `Error::NotFound` for an unknown invitation and `Error::Expired`
+    /// after its lifetime ends.
     pub async fn connect_candidates(&mut self, invite: &str) -> Result<Json> {
-        let (invite_id, candidates, rejected) = self.verified_candidates(invite).await?;
-        Ok(json!({
-            "invite_id": hex::encode(*invite_id),
-            "candidates": candidates.iter().map(|c| json!({
-                "pairing_id": hex::encode(*pairing_id(&c.pairing_pub)),
-                "label": c.label,
-            })).collect::<Vec<_>>(),
-            "rejected": rejected,
-        }))
+        candidates(&self.hold(), invite).await
     }
 
-    async fn verified_candidates(
-        &mut self,
-        invite: &str,
-    ) -> Result<(Hash, Vec<PairingCandidate>, u64)> {
+    fn invitation(&self, invite: &str, now: u64) -> Result<(Hash, Invitation)> {
         let invite_id =
             hex_hash(&Json::String(invite.into())).map_err(|_| dmsg_types::invalid("invite"))?;
         let invitation: Invitation = self
             .workspace
             .private(self.keys()?, &format!("{INVITE}{invite}"))?
             .ok_or(Error::NotFound)?;
-        ensure(now_ms() < invitation.expires_at, Error::Expired)?;
+        ensure(now < invitation.expires_at, Error::Expired)?;
+        Ok((invite_id, invitation))
+    }
+
+    fn verified_candidates(
+        &self,
+        invite: &str,
+        data: &Json,
+        now: u64,
+    ) -> Result<(Hash, Vec<PairingCandidate>, u64)> {
+        let (invite_id, invitation) = self.invitation(invite, now)?;
         let account = self.account()?.id;
-        let path = self.connect_path(&format!("/invites/{invite}"))?;
-        let data = self.relay_get(&path).await?;
         let mut valid = Vec::new();
         let mut rejected = 0;
         for c in data["candidates"]
@@ -774,22 +852,32 @@ impl Client {
     /// Returns `Error::NotFound` when no candidate with a valid MAC has
     /// that ID and `Error::Forbidden` for a device without `FormalApprove`.
     pub async fn connect_grant(&mut self, invite: &str, pairing: &str) -> Result<Json> {
-        let (invite_id, candidates, _) = self.verified_candidates(invite).await?;
+        grant(&self.hold(), invite, pairing).await
+    }
+
+    fn prepare_grant(
+        &mut self,
+        invite: &str,
+        pairing: &str,
+        data: &Json,
+        request_id: &Hash,
+    ) -> Result<(crate::cloud::Prepared, PairingGrant)> {
+        let now = now_ms();
+        let (invite_id, candidates, _) = self.verified_candidates(invite, data, now)?;
         let candidate = candidates
             .into_iter()
             .find(|c| hex::encode(*pairing_id(&c.pairing_pub)) == pairing)
             .ok_or(Error::NotFound)?;
         let account = self.account()?.clone();
-        let security = self.cloud_state().await?;
-        let device = security.active(&self.workspace.meta.device_id)?;
+        let security = self.fresh()?;
         ensure(
-            device
+            security
+                .active(&self.workspace.meta.device_id)?
                 .input
                 .capabilities
                 .contains(&Capability::FormalApprove),
             Error::Forbidden,
         )?;
-        let now = now_ms();
         let grant = PairingGrant {
             invite_id,
             pairing_id: pairing_id(&candidate.pairing_pub),
@@ -800,16 +888,13 @@ impl Client {
             expires_at: now + PAIRING_TTL_MS,
         };
         validate_grant(&grant, now)?;
-        let path = self.connect_path("/pairings")?;
-        self.relay_post(&path, GRANT_ACTION, &grant, &Hash::new(random_id()))
-            .await?;
-        self.workspace
-            .delete_private(&format!("{INVITE}{invite}"))?;
-        Ok(json!({
-            "pairing_id": hex::encode(*grant.pairing_id),
-            "label": grant.label,
-            "expires_at": grant.expires_at,
-        }))
+        let request = self.signed_post(
+            &self.connect_path("/pairings")?,
+            GRANT_ACTION,
+            &grant,
+            request_id,
+        )?;
+        Ok((request, grant))
     }
 
     /// The browser pairings the relay answered for [`pairings`], each grant
@@ -872,16 +957,7 @@ impl Client {
     /// # Errors
     /// Relay errors; `Error::Forbidden` without `FormalApprove`.
     pub async fn connect_revoke(&mut self, pairing: &str) -> Result<Json> {
-        let pairing_id =
-            hex_hash(&Json::String(pairing.into())).map_err(|_| dmsg_types::invalid("pairing"))?;
-        let path = self.connect_path(&format!("/pairings/{pairing}/revoke"))?;
-        self.relay_post(
-            &path,
-            REVOKE_ACTION,
-            &RevokePairing { pairing_id },
-            &Hash::new(random_id()),
-        )
-        .await
+        revoke(&self.hold(), pairing).await
     }
 
     /// Handle the mailbox entries stored, `fetched` of them just now by pages

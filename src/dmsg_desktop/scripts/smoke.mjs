@@ -967,6 +967,10 @@ const methods = {
     assert.ok(p.avatar_url.startsWith('https://'))
     return { mime: 'image/png', url: `data:image/png;base64,${PIXEL}` }
   },
+  'connect/invite': () => ({ invite_id: 'ac'.repeat(32), url: 'https://connect.dmsg.net/v1/pair#smoke', expires_at: Date.now() + 600_000 }),
+  'connect/candidates': () => ({ candidates: [{ pairing_id: 'bd'.repeat(32), label: 'Smoke browser' }], rejected: 0 }),
+  'connect/grant': (p) => { assert.equal(p.human, true); return { pairing_id: p.pairing, label: 'Smoke browser' } },
+  'connect/revoke': () => ({}),
   'connect/pairings': () => {
     // Signed with the device key, which a lock drops.
     if (session !== 'unlocked') throw { code: 'LOCKED', message: 'Locked' }
@@ -1328,6 +1332,8 @@ const announced = {
   'handle/accept': ['approval/changed'],
   'handle/transfer_commit': ['approval/changed'],
   'agent/grant': ['approval/changed'],
+  'connect/grant': ['connect/changed'],
+  'connect/revoke': ['connect/changed'],
   'grants/add': ['agent/changed'],
   'agent/credential': ['agent/changed'],
   'agent/pause': ['agent/changed'],
@@ -3183,20 +3189,48 @@ smoke: try {
   await main.screenshot({ path: join(shots, 'authorizations.png') })
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
 
-  // Settings lists this device's accounts, switches between them, and asks
-  // the approval window to bind another login.
+  // Local accounts render without waiting for the account's network read.
+  const sessionPairingReads = calls.filter((c) => c.method === 'connect/pairings').length
+  const finishSessionAccount = hold('account/show')
   await main.click('nav >> text=/Settings|设置/')
   await main.waitForSelector('[data-testid="local-accounts"]')
   await main.waitForSelector('[data-testid="settings-legacy"]')
   assert.ok((await main.textContent('[data-testid="local-accounts"]')).includes(other))
+  await waitFor(() => held.get('account/show'))
+  assert.equal(calls.filter((c) => c.method === 'connect/pairings').length, sessionPairingReads)
+  await finishSessionAccount()
+  // A slow poll cannot overlap or keep running after leaving Browsers.
+  await main.click('[data-testid="settings-browsers"]')
+  await main.waitForSelector('[data-testid="pairings"]')
+  const finishCandidates = hold('connect/candidates')
+  await main.click('[data-testid="browser-copy"]')
+  await waitFor(() => held.get('connect/candidates'))
+  const candidateReads = calls.filter((c) => c.method === 'connect/candidates').length
+  await new Promise((r) => setTimeout(r, 2200))
+  assert.equal(calls.filter((c) => c.method === 'connect/candidates').length, candidateReads)
+  await main.click('[data-testid="settings-session"]')
+  await finishCandidates()
+  await main.click('[data-testid="settings-browsers"]')
+  await main.waitForSelector('[data-testid="pairings"]')
+  assert.equal(await main.locator('[data-testid="browser-grant"]').count(), 0)
+  await main.click('[data-testid="browser-copy"]')
+  await main.waitForSelector('[data-testid="browser-grant"]')
+  await main.click('[data-testid="browser-grant"]')
+  await waitFor(() => latest('connect/grant'))
+  assert.equal(latest('connect/grant').params.human, true)
   // Files: allowing the disk mount asks in a system dialog, and the main
   // process writes the choice for the daemon to read.
   await main.click('[data-testid="settings-files"]')
   await main.waitForSelector('[data-testid="files-settings"]')
+  const finishOldPreferences = hold('files/preferences')
+  emit('files/changed')
+  await waitFor(() => held.get('files/preferences'))
   await answer('__box', 0)
   await main.click('[data-testid="files-settings-mount"]')
   await waitFor(() => latest('files/preferences_reload'))
   assert.deepEqual(JSON.parse(await readFile(join(profile, 'home', 'preferences.json'), 'utf8')), { files_mount: true })
+  await finishOldPreferences()
+  await main.waitForSelector('[data-testid="files-settings-mount"][aria-checked="true"]')
   // About dMsg: the app's version; a development run checks for no updates,
   // and only the main window reaches them.
   await main.click('[data-testid="settings-about"]')
@@ -3245,7 +3279,14 @@ smoke: try {
   await main.screenshot({ path: join(shots, 'settings.png') })
   // The public avatar: shown from a data URL, set from a picked image,
   // removed; the window never names a path itself.
+  const finishProfileArchives = hold('legacy/list')
   await main.click('[data-testid="settings-profile"]')
+  await waitFor(() => held.get('legacy/list'))
+  await main.waitForFunction(() => document.querySelector('[data-testid="profile-name"]')?.value && !document.querySelector('[data-testid="profile"] fieldset')?.disabled)
+  await main.fill('[data-testid="profile-name"]', 'Draft while archives load')
+  await finishProfileArchives()
+  await main.waitForSelector('[data-testid="profile-use-legacy"]')
+  assert.equal(await main.inputValue('[data-testid="profile-name"]'), 'Draft while archives load')
   await main.waitForSelector('[data-testid="profile-avatar"]')
   assert.equal(await main.inputValue('[data-testid="profile-avatar-url"]'), published.avatar_url)
   assert.match(await main.locator('[data-testid="avatar-set"]').innerText(), /Upload avatar|上传头像/)
@@ -3353,7 +3394,9 @@ smoke: try {
   assert.equal(await approval.locator('[data-testid="approval-title"]').count(), 0)
   assert.equal(await approval.locator('[data-testid="approval-title"]').count(), 0)
   await approval.waitForSelector('[data-testid="approval-unlock"]')
-  // Locked, the page's connected browsers wait for the unlock instead of failing.
+  // The hidden Browsers section does not read on a session change.
+  assert.equal(calls.filter((c) => c.method === 'connect/pairings').length, pairingReads)
+  await main.click('[data-testid="settings-browsers"]')
   await waitFor(() => calls.filter((c) => c.method === 'connect/pairings').length > pairingReads)
   await new Promise((r) => setTimeout(r, 300))
   assert.equal(await main.locator('text=/Error: LOCKED/').count(), 0)
