@@ -313,7 +313,11 @@ this device and shows what it holds; `--yes` adds the items not already here
 (same title, user name and website), `--all` those too. Delete the export
 afterwards: it holds every secret in plain text. `health` lists weak and
 reused passwords, addresses without TLS and expiry dates passed or within 30
-days, by item and field, never by value.
+days, by item and field, never by value. List and security-check reads load
+current encrypted versions together, then release the client between item
+decryptions. Import file reading and parsing run outside the client lock;
+locking cancels the pending import, and the selected items and sync jobs
+are still committed atomically after checking the preview digest.
 
 Accounts. Each account keeps its own workspace on this device, with its own
 device keys: a login selects the workspace of the account it is bound to, or

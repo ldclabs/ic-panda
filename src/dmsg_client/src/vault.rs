@@ -21,6 +21,7 @@
 pub mod health;
 pub mod import;
 pub mod otp;
+pub mod reading;
 pub mod ssh;
 
 use crate::client::Client;
@@ -1010,21 +1011,26 @@ impl Client {
     pub fn vault_list(&self, filter: &Filter) -> Result<Vec<VaultEntry>> {
         self.roots()?;
         let mut entries = Vec::new();
-        for (item, _) in self.workspace.store.heads(VAULT)? {
-            let (row, record) = self.current(&item)?;
-            if record.tombstone != filter.trash {
-                continue;
-            }
-            let entry = self.entry(&row)?;
-            if filter
-                .query
-                .as_deref()
-                .is_none_or(|q| entry.item.matches(q))
-            {
+        for row in self.workspace.store.head_objects(VAULT)? {
+            if let Some(entry) = self.vault_list_entry(&row, filter)? {
                 entries.push(entry);
             }
         }
         Ok(entries)
+    }
+
+    fn vault_list_entry(&self, row: &ObjectRow, filter: &Filter) -> Result<Option<VaultEntry>> {
+        let record = record(row)?;
+        ensure(record.kind == VAULT, Error::NotFound)?;
+        if record.tombstone != filter.trash {
+            return Ok(None);
+        }
+        let item = open_item(&record.open(self.environment(), self.roots()?)?)?;
+        Ok(filter
+            .query
+            .as_deref()
+            .is_none_or(|q| item.matches(q))
+            .then(|| VaultEntry::new(&record, item, row.state == SYNCED, row.conflict)))
     }
 
     /// The current version of one item, deleted or not.

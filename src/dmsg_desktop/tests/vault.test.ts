@@ -12,6 +12,7 @@ import {
   fieldName,
   findingsByItem,
   generate,
+  healthKey,
   inScope,
   isManaged,
   line,
@@ -207,4 +208,16 @@ test('codes read in halves and findings group by item and field', () => {
   ])
   assert.deepEqual(byItem.get('a')?.get('password'), ['weak', 'reused'])
   assert.deepEqual([...byItem.keys()], ['a', 'b'])
+})
+
+
+test('security findings are reused across sync ACKs, but not edits, removals or days', () => {
+  const first = { id: 'a', revision: '1', synced: false }
+  const second = { id: 'b', revision: '1', synced: false }
+  const now = 86_400_000
+  const key = healthKey([first, second], now)
+  assert.equal(healthKey([{ ...second }, { ...first }].map((entry) => ({ ...entry, synced: true })), now + 1), key)
+  assert.notEqual(healthKey([{ ...first, revision: '2' }, second], now), key)
+  assert.notEqual(healthKey([first], now), key)
+  assert.notEqual(healthKey([first, second], now + 86_400_000), key)
 })

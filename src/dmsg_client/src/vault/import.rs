@@ -843,25 +843,17 @@ fn shown<'a>(item: &'a Item, id: &str) -> &'a str {
         .map_or("", |f| f.value.as_str())
 }
 
-impl Client {
-    /// Read an export and show what importing it would add.
-    ///
-    /// # Errors
-    /// As [`read`], and `Error::Locked` while locked.
-    pub fn vault_import_preview(&self, path: &Path) -> Result<Preview> {
-        self.roots()?;
-        let imported = read(path)?;
-        let mut here: BTreeSet<_> = self
-            .vault_list(&Filter::default())?
-            .iter()
-            .map(|e| key(&e.item))
-            .collect();
-        Ok(Preview {
-            format: imported.format,
-            digest: imported.digest,
-            skipped: imported.skipped,
-            incomplete: imported.incomplete,
-            items: imported
+impl Imported {
+    /// Build a preview against the current items. Hidden values are used
+    /// only for duplicate detection and never included in the result.
+    pub fn preview(&self, entries: &[super::VaultEntry]) -> Preview {
+        let mut here: BTreeSet<_> = entries.iter().map(|e| key(&e.item)).collect();
+        Preview {
+            format: self.format,
+            digest: self.digest.clone(),
+            skipped: self.skipped,
+            incomplete: self.incomplete,
+            items: self
                 .items
                 .iter()
                 .enumerate()
@@ -876,7 +868,39 @@ impl Client {
                     duplicate: !here.insert(key(item)),
                 })
                 .collect(),
-        })
+        }
+    }
+
+    /// Select the preview's items after checking the source file's digest.
+    /// # Errors
+    /// Returns `Error::VersionConflict` for changed content and
+    /// `Error::InvalidInput("picks")` for an index the export lacks.
+    pub fn select(self, digest_seen: &str, picks: &[usize]) -> Result<Vec<Item>> {
+        ensure(self.digest == digest_seen, Error::VersionConflict)?;
+        let picked: BTreeSet<usize> = picks.iter().copied().collect();
+        ensure(
+            picked.iter().all(|i| *i < self.items.len()),
+            invalid("picks"),
+        )?;
+        Ok(self
+            .items
+            .into_iter()
+            .enumerate()
+            .filter(|(i, _)| picked.contains(i))
+            .map(|(_, item)| item)
+            .collect())
+    }
+}
+
+impl Client {
+    /// Read an export and show what importing it would add.
+    ///
+    /// # Errors
+    /// As [`read`], and `Error::Locked` while locked.
+    pub fn vault_import_preview(&self, path: &Path) -> Result<Preview> {
+        self.roots()?;
+        let imported = read(path)?;
+        Ok(imported.preview(&self.vault_list(&Filter::default())?))
     }
 
     /// Add the items `picks` names of an export whose preview had `digest`.
@@ -892,21 +916,7 @@ impl Client {
         picks: &[usize],
     ) -> Result<Vec<String>> {
         self.roots()?;
-        let imported = read(path)?;
-        ensure(imported.digest == digest_seen, Error::VersionConflict)?;
-        let picked: BTreeSet<usize> = picks.iter().copied().collect();
-        ensure(
-            picked.iter().all(|i| *i < imported.items.len()),
-            invalid("picks"),
-        )?;
-        let items = imported
-            .items
-            .into_iter()
-            .enumerate()
-            .filter(|(i, _)| picked.contains(i))
-            .map(|(_, item)| item)
-            .collect();
-        self.vault_add_all(items)
+        self.vault_add_all(read(path)?.select(digest_seen, picks)?)
     }
 }
 

@@ -1675,8 +1675,9 @@ try {
   await approval.waitForSelector('[data-testid="approve"]')
   await approval.screenshot({ path: join(shots, 'checkout.png') })
   // A payment is approved by holding the button: a click alone decides nothing.
+  const beforePaymentClick = calls.filter((c) => c.method === 'approval/respond').length
   await approval.click('[data-testid="approve"]')
-  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
+  assert.equal(calls.filter((c) => c.method === 'approval/respond').length, beforePaymentClick)
 
   // Paid, the plan shows its term, a renewal from its end, upgrades for the rest of it and storage packs.
   membership = 'plus'
@@ -2476,11 +2477,18 @@ try {
   // fields, a multi-line key keeping its lines; history restores a version;
   // dMsg's own keys are read-only; the security check, an import and the
   // actions on many items; a conflict copy is merged part by part.
+  const releaseHealth = hold('vault/health')
+  const releaseConflicts = hold('vault/conflicts')
   await main.click('nav >> text=/Vault|秘密库/')
-  // An item that carries a tag twice opens like any other.
+  // The list and selection work while auxiliary checks have not answered.
   await main.click('[data-testid="vault-list"] >> text=Tagged twice')
   await main.waitForSelector('[data-testid="vault-item-title"] >> text=Tagged twice')
   assert.equal(await main.locator('[data-testid="vault-inspector"] header span', { hasText: /^#team$/ }).count(), 2)
+  await main.click('[data-testid="vault-scope-health"]')
+  await main.waitForSelector('[data-testid="vault-empty"] >> text=Loading')
+  await main.click('[data-testid="vault-scope-all"]')
+  await releaseHealth()
+  await releaseConflicts()
   await main.click('[data-testid="vault-list"] >> text=Smoke login')
   await main.waitForSelector('[data-testid="vault-secret"][data-field="password"][data-shown="false"]')
   const revealed = () => calls.filter((c) => c.method === 'vault/reveal').length
@@ -2499,10 +2507,34 @@ try {
   assert.equal(revealed(), 2)
   await main.waitForSelector('[data-testid="vault-otp-code"] >> text=123 456')
   await main.waitForSelector('[data-testid="vault-issue"]')
+  const healthReads = () => calls.filter((c) => c.method === 'vault/health').length
+  const checked = healthReads()
+  const listReads = calls.filter((c) => c.method === 'vault/list').length
+  emit('sync/changed')
+  await waitFor(() => calls.filter((c) => c.method === 'vault/list').length > listReads)
+  await settled(main, '[data-testid="vault"]')
+  assert.equal(healthReads(), checked, 'a sync ACK must not repeat the security check')
+
+  // A late OTP response must not start a polling loop for an item already left.
+  await main.click('[data-testid="vault-list"] >> text=Tagged twice')
+  const normalOtp = methods['vault/otp']
+  methods['vault/otp'] = (p) => ({ ...normalOtp(p), remaining_ms: 1 })
+  const releaseOtp = hold('vault/otp')
+  await main.click('[data-testid="vault-list"] >> text=Smoke login')
+  await waitFor(() => typeof held.get('vault/otp') === 'function')
+  await main.click('[data-testid="vault-list"] >> text=Tagged twice')
+  const otpReads = calls.filter((c) => c.method === 'vault/otp').length
+  await releaseOtp()
+  await new Promise((r) => setTimeout(r, 200))
+  assert.equal(calls.filter((c) => c.method === 'vault/otp').length, otpReads)
+  methods['vault/otp'] = normalOtp
+  await main.click('[data-testid="vault-list"] >> text=Smoke login')
+  await main.waitForSelector('[data-testid="vault-otp-code"] >> text=123 456')
   await main.waitForSelector('[data-testid="vault-attachments"] >> text=report.pdf')
   await main.screenshot({ path: join(shots, 'vault.png') })
   await main.click('[data-testid="vault-edit-open"]')
   await main.fill('[data-testid="vault-form"] [data-testid="vault-title"]', 'Smoke login 2')
+  const releaseEditedHealth = hold('vault/health')
   await main.click('[data-testid="vault-save"]')
   await waitFor(() => latest('vault/edit'))
   assert.deepEqual(latest('vault/edit').params, {
@@ -2522,6 +2554,7 @@ try {
     }
   })
   await main.waitForSelector('[data-testid="vault-item-title"] >> text=Smoke login 2')
+  await releaseEditedHealth()
   // History opens below the item; an earlier version becomes current again.
   await main.click('[data-testid="vault-revision"]')
   await main.click('[data-testid="vault-version"] >> nth=1')
@@ -2645,6 +2678,20 @@ try {
   await main.fill('[data-testid="palette-input"]', 'Smoke login 2')
   await main.keyboard.press('Enter')
   await main.waitForSelector('[data-testid="vault-item-title"] >> text=Smoke login 2')
+
+  // A list captured before locking cannot repopulate the locked view.
+  const releaseOldVault = hold('vault/list')
+  emit('sync/changed')
+  await waitFor(() => typeof held.get('vault/list') === 'function')
+  session = 'locked'
+  emit('session/changed', { state: 'locked' })
+  await main.waitForSelector('[data-testid="vault-locked"]')
+  await releaseOldVault()
+  await main.waitForSelector('[data-testid="vault-locked"]')
+  assert.equal(await main.locator('[data-testid="vault-inspector"]').count(), 0)
+  session = 'unlocked'
+  emit('session/changed', { state: 'unlocked' })
+  await main.waitForSelector('[data-testid="vault-list"] >> text=Smoke login 2')
 
   // Files: a file enters the library through the main process's dialog into
   // the folder shown and shows its way in; a file a page made has no path,

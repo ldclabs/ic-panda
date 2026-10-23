@@ -7,9 +7,10 @@ use crate::daemon::Daemon;
 use crate::params::{absolute, optional, parse, text, to_json};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
+use dmsg_client::hold::Hold;
 use dmsg_client::vault::{
-    Changes, Conflict, FIELD_TYPES, Filter, Keep, Side, TYPES, VaultEntry, otp, primary_secret,
-    ssh, template,
+    Changes, Conflict, FIELD_TYPES, Filter, Keep, Side, TYPES, VaultEntry, import, otp,
+    primary_secret, reading, ssh, template,
 };
 use dmsg_types::{Error, Result};
 use serde_json::{Map, Value, json};
@@ -127,6 +128,47 @@ impl Daemon {
             otp::parse(&uri)?;
             return Ok(json!({"uri": uri}));
         }
+        let h = self.hold();
+        match method {
+            "vault/list" => {
+                let filter = Filter {
+                    trash: params["trash"] == true,
+                    query: params["query"].as_str().map(str::to_string),
+                };
+                return Ok(masked_all(reading::list(&h, &filter).await?));
+            }
+            "vault/health" => return Ok(to_json(&reading::health(&h).await?)),
+            "vault/import_preview" | "vault/import" => {
+                let session = h.with(|c| reading::Session::start(c)).await?;
+                let path = absolute(params, "path")?;
+                // File I/O, archive decoding and parsing do not hold the
+                // client or occupy an async executor thread.
+                let imported = tokio::task::spawn_blocking(move || import::read(&path))
+                    .await
+                    .map_err(|e| Error::Unavailable(e.to_string()))??;
+                h.with(|c| session.check(c)).await?;
+                if method == "vault/import_preview" {
+                    let entries = reading::list(&h, &Filter::default()).await?;
+                    let preview = imported.preview(&entries);
+                    h.with(|c| session.check(c)).await?;
+                    return Ok(to_json(&preview));
+                }
+                let items = imported.select(
+                    &text(params, "digest")?,
+                    &parse::<Vec<usize>>(params, "picks")?,
+                )?;
+                let ids = h
+                    .with(|c| {
+                        session.check(c)?;
+                        // Keep the atomic insertion: a failed import must not
+                        // leave half of the selected items or their sync jobs.
+                        c.vault_add_all(items)
+                    })
+                    .await?;
+                return Ok(json!({"ids": ids}));
+            }
+            _ => {}
+        }
         let mut client = self.client().lock().await;
         let reveal = params["reveal"] == true;
         match method {
@@ -170,13 +212,6 @@ impl Daemon {
                     changed.push(client.vault_edit(&id, None, &changes)?);
                 }
                 Ok(masked_all(changed))
-            }
-            "vault/list" => {
-                let filter = Filter {
-                    trash: params["trash"] == true,
-                    query: params["query"].as_str().map(str::to_string),
-                };
-                Ok(masked_all(client.vault_list(&filter)?))
             }
             "vault/show" => {
                 let id = text(params, "id")?;
@@ -231,20 +266,92 @@ impl Daemon {
                 reply["field"] = field.into();
                 Ok(reply)
             }
-            "vault/health" => Ok(to_json(&client.vault_health()?)),
-            "vault/import_preview" => Ok(to_json(
-                &client.vault_import_preview(&absolute(params, "path")?)?,
-            )),
-            "vault/import" => {
-                let picks: Vec<usize> = parse(params, "picks")?;
-                let ids = client.vault_import(
-                    &absolute(params, "path")?,
-                    &text(params, "digest")?,
-                    &picks,
-                )?;
-                Ok(json!({"ids": ids}))
-            }
             _ => Err(Error::InvalidInput(format!("unknown method {method}"))),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dmsg_client::testing::{TempDir, unlocked};
+    use std::sync::Arc;
+
+    fn daemon(dir: &TempDir) -> Arc<Daemon> {
+        let home = crate::home::Home {
+            dir: dir.0.join("home"),
+        };
+        Arc::new(Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            unlocked(&dir.0.join("workspace"), false, None),
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        ))
+    }
+
+    #[tokio::test]
+    async fn imports_check_the_preview_digest_and_keep_hidden_values_out_of_lists() {
+        let dir = TempDir::new();
+        let daemon = daemon(&dir);
+        let path = dir.0.join("passwords.csv");
+        std::fs::write(&path, "name,password\nMail,very-secret\n").unwrap();
+        let preview = daemon
+            .call_vault("vault/import_preview", &json!({"path":path}))
+            .await
+            .unwrap();
+        assert!(!preview.to_string().contains("very-secret"));
+        let params = json!({"path":path, "digest":preview["digest"], "picks":[0]});
+        std::fs::write(&path, "name,password\nMail,changed-secret\n").unwrap();
+        assert_eq!(
+            daemon.call_vault("vault/import", &params).await,
+            Err(Error::VersionConflict)
+        );
+        assert_eq!(
+            daemon.call_vault("vault/list", &Value::Null).await.unwrap(),
+            json!([])
+        );
+        std::fs::write(&path, "name,password\nMail,very-secret\n").unwrap();
+        let added = daemon.call_vault("vault/import", &params).await.unwrap();
+        assert_eq!(added["ids"].as_array().unwrap().len(), 1);
+        let list = daemon.call_vault("vault/list", &Value::Null).await.unwrap();
+        assert!(!list.to_string().contains("very-secret"));
+        let preview = daemon
+            .call_vault("vault/import_preview", &json!({"path":path}))
+            .await
+            .unwrap();
+        assert_eq!(preview["items"][0]["duplicate"], true);
+    }
+
+    #[tokio::test]
+    async fn locking_remains_available_while_an_import_is_parsed() {
+        let dir = TempDir::new();
+        let daemon = daemon(&dir);
+        let path = dir.0.join("large.json");
+        // A supported export with ample whitespace makes actual parsing
+        // slow enough to observe, without importing thousands of secrets.
+        let content = " ".repeat(32 * 1024 * 1024) + "{\"encrypted\":false,\"items\":[]}";
+        std::fs::write(&path, content).unwrap();
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move {
+                daemon
+                    .call_vault("vault/import_preview", &json!({"path":path}))
+                    .await
+            }
+        });
+        tokio::task::yield_now().await;
+        assert!(
+            !work.is_finished(),
+            "the async executor must not wait for parsing"
+        );
+        tokio::time::timeout(std::time::Duration::from_secs(1), async {
+            daemon.call_vault("vault/list", &Value::Null).await.unwrap();
+            daemon.client().lock().await.lock();
+        })
+        .await
+        .expect("local reads and lock must remain available");
+        assert_eq!(work.await.unwrap(), Err(Error::Locked));
     }
 }

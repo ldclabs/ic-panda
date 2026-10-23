@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte'
+  import { onMount, tick, untrack } from 'svelte'
   import { copyText } from '../components/clipboard'
   import Dialog from '../components/Dialog.svelte'
   import Icon from '../components/Icon.svelte'
@@ -22,6 +22,7 @@
   import {
     facets as count,
     findingsByItem,
+    healthKey,
     inScope,
     isManaged,
     matches,
@@ -62,6 +63,8 @@
   let leaving = $state<string | null>(null)
   let error = $state('')
   let loaded = $state(false)
+  let trashLoaded = $state(false)
+  let healthStatus = $state<'loading' | 'ready' | 'error'>('loading')
   let creating = $state(false)
   let importing = $state(false)
   let comparing = $state(false)
@@ -70,11 +73,16 @@
   let chosen = $state<Set<string>>(new Set())
   let tagging = $state<'add' | 'remove' | null>(null)
   let batchTags = $state<string[]>([])
+  let generation = 0
+  let alive = true
+  let contentKey = ''
+  let checkedKey = ''
   let armedCopy = 0
   let search = $state<HTMLInputElement | null>(null)
   let list = $state<HTMLElement | null>(null)
 
   const unlocked = $derived(status?.state === 'unlocked')
+  const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
   const trash = $derived(scope === 'trash')
   const facets = $derived(count(entries))
   const conflicted = $derived(new Set(conflicts.map((c) => c.copy.id)))
@@ -118,21 +126,93 @@
     }
   }
 
-  const reload = single(async () => {
+  const valid = (at: number) => alive && at === generation && unlocked
+
+  // Security checks depend on content and the day, not sync ACKs. They
+  // never delay the list or the selection of a newly saved item.
+  const checkHealth = single(async () => {
+    const at = generation
+    const key = contentKey
+    if (!valid(at) || !key || key === checkedKey) return
+    healthStatus = 'loading'
     try {
-      ;[entries, trashed, conflicts, findings] = await Promise.all([
-        call('vault/list'),
-        trash ? call('vault/list', { trash: true }) : [],
-        call('vault/conflicts'),
-        call('vault/health').catch(() => [])
-      ])
-      if (!templates) templates = await call('vault/templates').then((answer: any) => answer.templates)
-      error = ''
+      const next = await call('vault/health')
+      if (valid(at) && key === contentKey) {
+        findings = next
+        checkedKey = key
+        healthStatus = 'ready'
+      }
     } catch (e) {
-      entries = trashed = conflicts = findings = []
-      error = closed(e, status) ? 'LOCKED' : errorText(e)
+      if (valid(at) && key === contentKey) {
+        healthStatus = 'error'
+        if (!closed(e, status)) toast(() => errorText(e))
+      }
     }
-    loaded = true
+  })
+
+  const loadConflicts = single(async () => {
+    const at = generation
+    if (!valid(at)) return
+    try {
+      const next = await call('vault/conflicts')
+      if (valid(at)) conflicts = next
+    } catch (e) {
+      if (valid(at) && !closed(e, status)) toast(() => errorText(e))
+    }
+  })
+
+  const loadTrash = single(async () => {
+    const at = generation
+    if (!valid(at) || !trash) return
+    try {
+      const next = await call('vault/list', { trash: true })
+      if (valid(at)) {
+        trashed = next
+        trashLoaded = true
+      }
+    } catch (e) {
+      if (valid(at) && !closed(e, status)) toast(() => errorText(e))
+    }
+  })
+
+  const reload = single(async () => {
+    const at = generation
+    if (!valid(at)) return
+    try {
+      const next = await call('vault/list')
+      if (!valid(at)) return
+      entries = next
+      loaded = true
+      error = ''
+      contentKey = healthKey(entries)
+      void checkHealth()
+      void loadConflicts()
+      void loadTrash()
+    } catch (e) {
+      if (!valid(at)) return
+      error = closed(e, status) ? 'LOCKED' : errorText(e)
+      if (error === 'LOCKED') entries = trashed = conflicts = findings = []
+      loaded = true
+    }
+  })
+
+  // Neither an old read nor a saved selection crosses a lock/account switch.
+  $effect(() => {
+    void sessionKey
+    untrack(() => {
+      generation += 1
+      entries = trashed = conflicts = findings = []
+      contentKey = checkedKey = ''
+      selected = null
+      editing = dirty = creating = importing = comparing = choosing = false
+      chosen = new Set()
+      leaving = tagging = accessTag = null
+      loaded = false
+      trashLoaded = false
+      healthStatus = 'loading'
+      error = unlocked ? '' : 'LOCKED'
+      if (unlocked) void reload()
+    })
   })
 
   // A filter that no longer has items falls back to everything.
@@ -145,7 +225,7 @@
   $effect(() => {
     if (trash) {
       choosing = false
-      void reload()
+      void loadTrash()
     }
   })
 
@@ -302,7 +382,9 @@
 
   /** A new item opens once the list holds it. */
   async function saved(id: string) {
+    const at = generation
     await reload()
+    if (!valid(at)) return
     editing = false
     selected = id
   }
@@ -313,8 +395,17 @@
   }
 
   onMount(() => {
-    void reload()
-    return onChange(['vault/changed', 'session/changed', 'sync/changed'], reload)
+    void call('vault/templates').then((answer: any) => {
+      if (alive) templates = answer.templates
+    }).catch((e) => {
+      if (alive) toast(() => errorText(e))
+    })
+    const off = onChange(['vault/changed', 'session/changed', 'sync/changed'], reload)
+    return () => {
+      alive = false
+      generation += 1
+      off()
+    }
   })
 </script>
 
@@ -418,14 +509,14 @@
             onDiscard={() => discard(entry)}
           />
         {:else}
-          {#if loaded}
+          {#if loaded && (!trash || trashLoaded)}
             <li class="grid justify-items-center gap-2 px-4 py-10 text-center" data-testid="vault-empty">
               {#if query}
                 <p class="text-[13px] text-muted [overflow-wrap:anywhere]">{t('noMatch', { query })}</p>
               {:else if trash}
                 <p class="text-[13px] text-muted">{t('emptyTrash')}</p>
               {:else if scope === 'health'}
-                <p class="text-[13px] text-muted">{t('healthClear')}</p>
+                <p class="text-[13px] text-muted">{t(healthStatus === 'ready' ? 'healthClear' : healthStatus === 'error' ? 'error' : 'loading')}</p>
               {:else if scope === 'all'}
                 <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="vault" /></span>
                 <b class="text-[13.5px] font-semibold">{t('emptyVault')}</b>

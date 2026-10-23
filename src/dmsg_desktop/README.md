@@ -62,6 +62,10 @@ desktop is one of its clients, like the CLI.
     open item side by side, with a context menu on each row; new items in a
     dialog, edits in place; conflict copies compared side by side, line by
     line, and kept or adopted. The command palette finds items by title.
+    The list and saved selections appear without waiting for conflict or
+    security checks; security findings are reused until item versions or
+    the date change. Late reads cannot repopulate a locked/account-switched
+    view, and leaving an item stops its one-time-code refreshes.
   - Files: the library's folders (each with a context menu), starred
     files, the tags, the cloud backups and the trash on the left; the
     current folder in the middle, with a breadcrumb back up, a sort (name,

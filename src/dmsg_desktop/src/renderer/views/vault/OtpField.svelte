@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte'
   import Icon from '../../components/Icon.svelte'
   import { toast } from '../../components/toast.svelte'
   import Tooltip from '../../components/Tooltip.svelte'
@@ -19,23 +18,6 @@
   let current = $state<{ code: string; period_ms: number; remaining_ms: number } | null>(null)
   let error = $state('')
   let left = $state(0)
-  let timer: ReturnType<typeof setTimeout> | undefined
-  let tick: ReturnType<typeof setInterval> | undefined
-  let due = 0
-
-  async function load() {
-    clearTimeout(timer)
-    try {
-      current = await call('vault/otp', { id, field })
-      error = ''
-      due = Date.now() + current!.remaining_ms
-      left = current!.remaining_ms
-      timer = setTimeout(load, current!.remaining_ms + 50)
-    } catch (e) {
-      current = null
-      error = code(e)
-    }
-  }
 
   async function copy() {
     try {
@@ -47,18 +29,39 @@
   }
 
   $effect(() => {
-    if (unlocked) void load()
-    tick = setInterval(() => (left = Math.max(0, due - Date.now())), 250)
+    const itemId = id
+    const fieldId = field
+    current = null
+    error = ''
+    if (!unlocked) return
+    let active = true
+    let due = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
+    async function load() {
+      try {
+        const answer = await call('vault/otp', { id: itemId, field: fieldId })
+        // A reply after navigation must not restart the old item's timer.
+        if (!active) return
+        current = answer
+        error = ''
+        due = Date.now() + answer.remaining_ms
+        left = answer.remaining_ms
+        timer = setTimeout(load, answer.remaining_ms + 50)
+      } catch (e) {
+        if (!active) return
+        current = null
+        error = code(e)
+      }
+    }
+    void load()
+    const tick = setInterval(() => (left = Math.max(0, due - Date.now())), 250)
     return () => {
+      active = false
       clearTimeout(timer)
       clearInterval(tick)
     }
   })
 
-  onDestroy(() => {
-    clearTimeout(timer)
-    clearInterval(tick)
-  })
 </script>
 
 <div class="flex min-w-0 flex-1 items-center gap-2" data-testid="vault-otp" data-field={field}>

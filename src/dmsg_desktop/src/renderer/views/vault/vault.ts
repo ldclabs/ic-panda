@@ -418,3 +418,8 @@ export const issueLabel: Record<string, Label> = {
   expired: 'issueExpired',
   expiring: 'issueExpiring'
 }
+
+/** Security findings only change with item versions or the date, not upload ACKs. */
+export function healthKey(entries: { id: string; revision: string }[], now = Date.now()): string {
+  return JSON.stringify([Math.floor(now / 86_400_000), entries.map(({ id, revision }) => [id, revision]).sort(([a], [b]) => a.localeCompare(b))])
+}

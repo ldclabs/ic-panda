@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte'
   import Icon from '../../components/Icon.svelte'
   import { toast } from '../../components/toast.svelte'
   import { buttonClass, cn } from '../../components/ui'
@@ -24,6 +23,7 @@
   const ARMED_MS = 3000
   const SHOWN_MS = 60_000
 
+  let generation = 0
   let armed = $state<'reveal' | 'copy' | null>(null)
   let secret = $state<string | null>(null)
   let busy = $state(false)
@@ -42,13 +42,16 @@
   }
 
   async function reveal() {
+    if (!unlocked) return
     if (secret !== null) return hide()
     if (armed !== 'reveal') return arm('reveal')
     clearTimeout(armTimer)
     armed = null
     busy = true
+    const at = generation
     try {
       const shown: any = await call('vault/reveal', { id, field, revision })
+      if (at !== generation || !unlocked) return
       secret = shown.value
       hideTimer = setTimeout(hide, SHOWN_MS)
     } catch (error) {
@@ -73,9 +76,18 @@
     }
   }
 
-  onDestroy(() => {
+  $effect(() => {
+    // Forget plaintext and invalidate late reveals on lock or a changed field.
+    void [id, field, revision, unlocked]
+    generation += 1
+    armed = null
+    hide()
     clearTimeout(armTimer)
-    clearTimeout(hideTimer)
+    return () => {
+      generation += 1
+      clearTimeout(armTimer)
+      clearTimeout(hideTimer)
+    }
   })
 </script>
 
