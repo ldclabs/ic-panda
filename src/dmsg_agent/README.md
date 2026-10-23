@@ -128,3 +128,11 @@ runs these paths through the real stdio MCP client, daemon and local services,
 including missing grants, wrong origins, grant revocation, profile read/edit/
 read-back, mailbox creation, reply threading, read state and restart persistence.
 It uses temporary local accounts and test identities, never production data.
+
+## Durable Mail events
+
+`mail_events` records newly received messages in the same SQLite transaction as
+the connector snapshot. It stores IDs and relay scope only, with stable event
+IDs, per-Agent retention and independent cursors bound to the mailbox filter.
+Queries check live relay grants, report retention gaps and do not alter Mail
+read state or inbox work. The daemon exposes this log as `dmsg.mail.received`.

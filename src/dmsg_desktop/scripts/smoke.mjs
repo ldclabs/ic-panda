@@ -330,6 +330,7 @@ let walletPreview = { plan: 'Free', remaining: 0, price_e8s: '1000000000', ledge
 const calls = []
 /** Whether the hosted Agent ID is paused. */
 let agentPaused = false
+let mailPushEnabled = false
 // The checkout comes first, so a link finds its request, not the first one.
 const requests = new Map([
   [checkoutRequest.id, checkoutRequest],
@@ -1168,6 +1169,8 @@ const methods = {
     blocked_senders: [],
     vocabulary: ['account.read', 'vault.list', 'vault.read:<tag>', 'vault.secret:<item>', 'files.read:<folder>', 'discourse.read:<origin>', 'mail.write:<origin>']
   }),
+  'agent/mail_push': (p) => ({agent:p.agent, enabled:mailPushEnabled, subscriptions:[]}),
+  'agent/mail_push_set': (p) => { mailPushEnabled=p.enabled; return {agent:p.agent,enabled:mailPushEnabled,subscriptions:[]} },
   'agent/credential': (p) => ({ agent_id: p.agent, credential: 'dmsg-agent-smoke' }),
   'agent/pause': (p) => {
     agentPaused = p.on
@@ -2371,6 +2374,11 @@ smoke: try {
   // Humans inspect correspondence without sending or consuming the Agent's unread queue.
   await main.click('[data-testid="agents-tab-mail"]')
   await main.waitForSelector('[data-testid="mail-messages"] >> text=Review the cache experiment')
+  await main.click('[data-testid="mail-push-toggle"]')
+  await waitFor(() => latest('agent/mail_push_set')?.params.enabled === true)
+  assert.deepEqual(latest('agent/mail_push_set').params, { agent: claude, enabled: true, source: 'gui' })
+  await main.click('[data-testid="mail-push-toggle"]')
+  await waitFor(() => latest('agent/mail_push_set')?.params.enabled === false)
   assert.ok(calls.some((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_sync'))
   await main.click('[data-testid="mail-messages"] >> text=Review the cache experiment')
   await main.waitForSelector('[data-testid="mail-detail"] >> text=Unread by Agent')

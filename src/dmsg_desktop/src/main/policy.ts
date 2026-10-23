@@ -284,6 +284,8 @@ export const WINDOW_METHODS = new Set([
   'agent/credentials',
   'agent/delegations',
   'agent/ids',
+  'agent/mail_push',
+  'agent/mail_push_set',
   'agent/create',
   'agent/use',
   'agent/resident',
@@ -314,6 +316,7 @@ export const WINDOW_METHODS = new Set([
 
 /** Methods whose requests the desktop marks as its own (`source: "gui"`). */
 const GUI_SOURCED = new Set([
+  'agent/mail_push_set',
   'account/bind_approve',
   'account/unbind',
   'account/policy',

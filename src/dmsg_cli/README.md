@@ -1093,3 +1093,19 @@ the same share ID and link key; deleting the local source does not remove manage
 Unconfirmed reservations remain recoverable, and an absent server row does not prove
 cancellation before the upload plan expires. Refresh is explicit; the visible desktop
 management page polls only while cleanup is pending.
+
+## Real-time Agent Mail
+
+`dmsg agent mail-watch <agent> on` enables relay notifications; `off` stops them,
+and omitting the state shows subscriptions and safe diagnostic status. The Agent
+must already have `mail.read:<relay>` and `events.endpoint`. The desktop Mail
+switch uses the same lifecycle. Subscriptions renew while unlocked; existing
+hints can wake resident agents while locked, with periodic Mail sync as fallback.
+
+`dmsg mcp` also serves `dmsg.mail.received` by native `events/poll` and
+`events/stream`. Its durable, metadata-only log commits with the connector
+snapshot and does not consume unread mail or inbox claims. The event cursor is
+independent of `dmsg.relay.delivery` and scoped to the Agent and mailbox filter.
+Read new mail with `mark_read=true`, then acknowledge completed inbox handling;
+preview/history readers leave read state unchanged. The full contract is in
+[Mail events](../../docs/protocol/mail_events.md).

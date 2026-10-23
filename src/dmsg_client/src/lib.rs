@@ -29,6 +29,7 @@ pub mod legacy;
 pub mod legacy_proof;
 pub mod library;
 pub mod login;
+pub mod mail_push;
 pub mod mcp_events;
 pub mod migration;
 pub mod payer;

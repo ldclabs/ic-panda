@@ -377,6 +377,12 @@ pub fn timestamp(ms: u64) -> String {
 }
 
 impl Client {
+    /// Endpoint records for internal subscription managers. Includes secrets;
+    /// callers must only expose `endpoint_view` to user interfaces.
+    pub(crate) fn mcp_endpoint_records(&self) -> Result<Vec<Endpoint>> {
+        self.endpoints()
+    }
+
     fn endpoints(&self) -> Result<Vec<Endpoint>> {
         Ok(self
             .workspace

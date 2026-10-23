@@ -33,7 +33,10 @@ pub async fn run(daemon: Arc<Daemon>) {
             }
         }
         daemon.set_hints(|h| h.connected = false);
-        tokio::time::sleep(Duration::from_secs(backoff)).await;
+        tokio::select! {
+            _ = tokio::time::sleep(Duration::from_secs(backoff)) => {},
+            _ = daemon.hints_changed().notified() => {},
+        }
     }
 }
 
@@ -83,8 +86,11 @@ async fn endpoint(daemon: &Daemon) -> Result<Option<(String, String, String)>, O
 /// One connection, until it drops.
 async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
     let Some((url, token, account)) = endpoint(daemon).await? else {
-        // No account or no token yet: look again later.
-        tokio::time::sleep(Duration::from_secs(20)).await;
+        // Login/unlock must not wait out the idle polling interval.
+        tokio::select! {
+            _ = tokio::time::sleep(Duration::from_secs(20)) => {},
+            _ = daemon.hints_changed().notified() => {},
+        }
         return Ok(());
     };
     let mut request = url.into_client_request().map_err(|e| Some(e.to_string()))?;
@@ -102,13 +108,21 @@ async fn connect(daemon: &Arc<Daemon>) -> Result<(), Option<String>> {
         h.last_error = None;
     });
     daemon.note("hints", "connected");
-    // Hints sent while it was down are lost: read every channel once.
+    // Hints sent while it was down are lost: catch up authoritative state.
     daemon.hint_channel("*");
+    daemon.mail_push().receive.notify_one();
+    daemon.mcp().wake();
     let (mut sink, mut stream) = socket.split();
     let mut ping = tokio::time::interval(PING);
     let mut heard = tokio::time::Instant::now();
     loop {
         tokio::select! {
+            _ = daemon.hints_changed().notified() => {
+                let selected = daemon.client().lock().await.session_state().account;
+                if selected.as_deref() != Some(account.as_str()) {
+                    return Ok(());
+                }
+            }
             _ = ping.tick() => {
                 if heard.elapsed() > SILENCE {
                     return Err(Some("hint channel silent".into()));
@@ -151,6 +165,9 @@ async fn handle(daemon: &Arc<Daemon>, hint: &Value) {
         "connect" => daemon.emit("connect/hint", json!({"locked": true})),
         "mcp-event" => {
             daemon.mcp().wake();
+            // The hint is only a wakeup. A resident Agent can check its own
+            // Mail without decrypting the device's general event envelopes.
+            daemon.mail_push().receive.notify_one();
             daemon.emit("hint", json!({"kind": kind}));
         }
         "inbox" if unlocked => daemon.emit("inbox/changed", json!({"hint": true})),

@@ -336,6 +336,7 @@ impl Daemon {
             });
         }
         if stored + due > 0 {
+            self.mail_push().receive.notify_one();
             self.mcp().arrived.notify_waiters();
             self.emit(
                 "mcp-events/changed",

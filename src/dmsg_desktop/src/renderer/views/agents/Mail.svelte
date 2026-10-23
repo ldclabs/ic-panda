@@ -35,6 +35,7 @@
   let agent = $state('')
   let folder = $state('received')
   let mailboxes = $state<any[]>([])
+  let push = $state<any>({ enabled: false, subscriptions: [] })
   let messages = $state<any[] | null>(null)
   let selected = $state('')
   let cursor = $state<string | null>(null)
@@ -56,7 +57,7 @@
 
   onMount(() => window.dmsg.onEvent((event) => {
     const data = event.data as { agent?: string } | undefined
-    if (event.type !== 'resync' && !(event.type === 'agent/mail' && data?.agent === agent)) return
+    if (event.type !== 'resync' && !(['agent/mail', 'agent/mail_push'].includes(event.type) && data?.agent === agent)) return
     if (!unlocked || !agent) return
     if (busy) refreshPending = true
     else void loadMail(false)
@@ -110,9 +111,20 @@
   }
 
   const refreshBoxes = async (target = agent) => {
-    const result = await tool('mail_mailboxes_list', {}, target)
-    if (agent === target) mailboxes = result.mailboxes
+    const [result, status] = await Promise.all([
+      tool('mail_mailboxes_list', {}, target),
+      call('agent/mail_push', { agent: target })
+    ])
+    if (agent === target) {
+      mailboxes = result.mailboxes
+      push = status
+    }
   }
+  const togglePush = () => attempt(async () => {
+    const target = agent
+    const status = await call('agent/mail_push_set', { agent: target, enabled: !push.enabled })
+    if (agent === target) push = status
+  })
   const loadMail = (receive = true) => {
     const target = agent
     const box = folder
@@ -187,6 +199,13 @@
       </div>
       {#if error}<Notice tone="danger" testid="mail-error">{error}</Notice>{/if}
       {#if notice}<Notice tone="ok">{notice}</Notice>{/if}
+      <div class="flex flex-wrap items-center gap-3 rounded-xl border border-line px-4 py-3" data-testid="mail-push">
+        <div class="min-w-0 flex-1"><p class="text-[13px] font-medium">{t('mailPushTitle')}</p><p class="text-[12px] text-muted">{t('mailPushHint')}</p>
+          {#if push.enabled}<p class="mt-1 text-[12px] text-muted">{push.last_error ? t('mailPushFallback') : push.subscriptions?.some((s: any) => s.id && s.refresh_before > Date.now()) ? t('mailPushReady') : t('mailPushStarting')}</p>{/if}
+        </div>
+        <button class={buttonClass('secondary','sm')} disabled={busy} aria-pressed={push.enabled} onclick={togglePush} data-testid="mail-push-toggle">{push.enabled ? t('mailPushDisable') : t('mailPushEnable')}</button>
+        <button class={buttonClass('ghost','sm')} onclick={manage}>{t('tabCapabilities')}</button>
+      </div>
       <div class="flex flex-wrap items-center gap-2">
         <Segmented
           bind:value={folder}

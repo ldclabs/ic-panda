@@ -28,6 +28,7 @@ mod legacy_methods;
 mod lifecycle;
 mod locale;
 mod logs;
+mod mail_push;
 mod mcp;
 mod mcp_events;
 mod methods;

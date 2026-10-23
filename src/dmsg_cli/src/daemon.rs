@@ -233,6 +233,7 @@ pub(crate) struct Daemon {
     events: broadcast::Sender<Value>,
     seq: AtomicU64,
     hints: std::sync::Mutex<HintState>,
+    hints_changed: Notify,
     wake: Notify,
     sync_requested: AtomicBool,
     syncing: AtomicBool,
@@ -244,6 +245,7 @@ pub(crate) struct Daemon {
     connectors: tokio::sync::watch::Sender<u64>,
     /// MCP Events: the fetch loop's signals and upstream keys.
     mcp: crate::mcp_events::McpEvents,
+    mail_push: crate::mail_push::MailPush,
     /// The last outcome each background task logged.
     outcomes: std::sync::Mutex<std::collections::BTreeMap<&'static str, String>>,
     /// The file library's loopback WebDAV mount, while mounted.
@@ -343,6 +345,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     tokio::spawn(crate::channels::run(daemon.clone()));
     tokio::spawn(crate::mcp_events::run(daemon.clone()));
     tokio::spawn(crate::agents::run_mail(daemon.clone()));
+    tokio::spawn(crate::mail_push::run(daemon.clone()));
     let app = app(daemon.clone());
     eprintln!("dmsg daemon listening on 127.0.0.1:{port}");
     crate::logs::write(
@@ -572,6 +575,7 @@ impl Daemon {
             events: broadcast::channel(256).0,
             seq: AtomicU64::new(0),
             hints: std::sync::Mutex::new(HintState::default()),
+            hints_changed: Notify::new(),
             wake: Notify::new(),
             sync_requested: AtomicBool::new(false),
             syncing: AtomicBool::new(false),
@@ -579,6 +583,7 @@ impl Daemon {
             agents,
             connectors: tokio::sync::watch::channel(0).0,
             mcp,
+            mail_push: Default::default(),
             outcomes: Default::default(),
             mount: std::sync::Mutex::new(None),
             files_mount: AtomicBool::new(settings_mount),
@@ -621,6 +626,15 @@ impl Daemon {
 
     /// Publish an event to every WebSocket client.
     pub(crate) fn emit(&self, kind: &str, data: Value) {
+        if kind == "session/changed" {
+            self.hints_changed.notify_one();
+        }
+        if matches!(
+            kind,
+            "agent/changed" | "approval/changed" | "session/changed"
+        ) {
+            self.mail_push.maintain.notify_one();
+        }
         let seq = self.seq.fetch_add(1, Ordering::Relaxed) + 1;
         let _ = self
             .events
@@ -829,6 +843,14 @@ impl Daemon {
 
     pub(crate) fn connectors(&self) -> &tokio::sync::watch::Sender<u64> {
         &self.connectors
+    }
+
+    pub(crate) fn mail_push(&self) -> &crate::mail_push::MailPush {
+        &self.mail_push
+    }
+
+    pub(crate) fn hints_changed(&self) -> &Notify {
+        &self.hints_changed
     }
 
     pub(crate) fn mcp(&self) -> &crate::mcp_events::McpEvents {

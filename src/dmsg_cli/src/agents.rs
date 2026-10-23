@@ -46,7 +46,10 @@ pub(crate) async fn run_mail(daemon: Arc<Daemon>) {
     let mut interval = tokio::time::interval(Duration::from_secs(30));
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
-        interval.tick().await;
+        tokio::select! {
+            _ = interval.tick() => {},
+            _ = daemon.mail_push().receive.notified() => {},
+        }
         if daemon.stopping() {
             continue;
         }
@@ -68,6 +71,9 @@ pub(crate) async fn run_mail(daemon: Arc<Daemon>) {
                 daemon.note("agent-mail", &error_code(&error));
             }
         }
+        // Coalesce bursts of hints without allowing a busy webhook source
+        // to turn into an unbounded mailbox poll loop.
+        tokio::time::sleep(Duration::from_secs(2)).await;
     }
 }
 
@@ -91,7 +97,9 @@ const TARGETS: [&str; 9] = [
 ];
 
 /// The owner's methods this module serves.
-pub(crate) const METHODS: [&str; 27] = [
+pub(crate) const METHODS: [&str; 29] = [
+    "agent/mail_push",
+    "agent/mail_push_set",
     "agent/principal",
     "agent/enable",
     "agent/register",
@@ -122,12 +130,13 @@ pub(crate) const METHODS: [&str; 27] = [
 ];
 
 /// The only methods an agent's credential reaches.
-pub(crate) const AGENT_METHODS: [&str; 5] = [
+pub(crate) const AGENT_METHODS: [&str; 6] = [
     "mcp/tools",
     "mcp/call",
     "mcp/resources",
     "mcp/read",
     "mcp/changed",
+    "mcp/mail_events",
 ];
 
 /// Who makes a tool call: an agent's MCP session, or the owner from the
@@ -188,6 +197,23 @@ impl Daemon {
 
     /// Run one of the owner's [`METHODS`].
     pub(crate) async fn call_agents(&self, method: &str, params: &Value) -> Result<Value> {
+        if method == "agent/mail_push_set" {
+            return self
+                .configure_mail_push(
+                    &text(params, "agent")?,
+                    params["enabled"]
+                        .as_bool()
+                        .ok_or_else(|| Error::InvalidInput("enabled".into()))?,
+                    source(params)?,
+                )
+                .await;
+        }
+        if method == "agent/mail_push" {
+            return self
+                .hold()
+                .with(|c| c.mail_push_view(&text(params, "agent")?))
+                .await;
+        }
         if method == "ap/call" {
             let agent = {
                 let client = self.client().lock().await;
@@ -474,6 +500,10 @@ impl Daemon {
             .paused;
         ensure(!paused, Error::Forbidden)?;
         match method {
+            "mcp/mail_events" => {
+                self.mail_events_next(&agent.agent_id, &params["input"])
+                    .await
+            }
             "mcp/tools" => Ok(json!({"tools": tool_list(), "agent_id": agent.agent_id})),
             "mcp/call" => {
                 let caller = Caller {
@@ -523,6 +553,76 @@ impl Daemon {
                 Ok(json!({"revision": revision}))
             }
             _ => Err(Error::Forbidden),
+        }
+    }
+
+    /// Metadata-only Mail events, authorized again after each wait. The
+    /// cursor belongs to one Agent and is independent of relay-event cursors.
+    async fn mail_events_next(&self, agent: &str, input: &Value) -> Result<Value> {
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Input {
+            mailbox_id: Option<String>,
+            cursor: Option<String>,
+            max: Option<usize>,
+            wait_ms: Option<u64>,
+            max_age_ms: Option<u64>,
+        }
+        let args: Input = serde_json::from_value(input.clone())
+            .map_err(|e| Error::InvalidInput(e.to_string()))?;
+        let h = self.hold();
+        let mut changed = self.connectors().subscribe();
+        let deadline = tokio::time::Instant::now()
+            + Duration::from_millis(args.wait_ms.unwrap_or(0).min(CHANGED_WAIT_MS));
+        loop {
+            changed.borrow_and_update();
+            let mut page = h
+                .with(|client| {
+                    let entry = client.agent_find(agent)?;
+                    ensure(!entry.paused, Error::Forbidden)?;
+                    let reach = self
+                        .reach(client, &entry, "agent_protocols_mail_list", None)?
+                        .unwrap_or_default();
+                    let now = dmsg_client::now_ms().min(i64::MAX as u64) as i64;
+                    dmsg_agent::mail_events::page(
+                        &client.agent_runtime()?,
+                        dmsg_agent::mail_events::Query {
+                            agent,
+                            reach: &reach,
+                            mailbox: args.mailbox_id.as_deref(),
+                            cursor: args.cursor.as_deref(),
+                            limit: args.max.unwrap_or(100).min(100),
+                            since: args
+                                .max_age_ms
+                                .map(|age| now.saturating_sub(age.min(i64::MAX as u64) as i64)),
+                            now,
+                        },
+                    )
+                })
+                .await?;
+            if let Some(events) = page["events"].as_array_mut() {
+                for event in events {
+                    let at = event["received_at"]
+                        .as_i64()
+                        .ok_or(Error::IntegrityFailed)?;
+                    event["timestamp"] = chrono::DateTime::from_timestamp_millis(at)
+                        .ok_or(Error::IntegrityFailed)?
+                        .to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+                        .into();
+                    event.as_object_mut().expect("event").remove("received_at");
+                }
+            }
+            if args.cursor.is_none()
+                || page["events"].as_array().is_some_and(|v| !v.is_empty())
+                || page["truncated"] == true
+                || tokio::time::Instant::now() >= deadline
+            {
+                return Ok(page);
+            }
+            tokio::select! {
+                _ = changed.changed() => {},
+                _ = tokio::time::sleep_until(deadline) => {},
+            }
         }
     }
 

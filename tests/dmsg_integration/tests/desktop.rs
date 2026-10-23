@@ -976,7 +976,7 @@ fn localhost_tls(dir: &Path) -> (PathBuf, PathBuf) {
 
 /// Start `dmsg-mail` and `dmsg-knowledge` on local HTTPS with the localhost
 /// test certificate.
-fn serve_services(cloud: &Path, dir: &Path, children: &mut Children) -> Services {
+fn serve_services(cloud: &Path, dir: &Path, children: &mut Children, relay: &str) -> Services {
     let (cert, key) = localhost_tls(dir);
     let mut origins = vec![];
     for package in ["dmsg-mail", "dmsg-knowledge"] {
@@ -990,6 +990,7 @@ fn serve_services(cloud: &Path, dir: &Path, children: &mut Children) -> Services
                 .env("PROBE_KEY", &key)
                 .env("PROBE_READY", &ready)
                 .env("PROBE_TTL_MS", "1200000")
+                .env("PROBE_CALLBACK_ORIGIN", relay)
                 .env("WRANGLER_SEND_METRICS", "false")
                 .stdout(Stdio::null())
                 .spawn()
@@ -1125,7 +1126,7 @@ impl Env {
             .then(|| serve_discourse(&cloud, &dir, &mut children));
         let services = options
             .services
-            .then(|| serve_services(&cloud, &dir, &mut children));
+            .then(|| serve_services(&cloud, &dir, &mut children, &relay));
         // The owner credential stays in the home: tests never touch the
         // system credential store.
         let mut config = format!(
@@ -6710,6 +6711,211 @@ fn desktop_claude_code() {
 /// `dmsg ap --agent <agent> <tool> <input>` on `desktop`.
 fn ap(desktop: &Desktop, agent: &str, tool: &str, input: Value) -> Value {
     desktop.run(&["ap", "--agent", agent, tool, &input.to_string()])
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC, the private relay and the Mail and Knowledge Workers (DMSG_CLOUD_DIR)"]
+fn desktop_mail_webhook_and_native_events() {
+    let env = Env::launch(
+        "mail-push",
+        Options {
+            services: true,
+            ..Options::default()
+        },
+    );
+    let a = &env.a;
+    assert_eq!(a.login(&env.http, 72).unwrap()["state"], "no_account");
+    a.run(&["account", "create"]);
+    a.run(&["agent", "id", "create", "sender"]);
+    a.run(&["agent", "id", "create", "receiver"]);
+    let mail = &env.services.as_ref().unwrap().mail;
+    let mailbox = ap(
+        a,
+        "receiver",
+        "mail_mailbox_publish",
+        json!({"routes":[mail]}),
+    )["mailbox"]
+        .clone();
+    let credential = a.run(&["agent", "id", "credential", "receiver"])["credential"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let grant = a.run(&[
+        "grants",
+        "add",
+        "receiver",
+        &format!("mail.read:{mail}"),
+        "events.endpoint",
+    ]);
+    let mut mcp = McpClient::start(a, &credential);
+    let event = "dmsg.mail.received";
+    let types = mcp.request("events/list", json!({}));
+    assert!(
+        types["result"]["events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|t| t["name"] == event)
+    );
+    let initial = mcp.request("events/poll", json!({"name":event,"arguments":{}}));
+    let cursor = initial["result"]["cursor"].clone();
+    assert!(cursor.as_str().unwrap().starts_with("mail:"));
+    let stream = mcp.send(
+        "events/stream",
+        json!({"name":event,"arguments":{},"cursor":cursor}),
+    );
+    assert_eq!(mcp.next_of(stream)["method"], "notifications/events/active");
+    a.run(&["agent", "mail-watch", "receiver", "on"]);
+    let mut status = Value::Null;
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while Instant::now() < deadline {
+        status = a.run(&["agent", "mail-watch", "receiver"]);
+        if status["subscriptions"]
+            .as_array()
+            .is_some_and(|s| s.iter().any(|v| v["id"].is_string()))
+        {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(status["subscriptions"][0]["id"].is_string(), "{status}");
+    let sent = ap(
+        a,
+        "sender",
+        "mail_send",
+        json!({"to":mailbox["address"],"text":"Push receipt","subject":"Native event"}),
+    );
+    let received = mcp.next_event(stream);
+    assert_eq!(received["name"], event);
+    assert_eq!(
+        received["data"]["message_id"],
+        sent["message"]["message_id"]
+    );
+    assert!(!received.to_string().contains("Push receipt"));
+    let replay = mcp.request(
+        "events/poll",
+        json!({"name":event,"arguments":{},"cursor":cursor}),
+    );
+    assert_eq!(
+        replay["result"]["events"][0]["eventId"],
+        received["eventId"]
+    );
+    let read=mcp.tool("agent_protocols_mail_list",json!({"from":received["data"]["from"],"message_id":received["data"]["message_id"],"mark_read":true})).unwrap();
+    assert_eq!(read["unread_count"], 0);
+    let pending = mcp
+        .tool(
+            "agent_protocols_inbox_next",
+            json!({"kinds":["mail.received"],"claim":true}),
+        )
+        .unwrap();
+    let ack = mcp
+        .tool(
+            "agent_protocols_inbox_ack",
+            json!({"ids":[pending["items"][0]["id"]],"action":"handled"}),
+        )
+        .unwrap();
+    assert_eq!(ack["pending_count"], 0);
+    let deadline = Instant::now() + Duration::from_secs(15);
+    let mut relayed = Value::Null;
+    while Instant::now() < deadline {
+        relayed = mcp
+            .tool(
+                "dmsg_events_next",
+                json!({"endpoint_id":status["endpoint_id"],"wait_ms":1000}),
+            )
+            .unwrap();
+        if relayed["events"].as_array().is_some_and(|events| {
+            events
+                .iter()
+                .any(|e| e["data"]["upstream"]["name"] == "dmsg.mail.available")
+        }) {
+            break;
+        }
+    }
+    assert!(
+        relayed["events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|e| e["data"]["upstream"]["name"] == "dmsg.mail.available"),
+        "{relayed}"
+    );
+    let mut latencies = Vec::new();
+    for n in 0..20 {
+        let sent = ap(
+            a,
+            "sender",
+            "mail_send",
+            json!({"to":mailbox["address"],"text":format!("latency sample {n}")}),
+        );
+        let event = mcp.next_event(stream);
+        assert_eq!(event["data"]["message_id"], sent["message"]["message_id"]);
+        let at = now_ms() as i64;
+        let accepted = sent["message"]["delivery"]["accepted_at"].as_i64().unwrap();
+        latencies.push(at.saturating_sub(accepted));
+        if at - accepted > 5000 {
+            let saved = mcp
+                .tool(
+                    "agent_protocols_mail_list",
+                    json!({"message_id":event["data"]["message_id"],"mark_read":false}),
+                )
+                .unwrap();
+            let stored = saved["messages"][0]["received_at"].as_i64().unwrap();
+            println!(
+                "Slow sample {n}: sync={}ms dispatch={}ms",
+                stored - accepted,
+                at - stored
+            );
+        }
+    }
+    latencies.sort_unstable();
+    println!(
+        "Local Mail push latency, relay acceptance to MCP event reception: n=20 p50={}ms p95={}ms max={}ms",
+        latencies[9], latencies[18], latencies[19]
+    );
+    // Owner pause and grant revocation tear down upstream leases and the
+    // dedicated callback; restoring authorization resumes the desired watch.
+    let wait_watch = |ready: bool| {
+        let deadline = Instant::now() + Duration::from_secs(15);
+        loop {
+            let state = a.run(&["agent", "mail-watch", "receiver"]);
+            let active = state["subscriptions"]
+                .as_array()
+                .is_some_and(|s| s.iter().any(|v| v["id"].is_string()));
+            if ready && active || !ready && state["endpoint_id"].is_null() {
+                return state;
+            }
+            assert!(Instant::now() < deadline, "watch did not settle: {state}");
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    };
+    a.run(&["agent", "id", "pause", "receiver", "on"]);
+    assert_eq!(wait_watch(false)["enabled"], true);
+    a.run(&["agent", "id", "pause", "receiver", "off"]);
+    wait_watch(true);
+    a.run(&["grants", "revoke", grant["id"].as_str().unwrap()]);
+    wait_watch(false);
+    a.run(&[
+        "grants",
+        "add",
+        "receiver",
+        &format!("mail.read:{mail}"),
+        "events.endpoint",
+    ]);
+    wait_watch(true);
+    a.run(&["agent", "mail-watch", "receiver", "off"]);
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while Instant::now() < deadline {
+        status = a.run(&["agent", "mail-watch", "receiver"]);
+        if status["endpoint_id"].is_null() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert_eq!(status["enabled"], false);
+    assert!(status["endpoint_id"].is_null(), "{status}");
+    drop(mcp);
+    env.finish();
 }
 
 #[test]

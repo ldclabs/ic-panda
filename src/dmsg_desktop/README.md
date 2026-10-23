@@ -241,6 +241,13 @@ Rules (`src/main/policy.ts`):
   network sync; a new-letter notification shows only a count and opens that
   Agent's Mail view. Sent letters say "Accepted by relay", with an explanation
   that receipt and reading by the recipient have not been confirmed.
+
+  The Mail view also exposes the owner's real-time receive switch through
+  `agent/mail_push` and `agent/mail_push_set`. It shows subscription setup, active
+  leases and fallback status; it never reads callback secrets. Enabling requires
+  existing Mail read and event-endpoint grants. Pausing, revoked grants and locked
+  nonresident agents retain their existing access limits.
+
   The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for
   agents.

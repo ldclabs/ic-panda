@@ -297,6 +297,16 @@ impl Runtime {
             params![turn.agent_id],
         )
         .map_err(storage)?;
+        tx.execute(
+            "DELETE FROM mail_events WHERE agent = ?1",
+            params![turn.agent_id],
+        )
+        .map_err(storage)?;
+        tx.execute(
+            "DELETE FROM mail_event_heads WHERE agent = ?1",
+            params![turn.agent_id],
+        )
+        .map_err(storage)?;
         tx.commit().map_err(storage)
     }
 
@@ -357,6 +367,11 @@ impl Runtime {
             }
         }
         origins
+    }
+
+    /// The redirect-free HTTPS client with this deployment's configured roots.
+    pub fn http_client(&self) -> reqwest::Client {
+        self.http.clone()
     }
 
     /// The connector of `signer`'s Agent ID as `scope` sees it, from its
@@ -582,7 +597,7 @@ fn room_host(saved: &Value, input: &Value) -> Option<String> {
     }
 }
 
-fn open(path: &Path) -> Result<Connection> {
+pub(crate) fn open(path: &Path) -> Result<Connection> {
     let conn = Connection::open(path).map_err(storage)?;
     #[cfg(unix)]
     {
@@ -594,6 +609,7 @@ fn open(path: &Path) -> Result<Connection> {
          CREATE TABLE IF NOT EXISTS sessions (agent_id TEXT NOT NULL, session TEXT NOT NULL, presented TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (agent_id, session));",
     )
     .map_err(storage)?;
+    crate::mail_events::init(&conn)?;
     Ok(conn)
 }
 
@@ -630,16 +646,17 @@ fn save(
         .map_err(|e| Error::Unavailable(format!("snapshot: {e}")))?;
     let presented = presented(&snapshot);
     present(&mut snapshot, &[]);
-    let snapshot = snapshot.to_string();
-    let changed = stored != Some(snapshot.as_str());
+    let snapshot_text = snapshot.to_string();
+    let changed = stored != Some(snapshot_text.as_str());
     let agent_id = connector.agent_id();
     let now = agent_protocols::identity::unix_ms();
     let tx = conn.unchecked_transaction().map_err(storage)?;
     if changed {
+        crate::mail_events::record(&tx, agent_id.as_str(), &parse(stored)?, &snapshot, now)?;
         tx.execute(
             "INSERT INTO connectors (agent_id, snapshot, updated_at) VALUES (?1, ?2, ?3)
              ON CONFLICT(agent_id) DO UPDATE SET snapshot = excluded.snapshot, updated_at = excluded.updated_at",
-            params![agent_id.as_str(), snapshot, now],
+            params![agent_id.as_str(), snapshot_text, now],
         )
         .map_err(storage)?;
     }

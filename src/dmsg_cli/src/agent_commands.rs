@@ -11,6 +11,13 @@ use serde_json::{Value, json};
 
 #[derive(Subcommand)]
 pub enum AgentCommand {
+    /// Inspect or enable real-time Mail subscriptions for this Agent ID.
+    MailWatch {
+        /// Label or did:agent identity.
+        agent: String,
+        /// on or off; omit to inspect status.
+        state: Option<String>,
+    },
     /// The account's Agent Delegation principal.
     #[command(subcommand)]
     Principal(PrincipalCommand),
@@ -240,6 +247,13 @@ pub enum GrantsCommand {
 
 pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result<(), Failure> {
     let (method, params) = match command {
+        AgentCommand::MailWatch { agent, state } => match state {
+            Some(state) => (
+                "agent/mail_push_set",
+                json!({"agent":agent,"enabled":on_off(&state)?}),
+            ),
+            None => ("agent/mail_push", json!({"agent":agent})),
+        },
         AgentCommand::Principal(PrincipalCommand::Show) => ("agent/principal", Value::Null),
         AgentCommand::Principal(PrincipalCommand::Enable { kind }) => {
             return request(remote, json, "agent/enable", json!({"type": kind})).await;
