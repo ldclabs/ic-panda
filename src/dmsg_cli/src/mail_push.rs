@@ -190,15 +190,26 @@ impl Daemon {
             if let Some(endpoint) = endpoint.as_ref().filter(|_| unlocked) {
                 // Reuse the existing journaled endpoint lifecycle. This rare
                 // cleanup still uses its documented under-lock implementation.
-                self.under_lock(async |c| {
-                    ensure(
-                        c.session_state().account == account,
-                        Error::Unavailable("the account changed".into()),
-                    )?;
-                    c.mcp_endpoint_delete(Some(agent), &endpoint.endpoint_id)
-                        .await
-                })
-                .await?;
+                watch.generation = self
+                    .under_lock(async |c| {
+                        ensure(
+                            c.session_state().account == account,
+                            Error::Unavailable("the account changed".into()),
+                        )?;
+                        let current = c
+                            .mail_push_watches()?
+                            .remove(agent)
+                            .ok_or(Error::NotFound)?;
+                        ensure(current.generation == watch.generation, Error::PolicyStale)?;
+                        c.mcp_endpoint_delete(Some(agent), &endpoint.endpoint_id)
+                            .await?;
+                        // Deletion advances the callback generation under this lock.
+                        Ok(c.mail_push_watches()?
+                            .remove(agent)
+                            .ok_or(Error::NotFound)?
+                            .generation)
+                    })
+                    .await?;
             }
             // Resident Agents can unsubscribe while locked. Account-owned
             // endpoint deletion waits for unlock; retain its cleanup target.
@@ -220,27 +231,34 @@ impl Daemon {
             .await?;
             // Endpoint creation already journals unknown outcomes; its stable
             // context lets us recover a successful creation after a restart.
-            self.under_lock(async |c| {
-                ensure(
-                    c.session_state().account == account,
-                    Error::Unavailable("the account changed".into()),
-                )?;
-                let current = c
-                    .mail_push_watches()?
-                    .remove(agent)
-                    .ok_or(Error::NotFound)?;
-                ensure(
-                    current.enabled && current.generation == watch.generation,
-                    Error::PolicyStale,
-                )?;
-                c.mcp_endpoint_create(
-                    Some(agent),
-                    Some("mail-push"),
-                    BTreeMap::from([("label".into(), "dMsg Mail push".into())]),
-                )
-                .await
-            })
-            .await?;
+            watch.generation = self
+                .under_lock(async |c| {
+                    ensure(
+                        c.session_state().account == account,
+                        Error::Unavailable("the account changed".into()),
+                    )?;
+                    let current = c
+                        .mail_push_watches()?
+                        .remove(agent)
+                        .ok_or(Error::NotFound)?;
+                    ensure(
+                        current.enabled && current.generation == watch.generation,
+                        Error::PolicyStale,
+                    )?;
+                    c.mcp_endpoint_create(
+                        Some(agent),
+                        Some("mail-push"),
+                        BTreeMap::from([("label".into(), "dMsg Mail push".into())]),
+                    )
+                    .await?;
+                    // Keep our own creation's generation while preserving local
+                    // cleanup progress; later owner/callback changes still fence it.
+                    Ok(c.mail_push_watches()?
+                        .remove(agent)
+                        .ok_or(Error::NotFound)?
+                        .generation)
+                })
+                .await?;
             endpoint = h.with(|c| c.mail_push_endpoint(agent)).await?;
             // A callback replacement requires all upstreams to bind the new URL.
             for sub in watch.subscriptions.values_mut() {
@@ -467,8 +485,8 @@ mod tests {
             )
             .unwrap();
         client.mail_push_set(&agent, true).unwrap();
-        let mut watch = client.mail_push_watches().unwrap().remove(&agent).unwrap();
         let endpoint = dmsg_client::testing::mail_push_callback(&mut client, &agent);
+        let mut watch = client.mail_push_watches().unwrap().remove(&agent).unwrap();
         client.agent_resident(&agent, true).unwrap();
         client.lock();
         let daemon = Daemon::new(

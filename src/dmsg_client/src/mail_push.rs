@@ -50,7 +50,7 @@ pub struct Subscription {
 pub struct Watch {
     /// Owner's real-time receive choice.
     pub enabled: bool,
-    /// Advances on owner changes, fencing in-flight network calls.
+    /// Advances on owner or callback changes, fencing in-flight network calls.
     pub generation: u64,
     /// Dedicated callback endpoint, reused after restarts.
     pub endpoint_id: Option<String>,
@@ -232,10 +232,10 @@ impl Client {
         )
     }
 
-    /// Save maintenance progress only if the owner has not changed the watch.
+    /// Save progress only if neither the owner nor the callback changed the watch.
     ///
     /// # Errors
-    /// Returns `PolicyStale` after a concurrent enable/disable, plus key/storage errors.
+    /// Returns `PolicyStale` after a concurrent watch/callback change, plus key/storage errors.
     pub fn mail_push_save(&mut self, agent: &str, watch: &Watch) -> Result<()> {
         self.mail_push_import()?;
         let mut state = self.mail_push_state(agent)?.ok_or(Error::NotFound)?;
@@ -298,6 +298,11 @@ impl Client {
             let callback = Self::mail_push_callback(endpoints, agent)?;
             if state.callback != callback {
                 state.callback = callback;
+                state.watch.generation = state
+                    .watch
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Error::QuotaExceeded)?;
                 for sub in state.watch.subscriptions.values_mut() {
                     sub.refresh_before = 0;
                 }
@@ -567,8 +572,28 @@ mod tests {
         let state = client.mail_push_state(&agent).unwrap().unwrap();
         assert_eq!(state.callback.unwrap().secret, "rotated-secret");
         assert_eq!(state.watch.subscriptions["box"].refresh_before, 0);
+        // Maintenance may have read the watch before rotation and resolve the
+        // new callback afterwards. Its old lease must not erase the renewal.
+        assert_eq!(
+            client.mail_push_save(&agent, &watch),
+            Err(Error::PolicyStale)
+        );
+        assert_eq!(
+            client
+                .mail_push_state(&agent)
+                .unwrap()
+                .unwrap()
+                .watch
+                .subscriptions["box"]
+                .refresh_before,
+            0
+        );
         endpoints[0].state = "deleted".into();
         client.mail_push_endpoints_changed(&endpoints).unwrap();
+        assert_eq!(
+            client.mail_push_save(&agent, &state.watch),
+            Err(Error::PolicyStale)
+        );
         assert!(
             client
                 .mail_push_state(&agent)
