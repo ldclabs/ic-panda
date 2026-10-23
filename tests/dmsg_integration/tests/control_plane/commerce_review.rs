@@ -293,6 +293,134 @@ fn immediate_limits_reach_existing_members_without_resetting_usage_or_contracts(
 }
 
 #[test]
+fn immediate_limits_keep_panda_execution_consistent_when_membership_is_unavailable() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    activate_panda(&f, &id, 150);
+    let refresh = || -> ExecutionUsage {
+        let r: Result<ExecutionUsage> = update(
+            &f.ic,
+            f.user,
+            person(1),
+            "refresh_execution_entitlement",
+            (id,),
+        );
+        r.unwrap()
+    };
+    let view = || -> EntitlementView {
+        let r: Result<EntitlementView> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (beneficiary(f.user, &id),),
+        );
+        r.unwrap()
+    };
+    let mut previous = refresh();
+    let original = view();
+    f.ic.advance_time(Duration::from_millis(
+        original.valid_until_ms - time(&f.ic) - 5 * MINUTE,
+    ));
+    f.ic.stop_canister(f.membership, None).unwrap();
+    let catalogs: Vec<Catalog> = query(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "list_catalogs",
+        (None::<u64>,),
+    );
+    let mut next = catalogs[0].clone();
+    // The first refresh hits an unavailable membership; the second hits the
+    // retry cooldown. Both must publish the new limits with a new revision.
+    for units in [20, 30] {
+        next.version += 1;
+        next.effective_at_ms = 0;
+        for plan in &mut next.plans {
+            plan.catalog_version = next.version;
+            if plan.plan_id == PlanId::Plus {
+                plan.limits.monthly_execution_units = units;
+            }
+        }
+        let r: Result<()> = update(&f.ic, f.commerce, f.sns, "schedule_policy", (&next,));
+        r.unwrap();
+        // Views issued in the publication's millisecond are conservatively
+        // reprojected; move past that boundary before checking cache reuse.
+        f.ic.advance_time(Duration::from_millis(1));
+        let after = refresh();
+        assert!(after.allowed_units > previous.allowed_units);
+        assert!(after.lease_revision > previous.lease_revision);
+        assert_eq!(after.charged_units, previous.charged_units);
+        let current = view();
+        assert_eq!(current.effective_limits.monthly_execution_units, units);
+        assert_eq!(current.plan_snapshot, original.plan_snapshot);
+        assert_eq!(current.valid_until_ms, original.valid_until_ms);
+        assert_eq!(refresh().lease_revision, after.lease_revision);
+        previous = after;
+    }
+    f.ic.start_canister(f.membership, None).unwrap();
+    f.ic.advance_time(Duration::from_millis(MINUTE + 1));
+    assert!(view().valid_until_ms > original.valid_until_ms);
+    assert_eq!(refresh().allowed_units, previous.allowed_units);
+}
+
+#[test]
+fn a_new_catalog_schedule_clips_an_existing_cash_lease() {
+    let f = Fixture::commercial();
+    let id = f.create(1);
+    pay(&f, &id, "plus", 210);
+    f.ic.advance_time(Duration::from_millis(CASH_REFUND_WINDOW_MS));
+    let refresh = || -> EntitlementView {
+        let r: Result<EntitlementView> = update(
+            &f.ic,
+            f.commerce,
+            person(1),
+            "refresh_entitlement",
+            (beneficiary(f.user, &id),),
+        );
+        r.unwrap()
+    };
+    let original = refresh();
+    assert_eq!(original.valid_until_ms, original.issued_at_ms + 30 * DAY);
+    let catalogs: Vec<Catalog> = query(
+        &f.ic,
+        f.commerce,
+        person(1),
+        "list_catalogs",
+        (None::<u64>,),
+    );
+    let mut next = catalogs[0].clone();
+    next.version += 1;
+    next.effective_at_ms = time(&f.ic) + 8 * DAY;
+    for plan in &mut next.plans {
+        plan.catalog_version = next.version;
+        if plan.plan_id == PlanId::Plus {
+            plan.limits.monthly_execution_units = 20;
+        }
+    }
+    let r: Result<()> = update(&f.ic, f.commerce, f.sns, "schedule_policy", (&next,));
+    r.unwrap();
+    let clipped = refresh();
+    assert_eq!(clipped.valid_until_ms, next.effective_at_ms);
+    assert_eq!(clipped.next_limit_change_at_ms, Some(next.effective_at_ms));
+    assert!(clipped.lease_revision > original.lease_revision);
+    assert_eq!(refresh().lease_revision, clipped.lease_revision);
+    f.ic.advance_time(Duration::from_millis(
+        next.effective_at_ms - time(&f.ic) - 5 * MINUTE,
+    ));
+    let usage: Result<ExecutionUsage> = update(
+        &f.ic,
+        f.user,
+        person(1),
+        "refresh_execution_entitlement",
+        (id,),
+    );
+    assert!(usage.unwrap().valid_until_ms <= next.effective_at_ms);
+    f.ic.advance_time(Duration::from_millis(6 * MINUTE));
+    assert_eq!(refresh().effective_limits.monthly_execution_units, 20);
+}
+
+#[test]
 fn merchants_read_only_their_orders() {
     let f = Fixture::commercial();
     let id = f.create(1);

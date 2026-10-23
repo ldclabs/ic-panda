@@ -42,6 +42,19 @@ fn publish(canister_id: Principal, s: &mut Subject, at: u64) -> Result<Entitleme
     Ok(v)
 }
 
+/// Reproject catalog changes using the qualification already recorded. This
+/// advances the lease revision without extending an unverified PANDA lease.
+fn current_projection(canister_id: Principal, s: &mut Subject, at: u64) -> Result<EntitlementView> {
+    if let Some(v) = &s.view
+        && v.business_revision == s.business_revision
+        && same_catalog(v.issued_at_ms, at)
+        && next_catalog_at(at).is_none_or(|next| v.valid_until_ms <= next)
+    {
+        return Ok(v.clone());
+    }
+    publish(canister_id, s, at)
+}
+
 #[ic_cdk::init]
 fn init(args: CommerceInit) {
     let at = now();
@@ -291,9 +304,8 @@ async fn refresh(
     if let Some(v) = &s.view
         && at.saturating_add(LEASE_RENEW_WINDOW_MS) < v.valid_until_ms
         && v.business_revision == s.business_revision
-        && same_catalog(v.issued_at_ms, at)
     {
-        return Ok((v.clone(), at));
+        return Ok((current_projection(canister_id, &mut s, at)?, at));
     }
     let source = s.active(at).and_then(|c| match c.source {
         ContractSource::Sns { claim_id } => Some((c.contract_id, claim_id)),
@@ -302,11 +314,7 @@ async fn refresh(
     if let Some((contract, id)) = source {
         let _call = crate::calls::CallGuard::entitlement(entitlement_key(&b))?;
         if at < s.retry_after_ms {
-            return s
-                .view
-                .clone()
-                .map(|v| (v, at))
-                .ok_or(Error::MembershipStale);
+            return Ok((current_projection(canister_id, &mut s, at)?, at));
         }
         reserve_call(at, CallBudget::Refresh(caller))?;
         let response: Result<Result<dmsg_types::integration_membership::PandaClaimView>> =
@@ -338,11 +346,7 @@ async fn refresh(
             | Err(_) => {
                 s.retry_after_ms = at.saturating_add(MINUTE);
                 save_subject(&s);
-                return s
-                    .view
-                    .clone()
-                    .map(|v| (v, at))
-                    .ok_or(Error::MembershipStale);
+                return Ok((current_projection(canister_id, &mut s, at)?, at));
             }
             Ok(_) => {
                 s.retry_after_ms = at.saturating_add(MINUTE);
