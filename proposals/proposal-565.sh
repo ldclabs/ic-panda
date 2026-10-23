@@ -3,10 +3,13 @@
 # Load the environment variables
 source "$(pwd)"/proposals/env.sh
 
+# dfx canister call dmsg_frontend delete_batch \
+#   '(record { batch_id = 78 : nat })' --ic
+
 # build and get batch_id, evidence:
 # dfx deploy dmsg_frontend --ic --by-proposal
 
-export BLOB="$(didc encode --format blob '(record {batch_id=78:nat; evidence=blob "\c0\a0\33\2b\1a\2d\ba\16\56\84\ed\5b\0b\39\07\14\e6\24\7d\b9\14\89\08\e1\5d\9d\ea\a1\0e\d1\e0\a0"})')"
+export BLOB="$(didc encode --format blob '(record {batch_id=79:nat; evidence=blob "\7f\65\54\64\dd\ad\d5\9d\df\a6\86\a9\1d\91\ef\e7\5e\47\ae\5a\4c\af\34\5b\d9\ae\cf\0b\41\b2\04\8f"})')"
 
 quill sns make-proposal --canister-ids-file ./sns_canister_ids.json --pem-file $PROPOSAL_PEM_FILE $PROPOSAL_NEURON_ID --proposal "(
     record {
@@ -22,4 +25,4 @@ quill sns make-proposal --canister-ids-file ./sns_canister_ids.json --pem-file $
     }
 )" > proposal-message.json
 
-# quill send proposal-message.json
+quill send proposal-message.json
