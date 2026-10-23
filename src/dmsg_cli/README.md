@@ -914,6 +914,72 @@ selectors as reads. Missing/null/empty positions, wrong types, unknown fields
 `INVALID_INPUT`. Binding requests also reject unknown fields and wrong types;
 an invalid request never silently clears a binding or acknowledges zero.
 
+### Connecting MCP clients
+
+In the desktop app, open **Agents → Agent IDs → Connect an MCP client**.
+The dialog generates examples with this installation's binary, home and
+one-time `DMSG_AGENT_TOKEN`. Use the same device/home that hosts the Agent ID
+and keep its daemon running. Grant the Agent ID the capabilities it needs;
+connecting a client does not grant account access. Issuing another credential
+invalidates the previous one.
+
+**Codex / ChatGPT desktop.** Run the generated `codex mcp add` command, or
+merge the TOML into `~/.codex/config.toml` (choose one). For example, after
+replacing the paths and demo credential:
+
+```sh
+codex mcp add dmsg-nova --env DMSG_AGENT_TOKEN=dmsg-agent-REPLACE-ME -- /absolute/path/to/dmsg --home /absolute/path/to/home mcp
+```
+
+```toml
+[mcp_servers.dmsg-nova]
+command = "/absolute/path/to/dmsg"
+args = ["--home", "/absolute/path/to/home", "mcp"]
+
+[mcp_servers.dmsg-nova.env]
+DMSG_AGENT_TOKEN = "dmsg-agent-REPLACE-ME"
+```
+
+Local desktop, CLI and IDE clients on the same Codex host share this
+configuration. Restart the client and use `/mcp` to check it; the CLI also
+provides `codex mcp list`. See the [OpenAI MCP guide](https://developers.openai.com/codex/mcp).
+
+**Anda bot.** Merge the generated entry into Anda's `mcp.json`, retaining any
+other server entries:
+
+```json
+{
+  "mcpServers": {
+    "dmsg-nova": {
+      "command": "/absolute/path/to/dmsg",
+      "args": ["--home", "/absolute/path/to/home", "mcp"],
+      "env": { "DMSG_AGENT_TOKEN": "dmsg-agent-REPLACE-ME" },
+      "events": { "webhook_ingress": true }
+    }
+  }
+}
+```
+
+`events.webhook_ingress` is an **Anda client setting**, not a dMsg command
+argument or a standard `mcpServers` field. It chooses the one MCP server Anda
+uses to receive upstream events that are delivered only by webhook. Grant
+this Agent ID `events.endpoint`, then create an event automation in Anda.
+Anda creates the dMsg callback endpoint, subscribes the upstream server,
+binds and renews the subscription, and consumes/acknowledges
+`dmsg.relay.delivery` events to schedule the automation. It does not open a
+public listener on the local machine. Only one server may have this flag.
+
+The flag is optional for ordinary MCP tool calls and for dMsg's native
+`dmsg.mail.received` events (which use push/poll and still require the relevant
+Mail grants). Adding it alone does not create a subscription or automation,
+grant capabilities, or wake a Codex / ChatGPT conversation. Keep it in the
+Anda example only. The [Anda implementation](https://github.com/ldclabs/anda-bot/blob/8385483/anda_bot/src/engine/mcp/events/ingress.rs)
+defines this routing behavior.
+
+The examples store the credential in client configuration; pasted commands
+also remain in shell history. Keep those private and withdraw a leaked
+credential in dMsg.
+
 ## Daemon protocol
 
 The daemon listens on `127.0.0.1` only.

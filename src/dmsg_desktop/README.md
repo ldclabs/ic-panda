@@ -330,12 +330,17 @@ Rules (`src/main/policy.ts`):
   approval window shows the agent by name, scopes, relying parties,
   relationship and expiry), and lists what this device signed for them. It
   hosts Agent IDs: residency, pausing, the MCP credential, shown once with
-  the Claude Code command (for every project, `--scope user`) and the
-  `mcpServers` entry that run `dmsg mcp` with the installed binary and home
-  (`dmsg:runtime`), and where the client keeps it, withdrawing it, the
+  the Codex and Claude Code commands, Codex / ChatGPT desktop TOML, generic
+  `mcpServers` JSON and Anda bot JSON (with its optional
+  `events.webhook_ingress` routing flag). All use the installed binary and
+  home (`dmsg:runtime`). The dialog explains Anda's `events.endpoint` grant
+  and event automation, and where each
+  client keeps the credential; see [MCP client setup](../dmsg_cli/README.md#connecting-mcp-clients).
+  It also offers credential withdrawal, the
   sessions last used, the Agent Profile each published (signature checked,
   self-described) and removal. It grants capabilities from the daemon's
-  vocabulary, checked before they are sent, for days or until revoked, and
+  vocabulary, with clickable suggestions and editable targets, checked before
+  they are sent (unfilled target placeholders cannot be granted), for days or until revoked, and
   asks again for a grant reaching every target, a secret or a wallet's
   execution; vault tags and team wallets open the same grants for
   themselves, and a wallet member names the Agent IDs that propose for it.

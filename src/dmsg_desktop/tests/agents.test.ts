@@ -52,10 +52,10 @@ test('only what the vocabulary names may be typed', () => {
   )
   assert.deepEqual(
     unknownCapabilities(
-      ['file.read:work', 'vault.read:', 'vault.read:a b', 'vault.secret:dmsg-agent', 'account.read:x', 'mail.read:mail.dmsg.net', 'mail.read:https://mail.dmsg.net/v1'],
+      ['file.read:work', 'vault.read:', 'vault.read:<tag>', 'files.read:<folder>', 'vault.read:a b', 'vault.secret:dmsg-agent', 'account.read:x', 'mail.read:mail.dmsg.net', 'mail.read:https://mail.dmsg.net/v1'],
       vocabulary
     ),
-    ['file.read:work', 'vault.read:', 'vault.read:a b', 'vault.secret:dmsg-agent', 'account.read:x', 'mail.read:mail.dmsg.net', 'mail.read:https://mail.dmsg.net/v1']
+    ['file.read:work', 'vault.read:', 'vault.read:<tag>', 'files.read:<folder>', 'vault.read:a b', 'vault.secret:dmsg-agent', 'account.read:x', 'mail.read:mail.dmsg.net', 'mail.read:https://mail.dmsg.net/v1']
   )
 })
 

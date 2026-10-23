@@ -71,6 +71,7 @@ export function unknownCapabilities(capabilities: string[], vocabulary: string[]
       !vocabulary.some((entry) => {
         const at = entry.indexOf(':<')
         if (at < 0) return capability === entry
+        if (capability === entry) return false
         const prefix = entry.slice(0, at + 1)
         const target = capability.startsWith(prefix) ? capability.slice(prefix.length) : ''
         if (!target || target.length > 128 || /\s/.test(target)) return false
@@ -90,9 +91,8 @@ export const shellWord = (word: string) => (/^[\w./:@%+=,-]+$/.test(word) ? word
 
 /**
  * How an MCP client runs `dmsg mcp` as the Agent ID `label` with its
- * credential: the Claude Code command, for every project (`--scope user`;
- * its default scope is the one folder it runs in), and the `mcpServers`
- * entry Claude Desktop, Cursor and others read.
+ * credential. Keep Anda's event routing setting out of other clients'
+ * configurations: it is an Anda extension, not a dmsg mcp argument.
  */
 export function mcpSetup(runtime: { binary: string; home: string }, label: string, credential: string) {
   const name = `dmsg-${label}`
@@ -100,8 +100,21 @@ export function mcpSetup(runtime: { binary: string; home: string }, label: strin
   const command = ['claude', 'mcp', 'add', '--scope', 'user', name, '--env', `DMSG_AGENT_TOKEN=${credential}`, '--', runtime.binary, ...args]
     .map(shellWord)
     .join(' ')
-  const config = JSON.stringify({ mcpServers: { [name]: { command: runtime.binary, args, env: { DMSG_AGENT_TOKEN: credential } } } }, null, 2)
-  return { command, config }
+  const server = { command: runtime.binary, args, env: { DMSG_AGENT_TOKEN: credential } }
+  const config = JSON.stringify({ mcpServers: { [name]: server } }, null, 2)
+  const codexCommand = ['codex', 'mcp', 'add', name, '--env', `DMSG_AGENT_TOKEN=${credential}`, '--', runtime.binary, ...args]
+    .map(shellWord)
+    .join(' ')
+  const codexConfig = [
+    `[mcp_servers.${JSON.stringify(name)}]`,
+    `command = ${JSON.stringify(runtime.binary)}`,
+    `args = ${JSON.stringify(args)}`,
+    '',
+    `[mcp_servers.${JSON.stringify(name)}.env]`,
+    `DMSG_AGENT_TOKEN = ${JSON.stringify(credential)}`
+  ].join('\n')
+  const andaConfig = JSON.stringify({ mcpServers: { [name]: { ...server, events: { webhook_ingress: true } } } }, null, 2)
+  return { command, config, codexCommand, codexConfig, andaConfig }
 }
 
 /** A credential's Agent Profile delegation hint (Agent Profile §4), for the agent to publish with its own key. */

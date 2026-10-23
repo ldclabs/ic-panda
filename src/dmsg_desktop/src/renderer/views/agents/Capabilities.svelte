@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Confirm from '../../components/Confirm.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -16,7 +17,7 @@
    * What each hosted Agent ID may reach, as a matrix of the Agent Protocols
    * services and the origins they are granted at, then every grant with its
    * revoke, and a new grant: services ticked at a chosen origin and other
-   * capabilities typed from the daemon's vocabulary, for a number of days or
+   * capabilities picked or typed from the daemon's vocabulary, for a number of days or
    * until revoked. A grant reaching every target, a secret's value or a
    * wallet's execution asks once more.
    */
@@ -39,6 +40,7 @@
   let origin = $state('*')
   let ticked = $state<Record<string, boolean>>({})
   let capabilities = $state('')
+  let capabilityInput = $state<HTMLInputElement>()
   /** Days, or empty until revoked. */
   let days = $state('')
   let confirming = $state(false)
@@ -58,8 +60,24 @@
   ])
 
   const vocabulary = $derived<string[]>(hosted.vocabulary ?? [])
+  const otherCapabilities = $derived(vocabulary.filter((v) => !services.some((s) => v.startsWith(`${s.read}:`) || v.startsWith(`${s.write}:`))))
   const unknown = $derived(vocabulary.length ? unknownCapabilities(chosen, vocabulary) : [])
   const wide = $derived(chosen.filter(sensitive))
+
+  async function addCapability(capability: string) {
+    const entries = capabilities.split(/\s+/).filter(Boolean)
+    let index = entries.indexOf(capability)
+    if (index < 0) {
+      index = entries.length
+      entries.push(capability)
+    }
+    capabilities = entries.join(' ')
+    await tick()
+    const start = entries.slice(0, index).join(' ').length + (index ? 1 : 0)
+    const placeholder = capability.indexOf('<')
+    capabilityInput?.focus()
+    capabilityInput?.setSelectionRange(start + (placeholder < 0 ? capability.length : placeholder), start + capability.length)
+  }
 
   async function grant() {
     await run('grants/add', { agent: grantee, capabilities: chosen, days: days ? Number(days) : null })
@@ -154,9 +172,24 @@
           </div>
         {/each}
       </div>
-      <Field label={t('capabilityList')} hint={`${t('capabilityVocabulary')}${vocabulary.filter((v) => !services.some((s) => v.startsWith(`${s.read}:`) || v.startsWith(`${s.write}:`))).join(' ')}`}>
-        <input bind:value={capabilities} class="font-mono text-[12.5px]" spellcheck="false" data-testid="grant-other" />
-      </Field>
+      <div class="grid gap-2">
+        <Field label={t('capabilityList')}>
+          <input bind:this={capabilityInput} bind:value={capabilities} class="font-mono text-[12.5px]" spellcheck="false" data-testid="grant-other" />
+        </Field>
+        {#if otherCapabilities.length}
+          <div class="grid gap-1.5">
+            <p class="text-[11.5px] text-faint">{t('capabilityVocabulary')}</p>
+            <div class="flex flex-wrap gap-1.5" data-testid="grant-options">
+              {#each otherCapabilities as capability (capability)}
+                <button type="button" class={buttonClass('secondary', 'xs', 'font-mono font-normal')} disabled={busy} onclick={() => addCapability(capability)}>
+                  {#if chosen.includes(capability)}<Icon name="check" />{/if}{capability}
+                </button>
+              {/each}
+            </div>
+            <p class="text-[11.5px] text-faint">{t('capabilityPickHint')}</p>
+          </div>
+        {/if}
+      </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex min-w-0 flex-1 flex-wrap gap-1" data-testid="grant-chosen">
           {#each chosen as capability (capability)}

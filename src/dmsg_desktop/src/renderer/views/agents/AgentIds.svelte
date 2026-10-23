@@ -40,7 +40,7 @@
   let alive = true
   onDestroy(() => { alive = false })
   let label = $state('')
-  let issued = $state<{ label: string; credential: string; command: string; config: string } | null>(null)
+  let issued = $state<({ label: string; credential: string } & ReturnType<typeof mcpSetup>) | null>(null)
   let removing = $state<any>(null)
   let withdrawing = $state<any>(null)
   /** Published profiles by Agent ID, once asked for. */
@@ -196,8 +196,13 @@
 <Dialog bind:open={() => !!issued, (open) => !open && (issued = null)} title={t('connectTitle', { label: issued?.label ?? '' })} description={t('credentialOnce')} icon="plug" wide testid="agent-connect-dialog">
   {#if issued}
     <div class="grid gap-3">
+      {@render block(t('connectCodexCommand'), issued.codexCommand, 'agent-connect-codex-command')}
+      {@render block(t('connectCodexConfig'), issued.codexConfig, 'agent-connect-codex-config')}
+      <p class="text-[12px] text-muted">{t('connectCodexHint')}</p>
       {@render block(t('connectClaudeCode'), issued.command, 'agent-connect-command')}
       {@render block(t('connectConfig'), issued.config, 'agent-connect-config')}
+      {@render block(t('connectAndaConfig'), issued.andaConfig, 'agent-connect-anda-config')}
+      <p class="text-[12px] text-muted">{t('connectAndaHint')}</p>
       {@render block('DMSG_AGENT_TOKEN', issued.credential, 'agent-credential')}
       <p class="text-[12px] text-muted">{t('connectNext')}</p>
       <p class="text-[12px] text-warn">{t('connectStored')}</p>
