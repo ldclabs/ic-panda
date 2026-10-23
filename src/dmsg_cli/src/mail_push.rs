@@ -221,12 +221,27 @@ impl Daemon {
         }
         let endpoint = endpoint.ok_or(Error::IntegrityFailed)?;
         watch.endpoint_id = Some(endpoint.endpoint_id.clone());
+        self.renew_mail_push(&h, agent, &mut watch, &endpoint, desired)
+            .await
+    }
+
+    /// Keep each mailbox's progress even when another subscription fails.
+    async fn renew_mail_push(
+        &self,
+        h: &impl Hold,
+        agent: &str,
+        watch: &mut Watch,
+        endpoint: &dmsg_client::mcp_events::Endpoint,
+        desired: BTreeMap<String, Subscription>,
+    ) -> Result<()> {
+        let http = self.agents().http_client();
         let secret = endpoint
             .secrets
             .last()
             .ok_or(Error::IntegrityFailed)?
             .secret
             .clone();
+        let mut failure = None;
         for (key, proposed) in desired {
             let sub = watch
                 .subscriptions
@@ -238,36 +253,194 @@ impl Daemon {
             }
             // Persist the target before subscribing so disable/restart can clean
             // up even if the response or process is lost.
-            h.with(|c| c.mail_push_save(agent, &watch)).await?;
-            let ttl = h
-                .with(|c| c.mail_push_ttl(agent, &sub.service, now_ms()))
+            h.with(|c| c.mail_push_save(agent, watch)).await?;
+            let renewed = async {
+                let ttl = h
+                    .with(|c| c.mail_push_ttl(agent, &sub.service, now_ms()))
+                    .await?;
+                let response = dmsg_client::mail_push::request(
+                    h,
+                    &http,
+                    agent,
+                    &sub.service,
+                    "events/subscribe",
+                    json!({
+                        "name": "dmsg.mail.available",
+                        "arguments": {"mailbox_id": sub.mailbox_id},
+                        "delivery": {"mode": "webhook", "url": endpoint.url, "secret": secret},
+                        "ttlMs": ttl,
+                        "cursor": sub.cursor,
+                    }),
+                )
                 .await?;
-            let response=dmsg_client::mail_push::request(&h,&http,agent,&sub.service,"events/subscribe",json!({
-                "name":"dmsg.mail.available","arguments":{"mailbox_id":sub.mailbox_id},
-                "delivery":{"mode":"webhook","url":endpoint.url,"secret":secret},"ttlMs":ttl,"cursor":sub.cursor,
-            })).await?;
-            let id = response["id"]
-                .as_str()
-                .filter(|s| !s.is_empty())
-                .ok_or(Error::IntegrityFailed)?
-                .to_owned();
-            let refresh = response["refreshBefore"]
-                .as_str()
-                .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-                .and_then(|d| u64::try_from(d.timestamp_millis()).ok())
-                .ok_or(Error::IntegrityFailed)?;
-            ensure(refresh > now_ms(), Error::IntegrityFailed)?;
+                let id = response["id"]
+                    .as_str()
+                    .filter(|s| !s.is_empty())
+                    .ok_or(Error::IntegrityFailed)?
+                    .to_owned();
+                let refresh = response["refreshBefore"]
+                    .as_str()
+                    .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+                    .and_then(|d| u64::try_from(d.timestamp_millis()).ok())
+                    .ok_or(Error::IntegrityFailed)?;
+                ensure(refresh > now_ms(), Error::IntegrityFailed)?;
+                Ok((id, refresh, response["cursor"].as_str().map(str::to_owned)))
+            }
+            .await;
+            let (id, refresh, cursor) = match renewed {
+                Ok(renewed) => renewed,
+                Err(error) => {
+                    // A failed mailbox or optional event service must not
+                    // prevent the remaining subscriptions from renewing.
+                    failure.get_or_insert(error);
+                    continue;
+                }
+            };
             let current = watch.subscriptions.get_mut(&key).expect("target saved");
             current.id = Some(id);
             current.refresh_before = refresh;
-            current.cursor = response["cursor"].as_str().map(str::to_owned);
-            watch.last_error = None;
-            h.with(|c| c.mail_push_save(agent, &watch)).await?;
+            current.cursor = cursor;
+            h.with(|c| c.mail_push_save(agent, watch)).await?;
             // Subscribe before the bootstrap read, covering mail that arrived
             // before or during callback verification and any replay gap.
             self.mail_push().receive.notify_one();
         }
+        if let Some(error) = failure {
+            return Err(error);
+        }
         watch.last_error = None;
-        h.with(|c| c.mail_push_save(agent, &watch)).await
+        h.with(|c| c.mail_push_save(agent, watch)).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{Json, Router, routing::post};
+    use dmsg_client::mcp_events::{Endpoint, Secret};
+    use std::sync::{
+        Mutex,
+        atomic::{AtomicBool, Ordering},
+    };
+
+    #[tokio::test]
+    async fn a_failed_subscription_does_not_block_other_mailboxes_or_their_renewals() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        let failed = Arc::new(AtomicBool::new(true));
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let app = Router::new().route("/mcp", post({
+            let failed = failed.clone();
+            let requests = requests.clone();
+            move |Json(input): Json<Value>| {
+                let failed = failed.clone();
+                let requests = requests.clone();
+                async move {
+                    let mailbox = input["params"]["arguments"]["mailbox_id"].as_str().unwrap();
+                    requests.lock().unwrap().push(mailbox.to_owned());
+                    if mailbox == "first" && failed.load(Ordering::SeqCst) {
+                        Json(json!({"jsonrpc":"2.0","id":1,"error":{"code":-32027}}))
+                    } else {
+                        Json(json!({"jsonrpc":"2.0","id":1,"result":{
+                            "id":format!("subscription-{mailbox}"),
+                            "refreshBefore":dmsg_client::mcp_events::timestamp(now_ms()+3_600_000),
+                            "cursor":"head"
+                        }}))
+                    }
+                }
+            }
+        }));
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = crate::home::Home {
+            dir: dir.path("home"),
+        };
+        let mut client = dmsg_client::testing::unlocked(&dir.path("workspace"), false, None);
+        let agent = client.agent_create("mail-test").unwrap().agent_id;
+        client
+            .capability_grant(
+                "cli",
+                &agent,
+                vec!["mail.read:*".into(), "events.endpoint".into()],
+                None,
+            )
+            .unwrap();
+        client.mail_push_set(&agent, true).unwrap();
+        let mut watch = client.mail_push_watches().unwrap().remove(&agent).unwrap();
+        let daemon = Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        );
+        let endpoint = Endpoint {
+            endpoint_id: "callback".into(),
+            url: "https://callback.example/mcp-events/callback".into(),
+            secrets: vec![Secret {
+                secret: "test-secret".into(),
+                created_at: now_ms(),
+                retire_at: None,
+            }],
+            agent: Some(agent.clone()),
+            mcp_session: None,
+            context: BTreeMap::new(),
+            binding: Default::default(),
+            state: "active".into(),
+            relay_seq: 0,
+            created_at: now_ms(),
+            ended_at: None,
+        };
+        let desired: BTreeMap<_, _> = ["first", "second"]
+            .into_iter()
+            .map(|id| {
+                (
+                    format!("{origin}/{id}"),
+                    Subscription {
+                        service: origin.clone(),
+                        mailbox_id: id.into(),
+                        ..Default::default()
+                    },
+                )
+            })
+            .collect();
+        let result = daemon
+            .renew_mail_push(
+                &daemon.hold(),
+                &agent,
+                &mut watch,
+                &endpoint,
+                desired.clone(),
+            )
+            .await;
+        assert!(
+            result.is_err(),
+            "the failed subscription must still be reported"
+        );
+        let saved = daemon
+            .client()
+            .lock()
+            .await
+            .mail_push_watches()
+            .unwrap()
+            .remove(&agent)
+            .unwrap();
+        assert_eq!(
+            saved
+                .subscriptions
+                .get(&format!("{origin}/second"))
+                .and_then(|s| s.id.as_deref()),
+            Some("subscription-second")
+        );
+        assert!(saved.subscriptions[&format!("{origin}/first")].id.is_none());
+        failed.store(false, Ordering::SeqCst);
+        daemon
+            .renew_mail_push(&daemon.hold(), &agent, &mut watch, &endpoint, desired)
+            .await
+            .unwrap();
+        assert_eq!(*requests.lock().unwrap(), ["first", "second", "first"]);
+        server.abort();
+        let _ = server.await;
     }
 }

@@ -121,6 +121,7 @@ impl Daemon {
                     _ => return Err(Error::InvalidInput("role".into())),
                 };
                 let channel = id()?;
+                h.with(|c| Ok(c.session_state())).await?;
                 let _turn = self.turn(&format!("channel-control:{channel}")).await;
                 return Ok(to_json(
                     &channel::invite(&h, &channel, &account(params, "account")?, role).await?,
@@ -128,6 +129,7 @@ impl Daemon {
             }
             "channel/rotate" | "channel/rekey" => {
                 let channel = id()?;
+                h.with(|c| Ok(c.session_state())).await?;
                 let _turn = self.turn(&format!("channel-control:{channel}")).await;
                 let view = if method == "channel/rekey" {
                     channel::rekey(&h, &channel).await?

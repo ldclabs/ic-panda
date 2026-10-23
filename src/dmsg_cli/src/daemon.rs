@@ -2426,6 +2426,37 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn queued_channel_controls_do_not_follow_an_account_switch() {
+        for method in ["channel/invite", "channel/rotate", "channel/rekey"] {
+            let dir = dmsg_client::testing::TempDir::new();
+            let (daemon, _relay, _ic) = stalled(&dir).await;
+            let channel = "c".repeat(64);
+            let turn = daemon.turn(&format!("channel-control:{channel}")).await;
+            let params = json!({
+                "id": channel,
+                "account": dmsg_client::testing::account().id.to_string(),
+            });
+            let mut work = Box::pin(daemon.call_more(method, &params));
+            assert!(futures_util::poll!(&mut work).is_pending());
+            {
+                let mut client = daemon.client().lock().await;
+                *client = Client::open(
+                    dmsg_client::testing::config(false),
+                    &dir.path("other-account"),
+                    None,
+                )
+                .unwrap();
+            }
+            drop(turn);
+            assert_eq!(
+                work.await,
+                Err(Error::Unavailable("the account changed".into())),
+                "{method} must stay bound to the submitting account",
+            );
+        }
+    }
+
     /// Each call has its own daemon, as above.
     #[tokio::test]
     async fn the_library_answers_while_approvals_are_asked() {
