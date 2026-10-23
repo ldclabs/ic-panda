@@ -447,7 +447,7 @@
       if (!unlocked || !['resync', 'wallet/changed', 'approval/changed', 'channel/changed'].includes(event.type)) return
       void readPending()
       if (busy) return
-      if (event.type === 'wallet/changed' || event.type === 'resync') void loadList()
+      if (event.type === 'wallet/changed' || event.type === 'resync') { void loadList(); void loadDeposits() }
       if (selected) void open(selected)
     })
     const focused = () => {
@@ -815,7 +815,7 @@
                     disabled={busy}
                     onclick={() => run('wallet/refund', { quote: d.quote_id })}
                     data-testid="wallet-refund">{t('twRefund')}</button
-                  >{:else if now >= d.expires_at}<button class={buttonClass('secondary', 'sm')} onclick={() => loadList()}
+                  >{:else if now >= d.expires_at}<button class={buttonClass('secondary', 'sm')} onclick={() => loadDeposits()}
                     >{t('refresh')}</button
                   >{/if}</div
               >{/each}

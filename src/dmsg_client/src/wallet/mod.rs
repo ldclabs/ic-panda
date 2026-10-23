@@ -1136,7 +1136,7 @@ pub async fn deposits<H: Hold>(h: &H) -> Result<Json> {
     let reader = h.anonymous().await?;
     let config: HubInit = reader.query(hub, "get_hub_config", ()).await?;
     // Preserve the journal's order, with at most four deposits in flight.
-    let rows: Vec<Option<Json>> = stream::iter(paid.into_iter().map(|quote| {
+    let read = stream::iter(paid.into_iter().map(|quote| {
         let reader = &reader;
         async move {
             let order: Option<ActivationOrder> =
@@ -1150,7 +1150,22 @@ pub async fn deposits<H: Hold>(h: &H) -> Result<Json> {
                 .query(config.icp_ledger, "icrc1_balance_of", (quote.deposit,))
                 .await?;
             let held = u128::try_from(held.0).map_err(|_| Error::IntegrityFailed)?;
-            let now = now_ms();
+            Ok::<_, Error>(Some((quote, reason, held)))
+        }
+    }))
+    .buffered(4)
+    .try_collect::<Vec<_>>()
+    .await?;
+    // The state each quote shows is judged after these reads answered.
+    let now = now_ms();
+    let rows = read
+        .into_iter()
+        .flatten()
+        .filter_map(|(quote, reason, held)| {
+            let fee = u128::from(quote.ledger_fee_e8s);
+            if held <= fee {
+                return None;
+            }
             let state = if reason.is_some() {
                 "failed"
             } else if now >= quote.expires_at_ms {
@@ -1158,22 +1173,15 @@ pub async fn deposits<H: Hold>(h: &H) -> Result<Json> {
             } else {
                 "unused"
             };
-            let fee = u128::from(quote.ledger_fee_e8s);
-            Ok::<_, Error>((held > fee).then(|| {
-                json!({
-                    "quote_id": hex::encode(*quote.quote_id), "state": state,
-                    "refundable": state != "unused", "refund_e8s": (held - fee).to_string(),
-                    "ledger_fee_e8s": quote.ledger_fee_e8s.to_string(),
-                    "expires_at": quote.expires_at_ms, "reason": reason,
-                })
+            Some(json!({
+                "quote_id": hex::encode(*quote.quote_id), "state": state,
+                "refundable": state != "unused", "refund_e8s": (held - fee).to_string(),
+                "ledger_fee_e8s": quote.ledger_fee_e8s.to_string(),
+                "expires_at": quote.expires_at_ms, "reason": reason,
             }))
-        }
-    }))
-    .buffered(4)
-    .try_collect()
-    .await?;
-    h.with(|_| Ok(Json::Array(rows.into_iter().flatten().collect())))
-        .await
+        })
+        .collect::<Vec<_>>();
+    h.with(|_| Ok(Json::Array(rows))).await
 }
 
 /// Verify the whole audit chain against the wallet's head.
