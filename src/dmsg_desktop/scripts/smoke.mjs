@@ -2350,7 +2350,14 @@ smoke: try {
 
   // A grant to a hosted Agent ID is signed only after the approval window agrees.
   const decisionsBeforeGrant = calls.filter((c) => c.method === 'approval/respond').length
+  const finishAgentPrincipal = hold('agent/principal')
   await main.click('nav >> text=/Agents|Agent/')
+  await waitFor(() => held.get('agent/principal'))
+  await main.waitForSelector('[data-testid="credentials"] [data-testid="credential"]')
+  await main.waitForSelector('[data-testid="delegation-journal"]')
+  assert.equal(await main.locator('[data-testid="principal-id"]').count(), 0)
+  assert.equal(await main.locator('[data-testid="enable-principal"]').count(), 0)
+  await finishAgentPrincipal()
   await main.waitForSelector('[data-testid="principal-id"]')
   // A default key is opt-in; malformed custom ceilings never create approvals.
   const registrations = () => calls.filter((c) => c.method === 'agent/register').length
@@ -2419,9 +2426,28 @@ smoke: try {
     break smoke
   }
 
-  // Humans inspect correspondence without sending or consuming the Agent's unread queue.
+  // Saved mail stays readable while receiving is delayed.
+  const finishAgentSync = hold('ap/call', (p) => p.tool === 'agent_protocols_mail_sync')
   await main.click('[data-testid="agents-tab-mail"]')
+  await waitFor(() => held.get('ap/call'))
+  // The fixture already has a sent letter; incoming mail first arrives on sync.
+  await main.click('[data-testid="mail-folder"] [data-value="sent"]')
+  await main.waitForSelector('[data-testid="mail-messages"] >> text=Experiment notes received')
+  const offscreenPrincipalReads = calls.filter((c) => c.method === 'agent/principal').length
+  const offscreenCredentialReads = calls.filter((c) => c.method === 'agent/credentials').length
+  const agentLists = calls.filter((c) => c.method === 'agent/ids').length
+  emit('agent/changed')
+  await waitFor(() => calls.filter((c) => c.method === 'agent/ids').length > agentLists)
+  assert.equal(calls.filter((c) => c.method === 'agent/principal').length, offscreenPrincipalReads)
+  assert.equal(calls.filter((c) => c.method === 'agent/credentials').length, offscreenCredentialReads)
+  const syncsBeforeFolder = calls.filter((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_sync').length
+  await main.click('[data-testid="mail-folder"] [data-value="sent"]')
+  await main.waitForSelector('[data-testid="mail-messages"] >> text=Experiment notes received')
+  assert.equal(calls.filter((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_sync').length, syncsBeforeFolder)
+  await main.click('[data-testid="mail-folder"] [data-value="received"]')
   await main.waitForSelector('[data-testid="mail-messages"] >> text=Review the cache experiment')
+  await finishAgentSync()
+  await main.waitForSelector('[data-testid="mail-sync"]:not([disabled])')
   await main.click('[data-testid="mail-push-toggle"]')
   await waitFor(() => latest('agent/mail_push_set')?.params.enabled === true)
   assert.deepEqual(latest('agent/mail_push_set').params, { agent: claude, enabled: true, source: 'gui' })
@@ -2450,7 +2476,15 @@ smoke: try {
     await assert.rejects(main.evaluate((tool) => window.dmsg.call('ap/call', { tool, input: {} }), tool), /FORBIDDEN/)
   }
   await assert.rejects(main.evaluate(() => window.dmsg.call('ap/call', { tool: 'agent_protocols_mail_list', input: { mark_read: true } })), /FORBIDDEN/)
+  const finishOldKnowledge = hold('ap/call', (p) => p.tool === 'agent_protocols_knowledge_query' && p.input.type === 'knowledge.publish')
   await main.click('[data-testid="agents-tab-knowledge"]')
+  await waitFor(() => held.get('ap/call'))
+  await main.click('[data-testid="knowledge-mode"] [data-value="knowledge.assess"]')
+  await main.waitForSelector('[data-testid="knowledge-empty"]')
+  await finishOldKnowledge()
+  await main.waitForSelector('[data-testid="knowledge-empty"]')
+  assert.equal(await main.locator('[data-testid="knowledge-items"] >> text=Language belongs in the cache key').count(), 0)
+  await main.click('[data-testid="knowledge-mode"] [data-value="knowledge.publish"]')
   await main.waitForSelector('[data-testid="knowledge-items"] >> text=Language belongs in the cache key')
   assert.equal(latest('ap/call').params.input.actor, claude)
   assert.equal(latest('ap/call').params.input.type, 'knowledge.publish')
@@ -2499,11 +2533,15 @@ smoke: try {
   assert.deepEqual(latest('agent/remove').params, { agent: claude, source: 'gui' })
   // An MCP Events endpoint shows its secret once; a delivery notifies how
   // many arrived, never what or from where.
+  const finishEndpoints = hold('mcp-events/list')
   await main.click('[data-testid="agents-tab-events"]')
+  await main.waitForSelector('[data-testid="events-status"]')
+  await waitFor(() => held.get('mcp-events/list'))
   await main.fill('[data-testid="endpoint-label"]', 'Upstream')
   await main.click('[data-testid="endpoint-create"]')
   await main.waitForSelector('[data-testid="endpoint-secret"]')
   assert.equal(await main.textContent('[data-testid="endpoint-secret"]'), 'whsec_smoke')
+  await finishEndpoints()
   assert.deepEqual(latest('mcp-events/create').params, { context: { label: 'Upstream' } })
   emit('mcp-events/changed', { stored: 2, refresh_due: 0 })
   for (let i = 0; i < 50 && !notes.length; i++) {
@@ -2515,9 +2553,13 @@ smoke: try {
   // The audit record names who did what and through which way in.
   await main.click('[data-testid="agents-tab-audit"]')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')
+  const finishOldAudit = hold('audit/list', (p) => !p.agent)
+  emit('audit/changed')
+  await waitFor(() => held.get('audit/list'))
   await choose(main, 'audit-actor', 'owner')
   await waitFor(() => latest('audit/list').params.agent === 'owner')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=grants/add')
+  await finishOldAudit()
   assert.equal(await main.locator('[data-testid="audit-entries"] >> text=dmsg_vault_read').count(), 0)
   await choose(main, 'audit-actor', '')
   await main.waitForSelector('[data-testid="audit-entries"] >> text=dmsg_vault_read')

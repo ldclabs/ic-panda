@@ -87,6 +87,46 @@ async fn invalid_controller_input_never_creates_an_approval_or_reads_the_network
     }
 }
 
+#[tokio::test]
+async fn invalid_grants_are_rejected_before_reading_the_network() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let subject = agent_id(&[9; 32]);
+    for (subject, scopes, audiences, days) in [
+        (
+            "not-an-agent",
+            vec!["read".into()],
+            vec!["https://example.com".into()],
+            30,
+        ),
+        (
+            subject.as_str(),
+            vec![],
+            vec!["https://example.com".into()],
+            30,
+        ),
+        (
+            subject.as_str(),
+            vec!["read".into()],
+            vec!["not-an-origin".into()],
+            30,
+        ),
+        (
+            subject.as_str(),
+            vec!["read".into()],
+            vec!["https://example.com".into()],
+            0,
+        ),
+    ] {
+        let result = client
+            .delegation_grant_request("gui", None, subject, scopes, audiences, days, None, None)
+            .await;
+        assert!(matches!(result, Err(Error::InvalidInput(_))), "{result:?}");
+        assert!(client.approvals(true).unwrap().is_empty());
+        assert!(client.delegations().unwrap().is_empty());
+    }
+}
+
 /// The principal document the directory would publish for the test account
 /// with one restricted controller, and its URL.
 fn document() -> (PrincipalDocument, String) {

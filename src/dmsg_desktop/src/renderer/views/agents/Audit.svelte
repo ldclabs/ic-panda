@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import Section from '../../components/page/Section.svelte'
@@ -17,15 +17,24 @@
   let actor = $state('')
   let more = $state(false)
   let error = $state('')
+  let alive = true
+  let revision = 0
+  let displayedActor = ''
+  onDestroy(() => { alive = false; revision++ })
   const PAGE = 50
 
   async function load(before?: number) {
+    const turn = ++revision
+    const selected = actor
+    if (displayedActor !== actor) { entries = []; more = false; displayedActor = actor }
     error = ''
     try {
       const page: any = await call('audit/list', { agent: actor || null, before: before ?? null, limit: PAGE })
+      if (!alive || turn !== revision || actor !== selected) return
       entries = before ? [...entries, ...page.entries] : page.entries
       more = page.entries.length === PAGE
     } catch (e) {
+      if (!alive || turn !== revision || actor !== selected) return
       error = errorText(e)
     }
   }

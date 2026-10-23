@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, untrack } from 'svelte'
   import Page from '../components/page/Page.svelte'
+  import Notice from '../components/page/Notice.svelte'
   import Icon from '../components/Icon.svelte'
   import { cn } from '../components/ui'
   import { toast } from '../components/toast.svelte'
   import { t } from '../i18n/index.svelte'
-  import { bridge, call, code, errorText, onChange, single } from '../rpc'
+  import { bridge, call, code, errorText, single } from '../rpc'
   import AgentIds from './agents/AgentIds.svelte'
   import Audit from './agents/Audit.svelte'
   import Capabilities from './agents/Capabilities.svelte'
@@ -44,7 +45,11 @@
     }
   })
   let principal = $state<any>(null)
-  let principalError = $state('')
+  let errors = $state<Record<string, string>>({})
+  let loaded = $state<Record<string, boolean>>({})
+  let alive = true
+  let generation = 0
+  let lastSession: string | undefined
   let credentials = $state<any[]>([])
   let delegations = $state<any[]>([])
   let hosted = $state<any>({ agents: [], hosts: [], vocabulary: [], blocked_senders: [] })
@@ -54,79 +59,88 @@
   let busy = $state(false)
 
   const unlocked = $derived(status?.state === 'unlocked')
+  const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
 
   $effect(() => {
-    if (inspectedAgent && !hosted.agents.some((agent: any) => agent.agent_id === inspectedAgent)) inspectedAgent = null
+    if (loaded.hosted && inspectedAgent && !hosted.agents.some((agent: any) => agent.agent_id === inspectedAgent)) inspectedAgent = null
   })
 
-  const fail = (e: unknown) => toast(() => errorText(e))
-
-  async function attempt(work: () => Promise<unknown>) {
-    busy = true
-    try {
-      await work()
-    } catch (e) {
-      fail(e)
-    } finally {
-      busy = false
-    }
-  }
-
-  /** What only a lock or another account hides is no error. */
+  const current = (turn: number) => alive && turn === generation
   const quiet = (e: unknown) => ['LOCKED', 'AUTH_REQUIRED', 'RECOVERY_INCOMPLETE'].includes(code(e))
 
-  const loadHosted = single(async () => {
-    try {
-      hosted = await call('agent/ids')
-    } catch (e) {
-      if (!quiet(e)) fail(e)
-    }
-  })
+  async function attempt(work: () => Promise<unknown>) {
+    const turn = generation
+    busy = true
+    try { await work() }
+    catch (e) { if (current(turn)) toast(() => errorText(e)) }
+    finally { if (current(turn)) busy = false }
+  }
 
-  const loadGrants = single(async () => {
-    grants = await call<any[]>('grants/list').catch(() => [])
-  })
+  function reader(key: string, method: string, apply: (value: any) => void) {
+    return single(async () => {
+      const visible = key === 'hosted' || (key === 'grants' ? tab === 'capabilities' : tab === 'overview')
+      if (!alive || !visible || (['credentials', 'delegations'].includes(key) && !unlocked)) return
+      const turn = generation
+      try {
+        const value = await call(method)
+        if (current(turn)) { apply(value); errors[key] = '' }
+      } catch (e) {
+        if (current(turn)) errors[key] = quiet(e) ? '' : errorText(e)
+      } finally {
+        if (current(turn)) loaded[key] = true
+      }
+    })
+  }
+  const loadHosted = reader('hosted', 'agent/ids', (value) => (hosted = value))
+  const loadGrants = reader('grants', 'grants/list', (value) => (grants = value))
+  const loadPrincipal = reader('principal', 'agent/principal', (value) => (principal = value))
+  const loadCredentials = reader('credentials', 'agent/credentials', (value) => (credentials = value))
+  const loadDelegations = reader('delegations', 'agent/delegations', (value) => (delegations = value))
 
-  /** The principal, then what the service and this device keep of its credentials; an error stays on the card. */
-  const loadPrincipal = single(async () => {
-    try {
-      principal = await call('agent/principal')
-      principalError = ''
-    } catch (e) {
-      principalError = quiet(e) ? '' : errorText(e)
-      return
-    }
-    delegations = await call<any[]>('agent/delegations').catch(() => [])
-    try {
-      credentials = principal ? await call<any[]>('agent/credentials') : []
-    } catch (e) {
-      principalError = quiet(e) ? '' : errorText(e)
-    }
-  })
+  function loadTab() {
+    if (tab === 'overview') {
+      void loadPrincipal()
+      if (unlocked) { void loadCredentials(); void loadDelegations() }
+    } else if (tab === 'capabilities') void loadGrants()
+  }
 
-  const reload = () => Promise.all([loadHosted(), loadGrants(), loadPrincipal()])
-
-  /** Principal changes and grants are approval requests the approval window decides; whether one was made. */
   async function request(method: string, params: Record<string, unknown> = {}) {
+    const turn = generation
     let made = false
     await attempt(async () => {
       const created: any = await call(method, params)
+      if (!current(turn)) return
       made = true
       await bridge(() => window.dmsg.openApproval(created.id))
     })
     return made
   }
-
   const run = (method: string, params: Record<string, unknown> = {}) => attempt(() => call(method, params))
 
   onMount(() => {
-    void reload()
-    const offs = [
-      onChange(['agent/changed', 'session/changed'], reload),
-      // A decided request may change the principal, its credentials or the grants.
-      onChange(['approval/changed'], () => Promise.all([loadPrincipal(), loadGrants()]))
-    ]
-    return () => offs.forEach((off) => off())
+    const off = window.dmsg.onEvent((event) => {
+      if (event.type === 'resync' || event.type === 'agent/changed') { void loadHosted(); loadTab() }
+      else if (event.type === 'approval/changed') loadTab()
+    })
+    return () => { alive = false; generation++; off() }
+  })
+
+  $effect(() => {
+    const next = sessionKey
+    tab
+    untrack(() => {
+      if (lastSession !== next) {
+        if (lastSession !== undefined) inspectedAgent = null
+        lastSession = next
+        generation++
+        principal = null
+        credentials = []; delegations = []; grants = []
+        hosted = { agents: [], hosts: [], vocabulary: [], blocked_senders: [] }
+        errors = {}; loaded = {}; busy = false; delegate = ''
+        void loadHosted()
+      }
+      loadTab()
+    })
   })
 
   function delegateTo(agent: string) {
@@ -165,8 +179,11 @@
     {/each}
   </nav>
   <div class="min-h-0 flex-1">
+    {#key sessionKey}
+    {#if errors.hosted}<Notice tone="danger">{errors.hosted}</Notice>{/if}
+    {#if tab === 'capabilities' && errors.grants}<Notice tone="danger">{errors.grants}</Notice>{/if}
     {#if tab === 'overview'}
-      <Page wide><Overview {principal} {principalError} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {run} bind:delegate /></Page>
+      <Page wide><Overview {principal} principalError={errors.principal ?? ''} {loaded} {errors} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {run} bind:delegate /></Page>
     {:else if tab === 'ids'}
       <Page><AgentIds {hosted} {unlocked} {busy} {run} {attempt} {delegateTo} /></Page>
     {:else if tab === 'capabilities'}
@@ -200,5 +217,6 @@
     {:else}
       <Page><Audit agents={hosted.agents} /></Page>
     {/if}
+    {/key}
   </div>
 </div>

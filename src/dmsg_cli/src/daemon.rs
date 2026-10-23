@@ -2417,6 +2417,57 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn agent_queries_and_approval_preparation_leave_reads_and_lock_available() {
+        let account = dmsg_client::testing::account().id.to_string();
+        let subject = dmsg_client::agent::agent_id(&[7; 32]);
+        for (method, params, on_ic) in [
+            ("agent/principal", Value::Null, true),
+            (
+                "agent/register",
+                json!({"source":"gui", "unrestricted":true}),
+                true,
+            ),
+            ("agent/enable", json!({"source":"gui"}), true),
+            (
+                "agent/rename",
+                json!({"source":"gui", "generation":1, "name":"Agent"}),
+                true,
+            ),
+            ("agent/refresh", Value::Null, false),
+            (
+                "agent/grant",
+                json!({"source":"gui", "subject":subject, "scopes":["app.read"], "audiences":["https://example.com"]}),
+                true,
+            ),
+            (
+                "agent/revoke",
+                json!({"source":"gui", "id":format!("{account}.test")}),
+                false,
+            ),
+        ] {
+            let dir = dmsg_client::testing::TempDir::new();
+            let (daemon, relay, ic) = stalled(&dir).await;
+            let work = tokio::spawn({
+                let daemon = daemon.clone();
+                async move { daemon.call_agents(method, &params).await }
+            });
+            let server = if on_ic { &ic } else { &relay };
+            let (_socket, _) = tokio::time::timeout(Duration::from_secs(3), server.accept())
+                .await
+                .expect(method)
+                .unwrap();
+            tokio::time::timeout(Duration::from_secs(1), async {
+                daemon.call_agents("agent/ids", &Value::Null).await.unwrap();
+                daemon.call_vault("vault/list", &Value::Null).await.unwrap();
+                daemon.client().lock().await.lock();
+            })
+            .await
+            .expect(method);
+            work.abort();
+        }
+    }
+
+    #[tokio::test]
     async fn plan_quotes_and_name_preparation_leave_local_reads_and_lock_available() {
         use base64::Engine;
         let account = dmsg_client::testing::account().id.to_string();

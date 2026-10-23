@@ -27,6 +27,8 @@
   let {
     principal,
     principalError,
+    loaded,
+    errors,
     credentials,
     delegations,
     hosted,
@@ -38,6 +40,8 @@
   }: {
     principal: any
     principalError: string
+    loaded: Record<string, boolean>
+    errors: Record<string, string>
     credentials: any[]
     delegations: any[]
     hosted: any
@@ -191,6 +195,8 @@
         </span>
       </Fact>
     </dl>
+  {:else if !loaded.principal}
+    <p class="text-[13px] text-muted">{t('loading')}</p>
   {:else if unlocked && !principalError}
     <div class="flex flex-wrap items-end gap-2">
       <Field label={t('type')}>
@@ -294,7 +300,10 @@
     {/if}
   </Section>
 
+{/if}
+
   <Section title={t('credentials')} description={t('credentialsHint')} icon="epoch" flush>
+    {#if errors.credentials}<Notice tone="danger">{errors.credentials}</Notice>{/if}
     <div class="border-t border-line" data-testid="credentials">
       {#each bySubject(credentials) as [subject, group] (subject)}
         <div class="border-b border-line last:border-b-0">
@@ -327,7 +336,7 @@
                   </p>
                 </div>
                 <div class="flex shrink-0 flex-wrap justify-end gap-1.5">
-                  <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('copyHint')} title={t('copyHint')} onclick={() => copyHint(c)} data-testid="credential-hint"
+                  <button class={buttonClass('ghost', 'sm', 'size-7 px-0')} aria-label={t('copyHint')} title={t('copyHint')} disabled={!principal} onclick={() => copyHint(c)} data-testid="credential-hint"
                     ><Icon name="copy" /></button
                   >
                   {#if c.status !== 'revoked' && unlocked}
@@ -340,7 +349,7 @@
           </ul>
         </div>
       {:else}
-        <p class="px-5 py-3 text-[13px] text-faint">{t('noCredentials')}</p>
+        <p class="px-5 py-3 text-[13px] text-faint">{!unlocked ? t('locked') : !loaded.credentials ? t('loading') : errors.credentials ? '' : t('noCredentials')}</p>
       {/each}
     </div>
     {#if unlocked && current.length}
@@ -376,6 +385,7 @@
     {/if}
   </Section>
 
+  {#if errors.delegations}<Notice tone="danger">{errors.delegations}</Notice>{/if}
   {#if delegations.length}
     <Section title={t('delegationJournal')} description={t('delegationJournalHint')} icon="history" flush testid="delegation-journal">
       <ul class="divide-y divide-line border-t border-line">
@@ -392,7 +402,6 @@
       </ul>
     </Section>
   {/if}
-{/if}
 
 <Dialog bind:open={() => !!renaming, (open) => !open && (renaming = null)} title={t('renameController')} icon="edit">
   <Field label={t('name')}><input bind:value={() => renaming?.name ?? '', (v) => renaming && (renaming.name = v)} maxlength="64" /></Field>

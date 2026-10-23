@@ -318,6 +318,14 @@ pub fn is_read_only(name: &str) -> bool {
             .any(|(n, _, read_only, _)| *n == name && *read_only)
 }
 
+/// Local Mail inspection does not change read marks or connector state.
+/// Only these two tools can bypass a connector's network turn.
+pub fn is_mail_inspection(name: &str, input: &Value) -> bool {
+    name == "agent_protocols_mail_mailboxes_list"
+        || (name == "agent_protocols_mail_list"
+            && matches!(input.get("mark_read"), None | Some(Value::Bool(false))))
+}
+
 /// Every tool as MCP `tools/list` declares it.
 pub fn tool_list() -> Vec<Value> {
     let standard = standard_tool_definitions().into_iter().map(|t| {

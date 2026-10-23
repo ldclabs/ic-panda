@@ -144,7 +144,10 @@ desktop is one of its clients, like the CLI.
     the hosted Agent IDs and the host allowlist, a matrix of what each
     Agent ID reaches (the Agent Protocols services by origin, and other
     capabilities) with every grant, Agent Mail and Knowledge, MCP Events
-    endpoints, and the audit record as a timeline.
+    endpoints, and the audit record as a timeline. Principal, credential and
+    local journal reads complete independently and run only on the principal
+    tab; unrelated Agent changes do not reload offscreen network panels.
+    Session changes clear private views and discard late replies.
   - Signatures and approvals, in tabs: the requests waiting (each opened,
     or withdrawn when this device's own clients made it, with its time
     left and why an approval did not run), running (reconciled now on
@@ -242,8 +245,10 @@ Rules (`src/main/policy.ts`):
   cannot send/reply, publish/assess/retract knowledge, or mark Agent mail read.
   Mail viewing preserves the Agent’s unread queue; Knowledge defaults to the
   selected Agent’s contributions and shows service-scoped lifecycle and evidence.
-  Opening Mail, changing the selected Agent and refreshing first receive new
-  mail, then show the saved correspondence even if the relay fails. The daemon
+  Opening Mail and changing the selected Agent show saved correspondence
+  immediately while receiving in the background. Changing folders reads local
+  mail only; refreshing explicitly receives again. Local inspection does not
+  wait for the connector’s network turn or rewrite its snapshot. The daemon
   also syncs agents with Mail read access every 30 seconds (resident agents
   only while locked). `agent/mail` refreshes the visible list without another
   network sync; a new-letter notification shows only a count and opens that

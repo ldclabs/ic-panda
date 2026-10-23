@@ -398,92 +398,91 @@ impl Daemon {
         if let Some(answer) = answered {
             return answer;
         }
-        // The Agent Delegation principal and its delegations still wait on
-        // the IC under the client.
-        self.under_lock(async |client| {
-            let principal = match method {
-                "agent/enable" => Some(PrincipalChange::Enable {
-                    principal_type: match params["type"].as_str().unwrap_or("person") {
-                        "person" => PrincipalType::Person,
-                        "organization" => PrincipalType::Organization,
-                        "team" => PrincipalType::Team,
-                        "project" => PrincipalType::Project,
-                        "other" => PrincipalType::Other,
-                        _ => return Err(Error::InvalidInput("type".into())),
-                    },
-                }),
-                "agent/register" => {
-                    let delegation = controller_authority(params)?;
-                    let info = client.principal().await?.ok_or(Error::NotFound)?;
-                    Some(PrincipalChange::Register {
-                        generation: dmsg_client::agent::next_generation(&info),
-                        name: params["name"].as_str().map(str::to_string),
-                        delegation,
-                    })
-                }
-                "agent/retire" => Some(PrincipalChange::Retire {
-                    generation: number(params, "generation")?,
-                }),
-                "agent/compromise" => Some(PrincipalChange::Compromise {
-                    generation: number(params, "generation")?,
-                    invalid_from: params["invalid_from"]
-                        .as_u64()
-                        .ok_or_else(|| Error::InvalidInput("invalid_from".into()))?,
-                }),
-                "agent/rename" => Some(PrincipalChange::Rename {
-                    generation: number(params, "generation")?,
-                    name: params["name"].as_str().map(str::to_string),
-                }),
-                _ => None,
-            };
-            if let Some(change) = principal {
-                return client.principal_request(source(params)?, change).await;
+        let h = self.hold();
+        let principal = match method {
+            "agent/enable" => Some(PrincipalChange::Enable {
+                principal_type: match params["type"].as_str().unwrap_or("person") {
+                    "person" => PrincipalType::Person,
+                    "organization" => PrincipalType::Organization,
+                    "team" => PrincipalType::Team,
+                    "project" => PrincipalType::Project,
+                    "other" => PrincipalType::Other,
+                    _ => return Err(Error::InvalidInput("type".into())),
+                },
+            }),
+            "agent/register" => {
+                return dmsg_client::agent::controller_request(
+                    &h,
+                    source(params)?,
+                    params["name"].as_str().map(str::to_string),
+                    controller_authority(params)?,
+                )
+                .await;
             }
-            match method {
-                "agent/principal" => client.principal_view().await,
-                "agent/publish" => {
-                    Ok(json!({"published_version": client.principal_publish().await?}))
-                }
-                "agent/refresh" => client.principal_refresh().await,
-                "agent/grant" => {
-                    let generation = match params["generation"].is_null() {
-                        true => None,
-                        false => Some(number(params, "generation")?),
-                    };
-                    // The subject may name a hosted Agent ID by its label.
-                    let subject = text(params, "subject")?;
-                    let subject = client.agent_find(&subject).map_or(subject, |a| a.agent_id);
-                    client
-                        .delegation_grant_request(
-                            source(params)?,
-                            generation,
-                            &subject,
-                            parse(params, "scopes")?,
-                            parse(params, "audiences")?,
-                            params["days"].as_u64().unwrap_or(30),
-                            params["relationship"].as_str().map(str::to_string),
-                            params["replaces"].as_str(),
-                        )
-                        .await
-                }
-                "agent/revoke" => {
-                    let generation = match params["generation"].is_null() {
-                        true => None,
-                        false => Some(number(params, "generation")?),
-                    };
-                    client
-                        .delegation_revoke_request(
-                            source(params)?,
-                            generation,
-                            &text(params, "id")?,
-                            params["reason"].as_str().map(str::to_string),
-                        )
-                        .await
-                }
-                _ => Err(Error::NotFound),
+            "agent/retire" => Some(PrincipalChange::Retire {
+                generation: number(params, "generation")?,
+            }),
+            "agent/compromise" => Some(PrincipalChange::Compromise {
+                generation: number(params, "generation")?,
+                invalid_from: params["invalid_from"]
+                    .as_u64()
+                    .ok_or_else(|| Error::InvalidInput("invalid_from".into()))?,
+            }),
+            "agent/rename" => Some(PrincipalChange::Rename {
+                generation: number(params, "generation")?,
+                name: params["name"].as_str().map(str::to_string),
+            }),
+            _ => None,
+        };
+        if let Some(change) = principal {
+            return dmsg_client::agent::principal_request(&h, source(params)?, change).await;
+        }
+        match method {
+            "agent/principal" => dmsg_client::agent::principal_view(&h).await,
+            "agent/publish" => {
+                Ok(json!({"published_version": dmsg_client::agent::principal_publish(&h).await?}))
             }
-        })
-        .await
+            "agent/refresh" => dmsg_client::agent::principal_refresh(&h).await,
+            "agent/grant" => {
+                let h = dmsg_client::hold::Unlocked::new(&h).await?;
+                let generation = match params["generation"].is_null() {
+                    true => None,
+                    false => Some(number(params, "generation")?),
+                };
+                // The subject may name a hosted Agent ID by its label.
+                let subject = text(params, "subject")?;
+                let subject = h
+                    .with(|c| Ok(c.agent_find(&subject).map_or(subject, |a| a.agent_id)))
+                    .await?;
+                dmsg_client::agent::delegation_grant_request(
+                    &h,
+                    source(params)?,
+                    generation,
+                    &subject,
+                    parse(params, "scopes")?,
+                    parse(params, "audiences")?,
+                    params["days"].as_u64().unwrap_or(30),
+                    params["relationship"].as_str().map(str::to_string),
+                    params["replaces"].as_str(),
+                )
+                .await
+            }
+            "agent/revoke" => {
+                let generation = match params["generation"].is_null() {
+                    true => None,
+                    false => Some(number(params, "generation")?),
+                };
+                dmsg_client::agent::delegation_revoke_request(
+                    &h,
+                    source(params)?,
+                    generation,
+                    &text(params, "id")?,
+                    params["reason"].as_str().map(str::to_string),
+                )
+                .await
+            }
+            _ => Err(Error::NotFound),
+        }
     }
 
     /// Run one of [`AGENT_METHODS`] for the agent whose credential called.
@@ -739,6 +738,42 @@ impl Daemon {
         tool: &str,
         input: Value,
     ) -> Result<Value> {
+        if dmsg_agent::tools::is_mail_inspection(tool, &input) {
+            let h = self.hold();
+            let (reach, path, signer) = h
+                .with(|client| {
+                    let reach = match caller.actor {
+                        "owner" => None,
+                        _ => {
+                            ensure(
+                                !client.agent_find(&agent.agent_id)?.paused,
+                                Error::Forbidden,
+                            )?;
+                            self.reach(client, agent, tool, Some(&input))?
+                        }
+                    };
+                    Ok((
+                        reach,
+                        client.agent_runtime()?,
+                        client.agent_signer(&agent.agent_id)?,
+                    ))
+                })
+                .await?;
+            let scope = Scope {
+                path: &path,
+                session: caller.session,
+                reach: reach.as_deref(),
+            };
+            let outcome = self
+                .agents()
+                .inspect_mail(scope, signer, tool, input)
+                .await?;
+            h.with(|_| Ok(())).await?;
+            return Ok(match outcome {
+                Ok(result) => json!({"result": result}),
+                Err(error) => json!({"error": error}),
+            });
+        }
         if is_standard(tool) {
             // The Agent ID's turn spans reading the mail keys to saving what
             // the call left, so no other call of it sees or overwrites them
@@ -1412,6 +1447,28 @@ mod tests {
                 None,
             )
             .unwrap();
+        // Inspection of committed mail must not queue behind a network
+        // call of this same Agent ID. Marking reads still take that turn.
+        let turn = daemon.agents().turn(id).await;
+        for tool in [
+            "agent_protocols_mail_list",
+            "agent_protocols_mail_mailboxes_list",
+        ] {
+            let params = json!({"agent":id, "source":"gui", "tool":tool, "input":{}});
+            let read = tokio::time::timeout(
+                Duration::from_secs(1),
+                daemon.call_agents("ap/call", &params),
+            )
+            .await
+            .expect("local Mail inspection should not wait for the connector")
+            .unwrap();
+            assert!(read["error"].is_null(), "{read}");
+        }
+        let params = json!({"agent":id, "source":"cli", "tool":"agent_protocols_mail_list", "input":{"mark_read":true}});
+        let mut mark = Box::pin(daemon.call_agents("ap/call", &params));
+        assert!(futures_util::poll!(&mut mark).is_pending());
+        drop(turn);
+        assert!(mark.await.unwrap()["error"].is_null());
         let received = daemon.receive_agent_mail(id).await.unwrap();
         assert_eq!(received["result"]["errors"], json!([]));
         assert_eq!(received["result"]["pending_inbox_count"], 0);

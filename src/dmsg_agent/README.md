@@ -71,6 +71,12 @@ runs the read-only tool that shows the resource, then drops the connector:
 nothing is fetched, saved, presented, claimed or marked read. A room the
 connector has not synced is `NotFound`.
 
+Mail inspection (`mail_list` without `mark_read`, and `mail_mailboxes_list`)
+reads the last committed connector snapshot without taking its network turn,
+loading mailbox keys or saving state. Reads that mark messages continue through
+the normal serialized call, as do mailbox changes and receiving. Capability,
+pause and residency checks still apply in the daemon.
+
 The Agent Mail decryption keys are not in the snapshot: the daemon brings
 them from `dmsg_client`, where they are sealed under the LDK (and copied
 beside a resident Agent ID's key), and keeps what the call returns, which

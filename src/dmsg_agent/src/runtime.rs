@@ -486,6 +486,33 @@ impl Runtime {
         })
     }
 
+    /// Inspect committed mail without waiting for an in-flight connector
+    /// call, restoring mail keys, or rewriting its snapshot. Marking mail
+    /// read still needs the normal serialized call.
+    /// # Errors
+    /// Returns `Error::Forbidden` for other tools or a marking read, and
+    /// storage errors as [`Self::read`].
+    pub async fn inspect_mail(
+        &self,
+        scope: Scope<'_>,
+        signer: AgentSigner,
+        tool: &str,
+        input: Value,
+    ) -> Result<std::result::Result<Value, ToolError>> {
+        ensure(
+            crate::tools::is_mail_inspection(tool, &input),
+            Error::Forbidden,
+        )?;
+        let conn = open(scope.path)?;
+        let mut saved = parse(load(&conn, signer.agent_id().as_str())?.as_deref())?;
+        let mut connector = self.restore(&conn, scope, signer, &mut saved)?;
+        Ok(connector
+            .call_tool(tool, input)
+            .await
+            .map(|value| in_reach(scope.reach, tool, value))
+            .map_err(ToolError::from))
+    }
+
     /// Read one resource of `signer`'s Agent ID as `scope` sees it (local
     /// connector §4.4), from local state only: nothing is fetched, and
     /// nothing the read touches is saved, so reading never moves a

@@ -910,21 +910,30 @@ impl Cloud {
         body: &B,
         now: u64,
     ) -> Result<Json> {
+        let request = self.prepare_raw(signer, path, body, now)?;
+        self.send(request).await
+    }
+
+    /// Prepare a raw CBOR POST for sending outside the client lock.
+    pub(crate) fn prepare_raw<B: Serialize>(
+        &self,
+        signer: &Signer<'_>,
+        path: &str,
+        body: &B,
+        now: u64,
+    ) -> Result<Prepared> {
         let url = self.url(path)?;
         let body = canonical(body);
         ensure(body.len() <= 262_144, Error::QuotaExceeded)?;
         let request_id = hex::encode(crate::crypto::random_id());
         let deadline = signer.deadline(now)?;
         let pop = sign_http(signer, &url, "POST", &body, &request_id, deadline)?;
-        self.exchange(
-            reqwest::Method::POST,
+        Ok(Prepared {
+            method: reqwest::Method::POST,
             url,
-            Some((body, "application/cbor")),
-            Some(pop),
-            false,
-        )
-        .await?
-        .json()
+            body: Some(body),
+            pop,
+        })
     }
 
     /// Sign a command for `path` and the proofs to post it and to read its

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onDestroy, onMount } from 'svelte'
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
@@ -20,7 +20,11 @@
    */
   let { agents, unlocked }: { agents: any[]; unlocked: boolean } = $props()
 
+  let alive = true
+  onDestroy(() => { alive = false })
   let endpoints = $state<any[]>([])
+  let listLoaded = $state(false)
+  let revision = 0
   let relay = $state<any>(null)
   let label = $state('')
   let agent = $state('')
@@ -37,19 +41,31 @@
     try {
       await work()
     } catch (e) {
+      if (!alive) return
       error = errorText(e)
     } finally {
       busy = false
     }
   }
 
-  const reload = single(() =>
-    attempt(async () => {
-      const [state, list] = await Promise.all([call('mcp-events/status'), call('mcp-events/list')])
-      relay = state
-      endpoints = list.endpoints
-    })
-  )
+  let loadErrors = $state<Record<string, string>>({})
+  const readStatus = single(async () => {
+    if (!alive) return
+    try {
+      const value = await call('mcp-events/status')
+      if (alive) { relay = value; loadErrors.status = '' }
+    } catch (e) { if (alive) loadErrors.status = errorText(e) }
+  })
+  const readEndpoints = single(async () => {
+    if (!alive) return
+    const turn = revision
+    try {
+      const value = await call('mcp-events/list')
+      if (alive && turn === revision) { endpoints = value.endpoints; loadErrors.list = '' }
+    } catch (e) { if (alive && turn === revision) loadErrors.list = errorText(e) }
+    finally { if (alive && turn === revision) listLoaded = true }
+  })
+  const reload = () => { void readStatus(); void readEndpoints() }
 
   const create = () =>
     attempt(async () => {
@@ -58,24 +74,32 @@
       if (agent) context.agent = agent
       if (session.trim()) context.session = session.trim()
       const created: any = await call('mcp-events/create', { context })
-      secret = { endpoint_id: created.endpoint_id, secret: created.secret }
+      if (!alive) return
+      const { secret: value, ...endpoint } = created
+      revision++
+      endpoints = [...endpoints.filter((e) => e.endpoint_id !== endpoint.endpoint_id), endpoint]
+      listLoaded = true
+      secret = { endpoint_id: endpoint.endpoint_id, secret: value }
       label = ''
       session = ''
-      endpoints = (await call('mcp-events/list')).endpoints
+      if (alive) void readEndpoints()
     })
 
   /** The old secret stays valid for a day, so the upstream can switch. */
   const rotate = (id: string) =>
     attempt(async () => {
       const rotated: any = await call('mcp-events/rotate', { endpoint_id: id })
+      if (!alive) return
       secret = { endpoint_id: id, secret: rotated.secret }
     })
 
   const remove = (id: string) =>
     attempt(async () => {
       await call('mcp-events/delete', { endpoint_id: id })
+      if (!alive) return
+      revision++
       if (secret?.endpoint_id === id) secret = null
-      endpoints = (await call('mcp-events/list')).endpoints
+      if (alive) void readEndpoints()
     })
 
   onMount(() => {
@@ -94,6 +118,7 @@
       </Pill>
     {/if}
   {/snippet}
+  {#each Object.values(loadErrors).filter(Boolean) as failure}<Notice tone="danger">{failure}</Notice>{/each}
   {#if relay?.last_fetch || relay?.rejected || error}
     <div class="grid gap-2 px-5 pb-3">
       {#if relay?.last_fetch}
@@ -140,7 +165,7 @@
         {/if}
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">{t('noEndpoints')}</li>
+      <li class="px-5 py-3 text-[13px] text-faint">{listLoaded ? t('noEndpoints') : t('loading')}</li>
     {/each}
   </ul>
   {#if unlocked}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte'
+  import { onDestroy, onMount, untrack } from 'svelte'
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
@@ -11,7 +11,7 @@
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { stateLabel, t } from '../../i18n/index.svelte'
-  import { ago, call, code, when } from '../../rpc'
+  import { ago, call, code, single, when } from '../../rpc'
 
   /** Owner inspection never consumes the Agent's unread queue. */
   let {
@@ -30,6 +30,12 @@
     selectAgent: (id: string) => void
   } = $props()
 
+  let alive = true
+  let previousAgent = ''
+  let operation = 0
+  let syncing = $state(false)
+  const receiving = new Set<string>()
+  onDestroy(() => { alive = false; operation++ })
   const PAGE = 50
   const DEFAULT_RELAY = 'https://mail.dmsg.net'
   let agent = $state('')
@@ -68,7 +74,9 @@
         messages = null
         selected = ''
         synced = ''
-        void loadMail()
+        syncing = receiving.has(agent)
+        void loadMail(agent !== previousAgent)
+        previousAgent = agent
       })
   })
 
@@ -79,18 +87,23 @@
   }
 
   async function attempt(work: () => Promise<void>) {
+    if (!alive) return
+    const turn = ++operation
     busy = true
     error = ''
     notice = ''
     try {
       await work()
     } catch (e: any) {
+      if (!alive || turn !== operation) return
       error = `${t('error')}: ${e?.tool ?? (code(e) === 'LOCKED' ? t('locked') : code(e))}${e?.tool ? ` ${e.message}` : ''}`
     } finally {
-      busy = false
-      if (refreshPending) {
-        refreshPending = false
-        void loadMail(false)
+      if (alive && turn === operation) {
+        busy = false
+        if (refreshPending) {
+          refreshPending = false
+          void loadMail(false)
+        }
       }
     }
   }
@@ -103,7 +116,7 @@
       ...(box === 'unread' ? { unread_only: true } : {}),
       ...(more && cursor ? { cursor } : {})
     }, target)
-    if (agent !== target || folder !== box) return
+    if (!alive || agent !== target || folder !== box) return
     messages = more ? [...(messages ?? []), ...page.messages] : page.messages
     cursor = page.next_cursor ?? null
     unread = page.unread_count
@@ -111,43 +124,50 @@
   }
 
   const refreshBoxes = async (target = agent) => {
-    const [result, status] = await Promise.all([
-      tool('mail_mailboxes_list', {}, target),
-      call('agent/mail_push', { agent: target })
+    await Promise.all([
+      tool('mail_mailboxes_list', {}, target).then((result) => { if (alive && agent === target) mailboxes = result.mailboxes }),
+      call('agent/mail_push', { agent: target }).then((status) => { if (alive && agent === target) push = status })
     ])
-    if (agent === target) {
-      mailboxes = result.mailboxes
-      push = status
-    }
   }
+
   const togglePush = () => attempt(async () => {
     const target = agent
     const status = await call('agent/mail_push_set', { agent: target, enabled: !push.enabled })
-    if (agent === target) push = status
+    if (alive && agent === target) push = status
   })
-  const loadMail = (receive = true) => {
+  const loadSaved = single(() => attempt(async () => {
     const target = agent
     const box = folder
-    return attempt(async () => {
-      if (receive) {
-        try {
-          const report = await tool('mail_sync', {}, target)
-          if (agent !== target || folder !== box) return
-          synced = `${t('mailReceived')} ${report.received.length} · ${t('mailDelivered')} ${report.delivered.length} · ${t('mailQueued')} ${report.queued}`
-          if (report.errors.length) error = report.errors.map((e: any) => `${e.route}: ${e.code}`).join('\n')
-        } catch (e: any) {
-          if (agent !== target || folder !== box) return
-          // Keep saved correspondence available when the relay cannot be reached.
-          error = `${t('error')}: ${e?.tool ?? code(e)} ${e.message ?? ''}`
-        }
-      }
-      await refreshBoxes(target)
-      await list(false, target, box)
-    })
+    await Promise.all([refreshBoxes(target), list(false, target, box)])
+  }))
+
+  async function receive(target: string) {
+    if (receiving.has(target)) return
+    receiving.add(target)
+    syncing = true
+    try {
+      const report = await tool('mail_sync', {}, target)
+      if (!alive || agent !== target) return
+      synced = `${t('mailReceived')} ${report.received.length} · ${t('mailDelivered')} ${report.delivered.length} · ${t('mailQueued')} ${report.queued}`
+      await loadSaved()
+      if (alive && agent === target && report.errors.length) error = report.errors.map((e: any) => `${e.route}: ${e.code}`).join('\n')
+    } catch (e: any) {
+      if (alive && agent === target) error = `${t('error')}: ${e?.tool ?? code(e)} ${e.message ?? ''}`
+    } finally {
+      receiving.delete(target)
+      if (alive && agent === target) syncing = false
+    }
+  }
+  function loadMail(sync = true) {
+    if (!alive) return
+    const loaded = loadSaved()
+    if (sync) void receive(agent)
+    return loaded
   }
 
   async function publishBox(input: Record<string, unknown>, done: string) {
     const result = await tool('mail_mailbox_publish', input)
+    if (!alive) return
     await refreshBoxes()
     if (result.failed?.length) error = result.failed.map((failure: any) => `${failure.route}: ${failure.code}`).join('\n')
     else notice = done
@@ -219,7 +239,7 @@
           ]}
         />
         <span class="flex-1"></span>
-        <button class={buttonClass('secondary', 'sm')} disabled={busy} data-testid="mail-sync" onclick={() => loadMail()}><Icon name="cloud-down" />{t('reload')}</button>
+        <button class={buttonClass('secondary', 'sm')} disabled={busy || syncing} data-testid="mail-sync" onclick={() => loadMail()}><Icon name="cloud-down" />{t('reload')}</button>
       </div>
       {#if synced}<p class="text-[12px] text-muted" role="status">{synced}</p>{/if}
       {#if messages?.length}

@@ -662,6 +662,12 @@ recipient, refresh or reconcile a claim, release expired commitments.
 `attest usage` shows this month's formal executions and archives finished
 months in the workspace before the home drops them.
 
+Agent principal reads, publication/refresh and approval preparation use short
+session-bound client steps. Controller registration reads the next generation
+once; renewal and revocation read the principal and stored credential together.
+Network waits leave local reads and locking available. Approved account changes
+still use the account journal's existing serialized execution path.
+
 Agents. `agent principal enable` and every `agent controller` change are
 account changes an administrator device approves; the user home publishes
 the principal document to the directory (`published: false` in `principal

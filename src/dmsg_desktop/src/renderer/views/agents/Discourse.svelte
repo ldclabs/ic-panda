@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import Icon from '../../components/Icon.svelte'
   import Notice from '../../components/page/Notice.svelte'
   import Pill from '../../components/page/Pill.svelte'
@@ -19,6 +20,10 @@
    */
   let { agents, active }: { agents: any[]; active: string | null } = $props()
 
+  let alive = true
+  let revision = 0
+  let opened = 0
+  onDestroy(() => { alive = false; revision++; opened++ })
   let agent = $state('')
   let rooms = $state<any[] | null>(null)
   let drafts = $state<any[]>([])
@@ -40,24 +45,29 @@
   const read = async (uri: string) => ((await call('ap/read', { agent, uri })) as any).value
 
   async function attempt(work: () => Promise<void>) {
+    const turn = ++revision
+    const target = agent
     busy = true
     error = ''
     try {
       await work()
     } catch (e) {
+      if (!alive || turn !== revision || agent !== target) return
       error = code(e) === 'LOCKED' ? t('agentLocked') : errorText(e)
     } finally {
-      busy = false
+      if (alive && turn === revision && agent === target) busy = false
     }
   }
 
   const load = () =>
     attempt(async () => {
+      const target = agent
       const [listed, held, pending] = await Promise.all([
         read('agent-protocols://rooms'),
         read('agent-protocols://drafts/held'),
         read('agent-protocols://inbox/pending')
       ])
+      if (!alive || agent !== target) return
       rooms = listed.rooms ?? []
       drafts = held.drafts ?? []
       inbox = pending.items ?? []
@@ -66,9 +76,13 @@
     })
 
   async function open(id: string) {
+    const turn = ++opened
+    const target = agent
     room = id
+    state_ = null; members = []; timeline = []
     const base = `agent-protocols://rooms/${id}`
     const [shown, listed, recent] = await Promise.all([read(base), read(`${base}/members`), read(`${base}/timeline`)])
+    if (!alive || opened !== turn || agent !== target || room !== id) return
     state_ = shown.room
     members = listed.members ?? []
     timeline = [...(recent.items ?? [])].reverse()

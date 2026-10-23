@@ -986,3 +986,41 @@ fn a_knowledge_payload_names_each_field_it_gets_wrong() {
         assert_ne!(reached.code, "invalid_event", "{reached:?}");
     });
 }
+
+#[test]
+fn mail_inspection_never_rewrites_the_snapshot_or_marks_messages() {
+    let dir = Temp::new();
+    with_room(&dir);
+    let Hosted(runtime, path) = runtime(&dir);
+    let before = stored(&path);
+    block_on(async {
+        let _turn = runtime.turn(signer(1).agent_id().as_str()).await;
+        let scope = Scope {
+            path: &path,
+            session: "inspection",
+            reach: None,
+        };
+        for tool in [
+            "agent_protocols_mail_list",
+            "agent_protocols_mail_mailboxes_list",
+        ] {
+            runtime
+                .inspect_mail(scope, signer(1), tool, json!({}))
+                .await
+                .unwrap()
+                .unwrap();
+        }
+        for (tool, input) in [
+            ("agent_protocols_mail_list", json!({"mark_read":true})),
+            ("agent_protocols_mail_list", json!({"mark_read":"false"})),
+            ("agent_protocols_mail_sync", json!({})),
+        ] {
+            assert_eq!(
+                runtime.inspect_mail(scope, signer(1), tool, input).await,
+                Err(dmsg_types::Error::Forbidden)
+            );
+        }
+    });
+    assert_eq!(stored(&path), before);
+    assert!(runtime.sessions(&path).unwrap().is_empty());
+}

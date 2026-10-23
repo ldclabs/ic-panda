@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
@@ -36,6 +37,8 @@
     delegateTo: (agent: string) => void
   } = $props()
 
+  let alive = true
+  onDestroy(() => { alive = false })
   let label = $state('')
   let issued = $state<{ label: string; credential: string; command: string; config: string } | null>(null)
   let removing = $state<any>(null)
@@ -46,6 +49,7 @@
   const issue = (agent: any) =>
     attempt(async () => {
       const [created, runtime]: any[] = await Promise.all([call('agent/credential', { agent: agent.agent_id }), bridge(() => window.dmsg.runtime())])
+      if (!alive) return
       issued = { label: agent.label, credential: created.credential, ...mcpSetup(runtime, agent.label, created.credential) }
     })
 
@@ -55,6 +59,7 @@
   }
 
   async function profile(agent: string) {
+    if (profiles[agent]?.loading) return
     if (profiles[agent]?.profiles && !profiles[agent].loading) {
       delete profiles[agent]
       return
@@ -62,8 +67,10 @@
     profiles[agent] = { loading: true }
     try {
       const read: any = await call('agent/profile', { agent })
+      if (!alive) return
       profiles[agent] = { profiles: read.profiles }
     } catch (e) {
+      if (!alive) return
       profiles[agent] = { error: errorText(e) }
     }
   }

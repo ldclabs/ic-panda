@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte'
+  import { onDestroy, untrack } from 'svelte'
   import Icon from '../../components/Icon.svelte'
   import Id from '../../components/page/Id.svelte'
   import Notice from '../../components/page/Notice.svelte'
@@ -28,6 +28,10 @@
     selectAgent: (id: string) => void
   } = $props()
 
+  let alive = true
+  let revision = 0
+  onDestroy(() => { alive = false; revision++ })
+  const context = () => `${agent}:${service}:${mode}`
   const PAGE = 20
   let agent = $state('')
   let service = $state('')
@@ -74,13 +78,14 @@
   $effect(() => {
     if (unlocked && agent && service && mode)
       untrack(() => {
+        revision++; busy = false
         items = null
         cursor = null
         found = null
         lifecycle = null
         scope = null
         lookup = ''
-        error = ''
+        error = ''; assessments = []
         if (mode !== 'search') void look()
       })
   })
@@ -91,20 +96,24 @@
     return answer.result
   }
 
-  async function attempt(work: () => Promise<void>) {
+  async function attempt(work: (valid: () => boolean) => Promise<void>) {
+    const turn = ++revision
+    const selection = context()
+    const valid = () => alive && turn === revision && selection === context()
     busy = true
     error = ''
     try {
-      await work()
+      await work(valid)
     } catch (e: any) {
+      if (!valid()) return
       error = `${t('error')}: ${e?.tool ?? (code(e) === 'LOCKED' ? t('locked') : code(e))}${e?.tool ? ` ${e.message}` : ''}`
     } finally {
-      busy = false
+      if (valid()) busy = false
     }
   }
 
   const look = (more = false) =>
-    attempt(async () => {
+    attempt(async (valid) => {
       if (!more) {
         items = null
         cursor = null
@@ -116,6 +125,7 @@
         mode === 'search'
           ? await tool('knowledge_search', { service, text: text.trim(), mode: 'hybrid', limit: PAGE })
           : await tool('knowledge_query', { service, actor: agent, type: mode, limit: PAGE, ...(more && cursor ? { cursor } : {}) })
+      if (!valid()) return
       const page = mode === 'search' ? result.hits.map((hit: any) => ({ ...hit.item, explanation: hit.explanation })) : result.items
       items = more ? [...(items ?? []), ...page] : page
       cursor = result.next_cursor ?? null
@@ -123,15 +133,19 @@
     })
 
   const get = (id: string) =>
-    attempt(async () => {
+    attempt(async (valid) => {
       found = null
       lifecycle = null
       assessments = []
       // Status already returns the verified event, together with its service-scoped lifecycle.
       const result = await tool('knowledge_status', { service, id })
+      if (!valid()) return
       found = result.item
       lifecycle = result
-      if (result.assessments.length) assessments = (await tool('knowledge_get', { service, ids: result.assessments.slice(0, 100) })).items
+      if (result.assessments.length) {
+        const result_ = await tool('knowledge_get', { service, ids: result.assessments.slice(0, 100) })
+        if (valid()) assessments = result_.items
+      }
     })
 </script>
 
@@ -143,7 +157,6 @@
       <Select
         bind:value={agent}
         onChange={selectAgent}
-        disabled={busy}
         label={t('tabAgentIds')}
         testid="knowledge-agent"
         options={agents.map((a) => ({ value: a.agent_id, label: a.label }))}
@@ -161,7 +174,6 @@
         <span class="text-[12px] text-muted">{t('knowledgeService')}</span>
         <Select
           bind:value={service}
-          disabled={busy}
           label={t('knowledgeService')}
           placeholder={t('knowledgeNoService')}
           testid="knowledge-service"
@@ -175,7 +187,6 @@
       <div class="overflow-x-auto">
         <Segmented
           bind:value={mode}
-          disabled={busy}
           label={t('knowledge')}
           testid="knowledge-mode"
           options={[
@@ -218,7 +229,6 @@
                       'grid w-full gap-2 px-4 py-3 text-start outline-none hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-forest',
                       found?.id === item.id && 'bg-pale'
                     )}
-                    disabled={busy}
                     aria-pressed={found?.id === item.id}
                     onclick={() => get(item.id)}
                   >
@@ -295,7 +305,6 @@
                   {#each assessments as assessment (assessment.id)}
                     <button
                       class="grid gap-1 rounded-lg bg-surface-2 p-3 text-start text-[12px] outline-none hover:bg-wash focus-visible:ring-2 focus-visible:ring-forest"
-                      disabled={busy}
                       onclick={() => get(assessment.id)}
                       ><span class="font-medium [overflow-wrap:anywhere]">{assessment.payload.summary}</span><span class="truncate text-muted"
                         >{labelOf(assessment.actor)} · {assessment.payload.verdict}</span

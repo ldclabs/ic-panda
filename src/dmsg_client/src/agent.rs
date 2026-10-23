@@ -364,16 +364,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::RecoveryIncomplete` without an account.
     pub async fn principal(&mut self) -> Result<Option<PrincipalInfo>> {
-        let account = self.account()?.clone();
-        let ic = self.reader().await?;
-        let info: Result<PrincipalInfo> = ic
-            .query(account.home, "get_principal", (account.id,))
-            .await?;
-        match info {
-            Ok(info) => Ok(Some(info)),
-            Err(Error::NotFound) => Ok(None),
-            Err(error) => Err(error),
-        }
+        principal(&self.hold()).await
     }
 
     /// The principal for display, with each controller's Agent ID.
@@ -381,39 +372,7 @@ impl Client {
     /// # Errors
     /// As [`Self::principal`].
     pub async fn principal_view(&mut self) -> Result<Json> {
-        let Some(info) = self.principal().await? else {
-            return Ok(Json::Null);
-        };
-        let controllers: Vec<Json> = info
-            .state
-            .controllers
-            .iter()
-            .map(|c| {
-                json!({
-                    "generation": c.generation,
-                    "agent_id": agent_id(&c.public_key),
-                    "name": c.name,
-                    "valid_from": c.valid_from,
-                    "delegation": match &c.delegation {
-                        DelegationAuthority::Unrestricted => json!("*"),
-                        DelegationAuthority::Restricted { scopes, audiences } =>
-                            json!({"scopes": scopes, "audiences": audiences}),
-                    },
-                    "retired_at": c.retired_at,
-                    "invalid_from": c.invalid_from,
-                })
-            })
-            .collect();
-        Ok(json!({
-            "principal_id": info.principal_id,
-            "type": format!("{:?}", info.state.principal_type),
-            "controllers": controllers,
-            "version": info.state.version,
-            "published_version": info.published_version,
-            "published": info.published_version == info.state.version,
-            "delegation_service": self.config.relay_origin(),
-            "next_generation": next_generation(&info),
-        }))
+        principal_view(&self.hold()).await
     }
 
     /// Ask the user home to publish the principal to the directory again.
@@ -421,15 +380,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::AuthRequired` without a login.
     pub async fn principal_publish(&mut self) -> Result<u64> {
-        let account = self.account()?.clone();
-        let login = self.session()?;
-        let version: Result<u64> = login
-            .ic
-            .update(account.home, "publish_principal", (account.id,))
-            .await?;
-        let version = version?;
-        self.principal_settled().await;
-        Ok(version)
+        principal_publish(&self.hold()).await
     }
 
     /// Let the delegation service drop its cached principal document, after
@@ -438,11 +389,7 @@ impl Client {
     /// # Errors
     /// Relay errors as returned.
     pub async fn principal_refresh(&mut self) -> Result<Json> {
-        let path = format!("{}/principal/refresh", self.base()?);
-        let state = self.cloud_state().await?;
-        self.cloud
-            .post_raw(&self.signer(&state)?, &path, &(), now_ms())
-            .await
+        principal_refresh(&self.hold()).await
     }
 
     /// Ask to change the principal; an administrator device approves it.
@@ -456,25 +403,15 @@ impl Client {
         source: &str,
         change: PrincipalChange,
     ) -> Result<Json> {
-        self.keys()?;
-        // Reject invalid input before any network read or approval is created.
-        match &change {
-            PrincipalChange::Register {
-                name, delegation, ..
-            } => {
-                if let Some(name) = name {
-                    dmsg_protocol::agent::validate_controller_name(name)?;
-                }
-                check_authority(delegation)?;
-            }
-            PrincipalChange::Rename {
-                name: Some(name), ..
-            } => {
-                dmsg_protocol::agent::validate_controller_name(name)?;
-            }
-            _ => {}
-        }
-        let info = self.principal().await?;
+        principal_request(&self.hold(), source, change).await
+    }
+
+    fn prepare_principal_request(
+        &mut self,
+        source: &str,
+        change: PrincipalChange,
+        info: Option<PrincipalInfo>,
+    ) -> Result<Json> {
         match (&change, &info) {
             (PrincipalChange::Enable { .. }, None) => {}
             (PrincipalChange::Enable { .. }, Some(_)) => return Err(Error::IdempotencyConflict),
@@ -639,46 +576,18 @@ impl Client {
         relationship: Option<String>,
         replaces: Option<&str>,
     ) -> Result<Json> {
-        self.keys()?;
-        let account = self.account()?.id.to_string();
-        let info = self.principal().await?.ok_or(Error::NotFound)?;
-        ensure_valid((1..=MAX_GRANT_DAYS).contains(&days), "days")?;
-        check_list(&scopes, "scopes", |s| s.len() <= 64)?;
-        check_list(&audiences, "audiences", |a| validate_audience(a).is_ok())?;
-        let subject_id: AgentId = subject
-            .parse()
-            .map_err(|_| dmsg_types::invalid("subject"))?;
-        // A replacement manages the credential it replaces, so the service
-        // takes it only from a controller covering that one (Delegation §5),
-        // which then covers the narrower grant too.
-        let (id, generation) = match replaces {
-            Some(id) => {
-                let old = self.delegation_credential(&account, id).await?;
-                ensure_valid(
-                    old.subject == subject_id
-                        && old.status != DelegationStatus::Revoked
-                        && scopes.iter().all(|s| old.scopes.contains(s))
-                        && audiences.iter().all(|a| old.audiences.contains(a)),
-                    "replaces",
-                )?;
-                let generation = controller_for(&info, generation, &old.scopes, &old.audiences)?;
-                (id.to_string(), generation)
-            }
-            None => (
-                format!("{account}.{}", b64(&random_id()[..16])),
-                controller_for(&info, generation, &scopes, &audiences)?,
-            ),
-        };
-        let now = now_ms();
-        let kind = DelegationKind::Grant {
-            id,
-            subject: subject_id.to_string(),
+        delegation_grant_request(
+            &self.hold(),
+            source,
+            generation,
+            subject,
             scopes,
             audiences,
-            expires_at: now + days * DAY,
+            days,
             relationship,
-        };
-        self.delegation_prepare(source, generation, kind, now)
+            replaces,
+        )
+        .await
     }
 
     /// Ask to revoke credential `id`. Controller `generation` signs it, by
@@ -695,36 +604,7 @@ impl Client {
         id: &str,
         reason: Option<String>,
     ) -> Result<Json> {
-        self.keys()?;
-        let account = self.account()?.id.to_string();
-        let info = self.principal().await?.ok_or(Error::NotFound)?;
-        let credential = self.delegation_credential(&account, id).await?;
-        let generation =
-            controller_for(&info, generation, &credential.scopes, &credential.audiences)?;
-        let kind = DelegationKind::Revoke {
-            id: id.into(),
-            reason,
-        };
-        self.delegation_prepare(source, generation, kind, now_ms())
-    }
-
-    /// Credential `id` of this account's principal, as the delegation
-    /// service holds it.
-    async fn delegation_credential(
-        &mut self,
-        account: &str,
-        id: &str,
-    ) -> Result<DelegationCredential> {
-        ensure_valid(id.starts_with(&format!("{account}.")), "id")?;
-        let service = DelegationClient::with_client(self.config.relay_origin(), self.cloud.http());
-        match service.delegation(id).await {
-            Ok(credential) => Ok(credential),
-            Err(SdkError::HttpStatus { status: 404, .. }) => Err(Error::NotFound),
-            Err(SdkError::HttpStatus { status, code, .. }) if status < 500 => {
-                Err(refusal(&code.unwrap_or_else(|| format!("http_{status}"))))
-            }
-            Err(error) => Err(Error::Unavailable(error.to_string())),
-        }
+        delegation_revoke_request(&self.hold(), source, generation, id, reason).await
     }
 
     fn delegation_prepare(
@@ -944,4 +824,291 @@ pub async fn delegation_credentials<H: Hold>(h: &H) -> Result<Vec<Json>> {
 
 fn sdk(error: SdkError) -> Error {
     Error::InvalidInput(error.to_string())
+}
+
+/// Read the current principal without holding the client during the query.
+/// # Errors
+/// As [`Client::principal`]; session changes discard the reply.
+pub async fn principal<H: Hold>(h: &H) -> Result<Option<PrincipalInfo>> {
+    let (account, generation) = h
+        .with(|c| Ok((c.account()?.clone(), c.session_generation)))
+        .await?;
+    let ic = h.reader().await?;
+    let info: Result<PrincipalInfo> = ic
+        .query(account.home, "get_principal", (account.id,))
+        .await?;
+    h.with(|c| {
+        ensure(
+            c.account()?.id == account.id && c.session_generation == generation,
+            Error::Locked,
+        )?;
+        match info {
+            Ok(info) => Ok(Some(info)),
+            Err(Error::NotFound) => Ok(None),
+            Err(error) => Err(error),
+        }
+    })
+    .await
+}
+
+/// The principal for display, with each controller's Agent ID.
+/// # Errors
+/// As [`principal`].
+pub async fn principal_view<H: Hold>(h: &H) -> Result<Json> {
+    let Some(info) = principal(h).await? else {
+        return Ok(Json::Null);
+    };
+    h.with(|c| principal_display(&info, &c.config.relay_origin()))
+        .await
+}
+
+fn principal_display(info: &PrincipalInfo, service: &str) -> Result<Json> {
+    let controllers: Vec<Json> = info
+        .state
+        .controllers
+        .iter()
+        .map(|c| {
+            json!({
+                "generation": c.generation,
+                "agent_id": agent_id(&c.public_key),
+                "name": c.name,
+                "valid_from": c.valid_from,
+                "delegation": match &c.delegation {
+                    DelegationAuthority::Unrestricted => json!("*"),
+                    DelegationAuthority::Restricted { scopes, audiences } =>
+                        json!({"scopes": scopes, "audiences": audiences}),
+                },
+                "retired_at": c.retired_at,
+                "invalid_from": c.invalid_from,
+            })
+        })
+        .collect();
+    Ok(json!({
+        "principal_id": info.principal_id,
+        "type": format!("{:?}", info.state.principal_type),
+        "controllers": controllers,
+        "version": info.state.version,
+        "published_version": info.published_version,
+        "published": info.published_version == info.state.version,
+        "delegation_service": service,
+        "next_generation": next_generation(info),
+    }))
+}
+
+fn validate_change(change: &PrincipalChange) -> Result<()> {
+    // Reject invalid input before any network read or approval is created.
+    match change {
+        PrincipalChange::Register {
+            name, delegation, ..
+        } => {
+            if let Some(name) = name {
+                dmsg_protocol::agent::validate_controller_name(name)?;
+            }
+            check_authority(delegation)?;
+        }
+        PrincipalChange::Rename {
+            name: Some(name), ..
+        } => {
+            dmsg_protocol::agent::validate_controller_name(name)?;
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+/// Prepare a principal change with network reads outside the client.
+/// # Errors
+/// As [`Client::principal_request`].
+pub async fn principal_request<H: Hold>(
+    h: &H,
+    source: &str,
+    change: PrincipalChange,
+) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    validate_change(&change)?;
+    let info = principal(&h).await?;
+    h.with(|c| c.prepare_principal_request(source, change, info))
+        .await
+}
+
+/// Read the next controller generation once and prepare its approval.
+/// # Errors
+/// As [`principal_request`].
+pub async fn controller_request<H: Hold>(
+    h: &H,
+    source: &str,
+    name: Option<String>,
+    delegation: DelegationAuthority,
+) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    let mut change = PrincipalChange::Register {
+        generation: 0,
+        name,
+        delegation,
+    };
+    validate_change(&change)?;
+    let info = principal(&h).await?.ok_or(Error::NotFound)?;
+    if let PrincipalChange::Register { generation, .. } = &mut change {
+        *generation = next_generation(&info);
+    }
+    h.with(|c| c.prepare_principal_request(source, change, Some(info)))
+        .await
+}
+
+/// Publish the principal without blocking local reads or locking.
+/// # Errors
+/// As [`Client::principal_publish`].
+pub async fn principal_publish<H: Hold>(h: &H) -> Result<u64> {
+    let h = Unlocked::new(h).await?;
+    let (account, ic) = h
+        .with(|c| Ok((c.account()?.clone(), c.session()?.ic.clone())))
+        .await?;
+    let version: Result<u64> = ic
+        .update(account.home, "publish_principal", (account.id,))
+        .await?;
+    let version = version?;
+    if let Ok(Some(info)) = principal(&h).await
+        && info.published_version == info.state.version
+        && !info.state.controllers.is_empty()
+    {
+        let _ = principal_refresh(&h).await;
+    }
+    h.with(|_| Ok(version)).await
+}
+
+/// Ask the delegation service to refresh its published principal.
+/// # Errors
+/// As [`Client::principal_refresh`].
+pub async fn principal_refresh<H: Hold>(h: &H) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    let path = h
+        .with(|c| Ok(format!("{}/principal/refresh", c.base()?)))
+        .await?;
+    let result = h
+        .send(|c| {
+            let state = c.fresh_state().ok_or(Error::PolicyStale)?;
+            c.cloud.prepare_raw(&c.signer(state)?, &path, &(), now_ms())
+        })
+        .await?;
+    h.with(|_| Ok(result)).await
+}
+
+async fn delegation_credential<H: Hold>(
+    h: &H,
+    account: &str,
+    id: &str,
+) -> Result<DelegationCredential> {
+    ensure_valid(id.starts_with(&format!("{account}.")), "id")?;
+    let service = h
+        .with(|c| {
+            Ok(DelegationClient::with_client(
+                c.config.relay_origin(),
+                c.cloud.http(),
+            ))
+        })
+        .await?;
+    match service.delegation(id).await {
+        Ok(credential) => Ok(credential),
+        Err(SdkError::HttpStatus { status: 404, .. }) => Err(Error::NotFound),
+        Err(SdkError::HttpStatus { status, code, .. }) if status < 500 => {
+            Err(refusal(&code.unwrap_or_else(|| format!("http_{status}"))))
+        }
+        Err(error) => Err(Error::Unavailable(error.to_string())),
+    }
+}
+
+/// Prepare a grant, reading its principal and any replaced credential together.
+/// # Errors
+/// As [`Client::delegation_grant_request`].
+#[allow(clippy::too_many_arguments)]
+pub async fn delegation_grant_request<H: Hold>(
+    h: &H,
+    source: &str,
+    generation: Option<u32>,
+    subject: &str,
+    scopes: Vec<String>,
+    audiences: Vec<String>,
+    days: u64,
+    relationship: Option<String>,
+    replaces: Option<&str>,
+) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    ensure_valid((1..=MAX_GRANT_DAYS).contains(&days), "days")?;
+    check_list(&scopes, "scopes", |s| s.len() <= 64)?;
+    check_list(&audiences, "audiences", |a| validate_audience(a).is_ok())?;
+    let subject_id: AgentId = subject
+        .parse()
+        .map_err(|_| dmsg_types::invalid("subject"))?;
+    let account = h.with(|c| Ok(c.account()?.id.to_string())).await?;
+    let old = async {
+        match replaces {
+            Some(id) => delegation_credential(&h, &account, id).await.map(Some),
+            None => Ok(None),
+        }
+    };
+    let (info, old) = futures_util::try_join!(principal(&h), old)?;
+    let info = info.ok_or(Error::NotFound)?;
+    h.with(|c| {
+        let (id, generation) = match old {
+            Some(old) => {
+                ensure_valid(
+                    old.subject == subject_id
+                        && old.status != DelegationStatus::Revoked
+                        && scopes.iter().all(|s| old.scopes.contains(s))
+                        && audiences.iter().all(|a| old.audiences.contains(a)),
+                    "replaces",
+                )?;
+                (
+                    replaces.unwrap().to_string(),
+                    controller_for(&info, generation, &old.scopes, &old.audiences)?,
+                )
+            }
+            None => (
+                format!("{account}.{}", b64(&random_id()[..16])),
+                controller_for(&info, generation, &scopes, &audiences)?,
+            ),
+        };
+        let now = now_ms();
+        let kind = DelegationKind::Grant {
+            id,
+            subject: subject_id.to_string(),
+            scopes,
+            audiences,
+            expires_at: now + days * DAY,
+            relationship,
+        };
+        c.delegation_prepare(source, generation, kind, now)
+    })
+    .await
+}
+
+/// Prepare a revocation with independent reads outside the client.
+/// # Errors
+/// As [`Client::delegation_revoke_request`].
+pub async fn delegation_revoke_request<H: Hold>(
+    h: &H,
+    source: &str,
+    generation: Option<u32>,
+    id: &str,
+    reason: Option<String>,
+) -> Result<Json> {
+    let h = Unlocked::new(h).await?;
+    let account = h.with(|c| Ok(c.account()?.id.to_string())).await?;
+    let (info, credential) =
+        futures_util::try_join!(principal(&h), delegation_credential(&h, &account, id))?;
+    let info = info.ok_or(Error::NotFound)?;
+    h.with(|c| {
+        let generation =
+            controller_for(&info, generation, &credential.scopes, &credential.audiences)?;
+        c.delegation_prepare(
+            source,
+            generation,
+            DelegationKind::Revoke {
+                id: id.into(),
+                reason,
+            },
+            now_ms(),
+        )
+    })
+    .await
 }
