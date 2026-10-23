@@ -382,15 +382,7 @@ impl Daemon {
                     },
                 }),
                 "agent/register" => {
-                    let delegation = match (params.get("scopes"), params.get("audiences")) {
-                        (None | Some(Value::Null), None | Some(Value::Null)) => {
-                            DelegationAuthority::Unrestricted
-                        }
-                        _ => DelegationAuthority::Restricted {
-                            scopes: parse(params, "scopes")?,
-                            audiences: parse(params, "audiences")?,
-                        },
-                    };
+                    let delegation = controller_authority(params)?;
                     let info = client.principal().await?.ok_or(Error::NotFound)?;
                     Some(PrincipalChange::Register {
                         generation: dmsg_client::agent::next_generation(&info),
@@ -1194,6 +1186,25 @@ impl Daemon {
     }
 }
 
+/// An unrestricted ceiling is an explicit owner choice, never an empty form.
+fn controller_authority(params: &Value) -> Result<DelegationAuthority> {
+    match params.get("unrestricted") {
+        Some(Value::Bool(true))
+            if !params["scopes"].is_null() || !params["audiences"].is_null() =>
+        {
+            Err(Error::InvalidInput(
+                "choose unrestricted or scopes and audiences".into(),
+            ))
+        }
+        Some(Value::Bool(true)) => Ok(DelegationAuthority::Unrestricted),
+        None | Some(Value::Bool(false)) => Ok(DelegationAuthority::Restricted {
+            scopes: parse(params, "scopes")?,
+            audiences: parse(params, "audiences")?,
+        }),
+        _ => Err(Error::InvalidInput("unrestricted must be a boolean".into())),
+    }
+}
+
 /// A library file as an agent sees it: no key, no chunks.
 fn file_summary(file: &dmsg_client::library::catalog::FileView) -> Value {
     json!({
@@ -1227,6 +1238,33 @@ fn tagged(client: &Client, did: &str, name: &str, item: &Item) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn controller_registration_requires_explicit_authority() {
+        for params in [
+            json!({}),
+            json!({"scopes": null, "audiences": null}),
+            json!({"unrestricted": "true"}),
+            json!({"unrestricted": true, "scopes": []}),
+            json!({"scopes": ["read"]}),
+        ] {
+            assert!(controller_authority(&params).is_err(), "{params}");
+        }
+        assert_eq!(
+            controller_authority(&json!({"unrestricted": true})).unwrap(),
+            DelegationAuthority::Unrestricted
+        );
+        assert_eq!(
+            controller_authority(
+                &json!({"scopes": ["app.read"], "audiences": ["https://example.com"]})
+            )
+            .unwrap(),
+            DelegationAuthority::Restricted {
+                scopes: vec!["app.read".into()],
+                audiences: vec!["https://example.com".into()]
+            },
+        );
+    }
 
     #[tokio::test]
     async fn background_mail_requires_live_grants_and_residency_while_locked() {

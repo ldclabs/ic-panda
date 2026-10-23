@@ -5566,7 +5566,14 @@ fn desktop_agents() {
     let request = a.run(&["agent", "principal", "enable"]);
     assert_eq!(request["type"], "principal");
     assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
-    let request = a.run(&["agent", "controller", "register", "--name", "desktop"]);
+    let request = a.run(&[
+        "agent",
+        "controller",
+        "register",
+        "--unrestricted",
+        "--name",
+        "desktop",
+    ]);
     assert_eq!(request["detail"]["generation"], 1);
     assert_eq!(a.decide(&http, &request, true).unwrap()["state"], "done");
     let principal = a.run(&["agent", "principal", "show"]);

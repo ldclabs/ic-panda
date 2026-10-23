@@ -26,6 +26,12 @@ user home 是 controller 变更的线性化点：退役一旦提交，该 key �
 - home 与 directory 共用 64 KiB 文档的保守字节预算，计入配置 URL 的最大长度、所有 controller 后续退役/泄露字段及最大名称。超预算注册在 home 提交前返回 `QuotaExceeded`。
 - `publish_principal(account_id)` 任何人可调用，幂等地把当前状态推送到 directory；变更命令在本地提交后会立即尝试一次。`get_principal` 返回 `PrincipalInfo`：当前状态与已发布版本。`published_version < state.version` 时，变更尚未对外生效。
 
+### Controller 登记输入
+
+桌面端提供 dMsg 默认签名密钥入口，私钥仍由客户端生成并保存在秘密库；生产目录发布的 `source` 为 `https://dmsg.net`。用户须明确选择不受限权限，再经审批登记；默认入口不会自动授予 Agent 能力。自定义受限密钥在高级选项中登记，范围由接入应用定义，格式校验不证明应用支持该范围。
+
+`agent/register` 必须显式传 `unrestricted: true`，或同时传非空 `scopes` 与 `audiences`，不得混用；遗漏字段不再等价于 `*`。CLI 对应 `--unrestricted` 或 `--scope` 与 `--audience`。桌面表单和 Rust 客户端在审批前拒绝重复/空条目、范围中的空白或通配符、无效依赖方及超限输入：范围最多 8 项、每项 64 UTF-8 字节，依赖方最多 4 项、每项 256 UTF-8 字节，名称最多 64 UTF-8 字节且无控制字符。换钥沿用相同校验和显式权限选择。
+
 ## 本地签名
 
 事件由客户端（桌面 daemon，`src/dmsg_client` 的 `agent` 模块）在本机构造、签名并提交，不经过 user home 或 COSE：

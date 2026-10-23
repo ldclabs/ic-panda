@@ -27,6 +27,66 @@ use std::sync::Arc;
 const NOW: u64 = 1_790_000_000_000;
 const SEED: [u8; 32] = [3; 32];
 
+#[tokio::test]
+async fn invalid_controller_input_never_creates_an_approval_or_reads_the_network() {
+    use crate::agent::PrincipalChange;
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let valid_scopes = vec!["app.read".to_string()];
+    let valid_audiences = vec!["https://example.com".to_string()];
+    let mut invalid = Vec::new();
+    for scopes in [
+        vec![],
+        vec!["*".into()],
+        vec!["app.*".into()],
+        vec!["app read".into()],
+        vec!["app.read".into(), "app.read".into()],
+        vec!["界".repeat(22)],
+        (0..9).map(|i| format!("app.{i}")).collect(),
+    ] {
+        invalid.push((
+            None,
+            DelegationAuthority::Restricted {
+                scopes,
+                audiences: valid_audiences.clone(),
+            },
+        ));
+    }
+    for audiences in [
+        vec![],
+        vec!["nonsense".into()],
+        vec!["http://example.com".into()],
+        vec!["https://example.com/path".into()],
+        vec!["did:agent:garbage".into()],
+        vec!["https://example.com".into(), "https://example.com".into()],
+        (0..5).map(|i| format!("https://{i}.example.com")).collect(),
+    ] {
+        invalid.push((
+            None,
+            DelegationAuthority::Restricted {
+                scopes: valid_scopes.clone(),
+                audiences,
+            },
+        ));
+    }
+    invalid.push((Some("界".repeat(22)), DelegationAuthority::Unrestricted));
+    invalid.push((Some("bad\nname".into()), DelegationAuthority::Unrestricted));
+    for (name, delegation) in invalid {
+        let result = client
+            .principal_request(
+                "gui",
+                PrincipalChange::Register {
+                    generation: 1,
+                    name,
+                    delegation,
+                },
+            )
+            .await;
+        assert!(matches!(result, Err(Error::InvalidInput(_))), "{result:?}");
+        assert!(client.approvals(true).unwrap().is_empty());
+    }
+}
+
 /// The principal document the directory would publish for the test account
 /// with one restricted controller, and its URL.
 fn document() -> (PrincipalDocument, String) {

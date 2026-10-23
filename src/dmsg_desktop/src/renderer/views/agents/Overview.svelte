@@ -15,6 +15,7 @@
   import { t } from '../../i18n/index.svelte'
   import { when } from '../../rpc'
   import { bySubject, covers, list, profileHint, statusTone } from './agents'
+  import { controllerErrors, controllerParams } from './controllers'
 
   /**
    * The account's principal: its controllers, each limited to what its
@@ -52,6 +53,10 @@
   let controllerName = $state('')
   let ceilingScopes = $state('')
   let ceilingAudiences = $state('')
+  let defaultConsent = $state(false)
+  let registrationPending = $state(false)
+  let customController = $state(false)
+  let controllerTouched = $state(false)
   let scopes = $state('')
   let audiences = $state('')
   let days = $state(30)
@@ -62,11 +67,14 @@
   let rotation = $state<{ from: number; after: number } | null>(null)
   let renaming = $state<{ generation: number; name: string } | null>(null)
   let compromising = $state<{ generation: number; at: string } | null>(null)
-  let rotating = $state<{ from: any; name: string; scopes: string; audiences: string } | null>(null)
+  let rotating = $state<{ from: any; name: string; scopes: string; audiences: string; unrestricted: boolean } | null>(null)
   let renewing = $state<{ credential: any; scopes: Record<string, boolean>; audiences: Record<string, boolean>; days: number; relationship: string } | null>(null)
   let revoking = $state<{ credential: any; reason: string } | null>(null)
 
   const current = $derived((principal?.controllers ?? []).filter((c: any) => !c.retired_at))
+  const defaultController = $derived(current.find((c: any) => c.delegation === '*'))
+  const registrationErrors = $derived(controllerErrors(controllerName, ceilingScopes, ceilingAudiences))
+  const rotationErrors = $derived(rotating ? controllerErrors(rotating.name, rotating.scopes, rotating.audiences, rotating.unrestricted) : {})
   const labelOf = (did: string) => hosted.agents.find((a: any) => a.agent_id === did)?.label ?? did
   const generationOf = (did: string) => principal?.controllers.find((c: any) => c.agent_id === did)?.generation
   const ceilingText = (c: any) => (c.delegation === '*' ? t('everything') : `${c.delegation.scopes.join(', ')} → ${c.delegation.audiences.join(', ')}`)
@@ -80,9 +88,29 @@
     return d.toISOString().slice(0, 16)
   }
 
-  const ceiling = (s: string, a: string) => (s.trim() || a.trim() ? { scopes: list(s), audiences: list(a) } : {})
+  async function registerDefault() {
+    if (!defaultConsent || defaultController || registrationPending) return
+    registrationPending = true
+    try {
+      if (await request('agent/register', controllerParams('dMsg default signer', '', '', true))) defaultConsent = false
+    } finally {
+      registrationPending = false
+    }
+  }
 
-  const register = () => request('agent/register', { name: controllerName.trim() || null, ...ceiling(ceilingScopes, ceilingAudiences) })
+  async function register() {
+    controllerTouched = true
+    if (Object.keys(registrationErrors).length || registrationPending) return
+    registrationPending = true
+    try {
+      if (await request('agent/register', controllerParams(controllerName, ceilingScopes, ceilingAudiences))) {
+        controllerName = ceilingScopes = ceilingAudiences = ''
+        controllerTouched = customController = false
+      }
+    } finally {
+      registrationPending = false
+    }
+  }
 
   const grant = () =>
     request('agent/grant', {
@@ -95,12 +123,17 @@
     })
 
   async function rotate() {
-    if (!rotating) return
+    if (!rotating || Object.keys(rotationErrors).length || registrationPending) return
     const [from, after] = [rotating.from.generation, principal.next_generation]
     // A refused request leaves the dialog open and starts no rotation.
-    if (!(await request('agent/register', { name: rotating.name.trim() || null, ...ceiling(rotating.scopes, rotating.audiences) }))) return
-    rotation = { from, after }
-    rotating = null
+    registrationPending = true
+    try {
+      if (!(await request('agent/register', controllerParams(rotating.name, rotating.scopes, rotating.audiences, rotating.unrestricted)))) return
+      rotation = { from, after }
+      rotating = null
+    } finally {
+      registrationPending = false
+    }
   }
 
   async function retireRotated() {
@@ -174,6 +207,18 @@
 
 {#if principal}
   <Section title={t('controllers')} description={t('controllersHint')} icon="key" flush testid="controllers">
+    <div class="grid gap-3 border-t border-line bg-surface-2/60 px-5 py-4" data-testid="default-controller">
+      <div class="flex flex-wrap items-center gap-2">
+        <b class="text-[13px] font-medium">{t('defaultController')}</b>
+        <span class="font-mono text-[11.5px] text-muted">https://dmsg.net</span>
+        {#if defaultController}<Pill tone={principal.published ? 'ok' : 'warn'}>#{defaultController.generation} · {principal.published ? t('defaultControllerReady') : t('unpublished')}</Pill>{/if}
+      </div>
+      <p class="text-[12px] text-muted">{t('defaultControllerHint')}</p>
+      {#if !defaultController && unlocked}
+        <Checkbox bind:checked={defaultConsent}>{t('controllerUnrestrictedConsent')}</Checkbox>
+        <div><button class={buttonClass('primary')} disabled={busy || registrationPending || !defaultConsent} onclick={registerDefault} data-testid="default-controller-register">{t('enableDefaultController')}</button></div>
+      {/if}
+    </div>
     {#if rotation && rotatingFrom && !rotatingFrom.retired_at}
       <div class="border-t border-line px-5 py-3">
         <Notice tone={successor ? 'warn' : 'info'} testid="rotation">
@@ -211,6 +256,7 @@
                     (rotating = {
                       from: c,
                       name: c.name ?? '',
+                      unrestricted: false,
                       scopes: c.delegation === '*' ? '' : c.delegation.scopes.join(', '),
                       audiences: c.delegation === '*' ? '' : c.delegation.audiences.join(', ')
                     })}>{t('rotateKey')}</button
@@ -230,12 +276,21 @@
       {/each}
     </ul>
     {#if unlocked}
-      <div class="grid gap-2 border-t border-line bg-surface-2/60 px-5 py-3.5 sm:grid-cols-[160px_1fr_1fr_auto] sm:items-end">
-        <Field label={t('name')}><input bind:value={controllerName} /></Field>
-        <Field label={t('scopes')}><input bind:value={ceilingScopes} placeholder="message.draft, …" /></Field>
-        <Field label={t('audiences')}><input bind:value={ceilingAudiences} placeholder="https://…" /></Field>
-        <button class={buttonClass('primary')} disabled={busy} onclick={register}>{t('registerController')}</button>
-      </div>
+      <details bind:open={customController} class="border-t border-line px-5 py-3.5" data-testid="custom-controller">
+        <summary class="cursor-pointer text-[13px] font-medium">{t('customController')}</summary>
+        <p class="mt-2 text-[12px] text-muted">{t('customControllerHint')}</p>
+        <form class="mt-3 grid gap-3" onsubmit={(event) => { event.preventDefault(); register() }} oninput={() => (controllerTouched = true)}>
+          <Field label={t('name')} hint={t('controllerNameHint')}><input bind:value={controllerName} aria-invalid={!!registrationErrors.name} data-testid="controller-name" /></Field>
+          {#if controllerTouched && registrationErrors.name}<p role="alert" class="text-[12px] text-danger">{t(registrationErrors.name)}</p>{/if}
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div><Field label={t('scopes')} hint={t('controllerScopesHint')}><input bind:value={ceilingScopes} placeholder="app.read, app.write" aria-invalid={controllerTouched && !!registrationErrors.scopes} data-testid="controller-scopes" /></Field>
+              {#if controllerTouched && registrationErrors.scopes}<p role="alert" class="mt-1 text-[12px] text-danger">{t(registrationErrors.scopes)}</p>{/if}</div>
+            <div><Field label={t('audiences')} hint={t('controllerAudiencesHint')}><input bind:value={ceilingAudiences} placeholder="https://example.com" aria-invalid={controllerTouched && !!registrationErrors.audiences} data-testid="controller-audiences" /></Field>
+              {#if controllerTouched && registrationErrors.audiences}<p role="alert" class="mt-1 text-[12px] text-danger">{t(registrationErrors.audiences)}</p>{/if}</div>
+          </div>
+          <div><button class={buttonClass('secondary')} disabled={busy || registrationPending || !!Object.keys(registrationErrors).length} data-testid="controller-register">{t('registerController')}</button></div>
+        </form>
+      </details>
     {/if}
   </Section>
 
@@ -386,17 +441,21 @@
 <Dialog bind:open={() => !!rotating, (open) => !open && (rotating = null)} title={t('rotateTitle', { generation: rotating?.from.generation ?? '' })} description={t('rotateHint')} icon="key" wide testid="rotate-dialog">
   {#if rotating}
     <div class="grid gap-3">
-      <Field label={t('name')}><input bind:value={rotating.name} /></Field>
-      <div class="grid gap-3 sm:grid-cols-2">
-        <Field label={t('scopes')} hint={t('ceilingEmptyHint')}><input bind:value={rotating.scopes} /></Field>
-        <Field label={t('audiences')}><input bind:value={rotating.audiences} /></Field>
-      </div>
+      <Field label={t('name')} hint={t('controllerNameHint')}><input bind:value={rotating.name} /></Field>
+      <Checkbox bind:checked={rotating.unrestricted}>{t('controllerUnrestrictedConsent')}</Checkbox>
+      {#if !rotating.unrestricted}
+        <div class="grid gap-3 sm:grid-cols-2">
+          <Field label={t('scopes')} hint={t('controllerScopesHint')}><input bind:value={rotating.scopes} data-testid="rotate-scopes" /></Field>
+          <Field label={t('audiences')} hint={t('controllerAudiencesHint')}><input bind:value={rotating.audiences} data-testid="rotate-audiences" /></Field>
+        </div>
+      {/if}
+      {#each Object.values(rotationErrors) as error}<p role="alert" class="text-[12px] text-danger">{t(error)}</p>{/each}
     </div>
   {/if}
   {#snippet footer()}
     <span class="flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (rotating = null)}>{t('cancel')}</button>
-    <button class={buttonClass('primary')} disabled={busy} onclick={rotate} data-testid="rotate-confirm">{t('registerController')}</button>
+    <button class={buttonClass('primary')} disabled={busy || registrationPending || !!Object.keys(rotationErrors).length} onclick={rotate} data-testid="rotate-confirm">{t('registerController')}</button>
   {/snippet}
 </Dialog>
 

@@ -271,7 +271,7 @@ dmsg handle transfer <name> <account> | accept <token> | commit <id> | operation
 dmsg ops orders | transfers | claims [--after ID] | reconcile-order <id> | process-transfer <id>
 dmsg ops revise-transfer <id> --fee F | claim <id> [--refresh] | sweep
 dmsg agent principal show | enable [--type person|organization|team|project|other] | publish | refresh
-dmsg agent controller register [--name N] [--scope S]... [--audience A]... | retire <gen> | compromise <gen> --from <ms> | rename <gen> [--name N]
+dmsg agent controller register [--name N] (--unrestricted | --scope S... --audience A...) | retire <gen> | compromise <gen> --from <ms> | rename <gen> [--name N]
 dmsg agent grant <subject> --scope S... --audience A... [--days 30] [--generation G] [--relationship R] [--replaces ID]
 dmsg agent revoke <id> [--generation G] [--reason R] | credentials | delegations
 dmsg agent id create <label> | list | use <agent> | resident <agent> on|off | credential <agent>

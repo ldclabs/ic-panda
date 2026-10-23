@@ -47,6 +47,7 @@ import { WebSocketServer } from 'ws'
 
 const token = 'desktop-smoke-token'
 const account = '0123456789abcdefghig'
+let showController = false
 const request = {
   id: 'ab'.repeat(32),
   source: 'connect:https://app.example',
@@ -1198,10 +1199,20 @@ const methods = {
     version: 2,
     published_version: 2,
     next_generation: 2,
-    controllers: [
+    controllers: showController ? [
       { generation: 1, agent_id: 'did:agent:' + 'C'.repeat(43), name: 'desktop', delegation: '*', valid_from: Date.now(), retired_at: null }
-    ]
+    ] : []
   }),
+  'agent/register': (p) => {
+    assert.equal(p.source, 'gui')
+    const created = {
+      ...request, id: '97'.repeat(32), source: 'gui', type: 'principal', kind: 'agent',
+      state: 'awaiting_user',
+      detail: { change: 'register', generation: 2, name: p.name, delegation: p.unrestricted ? 'Unrestricted' : { Restricted: { scopes: p.scopes, audiences: p.audiences } } }
+    }
+    requests.set(created.id, created)
+    return created
+  },
   'agent/credentials': () => [
     {
       id: `${account}.c1`,
@@ -1434,7 +1445,7 @@ const latest = (method) => calls.filter((c) => c.method === method).at(-1)
 /** Wait for an element's animations, such as a dialog fading in, to end before a screenshot; a cancelled one has ended too. */
 const settled = (page, selector) =>
   page.locator(selector).evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => null))))
-try {
+smoke: try {
   const main = await app.firstWindow()
   // An uncaught error in a window fails the run, such as an effect that
   // writes what it reads and so runs until Svelte gives up on it.
@@ -2290,6 +2301,49 @@ try {
   const decisionsBeforeGrant = calls.filter((c) => c.method === 'approval/respond').length
   await main.click('nav >> text=/Agents|Agent/')
   await main.waitForSelector('[data-testid="principal-id"]')
+  // A default key is opt-in; malformed custom ceilings never create approvals.
+  const registrations = () => calls.filter((c) => c.method === 'agent/register').length
+  assert.equal(await main.isDisabled('[data-testid="default-controller-register"]'), true)
+  await main.locator('[data-testid="default-controller"]').getByRole('checkbox').check()
+  await main.click('[data-testid="default-controller-register"]')
+  await approval.waitForSelector('[data-testid="approval-change"]')
+  assert.deepEqual(latest('agent/register').params, { name: 'dMsg default signer', unrestricted: true, source: 'gui' })
+  assert.equal(await main.isDisabled('[data-testid="default-controller-register"]'), true)
+  await main.locator('[data-testid="custom-controller"] summary').click()
+  assert.equal(await main.isDisabled('[data-testid="controller-register"]'), true)
+  const beforeInvalid = registrations()
+  await main.fill('[data-testid="controller-scopes"]', 'app.*')
+  await main.fill('[data-testid="controller-audiences"]', 'not a URL')
+  assert.equal(await main.isDisabled('[data-testid="controller-register"]'), true)
+  assert.equal(await main.locator('[data-testid="custom-controller"] [role="alert"]').count(), 2)
+  await main.fill('[data-testid="controller-scopes"]', 'app.read,app.read')
+  await main.fill('[data-testid="controller-audiences"]', 'https://example.com/path')
+  assert.equal(await main.isDisabled('[data-testid="controller-register"]'), true)
+  assert.equal(registrations(), beforeInvalid)
+  await main.locator('[data-testid="controllers"]').screenshot({ path: join(shots, 'controllers-invalid.png') })
+  await main.fill('[data-testid="controller-name"]', 'Example app')
+  await main.fill('[data-testid="controller-scopes"]', 'app.read')
+  await main.fill('[data-testid="controller-audiences"]', 'https://example.com')
+  await main.click('[data-testid="controller-register"]')
+  await waitFor(() => registrations() === beforeInvalid + 1)
+  assert.deepEqual(latest('agent/register').params, { name: 'Example app', scopes: ['app.read'], audiences: ['https://example.com'], source: 'gui' })
+  showController = true
+  emit('agent/changed')
+  await main.waitForSelector('[data-testid="controller-rotate"]')
+  assert.equal(await main.locator('[data-testid="default-controller-register"]').count(), 0)
+  await main.click('[data-testid="controller-rotate"]')
+  assert.equal(await main.isDisabled('[data-testid="rotate-confirm"]'), true)
+  await main.fill('[data-testid="rotate-scopes"]', 'app.read')
+  await main.fill('[data-testid="rotate-audiences"]', 'https://example.com/path')
+  assert.equal(await main.isDisabled('[data-testid="rotate-confirm"]'), true)
+  await main.locator('[data-testid="rotate-dialog"]').getByRole('checkbox').check()
+  await main.click('[data-testid="rotate-confirm"]')
+  await waitFor(() => registrations() === beforeInvalid + 2)
+  assert.equal(latest('agent/register').params.unrestricted, true)
+  assert.equal(latest('agent/register').params.scopes, undefined)
+  requests.delete('97'.repeat(32))
+  await main.waitForSelector('[data-testid="rotate-dialog"]', { state: 'hidden' })
+  await main.locator('[data-testid="controllers"]').screenshot({ path: join(shots, 'controllers.png') })
   await main.fill('[data-testid="grant-subject"]', 'claude')
   await main.fill('[data-testid="grant-scopes"]', 'message.draft')
   await main.fill('[data-testid="grant-audiences"]', 'https://dmsg.net')
@@ -2308,6 +2362,11 @@ try {
   await main.click('[data-testid="renew-confirm"]')
   await waitFor(() => latest('agent/grant').params.replaces === `${account}.c1`)
   assert.equal(latest('agent/grant').params.days, 90)
+
+  if (process.env.DMSG_DESKTOP_SMOKE === 'controllers') {
+    console.log('desktop controller smoke test passed (remaining flows skipped)')
+    break smoke
+  }
 
   // Humans inspect correspondence without sending or consuming the Agent's unread queue.
   await main.click('[data-testid="agents-tab-mail"]')

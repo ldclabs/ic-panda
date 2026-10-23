@@ -202,11 +202,25 @@ pub fn next_generation(info: &PrincipalInfo) -> u32 {
         + 1
 }
 
-/// Check a ceiling as the user home will.
+/// Enforce the user home's bounds and explicit scope tokens before approval.
 fn check_authority(authority: &DelegationAuthority) -> Result<()> {
+    use dmsg_protocol::agent::{
+        MAX_AUDIENCE_BYTES, MAX_CEILING_AUDIENCES, MAX_CEILING_SCOPES, MAX_SCOPE_BYTES,
+    };
     if let DelegationAuthority::Restricted { scopes, audiences } = authority {
-        check_list(scopes, "scopes", |s| s.len() <= 64)?;
-        check_list(audiences, "audiences", |a| validate_audience(a).is_ok())?;
+        ensure_valid(scopes.len() <= MAX_CEILING_SCOPES, "scopes: at most 8")?;
+        ensure_valid(
+            audiences.len() <= MAX_CEILING_AUDIENCES,
+            "audiences: at most 4",
+        )?;
+        check_list(scopes, "scopes", |s| {
+            s.len() <= MAX_SCOPE_BYTES
+                && !s.contains('*')
+                && !s.chars().any(|c| c.is_whitespace() || c.is_control())
+        })?;
+        check_list(audiences, "audiences", |a| {
+            a.len() <= MAX_AUDIENCE_BYTES && validate_audience(a).is_ok()
+        })?;
     }
     Ok(())
 }
@@ -442,32 +456,41 @@ impl Client {
         change: PrincipalChange,
     ) -> Result<Json> {
         self.keys()?;
-        let info = self.principal().await?;
-        match (&change, &info) {
-            (PrincipalChange::Enable { .. }, None) => {}
-            (PrincipalChange::Enable { .. }, Some(_)) => return Err(Error::IdempotencyConflict),
-            (_, None) => return Err(Error::NotFound),
-            (
-                PrincipalChange::Register {
-                    generation,
-                    name,
-                    delegation,
-                },
-                Some(info),
-            ) => {
-                ensure(*generation == next_generation(info), Error::VersionConflict)?;
+        // Reject invalid input before any network read or approval is created.
+        match &change {
+            PrincipalChange::Register {
+                name, delegation, ..
+            } => {
                 if let Some(name) = name {
                     dmsg_protocol::agent::validate_controller_name(name)?;
                 }
                 check_authority(delegation)?;
             }
-            (
-                PrincipalChange::Rename {
-                    name: Some(name), ..
-                },
-                _,
-            ) => {
+            PrincipalChange::Rename {
+                name: Some(name), ..
+            } => {
                 dmsg_protocol::agent::validate_controller_name(name)?;
+            }
+            _ => {}
+        }
+        let info = self.principal().await?;
+        match (&change, &info) {
+            (PrincipalChange::Enable { .. }, None) => {}
+            (PrincipalChange::Enable { .. }, Some(_)) => return Err(Error::IdempotencyConflict),
+            (_, None) => return Err(Error::NotFound),
+            (PrincipalChange::Register { generation, .. }, Some(info)) => {
+                ensure(*generation == next_generation(info), Error::VersionConflict)?;
+                ensure(
+                    info.state.controllers.len() < dmsg_types::agent::MAX_CONTROLLER_RECORDS
+                        && info
+                            .state
+                            .controllers
+                            .iter()
+                            .filter(|c| c.retired_at.is_none())
+                            .count()
+                            < dmsg_types::agent::MAX_CURRENT_CONTROLLERS,
+                    Error::QuotaExceeded,
+                )?;
             }
             _ => {}
         }

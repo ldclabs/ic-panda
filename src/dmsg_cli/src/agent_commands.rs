@@ -80,17 +80,28 @@ pub enum PrincipalCommand {
 #[derive(Subcommand)]
 pub enum ControllerCommand {
     /// Create the next controller key and register it (needs approval).
-    /// Without scopes and audiences its ceiling is "*".
+    /// Choose explicit scopes and audiences, or --unrestricted for "*".
     Register {
         /// Display label.
         #[arg(long)]
         name: Option<String>,
         /// A scope it may grant; repeat for more.
-        #[arg(long = "scope")]
+        #[arg(
+            long = "scope",
+            required_unless_present = "unrestricted",
+            requires = "audiences"
+        )]
         scopes: Vec<String>,
         /// A relying party it may grant for; repeat for more.
-        #[arg(long = "audience")]
+        #[arg(
+            long = "audience",
+            required_unless_present = "unrestricted",
+            requires = "scopes"
+        )]
         audiences: Vec<String>,
+        /// Allow any scope and audience; each signature still needs approval.
+        #[arg(long, conflicts_with_all = ["scopes", "audiences"])]
+        unrestricted: bool,
     },
     /// Retire a controller; it never signs again.
     Retire {
@@ -113,6 +124,29 @@ pub enum ControllerCommand {
         #[arg(long)]
         name: Option<String>,
     },
+}
+
+#[cfg(test)]
+mod controller_tests {
+    use clap::Parser;
+
+    #[test]
+    fn controller_cli_requires_an_explicit_ceiling() {
+        let parse = |args: &[&str]| {
+            crate::Cli::try_parse_from(
+                ["dmsg", "agent", "controller", "register"]
+                    .into_iter()
+                    .chain(args.iter().copied()),
+            )
+        };
+        assert!(parse(&[]).is_err());
+        assert!(parse(&["--name", "desktop"]).is_err());
+        assert!(parse(&["--scope", "app.read"]).is_err());
+        assert!(parse(&["--audience", "https://example.com"]).is_err());
+        assert!(parse(&["--unrestricted", "--scope", "app.read"]).is_err());
+        assert!(parse(&["--unrestricted"]).is_ok());
+        assert!(parse(&["--scope", "app.read", "--audience", "https://example.com"]).is_ok());
+    }
 }
 
 #[derive(Subcommand)]
@@ -216,9 +250,10 @@ pub async fn agent(remote: &Remote, json: bool, command: AgentCommand) -> Result
             name,
             scopes,
             audiences,
+            unrestricted,
         }) => {
-            let ceiling = match scopes.is_empty() && audiences.is_empty() {
-                true => json!({"name": name}),
+            let ceiling = match unrestricted {
+                true => json!({"name": name, "unrestricted": true}),
                 false => json!({"name": name, "scopes": scopes, "audiences": audiences}),
             };
             return request(remote, json, "agent/register", ceiling).await;
