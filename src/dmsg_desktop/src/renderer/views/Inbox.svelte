@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Tabs } from 'bits-ui'
-  import { onMount } from 'svelte'
+  import { onMount, untrack } from 'svelte'
   import Avatar from '../components/Avatar.svelte'
   import { copyText } from '../components/clipboard'
   import Icon from '../components/Icon.svelte'
@@ -9,7 +9,7 @@
   import Tooltip from '../components/Tooltip.svelte'
   import { buttonClass, cn } from '../components/ui'
   import { t, type Label } from '../i18n/index.svelte'
-  import { ago, call, closed, errorText, onChange, single, when } from '../rpc'
+  import { ago, call, closed, errorText, single, when } from '../rpc'
   import { shortId } from '../shell/session'
   import Compose from './inbox/Compose.svelte'
   import Rules from './inbox/Rules.svelte'
@@ -30,11 +30,18 @@
   let orders = $state<Record<string, any>>({})
   let escrows = $state<Record<string, any>>({})
   let error = $state('')
+  let refreshing = $state(false)
+  let loaded = $state(false)
+  let policyReady = $state(false)
+  let generation = 0
+  let alive = true
   let busy = $state(false)
   let writing = $state(false)
   let ruling = $state(false)
 
   const unlocked = $derived(status?.state === 'unlocked')
+  const sessionKey = $derived(`${status?.account ?? ''}:${status?.state ?? ''}`)
+  const valid = (at: number) => alive && at === generation && unlocked
   const inbox = $derived(letters.filter((l) => !l.archived).sort((a, b) => b.created_at - a.created_at))
   const archive = $derived(letters.filter((l) => l.archived).sort((a, b) => b.created_at - a.created_at))
   const unread = $derived(inbox.filter((l) => !l.read).length)
@@ -45,24 +52,89 @@
   const modeLabel: Record<string, Label> = { closed: 'closed', contacts: 'contactsOnly', free: 'free', paid: 'paidOnly' }
 
   async function attempt(work: () => Promise<unknown>) {
+    const at = generation
     busy = true
     try {
       await work()
     } catch (e) {
-      toast(() => errorText(e))
+      if (valid(at)) toast(() => errorText(e))
     } finally {
-      busy = false
+      if (valid(at)) busy = false
     }
   }
 
-  const reload = single(async () => {
+  const loadOutgoing = single(async () => {
+    const at = generation
+    if (!valid(at)) return
     try {
-      ;[letters, outgoing, policy] = await Promise.all([call('inbox/list'), call('inbox/outgoing'), call('inbox/policy')])
+      const next = await call('inbox/outgoing')
+      if (valid(at)) outgoing = next
+    } catch (e) {
+      if (valid(at) && !closed(e, status)) toast(() => errorText(e))
+    }
+  })
+
+  const refreshLetters = single(async () => {
+    const at = generation
+    if (!valid(at)) return
+    refreshing = true
+    try {
+      const next = await call('inbox/list')
+      if (!valid(at)) return
+      letters = next
+      loaded = true
       error = ''
     } catch (e) {
-      letters = outgoing = []
+      if (!valid(at)) return
       error = closed(e, status) ? 'LOCKED' : errorText(e)
+      if (error === 'LOCKED') letters = outgoing = []
+    } finally {
+      if (valid(at)) refreshing = false
     }
+  })
+
+  const loadPolicy = single(async () => {
+    const at = generation
+    if (!valid(at)) return
+    try {
+      const cached = await call('inbox/policy', { refresh: false })
+      if (!valid(at)) return
+      if (cached) { policy = cached; policyReady = true }
+      const next = await call('inbox/policy')
+      if (valid(at)) { policy = next; policyReady = true }
+    } catch (e) {
+      if (valid(at) && !closed(e, status)) toast(() => errorText(e))
+    }
+  })
+
+  const reload = single(async () => {
+    const at = generation
+    if (!valid(at)) return
+    void loadOutgoing()
+    try {
+      const cached = await call('inbox/list', { refresh: false })
+      if (!valid(at)) return
+      letters = cached
+      loaded = true
+      error = ''
+      void refreshLetters()
+    } catch (e) {
+      if (valid(at)) error = closed(e, status) ? 'LOCKED' : errorText(e)
+    }
+  })
+
+  $effect(() => {
+    void sessionKey
+    untrack(() => {
+      generation += 1
+      letters = outgoing = []
+      orders = escrows = {}
+      selected = null
+      policy = null
+      loaded = refreshing = policyReady = busy = writing = ruling = false
+      error = unlocked ? '' : 'LOCKED'
+      if (unlocked) { void reload(); void loadPolicy() }
+    })
   })
 
   // Keep a letter open: the first one when the open one left the list.
@@ -75,24 +147,36 @@
 
   const check = (target: any) =>
     attempt(async () => {
-      orders[target.order_id] = await call('inbox/order', { recipient: target.recipient, order: target.order_id })
+      const at = generation
+      const next = await call('inbox/order', { recipient: target.recipient, order: target.order_id })
+      if (valid(at)) orders[target.order_id] = next
     })
 
   /** The escrow of a paid letter and its transfers; a refused one is resent at the fee the ledger asked for. */
   const funds = (target: any) =>
     attempt(async () => {
-      escrows[target.order_id] = await call('inbox/escrow', { order: target.order_id })
+      const at = generation
+      const next = await call('inbox/escrow', { order: target.order_id })
+      if (valid(at)) escrows[target.order_id] = next
     })
 
   const revise = (target: any, leg: any) =>
     attempt(async () => {
+      const at = generation
       await call('payment/revise', { escrow: leg.escrow_id, leg: leg.leg_id })
-      escrows[target.order_id] = await call('inbox/escrow', { order: target.order_id })
+      if (!valid(at)) return
+      const next = await call('inbox/escrow', { order: target.order_id })
+      if (valid(at)) escrows[target.order_id] = next
     })
 
   onMount(() => {
-    void reload()
-    return onChange(['inbox/changed', 'session/changed', 'approval/changed'], reload)
+    const off = window.dmsg.onEvent((event) => {
+      if (event.type === 'approval/changed') { void loadOutgoing(); return }
+      if (['inbox/changed', 'sync/changed', 'resync'].includes(event.type)) void reload()
+      const detail = event.data as { method?: string; hint?: boolean } | null
+      if (event.type === 'resync' || (event.type === 'inbox/changed' && (detail?.method === 'inbox/configure' || detail?.hint))) void loadPolicy()
+    })
+    return () => { alive = false; generation += 1; off() }
   })
 
   const tabClass =
@@ -103,9 +187,9 @@
   <bdi dir="ltr" class="font-mono text-[12.5px]">{shortId(account)}</bdi>
 {/snippet}
 
-<div class="@container flex h-full min-h-0">
+<div class="@container flex h-full min-h-0" data-testid="inbox">
   {#if error === 'LOCKED'}
-    <Locked {status} />
+    <Locked {status} testid="inbox-locked" />
   {:else}
     <section class="flex w-[280px] shrink-0 flex-col border-e border-line @min-[900px]:w-[320px]">
       <div class="grid gap-2 p-3 pb-2">
@@ -121,7 +205,7 @@
                 {...props}
                 class={buttonClass('secondary', 'md', unlocked ? 'size-8 px-0' : 'flex-1')}
                 aria-label={t('contactPolicy')}
-                disabled={!unlocked}
+                disabled={!unlocked || !policyReady}
                 onclick={() => (ruling = true)}
                 data-testid="contact-rules"
               >
@@ -132,7 +216,7 @@
         </div>
         <Tabs.Root bind:value={() => box, (next) => (box = next as Box)}>
           <Tabs.List class="flex gap-0.5 rounded-[10px] border border-line bg-surface-2 p-0.5">
-            <Tabs.Trigger value="inbox" class={tabClass}>
+            <Tabs.Trigger value="inbox" class={tabClass} data-testid="inbox-received">
               {t('inbox')}{#if unread}<span class="rounded-full bg-forest px-1.5 text-[10.5px] leading-4 font-semibold text-on-forest">{unread}</span>{/if}
             </Tabs.Trigger>
             <Tabs.Trigger value="sent" class={tabClass} data-testid="inbox-sent">{t('sentLetters')}</Tabs.Trigger>
@@ -179,7 +263,7 @@
         {:else}
           <li class="grid justify-items-center gap-2 px-4 py-10 text-center">
             <span class="grid size-11 place-items-center rounded-xl border border-dashed border-edge-soft text-faint [&_svg]:size-5"><Icon name="inbox" /></span>
-            <p class="text-[13px] text-muted">{box === 'sent' ? t('noSent') : t('noLetters')}</p>
+            <p class="text-[13px] text-muted">{!loaded || (refreshing && box !== 'sent') ? t('loading') : box === 'sent' ? t('noSent') : t('noLetters')}</p>
           </li>
         {/each}
       </ul>
@@ -278,5 +362,7 @@
   {/if}
 </div>
 
-<Compose bind:open={writing} {mod} />
-<Rules bind:open={ruling} {policy} onSaved={(next) => (policy = next)} />
+{#key sessionKey}
+  <Compose bind:open={writing} {mod} />
+  <Rules bind:open={ruling} {policy} onSaved={(next) => (policy = next)} />
+{/key}

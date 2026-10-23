@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy, untrack } from 'svelte'
   import { RadioGroup } from 'bits-ui'
   import Dialog from '../../components/Dialog.svelte'
   import type { Glyph } from '../../components/glyphs'
@@ -18,31 +19,38 @@
     { value: 'paid', label: 'paidOnly', hint: 'paidHint', icon: 'coins' }
   ]
 
+  let generation = 0
   let mode = $state('contacts')
   let price = $state('')
   let busy = $state(false)
   let error = $state('')
 
   $effect(() => {
-    if (open) {
+    if (open) untrack(() => {
       mode = policy?.mode ?? 'contacts'
       price = policy?.price ?? ''
       error = ''
-    }
+    })
+    else generation += 1
   })
+
+  onDestroy(() => { generation += 1 })
 
   const valid = $derived(mode !== 'paid' || /^\d+$/.test(price.trim()))
 
   async function save() {
+    if (busy) return
+    const at = generation
     busy = true
     error = ''
     try {
       const saved = await call('inbox/configure', mode === 'paid' ? { mode, price: price.trim() } : { mode })
+      if (at !== generation || !open) return
       toast(() => t('rulesSaved'))
       onSaved(saved)
       open = false
     } catch (e) {
-      error = errorText(e)
+      if (at === generation && open) error = errorText(e)
     } finally {
       busy = false
     }

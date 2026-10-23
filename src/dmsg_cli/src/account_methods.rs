@@ -9,6 +9,7 @@ use crate::params::{account, hash, number, optional, source, text, to_json};
 use dmsg_client::{
     commerce::{self, Records},
     handle,
+    hold::Hold,
     security::{AccountChange, account_request},
 };
 use dmsg_types::{DAY, Error, Hash, KeyPurpose, Result};
@@ -93,6 +94,18 @@ impl Daemon {
     /// Run one of [`METHODS`].
     pub(crate) async fn call_account(&self, method: &str, params: &Value) -> Result<Value> {
         match method {
+            "payment/revise" => {
+                let h = self.hold();
+                h.with(|c| Ok(c.session_state())).await?;
+                let _turn = self.turn("inbox/funds").await;
+                return dmsg_client::inbox::revise(
+                    &h,
+                    &hash(params, "escrow")?,
+                    number(params, "leg")?,
+                )
+                .await;
+            }
+
             // The user home answers without the client.
             "account/security" => {
                 return dmsg_client::security::account_security(&self.hold()).await;
@@ -256,11 +269,6 @@ impl Daemon {
                     .await
             }
             "payment/transfers" => client.payment_transfers(&hash(params, "escrow")?).await,
-            "payment/revise" => {
-                client
-                    .payment_revise(&hash(params, "escrow")?, number(params, "leg")?)
-                    .await
-            }
             "approval/quote" => {
                 // The CLI names a request by a unique prefix.
                 let id = client.approval_id(&text(params, "id")?)?;

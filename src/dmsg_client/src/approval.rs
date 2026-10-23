@@ -1139,19 +1139,7 @@ impl Client {
         recipient: &dmsg_types::AccountId,
         order: &str,
     ) -> Result<Json> {
-        let (digest, quote) = self.letter_digest(recipient, order).await?;
-        let request = self.approval_create(
-            source,
-            Action::Letter {
-                recipient: recipient.to_string(),
-                order: order.into(),
-                digest,
-                amount: quote.amount,
-                ledger: quote.ledger,
-            },
-            now_ms() + HIGH_RISK_TTL_MS,
-        )?;
-        self.approval_view(&request)
+        crate::inbox::request(&self.hold(), source, recipient, order).await
     }
 
     /// Ask to authorize and run a prepared name operation.

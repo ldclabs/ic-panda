@@ -193,8 +193,79 @@ impl Daemon {
                 let channel = id()?;
                 return h.send(|c| c.channel_receipts_request(&channel)).await;
             }
-            "inbox/policy" => return Ok(inbox::policy(&h).await?.unwrap_or(Value::Null)),
-            "inbox/list" => return Ok(to_json(&inbox::list(&h).await?)),
+            "inbox/list" => {
+                if params["refresh"] == false {
+                    return h.with(|c| Ok(to_json(&c.inbox_cached()?))).await;
+                }
+                h.with(|c| Ok(c.session_state())).await?;
+                let _turn = self.turn("inbox/read").await;
+                return Ok(to_json(&inbox::list(&h).await?));
+            }
+            "inbox/policy" => {
+                if params["refresh"] == false {
+                    return h
+                        .with(|c| Ok(c.inbox_cached_policy()?.unwrap_or(Value::Null)))
+                        .await;
+                }
+                h.with(|c| Ok(c.session_state())).await?;
+                let _turn = self.turn("inbox/policy").await;
+                return Ok(inbox::policy(&h).await?.unwrap_or(Value::Null));
+            }
+            "inbox/configure" => {
+                let input: PolicyInput = serde_json::from_value(params.clone())
+                    .map_err(|e| Error::InvalidInput(format!("policy: {e}")))?;
+                h.with(|c| Ok(c.session_state())).await?;
+                let _turn = self.turn("inbox/policy").await;
+                return inbox::configure(&h, &input).await;
+            }
+            "inbox/send" => {
+                let order = params["order"].as_str().map_or_else(
+                    || hex::encode(dmsg_client::crypto::random_id()),
+                    str::to_string,
+                );
+                h.with(|c| Ok(c.session_state())).await?;
+                let _turn = self.turn(&format!("inbox-send:{order}")).await;
+                return inbox::send(
+                    &h,
+                    &account(params, "recipient")?,
+                    &text(params, "text")?,
+                    Some(&order),
+                    params["invitation"].as_str(),
+                    params["pay"].as_bool().unwrap_or(false),
+                )
+                .await;
+            }
+            "inbox/order" => {
+                return inbox::order(&h, &account(params, "recipient")?, &text(params, "order")?)
+                    .await;
+            }
+            "inbox/pay" => {
+                return inbox::request(
+                    &h,
+                    source(params)?,
+                    &account(params, "recipient")?,
+                    &text(params, "order")?,
+                )
+                .await;
+            }
+            "inbox/refund" => {
+                h.with(|c| Ok(c.session_state())).await?;
+                let _turn = self.turn("inbox/funds").await;
+                return inbox::refund(&h, &text(params, "order")?).await;
+            }
+            "inbox/escrow" => return inbox::escrow(&h, &text(params, "order")?).await,
+            "inbox/mark" => {
+                let order = text(params, "order")?;
+                h.with(|c| Ok(c.session_state())).await?;
+                let _turn = self.turn(&format!("inbox-mark:{order}")).await;
+                return inbox::mark(
+                    &h,
+                    &order,
+                    params["read"].as_bool().unwrap_or(true),
+                    params["archived"].as_bool().unwrap_or(false),
+                )
+                .await;
+            }
             "plan/catalog" => return Ok(commerce::catalog_view(&commerce::catalog(&h).await?)),
             "plan/status" => {
                 let refresh = params["refresh"].as_bool().unwrap_or(true);
@@ -317,47 +388,6 @@ impl Daemon {
             "channel/reactivate" => Ok(to_json(&client.channel_reactivate(&id()?).await?)),
             "channel/resume" => client.channel_resume(&id()?, &text(params, "key")?).await,
             "channel/sponsor_cancel" => Ok(to_json(&client.channel_sponsor_cancel(&id()?).await?)),
-            "inbox/configure" => {
-                let input: PolicyInput = serde_json::from_value(params.clone())
-                    .map_err(|e| Error::InvalidInput(format!("policy: {e}")))?;
-                client.inbox_configure(&input).await
-            }
-            "inbox/send" => {
-                client
-                    .inbox_send(
-                        &account(params, "recipient")?,
-                        &text(params, "text")?,
-                        params["order"].as_str(),
-                        params["invitation"].as_str(),
-                        params["pay"].as_bool().unwrap_or(false),
-                    )
-                    .await
-            }
-            "inbox/order" => {
-                client
-                    .inbox_order(&account(params, "recipient")?, &text(params, "order")?)
-                    .await
-            }
-            "inbox/pay" => {
-                client
-                    .letter_request(
-                        source(params)?,
-                        &account(params, "recipient")?,
-                        &text(params, "order")?,
-                    )
-                    .await
-            }
-            "inbox/escrow" => client.inbox_escrow(&text(params, "order")?).await,
-            "inbox/refund" => client.inbox_refund(&text(params, "order")?).await,
-            "inbox/mark" => {
-                client
-                    .inbox_mark(
-                        &text(params, "order")?,
-                        params["read"].as_bool().unwrap_or(true),
-                        params["archived"].as_bool().unwrap_or(false),
-                    )
-                    .await
-            }
             "payer/use" => {
                 let pem = optional(params, "pem", absolute)?;
                 client.payer_use(pem.as_deref()).await

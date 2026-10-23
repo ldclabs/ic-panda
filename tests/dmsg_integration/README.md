@@ -142,3 +142,5 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_CLOUD_DIR=/path/to/dmsg-cloud \
 ```
 
 Wasm 前置条件与上面的桌面验收相同；没有本地依赖时不能把该 ignored 测试报告为通过。
+
+`desktop_inbox_cache_and_pagination` 验证 25 封免费来信跨页完整读取、发送响应丢失后沿用原订单、已读/归档 ACK 立即更新本地缓存、刷新失败后缓存仍可读取，以及锁定后拒绝缓存读取。`desktop_paid_letters` 继续覆盖付费报价、付款确认、丢失响应、手续费修订和退款。

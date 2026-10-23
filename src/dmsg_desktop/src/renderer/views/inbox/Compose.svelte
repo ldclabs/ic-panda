@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import { toast } from '../../components/toast.svelte'
@@ -18,31 +19,42 @@
   let pay = $state(false)
   let busy = $state(false)
   let error = $state('')
+  let generation = 0
+  let pending: { key: string; order: string } | null = null
 
   $effect(() => {
-    if (!open) error = ''
+    if (!open) { generation += 1; error = '' }
   })
+
+  onDestroy(() => { generation += 1 })
 
   async function send() {
     if (busy || !recipient.trim() || !text.trim()) return
+    const at = generation
     busy = true
     error = ''
     try {
       const to = recipient.trim()
-      const sent: any = await call('inbox/send', { recipient: to, text, pay })
+      const key = JSON.stringify([to, text, pay])
+      if (pending?.key !== key) pending = { key, order: Array.from(crypto.getRandomValues(new Uint8Array(32)), (n) => n.toString(16).padStart(2, '0')).join('') }
+      const sent: any = await call('inbox/send', { recipient: to, text, pay, order: pending.order })
+      if (at !== generation || !open) return
       if (sent.state === 'quoted') {
         const request: any = await call('inbox/pay', { recipient: to, order: sent.order_id })
+        if (at !== generation || !open) return
         await bridge(() => window.dmsg.openApproval(request.id))
         toast(() => t('letterQuoted'), { testid: 'letter-state' })
       } else {
         toast(() => t('letterSent'), { testid: 'letter-state' })
       }
+      if (at !== generation || !open) return
+      pending = null
       recipient = ''
       text = ''
       pay = false
       open = false
     } catch (e) {
-      error = errorText(e)
+      if (at === generation && open) error = errorText(e)
     } finally {
       busy = false
     }
@@ -61,13 +73,13 @@
   <div class="grid gap-3" onkeydown={onKey}>
     <label class="grid gap-1 text-[12px] text-faint">
       {t('to')}
-      <input bind:value={recipient} class="font-mono text-[12.5px] text-ink placeholder:font-sans" placeholder={t('accountId')} spellcheck="false" data-testid="letter-recipient" />
+      <input disabled={busy} bind:value={recipient} class="font-mono text-[12.5px] text-ink placeholder:font-sans" placeholder={t('accountId')} spellcheck="false" data-testid="letter-recipient" />
     </label>
     <label class="grid gap-1 text-[12px] text-faint">
       {t('message')}
-      <textarea bind:value={text} rows="7" class="text-[13.5px] text-ink" data-testid="letter-text"></textarea>
+      <textarea disabled={busy} bind:value={text} rows="7" class="text-[13.5px] text-ink" data-testid="letter-text"></textarea>
     </label>
-    <Checkbox bind:checked={pay} class="text-[12.5px] text-ink-2">{t('paidLetterHint')}</Checkbox>
+    <Checkbox disabled={busy} bind:checked={pay} class="text-[12.5px] text-ink-2">{t('paidLetterHint')}</Checkbox>
     {#if error}<p class="text-[12.5px] text-danger">{error}</p>{/if}
   </div>
   {#snippet footer()}

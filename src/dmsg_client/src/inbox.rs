@@ -14,6 +14,9 @@
 //! operation ID and never pays or admits twice. After the acceptance
 //! deadline the payer recovers the funds from the canister alone.
 
+mod operations;
+pub use operations::{configure, escrow, mark, order, refund, request, revise, send};
+
 use crate::client::Client;
 use crate::cloud::{Evidence, sign_command};
 use crate::codec::{MAX_RECORD, b64, canonical, decode, digest, sha256, unb64};
@@ -44,6 +47,8 @@ pub const INBOX_KEY: &str = "inbox";
 pub const MAX_LETTER: usize = 6000;
 const JOURNAL: &str = "inbox-job:";
 const LETTER: &str = "inbox-letter:";
+const CURSOR: &str = "inbox-cursor";
+const CACHED_POLICY: &str = "inbox-policy";
 const POLICY: &str = "dmsg/inbox/policy/v1";
 const CONTACT: &str = "dmsg/inbox/contact/v1";
 
@@ -250,54 +255,7 @@ impl Client {
         payload: Json,
         repeat: bool,
     ) -> Result<Json> {
-        let mut job: Option<Operation> = self.inbox_job(key)?;
-        if repeat && job.as_ref().is_some_and(|j| j.result.is_some()) {
-            job = None;
-        }
-        if let Some(job) = &job {
-            ensure(
-                job.payload == payload && job.path == path,
-                Error::IdempotencyConflict,
-            )?;
-            if let Some(result) = &job.result {
-                return Ok(result.clone());
-            }
-        }
-        let state = self.cloud_state().await?;
-        let mut job = match job {
-            Some(job) if job.deadline > now_ms() + 5_000 => job,
-            previous => {
-                let signer = self.signer(&state)?;
-                let request_id = previous.map_or_else(random_hex, |j| j.request_id);
-                let deadline = signer.deadline(now_ms())?;
-                let cose = sign_command(&signer, action, &payload, &request_id, deadline);
-                let job = Operation {
-                    action: action.into(),
-                    path: path.into(),
-                    payload,
-                    request_id,
-                    cose,
-                    deadline,
-                    result: None,
-                };
-                self.save_inbox_job(key, &job)?;
-                job
-            }
-        };
-        let result = self
-            .cloud
-            .post_signed(
-                &self.signer(&state)?,
-                &job.path,
-                &job.cose,
-                &job.request_id,
-                job.deadline,
-                now_ms(),
-            )
-            .await?;
-        job.result = Some(result.clone());
-        self.save_inbox_job(key, &job)?;
-        Ok(result)
+        operations::post(&self.hold(), key, path, action, payload, repeat).await
     }
 
     /// The inbox key of `version`, created on first use under the current
@@ -391,255 +349,7 @@ impl Client {
     /// `PaymentOffer` and `Error::VersionConflict` when another device
     /// changed the policy meanwhile.
     pub async fn inbox_configure(&mut self, input: &PolicyInput) -> Result<Json> {
-        ensure_valid(
-            matches!(input.mode.as_str(), "closed" | "contacts" | "free" | "paid"),
-            "mode",
-        )?;
-        for account in input.allow.iter().chain(input.block.iter().flatten()) {
-            account
-                .parse::<AccountId>()
-                .map_err(|_| dmsg_types::invalid("account"))?;
-        }
-        let state = self.cloud_state().await?;
-        let generation = self.roots()?.generation;
-        ensure(
-            state.snapshot.vault_write_state == dmsg_types::user::VaultWriteState::Ready
-                && state.snapshot.content_root_generation == generation,
-            Error::RekeyRequired,
-        )?;
-        let payee = match &input.payee {
-            Some(text) => Principal::from_text(text).map_err(|_| dmsg_types::invalid("payee"))?,
-            None if input.mode == "paid" => self.payer().await?.0,
-            None => Principal::anonymous(),
-        };
-        let price = match (&input.mode[..], &input.price) {
-            ("paid", Some(price)) => {
-                let price: u128 = price.parse().map_err(|_| dmsg_types::invalid("price"))?;
-                ensure_valid(price > 0, "price")?;
-                Some(price)
-            }
-            ("paid", None) => return Err(dmsg_types::invalid("price")),
-            _ => None,
-        };
-        let me = self.account()?.id.to_string();
-        let old = self.inbox_policy().await?;
-        let matches = |policy: &Json| {
-            policy["mode"] == input.mode.as_str()
-                && policy["allow"] == json!(input.allow)
-                && input
-                    .block
-                    .as_ref()
-                    .is_none_or(|b| policy["block"] == json!(b))
-                && input
-                    .invitations
-                    .as_ref()
-                    .is_none_or(|i| policy["invitations"] == json!(i))
-                && input
-                    .capacity
-                    .is_none_or(|c| policy["capacity"].as_u64() == Some(c))
-                && (input.mode != "paid"
-                    || (policy["offer"]["offer"]["recipient"]["owner"] == payee.to_text().as_str()
-                        && policy["offer"]["offer"]["recipient_net"]
-                            == price.unwrap_or(0).to_string().as_str()
-                        && policy["offer"]["offer"]["expires_at"]
-                            .as_u64()
-                            .is_some_and(|t| t > now_ms() + 3_600_000)))
-        };
-        if let Some(old) = &old
-            && matches(old)
-            && old["security_epoch"].as_u64() == Some(state.snapshot.security_epoch)
-            && old["root_generation"].as_u64() == Some(generation)
-        {
-            return Ok(old.clone());
-        }
-        let expected = old
-            .as_ref()
-            .and_then(|o| o["version"].as_u64())
-            .unwrap_or(0);
-        let key = format!("policy:{expected}");
-        // The exact policy signed before a lost reply, while it can still commit.
-        if let Some(job) = self.inbox_job::<Operation>(&key)?
-            && job.result.is_none()
-            && job.deadline > now_ms() + 5_000
-        {
-            let payload: PolicyPayload =
-                serde_json::from_value(job.payload.clone()).map_err(|_| Error::IntegrityFailed)?;
-            ensure(
-                matches(&serde_json::to_value(&payload).unwrap_or_default()),
-                Error::IdempotencyConflict,
-            )?;
-            return self
-                .inbox_post(
-                    &key,
-                    &format!("/v1/inboxes/{me}/policy"),
-                    POLICY,
-                    job.payload,
-                    false,
-                )
-                .await;
-        }
-        let version = old
-            .as_ref()
-            .and_then(|o| o["inbox_key_version"].as_u64())
-            .unwrap_or(0)
-            + 1;
-        let public = self.inbox_key(version)?;
-        let signer = self.signer(&state)?;
-        let deadline = signer.deadline(now_ms())?;
-        let descriptor = sign_command(
-            &signer,
-            "dmsg/inbox/key/v1",
-            &KeyDescriptor {
-                inbox_key_version: version,
-                inbox_hpke_pub: hex::encode(public),
-                root_generation: generation,
-            },
-            &random_hex(),
-            deadline,
-        );
-        let offer = match price {
-            Some(net) => {
-                ensure(
-                    state
-                        .active(&self.workspace.meta.device_id)?
-                        .input
-                        .capabilities
-                        .contains(&Capability::PaymentOffer),
-                    Error::Forbidden,
-                )?;
-                let (canister, terms) = self.payment_terms(None, None).await?;
-                let now = now_ms();
-                let offer = PaymentOffer {
-                    account_id: self.account()?.id,
-                    device_id: self.workspace.meta.device_id,
-                    security_epoch: state.snapshot.security_epoch,
-                    home_payment: canister,
-                    offer_id: Hash::new(crate::crypto::random_id()),
-                    ledger: terms.config.ledger,
-                    recipient: Account {
-                        owner: payee,
-                        subaccount: None,
-                    },
-                    recipient_net: net,
-                    quote_scope: Hash::new(crate::crypto::random_id()),
-                    version: expected + 1,
-                    issued_at: now,
-                    expires_at: now + dmsg_types::DAY,
-                };
-                let signature = sign(
-                    &self.keys()?.signing,
-                    digest("dmsg/payment-offer/v1", &offer).as_slice(),
-                );
-                Some(WireSignedOffer {
-                    offer: Wire::wire_offer(&offer),
-                    signature: b64(&signature),
-                })
-            }
-            None => None,
-        };
-        let payload = PolicyPayload {
-            expected_version: expected,
-            prev_hash: old
-                .as_ref()
-                .and_then(|o| o["hash"].as_str())
-                .map(str::to_string),
-            mode: input.mode.clone(),
-            block: input.block.clone().unwrap_or_else(|| {
-                old.as_ref()
-                    .and_then(|o| serde_json::from_value(o["block"].clone()).ok())
-                    .unwrap_or_default()
-            }),
-            allow: input.allow.clone(),
-            invitations: input.invitations.clone().unwrap_or_else(|| {
-                old.as_ref()
-                    .and_then(|o| serde_json::from_value(o["invitations"].clone()).ok())
-                    .unwrap_or_default()
-            }),
-            capacity: input.capacity.unwrap_or_else(|| {
-                old.as_ref()
-                    .and_then(|o| o["capacity"].as_u64())
-                    .unwrap_or(100)
-            }),
-            inbox_key_version: version,
-            inbox_hpke_pub: hex::encode(public),
-            root_generation: generation,
-            key_descriptor: CoseRef {
-                cose_sign1: descriptor,
-            },
-            offer,
-        };
-        // A new signature replaces an expired one under a fresh key; the
-        // relay's version check keeps the late original from applying too.
-        if self.inbox_job::<Operation>(&key)?.is_some() {
-            let key = format!("{key}:{}", random_hex());
-            return self
-                .inbox_post(
-                    &key,
-                    &format!("/v1/inboxes/{me}/policy"),
-                    POLICY,
-                    serde_json::to_value(&payload).expect("json"),
-                    false,
-                )
-                .await;
-        }
-        self.inbox_post(
-            &key,
-            &format!("/v1/inboxes/{me}/policy"),
-            POLICY,
-            serde_json::to_value(&payload).expect("json"),
-            false,
-        )
-        .await
-    }
-
-    /// `recipient`'s public policy, checked: its key descriptor against the
-    /// recipient's certified devices and security epoch, its offer against
-    /// a `PaymentOffer` device.
-    async fn recipient_policy(&mut self, recipient: &AccountId) -> Result<Json> {
-        let security = self.peer_security(recipient).await?;
-        let policy = self
-            .cloud
-            .public(&format!("/public/inboxes/{recipient}/policy"))
-            .await?
-            .ok_or(Error::NotFound)?;
-        let cose = policy["key_descriptor"]["cose_sign1"]
-            .as_str()
-            .ok_or(Error::IntegrityFailed)?;
-        let (device, descriptor): (Hash, KeyDescriptor) = crate::cloud::verify_signed_command(
-            cose,
-            &security.snapshot.issuer,
-            &security.devices,
-            "dmsg/inbox/key/v1",
-        )?;
-        ensure(
-            security.active(&device).is_ok()
-                && policy["security_epoch"].as_u64() == Some(security.snapshot.security_epoch),
-            Error::PolicyStale,
-        )?;
-        ensure(
-            policy["inbox_hpke_pub"] == descriptor.inbox_hpke_pub.as_str()
-                && policy["inbox_key_version"].as_u64() == Some(descriptor.inbox_key_version)
-                && policy["root_generation"].as_u64() == Some(descriptor.root_generation),
-            Error::IntegrityFailed,
-        )?;
-        if !policy["offer"].is_null() {
-            let wire: WireSignedOffer = serde_json::from_value(policy["offer"].clone())
-                .map_err(|_| Error::IntegrityFailed)?;
-            let offer = Wire::offer(&wire)?;
-            let author = security
-                .active(&offer.offer.device_id)
-                .ok()
-                .filter(|d| d.input.capabilities.contains(&Capability::PaymentOffer))
-                .ok_or(Error::AuthRequired)?;
-            dmsg_protocol::verify(
-                &author.input.signing_pub,
-                digest("dmsg/payment-offer/v1", &offer.offer).as_slice(),
-                offer.signature.as_slice(),
-            )
-            .map_err(|_| Error::AuthRequired)?;
-            ensure(offer.offer.expires_at > now_ms(), Error::AuthRequired)?;
-        }
-        Ok(policy)
+        configure(&self.hold(), input).await
     }
 
     /// Write to `recipient`: a free letter is delivered at once, a paid one
@@ -657,84 +367,7 @@ impl Client {
         invitation: Option<&str>,
         pay: bool,
     ) -> Result<Json> {
-        let order = order.map_or_else(random_hex, str::to_string);
-        ensure_valid(crate::channel_log::is_hash(&order), "order")?;
-        ensure_valid(!text.is_empty() && text.len() <= MAX_LETTER, "text")?;
-        ensure_valid(
-            invitation.is_none_or(crate::channel_log::is_hash),
-            "invitation",
-        )?;
-        let payer = match pay {
-            true => Some(WireAccount {
-                owner: self.payer().await?.0.to_text(),
-                subaccount: None,
-            }),
-            false => None,
-        };
-        let key = format!("outgoing:{order}");
-        let text_digest = hex::encode(*sha256(text.as_bytes()));
-        let path = format!("/v1/inboxes/{recipient}/contacts");
-        if let Some(prior) = self.inbox_job::<Outgoing>(&key)? {
-            ensure(
-                prior.recipient == recipient.to_string()
-                    && prior.text_digest == text_digest
-                    && prior.payload.invitation.as_deref() == invitation
-                    && prior.payload.payer == payer,
-                Error::IdempotencyConflict,
-            )?;
-            return match self.inbox_order(recipient, &order).await {
-                Err(Error::NotFound) => {
-                    self.inbox_post(
-                        &format!("contact:{order}"),
-                        &path,
-                        CONTACT,
-                        serde_json::to_value(&prior.payload).expect("json"),
-                        false,
-                    )
-                    .await
-                }
-                other => other,
-            };
-        }
-        let policy = self.recipient_policy(recipient).await?;
-        let version = policy["inbox_key_version"]
-            .as_u64()
-            .ok_or(Error::IntegrityFailed)?;
-        let public: [u8; 32] = hex::decode(policy["inbox_hpke_pub"].as_str().unwrap_or_default())
-            .ok()
-            .and_then(|b| b.try_into().ok())
-            .ok_or(Error::IntegrityFailed)?;
-        let me = self.account()?.id.to_string();
-        let recipient_text = recipient.to_string();
-        let sealed = hpke_seal(
-            &public,
-            &canonical(&LetterBody { text: text.into() }),
-            &letter_context(&me, &recipient_text, &order, version),
-        )?;
-        let payload = ContactPayload {
-            recipient: recipient_text.clone(),
-            order_id: order.clone(),
-            inbox_key_version: version,
-            ciphertext: b64(&canonical(&sealed)),
-            invitation: invitation.map(str::to_string),
-            payer,
-        };
-        self.save_inbox_job(
-            &key,
-            &Outgoing {
-                recipient: recipient_text,
-                text_digest,
-                payload: payload.clone(),
-            },
-        )?;
-        self.inbox_post(
-            &format!("contact:{order}"),
-            &path,
-            CONTACT,
-            serde_json::to_value(&payload).expect("json"),
-            false,
-        )
-        .await
+        send(&self.hold(), recipient, text, order, invitation, pay).await
     }
 
     /// An order as the relay holds it; the sender's view is checked
@@ -743,19 +376,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` for an unknown order.
     pub async fn inbox_order(&mut self, recipient: &AccountId, order: &str) -> Result<Json> {
-        let value = self
-            .relay_get(&format!("/v1/inboxes/{recipient}/orders/{order}"))
-            .await?;
-        if let Some(prior) = self.inbox_job::<Outgoing>(&format!("outgoing:{order}"))? {
-            ensure(
-                value["order_id"] == order
-                    && value["recipient"] == prior.recipient.as_str()
-                    && value["ciphertext"] == prior.payload.ciphertext.as_str()
-                    && value["sender"] == self.account()?.id.to_string().as_str(),
-                Error::IntegrityFailed,
-            )?;
-        }
-        Ok(value)
+        self::order(&self.hold(), recipient, order).await
     }
 
     /// Letters this account sent, by order.
@@ -763,6 +384,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` while locked.
     pub fn inbox_outgoing(&self) -> Result<Vec<Json>> {
+        self.keys()?;
         let prefix = format!("{JOURNAL}outgoing:");
         let mut list = vec![];
         for key in self.workspace.store.sealed_keys(&prefix)? {
@@ -1087,20 +709,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` before an escrow was opened.
     pub async fn inbox_escrow(&mut self, order: &str) -> Result<Json> {
-        let (payer, ic) = self.payer().await?;
-        let canister = self.home_config().await?.payment_canister;
-        let payment = Payment { ic: &ic, canister };
-        let op_id = crate::upload::hex_id(order)?;
-        let escrow = payment
-            .by_operation(payer, &op_id)
-            .await?
-            .ok_or(Error::NotFound)?;
-        let escrow = payment.escrow(&escrow.escrow_id).await?;
-        let transfers = payment.transfers(&escrow.escrow_id).await?;
-        Ok(json!({
-            "escrow": escrow_view(&escrow),
-            "transfers": transfers.iter().map(leg_view).collect::<Vec<_>>(),
-        }))
+        escrow(&self.hold(), order).await
     }
 
     /// An escrow's transfer legs: payouts, refunds and their revisions.
@@ -1122,27 +731,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::VersionConflict` for a leg that was not refused.
     pub async fn payment_revise(&mut self, escrow: &Hash, leg: u64) -> Result<Json> {
-        let (_, ic) = self.payer().await?;
-        let canister = self.home_config().await?.payment_canister;
-        let payment = Payment { ic: &ic, canister };
-        let current = payment
-            .transfers(escrow)
-            .await?
-            .into_iter()
-            .find(|t| t.leg_id == leg)
-            .ok_or(Error::NotFound)?;
-        let fee = match current.status {
-            LegStatus::FeeBlocked => current.expected_fee.ok_or(Error::FeeBlocked)?,
-            LegStatus::Rejected => current.fee,
-            _ => return Err(Error::VersionConflict),
-        };
-        let revised = payment.revise(escrow, leg, fee).await?;
-        // The revision is durable; a failed send stays for the next try.
-        let sent = payment
-            .process_transfer(escrow, revised.leg_id)
-            .await
-            .unwrap_or(revised);
-        Ok(leg_view(&sent))
+        revise(&self.hold(), escrow, leg).await
     }
 
     /// Recover what an order's escrow holds for the payer, in one refund
@@ -1155,65 +744,20 @@ impl Client {
     /// Returns `Error::Pending` while nothing can be claimed yet: before
     /// the deadline, or while payouts are under way.
     pub async fn inbox_refund(&mut self, order: &str) -> Result<Json> {
-        let (payer, ic) = self.payer().await?;
-        let canister = self.home_config().await?.payment_canister;
-        let payment = Payment { ic: &ic, canister };
-        let op_id = crate::upload::hex_id(order)?;
-        let escrow = payment
-            .by_operation(payer, &op_id)
-            .await?
-            .ok_or(Error::NotFound)?;
-        let mut escrow = payment.escrow(&escrow.escrow_id).await?;
-        if escrow.decision == FundsDecision::Pending && now_ms() >= escrow.quote.accept_by {
-            escrow = payment.expiry_refund(&escrow.escrow_id).await?;
-        }
-        let deposits = payment.deposits(&escrow.escrow_id).await?;
-        let blocks: Vec<u64> = deposits
-            .iter()
-            .filter(|d| d.refundable > 0 && d.from == escrow.quote.payer)
-            .map(|d| d.block)
-            .collect();
-        // The decided payment's remainder, once no payout still needs it.
-        let reserve = match escrow.decision {
-            FundsDecision::Pending => false,
-            _ => match payment.quote_refund(&escrow.escrow_id, &[], true).await {
-                Ok(quote) => quote.available > 0,
-                Err(Error::Pending) if !blocks.is_empty() => false,
-                Err(error) => return Err(error),
-            },
-        };
-        ensure(
-            !blocks.is_empty() || reserve || escrow.decision != FundsDecision::Pending,
-            Error::Pending,
-        )?;
-        let leg = match blocks.is_empty() && !reserve {
-            true => None,
-            false => Some(
-                payment
-                    .claim_refund(&escrow.escrow_id, &blocks, reserve)
-                    .await?,
-            ),
-        };
-        if let Some(leg) = &leg {
-            let _ = payment
-                .process_transfer(&escrow.escrow_id, leg.leg_id)
-                .await;
-        }
-        let escrow = payment.escrow(&escrow.escrow_id).await?;
-        Ok(json!({"escrow": escrow_view(&escrow), "refund_leg": leg.map(|l| l.leg_id)}))
+        refund(&self.hold(), order).await
     }
 
-    /// Open the page of [`list`] read after `after` into `letters`, keeping
-    /// what changed; the cursor of the next page, `None` after the last.
-    fn inbox_page_settle(
-        &mut self,
-        after: u64,
-        page: &Json,
-        trust: &Trust,
-        letters: &mut std::collections::BTreeMap<String, Letter>,
-    ) -> Result<Option<u64>> {
+    /// Verify and commit a page and its cursor together. An empty page can
+    /// still advance past orders that are not visible to the recipient.
+    fn inbox_page_settle(&mut self, after: u64, page: &Json, trust: &Trust) -> Result<Option<u64>> {
         let me = self.account()?.id.to_string();
+        let start = after;
         let mut after = after;
+        let now = now_ms();
+        ensure(
+            self.workspace.store.meta::<u64>(CURSOR)?.unwrap_or(0) == start,
+            Error::VersionConflict,
+        )?;
         let entries = page["entries"].as_array().ok_or(Error::IntegrityFailed)?;
         let next = page["next_cursor"].as_u64().ok_or(Error::IntegrityFailed)?;
         ensure(next >= after, Error::IntegrityFailed)?;
@@ -1267,8 +811,8 @@ impl Client {
                                     .map_err(|_| Error::IntegrityFailed)?;
                             let created =
                                 value["created_at"].as_u64().ok_or(Error::IntegrityFailed)?;
-                            let verified: crate::evidence::Verified<ContactPayload> = trust
-                                .command(&cose, &evidence, created, Some(CONTACT), now_ms())?;
+                            let verified: crate::evidence::Verified<ContactPayload> =
+                                trust.command(&cose, &evidence, created, Some(CONTACT), now)?;
                             let payload = &verified.body.payload;
                             ensure(
                                 value["sender"] == verified.account.to_string().as_str()
@@ -1310,7 +854,6 @@ impl Client {
             if cached.as_ref() != Some(&letter) {
                 changed.push(letter.clone());
             }
-            letters.insert(order, letter);
             after = cursor;
         }
         // Only what changed is written, in one go.
@@ -1320,12 +863,36 @@ impl Client {
                 let name = format!("{LETTER}{}", letter.order_id);
                 self.workspace.put_private(keys, &name, letter)?;
             }
-            Ok(())
+            self.workspace.store.set_meta(CURSOR, &next)
         })?;
-        if next == after || entries.is_empty() {
+        if next == start {
             return Ok(None);
         }
         Ok(Some(next))
+    }
+
+    /// Previously verified letters on this device, available offline.
+    /// # Errors
+    /// Returns `Error::Locked` while locked and errors for corrupt local data.
+    pub fn inbox_cached(&self) -> Result<Vec<Letter>> {
+        let keys = self.keys()?;
+        self.workspace
+            .store
+            .sealed_keys(LETTER)?
+            .iter()
+            .map(|name| {
+                self.workspace
+                    .private(keys, name)?
+                    .ok_or(Error::IntegrityFailed)
+            })
+            .collect()
+    }
+
+    /// The last fetched contact policy, sealed locally.
+    /// # Errors
+    /// Returns `Error::Locked` while locked.
+    pub fn inbox_cached_policy(&self) -> Result<Option<Json>> {
+        self.workspace.private(self.keys()?, CACHED_POLICY)
     }
 
     /// Mark a letter read or archived; archiving reopens contact for its
@@ -1334,16 +901,7 @@ impl Client {
     /// # Errors
     /// Returns `Error::NotFound` for an unknown order.
     pub async fn inbox_mark(&mut self, order: &str, read: bool, archived: bool) -> Result<Json> {
-        ensure_valid(crate::channel_log::is_hash(order), "order")?;
-        let me = self.account()?.id;
-        self.inbox_post(
-            &format!("mark:{order}:{read}:{archived}"),
-            &format!("/v1/inboxes/{me}/mark"),
-            "dmsg/inbox/mark/v1",
-            json!({"order_id": order, "read": read, "archived": archived, "reopen_contact": archived}),
-            true,
-        )
-        .await
+        mark(&self.hold(), order, read, archived).await
     }
 }
 
@@ -1352,31 +910,42 @@ impl Client {
 /// # Errors
 /// Relay errors as returned.
 pub async fn policy<H: Hold>(h: &H) -> Result<Option<Json>> {
+    let h = operations::Unlocked::new(h).await?;
     let me = h.with(|c| Ok(c.account()?.id)).await?;
-    h.find(&format!("/v1/inboxes/{me}/policy")).await
+    let policy = h.find(&format!("/v1/inboxes/{me}/policy")).await?;
+    h.with(|c| c.workspace.put_private(c.keys()?, CACHED_POLICY, &policy))
+        .await?;
+    Ok(policy)
 }
 
-/// Letters to this account, newest state of each, opened with the synced
-/// inbox keys; each is checked against the sender's evidence. Each page
-/// waits on the relay without the client.
+/// Refresh letters from the last committed cursor, then read the local list.
+/// A page and its cursor commit only after every visible letter is verified.
+/// Each page waits on the relay without holding the client.
 ///
 /// # Errors
-/// Returns `Error::RecoveryIncomplete` when an inbox key is missing.
+/// Returns `Error::RecoveryIncomplete` when an inbox key is missing; a failed
+/// page is retried on the next refresh without skipping any of its letters.
 pub async fn list<H: Hold>(h: &H) -> Result<Vec<Letter>> {
-    let me = h.with(|c| Ok(c.account()?.id)).await?;
+    let h = operations::Unlocked::new(h).await?;
+    let (me, mut after) = h
+        .with(|c| {
+            Ok((
+                c.account()?.id,
+                c.workspace.store.meta::<u64>(CURSOR)?.unwrap_or(0),
+            ))
+        })
+        .await?;
     let trust = h.trust().await?;
-    let mut letters = std::collections::BTreeMap::new();
-    let mut after = 0;
     for _ in 0..INBOX_PAGES {
         let page = h
             .get(&format!("/v1/inboxes/{me}?after={after}&limit=20"))
             .await?;
         match h
-            .with(|c| c.inbox_page_settle(after, &page, &trust, &mut letters))
+            .with(|c| c.inbox_page_settle(after, &page, &trust))
             .await?
         {
             Some(next) => after = next,
-            None => return Ok(letters.into_values().collect()),
+            None => return h.with(|c| c.inbox_cached()).await,
         }
     }
     Err(Error::QuotaExceeded)

@@ -2305,6 +2305,28 @@ mod tests {
             ("files/cloud_usage", Value::Null, false),
             ("mcp-events/list", Value::Null, false),
             ("inbox/list", Value::Null, false),
+            ("inbox/policy", Value::Null, false),
+            ("inbox/configure", json!({"mode":"free"}), false),
+            (
+                "inbox/mark",
+                json!({"order":"ab".repeat(32),"read":true}),
+                false,
+            ),
+            (
+                "inbox/order",
+                json!({"recipient":dmsg_client::testing::account().id.to_string(),"order":"ab".repeat(32)}),
+                false,
+            ),
+            (
+                "inbox/pay",
+                json!({"recipient":dmsg_client::testing::account().id.to_string(),"order":"ab".repeat(32),"source":"gui"}),
+                false,
+            ),
+            (
+                "inbox/send",
+                json!({"recipient":dmsg_client::testing::account().id.to_string(),"text":"hello"}),
+                true,
+            ),
             // The IC: a team wallet, the plan.
             ("wallet/show", json!({"wallet": "aaaaa-aa"}), true),
             ("wallet/freeze", json!({"wallet":"aaaaa-aa"}), true),

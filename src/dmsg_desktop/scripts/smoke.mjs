@@ -1032,6 +1032,8 @@ const methods = {
   'inbox/outgoing': () => [],
   'inbox/policy': () => ({ mode: 'paid', version: 1 }),
   'inbox/configure': (p) => ({ ...p, version: 2 }),
+  'inbox/mark': (p) => ({ order_id: p.order, read: p.read, archived: p.archived }),
+  'inbox/send': (p) => ({ order_id: p.order, state: 'visible' }),
   'wallet/readiness': () => {
     if (wallets.state.readinessError) throw { code: 'UNAVAILABLE', message: 'temporary wallet service outage' }
     return {blockers:wallets.state.blockers,payer:{principal:'xkbqi-2qaaa-aaaah-qbpqq-cai'},balance:{balance:'50000000000'}}
@@ -1318,6 +1320,7 @@ const announced = {
 }
 /** Methods whose next reply waits for the test (`hold`), to see a click's work under way. */
 const held = new Map()
+const heldFilters = new Map()
 const server = createServer((_req, res) => res.writeHead(404).end())
 const wss = new WebSocketServer({ noServer: true })
 server.on('upgrade', (req, socket, head) => {
@@ -1345,7 +1348,7 @@ server.on('upgrade', (req, socket, head) => {
         if (handler && !reply.error) for (const type of announced[message.method] ?? []) emit(type, { method: message.method })
         ws.send(JSON.stringify(reply))
       }
-      if (held.has(message.method)) held.set(message.method, send)
+      if (held.has(message.method) && (!heldFilters.has(message.method) || heldFilters.get(message.method)(message.params))) held.set(message.method, send)
       else send()
     })
     ws.on('close', () => (sockets = sockets.filter((s) => s !== ws)))
@@ -1356,12 +1359,14 @@ async function waitFor(check) {
   assert.ok(check())
 }
 /** Hold `method`'s next reply; the returned function sends it once it arrived. */
-function hold(method) {
+function hold(method, matches) {
+  if (matches) heldFilters.set(method, matches)
   held.set(method, null)
   return async () => {
     await waitFor(() => held.get(method))
     const send = held.get(method)
     held.delete(method)
+    heldFilters.delete(method)
     send()
   }
 }
@@ -1642,15 +1647,69 @@ try {
   await waitFor(() => latest('channel/reactivate'))
   assert.equal(channel.ledger.status, 'active')
 
-  // Letters in two columns; the contact rules are radio cards.
+  // Cached letters and sent items do not wait for either remote read.
+  const finishLetters = hold('inbox/list', (p) => p?.refresh !== false)
+  const finishPolicy = hold('inbox/policy', (p) => p?.refresh !== false)
   await main.click('nav >> text=/Inbox|收件箱/')
   await main.waitForSelector('[data-testid="letter"] >> text=A paid letter')
+  await waitFor(() => held.get('inbox/list') && held.get('inbox/policy'))
+  await main.click('[data-testid="inbox-sent"]')
+  await main.click('[data-testid="inbox-received"]')
+  await main.waitForSelector('[data-testid="letter"] >> text=A paid letter')
+  // Editing rules from the cache is not reset by a late policy response.
+  await main.click('[data-testid="contact-rules"]')
+  await main.click('[data-testid="rules-free"]')
+  await finishPolicy()
+  await main.waitForSelector('[data-testid="rules-free"][data-state="checked"]')
+  await main.locator('[data-testid="rules-dialog"]').getByRole('button', { name: 'Cancel', exact: true }).click()
+  await finishLetters()
+  const policyReads = calls.filter((c) => c.method === 'inbox/policy').length
+  const remoteReads = calls.filter((c) => c.method === 'inbox/list' && c.params?.refresh !== false).length
+  const outgoingReads = calls.filter((c) => c.method === 'inbox/outgoing').length
+  emit('approval/changed')
+  await waitFor(() => calls.filter((c) => c.method === 'inbox/outgoing').length > outgoingReads)
+  assert.equal(calls.filter((c) => c.method === 'inbox/policy').length, policyReads)
+  assert.equal(calls.filter((c) => c.method === 'inbox/list' && c.params?.refresh !== false).length, remoteReads)
+  const remotePolicyReads = calls.filter((c) => c.method === 'inbox/policy' && c.params?.refresh !== false).length
+  emit('inbox/changed', { hint: true })
+  await waitFor(() => calls.filter((c) => c.method === 'inbox/policy' && c.params?.refresh !== false).length > remotePolicyReads)
   await main.screenshot({ path: join(shots, 'inbox.png') })
   await main.click('[data-testid="contact-rules"]')
   await main.click('[data-testid="rules-free"]')
   await main.click('[data-testid="rules-save"]')
   await waitFor(() => latest('inbox/configure'))
   assert.deepEqual(latest('inbox/configure').params, { mode: 'free' })
+  await main.waitForSelector('[data-testid="rules-dialog"]', { state: 'detached' })
+  // A lost send reply retries the same order; a slow old read cannot cross a lock.
+  const normalSend = methods['inbox/send']
+  let loseLetterReply = true
+  methods['inbox/send'] = (p) => {
+    if (loseLetterReply) { loseLetterReply = false; throw { code: 'EXECUTION_UNKNOWN', message: 'Reply lost' } }
+    return normalSend(p)
+  }
+  await main.click('[data-testid="letter-compose"]')
+  await main.fill('[data-testid="letter-recipient"]', peer)
+  await main.fill('[data-testid="letter-text"]', 'Retry this letter')
+  await main.click('[data-testid="letter-send"]')
+  await main.waitForSelector('[data-testid="letter-dialog"] >> text=EXECUTION_UNKNOWN')
+  const firstLetter = latest('inbox/send').params
+  assert.match(firstLetter.order, /^[0-9a-f]{64}$/)
+  await main.click('[data-testid="letter-send"]')
+  await main.waitForSelector('[data-testid="letter-dialog"]', { state: 'detached' })
+  assert.deepEqual(latest('inbox/send').params, firstLetter)
+  methods['inbox/send'] = normalSend
+  const finishOldLetters = hold('inbox/list', (p) => p?.refresh !== false)
+  emit('inbox/changed')
+  await waitFor(() => held.get('inbox/list'))
+  session = 'locked'
+  emit('session/changed', { state: 'locked' })
+  await main.waitForSelector('[data-testid="inbox-locked"]')
+  await finishOldLetters()
+  assert.equal(await main.locator('[data-testid="letter"]').count(), 0)
+  session = 'unlocked'
+  emit('session/changed', { state: 'unlocked' })
+  await main.waitForSelector('[data-testid="letter"] >> text=A paid letter')
+
 
   // A subscription is quoted, then paid only once the approval window agrees.
   await main.click('nav >> text=/Plan & names|会员与名称/')

@@ -8352,3 +8352,92 @@ fn desktop_presigned_share() {
     );
     env.finish();
 }
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC and the private relay (DMSG_CLOUD_DIR)"]
+fn desktop_inbox_cache_and_pagination() {
+    let env = Env::launch(
+        "inbox-cache",
+        Options {
+            proxies: true,
+            paid_contacts: true,
+            ..Options::default()
+        },
+    );
+    let (a, b) = (&env.a, &env.b);
+    let http = &env.http;
+    b.login(http, 62).unwrap();
+    let recipient = b.run(&["account", "create"])["account"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    b.run(&["inbox", "configure", "free"]);
+    a.login(http, 42).unwrap();
+    a.run(&["account", "create"]);
+    let proxy = env.relay_proxy.as_ref().unwrap();
+    let mut ids = Vec::new();
+    for i in 0..25 {
+        let id = format!("{:064x}", i + 1);
+        let text = format!("Letter {i}");
+        if i == 0 {
+            proxy.lose_next("POST", "/contacts");
+            assert_eq!(
+                a.fail(&["inbox", "send", &recipient, &text, "--order", &id]),
+                "EXECUTION_UNKNOWN"
+            );
+        }
+        let sent = a.run(&["inbox", "send", &recipient, &text, "--order", &id]);
+        assert_eq!(sent["state"], "visible");
+        b.run(&["inbox", "mark", &id, "--archive"]);
+        ids.push(id);
+    }
+    // Marking before the first read must not fabricate an unverified body.
+    assert_eq!(
+        b.rpc(http, "inbox/list", json!({"refresh":false})).unwrap(),
+        json!([])
+    );
+    let letters = b.run(&["inbox", "list"]);
+    assert_eq!(letters.as_array().unwrap().len(), 25);
+    for id in &ids {
+        assert!(
+            letters
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|l| l["order_id"] == id.as_str() && l["archived"] == true)
+        );
+    }
+    // The ACK changes cached flags immediately, without another remote list.
+    b.rpc(
+        http,
+        "inbox/mark",
+        json!({"order":ids[0],"read":false,"archived":false}),
+    )
+    .unwrap();
+    let cached = b.rpc(http, "inbox/list", json!({"refresh":false})).unwrap();
+    let first = cached
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|l| l["order_id"] == ids[0])
+        .unwrap();
+    assert_eq!(
+        (first["read"].as_bool(), first["archived"].as_bool()),
+        (Some(false), Some(false))
+    );
+    // Losing a refresh response leaves the cached 25 verified bodies readable.
+    proxy.lose_next("GET", &format!("/v1/inboxes/{recipient}?"));
+    assert_eq!(b.fail(&["inbox", "list"]), "UNAVAILABLE");
+    assert_eq!(
+        b.rpc(http, "inbox/list", json!({"refresh":false})).unwrap(),
+        cached
+    );
+    assert_eq!(b.run(&["inbox", "list"]), cached);
+    b.run(&["lock"]);
+    assert_eq!(
+        b.rpc(http, "inbox/list", json!({"refresh":false}))
+            .unwrap_err(),
+        "LOCKED"
+    );
+    env.finish();
+}

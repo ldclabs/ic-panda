@@ -116,7 +116,11 @@ desktop is one of its clients, like the CLI.
     steps.
   - Inbox: the inbox, sent letters and the archive beside the open letter;
     a new letter, and who may write (nobody, contacts, everyone, or a price
-    per letter), open in dialogs.
+    per letter), open in dialogs. Verified cached letters appear first;
+    remote letters and rules refresh independently, and a network failure
+    leaves cached letters readable. Approval events update sent items without
+    downloading the inbox again. Send retries keep the same order ID, and
+    late replies cannot restore content after locking or switching accounts.
   - Plan and names: the plan and its limits, the plans on offer as cards,
     checkouts, names with their transfers, the payer and the payment
     operations.

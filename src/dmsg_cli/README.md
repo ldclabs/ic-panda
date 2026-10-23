@@ -588,6 +588,16 @@ The desktop opens cached messages immediately and refreshes the selected
 channel in the background. A sent message appears on its durable ACK,
 while earlier incoming messages are merged into their sequence positions.
 
+Inbox refreshes resume from the last verified page. Letters and the page
+cursor commit together, including pages filtered down to no visible letters;
+the end is reached only when the cursor stops advancing. The desktop reads
+the sealed local cache with `inbox/list {refresh:false}` before refreshing,
+and reads the cached contact policy with `inbox/policy {refresh:false}`.
+Sending, marking, configuring rules, requesting payment approval and checking
+or recovering escrow funds wait on the network without holding the client.
+An acknowledged mark updates cached flags immediately. Retrying a send keeps
+its original order and sealed payload; locking stops later local writes.
+
 Payments go through the approval center like signatures: `inbox pay`,
 `plan checkout|advance` and `handle claim|register` only create the request,
 which a person approves at the terminal or in the desktop's approval window,
