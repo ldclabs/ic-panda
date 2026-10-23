@@ -6,6 +6,49 @@ mod fixture;
 const DAY_MS: u64 = 86_400_000;
 const NOW: u64 = 1_000 * DAY_MS;
 
+#[test]
+fn cash_views_display_symbols_without_renaming_the_wire_asset_variants() {
+    use dmsg_types::integration_billing::SettlementAssetKind;
+    for (asset, symbol, wire) in [
+        (SettlementAssetKind::CkUsdc, "ckUSDC", "CkUsdc"),
+        (SettlementAssetKind::CkUsdt, "ckUSDT", "CkUsdt"),
+    ] {
+        let mut quote = fixture::checkout();
+        quote.asset.asset = asset;
+        assert_eq!(serde_json::to_value(&quote.asset.asset).unwrap(), wire);
+        let checkout = Checkout {
+            id: "sample".into(),
+            actor: quote.cash.payer.owner,
+            origin: DMSG_ORIGIN.into(),
+            request: CheckoutRequest {
+                offer: quote.offer.clone(),
+                approving_account: dmsg_types::AccountId([1; 12]),
+                product_approval: None,
+                method: SettlementMethod::Cash,
+            },
+            terms: Terms::Cash(Box::new(quote.clone())),
+            approval: None,
+            stage: Stage::Review,
+            created_at_ms: None,
+        };
+        assert_eq!(checkout.view()["terms"]["asset"], symbol);
+        let order = Order::Cash(Box::new(CheckoutView {
+            progress: CheckoutProgress {
+                order_id: Hash::new([1; 32]),
+                status: CheckoutStatus::Applied,
+                decision_id: None,
+            },
+            quote,
+            receipt: None,
+            cancellation: None,
+            outgoing_atomic: 0,
+            service_reserve_atomic: 0,
+            fee_reserve_atomic: 0,
+        }));
+        assert_eq!(order_view(&order)["asset"], symbol);
+    }
+}
+
 fn contract(seed: u8, plan: PlanId, starts_at_ms: u64, expires_at_ms: u64) -> MembershipContract {
     MembershipContract {
         term_starts_at_ms: starts_at_ms,

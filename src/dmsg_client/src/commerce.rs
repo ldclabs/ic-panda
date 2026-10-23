@@ -126,7 +126,7 @@ impl Checkout {
             Terms::Cash(q) => json!({
                 "method": "Cash",
                 "ledger": q.cash.ledger.to_text(),
-                "asset": format!("{:?}", q.asset.asset),
+                "asset": q.asset.asset.to_string(),
                 "amount": q.cash.amount_atomic.to_string(),
                 "fee_reserve": q.cash.fee_reserve_atomic.to_string(),
                 "network_fee": q.asset.network_fee_atomic.to_string(),
@@ -225,7 +225,7 @@ fn order_view(state: &Order) -> Json {
             "receipt": view.receipt.is_some(),
             "sku": view.quote.offer.sku,
             "amount": view.quote.cash.amount_atomic.to_string(),
-            "asset": format!("{:?}", view.quote.asset.asset),
+            "asset": view.quote.asset.asset.to_string(),
             "decimals": view.quote.asset.decimals,
             "starts_at_ms": view.quote.offer.starts_at_ms,
             "expires_at_ms": view.cancellation.as_ref()
@@ -812,7 +812,7 @@ pub async fn plan_assets<H: Hold>(h: &H) -> Result<Json> {
             .map(|a| {
                 json!({
                     "ledger": a.policy.ledger.to_text(),
-                    "asset": format!("{:?}", a.policy.asset),
+                    "asset": a.policy.asset.to_string(),
                     "decimals": a.policy.decimals,
                     "network_fee": a.policy.network_fee_atomic.to_string(),
                 })
@@ -1277,7 +1277,7 @@ pub async fn plan_refund_quote<H: Hold>(h: &H, order: &str) -> Result<Json> {
         "refund": refund.to_string(),
         "received": refund.saturating_sub(fee).to_string(),
         "fee": fee.to_string(),
-        "asset": format!("{:?}", view.quote.asset.asset),
+        "asset": view.quote.asset.asset.to_string(),
         "decimals": view.quote.asset.decimals,
         "stops_at_ms": stop,
         "until_ms": status["refund"]["until_ms"],
@@ -1565,7 +1565,7 @@ pub async fn commerce_records<H: Hold>(
                     "sku": row.order.quote.offer.sku,
                     "status": format!("{:?}", row.order.progress.status),
                     "receipt": row.order.receipt.is_some(),
-                    "asset": format!("{:?}", row.order.quote.asset.asset),
+                    "asset": row.order.quote.asset.asset.to_string(),
                     "decimals": row.order.quote.asset.decimals,
                     "balances": row.balances.iter().map(|b| json!({
                         "ledger": b.ledger.to_text(),

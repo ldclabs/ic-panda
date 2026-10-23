@@ -103,7 +103,7 @@ fn register_settlement_asset(policy: SettlementAsset) -> Result<()> {
 fn validate_register_settlement_asset(policy: SettlementAsset) -> Validation {
     validation(next_asset(&policy).map(|next| match next {
         Some(p) if p.policy_version == 1 => format!(
-            "Register settlement asset {:?} on ledger {}: {} decimals, price {} USD micros observed at {} ms and valid until {} ms, network fee {} (cap {}), enabled {}.",
+            "Register settlement asset {} on ledger {}: {} decimals, price {} USD micros observed at {} ms and valid until {} ms, network fee {} (cap {}), enabled {}.",
             p.asset,
             p.ledger,
             p.decimals,
@@ -115,11 +115,11 @@ fn validate_register_settlement_asset(policy: SettlementAsset) -> Validation {
             p.enabled,
         ),
         Some(p) => format!(
-            "Update settlement asset {:?} on ledger {}: network fee {} (cap {}), enabled {}. The latest published price is kept and the next policy version is assigned at execution.",
+            "Update settlement asset {} on ledger {}: network fee {} (cap {}), enabled {}. The latest published price is kept and the next policy version is assigned at execution.",
             p.asset, p.ledger, p.network_fee_atomic, p.max_network_fee_atomic, p.enabled,
         ),
         None => format!(
-            "Register settlement asset {:?} on ledger {}. Already registered; no change.",
+            "Register settlement asset {} on ledger {}. Already registered; no change.",
             policy.asset, policy.ledger,
         ),
     }))
@@ -196,7 +196,7 @@ fn validate_verify_settlement_asset(
             format!(" and read transfer block {index}")
         });
         format!(
-            "Verify settlement ledger {ledger} ({:?}): require {} decimals, fee {} and ICRC-1/ICRC-3 support{sample}.",
+            "Verify settlement ledger {ledger} ({}): require {} decimals, fee {} and ICRC-1/ICRC-3 support{sample}.",
             a.policy.asset, a.policy.decimals, a.policy.network_fee_atomic,
         )
     }))

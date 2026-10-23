@@ -853,7 +853,7 @@ const methods = {
           id: 'c4'.repeat(32),
           actor: login,
           sku: 'pro',
-          terms: { method: 'Cash', ledger, asset: 'Icp', amount: '300000000', fee_reserve: '20000', decimals: 8, funding_deadline_ms: Date.now() + 600_000 }
+          terms: { method: 'Cash', ledger, asset: 'ICP', amount: '300000000', fee_reserve: '20000', decimals: 8, funding_deadline_ms: Date.now() + 600_000 }
         }
       }
     }
@@ -1068,7 +1068,7 @@ const methods = {
     ],
     storage_products: [{ product_id: pack, storage_bytes: 100_000_000_000, price_cents: 1000 }]
   }),
-  'plan/assets': () => [{ ledger, asset: 'Icp', decimals: 8, network_fee: '10000' }],
+  'plan/assets': () => [{ ledger, asset: 'ICP', decimals: 8, network_fee: '10000' }],
   'plan/checkouts': () => checkouts,
   'plan/quote': (p) => {
     const now = Date.now()
@@ -1089,7 +1089,7 @@ const methods = {
           ? {
               method: 'Cash',
               ledger,
-              asset: 'Icp',
+              asset: 'ICP',
               amount: '500000000',
               fee_reserve: '20000',
               network_fee: '10000',
@@ -1126,7 +1126,7 @@ const methods = {
       { id: '6d'.repeat(32), stake_e8s: '2500000000000', dissolving: false, unlock_at_ms: Date.now() + 10 * DAY }
     ]
   }),
-  'plan/refund_quote': (p) => ({ order: p.id, refund: '450000000', received: '449990000', fee: '10000', asset: 'Icp', decimals: 8, stops_at_ms: Date.now(), until_ms: Date.now() + 6 * DAY }),
+  'plan/refund_quote': (p) => ({ order: p.id, refund: '450000000', received: '449990000', fee: '10000', asset: 'ICP', decimals: 8, stops_at_ms: Date.now(), until_ms: Date.now() + 6 * DAY }),
   'plan/cancel': (p) => {
     membership = 'free'
     orderViews[p.id] = { ...orderViews[p.id], id: p.id, method: 'Cash', status: 'Cancelled', expires_at_ms: Date.now() }
@@ -1148,7 +1148,7 @@ const methods = {
     principal: payerSource === 'pem' ? '2vxsx-fae' : payer,
     source: payerSource,
     balances: [
-      { ledger, asset: 'Icp', decimals: 8, balance: '1200000000' },
+      { ledger, asset: 'ICP', decimals: 8, balance: '1200000000' },
       { ledger: pandaLedger, asset: 'PANDA', decimals: 8, balance: '50000000000' }
     ]
   }),
@@ -1784,7 +1784,7 @@ smoke: try {
   await waitFor(() => latest('plan/quote'))
   assert.deepEqual(latest('plan/quote').params, { sku: 'plus', method: 'cash', selection: ledger })
   await approval.waitForSelector('[data-testid="approval-sku"]', { timeout: 20_000 })
-  assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('5 Icp'))
+  assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('5 ICP'))
   await approval.waitForSelector('[data-testid="approve"]')
   await approval.screenshot({ path: join(shots, 'checkout.png') })
   // A payment is approved by holding the button: a click alone decides nothing.
@@ -1838,7 +1838,7 @@ smoke: try {
   assert.equal(latest('plan/quote').params.method, 'cash')
   // The first purchase is refunded within its window, what comes back quoted first.
   await main.click('[data-testid="plan-refund-quote"]')
-  await main.waitForSelector('[data-testid="refund-amount"] >> text=4.5 Icp')
+  await main.waitForSelector('[data-testid="refund-amount"] >> text=4.5 ICP')
   assert.deepEqual(latest('plan/refund_quote').params, { id: '88'.repeat(32) })
   await main.click('[data-testid="refund-confirm"]')
   await waitFor(() => latest('plan/cancel'))
@@ -2636,7 +2636,7 @@ smoke: try {
   assert.equal(await approval.isDisabled('[data-testid="approve"]'), true)
   await approval.click('button:has-text("Get a quote"), button:has-text("获取报价")')
   await approval.waitForSelector('[data-testid="approval-amount"]', { timeout: 20_000 })
-  assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('3 Icp'))
+  assert.ok((await approval.textContent('[data-testid="approval-amount"]')).includes('3 ICP'))
   // A quoted request changed, so Approve opens again only after its delay.
   await approval.waitForSelector('[data-testid="approve"]:not([disabled])')
   await approval.screenshot({ path: join(shots, 'connect-checkout.png') })

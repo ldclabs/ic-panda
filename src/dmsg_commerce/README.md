@@ -371,6 +371,17 @@ commerce 按 user home 分区：一个 `dmsg_user` 只能列在一个 commerce �
    - 用小额真实资金完成一次完整流程：报价、开单、付款、`check_checkout_funding` 后订单为 `Applied`，`get_entitlement_batch` 显示对应套餐；再向订单子账户多转一笔，完成 `claim_checkout_refund` 和 `process_checkout_transfer`；`collectable_checkouts` 列出该订单；服务期结束后等待定时任务归集、派发并退回准备金，核对商户和付款人实际到账。
    - 为 canister 设置冻结阈值和 cycles 余额告警，并把 `icp canister status` 的 controllers 记录到部署记录。
 
+### 增加 ckUSDT
+
+代码已经支持主网 ckUSDT（`cngnf-vqaaa-aaaar-qag4q-cai`），启用它需要完成资产登记和产品登记两部分：
+
+1. 按上述资产登记步骤使用 `asset = variant { CkUsdt }`、`decimals = 6` 和 ckUSDT 账本 ID；fee 从该账本的 `icrc1_fee` 读取，报价参考价格由治理明确设置。
+2. 调用 `verify_settlement_asset`，提供 ckUSDT 账本上一笔真实普通转账的区块号，核对返回 `Ok`。
+3. 读取当前 dMsg 产品注册，增加 `config_version`，在 `ledgers` 中保留 ckUSDC 并追加 ckUSDT，再调用 `register_integration_product`。商户、受益权威和其他字段沿用当前登记。
+4. 核对 `settlement_assets` 中 ckUSDT 的 `ledger_verified` 和 `enabled` 均为 `true`，产品的 `ledgers` 包含两个账本。客户端重新读取付款资产后即可选择 ckUSDT；报价、入金、退款和收入归集始终使用订单选定的账本。
+
+界面与管理校验信息使用准确的代币代号 `ckUSDC` / `ckUSDT`。Candid 和序列化合同中的枚举仍为 `CkUsdc` / `CkUsdt`，它们不是展示名称。
+
 ### 运维
 
 commerce 自动执行收入归集、费用准备退回和已分配出金的派发；其余运维任务及异常恢复如下：

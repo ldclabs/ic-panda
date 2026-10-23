@@ -14,6 +14,15 @@ pub enum SettlementAssetKind {
     CkUsdc,
 }
 
+impl std::fmt::Display for SettlementAssetKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::CkUsdt => "ckUSDT",
+            Self::CkUsdc => "ckUSDC",
+        })
+    }
+}
+
 /// Governance-approved asset/price snapshot. Pausing admission never removes refund routing.
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
