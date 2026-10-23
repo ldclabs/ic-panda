@@ -91,6 +91,12 @@ fn digest_of(path: &str) -> Result<Option<(String, u64)>> {
 fn remove_copy(path: &str) {
     let path = PathBuf::from(path);
     let _ = std::fs::remove_file(&path);
+    remove_empty_dir(path.as_path());
+}
+
+/// Remove a copy's directory once nothing is left in it. A file another
+/// program recreated meanwhile keeps it, so only an empty directory goes.
+fn remove_empty_dir(path: &std::path::Path) {
     if let Some(dir) = path.parent() {
         let _ = std::fs::remove_dir(dir);
     }
@@ -175,6 +181,8 @@ impl Client {
         let mut changed = Vec::new();
         for (nonce, mut copy) in self.copies()? {
             let Some((digest, size)) = digest_of(&copy.path)? else {
+                // The file is gone; its now-empty directory can go too.
+                remove_empty_dir(std::path::Path::new(&copy.path));
                 self.workspace.delete_private(&format!("{OPEN}{nonce}"))?;
                 continue;
             };
@@ -327,6 +335,7 @@ pub async fn sweep<H: crate::hold::Hold>(h: &H) -> Result<Vec<OpenView>> {
                     return Ok(None);
                 }
                 let Some((digest, size)) = current else {
+                    remove_empty_dir(std::path::Path::new(&copy.path));
                     c.workspace.delete_private(&key)?;
                     return Ok(None);
                 };

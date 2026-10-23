@@ -35,8 +35,8 @@ importers:
         specifier: ^2.4.0
         version: 2.4.0
       agent-protocols:
-        specifier: 0.12.3
-        version: 0.12.3
+        specifier: 0.12.4
+        version: 0.12.4
       canonicalize:
         specifier: ^4.0.0
         version: 4.0.0
@@ -85,8 +85,8 @@ importers:
   src/dmsg_desktop:
     dependencies:
       agent-protocols:
-        specifier: 0.12.3
-        version: 0.12.3
+        specifier: 0.12.4
+        version: 0.12.4
       electron-updater:
         specifier: 6.8.9
         version: 6.8.9
@@ -3007,8 +3007,8 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
-  agent-protocols@0.12.3:
-    resolution: {integrity: sha512-YN5ALJ+DAgHrJcO2wO4hUJLjIgwM0dFAo/WdWPfnXSUUS5ZKBEitIm6lMurGnkRkRTJq4MKqtvaHhWcvfYGBMw==}
+  agent-protocols@0.12.4:
+    resolution: {integrity: sha512-qbd3wVtRNGJdh40SGJAG200HjRw+3vJ4r4orFVtCAZQvrLfm6k1gIpFLl9HgJ6fdEb7NCPDmRvfr7fZ+vkFTMA==}
 
   ajv@6.15.0:
     resolution: {integrity: sha512-fgFx7Hfoq60ytK2c7DhnF8jIvzYgOMxfugjLOSMHjLIPgenqa7S7oaagATUq99mV6IYvN2tRmC0wnTYX6iPbMw==}
@@ -8781,7 +8781,7 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  agent-protocols@0.12.3:
+  agent-protocols@0.12.4:
     dependencies:
       '@cfworker/json-schema': 4.1.1
       '@hpke/chacha20poly1305': 1.8.0

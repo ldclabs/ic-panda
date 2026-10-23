@@ -29,10 +29,18 @@
 
   let tab = $state<Tab>('overview')
   let inspectedAgent = $state<string | null>(null)
+  /** A malformed escape in a hand-written URL still opens Mail for that text. */
+  function decoded(value: string) {
+    try {
+      return decodeURIComponent(value)
+    } catch {
+      return value
+    }
+  }
   $effect(() => {
     if (route.startsWith('/agents/mail/')) {
       tab = 'mail'
-      inspectedAgent = decodeURIComponent(route.slice('/agents/mail/'.length))
+      inspectedAgent = decoded(route.slice('/agents/mail/'.length))
     }
   })
   let principal = $state<any>(null)

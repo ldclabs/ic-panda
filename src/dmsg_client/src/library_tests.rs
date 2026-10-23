@@ -631,6 +631,17 @@ fn opened_copies_report_changes_and_are_cleaned_up() {
         Some(Error::NotFound)
     );
 
+    // A copy another program removed forgets its now-empty directory too.
+    let opened = client.files_open(&imported.file.id, None).unwrap();
+    let opened_dir = std::path::Path::new(&opened.path)
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    std::fs::remove_file(&opened.path).unwrap();
+    assert!(client.files_open_sweep(now).unwrap().is_empty());
+    assert!(client.files_open_list().unwrap().is_empty());
+    assert!(!opened_dir.exists());
+
     // An unchanged copy goes on lock.
     let opened = client.files_open(&imported.file.id, None).unwrap();
     client.lock();
@@ -1518,6 +1529,15 @@ async fn file_operations_release_the_client_and_preserve_complete_integrity_chec
     let opened = open::open(&h, id, None).await.unwrap();
     std::fs::write(&opened.path, b"edited elsewhere").unwrap();
     assert_eq!(open::sweep(&h).await.unwrap()[0].nonce, opened.nonce);
+    // A copy removed by another program is forgotten with its directory.
+    let opened = open::open(&h, id, None).await.unwrap();
+    let opened_dir = std::path::Path::new(&opened.path)
+        .parent()
+        .unwrap()
+        .to_path_buf();
+    std::fs::remove_file(&opened.path).unwrap();
+    assert!(open::sweep(&h).await.unwrap().is_empty());
+    assert!(!opened_dir.exists());
 
     // Preview still checks the last chunk, even though only its first 64 KiB
     // is shown. Export must not leave a final or partial file on failure.
@@ -1872,7 +1892,10 @@ async fn sharing_releases_the_client_and_pins_prepared_chunks_until_journaled() 
     c.keys = Some(c.workspace.unlock(&crate::testing::SECRET).unwrap());
     c.root = Some(RootKeys_single());
     assert_eq!(c.collect_blobs().unwrap().0, 0);
-    c.held_chunks(u64::MAX).unwrap();
+    // The interrupted preparation's temporary hold expires soon, not in an
+    // hour; otherwise it would keep pinning the edition's ciphertext.
+    let expired = crate::now_ms() + 11 * dmsg_types::MINUTE;
+    assert!(c.held_chunks(expired).unwrap().is_empty());
     assert_eq!(c.collect_blobs().unwrap().0, 1);
     assert!(c.files_verify(&file.file.id, None).unwrap().versions[0].ok);
 }

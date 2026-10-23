@@ -57,7 +57,7 @@
     "@icp-sdk/core": "^6.1.0",
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
-    "agent-protocols": "0.12.3",
+    "agent-protocols": "0.12.4",
     "canonicalize": "^4.0.0",
     "cborg": "^6.1.3"
   },

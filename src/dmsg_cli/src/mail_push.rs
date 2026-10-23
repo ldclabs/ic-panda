@@ -26,13 +26,15 @@ pub(crate) async fn run(daemon: Arc<Daemon>) {
         if daemon.stopping() {
             continue;
         }
-        let watches = daemon.client().lock().await.mail_push_watches();
+        // One hold for the watches and their maintenance: an account switch
+        // ends this round instead of pointing the queued work at its data.
+        let h = daemon.hold();
+        let watches = h.with(|c| c.mail_push_watches()).await;
         let Ok(watches) = watches else { continue };
         for (agent, watch) in watches {
             let generation = watch.generation;
-            if let Err(error) = daemon.maintain_mail_push(&agent, watch).await {
-                let mut client = daemon.client().lock().await;
-                if let Ok(mut all) = client.mail_push_watches()
+            if let Err(error) = daemon.maintain_mail_push(&h, &agent, watch).await {
+                if let Ok(mut all) = h.with(|c| c.mail_push_watches()).await
                     && let Some(watch) = all.get_mut(&agent)
                     && watch.generation == generation
                 {
@@ -42,7 +44,7 @@ pub(crate) async fn run(daemon: Arc<Daemon>) {
                         }
                         _ => dmsg_client::error_code(&error),
                     });
-                    let _ = client.mail_push_save(&agent, watch);
+                    let _ = h.with(|c| c.mail_push_save(&agent, watch)).await;
                 }
                 daemon.note("mail-push", &dmsg_client::error_code(&error));
             }
@@ -94,9 +96,11 @@ impl Daemon {
         Ok(view)
     }
 
-    async fn maintain_mail_push(&self, agent: &str, mut watch: Watch) -> Result<()> {
+    async fn maintain_mail_push(&self, h: &impl Hold, agent: &str, mut watch: Watch) -> Result<()> {
+        // Bind the account before waiting for this Agent's turn: maintenance
+        // queued under one account must not run against another.
+        let account = h.with(|c| Ok(c.session_state().account)).await?;
         let _turn = self.turn(&format!("mail-push:{agent}")).await;
-        let h = self.hold();
         let allowed = h
             .with(|c| {
                 let current = c
@@ -171,7 +175,7 @@ impl Daemon {
             for (key, sub) in stale {
                 // Removing a configured origin must not make another request to it.
                 if origins.contains(&sub.service) {
-                    let _=dmsg_client::mail_push::request(&h,&http,agent,&sub.service,"events/unsubscribe",json!({"name":"dmsg.mail.available","arguments":{"mailbox_id":sub.mailbox_id},"delivery":{"mode":"webhook","url":endpoint.url}})).await;
+                    let _=dmsg_client::mail_push::request(h,&http,agent,&sub.service,"events/unsubscribe",json!({"name":"dmsg.mail.available","arguments":{"mailbox_id":sub.mailbox_id},"delivery":{"mode":"webhook","url":endpoint.url}})).await;
                 }
                 watch.subscriptions.remove(&key);
             }
@@ -181,6 +185,10 @@ impl Daemon {
                 // Reuse the existing journaled endpoint lifecycle. This rare
                 // cleanup still uses its documented under-lock implementation.
                 self.under_lock(async |c| {
+                    ensure(
+                        c.session_state().account == account,
+                        Error::Unavailable("the account changed".into()),
+                    )?;
                     c.mcp_endpoint_delete(Some(agent), &endpoint.endpoint_id)
                         .await
                 })
@@ -196,6 +204,10 @@ impl Daemon {
             // Endpoint creation already journals unknown outcomes; its stable
             // context lets us recover a successful creation after a restart.
             self.under_lock(async |c| {
+                ensure(
+                    c.session_state().account == account,
+                    Error::Unavailable("the account changed".into()),
+                )?;
                 let current = c
                     .mail_push_watches()?
                     .remove(agent)
@@ -221,7 +233,7 @@ impl Daemon {
         }
         let endpoint = endpoint.ok_or(Error::IntegrityFailed)?;
         watch.endpoint_id = Some(endpoint.endpoint_id.clone());
-        self.renew_mail_push(&h, agent, &mut watch, &endpoint, desired)
+        self.renew_mail_push(h, agent, &mut watch, &endpoint, desired)
             .await
     }
 
@@ -322,6 +334,44 @@ mod tests {
         Mutex,
         atomic::{AtomicBool, Ordering},
     };
+
+    #[tokio::test]
+    async fn queued_mail_maintenance_does_not_follow_an_account_switch() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = crate::home::Home {
+            dir: dir.path("home"),
+        };
+        let mut client = dmsg_client::testing::unlocked(&dir.path("workspace"), false, None);
+        let agent = client.agent_create("mail-test").unwrap().agent_id;
+        client.mail_push_set(&agent, true).unwrap();
+        let watch = client.mail_push_watches().unwrap().remove(&agent).unwrap();
+        let daemon = Arc::new(Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        ));
+        let h = daemon.hold();
+        let turn = daemon.turn(&format!("mail-push:{agent}")).await;
+        let mut work = Box::pin(daemon.maintain_mail_push(&h, &agent, watch));
+        assert!(futures_util::poll!(&mut work).is_pending());
+        {
+            let mut client = daemon.client().lock().await;
+            *client = dmsg_client::Client::open(
+                dmsg_client::testing::config(false),
+                &dir.path("other-account"),
+                None,
+            )
+            .unwrap();
+        }
+        drop(turn);
+        assert_eq!(
+            work.await,
+            Err(Error::Unavailable("the account changed".into()))
+        );
+    }
 
     #[tokio::test]
     async fn a_failed_subscription_does_not_block_other_mailboxes_or_their_renewals() {

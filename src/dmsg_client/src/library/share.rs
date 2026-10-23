@@ -15,6 +15,11 @@ use crate::upload::random_hex;
 use dmsg_types::{Error, Result, ensure};
 use zeroize::Zeroizing;
 
+/// How long a prepared edition's temporary chunk references last without the
+/// next chunk refreshing them. An interrupted preparation then stops pinning
+/// its ciphertext soon instead of for an hour.
+const EDITION_HOLD_MS: u64 = 10 * dmsg_types::MINUTE;
+
 /// Re-encrypt the file of `source`, whose chunks are in `from`, under `key`
 /// as file `id`/`version` into `to`; returns the new chunks. The plaintext
 /// is checked against the source's SHA-256 on the way.
@@ -66,7 +71,6 @@ pub(crate) async fn edition<H: crate::hold::Hold>(
     let key = Zeroizing::new(random_key());
     let id = random_hex();
     let version = random_hex();
-    let expires_at = crate::now_ms() + 60 * dmsg_types::MINUTE;
     let count = chunk_count(source.size);
     let mut chunks = Vec::with_capacity(count as usize);
     let mut overall = Sha256::new();
@@ -85,7 +89,7 @@ pub(crate) async fn edition<H: crate::hold::Hold>(
             });
             c.hold_chunks([(
                 id.clone(),
-                expires_at,
+                crate::now_ms() + EDITION_HOLD_MS,
                 chunks.iter().map(|c| c.digest.clone()).collect(),
             )])
         })
