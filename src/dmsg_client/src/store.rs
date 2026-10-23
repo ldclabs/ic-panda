@@ -518,6 +518,22 @@ impl Store {
             .map_err(storage)
     }
 
+    /// At most two approval IDs with a prefix, enough to resolve or reject
+    /// an ambiguous CLI prefix without loading the entire approval index.
+    /// # Errors
+    /// Returns `Error::Unavailable` when SQLite fails.
+    pub fn approval_ids(&self, prefix: &str) -> Result<Vec<String>> {
+        let conn = self.conn();
+        let mut statement = conn
+            .prepare("SELECT id FROM approvals WHERE id >= ?1 AND id < ?2 ORDER BY id LIMIT 2")
+            .map_err(storage)?;
+        let end = format!("{prefix}\u{10ffff}");
+        let rows = statement
+            .query_map(params![prefix, end], |r| r.get(0))
+            .map_err(storage)?;
+        rows.collect::<rusqlite::Result<_>>().map_err(storage)
+    }
+
     /// Approval index rows in `states`, oldest first; every row when empty.
     ///
     /// # Errors

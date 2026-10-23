@@ -19,7 +19,7 @@ use crate::client::Client;
 use crate::codec::{b64, canonical, decode, unb64};
 use crate::content::MAX_OBJECT;
 use crate::crypto::sign;
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::now_ms;
 use candid::Principal;
 use dmsg_protocol::{
@@ -82,6 +82,7 @@ pub struct AttestRun {
     ic: crate::ic::Ic,
     home: Principal,
     account: AccountId,
+    generation: u64,
     attestation: Option<Attestation>,
 }
 
@@ -109,37 +110,62 @@ impl AttestRun {
     ///
     /// # Errors
     /// As [`Client::approval_respond`].
-    pub async fn run<H: Hold>(mut self, h: &H) -> Result<Json> {
-        let read = self.read().await;
+    pub async fn run<H: Hold>(self, h: &H) -> Result<Json> {
+        self.run_with_file_reader(h, |path| async move { file_sha256(&path) })
+            .await
+    }
+
+    /// Run with the host's file reader, so a daemon can hash on a blocking
+    /// worker. The path comes from the approved request; its digest is still
+    /// compared before signing. Account state is fetched after hashing.
+    /// # Errors
+    /// As [`Self::run`].
+    pub async fn run_with_file_reader<H, F, R>(mut self, h: &H, file_reader: F) -> Result<Json>
+    where
+        H: Hold,
+        F: FnOnce(std::path::PathBuf) -> R + Send,
+        R: std::future::Future<Output = Result<Hash>> + Send,
+    {
+        let h = Unlocked::new(h).await?;
+        h.with(|c| {
+            ensure(
+                c.account()?.id == self.account && c.session_generation == self.generation,
+                Error::Locked,
+            )
+        })
+        .await?;
+        let file = match self.file.as_ref().and_then(|f| f.path.as_ref()) {
+            Some(path) => Some(file_reader(path.into()).await),
+            None => None,
+        };
+        let read = self.read(file).await;
         h.with(|c| c.attest_sign(&mut self, read)).await?;
         let sent = self.send().await;
         h.with(|c| c.attest_settle(self, sent)).await
     }
 
-    /// What signing needs read first: a local file's SHA-256, the product
-    /// authority's verdict on an action, and the account's state.
-    async fn read(&self) -> RunRead {
-        let file = self
-            .file
-            .as_ref()
-            .and_then(|f| f.path.as_deref())
-            .map(|path| file_sha256(Path::new(path)));
-        let inspected = match &self.subject {
-            // The product authority accepts this exact action first, as
-            // for a page's `signAction`.
-            Subject::Action(action) => Some(
-                self.ic
-                    .update::<_, Result<()>>(
-                        self.home,
-                        "inspect_app_action",
-                        (self.account, action.as_ref()),
-                    )
-                    .await
-                    .and_then(|verdict| verdict),
-            ),
-            Subject::Statement { .. } => None,
+    /// Independent product preflight and fresh account-state reads. A file
+    /// has already been hashed, so a slow disk cannot age the account read.
+    async fn read(&self, file: Option<Result<Hash>>) -> RunRead {
+        let inspect = async {
+            match &self.subject {
+                Subject::Action(action) => Some(
+                    self.ic
+                        .update::<_, Result<()>>(
+                            self.home,
+                            "inspect_app_action",
+                            (self.account, action.as_ref()),
+                        )
+                        .await
+                        .and_then(|verdict| verdict),
+                ),
+                Subject::Statement { .. } => None,
+            }
         };
-        let account = crate::account::read_account(&self.ic, self.home, &self.account).await;
+        let (inspected, account) = futures_util::join!(
+            inspect,
+            crate::account::read_account(&self.ic, self.home, &self.account)
+        );
         RunRead {
             file,
             inspected,
@@ -1051,6 +1077,7 @@ impl Client {
             ic,
             home: account.home,
             account: account.id,
+            generation: self.session_generation,
             attestation: None,
         })
     }
@@ -1167,23 +1194,38 @@ impl Client {
         Ok(kept)
     }
 
-    /// The account's kept attestations, by execution ID.
-    fn kept_attestations(&self) -> Result<Vec<Evidence>> {
-        let mut kept = Vec::new();
-        for (id, _) in self.workspace.store.heads(ATTESTATION)? {
-            let (_, record) = self.current(&id)?;
-            if record.tombstone {
-                continue;
-            }
-            let evidence: Evidence =
-                decode(&record.open(self.environment(), self.roots()?)?, MAX_OBJECT)?;
-            ensure(
-                evidence.format == EVIDENCE_FORMAT && evidence.attestation.execution_id() == id,
-                Error::IntegrityFailed,
-            )?;
-            kept.push(evidence);
-        }
-        Ok(kept)
+    fn kept_attestation(
+        &self,
+        id: &str,
+        record: &crate::content::EncryptedObject,
+    ) -> Result<Evidence> {
+        ensure(
+            record.kind == ATTESTATION && !record.tombstone,
+            Error::NotFound,
+        )?;
+        ensure(record.id == id, Error::IntegrityFailed)?;
+        let evidence: Evidence =
+            decode(&record.open(self.environment(), self.roots()?)?, MAX_OBJECT)?;
+        ensure(
+            evidence.format == EVIDENCE_FORMAT && evidence.attestation.execution_id() == record.id,
+            Error::IntegrityFailed,
+        )?;
+        Ok(evidence)
+    }
+
+    fn history_entry(&self, attestation: &Attestation) -> Result<Json> {
+        let statement = match &attestation.request {
+            Signed::Document(r) => r.statement.clone(),
+            Signed::Action(r) => app_action_statement(r)?,
+        };
+        let device = attestation.request.approval().device_id;
+        Ok(json!({
+            "execution": attestation.execution_id(), "approval": attestation.approval,
+            "stage": attestation.stage, "origin": attestation.request.origin(),
+            "created_at": attestation.created_at, "error": attestation.error,
+            "device_id": hex::encode(*device), "this_device": device == self.workspace.meta.device_id,
+            "statement": statement_view(&statement),
+        }))
     }
 
     /// This device's attestations and those the account keeps from its
@@ -1193,25 +1235,6 @@ impl Client {
     /// Returns `Error::Locked` while locked.
     pub fn attest_history(&self) -> Result<Vec<Json>> {
         let keys = self.keys()?;
-        let own = self.workspace.meta.device_id;
-        let entry = |attestation: &Attestation| -> Result<Json> {
-            let statement = match &attestation.request {
-                Signed::Document(r) => r.statement.clone(),
-                Signed::Action(r) => app_action_statement(r)?,
-            };
-            let device = attestation.request.approval().device_id;
-            Ok(json!({
-                "execution": attestation.execution_id(),
-                "approval": attestation.approval,
-                "stage": attestation.stage,
-                "origin": attestation.request.origin(),
-                "created_at": attestation.created_at,
-                "error": attestation.error,
-                "device_id": hex::encode(*device),
-                "this_device": device == own,
-                "statement": statement_view(&statement),
-            }))
-        };
         let mut items = Vec::new();
         let mut seen = std::collections::BTreeSet::new();
         for key in self.workspace.store.sealed_keys(PREFIX)? {
@@ -1219,12 +1242,19 @@ impl Client {
                 continue;
             };
             seen.insert(attestation.execution_id());
-            items.push(entry(&attestation)?);
+            items.push(self.history_entry(&attestation)?);
         }
-        for evidence in self.kept_attestations()? {
-            if seen.insert(evidence.attestation.execution_id()) {
-                items.push(entry(&evidence.attestation)?);
+        for row in self.workspace.store.head_objects(ATTESTATION)? {
+            if seen.contains(&row.item) {
+                continue;
             }
+            let record = crate::content::record(&row)?;
+            if record.tombstone {
+                continue;
+            }
+            let evidence = self.kept_attestation(&row.item, &record)?;
+            seen.insert(evidence.attestation.execution_id());
+            items.push(self.history_entry(&evidence.attestation)?);
         }
         items.sort_by_key(|i| std::cmp::Reverse(i["created_at"].as_u64()));
         Ok(items)
@@ -1239,11 +1269,8 @@ impl Client {
         let (attestation, home) = match self.attestation(execution)? {
             Some(attestation) => (attestation, self.account()?.home.to_text()),
             None => {
-                let evidence = self
-                    .kept_attestations()?
-                    .into_iter()
-                    .find(|e| e.attestation.execution_id() == execution)
-                    .ok_or(Error::NotFound)?;
+                let (_, record) = self.current(execution)?;
+                let evidence = self.kept_attestation(execution, &record)?;
                 (evidence.attestation, evidence.home)
             }
         };
@@ -1260,6 +1287,51 @@ impl Client {
             receipt: b64(&canonical(receipt)),
         })
     }
+}
+
+/// Read attestation history in short local steps, opening each execution
+/// once even when its device journal and synced evidence both exist.
+/// # Errors
+/// As [`Client::attest_history`]; locking interrupts the read.
+pub async fn history<H: Hold>(h: &H) -> Result<Vec<Json>> {
+    let h = Unlocked::new(h).await?;
+    let (own, kept) = h
+        .with(|c| {
+            Ok((
+                c.workspace.store.sealed_keys(PREFIX)?,
+                c.workspace.store.head_objects(ATTESTATION)?,
+            ))
+        })
+        .await?;
+    let mut items = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+    for key in own {
+        h.with(|c| {
+            if let Some(a) = c.workspace.private::<Attestation>(c.keys()?, &key)? {
+                seen.insert(a.execution_id());
+                items.push(c.history_entry(&a)?);
+            }
+            Ok(())
+        })
+        .await?;
+    }
+    for row in kept {
+        if seen.contains(&row.item) {
+            continue;
+        }
+        h.with(|c| {
+            let record = crate::content::record(&row)?;
+            if !record.tombstone {
+                let evidence = c.kept_attestation(&row.item, &record)?;
+                items.push(c.history_entry(&evidence.attestation)?);
+            }
+            Ok(())
+        })
+        .await?;
+    }
+    h.with(|_| Ok(())).await?;
+    items.sort_by_key(|i| std::cmp::Reverse(i["created_at"].as_u64()));
+    Ok(items)
 }
 
 /// Ask this device to attest an application action its product prepared
@@ -1434,9 +1506,17 @@ pub(crate) async fn reconcile<H: Hold>(h: &H, execution: &str) -> Result<Attesta
 /// # Errors
 /// As [`verify_bundle`].
 pub async fn verify<H: Hold>(h: &H, bundle: &Bundle, file: Option<&Path>) -> Result<Verification> {
-    let homes = crate::client::homes(h).await?;
-    let ic = h.reader().await?;
+    let (ic, homes) = verification_context(h).await?;
     verify_online(&ic, &homes, bundle, file).await
+}
+
+/// Trust inputs for local verification, also available while locked. Hosts
+/// may run [`verify_bundle`] on a blocking worker before checking current status.
+/// # Errors
+/// As [`crate::client::homes`].
+pub async fn verification_context<H: Hold>(h: &H) -> Result<(crate::ic::Ic, Vec<Principal>)> {
+    let homes = crate::client::homes(h).await?;
+    Ok((h.reader().await?, homes))
 }
 
 /// [`verify_bundle`] under the agent's root key and the user `homes`, then
@@ -1451,12 +1531,20 @@ pub async fn verify_online(
     bundle: &Bundle,
     file: Option<&Path>,
 ) -> Result<Verification> {
-    let mut report = verify_bundle(bundle, file, &ic.root_key(), homes)?;
+    let report = verify_bundle(bundle, file, &ic.root_key(), homes)?;
+    verify_current(ic, report).await
+}
+
+/// Add the device's current certified status to a locally verified report.
+/// Both status queries run together; unavailable status stays unknown.
+/// # Errors
+/// Returns `Error::InvalidInput` for invalid account or home identifiers.
+pub async fn verify_current(ic: &crate::ic::Ic, mut report: Verification) -> Result<Verification> {
     let account: AccountId = report
         .account
         .parse()
         .map_err(|_| dmsg_types::invalid("account"))?;
-    let home = Principal::from_text(&bundle.home).map_err(|_| dmsg_types::invalid("home"))?;
+    let home = Principal::from_text(&report.home).map_err(|_| dmsg_types::invalid("home"))?;
     let Some(device) = report
         .device_id
         .as_ref()
@@ -1467,14 +1555,14 @@ pub async fn verify_online(
         return Ok(report);
     };
     // Offline, the present status stays unknown; the evidence stands alone.
-    let batch: Result<Result<CertifiedBatch>> = ic
-        .query(home, "security_snapshot_batch", (vec![account],))
-        .await;
     type Bundled = (
         dmsg_types::user::SecuritySnapshot,
         std::collections::BTreeMap<Hash, dmsg_types::user::Device>,
     );
-    let devices: Result<Result<Bundled>> = ic.query(home, "get_device_bundle", (account,)).await;
+    let (batch, devices): (Result<Result<CertifiedBatch>>, Result<Result<Bundled>>) = futures_util::join!(
+        ic.query(home, "security_snapshot_batch", (vec![account],)),
+        ic.query(home, "get_device_bundle", (account,))
+    );
     if let (Ok(Ok(batch)), Ok(Ok((_, devices)))) = (batch, devices)
         && let Ok(security) = crate::account::verify_security(
             home,
@@ -1507,6 +1595,8 @@ pub async fn verify_online(
 /// Returns `Error::Locked` while locked and `Error::NotFound` for an
 /// unknown request.
 pub async fn attest_readiness<H: Hold>(h: &H, id: Option<&str>) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let (account, purpose, ic, device_id) = h
         .with(|c| {
             c.keys()?;
@@ -1643,6 +1733,8 @@ fn prepare_attestation_thumbprint(signing_pub: &Hash) -> Result<Hash> {
 /// # Errors
 /// Returns `Error::AuthRequired` without a login.
 pub async fn execution_usage<H: Hold>(h: &H) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let (account, ic) = h
         .with(|c| Ok((c.account()?.clone(), c.session()?.ic.clone())))
         .await?;
@@ -1655,36 +1747,51 @@ pub async fn execution_usage<H: Hold>(h: &H) -> Result<Json> {
         }
     };
     let last = earlier(dmsg_protocol::billing::month_utc(now)?);
-    for month in [last, earlier(last)] {
-        let found: Result<ExecutionUsage> = ic
-            .query(account.home, "get_execution_usage", (account.id, month))
-            .await?;
-        let usage = match found {
+    let older = earlier(last);
+    let (recent, previous, usage) = futures_util::join!(
+        ic.query::<_, Result<ExecutionUsage>>(
+            account.home,
+            "get_execution_usage",
+            (account.id, last)
+        ),
+        ic.query::<_, Result<ExecutionUsage>>(
+            account.home,
+            "get_execution_usage",
+            (account.id, older)
+        ),
+        ic.update::<_, Result<ExecutionUsage>>(
+            account.home,
+            "refresh_execution_entitlement",
+            (account.id,)
+        )
+    );
+    let usage = usage??;
+    let mut archived = Vec::new();
+    for (month, found) in [(last, recent), (older, previous)] {
+        let found = match found? {
             Err(Error::NotFound) => continue,
             found => found?,
         };
         ensure(
-            usage.account_id == account.id && usage.month_utc == month,
+            found.account_id == account.id && found.month_utc == month,
             Error::IntegrityFailed,
         )?;
-        h.with(|c| {
-            c.workspace
-                .put_private(c.keys()?, &format!("{USAGE}{month}"), &usage)
-        })
-        .await?;
+        archived.push((month, found));
     }
-    // An update reply is certified by the subnet; there is no separate proof.
-    let usage: Result<ExecutionUsage> = ic
-        .update(account.home, "refresh_execution_entitlement", (account.id,))
-        .await?;
-    let usage = usage?;
-    ensure(
-        usage.account_id == account.id && usage.valid_until_ms > now,
-        Error::IntegrityFailed,
-    )?;
     h.with(|c| {
-        c.workspace
-            .put_private(c.keys()?, USAGE_NOW, &(now, &usage))?;
+        let now = now_ms();
+        ensure(
+            usage.account_id == account.id && usage.valid_until_ms > now,
+            Error::IntegrityFailed,
+        )?;
+        c.workspace.store.atomic(|_| {
+            for (month, usage) in &archived {
+                c.workspace
+                    .put_private(c.keys()?, &format!("{USAGE}{month}"), usage)?;
+            }
+            c.workspace
+                .put_private(c.keys()?, USAGE_NOW, &(now, &usage))
+        })?;
         let mut history = c
             .workspace
             .store

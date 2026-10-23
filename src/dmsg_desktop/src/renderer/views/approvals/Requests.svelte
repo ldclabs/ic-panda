@@ -17,6 +17,7 @@
   let {
     requests,
     agents,
+    loaded,
     busy,
     open,
     cancel,
@@ -24,6 +25,7 @@
   }: {
     requests: any[]
     agents: Record<string, string>
+    loaded: boolean
     busy: boolean
     open: (id: string) => unknown
     cancel: (id: string) => unknown
@@ -88,7 +90,7 @@
         <button class={buttonClass('primary', 'sm')} onclick={() => open(request.id)} data-testid="request-open">{t('open')}</button>
       </li>
     {:else}
-      <li class="flex items-center gap-2 px-5 py-4 text-[13px] text-faint"><Icon name="check" class="text-ok" />{t('noRequests')}</li>
+      <li class="flex items-center gap-2 px-5 py-4 text-[13px] text-faint"><Icon name="check" class="text-ok" />{loaded ? t('noRequests') : t('loading')}</li>
     {/each}
   </ul>
 </Section>

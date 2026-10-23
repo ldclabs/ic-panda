@@ -197,6 +197,11 @@ impl Daemon {
 
     /// Run one of the owner's [`METHODS`].
     pub(crate) async fn call_agents(&self, method: &str, params: &Value) -> Result<Value> {
+        if method == "agent/credentials" {
+            return Ok(Value::Array(
+                dmsg_client::agent::delegation_credentials(&self.hold()).await?,
+            ));
+        }
         if method == "agent/mail_push_set" {
             return self
                 .configure_mail_push(
@@ -475,7 +480,6 @@ impl Daemon {
                         )
                         .await
                 }
-                "agent/credentials" => Ok(Value::Array(client.delegation_credentials().await?)),
                 _ => Err(Error::NotFound),
             }
         })

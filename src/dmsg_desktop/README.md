@@ -158,7 +158,11 @@ desktop is one of its clients, like the CLI.
     devices' included, each verified in place or exported; and what the
     account has authorized (devices that approve, paired browsers, web
     sessions in force, agents' grants and credentials), each managed where
-    it lives.
+    it lives. Pending requests load independently of signature history, which
+    is read when Evidence is opened. Authorization sections display their own
+    results without waiting for unrelated queries, with failures shown locally.
+    The approval window ignores reads superseded by a decision or session
+    change; locking clears its request and stops any approval hold.
   - Settings, in sections with their own routes (`/settings/session`,
     `security`, `devices`, `profile`, `browsers`, `files`, `appearance`,
     `legacy`, `about`): this session and the device's accounts, fast unlock

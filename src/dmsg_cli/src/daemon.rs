@@ -53,7 +53,7 @@ use dmsg_client::{
     attest::{Bundle, FileSource, StatementInput},
     client::Warm,
     error_code,
-    hold::Hold,
+    hold::{Hold, Unlocked},
     library::{Check, VersionCheck, blobs::Blobs},
     login::{DEFAULT_TTL_MS, LoginSession},
     now_ms,
@@ -806,7 +806,10 @@ impl Daemon {
             Decision::Attest(run) => {
                 // The windows see it executing while it runs.
                 self.emit("approval/changed", Value::Null);
-                run.run(&self.hold()).await
+                run.run_with_file_reader(&self.hold(), |path| {
+                    blocking(move || dmsg_client::attest::file_sha256(&path))
+                })
+                .await
             }
         }
     }
@@ -1213,8 +1216,14 @@ impl Daemon {
             "events/poll" => Ok(json!({"seq": self.seq.load(Ordering::Relaxed)})),
             "approval/list" => {
                 let all = params["all"].as_bool().unwrap_or(false);
-                let list = self.client.lock().await.approvals(all)?;
-                Ok(Value::Array(list))
+                if params["ids_only"] == true {
+                    return Ok(to_json(
+                        &dmsg_client::approval::waiting_ids(&self.hold()).await?,
+                    ));
+                }
+                Ok(Value::Array(
+                    dmsg_client::approval::list(&self.hold(), all).await?,
+                ))
             }
             // The CLI names a request by a unique prefix.
             "approval/show" => {
@@ -1271,15 +1280,24 @@ impl Daemon {
             "approval/check_file" => {
                 let id = text(params, "id")?;
                 let path = absolute(params, "path")?;
-                let (size, _) = dmsg_client::approval::file_stamp(&path)?;
-                let sha256 = dmsg_client::attest::file_sha256(&path)?;
-                let name = dmsg_client::approval::file_name(&path);
-                self.client
-                    .lock()
+                let shared = self.hold();
+                let h = Unlocked::new(&shared).await?;
+                let id = h.with(|c| c.approval_id(&id)).await?;
+                let (name, size, sha256) = blocking(move || {
+                    let (size, _) = dmsg_client::approval::file_stamp(&path)?;
+                    Ok((
+                        dmsg_client::approval::file_name(&path),
+                        size,
+                        dmsg_client::attest::file_sha256(&path)?,
+                    ))
+                })
+                .await?;
+                h.with(|c| c.approval_file_checked(&id, &name, size, sha256))
                     .await
-                    .approval_file_checked(&id, &name, size, sha256)
             }
             "attest/request" => {
+                let shared = self.hold();
+                let h = Unlocked::new(&shared).await?;
                 let input: StatementInput = parse(params, "statement")?;
                 let file = optional(params, "file", absolute)?;
                 let library = match &params["library"] {
@@ -1288,7 +1306,10 @@ impl Daemon {
                 };
                 let source_file = match (&file, &library) {
                     // Hashed here, outside the client, since it may be large.
-                    (Some(path), None) => Some(dmsg_client::attest::local_file(path)?),
+                    (Some(path), None) => {
+                        let path = path.clone();
+                        Some(blocking(move || dmsg_client::attest::local_file(&path)).await?)
+                    }
                     (None, Some((file, version))) => Some(FileSource::Library(file, version)),
                     (None, None) => None,
                     _ => {
@@ -1297,10 +1318,8 @@ impl Daemon {
                         ));
                     }
                 };
-                self.client
-                    .lock()
+                h.with(|c| c.attest_request(source(params)?, input, source_file))
                     .await
-                    .attest_request(source(params)?, input, source_file)
             }
             "attest/readiness" => {
                 dmsg_client::attest::attest_readiness(&self.hold(), params["id"].as_str()).await
@@ -1309,7 +1328,9 @@ impl Daemon {
                 let action = dmsg_client::codec::unb64(&text(params, "action")?)?;
                 dmsg_client::attest::action_request(&self.hold(), source(params)?, &action).await
             }
-            "attest/history" => Ok(Value::Array(self.client.lock().await.attest_history()?)),
+            "attest/history" => Ok(Value::Array(
+                dmsg_client::attest::history(&self.hold()).await?,
+            )),
             "attest/export" => {
                 let bundle = self
                     .client
@@ -1321,9 +1342,15 @@ impl Daemon {
             "attest/verify" => {
                 let bundle: Bundle = parse(params, "bundle")?;
                 let file = optional(params, "file", absolute)?;
-                let report =
-                    dmsg_client::attest::verify(&self.hold(), &bundle, file.as_deref()).await?;
-                Ok(to_json(&report))
+                let (ic, homes) = dmsg_client::attest::verification_context(&self.hold()).await?;
+                let root = ic.root_key();
+                let report = blocking(move || {
+                    dmsg_client::attest::verify_bundle(&bundle, file.as_deref(), &root, &homes)
+                })
+                .await?;
+                Ok(to_json(
+                    &dmsg_client::attest::verify_current(&ic, report).await?,
+                ))
             }
             "device/capabilities" => {
                 let device = hash(params, "device")?;
@@ -1805,6 +1832,16 @@ async fn check_callback(daemon: Arc<Daemon>, headers: HeaderMap, body: Bytes) ->
         Err(Error::Forbidden) => (StatusCode::FORBIDDEN, "refused").into_response(),
         Err(error) => (StatusCode::BAD_REQUEST, error.to_string()).into_response(),
     }
+}
+
+/// CPU-heavy file work belongs on the blocking pool, outside both the
+/// shared client and the async executor's worker threads.
+async fn blocking<T: Send + 'static>(
+    work: impl FnOnce() -> Result<T> + Send + 'static,
+) -> Result<T> {
+    tokio::task::spawn_blocking(work)
+        .await
+        .map_err(|e| Error::Unavailable(format!("file worker: {e}")))?
 }
 
 #[cfg(test)]
@@ -2328,6 +2365,7 @@ mod tests {
             ("mcp-events/list", Value::Null, false),
             ("inbox/list", Value::Null, false),
             ("inbox/policy", Value::Null, false),
+            ("agent/credentials", Value::Null, false),
             ("inbox/configure", json!({"mode":"free"}), false),
             (
                 "inbox/mark",
@@ -2450,6 +2488,38 @@ mod tests {
             .expect("local reads and locking must not wait for a quote or a name");
             work.abort();
         }
+    }
+
+    #[tokio::test]
+    async fn a_large_statement_hash_leaves_the_executor_and_lock_available() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let (daemon, _relay, _ic) = stalled(&dir).await;
+        let path = dir.0.join("large.bin");
+        std::fs::write(&path, vec![7; 32 * 1024 * 1024]).unwrap();
+        let work = tokio::spawn({
+            let daemon = daemon.clone();
+            async move {
+                daemon
+                    .call_daemon(
+                        "attest/request",
+                        &json!({"source":"gui", "file":path, "statement":{"profile":"digest"}}),
+                    )
+                    .await
+            }
+        });
+        tokio::task::yield_now().await;
+        assert!(
+            !work.is_finished(),
+            "hashing must not monopolize the async executor"
+        );
+        tokio::time::timeout(Duration::from_secs(1), async {
+            daemon.call_vault("vault/list", &Value::Null).await.unwrap();
+            daemon.client().lock().await.lock();
+        })
+        .await
+        .expect("the user must be able to read and lock while hashing");
+        assert_eq!(work.await.unwrap(), Err(Error::Locked));
+        assert_eq!(daemon.client().lock().await.approvals_waiting().unwrap(), 0);
     }
 
     /// A queued wallet action belongs to the account that submitted it,

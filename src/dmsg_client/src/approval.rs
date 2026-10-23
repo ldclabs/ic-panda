@@ -16,7 +16,7 @@
 //! Touch ID or the login password first (plan S03).
 
 use crate::client::Client;
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::now_ms;
 use crate::secure::PresenceKey;
 use crate::store::ApprovalRow;
@@ -544,7 +544,7 @@ impl Client {
             .store
             .approvals(states)?
             .iter()
-            .map(|row| self.approval_view(&self.approval_record(&row.id)?))
+            .map(|row| self.approval_view_with_files(&self.approval_record(&row.id)?, false))
             .collect()
     }
 
@@ -555,11 +555,11 @@ impl Client {
     /// Returns `Error::NotFound` when none matches and `Error::InvalidInput`
     /// for a shorter prefix or one that matches several.
     pub fn approval_id(&self, prefix: &str) -> Result<String> {
-        let rows = self.workspace.store.approvals(&[])?;
-        let mut found = rows.into_iter().filter(|row| row.id.starts_with(prefix));
+        let ids = self.workspace.store.approval_ids(prefix)?;
+        let mut found = ids.into_iter();
         match (found.next(), found.next()) {
             (None, _) => Err(Error::NotFound),
-            (Some(row), None) if prefix.len() >= 6 => Ok(row.id),
+            (Some(id), None) if prefix.len() >= 6 => Ok(id),
             _ => Err(Error::InvalidInput("give more of the request ID".into())),
         }
     }
@@ -1141,7 +1141,7 @@ impl Client {
     }
 
     /// Read the operation behind a request for display.
-    fn approval_detail(&self, action: &Action) -> Result<Json> {
+    fn approval_detail(&self, action: &Action, check_files: bool) -> Result<Json> {
         Ok(match action {
             Action::Attest {
                 statement,
@@ -1159,7 +1159,7 @@ impl Client {
                 })),
                 // A local file is compared by size and time here, and hashed
                 // again on approval; a library version by its record.
-                "file_checked": file.as_ref().map(|f| self.attest_file_unchanged(statement, f)),
+                "file_checked": file.as_ref().and_then(|f| check_files.then(|| self.attest_file_unchanged(statement, f))),
             }),
             Action::AttestAction { action, schema } => {
                 let action: AppAction = dmsg_protocol::decode_canonical(action)?;
@@ -1236,7 +1236,11 @@ impl Client {
     /// forgotten name operation or expired web operation; its history remains
     /// readable with null detail. Unsettled requests still require the detail.
     pub(crate) fn approval_view(&self, request: &Request) -> Result<Json> {
-        let detail = match self.approval_detail(&request.action) {
+        self.approval_view_with_files(request, true)
+    }
+
+    fn approval_view_with_files(&self, request: &Request, check_files: bool) -> Result<Json> {
+        let detail = match self.approval_detail(&request.action, check_files) {
             Err(Error::NotFound) if request.state.terminal() => Json::Null,
             detail => detail?,
         };
@@ -1272,6 +1276,54 @@ impl Client {
             "detail": detail,
         }))
     }
+}
+
+/// Read requests in short local steps. Lists omit filesystem checks; the
+/// full detail and approval execution still check the selected file.
+/// # Errors
+/// As [`Client::approvals`]; a lock interrupts the read.
+pub async fn list<H: Hold>(h: &H, all: bool) -> Result<Vec<Json>> {
+    let h = Unlocked::new(h).await?;
+    let rows = h
+        .with(|c| {
+            c.expire_approvals(now_ms())?;
+            c.workspace.store.approvals(if all {
+                &[]
+            } else {
+                &["awaiting_user", "executing", "unknown"]
+            })
+        })
+        .await?;
+    let mut views = Vec::with_capacity(rows.len());
+    for row in rows {
+        h.with(|c| {
+            let request = c.approval_record(&row.id)?;
+            if all || !request.state.terminal() {
+                views.push(c.approval_view_with_files(&request, false)?);
+            }
+            Ok(())
+        })
+        .await?;
+    }
+    h.with(|_| Ok(())).await?;
+    Ok(views)
+}
+
+/// The other requests waiting for a decision, from the index alone.
+/// # Errors
+/// Returns `Error::Locked` while locked.
+pub async fn waiting_ids<H: Hold>(h: &H) -> Result<Vec<String>> {
+    h.with(|c| {
+        c.keys()?;
+        c.expire_approvals(now_ms())?;
+        Ok(c.workspace
+            .store
+            .approvals(&[State::AwaitingUser.name()])?
+            .into_iter()
+            .map(|r| r.id)
+            .collect())
+    })
+    .await
 }
 
 /// Reconcile every approved attestation whose outcome is unknown, its user

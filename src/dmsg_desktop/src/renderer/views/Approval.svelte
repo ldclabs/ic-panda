@@ -36,6 +36,10 @@
    * ask. Locked, it shows nothing of the request and offers the unlock.
    */
   let { id }: { id: string } = $props()
+  let alive = true
+  let revision = 0
+  let work = 0
+  const valid = (at: number, target = id) => alive && at === revision && target === id && status?.state === 'unlocked'
   let request = $state<any>(null)
   let status = $state<any>(null)
   let error = $state('')
@@ -68,16 +72,24 @@
     ready = false
     stopHold()
     clearTimeout(delay)
-    delay = setTimeout(() => (ready = true), APPROVE_DELAY_MS)
+    const digest = request?.digest
+    delay = setTimeout(() => {
+      if (alive && status?.state === 'unlocked' && request?.digest === digest) ready = true
+    }, APPROVE_DELAY_MS)
   }
 
   async function load() {
+    const at = revision
+    const target = id
+    if (!alive || status?.state !== 'unlocked') return
     try {
-      const next: any = await call('approval/show', { id })
-      if (next?.digest !== request?.digest) arm()
+      const next: any = await call('approval/show', { id: target })
+      if (!valid(at, target)) return
+      const changed = next?.digest !== request?.digest
       const first = !request
       const before = request?.state
       request = next
+      if (changed) arm()
       // A pending execution that settled no longer shows its old notice;
       // a failure's reason is rendered with the outcome below.
       if (before === 'executing' && next?.state !== 'executing') error = ''
@@ -87,12 +99,13 @@
       }
       void loadReadiness()
       if (first && next?.type === 'wallet') {
-        if (next.detail?.wallet) void call<any>('wallet/assets', { wallet: next.detail.wallet }).then((r) => walletAssets = r.assets, () => undefined)
+        if (next.detail?.wallet) void call<any>('wallet/assets', { wallet: next.detail.wallet }).then((r) => { if (valid(at, target)) walletAssets = r.assets }, () => undefined)
       }
       void loadQueue()
       // An agent's request, a grant to an agent or its credential names Agent IDs.
       if (first && (String(next?.source).startsWith('agent:') || ['delegation', 'grant'].includes(next?.type))) void loadAgents()
     } catch (e) {
+      if (!valid(at, target)) return
       // Locked: nothing of the request stays on screen.
       if (code(e) === 'LOCKED') request = null
       error = errorText(e)
@@ -103,31 +116,40 @@
 
   /** Whether signing can happen now: the request's purpose, this device's approval right, the policy and the login. */
   const loadReadiness = single(async () => {
+    const at = revision
     const current = request
+    if (!valid(at)) return
     const signs = current?.type === 'attest' || (current?.type === 'connect' && ['signDocument', 'signAction'].includes(current?.detail?.method))
-    readiness = signs && current?.state === 'awaiting_user' ? await call('attest/readiness', { id }).catch(() => null) : null
+    const next = signs && current?.state === 'awaiting_user' ? await call('attest/readiness', { id }).catch(() => null) : null
+    if (!valid(at) || request?.digest !== current?.digest || request?.state !== current?.state) return
+    readiness = next
     walletReadiness = null
     if (current?.type === 'wallet' && current.detail?.action !== 'cosign' && current.state === 'awaiting_user') {
       const result = await call('wallet/readiness').catch(() => ({ blockers: ['WALLET_REGISTRATION_UNAVAILABLE'] }))
-      if (request?.id === current.id && request?.state === 'awaiting_user') walletReadiness = result
+      if (valid(at) && request?.digest === current.digest && request?.state === 'awaiting_user') walletReadiness = result
     }
   })
 
-  /** The other requests waiting, for the way to the next one. */
+  /** Queue navigation needs only IDs, not every request's private detail. */
   const loadQueue = single(async () => {
-    const list: any[] = await call('approval/list', {}).catch(() => [])
-    queue = list.filter((r) => r.state === 'awaiting_user' && r.id !== id).map((r) => r.id)
+    const at = revision
+    if (!valid(at)) return
+    const ids: string[] = await call('approval/list', { ids_only: true }).catch(() => [])
+    if (valid(at)) queue = ids.filter((next) => next !== id)
   })
 
-  /** The names of the Agent IDs this device hosts. */
   async function loadAgents() {
+    const at = revision
     const hosted: any = await call('agent/ids').catch(() => null)
-    agents = Object.fromEntries((hosted?.agents ?? []).map((a: any) => [a.agent_id, a.label]))
+    if (valid(at)) agents = Object.fromEntries((hosted?.agents ?? []).map((a: any) => [a.agent_id, a.label]))
   }
 
   /** The device's state: locked, the request goes from the window; unlocked again, it comes back. */
   const refreshStatus = single(async () => {
-    status = await call('daemon/status').catch(() => null)
+    const at = revision
+    const next = await call('daemon/status').catch(() => null)
+    if (!alive || at !== revision) return
+    status = next
     const opening = !offered
     offered = true
     if (status && status.state !== 'unlocked') {
@@ -140,7 +162,7 @@
       if (opening && status.state === 'locked' && status.fast_presence) void unlockHere()
     } else if (status && !request) {
       error = ''
-      await load()
+      await reload()
     }
   })
 
@@ -161,47 +183,68 @@
 
   /** Decide exactly what is shown: the digest of this view goes with the answer. */
   async function decide(approve: boolean) {
+    if (busy || !request) return
+    const run = ++work
+    const at = ++revision
+    const shown = request
     busy = true
     approving = approve
     error = ''
     try {
-      request = await bridge(() => window.dmsg.decide(request.id, request.digest, approve))
+      const next = await bridge(() => window.dmsg.decide(shown.id, shown.digest, approve))
+      if (!valid(at)) return
+      revision += 1
+      request = next
       void loadQueue()
     } catch (e) {
+      if (!valid(at)) return
+      revision += 1
       const label = reasonLabels[code(e)]
       error = label ? t(label) : `${code(e)}: ${e instanceof Error ? e.message : String(e)}`
-      await load()
+      await reload()
     } finally {
-      busy = false
-      approving = false
+      if (run === work) { busy = false; approving = false }
     }
   }
 
   /** A web checkout is quoted here first, so the amount approved is the amount shown. */
   async function quote() {
+    if (busy || !request) return
+    const run = ++work
+    const at = ++revision
+    const target = request.id
     busy = true
     error = ''
     try {
-      request = await call('approval/quote', { id: request.id, selection: selection.trim() })
+      const next = await call('approval/quote', { id: target, selection: selection.trim() })
+      if (!valid(at)) return
+      revision += 1
+      request = next
       arm()
     } catch (e) {
-      error = errorText(e)
+      if (valid(at)) error = errorText(e)
     } finally {
-      busy = false
+      if (run === work) busy = false
     }
   }
 
   /** Compare a file the person has with the digest to sign; what is approved stays the same. */
   async function checkFile() {
+    if (busy || !request) return
+    const run = ++work
+    const at = ++revision
+    const target = request.id
     busy = true
     error = ''
     try {
-      const checked = await bridge(() => window.dmsg.checkFile(request.id))
+      const checked = await bridge(() => window.dmsg.checkFile(target))
+      if (!valid(at)) return
+      revision += 1
       if (checked) request = checked
     } catch (e) {
-      error = errorText(e)
+      if (valid(at)) error = errorText(e)
     } finally {
-      busy = false
+      if (run === work) busy = false
     }
   }
 
@@ -255,14 +298,27 @@
   onMount(() => {
     void refreshStatus().then(async () => {
       if (request?.detail?.method === 'checkout' && request.detail.content?.method === 'Cash') {
-        assets = await call('plan/assets').catch(() => [])
-        if (assets.length) selection = assets[0].ledger
+        const at = revision
+        const next = await call('plan/assets').catch(() => [])
+        if (valid(at)) {
+          assets = next
+          if (assets.length) selection = assets[0].ledger
+        }
       }
     })
-    const offs = [onChange(['approval/changed'], reload), onChange(['session/changed'], refreshStatus)]
+    const offs = [onChange(['approval/changed'], reload), onChange(['session/changed'], () => {
+      revision += 1; work += 1
+      request = readiness = walletReadiness = null
+      queue = []; assets = []; walletAssets = []; agents = {}
+      ready = busy = approving = false
+      clearTimeout(delay)
+      stopHold()
+      void refreshStatus()
+    })]
     const clock = setInterval(() => (now = Date.now()), 1000)
     window.addEventListener('focus', refocus)
     return () => {
+      alive = false; revision += 1; work += 1
       for (const off of offs) off()
       clearInterval(clock)
       clearTimeout(delay)

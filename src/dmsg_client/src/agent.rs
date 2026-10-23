@@ -14,6 +14,7 @@
 use crate::client::Client;
 use crate::codec::{b64, canonical, unb64};
 use crate::crypto::{Key, random_id, sign, signing_public};
+use crate::hold::{Hold, Unlocked};
 use crate::now_ms;
 use crate::vault::{Field, Item};
 use agent_protocols::{
@@ -911,19 +912,31 @@ impl Client {
     /// # Errors
     /// Relay errors as returned.
     pub async fn delegation_credentials(&mut self) -> Result<Vec<Json>> {
-        let base = format!("{}/delegations", self.base()?);
-        let mut credentials = Vec::new();
-        let mut cursor: Option<String> = None;
-        loop {
-            let path = match &cursor {
-                Some(cursor) => format!("{base}?limit=100&cursor={cursor}"),
-                None => format!("{base}?limit=100"),
-            };
-            let page = self.relay_get(&path).await?;
-            credentials.extend(page["result"].as_array().cloned().unwrap_or_default());
-            match page["next_cursor"].as_str() {
-                Some(next) if credentials.len() < 10_000 => cursor = Some(next.into()),
-                _ => return Ok(credentials),
+        delegation_credentials(&self.hold()).await
+    }
+}
+
+/// Read the owner's delegation credentials without holding the client during
+/// relay requests. The service still derives each credential's current state.
+/// # Errors
+/// Relay errors as returned; locking stops subsequent pages and the result.
+pub async fn delegation_credentials<H: Hold>(h: &H) -> Result<Vec<Json>> {
+    let h = Unlocked::new(h).await?;
+    let base = format!("{}/delegations", h.with(|c| c.base()).await?);
+    let mut credentials = Vec::new();
+    let mut cursor: Option<String> = None;
+    loop {
+        let path = match &cursor {
+            Some(cursor) => format!("{base}?limit=100&cursor={cursor}"),
+            None => format!("{base}?limit=100"),
+        };
+        let page = h.get(&path).await?;
+        credentials.extend(page["result"].as_array().cloned().unwrap_or_default());
+        match page["next_cursor"].as_str() {
+            Some(next) if credentials.len() < 10_000 => cursor = Some(next.into()),
+            _ => {
+                h.with(|_| Ok(())).await?;
+                return Ok(credentials);
             }
         }
     }

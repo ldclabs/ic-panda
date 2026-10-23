@@ -662,7 +662,7 @@ const methods = {
     conflicts = []
     return vault[0]
   },
-  'approval/list': () => [...requests.values()],
+  'approval/list': (p) => p?.ids_only ? [...requests.values()].filter((r) => r.state === 'awaiting_user').map((r) => r.id) : [...requests.values()],
   'approval/show': (p) => requests.get(p.id),
   'approval/respond': (p) => {
     const r = requests.get(p.id)
@@ -3049,6 +3049,11 @@ smoke: try {
   // Requests: waiting ones open or, when this device's clients made them,
   // are withdrawn; decided ones open read-only.
   await main.click('[data-testid="approvals-tab-requests"]')
+  const historyReadsBefore = calls.filter((c) => c.method === 'attest/history').length
+  const listReadsBefore = calls.filter((c) => c.method === 'approval/list' && c.params?.all).length
+  emit('approval/changed')
+  await waitFor(() => calls.filter((c) => c.method === 'approval/list' && c.params?.all).length > listReadsBefore)
+  assert.equal(calls.filter((c) => c.method === 'attest/history').length, historyReadsBefore)
   await main.waitForSelector('[data-testid="waiting-list"] >> text=I approve release 2.0')
   await main.locator('[data-testid="waiting-list"] li', { hasText: 'I approve release 2.0' }).locator('[data-testid="request-cancel"]').click()
   await waitFor(() => latest('approval/cancel'))
@@ -3073,6 +3078,16 @@ smoke: try {
 
   const bundle = join(profile, 'bundle-out.json')
   await answer('__save', bundle)
+  const finishSignatureHistory = hold('attest/history')
+  await main.click('[data-testid="approvals-tab-bundles"]')
+  await waitFor(() => held.get('attest/history'))
+  // A slow archive read cannot hold up a newer pending-request list.
+  await main.click('[data-testid="approvals-tab-requests"]')
+  const currentListReads = calls.filter((c) => c.method === 'approval/list' && c.params?.all).length
+  emit('approval/changed')
+  await waitFor(() => calls.filter((c) => c.method === 'approval/list' && c.params?.all).length > currentListReads)
+  await main.waitForSelector('[data-testid="history-list"] >> text=Withdrawn')
+  await finishSignatureHistory()
   await main.click('[data-testid="approvals-tab-bundles"]')
   // The account's other devices' signatures arrive with the account.
   await main.waitForSelector('[data-testid="signed-list"] >> text=Another device')
@@ -3107,8 +3122,15 @@ smoke: try {
   await main.screenshot({ path: join(shots, 'signatures.png') })
 
   // Authorizations: what is in force, each managed where it lives.
+  const finishGrantBrowsers = hold('connect/pairings')
+  const finishGrantCredentials = hold('agent/credentials')
+  const principalReads = calls.filter((c) => c.method === 'agent/principal').length
   await main.click('[data-testid="approvals-tab-grants"]')
   await main.waitForSelector('[data-testid="grants-devices"] >> text=This device')
+  await waitFor(() => held.get('connect/pairings') && held.get('agent/credentials'))
+  assert.equal(calls.filter((c) => c.method === 'agent/principal').length, principalReads)
+  await finishGrantBrowsers()
+  await finishGrantCredentials()
   await main.waitForSelector('[data-testid="grants-agents"]')
   await main.screenshot({ path: join(shots, 'authorizations.png') })
   assert.equal(calls.filter((c) => c.method === 'approval/respond').length, 1)
@@ -3271,11 +3293,16 @@ smoke: try {
   assert.deepEqual(latest('session/fast_unlock').params, { enable: true })
   await main.waitForSelector('[data-testid="fast-unlock"] >> text=On')
   const pairingReads = calls.filter((c) => c.method === 'connect/pairings').length
+  const finishOldApproval = hold('approval/show')
+  emit('approval/changed')
+  await waitFor(() => held.get('approval/show'))
   session = 'locked'
   emit('session/changed', { state: 'locked' })
   await main.waitForSelector('[data-testid="gate-unlock"] >> text=Fast unlock')
   // Locked, the approval window shows nothing of its request, and offers the unlock.
   await approval.waitForSelector('[data-testid="approval-locked"]')
+  await finishOldApproval()
+  assert.equal(await approval.locator('[data-testid="approval-title"]').count(), 0)
   assert.equal(await approval.locator('[data-testid="approval-title"]').count(), 0)
   await approval.waitForSelector('[data-testid="approval-unlock"]')
   // Locked, the page's connected browsers wait for the unlock instead of failing.

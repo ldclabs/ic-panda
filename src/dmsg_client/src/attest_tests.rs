@@ -665,8 +665,8 @@ fn an_action_renders_only_by_its_own_schema() {
     assert!(render_action(&wrong, Some(&bytes)).is_null());
 }
 
-#[test]
-fn the_account_keeps_finished_attestations() {
+#[tokio::test]
+async fn the_account_keeps_finished_attestations() {
     let dir = TempDir::new();
     let mut client = unlocked(&dir.0, false, None);
     let own = client.workspace.meta.device_id;
@@ -682,6 +682,10 @@ fn the_account_keeps_finished_attestations() {
         (ATTESTATION, ATTESTATION)
     );
     assert_eq!(row.state, crate::store::LOCAL);
+    assert_eq!(
+        client.kept_attestation("wrong execution", &record).err(),
+        Some(Error::IntegrityFailed)
+    );
 
     // Another device's attestation reaches this one as a kept object.
     let theirs = finished(Hash::new([6; 32]), "signed elsewhere", 20);
@@ -720,6 +724,31 @@ fn the_account_keeps_finished_attestations() {
         .unwrap();
     assert_eq!(client.attest_bundle(&id).unwrap().request_id, id);
     assert_eq!(client.attest_history().unwrap().len(), 2);
+    assert_eq!(
+        crate::attest::history(&client.hold()).await.unwrap(),
+        client.attest_history().unwrap()
+    );
+
+    // Exporting one execution must not scan/decrypt unrelated archive rows.
+    let mut bad = row;
+    bad.item = "ff".repeat(32);
+    bad.revision = "bad".into();
+    bad.key = format!("{}:{}", bad.item, bad.revision);
+    bad.frame = vec![0];
+    client.workspace.store.put_object(&bad).unwrap();
+    client
+        .workspace
+        .store
+        .set_head(&bad.item, &bad.revision, ATTESTATION)
+        .unwrap();
+    assert_eq!(
+        client
+            .attest_bundle(&theirs.execution_id())
+            .unwrap()
+            .request_id,
+        theirs.execution_id()
+    );
+    assert!(client.attest_history().is_err());
 }
 
 /// The shared bundle vector: a file statement, its certified receipt, the
@@ -978,4 +1007,105 @@ async fn the_reconciler_leaves_a_running_attestation_alone() {
     assert_eq!(client.approval_record(&id).unwrap().state, State::Executing);
     assert_eq!(reconcile(&mut client).await, 1);
     assert_eq!(client.approval_record(&id).unwrap().state, State::Failed);
+}
+
+#[tokio::test]
+async fn approval_lists_skip_file_metadata_and_queue_navigation_needs_only_the_index() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    let path = dir.0.join("statement.bin");
+    std::fs::write(&path, b"original bytes").unwrap();
+    let request = client
+        .attest_request(
+            "gui",
+            file_statement("original", None),
+            Some(local_file(&path).unwrap()),
+        )
+        .unwrap();
+    assert_eq!(request["detail"]["file_checked"], true);
+    std::fs::remove_file(&path).unwrap();
+    let listed = crate::approval::list(&client.hold(), true).await.unwrap();
+    assert_eq!(listed.len(), 1);
+    assert!(listed[0]["detail"]["file_checked"].is_null());
+    assert_eq!(
+        client.approval(request["id"].as_str().unwrap()).unwrap()["detail"]["file_checked"],
+        false
+    );
+    // Queue navigation and prefix lookup do not deserialize every request.
+    let id = request["id"].as_str().unwrap();
+    client
+        .workspace
+        .put_private(
+            client.keys().unwrap(),
+            &format!("approval:{id}"),
+            &"corrupt request",
+        )
+        .unwrap();
+    assert_eq!(
+        crate::approval::waiting_ids(&client.hold()).await.unwrap(),
+        vec![id]
+    );
+    assert_eq!(client.approval_id(id).unwrap(), id);
+    assert!(client.approval(id).is_err());
+}
+
+#[tokio::test]
+async fn current_device_checks_run_together_and_failure_keeps_recorded_evidence() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let (bundle, _, root, home) = vector();
+    let report = verify_bundle(&bundle, None, &root, &[home]).unwrap();
+    assert!(report.valid);
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let mut config = crate::testing::config(false);
+    config.ic_host = format!("http://{}", listener.local_addr().unwrap());
+    config.root_key = Some(root);
+    let ic = crate::ic::Ic::anonymous(&config).await.unwrap();
+    let read = tokio::spawn(async move { verify_current(&ic, report).await });
+    // Each IC query also reads its subnet proof. Hold all four requests
+    // before answering, so a sequential implementation cannot pass.
+    let mut sockets = Vec::new();
+    let mut requests = String::new();
+    for _ in 0..4 {
+        let mut socket = tokio::time::timeout(std::time::Duration::from_secs(2), listener.accept())
+            .await
+            .expect("both queries and their proofs must start together")
+            .unwrap()
+            .0;
+        let mut bytes = Vec::new();
+        loop {
+            let mut chunk = [0; 8192];
+            let n = socket.read(&mut chunk).await.unwrap();
+            assert!(n > 0);
+            bytes.extend_from_slice(&chunk[..n]);
+            if let Some(end) = bytes.windows(4).position(|b| b == b"\r\n\r\n") {
+                let headers = String::from_utf8_lossy(&bytes[..end]).to_lowercase();
+                let length: usize = headers
+                    .lines()
+                    .find_map(|l| l.strip_prefix("content-length: "))
+                    .unwrap()
+                    .parse()
+                    .unwrap();
+                if bytes.len() >= end + 4 + length {
+                    break;
+                }
+            }
+        }
+        requests.push_str(&String::from_utf8_lossy(&bytes));
+        sockets.push(socket);
+    }
+    assert!(requests.contains("security_snapshot_batch") && requests.contains("get_device_bundle"));
+    for mut socket in sockets {
+        let _ = socket
+            .write_all(
+                b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            )
+            .await;
+    }
+    let report = tokio::time::timeout(std::time::Duration::from_secs(3), read)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(report.current, "unknown");
+    assert!(report.valid && report.signature && report.evidence && report.binding);
 }

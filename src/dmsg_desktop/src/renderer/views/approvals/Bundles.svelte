@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import Icon from '../../components/Icon.svelte'
   import Id from '../../components/page/Id.svelte'
   import Pill from '../../components/page/Pill.svelte'
@@ -17,6 +18,8 @@
    */
   let { history, known, unlocked, open }: { history: any[]; known: Set<string>; unlocked: boolean; open: (id: string) => unknown } = $props()
 
+  let alive = true
+  onDestroy(() => { alive = false })
   let report = $state<any>(null)
   let busy = $state(false)
   let over = $state(false)
@@ -35,7 +38,8 @@
   /** Files are picked in the main process's dialogs; the window sees only the outcome. */
   const verify = (withFile: boolean) =>
     attempt(async () => {
-      report = (await bridge(() => window.dmsg.verifyBundle(withFile))) ?? report
+      const next = await bridge(() => window.dmsg.verifyBundle(withFile))
+      if (alive) report = next ?? report
     })
 
   /** A bundle dropped here, with the original file when two are dropped; the preload resolves their paths. */
@@ -47,13 +51,15 @@
     if (!bundle) return
     const original = files.find((f) => f !== bundle)
     void attempt(async () => {
-      report = await bridge(() => window.dmsg.verifyDropped(bundle, original))
+      const next = await bridge(() => window.dmsg.verifyDropped(bundle, original))
+      if (alive) report = next
     })
   }
 
   const verifyEntry = (execution: string) =>
     attempt(async () => {
-      report = await bridge(() => window.dmsg.verifyEntry(execution))
+      const next = await bridge(() => window.dmsg.verifyEntry(execution))
+      if (alive) report = next
     })
 
   const exportBundle = (execution: string) =>

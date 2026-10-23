@@ -518,6 +518,14 @@ approved requests whose outcome is not known yet, which the daemon also does
 on its own. An attestation whose outcome the home no longer keeps (a day
 past its approval) ends as `lost`.
 
+Approval lists read in short local steps and omit filesystem metadata checks;
+the selected request's detail and execution still check its file. The desktop
+uses `approval/list {ids_only:true}` for waiting-request navigation, without
+decrypting every request. File preparation, comparison and bundle verification
+run on blocking workers; approving a local file still hashes it again before
+reading fresh account state and signing. Signature history opens each execution
+once, and exporting a synced signature looks up that execution directly.
+
 `attest readiness` says whether this device can sign now: a login, formal
 approval on this device, a signing policy that is not frozen, and this
 month's allowance as last read. Finished attestations are kept by the

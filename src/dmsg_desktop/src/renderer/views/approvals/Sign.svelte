@@ -23,6 +23,8 @@
 
   type Profile = 'text' | 'file_statement' | 'digest'
 
+  let alive = true
+  let readinessError = $state('')
   let profile = $state<Profile>('text')
   let text = $state('')
   let subject = $state('')
@@ -43,15 +45,23 @@
   const textOk = $derived(!needsText || (text.trim().length > 0 && bytes <= MAX_TEXT))
 
   const reloadReadiness = single(async () => {
-    readiness = await call('attest/readiness').catch(() => null)
+    if (!alive) return
+    try {
+      const next = await call('attest/readiness')
+      if (alive) { readiness = next; readinessError = '' }
+    } catch (e) {
+      if (alive) { readiness = null; readinessError = errorText(e) }
+    }
   })
 
   /** The month's allowance from the plan; the home also archives finished months here. */
   const loadUsage = single(async () => {
+    if (!alive) return
     usageBusy = true
     usageError = ''
     try {
-      usage = await call('attest/usage')
+      const next = await call('attest/usage')
+      if (alive) usage = next
     } catch (e) {
       usageError = code(e)
     } finally {
@@ -80,7 +90,7 @@
   })
 
   const opened = async (request: any) => {
-    if (!request) return
+    if (!request || !alive) return
     text = ''
     sha256 = ''
     await open(request.id)
@@ -101,7 +111,8 @@
   onMount(() => {
     void reloadReadiness()
     void loadUsage()
-    return onChange(['approval/changed', 'session/changed'], reloadReadiness)
+    const off = onChange(['approval/changed', 'session/changed'], reloadReadiness)
+    return () => { alive = false; off() }
   })
 
   const purposes = (names?: string[]) => (names ?? []).map((p) => (purposeLabels[p] ? t(purposeLabels[p]) : p)).join(', ')
@@ -142,6 +153,8 @@
         </Fact>
       {/if}
     </dl>
+  {:else if readinessError}
+    <Notice tone="danger">{readinessError}<button class={buttonClass('secondary', 'sm')} onclick={reloadReadiness}>{t('retry')}</button></Notice>
   {:else}
     <p class="shimmer text-[13px]">{t('loading')}</p>
   {/if}

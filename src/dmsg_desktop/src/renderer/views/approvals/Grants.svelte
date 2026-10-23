@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import Icon from '../../components/Icon.svelte'
+  import Notice from '../../components/page/Notice.svelte'
   import Id from '../../components/page/Id.svelte'
   import Pill from '../../components/page/Pill.svelte'
   import Section from '../../components/page/Section.svelte'
   import { t } from '../../i18n/index.svelte'
-  import { call, onChange, single, when } from '../../rpc'
+  import { call, errorText, onChange, single, when } from '../../rpc'
 
   /**
    * What this account has authorized and is still in force, in one place:
@@ -22,24 +23,44 @@
   let credentials = $state<any[]>([])
   let hosted = $state<any>({ agents: [] })
 
-  const reload = single(async () => {
-    const [account, browsers, agentGrants, ids, principal] = await Promise.all([
-      call('account/show').catch(() => null),
-      call('connect/pairings').catch(() => []),
-      call('grants/list').catch(() => []),
-      call('agent/ids').catch(() => ({ agents: [] })),
-      call('agent/principal').catch(() => null)
-    ])
+  let alive = true
+  let loaded = $state<Record<string, boolean>>({})
+  let errors = $state<Record<string, string>>({})
+
+  async function read<T>(key: string, fetch: () => Promise<T>, apply: (value: T) => void) {
+    if (!alive) return
+    try {
+      const value = await fetch()
+      if (alive) { apply(value); errors[key] = '' }
+    } catch (e) {
+      if (alive) errors[key] = errorText(e)
+    } finally {
+      if (alive) loaded[key] = true
+    }
+  }
+  const readDevices = single(() => read('devices', () => call('account/show'), (account: any) => {
     devices = (account?.devices ?? []).filter((d: any) => !d.revoked_at && d.capabilities?.includes('FormalApprove'))
-    pairings = (browsers ?? []).filter((p: any) => p.state === 'active')
-    grants = (agentGrants ?? []).filter((g: any) => !g.revoked_at)
-    hosted = ids
-    credentials = principal ? ((await call('agent/credentials').catch(() => [])) as any[]).filter((c) => c.status === 'active') : []
-  })
+  }))
+  const readBrowsers = single(() => read('browsers', () => call('connect/pairings'), (browsers: any[]) => {
+    pairings = browsers.filter((p) => p.state === 'active')
+  }))
+  const readGrants = single(() => read('grants', () => call('grants/list'), (next: any[]) => {
+    grants = next.filter((g) => !g.revoked_at)
+  }))
+  const readAgents = single(() => read('agents', () => call('agent/ids'), (next: any) => (hosted = next)))
+  // The credential endpoint returns an empty list when none exist. It does
+  // not need a separate principal query before listing them.
+  const readCredentials = single(() => read('credentials', () => call('agent/credentials'), (next: any[]) => {
+    credentials = next.filter((c) => c.status === 'active')
+  }))
+  function reload() {
+    void readDevices(); void readBrowsers(); void readGrants(); void readAgents(); void readCredentials()
+  }
 
   onMount(() => {
-    void reload()
-    return onChange(['approval/changed', 'session/changed', 'agent/changed', 'connect/changed'], reload)
+    reload()
+    const off = onChange(['approval/changed', 'session/changed', 'agent/changed', 'connect/changed'], reload)
+    return () => { alive = false; off() }
   })
 
   /** Web sessions this device vouched for that have not expired. */
@@ -55,6 +76,7 @@
 
 <Section title={t('formalDevices')} description={t('formalDevicesHint')} icon="device" flush testid="grants-devices">
   {#snippet actions()}{@render manage('#/settings/devices')}{/snippet}
+  {#if errors.devices}<Notice tone="danger">{errors.devices}</Notice>{/if}
   <ul class="divide-y divide-line border-t border-line">
     {#each devices as d (d.device_id)}
       <li class="flex items-center gap-2 px-5 py-2.5 text-[13px]">
@@ -63,13 +85,14 @@
         <span class="ms-auto text-[11.5px] text-faint">{when(d.added_at)}</span>
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">{t('noFormalDevices')}</li>
+      <li class="px-5 py-3 text-[13px] text-faint">{loaded.devices ? (errors.devices ? '' : t('noFormalDevices')) : t('loading')}</li>
     {/each}
   </ul>
 </Section>
 
 <Section title={t('pairedBrowsers')} description={t('pairedBrowsersHint')} icon="browser" flush testid="grants-browsers">
   {#snippet actions()}{@render manage('#/settings/browsers')}{/snippet}
+  {#if errors.browsers}<Notice tone="danger">{errors.browsers}</Notice>{/if}
   <ul class="divide-y divide-line border-t border-line">
     {#each pairings as p (p.pairing_id)}
       <li class="flex items-center gap-2 px-5 py-2.5 text-[13px]">
@@ -77,7 +100,7 @@
         <span class="ms-auto text-[11.5px] text-faint">{t('lastUsed')} {when(p.last_used_at)} · {t('expires')} {when(p.expires_at)}</span>
       </li>
     {:else}
-      <li class="px-5 py-3 text-[13px] text-faint">{t('noPairedBrowsers')}</li>
+      <li class="px-5 py-3 text-[13px] text-faint">{loaded.browsers ? (errors.browsers ? '' : t('noPairedBrowsers')) : t('loading')}</li>
     {/each}
   </ul>
 </Section>
@@ -98,6 +121,7 @@
 
 <Section title={t('agentGrants')} description={t('agentGrantsHint')} icon="agents" flush testid="grants-agents">
   {#snippet actions()}{@render manage('#/agents')}{/snippet}
+  {#each ['grants', 'credentials', 'agents'] as key}{#if errors[key]}<Notice tone="danger">{errors[key]}</Notice>{/if}{/each}
   <ul class="divide-y divide-line border-t border-line">
     {#each grants as g (g.id)}
       <li class="px-5 py-2.5">
@@ -117,6 +141,6 @@
         <div class="mt-1 flex flex-wrap gap-1">{#each c.scopes as scope (scope)}<Pill class="font-mono font-normal">{scope}</Pill>{/each}</div>
       </li>
     {/each}
-    {#if !grants.length && !credentials.length}<li class="px-5 py-3 text-[13px] text-faint">{t('noAgentGrants')}</li>{/if}
+    {#if !grants.length && !credentials.length}<li class="px-5 py-3 text-[13px] text-faint">{!loaded.grants || !loaded.credentials ? t('loading') : errors.grants || errors.credentials ? '' : t('noAgentGrants')}</li>{/if}
   </ul>
 </Section>
