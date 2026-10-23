@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from 'svelte'
+  import { onMount, untrack } from 'svelte'
   import Confirm from '../../components/Confirm.svelte'
   import { copyText } from '../../components/clipboard'
   import Icon from '../../components/Icon.svelte'
@@ -45,12 +45,22 @@
   let error = $state('')
   let notice = $state('')
   let busy = $state(false)
+  let refreshPending = false
   const keyOf = (message: any) => `${message.direction}:${message.from}:${message.message_id}`
   const current = $derived(messages?.find((message) => keyOf(message) === selected))
 
   $effect(() => {
-    if (!agent && agents.length) agent = active ?? agents[0].agent_id
+    const preferred = active ?? agents[0]?.agent_id
+    if (preferred) untrack(() => { agent = preferred })
   })
+
+  onMount(() => window.dmsg.onEvent((event) => {
+    const data = event.data as { agent?: string } | undefined
+    if (event.type !== 'resync' && !(event.type === 'agent/mail' && data?.agent === agent)) return
+    if (!unlocked || !agent) return
+    if (busy) refreshPending = true
+    else void loadMail(false)
+  }))
   $effect(() => {
     if (unlocked && agent && folder)
       untrack(() => {
@@ -61,8 +71,8 @@
       })
   })
 
-  async function tool(name: string, input: Record<string, unknown> = {}) {
-    const answer: any = await call('ap/call', { agent, tool: `agent_protocols_${name}`, input })
+  async function tool(name: string, input: Record<string, unknown> = {}, target = agent) {
+    const answer: any = await call('ap/call', { agent: target, tool: `agent_protocols_${name}`, input })
     if (answer.error) throw Object.assign(new Error(answer.error.message), { tool: answer.error.code })
     return answer.result
   }
@@ -77,29 +87,52 @@
       error = `${t('error')}: ${e?.tool ?? (code(e) === 'LOCKED' ? t('locked') : code(e))}${e?.tool ? ` ${e.message}` : ''}`
     } finally {
       busy = false
+      if (refreshPending) {
+        refreshPending = false
+        void loadMail(false)
+      }
     }
   }
 
   // The connector's cursor walks oldest to newest; filters apply on every page.
-  async function list(more = false) {
+  async function list(more = false, target = agent, box = folder) {
     const page = await tool('mail_list', {
       limit: PAGE,
-      direction: folder === 'sent' ? 'sent' : 'received',
-      ...(folder === 'unread' ? { unread_only: true } : {}),
+      direction: box === 'sent' ? 'sent' : 'received',
+      ...(box === 'unread' ? { unread_only: true } : {}),
       ...(more && cursor ? { cursor } : {})
-    })
+    }, target)
+    if (agent !== target || folder !== box) return
     messages = more ? [...(messages ?? []), ...page.messages] : page.messages
     cursor = page.next_cursor ?? null
     unread = page.unread_count
     if (!messages?.some((message) => keyOf(message) === selected)) selected = ''
   }
 
-  const refreshBoxes = async () => (mailboxes = (await tool('mail_mailboxes_list')).mailboxes)
-  const loadMail = () =>
-    attempt(async () => {
-      await refreshBoxes()
-      await list()
+  const refreshBoxes = async (target = agent) => {
+    const result = await tool('mail_mailboxes_list', {}, target)
+    if (agent === target) mailboxes = result.mailboxes
+  }
+  const loadMail = (receive = true) => {
+    const target = agent
+    const box = folder
+    return attempt(async () => {
+      if (receive) {
+        try {
+          const report = await tool('mail_sync', {}, target)
+          if (agent !== target || folder !== box) return
+          synced = `${t('mailReceived')} ${report.received.length} · ${t('mailDelivered')} ${report.delivered.length} · ${t('mailQueued')} ${report.queued}`
+          if (report.errors.length) error = report.errors.map((e: any) => `${e.route}: ${e.code}`).join('\n')
+        } catch (e: any) {
+          if (agent !== target || folder !== box) return
+          // Keep saved correspondence available when the relay cannot be reached.
+          error = `${t('error')}: ${e?.tool ?? code(e)} ${e.message ?? ''}`
+        }
+      }
+      await refreshBoxes(target)
+      await list(false, target, box)
     })
+  }
 
   async function publishBox(input: Record<string, unknown>, done: string) {
     const result = await tool('mail_mailbox_publish', input)
@@ -122,14 +155,6 @@
       routes = DEFAULT_RELAY
     })
   const replace = (box: any, change: Record<string, unknown>, done: string) => attempt(() => publishBox({ mailbox_id: box.mailbox_id, routes: box.routes, ...change }, done))
-  const sync = () =>
-    attempt(async () => {
-      const report = await tool('mail_sync')
-      synced = `${t('mailReceived')} ${report.received.length} · ${t('mailDelivered')} ${report.delivered.length} · ${t('mailQueued')} ${report.queued}`
-      if (report.errors.length) error = report.errors.map((e: any) => `${e.route}: ${e.code}`).join('\n')
-      await refreshBoxes()
-      await list()
-    })
   const textOf = (message: any) =>
     message.parts
       .filter((part: any) => part.text)
@@ -175,8 +200,7 @@
           ]}
         />
         <span class="flex-1"></span>
-        <button class={buttonClass('ghost', 'sm')} disabled={busy} data-testid="mail-open" onclick={loadMail}><Icon name="sync-now" />{t('reload')}</button>
-        <button class={buttonClass('secondary', 'sm')} disabled={busy} data-testid="mail-sync" onclick={sync}><Icon name="cloud-down" />{t('sync')}</button>
+        <button class={buttonClass('secondary', 'sm')} disabled={busy} data-testid="mail-sync" onclick={() => loadMail()}><Icon name="cloud-down" />{t('reload')}</button>
       </div>
       {#if synced}<p class="text-[12px] text-muted" role="status">{synced}</p>{/if}
       {#if messages?.length}
@@ -217,6 +241,7 @@
                     >{current.delivery.status === 'queued' ? t('mailQueued') : t('mailDelivered')}</Pill
                   >{/if}
               </div>
+              {#if current.delivery?.status === 'delivered'}<p class="mb-3 text-[11.5px] text-muted">{t('mailDeliveryHint')}</p>{/if}
               <h3 class="text-[17px] leading-snug font-semibold [overflow-wrap:anywhere]">{current.subject || t('mailNoSubject')}</h3>
               <dl class="mt-4 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 text-[12px]">
                 <dt class="text-faint">{t('from')}</dt>

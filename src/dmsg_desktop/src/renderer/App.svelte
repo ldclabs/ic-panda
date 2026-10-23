@@ -213,7 +213,7 @@
           {:else if view === views.wallet}
             <Wallet {status} {route} {go} />
           {:else if view === views.agents}
-            <Agents {status} />
+            <Agents {status} {route} />
           {:else if view === views.approvals}
             <Approvals {status} />
           {:else if view === views.settings || view === views.legacy}

@@ -120,6 +120,11 @@ POCKET_IC_BIN=/path/to/pocket-ic DMSG_CLOUD_DIR=/path/to/dmsg-cloud DMSG_WASM_DI
 
 ## MCP Connector 0.12.3
 
+`desktop_mail_background_receives_and_notifies_mcp` 使用本地 Mail Worker、
+真实 daemon 与 MCP 会话，验证收件 Agent 获得 `mail.read` 后无需显式调用
+`mail_sync` 即可收信；Mail 资源订阅收到变更通知，邮件保持未读并进入待处理队列。
+它沿用下方的本地部署前置条件。
+
 `connector::desktop_connector_profile_and_mail` 使用现有 PocketIC 部署、本地
 Profile/Mail workerd、两个临时托管 Agent ID 和真实 `dmsg mcp` stdio 会话，
 验证 41 个标准工具加 34 个 dMsg 工具的完整输入/输出 schema；Profile 读取与

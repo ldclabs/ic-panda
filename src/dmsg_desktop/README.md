@@ -226,6 +226,13 @@ Rules (`src/main/policy.ts`):
   cannot send/reply, publish/assess/retract knowledge, or mark Agent mail read.
   Mail viewing preserves the Agent’s unread queue; Knowledge defaults to the
   selected Agent’s contributions and shows service-scoped lifecycle and evidence.
+  Opening Mail, changing the selected Agent and refreshing first receive new
+  mail, then show the saved correspondence even if the relay fails. The daemon
+  also syncs agents with Mail read access every 30 seconds (resident agents
+  only while locked). `agent/mail` refreshes the visible list without another
+  network sync; a new-letter notification shows only a count and opens that
+  Agent's Mail view. Sent letters say "Accepted by relay", with an explanation
+  that receipt and reading by the recipient have not been confirmed.
   The MCP Events methods only manage
   endpoints; a window never reads or acknowledges the deliveries meant for
   agents.

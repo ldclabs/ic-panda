@@ -24,6 +24,7 @@ export function agentFixture(agent) {
     { direction: 'received', message_id: 'm1', thread_id: 't1', from: peer, to: agent, mailbox_id: 'mb1', subject: 'Review the cache experiment', created_at: now, expires_at: now + 86_400_000, received_at: now, parts: [{ media_type: 'text/plain', size: 15, text: 'Mail for Claude\n\nThe reproduction notes are ready. Please review the scope before using these results.' }], read: false },
     { direction: 'sent', message_id: 'm2', thread_id: 't1', from: agent, to: peer, mailbox_id: 'mb2', subject: 'Experiment notes received', created_at: now, expires_at: now + 86_400_000, parts: [{ media_type: 'text/plain', size: 20, text: 'The Agent wrote this reply.' }], delivery: { status: 'queued' } }
   ]
+  let mailSynced = false
   return (p) => {
     const scope = { service: p.input.service, checkpoint: 4, as_of: now }
     switch (p.tool) {
@@ -32,8 +33,9 @@ export function agentFixture(agent) {
         return { result: { mailboxes: [{ mailbox_id: 'mb1', address: 'mail:claude@relay.example', routes: ['https://relay.example'], status: 'open', unread_count: 1, expires_at: now + 86_400_000 }] } }
       case 'agent_protocols_mail_list':
         assert.notEqual(p.input.mark_read, true)
-        return { result: { unread_count: p.agent === agent ? 1 : 0, messages: p.agent === agent ? messages.filter((m) => (!p.input.direction || m.direction === p.input.direction) && (!p.input.unread_only || m.read === false)) : [] } }
+        return { result: { unread_count: p.agent === agent && mailSynced ? 1 : 0, messages: p.agent === agent ? messages.filter((m) => (mailSynced || m.direction === 'sent') && (!p.input.direction || m.direction === p.input.direction) && (!p.input.unread_only || m.read === false)) : [] } }
       case 'agent_protocols_mail_sync':
+        mailSynced = true
         return { result: { received: [], delivered: [], expired: [], queued: 1, errors: [], synced_at: now } }
       case 'agent_protocols_knowledge_query': {
         const all = records.filter((r) => r.actor === p.input.actor && r.type === p.input.type)

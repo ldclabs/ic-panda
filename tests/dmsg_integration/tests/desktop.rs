@@ -6707,6 +6707,74 @@ fn ap(desktop: &Desktop, agent: &str, tool: &str, input: Value) -> Value {
 
 #[test]
 #[ignore = "needs the dmsg binary, PocketIC, the private relay and the Mail and Knowledge Workers (DMSG_CLOUD_DIR)"]
+fn desktop_mail_background_receives_and_notifies_mcp() {
+    let env = Env::launch(
+        "mail-background",
+        Options {
+            services: true,
+            ..Options::default()
+        },
+    );
+    let a = &env.a;
+    assert_eq!(a.login(&env.http, 71).unwrap()["state"], "no_account");
+    a.run(&["account", "create"]);
+    a.run(&["agent", "id", "create", "sender"]);
+    a.run(&["agent", "id", "create", "receiver"]);
+    let mail = &env.services.as_ref().unwrap().mail;
+    let mailbox = ap(
+        a,
+        "receiver",
+        "mail_mailbox_publish",
+        json!({"routes":[mail]}),
+    );
+    let credential = a.run(&["agent", "id", "credential", "receiver"])["credential"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    a.run(&["grants", "add", "receiver", &format!("mail.read:{mail}")]);
+    let mut mcp = McpClient::start(a, &credential);
+    let uri = "agent-protocols://mail/messages";
+    assert!(mcp.request("resources/subscribe", json!({"uri":uri}))["result"].is_object());
+    let sent = ap(
+        a,
+        "sender",
+        "mail_send",
+        json!({
+            "to":mailbox["mailbox"]["address"], "subject":"Background receipt", "text":"Received without a sync tool call."
+        }),
+    );
+    assert_eq!(sent["status"], "delivered");
+    // No mail_sync call: the daemon receives, saves and signals the MCP
+    // subscriber. Reading the letter does not consume its unread queue.
+    mcp.notification("notifications/resources/updated", |p| p["uri"] == uri);
+    let read = mcp
+        .tool(
+            "agent_protocols_mail_list",
+            json!({
+                "message_id":sent["message"]["message_id"], "mark_read":false
+            }),
+        )
+        .unwrap();
+    assert_eq!(read["messages"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        read["messages"][0]["parts"][0]["text"],
+        "Received without a sync tool call."
+    );
+    assert_eq!(read["messages"][0]["read"], false);
+    assert_eq!(read["unread_count"], 1);
+    let inbox = mcp
+        .tool(
+            "agent_protocols_inbox_next",
+            json!({"kinds":["mail.received"]}),
+        )
+        .unwrap();
+    assert_eq!(inbox["items"].as_array().unwrap().len(), 1);
+    drop(mcp);
+    env.finish();
+}
+
+#[test]
+#[ignore = "needs the dmsg binary, PocketIC, the private relay and the Mail and Knowledge Workers (DMSG_CLOUD_DIR)"]
 fn desktop_mail_knowledge() {
     let mut env = Env::launch(
         "mail",

@@ -1421,6 +1421,7 @@ await app.evaluate(({ dialog, clipboard, Notification, shell }) => {
   clipboard.clear = () => void (globalThis.__clip = '')
   Notification.prototype.show = function () {
     globalThis.__notes.push(this.body)
+    globalThis.__lastNotification = this
   }
 })
 const answer = (kind, path) => app.evaluate((_electron, [kind, path]) => globalThis[kind].push(path), [kind, path])
@@ -2251,6 +2252,7 @@ try {
   // Humans inspect correspondence without sending or consuming the Agent's unread queue.
   await main.click('[data-testid="agents-tab-mail"]')
   await main.waitForSelector('[data-testid="mail-messages"] >> text=Review the cache experiment')
+  assert.ok(calls.some((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_sync'))
   await main.click('[data-testid="mail-messages"] >> text=Review the cache experiment')
   await main.waitForSelector('[data-testid="mail-detail"] >> text=Unread by Agent')
   assert.equal(await main.locator('[data-testid="mail-send"]').count(), 0)
@@ -2261,6 +2263,14 @@ try {
   assert.equal(latest('ap/call').params.input.direction, 'sent')
   await main.click('[data-testid="mail-sync"]')
   await main.waitForSelector('text=queued 1')
+  const mailSyncs = calls.filter((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_sync').length
+  const mailLists = calls.filter((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_list').length
+  emit('agent/mail', { agent: claude, received: 1 })
+  await waitFor(() => calls.filter((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_list').length > mailLists)
+  assert.equal(calls.filter((c) => c.method === 'ap/call' && c.params.tool === 'agent_protocols_mail_sync').length, mailSyncs)
+  assert.ok((await app.evaluate(() => globalThis.__notes)).includes('Your agents received 1 new letter(s).'))
+  await app.evaluate(() => globalThis.__lastNotification.emit('click'))
+  await main.waitForSelector('[data-testid="mail-messages"] >> text=Review the cache experiment')
   for (const tool of ['agent_protocols_room_send_message', 'agent_protocols_mail_send', 'agent_protocols_knowledge_submit']) {
     await assert.rejects(main.evaluate((tool) => window.dmsg.call('ap/call', { tool, input: {} }), tool), /FORBIDDEN/)
   }
@@ -3025,11 +3035,12 @@ try {
   // whom, and each kind at most once a minute.
   const arrived = async () =>
     (await app.evaluate(() => globalThis.__notes)).filter((n) => /letter|来信|channel messages|频道消息/.test(n))
+  const hintsBefore = (await arrived()).length
   emit('hint', { kind: 'inbox' })
   emit('hint', { kind: 'inbox' })
   emit('hint', { kind: 'channel' })
-  for (let i = 0; i < 50 && (await arrived()).length < 2; i++) await new Promise((r) => setTimeout(r, 100))
-  assert.equal((await arrived()).length, 2)
+  for (let i = 0; i < 50 && (await arrived()).length < hintsBefore + 2; i++) await new Promise((r) => setTimeout(r, 100))
+  assert.equal((await arrived()).length, hintsBefore + 2)
   await main.click('[data-testid="settings-session"]')
   // Fast unlock turns on in Settings; the locked account then opens from the
   // keychain instead of a login.

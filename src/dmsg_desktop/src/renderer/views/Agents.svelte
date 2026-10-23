@@ -23,12 +23,18 @@
    * the Agent IDs show while locked or offline; owner changes come back
    * through the daemon's `agent/changed` or `approval/changed`.
    */
-  let { status }: { status: any } = $props()
+  let { status, route }: { status: any; route: string } = $props()
 
   type Tab = 'overview' | 'ids' | 'capabilities' | 'discourse' | 'mail' | 'knowledge' | 'events' | 'audit'
 
   let tab = $state<Tab>('overview')
   let inspectedAgent = $state<string | null>(null)
+  $effect(() => {
+    if (route.startsWith('/agents/mail/')) {
+      tab = 'mail'
+      inspectedAgent = decodeURIComponent(route.slice('/agents/mail/'.length))
+    }
+  })
   let principal = $state<any>(null)
   let principalError = $state('')
   let credentials = $state<any[]>([])
@@ -160,16 +166,16 @@
     {:else if tab === 'discourse'}
       <Page wide><Discourse agents={hosted.agents} active={hosted.active} /></Page>
     {:else if tab === 'mail'}
-      <Page wide
-        ><Mail
+      <Page wide>
+        {#key route}<Mail
           agents={hosted.agents}
           active={inspectedAgent ?? hosted.active}
           selectAgent={(id) => (inspectedAgent = id)}
           blocked={hosted.blocked_senders ?? []}
           {unlocked}
           manage={() => (tab = 'capabilities')}
-        /></Page
-      >
+        />{/key}
+      </Page>
     {:else if tab === 'knowledge'}
       <Page wide
         ><Knowledge

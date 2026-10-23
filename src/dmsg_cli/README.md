@@ -1043,6 +1043,18 @@ The returned `mailbox_id` and `address` identify the new mailbox. Include
 card routes; if using `profile_service`, grant `mail.read` for that configured
 Profile origin too. A grant on a relay never includes another origin implicitly.
 
+The daemon drives that explicit connector sync every 30 seconds for hosted
+Agent IDs with a live `mail.read` grant. Paused agents are skipped; while the
+device is locked, only resident agents with retained grants and keys receive.
+Calls of different agents run independently, without holding the client across
+the network. New letters remain unread and enter the connector's pending inbox;
+subscribers to its Mail resources receive MCP resource-change notifications.
+The desktop receives a count-only `agent/mail` event. A Mail `delivered` result
+means the relay accepted the encrypted packet, not that the recipient fetched
+or read it. These notifications do not by themselves start an LLM turn: the MCP
+host must subscribe and decide how to handle a change. The separate MCP Events
+transport continues to carry `dmsg.relay.delivery` occurrences.
+
 ## Cloud-copy management
 
 The desktop Files view has separate Cloud storage, Links and Cloud backups pages.

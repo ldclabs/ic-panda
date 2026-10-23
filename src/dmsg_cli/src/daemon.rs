@@ -342,6 +342,7 @@ pub async fn run(home: Home, port: u16) -> Result<()> {
     tokio::spawn(crate::hints::run(daemon.clone()));
     tokio::spawn(crate::channels::run(daemon.clone()));
     tokio::spawn(crate::mcp_events::run(daemon.clone()));
+    tokio::spawn(crate::agents::run_mail(daemon.clone()));
     let app = app(daemon.clone());
     eprintln!("dmsg daemon listening on 127.0.0.1:{port}");
     crate::logs::write(

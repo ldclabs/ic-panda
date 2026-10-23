@@ -36,7 +36,40 @@ use dmsg_types::{
     ensure,
 };
 use serde_json::{Value, json};
+use std::sync::Arc;
 use std::time::Duration;
+
+/// Receive for hosted agents with a live Mail grant. The connector's own
+/// turn serializes this with foreground calls; different agents progress
+/// independently, without holding the account's client across the network.
+pub(crate) async fn run_mail(daemon: Arc<Daemon>) {
+    let mut interval = tokio::time::interval(Duration::from_secs(30));
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    loop {
+        interval.tick().await;
+        if daemon.stopping() {
+            continue;
+        }
+        let agents = daemon.client().lock().await.agent_list();
+        let Ok(agents) = agents else { continue };
+        let mut pending = tokio::task::JoinSet::new();
+        for agent in agents["agents"].as_array().into_iter().flatten() {
+            let Some(id) = agent["agent_id"].as_str() else {
+                continue;
+            };
+            let id = id.to_owned();
+            let daemon = daemon.clone();
+            pending.spawn(async move { daemon.receive_agent_mail(&id).await });
+        }
+        while let Some(result) = pending.join_next().await {
+            if let Ok(Err(error)) = result
+                && !matches!(error, Error::Locked | Error::Forbidden | Error::NotFound)
+            {
+                daemon.note("agent-mail", &error_code(&error));
+            }
+        }
+    }
+}
 
 /// Most bytes one `dmsg_files_read` returns.
 const MAX_READ: u64 = 1024 * 1024;
@@ -138,6 +171,21 @@ fn refused(error: &Error) -> Value {
 }
 
 impl Daemon {
+    /// The same scope and pause checks as an agent's own Mail call. A
+    /// locked device can receive only for an explicitly resident agent.
+    async fn receive_agent_mail(&self, id: &str) -> Result<Value> {
+        let agent = self.client().lock().await.agent_find(id)?;
+        ensure(!agent.paused, Error::Forbidden)?;
+        let caller = Caller {
+            actor: &agent.agent_id,
+            via: "background",
+            session: "mail-background",
+            mcp_session: None,
+        };
+        self.run_tool(&agent, &caller, "agent_protocols_mail_sync", json!({}))
+            .await
+    }
+
     /// Run one of the owner's [`METHODS`].
     pub(crate) async fn call_agents(&self, method: &str, params: &Value) -> Result<Value> {
         if method == "ap/call" {
@@ -600,41 +648,70 @@ impl Daemon {
             // the call left, so no other call of it sees or overwrites them
             // in between; the keys leave the client lock for the call only.
             let runtime = self.agents();
+            let h = self.hold();
+            h.with(|_| Ok(())).await?;
             let turn = runtime.turn(&agent.agent_id).await;
-            let (reach, path, signer, mail_keys) = {
-                let mut client = self.client().lock().await;
-                // An agent reaches what its grant names; the owner acting as
-                // one reaches every configured host.
-                let reach = match caller.actor {
-                    "owner" => None,
-                    _ => match self.reach(&client, agent, tool, Some(&input)) {
-                        Ok(reach) => reach,
-                        Err(error) => return Ok(refused(&error)),
-                    },
-                };
-                (
-                    reach,
-                    client.agent_runtime()?,
-                    client.agent_signer(&agent.agent_id)?,
-                    client.agent_mail_keys(&agent.agent_id)?,
-                )
-            };
+            let (reach, path, signer, mail_keys) = h
+                .with(|client| {
+                    // An agent reaches what its grant names; the owner acting as
+                    // one reaches every configured host.
+                    let reach = match caller.actor {
+                        "owner" => None,
+                        _ => {
+                            ensure(
+                                !client.agent_find(&agent.agent_id)?.paused,
+                                Error::Forbidden,
+                            )?;
+                            self.reach(client, agent, tool, Some(&input))?
+                        }
+                    };
+                    Ok((
+                        reach,
+                        client.agent_runtime()?,
+                        client.agent_signer(&agent.agent_id)?,
+                        client.agent_mail_keys(&agent.agent_id)?,
+                    ))
+                })
+                .await?;
             let scope = Scope {
                 path: &path,
                 session: caller.session,
                 reach: reach.as_deref(),
             };
+            let marks_mail = tool == "agent_protocols_mail_list" && input["mark_read"] == true;
             let called = runtime
                 .call(&turn, scope, signer, &mail_keys, tool, input)
                 .await?;
+            h.with(|client| {
+                client.agent_find(&agent.agent_id)?;
+                if called.mail_keys != mail_keys {
+                    client.agent_mail_keys_save(&agent.agent_id, &called.mail_keys)?;
+                }
+                Ok(())
+            })
+            .await?;
             if called.changed {
                 self.connectors().send_modify(|revision| *revision += 1);
             }
-            if called.mail_keys != mail_keys {
-                self.client()
-                    .lock()
-                    .await
-                    .agent_mail_keys_save(&agent.agent_id, &called.mail_keys)?;
+            if let Ok(result) = &called.outcome {
+                let received = result["received"].as_array().map_or(0, Vec::len);
+                let delivered = result["delivered"].as_array().map_or(0, Vec::len);
+                let expired = result["expired"].as_array().map_or(0, Vec::len);
+                if received + delivered + expired > 0
+                    || (called.changed
+                        && (marks_mail
+                            || matches!(
+                                tool,
+                                "agent_protocols_mail_send"
+                                    | "agent_protocols_mail_mailbox_publish"
+                            )))
+                {
+                    // Notifications carry counts, never correspondence or keys.
+                    self.emit(
+                        "agent/mail",
+                        json!({"agent":agent.agent_id,"received":received}),
+                    );
+                }
             }
             return Ok(match called.outcome {
                 Ok(result) => json!({"result": result}),
@@ -1150,6 +1227,132 @@ fn tagged(client: &Client, did: &str, name: &str, item: &Item) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn background_mail_requires_live_grants_and_residency_while_locked() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = crate::home::Home {
+            dir: dir.0.join("home"),
+        };
+        let mut client = dmsg_client::testing::unlocked(
+            &dir.0.join("workspace"),
+            false,
+            Some(Arc::new(dmsg_client::testing::MemoryStorage::default())),
+        );
+        let agent = client.agent_create("mail-test").unwrap();
+        let runtime = dmsg_agent::Runtime::new(&dmsg_agent::Options {
+            hosts: vec![dmsg_agent::Host {
+                host: "https://mail.example".into(),
+                label: None,
+                profile_service: None,
+            }],
+            ..Default::default()
+        })
+        .unwrap();
+        let daemon = Arc::new(Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            client,
+            runtime,
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        ));
+        let id = &agent.agent_id;
+        assert_eq!(daemon.receive_agent_mail(id).await, Err(Error::Forbidden));
+        let grant = daemon
+            .client()
+            .lock()
+            .await
+            .capability_grant(
+                "cli",
+                id,
+                vec!["mail.read:https://mail.example".into()],
+                None,
+            )
+            .unwrap();
+        let received = daemon.receive_agent_mail(id).await.unwrap();
+        assert_eq!(received["result"]["errors"], json!([]));
+        assert_eq!(received["result"]["pending_inbox_count"], 0);
+
+        // A queued background call must check a pause made while it waited
+        // for another connector call, not reuse the entry it saw earlier.
+        let turn = daemon.agents().turn(id).await;
+        let waiting = tokio::spawn({
+            let daemon = daemon.clone();
+            let id = id.clone();
+            async move { daemon.receive_agent_mail(&id).await }
+        });
+        tokio::task::yield_now().await;
+        daemon.client().lock().await.agent_pause(id, true).unwrap();
+        drop(turn);
+        assert_eq!(waiting.await.unwrap(), Err(Error::Forbidden));
+        daemon.client().lock().await.agent_pause(id, false).unwrap();
+        daemon
+            .client()
+            .lock()
+            .await
+            .capability_revoke("cli", &grant.id)
+            .unwrap();
+        assert_eq!(daemon.receive_agent_mail(id).await, Err(Error::Forbidden));
+        daemon
+            .client()
+            .lock()
+            .await
+            .capability_grant(
+                "cli",
+                id,
+                vec!["mail.read:https://mail.example".into()],
+                None,
+            )
+            .unwrap();
+        let ordinary = daemon
+            .client()
+            .lock()
+            .await
+            .agent_create("ordinary")
+            .unwrap();
+        daemon
+            .client()
+            .lock()
+            .await
+            .capability_grant(
+                "cli",
+                &ordinary.agent_id,
+                vec!["mail.read:https://mail.example".into()],
+                None,
+            )
+            .unwrap();
+        daemon
+            .client()
+            .lock()
+            .await
+            .agent_resident(id, true)
+            .unwrap();
+        daemon.client().lock().await.lock();
+        assert_eq!(
+            daemon.receive_agent_mail(&ordinary.agent_id).await,
+            Err(Error::Locked)
+        );
+        assert_eq!(
+            daemon.receive_agent_mail(id).await.unwrap()["result"]["errors"],
+            json!([])
+        );
+        daemon.client().lock().await.agent_pause(id, true).unwrap();
+        assert_eq!(daemon.receive_agent_mail(id).await, Err(Error::Forbidden));
+
+        // An operation queued for this account cannot resume against the
+        // next selected workspace, even when it retained a resident key.
+        daemon.client().lock().await.agent_pause(id, false).unwrap();
+        let turn = daemon.agents().turn(id).await;
+        let mut waiting = Box::pin(daemon.receive_agent_mail(id));
+        assert!(futures_util::poll!(&mut waiting).is_pending());
+        daemon.client().lock().await.logout().unwrap();
+        drop(turn);
+        assert_eq!(
+            waiting.await,
+            Err(Error::Unavailable("the account changed".into()))
+        );
+    }
 
     #[test]
     fn every_standard_capability_is_granted_per_origin() {

@@ -823,6 +823,15 @@ function notifyEvents(data: unknown) {
   note.show()
 }
 
+/** A newly decrypted Agent letter; never disclose its sender or contents. */
+function notifyAgentMail(data: unknown) {
+  const { agent, received = 0 } = (data ?? {}) as { agent?: string; received?: number }
+  if (!agent || received <= 0 || !Notification.isSupported()) return
+  const note = new Notification({ title: 'dMsg', body: text.agentMailArrived(received) })
+  note.on('click', () => showMain(`/agents/mail/${encodeURIComponent(agent)}`))
+  note.show()
+}
+
 /** When each kind of hint last notified, so a busy channel notifies once a minute. */
 const hintedAt: Record<string, number> = {}
 
@@ -883,6 +892,7 @@ daemon.on('event', (event: DaemonEvent) => {
   if (['approval/changed', 'session/changed', 'connect/hint', 'resync', 'channel/changed', 'channel/read'].includes(event.type)) void refreshWaiting()
   if (event.type === 'channel/changed') notifyChannel(event.data)
   if (event.type === 'mcp-events/changed') notifyEvents(event.data)
+  if (event.type === 'agent/mail') notifyAgentMail(event.data)
   if (event.type === 'hint') notifyHint(event.data)
 })
 // The tray follows the connection: the daemon's state once connected, else connecting again.
