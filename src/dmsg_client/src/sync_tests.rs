@@ -10,6 +10,205 @@ fn item(title: &str) -> Changes {
     }
 }
 
+/// A real HTTP relay that can lose a mutation's reply after reading its body.
+/// Return the bodies so retries can be checked for byte-for-byte identity.
+async fn scripted_relay(
+    client: &mut Client,
+    replies: Vec<(&'static str, String, Option<serde_json::Value>)>,
+) -> tokio::task::JoinHandle<Vec<Vec<u8>>> {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    crate::testing::relay_to(
+        client,
+        &format!("http://{}", listener.local_addr().unwrap()),
+    );
+    crate::testing::warm(client);
+    tokio::spawn(async move {
+        let mut bodies = Vec::new();
+        for (method, path, reply) in replies {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut bytes = Vec::new();
+            loop {
+                let mut buffer = [0; 4096];
+                let n = socket.read(&mut buffer).await.unwrap();
+                assert!(n > 0);
+                bytes.extend_from_slice(&buffer[..n]);
+                let Some(end) = bytes.windows(4).position(|b| b == b"\r\n\r\n") else {
+                    continue;
+                };
+                let headers = String::from_utf8_lossy(&bytes[..end]).to_lowercase();
+                let length = headers
+                    .lines()
+                    .find_map(|l| l.strip_prefix("content-length:"))
+                    .map(|n| n.trim().parse::<usize>().unwrap())
+                    .unwrap_or(0);
+                if bytes.len() < end + 4 + length {
+                    continue;
+                }
+                assert_eq!(
+                    headers.lines().next().unwrap(),
+                    format!("{method} {path} HTTP/1.1").to_lowercase()
+                );
+                bodies.push(bytes[end + 4..].to_vec());
+                break;
+            }
+            if let Some(reply) = reply {
+                let status = if reply["ok"] == true { 200 } else { 400 };
+                let body = reply.to_string();
+                socket.write_all(format!("HTTP/1.1 {status} Test\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+        }
+        bodies
+    })
+}
+
+fn reply(data: serde_json::Value) -> Option<serde_json::Value> {
+    Some(json!({"ok": true, "data": data}))
+}
+
+#[tokio::test]
+async fn a_large_push_continues_after_a_committed_revisions_reply_is_lost() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    for i in 0..300 {
+        client
+            .vault_create("note", &item(&format!("item {i}")))
+            .unwrap();
+    }
+    let rows = ordered(client.workspace.store.objects_in(LOCAL).unwrap()).unwrap();
+    let base = client.base().unwrap();
+    let mut replies = Vec::new();
+    for (i, row) in rows.iter().enumerate() {
+        let mut job: ContentJob = client.workspace.store.job(&row.key).unwrap().unwrap();
+        job.vault.done = true;
+        client.workspace.store.set_job(&row.key, &job).unwrap();
+        let status = format!("{base}/operations/{}", hex::encode(*job.request_id));
+        let verdict = json!({"revision_id": row.revision, "head": row.revision, "conflict": false, "tombstone": false});
+        replies.push(("GET", status.clone(), reply(json!({"found": false}))));
+        if i == 150 {
+            replies.push(("POST", format!("{base}/vault"), None));
+            replies.push((
+                "GET",
+                status,
+                reply(json!({"found": true, "result": verdict})),
+            ));
+        } else {
+            replies.push(("POST", format!("{base}/vault"), reply(verdict)));
+        }
+    }
+    let server = scripted_relay(&mut client, replies).await;
+    tokio::time::timeout(std::time::Duration::from_secs(20), async {
+        assert_eq!(push(&client.hold()).await.unwrap(), (300, 0));
+        let bodies = server.await.unwrap();
+        // Exactly one POST per version, even when its acknowledgement was lost.
+        assert_eq!(bodies.iter().filter(|b| !b.is_empty()).count(), 300);
+    })
+    .await
+    .unwrap();
+    assert_eq!(client.workspace.store.count_in(LOCAL).unwrap(), 0);
+    assert_eq!(client.workspace.store.count_in(SYNCED).unwrap(), 300);
+    assert!(
+        client
+            .workspace
+            .store
+            .jobs::<ContentJob>()
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[tokio::test]
+async fn persistent_revision_failure_keeps_the_same_command_and_pending_jobs() {
+    let dir = TempDir::new();
+    let mut client = unlocked(&dir.0, false, None);
+    for title in ["first", "second"] {
+        client.vault_create("note", &item(title)).unwrap();
+    }
+    let row = ordered(client.workspace.store.objects_in(LOCAL).unwrap())
+        .unwrap()
+        .remove(0);
+    let mut job: ContentJob = client.workspace.store.job(&row.key).unwrap().unwrap();
+    job.vault.done = true;
+    client.workspace.store.set_job(&row.key, &job).unwrap();
+    let base = client.base().unwrap();
+    let status = format!("{base}/operations/{}", hex::encode(*job.request_id));
+    let replies = (0..2)
+        .flat_map(|_| {
+            [
+                ("GET", status.clone(), reply(json!({"found": false}))),
+                ("POST", format!("{base}/vault"), None),
+            ]
+        })
+        .collect();
+    let server = scripted_relay(&mut client, replies).await;
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        assert_eq!(push(&client.hold()).await, Err(Error::ExecutionUnknown));
+        let bodies = server.await.unwrap();
+        assert_eq!(bodies[1], bodies[3]);
+    })
+    .await
+    .unwrap();
+    let pending: ContentJob = client.workspace.store.job(&row.key).unwrap().unwrap();
+    assert_eq!(pending.request_id, job.request_id);
+    assert!(pending.dispatch.is_some());
+    assert_eq!(client.workspace.store.count_in(LOCAL).unwrap(), 2);
+}
+
+#[tokio::test]
+async fn upload_retry_reconciles_a_lost_finalize_and_stops_on_persistent_failure() {
+    for committed in [true, false] {
+        let dir = TempDir::new();
+        let mut client = unlocked(&dir.0, false, None);
+        client.vault_create("note", &item("upload")).unwrap();
+        let row = client.workspace.store.objects_in(LOCAL).unwrap().remove(0);
+        let record = record(&row).unwrap();
+        let mut job: ContentJob = client.workspace.store.job(&row.key).unwrap().unwrap();
+        job.vault.sent = job.vault.plan.chunks.len() as u64;
+        client.workspace.store.set_job(&row.key, &job).unwrap();
+        let base = client.base().unwrap();
+        let path = format!("{base}/uploads/{}", job.vault.plan.upload_id);
+        let staging = reply(json!({"status": "staging", "plan": job.vault.plan}));
+        let mut replies = vec![
+            ("GET", path.clone(), staging.clone()),
+            ("PUT", format!("{path}/chunks/manifest"), reply(json!({}))),
+            ("POST", format!("{base}/uploads/finalize"), None),
+        ];
+        if committed {
+            replies.push((
+                "GET",
+                path,
+                reply(json!({"status": "committed", "plan": job.vault.plan})),
+            ));
+        } else {
+            replies.extend([
+                ("GET", path.clone(), staging),
+                ("PUT", format!("{path}/chunks/manifest"), reply(json!({}))),
+                ("POST", format!("{base}/uploads/finalize"), None),
+            ]);
+        }
+        let server = scripted_relay(&mut client, replies).await;
+        tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            let result = send_upload(&client.hold(), &row.key, &record, false).await;
+            assert_eq!(
+                result,
+                if committed {
+                    Ok(())
+                } else {
+                    Err(Error::ExecutionUnknown)
+                }
+            );
+            server.await.unwrap();
+        })
+        .await
+        .unwrap();
+        let kept: ContentJob = client.workspace.store.job(&row.key).unwrap().unwrap();
+        assert_eq!(kept.vault.plan, job.vault.plan);
+        assert_eq!(kept.vault.sent, job.vault.sent);
+        assert_eq!(kept.vault.done, committed);
+        assert_eq!(client.workspace.store.count_in(LOCAL).unwrap(), 1);
+    }
+}
+
 #[tokio::test]
 async fn a_locked_resident_sync_keeps_its_cursor_without_fetching_content() {
     let dir = TempDir::new();

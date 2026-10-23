@@ -95,6 +95,12 @@ root is resealed under the current one, and a lapsed upload is replanned
 under a new ID, only once the relay confirms the old submission can no
 longer commit.
 
+Uploads and revision submissions retry a transient transport failure once
+before ending the pass. Uploads recheck the same immutable plan and resume
+from saved chunk progress; revisions reconcile the original operation before
+resubmitting the same signed command within its deadline. A persistent
+failure leaves the remaining jobs queued for the next sync.
+
 Pulling reads a complete export snapshot, checks every signed entry against
 the devices of the security epoch it was signed under (the certified
 evidence the relay kept for that epoch, checked once per epoch, so devices

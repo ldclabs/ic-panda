@@ -990,7 +990,19 @@ async fn push_one<H: Hold>(h: &H, mut row: ObjectRow) -> Result<bool> {
             Ok(dispatch)
         })
         .await?;
-    let verdict = relay.submit(&dispatch, now_ms()).await;
+    let mut verdict = relay.submit(&dispatch, now_ms()).await;
+    if matches!(
+        verdict,
+        Err(Error::ExecutionUnknown | Error::Unavailable(_))
+    ) {
+        let now = now_ms();
+        if now < dispatch.deadline {
+            // A lost reply must not stop the rest of a large import. Submit
+            // first checks the operation, then reuses the exact signed
+            // command only if it is absent. Keep the original deadline.
+            verdict = relay.submit(&dispatch, now).await;
+        }
+    }
     h.with(|c| {
         let job: ContentJob = c
             .workspace
@@ -1017,6 +1029,7 @@ async fn send_upload<H: Hold>(
     file: bool,
 ) -> Result<()> {
     let mut replanned = false;
+    let mut retried = false;
     loop {
         let (base, job) = h
             .with(|c| {
@@ -1065,6 +1078,12 @@ async fn send_upload<H: Hold>(
         .await
         {
             Ok(_) => return h.with(|c| update(c, None)).await,
+            Err(Error::ExecutionUnknown | Error::Unavailable(_)) if !retried => {
+                // Re-read the same upload's status and stored chunk progress.
+                // Reserve/finalize may already have succeeded; neither a new
+                // upload ID nor a new content version is needed to resume it.
+                retried = true;
+            }
             Err(Error::ResultExpired) if !replanned => {
                 h.with(|c| {
                     let job: ContentJob =
