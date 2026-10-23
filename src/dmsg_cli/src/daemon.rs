@@ -2378,6 +2378,80 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn plan_quotes_and_name_preparation_leave_local_reads_and_lock_available() {
+        use base64::Engine;
+        let account = dmsg_client::testing::account().id.to_string();
+        for (method, params) in [
+            (
+                "plan/quote",
+                json!({"sku":"plus","method":"cash","selection":"aaaaa-aa"}),
+            ),
+            (
+                "handle/register",
+                json!({"name":"test_name","source":"gui"}),
+            ),
+            (
+                "handle/transfer",
+                json!({"name":"test_name","target":account}),
+            ),
+            ("handle/price", json!({"name":"test_name"})),
+        ] {
+            let dir = dmsg_client::testing::TempDir::new();
+            let (daemon, _relay, ic) = stalled(&dir).await;
+            // A deterministic test-only Ed25519 payer; connecting it uses the
+            // fixture's root key and does not ask the blocked IC endpoint.
+            let mut der = vec![
+                0x30, 0x2e, 0x02, 0x01, 0, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x04, 0x22,
+                0x04, 0x20,
+            ];
+            der.extend([7; 32]);
+            let pem = dir.0.join("payer.pem");
+            std::fs::write(
+                &pem,
+                format!(
+                    "-----BEGIN PRIVATE KEY-----\n{}\n-----END PRIVATE KEY-----\n",
+                    base64::engine::general_purpose::STANDARD.encode(der)
+                ),
+            )
+            .unwrap();
+            daemon
+                .under_lock(async |c| c.payer_use(Some(&pem)).await)
+                .await
+                .unwrap();
+            let work = tokio::spawn({
+                let daemon = daemon.clone();
+                async move { daemon.call(route(method).unwrap(), method, &params).await }
+            });
+            let (_socket, _) = tokio::time::timeout(Duration::from_secs(5), ic.accept())
+                .await
+                .expect(method)
+                .unwrap();
+            let parallel = match method {
+                "handle/price" => 3,
+                "handle/register" => 4,
+                _ => 1,
+            };
+            let mut connections = Vec::new();
+            for _ in 1..parallel {
+                connections.push(
+                    tokio::time::timeout(Duration::from_secs(2), ic.accept())
+                        .await
+                        .expect("independent name queries must start together")
+                        .unwrap()
+                        .0,
+                );
+            }
+            tokio::time::timeout(Duration::from_secs(2), async {
+                daemon.call_vault("vault/list", &Value::Null).await.unwrap();
+                daemon.client().lock().await.lock();
+            })
+            .await
+            .expect("local reads and locking must not wait for a quote or a name");
+            work.abort();
+        }
+    }
+
     /// A queued wallet action belongs to the account that submitted it,
     /// even when the selected workspace changes before its resource turn.
     #[tokio::test]

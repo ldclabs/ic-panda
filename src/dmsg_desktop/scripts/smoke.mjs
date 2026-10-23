@@ -860,7 +860,7 @@ const methods = {
     requests.set(quoted.id, quoted)
     return quoted
   },
-  'handle/operations': () => nameOps,
+  'handle/operations': () => structuredClone(nameOps),
   'handle/mine': () => [{ name: 'smoke', display_handle: 'Smoke', version: 1 }],
   'handle/price': (p) => {
     const quote = { name: p.name.toLowerCase(), display_handle: p.name, price: '10000000000', fee: '10000', most: '10000020000', ledger: pandaLedger, owner: null, reserved: false }
@@ -1075,6 +1075,7 @@ const methods = {
       id: ['88', '89', '8a', '8b', '8c', '8d'][checkouts.length].repeat(32),
       actor: 'aaaaa-aa',
       origin: 'https://dmsg.net',
+      accept_by_ms: now + 300_000,
       sku: p.sku,
       amount_usd_micros: '5000000',
       starts_at_ms: renewal ? termEnds : now,
@@ -1725,10 +1726,17 @@ smoke: try {
   await main.waitForSelector('[data-testid="letter"] >> text=A paid letter')
 
 
-  // A subscription is quoted, then paid only once the approval window agrees.
+  // A slow usage read must not hold a later plan refresh behind it.
+  const finishPlanUsage = hold('files/cloud_usage')
+  const finishExecutionUsage = hold('attest/usage')
   await main.click('nav >> text=/Plan & names|会员与名称/')
   await main.waitForSelector('[data-testid="plan-name"]')
   assert.equal(await main.textContent('[data-testid="plan-name"]'), 'Free')
+  const statusReads = calls.filter((c) => c.method === 'plan/status').length
+  await main.click('[data-testid="plan-refresh"]')
+  await waitFor(() => calls.filter((c) => c.method === 'plan/status').length > statusReads)
+  await finishPlanUsage()
+  await finishExecutionUsage()
   // Each part reads on its own: the usage against the plan, the plan cards and the storage packs.
   await main.waitForSelector('[data-testid="usage-channels"]')
   assert.match(await main.textContent('[data-testid="usage-channels"]'), /2\s*\/\s*3/)
@@ -1740,7 +1748,33 @@ smoke: try {
   await main.click('[data-testid="plan-plus-subscribe"]')
   await main.waitForSelector('[data-testid="checkout"] >> text=Starts now, for a year')
   assert.equal(await main.locator('[data-testid="checkout-method"]').count(), 1)
+  const finishCancelledQuote = hold('plan/quote')
+  const approvalsBeforeCancel = calls.filter((c) => c.method === 'plan/checkout').length
   await main.click('[data-testid="checkout-pay"]')
+  await waitFor(() => held.get('plan/quote'))
+  await main.locator('[data-testid="checkout"]').getByRole('button', { name: 'Cancel', exact: true }).click()
+  await main.waitForSelector('[data-testid="checkout"]', { state: 'detached' })
+  await main.click('[data-testid="plan-plus-subscribe"]')
+  await main.waitForSelector('[data-testid="checkout-pay"]:enabled')
+  await finishCancelledQuote()
+  await new Promise((r) => setTimeout(r, 150))
+  assert.equal(calls.filter((c) => c.method === 'plan/checkout').length, approvalsBeforeCancel)
+  // Remove the abandoned review quote before the four lifecycle fixtures below.
+  await main.evaluate((id) => window.dmsg.call('plan/discard', { id }), checkouts.at(-1).id)
+  await main.waitForSelector('[data-testid="checkout"]')
+  const normalCheckout = methods['plan/checkout']
+  let shortBalance = true
+  methods['plan/checkout'] = (p) => {
+    if (shortBalance) { shortBalance = false; throw { code: 'INSUFFICIENT_FUNDS', message: 'Insufficient funds' } }
+    return normalCheckout(p)
+  }
+  await main.click('[data-testid="checkout-pay"]')
+  await main.waitForSelector('[data-testid="checkout-error"]')
+  const quoteCount = calls.filter((c) => c.method === 'plan/quote').length
+  await main.click('[data-testid="checkout-pay"]')
+  await main.waitForSelector('[data-testid="checkout"]', { state: 'detached' })
+  assert.equal(calls.filter((c) => c.method === 'plan/quote').length, quoteCount)
+  methods['plan/checkout'] = normalCheckout
   await waitFor(() => latest('plan/quote'))
   assert.deepEqual(latest('plan/quote').params, { sku: 'plus', method: 'cash', selection: ledger })
   await approval.waitForSelector('[data-testid="approval-sku"]', { timeout: 20_000 })
@@ -1816,8 +1850,14 @@ smoke: try {
     actor: 'aaaaa-aa',
     neuron: '6b'.repeat(32)
   }
+  const finishSlowOrder = hold('plan/order', (p) => p?.id === '88'.repeat(32))
   await main.click('[data-testid="plan-tab-payments"]')
+  await main.waitForSelector('[data-testid="order"]')
+  assert.equal(await main.locator('[data-testid="order"]').count(), 4)
+  // One slow historical order leaves local rows and the other order usable.
   await main.waitForSelector('[data-testid="order-advance"]')
+  await finishSlowOrder()
+  await main.waitForSelector('[data-testid="order-state"] >> text=Cancelled')
   assert.equal(await main.locator('[data-testid="order"]').count(), 4)
   assert.match(await main.locator('[data-testid="order-title"]').first().textContent(), /Storage pack/)
   assert.deepEqual(await main.locator('[data-testid="order-state"]').allTextContents(), ['Quote', 'Quote', 'Checking the neuron', 'Cancelled'])
@@ -1844,7 +1884,10 @@ smoke: try {
   await main.screenshot({ path: join(shots, 'plan-payments.png') })
 
   // Names: this account's own, a name looked up with its price or its owner, and a transfer both accounts approve.
+  const finishNameOperations = hold('handle/operations', (p) => p?.refresh !== false)
   await main.click('[data-testid="plan-tab-names"]')
+  await main.waitForSelector('[data-testid="name-lookup"]')
+  await waitFor(() => calls.some((c) => c.method === 'handle/operations' && c.params?.refresh === false))
   await main.waitForSelector('[data-testid="my-name"] >> text=@Smoke')
   await main.fill('[data-testid="handle-name"]', '_smoke')
   await main.waitForSelector('[data-testid="handle-problem"] >> text=cannot start with _')
@@ -1924,6 +1967,11 @@ smoke: try {
   assert.deepEqual(latest('handle/transfer').params, { name: 'Smoke', target: peer })
   await main.click('[data-testid="transfer-done"]')
   await main.waitForSelector('[data-testid="name-state"] >> text=Waiting for the target')
+  await finishNameOperations()
+  const finishLatestNames = hold('handle/operations', (p) => p?.refresh !== false)
+  await waitFor(() => held.get('handle/operations'))
+  assert.equal(await main.locator('[data-testid="name-operation"]').count(), 1, 'an old remote list must not erase a new local transfer')
+  await finishLatestNames()
   // Once the target accepted, the owner completes it within ten minutes, in a held approval.
   nameOps[0].accepted_until_ms = Date.now() + 600_000
   emit('approval/changed', {})

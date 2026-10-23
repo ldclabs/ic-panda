@@ -16,7 +16,7 @@ use crate::client::{Client, Warm};
 use crate::cloud::{Cloud, Prepared, found};
 use crate::evidence::Trust;
 use crate::ic::Ic;
-use dmsg_types::{Error, Hash, Result};
+use dmsg_types::{AccountId, Error, Hash, Result, ensure};
 use futures_util::future::try_join_all;
 use serde::Serialize;
 use serde_json::Value as Json;
@@ -196,6 +196,48 @@ pub trait Hold: Sync {
     }
 }
 
+/// A shared client bound to the current unlocked account and session.
+/// Locking (even followed by unlock) prevents subsequent local steps.
+pub struct Unlocked<'a, H> {
+    inner: &'a H,
+    pub(crate) account: AccountId,
+    generation: u64,
+}
+
+impl<'a, H: Hold> Unlocked<'a, H> {
+    /// Bind the unlocked session before a network call or resource turn.
+    /// # Errors
+    /// Returns `Error::Locked` without content keys or `Error::AuthRequired` without an account.
+    pub async fn new(inner: &'a H) -> Result<Self> {
+        let (account, generation) = inner
+            .with(|c| {
+                c.keys()?;
+                Ok((c.account()?.id, c.session_generation))
+            })
+            .await?;
+        Ok(Self {
+            inner,
+            account,
+            generation,
+        })
+    }
+}
+
+impl<H: Hold> Hold for Unlocked<'_, H> {
+    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
+        self.inner
+            .with(|c| {
+                c.keys()?;
+                ensure(
+                    c.account()?.id == self.account && c.session_generation == self.generation,
+                    Error::Locked,
+                )?;
+                step(c)
+            })
+            .await
+    }
+}
+
 /// The client held by its one caller for a whole operation.
 pub struct Owned<'a>(Mutex<&'a mut Client>);
 
@@ -214,5 +256,27 @@ impl Hold for Owned<'_> {
     ) -> impl Future<Output = Result<T>> + Send {
         let mut client = self.0.lock().unwrap_or_else(PoisonError::into_inner);
         std::future::ready(step(&mut client))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn an_unlocked_operation_cannot_resume_after_lock_and_unlock() {
+        let dir = crate::testing::TempDir::new();
+        let mut c = crate::testing::unlocked(&dir.0, false, None);
+        let shared = c.hold();
+        let operation = Unlocked::new(&shared).await.unwrap();
+        shared
+            .with(|c| {
+                c.lock();
+                c.keys = Some(c.workspace.unlock(&crate::testing::SECRET)?);
+                Ok(())
+            })
+            .await
+            .unwrap();
+        assert_eq!(operation.with(|_| Ok(())).await, Err(Error::Locked));
     }
 }

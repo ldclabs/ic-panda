@@ -33,6 +33,8 @@
   let refund = $state<any>(null)
   /** When this page last opened a payment: approval changes soon after read the plan from the relay again. */
   let paidAt = 0
+  let alive = true
+  let refreshPlan = false
 
   const current = $derived(plan?.current ?? null)
   const offers = $derived(new Map<string, any>((plan?.offers ?? []).map((o: any) => [o.plan, o])))
@@ -46,31 +48,42 @@
       await read()
       errors[key] = ''
     } catch (e) {
-      errors[key] = errorText(e)
+      if (alive) errors[key] = errorText(e)
     }
   }
 
-  /** Every part again; with `refresh` the relay reads the entitlement anew, so its limits follow a payment now. */
-  function load(refresh = false) {
-    return Promise.all([
-      part('plan', async () => {
-        plan = await call('plan/status', { refresh })
-      }),
-      catalog
-        ? null
-        : part('catalog', async () => {
-            catalog = await call('plan/catalog')
-          }),
-      part('cloud', async () => {
-        cloud = await call('files/cloud_usage')
-      }),
-      part('execution', async () => {
-        execution = await call('attest/usage')
-      })
-    ])
-  }
+  // Each part coalesces its own reads. A slow usage request never queues
+  // a later entitlement refresh behind it.
+  const readPlan = single(() => part('plan', async () => {
+    if (!alive) return
+    const refresh = refreshPlan || Date.now() - paidAt < 15 * 60_000
+    refreshPlan = false
+    const next = await call('plan/status', { refresh })
+    if (alive) plan = next
+  }))
+  const readCatalog = single(() => part('catalog', async () => {
+    if (catalog || !alive) return
+    const next = await call('plan/catalog')
+    if (alive) catalog = next
+  }))
+  const readCloud = single(() => part('cloud', async () => {
+    if (!alive) return
+    const next = await call('files/cloud_usage')
+    if (alive) cloud = next
+  }))
+  const readExecution = single(() => part('execution', async () => {
+    if (!alive) return
+    const next = await call('attest/usage')
+    if (alive) execution = next
+  }))
 
-  const reload = single(() => load(Date.now() - paidAt < 15 * 60_000))
+  function load(refresh = false) {
+    refreshPlan ||= refresh
+    void readCatalog()
+    void readCloud()
+    void readExecution()
+    return readPlan()
+  }
 
   async function attempt(work: () => Promise<unknown>) {
     busy = true
@@ -95,14 +108,14 @@
       refund = null
       const outcome = refundOutcome(done?.refunds ?? [])
       toast(() => outcome.error ? `${t('error')}: ${outcome.error}` : t(outcome.label))
-      await load(true)
+      void load(true)
     })
 
   /** Acknowledging the notice starts its export window now at the latest. */
   const acknowledge = () =>
     attempt(async () => {
       await call('plan/notice_ack', { id: notice.id })
-      await load()
+      void readCloud()
     })
 
   const buy = (p: any, offer: any) => (buying = { kind: 'plan', plan: p.plan_id, price_cents: p.price_cents, ...offer })
@@ -111,7 +124,12 @@
 
   onMount(() => {
     void load()
-    return onChange(['approval/changed', 'session/changed'], reload)
+    const off = onChange(['approval/changed', 'session/changed'], () => {
+      void readPlan()
+      void readExecution()
+      if (Date.now() - paidAt < 15 * 60_000) void readCloud()
+    })
+    return () => { alive = false; off() }
   })
 
   const price = (cents: number) => `$${(cents / 100).toFixed(2)}`

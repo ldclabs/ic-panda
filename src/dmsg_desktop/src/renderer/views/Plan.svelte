@@ -50,12 +50,16 @@
   <div class="flex min-h-0 flex-1 flex-col">
     {#if !unlocked}
       <Locked {status} testid="plan-locked" />
-    {:else if tab === 'membership'}
-      <Membership />
-    {:else if tab === 'names'}
-      <Names {status} {go} bind:ask />
     {:else}
-      <Payments />
+      {#key status?.account}
+        {#if tab === 'membership'}
+          <Membership />
+        {:else if tab === 'names'}
+          <Names {status} {go} bind:ask />
+        {:else}
+          <Payments />
+        {/if}
+      {/key}
     {/if}
   </div>
 </div>

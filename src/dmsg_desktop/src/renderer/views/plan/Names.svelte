@@ -37,6 +37,8 @@
   let busy = $state(false)
   let now = $state(Date.now())
   let name = $state('')
+  let alive = true
+  let lookupVersion = 0
   /** The registry's answer for the name looked up. */
   let found = $state<any>(null)
   /** The transfer dialog: the name, its target, and once offered the token. */
@@ -59,39 +61,59 @@
       await read()
       errors[key] = ''
     } catch (e) {
-      errors[key] = errorText(e)
+      if (alive) errors[key] = errorText(e)
     }
   }
 
-  const readOperations = single(() =>
-    part('operations', async () => {
-      operations = await call('handle/operations')
+  const refreshOperations = single(() => part('operations', async () => {
+    if (!alive) return
+    const next = await call('handle/operations')
+    if (alive) {
+      const refreshed = new Map(next.map((op: any) => [op.id, op]))
+      operations = (operations ?? next).map((op: any) => refreshed.get(op.id) ?? op)
       now = Date.now()
-    })
-  )
+    }
+  }))
+  const readOperations = single(() => part('operations', async () => {
+    if (!alive) return
+    const cached = await call('handle/operations', { refresh: false })
+    if (!alive) return
+    // Preserve already fetched acceptance windows while reading local journals.
+    const prior = new Map((operations ?? []).map((op) => [op.id, op]))
+    operations = cached.map((op: any) => ({ ...prior.get(op.id), ...op }))
+    now = Date.now()
+    void refreshOperations()
+  }))
+  const readMine = single(() => part('mine', async () => {
+    if (!alive) return
+    const next = await call('handle/mine')
+    if (alive) mine = next
+  }))
+  const readPayer = single(() => part('payer', async () => {
+    if (!alive) return
+    const next = await call('payer/status')
+    if (alive) payer = next
+  }))
+  const readSecurity = single(() => part('security', async () => {
+    if (!alive) return
+    const next = await call('account/security')
+    if (alive) security = next
+  }))
+  const refreshLookup = single(() => part('lookup', async () => {
+    const queried = found?.display_handle ?? found?.name
+    const at = lookupVersion
+    if (!queried || !alive) return
+    const next = await call('handle/price', { name: queried })
+    if (alive && at === lookupVersion && (found?.display_handle ?? found?.name) === queried) found = next
+  }))
 
-  const reload = single(() =>
-    Promise.all([
-      part('mine', async () => {
-        mine = await call('handle/mine')
-      }),
-      readOperations(),
-      part('payer', async () => {
-        payer = await call('payer/status')
-      }),
-      part('security', async () => {
-        security = await call('account/security')
-      }),
-      // Binding or changing the login, and completing a claim, changes
-      // the result even when the person has not looked the name up again.
-      part('lookup', async () => {
-        const queried = found?.display_handle ?? found?.name
-        if (!queried) return
-        const next = await call('handle/price', { name: queried })
-        if ((found?.display_handle ?? found?.name) === queried) found = next
-      })
-    ])
-  )
+  function reload() {
+    void readPayer()
+    void readSecurity()
+    void refreshLookup()
+    void readOperations()
+    return readMine()
+  }
 
   async function attempt(work: () => Promise<unknown>) {
     busy = true
@@ -105,13 +127,15 @@
   }
 
   /** Taking, accepting and completing are decided in the approval window. */
-  const approve = (request: any) => bridge(() => window.dmsg.openApproval(request.id))
+  const approve = (request: any) => alive ? bridge(() => window.dmsg.openApproval(request.id)) : Promise.resolve()
 
   const lookup = () =>
     attempt(async () => {
       found = null
       errors.lookup = ''
-      found = await call('handle/price', { name: name.trim().replace(/^@/, '') })
+      const at = ++lookupVersion
+      const next = await call('handle/price', { name: name.trim().replace(/^@/, '') })
+      if (alive && at === lookupVersion) found = next
     })
 
   const register = () => attempt(async () => approve(await call('handle/register', { name: found.display_handle ?? found.name })))
@@ -120,14 +144,20 @@
   /** Offering prepares the transfer and its token; nothing moves until the owner completes it. */
   const offer = () =>
     attempt(async () => {
-      const done: any = await call('handle/transfer', { name: moving!.name, target: moving!.target.trim() })
-      moving = { ...moving!, token: done.token }
+      const opened = moving
+      if (!opened) return
+      const target = opened.target.trim()
+      const done: any = await call('handle/transfer', { name: opened.name, target })
+      if (!alive || moving !== opened || moving.target.trim() !== target) return
+      moving = { ...opened, token: done.token }
       await readOperations()
     })
 
   const accept = () =>
     attempt(async () => {
-      const request = await call('handle/accept', { token: tokenOf(incoming ?? '') })
+      const token = incoming
+      const request = await call('handle/accept', { token: tokenOf(token ?? '') })
+      if (!alive || incoming !== token) return
       incoming = null
       await approve(request)
     })
@@ -177,6 +207,7 @@
       if (pending) void readOperations()
     }, 10_000)
     return () => {
+      alive = false
       off()
       clearInterval(timer)
     }
@@ -193,7 +224,8 @@
     {/snippet}
     {#if errors.mine}
       <Notice tone="danger">{errors.mine}</Notice>
-    {:else if mine && !mine.length}
+    {/if}
+    {#if mine && !mine.length}
       <p class="text-[12.5px] text-faint" data-testid="no-names">{t('noNames')}</p>
     {:else if mine}
       <ul class="divide-y divide-line rounded-xl border border-line">
@@ -303,7 +335,8 @@
   <Section title={t('nameOperations')} icon="history" flush testid="name-operations-section">
     {#if errors.operations}
       <div class="px-5 pb-4"><Notice tone="danger">{errors.operations}</Notice></div>
-    {:else if operations && !operations.length}
+    {/if}
+    {#if operations && !operations.length}
       <p class="px-5 pb-4 text-[12.5px] text-faint">{t('noNameOperations')}</p>
     {:else if operations}
       <ul class="divide-y divide-line border-t border-line" data-testid="name-operations">

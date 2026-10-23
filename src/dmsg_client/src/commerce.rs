@@ -9,10 +9,13 @@
 //! the only reason to quote again. dMsg's own checkouts use the
 //! application origin `https://dmsg.net` (plan D-19).
 
+mod prepare;
+pub use prepare::{checkout_request, plan_quote};
+
 use crate::client::Client;
 use crate::codec::decode;
 use crate::crypto::sign;
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::ic::Ic;
 use crate::now_ms;
 use crate::payer::{Ledger, memo, payer, transfer_call};
@@ -149,6 +152,7 @@ impl Checkout {
             "amount_usd_micros": offer.amount_usd_micros.to_string(),
             "starts_at_ms": offer.starts_at_ms,
             "expires_at_ms": offer.expires_at_ms,
+            "accept_by_ms": offer.accept_by_ms,
             "terms": terms,
             "stage": self.stage,
             "created_at_ms": self.created_at_ms,
@@ -284,36 +288,7 @@ impl Client {
         commerce: Principal,
         product: &str,
     ) -> Result<(AppRegistration, ProductRegistration)> {
-        let ic = self.anonymous().await?;
-        let batch: Result<CertifiedBatch> = ic
-            .query(
-                commerce,
-                "integration_configuration_certificate",
-                (DMSG_APP, Some(product)),
-            )
-            .await?;
-        let batch = batch?;
-        let root = ic.root_key();
-        let now = now_ms();
-        let app_key = digest("dmsg/registration/app/v1", &DMSG_APP).to_vec();
-        let product_key = digest("dmsg/registration/product/v2", &product).to_vec();
-        let app: AppRegistration = decode(
-            &certified_leaf(&batch, &app_key, commerce, &root, now)?.ok_or(Error::NotFound)?,
-            1 << 20,
-        )?;
-        let registered: ProductRegistration = decode(
-            &certified_leaf(&batch, &product_key, commerce, &root, now)?.ok_or(Error::NotFound)?,
-            1 << 20,
-        )?;
-        validate_app(&app)?;
-        validate_product(&registered)?;
-        ensure(
-            app.app_id == DMSG_APP
-                && app.origins.iter().any(|o| o == DMSG_ORIGIN)
-                && app.environment == self.config.environment,
-            Error::IntegrityFailed,
-        )?;
-        Ok((app, registered))
+        prepare::registrations(&self.hold(), commerce, product).await
     }
 
     /// The payer's agent for a checkout `actor`.
@@ -333,22 +308,7 @@ impl Client {
     /// `INSUFFICIENT_FUNDS` code when the balance is short, and
     /// `Error::IntegrityFailed` when the fixed terms do not add up.
     pub(crate) async fn checkout_funds(&mut self, job: &Checkout) -> Result<()> {
-        let Terms::Cash(quote) = &job.terms else {
-            return Ok(());
-        };
-        let ic = self.actor(job.actor).await?;
-        let balance = Ledger {
-            ic: &ic,
-            canister: quote.cash.ledger,
-        }
-        .balance(job.actor)
-        .await?;
-        let total = cash_total(
-            quote.cash.amount_atomic,
-            quote.cash.fee_reserve_atomic,
-            quote.asset.network_fee_atomic,
-        )?;
-        ensure(balance >= total, crate::insufficient_funds())
+        prepare::funds(&self.hold(), job).await
     }
 
     fn checkout(&self, id: &str) -> Result<Checkout> {
@@ -375,34 +335,7 @@ impl Client {
         method: SettlementMethod,
         selection: &str,
     ) -> Result<Checkout> {
-        let services = self.services().await?;
-        let state = self.cloud_state().await?;
-        ensure(
-            state
-                .active(&self.workspace.meta.device_id)?
-                .input
-                .capabilities
-                .contains(&Capability::FormalApprove),
-            Error::Forbidden,
-        )?;
-        let (actor, ic) = self.payer().await?;
-        let beneficiary = self.beneficiary()?;
-        let operation = Hash::new(crate::crypto::random_id());
-        let offer: Result<BillingOffer> = ic
-            .update(
-                services.commerce,
-                "prepare_account_subscription",
-                (DMSG_APP, &beneficiary, sku, operation),
-            )
-            .await?;
-        let request = CheckoutRequest {
-            offer: offer?,
-            approving_account: self.account()?.id,
-            product_approval: None,
-            method,
-        };
-        self.quote(request, DMSG_ORIGIN, selection, actor, &ic, &services)
-            .await
+        plan_quote(&self.hold(), sku, method, selection).await
     }
 
     /// Fix the terms of a web application's checkout from `origin` for the
@@ -414,140 +347,7 @@ impl Client {
         origin: &str,
         selection: &str,
     ) -> Result<Checkout> {
-        let services = self.services().await?;
-        let (actor, ic) = self.payer().await?;
-        self.quote(request, origin, selection, actor, &ic, &services)
-            .await
-    }
-
-    /// Fix the terms of `request` for `actor`.
-    async fn quote(
-        &mut self,
-        request: CheckoutRequest,
-        origin: &str,
-        selection: &str,
-        actor: Principal,
-        ic: &Ic,
-        services: &Services,
-    ) -> Result<Checkout> {
-        ensure(
-            request.approving_account == self.account()?.id,
-            Error::InvalidInput("ACCOUNT_MISMATCH".into()),
-        )?;
-        let (app, product) = self
-            .registrations(services.commerce, &request.offer.product_id)
-            .await?;
-        let now = now_ms();
-        validate_billing_offer(&request.offer, &app, &product, now)?;
-        ensure(
-            request
-                .offer
-                .allowed_settlement_methods
-                .contains(&request.method)
-                && app.origins.iter().any(|o| o == origin),
-            Error::Forbidden,
-        )?;
-        let terms = match request.method {
-            SettlementMethod::Cash => {
-                let ledger =
-                    Principal::from_text(selection).map_err(|_| dmsg_types::invalid("ledger"))?;
-                let payer = Account {
-                    owner: actor,
-                    subaccount: None,
-                };
-                let quote: Result<CheckoutQuote> = ic
-                    .update(
-                        services.commerce,
-                        "quote_checkout",
-                        (&request.offer, ledger, payer),
-                    )
-                    .await?;
-                let quote = quote?;
-                let assets: Vec<SettlementAssetView> = self
-                    .anonymous()
-                    .await?
-                    .query(services.commerce, "settlement_assets", ())
-                    .await?;
-                ensure(
-                    assets
-                        .iter()
-                        .any(|a| a.ledger_verified && a.policy == quote.asset),
-                    Error::PolicyStale,
-                )?;
-                // The service's terms must be exactly those it would compute.
-                let expected = commerce_v2::checkout_quote(
-                    services.commerce,
-                    request.offer.clone(),
-                    &app,
-                    &product,
-                    quote.asset.clone(),
-                    payer,
-                    quote.quoted_at_ms,
-                )?;
-                ensure(expected == quote, Error::IntegrityFailed)?;
-                Terms::Cash(Box::new(quote))
-            }
-            SettlementMethod::Panda => {
-                let neuron = hex_id(selection).map_err(|_| dmsg_types::invalid("neuron"))?;
-                let terms: Result<PandaApplicationTerms> = ic
-                    .update(
-                        services.membership,
-                        "quote_panda_subscription",
-                        (
-                            &request.offer,
-                            services.home,
-                            request.approving_account,
-                            neuron,
-                        ),
-                    )
-                    .await?;
-                let terms = terms?;
-                ensure(
-                    terms.actor == actor
-                        && terms.neuron_id == neuron
-                        && terms.user_home == services.home
-                        && terms.approving_account == request.approving_account
-                        && terms.offer == request.offer,
-                    Error::IntegrityFailed,
-                )?;
-                commerce_v2::validate_panda_terms(
-                    &terms,
-                    &app,
-                    &product,
-                    services.membership,
-                    terms.sns_governance,
-                    now_ms(),
-                    true,
-                )?;
-                Terms::Panda(Box::new(terms))
-            }
-        };
-        let id = match &terms {
-            Terms::Cash(_) => commerce_v2::checkout_id(services.commerce, &request.offer),
-            Terms::Panda(terms) => commerce_v2::panda_claim_id(terms),
-        };
-        let job = Checkout {
-            id: hex::encode(*id),
-            actor,
-            origin: origin.into(),
-            request,
-            terms,
-            approval: None,
-            stage: Stage::Review,
-            created_at_ms: Some(now_ms()),
-        };
-        if let Ok(old) = self.checkout(&job.id) {
-            ensure(
-                old.request == job.request && old.actor == job.actor && old.origin == job.origin,
-                Error::IdempotencyConflict,
-            )?;
-            // Approved terms stay fixed; only an unapproved quote is refreshed.
-            if old.stage != Stage::Review {
-                return Ok(old);
-            }
-        }
-        self.save_checkout(&job)?;
-        Ok(job)
+        prepare::quote_request(&self.hold(), request, origin, selection).await
     }
 
     /// A checkout journal.
@@ -979,9 +779,13 @@ async fn services<H: Hold>(h: &H) -> Result<Services> {
 /// Returns `Error::IntegrityFailed` for an uncertified answer.
 pub async fn catalog<H: Hold>(h: &H) -> Result<Catalog> {
     let services = services(h).await?;
+    catalog_by(&h.anonymous().await?, services.commerce).await
+}
+
+async fn catalog_by(ic: &Ic, commerce: Principal) -> Result<Catalog> {
     certified_by(
-        &h.anonymous().await?,
-        services.commerce,
+        ic,
+        commerce,
         "get_catalog",
         (),
         billing::catalog_key().as_slice(),
@@ -1214,19 +1018,22 @@ pub async fn plan_status<H: Hold>(h: &H, refresh: bool) -> Result<Json> {
             Err(error) => return Err(error),
         }
     }
-    let view: Option<EntitlementView> = certified_by(
-        &ic,
-        commerce,
-        "get_entitlement_batch",
-        (vec![&beneficiary],),
-        billing::entitlement_key(&beneficiary).as_slice(),
-    )
-    .await?;
-    let terms: Result<MembershipTerms> = ic
-        .query(commerce, "get_membership_terms", (&beneficiary,))
-        .await?;
+    // Independent certified entitlement, contract terms and catalog reads
+    // share the discovered commerce canister and agent.
+    let beneficiaries = vec![&beneficiary];
+    let key = billing::entitlement_key(&beneficiary);
+    let (view, terms, catalog): (Option<EntitlementView>, Result<MembershipTerms>, Catalog) = futures_util::try_join!(
+        certified_by(
+            &ic,
+            commerce,
+            "get_entitlement_batch",
+            (beneficiaries,),
+            key.as_slice()
+        ),
+        ic.query(commerce, "get_membership_terms", (&beneficiary,)),
+        catalog_by(&ic, commerce)
+    )?;
     let terms = terms?;
-    let catalog = catalog(h).await?;
     let mut status = match view {
         Some(view) => json!({
             "plan": format!("{:?}", view.plan_snapshot.plan_id),
@@ -1637,15 +1444,18 @@ struct ListNeuronsResponse {
 pub async fn plan_panda<H: Hold>(h: &H) -> Result<Json> {
     let services = services(h).await?;
     let ic = h.anonymous().await?;
-    let service: PandaServiceView = ic.query(services.membership, "panda_service", ()).await?;
+    let (service, catalog, (payer, _)): (PandaServiceView, Catalog, _) = futures_util::try_join!(
+        ic.query(services.membership, "panda_service", ()),
+        catalog_by(&ic, services.commerce),
+        payer(h)
+    )?;
     let now = now_ms();
     let rate = service
         .rates
         .iter()
         .filter(|r| r.effective_at_ms <= now && r.product_ids.iter().any(|p| p == DMSG_APP))
         .max_by_key(|r| r.effective_at_ms);
-    let plans = catalog(h)
-        .await?
+    let plans = catalog
         .plans
         .iter()
         .filter(|p| p.price_cents > 0)
@@ -1665,7 +1475,6 @@ pub async fn plan_panda<H: Hold>(h: &H) -> Result<Json> {
             }))
         })
         .collect::<Result<Vec<_>>>()?;
-    let (payer, _) = payer(h).await?;
     let listed: Result<ListNeuronsResponse> = ic
         .query(
             service.governance,
@@ -1677,6 +1486,7 @@ pub async fn plan_panda<H: Hold>(h: &H) -> Result<Json> {
             },),
         )
         .await;
+    let now = now_ms();
     let mut view = json!({
         "governance": service.governance.to_text(),
         "ledger": service.panda_ledger.to_text(),

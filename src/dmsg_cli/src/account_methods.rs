@@ -9,7 +9,7 @@ use crate::params::{account, hash, number, optional, source, text, to_json};
 use dmsg_client::{
     commerce::{self, Records},
     handle,
-    hold::Hold,
+    hold::{Hold, Unlocked},
     security::{AccountChange, account_request},
 };
 use dmsg_types::{DAY, Error, Hash, KeyPurpose, Result};
@@ -94,6 +94,22 @@ impl Daemon {
     /// Run one of [`METHODS`].
     pub(crate) async fn call_account(&self, method: &str, params: &Value) -> Result<Value> {
         match method {
+            "handle/transfer" | "handle/accept" => {
+                let shared = self.hold();
+                let h = Unlocked::new(&shared).await?;
+                if method == "handle/transfer" {
+                    let (job, token) = handle::transfer_prepare(
+                        &h,
+                        &text(params, "name")?,
+                        &account(params, "target")?,
+                    )
+                    .await?;
+                    return Ok(json!({"operation":job.view(),"token":token}));
+                }
+                let job = handle::accept_prepare(&h, &text(params, "token")?).await?;
+                return handle::request(&h, source(params)?, &job.id).await;
+            }
+
             "payment/revise" => {
                 let h = self.hold();
                 h.with(|c| Ok(c.session_state())).await?;
@@ -116,6 +132,12 @@ impl Daemon {
             }
             // The registry and the user homes answer without the client.
             "handle/operations" => {
+                if params["refresh"] == false {
+                    return self
+                        .hold()
+                        .with(|c| Ok(Value::Array(c.handle_operations()?)))
+                        .await;
+                }
                 return Ok(Value::Array(handle::operations(&self.hold()).await?));
             }
             "handle/token" => {
@@ -250,18 +272,6 @@ impl Daemon {
                 client
                     .account_request(source(params)?, AccountChange::DisputeRecovery { op_id })
                     .await
-            }
-            "handle/transfer" => {
-                let (job, token) = client
-                    .handle_transfer_prepare(&text(params, "name")?, &account(params, "target")?)
-                    .await?;
-                Ok(json!({"operation": job.view(), "token": token}))
-            }
-            "handle/accept" => {
-                let job = client
-                    .handle_accept_prepare(&text(params, "token")?)
-                    .await?;
-                client.handle_request(source(params)?, &job.id).await
             }
             "handle/reconcile" => {
                 client

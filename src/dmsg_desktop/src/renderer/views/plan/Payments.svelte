@@ -36,6 +36,9 @@
   let cancelling = $state<{ job: any; quote?: any } | null>(null)
   /** Each order's last status seen: one turning applied has the relay read the plan anew. */
   const seen = new Map<string, string>()
+  let alive = true
+  let allOrders = false
+  let refreshPlan = false
 
   const actionLabels: Record<OrderAction, Label> = {
     pay: 'pay',
@@ -52,62 +55,74 @@
       await read()
       errors[key] = ''
     } catch (e) {
-      errors[key] = errorText(e)
+      if (alive) errors[key] = errorText(e)
     }
   }
 
-  async function readOrders() {
-    const jobs: any[] = await call('plan/checkouts')
-    jobs.sort((a, b) => (b.created_at_ms ?? 0) - (a.created_at_ms ?? 0))
-    const next: Record<string, any> = {}
-    await Promise.all(
-      jobs
-        .filter((job) => job.stage !== 'review')
-        .map(async (job) => {
-          try {
-            next[job.id] = await call('plan/order', { id: job.id })
-          } catch {
-            // Not at the service yet, or unreadable now: the journal's stage stands.
+  const readStatus = single(() => part('status', async () => {
+    if (!alive) return
+    const refresh = refreshPlan
+    refreshPlan = false
+    const status: any = await call('plan/status', { refresh })
+    if (alive) refundable = status?.refund?.order ?? null
+  }))
+
+  const readRemoteOrders = single(async () => {
+    if (!alive) return
+    const all = allOrders
+    allOrders = false
+    const jobs = (checkouts ?? []).filter((job) => job.stage !== 'review' && (all || !orders[job.id] || moving(job, orders[job.id], Date.now())))
+    let cursor = 0
+    // Bound the remote fan-out and publish each reply as it arrives.
+    await Promise.all(Array.from({ length: Math.min(4, jobs.length) }, async () => {
+      while (alive && cursor < jobs.length) {
+        const job = jobs[cursor++]
+        try {
+          const next = await call('plan/order', { id: job.id })
+          if (!alive || !checkouts?.some((j) => j.id === job.id)) continue
+          const before = seen.get(job.id)
+          orders[job.id] = next
+          seen.set(job.id, next.status)
+          if (before && before !== next.status && ['Applied', 'Active'].includes(next.status)) {
+            refreshPlan = true
+            void readStatus()
           }
-        })
-    )
-    let applied = false
-    for (const [id, order] of Object.entries(next)) {
-      const before = seen.get(id)
-      if (before && before !== order.status && (order.status === 'Applied' || order.status === 'Active')) applied = true
-      seen.set(id, order.status)
-    }
+        } catch {
+          // Keep the last known result; local journals remain usable.
+        }
+      }
+    }))
+  })
+
+  const refreshOrders = single(() => part('orders', async () => {
+    if (!alive) return
+    const jobs: any[] = await call('plan/checkouts')
+    if (!alive) return
+    jobs.sort((a, b) => (b.created_at_ms ?? 0) - (a.created_at_ms ?? 0))
     checkouts = jobs
-    orders = next
+    orders = Object.fromEntries(Object.entries(orders).filter(([id]) => jobs.some((j) => j.id === id)))
     now = Date.now()
-    if (applied) {
-      const status: any = await call('plan/status', { refresh: true }).catch(() => null)
-      if (status) refundable = status.refund?.order ?? null
-    }
+    void readRemoteOrders()
+  }))
+
+  const readPayer = single(() => part('payer', async () => {
+    if (!alive) return
+    const next = await call('payer/status')
+    if (alive) payer = next
+  }))
+  const readCatalog = single(() => part('catalog', async () => {
+    if (catalog || !alive) return
+    const next = await call('plan/catalog')
+    if (alive) catalog = next
+  }))
+
+  function reload() {
+    allOrders = true
+    void readCatalog()
+    void readStatus()
+    void readPayer()
+    return refreshOrders()
   }
-
-  const readPayer = () =>
-    part('payer', async () => {
-      payer = await call('payer/status')
-    })
-
-  const refreshOrders = single(() => part('orders', readOrders))
-
-  const reload = single(() =>
-    Promise.all([
-      refreshOrders(),
-      catalog
-        ? null
-        : part('catalog', async () => {
-            catalog = await call('plan/catalog')
-          }),
-      part('status', async () => {
-        const status: any = await call('plan/status', { refresh: false })
-        refundable = status?.refund?.order ?? null
-      }),
-      readPayer()
-    ])
-  )
 
   async function attempt(work: () => Promise<unknown>) {
     busy = true
@@ -121,7 +136,7 @@
   }
 
   /** Paying and continuing are decided in the approval window. */
-  const approve = (request: any) => bridge(() => window.dmsg.openApproval(request.id))
+  const approve = (request: any) => alive ? bridge(() => window.dmsg.openApproval(request.id)) : Promise.resolve()
 
   function act(action: OrderAction, job: any) {
     switch (action) {
@@ -174,6 +189,7 @@
       if ((checkouts ?? []).some((job) => moving(job, orders[job.id], now))) void refreshOrders()
     }, 15_000)
     return () => {
+      alive = false
       off()
       clearInterval(timer)
     }

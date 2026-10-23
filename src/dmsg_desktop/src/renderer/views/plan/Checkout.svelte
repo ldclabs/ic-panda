@@ -1,6 +1,6 @@
 <script lang="ts">
   import { RadioGroup } from 'bits-ui'
-  import { untrack } from 'svelte'
+  import { onDestroy, untrack } from 'svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -14,8 +14,8 @@
   import Select from '../../components/Select.svelte'
   import { buttonClass, cn } from '../../components/ui'
   import { t } from '../../i18n/index.svelte'
-  import { bridge, call, code, errorText, size, units, when } from '../../rpc'
-  import { cashTotal, neuronUnlockAt } from './plan'
+  import { bridge, call, code, errorText, single, size, units, when } from '../../rpc'
+  import { cashTotal, neuronUnlockAt, reusableQuote } from './plan'
 
   /**
    * Paying for an offer: a plan card's subscription, renewal, switch or
@@ -25,6 +25,10 @@
    */
   let { offer = $bindable(null), onPaid }: { offer: any; onPaid: () => void } = $props()
 
+  let alive = true
+  let payRun = 0
+  let quotedFor = ''
+  let loadingPanda = $state(false)
   let method = $state('Cash')
   let assets = $state<any[]>([])
   let ledger = $state('')
@@ -45,8 +49,11 @@
 
   // Each offer opens on cash; the assets are read once.
   $effect(() => {
-    if (!offer) return
+    const opened = offer
     untrack(() => {
+      payRun += 1
+      busy = false
+      if (!opened) return
       method = 'Cash'
       neuron = ''
       error = ''
@@ -59,36 +66,50 @@
     if (offer && method === 'Panda' && !panda) untrack(() => void readPanda())
   })
 
-  async function readAssets() {
+  const readAssets = single(async () => {
+    if (!alive || assets.length) return
     try {
-      assets = await call('plan/assets')
+      const next = await call('plan/assets')
+      if (!alive) return
+      assets = next
       if (!ledger && assets.length) ledger = assets[0].ledger
     } catch (e) {
-      error = errorText(e)
+      if (alive) error = errorText(e)
     }
-  }
+  })
 
-  /** The PANDA terms and the payer's neurons, read again once the payer is a hotkey. */
-  async function readPanda() {
-    busy = true
+  const readPanda = single(async () => {
+    if (!alive) return
+    loadingPanda = true
     try {
-      panda = await call('plan/panda')
-      error = ''
+      const next = await call('plan/panda')
+      if (alive) { panda = next; error = '' }
     } catch (e) {
-      error = errorText(e)
+      if (alive) error = errorText(e)
     } finally {
-      busy = false
+      loadingPanda = false
     }
-  }
+  })
+
+  onDestroy(() => { alive = false })
+  const selectionKey = () => JSON.stringify([offer?.sku, method, method === 'Cash' ? ledger : neuron])
 
   async function pay() {
+    if (busy || !offer) return
+    const opened = offer
+    const run = ++payRun
+    const key = selectionKey()
+    const current = () => alive && run === payRun && offer === opened && selectionKey() === key
     busy = true
     error = ''
-    quoted = null
     try {
       const cash = method === 'Cash'
-      const job: any = await call('plan/quote', { sku: offer.sku, method: cash ? 'cash' : 'panda', selection: cash ? ledger : neuron })
+      const job: any = quotedFor === key && reusableQuote(quoted)
+        ? quoted
+        : await call('plan/quote', { sku: opened.sku, method: cash ? 'cash' : 'panda', selection: cash ? ledger : neuron })
+      if (!current()) return
       quoted = job
+      quotedFor = key
       if (!cash) {
         // The quote fixes the term end and stake; do not approve a neuron the claim will reject.
         const chosen = panda?.neurons?.find((n: any) => n.id === neuron)
@@ -104,10 +125,17 @@
         }
       }
       const request: any = await call('plan/checkout', { id: job.id })
+      if (!current()) return
       await bridge(() => window.dmsg.openApproval(request.id))
+      if (!current()) return
       offer = null
       onPaid()
     } catch (e) {
+      if (!current()) return
+      if (['EXPIRED', 'POLICY_STALE', 'VERSION_CONFLICT', 'FEE_BLOCKED', 'FORBIDDEN'].includes(code(e))) {
+        quoted = null
+        quotedFor = ''
+      }
       // The daemon refuses an order the payer cannot fund; say what it needs.
       error =
         code(e) === 'INSUFFICIENT_FUNDS' && quoted?.terms?.method === 'Cash'
@@ -117,7 +145,7 @@
             })
           : errorText(e)
     } finally {
-      busy = false
+      if (run === payRun) busy = false
     }
   }
 
@@ -192,7 +220,7 @@
             </RadioGroup.Root>
           {/if}
           <div>
-            <button class={buttonClass('ghost', 'xs')} disabled={busy} onclick={readPanda}><Icon name="sync-now" />{t('refresh')}</button>
+            <button class={buttonClass('ghost', 'xs')} disabled={loadingPanda} onclick={readPanda}><Icon name="sync-now" />{t('refresh')}</button>
           </div>
         </div>
       {/if}
@@ -201,6 +229,6 @@
   {/if}
   {#snippet footer()}
     <button class={buttonClass('secondary')} onclick={() => (offer = null)}>{t('cancel')}</button>
-    <button class={buttonClass('primary')} disabled={busy || (method === 'Cash' ? !ledger : !neuron)} onclick={pay} data-testid="checkout-pay">{t('continueToApprove')}</button>
+    <button class={buttonClass('primary')} disabled={busy || (method === 'Cash' ? !ledger : !neuron || loadingPanda)} onclick={pay} data-testid="checkout-pay">{t('continueToApprove')}</button>
   {/snippet}
 </Dialog>

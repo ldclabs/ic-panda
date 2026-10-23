@@ -5,42 +5,7 @@ use super::*;
 use crate::account::Security;
 use crate::client::peers_security;
 
-pub(super) struct Unlocked<'a, H> {
-    inner: &'a H,
-    account: AccountId,
-    generation: u64,
-}
-
-impl<'a, H: Hold> Unlocked<'a, H> {
-    pub(super) async fn new(inner: &'a H) -> Result<Self> {
-        let (account, generation) = inner
-            .with(|c| {
-                c.keys()?;
-                Ok((c.account()?.id, c.session_generation))
-            })
-            .await?;
-        Ok(Self {
-            inner,
-            account,
-            generation,
-        })
-    }
-}
-
-impl<H: Hold> Hold for Unlocked<'_, H> {
-    async fn with<T: Send>(&self, step: impl FnOnce(&mut Client) -> Result<T> + Send) -> Result<T> {
-        self.inner
-            .with(|c| {
-                c.keys()?;
-                ensure(
-                    c.account()?.id == self.account && c.session_generation == self.generation,
-                    Error::Locked,
-                )?;
-                step(c)
-            })
-            .await
-    }
-}
+pub(super) use crate::hold::Unlocked;
 
 /// A journaled command: reuse its request ID and ciphertext after a lost
 /// response. Callers serialize mutations of the same order/policy.

@@ -14,9 +14,12 @@
 //! authorizes its side and moves the name while the acceptance lasts. Either
 //! side reads whether the other has authorized from the other's user home.
 
+mod prepare;
+pub use prepare::{accept_prepare, claim_prepare, register_prepare, transfer_prepare};
+
 use crate::account::HandleConfig;
 use crate::client::Client;
-use crate::hold::Hold;
+use crate::hold::{Hold, Unlocked};
 use crate::ic::Ic;
 use crate::now_ms;
 use crate::payer::{approve_call, memo};
@@ -32,12 +35,14 @@ use dmsg_types::{
     },
     user::AccountCommand,
 };
+use futures_util::{StreamExt, TryStreamExt, stream};
 use icrc_ledger_types::{
     icrc1::account::Account,
     icrc2::{allowance::Allowance, approve::ApproveArgs},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as Json, json};
+use std::collections::{BTreeMap, BTreeSet};
 
 const JOURNAL: &str = "handle:";
 /// Format of a transfer token.
@@ -355,53 +360,7 @@ impl Client {
     /// Returns `Error::Forbidden` without a live frozen holder identity and
     /// `Error::Pending` before the snapshot is sealed.
     pub async fn handle_claim_prepare(&mut self, name: &str) -> Result<HandleJob> {
-        let name = normalize_handle(name)?;
-        let account = self.account()?.id;
-        let ic = self.session()?.ic.clone();
-        let progress: SnapshotProgress = ic
-            .query(self.config.handle, "snapshot_progress", ())
-            .await?;
-        let snapshot = progress
-            .snapshot
-            .filter(|_| progress.sealed)
-            .ok_or(Error::Pending)?;
-        let reservation: Result<Option<LegacyReservation>> = ic
-            .query(self.config.handle, "get_legacy_reservation", (&name,))
-            .await?;
-        let reservation = reservation?.ok_or(Error::NotFound)?;
-        ensure(reservation.handle == name, Error::IntegrityFailed)?;
-        ensure(!reservation.quarantined, Error::Locked)?;
-        let now = now_ms();
-        let caller = self
-            .claim_login(&reservation, now)
-            .ok_or(Error::Forbidden)?;
-        let intent = HandleIntent {
-            handle_canister: self.config.handle,
-            action: HandleAction::ClaimLegacy,
-            account_id: account,
-            target_account: None,
-            handle: name.clone(),
-            expected_version: 0,
-            op_id: Hash::new(crate::crypto::random_id()),
-            terms_digest: digest(
-                "dmsg/legacy-claim/v1",
-                &(snapshot.snapshot_id, &reservation, &account),
-            ),
-        };
-        let job = HandleJob {
-            id: hex::encode(*intent.op_id),
-            name,
-            caller,
-            intent,
-            kind: Kind::Claim {
-                snapshot: snapshot.snapshot_id,
-            },
-            phase: Phase::Prepared,
-            created_at_ms: Some(now),
-            until_ms: None,
-        };
-        self.save_handle_job(&job)?;
-        Ok(job)
+        claim_prepare(&self.hold(), name).await
     }
 
     /// Prepare registering a new name, paid from the payer; it runs once a
@@ -411,72 +370,7 @@ impl Client {
     /// Returns `Error::IdempotencyConflict` for a name already owned and
     /// `Error::VersionConflict` for one reserved by the legacy snapshot.
     pub async fn handle_register_prepare(&mut self, name: &str) -> Result<HandleJob> {
-        let display_handle = name.to_string();
-        let name = normalize_handle(name)?;
-        ensure(
-            self.handle_resolve(&name).await?.is_none(),
-            Error::IdempotencyConflict,
-        )?;
-        let ic = self.reader().await?;
-        let progress: SnapshotProgress = ic
-            .query(self.config.handle, "snapshot_progress", ())
-            .await?;
-        ensure(progress.sealed, Error::LegacyWriteDisabled)?;
-        let reserved: Result<Option<LegacyReservation>> = ic
-            .query(self.config.handle, "get_legacy_reservation", (&name,))
-            .await?;
-        ensure(reserved?.is_none(), Error::VersionConflict)?;
-        let config: HandleConfig = ic
-            .query(self.config.handle, "get_handle_config", ())
-            .await?;
-        ensure(
-            config.user_homes.contains(&self.account()?.home),
-            Error::IntegrityFailed,
-        )?;
-        let total = price(&name);
-        ensure(total > config.ledger_fee, Error::FeeBlocked)?;
-        let (payer, _) = self.payer().await?;
-        let account = Account {
-            owner: payer,
-            subaccount: None,
-        };
-        let intent = HandleIntent {
-            handle_canister: self.config.handle,
-            action: HandleAction::Register,
-            account_id: self.account()?.id,
-            target_account: None,
-            handle: name.clone(),
-            expected_version: 0,
-            op_id: Hash::new(crate::crypto::random_id()),
-            terms_digest: registration_terms_digest(
-                config.ledger,
-                &account,
-                total - config.ledger_fee,
-                config.ledger_fee,
-                Some(&display_handle),
-            ),
-        };
-        let job = HandleJob {
-            id: hex::encode(*intent.op_id),
-            name,
-            caller: payer,
-            intent: intent.clone(),
-            kind: Kind::Register {
-                registration: Box::new(Registration {
-                    intent,
-                    payer: account,
-                    fee: config.ledger_fee,
-                    display_handle: Some(display_handle),
-                }),
-                ledger: config.ledger,
-                total,
-            },
-            phase: Phase::Prepared,
-            created_at_ms: Some(now_ms()),
-            until_ms: None,
-        };
-        self.save_handle_job(&job)?;
-        Ok(job)
+        register_prepare(&self.hold(), name).await
     }
 
     /// Prepare transferring a name this account owns to `target`: a token
@@ -490,47 +384,7 @@ impl Client {
         name: &str,
         target: &AccountId,
     ) -> Result<(HandleJob, String)> {
-        let name = normalize_handle(name)?;
-        let owner = self.account()?.id;
-        let record = self.handle_resolve(&name).await?.ok_or(Error::NotFound)?;
-        ensure(
-            record.owner_account == owner && *target != owner,
-            Error::Forbidden,
-        )?;
-        let op_id = Hash::new(crate::crypto::random_id());
-        let registry = self.config.handle;
-        let from = HandleIntent {
-            handle_canister: registry,
-            action: HandleAction::Transfer,
-            account_id: owner,
-            target_account: Some(*target),
-            handle: name.clone(),
-            expected_version: record.version,
-            op_id,
-            terms_digest: transfer_terms(registry, &name, &owner, target, record.version, op_id),
-        };
-        let accept = HandleIntent {
-            action: HandleAction::AcceptTransfer,
-            account_id: *target,
-            target_account: Some(owner),
-            ..from.clone()
-        };
-        let token = transfer_token(&from, &accept);
-        let job = HandleJob {
-            id: hex::encode(*op_id),
-            name,
-            caller: self.session()?.principal,
-            intent: from.clone(),
-            kind: Kind::Transfer {
-                from: Box::new(from),
-                accept: Box::new(accept),
-            },
-            phase: Phase::Prepared,
-            created_at_ms: Some(now_ms()),
-            until_ms: None,
-        };
-        self.save_handle_job(&job)?;
-        Ok((job, token))
+        transfer_prepare(&self.hold(), name, target).await
     }
 
     /// Prepare accepting a transfer token naming this account; it runs once
@@ -540,58 +394,7 @@ impl Client {
     /// Returns `Error::IntegrityFailed` for a token that does not hold
     /// together and `Error::Forbidden` for one naming another account.
     pub async fn handle_accept_prepare(&mut self, token: &str) -> Result<HandleJob> {
-        ensure(token.len() <= 4096, Error::QuotaExceeded)?;
-        let packet: TransferPacket = crate::codec::decode(&crate::codec::unb64(token)?, 4096)?;
-        let (from, accept) = (packet.from, packet.accept);
-        let registry = self.config.handle;
-        let terms = transfer_terms(
-            registry,
-            &from.handle,
-            &from.account_id,
-            &accept.account_id,
-            from.expected_version,
-            from.op_id,
-        );
-        ensure(
-            packet.format == TRANSFER
-                && from.action == HandleAction::Transfer
-                && accept.action == HandleAction::AcceptTransfer
-                && from.handle_canister == registry
-                && accept.handle_canister == registry
-                && normalize_handle(&from.handle)? == from.handle
-                && from.handle == accept.handle
-                && from.expected_version == accept.expected_version
-                && from.op_id == accept.op_id
-                && from.target_account == Some(accept.account_id)
-                && accept.target_account == Some(from.account_id)
-                && from.terms_digest == terms
-                && accept.terms_digest == terms,
-            Error::IntegrityFailed,
-        )?;
-        ensure(accept.account_id == self.account()?.id, Error::Forbidden)?;
-        let record = self
-            .handle_resolve(&from.handle)
-            .await?
-            .ok_or(Error::NotFound)?;
-        ensure(
-            record.owner_account == from.account_id && record.version == from.expected_version,
-            Error::VersionConflict,
-        )?;
-        let job = HandleJob {
-            id: hex::encode(*accept.op_id),
-            name: from.handle.clone(),
-            caller: self.session()?.principal,
-            intent: accept.clone(),
-            kind: Kind::Transfer {
-                from: Box::new(from),
-                accept: Box::new(accept),
-            },
-            phase: Phase::Prepared,
-            created_at_ms: Some(now_ms()),
-            until_ms: None,
-        };
-        self.save_handle_job(&job)?;
-        Ok(job)
+        accept_prepare(&self.hold(), token).await
     }
 
     /// A name operation's journal.
@@ -999,6 +802,8 @@ fn allowance_covers(allowance: &Allowance, total: u128, now: u64) -> bool {
 /// Ask to approve a name operation, checking a registration's full cost first.
 /// Public ledger queries run without the shared client or login delegation.
 pub async fn request<H: Hold>(h: &H, source: &str, id: &str) -> Result<Json> {
+    let bound = Unlocked::new(h).await?;
+    let h = &bound;
     let job = h.with(|c| c.handle_operation(id)).await?;
     let funds = if let Kind::Register {
         registration,
@@ -1067,15 +872,14 @@ pub async fn price_view<H: Hold>(h: &H, name: &str) -> Result<Json> {
     let name = normalize_handle(name)?;
     let registry = h.with(|c| Ok(c.config.handle)).await?;
     let ic = h.reader().await?;
-    let reserved: Result<Option<LegacyReservation>> = ic
-        .query(registry, "get_legacy_reservation", (&name,))
-        .await?;
+    let names = [name.clone()];
+    let (reserved, config, mut owners): (Result<Option<LegacyReservation>>, HandleConfig, _) = futures_util::try_join!(
+        ic.query(registry, "get_legacy_reservation", (&name,)),
+        ic.query(registry, "get_handle_config", ()),
+        certified_records(&ic, registry, &names)
+    )?;
     let reserved = reserved?;
-    let config: HandleConfig = ic.query(registry, "get_handle_config", ()).await?;
-    let owner = certified_records(&ic, registry, std::slice::from_ref(&name))
-        .await?
-        .pop()
-        .flatten();
+    let owner = owners.pop().flatten();
     let total = price(&name);
     let display_handle = price_display(owner.as_ref(), reserved.is_some(), requested, &name);
     let mut view = json!({
@@ -1156,41 +960,69 @@ pub async fn mine<H: Hold>(h: &H) -> Result<Vec<Json>> {
 /// # Errors
 /// Returns `Error::Locked` while locked.
 pub async fn operations<H: Hold>(h: &H) -> Result<Vec<Json>> {
+    let h = Unlocked::new(h).await?;
     let (jobs, registry) = h.with(|c| Ok((c.handle_jobs()?, c.config.handle))).await?;
+    let needs_read = |job: &HandleJob| {
+        matches!(&job.kind, Kind::Transfer { from, .. }
+        if job.phase == Phase::Accepted || (job.intent == **from && job.phase == Phase::Prepared))
+    };
+    let names: Vec<_> = jobs
+        .iter()
+        .filter(|j| needs_read(j))
+        .map(|j| j.name.clone())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    if names.is_empty() {
+        return Ok(jobs.iter().map(operation_view).collect());
+    }
     let ic = h.reader().await?;
-    let mut views = Vec::with_capacity(jobs.len());
-    for mut job in jobs {
-        let mut accepted = None;
-        if let Kind::Transfer { from, accept } = &job.kind {
-            let offered = job.intent == **from;
-            if job.phase == Phase::Accepted || (offered && job.phase == Phase::Prepared) {
-                let moved = certified_records(&ic, registry, std::slice::from_ref(&job.name))
-                    .await?
-                    .pop()
-                    .flatten()
-                    .is_some_and(|r| r.owner_account == accept.account_id);
+    let mut owners = BTreeMap::new();
+    for names in names.chunks(usize::from(PAGE)) {
+        for record in certified_records(&ic, registry, names)
+            .await?
+            .into_iter()
+            .flatten()
+        {
+            owners.insert(record.handle, record.owner_account);
+        }
+    }
+    let h = &h;
+    let ic = &ic;
+    let owners = &owners;
+    let views = stream::iter(jobs)
+        .map(|mut job| async move {
+            let mut accepted = None;
+            if needs_read(&job) {
+                let Kind::Transfer { from, accept } = &job.kind else {
+                    unreachable!()
+                };
+                let moved = owners.get(&job.name) == Some(&accept.account_id);
                 if moved && job.phase == Phase::Accepted {
+                    let before = job.clone();
                     job.phase = Phase::Done;
-                    let done = job.clone();
-                    h.with(|c| match c.handle_job(&done.id) {
-                        Ok(saved) if saved.phase == Phase::Accepted => c.save_handle_job(&done),
-                        _ => Ok(()),
+                    h.with(|c| {
+                        ensure(c.handle_job(&job.id)? == before, Error::VersionConflict)?;
+                        c.save_handle_job(&job)
                     })
                     .await?;
-                } else if offered && !moved {
-                    accepted = authorized_until(&ic, registry, accept.account_id, accept.op_id)
+                } else if job.intent == **from && !moved {
+                    accepted = authorized_until(ic, registry, accept.account_id, accept.op_id)
                         .await
                         .ok()
                         .flatten();
                 }
             }
-        }
-        let mut view = operation_view(&job);
-        if let Some(until) = accepted {
-            view["accepted_until_ms"] = until.into();
-        }
-        views.push(view);
-    }
+            let mut view = operation_view(&job);
+            if let Some(until) = accepted {
+                view["accepted_until_ms"] = until.into();
+            }
+            Ok(view)
+        })
+        .buffered(4)
+        .try_collect()
+        .await?;
+    h.with(|_| Ok(())).await?;
     Ok(views)
 }
 

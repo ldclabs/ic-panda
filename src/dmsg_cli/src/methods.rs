@@ -10,7 +10,7 @@ use dmsg_client::{
     channel::{self, Draft, Invitation, MessageRef, OwnerTransfer, Sponsor},
     channel_log::{Action, ChannelType, Role},
     commerce, handle,
-    hold::Hold,
+    hold::{Hold, Unlocked},
     inbox::{self, PolicyInput},
     payer,
 };
@@ -268,6 +268,34 @@ impl Daemon {
                 )
                 .await;
             }
+            "plan/quote" => {
+                let h = Unlocked::new(&h).await?;
+                let method = match params["method"].as_str().unwrap_or("cash") {
+                    "cash" | "Cash" => SettlementMethod::Cash,
+                    "panda" | "Panda" => SettlementMethod::Panda,
+                    _ => return Err(Error::InvalidInput("method".into())),
+                };
+                return Ok(commerce::plan_quote(
+                    &h,
+                    &text(params, "sku")?,
+                    method,
+                    &text(params, "selection")?,
+                )
+                .await?
+                .view());
+            }
+            "plan/checkout" | "plan/advance" => {
+                let h = Unlocked::new(&h).await?;
+                let id = id()?;
+                let _turn = self.turn(&format!("checkout:{id}")).await;
+                return commerce::checkout_request(
+                    &h,
+                    source(params)?,
+                    &id,
+                    method == "plan/advance",
+                )
+                .await;
+            }
             "plan/catalog" => return Ok(commerce::catalog_view(&commerce::catalog(&h).await?)),
             "plan/status" => {
                 let refresh = params["refresh"].as_bool().unwrap_or(true);
@@ -298,13 +326,14 @@ impl Daemon {
             }
             "handle/price" => return handle::price_view(&h, &text(params, "name")?).await,
             "handle/mine" => return Ok(Value::Array(handle::mine(&h).await?)),
-            "handle/register" => {
-                // Preparation still serializes the name journal; the funding
-                // preflight releases the client while the ledger answers.
+            "handle/register" | "handle/claim" => {
+                let h = Unlocked::new(&h).await?;
                 let name = text(params, "name")?;
-                let job = self
-                    .under_lock(async |client| client.handle_register_prepare(&name).await)
-                    .await?;
+                let job = if method == "handle/register" {
+                    handle::register_prepare(&h, &name).await?
+                } else {
+                    handle::claim_prepare(&h, &name).await?
+                };
                 return handle::request(&h, source(params)?, &job.id).await;
             }
             _ => {}
@@ -315,8 +344,8 @@ impl Daemon {
             return answer;
         }
         // These still wait on the relay and the IC under the client:
-        // channel controls and rotations, quotes, payments and preparing
-        // name operations.
+        // channel controls and rotations, payer setup, and actions that
+        // still serialize their execution journals across the network.
         self.under_lock(async |client| match method {
             "channel/create" => {
                 let kind = match params["type"].as_str().unwrap_or("collaboration") {
@@ -393,27 +422,6 @@ impl Daemon {
             "payer/use" => {
                 let pem = optional(params, "pem", absolute)?;
                 client.payer_use(pem.as_deref()).await
-            }
-            "plan/quote" => {
-                let method = match params["method"].as_str().unwrap_or("cash") {
-                    "cash" | "Cash" => SettlementMethod::Cash,
-                    "panda" | "Panda" => SettlementMethod::Panda,
-                    _ => return Err(Error::InvalidInput("method".into())),
-                };
-                let job = client
-                    .plan_quote(&text(params, "sku")?, method, &text(params, "selection")?)
-                    .await?;
-                Ok(job.view())
-            }
-            "plan/checkout" => {
-                client
-                    .checkout_request(source(params)?, &id()?, false)
-                    .await
-            }
-            "plan/advance" => client.checkout_request(source(params)?, &id()?, true).await,
-            "handle/claim" => {
-                let job = client.handle_claim_prepare(&text(params, "name")?).await?;
-                client.handle_request(source(params)?, &job.id).await
             }
             _ => Err(Error::NotFound),
         })

@@ -598,6 +598,14 @@ or recovering escrow funds wait on the network without holding the client.
 An acknowledged mark updates cached flags immediately. Retrying a send keeps
 its original order and sealed payload; locking stops later local writes.
 
+Plan status reuses one service lookup and reads certified entitlement,
+contract terms and catalog concurrently. Quote preparation, checkout balance
+checks and name preparation release the client during network waits, with the
+unlocked session and payer rechecked before saving journals or approvals.
+Name prices read their three independent inputs together; transfer monitoring
+batches certified owner proofs and bounds acceptance queries to four at once.
+`handle/operations {refresh:false}` reads only the local operation journals.
+
 Payments go through the approval center like signatures: `inbox pay`,
 `plan checkout|advance` and `handle claim|register` only create the request,
 which a person approves at the terminal or in the desktop's approval window,

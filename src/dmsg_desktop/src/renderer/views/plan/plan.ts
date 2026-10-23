@@ -99,6 +99,11 @@ export function moving(job: any, order: any, now: number): boolean {
   return job.stage === 'unknown' || job.stage === 'accepted'
 }
 
+/** An unapproved quote may be reused only within both fixed deadlines. */
+export function reusableQuote(job: any, now = Date.now()): boolean {
+  return job?.stage === 'review' && Number(job.accept_by_ms) > now && Number(deadlineOf(job)) > now
+}
+
 export type OrderAction = 'pay' | 'discard' | 'cancel' | 'refund' | 'advance' | 'reconcile'
 
 /**

@@ -1115,18 +1115,7 @@ impl Client {
     /// `INSUFFICIENT_FUNDS` code when the payer cannot cover it, and the
     /// payer's or ledger's failure when either cannot be read.
     pub async fn checkout_request(&mut self, source: &str, id: &str, fresh: bool) -> Result<Json> {
-        let job = self.plan_checkout(id)?;
-        self.checkout_funds(&job).await?;
-        let request = self.approval_create(
-            source,
-            Action::Checkout {
-                id: id.into(),
-                digest: job.digest(),
-                fresh,
-            },
-            now_ms() + HIGH_RISK_TTL_MS,
-        )?;
-        self.approval_view(&request)
+        crate::commerce::checkout_request(&self.hold(), source, id, fresh).await
     }
 
     /// Ask to pay for a quoted letter from the payer.

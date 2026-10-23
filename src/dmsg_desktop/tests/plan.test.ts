@@ -16,6 +16,7 @@ import {
   orderActions,
   orderState,
   refundOutcome,
+  reusableQuote,
   skuOf,
   tokenOf
 } from '../src/renderer/views/plan/plan.ts'
@@ -137,4 +138,14 @@ test('refund notices distinguish successful, refused and unknown transfers', () 
   assert.equal(refundOutcome([{ error: 'FEE_BLOCKED' }]).error, 'FEE_BLOCKED')
   for (const refunds of [[], [{ status: 'Unknown' }], [{ status: 'EXECUTION_UNKNOWN' }], [{ status: 'Succeeded' }, { status: 'Unknown' }]])
     assert.equal(refundOutcome(refunds).label, 'refundPending')
+})
+
+
+test('quote reuse respects both acceptance and funding deadlines and approval state', () => {
+  const quote = { ...cash('review'), accept_by_ms: now + 30_000 }
+  assert.equal(reusableQuote(quote, now), true)
+  assert.equal(reusableQuote(quote, now + 30_000), false)
+  assert.equal(reusableQuote({ ...quote, accept_by_ms: now + 90_000 }, now + 60_000), false)
+  assert.equal(reusableQuote({ ...quote, stage: 'accepted' }, now), false)
+  assert.equal(reusableQuote(cash('review'), now), false)
 })

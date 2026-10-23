@@ -123,7 +123,11 @@ desktop is one of its clients, like the CLI.
     late replies cannot restore content after locking or switching accounts.
   - Plan and names: the plan and its limits, the plans on offer as cards,
     checkouts, names with their transfers, the payer and the payment
-    operations.
+    operations. Each section refreshes independently; a slow usage or balance
+    read cannot delay a newer plan or name result. Local checkout and name
+    journals appear before remote status checks, with order reads bounded to
+    four at once. A fundless checkout retries its still-valid quote; closing
+    the dialog or changing accounts prevents late replies from opening approval.
   - Team wallets (`/wallet/<wallet>/<proposal?>`): Overview, Proposals,
     Assets and addresses, Members and policy, Audit, and Operations. Exact
     asset-unit amounts and per-chain fee previews precede transfers; the
