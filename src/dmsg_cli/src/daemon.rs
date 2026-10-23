@@ -2765,56 +2765,58 @@ mod tests {
         }
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn a_large_file_import_leaves_local_reads_and_lock_available() {
+    #[tokio::test]
+    async fn file_import_leaves_local_reads_and_lock_available() {
         let dir = dmsg_client::testing::TempDir::new();
         let (daemon, _relay, _ic) = stalled(&dir).await;
-        let path = dir.0.join("large-import.bin");
+        let path = dir.0.join("import.bin");
         std::fs::File::create(&path)
             .unwrap()
-            .set_len(128 * 1024 * 1024)
+            .set_len(2 * dmsg_client::files::CHUNK as u64)
             .unwrap();
-        let mut events = daemon.events.subscribe();
-        let work = tokio::spawn({
-            let daemon = daemon.clone();
-            async move {
-                daemon
-                    .call_files("files/import", &json!({"path":path}))
-                    .await
-            }
-        });
-        tokio::time::timeout(Duration::from_secs(10), async {
-            loop {
-                if events.recv().await.unwrap()["type"] == "files/progress" {
-                    break;
-                }
-            }
-        })
-        .await
-        .expect("import progress");
-        tokio::time::timeout(Duration::from_secs(2), async {
-            daemon.call_files("files/tree", &Value::Null).await.unwrap();
+        let blobs = Blobs::new(daemon.client().lock().await.files_blobs_dir().unwrap());
+        let params = json!({"path": path});
+        let mut work = Box::pin(daemon.call_files("files/import", &params));
+        let mut read = Box::pin(daemon.call_files("files/tree", &Value::Null));
+        // Queue the import, then the reader, behind the held client. Tokio's
+        // FIFO mutex makes each reader stop the import at its next client step.
+        // No file size or progress deadline stands in for synchronization.
+        daemon
+            .under_lock(async |_client| {
+                assert!(futures_util::poll!(&mut work).is_pending());
+                assert!(futures_util::poll!(&mut read).is_pending());
+                Ok(())
+            })
+            .await
+            .unwrap();
+        loop {
             assert!(
-                !work.is_finished(),
+                futures_util::poll!(&mut work).is_pending(),
                 "local reads must finish before the import does"
             );
-            assert_eq!(
-                daemon
-                    .call_daemon("session/lock", &Value::Null)
-                    .await
-                    .unwrap()["state"],
-                "locked"
-            );
-        })
-        .await
-        .expect("local reads and locking must not wait for the whole file");
+            let std::task::Poll::Ready(result) = futures_util::poll!(&mut read) else {
+                panic!("local reads must run between import steps");
+            };
+            result.unwrap();
+            if !blobs.entries().unwrap().is_empty() {
+                break;
+            }
+            read = Box::pin(daemon.call_files("files/tree", &Value::Null));
+            assert!(futures_util::poll!(&mut read).is_pending());
+        }
+        assert_eq!(blobs.entries().unwrap().len(), 1);
+        // The first chunk is stored; put locking ahead of the next chunk.
+        let mut lock = Box::pin(daemon.call_daemon("session/lock", &Value::Null));
+        assert!(futures_util::poll!(&mut lock).is_pending());
         assert_eq!(
-            tokio::time::timeout(Duration::from_secs(3), work)
-                .await
-                .unwrap()
-                .unwrap(),
-            Err(Error::Locked)
+            futures_util::poll!(&mut work),
+            std::task::Poll::Pending,
+            "locking must run before the import completes"
         );
+        let (locked, imported) = tokio::join!(lock, work);
+        assert_eq!(locked.unwrap()["state"], "locked");
+        assert_eq!(imported, Err(Error::Locked));
+        assert_eq!(blobs.entries().unwrap().len(), 1);
     }
 
     #[tokio::test]
