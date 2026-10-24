@@ -238,7 +238,7 @@
           <p class="mt-1">{t('mailOwnerRole')}</p>
         </div>
       </div>
-      {#if error}<Notice tone="danger" testid="mail-error">{error}</Notice>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="mail-error">{error}</Notice>{/if}
       {#if notice}<Notice tone="ok">{notice}</Notice>{/if}
       <div class="flex flex-wrap items-center gap-3 rounded-xl border border-line px-4 py-3" data-testid="mail-push">
         <div class="min-w-0 flex-1"><p class="text-[13px] font-medium">{t('mailPushTitle')}</p><p class="text-[12px] text-muted">{t('mailPushHint')}</p>

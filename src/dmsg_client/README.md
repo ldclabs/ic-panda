@@ -100,6 +100,32 @@ before ending the pass. Uploads recheck the same immutable plan and resume
 from saved chunk progress; revisions reconcile the original operation before
 resubmitting the same signed command within its deadline. A persistent
 failure leaves the remaining jobs queued for the next sync.
+`last_sync` stores the error code and a fixed stage name (security,
+reconciliation, export, download, apply, upload or finish), never the raw
+error message or resource identifiers. A successful pass clears both. The
+daemon schedules transient failures for another pass while unlocked, even
+when periodic sync is off.
+
+`diagnostic` emits allowlisted subsystem/cause/HTTP status records through
+the `dmsg::diagnostic` log target at network and storage failure boundaries.
+It does not log raw errors, request paths, headers or response bodies, and
+does not change error codes or the handling of unknown mutation outcomes.
+The daemon alone enables this target and validates its schema again before
+writing it; the core requires neither an OS logger nor a daemon to run.
+
+IC and relay reads share a bounded transport policy: at most three attempts,
+five seconds per attempt and twelve seconds total, including response bodies,
+with jittered backoff. Only transport interruptions and HTTP 408/429/500/502/
+503/504 retry; certificate failures, authority refusals and integrity failures
+do not. IC queries have a fifteen-second overall budget; update submission and
+status waiting have a ninety-second overall budget. Individual mutation HTTP
+requests have a thirty-second budget and are sent once. The custom IC transport
+replaces SDK retry middleware, and reqwest protocol retries are disabled.
+`NETWORK_UNAVAILABLE` identifies exhausted transient reads. An uncertain update
+remains `EXECUTION_UNKNOWN`; its original journal/operation ID must be reconciled.
+Existing upload/revision recovery still reconciles before resubmitting the same
+idempotent operation. Query signature verification, certificate roots, response
+limits and session-generation checks remain enabled.
 
 Pulling reads a complete export snapshot, checks every signed entry against
 the devices of the security epoch it was signed under (the certified

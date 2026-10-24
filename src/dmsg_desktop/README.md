@@ -197,8 +197,8 @@ desktop is one of its clients, like the CLI.
   in the browser (with the page's expiry, Open the page again and Copy
   link), and the daemon's check, read from `session/login_result` on its
   `login/changed` and `session/changed` events. A failure says why (no
-  network, cancelled in the browser, expired, refused) with the daemon's
-  message and Retry; closing the dialog leaves a login finished later to
+  network, cancelled in the browser, expired, refused) with localized text,
+  a stable error code and Retry; closing the dialog leaves a login finished later to
   open the device. A first login without an account goes on to Settings.
 
   A locked device with fast unlock opens without a login
@@ -220,6 +220,25 @@ desktop is one of its clients, like the CLI.
   events. Its reads run one at a time (`shared/single.ts`), so a burst of
   events reads twice at most, and an action does not read again itself
   unless it opens what it made. Independent reads go out together.
+
+  Network recovery is shared by all views. The daemon's IC/relay transports
+  make bounded read retries; the desktop shows one reconnecting/offline banner
+  after exhausted transient reads, keeps already loaded content, and retries
+  only reviewed reads from `shared/requests.ts` in the background (5/10/20/40/60
+  seconds). Recovery emits `resync`, removing stale error notices as views
+  refresh. Locks, account changes and daemon disconnects discard retry queues
+  and late read replies. No retry changes a read into an approval or mutation.
+  New/unknown methods default to mutations until their semantics are reviewed.
+
+  Desktop read RPCs time out after 45 seconds; writes after 180 seconds, while
+  existing long file jobs remain untimed. A lost or timed-out submitted write
+  reports `EXECUTION_UNKNOWN`, never a definite failure, and is never replayed
+  by the desktop. Concurrent identical calls share one in-flight request.
+  The daemon's existing journals reconcile original approval, payment and
+  signing operations. Transient failures and unconfirmed outcomes use localized
+  warning text; raw service messages, URLs and tokens are not shown in notices.
+  Known data-integrity and permission failures retain error treatment. Detailed
+  causes are available through the allowlisted daemon diagnostics (`dmsg logs`).
 
 Rules (`src/main/policy.ts`):
 

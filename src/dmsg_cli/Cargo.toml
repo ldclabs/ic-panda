@@ -25,6 +25,7 @@ dmsg_types = { path = "../dmsg_types" }
 futures-util = { workspace = true, features = ["sink", "std"] }
 hex.workspace = true
 keyring.workspace = true
+log.workspace = true
 reqwest = { workspace = true, features = ["rustls"] }
 rpassword = "7"
 # The hint channel's TLS uses the same provider as reqwest.

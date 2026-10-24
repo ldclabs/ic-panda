@@ -183,7 +183,7 @@
 </script>
 
 {#if failures.length}
-  <Notice tone="danger" testid={principalError ? 'principal-error' : 'agent-overview-error'}>
+  <Notice failure={failures.map((failure) => failure.message)} tone="danger" testid={principalError ? 'principal-error' : 'agent-overview-error'}>
     <p>{t('loadFailed')}: {failures.map((failure) => failure.label).join(' · ')}</p>
     <Collapsible class="mt-1">
       {#snippet title()}<span class="text-[12px]">{t('technical')}</span>{/snippet}

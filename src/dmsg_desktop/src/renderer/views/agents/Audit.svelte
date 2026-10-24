@@ -64,7 +64,7 @@
       options={[{ value: '', label: t('everyone') }, { value: 'owner', label: t('owner') }, ...agents.map((a) => ({ value: a.agent_id, label: a.label }))]}
     />
   {/snippet}
-  {#if error}<Notice tone="danger" class="mb-3">{error}</Notice>{/if}
+  {#if error}<Notice failure={error} tone="danger" class="mb-3">{error}</Notice>{/if}
   <div data-testid="audit-entries">
     {#each groups as group (group.day)}
       <h3 class="sticky top-0 bg-surface py-1.5 text-[11.5px] font-medium text-faint">{dayFormat.format(group.at)}</h3>

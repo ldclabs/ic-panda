@@ -197,8 +197,22 @@ and the binary, never the home. Homebrew installs `ldclabs/tap/dmsg`.
   owner or agent, outcome code, milliseconds; steady polls only when they
   fail) and one per change of a background task's outcome (sync, flush,
   web requests, MCP Events, hint channel), so a task failing every round
-  while offline logs once. Lines hold names, codes and numbers only: never
-  parameters, content, paths, tokens or error messages.
+  while offline logs its unchanged outcome once. Separate `failure` lines
+  record the originating subsystem, allowlisted cause and HTTP status when
+  available: timeout, DNS/TLS/connect/closed connection, response decoding,
+  IC rejection/certificate, or storage permission/full/busy/corruption errors.
+  These are emitted before a lost mutation reply becomes `EXECUTION_UNKNOWN`;
+  that code still requires reconciliation, never blind resubmission.
+  `sync/pass` adds the failed sync stage. For example:
+  `failure source=relay reason=http http_status=503` followed by
+  `sync/pass stage=export_page ms=8037 outcome=UNAVAILABLE source=relay reason=unavailable`.
+  Lines hold fixed names, codes and numbers only: never parameters, content,
+  account/device IDs, URLs (including signed URLs), headers, paths, tokens,
+  raw server messages or panic payloads. Unknown tools are omitted; unknown
+  methods use `unknown`. Library diagnostics pass a second strict allowlist
+  at the file writer; other library targets and `RUST_LOG` verbosity are
+  ignored. Panic records contain only a source filename and line. On Unix
+  the log directory is owner-only and newly created log files use mode 0600.
 - **At login.** `dmsg autostart install` registers this binary with this home:
   a LaunchAgent `net.dmsg.daemon` on macOS, a systemd user unit `dmsg.service`
   (XDG autostart without a user systemd) on Linux, the user's `Run` value
@@ -360,7 +374,13 @@ A matching stored root uses the security already checked on unlock without
 contacting the relay. Content sync and flush passes serialize submissions,
 but release the client during network waits so local reads, edits and locking
 remain available. Status includes `syncing` and the last sync error; the log's
-`sync/pass` records each pass's duration without content or identifiers.
+`sync/pass` records each pass's duration and failed stage without content or
+identifiers; `last_sync.stage` also identifies that step. An unlocked account
+automatically retries `NETWORK_UNAVAILABLE`, `UNAVAILABLE` and `EXECUTION_UNKNOWN` failures after
+60 seconds, even with periodic sync disabled. The background loop checks
+every ten seconds when idle; other background work can delay the retry.
+Success clears the failure. Locking pauses these retries; integrity,
+permission and other permanent failures require attention rather than retrying.
 Every write waits for the next sync pass (`dmsg sync`, the scheduled sync, or
 the one after unlock); `status` shows pending versions and conflict copies.
 An edit that lost a race is kept as a conflict copy on every

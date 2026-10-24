@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../components/page/Notice.svelte'
   import { Tabs } from 'bits-ui'
   import { onMount, untrack } from 'svelte'
   import Avatar from '../components/Avatar.svelte'
@@ -224,7 +225,7 @@
           </Tabs.List>
         </Tabs.Root>
       </div>
-      {#if error}<p class="px-4 text-[12.5px] text-danger" data-testid="inbox-error">{error}</p>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="inbox-error">{error}</Notice>{/if}
       <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="letters">
         {#each list as item (item.order_id)}
           {@const account = box === 'sent' ? item.recipient : item.sender}

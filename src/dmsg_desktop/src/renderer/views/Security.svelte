@@ -95,7 +95,7 @@
   })
 </script>
 
-{#if error}<Notice tone="danger">{error}</Notice>{/if}
+{#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#if needsLogin}
   <Notice icon="login" testid="security-needs-login">
     {t('securityNeedsLogin')}

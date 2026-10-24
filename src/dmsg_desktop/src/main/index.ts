@@ -653,7 +653,7 @@ handle('dmsg:set-appearance', 'main', async (_event, next: string) => {
   await writeFile(appearanceFile(), next)
   applyAppearance(next)
 })
-handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError }))
+handle('dmsg:connection', 'any', () => ({ connected: daemon.connected, error: daemon.lastError ? 'NETWORK_UNAVAILABLE' : undefined, recovery: daemon.recovery.state }))
 /** What an MCP client runs to reach this daemon: the installed binary and its home. */
 handle('dmsg:runtime', 'main', () => ({ binary: daemon.options.binary, home: daemon.options.home }))
 handle('dmsg:fullscreen', 'main', () => main?.isFullScreen() === true)

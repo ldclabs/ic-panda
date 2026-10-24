@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../components/page/Notice.svelte'
   import { onMount, tick, untrack } from 'svelte'
   import { locale, t, stateLabel, type Label } from '../i18n/index.svelte'
   import { bridge, call, code, errorText, onChange, single, size, units, when } from '../rpc'
@@ -200,7 +201,7 @@
       if (!valid(at)) return
       revision += 1
       const label = reasonLabels[code(e)]
-      error = label ? t(label) : `${code(e)}: ${e instanceof Error ? e.message : String(e)}`
+      error = label ? t(label) : errorText(e)
       await reload()
     } finally {
       if (run === work) { busy = false; approving = false }
@@ -539,7 +540,7 @@
         <button class={buttonClass('ghost', 'sm')} onclick={() => showMain(status?.state === 'locked' && status.fast_unlock ? '/approvals' : '/login')} data-testid="approval-main">
           {t('openMainToUnlock')}
         </button>
-        {#if error}<p class="text-[12.5px] text-danger">{error}</p>{/if}
+        {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
       </div>
     </div>
   {:else if !request}
@@ -860,7 +861,7 @@
           </div>
         </div>
       {/if}
-      {#if error}<p class="mt-3 text-[13px] text-danger" data-testid="approval-error">{error}</p>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="approval-error">{error}</Notice>{/if}
     </div>
 
     <!-- The review and its fixed decision controls keep one clear boundary. -->

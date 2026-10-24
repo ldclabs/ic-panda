@@ -1,6 +1,7 @@
 import { toast } from '../components/toast.svelte'
 import { t, type Label } from '../i18n/index.svelte'
 import { bridge, call, CallError, code, errorText } from '../rpc'
+import { failureLabel } from '../failure'
 
 /**
  * The login, wherever it starts: the daemon opens the login page in the
@@ -103,7 +104,7 @@ function fail(failure: string, message = '') {
   const page = /(?:^|: )login: (\w+)$/.exec(message)?.[1]
   Object.assign(login, {
     phase: 'failed',
-    reason: page ? (page === 'user_cancelled' ? 'loginCancelled' : 'loginPageFailed') : (reasons[failure] ?? 'loginFailedHint'),
-    detail: message
+    reason: page ? (page === 'user_cancelled' ? 'loginCancelled' : 'loginPageFailed') : (failureLabel(failure) ?? reasons[failure] ?? 'loginFailedHint'),
+    detail: /^[A-Z_]+$/.test(failure) ? failure : ''
   })
 }

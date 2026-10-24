@@ -68,7 +68,7 @@ pub(crate) async fn run_mail(daemon: Arc<Daemon>) {
             if let Ok(Err(error)) = result
                 && !matches!(error, Error::Locked | Error::Forbidden | Error::NotFound)
             {
-                daemon.note("agent-mail", &error_code(&error));
+                daemon.note_result::<()>("agent-mail", &Err(error));
             }
         }
         // Coalesce bursts of hints without allowing a busy webhook source

@@ -57,7 +57,7 @@
 </header>
 <div class="min-h-0 flex-1 space-y-4 overflow-y-auto p-5" data-testid="legacy-channel-history">
   <Notice>{t('legacyHistoryHint')}</Notice>
-  {#if error}<Notice tone="danger">{error}</Notice>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#if report}
     <div class="flex flex-wrap items-center gap-2 text-[12px] text-muted">
       <span>{t('legacyReadable', { n: report.total_messages })}</span>

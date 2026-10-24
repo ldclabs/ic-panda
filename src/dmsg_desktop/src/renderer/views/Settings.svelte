@@ -240,8 +240,8 @@
     <div class="min-h-0 flex-1">
       <Page>
         {#key sessionKey}
-        {#each (part === 'session' ? [errors.account, errors.accounts] : part === 'browsers' ? [errors.pairings] : []).filter(Boolean) as failure}<Notice tone="danger">{failure}</Notice>{/each}
-        {#if error}<Notice tone="danger">{error}</Notice>{/if}
+        {#each (part === 'session' ? [errors.account, errors.accounts] : part === 'browsers' ? [errors.pairings] : []).filter(Boolean) as failure}<Notice failure={failure} tone="danger">{failure}</Notice>{/each}
+        {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
         {#if part === 'legacy'}
           <Legacy />
         {:else if part === 'files'}

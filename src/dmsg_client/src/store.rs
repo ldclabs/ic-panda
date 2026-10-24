@@ -171,6 +171,20 @@ pub struct ObjectRow {
 }
 
 fn storage(error: rusqlite::Error) -> Error {
+    use rusqlite::ErrorCode;
+    let reason = match &error {
+        rusqlite::Error::SqliteFailure(error, _) => match error.code {
+            ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked => "busy",
+            ErrorCode::DiskFull => "disk_full",
+            ErrorCode::PermissionDenied => "permission_denied",
+            ErrorCode::ReadOnly => "read_only",
+            ErrorCode::DatabaseCorrupt | ErrorCode::NotADatabase => "corrupt",
+            ErrorCode::ConstraintViolation => "constraint",
+            _ => "database",
+        },
+        _ => "database",
+    };
+    crate::diagnostic::Diagnostic::new("storage", reason).emit();
     Error::Unavailable(format!("storage: {error}"))
 }
 

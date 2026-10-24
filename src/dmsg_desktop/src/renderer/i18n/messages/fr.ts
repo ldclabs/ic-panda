@@ -2,6 +2,12 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    localStorageUnavailable: "Impossible de lire ou d’enregistrer les données locales. Vérifiez l’espace disque et les droits d’accès.",
+    networkReconnecting: "Reconnexion… Votre contenu existant reste disponible.",
+    networkUnavailable: "Mise à jour temporairement indisponible. Nouvelle tentative automatique.",
+    operationUnknown: "Le résultat n’est pas encore confirmé. Vérifiez l’historique des opérations ou des approbations avant de renvoyer.",
+    serviceUnavailable: "Ce service est temporairement indisponible. Réessayez plus tard.",
+
     loadFailed: 'Chargement impossible',
     storageExhausted: "Limite de téléchargements atteinte",
     storageTitle: "Stockage cloud",

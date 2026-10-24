@@ -1,3 +1,6 @@
+import { temporaryFailure, networkFailure } from '../failure'
+import { network } from '../network.svelte'
+
 /** A short notice in the corner of the main window. */
 export interface Toast {
   id: number
@@ -20,6 +23,8 @@ let last = 0
 
 /** Show a notice for `ms` (4 s by default); with `countdown`, its time left shows beside it. */
 export function toast(text: (seconds: number) => string, options: { ms?: number; countdown?: boolean; action?: Toast['action']; testid?: string } = {}) {
+  if (network.state !== 'idle' && networkFailure(text(0))) return
+  if (temporaryFailure(text(0)) && toasts.some((toast) => toast.text(0) === text(0))) return
   const id = ++last
   const ms = options.ms ?? 4000
   toasts.push({ id, text, until: Date.now() + ms, ms, countdown: options.countdown ?? false, action: options.action, testid: options.testid })

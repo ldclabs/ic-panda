@@ -350,9 +350,15 @@ fn main() {
     let cli = Cli::parse();
     let runtime = tokio::runtime::Runtime::new().expect("tokio runtime");
     let json = cli.json;
+    let daemon = matches!(&cli.command, Some(Command::Daemon { .. }));
     let code = match runtime.block_on(run(cli)) {
         Ok(()) => 0,
-        Err(failure) => {
+        Err(mut failure) => {
+            // A background daemon redirects stderr to a retained log file.
+            // Startup errors can contain paths or configuration values.
+            if daemon {
+                failure.message = "daemon failed; see dmsg doctor and dmsg logs".into();
+            }
             if json {
                 println!(
                     "{}",

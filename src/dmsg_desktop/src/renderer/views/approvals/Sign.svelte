@@ -154,7 +154,7 @@
       {/if}
     </dl>
   {:else if readinessError}
-    <Notice tone="danger">{readinessError}<button class={buttonClass('secondary', 'sm')} onclick={reloadReadiness}>{t('retry')}</button></Notice>
+    <Notice failure={readinessError} tone="danger">{readinessError}<button class={buttonClass('secondary', 'sm')} onclick={reloadReadiness}>{t('retry')}</button></Notice>
   {:else}
     <p class="shimmer text-[13px]">{t('loading')}</p>
   {/if}
@@ -180,7 +180,7 @@
       {/if}
     </div>
     {#if profile !== 'text'}<p class="text-[12px] text-faint">{t('signFileHint')}</p>{/if}
-    {#if error}<Notice tone="danger" testid="sign-error">{error}</Notice>{/if}
+    {#if error}<Notice failure={error} tone="danger" testid="sign-error">{error}</Notice>{/if}
     <div class="flex flex-wrap justify-end gap-2">
       {#if profile === 'text'}
         <button class={buttonClass('primary')} disabled={busy || !textOk} onclick={signText} data-testid="statement-submit">{t('submit')}</button>

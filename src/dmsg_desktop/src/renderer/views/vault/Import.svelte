@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../../components/page/Notice.svelte'
   import { onDestroy } from 'svelte'
   import Checkbox from '../../components/Checkbox.svelte'
   import Dialog from '../../components/Dialog.svelte'
@@ -121,7 +122,7 @@
       <p class="flex items-start gap-1.5 text-[12px] text-warn"><Icon name="warning" class="mt-0.5 shrink-0" />{t('deleteExport')}</p>
     </div>
   {/if}
-  {#if error}<p class="mt-2 text-[12.5px] text-danger">{error}</p>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}
     <span class="min-w-0 flex-1"></span>
     <button class={buttonClass('ghost')} onclick={() => (open = false)}>{t('cancel')}</button>

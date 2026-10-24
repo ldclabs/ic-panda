@@ -129,7 +129,7 @@
             {#if shown.loading}
               <p class="text-[12px] text-faint">{t('loading')}</p>
             {:else if shown.error}
-              <Notice tone="danger">{shown.error}</Notice>
+              <Notice failure={shown.error} tone="danger">{shown.error}</Notice>
             {:else if !shown.profiles?.length}
               <p class="text-[12px] text-faint">{t('noProfileServices')}</p>
             {:else}

@@ -4,6 +4,12 @@
  * from the parameters `t` gets.
  */
 const messages = {
+    localStorageUnavailable: "Local data could not be read or saved. Check disk space and access permissions.",
+    networkReconnecting: "Reconnecting… Your existing content is still available.",
+    networkUnavailable: "Temporarily unable to update. We will retry automatically.",
+    operationUnknown: "The result is not confirmed yet. Check the operation or approval history before submitting again.",
+    serviceUnavailable: "This service is temporarily unavailable. Please try again later.",
+
     loadFailed: 'Could not load',
     storageExhausted: "Download limit reached",
     storageTitle: "Cloud storage",

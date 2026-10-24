@@ -112,7 +112,7 @@
   })
 </script>
 
-{#if error}<Notice tone="danger">{error}</Notice>{/if}
+{#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#if notice}<Notice tone="ok">{notice}</Notice>{/if}
 
 <Section title={t('legacyTitle')} description={t('legacyHint')} icon="legacy" testid="legacy">

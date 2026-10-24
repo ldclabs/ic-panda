@@ -180,8 +180,8 @@
   </nav>
   <div class="min-h-0 flex-1">
     {#key sessionKey}
-    {#if errors.hosted}<Notice tone="danger">{errors.hosted}</Notice>{/if}
-    {#if tab === 'capabilities' && errors.grants}<Notice tone="danger">{errors.grants}</Notice>{/if}
+    {#if errors.hosted}<Notice failure={errors.hosted} tone="danger">{errors.hosted}</Notice>{/if}
+    {#if tab === 'capabilities' && errors.grants}<Notice failure={errors.grants} tone="danger">{errors.grants}</Notice>{/if}
     {#if tab === 'overview'}
       <Page wide><Overview {principal} principalError={errors.principal ?? ''} {loaded} {errors} {credentials} {delegations} {hosted} {unlocked} {busy} {request} {run} onRetry={loadTab} bind:delegate /></Page>
     {:else if tab === 'ids'}

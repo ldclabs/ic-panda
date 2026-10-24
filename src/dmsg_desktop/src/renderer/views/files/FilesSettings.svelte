@@ -62,7 +62,7 @@
   })
 </script>
 
-{#if error}<Notice tone="danger">{error}</Notice>{/if}
+{#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 {#if prefs}
   <Section title={t('files')} description={t('filesSettingsHint')} icon="folder" testid="files-settings">
     <div class="grid gap-4">

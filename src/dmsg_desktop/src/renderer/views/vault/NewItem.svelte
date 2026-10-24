@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../../components/page/Notice.svelte'
   import { RadioGroup } from 'bits-ui'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -89,7 +90,7 @@
     {:else}
       <p class="shimmer text-[13px]">{t('loading')}</p>
     {/if}
-    {#if error}<p class="text-[12.5px] text-danger">{error}</p>{/if}
+    {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   </div>
   {#snippet footer()}
     {#if leaving}

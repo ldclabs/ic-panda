@@ -7,9 +7,12 @@
 use crate::config::Config;
 use candid::{CandidType, Principal, utils::ArgumentEncoder};
 use dmsg_types::{Environment, Error, Result};
+use futures_timer::Delay;
+use futures_util::future::{Either, select};
 use ic_agent::{Agent, AgentError, Identity, agent::RejectCode, identity::AnonymousIdentity};
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
+use std::time::Duration;
 
 /// Largest response body accepted from the IC.
 const MAX_RESPONSE: usize = 4 * 1024 * 1024;
@@ -21,7 +24,47 @@ pub struct Ic {
 }
 
 fn unavailable(error: AgentError) -> Error {
+    let cause = diagnostic(&error);
+    cause.emit();
+    if cause.reason == "certificate" {
+        return Error::IntegrityFailed;
+    }
+    use ic_agent::agent::agent_error::TransportError;
+    if matches!(&error, AgentError::TransportError(TransportError::Reqwest(e)) if crate::transport::transient(e))
+        || matches!(&error, AgentError::HttpError(e) if crate::transport::transient_status(e.status))
+        || matches!(&error, AgentError::TimeoutWaitingForResponse())
+    {
+        return crate::transport::unavailable("ic", diagnostic(&error).reason);
+    }
     Error::Unavailable(format!("ic: {error}"))
+}
+
+fn diagnostic(error: &AgentError) -> crate::diagnostic::Diagnostic {
+    use crate::diagnostic::Diagnostic;
+    use ic_agent::agent::agent_error::TransportError;
+    match error {
+        AgentError::TransportError(TransportError::Reqwest(error)) => {
+            Diagnostic::request("ic", error)
+        }
+        AgentError::HttpError(error) => Diagnostic::http("ic", error.status),
+        AgentError::TimeoutWaitingForResponse() => Diagnostic::new("ic", "timeout"),
+        AgentError::CertifiedReject { .. } | AgentError::UncertifiedReject { .. } => {
+            Diagnostic::new("ic", "rejected")
+        }
+        AgentError::CertificateOutdated(_) => Diagnostic::new("ic", "certificate_stale"),
+        AgentError::CertificateVerificationFailed()
+        | AgentError::QuerySignatureVerificationFailed
+        | AgentError::CertificateNotAuthorized()
+        | AgentError::CertificateHasTooManyDelegations
+        | AgentError::MissingSignature
+        | AgentError::MalformedSignature
+        | AgentError::MalformedPublicKey => Diagnostic::new("ic", "certificate"),
+        AgentError::InvalidCborData(_)
+        | AgentError::CandidError(_)
+        | AgentError::InvalidHttpResponse(_) => Diagnostic::new("ic", "decode"),
+        AgentError::ResponseSizeExceededLimit() => Diagnostic::new("ic", "response_too_large"),
+        _ => Diagnostic::new("ic", "request"),
+    }
 }
 
 impl Ic {
@@ -38,6 +81,10 @@ impl Ic {
             .with_arc_identity(identity)
             .with_verify_query_signatures(true)
             .with_max_response_body_size(MAX_RESPONSE)
+            .with_arc_http_middleware(Arc::new(crate::transport::IcTransport(
+                crate::transport::client().map_err(|_| Error::Unavailable("http client".into()))?,
+            )))
+            .with_max_polling_time(Duration::from_secs(60))
             .build()
             .map_err(unavailable)?;
         if config.environment == Environment::Local {
@@ -80,13 +127,15 @@ impl Ic {
         method: &str,
         args: A,
     ) -> Result<R> {
-        let reply = self
-            .agent
-            .query(&canister, method)
-            .with_arg(encode(args)?)
-            .call()
-            .await
-            .map_err(unavailable)?;
+        let reply = bounded(
+            self.agent
+                .query(&canister, method)
+                .with_arg(encode(args)?)
+                .call(),
+            Duration::from_secs(15),
+        )
+        .await
+        .map_err(unavailable)?;
         decode(&reply)
     }
 
@@ -101,21 +150,36 @@ impl Ic {
         method: &str,
         args: A,
     ) -> Result<R> {
-        let reply = self
-            .agent
-            .update(&canister, method)
-            .with_arg(encode(args)?)
-            .call_and_wait()
-            .await
-            .map_err(|error| match error {
-                AgentError::CertifiedReject { ref reject, .. }
-                    if reject.reject_code != RejectCode::SysTransient =>
-                {
-                    unavailable(error)
-                }
-                _ => Error::ExecutionUnknown,
-            })?;
+        let reply = bounded(
+            self.agent
+                .update(&canister, method)
+                .with_arg(encode(args)?)
+                .call_and_wait(),
+            Duration::from_secs(90),
+        )
+        .await
+        .map_err(|error| match error {
+            AgentError::CertifiedReject { ref reject, .. }
+                if reject.reject_code != RejectCode::SysTransient =>
+            {
+                unavailable(error)
+            }
+            _ => {
+                diagnostic(&error).emit();
+                Error::ExecutionUnknown
+            }
+        })?;
         decode(&reply)
+    }
+}
+
+async fn bounded<T>(
+    work: impl std::future::Future<Output = std::result::Result<T, AgentError>>,
+    timeout: Duration,
+) -> std::result::Result<T, AgentError> {
+    match select(Box::pin(work), Box::pin(Delay::new(timeout))).await {
+        Either::Left((result, _)) => result,
+        Either::Right(_) => Err(AgentError::TimeoutWaitingForResponse()),
     }
 }
 
@@ -124,5 +188,35 @@ fn encode<A: ArgumentEncoder>(args: A) -> Result<Vec<u8>> {
 }
 
 fn decode<R: CandidType + DeserializeOwned>(reply: &[u8]) -> Result<R> {
-    candid::decode_one(reply).map_err(|e| Error::Unavailable(format!("candid: {e}")))
+    candid::decode_one(reply).map_err(|e| {
+        crate::diagnostic::Diagnostic::new("ic", "decode").emit();
+        Error::Unavailable(format!("candid: {e}"))
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn certificate_and_local_storage_failures_are_not_transient_network_errors() {
+        assert_eq!(
+            unavailable(AgentError::CertificateVerificationFailed()),
+            Error::IntegrityFailed
+        );
+        assert_eq!(
+            unavailable(AgentError::QuerySignatureVerificationFailed),
+            Error::IntegrityFailed
+        );
+        assert_eq!(
+            crate::error_code(&crate::storage(std::io::Error::from(
+                std::io::ErrorKind::StorageFull
+            ))),
+            "LOCAL_STORAGE_UNAVAILABLE"
+        );
+        assert_eq!(
+            crate::error_code(&unavailable(AgentError::TimeoutWaitingForResponse())),
+            "NETWORK_UNAVAILABLE"
+        );
+    }
 }

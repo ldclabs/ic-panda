@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../../components/page/Notice.svelte'
   import { copyText } from '../../components/clipboard'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
@@ -66,7 +67,7 @@
   {:else}
     <textarea bind:value={packet} class="min-h-36 font-mono text-[11px]" placeholder={t('transferPacket')} spellcheck="false" data-testid="channel-packet"></textarea>
   {/if}
-  {#if error}<p class="mt-2 text-[12.5px] text-danger">{error}</p>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}
     <span class="flex-1"></span>
     {#if handed}

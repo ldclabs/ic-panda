@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../../components/page/Notice.svelte'
   import { RadioGroup, Tabs } from 'bits-ui'
   import { untrack } from 'svelte'
   import { copyText } from '../../components/clipboard'
@@ -141,7 +142,7 @@
       </Tabs.Content>
     </Tabs.Root>
   {/if}
-  {#if error}<p class="mt-2 text-[12.5px] text-danger">{error}</p>{/if}
+  {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
   {#snippet footer()}
     <span class="flex-1"></span>
     {#if made}

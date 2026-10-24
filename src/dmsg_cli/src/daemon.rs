@@ -72,6 +72,8 @@ use tokio::sync::{Mutex, Notify, broadcast};
 
 /// How often presigned submissions are flushed.
 const FLUSH_MS: u64 = 10_000;
+/// Retry transient account-sync failures even when periodic sync is off.
+const SYNC_RETRY_MS: u64 = 60_000;
 /// How long one background pass uploads a backup before requests waiting
 /// for the client go first; the next pass follows at once.
 const BACKUP_SLICE_MS: u64 = 5_000;
@@ -390,8 +392,20 @@ pub(crate) fn app(daemon: Arc<Daemon>) -> Router {
         .with_state(daemon)
 }
 
+/// A failed pass stays in its account's workspace. Only transient failures
+/// retry automatically, after a pause and while content is unlocked.
+fn sync_retry_due(client: &Client, now: u64) -> bool {
+    client.session_state().state == "unlocked"
+        && client.last_sync().ok().flatten().is_some_and(|last| {
+            matches!(
+                last.error.as_deref(),
+                Some("UNAVAILABLE" | "NETWORK_UNAVAILABLE" | "EXECUTION_UNKNOWN")
+            ) && now >= last.at.saturating_add(SYNC_RETRY_MS)
+        })
+}
+
 /// Idle lock, the keyless flush of presigned submissions and the
-/// scheduled sync. Background work is not activity.
+/// scheduled sync, including retries. Background work is not activity.
 async fn background(daemon: Arc<Daemon>) {
     let mut synced = now_ms();
     let mut polled = 0;
@@ -410,7 +424,7 @@ async fn background(daemon: Arc<Daemon>) {
             continue;
         }
         let now = now_ms();
-        let (session, requested) = {
+        let (session, requested, retry) = {
             let mut client = daemon.client.lock().await;
             let before = client.session_state().state;
             if now > daemon.activity.load(Ordering::Relaxed) + daemon.settings.idle_lock_ms {
@@ -424,6 +438,7 @@ async fn background(daemon: Arc<Daemon>) {
             (
                 session,
                 daemon.sync_requested.swap(false, Ordering::Relaxed),
+                sync_retry_due(&client, now),
             )
         };
         daemon.check_mount().await;
@@ -432,14 +447,18 @@ async fn background(daemon: Arc<Daemon>) {
         let ready = unlocked || session.resident;
         // The relay is waited on without holding the client where the work
         // allows it, so that the windows' reads go on meanwhile.
-        if ready && ((requested && unlocked) || (interval > 0 && now >= synced + interval)) {
+        if ready
+            && ((requested && unlocked)
+                || (retry && !daemon.syncing.load(Ordering::Relaxed))
+                || (interval > 0 && now >= synced + interval))
+        {
             synced = now;
-            // Recorded in the status; a failure waits for the next round.
+            // Recorded in the status; transient failures retry after a minute.
             let synced = daemon.sync_pass().await;
-            daemon.note("sync", &outcome(&synced));
+            daemon.note_result("sync", &synced);
         } else {
             let flushed = daemon.flush_pass().await;
-            daemon.note("flush", &outcome(&flushed));
+            daemon.note_result("flush", &flushed);
             if let Ok(settled @ 1..) = flushed {
                 crate::logs::write("flush", &[("settled", &settled)]);
             }
@@ -447,7 +466,7 @@ async fn background(daemon: Arc<Daemon>) {
         if ready && now >= polled + CONNECT_POLL_MS {
             polled = now;
             let report = daemon.connect_pass().await;
-            daemon.note("connect", &outcome(&report));
+            daemon.note_result("connect", &report);
             if let Ok(report) = report {
                 if report.fetched > 0 {
                     *daemon.last_connect.lock().expect("connect report") = Some(to_json(&report));
@@ -486,7 +505,7 @@ async fn background(daemon: Arc<Daemon>) {
             && let Some(turn) = daemon.try_turn("backup")
         {
             let run = daemon.backup_pass(turn, Some(BACKUP_SLICE_MS)).await;
-            daemon.note("backup", &outcome(&run));
+            daemon.note_result("backup", &run);
             if run.as_ref().is_ok_and(|r| r.completed > 0) {
                 daemon.emit("files/changed", Value::Null);
             }
@@ -504,7 +523,7 @@ async fn background(daemon: Arc<Daemon>) {
                 // unreferenced chunks every ten minutes, opened copies every
                 // pass.
                 let maintained = client.files_maintain(now);
-                daemon.note("files", &outcome(&maintained));
+                daemon.note_result("files", &maintained);
                 if let Ok(Some(report)) = &maintained
                     && report.purged_files + report.purged_folders > 0
                 {
@@ -523,7 +542,7 @@ async fn background(daemon: Arc<Daemon>) {
         if check {
             checking = now;
             let checked = daemon.check_library().await;
-            daemon.note("check", &outcome(&checked));
+            daemon.note_result("check", &checked);
             if let Ok((check, _)) = checked {
                 crate::logs::write(
                     "files/check",
@@ -677,6 +696,20 @@ impl Daemon {
         }
     }
 
+    /// Like `note`, retaining only a fixed cause category for failures.
+    pub(crate) fn note_result<T>(&self, task: &'static str, result: &Result<T>) {
+        let diagnostic = result
+            .as_ref()
+            .err()
+            .map(dmsg_client::diagnostic::Diagnostic::error);
+        let signature = format!("{} {diagnostic:?}", outcome(result));
+        let mut outcomes = self.outcomes.lock().expect("outcomes");
+        if outcomes.get(task) != Some(&signature) {
+            outcomes.insert(task, signature);
+            crate::logs::result(task, &[], result);
+        }
+    }
+
     /// Wake the background loop, such as on a hint.
     pub(crate) fn wake(&self) {
         self.wake.notify_one();
@@ -717,14 +750,26 @@ impl Daemon {
         self.syncing.store(true, Ordering::Relaxed);
         self.emit("sync/progress", Value::Null);
         let started = std::time::Instant::now();
+        let started_at = now_ms();
         let result = dmsg_client::sync::sync(&h).await;
+        let stage = h
+            .with(|c| c.last_sync())
+            .await
+            .ok()
+            .flatten()
+            .filter(|last| last.at >= started_at)
+            .and_then(|last| last.stage)
+            .map(|stage| stage.as_str())
+            .unwrap_or(if result.is_ok() {
+                "complete"
+            } else {
+                "unrecorded"
+            });
         self.syncing.store(false, Ordering::Relaxed);
-        crate::logs::write(
+        crate::logs::result(
             "sync/pass",
-            &[
-                ("outcome", &outcome(&result)),
-                ("ms", &started.elapsed().as_millis()),
-            ],
+            &[("stage", &stage), ("ms", &started.elapsed().as_millis())],
+            &result,
         );
         // Partial progress and failures also change the local list/status.
         self.emit("sync/changed", Value::Null);
@@ -1608,10 +1653,16 @@ fn log_call(
     elapsed: std::time::Duration,
 ) {
     let code = outcome(result);
+    // An unknown method or tool may be arbitrary user input.
+    let method = if route(method).is_some() {
+        method
+    } else {
+        "unknown"
+    };
     let tool = params["tool"]
         .as_str()
         .filter(|_| matches!(method, "mcp/call" | "ap/call"))
-        .filter(|t| t.len() <= 64 && t.bytes().all(|b| b.is_ascii_lowercase() || b == b'_'));
+        .filter(|t| dmsg_agent::tools::is_standard(t) || dmsg_agent::tools::is_dmsg(t));
     let quiet = matches!(
         method,
         "session/status"
@@ -1632,24 +1683,20 @@ fn log_call(
     let by = if agent { "agent" } else { "owner" };
     let ms = elapsed.as_millis();
     match tool {
-        Some(tool) => crate::logs::write(
+        Some(tool) => crate::logs::result(
             "call",
             &[
                 ("method", &method),
                 ("tool", &tool),
                 ("by", &by),
-                ("outcome", &code),
                 ("ms", &ms),
             ],
+            result,
         ),
-        None => crate::logs::write(
+        None => crate::logs::result(
             "call",
-            &[
-                ("method", &method),
-                ("by", &by),
-                ("outcome", &code),
-                ("ms", &ms),
-            ],
+            &[("method", &method), ("by", &by), ("ms", &ms)],
+            result,
         ),
     }
 }
@@ -1842,6 +1889,94 @@ async fn blocking<T: Send + 'static>(
 mod tests {
     use super::*;
     use crate::remote::Remote;
+
+    #[tokio::test]
+    async fn failure_logs_keep_causes_without_private_messages_or_rpc_input() {
+        use dmsg_client::diagnostic::{Diagnostic, TARGET};
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        const PRIVATE: &str = "private_diagnostic_canary";
+        let dir = dmsg_client::testing::TempDir::new();
+        let default_panic = std::panic::take_hook();
+        crate::logs::open(&dir.0).unwrap();
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let cloud = dmsg_client::cloud::Cloud::new(
+            &format!("http://{}", listener.local_addr().unwrap()),
+            true,
+        )
+        .unwrap();
+        let server = tokio::spawn(async move {
+            for _ in 0..3 {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut request = [0; 8192];
+                assert!(socket.read(&mut request).await.unwrap() > 0);
+                let body = json!({"ok": false, "error": {"code": PRIVATE, "message": format!("Bearer {PRIVATE} /Users/{PRIVATE} {PRIVATE}@example.com")}}).to_string();
+                socket.write_all(format!("HTTP/1.1 503 Unavailable\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+            }
+            // Read a mutation and drop its reply: diagnostic logging must
+            // not turn an uncertain submission into a definite rejection.
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0; 8192];
+            assert!(socket.read(&mut request).await.unwrap() > 0);
+        });
+        let error = cloud
+            .public(&format!("/public/{PRIVATE}?token={PRIVATE}"))
+            .await
+            .unwrap_err();
+        assert_eq!(
+            cloud
+                .publish_security(&dmsg_client::cloud::Evidence {
+                    schema: 1,
+                    canister: PRIVATE.into(),
+                    certificate: PRIVATE.into(),
+                    entries: vec![],
+                })
+                .await,
+            Err(Error::ExecutionUnknown)
+        );
+        server.await.unwrap();
+        let failed: Result<Value> = Err(error);
+        log_call(
+            PRIVATE,
+            &json!({"token": PRIVATE}),
+            false,
+            &failed,
+            Duration::from_millis(12),
+        );
+        log_call(
+            "mcp/call",
+            &json!({"tool": PRIVATE, "input": {"secret": PRIVATE}}),
+            true,
+            &failed,
+            Duration::from_millis(13),
+        );
+        crate::logs::failure(
+            "files/unmount",
+            &[],
+            &Error::Unavailable(format!("mount: /Users/{PRIVATE}")),
+        );
+        Diagnostic::io(
+            "hints",
+            &std::io::Error::new(std::io::ErrorKind::UnexpectedEof, PRIVATE),
+        )
+        .emit();
+        // Neither a dependency debug message nor malformed data on our own
+        // target may reach the run log.
+        log::error!(target: "reqwest", "Authorization: Bearer {PRIVATE}");
+        log::warn!(target: TARGET, "relay http 503 {PRIVATE}");
+        assert!(std::panic::catch_unwind(|| panic!("{PRIVATE}")).is_err());
+        std::panic::set_hook(default_panic);
+        let logged = crate::logs::tail(&dir.0, 10_000).unwrap().join("\n");
+        assert!(
+            !logged.contains(PRIVATE),
+            "private data reached the run log"
+        );
+        assert!(logged.contains("failure source=relay reason=http http_status=503"));
+        assert!(logged.contains("failure source=hints reason=connection_closed"));
+        assert!(logged.contains("method=unknown"));
+        assert!(logged.contains("source=mount reason=unavailable"));
+    }
 
     #[test]
     fn routes_methods_and_reads_announce_nothing() {
@@ -2200,6 +2335,66 @@ mod tests {
         assert_eq!(status["syncing"], false);
         assert!(status["last_sync"].is_null());
         assert_eq!(status["pending_sync"], 1);
+    }
+
+    #[tokio::test]
+    async fn failed_sync_retries_without_periodic_sync_but_stops_when_locked_or_recovered() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        tokio::time::timeout(Duration::from_secs(10), async {
+            for code in ["UNAVAILABLE", "EXECUTION_UNKNOWN", "INTEGRITY_FAILED"] {
+                let dir = dmsg_client::testing::TempDir::new();
+                let (daemon, relay, _ic) = stalled(&dir).await;
+                assert_eq!(daemon.settings.sync_interval_ms, 0);
+                let work = tokio::spawn({
+                    let daemon = daemon.clone();
+                    async move { daemon.sync_pass().await }
+                });
+                let (mut socket, _) = relay.accept().await.unwrap();
+                let mut request = [0; 8192];
+                assert!(socket.read(&mut request).await.unwrap() > 0);
+                let body = json!({"ok": false, "error": {"code": code}}).to_string();
+                socket.write_all(format!("HTTP/1.1 503 Unavailable\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+                assert!(work.await.unwrap().is_err());
+                {
+                    let mut client = daemon.client.lock().await;
+                    let last = client.last_sync().unwrap().unwrap();
+                    assert_eq!(last.error.as_deref(), Some(code));
+                    assert_eq!(last.stage, Some(dmsg_client::sync::SyncStage::ExportStart));
+                    assert!(!sync_retry_due(&client, last.at + SYNC_RETRY_MS - 1));
+                    assert_eq!(
+                        sync_retry_due(&client, last.at + SYNC_RETRY_MS),
+                        code != "INTEGRITY_FAILED"
+                    );
+                    if code != "UNAVAILABLE" {
+                        client.lock();
+                        assert!(!sync_retry_due(&client, last.at + 2 * SYNC_RETRY_MS));
+                        continue;
+                    }
+                }
+                // A successful pass removes the trigger, including when checked later.
+                let work = tokio::spawn({
+                    let daemon = daemon.clone();
+                    async move { daemon.sync_pass().await }
+                });
+                for data in [
+                    json!({"account": dmsg_client::testing::account().id.to_string(), "scope": "cloud_snapshot", "through": 0, "counts": []}),
+                    json!({"entries": [], "next_cursor": 0, "inventory_end": true}),
+                ] {
+                    let (mut socket, _) = relay.accept().await.unwrap();
+                    let mut request = [0; 8192];
+                    assert!(socket.read(&mut request).await.unwrap() > 0);
+                    let body = json!({"ok": true, "data": data}).to_string();
+                    socket.write_all(format!("HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len()).as_bytes()).await.unwrap();
+                }
+                work.await.unwrap().unwrap();
+                let client = daemon.client.lock().await;
+                let last = client.last_sync().unwrap().unwrap();
+                assert_eq!(last.error, None);
+                assert!(!sync_retry_due(&client, last.at + SYNC_RETRY_MS));
+            }
+        })
+        .await
+        .expect("sync failure and recovery must finish");
     }
 
     #[tokio::test]

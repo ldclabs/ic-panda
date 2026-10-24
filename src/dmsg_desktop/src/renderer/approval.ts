@@ -277,7 +277,8 @@ export function trailOf(request: any, agents: Record<string, string> = {}): Hop[
 /** Why a waiting request did not run, or why a signature cannot be made now, for people. */
 export const reasonLabels: Record<string, Label> = {
   AUTH_REQUIRED: 'reasonAuthRequired',
-  UNAVAILABLE: 'reasonUnavailable',
+  UNAVAILABLE: 'serviceUnavailable',
+  NETWORK_UNAVAILABLE: 'networkUnavailable',
   POLICY_STALE: 'reasonPolicyStale',
   PRESENCE_DECLINED: 'reasonPresenceDeclined',
   PRESENCE_REQUIRED: 'reasonPresenceRequired',

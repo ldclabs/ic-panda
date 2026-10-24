@@ -172,7 +172,7 @@
       </div>
       <button class={buttonClass('secondary', 'sm')} disabled={busy} onclick={() => attempt(() => load(true))} data-testid="plan-refresh"><Icon name="sync-now" />{t('refresh')}</button>
     </div>
-    {#if errors.plan}<div class="px-6 pb-4"><Notice tone="danger" testid="plan-error">{errors.plan}</Notice></div>{/if}
+    {#if errors.plan}<div class="px-6 pb-4"><Notice failure={errors.plan} tone="danger" testid="plan-error">{errors.plan}</Notice></div>{/if}
     {#if plan}
       <dl class="mt-3">
         {#if current}<Fact label={t('term')} testid="plan-term">{when(current.term_starts_at_ms ?? current.starts_at_ms)} – {when(current.ends_at_ms)}</Fact>{/if}
@@ -220,11 +220,11 @@
       {/if}
     </div>
     {#if plan?.limits}<p class="mt-3 text-[12px] text-muted">{t('signaturesMonthly')}: {plan.limits.monthly_execution_units}</p>{/if}
-    {#if errors.cloud}<Notice tone="danger" class="mt-3">{errors.cloud}</Notice>{/if}
-    {#if errors.execution}<Notice tone="danger" class="mt-3">{errors.execution}</Notice>{/if}
+    {#if errors.cloud}<Notice failure={errors.cloud} tone="danger" class="mt-3">{errors.cloud}</Notice>{/if}
+    {#if errors.execution}<Notice failure={errors.execution} tone="danger" class="mt-3">{errors.execution}</Notice>{/if}
   </Section>
 
-  {#if errors.catalog}<Notice tone="danger">{errors.catalog}</Notice>{/if}
+  {#if errors.catalog}<Notice failure={errors.catalog} tone="danger">{errors.catalog}</Notice>{/if}
   {#if paid.length}
     <Section title={t('plans')} description={t('plansHint')} icon="coins" testid="plan-cards">
       <div class="grid gap-2 sm:grid-cols-3">

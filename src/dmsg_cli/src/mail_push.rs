@@ -49,7 +49,7 @@ pub(crate) async fn run(daemon: Arc<Daemon>) {
                     });
                     let _ = h.with(|c| c.mail_push_save(&agent, watch)).await;
                 }
-                daemon.note("mail-push", &dmsg_client::error_code(&error));
+                daemon.note_result::<()>("mail-push", &Err(error));
             }
             daemon.emit("agent/mail_push", json!({"agent":agent}));
         }

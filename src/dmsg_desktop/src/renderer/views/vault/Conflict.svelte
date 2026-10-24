@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../../components/page/Notice.svelte'
   import Dialog from '../../components/Dialog.svelte'
   import Icon from '../../components/Icon.svelte'
   import { toast } from '../../components/toast.svelte'
@@ -173,7 +174,7 @@
       <p class="text-[13px] text-muted">{t('sameContent')}</p>
     {/if}
     {#if !mergeable}<p class="mt-3 text-[12.5px] text-muted">{t('mergeDeleted')}</p>{/if}
-    {#if error}<p class="mt-2 text-[12.5px] text-danger">{error}</p>{/if}
+    {#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
     {#snippet footer()}
       {#if conflicts.length > 1}
         <span class="flex items-center gap-0.5">

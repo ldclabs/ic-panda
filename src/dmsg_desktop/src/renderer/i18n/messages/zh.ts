@@ -2,6 +2,12 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    localStorageUnavailable: "无法读取或保存本机数据，请检查磁盘空间与访问权限。",
+    networkReconnecting: "正在重新连接，已有内容仍可查看。",
+    networkUnavailable: "暂时无法更新，正在自动重试。",
+    operationUnknown: "操作结果尚未确认，请先查看操作或审批记录，避免重复提交。",
+    serviceUnavailable: "服务暂时不可用，请稍后重试。",
+
     loadFailed: '读取失败',
     storageExhausted: "下载次数已用尽",
     storageTitle: "云端空间",

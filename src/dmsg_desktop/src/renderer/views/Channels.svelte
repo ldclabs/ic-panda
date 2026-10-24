@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Notice from '../components/page/Notice.svelte'
   import { DropdownMenu } from 'bits-ui'
   import { onMount } from 'svelte'
   import { localeDir } from '../../shared/locales'
@@ -567,7 +568,7 @@
           </DropdownMenu.Root>
         {/if}
       </div>
-      {#if error}<p class="px-4 text-[12.5px] text-danger" data-testid="channel-error">{error}</p>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="channel-error">{error}</Notice>{/if}
       <ul class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" data-testid="channel-list">
         {#each listed.live as entry (entry.id)}
           {@render item(entry)}

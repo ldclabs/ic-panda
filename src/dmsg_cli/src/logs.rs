@@ -2,12 +2,15 @@
 //! `<home>/logs/dmsg-YYYY-MM-DD.log`, kept for 30 days. A line is a UTC
 //! timestamp, an event and `key=value` fields that are names from fixed
 //! lists, error codes, counts and durations; never parameters, content,
-//! file names, paths, tokens or error messages, which may carry any of
+//! resource file names, paths, tokens or error messages, which may carry any of
 //! those. `dmsg logs` prints the newest lines.
 //!
 //! The daemon's stderr goes to `logs/stderr.log`, which every `dmsg start`
-//! rewrites: it holds only what failed before the log opened.
+//! rewrites: startup failures keep only their code, and panics after the
+//! log opens keep only a source filename and line, never their payload.
 
+use dmsg_client::diagnostic::{Diagnostic, TARGET};
+use dmsg_types::{Error, Result};
 use std::fmt::Display;
 use std::fs;
 use std::io::Write;
@@ -25,6 +28,61 @@ struct Log {
 }
 
 static LOG: OnceLock<Log> = OnceLock::new();
+static DIAGNOSTICS: Diagnostics = Diagnostics;
+
+/// Ignore dependency debug logs and validate every diagnostic again before
+/// writing it. In particular, never forward arbitrary `record.args()`.
+struct Diagnostics;
+
+impl log::Log for Diagnostics {
+    fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
+        metadata.target() == TARGET && metadata.level() <= log::Level::Warn
+    }
+
+    fn log(&self, record: &log::Record<'_>) {
+        if self.enabled(record.metadata())
+            && let Some(diagnostic) = Diagnostic::decode(&record.args().to_string())
+        {
+            write_diagnostic("failure", &[], diagnostic);
+        }
+    }
+
+    fn flush(&self) {}
+}
+
+fn write_diagnostic(event: &str, fields: &[(&str, &dyn Display)], diagnostic: Diagnostic) {
+    let mut fields = fields.to_vec();
+    fields.extend([
+        ("source", &diagnostic.source as &dyn Display),
+        ("reason", &diagnostic.reason as &dyn Display),
+    ]);
+    if let Some(status) = &diagnostic.http_status {
+        fields.push(("http_status", status));
+        write(event, &fields);
+    } else {
+        write(event, &fields);
+    }
+}
+
+/// Log an application failure using categories, never its Display/Debug text.
+pub fn failure(event: &str, fields: &[(&str, &dyn Display)], error: &Error) {
+    let code = dmsg_client::error_code(error);
+    let mut fields = fields.to_vec();
+    fields.push(("outcome", &code));
+    write_diagnostic(event, &fields, Diagnostic::error(error));
+}
+
+/// An outcome and its safe cause, alongside caller-supplied fixed fields.
+pub fn result<T>(event: &str, fields: &[(&str, &dyn Display)], result: &Result<T>) {
+    match result {
+        Err(error) => failure(event, fields, error),
+        Ok(_) => {
+            let mut fields = fields.to_vec();
+            fields.push(("outcome", &"ok"));
+            write(event, &fields);
+        }
+    }
+}
 
 /// The log directory of a home.
 pub fn dir(home: &Path) -> PathBuf {
@@ -39,18 +97,32 @@ pub fn dir(home: &Path) -> PathBuf {
 pub fn open(home: &Path) -> std::io::Result<()> {
     let dir = dir(home);
     fs::create_dir_all(&dir)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o700))?;
+    }
     let _ = LOG.set(Log {
         dir,
         file: Mutex::new(None),
     });
-    let default = std::panic::take_hook();
+    if log::set_logger(&DIAGNOSTICS).is_ok() {
+        log::set_max_level(log::LevelFilter::Warn);
+    }
     std::panic::set_hook(Box::new(move |info| {
         let at = info
             .location()
-            .map(|l| format!("{}:{}", l.file(), l.line()))
+            .map(|l| {
+                format!(
+                    "{}:{}",
+                    l.file().rsplit(['/', '\\']).next().unwrap_or("unknown"),
+                    l.line()
+                )
+            })
             .unwrap_or_default();
         write("panic", &[("at", &at)]);
-        default(info);
+        // The default hook prints the panic payload to stderr.log; it may
+        // contain content, paths or credentials from a failed assertion.
     }));
     Ok(())
 }
@@ -71,12 +143,14 @@ pub fn write(event: &str, fields: &[(&str, &dyn Display)]) {
     let day = now / DAY_MS;
     if file.as_ref().is_none_or(|(open, _)| *open != day) {
         prune(&log.dir, day);
-        *file = fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(log.dir.join(name(day)))
-            .ok()
-            .map(|f| (day, f));
+        let mut options = fs::OpenOptions::new();
+        options.create(true).append(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        *file = options.open(log.dir.join(name(day))).ok().map(|f| (day, f));
     }
     if let Some((_, file)) = file.as_mut() {
         let _ = file.write_all(line.as_bytes());

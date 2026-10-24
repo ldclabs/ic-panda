@@ -2,6 +2,12 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    localStorageUnavailable: "تعذرت قراءة البيانات المحلية أو حفظها. تحقق من مساحة القرص وأذونات الوصول.",
+    networkReconnecting: "جارٍ إعادة الاتصال… لا يزال المحتوى الحالي متاحًا.",
+    networkUnavailable: "يتعذر التحديث مؤقتًا. سنعيد المحاولة تلقائيًا.",
+    operationUnknown: "لم تتأكد النتيجة بعد. راجع سجل العمليات أو الموافقات قبل الإرسال مجددًا.",
+    serviceUnavailable: "الخدمة غير متاحة مؤقتًا. حاول لاحقًا.",
+
     loadFailed: 'تعذّر التحميل',
     storageExhausted: "تم بلوغ حد التنزيل",
     storageTitle: "التخزين السحابي",

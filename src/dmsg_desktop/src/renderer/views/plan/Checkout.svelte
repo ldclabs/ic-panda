@@ -224,7 +224,7 @@
           </div>
         </div>
       {/if}
-      {#if error}<Notice tone="danger" testid="checkout-error">{error}</Notice>{/if}
+      {#if error}<Notice failure={error} tone="danger" testid="checkout-error">{error}</Notice>{/if}
     </div>
   {/if}
   {#snippet footer()}

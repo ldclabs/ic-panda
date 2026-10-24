@@ -634,7 +634,7 @@
     <Page wide>
       {#if !unlocked}<Notice>{t('locked')}</Notice>
       {:else}
-        {#if error}<Notice tone="danger" testid="wallet-error"
+        {#if error}<Notice failure={error} tone="danger" testid="wallet-error"
             >{error}<button class={buttonClass('ghost', 'sm')} onclick={refresh}>{w('retry')}</button></Notice
           >{/if}
         {#if loading && !wallet}<p class="text-faint text-[12px]" role="status" data-testid="wallet-loading">{w('loading')}</p>{/if}
@@ -708,7 +708,7 @@
                     filter = 'waiting'
                   }}>{w('waiting')} · {queueBusy || queueError ? '—' : waiting}</button
                 >{/snippet}
-              {#if queueError}<Notice tone="danger"
+              {#if queueError}<Notice failure={queueError} tone="danger"
                   >{queueError}<button class={buttonClass('ghost', 'sm')} onclick={readQueue}>{w('retry')}</button></Notice
                 >{/if}
               {#if queueBusy}<p class="px-5 py-3 text-muted text-[12px]" role="status">{w('queueLoading')}</p>{/if}
@@ -752,7 +752,7 @@
                   onclick={() => showProposal(Number(find))}>{w('details')}</button
                 ></div
               >
-              {#if queueError}<Notice tone="danger"
+              {#if queueError}<Notice failure={queueError} tone="danger"
                   >{queueError}<button class={buttonClass('ghost', 'sm')} onclick={readQueue}>{w('retry')}</button></Notice
                 >{/if}
               <Section title={w('proposals')} icon="approvals" flush testid="wallet-proposals">
@@ -795,8 +795,8 @@
                     disabled={!usable || wallet?.frozen}
                     onclick={() => showManage('address')}>{w('addAddress')}</button
                   >{/if}{/snippet}
-              {#if assetError}<div class="px-5 py-3"><Notice tone="danger">{assetError}</Notice></div>{/if}
-              {#if balanceError}<div class="px-5 py-3"><Notice tone="danger">{balanceError}</Notice></div>{/if}
+              {#if assetError}<div class="px-5 py-3"><Notice failure={assetError} tone="danger">{assetError}</Notice></div>{/if}
+              {#if balanceError}<div class="px-5 py-3"><Notice failure={balanceError} tone="danger">{balanceError}</Notice></div>{/if}
               {#if balances}<p class="text-faint px-5 py-2 text-[11px]">{w('readAt')}: {when(balances.read_at)}</p>{/if}
               {#each wallet.addresses as a (a.id)}
                 <div class="border-line grid gap-2 border-t px-5 py-4" data-testid={`wallet-address-${a.id}`}
@@ -833,7 +833,7 @@
                 >{#if mayPropose}<button class={buttonClass('secondary', 'sm')} disabled={!usable} onclick={() => showManage('book')}
                     >{w('addBook')}</button
                   >{/if}{/snippet}
-              {#if bookError}<Notice tone="danger">{bookError}</Notice>{/if}
+              {#if bookError}<Notice failure={bookError} tone="danger">{bookError}</Notice>{/if}
               {#each book as b, i (i)}<div class="border-line flex flex-wrap items-center gap-2 border-t px-5 py-3"
                   ><div class="min-w-0 flex-1"
                     ><b class="text-[13px]">{b.label}</b><p class="font-mono text-[12px] break-all">{b.destination}</p><small
@@ -968,7 +968,7 @@
             ></Section
           >
         {/if}
-        {#if depositError}<Notice tone="danger"
+        {#if depositError}<Notice failure={depositError} tone="danger"
             >{w('newWallet')}: {depositError}<button class={buttonClass('ghost', 'xs')} onclick={() => loadDeposits()}>{w('retry')}</button
             ></Notice
           >{/if}

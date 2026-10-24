@@ -49,7 +49,7 @@
   })
 </script>
 
-{#if error}<Notice tone="danger">{error}</Notice>{/if}
+{#if error}<Notice failure={error} tone="danger">{error}</Notice>{/if}
 <Section title={t('aboutApp')} description={t('aboutHint')} icon="info" testid="about">
   {#snippet actions()}
     {#if update?.kind === 'ready'}

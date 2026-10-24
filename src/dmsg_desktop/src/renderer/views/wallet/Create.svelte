@@ -137,7 +137,7 @@
 {#if WALLET_CREATION_PAUSED}
   <Notice testid="wallet-creation-paused"><b>{w('creationPaused')}</b> · {w('creationPausedHint')}</Notice>
 {:else}
-{#if error}<Notice tone="danger">{error}<button class={buttonClass('ghost', 'xs')} onclick={getQuote}>{w('retry')}</button></Notice>{/if}
+{#if error}<Notice failure={error} tone="danger">{error}<button class={buttonClass('ghost', 'xs')} onclick={getQuote}>{w('retry')}</button></Notice>{/if}
 {#if readiness}
   <div class="border-line bg-surface rounded-xl border p-4 text-[12px]">
     <p>{w('payer')}: <span class="font-mono break-all">{readiness.payer?.principal ?? readiness.payer?.payer ?? '—'}</span></p>

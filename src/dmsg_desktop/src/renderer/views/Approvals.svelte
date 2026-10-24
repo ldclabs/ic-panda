@@ -130,8 +130,8 @@
     {:else}
       {#key sessionKey}
       <Page>
-        {#if tab === 'bundles' && historyError}<Notice tone="danger">{historyError}</Notice>{/if}
-        {#if error}<Notice tone="danger" testid="approvals-error">{error}</Notice>{/if}
+        {#if tab === 'bundles' && historyError}<Notice failure={historyError} tone="danger">{historyError}</Notice>{/if}
+        {#if error}<Notice failure={error} tone="danger" testid="approvals-error">{error}</Notice>{/if}
         {#if tab === 'requests'}
           <Requests {requests} {agents} {loaded} {busy} {open} {cancel} {reconcile} />
         {:else if tab === 'sign'}
