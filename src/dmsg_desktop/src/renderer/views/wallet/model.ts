@@ -170,7 +170,11 @@ export function durationText(ms: number, language = 'en'): string {
   return new Intl.NumberFormat(language, { style: 'unit', unit, unitDisplay: 'short', maximumFractionDigits: 2 }).format(ms / scale)
 }
 
-export const batchLimit = (chain?: string) => (chain === 'Evm' ? 1 : 32)
+/** Milliseconds from a decimal count of `scale`; 1.1 days stays a whole number despite binary rounding. */
+export const durationMs = (text: string, scale: number) => (text === '' ? NaN : Number((Number(text) * scale).toPrecision(15)))
+
+/** The wallet takes at most 16 Bitcoin outputs and one EVM recipient. */
+export const batchLimit = (chain?: string) => (chain === 'Evm' ? 1 : chain === 'Bitcoin' ? 16 : 32)
 
 /** The outcome says whether money moved; the proposal status alone does not. */
 export function resultState(p: Proposal, now: number): string {
@@ -440,6 +444,10 @@ export function unreachableCosigners(wallet: Wallet, hardware: boolean): any[] {
         a.cosign.threshold
   )
 }
+
+const enumerated = new Set(['role', 'kind', 'chain', 'control', 'curve', 'envelope'])
+/** Approval tickets localize enumerations only; labels, methods and other proposer text show exactly as approved. */
+export const localizedValue = (path: string[], value: string) => ['true', 'false'].includes(value) || enumerated.has(path.at(-1) ?? '')
 
 /** Flatten every policy/member field, including empty collections and false values. */
 export function leaves(value: any, path: string[] = []): { path: string[]; value: string }[] {

@@ -2,8 +2,7 @@
   import { untrack } from 'svelte'
   import Field from '../../components/page/Field.svelte'
   import Select from '../../components/Select.svelte'
-  import { locale } from '../../i18n/index.svelte'
-  import { durationText } from './model'
+  import { durationMs } from './model'
   import { w } from './text'
   let { value = $bindable(0), label }: { value: number; label: string } = $props()
   const scales = [86400000, 3600000, 60000, 1000]
@@ -17,7 +16,7 @@
       min="0"
       step="any"
       value={Number.isFinite(value) ? value / Number(scale) : ''}
-      oninput={(e) => (value = e.currentTarget.value === '' ? NaN : Number(e.currentTarget.value) * Number(scale))}
+      oninput={(e) => (value = durationMs(e.currentTarget.value, Number(scale)))}
       aria-invalid={!Number.isSafeInteger(value) || value < 0}
     /></Field
   >

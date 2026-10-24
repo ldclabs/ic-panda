@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   batchLimit,
+  durationMs,
   durationText,
+  localizedValue,
   networkName,
   resultState,
   queueKind,
@@ -104,7 +106,21 @@ test('policy inputs reject fractional votes, invalid timing and amounts without 
   assert.equal(toAtomic('1.00000001', 8), '100000001')
   assert.throws(() => toAtomic('1.000000001', 8))
   assert.equal(batchLimit('Icp'), 32)
+  assert.equal(batchLimit('Bitcoin'), 16)
   assert.equal(batchLimit('Evm'), 1)
+  assert.equal(durationMs('1.1', 86400000), 95040000)
+  assert.equal(durationMs('0.7', 86400000), 60480000)
+  assert.equal(durationMs('2.2', 3600000), 7920000)
+  assert.ok(!Number.isSafeInteger(durationMs('0.0001', 1000)))
+  assert.ok(Number.isNaN(durationMs('', 1000)))
+})
+
+test('approval tickets localize enumerations but show proposer text exactly', () => {
+  assert.equal(localizedValue(['member', 'role'], 'Admin'), true)
+  assert.equal(localizedValue(['hardware'], 'true'), true)
+  assert.equal(localizedValue(['method'], 'freeze'), false)
+  assert.equal(localizedValue(['member', 'label'], 'Recovery'), false)
+  assert.equal(localizedValue(['member', 'agent_ids', '0'], 'transfer'), false)
 })
 
 test('readiness counts people who joined, never device bindings as extra votes', () => {

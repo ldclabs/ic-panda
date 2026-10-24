@@ -99,7 +99,8 @@
         return { to: o.to.trim(), amount }
       }),
       max_fee: draft.maxFee ? toAtomic(draft.maxFee.trim(), fee?.decimals ?? 0) : null,
-      memo: draft.memo || null
+      // The kept draft may hold a memo its field no longer shows.
+      memo: (address?.chain === 'Icp' && draft.outputs.length === 1 && draft.memo) || null
     }
   }
   async function estimate() {

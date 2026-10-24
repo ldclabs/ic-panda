@@ -15,6 +15,7 @@
     intentFields,
     knownIntent,
     leaves,
+    localizedValue,
     previousIntent,
     cosignAddresses,
     cosignerReferences,
@@ -34,7 +35,7 @@
         : []
   )
   const affected = $derived(before ? cosignerReferences(before, removed) : [])
-  const primitive = (value: string) => w(value)
+  const primitive = (value: string, path: string[]) => (localizedValue(path, value) ? w(value) : value)
 </script>
 
 {#if !knownIntent(intent)}
@@ -98,9 +99,11 @@
               {:else if key === 'icp_e8s'}{amountText(String(intent.icp_e8s), { asset: 'ICP', decimals: 8 }, w('atomic'))}
               {:else}
                 {#if old[key] !== undefined && prior !== row.value}<del class="text-danger me-2" aria-label={w('before')}
-                    >{primitive(prior ?? '—')}</del
+                    >{primitive(prior ?? '—', row.path)}</del
                   >{/if}
-                <span class={old[key] !== undefined && prior !== row.value ? 'text-forest font-medium' : ''}>{primitive(row.value)}</span>
+                <span class={old[key] !== undefined && prior !== row.value ? 'text-forest font-medium' : ''}
+                  >{primitive(row.value, row.path)}</span
+                >
               {/if}
             </dd>
           {/each}
@@ -110,7 +113,7 @@
       {#if intent.kind !== 'set_policy'}<Collapsible>
           {#snippet title()}<span class="text-[12px]">{w('technical')}</span>{/snippet}
           {#each ['memo', 'curve', 'envelope', 'arg'].filter((key) => intent[key] != null) as key}<p class="text-[12px] break-all"
-              >{w(key)}: {typeof intent[key] === 'object' ? JSON.stringify(intent[key]) : primitive(String(intent[key]))}</p
+              >{w(key)}: {typeof intent[key] === 'object' ? JSON.stringify(intent[key]) : primitive(String(intent[key]), [key])}</p
             >{/each}
           {#each intent.outputs ?? [] as output}<p class="text-[12px] break-all">{output.amount} {w('atomic')} → {output.to}</p>{/each}
         </Collapsible>{/if}
