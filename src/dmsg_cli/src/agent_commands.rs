@@ -222,7 +222,7 @@ pub enum GrantsCommand {
         /// Label or `did:agent:…`.
         agent: String,
         /// account.read, vault.list, vault.read:<tag>, vault.write:<tag>,
-        /// vault.secret:<item>, files.read:<folder>, files.write:<folder>,
+        /// secret.use:<policy>, files.read:<folder>, files.write:<folder>,
         /// channel.read:<channel>, channel.publish:<channel>, inbox.read,
         /// inbox.contact, profile.read, attest.request, action.request,
         /// agent.delegation.read, events.endpoint, wallet.read,

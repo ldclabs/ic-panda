@@ -37,6 +37,7 @@ pub mod payment;
 pub mod principal;
 pub mod recovery;
 pub mod root;
+pub mod secrets;
 pub mod secure;
 pub mod security;
 pub mod store;
@@ -82,6 +83,11 @@ pub fn error_code(error: &Error) -> String {
             .is_some_and(|rest| rest.is_empty() || rest.starts_with(':'))
     {
         return INSUFFICIENT_FUNDS.into();
+    }
+    if let Error::InvalidInput(message) = error
+        && crate::secrets::ERROR_CODES.contains(&message.as_str())
+    {
+        return message.clone();
     }
     let name = format!("{error:?}");
     let name = name.split('(').next().unwrap_or_default();

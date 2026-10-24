@@ -133,6 +133,17 @@ The hub quotes within the commerce plan quota, then creates and installs a walle
 
 The desktop manages membership, policy, addresses and operations through structured proposals. Transfers query `preview_intent`; device cosignatures bind the same plan. Wallet network steps release the shared daemon client through Hold. Audit pages verify against a certified head; channel messages are encrypted hints. See the [desktop wallet implementation and validation record](dmsg_wallet_desktop_zh.md) (Chinese).
 
+### 4.8 Device-Local Credential Use
+
+The owner approves a local policy; an Agent with `secret.use:<policy_id>`
+requests one fixed GitHub issue creation, then a person reviews the complete
+plan. Existing approval records hold the execution boundary and filtered
+result. Network waits release the client lock; uncertain outcomes are terminal
+`lost` and are never resent. Policies, grants and records do not synchronize;
+no canister, content kind or on-chain hot path is added. MCP no longer exposes
+`vault.secret`. P1 mounts and other delivery paths are not implemented. See
+[the credential-use contract](protocol/secrets_zh.md).
+
 ## 5. On-Chain Load Profile
 
 | Operation | Work on ICP |

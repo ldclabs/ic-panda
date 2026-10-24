@@ -38,6 +38,8 @@ mod mount_netfs;
 mod params;
 mod release;
 mod remote;
+mod secret_commands;
+mod secret_methods;
 mod secure;
 mod vault_commands;
 mod vault_methods;
@@ -198,6 +200,9 @@ enum Command {
     /// The vault.
     #[command(subcommand)]
     Vault(vault_commands::VaultCommand),
+    /// Credential references, device-local policies and approved use history.
+    #[command(subcommand)]
+    Secrets(secret_commands::SecretCommand),
     /// The encrypted file library on this device.
     #[command(subcommand)]
     Files(files_commands::FilesCommand),
@@ -600,6 +605,7 @@ async fn remote_command(remote: &Remote, json: bool, command: Command) -> Result
         Command::Legacy(command) => legacy_commands::legacy(remote, json, command).await,
         Command::Device(command) => account_commands::device(remote, json, command).await,
         Command::Vault(command) => vault_commands::vault(remote, json, command).await,
+        Command::Secrets(command) => secret_commands::secrets(remote, json, command).await,
         Command::Files(command) => files_commands::files(remote, json, command).await,
         Command::Sync { command: None } => {
             let report = remote.call("sync/run", Value::Null).await?;

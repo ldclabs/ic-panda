@@ -142,3 +142,13 @@ the connector snapshot. It stores IDs and relay scope only, with stable event
 IDs, per-Agent retention and independent cursors bound to the mailbox filter.
 Queries check live relay grants, report retention gaps and do not alter Mail
 read state or inbox work. The daemon exposes this log as `dmsg.mail.received`.
+
+## Credential-use tools
+
+Four local tools (`dmsg_secret_policies`, `dmsg_secret_use_request`,
+`dmsg_secret_use_status`, `dmsg_secret_use_cancel`) expose policy metadata,
+approval requests and filtered issue number/link results. They cannot approve
+or resolve credentials. `secret.use:<policy_id>` is exact, never a wildcard.
+`dmsg_vault_read.secret` and `vault.secret` have been removed; masked Vault
+reading remains. The daemon owns authorization and execution, not the Agent
+Protocols connector. See [contract](../../docs/protocol/secrets_zh.md).

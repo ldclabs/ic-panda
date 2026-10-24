@@ -133,6 +133,10 @@ hub 按 commerce 的套餐配额报价，核对创建者的 `WalletCreate` 设�
 
 桌面以结构化提案管理成员、策略、地址与运行资源；转账先读取 `preview_intent`，多设备协签绑定同一计划。daemon 的钱包网络步骤通过 Hold 释放共享客户端锁。审计页以认证链头核验，频道通知只传加密提示。实现与验证范围见 [桌面钱包记录](dmsg_wallet_desktop_zh.md)。
 
+### 4.8 本设备凭据使用
+
+owner 审批配置本地策略；Agent 凭 `secret.use:<policy_id>` 申请固定 GitHub issue 创建，再由人核对完整计划。核心复用原审批记录保存提交点和受限结果，网络在客户端锁外执行；不确定结果终结为 lost，不自动重发。策略/权限/记录不跨设备，不新增 canister、同步种类或链上热路径。MCP 不再提供 `vault.secret` 明文入口；P1 挂载等尚未实现。接口与验证见[凭据使用合同](protocol/secrets_zh.md)。
+
 ## 5. 链上负载画像
 
 | 操作 | ICP 上的工作 |

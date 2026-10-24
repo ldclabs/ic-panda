@@ -75,6 +75,7 @@ export function unknownCapabilities(capabilities: string[], vocabulary: string[]
         const prefix = entry.slice(0, at + 1)
         const target = capability.startsWith(prefix) ? capability.slice(prefix.length) : ''
         if (!target || target.length > 128 || /\s/.test(target)) return false
+        if (prefix === 'secret.use:') return /^[0-9a-f]{32}$/.test(target)
         if (target === '*') return true
         if (entry.endsWith(':<origin>')) return /^https?:\/\/[^/?#\s]+$/.test(target)
         return !target.startsWith('dmsg-')
@@ -84,7 +85,7 @@ export function unknownCapabilities(capabilities: string[], vocabulary: string[]
 
 /** Whether granting a capability deserves a second look, as the daemon decides it. */
 export const sensitive = (capability: string) =>
-  capability.endsWith(':*') || capability.startsWith('vault.secret:') || capability.startsWith('wallet.execute:')
+  capability.endsWith(':*') || capability.startsWith('secret.use:') || capability.startsWith('wallet.execute:')
 
 /** A shell word for a POSIX shell, quoted only when it needs it. */
 export const shellWord = (word: string) => (/^[\w./:@%+=,-]+$/.test(word) ? word : `'${word.replaceAll("'", `'\\''`)}'`)

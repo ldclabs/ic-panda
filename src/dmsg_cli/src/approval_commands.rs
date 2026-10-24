@@ -300,6 +300,52 @@ fn render(request: &Value) -> String {
         ));
     }
     match request["type"].as_str() {
+        Some("secret_use") => {
+            // Escape terminal controls while preserving the full business text.
+            let field = |value: &Value| {
+                value
+                    .as_str()
+                    .map(|s| {
+                        s.chars()
+                            .flat_map(|c| {
+                                if c.is_control() && c != '\n' && c != '\t' {
+                                    c.escape_default().collect::<Vec<_>>()
+                                } else {
+                                    vec![c]
+                                }
+                            })
+                            .collect::<String>()
+                    })
+                    .unwrap_or_else(|| value.to_string())
+            };
+            lines.push(row(
+                "target",
+                "目标",
+                format!(
+                    "{}/repos/{}/{}/issues",
+                    field(&d["target"]["api_origin"]),
+                    field(&d["target"]["owner"]),
+                    field(&d["target"]["repo"])
+                ),
+            ));
+            lines.push(row("Agent ID", "Agent ID", field(&d["actor"])));
+            lines.push(row("policy", "策略", field(&d["policy_name"])));
+            lines.push(row("credential", "凭据引用", pretty(&d["resolved"])));
+            lines.push(row("title", "完整标题", field(&d["arguments"]["title"])));
+            lines.push(row("body", "完整正文", field(&d["arguments"]["body"])));
+            lines.push(row(
+                "untrusted reason",
+                "不可信自述理由",
+                field(&d["reason"]),
+            ));
+            lines.push(tr!(
+                "Publishes one issue and may notify others. Unknown outcomes are never retried.",
+                "发布一次 issue，可能通知他人；结果不明时不会重发。"
+            ));
+        }
+        Some("secret_policy") => {
+            lines.push(pretty(d));
+        }
         Some("attest") => {
             let s = &d["statement"];
             let (profile, issuer) = (field(&s["profile"]), field(&s["issuer"]));

@@ -596,8 +596,8 @@ export default {
   'Fetched and checked. Only on your devices does it have a name: {name}.':
     'Récupéré et vérifié. Il n’a de nom que sur vos appareils : {name}.',
   'Files': 'Fichiers',
-  'Found it. The secret itself stays out: that would need vault.secret for this item.':
-    'Trouvé. Le secret lui-même reste à l’écart : il faudrait vault.secret pour cet élément.',
+  "Found it. Concealed values stay masked; using a credential requires a separate approval.":
+    "Trouvé. Les valeurs masquées le restent ; utiliser un identifiant exige une approbation distincte.",
   'From an interactive terminal': 'Depuis un terminal interactif',
   'Granted capabilities': 'Capacités accordées',
   'Hide': 'Masquer',

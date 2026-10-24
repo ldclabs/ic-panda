@@ -710,7 +710,7 @@ brings it back (unlocked only). `profile` shows the Agent Profile it
 published at each profile service the hosts name, its signature checked.
 `grants add` gives an agent
 capabilities over this account: `account.read`, `vault.list`,
-`vault.read:<tag>`, `vault.write:<tag>`, `vault.secret:<item>`,
+`vault.read:<tag>`, `vault.write:<tag>`, `secret.use:<policy>`,
 `files.read:<folder>`, `files.write:<folder>` (a folder ID or `root`,
 covering the folders under it), `channel.read:<channel>`,
 `channel.publish:<channel>`,
@@ -819,12 +819,18 @@ A refused call returns `isError` with the protocol's `code`, such as `permission
 match its type is refused before it is signed, with every failing member at
 its path (`invalid_event`, `data.errors`).
 
-More `dmsg_*` tools, each behind its capability: `dmsg_vault_read` with
-`secret: true` returns the secret field (`vault.secret:<item>`);
-`dmsg_vault_write` adds or edits an item that keeps a granted tag, against a
-`base` like the CLI (`vault.write:<tag>`), and returns the item only with
+More `dmsg_*` tools, each behind its capability: `dmsg_vault_read`
+always masks concealed/OTP fields; the removed `secret` parameter is rejected.
+`dmsg_secret_policies`, `dmsg_secret_use_request`, `dmsg_secret_use_status` and
+`dmsg_secret_use_cancel` request and inspect one
+owner-approved GitHub issue creation under `secret.use:<policy>`;
+`dmsg_vault_write` adds or edits an item that keeps a granted tag
+(`vault.write:<tag>`). Its optional `base` must match the current revision;
+a stale base returns `VERSION_CONFLICT`, without opening historical content.
+The item is returned only with
 `vault.read` on it; it can give a concealed or one-time-password field a new
-value or remove it, but refuses a type that would show its value;
+value or remove it, but refuses a type that would show its value or a change
+to an existing item's tags;
 `dmsg_files_list` lists a library folder and `dmsg_files_search` finds files by name, tag or note (`files.read:<folder>`
 for the folder or one above); `dmsg_files_read` returns up to 1 MiB of a
 version from `offset`, base64url, opening only the chunks it lies in, each
@@ -1211,3 +1217,19 @@ independent of `dmsg.relay.delivery` and scoped to the Agent and mailbox filter.
 Read new mail with `mark_read=true`, then acknowledge completed inbox handling;
 preview/history readers leave read state unchanged. The full contract is in
 [Mail events](../../docs/protocol/mail_events.md).
+
+## Credential use (P0)
+
+`dmsg secrets ref <item> <field>` prints a reference, never the value.
+`dmsg secrets policies save <json-file>` requests approval of a local policy
+and optional `grant_to`; `list`, `disable` and `delete <id> <base-version>`
+manage it. `dmsg secrets uses list/show/cancel/reviewed` inspects uses.
+See [the exact contract](../../docs/protocol/secrets_zh.md) for input shapes.
+
+Only the fixed GitHub.com issue-create adapter is implemented. No wildcard
+`secret.use`, remote execution service, credential resolve or P1 injection/
+SSH/mount/sharing is provided. Each use needs desktop approval or an
+interactive terminal with a successful system presence check. Policy changes
+also require approval; disabling is immediate. A `lost` outcome may already
+have created the issue and is never replayed. Tests do not use real GitHub
+credentials; see [validation](../../docs/dmsg_secrets_P0_validation_zh.md).

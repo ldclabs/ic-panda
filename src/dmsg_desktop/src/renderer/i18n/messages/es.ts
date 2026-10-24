@@ -2,6 +2,10 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    secretUses: "Uso de credenciales",
+    secretPolicy: "Cambiar política de credenciales",
+    secretUse: "Crear un issue de GitHub",
+
     loadFailed: 'No se pudo cargar',
     storageExhausted: "Límite de descargas alcanzado",
     storageTitle: "Almacenamiento en la nube",

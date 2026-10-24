@@ -170,6 +170,16 @@ pub fn file_name(path: &std::path::Path) -> String {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Action {
+    /// A device-local policy configuration, approved independently of its uses.
+    SecretPolicy {
+        /// Configuration the owner reviews.
+        change: crate::secrets::PolicyChange,
+    },
+    /// One immutable use plan; never replayed by reconciliation.
+    SecretUse {
+        /// Immutable operation and its source/version bindings.
+        plan: Box<crate::secrets::SecretUsePlan>,
+    },
     /// Attest a statement with this device; `origin` is the checked
     /// application origin the execution receipt records.
     Attest {
@@ -284,6 +294,7 @@ pub enum Action {
 impl Action {
     fn class(&self) -> &'static str {
         match self {
+            Action::SecretPolicy { .. } | Action::SecretUse { .. } => "secret",
             Action::Attest { .. } | Action::AttestAction { .. } => "attest",
             Action::DeviceCapabilities { .. }
             | Action::DeviceRevoke { .. }
@@ -327,6 +338,12 @@ pub struct Request {
     /// A file the person compared with its digest; not part of what is
     /// approved.
     pub file_check: Option<FileCheck>,
+    /// Filtered secret-use result, sealed with this request.
+    #[serde(default)]
+    pub secret_result: Option<crate::secrets::github::IssueResult>,
+    /// Manual review of a lost result, without changing its outcome.
+    #[serde(default)]
+    pub reviewed_at: Option<u64>,
 }
 
 impl Request {
@@ -344,6 +361,8 @@ pub enum Decision {
     Attest(Box<crate::attest::AttestRun>),
     /// An approved wallet job, whose network waits release the client.
     Wallet(Box<WalletRun>),
+    /// One non-idempotent use, executed outside the client lock.
+    SecretUse(Box<crate::secrets::SecretRun>),
 }
 
 /// How long an attestation running in steps keeps the reconciler away;
@@ -357,6 +376,7 @@ const RUN_MS: u64 = 5 * MINUTE;
 /// confirmed with the person present where the device can ask.
 pub fn high_risk(request: &Request, detail: &Json) -> bool {
     match &request.action {
+        Action::SecretPolicy { .. } | Action::SecretUse { .. } => true,
         Action::Checkout { .. } | Action::Letter { .. } | Action::DeviceRevoke { .. } => true,
         Action::Principal { .. } => true,
         Action::Grant { capabilities, .. } => {
@@ -424,18 +444,22 @@ impl Client {
 
     /// Store a request and its index row together.
     pub(crate) fn save_approval(&self, request: &Request) -> Result<()> {
-        let keys = self.keys()?;
-        self.workspace.store.atomic(|store| {
-            store.put_approval(&ApprovalRow {
-                id: request.id.clone(),
-                state: request.state.name().into(),
-                class: request.action.class().into(),
-                created_at: request.created_at,
-                expires_at: request.expires_at,
-            })?;
-            self.workspace
-                .put_private(keys, &Self::approval_key(&request.id), request)
-        })
+        self.workspace
+            .store
+            .atomic(|_| self.write_approval(request))
+    }
+
+    /// Write inside the caller's existing workspace transaction.
+    pub(crate) fn write_approval(&self, request: &Request) -> Result<()> {
+        self.workspace.store.put_approval(&ApprovalRow {
+            id: request.id.clone(),
+            state: request.state.name().into(),
+            class: request.action.class().into(),
+            created_at: request.created_at,
+            expires_at: request.expires_at,
+        })?;
+        self.workspace
+            .put_private(self.keys()?, &Self::approval_key(&request.id), request)
     }
 
     /// Add a request from `source`, waiting until `expires_at`.
@@ -495,6 +519,8 @@ impl Client {
             decided_at: None,
             decided_via: None,
             file_check: None,
+            secret_result: None,
+            reviewed_at: None,
         };
         self.save_approval(&request)?;
         Ok(request)
@@ -502,7 +528,7 @@ impl Client {
 
     /// Mark undecided requests past their deadline expired, and forget
     /// finished ones past [`RETAIN_MS`].
-    fn expire_approvals(&mut self, now: u64) -> Result<()> {
+    pub(crate) fn expire_approvals(&mut self, now: u64) -> Result<()> {
         for id in self
             .workspace
             .store
@@ -515,6 +541,17 @@ impl Client {
             .store
             .approvals(&[State::AwaitingUser.name()])?
         {
+            if row.expires_at > now && row.class == "secret" {
+                let mut request = self.approval_record(&row.id)?;
+                if let Action::SecretUse { plan } = &request.action
+                    && let Err(error) = self.secret_plan_check(plan, now)
+                {
+                    request.state = State::Failed;
+                    request.error = Some(crate::error_code(&error));
+                    request.updated_at = now;
+                    self.save_approval(&request)?;
+                }
+            }
             if row.expires_at <= now {
                 let mut request = self.approval_record(&row.id)?;
                 request.state = State::Expired;
@@ -719,6 +756,7 @@ impl Client {
             Decision::Done(view) => Ok(view),
             Decision::Attest(run) => run.run(&self.hold()).await,
             Decision::Wallet(run) => run.run(&self.hold()).await,
+            Decision::SecretUse(run) => run.run(&self.hold()).await,
         }
     }
 
@@ -752,6 +790,15 @@ impl Client {
             request.error = Some("PRESENCE_REQUIRED".into());
             self.save_approval(&request)?;
             return Err(Error::Forbidden);
+        }
+        if approve && matches!(request.action, Action::SecretUse { .. }) {
+            ensure(
+                via == "gui"
+                    || (via == "cli"
+                        && confirmed
+                        && self.presence.as_ref().and_then(|p| p.presence()).is_some()),
+                Error::Forbidden,
+            )?;
         }
         request.decided_at = Some(now);
         request.decided_via = Some(via.into());
@@ -793,6 +840,14 @@ impl Client {
                     .map(Decision::Done),
             };
         }
+        if matches!(request.action, Action::SecretUse { .. }) {
+            return match self.secret_run(&mut request, now) {
+                Ok(run) => Ok(Decision::SecretUse(Box::new(run))),
+                Err(error) => self
+                    .secret_fail_before_send(&request.id, error)
+                    .map(Decision::Done),
+            };
+        }
         if let Action::Wallet { job, digest } = &request.action {
             ensure(
                 self.wallet_job_digest(job)? == *digest,
@@ -812,6 +867,8 @@ impl Client {
     /// in steps ([`crate::attest::AttestRun`]).
     async fn execute_approval(&mut self, request: &mut Request) -> Result<()> {
         match request.action.clone() {
+            Action::SecretPolicy { change } => self.secret_policy_apply(&change, &request.id),
+            Action::SecretUse { .. } => Err(Error::Forbidden),
             Action::Attest { .. } | Action::AttestAction { .. } => {
                 Err(Error::InvalidInput("an attestation runs in steps".into()))
             }
@@ -1037,6 +1094,10 @@ impl Client {
         let count = requests.len();
         for mut request in requests {
             let outcome = match request.action.clone() {
+                Action::SecretUse { .. } | Action::SecretPolicy { .. } => {
+                    self.secret_reconcile(&mut request)?;
+                    continue;
+                }
                 // Account changes reconcile through the account journal.
                 Action::DeviceCapabilities { .. } => self.resume().await.map(|_| ()),
                 Action::DeviceRevoke { .. } => match self.resume().await {
@@ -1143,6 +1204,8 @@ impl Client {
     /// Read the operation behind a request for display.
     fn approval_detail(&self, action: &Action, check_files: bool) -> Result<Json> {
         Ok(match action {
+            Action::SecretPolicy { change } => json!(change),
+            Action::SecretUse { plan } => plan.view(),
             Action::Attest {
                 statement,
                 origin,
@@ -1249,6 +1312,8 @@ impl Client {
             "source": request.source,
             "kind": request.action.class(),
             "type": match &request.action {
+                Action::SecretPolicy { .. } => "secret_policy",
+                Action::SecretUse { .. } => "secret_use",
                 Action::Attest { .. } | Action::AttestAction { .. } => "attest",
                 Action::DeviceCapabilities { .. } => "device_capabilities",
                 Action::DeviceRevoke { .. } => "device_revoke",
@@ -1273,6 +1338,8 @@ impl Client {
             "execution": request.execution,
             "error": request.error,
             "file_check": request.file_check,
+            "result": request.secret_result,
+            "reviewed_at": request.reviewed_at,
             "detail": detail,
         }))
     }

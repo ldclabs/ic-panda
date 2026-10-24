@@ -2,6 +2,10 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    secretUses: "凭据使用",
+    secretPolicy: "变更凭据使用策略",
+    secretUse: "创建 GitHub issue",
+
     loadFailed: '读取失败',
     storageExhausted: "下载次数已用尽",
     storageTitle: "云端空间",

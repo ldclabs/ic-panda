@@ -16,6 +16,7 @@
     titleOf,
     trailOf
   } from '../approval'
+  import SecretReview from './secrets/Review.svelte'
   import WalletIntent from './wallet/Intent.svelte'
   import { knownIntent, durationText, amountText, assetInfo, intentFeeAsset } from './wallet/model'
   import { w } from './wallet/text'
@@ -408,7 +409,7 @@
   /** A web page asks this device to vouch that the account approved the page's session. */
   const authenticating = $derived(request?.type === 'connect' && d.method === 'authenticate')
 
-  const section = $derived<Label>(s || authenticating ? 'youSign' : kind === 'kindPayment' ? 'youPay' : 'youChange')
+  const section = $derived<Label>(request?.type === 'secret_use' ? 'secretUses' : s || authenticating ? 'youSign' : kind === 'kindPayment' ? 'youPay' : 'youChange')
 
   /** What approving does, in plain words; the last lines say what cannot be undone. */
   const after = $derived.by((): [string, boolean][] => {
@@ -625,6 +626,8 @@
         <h2 class="mb-2 text-xs font-semibold tracking-[0.03em] text-faint">{t(section)}</h2>
         {#if request.detail === null}
           <p class="rounded-xl border border-line bg-paper px-4 py-3.5 text-[13px] text-muted" data-testid="approval-detail-unavailable">{t('approvalDetailUnavailable')}</p>
+        {:else if request.type === 'secret_use' || request.type === 'secret_policy'}
+          <SecretReview {request} />
         {:else if s}
           <div class="rounded-xl border border-line bg-paper px-4 py-3.5">
             <div class="font-mono text-[11px] text-faint">{s.profile}{s.subject ? ` · ${s.subject}` : ''}</div>

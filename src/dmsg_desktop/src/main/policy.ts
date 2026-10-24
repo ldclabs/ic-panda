@@ -37,6 +37,16 @@ import { DaemonError } from './error.ts'
  * declares at `app/initialize` that only a person's input is activity.
  */
 export const WINDOW_METHODS = new Set([
+  'secrets/ref',
+  'secrets/policies/list',
+  'secrets/policies/save_request',
+  'secrets/policies/disable',
+  'secrets/policies/delete_request',
+  'secrets/uses/get',
+  'secrets/uses/list',
+  'secrets/uses/cancel',
+  'secrets/uses/mark_reviewed',
+
   'daemon/status',
   'session/login_result',
   'session/accounts',
@@ -323,6 +333,8 @@ export const WINDOW_METHODS = new Set([
 
 /** Methods whose requests the desktop marks as its own (`source: "gui"`). */
 const GUI_SOURCED = new Set([
+  'secrets/policies/save_request',
+  'secrets/policies/delete_request',
   'agent/mail_push_set',
   'account/bind_approve',
   'account/unbind',

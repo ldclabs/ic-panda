@@ -587,8 +587,8 @@ export default {
   'Fetched and checked. Only on your devices does it have a name: {name}.':
     'Загружено и проверено. Имя у файла есть только на ваших устройствах: {name}.',
   'Files': 'Файлы',
-  'Found it. The secret itself stays out: that would need vault.secret for this item.':
-    'Нашёл. Сам секрет не выдаётся: для этого нужен vault.secret на этот элемент.',
+  "Found it. Concealed values stay masked; using a credential requires a separate approval.":
+    "Найдено. Скрытые значения остаются скрытыми; использование ключа требует отдельного одобрения.",
   'From an interactive terminal': 'Из интерактивного терминала',
   'Granted capabilities': 'Выданные права',
   'Hide': 'Скрыть',

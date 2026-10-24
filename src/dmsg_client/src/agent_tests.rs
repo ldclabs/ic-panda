@@ -747,13 +747,14 @@ fn the_vocabulary_names_what_can_be_granted() {
     for entry in vocabulary() {
         let capability = entry
             .replace("<origin>", "https://discourse.dmsg.net")
+            .replace("<policy>", "0123456789abcdef0123456789abcdef")
             .replace(['<', '>'], "");
         validate_capability(&capability).unwrap();
     }
     assert!(vocabulary().contains(&"files.read:<folder>".to_string()));
     assert!(vocabulary().contains(&"wallet.propose:<wallet>".to_string()));
     assert!(sensitive("vault.read:*"));
-    assert!(sensitive("vault.secret:item1"));
+    assert!(sensitive("secret.use:0123456789abcdef0123456789abcdef"));
     assert!(sensitive("wallet.execute:aaaaa-aa"));
     assert!(!sensitive("vault.read:work"));
     assert!(check_grant(&[], None).is_err());

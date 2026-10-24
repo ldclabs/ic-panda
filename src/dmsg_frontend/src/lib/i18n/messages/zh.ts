@@ -563,8 +563,8 @@ export default {
   'Fetched and checked. Only on your devices does it have a name: {name}.':
     '已取回并校验。只有在你的设备上，它才有名字：{name}。',
   'Files': '文件',
-  'Found it. The secret itself stays out: that would need vault.secret for this item.':
-    '找到了。机密字段本身不会返回：那需要针对此条目的 vault.secret。',
+  "Found it. Concealed values stay masked; using a credential requires a separate approval.":
+    "找到了。隐藏值保持遮罩；使用凭据需要另行批准。",
   'From an interactive terminal': '来自交互式终端',
   'Granted capabilities': '已授予的能力',
   'Hide': '隐藏',

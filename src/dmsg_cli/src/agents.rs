@@ -28,7 +28,7 @@ use dmsg_client::{
     error_code,
     hold::Hold,
     library::catalog::ROOT,
-    vault::{Changes, Filter, Item, otp},
+    vault::{Changes, Filter, Item},
 };
 use dmsg_types::{
     Error, Result,
@@ -868,6 +868,52 @@ impl Daemon {
     /// A `dmsg_*` tool, after the capability it needs.
     async fn dmsg_tool(&self, agent: &AgentEntry, tool: &str, input: &Value) -> Result<Value> {
         let did = agent.agent_id.as_str();
+        if tool.starts_with("dmsg_secret_") {
+            let mut client = self.client().lock().await;
+            let current = client.agent_find(did)?;
+            ensure(
+                !current.paused
+                    && current.credential == agent.credential
+                    && current.credential.is_some(),
+                Error::Forbidden,
+            )?;
+            let answer = match tool {
+                "dmsg_secret_policies" => {
+                    ensure(
+                        input.as_object().is_some_and(|p| p.is_empty()),
+                        Error::InvalidInput("input".into()),
+                    )?;
+                    client.secret_agent_policies(did)
+                }
+                "dmsg_secret_use_request" => {
+                    let input = serde_json::from_value(input.clone())
+                        .map_err(|_| Error::InvalidInput("secret use input".into()))?;
+                    client.secret_use_request(did, input)
+                }
+                "dmsg_secret_use_status" | "dmsg_secret_use_cancel" => {
+                    ensure(
+                        input
+                            .as_object()
+                            .is_some_and(|p| p.len() == 1 && p.contains_key("request_id")),
+                        Error::InvalidInput("input".into()),
+                    )?;
+                    let id = text(input, "request_id")?;
+                    if tool.ends_with("_cancel") {
+                        client.secret_use_cancel(&id, Some(did))
+                    } else {
+                        client.secret_use_get(&id, Some(did))
+                    }
+                }
+                _ => Err(Error::NotFound),
+            };
+            drop(client);
+            if matches!(tool, "dmsg_secret_use_request" | "dmsg_secret_use_cancel")
+                && answer.is_ok()
+            {
+                self.emit("approval/changed", Value::Null);
+            }
+            return answer;
+        }
         let h = self.hold();
         h.with(|_| Ok(())).await?;
         let channel = || text(input, "channel");
@@ -1127,29 +1173,20 @@ impl Daemon {
                 // Never dMsg's own keys, not even with `vault.read:*`.
                 ensure(!entry.item.reserved(), Error::Forbidden)?;
                 tagged(&client, did, "vault.read", &entry.item)?;
-                // Hidden values only with a grant naming the item.
-                let reveal = input["secret"] == true;
-                if !reveal {
-                    return Ok(to_json(&entry.masked(false)));
-                }
-                client.capability_check(did, &format!("vault.secret:{}", entry.id))?;
-                let now = dmsg_client::now_ms();
-                let codes: serde_json::Map<String, Value> = entry
-                    .item
-                    .fields
-                    .iter()
-                    .filter(|f| f.kind == "otp" && !f.value.is_empty())
-                    .filter_map(|f| {
-                        let code = otp::parse(&f.value).ok()?.code(now).code;
-                        Some((f.id.clone(), code.into()))
-                    })
-                    .collect();
-                let mut read = to_json(&entry);
-                read["codes"] = codes.into();
-                Ok(read)
+                ensure(
+                    input.get("secret").is_none(),
+                    Error::InvalidInput("secret is not supported".into()),
+                )?;
+                Ok(to_json(&entry.masked(false)))
             }
             "dmsg_vault_write" => {
-                let id = input["id"].as_str();
+                let id = optional(input, "id", text)?;
+                let base = optional(input, "base", text)?;
+                ensure(
+                    id.is_some() || base.is_none(),
+                    Error::InvalidInput("base requires an item".into()),
+                )?;
+                let id = id.as_deref();
                 let changes = Changes {
                     title: optional(input, "title", text)?,
                     notes: optional(input, "notes", text)?,
@@ -1163,14 +1200,14 @@ impl Daemon {
                     Some(id) => {
                         let entry = client.vault_show(id)?;
                         ensure(!entry.deleted, Error::NotFound)?;
-                        // The edit applies to `base`: the grants must reach
-                        // the version it writes.
-                        let entry = match input["base"].as_str() {
-                            Some(base) => client.vault_version(id, base)?,
-                            None => entry,
-                        };
                         ensure(!entry.item.reserved(), Error::Forbidden)?;
                         tagged(&client, did, "vault.write", &entry.item)?;
+                        // Agents may edit the head, never use writes as a
+                        // history-reading API after the owner hides or moves data.
+                        ensure(
+                            base.as_deref().is_none_or(|base| base == entry.revision),
+                            Error::VersionConflict,
+                        )?;
                         Some(entry.item)
                     }
                     None => None,
@@ -1180,6 +1217,10 @@ impl Daemon {
                     .unwrap_or_else(|| Item::new(kind, "", dmsg_client::now_ms()));
                 changes.apply(&mut item);
                 item.normalize();
+                ensure(
+                    old.as_ref().is_none_or(|old| old.tags == item.tags),
+                    Error::Forbidden,
+                )?;
                 ensure(!item.reserved(), Error::Forbidden)?;
                 // An agent may replace or remove a hidden value, never show
                 // it by changing the field's type.
@@ -1189,7 +1230,7 @@ impl Daemon {
                 )?;
                 tagged(&client, did, "vault.write", &item)?;
                 let entry = match id {
-                    Some(id) => client.vault_edit(id, input["base"].as_str(), &changes)?,
+                    Some(id) => client.vault_edit(id, base.as_deref(), &changes)?,
                     None => client.vault_create(kind, &changes)?,
                 };
                 // Writing is not reading: the item comes back only to an
@@ -1563,6 +1604,83 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn review_historical_base_cannot_unhide_a_current_secret() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = crate::home::Home {
+            dir: dir.0.join("home"),
+        };
+        let mut c = dmsg_client::testing::unlocked(&dir.0.join("workspace"), false, None);
+        let old=c.vault_create("note",&serde_json::from_value::<Changes>(json!({"title":"Imported credential","tags":["work"],"set":[{"id":"credential","type":"text","value":"review-hidden-fixture"}]})).unwrap()).unwrap();
+        let current = c
+            .vault_edit(
+                &old.id,
+                None,
+                &serde_json::from_value::<Changes>(
+                    json!({"set":[{"id":"credential","type":"concealed"}]}),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        let agent = c.agent_create("history-reader").unwrap();
+        c.capability_grant(
+            "gui",
+            &agent.agent_id,
+            vec!["vault.read:work".into(), "vault.write:work".into()],
+            None,
+        )
+        .unwrap();
+        let d = Daemon::new(
+            "owner".into(),
+            0,
+            home.settings().unwrap(),
+            c,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        );
+        let reply=d.call_agent(&agent,"mcp/call",&json!({"tool":"dmsg_vault_write","input":{"id":old.id,"base":old.revision,"notes":"unchanged field"}})).await.unwrap();
+        assert!(
+            !reply.to_string().contains("review-hidden-fixture"),
+            "a historical write must not reveal the current concealed value"
+        );
+        assert_eq!(reply["error"]["code"], "VERSION_CONFLICT");
+        assert_eq!(
+            d.client()
+                .lock()
+                .await
+                .vault_show(&old.id)
+                .unwrap()
+                .revision,
+            current.revision
+        );
+        assert!(
+            d.client()
+                .lock()
+                .await
+                .vault_conflicts()
+                .unwrap()
+                .is_empty()
+        );
+        for invalid in [
+            json!({"id":old.id,"base":1}),
+            json!({"id":[],"notes":"bad id"}),
+        ] {
+            let rejected = d
+                .call_agent(
+                    &agent,
+                    "mcp/call",
+                    &json!({"tool":"dmsg_vault_write","input":invalid}),
+                )
+                .await
+                .unwrap();
+            assert_eq!(rejected["error"]["code"], "INVALID_INPUT");
+        }
+        let changed=d.call_agent(&agent,"mcp/call",&json!({"tool":"dmsg_vault_write","input":{"id":old.id,"base":current.revision,"notes":"safe head edit"}})).await.unwrap();
+        assert!(changed["error"].is_null());
+        assert!(!changed.to_string().contains("review-hidden-fixture"));
+        assert_eq!(changed["result"]["item"]["notes"], "safe head edit");
+    }
+
+    #[tokio::test]
     async fn agent_vault_write_never_shows_a_hidden_value() {
         let dir = dmsg_client::testing::TempDir::new();
         let home = crate::home::Home {
@@ -1616,6 +1734,22 @@ mod tests {
                 .map(|f| f["value"].clone())
         };
 
+        for tags in [json!(["work", "new-scope"]), json!(["different"])] {
+            let reply = write(json!({"id":created.id,"tags":tags})).await;
+            assert_eq!(reply["error"]["code"], "FORBIDDEN");
+        }
+        for secret in [true, false] {
+            let reply = daemon
+                .call_agent(
+                    &agent,
+                    "mcp/call",
+                    &json!({"tool":"dmsg_vault_read","input":{"id":created.id,"secret":secret}}),
+                )
+                .await
+                .unwrap();
+            assert_eq!(reply["error"]["code"], "INVALID_INPUT");
+            assert!(!reply.to_string().contains("s3cret"));
+        }
         // A type shown in the clear, named by ID or by label, is refused
         // and nothing is written.
         for set in [

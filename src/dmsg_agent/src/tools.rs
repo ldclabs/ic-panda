@@ -63,7 +63,31 @@ const STANDARD_CAPABILITIES: [(&str, &str); 31] = [
 ];
 
 /// The `dmsg_*` tools: name, description, read-only, input schema.
-const DMSG_TOOLS: [(&str, &str, bool, &str); 34] = [
+const DMSG_TOOLS: [(&str, &str, bool, &str); 38] = [
+    (
+        "dmsg_secret_policies",
+        "Device-local credential-use policies this Agent may request. Returns operations and exact targets, never secret fields. secret.use:<policy_id> permits requesting, not approving.",
+        true,
+        r#"{"type":"object","additionalProperties":false,"properties":{}}"#,
+    ),
+    (
+        "dmsg_secret_use_request",
+        "Request one GitHub issue creation using an owner-configured policy. Requires secret.use:<policy_id> and separate human approval of the complete title/body. Does not return credentials. Reuse idempotency_key only for identical input; lost/EXECUTION_UNKNOWN must be checked by a person, never blindly retried.",
+        false,
+        r#"{"type":"object","additionalProperties":false,"required":["policy_id","operation","arguments","idempotency_key"],"properties":{"policy_id":{"type":"string"},"operation":{"const":"issue.create"},"idempotency_key":{"type":"string","minLength":1,"maxLength":128},"reason":{"type":"string","maxLength":4096},"arguments":{"type":"object","additionalProperties":false,"required":["title"],"properties":{"title":{"type":"string","minLength":1,"maxLength":256},"body":{"type":"string","maxLength":32768}}}}}"#,
+    ),
+    (
+        "dmsg_secret_use_status",
+        "The current Agent's use request state and filtered issue number/link, with its live policy capability. lost means the external outcome is unknown; never automatically repeat it.",
+        true,
+        r#"{"type":"object","additionalProperties":false,"required":["request_id"],"properties":{"request_id":{"type":"string"}}}"#,
+    ),
+    (
+        "dmsg_secret_use_cancel",
+        "Cancel this Agent's undecided use request. Does not cancel or recall an already dispatched operation and cannot approve anything.",
+        false,
+        r#"{"type":"object","additionalProperties":false,"required":["request_id"],"properties":{"request_id":{"type":"string"}}}"#,
+    ),
     (
         "dmsg_account_status",
         "This account's lock, sync and approval state; needs account.read.",
@@ -78,13 +102,13 @@ const DMSG_TOOLS: [(&str, &str, bool, &str); 34] = [
     ),
     (
         "dmsg_vault_read",
-        "One vault item: its type, title, tags, notes, fields (id, type, label, section, value) and attached file IDs; needs vault.read:<tag> for one of its tags. Concealed and one-time-password values read ******** unless secret: true, which needs vault.secret:<id> and adds the current one-time codes as codes.",
+        "One vault item: its type, title, tags, notes, fields (id, type, label, section, value) and attached file IDs; needs vault.read:<tag> for one of its tags. Concealed and one-time-password values are always masked. This tool never reveals concealed/OTP field values or computes OTP codes; ordinary fields and notes remain readable.",
         true,
-        r#"{"type":"object","required":["id"],"properties":{"id":{"type":"string"},"secret":{"type":"boolean"}}}"#,
+        r#"{"type":"object","additionalProperties":false,"required":["id"],"properties":{"id":{"type":"string"}}}"#,
     ),
     (
         "dmsg_vault_write",
-        "Add a vault item (type: login, api, key, ssh, wallet, card, identity, server, database, license or note; a new item starts with its type's fields), or edit item id. set changes fields by id or label, or adds them (type text, concealed, url, email, phone, date YYYY-MM-DD, month YYYY-MM or otp), but a concealed or otp field keeps a hidden type: give it a new value or remove it instead; remove takes fields off by id or label; what is left out stays. The item must keep a tag of a vault.write:<tag> grant. An edit replaces base, by default the current version; when another device moved past it, the edit is kept as a conflict copy for the owner. The item comes back only with vault.read:<tag> for one of its tags.",
+        "Add a vault item (type: login, api, key, ssh, wallet, card, identity, server, database, license or note; a new item starts with its type's fields), or edit item id. set changes fields by id or label, or adds them (type text, concealed, url, email, phone, date YYYY-MM-DD, month YYYY-MM or otp), but a concealed or otp field keeps a hidden type: give it a new value or remove it instead; remove takes fields off by id or label; what is left out stays. New items must have a tag of a vault.write:<tag> grant. Existing item tags cannot be changed by Agents. An edit only changes the current version. Optional base is an optimistic version check; a stale base returns VERSION_CONFLICT without reading or writing historical content. The item comes back only with vault.read:<tag> for one of its tags.",
         false,
         concat!(
             r#"{"type":"object","properties":{"id":{"type":"string"},"base":{"type":"string"},"type":{"enum":["login","api","key","ssh","wallet","card","identity","server","database","license","note"]},"title":{"type":"string"},"notes":{"type":"string"},"#,
@@ -413,7 +437,7 @@ mod tests {
     #[test]
     fn standard_tools_keep_input_and_output_contracts() {
         let tools = tool_list();
-        assert_eq!(tools.len(), 75);
+        assert_eq!(tools.len(), 79);
         for tool in standard_tool_definitions() {
             let advertised = tools.iter().find(|t| t["name"] == tool.name).unwrap();
             assert_eq!(

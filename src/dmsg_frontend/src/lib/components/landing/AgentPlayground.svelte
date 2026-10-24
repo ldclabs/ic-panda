@@ -162,7 +162,7 @@
       else if (call.tool === 'dmsg_vault_read')
         steps.push({
           kind: 'say',
-          key: 'Found it. The secret itself stays out: that would need vault.secret for this item.'
+          key: 'Found it. Concealed values stay masked; using a credential requires a separate approval.'
         })
       await follow()
     }

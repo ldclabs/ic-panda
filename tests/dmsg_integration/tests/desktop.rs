@@ -5778,7 +5778,7 @@ fn desktop_agents() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    assert_eq!(names.len(), 75);
+    assert_eq!(names.len(), 79);
     assert!(names.contains(&"agent_protocols_room_join") && names.contains(&"dmsg_vault_list"));
     assert!(names.contains(&"agent_protocols_mail_send"));
     for name in [
@@ -6183,14 +6183,15 @@ fn desktop_agents() {
     assert_eq!(
         mcp.tool("dmsg_vault_read", json!({"id": item, "secret": true}))
             .unwrap_err()["code"],
-        "FORBIDDEN"
+        "INVALID_INPUT"
     );
-    a.run(&["grants", "add", "claude", &format!("vault.secret:{item}")]);
-    let revealed = mcp
-        .tool("dmsg_vault_read", json!({"id": item, "secret": true}))
-        .unwrap();
-    assert_eq!(field(&revealed, "password"), "s3cret");
-    assert_eq!(revealed["codes"].as_object().unwrap().len(), 1);
+    assert_eq!(
+        a.fail(&["grants", "add", "claude", &format!("vault.secret:{item}")]),
+        "INVALID_INPUT"
+    );
+    let masked = mcp.tool("dmsg_vault_read", json!({"id":item})).unwrap();
+    assert_eq!(field(&masked, "password"), "********");
+    assert!(masked["codes"].is_null());
     // dMsg's own keys stay out of reach, even with `*`.
     let controller = vault
         .as_array()
@@ -6205,14 +6206,7 @@ fn desktop_agents() {
         a.fail(&["grants", "add", "claude", "vault.read:dmsg-controller"]),
         "INVALID_INPUT"
     );
-    a.run(&[
-        "grants",
-        "add",
-        "claude",
-        "vault.read:*",
-        "vault.secret:*",
-        "vault.write:*",
-    ]);
+    a.run(&["grants", "add", "claude", "vault.read:*", "vault.write:*"]);
     assert_eq!(
         mcp.tool("dmsg_vault_read", json!({"id": controller, "secret": true}))
             .unwrap_err()["code"],
@@ -6426,7 +6420,7 @@ fn desktop_agents() {
     let listed = modern.request("tools/list", json!({"_meta": meta}));
     assert_eq!(listed["result"]["resultType"], "complete");
     assert_eq!(listed["result"]["cacheScope"], "private");
-    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 75);
+    assert_eq!(listed["result"]["tools"].as_array().unwrap().len(), 79);
     let unknown = modern.request(
         "tools/list",
         json!({"_meta": {"io.modelcontextprotocol/protocolVersion": "2099-01-01", "io.modelcontextprotocol/clientCapabilities": {}}}),

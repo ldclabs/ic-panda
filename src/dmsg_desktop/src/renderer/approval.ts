@@ -24,6 +24,9 @@ export function kindOf(request: any): Label {
     case 'principal':
     case 'grant':
       return 'kindAgent'
+    case 'secret_use':
+    case 'secret_policy':
+      return 'secretUses'
     case 'account':
     case 'device_capabilities':
     case 'device_revoke':
@@ -37,6 +40,7 @@ export function kindOf(request: any): Label {
 
 /** The icon of each kind of decision. */
 export const kindIcon: Record<string, Glyph> = {
+  secretUses: 'security',
   kindWeb: 'website',
   kindPayment: 'coins',
   kindSignature: 'signature',
@@ -96,6 +100,10 @@ export function titleOf(request: any): Title {
       if (s?.profile === 'app_action') return { label: 'appAction' }
       return { label: s?.content?.sha256 ? 'signFile' : 'newStatement' }
     }
+    case 'secret_use':
+      return { label: 'secretUse' }
+    case 'secret_policy':
+      return { label: 'secretPolicy' }
     case 'checkout':
       return { label: 'payPlan' }
     case 'letter':
@@ -137,6 +145,10 @@ export function summaryOf(request: any): string {
   switch (request?.type) {
     case 'connect':
       return `${d.app_id ?? ''} · ${d.origin ?? ''}`
+    case 'secret_use':
+      return `${d.target?.owner ?? ''}/${d.target?.repo ?? ''} · ${d.arguments?.title ?? ''}`
+    case 'secret_policy':
+      return String(d.policy?.name ?? d.id ?? '')
     case 'checkout':
       return `${d.sku ?? ''} · ${d.origin ?? ''}`
     case 'letter':

@@ -40,7 +40,7 @@ test('an audit outcome reads as done, refused or in between', () => {
 })
 
 /** The daemon's vocabulary (`dmsg_client::agents::vocabulary`), in part. */
-const vocabulary = ['account.read', 'vault.read:<tag>', 'vault.secret:<item>', 'files.read:<folder>', 'wallet.read', 'wallet.propose:<wallet>', 'mail.read:<origin>']
+const vocabulary = ['account.read', 'vault.read:<tag>', 'secret.use:<policy>', 'files.read:<folder>', 'wallet.read', 'wallet.propose:<wallet>', 'mail.read:<origin>']
 
 test('only what the vocabulary names may be typed', () => {
   assert.deepEqual(
@@ -61,7 +61,7 @@ test('only what the vocabulary names may be typed', () => {
 
 test('grants reaching everything, a secret or a wallet’s execution ask again', () => {
   assert.equal(sensitive('vault.read:*'), true)
-  assert.equal(sensitive('vault.secret:i1'), true)
+  assert.equal(sensitive('secret.use:0123456789abcdef0123456789abcdef'), true)
   assert.equal(sensitive('wallet.execute:aaaaa-aa'), true)
   assert.equal(sensitive('vault.read:work'), false)
   assert.equal(grantState({ revoked_at: 1 }, 10), 'revoked')
@@ -120,4 +120,10 @@ test('Agent Profile has separate read/write grants and includes configured profi
   assert.deepEqual(reach.services['agent.profile.read'], ['https://profiles.example'])
   assert.equal(reach.services['agent.profile.write'], undefined)
   assert.deepEqual(reach.other, [])
+})
+
+
+test('credential use names one policy and cannot use a wildcard', () => {
+  const vocabulary = ['secret.use:<policy>']
+  assert.deepEqual(unknownCapabilities(['secret.use:*','secret.use:missing','secret.use:0123456789abcdef0123456789abcdef'], vocabulary), ['secret.use:*','secret.use:missing'])
 })

@@ -158,11 +158,12 @@ enum Module {
     Mount,
     Wallet,
     Vault,
+    Secrets,
 }
 
 /// The module that serves `method`; `None` for an unknown method.
 fn route(method: &str) -> Option<Module> {
-    let modules: [(Module, &[&str]); 11] = [
+    let modules: [(Module, &[&str]); 12] = [
         (Module::Daemon, &METHODS),
         (Module::More, &crate::methods::METHODS),
         (Module::Account, &crate::account_methods::METHODS),
@@ -174,6 +175,7 @@ fn route(method: &str) -> Option<Module> {
         (Module::Mount, &crate::mount::METHODS),
         (Module::Wallet, &crate::wallet_methods::METHODS),
         (Module::Vault, &crate::vault_methods::METHODS),
+        (Module::Secrets, &crate::secret_methods::METHODS),
     ];
     modules
         .into_iter()
@@ -796,6 +798,10 @@ impl Daemon {
             .await?;
         match decision {
             Decision::Done(view) => Ok(view),
+            Decision::SecretUse(run) => {
+                self.emit("approval/changed", Value::Null);
+                run.run(&self.hold()).await
+            }
             Decision::Wallet(run) => {
                 let _turn = self.turn("wallet-approval").await;
                 self.emit("approval/changed", Value::Null);
@@ -944,6 +950,7 @@ impl Daemon {
             Module::Mount => self.call_mount(method, params).await,
             Module::Wallet => self.call_wallet(method, params).await,
             Module::Vault => self.call_vault(method, params).await,
+            Module::Secrets => self.call_secrets(method, params).await,
             // An agent's credential reaches these, never the owner's.
             Module::Agent => Err(Error::Forbidden),
         }
@@ -1461,6 +1468,14 @@ fn events_of(module: Module, method: &str) -> &'static [&'static str] {
         Module::Mount => crate::mount::events_of(method),
         Module::Wallet => crate::wallet_methods::events_of(method),
         Module::Vault => crate::vault_methods::events_of(method),
+        Module::Secrets => match method {
+            "secrets/policies/save_request"
+            | "secrets/policies/delete_request"
+            | "secrets/policies/disable"
+            | "secrets/uses/cancel"
+            | "secrets/uses/mark_reviewed" => &["approval/changed", "agent/changed"],
+            _ => &[],
+        },
     }
 }
 
@@ -1872,6 +1887,7 @@ mod tests {
             &crate::mount::METHODS,
             &crate::wallet_methods::METHODS,
             &crate::vault_methods::METHODS,
+            &crate::secret_methods::METHODS,
         ];
         let mut seen = std::collections::BTreeSet::new();
         for method in modules.into_iter().flatten() {
@@ -1893,6 +1909,10 @@ mod tests {
             "files/tags",
             "files/preferences",
             "channel/list",
+            "secrets/ref",
+            "secrets/policies/list",
+            "secrets/uses/get",
+            "secrets/uses/list",
         ] {
             assert!(events_of(route(read).unwrap(), read).is_empty(), "{read}");
         }
@@ -1908,6 +1928,70 @@ mod tests {
             events_of(Module::Daemon, "session/fast_unlock"),
             ["session/changed"]
         );
+    }
+
+    #[tokio::test]
+    async fn review_secret_owner_methods_are_inaccessible_with_an_agent_credential() {
+        let dir = dmsg_client::testing::TempDir::new();
+        let home = Home {
+            dir: dir.0.join("home"),
+        };
+        let mut c = dmsg_client::testing::unlocked(&dir.0.join("workspace"), false, None);
+        let actor = c.agent_create("boundary").unwrap();
+        let credential = c.agent_credential(&actor.agent_id).unwrap();
+        let daemon = Arc::new(Daemon::new(
+            "owner-token".into(),
+            0,
+            home.settings().unwrap(),
+            c,
+            dmsg_agent::Runtime::new(&dmsg_agent::Options::default()).unwrap(),
+            crate::mcp_events::McpEvents::new(&[]).unwrap(),
+        ));
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+            .await
+            .unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let server = tokio::spawn(async move { axum::serve(listener, app(daemon)).await });
+        std::fs::create_dir_all(&home.dir).unwrap();
+        home.publish(&Discovery {
+            port,
+            pid: 0,
+            instance: "review".into(),
+        })
+        .unwrap();
+        let agent = Remote::agent(&home, &credential).unwrap();
+        for method in crate::secret_methods::METHODS
+            .into_iter()
+            .chain(["approval/respond", "grants/add"])
+        {
+            assert_eq!(
+                agent
+                    .call(method, json!({"human":true,"source":"gui","approve":true}))
+                    .await
+                    .unwrap_err()
+                    .code,
+                "FORBIDDEN",
+                "{method}"
+            );
+        }
+        let owner = Remote::agent(&home, "owner-token").unwrap();
+        assert_eq!(
+            owner
+                .call("secrets/policies/list", json!({}))
+                .await
+                .unwrap()["policies"],
+            json!([])
+        );
+        let origin = reqwest::Client::new()
+            .post(format!("http://127.0.0.1:{port}/app/v1"))
+            .header("authorization", "Bearer owner-token")
+            .header("origin", "https://untrusted.example")
+            .json(&json!({"jsonrpc":"2.0","id":1,"method":"secrets/policies/list","params":{}}))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(origin.status(), StatusCode::UNAUTHORIZED);
+        server.abort();
     }
 
     #[tokio::test]

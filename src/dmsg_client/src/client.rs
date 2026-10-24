@@ -206,6 +206,8 @@ impl InFlight {
 pub struct Client {
     /// Changes whenever keys are dropped, invalidating in-flight sync work.
     pub(crate) session_generation: u64,
+    pub(crate) secret_boot: String,
+    pub(crate) secret_active: BTreeMap<String, crate::secrets::run::ActiveUse>,
     pub(crate) config: Config,
     /// The environment's directory.
     dir: PathBuf,
@@ -520,6 +522,8 @@ impl Client {
         let workspace = idle(&config.environment)?;
         let mut client = Self {
             session_generation: 0,
+            secret_boot: hex::encode(crate::crypto::random_id()),
+            secret_active: BTreeMap::new(),
             config,
             dir: dir.to_path_buf(),
             secure,
@@ -1076,6 +1080,7 @@ impl Client {
     /// device signing key stays, so presigned and sealed versions still go
     /// out; nothing can be read or decided.
     pub fn lock(&mut self) {
+        self.secret_abort(None, None);
         if self.keys.is_some() || self.login.is_some() {
             self.session_generation = self.session_generation.wrapping_add(1);
         }

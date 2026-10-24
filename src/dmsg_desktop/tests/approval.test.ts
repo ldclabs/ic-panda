@@ -130,3 +130,14 @@ test('agents, the terminal and the main window reach this device directly', () =
   assert.equal(trailOf(request('attest', {}, 'gui'))[0].role, 'sourceWindow')
   assert.deepEqual(trailOf(request('attest', {}, 'odd'))[0], { icon: 'window', name: 'odd', role: 'sourceOther' })
 })
+
+
+test('credential uses identify their exact operation and keep unknown outcomes unresolved', () => {
+  const r = request('secret_use', {target:{owner:'example',repo:'test'},arguments:{title:'<script>literal</script>'}}, 'agent:did:agent:test', {state:'lost',risk:'high'})
+  assert.equal(kindOf(r), 'secretUses')
+  assert.equal(titleOf(r).label, 'secretUse')
+  assert.equal(summaryOf(r), 'example/test · <script>literal</script>')
+  assert.equal(holdToApprove(r), true)
+  assert.equal(stepsOf(r).at(-1)?.state, 'lost')
+  assert.equal(titleOf(request('secret_policy')).label, 'secretPolicy')
+})

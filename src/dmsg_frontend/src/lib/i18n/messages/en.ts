@@ -579,8 +579,8 @@ const en = {
   'Fetched and checked. Only on your devices does it have a name: {name}.':
     'Fetched and checked. Only on your devices does it have a name: {name}.',
   'Files': 'Files',
-  'Found it. The secret itself stays out: that would need vault.secret for this item.':
-    'Found it. The secret itself stays out: that would need vault.secret for this item.',
+  "Found it. Concealed values stay masked; using a credential requires a separate approval.":
+    "Found it. Concealed values stay masked; using a credential requires a separate approval.",
   'From an interactive terminal': 'From an interactive terminal',
   'Granted capabilities': 'Granted capabilities',
   'Hide': 'Hide',

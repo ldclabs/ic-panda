@@ -11,6 +11,7 @@
   import Grants from './approvals/Grants.svelte'
   import Requests from './approvals/Requests.svelte'
   import Sign from './approvals/Sign.svelte'
+  import Secrets from './secrets/Policies.svelte'
 
   /**
    * Signatures and approvals in parts: the requests waiting, running and
@@ -20,7 +21,7 @@
    */
   let { status }: { status: any } = $props()
 
-  type Tab = 'requests' | 'sign' | 'bundles' | 'grants'
+  type Tab = 'requests' | 'sign' | 'bundles' | 'grants' | 'secrets'
 
   let tab = $state<Tab>('requests')
   let requests = $state<any[]>([])
@@ -118,7 +119,8 @@
     { value: 'requests', label: t('requests'), icon: 'approvals' as const, count: waiting.length },
     { value: 'sign', label: t('newSignature'), icon: 'signature' as const },
     { value: 'bundles', label: t('bundles'), icon: 'verified' as const },
-    { value: 'grants', label: t('authorizations'), icon: 'security' as const }
+    { value: 'grants', label: t('authorizations'), icon: 'security' as const },
+    { value: 'secrets', label: t('secretUses'), icon: 'security' as const }
   ])
 </script>
 
@@ -138,6 +140,8 @@
           <Sign {open} />
         {:else if tab === 'bundles'}
           <Bundles {history} {known} {unlocked} {open} />
+        {:else if tab === 'secrets'}
+          <Secrets {open} />
         {:else}
           <Grants {requests} />
         {/if}

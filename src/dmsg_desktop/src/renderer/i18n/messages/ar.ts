@@ -2,6 +2,10 @@ import type { Catalog } from './en'
 
 export default {
   messages: {
+    secretUses: "استخدام بيانات الاعتماد",
+    secretPolicy: "تغيير سياسة الاعتماد",
+    secretUse: "إنشاء مسألة GitHub",
+
     loadFailed: 'تعذّر التحميل',
     storageExhausted: "تم بلوغ حد التنزيل",
     storageTitle: "التخزين السحابي",

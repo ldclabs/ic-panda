@@ -526,3 +526,15 @@ previously downloaded copies. Accepted deletion, physical cleanup and quota rele
 have distinct states; failures can retry. Locking clears decrypted inventory and link
 information. The page only polls while visible with pending cleanup. Electron smoke
 covers the global inventory, links, bulk confirmation and delayed quota release.
+
+## Credential use
+
+Signatures & approvals → Credential use configures device-local GitHub
+issue-create policies using masked field selectors. Changes and optional
+Agent grants open the existing approval window. Uses show the exact target,
+credential revision and full literal title/body, with high-risk confirmation.
+History distinguishes `lost` from success and supports manual-review markers
+and immediate policy disabling. No P1 file mount or injection is implemented.
+`node scripts/secrets-smoke.mjs` exercises the built Electron app and IPC
+against a local fixture; it does not test OS biometrics or contact GitHub.
+See [validation](../../docs/dmsg_secrets_P0_validation_zh.md).

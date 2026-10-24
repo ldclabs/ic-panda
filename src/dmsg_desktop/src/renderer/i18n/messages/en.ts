@@ -4,6 +4,10 @@
  * from the parameters `t` gets.
  */
 const messages = {
+    secretUses: "Credential use",
+    secretPolicy: "Change credential-use policy",
+    secretUse: "Create a GitHub issue",
+
     loadFailed: 'Could not load',
     storageExhausted: "Download limit reached",
     storageTitle: "Cloud storage",

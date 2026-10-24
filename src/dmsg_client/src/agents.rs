@@ -44,7 +44,7 @@ pub const MAX_AGENTS: usize = 16;
 pub const MAX_GRANTS: usize = 64;
 
 /// What an agent may be granted (plan §6.9). A `:<target>` names a vault
-/// tag, a vault item ID (`vault.secret`), a library folder ID (`files.*`,
+/// tag, a local use policy ID (`secret.use`), a library folder ID (`files.*`,
 /// covering the folders under it) or a channel ID; `*` is every target and
 /// an explicit owner choice. Account, device and root changes, payments,
 /// names, principal changes, signing, backups, deletions, sharing and the
@@ -60,7 +60,7 @@ pub const CAPABILITIES: [&str; 27] = [
     "vault.list",
     "vault.read:",
     "vault.write:",
-    "vault.secret:",
+    "secret.use:",
     "files.read:",
     "files.write:",
     "channel.read:",
@@ -112,7 +112,7 @@ pub fn vocabulary() -> Vec<String> {
             Some(name) => {
                 let target = match name {
                     "vault.read" | "vault.write" => "tag",
-                    "vault.secret" => "item",
+                    "secret.use" => "policy",
                     "files.read" | "files.write" => "folder",
                     "channel.read" | "channel.publish" => "channel",
                     "wallet.propose" | "wallet.execute" => "wallet",
@@ -144,6 +144,9 @@ pub struct AgentEntry {
     /// The owner paused it: its credential reaches nothing until resumed.
     #[serde(default)]
     pub paused: bool,
+    /// Monotonic pause generation: resuming cannot revive old use requests.
+    #[serde(default)]
+    pub pause_generation: u64,
     /// Unix milliseconds.
     pub created_at: u64,
 }
@@ -224,6 +227,9 @@ pub fn validate_capability(capability: &str) -> Result<()> {
                         && service_origin(target).is_ok_and(|origin| origin == target))
             })
         }
+        Some("secret.use") => capability
+            .strip_prefix(c)
+            .is_some_and(|target| crate::secrets::hex_id(target, 32)),
         Some(_) => capability.strip_prefix(c).is_some_and(|target| {
             (1..=128).contains(&target.len())
                 && !target.contains(char::is_whitespace)
@@ -254,12 +260,18 @@ pub fn check_grant(capabilities: &[String], days: Option<u64>) -> Result<()> {
 /// target, a secret's value, or carrying out a wallet's transactions.
 pub fn sensitive(capability: &str) -> bool {
     capability.ends_with(":*")
-        || capability.starts_with("vault.secret:")
+        || capability.starts_with("secret.use:")
         || capability.starts_with("wallet.execute:")
 }
 
 /// Whether `granted` covers `needed`: equal, or `<name>:*` for any target.
 pub fn covers(granted: &str, needed: &str) -> bool {
+    if needed.starts_with("vault.secret:") || granted.starts_with("vault.secret:") {
+        return false;
+    }
+    if needed.starts_with("secret.use:") {
+        return granted == needed && validate_capability(needed).is_ok();
+    }
     granted == needed
         || granted
             .strip_suffix('*')
@@ -311,9 +323,15 @@ impl Client {
             .secure()
             .ok_or_else(|| Error::Unavailable("no system credential store".into()))?;
         let now = now_ms();
-        let own: Vec<&CapabilityGrant> = grants
+        let own: Vec<CapabilityGrant> = grants
             .iter()
             .filter(|g| g.grantee == agent_id && g.live(now))
+            .cloned()
+            .map(|mut g| {
+                g.capabilities.retain(|c| !c.starts_with("secret.use:"));
+                g
+            })
+            .filter(|g| !g.capabilities.is_empty())
             .collect();
         secure.set(
             &self.resident_grants_name(agent_id)?,
@@ -412,6 +430,7 @@ impl Client {
             credential: None,
             credential_at: None,
             paused: false,
+            pause_generation: 0,
             created_at: now,
         };
         agents.list.push(entry.clone());
@@ -494,6 +513,7 @@ impl Client {
         entry.credential = Some(credential_digest(&credential));
         entry.credential_at = Some(now_ms());
         self.agent_update(&entry)?;
+        self.secret_abort(Some(&entry.agent_id), None);
         Ok(credential)
     }
 
@@ -507,6 +527,7 @@ impl Client {
         entry.credential = None;
         entry.credential_at = None;
         self.agent_update(&entry)?;
+        self.secret_abort(Some(&entry.agent_id), None);
         Ok(entry)
     }
 
@@ -517,8 +538,17 @@ impl Client {
     /// Returns `Error::NotFound` for an unknown Agent ID.
     pub fn agent_pause(&mut self, name: &str, paused: bool) -> Result<AgentEntry> {
         let mut entry = self.agent_find(name)?;
+        if paused && !entry.paused {
+            entry.pause_generation = entry
+                .pause_generation
+                .checked_add(1)
+                .ok_or(Error::QuotaExceeded)?;
+        }
         entry.paused = paused;
         self.agent_update(&entry)?;
+        if paused {
+            self.secret_abort(Some(&entry.agent_id), None);
+        }
         Ok(entry)
     }
 
@@ -570,6 +600,7 @@ impl Client {
             None,
             "ok",
         );
+        self.secret_abort(Some(&entry.agent_id), None);
         Ok(entry)
     }
 
@@ -808,6 +839,7 @@ impl Client {
         self.grants_changed(&revoked.grantee, &grants)?;
         self.workspace.put_private(self.keys()?, GRANTS, &grants)?;
         self.audit_grant(via, "grants/revoke", &revoked);
+        self.secret_abort(Some(&revoked.grantee), None);
         Ok(revoked)
     }
 
@@ -818,11 +850,22 @@ impl Client {
     /// Returns `Error::Forbidden` without a live grant covering it and
     /// `Error::Locked` while locked for an Agent ID that is not resident.
     pub fn capability_check(&self, grantee: &str, needed: &str) -> Result<()> {
+        self.capability_check_at(grantee, needed, now_ms())
+    }
+
+    /// Check using the synchronous execution step's single time reading.
+    pub(crate) fn capability_check_at(&self, grantee: &str, needed: &str, now: u64) -> Result<()> {
+        if needed.starts_with("vault.secret:") {
+            return Err(Error::Forbidden);
+        }
+        if needed.starts_with("secret.use:") {
+            self.keys()?;
+        }
         if DEFAULT_CAPABILITIES.contains(&needed) {
             return Ok(());
         }
         let granted = self
-            .capability_live(grantee)?
+            .capability_live_at(grantee, now)?
             .iter()
             .any(|g| g.capabilities.iter().any(|c| covers(c, needed)));
         ensure(granted, Error::Forbidden)
@@ -857,11 +900,18 @@ impl Client {
     /// # Errors
     /// Returns `Error::Locked` while locked for an Agent ID that is not resident.
     pub fn capability_live(&self, grantee: &str) -> Result<Vec<CapabilityGrant>> {
+        self.capability_live_at(grantee, now_ms())
+    }
+
+    pub(crate) fn capability_live_at(
+        &self,
+        grantee: &str,
+        now: u64,
+    ) -> Result<Vec<CapabilityGrant>> {
         let grants = match self.keys {
             Some(_) => self.capability_grants()?,
             None => self.resident_grants(grantee)?,
         };
-        let now = now_ms();
         Ok(grants
             .into_iter()
             .filter(|g| g.grantee == grantee && g.live(now))

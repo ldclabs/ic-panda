@@ -569,8 +569,8 @@ export default {
   'Fetched and checked. Only on your devices does it have a name: {name}.':
     'جُلب وتُحقق منه. لا يحمل اسمًا إلا على أجهزتك: {name}.',
   'Files': 'الملفات',
-  'Found it. The secret itself stays out: that would need vault.secret for this item.':
-    'وجدته. يبقى السر نفسه محجوبًا: فذلك يتطلب vault.secret لهذا العنصر.',
+  "Found it. Concealed values stay masked; using a credential requires a separate approval.":
+    "تم العثور عليه. تبقى القيم المخفية محجوبة؛ استخدام الاعتماد يتطلب موافقة منفصلة.",
   'From an interactive terminal': 'من طرفية تفاعلية',
   'Granted capabilities': 'الصلاحيات الممنوحة',
   'Hide': 'إخفاء',
