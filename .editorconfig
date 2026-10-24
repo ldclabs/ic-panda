@@ -1,0 +1,8 @@
+root = true
+
+# Keep package-manager and scripted manifest edits compatible with Prettier.
+# Do not apply this to byte-for-byte upstream protocol fixtures.
+[package.json]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
